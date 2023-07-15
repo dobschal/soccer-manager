@@ -30,6 +30,15 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/src/play-game-day.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Run API",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/src/api.js"
         }
     ]
 ]

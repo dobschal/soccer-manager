@@ -14,7 +14,7 @@ import { calculateGamePlan, randomItem } from './lib/util.js'
 const teamsPerLeague = 18
 const maxLevels = 20
 const amountTeamsPerLevel = _calculateAmountPerLevel()
-const minimumTeams = 100 // TODO: set this to amountOfUsers * 2
+const minimumTeams = 126 // three leagues, will be overwritten by amount of users...
 
 export async function prepareSeason () {
   await _ajustAmountOfTeams()
@@ -107,8 +107,9 @@ function _calculateAmountPerLevel () {
  */
 async function _ajustAmountOfTeams () {
   const [{ amount: amountOfUsers }] = await query('SELECT COUNT(*) AS amount FROM team WHERE user_id IS NOT NULL')
+  const minimumAmountOfTeams = Math.max((amountOfUsers ?? 0) * 2, minimumTeams)
   let teams = await query('SELECT * FROM team')
-  while (teams.length === 0 || teams.length % teamsPerLeague !== 0 || teams.length < Math.max(amountOfUsers ?? 0, minimumTeams)) {
+  while (teams.length === 0 || teams.length % teamsPerLeague !== 0 || teams.length < minimumAmountOfTeams) {
     const levelForNewTeam = _determineLevelForNewTeam(teams)
     const team = await _createRandomTeam(levelForNewTeam)
     Promise.all([...Array(16)].map((_, i) => _createRandomPlayer(team, i)))

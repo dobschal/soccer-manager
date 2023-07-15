@@ -1,0 +1,16 @@
+import express from 'express'
+import { query } from './lib/database.js'
+const app = express()
+const port = 3000
+
+app.use(express.static('client'))
+
+app.get('/api/read', async (req, res) => {
+  const { query: q } = req.query
+  const results = await query(q)
+  res.send(results)
+})
+
+app.listen(port, () => {
+  console.log(`API running on port ${port}`)
+})
