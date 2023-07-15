@@ -54,6 +54,8 @@ const migrations = [{
                 id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
                 season INT,
                 game_day INT,
+                level INT,
+                league INT,
                 team_1_id BIGINT(20),
                 team_2_id BIGINT(20),
                 played TINYINT(1),

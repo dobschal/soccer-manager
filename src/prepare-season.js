@@ -1,9 +1,15 @@
+import { Game } from './entities/game.js'
 import { Player } from './entities/player.js'
 import { Team } from './entities/team.js'
 import { query } from './lib/database.js'
 import { Formation, Position, getPositionsOfFormation } from './lib/formation.js'
 import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name-library.js'
-import { randomItem } from './lib/util.js'
+import { calculateGamePlan, randomItem } from './lib/util.js'
+
+/**
+ * This script is checking for enough games, teams and players
+ * If too less, it creates those.
+ */
 
 const teamsPerLeague = 18
 const maxLevels = 20
@@ -19,11 +25,66 @@ async function _createGames () {
   if (!(await _newGamesNeeded())) {
     return console.log('No new games needed.')
   }
-  console.log('Need new games...')
-  //
-  // TODO: setup game days with related teams
-  //
-  // for each team in a league, give an index from 0 to 17 --> fix gameplan, create game days
+  const season = await _seasonForNewGames()
+  const gamePlan = calculateGamePlan(teamsPerLeague)
+  const teams = await query('SELECT * FROM team')
+  for (let level = 0; level < maxLevels; level++) {
+    const teamsOfLevel = teams.filter(t => t.level === level)
+    if (teamsOfLevel.length === 0) break
+    const leagues = []
+    for (let i = 0; i < teamsOfLevel.length; i++) {
+      const league = Math.floor(i / teamsPerLeague)
+      if (!leagues[league]) leagues[league] = []
+      leagues[league].push(teamsOfLevel[i])
+    }
+    await Promise.all(leagues.map((teamsOfLeague, league) => {
+      return _createGamesForLeague(season, level, league, teamsOfLeague, gamePlan)
+    }))
+  }
+  console.log(`Created games for season ${season}`)
+}
+
+async function _createGamesForLeague (season, level, league, teams, gamePlan) {
+  let gameDay = 0
+  for (const gamesOfGameday of gamePlan) {
+    for (const gamePair of gamesOfGameday) {
+      const teamA = teams[gamePair[0] - 1]
+      const teamB = teams[gamePair[1] - 1]
+      const game = new Game({
+        team_1_id: teamA.id,
+        team_2_id: teamB.id,
+        season,
+        game_day: gameDay,
+        level,
+        league,
+        played: 0,
+        details: '{}'
+      })
+      const backGame = new Game({
+        team_1_id: teamB.id,
+        team_2_id: teamA.id,
+        season,
+        game_day: gameDay + (teamsPerLeague - 1),
+        level,
+        league,
+        played: 0,
+        details: '{}'
+      })
+      await query('INSERT INTO game SET ?', game)
+      await query('INSERT INTO game SET ?', backGame)
+    }
+    gameDay++
+  }
+}
+
+/**
+ *  If all games are played, take the last games season + 1 for new games...
+ *
+ * @returns {Promise<number>}
+ */
+async function _seasonForNewGames () {
+  const [game] = await query('SELECT * FROM game g ORDER BY g.season DESC LIMIT 1')
+  return game?.season ?? 0
 }
 
 /**

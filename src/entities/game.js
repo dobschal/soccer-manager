@@ -5,6 +5,8 @@
  * @property {number} game_day
  * @property {number} team_1_id
  * @property {number} team_2_id
+ * @property {number} level
+ * @property {number} league
  * @property {number} played - 1: played, 0: not played yet
  * @property {string} details - JSON string of the details
  * @property {number} goals_team_1
@@ -25,6 +27,8 @@ export function Game (raw) {
     game_day: RequiredNumber,
     team_1_id: RequiredNumber,
     team_2_id: RequiredNumber,
+    level: RequiredNumber,
+    league: RequiredNumber,
     played: RequiredNumber,
     details: RequiredString,
     goals_team_1: OptionalNumber,
