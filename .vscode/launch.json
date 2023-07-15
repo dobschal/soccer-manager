@@ -21,6 +21,16 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/src/prepare-season.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Play Game Day",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/src/play-game-day.js"
         }
     ]
+]
 }

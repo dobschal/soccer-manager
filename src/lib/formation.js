@@ -47,3 +47,25 @@ export const Formation = {
   541: '541',
   532: '532'
 }
+
+/**
+ * @param {string} position
+ * @returns {string}
+ */
+export function determineOponentPosition (position) {
+  switch (position) {
+    case 'GK': return null
+    case 'LD': return 'RA'
+    case 'CD': return 'CA'
+    case 'RD': return 'LA'
+    case 'LM': return 'RM'
+    case 'DM': return 'OM'
+    case 'CM': return 'CM'
+    case 'RM': return 'LM'
+    case 'OM': return 'DM'
+    case 'LA': return 'RD'
+    case 'CA': return 'CD'
+    case 'RA': return 'LD'
+  }
+  throw new Error('Unknown position: ' + position)
+}
