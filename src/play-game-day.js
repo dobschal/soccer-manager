@@ -24,7 +24,9 @@ async function _playGame (game) {
   const gameDetails = {
     log: [],
     goalsTeamB: 0,
-    goalsTeamA: 0
+    goalsTeamA: 0,
+    strengthTeamA,
+    strengthTeamB
   }
   _kickoff(playerTeamA, playerTeamB, gameDetails)
   for (let minute = 0; minute < 90; minute++) {
