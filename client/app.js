@@ -1,10 +1,17 @@
-import { queryApi } from './lib/gateway.js'
+import { renderGamesPage } from './pages/games.js'
+import { renderTeamsPage } from './pages/teams.js'
 
-console.log('Application started...')
+window.addEventListener('hashchange', resolvePage)
 
-async function fetchTeams () {
-  const teams = await queryApi('SELECT * FROM team')
-  console.log('Teams: ', teams)
+const pages = {
+  games: renderGamesPage,
+  '*': renderTeamsPage
 }
 
-fetchTeams()
+async function resolvePage () {
+  document.body.innerHTML = ''
+  const pageRenderFn = pages[window.location.hash.substring(1)] ?? pages['*']
+  document.body.insertAdjacentHTML('afterbegin', await pageRenderFn())
+}
+
+resolvePage()
