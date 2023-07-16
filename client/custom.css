@@ -1,0 +1,43 @@
+@keyframes page-enter-animation {
+  0% {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+#page>* {
+  animation-name: page-enter-animation;
+  animation-duration: 0.3s;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-in-out;
+}
+
+.centered-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.centered-container>* {
+  width: 100%;
+  max-width: 640px;
+  margin: auto;
+  padding: 0 1rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.toast {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  min-width: 250px;
+  transform: translateX(-125px);
+}

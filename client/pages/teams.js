@@ -3,10 +3,8 @@ import { queryApi } from '../lib/gateway.js'
 export async function renderTeamsPage () {
   const teams = await fetchTeams()
   return `
-    <h1>Soccer Simulation</h1>
-    <div>
+    <div class="mb-4">
       Got ${teams.length} teams<br>
-      <a href="#games">games</a>
     </div>
     <table class="table">
       <thead>
