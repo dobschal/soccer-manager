@@ -1,8 +1,11 @@
 import { formatDate } from '../lib/date.js'
 import { server } from '../lib/gateway.js'
 
+let info
+
 export async function renderMyTeamPage () {
-  const info = await server.getMyTeam()
+  info = await server.getMyTeam()
+  console.log(info)
   return `
     <div class="mb-4">
       <h2>${info.team.name}</h2>
@@ -62,6 +65,16 @@ function _positionValue (player) {
 }
 
 function _renderSquad (players) {
+  // position hack for 2x CM and 2x CD
+  setTimeout(() => {
+    ['.CM', '.CD'].forEach(positionClass => {
+      const el = document.querySelectorAll(positionClass)
+      if (el.length === 2) {
+        el.item(0).style.left = '38%'
+        el.item(1).style.left = '62%'
+      }
+    })
+  })
   return `
     <div class="mb-4 squad">
       ${players.filter(p => p.in_game_position).map(_renderSquadPlayer).join('')}
@@ -72,7 +85,7 @@ function _renderSquad (players) {
 function _renderSquadPlayer (player) {
   return `
     <div class="player ${player.position}">
-      ${player.name}
+      ${player.name.split(' ')[0][0]}. ${player.name.split(' ')[1]}
     </div>
   `
 }

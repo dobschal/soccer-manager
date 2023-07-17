@@ -1,0 +1,88 @@
+.squad {
+  background-color: green;
+  background-image: url("../assets/football-field.svg");
+  width: 100%;
+  position: relative;
+  background-size: 154% auto;
+  background-position: bottom 11% left 50%;
+  aspect-ratio: 1.5 / 1;
+}
+
+.squad .player {
+  position: absolute;
+  width: 100px;
+  height: 50px;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  border: solid 1px white;
+  border-radius: 1rem;
+  transform: translateX(-50px);
+  color: white;
+  text-align: center;
+  line-height: 50px;
+}
+
+.squad .player:hover {
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.squad .player.GK {
+  top: 85%;
+  left: 50%;
+}
+
+.squad .player.LD {
+  top: 65%;
+  left: 15%;
+}
+
+.squad .player.CD {
+  top: 70%;
+  left: 50%;
+}
+
+.squad .player.RD {
+  top: 65%;
+  left: 85%;
+}
+
+.squad .player.CM {
+  top: 40%;
+  left: 50%;
+}
+
+.squad .player.LM {
+  top: 40%;
+  left: 15%;
+}
+
+.squad .player.RM {
+  top: 40%;
+  left: 85%;
+}
+
+.squad .player.DM {
+  top: 55%;
+  left: 50%;
+}
+
+.squad .player.OM {
+  top: 30%;
+  left: 50%;
+}
+
+.squad .player.CA {
+  top: 10%;
+  left: 50%;
+}
+
+.squad .player.RA {
+  top: 10%;
+  left: 75%;
+}
+
+.squad .player.LA {
+  top: 10%;
+  left: 25%;
+}
