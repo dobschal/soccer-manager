@@ -86,7 +86,9 @@ function _renderSquad (players) {
 function _renderSquadPlayer (player) {
   return `
     <div class="player ${player.position}">
+    <span class="position-badge">${player.position}</span>
       ${player.name.split(' ')[0][0]}. ${player.name.split(' ')[1]}
+      <span class="level-badge">${player.level}</span>
     </div>
   `
 }
