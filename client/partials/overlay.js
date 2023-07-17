@@ -33,4 +33,10 @@ export function showOverlay (title, subttitle, text) {
     </div>
   `
   document.body.insertAdjacentHTML('beforeend', html)
+
+  return {
+    remove () {
+      el('#' + overlayId)?.remove()
+    }
+  }
 }

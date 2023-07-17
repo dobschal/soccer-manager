@@ -1,21 +1,24 @@
 import { formatDate } from '../lib/date.js'
 import { server } from '../lib/gateway.js'
+import { generateId } from '../lib/html.js'
+import { onClick } from '../lib/htmlEventHandlers.js'
+import { render } from '../lib/render.js'
+import { showOverlay } from '../partials/overlay.js'
+import { toast } from '../partials/toast.js'
 
-let info
+let data, overlay, dataChanged
 
 export async function renderMyTeamPage () {
-  info = await server.getMyTeam()
-  console.log(info)
+  dataChanged = false
+  data = await server.getMyTeam()
   return `
-    <div class="mb-4">
-      <h2>${info.team.name}</h2>
-      <p>
-        <b>Coach</b>: ${info.user.username} since ${formatDate('DD. MMM YYYY', info.user.created_at)}<br>
-        <b>Team Strength</b>: ${_calculateTeamStrength(info.players)}<br>
-        <b>Formation</b>: ${info.team.formation}
-      </p>
+    <div class="mb-4" id="header">
+      ${_renderHeader()}
     </div>
-    ${_renderSquad(info.players)}
+    <h3>Lineup</h3>
+    <div class="mb-4" id="squad">
+      ${_renderSquad()}
+    </div>
     <h3>Players</h3>
     <table class="table">
       <thead>
@@ -26,9 +29,20 @@ export async function renderMyTeamPage () {
         </tr>
       </thead>
       <tbody>
-          ${info.players.sort(_sortByPosition).map(_renderPlayerListItem).join('')}
+          ${data.players.sort(_sortByPosition).map(_renderPlayerListItem()).join('')}
       </tbody>
     </table>
+  `
+}
+
+function _renderHeader () {
+  return `
+    <h2>${data.team.name}</h2>
+    <p>
+      <b>Coach</b>: ${data.user.username} since ${formatDate('DD. MMM YYYY', data.user.created_at)}<br>
+      <b>Team Strength</b>: ${_calculateTeamStrength(data.players)}<br>
+      <b>Formation</b>: ${data.team.formation}
+    </p>
   `
 }
 
@@ -39,14 +53,20 @@ function _calculateTeamStrength (players) {
 /**
  * @param {Player} player
  */
-function _renderPlayerListItem (player) {
-  return `
-    <tr class="${player.in_game_position ? 'table-info' : 'table-warning'}">
-      <th scope="row">${player.name}</th>
-      <td>${player.position}</td>
-      <td>${player.level}</td>
-    </tr>
-  `
+function _renderPlayerListItem (onClickHandler) {
+  return (player) => {
+    const id = generateId()
+    if (onClickHandler) {
+      onClick('#' + id, () => onClickHandler(player))
+    }
+    return `
+      <tr id="${id}" class="${player.in_game_position ? 'table-info' : 'table-warning'}">
+        <th scope="row">${player.name}</th>
+        <td>${player.position}</td>
+        <td>${player.level}</td>
+      </tr>
+    `
+  }
 }
 
 function _sortByPosition (playerA, playerB) {
@@ -65,7 +85,7 @@ function _positionValue (player) {
   return playingValue
 }
 
-function _renderSquad (players) {
+function _renderSquad () {
   // position hack for 2x CM and 2x CD
   setTimeout(() => {
     ['.CM', '.CD'].forEach(positionClass => {
@@ -77,18 +97,68 @@ function _renderSquad (players) {
     })
   })
   return `
-    <div class="mb-4 squad">
-      ${players.filter(p => p.in_game_position).map(_renderSquadPlayer).join('')}
+    <div class="squad">
+      ${data.players.filter(p => p.in_game_position).map(_renderSquadPlayer).join('')}
     </div>
+    ${_renderSaveButton()}
+  `
+}
+
+function _renderSaveButton () {
+  if (!dataChanged) return ''
+  const id = generateId()
+  onClick('#' + id, async () => {
+    try {
+      await server.saveLineup({ players: data.players })
+      toast('Save lineup.')
+      render('#page', await renderMyTeamPage())
+    } catch (e) {
+      console.error(e)
+      toast('Something went wrong...')
+    }
+  })
+  return `
+    <button id="${id}" class="btn btn-primary" type="button">Save</button>
   `
 }
 
 function _renderSquadPlayer (player) {
+  const id = generateId()
+  onClick('#' + id, () => {
+    overlay = showOverlay('Select player', '', `
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Position</th>
+            <th scope="col">Level</th>
+          </tr>
+        </thead>
+        <tbody>
+            ${data.players.filter(p => p.position === player.position).map(_renderPlayerListItem(newPlayer => _exchangePlayer(player, newPlayer))).join('')}
+        </tbody>
+      </table>
+    `)
+
+    // TODO: List item click exchnge player and save...
+  })
   return `
-    <div class="player ${player.position}">
-    <span class="position-badge">${player.position}</span>
+    <div id="${id}" class="player ${player.position}">
+      <span class="position-badge">${player.position}</span>
       ${player.name.split(' ')[0][0]}. ${player.name.split(' ')[1]}
       <span class="level-badge">${player.level}</span>
     </div>
   `
+}
+
+function _exchangePlayer (player, newPlayer) {
+  const oldPosition = player.in_game_position
+  player.in_game_position = newPlayer.in_game_position
+  newPlayer.in_game_position = oldPosition
+  overlay?.remove()
+  if (player.id !== newPlayer) {
+    dataChanged = true
+  }
+  render('#squad', _renderSquad())
+  render('#header', _renderHeader())
 }
