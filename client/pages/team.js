@@ -1,17 +1,18 @@
-import { formatDate } from '../lib/date.js'
 import { server } from '../lib/gateway.js'
+import { getQueryParams } from '../lib/router.js'
+import { toast } from '../partials/toast.js'
 
-export async function renderMyTeamPage () {
-  const info = await server.getMyTeam()
+export async function renderTeamPage () {
+  const { id } = getQueryParams()
+  if (!id) toast('No team id present...')
+  const info = await server.getTeam({ teamId: Number(id) })
   return `
     <div class="mb-4">
       <h2>${info.team.name}</h2>
       <p>
-        <b>Coach</b>: ${info.user.username} since ${formatDate('DD. MMM YYYY', info.user.created_at)}<br>
         <b>Team Strength</b>: ${_calculateTeamStrength(info.players)}
       </p>
     </div>
-    ${_renderSquad(info.players)}
     <h3>Players</h3>
     <table class="table">
       <thead>
@@ -59,20 +60,4 @@ function _positionValue (player) {
   if (player.position.endsWith('D')) return 2 + playingValue
   if (player.position.endsWith('M')) return 1 + playingValue
   return playingValue
-}
-
-function _renderSquad (players) {
-  return `
-    <div class="mb-4 squad">
-      ${players.filter(p => p.in_game_position).map(_renderSquadPlayer).join('')}
-    </div>
-  `
-}
-
-function _renderSquadPlayer (player) {
-  return `
-    <div class="player ${player.position}">
-      ${player.name}
-    </div>
-  `
 }

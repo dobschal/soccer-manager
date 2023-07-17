@@ -1,16 +1,6 @@
 let count = 0
 
 /**
- * This is just to get Syntax Highlighting for HTML inside Javascript...
- *
- * @param {string} string
- * @returns {string}
- */
-export const html = (string) => {
-  return string
-}
-
-/**
  * Get the value of an input field or any other HTML Element
  *
  * @param {string} query

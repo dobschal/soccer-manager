@@ -1,7 +1,7 @@
-import { goTo } from '../app.js'
-import { onClick, onSubmit } from '../lib/eventHandlers.js'
+import { onClick, onSubmit } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
-import { el, html, value } from '../lib/html.js'
+import { el, value } from '../lib/html.js'
+import { goTo } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
 
 export function renderLoginPage () {
@@ -48,13 +48,13 @@ export function renderLoginPage () {
     toggleView()
   })
 
-  return html`
+  return `
     <div>
       <h2>Login</h2>
       <form id="login-form">
         <div class="form-group">
           <label for="username-input">Username</label>
-          <input class="form-control" id="username-input" type="text" placeholder="Username">
+          <input autofocus class="form-control" id="username-input" type="text" placeholder="Username">
         </div>
         <div class="form-group">
           <label for="password-input">Password</label>

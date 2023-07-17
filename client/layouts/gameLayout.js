@@ -1,6 +1,7 @@
-import { goTo } from '../app.js'
-import { onClick } from '../lib/eventHandlers.js'
-import { html } from '../lib/html.js'
+import { on } from '../lib/event.js'
+import { el, generateId } from '../lib/html.js'
+import { onClick } from '../lib/htmlEventHandlers.js'
+import { goTo } from '../lib/router.js'
 
 export function renderGameLayout () {
   onClick('#logout-button', () => {
@@ -33,18 +34,13 @@ export function renderGameLayout () {
 }
 
 function _navItem (path, text) {
-  if (window.location.hash.substring(1) === path) {
-    return `
-      <li class="nav-item active">
-        <a class="nav-link" href="#${path}">
-          ${text}
-          <span class="sr-only">(current)</span>
-        </a>
-      </li>
-    `
-  }
+  const id = generateId()
+  on('page-changed', () => {
+    const isCurrentPage = window.location.hash.substring(1).split('?')[0] === path
+    el('#' + id)?.classList[isCurrentPage ? 'add' : 'remove']('active')
+  })
   return `
-    <li class="nav-item">
+    <li id="${id}" class="nav-item">
       <a class="nav-link" href="#${path}">
         ${text}
       </a>
