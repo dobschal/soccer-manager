@@ -135,11 +135,74 @@ function _sortStanding (s1, s2) {
   return retVal
 }
 
-function _showGameModal (game) {
+async function _showGameModal (game) {
+  const { players: playersTeam1 } = await server.getTeam({ teamId: game.team1Id })
+  const { players: playersTeam2 } = await server.getTeam({ teamId: game.team2Id })
+  const players = {}
+  playersTeam1.forEach(p => {
+    p.team1 = true
+    players[p.id] = p
+  })
+  playersTeam2.forEach(p => {
+    p.team2 = true
+    players[p.id] = p
+  })
   console.log(JSON.parse(game.details))
+  const details = JSON.parse(game.details)
+  let ballControllA = 0
+  let ballControllB = 0
+  details.log.filter(l => typeof l.lostBall === 'boolean').forEach(l => {
+    if (l.lostBall && players[l.player].team1) {
+      ballControllB++
+    } else if (l.lostBall && !players[l.player].team1) {
+      ballControllA++
+    } else if (!l.lostBall && players[l.player].team1) {
+      ballControllA++
+    } else if (!l.lostBall && !players[l.player].team1) {
+      ballControllB++
+    }
+  })
+  const total = ballControllA + ballControllB
   showOverlay(
     `${game.team1} - ${game.team2}`,
-    `${game.goalsTeam1}:${game.goalsTeam2}`,
-    'TODO...'
+    `Result: ${game.goalsTeam1} : ${game.goalsTeam2}, Ball control: ${Math.floor((ballControllA / total) * 100)}% : ${Math.ceil((ballControllB / total) * 100)}%`,
+    `${details.log.map(_renderGameLogItem(players)).join('')}`
   )
+}
+
+function _renderGameLogItem (players) {
+  return (logItem, index) => {
+    if (logItem.kickoff) {
+      return `
+        <span class="${players[logItem.player].team1 ? 'left' : 'right'}">
+        ${index + 1}. Minute: ${players[logItem.player].name} is playing the first ball.
+        </span>
+      `
+    }
+    // if (logItem.lostBall) {
+    //   const text = logItem.lostBall
+    //     ? players[logItem.player].name + ' is losing the ball to ' + players[logItem.oponentPlayer].name
+    //     : players[logItem.player].name + ' blocks the tackling from ' + players[logItem.oponentPlayer].name + ' and keeps the ball'
+    //   return `
+    //     <span class="${players[logItem.player].team1 ? 'left' : 'right'}">
+    //       ${index + 1}. Minute: ${text}
+    //     </span>
+    //   `
+    // }
+    if (logItem.keeperHolds) {
+      return `
+        <span class="${players[logItem.goalKeeper].team1 ? 'left' : 'right'}">
+        ${index + 1}. Minute: ${players[logItem.goalKeeper].name} with a great save.
+        </span>
+      `
+    }
+    if (logItem.goal) {
+      return `
+        <span class="${players[logItem.player].team1 ? 'left' : 'right'}">
+        ${index + 1}. Minute: GOOOOAAAL... ${players[logItem.player].name} is striking!
+        </span>
+      `
+    }
+    return ''
+  }
 }

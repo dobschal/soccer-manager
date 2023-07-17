@@ -185,8 +185,6 @@ function _renderSquadPlayer (player) {
         </tbody>
       </table>
     `)
-
-    // TODO: List item click exchnge player and save...
   })
   return `
     <div id="${id}" class="player ${player.position}">
