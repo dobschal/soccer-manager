@@ -40,7 +40,7 @@ export async function renderResultsPage () {
       </p>
     </div>
     <h3>Games</h3>
-    <table class="table">
+    <table class="table table-hover">
       <thead>
         <tr>
           <th scope="col">Team 1</th>
@@ -53,7 +53,7 @@ export async function renderResultsPage () {
       </tbody>
     </table>
     <h3>Standing</h3>
-    <table class="table">
+    <table class="table table-hover">
     <thead>
       <tr>
         <th scope="col">#</th>
@@ -92,7 +92,7 @@ async function getSeasonAndGameDay () {
   let { season, gameDay } = getQueryParams()
   if (typeof season === 'undefined' && typeof gameDay === 'undefined') {
     const response = await server.getCurrentGameday()
-    season = response.season; gameDay = response.gameDay
+    season = response.season; gameDay = Math.max(0, response.gameDay - 1)
   } else {
     season = Number(season)
     gameDay = Number(gameDay)

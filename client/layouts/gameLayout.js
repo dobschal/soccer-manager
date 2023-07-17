@@ -4,9 +4,16 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { goTo } from '../lib/router.js'
 
 export function renderGameLayout () {
+  let mobileNavigationOpen = false
+
   onClick('#logout-button', () => {
     window.localStorage.removeItem('auth-token')
     goTo('')
+  })
+
+  onClick('.navbar-toggler', () => {
+    mobileNavigationOpen = !mobileNavigationOpen
+    el('.navbar-collapse').classList[mobileNavigationOpen ? 'add' : 'remove']('show')
   })
 
   return `

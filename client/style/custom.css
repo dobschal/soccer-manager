@@ -63,3 +63,7 @@
   width: 100%;
   margin: auto
 }
+
+.table-hover tr:hover {
+  cursor: pointer;
+}

@@ -11,7 +11,8 @@ export async function renderMyTeamPage () {
       <h2>${info.team.name}</h2>
       <p>
         <b>Coach</b>: ${info.user.username} since ${formatDate('DD. MMM YYYY', info.user.created_at)}<br>
-        <b>Team Strength</b>: ${_calculateTeamStrength(info.players)}
+        <b>Team Strength</b>: ${_calculateTeamStrength(info.players)}<br>
+        <b>Formation</b>: ${info.team.formation}
       </p>
     </div>
     ${_renderSquad(info.players)}
