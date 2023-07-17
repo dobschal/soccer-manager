@@ -2,7 +2,7 @@ import { Game } from './entities/game.js'
 import { Player } from './entities/player.js'
 import { Team } from './entities/team.js'
 import { query } from './lib/database.js'
-import { Formation, Position, getPositionsOfFormation } from './lib/formation.js'
+import { Formation, Position, getPositionsOfFormation } from '../client/lib/formation.js'
 import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name-library.js'
 import { calculateGamePlan, randomItem } from './lib/util.js'
 

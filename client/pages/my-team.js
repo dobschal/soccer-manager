@@ -1,7 +1,8 @@
 import { formatDate } from '../lib/date.js'
+import { Formation, getPositionsOfFormation } from '../lib/formation.js'
 import { server } from '../lib/gateway.js'
-import { generateId } from '../lib/html.js'
-import { onClick } from '../lib/htmlEventHandlers.js'
+import { el, generateId } from '../lib/html.js'
+import { onChange, onClick } from '../lib/htmlEventHandlers.js'
 import { render } from '../lib/render.js'
 import { showOverlay } from '../partials/overlay.js'
 import { toast } from '../partials/toast.js'
@@ -41,9 +42,49 @@ function _renderHeader () {
     <p>
       <b>Coach</b>: ${data.user.username} since ${formatDate('DD. MMM YYYY', data.user.created_at)}<br>
       <b>Team Strength</b>: ${_calculateTeamStrength(data.players)}<br>
-      <b>Formation</b>: ${data.team.formation}
+      <b>Lineup</b>: ${_renderLineupSelect()}
     </p>
   `
+}
+
+function _renderLineupSelect () {
+  const id = generateId()
+  const currentFormation = data.team.formation
+  onChange('#' + id, (event) => {
+    console.log('Chagne: ', event.target.value, currentFormation)
+    if (event.target.value !== currentFormation) {
+      _changeFormation(event.target.value)
+    }
+  })
+  setTimeout(() => {
+    el('#' + id).value = data.team.formation
+  })
+  return `
+    <select id="${id}">
+      ${Object.values(Formation).map(f => `<option value="${f}">${f}</option>`)}
+    </select>
+  `
+}
+
+function _changeFormation (newFormation) {
+  data.team.formation = newFormation
+  data.players = data.players.filter(p => !p.fake)
+  data.players.forEach(player => {
+    player.in_game_position = ''
+  })
+  const positions = getPositionsOfFormation(newFormation)
+  positions.forEach(position => {
+    data.players.push({
+      fake: true,
+      in_game_position: position,
+      position,
+      level: 0,
+      name: '-'
+    })
+  })
+  dataChanged = true
+  render('#squad', _renderSquad())
+  render('#header', _renderHeader())
 }
 
 function _calculateTeamStrength (players) {
@@ -55,6 +96,7 @@ function _calculateTeamStrength (players) {
  */
 function _renderPlayerListItem (onClickHandler) {
   return (player) => {
+    if (player.fake) return ''
     const id = generateId()
     if (onClickHandler) {
       onClick('#' + id, () => onClickHandler(player))
@@ -109,7 +151,11 @@ function _renderSaveButton () {
   const id = generateId()
   onClick('#' + id, async () => {
     try {
-      await server.saveLineup({ players: data.players })
+      if (data.players.some(p => p.fake && p.in_game_position)) {
+        return toast('Your lineup is incomplete!')
+      }
+      data.players = data.players.filter(p => !p.fake)
+      await server.saveLineup({ players: data.players, formation: data.team.formation })
       toast('Save lineup.')
       render('#page', await renderMyTeamPage())
     } catch (e) {
@@ -145,7 +191,7 @@ function _renderSquadPlayer (player) {
   return `
     <div id="${id}" class="player ${player.position}">
       <span class="position-badge">${player.position}</span>
-      ${player.name.split(' ')[0][0]}. ${player.name.split(' ')[1]}
+      ${player.name.includes(' ') ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '') : player.name}
       <span class="level-badge">${player.level}</span>
     </div>
   `

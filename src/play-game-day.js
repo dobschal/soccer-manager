@@ -1,5 +1,5 @@
 import { query } from './lib/database.js'
-import { determineOponentPosition } from './lib/formation.js'
+import { determineOponentPosition } from '../client/lib/formation.js'
 import { randomItem } from './lib/util.js'
 
 export async function calculateGames () {

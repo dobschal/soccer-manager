@@ -1,3 +1,7 @@
+export function onChange (elementQuery, handler) {
+  on('change', elementQuery, handler)
+}
+
 export function onClick (elementQuery, handler) {
   on('click', elementQuery, handler)
 }

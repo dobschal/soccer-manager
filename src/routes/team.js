@@ -32,6 +32,7 @@ export default {
       playerFromDb.in_game_position = playerFromRequest.in_game_position
       await query('UPDATE player SET in_game_position=? WHERE id=?', [playerFromDb.in_game_position, playerFromDb.id])
     }
+    await query('UPDATE team SET formation=? WHERE id=?', [req.body.formation, team.id])
     return { success: true }
   }
 }
