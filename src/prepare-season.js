@@ -36,6 +36,7 @@ async function _createGames () {
     for (let i = 0; i < teamsOfLevel.length; i++) {
       const league = Math.floor(i / teamsPerLeague)
       if (!leagues[league]) leagues[league] = []
+      await query(`UPDATE team SET league=${league} WHERE id=${teamsOfLevel[i].id}`)
       leagues[league].push(teamsOfLevel[i])
     }
     await Promise.all(leagues.map((teamsOfLeague, league) => {

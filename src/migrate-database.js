@@ -14,8 +14,8 @@ const migrations = [{
   async run () {
     await query(`CREATE TABLE IF NOT EXISTS user (
               id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-              username VARCHAR(255),
-              password VARCHAR(255),
+              username VARCHAR(255) NOT NULL UNIQUE ,
+              password VARCHAR(255) NOT NULL,
               created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
               PRIMARY KEY (id)
           ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
@@ -29,6 +29,7 @@ const migrations = [{
             name VARCHAR(255),
             formation VARCHAR(255),
             level INT,
+            league INT,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
         ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)

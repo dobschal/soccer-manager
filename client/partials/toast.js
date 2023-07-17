@@ -4,7 +4,7 @@ export function toast (text, type = 'info') {
   const id = generateId()
 
   setTimeout(() => {
-    el(`#${id}`).remove()
+    el(`#${id}`)?.remove()
   }, 3000)
 
   document.body.insertAdjacentHTML('beforeend', html(`

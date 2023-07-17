@@ -1,16 +1,16 @@
 import { renderDefaultLayout } from './layouts/defaultLayout.js'
 import { renderGameLayout } from './layouts/gameLayout.js'
 import { render } from './lib/render.js'
-import { renderGamesPage } from './pages/games.js'
 import { renderLoginPage } from './pages/login.js'
-import { renderTeamsPage } from './pages/teams.js'
+import { renderMyTeamPage } from './pages/my-team.js'
+import { renderResultsPage } from './pages/results.js'
 
 window.addEventListener('hashchange', resolvePage)
 
 const pages = {
-  games: [renderGameLayout, renderGamesPage],
+  results: [renderGameLayout, renderResultsPage],
   login: [renderDefaultLayout, renderLoginPage],
-  '*': [renderGameLayout, renderTeamsPage]
+  '*': [renderGameLayout, renderMyTeamPage]
 }
 
 async function resolvePage () {

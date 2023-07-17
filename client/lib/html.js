@@ -6,7 +6,7 @@ let count = 0
  * @param {string} string
  * @returns {string}
  */
-export function html (string) {
+export const html = (string) => {
   return string
 }
 

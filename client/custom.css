@@ -1,7 +1,7 @@
 @keyframes page-enter-animation {
   0% {
     opacity: 0;
-    transform: translateY(1rem);
+    transform: translateX(1rem);
   }
 
   100% {
@@ -9,11 +9,11 @@
   }
 }
 
-#page>* {
+#page {
   animation-name: page-enter-animation;
-  animation-duration: 0.3s;
+  animation-duration: 0.5s;
   animation-iteration-count: 1;
-  animation-timing-function: ease-in-out;
+  animation-timing-function: cubic-bezier(.65, .27, .69, 1.42);
 }
 
 .centered-container {
@@ -40,4 +40,9 @@
   left: 50%;
   min-width: 250px;
   transform: translateX(-125px);
+}
+
+.fa-button:hover {
+  transform: scale(1.1);
+  cursor: pointer;
 }

@@ -4,6 +4,7 @@
  * @property {string} name
  * @property {string} formation - like "442", "433", etc
  * @property {number} level
+ * @property {number} league
  * @property {Date} created_at
  */
 
@@ -18,6 +19,7 @@ export function Team (raw) {
     id: OptionalNumber,
     name: RequiredString,
     level: RequiredNumber,
+    league: OptionalNumber,
     formation: RequiredString,
     created_at: OptionalObject
   })

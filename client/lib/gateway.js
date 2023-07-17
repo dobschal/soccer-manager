@@ -1,27 +1,23 @@
 /**
- * @param {string} sqlStatement
- * @returns {Promise<Array>}
- */
-export async function queryApi (sqlStatement) {
-  const rawResponse = await fetch(`/api/read?query=${encodeURIComponent(sqlStatement)}`)
-  const response = await rawResponse.json()
-  return response
-}
-
-/**
  * Awesome Proxy wrapper to call server with HTTP Post Request
  */
 export const server = new Proxy({}, {
   get (_, key) {
     return async (params) => {
-      const response = await fetch(`/api/${key}`, {
+      const options = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(params)
-      })
+      }
+      const authToken = window.localStorage.getItem('auth-token')
+      if (authToken) {
+        options.headers.Authorization = `Bearer ${authToken}`
+      }
+      const response = await fetch(`/api/${key}`, options)
       if (response.status >= 400) {
+        if (response.status === 401) window.localStorage.removeItem('auth-token')
         throw (await response.json())
       }
       return await response.json()
