@@ -2,9 +2,9 @@
   "name": "soccer-simulation",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/app.js",
   "scripts": {
-    "migrate": "node src/migrate-database.js",
+    "start": "node src/api.js",
     "lint": "eslint ./src"
   },
   "keywords": [],
