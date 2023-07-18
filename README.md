@@ -38,11 +38,13 @@ npm start
 - [x] Season preparation script
 - [x] Players ages
 - [ ] Train Players
+- [ ] Action Cards
 - [ ] Log/Mailbox to see what happened when
 - [ ] Trade Players
 - [ ] Injured Players + red/yellow cards
+- [ ] Localisation
 
-### Train Players
+### Train Players / Action Cards
 
 Per played game day, a user gets a card. Each card triggers an action. 
 Cards: 
@@ -67,3 +69,4 @@ Tasks:
 - [x] On Season preparation, archive too old players
 - [ ] Implement card appearing
 - [ ] Implement card actions
+- [ ] Action card should expire

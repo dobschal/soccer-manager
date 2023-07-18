@@ -74,6 +74,6 @@ async function _resolvePage () {
   render('#page', await pageRenderFn())
   fire('page-changed')
   setTimeout(() => {
-    el('.navbar').scrollIntoView({ behavior: 'auto' })
+    el('.navbar')?.scrollIntoView({ behavior: 'auto' })
   })
 }

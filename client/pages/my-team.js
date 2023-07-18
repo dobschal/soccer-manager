@@ -125,20 +125,11 @@ function _renderSaveButton () {
 function _renderSquadPlayer (player) {
   const id = generateId()
   onClick('#' + id, () => {
-    overlay = showOverlay('Select player', '', `
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Position</th>
-            <th scope="col">Level</th>
-          </tr>
-        </thead>
-        <tbody>
-            ${data.players.filter(p => p.position === player.position).map(renderPlayerListItem(newPlayer => _exchangePlayer(player, newPlayer))).join('')}
-        </tbody>
-      </table>
-    `)
+    overlay = showOverlay(
+      'Select player',
+      '',
+      `${renderPlayersList(data.players.filter(p => p.position === player.position), false, newPlayer => _exchangePlayer(player, newPlayer))}`
+    )
   })
   return `
     <div id="${id}" class="player ${player.position}">

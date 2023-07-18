@@ -10,6 +10,18 @@ import { query } from './lib/database.js'
  * @type {Array<Migration>}
  */
 const migrations = [{
+  name: 'Create Card Table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS action_card (
+              id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+              user_id BIGINT(20),
+              action VARCHAR(255),
+              played TINYINT(1),
+              created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (id)
+          ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
   name: 'Create User Table',
   async run () {
     await query(`CREATE TABLE IF NOT EXISTS user (

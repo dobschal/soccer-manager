@@ -1,5 +1,5 @@
 export const clubPrefixes1 = [
-  'FC', 'F.C.', 'SC', 'SV', 'BSV', '1. FC', 'FV', '', '', '', '', ''
+  'FC', 'F.C.', 'SC', 'SV', 'SSC', 'VFB', 'BSV', '1. FC', 'FV', '', '', '', '', ''
 ]
 
 export const clubPrefixes2 = [
@@ -23,7 +23,9 @@ export const clubPrefixes2 = [
   'Golden',
   'Eagle',
   'Real',
-  'Kickers'
+  'Kickers',
+  'Fortuna',
+  'Traktor'
 ]
 
 export const cityNames = [
@@ -77,7 +79,158 @@ export const cityNames = [
   'Veridianburg',
   'Sablehaven',
   'Auroraleaf',
-  'Moonshadow'
+  'Moonshadow',
+  'Schattenheim',
+  'Nebelstadt',
+  'Traumheim',
+  'Silberstadt',
+  'Mondlicht',
+  'Wolkenburg',
+  'Sternendorf',
+  'Blütenheim',
+  'Kristallstadt',
+  'Feuersee',
+  'Perlenstadt',
+  'Schleierstadt',
+  'Wunderstadt',
+  'Flussheim',
+  'Ewigwald',
+  'Zauberburg',
+  'Phönixtal',
+  'Schimmerstadt',
+  'Goldenthal',
+  'Elbenfurt',
+  'Regenbogenstadt',
+  'Zaubersee',
+  'Edelstein',
+  'Sonnental',
+  'Elfendorf',
+  'Morgenröte',
+  'Eiswind',
+  'Dämmerburg',
+  'Narzissenfeld',
+  'Traumwald',
+  'Silberquelle',
+  'Lichtstadt',
+  'Kristallbach',
+  'Feenau',
+  'Sonnenblume',
+  'Saphirstadt',
+  'Mondschein',
+  'Zauberberg',
+  'Blumenhain',
+  'Elfenthal',
+  'Perlenwald',
+  'Wundersee',
+  'Nebelschloss',
+  'Flussburg',
+  'Silberfluss',
+  'Sternenlicht',
+  'Elfenwald',
+  'Regenwald',
+  'Wolkentor',
+  'Phantasia',
+  'Feuerberg',
+  'Luminara',
+  'Vallombrosa',
+  'Azzurra',
+  'Stellavalle',
+  'Primavista',
+  'Portobello',
+  'Solferino',
+  'Arancione',
+  'Tramontana',
+  'Verdecchia',
+  'Lagoterra',
+  'Serena',
+  'Radicci',
+  'Fioritura',
+  'Aquilone',
+  'Solazzurra',
+  'Bellaluna',
+  'Valdelsole',
+  'Olivetta',
+  'Armonia',
+  'Limonaia',
+  'Doratura',
+  'Celeste',
+  'Violetta',
+  'Solavento',
+  'Rosaspina',
+  'Argentino',
+  'Cieloalto',
+  'Irislandia',
+  'Serena',
+  'Fiorente',
+  'Arcobaleno',
+  'Monteverde',
+  'Risplendente',
+  'Aurora',
+  'Verdepino',
+  'Luminosa',
+  'Incantata',
+  'Dolcissima',
+  'Stellalpina',
+  'Baciami',
+  'Azzurropuro',
+  'Solare',
+  'Meraviglia',
+  'Verdepiana',
+  'Vistamare',
+  'Bellavista',
+  'Arancionia',
+  'Primavera',
+  'Lagoverde',
+  'Encantadora',
+  'Valleluz',
+  'Esmeralda',
+  'Cielorojo',
+  'Maravilla',
+  'Alegria',
+  'Brisasol',
+  'Manzanera',
+  'Verdeagua',
+  'Doradal',
+  'Primavista',
+  'Monteverde',
+  'Solnaciente',
+  'Rioclaro',
+  'Bellavista',
+  'Piedraflor',
+  'Cascada',
+  'Luzdelmar',
+  'Rinconada',
+  'Rosasol',
+  'Lunaazul',
+  'Amanecer',
+  'Sierrabella',
+  'Valleverde',
+  'Marisol',
+  'Encanto',
+  'Vistamar',
+  'Brillante',
+  'Montaña',
+  'Dulcevida',
+  'Camposol',
+  'Aurora',
+  'Ríoalto',
+  'Flores',
+  'Almaclara',
+  'Cielosol',
+  'Verdeesperanza',
+  'Cascabel',
+  'Rincones',
+  'Solazul',
+  'Brisadelmar',
+  'Manantial',
+  'Pueblofeliz',
+  'Cieloazul',
+  'Vallelindo',
+  'Mariposa',
+  'Encantado',
+  'Vidaalegre',
+  'Amanecida',
+  'Sierramor'
 ]
 
 export const playerNames = [
@@ -628,4 +781,309 @@ export const playerNames = [
   {
     firstName: 'Vincent',
     lastName: 'Bauer'
-  }]
+  },
+  {
+    firstName: 'Gabriel',
+    lastName: 'Silva'
+  },
+  {
+    firstName: 'Lucas',
+    lastName: 'Fernandez'
+  },
+  {
+    firstName: 'Matias',
+    lastName: 'Gonzalez'
+  },
+  {
+    firstName: 'Santiago',
+    lastName: 'Rodriguez'
+  },
+  {
+    firstName: 'Sebastian',
+    lastName: 'Martinez'
+  },
+  {
+    firstName: 'Diego',
+    lastName: 'Lopez'
+  },
+  {
+    firstName: 'Nicolas',
+    lastName: 'Perez'
+  },
+  {
+    firstName: 'Joaquin',
+    lastName: 'Ramirez'
+  },
+  {
+    firstName: 'Manuel',
+    lastName: 'Hernandez'
+  },
+  {
+    firstName: 'Alejandro',
+    lastName: 'Sanchez'
+  },
+  {
+    firstName: 'Carlos',
+    lastName: 'Torres'
+  },
+  {
+    firstName: 'Andres',
+    lastName: 'Jimenez'
+  },
+  {
+    firstName: 'Luis',
+    lastName: 'Reyes'
+  },
+  {
+    firstName: 'Pedro',
+    lastName: 'Morales'
+  },
+  {
+    firstName: 'Rafael',
+    lastName: 'Ortega'
+  },
+  {
+    firstName: 'Jose',
+    lastName: 'Garcia'
+  },
+  {
+    firstName: 'Hugo',
+    lastName: 'Lopez'
+  },
+  {
+    firstName: 'Fernando',
+    lastName: 'Mendoza'
+  },
+  {
+    firstName: 'Daniel',
+    lastName: 'Vargas'
+  },
+  {
+    firstName: 'Miguel',
+    lastName: 'Flores'
+  },
+  {
+    firstName: 'Emilio',
+    lastName: 'Castillo'
+  },
+  {
+    firstName: 'Julian',
+    lastName: 'Pereira'
+  },
+  {
+    firstName: 'Adrian',
+    lastName: 'Rojas'
+  },
+  {
+    firstName: 'Eduardo',
+    lastName: 'Luna'
+  },
+  {
+    firstName: 'Gonzalo',
+    lastName: 'Gomez'
+  },
+  {
+    firstName: 'Juan',
+    lastName: 'Santos'
+  },
+  {
+    firstName: 'Pablo',
+    lastName: 'Navarro'
+  },
+  {
+    firstName: 'Roberto',
+    lastName: 'Cruz'
+  },
+  {
+    firstName: 'Raul',
+    lastName: 'Pacheco'
+  },
+  {
+    firstName: 'Victor',
+    lastName: 'Romero'
+  },
+  {
+    firstName: 'Javier',
+    lastName: 'Rios'
+  },
+  {
+    firstName: 'Antonio',
+    lastName: 'Chavez'
+  },
+  {
+    firstName: 'Ignacio',
+    lastName: 'Fuentes'
+  },
+  {
+    firstName: 'Luciano',
+    lastName: 'Mejia'
+  },
+  {
+    firstName: 'Marcos',
+    lastName: 'Soto'
+  },
+  {
+    firstName: 'Felipe',
+    lastName: 'Valdez'
+  },
+  {
+    firstName: 'Oscar',
+    lastName: 'Lara'
+  },
+  {
+    firstName: 'Maximiliano',
+    lastName: 'Molina'
+  },
+  {
+    firstName: 'Ricardo',
+    lastName: 'Guerra'
+  },
+  {
+    firstName: 'Rodrigo',
+    lastName: 'Vera'
+  },
+  {
+    firstName: 'Bruno',
+    lastName: 'Bustamante'
+  },
+  {
+    firstName: 'Leonardo',
+    lastName: 'Salgado'
+  },
+  {
+    firstName: 'Esteban',
+    lastName: 'Rocha'
+  },
+  {
+    firstName: 'Alexis',
+    lastName: 'Cordero'
+  },
+  {
+    firstName: 'Francisco',
+    lastName: 'Avila'
+  },
+  {
+    firstName: 'Ramon',
+    lastName: 'Miranda'
+  },
+  {
+    firstName: 'Mario',
+    lastName: 'Paredes'
+  },
+  {
+    firstName: 'Ismael',
+    lastName: 'Duarte'
+  },
+  {
+    firstName: 'Alberto',
+    lastName: 'Palacios'
+  },
+  {
+    firstName: 'Cristian',
+    lastName: 'Vega'
+  },
+  {
+    firstName: 'Ariel',
+    lastName: 'Cabrera'
+  },
+  {
+    firstName: 'Emanuel',
+    lastName: 'Muñoz'
+  },
+  {
+    firstName: 'Jonathan',
+    lastName: 'Campos'
+  },
+  {
+    firstName: 'Enrique',
+    lastName: 'Olivera'
+  },
+  {
+    firstName: 'Hector',
+    lastName: 'Santana'
+  },
+  {
+    firstName: 'Lorenzo',
+    lastName: 'Herrera'
+  },
+  {
+    firstName: 'Federico',
+    lastName: 'Roldan'
+  },
+  {
+    firstName: 'Gustavo',
+    lastName: 'Fuentes'
+  },
+  {
+    firstName: 'Marcelo',
+    lastName: 'Solis'
+  },
+  {
+    firstName: 'Jaime',
+    lastName: 'Vargas'
+  },
+  {
+    firstName: 'Alejandro',
+    lastName: 'Vera'
+  },
+  {
+    firstName: 'Mauricio',
+    lastName: 'Cordova'
+  },
+  {
+    firstName: 'Agustin',
+    lastName: 'Barrera'
+  },
+  {
+    firstName: 'Francisco',
+    lastName: 'Barrios'
+  },
+  {
+    firstName: 'Gabriel',
+    lastName: 'Soto'
+  },
+  {
+    firstName: 'Hugo',
+    lastName: 'Molina'
+  },
+  {
+    firstName: 'Emilio',
+    lastName: 'Cortes'
+  },
+  {
+    firstName: 'Jose',
+    lastName: 'Cruz'
+  },
+  {
+    firstName: 'Juan',
+    lastName: 'Fuentes'
+  },
+  {
+    firstName: 'Daniel',
+    lastName: 'Santana'
+  },
+  {
+    firstName: 'Carlos',
+    lastName: 'Solis'
+  },
+  {
+    firstName: 'Luis',
+    lastName: 'Vega'
+  },
+  {
+    firstName: 'David',
+    lastName: 'Rojas'
+  },
+  {
+    firstName: 'Roberto',
+    lastName: 'Herrera'
+  },
+  {
+    firstName: 'Ricardo',
+    lastName: 'Miranda'
+  },
+  {
+    firstName: 'Victor',
+    lastName: 'Gomez'
+  }
+]

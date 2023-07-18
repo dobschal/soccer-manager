@@ -18,7 +18,7 @@ export function renderGameLayout () {
 
   return `
     <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-      <a class="navbar-brand" href="#">Soccer</a>
+      <a class="navbar-brand" href="#">Soccer-Manager.io</a>
       <button class="navbar-toggler" 
               type="button" 
               data-toggle="collapse" 
@@ -30,7 +30,7 @@ export function renderGameLayout () {
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">
-          ${_navItem('', 'My Team')}
+          ${_navItem('my-team', 'My Team')}
           ${_navItem('results', 'Results')}
         </ul>
         <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>

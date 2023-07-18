@@ -4,13 +4,13 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 
 let currentSeason
 
-export async function renderPlayersList (players) {
+export async function renderPlayersList (players, showTitle = true, onClickHandler) {
   console.log('Players to render: ', players)
   const { season } = await server.getCurrentGameday()
   currentSeason = season
   return `
-    <h3>Players (${players.length})</h3>
-    <table class="table">
+    <h3 class="${showTitle ? '' : 'hidden'}">Players (${players.length})</h3>
+    <table class="table table-hover">
       <thead>
         <tr>
           <th scope="col">Name</th>
@@ -20,7 +20,7 @@ export async function renderPlayersList (players) {
         </tr>
       </thead>
       <tbody>
-          ${players.sort(_sortByPosition).map(renderPlayerListItem()).join('')}
+          ${players.sort(_sortByPosition).map(renderPlayerListItem(onClickHandler)).join('')}
       </tbody>
     </table>
   `

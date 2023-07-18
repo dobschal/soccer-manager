@@ -1,13 +1,50 @@
 import { query } from './lib/database.js'
 import { determineOponentPosition } from '../client/lib/formation.js'
 import { randomItem } from './lib/util.js'
+import { ActionCard } from './entities/actionCard.js'
+
+const actionCards = {
+  LEVEL_UP_PLAYER: 0.333,
+  CHANGE_PLAYER_POSITION: 0.033,
+  NEW_YOUTH_PLYER: 0.033
+}
 
 export async function calculateGames () {
   const [{ game_day: gameDay, season }] = await query('SELECT * FROM game WHERE played=0 ORDER BY season ASC, game_day ASC LIMIT 1')
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   await Promise.all(games.map(game => _playGame(game)))
+  await _giveUsersActionCards()
   process.exit(0)
+}
+
+async function _giveUsersActionCards () {
+  const users = await query('SELECT * FROM user')
+  for (const user of users) {
+    let actionCard
+    if (Math.random() < actionCards.LEVEL_UP_PLAYER) {
+      actionCard = new ActionCard({
+        user_id: user.id,
+        action: 'LEVEL_UP_PLAYER',
+        played: 0
+      })
+    } else if (Math.random() < actionCards.CHANGE_PLAYER_POSITION) {
+      actionCard = new ActionCard({
+        user_id: user.id,
+        action: 'CHANGE_PLAYER_POSITION',
+        played: 0
+      })
+    } else if (Math.random() < actionCards.NEW_YOUTH_PLYER) {
+      actionCard = new ActionCard({
+        user_id: user.id,
+        action: 'NEW_YOUTH_PLYER',
+        played: 0
+      })
+    }
+    if (actionCard) {
+      await query('INSERT INTO action_card SET ?', actionCard)
+    }
+  }
 }
 
 /**
