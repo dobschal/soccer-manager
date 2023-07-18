@@ -78,6 +78,17 @@ async function _useActionCard (actionCard) {
     _handleChangePositionActionCard(actionCard)
     return
   }
+  if (actionCard.action === 'NEW_YOUTH_PLYER') {
+    try {
+      await server.useActionCard({ actionCard })
+      toast('You got a new player!')
+      render('#page', await renderDashboardPage())
+    } catch (e) {
+      console.error(e)
+      toast('Something went wrong...')
+    }
+    return
+  }
   toast('Not implemented yet...')
 }
 

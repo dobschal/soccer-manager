@@ -38,7 +38,8 @@ npm start
 - [x] Season preparation script
 - [x] Players ages
 - [x] Train Players
-- [ ] Action Cards
+- [x] Action Cards
+- [ ] Deploy to server
 - [ ] Log/Mailbox to see what happened when
 - [ ] Trade Players
 - [ ] Injured Players + red/yellow cards
@@ -46,6 +47,7 @@ npm start
 - [ ] Wappen
 - [ ] Torschützen
 - [ ] Zweikampf-Sieger
+- [ ] Action card should expire
 - [ ] Hidden weak random on player
 
 ### Train Players / Action Cards
@@ -71,6 +73,5 @@ Tasks:
 - [x] Add carrier_start and end to entity
 - [x] Adjust player creation to give not too strong players
 - [x] On Season preparation, archive too old players
-- [ ] Implement card appearing
-- [ ] Implement card actions
-- [ ] Action card should expire
+- [x] Implement card appearing
+- [x] Implement card actions

@@ -1,5 +1,9 @@
+import { Position } from '../../client/lib/formation.js'
+import { Player } from '../entities/player.js'
 import { query } from '../lib/database.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
+import { playerNames } from '../lib/name-library.js'
+import { randomItem } from '../lib/util.js'
 
 export default {
 
@@ -25,10 +29,26 @@ export default {
       await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
       return { success: true }
     }
-    //
-    // TODO
-    //
-    return false
+    if (req.body.actionCard.action === 'NEW_YOUTH_PLYER') {
+      const [game] = await query('SELECT * FROM game g ORDER BY g.season DESC LIMIT 1')
+      const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
+      const season = game?.season ?? 0
+      const age = Math.floor(Math.random() * 3) // 16 is the default birth carrier start bla year...
+      const carrierLength = 20 + Math.floor(Math.random() * 4)
+      const player = new Player({
+        team_id: team.id,
+        name: `${randomItem(playerNames).firstName} ${randomItem(playerNames).lastName}`,
+        carrier_start_season: season - age,
+        carrier_end_season: season - age + carrierLength,
+        level: Math.floor(Math.random() * 3) + 1,
+        in_game_position: '',
+        position: randomItem(Object.values(Position))
+      })
+      await query('INSERT INTO player SET ?', player)
+      await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
+      return { success: true }
+    }
+    throw new BadRequestError('Unknown action...')
   }
 
 }
