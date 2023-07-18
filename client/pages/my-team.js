@@ -124,11 +124,11 @@ function _renderSaveButton () {
 
 function _renderSquadPlayer (player) {
   const id = generateId()
-  onClick('#' + id, () => {
+  onClick('#' + id, async () => {
     overlay = showOverlay(
       'Select player',
       '',
-      `${renderPlayersList(data.players.filter(p => p.position === player.position), false, newPlayer => _exchangePlayer(player, newPlayer))}`
+      `${await renderPlayersList(data.players.filter(p => p.position === player.position), false, newPlayer => _exchangePlayer(player, newPlayer))}`
     )
   })
   return `

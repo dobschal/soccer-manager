@@ -37,12 +37,16 @@ npm start
 - [x] User registration
 - [x] Season preparation script
 - [x] Players ages
-- [ ] Train Players
+- [x] Train Players
 - [ ] Action Cards
 - [ ] Log/Mailbox to see what happened when
 - [ ] Trade Players
 - [ ] Injured Players + red/yellow cards
 - [ ] Localisation
+- [ ] Wappen
+- [ ] Torschützen
+- [ ] Zweikampf-Sieger
+- [ ] Hidden weak random on player
 
 ### Train Players / Action Cards
 

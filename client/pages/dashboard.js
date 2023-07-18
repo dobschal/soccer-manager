@@ -1,4 +1,3 @@
-import { formatDate } from '../lib/date.js'
 import { server } from '../lib/gateway.js'
 import { generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
@@ -72,12 +71,25 @@ function _renderActionCard (actionCard) {
 
 async function _useActionCard (actionCard) {
   if (actionCard.action === 'LEVEL_UP_PLAYER') {
-    const data = await server.getMyTeam()
-    const playerList = await renderPlayersList(data.players, false, async player => {
+    _handleLevelUpActionCard(actionCard)
+    return
+  }
+  if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
+    _handleChangePositionActionCard(actionCard)
+    return
+  }
+  toast('Not implemented yet...')
+}
+
+async function _handleChangePositionActionCard (actionCard) {
+  const data = await server.getMyTeam()
+  const playerList = await renderPlayersList(data.players, false, async player => {
+    overlay?.remove()
+    const positionList = renderPositionList(async (position) => {
       try {
-        await server.useActionCard({ actionCard, player })
+        await server.useActionCard({ actionCard, position, player })
         overlay?.remove()
-        toast(`Nice. ${player.name} got a level up!`)
+        toast(`OK. ${player.name} plays another position now!`)
         render('#page', await renderDashboardPage())
       } catch (e) {
         console.error(e)
@@ -85,10 +97,60 @@ async function _useActionCard (actionCard) {
       }
     })
     overlay = showOverlay(
-      'Select player',
-      '',
-      `${playerList}`)
-    return
-  }
-  toast('Not implemented yet...')
+      'Select position',
+      'Which position should the player play in the future?',
+        `${positionList}`
+    )
+  })
+  overlay = showOverlay(
+    'Select player',
+    'Which player should change his position?',
+    `${playerList}`
+  )
+}
+
+function renderPositionList (onClickHandler) {
+  const positions = [
+    ['Goalkeeper', 'GK'],
+    ['Left Defender', 'LD'],
+    ['Central Defender', 'CD'],
+    ['Right Dfender', 'RD'],
+    ['Left Midfielder', 'LM'],
+    ['Defensive Midfielder', 'DM'],
+    ['Central Midfielder', 'CM'],
+    ['Right Midfielder', 'RM'],
+    ['Offensive Midfielder', 'OM'],
+    ['Left Attacker', 'LA'],
+    ['Central Attacker', 'CA'],
+    ['Right Attacker', 'RA']
+  ]
+  return '<ul class="list-group">' + positions.map(p => {
+    const id = generateId()
+
+    onClick('#' + id, () => onClickHandler(p[1]))
+
+    return `
+      <li id="${id}" class="list-group-item list-group-item-action">${p[0]} (${p[1]})</li>
+    `
+  }).join('') + '</ul>'
+}
+
+async function _handleLevelUpActionCard (actionCard) {
+  const data = await server.getMyTeam()
+  const playerList = await renderPlayersList(data.players, false, async player => {
+    try {
+      await server.useActionCard({ actionCard, player })
+      overlay?.remove()
+      toast(`Nice. ${player.name} got a level up!`)
+      render('#page', await renderDashboardPage())
+    } catch (e) {
+      console.error(e)
+      toast('Something went wrong...')
+    }
+  })
+  overlay = showOverlay(
+    'Select player',
+    'Which player should get a level up?',
+    `${playerList}`
+  )
 }

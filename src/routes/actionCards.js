@@ -20,6 +20,11 @@ export default {
       await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
       return { success: true }
     }
+    if (req.body.actionCard.action === 'CHANGE_PLAYER_POSITION') {
+      await query('UPDATE player SET position=? WHERE id=?', [req.body.position, req.body.player.id])
+      await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
+      return { success: true }
+    }
     //
     // TODO
     //
