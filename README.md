@@ -9,3 +9,7 @@ Inside the `src` folder various scripts are available:
 * `play-game-day.js` calculate the results for the next game day
 
 A UI is implemented. When you run the API, you can open the UI on http://localhost:3000
+
+## Features
+
+- [] Aufstieg/Abstieg

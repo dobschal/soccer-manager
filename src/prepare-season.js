@@ -4,11 +4,12 @@ import { Team } from './entities/team.js'
 import { query } from './lib/database.js'
 import { Formation, Position, getPositionsOfFormation } from '../client/lib/formation.js'
 import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name-library.js'
-import { calculateGamePlan, randomItem } from './lib/util.js'
+import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 
 /**
  * This script is checking for enough games, teams and players
  * If too less, it creates those.
+ * It is also managing the relegation and promotion at the end of a season
  */
 
 const teamsPerLeague = 18
@@ -18,8 +19,66 @@ const minimumTeams = 126 // three leagues, will be overwritten by amount of user
 
 export async function prepareSeason () {
   await _ajustAmountOfTeams()
+  await _promotionRelegation()
   await _createGames()
   process.exit(0)
+}
+
+async function _promotionRelegation () {
+  if (!(await _newGamesNeeded())) {
+    return console.log('No promotion, relegation needed because still games to play.')
+  }
+  const season = await _latestSeason()
+  if (typeof season === 'undefined') {
+    return console.log('No promotion, relegation needed because no season available.')
+  }
+  const games = await query('SELECT * FROM game WHERE season=?', [season])
+  const teams = await query('SELECT * FROM team')
+  if (teams.some(t => typeof t.league !== 'number')) {
+    return console.log('Relegation and promotion for this season already ran')
+  }
+  await query('UPDATE team SET league=NULL WHERE true')
+  let hightestLevel = 0
+  const gamesByLevelAndLeague = {}
+  for (const game of games) {
+    if (game.level > hightestLevel) hightestLevel = game.level
+    gamesByLevelAndLeague[game.level] = gamesByLevelAndLeague[game.level] ?? {}
+    gamesByLevelAndLeague[game.level][game.league] = gamesByLevelAndLeague[game.level][game.league] ?? []
+    gamesByLevelAndLeague[game.level][game.league].push(game)
+  }
+  const promises = []
+  for (const level in gamesByLevelAndLeague) {
+    if (Object.hasOwnProperty.call(gamesByLevelAndLeague, level)) {
+      const leagues = gamesByLevelAndLeague[level]
+      for (const league in leagues) {
+        if (Object.hasOwnProperty.call(leagues, league)) {
+          const gamesOfLeague = leagues[league]
+          const standing = calculateStanding(gamesOfLeague, teams)
+          const teamsForPromotion = [
+            standing[0].team,
+            standing[1].team
+          ].filter(t => t.level > 0) // teams on first level cannot get promoted...
+          console.log('Promotion for: ', teamsForPromotion)
+          teamsForPromotion.forEach(t => {
+            promises.push(query('UPDATE team SET level=? WHERE id=?', [t.level - 1, t.id]))
+          })
+          const teamsForRelegation = [
+            standing[teamsPerLeague - 1].team,
+            standing[teamsPerLeague - 2].team,
+            standing[teamsPerLeague - 3].team,
+            standing[teamsPerLeague - 4].team
+          ].filter(t => t.level < hightestLevel) // teams in last level cannot go for relegation...
+          console.log('Relegation for ', teamsForRelegation)
+          teamsForRelegation.forEach(t => {
+            promises.push(query('UPDATE team SET level=? WHERE id=?', [t.level + 1, t.id]))
+          })
+        }
+      }
+    }
+  }
+  console.log('Teams to move: ', promises.length)
+  await Promise.all(promises)
+  console.log('Relegation and promotion done.')
 }
 
 async function _createGames () {
@@ -86,7 +145,15 @@ async function _createGamesForLeague (season, level, league, teams, gamePlan) {
  */
 async function _seasonForNewGames () {
   const [game] = await query('SELECT * FROM game g ORDER BY g.season DESC LIMIT 1')
-  return game?.season ?? 0
+  return (game?.season ?? -1) + 1
+}
+
+/**
+ * @returns {Promise<number|undefined>}
+ */
+async function _latestSeason () {
+  const [game] = await query('SELECT * FROM game g ORDER BY g.season DESC LIMIT 1')
+  return game?.season
 }
 
 /**

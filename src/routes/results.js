@@ -1,4 +1,5 @@
 import { query } from '../lib/database.js'
+import { calculateStanding } from '../lib/util.js'
 
 export default {
 
@@ -17,7 +18,7 @@ export default {
       JOIN team t1 ON t1.id=g.team_1_id
       JOIN team t2 ON t2.id=g.team_2_id
       WHERE g.game_day=? AND g.season=? AND g.level=? AND g.league=?
-    `, [req.body.gameDay, req.body.season, team.level, team.league])
+    `, [req.body.gameDay, req.body.season, req.body.level ?? team.level, req.body.league ?? team.league])
     return { results }
   },
 
@@ -28,36 +29,12 @@ export default {
 
   async getStanding (req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
-    const teams = await query(
-      'SELECT * FROM team WHERE league=? AND level=?',
-      [team.league, team.level]
-    )
+    const teams = await query('SELECT * FROM team')
     const games = await query(
       `SELECT * FROM game g 
       WHERE g.game_day<=? AND g.season=? AND g.level=? AND g.league=? AND g.played=1`,
-      [req.body.gameDay, req.body.season, team.level, team.league]
+      [req.body.gameDay, req.body.season, req.body.level ?? team.level, req.body.league ?? team.league]
     )
-    const standing = {}
-    for (const game of games) {
-      standing[game.team_1_id] = standing[game.team_1_id] ??
-        { games: 0, points: 0, goals: 0, against: 0, team: teams.find(t => t.id === game.team_1_id) }
-      standing[game.team_2_id] = standing[game.team_2_id] ??
-        { games: 0, points: 0, goals: 0, against: 0, team: teams.find(t => t.id === game.team_2_id) }
-      if (game.goals_team_1 > game.goals_team_2) {
-        standing[game.team_1_id].points += 3
-      } else if (game.goals_team_1 < game.goals_team_2) {
-        standing[game.team_2_id].points += 3
-      } else {
-        standing[game.team_1_id].points += 1
-        standing[game.team_2_id].points += 1
-      }
-      standing[game.team_1_id].goals += game.goals_team_1
-      standing[game.team_2_id].goals += game.goals_team_2
-      standing[game.team_1_id].against += game.goals_team_2
-      standing[game.team_2_id].against += game.goals_team_1
-      standing[game.team_1_id].games++
-      standing[game.team_2_id].games++
-    }
-    return Object.values(standing)
+    return calculateStanding(games, teams.filter(t => games.some(g => g.team_1_id === t.id || g.team_2_id === t.id)))
   }
 }

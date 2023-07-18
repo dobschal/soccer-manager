@@ -32,3 +32,41 @@ export function calculateGamePlan (teams) {
   }
   return result
 }
+
+/**
+ * calculate standing for given games. The games should belong to one level and league and should be played.
+ * The teams should contain the corresponding teams!
+ * @returns {Array<{points: number, games: number, goals: number, against: number, team: Team}>}
+ */
+export function calculateStanding (games, teams) {
+  const standing = {}
+  for (const game of games) {
+    standing[game.team_1_id] = standing[game.team_1_id] ??
+        { games: 0, points: 0, goals: 0, against: 0, team: teams.find(t => t.id === game.team_1_id) }
+    standing[game.team_2_id] = standing[game.team_2_id] ??
+        { games: 0, points: 0, goals: 0, against: 0, team: teams.find(t => t.id === game.team_2_id) }
+    if (game.goals_team_1 > game.goals_team_2) {
+      standing[game.team_1_id].points += 3
+    } else if (game.goals_team_1 < game.goals_team_2) {
+      standing[game.team_2_id].points += 3
+    } else {
+      standing[game.team_1_id].points += 1
+      standing[game.team_2_id].points += 1
+    }
+    standing[game.team_1_id].goals += game.goals_team_1
+    standing[game.team_2_id].goals += game.goals_team_2
+    standing[game.team_1_id].against += game.goals_team_2
+    standing[game.team_2_id].against += game.goals_team_1
+    standing[game.team_1_id].games++
+    standing[game.team_2_id].games++
+  }
+  return Object.values(standing).sort(_sortStanding)
+}
+
+function _sortStanding (s1, s2) {
+  const retVal = s2.points - s1.points
+  if (retVal === 0) {
+    return (s2.goals - s2.against) - (s1.goals - s1.against)
+  }
+  return retVal
+}

@@ -3,16 +3,17 @@ import { server } from '../lib/gateway.js'
 import { generateId } from '../lib/html.js'
 import { getQueryParams, goTo, setQueryParams } from '../lib/router.js'
 import { showOverlay } from '../partials/overlay.js'
+import { toast } from '../partials/toast.js'
 
-let myTeamId
+let myTeamId, info
 
 export async function renderResultsPage () {
-  const info = await server.getMyTeam()
+  info = await server.getMyTeam()
   myTeamId = info.team.id
+  const { level, league } = getLeagueAndLevel()
   const { season, gameDay } = await getSeasonAndGameDay()
-  const { results } = await server.getResults({ season, gameDay })
-  const standing = await server.getStanding({ season, gameDay })
-  console.log('Standing: ', standing)
+  const { results } = await server.getResults({ season, gameDay, level, league })
+  const standing = await server.getStanding({ season, gameDay, level, league })
 
   onClick('#prev-game-day-button', async () => {
     setQueryParams({
@@ -28,14 +29,43 @@ export async function renderResultsPage () {
     })
   })
 
+  onClick('#prev-season-button', async () => {
+    setQueryParams({
+      season: season - 1,
+      gameDay: 0
+    })
+  })
+
+  onClick('#next-season-button', async () => {
+    setQueryParams({
+      season: season + 1,
+      gameDay: 0
+    })
+  })
+
+  onClick('#prev-league-button', async () => {
+    setQueryParams(getPrevLeague(level, league))
+  })
+
+  onClick('#next-league-button', async () => {
+    setQueryParams(getNextLeague(level, league))
+  })
+
   return `
     <div class="mb-4">
       <h2>Results</h2>
       <p>
-        <b>Season</b>: ${season}<br>
+        <b>League</b>: 
+          <span id="prev-league-button" class="fa fa-chevron-left fa-button"></span> 
+          ${level + 1}.${league + 1}
+          <span id="next-league-button" class="fa fa-chevron-right fa-button"></span><br>        
+        <b>Season</b>: 
+          <span id="prev-season-button" class="fa fa-chevron-left fa-button"></span> 
+          ${season + 1}
+          <span id="next-season-button" class="fa fa-chevron-right fa-button"></span><br>        
         <b>Game day</b>: 
           <span id="prev-game-day-button" class="fa fa-chevron-left fa-button"></span> 
-          ${gameDay} 
+          ${gameDay + 1} 
           <span id="next-game-day-button" class="fa fa-chevron-right fa-button"></span><br>        
       </p>
     </div>
@@ -71,13 +101,50 @@ export async function renderResultsPage () {
   `
 }
 
+function getLeagueAndLevel () {
+  let { level, league } = getQueryParams()
+  if (typeof level === 'undefined') level = info.team.level
+  else level = Number(level)
+  if (typeof league === 'undefined') league = info.team.league
+  else league = Number(league)
+  if (league < 0) league = 0
+  if (level < 0) level = 0
+  return { level, league }
+}
+
+function getPrevLeague (level, league) {
+  if (league === 0) {
+    level--
+    league = Math.pow(2, level) - 1
+  } else {
+    league--
+  }
+  return { level, league }
+}
+
+function getNextLeague (level, league) {
+  if (league === Math.pow(2, level) - 1) {
+    level++
+    league = 0
+  } else {
+    league++
+  }
+  return { level, league }
+}
+
 function _renderStandingListItem (standingItem, index) {
   const id = generateId()
 
   onClick('#' + id, () => goTo(`team?id=${standingItem.team.id}`))
 
+  const trClasses = [
+    myTeamId === standingItem.team.id ? 'table-info' : '',
+    index < 2 ? 'table-success' : '',
+    index > 13 ? 'table-warning' : ''
+  ]
+
   return `
-    <tr id="${id}" class="${myTeamId === standingItem.team.id ? 'table-info' : ''}">
+    <tr id="${id}" class="${trClasses.join(' ')}">
       <td>${index + 1}.</td>
       <td>${standingItem.team.name}</td>
       <td>${standingItem.games}</td>
@@ -99,6 +166,7 @@ async function getSeasonAndGameDay () {
   }
   if (gameDay > 33) gameDay = 33
   if (gameDay < 0) gameDay = 0
+  if (season < 0) season = 0
   return { season, gameDay }
 }
 
@@ -147,8 +215,8 @@ async function _showGameModal (game) {
     p.team2 = true
     players[p.id] = p
   })
-  console.log(JSON.parse(game.details))
   const details = JSON.parse(game.details)
+  if (!details.log) return toast('No game result available')
   let ballControllA = 0
   let ballControllB = 0
   details.log.filter(l => typeof l.lostBall === 'boolean').forEach(l => {
