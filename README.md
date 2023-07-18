@@ -10,23 +10,33 @@ Inside the `src` folder various scripts are available:
 
 A UI is implemented. When you run the API, you can open the UI on http://localhost:3000
 
-## Get Started
-Run the scripts as described above to migrate the database and prepare the season. Then to start the Game UI, run:
+## Run it
+Run the scripts as described here:
 ```bash
 # Install all dependencies
 npm install
 
-# Start game...
+# Prepare database
+node src/migrate-database.js
+
+# Setup teams and games
+node src/prepare-season.js
+
+# calculate the games for the current gameday ---> repeat for each game day to play
+node src/play-game-day.js
+
+# Start game UI on port 3000
 npm start
 ```
 
 ## Features
 
-- [x] Aufstieg/Abstieg
+- [x] Promotion / Relegation
 - [x] Game Calculation
 - [x] User can change Lineup
 - [x] User registration
 - [x] Season preparation script
+- [ ] Log/Mailbox to see what happened when
 - [ ] Train Players
 - [ ] Trade Players
 - [ ] Injured Players + red/yellow cards
