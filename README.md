@@ -36,8 +36,9 @@ npm start
 - [x] User can change Lineup
 - [x] User registration
 - [x] Season preparation script
-- [ ] Log/Mailbox to see what happened when
+- [x] Players ages
 - [ ] Train Players
+- [ ] Log/Mailbox to see what happened when
 - [ ] Trade Players
 - [ ] Injured Players + red/yellow cards
 
@@ -61,8 +62,8 @@ In ideal case, a 16/3 players would be 23/10
 Maybe have leveup card change at 1/4 --> 11x per season would be too much
 
 Tasks:
-- [ ] Add carrier_start and end to entity
-- [ ] Adjust player creation to give not too strong players
-- [ ] On Season preparation, archive too old players
+- [x] Add carrier_start and end to entity
+- [x] Adjust player creation to give not too strong players
+- [x] On Season preparation, archive too old players
 - [ ] Implement card appearing
 - [ ] Implement card actions

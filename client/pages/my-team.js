@@ -5,6 +5,7 @@ import { el, generateId } from '../lib/html.js'
 import { onChange, onClick } from '../lib/htmlEventHandlers.js'
 import { render } from '../lib/render.js'
 import { showOverlay } from '../partials/overlay.js'
+import { renderPlayerListItem, renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
 
 let data, overlay, dataChanged
@@ -12,6 +13,8 @@ let data, overlay, dataChanged
 export async function renderMyTeamPage () {
   dataChanged = false
   data = await server.getMyTeam()
+  console.log('Data: ', data)
+  const playersList = await renderPlayersList(data.players)
   return `
     <div class="mb-4" id="header">
       ${_renderHeader()}
@@ -19,20 +22,8 @@ export async function renderMyTeamPage () {
     <h3>Lineup</h3>
     <div class="mb-4" id="squad">
       ${_renderSquad()}
-    </div>
-    <h3>Players</h3>
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Position</th>
-          <th scope="col">Level</th>
-        </tr>
-      </thead>
-      <tbody>
-          ${data.players.sort(_sortByPosition).map(_renderPlayerListItem()).join('')}
-      </tbody>
-    </table>
+    </div>   
+    ${playersList}
   `
 }
 
@@ -51,7 +42,6 @@ function _renderLineupSelect () {
   const id = generateId()
   const currentFormation = data.team.formation
   onChange('#' + id, (event) => {
-    console.log('Chagne: ', event.target.value, currentFormation)
     if (event.target.value !== currentFormation) {
       _changeFormation(event.target.value)
     }
@@ -91,46 +81,10 @@ function _calculateTeamStrength (players) {
   return players.filter(p => p.in_game_position).reduce((sum, player) => sum + player.level, 0)
 }
 
-/**
- * @param {Player} player
- */
-function _renderPlayerListItem (onClickHandler) {
-  return (player) => {
-    if (player.fake) return ''
-    const id = generateId()
-    if (onClickHandler) {
-      onClick('#' + id, () => onClickHandler(player))
-    }
-    return `
-      <tr id="${id}" class="${player.in_game_position ? 'table-info' : 'table-warning'}">
-        <th scope="row">${player.name}</th>
-        <td>${player.position}</td>
-        <td>${player.level}</td>
-      </tr>
-    `
-  }
-}
-
-function _sortByPosition (playerA, playerB) {
-  return _positionValue(playerB) - _positionValue(playerA)
-}
-
-/**
- * @param {Player} player
- * @returns {number}
- */
-function _positionValue (player) {
-  const playingValue = player.in_game_position ? 10 : 0
-  if (player.position.endsWith('K')) return 3 + playingValue
-  if (player.position.endsWith('D')) return 2 + playingValue
-  if (player.position.endsWith('M')) return 1 + playingValue
-  return playingValue
-}
-
 function _renderSquad () {
   // position hack for 2x CM and 2x CD
   setTimeout(() => {
-    ['.CM', '.CD'].forEach(positionClass => {
+    ['.CM', '.CD', '.DM'].forEach(positionClass => {
       const el = document.querySelectorAll(positionClass)
       if (el.length === 2) {
         el.item(0).style.left = '38%'
@@ -181,7 +135,7 @@ function _renderSquadPlayer (player) {
           </tr>
         </thead>
         <tbody>
-            ${data.players.filter(p => p.position === player.position).map(_renderPlayerListItem(newPlayer => _exchangePlayer(player, newPlayer))).join('')}
+            ${data.players.filter(p => p.position === player.position).map(renderPlayerListItem(newPlayer => _exchangePlayer(player, newPlayer))).join('')}
         </tbody>
       </table>
     `)

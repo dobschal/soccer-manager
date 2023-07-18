@@ -18,10 +18,17 @@ const amountTeamsPerLevel = _calculateAmountPerLevel()
 const minimumTeams = 126 // three leagues, will be overwritten by amount of users...
 
 export async function prepareSeason () {
+  await _archiveTooOldPlayers()
   await _ajustAmountOfTeams()
   await _promotionRelegation()
   await _createGames()
   process.exit(0)
+}
+
+async function _archiveTooOldPlayers () {
+  const season = await _latestSeason() ?? 0
+  const result = await query('UPDATE player SET team_id=NULL WHERE carrier_end_season<=?', [season])
+  console.log(`${result.affectedRows} players ended their carrier...`)
 }
 
 async function _promotionRelegation () {
@@ -95,7 +102,7 @@ async function _createGames () {
     for (let i = 0; i < teamsOfLevel.length; i++) {
       const league = Math.floor(i / teamsPerLeague)
       if (!leagues[league]) leagues[league] = []
-      await query(`UPDATE team SET league=${league} WHERE id=${teamsOfLevel[i].id}`)
+      query(`UPDATE team SET league=${league} WHERE id=${teamsOfLevel[i].id}`)
       leagues[league].push(teamsOfLevel[i])
     }
     await Promise.all(leagues.map((teamsOfLeague, league) => {
@@ -174,13 +181,14 @@ function _calculateAmountPerLevel () {
  * The core function to create new teams...
  */
 async function _ajustAmountOfTeams () {
+  const season = await _latestSeason() ?? 0
   const [{ amount: amountOfUsers }] = await query('SELECT COUNT(*) AS amount FROM team WHERE user_id IS NOT NULL')
   const minimumAmountOfTeams = Math.max((amountOfUsers ?? 0) * 2, minimumTeams)
   let teams = await query('SELECT * FROM team')
   while (teams.length === 0 || teams.length % teamsPerLeague !== 0 || teams.length < minimumAmountOfTeams) {
     const levelForNewTeam = _determineLevelForNewTeam(teams)
     const team = await _createRandomTeam(levelForNewTeam)
-    Promise.all([...Array(16)].map((_, i) => _createRandomPlayer(team, i)))
+    Promise.all([...Array(16)].map((_, i) => _createRandomPlayer(team, i, season)))
     teams = await query('SELECT * FROM team')
   }
 }
@@ -207,13 +215,26 @@ async function _createRandomTeam (level) {
  *
  * @param {Team} team
  * @param {number} i - index of player creation ot get correct position and so
+ * @param {number} season
  */
-async function _createRandomPlayer (team, i) {
+async function _createRandomPlayer (team, i, season) {
   const fixPosition = getPositionsOfFormation(team.formation)[i]
+  const age = Math.floor(Math.random() * 22)
+  const carrierLength = 20 + Math.floor(Math.random() * 4)
+  let maxLevel
+  if (age + 16 < 19) {
+    maxLevel = 3
+  } else if (age + 16 < 25) {
+    maxLevel = 6
+  } else {
+    maxLevel = 9
+  }
   const player = new Player({
     team_id: team.id,
     name: _generateRandomPlayerName(),
-    level: Math.floor(Math.random() * 10) + 1,
+    carrier_start_season: season - age,
+    carrier_end_season: season - age + carrierLength,
+    level: Math.floor(Math.random() * maxLevel) + 1,
     in_game_position: fixPosition ?? '',
     position: fixPosition ?? _generateRandomPosition()
   })

@@ -43,6 +43,8 @@ const migrations = [{
               name VARCHAR(255),
               position VARCHAR(255),
               in_game_position VARCHAR(255),
+              carrier_start_season INT,
+              carrier_end_season INT,
               level INT,
               created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
               PRIMARY KEY (id)
