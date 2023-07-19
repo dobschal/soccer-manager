@@ -1,24 +1,26 @@
 /**
- * @typedef {object} Team
+ * @typedef {object} TeamType
  * @property {number} id
  * @property {string} name
  * @property {string} formation - like "442", "433", etc
  * @property {number} level
  * @property {number} league
+ * @property {number} balance
  * @property {Date} created_at
  */
 
 import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
- * @param {Team} raw
- * @returns {Team}
+ * @param {TeamType} raw
+ * @returns {TeamType}
  */
 export function Team (raw) {
   checkType(raw, {
     id: OptionalNumber,
     name: RequiredString,
     level: RequiredNumber,
+    balance: RequiredNumber,
     league: OptionalNumber,
     formation: RequiredString,
     created_at: OptionalObject

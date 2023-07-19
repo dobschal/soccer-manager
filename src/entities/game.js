@@ -1,5 +1,5 @@
 /**
- * @typedef {Object} Game
+ * @typedef {Object} GameType
  * @property {number} id
  * @property {number} season
  * @property {number} game_day
@@ -17,8 +17,8 @@
 import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
- * @param {Game} raw
- * @returns {Game}
+ * @param {GameType} raw
+ * @returns {GameType}
  */
 export function Game (raw) {
   checkType(raw, {

@@ -1,5 +1,5 @@
 /**
- * @typedef {object} Player
+ * @typedef {object} PlayerType
  * @property {number} id
  * @property {string} name
  * @property {number} level
@@ -14,8 +14,8 @@
 import { OptionalNumber, OptionalObject, OptionalString, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
- * @param {Player} raw
- * @returns {Player}
+ * @param {PlayerType} raw
+ * @returns {PlayerType}
  */
 export function Player (raw) {
   checkType(raw, {

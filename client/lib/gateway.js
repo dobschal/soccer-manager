@@ -20,6 +20,7 @@ export const server = new Proxy({}, {
         if (response.status === 401) window.localStorage.removeItem('auth-token')
         throw (await response.json())
       }
+      console.log('Response: ', response)
       return await response.json()
     }
   }

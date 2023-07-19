@@ -1,5 +1,5 @@
 /**
- * @typedef {object} ActionCard
+ * @typedef {object} ActionCardType
  * @property {number} id
  * @property {number} user_id
  * @property {string} action
@@ -10,8 +10,8 @@
 import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
- * @param {ActionCard} raw
- * @returns {ActionCard}
+ * @param {ActionCardType} raw
+ * @returns {ActionCardType}
  */
 export function ActionCard (raw) {
   checkType(raw, {

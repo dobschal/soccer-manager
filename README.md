@@ -41,8 +41,11 @@ npm start
 - [x] Players ages
 - [x] Train Players
 - [x] Action Cards
+- [x] Sponsors and Sallary
+- [ ] Show player info incl. sallary in modal
 - [ ] Deploy to server and CRON jobs
-- [ ] Render Stadium
+- [ ] Have different level up action cards -- level up to 10 is rare and level up to 4 common
+- [ ] Stadium (Render, earn, costs, build)
 - [ ] Trade Players
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards
@@ -52,6 +55,76 @@ npm start
 - [ ] Zweikampf-Sieger
 - [ ] Action card should expire
 - [ ] Hidden (weak) random on player level
+
+
+### Financial (Sponsor, Stadium, Trading)
+
+A team has three way to earn money
+* stadium ticket selling
+* selling players
+* sponsors
+
+A team has fix costs
+* player sallaries
+* stadium maintenance
+
+Optional costs /invests:
+* buying new better players
+* raise the stadium
+
+Player sallaries per game day are fixed to:
+```javascript
+[
+  0,
+  150, // level 1
+  225,
+  337,
+  506, 
+  759, // level 5
+  1139,
+  1709, 
+  2562,
+  3844, 
+  5767 // level 10
+]
+```
+Having 11 players level 10 would cost 2,156,858 € per season
+
+**Tasks**
+- [x] Give team start balance of 100 000 €
+- [x] let team pay sallary on every game day
+
+
+#### Sponsors
+
+* Sponsor make offers for contracts from 3 to 34 game days
+* If the contract goes 8 days, we look up the last 8 games of the team.
+* 8 wins of 8 games would be 100%, 4 wins of 8 games 50% ...
+* minimum is 33% --> needed for very first season too
+* 100% of 34 days in level 0 contract is 2,156,858 €
+** 100% = 63.437 € per gameday in level 0
+* For each level down it's * 0.8
+
+sponsor money per gameday 
+```javascript
+[
+  63437, // level 0
+  50749,
+  40599,
+  32479, // level 3
+  25983,
+  ...
+]
+```
+
+--> If you win all games and have level 10 players, the money should roughly enough... :)
+But if you loose a game with only level 10 players, the money would be enough anymore... uiuiui
+
+**Tasks**
+- [x] Add entity sponsor with user_id, start_game_day, start_season, duration, value_per_game_day
+- [x] Show new random contracts to player if no active sponsor available
+- [x] Give team money from sponsor on each game_day
+
 
 ### Train Players / Action Cards
 

@@ -42,6 +42,10 @@
   transform: translateX(-125px);
 }
 
+.toast.error {
+  background-color: rgb(253, 137, 137);
+}
+
 .fa-button:hover {
   transform: scale(1.1);
   cursor: pointer;

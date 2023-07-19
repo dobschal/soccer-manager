@@ -1,3 +1,43 @@
+export const sponsorNames = [
+  'AeroTech Industries',
+  'EcoFusion Solutions',
+  'TruSports Apparel',
+  'GlobalTech Corporation',
+  'SwiftEnergy',
+  'OptiFit Nutrition',
+  'Starlux Airlines',
+  'HyperDrive Motors',
+  'AquaPure Water',
+  'SureGuard Security',
+  'iTech Innovations',
+  'EnerGize',
+  'NovaTech Electronics',
+  'SkyHigh Investments',
+  'PowerPlay Energy',
+  'CitiCom Telecommunications',
+  'DreamCruise Vacations',
+  'SuperiorSteel',
+  'MaxLife Insurance',
+  'TechGenius',
+  'AlphaPrint',
+  'MegaFlex Gym',
+  'CityScape Real Estate',
+  'GloboVision Media',
+  'UrbanBite Restaurants',
+  'QuickFix Healthcare',
+  'PrimeTime Watches',
+  'Elevate Wealth Management',
+  'Vitality Health',
+  'DynamicDrills',
+  'MegaPixel Cameras',
+  'FirstRate Finance',
+  'EcoMotion Electric Vehicles',
+  'SkyNet Internet',
+  'SoundWave Audio',
+  'FreshHarvest Farms',
+  'PowerUp Batteries'
+]
+
 export const clubPrefixes1 = [
   'FC', 'F.C.', 'SC', 'SV', 'SSC', 'VFB', 'BSV', '1. FC', 'FV', '', '', '', '', ''
 ]

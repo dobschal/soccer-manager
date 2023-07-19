@@ -2,6 +2,7 @@ import { query } from './lib/database.js'
 import { determineOponentPosition } from '../client/lib/formation.js'
 import { randomItem } from './lib/util.js'
 import { ActionCard } from './entities/actionCard.js'
+import { getSponsor } from './helper/sponsorHelper.js'
 
 const actionCards = {
   LEVEL_UP_PLAYER: 0.333,
@@ -9,12 +10,52 @@ const actionCards = {
   NEW_YOUTH_PLYER: 0.033
 }
 
+const sallaryPerLevel = [
+  0,
+  150, // level 1
+  225,
+  337,
+  506,
+  759, // level 5
+  1139,
+  1709,
+  2562,
+  3844,
+  5767 // level 10
+]
+
 export async function calculateGames () {
   const [{ game_day: gameDay, season }] = await query('SELECT * FROM game WHERE played=0 ORDER BY season ASC, game_day ASC LIMIT 1')
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   await Promise.all(games.map(game => _playGame(game)))
   await _giveUsersActionCards()
+  await _letTeamsPaySallaries()
+  await _giveSponsorMoney()
+}
+
+async function _giveSponsorMoney () {
+  /** @type {Array<import('./entities/team.js').TeamType>} */
+  const teams = await query('SELECT * FROM team')
+
+  await Promise.all(teams.map(async team => {
+    const { sponsor } = await getSponsor(team)
+    if (!sponsor) return
+    team.balance += sponsor.value
+    await query('UPDATE team SET balance=? WHERE id=?', [team.balance, team.id])
+  }))
+  console.log('Gave all teams their sponsor money')
+}
+
+async function _letTeamsPaySallaries () {
+  const teams = await query('SELECT * FROM team')
+  await Promise.all(teams.map(async team => {
+    const players = await query('SELECT * FROM player WHERE team_ID=?', [team.id])
+    const totalSallaryCosts = players.reduce((total, player) => total + sallaryPerLevel[player.level], 0)
+    team.balance -= totalSallaryCosts
+    await query('UPDATE team SET balance=? WHERE id=?', [team.balance, team.id])
+  }))
+  console.log('Paid all sallaries')
 }
 
 async function _giveUsersActionCards () {

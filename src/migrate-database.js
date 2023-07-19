@@ -10,6 +10,21 @@ import { query } from './lib/database.js'
  * @type {Array<Migration>}
  */
 const migrations = [{
+  name: 'Create Sponsor Table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS sponsor (
+              id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+              team_id BIGINT(20),
+              start_season INT,
+              start_game_day INT,
+              duration INT,
+              value INT,
+              name VARCHAR(255),
+              created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (id)
+          ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
   name: 'Create Card Table',
   async run () {
     await query(`CREATE TABLE IF NOT EXISTS action_card (
@@ -41,6 +56,7 @@ const migrations = [{
             name VARCHAR(255),
             formation VARCHAR(255),
             level INT,
+            balance INT,
             league INT,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id)

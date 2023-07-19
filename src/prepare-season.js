@@ -14,6 +14,7 @@ import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 
 const teamsPerLeague = 18
 const maxLevels = 20
+const startBalance = 100000 // €
 const amountTeamsPerLevel = _calculateAmountPerLevel()
 const minimumTeams = 126 // three leagues, will be overwritten by amount of users...
 
@@ -202,6 +203,7 @@ async function _createRandomTeam (level) {
   const team = new Team({
     name: _generateRandomTeamName(),
     level,
+    balance: startBalance,
     formation: _generateRandomFormation()
   })
   const { insertId: teamId } = await query('INSERT INTO team SET ?', team)

@@ -29,7 +29,7 @@ export function renderLoginPage () {
     try {
       if (showRegistration) {
         if (repeatedPassword !== password) {
-          return toast('Passwords are not equal...')
+          return toast('Passwords are not equal...', 'error')
         }
         await server.createAccount({ username, password })
         toggleView()
@@ -40,7 +40,7 @@ export function renderLoginPage () {
         goTo('')
       }
     } catch (e) {
-      toast(e.error ?? 'Something went wrong...')
+      toast(e.error ?? 'Something went wrong...', 'error')
     }
   })
 
