@@ -57,6 +57,59 @@ npm start
 - [ ] Hidden (weak) random on player level
 
 
+### Stadium
+
+4 stands, north, south, east, west
+each with three levels, small, middle, big
+roof, or not
+
+**amount of guests to come PER STAND!**
+team_strength_a * team_strength_b ≈ between 900 and 12100 = strength_faktor
+average_price = 13€
+lower price, e.g. 11 -> 13 / 11 = 1.18 = price_faktor
+higher price, e.g. 16 --> 13 / 16 = 0.81 = price_faktor
+faktor 3 is fix
+strength_faktor * price_faktor * 3 * (if roof 1.2)
+
+**Example big:**
+Stands: 20k each
+Price: 15 € each stand
+Teams: 95 x 105 (strong teams first league)
+Roofs: Yes
+95 * 105 = 9975
+13 / 15 = 0.87
+9975 * 0.87 * 3 * 1.2 * 4 = 124 967 --> nice, vermutlich ausverkauft
+--> 1.87 mio € --> 32 mio € per season
+
+**Example small:**
+Stands: 100 each
+Price: 13 € each stand
+Teams: 35 x 45 (weak teams third league)
+Roofs: no
+35 * 45 = 1575
+13 / 13 = 1
+1575 * 1 * 3 * 1 * 4 = 18 900 --> nice
+--> 245 700 € --> 4.2mio € per season if stadium is 20k
+if 400 places only --> 88 400 € per season
+
+**Stadium building price?**
+
+big stand 20k - 40k
+mid stand 5k - 20k
+small stand 100 - 5k
+--> build small stand fully (5k) should be 50 000
+--> one seat costs 10 €
+--> level up cost, small to mid = 1mio, mid to big = 10mio
+
+when building --> change seat size and level
+
+
+**Tasks**
+- [ ] Entity Stadium with size and level per stand
+- [ ] per game calculate guests and store with game details and give money
+- [ ] add UI to build and view stadium
+
+
 ### Financial (Sponsor, Stadium, Trading)
 
 A team has three way to earn money
