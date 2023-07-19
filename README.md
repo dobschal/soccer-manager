@@ -10,6 +10,8 @@ Inside the `src` folder various scripts are available:
 
 A UI is implemented. When you run the API, you can open the UI on http://localhost:3000
 
+> !!! When starting the API with `api.js`, the other scripts are executed via CRON job automatically
+
 ## Run it
 Run the scripts as described here:
 ```bash
@@ -17,13 +19,13 @@ Run the scripts as described here:
 npm install
 
 # Prepare database
-node src/migrate-database.js
+node src/migrate-database.cmd.js
 
 # Setup teams and games
-node src/prepare-season.js
+node src/prepare-season.cmd.js
 
 # calculate the games for the current gameday ---> repeat for each game day to play
-node src/play-game-day.js
+node src/play-game-day.cmd.js
 
 # Start game UI on port 3000
 npm start
@@ -39,16 +41,17 @@ npm start
 - [x] Players ages
 - [x] Train Players
 - [x] Action Cards
-- [ ] Deploy to server
-- [ ] Log/Mailbox to see what happened when
+- [ ] Deploy to server and CRON jobs
+- [ ] Render Stadium
 - [ ] Trade Players
+- [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards
 - [ ] Localisation
 - [ ] Wappen
-- [ ] Torschützen
+- [ ] Torschützen Liste
 - [ ] Zweikampf-Sieger
 - [ ] Action card should expire
-- [ ] Hidden weak random on player
+- [ ] Hidden (weak) random on player level
 
 ### Train Players / Action Cards
 

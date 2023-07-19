@@ -4,6 +4,10 @@ import fs from 'fs'
 import jwt from 'jsonwebtoken'
 import { config } from './config.js'
 import { query } from './lib/database.js'
+import { runMigration } from './migrate-database.js'
+import cron from 'node-cron'
+import { prepareSeason } from './prepare-season.js'
+import { calculateGames } from './play-game-day.js'
 
 const app = express()
 const port = 3000
@@ -59,6 +63,29 @@ for (const filename of filenames) {
   }
 }
 
-app.listen(port, () => {
-  console.log(`API running on port ${port}`)
-})
+/**
+ * On every startup, we update the database we the latest structure
+ * Schedule the game day calculation and season preparation
+ * Start API server to listen on post 3000
+ */
+async function start () {
+  await runMigration()
+  cron.schedule('0 0 * * * *', async () => {
+    //           * * * * * *
+    //           | | | | | |
+    //           | | | | | day of week
+    //           | | | | month
+    //           | | | day of month
+    //           | | hour
+    //           | minute
+    //           second ( optional )
+    console.log('Start CRON job for game day.')
+    await prepareSeason()
+    await calculateGames()
+  })
+  app.listen(port, () => {
+    console.log(`API running on port ${port}`)
+  })
+}
+
+start()

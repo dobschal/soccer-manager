@@ -32,6 +32,7 @@ export function renderGameLayout () {
         <ul class="navbar-nav mr-auto">
           ${_navItem('my-team', 'My Team')}
           ${_navItem('results', 'Results')}
+          ${_navItem('stadium', 'Stadium')}
         </ul>
         <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
       </div>        

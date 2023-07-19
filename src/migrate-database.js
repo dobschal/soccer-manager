@@ -99,7 +99,4 @@ export async function runMigration () {
     await query(`INSERT INTO __migration (name) VALUES ("${migration.name}");`)
   }
   console.log(`\n✅ Database migration done in ${Date.now() - t1}ms.`)
-  process.exit(0)
 }
-
-runMigration()

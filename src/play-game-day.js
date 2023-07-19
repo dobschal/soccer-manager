@@ -15,7 +15,6 @@ export async function calculateGames () {
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   await Promise.all(games.map(game => _playGame(game)))
   await _giveUsersActionCards()
-  process.exit(0)
 }
 
 async function _giveUsersActionCards () {
@@ -222,5 +221,3 @@ function _passBall (playerTeamA, playerTeamB, gameDetails) {
   activePlayer.hasBall = false
   nextPlayer.hasBall = true
 }
-
-calculateGames()

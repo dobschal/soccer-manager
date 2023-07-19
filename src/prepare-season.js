@@ -22,7 +22,6 @@ export async function prepareSeason () {
   await _ajustAmountOfTeams()
   await _promotionRelegation()
   await _createGames()
-  process.exit(0)
 }
 
 async function _archiveTooOldPlayers () {
@@ -284,5 +283,3 @@ function _generateRandomPosition () {
 function _generateRandomFormation () {
   return randomItem(Object.values(Formation))
 }
-
-prepareSeason()
