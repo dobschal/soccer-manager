@@ -5,6 +5,7 @@ import { query } from './lib/database.js'
 import { Formation, Position, getPositionsOfFormation } from '../client/lib/formation.js'
 import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name-library.js'
 import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
+import { Stadium } from './entities/stadium.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -208,6 +209,22 @@ async function _createRandomTeam (level) {
   })
   const { insertId: teamId } = await query('INSERT INTO team SET ?', team)
   team.id = teamId
+  const stadium = new Stadium({
+    team_id: team.id,
+    north_stand_roof: 0,
+    south_stand_roof: 0,
+    east_stand_roof: 0,
+    west_stand_roof: 0,
+    north_stand_size: 100,
+    south_stand_size: 100,
+    east_stand_size: 100,
+    west_stand_size: 100,
+    north_stand_price: 13,
+    south_stand_price: 13,
+    east_stand_price: 13,
+    west_stand_price: 13
+  })
+  await query('INSERT INTO stadium SET ?', stadium)
   return team
 }
 

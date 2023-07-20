@@ -12,6 +12,32 @@ import { query } from './lib/database.js'
 const migrations = [{
   name: 'Create Sponsor Table',
   async run () {
+    await query(`CREATE TABLE IF NOT EXISTS stadium (
+              id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+              team_id BIGINT(20),
+
+              north_stand_price INT,
+              south_stand_price INT,
+              west_stand_price INT,
+              east_stand_price INT,
+
+              north_stand_size INT,
+              south_stand_size INT,
+              west_stand_size INT,
+              east_stand_size INT,
+
+              north_stand_roof TINYINT(1),
+              south_stand_roof TINYINT(1),
+              west_stand_roof TINYINT(1),
+              east_stand_roof TINYINT(1),
+
+              created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (id)
+          ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Create Sponsor Table',
+  async run () {
     await query(`CREATE TABLE IF NOT EXISTS sponsor (
               id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
               team_id BIGINT(20),
