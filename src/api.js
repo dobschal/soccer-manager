@@ -70,6 +70,7 @@ for (const filename of filenames) {
  */
 async function start () {
   await runMigration()
+  await prepareSeason()
   cron.schedule('0 0 * * * *', async () => {
     //           * * * * * *
     //           | | | | | |

@@ -2,11 +2,13 @@ import mysql from 'mysql'
 
 const pool = mysql.createPool({
   connectionLimit: 10,
-  host: 'localhost',
+  host: 'database', // switch to localhost if running locally
   user: 'root',
   password: 'root',
   database: 'soccer'
 })
+
+console.log('Database')
 
 /**
  * Wrapper of the existing database query method, but returns a promise.
@@ -20,7 +22,6 @@ export function query (...params) {
       if (error) return reject(error)
       resolve(results)
     })
-    console.debug('SQL Query: ', params[0])
     pool.query(...params)
   })
 }
