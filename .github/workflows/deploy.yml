@@ -16,19 +16,17 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push
+      - name: Build and push docker image
         uses: docker/build-push-action@v4
         with:
           push: true
           tags: dobschal/soccer-manager:latest
-      - name: install ssh keys
-        # check this thread to understand why its needed:
-        # https://stackoverflow.com/a/70447517
+      - name: Install SSH
         run: |
           install -m 600 -D /dev/null ~/.ssh/id_rsa
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
-      - name: connect and pull
-        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "ls -la && exit"
-      - name: cleanup
+      - name: Connect to server SSH and update server
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd deployments/soccer-manager && docker-compose pull && docker-compose up -d && exit"
+      - name: Clean up
         run: rm -rf ~/.ssh
