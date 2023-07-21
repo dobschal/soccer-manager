@@ -50,7 +50,8 @@ export function renderLoginPage () {
 
   return `
     <div>
-      <h2>Login 4</h2>
+      <h1>Socker Manager IO</h1>
+      <h2>Login</h2>
       <form id="login-form">
         <div class="form-group">
           <label for="username-input">Username</label>
