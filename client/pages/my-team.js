@@ -5,7 +5,7 @@ import { el, generateId } from '../lib/html.js'
 import { onChange, onClick } from '../lib/htmlEventHandlers.js'
 import { render } from '../lib/render.js'
 import { showOverlay } from '../partials/overlay.js'
-import { renderPlayerListItem, renderPlayersList } from '../partials/playersList.js'
+import { renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
 
 let data, overlay, dataChanged

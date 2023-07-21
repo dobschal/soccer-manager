@@ -4,6 +4,27 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 
 let currentSeason
 
+const euroFormat = new Intl.NumberFormat('de-DE', {
+  style: 'currency',
+  currency: 'EUR'
+})
+
+//
+// TODO: Refactor that to have a shared util
+//
+export const sallaryPerLevel = [
+  0,
+  150, // level 1
+  225,
+  337,
+  506,
+  759, // level 5
+  1139,
+  1709,
+  2562,
+  3844,
+  5767 // level 10
+]
 export async function renderPlayersList (players, showTitle = true, onClickHandler) {
   console.log('Players to render: ', players)
   const { season } = await server.getCurrentGameday()
@@ -15,8 +36,9 @@ export async function renderPlayersList (players, showTitle = true, onClickHandl
         <tr>
           <th scope="col">Name</th>
           <th scope="col">Position</th>
-          <th scope="col">Age</th>
-          <th scope="col">Level</th>
+          <th scope="col" class="text-right">Age</th>
+          <th scope="col" class="text-right">Level</th>
+          <th scope="col" class="text-right">Sallary</th>
         </tr>
       </thead>
       <tbody>
@@ -40,8 +62,9 @@ export function renderPlayerListItem (onClickHandler) {
       <tr id="${id}" class="${player.in_game_position ? 'table-info' : 'table-warning'}">
         <th scope="row">${player.name}</th>
         <td>${player.position}</td>
-        <td>${_calculatePlayerAge(player)}</td>
-        <td>${player.level}</td>
+        <td class="text-right">${_calculatePlayerAge(player)}</td>
+        <td class="text-right">${player.level}</td>
+        <td class="text-right">${euroFormat.format(sallaryPerLevel[player.level])}</td>
       </tr>
     `
   }
