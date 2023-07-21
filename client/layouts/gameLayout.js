@@ -2,9 +2,12 @@ import { on } from '../lib/event.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { goTo } from '../lib/router.js'
+import { balanceSpan } from '../partials/balance.js'
 
-export function renderGameLayout () {
+export async function renderGameLayout () {
   let mobileNavigationOpen = false
+
+  const balance = await balanceSpan()
 
   onClick('#logout-button', () => {
     window.localStorage.removeItem('auth-token')
@@ -35,6 +38,9 @@ export function renderGameLayout () {
           ${_navItem('finances', 'Finances')}
           ${_navItem('stadium', 'Stadium')}
         </ul>
+        <div class="pr-4">
+            ${balance}
+        </div>
         <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
       </div>        
     </nav>

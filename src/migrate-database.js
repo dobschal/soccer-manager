@@ -10,7 +10,7 @@ import { query } from './lib/database.js'
  * @type {Array<Migration>}
  */
 const migrations = [{
-  name: 'Create Sponsor Table',
+  name: 'Create Stadium Table',
   async run () {
     await query(`CREATE TABLE IF NOT EXISTS stadium (
               id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,

@@ -30,7 +30,7 @@ app.use(async (req, res, next) => {
       req.user = user
     } catch (e) {
       console.error('Cannot validate JWT: ', e)
-      return res.status(401).send({ error: 'Invalid authorization header!' })
+      return res.status(401).send({ message: 'Invalid authorization header!' })
     }
   }
   next()
@@ -55,7 +55,7 @@ for (const filename of filenames) {
           }
         } catch (e) {
           console.error('Error: ', e)
-          res.status(e.status ?? 500).send({ error: e.message ?? 'Unknown error' })
+          res.status(e.status ?? 500).send({ message: e.message ?? 'Unknown error' })
         }
         console.log(`${fnName} took ${Date.now() - t1}ms`)
       })

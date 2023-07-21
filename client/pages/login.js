@@ -40,7 +40,7 @@ export function renderLoginPage () {
         goTo('')
       }
     } catch (e) {
-      toast(e.error ?? 'Something went wrong...', 'error')
+      toast(e.message ?? 'Something went wrong...', 'error')
     }
   })
 

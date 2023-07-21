@@ -24,6 +24,7 @@ export async function prepareSeason () {
   await _ajustAmountOfTeams()
   await _promotionRelegation()
   await _createGames()
+  console.log('\n\nPrepared Season')
 }
 
 async function _archiveTooOldPlayers () {

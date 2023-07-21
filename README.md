@@ -42,11 +42,15 @@ npm start
 - [x] Train Players
 - [x] Action Cards
 - [x] Sponsors and Sallary
-- [ ] Show player info incl. sallary in modal
-- [ ] Deploy to server and CRON jobs
-- [ ] Have different level up action cards -- level up to 10 is rare and level up to 4 common
-- [ ] Stadium (Render, earn, costs, build)
+- [x] Stadium (Render, earn, costs, build)
 - [ ] Trade Players
+- [ ] Finances Log
+- [ ] Deploy to server and CRON jobs
+
+- [ ] Level Up with XP and getting a level up card each game day
+- [ ] Show how many guests were on game
+- [ ] Show player info incl. sallary in modal
+- [ ] Have different level up action cards -- level up to 10 is rare and level up to 4 common
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards
 - [ ] Localisation
@@ -55,6 +59,7 @@ npm start
 - [ ] Zweikampf-Sieger
 - [ ] Action card should expire
 - [ ] Hidden (weak) random on player level
+- [ ] Player Faces
 
 
 ### Stadium

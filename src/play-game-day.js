@@ -32,6 +32,7 @@ export async function calculateGames () {
   await _giveUsersActionCards()
   await _letTeamsPaySallaries()
   await _giveSponsorMoney()
+  console.log('\n\nPlayed game day ' + gameDay)
 }
 
 async function _giveSponsorMoney () {
@@ -88,22 +89,55 @@ async function _giveUsersActionCards () {
 }
 
 /**
+ * @param {TeamType} teamA
+ * @param {TeamType} teamB
+ * @param {number} strengthTeamA
+ * @param {number} strengthTeamB
+ * @private
+ */
+async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strengthTeamB) {
+  const strengthFactor = strengthTeamA * strengthTeamB
+  const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [teamA.id])
+  const stands = ['north', 'south', 'west', 'east']
+  const details = {}
+  let totalEarnings = 0
+  for (const stand of stands) {
+    const price = stadium[stand + '_stand_price']
+    const size = stadium[stand + '_stand_size']
+    const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
+    const priceFactor = 13 / price
+    const amountOfGuests = Math.min(size, strengthFactor * priceFactor * 3 * roofFactor)
+    details[stand + 'Guests'] = amountOfGuests
+    const earnings = amountOfGuests * price
+    details[stand + 'Earnings'] = earnings
+    totalEarnings += earnings
+  }
+  teamA.balance += totalEarnings
+  await query('UPDATE team Set balance=? WHERE id=?', [teamA.balance, teamA.id])
+  return details
+}
+
+/**
  * @param {Game} game
  */
 async function _playGame (game) {
-  const [teamA] = await query('SELECT * FROM team WHERE id=?', [game.team_1_id])
-  const [teamB] = await query('SELECT * FROM team WHERE id=?', [game.team_2_id])
-  const playerTeamA = await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>"" AND in_game_position IS NOT NULL', [game.team_1_id])
-  const playerTeamB = await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>"" AND in_game_position IS NOT NULL', [game.team_2_id])
+  const [[teamA], [teamB], playerTeamA, playerTeamB] = await Promise.all([
+    await query('SELECT * FROM team WHERE id=?', [game.team_1_id]),
+    await query('SELECT * FROM team WHERE id=?', [game.team_2_id]),
+    await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>"" AND in_game_position IS NOT NULL', [game.team_1_id]),
+    await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>"" AND in_game_position IS NOT NULL', [game.team_2_id])
+  ])
   const strengthTeamA = playerTeamA.reduce((totalStrength, player) => totalStrength + player.level, 0)
   const strengthTeamB = playerTeamB.reduce((totalStrength, player) => totalStrength + player.level, 0)
+  const stadiumDetails = await _giveStadiumTicketEarnings(teamA, teamB, strengthTeamA, strengthTeamB)
   console.log(`\n\nPlay game between ${teamA.name} (${strengthTeamA}) and ${teamB.name} (${strengthTeamB})`)
   const gameDetails = {
     log: [],
     goalsTeamB: 0,
     goalsTeamA: 0,
     strengthTeamA,
-    strengthTeamB
+    strengthTeamB,
+    stadiumDetails
   }
   _kickoff(playerTeamA, playerTeamB, gameDetails)
   for (let minute = 0; minute < 90; minute++) {
@@ -205,7 +239,10 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
   }
   const chanceForShoot = Math.min(0.95, _chanceToShoot(activePlayer, gameDetails) * (gameDetails.streak * 0.5))
   if (Math.random() > chanceForShoot) return true
-  if (Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)) {
+  if (!goalKeeper) {
+    console.log('Team has no goalkeeper set!')
+  }
+  if (goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)) {
     gameDetails.log.push({
       keeperHolds: true,
       goalKeeper: goalKeeper.id
@@ -222,7 +259,7 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     gameDetails.goalsTeamB = gameDetails.goalsTeamB ?? 0
     gameDetails.goalsTeamB++
   }
-  console.log('GOAL!', gameDetails.goalsTeamA ?? 0, gameDetails.goalsTeamB ?? 0, 'streak: ' + gameDetails.streak, 'player level: ' + activePlayer.level, 'GK level: ' + goalKeeper.level, 'shoot chance: ' + chanceForShoot)
+  console.log('GOAL!', gameDetails.goalsTeamA ?? 0, gameDetails.goalsTeamB ?? 0, 'streak: ' + gameDetails.streak, 'player level: ' + activePlayer.level, 'GK level: ' + (goalKeeper?.level ?? 0), 'shoot chance: ' + chanceForShoot)
   gameDetails.log.push({
     goal: true,
     player: activePlayer.id

@@ -3,8 +3,7 @@ import { generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from '../partials/toast.js'
 import { render } from '../lib/render.js'
-
-let data
+import { balanceSpan } from '../partials/balance.js'
 
 const euroFormat = new Intl.NumberFormat('de-DE', {
   style: 'currency',
@@ -12,12 +11,11 @@ const euroFormat = new Intl.NumberFormat('de-DE', {
 })
 
 export async function renderFinancesPage () {
-  data = await server.getMyTeam()
   const { sponsor } = await server.getSponsor()
   console.log('Sponsor: ', sponsor)
   const { sponsors: offers } = await server.getSponsorOffers()
   console.log('Offers: ', offers)
-  const balance = euroFormat.format(data.team.balance)
+  const balance = await balanceSpan()
   return `
     <h2>Finances</h2>
     <p>

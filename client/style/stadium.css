@@ -14,7 +14,7 @@
 
 .stadium-canvas {
   width: 100%;
-  aspect-ratio: 4/3;
+  aspect-ratio: 2/1;
   background-color: rgb(0, 0, 0);
   perspective: calc(100px * 15);
   perspective-origin: 50% calc(50% - 100px * 10);
@@ -28,7 +28,7 @@
   transform-style: preserve-3d;
   position: relative;
   animation-name: rotate-stadium;
-  animation-duration: 20s;
+  animation-duration: 30s;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
@@ -42,8 +42,8 @@
   top: 100px;
   width: calc(100px * 8);
   height: calc(100px * 8);
-  background-color: rgb(83, 83, 83);
-  background-image: radial-gradient(#0000, #000 75%);
+  background-color: rgb(73, 73, 73);
+  background-image: radial-gradient(#0000, #000);
   background-size: 100%;
   transform: translate(-50%, -50%) rotateX(90deg);
 }
@@ -54,8 +54,8 @@
   height: calc(100px);
   background-color: green;
   top: 100px;
-  transform: translate(-50%, -50%) rotateX(90deg);
-  background-image: url("../assets/field-texture.png");
+  transform: translate(-50%, calc(-50% - 1px)) rotateX(90deg);
+  background-image: url("../assets/field-texture.jpg");
   background-size: 100%;
 }
 
@@ -63,60 +63,64 @@
 .stadium-canvas .stand-wrapper {
   position: absolute;
   transform-style: preserve-3d;
-  transform: rotateY(0deg);
+  transform: rotateY(0deg) scale(1, 0.5) translateY(100px);
+}
+
+.stadium-canvas .stand-wrapper:hover {
+  cursor: pointer;
 }
 
 .stadium-canvas .stand-wrapper:nth-child(1).small {
-  transform: scale(1, 0.5) translateY(100px);
+  transform: scale(1, 0.25) translateZ(-25px) translateY(300px) scaleZ(0.5);
 }
 
 .stadium-canvas .stand-wrapper:nth-child(1).big {
-  transform: scale(1, 1.5) translateY(-33px);
+  transform: scale(1, 1) translateY(0px) scaleZ(1.5) translateZ(16px);
 }
 
 /* SOUTH */
 .stadium-canvas .stand-wrapper:nth-child(2) {
   position: absolute;
   transform-style: preserve-3d;
-  transform: rotateY(180deg) scale(1, 1) translateY(0px);
-}
-
-.stadium-canvas .stand-wrapper:nth-child(2).small {
   transform: rotateY(180deg) scale(1, 0.5) translateY(100px);
 }
 
+.stadium-canvas .stand-wrapper:nth-child(2).small {
+  transform: rotateY(180deg) scale(1, 0.25) translateZ(-25px) translateY(300px) scaleZ(0.5);
+}
+
 .stadium-canvas .stand-wrapper:nth-child(2).big {
-  transform: rotateY(180deg) scale(1, 1.5) translateY(-33px);
+  transform: rotateY(180deg) scale(1, 1) translateY(0) scaleZ(1.5) translateZ(16px);
 }
 
 /* WEST */
 .stadium-canvas .stand-wrapper:nth-child(3) {
   position: absolute;
   transform-style: preserve-3d;
-  transform: rotateY(90deg) scale(0.5, 1) translateZ(-50px);
-}
-
-.stadium-canvas .stand-wrapper:nth-child(3).small {
   transform: rotateY(90deg) scale(0.5, 0.5) translateZ(-50px) translateY(100px);
 }
 
+.stadium-canvas .stand-wrapper:nth-child(3).small {
+  transform: rotateY(90deg) scale(0.5, 0.25) translateZ(-75px) translateY(300px) scaleZ(0.5);
+}
+
 .stadium-canvas .stand-wrapper:nth-child(3).big {
-  transform: rotateY(90deg) scale(0.5, 1.5) translateZ(-50px) translateY(-33px);
+  transform: rotateY(90deg) scale(0.5, 1) translateZ(-25px) translateY(0) scaleZ(1.5);
 }
 
 /* EAST */
 .stadium-canvas .stand-wrapper:nth-child(4) {
   position: absolute;
   transform-style: preserve-3d;
-  transform: rotateY(270deg) scale(0.5, 1) translateZ(-50px);
-}
-
-.stadium-canvas .stand-wrapper:nth-child(4).small {
   transform: rotateY(270deg) scale(0.5, 0.5) translateZ(-50px) translateY(100px);
 }
 
+.stadium-canvas .stand-wrapper:nth-child(4).small {
+  transform: rotateY(270deg) scale(0.5, 0.25) translateZ(-75px) translateY(300px) scaleZ(0.5);
+}
+
 .stadium-canvas .stand-wrapper:nth-child(4).big {
-  transform: rotateY(270deg) scale(0.5, 1.5) translateZ(-50px) translateY(-33px);
+  transform: rotateY(270deg) scale(0.5, 1) translateZ(-25px) translateY(0) scaleZ(1.5);
 }
 
 /* SHARED */
@@ -127,6 +131,9 @@
   height: calc(100px * 0.39);
   background-color: rgb(153 153 153 / 79%);
   transform: translate(-50%, calc(-50% + 64px)) translateZ(-68px) rotateX(90deg);
+  background-size: cover;
+  background-image: url("../assets/roof-texture.png");
+  background-position: center;
 }
 
 .stadium-canvas .stand {
