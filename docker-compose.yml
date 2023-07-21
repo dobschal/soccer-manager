@@ -15,7 +15,7 @@ services:
       timeout: 10s
       retries: 10
 
-  soccess-manager:
+  soccer-manager:
     image: dobschal/soccer-manager
     ports:
       - "3000:3000"
