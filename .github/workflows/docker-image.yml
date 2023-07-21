@@ -21,10 +21,14 @@ jobs:
         with:
           push: true
           tags: dobschal/soccer-manager:latest
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: {%- raw -%} ${{ secrets.SSH_SECRET_KEY }}
-          known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
-      - name: Adding Known Hosts
-        run: ssh-keyscan -H 212.227.179.89{% endraw%} >> ~/.ssh/known_hosts
+      - name: install ssh keys
+        # check this thread to understand why its needed:
+        # https://stackoverflow.com/a/70447517
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+      - name: connect and pull
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "ls -la && exit"
+      - name: cleanup
+        run: rm -rf ~/.ssh
