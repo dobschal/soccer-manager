@@ -6,7 +6,7 @@ on:
       - 'main'
 
 jobs:
-  docker:
+  deploy-to-server:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -27,6 +27,6 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
       - name: Connect to server SSH and update server
-        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd deployments/soccer-manager && docker compose pull && docker compose up -d && exit"
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd deployments/soccer-manager && docker compose stop soccer-manager && docker compose rm -f soccer-manager && docker compose pull && docker compose up -d && exit"
       - name: Clean up
         run: rm -rf ~/.ssh
