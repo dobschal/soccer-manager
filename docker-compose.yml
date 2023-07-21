@@ -16,7 +16,7 @@ services:
       retries: 10
 
   soccess-manager:
-    build: .
+    image: dobschal/soccer-manager
     ports:
       - "3000:3000"
     depends_on:
