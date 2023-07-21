@@ -1,4 +1,5 @@
 # Soccer Simulation
+![deployment](https://github.com/dobschal/soccer-manager/actions/workflows/deploy.yml/badge.svg)
 
 You need to have a MySQL database running and NodeJS installed.
 

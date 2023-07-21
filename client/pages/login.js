@@ -50,7 +50,7 @@ export function renderLoginPage () {
 
   return `
     <div>
-      <h2>Login 2</h2>
+      <h2>Login 3</h2>
       <form id="login-form">
         <div class="form-group">
           <label for="username-input">Username</label>
