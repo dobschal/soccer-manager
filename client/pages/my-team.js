@@ -7,6 +7,7 @@ import { render } from '../lib/render.js'
 import { showOverlay } from '../partials/overlay.js'
 import { renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
+import { showPlayerModal } from '../partials/playerModal.js'
 
 let data, overlay, dataChanged
 
@@ -14,7 +15,7 @@ export async function renderMyTeamPage () {
   dataChanged = false
   data = await server.getMyTeam()
   console.log('Data: ', data)
-  const playersList = await renderPlayersList(data.players)
+  const playersList = await renderPlayersList(data.players, true, showPlayerModal)
   return `
     <div class="mb-4" id="header">
       ${_renderHeader()}

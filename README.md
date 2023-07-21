@@ -44,13 +44,16 @@ npm start
 - [x] Action Cards
 - [x] Sponsors and Sallary
 - [x] Stadium (Render, earn, costs, build)
-- [ ] Trade Players
+- [ ] Fix roof prices expand build
+- [ ] Fix double registration request
+- [ ] Trade Players --> have a players profile in a modal with a buy action
 - [ ] Finances Log
-- [ ] Deploy to server and CRON jobs
-
-- [ ] Level Up with XP and getting a level up card each game day
+- [ ] show when the next game takes place
+- [x] Deploy to server and CRON jobs
 - [ ] Show how many guests were on game
 - [ ] Show player info incl. sallary in modal
+
+- [ ] Level Up with XP and getting a level up card each game day
 - [ ] Have different level up action cards -- level up to 10 is rare and level up to 4 common
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards

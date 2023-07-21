@@ -33,10 +33,10 @@ export async function renderGameLayout () {
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav mr-auto">
-          ${_navItem('my-team', 'My Team')}
-          ${_navItem('results', 'Results')}
-          ${_navItem('finances', 'Finances')}
-          ${_navItem('stadium', 'Stadium')}
+          ${_navItem('my-team', '<i class="fa fa-users" aria-hidden="true"></i> Team')}
+          ${_navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
+          ${_navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}
+          ${_navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
         </ul>
         <div class="pr-4">
             ${balance}
