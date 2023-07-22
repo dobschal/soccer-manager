@@ -1,12 +1,13 @@
 import { onClick, onSubmit } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
-import { el, value } from '../lib/html.js'
+import { el, generateId, value } from '../lib/html.js'
 import { goTo } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
 
 export function renderLoginPage () {
   let showRegistration = false
   let isSubmitting = false
+  const loginFormId = generateId()
 
   function toggleView () {
     showRegistration = !showRegistration
@@ -21,7 +22,7 @@ export function renderLoginPage () {
     }
   }
 
-  onSubmit('#login-form', async event => {
+  onSubmit(loginFormId, async event => {
     event.preventDefault()
     if (isSubmitting) return
     isSubmitting = true
@@ -56,7 +57,7 @@ export function renderLoginPage () {
     <div>
       <h1>Socker Manager IO</h1>
       <h2>Login</h2>
-      <form id="login-form">
+      <form id="${loginFormId}">
         <div class="form-group">
           <label for="username-input">Username</label>
           <input autofocus class="form-control" id="username-input" type="text" placeholder="Username">

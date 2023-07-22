@@ -1,3 +1,6 @@
+import { goTo } from './router.js'
+import { toast } from '../partials/toast.js'
+
 /**
  * Awesome Proxy wrapper to call server with HTTP Post Request
  */
@@ -17,7 +20,10 @@ export const server = new Proxy({}, {
       }
       const response = await fetch(`/api/${key}`, options)
       if (response.status >= 400) {
-        if (response.status === 401) window.localStorage.removeItem('auth-token')
+        if (response.status === 401) {
+          window.localStorage.removeItem('auth-token')
+          toast('Please reload the page.', 'error')
+        }
         throw (await response.json())
       }
       console.log('Response: ', response)

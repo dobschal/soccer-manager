@@ -12,10 +12,6 @@ export async function renderStadiumPage () {
   const { stadium } = await server.getStadium()
   console.log('Stadium: ', stadium)
 
-  //
-  // TODO: Change Price per stand and get money on game day...
-  //
-
   onSubmit('#stadium-form', async event => {
     event.preventDefault()
     try {
@@ -104,6 +100,16 @@ function _renderPriceForm (stadium) {
   `
 }
 
+async function _updatePrice (stadium, priceItemId) {
+  try {
+    const { totalPrice } = await server.calculateStadiumPrice({ stadium })
+    console.log('Price: ', totalPrice)
+    el('#' + priceItemId).innerText = euroFormat.format(totalPrice)
+  } catch (e) {
+    toast(e.message ?? 'Something went wrong', 'error')
+  }
+}
+
 function _renderExpandForm (stadium) {
   const priceItemId = generateId()
 
@@ -112,19 +118,13 @@ function _renderExpandForm (stadium) {
     const checkboxItemId = generateId()
 
     onChange('#' + inputItemId, async (event) => {
-      console.log('Value: ', event.target.value)
-      try {
-        stadium[name + '_stand_size'] = Number(event.target.value)
-        const { totalPrice } = await server.calculateStadiumPrice({ stadium })
-        console.log('Price: ', totalPrice)
-        el('#' + priceItemId).innerText = euroFormat.format(totalPrice)
-      } catch (e) {
-        toast(e.message ?? 'Something went wrong', 'error')
-      }
+      stadium[name + '_stand_size'] = Number(event.target.value)
+      await _updatePrice(stadium, priceItemId)
     })
 
-    onChange('#' + checkboxItemId, event => {
-      console.log('Roof changed.', event.target.checked)
+    onChange('#' + checkboxItemId, async event => {
+      stadium[name + '_stand_roof'] = event.target.checked ? 1 : 0
+      await _updatePrice(stadium, priceItemId)
     })
 
     return `

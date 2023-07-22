@@ -9,6 +9,10 @@
   }
 }
 
+body {
+  font-variant-numeric: tabular-nums !important;
+}
+
 #page {
   animation-name: page-enter-animation;
   animation-duration: 0.3s;

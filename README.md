@@ -44,11 +44,11 @@ npm start
 - [x] Action Cards
 - [x] Sponsors and Sallary
 - [x] Stadium (Render, earn, costs, build)
-- [ ] Fix roof prices expand build
-- [ ] Fix double registration request
+- [x] Fix roof prices expand build
+- [x] Fix double registration request
 - [ ] Trade Players --> have a players profile in a modal with a buy action
 - [ ] Finances Log
-- [ ] show when the next game takes place
+- [x] show when the next game takes place
 - [x] Deploy to server and CRON jobs
 - [ ] Show how many guests were on game
 - [ ] Show player info incl. sallary in modal

@@ -71,7 +71,7 @@ for (const filename of filenames) {
 async function start () {
   await runMigration()
   await prepareSeason()
-  cron.schedule('0 0 * * * *', async () => {
+  cron.schedule('0 0 */12 * * *', async () => {
     //           * * * * * *
     //           | | | | | |
     //           | | | | | day of week

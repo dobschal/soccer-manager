@@ -3,6 +3,19 @@ import { calculateStanding } from '../lib/util.js'
 
 export default {
 
+  async nextGameDate () {
+    const d = new Date()
+    d.setHours(12)
+    d.setMinutes(0)
+    d.setSeconds(0)
+    if (Date.now() > d.getTime()) { // afternoon
+      d.setHours(23)
+      d.setMinutes(59)
+      d.setSeconds(59)
+    }
+    return { date: d }
+  },
+
   async getResults (req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
     const results = await query(`

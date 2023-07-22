@@ -18,6 +18,7 @@ export function onSubmit (elementQuery, handler) {
 
 export function on (eventName, elementQuery, handler) {
   setTimeout(() => {
+    if (elementQuery.startsWith('_')) elementQuery = '#' + elementQuery
     const element = document.querySelector(elementQuery)
     if (!element) return console.error('No element for event handler', elementQuery)
     element.addEventListener(eventName, handler)

@@ -14,7 +14,7 @@ export async function getStadiumOfCurrentUser (req) {
 /**
  * @param {StadiumType} currentStadium
  * @param {StadiumType} plannedStadium
- * @returns {Promise<number>}
+ * @returns {number}
  */
 export function calcuateStadiumBuild (currentStadium, plannedStadium) {
   const standNames = ['north', 'south', 'west', 'east']
@@ -24,7 +24,7 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     const planneStandSize = plannedStadium[standName + '_stand_size']
     const seatsDiff = planneStandSize - currentStandSize
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
-    const priceForSeats = seatsDiff * 13
+    const priceForSeats = seatsDiff * 15
     const isLevelUpToMid = planneStandSize >= 5000 && currentStandSize < 5000
     const isLevelUpToBig = planneStandSize >= 20000 && currentStandSize < 20000
     let standPrice = priceForSeats
@@ -36,7 +36,7 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
       throw new BadRequestError('Roof cannot be removed')
     }
     if (!currentStadium[standName + '_stand_roof'] && plannedStadium[standName + '_stand_roof']) {
-      standPrice *= 1.5
+      standPrice = standPrice * 1.2 + 200000
     }
     totalPrice += standPrice
   }

@@ -3,11 +3,27 @@ import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { goTo } from '../lib/router.js'
 import { balanceSpan } from '../partials/balance.js'
+import { server } from '../lib/gateway.js'
+
+let interval
 
 export async function renderGameLayout () {
   let mobileNavigationOpen = false
+  const nextGameInElementId = generateId()
 
   const balance = await balanceSpan()
+
+  // show timer for next game day in...
+  const { date } = await server.nextGameDate()
+  if (interval) clearInterval(interval)
+  interval = setInterval(() => {
+    const diff = new Date(Date.parse(date)).getTime() - Date.now()
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    const twoDigits = (v) => v < 10 ? '0' + v : v
+    el('#' + nextGameInElementId).innerText = `${hours}h ${twoDigits(minutes % 60)}min ${twoDigits(seconds % 60)}sec`
+  }, 1000)
 
   onClick('#logout-button', () => {
     window.localStorage.removeItem('auth-token')
@@ -38,6 +54,8 @@ export async function renderGameLayout () {
           ${_navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}
           ${_navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
         </ul>
+        <div class="pr-4" id="${nextGameInElementId}">
+        </div>
         <div class="pr-4">
             ${balance}
         </div>

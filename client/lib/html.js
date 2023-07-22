@@ -24,7 +24,7 @@ export function el (query) {
 /**
  * Returns a unique incremented ID to be used for referencing HTML elements.
  *
- * @returns {number}
+ * @returns {string & {toHtmlId: () => string}}
  */
 export function generateId () {
   return `_${count++}`
