@@ -2,13 +2,11 @@ import mysql from 'mysql'
 
 const pool = mysql.createPool({
   connectionLimit: 10,
-  host: 'database', // switch to localhost if running locally
+  host: process.env.DB_HOST ?? 'database', // switch to localhost if running locally
   user: 'root',
   password: 'root',
   database: 'soccer'
 })
-
-console.log('Database')
 
 /**
  * Wrapper of the existing database query method, but returns a promise.

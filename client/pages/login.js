@@ -6,6 +6,7 @@ import { toast } from '../partials/toast.js'
 
 export function renderLoginPage () {
   let showRegistration = false
+  let isSubmitting = false
 
   function toggleView () {
     showRegistration = !showRegistration
@@ -22,13 +23,15 @@ export function renderLoginPage () {
 
   onSubmit('#login-form', async event => {
     event.preventDefault()
+    if (isSubmitting) return
+    isSubmitting = true
     const username = value('#username-input')
     const password = value('#password-input')
     const repeatedPassword = value('#password-repeat-input')
-    console.log('Submit', username, password, repeatedPassword)
     try {
       if (showRegistration) {
         if (repeatedPassword !== password) {
+          isSubmitting = false
           return toast('Passwords are not equal...', 'error')
         }
         await server.createAccount({ username, password })
@@ -42,6 +45,7 @@ export function renderLoginPage () {
     } catch (e) {
       toast(e.message ?? 'Something went wrong...', 'error')
     }
+    isSubmitting = false
   })
 
   onClick('#toggle-view-button', () => {

@@ -80,12 +80,12 @@ async function start () {
     //           | | hour
     //           | minute
     //           second ( optional )
-    console.log('Start CRON job for game day.')
+    console.log('Start CRON job for game day calculation.')
     await prepareSeason()
     await calculateGames()
   })
   app.listen(port, () => {
-    console.log(`API running on port ${port}`)
+    console.log(`🚀 App running on port ${port}`)
   })
 }
 

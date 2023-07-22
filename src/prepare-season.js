@@ -24,22 +24,22 @@ export async function prepareSeason () {
   await _ajustAmountOfTeams()
   await _promotionRelegation()
   await _createGames()
-  console.log('\n\nPrepared Season')
+  console.log('✅ Prepared Season')
 }
 
 async function _archiveTooOldPlayers () {
   const season = await _latestSeason() ?? 0
-  const result = await query('UPDATE player SET team_id=NULL WHERE carrier_end_season<=?', [season])
-  console.log(`${result.affectedRows} players ended their carrier...`)
+  const result = await query('UPDATE player SET team_id=NULL WHERE carrier_end_season<=? AND team_id IS NOT NULL', [season])
+  console.log(`👴🏽 ${result.affectedRows} players ended their carrier...`)
 }
 
 async function _promotionRelegation () {
   if (!(await _newGamesNeeded())) {
-    return console.log('No promotion, relegation needed because still games to play.')
+    return console.log('⏭️ No promotion, relegation needed because still games to play.')
   }
   const season = await _latestSeason()
   if (typeof season === 'undefined') {
-    return console.log('No promotion, relegation needed because no season available.')
+    return console.log('⏭️ No promotion, relegation needed because no season available.')
   }
   const games = await query('SELECT * FROM game WHERE season=?', [season])
   const teams = await query('SELECT * FROM team')
@@ -92,7 +92,7 @@ async function _promotionRelegation () {
 
 async function _createGames () {
   if (!(await _newGamesNeeded())) {
-    return console.log('No new games needed.')
+    return console.log('⏭️ No new games needed.')
   }
   const season = await _seasonForNewGames()
   const gamePlan = calculateGamePlan(teamsPerLeague)
@@ -190,7 +190,7 @@ async function _ajustAmountOfTeams () {
   while (teams.length === 0 || teams.length % teamsPerLeague !== 0 || teams.length < minimumAmountOfTeams) {
     const levelForNewTeam = _determineLevelForNewTeam(teams)
     const team = await _createRandomTeam(levelForNewTeam)
-    Promise.all([...Array(16)].map((_, i) => _createRandomPlayer(team, i, season)))
+    Promise.all([...Array(18)].map((_, i) => _createRandomPlayer(team, i, season)))
     teams = await query('SELECT * FROM team')
   }
 }
@@ -238,15 +238,15 @@ async function _createRandomTeam (level) {
  */
 async function _createRandomPlayer (team, i, season) {
   const fixPosition = getPositionsOfFormation(team.formation)[i]
-  const age = Math.floor(Math.random() * 22)
-  const carrierLength = 20 + Math.floor(Math.random() * 4)
+  const age = Math.floor(Math.random() * 16) // have new players a bit younger, 16 means max 32 years old
+  const carrierLength = 22 + Math.floor(Math.random() * 4)
   let maxLevel
   if (age + 16 < 19) {
     maxLevel = 3
   } else if (age + 16 < 25) {
-    maxLevel = 6
+    maxLevel = 5
   } else {
-    maxLevel = 9
+    maxLevel = 7 // not too strong players on start
   }
   const player = new Player({
     team_id: team.id,
@@ -281,7 +281,7 @@ function _determineLevelForNewTeam (teams) {
 /**
  * Read the database and check if there are games with player=0
  * If so, skip the game creation.
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
 async function _newGamesNeeded () {
   const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM game g WHERE g.played=0')

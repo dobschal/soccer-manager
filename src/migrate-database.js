@@ -140,5 +140,5 @@ export async function runMigration () {
     await migration.run()
     await query(`INSERT INTO __migration (name) VALUES ("${migration.name}");`)
   }
-  console.log(`\n✅ Database migration done in ${Date.now() - t1}ms.`)
+  console.log(`✅ Database migration done in ${Date.now() - t1}ms.`)
 }

@@ -52,7 +52,7 @@ npm start
 - [x] Deploy to server and CRON jobs
 - [ ] Show how many guests were on game
 - [ ] Show player info incl. sallary in modal
-
+- [ ] Bot Players
 - [ ] Level Up with XP and getting a level up card each game day
 - [ ] Have different level up action cards -- level up to 10 is rare and level up to 4 common
 - [ ] Log/Mailbox to see what happened when
