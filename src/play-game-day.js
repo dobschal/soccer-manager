@@ -4,26 +4,13 @@ import { randomItem } from './lib/util.js'
 import { ActionCard } from './entities/actionCard.js'
 import { getSponsor } from './helper/sponsorHelper.js'
 import { updateTeamBalance } from './helper/financeHelpr.js'
+import { sallaryPerLevel } from '../client/util/player.js'
 
 const actionCards = {
   LEVEL_UP_PLAYER: 0.333,
   CHANGE_PLAYER_POSITION: 0.033,
   NEW_YOUTH_PLYER: 0.033
 }
-
-const sallaryPerLevel = [
-  0,
-  150, // level 1
-  225,
-  337,
-  506,
-  759, // level 5
-  1139,
-  1709,
-  2562,
-  3844,
-  5767 // level 10
-]
 
 export async function calculateGames () {
   const [{ game_day: gameDay, season }] = await query('SELECT * FROM game WHERE played=0 ORDER BY season ASC, game_day ASC LIMIT 1')

@@ -2,11 +2,7 @@ import { server } from '../lib/gateway.js'
 import { generateId, el } from '../lib/html.js'
 import { onChange, onSubmit } from '../lib/htmlEventHandlers.js'
 import { toast } from '../partials/toast.js'
-
-const euroFormat = new Intl.NumberFormat('de-DE', {
-  style: 'currency',
-  currency: 'EUR'
-})
+import { euroFormat } from '../util/currency.js'
 
 export async function renderStadiumPage () {
   const { stadium } = await server.getStadium()

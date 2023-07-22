@@ -1,32 +1,12 @@
 import { server } from '../lib/gateway.js'
 import { generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
+import { euroFormat } from '../util/currency.js'
+import { calculatePlayerAge, sallaryPerLevel } from '../util/player.js'
 
 let currentSeason
 
-const euroFormat = new Intl.NumberFormat('de-DE', {
-  style: 'currency',
-  currency: 'EUR'
-})
-
-//
-// TODO: Refactor that to have a shared util
-//
-export const sallaryPerLevel = [
-  0,
-  150, // level 1
-  225,
-  337,
-  506,
-  759, // level 5
-  1139,
-  1709,
-  2562,
-  3844,
-  5767 // level 10
-]
 export async function renderPlayersList (players, showTitle = true, onClickHandler) {
-  console.log('Players to render: ', players)
   const { season } = await server.getCurrentGameday()
   currentSeason = season
   return `
@@ -48,9 +28,6 @@ export async function renderPlayersList (players, showTitle = true, onClickHandl
   `
 }
 
-/**
- * @param {Player} player
- */
 export function renderPlayerListItem (onClickHandler) {
   return (player) => {
     if (player.fake) return ''
@@ -62,16 +39,12 @@ export function renderPlayerListItem (onClickHandler) {
       <tr id="${id}" class="${player.in_game_position ? 'table-info' : 'table-warning'}">
         <th scope="row">${player.name}</th>
         <td>${player.position}</td>
-        <td class="text-right d-none d-sm-table-cell">${_calculatePlayerAge(player)}</td>
+        <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(player, currentSeason)}</td>
         <td class="text-right">${player.level}</td>
         <td class="text-right d-none d-md-table-cell">${euroFormat.format(sallaryPerLevel[player.level])}</td>
       </tr>
     `
   }
-}
-
-function _calculatePlayerAge (player) {
-  return (currentSeason - player.carrier_start_season) + 16
 }
 
 /**

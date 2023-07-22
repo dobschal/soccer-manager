@@ -1,9 +1,5 @@
 import { server } from '../lib/gateway.js'
-
-const euroFormat = new Intl.NumberFormat('de-DE', {
-  style: 'currency',
-  currency: 'EUR'
-})
+import { euroFormat } from '../util/currency.js'
 
 export async function balanceSpan () {
   const data = await server.getMyTeam()

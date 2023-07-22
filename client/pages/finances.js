@@ -4,11 +4,7 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from '../partials/toast.js'
 import { render } from '../lib/render.js'
 import { balanceSpan } from '../partials/balance.js'
-
-const euroFormat = new Intl.NumberFormat('de-DE', {
-  style: 'currency',
-  currency: 'EUR'
-})
+import { euroFormat } from '../util/currency.js'
 
 export async function renderFinancesPage () {
   const { sponsor } = await server.getSponsor()
