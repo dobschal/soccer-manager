@@ -1,7 +1,11 @@
+#squad {
+  overflow-y: auto;
+}
 .squad {
   background-color: green;
   background-image: url("../assets/football-field.svg");
   width: 100%;
+  min-width: 600px;
   position: relative;
   background-size: 154% auto;
   background-position: bottom 11% left 50%;

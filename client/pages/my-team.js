@@ -20,11 +20,17 @@ export async function renderMyTeamPage () {
     <div class="mb-4" id="header">
       ${_renderHeader()}
     </div>
-    <h3>Lineup</h3>
-    <div class="mb-4" id="squad">
-      ${_renderSquad()}
-    </div>   
-    ${playersList}
+    <div class="row">
+      <div class="col-12 col-xl-6">
+        <h3>Lineup</h3>
+        <div class="mb-4" id="squad" >
+          ${_renderSquad()}
+        </div>   
+      </div>
+      <div class="col-12 col-xl-6">
+        ${playersList}
+      </div>
+    </div>
   `
 }
 

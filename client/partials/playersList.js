@@ -36,9 +36,9 @@ export async function renderPlayersList (players, showTitle = true, onClickHandl
         <tr>
           <th scope="col">Name</th>
           <th scope="col">Position</th>
-          <th scope="col" class="text-right">Age</th>
+          <th scope="col" class="text-right d-none d-sm-table-cell">Age</th>
           <th scope="col" class="text-right">Level</th>
-          <th scope="col" class="text-right d-none d-lg-table-cell">Sallary</th>
+          <th scope="col" class="text-right d-none d-md-table-cell">Sallary</th>
         </tr>
       </thead>
       <tbody>
@@ -62,9 +62,9 @@ export function renderPlayerListItem (onClickHandler) {
       <tr id="${id}" class="${player.in_game_position ? 'table-info' : 'table-warning'}">
         <th scope="row">${player.name}</th>
         <td>${player.position}</td>
-        <td class="text-right">${_calculatePlayerAge(player)}</td>
+        <td class="text-right d-none d-sm-table-cell">${_calculatePlayerAge(player)}</td>
         <td class="text-right">${player.level}</td>
-        <td class="text-right d-none d-lg-table-cell">${euroFormat.format(sallaryPerLevel[player.level])}</td>
+        <td class="text-right d-none d-md-table-cell">${euroFormat.format(sallaryPerLevel[player.level])}</td>
       </tr>
     `
   }
