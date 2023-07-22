@@ -2,6 +2,7 @@ import { isAuthenticated } from './auth.js'
 import { fire } from './event.js'
 import { el } from './html.js'
 import { render } from './render.js'
+import { hideNavigation } from '../layouts/gameLayout.js'
 
 let pages
 
@@ -75,5 +76,6 @@ async function _resolvePage () {
   fire('page-changed')
   setTimeout(() => {
     el('.navbar')?.scrollIntoView({ behavior: 'auto' })
+    hideNavigation()
   })
 }

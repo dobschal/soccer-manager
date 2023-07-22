@@ -12,9 +12,8 @@ const euroFormat = new Intl.NumberFormat('de-DE', {
 
 export async function renderFinancesPage () {
   const { sponsor } = await server.getSponsor()
-  console.log('Sponsor: ', sponsor)
   const { sponsors: offers } = await server.getSponsorOffers()
-  console.log('Offers: ', offers)
+  const { log: financeLog } = await server.getFinanceLog()
   const balance = await balanceSpan()
   return `
     <h2>Finances</h2>
@@ -35,13 +34,57 @@ export async function renderFinancesPage () {
         ${offers.map(_renderSponsorOfferCard).join('')}
       </div>
     </div>
+    <div>
+        <h3>Transactions</h3>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Season</th>
+              <th scope="col">Game Day</th>
+              <th scope="col" class="text-right">Difference</th>
+              <th scope="col" class="d-none d-md-table-cell text-right">Balance</th>
+              <th scope="col" class="d-none d-sm-table-cell">Reason</th>    
+            </tr>
+          </thead>
+          <tbody>
+            ${financeLog.sort(_sortFinanceLog).map(_renderFinanceLog).join('')}
+          </tbody>
+        </table>
+    </div>
+  `
+}
+
+/**
+ * @param {FinanceLogType} logA
+ * @param {FinanceLogType} logB
+ * @private
+ */
+function _sortFinanceLog (logA, logB) {
+  if (logB.season > logA.season) return -1
+  if (logB.season < logA.season) return 1
+  return logB.game_day - logA.game_day
+}
+
+/**
+ * @param {FinanceLogType} logItem
+ * @private
+ */
+function _renderFinanceLog (logItem) {
+  return `
+    <tr>
+      <td>${logItem.season + 1}</td>
+      <td>${logItem.game_day + 1}</td>
+      <td class="text-right ${logItem.value > 0 ? 'text-success' : 'text-danger'}">${logItem.value > 0 ? '+' : ''}${euroFormat.format(logItem.value)}</td>
+      <td class="d-none d-md-table-cell text-right">${euroFormat.format(logItem.balance)}</td>
+      <td class="d-none d-sm-table-cell">${logItem.reason}</td>
+    </tr>
   `
 }
 
 function _renderSponsorCard (sponsor) {
   if (!sponsor) return ''
   return `
-    <div class="col-12 col-sm-6 col-md-3 mb-4">
+    <div class="col-12 col-md-6 mb-4">
       <div class="action-card card text-white bg-success">
       <div class="card-header">
         <i class="fa fa-magic" aria-hidden="true"></i>

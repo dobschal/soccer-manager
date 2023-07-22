@@ -6,9 +6,14 @@ import { balanceSpan } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 
 let interval
+let mobileNavigationOpen = false
+
+export function hideNavigation () {
+  mobileNavigationOpen = false
+  el('.navbar-collapse')?.classList.remove('show')
+}
 
 export async function renderGameLayout () {
-  let mobileNavigationOpen = false
   const nextGameInElementId = generateId()
 
   const balance = await balanceSpan()

@@ -26,7 +26,6 @@ export const server = new Proxy({}, {
         }
         throw (await response.json())
       }
-      console.log('Response: ', response)
       return await response.json()
     }
   }
