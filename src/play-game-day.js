@@ -3,6 +3,7 @@ import { determineOponentPosition } from '../client/lib/formation.js'
 import { randomItem } from './lib/util.js'
 import { ActionCard } from './entities/actionCard.js'
 import { getSponsor } from './helper/sponsorHelper.js'
+import { updateTeamBalance } from './helper/financeHelpr.js'
 
 const actionCards = {
   LEVEL_UP_PLAYER: 0.333,
@@ -30,33 +31,31 @@ export async function calculateGames () {
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   await Promise.all(games.map(game => _playGame(game)))
   await _giveUsersActionCards()
-  await _letTeamsPaySallaries()
-  await _giveSponsorMoney()
+  await _letTeamsPaySallaries(gameDay, season)
+  await _giveSponsorMoney(gameDay, season)
   console.log('\n\nPlayed game day ' + gameDay)
 }
 
-async function _giveSponsorMoney () {
+async function _giveSponsorMoney (gameDay, season) {
   /** @type {Array<import('./entities/team.js').TeamType>} */
   const teams = await query('SELECT * FROM team')
 
   await Promise.all(teams.map(async team => {
     const { sponsor } = await getSponsor(team)
     if (!sponsor) return
-    team.balance += sponsor.value
-    await query('UPDATE team SET balance=? WHERE id=?', [team.balance, team.id])
+    await updateTeamBalance(team, sponsor.value, `Sponsor deal with ${sponsor.name}`, gameDay, season)
   }))
   console.log('Gave all teams their sponsor money')
 }
 
-async function _letTeamsPaySallaries () {
+async function _letTeamsPaySallaries (gameDay, season) {
   const teams = await query('SELECT * FROM team')
   await Promise.all(teams.map(async team => {
     const players = await query('SELECT * FROM player WHERE team_ID=?', [team.id])
-    const totalSallaryCosts = players.reduce((total, player) => total + sallaryPerLevel[player.level], 0)
-    team.balance -= totalSallaryCosts
-    await query('UPDATE team SET balance=? WHERE id=?', [team.balance, team.id])
+    const totalSallaryCosts = players.reduce((total, player) => total + sallaryPerLevel[player.level], 0) * -1
+    await updateTeamBalance(team, totalSallaryCosts, 'Player salaries', gameDay, season)
   }))
-  console.log('Paid all sallaries')
+  console.log('Paid all salaries')
 }
 
 async function _giveUsersActionCards () {
@@ -95,7 +94,7 @@ async function _giveUsersActionCards () {
  * @param {number} strengthTeamB
  * @private
  */
-async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strengthTeamB) {
+async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strengthTeamB, gameDay, season) {
   const strengthFactor = strengthTeamA * strengthTeamB
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [teamA.id])
   const stands = ['north', 'south', 'west', 'east']
@@ -112,13 +111,12 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     details[stand + 'Earnings'] = earnings
     totalEarnings += earnings
   }
-  teamA.balance += totalEarnings
-  await query('UPDATE team Set balance=? WHERE id=?', [teamA.balance, teamA.id])
+  await updateTeamBalance(teamA, totalEarnings, 'Stadium ticket earnings', gameDay, season)
   return details
 }
 
 /**
- * @param {Game} game
+ * @param {GameType} game
  */
 async function _playGame (game) {
   const [[teamA], [teamB], playerTeamA, playerTeamB] = await Promise.all([
@@ -129,7 +127,7 @@ async function _playGame (game) {
   ])
   const strengthTeamA = playerTeamA.reduce((totalStrength, player) => totalStrength + player.level, 0)
   const strengthTeamB = playerTeamB.reduce((totalStrength, player) => totalStrength + player.level, 0)
-  const stadiumDetails = await _giveStadiumTicketEarnings(teamA, teamB, strengthTeamA, strengthTeamB)
+  const stadiumDetails = await _giveStadiumTicketEarnings(teamA, teamB, strengthTeamA, strengthTeamB, game.game_day, game.season)
   console.log(`\n\nPlay game between ${teamA.name} (${strengthTeamA}) and ${teamB.name} (${strengthTeamB})`)
   const gameDetails = {
     log: [],

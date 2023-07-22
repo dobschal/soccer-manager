@@ -22,7 +22,7 @@ export async function renderGameLayout () {
     const minutes = Math.floor(seconds / 60)
     const hours = Math.floor(minutes / 60)
     const twoDigits = (v) => v < 10 ? '0' + v : v
-    el('#' + nextGameInElementId).innerText = `${hours}h ${twoDigits(minutes % 60)}min ${twoDigits(seconds % 60)}sec`
+    el('#' + nextGameInElementId).innerHTML = `<i class="fa fa-clock-o" aria-hidden="true"></i> ${hours}h ${twoDigits(minutes % 60)}min ${twoDigits(seconds % 60)}sec`
   }, 1000)
 
   onClick('#logout-button', () => {
@@ -57,7 +57,7 @@ export async function renderGameLayout () {
         <div class="pr-4" id="${nextGameInElementId}">
         </div>
         <div class="pr-4">
-            ${balance}
+            <i class="fa fa-money" aria-hidden="true"></i> ${balance}
         </div>
         <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
       </div>        

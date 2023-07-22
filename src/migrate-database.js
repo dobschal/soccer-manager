@@ -123,6 +123,21 @@ const migrations = [{
                 PRIMARY KEY (id)
             ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Create Finance Log Table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS finance_log (
+                id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+                season INT,
+                game_day INT,
+                value INT,
+                balance INT,
+                team_id BIGINT(20),
+                reason TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
+            ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 export async function runMigration () {

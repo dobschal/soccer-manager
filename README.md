@@ -46,7 +46,7 @@ npm start
 - [x] Stadium (Render, earn, costs, build)
 - [x] Fix roof prices expand build
 - [x] Fix double registration request
-- [ ] Trade Players --> have a players profile in a modal with a buy action
+- [ ] Trade / Fire Players --> have a players profile in a modal with a buy action
 - [ ] Finances Log
 - [x] show when the next game takes place
 - [x] Deploy to server and CRON jobs

@@ -64,7 +64,6 @@ function _renderPriceForm (stadium) {
     const inputItemId = generateId()
 
     onChange('#' + inputItemId, async (event) => {
-      console.log('Value: ', event.target.value)
       try {
         stadium[name + '_stand_price'] = Number(event.target.value)
       } catch (e) {
@@ -73,7 +72,7 @@ function _renderPriceForm (stadium) {
     })
 
     return `
-      <div class="col-3 mb-2">
+      <div class="col-6 col-sm-3 mb-2">
         <div class="form-group">
           <label for="${inputItemId}">
             Price for tickets on ${name} stand
@@ -103,7 +102,6 @@ function _renderPriceForm (stadium) {
 async function _updatePrice (stadium, priceItemId) {
   try {
     const { totalPrice } = await server.calculateStadiumPrice({ stadium })
-    console.log('Price: ', totalPrice)
     el('#' + priceItemId).innerText = euroFormat.format(totalPrice)
   } catch (e) {
     toast(e.message ?? 'Something went wrong', 'error')
@@ -128,7 +126,7 @@ function _renderExpandForm (stadium) {
     })
 
     return `
-      <div class="col-3 mb-4">
+      <div class="col-6 col-sm-3 mb-4">
         <div class="form-group">
           <label>Seats on ${name} stand</label>
           <input id="${inputItemId}" class="form-control" type="number" value="${stadium[name + '_stand_size']}">

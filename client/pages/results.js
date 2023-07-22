@@ -89,8 +89,8 @@ export async function renderResultsPage () {
         <th scope="col">#</th>
         <th scope="col">Team</th>
         <th scope="col">Games</th>
-        <th scope="col">Goals</th>
-        <th scope="col">Diff</th>
+        <th scope="col" class="d-none d-md-table-cell">Goals</th>
+        <th scope="col" class="d-none d-lg-table-cell">Diff</th>
         <th scope="col">Points</th>        
       </tr>
     </thead>
@@ -148,8 +148,8 @@ function _renderStandingListItem (standingItem, index) {
       <td>${index + 1}.</td>
       <td>${standingItem.team.name}</td>
       <td>${standingItem.games}</td>
-      <td>${standingItem.goals}:${standingItem.against}</td>
-      <td>${standingItem.goals - standingItem.against}</td>
+      <td class="d-none d-md-table-cell">${standingItem.goals}:${standingItem.against}</td>
+      <td class="d-none d-lg-table-cell">${standingItem.goals - standingItem.against}</td>
       <td>${standingItem.points}</td>
     </tr>
   `

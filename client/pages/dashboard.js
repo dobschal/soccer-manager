@@ -52,7 +52,7 @@ function _renderActionCard (actionCard) {
   })
 
   return `
-      <div class="col-4">
+      <div class="col-12 col-sm-6 col-md-3 mb-4">
         <div class="action-card card text-white bg-dark">
         <div class="card-header">
           <i class="fa fa-magic" aria-hidden="true"></i>

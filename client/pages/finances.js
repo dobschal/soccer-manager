@@ -41,7 +41,7 @@ export async function renderFinancesPage () {
 function _renderSponsorCard (sponsor) {
   if (!sponsor) return ''
   return `
-    <div class="col-4">
+    <div class="col-12 col-sm-6 col-md-3 mb-4">
       <div class="action-card card text-white bg-success">
       <div class="card-header">
         <i class="fa fa-magic" aria-hidden="true"></i>
@@ -75,7 +75,7 @@ function _renderSponsorOfferCard (offer, index) {
   const classes = ['dark', 'success', 'info', 'warning']
 
   return `
-    <div class="col-3">
+    <div class="col-12 col-sm-6 col-md-3 mb-4">
       <div class="action-card card text-white bg-${classes[index]}">
       <div class="card-header">
         <i class="fa fa-magic" aria-hidden="true"></i>
