@@ -16,6 +16,7 @@ export async function renderDashboardPage () {
   const { season, gameDay } = await server.getCurrentGameday()
   const { results } = await server.getResults({ season, gameDay: gameDay - 1, level, league })
   const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id)
+  const isHomeGame = game.team1Id === team.id
   return `
     <h2>${userInfo.team.name}</h2>
     <p>
@@ -23,9 +24,9 @@ export async function renderDashboardPage () {
     </p>
     <h3>Last Game</h3>
     <div class="row pb-4 pt-4">
-        <div class="col-5 text-right">${game.team1}</div>
+        <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold':'' }">${game.team1}</div>
         <div class="col-2 text-center">${game.goalsTeam1}:${game.goalsTeam2}</div>
-        <div class="col-5 text-left">${game.team2}</div>
+        <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold':''}">${game.team2}</div>
     </div>
     <h3>Action Cards</h3>
     <p>With every game played, you have the chance to earn one action card. All earned cards are shown here:</p>
