@@ -49,3 +49,8 @@ export const RequiredString = {
 export const OptionalObject = {
   type: 'object'
 }
+
+export const RequiredObject = {
+  type: 'object',
+  required: true
+}

@@ -11,7 +11,7 @@ const pool = mysql.createPool({
 /**
  * Wrapper of the existing database query method, but returns a promise.
  *
- * @param {[string, *, () => Promise]|[string, () => Promise]} params
+ * @param {any} params
  * @returns {Promise<Array>}
  */
 export function query (...params) {

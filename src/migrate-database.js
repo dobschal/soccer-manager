@@ -138,6 +138,19 @@ const migrations = [{
                 PRIMARY KEY (id)
             ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Create Trade Offer Table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS trade_offer (
+                id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+                offer_value INT,
+                type VARCHAR(255),
+                player_id BIGINT(20),
+                from_team_id BIGINT(20),
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
+            ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 export async function runMigration () {

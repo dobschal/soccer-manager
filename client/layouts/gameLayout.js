@@ -58,6 +58,7 @@ export async function renderGameLayout () {
           ${_navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
           ${_navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}
           ${_navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
+          ${_navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Trades')}
         </ul>
         <div class="pr-4" id="${nextGameInElementId}">
         </div>
