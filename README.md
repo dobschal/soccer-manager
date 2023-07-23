@@ -49,12 +49,12 @@ npm start
 - [x] Finances Log
 - [x] show when the next game takes place
 - [x] Deploy to server and CRON jobs
+- [x] Show how many guests were on game
+- [x] Show player info incl. salary in modal
 - [ ] Trade / Fire Players --> have a players profile in a modal with a buy action
 - [ ] Action Card "Earn Money Gift"
 - [ ] Action Cards: Have different level up action cards -- level up to 10 is rare and level up to 4 common
 - [ ] Action Card: Merge low level action cards to get better once
-- [ ] Show how many guests were on game
-- [ ] Show player info incl. salary in modal
 - [ ] Bot Players
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards

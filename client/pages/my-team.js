@@ -14,7 +14,6 @@ let data, overlay, dataChanged
 export async function renderMyTeamPage () {
   dataChanged = false
   data = await server.getMyTeam()
-  console.log('Data: ', data)
   const playersList = await renderPlayersList(data.players, true, showPlayerModal)
   return `
     <div class="mb-4" id="header">

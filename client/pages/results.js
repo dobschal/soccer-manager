@@ -216,6 +216,7 @@ async function _showGameModal (game) {
     players[p.id] = p
   })
   const details = JSON.parse(game.details)
+  const guests = details.stadiumDetails.northGuests + details.stadiumDetails.southGuests + details.stadiumDetails.eastGuests + details.stadiumDetails.westGuests
   if (!details.log) return toast('No game result available')
   let ballControllA = 0
   let ballControllB = 0
@@ -233,7 +234,11 @@ async function _showGameModal (game) {
   const total = ballControllA + ballControllB
   showOverlay(
     `${game.team1} - ${game.team2}`,
-    `Result: ${game.goalsTeam1} : ${game.goalsTeam2}, Ball control: ${Math.floor((ballControllA / total) * 100)}% : ${Math.ceil((ballControllB / total) * 100)}%`,
+    `
+      Result: ${game.goalsTeam1} : ${game.goalsTeam2}, 
+      Ball control: ${Math.floor((ballControllA / total) * 100)}% : ${Math.ceil((ballControllB / total) * 100)}%, 
+      Guests: ${guests}
+     `,
     `${details.log.map(_renderGameLogItem(players)).join('')}`
   )
 }
