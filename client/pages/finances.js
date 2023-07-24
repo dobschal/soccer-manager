@@ -5,6 +5,7 @@ import { toast } from '../partials/toast.js'
 import { render } from '../lib/render.js'
 import { balanceSpan } from '../partials/balance.js'
 import { euroFormat } from '../util/currency.js'
+import { drawBalanceChart } from '../partials/balanceChart.js'
 
 export async function renderFinancesPage () {
   const { sponsor } = await server.getSponsor()
@@ -15,6 +16,7 @@ export async function renderFinancesPage () {
     <h2>Finances</h2>
     <p>
       <b>Balance</b>: ${balance}
+      ${drawBalanceChart(financeLog)}
     </p>
     <div class="${!sponsor ? 'hidden' : ''}">
       <h3>Sponsor</h3>

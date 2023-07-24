@@ -3,6 +3,10 @@ import { getActionCards, playActionCard } from './helper/actionCardHelper.js'
 import { randomItem } from './lib/util.js'
 import { getSponsor, getSponsorOffers } from './helper/sponsorHelper.js'
 import { Sponsor } from './entities/sponsor.js'
+import { TradeOffer } from './entities/tradeOffer.js'
+import { BadRequestError } from './lib/errors.js'
+import { acceptOffer } from './helper/tradeHelper.js'
+import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 
 // 1. Check Tactic (/)
 // 2. Play Action Cards --> !!! not possible because action cards are hanging on user...
@@ -15,7 +19,7 @@ export async function makeBotMoves () {
   const botTeams = await query('SELECT * FROM team WHERE user_id IS NULL')
   const botTeamIds = botTeams.map(t => t.id).join(', ')
   /** @type {PlayerType[]} */
-  const players = await query(`SELECT * FROM player WHERE id IN (${botTeamIds})`)
+  const players = await query(`SELECT * FROM player WHERE team_id IN (${botTeamIds})`)
   for (const botTeam of botTeams) {
     const isStrongTeam = botTeam.id % 2 === 0
     const playersOfTeam = players.filter(p => p.team_id === botTeam.id)
@@ -34,15 +38,59 @@ export async function makeBotMoves () {
  * @private
  */
 async function _checkTrades (botTeam, players, isStrongTeam) {
-  const openOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'sell\'', [botTeam.it])
-  if (openOffers.length > 0) return console.log('Skip, has open offer still')
-  const playerToSell = randomItem(players.filter(p => !p.in_game_position))
   //
-  // TODO: sell player
+  // TODO: Clear old trades after X game days
   //
-  //
-  // TODO: look to buy players
-  //
+  if (players.length === 0) return console.log('Team has no player o.O', botTeam.id)
+  const openOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'sell\'', [botTeam.id])
+  if (openOffers.length === 0) {
+    const playerToSell = randomItem(players.filter(p => !p.in_game_position))
+    if (playerToSell) {
+      const tradeOffer = new TradeOffer({
+        offer_value: (Math.random() * 0.2 + 0.9) * (50000 * playerToSell.level),
+        type: 'sell',
+        player_id: playerToSell.id,
+        from_team_id: botTeam.id
+      })
+      await query('INSERT INTO trade_offer SET ?', tradeOffer)
+    }
+  }
+
+  const openBuyOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'buy\'', [botTeam.id])
+  if (openBuyOffers.length === 0) {
+    const maxPrice = Math.floor(botTeam.balance / 2)
+    /** @type {TradeOfferType[]} */
+    const offers = await query('SELECT * FROM trade_offer WHERE from_team_id<>? AND offer_value<? AND type=\'sell\'', [botTeam.id, maxPrice])
+    if (offers.length > 0) {
+      const tradeOffer = new TradeOffer({
+        offer_value: maxPrice,
+        type: 'buy',
+        player_id: offers[0].player_id,
+        from_team_id: botTeam.id
+      })
+      await query('INSERT INTO trade_offer SET ?', tradeOffer)
+    }
+  }
+
+  const sql = `SELECT * FROM trade_offer WHERE from_team_id <> ? AND type = 'buy' AND player_id IN (${players.filter(p => !p.in_game_position).map(p => p.id).join(', ')})`
+  try {
+    /** @type {TradeOfferType[]} */
+    const openIncomingOffers = await query(sql, [botTeam.id])
+    if (openIncomingOffers.length > 0) {
+      const player = players.find(p => p.id === openIncomingOffers[0].player_id)
+      if (Math.random() > 0.5 && openIncomingOffers[0].offer_value >= player.level * 50000) {
+        delete openIncomingOffers[0].created_at
+        const {
+          gameDay,
+          season
+        } = await getGameDayAndSeason()
+        await acceptOffer(openIncomingOffers[0], botTeam, gameDay, season)
+        console.log('Trade happened!!!')
+      }
+    }
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 /**
