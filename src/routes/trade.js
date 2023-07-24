@@ -15,6 +15,7 @@ export default {
   async getOffers () {
     /** @type {TradeOfferType[]} */
     const offers = await query('SELECT * FROM trade_offer')
+    if (offers.length === 0) return { offers, players: [], teams: [] }
     const playerIds = offers.map(o => o.player_id).join(', ')
     /** @type {PlayerType[]} */
     const players = await query(`SELECT * FROM player WHERE id IN (${playerIds})`)
