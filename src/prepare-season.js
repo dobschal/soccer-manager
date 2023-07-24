@@ -216,7 +216,7 @@ async function _createRandomTeam (level) {
     south_stand_roof: 0,
     east_stand_roof: 0,
     west_stand_roof: 0,
-    north_stand_size: 100,
+    north_stand_size: 1000,
     south_stand_size: 100,
     east_stand_size: 100,
     west_stand_size: 100,

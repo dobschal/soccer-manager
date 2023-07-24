@@ -30,7 +30,7 @@ export default {
     const { insertId: userId } = await query('INSERT INTO user SET ?', {
       ...req.body
     })
-    await query(`UPDATE team SET user_id=${userId} WHERE id=${team.id}`)
+    await query(`UPDATE team SET user_id=${userId}, balance=500000 WHERE id=${team.id}`)
     return { success: true }
   },
 

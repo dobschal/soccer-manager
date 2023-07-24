@@ -51,11 +51,14 @@ npm start
 - [x] Deploy to server and CRON jobs
 - [x] Show how many guests were on game
 - [x] Show player info incl. salary in modal
-- [ ] Trade / Fire Players --> have a players profile in a modal with a buy action
-- [ ] Action Card "Earn Money Gift"
+- [x] Trade / Fire Players --> have a players profile in a modal with a buy action
 - [x] Action Cards: Have different level up action cards -- level up to 10 is rare and level up to 4 common
 - [x] Action Card: Merge low level action cards to get better once
-- [ ] Bot Players
+- [x] Set team money to X€ on registration
+- [ ] Action Card "Earn Money Gift"
+- [ ] Bot Players (trading etc.)
+- [ ] Finance Chart
+- [ ] Max amount of action cards
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards
 - [ ] Localisation

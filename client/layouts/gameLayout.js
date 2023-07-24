@@ -27,6 +27,10 @@ export async function renderGameLayout () {
     const minutes = Math.floor(seconds / 60)
     const hours = Math.floor(minutes / 60)
     const twoDigits = (v) => v < 10 ? '0' + v : v
+    if (!el('#' + nextGameInElementId)) {
+      clearInterval(interval)
+      return
+    }
     el('#' + nextGameInElementId).innerHTML = `<i class="fa fa-clock-o" aria-hidden="true"></i> ${hours}h ${twoDigits(minutes % 60)}min ${twoDigits(seconds % 60)}sec`
   }, 1000)
 
