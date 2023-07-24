@@ -67,6 +67,8 @@ npm start
 - [ ] Zweikampf-Sieger
 - [ ] Hidden (weak) random on player level
 - [ ] Player Faces
+- [ ] Stadium Build should take some time
+- [ ] iOS App
 
 
 ### Stadium

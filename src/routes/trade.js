@@ -9,6 +9,7 @@ import {
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamhelper.js'
 import { updateTeamBalance } from '../helper/financeHelpr.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 export default {
 
@@ -47,7 +48,7 @@ export default {
   },
 
   async acceptOffer (req) {
-    const [{ game_day: gameDay, season }] = await query('SELECT * FROM game WHERE played=0 ORDER BY season ASC, game_day ASC LIMIT 1')
+    const { gameDay, season } = await getGameDayAndSeason()
     const sellingTeam = await getTeam(req)
 
     // Check that offer is correct

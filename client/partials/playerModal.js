@@ -31,6 +31,7 @@ export async function showPlayerModal (player) {
       toast(e.message ?? 'Something went wrong', 'error')
     }
   })
+
   //
   //  TODO: Show trade input only if possible...
   //

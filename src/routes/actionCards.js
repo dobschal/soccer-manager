@@ -6,13 +6,14 @@ import { playerNames } from '../lib/name-library.js'
 import { randomItem } from '../lib/util.js'
 import { getTeam } from '../helper/teamhelper.js'
 import { ActionCard } from '../entities/actionCard.js'
+import { getActionCards, playActionCard } from '../helper/actionCardHelper.js'
 
 export default {
 
   async getActionCards (req) {
     if (!req.user) throw new UnauthorizedError('Missing user')
     const team = await getTeam(req)
-    const actionCards = await query('SELECT * FROM action_card WHERE team_id=? AND played=0', [team.id])
+    const actionCards = await getActionCards(team)
     return { success: true, actionCards }
   },
 
@@ -43,55 +44,8 @@ export default {
     const team = await getTeam(req)
     const actionCards = await query('SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0', [req.body.actionCard.id, team.id])
     if (actionCards.length !== 1) throw new BadRequestError('Action card does not exist')
-    if (req.body.actionCard.action === 'LEVEL_UP_PLAYER_9') {
-      const [player] = await query('SELECT * FROM player WHERE id=?', [req.body.player.id])
-      if (player.level >= 10) throw new BadRequestError('Max level reached')
-      player.level += 1
-      await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-      await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
-      return { success: true }
-    }
-    if (req.body.actionCard.action === 'LEVEL_UP_PLAYER_7') {
-      const [player] = await query('SELECT * FROM player WHERE id=?', [req.body.player.id])
-      if (player.level >= 7) throw new BadRequestError('Max level reached')
-      player.level += 1
-      await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-      await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
-      return { success: true }
-    }
-    if (req.body.actionCard.action === 'LEVEL_UP_PLAYER_4') {
-      const [player] = await query('SELECT * FROM player WHERE id=?', [req.body.player.id])
-      if (player.level >= 4) throw new BadRequestError('Max level reached')
-      player.level += 1
-      await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-      await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
-      return { success: true }
-    }
-    if (req.body.actionCard.action === 'CHANGE_PLAYER_POSITION') {
-      await query('UPDATE player SET position=? WHERE id=?', [req.body.position, req.body.player.id])
-      await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
-      return { success: true }
-    }
-    if (req.body.actionCard.action === 'NEW_YOUTH_PLAYER') {
-      const [game] = await query('SELECT * FROM game g ORDER BY g.season DESC LIMIT 1')
-      const team = await getTeam(req)
-      const season = game?.season ?? 0
-      const age = Math.floor(Math.random() * 3) // 16 is the default birth carrier start bla year...
-      const carrierLength = 20 + Math.floor(Math.random() * 4)
-      const player = new Player({
-        team_id: team.id,
-        name: `${randomItem(playerNames).firstName} ${randomItem(playerNames).lastName}`,
-        carrier_start_season: season - age,
-        carrier_end_season: season - age + carrierLength,
-        level: Math.floor(Math.random() * 3) + 1,
-        in_game_position: '',
-        position: randomItem(Object.values(Position))
-      })
-      await query('INSERT INTO player SET ?', player)
-      await query('UPDATE action_card SET played=1 WHERE id=?', [req.body.actionCard.id])
-      return { success: true }
-    }
-    throw new BadRequestError('Unknown action...')
+    await playActionCard(req.body, team)
+    return { success: true }
   }
 
 }

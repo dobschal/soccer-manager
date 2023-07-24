@@ -5,6 +5,7 @@ import { ActionCard } from './entities/actionCard.js'
 import { getSponsor } from './helper/sponsorHelper.js'
 import { updateTeamBalance } from './helper/financeHelpr.js'
 import { sallaryPerLevel } from '../client/util/player.js'
+import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 
 const actionCardChances = {
   LEVEL_UP_PLAYER_9: 0.1,
@@ -15,7 +16,7 @@ const actionCardChances = {
 }
 
 export async function calculateGames () {
-  const [{ game_day: gameDay, season }] = await query('SELECT * FROM game WHERE played=0 ORDER BY season ASC, game_day ASC LIMIT 1')
+  const { gameDay, season } = await getGameDayAndSeason()
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   await Promise.all(games.map(game => _playGame(game)))

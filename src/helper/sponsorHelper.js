@@ -1,15 +1,17 @@
 import { query } from '../lib/database.js'
+import { getGameDayAndSeason } from './gameDayHelper.js'
+import { randomItem } from '../lib/util.js'
+import { sponsorNames } from '../lib/name-library.js'
+import { Sponsor } from '../entities/sponsor.js'
 
 /**
- * @param {import('../entities/team.js').TeamType} team
- * @returns {Promise<{sponsor: import('../entities/sponsor.js').SponsorType}>}
+ * @param {TeamType} team
+ * @returns {Promise<{sponsor: SponsorType}>}
  */
 export async function getSponsor (team) {
-  const [game] = await query('SELECT * FROM game g ORDER BY g.season DESC LIMIT 1')
-  const season = game?.season ?? 0
-  const gameDay = game?.game_day ?? 0
+  const { gameDay, season } = await getGameDayAndSeason()
 
-  /** @type {Array<import('../entities/sponsor.js').SponsorType>} */
+  /** @type {Array<SponsorType>} */
   const sponsors = await query('SELECT * FROM sponsor WHERE team_id=?', [team.id])
   for (const sponsor of sponsors) {
     // older than one season
@@ -28,4 +30,48 @@ export async function getSponsor (team) {
     }
   }
   return {}
+}
+
+/**
+ * @param {TeamType} team
+ * @returns {Promise<SponsorType[]>}
+ */
+export async function getSponsorOffers (team) {
+  const { gameDay, season } = await getGameDayAndSeason()
+  const games = await query('SELECT * FROM game WHERE (team_1_id=? OR team_2_id=?) AND played=1 ORDER BY season DESC, game_day DESC', [team.id, team.id])
+  const contractLengths = [
+    3, 9, 16, 34
+  ]
+  let moneyPerGameDay = 63437
+  for (let i = 0; i < team.level; i++) {
+    moneyPerGameDay *= 0.8 // for each level you get 20% less sponsor money
+  }
+  const sponsors = []
+  contractLengths.forEach(length => {
+    let countWonGames = 0
+    for (let i = 0; i < length; i++) {
+      const game = games[i]
+      if (!game) continue
+      let won = false
+      if (game.team_1_id === team.id && game.goals_team_1 > game.goals_team_2) {
+        won = true
+      }
+      if (game.team_2_id === team.id && game.goals_team_2 > game.goals_team_1) {
+        won = true
+      }
+      if (won) countWonGames++
+    }
+    const value = Math.floor((Math.random() * 0.2 + 0.9) * moneyPerGameDay * Math.max(1 / 3, (countWonGames / length)))
+    const name = randomItem(sponsorNames)
+    const sponsor = new Sponsor({
+      team_id: team.id,
+      name,
+      value,
+      start_season: season,
+      start_game_day: gameDay,
+      duration: length
+    })
+    sponsors.push(sponsor)
+  })
+  return sponsors
 }

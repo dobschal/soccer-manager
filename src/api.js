@@ -8,6 +8,7 @@ import { runMigration } from './migrate-database.js'
 import cron from 'node-cron'
 import { prepareSeason } from './prepare-season.js'
 import { calculateGames } from './play-game-day.js'
+import { makeBotMoves } from './bot-move.js'
 
 const app = express()
 const port = 3000
@@ -80,7 +81,8 @@ async function start () {
     //           | | hour
     //           | minute
     //           second ( optional )
-    console.log('Start CRON job for game day calculation.')
+    console.log('Started CRON job for game day calculation and bot moves.')
+    await makeBotMoves()
     await prepareSeason()
     await calculateGames()
   })
