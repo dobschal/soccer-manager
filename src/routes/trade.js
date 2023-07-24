@@ -27,7 +27,7 @@ export default {
 
   async addTradeOffer (req) {
     const team = await getTeam(req)
-    if (team.balance < req.body.price) throw new BadRequestError('Not enough money...')
+    if (req.body.type === 'buy' && team.balance < req.body.price) throw new BadRequestError('Not enough money...')
     checkType(req.body, {
       player: RequiredObject,
       price: RequiredNumber,

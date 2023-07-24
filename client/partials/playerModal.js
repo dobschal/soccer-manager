@@ -31,6 +31,9 @@ export async function showPlayerModal (player) {
       toast(e.message ?? 'Something went wrong', 'error')
     }
   })
+  //
+  //  TODO: Show trade input only if possible...
+  //
 
   showOverlay(
     player.name,
@@ -41,7 +44,7 @@ export async function showPlayerModal (player) {
         <b>Level</b>: ${player.level}<br>
         <b>Sallary</b>: ${euroFormat.format(sallaryPerLevel[player.level])}
       </p>
-      <b>Transfer Player?</b>
+      <b>${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>
       <p>Just enter a wanted price:</p>
       <div class="input-group mb-3">
         <input type="number" 
