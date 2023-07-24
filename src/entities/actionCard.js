@@ -1,7 +1,7 @@
 /**
  * @typedef {object} ActionCardType
  * @property {number} id
- * @property {number} user_id
+ * @property {number} team_id
  * @property {string} action
  * @property {number} played
  * @property {Date} created_at
@@ -16,7 +16,7 @@ import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkTy
 export function ActionCard (raw) {
   checkType(raw, {
     id: OptionalNumber,
-    user_id: RequiredNumber,
+    team_id: RequiredNumber,
     action: RequiredString,
     played: RequiredNumber,
     created_at: OptionalObject

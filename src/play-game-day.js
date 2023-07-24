@@ -6,10 +6,12 @@ import { getSponsor } from './helper/sponsorHelper.js'
 import { updateTeamBalance } from './helper/financeHelpr.js'
 import { sallaryPerLevel } from '../client/util/player.js'
 
-const actionCards = {
-  LEVEL_UP_PLAYER: 0.333,
+const actionCardChances = {
+  LEVEL_UP_PLAYER_9: 0.1,
+  LEVEL_UP_PLAYER_7: 0.2,
+  LEVEL_UP_PLAYER_4: 0.4,
   CHANGE_PLAYER_POSITION: 0.033,
-  NEW_YOUTH_PLYER: 0.033
+  NEW_YOUTH_PLAYER: 0.033
 }
 
 export async function calculateGames () {
@@ -46,32 +48,53 @@ async function _letTeamsPaySallaries (gameDay, season) {
 }
 
 async function _giveUsersActionCards () {
-  const users = await query('SELECT * FROM user')
-  for (const user of users) {
-    let actionCard
-    if (Math.random() < actionCards.LEVEL_UP_PLAYER) {
-      actionCard = new ActionCard({
-        user_id: user.id,
-        action: 'LEVEL_UP_PLAYER',
+  const t1 = Date.now()
+  /** @type {TeamType[]} */
+  const teams = await query('SELECT * FROM team')
+  const promises = []
+  for (const team of teams) {
+    const actionCards = []
+    if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_9) {
+      actionCards.push(new ActionCard({
+        team_id: team.id,
+        action: 'LEVEL_UP_PLAYER_9',
         played: 0
-      })
-    } else if (Math.random() < actionCards.CHANGE_PLAYER_POSITION) {
-      actionCard = new ActionCard({
-        user_id: user.id,
+      }))
+    }
+    if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_7) {
+      actionCards.push(new ActionCard({
+        team_id: team.id,
+        action: 'LEVEL_UP_PLAYER_7',
+        played: 0
+      }))
+    }
+    if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_4) {
+      actionCards.push(new ActionCard({
+        team_id: team.id,
+        action: 'LEVEL_UP_PLAYER_4',
+        played: 0
+      }))
+    }
+    if (Math.random() < actionCardChances.CHANGE_PLAYER_POSITION) {
+      actionCards.push(new ActionCard({
+        team_id: team.id,
         action: 'CHANGE_PLAYER_POSITION',
         played: 0
-      })
-    } else if (Math.random() < actionCards.NEW_YOUTH_PLYER) {
-      actionCard = new ActionCard({
-        user_id: user.id,
-        action: 'NEW_YOUTH_PLYER',
-        played: 0
-      })
+      }))
     }
-    if (actionCard) {
-      await query('INSERT INTO action_card SET ?', actionCard)
+    if (Math.random() < actionCardChances.NEW_YOUTH_PLAYER) {
+      actionCards.push(new ActionCard({
+        team_id: team.id,
+        action: 'NEW_YOUTH_PLAYER',
+        played: 0
+      }))
+    }
+    for (const actionCard of actionCards) {
+      promises.push(query('INSERT INTO action_card SET ?', actionCard))
     }
   }
+  await Promise.all(promises)
+  console.log(`Gave action cards in ${Date.now() - t1}ms.`)
 }
 
 /**

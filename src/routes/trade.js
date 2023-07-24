@@ -11,12 +11,15 @@ import { BadRequestError } from '../lib/errors.js'
 export default {
 
   async getOffers () {
+    /** @type {TradeOfferType[]} */
     const offers = await query('SELECT * FROM trade_offer')
-    const players = await query('SELECT * FROM player')
-    //
-    // TODO: optimise and not load all players...
-    //
-    return { offers, players }
+    const playerIds = offers.map(o => o.player_id).join(', ')
+    /** @type {PlayerType[]} */
+    const players = await query(`SELECT * FROM player WHERE id IN (${playerIds})`)
+    const teamIds = players.map(p => p.team_id).join(', ')
+    /** @type {TeamType[]} */
+    const teams = await query(`SELECT * FROM team WHERE id IN (${teamIds})`)
+    return { offers, players, teams }
   },
 
   async addTradeOffer (req) {

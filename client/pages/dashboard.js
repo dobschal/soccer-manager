@@ -6,11 +6,11 @@ import { showOverlay } from '../partials/overlay.js'
 import { renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
 
-let overlay
+let overlay, data
 
 export async function renderDashboardPage () {
   const userInfo = await server.getMyTeam()
-  const data = await server.getActionCards()
+  data = await server.getActionCards()
   const { team } = await server.getMyTeam()
   const { level, league } = team
   const { season, gameDay } = await server.getCurrentGameday()
@@ -24,9 +24,9 @@ export async function renderDashboardPage () {
     </p>
     <h3>Last Game</h3>
     <div class="row pb-4 pt-4">
-        <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold':'' }">${game.team1}</div>
+        <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold' : ''}">${game.team1}</div>
         <div class="col-2 text-center">${game.goalsTeam1}:${game.goalsTeam2}</div>
-        <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold':''}">${game.team2}</div>
+        <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold' : ''}">${game.team2}</div>
     </div>
     <h3>Action Cards</h3>
     <p>With every game played, you have the chance to earn one action card. All earned cards are shown here:</p>
@@ -40,29 +40,68 @@ export async function renderDashboardPage () {
 }
 
 const actionCardTexts = {
-  LEVEL_UP_PLAYER: {
+  LEVEL_UP_PLAYER_9: {
     title: 'Player Level Up ⬆',
     description: 'Choose a player in your team to give him a level up.'
+  },
+  LEVEL_UP_PLAYER_7: {
+    title: 'Player Level Up (max. 7) ⬆',
+    description: 'Choose a player in your team to give him a level up. Max Level 7!'
+  },
+  LEVEL_UP_PLAYER_4: {
+    title: 'Player Level Up (max. 4) ⬆',
+    description: 'Choose a player in your team to give him a level up. Max Level 4!'
   },
   CHANGE_PLAYER_POSITION: {
     title: 'Change Player Position',
     description: 'Choose a player in your team and change his favorite lineup position.'
   },
-  NEW_YOUTH_PLYER: {
+  NEW_YOUTH_PLAYER: {
     title: 'New Talent',
     description: 'Get a new player from your youth academy!'
   }
 }
 
+/**
+ * @param {ActionCardType} actionCard
+ * @private
+ */
 function _renderActionCard (actionCard) {
   const id = generateId()
+  const mergeButtonId = generateId()
 
   onClick('#' + id, () => {
     _useActionCard(actionCard)
   })
 
+  const canMerge = (actionCard.action === 'LEVEL_UP_PLAYER_4' && data.actionCards.filter(a => a.action === 'LEVEL_UP_PLAYER_4').length > 1) ||
+    (actionCard.action === 'LEVEL_UP_PLAYER_7' && data.actionCards.filter(a => a.action === 'LEVEL_UP_PLAYER_7').length > 1)
+
+  if (canMerge) {
+    onClick(mergeButtonId, async () => {
+      try {
+        const cardsToMerge = data.actionCards.filter(a => a.action === actionCard.action)
+        await server.mergeCards({
+          actionCard1: cardsToMerge[0],
+          actionCard2: cardsToMerge[1]
+        })
+        toast('Merged cards to a better one.')
+        render('#page', await renderDashboardPage())
+      } catch (e) {
+        console.error(e)
+        toast(e.message ?? 'Something went wrong', 'error')
+      }
+    })
+  }
+
+  const mergeButton = !canMerge
+    ? ''
+    : `
+    <button id="${mergeButtonId}" type="button" class="btn btn-warning mt-2">Merge Cards</button>
+  `
+
   return `
-      <div class="col-12 col-sm-6 col-md-3 mb-4">
+      <div class="col-12 col-sm-6 col-md-4 mb-4">
         <div class="action-card card text-white bg-dark">
         <div class="card-header">
           <i class="fa fa-magic" aria-hidden="true"></i>
@@ -73,6 +112,7 @@ function _renderActionCard (actionCard) {
             <h5 class="card-title">${actionCardTexts[actionCard.action].title}</h5>
             <p class="card-text">${actionCardTexts[actionCard.action].description}</p>
             <button id="${id}" type="button" class="btn btn-primary">Use now</button>
+            ${mergeButton}
           </div>
         </div>
       </div>
@@ -80,7 +120,7 @@ function _renderActionCard (actionCard) {
 }
 
 async function _useActionCard (actionCard) {
-  if (actionCard.action === 'LEVEL_UP_PLAYER') {
+  if (actionCard.action.startsWith('LEVEL_UP_PLAYER_')) {
     _handleLevelUpActionCard(actionCard)
     return
   }
@@ -88,7 +128,7 @@ async function _useActionCard (actionCard) {
     _handleChangePositionActionCard(actionCard)
     return
   }
-  if (actionCard.action === 'NEW_YOUTH_PLYER') {
+  if (actionCard.action === 'NEW_YOUTH_PLAYER') {
     try {
       await server.useActionCard({ actionCard })
       toast('You got a new player!')

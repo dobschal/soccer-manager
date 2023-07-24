@@ -53,8 +53,8 @@ npm start
 - [x] Show player info incl. salary in modal
 - [ ] Trade / Fire Players --> have a players profile in a modal with a buy action
 - [ ] Action Card "Earn Money Gift"
-- [ ] Action Cards: Have different level up action cards -- level up to 10 is rare and level up to 4 common
-- [ ] Action Card: Merge low level action cards to get better once
+- [x] Action Cards: Have different level up action cards -- level up to 10 is rare and level up to 4 common
+- [x] Action Card: Merge low level action cards to get better once
 - [ ] Bot Players
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards

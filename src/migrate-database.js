@@ -151,6 +151,19 @@ const migrations = [{
                 PRIMARY KEY (id)
             ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Have Action Cards on Team and not on Users',
+  async run () {
+    /** @type {ActionCardType[]} */
+    const actionCards = await query('SELECT * FROM action_card')
+    await query('ALTER TABLE action_card DROP COLUMN user_id;')
+    await query('ALTER TABLE action_card ADD COLUMN team_id BIGINT(20);')
+    for (const actionCard of actionCards) {
+      /** @type {TeamType[]} */
+      const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [actionCard.user_id])
+      await query('UPDATE action_card SET team_id=? WHERE id=?', [team.id, actionCard.user_id])
+    }
+  }
 }]
 
 export async function runMigration () {

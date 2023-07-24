@@ -3,20 +3,19 @@ import { getSponsor } from '../helper/sponsorHelper.js'
 import { query } from '../lib/database.js'
 import { sponsorNames } from '../lib/name-library.js'
 import { randomItem } from '../lib/util.js'
+import { getTeam } from '../helper/teamhelper.js'
 
 export default {
 
   async getSponsor (req) {
-    const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
-    return await getSponsor(team)
+    return await getSponsor(await getTeam(req))
   },
 
   async getSponsorOffers (req) {
     //
     // TODO: Cache the response per team to have the same sponsor after reload...
     //
-    /** @type {Array<import('../entities/team.js').TeamType>} */
-    const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
+    const team = await getTeam(req)
     const [game] = await query('SELECT * FROM game g ORDER BY g.season DESC LIMIT 1')
     const season = game?.season ?? 0
     const gameDay = game?.game_day ?? 0
