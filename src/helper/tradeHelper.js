@@ -21,7 +21,7 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   // Update player and trade offer
   player.team_id = offer.from_team_id
   await query('UPDATE player SET team_id=? WHERE id=?', [player.team_id, player.id])
-  await query('DELETE FROM trade_offer WHERE id=?', offer.id)
+  await query('DELETE FROM trade_offer WHERE player_id=?', player.id)
 
   // Move balance
   const [buyingTeam] = await query('SELECT *  FROM team WHERE id=? LIMIT 1', [offer.from_team_id])
