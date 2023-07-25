@@ -80,15 +80,15 @@ async function _resolvePage () {
     pageElement.style.transform = 'translateX(100vw)'
   }
   setTimeout(async () => {
+    const t1 = Date.now()
     render('#page', await pageRenderFn())
+    const diff = Date.now() - t1
     el('.navbar')?.scrollIntoView({ behavior: 'auto' })
-    pageElement.style.opacity = '0'
     hideNavigation()
     fire('page-changed')
     if (lastAnimationTimeout) clearTimeout(lastAnimationTimeout)
     lastAnimationTimeout = setTimeout(() => {
       pageElement.style.transform = 'translateX(0vw)'
-      pageElement.style.opacity = '1'
-    }, 300)
+    }, Math.max(0, 300 - diff))
   })
 }
