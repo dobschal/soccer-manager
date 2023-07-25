@@ -55,7 +55,7 @@ export function renderLoginPage () {
 
   return `
     <div>
-      <h1>Socker Manager IO</h1>
+      <h1>⚽ Socker Manager IO</h1>
       <h2>Login</h2>
       <form id="${loginFormId}">
         <div class="form-group">

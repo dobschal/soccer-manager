@@ -60,7 +60,7 @@ export function getQueryParams () {
   return queryParams
 }
 
-let currentLayoutRenderFn
+let currentLayoutRenderFn, lastAnimationTimeout
 
 async function _resolvePage () {
   const currentPath = window.location.hash.substring(1).split('?')[0]
@@ -68,14 +68,27 @@ async function _resolvePage () {
     return goTo('login')
   }
   const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
+  let isFirstRender = false
   if (!currentLayoutRenderFn || currentLayoutRenderFn !== layoutRenderFn) {
     render('body', await layoutRenderFn())
     currentLayoutRenderFn = layoutRenderFn
+    isFirstRender = true
   }
-  render('#page', await pageRenderFn())
-  fire('page-changed')
-  setTimeout(() => {
+  const pageElement = el('#page')
+  if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
+  if (!isFirstRender) {
+    pageElement.style.transform = 'translateX(100vw)'
+  }
+  setTimeout(async () => {
+    render('#page', await pageRenderFn())
     el('.navbar')?.scrollIntoView({ behavior: 'auto' })
+    pageElement.style.opacity = '0'
     hideNavigation()
+    fire('page-changed')
+    if (lastAnimationTimeout) clearTimeout(lastAnimationTimeout)
+    lastAnimationTimeout = setTimeout(() => {
+      pageElement.style.transform = 'translateX(0vw)'
+      pageElement.style.opacity = '1'
+    }, 300)
   })
 }

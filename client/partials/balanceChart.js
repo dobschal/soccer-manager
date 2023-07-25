@@ -1,4 +1,5 @@
 import { el, generateId } from '../lib/html.js'
+import { euroFormat } from '../util/currency.js'
 
 let canvasId
 /** @type {FinanceLogType[]} */
@@ -8,7 +9,7 @@ let logItems
  * @param {FinanceLogType[]} l
  */
 export function drawBalanceChart (l) {
-  logItems = JSON.parse(JSON.stringify(l))
+  logItems = JSON.parse(JSON.stringify(l)).slice(-20)
   console.log(logItems)
   canvasId = generateId()
   setTimeout(renderChart)
@@ -44,18 +45,24 @@ function renderChart () {
   ctx.closePath()
 
   // balance
-  ctx.beginPath()
-  let i = 0
+  let i = 0; let x; let y
   for (const logItem of logItems) {
-    const y = height - (logItem.balance / highestBalance) * (height - 40)
-    const x = i * xStep + 20
-    if (i === 0) {
+    ctx.beginPath()
+    if (x && y) {
       ctx.moveTo(x, y)
     }
+    y = (height - 20) - (logItem.balance / highestBalance) * (height - 40)
+    x = i * xStep + 20
     ctx.lineTo(x, y)
+    ctx.lineWidth = 2
     ctx.strokeStyle = logItem.balance > logItems[Math.max(0, i - 1)].balance ? '#00FF00' : '#FF0000'
     ctx.stroke()
+    ctx.closePath()
+    if (i % 10 === 0 || i === logItems.length - 1) {
+      const offsetX = i === logItems.length - 1 ? -50 : 0
+      ctx.fillText(euroFormat.format(logItem.balance), x + offsetX, y - 10)
+      ctx.fillText(logItem.season + '/' + logItem.game_day, x + offsetX, (height - 10))
+    }
     i++
   }
-  ctx.closePath()
 }

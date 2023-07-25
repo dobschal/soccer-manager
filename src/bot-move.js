@@ -4,15 +4,14 @@ import { randomItem } from './lib/util.js'
 import { getSponsor, getSponsorOffers } from './helper/sponsorHelper.js'
 import { Sponsor } from './entities/sponsor.js'
 import { TradeOffer } from './entities/tradeOffer.js'
-import { BadRequestError } from './lib/errors.js'
 import { acceptOffer } from './helper/tradeHelper.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 
 // 1. Check Tactic (/)
-// 2. Play Action Cards --> !!! not possible because action cards are hanging on user...
-// 3. Choose Sponsor
-// 4. Expand Stadium
-// 5. Trade Players
+// 2. Play Action Cards (/)
+// 3. Choose Sponsor (/)
+// 4. Expand Stadium (?)
+// 5. Trade Players (/)
 
 export async function makeBotMoves () {
   /** @type {TeamType[]} */
@@ -39,7 +38,7 @@ export async function makeBotMoves () {
  */
 async function _checkTrades (botTeam, players, isStrongTeam) {
   //
-  // TODO: Clear old trades after X game days
+  // TODO: Clear old trades after X game days --> based created_at
   //
   if (players.length === 0) return console.log('Team has no player o.O', botTeam.id)
   const openOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'sell\'', [botTeam.id])

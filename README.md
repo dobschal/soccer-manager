@@ -56,8 +56,11 @@ npm start
 - [x] Action Card: Merge low level action cards to get better once
 - [x] Set team money to X€ on registration
 - [ ] Action Card "Earn Money Gift"
-- [ ] Bot Players (trading etc.)
-- [ ] Finance Chart
+- [x] Bot Players (trading etc.)
+- [x] Finance Chart
+- [ ] Fix Finance chart
+- [ ] Fix bots not buying players
+- [ ] Have news with top games, stadium expansion plans and top trades
 - [ ] Max amount of action cards
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards

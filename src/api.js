@@ -72,6 +72,7 @@ for (const filename of filenames) {
 async function start () {
   await runMigration()
   await prepareSeason()
+  await makeBotMoves()
   cron.schedule('0 0 */12 * * *', async () => {
     //           * * * * * *
     //           | | | | | |
@@ -82,8 +83,8 @@ async function start () {
     //           | minute
     //           second ( optional )
     console.log('Started CRON job for game day calculation and bot moves.')
-    await makeBotMoves()
     await prepareSeason()
+    await makeBotMoves()
     await calculateGames()
   })
   app.listen(port, () => {
