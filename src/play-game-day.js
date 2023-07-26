@@ -116,7 +116,7 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     const size = stadium[stand + '_stand_size']
     const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
     const priceFactor = 13 / price
-    const amountOfGuests = Math.min(size, strengthFactor * priceFactor * 3 * roofFactor)
+    const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * 3 * roofFactor))
     details[stand + 'Guests'] = amountOfGuests
     const earnings = amountOfGuests * price
     details[stand + 'Earnings'] = earnings

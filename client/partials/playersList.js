@@ -40,7 +40,7 @@ export function renderPlayerListItem (onClickHandler) {
         <th scope="row">${player.name}</th>
         <td>${player.position}</td>
         <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(player, currentSeason)}</td>
-        <td class="text-right">${player.level}</td>
+        <td class="text-right"><span class="circle level-${player.level}">${player.level}</span></td>
         <td class="text-right d-none d-md-table-cell">${euroFormat.format(sallaryPerLevel[player.level])}</td>
       </tr>
     `

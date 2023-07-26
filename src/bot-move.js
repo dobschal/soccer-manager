@@ -62,8 +62,6 @@ async function _checkStadium (botTeam) {
     await buildStadium(botTeam, newStadium, price)
     console.log(`🏗️ ${botTeam.name} is getting a new stadium!`)
     botTeam.balance -= price
-  } else {
-    console.log('Planned stadium is too expensive...', botTeam.balance, price)
   }
 }
 
@@ -75,16 +73,13 @@ async function _checkStadium (botTeam) {
  * @private
  */
 async function _checkTrades (botTeam, players, isStrongTeam) {
-  //
-  // TODO: Clear old trades after X game days --> based created_at
-  //
   if (players.length === 0) return console.log('Team has no player o.O', botTeam.id)
   const openOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'sell\'', [botTeam.id])
   if (openOffers.length === 0) {
     const playerToSell = randomItem(players.filter(p => !p.in_game_position))
     if (playerToSell) {
       const tradeOffer = new TradeOffer({
-        offer_value: (Math.random() * 0.2 + 0.9) * (50000 * playerToSell.level),
+        offer_value: (Math.random() * 0.2 + 1) * (50000 * playerToSell.level),
         type: 'sell',
         player_id: playerToSell.id,
         from_team_id: botTeam.id
@@ -93,7 +88,17 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
     }
   }
 
-  const openBuyOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'buy\'', [botTeam.id])
+  /** @type {TradeOfferType[]} */
+  let openBuyOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'buy\'', [botTeam.id])
+  if (openBuyOffers.length > 0) {
+    const offer = openBuyOffers[0]
+    const diff = (Date.now() - Date.parse(offer.created_at)) / 1000 / 60 / 60
+    if (diff > 24) { // older than 24 hours
+      await query('DELETE FROM trade_offer WHERE id=?', [offer.id])
+      console.log('Deleted old buy offer for player with id and price: ', offer.player_id, offer.offer_value)
+    }
+  }
+  openBuyOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'buy\'', [botTeam.id])
   if (openBuyOffers.length === 0) {
     const maxPrice = Math.floor(botTeam.balance * 0.5)
     /** @type {TradeOfferType[]} */

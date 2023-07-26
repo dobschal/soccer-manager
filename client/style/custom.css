@@ -128,3 +128,29 @@ body {
   aspect-ratio: 3/1;
   background: #EFEFEF;
 }
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  0% {
+    transform: rotate(360deg);
+  }
+}
+
+#loading-indicator {
+  position: fixed;
+  top: 50vh;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border: solid 3px white;
+  border-radius: 50%;
+  border-bottom-color: transparent;
+  animation-name: rotate;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+  margin-left: -20px;
+  margin-top: -20px;
+  box-shadow: -5px 0 5px rgba(7, 146, 189, 0.38);
+}

@@ -6,7 +6,7 @@ import { showOverlay } from '../partials/overlay.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 
-let myTeamId, info
+let myTeamId, info, yesterdayStanding
 
 export async function renderResultsPage () {
   info = await server.getMyTeam()
@@ -15,6 +15,9 @@ export async function renderResultsPage () {
   const { season, gameDay } = await getSeasonAndGameDay()
   const { results } = await server.getResults({ season, gameDay, level, league })
   const standing = await server.getStanding({ season, gameDay, level, league })
+  yesterdayStanding = await server.getStanding({ season, gameDay: Math.max(0, gameDay - 1), level, league })
+  standing.sort(_sortStanding)
+  yesterdayStanding.sort(_sortStanding)
   const topScorer = await _calculateGoals(level, league, season, gameDay, standing)
 
   onClick('#prev-game-day-button', async () => {
@@ -88,16 +91,17 @@ export async function renderResultsPage () {
     <table class="table table-hover mb-4">
       <thead>
         <tr>
-          <th scope="col">#</th>
+          <th scope="col" style="width: 30px">#</th>
+          <th scope="col" class="d-none d-md-table-cell" style="width: 30px"></th>
           <th scope="col">Team</th>
-          <th scope="col">Games</th>
+          <th scope="col" class="d-none d-md-table-cell">Games</th>
           <th scope="col" class="d-none d-md-table-cell">Goals</th>
           <th scope="col" class="d-none d-lg-table-cell">Diff</th>
           <th scope="col">Points</th>        
         </tr>
       </thead>
       <tbody>
-        ${standing.sort(_sortStanding).map(_renderStandingListItem).join('')}
+        ${standing.map(_renderStandingListItem).join('')}
       </tbody>
     </table>
     <h3>Top Scorer</h3>
@@ -174,11 +178,14 @@ function _renderStandingListItem (standingItem, index) {
     index > 13 ? 'table-warning' : ''
   ]
 
+  const diff = yesterdayStanding.findIndex(s => s.team.id === standingItem.team.id) - index
+
   return `
     <tr id="${id}" class="${trClasses.join(' ')}">
-      <th>${index + 1}.</th>
+      <th style="width: 30px">${index + 1}.</th>
+      <td class="d-none d-md-table-cell" style="width: 30px">${diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : '')}</td>
       <td>${standingItem.team.name}</td>
-      <td>${standingItem.games}</td>
+      <td class="d-none d-md-table-cell">${standingItem.games}</td>
       <td class="d-none d-md-table-cell">${standingItem.goals}:${standingItem.against}</td>
       <td class="d-none d-lg-table-cell">${standingItem.goals - standingItem.against}</td>
       <td>${standingItem.points}</td>

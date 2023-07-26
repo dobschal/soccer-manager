@@ -74,6 +74,10 @@ async function _resolvePage () {
     currentLayoutRenderFn = layoutRenderFn
     isFirstRender = true
   }
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="loading-indicator"></div>
+  `)
+  hideNavigation()
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
   if (!isFirstRender) {
@@ -84,12 +88,11 @@ async function _resolvePage () {
     render('#page', await pageRenderFn())
     const diff = Date.now() - t1
     console.log(`Got ${currentPath} in ${diff}ms`)
-    hideNavigation()
+    el('#loading-indicator')?.remove()
     fire('page-changed')
     if (lastAnimationTimeout) clearTimeout(lastAnimationTimeout)
     lastAnimationTimeout = setTimeout(() => {
       pageElement.style.transform = 'translateX(0vw)'
-      el('.navbar')?.scrollIntoView({ behavior: 'auto' })
     }, Math.max(0, 300 - diff))
   }, 300)
 }

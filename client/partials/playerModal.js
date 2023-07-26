@@ -28,17 +28,14 @@ export async function showPlayerModal (player) {
         type: isMyPlayer ? 'sell' : 'buy'
       })
       toast('You add a trade offer for ' + player.name)
+      overlay.remove()
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong', 'error')
     }
   })
 
-  //
-  //  TODO: Show trade input only if possible...
-  //
-
-  showOverlay(
+  const overlay = showOverlay(
     player.name,
     `Position: ${player.position}`,
     `

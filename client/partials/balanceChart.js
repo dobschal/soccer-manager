@@ -22,6 +22,7 @@ export function drawBalanceChart (l) {
 function renderChart () {
   /** @type {HTMLCanvasElement} */
   const canvas = el('#' + canvasId)
+  if (!canvas) return
   const width = canvas.offsetWidth
   const height = canvas.offsetHeight
   canvas.setAttribute('height', height + 'px')

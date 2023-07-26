@@ -90,7 +90,7 @@ function _calculateTeamStrength (players) {
 function _renderSquad () {
   // position hack for 2x CM and 2x CD
   setTimeout(() => {
-    ['.CM', '.CD', '.DM'].forEach(positionClass => {
+    ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
       const el = document.querySelectorAll(positionClass)
       if (el.length === 2) {
         el.item(0).style.left = '38%'
@@ -139,9 +139,9 @@ function _renderSquadPlayer (player) {
   })
   return `
     <div id="${id}" class="player ${player.position}">
-      <span class="position-badge">${player.position}</span>
+      <span class="position-badge ${player.position}">${player.position}</span>
       ${player.name.includes(' ') ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '') : player.name}
-      <span class="level-badge">${player.level}</span>
+      <span class="level-badge level-${player.level}">${player.level}</span>
     </div>
   `
 }
