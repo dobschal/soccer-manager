@@ -164,6 +164,19 @@ const migrations = [{
       await query('UPDATE action_card SET team_id=? WHERE id=?', [team.id, actionCard.user_id])
     }
   }
+}, {
+  name: 'Add news table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS news (
+                id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+                game_day INT,
+                season INT,
+                message TEXT,
+                team_id BIGINT(20),
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
+            ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 export async function runMigration () {

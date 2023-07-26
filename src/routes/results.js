@@ -26,7 +26,8 @@ export default {
         t2.name as team2,
         g.team_1_id as team1Id,
         g.team_2_id as team2Id,
-        g.details as details
+        g.details as details,
+        g.created_at as created_at
       FROM game g
       JOIN team t1 ON t1.id=g.team_1_id
       JOIN team t2 ON t2.id=g.team_2_id

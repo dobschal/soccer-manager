@@ -5,6 +5,7 @@ import { getQueryParams, goTo, setQueryParams } from '../lib/router.js'
 import { showOverlay } from '../partials/overlay.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
+import { formatDate } from '../lib/date.js'
 
 let myTeamId, info, yesterdayStanding
 
@@ -13,12 +14,17 @@ export async function renderResultsPage () {
   myTeamId = info.team.id
   const { level, league } = getLeagueAndLevel()
   const { season, gameDay } = await getSeasonAndGameDay()
-  const { results } = await server.getResults({ season, gameDay, level, league })
-  const standing = await server.getStanding({ season, gameDay, level, league })
-  yesterdayStanding = await server.getStanding({ season, gameDay: Math.max(0, gameDay - 1), level, league })
+  const [{ results }, standing, yesterday] = await Promise.all([
+    server.getResults({ season, gameDay, level, league }),
+    server.getStanding({ season, gameDay, level, league }),
+    server.getStanding({ season, gameDay: Math.max(0, gameDay - 1), level, league })
+  ])
+  yesterdayStanding = yesterday
   standing.sort(_sortStanding)
   yesterdayStanding.sort(_sortStanding)
   const topScorer = await _calculateGoals(level, league, season, gameDay, standing)
+  const date = new Date(Date.parse(results[0].created_at))
+  console.log(results)
 
   onClick('#prev-game-day-button', async () => {
     setQueryParams({
@@ -71,7 +77,8 @@ export async function renderResultsPage () {
         <b>Game day</b>: 
           <span id="prev-game-day-button" class="fa fa-chevron-left fa-button"></span> 
           ${gameDay + 1} 
-          <span id="next-game-day-button" class="fa fa-chevron-right fa-button"></span><br>        
+          <span id="next-game-day-button" class="fa fa-chevron-right fa-button"></span><br>     
+          <b>Date</b>: ${formatDate('DD.MM.YYYY hh:mm', date)}   
       </p>
     </div>
     <h3>Games</h3>
@@ -319,14 +326,18 @@ function _renderGameLogItem (players) {
 async function _calculateGoals (level, league, season, gameDay, standing) {
   const t1 = Date.now()
   const games = []
+  const promises = []
   while (gameDay > 0) {
-    const { results } = await server.getResults({ season, gameDay, level, league })
-    games.push(...results.map(r => {
-      r.details = JSON.parse(r.details ?? '{}')
-      return r
-    }).filter(r => r.details.log))
+    promises.push(server.getResults({ season, gameDay, level, league }).then(({ results }) => {
+      games.push(...results.map(r => {
+        r.details = JSON.parse(r.details ?? '{}')
+        return r
+      }).filter(r => r.details.log))
+      return true
+    }))
     gameDay--
   }
+  await Promise.all(promises)
   const goalsByPlayers = {}
   for (const game of games) {
     game.details.log.filter(logItem => logItem.goal).forEach(({ player: playerId }) => {

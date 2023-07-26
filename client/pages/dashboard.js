@@ -5,6 +5,7 @@ import { render } from '../lib/render.js'
 import { showOverlay } from '../partials/overlay.js'
 import { renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
+import { formatDate } from '../lib/date.js'
 
 let overlay, data
 
@@ -16,6 +17,7 @@ export async function renderDashboardPage () {
   const { results } = await server.getResults({ season, gameDay: gameDay - 1, level, league })
   const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id)
   const isHomeGame = game.team1Id === team.id
+  const { news } = await server.getNews()
   return `
     <h2>${team.name}</h2>
     <p>
@@ -38,8 +40,12 @@ export async function renderDashboardPage () {
       ${data.actionCards.map(_renderActionCard).join('')}
       <div class="col ${data.actionCards.length === 0 ? '' : 'hidden'}">
         <h4 class="text-muted text-center mt-5 mb-5">No action cards available...</h4>
-      </span>
+      </div>
     </div>
+    <h3>News</h3>
+    <ul class="list-group">
+        ${news.map(newsItem => `<li class="list-group-item">${formatDate('DD.MM.YYYY hh:mm', newsItem.created_at)} <i class="fa fa-chevron-right" aria-hidden="true"></i> ${newsItem.message}</li>`).join('')}
+    </ul>
   `
 }
 

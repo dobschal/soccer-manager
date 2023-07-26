@@ -2,6 +2,7 @@ import { TradeOffer } from '../entities/tradeOffer.js'
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelpr.js'
+import { addNews } from './newsHelper.js'
 
 export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   offer = new TradeOffer(offer)
@@ -27,4 +28,7 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   const [buyingTeam] = await query('SELECT *  FROM team WHERE id=? LIMIT 1', [offer.from_team_id])
   await updateTeamBalance(sellingTeam, offer.offer_value, `Selling player ${player.name} to ${buyingTeam.name}`, gameDay, season)
   await updateTeamBalance(buyingTeam, offer.offer_value * -1, `Buying player ${player.name} from ${sellingTeam.name}`, gameDay, season)
+
+  await addNews(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam)
+  await addNews(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam)
 }
