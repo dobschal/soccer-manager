@@ -19,14 +19,18 @@ export async function renderDashboardPage () {
   return `
     <h2>${team.name}</h2>
     <p>
-      Welcome ${user.username}! We hope you are doing well!<br>
-      <b>Season: </b> ${season + 1}, <b>Game day: </b> ${gameDay + 1}
+      Welcome ${user.username}! We hope you are doing well!      
     </p>
     <h3>Last Game</h3>
-    <div class="row pb-4 pt-4">
-        <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold' : ''}">${game.team1}</div>
-        <div class="col-2 text-center">${game.goalsTeam1}:${game.goalsTeam2}</div>
-        <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold' : ''}">${game.team2}</div>
+    <p>
+    <b>Season: </b> ${season + 1}, <b>Game day: </b> ${gameDay + 1}
+    </p>
+    <div  class="card card-body mb-4 bg-info text-white">    
+      <div class="row">
+          <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold' : ''}">${game.team1}</div>
+          <div class="col-2 text-center">${game.goalsTeam1}:${game.goalsTeam2}</div>
+          <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold' : ''}">${game.team2}</div>
+      </div>
     </div>
     <h3>Action Cards</h3>
     <p>With every game played, you have the chance to earn one action card. All earned cards are shown here:</p>

@@ -11,7 +11,7 @@ import { buildStadium, calcuateStadiumBuild } from './helper/stadiumHelper.js'
 // 1. Check Tactic (/)
 // 2. Play Action Cards (/)
 // 3. Choose Sponsor (/)
-// 4. Expand Stadium (?)
+// 4. Expand Stadium (/)
 // 5. Trade Players (/)
 
 export async function makeBotMoves () {
@@ -95,7 +95,7 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
 
   const openBuyOffers = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'buy\'', [botTeam.id])
   if (openBuyOffers.length === 0) {
-    const maxPrice = Math.floor(botTeam.balance / 2)
+    const maxPrice = Math.floor(botTeam.balance * 0.5)
     /** @type {TradeOfferType[]} */
     const offers = await query('SELECT * FROM trade_offer WHERE from_team_id<>? AND offer_value<? AND type=\'sell\'', [botTeam.id, maxPrice])
     if (offers.length > 0) {

@@ -4,6 +4,7 @@ import { generateId } from '../lib/html.js'
 import { getQueryParams, goTo, setQueryParams } from '../lib/router.js'
 import { showOverlay } from '../partials/overlay.js'
 import { toast } from '../partials/toast.js'
+import { showPlayerModal } from '../partials/playerModal.js'
 
 let myTeamId, info
 
@@ -14,6 +15,7 @@ export async function renderResultsPage () {
   const { season, gameDay } = await getSeasonAndGameDay()
   const { results } = await server.getResults({ season, gameDay, level, league })
   const standing = await server.getStanding({ season, gameDay, level, league })
+  const topScorer = await _calculateGoals(level, league, season, gameDay, standing)
 
   onClick('#prev-game-day-button', async () => {
     setQueryParams({
@@ -70,7 +72,7 @@ export async function renderResultsPage () {
       </p>
     </div>
     <h3>Games</h3>
-    <table class="table table-hover">
+    <table class="table table-hover mb-4">
       <thead>
         <tr>
           <th scope="col">Team 1</th>
@@ -83,21 +85,50 @@ export async function renderResultsPage () {
       </tbody>
     </table>
     <h3>Standing</h3>
+    <table class="table table-hover mb-4">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Team</th>
+          <th scope="col">Games</th>
+          <th scope="col" class="d-none d-md-table-cell">Goals</th>
+          <th scope="col" class="d-none d-lg-table-cell">Diff</th>
+          <th scope="col">Points</th>        
+        </tr>
+      </thead>
+      <tbody>
+        ${standing.sort(_sortStanding).map(_renderStandingListItem).join('')}
+      </tbody>
+    </table>
+    <h3>Top Scorer</h3>
     <table class="table table-hover">
-    <thead>
-      <tr>
-        <th scope="col">#</th>
-        <th scope="col">Team</th>
-        <th scope="col">Games</th>
-        <th scope="col" class="d-none d-md-table-cell">Goals</th>
-        <th scope="col" class="d-none d-lg-table-cell">Diff</th>
-        <th scope="col">Points</th>        
-      </tr>
-    </thead>
-    <tbody>
-      ${standing.sort(_sortStanding).map(_renderStandingListItem).join('')}
-    </tbody>
-  </table>
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Goals</th>
+          <th scope="col">Name</th>
+          <th scope="col" class="d-none d-sm-table-cell">Team</th>        
+        </tr>
+      </thead>
+      <tbody>
+        ${topScorer.map(_renderTopScorer).join('')}
+      </tbody>
+    </table>
+  `
+}
+
+function _renderTopScorer (scorer, index) {
+  const teamId = generateId()
+  onClick(teamId, () => goTo(`team?id=${scorer.team.id}`))
+  const playerId = generateId()
+  onClick(playerId, () => showPlayerModal(scorer))
+  return `
+    <tr class="${myTeamId === scorer.team.id ? 'table-info' : ''}">
+        <th>${index + 1}.</th>
+        <td>${scorer.goals}</td>
+        <td id="${playerId}">${scorer.name}</td>
+        <td class="d-none d-sm-table-cell" id="${teamId}">${scorer.team.name}</td>
+    </tr>
   `
 }
 
@@ -145,7 +176,7 @@ function _renderStandingListItem (standingItem, index) {
 
   return `
     <tr id="${id}" class="${trClasses.join(' ')}">
-      <td>${index + 1}.</td>
+      <th>${index + 1}.</th>
       <td>${standingItem.team.name}</td>
       <td>${standingItem.games}</td>
       <td class="d-none d-md-table-cell">${standingItem.goals}:${standingItem.against}</td>
@@ -174,9 +205,7 @@ function _renderResultListItem (result) {
   const details = JSON.parse(result.details)
   const id = generateId()
 
-  onClick('#' + id, () => {
-    _showGameModal(result)
-  })
+  onClick('#' + id, () => _showGameModal(result))
 
   return `
     <tr id="${id}">
@@ -278,4 +307,37 @@ function _renderGameLogItem (players) {
     }
     return ''
   }
+}
+
+async function _calculateGoals (level, league, season, gameDay, standing) {
+  const t1 = Date.now()
+  const games = []
+  while (gameDay > 0) {
+    const { results } = await server.getResults({ season, gameDay, level, league })
+    games.push(...results.map(r => {
+      r.details = JSON.parse(r.details)
+      return r
+    }))
+    gameDay--
+  }
+  const goalsByPlayers = {}
+  for (const game of games) {
+    game.details.log.filter(logItem => logItem.goal).forEach(({ player: playerId }) => {
+      goalsByPlayers[playerId] = goalsByPlayers[playerId] ?? 0
+      goalsByPlayers[playerId]++
+    })
+  }
+  const { players } = await server.getPlayersWithIds({ playerIds: Object.keys(goalsByPlayers) })
+  const playersWithGoals = Object.keys(goalsByPlayers)
+    .map(playerId => {
+      const player = players.find(p => p.id === Number(playerId))
+      return {
+        team: standing.find(({ team }) => team.id === player.team_id)?.team,
+        goals: goalsByPlayers[playerId],
+        ...player
+      }
+    })
+  playersWithGoals.sort((a, b) => b.goals - a.goals)
+  console.log(`Fetched and calculated top scorer in ${Date.now() - t1}ms`)
+  return playersWithGoals.slice(0, 10)
 }
