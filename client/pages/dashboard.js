@@ -9,18 +9,18 @@ import { toast } from '../partials/toast.js'
 let overlay, data
 
 export async function renderDashboardPage () {
-  const userInfo = await server.getMyTeam()
   data = await server.getActionCards()
-  const { team } = await server.getMyTeam()
+  const { team, user } = await server.getMyTeam()
   const { level, league } = team
   const { season, gameDay } = await server.getCurrentGameday()
   const { results } = await server.getResults({ season, gameDay: gameDay - 1, level, league })
   const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id)
   const isHomeGame = game.team1Id === team.id
   return `
-    <h2>${userInfo.team.name}</h2>
+    <h2>${team.name}</h2>
     <p>
-      Welcome ${userInfo.user.username}! We hope you are doing well! 
+      Welcome ${user.username}! We hope you are doing well!<br>
+      <b>Season: </b> ${season + 1}, <b>Game day: </b> ${gameDay + 1}
     </p>
     <h3>Last Game</h3>
     <div class="row pb-4 pt-4">
@@ -96,9 +96,7 @@ function _renderActionCard (actionCard) {
 
   const mergeButton = !canMerge
     ? ''
-    : `
-    <button id="${mergeButtonId}" type="button" class="btn btn-warning mt-2">Merge Cards</button>
-  `
+    : `<button id="${mergeButtonId}" type="button" class="btn btn-warning mt-2">Merge Cards</button>`
 
   return `
       <div class="col-12 col-sm-6 col-md-4 mb-4">
@@ -107,7 +105,7 @@ function _renderActionCard (actionCard) {
           <i class="fa fa-magic" aria-hidden="true"></i>
           <i>Action Card</i>
         </div>
-          <img class="card-img-top" src="assets/stock-image-1.jpg" alt="Football">
+          <img class="card-img-top" src="assets/stock-image-${(actionCard.id % 4) + 1}.jpg" alt="Football">
           <div class="card-body">
             <h5 class="card-title">${actionCardTexts[actionCard.action].title}</h5>
             <p class="card-text">${actionCardTexts[actionCard.action].description}</p>
