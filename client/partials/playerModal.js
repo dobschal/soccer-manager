@@ -17,6 +17,8 @@ export async function showPlayerModal (player) {
   const buttonId = generateId()
   const inputId = generateId()
 
+  const { offer } = await server.myOfferForPlayer({ player })
+
   onClick(buttonId, async () => {
     try {
       const price = Number(el('#' + inputId).value)
@@ -45,20 +47,25 @@ export async function showPlayerModal (player) {
         <b>Level</b>: ${player.level}<br>
         <b>Sallary</b>: ${euroFormat.format(sallaryPerLevel[player.level])}
       </p>
-      <b>${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>
-      <p>Just enter a wanted price:</p>
-      <div class="input-group mb-3">
-        <input type="number" 
-               id="${inputId}"
-               class="form-control"
-               placeholder="Price"
-               aria-label="Price"
-               aria-describedby="Yeah">
-        <div class="input-group-append">
-          <button id="${buttonId}"  class="btn btn-outline-primary" type="button">
-            ${isMyPlayer ? 'Sell' : 'Buy'}
-          </button>
+      <div class="${offer ? 'hidden' : ''}">
+        <b>${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>
+        <p>Just enter a wanted price:</p>
+        <div class="input-group mb-3">
+          <input type="number" 
+                 id="${inputId}"
+                 class="form-control"
+                 placeholder="Price"
+                 aria-label="Price"
+                 aria-describedby="Yeah">
+          <div class="input-group-append">
+            <button id="${buttonId}"  class="btn btn-outline-primary" type="button">
+              ${isMyPlayer ? 'Sell' : 'Buy'}
+            </button>
+          </div>
         </div>
+      </div>
+      <div class="${offer ? '' : 'hidden'}">
+        This player is on the transfermarket.
       </div>
     `
   )

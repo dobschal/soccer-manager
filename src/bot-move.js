@@ -19,14 +19,22 @@ export async function makeBotMoves () {
   const botTeamIds = botTeams.map(t => t.id).join(', ')
   /** @type {PlayerType[]} */
   const players = await query(`SELECT * FROM player WHERE team_id IN (${botTeamIds})`)
+  const t1 = Date.now()
+  const promises = []
   for (const botTeam of botTeams) {
-    const isStrongTeam = botTeam.id % 2 === 0
-    const playersOfTeam = players.filter(p => p.team_id === botTeam.id)
-    await _checkTactic(botTeam, playersOfTeam, isStrongTeam)
-    await _checkActionCards(botTeam, playersOfTeam, isStrongTeam)
-    await _chooseSponsor(botTeam, isStrongTeam)
-    await _checkTrades(botTeam, playersOfTeam, isStrongTeam)
+    promises.push(_makeBotMove(botTeam, players))
   }
+  await Promise.all(promises)
+  console.log(`Made bot moves in ${Math.floor((Date.now() - t1) / 1000)}sec`)
+}
+
+async function _makeBotMove (botTeam, players) {
+  const isStrongTeam = botTeam.id % 2 === 0
+  const playersOfTeam = players.filter(p => p.team_id === botTeam.id)
+  await _checkTactic(botTeam, playersOfTeam, isStrongTeam)
+  await _checkActionCards(botTeam, playersOfTeam, isStrongTeam)
+  await _chooseSponsor(botTeam, isStrongTeam)
+  await _checkTrades(botTeam, playersOfTeam, isStrongTeam)
 }
 
 /**
@@ -80,14 +88,14 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
     })
     if (openIncomingOffers.length > 0) {
       const player = players.find(p => p.id === openIncomingOffers[0].player_id)
-      if (Math.random() > 0.5 && openIncomingOffers[0].offer_value >= player.level * 50000) {
+      if (Math.random() < 0.1 || (Math.random() > 0.75 && openIncomingOffers[0].offer_value >= player.level * 50000)) {
         delete openIncomingOffers[0].created_at
         const {
           gameDay,
           season
         } = await getGameDayAndSeason()
         await acceptOffer(openIncomingOffers[0], botTeam, gameDay, season)
-        console.log('Trade happened!!!')
+        console.log('Trade happened: ', player)
       }
     }
   } catch (e) {
@@ -103,11 +111,11 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
  */
 async function _chooseSponsor (botTeam, isStrongTeam) {
   let { sponsor } = await getSponsor(botTeam)
-  if (sponsor) return console.log('Team has already sponsor')
+  if (sponsor) return
   const sponsors = await getSponsorOffers(botTeam)
   sponsor = new Sponsor(randomItem(sponsors))
   await query('INSERT INTO sponsor SET ?', sponsor)
-  console.log('Team signed sponsor')
+  console.log('Team signed sponsor: ', sponsor)
 }
 
 /**
@@ -160,7 +168,6 @@ async function _checkTactic (botTeam, players, isStrongTeam) {
       p2.position === player.position &&
       (p2.level > player.level || !isStrongTeam))
     if (!p2) continue
-    console.log(`${botTeam.name} is exchanging player ${player.name} (${player.level}) with ${p2.name} (${p2.level}), strong bot?: ${isStrongTeam}`)
     p2.in_game_position = p2.position
     player.in_game_position = null
     promises.push(query('UPDATE player SET in_game_position=? WHERE id=?', [p2.in_game_position, p2.id]))

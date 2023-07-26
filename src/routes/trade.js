@@ -57,5 +57,18 @@ export default {
     delete req.body.offer.created_at
     await acceptOffer(req.body.offer, sellingTeam, gameDay, season)
     return { success: true }
+  },
+
+  async cancelOffer (req) {
+    const team = await getTeam(req)
+    if (!req.body.offer.id || !team.id) throw new BadRequestError('Nope...')
+    await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=?', [team.id, req.body.offer.id])
+    return { success: true }
+  },
+
+  async myOfferForPlayer (req) {
+    const team = await getTeam(req)
+    const [offer] = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [team.id, req.body.player.id])
+    return { offer }
   }
 }

@@ -1,6 +1,6 @@
 import { server } from '../lib/gateway.js'
 import { euroFormat } from '../util/currency.js'
-import { generateId } from '../lib/html.js'
+import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { showDialog } from '../partials/dialog.js'
 import { toast } from '../partials/toast.js'
@@ -20,9 +20,9 @@ export async function renderTradesPage () {
       <thead>
         <tr>          
           <th scope="col">Name</th>
-          <th scope="col">Team</th>
-          <th scope="col">Position</th>                    
-          <th scope="col" class="text-right">Level</th>
+          <th scope="col" class="d-none d-sm-table-cell">Team</th>
+          <th scope="col" class="d-none d-sm-table-cell">Position</th>                    
+          <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
           <th scope="col" class="text-right">Price</th>
           <th scope="col"></th>             
         </tr>
@@ -37,9 +37,9 @@ export async function renderTradesPage () {
       <thead>
         <tr>          
           <th scope="col">Name</th>
-          <th scope="col">Team</th>
-          <th scope="col">Position</th>                    
-          <th scope="col" class="text-right">Level</th>
+          <th scope="col" class="d-none d-sm-table-cell">Team</th>
+          <th scope="col" class="d-none d-sm-table-cell">Position</th>                    
+          <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
           <th scope="col" class="text-right">Price</th>
           <th scope="col"></th>             
         </tr>
@@ -55,10 +55,11 @@ export async function renderTradesPage () {
         <tr>
           <th scope="col">Type</th>
           <th scope="col">Name</th>
-          <th scope="col">Team</th>
-          <th scope="col">Position</th>                    
-          <th scope="col" class="text-right">Level</th>
-          <th scope="col" class="text-right">Price</th>          
+          <th scope="col" class="d-none d-sm-table-cell">Team</th>
+          <th scope="col" class="d-none d-sm-table-cell">Position</th>                    
+          <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
+          <th scope="col" class="text-right">Price</th>
+          <th scope="col"></th>
         </tr>
       </thead>
       <tbody>
@@ -101,15 +102,15 @@ function _renderIncomingOfferList (offers, players, teams, team) {
       return `
         <tr>
           <td id="${playerNameId}" class="hover-text">${player.name}</td>
-          <td>${team.name}</td>
-          <td>${player.position}</td>
-          <td class="text-right">${player.level}</td>
+          <td class="d-none d-sm-table-cell">${team.name}</td>
+          <td class="d-none d-sm-table-cell">${player.position}</td>
+          <td class="text-right d-none d-sm-table-cell">${player.level}</td>
           <td class="text-right">${euroFormat.format(o.offer_value)}</td>
-          <td><button id="${acceptButtonId}" class="btn btn-primary">Accept</button></td>
+          <td><button id="${acceptButtonId}" class="btn btn-success"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button></td>
         </tr>
       `
     })
-    .join(', ')
+    .join('')
 }
 
 /**
@@ -163,9 +164,9 @@ async function _renderSellOfferList (offers, players, teams, team) {
       return `
       <tr>
         <td id="${playerNameId}" class="hover-text">${player.name}</td>
-        <td>${team.name}</td>
-        <td>${player.position}</td>
-        <td class="text-right">${player.level}</td>
+        <td class="d-none d-sm-table-cell">${team.name}</td>
+        <td class="d-none d-sm-table-cell">${player.position}</td>
+        <td class="text-right d-none d-sm-table-cell">${player.level}</td>
         <td class="text-right">${euroFormat.format(offer.offer_value)}</td>
         <td><button id="${buyButtonId}" class="btn btn-primary">Buy</button></td>
       </tr>
@@ -188,18 +189,35 @@ async function _renderMyOffersList (offers, players, teams, team) {
     .map(offer => {
       const player = players.find(p => offer.player_id === p.id)
       const team = teams.find(t => t.id === player.team_id)
+      const rowId = generateId()
 
       const playerNameId = generateId()
       onClick(playerNameId, () => showPlayerModal(player))
 
+      const cancelButtonId = generateId()
+      onClick(cancelButtonId, async () => {
+        try {
+          await server.cancelOffer(offer)
+          const row = el('#' + rowId)
+          row?.parentElement.removeChild(row)
+        } catch (e) {
+          toast(e.message ?? 'Something went wrong', 'error')
+        }
+      })
+
       return `
-      <tr>
+      <tr id="${rowId}">
         <td><span class="badge badge-${offer.type === 'sell' ? 'secondary' : 'primary'}">${offer.type}</span></td>
         <td class="hover-text" id="${playerNameId}">${player.name}</td>
-        <td>${offer.type === 'sell' ? '' : team.name}</td>
-        <td>${player.position}</td>
-        <td class="text-right">${player.level}</td>
+        <td class="d-none d-sm-table-cell">${offer.type === 'sell' ? '' : team.name}</td>
+        <td class="d-none d-sm-table-cell">${player.position}</td>
+        <td class="text-right d-none d-sm-table-cell">${player.level}</td>
         <td class="text-right">${euroFormat.format(offer.offer_value)}</td>
+        <td>
+            <button id="${cancelButtonId}" type="button" class="btn btn-danger">
+                <i class="fa fa-times-circle-o" aria-hidden="true"></i>
+            </button>
+        </td>
       </tr>
     `
     })
