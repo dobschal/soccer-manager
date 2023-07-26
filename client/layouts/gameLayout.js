@@ -35,6 +35,7 @@ export async function renderGameLayout () {
   }, 1000)
 
   onClick('#logout-button', () => {
+    hideNavigation()
     window.localStorage.removeItem('auth-token')
     goTo('')
   })
