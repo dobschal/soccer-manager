@@ -153,10 +153,11 @@ async function _playGame (game) {
     _playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
   console.log('Result: ', gameDetails.goalsTeamA, gameDetails.goalsTeamB)
-  await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=? WHERE id=?', [
+  await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
     JSON.stringify(gameDetails),
     gameDetails.goalsTeamA,
     gameDetails.goalsTeamB,
+    new Date(),
     game.id
   ])
 }
