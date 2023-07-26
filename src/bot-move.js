@@ -75,6 +75,9 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
   try {
     /** @type {TradeOfferType[]} */
     const openIncomingOffers = await query(sql, [botTeam.id])
+    openIncomingOffers.sort((oa, ob) => {
+      return ob.offer_value - oa.offer_value
+    })
     if (openIncomingOffers.length > 0) {
       const player = players.find(p => p.id === openIncomingOffers[0].player_id)
       if (Math.random() > 0.5 && openIncomingOffers[0].offer_value >= player.level * 50000) {
