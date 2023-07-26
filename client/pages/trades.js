@@ -197,7 +197,7 @@ async function _renderMyOffersList (offers, players, teams, team) {
       const cancelButtonId = generateId()
       onClick(cancelButtonId, async () => {
         try {
-          await server.cancelOffer(offer)
+          await server.cancelOffer({ offer })
           const row = el('#' + rowId)
           row?.parentElement.removeChild(row)
         } catch (e) {

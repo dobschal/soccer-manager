@@ -15,7 +15,7 @@
 body {
   font-variant-numeric: tabular-nums !important;
   background-image: url("../assets/bg-1.jpg");
-  background-size: cover;
+  background-size: 100%;
 }
 
 .navbar {
@@ -36,6 +36,7 @@ body {
   animation-iteration-count: 1;
   animation-timing-function: cubic-bezier(.65, .27, .69, 1.42);
   transition: transform 0.3s ease-in-out;
+  will-change: auto;
 }
 
 .centered-container {

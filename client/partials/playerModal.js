@@ -65,7 +65,7 @@ export async function showPlayerModal (player) {
         </div>
       </div>
       <div class="${offer ? '' : 'hidden'}">
-        This player is on the transfermarket.
+        This player is on the <a href="#trades">transfermarket</a>.
       </div>
     `
   )

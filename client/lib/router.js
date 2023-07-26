@@ -83,12 +83,13 @@ async function _resolvePage () {
     const t1 = Date.now()
     render('#page', await pageRenderFn())
     const diff = Date.now() - t1
-    el('.navbar')?.scrollIntoView({ behavior: 'auto' })
+    console.log(`Got ${currentPath} in ${diff}ms`)
     hideNavigation()
     fire('page-changed')
     if (lastAnimationTimeout) clearTimeout(lastAnimationTimeout)
     lastAnimationTimeout = setTimeout(() => {
       pageElement.style.transform = 'translateX(0vw)'
+      el('.navbar')?.scrollIntoView({ behavior: 'auto' })
     }, Math.max(0, 300 - diff))
-  })
+  }, 300)
 }
