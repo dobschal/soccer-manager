@@ -322,9 +322,9 @@ async function _calculateGoals (level, league, season, gameDay, standing) {
   while (gameDay > 0) {
     const { results } = await server.getResults({ season, gameDay, level, league })
     games.push(...results.map(r => {
-      r.details = JSON.parse(r.details)
+      r.details = JSON.parse(r.details ?? '{}')
       return r
-    }))
+    }).filter(r => r.details.log))
     gameDay--
   }
   const goalsByPlayers = {}
