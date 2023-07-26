@@ -55,11 +55,11 @@ npm start
 - [x] Action Cards: Have different level up action cards -- level up to 10 is rare and level up to 4 common
 - [x] Action Card: Merge low level action cards to get better once
 - [x] Set team money to X€ on registration
-- [ ] Action Card "Earn Money Gift"
 - [x] Bot Players (trading etc.)
 - [x] Finance Chart
-- [ ] Fix Finance chart
-- [ ] Fix bots not buying players
+- [x] Fix Finance chart
+- [x] Fix bots not buying players
+- [ ] Action Card "Earn Money Gift"
 - [ ] Have news with top games, stadium expansion plans and top trades
 - [ ] Max amount of action cards
 - [ ] Log/Mailbox to see what happened when

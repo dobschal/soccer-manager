@@ -1,4 +1,4 @@
-import { calcuateStadiumBuild, getStadiumOfCurrentUser } from '../helper/stadiumHelper.js'
+import { buildStadium, calcuateStadiumBuild, getStadiumOfCurrentUser } from '../helper/stadiumHelper.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { query } from '../lib/database.js'
 import { updateTeamBalance } from '../helper/financeHelpr.js'
@@ -26,28 +26,7 @@ export default {
     const price = calcuateStadiumBuild(currentStadium, plannedStadium)
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
     if (team.balance < price) throw new BadRequestError('Not enough money...')
-    const { gameDay, season } = await getGameDayAndSeason()
-    await updateTeamBalance(team.id, price * -1, 'Stadium constuction build', gameDay, season)
-    await query(`
-        UPDATE stadium SET north_stand_size=?, 
-                           south_stand_size=?, 
-                           west_stand_size=?, 
-                           east_stand_size=?,
-                           north_stand_roof=?,
-                           south_stand_roof=?,
-                           west_stand_roof=?,
-                           east_stand_roof=? WHERE id=?
-    `, [
-      plannedStadium.north_stand_size,
-      plannedStadium.south_stand_size,
-      plannedStadium.west_stand_size,
-      plannedStadium.east_stand_size,
-      plannedStadium.north_stand_roof,
-      plannedStadium.south_stand_roof,
-      plannedStadium.west_stand_roof,
-      plannedStadium.east_stand_roof,
-      plannedStadium.id
-    ])
+    await buildStadium(team, plannedStadium, price)
     return { success: true }
   },
 

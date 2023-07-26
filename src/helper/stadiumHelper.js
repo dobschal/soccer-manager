@@ -1,5 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
+import { getGameDayAndSeason } from './gameDayHelper.js'
+import { updateTeamBalance } from './financeHelpr.js'
 
 /**
  * @param {import("express").Request} req
@@ -22,7 +24,7 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
   for (const standName of standNames) {
     const currentStandSize = currentStadium[standName + '_stand_size']
     const planneStandSize = plannedStadium[standName + '_stand_size']
-    const seatsDiff = planneStandSize - currentStandSize
+    const seatsDiff = Math.floor(planneStandSize - currentStandSize)
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
     const priceForSeats = seatsDiff * 15
     const isLevelUpToMid = planneStandSize >= 5000 && currentStandSize < 5000
@@ -40,4 +42,35 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     totalPrice += standPrice
   }
   return totalPrice
+}
+
+/**
+ * @param {TeamType} team
+ * @param {StadiumType} plannedStadium
+ * @param {number} price
+ * @returns {Promise<void>}
+ */
+export async function buildStadium (team, plannedStadium, price) {
+  const { gameDay, season } = await getGameDayAndSeason()
+  await updateTeamBalance(team, price * -1, 'Stadium construction build', gameDay, season)
+  await query(`
+        UPDATE stadium SET north_stand_size=?, 
+                           south_stand_size=?, 
+                           west_stand_size=?, 
+                           east_stand_size=?,
+                           north_stand_roof=?,
+                           south_stand_roof=?,
+                           west_stand_roof=?,
+                           east_stand_roof=? WHERE id=?
+    `, [
+    plannedStadium.north_stand_size,
+    plannedStadium.south_stand_size,
+    plannedStadium.west_stand_size,
+    plannedStadium.east_stand_size,
+    plannedStadium.north_stand_roof,
+    plannedStadium.south_stand_roof,
+    plannedStadium.west_stand_roof,
+    plannedStadium.east_stand_roof,
+    plannedStadium.id
+  ])
 }

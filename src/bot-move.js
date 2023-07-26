@@ -6,6 +6,7 @@ import { Sponsor } from './entities/sponsor.js'
 import { TradeOffer } from './entities/tradeOffer.js'
 import { acceptOffer } from './helper/tradeHelper.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
+import { buildStadium, calcuateStadiumBuild } from './helper/stadiumHelper.js'
 
 // 1. Check Tactic (/)
 // 2. Play Action Cards (/)
@@ -34,7 +35,36 @@ async function _makeBotMove (botTeam, players) {
   await _checkTactic(botTeam, playersOfTeam, isStrongTeam)
   await _checkActionCards(botTeam, playersOfTeam, isStrongTeam)
   await _chooseSponsor(botTeam, isStrongTeam)
+  await _checkStadium(botTeam)
   await _checkTrades(botTeam, playersOfTeam, isStrongTeam)
+}
+
+/**
+ *
+ * @param {TeamType} botTeam
+ * @private
+ */
+async function _checkStadium (botTeam) {
+  /** @type {StadiumType} */
+  const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [botTeam.id])
+  /** @type {StadiumType} */
+  const newStadium = JSON.parse(JSON.stringify(stadium))
+  if (Math.random() > 0.5) newStadium.east_stand_size = Math.floor(newStadium.east_stand_size * (1 + Math.random()))
+  if (Math.random() > 0.5) newStadium.north_stand_size = Math.floor(newStadium.north_stand_size * (1 + Math.random()))
+  if (Math.random() > 0.5) newStadium.west_stand_size = Math.floor(newStadium.west_stand_size * (1 + Math.random()))
+  if (Math.random() > 0.5) newStadium.south_stand_size = Math.floor(newStadium.south_stand_size * (1 + Math.random()))
+  if (Math.random() > 0.5) newStadium.east_stand_roof = 1
+  if (Math.random() > 0.5) newStadium.west_stand_roof = 1
+  if (Math.random() > 0.5) newStadium.north_stand_roof = 1
+  if (Math.random() > 0.5) newStadium.south_stand_roof = 1
+  const price = calcuateStadiumBuild(stadium, newStadium)
+  if (price < botTeam.balance * 0.8) {
+    await buildStadium(botTeam, newStadium, price)
+    console.log(`🏗️ ${botTeam.name} is getting a new stadium!`)
+    botTeam.balance -= price
+  } else {
+    console.log('Planned stadium is too expensive...', botTeam.balance, price)
+  }
 }
 
 /**
