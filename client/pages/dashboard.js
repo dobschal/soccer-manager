@@ -25,7 +25,7 @@ export async function renderDashboardPage () {
     </p>
     <h3>Last Game</h3>
     <p>
-    <b>Season: </b> ${season + 1}, <b>Game day: </b> ${gameDay + 1}
+    <b>Season: </b> ${season + 1}, <b>Game day: </b> ${gameDay}
     </p>
     <div  class="card card-body mb-4 bg-light">    
       <div class="row pt-2">
