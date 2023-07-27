@@ -67,7 +67,7 @@ function renderChart () {
         ctx.textAlign = 'left'
       }
       ctx.fillText(euroFormat.format(logItem.balance), x, y - 10)
-      ctx.fillText((logItem.season + 1) + '/' + (logItem.game_day + 1), x, (height - 10))
+      ctx.fillText((logItem.season + 1) + '/' + (logItem.game_day), x, (height - 10))
       ctx.beginPath()
       ctx.setLineDash([5, 10])
       ctx.lineWidth = 1
