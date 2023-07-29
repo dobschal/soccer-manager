@@ -30,24 +30,7 @@ export async function renderTradesPage () {
       <tbody>
         ${incomingOfferList}
       </tbody>
-    </table>
-    <h2>Transfer market</h2>
-    <p>Have a look on the transfer market to catch better players:</p>
-    <table class="table">
-      <thead>
-        <tr>          
-          <th scope="col">Name</th>
-          <th scope="col" class="d-none d-sm-table-cell">Team</th>
-          <th scope="col" class="d-none d-sm-table-cell">Position</th>                    
-          <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
-          <th scope="col" class="text-right">Price</th>
-          <th scope="col"></th>             
-        </tr>
-      </thead>
-      <tbody>
-        ${offerList}
-      </tbody>
-    </table>
+    </table>    
     <h2>My Offers</h2>
     <p>Here are the offers you made:</p>
     <table class="table">
@@ -64,6 +47,23 @@ export async function renderTradesPage () {
       </thead>
       <tbody>
         ${myOffersList}
+      </tbody>
+    </table>
+    <h2>Transfer market</h2>
+    <p>Have a look on the transfer market to catch better players:</p>
+    <table class="table">
+      <thead>
+        <tr>          
+          <th scope="col">Name</th>
+          <th scope="col" class="d-none d-sm-table-cell">Team</th>
+          <th scope="col" class="d-none d-sm-table-cell">Position</th>                    
+          <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
+          <th scope="col" class="text-right">Price</th>
+          <th scope="col"></th>             
+        </tr>
+      </thead>
+      <tbody>
+        ${offerList}
       </tbody>
     </table>
   `

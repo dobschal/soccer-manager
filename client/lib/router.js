@@ -4,7 +4,7 @@ import { el } from './html.js'
 import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
 
-let pages
+let pages, lastPath
 
 /**
  * Open a page under a specific path.
@@ -80,9 +80,10 @@ async function _resolvePage () {
   hideNavigation()
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
-  if (!isFirstRender) {
+  if (!isFirstRender && lastPath !== currentPath) {
     pageElement.style.transform = 'translateX(100vw)'
   }
+  lastPath = currentPath
   setTimeout(async () => {
     const t1 = Date.now()
     render('#page', await pageRenderFn())

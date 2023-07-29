@@ -18,6 +18,7 @@ export async function renderDashboardPage () {
   const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id)
   const isHomeGame = game.team1Id === team.id
   const { news } = await server.getNews()
+  news.reverse()
   return `
     <h2>${team.name}</h2>
     <p>

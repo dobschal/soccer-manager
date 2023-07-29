@@ -86,7 +86,7 @@ function _renderSponsorCard (sponsor) {
       <div class="action-card card text-white bg-success">
       <div class="card-header">
         <i class="fa fa-magic" aria-hidden="true"></i>
-        <i>Action Card</i>
+        <i>Sponsor</i>
       </div>
         <img class="card-img-top" src="assets/stock-image-1.jpg" alt="Football">
         <div class="card-body">
@@ -120,7 +120,7 @@ function _renderSponsorOfferCard (offer, index) {
       <div class="action-card card text-white bg-${classes[index]}">
       <div class="card-header">
         <i class="fa fa-magic" aria-hidden="true"></i>
-        <i>Action Card</i>
+        <i>Sponsor</i>
       </div>
         <img class="card-img-top" src="assets/stock-image-1.jpg" alt="Football">
         <div class="card-body">

@@ -5,6 +5,8 @@ import { euroFormat } from '../util/currency.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from './toast.js'
+import { renderButton } from './button.js'
+import { goTo } from '../lib/router.js'
 
 /**
  * @param {PlayerType} player
@@ -34,6 +36,16 @@ export async function showPlayerModal (player) {
       toast(e.message ?? 'Something went wrong', 'error')
     }
   })
+  const fireButton = renderButton('Fire Player', async () => {
+    try {
+      await server.firePlayer({ player })
+      toast('You fired your player!')
+      overlay.remove()
+      goTo('my-team')
+    } catch (e) {
+      toast(e.message ?? 'Something weng wrong', 'error')
+    }
+  }, 'danger')
 
   const overlay = showOverlay(
     player.name,
@@ -61,8 +73,11 @@ export async function showPlayerModal (player) {
           </div>
         </div>
       </div>
-      <div class="${offer ? '' : 'hidden'}">
+      <div class="mb-2 ${offer ? '' : 'hidden'}">
         This player is on the <a href="#trades">transfermarket</a>.
+      </div>
+      <div>
+        ${fireButton}
       </div>
     `
   )
