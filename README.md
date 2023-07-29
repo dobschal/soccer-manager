@@ -59,9 +59,12 @@ npm start
 - [x] Finance Chart
 - [x] Fix Finance chart
 - [x] Fix bots not buying players
+- [ ] bugs: save button on tactic, card title in sponsor
+- [ ] fitness of players 
+- [ ] quit players to end on open market
+- [ ] bot players adjust ticket prices
 - [ ] Action Card "Earn Money Gift"
 - [ ] Have news with top games, stadium expansion plans and top trades
-- [ ] Max amount of action cards
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards
 - [ ] Localisation
@@ -73,6 +76,7 @@ npm start
 - [ ] Stadium Build should take some time
 - [ ] iOS App
 - [ ] Show other teams stadiums
+- [ ] show other teams league and info
 
 
 ### Stadium
