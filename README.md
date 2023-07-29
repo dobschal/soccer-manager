@@ -61,7 +61,8 @@ npm start
 - [x] Fix bots not buying players
 - [ ] bugs: save button on tactic, card title in sponsor
 - [ ] fitness of players 
-- [ ] quit players to end on open market
+- [x] quit players 
+- [ ] show open player on open market
 - [x] bot players adjust ticket prices
 - [ ] Action Card "Earn Money Gift"
 - [ ] game summary with formation, gosls wirh minute and stats
