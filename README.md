@@ -62,8 +62,9 @@ npm start
 - [ ] bugs: save button on tactic, card title in sponsor
 - [ ] fitness of players 
 - [ ] quit players to end on open market
-- [ ] bot players adjust ticket prices
+- [x] bot players adjust ticket prices
 - [ ] Action Card "Earn Money Gift"
+- [ ] game summary with formation, gosls wirh minute and stats
 - [ ] Have news with top games, stadium expansion plans and top trades
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards
