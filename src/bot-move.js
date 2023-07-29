@@ -47,6 +47,36 @@ async function _makeBotMove (botTeam, players) {
 async function _checkStadium (botTeam) {
   /** @type {StadiumType} */
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [botTeam.id])
+  /** @type {GameType[]} */
+  const [game] = await query('SELECT * FROM game where team_1_id=? AND played=1 ORDER BY season DESC, game_day DESC', [botTeam.id])
+  const details = JSON.parse(game.details)
+  const totalGuests = details.stadiumDetails.northGuests + details.stadiumDetails.southGuests + details.stadiumDetails.eastGuests + details.stadiumDetails.westGuests
+  const totalSize = stadium.north_stand_size + stadium.south_stand_size + stadium.east_stand_size + stadium.west_stand_size
+  if (totalGuests >= 0.99 * totalSize) {
+    stadium.north_stand_price += 1
+    stadium.south_stand_price += 1
+    stadium.east_stand_price += 1
+    stadium.west_stand_price += 1
+    await query('UPDATE stadium SET north_stand_price=?, south_stand_price=?, east_stand_price=?, west_stand_price=? WHERE id=?', [
+      stadium.north_stand_price,
+      stadium.south_stand_price,
+      stadium.east_stand_price,
+      stadium.west_stand_price,
+      stadium.id
+    ])
+  } else if (totalGuests < 0.8 * totalSize) {
+    stadium.north_stand_price -= 1
+    stadium.south_stand_price -= 1
+    stadium.east_stand_price -= 1
+    stadium.west_stand_price -= 1
+    await query('UPDATE stadium SET north_stand_price=?, south_stand_price=?, east_stand_price=?, west_stand_price=? WHERE id=?', [
+      stadium.north_stand_price,
+      stadium.south_stand_price,
+      stadium.east_stand_price,
+      stadium.west_stand_price,
+      stadium.id
+    ])
+  }
   /** @type {StadiumType} */
   const newStadium = JSON.parse(JSON.stringify(stadium))
   if (Math.random() > 0.5) newStadium.east_stand_size = Math.floor(newStadium.east_stand_size * (1 + Math.random()))
