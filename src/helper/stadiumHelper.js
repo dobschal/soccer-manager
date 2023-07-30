@@ -32,7 +32,7 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     let standPrice = priceForSeats
     if (isLevelUpToMid) standPrice += 1000000
     else if (isLevelUpToBig) standPrice += 10000000
-    else standPrice += 100000
+    else if (seatsDiff > 0) standPrice += 100000
     if (currentStadium[standName + '_stand_roof'] && !plannedStadium[standName + '_stand_roof']) {
       throw new BadRequestError('Roof cannot be removed')
     }
