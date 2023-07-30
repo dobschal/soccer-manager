@@ -247,6 +247,7 @@ function _sortStanding (s1, s2) {
 }
 
 async function _showGameModal (game) {
+  if (!game) return
   const { players: playersTeam1 } = await server.getTeam({ teamId: game.team1Id })
   const { players: playersTeam2 } = await server.getTeam({ teamId: game.team2Id })
   const players = {}
@@ -338,6 +339,7 @@ async function _calculateGoals (level, league, season, gameDay, standing) {
     gameDay--
   }
   await Promise.all(promises)
+  if (games.length === 0) return []
   const goalsByPlayers = {}
   for (const game of games) {
     game.details.log.filter(logItem => logItem.goal).forEach(({ player: playerId }) => {
@@ -345,6 +347,7 @@ async function _calculateGoals (level, league, season, gameDay, standing) {
       goalsByPlayers[playerId]++
     })
   }
+  if (Object.keys(goalsByPlayers).length === 0) return []
   const { players } = await server.getPlayersWithIds({ playerIds: Object.keys(goalsByPlayers) })
   const playersWithGoals = Object.keys(goalsByPlayers)
     .map(playerId => {

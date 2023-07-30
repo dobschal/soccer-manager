@@ -27,6 +27,6 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
       - name: Connect to server SSH and update server
-        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker image prune -a -f && cd deployments/soccer-manager && docker compose pull && docker compose up -d --remove-orphans && exit"
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker image prune -a -f && cd deployments/soccer-manager && docker compose stop soccer-manager && docker compose rm -f soccer-manager && docker compose pull && docker compose up -d && exit"
       - name: Clean up
         run: rm -rf ~/.ssh

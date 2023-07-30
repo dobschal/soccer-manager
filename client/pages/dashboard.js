@@ -15,7 +15,7 @@ export async function renderDashboardPage () {
   const { level, league } = team
   const { season, gameDay } = await server.getCurrentGameday()
   const { results } = await server.getResults({ season, gameDay: gameDay - 1, level, league })
-  const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id)
+  const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id) ?? {}
   const isHomeGame = game.team1Id === team.id
   const { news } = await server.getNews()
   news.reverse()
@@ -30,9 +30,9 @@ export async function renderDashboardPage () {
     </p>
     <div  class="card card-body mb-4 bg-light">    
       <div class="row pt-2">
-          <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team1}</h4></div>
-          <div class="col-2 text-center"><h4><span class="badge badge-info">${game.goalsTeam1}:${game.goalsTeam2}</span></h4></div>
-          <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team2}</h4></div>
+          <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team1 ?? ''}</h4></div>
+          <div class="col-2 text-center"><h4><span class="badge badge-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h4></div>
+          <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team2 ?? ''}</h4></div>
       </div>
     </div>
     <h3>Action Cards</h3>
