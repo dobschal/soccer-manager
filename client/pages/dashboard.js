@@ -29,11 +29,11 @@ export async function renderDashboardPage () {
     <b>Season: </b> ${season + 1}, <b>Game day: </b> ${gameDay}
     </p>
     <div  class="card card-body mb-4 bg-light">    
-      <div class="row pt-2">
+      <a class="row pt-2" href="#results">
           <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team1 ?? ''}</h4></div>
           <div class="col-2 text-center"><h4><span class="badge badge-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h4></div>
           <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team2 ?? ''}</h4></div>
-      </div>
+      </a>
     </div>
     <h3>Action Cards</h3>
     <p>With every game played, you have the chance to earn one action card. All earned cards are shown here:</p>
