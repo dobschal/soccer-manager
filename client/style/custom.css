@@ -155,3 +155,8 @@ body {
   background-color: rgba(0,0,0,0.1);
   box-shadow: 0 0 5px 5px rgba(0,0,0,0.1);
 }
+
+table.table {
+  margin: 0 -2rem 4rem -2rem;
+  width: calc(100% + 4rem);
+}

@@ -56,10 +56,10 @@ export async function renderTradesPage () {
         <tr>          
           <th scope="col">Name</th>
           <th scope="col" class="d-none d-sm-table-cell">Team</th>
-          <th scope="col" class="d-none d-sm-table-cell">Position</th>                    
+          <th scope="col">Position</th>                    
           <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
           <th scope="col" class="text-right">Price</th>
-          <th scope="col"></th>             
+          <th scope="col" class="d-none d-sm-table-cell"></th>             
         </tr>
       </thead>
       <tbody>
@@ -165,10 +165,10 @@ async function _renderSellOfferList (offers, players, teams, team) {
       <tr>
         <td id="${playerNameId}" class="hover-text">${player.name}</td>
         <td class="d-none d-sm-table-cell">${team.name}</td>
-        <td class="d-none d-sm-table-cell">${player.position}</td>
+        <td>${player.position}</td>
         <td class="text-right d-none d-sm-table-cell">${player.level}</td>
         <td class="text-right">${euroFormat.format(offer.offer_value)}</td>
-        <td><button id="${buyButtonId}" class="btn btn-primary">Buy</button></td>
+        <td class="d-none d-sm-table-cell"><button id="${buyButtonId}" class="btn btn-primary">Buy</button></td>
       </tr>
     `
     })

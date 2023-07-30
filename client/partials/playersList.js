@@ -52,7 +52,7 @@ export function renderPlayerListItem (onClickHandler) {
  * @param {Player} playerB
  * @returns {number}
  */
-function _sortByPosition (playerA, playerB) {
+export function _sortByPosition (playerA, playerB) {
   return _positionValue(playerB) - _positionValue(playerA)
 }
 
