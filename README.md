@@ -70,6 +70,10 @@ npm start
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards
 - [ ] Localisation
+- table width 100% on mobile
+- quit sponsor on registration
+- show sponsor left duration
+- show position on transfermarkwt mobile
 - [ ] Wappen
 - [x] Torschützen Liste
 - [ ] Zweikampf-Sieger
