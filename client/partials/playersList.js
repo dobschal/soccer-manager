@@ -15,10 +15,10 @@ export async function renderPlayersList (players, showTitle = true, onClickHandl
       <thead>
         <tr>
           <th scope="col">Name</th>
-          <th scope="col">Position</th>
+          <th scope="col">Pos</th>
           <th scope="col" class="text-right d-none d-sm-table-cell">Age</th>
           <th scope="col" class="text-right">Fit</th>
-          <th scope="col" class="text-right">Level</th>
+          <th scope="col" class="text-right">Lvl</th>
           <th scope="col" class="text-right d-none d-md-table-cell">Sallary</th>
         </tr>
       </thead>
