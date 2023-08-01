@@ -17,6 +17,7 @@ export async function renderPlayersList (players, showTitle = true, onClickHandl
           <th scope="col">Name</th>
           <th scope="col">Position</th>
           <th scope="col" class="text-right d-none d-sm-table-cell">Age</th>
+          <th scope="col" class="text-right">Fit</th>
           <th scope="col" class="text-right">Level</th>
           <th scope="col" class="text-right d-none d-md-table-cell">Sallary</th>
         </tr>
@@ -40,6 +41,7 @@ export function renderPlayerListItem (onClickHandler) {
         <th scope="row">${player.name}</th>
         <td>${player.position}</td>
         <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(player, currentSeason)}</td>
+        <td class="text-right ${player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : 'text-success')}">${player.freshness * 100}%</td>
         <td class="text-right"><span class="circle level-${player.level}">${player.level}</span></td>
         <td class="text-right d-none d-md-table-cell">${euroFormat.format(sallaryPerLevel[player.level])}</td>
       </tr>

@@ -56,7 +56,8 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
       carrier_end_season: season - age + carrierLength,
       level: Math.floor(Math.random() * 3) + 1,
       in_game_position: '',
-      position: randomItem(Object.values(Position))
+      position: randomItem(Object.values(Position)),
+      freshness: 1.0
     })
     await query('INSERT INTO player SET ?', player)
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])

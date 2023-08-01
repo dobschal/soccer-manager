@@ -124,7 +124,7 @@ function _renderSaveButton () {
     }
   })
   return `
-    <button id="${id}" class="btn btn-primary" type="button">Save</button>
+    <button id="${id}" class="btn btn-primary w-100" type="button">Save</button>
   `
 }
 

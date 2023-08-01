@@ -177,6 +177,11 @@ const migrations = [{
                 PRIMARY KEY (id)
             ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Alter table player to have freshness',
+  async run () {
+    await query('ALTER TABLE player ADD COLUMN freshness DECIMAL(6, 2) DEFAULT 1.0;')
+  }
 }]
 
 export async function runMigration () {

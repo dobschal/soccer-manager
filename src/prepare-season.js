@@ -255,7 +255,8 @@ async function _createRandomPlayer (team, i, season) {
     carrier_end_season: season - age + carrierLength,
     level: Math.floor(Math.random() * maxLevel) + 1,
     in_game_position: fixPosition ?? '',
-    position: fixPosition ?? _generateRandomPosition()
+    position: fixPosition ?? _generateRandomPosition(),
+    freshness: 1.0
   })
   await query('INSERT INTO player SET ?', player)
 }

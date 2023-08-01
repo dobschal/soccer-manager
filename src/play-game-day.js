@@ -17,6 +17,7 @@ const actionCardChances = {
 
 export async function calculateGames () {
   const { gameDay, season } = await getGameDayAndSeason()
+  await _giveAllPlayersFreshness(season)
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   await Promise.all(games.map(game => _playGame(game)))
@@ -24,6 +25,22 @@ export async function calculateGames () {
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)
   console.log('\n\nPlayed game day ' + gameDay)
+}
+
+async function _giveAllPlayersFreshness (season) {
+  /** @type {PlayerType[]} */
+  const players = await query('SELECT * FROM player')
+  const promises = []
+  for (const player of players) {
+    const age = season - player.carrier_start_season + 16
+    if (age <= 21) player.freshness = Math.min(1.0, player.freshness + 0.1)
+    else if (age <= 26) player.freshness = Math.min(1.0, player.freshness + 0.08)
+    else if (age <= 29) player.freshness = Math.min(1.0, player.freshness + 0.06)
+    else if (age <= 32) player.freshness = Math.min(1.0, player.freshness + 0.05)
+    else player.freshness = Math.min(1.0, player.freshness + 0.04)
+    promises.push(query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id]))
+  }
+  await Promise.all(promises)
 }
 
 async function _giveSponsorMoney (gameDay, season) {
@@ -146,10 +163,19 @@ async function _playGame (game) {
     goalsTeamA: 0,
     strengthTeamA,
     strengthTeamB,
-    stadiumDetails
+    stadiumDetails,
+    playerTeamA,
+    playerTeamB
+  }
+  for (const player of playerTeamA) {
+    player.level = player.freshness * player.level
+  }
+  for (const player of playerTeamB) {
+    player.level = player.freshness * player.level
   }
   _kickoff(playerTeamA, playerTeamB, gameDetails)
-  for (let minute = 0; minute < 90; minute++) {
+  const overtime = Math.floor(Math.random() * 5)
+  for (let minute = 0; minute < 90 + overtime; minute++) {
     _playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
   console.log('Result: ', gameDetails.goalsTeamA, gameDetails.goalsTeamB)
@@ -160,6 +186,14 @@ async function _playGame (game) {
     new Date(),
     game.id
   ])
+  for (const player of playerTeamA) {
+    player.freshness = Math.max(0, player.freshness - 0.1)
+    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
+  }
+  for (const player of playerTeamB) {
+    player.freshness = Math.max(0, player.freshness - 0.1)
+    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
+  }
 }
 
 /**

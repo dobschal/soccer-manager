@@ -59,21 +59,23 @@ npm start
 - [x] Finance Chart
 - [x] Fix Finance chart
 - [x] Fix bots not buying players
-- [ ] bugs: save button on tactic, card title in sponsor
-- [ ] fitness of players 
+- [x] bugs: save button on tactic, card title in sponsor
+- [x] fitness of players
+- [ ] bots should check players fitness too
 - [x] quit players 
 - [ ] show open player on open market
 - [x] bot players adjust ticket prices
 - [ ] Action Card "Earn Money Gift"
-- [ ] game summary with formation, gosls wirh minute and stats
+- [ ] Action Card give Fitness
+- [ ] game summary with formation, goals with minute and stats
 - [ ] Have news with top games, stadium expansion plans and top trades
 - [ ] Log/Mailbox to see what happened when
 - [ ] Injured Players + red/yellow cards
 - [ ] Localisation
-- table width 100% on mobile
-- quit sponsor on registration
-- show sponsor left duration
-- show position on transfermarkwt mobile
+- [x] table width 100% on mobile
+- [ ] quit sponsor on registration
+- [ ] show sponsor left duration
+- [ ] show position on transfermarkwt mobile
 - [ ] Wappen
 - [x] Torschützen Liste
 - [ ] Zweikampf-Sieger
@@ -83,6 +85,17 @@ npm start
 - [ ] iOS App
 - [ ] Show other teams stadiums
 - [ ] show other teams league and info
+
+
+### Fitness
+
+- A player loses 10% Freshness per Gameday
+- The actual player level is freshness x level
+- A player get freshness back:
+- <= 21 10% per gameday --> could player every game
+- <= 26 8%
+- <= 29 6%
+- >= 30 5%
 
 
 ### Stadium
