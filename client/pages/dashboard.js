@@ -30,9 +30,9 @@ export async function renderDashboardPage () {
     </p>
     <div  class="card card-body mb-4 bg-light">    
       <a class="row pt-2" href="#results">
-          <div class="col-5 text-right ${isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team1 ?? ''}</h4></div>
-          <div class="col-2 text-center"><h4><span class="badge badge-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h4></div>
-          <div class="col-5 text-left ${!isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team2 ?? ''}</h4></div>
+          <div class="col-12 col-sm-5 text-dark text-center ${isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team1 ?? ''}</h4></div>
+          <div class="col-12 col-sm-2 text-dark text-center"><h4><span class="badge badge-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h4></div>
+          <div class="col-12 col-sm-5 text-dark text-center ${!isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team2 ?? ''}</h4></div>
       </a>
     </div>
     <h3>Action Cards</h3>
