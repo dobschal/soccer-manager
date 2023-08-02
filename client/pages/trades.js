@@ -6,13 +6,16 @@ import { showDialog } from '../partials/dialog.js'
 import { toast } from '../partials/toast.js'
 import { render } from '../lib/render.js'
 import { showPlayerModal } from '../partials/playerModal.js'
+import { renderButton } from '../partials/button.js'
 
 export async function renderTradesPage () {
   const { team } = await server.getMyTeam()
   const { offers, players, teams } = await server.getOffers()
-  const incomingOfferList = await _renderIncomingOfferList(offers, players, teams, team)
-  const offerList = await _renderSellOfferList(offers, players, teams, team)
-  const myOffersList = await _renderMyOffersList(offers, players, teams, team)
+  const incomingOfferList = _renderIncomingOfferList(offers, players, teams, team)
+  const offerList = _renderSellOfferList(offers, players, teams, team)
+  const myOffersList = _renderMyOffersList(offers, players, teams, team)
+  const hasIncomingOffers = _filterIncomingBuyOffers(offers, players, team).length > 0
+  const hasOpenOffers = offers.filter(o => o.from_team_id === team.id).length > 0
   return `
     <h2>Incoming Offers</h2>
     <p>Someone wants to buy your players:</p>
@@ -30,7 +33,12 @@ export async function renderTradesPage () {
       <tbody>
         ${incomingOfferList}
       </tbody>
-    </table>    
+    </table>
+    <div class="row">
+      <div class="col ${hasIncomingOffers ? 'hidden' : ''}">
+        <h4 class="text-muted text-center mt-5 mb-5">No incoming buy offers...</h4>
+      </div>
+    </div>
     <h2>My Offers</h2>
     <p>Here are the offers you made:</p>
     <table class="table">
@@ -49,6 +57,11 @@ export async function renderTradesPage () {
         ${myOffersList}
       </tbody>
     </table>
+    <div class="row">
+      <div class="col ${hasOpenOffers ? 'hidden' : ''}">
+        <h4 class="text-muted text-center mt-5 mb-5">No open offers from you...</h4>
+      </div>
+    </div>
     <h2>Transfer market</h2>
     <p>Have a look on the transfer market to catch better players:</p>
     <table class="table">
@@ -72,44 +85,72 @@ export async function renderTradesPage () {
 /**
  * @param {TradeOfferType[]} offers
  * @param {PlayerType[]} players
- * @param {TeamType[]} teams
  * @param {TeamType} team
- * @returns {Promise<string>}
+ * @returns {TradeOfferType[]}
  * @private
  */
-function _renderIncomingOfferList (offers, players, teams, team) {
+function _filterIncomingBuyOffers (offers, players, team) {
   return offers
     .filter(o => {
       const player = players.find(p => p.id === o.player_id)
       return player.team_id === team.id && o.type === 'buy'
     })
-    .map(o => {
-      const acceptButtonId = generateId()
-      const player = players.find(p => p.id === o.player_id)
-      const team = teams.find(t => t.id === player.team_id)
-      const playerNameId = generateId()
-      onClick(playerNameId, () => showPlayerModal(player))
-      onClick(acceptButtonId, async () => {
+}
+
+/**
+ * @param {TradeOfferType[]} offers
+ * @param {PlayerType[]} players
+ * @param {TeamType[]} teams
+ * @param {TeamType} team
+ * @returns {string}
+ * @private
+ */
+function _renderIncomingOfferList (offers, players, teams, team) {
+  return _filterIncomingBuyOffers(offers, players, team).map(o => {
+    const acceptButtonId = generateId()
+    const player = players.find(p => p.id === o.player_id)
+    const team = teams.find(t => t.id === o.from_team_id)
+    const playerNameId = generateId()
+    onClick(playerNameId, () => showPlayerModal(player))
+    onClick(acceptButtonId, async () => {
+      try {
+        await server.acceptOffer({ offer: o })
+        toast(`You accepted the buy offer from ${team.name}`)
+        render('#page', await renderTradesPage())
+      } catch (e) {
+        console.error(e)
+        toast(e.message ?? 'Something went wrong', 'error')
+      }
+    })
+
+    const declineButton = renderButton(
+      '<i class="fa fa-times-circle-o" aria-hidden="true"></i>',
+      async () => {
         try {
-          await server.acceptOffer({ offer: o })
-          toast(`You accepted the buy offer from ${team.name}`)
+          await server.declineOffer({ offer: o })
+          toast(`You declined the buy offer from ${team.name}`)
           render('#page', await renderTradesPage())
         } catch (e) {
           console.error(e)
           toast(e.message ?? 'Something went wrong', 'error')
         }
-      })
-      return `
+      },
+      'danger')
+
+    return `
         <tr>
           <td id="${playerNameId}" class="hover-text">${player.name}</td>
           <td class="d-none d-sm-table-cell">${team.name}</td>
           <td class="d-none d-sm-table-cell">${player.position}</td>
           <td class="text-right d-none d-sm-table-cell">${player.level}</td>
           <td class="text-right">${euroFormat.format(o.offer_value)}</td>
-          <td><button id="${acceptButtonId}" class="btn btn-success"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button></td>
+          <td>
+            <button id="${acceptButtonId}" class="btn btn-success"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button>
+            ${declineButton}
+          </td>
         </tr>
       `
-    })
+  })
     .join('')
 }
 
@@ -118,10 +159,10 @@ function _renderIncomingOfferList (offers, players, teams, team) {
  * @param {PlayerType[]} players
  * @param {TeamType[]} teams
  * @param {TeamType} team
- * @returns {Promise<string>}
+ * @returns {string}
  * @private
  */
-async function _renderSellOfferList (offers, players, teams, team) {
+function _renderSellOfferList (offers, players, teams, team) {
   return offers
     .filter(o => o.type === 'sell' && o.from_team_id !== team.id)
     .map(offer => {
@@ -180,10 +221,10 @@ async function _renderSellOfferList (offers, players, teams, team) {
  * @param {PlayerType[]} players
  * @param {TeamType[]} teams
  * @param {TeamType} team
- * @returns {Promise<string>}
+ * @returns {string}
  * @private
  */
-async function _renderMyOffersList (offers, players, teams, team) {
+function _renderMyOffersList (offers, players, teams, team) {
   return offers
     .filter(o => o.from_team_id === team.id)
     .map(offer => {
@@ -198,8 +239,7 @@ async function _renderMyOffersList (offers, players, teams, team) {
       onClick(cancelButtonId, async () => {
         try {
           await server.cancelOffer({ offer })
-          const row = el('#' + rowId)
-          row?.parentElement.removeChild(row)
+          render('#page', await renderTradesPage())
         } catch (e) {
           toast(e.message ?? 'Something went wrong', 'error')
         }

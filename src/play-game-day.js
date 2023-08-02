@@ -8,11 +8,11 @@ import { sallaryPerLevel } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 
 const actionCardChances = {
-  LEVEL_UP_PLAYER_9: 0.1,
+  LEVEL_UP_PLAYER_9: 0.075,
   LEVEL_UP_PLAYER_7: 0.2,
-  LEVEL_UP_PLAYER_4: 0.4,
-  CHANGE_PLAYER_POSITION: 0.033,
-  NEW_YOUTH_PLAYER: 0.033
+  LEVEL_UP_PLAYER_4: 0.5,
+  CHANGE_PLAYER_POSITION: 0.05,
+  NEW_YOUTH_PLAYER: 0.05
 }
 
 export async function calculateGames () {

@@ -7,10 +7,9 @@ import {
   RequiredString
 } from '../lib/type-checker.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getTeam, getTeamById } from '../helper/teamhelper.js'
+import { getTeam } from '../helper/teamhelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
-import { addNews } from '../helper/newsHelper.js'
 
 export default {
 
@@ -21,9 +20,14 @@ export default {
     const playerIds = offers.map(o => o.player_id).join(', ')
     /** @type {PlayerType[]} */
     const players = await query(`SELECT * FROM player WHERE id IN (${playerIds})`)
-    const teamIds = players.map(p => p.team_id).join(', ')
+    const teamIds = players.map(p => p.team_id)
+    for (const offer of offers) {
+      if (!teamIds.includes(offer.from_team_id)) {
+        teamIds.push(offer.from_team_id)
+      }
+    }
     /** @type {TeamType[]} */
-    const teams = await query(`SELECT * FROM team WHERE id IN (${teamIds})`)
+    const teams = await query(`SELECT * FROM team WHERE id IN (${teamIds.join(', ')})`)
     return { offers, players, teams }
   },
 

@@ -45,7 +45,8 @@ export async function renderDashboardPage () {
     </div>
     <h3>News</h3>
     <ul class="list-group">
-        ${news.map(newsItem => `<li class="list-group-item">${formatDate('DD.MM.YYYY hh:mm', newsItem.created_at)} <i class="fa fa-chevron-right" aria-hidden="true"></i> ${newsItem.message}</li>`).join('')}
+        ${news.map(newsItem => `<li class="list-group-item">
+<small>${formatDate('DD.MM.YYYY hh:mm', newsItem.created_at)}</small><br><i class="fa fa-chevron-right" aria-hidden="true"></i> ${newsItem.message}</li>`).join('')}
     </ul>
   `
 }
@@ -144,7 +145,7 @@ async function _useActionCard (actionCard) {
       render('#page', await renderDashboardPage())
     } catch (e) {
       console.error(e)
-      toast('Something went wrong...')
+      toast(e.message ?? 'Something went wrong...', 'error')
     }
     return
   }
@@ -163,7 +164,7 @@ async function _handleChangePositionActionCard (actionCard) {
         render('#page', await renderDashboardPage())
       } catch (e) {
         console.error(e)
-        toast('Something went wrong...')
+        toast(e.message ?? 'Something went wrong...', 'error')
       }
     })
     overlay = showOverlay(
@@ -215,7 +216,7 @@ async function _handleLevelUpActionCard (actionCard) {
       render('#page', await renderDashboardPage())
     } catch (e) {
       console.error(e)
-      toast('Something went wrong...')
+      toast(e.message ?? 'Something went wrong...', 'error')
     }
   })
   overlay = showOverlay(

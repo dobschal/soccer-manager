@@ -61,9 +61,9 @@ npm start
 - [x] Fix bots not buying players
 - [x] bugs: save button on tactic, card title in sponsor
 - [x] fitness of players
-- [ ] bots should check players fitness too
+- [x] bots should check players fitness too
 - [x] quit players 
-- [ ] show open player on open market
+- [ ] show players without team on open market
 - [x] bot players adjust ticket prices
 - [ ] Action Card "Earn Money Gift"
 - [ ] Action Card give Fitness

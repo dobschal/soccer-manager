@@ -120,7 +120,7 @@ function _renderSaveButton () {
       render('#page', await renderMyTeamPage())
     } catch (e) {
       console.error(e)
-      toast('Something went wrong...')
+      toast(e.message ?? 'Something went wrong...', 'error')
     }
   })
   return `

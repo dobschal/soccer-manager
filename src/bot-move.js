@@ -166,7 +166,7 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
   if (openIncomingOffers.length > 0) {
     const player = players.find(p => p.id === openIncomingOffers[0].player_id)
     const matchingSellOffer = openSellOffers.find(tradeOffer => tradeOffer.player_id === player.id)
-    const isGoodOffer = matchingSellOffer.offer_value < openIncomingOffers[0].offer_value
+    const isGoodOffer = matchingSellOffer && matchingSellOffer.offer_value < openIncomingOffers[0].offer_value
     if (isGoodOffer || Math.random() < 0.1 || (Math.random() > 0.5 && openIncomingOffers[0].offer_value >= player.level * 50000)) {
       delete openIncomingOffers[0].created_at
       const {
@@ -217,7 +217,7 @@ async function _checkActionCards (botTeam, players, isStrongTeam) {
         const player = randomItem(players.filter(p => {
           if (actionCard.action.endsWith('_4')) return p.level < 4
           if (actionCard.action.endsWith('_7')) return p.level < 7
-          return true
+          return p.level < 10
         }))
         if (!player) continue
         await playActionCard({
