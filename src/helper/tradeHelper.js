@@ -3,6 +3,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelpr.js'
 import { addNews } from './newsHelper.js'
+import { getTeamById } from './teamhelper.js'
 
 export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   offer = new TradeOffer(offer)
@@ -31,4 +32,15 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
 
   await addNews(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam)
   await addNews(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam)
+}
+
+/**
+ * @param {TradeOfferType} offer
+ * @returns {Promise<void>}
+ */
+export async function declineOffer (offer) {
+  await query('DELETE FROM trade_offer WHERE type="buy" AND id=?', [offer.id])
+  const player = await getTeamById(offer.player_id)
+  const team = await getTeamById(offer.from_team_id)
+  await addNews(`Your buy offer for ${player.name} from ${team.name} was NOT accepted!`, team)
 }

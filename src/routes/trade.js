@@ -7,10 +7,10 @@ import {
   RequiredString
 } from '../lib/type-checker.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getTeam } from '../helper/teamhelper.js'
-import { updateTeamBalance } from '../helper/financeHelpr.js'
+import { getTeam, getTeamById } from '../helper/teamhelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { acceptOffer } from '../helper/tradeHelper.js'
+import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
+import { addNews } from '../helper/newsHelper.js'
 
 export default {
 
@@ -63,6 +63,17 @@ export default {
     const team = await getTeam(req)
     if (!req.body.offer.id || !team.id) throw new BadRequestError('Nope...')
     await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=?', [team.id, req.body.offer.id])
+    return { success: true }
+  },
+
+  async declineOffer (req) {
+    //
+    // TODO: Secure route
+    //
+    if (!req.body.offer || !req.body.offer.id) throw new BadRequestError('Nope...')
+    /** @type {TradeOfferType} */
+    const offer = req.body.offer
+    await declineOffer(offer)
     return { success: true }
   },
 
