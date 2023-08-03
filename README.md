@@ -64,6 +64,7 @@ npm start
 - [x] bots should check players fitness too
 - [x] quit players 
 - [ ] show players without team on open market
+- [ ] show player numbers on shirt
 - [x] bot players adjust ticket prices
 - [ ] Action Card "Earn Money Gift"
 - [ ] Action Card give Fitness

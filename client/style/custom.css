@@ -168,6 +168,14 @@ body {
   box-shadow: 0px 5px 5px rgba(0,0,0,0.2);
 }
 
+.player-image {
+  width: 150px;
+  height: 150px;
+  background-size: contain;
+  float: left;
+  margin-bottom: 1rem;
+}
+
 @media screen and (max-width: 768px) {
   table.table {
     margin: 0 -2rem 4rem -2rem;

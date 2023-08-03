@@ -15,6 +15,15 @@ export default {
 
   /**
    * @param {import("express").Request} req
+   * @returns {Promise<{balance: number}>}
+   */
+  async getMyBalance (req) {
+    const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+    return { balance: team.balance }
+  },
+
+  /**
+   * @param {import("express").Request} req
    * @returns {Promise<>}
    */
   async getTeam (req) {
