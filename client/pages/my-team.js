@@ -1,6 +1,6 @@
 import { formatDate } from '../lib/date.js'
 import { Formation, getPositionsOfFormation } from '../lib/formation.js'
-import { server } from '../lib/gateway.js'
+import { server, showServerError } from '../lib/gateway.js'
 import { el, generateId } from '../lib/html.js'
 import { onChange, onClick } from '../lib/htmlEventHandlers.js'
 import { render } from '../lib/render.js'
@@ -8,13 +8,36 @@ import { showOverlay } from '../partials/overlay.js'
 import { renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
+import { getQueryParams, setQueryParams } from '../lib/router.js'
 
 let data, overlay, dataChanged
+
+//
+//  TODO: Move to util file
+//
+function randomItem (array) {
+  return array[Math.floor((Math.random() * array.length))]
+}
 
 export async function renderMyTeamPage () {
   dataChanged = false
   data = await server.getMyTeam()
-  const playersList = await renderPlayersList(data.players, true, showPlayerModal)
+  const { player_id: playerId } = getQueryParams()
+  if (playerId) {
+    /** @type {PlayerType} */
+    const player = data.players.find(p => p.id === Number(playerId))
+    if (player) {
+      await showPlayerModal(player)
+    }
+  }
+  const playersList = await renderPlayersList(
+    data.players,
+    true,
+    p => { // open player modal
+      setQueryParams({
+        player_id: p.id
+      })
+    })
   return `
     <div class="mb-4" id="header">
       ${_renderHeader()}
@@ -78,12 +101,56 @@ function _renderHeader () {
  * @private
  */
 function _renderIconViewer () {
+  const id = generateId()
+
+  onClick(id, () => {
+    _showColorPicker()
+  })
+
   const color = data.team.color
   return `
-    <div class="wappen mb-4" style="background-color: ${color}">
+    <div id="${id}" class="wappen mb-4" style="background-color: ${color}">
         ${data.team.name}
     </div>
   `
+}
+
+function _showColorPicker () {
+  const chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+  const colors = []
+  for (let j = 0; j < 50; j++) {
+    let color = '#'
+    for (let i = 0; i < 6; i++) {
+      color += randomItem(chars)
+    }
+    colors.push(color)
+  }
+  const colorItems = colors
+    .map(c => {
+      const id = generateId()
+      onClick(id, async () => {
+        try {
+          await server.updateColor({ color: c })
+          toast('You have choosen a new color!')
+          render('#page', await renderMyTeamPage())
+          overlay.remove()
+        } catch (e) {
+          showServerError(e)
+        }
+      })
+      return `
+        <div id="${id}" class="color-picker-item" style="background-color: ${c}"></div>
+      `
+    })
+    .join('')
+  const overlay = showOverlay(
+    'Choose a color',
+    'The chosen color will be used on your trikots and team icon',
+    `
+      <div>
+        ${colorItems}
+      </div>
+  `)
 }
 
 function _renderLineupSelect () {

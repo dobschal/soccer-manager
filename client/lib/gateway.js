@@ -1,5 +1,9 @@
-import { goTo } from './router.js'
 import { toast } from '../partials/toast.js'
+
+export function showServerError (e) {
+  console.error('Server Error: ', e)
+  toast(e.message ?? 'Something went wrong!', 'error')
+}
 
 /**
  * Awesome Proxy wrapper to call server with HTTP Post Request

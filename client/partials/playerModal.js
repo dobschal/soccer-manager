@@ -6,7 +6,7 @@ import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from './toast.js'
 import { renderButton } from './button.js'
-import { goTo } from '../lib/router.js'
+import { goTo, setQueryParams } from '../lib/router.js'
 import { renderPlayerImage } from './playerImage.js'
 
 /**
@@ -58,7 +58,7 @@ export async function showPlayerModal (player) {
         <b>Age</b>: ${calculatePlayerAge(player, season)}<br>
         <b>Level</b>: ${player.level}<br>
         <b>Sallary</b>: ${euroFormat.format(sallaryPerLevel[player.level])}<br>
-        <b>Team</b>: ${team.name}
+        <b>Team</b>: ???
       </p>
       <div class="${offer ? 'hidden' : ''} mb-4" style="clear: both">
         <b>${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>
@@ -87,4 +87,9 @@ export async function showPlayerModal (player) {
       </div>
     `
   )
+  overlay.onClose(() => {
+    setQueryParams({
+      player_id: null
+    })
+  })
 }

@@ -5,12 +5,15 @@ export function showOverlay (title, subttitle, text) {
   const closeButtonId = generateId()
   const overlayId = generateId()
   const overlayInnerId = generateId()
+  const listeners = []
 
   onClick('#' + closeButtonId, () => {
+    listeners.forEach(c => c())
     el('#' + overlayId)?.remove()
   })
 
   onClick('#' + overlayId, () => {
+    listeners.forEach(c => c())
     el('#' + overlayId)?.remove()
   })
 
@@ -35,7 +38,11 @@ export function showOverlay (title, subttitle, text) {
   document.body.insertAdjacentHTML('beforeend', html)
 
   return {
+    onClose (callback) {
+      listeners.push(callback)
+    },
     remove () {
+      listeners.forEach(c => c())
       el('#' + overlayId)?.remove()
     }
   }

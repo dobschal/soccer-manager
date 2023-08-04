@@ -1,5 +1,7 @@
 #squad {
   overflow-y: auto;
+  width: calc(100% + 4rem);
+  margin: 0 -2rem;
 }
 .squad {
   background-color: green;

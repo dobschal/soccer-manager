@@ -40,6 +40,9 @@ export function setQueryParams (newQueryParams = {}) {
     ...queryParams,
     ...newQueryParams
   }
+  for (const queryParamsKey in queryParams) {
+    if (!queryParams[queryParamsKey]) delete queryParams[queryParamsKey]
+  }
   window.location.hash = path + '?' + Object
     .keys(queryParams)
     .map(key => `${key}=${queryParams[key]}`)

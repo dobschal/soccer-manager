@@ -1,5 +1,6 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
+import { getTeam } from '../helper/teamhelper.js'
 
 export default {
   /**
@@ -7,7 +8,7 @@ export default {
    * @returns {Promise<>}
    */
   async getMyTeam (req) {
-    const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+    const team = await getTeam(req)
     const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
     delete req.user.password
     return { user: req.user, team, players }
@@ -20,6 +21,17 @@ export default {
   async getMyBalance (req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
     return { balance: team.balance }
+  },
+
+  /**
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateColor (req) {
+    const team = await getTeam(req)
+    const color = req.body.color
+    await query('UPDATE team SET color=? WHERE id=?', [color, team.id])
+    return { success: true }
   },
 
   /**

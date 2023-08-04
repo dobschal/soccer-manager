@@ -187,6 +187,14 @@ body {
   padding: 22px 0;
   box-sizing: border-box;
   text-shadow: 1px 1px 3px #0000008c;
+  cursor: pointer;
+}
+
+.color-picker-item {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  display: inline-block;
 }
 
 @media screen and (max-width: 768px) {
