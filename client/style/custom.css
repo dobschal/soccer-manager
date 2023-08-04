@@ -1,3 +1,8 @@
+@font-face {
+  font-family: 'Dai Banna';
+  src: url('../fonts/DaiBannaSIL-Regular.ttf');
+}
+
 @keyframes page-enter-animation {
   0% {
     opacity: 0;
@@ -175,19 +180,27 @@ body {
 
 .wappen {
   width: 100px;
-  height: 121px;
-  border-radius: 0 0 75% 75%;
-  margin: auto;
+  height: 118px;
+  border-radius: 0 0 65% 65%;
+  margin: 1.5rem auto 0 auto;
   border: 6px solid white;
-  box-shadow: 3px 3px 15px 1px black;
+  border-top-width: 18px;
+  box-shadow: 10px 10px 30px 5px #000000bf;
   text-align: center;
   line-height: 20px;
-  font-size: 15px;
-  font-style: italic;
-  padding: 22px 0;
+  font-size: 20px;
+  /* font-style: italic; */
+  padding: 9px 0;
   box-sizing: border-box;
-  text-shadow: 1px 1px 3px #0000008c;
+  /* text-shadow: 1px 1px 3px #0000008c; */
   cursor: pointer;
+  font-family: 'Dai Banna', sans-serif;
+  transform: rotateY(10deg);
+  transition: transform 0.5s ease-in-out;
+}
+
+.wappen:hover {
+  transform: rotateY(-5deg) scale(1.2);
 }
 
 .color-picker-item {

@@ -9,6 +9,7 @@ import { renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
+import { shadeColor } from '../lib/shadeColor.js'
 
 let data, overlay, dataChanged
 
@@ -39,7 +40,7 @@ export async function renderMyTeamPage () {
       })
     })
   return `
-    <div class="mb-4" id="header">
+    <div id="header">
       ${_renderHeader()}
     </div>
     <div class="row">
@@ -60,8 +61,8 @@ function _renderHeader () {
   return `
     <h2>${data.team.name}</h2>
     <div class="row"> 
-      <div class="col-12 col-md-4 mb-2">     
-        <div class="card bg-dark text-white">        
+      <div class="col-12 col-md-4 mb-4">     
+        <div class="card bg-dark text-white" style="min-height: 230px">        
           <div class="card-body">
             <h5 class="card-title">Team</h5>
             <p class="card-text">
@@ -73,8 +74,16 @@ function _renderHeader () {
           </div>
         </div>        
       </div>
-      <div class="col-12 col-md-4 mb-2">     
-        <div class="card bg-dark text-white">        
+      <div class="col-12 col-md-4 mb-4">     
+        <div class="card bg-dark text-white" style="min-height: 230px">        
+          <div class="card-body" style="perspective: 40px;">
+            <h5 class="card-title">Icon</h5>
+            ${_renderIconViewer()}
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4 mb-4">     
+        <div class="card bg-dark text-white" style="min-height: 230px">        
           <div class="card-body">
             <h5 class="card-title">Lineup</h5>
             <p class="card-text">Choose from one of the following line-ups:</p>
@@ -83,15 +92,7 @@ function _renderHeader () {
             </div>
           </div>
         </div>
-      </div>
-      <div class="col-12 col-md-4 mb-2">     
-        <div class="card bg-dark text-white">        
-          <div class="card-body">
-            <h5 class="card-title">Icon</h5>
-            ${_renderIconViewer()}
-          </div>
-        </div>
-      </div>
+      </div>      
     </div>
   `
 }
@@ -108,8 +109,10 @@ function _renderIconViewer () {
   })
 
   const color = data.team.color
+  const darkColor = shadeColor(color, -30)
+  const cssColor = `background: ${color}; background: linear-gradient(133deg, ${darkColor} 0%, ${darkColor} 50%, ${color} 50%, ${color} 100%);`
   return `
-    <div id="${id}" class="wappen mb-4" style="background-color: ${color}">
+    <div id="${id}" class="wappen mb-4" style="${cssColor}">
         ${data.team.name}
     </div>
   `

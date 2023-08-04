@@ -15,8 +15,9 @@ export async function balanceSpan () {
 async function _updateBalance (id) {
   try {
     const { balance } = await server.getMyBalance()
-    if (!balance) return
-    el('#' + id).innerText = euroFormat.format(balance)
+    const element = el('#' + id)
+    if (!balance || !element) return
+    element.innerText = euroFormat.format(balance)
   } catch (e) {
     toast(e.message ?? 'Could not load balance from server.', 'error')
   }
