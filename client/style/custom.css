@@ -169,11 +169,8 @@ body {
 }
 
 .player-image {
-  width: 150px;
-  height: 150px;
-  background-size: contain;
   float: left;
-  margin-bottom: 1rem;
+  margin-bottom: 3rem;
 }
 
 .wappen {
