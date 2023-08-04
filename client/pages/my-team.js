@@ -36,11 +36,53 @@ export async function renderMyTeamPage () {
 function _renderHeader () {
   return `
     <h2>${data.team.name}</h2>
-    <p>
-      <b>Coach</b>: ${data.user.username} since ${formatDate('DD. MMM YYYY', data.user.created_at)}<br>
-      <b>Team Strength</b>: ${_calculateTeamStrength(data.players)}<br>
-      <b>Lineup</b>: ${_renderLineupSelect()}
-    </p>
+    <div class="row"> 
+      <div class="col-12 col-md-4 mb-2">     
+        <div class="card bg-dark text-white">        
+          <div class="card-body">
+            <h5 class="card-title">Team</h5>
+            <p class="card-text">
+              <b>League: </b> ???<br>
+              <b>Player Sallary: </b> ???<br>
+              <b>Coach: </b> ${data.user.username} since ${formatDate('DD. MMM YYYY', data.user.created_at)}<br>
+              <b>Strength: </b> ${_calculateTeamStrength(data.players)}
+            </p>
+          </div>
+        </div>        
+      </div>
+      <div class="col-12 col-md-4 mb-2">     
+        <div class="card bg-dark text-white">        
+          <div class="card-body">
+            <h5 class="card-title">Lineup</h5>
+            <p class="card-text">Choose from one of the following line-ups:</p>
+            <div class="form-group">
+              ${_renderLineupSelect()}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4 mb-2">     
+        <div class="card bg-dark text-white">        
+          <div class="card-body">
+            <h5 class="card-title">Icon</h5>
+            ${_renderIconViewer()}
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+/**
+ * @returns {string}
+ * @private
+ */
+function _renderIconViewer () {
+  const color = data.team.color
+  return `
+    <div class="wappen mb-4" style="background-color: ${color}">
+        ${data.team.name}
+    </div>
   `
 }
 
@@ -56,7 +98,7 @@ function _renderLineupSelect () {
     el('#' + id).value = data.team.formation
   })
   return `
-    <select id="${id}">
+    <select id="${id}" class="form-control">
       ${Object.values(Formation).map(f => `<option value="${f}">${f}</option>`)}
     </select>
   `

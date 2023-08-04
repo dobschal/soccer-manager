@@ -182,6 +182,11 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE player ADD COLUMN freshness DECIMAL(6, 2) DEFAULT 1.0;')
   }
+}, {
+  name: 'Alter table team to have color',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN color VARCHAR(255) DEFAULT "#00d9ff";')
+  }
 }]
 
 export async function runMigration () {

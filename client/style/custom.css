@@ -176,6 +176,22 @@ body {
   margin-bottom: 1rem;
 }
 
+.wappen {
+  width: 100px;
+  height: 121px;
+  border-radius: 0 0 75% 75%;
+  margin: auto;
+  border: 6px solid white;
+  box-shadow: 3px 3px 15px 1px black;
+  text-align: center;
+  line-height: 20px;
+  font-size: 15px;
+  font-style: italic;
+  padding: 22px 0;
+  box-sizing: border-box;
+  text-shadow: 1px 1px 3px #0000008c;
+}
+
 @media screen and (max-width: 768px) {
   table.table {
     margin: 0 -2rem 4rem -2rem;

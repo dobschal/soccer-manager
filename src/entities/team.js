@@ -4,6 +4,7 @@
  * @property {string} name
  * @property {string} formation - like "442", "433", etc
  * @property {number} level
+ * @property {string} color
  * @property {number} league
  * @property {number} balance
  * @property {Date} created_at
@@ -23,6 +24,7 @@ export function Team (raw) {
     balance: RequiredNumber,
     league: OptionalNumber,
     formation: RequiredString,
+    color: RequiredString,
     created_at: OptionalObject
   })
   for (const key in raw) {

@@ -206,7 +206,8 @@ async function _createRandomTeam (level) {
     name: _generateRandomTeamName(),
     level,
     balance: startBalance,
-    formation: _generateRandomFormation()
+    formation: _generateRandomFormation(),
+    color: '#00d9ff'
   })
   const { insertId: teamId } = await query('INSERT INTO team SET ?', team)
   team.id = teamId
