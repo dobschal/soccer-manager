@@ -254,7 +254,7 @@ async function _createRandomPlayer (team, i, season) {
   }
   const player = new Player({
     team_id: team.id,
-    name: (await _generateRandomPlayerName()),
+    name: (await generateRandomPlayerName()),
     carrier_start_season: season - age,
     carrier_end_season: season - age + carrierLength,
     level: Math.floor(Math.random() * maxLevel) + 1,
@@ -301,12 +301,12 @@ function _generateRandomTeamName () {
  * @returns {Promise<string>}
  * @private
  */
-async function _generateRandomPlayerName () {
+export async function generateRandomPlayerName () {
   const name = `${randomItem(playerNames).firstName} ${randomItem(playerNames).lastName}`
   const results = await query('SELECT * FROM player WHERE name=?', [name])
   if (results.length > 0) {
     console.log('Found player with same name...', name)
-    return await _generateRandomPlayerName()
+    return await generateRandomPlayerName()
   }
   return name
 }

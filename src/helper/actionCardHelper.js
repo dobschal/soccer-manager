@@ -6,6 +6,7 @@ import { randomItem } from '../lib/util.js'
 import { playerNames } from '../lib/name-library.js'
 import { Position } from '../../client/lib/formation.js'
 import { addNews } from './newsHelper.js'
+import { generateRandomPlayerName } from '../prepare-season.js'
 
 /**
  * @param {TeamType} team
@@ -55,7 +56,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     const carrierLength = 20 + Math.floor(Math.random() * 4)
     const player = new Player({
       team_id: team.id,
-      name: `${randomItem(playerNames).firstName} ${randomItem(playerNames).lastName}`,
+      name: (await generateRandomPlayerName()),
       carrier_start_season: season - age,
       carrier_end_season: season - age + carrierLength,
       level: Math.floor(Math.random() * 3) + 1,
