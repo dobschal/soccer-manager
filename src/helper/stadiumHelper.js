@@ -2,18 +2,22 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelpr.js'
+import { getTeam } from './teamhelper.js'
 
 /**
- * @param {import("express").Request} req
- * @returns {Promise<import("../entities/stadium.js").StadiumType>}
+ * @param {Request} req
+ * @returns {Promise<StadiumType>}
  */
 export async function getStadiumOfCurrentUser (req) {
-  const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
+  const team = await getTeam(req)
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=? LIMIT 1', [team.id])
   return stadium
 }
 
 /**
+ * 500 neue sitze --> 100 000
+ * 5000 --> 1 000 000
+ *
  * @param {StadiumType} currentStadium
  * @param {StadiumType} plannedStadium
  * @returns {number}
@@ -24,20 +28,21 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
   for (const standName of standNames) {
     const currentStandSize = currentStadium[standName + '_stand_size']
     const planneStandSize = plannedStadium[standName + '_stand_size']
+    if (planneStandSize > 40000) throw new BadRequestError('Maximum allowed stand size is 40 000.')
     const seatsDiff = Math.floor(planneStandSize - currentStandSize)
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
-    const priceForSeats = seatsDiff * 20
+    const priceForSeats = seatsDiff * 200
     const isLevelUpToMid = planneStandSize >= 4000 && currentStandSize < 4000
-    const isLevelUpToBig = planneStandSize >= 15000 && currentStandSize < 15000
+    const isLevelUpToBig = planneStandSize >= 10000 && currentStandSize < 10000
     let standPrice = priceForSeats
     if (isLevelUpToMid) standPrice += 5000000
     else if (isLevelUpToBig) standPrice += 50000000
-    else if (seatsDiff > 0) standPrice += 100000
+    else if (seatsDiff > 0) standPrice += 500000
     if (currentStadium[standName + '_stand_roof'] && !plannedStadium[standName + '_stand_roof']) {
       throw new BadRequestError('Roof cannot be removed')
     }
     if (!currentStadium[standName + '_stand_roof'] && plannedStadium[standName + '_stand_roof']) {
-      standPrice = standPrice * 1.2
+      standPrice = standPrice * 1.3
     }
     totalPrice += standPrice
   }
