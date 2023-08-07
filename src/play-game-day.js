@@ -6,6 +6,7 @@ import { getSponsor } from './helper/sponsorHelper.js'
 import { updateTeamBalance } from './helper/financeHelpr.js'
 import { sallaryPerLevel } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
+import { getPlayerAge } from './helper/playerHelper.js'
 
 const actionCardChances = {
   LEVEL_UP_PLAYER_9: 0.075,
@@ -32,7 +33,7 @@ async function _giveAllPlayersFreshness (season) {
   const players = await query('SELECT * FROM player WHERE freshness < 1.0')
   const promises = []
   for (const player of players) {
-    const age = season - player.carrier_start_season + 16
+    const age = await getPlayerAge(player, season)
     if (age <= 21) player.freshness = Math.min(1.0, player.freshness + 0.1)
     else if (age <= 26) player.freshness = Math.min(1.0, player.freshness + 0.08)
     else if (age <= 29) player.freshness = Math.min(1.0, player.freshness + 0.06)

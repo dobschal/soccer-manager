@@ -42,6 +42,8 @@ export async function getSponsorOffers (team) {
   const contractLengths = [
     3, 9, 16, 34
   ]
+  // amount of money needed to pay 11 players at level 10 per game day
+  // in league two you just get 80% of it
   let moneyPerGameDay = 63437
   for (let i = 0; i < team.level; i++) {
     moneyPerGameDay *= 0.8 // for each level you get 20% less sponsor money
