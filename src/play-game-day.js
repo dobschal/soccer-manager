@@ -38,6 +38,9 @@ async function _giveAllPlayersFreshness (season) {
     else if (age <= 29) player.freshness = Math.min(1.0, player.freshness + 0.06)
     else if (age <= 32) player.freshness = Math.min(1.0, player.freshness + 0.05)
     else player.freshness = Math.min(1.0, player.freshness + 0.04)
+    if(!player.in_game_position) {
+      player.freshness = Math.min(1.0, player.freshness + 0.03)
+    }
     promises.push(query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id]))
   }
   await Promise.all(promises)
