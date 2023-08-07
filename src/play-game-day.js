@@ -38,7 +38,7 @@ async function _giveAllPlayersFreshness (season) {
     else if (age <= 29) player.freshness = Math.min(1.0, player.freshness + 0.06)
     else if (age <= 32) player.freshness = Math.min(1.0, player.freshness + 0.05)
     else player.freshness = Math.min(1.0, player.freshness + 0.04)
-    if(!player.in_game_position) {
+    if (!player.in_game_position) {
       player.freshness = Math.min(1.0, player.freshness + 0.03)
     }
     promises.push(query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id]))
@@ -135,8 +135,8 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     const price = stadium[stand + '_stand_price']
     const size = stadium[stand + '_stand_size']
     const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
-    const priceFactor = 13 / price
-    const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * 3 * roofFactor))
+    const priceFactor = 15 / price
+    const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor))
     details[stand + 'Guests'] = amountOfGuests
     const earnings = amountOfGuests * price
     details[stand + 'Earnings'] = earnings

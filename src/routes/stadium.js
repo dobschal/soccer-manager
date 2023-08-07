@@ -37,7 +37,7 @@ export default {
     const stands = ['north', 'south', 'east', 'west']
     for (const stand of stands) {
       const val = plannedStadium[stand + '_stand_price']
-      if (!Number.isInteger(val) || val <= 0) throw new BadRequestError('Price needs to be a integer number greater than 0.')
+      if (!Number.isInteger(val) || val <= 0 || val > 100) throw new BadRequestError('Price needs to be a integer number greater than 0 and less than 100.')
     }
     await query(`UPDATE stadium 
         SET ${stands.map(n => n + '_stand_price=?').join(', ')} 
