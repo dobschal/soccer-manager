@@ -13,7 +13,7 @@ const actionCardChances = {
   LEVEL_UP_PLAYER_7: 0.2,
   LEVEL_UP_PLAYER_4: 0.5,
   CHANGE_PLAYER_POSITION: 0.05,
-  NEW_YOUTH_PLAYER: 0.05
+  NEW_YOUTH_PLAYER: 0.1
 }
 
 export async function calculateGames () {

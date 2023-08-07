@@ -155,6 +155,7 @@ function getLeagueAndLevel () {
 }
 
 function getPrevLeague (level, league) {
+  if (level === 0) return { level, league }
   if (league === 0) {
     level--
     league = Math.pow(2, level) - 1

@@ -36,7 +36,7 @@ export function calculateGamePlan (teams) {
 /**
  * calculate standing for given games. The games should belong to one level and league and should be played.
  * The teams should contain the corresponding teams!
- * @returns {Array<{points: number, games: number, goals: number, against: number, team: Team}>}
+ * @returns {Array<{points: number, games: number, goals: number, against: number, team: TeamType}>}
  */
 export function calculateStanding (games, teams) {
   const standing = {}

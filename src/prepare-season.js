@@ -6,6 +6,7 @@ import { Formation, Position, getPositionsOfFormation } from '../client/lib/form
 import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name-library.js'
 import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 import { Stadium } from './entities/stadium.js'
+import { addNews } from './helper/newsHelper.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -69,6 +70,7 @@ async function _promotionRelegation () {
           ].filter(t => t.level > 0) // teams on first level cannot get promoted...
           console.log('Promotion for: ', teamsForPromotion)
           teamsForPromotion.forEach(t => {
+            promises.push(addNews('Congratulations! Your team got promoted to the next higher league!', t))
             promises.push(query('UPDATE team SET level=? WHERE id=?', [t.level - 1, t.id]))
           })
           const teamsForRelegation = [
@@ -79,6 +81,7 @@ async function _promotionRelegation () {
           ].filter(t => t.level < hightestLevel) // teams in last level cannot go for relegation...
           console.log('Relegation for ', teamsForRelegation)
           teamsForRelegation.forEach(t => {
+            promises.push(addNews('Very sad... Your team needs to got to the next lower league.', t))
             promises.push(query('UPDATE team SET level=? WHERE id=?', [t.level + 1, t.id]))
           })
         }
@@ -190,7 +193,7 @@ async function _ajustAmountOfTeams () {
   while (teams.length === 0 || teams.length % teamsPerLeague !== 0 || teams.length < minimumAmountOfTeams) {
     const levelForNewTeam = _determineLevelForNewTeam(teams)
     const team = await _createRandomTeam(levelForNewTeam)
-    Promise.all([...Array(18)].map((_, i) => _createRandomPlayer(team, i, season)))
+    await Promise.all([...Array(18)].map((_, i) => _createRandomPlayer(team, i, season)))
     teams = await query('SELECT * FROM team')
   }
 }
@@ -251,7 +254,7 @@ async function _createRandomPlayer (team, i, season) {
   }
   const player = new Player({
     team_id: team.id,
-    name: _generateRandomPlayerName(),
+    name: (await _generateRandomPlayerName()),
     carrier_start_season: season - age,
     carrier_end_season: season - age + carrierLength,
     level: Math.floor(Math.random() * maxLevel) + 1,
@@ -294,8 +297,18 @@ function _generateRandomTeamName () {
   return `${randomItem(clubPrefixes1)} ${randomItem(clubPrefixes2)} ${randomItem(cityNames)}`.trim()
 }
 
-function _generateRandomPlayerName () {
-  return `${randomItem(playerNames).firstName} ${randomItem(playerNames).lastName}`
+/**
+ * @returns {Promise<string>}
+ * @private
+ */
+async function _generateRandomPlayerName () {
+  const name = `${randomItem(playerNames).firstName} ${randomItem(playerNames).lastName}`
+  const results = await query('SELECT * FROM player WHERE name=?', [name])
+  if (results.length > 0) {
+    console.log('Found player with same name...', name)
+    return await _generateRandomPlayerName()
+  }
+  return name
 }
 
 function _generateRandomPosition () {

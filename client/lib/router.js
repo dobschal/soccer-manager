@@ -41,7 +41,7 @@ export function setQueryParams (newQueryParams = {}) {
     ...newQueryParams
   }
   for (const queryParamsKey in queryParams) {
-    if (!queryParams[queryParamsKey]) delete queryParams[queryParamsKey]
+    if (typeof queryParams[queryParamsKey] === 'undefined' || queryParams[queryParamsKey] === null) delete queryParams[queryParamsKey]
   }
   window.location.hash = path + '?' + Object
     .keys(queryParams)
