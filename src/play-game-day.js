@@ -29,7 +29,7 @@ export async function calculateGames () {
 
 async function _giveAllPlayersFreshness (season) {
   /** @type {PlayerType[]} */
-  const players = await query('SELECT * FROM player')
+  const players = await query('SELECT * FROM player WHERE freshness < 1.0')
   const promises = []
   for (const player of players) {
     const age = season - player.carrier_start_season + 16
