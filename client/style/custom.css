@@ -37,7 +37,7 @@ body {
 
 #page {
   animation-name: page-enter-animation;
-  animation-duration: 0.5s;
+  animation-duration: 1.0s;
   animation-iteration-count: 1;
   animation-timing-function: cubic-bezier(.65, .27, .69, 1.42);
   transition: transform 0.3s ease-in-out;

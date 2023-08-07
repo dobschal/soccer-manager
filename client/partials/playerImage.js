@@ -6,7 +6,7 @@ import { shadeColor } from '../lib/shadeColor.js'
  * @returns {Promise<string>}
  */
 export async function renderPlayerImage (player, team) {
-  const index = player.id % 11 + 1
+  const index = player.id % 18 + 1
   const imageUrl = `assets/players/soccer_player-${index}.svg`
   const rawResponse = await fetch(imageUrl)
   let svg = await rawResponse.text()

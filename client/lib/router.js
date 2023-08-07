@@ -13,19 +13,19 @@ let pages, lastPath
  */
 export function goTo (path) {
   window.location.hash = path
-  _resolvePage()
+  _resolvePage().then(() => console.log('Page resolved.', path))
 }
 
 /**
  * Call this method on application start to resolve the correct page
  * and initialise the router
  *
- * @param {{[path: string]: [() => string, () => string]}}} p - pages to be resolved
+ * @param {{[path: string]: [() => string, () => string]}} p - pages to be resolved
  */
 export function initRouter (p) {
   pages = p
   window.addEventListener('hashchange', _resolvePage)
-  _resolvePage()
+  _resolvePage().then(() => console.log('Router initialised and first page resolved.'))
 }
 
 /**
@@ -35,7 +35,7 @@ export function initRouter (p) {
  */
 export function setQueryParams (newQueryParams = {}) {
   const [path] = window.location.hash.split('?')
-  let queryParams = getQueryParams
+  let queryParams = getQueryParams()
   queryParams = {
     ...queryParams,
     ...newQueryParams
