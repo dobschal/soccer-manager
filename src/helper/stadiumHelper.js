@@ -32,12 +32,12 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     const seatsDiff = Math.floor(planneStandSize - currentStandSize)
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
     const priceForSeats = seatsDiff * 200
-    const isLevelUpToMid = planneStandSize >= 4000 && currentStandSize < 4000
-    const isLevelUpToBig = planneStandSize >= 10000 && currentStandSize < 10000
+    /*const isLevelUpToMid = planneStandSize >= 4000 && currentStandSize < 4000
+    const isLevelUpToBig = planneStandSize >= 10000 && currentStandSize < 10000*/
     let standPrice = priceForSeats
-    if (isLevelUpToMid) standPrice += 5000000
-    else if (isLevelUpToBig) standPrice += 50000000
-    else if (seatsDiff > 0) standPrice += 500000
+    if (seatsDiff > 10000) standPrice += 5000000
+    else if (seatsDiff > 5000) standPrice += 1000000
+    else if (seatsDiff > 0) standPrice += 100000
     if (currentStadium[standName + '_stand_roof'] && !plannedStadium[standName + '_stand_roof']) {
       throw new BadRequestError('Roof cannot be removed')
     }
