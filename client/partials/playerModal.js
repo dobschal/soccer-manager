@@ -15,11 +15,12 @@ import { renderPlayerImage } from './playerImage.js'
  */
 export async function showPlayerModal (player) {
   const { season } = await server.getCurrentGameday()
-  const { team } = await server.getMyTeam()
-  const isMyPlayer = team.id === player.team_id
+  const { team: myTeam } = await server.getMyTeam()
+  const isMyPlayer = myTeam.id === player.team_id
   const buttonId = generateId()
   const inputId = generateId()
-  const playerImage = await renderPlayerImage(player, team)
+  const playerImage = await renderPlayerImage(player, myTeam)
+  const { team: playersTeam } = await server.getTeam({ teamId: player.team_id })
 
   const { offer } = await server.myOfferForPlayer({ player })
 
@@ -57,11 +58,12 @@ export async function showPlayerModal (player) {
         ${playerImage}
         <b>Age</b>: ${calculatePlayerAge(player, season)}<br>
         <b>Level</b>: ${player.level}<br>
+        <b>Freshness</b>: ${Math.floor(player.freshness * 100)}%<br>
         <b>Sallary</b>: ${euroFormat.format(sallaryPerLevel[player.level])}<br>
-        <b>Team</b>: ???
+        <b>Team</b>: ${playersTeam.name}
       </p>
       <div class="${offer ? 'hidden' : ''} mb-4" style="clear: both">
-        <b>${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>
+        <b>💰 ${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>
         <p>Just enter a wanted price:</p>
         <div class="input-group mb-3">
           <input type="number" 
@@ -80,7 +82,7 @@ export async function showPlayerModal (player) {
       <div class="mb-4 ${offer ? '' : 'hidden'}">
         This player is on the <a href="#trades">transfermarket</a>.
       </div>
-      <div>
+      <div class="${isMyPlayer ? '' : 'hidden'}">
         <b>Fire Player?</b>
         <p>The player would be fired immediately:</p>
         ${fireButton}

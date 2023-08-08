@@ -10,6 +10,11 @@ import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
 import { shadeColor } from '../lib/shadeColor.js'
+import { renderPlayerImage } from '../partials/playerImage.js'
+import { updater } from '../lib/updater.js'
+import { sallaryPerLevel } from '../util/player.js'
+import { euroFormat } from '../util/currency.js'
+import { formatLeague } from '../util/league.js'
 
 let data, overlay, dataChanged
 
@@ -58,6 +63,10 @@ export async function renderMyTeamPage () {
 }
 
 function _renderHeader () {
+  let sallary = 0
+  data.players.forEach(player => {
+    sallary += sallaryPerLevel[player.level]
+  })
   return `
     <h2>${data.team.name}</h2>
     <div class="row"> 
@@ -66,8 +75,8 @@ function _renderHeader () {
           <div class="card-body">
             <h5 class="card-title">Team</h5>
             <p class="card-text">
-              <b>League: </b> ???<br>
-              <b>Player Sallary: </b> ???<br>
+              <b>League: </b> ${formatLeague(data.team.level, data.team.league)}<br>
+              <b>Player Sallary (∑): </b> ${euroFormat.format(sallary)}<br>
               <b>Coach: </b> ${data.user.username} since ${formatDate('DD. MMM YYYY', data.user.created_at)}<br>
               <b>Strength: </b> ${_calculateTeamStrength(data.players)}
             </p>
@@ -248,6 +257,11 @@ function _renderSquadPlayer (player) {
       '',
       `${await renderPlayersList(data.players.filter(p => p.position === player.position), false, newPlayer => _exchangePlayer(player, newPlayer))}`
     )
+  })
+  setTimeout(() => {
+    renderPlayerImage(player, data.team, 100).then(image => {
+      el(id).insertAdjacentHTML('afterbegin', image)
+    })
   })
   return `
     <div id="${id}" class="player ${player.position}">

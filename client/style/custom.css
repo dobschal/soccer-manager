@@ -21,6 +21,8 @@ body {
   font-variant-numeric: tabular-nums !important;
   background-image: url("../assets/bg-1.jpg");
   background-size: 100%;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .navbar {
@@ -80,6 +82,11 @@ body {
 
 .toast.error {
   background-color: rgb(253, 137, 137);
+}
+
+.fa-button {
+  margin: 0 1rem;
+  font-size: 20px;
 }
 
 .fa-button:hover {

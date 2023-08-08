@@ -6,6 +6,7 @@ import { showOverlay } from '../partials/overlay.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { formatDate } from '../lib/date.js'
+import { formatLeague } from '../util/league.js'
 
 let myTeamId, info, yesterdayStanding
 
@@ -65,21 +66,34 @@ export async function renderResultsPage () {
   return `
     <div class="mb-4">
       <h2>Results</h2>
-      <p>
-        <b>League</b>: 
-          <span id="prev-league-button" class="fa fa-chevron-left fa-button"></span> 
-          ${level + 1}.${league + 1}
-          <span id="next-league-button" class="fa fa-chevron-right fa-button"></span><br>        
-        <b>Season</b>: 
-          <span id="prev-season-button" class="fa fa-chevron-left fa-button"></span> 
-          ${season + 1}
-          <span id="next-season-button" class="fa fa-chevron-right fa-button"></span><br>        
-        <b>Game day</b>: 
-          <span id="prev-game-day-button" class="fa fa-chevron-left fa-button"></span> 
-          ${gameDay + 1} 
-          <span id="next-game-day-button" class="fa fa-chevron-right fa-button"></span><br>     
-          <b>Date</b>: ${formatDate('DD.MM.YYYY hh:mm', date)}   
-      </p>
+      <table>
+          <tr>
+            <th>
+                League
+            </th>
+            <td>
+              <span id="prev-league-button" class="fa fa-chevron-left fa-button"></span> 
+              ${formatLeague(level, league)}
+              <span id="next-league-button" class="fa fa-chevron-right fa-button"></span>
+            </td>
+          </tr>
+          <tr>
+              <th>Season</th>
+              <td>
+                <span id="prev-season-button" class="fa fa-chevron-left fa-button"></span> 
+                ${season + 1}
+                <span id="next-season-button" class="fa fa-chevron-right fa-button"></span>
+              </td>
+          </tr>
+          <tr>
+              <th>Game Day</th>
+              <td>
+                <span id="prev-game-day-button" class="fa fa-chevron-left fa-button"></span> 
+                ${gameDay + 1} 
+                <span id="next-game-day-button" class="fa fa-chevron-right fa-button"></span><br>
+              </td>
+          </tr>
+      </table>
     </div>
     <h3>Games</h3>
     <table class="table table-hover mb-4">
