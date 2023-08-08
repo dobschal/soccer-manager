@@ -7,7 +7,7 @@ import {
   RequiredString
 } from '../lib/type-checker.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getTeam } from '../helper/teamhelper.js'
+import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
 import team from './team.js'

@@ -3,7 +3,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelpr.js'
 import { addNews } from './newsHelper.js'
-import { getTeamById } from './teamhelper.js'
+import { getTeamById } from './teamHelper.js'
 import { getPlayerById } from './playerHelper.js'
 import { TradeHistory } from '../entities/tradeHistory.js'
 

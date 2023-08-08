@@ -1,4 +1,4 @@
-import { getTeam } from '../helper/teamhelper.js'
+import { getTeam } from '../helper/teamHelper.js'
 import { query } from '../lib/database.js'
 
 export default {

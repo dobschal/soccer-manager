@@ -4,7 +4,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { playerNames } from '../lib/name-library.js'
 import { randomItem } from '../lib/util.js'
-import { getTeam } from '../helper/teamhelper.js'
+import { getTeam } from '../helper/teamHelper.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { getActionCards, playActionCard } from '../helper/actionCardHelper.js'
 

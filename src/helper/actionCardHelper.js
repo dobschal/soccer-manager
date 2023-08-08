@@ -1,6 +1,6 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getTeam } from './teamhelper.js'
+import { getTeam } from './teamHelper.js'
 import { Player } from '../entities/player.js'
 import { randomItem } from '../lib/util.js'
 import { playerNames } from '../lib/name-library.js'

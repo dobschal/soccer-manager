@@ -6,6 +6,7 @@ import { BadRequestError } from '../lib/errors.js'
  * @returns {Promise<TeamType>}
  */
 export async function getTeam (req) {
+  if (!req.user) throw new BadRequestError('Not authorised.')
   const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
   if (!team) throw new BadRequestError('Not authorised.')
   return team

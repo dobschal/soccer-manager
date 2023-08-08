@@ -10,25 +10,18 @@ import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
 import { shadeColor } from '../lib/shadeColor.js'
-import { renderPlayerImage } from '../partials/playerImage.js'
-import { updater } from '../lib/updater.js'
 import { sallaryPerLevel } from '../util/player.js'
 import { euroFormat } from '../util/currency.js'
 import { formatLeague } from '../util/league.js'
+import { renderLineup, lineUpData } from '../partials/lineup.js'
+import { randomItem } from '../util/randomItem.js'
 
-let data, overlay, dataChanged
-
-//
-//  TODO: Move to util file
-//
-function randomItem (array) {
-  return array[Math.floor((Math.random() * array.length))]
-}
+let data
 
 export async function renderMyTeamPage () {
-  dataChanged = false
   data = await server.getMyTeam()
   const { player_id: playerId } = getQueryParams()
+  lineUpData.squadDataChanged = false
   if (playerId) {
     /** @type {PlayerType} */
     const player = data.players.find(p => p.id === Number(playerId))
@@ -52,7 +45,7 @@ export async function renderMyTeamPage () {
       <div class="col-12 col-xl-6">
         <h3>Lineup</h3>
         <div class="mb-4" id="squad" >
-          ${_renderSquad()}
+          ${renderLineup(data.players, data.team)}
         </div>   
       </div>
       <div class="col-12 col-xl-6">
@@ -199,87 +192,11 @@ function _changeFormation (newFormation) {
       name: '-'
     })
   })
-  dataChanged = true
-  render('#squad', _renderSquad())
+  lineUpData.squadDataChanged = true
+  render('#squad', renderLineup(data.players, data.team))
   render('#header', _renderHeader())
 }
 
 function _calculateTeamStrength (players) {
   return players.filter(p => p.in_game_position).reduce((sum, player) => sum + player.level, 0)
-}
-
-function _renderSquad () {
-  // position hack for 2x CM and 2x CD
-  setTimeout(() => {
-    ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
-      const el = document.querySelectorAll(positionClass)
-      if (el.length === 2) {
-        el.item(0).style.left = '38%'
-        el.item(1).style.left = '62%'
-      }
-    })
-  })
-  return `
-    <div class="squad">
-      ${data.players.filter(p => p.in_game_position).map(_renderSquadPlayer).join('')}
-    </div>
-    ${_renderSaveButton()}
-  `
-}
-
-function _renderSaveButton () {
-  if (!dataChanged) return ''
-  const id = generateId()
-  onClick('#' + id, async () => {
-    try {
-      if (data.players.some(p => p.fake && p.in_game_position)) {
-        return toast('Your lineup is incomplete!')
-      }
-      data.players = data.players.filter(p => !p.fake)
-      await server.saveLineup({ players: data.players, formation: data.team.formation })
-      toast('Save lineup.')
-      render('#page', await renderMyTeamPage())
-    } catch (e) {
-      console.error(e)
-      toast(e.message ?? 'Something went wrong...', 'error')
-    }
-  })
-  return `
-    <button id="${id}" class="btn btn-primary w-100" type="button">Save</button>
-  `
-}
-
-function _renderSquadPlayer (player) {
-  const id = generateId()
-  onClick('#' + id, async () => {
-    overlay = showOverlay(
-      'Select player',
-      '',
-      `${await renderPlayersList(data.players.filter(p => p.position === player.position), false, newPlayer => _exchangePlayer(player, newPlayer))}`
-    )
-  })
-  setTimeout(() => {
-    renderPlayerImage(player, data.team, 100).then(image => {
-      el(id).insertAdjacentHTML('afterbegin', image)
-    })
-  })
-  return `
-    <div id="${id}" class="player ${player.position}">
-      <span class="position-badge ${player.position}">${player.position}</span>
-      ${player.name.includes(' ') ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '') : player.name}
-      <span class="level-badge level-${player.level}">${player.level}</span>
-    </div>
-  `
-}
-
-function _exchangePlayer (player, newPlayer) {
-  const oldPosition = player.in_game_position
-  player.in_game_position = newPlayer.in_game_position
-  newPlayer.in_game_position = oldPosition
-  overlay?.remove()
-  if (player.id !== newPlayer) {
-    dataChanged = true
-  }
-  render('#squad', _renderSquad())
-  render('#header', _renderHeader())
 }

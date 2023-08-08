@@ -1,7 +1,7 @@
 import { Sponsor } from '../entities/sponsor.js'
 import { getSponsor, getSponsorOffers } from '../helper/sponsorHelper.js'
 import { query } from '../lib/database.js'
-import { getTeam } from '../helper/teamhelper.js'
+import { getTeam } from '../helper/teamHelper.js'
 
 export default {
 

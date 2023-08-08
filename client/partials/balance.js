@@ -14,6 +14,7 @@ export async function balanceSpan () {
 
 async function _updateBalance (id) {
   try {
+    if (!document.hasFocus()) return
     const { balance } = await server.getMyBalance()
     const element = el('#' + id)
     if (!balance || !element) return

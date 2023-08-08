@@ -1,6 +1,6 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getTeam } from '../helper/teamhelper.js'
+import { getTeam } from '../helper/teamHelper.js'
 
 export default {
   async getPlayersWithIds (req) {

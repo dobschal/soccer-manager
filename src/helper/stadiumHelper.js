@@ -2,7 +2,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelpr.js'
-import { getTeam } from './teamhelper.js'
+import { getTeam } from './teamHelper.js'
 
 /**
  * @param {Request} req
@@ -32,8 +32,8 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     const seatsDiff = Math.floor(planneStandSize - currentStandSize)
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
     const priceForSeats = seatsDiff * 200
-    /*const isLevelUpToMid = planneStandSize >= 4000 && currentStandSize < 4000
-    const isLevelUpToBig = planneStandSize >= 10000 && currentStandSize < 10000*/
+    /* const isLevelUpToMid = planneStandSize >= 4000 && currentStandSize < 4000
+    const isLevelUpToBig = planneStandSize >= 10000 && currentStandSize < 10000 */
     let standPrice = priceForSeats
     if (seatsDiff > 10000) standPrice += 5000000
     else if (seatsDiff > 5000) standPrice += 1000000
