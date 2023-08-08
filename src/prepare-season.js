@@ -253,6 +253,7 @@ async function _createRandomPlayer (team, i, season) {
     maxLevel = 7 // not too strong players on start
   }
   const player = new Player({
+    hair_color: Math.floor(Math.random() * 7),
     team_id: team.id,
     name: (await generateRandomPlayerName()),
     carrier_start_season: season - age,

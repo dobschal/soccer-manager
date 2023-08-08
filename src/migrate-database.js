@@ -202,6 +202,18 @@ const migrations = [{
                 PRIMARY KEY (id)
             ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Alter table player to have hair color',
+  async run () {
+    await query('ALTER TABLE player ADD COLUMN hair_color INT;')
+    const players = await query('SELECT * FROM player')
+    const promises = []
+    for (const player of players) {
+      player.hair_color = Math.floor(Math.random() * 7)
+      promises.push(query('UPDATE player SET hair_color=? WHERE id=?', [player.hair_color, player.id]))
+    }
+    await Promise.all(promises)
+  }
 }]
 
 export async function runMigration () {
