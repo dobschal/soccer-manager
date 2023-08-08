@@ -8,6 +8,7 @@ import { toast } from './toast.js'
 import { renderButton } from './button.js'
 import { goTo, setQueryParams } from '../lib/router.js'
 import { renderPlayerImage } from './playerImage.js'
+import { showDialog } from './dialog.js'
 
 /**
  * @param {PlayerType} player
@@ -21,8 +22,14 @@ export async function showPlayerModal (player) {
   const inputId = generateId()
   const playerImage = await renderPlayerImage(player, myTeam)
   const { team: playersTeam } = await server.getTeam({ teamId: player.team_id })
+  const teamLinkId = generateId()
 
   const { offer } = await server.myOfferForPlayer({ player })
+
+  onClick(teamLinkId, () => {
+    goTo(`team?id=${playersTeam.id}`)
+    overlay.remove()
+  })
 
   onClick(buttonId, async () => {
     try {
@@ -41,12 +48,19 @@ export async function showPlayerModal (player) {
   })
   const fireButton = renderButton('Fire Player', async () => {
     try {
+      const { ok } = await showDialog({
+        title: 'Fire player?',
+        text: `Are you sure you want to fire ${player.name}?`,
+        hasInput: false,
+        buttonText: 'Yes, fire!'
+      })
+      if (!ok) return
       await server.firePlayer({ player })
       toast('You fired your player!')
       overlay.remove()
       goTo('my-team')
     } catch (e) {
-      toast(e.message ?? 'Something weng wrong', 'error')
+      toast(e.message ?? 'Something went wrong', 'error')
     }
   }, 'danger')
 
@@ -60,7 +74,7 @@ export async function showPlayerModal (player) {
         <b>Level</b>: ${player.level}<br>
         <b>Freshness</b>: ${Math.floor(player.freshness * 100)}%<br>
         <b>Sallary</b>: ${euroFormat.format(sallaryPerLevel[player.level])}<br>
-        <b>Team</b>: ${playersTeam.name}
+        <b>Team</b>: <span id="${teamLinkId}" class="text-info">${playersTeam.name}</span>
       </p>
       <div class="${offer ? 'hidden' : ''} mb-4" style="clear: both">
         <b>💰 ${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>

@@ -4,7 +4,7 @@ import { el } from './html.js'
 import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
 
-let pages, lastPath
+let pages, lastPath, secondLastPath
 
 /**
  * Open a page under a specific path.
@@ -66,6 +66,7 @@ export function getQueryParams () {
 let currentLayoutRenderFn, lastAnimationTimeout
 
 async function _resolvePage () {
+  console.log('Resolve page')
   const currentPath = window.location.hash.substring(1).split('?')[0]
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
@@ -86,6 +87,7 @@ async function _resolvePage () {
   if (!isFirstRender && lastPath !== currentPath) {
     pageElement.style.transform = 'translateX(100vw)'
   }
+  secondLastPath = lastPath
   lastPath = currentPath
   setTimeout(async () => {
     const t1 = Date.now()

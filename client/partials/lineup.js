@@ -87,7 +87,7 @@ function _renderSquadPlayer (players, team) {
     })
     setTimeout(() => {
       renderPlayerImage(player, team, 100).then(image => {
-        el(id).insertAdjacentHTML('afterbegin', image)
+        el(id)?.insertAdjacentHTML('afterbegin', image)
       })
     })
     return `

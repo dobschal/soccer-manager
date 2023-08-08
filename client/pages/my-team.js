@@ -167,7 +167,9 @@ function _renderLineupSelect () {
     }
   })
   setTimeout(() => {
-    el('#' + id).value = data.team.formation
+    const element = el(id)
+    if (!element) return
+    element.value = data.team.formation
   })
   return `
     <select id="${id}" class="form-control">
