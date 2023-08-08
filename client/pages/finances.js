@@ -71,7 +71,7 @@ function _renderFinanceLog (logItem) {
   return `
     <tr>
       <td>${logItem.season + 1}</td>
-      <td>${logItem.game_day}</td>
+      <td>${logItem.game_day + 1}</td>
       <td class="text-right ${logItem.value > 0 ? 'text-success' : 'text-danger'}">${logItem.value > 0 ? '+' : ''}${euroFormat.format(logItem.value)}</td>
       <td class="d-none d-md-table-cell text-right">${euroFormat.format(logItem.balance)}</td>
       <td class="d-none d-sm-table-cell">${logItem.reason}</td>
