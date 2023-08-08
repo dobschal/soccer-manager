@@ -137,6 +137,12 @@ body {
   background: #EFEFEF;
 }
 
+.nav-pills .nav-link {
+  background: #EFEFEF;
+  margin-bottom: 1rem;
+  margin-right: 1rem;
+}
+
 @keyframes rotate {
   0% {
     transform: rotate(0deg);

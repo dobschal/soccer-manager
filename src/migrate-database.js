@@ -187,6 +187,21 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE team ADD COLUMN color VARCHAR(255) DEFAULT "#00d9ff";')
   }
+}, {
+  name: 'Add Trade History table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS trade_history (
+                id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+                game_day INT,
+                season INT,
+                player_id BIGINT,
+                from_team_id BIGINT(20),
+                to_team_id BIGINT(20),
+                price INT,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
+            ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 export async function runMigration () {

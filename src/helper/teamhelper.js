@@ -1,4 +1,5 @@
 import { query } from '../lib/database.js'
+import { BadRequestError } from '../lib/errors.js'
 
 /**
  * @param {Request} req
@@ -6,6 +7,7 @@ import { query } from '../lib/database.js'
  */
 export async function getTeam (req) {
   const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+  if (!team) throw new BadRequestError('Not authorised.')
   return team
 }
 

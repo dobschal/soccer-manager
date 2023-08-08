@@ -18,6 +18,9 @@ export function value (query) {
  * @returns {HTMLElement}
  */
 export function el (query) {
+  if (query.startsWith('_')) {
+    query = '#' + query
+  }
   return document.querySelector(query)
 }
 

@@ -19,7 +19,7 @@ export default {
    * @returns {Promise<{balance: number}>}
    */
   async getMyBalance (req) {
-    const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+    const team = await getTeam(req)
     return { balance: team.balance }
   },
 

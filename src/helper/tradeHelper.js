@@ -5,6 +5,7 @@ import { updateTeamBalance } from './financeHelpr.js'
 import { addNews } from './newsHelper.js'
 import { getTeamById } from './teamhelper.js'
 import { getPlayerById } from './playerHelper.js'
+import { TradeHistory } from '../entities/tradeHistory.js'
 
 export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   offer = new TradeOffer(offer)
@@ -17,8 +18,7 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   if (!offers.some(o => o.id === offer.id)) throw new BadRequestError('No offer exist')
 
   // get corresponding player
-  /** @type {PlayerType[]} */
-  const [player] = await query('SELECT * FROM player WHERE id=? LIMIT 1', [offer.player_id])
+  const player = await getPlayerById(offer.player_id)
   if (!player) throw new BadRequestError('Player does not exist')
 
   // Update player and trade offer
@@ -27,9 +27,19 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   await query('DELETE FROM trade_offer WHERE player_id=?', player.id)
 
   // Move balance
-  const [buyingTeam] = await query('SELECT *  FROM team WHERE id=? LIMIT 1', [offer.from_team_id])
+  const buyingTeam = await getTeamById(offer.from_team_id)
   await updateTeamBalance(sellingTeam, offer.offer_value, `Selling player ${player.name} to ${buyingTeam.name}`, gameDay, season)
   await updateTeamBalance(buyingTeam, offer.offer_value * -1, `Buying player ${player.name} from ${sellingTeam.name}`, gameDay, season)
+
+  const historyItem = new TradeHistory({
+    season,
+    game_day: gameDay,
+    player_id: player.id,
+    from_team_id: sellingTeam.id,
+    to_team_id: buyingTeam.id,
+    price: offer.offer_value
+  })
+  await query('INSERT INTO trade_history SET ?', historyItem)
 
   await addNews(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam)
   await addNews(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam)

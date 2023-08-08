@@ -10,6 +10,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamhelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
+import team from './team.js'
 
 export default {
 
@@ -85,5 +86,30 @@ export default {
     const team = await getTeam(req)
     const [offer] = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [team.id, req.body.player.id])
     return { offer }
+  },
+
+  /**
+   * @returns {Promise<{ trades: TradeHistoryType[] }>}
+   */
+  async getTradeHistory () {
+    const trades = await query('SELECT * FROM trade_history ORDER BY created_at DESC')
+    const teamIds = []
+    const playerIds = trades.map(/** @param {TradeHistoryType} trade */ (trade) => {
+      if (!teamIds.includes(trade.from_team_id)) teamIds.push(trade.from_team_id)
+      if (!teamIds.includes(trade.to_team_id)) teamIds.push(trade.to_team_id)
+      return trade.player_id
+    })
+    let players = []
+    if (playerIds.length > 0) {
+      players = await query(`SELECT *
+                             FROM player
+                             WHERE id IN (${playerIds.join(', ')})`)
+    }
+    let teams = []
+    if (teamIds.length > 0) {
+      teams = await query(`SELECT * FROM team WHERE id IN (${teamIds.join(', ')})`)
+    }
+
+    return { trades, players, teams }
   }
 }
