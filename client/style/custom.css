@@ -201,15 +201,16 @@ body {
   box-shadow: 10px 10px 30px 5px #000000bf;
   text-align: center;
   line-height: 20px;
-  font-size: 20px;
+  font-size: 22px;
   /* font-style: italic; */
   padding: 9px 0;
   box-sizing: border-box;
-  /* text-shadow: 1px 1px 3px #0000008c; */
+  text-shadow: 1px 1px 2px #000000a6;
   cursor: pointer;
   font-family: 'Dai Banna', sans-serif;
   transform: rotateY(10deg);
   transition: transform 0.5s ease-in-out;
+  letter-spacing: -2px;
 }
 
 .wappen:hover {
