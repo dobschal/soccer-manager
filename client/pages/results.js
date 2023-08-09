@@ -271,8 +271,8 @@ function _sortStanding (s1, s2) {
 
 async function _showGameModal (resultId) {
   const { result: game } = await server.getResult({ id: Number(resultId) })
-  const { players: playersTeam1 } = await server.getTeam({ teamId: game.team1Id })
-  const { players: playersTeam2 } = await server.getTeam({ teamId: game.team2Id })
+  const { players: playersTeam1, team: team1 } = await server.getTeam({ teamId: game.team1Id })
+  const { players: playersTeam2, team: team2 } = await server.getTeam({ teamId: game.team2Id })
   const players = {}
   playersTeam1.forEach(p => {
     p.team1 = true
@@ -311,7 +311,7 @@ async function _showGameModal (resultId) {
       Guests: ${guests}
      `,
     `
-      ${renderGameAnimation(game)}
+      ${renderGameAnimation(game, team1, team2)}
       ${details.log.map(_renderGameLogItem(players)).join('')}
       `
   )

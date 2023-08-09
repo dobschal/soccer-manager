@@ -1,0 +1,86 @@
+.game-animation {
+    background-image: url("../assets/field-texture.jpg");
+    background-size: cover;
+    background-position: 50% 50%;
+    aspect-ratio: 2 / 1;
+    width: calc(100% + 2.5rem);
+    margin: 0 -1.25rem 2rem -1.25rem;
+    position: relative;
+}
+
+.game-animation .player {
+    position: absolute;
+    color: white;
+    font-size: 10px;
+    letter-spacing: -0.5px;
+    width: 50px;
+    text-shadow: 1px 1px 2px black;
+    white-space: nowrap;
+}
+.game-animation .player .player-image {
+    position: absolute;
+    float: none;
+    top: -138px;
+    left: 50%;
+    transform: translateX(-25px);
+}
+
+.game-animation .player.home.GK {
+    top: 50%;
+    left: 0%;
+}
+
+.game-animation .player.home.LD {
+    top: 15%;
+    left: 11%;
+}
+
+.game-animation .player.home.CD {
+    top: 50%;
+    left: 11%;
+}
+
+.game-animation .player.home.RD {
+    top: 89%;
+    left: 11%;
+}
+
+.game-animation .player.home.CM {
+    top: 50%;
+    left: 27%;
+}
+
+.game-animation .player.home.LM {
+    top: 15%;
+    left: 27%;
+}
+
+.game-animation .player.home.RM {
+    top: 89%;
+    left: 27%;
+}
+
+.game-animation .player.home.DM {
+    top: 50%;
+    left: 21%;
+}
+
+.game-animation .player.home.OM {
+    top: 50%;
+    left: 30%;
+}
+
+.game-animation .player.home.CA {
+    top: 50%;
+    left: 40%;
+}
+
+.game-animation .player.home.RA {
+    top: 89%;
+    left: 40%;
+}
+
+.game-animation .player.home.LA {
+    top: 15%;
+    left: 40%;
+}
