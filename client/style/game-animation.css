@@ -20,6 +20,11 @@
     top: 50%;
     left: 25%;
 }
+@media screen and (max-width: 640px) {
+    .game-animation .player {
+        transform: scale(0.8);
+    }
+}
 .game-animation .player.away {
     left: initial !important;
     right: 25%;
