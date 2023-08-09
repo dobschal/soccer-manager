@@ -1,4 +1,5 @@
 import { query } from './lib/database.js'
+import { randomItem } from '../client/util/randomItem.js'
 
 /**
  * @typedef {Object} Migration
@@ -211,6 +212,22 @@ const migrations = [{
     for (const player of players) {
       player.hair_color = Math.floor(Math.random() * 7)
       promises.push(query('UPDATE player SET hair_color=? WHERE id=?', [player.hair_color, player.id]))
+    }
+    await Promise.all(promises)
+  }
+}, {
+  name: 'Give bot teams random colors',
+  async run () {
+    const chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+    const teams = await query('SELECT * FROM team WHERE user_id IS NULL')
+    const promises = []
+    for (const team of teams) {
+      let color = '#'
+      for (let i = 0; i < 6; i++) {
+        color += randomItem(chars)
+      }
+      team.color = color
+      promises.push(query('UPDATE team SET color=? WHERE id=?', [team.color, team.id]))
     }
     await Promise.all(promises)
   }

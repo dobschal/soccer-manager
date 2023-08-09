@@ -16,6 +16,13 @@
     width: 50px;
     text-shadow: 1px 1px 2px black;
     white-space: nowrap;
+    transition: top 0.5s ease-in-out, left 1s ease-in-out, right 1s ease-in-out;
+    top: 50%;
+    left: 25%;
+}
+.game-animation .player.away {
+    left: initial !important;
+    right: 25%;
 }
 .game-animation .player .player-image {
     position: absolute;
@@ -83,4 +90,64 @@
 .game-animation .player.home.LA {
     top: 15%;
     left: 40%;
+}
+
+.game-animation .player.away.GK {
+    top: 50%;
+    right: 0%;
+}
+
+.game-animation .player.away.LD {
+    top: 89%;
+    right: 11%;
+}
+
+.game-animation .player.away.CD {
+    top: 50%;
+    right: 11%;
+}
+
+.game-animation .player.away.RD {
+    top: 15%;
+    right: 11%;
+}
+
+.game-animation .player.away.CM {
+    top: 50%;
+    right: 27%;
+}
+
+.game-animation .player.away.LM {
+    top: 89%;
+    right: 27%;
+}
+
+.game-animation .player.away.RM {
+    top: 15%;
+    right: 27%;
+}
+
+.game-animation .player.away.DM {
+    top: 50%;
+    right: 21%;
+}
+
+.game-animation .player.away.OM {
+    top: 50%;
+    right: 30%;
+}
+
+.game-animation .player.away.CA {
+    top: 50%;
+    right: 40%;
+}
+
+.game-animation .player.away.RA {
+    top: 15%;
+    right: 40%;
+}
+
+.game-animation .player.away.LA {
+    top: 89%;
+    right: 40%;
 }
