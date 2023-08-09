@@ -13,7 +13,7 @@ export const renderTradeHistory = updater(async (update) => {
     const toTeam = teams.find(p => p.id === trade.to_team_id)
     return `
       <tr>
-        <td class="d-none d-sm-table-cell">${trade.season}/${trade.game_day}</td>
+        <td class="d-none d-sm-table-cell">${trade.season + 1}/${trade.game_day + 1}</td>
         <td>${player.name} (${player.position}, ${player.level}, ${calculatePlayerAge(player, trade.season)})</td>
         <td class="d-none d-sm-table-cell">${fromTeam.name}</td>
         <td class="d-none d-sm-table-cell">${toTeam.name}</td>
