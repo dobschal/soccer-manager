@@ -7,10 +7,16 @@ import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { formatDate } from '../lib/date.js'
 import { formatLeague } from '../util/league.js'
+import { renderGameAnimation } from '../partials/gameAnimation.js'
 
 let myTeamId, info, yesterdayStanding
 
 export async function renderResultsPage () {
+  const queryParams = await getQueryParams()
+  if (queryParams.game_id) {
+    _showGameModal(queryParams.game_id)
+  }
+
   info = await server.getMyTeam()
   myTeamId = info.team.id
   const { level, league } = getLeagueAndLevel()
@@ -24,8 +30,7 @@ export async function renderResultsPage () {
   standing.sort(_sortStanding)
   yesterdayStanding.sort(_sortStanding)
   const topScorer = await _calculateGoals(level, league, season, gameDay, standing)
-  const date = new Date(Date.parse(results[0].created_at))
-  console.log(results)
+  console.log('Results: ', results)
 
   onClick('#prev-game-day-button', async () => {
     setQueryParams({
@@ -234,7 +239,10 @@ function _renderResultListItem (result) {
   const details = JSON.parse(result.details)
   const id = generateId()
 
-  onClick('#' + id, () => _showGameModal(result))
+  onClick(id, () => {
+    console.log('Result:', result)
+    setQueryParams({ game_id: result.id })
+  })
 
   return `
     <tr id="${id}">
@@ -261,8 +269,8 @@ function _sortStanding (s1, s2) {
   return retVal
 }
 
-async function _showGameModal (game) {
-  if (!game) return
+async function _showGameModal (resultId) {
+  const { result: game } = await server.getResult({ id: Number(resultId) })
   const { players: playersTeam1 } = await server.getTeam({ teamId: game.team1Id })
   const { players: playersTeam2 } = await server.getTeam({ teamId: game.team2Id })
   const players = {}
@@ -280,26 +288,36 @@ async function _showGameModal (game) {
   let ballControllA = 0
   let ballControllB = 0
   details.log.filter(l => typeof l.lostBall === 'boolean').forEach(l => {
-    if (l.lostBall && players[l.player].team1) {
-      ballControllB++
-    } else if (l.lostBall && !players[l.player].team1) {
-      ballControllA++
-    } else if (!l.lostBall && players[l.player].team1) {
-      ballControllA++
-    } else if (!l.lostBall && !players[l.player].team1) {
-      ballControllB++
+    try {
+      if (l.lostBall && players[l.player].team1) {
+        ballControllB++
+      } else if (l.lostBall && !players[l.player].team1) {
+        ballControllA++
+      } else if (!l.lostBall && players[l.player].team1) {
+        ballControllA++
+      } else if (!l.lostBall && !players[l.player].team1) {
+        ballControllB++
+      }
+    } catch (e) {
+      console.error('Error on game details: ', e)
     }
   })
   const total = ballControllA + ballControllB
-  showOverlay(
+  const overlay = showOverlay(
     `${game.team1} - ${game.team2}`,
     `
       Result: ${game.goalsTeam1} : ${game.goalsTeam2}, 
       Ball control: ${Math.floor((ballControllA / total) * 100)}% : ${Math.ceil((ballControllB / total) * 100)}%, 
       Guests: ${guests}
      `,
-    `${details.log.map(_renderGameLogItem(players)).join('')}`
+    `
+      ${renderGameAnimation(game)}
+      ${details.log.map(_renderGameLogItem(players)).join('')}
+      `
   )
+  overlay.onClose(() => {
+    setQueryParams({ game_id: null })
+  })
 }
 
 function _renderGameLogItem (players) {

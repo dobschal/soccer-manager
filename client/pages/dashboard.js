@@ -17,8 +17,9 @@ export async function renderDashboardPage () {
   const { results } = await server.getResults({ season, gameDay: gameDay - 1, level, league })
   const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id) ?? {}
   const isHomeGame = game.team1Id === team.id
-  const { news } = await server.getNews()
-  news.reverse()
+  const { news: messages } = await server.getNews()
+  messages.reverse()
+  const { news } = await server.getLeagueNews()
   return `
     <h2>${team.name}</h2>
     <p>
@@ -44,9 +45,12 @@ export async function renderDashboardPage () {
       </div>
     </div>
     <h3>News</h3>
+    ${news.map(n => `<h4>${n.title}</h4><p>${n.text}</p>`).join('')}
+    <h3>Messages</h3>
     <ul class="list-group">
-        ${news.map(newsItem => `<li class="list-group-item">
-<small>${formatDate('DD.MM.YYYY hh:mm', newsItem.created_at)}</small><br><i class="fa fa-chevron-right" aria-hidden="true"></i> ${newsItem.message}</li>`).join('')}
+        ${messages.map(newsItem => `<li class="list-group-item">
+            <small>${formatDate('DD.MM.YYYY hh:mm', newsItem.created_at)}</small><br><i class="fa fa-chevron-right" aria-hidden="true"></i> ${newsItem.message}
+          </li>`).join('')}
     </ul>
   `
 }

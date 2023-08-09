@@ -1,5 +1,6 @@
 import { query } from '../lib/database.js'
 import { calculateStanding } from '../lib/util.js'
+import { BadRequestError } from '../lib/errors.js'
 
 export default {
 
@@ -19,7 +20,8 @@ export default {
   async getResults (req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
     const results = await query(`
-      SELECT 
+      SELECT
+        g.id as id,
         g.goals_team_1 as goalsTeam1, 
         g.goals_team_2 as goalsTeam2, 
         t1.name as team1,  
@@ -34,6 +36,31 @@ export default {
       WHERE g.game_day=? AND g.season=? AND g.level=? AND g.league=?
     `, [req.body.gameDay, req.body.season, req.body.level ?? team.level, req.body.league ?? team.league])
     return { results }
+  },
+
+  /**
+   * @param req
+   * @returns {Promise<{result: { id: number, details: string, team1Id: number, team2Id: number, team1: TeamType, team2: TeamType, goalsTeam1: number, goalsTeam2: number}}>}
+   */
+  async getResult (req) {
+    const results = await query(`
+      SELECT
+        g.id as id,
+        g.goals_team_1 as goalsTeam1, 
+        g.goals_team_2 as goalsTeam2, 
+        t1.name as team1,  
+        t2.name as team2,
+        g.team_1_id as team1Id,
+        g.team_2_id as team2Id,
+        g.details as details,
+        g.created_at as created_at
+      FROM game g
+      JOIN team t1 ON t1.id=g.team_1_id
+      JOIN team t2 ON t2.id=g.team_2_id
+      WHERE g.id=?
+    `, [req.body.id])
+    if (results.length === 0) throw new BadRequestError('Game not found')
+    return { result: results[0] }
   },
 
   async getCurrentGameday () {

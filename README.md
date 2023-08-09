@@ -81,7 +81,7 @@ npm start
 - [x] Torschützen Liste
 - [ ] Zweikampf-Sieger
 - [ ] Hidden (weak) random on player level
-- [ ] Player Faces
+- [x] Player Faces
 - [ ] Stadium Build should take some time
 - [ ] iOS App
 - [ ] Show other teams stadiums
