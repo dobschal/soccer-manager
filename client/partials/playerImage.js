@@ -9,8 +9,8 @@ const skinColors = [
 
 const hairColors = [
   '#6D526F',
-  '#BC6D69',
-  '#DD8C79',
+  '#BC6D68',
+  '#DE8C79',
   '#E09976',
   '#7F5562',
   '#4C466A',
