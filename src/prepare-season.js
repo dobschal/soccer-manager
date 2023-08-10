@@ -254,6 +254,7 @@ async function _createRandomPlayer (team, i, season) {
   }
   const player = new Player({
     hair_color: Math.floor(Math.random() * 7),
+    skin_color: Math.floor(Math.random() * 3),
     team_id: team.id,
     name: (await generateRandomPlayerName()),
     carrier_start_season: season - age,

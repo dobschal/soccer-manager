@@ -62,6 +62,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     const carrierLength = 20 + Math.floor(Math.random() * 4)
     const player = new Player({
       hair_color: Math.floor(Math.random() * 7),
+      skin_color: Math.floor(Math.random() * 3),
       team_id: team.id,
       name: (await generateRandomPlayerName()),
       carrier_start_season: season - age,

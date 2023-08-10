@@ -231,6 +231,18 @@ const migrations = [{
     }
     await Promise.all(promises)
   }
+}, {
+  name: 'Alter table player to have skin color',
+  async run () {
+    await query('ALTER TABLE player ADD COLUMN skin_color INT;')
+    const players = await query('SELECT * FROM player')
+    const promises = []
+    for (const player of players) {
+      player.skin_color = Math.floor(Math.random() * 3)
+      promises.push(query('UPDATE player SET skin_color=? WHERE id=?', [player.skin_color, player.id]))
+    }
+    await Promise.all(promises)
+  }
 }]
 
 export async function runMigration () {
