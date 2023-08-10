@@ -34,8 +34,8 @@ function _renderTeamPlayer (team, type) {
     renderPlayerImage(player, team, 50).then(image => el(id)?.insertAdjacentHTML('afterbegin', image)).catch(() => console.error('Could not load player image'))
     setTimeout(() => el(id)?.classList.add(player.in_game_position), 500)
     return `
-        <div class="player ${type}" id="${id}">
-          ${player.name.split(' ')[1]} (${player.level.toFixed(2)})
+        <div class="player ${type} ${player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : '')}" id="${id}">
+          ${player.name.split(' ')[1]}
         </div>
       `
   }

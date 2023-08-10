@@ -19,7 +19,9 @@ export async function getActionCards (team) {
 export async function playActionCard ({ player: p, position, actionCard }, team) {
   if (actionCard.action === 'LEVEL_UP_PLAYER_9') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
-    if (player.level >= 10) throw new BadRequestError('Max level reached')
+    if (player.level >= 10) {
+      throw new BadRequestError('Max level reached')
+    }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
@@ -28,7 +30,9 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_7') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
-    if (player.level >= 7) throw new BadRequestError('Max level reached')
+    if (player.level >= 7) {
+      throw new BadRequestError('Max level reached')
+    }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
@@ -37,7 +41,9 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_4') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
-    if (player.level >= 4) throw new BadRequestError('Max level reached')
+    if (player.level >= 4) {
+      throw new BadRequestError('Max level reached')
+    }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])

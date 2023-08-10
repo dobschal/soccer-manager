@@ -27,25 +27,25 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
   let totalPrice = 0
   for (const standName of standNames) {
     const currentStandSize = currentStadium[standName + '_stand_size']
-    const planneStandSize = plannedStadium[standName + '_stand_size']
-    if (planneStandSize > 40000) throw new BadRequestError('Maximum allowed stand size is 40 000.')
-    const seatsDiff = Math.floor(planneStandSize - currentStandSize)
+    const plannedStandSize = plannedStadium[standName + '_stand_size']
+    if (plannedStandSize > 40000) throw new BadRequestError('Maximum allowed stand size is 40 000.')
+    const seatsDiff = Math.floor(plannedStandSize - currentStandSize)
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
-    const priceForSeats = seatsDiff * 200
-    /* const isLevelUpToMid = planneStandSize >= 4000 && currentStandSize < 4000
-    const isLevelUpToBig = planneStandSize >= 10000 && currentStandSize < 10000 */
-    let standPrice = priceForSeats
-    if (seatsDiff > 10000) standPrice += 5000000
-    else if (seatsDiff > 5000) standPrice += 1000000
-    else if (seatsDiff > 0) standPrice += 100000
+    if (seatsDiff === 0) continue
+
+    // Alianz Arena was 360_000_000 € for 60000 seats
+    // --> 6000 per seat incl Roof
+    const pricePerSeat = (seatsDiff / 60_000) * 5000
+    let standPrice = pricePerSeat * seatsDiff
     if (currentStadium[standName + '_stand_roof'] && !plannedStadium[standName + '_stand_roof']) {
       throw new BadRequestError('Roof cannot be removed')
     }
     if (!currentStadium[standName + '_stand_roof'] && plannedStadium[standName + '_stand_roof']) {
-      standPrice = standPrice * 1.3
+      standPrice = Math.max(250_000, standPrice * 1.1)
     }
     totalPrice += standPrice
   }
+  if (totalPrice > 0) totalPrice += 100_000 // costs of architect
   return totalPrice
 }
 
