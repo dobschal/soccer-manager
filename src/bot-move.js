@@ -180,7 +180,7 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
     }
   }
 
-  const sql = `SELECT * FROM trade_offer WHERE from_team_id <> ? AND type = 'buy' AND player_id IN (${players.filter(p => !p.in_game_position).map(p => p.id).join(', ')})`
+  const sql = `SELECT * FROM trade_offer WHERE from_team_id <> ? AND type = 'buy' AND player_id IN (${players.map(p => p.id).join(', ')})`
   /** @type {TradeOfferType[]} */
   const openIncomingOffers = await query(sql, [botTeam.id])
   openIncomingOffers.sort((oa, ob) => {
@@ -268,7 +268,7 @@ async function _checkTactic (botTeam, players, isStrongTeam) {
     const p2 = players.find(p2 => p2.id !== player.id &&
       !p2.in_game_position &&
       p2.position === player.position &&
-      (p2.level > player.level || (p2.freshness > player.freshness && player.freshness < 0.8) || (!isStrongTeam && Math.random() > 0.5)))
+      (p2.level > player.level || (p2.freshness > player.freshness && player.freshness < 0.8)))
     if (!p2) continue // no player to exchange
     p2.in_game_position = p2.position
     player.in_game_position = null
