@@ -7,111 +7,111 @@ import { render } from '../../lib/render.js'
 import { showPlayerModal } from '../../partials/playerModal.js'
 import { euroFormat } from '../../util/currency.js'
 import { renderTradesPage } from '../trades.js'
+import { renderTable } from '../../partials/table.js'
+import { renderButton } from '../../partials/button.js'
+import { _sortByPosition } from '../../partials/playersList.js'
 
 export async function renderMarket () {
   const { team } = await server.getMyTeam()
-  const { offers, players, teams } = await server.getOffers()
-  const offerList = _renderSellOfferList(offers, players, teams, team)
-  let priceSort
-  const priceHeader = generateId()
-  const tableBody = generateId()
+  let { offers, players, teams } = await server.getOffers()
+  offers = offers.filter(o => o.type === 'sell' && o.from_team_id !== team.id)
 
-  onClick(priceHeader, () => {
-    offers.sort((oa, ob) => {
-      if (priceSort === 'DESC') {
-        el(priceHeader).classList.add('asc')
-        el(priceHeader).classList.remove('desc')
-        return oa.offer_value - ob.offer_value
-      }
-      el(priceHeader).classList.remove('asc')
-      el(priceHeader).classList.add('desc')
-      return ob.offer_value - oa.offer_value
-    })
-    priceSort = priceSort === 'DESC' ? 'ASC' : 'DESC'
-    el(tableBody).innerHTML = _renderSellOfferList(offers, players, teams, team)
+  const table = renderTable({
+    data: offers,
+    cols: _prepareTableCols(players),
+    renderRow: offer => {
+      const player = players.find(p => p.id === offer.player_id)
+      const team = teams.find(t => t.id === offer.from_team_id)
+      return [
+        player.name,
+        team.name,
+        player.position,
+        player.level,
+        euroFormat.format(offer.offer_value),
+        renderButton('Buy', () => _showBuyDialog(player), 'primary')
+      ]
+    }
   })
 
   return `
     <h2>Transfer market</h2>
     <p>Have a look on the transfer market to catch better players:</p>
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col" class="d-none d-sm-table-cell">Team</th>
-          <th scope="col">Position</th>
-          <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
-          <th scope="col" id="${priceHeader}" class="text-right sort-header">
-            Price
-          </th>
-          <th scope="col" class="d-none d-sm-table-cell"></th>
-        </tr>
-      </thead>
-      <tbody id="${tableBody}">
-        ${offerList}
-      </tbody>
-    </table>
+    ${table}
   `
 }
 
+function _prepareTableCols (players) {
+  return [{
+    name: 'Name',
+    onClick (offer) {
+      const player = players.find(p => p.id === offer.player_id)
+      showPlayerModal(player)
+    }
+  }, {
+    name: 'Team',
+    largeScreenOnly: true
+  }, {
+    name: 'Position',
+    sortFn (offerA, offerB, isAsc) {
+      const playerA = players.find(p => p.id === offerA.player_id)
+      const playerB = players.find(p => p.id === offerB.player_id)
+      if (isAsc) {
+        return _sortByPosition(playerB, playerA)
+      }
+      return _sortByPosition(playerA, playerB)
+    }
+  }, {
+    name: 'Level',
+    largeScreenOnly: true,
+    sortFn (offerA, offerB, isAsc) {
+      const playerA = players.find(p => p.id === offerA.player_id)
+      const playerB = players.find(p => p.id === offerB.player_id)
+      if (!isAsc) {
+        return playerA.level - playerB.level
+      }
+      return playerB.level - playerA.level
+    },
+    align: 'right'
+  }, {
+    name: 'Price',
+    align: 'right',
+    sortKey: 'offer_value'
+  }, {
+    name: '',
+    largeScreenOnly: true
+  }]
+}
+
 /**
- * @param {TradeOfferType[]} offers
- * @param {PlayerType[]} players
- * @param {TeamType[]} teams
- * @param {TeamType} team
- * @returns {string}
+ * @param {PlayerType} player
+ * @returns {Promise<void>}
  * @private
  */
-function _renderSellOfferList (offers, players, teams, team) {
-  return offers
-    .filter(o => o.type === 'sell' && o.from_team_id !== team.id)
-    .map(offer => {
-      const buyButtonId = generateId()
-      const player = players.find(p => offer.player_id === p.id)
-      const team = teams.find(t => t.id === player.team_id)
-
-      onClick(buyButtonId, async () => {
-        const { ok, value } = await showDialog({
-          title: `Buy ${player.name}?`,
-          text: 'Please enter the value of your offer to buy this player.',
-          hasInput: true,
-          inputType: 'number',
-          inputLabel: 'Price',
-          buttonText: 'Submit Offer'
-        })
-        if (!ok) return
-        const price = Number(value)
-        if (price <= 0) {
-          toast('Please enter a valid price.', 'error')
-          return
-        }
-        try {
-          await server.addTradeOffer({
-            player,
-            price,
-            type: 'buy'
-          })
-          toast('You\'ve sent a buy offer')
-          render('#page', await renderTradesPage())
-        } catch (e) {
-          console.error(e)
-          toast(e.message ?? 'Something went wrong', 'error')
-        }
-      })
-
-      const playerNameId = generateId()
-      onClick(playerNameId, () => showPlayerModal(player))
-
-      return `
-      <tr>
-        <td id="${playerNameId}" class="hover-text">${player.name}</td>
-        <td class="d-none d-sm-table-cell">${team.name}</td>
-        <td>${player.position}</td>
-        <td class="text-right d-none d-sm-table-cell">${player.level}</td>
-        <td class="text-right">${euroFormat.format(offer.offer_value)}</td>
-        <td class="d-none d-sm-table-cell"><button id="${buyButtonId}" class="btn btn-primary">Buy</button></td>
-      </tr>
-    `
+async function _showBuyDialog (player) {
+  const { ok, value } = await showDialog({
+    title: `Buy ${player.name}?`,
+    text: 'Please enter the value of your offer to buy this player.',
+    hasInput: true,
+    inputType: 'number',
+    inputLabel: 'Price',
+    buttonText: 'Submit Offer'
+  })
+  if (!ok) return
+  const price = Number(value)
+  if (price <= 0) {
+    toast('Please enter a valid price.', 'error')
+    return
+  }
+  try {
+    await server.addTradeOffer({
+      player,
+      price,
+      type: 'buy'
     })
-    .join('')
+    toast('You\'ve sent a buy offer')
+    render('#page', await renderTradesPage())
+  } catch (e) {
+    console.error(e)
+    toast(e.message ?? 'Something went wrong', 'error')
+  }
 }

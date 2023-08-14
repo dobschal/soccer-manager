@@ -120,6 +120,7 @@ body {
 
 th.sort-header {
   cursor: pointer;
+  white-space: nowrap;
 }
 th.sort-header:before {
   content: "▶";
