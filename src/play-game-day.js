@@ -11,20 +11,20 @@ import { getPlayerAge } from './helper/playerHelper.js'
 const actionCardChances = {
   LEVEL_UP_PLAYER_9: 0.075,
   LEVEL_UP_PLAYER_7: 0.2,
-  LEVEL_UP_PLAYER_4: 0.5,
+  LEVEL_UP_PLAYER_4: 0.4,
   CHANGE_PLAYER_POSITION: 0.05,
   NEW_YOUTH_PLAYER: 0.1
 }
 
 export async function calculateGames () {
   const { gameDay, season } = await getGameDayAndSeason()
-  await _giveAllPlayersFreshness(season)
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   await Promise.all(games.map(game => _playGame(game)))
   await _giveUsersActionCards()
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)
+  await _giveAllPlayersFreshness(season)
   console.log('\n\nPlayed game day ' + gameDay)
 }
 

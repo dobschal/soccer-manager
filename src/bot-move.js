@@ -8,6 +8,7 @@ import { acceptOffer, declineOffer } from './helper/tradeHelper.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { buildStadium, calcuateStadiumBuild } from './helper/stadiumHelper.js'
 import { getPlayerAge, getPlayerById } from './helper/playerHelper.js'
+import { getPositionsOfFormation } from '../client/lib/formation.js'
 
 // 1. Check Tactic (/)
 // 2. Play Action Cards (/)
@@ -257,22 +258,40 @@ async function _checkActionCards (botTeam, players, isStrongTeam) {
 }
 
 /**
+ * Get the teams formation, set all in_game_positions to null
+ * then for each position select best player
+ *
  * @param {TeamType} botTeam
  * @param {PlayerType[]} players
  * @param {boolean} isStrongTeam
  * @private
  */
 async function _checkTactic (botTeam, players, isStrongTeam) {
+  // remove all players from formation
+  players.forEach(p => (p.in_game_position = null))
+
+  // find best freshest player for formation
+  const positions = getPositionsOfFormation(botTeam.formation)
+  for (const position of positions) {
+    let selectedPlayer
+    for (const player of players) {
+      if (player.in_game_position || player.position !== position) {
+        continue
+      }
+      if (!selectedPlayer || selectedPlayer.freshness < player.freshness || selectedPlayer.level < player.level) {
+        selectedPlayer = player
+      }
+    }
+    if (!selectedPlayer) {
+      console.error('Team has player for position! ', botTeam, position)
+      continue
+    }
+    selectedPlayer.in_game_position = position
+  }
+
+  // Update database
   const promises = []
-  for (const player of players.filter(p => p.in_game_position)) {
-    const p2 = players.find(p2 => p2.id !== player.id &&
-      !p2.in_game_position &&
-      p2.position === player.position &&
-      (p2.level > player.level || (p2.freshness > player.freshness && player.freshness < 0.8)))
-    if (!p2) continue // no player to exchange
-    p2.in_game_position = p2.position
-    player.in_game_position = null
-    promises.push(query('UPDATE player SET in_game_position=? WHERE id=?', [p2.in_game_position, p2.id]))
+  for (const player of players) {
     promises.push(query('UPDATE player SET in_game_position=? WHERE id=?', [player.in_game_position, player.id]))
   }
   await Promise.all(promises)
