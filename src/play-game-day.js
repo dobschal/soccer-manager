@@ -320,7 +320,7 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
  * @param {Object} gameDetails
  */
 function _chanceToShoot (player, gameDetails) {
-  if (player.position.endsWith('A')) return 0.2
+  if (player.position.endsWith('A')) return 0.3
   if (player.position.endsWith('M')) return 0.1
   if (player.position.endsWith('D')) return 0.01
   return 0.0001

@@ -121,7 +121,6 @@ async function _getAveragePlanPriceOfPlayerLevel (player) {
 }
 
 /**
- *
  * @param {TeamType} botTeam
  * @param {PlayerType[]} players
  * @param {boolean} isStrongTeam
