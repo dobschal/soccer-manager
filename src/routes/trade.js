@@ -29,6 +29,7 @@ export default {
     }
     /** @type {TeamType[]} */
     const teams = await query(`SELECT * FROM team WHERE id IN (${teamIds.join(', ')})`)
+    players.forEach(p => p.in_game_position = null)
     return { offers, players, teams }
   },
 
