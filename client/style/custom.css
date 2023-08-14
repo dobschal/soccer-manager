@@ -118,6 +118,28 @@ body {
   cursor: pointer;
 }
 
+th.sort-header {
+  cursor: pointer;
+}
+th.sort-header:before {
+  content: "▶";
+  display: inline-block;
+  opacity: 0.5;
+  transition: transform 0.5s ease-in-out;
+}
+th.sort-header.asc:before {
+  content: "▶";
+  display: inline-block;
+  transform: rotate(-90deg);
+  opacity: 1.0;
+}
+th.sort-header.desc:before {
+  content: "▶";
+  display: inline-block;
+  transform: rotate(90deg);
+  opacity: 1.0;
+}
+
 /* Used for the game details modal */
 .overlay .left {
   display: block;

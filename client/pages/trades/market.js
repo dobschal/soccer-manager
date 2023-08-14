@@ -1,5 +1,5 @@
 import { server } from '../../lib/gateway.js'
-import { generateId } from '../../lib/html.js'
+import { el, generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
 import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
@@ -12,6 +12,25 @@ export async function renderMarket () {
   const { team } = await server.getMyTeam()
   const { offers, players, teams } = await server.getOffers()
   const offerList = _renderSellOfferList(offers, players, teams, team)
+  let priceSort
+  const priceHeader = generateId()
+  const tableBody = generateId()
+
+  onClick(priceHeader, () => {
+    offers.sort((oa, ob) => {
+      if (priceSort === 'DESC') {
+        el(priceHeader).classList.add('asc')
+        el(priceHeader).classList.remove('desc')
+        return oa.offer_value - ob.offer_value
+      }
+      el(priceHeader).classList.remove('asc')
+      el(priceHeader).classList.add('desc')
+      return ob.offer_value - oa.offer_value
+    })
+    priceSort = priceSort === 'DESC' ? 'ASC' : 'DESC'
+    el(tableBody).innerHTML = _renderSellOfferList(offers, players, teams, team)
+  })
+
   return `
     <h2>Transfer market</h2>
     <p>Have a look on the transfer market to catch better players:</p>
@@ -22,11 +41,13 @@ export async function renderMarket () {
           <th scope="col" class="d-none d-sm-table-cell">Team</th>
           <th scope="col">Position</th>
           <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
-          <th scope="col" class="text-right">Price</th>
+          <th scope="col" id="${priceHeader}" class="text-right sort-header">
+            Price
+          </th>
           <th scope="col" class="d-none d-sm-table-cell"></th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="${tableBody}">
         ${offerList}
       </tbody>
     </table>

@@ -101,61 +101,73 @@
 .squad .player.GK {
   top: 85%;
   left: 50%;
+  z-index: 6;
 }
 
 .squad .player.LD {
   top: 65%;
   left: 15%;
+  z-index: 5;
 }
 
 .squad .player.CD {
   top: 70%;
   left: 50%;
+  z-index: 5;
 }
 
 .squad .player.RD {
   top: 65%;
   left: 85%;
+  z-index: 5;
 }
 
 .squad .player.CM {
   top: 40%;
   left: 50%;
+  z-index: 3;
 }
 
 .squad .player.LM {
   top: 40%;
   left: 15%;
+  z-index: 3;
 }
 
 .squad .player.RM {
   top: 40%;
   left: 85%;
+  z-index: 3;
 }
 
 .squad .player.DM {
   top: 55%;
   left: 50%;
+  z-index: 4;
 }
 
 .squad .player.OM {
   top: 25%;
   left: 50%;
+  z-index: 2;
 }
 
 .squad .player.CA {
   top: 10%;
   left: 50%;
+  z-index: 1;
 }
 
 .squad .player.RA {
   top: 10%;
   left: 75%;
+  z-index: 1;
 }
 
 .squad .player.LA {
   top: 10%;
   left: 25%;
+  z-index: 1;
 }
 
 .level-1,
