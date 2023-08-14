@@ -1,6 +1,4 @@
 import { server } from '../../lib/gateway.js'
-import { el, generateId } from '../../lib/html.js'
-import { onClick } from '../../lib/htmlEventHandlers.js'
 import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
 import { render } from '../../lib/render.js'
