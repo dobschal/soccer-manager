@@ -1,3 +1,10 @@
 import { calculateGames } from './play-game-day.js'
 
-calculateGames().then(() => process.exit(0))
+async function run () {
+  const amountOfGamesToPlay = 10
+  for (let i = 0; i < amountOfGamesToPlay; i++) {
+    await calculateGames()
+  }
+  process.exit(0)
+}
+run()

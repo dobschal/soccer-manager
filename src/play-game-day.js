@@ -20,6 +20,7 @@ export async function calculateGames () {
   const { gameDay, season } = await getGameDayAndSeason()
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
+  if (games.length === 0) return console.error('No games to play...')
   await Promise.all(games.map(game => _playGame(game)))
   await _giveUsersActionCards()
   await _letTeamsPaySallaries(gameDay, season)
@@ -48,25 +49,29 @@ async function _giveAllPlayersFreshness (season) {
 }
 
 async function _giveSponsorMoney (gameDay, season) {
+  const t1 = Date.now()
   /** @type {Array<import('./entities/team.js').TeamType>} */
   const teams = await query('SELECT * FROM team')
 
   await Promise.all(teams.map(async team => {
+    const t1 = Date.now()
     const { sponsor } = await getSponsor(team)
+    console.log('Get team sponsor in ' + (Date.now() - t1) + 'ms')
     if (!sponsor) return
     await updateTeamBalance(team, sponsor.value, `Sponsor deal with ${sponsor.name}`, gameDay, season)
   }))
-  console.log('Gave all teams their sponsor money')
+  console.log('Gave all teams their sponsor money in' + (Date.now() - t1) + 'ms')
 }
 
 async function _letTeamsPaySallaries (gameDay, season) {
+  const t1 = Date.now()
   const teams = await query('SELECT * FROM team')
   await Promise.all(teams.map(async team => {
     const players = await query('SELECT * FROM player WHERE team_ID=?', [team.id])
     const totalSallaryCosts = players.reduce((total, player) => total + sallaryPerLevel[player.level], 0) * -1
     await updateTeamBalance(team, totalSallaryCosts, 'Player salaries', gameDay, season)
   }))
-  console.log('Paid all salaries')
+  console.log('Paid all salaries in' + (Date.now() - t1) + 'ms')
 }
 
 async function _giveUsersActionCards () {
@@ -178,8 +183,8 @@ async function _playGame (game) {
     player.level = player.freshness * player.level
   }
   _kickoff(playerTeamA, playerTeamB, gameDetails)
-  const overtime = Math.floor(Math.random() * 5)
-  for (let minute = 0; minute < 90 + overtime; minute++) {
+  const overtime = Math.floor(Math.random() * 50)
+  for (let minute = 0; minute < 900 + overtime; minute++) {
     _playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
   console.log('Result: ', gameDetails.goalsTeamA, gameDetails.goalsTeamB)
@@ -227,8 +232,8 @@ function _playGameStep (playerTeamA, playerTeamB, gameDetails) {
 }
 
 /**
- * @param {Array<Player>} playerTeamA
- * @param {Array<Player>} playerTeamB
+ * @param {Array<PlayerType>} playerTeamA
+ * @param {Array<PlayerType>} playerTeamB
  * @param {Object} gameDetails
  * @returns {boolean} false if lost ball
  */
@@ -239,6 +244,9 @@ function _fightsOponents (playerTeamA, playerTeamB, gameDetails) {
   if (!activePlayer) {
     activePlayer = playerTeamB.find(p => p.hasBall)
     teamAHasBall = false
+  }
+  if (Math.random() > _chanceToFight(activePlayer)) {
+    return true
   }
   const oponentPosition = determineOponentPosition(activePlayer.position)
   const oponentPlayers = (teamAHasBall ? playerTeamB : playerTeamA).filter(p => p.position === oponentPosition)
@@ -290,7 +298,7 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
   if (!goalKeeper) {
     console.log('Team has no goalkeeper set!')
   }
-  if (goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)) {
+  if ((goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)) || Math.random() > 0.33) {
     gameDetails.log.push({
       keeperHolds: true,
       goalKeeper: goalKeeper.id
@@ -316,14 +324,25 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
 }
 
 /**
- * @param {Player} player
- * @param {Object} gameDetails
+ * @param {PlayerType} player
+ * @returns {number}
  */
-function _chanceToShoot (player, gameDetails) {
-  if (player.position.endsWith('A')) return 0.3
-  if (player.position.endsWith('M')) return 0.1
-  if (player.position.endsWith('D')) return 0.01
-  return 0.0001
+function _chanceToShoot (player) {
+  if (player.position.endsWith('A')) return 0.13
+  if (player.position.endsWith('M')) return 0.045
+  if (player.position.endsWith('D')) return 0.0045
+  return 0.000045
+}
+
+/**
+ * @param {PlayerType} player
+ * @returns {number}
+ */
+function _chanceToFight (player) {
+  if (player.position.endsWith('A')) return 0.75
+  if (player.position.endsWith('M')) return 0.5
+  if (player.position.endsWith('D')) return 0.1
+  return 0.01
 }
 
 /**
@@ -346,4 +365,9 @@ function _passBall (playerTeamA, playerTeamB, gameDetails) {
   }
   activePlayer.hasBall = false
   nextPlayer.hasBall = true
+  gameDetails.log.push({
+    pass: true,
+    newPlayer: nextPlayer.id,
+    oldPlayer: activePlayer.id
+  })
 }

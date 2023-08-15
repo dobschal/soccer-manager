@@ -117,7 +117,7 @@ const migrations = [{
                 team_1_id BIGINT(20),
                 team_2_id BIGINT(20),
                 played TINYINT(1),
-                details TEXT,
+                details LONGTEXT,
                 goals_team_1 INT,
                 goals_team_2 INT,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
