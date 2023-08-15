@@ -32,7 +32,11 @@ export async function renderGameLayout () {
       clearInterval(interval)
       return
     }
-    el('#' + nextGameInElementId).innerHTML = `<i class="fa fa-clock-o" aria-hidden="true"></i> ${hours}h ${twoDigits(minutes % 60)}min ${twoDigits(seconds % 60)}sec`
+    const time = hours > 0
+      ? `${hours}h ${twoDigits(minutes % 60)}min`
+      : `${twoDigits(minutes % 60)}min ${twoDigits(seconds % 60)}sec`
+
+    el('#' + nextGameInElementId).innerHTML = `<i class="fa fa-clock-o" aria-hidden="true"></i> ${time}`
   }, 1000)
 
   onClick('#logout-button', () => {
@@ -48,7 +52,7 @@ export async function renderGameLayout () {
 
   return `
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-      <a class="navbar-brand" href="#">Soccer-Manager.io</a>
+      <a class="navbar-brand px-3" href="#">SoccerManagerIO</a>
       <button class="navbar-toggler" 
               type="button" 
               data-toggle="collapse" 
@@ -59,16 +63,17 @@ export async function renderGameLayout () {
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav mr-auto">
+        <ul class="navbar-nav mr-auto px-2">
           ${_navItem('my-team', '<i class="fa fa-users" aria-hidden="true"></i> Team')}
           ${_navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
           ${_navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}
           ${_navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
           ${_navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Trades')}
         </ul>
-        <div class="pr-4" id="${nextGameInElementId}">
+        <div class="px-2 d-none d-sm-block">|</div>
+        <div class="px-2" id="${nextGameInElementId}">
         </div>
-        <div class="pr-4">
+        <div class="px-2">
             <i class="fa fa-money" aria-hidden="true"></i> ${balance}
         </div>
         <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>

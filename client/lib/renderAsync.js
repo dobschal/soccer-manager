@@ -5,7 +5,7 @@ export function renderAsync (renderFn) {
     const id = generateId()
     const updateFn = async (...params) => {
       const wrapperElement = el(id)
-      wrapperElement.innerHTML = await renderFn(updateFn, ...params)
+      wrapperElement.innerHTML = await renderFn(...params, updateFn)
     }
     setTimeout(() => updateFn(...params))
     return `<div id="${id}"></div>`

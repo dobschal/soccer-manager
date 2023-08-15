@@ -17,6 +17,29 @@
   }
 }
 
+@keyframes overlay-fade-in-1 {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-fade-in-2 {
+  0% {
+    opacity: 0;
+    transform: translateY(50vh);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(50vh);
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 body {
   font-variant-numeric: tabular-nums !important;
   background-image: url("../assets/bg-1.jpg");
@@ -106,16 +129,34 @@ body {
   height: 100vh;
   display: flex;
   overflow-y: auto;
+  animation-name: overlay-fade-in-1;
+  animation-duration: 0.5s;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-in-out;
 }
 
 .overlay {
   max-width: 640px;
   width: 100%;
-  margin: auto
+  margin: auto;
+  animation-name: overlay-fade-in-2;
+  animation-duration: 1s;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-in-out;
 }
 
 .table-hover tr:hover {
   cursor: pointer;
+}
+
+table.table thead tr th {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background-color: #333;
+  color: white;
+  border-radius: 255px 0 217px 0px/25px 225px 0px 249px;
+  border-bottom: none;
+  line-height: 20px;
 }
 
 th.sort-header {
@@ -162,14 +203,24 @@ td small.table-divider-text {
   margin-left: 30%;
 }
 
-.hover-text {
+a:link,
+a:visited,
+.hover-text:not(td) {
+  text-decoration: none;
+  color: initial;
   border-bottom: dotted 1px #C0C0C0;
+  display: inline-block;
+  transition: transform 0.3s ease-in-out;
 }
 
+.navbar a:link, .navbar a:visited, a:link.row, a:visited.row {
+  border: none;
+}
+
+a:hover, a:active,
 .hover-text:hover {
   cursor: pointer;
-  font-weight: bold;
-  letter-spacing: -0.6px;
+  transform: scale(1.05);
 }
 
 .finance-canvas {

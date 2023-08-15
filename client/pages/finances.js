@@ -35,15 +35,6 @@ export async function renderFinancesPage () {
     <div>
         <h3>Transactions</h3>
         <table class="table table-hover">
-          <thead>
-            <tr>
-              <th scope="col">Season</th>
-              <th scope="col">Game Day</th>
-              <th scope="col" class="text-right">Difference</th>
-              <th scope="col" class="d-none d-md-table-cell text-right">Balance</th>
-              <th scope="col" class="d-none d-sm-table-cell">Reason</th>    
-            </tr>
-          </thead>
           <tbody>
             ${financeLog.sort(_sortFinanceLog).map(_renderFinanceLog).join('')}
           </tbody>
@@ -65,16 +56,26 @@ function _sortFinanceLog (logA, logB) {
 
 /**
  * @param {FinanceLogType} logItem
+ * @param {number} index
+ * @param {FinanceLogType[]} array
  * @private
  */
-function _renderFinanceLog (logItem) {
+function _renderFinanceLog (logItem, index, array) {
+  let dividerRow = ''
+  if (array[index - 1]?.game_day !== logItem.game_day) {
+    dividerRow = `
+        <tr>
+            <td><small class="table-divider-text">Game Day: ${logItem.game_day + 1}</small></td>
+            <td class="d-none d-sm-table-cell"></td>
+            <td></td>
+        </tr>`
+  }
   return `
+    ${dividerRow}
     <tr>
-      <td>${logItem.season + 1}</td>
-      <td>${logItem.game_day + 1}</td>
       <td class="text-right ${logItem.value > 0 ? 'text-success' : 'text-danger'}">${logItem.value > 0 ? '+' : ''}${euroFormat.format(logItem.value)}</td>
       <td class="d-none d-md-table-cell text-right">${euroFormat.format(logItem.balance)}</td>
-      <td class="d-none d-sm-table-cell">${logItem.reason}</td>
+      <td>${logItem.reason}</td>
     </tr>
   `
 }

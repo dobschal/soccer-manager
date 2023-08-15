@@ -5,6 +5,9 @@ import { getPlayerById } from '../helper/playerHelper.js'
 import { euroFormat } from '../../client/util/currency.js'
 import { randomItem } from '../lib/util.js'
 
+/** @type {{news: NewsArticle[], season: number, gameDay: number}[]} */
+const newsCache = []
+
 const texts = {
   transfer: [{
     title: 'Record-breaking Transfer Sees {playerName} Join {toTeam} for {price}',
@@ -25,9 +28,7 @@ const texts = {
 }
 
 export default {
-  //
-  // TODO: Rename this
-  //
+
   async getLogMessages (req) {
     const team = await getTeam(req)
     const messages = await query('SELECT * FROM news WHERE team_id=?', [team.id])
@@ -48,11 +49,15 @@ export default {
    * * level up history
    * * new top scorer
    * @param {Request} req
-   * @returns {Promise<NewsArticle[]>}
+   * @returns {Promise<{news: NewsArticle[], season: number, gameDay: number}>}
    */
   async getLeagueNews (req) {
-    const news = []
     const { gameDay, season } = await getGameDayAndSeason()
+    const cachedNews = newsCache.find(n => n.gameDay === gameDay && n.season === season)
+    if (cachedNews) {
+      return cachedNews
+    }
+    const news = []
     const results = await query('SELECT * FROM trade_history WHERE season=? AND game_day=? ORDER BY price DESC LIMIT 1', [season, gameDay])
     if (results.length > 0) {
       /** @type {TradeHistoryType} */
@@ -61,16 +66,24 @@ export default {
       const newTeam = await getTeamById(tradeHistory.to_team_id)
       const oldTeam = await getTeamById(tradeHistory.from_team_id)
       let { title, text } = randomItem(texts.transfer)
-      title = title.replaceAll('{playerName}', player.name)
-      text = text.replaceAll('{playerName}', player.name)
-      title = title.replaceAll('{fromTeam}', oldTeam.name)
-      text = text.replaceAll('{fromTeam}', oldTeam.name)
-      title = title.replaceAll('{toTeam}', newTeam.name)
-      text = text.replaceAll('{toTeam}', newTeam.name)
+      const playerLink = `<a href="#team?id=${newTeam.id}&player_id=${player.id}">${player.name}</a>`
+      const oldTeamLink = `<a href="#team?id=${oldTeam.id}">${oldTeam.name}</a>`
+      const newTeamLink = `<a href="#team?id=${newTeam.id}">${newTeam.name}</a>`
+      title = title.replaceAll('{playerName}', playerLink)
+      text = text.replaceAll('{playerName}', playerLink)
+      title = title.replaceAll('{fromTeam}', oldTeamLink)
+      text = text.replaceAll('{fromTeam}', oldTeamLink)
+      title = title.replaceAll('{toTeam}', newTeamLink)
+      text = text.replaceAll('{toTeam}', newTeamLink)
       title = title.replaceAll('{price}', euroFormat.format(tradeHistory.price))
       text = text.replaceAll('{price}', euroFormat.format(tradeHistory.price))
       news.push({ title, text, playerId: player.id })
     }
-    return { news }
+    newsCache.push({
+      gameDay,
+      season,
+      news
+    })
+    return { gameDay, season, news }
   }
 }

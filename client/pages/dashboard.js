@@ -31,9 +31,9 @@ export async function renderDashboardPage () {
     <b>Season: </b> ${season + 1}, <b>Game day: </b> ${gameDay}
     </p>
     <div  class="card card-body mb-4 bg-light">    
-      <a class="row pt-2" href="#results">
+      <a class="row pt-2 d-flex" href="#results?game_id=${game.id}">
           <div class="col-12 col-sm-5 text-dark text-center ${isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team1 ?? ''}</h4></div>
-          <div class="col-12 col-sm-2 text-dark text-center"><h4><span class="badge badge-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h4></div>
+          <div class="col-12 col-sm-2 text-dark text-center"><h4><span class="badge bg-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h4></div>
           <div class="col-12 col-sm-5 text-dark text-center ${!isHomeGame ? 'font-weight-bold' : ''}"><h4>${game.team2 ?? ''}</h4></div>
       </a>
     </div>

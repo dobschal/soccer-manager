@@ -71,7 +71,7 @@ function _renderMyOffersList (offers, players, teams, team) {
 
       return `
       <tr id="${rowId}">
-        <td><span class="badge badge-${offer.type === 'sell' ? 'secondary' : 'primary'}">${offer.type}</span></td>
+        <td><span class="badge bg-${offer.type === 'sell' ? 'secondary' : 'primary'}">${offer.type}</span></td>
         <td class="hover-text" id="${playerNameId}">${player.name}</td>
         <td class="d-none d-sm-table-cell">${offer.type === 'sell' ? '' : team.name}</td>
         <td class="d-none d-sm-table-cell">${player.position}</td>
