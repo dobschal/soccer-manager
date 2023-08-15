@@ -259,6 +259,7 @@ td small.table-divider-text {
 }
 
 @media screen and (max-width: 768px) {
+  ul.list-group,
   table.table {
     margin: 0 -2rem 4rem -2rem;
     width: calc(100% + 4rem);

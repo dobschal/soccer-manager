@@ -112,7 +112,7 @@ function _renderActionCard (actionCard) {
 
   const mergeButton = !canMerge
     ? ''
-    : `<button id="${mergeButtonId}" type="button" class="btn btn-warning mt-2">Merge Cards</button>`
+    : `<button id="${mergeButtonId}" type="button" class="btn btn-warning mt-2 w-100">Merge Cards</button>`
 
   return `
       <div class="col-12 col-sm-6 col-md-4 mb-4">
@@ -125,7 +125,7 @@ function _renderActionCard (actionCard) {
           <div class="card-body">
             <h5 class="card-title">${actionCardTexts[actionCard.action].title}</h5>
             <p class="card-text">${actionCardTexts[actionCard.action].description}</p>
-            <button id="${id}" type="button" class="btn btn-primary">Use now</button>
+            <button id="${id}" type="button" class="btn btn-primary w-100">Use now</button>
             ${mergeButton}
           </div>
         </div>

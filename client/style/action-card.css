@@ -1,2 +1,4 @@
-.action-card {
+.action-card img {
+    aspect-ratio: 1.6/1;
+    object-fit: cover;
 }
