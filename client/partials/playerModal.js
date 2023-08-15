@@ -11,10 +11,11 @@ import { renderPlayerImage } from './playerImage.js'
 import { showDialog } from './dialog.js'
 
 /**
- * @param {PlayerType} player
+ * @param {number} playerId
  * @returns {Promise<void>}
  */
-export async function showPlayerModal (player) {
+export async function showPlayerModal (playerId) {
+  const player = await server.getPlayerById_V2(playerId)
   const { season } = await server.getCurrentGameday()
   const { team: myTeam } = await server.getMyTeam()
   const isMyPlayer = myTeam.id === player.team_id
@@ -23,6 +24,7 @@ export async function showPlayerModal (player) {
   const playerImage = await renderPlayerImage(player, myTeam)
   const { team: playersTeam } = await server.getTeam({ teamId: player.team_id })
   const teamLinkId = generateId()
+  const price = await server.estimateValue_V2(player.id)
 
   const { offer } = await server.myOfferForPlayer({ player })
 
@@ -74,6 +76,7 @@ export async function showPlayerModal (player) {
         <b>Level</b>: ${player.level}<br>
         <b>Freshness</b>: ${Math.floor(player.freshness * 100)}%<br>
         <b>Sallary</b>: ${euroFormat.format(sallaryPerLevel[player.level])}<br>
+        <b>Value</b>: ${euroFormat.format(price)}<br>
         <b>Team</b>: <span id="${teamLinkId}" class="text-info">${playersTeam.name}</span>
       </p>
       <div class="${offer ? 'hidden' : ''} mb-4" style="clear: both">

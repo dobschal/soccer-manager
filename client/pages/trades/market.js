@@ -8,6 +8,7 @@ import { renderTradesPage } from '../trades.js'
 import { renderTable } from '../../partials/table.js'
 import { renderButton } from '../../partials/button.js'
 import { _sortByPosition } from '../../partials/playersList.js'
+import { setQueryParams } from '../../lib/router.js'
 
 export async function renderMarket () {
   const { team } = await server.getMyTeam()
@@ -42,8 +43,7 @@ function _prepareTableCols (players) {
   return [{
     name: 'Name',
     onClick (offer) {
-      const player = players.find(p => p.id === offer.player_id)
-      showPlayerModal(player)
+      setQueryParams({ player_id: offer.player_id })
     }
   }, {
     name: 'Team',

@@ -4,8 +4,9 @@ import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelpr.js'
 import { addNews } from './newsHelper.js'
 import { getTeamById } from './teamHelper.js'
-import { getPlayerById } from './playerHelper.js'
+import { getPlayerAge, getPlayerById } from './playerHelper.js'
 import { TradeHistory } from '../entities/tradeHistory.js'
+import { getGameDayAndSeason } from './gameDayHelper.js'
 
 export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   offer = new TradeOffer(offer)
@@ -54,4 +55,26 @@ export async function declineOffer (offer) {
   const player = await getPlayerById(offer.player_id)
   const team = await getTeamById(offer.from_team_id)
   await addNews(`Your buy offer for ${player.name} from ${team.name} was NOT accepted!`, team)
+}
+
+/**
+ * @param {string} position
+ * @param {number} age
+ * @param {number} level
+ * @returns {Promise<(TradeHistoryType & PlayerType)[]>}
+ */
+export async function getPastTrades (position, age, level) {
+  /** @type {(TradeHistoryType & PlayerType)[]} */
+  const trades = await query(`
+    SELECT * FROM trade_history th 
+        JOIN player p on th.player_id = p.id
+    WHERE p.position=? AND p.level=?
+  `, [position, level])
+  const { season } = await getGameDayAndSeason()
+  const retVal = []
+  for (const tradeWithPlayer of trades) {
+    const age2 = await getPlayerAge(tradeWithPlayer, season)
+    if (age2 === age) retVal.push(tradeWithPlayer)
+  }
+  return retVal
 }

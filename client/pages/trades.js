@@ -3,9 +3,11 @@ import { getQueryParams } from '../lib/router.js'
 import { renderMarket } from './trades/market.js'
 import { renderIncomingOffers } from './trades/incoming.js'
 import { renderTradeHistory } from './trades/tradeHistory.js'
+import { showPlayerModal } from '../partials/playerModal.js'
 
 export async function renderTradesPage () {
   const params = getQueryParams()
+  if (params.player_id) await showPlayerModal(Number(params.player_id))
   let page = ''
   switch (params.sub_page) {
     case 'incoming':

@@ -141,6 +141,12 @@ th.sort-header.desc:before {
   opacity: 1.0;
 }
 
+td small.table-divider-text {
+  display: block;
+  margin: 1rem 0 -0.75rem 0;
+  opacity: 0.75;
+}
+
 /* Used for the game details modal */
 .overlay .left {
   display: block;
@@ -154,6 +160,10 @@ th.sort-header.desc:before {
   margin-bottom: 1rem;
   width: 70%;
   margin-left: 30%;
+}
+
+.hover-text {
+  border-bottom: dotted 1px #C0C0C0;
 }
 
 .hover-text:hover {

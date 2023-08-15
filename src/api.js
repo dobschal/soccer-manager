@@ -47,12 +47,18 @@ for (const filename of filenames) {
   for (const fnName in mod.default) {
     if (Object.hasOwnProperty.call(mod.default, fnName)) {
       const fn = mod.default[fnName]
+      console.log(fnName)
       app.post(`/api/${fnName}`, async (req, res) => {
         const t1 = Date.now()
         try {
-          const response = await fn(req, res)
-          if (typeof response !== 'undefined') {
-            res.send(response)
+          if (fnName.endsWith('_V2')) {
+            const response = await fn(...req.body.params, req)
+            res.send({ response })
+          } else {
+            const response = await fn(req, res)
+            if (typeof response !== 'undefined') {
+              res.send(response)
+            }
           }
         } catch (e) {
           console.error('Error: ', e)

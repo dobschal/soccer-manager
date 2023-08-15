@@ -7,6 +7,7 @@ import { render } from '../../lib/render.js'
 import { renderButton } from '../../partials/button.js'
 import { euroFormat } from '../../util/currency.js'
 import { renderTradesPage } from '../trades.js'
+import { setQueryParams } from '../../lib/router.js'
 
 export async function renderIncomingOffers () {
   const { team } = await server.getMyTeam()
@@ -68,7 +69,7 @@ function _renderIncomingOfferList (offers, players, teams, team) {
     const player = players.find(p => p.id === o.player_id)
     const team = teams.find(t => t.id === o.from_team_id)
     const playerNameId = generateId()
-    onClick(playerNameId, () => showPlayerModal(player))
+    onClick(playerNameId, () => setQueryParams({ player_id: player.id }))
     onClick(acceptButtonId, async () => {
       try {
         await server.acceptOffer({ offer: o })

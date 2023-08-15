@@ -7,7 +7,7 @@ import { TradeOffer } from './entities/tradeOffer.js'
 import { acceptOffer, declineOffer } from './helper/tradeHelper.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { buildStadium, calcuateStadiumBuild } from './helper/stadiumHelper.js'
-import { getPlayerAge, getPlayerById } from './helper/playerHelper.js'
+import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById } from './helper/playerHelper.js'
 import { getPositionsOfFormation } from '../client/lib/formation.js'
 
 // 1. Check Tactic (/)
@@ -101,26 +101,6 @@ async function _checkStadium (botTeam) {
 }
 
 /**
- * A player at level 10 in age 22 is 50mio
- * for every age above you take the amount times 0.75
- * for every level less, the same
- * @param {PlayerType} player
- * @returns {Promise<number>}
- * @private
- */
-async function _getAveragePlanPriceOfPlayerLevel (player) {
-  const age = await getPlayerAge(player)
-  let price = 50_000_000
-  for (let a = 22; a < age; a++) {
-    price *= 0.75
-  }
-  for (let l = 10; l > player.level; l--) {
-    price *= 0.5
-  }
-  return Math.floor(price)
-}
-
-/**
  * @param {TeamType} botTeam
  * @param {PlayerType[]} players
  * @param {boolean} isStrongTeam
@@ -134,7 +114,7 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
   if (openSellOffers.length === 0) {
     const playerToSell = randomItem(players.filter(p => !p.in_game_position))
     if (playerToSell) {
-      const price = await _getAveragePlanPriceOfPlayerLevel(playerToSell)
+      const price = await getAveragePlanPriceOfPlayer(playerToSell)
       const val = (Math.random() * 0.6 + 0.7) * price
       const tradeOffer = new TradeOffer({
         offer_value: val,
@@ -191,7 +171,7 @@ async function _checkTrades (botTeam, players, isStrongTeam) {
     const player = players.find(p => p.id === openIncomingOffers[0].player_id)
     const matchingSellOffer = openSellOffers.find(tradeOffer => tradeOffer.player_id === player.id)
     const isGoodOffer = matchingSellOffer && matchingSellOffer.offer_value < openIncomingOffers[0].offer_value
-    const price = await _getAveragePlanPriceOfPlayerLevel(player)
+    const price = await getAveragePlanPriceOfPlayer(player)
     if (isGoodOffer || Math.random() < 0.15 || (Math.random() < 0.75 && openIncomingOffers[0].offer_value >= price)) {
       delete openIncomingOffers[0].created_at
       const {
@@ -240,8 +220,12 @@ async function _checkActionCards (botTeam, players, isStrongTeam) {
       }
       if (actionCard.action.startsWith('LEVEL_UP_PLAYER')) {
         const player = randomItem(players.filter(p => {
-          if (actionCard.action.endsWith('_4')) return p.level < 4
-          if (actionCard.action.endsWith('_7')) return p.level < 7
+          if (actionCard.action.endsWith('_4')) {
+            return p.level < 4
+          }
+          if (actionCard.action.endsWith('_7')) {
+            return p.level < 7
+          }
           return p.level < 10
         }))
         if (!player) continue

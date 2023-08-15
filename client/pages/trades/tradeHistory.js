@@ -2,25 +2,43 @@ import { updater } from '../../lib/updater.js'
 import { server } from '../../lib/gateway.js'
 import { euroFormat } from '../../util/currency.js'
 import { calculatePlayerAge } from '../../util/player.js'
+import { generateId } from '../../lib/html.js'
+import { onClick } from '../../lib/htmlEventHandlers.js'
+import { goTo } from '../../lib/router.js'
+import { renderLink } from '../../partials/link.js'
 
 export const renderTradeHistory = updater(async (update) => {
   const { trades, teams, players } = await server.getTradeHistory()
-  console.log('Got trades: ', trades, teams, players)
-
-  const history = trades.map(trade => {
-    const player = players.find(p => p.id === trade.player_id)
-    const fromTeam = teams.find(p => p.id === trade.from_team_id)
-    const toTeam = teams.find(p => p.id === trade.to_team_id)
-    return `
+  let season, gameDay
+  const history = trades
+    .map(trade => {
+      let dividerRow = ''
+      if (trade.season !== season || trade.game_day !== gameDay) {
+        season = trade.season
+        gameDay = trade.game_day
+        dividerRow = `
+        <tr>
+            <td><small class="table-divider-text">Game Day: ${trade.game_day + 1} (${trade.season + 1})</small></td>
+            <td class="d-none d-sm-table-cell"></td>
+            <td class="d-none d-sm-table-cell"></td>
+            <td></td>
+        </tr>
+      `
+      }
+      const player = players.find(p => p.id === trade.player_id)
+      const fromTeam = teams.find(p => p.id === trade.from_team_id)
+      const toTeam = teams.find(p => p.id === trade.to_team_id)
+      return `
+      ${dividerRow}
       <tr>
-        <td class="d-none d-sm-table-cell">${trade.season + 1}/${trade.game_day + 1}</td>
         <td>${player.name} (${player.position}, ${player.level}, ${calculatePlayerAge(player, trade.season)})</td>
-        <td class="d-none d-sm-table-cell">${fromTeam.name}</td>
-        <td class="d-none d-sm-table-cell">${toTeam.name}</td>
+        <td class="d-none d-sm-table-cell">${renderLink(fromTeam.name, 'team?id=' + trade.from_team_id)}</td>
+        <td class="d-none d-sm-table-cell" >${renderLink(toTeam.name, 'team?id=' + trade.to_team_id)}</td>
         <td class="text-right">${euroFormat.format(trade.price)}</td>
       </tr>
     `
-  }).join('')
+    })
+    .join('')
 
   return `
     <h2>Trade History</h2>
@@ -28,7 +46,6 @@ export const renderTradeHistory = updater(async (update) => {
     <table class="table">
       <thead>
         <tr>
-          <th scope="col" class="d-none d-sm-table-cell"></th>
           <th scope="col">Player</th>
           <th scope="col" class="d-none d-sm-table-cell">From</th>
           <th scope="col" class="d-none d-sm-table-cell">To</th>

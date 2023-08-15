@@ -6,6 +6,7 @@ import { render } from '../../lib/render.js'
 import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../util/currency.js'
 import { renderTradesPage } from '../trades.js'
+import { setQueryParams } from '../../lib/router.js'
 
 export async function renderMyOffers () {
   const { team } = await server.getMyTeam()
@@ -56,7 +57,7 @@ function _renderMyOffersList (offers, players, teams, team) {
       const rowId = generateId()
 
       const playerNameId = generateId()
-      onClick(playerNameId, () => showPlayerModal(player))
+      onClick(playerNameId, () => setQueryParams({ player_id: player.id }))
 
       const cancelButtonId = generateId()
       onClick(cancelButtonId, async () => {

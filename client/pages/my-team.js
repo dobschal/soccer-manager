@@ -23,11 +23,7 @@ export async function renderMyTeamPage () {
   const { player_id: playerId } = getQueryParams()
   lineUpData.squadDataChanged = false
   if (playerId) {
-    /** @type {PlayerType} */
-    const player = data.players.find(p => p.id === Number(playerId))
-    if (player) {
-      await showPlayerModal(player)
-    }
+    await showPlayerModal(Number(playerId))
   }
   const playersList = await renderPlayersList(
     data.players,

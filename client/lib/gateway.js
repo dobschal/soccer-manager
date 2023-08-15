@@ -10,13 +10,19 @@ export function showServerError (e) {
  */
 export const server = new Proxy({}, {
   get (_, key) {
-    return async (params) => {
+    return async (...params) => {
+      let requestBody
+      if (key.endsWith('_V2')) {
+        requestBody = { params }
+      } else {
+        requestBody = params[0] // the legacy implementation only allows one parameter
+      }
       const options = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(params)
+        body: JSON.stringify(requestBody)
       }
       const authToken = window.localStorage.getItem('auth-token')
       if (authToken) {
@@ -29,6 +35,10 @@ export const server = new Proxy({}, {
           toast('Please reload the page.', 'error')
         }
         throw (await response.json())
+      }
+      if (key.endsWith('_V2')) {
+        const { response: r } = await response.json()
+        return r
       }
       return await response.json()
     }

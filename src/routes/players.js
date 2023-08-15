@@ -2,8 +2,15 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { addNews } from '../helper/newsHelper.js'
+import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById } from '../helper/playerHelper.js'
+import { getPastTrades } from '../helper/tradeHelper.js'
 
 export default {
+
+  async getPlayerById_V2 (playerId) {
+    return await getPlayerById(playerId)
+  },
+
   async getPlayersWithIds (req) {
     if (!Array.isArray(req.body.playerIds) || req.body.playerIds.length === 0) throw new BadRequestError('playerIds missing')
     const players = await query(`SELECT *
@@ -21,5 +28,22 @@ export default {
     await query('DELETE FROM trade_offer WHERE player_id=?', [p.id])
     await addNews('You fired your place ' + player.name + '.', team)
     return { success: true }
+  },
+
+  /**
+   * @param {number} playerId
+   * @returns {Promise<number>}
+   */
+  async estimateValue_V2 (playerId) {
+    const player = await getPlayerById(playerId)
+    const age = await getPlayerAge(player)
+    const trades = await getPastTrades(player.position, age, player.level)
+    if (trades.length > 0) {
+      const averagePrice = trades.reduce(function (avg, tradeWithPlayer, _, { length }) {
+        return avg + tradeWithPlayer.price / length
+      }, 0)
+      return averagePrice
+    }
+    return await getAveragePlanPriceOfPlayer(player)
   }
 }

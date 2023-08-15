@@ -5,7 +5,6 @@ import { getQueryParams, goTo, setQueryParams } from '../lib/router.js'
 import { showOverlay } from '../partials/overlay.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
-import { formatDate } from '../lib/date.js'
 import { formatLeague } from '../util/league.js'
 import { renderGameAnimation } from '../partials/gameAnimation.js'
 
@@ -14,7 +13,10 @@ let myTeamId, info, yesterdayStanding
 export async function renderResultsPage () {
   const queryParams = await getQueryParams()
   if (queryParams.game_id) {
-    _showGameModal(queryParams.game_id)
+    await _showGameModal(Number(queryParams.game_id))
+  }
+  if (queryParams.player_id) {
+    await showPlayerModal(Number(queryParams.player_id))
   }
 
   info = await server.getMyTeam()
@@ -151,7 +153,9 @@ function _renderTopScorer (scorer, index) {
   const teamId = generateId()
   onClick(teamId, () => goTo(`team?id=${scorer.team.id}`))
   const playerId = generateId()
-  onClick(playerId, () => showPlayerModal(scorer))
+  onClick(playerId, () => {
+    setQueryParams({ player_id: scorer.id })
+  })
   return `
     <tr class="${myTeamId === scorer.team.id ? 'table-info' : ''}">
         <th>${index + 1}.</th>
@@ -269,8 +273,13 @@ function _sortStanding (s1, s2) {
   return retVal
 }
 
+/**
+ * @param {number} resultId
+ * @returns {Promise<void>}
+ * @private
+ */
 async function _showGameModal (resultId) {
-  const { result: game } = await server.getResult({ id: Number(resultId) })
+  const { result: game } = await server.getResult({ id: resultId })
   const { players: playersTeam1, team: team1 } = await server.getTeam({ teamId: game.team1Id })
   const { players: playersTeam2, team: team2 } = await server.getTeam({ teamId: game.team2Id })
   const players = {}
@@ -359,19 +368,8 @@ function _renderGameLogItem (players) {
 
 async function _calculateGoals (level, league, season, gameDay, standing) {
   const t1 = Date.now()
-  const games = []
-  const promises = []
-  while (gameDay > 0) {
-    promises.push(server.getResults({ season, gameDay, level, league }).then(({ results }) => {
-      games.push(...results.map(r => {
-        r.details = JSON.parse(r.details ?? '{}')
-        return r
-      }).filter(r => r.details.log))
-      return true
-    }))
-    gameDay--
-  }
-  await Promise.all(promises)
+  const games = await server.getSeasonResults_V2(season, gameDay, level, league)
+  games.forEach((game) => (game.details = JSON.parse(game.details ?? '{}')))
   if (games.length === 0) return []
   const goalsByPlayers = {}
   for (const game of games) {
