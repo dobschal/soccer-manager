@@ -258,11 +258,25 @@ td small.table-divider-text {
   display: inline-block;
 }
 
+.article .player-image svg {
+  height: 150px;
+}
+
+.article .player-image {
+  height: 150px;
+  overflow: hidden;
+  margin: 0 1rem 1rem 0;
+}
+
 @media screen and (max-width: 768px) {
   ul.list-group,
   table.table {
     margin: 0 -2rem 4rem -2rem;
     width: calc(100% + 4rem);
+  }
+  li.list-group-item {
+    padding-left: 2rem;
+    padding-right: 2rem;
   }
   #page {
     margin-top: 3rem;

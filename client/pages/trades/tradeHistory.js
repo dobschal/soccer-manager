@@ -1,13 +1,10 @@
-import { updater } from '../../lib/updater.js'
+import { renderAsync } from '../../lib/renderAsync.js'
 import { server } from '../../lib/gateway.js'
 import { euroFormat } from '../../util/currency.js'
 import { calculatePlayerAge } from '../../util/player.js'
-import { generateId } from '../../lib/html.js'
-import { onClick } from '../../lib/htmlEventHandlers.js'
-import { goTo } from '../../lib/router.js'
 import { renderLink } from '../../partials/link.js'
 
-export const renderTradeHistory = updater(async (update) => {
+export const renderTradeHistory = renderAsync(async (update) => {
   const { trades, teams, players } = await server.getTradeHistory()
   let season, gameDay
   const history = trades

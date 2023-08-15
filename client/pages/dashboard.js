@@ -1,11 +1,13 @@
 import { server } from '../lib/gateway.js'
-import { generateId } from '../lib/html.js'
+import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { render } from '../lib/render.js'
 import { showOverlay } from '../partials/overlay.js'
 import { renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
 import { formatDate } from '../lib/date.js'
+import { renderPlayerImage } from '../partials/playerImage.js'
+import { renderNews } from '../partials/news.js'
 
 let overlay, data
 
@@ -17,9 +19,8 @@ export async function renderDashboardPage () {
   const { results } = await server.getResults({ season, gameDay: gameDay - 1, level, league })
   const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id) ?? {}
   const isHomeGame = game.team1Id === team.id
-  const { news: messages } = await server.getNews()
+  const { messages } = await server.getLogMessages()
   messages.reverse()
-  const { news } = await server.getLeagueNews()
   return `
     <h2>${team.name}</h2>
     <p>
@@ -44,15 +45,20 @@ export async function renderDashboardPage () {
         <h4 class="text-muted text-center mt-5 mb-5">No action cards available...</h4>
       </div>
     </div>
-    <h3>News</h3>
-    ${news.map(n => `<h4>${n.title}</h4><p>${n.text}</p>`).join('')}
+    
+    ${renderNews()}
+    
     <h3>Messages</h3>
     <ul class="list-group">
-        ${messages.map(newsItem => `<li class="list-group-item">
-            <small>${formatDate('DD.MM.YYYY hh:mm', newsItem.created_at)}</small><br><i class="fa fa-chevron-right" aria-hidden="true"></i> ${newsItem.message}
-          </li>`).join('')}
+        ${messages.map(_renderLogMessage).join('')}
     </ul>
   `
+}
+
+function _renderLogMessage (messageItem) {
+  return `<li class="list-group-item">
+            <small>${formatDate('DD.MM.YYYY hh:mm', messageItem.created_at)}</small><br><i class="fa fa-chevron-right" aria-hidden="true"></i> ${messageItem.message}
+          </li>`
 }
 
 const actionCardTexts = {

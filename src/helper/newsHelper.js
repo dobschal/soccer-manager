@@ -2,6 +2,10 @@ import { getGameDayAndSeason } from './gameDayHelper.js'
 import { query } from '../lib/database.js'
 import { News } from '../entities/news.js'
 
+//
+// TODO: Rename this to "logs" or "messages"
+//
+
 /**
  * @param {string} message
  * @param {TeamType} team
