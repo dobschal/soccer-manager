@@ -7,6 +7,7 @@ import { playerNames } from '../lib/name-library.js'
 import { Position } from '../../client/lib/formation.js'
 import { addNews } from './newsHelper.js'
 import { generateRandomPlayerName } from '../prepare-season.js'
+import { addPlayerHistory } from './playerHistoryHelper.js'
 
 /**
  * @param {TeamType} team
@@ -26,6 +27,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     await addNews(`You gave ${player.name} a level up.`, team)
+    await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_7') {
@@ -37,6 +39,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     await addNews(`You gave ${player.name} a level up.`, team)
+    await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_4') {
@@ -48,11 +51,13 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     await addNews(`You gave ${player.name} a level up.`, team)
+    await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
   if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
     await query('UPDATE player SET position=? WHERE id=?', [position, p.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await addPlayerHistory(p.id, 'CHANGE_PLAYER_POSITION', position)
     return { success: true }
   }
   if (actionCard.action === 'NEW_YOUTH_PLAYER') {

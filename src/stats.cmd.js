@@ -1,7 +1,7 @@
 import { query } from './lib/database.js'
 
 async function run () {
-  const games = await query('SELECT * FROM game WHERE played=1 AND season=5 AND game_day>=30')
+  const games = await query('SELECT * FROM game WHERE played=1 AND season=1 AND game_day>=0')
   let totalGoalChances = 0
   let totalPasses = 0
   let totalFights = 0

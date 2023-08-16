@@ -4,7 +4,7 @@ import { el } from './html.js'
 import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
 
-let pages, lastPath, secondLastPath
+let pages, lastPath
 
 /**
  * Open a page under a specific path.
@@ -65,6 +65,9 @@ export function getQueryParams () {
 
 let currentLayoutRenderFn, lastAnimationTimeout
 
+//
+// TODO: refactor and split up this function
+//
 async function _resolvePage () {
   const currentPath = window.location.hash.substring(1).split('?')[0]
   const isSamePage = currentPath === lastPath
@@ -87,7 +90,6 @@ async function _resolvePage () {
   if (!isFirstRender && !isSamePage) {
     pageElement.style.transform = 'translateX(100vw)'
   }
-  secondLastPath = lastPath
   lastPath = currentPath
   setTimeout(async () => {
     const t1 = Date.now()

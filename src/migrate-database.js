@@ -243,6 +243,20 @@ const migrations = [{
     }
     await Promise.all(promises)
   }
+}, {
+  name: 'Create Player History Table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS player_history (
+              id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+              player_id BIGINT(20),
+              type VARCHAR(255),
+              value VARCHAR(255),
+              season INT,
+              game_day INT,
+              created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (id)
+          ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 export async function runMigration () {

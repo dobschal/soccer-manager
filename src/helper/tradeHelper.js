@@ -7,6 +7,7 @@ import { getTeamById } from './teamHelper.js'
 import { getPlayerAge, getPlayerById } from './playerHelper.js'
 import { TradeHistory } from '../entities/tradeHistory.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
+import { addPlayerHistory } from './playerHistoryHelper.js'
 
 export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   offer = new TradeOffer(offer)
@@ -44,6 +45,7 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
 
   await addNews(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam)
   await addNews(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam)
+  await addPlayerHistory(player.id, 'TRANSFER', buyingTeam.id)
 }
 
 /**
