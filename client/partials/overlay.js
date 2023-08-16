@@ -25,7 +25,7 @@ export function showOverlay (title, subttitle, text) {
     <div id="${overlayId}" class="overlay-backdrop">
       <div id="${overlayInnerId}" class="card overlay">
         <div class="card-body">
-          <span id="${closeButtonId}" class="fa fa-close fa-button fa-lg float-right"></span>
+          <span id="${closeButtonId}" class="fa fa-close fa-button fa-lg float-end"></span>
           <h5 class="card-title">${title}</h5>
           <h6 class="card-subtitle mb-2 text-muted">${subttitle}</h6>
           <p class="card-text">

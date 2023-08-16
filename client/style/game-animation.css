@@ -3,8 +3,8 @@
     background-size: cover;
     background-position: 50% 50%;
     aspect-ratio: 2 / 1;
-    width: calc(100% + 2.5rem);
-    margin: 0 -1.25rem 2rem -1.25rem;
+    width: calc(100% + 2rem);
+    margin: 0 -1rem 2rem -1rem;
     position: relative;
 }
 
@@ -21,12 +21,33 @@
     left: 25%;
     text-align: center;
 }
+
+.game-animation .play-button {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    z-index: 5;
+    border: solid 2px white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    padding-left: 3px;
+}
+
+.game-animation .play-button:hover {
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
 @media screen and (max-width: 640px) {
     .game-animation .player {
         transform: scale(0.8);
     }
 }
-.game-animation .player.away {
+
+.game-animation .away {
     left: initial !important;
     right: 25%;
 }
@@ -37,123 +58,255 @@
     left: 50%;
     transform: translateX(-25px);
 }
+.game-animation .ball {
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    left: 0;
+    width: 50px;
+    height: 20px;
+    transition: left 0.3s ease-out, top 0.3s, right 0.3s ease-out;
+    display: flex;
+}
 
-.game-animation .player.home.GK {
+.game-animation .ball img {
+    width: 20px;
+    height: 20px;
+    display: block;
+    margin: auto;
+}
+
+.game-animation .timer {
+    position: absolute;
+    z-index: 4;
+    bottom: 2rem;
+    left: 2rem;
+    width: 34px;
+    height: 20px;
+    color: white;
+    font-size: 20px;
+}
+
+.game-animation .message {
+    position: absolute;
+    top: 4rem;
+    color: white;
+    left: calc(50% - 100px);
+    width: 200px;
+    text-align: center;
+    font-size: 40px;
+}
+
+/** PLAYER POSITIONS */
+
+.game-animation .home.GK {
     top: 50%;
     left: 0%;
 }
 
-.game-animation .player.home.LD {
+.game-animation .home.LD {
     top: 15%;
     left: 11%;
 }
 
-.game-animation .player.home.CD {
+.game-animation .home.CD {
     top: 50%;
     left: 11%;
 }
 
-.game-animation .player.home.RD {
+.game-animation .home.RD {
     top: 89%;
     left: 11%;
 }
 
-.game-animation .player.home.CM {
+.game-animation .home.CM {
     top: 50%;
     left: 27%;
 }
 
-.game-animation .player.home.LM {
+.game-animation .home.LM {
     top: 15%;
     left: 27%;
 }
 
-.game-animation .player.home.RM {
+.game-animation .home.RM {
     top: 89%;
     left: 27%;
 }
 
-.game-animation .player.home.DM {
+.game-animation .home.DM {
     top: 50%;
     left: 21%;
 }
 
-.game-animation .player.home.OM {
+.game-animation .home.OM {
     top: 50%;
     left: 30%;
 }
 
-.game-animation .player.home.CA {
+.game-animation .home.CA {
     top: 50%;
     left: 40%;
 }
 
-.game-animation .player.home.RA {
+.game-animation .home.RA {
     top: 84%;
     left: 40%;
 }
 
-.game-animation .player.home.LA {
+.game-animation .home.LA {
     top: 20%;
     left: 40%;
 }
 
-.game-animation .player.away.GK {
+.game-animation .away.GK {
     top: 50%;
     right: 0%;
 }
 
-.game-animation .player.away.LD {
+.game-animation .away.LD {
     top: 89%;
     right: 11%;
 }
 
-.game-animation .player.away.CD {
+.game-animation .away.CD {
     top: 50%;
     right: 11%;
 }
 
-.game-animation .player.away.RD {
+.game-animation .away.RD {
     top: 15%;
     right: 11%;
 }
 
-.game-animation .player.away.CM {
+.game-animation .away.CM {
     top: 50%;
     right: 27%;
 }
 
-.game-animation .player.away.LM {
+.game-animation .away.LM {
     top: 89%;
     right: 27%;
 }
 
-.game-animation .player.away.RM {
+.game-animation .away.RM {
     top: 15%;
     right: 27%;
 }
 
-.game-animation .player.away.DM {
+.game-animation .away.DM {
     top: 50%;
     right: 21%;
 }
 
-.game-animation .player.away.OM {
+.game-animation .away.OM {
     top: 50%;
     right: 30%;
 }
 
-.game-animation .player.away.CA {
+.game-animation .away.CA {
     top: 50%;
     right: 40%;
 }
 
-.game-animation .player.away.RA {
+.game-animation .away.RA {
     top: 20%;
     right: 40%;
 }
 
-.game-animation .player.away.LA {
+.game-animation .away.LA {
     top: 84%;
     right: 40%;
+}
+
+/** PLAYER POSITIONS WHEN PLAYING ANIMATION */
+
+.game-animation.play .home.LD {
+    left: 11%;
+}
+
+.game-animation.play .home.CD {
+    left: 11%;
+}
+
+.game-animation.play .home.RD {
+    left: 11%;
+}
+
+.game-animation.play .home.CM {
+    left: 43%;
+}
+
+.game-animation.play .home.LM {
+    left: 43%;
+}
+
+.game-animation.play .home.RM {
+    left: 43%;
+}
+
+.game-animation.play .home.DM {
+    left: 25%;
+}
+
+.game-animation.play .home.OM {
+    left: 60%;
+}
+
+.game-animation.play .home.CA {
+    left: 75%;
+}
+
+.game-animation.play .home.RA {
+    left: 75%;
+}
+
+.game-animation.play .home.LA {
+    left: 75%;
+}
+
+
+
+.game-animation.play .away.LD {
+    right: 11%;
+}
+
+.game-animation.play .away.CD {
+    right: 11%;
+}
+
+.game-animation.play .away.RD {
+    right: 11%;
+}
+
+.game-animation.play .away.CM {
+    right: 43%;
+}
+
+.game-animation.play .away.LM {
+    right: 43%;
+}
+
+.game-animation.play .away.RM {
+    right: 43%;
+}
+
+.game-animation.play .away.DM {
+    right: 25%;
+}
+
+.game-animation.play .away.OM {
+    right: 60%;
+}
+
+.game-animation.play .away.CA {
+    right: 75%;
+}
+
+.game-animation.play .away.RA {
+    right: 75%;
+}
+
+.game-animation.play .away.LA {
+    right: 75%;
 }

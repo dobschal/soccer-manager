@@ -64,13 +64,19 @@ export default {
     `, [tilGameDay, season, level ?? team.level, league ?? team.league])
   },
 
+  /**
+   * @param req
+   * @returns {Promise<{results: GameResultType[]}>}
+   */
   async getResults (req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
     const results = await query(`
       SELECT
         g.id as id,
         g.goals_team_1 as goalsTeam1, 
-        g.goals_team_2 as goalsTeam2, 
+        g.goals_team_2 as goalsTeam2,
+        g.game_day as gameDay,
+        g.season as season,
         t1.name as team1,  
         t2.name as team2,
         g.team_1_id as team1Id,
@@ -87,14 +93,16 @@ export default {
 
   /**
    * @param req
-   * @returns {Promise<{result: { id: number, details: string, team1Id: number, team2Id: number, team1: TeamType, team2: TeamType, goalsTeam1: number, goalsTeam2: number}}>}
+   * @returns {Promise<{result: GameResultType}>}
    */
   async getResult (req) {
     const results = await query(`
       SELECT
         g.id as id,
-        g.goals_team_1 as goalsTeam1, 
-        g.goals_team_2 as goalsTeam2, 
+        g.goals_team_1 as goalsTeam1,         
+        g.goals_team_2 as goalsTeam2,
+        g.game_day as gameDay,
+        g.season as season,
         t1.name as team1,  
         t2.name as team2,
         g.team_1_id as team1Id,

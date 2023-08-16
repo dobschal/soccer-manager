@@ -62,7 +62,7 @@ export async function renderGameLayout () {
               aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
+      <div class="collapse navbar-collapse" id="navbarNav">        
         <ul class="navbar-nav mr-auto px-2">
           ${_navItem('my-team', '<i class="fa fa-users" aria-hidden="true"></i> Team')}
           ${_navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
@@ -70,11 +70,11 @@ export async function renderGameLayout () {
           ${_navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
           ${_navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Trades')}
         </ul>
-        <div class="px-2 d-none d-sm-block">|</div>
-        <div class="px-2" id="${nextGameInElementId}">
+        <div class="px-2 d-none d-md-block">|</div>
+        <div class="navbar-info-item px-2" id="${nextGameInElementId}">
         </div>
-        <div class="px-2">
-            <i class="fa fa-money" aria-hidden="true"></i> ${balance}
+        <div class="navbar-info-item px-2">
+            <i class="fa fa-money" aria-hidden="true"></i> ${balance || '...'}
         </div>
         <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
       </div>        

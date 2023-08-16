@@ -10,7 +10,9 @@ import { setQueryParams } from '../lib/router.js'
  * @private
  */
 export async function showGameModal (resultId) {
-  const { result: game } = await server.getResult({ id: resultId })
+  const response = await server.getResult({ id: resultId })
+  /** @type {GameResultType} */
+  const game = response.result
   if (game.details === '{}') {
     toast('Game not played yet.')
     setQueryParams({ game_id: null })
@@ -50,54 +52,14 @@ export async function showGameModal (resultId) {
   const total = ballControllA + ballControllB
   const overlay = showOverlay(
     `${game.team1} - ${game.team2}`,
-    `
-      Result: ${game.goalsTeam1} : ${game.goalsTeam2}, 
-      Ball control: ${Math.floor((ballControllA / total) * 100)}% : ${Math.ceil((ballControllB / total) * 100)}%, 
-      Guests: ${guests}
+    ` 
+      It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} guests at their stadium!
      `,
     `
       ${renderGameAnimation(game, team1, team2)}
-      ${details.log.map(_renderGameLogItem(players)).join('')}
       `
   )
   overlay.onClose(() => {
     setQueryParams({ game_id: null })
   })
-}
-
-function _renderGameLogItem (players) {
-  return (logItem, index) => {
-    if (logItem.kickoff) {
-      return `
-        <span class="${players[logItem.player].team1 ? 'left' : 'right'}">
-        ${index + 1}. Minute: ${players[logItem.player].name} is playing the first ball.
-        </span>
-      `
-    }
-    // if (logItem.lostBall) {
-    //   const text = logItem.lostBall
-    //     ? players[logItem.player].name + ' is losing the ball to ' + players[logItem.oponentPlayer].name
-    //     : players[logItem.player].name + ' blocks the tackling from ' + players[logItem.oponentPlayer].name + ' and keeps the ball'
-    //   return `
-    //     <span class="${players[logItem.player].team1 ? 'left' : 'right'}">
-    //       ${index + 1}. Minute: ${text}
-    //     </span>
-    //   `
-    // }
-    if (logItem.keeperHolds) {
-      return `
-        <span class="${players[logItem.goalKeeper].team1 ? 'left' : 'right'}">
-        ${index + 1}. Minute: ${players[logItem.goalKeeper].name} with a great save.
-        </span>
-      `
-    }
-    if (logItem.goal) {
-      return `
-        <span class="${players[logItem.player].team1 ? 'left' : 'right'}">
-        ${index + 1}. Minute: GOOOOAAAL... ${players[logItem.player].name} is striking!
-        </span>
-      `
-    }
-    return ''
-  }
 }

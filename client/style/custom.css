@@ -48,8 +48,22 @@ body {
   overflow-x: hidden;
 }
 
+#logout-button {
+  margin-left: auto;
+  margin-right: 2rem;
+}
+
+.navbar .navbar-toggler {
+  border: none;
+}
+
 .navbar {
   margin-bottom: 4rem;
+}
+
+.navbar .navbar-info-item {
+  margin: 0.5rem 0 0.5rem 1rem;
+  color: #17a2b8;
 }
 
 .container {
@@ -332,5 +346,11 @@ a:hover, a:active,
   #page {
     margin-top: 3rem;
     border-radius: 0;
+  }
+  #logout-button {
+    margin-left: 1rem;
+  }
+  .navbar .navbar-nav {
+    margin-left: 1rem;
   }
 }
