@@ -50,7 +50,16 @@ export function renderGameAnimation (game, team1, team2) {
  */
 function _renderPlayButton () {
   const id = generateId()
-  onClick(id, () => _playGameAnimation())
+  onClick(id, async () => {
+    data.isPlaying = !data.isPlaying
+    if (data.isPlaying) {
+      el(id).innerHTML = '<i class="fa fa-pause text-white" aria-hidden="true"></i>'
+      await _playGameAnimation()
+      el(id).innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
+    } else {
+      el(id).innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
+    }
+  })
   return `
     <div class="play-button" id="${id}">
         <i class="fa fa-play text-white" aria-hidden="true"></i>
@@ -87,41 +96,113 @@ async function _playGameAnimation () {
   let goalsTeamA = 0
   let goalsTeamB = 0
   for (const item of items) {
+    if (!data.isPlaying) {
+      _endAnimation(timerId, messageId, ballId)
+      return
+    }
     i++
     el(messageId).innerHTML = `${goalsTeamA} : ${goalsTeamB}`
     el(timerId).innerHTML = `'${Math.floor(i / 10)}`
-    if (item.pass) {
-      let player = data.playerTeamA.find(p => p.id === item.newPlayer)
-      if (player) {
-        el(ballId).className = 'ball home ' + player.position
-      }
-      player = data.playerTeamB.find(p => p.id === item.newPlayer)
-      if (player) {
-        el(ballId).className = 'ball away ' + player.position
-      }
-    }
     if (item.goal) {
       if (data.playerTeamA.some(p => p.id === item.player)) {
+        el(data.gameAnimationId).style.boxShadow = `0 0 10px 10px ${data.team1.color}`
+      } else {
+        el(data.gameAnimationId).style.boxShadow = `0 0 10px 10px ${data.team2.color}`
+      }
+      for (let j = Math.max(0, i - 5); j < i; j++) {
+        if (!data.isPlaying) {
+          _endAnimation(timerId, messageId, ballId)
+          return
+        }
+        const item2 = items[j]
+        if (item2.pass && _inSameTeam(item2.newPlayer, item.player)) {
+          await _moveBallToPlayer(item2.newPlayer, ballId)
+        }
+      }
+      await _moveBallToPlayer(item.player, ballId)
+      el(messageId).innerHTML = `${_playerName(item.player)} shoots...`
+      await delay(1000)
+      if (data.playerTeamA.some(p => p.id === item.player)) {
+        el(ballId).className = 'ball away GK'
         goalsTeamA++
       } else {
+        el(ballId).className = 'ball home GK'
         goalsTeamB++
       }
-      el(messageId).innerHTML = 'GOOOAAAAL!!!'
+      el(messageId).innerHTML = 'GOAL!!!'
+      await delay(1000)
     }
-    if (item.lostBall) {
-      el(messageId).innerHTML = 'Lost ball...'
-      const newPlayerId = item.oponentPlayer
-      let player = data.playerTeamA.find(p => p.id === newPlayerId)
-      if (player) {
-        el(ballId).className = 'ball home ' + player.position
+    if (item.keeperHolds && item.player) {
+      if (data.playerTeamA.some(p => p.id === item.player)) {
+        el(data.gameAnimationId).style.boxShadow = `0 0 10px 10px ${data.team1.color}`
+      } else {
+        el(data.gameAnimationId).style.boxShadow = `0 0 10px 10px ${data.team2.color}`
       }
-      player = data.playerTeamB.find(p => p.id === newPlayerId)
-      if (player) {
-        el(ballId).className = 'ball away ' + player.position
+      for (let j = Math.max(0, i - 5); j < i; j++) {
+        if (!data.isPlaying) {
+          _endAnimation(timerId, messageId, ballId)
+          return
+        }
+        const item2 = items[j]
+        if (item2.pass && _inSameTeam(item2.newPlayer, item.player)) {
+          await _moveBallToPlayer(item2.newPlayer, ballId)
+        }
       }
+      await _moveBallToPlayer(item.player, ballId)
+
+      el(messageId).innerHTML = `${_playerName(item.player)} shoots...`
+      await delay(500)
+      if (data.playerTeamA.some(p => p.id === item.player)) {
+        el(ballId).className = 'ball away GK'
+      } else {
+        el(ballId).className = 'ball home GK'
+      }
+      el(messageId).innerHTML = 'No goal...'
+      await delay(500)
     }
-    await delay(300)
   }
+  data.isPlaying = false
+  _endAnimation(timerId, messageId, ballId)
+}
+
+function _playerName (playerId) {
+  let player = data.playerTeamA.find(p => p.id === playerId)
+  if (!player) player = data.playerTeamB.find(p => p.id === playerId)
+  return player.name.split(' ')[1]
+}
+
+function _endAnimation (timerId, messageId, ballId) {
+  el(data.gameAnimationId).classList.remove('play')
+  el(timerId).remove()
+  el(messageId).remove()
+  el(ballId).remove()
+  el(data.gameAnimationId).style.boxShadow = 'none'
+}
+
+/**
+ * @param {number} playerId1
+ * @param {number} playerId2
+ * @returns {boolean}
+ * @private
+ */
+function _inSameTeam (playerId1, playerId2) {
+  const player1InTeamA = data.playerTeamA.some(p => p.id === playerId1)
+  const player2InTeamA = data.playerTeamA.some(p => p.id === playerId2)
+  const player1InTeamB = data.playerTeamB.some(p => p.id === playerId1)
+  const player2InTeamB = data.playerTeamB.some(p => p.id === playerId2)
+  return (player1InTeamA && player2InTeamA) || (player1InTeamB && player2InTeamB)
+}
+
+async function _moveBallToPlayer (playerId, ballId) {
+  let player = data.playerTeamA.find(p => p.id === playerId)
+  if (player) {
+    el(ballId).className = 'ball home ' + player.position
+  }
+  player = data.playerTeamB.find(p => p.id === playerId)
+  if (player) {
+    el(ballId).className = 'ball away ' + player.position
+  }
+  await delay(500)
 }
 
 /**

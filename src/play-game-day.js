@@ -300,12 +300,12 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
   }
   if ((goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)) || Math.random() > 0.25) {
     gameDetails.log.push({
+      player: activePlayer.id,
       keeperHolds: true,
       goalKeeper: goalKeeper.id
     })
     goalKeeper.hasBall = true
     activePlayer.hasBall = false
-    console.log('Keeper has ball...')
     return false
   }
   if (teamAHasBall) {

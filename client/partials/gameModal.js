@@ -3,6 +3,7 @@ import { toast } from './toast.js'
 import { showOverlay } from './overlay.js'
 import { renderGameAnimation } from './gameAnimation.js'
 import { setQueryParams } from '../lib/router.js'
+import { renderTable } from './table.js'
 
 /**
  * @param {number} resultId
@@ -34,6 +35,8 @@ export async function showGameModal (resultId) {
   if (!details.log) return toast('No game result available')
   let ballControllA = 0
   let ballControllB = 0
+  const goalsChancesA = details.log.filter(l => l.keeperHolds && playersTeam1.some(p => l.player === p.id)).length + game.goalsTeam1
+  const goalsChancesB = details.log.filter(l => l.keeperHolds && playersTeam2.some(p => l.player === p.id)).length + game.goalsTeam2
   details.log.filter(l => typeof l.lostBall === 'boolean').forEach(l => {
     try {
       if (l.lostBall && players[l.player].team1) {
@@ -49,15 +52,50 @@ export async function showGameModal (resultId) {
       console.error('Error on game details: ', e)
     }
   })
+  const freshnessTeamA = Math.floor(100 * playersTeam1.filter(p => p.in_game_position).reduce((sum, p) => sum + p.freshness, 0) / playersTeam1.filter(p => p.in_game_position).length)
+  const freshnessTeamB = Math.floor(100 * playersTeam2.filter(p => p.in_game_position).reduce((sum, p) => sum + p.freshness, 0) / playersTeam2.filter(p => p.in_game_position).length)
   const total = ballControllA + ballControllB
   const overlay = showOverlay(
     `${game.team1} - ${game.team2}`,
-    ` 
-      It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} guests at their stadium!
-     `,
+    '',
     `
+      <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} guests at their stadium!</p>
       ${renderGameAnimation(game, team1, team2)}
-      `
+      <table class="table">
+        <thead>
+          <tr>
+            <td scope="col" class="text-end">${team1.name}</td>
+            <th scope="col" class="text-center">Team</th>
+            <td scope="col">${team2.name}</td>        
+          </tr>
+          <tr>
+            <td scope="col" class="text-end">${game.goalsTeam1}</td>
+            <th scope="col" class="text-center">Goals</th>
+            <td scope="col">${game.goalsTeam2}</td>        
+          </tr>
+          <tr>
+            <td scope="col" class="text-end">${Math.floor(ballControllA / total * 100)}%</td>
+            <th scope="col" class="text-center">Control</th>
+            <td scope="col">${Math.ceil(ballControllB / total * 100)}%</td>        
+          </tr>
+          <tr>
+            <td scope="col" class="text-end">${goalsChancesA}</td>
+            <th scope="col" class="text-center">Chances</th>
+            <td scope="col">${goalsChancesB}</td>        
+          </tr>
+          <tr>
+            <td scope="col" class="text-end">${details.strengthTeamA}</td>
+            <th scope="col" class="text-center">Strength</th>
+            <td scope="col">${details.strengthTeamB}</td>        
+          </tr>
+          <tr>
+            <td scope="col" class="text-end">${freshnessTeamA}%</td>
+            <th scope="col" class="text-center">Freshness</th>
+            <td scope="col">${freshnessTeamB}%</td>        
+          </tr>
+        </thead> 
+      </table>
+    `
   )
   overlay.onClose(() => {
     setQueryParams({ game_id: null })
