@@ -1,7 +1,3 @@
-#squad {
-  width: calc(100% + 4rem);
-  margin: 0 -2rem;
-}
 .squad {
   background-color: green;
   background-image: url("../assets/football-field.svg");
@@ -9,7 +5,7 @@
   position: relative;
   background-size: 156% auto;
   background-position: bottom 18% left 50%;
-  aspect-ratio: 1.1 / 1;
+  aspect-ratio: 1 / 1.1;
 }
 
 .squad .player {
@@ -219,6 +215,16 @@
   border-radius: 50%;
   border: solid 1px rgba(0,0,0,0.1);
   box-sizing: border-box;
+}
+
+@media screen and (max-width: 1119px) {
+  .squad {
+    aspect-ratio: 1.1 / 1;
+  }
+  #squad {
+    width: calc(100% + 4rem);
+    margin: 0 -2rem;
+  }
 }
 
 @media screen and (max-width: 640px) {

@@ -11,6 +11,11 @@ import { setQueryParams } from '../lib/router.js'
  */
 export async function showGameModal (resultId) {
   const { result: game } = await server.getResult({ id: resultId })
+  if (game.details === '{}') {
+    toast('Game not played yet.')
+    setQueryParams({ game_id: null })
+    return
+  }
   const { players: playersTeam1, team: team1 } = await server.getTeam({ teamId: game.team1Id })
   const { players: playersTeam2, team: team2 } = await server.getTeam({ teamId: game.team2Id })
   const players = {}

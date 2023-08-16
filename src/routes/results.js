@@ -114,12 +114,17 @@ export default {
     return await getGameDayAndSeason()
   },
 
+  /**
+   * @returns {Promise<Array<StandingType>>}
+   */
   async getStanding (req) {
-    const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
+    const team = await getTeam(req)
+    const level = req.body.level ?? team.level
+    const league = req.body.league ?? team.league
     const t1 = Date.now()
-    const teams = await query('SELECT * FROM team')
-    console.log('Got teams in ' + (Date.now() - t1) + 'ms')
-    const t2 = Date.now()
+    /** @type {TeamType[]} */
+    const teams = await query('SELECT * FROM team WHERE level=? AND league=?', [level, league])
+    /** @type {GameType[]} */
     const games = await query(
       `
         SELECT * FROM game g 
@@ -128,14 +133,12 @@ export default {
       [
         req.body.gameDay,
         req.body.season,
-        req.body.level ?? team.level,
-        req.body.league ?? team.league
+        level,
+        league
       ]
     )
-    console.log('Got games in ' + (Date.now() - t2) + 'ms', games.length)
-    const t3 = Date.now()
-    const standing = calculateStanding(games, teams.filter(t => games.some(g => g.team_1_id === t.id || g.team_2_id === t.id)))
-    console.log('Calculate standing in ' + (Date.now() - t3) + 'ms')
+    const standing = calculateStanding(games, teams)
+    console.log('Calculate standing in ' + (Date.now() - t1) + 'ms')
     return standing
   }
 }

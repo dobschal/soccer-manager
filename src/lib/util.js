@@ -34,17 +34,34 @@ export function calculateGamePlan (teams) {
 }
 
 /**
+ * @typedef {Object} StandingType
+ * @property {number} points
+ * @property {number} games
+ * @property {number} goals
+ * @property {number} against
+ * @property {TeamType} team
+ */
+
+/**
  * calculate standing for given games. The games should belong to one level and league and should be played.
  * The teams should contain the corresponding teams!
- * @returns {Array<{points: number, games: number, goals: number, against: number, team: TeamType}>}
+ *
+ * @param {GameType[]} games
+ * @param {TeamType[]} teams
+ * @returns {Array<StandingType>}
  */
 export function calculateStanding (games, teams) {
   const standing = {}
+  for (const team of teams) {
+    standing[team.id] = {
+      games: 0,
+      points: 0,
+      goals: 0,
+      against: 0,
+      team
+    }
+  }
   for (const game of games) {
-    standing[game.team_1_id] = standing[game.team_1_id] ??
-        { games: 0, points: 0, goals: 0, against: 0, team: teams.find(t => t.id === game.team_1_id) }
-    standing[game.team_2_id] = standing[game.team_2_id] ??
-        { games: 0, points: 0, goals: 0, against: 0, team: teams.find(t => t.id === game.team_2_id) }
     if (game.goals_team_1 > game.goals_team_2) {
       standing[game.team_1_id].points += 3
     } else if (game.goals_team_1 < game.goals_team_2) {

@@ -97,7 +97,7 @@ body {
 
 .toast {
   position: fixed;
-  top: 1rem;
+  top: 4rem;
   left: 50%;
   z-index: 10;
   min-width: 250px;
