@@ -30,7 +30,6 @@ export async function renderResultsPage () {
   standing.sort(_sortStanding)
   yesterdayStanding.sort(_sortStanding)
   const topScorer = await _calculateGoals(level, league, season, gameDay, standing)
-  console.log('Results: ', results)
 
   onClick('#prev-game-day-button', async () => {
     setQueryParams({
@@ -272,7 +271,6 @@ function _sortStanding (s1, s2) {
 }
 
 async function _calculateGoals (level, league, season, gameDay, standing) {
-  const t1 = Date.now()
   const games = await server.getSeasonResults_V2(season, gameDay, level, league)
   games.forEach((game) => (game.details = JSON.parse(game.details ?? '{}')))
   if (games.length === 0) return []
@@ -295,6 +293,5 @@ async function _calculateGoals (level, league, season, gameDay, standing) {
       }
     })
   playersWithGoals.sort((a, b) => b.goals - a.goals)
-  console.log(`Fetched and calculated top scorer in ${Date.now() - t1}ms`)
   return playersWithGoals.slice(0, 10)
 }

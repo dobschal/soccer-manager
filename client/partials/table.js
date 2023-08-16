@@ -1,5 +1,6 @@
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
+import { getQueryParams, setQueryParams } from '../lib/router.js'
 
 /**
  * @typedef {Object} TableHeadCellConfig
@@ -98,9 +99,20 @@ function _renderTableRows (config) {
  */
 function _renderHeaderCells (config, tableBodyId, tableId) {
   return config.cols
-    .map(col => {
+    .map((col, colIndex) => {
       const id = generateId()
-      if (col.sortKey || col.sortFn) onClick(id, _sortTableClickFn(config, id, col, tableBodyId, tableId))
+      const { sort_dir: sortDirection, col: colIndex2 } = getQueryParams()
+      if (sortDirection && Number(colIndex2) === colIndex) {
+        setTimeout(() => _sortTable(config, id, col, tableBodyId, tableId, sortDirection))
+      }
+      if (col.sortKey || col.sortFn) {
+        onClick(id, () => {
+          setQueryParams({
+            sort_dir: sortDirection === 'DESC' ? 'ASC' : 'DESC',
+            col: colIndex.toString()
+          })
+        })
+      }
       return `<th scope="col" id="${id}" class="${col.align ? 'text-' + col.align : ''} ${col.sortKey || col.sortFn ? ' sort-header' : ''}${col.largeScreenOnly ? ' d-none d-sm-table-cell' : ''}">
           ${col.name}
       </th>`
@@ -115,27 +127,24 @@ function _renderHeaderCells (config, tableBodyId, tableId) {
  * @param {TableHeadCellConfig} col
  * @param {string} tableBodyId
  * @param {string} tableId
+ * @param {string} sortDirection
  * @returns {() => void}
  * @private
  */
-function _sortTableClickFn (config, id, col, tableBodyId, tableId) {
-  let sortDirection
-  return () => {
-    document.querySelectorAll(`#${tableId} .sort-header`).forEach(element => {
-      element.classList.remove('desc')
-      element.classList.remove('asc')
-    })
-    config.data.sort((oa, ob) => {
-      if (col.sortFn) {
-        return col.sortFn(oa, ob, sortDirection !== 'DESC')
-      }
-      if (sortDirection === 'DESC') {
-        return oa[col.sortKey] - ob[col.sortKey]
-      }
-      return ob[col.sortKey] - oa[col.sortKey]
-    })
-    sortDirection = sortDirection === 'DESC' ? 'ASC' : 'DESC'
-    el(id).classList.add(sortDirection === 'DESC' ? 'desc' : 'asc')
-    el(tableBodyId).append(...config.data.map(item => el(item.htmlElementId)))
-  }
+function _sortTable (config, id, col, tableBodyId, tableId, sortDirection) {
+  document.querySelectorAll(`#${tableId} .sort-header`).forEach(element => {
+    element.classList.remove('desc')
+    element.classList.remove('asc')
+  })
+  config.data.sort((oa, ob) => {
+    if (col.sortFn) {
+      return col.sortFn(oa, ob, sortDirection !== 'DESC')
+    }
+    if (sortDirection === 'DESC') {
+      return oa[col.sortKey] - ob[col.sortKey]
+    }
+    return ob[col.sortKey] - oa[col.sortKey]
+  })
+  el(id).classList.add(sortDirection === 'DESC' ? 'desc' : 'asc')
+  el(tableBodyId).append(...config.data.map(item => el(item.htmlElementId)))
 }

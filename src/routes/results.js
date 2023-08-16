@@ -6,7 +6,7 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 export default {
 
-  async nextGameDate () {
+  async getNextGameDate () {
     const d = new Date()
     d.setHours(12)
     d.setMinutes(0)
@@ -122,8 +122,6 @@ export default {
     const level = req.body.level ?? team.level
     const league = req.body.league ?? team.league
     const t1 = Date.now()
-    /** @type {TeamType[]} */
-    const teams = await query('SELECT * FROM team WHERE level=? AND league=?', [level, league])
     /** @type {GameType[]} */
     const games = await query(
       `
@@ -137,6 +135,18 @@ export default {
         league
       ]
     )
+    /** @type {TeamType[]} */
+    let teams = []
+    if (games.length > 0) {
+      const teamIds = new Set()
+      games.forEach(game => {
+        teamIds.add(game.team_1_id)
+        teamIds.add(game.team_2_id)
+      })
+      teams = await query(`SELECT * FROM team WHERE id IN (${[...teamIds].join(', ')})`)
+    } else {
+      teams = await query('SELECT * FROM team WHERE level=? AND league=?', [level, league])
+    }
     const standing = calculateStanding(games, teams)
     console.log('Calculate standing in ' + (Date.now() - t1) + 'ms')
     return standing

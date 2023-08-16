@@ -19,11 +19,11 @@ export async function renderGameLayout () {
   const balance = await balanceSpan()
 
   // show timer for next game day in...
-  let { date } = await server.nextGameDate()
+  let { date } = await server.getNextGameDate()
   if (interval) clearInterval(interval)
   interval = setInterval(() => {
     const diff = new Date(Date.parse(date)).getTime() - Date.now()
-    if (diff < 0) server.nextGameDate().then(r => (date = r.date))
+    if (diff < 0) server.getNextGameDate().then(r => (date = r.date))
     const seconds = Math.floor(diff / 1000)
     const minutes = Math.floor(seconds / 60)
     const hours = Math.floor(minutes / 60)

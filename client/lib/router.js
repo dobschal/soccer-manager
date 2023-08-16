@@ -66,8 +66,8 @@ export function getQueryParams () {
 let currentLayoutRenderFn, lastAnimationTimeout
 
 async function _resolvePage () {
-  console.log('Resolve page')
   const currentPath = window.location.hash.substring(1).split('?')[0]
+  const isSamePage = currentPath === lastPath
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
   }
@@ -84,7 +84,7 @@ async function _resolvePage () {
   hideNavigation()
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
-  if (!isFirstRender && lastPath !== currentPath) {
+  if (!isFirstRender && !isSamePage) {
     pageElement.style.transform = 'translateX(100vw)'
   }
   secondLastPath = lastPath
@@ -99,6 +99,6 @@ async function _resolvePage () {
     if (lastAnimationTimeout) clearTimeout(lastAnimationTimeout)
     lastAnimationTimeout = setTimeout(() => {
       pageElement.style.transform = 'translateX(0vw)'
-    }, Math.max(0, 300 - diff))
-  }, 300)
+    }, isSamePage ? 0 : Math.max(0, 300 - diff))
+  }, isSamePage ? 0 : 300)
 }
