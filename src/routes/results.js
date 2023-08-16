@@ -2,6 +2,7 @@ import { query } from '../lib/database.js'
 import { calculateStanding } from '../lib/util.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 export default {
 
@@ -110,8 +111,7 @@ export default {
   },
 
   async getCurrentGameday () {
-    const [{ season, game_day: gameDay }] = await query('SELECT * FROM game WHERE played=0 ORDER BY season ASC, game_day ASC LIMIT 1')
-    return { season, gameDay }
+    return await getGameDayAndSeason()
   },
 
   async getStanding (req) {
