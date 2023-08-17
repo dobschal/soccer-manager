@@ -9,6 +9,7 @@ import { renderButton } from './button.js'
 import { goTo, setQueryParams } from '../lib/router.js'
 import { renderPlayerImage } from './playerImage.js'
 import { showDialog } from './dialog.js'
+import { renderAsync } from '../lib/renderAsync.js'
 
 /**
  * @param {number} playerId
@@ -25,8 +26,10 @@ export async function showPlayerModal (playerId) {
   const { team: playersTeam } = await server.getTeam({ teamId: player.team_id })
   const teamLinkId = generateId()
   const price = await server.estimateValue_V2(player.id)
-
+  const history = await server.getPlayerHistory_V2(player.id)
   const { offer } = await server.myOfferForPlayer({ player })
+
+  console.log('History: ', history)
 
   onClick(teamLinkId, () => {
     goTo(`team?id=${playersTeam.id}`)
@@ -48,6 +51,7 @@ export async function showPlayerModal (playerId) {
       toast(e.message ?? 'Something went wrong', 'error')
     }
   })
+
   const fireButton = renderButton('Fire Player', async () => {
     try {
       const { ok } = await showDialog({
@@ -96,6 +100,10 @@ export async function showPlayerModal (playerId) {
           </div>
         </div>
       </div>
+      <div class="mb-4">
+        <b><i class="fa fa-calendar" aria-hidden="true"></i> History</b>
+        ${history.map(_renderPlayerHistory).join('')}
+      </div>
       <div class="mb-4 ${offer ? '' : 'hidden'}">
         This player is on the <a href="#trades">transfermarket</a>.
       </div>
@@ -112,3 +120,18 @@ export async function showPlayerModal (playerId) {
     })
   })
 }
+
+/**
+ * @param {PlayerHistoryType} item
+ * @returns {string}
+ * @private
+ */
+const _renderPlayerHistory = renderAsync(async function (item) {
+  if (item.type === 'LEVEL_UP') {
+    return `<div>#${item.game_day} Player reached level ${item.value}</div>`
+  } else if (item.type === 'TRANSFER') {
+    const { team } = await server.getTeam({ teamId: Number(item.value) })
+    return `<div>#${item.game_day} Moved to new club: ${team.name}</div>`
+  }
+  return '<div>unknown</div>'
+})

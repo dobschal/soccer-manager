@@ -45,5 +45,13 @@ export default {
       return averagePrice
     }
     return await getAveragePlanPriceOfPlayer(player)
+  },
+
+  /**
+   * @param {number} playerId
+   * @returns {Promise<Array<PlayerHistoryType>>}
+   */
+  async getPlayerHistory_V2 (playerId) {
+    return await query('SELECT * FROM player_history ph WHERE ph.player_id=? ORDER BY id DESC', [playerId])
   }
 }
