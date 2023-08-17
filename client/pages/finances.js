@@ -11,11 +11,10 @@ export async function renderFinancesPage () {
   const { sponsor } = await server.getSponsor()
   const { sponsors: offers } = await server.getSponsorOffers()
   const { log: financeLog } = await server.getFinanceLog()
-  const balance = await balanceSpan()
   return `
     <h2>Finances</h2>
     <p>
-      <b>Balance</b>: ${balance}
+      <b>Balance</b>: ${balanceSpan()}
       ${drawBalanceChart(financeLog)}
     </p>
     <div class="${!sponsor ? 'hidden' : ''}">

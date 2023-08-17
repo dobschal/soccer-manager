@@ -16,8 +16,6 @@ export function hideNavigation () {
 export async function renderGameLayout () {
   const nextGameInElementId = generateId()
 
-  const balance = await balanceSpan()
-
   // show timer for next game day in...
   let { date } = await server.getNextGameDate()
   if (interval) clearInterval(interval)
@@ -80,7 +78,7 @@ export async function renderGameLayout () {
         <div class="navbar-info-item px-2" id="${nextGameInElementId}">
         </div>
         <div class="navbar-info-item px-2">
-            <i class="fa fa-money" aria-hidden="true"></i> ${balance || '...'}
+            <i class="fa fa-money" aria-hidden="true"></i> ${balanceSpan()}
         </div>
         <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
       </div>        

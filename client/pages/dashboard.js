@@ -131,7 +131,7 @@ function _renderActionCard (actionCard) {
           <div class="card-body">
             <h5 class="card-title">${actionCardTexts[actionCard.action].title}</h5>
             <p class="card-text">${actionCardTexts[actionCard.action].description}</p>
-            <button id="${id}" type="button" class="btn btn-primary w-100">Use now</button>
+            <button id="${id}" type="button" class="btn btn-success w-100">Use now</button>
             ${mergeButton}
           </div>
         </div>
