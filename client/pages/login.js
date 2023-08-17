@@ -36,7 +36,7 @@ export function renderLoginPage () {
           <input class="form-control" id="password-repeat-input" type="password" placeholder="Repeat Password">
           <small class="form-text text-white" style="opacity: 0.66">Please enter the same password again to verify.</small>
         </div>
-        <button class="btn btn-success mt-2" type="submit">Login</button>
+        <button class="btn btn-success mt-2" type="submit">${isLogin ? 'Login' : 'Create Account'}</button>
         <button class="btn btn-link text-white" type="button" id="toggle-view-button">
             ${isLogin ? '👉 Create New Account' : '👉 Show Login'}
         </button>

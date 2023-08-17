@@ -91,6 +91,7 @@ body {
   display: flex;
   flex-direction: column;
   color: white;
+  margin: 0 !important;
 }
 
 .centered-container>* {
