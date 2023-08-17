@@ -38,6 +38,7 @@ export default {
     if (sponsor) {
       await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
     }
+    await query('DELETE FROM action_card WHERE team_id=?', [team.id])
     return { success: true }
   },
 

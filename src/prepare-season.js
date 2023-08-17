@@ -7,6 +7,7 @@ import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name
 import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 import { Stadium } from './entities/stadium.js'
 import { addLogMessage } from './helper/newsHelper.js'
+import { getTeamById } from './helper/teamHelper.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -30,8 +31,14 @@ export async function prepareSeason () {
 
 async function _archiveTooOldPlayers () {
   const season = await _latestSeason() ?? 0
+  /** @type {PlayerType[]} */
+  const players = await query('SELECT * FROM player WHERE carrier_end_season<=? AND team_id IS NOT NULL', [season])
   const result = await query('UPDATE player SET team_id=NULL WHERE carrier_end_season<=? AND team_id IS NOT NULL', [season])
-  console.log(`👴🏽 ${result.affectedRows} players ended their carrier...`)
+  for (const player of players) {
+    const team = await getTeamById(player.team_id)
+    await addLogMessage(`Your player ${player.name} is saying goodbye and ends his carrier today.`, team)
+  }
+  console.log(`👴🏽 ${result.affectedRows} players ended their carrier...`, result)
 }
 
 async function _promotionRelegation () {
