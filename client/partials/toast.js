@@ -13,7 +13,7 @@ export function toast (text, type = 'info') {
   })
 
   document.body.insertAdjacentHTML('beforeend', `
-    <div id="${id}" class="toast ${type === 'error' ? 'bg-danger' : 'bg-dark'} text-white  show" data-autohide="false">
+    <div id="${id}" class="toast ${type === 'error' ? 'bg-danger' : type === 'success' ? 'bg-success' : 'bg-dark'} text-white  show" data-autohide="false">
       <div class="toast-body">
         ${text}
       </div>

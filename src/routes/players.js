@@ -1,7 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
-import { addNews } from '../helper/newsHelper.js'
+import { addLogMessage } from '../helper/newsHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById } from '../helper/playerHelper.js'
 import { getPastTrades } from '../helper/tradeHelper.js'
 
@@ -26,7 +26,7 @@ export default {
     if (!player) throw new BadRequestError('Not your player...')
     await query('UPDATE player SET team_id=NULL WHERE id=?', [p.id])
     await query('DELETE FROM trade_offer WHERE player_id=?', [p.id])
-    await addNews('You fired your place ' + player.name + '.', team)
+    await addLogMessage('You fired your place ' + player.name + '.', team)
     return { success: true }
   },
 

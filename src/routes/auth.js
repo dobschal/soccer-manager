@@ -2,6 +2,8 @@ import { config } from '../config.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { query } from '../lib/database.js'
 import jwt from 'jsonwebtoken'
+import { addLogMessage } from '../helper/newsHelper.js'
+import { getSponsor } from '../helper/sponsorHelper.js'
 
 export default {
 
@@ -30,7 +32,12 @@ export default {
     const { insertId: userId } = await query('INSERT INTO user SET ?', {
       ...req.body
     })
+    await addLogMessage(`Hey  ${req.body.username}! The president of ${team.name} is sending you a warm welcome!`, team)
     await query(`UPDATE team SET user_id=${userId}, balance=500000 WHERE id=${team.id}`)
+    const { sponsor } = await getSponsor(team)
+    if (sponsor) {
+      await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
+    }
     return { success: true }
   },
 

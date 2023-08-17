@@ -23,7 +23,13 @@ export async function renderGameLayout () {
   if (interval) clearInterval(interval)
   interval = setInterval(() => {
     const diff = new Date(Date.parse(date)).getTime() - Date.now()
-    if (diff < 0) server.getNextGameDate().then(r => (date = r.date))
+    if (diff < 0) {
+      server.getNextGameDate()
+        .then(r => (date = r.date))
+        .catch(() => {
+          if (interval) clearInterval(interval)
+        })
+    }
     const seconds = Math.floor(diff / 1000)
     const minutes = Math.floor(seconds / 60)
     const hours = Math.floor(minutes / 60)

@@ -2,7 +2,7 @@ import { TradeOffer } from '../entities/tradeOffer.js'
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelpr.js'
-import { addNews } from './newsHelper.js'
+import { addLogMessage } from './newsHelper.js'
 import { getTeamById } from './teamHelper.js'
 import { getPlayerAge, getPlayerById } from './playerHelper.js'
 import { TradeHistory } from '../entities/tradeHistory.js'
@@ -43,8 +43,8 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   })
   await query('INSERT INTO trade_history SET ?', historyItem)
 
-  await addNews(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam)
-  await addNews(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam)
+  await addLogMessage(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam)
+  await addLogMessage(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam)
   await addPlayerHistory(player.id, 'TRANSFER', buyingTeam.id)
 }
 
@@ -56,7 +56,7 @@ export async function declineOffer (offer) {
   await query('DELETE FROM trade_offer WHERE type="buy" AND id=?', [offer.id])
   const player = await getPlayerById(offer.player_id)
   const team = await getTeamById(offer.from_team_id)
-  await addNews(`Your buy offer for ${player.name} from ${team.name} was NOT accepted!`, team)
+  await addLogMessage(`Your buy offer for ${player.name} from ${team.name} was NOT accepted!`, team)
 }
 
 /**

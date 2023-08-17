@@ -6,7 +6,7 @@ import { Formation, Position, getPositionsOfFormation } from '../client/lib/form
 import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name-library.js'
 import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 import { Stadium } from './entities/stadium.js'
-import { addNews } from './helper/newsHelper.js'
+import { addLogMessage } from './helper/newsHelper.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -70,7 +70,7 @@ async function _promotionRelegation () {
           ].filter(t => t.level > 0) // teams on first level cannot get promoted...
           console.log('Promotion for: ', teamsForPromotion)
           teamsForPromotion.forEach(t => {
-            promises.push(addNews('Congratulations! Your team got promoted to the next higher league!', t))
+            promises.push(addLogMessage('Congratulations! Your team got promoted to the next higher league!', t))
             promises.push(query('UPDATE team SET level=? WHERE id=?', [t.level - 1, t.id]))
           })
           const teamsForRelegation = [
@@ -81,7 +81,7 @@ async function _promotionRelegation () {
           ].filter(t => t.level < hightestLevel) // teams in last level cannot go for relegation...
           console.log('Relegation for ', teamsForRelegation)
           teamsForRelegation.forEach(t => {
-            promises.push(addNews('Very sad... Your team needs to got to the next lower league.', t))
+            promises.push(addLogMessage('Very sad... Your team needs to got to the next lower league.', t))
             promises.push(query('UPDATE team SET level=? WHERE id=?', [t.level + 1, t.id]))
           })
         }

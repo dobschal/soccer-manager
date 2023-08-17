@@ -11,7 +11,7 @@ import { News } from '../entities/news.js'
  * @param {TeamType} team
  * @returns {Promise<void>}
  */
-export async function addNews (message, team) {
+export async function addLogMessage (message, team) {
   const { gameDay, season } = await getGameDayAndSeason()
   const news = new News({
     message,

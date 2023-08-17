@@ -10,26 +10,15 @@ import { Sponsor } from '../entities/sponsor.js'
  */
 export async function getSponsor (team) {
   const { gameDay, season } = await getGameDayAndSeason()
-
-  /** @type {Array<SponsorType>} */
-  const sponsors = await query('SELECT * FROM sponsor WHERE team_id=?', [team.id])
-  for (const sponsor of sponsors) {
-    // older than one season
-    if (sponsor.start_season < season - 1) continue
-    // from last season
-    if (sponsor.start_season === season - 1) {
-      const leftOverDays = sponsor.start_game_day + sponsor.duration - 34
-      if (leftOverDays >= gameDay) return { sponsor }
-      continue
-    }
-    // from current season
-    if (sponsor.start_season === season) {
-      if (sponsor.start_game_day + sponsor.duration >= gameDay) {
-        return { sponsor }
-      }
-    }
-  }
-  return {}
+  const [sponsor] = await query(`
+      SELECT s.*
+      FROM sponsor s
+      WHERE s.team_id = ?
+        AND ((s.start_game_day + s.duration >= ? AND s.start_season = ?)
+          OR (s.start_season = ? - 1
+              AND s.start_game_day + s.duration - 34 >= ?));
+  `, [team.id, gameDay, season, season, gameDay])
+  return { sponsor }
 }
 
 /**

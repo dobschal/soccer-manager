@@ -5,7 +5,7 @@ import { Player } from '../entities/player.js'
 import { randomItem } from '../lib/util.js'
 import { playerNames } from '../lib/name-library.js'
 import { Position } from '../../client/lib/formation.js'
-import { addNews } from './newsHelper.js'
+import { addLogMessage } from './newsHelper.js'
 import { generateRandomPlayerName } from '../prepare-season.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
 
@@ -26,7 +26,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addNews(`You gave ${player.name} a level up.`, team)
+    await addLogMessage(`You gave ${player.name} a level up.`, team)
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
@@ -38,7 +38,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addNews(`You gave ${player.name} a level up.`, team)
+    await addLogMessage(`You gave ${player.name} a level up.`, team)
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
@@ -50,7 +50,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addNews(`You gave ${player.name} a level up.`, team)
+    await addLogMessage(`You gave ${player.name} a level up.`, team)
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
@@ -79,7 +79,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     })
     await query('INSERT INTO player SET ?', player)
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addNews(`You got a new young talent ${player.name}.`, team)
+    await addLogMessage(`You got a new young talent ${player.name}.`, team)
     return { success: true }
   }
   throw new BadRequestError('Unknown action...')
