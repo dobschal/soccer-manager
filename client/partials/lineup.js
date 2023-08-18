@@ -6,11 +6,11 @@ import { render } from '../lib/render.js'
 import { showOverlay } from './overlay.js'
 import { PlayerList } from './playerList.js'
 import { renderPlayerImage } from './playerImage.js'
-import { renderMyTeamPage } from '../pages/my-team.js'
 import { getPositionsOfFormation } from '../lib/formation.js'
 
 export const lineUpData = {
-  squadDataChanged: false
+  squadDataChanged: false,
+  parentInstance: null
 }
 let overlay
 
@@ -19,7 +19,8 @@ let overlay
  * @param {TeamType} team
  * @returns {string}
  */
-export function renderLineup (players, team) {
+export function renderLineup (players, team, parentInstance) {
+  lineUpData.parentInstance = parentInstance
   const positions = getPositionsOfFormation(team.formation)
   players.filter(p => p.in_game_position).forEach(p => {
     const index = positions.findIndex(po => p.position === po)
@@ -69,7 +70,8 @@ function _renderSaveButton (players, team) {
       players = players.filter(p => !p.fake)
       await server.saveLineup({ players, formation: team.formation })
       toast('Save lineup.')
-      render('#page', await renderMyTeamPage())
+      await lineUpData.parentInstance.load()
+      lineUpData.parentInstance.update()
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
@@ -116,5 +118,5 @@ function _exchangePlayer (player, newPlayer, players, team) {
   if (player.id !== newPlayer) {
     lineUpData.squadDataChanged = true
   }
-  render('#squad', renderLineup(players, team))
+  render('#squad', renderLineup(players, team, lineUpData.parentInstance))
 }

@@ -4,7 +4,7 @@ import { initRouter } from './lib/router.js'
 import { renderDashboardPage } from './pages/dashboard.js'
 import { renderFinancesPage } from './pages/finances.js'
 import { renderLoginPage } from './pages/login.js'
-import { renderMyTeamPage } from './pages/my-team.js'
+import { MyTeamPage } from './pages/my-team.js'
 import { renderResultsPage } from './pages/results.js'
 import { renderStadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
@@ -17,7 +17,7 @@ const pages = {
   team: [renderGameLayout, TeamPage],
   results: [renderGameLayout, renderResultsPage],
   login: [renderDefaultLayout, renderLoginPage],
-  'my-team': [renderGameLayout, renderMyTeamPage],
+  'my-team': [renderGameLayout, MyTeamPage],
   '*': [renderGameLayout, renderDashboardPage]
 }
 
