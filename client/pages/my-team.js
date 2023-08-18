@@ -5,7 +5,7 @@ import { el, generateId } from '../lib/html.js'
 import { onChange, onClick } from '../lib/htmlEventHandlers.js'
 import { render } from '../lib/render.js'
 import { showOverlay } from '../partials/overlay.js'
-import { renderPlayersList } from '../partials/playersList.js'
+import { PlayerList } from '../partials/playerList.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
@@ -25,7 +25,7 @@ export async function renderMyTeamPage () {
   if (playerId) {
     await showPlayerModal(Number(playerId))
   }
-  const playersList = await renderPlayersList(
+  const playersList = new PlayerList(
     data.players,
     true,
     p => { // open player modal

@@ -7,9 +7,9 @@ export function renderAsync (renderFn) {
       const wrapperElement = el(id)
       if (!wrapperElement) return
       wrapperElement.innerHTML = await renderFn(...params)
-      wrapperElement.replaceWith(...wrapperElement.childNodes)
+      wrapperElement.replaceWith(wrapperElement.content)
     }
     setTimeout(update)
-    return `<div id="${id}" style="display: inline"></div>`
+    return `<template id="${id}"></template>`
   }
 }

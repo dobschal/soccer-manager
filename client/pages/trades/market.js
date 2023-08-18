@@ -2,13 +2,12 @@ import { server } from '../../lib/gateway.js'
 import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
 import { render } from '../../lib/render.js'
-import { showPlayerModal } from '../../partials/playerModal.js'
 import { euroFormat } from '../../util/currency.js'
 import { renderTradesPage } from '../trades.js'
 import { renderTable } from '../../partials/table.js'
 import { renderButton } from '../../partials/button.js'
-import { _sortByPosition } from '../../partials/playersList.js'
 import { setQueryParams } from '../../lib/router.js'
+import { sortByPosition } from '../../util/player.js'
 
 export async function renderMarket () {
   const { team } = await server.getMyTeam()
@@ -54,9 +53,9 @@ function _prepareTableCols (players) {
       const playerA = players.find(p => p.id === offerA.player_id)
       const playerB = players.find(p => p.id === offerB.player_id)
       if (isAsc) {
-        return _sortByPosition(playerB, playerA)
+        return sortByPosition(playerB, playerA)
       }
-      return _sortByPosition(playerA, playerB)
+      return sortByPosition(playerA, playerB)
     }
   }, {
     name: 'Level',

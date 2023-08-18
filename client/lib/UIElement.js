@@ -17,7 +17,6 @@ export class UIElement {
   }
 
   /**
-   * @abstract
    * @returns {Promise}
    */
   async load () {}

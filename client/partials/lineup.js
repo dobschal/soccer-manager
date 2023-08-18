@@ -4,7 +4,7 @@ import { toast } from './toast.js'
 import { server } from '../lib/gateway.js'
 import { render } from '../lib/render.js'
 import { showOverlay } from './overlay.js'
-import { renderPlayersList } from './playersList.js'
+import { PlayerList } from './playerList.js'
 import { renderPlayerImage } from './playerImage.js'
 import { renderMyTeamPage } from '../pages/my-team.js'
 import { getPositionsOfFormation } from '../lib/formation.js'
@@ -87,7 +87,7 @@ function _renderSquadPlayer (players, team) {
       overlay = showOverlay(
         'Select player',
         '',
-        `${await renderPlayersList(players.filter(p => p.position === player.position), false, newPlayer => _exchangePlayer(player, newPlayer, players, team))}`
+        `${new PlayerList(players.filter(p => p.position === player.position), false, newPlayer => _exchangePlayer(player, newPlayer, players, team))}`
       )
     })
     setTimeout(() => {

@@ -1,8 +1,7 @@
 import { server } from '../lib/gateway.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
-import { renderPlayersList } from '../partials/playersList.js'
+import { PlayerList } from '../partials/playerList.js'
 import { showPlayerModal } from '../partials/playerModal.js'
-import { renderAsync } from '../lib/renderAsync.js'
 import { Emblem } from '../partials/emblem.js'
 import { UIElement } from '../lib/UIElement.js'
 import { formatLeague } from '../util/league.js'
@@ -40,23 +39,22 @@ export class TeamPage extends UIElement {
           <b>Stadium Size</b>: ${this._stadiumSize} seats
         </p>
       </div>
-      ${this.playersList}
+      ${new PlayerList(
+        this.players,
+        true,
+        (player) => setQueryParams({ player_id: player.id + '' })
+      )}
     `
   }
 
   async load () {
     this._handleQueryParams()
-    const { team, players, user } = await server.getTeam({ teamId: this.teamId })
+    const { team, players, user } = await server.getTeam({ teamId: this.teamId + '' })
     this.user = user
     this.team = team
     this.players = players
     this.stadium = await server.getStadiumByTeamId_V2(this.team.id)
     if (this.playerId) await showPlayerModal(this.playerId)
-    this.playersList = renderAsync(renderPlayersList)(
-      this.players,
-      true,
-      (player) => setQueryParams({ player_id: player.id })
-    )
   }
 
   _handleQueryParams () {

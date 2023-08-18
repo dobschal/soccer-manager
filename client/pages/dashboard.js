@@ -1,12 +1,11 @@
 import { server } from '../lib/gateway.js'
-import { el, generateId } from '../lib/html.js'
+import { generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { render } from '../lib/render.js'
 import { showOverlay } from '../partials/overlay.js'
-import { renderPlayersList } from '../partials/playersList.js'
+import { PlayerList } from '../partials/playerList.js'
 import { toast } from '../partials/toast.js'
 import { formatDate } from '../lib/date.js'
-import { renderPlayerImage } from '../partials/playerImage.js'
 import { renderNews } from '../partials/news.js'
 
 let overlay, data
@@ -164,7 +163,7 @@ async function _useActionCard (actionCard) {
 
 async function _handleChangePositionActionCard (actionCard) {
   const data = await server.getMyTeam()
-  const playerList = await renderPlayersList(data.players, false, async player => {
+  const playerList = new PlayerList(data.players, false, async player => {
     overlay?.remove()
     const positionList = renderPositionList(async (position) => {
       try {
@@ -218,7 +217,7 @@ function renderPositionList (onClickHandler) {
 
 async function _handleLevelUpActionCard (actionCard) {
   const data = await server.getMyTeam()
-  const playerList = await renderPlayersList(data.players, false, async player => {
+  const playerList = new PlayerList(data.players, false, async player => {
     try {
       await server.useActionCard({ actionCard, player })
       overlay?.remove()
