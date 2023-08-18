@@ -291,32 +291,7 @@ a:hover, a:active,
 .player-image {
   float: left;
   margin-bottom: 3rem;
-}
-
-.wappen {
-  width: 100px;
-  height: 118px;
-  border-radius: 0 0 65% 65%;
-  margin: 1.5rem auto 0 auto;
-  border: 6px solid white;
-  border-top-width: 18px;
-  box-shadow: 10px 10px 30px 5px #000000bf;
-  text-align: center;
-  line-height: 20px;
-  font-size: 22px;
-  /* font-style: italic; */
-  padding: 9px 0;
-  box-sizing: border-box;
-  text-shadow: 1px 1px 2px #000000a6;
-  cursor: pointer;
-  font-family: 'Dai Banna', sans-serif;
-  transform: rotateY(10deg);
-  transition: transform 0.5s ease-in-out;
-  letter-spacing: -2px;
-}
-
-.wappen:hover {
-  transform: rotateY(-5deg) scale(1.2);
+  position: relative;
 }
 
 .color-picker-item {
@@ -334,6 +309,34 @@ a:hover, a:active,
   height: 150px;
   overflow: hidden;
   margin: 0 1rem 1rem 0;
+}
+
+.emblem-wrapper {
+  position: absolute;
+  top: 63%;
+  left: 54%;
+}
+
+.emblem {
+  position: relative;
+  margin: auto;
+  will-change: transform;
+  transition: transform 1s ease-out;
+}
+.emblem:hover {
+  cursor: pointer;
+  transform: scale(1.2);
+}
+.emblem > h2 {
+  position: absolute;
+  display: block;
+  top: 33%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  margin: 0;
+  text-shadow: 1px 1px 2px rgb(0 0 0 / 68%);
+  letter-spacing: -1px;
 }
 
 @media screen and (max-width: 768px) {

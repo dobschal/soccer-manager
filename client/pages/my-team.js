@@ -15,6 +15,7 @@ import { euroFormat } from '../util/currency.js'
 import { formatLeague } from '../util/league.js'
 import { renderLineup, lineUpData } from '../partials/lineup.js'
 import { randomItem } from '../util/randomItem.js'
+import { renderEmblem } from '../partials/emblem.js'
 
 let data
 
@@ -75,7 +76,7 @@ function _renderHeader () {
       <div class="col-12 col-md-4 mb-4">     
         <div class="card bg-dark text-white" style="min-height: 230px">        
           <div class="card-body" style="perspective: 40px;">
-            <h5 class="card-title">Icon</h5>
+            <h5 class="card-title">Icon <i class="fa fa-pencil" aria-hidden="true"></i></h5>
             ${_renderIconViewer()}
           </div>
         </div>
@@ -106,14 +107,11 @@ function _renderIconViewer () {
     _showColorPicker()
   })
 
-  const color = data.team.color
-  const darkColor = shadeColor(color, -30)
-  const cssColor = `background: ${color}; background: linear-gradient(133deg, ${darkColor} 0%, ${darkColor} 50%, ${color} 50%, ${color} 100%);`
-  return `
-    <div id="${id}" class="wappen mb-4" style="${cssColor}">
-        ${data.team.name}
-    </div>
-  `
+  renderEmblem(data.team).then(image => {
+    el(id).innerHTML = image
+  })
+
+  return `<div id="${id}" class="mb-4"></div>`
 }
 
 function _showColorPicker () {
