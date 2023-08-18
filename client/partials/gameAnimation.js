@@ -1,6 +1,7 @@
 import { renderPlayerImage } from './playerImage.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
+import { delay } from '../util/delay.js'
 
 const data = {}
 
@@ -203,16 +204,6 @@ async function _moveBallToPlayer (playerId, ballId) {
     el(ballId).className = 'ball away ' + player.position
   }
   await delay(500)
-}
-
-/**
- * @param {number} delay
- * @returns {Promise<void>}
- */
-function delay (delay) {
-  return new Promise(resolve => {
-    setTimeout(resolve, delay)
-  })
 }
 
 /**

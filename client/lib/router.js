@@ -3,6 +3,8 @@ import { fire } from './event.js'
 import { el } from './html.js'
 import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
+import { delay } from '../util/delay.js'
+import { UIElement } from './UIElement.js'
 
 let pages, lastPath
 
@@ -13,7 +15,6 @@ let pages, lastPath
  */
 export function goTo (path) {
   window.location.hash = path
-  _resolvePage().then(() => console.log('Page resolved.', path))
 }
 
 /**
@@ -63,44 +64,67 @@ export function getQueryParams () {
   return queryParams
 }
 
-let currentLayoutRenderFn, lastAnimationTimeout
+let currentLayoutRenderFn
 
-//
-// TODO: refactor and split up this function
-//
 async function _resolvePage () {
   const currentPath = window.location.hash.substring(1).split('?')[0]
-  const isSamePage = currentPath === lastPath
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
   }
+  const isSamePage = currentPath === lastPath
+  lastPath = currentPath
   const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
-  let isFirstRender = false
-  if (!currentLayoutRenderFn || currentLayoutRenderFn !== layoutRenderFn) {
-    render('body', await layoutRenderFn())
-    currentLayoutRenderFn = layoutRenderFn
-    isFirstRender = true
-  }
-  document.body.insertAdjacentHTML('beforeend', `
-    <div id="loading-indicator"></div>
-  `)
+  const layoutChanged = await _renderLayout(layoutRenderFn)
+  _showLoadingIndicator()
   hideNavigation()
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
-  if (!isFirstRender && !isSamePage) {
+  if (!layoutChanged && !isSamePage) {
     pageElement.style.transform = 'translateX(100vw)'
   }
-  lastPath = currentPath
-  setTimeout(async () => {
-    const t1 = Date.now()
+  await delay(isSamePage ? 0 : 300)
+  await _renderNewPage(pageRenderFn, currentPath, pageElement, isSamePage)
+}
+
+async function _renderNewPage (pageRenderFn, currentPath, pageElement, isSamePage) {
+  const t1 = Date.now()
+  if (pageRenderFn.isUIElement) {
+    render('#page', pageRenderFn)
+  } else {
     render('#page', await pageRenderFn())
-    const diff = Date.now() - t1
-    console.log(`Got ${currentPath} in ${diff}ms`)
-    el('#loading-indicator')?.remove()
-    fire('page-changed')
-    if (lastAnimationTimeout) clearTimeout(lastAnimationTimeout)
-    lastAnimationTimeout = setTimeout(() => {
-      pageElement.style.transform = 'translateX(0vw)'
-    }, isSamePage ? 0 : Math.max(0, 300 - diff))
-  }, isSamePage ? 0 : 300)
+  }
+  const diff = Date.now() - t1
+  console.log(`Got ${currentPath} in ${diff}ms`)
+  _hideLoadingIndicator()
+  fire('page-changed')
+  await delay(isSamePage ? 0 : Math.max(0, 300 - diff))
+  pageElement.style.transform = 'translateX(0vw)'
+  if (!isSamePage) {
+    await delay(100)
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth'
+    })
+  }
+}
+
+function _showLoadingIndicator () {
+  const element = el('#loading-indicator')
+  if (element) return
+  document.body.insertAdjacentHTML(
+    'beforeend',
+    '<div id="loading-indicator"></div>'
+  )
+}
+function _hideLoadingIndicator () {
+  el('#loading-indicator')?.remove()
+}
+
+async function _renderLayout (layoutRenderFn) {
+  if (!currentLayoutRenderFn || currentLayoutRenderFn !== layoutRenderFn) {
+    render('body', await layoutRenderFn())
+    currentLayoutRenderFn = layoutRenderFn
+    return true
+  }
 }

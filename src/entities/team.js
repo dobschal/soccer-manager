@@ -7,6 +7,7 @@
  * @property {string} color
  * @property {number} league
  * @property {number} balance
+ * @property {number} user_id
  * @property {Date} created_at
  */
 
@@ -25,7 +26,8 @@ export function Team (raw) {
     league: OptionalNumber,
     formation: RequiredString,
     color: RequiredString,
-    created_at: OptionalObject
+    created_at: OptionalObject,
+    user_id: OptionalNumber
   })
   for (const key in raw) {
     if (Object.hasOwnProperty.call(raw, key)) {

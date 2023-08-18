@@ -29,8 +29,6 @@ export async function showPlayerModal (playerId) {
   const history = await server.getPlayerHistory_V2(player.id)
   const { offer } = await server.myOfferForPlayer({ player })
 
-  console.log('History: ', history)
-
   onClick(teamLinkId, () => {
     goTo(`team?id=${playersTeam.id}`)
     overlay.remove()
@@ -103,6 +101,7 @@ export async function showPlayerModal (playerId) {
       <div class="mb-4">
         <b><i class="fa fa-calendar" aria-hidden="true"></i> History</b>
         ${history.map(_renderPlayerHistory).join('')}
+        ${history.length === 0 ? '<p>... no entry yet</p>' : ''}
       </div>
       <div class="mb-4 ${offer ? '' : 'hidden'}">
         This player is on the <a href="#trades">transfermarket</a>.

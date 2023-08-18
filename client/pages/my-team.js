@@ -9,13 +9,12 @@ import { renderPlayersList } from '../partials/playersList.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
-import { shadeColor } from '../lib/shadeColor.js'
 import { sallaryPerLevel } from '../util/player.js'
 import { euroFormat } from '../util/currency.js'
 import { formatLeague } from '../util/league.js'
 import { renderLineup, lineUpData } from '../partials/lineup.js'
 import { randomItem } from '../util/randomItem.js'
-import { renderEmblem } from '../partials/emblem.js'
+import { Emblem } from '../partials/emblem.js'
 
 let data
 
@@ -107,11 +106,9 @@ function _renderIconViewer () {
     _showColorPicker()
   })
 
-  renderEmblem(data.team).then(image => {
-    el(id).innerHTML = image
-  })
-
-  return `<div id="${id}" class="mb-4"></div>`
+  return `<div id="${id}" class="mb-4">
+    ${new Emblem({ team: data.team })}
+  </div>`
 }
 
 function _showColorPicker () {

@@ -7,14 +7,14 @@ import { renderLoginPage } from './pages/login.js'
 import { renderMyTeamPage } from './pages/my-team.js'
 import { renderResultsPage } from './pages/results.js'
 import { renderStadiumPage } from './pages/stadium.js'
-import { renderTeamPage } from './pages/team.js'
+import { TeamPage } from './pages/team.js'
 import { renderTradesPage } from './pages/trades.js'
 
 const pages = {
   trades: [renderGameLayout, renderTradesPage],
   stadium: [renderGameLayout, renderStadiumPage],
   finances: [renderGameLayout, renderFinancesPage],
-  team: [renderGameLayout, renderTeamPage],
+  team: [renderGameLayout, TeamPage],
   results: [renderGameLayout, renderResultsPage],
   login: [renderDefaultLayout, renderLoginPage],
   'my-team': [renderGameLayout, renderMyTeamPage],

@@ -1,5 +1,4 @@
 import { shadeColor } from '../lib/shadeColor.js'
-import { renderEmblem } from './emblem.js'
 
 // first is the real skin color, second is the shade
 const skinColors = [

@@ -38,7 +38,7 @@ export default {
     const player = await getPlayerById(playerId)
     const age = await getPlayerAge(player)
     const trades = await getPastTrades(player.position, age, player.level)
-    if (trades.length > 0) {
+    if (trades.length > 1) {
       const averagePrice = trades.reduce(function (avg, tradeWithPlayer, _, { length }) {
         return avg + tradeWithPlayer.price / length
       }, 0)

@@ -1,6 +1,6 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getTeam } from '../helper/teamHelper.js'
+import { getTeam, getTeamById } from '../helper/teamHelper.js'
 
 export default {
   /**
@@ -39,9 +39,17 @@ export default {
    * @returns {Promise<>}
    */
   async getTeam (req) {
-    const [team] = await query('SELECT * FROM team WHERE id=? LIMIT 1', [req.body.teamId])
+    const team = await getTeamById(req.body.teamId)
     const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
-    return { team, players }
+    let user
+    if (team.user_id) {
+      const users = await query('SELECT * FROM user WHERE id=? LIMIT 1', [team.user_id])
+      user = users[0]
+      if (user) {
+        delete user.password
+      }
+    }
+    return { team, players, user }
   },
 
   async saveLineup (req) {

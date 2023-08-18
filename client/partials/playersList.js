@@ -10,7 +10,7 @@ export async function renderPlayersList (players, showTitle = true, onClickHandl
   const { season } = await server.getCurrentGameday()
   currentSeason = season
   return `
-    <h3 class="${showTitle ? '' : 'hidden'}">Players (${players.length})</h3>
+    <h3 class="${showTitle ? '' : 'hidden'}" style="clear: both;">Players (${players.length})</h3>
     <table class="table table-hover">
       <thead>
         <tr>

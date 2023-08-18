@@ -1,10 +1,17 @@
 import { buildStadium, calcuateStadiumBuild, getStadiumOfCurrentUser } from '../helper/stadiumHelper.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { query } from '../lib/database.js'
-import { updateTeamBalance } from '../helper/financeHelpr.js'
-import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 export default {
+
+  /**
+   * @param {number} teamId
+   * @returns {Promise<StadiumType>}
+   */
+  async getStadiumByTeamId_V2 (teamId) {
+    const stadiums = await query('SELECT * FROM stadium WHERE team_id=? LIMIT 1', [teamId])
+    return stadiums[0]
+  },
 
   async getStadium (req) {
     return { stadium: await getStadiumOfCurrentUser(req) }

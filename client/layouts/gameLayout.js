@@ -67,7 +67,7 @@ export async function renderGameLayout () {
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">        
-        <ul class="navbar-nav mr-auto px-2">
+        <ul class="navbar-nav px-2">
           ${_navItem('my-team', '<i class="fa fa-users" aria-hidden="true"></i> Team')}
           ${_navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
           ${_navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}

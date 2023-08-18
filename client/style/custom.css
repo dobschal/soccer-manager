@@ -337,6 +337,7 @@ a:hover, a:active,
   margin: 0;
   text-shadow: 1px 1px 2px rgb(0 0 0 / 68%);
   letter-spacing: -1px;
+  color: white;
 }
 
 @media screen and (max-width: 768px) {

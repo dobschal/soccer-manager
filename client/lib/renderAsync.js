@@ -3,12 +3,13 @@ import { el, generateId } from './html.js'
 export function renderAsync (renderFn) {
   return (...params) => {
     const id = generateId()
-    const updateFn = async (...params) => {
+    async function update () {
       const wrapperElement = el(id)
       if (!wrapperElement) return
-      wrapperElement.innerHTML = await renderFn(...params, updateFn)
+      wrapperElement.innerHTML = await renderFn(...params)
+      wrapperElement.replaceWith(...wrapperElement.childNodes)
     }
-    setTimeout(() => updateFn(...params))
+    setTimeout(update)
     return `<div id="${id}" style="display: inline"></div>`
   }
 }
