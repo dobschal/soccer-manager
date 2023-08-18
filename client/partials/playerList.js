@@ -18,22 +18,24 @@ export class PlayerList extends UIElement {
 
   get template () {
     return `
-      <h3 class="${this.showTitle ? '' : 'hidden'}" style="clear: both;">Players (${this.players.length})</h3>
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Pos</th>
-            <th scope="col" class="text-right d-none d-sm-table-cell">Age</th>
-            <th scope="col" class="text-right">Fit</th>
-            <th scope="col" class="text-right">Lvl</th>
-            <th scope="col" class="text-right d-none d-md-table-cell">Sallary</th>
-          </tr>
-        </thead>
-        <tbody>
-            ${this.players.map(player => new PlayerListItem(player, this.season, this.onClickHandler)).join('')}
-        </tbody>
-      </table>
+      <div>
+        <h3 class="${this.showTitle ? '' : 'hidden'}" style="clear: both;">Players (${this.players.length})</h3>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Pos</th>
+              <th scope="col" class="text-right d-none d-sm-table-cell">Age</th>
+              <th scope="col" class="text-right">Fit</th>
+              <th scope="col" class="text-right">Lvl</th>
+              <th scope="col" class="text-right d-none d-md-table-cell">Sallary</th>
+            </tr>
+          </thead>
+          <tbody>
+              ${this.players.map(player => new PlayerListItem(player, this.season, this.onClickHandler)).join('')}
+          </tbody>
+        </table>
+      </div>
     `
   }
 

@@ -83,6 +83,7 @@ body {
   will-change: auto;
   margin-top: 5rem;
   margin-bottom: 5rem;
+  min-height: 100vh;
 }
 
 .centered-container {

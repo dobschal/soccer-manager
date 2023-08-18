@@ -71,7 +71,10 @@ async function _resolvePage () {
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
   }
-  const isSamePage = currentPath === lastPath
+  if (currentPath === lastPath) {
+    fire('query-changed', getQueryParams())
+    return
+  }
   lastPath = currentPath
   const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
   const layoutChanged = await _renderLayout(layoutRenderFn)
@@ -79,17 +82,19 @@ async function _resolvePage () {
   hideNavigation()
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
-  if (!layoutChanged && !isSamePage) {
+  if (!layoutChanged) {
     pageElement.style.transform = 'translateX(100vw)'
   }
-  await delay(isSamePage ? 0 : 300)
-  await _renderNewPage(pageRenderFn, currentPath, pageElement, isSamePage)
+  await delay(300)
+  await _renderNewPage(pageRenderFn, currentPath, pageElement)
 }
 
-async function _renderNewPage (pageRenderFn, currentPath, pageElement, isSamePage) {
+async function _renderNewPage (pageRenderFn, currentPath, pageElement) {
   const t1 = Date.now()
   if (pageRenderFn.isUIElement) {
-    render('#page', pageRenderFn)
+    const page = new pageRenderFn()
+    fire('query-changed', getQueryParams())
+    render('#page', page)
   } else {
     render('#page', await pageRenderFn())
   }
@@ -97,16 +102,14 @@ async function _renderNewPage (pageRenderFn, currentPath, pageElement, isSamePag
   console.log(`Got ${currentPath} in ${diff}ms`)
   _hideLoadingIndicator()
   fire('page-changed')
-  await delay(isSamePage ? 0 : Math.max(0, 300 - diff))
+  await delay(Math.max(0, 300 - diff))
   pageElement.style.transform = 'translateX(0vw)'
-  if (!isSamePage) {
-    await delay(100)
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'smooth'
-    })
-  }
+  await delay(100)
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth'
+  })
 }
 
 function _showLoadingIndicator () {

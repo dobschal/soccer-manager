@@ -14,16 +14,12 @@ export class PlayerListItem extends UIElement {
     super()
     this.player = player
     this.season = season
-    this.onClickHandler = onClickHandler
+    this.onClickHandler = () => onClickHandler(this.player)
   }
 
   get template () {
-    const id = generateId()
-    if (this.onClickHandler) {
-      onClick(id, () => this.onClickHandler(this.player))
-    }
     return `
-      <tr id="${id}" class="${this.player.in_game_position ? 'table-info' : 'table-warning'}">
+      <tr ${onClick(this.onClickHandler)} class="${this.player.in_game_position ? 'table-info' : 'table-warning'}">
         <th scope="row">${this.player.name}</th>
         <td>${this.player.position}</td>
         <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(this.player, this.season)}</td>

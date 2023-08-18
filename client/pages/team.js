@@ -1,5 +1,5 @@
 import { server } from '../lib/gateway.js'
-import { getQueryParams, setQueryParams } from '../lib/router.js'
+import { setQueryParams } from '../lib/router.js'
 import { PlayerList } from '../partials/playerList.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { Emblem } from '../partials/emblem.js'
@@ -26,44 +26,44 @@ export class TeamPage extends UIElement {
 
   get template () {
     return `
-      <div class="mb-4">
-        <div class="float-start me-4 mb-4 ms-2">
-            ${new Emblem({ team: this.team, size: 300, withText: true })}
+      <div>
+        <div class="mb-4">
+          <div class="float-start me-4 mb-4 ms-2">
+              ${new Emblem({ team: this.team, size: 300, withText: true })}
+          </div>
+          <h2>${this.team.name}</h2>
+          <p>
+            <b>League</b>: ${formatLeague(this.team.level, this.team.league)}<br>
+            <b>Team Strength</b>: ${this._teamStrength}<br>
+            <b>Ø Freshness</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
+            <b>Trainer</b>: ${this._username}<br>
+            <b>Stadium Size</b>: ${this._stadiumSize} seats
+          </p>
         </div>
-        <h2>${this.team.name}</h2>
-        <p>
-          <b>League</b>: ${formatLeague(this.team.level, this.team.league)}<br>
-          <b>Team Strength</b>: ${this._teamStrength}<br>
-          <b>Ø Freshness</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
-          <b>Trainer</b>: ${this._username}<br>
-          <b>Stadium Size</b>: ${this._stadiumSize} seats
-        </p>
+        ${new PlayerList(
+          this.players,
+          true,
+          (player) => setQueryParams({ player_id: player.id + '' })
+        )}
       </div>
-      ${new PlayerList(
-        this.players,
-        true,
-        (player) => setQueryParams({ player_id: player.id + '' })
-      )}
     `
   }
 
   async load () {
-    this._handleQueryParams()
+    if (!this.teamId) throw new Error('No team id present...')
     const { team, players, user } = await server.getTeam({ teamId: this.teamId + '' })
     this.user = user
     this.team = team
     this.players = players
     this.stadium = await server.getStadiumByTeamId_V2(this.team.id)
-    if (this.playerId) await showPlayerModal(this.playerId)
+    setTimeout(() => {
+      this.update()
+    }, 3000)
   }
 
-  _handleQueryParams () {
-    const params = getQueryParams()
-    if (!params.id) throw new Error('No team id present...')
-    this.teamId = Number(params.id)
-    if (params.player_id) {
-      this.playerId = Number(params.player_id)
-    }
+  onQueryChanged ({ player_id: playerId, id }) {
+    if (playerId) showPlayerModal(Number(playerId))
+    this.teamId = Number(id)
   }
 
   /**
