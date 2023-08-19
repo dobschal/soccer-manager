@@ -43,9 +43,12 @@
 body {
   font-variant-numeric: tabular-nums !important;
   background-image: url("../assets/bg-1.jpg");
-  background-size: 100%;
+  background-size: 100vw auto;
   width: 100%;
   overflow-x: hidden;
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 #logout-button {

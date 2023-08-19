@@ -1,5 +1,3 @@
-import { generateId } from './html.js'
-
 export function onChange (elementQuery, handler) {
   return on('change', elementQuery, handler)
 }
@@ -19,11 +17,6 @@ export function onSubmit (elementQuery, handler) {
 }
 
 export function on (eventName, elementQuery, handler) {
-  if (typeof elementQuery === 'function') {
-    const id = generateId()
-    on('click', `[data-click-id="${id}"]`, elementQuery)
-    return ` data-click-id="${id}" `
-  }
   setTimeout(() => {
     if (elementQuery.startsWith('_')) elementQuery = '#' + elementQuery
     const element = document.querySelector(elementQuery)

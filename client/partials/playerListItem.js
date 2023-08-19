@@ -1,10 +1,16 @@
 import { UIElement } from '../lib/UIElement.js'
-import { generateId } from '../lib/html.js'
-import { onClick } from '../lib/htmlEventHandlers.js'
 import { calculatePlayerAge, sallaryPerLevel } from '../util/player.js'
 import { euroFormat } from '../util/currency.js'
 
 export class PlayerListItem extends UIElement {
+  get events () {
+    return {
+      '': {
+        click: this.onClickHandler
+      }
+    }
+  }
+
   /**
    * @param {PlayerType} player
    * @param {number} season
@@ -19,7 +25,7 @@ export class PlayerListItem extends UIElement {
 
   get template () {
     return `
-      <tr ${onClick(this.onClickHandler)} class="${this.player.in_game_position ? 'table-info' : 'table-warning'}">
+      <tr class="${this.player.in_game_position ? 'table-info' : 'table-warning'}">
         <th scope="row">${this.player.name}</th>
         <td>${this.player.position}</td>
         <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(this.player, this.season)}</td>
@@ -29,4 +35,7 @@ export class PlayerListItem extends UIElement {
       </tr>
     `
   }
+
+  async load () {}
+  async onQueryChanged () {}
 }

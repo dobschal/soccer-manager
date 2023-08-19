@@ -4,7 +4,6 @@ import { el } from './html.js'
 import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
 import { delay } from '../util/delay.js'
-import { UIElement } from './UIElement.js'
 
 let pages, lastPath
 
@@ -75,6 +74,11 @@ async function _resolvePage () {
     fire('query-changed', getQueryParams())
     return
   }
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth'
+  })
   lastPath = currentPath
   const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
   const layoutChanged = await _renderLayout(layoutRenderFn)
@@ -92,6 +96,7 @@ async function _resolvePage () {
 async function _renderNewPage (pageRenderFn, currentPath, pageElement) {
   const t1 = Date.now()
   if (pageRenderFn.isUIElement) {
+    /** @type {UIElement} */
     const page = new pageRenderFn()
     fire('query-changed', getQueryParams())
     render('#page', page)
@@ -105,11 +110,6 @@ async function _renderNewPage (pageRenderFn, currentPath, pageElement) {
   await delay(Math.max(0, 300 - diff))
   pageElement.style.transform = 'translateX(0vw)'
   await delay(100)
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: 'smooth'
-  })
 }
 
 function _showLoadingIndicator () {

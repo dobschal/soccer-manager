@@ -12,28 +12,28 @@ export class UIElement {
     }
   }
 
-  onQueryChanged () {}
-
-  /**
-   * @abstract
-   * @returns {string}
-   */
-  get template () {
-    return ''
+  /** @abstract */
+  get events () {
+    return {}
   }
 
-  /**
-   * @returns {Promise}
-   */
+  /** @abstract */
+  onQueryChanged () {}
+
+  /** @abstract */
+  get template () {}
+
+  /** @abstract */
   async load () {}
 
   /**
    * Render the current UIElement --> call load and return the template string then
    * @returns {Promise<string>}
    */
-  async render () {
+  async _render (skipLoad = false) {
     try {
-      await this.load()
+      if (!skipLoad) await this.load()
+      if (Object.keys(this.events).length > 0) this._applyEventHandlers()
       return this.template
     } catch (e) {
       toast(e.message ?? 'Something went wrong', 'error')
@@ -42,54 +42,82 @@ export class UIElement {
   }
 
   /**
-   * Find the currently rendered DOM nodes for this UIElement and replace those
-   * with the current template rendered.
+   * Render the current UIElement --> call load and return the template string then
+   * This one is returning a placeholder string first and splices in the content once loaded.
+   * @returns {string}
    */
-  update () {
-    if (!this._renderId) return console.error('Called update on UIElement without having the UIElement rendered.')
-    const nodes = document.querySelectorAll(`.render${this._renderId}`)
-    if (nodes.length !== 1) throw new Error('UIElement needs to have exactly one element as root')
-    const templateEl = document.createElement('template')
-    templateEl.innerHTML = this.template
-    templateEl.content.children[0].classList.add(`render${this._renderId}`)
-    nodes.item(0).replaceWith(templateEl.content.childNodes.item(1))
-  }
-
-  static toString () {
-    const uiElement = new this()
-    return uiElement.toString()
-  }
-
-  toString () {
-    const { template, id } = UIElement._renderAsync(this.render.bind(this))()
-    this._renderId = id
-    return template
+  renderSync () {
+    setTimeout(async () => {
+      /** @type {HTMLTemplateElement} */
+      const templateEl = el(this._renderId)
+      await this._renderIntoTemplateEl(templateEl, false)
+      this._renderIntoDOM(templateEl, templateEl)
+    })
+    return `<template id="${this._renderId}"></template>`
   }
 
   /**
-   * @param {function(...[*]): Promise<string>} renderFn
-   * @returns {function(...[*]): {template: string, id: string}}
-   * @private
+   * Find the currently rendered DOM nodes for this UIElement and replace those
+   * with the current template rendered.
+   * @param {boolean} skipLoad - default is true to not reload the data
    */
-  static _renderAsync (renderFn) {
-    return (...params) => {
-      const id = generateId()
+  async update (skipLoad = true) {
+    if (!this.isRendered) return
+    const node = document.querySelector(this._elementQuery)
+    const templateEl = document.createElement('template')
+    await this._renderIntoTemplateEl(templateEl, skipLoad)
+    this._renderIntoDOM(node, templateEl)
+  }
 
-      setTimeout(async () => {
-        /** @type {HTMLTemplateElement} */
-        const wrapperElement = el(id)
-        if (!wrapperElement) return
-        wrapperElement.innerHTML = await renderFn(...params)
-        if (wrapperElement.content.children.length !== 1) throw new Error('UIElement needs to have exactly one element as root: ' + wrapperElement.content.children.length)
-        wrapperElement.content.children[0].classList.add(`render${id}`)
-        // TODO: replaceWith leads to flickering...
-        wrapperElement.replaceWith(...wrapperElement.content.childNodes)
-      })
+  toString () {
+    return this.renderSync()
+  }
 
-      return { template: `<template id="${id}"></template>`, id }
-    }
+  get isRendered () {
+    return Boolean(this._renderId && el(this._elementQuery))
   }
 
   isUIElement = true
   static isUIElement = true
+
+  // Private API
+
+  _renderId = generateId()
+
+  /**
+   * @param {HTMLTemplateElement} templateEl
+   * @param {boolean} skipLoad
+   * @private
+   */
+  async _renderIntoTemplateEl (templateEl, skipLoad) {
+    if (!templateEl) return console.error('Template element isn\'t available for rendering')
+    templateEl.innerHTML = await this._render(skipLoad)
+    if (templateEl.content.children.length !== 1) throw new Error('UIElement needs to have exactly one element as root: ' + templateEl.content.children.length)
+  }
+
+  /**
+   * @param {HTMLElement} target
+   * @param {HTMLTemplateElement} templateEl
+   * @private
+   */
+  _renderIntoDOM (target, templateEl) {
+    templateEl.content.children[0].setAttribute('data-render', this._renderId)
+    target.replaceWith(templateEl.content.children[0])
+  }
+
+  _applyEventHandlers () {
+    setTimeout(() => {
+      for (const elementQuery in this.events) {
+        const element = el(`${this._elementQuery} ${elementQuery}`)
+        if (!element) throw new Error('Cannot apply event listener. No element: ' + `${this._elementQuery} ${elementQuery}`)
+        for (const eventName in this.events[elementQuery]) {
+          element.addEventListener(eventName, this.events[elementQuery][eventName].bind(this))
+        }
+      }
+    })
+  }
+
+  get _elementQuery () {
+    return `[data-render="${this._renderId}"]`
+  }
 }
