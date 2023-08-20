@@ -16,6 +16,14 @@ export class PlayerList extends UIElement {
     this.onClickHandler = onClickHandler
   }
 
+  onQueryChanged () {
+    super.onQueryChanged()
+  }
+
+  get events () {
+    return super.events
+  }
+
   get template () {
     return `
       <div>

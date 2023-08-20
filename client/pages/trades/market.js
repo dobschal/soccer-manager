@@ -1,9 +1,7 @@
 import { server } from '../../lib/gateway.js'
 import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
-import { render } from '../../lib/render.js'
 import { euroFormat } from '../../util/currency.js'
-import { renderTradesPage } from '../trades.js'
 import { renderTable } from '../../partials/table.js'
 import { renderButton } from '../../partials/button.js'
 import { setQueryParams } from '../../lib/router.js'
@@ -13,6 +11,7 @@ export async function renderMarket () {
   const { team } = await server.getMyTeam()
   let { offers, players, teams } = await server.getOffers()
   offers = offers.filter(o => o.type === 'sell' && o.from_team_id !== team.id)
+  console.log('Render market...')
 
   const table = renderTable({
     data: offers,
@@ -106,7 +105,10 @@ async function _showBuyDialog (player) {
       type: 'buy'
     })
     toast('You\'ve sent a buy offer')
-    render('#page', await renderTradesPage())
+    // render('#page', await renderTradesPage())
+    //
+    // TODO: Call update here
+    //
   } catch (e) {
     console.error(e)
     toast(e.message ?? 'Something went wrong', 'error')

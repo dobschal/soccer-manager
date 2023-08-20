@@ -20,7 +20,7 @@ export function on (eventName, elementQuery, handler) {
   setTimeout(() => {
     if (elementQuery.startsWith('_')) elementQuery = '#' + elementQuery
     const element = document.querySelector(elementQuery)
-    if (!element) return console.error('No element for event handler', elementQuery)
+    if (!element) return console.error('No element for event handler', elementQuery, eventName, handler)
     element.addEventListener(eventName, handler)
   })
 }

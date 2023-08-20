@@ -89,27 +89,25 @@ async function _resolvePage () {
   if (!layoutChanged) {
     pageElement.style.transform = 'translateX(100vw)'
   }
+  pageElement.innerHTML = ''
   await delay(300)
   await _renderNewPage(pageRenderFn, currentPath, pageElement)
 }
 
-async function _renderNewPage (pageRenderFn, currentPath, pageElement) {
-  const t1 = Date.now()
-  if (pageRenderFn.isUIElement) {
+async function _renderNewPage (PageUIElement, currentPath, pageElement) {
+  if (PageUIElement.isUIElement) {
     /** @type {UIElement} */
-    const page = new pageRenderFn()
+    const page = new PageUIElement()
     fire('query-changed', getQueryParams())
     render('#page', page)
   } else {
-    render('#page', await pageRenderFn())
+    console.warn('Deprecated: ', currentPath)
+    render('#page', await PageUIElement())
   }
-  const diff = Date.now() - t1
-  console.log(`Got ${currentPath} in ${diff}ms`)
   _hideLoadingIndicator()
   fire('page-changed')
-  await delay(Math.max(0, 300 - diff))
+  await delay(200)
   pageElement.style.transform = 'translateX(0vw)'
-  await delay(100)
 }
 
 function _showLoadingIndicator () {

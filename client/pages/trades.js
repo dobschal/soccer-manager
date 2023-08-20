@@ -1,40 +1,50 @@
-import { renderMyOffers } from './trades/myOffers.js'
-import { getQueryParams } from '../lib/router.js'
+import { MyOffersPage } from './trades/myOffers.js'
 import { renderMarket } from './trades/market.js'
 import { renderIncomingOffers } from './trades/incoming.js'
 import { renderTradeHistory } from './trades/tradeHistory.js'
 import { showPlayerModal } from '../partials/playerModal.js'
+import { UIElement } from '../lib/UIElement.js'
 
-export async function renderTradesPage () {
-  const params = getQueryParams()
-  if (params.player_id) await showPlayerModal(Number(params.player_id))
-  let page = ''
-  switch (params.sub_page) {
-    case 'incoming':
-      page = await renderIncomingOffers()
-      break
-    case 'my_offers':
-      page = await renderMyOffers()
-      break
-    case 'history':
-      page = renderTradeHistory()
-      break
-    default:
-      page = await renderMarket()
+export class TradesPage extends UIElement {
+  get events () {
+    return super.events
   }
-  return `
-    ${_renderNavigation(params.sub_page)}
-    ${page}`
-}
 
-function _renderNavigation (page) {
-  return `
-    <nav class="nav nav-pills mb-2">
-      <a class="nav-link ${!page ? 'active' : ''}" href="#trades">Market</a>
-      <a class="nav-link ${page === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">Incoming</a>
-      <a class="nav-link ${page === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">My Offers</a>
-      <a class="nav-link ${page === 'history' ? 'active' : ''}" href="#trades?sub_page=history">History</a>
-    </nav>
+  get template () {
+    return `
+      <div>
+        <nav class="nav nav-pills mb-2">
+          <a class="nav-link ${!this.pageName ? 'active' : ''}" href="#trades">Market</a>
+          <a class="nav-link ${this.pageName === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">Incoming</a>
+          <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">My Offers</a>
+          <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">History</a>
+        </nav>
+        ${this.page}
+      </div>
+    `
+  }
 
-  `
+  async load () {
+    await super.load()
+  }
+
+  async onQueryChanged ({ sub_page: pageName, player_id: playerId }) {
+    if (playerId) await showPlayerModal(Number(playerId))
+    if (pageName && pageName === this.pageName) return
+    this.pageName = pageName
+    switch (this.pageName) {
+      case 'incoming':
+        this.page = await renderIncomingOffers()
+        break
+      case 'my_offers':
+        this.page = new MyOffersPage(this)
+        break
+      case 'history':
+        this.page = renderTradeHistory()
+        break
+      default:
+        this.page = await renderMarket()
+    }
+    await this.update()
+  }
 }

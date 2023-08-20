@@ -1,6 +1,7 @@
 import { toast } from '../partials/toast.js'
 import { el, generateId } from './html.js'
-import { on } from './event.js'
+import { off, on } from './event.js'
+import { onDOMNodeChanged } from './observeDOM.js'
 
 export class UIElement {
   constructor (params = {}) {
@@ -8,8 +9,22 @@ export class UIElement {
       this[paramsKey] = params[paramsKey]
     }
     if (typeof this.onQueryChanged === 'function') {
-      on('query-changed', this.onQueryChanged.bind(this))
+      this._queryChangedEventId = on('query-changed', this.onQueryChanged.bind(this))
     }
+    onDOMNodeChanged(document.body, (addedNodes, removedNodes) => {
+      for (const addedNode of addedNodes) {
+        if (addedNode.dataset?.render_id === this._renderId && el(this._elementQuery)) {
+          this._onMounted(addedNode)
+          break
+        }
+      }
+      for (const removedNode of removedNodes) {
+        if (removedNode.dataset?.render_id === this._renderId && !el(this._elementQuery)) {
+          this._onDestroy(removedNode)
+          break
+        }
+      }
+    })
   }
 
   /** @abstract */
@@ -19,6 +34,12 @@ export class UIElement {
 
   /** @abstract */
   onQueryChanged () {}
+
+  /** @abstract */
+  onMounted () {}
+
+  /** @abstract */
+  onDestroy () {}
 
   /** @abstract */
   get template () {}
@@ -33,7 +54,6 @@ export class UIElement {
   async _render (skipLoad = false) {
     try {
       if (!skipLoad) await this.load()
-      if (Object.keys(this.events).length > 0) this._applyEventHandlers()
       return this.template
     } catch (e) {
       toast(e.message ?? 'Something went wrong', 'error')
@@ -101,23 +121,33 @@ export class UIElement {
    * @private
    */
   _renderIntoDOM (target, templateEl) {
-    templateEl.content.children[0].setAttribute('data-render', this._renderId)
+    templateEl.content.children[0].setAttribute('data-render_id', this._renderId)
     target.replaceWith(templateEl.content.children[0])
   }
 
   _applyEventHandlers () {
-    setTimeout(() => {
-      for (const elementQuery in this.events) {
-        const element = el(`${this._elementQuery} ${elementQuery}`)
-        if (!element) throw new Error('Cannot apply event listener. No element: ' + `${this._elementQuery} ${elementQuery}`)
-        for (const eventName in this.events[elementQuery]) {
-          element.addEventListener(eventName, this.events[elementQuery][eventName].bind(this))
-        }
+    for (const elementQuery in this.events) {
+      const element = el(`${this._elementQuery} ${elementQuery}`)
+      if (!element) throw new Error('Cannot apply event listener. No element: ' + `${this._elementQuery} ${elementQuery}`)
+      for (const eventName in this.events[elementQuery]) {
+        element.addEventListener(eventName, this.events[elementQuery][eventName].bind(this))
       }
-    })
+    }
   }
 
   get _elementQuery () {
-    return `[data-render="${this._renderId}"]`
+    return `[data-render_id="${this._renderId}"]`
+  }
+
+  _onMounted (node) {
+    console.log('Mounted: ', this.constructor.name)
+    this._applyEventHandlers()
+    this.onMounted()
+  }
+
+  _onDestroy (node) {
+    console.log('Destroy: ', this.constructor.name)
+    off(this._queryChangedEventId)
+    this.onDestroy()
   }
 }

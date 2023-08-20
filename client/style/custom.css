@@ -237,9 +237,14 @@ a:visited,
 }
 
 a:hover, a:active,
-.hover-text:hover {
+.hover-text:not(td):hover {
   cursor: pointer;
   transform: scale(1.05);
+}
+
+td.hover-text:hover {
+  cursor: pointer;
+  background-color: #EFEFEF;
 }
 
 .finance-canvas {

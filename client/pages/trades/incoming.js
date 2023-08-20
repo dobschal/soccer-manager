@@ -1,12 +1,9 @@
 import { generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
-import { showPlayerModal } from '../../partials/playerModal.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
-import { render } from '../../lib/render.js'
 import { renderButton } from '../../partials/button.js'
 import { euroFormat } from '../../util/currency.js'
-import { renderTradesPage } from '../trades.js'
 import { setQueryParams } from '../../lib/router.js'
 
 export async function renderIncomingOffers () {
@@ -74,7 +71,10 @@ function _renderIncomingOfferList (offers, players, teams, team) {
       try {
         await server.acceptOffer({ offer: o })
         toast(`You accepted the buy offer from ${team.name}`)
-        render('#page', await renderTradesPage())
+        // render('#page', await renderTradesPage())
+        //
+        // TODO: Call update here
+        //
       } catch (e) {
         console.error(e)
         toast(e.message ?? 'Something went wrong', 'error')
@@ -87,7 +87,10 @@ function _renderIncomingOfferList (offers, players, teams, team) {
         try {
           await server.declineOffer({ offer: o })
           toast(`You declined the buy offer from ${team.name}`)
-          render('#page', await renderTradesPage())
+          // render('#page', await renderTradesPage())
+          //
+          // TODO: Call update here
+          //
         } catch (e) {
           console.error(e)
           toast(e.message ?? 'Something went wrong', 'error')

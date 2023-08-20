@@ -52,6 +52,14 @@ export default {
     return { team, players, user }
   },
 
+  /**
+   * @param {number} teamId
+   * @returns {Promise<TeamType>}
+   */
+  async getTeamById_V2 (teamId) {
+    return await getTeamById(teamId)
+  },
+
   async saveLineup (req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
     const playersFromDb = await query('SELECT * FROM player WHERE team_id=?', team.id)

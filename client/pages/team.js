@@ -49,6 +49,10 @@ export class TeamPage extends UIElement {
     `
   }
 
+  get events () {
+    return super.events
+  }
+
   async load () {
     if (!this.teamId) throw new Error('No team id present...')
     const { team, players, user } = await server.getTeam({ teamId: this.teamId + '' })
@@ -56,13 +60,10 @@ export class TeamPage extends UIElement {
     this.team = team
     this.players = players
     this.stadium = await server.getStadiumByTeamId_V2(this.team.id)
-    setTimeout(() => {
-      this.update()
-    }, 3000)
   }
 
-  onQueryChanged ({ player_id: playerId, id }) {
-    if (playerId) showPlayerModal(Number(playerId))
+  async onQueryChanged ({ player_id: playerId, id }) {
+    if (playerId) await showPlayerModal(Number(playerId))
     this.teamId = Number(id)
   }
 

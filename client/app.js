@@ -8,10 +8,10 @@ import { MyTeamPage } from './pages/my-team.js'
 import { renderResultsPage } from './pages/results.js'
 import { renderStadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
-import { renderTradesPage } from './pages/trades.js'
+import { TradesPage } from './pages/trades.js'
 
 const pages = {
-  trades: [renderGameLayout, renderTradesPage],
+  trades: [renderGameLayout, TradesPage],
   stadium: [renderGameLayout, renderStadiumPage],
   finances: [renderGameLayout, renderFinancesPage],
   team: [renderGameLayout, TeamPage],
