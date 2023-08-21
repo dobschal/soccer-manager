@@ -1,7 +1,7 @@
 import { renderPlayerImage } from './playerImage.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
-import { delay } from '../util/delay.js'
+import { delay } from '../lib/delay.js'
 
 const data = {}
 

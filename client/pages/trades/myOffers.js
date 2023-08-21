@@ -1,6 +1,6 @@
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
-import { euroFormat } from '../../util/currency.js'
+import { euroFormat } from '../../lib/currency.js'
 import { setQueryParams } from '../../lib/router.js'
 import { UIElement } from '../../lib/UIElement.js'
 

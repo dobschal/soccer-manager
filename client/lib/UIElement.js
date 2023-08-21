@@ -49,20 +49,6 @@ export class UIElement {
 
   /**
    * Render the current UIElement --> call load and return the template string then
-   * @returns {Promise<string>}
-   */
-  async _render (skipLoad = false) {
-    try {
-      if (!skipLoad) await this.load()
-      return this.template
-    } catch (e) {
-      toast(e.message ?? 'Something went wrong', 'error')
-      return ''
-    }
-  }
-
-  /**
-   * Render the current UIElement --> call load and return the template string then
    * This one is returning a placeholder string first and splices in the content once loaded.
    * @returns {string}
    */
@@ -100,7 +86,9 @@ export class UIElement {
   isUIElement = true
   static isUIElement = true
 
-  // Private API
+  // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
+  // Private API // // // // // // // // // // // // // // // // // // // // // // // //
+  // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
   _renderId = generateId()
 
@@ -149,5 +137,19 @@ export class UIElement {
     console.log('Destroy: ', this.constructor.name)
     off(this._queryChangedEventId)
     this.onDestroy()
+  }
+
+  /**
+   * Render the current UIElement --> call load and return the template string then
+   * @returns {Promise<string>}
+   */
+  async _render (skipLoad = false) {
+    try {
+      if (!skipLoad) await this.load()
+      return this.template
+    } catch (e) {
+      toast(e.message ?? 'Something went wrong', 'error')
+      return ''
+    }
   }
 }

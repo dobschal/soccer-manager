@@ -2,7 +2,7 @@ import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getPlayerById } from '../helper/playerHelper.js'
-import { euroFormat } from '../../client/util/currency.js'
+import { euroFormat } from '../../client/lib/currency.js'
 import { randomItem } from '../lib/util.js'
 
 /** @type {{news: NewsArticle[], season: number, gameDay: number}[]} */
@@ -29,10 +29,15 @@ const texts = {
 
 export default {
 
-  async getLogMessages (req) {
+  /**
+   * @param {number} pageIndex
+   * @param {number} pageSize
+   * @param {Request} [req]
+   * @returns {Promise<Array<NewsType>>}
+   */
+  async getLogMessages_V2 (pageIndex, pageSize, req) {
     const team = await getTeam(req)
-    const messages = await query('SELECT * FROM news WHERE team_id=?', [team.id])
-    return { messages }
+    return await query('SELECT * FROM news WHERE team_id=? ORDER BY id DESC LIMIT ?, ?', [team.id, pageIndex * pageSize, pageSize])
   },
 
   /**

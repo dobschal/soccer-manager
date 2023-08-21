@@ -6,7 +6,7 @@ import { render } from '../lib/render.js'
 import { showOverlay } from './overlay.js'
 import { PlayerList } from './playerList.js'
 import { renderPlayerImage } from './playerImage.js'
-import { getPositionsOfFormation } from '../lib/formation.js'
+import { getPositionsOfFormation } from '../util/formation.js'
 
 export const lineUpData = {
   squadDataChanged: false,
@@ -69,7 +69,7 @@ function _renderSaveButton (players, team) {
       }
       players = players.filter(p => !p.fake)
       await server.saveLineup({ players, formation: team.formation })
-      toast('Save lineup.')
+      toast('Saved lineup.', 'success')
       await lineUpData.parentInstance.load()
       lineUpData.parentInstance.update()
     } catch (e) {

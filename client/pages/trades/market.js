@@ -1,7 +1,7 @@
 import { server } from '../../lib/gateway.js'
 import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
-import { euroFormat } from '../../util/currency.js'
+import { euroFormat } from '../../lib/currency.js'
 import { renderTable } from '../../partials/table.js'
 import { renderButton } from '../../partials/button.js'
 import { setQueryParams } from '../../lib/router.js'
@@ -109,6 +109,7 @@ async function _showBuyDialog (player) {
     //
     // TODO: Call update here
     //
+    window.reload()
   } catch (e) {
     console.error(e)
     toast(e.message ?? 'Something went wrong', 'error')

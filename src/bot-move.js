@@ -8,7 +8,7 @@ import { acceptOffer, declineOffer } from './helper/tradeHelper.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { buildStadium, calcuateStadiumBuild } from './helper/stadiumHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById } from './helper/playerHelper.js'
-import { getPositionsOfFormation } from '../client/lib/formation.js'
+import { getPositionsOfFormation } from '../client/util/formation.js'
 
 // 1. Check Tactic (/)
 // 2. Play Action Cards (/)

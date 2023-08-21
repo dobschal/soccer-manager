@@ -3,6 +3,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelpr.js'
 import { getTeam } from './teamHelper.js'
+import { addLogMessage } from './newsHelper.js'
 
 /**
  * @param {Request} req
@@ -78,4 +79,5 @@ export async function buildStadium (team, plannedStadium, price) {
     plannedStadium.east_stand_roof,
     plannedStadium.id
   ])
+  await addLogMessage('Congratulations! You expanded your stadium!', team)
 }

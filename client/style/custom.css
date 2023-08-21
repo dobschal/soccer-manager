@@ -119,8 +119,9 @@ body {
   top: 4rem;
   left: 50%;
   z-index: 10;
-  min-width: 250px;
-  transform: translateX(-125px);
+  width: 300px;
+  transform: translateX(-150px);
+  box-shadow: 11px 12px 7px 3px rgba(0, 0, 0, 0.3);
 }
 
 .toast.error {

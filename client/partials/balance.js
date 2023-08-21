@@ -1,5 +1,5 @@
 import { server } from '../lib/gateway.js'
-import { euroFormat } from '../util/currency.js'
+import { euroFormat } from '../lib/currency.js'
 import { renderAsync } from '../lib/renderAsync.js'
 
 export const balanceSpan = renderAsync(async function (update) {

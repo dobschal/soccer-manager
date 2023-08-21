@@ -1,7 +1,7 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
 import { calculatePlayerAge, sallaryPerLevel } from '../util/player.js'
-import { euroFormat } from '../util/currency.js'
+import { euroFormat } from '../lib/currency.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from './toast.js'
@@ -42,7 +42,7 @@ export async function showPlayerModal (playerId) {
         price,
         type: isMyPlayer ? 'sell' : 'buy'
       })
-      toast('You add a trade offer for ' + player.name)
+      toast('You added a trade offer for ' + player.name, 'success')
       overlay.remove()
     } catch (e) {
       console.error(e)

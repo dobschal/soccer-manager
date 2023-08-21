@@ -1,6 +1,6 @@
 import { UIElement } from '../lib/UIElement.js'
 import { calculatePlayerAge, sallaryPerLevel } from '../util/player.js'
-import { euroFormat } from '../util/currency.js'
+import { euroFormat } from '../lib/currency.js'
 
 export class PlayerListItem extends UIElement {
   get events () {

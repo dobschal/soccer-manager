@@ -1,5 +1,5 @@
 import { el, generateId } from '../lib/html.js'
-import { euroFormat } from '../util/currency.js'
+import { euroFormat } from '../lib/currency.js'
 
 let canvasId
 /** @type {FinanceLogType[]} */

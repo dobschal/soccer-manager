@@ -3,7 +3,7 @@ import { fire } from './event.js'
 import { el } from './html.js'
 import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
-import { delay } from '../util/delay.js'
+import { delay } from '../lib/delay.js'
 
 let pages, lastPath
 

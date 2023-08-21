@@ -1,5 +1,5 @@
 import { query } from './lib/database.js'
-import { determineOponentPosition } from '../client/lib/formation.js'
+import { determineOponentPosition } from '../client/util/formation.js'
 import { randomItem } from './lib/util.js'
 import { ActionCard } from './entities/actionCard.js'
 import { getSponsor } from './helper/sponsorHelper.js'

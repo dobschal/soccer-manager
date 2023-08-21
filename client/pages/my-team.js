@@ -1,5 +1,5 @@
 import { formatDate } from '../lib/date.js'
-import { Formation, getPositionsOfFormation } from '../lib/formation.js'
+import { Formation, getPositionsOfFormation } from '../util/formation.js'
 import { server, showServerError } from '../lib/gateway.js'
 import { el, generateId } from '../lib/html.js'
 import { onChange, onClick } from '../lib/htmlEventHandlers.js'
@@ -10,10 +10,10 @@ import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { setQueryParams } from '../lib/router.js'
 import { sallaryPerLevel } from '../util/player.js'
-import { euroFormat } from '../util/currency.js'
+import { euroFormat } from '../lib/currency.js'
 import { formatLeague } from '../util/league.js'
 import { renderLineup, lineUpData } from '../partials/lineup.js'
-import { randomItem } from '../util/randomItem.js'
+import { randomItem } from '../lib/randomItem.js'
 import { Emblem } from '../partials/emblem.js'
 import { UIElement } from '../lib/UIElement.js'
 
@@ -171,8 +171,8 @@ export class MyTeamPage extends UIElement {
         onClick(id, async () => {
           try {
             await server.updateColor({ color: c })
-            toast('You have choosen a new color!')
-            this.update()
+            toast('You have chosen a new color!', 'success')
+            await this.update(false)
             overlay.remove()
           } catch (e) {
             showServerError(e)

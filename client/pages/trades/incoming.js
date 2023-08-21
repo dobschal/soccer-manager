@@ -3,7 +3,7 @@ import { onClick } from '../../lib/htmlEventHandlers.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 import { renderButton } from '../../partials/button.js'
-import { euroFormat } from '../../util/currency.js'
+import { euroFormat } from '../../lib/currency.js'
 import { setQueryParams } from '../../lib/router.js'
 
 export async function renderIncomingOffers () {
@@ -75,6 +75,7 @@ function _renderIncomingOfferList (offers, players, teams, team) {
         //
         // TODO: Call update here
         //
+        window.reload()
       } catch (e) {
         console.error(e)
         toast(e.message ?? 'Something went wrong', 'error')
@@ -91,6 +92,7 @@ function _renderIncomingOfferList (offers, players, teams, team) {
           //
           // TODO: Call update here
           //
+          window.reload()
         } catch (e) {
           console.error(e)
           toast(e.message ?? 'Something went wrong', 'error')

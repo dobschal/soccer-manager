@@ -4,13 +4,14 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from '../partials/toast.js'
 import { render } from '../lib/render.js'
 import { balanceSpan } from '../partials/balance.js'
-import { euroFormat } from '../util/currency.js'
+import { euroFormat } from '../lib/currency.js'
 import { drawBalanceChart } from '../partials/balanceChart.js'
 
 export async function renderFinancesPage () {
   const { sponsor } = await server.getSponsor()
   const { sponsors: offers } = await server.getSponsorOffers()
   const { log: financeLog } = await server.getFinanceLog()
+  console.log('Finance: ', financeLog)
   return `
     <h2>Finances</h2>
     <p>
@@ -48,8 +49,8 @@ export async function renderFinancesPage () {
  * @private
  */
 function _sortFinanceLog (logA, logB) {
-  if (logB.season > logA.season) return -1
-  if (logB.season < logA.season) return 1
+  if (logB.season > logA.season) return 1
+  if (logB.season < logA.season) return -1
   return logB.game_day - logA.game_day
 }
 

@@ -1,6 +1,6 @@
 import { renderAsync } from '../../lib/renderAsync.js'
 import { server } from '../../lib/gateway.js'
-import { euroFormat } from '../../util/currency.js'
+import { euroFormat } from '../../lib/currency.js'
 import { calculatePlayerAge } from '../../util/player.js'
 import { renderLink } from '../../partials/link.js'
 

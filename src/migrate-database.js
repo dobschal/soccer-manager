@@ -1,5 +1,5 @@
 import { query } from './lib/database.js'
-import { randomItem } from '../client/util/randomItem.js'
+import { randomItem } from '../client/lib/randomItem.js'
 
 /**
  * @typedef {Object} Migration

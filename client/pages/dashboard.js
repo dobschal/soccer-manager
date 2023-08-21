@@ -8,7 +8,7 @@ import { toast } from '../partials/toast.js'
 import { formatDate } from '../lib/date.js'
 import { renderNews } from '../partials/news.js'
 
-let overlay, data
+let overlay; let data; const pageIndex = 0; const pageSize = 5
 
 export async function renderDashboardPage () {
   data = await server.getActionCards()
@@ -18,8 +18,10 @@ export async function renderDashboardPage () {
   const { results } = await server.getResults({ season, gameDay: gameDay - 1, level, league })
   const game = results.find(r => r.team1Id === team.id || r.team2Id === team.id) ?? {}
   const isHomeGame = game.team1Id === team.id
-  const { messages } = await server.getLogMessages()
-  messages.reverse()
+  const messages = await server.getLogMessages_V2(pageIndex, pageSize)
+  //
+  //  TODO: add pagination to messages
+  //
   return `
     <h2>${team.name}</h2>
     <p>
@@ -56,7 +58,7 @@ export async function renderDashboardPage () {
 
 function _renderLogMessage (messageItem) {
   return `<li class="list-group-item">
-            <small>${formatDate('DD.MM.YYYY hh:mm', messageItem.created_at)}</small><br><i class="fa fa-chevron-right" aria-hidden="true"></i> ${messageItem.message}
+            <small>${formatDate('WORDY hh:mm', messageItem.created_at)}</small><br><i class="fa fa-chevron-right" aria-hidden="true"></i> ${messageItem.message}
           </li>`
 }
 
@@ -150,7 +152,7 @@ async function _useActionCard (actionCard) {
   if (actionCard.action === 'NEW_YOUTH_PLAYER') {
     try {
       await server.useActionCard({ actionCard })
-      toast('You got a new player!')
+      toast('You got a new player!', 'success')
       render('#page', await renderDashboardPage())
     } catch (e) {
       console.error(e)

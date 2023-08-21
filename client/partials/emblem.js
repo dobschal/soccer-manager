@@ -1,8 +1,5 @@
 import { UIElement } from '../lib/UIElement.js'
 
-/**
- *
- */
 export class Emblem extends UIElement {
   size = 200
   withText = true
