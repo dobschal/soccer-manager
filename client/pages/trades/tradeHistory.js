@@ -3,7 +3,6 @@ import { server } from '../../lib/gateway.js'
 import { euroFormat } from '../../lib/currency.js'
 import { calculatePlayerAge } from '../../util/player.js'
 import { renderLink } from '../../partials/link.js'
-
 export const renderTradeHistory = renderAsync(async (update) => {
   const { trades, teams, players } = await server.getTradeHistory()
   let season, gameDay

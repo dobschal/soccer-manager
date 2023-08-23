@@ -39,13 +39,13 @@ export async function showGameModal (resultId) {
   const goalsChancesB = details.log.filter(l => l.keeperHolds && playersTeam2.some(p => l.player === p.id)).length + game.goalsTeam2
   details.log.filter(l => typeof l.lostBall === 'boolean').forEach(l => {
     try {
-      if (l.lostBall && players[l.player].team1) {
+      if (l.lostBall && players[l.player]?.team1) {
         ballControllB++
-      } else if (l.lostBall && !players[l.player].team1) {
+      } else if (l.lostBall && !players[l.player]?.team1) {
         ballControllA++
-      } else if (!l.lostBall && players[l.player].team1) {
+      } else if (!l.lostBall && players[l.player]?.team1) {
         ballControllA++
-      } else if (!l.lostBall && !players[l.player].team1) {
+      } else if (!l.lostBall && !players[l.player]?.team1) {
         ballControllB++
       }
     } catch (e) {

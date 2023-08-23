@@ -19,7 +19,7 @@ export class TradesPage extends UIElement {
           <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">My Offers</a>
           <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">History</a>
         </nav>
-        ${this.page}
+        ${this.page ?? 'Loading...'}
       </div>
     `
   }

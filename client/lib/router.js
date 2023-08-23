@@ -87,10 +87,10 @@ async function _resolvePage () {
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
   if (!layoutChanged) {
+    pageElement.style.opacity = '0'
     pageElement.style.transform = 'translateX(100vw)'
   }
   pageElement.innerHTML = ''
-  await delay(300)
   await _renderNewPage(pageRenderFn, currentPath, pageElement)
 }
 
@@ -100,14 +100,25 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
     const page = new PageUIElement()
     fire('query-changed', getQueryParams())
     render('#page', page)
+    const interval = setInterval(() => {
+      // TODO: add timeout
+      if (page.isRendered) {
+        clearInterval(interval)
+        _afterPageLoad(pageElement)
+      }
+    }, 100)
   } else {
     console.warn('Deprecated: ', currentPath)
     render('#page', await PageUIElement())
+    _afterPageLoad(pageElement)
   }
+}
+
+function _afterPageLoad (pageElement) {
   _hideLoadingIndicator()
   fire('page-changed')
-  await delay(200)
   pageElement.style.transform = 'translateX(0vw)'
+  pageElement.style.opacity = '1'
 }
 
 function _showLoadingIndicator () {

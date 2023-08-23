@@ -42,13 +42,15 @@
 
 body {
   font-variant-numeric: tabular-nums !important;
-  background-image: url("../assets/bg-1.jpg");
-  background-size: 100vw auto;
   width: 100%;
   overflow-x: hidden;
-  background-position: top center;
+
+  background-image: url("../assets/bg-1.jpg");
+  background-size: 100vw auto;
+  background-position: top left;
   background-repeat: no-repeat;
   background-attachment: fixed;
+  background-color: #2a2c2e;
 }
 
 #logout-button {
@@ -62,6 +64,8 @@ body {
 
 .navbar {
   margin-bottom: 4rem;
+  width: 100vw !important;
+  overflow-x: hidden;
 }
 
 .navbar .navbar-info-item {

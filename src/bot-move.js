@@ -267,7 +267,7 @@ async function _checkTactic (botTeam, players, isStrongTeam) {
       }
     }
     if (!selectedPlayer) {
-      console.error('Team has player for position! ', botTeam, position)
+      console.error('Team has no player for position! ', botTeam, position)
       continue
     }
     selectedPlayer.in_game_position = position

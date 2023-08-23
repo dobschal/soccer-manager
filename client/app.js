@@ -5,17 +5,17 @@ import { renderDashboardPage } from './pages/dashboard.js'
 import { renderFinancesPage } from './pages/finances.js'
 import { LoginPage } from './pages/login.js'
 import { MyTeamPage } from './pages/my-team.js'
-import { renderResultsPage } from './pages/results.js'
 import { renderStadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
+import { ResultsPage } from './pages/results.js'
 
 const pages = {
   trades: [renderGameLayout, TradesPage],
   stadium: [renderGameLayout, renderStadiumPage],
   finances: [renderGameLayout, renderFinancesPage],
   team: [renderGameLayout, TeamPage],
-  results: [renderGameLayout, renderResultsPage],
+  results: [renderGameLayout, ResultsPage],
   login: [renderDefaultLayout, LoginPage],
   'my-team': [renderGameLayout, MyTeamPage],
   '*': [renderGameLayout, renderDashboardPage]
