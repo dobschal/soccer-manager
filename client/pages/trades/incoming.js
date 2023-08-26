@@ -75,7 +75,7 @@ function _renderIncomingOfferList (offers, players, teams, team) {
         //
         // TODO: Call update here
         //
-        window.reload()
+        window.location.reload()
       } catch (e) {
         console.error(e)
         toast(e.message ?? 'Something went wrong', 'error')
@@ -92,7 +92,7 @@ function _renderIncomingOfferList (offers, players, teams, team) {
           //
           // TODO: Call update here
           //
-          window.reload()
+          window.location.reload()
         } catch (e) {
           console.error(e)
           toast(e.message ?? 'Something went wrong', 'error')

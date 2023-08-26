@@ -8,7 +8,7 @@ import { toast } from '../partials/toast.js'
 import { formatDate } from '../lib/date.js'
 import { renderNews } from '../partials/news.js'
 
-let overlay; let data; const pageIndex = 0; const pageSize = 5
+let overlay; let data; const pageIndex = 0; const pageSize = 10
 
 export async function renderDashboardPage () {
   data = await server.getActionCards()
@@ -57,7 +57,8 @@ export async function renderDashboardPage () {
 }
 
 function _renderLogMessage (messageItem) {
-  return `<li class="list-group-item">
+  const isToday = formatDate('WORDY hh:mm', messageItem.created_at).toLowerCase().includes('today')
+  return `<li class="list-group-item ${isToday ? 'text-info' : 'text-muted'}">
             <small>${formatDate('WORDY hh:mm', messageItem.created_at)}</small><br><i class="fa fa-chevron-right" aria-hidden="true"></i> ${messageItem.message}
           </li>`
 }

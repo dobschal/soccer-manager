@@ -41,3 +41,11 @@ export async function getAveragePlanPriceOfPlayer (player) {
   }
   return Math.floor(price)
 }
+
+/**
+ * @param {number} teamId
+ * @returns {Promise<Array<PlayerType>>}
+ */
+export async function getPlayersByTeamId (teamId) {
+  return await query('SELECT * FROM player WHERE team_id=?', [teamId])
+}

@@ -140,7 +140,7 @@ function _sortTable (config, id, col, tableBodyId, tableId, sortDirection) {
     if (col.sortFn) {
       return col.sortFn(oa, ob, sortDirection !== 'DESC')
     }
-    if (sortDirection === 'DESC') {
+    if (sortDirection === 'ASC') {
       return oa[col.sortKey] - ob[col.sortKey]
     }
     return ob[col.sortKey] - oa[col.sortKey]

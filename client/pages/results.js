@@ -241,6 +241,7 @@ export class ResultsPage extends UIElement {
   }
 
   _renderStandingListItem (standingItem, index) {
+    const hasUser = Boolean(standingItem.team.user_id)
     const id = generateId()
 
     onClick('#' + id, () => goTo(`team?id=${standingItem.team.id}`))
@@ -257,7 +258,7 @@ export class ResultsPage extends UIElement {
       <tr id="${id}" class="${trClasses.join(' ')}">
         <th style="width: 30px">${index + 1}.</th>
         <td class="d-none d-md-table-cell" style="width: 30px">${diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : '')}</td>
-        <td>${standingItem.team.name}</td>
+        <td>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}</td>
         <td class="d-none d-md-table-cell">${standingItem.games}</td>
         <td class="d-none d-md-table-cell">${standingItem.goals}:${standingItem.against}</td>
         <td class="d-none d-lg-table-cell">${standingItem.goals - standingItem.against}</td>
@@ -292,7 +293,7 @@ export class ResultsPage extends UIElement {
     <tr id="${id}">
       <td>
         ${this.myTeamId === result.team1Id ? '<b class="text-info">' : ''}
-        ${result.team1} (${details.strengthTeamA ?? '-'})
+        ${result.team1} (${details.strengthTeamA ?? '-'}) 
         ${this.myTeamId === result.team1Id ? '</b>' : ''}
       </td>
       <td>

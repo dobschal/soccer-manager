@@ -31,6 +31,26 @@ export default {
   },
 
   /**
+   * @returns {Promise<Array<PlayerType>>}
+   */
+  async getPlayersWithoutTeam_V2 () {
+    return await query('SELECT * FROM player WHERE team_id IS NULL')
+  },
+
+  /**
+   * @param {number} playerId
+   * @param {Request} [req]
+   * @returns {Promise<void>}
+   */
+  async givePlayerContract_V2 (playerId, req) {
+    const team = await getTeam(req)
+    const player = await getPlayerById(playerId)
+    if (player.team_id) throw new BadRequestError('Player has a team already...')
+    await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
+    await addLogMessage('Congratulations! You signed a new player contract with ' + player.name + '', team)
+  },
+
+  /**
    * @param {number} playerId
    * @returns {Promise<number>}
    */
@@ -38,11 +58,10 @@ export default {
     const player = await getPlayerById(playerId)
     const age = await getPlayerAge(player)
     const trades = await getPastTrades(player.position, age, player.level)
-    if (trades.length > 1) {
-      const averagePrice = trades.reduce(function (avg, tradeWithPlayer, _, { length }) {
+    if (trades.length >= 3) {
+      return trades.reduce(function (avg, tradeWithPlayer, _, { length }) {
         return avg + tradeWithPlayer.price / length
       }, 0)
-      return averagePrice
     }
     return await getAveragePlanPriceOfPlayer(player)
   },

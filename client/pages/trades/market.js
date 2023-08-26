@@ -62,7 +62,7 @@ function _prepareTableCols (players) {
     sortFn (offerA, offerB, isAsc) {
       const playerA = players.find(p => p.id === offerA.player_id)
       const playerB = players.find(p => p.id === offerB.player_id)
-      if (!isAsc) {
+      if (isAsc) {
         return playerA.level - playerB.level
       }
       return playerB.level - playerA.level
@@ -109,7 +109,7 @@ async function _showBuyDialog (player) {
     //
     // TODO: Call update here
     //
-    window.reload()
+    window.location.reload()
   } catch (e) {
     console.error(e)
     toast(e.message ?? 'Something went wrong', 'error')

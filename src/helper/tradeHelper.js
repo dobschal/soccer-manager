@@ -4,10 +4,38 @@ import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelpr.js'
 import { addLogMessage } from './newsHelper.js'
 import { getTeamById } from './teamHelper.js'
-import { getPlayerAge, getPlayerById } from './playerHelper.js'
+import { getPlayerAge, getPlayerById, getPlayersByTeamId } from './playerHelper.js'
 import { TradeHistory } from '../entities/tradeHistory.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
+
+/**
+ * @param {number} teamId
+ * @returns {Promise<TradeOfferType[]>}
+ */
+export async function getOpenSellOffersByTeamId (teamId) {
+  return await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'sell\'', [teamId])
+}
+
+/**
+ * @param {number} teamId
+ * @returns {Promise<TradeOfferType[]>}
+ */
+export async function getOpenByOffersByTeamId (teamId) {
+  return await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'buy\'', [teamId])
+}
+
+/**
+ * @param {number} teamId
+ * @returns {Promise<Array<TradeOfferType>>}
+ */
+export async function getIncomingBuyOffers (teamId) {
+  const players = await getPlayersByTeamId(teamId)
+  return await query(
+    `SELECT * FROM trade_offer WHERE from_team_id <> ? AND type = 'buy' AND player_id IN (${players.map(p => p.id).join(', ')}) ORDER BY offer_value DESC`,
+    [teamId]
+  )
+}
 
 export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   offer = new TradeOffer(offer)
