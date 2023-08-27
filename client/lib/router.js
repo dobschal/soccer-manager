@@ -101,7 +101,7 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
     fire('query-changed', getQueryParams())
     render('#page', page)
     const interval = setInterval(() => {
-      // TODO: add timeout
+      // TODO: add timeout if load takes too long
       if (page.isRendered) {
         clearInterval(interval)
         _afterPageLoad(pageElement)

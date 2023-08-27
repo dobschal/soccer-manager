@@ -4,6 +4,7 @@ import { renderIncomingOffers } from './trades/incoming.js'
 import { renderTradeHistory } from './trades/tradeHistory.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { UIElement } from '../lib/UIElement.js'
+import { FreePlayers } from './trades/freePlayers.js'
 
 export class TradesPage extends UIElement {
   get events () {
@@ -18,6 +19,7 @@ export class TradesPage extends UIElement {
           <a class="nav-link ${this.pageName === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">Incoming</a>
           <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">My Offers</a>
           <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">History</a>
+          <a class="nav-link ${this.pageName === 'free-players' ? 'active' : ''}" href="#trades?sub_page=free_players">Free Players</a>
         </nav>
         ${this.page ?? 'Loading...'}
       </div>
@@ -41,6 +43,9 @@ export class TradesPage extends UIElement {
         break
       case 'history':
         this.page = renderTradeHistory()
+        break
+      case 'free_players':
+        this.page = new FreePlayers()
         break
       default:
         this.page = await renderMarket()

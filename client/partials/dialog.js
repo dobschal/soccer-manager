@@ -9,9 +9,10 @@ import { onClick } from '../lib/htmlEventHandlers.js'
  * @param {boolean} hasInput
  * @param {string} inputType
  * @param {string} inputLabel
+ * @param {string} [buttonType]
  * @returns {Promise<{ok: boolean, value: string}>}
  */
-export function showDialog ({ title, text, buttonText, hasInput, inputType, inputLabel }) {
+export function showDialog ({ title, text, buttonText, hasInput, inputType, inputLabel, buttonType = 'primary' }) {
   return new Promise(resolve => {
     const submitButtonId = generateId()
     const cancelButtonId = generateId()
@@ -39,7 +40,7 @@ export function showDialog ({ title, text, buttonText, hasInput, inputType, inpu
         <input type="${inputType ?? 'text'}" id="${inputId}" placeholder="${inputLabel ?? title}">
       </p>
       <button id="${cancelButtonId}" type="button" class="btn btn-secondary">Cancel</button>
-      <button id="${submitButtonId}" type="button" class="btn btn-primary">${buttonText ?? 'OK'}</button>
+      <button id="${submitButtonId}" type="button" class="btn btn-${buttonType}">${buttonText ?? 'OK'}</button>
     `
     )
   })

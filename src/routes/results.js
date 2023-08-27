@@ -118,6 +118,9 @@ export default {
     return { result: results[0] }
   },
 
+  /**
+   * @returns {Promise<{season: number, gameDay: number}>}
+   */
   async getCurrentGameday () {
     return await getGameDayAndSeason()
   },

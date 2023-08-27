@@ -99,8 +99,10 @@ export class UIElement {
    */
   async _renderIntoTemplateEl (templateEl, skipLoad) {
     if (!templateEl) return console.error('Template element isn\'t available for rendering')
+    this._showLoadingIndicator()
     templateEl.innerHTML = await this._render(skipLoad)
     if (templateEl.content.children.length !== 1) throw new Error('UIElement needs to have exactly one element as root: ' + templateEl.content.children.length)
+    this._hideLoadingIndicator()
   }
 
   /**
@@ -148,8 +150,38 @@ export class UIElement {
       if (!skipLoad) await this.load()
       return this.template
     } catch (e) {
+      console.error('Error on render: ', e)
       toast(e.message ?? 'Something went wrong', 'error')
       return ''
     }
+  }
+
+  _showLoadingIndicator () {
+    this._loadingIndicatorId = generateId()
+    let neighborNode = el(this._elementQuery)
+    if (!neighborNode?.parentElement) {
+      neighborNode = el(this._renderId)
+    } else {
+      neighborNode.style.display = 'none'
+    }
+    if (!neighborNode?.parentElement) {
+      document.body.insertAdjacentHTML(
+        'beforeend',
+        `<div id="${this._loadingIndicatorId}" class="loading-indicator"></div>`
+      )
+    } else {
+      const spinnerEl = document.createElement('div')
+      spinnerEl.classList.add('loading-indicator-local')
+      spinnerEl.id = this._loadingIndicatorId
+      neighborNode.parentNode.insertBefore(
+        spinnerEl,
+        neighborNode
+      )
+      console.log('Insert spinner at position...')
+    }
+  }
+
+  _hideLoadingIndicator () {
+    el(this._loadingIndicatorId)?.remove()
   }
 }

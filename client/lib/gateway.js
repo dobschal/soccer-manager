@@ -56,7 +56,7 @@ export const server = new Proxy({}, {
         const { response: data } = await response.json()
         serverCache.set(cacheKey, {
           timestamp: Date.now(),
-          data: deepCopy(data)
+          data: typeof data === 'object' ? deepCopy(data) : data
         })
         return data
       }

@@ -90,6 +90,8 @@ body {
   margin-top: 5rem;
   margin-bottom: 5rem;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .centered-container {
@@ -272,7 +274,8 @@ td.hover-text:hover {
   }
 }
 
-#loading-indicator {
+#loading-indicator,
+.loading-indicator {
   position: fixed;
   top: 50vh;
   left: 50%;
@@ -288,6 +291,18 @@ td.hover-text:hover {
   margin-top: -20px;
   background-color: rgba(255,255,255,0.5);
   /* box-shadow: 0 0 0 5px rgba(255,255,255,0.5); */
+  background-image: url(../assets/ball.svg);
+  background-size: contain;
+}
+.loading-indicator-local {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  animation-name: rotate;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+  margin: auto;
+  background-color: rgba(255,255,255,0.5);
   background-image: url(../assets/ball.svg);
   background-size: contain;
 }

@@ -1,6 +1,6 @@
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
-import { generateId } from '../lib/html.js'
+import { el, generateId } from '../lib/html.js'
 import { getQueryParams, goTo, setQueryParams } from '../lib/router.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { formatLeague } from '../util/league.js'
@@ -193,6 +193,7 @@ export class ResultsPage extends UIElement {
   }
 
   _renderTopScorer (scorer, index) {
+    if (!scorer || !scorer.team) return ''
     const teamId = generateId()
     onClick(teamId, () => goTo(`team?id=${scorer.team.id}`))
     const playerId = generateId()

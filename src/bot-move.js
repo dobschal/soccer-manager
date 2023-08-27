@@ -54,7 +54,7 @@ async function _makeBotMove (botTeam, players) {
  * @private
  */
 async function _checkStadium (botTeam) {
-  if (Math.random() > 0.3) return
+  if (Math.random() > 0.1) return
   /** @type {StadiumType} */
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [botTeam.id])
   /** @type {GameType[]} */
