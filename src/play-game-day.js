@@ -7,14 +7,7 @@ import { updateTeamBalance } from './helper/financeHelpr.js'
 import { sallaryPerLevel } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
-
-const actionCardChances = {
-  LEVEL_UP_PLAYER_9: 0.075,
-  LEVEL_UP_PLAYER_7: 0.2,
-  LEVEL_UP_PLAYER_4: 0.4,
-  CHANGE_PLAYER_POSITION: 0.05,
-  NEW_YOUTH_PLAYER: 0.1
-}
+import { actionCardChances } from './helper/actionCardHelper.js'
 
 export async function calculateGames () {
   const { gameDay, season } = await getGameDayAndSeason()
@@ -81,40 +74,49 @@ async function _giveUsersActionCards () {
   const promises = []
   for (const team of teams) {
     const actionCards = []
-    if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_9) {
-      actionCards.push(new ActionCard({
-        team_id: team.id,
-        action: 'LEVEL_UP_PLAYER_9',
-        played: 0
-      }))
-    }
-    if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_7) {
-      actionCards.push(new ActionCard({
-        team_id: team.id,
-        action: 'LEVEL_UP_PLAYER_7',
-        played: 0
-      }))
-    }
-    if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_4) {
-      actionCards.push(new ActionCard({
-        team_id: team.id,
-        action: 'LEVEL_UP_PLAYER_4',
-        played: 0
-      }))
-    }
-    if (Math.random() < actionCardChances.CHANGE_PLAYER_POSITION) {
-      actionCards.push(new ActionCard({
-        team_id: team.id,
-        action: 'CHANGE_PLAYER_POSITION',
-        played: 0
-      }))
-    }
-    if (Math.random() < actionCardChances.NEW_YOUTH_PLAYER) {
-      actionCards.push(new ActionCard({
-        team_id: team.id,
-        action: 'NEW_YOUTH_PLAYER',
-        played: 0
-      }))
+    while (actionCards.length === 0) {
+      if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_9) {
+        actionCards.push(new ActionCard({
+          team_id: team.id,
+          action: 'LEVEL_UP_PLAYER_9',
+          played: 0
+        }))
+      }
+      if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_7) {
+        actionCards.push(new ActionCard({
+          team_id: team.id,
+          action: 'LEVEL_UP_PLAYER_7',
+          played: 0
+        }))
+      }
+      if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_4) {
+        actionCards.push(new ActionCard({
+          team_id: team.id,
+          action: 'LEVEL_UP_PLAYER_4',
+          played: 0
+        }))
+      }
+      if (Math.random() < actionCardChances.CHANGE_PLAYER_POSITION) {
+        actionCards.push(new ActionCard({
+          team_id: team.id,
+          action: 'CHANGE_PLAYER_POSITION',
+          played: 0
+        }))
+      }
+      if (Math.random() < actionCardChances.NEW_YOUTH_PLAYER) {
+        actionCards.push(new ActionCard({
+          team_id: team.id,
+          action: 'NEW_YOUTH_PLAYER',
+          played: 0
+        }))
+      }
+      if (Math.random() < actionCardChances.FRESHNESS_10) {
+        actionCards.push(new ActionCard({
+          team_id: team.id,
+          action: 'FRESHNESS_10',
+          played: 0
+        }))
+      }
     }
     for (const actionCard of actionCards) {
       promises.push(query('INSERT INTO action_card SET ?', actionCard))

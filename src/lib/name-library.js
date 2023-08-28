@@ -39,13 +39,13 @@ export const sponsorNames = [
 ]
 
 export const clubPrefixes1 = [
-  'FC', 'F.C.', 'SC', 'SV', 'SSC', 'VFB', 'BSV', '1. FC', 'FV', '', '', '', '', ''
+  'FC', 'F.C.', 'SC', 'SV', 'SSC', 'VFB', 'BSV', '1. FC', 'FV', 'FSV', 'AC', 'AS', 'FSC', 'RB', '', '', '', '', ''
 ]
 
 export const clubPrefixes2 = [
   'United',
   'Sporting',
-  'Athletic',
+  'Athletico',
   'Real',
   'Olympic',
   'City',
@@ -53,7 +53,7 @@ export const clubPrefixes2 = [
   'Rapid',
   'Star',
   'Royal',
-  'International',
+  'Inter',
   'Galaxy',
   'Victory',
   'Power',
@@ -65,7 +65,8 @@ export const clubPrefixes2 = [
   'Real',
   'Kickers',
   'Fortuna',
-  'Traktor'
+  'Traktor',
+  'Union'
 ]
 
 export const cityNames = [

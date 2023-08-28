@@ -13,7 +13,7 @@ import {
 } from './helper/tradeHelper.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { buildStadium, calcuateStadiumBuild } from './helper/stadiumHelper.js'
-import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById, getPlayersByTeamId } from './helper/playerHelper.js'
+import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId } from './helper/playerHelper.js'
 import { getPositionsOfFormation } from '../client/util/formation.js'
 import playersRoutes from './routes/players.js'
 

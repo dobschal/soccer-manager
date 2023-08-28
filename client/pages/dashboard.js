@@ -83,6 +83,10 @@ const actionCardTexts = {
   NEW_YOUTH_PLAYER: {
     title: 'New Talent',
     description: 'Get a new player from your youth academy!'
+  },
+  FRESHNESS_10: {
+    title: 'Fitness Boost',
+    description: 'Give one of your player a 10% freshness boost.'
   }
 }
 
@@ -142,6 +146,10 @@ function _renderActionCard (actionCard) {
 }
 
 async function _useActionCard (actionCard) {
+  if (actionCard.action.startsWith('FRESHNESS_')) {
+    _handleFitnessActionCard(actionCard)
+    return
+  }
   if (actionCard.action.startsWith('LEVEL_UP_PLAYER_')) {
     _handleLevelUpActionCard(actionCard)
     return
@@ -164,6 +172,26 @@ async function _useActionCard (actionCard) {
   toast('Not implemented yet...')
 }
 
+async function _handleFitnessActionCard (actionCard) {
+  const data = await server.getMyTeam()
+  const playerList = new PlayerList(data.players, false, async player => {
+    try {
+      await server.useActionCard({ actionCard, player })
+      toast(`OK. ${player.name} got fitness boost!`, 'success')
+      render('#page', await renderDashboardPage())
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? 'Something went wrong...', 'error')
+    }
+    overlay?.remove()
+  })
+  overlay = showOverlay(
+    'Select player',
+    'Which player should get a fitness boost?',
+    `${playerList}`
+  )
+}
+
 async function _handleChangePositionActionCard (actionCard) {
   const data = await server.getMyTeam()
   const playerList = new PlayerList(data.players, false, async player => {
@@ -172,7 +200,7 @@ async function _handleChangePositionActionCard (actionCard) {
       try {
         await server.useActionCard({ actionCard, position, player })
         overlay?.remove()
-        toast(`OK. ${player.name} plays another position now!`)
+        toast(`OK. ${player.name} plays another position now!`, 'success')
         render('#page', await renderDashboardPage())
       } catch (e) {
         console.error(e)
@@ -224,7 +252,7 @@ async function _handleLevelUpActionCard (actionCard) {
     try {
       await server.useActionCard({ actionCard, player })
       overlay?.remove()
-      toast(`Nice. ${player.name} got a level up!`)
+      toast(`Nice. ${player.name} got a level up!`, 'success')
       render('#page', await renderDashboardPage())
     } catch (e) {
       console.error(e)

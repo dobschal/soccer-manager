@@ -89,7 +89,7 @@ function _renderSquadPlayer (players, team) {
       overlay = showOverlay(
         'Select player',
         '',
-        `${new PlayerList(players.filter(p => p.position === player.position), false, newPlayer => _exchangePlayer(player, newPlayer, players, team))}`
+        `${new PlayerList(players.filter(p => p.position === player.position && !p.fake), false, newPlayer => _exchangePlayer(player, newPlayer, players, team))}`
       )
     })
     setTimeout(() => {
