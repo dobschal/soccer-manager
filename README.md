@@ -11,11 +11,17 @@ Inside the `src` folder various scripts are available:
 
 A UI is implemented. When you run the API, you can open the UI on http://localhost:3000
 
-> !!! When starting the API with `api.js`, the other scripts are executed via CRON job automatically
+> ‼️ When starting the API with `api.js`, the other scripts are executed via CRON job automatically
 
 ## Run it
+
+> ‼️You need to set an environment variable for the database host. You can do this via IntelliJ.
+
 Run the scripts as described here:
 ```bash
+# start database
+docker compose up database -d
+
 # Install all dependencies
 npm install
 

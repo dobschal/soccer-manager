@@ -18,35 +18,37 @@ export class GameLayout extends UIElement {
 
   get template () {
     return `
-      <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand px-3" href="#">SoccerManagerIO</a>
-        <button class="navbar-toggler"
-                type="button"
-                data-toggle="collapse"
-                data-target="#navbarNav"
-                aria-controls="navbarNav"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav px-2">
-            ${this._navItem('my-team', '<i class="fa fa-users" aria-hidden="true"></i> Team')}
-            ${this._navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
-            ${this._navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}
-            ${this._navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
-            ${this._navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Trades')}
-          </ul>
-          <div class="px-2 d-none d-md-block">|</div>
-          <div class="navbar-info-item px-2" id="${this._nextGameInElementId}">
+      <div class="game-layout">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+          <a class="navbar-brand px-3" href="#">SoccerManagerIO</a>
+          <button class="navbar-toggler"
+                  type="button"
+                  data-toggle="collapse"
+                  data-target="#navbarNav"
+                  aria-controls="navbarNav"
+                  aria-expanded="false"
+                  aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav px-2">
+              ${this._navItem('my-team', '<i class="fa fa-users" aria-hidden="true"></i> Team')}
+              ${this._navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
+              ${this._navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}
+              ${this._navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
+              ${this._navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Trades')}
+            </ul>
+            <div class="px-2 d-none d-md-block">|</div>
+            <div class="navbar-info-item px-2" id="${this._nextGameInElementId}">
+            </div>
+            <div class="navbar-info-item px-2">
+                <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
+            </div>
+            <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
           </div>
-          <div class="navbar-info-item px-2">
-              <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
-          </div>
-          <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
-        </div>
-      </nav>
-      <div class="container" id="page"></div>
+        </nav>
+        <div class="container" id="page"></div>
+      </div>
     `
   }
 

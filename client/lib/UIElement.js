@@ -53,12 +53,24 @@ export class UIElement {
    * @returns {string}
    */
   renderSync () {
-    setTimeout(async () => {
+    let retries = 0
+    const maxRetries = 500 // 5 seconds max wait
+    const waitAndRender = async () => {
       /** @type {HTMLTemplateElement} */
       const templateEl = el(this._renderId)
+      if (!templateEl) {
+        if (++retries > maxRetries) {
+          console.error('Template element never appeared in DOM for', this.constructor.name)
+          return
+        }
+        // Template not in DOM yet (parent still rendering), wait and retry
+        setTimeout(waitAndRender, 10)
+        return
+      }
       await this._renderIntoTemplateEl(templateEl, false)
       this._renderIntoDOM(templateEl, templateEl)
-    })
+    }
+    setTimeout(waitAndRender)
     return `<template id="${this._renderId}"></template>`
   }
 
@@ -91,6 +103,7 @@ export class UIElement {
   // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
   _renderId = generateId()
+  _isMounted = false
 
   /**
    * @param {HTMLTemplateElement} templateEl
@@ -99,10 +112,10 @@ export class UIElement {
    */
   async _renderIntoTemplateEl (templateEl, skipLoad) {
     if (!templateEl) return console.error('Template element isn\'t available for rendering')
-    this._showLoadingIndicator()
+    if (!skipLoad) this._showLoadingIndicator()
     templateEl.innerHTML = await this._render(skipLoad)
     if (templateEl.content.children.length !== 1) throw new Error('UIElement needs to have exactly one element as root: ' + templateEl.content.children.length)
-    this._hideLoadingIndicator()
+    if (!skipLoad) this._hideLoadingIndicator()
   }
 
   /**
@@ -117,7 +130,15 @@ export class UIElement {
 
   _applyEventHandlers () {
     for (const elementQuery in this.events) {
-      const element = el(`${this._elementQuery} ${elementQuery}`)
+      // First try to find as a child element
+      let element = el(`${this._elementQuery} ${elementQuery}`)
+      // If not found, check if the root element itself matches the selector
+      if (!element) {
+        const rootEl = el(this._elementQuery)
+        if (rootEl?.matches(elementQuery)) {
+          element = rootEl
+        }
+      }
       if (!element) throw new Error('Cannot apply event listener. No element: ' + `${this._elementQuery} ${elementQuery}`)
       for (const eventName in this.events[elementQuery]) {
         element.addEventListener(eventName, this.events[elementQuery][eventName].bind(this))
@@ -130,12 +151,15 @@ export class UIElement {
   }
 
   _onMounted (node) {
+    if (this._isMounted) return // Skip if already mounted (this is an update, not initial mount)
+    this._isMounted = true
     console.log('Mounted: ', this.constructor.name)
     this._applyEventHandlers()
     this.onMounted()
   }
 
   _onDestroy (node) {
+    this._isMounted = false
     console.log('Destroy: ', this.constructor.name)
     off(this._queryChangedEventId)
     this.onDestroy()
