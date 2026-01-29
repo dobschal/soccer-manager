@@ -1,52 +1,87 @@
-import { el, generateId } from '../lib/html.js'
-import { euroFormat } from '../lib/currency.js'
+import { UIElement } from '../lib/UIElement.js'
+import { el } from '../lib/html.js'
 import { deepCopy } from '../lib/deepCopy.js'
 
-let canvasId
-/** @type {FinanceLogType[]} */
-const logItems = []
+export class BalanceChart extends UIElement {
+  /** @type {FinanceLogType[]} */
+  logItems = []
+  _resizeHandler = null
+  _chart = null
+
+  constructor (financeLog = []) {
+    super()
+    this._processLogItems(financeLog)
+  }
+
+  _processLogItems (log) {
+    log.forEach(item => {
+      const existing = this.logItems.find(
+        i => i.game_day === item.game_day && i.season === item.season
+      )
+      if (existing) {
+        existing.balance = item.balance
+      } else {
+        this.logItems.push(deepCopy(item))
+      }
+    })
+  }
+
+  get template () {
+    return `<canvas class="finance-canvas"></canvas>`
+  }
+
+  onMounted () {
+    this._resizeHandler = this._renderChart.bind(this)
+    window.addEventListener('resize', this._resizeHandler)
+    this._renderChart()
+  }
+
+  onDestroy () {
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler)
+      this._resizeHandler = null
+    }
+    if (this._chart) {
+      this._chart.destroy()
+      this._chart = null
+    }
+  }
+
+  _renderChart () {
+    const canvas = el(`${this._elementQuery} canvas`)
+    if (!canvas) return
+
+    if (this._chart) {
+      this._chart.destroy()
+    }
+
+    this._chart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: this.logItems.map(l => '#' + (l.game_day + 1)),
+        datasets: [{
+          label: 'Balance €',
+          data: this.logItems.map(l => l.balance),
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    })
+  }
+}
 
 /**
+ * Backwards compatibility wrapper
  * @param {FinanceLogType[]} l
  */
 export function drawBalanceChart (l) {
-  l.forEach(i1 => {
-    const i2 = logItems.find(i2 => i2.game_day === i1.game_day && i2.season === i1.season)
-    if (i2) {
-      i2.balance = i1.balance
-    } else {
-      logItems.push(deepCopy(i1))
-    }
-  })
-  canvasId = generateId()
-  setTimeout(renderChart)
-  window.addEventListener('resize', renderChart)
-  return `
-    <canvas class="finance-canvas" id="${canvasId}"></canvas>
-  `
-}
-
-function renderChart () {
-  const ctx = el(canvasId)
-
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: logItems.map(l => '#' + (l.game_day + 1)),
-      datasets: [{
-        label: 'Balance €',
-        data: logItems.map(l => l.balance),
-        borderWidth: 1
-      }]
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  })
+  return new BalanceChart(l).toString()
 }
 
 /** @type {HTMLCanvasElement} */

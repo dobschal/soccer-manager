@@ -1,5 +1,5 @@
-import { el, generateId } from '../lib/html.js'
-import { onClick } from '../lib/htmlEventHandlers.js'
+import { UIElement } from '../lib/UIElement.js'
+import { el } from '../lib/html.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
 
 /**
@@ -20,131 +20,167 @@ import { getQueryParams, setQueryParams } from '../lib/router.js'
  * @property {(dataItem: object, rowIndex: number) => void} [onClick]
  */
 
+export class Table extends UIElement {
+  /**
+   * @param {TableConfig} config
+   */
+  constructor (config) {
+    super()
+    this.config = config
+    this.sortDirection = null
+    this.sortColIndex = null
+  }
+
+  get template () {
+    const hasHover = typeof this.config.onClick === 'function'
+    return `
+      <table class="table${hasHover ? ' table-hover' : ''}">
+        <thead>
+          <tr>
+            ${this._renderHeaderCells()}
+          </tr>
+        </thead>
+        <tbody>
+          ${this._renderTableRows()}
+        </tbody>
+      </table>
+    `
+  }
+
+  onMounted () {
+    this._applyInitialSort()
+    this._attachEventHandlers()
+  }
+
+  _applyInitialSort () {
+    const { sort_dir: sortDirection, col: colIndex } = getQueryParams()
+    if (sortDirection && colIndex !== undefined) {
+      const col = this.config.cols[Number(colIndex)]
+      if (col && (col.sortKey || col.sortFn)) {
+        this._sortTable(Number(colIndex), sortDirection)
+      }
+    }
+  }
+
+  _attachEventHandlers () {
+    // Attach header click handlers for sorting
+    const headers = document.querySelectorAll(`${this._elementQuery} th.sort-header`)
+    headers.forEach((header, index) => {
+      const col = this.config.cols[index]
+      if (col.sortKey || col.sortFn) {
+        header.addEventListener('click', () => {
+          const { sort_dir: currentDir } = getQueryParams()
+          setQueryParams({
+            sort_dir: currentDir === 'DESC' ? 'ASC' : 'DESC',
+            col: index.toString()
+          })
+        })
+      }
+    })
+
+    // Attach row click handlers
+    if (typeof this.config.onClick === 'function') {
+      const rows = document.querySelectorAll(`${this._elementQuery} tbody tr`)
+      rows.forEach((row, index) => {
+        row.addEventListener('click', () => {
+          this.config.onClick(this.config.data[index], index)
+        })
+      })
+    }
+
+    // Attach cell click handlers
+    this.config.cols.forEach((col, colIndex) => {
+      if (typeof col.onClick === 'function') {
+        const cells = document.querySelectorAll(`${this._elementQuery} tbody tr td:nth-child(${colIndex + 1})`)
+        cells.forEach((cell, rowIndex) => {
+          cell.addEventListener('click', (e) => {
+            e.stopPropagation()
+            col.onClick(this.config.data[rowIndex], rowIndex, colIndex)
+          })
+        })
+      }
+    })
+  }
+
+  _sortTable (colIndex, sortDirection) {
+    const col = this.config.cols[colIndex]
+    const tableEl = el(`${this._elementQuery} table`)
+    if (!tableEl) return
+
+    // Remove existing sort indicators
+    tableEl.querySelectorAll('.sort-header').forEach(header => {
+      header.classList.remove('desc', 'asc')
+    })
+
+    // Sort data
+    this.config.data.sort((a, b) => {
+      if (col.sortFn) {
+        return col.sortFn(a, b, sortDirection !== 'DESC')
+      }
+      if (sortDirection === 'ASC') {
+        return a[col.sortKey] - b[col.sortKey]
+      }
+      return b[col.sortKey] - a[col.sortKey]
+    })
+
+    // Add sort indicator
+    const header = tableEl.querySelectorAll('th')[colIndex]
+    if (header) {
+      header.classList.add(sortDirection === 'DESC' ? 'desc' : 'asc')
+    }
+
+    // Re-render table body
+    const tbody = tableEl.querySelector('tbody')
+    if (tbody) {
+      tbody.innerHTML = this._renderTableRows()
+      this._attachEventHandlers()
+    }
+  }
+
+  _renderHeaderCells () {
+    return this.config.cols
+      .map((col) => {
+        const isSortable = col.sortKey || col.sortFn
+        const classes = [
+          col.align ? `text-${col.align}` : '',
+          isSortable ? 'sort-header' : '',
+          col.largeScreenOnly ? 'd-none d-sm-table-cell' : ''
+        ].filter(Boolean).join(' ')
+
+        return `<th scope="col" class="${classes}">${col.name}</th>`
+      })
+      .join('')
+  }
+
+  _renderTableRows () {
+    return this.config.data
+      .map((item, rowIndex) => {
+        const rowContent = this.config.renderRow(item)
+        return `<tr>${this._renderTableCells(rowContent, rowIndex)}</tr>`
+      })
+      .join('')
+  }
+
+  _renderTableCells (rowContent, rowIndex) {
+    return rowContent.map((cellContent, colIndex) => {
+      const col = this.config.cols[colIndex]
+      const hasClickFn = typeof col.onClick === 'function'
+      const classes = [
+        col.align ? `text-${col.align}` : '',
+        col.largeScreenOnly ? 'd-none d-sm-table-cell' : '',
+        hasClickFn ? 'hover-text' : ''
+      ].filter(Boolean).join(' ')
+
+      return `<td class="${classes}">${cellContent}</td>`
+    }).join('')
+  }
+}
+
 /**
+ * Backwards compatibility wrapper
  * @param {TableConfig} config
  * @returns {string}
  */
 export function renderTable (config) {
-  const tableBodyId = generateId()
-  const tableId = generateId()
-  return `
-    <table id="${tableId}" class="table${typeof config.onClick === 'function' ? 'table-hover' : ''}">
-      <thead>
-        <tr>        
-          ${_renderHeaderCells(config, tableBodyId, tableId)}
-        </tr>
-      </thead>
-      <tbody id="${tableBodyId}">
-        ${_renderTableRows(config)}
-      </tbody>
-    </table>
-  `
-}
-
-/**
- * @param {TableConfig} config
- * @param {Array<string>} rowConfig
- * @param {number} rowIndex
- * @returns {string}
- */
-function _renderTableCells (config, rowConfig, rowIndex) {
-  const dataItem = config.data[rowIndex]
-  return rowConfig.map((cellContent, index) => {
-    const colConfig = config.cols[index]
-    const id = generateId()
-    const hasClickFn = typeof colConfig.onClick === 'function'
-    if (hasClickFn) {
-      onClick(id, () => {
-        colConfig.onClick(dataItem, rowIndex, index)
-      })
-    }
-    return `<td id="${id}" class="
-              ${colConfig.align ? 'text-' + colConfig.align : ''}
-              ${colConfig.largeScreenOnly ? ' d-none d-sm-table-cell' : ''}
-              ${hasClickFn ? ' hover-text' : ''}
-            ">
-        ${cellContent}
-    </td>`
-  }).join('')
-}
-
-/**
- * @param {TableConfig} config
- * @returns {string}
- */
-function _renderTableRows (config) {
-  return config.data
-    .map((item, index) => {
-      const rowConfig = config.renderRow(item)
-      const dataItem = config.data[index]
-      const id = generateId()
-      if (typeof config.onClick === 'function') {
-        onClick(id, () => {
-          config.onClick(dataItem, index)
-        })
-      }
-      item.htmlElementId = id
-      return ` <tr id="${id}">
-        ${_renderTableCells(config, rowConfig, index)}        
-      </tr>`
-    })
-    .join('')
-}
-
-/**
- * @param {TableConfig} config
- * @param {string} tableBodyId
- * @param {string} tableId
- * @returns {string}
- */
-function _renderHeaderCells (config, tableBodyId, tableId) {
-  return config.cols
-    .map((col, colIndex) => {
-      const id = generateId()
-      const { sort_dir: sortDirection, col: colIndex2 } = getQueryParams()
-      if (sortDirection && Number(colIndex2) === colIndex) {
-        setTimeout(() => _sortTable(config, id, col, tableBodyId, tableId, sortDirection))
-      }
-      if (col.sortKey || col.sortFn) {
-        onClick(id, () => {
-          setQueryParams({
-            sort_dir: sortDirection === 'DESC' ? 'ASC' : 'DESC',
-            col: colIndex.toString()
-          })
-        })
-      }
-      return `<th scope="col" id="${id}" class="${col.align ? 'text-' + col.align : ''} ${col.sortKey || col.sortFn ? ' sort-header' : ''}${col.largeScreenOnly ? ' d-none d-sm-table-cell' : ''}">
-          ${col.name}
-      </th>`
-    })
-    .join('')
-}
-
-/**
- *
- * @param {TableConfig} config
- * @param {string} id
- * @param {TableHeadCellConfig} col
- * @param {string} tableBodyId
- * @param {string} tableId
- * @param {string} sortDirection
- * @returns {() => void}
- * @private
- */
-function _sortTable (config, id, col, tableBodyId, tableId, sortDirection) {
-  document.querySelectorAll(`#${tableId} .sort-header`).forEach(element => {
-    element.classList.remove('desc')
-    element.classList.remove('asc')
-  })
-  config.data.sort((oa, ob) => {
-    if (col.sortFn) {
-      return col.sortFn(oa, ob, sortDirection !== 'DESC')
-    }
-    if (sortDirection === 'ASC') {
-      return oa[col.sortKey] - ob[col.sortKey]
-    }
-    return ob[col.sortKey] - oa[col.sortKey]
-  })
-  el(id).classList.add(sortDirection === 'DESC' ? 'desc' : 'asc')
-  el(tableBodyId).append(...config.data.map(item => el(item.htmlElementId)))
+  return new Table(config).toString()
 }

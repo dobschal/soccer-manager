@@ -1,32 +1,52 @@
+import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
-import { renderAsync } from '../lib/renderAsync.js'
 import { renderPlayerImage } from './playerImage.js'
 
-export const renderNews = renderAsync(async () => {
-  const { news } = await server.getLeagueNews()
-  return `
-    <h3>News</h3>
-    ${news.map(renderAsync(_renderNewsItem)).join('')}
-  `
-})
-
-/**
- * @param {NewsArticle} newsItem
- * @returns {Promise<string>}
- * @private
- */
-async function _renderNewsItem (newsItem) {
-  let image = ''
-  if (newsItem.playerId) {
-    const player = await server.getPlayerById_V2(newsItem.playerId)
-    const { team } = await server.getTeam({ teamId: player.team_id })
-    image = await renderPlayerImage(player, team, 150)
+class NewsItem extends UIElement {
+  constructor (newsItem) {
+    super()
+    this.newsItem = newsItem
+    this.image = ''
   }
-  return `
-    <div class="article">    
-        ${image}
-        <h4>${newsItem.title}</h4>        
-        <p>${newsItem.text}</p>
-        </div>
+
+  get template () {
+    return `
+      <div class="article">
+        ${this.image}
+        <h4>${this.newsItem.title}</h4>
+        <p>${this.newsItem.text}</p>
+      </div>
     `
+  }
+
+  async load () {
+    if (this.newsItem.playerId) {
+      const player = await server.getPlayerById_V2(this.newsItem.playerId)
+      const { team } = await server.getTeam({ teamId: player.team_id })
+      this.image = await renderPlayerImage(player, team, 150)
+    }
+  }
+}
+
+export class News extends UIElement {
+  news = []
+
+  get template () {
+    return `
+      <div>
+        <h3>News</h3>
+        ${this.news.map(item => new NewsItem(item)).join('')}
+      </div>
+    `
+  }
+
+  async load () {
+    const response = await server.getLeagueNews()
+    this.news = response.news || []
+  }
+}
+
+// Backwards compatibility
+export function renderNews () {
+  return new News().toString()
 }

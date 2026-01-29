@@ -1,5 +1,5 @@
-import { el, generateId } from '../lib/html.js'
-import { onClick } from '../lib/htmlEventHandlers.js'
+import { UIElement } from '../lib/UIElement.js'
+import { el } from '../lib/html.js'
 import { toast } from './toast.js'
 import { server } from '../lib/gateway.js'
 import { render } from '../lib/render.js'
@@ -12,111 +12,167 @@ export const lineUpData = {
   squadDataChanged: false,
   parentInstance: null
 }
-let overlay
 
-/**
- * @param {PlayerType[]} players
- * @param {TeamType} team
- * @returns {string}
- */
-export function renderLineup (players, team, parentInstance) {
-  lineUpData.parentInstance = parentInstance
-  const positions = getPositionsOfFormation(team.formation)
-  players.filter(p => p.in_game_position).forEach(p => {
-    const index = positions.findIndex(po => p.position === po)
-    if (index === -1) return console.error('A player has a in game position that is not in formation!')
-    positions.splice(index, 1)
-  })
-  positions.forEach(position => {
-    players.push({
-      fake: true,
-      in_game_position: position,
-      position,
-      level: 0,
-      name: '-'
-    })
-  })
-  // position hack for 2x CM and 2x CD
-  setTimeout(() => {
-    ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
-      const el = document.querySelectorAll(positionClass)
-      if (el.length === 2) {
-        el.item(0).style.left = '38%'
-        el.item(1).style.left = '62%'
-      }
-      if (el.length === 3) {
-        el.item(0).style.left = '38%'
-        el.item(1).style.left = '50%'
-        el.item(2).style.left = '62%'
-      }
-    })
-  })
-  return `
-    <div class="squad">
-      ${players.filter(p => p.in_game_position).map(_renderSquadPlayer(players, team)).join('')}
-    </div>
-    ${_renderSaveButton(players, team)}
-  `
-}
+export class Lineup extends UIElement {
+  _overlay = null
 
-function _renderSaveButton (players, team) {
-  if (!lineUpData.squadDataChanged) return ''
-  const id = generateId()
-  onClick('#' + id, async () => {
-    try {
-      if (players.some(p => p.fake && p.in_game_position)) {
-        return toast('Your lineup is incomplete!')
-      }
-      players = players.filter(p => !p.fake)
-      await server.saveLineup({ players, formation: team.formation })
-      toast('Saved lineup.', 'success')
-      await lineUpData.parentInstance.load()
-      lineUpData.parentInstance.update()
-    } catch (e) {
-      console.error(e)
-      toast(e.message ?? 'Something went wrong...', 'error')
-    }
-  })
-  return `
-    <button id="${id}" class="btn btn-primary w-100" type="button">Save</button>
-  `
-}
+  /**
+   * @param {PlayerType[]} players
+   * @param {TeamType} team
+   * @param {UIElement} parentInstance
+   */
+  constructor (players, team, parentInstance) {
+    super()
+    this.players = players
+    this.team = team
+    lineUpData.parentInstance = parentInstance
+    this._fillEmptyPositions()
+  }
 
-function _renderSquadPlayer (players, team) {
-  return (player) => {
-    const id = generateId()
-    onClick('#' + id, async () => {
-      overlay = showOverlay(
-        'Select player',
-        '',
-        `${new PlayerList(players.filter(p => p.position === player.position && !p.fake), false, newPlayer => _exchangePlayer(player, newPlayer, players, team))}`
-      )
+  _fillEmptyPositions () {
+    const positions = getPositionsOfFormation(this.team.formation)
+    this.players.filter(p => p.in_game_position).forEach(p => {
+      const index = positions.findIndex(po => p.position === po)
+      if (index === -1) return console.error('A player has a in game position that is not in formation!')
+      positions.splice(index, 1)
     })
-    setTimeout(() => {
-      renderPlayerImage(player, team, 100).then(image => {
-        el(id)?.insertAdjacentHTML('afterbegin', image)
+    positions.forEach(position => {
+      this.players.push({
+        fake: true,
+        in_game_position: position,
+        position,
+        level: 0,
+        name: '-'
       })
     })
+  }
+
+  get template () {
     return `
-      <div id="${id}" class="player ${player.position}">
+      <div>
+        <div class="squad">
+          ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
+        </div>
+        ${this._renderSaveButton()}
+      </div>
+    `
+  }
+
+  onMounted () {
+    this._applyPositionHacks()
+    this._loadPlayerImages()
+    this._attachPlayerClickHandlers()
+    this._attachSaveButtonHandler()
+  }
+
+  _applyPositionHacks () {
+    // Position hack for 2x CM, 2x CD, 2x DM
+    ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
+      const elements = document.querySelectorAll(`${this._elementQuery} ${positionClass}`)
+      if (elements.length === 2) {
+        elements.item(0).style.left = '38%'
+        elements.item(1).style.left = '62%'
+      }
+      if (elements.length === 3) {
+        elements.item(0).style.left = '38%'
+        elements.item(1).style.left = '50%'
+        elements.item(2).style.left = '62%'
+      }
+    })
+  }
+
+  _loadPlayerImages () {
+    this.players.filter(p => p.in_game_position).forEach((player, index) => {
+      renderPlayerImage(player, this.team, 100).then(image => {
+        const playerEl = document.querySelectorAll(`${this._elementQuery} .squad .player`)[index]
+        playerEl?.insertAdjacentHTML('afterbegin', image)
+      })
+    })
+  }
+
+  _attachPlayerClickHandlers () {
+    const playerEls = document.querySelectorAll(`${this._elementQuery} .squad .player`)
+    const playersInLineup = this.players.filter(p => p.in_game_position)
+
+    playerEls.forEach((playerEl, index) => {
+      const player = playersInLineup[index]
+      playerEl.addEventListener('click', () => {
+        this._overlay = showOverlay(
+          'Select player',
+          '',
+          `${new PlayerList(
+            this.players.filter(p => p.position === player.position && !p.fake),
+            false,
+            newPlayer => this._exchangePlayer(player, newPlayer)
+          )}`
+        )
+      })
+    })
+  }
+
+  _attachSaveButtonHandler () {
+    const saveBtn = el(`${this._elementQuery} button.btn-primary`)
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        try {
+          if (this.players.some(p => p.fake && p.in_game_position)) {
+            return toast('Your lineup is incomplete!')
+          }
+          const playersToSave = this.players.filter(p => !p.fake)
+          await server.saveLineup({ players: playersToSave, formation: this.team.formation })
+          toast('Saved lineup.', 'success')
+          await lineUpData.parentInstance.load()
+          lineUpData.parentInstance.update()
+        } catch (e) {
+          console.error(e)
+          toast(e.message ?? 'Something went wrong...', 'error')
+        }
+      })
+    }
+  }
+
+  _exchangePlayer (player, newPlayer) {
+    const oldPosition = player.in_game_position
+    player.in_game_position = newPlayer.in_game_position
+    newPlayer.in_game_position = oldPosition
+    this._overlay?.remove()
+    if (player.id !== newPlayer.id) {
+      lineUpData.squadDataChanged = true
+    }
+    render('#squad', renderLineup(this.players, this.team, lineUpData.parentInstance))
+  }
+
+  _renderSaveButton () {
+    if (!lineUpData.squadDataChanged) return ''
+    return `<button class="btn btn-primary w-100" type="button">Save</button>`
+  }
+
+  _renderSquadPlayer (player) {
+    const freshnessClass = player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : 'text-success')
+    const displayName = player.name.includes(' ')
+      ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
+      : player.name
+
+    return `
+      <div class="player ${player.position}">
         <span class="position-badge ${player.position}">${player.position}</span>
-        <span class="freshness-badge ${player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : 'text-success')}">
+        <span class="freshness-badge ${freshnessClass}">
             ${Math.floor(player.freshness * 100)}%
         </span>
-        ${player.name.includes(' ') ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '') : player.name}
+        ${displayName}
         <span class="level-badge level-${player.level}">${player.level}</span>
       </div>
     `
   }
 }
 
-function _exchangePlayer (player, newPlayer, players, team) {
-  const oldPosition = player.in_game_position
-  player.in_game_position = newPlayer.in_game_position
-  newPlayer.in_game_position = oldPosition
-  overlay?.remove()
-  if (player.id !== newPlayer) {
-    lineUpData.squadDataChanged = true
-  }
-  render('#squad', renderLineup(players, team, lineUpData.parentInstance))
+/**
+ * Backwards compatibility wrapper
+ * @param {PlayerType[]} players
+ * @param {TeamType} team
+ * @param {UIElement} parentInstance
+ * @returns {string}
+ */
+export function renderLineup (players, team, parentInstance) {
+  return new Lineup(players, team, parentInstance).toString()
 }

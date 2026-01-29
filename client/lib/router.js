@@ -133,10 +133,25 @@ function _hideLoadingIndicator () {
   el('#loading-indicator')?.remove()
 }
 
-async function _renderLayout (layoutRenderFn) {
-  if (!currentLayoutRenderFn || currentLayoutRenderFn !== layoutRenderFn) {
-    render('body', await layoutRenderFn())
-    currentLayoutRenderFn = layoutRenderFn
+async function _renderLayout (LayoutElement) {
+  if (!currentLayoutRenderFn || currentLayoutRenderFn !== LayoutElement) {
+    if (LayoutElement.isUIElement) {
+      const layout = new LayoutElement()
+      render('body', layout)
+      // Wait for layout to be rendered
+      await new Promise(resolve => {
+        const interval = setInterval(() => {
+          if (layout.isRendered) {
+            clearInterval(interval)
+            resolve()
+          }
+        }, 50)
+      })
+    } else {
+      // Backwards compatibility for function-based layouts
+      render('body', await LayoutElement())
+    }
+    currentLayoutRenderFn = LayoutElement
     return true
   }
 }
