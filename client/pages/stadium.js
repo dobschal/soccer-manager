@@ -94,7 +94,7 @@ export class StadiumPage extends UIElement {
   async _onPriceFormSubmit (event) {
     event.preventDefault()
     try {
-      await server.updatePrices({ stadium: this.stadium })
+      await server.updatePrices(this.stadium)
       toast('Prices updated')
     } catch (e) {
       toast(e.message ?? 'Something went wrong', 'error')
@@ -104,7 +104,7 @@ export class StadiumPage extends UIElement {
   async _onStadiumFormSubmit (event) {
     event.preventDefault()
     try {
-      await server.buildStadium({ stadium: this.stadium })
+      await server.buildStadium(this.stadium)
       toast('You got a new stadium', 'success')
     } catch (e) {
       toast(e.message ?? 'Something went wrong', 'error')
@@ -113,7 +113,7 @@ export class StadiumPage extends UIElement {
 
   async _updatePrice () {
     try {
-      const { totalPrice } = await server.calculateStadiumPrice({ stadium: this.stadium })
+      const { totalPrice } = await server.calculateStadiumPrice(this.stadium)
       const priceEl = el(`${this._elementQuery} #total-price`)
       if (priceEl) {
         priceEl.innerText = euroFormat.format(totalPrice)

@@ -35,7 +35,7 @@ export default {
    * @param {Request} [req]
    * @returns {Promise<Array<NewsType>>}
    */
-  async getLogMessages_V2 (pageIndex, pageSize, req) {
+  async getLogMessages (pageIndex, pageSize, req) {
     const team = await getTeam(req)
     return await query('SELECT * FROM news WHERE team_id=? ORDER BY id DESC LIMIT ?, ?', [team.id, pageIndex * pageSize, pageSize])
   },
@@ -65,7 +65,6 @@ export default {
     const news = []
     const results = await query('SELECT * FROM trade_history WHERE season=? AND game_day=? ORDER BY price DESC LIMIT 1', [season, gameDay])
     if (results.length > 0) {
-      /** @type {TradeHistoryType} */
       const tradeHistory = results[0]
       const player = await getPlayerById(tradeHistory.player_id)
       const newTeam = await getTeamById(tradeHistory.to_team_id)

@@ -21,8 +21,8 @@ class NewsItem extends UIElement {
 
   async load () {
     if (this.newsItem.playerId) {
-      const player = await server.getPlayerById_V2(this.newsItem.playerId)
-      const { team } = await server.getTeam({ teamId: player.team_id })
+      const player = await server.getPlayerById(this.newsItem.playerId)
+      const { team } = await server.getTeam(player.team_id)
       this.image = await renderPlayerImage(player, team, 150)
     }
   }

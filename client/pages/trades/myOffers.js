@@ -104,14 +104,14 @@ class MyOfferListItem extends UIElement {
   }
 
   async load () {
-    this.player = await server.getPlayerById_V2(this.offer.player_id)
-    this.team = await server.getTeamById_V2(this.player.team_id)
+    this.player = await server.getPlayerById(this.offer.player_id)
+    this.team = await server.getTeamById(this.player.team_id)
     console.log('Got player and team: ', this.player, this.team)
   }
 
   async _cancelOffer () {
     try {
-      await server.cancelOffer({ offer: this.offer })
+      await server.cancelOffer(this.offer)
       await this.parentInstance.update(false)
     } catch (e) {
       toast(e.message ?? 'Something went wrong', 'error')

@@ -16,18 +16,18 @@ import { renderAsync } from '../lib/renderAsync.js'
  * @returns {Promise<void>}
  */
 export async function showPlayerModal (playerId) {
-  const player = await server.getPlayerById_V2(playerId)
+  const player = await server.getPlayerById(playerId)
   const { season } = await server.getCurrentGameday()
   const { team: myTeam } = await server.getMyTeam()
   const isMyPlayer = myTeam.id === player.team_id
   const buttonId = generateId()
   const inputId = generateId()
   const playerImage = await renderPlayerImage(player, myTeam)
-  const { team: playersTeam } = await server.getTeam({ teamId: player.team_id })
+  const { team: playersTeam } = await server.getTeam(player.team_id)
   const teamLinkId = generateId()
-  const price = await server.estimateValue_V2(player.id)
-  const history = await server.getPlayerHistory_V2(player.id)
-  const { offer } = await server.myOfferForPlayer({ player })
+  const price = await server.estimateValue(player.id)
+  const history = await server.getPlayerHistory(player.id)
+  const { offer } = await server.myOfferForPlayer(player)
 
   onClick(teamLinkId, () => {
     goTo(`team?id=${playersTeam.id}`)
@@ -37,11 +37,7 @@ export async function showPlayerModal (playerId) {
   onClick(buttonId, async () => {
     try {
       const price = Number(el('#' + inputId).value)
-      await server.addTradeOffer({
-        player,
-        price,
-        type: isMyPlayer ? 'sell' : 'buy'
-      })
+      await server.addTradeOffer(player, price, isMyPlayer ? 'sell' : 'buy')
       toast('You added a trade offer for ' + player.name, 'success')
       overlay.remove()
     } catch (e) {
@@ -59,7 +55,7 @@ export async function showPlayerModal (playerId) {
         buttonText: 'Yes, fire!'
       })
       if (!ok) return
-      await server.firePlayer({ player })
+      await server.firePlayer(player)
       toast('You fired your player!')
       overlay.remove()
       goTo('my-team')
@@ -129,7 +125,7 @@ const _renderPlayerHistory = renderAsync(async function (item) {
   if (item.type === 'LEVEL_UP') {
     return `<div>#${item.game_day} Player reached level ${item.value}</div>`
   } else if (item.type === 'TRANSFER') {
-    const { team } = await server.getTeam({ teamId: Number(item.value) })
+    const { team } = await server.getTeam(Number(item.value))
     return `<div>#${item.game_day} Moved to new club: ${team.name}</div>`
   }
   return '<div>unknown</div>'

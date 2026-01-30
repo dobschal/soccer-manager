@@ -15,12 +15,10 @@ export default {
     return { sponsors }
   },
 
-  async chooseSponsor (req) {
-    //
-    // TODO: Secure that route
-    //
-    const sponsor = new Sponsor(req.body.sponsor)
-    await query('INSERT INTO sponsor SET ?', sponsor)
+  async chooseSponsor (sponsor, req) {
+    const team = await getTeam(req)
+    const sponsorEntity = new Sponsor({ ...sponsor, team_id: team.id })
+    await query('INSERT INTO sponsor SET ?', sponsorEntity)
     return true
   }
 }

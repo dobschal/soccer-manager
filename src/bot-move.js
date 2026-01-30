@@ -169,7 +169,7 @@ async function _checkSellOffers (botTeam) {
       playerToSell = randomItem(players)
     }
     if (playerToSell) {
-      const price = await playersRoutes.estimateValue_V2(playerToSell.id)
+      const price = await playersRoutes.estimateValue(playerToSell.id)
       const val = (Math.random() * 0.6 + 0.7) * price
       const tradeOffer = new TradeOffer({
         offer_value: val,

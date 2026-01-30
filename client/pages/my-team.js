@@ -170,7 +170,7 @@ export class MyTeamPage extends UIElement {
         const id = generateId()
         onClick(id, async () => {
           try {
-            await server.updateColor({ color: c })
+            await server.updateColor(c)
             toast('You have chosen a new color!', 'success')
             await this.update(false)
             overlay.remove()

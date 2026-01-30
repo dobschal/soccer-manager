@@ -76,7 +76,7 @@ export class IncomingOffersPage extends UIElement {
       if (acceptBtn) {
         acceptBtn.addEventListener('click', async () => {
           try {
-            await server.acceptOffer({ offer })
+            await server.acceptOffer(offer)
             toast(`You accepted the buy offer from ${fromTeam.name}`)
             await this.load()
             await this.update(true)
@@ -90,7 +90,7 @@ export class IncomingOffersPage extends UIElement {
       if (declineBtn) {
         declineBtn.addEventListener('click', async () => {
           try {
-            await server.declineOffer({ offer })
+            await server.declineOffer(offer)
             toast(`You declined the buy offer from ${fromTeam.name}`)
             await this.load()
             await this.update(true)

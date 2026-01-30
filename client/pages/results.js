@@ -165,24 +165,9 @@ export class ResultsPage extends UIElement {
     }
     console.log(this.gameDay, this.season, this.level, this.league)
     const [{ results }, standing, yesterday] = await Promise.all([
-      server.getResults({
-        season: this.season,
-        gameDay: this.gameDay,
-        level: this.level,
-        league: this.league
-      }),
-      server.getStanding({
-        season: this.season,
-        gameDay: this.gameDay,
-        level: this.level,
-        league: this.league
-      }),
-      server.getStanding({
-        season: this.season,
-        gameDay: Math.max(0, this.gameDay - 1),
-        level: this.level,
-        league: this.league
-      })
+      server.getResults(this.gameDay, this.season, this.level, this.league),
+      server.getStanding(this.gameDay, this.season, this.level, this.league),
+      server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league)
     ])
     this.results = results
     this.yesterdayStanding = yesterday
@@ -317,7 +302,7 @@ function _sortStanding (s1, s2) {
 }
 
 async function _calculateGoals (level, league, season, gameDay, standing) {
-  const games = await server.getSeasonResults_V2(season, gameDay, level, league)
+  const games = await server.getSeasonResults(season, gameDay, level, league)
   games.forEach((game) => (game.details = JSON.parse(game.details ?? '{}')))
   if (games.length === 0) return []
   const goalsByPlayers = {}
@@ -328,7 +313,7 @@ async function _calculateGoals (level, league, season, gameDay, standing) {
     })
   }
   if (Object.keys(goalsByPlayers).length === 0) return []
-  const { players } = await server.getPlayersWithIds({ playerIds: Object.keys(goalsByPlayers) })
+  const { players } = await server.getPlayersWithIds(Object.keys(goalsByPlayers))
   const playersWithGoals = Object.keys(goalsByPlayers)
     .map(playerId => {
       const player = players.find(p => p.id === Number(playerId))

@@ -119,7 +119,7 @@ export class Lineup extends UIElement {
             return toast('Your lineup is incomplete!')
           }
           const playersToSave = this.players.filter(p => !p.fake)
-          await server.saveLineup({ players: playersToSave, formation: this.team.formation })
+          await server.saveLineup(playersToSave, this.team.formation)
           toast('Saved lineup.', 'success')
           await lineUpData.parentInstance.load()
           lineUpData.parentInstance.update()

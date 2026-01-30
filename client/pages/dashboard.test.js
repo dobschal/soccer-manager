@@ -7,7 +7,7 @@ vi.mock('../lib/gateway.js', () => ({
     getMyTeam: vi.fn(),
     getCurrentGameday: vi.fn(),
     getResults: vi.fn(),
-    getLogMessages_V2: vi.fn(),
+    getLogMessages: vi.fn(),
     useActionCard: vi.fn(),
     mergeCards: vi.fn()
   }
@@ -66,7 +66,7 @@ describe('DashboardPage', () => {
     })
     server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
     server.getResults.mockResolvedValue({ results: [] })
-    server.getLogMessages_V2.mockResolvedValue([])
+    server.getLogMessages.mockResolvedValue([])
   })
 
   describe('DashboardPage class', () => {
@@ -84,7 +84,7 @@ describe('DashboardPage', () => {
       expect(server.getMyTeam).toHaveBeenCalled()
       expect(server.getCurrentGameday).toHaveBeenCalled()
       expect(server.getResults).toHaveBeenCalled()
-      expect(server.getLogMessages_V2).toHaveBeenCalled()
+      expect(server.getLogMessages).toHaveBeenCalled()
     })
 
     it('template contains team name after load', async () => {

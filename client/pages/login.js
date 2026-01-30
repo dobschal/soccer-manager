@@ -72,11 +72,11 @@ export class LoginPage extends UIElement {
           this.isSubmitting = false
           return toast('Passwords are not equal...', 'error')
         }
-        await server.createAccount({ username, password })
+        await server.createAccount(username, password)
         setQueryParams({ type: this.isLogin ? 'registration' : 'login' })
         toast('Registration successful!', 'success')
       } else {
-        const { token } = await server.login({ username, password })
+        const { token } = await server.login(username, password)
         window.localStorage.setItem('auth-token', token)
         goTo('')
         toast('Login successful!', 'success')

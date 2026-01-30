@@ -41,7 +41,7 @@ app.use(async (req, res, next) => {
  * Check the routes folder for all script and apply the route
  * handlers automatically
  */
-const filenames = fs.readdirSync('src/routes')
+const filenames = fs.readdirSync('src/routes').filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))
 for (const filename of filenames) {
   const mod = await import(`./routes/${filename}`)
   for (const fnName in mod.default) {
@@ -51,15 +51,9 @@ for (const filename of filenames) {
       app.post(`/api/${fnName}`, async (req, res) => {
         const t1 = Date.now()
         try {
-          if (fnName.endsWith('_V2')) {
-            const response = await fn(...req.body.params, req)
-            res.send({ response })
-          } else {
-            const response = await fn(req, res)
-            if (typeof response !== 'undefined') {
-              res.send(response)
-            }
-          }
+          const params = req.body.params ?? []
+          const response = await fn(...params, req)
+          res.send({ response })
         } catch (e) {
           console.error('Error: ', e)
           res.status(e.status ?? 500).send({ message: e.message ?? 'Unknown error' })

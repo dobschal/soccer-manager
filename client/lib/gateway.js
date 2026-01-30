@@ -27,12 +27,7 @@ export const server = new Proxy({}, {
         serverCache.clear()
         console.log('Clear server cache on ' + key)
       }
-      let requestBody
-      if (key.endsWith('_V2')) {
-        requestBody = { params }
-      } else {
-        requestBody = params[0] // the legacy implementation only allows one parameter
-      }
+      const requestBody = { params }
       const options = {
         method: 'POST',
         headers: {
@@ -52,18 +47,10 @@ export const server = new Proxy({}, {
         }
         throw (await response.json())
       }
-      if (key.endsWith('_V2')) {
-        const { response: data } = await response.json()
-        serverCache.set(cacheKey, {
-          timestamp: Date.now(),
-          data: typeof data === 'object' ? deepCopy(data) : data
-        })
-        return data
-      }
-      const data = await response.json()
+      const { response: data } = await response.json()
       serverCache.set(cacheKey, {
         timestamp: Date.now(),
-        data: deepCopy(data)
+        data: typeof data === 'object' ? deepCopy(data) : data
       })
       return data
     }

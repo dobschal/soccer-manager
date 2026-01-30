@@ -66,7 +66,7 @@ export class FinancesPage extends UIElement {
       if (btn) {
         btn.addEventListener('click', async () => {
           try {
-            await server.chooseSponsor({ sponsor: offer })
+            await server.chooseSponsor(offer)
             toast(`You signed a sponsor contract with ${offer.name}`)
             await this.load()
             await this.update(true)

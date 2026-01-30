@@ -11,7 +11,7 @@ import { renderTable } from './table.js'
  * @private
  */
 export async function showGameModal (resultId) {
-  const response = await server.getResult({ id: resultId })
+  const response = await server.getResult(resultId)
   /** @type {GameResultType} */
   const game = response.result
   if (game.details === '{}') {
@@ -19,8 +19,8 @@ export async function showGameModal (resultId) {
     setQueryParams({ game_id: null })
     return
   }
-  const { players: playersTeam1, team: team1 } = await server.getTeam({ teamId: game.team1Id })
-  const { players: playersTeam2, team: team2 } = await server.getTeam({ teamId: game.team2Id })
+  const { players: playersTeam1, team: team1 } = await server.getTeam(game.team1Id)
+  const { players: playersTeam2, team: team2 } = await server.getTeam(game.team2Id)
   const players = {}
   playersTeam1.forEach(p => {
     p.team1 = true

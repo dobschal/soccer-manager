@@ -97,15 +97,10 @@ export class DashboardPage extends UIElement {
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
 
-    const resultsResponse = await server.getResults({
-      season: this.season,
-      gameDay: this.gameDay - 1,
-      level: this.team.level,
-      league: this.team.league
-    })
+    const resultsResponse = await server.getResults(this.gameDay - 1, this.season, this.team.level, this.team.league)
     this.game = resultsResponse.results.find(r => r.team1Id === this.team.id || r.team2Id === this.team.id) ?? {}
 
-    this.messages = await server.getLogMessages_V2(pageIndex, pageSize)
+    this.messages = await server.getLogMessages(pageIndex, pageSize)
   }
 
   onMounted () {
@@ -166,10 +161,7 @@ export class DashboardPage extends UIElement {
   async _mergeCards (actionCard) {
     try {
       const cardsToMerge = this.actionCards.filter(a => a.action === actionCard.action)
-      await server.mergeCards({
-        actionCard1: cardsToMerge[0],
-        actionCard2: cardsToMerge[1]
-      })
+      await server.mergeCards(cardsToMerge[0], cardsToMerge[1])
       toast('Merged cards to a better one.')
       await this.load()
       await this.update(true)
@@ -194,7 +186,7 @@ export class DashboardPage extends UIElement {
     }
     if (actionCard.action === 'NEW_YOUTH_PLAYER') {
       try {
-        await server.useActionCard({ actionCard })
+        await server.useActionCard(actionCard, null, null)
         toast('You got a new player!', 'success')
         await this.load()
         await this.update(true)
@@ -211,7 +203,7 @@ export class DashboardPage extends UIElement {
     const data = await server.getMyTeam()
     const playerList = new PlayerList(data.players, false, async player => {
       try {
-        await server.useActionCard({ actionCard, player })
+        await server.useActionCard(actionCard, player, null)
         toast(`OK. ${player.name} got fitness boost!`, 'success')
         await this.load()
         await this.update(true)
@@ -234,7 +226,7 @@ export class DashboardPage extends UIElement {
       this._overlay?.remove()
       const positionList = this._renderPositionList(async (position) => {
         try {
-          await server.useActionCard({ actionCard, position, player })
+          await server.useActionCard(actionCard, player, position)
           this._overlay?.remove()
           toast(`OK. ${player.name} plays another position now!`, 'success')
           await this.load()
@@ -293,7 +285,7 @@ export class DashboardPage extends UIElement {
     const data = await server.getMyTeam()
     const playerList = new PlayerList(data.players, false, async player => {
       try {
-        await server.useActionCard({ actionCard, player })
+        await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
         toast(`Nice. ${player.name} got a level up!`, 'success')
         await this.load()

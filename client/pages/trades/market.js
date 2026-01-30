@@ -129,11 +129,7 @@ export class MarketPage extends UIElement {
     }
 
     try {
-      await server.addTradeOffer({
-        player,
-        price,
-        type: 'buy'
-      })
+      await server.addTradeOffer(player, price, 'buy')
       toast('You\'ve sent a buy offer')
       await this.load()
       await this.update(true)

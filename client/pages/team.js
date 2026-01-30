@@ -55,11 +55,11 @@ export class TeamPage extends UIElement {
 
   async load () {
     if (!this.teamId) throw new Error('No team id present...')
-    const { team, players, user } = await server.getTeam({ teamId: this.teamId + '' })
+    const { team, players, user } = await server.getTeam(this.teamId)
     this.user = user
     this.team = team
     this.players = players
-    this.stadium = await server.getStadiumByTeamId_V2(this.team.id)
+    this.stadium = await server.getStadiumByTeamId(this.team.id)
   }
 
   async onQueryChanged ({ player_id: playerId, id }) {

@@ -7,7 +7,10 @@
     "start": "node src/api.js",
     "lint": "eslint ./src",
     "test:client": "vitest run --config client/vitest.config.js",
-    "test:client:watch": "vitest --config client/vitest.config.js"
+    "test:client:watch": "vitest --config client/vitest.config.js",
+    "test:server": "vitest run --config src/vitest.config.js",
+    "test:server:watch": "vitest --config src/vitest.config.js",
+    "test": "npm run test:client && npm run test:server"
   },
   "keywords": [],
   "author": "",

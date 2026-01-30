@@ -201,7 +201,6 @@ export class UIElement {
         spinnerEl,
         neighborNode
       )
-      console.log('Insert spinner at position...')
     }
   }
 
