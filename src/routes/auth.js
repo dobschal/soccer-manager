@@ -10,10 +10,9 @@ export default {
   /**
    * @param {string} username
    * @param {string} password
-   * @param {string} teamName
    * @returns {Promise<{success: boolean}>}
    */
-  async createAccount (username, password, teamName) {
+  async createAccount (username, password) {
     if (typeof username !== 'string') {
       throw new BadRequestError('Username needs to be string')
     }
@@ -28,13 +27,9 @@ export default {
     if (!team) {
       throw new BadRequestError('No team available.')
     }
-    //
-    // TODO: Hash password
-    //
     const { insertId: userId } = await query('INSERT INTO user SET ?', {
       username,
-      password,
-      teamName
+      password
     })
     await addLogMessage(`Hey  ${username}! The president of ${team.name} is sending you a warm welcome!`, team)
     await query(`UPDATE team SET user_id=${userId}, balance=500000 WHERE id=${team.id}`)

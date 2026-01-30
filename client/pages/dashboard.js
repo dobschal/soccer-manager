@@ -47,6 +47,30 @@ export class DashboardPage extends UIElement {
   messages = []
 
   /**
+   * @returns {Object}
+   */
+  get events () {
+    return {
+      '#action-cards': {
+        click: (event) => {
+          const target = event.target
+          const actionCardEl = target.closest('[data-action-card]')
+          if (!actionCardEl) return
+
+          const idx = parseInt(actionCardEl.dataset.actionCard, 10)
+          const card = this.actionCards[idx]
+
+          if (target.closest('.btn-success')) {
+            this._useActionCard(card)
+          } else if (target.closest('.btn-warning')) {
+            this._mergeCards(card)
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {
@@ -109,29 +133,6 @@ export class DashboardPage extends UIElement {
     this.messages = await server.getLogMessages(pageIndex, pageSize)
   }
 
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._attachActionCardHandlers()
-  }
-
-  /**
-   * @returns {void}
-   */
-  _attachActionCardHandlers () {
-    this.actionCards.forEach((card, idx) => {
-      const useBtn = document.querySelector(`${this._elementQuery} [data-action-card="${idx}"] .btn-success`)
-      const mergeBtn = document.querySelector(`${this._elementQuery} [data-action-card="${idx}"] .btn-warning`)
-
-      if (useBtn) {
-        useBtn.addEventListener('click', () => this._useActionCard(card))
-      }
-      if (mergeBtn) {
-        mergeBtn.addEventListener('click', () => this._mergeCards(card))
-      }
-    })
-  }
 
   /**
    * @param {Object} messageItem

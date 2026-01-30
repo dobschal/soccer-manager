@@ -13,10 +13,31 @@ export class StadiumPage extends UIElement {
   get events () {
     return {
       '#price-form': {
-        submit: this._onPriceFormSubmit.bind(this)
+        submit: this._onPriceFormSubmit.bind(this),
+        change: (event) => {
+          const input = event.target.closest('[data-price-input]')
+          if (input) {
+            const name = input.dataset.priceInput
+            this.stadium[name + '_stand_price'] = Number(input.value)
+          }
+        }
       },
       '#stadium-form': {
-        submit: this._onStadiumFormSubmit.bind(this)
+        submit: this._onStadiumFormSubmit.bind(this),
+        change: async (event) => {
+          const sizeInput = event.target.closest('[data-size-input]')
+          const roofInput = event.target.closest('[data-roof-input]')
+
+          if (sizeInput) {
+            const name = sizeInput.dataset.sizeInput
+            this.stadium[name + '_stand_size'] = Number(sizeInput.value)
+            await this._updatePrice()
+          } else if (roofInput) {
+            const name = roofInput.dataset.roofInput
+            this.stadium[name + '_stand_roof'] = roofInput.checked ? 1 : 0
+            await this._updatePrice()
+          }
+        }
       }
     }
   }
@@ -63,51 +84,6 @@ export class StadiumPage extends UIElement {
     console.log('Stadium: ', this.stadium)
   }
 
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._attachPriceInputHandlers()
-    this._attachExpandInputHandlers()
-  }
-
-  /**
-   * @returns {void}
-   */
-  _attachPriceInputHandlers () {
-    ['north', 'south', 'east', 'west'].forEach(name => {
-      const input = el(`${this._elementQuery} [data-price-input="${name}"]`)
-      if (input) {
-        input.addEventListener('change', (event) => {
-          this.stadium[name + '_stand_price'] = Number(event.target.value)
-        })
-      }
-    })
-  }
-
-  /**
-   * @returns {void}
-   */
-  _attachExpandInputHandlers () {
-    ['north', 'south', 'east', 'west'].forEach(name => {
-      const sizeInput = el(`${this._elementQuery} [data-size-input="${name}"]`)
-      const roofInput = el(`${this._elementQuery} [data-roof-input="${name}"]`)
-
-      if (sizeInput) {
-        sizeInput.addEventListener('change', async (event) => {
-          this.stadium[name + '_stand_size'] = Number(event.target.value)
-          await this._updatePrice()
-        })
-      }
-
-      if (roofInput) {
-        roofInput.addEventListener('change', async (event) => {
-          this.stadium[name + '_stand_roof'] = event.target.checked ? 1 : 0
-          await this._updatePrice()
-        })
-      }
-    })
-  }
 
   /**
    * @param {Event} event

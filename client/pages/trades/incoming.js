@@ -11,6 +11,51 @@ export class IncomingOffersPage extends UIElement {
   teams = []
 
   /**
+   * @returns {Object}
+   */
+  get events () {
+    return {
+      tbody: {
+        click: async (event) => {
+          const target = event.target
+          const row = target.closest('[data-offer]')
+          if (!row) return
+
+          const idx = parseInt(row.dataset.offer, 10)
+          const incomingOffers = this._filterIncomingBuyOffers()
+          const offer = incomingOffers[idx]
+          const player = this.players.find(p => p.id === offer.player_id)
+          const fromTeam = this.teams.find(t => t.id === offer.from_team_id)
+
+          if (target.closest('.player-name')) {
+            setQueryParams({ player_id: player.id })
+          } else if (target.closest('.btn-success')) {
+            try {
+              await server.acceptOffer(offer)
+              toast(`You accepted the buy offer from ${fromTeam.name}`)
+              await this.load()
+              await this.update(true)
+            } catch (e) {
+              console.error(e)
+              toast(e.message ?? 'Something went wrong', 'error')
+            }
+          } else if (target.closest('.btn-danger')) {
+            try {
+              await server.declineOffer(offer)
+              toast(`You declined the buy offer from ${fromTeam.name}`)
+              await this.load()
+              await this.update(true)
+            } catch (e) {
+              console.error(e)
+              toast(e.message ?? 'Something went wrong', 'error')
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {
@@ -58,62 +103,6 @@ export class IncomingOffersPage extends UIElement {
     this.teams = offersResponse.teams
   }
 
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._attachOfferHandlers()
-  }
-
-  /**
-   * @returns {void}
-   */
-  _attachOfferHandlers () {
-    const incomingOffers = this._filterIncomingBuyOffers()
-
-    incomingOffers.forEach((offer, idx) => {
-      const row = document.querySelector(`${this._elementQuery} [data-offer="${idx}"]`)
-      if (!row) return
-
-      const playerName = row.querySelector('.player-name')
-      const acceptBtn = row.querySelector('.btn-success')
-      const declineBtn = row.querySelector('.btn-danger')
-      const player = this.players.find(p => p.id === offer.player_id)
-      const fromTeam = this.teams.find(t => t.id === offer.from_team_id)
-
-      if (playerName) {
-        playerName.addEventListener('click', () => setQueryParams({ player_id: player.id }))
-      }
-
-      if (acceptBtn) {
-        acceptBtn.addEventListener('click', async () => {
-          try {
-            await server.acceptOffer(offer)
-            toast(`You accepted the buy offer from ${fromTeam.name}`)
-            await this.load()
-            await this.update(true)
-          } catch (e) {
-            console.error(e)
-            toast(e.message ?? 'Something went wrong', 'error')
-          }
-        })
-      }
-
-      if (declineBtn) {
-        declineBtn.addEventListener('click', async () => {
-          try {
-            await server.declineOffer(offer)
-            toast(`You declined the buy offer from ${fromTeam.name}`)
-            await this.load()
-            await this.update(true)
-          } catch (e) {
-            console.error(e)
-            toast(e.message ?? 'Something went wrong', 'error')
-          }
-        })
-      }
-    })
-  }
 
   /**
    * @returns {Array}

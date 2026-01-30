@@ -1,6 +1,6 @@
-import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
 import { generateId } from '../lib/html.js'
+import { onClick } from '../lib/htmlEventHandlers.js'
 import { getQueryParams, goTo, setQueryParams } from '../lib/router.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { formatLeague } from '../util/league.js'
@@ -8,6 +8,32 @@ import { showGameModal } from '../partials/gameModal.js'
 import { UIElement } from '../lib/UIElement.js'
 
 export class ResultsPage extends UIElement {
+  /**
+   * @returns {Object}
+   */
+  get events () {
+    return {
+      '#prev-game-day-button': {
+        click: () => setQueryParams({ season: this.season, gameDay: this.gameDay - 1 })
+      },
+      '#next-game-day-button': {
+        click: () => setQueryParams({ season: this.season, gameDay: this.gameDay + 1 })
+      },
+      '#prev-season-button': {
+        click: () => setQueryParams({ season: this.season - 1, gameDay: 0 })
+      },
+      '#next-season-button': {
+        click: () => setQueryParams({ season: this.season + 1, gameDay: 0 })
+      },
+      '#prev-league-button': {
+        click: () => setQueryParams(this._getPrevLeague(this.level, this.league))
+      },
+      '#next-league-button': {
+        click: () => setQueryParams(this._getNextLeague(this.level, this.league))
+      }
+    }
+  }
+
   /**
    * @returns {string}
    */
@@ -94,46 +120,6 @@ export class ResultsPage extends UIElement {
     `
   }
 
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    onClick('#prev-game-day-button', async () => {
-      setQueryParams({
-        season: this.season,
-        gameDay: this.gameDay - 1
-      })
-    })
-
-    onClick('#next-game-day-button', async () => {
-      setQueryParams({
-        season: this.season,
-        gameDay: this.gameDay + 1
-      })
-    })
-
-    onClick('#prev-season-button', async () => {
-      setQueryParams({
-        season: this.season - 1,
-        gameDay: 0
-      })
-    })
-
-    onClick('#next-season-button', async () => {
-      setQueryParams({
-        season: this.season + 1,
-        gameDay: 0
-      })
-    })
-
-    onClick('#prev-league-button', async () => {
-      setQueryParams(this._getPrevLeague(this.level, this.league))
-    })
-
-    onClick('#next-league-button', async () => {
-      setQueryParams(this._getNextLeague(this.level, this.league))
-    })
-  }
 
   /**
    * @param {Object} queryParams

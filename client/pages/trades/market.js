@@ -14,6 +14,27 @@ export class MarketPage extends UIElement {
   teams = []
 
   /**
+   * @returns {Object}
+   */
+  get events () {
+    return {
+      div: {
+        click: (event) => {
+          const target = event.target
+          const buyBtn = target.closest('[data-buy-player]')
+          if (!buyBtn) return
+
+          const playerId = Number(buyBtn.dataset.buyPlayer)
+          const player = this.players.find(p => p.id === playerId)
+          if (player) {
+            this._showBuyDialog(player)
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {
@@ -60,26 +81,6 @@ export class MarketPage extends UIElement {
     console.log('Render market...')
   }
 
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._attachBuyButtonHandlers()
-  }
-
-  /**
-   * @returns {void}
-   */
-  _attachBuyButtonHandlers () {
-    const buyButtons = document.querySelectorAll(`${this._elementQuery} [data-buy-player]`)
-    buyButtons.forEach(btn => {
-      const playerId = Number(btn.dataset.buyPlayer)
-      const player = this.players.find(p => p.id === playerId)
-      if (player) {
-        btn.addEventListener('click', () => this._showBuyDialog(player))
-      }
-    })
-  }
 
   /**
    * @returns {Array}

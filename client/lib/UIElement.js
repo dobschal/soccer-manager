@@ -106,6 +106,7 @@ export class UIElement {
     const templateEl = document.createElement('template')
     await this._renderIntoTemplateEl(templateEl, skipLoad)
     this._renderIntoDOM(node, templateEl)
+    this._applyEventHandlers()
   }
 
   /**

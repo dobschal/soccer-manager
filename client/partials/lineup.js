@@ -1,5 +1,4 @@
 import { UIElement } from '../lib/UIElement.js'
-import { el } from '../lib/html.js'
 import { toast } from './toast.js'
 import { server } from '../lib/gateway.js'
 import { render } from '../lib/render.js'
@@ -51,6 +50,54 @@ export class Lineup extends UIElement {
   }
 
   /**
+   * @returns {Object}
+   */
+  get events () {
+    return {
+      '.squad': {
+        click: (event) => {
+          const playerEl = event.target.closest('.player')
+          if (!playerEl) return
+
+          const playerEls = document.querySelectorAll(`${this._elementQuery} .squad .player`)
+          const playersInLineup = this.players.filter(p => p.in_game_position)
+          const index = Array.from(playerEls).indexOf(playerEl)
+          const player = playersInLineup[index]
+
+          if (player) {
+            this._overlay = showOverlay(
+              'Select player',
+              '',
+              `${new PlayerList(
+                this.players.filter(p => p.position === player.position && !p.fake),
+                false,
+                newPlayer => this._exchangePlayer(player, newPlayer)
+              )}`
+            )
+          }
+        }
+      },
+      'button.btn-primary': {
+        click: async () => {
+          try {
+            if (this.players.some(p => p.fake && p.in_game_position)) {
+              return toast('Your lineup is incomplete!')
+            }
+            const playersToSave = this.players.filter(p => !p.fake)
+            await server.saveLineup(playersToSave, this.team.formation)
+            toast('Saved lineup.', 'success')
+            await lineUpData.parentInstance.load()
+            lineUpData.parentInstance.update()
+          } catch (e) {
+            console.error(e)
+            toast(e.message ?? 'Something went wrong...', 'error')
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {
@@ -70,8 +117,6 @@ export class Lineup extends UIElement {
   onMounted () {
     this._applyPositionHacks()
     this._loadPlayerImages()
-    this._attachPlayerClickHandlers()
-    this._attachSaveButtonHandler()
   }
 
   /**
@@ -105,52 +150,6 @@ export class Lineup extends UIElement {
     })
   }
 
-  /**
-   * @returns {void}
-   */
-  _attachPlayerClickHandlers () {
-    const playerEls = document.querySelectorAll(`${this._elementQuery} .squad .player`)
-    const playersInLineup = this.players.filter(p => p.in_game_position)
-
-    playerEls.forEach((playerEl, index) => {
-      const player = playersInLineup[index]
-      playerEl.addEventListener('click', () => {
-        this._overlay = showOverlay(
-          'Select player',
-          '',
-          `${new PlayerList(
-            this.players.filter(p => p.position === player.position && !p.fake),
-            false,
-            newPlayer => this._exchangePlayer(player, newPlayer)
-          )}`
-        )
-      })
-    })
-  }
-
-  /**
-   * @returns {void}
-   */
-  _attachSaveButtonHandler () {
-    const saveBtn = el(`${this._elementQuery} button.btn-primary`)
-    if (saveBtn) {
-      saveBtn.addEventListener('click', async () => {
-        try {
-          if (this.players.some(p => p.fake && p.in_game_position)) {
-            return toast('Your lineup is incomplete!')
-          }
-          const playersToSave = this.players.filter(p => !p.fake)
-          await server.saveLineup(playersToSave, this.team.formation)
-          toast('Saved lineup.', 'success')
-          await lineUpData.parentInstance.load()
-          lineUpData.parentInstance.update()
-        } catch (e) {
-          console.error(e)
-          toast(e.message ?? 'Something went wrong...', 'error')
-        }
-      })
-    }
-  }
 
   /**
    * @param {PlayerType} player

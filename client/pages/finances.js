@@ -11,6 +11,36 @@ export class FinancesPage extends UIElement {
   financeLog = []
 
   /**
+   * @returns {Object}
+   */
+  get events () {
+    return {
+      '#sponsor-offers': {
+        click: async (event) => {
+          const target = event.target
+          const btn = target.closest('.btn-primary')
+          if (!btn) return
+
+          const offerCard = target.closest('[data-sponsor-offer]')
+          if (!offerCard) return
+
+          const idx = parseInt(offerCard.dataset.sponsorOffer, 10)
+          const offer = this.offers[idx]
+
+          try {
+            await server.chooseSponsor(offer)
+            toast(`You signed a sponsor contract with ${offer.name}`)
+            await this.load()
+            await this.update(true)
+          } catch (e) {
+            toast(e.message ?? 'Something went wrong', 'error')
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {
@@ -62,33 +92,6 @@ export class FinancesPage extends UIElement {
     console.log('Finance: ', this.financeLog)
   }
 
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._attachSponsorOfferHandlers()
-  }
-
-  /**
-   * @returns {void}
-   */
-  _attachSponsorOfferHandlers () {
-    this.offers.forEach((offer, idx) => {
-      const btn = document.querySelector(`${this._elementQuery} [data-sponsor-offer="${idx}"] .btn-primary`)
-      if (btn) {
-        btn.addEventListener('click', async () => {
-          try {
-            await server.chooseSponsor(offer)
-            toast(`You signed a sponsor contract with ${offer.name}`)
-            await this.load()
-            await this.update(true)
-          } catch (e) {
-            toast(e.message ?? 'Something went wrong', 'error')
-          }
-        })
-      }
-    })
-  }
 
   /**
    * @param {Object} logA
