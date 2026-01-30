@@ -306,7 +306,7 @@ export class DashboardPage extends UIElement {
       ['Right Attacker', 'RA']
     ]
 
-    const items = positions.map((p, index) => `
+    const items = positions.map((p) => `
       <li class="list-group-item list-group-item-action" data-position="${p[1]}">${p[0]} (${p[1]})</li>
     `).join('')
 

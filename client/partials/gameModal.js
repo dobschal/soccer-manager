@@ -3,7 +3,6 @@ import { toast } from './toast.js'
 import { showOverlay } from './overlay.js'
 import { renderGameAnimation } from './gameAnimation.js'
 import { setQueryParams } from '../lib/router.js'
-import { renderTable } from './table.js'
 
 /**
  * @param {number} resultId

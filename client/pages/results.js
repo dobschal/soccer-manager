@@ -1,6 +1,6 @@
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
-import { el, generateId } from '../lib/html.js'
+import { generateId } from '../lib/html.js'
 import { getQueryParams, goTo, setQueryParams } from '../lib/router.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { formatLeague } from '../util/league.js'

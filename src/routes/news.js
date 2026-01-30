@@ -56,7 +56,7 @@ export default {
    * @param {Request} req
    * @returns {Promise<{news: NewsArticle[], season: number, gameDay: number}>}
    */
-  async getLeagueNews (req) {
+  async getLeagueNews (_req) {
     const { gameDay, season } = await getGameDayAndSeason()
     const cachedNews = newsCache.find(n => n.gameDay === gameDay && n.season === season)
     if (cachedNews) {

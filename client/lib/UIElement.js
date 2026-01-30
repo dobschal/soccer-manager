@@ -60,7 +60,7 @@ export class UIElement {
    * @abstract
    * @returns {string}
    */
-  get template () {}
+  get template () { return '' }
 
   /**
    * @abstract
@@ -190,7 +190,7 @@ export class UIElement {
    * @returns {void}
    * @private
    */
-  _onMounted (node) {
+  _onMounted (_node) {
     if (this._isMounted) return // Skip if already mounted (this is an update, not initial mount)
     this._isMounted = true
     console.log('Mounted: ', this.constructor.name)
@@ -203,7 +203,7 @@ export class UIElement {
    * @returns {void}
    * @private
    */
-  _onDestroy (node) {
+  _onDestroy (_node) {
     this._isMounted = false
     console.log('Destroy: ', this.constructor.name)
     off(this._queryChangedEventId)

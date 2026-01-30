@@ -20,7 +20,7 @@ export class Balance extends UIElement {
     try {
       const { balance } = await server.getMyBalance()
       this.balance = balance
-    } catch (e) {
+    } catch {
       this.balance = 0
     }
   }

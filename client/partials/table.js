@@ -189,7 +189,7 @@ export class Table extends UIElement {
    * @param {number} rowIndex
    * @returns {string}
    */
-  _renderTableCells (rowContent, rowIndex) {
+  _renderTableCells (rowContent, _rowIndex) {
     return rowContent.map((cellContent, colIndex) => {
       const col = this.config.cols[colIndex]
       const hasClickFn = typeof col.onClick === 'function'

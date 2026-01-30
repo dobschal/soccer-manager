@@ -291,7 +291,7 @@ async function _checkTrades (botTeam) {
  * @param {boolean} isStrongTeam
  * @returns {Promise<void>}
  */
-async function _chooseSponsor (botTeam, isStrongTeam) {
+async function _chooseSponsor (botTeam, _isStrongTeam) {
   let { sponsor } = await getSponsor(botTeam)
   if (sponsor) return
   const sponsors = await getSponsorOffers(botTeam)
@@ -306,7 +306,7 @@ async function _chooseSponsor (botTeam, isStrongTeam) {
  * @param {boolean} isStrongTeam
  * @returns {Promise<void>}
  */
-async function _checkActionCards (botTeam, players, isStrongTeam) {
+async function _checkActionCards (botTeam, players, _isStrongTeam) {
   const actionCards = await getActionCards(botTeam)
   for (const actionCard of actionCards) {
     try {
@@ -344,7 +344,7 @@ async function _checkActionCards (botTeam, players, isStrongTeam) {
  * @param {boolean} isStrongTeam
  * @returns {Promise<void>}
  */
-async function _checkTactic (botTeam, players, isStrongTeam) {
+async function _checkTactic (botTeam, players, _isStrongTeam) {
   // remove all players from formation
   players.forEach(p => (p.in_game_position = null))
 

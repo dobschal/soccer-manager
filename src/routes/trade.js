@@ -85,7 +85,7 @@ export default {
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
    */
-  async declineOffer (offer, req) {
+  async declineOffer (offer, _req) {
     if (!offer || !offer.id) throw new BadRequestError('Nope...')
     await declineOffer(offer)
     return { success: true }
