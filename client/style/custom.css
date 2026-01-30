@@ -259,6 +259,12 @@ td.hover-text:hover {
   background: #EFEFEF;
 }
 
+.sponsor-sprite {
+  background-size: 1536px 1024px;
+  max-width: 100%;
+    border-radius: 0;
+}
+
 .nav-pills .nav-link {
   background: #EFEFEF;
   margin-bottom: 1rem;
