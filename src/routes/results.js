@@ -6,6 +6,9 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 export default {
 
+  /**
+   * @returns {Promise<{date: Date}>}
+   */
   async getNextGameDate () {
     const d = new Date()
     d.setHours(12)
@@ -42,16 +45,16 @@ export default {
    * @param {Request} [req]
    * @returns {Promise<GameResultType[]>}
    */
-  async getSeasonResults_V2 (season, tilGameDay, level, league, req) {
+  async getSeasonResults (season, tilGameDay, level, league, req) {
     const team = await getTeam(req)
     return await query(`
       SELECT
         g.id as id,
         g.game_day as gameDay,
         g.season as season,
-        g.goals_team_1 as goalsTeam1, 
-        g.goals_team_2 as goalsTeam2, 
-        t1.name as team1,  
+        g.goals_team_1 as goalsTeam1,
+        g.goals_team_2 as goalsTeam2,
+        t1.name as team1,
         t2.name as team2,
         g.team_1_id as team1Id,
         g.team_2_id as team2Id,
@@ -65,19 +68,30 @@ export default {
   },
 
   /**
-   * @param req
+   * @returns {Promise<{season: number, gameDay: number}>}
+   */
+  async getCurrentGameday () {
+    return await getGameDayAndSeason()
+  },
+
+  /**
+   * @param {number} gameDay
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
    * @returns {Promise<{results: GameResultType[]}>}
    */
-  async getResults (req) {
-    const [team] = await query('SELECT * FROM team WHERE user_id=?', [req.user.id])
+  async getResults (gameDay, season, level, league, req) {
+    const team = await getTeam(req)
     const results = await query(`
       SELECT
         g.id as id,
-        g.goals_team_1 as goalsTeam1, 
+        g.goals_team_1 as goalsTeam1,
         g.goals_team_2 as goalsTeam2,
         g.game_day as gameDay,
         g.season as season,
-        t1.name as team1,  
+        t1.name as team1,
         t2.name as team2,
         g.team_1_id as team1Id,
         g.team_2_id as team2Id,
@@ -87,23 +101,23 @@ export default {
       JOIN team t1 ON t1.id=g.team_1_id
       JOIN team t2 ON t2.id=g.team_2_id
       WHERE g.game_day=? AND g.season=? AND g.level=? AND g.league=?
-    `, [req.body.gameDay, req.body.season, req.body.level ?? team.level, req.body.league ?? team.league])
+    `, [gameDay, season, level ?? team.level, league ?? team.league])
     return { results }
   },
 
   /**
-   * @param req
+   * @param {number} gameId
    * @returns {Promise<{result: GameResultType}>}
    */
-  async getResult (req) {
+  async getResult (gameId) {
     const results = await query(`
       SELECT
         g.id as id,
-        g.goals_team_1 as goalsTeam1,         
+        g.goals_team_1 as goalsTeam1,
         g.goals_team_2 as goalsTeam2,
         g.game_day as gameDay,
         g.season as season,
-        t1.name as team1,  
+        t1.name as team1,
         t2.name as team2,
         g.team_1_id as team1Id,
         g.team_2_id as team2Id,
@@ -113,40 +127,31 @@ export default {
       JOIN team t1 ON t1.id=g.team_1_id
       JOIN team t2 ON t2.id=g.team_2_id
       WHERE g.id=?
-    `, [req.body.id])
+    `, [gameId])
     if (results.length === 0) throw new BadRequestError('Game not found')
     return { result: results[0] }
   },
 
   /**
-   * @returns {Promise<{season: number, gameDay: number}>}
-   */
-  async getCurrentGameday () {
-    return await getGameDayAndSeason()
-  },
-
-  /**
+   * @param {number} gameDay
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
    * @returns {Promise<Array<StandingType>>}
    */
-  async getStanding (req) {
+  async getStanding (gameDay, season, level, league, req) {
     const team = await getTeam(req)
-    const level = req.body.level ?? team.level
-    const league = req.body.league ?? team.league
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
     const t1 = Date.now()
-    /** @type {GameType[]} */
     const games = await query(
       `
-        SELECT * FROM game g 
+        SELECT * FROM game g
         WHERE g.game_day<=? AND g.season=? AND g.level=? AND g.league=? AND g.played=1
       `,
-      [
-        req.body.gameDay,
-        req.body.season,
-        level,
-        league
-      ]
+      [gameDay, season, actualLevel, actualLeague]
     )
-    /** @type {TeamType[]} */
     let teams = []
     if (games.length > 0) {
       const teamIds = new Set()
@@ -156,7 +161,7 @@ export default {
       })
       teams = await query(`SELECT * FROM team WHERE id IN (${[...teamIds].join(', ')})`)
     } else {
-      teams = await query('SELECT * FROM team WHERE level=? AND league=?', [level, league])
+      teams = await query('SELECT * FROM team WHERE level=? AND league=?', [actualLevel, actualLeague])
     }
     const standing = calculateStanding(games, teams)
     console.log('Calculate standing in ' + (Date.now() - t1) + 'ms')

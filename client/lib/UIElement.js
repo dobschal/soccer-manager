@@ -4,6 +4,9 @@ import { off, on } from './event.js'
 import { onDOMNodeChanged } from './observeDOM.js'
 
 export class UIElement {
+  /**
+   * @param {Object} params
+   */
   constructor (params = {}) {
     for (const paramsKey in params) {
       this[paramsKey] = params[paramsKey]
@@ -27,24 +30,42 @@ export class UIElement {
     })
   }
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {Object}
+   */
   get events () {
     return {}
   }
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {void}
+   */
   onQueryChanged () {}
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {void}
+   */
   onMounted () {}
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {void}
+   */
   onDestroy () {}
 
-  /** @abstract */
-  get template () {}
+  /**
+   * @abstract
+   * @returns {string}
+   */
+  get template () { return '' }
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {Promise<void>}
+   */
   async load () {}
 
   /**
@@ -53,12 +74,24 @@ export class UIElement {
    * @returns {string}
    */
   renderSync () {
-    setTimeout(async () => {
+    let retries = 0
+    const maxRetries = 500 // 5 seconds max wait
+    const waitAndRender = async () => {
       /** @type {HTMLTemplateElement} */
       const templateEl = el(this._renderId)
+      if (!templateEl) {
+        if (++retries > maxRetries) {
+          console.error('Template element never appeared in DOM for', this.constructor.name)
+          return
+        }
+        // Template not in DOM yet (parent still rendering), wait and retry
+        setTimeout(waitAndRender, 10)
+        return
+      }
       await this._renderIntoTemplateEl(templateEl, false)
       this._renderIntoDOM(templateEl, templateEl)
-    })
+    }
+    setTimeout(waitAndRender)
     return `<template id="${this._renderId}"></template>`
   }
 
@@ -75,10 +108,16 @@ export class UIElement {
     this._renderIntoDOM(node, templateEl)
   }
 
+  /**
+   * @returns {string}
+   */
   toString () {
     return this.renderSync()
   }
 
+  /**
+   * @returns {boolean}
+   */
   get isRendered () {
     return Boolean(this._renderId && el(this._elementQuery))
   }
@@ -91,6 +130,7 @@ export class UIElement {
   // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
   _renderId = generateId()
+  _isMounted = false
 
   /**
    * @param {HTMLTemplateElement} templateEl
@@ -99,10 +139,10 @@ export class UIElement {
    */
   async _renderIntoTemplateEl (templateEl, skipLoad) {
     if (!templateEl) return console.error('Template element isn\'t available for rendering')
-    this._showLoadingIndicator()
+    if (!skipLoad) this._showLoadingIndicator()
     templateEl.innerHTML = await this._render(skipLoad)
     if (templateEl.content.children.length !== 1) throw new Error('UIElement needs to have exactly one element as root: ' + templateEl.content.children.length)
-    this._hideLoadingIndicator()
+    if (!skipLoad) this._hideLoadingIndicator()
   }
 
   /**
@@ -115,9 +155,21 @@ export class UIElement {
     target.replaceWith(templateEl.content.children[0])
   }
 
+  /**
+   * @returns {void}
+   * @private
+   */
   _applyEventHandlers () {
     for (const elementQuery in this.events) {
-      const element = el(`${this._elementQuery} ${elementQuery}`)
+      // First try to find as a child element
+      let element = el(`${this._elementQuery} ${elementQuery}`)
+      // If not found, check if the root element itself matches the selector
+      if (!element) {
+        const rootEl = el(this._elementQuery)
+        if (rootEl?.matches(elementQuery)) {
+          element = rootEl
+        }
+      }
       if (!element) throw new Error('Cannot apply event listener. No element: ' + `${this._elementQuery} ${elementQuery}`)
       for (const eventName in this.events[elementQuery]) {
         element.addEventListener(eventName, this.events[elementQuery][eventName].bind(this))
@@ -125,17 +177,34 @@ export class UIElement {
     }
   }
 
+  /**
+   * @returns {string}
+   * @private
+   */
   get _elementQuery () {
     return `[data-render_id="${this._renderId}"]`
   }
 
-  _onMounted (node) {
+  /**
+   * @param {Node} node
+   * @returns {void}
+   * @private
+   */
+  _onMounted (_node) {
+    if (this._isMounted) return // Skip if already mounted (this is an update, not initial mount)
+    this._isMounted = true
     console.log('Mounted: ', this.constructor.name)
     this._applyEventHandlers()
     this.onMounted()
   }
 
-  _onDestroy (node) {
+  /**
+   * @param {Node} node
+   * @returns {void}
+   * @private
+   */
+  _onDestroy (_node) {
+    this._isMounted = false
     console.log('Destroy: ', this.constructor.name)
     off(this._queryChangedEventId)
     this.onDestroy()
@@ -156,6 +225,10 @@ export class UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   * @private
+   */
   _showLoadingIndicator () {
     this._loadingIndicatorId = generateId()
     let neighborNode = el(this._elementQuery)
@@ -177,10 +250,13 @@ export class UIElement {
         spinnerEl,
         neighborNode
       )
-      console.log('Insert spinner at position...')
     }
   }
 
+  /**
+   * @returns {void}
+   * @private
+   */
   _hideLoadingIndicator () {
     el(this._loadingIndicatorId)?.remove()
   }

@@ -1,241 +1,323 @@
+import { UIElement } from '../lib/UIElement.js'
 import { renderPlayerImage } from './playerImage.js'
 import { el, generateId } from '../lib/html.js'
-import { onClick } from '../lib/htmlEventHandlers.js'
 import { delay } from '../lib/delay.js'
 
-const data = {}
+export class GameAnimation extends UIElement {
+  isPlaying = false
+  _timerId = null
+  _ballId = null
+  _messageId = null
+
+  /**
+   * @param {GameResultType} game
+   * @param {TeamType} team1
+   * @param {TeamType} team2
+   */
+  constructor (game, team1, team2) {
+    super()
+    this.game = game
+    this.team1 = team1
+    this.team2 = team2
+    this.details = JSON.parse(game.details)
+    /** @type {PlayerType[]} */
+    this.playerTeamA = this.details.playerTeamA
+    /** @type {PlayerType[]} */
+    this.playerTeamB = this.details.playerTeamB
+  }
+
+  /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div class="game-animation">
+        <div class="play-button">
+          <i class="fa fa-play text-white" aria-hidden="true"></i>
+        </div>
+        ${this.playerTeamA.map(p => this._renderTeamPlayer(p, this.team1, 'home')).join('')}
+        ${this.playerTeamB.map(p => this._renderTeamPlayer(p, this.team2, 'away')).join('')}
+      </div>
+    `
+  }
+
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._applyPositionHacks()
+    this._loadPlayerImages()
+    this._attachPlayButtonHandler()
+  }
+
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    this.isPlaying = false
+  }
+
+  /**
+   * @returns {void}
+   */
+  _applyPositionHacks () {
+    setTimeout(() => {
+      const selectors = ['.player.home.CM', '.player.home.CD', '.player.home.DM', '.player.away.CM', '.player.away.CD', '.player.away.DM']
+      selectors.forEach(positionClass => {
+        const elements = document.querySelectorAll(`${this._elementQuery} ${positionClass}`)
+        if (elements.length === 2) {
+          elements.item(0).style.top = '38%'
+          elements.item(1).style.top = '62%'
+        }
+        if (elements.length === 3) {
+          elements.item(0).style.top = '38%'
+          elements.item(1).style.top = '50%'
+          elements.item(2).style.top = '62%'
+        }
+      })
+    }, 1000)
+  }
+
+  /**
+   * @returns {void}
+   */
+  _loadPlayerImages () {
+    const loadImages = (players, team, type) => {
+      const playerEls = document.querySelectorAll(`${this._elementQuery} .player.${type}`)
+      players.forEach((player, index) => {
+        renderPlayerImage(player, team, 50)
+          .then(image => {
+            const playerEl = playerEls[index]
+            if (playerEl) {
+              playerEl.insertAdjacentHTML('afterbegin', image)
+              setTimeout(() => playerEl.classList.add(player.in_game_position), 500)
+            }
+          })
+          .catch(() => console.error('Could not load player image'))
+      })
+    }
+
+    loadImages(this.playerTeamA, this.team1, 'home')
+    loadImages(this.playerTeamB, this.team2, 'away')
+  }
+
+  /**
+   * @returns {void}
+   */
+  _attachPlayButtonHandler () {
+    const playBtn = el(`${this._elementQuery} .play-button`)
+    if (playBtn) {
+      playBtn.addEventListener('click', async () => {
+        this.isPlaying = !this.isPlaying
+        if (this.isPlaying) {
+          playBtn.innerHTML = '<i class="fa fa-pause text-white" aria-hidden="true"></i>'
+          await this._playGameAnimation()
+          playBtn.innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
+        } else {
+          playBtn.innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
+        }
+      })
+    }
+  }
+
+  /**
+   * @param {PlayerType} player
+   * @param {TeamType} team
+   * @param {string} type
+   * @returns {string}
+   */
+  _renderTeamPlayer (player, team, type) {
+    const freshnessClass = player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : '')
+    return `
+      <div class="player ${type} ${freshnessClass}">
+        ${player.name.split(' ')[1]}
+      </div>
+    `
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async _playGameAnimation () {
+    const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
+    if (!gameEl) return
+
+    gameEl.classList.add('play')
+    this._timerId = this._createTimer()
+    this._ballId = this._createBall()
+    this._messageId = this._createMessage()
+
+    const items = this.details.log
+    let i = 0
+    let goalsTeamA = 0
+    let goalsTeamB = 0
+
+    for (const item of items) {
+      if (!this.isPlaying) {
+        this._endAnimation()
+        return
+      }
+
+      i++
+      el(this._messageId).innerHTML = `${goalsTeamA} : ${goalsTeamB}`
+      el(this._timerId).innerHTML = `'${Math.floor(i / 10)}`
+
+      if (item.goal) {
+        const isTeamAGoal = this.playerTeamA.some(p => p.id === item.player)
+        gameEl.style.boxShadow = `0 0 10px 10px ${isTeamAGoal ? this.team1.color : this.team2.color}`
+
+        for (let j = Math.max(0, i - 5); j < i; j++) {
+          if (!this.isPlaying) {
+            this._endAnimation()
+            return
+          }
+          const item2 = items[j]
+          if (item2.pass && this._inSameTeam(item2.newPlayer, item.player)) {
+            await this._moveBallToPlayer(item2.newPlayer)
+          }
+        }
+
+        await this._moveBallToPlayer(item.player)
+        el(this._messageId).innerHTML = `${this._getPlayerName(item.player)} shoots...`
+        await delay(1000)
+
+        if (isTeamAGoal) {
+          el(this._ballId).className = 'ball away GK'
+          goalsTeamA++
+        } else {
+          el(this._ballId).className = 'ball home GK'
+          goalsTeamB++
+        }
+
+        el(this._messageId).innerHTML = 'GOAL!!!'
+        await delay(1000)
+      }
+
+      if (item.keeperHolds && item.player) {
+        const isTeamAShot = this.playerTeamA.some(p => p.id === item.player)
+        gameEl.style.boxShadow = `0 0 10px 10px ${isTeamAShot ? this.team1.color : this.team2.color}`
+
+        for (let j = Math.max(0, i - 5); j < i; j++) {
+          if (!this.isPlaying) {
+            this._endAnimation()
+            return
+          }
+          const item2 = items[j]
+          if (item2.pass && this._inSameTeam(item2.newPlayer, item.player)) {
+            await this._moveBallToPlayer(item2.newPlayer)
+          }
+        }
+
+        await this._moveBallToPlayer(item.player)
+        el(this._messageId).innerHTML = `${this._getPlayerName(item.player)} shoots...`
+        await delay(500)
+
+        el(this._ballId).className = isTeamAShot ? 'ball away GK' : 'ball home GK'
+        el(this._messageId).innerHTML = 'No goal...'
+        await delay(500)
+      }
+    }
+
+    this.isPlaying = false
+    this._endAnimation()
+  }
+
+  /**
+   * @param {number} playerId
+   * @returns {string}
+   */
+  _getPlayerName (playerId) {
+    let player = this.playerTeamA.find(p => p.id === playerId)
+    if (!player) player = this.playerTeamB.find(p => p.id === playerId)
+    return player.name.split(' ')[1]
+  }
+
+  /**
+   * @param {number} playerId1
+   * @param {number} playerId2
+   * @returns {boolean}
+   */
+  _inSameTeam (playerId1, playerId2) {
+    const p1InA = this.playerTeamA.some(p => p.id === playerId1)
+    const p2InA = this.playerTeamA.some(p => p.id === playerId2)
+    const p1InB = this.playerTeamB.some(p => p.id === playerId1)
+    const p2InB = this.playerTeamB.some(p => p.id === playerId2)
+    return (p1InA && p2InA) || (p1InB && p2InB)
+  }
+
+  /**
+   * @param {number} playerId
+   * @returns {Promise<void>}
+   */
+  async _moveBallToPlayer (playerId) {
+    let player = this.playerTeamA.find(p => p.id === playerId)
+    if (player) {
+      el(this._ballId).className = 'ball home ' + player.position
+    } else {
+      player = this.playerTeamB.find(p => p.id === playerId)
+      if (player) {
+        el(this._ballId).className = 'ball away ' + player.position
+      }
+    }
+    await delay(500)
+  }
+
+  /**
+   * @returns {string}
+   */
+  _createBall () {
+    const id = generateId()
+    const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
+    gameEl?.insertAdjacentHTML('beforeend', `
+      <div id="${id}" class="ball">
+        <img src="./assets/ball.svg" alt="ball"/>
+      </div>
+    `)
+    return id
+  }
+
+  /**
+   * @returns {string}
+   */
+  _createTimer () {
+    const id = generateId()
+    const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
+    gameEl?.insertAdjacentHTML('beforeend', `<div id="${id}" class="timer">'0</div>`)
+    return id
+  }
+
+  /**
+   * @returns {string}
+   */
+  _createMessage () {
+    const id = generateId()
+    const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
+    gameEl?.insertAdjacentHTML('beforeend', `<div id="${id}" class="message">Kickoff!</div>`)
+    return id
+  }
+
+  /**
+   * @returns {void}
+   */
+  _endAnimation () {
+    const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
+    if (gameEl) {
+      gameEl.classList.remove('play')
+      gameEl.style.boxShadow = 'none'
+    }
+    el(this._timerId)?.remove()
+    el(this._messageId)?.remove()
+    el(this._ballId)?.remove()
+  }
+}
 
 /**
+ * Backwards compatibility wrapper
  * @param {GameResultType} game
  * @param {TeamType} team1
  * @param {TeamType} team2
  * @returns {string}
  */
 export function renderGameAnimation (game, team1, team2) {
-  data.team1 = team1
-  data.team2 = team2
-  data.game = game
-  data.details = JSON.parse(game.details)
-  console.log(data.details, game)
-  /** @type {PlayerType[]} */
-  data.playerTeamA = data.details.playerTeamA
-  /** @type {PlayerType[]} */
-  data.playerTeamB = data.details.playerTeamB
-  data.gameAnimationId = generateId()
-
-  // position hack for 2x CM and 2x CD
-  setTimeout(() => {
-    ['.player.home.CM', '.player.home.CD', '.player.home.DM', '.player.away.CM', '.player.away.CD', '.player.away.DM'].forEach(positionClass => {
-      const el = document.querySelectorAll(positionClass)
-      if (el.length === 2) {
-        el.item(0).style.top = '38%'
-        el.item(1).style.top = '62%'
-      }
-      if (el.length === 3) {
-        el.item(0).style.top = '38%'
-        el.item(1).style.top = '50%'
-        el.item(2).style.top = '62%'
-      }
-    })
-  }, 1000)
-
-  return `<div class="game-animation" id="${data.gameAnimationId}">
-        ${_renderPlayButton()}
-        ${data.playerTeamA.map(_renderTeamPlayer(team1, 'home')).join('')}
-        ${data.playerTeamB.map(_renderTeamPlayer(team2, 'away')).join('')}
-    </div>`
-}
-
-/**
- * @returns {string}
- */
-function _renderPlayButton () {
-  const id = generateId()
-  onClick(id, async () => {
-    data.isPlaying = !data.isPlaying
-    if (data.isPlaying) {
-      el(id).innerHTML = '<i class="fa fa-pause text-white" aria-hidden="true"></i>'
-      await _playGameAnimation()
-      el(id).innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
-    } else {
-      el(id).innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
-    }
-  })
-  return `
-    <div class="play-button" id="${id}">
-        <i class="fa fa-play text-white" aria-hidden="true"></i>
-    </div>
-  `
-}
-
-/**
- * @param {TeamType} team
- * @param {string} type
- * @returns {function(*): string}
- * @private
- */
-function _renderTeamPlayer (team, type) {
-  return (player) => {
-    const id = generateId()
-    renderPlayerImage(player, team, 50).then(image => el(id)?.insertAdjacentHTML('afterbegin', image)).catch(() => console.error('Could not load player image'))
-    setTimeout(() => el(id)?.classList.add(player.in_game_position), 500)
-    return `
-        <div class="player ${type} ${player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : '')}" id="${id}">
-          ${player.name.split(' ')[1]}
-        </div>
-      `
-  }
-}
-
-async function _playGameAnimation () {
-  el(data.gameAnimationId).classList.add('play')
-  const timerId = _renderTimer()
-  const ballId = _renderBall()
-  const messageId = _renderEventMessage()
-  const items = data.details.log
-  let i = 0
-  let goalsTeamA = 0
-  let goalsTeamB = 0
-  for (const item of items) {
-    if (!data.isPlaying) {
-      _endAnimation(timerId, messageId, ballId)
-      return
-    }
-    i++
-    el(messageId).innerHTML = `${goalsTeamA} : ${goalsTeamB}`
-    el(timerId).innerHTML = `'${Math.floor(i / 10)}`
-    if (item.goal) {
-      if (data.playerTeamA.some(p => p.id === item.player)) {
-        el(data.gameAnimationId).style.boxShadow = `0 0 10px 10px ${data.team1.color}`
-      } else {
-        el(data.gameAnimationId).style.boxShadow = `0 0 10px 10px ${data.team2.color}`
-      }
-      for (let j = Math.max(0, i - 5); j < i; j++) {
-        if (!data.isPlaying) {
-          _endAnimation(timerId, messageId, ballId)
-          return
-        }
-        const item2 = items[j]
-        if (item2.pass && _inSameTeam(item2.newPlayer, item.player)) {
-          await _moveBallToPlayer(item2.newPlayer, ballId)
-        }
-      }
-      await _moveBallToPlayer(item.player, ballId)
-      el(messageId).innerHTML = `${_playerName(item.player)} shoots...`
-      await delay(1000)
-      if (data.playerTeamA.some(p => p.id === item.player)) {
-        el(ballId).className = 'ball away GK'
-        goalsTeamA++
-      } else {
-        el(ballId).className = 'ball home GK'
-        goalsTeamB++
-      }
-      el(messageId).innerHTML = 'GOAL!!!'
-      await delay(1000)
-    }
-    if (item.keeperHolds && item.player) {
-      if (data.playerTeamA.some(p => p.id === item.player)) {
-        el(data.gameAnimationId).style.boxShadow = `0 0 10px 10px ${data.team1.color}`
-      } else {
-        el(data.gameAnimationId).style.boxShadow = `0 0 10px 10px ${data.team2.color}`
-      }
-      for (let j = Math.max(0, i - 5); j < i; j++) {
-        if (!data.isPlaying) {
-          _endAnimation(timerId, messageId, ballId)
-          return
-        }
-        const item2 = items[j]
-        if (item2.pass && _inSameTeam(item2.newPlayer, item.player)) {
-          await _moveBallToPlayer(item2.newPlayer, ballId)
-        }
-      }
-      await _moveBallToPlayer(item.player, ballId)
-
-      el(messageId).innerHTML = `${_playerName(item.player)} shoots...`
-      await delay(500)
-      if (data.playerTeamA.some(p => p.id === item.player)) {
-        el(ballId).className = 'ball away GK'
-      } else {
-        el(ballId).className = 'ball home GK'
-      }
-      el(messageId).innerHTML = 'No goal...'
-      await delay(500)
-    }
-  }
-  data.isPlaying = false
-  _endAnimation(timerId, messageId, ballId)
-}
-
-function _playerName (playerId) {
-  let player = data.playerTeamA.find(p => p.id === playerId)
-  if (!player) player = data.playerTeamB.find(p => p.id === playerId)
-  return player.name.split(' ')[1]
-}
-
-function _endAnimation (timerId, messageId, ballId) {
-  el(data.gameAnimationId).classList.remove('play')
-  el(timerId).remove()
-  el(messageId).remove()
-  el(ballId).remove()
-  el(data.gameAnimationId).style.boxShadow = 'none'
-}
-
-/**
- * @param {number} playerId1
- * @param {number} playerId2
- * @returns {boolean}
- * @private
- */
-function _inSameTeam (playerId1, playerId2) {
-  const player1InTeamA = data.playerTeamA.some(p => p.id === playerId1)
-  const player2InTeamA = data.playerTeamA.some(p => p.id === playerId2)
-  const player1InTeamB = data.playerTeamB.some(p => p.id === playerId1)
-  const player2InTeamB = data.playerTeamB.some(p => p.id === playerId2)
-  return (player1InTeamA && player2InTeamA) || (player1InTeamB && player2InTeamB)
-}
-
-async function _moveBallToPlayer (playerId, ballId) {
-  let player = data.playerTeamA.find(p => p.id === playerId)
-  if (player) {
-    el(ballId).className = 'ball home ' + player.position
-  }
-  player = data.playerTeamB.find(p => p.id === playerId)
-  if (player) {
-    el(ballId).className = 'ball away ' + player.position
-  }
-  await delay(500)
-}
-
-/**
- * @returns {string} - ballId
- * @private
- */
-function _renderBall () {
-  const ballId = generateId()
-  el(data.gameAnimationId).insertAdjacentHTML('beforeend', `
-    <div id="${ballId}" class="ball">
-        <img src="./assets/ball.svg" alt="ball"/>
-    </div>
-  `)
-  return ballId
-}
-
-function _renderTimer () {
-  const timerId = generateId()
-  el(data.gameAnimationId).insertAdjacentHTML('beforeend', `
-    <div id="${timerId}" class="timer">
-        '0
-    </div>
-  `)
-  return timerId
-}
-
-function _renderEventMessage () {
-  const messageId = generateId()
-  el(data.gameAnimationId).insertAdjacentHTML('beforeend', `
-    <div id="${messageId}" class="message">
-        Kickoff!
-    </div>
-  `)
-  return messageId
+  return new GameAnimation(game, team1, team2).toString()
 }

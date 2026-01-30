@@ -259,6 +259,9 @@ const migrations = [{
   }
 }]
 
+/**
+ * @returns {Promise<void>}
+ */
 export async function runMigration () {
   console.log('🚀 Database migration started...')
   const t1 = Date.now()

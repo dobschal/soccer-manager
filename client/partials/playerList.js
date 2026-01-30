@@ -16,14 +16,23 @@ export class PlayerList extends UIElement {
     this.onClickHandler = onClickHandler
   }
 
+  /**
+   * @returns {void}
+   */
   onQueryChanged () {
     super.onQueryChanged()
   }
 
+  /**
+   * @returns {object}
+   */
   get events () {
     return super.events
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -47,6 +56,9 @@ export class PlayerList extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const { season } = await server.getCurrentGameday()
     this.season = season

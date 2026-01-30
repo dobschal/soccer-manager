@@ -21,6 +21,9 @@ const startBalance = 100000 // €
 const amountTeamsPerLevel = _calculateAmountPerLevel()
 const minimumTeams = 126 // three leagues, will be overwritten by amount of users...
 
+/**
+ * @returns {Promise<void>}
+ */
 export async function prepareSeason () {
   await _archiveTooOldPlayers()
   await _ajustAmountOfTeams()
@@ -29,6 +32,9 @@ export async function prepareSeason () {
   console.log('✅ Prepared Season')
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function _archiveTooOldPlayers () {
   const season = await _latestSeason() ?? 0
   /** @type {PlayerType[]} */
@@ -41,6 +47,9 @@ async function _archiveTooOldPlayers () {
   console.log(`👴🏽 ${result.affectedRows} players ended their carrier...`, result)
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function _promotionRelegation () {
   if (!(await _newGamesNeeded())) {
     return console.log('⏭️ No promotion, relegation needed because still games to play.')
@@ -100,6 +109,9 @@ async function _promotionRelegation () {
   console.log('Relegation and promotion done.')
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function _createGames () {
   if (!(await _newGamesNeeded())) {
     return console.log('⏭️ No new games needed.')
@@ -124,6 +136,14 @@ async function _createGames () {
   console.log(`Created games for season ${season}`)
 }
 
+/**
+ * @param {number} season
+ * @param {number} level
+ * @param {number} league
+ * @param {TeamType[]} teams
+ * @param {Array} gamePlan
+ * @returns {Promise<void>}
+ */
 async function _createGamesForLeague (season, level, league, teams, gamePlan) {
   let gameDay = 0
   for (const gamesOfGameday of gamePlan) {
@@ -158,8 +178,6 @@ async function _createGamesForLeague (season, level, league, teams, gamePlan) {
 }
 
 /**
- *  If all games are played, take the last games season + 1 for new games...
- *
  * @returns {Promise<number>}
  */
 async function _seasonForNewGames () {
@@ -176,8 +194,6 @@ async function _latestSeason () {
 }
 
 /**
- * Number of teams per level. on level 20 we have more the 10mio teams... enough :D
- *
  * @returns {Array<number>}
  */
 function _calculateAmountPerLevel () {
@@ -190,7 +206,7 @@ function _calculateAmountPerLevel () {
 }
 
 /**
- * The core function to create new teams...
+ * @returns {Promise<void>}
  */
 async function _ajustAmountOfTeams () {
   const season = await _latestSeason() ?? 0
@@ -206,8 +222,6 @@ async function _ajustAmountOfTeams () {
 }
 
 /**
- * Create a new team and save to database
- *
  * @param {number} level
  * @returns {Promise<Team>}
  */
@@ -241,11 +255,10 @@ async function _createRandomTeam (level) {
 }
 
 /**
- * Create a random player for a team and save to database
- *
  * @param {Team} team
- * @param {number} i - index of player creation ot get correct position and so
+ * @param {number} i
  * @param {number} season
+ * @returns {Promise<void>}
  */
 async function _createRandomPlayer (team, i, season) {
   const fixPosition = getPositionsOfFormation(team.formation)[i]
@@ -275,9 +288,6 @@ async function _createRandomPlayer (team, i, season) {
 }
 
 /**
- * Every level has a specific amount of teams. E.g. 0 =18, 1, 36, ...
- * If that number is reached for a level, we increase the level for new teams to be created
- *
  * @param {Array<Team>} teams
  * @returns {number}
  */
@@ -293,8 +303,6 @@ function _determineLevelForNewTeam (teams) {
 }
 
 /**
- * Read the database and check if there are games with player=0
- * If so, skip the game creation.
  * @returns {Promise<boolean>}
  */
 async function _newGamesNeeded () {
@@ -302,13 +310,15 @@ async function _newGamesNeeded () {
   return amount === 0
 }
 
+/**
+ * @returns {string}
+ */
 function _generateRandomTeamName () {
   return `${randomItem(clubPrefixes1)} ${randomItem(clubPrefixes2)} ${randomItem(cityNames)}`.trim()
 }
 
 /**
  * @returns {Promise<string>}
- * @private
  */
 export async function generateRandomPlayerName () {
   const name = `${randomItem(playerNames).firstName} ${randomItem(playerNames).lastName}`
@@ -320,10 +330,16 @@ export async function generateRandomPlayerName () {
   return name
 }
 
+/**
+ * @returns {string}
+ */
 function _generateRandomPosition () {
   return randomItem(Object.values(Position))
 }
 
+/**
+ * @returns {string}
+ */
 function _generateRandomFormation () {
   return randomItem(Object.values(Formation))
 }

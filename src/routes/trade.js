@@ -1,19 +1,15 @@
 import { query } from '../lib/database.js'
 import { TradeOffer } from '../entities/tradeOffer.js'
-import {
-  checkType,
-  RequiredNumber,
-  RequiredObject,
-  RequiredString
-} from '../lib/type-checker.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
-import team from './team.js'
 
 export default {
 
+  /**
+   * @returns {Promise<{offers: TradeOfferType[], players: PlayerType[], teams: TeamType[]}>}
+   */
   async getOffers () {
     /** @type {TradeOfferType[]} */
     const offers = await query('SELECT * FROM trade_offer')
@@ -33,19 +29,24 @@ export default {
     return { offers, players, teams }
   },
 
-  async addTradeOffer (req) {
+  /**
+   * @param {PlayerType} player
+   * @param {number} price
+   * @param {string} type
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async addTradeOffer (player, price, type, req) {
     const team = await getTeam(req)
-    if (req.body.type === 'buy' && team.balance < req.body.price) throw new BadRequestError('Not enough money...')
-    checkType(req.body, {
-      player: RequiredObject,
-      price: RequiredNumber,
-      type: RequiredString
-    })
-    if (req.body.price <= 0) throw new BadRequestError('Price needs to be greater than 0.')
+    if (type === 'buy' && team.balance < price) throw new BadRequestError('Not enough money...')
+    if (!player || typeof player !== 'object') throw new BadRequestError('Player is required')
+    if (typeof price !== 'number') throw new BadRequestError('Price must be a number')
+    if (typeof type !== 'string') throw new BadRequestError('Type must be a string')
+    if (price <= 0) throw new BadRequestError('Price needs to be greater than 0.')
     const tradeOffer = new TradeOffer({
-      offer_value: req.body.price,
-      type: req.body.type,
-      player_id: req.body.player.id,
+      offer_value: price,
+      type: type,
+      player_id: player.id,
       from_team_id: team.id
     })
     const results = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [tradeOffer.from_team_id, tradeOffer.player_id])
@@ -54,38 +55,50 @@ export default {
     return { success: true }
   },
 
-  async acceptOffer (req) {
+  /**
+   * @param {TradeOfferType} offer
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async acceptOffer (offer, req) {
     const { gameDay, season } = await getGameDayAndSeason()
     const sellingTeam = await getTeam(req)
-
-    // Check that offer is correct
-    /** @type {TradeOfferType} */
-    delete req.body.offer.created_at
-    await acceptOffer(req.body.offer, sellingTeam, gameDay, season)
+    delete offer.created_at
+    await acceptOffer(offer, sellingTeam, gameDay, season)
     return { success: true }
   },
 
-  async cancelOffer (req) {
+  /**
+   * @param {TradeOfferType} offer
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async cancelOffer (offer, req) {
     const team = await getTeam(req)
-    if (!req.body.offer.id || !team.id) throw new BadRequestError('Nope...')
-    await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=?', [team.id, req.body.offer.id])
+    if (!offer.id || !team.id) throw new BadRequestError('Nope...')
+    await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=?', [team.id, offer.id])
     return { success: true }
   },
 
-  async declineOffer (req) {
-    //
-    // TODO: Secure route
-    //
-    if (!req.body.offer || !req.body.offer.id) throw new BadRequestError('Nope...')
-    /** @type {TradeOfferType} */
-    const offer = req.body.offer
+  /**
+   * @param {TradeOfferType} offer
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async declineOffer (offer, _req) {
+    if (!offer || !offer.id) throw new BadRequestError('Nope...')
     await declineOffer(offer)
     return { success: true }
   },
 
-  async myOfferForPlayer (req) {
+  /**
+   * @param {PlayerType} player
+   * @param {Request} req
+   * @returns {Promise<{offer: TradeOfferType|undefined}>}
+   */
+  async myOfferForPlayer (player, req) {
     const team = await getTeam(req)
-    const [offer] = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [team.id, req.body.player.id])
+    const [offer] = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [team.id, player.id])
     return { offer }
   },
 

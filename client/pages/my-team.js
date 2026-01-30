@@ -18,6 +18,9 @@ import { Emblem } from '../partials/emblem.js'
 import { UIElement } from '../lib/UIElement.js'
 
 export class MyTeamPage extends UIElement {
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -47,17 +50,28 @@ export class MyTeamPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     this.data = await server.getMyTeam()
     lineUpData.squadDataChanged = false
   }
 
+  /**
+   * @param {Object} params
+   * @param {string} params.player_id
+   * @returns {Promise<void>}
+   */
   async onQueryChanged ({ player_id: playerId }) {
     if (playerId) {
       await showPlayerModal(Number(playerId))
     }
   }
 
+  /**
+   * @returns {string}
+   */
   _renderHeader () {
     let sallary = 0
     this.data.players.forEach(player => {
@@ -102,6 +116,9 @@ export class MyTeamPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {string}
+   */
   _renderIconViewer () {
     const id = generateId()
 
@@ -114,6 +131,9 @@ export class MyTeamPage extends UIElement {
     </div>`
   }
 
+  /**
+   * @returns {string}
+   */
   _renderLineupSelect () {
     const id = generateId()
     const currentFormation = this.data.team.formation
@@ -134,6 +154,10 @@ export class MyTeamPage extends UIElement {
     `
   }
 
+  /**
+   * @param {string} newFormation
+   * @returns {void}
+   */
   _changeFormation (newFormation) {
     this.data.team.formation = newFormation
     this.data.players = this.data.players.filter(p => !p.fake)
@@ -155,6 +179,9 @@ export class MyTeamPage extends UIElement {
     render('#header', this._renderHeader())
   }
 
+  /**
+   * @returns {void}
+   */
   _showColorPicker () {
     const chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
     const colors = []
@@ -170,7 +197,7 @@ export class MyTeamPage extends UIElement {
         const id = generateId()
         onClick(id, async () => {
           try {
-            await server.updateColor({ color: c })
+            await server.updateColor(c)
             toast('You have chosen a new color!', 'success')
             await this.update(false)
             overlay.remove()
@@ -193,6 +220,10 @@ export class MyTeamPage extends UIElement {
   `)
   }
 
+  /**
+   * @param {Array} players
+   * @returns {number}
+   */
   _calculateTeamStrength (players) {
     return players.filter(p => p.in_game_position).reduce((sum, player) => sum + player.level, 0)
   }

@@ -7,10 +7,16 @@ import { UIElement } from '../lib/UIElement.js'
 import { FreePlayers } from './trades/freePlayers.js'
 
 export class TradesPage extends UIElement {
+  /**
+   * @returns {Object}
+   */
   get events () {
     return super.events
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -26,10 +32,19 @@ export class TradesPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     await super.load()
   }
 
+  /**
+   * @param {Object} params
+   * @param {string} params.sub_page
+   * @param {string} params.player_id
+   * @returns {Promise<void>}
+   */
   async onQueryChanged ({ sub_page: pageName, player_id: playerId }) {
     if (playerId) await showPlayerModal(Number(playerId))
     if (pageName && pageName === this.pageName) return

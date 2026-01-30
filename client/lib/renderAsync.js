@@ -1,5 +1,9 @@
 import { el, generateId } from './html.js'
 
+/**
+ * @param {(...params: any[]) => Promise<string>} renderFn
+ * @returns {(...params: any[]) => string}
+ */
 export function renderAsync (renderFn) {
   return (...params) => {
     const id = generateId()

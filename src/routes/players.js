@@ -7,33 +7,45 @@ import { getPastTrades } from '../helper/tradeHelper.js'
 
 export default {
 
-  async getPlayerById_V2 (playerId) {
+  /**
+   * @param {number} playerId
+   * @returns {Promise<PlayerType>}
+   */
+  async getPlayerById (playerId) {
     return await getPlayerById(playerId)
   },
 
-  async getPlayersWithIds (req) {
-    if (!Array.isArray(req.body.playerIds) || req.body.playerIds.length === 0) throw new BadRequestError('playerIds missing')
+  /**
+   * @param {Array<number>} playerIds
+   * @returns {Promise<{players: Array<PlayerType>}>}
+   */
+  async getPlayersWithIds (playerIds) {
+    if (!Array.isArray(playerIds) || playerIds.length === 0) throw new BadRequestError('playerIds missing')
     const players = await query(`SELECT *
                                  FROM player
-                                 WHERE id IN (${req.body.playerIds.join(', ')})`)
+                                 WHERE id IN (${playerIds.join(', ')})`)
     return { players }
   },
 
-  async firePlayer (req) {
-    const p = req.body.player
+  /**
+   * @param {PlayerType} player
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async firePlayer (player, req) {
     const team = await getTeam(req)
-    const [player] = await query('SELECT * FROM player WHERE id=? AND team_id=?', [p.id, team.id])
-    if (!player) throw new BadRequestError('Not your player...')
-    await query('UPDATE player SET team_id=NULL WHERE id=?', [p.id])
-    await query('DELETE FROM trade_offer WHERE player_id=?', [p.id])
-    await addLogMessage('You fired your place ' + player.name + '.', team)
+    const [playerFromDb] = await query('SELECT * FROM player WHERE id=? AND team_id=?', [player.id, team.id])
+    if (!playerFromDb) throw new BadRequestError('Not your player...')
+    await query('UPDATE player SET team_id=NULL WHERE id=?', [player.id])
+    await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
+    await addLogMessage('You fired your place ' + playerFromDb.name + '.', team)
     return { success: true }
   },
 
   /**
    * @returns {Promise<Array<PlayerType>>}
    */
-  async getPlayersWithoutTeam_V2 () {
+  async getPlayersWithoutTeam () {
     return await query('SELECT * FROM player WHERE team_id IS NULL')
   },
 
@@ -42,7 +54,7 @@ export default {
    * @param {Request} [req]
    * @returns {Promise<void>}
    */
-  async givePlayerContract_V2 (playerId, req) {
+  async givePlayerContract (playerId, req) {
     const team = await getTeam(req)
     const player = await getPlayerById(playerId)
     if (player.team_id) throw new BadRequestError('Player has a team already...')
@@ -54,7 +66,7 @@ export default {
    * @param {number} playerId
    * @returns {Promise<number>}
    */
-  async estimateValue_V2 (playerId) {
+  async estimateValue (playerId) {
     const player = await getPlayerById(playerId)
     const age = await getPlayerAge(player)
     const trades = await getPastTrades(player.position, age, player.level)
@@ -70,7 +82,7 @@ export default {
    * @param {number} playerId
    * @returns {Promise<Array<PlayerHistoryType>>}
    */
-  async getPlayerHistory_V2 (playerId) {
+  async getPlayerHistory (playerId) {
     return await query('SELECT * FROM player_history ph WHERE ph.player_id=? ORDER BY id DESC', [playerId])
   }
 }

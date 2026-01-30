@@ -1,6 +1,6 @@
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
-import { el, generateId } from '../lib/html.js'
+import { generateId } from '../lib/html.js'
 import { getQueryParams, goTo, setQueryParams } from '../lib/router.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { formatLeague } from '../util/league.js'
@@ -8,6 +8,9 @@ import { showGameModal } from '../partials/gameModal.js'
 import { UIElement } from '../lib/UIElement.js'
 
 export class ResultsPage extends UIElement {
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
     <div>
@@ -91,6 +94,9 @@ export class ResultsPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     onClick('#prev-game-day-button', async () => {
       setQueryParams({
@@ -129,6 +135,10 @@ export class ResultsPage extends UIElement {
     })
   }
 
+  /**
+   * @param {Object} queryParams
+   * @returns {Promise<void>}
+   */
   async onQueryChanged (queryParams) {
     if (queryParams.game_id) {
       await showGameModal(Number(queryParams.game_id))
@@ -151,6 +161,9 @@ export class ResultsPage extends UIElement {
     await this.update(false)
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     this.info = await server.getMyTeam()
     this.myTeamId = this.info.team.id
@@ -165,24 +178,9 @@ export class ResultsPage extends UIElement {
     }
     console.log(this.gameDay, this.season, this.level, this.league)
     const [{ results }, standing, yesterday] = await Promise.all([
-      server.getResults({
-        season: this.season,
-        gameDay: this.gameDay,
-        level: this.level,
-        league: this.league
-      }),
-      server.getStanding({
-        season: this.season,
-        gameDay: this.gameDay,
-        level: this.level,
-        league: this.league
-      }),
-      server.getStanding({
-        season: this.season,
-        gameDay: Math.max(0, this.gameDay - 1),
-        level: this.level,
-        league: this.league
-      })
+      server.getResults(this.gameDay, this.season, this.level, this.league),
+      server.getStanding(this.gameDay, this.season, this.level, this.league),
+      server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league)
     ])
     this.results = results
     this.yesterdayStanding = yesterday
@@ -192,6 +190,11 @@ export class ResultsPage extends UIElement {
     this.topScorer = await _calculateGoals(this.level, this.league, this.season, this.gameDay, this.standing)
   }
 
+  /**
+   * @param {Object} scorer
+   * @param {number} index
+   * @returns {string}
+   */
   _renderTopScorer (scorer, index) {
     if (!scorer || !scorer.team) return ''
     const teamId = generateId()
@@ -210,6 +213,9 @@ export class ResultsPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Object}
+   */
   _getLeagueAndLevel () {
     let { level, league } = getQueryParams()
     if (typeof level === 'undefined' || typeof league === 'undefined') return {}
@@ -220,6 +226,11 @@ export class ResultsPage extends UIElement {
     return { level, league }
   }
 
+  /**
+   * @param {number} level
+   * @param {number} league
+   * @returns {Object}
+   */
   _getPrevLeague (level, league) {
     if (level === 0) return { level, league }
     if (league === 0) {
@@ -231,6 +242,11 @@ export class ResultsPage extends UIElement {
     return { level, league }
   }
 
+  /**
+   * @param {number} level
+   * @param {number} league
+   * @returns {Object}
+   */
   _getNextLeague (level, league) {
     if (league === Math.pow(2, level) - 1) {
       level++
@@ -241,6 +257,11 @@ export class ResultsPage extends UIElement {
     return { level, league }
   }
 
+  /**
+   * @param {Object} standingItem
+   * @param {number} index
+   * @returns {string}
+   */
   _renderStandingListItem (standingItem, index) {
     const hasUser = Boolean(standingItem.team.user_id)
     const id = generateId()
@@ -268,6 +289,9 @@ export class ResultsPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<Object>}
+   */
   async _getSeasonAndGameDay () {
     let { season, gameDay } = getQueryParams()
     if (typeof season === 'undefined' && typeof gameDay === 'undefined') {
@@ -281,6 +305,10 @@ export class ResultsPage extends UIElement {
     return { season, gameDay }
   }
 
+  /**
+   * @param {Object} result
+   * @returns {string}
+   */
   _renderResultListItem (result) {
     const details = JSON.parse(result.details)
     const id = generateId()
@@ -308,6 +336,11 @@ export class ResultsPage extends UIElement {
   }
 }
 
+/**
+ * @param {Object} s1
+ * @param {Object} s2
+ * @returns {number}
+ */
 function _sortStanding (s1, s2) {
   const retVal = s2.points - s1.points
   if (retVal === 0) {
@@ -316,8 +349,16 @@ function _sortStanding (s1, s2) {
   return retVal
 }
 
+/**
+ * @param {number} level
+ * @param {number} league
+ * @param {number} season
+ * @param {number} gameDay
+ * @param {Array} standing
+ * @returns {Promise<Array>}
+ */
 async function _calculateGoals (level, league, season, gameDay, standing) {
-  const games = await server.getSeasonResults_V2(season, gameDay, level, league)
+  const games = await server.getSeasonResults(season, gameDay, level, league)
   games.forEach((game) => (game.details = JSON.parse(game.details ?? '{}')))
   if (games.length === 0) return []
   const goalsByPlayers = {}
@@ -328,7 +369,7 @@ async function _calculateGoals (level, league, season, gameDay, standing) {
     })
   }
   if (Object.keys(goalsByPlayers).length === 0) return []
-  const { players } = await server.getPlayersWithIds({ playerIds: Object.keys(goalsByPlayers) })
+  const { players } = await server.getPlayersWithIds(Object.keys(goalsByPlayers))
   const playersWithGoals = Object.keys(goalsByPlayers)
     .map(playerId => {
       const player = players.find(p => p.id === Number(playerId))

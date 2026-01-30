@@ -1,0 +1,138 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+vi.mock('../lib/gateway.js', () => ({
+  server: {
+    getStadium: vi.fn(),
+    buildStadium: vi.fn(),
+    updatePrices: vi.fn(),
+    calculateStadiumPrice: vi.fn()
+  }
+}))
+
+vi.mock('../lib/html.js', () => ({
+  generateId: vi.fn().mockReturnValue('test-id'),
+  el: vi.fn()
+}))
+
+vi.mock('../lib/event.js', () => ({
+  on: vi.fn(),
+  off: vi.fn()
+}))
+
+vi.mock('../lib/observeDOM.js', () => ({
+  onDOMNodeChanged: vi.fn()
+}))
+
+vi.mock('../partials/toast.js', () => ({
+  toast: vi.fn()
+}))
+
+vi.mock('../lib/currency.js', () => ({
+  euroFormat: {
+    format: vi.fn((val) => `${val.toLocaleString()} EUR`)
+  }
+}))
+
+import { StadiumPage, renderStadiumPage } from './stadium.js'
+import { server } from '../lib/gateway.js'
+
+describe('StadiumPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    server.getStadium.mockResolvedValue({
+      stadium: {
+        id: 1,
+        north_stand_size: 5000,
+        south_stand_size: 5000,
+        east_stand_size: 5000,
+        west_stand_size: 5000,
+        north_stand_price: 20,
+        south_stand_price: 20,
+        east_stand_price: 20,
+        west_stand_price: 20,
+        north_stand_roof: 0,
+        south_stand_roof: 0,
+        east_stand_roof: 0,
+        west_stand_roof: 0
+      }
+    })
+  })
+
+  describe('StadiumPage class', () => {
+    it('loads data from server', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(server.getStadium).toHaveBeenCalled()
+    })
+
+    it('template contains page title', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('Your Stadium')
+    })
+
+    it('template contains stadium seat count', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('20000')
+    })
+
+    it('template contains ticket prices section', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('Ticket Prices')
+    })
+
+    it('template contains expand stadium section', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('Expand Stadium')
+    })
+
+    it('template contains stand inputs', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('north stand')
+      expect(page.template).toContain('south stand')
+      expect(page.template).toContain('east stand')
+      expect(page.template).toContain('west stand')
+    })
+
+    it('template contains roof checkboxes', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('Roof on')
+      expect(page.template).toContain('type="checkbox"')
+    })
+
+    it('template contains save prices button', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('Save Prices')
+    })
+
+    it('template contains stadium visualization', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('stadium-wrapper')
+      expect(page.template).toContain('stand')
+    })
+
+    it('has events for form submission', () => {
+      const page = new StadiumPage()
+      expect(page.events).toHaveProperty('#price-form')
+      expect(page.events).toHaveProperty('#stadium-form')
+    })
+
+    it('extends UIElement', () => {
+      const page = new StadiumPage()
+      expect(page.isUIElement).toBe(true)
+    })
+  })
+
+  describe('renderStadiumPage (backwards compatibility)', () => {
+    it('is exported as a function', () => {
+      expect(typeof renderStadiumPage).toBe('function')
+    })
+  })
+})

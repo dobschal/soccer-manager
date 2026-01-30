@@ -1,32 +1,69 @@
+import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
-import { renderAsync } from '../lib/renderAsync.js'
 import { renderPlayerImage } from './playerImage.js'
 
-export const renderNews = renderAsync(async () => {
-  const { news } = await server.getLeagueNews()
-  return `
-    <h3>News</h3>
-    ${news.map(renderAsync(_renderNewsItem)).join('')}
-  `
-})
+class NewsItem extends UIElement {
+  /**
+   * @param {object} newsItem
+   */
+  constructor (newsItem) {
+    super()
+    this.newsItem = newsItem
+    this.image = ''
+  }
+
+  /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div class="article">
+        ${this.image}
+        <h4>${this.newsItem.title}</h4>
+        <p>${this.newsItem.text}</p>
+      </div>
+    `
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    if (this.newsItem.playerId) {
+      const player = await server.getPlayerById(this.newsItem.playerId)
+      const { team } = await server.getTeam(player.team_id)
+      this.image = await renderPlayerImage(player, team, 150)
+    }
+  }
+}
+
+export class News extends UIElement {
+  news = []
+
+  /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div>
+        <h3>News</h3>
+        ${this.news.map(item => new NewsItem(item)).join('')}
+      </div>
+    `
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const response = await server.getLeagueNews()
+    this.news = response.news || []
+  }
+}
 
 /**
- * @param {NewsArticle} newsItem
- * @returns {Promise<string>}
- * @private
+ * @returns {string}
  */
-async function _renderNewsItem (newsItem) {
-  let image = ''
-  if (newsItem.playerId) {
-    const player = await server.getPlayerById_V2(newsItem.playerId)
-    const { team } = await server.getTeam({ teamId: player.team_id })
-    image = await renderPlayerImage(player, team, 150)
-  }
-  return `
-    <div class="article">    
-        ${image}
-        <h4>${newsItem.title}</h4>        
-        <p>${newsItem.text}</p>
-        </div>
-    `
+export function renderNews () {
+  return new News().toString()
 }

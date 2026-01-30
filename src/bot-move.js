@@ -23,6 +23,9 @@ import playersRoutes from './routes/players.js'
 // 4. Expand Stadium (/)
 // 5. Trade Players (/)
 
+/**
+ * @returns {Promise<void>}
+ */
 export async function makeBotMoves () {
   /** @type {TeamType[]} */
   const botTeams = await query('SELECT * FROM team WHERE user_id IS NULL')
@@ -38,6 +41,11 @@ export async function makeBotMoves () {
   console.log(`Made bot moves in ${Math.floor((Date.now() - t1) / 1000)}sec`)
 }
 
+/**
+ * @param {TeamType} botTeam
+ * @param {PlayerType[]} players
+ * @returns {Promise<void>}
+ */
 async function _makeBotMove (botTeam, players) {
   const isStrongTeam = botTeam.id % 2 === 0
   const playersOfTeam = players.filter(p => p.team_id === botTeam.id)
@@ -49,9 +57,8 @@ async function _makeBotMove (botTeam, players) {
 }
 
 /**
- *
  * @param {TeamType} botTeam
- * @private
+ * @returns {Promise<void>}
  */
 async function _checkStadium (botTeam) {
   if (Math.random() > 0.1) return
@@ -110,7 +117,6 @@ async function _checkStadium (botTeam) {
 /**
  * @param {TeamType} botTeam
  * @returns {Promise<void>}
- * @private
  */
 async function _checkIncomingOffers (botTeam) {
   const { gameDay, season } = await getGameDayAndSeason()
@@ -142,6 +148,10 @@ async function _checkIncomingOffers (botTeam) {
   }
 }
 
+/**
+ * @param {TeamType} botTeam
+ * @returns {Promise<void>}
+ */
 async function _checkSellOffers (botTeam) {
   const offers = await getOpenSellOffersByTeamId(botTeam.id)
   if (offers.length === 0) {
@@ -169,7 +179,7 @@ async function _checkSellOffers (botTeam) {
       playerToSell = randomItem(players)
     }
     if (playerToSell) {
-      const price = await playersRoutes.estimateValue_V2(playerToSell.id)
+      const price = await playersRoutes.estimateValue(playerToSell.id)
       const val = (Math.random() * 0.6 + 0.7) * price
       const tradeOffer = new TradeOffer({
         offer_value: val,
@@ -189,6 +199,10 @@ async function _checkSellOffers (botTeam) {
   }
 }
 
+/**
+ * @param {TeamType} botTeam
+ * @returns {Promise<void>}
+ */
 async function _checkBuyOffers (botTeam) {
   const offers = await getOpenByOffersByTeamId(botTeam.id)
   if (offers.length === 0) {
@@ -229,6 +243,11 @@ async function _checkBuyOffers (botTeam) {
   }
 }
 
+/**
+ * @param {TradeOfferType[]} offers
+ * @param {number} [hours=24]
+ * @returns {Promise<boolean>}
+ */
 async function deleteTooOldOffers (offers, hours = 24) {
   let removedAnOffer = false
   for (const offer of offers) {
@@ -245,7 +264,6 @@ async function deleteTooOldOffers (offers, hours = 24) {
 /**
  * @param {TeamType} botTeam
  * @returns {Promise<void>}
- * @private
  */
 async function _firePlayerIfTooMany (botTeam) {
   const players = await getPlayersByTeamId(botTeam.id)
@@ -259,7 +277,7 @@ async function _firePlayerIfTooMany (botTeam) {
 
 /**
  * @param {TeamType} botTeam
- * @private
+ * @returns {Promise<void>}
  */
 async function _checkTrades (botTeam) {
   await _firePlayerIfTooMany(botTeam)
@@ -269,12 +287,11 @@ async function _checkTrades (botTeam) {
 }
 
 /**
- *
  * @param {TeamType} botTeam
  * @param {boolean} isStrongTeam
- * @private
+ * @returns {Promise<void>}
  */
-async function _chooseSponsor (botTeam, isStrongTeam) {
+async function _chooseSponsor (botTeam, _isStrongTeam) {
   let { sponsor } = await getSponsor(botTeam)
   if (sponsor) return
   const sponsors = await getSponsorOffers(botTeam)
@@ -284,13 +301,12 @@ async function _chooseSponsor (botTeam, isStrongTeam) {
 }
 
 /**
- *
  * @param {TeamType} botTeam
  * @param {PlayerType[]} players
  * @param {boolean} isStrongTeam
- * @private
+ * @returns {Promise<void>}
  */
-async function _checkActionCards (botTeam, players, isStrongTeam) {
+async function _checkActionCards (botTeam, players, _isStrongTeam) {
   const actionCards = await getActionCards(botTeam)
   for (const actionCard of actionCards) {
     try {
@@ -323,15 +339,12 @@ async function _checkActionCards (botTeam, players, isStrongTeam) {
 }
 
 /**
- * Get the teams formation, set all in_game_positions to null
- * then for each position select best player
- *
  * @param {TeamType} botTeam
  * @param {PlayerType[]} players
  * @param {boolean} isStrongTeam
- * @private
+ * @returns {Promise<void>}
  */
-async function _checkTactic (botTeam, players, isStrongTeam) {
+async function _checkTactic (botTeam, players, _isStrongTeam) {
   // remove all players from formation
   players.forEach(p => (p.in_game_position = null))
 

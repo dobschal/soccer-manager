@@ -8,6 +8,9 @@ import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
 
 export class FreePlayers extends UIElement {
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -42,11 +45,14 @@ export class FreePlayers extends UIElement {
     ]
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const response = await server.getCurrentGameday()
     this.gameDay = response.gameDay
     this.season = response.season
-    this.players = await server.getPlayersWithoutTeam_V2()
+    this.players = await server.getPlayersWithoutTeam()
     this.table = renderTable({
       data: this.players,
       cols: this.columns,
@@ -84,7 +90,7 @@ export class FreePlayers extends UIElement {
     })
     if (!ok) return
     try {
-      await server.givePlayerContract_V2(player.id)
+      await server.givePlayerContract(player.id)
       toast('You gave ' + player.name + ' a new contract.', 'success')
       await this.update(false)
     } catch (e) {

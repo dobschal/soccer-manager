@@ -8,17 +8,19 @@ import { getSponsor } from '../helper/sponsorHelper.js'
 export default {
 
   /**
-   * @param {import('express').Request} req
+   * @param {string} username
+   * @param {string} password
+   * @param {string} teamName
    * @returns {Promise<{success: boolean}>}
    */
-  async createAccount (req) {
-    if (typeof req.body.username !== 'string') {
+  async createAccount (username, password, teamName) {
+    if (typeof username !== 'string') {
       throw new BadRequestError('Username needs to be string')
     }
-    if (typeof req.body.password !== 'string' || req.body.password.length < 8) {
+    if (typeof password !== 'string' || password.length < 8) {
       throw new BadRequestError('Password needs to be string longer then 8 character')
     }
-    const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM user WHERE username=?', req.body.username)
+    const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM user WHERE username=?', username)
     if (amount > 0) {
       throw new BadRequestError('Username already taken')
     }
@@ -30,9 +32,11 @@ export default {
     // TODO: Hash password
     //
     const { insertId: userId } = await query('INSERT INTO user SET ?', {
-      ...req.body
+      username,
+      password,
+      teamName
     })
-    await addLogMessage(`Hey  ${req.body.username}! The president of ${team.name} is sending you a warm welcome!`, team)
+    await addLogMessage(`Hey  ${username}! The president of ${team.name} is sending you a warm welcome!`, team)
     await query(`UPDATE team SET user_id=${userId}, balance=500000 WHERE id=${team.id}`)
     const { sponsor } = await getSponsor(team)
     if (sponsor) {
@@ -43,18 +47,19 @@ export default {
   },
 
   /**
-   * @param {import('express').Request} req
+   * @param {string} username
+   * @param {string} password
    * @returns {Promise<{ token: string }>}
    */
-  async login (req) {
-    if (typeof req.body.username !== 'string') {
+  async login (username, password) {
+    if (typeof username !== 'string') {
       throw new BadRequestError('Username needs to be string')
     }
-    if (typeof req.body.password !== 'string') {
+    if (typeof password !== 'string') {
       throw new BadRequestError('Password needs to be string')
     }
-    const [user] = await query('SELECT * FROM user WHERE username=?', [req.body.username])
-    if (!user || user.password !== req.body.password) {
+    const [user] = await query('SELECT * FROM user WHERE username=?', [username])
+    if (!user || user.password !== password) {
       throw new UnauthorizedError('Wrong credentials')
     }
     const token = jwt.sign({ sub: user.id }, config.SECRET)
