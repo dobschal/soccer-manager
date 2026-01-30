@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('../lib/gateway.js', () => ({
   server: {
     getNextGameDate: vi.fn().mockResolvedValue({ date: new Date(Date.now() + 60000).toISOString() }),
-    getMyBalance: vi.fn().mockResolvedValue({ balance: 100000 })
+    getMyBalance: vi.fn().mockResolvedValue({ balance: 100000 }),
+    isDevelopment: vi.fn().mockResolvedValue({ isDevelopment: false })
   }
 }))
 

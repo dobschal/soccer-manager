@@ -4,6 +4,7 @@ import { el, generateId } from '../lib/html.js'
 import { goTo } from '../lib/router.js'
 import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
+import { toast } from '../partials/toast.js'
 
 /**
  * @returns {void}
@@ -18,6 +19,7 @@ export class GameLayout extends UIElement {
   _nextGameInElementId = generateId()
   _nextGameDate = null
   _navItemEventIds = []
+  _isDevelopment = false
 
   /**
    * @returns {string}
@@ -50,6 +52,9 @@ export class GameLayout extends UIElement {
             <div class="navbar-info-item px-2">
                 <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </div>
+            <button id="dev-trigger-button" class="btn btn-outline-warning my-2 my-sm-0 mx-1 ${this._isDevelopment ? '' : 'hidden'}" type="button">
+              <i class="fa fa-play" aria-hidden="true"></i> Run Game Day
+            </button>
             <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
           </div>
         </nav>
@@ -62,8 +67,12 @@ export class GameLayout extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const response = await server.getNextGameDate()
-    this._nextGameDate = response.date
+    const [gameDate, devMode] = await Promise.all([
+      server.getNextGameDate(),
+      server.isDevelopment()
+    ])
+    this._nextGameDate = gameDate.date
+    this._isDevelopment = devMode.isDevelopment
   }
 
   /**
@@ -92,6 +101,25 @@ export class GameLayout extends UIElement {
         hideNavigation()
         window.localStorage.removeItem('auth-token')
         goTo('login')
+      })
+    }
+
+    const devTriggerBtn = document.querySelector(`${this._elementQuery} #dev-trigger-button`)
+    if (devTriggerBtn) {
+      devTriggerBtn.addEventListener('click', async () => {
+        try {
+          devTriggerBtn.disabled = true
+          devTriggerBtn.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Running...'
+          await server.triggerGameDay()
+          toast('Game day completed!', 'success')
+          window.location.reload()
+        } catch (e) {
+          console.error(e)
+          toast(e.message ?? 'Something went wrong', 'error')
+        } finally {
+          devTriggerBtn.disabled = false
+          devTriggerBtn.innerHTML = '<i class="fa fa-play" aria-hidden="true"></i> Run Game Day'
+        }
       })
     }
 

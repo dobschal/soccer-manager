@@ -221,6 +221,8 @@ async function _ajustAmountOfTeams () {
   }
 }
 
+// TODO: add new images for sponsor and action cards...
+
 /**
  * @param {number} level
  * @returns {Promise<Team>}

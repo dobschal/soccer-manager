@@ -1,6 +1,7 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
 import { showOverlay } from '../partials/overlay.js'
+import { showDialog } from '../partials/dialog.js'
 import { PlayerList } from '../partials/playerList.js'
 import { toast } from '../partials/toast.js'
 import { formatDate } from '../lib/date.js'
@@ -185,10 +186,28 @@ export class DashboardPage extends UIElement {
    * @returns {Promise<void>}
    */
   async _mergeCards (actionCard) {
+    const upgradeMap = {
+      LEVEL_UP_PLAYER_4: 'Level Up (max. 7)',
+      LEVEL_UP_PLAYER_7: 'Level Up (max. 9)'
+    }
+    const upgradeTo = upgradeMap[actionCard.action] ?? 'a better card'
+
+    const { ok } = await showDialog({
+      title: 'Merge Cards?',
+      text: `Merging combines two identical action cards into a more powerful one.
+             You will lose both cards and receive one "${upgradeTo}" card instead.
+             This allows you to level up players to higher levels!`,
+      buttonText: 'Merge Cards',
+      hasInput: false,
+      buttonType: 'warning'
+    })
+
+    if (!ok) return
+
     try {
       const cardsToMerge = this.actionCards.filter(a => a.action === actionCard.action)
       await server.mergeCards(cardsToMerge[0], cardsToMerge[1])
-      toast('Merged cards to a better one.')
+      toast('Merged cards to a better one!', 'success')
       await this.load()
       await this.update(true)
     } catch (e) {

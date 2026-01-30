@@ -37,7 +37,9 @@ export const server = {
   saveLineup: vi.fn(),
   getStanding: vi.fn(),
   getResult: vi.fn(),
-  getLeagueNews: vi.fn()
+  getLeagueNews: vi.fn(),
+  isDevelopment: vi.fn(),
+  triggerGameDay: vi.fn()
 }
 
 export function showServerError (e) {

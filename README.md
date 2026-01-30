@@ -12,6 +12,10 @@ Take a look into the docker files to check the version used for the database and
 
 > ⚠️ All scripts are automatically executed when running the `api.js` script!
 
+```bash
+DB_HOST=localhost IS_DEVELOPMENT=true node src/api.js
+```
+
 ## Scripts
 Here are some script that help you to setup and run the simulation:
 ```bash
