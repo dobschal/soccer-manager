@@ -18,21 +18,24 @@ export class PlayerListItem extends UIElement {
    * @param {PlayerType} player
    * @param {number} season
    * @param {(player: PlayerType) => void} onClickHandler
+   * @param {Set<number>} sellOfferPlayerIds
    */
-  constructor (player, season, onClickHandler) {
+  constructor (player, season, onClickHandler, sellOfferPlayerIds = new Set()) {
     super()
     this.player = player
     this.season = season
     this.onClickHandler = () => onClickHandler(this.player)
+    this.sellOfferPlayerIds = sellOfferPlayerIds
   }
 
   /**
    * @returns {string}
    */
   get template () {
+    const hasSellOffer = this.sellOfferPlayerIds.has(this.player.id)
     return `
       <tr class="${this.player.in_game_position ? 'table-info' : 'table-warning'}">
-        <th scope="row">${this.player.name}</th>
+        <th scope="row">${this.player.name}${hasSellOffer ? ' 💰' : ''}</th>
         <td>${this.player.position}</td>
         <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(this.player, this.season)}</td>
         <td class="text-right ${this.player.freshness < 0.4 ? 'text-danger' : (this.player.freshness < 0.7 ? 'text-warning' : 'text-success')}">${Math.floor(this.player.freshness * 100)}%</td>

@@ -49,7 +49,7 @@ export class PlayerList extends UIElement {
             </tr>
           </thead>
           <tbody>
-              ${this.players.map(player => new PlayerListItem(player, this.season, this.onClickHandler)).join('')}
+              ${this.players.map(player => new PlayerListItem(player, this.season, this.onClickHandler, this.sellOfferPlayerIds)).join('')}
           </tbody>
         </table>
       </div>
@@ -60,8 +60,14 @@ export class PlayerList extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const { season } = await server.getCurrentGameday()
+    const [{ season }, { offers }] = await Promise.all([
+      server.getCurrentGameday(),
+      server.getOffers()
+    ])
     this.season = season
+    this.sellOfferPlayerIds = new Set(
+      offers.filter(o => o.type === 'sell').map(o => o.player_id)
+    )
     this.players.sort(sortByPosition)
   }
 }
