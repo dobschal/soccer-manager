@@ -76,24 +76,28 @@ export class Lineup extends UIElement {
             )
           }
         }
-      },
-      'button.btn-primary': {
-        click: async () => {
-          try {
-            if (this.players.some(p => p.fake && p.in_game_position)) {
-              return toast('Your lineup is incomplete!')
-            }
-            const playersToSave = this.players.filter(p => !p.fake)
-            await server.saveLineup(playersToSave, this.team.formation)
-            toast('Saved lineup.', 'success')
-            await lineUpData.parentInstance.load()
-            lineUpData.parentInstance.update()
-          } catch (e) {
-            console.error(e)
-            toast(e.message ?? 'Something went wrong...', 'error')
-          }
-        }
       }
+    }
+  }
+
+  /**
+   * @param {MouseEvent} event
+   * @returns {Promise<void>}
+   */
+  async _onSaveButtonClick (event) {
+    if (!event.target.closest('button.btn-primary')) return
+    try {
+      if (this.players.some(p => p.fake && p.in_game_position)) {
+        return toast('Your lineup is incomplete!')
+      }
+      const playersToSave = this.players.filter(p => !p.fake)
+      await server.saveLineup(playersToSave, this.team.formation)
+      toast('Saved lineup.', 'success')
+      await lineUpData.parentInstance.load()
+      lineUpData.parentInstance.update()
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? 'Something went wrong...', 'error')
     }
   }
 
@@ -117,6 +121,11 @@ export class Lineup extends UIElement {
   onMounted () {
     this._applyPositionHacks()
     this._loadPlayerImages()
+    // Use event delegation for save button since it may not exist on initial mount
+    const rootEl = document.querySelector(this._elementQuery)
+    if (rootEl) {
+      rootEl.addEventListener('click', this._onSaveButtonClick.bind(this))
+    }
   }
 
   /**

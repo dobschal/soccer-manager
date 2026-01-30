@@ -2,30 +2,19 @@
 ![CI](https://github.com/dobschal/soccer-manager/actions/workflows/ci.yml/badge.svg)
 ![deployment](https://github.com/dobschal/soccer-manager/actions/workflows/deploy.yml/badge.svg)
 
+## Get Started
 You need to have a MySQL database running and NodeJS installed.
+Take a look into the docker files to check the version used for the database and nodejs.
 
-Inside the `src` folder various scripts are available:
-* `api.js` to start the web server with API
-* `migrate-database.js` to setup the database tables
-* `prepare-season.js` to fill the database with bot teams and games to play
-* `play-game-day.js` calculate the results for the next game day
+1. Use IntelliJ to open the project and set the environment variable for the database host.
+2. Start the database with docker compose or any other way you like.
+3. Then run `src/api.js`, you can open the UI on http://localhost:3000
 
-A UI is implemented. When you run the API, you can open the UI on http://localhost:3000
+> ⚠️ All scripts are automatically executed when running the `api.js` script!
 
-> ‼️ When starting the API with `api.js`, the other scripts are executed via CRON job automatically
-
-## Run it
-
-> ‼️You need to set an environment variable for the database host. You can do this via IntelliJ.
-
-Run the scripts as described here:
+## Scripts
+Here are some script that help you to setup and run the simulation:
 ```bash
-# start database
-docker compose up database -d
-
-# Install all dependencies
-npm install
-
 # Prepare database
 node src/migrate-database.cmd.js
 
@@ -34,7 +23,4 @@ node src/prepare-season.cmd.js
 
 # calculate the games for the current gameday ---> repeat for each game day to play
 node src/play-game-day.cmd.js
-
-# Start game UI on port 3000
-npm start
 ```

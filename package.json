@@ -4,7 +4,6 @@
   "description": "",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/api.js",
     "lint": "eslint ./src ./client",
     "test:client": "vitest run --config client/vitest.config.js",
     "test:client:watch": "vitest --config client/vitest.config.js",
