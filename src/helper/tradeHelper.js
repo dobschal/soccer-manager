@@ -1,7 +1,7 @@
 import { TradeOffer } from '../entities/tradeOffer.js'
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
-import { updateTeamBalance } from './financeHelpr.js'
+import { updateTeamBalance } from './financeHelper.js'
 import { addLogMessage } from './newsHelper.js'
 import { getTeamById } from './teamHelper.js'
 import { getPlayerAge, getPlayerById, getPlayersByTeamId } from './playerHelper.js'

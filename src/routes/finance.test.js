@@ -40,5 +40,121 @@ describe('finance routes', () => {
 
       expect(result).toEqual({ log: [] })
     })
+
+    it('returns salary entries with correct negative values', async () => {
+      const team = testData.team()
+      const salaryEntry = testData.financeLog({
+        id: 1,
+        value: -15000,
+        reason: 'Player salaries',
+        balance: 485000
+      })
+
+      query.mockResolvedValueOnce([team])
+      query.mockResolvedValueOnce([salaryEntry])
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLog(req)
+
+      expect(result.log[0].value).toBe(-15000)
+      expect(result.log[0].reason).toBe('Player salaries')
+    })
+
+    it('returns sponsor entries with correct positive values', async () => {
+      const team = testData.team()
+      const sponsorEntry = testData.financeLog({
+        id: 2,
+        value: 25000,
+        reason: 'Sponsor deal with Nike',
+        balance: 525000
+      })
+
+      query.mockResolvedValueOnce([team])
+      query.mockResolvedValueOnce([sponsorEntry])
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLog(req)
+
+      expect(result.log[0].value).toBe(25000)
+      expect(result.log[0].reason).toContain('Sponsor deal')
+    })
+
+    it('returns ticket earnings entries with correct positive values', async () => {
+      const team = testData.team()
+      const ticketEntry = testData.financeLog({
+        id: 3,
+        value: 80000,
+        reason: 'Stadium ticket earnings',
+        balance: 580000
+      })
+
+      query.mockResolvedValueOnce([team])
+      query.mockResolvedValueOnce([ticketEntry])
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLog(req)
+
+      expect(result.log[0].value).toBe(80000)
+      expect(result.log[0].reason).toBe('Stadium ticket earnings')
+    })
+
+    it('returns multiple finance entries in order', async () => {
+      const team = testData.team()
+      const financeLog = [
+        testData.financeLog({ id: 1, value: 80000, reason: 'Stadium ticket earnings', game_day: 1, balance: 580000 }),
+        testData.financeLog({ id: 2, value: -15000, reason: 'Player salaries', game_day: 1, balance: 565000 }),
+        testData.financeLog({ id: 3, value: 25000, reason: 'Sponsor deal with Adidas', game_day: 1, balance: 590000 })
+      ]
+
+      query.mockResolvedValueOnce([team])
+      query.mockResolvedValueOnce(financeLog)
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLog(req)
+
+      expect(result.log).toHaveLength(3)
+      expect(result.log[0].reason).toBe('Stadium ticket earnings')
+      expect(result.log[1].reason).toBe('Player salaries')
+      expect(result.log[2].reason).toContain('Sponsor deal')
+    })
+
+    it('tracks running balance correctly', async () => {
+      const team = testData.team()
+      const financeLog = [
+        testData.financeLog({ id: 1, value: 100000, balance: 600000, game_day: 1 }),
+        testData.financeLog({ id: 2, value: -20000, balance: 580000, game_day: 1 }),
+        testData.financeLog({ id: 3, value: 50000, balance: 630000, game_day: 1 })
+      ]
+
+      query.mockResolvedValueOnce([team])
+      query.mockResolvedValueOnce(financeLog)
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLog(req)
+
+      // Verify balance progression is correct
+      expect(result.log[0].balance).toBe(600000)
+      expect(result.log[1].balance).toBe(580000)
+      expect(result.log[2].balance).toBe(630000)
+    })
+
+    it('includes game_day and season for each entry', async () => {
+      const team = testData.team()
+      const financeLog = [
+        testData.financeLog({ id: 1, game_day: 5, season: 2 }),
+        testData.financeLog({ id: 2, game_day: 6, season: 2 })
+      ]
+
+      query.mockResolvedValueOnce([team])
+      query.mockResolvedValueOnce(financeLog)
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLog(req)
+
+      expect(result.log[0].game_day).toBe(5)
+      expect(result.log[0].season).toBe(2)
+      expect(result.log[1].game_day).toBe(6)
+      expect(result.log[1].season).toBe(2)
+    })
   })
 })

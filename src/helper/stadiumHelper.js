@@ -1,7 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
-import { updateTeamBalance } from './financeHelpr.js'
+import { updateTeamBalance } from './financeHelper.js'
 import { getTeam } from './teamHelper.js'
 import { addLogMessage } from './newsHelper.js'
 

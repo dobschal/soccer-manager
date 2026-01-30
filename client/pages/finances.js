@@ -99,9 +99,10 @@ export class FinancesPage extends UIElement {
    * @returns {number}
    */
   _sortFinanceLog (logA, logB) {
-    if (logB.season > logA.season) return 1
-    if (logB.season < logA.season) return -1
-    return logB.game_day - logA.game_day
+    if (logB.season !== logA.season) return logB.season - logA.season
+    if (logB.game_day !== logA.game_day) return logB.game_day - logA.game_day
+    // Use id as tiebreaker for entries on the same game day (newer entries have higher ids)
+    return logB.id - logA.id
   }
 
   /**

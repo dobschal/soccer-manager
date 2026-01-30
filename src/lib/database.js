@@ -23,3 +23,55 @@ export function query (...params) {
     pool.query(...params)
   })
 }
+
+/**
+ * Execute multiple queries within a transaction.
+ * If any query fails, the transaction is rolled back.
+ *
+ * @param {Function} callback - Receives a query function bound to the transaction connection
+ * @returns {Promise<any>}
+ */
+export function transaction (callback) {
+  return new Promise((resolve, reject) => {
+    pool.getConnection((err, connection) => {
+      if (err) return reject(err)
+
+      connection.beginTransaction(async (err) => {
+        if (err) {
+          connection.release()
+          return reject(err)
+        }
+
+        const txQuery = (...params) => {
+          return new Promise((resolve, reject) => {
+            params.push((error, results) => {
+              if (error) return reject(error)
+              resolve(results)
+            })
+            connection.query(...params)
+          })
+        }
+
+        try {
+          const result = await callback(txQuery)
+          connection.commit((err) => {
+            if (err) {
+              connection.rollback(() => {
+                connection.release()
+                reject(err)
+              })
+              return
+            }
+            connection.release()
+            resolve(result)
+          })
+        } catch (error) {
+          connection.rollback(() => {
+            connection.release()
+            reject(error)
+          })
+        }
+      })
+    })
+  })
+}
