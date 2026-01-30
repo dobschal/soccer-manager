@@ -3,6 +3,9 @@ import { calculatePlayerAge, sallaryPerLevel } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 
 export class PlayerListItem extends UIElement {
+  /**
+   * @returns {object}
+   */
   get events () {
     return {
       '': {
@@ -23,6 +26,9 @@ export class PlayerListItem extends UIElement {
     this.onClickHandler = () => onClickHandler(this.player)
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <tr class="${this.player.in_game_position ? 'table-info' : 'table-warning'}">
@@ -36,6 +42,13 @@ export class PlayerListItem extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {}
+
+  /**
+   * @returns {Promise<void>}
+   */
   async onQueryChanged () {}
 }

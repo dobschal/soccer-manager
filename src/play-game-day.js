@@ -9,6 +9,9 @@ import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances } from './helper/actionCardHelper.js'
 
+/**
+ * @returns {Promise<void>}
+ */
 export async function calculateGames () {
   const { gameDay, season } = await getGameDayAndSeason()
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
@@ -22,6 +25,10 @@ export async function calculateGames () {
   console.log('\n\nPlayed game day ' + gameDay)
 }
 
+/**
+ * @param {number} season
+ * @returns {Promise<void>}
+ */
 async function _giveAllPlayersFreshness (season) {
   /** @type {PlayerType[]} */
   const players = await query('SELECT * FROM player WHERE freshness < 1.0')
@@ -41,6 +48,11 @@ async function _giveAllPlayersFreshness (season) {
   await Promise.all(promises)
 }
 
+/**
+ * @param {number} gameDay
+ * @param {number} season
+ * @returns {Promise<void>}
+ */
 async function _giveSponsorMoney (gameDay, season) {
   const t1 = Date.now()
   /** @type {Array<import('./entities/team.js').TeamType>} */
@@ -56,6 +68,11 @@ async function _giveSponsorMoney (gameDay, season) {
   console.log('Gave all teams their sponsor money in' + (Date.now() - t1) + 'ms')
 }
 
+/**
+ * @param {number} gameDay
+ * @param {number} season
+ * @returns {Promise<void>}
+ */
 async function _letTeamsPaySallaries (gameDay, season) {
   const t1 = Date.now()
   const teams = await query('SELECT * FROM team')
@@ -67,6 +84,9 @@ async function _letTeamsPaySallaries (gameDay, season) {
   console.log('Paid all salaries in' + (Date.now() - t1) + 'ms')
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function _giveUsersActionCards () {
   const t1 = Date.now()
   /** @type {TeamType[]} */
@@ -131,7 +151,9 @@ async function _giveUsersActionCards () {
  * @param {TeamType} teamB
  * @param {number} strengthTeamA
  * @param {number} strengthTeamB
- * @private
+ * @param {number} gameDay
+ * @param {number} season
+ * @returns {Promise<Object>}
  */
 async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strengthTeamB, gameDay, season) {
   const strengthFactor = strengthTeamA * strengthTeamB
@@ -156,6 +178,7 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
 
 /**
  * @param {GameType} game
+ * @returns {Promise<void>}
  */
 async function _playGame (game) {
   const [[teamA], [teamB], playerTeamA, playerTeamB] = await Promise.all([
@@ -211,6 +234,7 @@ async function _playGame (game) {
  * @param {Array<Player>} playerTeamA
  * @param {Array<Player>} playerTeamB
  * @param {Object} gameDetails
+ * @returns {void}
  */
 function _kickoff (playerTeamA, playerTeamB, gameDetails) {
   const player = randomItem(playerTeamA.concat(playerTeamB))
@@ -226,6 +250,7 @@ function _kickoff (playerTeamA, playerTeamB, gameDetails) {
  * @param {Array<Player>} playerTeamA
  * @param {Array<Player>} playerTeamB
  * @param {Object} gameDetails
+ * @returns {void}
  */
 function _playGameStep (playerTeamA, playerTeamB, gameDetails) {
   if (!_fightsOponents(playerTeamA, playerTeamB, gameDetails)) return
@@ -351,6 +376,7 @@ function _chanceToFight (player) {
  * @param {Array<Player>} playerTeamA
  * @param {Array<Player>} playerTeamB
  * @param {Object} gameDetails
+ * @returns {void}
  */
 function _passBall (playerTeamA, playerTeamB, gameDetails) {
   let activePlayer = playerTeamA.find(p => p.hasBall)

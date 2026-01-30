@@ -10,6 +10,9 @@ export class FinancesPage extends UIElement {
   offers = []
   financeLog = []
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -44,6 +47,9 @@ export class FinancesPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const sponsorResponse = await server.getSponsor()
     this.sponsor = sponsorResponse.sponsor
@@ -56,10 +62,16 @@ export class FinancesPage extends UIElement {
     console.log('Finance: ', this.financeLog)
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._attachSponsorOfferHandlers()
   }
 
+  /**
+   * @returns {void}
+   */
   _attachSponsorOfferHandlers () {
     this.offers.forEach((offer, idx) => {
       const btn = document.querySelector(`${this._elementQuery} [data-sponsor-offer="${idx}"] .btn-primary`)
@@ -78,12 +90,23 @@ export class FinancesPage extends UIElement {
     })
   }
 
+  /**
+   * @param {Object} logA
+   * @param {Object} logB
+   * @returns {number}
+   */
   _sortFinanceLog (logA, logB) {
     if (logB.season > logA.season) return 1
     if (logB.season < logA.season) return -1
     return logB.game_day - logA.game_day
   }
 
+  /**
+   * @param {Object} logItem
+   * @param {number} index
+   * @param {Array} array
+   * @returns {string}
+   */
   _renderFinanceLog (logItem, index, array) {
     let dividerRow = ''
     if (array[index - 1]?.game_day !== logItem.game_day) {
@@ -104,6 +127,9 @@ export class FinancesPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {string}
+   */
   _renderSponsorCard () {
     if (!this.sponsor) return ''
     return `
@@ -125,6 +151,11 @@ export class FinancesPage extends UIElement {
     `
   }
 
+  /**
+   * @param {Object} offer
+   * @param {number} index
+   * @returns {string}
+   */
   _renderSponsorOfferCard (offer, index) {
     const classes = ['dark', 'success', 'info', 'warning']
 
@@ -150,7 +181,9 @@ export class FinancesPage extends UIElement {
   }
 }
 
-// Backwards compatibility
+/**
+ * @returns {Promise<string>}
+ */
 export async function renderFinancesPage () {
   return new FinancesPage().toString()
 }

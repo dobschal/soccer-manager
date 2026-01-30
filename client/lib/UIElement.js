@@ -4,6 +4,9 @@ import { off, on } from './event.js'
 import { onDOMNodeChanged } from './observeDOM.js'
 
 export class UIElement {
+  /**
+   * @param {Object} params
+   */
   constructor (params = {}) {
     for (const paramsKey in params) {
       this[paramsKey] = params[paramsKey]
@@ -27,24 +30,42 @@ export class UIElement {
     })
   }
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {Object}
+   */
   get events () {
     return {}
   }
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {void}
+   */
   onQueryChanged () {}
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {void}
+   */
   onMounted () {}
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {void}
+   */
   onDestroy () {}
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {string}
+   */
   get template () {}
 
-  /** @abstract */
+  /**
+   * @abstract
+   * @returns {Promise<void>}
+   */
   async load () {}
 
   /**
@@ -87,10 +108,16 @@ export class UIElement {
     this._renderIntoDOM(node, templateEl)
   }
 
+  /**
+   * @returns {string}
+   */
   toString () {
     return this.renderSync()
   }
 
+  /**
+   * @returns {boolean}
+   */
   get isRendered () {
     return Boolean(this._renderId && el(this._elementQuery))
   }
@@ -128,6 +155,10 @@ export class UIElement {
     target.replaceWith(templateEl.content.children[0])
   }
 
+  /**
+   * @returns {void}
+   * @private
+   */
   _applyEventHandlers () {
     for (const elementQuery in this.events) {
       // First try to find as a child element
@@ -146,10 +177,19 @@ export class UIElement {
     }
   }
 
+  /**
+   * @returns {string}
+   * @private
+   */
   get _elementQuery () {
     return `[data-render_id="${this._renderId}"]`
   }
 
+  /**
+   * @param {Node} node
+   * @returns {void}
+   * @private
+   */
   _onMounted (node) {
     if (this._isMounted) return // Skip if already mounted (this is an update, not initial mount)
     this._isMounted = true
@@ -158,6 +198,11 @@ export class UIElement {
     this.onMounted()
   }
 
+  /**
+   * @param {Node} node
+   * @returns {void}
+   * @private
+   */
   _onDestroy (node) {
     this._isMounted = false
     console.log('Destroy: ', this.constructor.name)
@@ -180,6 +225,10 @@ export class UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   * @private
+   */
   _showLoadingIndicator () {
     this._loadingIndicatorId = generateId()
     let neighborNode = el(this._elementQuery)
@@ -204,6 +253,10 @@ export class UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   * @private
+   */
   _hideLoadingIndicator () {
     el(this._loadingIndicatorId)?.remove()
   }

@@ -8,11 +8,18 @@ export class BalanceChart extends UIElement {
   _resizeHandler = null
   _chart = null
 
+  /**
+   * @param {FinanceLogType[]} [financeLog]
+   */
   constructor (financeLog = []) {
     super()
     this._processLogItems(financeLog)
   }
 
+  /**
+   * @param {FinanceLogType[]} log
+   * @returns {void}
+   */
   _processLogItems (log) {
     log.forEach(item => {
       const existing = this.logItems.find(
@@ -26,16 +33,25 @@ export class BalanceChart extends UIElement {
     })
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `<canvas class="finance-canvas"></canvas>`
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._resizeHandler = this._renderChart.bind(this)
     window.addEventListener('resize', this._resizeHandler)
     this._renderChart()
   }
 
+  /**
+   * @returns {void}
+   */
   onDestroy () {
     if (this._resizeHandler) {
       window.removeEventListener('resize', this._resizeHandler)
@@ -47,6 +63,9 @@ export class BalanceChart extends UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   _renderChart () {
     const canvas = el(`${this._elementQuery} canvas`)
     if (!canvas) return
@@ -77,8 +96,8 @@ export class BalanceChart extends UIElement {
 }
 
 /**
- * Backwards compatibility wrapper
  * @param {FinanceLogType[]} l
+ * @returns {string}
  */
 export function drawBalanceChart (l) {
   return new BalanceChart(l).toString()

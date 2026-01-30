@@ -5,16 +5,29 @@ import { getTeam } from '../helper/teamHelper.js'
 
 export default {
 
+  /**
+   * @param {Request} req
+   * @returns {Promise<{sponsor: Sponsor|null}>}
+   */
   async getSponsor (req) {
     return await getSponsor(await getTeam(req))
   },
 
+  /**
+   * @param {Request} req
+   * @returns {Promise<{sponsors: Array}>}
+   */
   async getSponsorOffers (req) {
     const team = await getTeam(req)
     const sponsors = await getSponsorOffers(team)
     return { sponsors }
   },
 
+  /**
+   * @param {Object} sponsor
+   * @param {Request} req
+   * @returns {Promise<boolean>}
+   */
   async chooseSponsor (sponsor, req) {
     const team = await getTeam(req)
     const sponsorEntity = new Sponsor({ ...sponsor, team_id: team.id })

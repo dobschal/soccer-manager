@@ -31,6 +31,9 @@ export class Table extends UIElement {
     this.sortColIndex = null
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     const hasHover = typeof this.config.onClick === 'function'
     return `
@@ -47,11 +50,17 @@ export class Table extends UIElement {
     `
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._applyInitialSort()
     this._attachEventHandlers()
   }
 
+  /**
+   * @returns {void}
+   */
   _applyInitialSort () {
     const { sort_dir: sortDirection, col: colIndex } = getQueryParams()
     if (sortDirection && colIndex !== undefined) {
@@ -62,6 +71,9 @@ export class Table extends UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   _attachEventHandlers () {
     // Attach header click handlers for sorting
     const headers = document.querySelectorAll(`${this._elementQuery} th.sort-header`)
@@ -102,6 +114,11 @@ export class Table extends UIElement {
     })
   }
 
+  /**
+   * @param {number} colIndex
+   * @param {string} sortDirection
+   * @returns {void}
+   */
   _sortTable (colIndex, sortDirection) {
     const col = this.config.cols[colIndex]
     const tableEl = el(`${this._elementQuery} table`)
@@ -137,6 +154,9 @@ export class Table extends UIElement {
     }
   }
 
+  /**
+   * @returns {string}
+   */
   _renderHeaderCells () {
     return this.config.cols
       .map((col) => {
@@ -152,6 +172,9 @@ export class Table extends UIElement {
       .join('')
   }
 
+  /**
+   * @returns {string}
+   */
   _renderTableRows () {
     return this.config.data
       .map((item, rowIndex) => {
@@ -161,6 +184,11 @@ export class Table extends UIElement {
       .join('')
   }
 
+  /**
+   * @param {Array<string>} rowContent
+   * @param {number} rowIndex
+   * @returns {string}
+   */
   _renderTableCells (rowContent, rowIndex) {
     return rowContent.map((cellContent, colIndex) => {
       const col = this.config.cols[colIndex]

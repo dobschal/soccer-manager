@@ -4,6 +4,9 @@ export class Emblem extends UIElement {
   size = 200
   withText = true
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div class="emblem" style="width: ${this.size}px">
@@ -13,6 +16,9 @@ export class Emblem extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const imageUrl = 'assets/emblem.svg'
     const rawResponse = await fetch(imageUrl)

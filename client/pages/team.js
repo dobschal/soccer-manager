@@ -24,6 +24,9 @@ export class TeamPage extends UIElement {
   /** @type {StadiumType} */
   stadium
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -49,10 +52,16 @@ export class TeamPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Object}
+   */
   get events () {
     return super.events
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     if (!this.teamId) throw new Error('No team id present...')
     const { team, players, user } = await server.getTeam(this.teamId)
@@ -62,6 +71,12 @@ export class TeamPage extends UIElement {
     this.stadium = await server.getStadiumByTeamId(this.team.id)
   }
 
+  /**
+   * @param {Object} params
+   * @param {string} params.player_id
+   * @param {string} params.id
+   * @returns {Promise<void>}
+   */
   async onQueryChanged ({ player_id: playerId, id }) {
     if (playerId) await showPlayerModal(Number(playerId))
     this.teamId = Number(id)
@@ -83,10 +98,16 @@ export class TeamPage extends UIElement {
     return this.players.filter(p => p.in_game_position).reduce((sum, player, _, { length }) => sum + player.freshness / length, 0)
   }
 
+  /**
+   * @returns {string}
+   */
   get _username () {
     return this.user?.username ?? 'N/A <i class="fa fa-user-secret" aria-hidden="true"></i>'
   }
 
+  /**
+   * @returns {number}
+   */
   get _stadiumSize () {
     return this.stadium.south_stand_size + this.stadium.north_stand_size + this.stadium.east_stand_size + this.stadium.west_stand_size
   }

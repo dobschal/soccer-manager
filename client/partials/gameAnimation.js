@@ -26,6 +26,9 @@ export class GameAnimation extends UIElement {
     this.playerTeamB = this.details.playerTeamB
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div class="game-animation">
@@ -38,16 +41,25 @@ export class GameAnimation extends UIElement {
     `
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._applyPositionHacks()
     this._loadPlayerImages()
     this._attachPlayButtonHandler()
   }
 
+  /**
+   * @returns {void}
+   */
   onDestroy () {
     this.isPlaying = false
   }
 
+  /**
+   * @returns {void}
+   */
   _applyPositionHacks () {
     setTimeout(() => {
       const selectors = ['.player.home.CM', '.player.home.CD', '.player.home.DM', '.player.away.CM', '.player.away.CD', '.player.away.DM']
@@ -66,6 +78,9 @@ export class GameAnimation extends UIElement {
     }, 1000)
   }
 
+  /**
+   * @returns {void}
+   */
   _loadPlayerImages () {
     const loadImages = (players, team, type) => {
       const playerEls = document.querySelectorAll(`${this._elementQuery} .player.${type}`)
@@ -86,6 +101,9 @@ export class GameAnimation extends UIElement {
     loadImages(this.playerTeamB, this.team2, 'away')
   }
 
+  /**
+   * @returns {void}
+   */
   _attachPlayButtonHandler () {
     const playBtn = el(`${this._elementQuery} .play-button`)
     if (playBtn) {
@@ -102,6 +120,12 @@ export class GameAnimation extends UIElement {
     }
   }
 
+  /**
+   * @param {PlayerType} player
+   * @param {TeamType} team
+   * @param {string} type
+   * @returns {string}
+   */
   _renderTeamPlayer (player, team, type) {
     const freshnessClass = player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : '')
     return `
@@ -111,6 +135,9 @@ export class GameAnimation extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async _playGameAnimation () {
     const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
     if (!gameEl) return
@@ -195,12 +222,21 @@ export class GameAnimation extends UIElement {
     this._endAnimation()
   }
 
+  /**
+   * @param {number} playerId
+   * @returns {string}
+   */
   _getPlayerName (playerId) {
     let player = this.playerTeamA.find(p => p.id === playerId)
     if (!player) player = this.playerTeamB.find(p => p.id === playerId)
     return player.name.split(' ')[1]
   }
 
+  /**
+   * @param {number} playerId1
+   * @param {number} playerId2
+   * @returns {boolean}
+   */
   _inSameTeam (playerId1, playerId2) {
     const p1InA = this.playerTeamA.some(p => p.id === playerId1)
     const p2InA = this.playerTeamA.some(p => p.id === playerId2)
@@ -209,6 +245,10 @@ export class GameAnimation extends UIElement {
     return (p1InA && p2InA) || (p1InB && p2InB)
   }
 
+  /**
+   * @param {number} playerId
+   * @returns {Promise<void>}
+   */
   async _moveBallToPlayer (playerId) {
     let player = this.playerTeamA.find(p => p.id === playerId)
     if (player) {
@@ -222,6 +262,9 @@ export class GameAnimation extends UIElement {
     await delay(500)
   }
 
+  /**
+   * @returns {string}
+   */
   _createBall () {
     const id = generateId()
     const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
@@ -233,6 +276,9 @@ export class GameAnimation extends UIElement {
     return id
   }
 
+  /**
+   * @returns {string}
+   */
   _createTimer () {
     const id = generateId()
     const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
@@ -240,6 +286,9 @@ export class GameAnimation extends UIElement {
     return id
   }
 
+  /**
+   * @returns {string}
+   */
   _createMessage () {
     const id = generateId()
     const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
@@ -247,6 +296,9 @@ export class GameAnimation extends UIElement {
     return id
   }
 
+  /**
+   * @returns {void}
+   */
   _endAnimation () {
     const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
     if (gameEl) {

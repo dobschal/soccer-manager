@@ -10,6 +10,9 @@ export class IncomingOffersPage extends UIElement {
   players = []
   teams = []
 
+  /**
+   * @returns {string}
+   */
   get template () {
     const incomingOffers = this._filterIncomingBuyOffers()
     const hasIncomingOffers = incomingOffers.length > 0
@@ -42,6 +45,9 @@ export class IncomingOffersPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const teamResponse = await server.getMyTeam()
     this.team = teamResponse.team
@@ -52,10 +58,16 @@ export class IncomingOffersPage extends UIElement {
     this.teams = offersResponse.teams
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._attachOfferHandlers()
   }
 
+  /**
+   * @returns {void}
+   */
   _attachOfferHandlers () {
     const incomingOffers = this._filterIncomingBuyOffers()
 
@@ -103,6 +115,9 @@ export class IncomingOffersPage extends UIElement {
     })
   }
 
+  /**
+   * @returns {Array}
+   */
   _filterIncomingBuyOffers () {
     return this.offers.filter(o => {
       const player = this.players.find(p => p.id === o.player_id)
@@ -110,6 +125,11 @@ export class IncomingOffersPage extends UIElement {
     })
   }
 
+  /**
+   * @param {Object} offer
+   * @param {number} index
+   * @returns {string}
+   */
   _renderOfferRow (offer, index) {
     const player = this.players.find(p => p.id === offer.player_id)
     const fromTeam = this.teams.find(t => t.id === offer.from_team_id)
@@ -130,7 +150,9 @@ export class IncomingOffersPage extends UIElement {
   }
 }
 
-// Backwards compatibility
+/**
+ * @returns {Promise<string>}
+ */
 export async function renderIncomingOffers () {
   return new IncomingOffersPage().toString()
 }

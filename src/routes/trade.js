@@ -7,6 +7,9 @@ import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
 
 export default {
 
+  /**
+   * @returns {Promise<{offers: TradeOfferType[], players: PlayerType[], teams: TeamType[]}>}
+   */
   async getOffers () {
     /** @type {TradeOfferType[]} */
     const offers = await query('SELECT * FROM trade_offer')
@@ -26,6 +29,13 @@ export default {
     return { offers, players, teams }
   },
 
+  /**
+   * @param {PlayerType} player
+   * @param {number} price
+   * @param {string} type
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async addTradeOffer (player, price, type, req) {
     const team = await getTeam(req)
     if (type === 'buy' && team.balance < price) throw new BadRequestError('Not enough money...')
@@ -45,6 +55,11 @@ export default {
     return { success: true }
   },
 
+  /**
+   * @param {TradeOfferType} offer
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async acceptOffer (offer, req) {
     const { gameDay, season } = await getGameDayAndSeason()
     const sellingTeam = await getTeam(req)
@@ -53,6 +68,11 @@ export default {
     return { success: true }
   },
 
+  /**
+   * @param {TradeOfferType} offer
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async cancelOffer (offer, req) {
     const team = await getTeam(req)
     if (!offer.id || !team.id) throw new BadRequestError('Nope...')
@@ -60,12 +80,22 @@ export default {
     return { success: true }
   },
 
+  /**
+   * @param {TradeOfferType} offer
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async declineOffer (offer, req) {
     if (!offer || !offer.id) throw new BadRequestError('Nope...')
     await declineOffer(offer)
     return { success: true }
   },
 
+  /**
+   * @param {PlayerType} player
+   * @param {Request} req
+   * @returns {Promise<{offer: TradeOfferType|undefined}>}
+   */
   async myOfferForPlayer (player, req) {
     const team = await getTeam(req)
     const [offer] = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [team.id, player.id])

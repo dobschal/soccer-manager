@@ -13,16 +13,30 @@ export default {
     return stadiums[0]
   },
 
+  /**
+   * @param {Request} req
+   * @returns {Promise<{stadium: StadiumType}>}
+   */
   async getStadium (req) {
     return { stadium: await getStadiumOfCurrentUser(req) }
   },
 
+  /**
+   * @param {StadiumType} stadium
+   * @param {Request} req
+   * @returns {Promise<{totalPrice: number}>}
+   */
   async calculateStadiumPrice (stadium, req) {
     const currentStadium = await getStadiumOfCurrentUser(req)
     if (currentStadium.id !== stadium.id) throw new UnauthorizedError('Not your stadium dude')
     return { totalPrice: calcuateStadiumBuild(currentStadium, stadium) }
   },
 
+  /**
+   * @param {StadiumType} stadium
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async buildStadium (stadium, req) {
     const currentStadium = await getStadiumOfCurrentUser(req)
     if (currentStadium.id !== stadium.id) throw new UnauthorizedError('Not your stadium dude')
@@ -33,6 +47,11 @@ export default {
     return { success: true }
   },
 
+  /**
+   * @param {StadiumType} stadium
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async updatePrices (stadium, req) {
     const currentStadium = await getStadiumOfCurrentUser(req)
     if (currentStadium.id !== stadium.id) throw new UnauthorizedError('Not your stadium dude')

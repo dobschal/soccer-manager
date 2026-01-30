@@ -37,6 +37,13 @@ export async function getIncomingBuyOffers (teamId) {
   )
 }
 
+/**
+ * @param {TradeOfferType} offer
+ * @param {TeamType} sellingTeam
+ * @param {number} gameDay
+ * @param {number} season
+ * @returns {Promise<void>}
+ */
 export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   offer = new TradeOffer(offer)
   const offers = await query(`

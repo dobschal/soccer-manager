@@ -65,6 +65,9 @@ export function getQueryParams () {
 
 let currentLayoutRenderFn
 
+/**
+ * @returns {Promise<void>}
+ */
 async function _resolvePage () {
   const currentPath = window.location.hash.substring(1).split('?')[0]
   if (!isAuthenticated() && currentPath !== 'login') {
@@ -94,6 +97,12 @@ async function _resolvePage () {
   await _renderNewPage(pageRenderFn, currentPath, pageElement)
 }
 
+/**
+ * @param {Function} PageUIElement
+ * @param {string} currentPath
+ * @param {HTMLElement} pageElement
+ * @returns {Promise<void>}
+ */
 async function _renderNewPage (PageUIElement, currentPath, pageElement) {
   if (PageUIElement.isUIElement) {
     /** @type {UIElement} */
@@ -114,6 +123,10 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
   }
 }
 
+/**
+ * @param {HTMLElement} pageElement
+ * @returns {void}
+ */
 function _afterPageLoad (pageElement) {
   _hideLoadingIndicator()
   fire('page-changed')
@@ -121,6 +134,9 @@ function _afterPageLoad (pageElement) {
   pageElement.style.opacity = '1'
 }
 
+/**
+ * @returns {void}
+ */
 function _showLoadingIndicator () {
   const element = el('#loading-indicator')
   if (element) return
@@ -129,10 +145,18 @@ function _showLoadingIndicator () {
     '<div id="loading-indicator"></div>'
   )
 }
+
+/**
+ * @returns {void}
+ */
 function _hideLoadingIndicator () {
   el('#loading-indicator')?.remove()
 }
 
+/**
+ * @param {Function} LayoutElement
+ * @returns {Promise<boolean|undefined>}
+ */
 async function _renderLayout (LayoutElement) {
   if (!currentLayoutRenderFn || currentLayoutRenderFn !== LayoutElement) {
     if (LayoutElement.isUIElement) {

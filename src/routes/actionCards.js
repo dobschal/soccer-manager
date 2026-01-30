@@ -6,6 +6,10 @@ import { getActionCards, playActionCard } from '../helper/actionCardHelper.js'
 
 export default {
 
+  /**
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, actionCards: Array}>}
+   */
   async getActionCards (req) {
     if (!req.user) throw new UnauthorizedError('Missing user')
     const team = await getTeam(req)
@@ -13,6 +17,12 @@ export default {
     return { success: true, actionCards }
   },
 
+  /**
+   * @param {Object} actionCard1
+   * @param {Object} actionCard2
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async mergeCards (actionCard1, actionCard2, req) {
     if (!req.user) throw new UnauthorizedError('Missing user')
     const team = await getTeam(req)
@@ -31,6 +41,13 @@ export default {
     throw new BadRequestError('Cannot merge')
   },
 
+  /**
+   * @param {Object} actionCard
+   * @param {PlayerType} player
+   * @param {string} position
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async useActionCard (actionCard, player, position, req) {
     if (!req.user) throw new UnauthorizedError('Missing user')
     const team = await getTeam(req)

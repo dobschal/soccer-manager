@@ -29,6 +29,9 @@ export class Lineup extends UIElement {
     this._fillEmptyPositions()
   }
 
+  /**
+   * @returns {void}
+   */
   _fillEmptyPositions () {
     const positions = getPositionsOfFormation(this.team.formation)
     this.players.filter(p => p.in_game_position).forEach(p => {
@@ -47,6 +50,9 @@ export class Lineup extends UIElement {
     })
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -58,6 +64,9 @@ export class Lineup extends UIElement {
     `
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._applyPositionHacks()
     this._loadPlayerImages()
@@ -65,6 +74,9 @@ export class Lineup extends UIElement {
     this._attachSaveButtonHandler()
   }
 
+  /**
+   * @returns {void}
+   */
   _applyPositionHacks () {
     // Position hack for 2x CM, 2x CD, 2x DM
     ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
@@ -81,6 +93,9 @@ export class Lineup extends UIElement {
     })
   }
 
+  /**
+   * @returns {void}
+   */
   _loadPlayerImages () {
     this.players.filter(p => p.in_game_position).forEach((player, index) => {
       renderPlayerImage(player, this.team, 100).then(image => {
@@ -90,6 +105,9 @@ export class Lineup extends UIElement {
     })
   }
 
+  /**
+   * @returns {void}
+   */
   _attachPlayerClickHandlers () {
     const playerEls = document.querySelectorAll(`${this._elementQuery} .squad .player`)
     const playersInLineup = this.players.filter(p => p.in_game_position)
@@ -110,6 +128,9 @@ export class Lineup extends UIElement {
     })
   }
 
+  /**
+   * @returns {void}
+   */
   _attachSaveButtonHandler () {
     const saveBtn = el(`${this._elementQuery} button.btn-primary`)
     if (saveBtn) {
@@ -131,6 +152,11 @@ export class Lineup extends UIElement {
     }
   }
 
+  /**
+   * @param {PlayerType} player
+   * @param {PlayerType} newPlayer
+   * @returns {void}
+   */
   _exchangePlayer (player, newPlayer) {
     const oldPosition = player.in_game_position
     player.in_game_position = newPlayer.in_game_position
@@ -142,11 +168,18 @@ export class Lineup extends UIElement {
     render('#squad', renderLineup(this.players, this.team, lineUpData.parentInstance))
   }
 
+  /**
+   * @returns {string}
+   */
   _renderSaveButton () {
     if (!lineUpData.squadDataChanged) return ''
     return `<button class="btn btn-primary w-100" type="button">Save</button>`
   }
 
+  /**
+   * @param {PlayerType} player
+   * @returns {string}
+   */
   _renderSquadPlayer (player) {
     const freshnessClass = player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : 'text-success')
     const displayName = player.name.includes(' ')

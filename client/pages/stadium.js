@@ -7,6 +7,9 @@ import { euroFormat } from '../lib/currency.js'
 export class StadiumPage extends UIElement {
   stadium = {}
 
+  /**
+   * @returns {Object}
+   */
   get events () {
     return {
       '#price-form': {
@@ -18,6 +21,9 @@ export class StadiumPage extends UIElement {
     }
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -48,17 +54,26 @@ export class StadiumPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const response = await server.getStadium()
     this.stadium = response.stadium
     console.log('Stadium: ', this.stadium)
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._attachPriceInputHandlers()
     this._attachExpandInputHandlers()
   }
 
+  /**
+   * @returns {void}
+   */
   _attachPriceInputHandlers () {
     ['north', 'south', 'east', 'west'].forEach(name => {
       const input = el(`${this._elementQuery} [data-price-input="${name}"]`)
@@ -70,6 +85,9 @@ export class StadiumPage extends UIElement {
     })
   }
 
+  /**
+   * @returns {void}
+   */
   _attachExpandInputHandlers () {
     ['north', 'south', 'east', 'west'].forEach(name => {
       const sizeInput = el(`${this._elementQuery} [data-size-input="${name}"]`)
@@ -91,6 +109,10 @@ export class StadiumPage extends UIElement {
     })
   }
 
+  /**
+   * @param {Event} event
+   * @returns {Promise<void>}
+   */
   async _onPriceFormSubmit (event) {
     event.preventDefault()
     try {
@@ -101,6 +123,10 @@ export class StadiumPage extends UIElement {
     }
   }
 
+  /**
+   * @param {Event} event
+   * @returns {Promise<void>}
+   */
   async _onStadiumFormSubmit (event) {
     event.preventDefault()
     try {
@@ -111,6 +137,9 @@ export class StadiumPage extends UIElement {
     }
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async _updatePrice () {
     try {
       const { totalPrice } = await server.calculateStadiumPrice(this.stadium)
@@ -123,6 +152,9 @@ export class StadiumPage extends UIElement {
     }
   }
 
+  /**
+   * @returns {string}
+   */
   _renderPriceForm () {
     const formGroups = ['north', 'south', 'east', 'west'].map(name => `
       <div class="col-6 col-sm-3 mb-2">
@@ -151,6 +183,9 @@ export class StadiumPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {string}
+   */
   _renderExpandForm () {
     const formGroups = ['north', 'south', 'east', 'west'].map(name => `
       <div class="col-6 col-sm-3 mb-4">
@@ -182,6 +217,9 @@ export class StadiumPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {number}
+   */
   _calculateStadiumSize () {
     return ['north', 'south', 'east', 'west'].reduce(
       (total, name) => total + (this.stadium[name + '_stand_size'] || 0),
@@ -189,6 +227,9 @@ export class StadiumPage extends UIElement {
     )
   }
 
+  /**
+   * @returns {string}
+   */
   _renderStands () {
     return ['north', 'south', 'east', 'west'].map(name => {
       const size = this.stadium[name + '_stand_size'] || 0
@@ -207,7 +248,9 @@ export class StadiumPage extends UIElement {
   }
 }
 
-// Backwards compatibility
+/**
+ * @returns {Promise<string>}
+ */
 export async function renderStadiumPage () {
   return new StadiumPage().toString()
 }

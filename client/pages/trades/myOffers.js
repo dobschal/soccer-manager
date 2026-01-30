@@ -13,6 +13,9 @@ export class MyOffersPage extends UIElement {
     this.parentInstance = parentInstance
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -43,14 +46,23 @@ export class MyOffersPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {void}
+   */
   onQueryChanged () {
     super.onQueryChanged()
   }
 
+  /**
+   * @returns {Object}
+   */
   get events () {
     return super.events
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const response = await server.getMyTeam()
     this.team = response.team
@@ -58,6 +70,9 @@ export class MyOffersPage extends UIElement {
     this.offers = offers.filter(o => o.from_team_id === this.team.id)
   }
 
+  /**
+   * @returns {boolean}
+   */
   get hasOpenOffers () {
     return this.offers.length > 0
   }
@@ -74,6 +89,9 @@ class MyOfferListItem extends UIElement {
     this.parentInstance = parentInstance
   }
 
+  /**
+   * @returns {Object}
+   */
   get events () {
     return {
       'td[data-show-player]': {
@@ -85,6 +103,9 @@ class MyOfferListItem extends UIElement {
     }
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <tr >
@@ -103,12 +124,18 @@ class MyOfferListItem extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     this.player = await server.getPlayerById(this.offer.player_id)
     this.team = await server.getTeamById(this.player.team_id)
     console.log('Got player and team: ', this.player, this.team)
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async _cancelOffer () {
     try {
       await server.cancelOffer(this.offer)
@@ -118,9 +145,18 @@ class MyOfferListItem extends UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   onQueryChanged () {}
 
+  /**
+   * @returns {void}
+   */
   onDestroy () {}
 
+  /**
+   * @returns {void}
+   */
   onMounted () {}
 }

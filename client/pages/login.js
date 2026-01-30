@@ -5,6 +5,9 @@ import { toast } from '../partials/toast.js'
 import { UIElement } from '../lib/UIElement.js'
 
 export class LoginPage extends UIElement {
+  /**
+   * @returns {Object}
+   */
   get events () {
     return {
       form: {
@@ -16,6 +19,9 @@ export class LoginPage extends UIElement {
     }
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -52,13 +58,25 @@ export class LoginPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {}
 
+  /**
+   * @param {Object} params
+   * @param {string} params.type
+   * @returns {Promise<void>}
+   */
   async onQueryChanged ({ type }) {
     this.isLogin = type !== 'registration'
     await this.update()
   }
 
+  /**
+   * @param {Event} event
+   * @returns {Promise<void>}
+   */
   async _onSubmit (event) {
     event.preventDefault()
     if (this.isSubmitting) return

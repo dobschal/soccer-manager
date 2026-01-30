@@ -65,9 +65,7 @@ for (const filename of filenames) {
 }
 
 /**
- * On every startup, we update the database we the latest structure
- * Schedule the game day calculation and season preparation
- * Start API server to listen on post 3000
+ * @returns {Promise<void>}
  */
 async function start () {
   await runMigration()

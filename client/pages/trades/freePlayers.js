@@ -8,6 +8,9 @@ import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
 
 export class FreePlayers extends UIElement {
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -42,6 +45,9 @@ export class FreePlayers extends UIElement {
     ]
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const response = await server.getCurrentGameday()
     this.gameDay = response.gameDay

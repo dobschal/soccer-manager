@@ -7,10 +7,18 @@ import { getPastTrades } from '../helper/tradeHelper.js'
 
 export default {
 
+  /**
+   * @param {number} playerId
+   * @returns {Promise<PlayerType>}
+   */
   async getPlayerById (playerId) {
     return await getPlayerById(playerId)
   },
 
+  /**
+   * @param {Array<number>} playerIds
+   * @returns {Promise<{players: Array<PlayerType>}>}
+   */
   async getPlayersWithIds (playerIds) {
     if (!Array.isArray(playerIds) || playerIds.length === 0) throw new BadRequestError('playerIds missing')
     const players = await query(`SELECT *
@@ -19,6 +27,11 @@ export default {
     return { players }
   },
 
+  /**
+   * @param {PlayerType} player
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async firePlayer (player, req) {
     const team = await getTeam(req)
     const [playerFromDb] = await query('SELECT * FROM player WHERE id=? AND team_id=?', [player.id, team.id])

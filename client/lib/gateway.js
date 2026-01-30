@@ -1,6 +1,10 @@
 import { toast } from '../partials/toast.js'
 import { deepCopy } from './deepCopy.js'
 
+/**
+ * @param {Error} e
+ * @returns {void}
+ */
 export function showServerError (e) {
   console.error('Server Error: ', e)
   toast(e.message ?? 'Something went wrong!', 'error')

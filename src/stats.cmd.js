@@ -1,5 +1,8 @@
 import { query } from './lib/database.js'
 
+/**
+ * @returns {Promise<void>}
+ */
 async function run () {
   const games = await query('SELECT * FROM game WHERE played=1 AND season=1 AND game_day>=0')
   let totalGoalChances = 0

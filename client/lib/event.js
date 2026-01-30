@@ -12,6 +12,10 @@ export function on (eventName, callback) {
   return id
 }
 
+/**
+ * @param {number} id
+ * @returns {void}
+ */
 export function off (id) {
   const index = _listeners.findIndex(l => l.id === id)
   if (index === -1) return console.error('Cannot remove event listener.', id)
@@ -19,6 +23,11 @@ export function off (id) {
   _listeners.splice(index, 1)
 }
 
+/**
+ * @param {string} eventName
+ * @param {*} data
+ * @returns {void}
+ */
 export function fire (eventName, data) {
   _listeners.forEach(listener => {
     if (listener.eventName === eventName) {

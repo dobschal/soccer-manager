@@ -6,10 +6,16 @@ export class Balance extends UIElement {
   _pollingInterval = null
   balance = 0
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `<span>${euroFormat.format(this.balance)}</span>`
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     try {
       const { balance } = await server.getMyBalance()
@@ -19,6 +25,9 @@ export class Balance extends UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     // Start polling every 3 seconds
     this._pollingInterval = setInterval(async () => {
@@ -27,6 +36,9 @@ export class Balance extends UIElement {
     }, 3000)
   }
 
+  /**
+   * @returns {void}
+   */
   onDestroy () {
     if (this._pollingInterval) {
       clearInterval(this._pollingInterval)
@@ -35,7 +47,9 @@ export class Balance extends UIElement {
   }
 }
 
-// Backwards compatibility
+/**
+ * @returns {string}
+ */
 export function balanceSpan () {
   return new Balance().toString()
 }

@@ -13,6 +13,9 @@ export class MarketPage extends UIElement {
   players = []
   teams = []
 
+  /**
+   * @returns {string}
+   */
   get template () {
     const sellOffers = this.offers.filter(o => o.type === 'sell' && o.from_team_id !== this.team.id)
 
@@ -42,6 +45,9 @@ export class MarketPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const teamResponse = await server.getMyTeam()
     this.team = teamResponse.team
@@ -54,10 +60,16 @@ export class MarketPage extends UIElement {
     console.log('Render market...')
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._attachBuyButtonHandlers()
   }
 
+  /**
+   * @returns {void}
+   */
   _attachBuyButtonHandlers () {
     const buyButtons = document.querySelectorAll(`${this._elementQuery} [data-buy-player]`)
     buyButtons.forEach(btn => {
@@ -69,6 +81,9 @@ export class MarketPage extends UIElement {
     })
   }
 
+  /**
+   * @returns {Array}
+   */
   _prepareTableCols () {
     return [{
       name: 'Name',
@@ -110,6 +125,10 @@ export class MarketPage extends UIElement {
     }]
   }
 
+  /**
+   * @param {Object} player
+   * @returns {Promise<void>}
+   */
   async _showBuyDialog (player) {
     const { ok, value } = await showDialog({
       title: `Buy ${player.name}?`,
@@ -140,7 +159,9 @@ export class MarketPage extends UIElement {
   }
 }
 
-// Backwards compatibility
+/**
+ * @returns {Promise<string>}
+ */
 export async function renderMarket () {
   return new MarketPage().toString()
 }

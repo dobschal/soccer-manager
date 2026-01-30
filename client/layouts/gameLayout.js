@@ -5,6 +5,9 @@ import { goTo } from '../lib/router.js'
 import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 
+/**
+ * @returns {void}
+ */
 export function hideNavigation () {
   el('.navbar-collapse')?.classList.remove('show')
 }
@@ -16,6 +19,9 @@ export class GameLayout extends UIElement {
   _nextGameDate = null
   _navItemEventIds = []
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div class="game-layout">
@@ -52,21 +58,33 @@ export class GameLayout extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const response = await server.getNextGameDate()
     this._nextGameDate = response.date
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._attachEventHandlers()
     this._startTimer()
   }
 
+  /**
+   * @returns {void}
+   */
   onDestroy () {
     this._stopTimer()
     this._cleanupNavItemEvents()
   }
 
+  /**
+   * @returns {void}
+   */
   _attachEventHandlers () {
     const logoutBtn = document.querySelector(`${this._elementQuery} #logout-button`)
     if (logoutBtn) {
@@ -86,6 +104,9 @@ export class GameLayout extends UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   _startTimer () {
     if (this._interval) clearInterval(this._interval)
 
@@ -118,6 +139,9 @@ export class GameLayout extends UIElement {
     }, 1000)
   }
 
+  /**
+   * @returns {void}
+   */
   _stopTimer () {
     if (this._interval) {
       clearInterval(this._interval)
@@ -125,11 +149,19 @@ export class GameLayout extends UIElement {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   _cleanupNavItemEvents () {
     this._navItemEventIds.forEach(id => off(id))
     this._navItemEventIds = []
   }
 
+  /**
+   * @param {string} path
+   * @param {string} text
+   * @returns {string}
+   */
   _navItem (path, text) {
     const id = generateId()
     const eventId = on('page-changed', () => {
@@ -149,6 +181,9 @@ export class GameLayout extends UIElement {
 }
 
 // Backwards compatibility
+/**
+ * @returns {Promise<string>}
+ */
 export async function renderGameLayout () {
   return new GameLayout().toString()
 }

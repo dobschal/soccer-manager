@@ -4,6 +4,10 @@ import { getTeam, getTeamById } from '../helper/teamHelper.js'
 
 export default {
 
+  /**
+   * @param {Request} req
+   * @returns {Promise<{user: Object, team: TeamType, players: Array<PlayerType>}>}
+   */
   async getMyTeam (req) {
     const team = await getTeam(req)
     const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
@@ -11,11 +15,20 @@ export default {
     return { user: req.user, team, players }
   },
 
+  /**
+   * @param {Request} req
+   * @returns {Promise<{balance: number}>}
+   */
   async getMyBalance (req) {
     const team = await getTeam(req)
     return { balance: team.balance }
   },
 
+  /**
+   * @param {string} color
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async updateColor (color, req) {
     const team = await getTeam(req)
     await query('UPDATE team SET color=? WHERE id=?', [color, team.id])
@@ -30,6 +43,10 @@ export default {
     return await getTeamById(teamId)
   },
 
+  /**
+   * @param {number} teamId
+   * @returns {Promise<{team: TeamType, players: Array<PlayerType>, user: Object|undefined}>}
+   */
   async getTeam (teamId) {
     const team = await getTeamById(teamId)
     const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
@@ -44,6 +61,12 @@ export default {
     return { team, players, user }
   },
 
+  /**
+   * @param {Array<PlayerType>} players
+   * @param {string} formation
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
   async saveLineup (players, formation, req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
     const playersFromDb = await query('SELECT * FROM player WHERE team_id=?', team.id)

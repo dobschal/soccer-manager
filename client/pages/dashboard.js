@@ -46,6 +46,9 @@ export class DashboardPage extends UIElement {
   game = {}
   messages = []
 
+  /**
+   * @returns {string}
+   */
   get template () {
     const isHomeGame = this.game.team1Id === this.team.id
 
@@ -85,6 +88,9 @@ export class DashboardPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const actionCardsResponse = await server.getActionCards()
     this.actionCards = actionCardsResponse.actionCards
@@ -103,10 +109,16 @@ export class DashboardPage extends UIElement {
     this.messages = await server.getLogMessages(pageIndex, pageSize)
   }
 
+  /**
+   * @returns {void}
+   */
   onMounted () {
     this._attachActionCardHandlers()
   }
 
+  /**
+   * @returns {void}
+   */
   _attachActionCardHandlers () {
     this.actionCards.forEach((card, idx) => {
       const useBtn = document.querySelector(`${this._elementQuery} [data-action-card="${idx}"] .btn-success`)
@@ -121,6 +133,10 @@ export class DashboardPage extends UIElement {
     })
   }
 
+  /**
+   * @param {Object} messageItem
+   * @returns {string}
+   */
   _renderLogMessage (messageItem) {
     const isToday = formatDate('WORDY hh:mm', messageItem.created_at).toLowerCase().includes('today')
     return `
@@ -131,6 +147,11 @@ export class DashboardPage extends UIElement {
     `
   }
 
+  /**
+   * @param {Object} actionCard
+   * @param {number} index
+   * @returns {string}
+   */
   _renderActionCard (actionCard, index) {
     const canMerge = (actionCard.action === 'LEVEL_UP_PLAYER_4' && this.actionCards.filter(a => a.action === 'LEVEL_UP_PLAYER_4').length > 1) ||
       (actionCard.action === 'LEVEL_UP_PLAYER_7' && this.actionCards.filter(a => a.action === 'LEVEL_UP_PLAYER_7').length > 1)
@@ -158,6 +179,10 @@ export class DashboardPage extends UIElement {
     `
   }
 
+  /**
+   * @param {Object} actionCard
+   * @returns {Promise<void>}
+   */
   async _mergeCards (actionCard) {
     try {
       const cardsToMerge = this.actionCards.filter(a => a.action === actionCard.action)
@@ -171,6 +196,10 @@ export class DashboardPage extends UIElement {
     }
   }
 
+  /**
+   * @param {Object} actionCard
+   * @returns {Promise<void>}
+   */
   async _useActionCard (actionCard) {
     if (actionCard.action.startsWith('FRESHNESS_')) {
       await this._handleFitnessActionCard(actionCard)
@@ -199,6 +228,10 @@ export class DashboardPage extends UIElement {
     toast('Not implemented yet...')
   }
 
+  /**
+   * @param {Object} actionCard
+   * @returns {Promise<void>}
+   */
   async _handleFitnessActionCard (actionCard) {
     const data = await server.getMyTeam()
     const playerList = new PlayerList(data.players, false, async player => {
@@ -220,6 +253,10 @@ export class DashboardPage extends UIElement {
     )
   }
 
+  /**
+   * @param {Object} actionCard
+   * @returns {Promise<void>}
+   */
   async _handleChangePositionActionCard (actionCard) {
     const data = await server.getMyTeam()
     const playerList = new PlayerList(data.players, false, async player => {
@@ -249,6 +286,10 @@ export class DashboardPage extends UIElement {
     )
   }
 
+  /**
+   * @param {Function} onClickHandler
+   * @returns {string}
+   */
   _renderPositionList (onClickHandler) {
     const positions = [
       ['Goalkeeper', 'GK'],
@@ -281,6 +322,10 @@ export class DashboardPage extends UIElement {
     return `<ul class="list-group">${items}</ul>`
   }
 
+  /**
+   * @param {Object} actionCard
+   * @returns {Promise<void>}
+   */
   async _handleLevelUpActionCard (actionCard) {
     const data = await server.getMyTeam()
     const playerList = new PlayerList(data.players, false, async player => {
@@ -303,7 +348,9 @@ export class DashboardPage extends UIElement {
   }
 }
 
-// Backwards compatibility
+/**
+ * @returns {Promise<string>}
+ */
 export async function renderDashboardPage () {
   return new DashboardPage().toString()
 }

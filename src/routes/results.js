@@ -6,6 +6,9 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 export default {
 
+  /**
+   * @returns {Promise<{date: Date}>}
+   */
   async getNextGameDate () {
     const d = new Date()
     d.setHours(12)
@@ -71,6 +74,14 @@ export default {
     return await getGameDayAndSeason()
   },
 
+  /**
+   * @param {number} gameDay
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
+   * @returns {Promise<{results: GameResultType[]}>}
+   */
   async getResults (gameDay, season, level, league, req) {
     const team = await getTeam(req)
     const results = await query(`
@@ -94,6 +105,10 @@ export default {
     return { results }
   },
 
+  /**
+   * @param {number} gameId
+   * @returns {Promise<{result: GameResultType}>}
+   */
   async getResult (gameId) {
     const results = await query(`
       SELECT
@@ -117,6 +132,14 @@ export default {
     return { result: results[0] }
   },
 
+  /**
+   * @param {number} gameDay
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
+   * @returns {Promise<Array<StandingType>>}
+   */
   async getStanding (gameDay, season, level, league, req) {
     const team = await getTeam(req)
     const actualLevel = level ?? team.level

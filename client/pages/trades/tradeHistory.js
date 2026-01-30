@@ -9,6 +9,9 @@ export class TradeHistoryPage extends UIElement {
   teams = []
   players = []
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `
       <div>
@@ -31,6 +34,9 @@ export class TradeHistoryPage extends UIElement {
     `
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async load () {
     const response = await server.getTradeHistory()
     this.trades = response.trades
@@ -38,6 +44,9 @@ export class TradeHistoryPage extends UIElement {
     this.players = response.players
   }
 
+  /**
+   * @returns {string}
+   */
   _renderTradeHistory () {
     let currentSeason = null
     let currentGameDay = null
@@ -74,7 +83,9 @@ export class TradeHistoryPage extends UIElement {
   }
 }
 
-// Backwards compatibility
+/**
+ * @returns {string}
+ */
 export function renderTradeHistory () {
   return new TradeHistoryPage().toString()
 }

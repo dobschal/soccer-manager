@@ -1,4 +1,9 @@
 // From: https://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
+/**
+ * @param {string} color
+ * @param {number} percent
+ * @returns {string}
+ */
 export function shadeColor (color, percent) {
   let R = parseInt(color.substring(1, 3), 16)
   let G = parseInt(color.substring(3, 5), 16)

@@ -1,6 +1,12 @@
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { el, generateId } from '../lib/html.js'
 
+/**
+ * @param {string} title
+ * @param {string} subttitle
+ * @param {string} text
+ * @returns {{onClose: (callback: () => void) => void, remove: () => void}}
+ */
 export function showOverlay (title, subttitle, text) {
   const closeButtonId = generateId()
   const overlayId = generateId()

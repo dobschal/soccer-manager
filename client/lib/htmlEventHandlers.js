@@ -1,7 +1,17 @@
+/**
+ * @param {string} elementQuery
+ * @param {(event: Event) => void} handler
+ * @returns {void}
+ */
 export function onChange (elementQuery, handler) {
   return on('change', elementQuery, handler)
 }
 
+/**
+ * @param {string} elementQuery
+ * @param {(event: MouseEvent) => void} handler
+ * @returns {void}
+ */
 export function onClick (elementQuery, handler) {
   return on('click', elementQuery, handler)
 }
@@ -16,6 +26,12 @@ export function onSubmit (elementQuery, handler) {
   return on('submit', elementQuery, handler)
 }
 
+/**
+ * @param {string} eventName
+ * @param {string} elementQuery
+ * @param {(event: Event) => void} handler
+ * @returns {void}
+ */
 export function on (eventName, elementQuery, handler) {
   setTimeout(() => {
     if (elementQuery.startsWith('_')) elementQuery = '#' + elementQuery

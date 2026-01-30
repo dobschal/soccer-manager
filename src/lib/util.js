@@ -80,6 +80,11 @@ export function calculateStanding (games, teams) {
   return Object.values(standing).sort(_sortStanding)
 }
 
+/**
+ * @param {StandingType} s1
+ * @param {StandingType} s2
+ * @returns {number}
+ */
 function _sortStanding (s1, s2) {
   const retVal = s2.points - s1.points
   if (retVal === 0) {

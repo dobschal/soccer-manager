@@ -1,6 +1,11 @@
 import { UIElement } from '../lib/UIElement.js'
 
 export class Button extends UIElement {
+  /**
+   * @param {string} text
+   * @param {() => void} onClickHandler
+   * @param {string} [type]
+   */
   constructor (text, onClickHandler, type = 'primary') {
     super()
     this.text = text
@@ -8,6 +13,9 @@ export class Button extends UIElement {
     this.type = type
   }
 
+  /**
+   * @returns {object}
+   */
   get events () {
     return {
       button: {
@@ -16,12 +24,20 @@ export class Button extends UIElement {
     }
   }
 
+  /**
+   * @returns {string}
+   */
   get template () {
     return `<button class="btn btn-${this.type}" type="button">${this.text}</button>`
   }
 }
 
-// Backwards compatibility wrapper
+/**
+ * @param {string} text
+ * @param {() => void} _onClick
+ * @param {string} [type]
+ * @returns {string}
+ */
 export function renderButton (text, _onClick, type = 'primary') {
   return new Button(text, _onClick, type).toString()
 }

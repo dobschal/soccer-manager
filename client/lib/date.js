@@ -25,6 +25,10 @@ export function formatDate (format, date) {
     .replace('WORDY', isToday ? 'Today' : isYesterday ? 'Yesterday' : 'Long ago...')
 }
 
+/**
+ * @param {number} value
+ * @returns {string}
+ */
 function twoDigitString (value) {
   if (value < 10) return `0${value}`
   return `${value}`
