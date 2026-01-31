@@ -8,6 +8,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 export class StadiumPage extends UIElement {
   stadium = {}
+  team = {}
+  _flags = []
+  _animationTime = 0
 
   /**
    * @returns {Object}
@@ -73,8 +76,12 @@ export class StadiumPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const response = await server.getStadium()
-    this.stadium = response.stadium
+    const [stadiumResponse, teamResponse] = await Promise.all([
+      server.getStadium(),
+      server.getMyTeam()
+    ])
+    this.stadium = stadiumResponse.stadium
+    this.team = teamResponse.team
     console.log('Stadium: ', this.stadium)
   }
 
@@ -263,6 +270,28 @@ export class StadiumPage extends UIElement {
     const animate = () => {
       requestAnimationFrame(animate)
       controls.update()
+
+      // Animate flags
+      this._animationTime += 0.05
+      this._flags.forEach(flag => {
+        const positionAttr = flag.geometry.getAttribute('position')
+        const originalPositions = flag.userData.originalPositions
+
+        for (let i = 0; i < positionAttr.count; i++) {
+          const x = originalPositions[i * 3]
+          const y = originalPositions[i * 3 + 1]
+          const z = originalPositions[i * 3 + 2]
+
+          // Wave effect based on distance from pole (x position)
+          const waveAmount = x * 0.3
+          const wave = Math.sin(this._animationTime * 3 + x * 2) * waveAmount
+
+          positionAttr.setZ(i, z + wave)
+          positionAttr.setY(i, y + Math.sin(this._animationTime * 2 + x * 3) * waveAmount * 0.3)
+        }
+        positionAttr.needsUpdate = true
+      })
+
       renderer.render(scene, camera)
     }
     animate()
@@ -302,8 +331,11 @@ export class StadiumPage extends UIElement {
     ground.receiveShadow = true
     scene.add(ground)
 
+    // Get team color (default to red if not set)
+    const teamColor = this.team.color || '#FF0000'
+
     // Field (green grass)
-    this._createField(scene, fieldWidth, fieldDepth)
+    this._createField(scene, fieldWidth, fieldDepth, teamColor)
 
     // North stand (back, -Z) - faces towards +Z (towards field)
     this._createStand(scene, {
@@ -351,8 +383,9 @@ export class StadiumPage extends UIElement {
    * @param {THREE.Scene} scene
    * @param {number} width
    * @param {number} depth
+   * @param {string} teamColor
    */
-  _createField (scene, width, depth) {
+  _createField (scene, width, depth, teamColor) {
     // Main grass
     const fieldGeo = new THREE.PlaneGeometry(width, depth)
     const fieldMat = new THREE.MeshLambertMaterial({ color: 0x2e8b2e })
@@ -409,6 +442,58 @@ export class StadiumPage extends UIElement {
     // Goals
     this._createGoal(scene, -width / 2, 0)
     this._createGoal(scene, width / 2)
+
+    // Corner flags
+    const cornerPositions = [
+      { x: -width / 2, z: -depth / 2 },
+      { x: width / 2, z: -depth / 2 },
+      { x: -width / 2, z: depth / 2 },
+      { x: width / 2, z: depth / 2 }
+    ]
+
+    cornerPositions.forEach(pos => {
+      this._createFlag(scene, pos.x, pos.z, teamColor)
+    })
+  }
+
+  /**
+   * Create a corner flag with pole
+   * @param {THREE.Scene} scene
+   * @param {number} x
+   * @param {number} z
+   * @param {string} color
+   */
+  _createFlag (scene, x, z, color) {
+    const poleHeight = 2.5
+    const flagWidth = 1.5
+    const flagHeight = 1.0
+
+    // Flag pole
+    const poleGeo = new THREE.CylinderGeometry(0.05, 0.05, poleHeight, 8)
+    const poleMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+    const pole = new THREE.Mesh(poleGeo, poleMat)
+    pole.position.set(x, poleHeight / 2, z)
+    scene.add(pole)
+
+    // Flag (plane with segments for wave animation)
+    const flagGeo = new THREE.PlaneGeometry(flagWidth, flagHeight, 10, 5)
+    const flagMat = new THREE.MeshLambertMaterial({
+      color: new THREE.Color(color),
+      side: THREE.DoubleSide
+    })
+    const flag = new THREE.Mesh(flagGeo, flagMat)
+
+    // Position flag at top of pole
+    flag.position.set(x + flagWidth / 2, poleHeight - flagHeight / 2, z)
+
+    // Store original positions for animation
+    const positionAttr = flagGeo.getAttribute('position')
+    const originalPositions = new Float32Array(positionAttr.array.length)
+    originalPositions.set(positionAttr.array)
+    flag.userData.originalPositions = originalPositions
+
+    scene.add(flag)
+    this._flags.push(flag)
   }
 
   /**
@@ -575,7 +660,6 @@ export class StadiumPage extends UIElement {
     // Roof if enabled
     if (hasRoof) {
       const roofY = actualHeight + 3
-      const roofFrontZ = -1.5  // Front edge of roof
       const pillarZ = actualDepth - 1
       const pillarTopY = roofY + 4  // Pillars extend above roof
       const pillarHeight = pillarTopY + 0.5  // Total height from ground
