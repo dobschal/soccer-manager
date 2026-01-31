@@ -241,20 +241,38 @@ export class StadiumPage extends UIElement {
       this._controls = null
     }
 
-    // Traverse scene and dispose all geometries and materials
+    // Traverse scene and dispose all geometries, materials, and textures
     if (this._scene) {
       this._scene.traverse((object) => {
         if (object.geometry) {
           object.geometry.dispose()
         }
         if (object.material) {
-          if (Array.isArray(object.material)) {
-            object.material.forEach(material => material.dispose())
-          } else {
-            object.material.dispose()
-          }
+          const materials = Array.isArray(object.material) ? object.material : [object.material]
+          materials.forEach(material => {
+            // Dispose textures associated with the material
+            if (material.map) material.map.dispose()
+            if (material.lightMap) material.lightMap.dispose()
+            if (material.bumpMap) material.bumpMap.dispose()
+            if (material.normalMap) material.normalMap.dispose()
+            if (material.specularMap) material.specularMap.dispose()
+            if (material.envMap) material.envMap.dispose()
+            if (material.alphaMap) material.alphaMap.dispose()
+            if (material.aoMap) material.aoMap.dispose()
+            if (material.displacementMap) material.displacementMap.dispose()
+            if (material.emissiveMap) material.emissiveMap.dispose()
+            if (material.gradientMap) material.gradientMap.dispose()
+            if (material.metalnessMap) material.metalnessMap.dispose()
+            if (material.roughnessMap) material.roughnessMap.dispose()
+            
+            // Dispose the material itself
+            material.dispose()
+          })
         }
       })
+      
+      // Clear the scene
+      this._scene = null
     }
 
     // Dispose renderer
@@ -263,8 +281,7 @@ export class StadiumPage extends UIElement {
       this._renderer = null
     }
 
-    // Clear references
-    this._scene = null
+    // Clear remaining references
     this._camera = null
     this._flags = []
     this._animationTime = 0
