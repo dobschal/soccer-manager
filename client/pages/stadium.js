@@ -11,6 +11,14 @@ export class StadiumPage extends UIElement {
   team = {}
   _flags = []
   _animationTime = 0
+  
+  // Three.js resources for cleanup
+  _scene = null
+  _renderer = null
+  _camera = null
+  _controls = null
+  _animationFrameId = null
+  _resizeObserver = null
 
   /**
    * @returns {Object}
@@ -212,6 +220,74 @@ export class StadiumPage extends UIElement {
   }
 
   /**
+   * Called when component is unmounted - cleanup Three.js resources
+   */
+  onDestroy () {
+    // Cancel animation loop
+    if (this._animationFrameId !== null) {
+      cancelAnimationFrame(this._animationFrameId)
+      this._animationFrameId = null
+    }
+
+    // Disconnect resize observer
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect()
+      this._resizeObserver = null
+    }
+
+    // Dispose controls
+    if (this._controls) {
+      this._controls.dispose()
+      this._controls = null
+    }
+
+    // Traverse scene and dispose all geometries, materials, and textures
+    if (this._scene) {
+      this._scene.traverse((object) => {
+        if (object.geometry) {
+          object.geometry.dispose()
+        }
+        if (object.material) {
+          const materials = Array.isArray(object.material) ? object.material : [object.material]
+          materials.forEach(material => {
+            // Dispose textures associated with the material
+            if (material.map) material.map.dispose()
+            if (material.lightMap) material.lightMap.dispose()
+            if (material.bumpMap) material.bumpMap.dispose()
+            if (material.normalMap) material.normalMap.dispose()
+            if (material.specularMap) material.specularMap.dispose()
+            if (material.envMap) material.envMap.dispose()
+            if (material.alphaMap) material.alphaMap.dispose()
+            if (material.aoMap) material.aoMap.dispose()
+            if (material.displacementMap) material.displacementMap.dispose()
+            if (material.emissiveMap) material.emissiveMap.dispose()
+            if (material.gradientMap) material.gradientMap.dispose()
+            if (material.metalnessMap) material.metalnessMap.dispose()
+            if (material.roughnessMap) material.roughnessMap.dispose()
+            
+            // Dispose the material itself
+            material.dispose()
+          })
+        }
+      })
+      
+      // Clear the scene
+      this._scene = null
+    }
+
+    // Dispose renderer
+    if (this._renderer) {
+      this._renderer.dispose()
+      this._renderer = null
+    }
+
+    // Clear remaining references
+    this._camera = null
+    this._flags = []
+    this._animationTime = 0
+  }
+
+  /**
    * Initialize Three.js scene
    */
   _initThreeJS () {
@@ -223,51 +299,51 @@ export class StadiumPage extends UIElement {
     const height = Math.min(400, width * 0.6)
 
     // Scene - night sky
-    const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x0a0a1a) // Dark night sky
+    this._scene = new THREE.Scene()
+    this._scene.background = new THREE.Color(0x0a0a1a) // Dark night sky
 
     // Camera (isometric-like perspective)
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-    camera.position.set(80, 100, 80)
-    camera.lookAt(0, 0, 0)
+    this._camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+    this._camera.position.set(80, 100, 80)
+    this._camera.lookAt(0, 0, 0)
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
-    renderer.setSize(width, height)
-    renderer.setPixelRatio(window.devicePixelRatio)
-    renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    this._renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
+    this._renderer.setSize(width, height)
+    this._renderer.setPixelRatio(window.devicePixelRatio)
+    this._renderer.shadowMap.enabled = true
+    this._renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
     // Orbit controls for rotation
-    const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableDamping = true
-    controls.dampingFactor = 0.05
-    controls.maxPolarAngle = Math.PI / 2.2
-    controls.minDistance = 50
-    controls.maxDistance = 150
+    this._controls = new OrbitControls(this._camera, this._renderer.domElement)
+    this._controls.enableDamping = true
+    this._controls.dampingFactor = 0.05
+    this._controls.maxPolarAngle = Math.PI / 2.2
+    this._controls.minDistance = 50
+    this._controls.maxDistance = 150
 
     // Lighting - dimmed for night atmosphere
     const ambientLight = new THREE.AmbientLight(0x404060, 0.5)
-    scene.add(ambientLight)
+    this._scene.add(ambientLight)
 
     // Soft moonlight from above
     const moonLight = new THREE.DirectionalLight(0x6688cc, 0.5)
     moonLight.position.set(30, 100, 30)
-    scene.add(moonLight)
+    this._scene.add(moonLight)
 
     // Build stadium
-    this._buildStadium(scene)
+    this._buildStadium(this._scene)
 
     // Only first tower casts shadows for performance
-    this._createFloodlightTower(scene, -33, -23)
-    this._createFloodlightTower(scene, 33, -23)
-    this._createFloodlightTower(scene, -33, 23)
-    this._createFloodlightTower(scene, 33, 23)
+    this._createFloodlightTower(this._scene, -33, -23)
+    this._createFloodlightTower(this._scene, 33, -23)
+    this._createFloodlightTower(this._scene, -33, 23)
+    this._createFloodlightTower(this._scene, 33, 23)
 
     // Animation loop
     const animate = () => {
-      requestAnimationFrame(animate)
-      controls.update()
+      this._animationFrameId = requestAnimationFrame(animate)
+      this._controls.update()
 
       // Animate flags
       this._animationTime += 0.05
@@ -290,19 +366,19 @@ export class StadiumPage extends UIElement {
         positionAttr.needsUpdate = true
       })
 
-      renderer.render(scene, camera)
+      this._renderer.render(this._scene, this._camera)
     }
     animate()
 
     // Handle resize
-    const resizeObserver = new ResizeObserver(() => {
+    this._resizeObserver = new ResizeObserver(() => {
       const newWidth = container.clientWidth
       const newHeight = Math.min(400, newWidth * 0.6)
-      camera.aspect = newWidth / newHeight
-      camera.updateProjectionMatrix()
-      renderer.setSize(newWidth, newHeight)
+      this._camera.aspect = newWidth / newHeight
+      this._camera.updateProjectionMatrix()
+      this._renderer.setSize(newWidth, newHeight)
     })
-    resizeObserver.observe(container)
+    this._resizeObserver.observe(container)
   }
 
   /**
