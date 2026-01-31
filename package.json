@@ -29,6 +29,7 @@
     "globals": "^16.0.0",
     "happy-dom": "^20.4.0",
     "jsdom": "^27.4.0",
+    "three": "^0.182.0",
     "vitest": "^4.0.18"
   },
   "type": "module"

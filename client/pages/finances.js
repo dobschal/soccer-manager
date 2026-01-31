@@ -5,6 +5,8 @@ import { Balance } from '../partials/balance.js'
 import { euroFormat } from '../lib/currency.js'
 import { BalanceChart } from '../partials/balanceChart.js'
 
+// TODO: That array is a duplicate...
+
 // Sponsor names array - must match the order in the sprite sheet (5x8 grid, 1536x1024px)
 const sponsorNames = [
   'AeroTech Industries', 'EcoFusion Solutions', 'TruSports Apparel', 'GlobalTech Corporation', 'SwiftEnergy',
