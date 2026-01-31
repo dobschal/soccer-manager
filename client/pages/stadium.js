@@ -228,7 +228,7 @@ export class StadiumPage extends UIElement {
 
     // Camera (isometric-like perspective)
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-    camera.position.set(80, 60, 80)
+    camera.position.set(80, 100, 80)
     camera.lookAt(0, 0, 0)
 
     // Renderer
@@ -560,6 +560,10 @@ export class StadiumPage extends UIElement {
         scene.add(lens)
       }
     }
+
+    // TODO: Flutlichtmasten sollten kleiner sein, für kleine Stadien
+
+    // TODO: kleine Tribünen-Größen sind falsch --> 1000 sieht aus wie 100
 
     // Single main spotlight per tower (not one per fixture)
     // Using wider angle and PointLight for better coverage
