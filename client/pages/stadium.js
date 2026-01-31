@@ -574,31 +574,54 @@ export class StadiumPage extends UIElement {
 
     // Roof if enabled
     if (hasRoof) {
+      const roofY = actualHeight + 3
+      const roofFrontZ = -1.5  // Front edge of roof
+      const pillarZ = actualDepth - 1
+      const pillarTopY = roofY + 4  // Pillars extend above roof
+      const pillarHeight = pillarTopY + 0.5  // Total height from ground
+
       // Angled roof canopy
       const roofGeo = new THREE.BoxGeometry(width + 4, 0.3, actualDepth + 3)
-      const roofMat = new THREE.MeshLambertMaterial({ color: 0x3498db, transparent: true, opacity: 0.85 })
+      const roofMat = new THREE.MeshLambertMaterial({ color: 0xe6e6e6, transparent: true, opacity: 0.8 })
       const roof = new THREE.Mesh(roofGeo, roofMat)
-      roof.position.y = actualHeight + 3
+      roof.position.y = roofY
       roof.position.z = actualDepth / 2
-      // roof.rotation.x = -0.15  // slight angle
+      roof.rotation.x = -0.05
       roof.castShadow = true
       group.add(roof)
 
-      // Roof support pillars at the back
-      const supportGeo = new THREE.CylinderGeometry(0.35, 0.35, actualHeight + 3.5, 8)
+      // Roof support pillars - tall enough to go through the roof
+      const supportGeo = new THREE.CylinderGeometry(0.4, 0.4, pillarHeight, 8)
       const supportMat = new THREE.MeshLambertMaterial({ color: 0x444444 })
 
-      const leftSupport = new THREE.Mesh(supportGeo, supportMat)
-      leftSupport.position.set(-width / 2 + 3, (actualHeight + 3.5) / 2, actualDepth - 1)
-      group.add(leftSupport)
+      // Pillar positions (x coordinates)
+      const pillarPositions = [-width / 2 + 3, 0, width / 2 - 3]
 
-      const centerSupport = new THREE.Mesh(supportGeo, supportMat)
-      centerSupport.position.set(0, (actualHeight + 3.5) / 2, actualDepth - 1)
-      group.add(centerSupport)
+      // Cable/rope material
+      const cableMat = new THREE.LineBasicMaterial({ color: 0x333333, linewidth: 3 })
 
-      const rightSupport = new THREE.Mesh(supportGeo, supportMat)
-      rightSupport.position.set(width / 2 - 3, (actualHeight + 3.5) / 2, actualDepth - 1)
-      group.add(rightSupport)
+      pillarPositions.forEach(pillarX => {
+        // Create pillar
+        const support = new THREE.Mesh(supportGeo, supportMat)
+        support.position.set(pillarX, pillarHeight / 2, pillarZ)
+        support.castShadow = true
+        group.add(support)
+
+        // Create cable from pillar top to front of roof
+        const cablePoints = [
+          new THREE.Vector3(pillarX, pillarTopY, pillarZ),
+          new THREE.Vector3(pillarX, roofY + 0.2, pillarZ / 1.5)
+        ]
+        const cableGeo = new THREE.BufferGeometry().setFromPoints(cablePoints)
+        const cable = new THREE.Line(cableGeo, cableMat)
+        group.add(cable)
+
+        // Add a small sphere at the top of each pillar
+        const topCapGeo = new THREE.SphereGeometry(0.5, 8, 8)
+        const topCap = new THREE.Mesh(topCapGeo, supportMat)
+        topCap.position.set(pillarX, pillarTopY, pillarZ)
+        group.add(topCap)
+      })
     }
 
     group.position.set(x, 0, z)
