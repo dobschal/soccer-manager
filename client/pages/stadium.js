@@ -372,6 +372,7 @@ export class StadiumPage extends UIElement {
       stripe.rotation.x = -Math.PI / 2
       stripe.position.y = 0.02
       stripe.position.z = -depth / 2 + stripeWidth / 2 + i * stripeWidth
+      stripe.receiveShadow = true
       scene.add(stripe)
     }
 
@@ -577,9 +578,9 @@ export class StadiumPage extends UIElement {
       const roofGeo = new THREE.BoxGeometry(width + 4, 0.3, actualDepth + 3)
       const roofMat = new THREE.MeshLambertMaterial({ color: 0x3498db, transparent: true, opacity: 0.85 })
       const roof = new THREE.Mesh(roofGeo, roofMat)
-      roof.position.y = actualHeight + 4
+      roof.position.y = actualHeight + 3
       roof.position.z = actualDepth / 2
-      roof.rotation.x = -0.15  // slight angle
+      // roof.rotation.x = -0.15  // slight angle
       roof.castShadow = true
       group.add(roof)
 
