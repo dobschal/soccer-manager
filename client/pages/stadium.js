@@ -222,9 +222,9 @@ export class StadiumPage extends UIElement {
     const width = container.clientWidth
     const height = Math.min(400, width * 0.6)
 
-    // Scene
+    // Scene - night sky
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x87ceeb) // Sky blue
+    scene.background = new THREE.Color(0x0a0a1a) // Dark night sky
 
     // Camera (isometric-like perspective)
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
@@ -246,25 +246,23 @@ export class StadiumPage extends UIElement {
     controls.minDistance = 50
     controls.maxDistance = 150
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+    // Lighting - dimmed for night atmosphere
+    const ambientLight = new THREE.AmbientLight(0x404060, 0.5)
     scene.add(ambientLight)
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-    directionalLight.position.set(50, 80, 50)
-    directionalLight.castShadow = true
-    directionalLight.shadow.mapSize.width = 2048
-    directionalLight.shadow.mapSize.height = 2048
-    directionalLight.shadow.camera.near = 0.5
-    directionalLight.shadow.camera.far = 500
-    directionalLight.shadow.camera.left = -100
-    directionalLight.shadow.camera.right = 100
-    directionalLight.shadow.camera.top = 100
-    directionalLight.shadow.camera.bottom = -100
-    scene.add(directionalLight)
+    // Soft moonlight from above
+    const moonLight = new THREE.DirectionalLight(0x6688cc, 0.5)
+    moonLight.position.set(30, 100, 30)
+    scene.add(moonLight)
 
     // Build stadium
     this._buildStadium(scene)
+
+    // Only first tower casts shadows for performance
+    this._createFloodlightTower(scene, -33, -23)
+    this._createFloodlightTower(scene, 33, -23)
+    this._createFloodlightTower(scene, -33, 23)
+    this._createFloodlightTower(scene, 33, 23)
 
     // Animation loop
     const animate = () => {
@@ -494,6 +492,90 @@ export class StadiumPage extends UIElement {
 
     scene.add(flag)
     this._flags.push(flag)
+  }
+
+  /**
+   * Create a floodlight tower
+   * @param {THREE.Scene} scene
+   * @param {number} x
+   * @param {number} z
+   */
+  _createFloodlightTower (scene, x, z) {
+    const towerHeight = 45
+    const towerWidth = 1.5
+
+    // Tower structure - light gray metal
+    const towerMat = new THREE.MeshLambertMaterial({ color: 0xcccccc })
+
+    // Main vertical pole
+    const poleSections = 4
+    for (let i = 0; i < poleSections; i++) {
+      const sectionHeight = towerHeight / poleSections
+      const sectionWidth = towerWidth * (1 - i * 0.15)  // Slightly narrower at top
+
+      const poleGeo = new THREE.BoxGeometry(sectionWidth, sectionHeight, sectionWidth)
+      const pole = new THREE.Mesh(poleGeo, towerMat)
+      pole.position.set(x, sectionHeight / 2 + i * sectionHeight, z)
+      scene.add(pole)
+    }
+
+    // Platform at top
+    const platformGeo = new THREE.BoxGeometry(1, 1, 1)
+    const platform = new THREE.Mesh(platformGeo, towerMat)
+    platform.castShadow = false
+    platform.position.set(x, towerHeight, z)
+    scene.add(platform)
+
+    // Spotlight housing (6 visual fixtures in 2 rows of 3)
+    const spotlightMat = new THREE.MeshLambertMaterial({ color: 0x222222 })
+    const spotlightLensMat = new THREE.MeshBasicMaterial({ color: 0xffffcc })  // Glowing lens
+
+    // Calculate direction to field center
+    const dirToCenter = new THREE.Vector3(-x, -towerHeight + 5, -z).normalize()
+
+    for (let row = 0; row < 2; row++) {
+      for (let col = 0; col < 3; col++) {
+        // Spotlight housing
+        const housingGeo = new THREE.BoxGeometry(1, 0.8, 1.2)
+        const housing = new THREE.Mesh(housingGeo, spotlightMat)
+
+        const offsetX = (col - 1) * 1.4
+        const offsetY = towerHeight + 1 + row * 1.4
+        const offsetZ = 0
+
+        // Position relative to tower
+        housing.position.set(x + offsetX, offsetY, z + offsetZ)
+
+        // Rotate housing to point towards field
+        housing.lookAt(0, 0, 0)
+        scene.add(housing)
+
+        // Glowing lens on front of housing
+        const lensGeo = new THREE.CircleGeometry(0.35, 16)
+        const lens = new THREE.Mesh(lensGeo, spotlightLensMat)
+        lens.position.set(x + offsetX, offsetY, z + offsetZ)
+        lens.lookAt(0, 0, 0)
+        // Move lens slightly forward
+        lens.position.add(dirToCenter.clone().multiplyScalar(0.65))
+        scene.add(lens)
+      }
+    }
+
+    // Single main spotlight per tower (not one per fixture)
+    // Using wider angle and PointLight for better coverage
+    // moonLight.position.set(30, 100, 30)
+    const mainLight = new THREE.SpotLight(0xfff5e6, 350, 150, Math.PI / 3, 0.6, 1.5)
+    mainLight.position.set(x, towerHeight + 1, z)
+    mainLight.target.position.set(0, 0, 0)
+
+    mainLight.castShadow = true
+    mainLight.shadow.mapSize.width = 1024
+    mainLight.shadow.mapSize.height = 1024
+    mainLight.shadow.camera.near = 10
+    mainLight.shadow.camera.far = 150
+
+    scene.add(mainLight)
+    scene.add(mainLight.target)
   }
 
   /**
