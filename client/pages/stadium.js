@@ -407,16 +407,15 @@ export class StadiumPage extends UIElement {
 
     // Goals
     this._createGoal(scene, -width / 2, 0)
-    this._createGoal(scene, width / 2, Math.PI)
+    this._createGoal(scene, width / 2)
   }
 
   /**
    * Create a goal
    * @param {THREE.Scene} scene
    * @param {number} x
-   * @param {number} rotation
    */
-  _createGoal (scene, x, rotation) {
+  _createGoal (scene, x) {
     const goalMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
     const postRadius = 0.15
     const goalWidth = 4
@@ -453,7 +452,7 @@ export class StadiumPage extends UIElement {
     // Each seat takes ~0.5m width, so seats per row = width / 0.5
     const seatWidth = 0.5
     const seatsPerRow = Math.floor(width / seatWidth)
-    const numRows = Math.max(5, Math.min(40, Math.ceil(seats / seatsPerRow)))
+    const numRows = Math.max(3, Math.ceil(seats / seatsPerRow) / 5)
 
     const rowDepth = 1.0   // depth per row (meters)
     const rowHeight = 0.5  // height increase per row (meters)
@@ -527,7 +526,7 @@ export class StadiumPage extends UIElement {
     rightWallShape.lineTo(0, 1.5)                        // front top
     rightWallShape.closePath()
 
-    // Right wall 
+    // Right wall
     const rightWallGeo = new THREE.ExtrudeGeometry(rightWallShape, extrudeSettings)
     const rightWall = new THREE.Mesh(rightWallGeo, backWallMat)
     rightWall.rotation.y = Math.PI * 1.5
@@ -601,9 +600,7 @@ export class StadiumPage extends UIElement {
       group.add(rightSupport)
     }
 
-    // Position the stand - note: stand faces TOWARDS negative Z (towards field)
-    // so we offset by actualDepth/2 to center it properly
-    group.position.set(x, 0, z - actualDepth / 2)
+    group.position.set(x, 0, z)
     group.rotation.y = rotation
     scene.add(group)
   }

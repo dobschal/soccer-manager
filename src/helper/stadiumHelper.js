@@ -29,7 +29,7 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
   for (const standName of standNames) {
     const currentStandSize = currentStadium[standName + '_stand_size']
     const plannedStandSize = plannedStadium[standName + '_stand_size']
-    if (plannedStandSize > 40000) throw new BadRequestError('Maximum allowed stand size is 40 000.')
+    if (plannedStandSize > 25_000) throw new BadRequestError('Maximum allowed stand size is 25 000.')
     const seatsDiff = Math.floor(plannedStandSize - currentStandSize)
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
     if (seatsDiff === 0) continue
