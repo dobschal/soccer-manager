@@ -523,7 +523,7 @@ export class StadiumPage extends UIElement {
     scene.add(circle)
 
     // Goals
-    this._createGoal(scene, -width / 2, 0)
+    this._createGoal(scene, -width / 2)
     this._createGoal(scene, width / 2)
 
     // Corner flags
