@@ -10,7 +10,7 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./test/setup.js'],
     globals: true,
-    include: ['routes/**/*.test.js', 'helper/**/*.test.js', '*.test.js'],
+    include: ['test/**/*.test.js'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

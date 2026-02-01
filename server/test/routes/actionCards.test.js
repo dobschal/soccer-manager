@@ -1,23 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMockRequest, testData } from '../test/setup.js'
+import { createMockRequest, testData } from '../setup.js'
 
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../helper/teamHelper.js', () => ({
+vi.mock('../../helper/teamHelper.js', () => ({
   getTeam: vi.fn()
 }))
 
-vi.mock('../helper/actionCardHelper.js', () => ({
+vi.mock('../../helper/actionCardHelper.js', () => ({
   getActionCards: vi.fn(),
   playActionCard: vi.fn()
 }))
 
-import { query } from '../lib/database.js'
-import { getTeam } from '../helper/teamHelper.js'
-import { getActionCards, playActionCard } from '../helper/actionCardHelper.js'
-import handlers from './actionCards.js'
+import { query } from '../../lib/database.js'
+import { getTeam } from '../../helper/teamHelper.js'
+import { getActionCards, playActionCard } from '../../helper/actionCardHelper.js'
+import handlers from '../../routes/actionCards.js'
 
 describe('actionCards routes', () => {
   beforeEach(() => {

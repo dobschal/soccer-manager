@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/src/migrate-database.cmd.js"
+            "program": "${workspaceFolder}/server/migrate-database.cmd.js"
         },
         {
             "type": "node",
@@ -20,7 +20,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/src/prepare-season.cmd.js"
+            "program": "${workspaceFolder}/server/prepare-season.cmd.js"
         },
         {
             "type": "node",
@@ -29,7 +29,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/src/play-game-day.cmd.js"
+            "program": "${workspaceFolder}/server/play-game-day.cmd.js"
         },
         {
             "type": "node",
@@ -38,7 +38,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/src/api.js"
+            "program": "${workspaceFolder}/server/api.js"
         }
     ]
 ]

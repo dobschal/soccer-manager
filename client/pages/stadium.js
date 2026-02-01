@@ -11,7 +11,7 @@ export class StadiumPage extends UIElement {
   team = {}
   _flags = []
   _animationTime = 0
-  
+
   // Three.js resources for cleanup
   _scene = null
   _renderer = null
@@ -92,7 +92,6 @@ export class StadiumPage extends UIElement {
     this.team = teamResponse.team
     console.log('Stadium: ', this.stadium)
   }
-
 
   /**
    * @param {Event} event
@@ -264,13 +263,13 @@ export class StadiumPage extends UIElement {
             if (material.gradientMap) material.gradientMap.dispose()
             if (material.metalnessMap) material.metalnessMap.dispose()
             if (material.roughnessMap) material.roughnessMap.dispose()
-            
+
             // Dispose the material itself
             material.dispose()
           })
         }
       })
-      
+
       // Clear the scene
       this._scene = null
     }
@@ -308,7 +307,10 @@ export class StadiumPage extends UIElement {
     this._camera.lookAt(0, 0, 0)
 
     // Renderer
-    this._renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
+    this._renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true
+    })
     this._renderer.setSize(width, height)
     this._renderer.setPixelRatio(window.devicePixelRatio)
     this._renderer.shadowMap.enabled = true
@@ -413,6 +415,7 @@ export class StadiumPage extends UIElement {
 
     // North stand (back, -Z) - faces towards +Z (towards field)
     this._createStand(scene, {
+      position: 'north',
       width: fieldWidth + 6,
       seats: northSeats,
       x: 0,
@@ -423,6 +426,7 @@ export class StadiumPage extends UIElement {
 
     // South stand (front, +Z) - faces towards -Z (towards field)
     this._createStand(scene, {
+      position: 'south',
       width: fieldWidth + 6,
       seats: southSeats,
       x: 0,
@@ -433,6 +437,7 @@ export class StadiumPage extends UIElement {
 
     // West stand (left, -X) - faces towards +X (towards field)
     this._createStand(scene, {
+      position: 'west',
       width: fieldDepth + 6,
       seats: westSeats,
       x: -fieldWidth / 2 - standGap,
@@ -443,6 +448,7 @@ export class StadiumPage extends UIElement {
 
     // East stand (right, +X) - faces towards -X (towards field)
     this._createStand(scene, {
+      position: 'east',
       width: fieldDepth + 6,
       seats: eastSeats,
       x: fieldWidth / 2 + standGap,
@@ -507,7 +513,10 @@ export class StadiumPage extends UIElement {
 
     // Center circle
     const circleGeo = new THREE.RingGeometry(4.9, 5, 32)
-    const circleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
+    const circleMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide
+    })
     const circle = new THREE.Mesh(circleGeo, circleMat)
     circle.rotation.x = -Math.PI / 2
     circle.position.y = 0.03
@@ -519,10 +528,22 @@ export class StadiumPage extends UIElement {
 
     // Corner flags
     const cornerPositions = [
-      { x: -width / 2, z: -depth / 2 },
-      { x: width / 2, z: -depth / 2 },
-      { x: -width / 2, z: depth / 2 },
-      { x: width / 2, z: depth / 2 }
+      {
+        x: -width / 2,
+        z: -depth / 2
+      },
+      {
+        x: width / 2,
+        z: -depth / 2
+      },
+      {
+        x: -width / 2,
+        z: depth / 2
+      },
+      {
+        x: width / 2,
+        z: depth / 2
+      }
     ]
 
     cornerPositions.forEach(pos => {
@@ -637,13 +658,8 @@ export class StadiumPage extends UIElement {
       }
     }
 
-    // TODO: Flutlichtmasten sollten kleiner sein, für kleine Stadien
-
-    // TODO: kleine Tribünen-Größen sind falsch --> 1000 sieht aus wie 100
-
     // Single main spotlight per tower (not one per fixture)
     // Using wider angle and PointLight for better coverage
-    // moonLight.position.set(30, 100, 30)
     const mainLight = new THREE.SpotLight(0xfff5e6, 350, 150, Math.PI / 3, 0.6, 1.5)
     mainLight.position.set(x, towerHeight + 1, z)
     mainLight.target.position.set(0, 0, 0)
@@ -688,19 +704,46 @@ export class StadiumPage extends UIElement {
   }
 
   /**
+   * @typedef {Object} StandConfig
+   * @property {'north'|'south'|'east'|'west'} position
+   * @property {number} width
+   * @property {number} seats
+   * @property {number} x
+   * @property {number} z
+   * @property {number} rotation
+   * @property {boolean|number} hasRoof
+   */
+
+  // TODO: set minimum stand size to 200
+
+  /**
    * Create a stand/tribune with ascending rows
    * @param {THREE.Scene} scene
-   * @param {Object} config
+   * @param {StandConfig} config
    */
   _createStand (scene, config) {
-    const { width, seats, x, z, rotation, hasRoof } = config
+    const {
+      width,
+      seats,
+      x,
+      z,
+      rotation,
+      hasRoof
+    } = config
     const group = new THREE.Group()
 
     // Calculate number of rows based on actual seat count
     // Each seat takes ~0.5m width, so seats per row = width / 0.5
     const seatWidth = 0.5
     const seatsPerRow = Math.floor(width / seatWidth)
-    const numRows = Math.max(3, Math.ceil(seats / seatsPerRow) / 5)
+
+    // Dynamic divider based on stand size:
+    // - minSize (200) -> divider 1
+    // - maxSize (30000) -> divider 5
+    const minSize = 200
+    const maxSize = 30000
+    const divider = 1 + Math.min(1, (seats - minSize) / (maxSize - minSize)) * 4
+    const numRows = Math.max(3, Math.ceil(seats / seatsPerRow) / divider)
 
     const rowDepth = 1.0   // depth per row (meters)
     const rowHeight = 0.5  // height increase per row (meters)
@@ -737,11 +780,21 @@ export class StadiumPage extends UIElement {
         // Random crowd colors
         const colorChoice = Math.random()
         let seatColor
-        if (colorChoice < 0.35) seatColor = 0xe74c3c       // red
-        else if (colorChoice < 0.70) seatColor = 0x3498db  // blue
-        else if (colorChoice < 0.85) seatColor = 0xf39c12  // orange
-        else if (colorChoice < 0.95) seatColor = 0x27ae60  // green
-        else seatColor = 0xf1c40f                          // yellow
+        if (colorChoice < 0.35) {
+          seatColor = 0xe74c3c
+        }// red
+        else if (colorChoice < 0.70) {
+          seatColor = 0x3498db
+        }// blue
+        else if (colorChoice < 0.85) {
+          seatColor = 0xf39c12
+        }// orange
+        else if (colorChoice < 0.95) {
+          seatColor = 0x27ae60
+        }// green
+        else {
+          seatColor = 0xf1c40f
+        }                          // yellow
 
         const seatGeo = new THREE.BoxGeometry(seatWidth * 0.8, 0.4, rowDepth * 0.6)
         const seatMat = new THREE.MeshLambertMaterial({ color: seatColor })
@@ -764,7 +817,10 @@ export class StadiumPage extends UIElement {
     group.add(backWall)
 
     // Side walls (trapezoidal shape to match ascending rows)
-    const extrudeSettings = { depth: 0.5, bevelEnabled: false }
+    const extrudeSettings = {
+      depth: 0.5,
+      bevelEnabled: false
+    }
 
     // Right wall shape - slope rises from front (0) to back (actualDepth)
     const rightWallShape = new THREE.Shape()
@@ -796,17 +852,17 @@ export class StadiumPage extends UIElement {
 
     const leftWallIndices = [
       // Outer face (facing away from stand, -Z)
-      0, 4, 2,  2, 4, 6,
+      0, 4, 2, 2, 4, 6,
       // Inner face (facing stand, +Z)
-      1, 3, 5,  3, 7, 5,
+      1, 3, 5, 3, 7, 5,
       // Top face (sloped)
-      2, 6, 3,  3, 6, 7,
+      2, 6, 3, 3, 6, 7,
       // Bottom face
-      0, 1, 4,  1, 5, 4,
+      0, 1, 4, 1, 5, 4,
       // Front face (near field)
-      0, 2, 1,  1, 2, 3,
+      0, 2, 1, 1, 2, 3,
       // Back face (away from field)
-      4, 5, 6,  5, 7, 6
+      4, 5, 6, 5, 7, 6
     ]
 
     const leftWallGeo = new THREE.BufferGeometry()
@@ -828,7 +884,11 @@ export class StadiumPage extends UIElement {
 
       // Angled roof canopy
       const roofGeo = new THREE.BoxGeometry(width + 4, 0.3, actualDepth + 3)
-      const roofMat = new THREE.MeshLambertMaterial({ color: 0xe6e6e6, transparent: true, opacity: 0.8 })
+      const roofMat = new THREE.MeshLambertMaterial({
+        color: 0xe6e6e6,
+        transparent: true,
+        opacity: 0.8
+      })
       const roof = new THREE.Mesh(roofGeo, roofMat)
       roof.position.y = roofY
       roof.position.z = actualDepth / 2
@@ -844,7 +904,10 @@ export class StadiumPage extends UIElement {
       const pillarPositions = [-width / 2 + 3, 0, width / 2 - 3]
 
       // Cable/rope material
-      const cableMat = new THREE.LineBasicMaterial({ color: 0x333333, linewidth: 3 })
+      const cableMat = new THREE.LineBasicMaterial({
+        color: 0x333333,
+        linewidth: 3
+      })
 
       pillarPositions.forEach(pillarX => {
         // Create pillar

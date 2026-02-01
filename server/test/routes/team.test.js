@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMockRequest, testData } from '../test/setup.js'
+import { createMockRequest, testData } from '../setup.js'
 
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../helper/teamHelper.js', () => ({
+vi.mock('../../helper/teamHelper.js', () => ({
   getTeam: vi.fn(),
   getTeamById: vi.fn()
 }))
 
-import { query } from '../lib/database.js'
-import { getTeam, getTeamById } from '../helper/teamHelper.js'
-import handlers from './team.js'
+import { query } from '../../lib/database.js'
+import { getTeam, getTeamById } from '../../helper/teamHelper.js'
+import handlers from '../../routes/team.js'
 
 describe('team routes', () => {
   beforeEach(() => {

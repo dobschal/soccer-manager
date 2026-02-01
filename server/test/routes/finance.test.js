@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMockRequest, testData } from '../test/setup.js'
+import { createMockRequest, testData } from '../setup.js'
 
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-import { query } from '../lib/database.js'
-import handlers from './finance.js'
+import { query } from '../../lib/database.js'
+import handlers from '../../routes/finance.js'
 
 describe('finance routes', () => {
   beforeEach(() => {

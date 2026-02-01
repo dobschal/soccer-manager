@@ -1,34 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMockRequest, testData } from '../test/setup.js'
+import { createMockRequest, testData } from '../setup.js'
 
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../helper/teamHelper.js', () => ({
+vi.mock('../../helper/teamHelper.js', () => ({
   getTeam: vi.fn()
 }))
 
-vi.mock('../helper/playerHelper.js', () => ({
+vi.mock('../../helper/playerHelper.js', () => ({
   getPlayerById: vi.fn(),
   getPlayerAge: vi.fn(),
   getAveragePlanPriceOfPlayer: vi.fn()
 }))
 
-vi.mock('../helper/tradeHelper.js', () => ({
+vi.mock('../../helper/tradeHelper.js', () => ({
   getPastTrades: vi.fn()
 }))
 
-vi.mock('../helper/newsHelper.js', () => ({
+vi.mock('../../helper/newsHelper.js', () => ({
   addLogMessage: vi.fn()
 }))
 
-import { query } from '../lib/database.js'
-import { getTeam } from '../helper/teamHelper.js'
-import { getPlayerById, getPlayerAge, getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
-import { getPastTrades } from '../helper/tradeHelper.js'
-import { addLogMessage } from '../helper/newsHelper.js'
-import handlers from './players.js'
+import { query } from '../../lib/database.js'
+import { getTeam } from '../../helper/teamHelper.js'
+import { getPlayerById, getPlayerAge, getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
+import { getPastTrades } from '../../helper/tradeHelper.js'
+import { addLogMessage } from '../../helper/newsHelper.js'
+import handlers from '../../routes/players.js'
 
 describe('players routes', () => {
   beforeEach(() => {

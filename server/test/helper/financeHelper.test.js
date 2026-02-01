@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { testData } from '../test/setup.js'
+import { testData } from '../setup.js'
 
 // Mock the transaction function
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   transaction: vi.fn()
 }))
 
-import { transaction } from '../lib/database.js'
-import { updateTeamBalance } from './financeHelper.js'
+import { transaction } from '../../lib/database.js'
+import { updateTeamBalance } from '../../helper/financeHelper.js'
 
 describe('financeHelper', () => {
   let mockQuery
