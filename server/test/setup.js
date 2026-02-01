@@ -132,9 +132,9 @@ export const testData = {
     ...overrides
   }),
 
-  newsMessage: (overrides = {}) => ({
+  logMessage: (overrides = {}) => ({
     id: 1,
-    message: 'Test news message',
+    message: 'Test log message',
     team_id: 1,
     game_day: 1,
     season: 0,

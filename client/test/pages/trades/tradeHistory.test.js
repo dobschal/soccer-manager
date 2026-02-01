@@ -1,44 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../lib/gateway.js', () => ({
+vi.mock('../../../lib/gateway.js', () => ({
   server: {
     getTradeHistory: vi.fn()
   }
 }))
 
-vi.mock('../../lib/html.js', () => ({
+vi.mock('../../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-id'),
   el: vi.fn()
 }))
 
-vi.mock('../../lib/event.js', () => ({
+vi.mock('../../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../../lib/observeDOM.js', () => ({
+vi.mock('../../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('../../lib/currency.js', () => ({
+vi.mock('../../../lib/currency.js', () => ({
   euroFormat: {
     format: vi.fn((val) => `${val.toLocaleString()} EUR`)
   }
 }))
 
-vi.mock('../../util/player.js', () => ({
+vi.mock('../../../util/player.js', () => ({
   calculatePlayerAge: vi.fn().mockReturnValue(25)
 }))
 
-vi.mock('../../partials/link.js', () => ({
+vi.mock('../../../partials/link.js', () => ({
   Link: class {
     constructor(text) { this.text = text }
     toString() { return `<span class="link">${this.text}</span>` }
   }
 }))
 
-import { TradeHistoryPage, renderTradeHistory } from './tradeHistory.js'
-import { server } from '../../lib/gateway.js'
+import { TradeHistoryPage, renderTradeHistory } from '../../../pages/trades/tradeHistory.js'
+import { server } from '../../../lib/gateway.js'
 
 describe('TradeHistoryPage', () => {
   beforeEach(() => {

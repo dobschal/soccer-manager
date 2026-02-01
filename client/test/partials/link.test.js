@@ -1,30 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock UIElement dependencies
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-link-id'),
   el: vi.fn()
 }))
 
-vi.mock('../lib/event.js', () => ({
+vi.mock('../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../lib/observeDOM.js', () => ({
+vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('./toast.js', () => ({
+vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-vi.mock('../lib/router.js', () => ({
+vi.mock('../../lib/router.js', () => ({
   goTo: vi.fn()
 }))
 
-import { Link, renderLink } from './link.js'
-import { goTo } from '../lib/router.js'
+import { Link, renderLink } from '../../partials/link.js'
+import { goTo } from '../../lib/router.js'
 
 describe('Link UIElement', () => {
   beforeEach(() => {

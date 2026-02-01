@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../lib/gateway.js', () => ({
+vi.mock('../../lib/gateway.js', () => ({
   server: {
     getSponsor: vi.fn(),
     getSponsorOffers: vi.fn(),
@@ -11,44 +11,44 @@ vi.mock('../lib/gateway.js', () => ({
   }
 }))
 
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-id'),
   el: vi.fn()
 }))
 
-vi.mock('../lib/event.js', () => ({
+vi.mock('../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../lib/observeDOM.js', () => ({
+vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('../partials/toast.js', () => ({
+vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-vi.mock('../partials/balance.js', () => ({
+vi.mock('../../partials/balance.js', () => ({
   Balance: class {
     toString() { return '<span>100,000 EUR</span>' }
   }
 }))
 
-vi.mock('../lib/currency.js', () => ({
+vi.mock('../../lib/currency.js', () => ({
   euroFormat: {
     format: vi.fn((val) => `${val.toLocaleString()} EUR`)
   }
 }))
 
-vi.mock('../partials/balanceChart.js', () => ({
+vi.mock('../../partials/balanceChart.js', () => ({
   BalanceChart: class {
     toString() { return '<canvas></canvas>' }
   }
 }))
 
-import { FinancesPage, renderFinancesPage } from './finances.js'
-import { server } from '../lib/gateway.js'
+import { FinancesPage, renderFinancesPage } from '../../pages/finances.js'
+import { server } from '../../lib/gateway.js'
 
 describe('FinancesPage', () => {
   beforeEach(() => {

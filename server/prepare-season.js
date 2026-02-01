@@ -6,7 +6,7 @@ import { Formation, getPositionsOfFormation, Position } from '../client/util/for
 import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name-library.js'
 import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 import { Stadium } from './entities/stadium.js'
-import { addLogMessage } from './helper/newsHelper.js'
+import { addLogMessage } from './helper/logMessageHelper.js'
 import { getTeamById } from './helper/teamHelper.js'
 
 /**

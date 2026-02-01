@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../lib/gateway.js', () => ({
+vi.mock('../../lib/gateway.js', () => ({
   server: {
     getNextGameDate: vi.fn().mockResolvedValue({ date: new Date(Date.now() + 60000).toISOString() }),
     getMyBalance: vi.fn().mockResolvedValue({ balance: 100000 }),
@@ -8,32 +8,32 @@ vi.mock('../lib/gateway.js', () => ({
   }
 }))
 
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-id'),
   el: vi.fn()
 }))
 
-vi.mock('../lib/event.js', () => ({
+vi.mock('../../lib/event.js', () => ({
   on: vi.fn().mockReturnValue('event-id'),
   off: vi.fn()
 }))
 
-vi.mock('../lib/observeDOM.js', () => ({
+vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('../lib/router.js', () => ({
+vi.mock('../../lib/router.js', () => ({
   goTo: vi.fn()
 }))
 
-vi.mock('../partials/balance.js', () => ({
+vi.mock('../../partials/balance.js', () => ({
   Balance: class {
     toString() { return '<span>100,000 EUR</span>' }
   }
 }))
 
-import { GameLayout, renderGameLayout, hideNavigation } from './gameLayout.js'
-import { server } from '../lib/gateway.js'
+import { GameLayout, renderGameLayout, hideNavigation } from '../../layouts/gameLayout.js'
+import { server } from '../../lib/gateway.js'
 
 describe('GameLayout', () => {
   beforeEach(() => {

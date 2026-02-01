@@ -1,25 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock UIElement dependencies
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-btn-id'),
   el: vi.fn()
 }))
 
-vi.mock('../lib/event.js', () => ({
+vi.mock('../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../lib/observeDOM.js', () => ({
+vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('./toast.js', () => ({
+vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-import { Button, renderButton } from './button.js'
+import { Button, renderButton } from '../../partials/button.js'
 
 describe('Button UIElement', () => {
   beforeEach(() => {

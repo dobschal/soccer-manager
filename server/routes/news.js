@@ -1,4 +1,4 @@
-import { getTeam, getTeamById } from '../helper/teamHelper.js'
+import { getTeamById } from '../helper/teamHelper.js'
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getPlayerById } from '../helper/playerHelper.js'
@@ -19,7 +19,7 @@ const texts = {
     title: '{playerName}\'s Mega Move: {fromTeam} Sells Star Player to {toTeam} for {price}',
     text: '{fromTeam} FC has bid farewell to their star player {playerName}, who has embarked on a new journey with {toTeam}, all for the nominal fee of {price}. This unexpected move has left fans on both sides in awe, questioning the rationale behind such a seemingly low transfer amount for a player of {playerName}\'s caliber. {toTeam}\'s management, however, sees this as a strategic coup, bringing in a world-class talent at a fraction of the usual cost. As the soccer community debates the implications of this transfer, {playerName}\'s performance at {toTeam} will undoubtedly be under the microscope as he adapts to his new surroundings.'
   }, {
-    title: '{toTeam} Lands {playerName} from {fromTeam} for {price} in Sensational Transfer',
+    title: '{toTeam} lands {playerName} from {fromTeam} for {price} in Sensational Transfer',
     text: '{toTeam} has pulled off a transfer coup by securing the services of {playerName} from {fromTeam} for a remarkably modest sum of {price}. This unexpected move has caught the soccer world off guard, prompting speculation about the behind-the-scenes negotiations that led to such an affordable deal. {toTeam}\'s management has expressed their delight at adding {playerName} to their roster, believing his skills will be a perfect fit for their squad. Meanwhile, {fromTeam}\' fans are left reflecting on the departure of their star player and the implications for their team\'s performance in the upcoming season.'
   }, {
     title: '{playerName}\'s Transfer Saga: {fromTeam} to {toTeam} for {price}',
@@ -28,17 +28,6 @@ const texts = {
 }
 
 export default {
-
-  /**
-   * @param {number} pageIndex
-   * @param {number} pageSize
-   * @param {Request} [req]
-   * @returns {Promise<Array<NewsType>>}
-   */
-  async getLogMessages (pageIndex, pageSize, req) {
-    const team = await getTeam(req)
-    return await query('SELECT * FROM news WHERE team_id=? ORDER BY id DESC LIMIT ?, ?', [team.id, pageIndex * pageSize, pageSize])
-  },
 
   /**
    * @typedef {Object} NewsArticle
@@ -57,7 +46,10 @@ export default {
    * @returns {Promise<{news: NewsArticle[], season: number, gameDay: number}>}
    */
   async getLeagueNews (_req) {
-    const { gameDay, season } = await getGameDayAndSeason()
+    const {
+      gameDay,
+      season
+    } = await getGameDayAndSeason()
     const cachedNews = newsCache.find(n => n.gameDay === gameDay && n.season === season)
     if (cachedNews) {
       return cachedNews
@@ -69,7 +61,10 @@ export default {
       const player = await getPlayerById(tradeHistory.player_id)
       const newTeam = await getTeamById(tradeHistory.to_team_id)
       const oldTeam = await getTeamById(tradeHistory.from_team_id)
-      let { title, text } = randomItem(texts.transfer)
+      let {
+        title,
+        text
+      } = randomItem(texts.transfer)
       const playerLink = `<a href="#team?id=${newTeam.id}&player_id=${player.id}">${player.name}</a>`
       const oldTeamLink = `<a href="#team?id=${oldTeam.id}">${oldTeam.name}</a>`
       const newTeamLink = `<a href="#team?id=${newTeam.id}">${newTeam.name}</a>`
@@ -81,13 +76,21 @@ export default {
       text = text.replaceAll('{toTeam}', newTeamLink)
       title = title.replaceAll('{price}', euroFormat.format(tradeHistory.price))
       text = text.replaceAll('{price}', euroFormat.format(tradeHistory.price))
-      news.push({ title, text, playerId: player.id })
+      news.push({
+        title,
+        text,
+        playerId: player.id
+      })
     }
     newsCache.push({
       gameDay,
       season,
       news
     })
-    return { gameDay, season, news }
+    return {
+      gameDay,
+      season,
+      news
+    }
   }
 }

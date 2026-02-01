@@ -1,31 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 let idCounter = 0
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn(() => `test-id-${idCounter++}`),
   el: vi.fn((query) => document.querySelector(query))
 }))
 
-vi.mock('../lib/event.js', () => ({
+vi.mock('../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../lib/observeDOM.js', () => ({
+vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('./toast.js', () => ({
+vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-vi.mock('../lib/router.js', () => ({
+vi.mock('../../lib/router.js', () => ({
   getQueryParams: vi.fn().mockReturnValue({}),
   setQueryParams: vi.fn()
 }))
 
-import { Table, renderTable } from './table.js'
-import { getQueryParams } from '../lib/router.js'
+import { Table, renderTable } from '../../partials/table.js'
+import { getQueryParams } from '../../lib/router.js'
 
 describe('Table UIElement', () => {
   beforeEach(() => {

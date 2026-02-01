@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-toast-id'),
   el: vi.fn()
 }))
 
-vi.mock('../lib/htmlEventHandlers.js', () => ({
+vi.mock('../../lib/htmlEventHandlers.js', () => ({
   onClick: vi.fn()
 }))
 
-import { toast } from './toast.js'
-import { el } from '../lib/html.js'
+import { toast } from '../../partials/toast.js'
+import { el } from '../../lib/html.js'
 
 describe('toast', () => {
   beforeEach(() => {

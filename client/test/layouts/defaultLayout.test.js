@@ -1,20 +1,20 @@
 import { describe, it, expect, vi } from 'vitest'
 
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-id'),
   el: vi.fn()
 }))
 
-vi.mock('../lib/event.js', () => ({
+vi.mock('../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../lib/observeDOM.js', () => ({
+vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-import { DefaultLayout, renderDefaultLayout } from './defaultLayout.js'
+import { DefaultLayout, renderDefaultLayout } from '../../layouts/defaultLayout.js'
 
 describe('DefaultLayout', () => {
   describe('DefaultLayout class', () => {

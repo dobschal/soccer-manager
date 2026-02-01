@@ -257,6 +257,11 @@ const migrations = [{
               PRIMARY KEY (id)
           ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Rename news table to log_message',
+  async run () {
+    await query('RENAME TABLE news TO log_message')
+  }
 }]
 
 /**

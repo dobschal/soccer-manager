@@ -2,7 +2,7 @@ import { config } from '../config.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { query } from '../lib/database.js'
 import jwt from 'jsonwebtoken'
-import { addLogMessage } from '../helper/newsHelper.js'
+import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
 
 export default {

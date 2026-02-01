@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../lib/gateway.js', () => ({
+vi.mock('../../lib/gateway.js', () => ({
   server: {
     getStadium: vi.fn(),
     getMyTeam: vi.fn(),
@@ -10,32 +10,32 @@ vi.mock('../lib/gateway.js', () => ({
   }
 }))
 
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-id'),
   el: vi.fn()
 }))
 
-vi.mock('../lib/event.js', () => ({
+vi.mock('../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../lib/observeDOM.js', () => ({
+vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('../partials/toast.js', () => ({
+vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-vi.mock('../lib/currency.js', () => ({
+vi.mock('../../lib/currency.js', () => ({
   euroFormat: {
     format: vi.fn((val) => `${val.toLocaleString()} EUR`)
   }
 }))
 
-import { StadiumPage, renderStadiumPage } from './stadium.js'
-import { server } from '../lib/gateway.js'
+import { StadiumPage, renderStadiumPage } from '../../pages/stadium.js'
+import { server } from '../../lib/gateway.js'
 
 describe('StadiumPage', () => {
   beforeEach(() => {

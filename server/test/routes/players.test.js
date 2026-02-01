@@ -19,7 +19,7 @@ vi.mock('../../helper/tradeHelper.js', () => ({
   getPastTrades: vi.fn()
 }))
 
-vi.mock('../../helper/newsHelper.js', () => ({
+vi.mock('../../helper/logMessageHelper.js', () => ({
   addLogMessage: vi.fn()
 }))
 
@@ -27,7 +27,7 @@ import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getPlayerById, getPlayerAge, getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
 import { getPastTrades } from '../../helper/tradeHelper.js'
-import { addLogMessage } from '../../helper/newsHelper.js'
+import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/players.js'
 
 describe('players routes', () => {

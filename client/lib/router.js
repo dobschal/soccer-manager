@@ -108,11 +108,15 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
     const page = new PageUIElement()
     fire('query-changed', getQueryParams())
     render('#page', page)
+    const startTime = Date.now()
+    const timeoutMs = 60000
     const interval = setInterval(() => {
-      // TODO: add timeout if load takes too long
       if (page.isRendered) {
         clearInterval(interval)
         _afterPageLoad(pageElement)
+      } else if (Date.now() - startTime > timeoutMs) {
+        clearInterval(interval)
+        throw new Error(`Page "${currentPath}" failed to render within ${timeoutMs / 1000} seconds`)
       }
     }, 100)
   } else {

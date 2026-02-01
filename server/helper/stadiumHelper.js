@@ -3,7 +3,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { getTeam } from './teamHelper.js'
-import { addLogMessage } from './newsHelper.js'
+import { addLogMessage } from './logMessageHelper.js'
 
 /**
  * @param {Request} req

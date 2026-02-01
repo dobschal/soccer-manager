@@ -5,7 +5,7 @@ vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../../helper/newsHelper.js', () => ({
+vi.mock('../../helper/logMessageHelper.js', () => ({
   addLogMessage: vi.fn()
 }))
 

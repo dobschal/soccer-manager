@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock all dependencies before importing
-vi.mock('../lib/gateway.js', () => ({
+vi.mock('../../lib/gateway.js', () => ({
   server: {
     getActionCards: vi.fn(),
     getMyTeam: vi.fn(),
@@ -13,47 +13,47 @@ vi.mock('../lib/gateway.js', () => ({
   }
 }))
 
-vi.mock('../lib/html.js', () => ({
+vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-id'),
   el: vi.fn()
 }))
 
-vi.mock('../lib/event.js', () => ({
+vi.mock('../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../lib/observeDOM.js', () => ({
+vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('../partials/overlay.js', () => ({
+vi.mock('../../partials/overlay.js', () => ({
   showOverlay: vi.fn().mockReturnValue({ remove: vi.fn() })
 }))
 
-vi.mock('../partials/playerList.js', () => ({
+vi.mock('../../partials/playerList.js', () => ({
   PlayerList: class {
     constructor() {}
     toString() { return '<div>Player List</div>' }
   }
 }))
 
-vi.mock('../partials/toast.js', () => ({
+vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-vi.mock('../lib/date.js', () => ({
+vi.mock('../../lib/date.js', () => ({
   formatDate: vi.fn().mockReturnValue('Today 12:00')
 }))
 
-vi.mock('../partials/news.js', () => ({
+vi.mock('../../partials/news.js', () => ({
   News: class {
     toString() { return '<div>News</div>' }
   }
 }))
 
-import { DashboardPage, renderDashboardPage } from './dashboard.js'
-import { server } from '../lib/gateway.js'
+import { DashboardPage, renderDashboardPage } from '../../pages/dashboard.js'
+import { server } from '../../lib/gateway.js'
 
 describe('DashboardPage', () => {
   beforeEach(() => {

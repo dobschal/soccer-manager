@@ -1,7 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
-import { addLogMessage } from '../helper/newsHelper.js'
+import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById } from '../helper/playerHelper.js'
 import { getPastTrades } from '../helper/tradeHelper.js'
 

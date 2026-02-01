@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../lib/gateway.js', () => ({
+vi.mock('../../../lib/gateway.js', () => ({
   server: {
     getMyTeam: vi.fn(),
     getOffers: vi.fn(),
@@ -8,51 +8,51 @@ vi.mock('../../lib/gateway.js', () => ({
   }
 }))
 
-vi.mock('../../lib/html.js', () => ({
+vi.mock('../../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-id'),
   el: vi.fn()
 }))
 
-vi.mock('../../lib/event.js', () => ({
+vi.mock('../../../lib/event.js', () => ({
   on: vi.fn(),
   off: vi.fn()
 }))
 
-vi.mock('../../lib/observeDOM.js', () => ({
+vi.mock('../../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-vi.mock('../../partials/dialog.js', () => ({
+vi.mock('../../../partials/dialog.js', () => ({
   showDialog: vi.fn()
 }))
 
-vi.mock('../../partials/toast.js', () => ({
+vi.mock('../../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-vi.mock('../../lib/currency.js', () => ({
+vi.mock('../../../lib/currency.js', () => ({
   euroFormat: {
     format: vi.fn((val) => `${val.toLocaleString()} EUR`)
   }
 }))
 
-vi.mock('../../partials/table.js', () => ({
+vi.mock('../../../partials/table.js', () => ({
   Table: class {
     constructor() {}
     toString() { return '<table>Mock Table</table>' }
   }
 }))
 
-vi.mock('../../lib/router.js', () => ({
+vi.mock('../../../lib/router.js', () => ({
   setQueryParams: vi.fn()
 }))
 
-vi.mock('../../util/player.js', () => ({
+vi.mock('../../../util/player.js', () => ({
   sortByPosition: vi.fn()
 }))
 
-import { MarketPage, renderMarket } from './market.js'
-import { server } from '../../lib/gateway.js'
+import { MarketPage, renderMarket } from '../../../pages/trades/market.js'
+import { server } from '../../../lib/gateway.js'
 
 describe('MarketPage', () => {
   beforeEach(() => {

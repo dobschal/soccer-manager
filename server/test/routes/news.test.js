@@ -6,7 +6,6 @@ vi.mock('../../lib/database.js', () => ({
 }))
 
 vi.mock('../../helper/teamHelper.js', () => ({
-  getTeam: vi.fn(),
   getTeamById: vi.fn()
 }))
 
@@ -23,7 +22,7 @@ vi.mock('../../lib/util.js', () => ({
 }))
 
 import { query } from '../../lib/database.js'
-import { getTeam, getTeamById } from '../../helper/teamHelper.js'
+import { getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
 import handlers from '../../routes/news.js'
@@ -31,43 +30,6 @@ import handlers from '../../routes/news.js'
 describe('news routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  describe('getLogMessages', () => {
-    it('returns news messages for team', async () => {
-      const team = testData.team()
-      const messages = [
-        testData.newsMessage({ message: 'Message 1' }),
-        testData.newsMessage({ message: 'Message 2' })
-      ]
-
-      getTeam.mockResolvedValue(team)
-      query.mockResolvedValue(messages)
-
-      const req = createMockRequest()
-      const result = await handlers.getLogMessages(0, 10, req)
-
-      expect(result).toEqual(messages)
-      expect(query).toHaveBeenCalledWith(
-        'SELECT * FROM news WHERE team_id=? ORDER BY id DESC LIMIT ?, ?',
-        [team.id, 0, 10]
-      )
-    })
-
-    it('handles pagination correctly', async () => {
-      const team = testData.team()
-
-      getTeam.mockResolvedValue(team)
-      query.mockResolvedValue([])
-
-      const req = createMockRequest()
-      await handlers.getLogMessages(2, 5, req)
-
-      expect(query).toHaveBeenCalledWith(
-        'SELECT * FROM news WHERE team_id=? ORDER BY id DESC LIMIT ?, ?',
-        [team.id, 10, 5]
-      )
-    })
   })
 
   describe('getLeagueNews', () => {

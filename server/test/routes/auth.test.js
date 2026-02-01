@@ -6,7 +6,7 @@ vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../../helper/newsHelper.js', () => ({
+vi.mock('../../helper/logMessageHelper.js', () => ({
   addLogMessage: vi.fn()
 }))
 
@@ -16,7 +16,7 @@ vi.mock('../../helper/sponsorHelper.js', () => ({
 
 // Import after mocking
 import { query } from '../../lib/database.js'
-import { addLogMessage } from '../../helper/newsHelper.js'
+import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getSponsor } from '../../helper/sponsorHelper.js'
 import handlers from '../../routes/auth.js'
 

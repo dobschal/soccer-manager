@@ -1,5 +1,5 @@
 /**
- * @typedef {object} NewsType
+ * @typedef {object} LogMessageType
  * @property {number} id
  * @property {number} game_day
  * @property {number} season
@@ -11,10 +11,10 @@
 import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
- * @param {NewsType} raw
- * @returns {NewsType}
+ * @param {LogMessageType} raw
+ * @returns {LogMessageType}
  */
-export function News (raw) {
+export function LogMessage (raw) {
   checkType(raw, {
     id: OptionalNumber,
     game_day: RequiredNumber,
