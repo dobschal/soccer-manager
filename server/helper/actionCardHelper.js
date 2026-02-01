@@ -10,7 +10,7 @@ import { getPlayerById } from './playerHelper.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 
 export const actionCardChances = {
-  LEVEL_UP_PLAYER_9: 0.05, // TODO: LEVEL_UP_PLAYER_9, is actually level up 10 ...
+  LEVEL_UP_PLAYER_10: 0.05,
   LEVEL_UP_PLAYER_7: 0.2,
   LEVEL_UP_PLAYER_4: 0.4,
   CHANGE_PLAYER_POSITION: 0.05,
@@ -54,7 +54,7 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     return { success: true }
   }
-  if (actionCard.action === 'LEVEL_UP_PLAYER_9') {
+  if (actionCard.action === 'LEVEL_UP_PLAYER_10') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (await levelUpsCurrentSeason(player) >= 2) {
       throw new BadRequestError('Player already got 2 level ups this season...')

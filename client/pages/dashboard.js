@@ -11,7 +11,7 @@ const pageIndex = 0
 const pageSize = 10
 
 const actionCardTexts = {
-  LEVEL_UP_PLAYER_9: {
+  LEVEL_UP_PLAYER_10: {
     title: 'Player Level Up ⬆',
     description: 'Choose a player in your team to give him a level up.'
   },
@@ -188,7 +188,7 @@ export class DashboardPage extends UIElement {
   async _mergeCards (actionCard) {
     const upgradeMap = {
       LEVEL_UP_PLAYER_4: 'Level Up (max. 7)',
-      LEVEL_UP_PLAYER_7: 'Level Up (max. 9)'
+      LEVEL_UP_PLAYER_7: 'Level Up (max. 10)'
     }
     const upgradeTo = upgradeMap[actionCard.action] ?? 'a better card'
 

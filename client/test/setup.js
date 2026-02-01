@@ -76,7 +76,7 @@ export const testData = {
 
   actionCard: (overrides = {}) => ({
     id: 1,
-    action: 'LEVEL_UP_PLAYER_9',
+    action: 'LEVEL_UP_PLAYER_10',
     ...overrides
   }),
 

@@ -712,9 +712,7 @@ export class StadiumPage extends UIElement {
    * @property {number} z
    * @property {number} rotation
    * @property {boolean|number} hasRoof
-   */
-
-  // TODO: set minimum stand size to 200
+   */å
 
   /**
    * Create a stand/tribune with ascending rows
@@ -728,7 +726,8 @@ export class StadiumPage extends UIElement {
       x,
       z,
       rotation,
-      hasRoof
+      hasRoof,
+      position
     } = config
     const group = new THREE.Group()
 
@@ -739,9 +738,9 @@ export class StadiumPage extends UIElement {
 
     // Dynamic divider based on stand size:
     // - minSize (200) -> divider 1
-    // - maxSize (30000) -> divider 5
+    // - maxSize -> divider 5 (30000 for north/south, 15000 for east/west)
     const minSize = 200
-    const maxSize = 30000
+    const maxSize = (position === 'east' || position === 'west') ? 15000 : 30000
     const divider = 1 + Math.min(1, (seats - minSize) / (maxSize - minSize)) * 4
     const numRows = Math.max(3, Math.ceil(seats / seatsPerRow) / divider)
 
@@ -760,50 +759,94 @@ export class StadiumPage extends UIElement {
     base.receiveShadow = true
     group.add(base)
 
-    // Create ascending rows (like stairs)
+    // Create ascending rows (like stairs) using instanced meshes for performance
+    // Steps can be instanced since they share the same geometry
+    const stepGeo = new THREE.BoxGeometry(width, rowHeight, rowDepth)
+    const stepMat = new THREE.MeshLambertMaterial({ color: 0x909090 })
+    const stepInstancedMesh = new THREE.InstancedMesh(stepGeo, stepMat, numRows)
+    stepInstancedMesh.castShadow = true
+    stepInstancedMesh.receiveShadow = true
+
+    const stepMatrix = new THREE.Matrix4()
+    for (let row = 0; row < numRows; row++) {
+      const rowY = 0.5 + row * rowHeight
+      const rowZ = row * rowDepth
+      stepMatrix.setPosition(0, rowY + rowHeight / 2, rowZ + rowDepth / 2)
+      stepInstancedMesh.setMatrixAt(row, stepMatrix)
+    }
+    stepInstancedMesh.instanceMatrix.needsUpdate = true
+    group.add(stepInstancedMesh)
+
+    // Pre-calculate all seat positions and group by color for instanced rendering
+    const seatColors = [
+      {
+        color: 0xe74c3c,
+        threshold: 0.35
+      },  // red
+      {
+        color: 0x3498db,
+        threshold: 0.70
+      },  // blue
+      {
+        color: 0xf39c12,
+        threshold: 0.85
+      },  // orange
+      {
+        color: 0x27ae60,
+        threshold: 0.95
+      },  // green
+      {
+        color: 0xf1c40f,
+        threshold: 1.0
+      }    // yellow
+    ]
+
+    // Collect seat positions grouped by color
+    const seatsByColor = new Map()
+    seatColors.forEach(c => seatsByColor.set(c.color, []))
+
     for (let row = 0; row < numRows; row++) {
       const rowY = 0.5 + row * rowHeight
       const rowZ = row * rowDepth
 
-      // Step/platform for this row
-      const stepGeo = new THREE.BoxGeometry(width, rowHeight, rowDepth)
-      const stepMat = new THREE.MeshLambertMaterial({ color: 0x909090 })
-      const step = new THREE.Mesh(stepGeo, stepMat)
-      step.position.y = rowY + rowHeight / 2
-      step.position.z = rowZ + rowDepth / 2
-      step.castShadow = true
-      step.receiveShadow = true
-      group.add(step)
-
-      // Seats on this row - use seatWidth for consistent calculation
       for (let s = 0; s < seatsPerRow; s++) {
-        // Random crowd colors
         const colorChoice = Math.random()
-        let seatColor
-        if (colorChoice < 0.35) {
-          seatColor = 0xe74c3c
-        }// red
-        else if (colorChoice < 0.70) {
-          seatColor = 0x3498db
-        }// blue
-        else if (colorChoice < 0.85) {
-          seatColor = 0xf39c12
-        }// orange
-        else if (colorChoice < 0.95) {
-          seatColor = 0x27ae60
-        }// green
-        else {
-          seatColor = 0xf1c40f
-        }                          // yellow
+        let seatColor = seatColors[seatColors.length - 1].color
+        for (const {
+          color,
+          threshold
+        } of seatColors) {
+          if (colorChoice < threshold) {
+            seatColor = color
+            break
+          }
+        }
 
-        const seatGeo = new THREE.BoxGeometry(seatWidth * 0.8, 0.4, rowDepth * 0.6)
-        const seatMat = new THREE.MeshLambertMaterial({ color: seatColor })
-        const seat = new THREE.Mesh(seatGeo, seatMat)
-        seat.position.x = -width / 2 + seatWidth / 2 + s * seatWidth
-        seat.position.y = rowY + rowHeight + 0.2
-        seat.position.z = rowZ + rowDepth * 0.35
-        group.add(seat)
+        seatsByColor.get(seatColor).push({
+          x: -width / 2 + seatWidth / 2 + s * seatWidth,
+          y: rowY + rowHeight + 0.2,
+          z: rowZ + rowDepth * 0.35
+        })
       }
+    }
+
+    // Create one InstancedMesh per color
+    const seatGeo = new THREE.BoxGeometry(seatWidth * 0.8, 0.4, rowDepth * 0.6)
+    const seatMatrix = new THREE.Matrix4()
+
+    for (const [color, positions] of seatsByColor) {
+      if (positions.length === 0) continue
+
+      const seatMat = new THREE.MeshLambertMaterial({ color })
+      const instancedSeats = new THREE.InstancedMesh(seatGeo, seatMat, positions.length)
+
+      for (let i = 0; i < positions.length; i++) {
+        const pos = positions[i]
+        seatMatrix.setPosition(pos.x, pos.y, pos.z)
+        instancedSeats.setMatrixAt(i, seatMatrix)
+      }
+      instancedSeats.instanceMatrix.needsUpdate = true
+      group.add(instancedSeats)
     }
 
     // Back wall (behind the top row)

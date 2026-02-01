@@ -223,8 +223,6 @@ async function _ajustAmountOfTeams () {
   }
 }
 
-// TODO: add new images for sponsor and action cards...
-
 /**
  * @param {number} level
  * @returns {Promise<Team>}
@@ -257,8 +255,6 @@ async function _createRandomTeam (level) {
   await query('INSERT INTO stadium SET ?', stadium)
   return team
 }
-
-// TODO: Too many action cards per game day... --> lower the chances
 
 /**
  * @param {Team} team
