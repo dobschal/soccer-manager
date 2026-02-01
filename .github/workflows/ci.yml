@@ -45,11 +45,83 @@ jobs:
       - name: Run tests
         run: npm test
 
+  version-bump:
+    name: "Bump Version"
+    runs-on: ubuntu-latest
+    needs: [ lint, test ]
+    if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip ci]')
+    permissions:
+      contents: write
+    outputs:
+      new_version: ${{ steps.version.outputs.new }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Calculate new version
+        id: version
+        run: |
+          YEAR=$(date +%Y)
+          MONTH=$(date +%m)
+          PREFIX="${YEAR}.${MONTH}."
+
+          # Get the latest tag matching this month's pattern
+          LATEST_TAG=$(git tag -l "${PREFIX}*" --sort=-v:refname | head -n 1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            # No tags for this month yet, start at 0001
+            NEW_VERSION="${PREFIX}0001"
+          else
+            # Extract the sequence number and increment
+            SEQUENCE=$(echo "$LATEST_TAG" | sed "s/${PREFIX}//")
+            NEXT_SEQUENCE=$(printf "%04d" $((10#$SEQUENCE + 1)))
+            NEW_VERSION="${PREFIX}${NEXT_SEQUENCE}"
+          fi
+
+          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.version.outputs.new }} --no-git-tag-version
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new }} [skip ci]"
+          git push
+
+  release:
+    name: "Create Release"
+    runs-on: ubuntu-latest
+    needs: [ version-bump ]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ needs.version-bump.outputs.new_version }}" \
+            --title "Release ${{ needs.version-bump.outputs.new_version }}" \
+            --generate-notes
+
   deploy:
     name: "Deploy to Hetzner Server"
     runs-on: ubuntu-latest
-    needs: [ lint, test ]
-    if: github.ref == 'refs/heads/main'
+    needs: [ release ]
     steps:
       - name: Configure SSH
         run: |

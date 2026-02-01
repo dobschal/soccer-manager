@@ -1,6 +1,7 @@
 import { DefaultLayout } from './layouts/defaultLayout.js'
 import { GameLayout } from './layouts/gameLayout.js'
 import { initRouter } from './lib/router.js'
+import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
 import { FinancesPage } from './pages/finances.js'
 import { LoginPage } from './pages/login.js'
@@ -9,6 +10,10 @@ import { StadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
+
+server.getVersion().then(({ version }) => {
+  console.log(`Soccer Manager v${version}`)
+})
 
 const pages = {
   trades: [GameLayout, TradesPage],
