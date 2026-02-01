@@ -1,4 +1,4 @@
-FROM node:slim
+FROM node:20-slim
 
 WORKDIR /usr/src/app
 
@@ -6,9 +6,9 @@ COPY package.json ./
 
 RUN npm install
 
-COPY server ./src
+COPY server ./server
 COPY client ./client
 
 EXPOSE 3000
 
-CMD ["node", "src/api.js"]
+CMD ["node", "server/api.js"]
