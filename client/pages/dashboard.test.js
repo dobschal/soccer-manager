@@ -119,7 +119,7 @@ describe('DashboardPage', () => {
 
     it('renders action cards when available', async () => {
       server.getActionCards.mockResolvedValue({
-        actionCards: [{ id: 1, action: 'LEVEL_UP_PLAYER_9' }]
+        actionCards: [{ id: 1, action: 'LEVEL_UP_PLAYER_10' }]
       })
 
       const page = new DashboardPage()

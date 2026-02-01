@@ -95,10 +95,10 @@ async function _giveUsersActionCards () {
   for (const team of teams) {
     const actionCards = []
     while (actionCards.length === 0) {
-      if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_9) {
+      if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_10) {
         actionCards.push(new ActionCard({
           team_id: team.id,
-          action: 'LEVEL_UP_PLAYER_9',
+          action: 'LEVEL_UP_PLAYER_10',
           played: 0
         }))
       }

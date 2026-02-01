@@ -2,7 +2,7 @@ import { Game } from './entities/game.js'
 import { Player } from './entities/player.js'
 import { Team } from './entities/team.js'
 import { query } from './lib/database.js'
-import { Formation, Position, getPositionsOfFormation } from '../client/util/formation.js'
+import { Formation, getPositionsOfFormation, Position } from '../client/util/formation.js'
 import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name-library.js'
 import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 import { Stadium } from './entities/stadium.js'
@@ -126,7 +126,9 @@ async function _createGames () {
     for (let i = 0; i < teamsOfLevel.length; i++) {
       const league = Math.floor(i / teamsPerLeague)
       if (!leagues[league]) leagues[league] = []
-      query(`UPDATE team SET league=${league} WHERE id=${teamsOfLevel[i].id}`)
+      query(`UPDATE team
+             SET league=${league}
+             WHERE id = ${teamsOfLevel[i].id}`)
       leagues[league].push(teamsOfLevel[i])
     }
     await Promise.all(leagues.map((teamsOfLeague, league) => {
@@ -221,8 +223,6 @@ async function _ajustAmountOfTeams () {
   }
 }
 
-// TODO: add new images for sponsor and action cards...
-
 /**
  * @param {number} level
  * @returns {Promise<Team>}
@@ -244,7 +244,7 @@ async function _createRandomTeam (level) {
     east_stand_roof: 0,
     west_stand_roof: 0,
     north_stand_size: 1000,
-    south_stand_size: 100,
+    south_stand_size: 200,
     east_stand_size: 100,
     west_stand_size: 100,
     north_stand_price: 13,

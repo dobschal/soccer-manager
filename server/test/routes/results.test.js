@@ -1,27 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMockRequest, testData } from '../test/setup.js'
+import { createMockRequest, testData } from '../setup.js'
 
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../helper/teamHelper.js', () => ({
+vi.mock('../../helper/teamHelper.js', () => ({
   getTeam: vi.fn()
 }))
 
-vi.mock('../helper/gameDayHelper.js', () => ({
+vi.mock('../../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: vi.fn()
 }))
 
-vi.mock('../lib/util.js', () => ({
+vi.mock('../../lib/util.js', () => ({
   calculateStanding: vi.fn()
 }))
 
-import { query } from '../lib/database.js'
-import { getTeam } from '../helper/teamHelper.js'
-import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { calculateStanding } from '../lib/util.js'
-import handlers from './results.js'
+import { query } from '../../lib/database.js'
+import { getTeam } from '../../helper/teamHelper.js'
+import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { calculateStanding } from '../../lib/util.js'
+import handlers from '../../routes/results.js'
 
 describe('results routes', () => {
   beforeEach(() => {

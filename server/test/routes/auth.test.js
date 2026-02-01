@@ -1,24 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { testData } from '../test/setup.js'
+import { testData } from '../setup.js'
 
 // Mock dependencies
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../helper/newsHelper.js', () => ({
+vi.mock('../../helper/newsHelper.js', () => ({
   addLogMessage: vi.fn()
 }))
 
-vi.mock('../helper/sponsorHelper.js', () => ({
+vi.mock('../../helper/sponsorHelper.js', () => ({
   getSponsor: vi.fn()
 }))
 
 // Import after mocking
-import { query } from '../lib/database.js'
-import { addLogMessage } from '../helper/newsHelper.js'
-import { getSponsor } from '../helper/sponsorHelper.js'
-import handlers from './auth.js'
+import { query } from '../../lib/database.js'
+import { addLogMessage } from '../../helper/newsHelper.js'
+import { getSponsor } from '../../helper/sponsorHelper.js'
+import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
   beforeEach(() => {

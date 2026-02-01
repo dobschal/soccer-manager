@@ -2,13 +2,13 @@
   "name": "soccer-simulation",
   "version": "1.0.0",
   "description": "",
-  "main": "src/app.js",
+  "main": "server/app.js",
   "scripts": {
-    "lint": "eslint ./src ./client",
+    "lint": "eslint server ./client",
     "test:client": "vitest run --config client/vitest.config.js",
     "test:client:watch": "vitest --config client/vitest.config.js",
-    "test:server": "vitest run --config src/vitest.config.js",
-    "test:server:watch": "vitest --config src/vitest.config.js",
+    "test:server": "vitest run --config server/vitest.config.js",
+    "test:server:watch": "vitest --config server/vitest.config.js",
     "test": "npm run test:client && npm run test:server"
   },
   "keywords": [],
@@ -29,6 +29,7 @@
     "globals": "^16.0.0",
     "happy-dom": "^20.4.0",
     "jsdom": "^27.4.0",
+    "three": "^0.182.0",
     "vitest": "^4.0.18"
   },
   "type": "module"

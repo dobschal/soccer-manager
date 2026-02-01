@@ -16,20 +16,47 @@ export async function getStadiumOfCurrentUser (req) {
 }
 
 /**
- * 500 neue sitze --> 100 000
- * 5000 --> 1 000 000
- *
  * @param {StadiumType} currentStadium
  * @param {StadiumType} plannedStadium
  * @returns {number}
  */
 export function calcuateStadiumBuild (currentStadium, plannedStadium) {
-  const standNames = ['north', 'south', 'west', 'east']
+  // Stand size limits: north/south are larger (behind goals), east/west are smaller (sidelines)
+  const standLimits = {
+    north: {
+      min: 200,
+      max: 30_000
+    },
+    south: {
+      min: 200,
+      max: 30_000
+    },
+    east: {
+      min: 100,
+      max: 15_000
+    },
+    west: {
+      min: 100,
+      max: 15_000
+    }
+  }
+
   let totalPrice = 0
-  for (const standName of standNames) {
+  for (const standName of Object.keys(standLimits)) {
     const currentStandSize = currentStadium[standName + '_stand_size']
     const plannedStandSize = plannedStadium[standName + '_stand_size']
-    if (plannedStandSize > 40000) throw new BadRequestError('Maximum allowed stand size is 40 000.')
+    const {
+      min,
+      max
+    } = standLimits[standName]
+
+    if (plannedStandSize < min) {
+      throw new BadRequestError(`Minimum size for ${standName} stand is ${min.toLocaleString()} seats.`)
+    }
+    if (plannedStandSize > max) {
+      throw new BadRequestError(`Maximum size for ${standName} stand is ${max.toLocaleString()} seats.`)
+    }
+
     const seatsDiff = Math.floor(plannedStandSize - currentStandSize)
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
     if (seatsDiff === 0) continue
@@ -57,18 +84,23 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
  * @returns {Promise<void>}
  */
 export async function buildStadium (team, plannedStadium, price) {
-  const { gameDay, season } = await getGameDayAndSeason()
+  const {
+    gameDay,
+    season
+  } = await getGameDayAndSeason()
   await updateTeamBalance(team, price * -1, 'Stadium construction build', gameDay, season)
   await query(`
-        UPDATE stadium SET north_stand_size=?, 
-                           south_stand_size=?, 
-                           west_stand_size=?, 
-                           east_stand_size=?,
-                           north_stand_roof=?,
-                           south_stand_roof=?,
-                           west_stand_roof=?,
-                           east_stand_roof=? WHERE id=?
-    `, [
+      UPDATE stadium
+      SET north_stand_size=?,
+          south_stand_size=?,
+          west_stand_size=?,
+          east_stand_size=?,
+          north_stand_roof=?,
+          south_stand_roof=?,
+          west_stand_roof=?,
+          east_stand_roof=?
+      WHERE id = ?
+  `, [
     plannedStadium.north_stand_size,
     plannedStadium.south_stand_size,
     plannedStadium.west_stand_size,

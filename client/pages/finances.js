@@ -5,18 +5,6 @@ import { Balance } from '../partials/balance.js'
 import { euroFormat } from '../lib/currency.js'
 import { BalanceChart } from '../partials/balanceChart.js'
 
-// Sponsor names array - must match the order in the sprite sheet (5x8 grid, 1536x1024px)
-const sponsorNames = [
-  'AeroTech Industries', 'EcoFusion Solutions', 'TruSports Apparel', 'GlobalTech Corporation', 'SwiftEnergy',
-  'OptiFit Nutrition', 'Starlux Airlines', 'HyperDrive Motors', 'AquaPure Water', 'SureGuard Security',
-  'iTech Innovations', 'EnerGize', 'NovaTech Electronics', 'SkyHigh Investments', 'PowerPlay Energy',
-  'CitiCom Telecommunications', 'DreamCruise Vacations', 'SuperiorSteel', 'MaxLife Insurance', 'TechGenius',
-  'AlphaPrint', 'MegaFlex Gym', 'CityScape Real Estate', 'GloboVision Media', 'UrbanBite Restaurants',
-  'QuickFix Healthcare', 'PrimeTime Watches', 'Elevate Wealth Management', 'Vitality Health', 'DynamicDrills',
-  'MegaPixel Cameras', 'FirstRate Finance', 'EcoMotion Electric Vehicles', 'SkyNet Internet', 'SoundWave Audio',
-  'FreshHarvest Farms', 'PowerUp Batteries'
-]
-
 const SPRITE_COLS = 5
 const SPRITE_WIDTH = 1536
 const SPRITE_HEIGHT = 1024
@@ -27,6 +15,7 @@ export class FinancesPage extends UIElement {
   sponsor = null
   offers = []
   financeLog = []
+  sponsorNames = []
 
   /**
    * @returns {Object}
@@ -107,7 +96,9 @@ export class FinancesPage extends UIElement {
 
     const logResponse = await server.getFinanceLog()
     this.financeLog = logResponse.log
-    console.log('Finance: ', this.financeLog)
+
+    const sponsorNamesResponse = await server.getSponsorNames()
+    this.sponsorNames = sponsorNamesResponse.sponsorNames
   }
 
 
@@ -155,7 +146,7 @@ export class FinancesPage extends UIElement {
    * @returns {string}
    */
   _getSponsorSpriteStyle (name) {
-    const index = sponsorNames.indexOf(name)
+    const index = this.sponsorNames.indexOf(name)
     if (index === -1) return ''
     const col = index % SPRITE_COLS
     const row = Math.floor(index / SPRITE_COLS)

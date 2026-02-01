@@ -32,7 +32,7 @@ export default {
       await query('DELETE FROM action_card WHERE id=?', [actionCard2.id])
       const actionCard = new ActionCard({
         team_id: team.id,
-        action: actionCard1.action === 'LEVEL_UP_PLAYER_4' ? 'LEVEL_UP_PLAYER_7' : 'LEVEL_UP_PLAYER_9',
+        action: actionCard1.action === 'LEVEL_UP_PLAYER_4' ? 'LEVEL_UP_PLAYER_7' : 'LEVEL_UP_PLAYER_10',
         played: 0
       })
       await query('INSERT INTO action_card SET ?', actionCard)

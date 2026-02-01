@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMockRequest, testData } from '../test/setup.js'
+import { createMockRequest, testData } from '../setup.js'
 
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../helper/stadiumHelper.js', () => ({
+vi.mock('../../helper/stadiumHelper.js', () => ({
   getStadiumOfCurrentUser: vi.fn(),
   calcuateStadiumBuild: vi.fn(),
   buildStadium: vi.fn()
 }))
 
-import { query } from '../lib/database.js'
-import { getStadiumOfCurrentUser, calcuateStadiumBuild, buildStadium } from '../helper/stadiumHelper.js'
-import handlers from './stadium.js'
+import { query } from '../../lib/database.js'
+import { getStadiumOfCurrentUser, calcuateStadiumBuild, buildStadium } from '../../helper/stadiumHelper.js'
+import handlers from '../../routes/stadium.js'
 
 describe('stadium routes', () => {
   beforeEach(() => {

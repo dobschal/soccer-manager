@@ -41,7 +41,7 @@ app.use(async (req, res, next) => {
  * Check the routes folder for all script and apply the route
  * handlers automatically
  */
-const filenames = fs.readdirSync('src/routes').filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))
+const filenames = fs.readdirSync('server/routes').filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))
 for (const filename of filenames) {
   const mod = await import(`./routes/${filename}`)
   for (const fnName in mod.default) {

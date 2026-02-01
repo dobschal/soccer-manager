@@ -5,6 +5,7 @@ vi.mock('../lib/gateway.js', () => ({
     getSponsor: vi.fn(),
     getSponsorOffers: vi.fn(),
     getFinanceLog: vi.fn(),
+    getSponsorNames: vi.fn(),
     chooseSponsor: vi.fn(),
     getMyBalance: vi.fn()
   }
@@ -60,6 +61,9 @@ describe('FinancesPage', () => {
       ]
     })
     server.getFinanceLog.mockResolvedValue({ log: [] })
+    server.getSponsorNames.mockResolvedValue({
+      sponsorNames: ['Sponsor A', 'Sponsor B', 'Sponsor C']
+    })
   })
 
   describe('FinancesPage class', () => {

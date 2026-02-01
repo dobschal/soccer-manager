@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('../lib/gateway.js', () => ({
   server: {
     getStadium: vi.fn(),
+    getMyTeam: vi.fn(),
     buildStadium: vi.fn(),
     updatePrices: vi.fn(),
     calculateStadiumPrice: vi.fn()
@@ -54,6 +55,13 @@ describe('StadiumPage', () => {
         south_stand_roof: 0,
         east_stand_roof: 0,
         west_stand_roof: 0
+      }
+    })
+    server.getMyTeam.mockResolvedValue({
+      team: {
+        id: 1,
+        name: 'Test FC',
+        color: '#FF0000'
       }
     })
   })

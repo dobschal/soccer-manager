@@ -2,8 +2,16 @@ import { Sponsor } from '../entities/sponsor.js'
 import { getSponsor, getSponsorOffers } from '../helper/sponsorHelper.js'
 import { query } from '../lib/database.js'
 import { getTeam } from '../helper/teamHelper.js'
+import { sponsorNames } from '../lib/name-library.js'
 
 export default {
+
+  /**
+   * @returns {{sponsorNames: string[]}}
+   */
+  getSponsorNames () {
+    return { sponsorNames }
+  },
 
   /**
    * @param {Request} req

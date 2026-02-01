@@ -1,28 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMockRequest, testData } from '../test/setup.js'
+import { createMockRequest, testData } from '../setup.js'
 
-vi.mock('../lib/database.js', () => ({
+vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../helper/teamHelper.js', () => ({
+vi.mock('../../helper/teamHelper.js', () => ({
   getTeam: vi.fn()
 }))
 
-vi.mock('../helper/gameDayHelper.js', () => ({
+vi.mock('../../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: vi.fn()
 }))
 
-vi.mock('../helper/tradeHelper.js', () => ({
+vi.mock('../../helper/tradeHelper.js', () => ({
   acceptOffer: vi.fn(),
   declineOffer: vi.fn()
 }))
 
-import { query } from '../lib/database.js'
-import { getTeam } from '../helper/teamHelper.js'
-import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
-import handlers from './trade.js'
+import { query } from '../../lib/database.js'
+import { getTeam } from '../../helper/teamHelper.js'
+import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { acceptOffer, declineOffer } from '../../helper/tradeHelper.js'
+import handlers from '../../routes/trade.js'
 
 describe('trade routes', () => {
   beforeEach(() => {

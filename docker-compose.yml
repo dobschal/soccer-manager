@@ -13,11 +13,22 @@ services:
       test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
       timeout: 10s
       retries: 10
+    networks:
+      - soccer-manager
 
   soccer-manager:
-    image: dobschal/soccer-manager
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
     ports:
-      - "3000:3000"
+      - "3013:3000"
     depends_on:
       database:
         condition: service_healthy
+    networks:
+      - soccer-manager
+
+networks:
+  soccer-manager:
+    external: true
