@@ -1,4 +1,4 @@
-name: QA
+name: CI
 
 on:
   push:
@@ -44,3 +44,28 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+  deploy:
+    name: "Deploy to Hetzner Server"
+    runs-on: ubuntu-latest
+    needs: [ lint, test ]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/hetzner.key
+          chmod 600 ~/.ssh/hetzner.key
+          cat >>~/.ssh/config <<END
+          Host hetzner
+            HostName $SSH_HOST
+            User root
+            IdentityFile ~/.ssh/hetzner.key
+            StrictHostKeyChecking no
+          END
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.HOST }}
+
+      - name: Deploy
+        run: ssh hetzner 'cd /root/deployments/soccer-manager && ./restart.sh'

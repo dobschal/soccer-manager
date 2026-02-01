@@ -1,7 +1,6 @@
 # Soccer Simulation
 
-![QA](https://github.com/dobschal/soccer-manager/actions/workflows/qa.yml/badge.svg)
-![Deployment](https://github.com/dobschal/soccer-manager/actions/workflows/deploy.yml/badge.svg)
+![Tests & Deployment](https://github.com/dobschal/soccer-manager/actions/workflows/ci.yml/badge.svg)
 
 ## Get Started
 
