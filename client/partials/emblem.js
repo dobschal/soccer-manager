@@ -1,32 +1,30 @@
-import { UIElement } from '../lib/UIElement.js'
+import { generateEmblem, parseEmblemParams } from '../util/emblemGenerator.js'
 
-export class Emblem extends UIElement {
-  size = 200
-  withText = true
+/**
+ * Render an emblem for a team
+ * @param {Object} team - Team object with emblem params
+ * @param {number} [size=200] - Size of the emblem
+ * @returns {string} SVG HTML string
+ */
+export function renderEmblem (team, size = 200) {
+  const params = parseEmblemParams(team.emblem)
 
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `
-      <div class="emblem" style="width: ${this.size}px">
-          ${this.svg}
-          <h2 style="font-size: ${Math.floor(this.size / 9)}px">${this.name}</h2>
-      </div>
-    `
+  if (!params) {
+    // Fallback for teams without emblem params
+    return generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: team.color || '#1a5f7a',
+      teamName: team.name,
+      size
+    })
   }
 
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const imageUrl = 'assets/emblem.svg'
-    const rawResponse = await fetch(imageUrl)
-    let svg = await rawResponse.text()
-    svg = svg.replace('width="500"', `width="${this.size}"`)
-    svg = svg.replace('height="500"', `height="${this.size}"`)
-    this.svg = svg.replaceAll('#FF0000', this.team.color)
-    const nameSplitted = this.team.name.split(' ')
-    this.name = this.withText ? nameSplitted[nameSplitted.length - 1] : ''
-  }
+  return generateEmblem({
+    shape: params.shape,
+    pattern: params.pattern,
+    color: params.color,
+    teamName: team.name,
+    size
+  })
 }

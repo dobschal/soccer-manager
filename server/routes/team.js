@@ -36,6 +36,18 @@ export default {
   },
 
   /**
+   * @param {string} emblem - JSON string with emblem params (shape, pattern, color)
+   * @param {string} color - Team color
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateEmblem (emblem, color, req) {
+    const team = await getTeam(req)
+    await query('UPDATE team SET emblem=?, color=? WHERE id=?', [emblem, color, team.id])
+    return { success: true }
+  },
+
+  /**
    * @param {number} teamId
    * @returns {Promise<TeamType>}
    */

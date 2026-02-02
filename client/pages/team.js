@@ -2,7 +2,7 @@ import { server } from '../lib/gateway.js'
 import { setQueryParams } from '../lib/router.js'
 import { PlayerList } from '../partials/playerList.js'
 import { showPlayerModal } from '../partials/playerModal.js'
-import { Emblem } from '../partials/emblem.js'
+import { renderEmblem } from '../partials/emblem.js'
 import { UIElement } from '../lib/UIElement.js'
 import { formatLeague } from '../util/league.js'
 
@@ -32,7 +32,7 @@ export class TeamPage extends UIElement {
       <div>
         <div class="mb-4">
           <div class="float-start me-4 mb-4 ms-2">
-              ${new Emblem({ team: this.team, size: 300, withText: true })}
+              ${renderEmblem(this.team, 300)}
           </div>
           <h2>${this.team.name}</h2>
           <p>
