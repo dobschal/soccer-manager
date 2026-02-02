@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="firstGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#1e40af"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#firstGrad)"/>
+  <!-- Number 1 with star -->
+  <text x="35" y="70" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#fff">1</text>
+  <polygon points="65,25 68,35 78,35 70,42 73,52 65,46 57,52 60,42 52,35 62,35" fill="#fbbf24"/>
+  <!-- Coins -->
+  <ellipse cx="55" cy="75" rx="10" ry="4" fill="#fbbf24"/>
+  <ellipse cx="55" cy="72" rx="10" ry="4" fill="#fcd34d"/>
+  <text x="95" y="42" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">FIRSTRATE</text>
+  <text x="95" y="58" font-family="Arial, sans-serif" font-size="8" fill="#93c5fd">FINANCE</text>
+</svg>

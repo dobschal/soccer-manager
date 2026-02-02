@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="enerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dc2626"/>
+      <stop offset="100%" style="stop-color:#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#enerGrad)"/>
+  <!-- Battery with lightning -->
+  <rect x="30" y="35" width="40" height="30" rx="3" fill="#fff"/>
+  <rect x="70" y="45" width="5" height="10" fill="#fff"/>
+  <rect x="35" y="40" width="12" height="20" fill="#22c55e"/>
+  <rect x="50" y="40" width="12" height="20" fill="#22c55e"/>
+  <path d="M48 38 L44 50 L48 50 L46 62 L54 48 L50 48 L52 38 Z" fill="#fbbf24"/>
+  <text x="90" y="55" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fff">EnerGize</text>
+</svg>

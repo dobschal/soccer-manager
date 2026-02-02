@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="elevGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#064e3b"/>
+      <stop offset="100%" style="stop-color:#047857"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#elevGrad)"/>
+  <!-- Rising chart -->
+  <path d="M25 70 L40 55 L55 60 L70 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <polygon points="70,35 75,45 65,42" fill="#fff"/>
+  <!-- Bar chart -->
+  <rect x="25" y="60" width="8" height="15" fill="#34d399" opacity="0.7"/>
+  <rect x="38" y="50" width="8" height="25" fill="#34d399" opacity="0.7"/>
+  <rect x="51" y="55" width="8" height="20" fill="#34d399" opacity="0.7"/>
+  <rect x="64" y="40" width="8" height="35" fill="#34d399" opacity="0.7"/>
+  <text x="90" y="38" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#fff">ELEVATE</text>
+  <text x="90" y="52" font-family="Arial, sans-serif" font-size="6" fill="#a7f3d0">WEALTH</text>
+  <text x="90" y="62" font-family="Arial, sans-serif" font-size="6" fill="#a7f3d0">MANAGEMENT</text>
+</svg>

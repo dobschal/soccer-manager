@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="hyperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#18181b"/>
+      <stop offset="100%" style="stop-color:#3f3f46"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#hyperGrad)"/>
+  <!-- Wheel/tire -->
+  <circle cx="50" cy="50" r="25" fill="none" stroke="#e4e4e7" stroke-width="4"/>
+  <circle cx="50" cy="50" r="18" fill="none" stroke="#a1a1aa" stroke-width="2"/>
+  <circle cx="50" cy="50" r="8" fill="#dc2626"/>
+  <!-- Speed lines -->
+  <path d="M15 40 L25 40" stroke="#ef4444" stroke-width="2"/>
+  <path d="M10 50 L22 50" stroke="#ef4444" stroke-width="2"/>
+  <path d="M15 60 L25 60" stroke="#ef4444" stroke-width="2"/>
+  <text x="85" y="42" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">HYPERDRIVE</text>
+  <text x="85" y="58" font-family="Arial, sans-serif" font-size="8" fill="#a1a1aa">MOTORS</text>
+</svg>

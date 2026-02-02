@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="ecoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a472a"/>
+      <stop offset="100%" style="stop-color:#2d6a4f"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#ecoGrad)"/>
+  <!-- Leaf symbol -->
+  <path d="M50 70 Q30 50 50 30 Q70 40 60 60 Q55 65 50 70" fill="#52b788"/>
+  <path d="M50 70 Q55 50 50 35" fill="none" stroke="#95d5b2" stroke-width="2"/>
+  <path d="M70 65 Q55 50 70 35 Q85 45 78 58 Q74 62 70 65" fill="#40916c"/>
+  <text x="100" y="45" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#fff">ECOFUSION</text>
+  <text x="100" y="60" font-family="Arial, sans-serif" font-size="8" fill="#95d5b2">SOLUTIONS</text>
+</svg>

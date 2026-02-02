@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="alphaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#334155"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#alphaGrad)"/>
+  <!-- Printer -->
+  <rect x="28" y="40" width="44" height="25" rx="3" fill="#fff"/>
+  <rect x="33" y="30" width="34" height="15" fill="#e2e8f0"/>
+  <rect x="35" y="55" width="30" height="3" fill="#94a3b8"/>
+  <!-- Paper -->
+  <rect x="38" y="60" width="24" height="18" fill="#fff"/>
+  <path d="M42 65 L58 65 M42 70 L55 70 M42 75 L50 75" stroke="#cbd5e1" stroke-width="1"/>
+  <!-- Big A -->
+  <text x="45" y="52" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#0f172a">A</text>
+  <text x="85" y="55" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">AlphaPrint</text>
+</svg>

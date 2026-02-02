@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="ecomoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#065f46"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#ecomoGrad)"/>
+  <!-- Electric car silhouette -->
+  <path d="M25 60 L30 60 L35 45 L65 45 L72 55 L80 55 L80 65 L25 65 Z" fill="#fff"/>
+  <!-- Wheels -->
+  <circle cx="38" cy="65" r="7" fill="#1f2937"/>
+  <circle cx="38" cy="65" r="3" fill="#9ca3af"/>
+  <circle cx="68" cy="65" r="7" fill="#1f2937"/>
+  <circle cx="68" cy="65" r="3" fill="#9ca3af"/>
+  <!-- Lightning bolt on car -->
+  <path d="M50 48 L47 55 L50 55 L48 62 L55 53 L52 53 L54 48 Z" fill="#059669"/>
+  <!-- Leaf -->
+  <path d="M75 35 Q70 30 75 25 Q80 28 78 33" fill="#34d399"/>
+  <text x="92" y="38" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#fff">ECOMOTION</text>
+  <text x="92" y="50" font-family="Arial, sans-serif" font-size="5" fill="#a7f3d0">ELECTRIC</text>
+  <text x="92" y="58" font-family="Arial, sans-serif" font-size="5" fill="#a7f3d0">VEHICLES</text>
+</svg>

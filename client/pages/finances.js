@@ -5,17 +5,10 @@ import { Balance } from '../partials/balance.js'
 import { euroFormat } from '../lib/currency.js'
 import { BalanceChart } from '../partials/balanceChart.js'
 
-const SPRITE_COLS = 5
-const SPRITE_WIDTH = 1536
-const SPRITE_HEIGHT = 1024
-const CELL_WIDTH = SPRITE_WIDTH / SPRITE_COLS
-const CELL_HEIGHT = SPRITE_HEIGHT / 8
-
 export class FinancesPage extends UIElement {
   sponsor = null
   offers = []
   financeLog = []
-  sponsorNames = []
 
   /**
    * @returns {Object}
@@ -96,9 +89,6 @@ export class FinancesPage extends UIElement {
 
     const logResponse = await server.getFinanceLog()
     this.financeLog = logResponse.log
-
-    const sponsorNamesResponse = await server.getSponsorNames()
-    this.sponsorNames = sponsorNamesResponse.sponsorNames
   }
 
 
@@ -141,18 +131,16 @@ export class FinancesPage extends UIElement {
   }
 
   /**
-   * Gets CSS background-position for a sponsor's sprite image
+   * Converts sponsor name to kebab-case filename
    * @param {string} name
    * @returns {string}
    */
-  _getSponsorSpriteStyle (name) {
-    const index = this.sponsorNames.indexOf(name)
-    if (index === -1) return ''
-    const col = index % SPRITE_COLS
-    const row = Math.floor(index / SPRITE_COLS)
-    const xPos = col * CELL_WIDTH
-    const yPos = row * CELL_HEIGHT
-    return `background: url('assets/sponsors.png') -${xPos}px -${yPos}px; width: ${CELL_WIDTH}px; height: ${CELL_HEIGHT}px;`
+  _getSponsorImagePath (name) {
+    const filename = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+    return `assets/sponsor-images/${filename}.svg`
   }
 
   /**
@@ -160,7 +148,7 @@ export class FinancesPage extends UIElement {
    */
   _renderSponsorCard () {
     if (!this.sponsor) return ''
-    const spriteStyle = this._getSponsorSpriteStyle(this.sponsor.name)
+    const imagePath = this._getSponsorImagePath(this.sponsor.name)
     return `
       <div class="col-12 col-md-6 mb-4">
         <div class="action-card card text-white bg-success">
@@ -168,7 +156,7 @@ export class FinancesPage extends UIElement {
             <i class="fa fa-magic" aria-hidden="true"></i>
             <i>Sponsor</i>
           </div>
-          <div class="card-img-top sponsor-sprite" style="${spriteStyle}"></div>
+          <img class="card-img-top" src="${imagePath}" alt="${this.sponsor.name}">
           <div class="card-body">
             <h5 class="card-title">${this.sponsor.name}</h5>
             <p class="card-text">
@@ -187,7 +175,7 @@ export class FinancesPage extends UIElement {
    */
   _renderSponsorOfferCard (offer, index) {
     const classes = ['dark', 'success', 'info', 'warning']
-    const spriteStyle = this._getSponsorSpriteStyle(offer.name)
+    const imagePath = this._getSponsorImagePath(offer.name)
 
     return `
       <div class="col-12 col-sm-6 col-md-3 mb-4" data-sponsor-offer="${index}">
@@ -196,7 +184,7 @@ export class FinancesPage extends UIElement {
             <i class="fa fa-magic" aria-hidden="true"></i>
             <i>Sponsor</i>
           </div>
-          <div class="card-img-top sponsor-sprite" style="${spriteStyle}"></div>
+          <img class="card-img-top" src="${imagePath}" alt="${offer.name}">
           <div class="card-body">
             <h5 class="card-title">${offer.name}, ${offer.duration} Days</h5>
             <p class="card-text">

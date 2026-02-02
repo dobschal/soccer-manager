@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="globoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c2d12"/>
+      <stop offset="100%" style="stop-color:#ea580c"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#globoGrad)"/>
+  <!-- TV/Monitor with globe -->
+  <rect x="25" y="30" width="50" height="35" rx="3" fill="#fff"/>
+  <rect x="30" y="35" width="40" height="25" fill="#1e293b"/>
+  <!-- Globe inside screen -->
+  <circle cx="50" cy="47" r="10" fill="none" stroke="#ea580c" stroke-width="1.5"/>
+  <ellipse cx="50" cy="47" rx="5" ry="10" fill="none" stroke="#ea580c" stroke-width="1"/>
+  <path d="M40 47 L60 47" stroke="#ea580c" stroke-width="1"/>
+  <rect x="45" y="65" width="10" height="5" fill="#fff"/>
+  <rect x="40" y="70" width="20" height="3" fill="#fff"/>
+  <text x="85" y="42" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">GLOBOVISION</text>
+  <text x="85" y="58" font-family="Arial, sans-serif" font-size="8" fill="#fed7aa">MEDIA</text>
+</svg>

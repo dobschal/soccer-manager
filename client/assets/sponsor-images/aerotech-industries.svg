@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="aeroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#2d5a87"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#aeroGrad)"/>
+  <!-- Wing/Aircraft symbol -->
+  <path d="M30 55 L80 45 L95 50 L80 55 L30 55 M85 48 L140 35 L145 40 L90 52" fill="#fff"/>
+  <path d="M75 55 L85 70 L80 70 L72 57" fill="#fff" opacity="0.8"/>
+  <circle cx="60" cy="52" r="3" fill="#4da6ff"/>
+  <text x="155" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">AEROTECH</text>
+  <text x="155" y="58" font-family="Arial, sans-serif" font-size="7" fill="#a0c4e8">INDUSTRIES</text>
+</svg>

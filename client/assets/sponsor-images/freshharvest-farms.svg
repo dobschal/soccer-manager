@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="farmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#65a30d"/>
+      <stop offset="100%" style="stop-color:#84cc16"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#farmGrad)"/>
+  <!-- Sun -->
+  <circle cx="70" cy="30" r="12" fill="#fbbf24"/>
+  <path d="M70 12 L70 18 M70 42 L70 48 M52 30 L58 30 M82 30 L88 30 M57 17 L61 21 M79 39 L83 43 M57 43 L61 39 M79 21 L83 17" stroke="#fbbf24" stroke-width="2"/>
+  <!-- Wheat stalks -->
+  <path d="M30 80 L30 50" stroke="#fef3c7" stroke-width="2"/>
+  <ellipse cx="30" cy="45" rx="3" ry="6" fill="#fef3c7"/>
+  <ellipse cx="27" cy="50" rx="3" ry="5" fill="#fef3c7"/>
+  <ellipse cx="33" cy="50" rx="3" ry="5" fill="#fef3c7"/>
+  <path d="M45 80 L45 45" stroke="#fef3c7" stroke-width="2"/>
+  <ellipse cx="45" cy="40" rx="3" ry="6" fill="#fef3c7"/>
+  <ellipse cx="42" cy="45" rx="3" ry="5" fill="#fef3c7"/>
+  <ellipse cx="48" cy="45" rx="3" ry="5" fill="#fef3c7"/>
+  <text x="95" y="45" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#fff">FRESHHARVEST</text>
+  <text x="95" y="60" font-family="Arial, sans-serif" font-size="8" fill="#ecfccb">FARMS</text>
+</svg>

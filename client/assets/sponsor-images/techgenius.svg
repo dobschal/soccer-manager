@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="geniusGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#581c87"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#geniusGrad)"/>
+  <!-- Brain/gear combination -->
+  <circle cx="50" cy="50" r="22" fill="#fff"/>
+  <path d="M40 40 Q50 35 60 40 Q65 50 60 60 Q50 65 40 60 Q35 50 40 40" fill="#7c3aed"/>
+  <path d="M45 45 Q50 42 55 45 Q57 50 55 55 Q50 57 45 55 Q43 50 45 45" fill="#fff"/>
+  <!-- Gear teeth -->
+  <rect x="48" y="25" width="4" height="6" fill="#fff"/>
+  <rect x="48" y="69" width="4" height="6" fill="#fff"/>
+  <rect x="25" y="48" width="6" height="4" fill="#fff"/>
+  <rect x="69" y="48" width="6" height="4" fill="#fff"/>
+  <text x="85" y="55" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">TechGenius</text>
+</svg>

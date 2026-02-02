@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="steelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#374151"/>
+      <stop offset="100%" style="stop-color:#6b7280"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#steelGrad)"/>
+  <!-- Steel I-beam -->
+  <rect x="30" y="25" width="40" height="8" fill="#e5e7eb"/>
+  <rect x="47" y="33" width="6" height="34" fill="#d1d5db"/>
+  <rect x="30" y="67" width="40" height="8" fill="#e5e7eb"/>
+  <!-- Shine effect -->
+  <path d="M35 25 L38 33 L35 33 Z" fill="#fff" opacity="0.5"/>
+  <text x="85" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">SUPERIOR</text>
+  <text x="85" y="60" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#d1d5db">STEEL</text>
+</svg>

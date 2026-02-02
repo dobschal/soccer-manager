@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="swiftGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b00"/>
+      <stop offset="100%" style="stop-color:#ff9500"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#swiftGrad)"/>
+  <!-- Lightning bolt -->
+  <path d="M55 20 L40 52 L50 52 L45 80 L70 45 L58 45 L65 20 Z" fill="#fff"/>
+  <path d="M50 30 L42 50 L48 50 L45 65" fill="none" stroke="#ff6b00" stroke-width="2"/>
+  <text x="85" y="50" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#fff">SWIFT</text>
+  <text x="85" y="65" font-family="Arial, sans-serif" font-size="10" fill="#fff4e6">ENERGY</text>
+</svg>

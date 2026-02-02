@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="urbanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#92400e"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#urbanGrad)"/>
+  <!-- Fork and knife -->
+  <rect x="35" y="25" width="4" height="35" fill="#fff"/>
+  <rect x="33" y="25" width="2" height="15" fill="#fff"/>
+  <rect x="39" y="25" width="2" height="15" fill="#fff"/>
+  <rect x="36" y="60" width="2" height="15" rx="1" fill="#fff"/>
+  <!-- Knife -->
+  <path d="M55 25 L60 25 L60 55 Q58 60 55 55 Z" fill="#fff"/>
+  <rect x="56" y="55" width="3" height="18" rx="1" fill="#fff"/>
+  <!-- Plate -->
+  <ellipse cx="72" cy="65" rx="15" ry="8" fill="#fff" opacity="0.3"/>
+  <text x="95" y="42" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#fff">URBANBITE</text>
+  <text x="95" y="58" font-family="Arial, sans-serif" font-size="7" fill="#fde68a">RESTAURANTS</text>
+</svg>

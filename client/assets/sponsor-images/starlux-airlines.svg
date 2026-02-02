@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e1b4b"/>
+      <stop offset="100%" style="stop-color:#312e81"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#starGrad)"/>
+  <!-- Star -->
+  <polygon points="50,20 54,35 70,35 57,45 62,60 50,50 38,60 43,45 30,35 46,35" fill="#fbbf24"/>
+  <!-- Small plane -->
+  <path d="M45 70 L65 65 L70 68 L60 72 L45 70" fill="#fff" opacity="0.8"/>
+  <text x="85" y="42" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff">STARLUX</text>
+  <text x="85" y="58" font-family="Arial, sans-serif" font-size="8" fill="#c4b5fd">AIRLINES</text>
+</svg>

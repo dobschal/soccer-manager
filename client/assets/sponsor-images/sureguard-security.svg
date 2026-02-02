@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <defs>
+    <linearGradient id="sureGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#0f4c75"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="100" fill="url(#sureGrad)"/>
+  <!-- Shield -->
+  <path d="M50 20 L70 28 L70 50 Q70 70 50 80 Q30 70 30 50 L30 28 Z" fill="#fff"/>
+  <path d="M50 30 L62 35 L62 50 Q62 62 50 70 Q38 62 38 50 L38 35 Z" fill="#0f4c75"/>
+  <path d="M45 50 L48 55 L58 42" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+  <text x="82" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">SUREGUARD</text>
+  <text x="82" y="60" font-family="Arial, sans-serif" font-size="8" fill="#90cdf4">SECURITY</text>
+</svg>
