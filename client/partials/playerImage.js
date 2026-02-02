@@ -1,4 +1,5 @@
 import { shadeColor } from '../lib/shadeColor.js'
+import { renderEmblem } from './emblem.js'
 
 // first is the real skin color, second is the shade
 const skinColors = [
@@ -38,9 +39,16 @@ export async function renderPlayerImage (player, team, size = 224) {
     svg = svg.replaceAll(skinColor[0], skinColors[player.skin_color][0])
     svg = svg.replaceAll(skinColor[1], skinColors[player.skin_color][1])
   }
+
+  // Calculate emblem size relative to player image
+  const emblemSize = Math.floor(size * 0.11)
+
   return `
     <div class="player-image">
         ${svg}
+        <div class="emblem-wrapper" style="width: ${emblemSize}px; height: ${emblemSize}px; left: ${size / 1.8}px; top: 50%; transform: translateY(${size / 7}px);">
+            ${renderEmblem(team, emblemSize)}
+        </div>
     </div>
   `
 }
