@@ -48,6 +48,7 @@ export class News extends UIElement {
       <div>
         <h3>News</h3>
         ${this.news.map(item => new NewsItem(item)).join('')}
+        ${this.news.length > 1 ? `` : `<p>No news available...</p>`}
       </div>
     `
   }

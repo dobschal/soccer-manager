@@ -10,12 +10,15 @@ import { onClick } from '../lib/htmlEventHandlers.js'
  * @param {string} inputType
  * @param {string} inputLabel
  * @param {string} [buttonType]
+ * @param {string} [secondaryButtonText]
+ * @param {string} [secondaryButtonType]
  * @returns {Promise<{ok: boolean, value: string}>}
  */
-export function showDialog ({ title, text, buttonText, hasInput, inputType, inputLabel, buttonType = 'primary' }) {
+export function showDialog ({ title, text, buttonText, hasInput, inputType, inputLabel, buttonType = 'primary', secondaryButtonText, secondaryButtonType = 'warning' }) {
   return new Promise(resolve => {
     const submitButtonId = generateId()
     const cancelButtonId = generateId()
+    const secondaryButtonId = generateId()
     const inputId = generateId()
 
     onClick(cancelButtonId, () => {
@@ -29,6 +32,17 @@ export function showDialog ({ title, text, buttonText, hasInput, inputType, inpu
       overlay.remove()
     })
 
+    if (secondaryButtonText) {
+      onClick(secondaryButtonId, () => {
+        resolve({ ok: false, value: 'secondary' })
+        overlay.remove()
+      })
+    }
+
+    const secondaryButton = secondaryButtonText
+      ? `<button id="${secondaryButtonId}" type="button" class="btn btn-${secondaryButtonType}">${secondaryButtonText}</button>`
+      : ''
+
     const overlay = showOverlay(
       title,
       '',
@@ -40,6 +54,7 @@ export function showDialog ({ title, text, buttonText, hasInput, inputType, inpu
         <input type="${inputType ?? 'text'}" id="${inputId}" placeholder="${inputLabel ?? title}">
       </p>
       <button id="${cancelButtonId}" type="button" class="btn btn-secondary">Cancel</button>
+      ${secondaryButton}
       <button id="${submitButtonId}" type="button" class="btn btn-${buttonType}">${buttonText ?? 'OK'}</button>
     `
     )

@@ -3,3 +3,57 @@
     object-fit: cover;
     border-radius: 0;
 }
+
+/* New action card wrapper with 3D effect */
+.action-card-wrapper {
+    position: relative;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+.action-card-image {
+    width: 100%;
+    height: auto;
+    border-radius: 18px;
+    /*transform: rotateX(-5deg) rotateY(-3deg);*/
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2),
+    0 5px 15px rgba(0, 0, 0, 0.15),
+    -5px 10px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.action-card-wrapper:hover .action-card-image {
+    transform: rotateX(0deg) rotateY(0deg) scale(1.05);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5),
+    0 10px 20px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(255, 215, 0, 0.2);
+}
+
+.action-card-wrapper:active .action-card-image {
+    transform: rotateX(2deg) rotateY(-1deg) scale(0.98);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Merge badge */
+.action-card-merge-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #1a1a2e;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    z-index: 10;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .action-card-image {
+        transform: rotateX(3deg) rotateY(-2deg);
+    }
+}

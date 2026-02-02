@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350">
+    <defs>
+        <linearGradient id="cardBgFresh" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#00ced1"/>
+            <stop offset="50%" style="stop-color:#40e0d0"/>
+            <stop offset="100%" style="stop-color:#008b8b"/>
+        </linearGradient>
+        <linearGradient id="innerBgFresh" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e"/>
+            <stop offset="100%" style="stop-color:#16213e"/>
+        </linearGradient>
+        <filter id="glowFresh">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <linearGradient id="energyGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#00ced1"/>
+            <stop offset="100%" style="stop-color:#7fffd4"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Card outer frame -->
+    <rect x="0" y="0" width="250" height="350" rx="15" fill="url(#cardBgFresh)"/>
+    <rect x="8" y="8" width="234" height="334" rx="12" fill="url(#innerBgFresh)"/>
+
+    <!-- Header banner -->
+    <rect x="15" y="15" width="220" height="28" rx="5" fill="#40e0d0" opacity="0.9"/>
+    <text x="125" y="35" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a2e"
+          text-anchor="middle">ACTION CARD
+    </text>
+
+    <!-- Card title -->
+    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#40e0d0"
+          text-anchor="middle">ENERGY BOOST
+    </text>
+
+    <!-- Image area frame -->
+    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#40e0d0" stroke-width="2"/>
+
+    <!-- Lightning bolt -->
+    <path d="M140 90 L110 140 L125 140 L115 195 L155 130 L138 130 L150 90 Z" fill="url(#energyGrad)"
+          filter="url(#glowFresh)"/>
+
+    <!-- Energy circles -->
+    <circle cx="75" cy="120" r="15" fill="none" stroke="#40e0d0" stroke-width="2" opacity="0.7"/>
+    <circle cx="75" cy="120" r="10" fill="none" stroke="#40e0d0" stroke-width="2" opacity="0.5"/>
+    <circle cx="75" cy="120" r="5" fill="#40e0d0"/>
+
+    <circle cx="175" cy="165" r="15" fill="none" stroke="#40e0d0" stroke-width="2" opacity="0.7"/>
+    <circle cx="175" cy="165" r="10" fill="none" stroke="#40e0d0" stroke-width="2" opacity="0.5"/>
+    <circle cx="175" cy="165" r="5" fill="#40e0d0"/>
+
+    <!-- Sparkle effects -->
+    <path d="M60 95 L65 100 L60 105 L55 100 Z" fill="#fff"/>
+    <path d="M190 100 L193 105 L190 110 L187 105 Z" fill="#fff"/>
+    <path d="M85 180 L88 185 L85 190 L82 185 Z" fill="#fff"/>
+
+    <!-- +10 indicator -->
+    <circle cx="180" cy="100" r="18" fill="#1a1a2e" stroke="#40e0d0" stroke-width="2"/>
+    <text x="180" y="106" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#40e0d0"
+          text-anchor="middle">+10
+    </text>
+
+    <!-- Description box -->
+    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#40e0d0" stroke-width="1"/>
+    <text x="125" y="248" font-family="Arial, sans-serif" font-size="12" fill="#e0e0e0" text-anchor="middle">Restore a
+        player's
+    </text>
+    <text x="125" y="270" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#40e0d0"
+          text-anchor="middle">FRESHNESS +10
+    </text>
+    <text x="125" y="288" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">Get back in
+        peak condition
+    </text>
+
+    <!-- Rarity indicator - 1 star (common) -->
+    <polygon points="125,318 129,330 142,330 132,338 136,350 125,342 114,350 118,338 108,330 121,330" fill="#40e0d0"/>
+</svg>

@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350">
+    <defs>
+        <linearGradient id="cardBgPos" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4169e1"/>
+            <stop offset="50%" style="stop-color:#6495ed"/>
+            <stop offset="100%" style="stop-color:#1e90ff"/>
+        </linearGradient>
+        <linearGradient id="innerBgPos" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e"/>
+            <stop offset="100%" style="stop-color:#16213e"/>
+        </linearGradient>
+        <linearGradient id="blueShine" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#1e3a8a"/>
+            <stop offset="50%" style="stop-color:#3b82f6"/>
+            <stop offset="100%" style="stop-color:#93c5fd"/>
+        </linearGradient>
+        <filter id="glowPos">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <filter id="softGlowPos">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Card outer frame -->
+    <rect x="0" y="0" width="250" height="350" rx="15" fill="url(#cardBgPos)"/>
+    <rect x="8" y="8" width="234" height="334" rx="12" fill="url(#innerBgPos)"/>
+
+    <!-- Header banner -->
+    <rect x="15" y="15" width="220" height="28" rx="5" fill="#4169e1" opacity="0.9"/>
+    <text x="125" y="35" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#fff"
+          text-anchor="middle">ACTION CARD
+    </text>
+
+    <!-- Card title -->
+    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#6495ed"
+          text-anchor="middle">TACTICAL SHIFT
+    </text>
+
+    <!-- Image area frame -->
+    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#4169e1" stroke-width="2"/>
+
+    <!-- Soccer field mini -->
+    <rect x="40" y="90" width="170" height="110" fill="#1e5631" stroke="#fff" stroke-width="1" rx="3"/>
+    <!-- Field markings -->
+    <line x1="125" y1="90" x2="125" y2="200" stroke="#fff" stroke-width="1" opacity="0.7"/>
+    <circle cx="125" cy="145" r="18" fill="none" stroke="#fff" stroke-width="1" opacity="0.7"/>
+    <circle cx="125" cy="145" r="2" fill="#fff" opacity="0.7"/>
+    <!-- Goal areas -->
+    <rect x="40" y="125" width="25" height="40" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/>
+    <rect x="185" y="125" width="25" height="40" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/>
+
+    <!-- Player dot origin -->
+    <circle cx="75" cy="125" r="10" fill="#4169e1" filter="url(#glowPos)"/>
+    <circle cx="75" cy="125" r="6" fill="#1e3a8a"/>
+
+    <!-- Player dot destination (ghost) -->
+    <circle cx="175" cy="165" r="10" fill="none" stroke="#6495ed" stroke-width="2" stroke-dasharray="3,2"
+            opacity="0.8"/>
+    <circle cx="175" cy="165" r="6" fill="#4169e1" opacity="0.4"/>
+
+    <!-- Curved arrow path -->
+    <path d="M88 128 Q125 100 162 158" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"
+          filter="url(#softGlowPos)"/>
+    <polygon points="165,155 175,165 162,165" fill="#fff" filter="url(#softGlowPos)"/>
+
+    <!-- Motion trail particles -->
+    <circle cx="100" cy="118" r="2" fill="#6495ed" opacity="0.8"/>
+    <circle cx="115" cy="112" r="1.5" fill="#6495ed" opacity="0.6"/>
+    <circle cx="130" cy="115" r="2" fill="#6495ed" opacity="0.7"/>
+    <circle cx="145" cy="125" r="1.5" fill="#6495ed" opacity="0.5"/>
+    <circle cx="155" cy="140" r="2" fill="#6495ed" opacity="0.6"/>
+
+    <!-- Swap arrows icon -->
+    <path d="M45 185 L60 175 L60 180 L80 180 L80 190 L60 190 L60 195 Z" fill="#6495ed" filter="url(#softGlowPos)"/>
+    <path d="M205 105 L190 115 L190 110 L170 110 L170 100 L190 100 L190 95 Z" fill="#6495ed"
+          filter="url(#softGlowPos)"/>
+
+    <!-- Sparkles -->
+    <path d="M55 100 L58 105 L55 110 L52 105 Z" fill="#fff" opacity="0.7"/>
+    <path d="M195 180 L198 185 L195 190 L192 185 Z" fill="#fff" opacity="0.6"/>
+    <circle cx="35" cy="150" r="1.5" fill="#6495ed"/>
+    <circle cx="215" cy="140" r="1.5" fill="#6495ed"/>
+
+    <!-- Description box -->
+    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#4169e1" stroke-width="1"/>
+    <text x="125" y="248" font-family="Arial, sans-serif" font-size="12" fill="#e0e0e0" text-anchor="middle">Change a
+        player's
+    </text>
+    <text x="125" y="272" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#6495ed"
+          text-anchor="middle">POSITION
+    </text>
+    <text x="125" y="290" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">You can
+        change the position of any player.
+    </text>
+
+    <!-- Rarity indicator - 3 rare stars -->
+    <g transform="translate(0,-2)">
+        <polygon points="125,312 129,322 139,322 131,329 134,339 125,333 116,339 119,329 111,322 121,322" fill="#4169e1"
+                 filter="url(#softGlowPos)"/>
+        <polygon points="95,318 98,325 106,325 100,330 103,338 95,333 87,338 90,330 84,325 92,325" fill="#4169e1"
+                 opacity="0.7"/>
+        <polygon points="155,318 158,325 166,325 160,330 163,338 155,333 147,338 150,330 144,325 152,325" fill="#4169e1"
+                 opacity="0.7"/>
+    </g>
+</svg>

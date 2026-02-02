@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350">
+    <defs>
+        <linearGradient id="cardBgYouth" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#228b22"/>
+            <stop offset="50%" style="stop-color:#32cd32"/>
+            <stop offset="100%" style="stop-color:#006400"/>
+        </linearGradient>
+        <linearGradient id="innerBgYouth" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e"/>
+            <stop offset="100%" style="stop-color:#16213e"/>
+        </linearGradient>
+        <linearGradient id="avatarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#4a5568"/>
+            <stop offset="100%" style="stop-color:#2d3748"/>
+        </linearGradient>
+        <filter id="glowYouth">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <filter id="softGlowYouth">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <!-- Clip path for avatar circle -->
+        <clipPath id="avatarClip">
+            <circle cx="125" cy="135" r="45"/>
+        </clipPath>
+    </defs>
+
+    <!-- Card outer frame -->
+    <rect x="0" y="0" width="250" height="350" rx="15" fill="url(#cardBgYouth)"/>
+    <rect x="8" y="8" width="234" height="334" rx="12" fill="url(#innerBgYouth)"/>
+
+    <!-- Header banner -->
+    <rect x="15" y="15" width="220" height="28" rx="5" fill="#32cd32" opacity="0.9"/>
+    <text x="125" y="34" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a2e"
+          text-anchor="middle">ACTION CARD
+    </text>
+
+    <!-- Card title -->
+    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#32cd32"
+          text-anchor="middle">YOUTH PROSPECT
+    </text>
+
+    <!-- Image area frame -->
+    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#32cd32" stroke-width="2"/>
+
+    <!-- Anonymous avatar circle background -->
+    <circle cx="125" cy="135" r="48" fill="none" stroke="#32cd32" stroke-width="2" opacity="0.5"/>
+    <circle cx="125" cy="135" r="45" fill="url(#avatarGrad)"/>
+
+    <!-- Anonymous silhouette head -->
+    <circle cx="125" cy="115" r="18" fill="#1a202c"/>
+
+    <!-- Anonymous silhouette body/shoulders -->
+    <ellipse cx="125" cy="170" rx="32" ry="20" fill="#1a202c" clip-path="url(#avatarClip)"/>
+
+    <!-- Big question mark -->
+    <text x="125" y="155" font-family="Arial, sans-serif" font-size="55" font-weight="bold" fill="#32cd32"
+          text-anchor="middle" filter="url(#glowYouth)">?
+    </text>
+
+    <!-- Sparkles around avatar -->
+    <circle cx="60" cy="100" r="2" fill="#fff" opacity="0.7" filter="url(#softGlowYouth)"/>
+    <circle cx="190" cy="108" r="2" fill="#fff" opacity="0.6"/>
+    <circle cx="180" cy="180" r="2" fill="#fff" opacity="0.65"/>
+    <circle cx="70" cy="175" r="1.5" fill="#fff" opacity="0.5"/>
+
+    <!-- Diamond sparkles -->
+    <path d="M55 130 L58 135 L55 140 L52 135 Z" fill="#32cd32" opacity="0.7"/>
+    <path d="M195 140 L198 145 L195 150 L192 145 Z" fill="#32cd32" opacity="0.6"/>
+
+    <!-- Small stars (potential indicator) -->
+    <polygon points="45,95 47,100 52,100 48,103 50,108 45,105 40,108 42,103 38,100 43,100" fill="#ffd700" opacity="0.8"/>
+    <polygon points="205,95 207,100 212,100 208,103 210,108 205,105 200,108 202,103 198,100 203,100" fill="#ffd700" opacity="0.8"/>
+
+    <!-- Description box -->
+    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#32cd32" stroke-width="1"/>
+    <text x="125" y="248" font-family="Arial, sans-serif" font-size="12" fill="#e0e0e0" text-anchor="middle">Recruit a
+        promising
+    </text>
+    <text x="125" y="272" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#32cd32"
+          text-anchor="middle">YOUTH PLAYER
+    </text>
+    <text x="125" y="290" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">
+        The future star of your club
+    </text>
+
+    <!-- Rarity indicator - 2 stars -->
+    <g transform="translate(0,-10)">
+        <polygon points="105,318 110,330 123,330 113,338 117,350 105,342 93,350 97,338 87,330 100,330" fill="#32cd32"
+                 filter="url(#softGlowYouth)"/>
+        <polygon points="145,318 150,330 163,330 153,338 157,350 145,342 133,350 137,338 127,330 140,330" fill="#32cd32"
+                 filter="url(#softGlowYouth)"/>
+    </g>
+</svg>

@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350">
+    <defs>
+        <linearGradient id="cardBg7" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#c0c0c0"/>
+            <stop offset="50%" style="stop-color:#e8e8e8"/>
+            <stop offset="100%" style="stop-color:#a0a0a0"/>
+        </linearGradient>
+        <linearGradient id="innerBg7" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e"/>
+            <stop offset="100%" style="stop-color:#16213e"/>
+        </linearGradient>
+        <linearGradient id="silverShine" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#808080"/>
+            <stop offset="50%" style="stop-color:#c0c0c0"/>
+            <stop offset="100%" style="stop-color:#f0f0f0"/>
+        </linearGradient>
+        <filter id="glow7">
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <filter id="softGlow7">
+            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Card outer frame -->
+    <rect x="0" y="0" width="250" height="350" rx="15" fill="url(#cardBg7)"/>
+    <rect x="8" y="8" width="234" height="334" rx="12" fill="url(#innerBg7)"/>
+
+    <!-- Header banner -->
+    <rect x="15" y="15" width="220" height="28" rx="5" fill="#c0c0c0" opacity="0.9"/>
+    <text x="125" y="34" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a2e"
+          text-anchor="middle">ACTION CARD
+    </text>
+
+    <!-- Card title -->
+    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#e0e0e0"
+          text-anchor="middle">EPIC ADVANCEMENT
+    </text>
+
+    <!-- Image area frame -->
+    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#c0c0c0" stroke-width="2"/>
+
+    <!-- Background energy circles -->
+    <circle cx="125" cy="145" r="50" fill="none" stroke="#c0c0c0" stroke-width="1" opacity="0.2"/>
+    <circle cx="125" cy="145" r="40" fill="none" stroke="#c0c0c0" stroke-width="1" opacity="0.3"/>
+    <circle cx="125" cy="145" r="30" fill="none" stroke="#c0c0c0" stroke-width="1" opacity="0.35"/>
+
+    <!-- Main star illustration -->
+    <polygon points="125,95 136,122 165,122 141,142 151,175 125,157 99,175 109,142 85,122 114,122"
+             fill="url(#silverShine)" filter="url(#glow7)"/>
+
+    <!-- Level 7 badge -->
+    <circle cx="125" cy="145" r="22" fill="#1a1a2e" stroke="#c0c0c0" stroke-width="3"/>
+    <text x="125" y="157" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#e0e0e0"
+          text-anchor="middle">7
+    </text>
+
+    <!-- Arrow up indicator -->
+    <g transform="translate(0, 4)">
+        <path d="M125 122 L117 130 L121 130 L121 136 L129 136 L129 130 L133 130 Z" fill="#c0c0c0"
+              filter="url(#softGlow7)"/>
+    </g>
+
+    <!-- Sparkles and particles -->
+    <circle cx="58" cy="98" r="2.5" fill="#fff" opacity="0.8" filter="url(#softGlow7)"/>
+    <circle cx="192" cy="105" r="2" fill="#fff" opacity="0.7"/>
+    <circle cx="182" cy="182" r="2.5" fill="#fff" opacity="0.75"/>
+    <circle cx="68" cy="188" r="2" fill="#fff" opacity="0.6"/>
+    <circle cx="48" cy="148" r="2" fill="#c0c0c0" opacity="0.8"/>
+    <circle cx="202" cy="138" r="2" fill="#c0c0c0" opacity="0.7"/>
+
+    <!-- Diamond sparkles -->
+    <path d="M52 125 L56 130 L52 135 L48 130 Z" fill="#fff" opacity="0.7"/>
+    <path d="M198 155 L202 160 L198 165 L194 160 Z" fill="#fff" opacity="0.6"/>
+    <path d="M72 170 L75 173 L72 176 L69 173 Z" fill="#c0c0c0"/>
+    <path d="M178 115 L181 118 L178 121 L175 118 Z" fill="#c0c0c0"/>
+
+    <!-- Small floating particles -->
+    <circle cx="85" cy="92" r="1.5" fill="#fff"/>
+    <circle cx="165" cy="192" r="1.5" fill="#fff"/>
+    <circle cx="40" cy="170" r="1" fill="#c0c0c0"/>
+    <circle cx="210" cy="120" r="1" fill="#c0c0c0"/>
+
+    <!-- Description box -->
+    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#c0c0c0" stroke-width="1"/>
+    <text x="125" y="248" font-family="Arial, sans-serif" font-size="12" fill="#e0e0e0" text-anchor="middle">Give a
+        player a
+    </text>
+    <text x="125" y="272" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#e0e0e0"
+          text-anchor="middle">LEVEL UP
+    </text>
+    <text x="125" y="290" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">
+        Up to level 7
+    </text>
+
+    <!-- Rarity indicator - 2 epic stars -->
+    <g transform="translate(0,-10)">
+        <polygon points="105,318 110,330 123,330 113,338 117,350 105,342 93,350 97,338 87,330 100,330" fill="#c0c0c0"
+                 filter="url(#softGlow7)"/>
+        <polygon points="145,318 150,330 163,330 153,338 157,350 145,342 133,350 137,338 127,330 140,330" fill="#c0c0c0"
+                 filter="url(#softGlow7)"/>
+    </g>
+</svg>

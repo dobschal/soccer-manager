@@ -12,29 +12,38 @@ const pageSize = 10
 
 const actionCardTexts = {
   LEVEL_UP_PLAYER_10: {
-    title: 'Player Level Up ⬆',
-    description: 'Choose a player in your team to give him a level up.'
+    title: 'Legendary Mastery',
+    description: 'Level up a player to reach level 10.'
   },
   LEVEL_UP_PLAYER_7: {
-    title: 'Player Level Up (max. 7) ⬆',
-    description: 'Choose a player in your team to give him a level up. Max Level 7!'
+    title: 'Epic Advancement',
+    description: 'Level up a player to reach level 7.'
   },
   LEVEL_UP_PLAYER_4: {
-    title: 'Player Level Up (max. 4) ⬆',
-    description: 'Choose a player in your team to give him a level up. Max Level 4!'
+    title: 'Basic Promotion',
+    description: 'Level up a player to reach level 4.'
   },
   CHANGE_PLAYER_POSITION: {
-    title: 'Change Player Position',
-    description: 'Choose a player in your team and change his favorite lineup position.'
+    title: 'Tactical Shift',
+    description: 'Change a player\'s position on the field.'
   },
   NEW_YOUTH_PLAYER: {
-    title: 'New Talent',
-    description: 'Get a new player from your youth academy!'
+    title: 'Youth Prospect',
+    description: 'Recruit a promising youth player.'
   },
   FRESHNESS_10: {
-    title: 'Fitness Boost',
-    description: 'Give one of your player a 10% freshness boost.'
+    title: 'Energy Boost',
+    description: 'Restore a player\'s freshness by 10.'
   }
+}
+
+const actionCardImages = {
+  LEVEL_UP_PLAYER_10: 'assets/action-cards/level-up-player-10.svg',
+  LEVEL_UP_PLAYER_7: 'assets/action-cards/level-up-player-7.svg',
+  LEVEL_UP_PLAYER_4: 'assets/action-cards/level-up-player-4.svg',
+  CHANGE_PLAYER_POSITION: 'assets/action-cards/change-player-position.svg',
+  NEW_YOUTH_PLAYER: 'assets/action-cards/new-youth-player.svg',
+  FRESHNESS_10: 'assets/action-cards/freshness-10.svg'
 }
 
 export class DashboardPage extends UIElement {
@@ -47,24 +56,38 @@ export class DashboardPage extends UIElement {
   game = {}
   messages = []
 
-  /**
-   * @returns {Object}
-   */
   get events () {
     return {
       '#action-cards': {
-        click: (event) => {
+        click: async (event) => {
           const target = event.target
           const actionCardEl = target.closest('[data-action-card]')
           if (!actionCardEl) return
 
           const idx = parseInt(actionCardEl.dataset.actionCard, 10)
           const card = this.actionCards[idx]
+          const canMerge = actionCardEl.dataset.canMerge === 'true'
 
-          if (target.closest('.btn-success')) {
-            this._useActionCard(card)
-          } else if (target.closest('.btn-warning')) {
-            this._mergeCards(card)
+          if (canMerge) {
+            const {
+              ok,
+              value
+            } = await showDialog({
+              title: actionCardTexts[card.action].title,
+              text: 'What do you want to do with this card?',
+              buttonText: 'Use Card',
+              hasInput: false,
+              buttonType: 'success',
+              secondaryButtonText: 'Merge Cards',
+              secondaryButtonType: 'warning'
+            })
+            if (ok) {
+              void this._useActionCard(card)
+            } else if (value === 'secondary') {
+              void this._mergeCards(card)
+            }
+          } else {
+            void this._useActionCard(card)
           }
         }
       }
@@ -95,7 +118,7 @@ export class DashboardPage extends UIElement {
           </a>
         </div>
         <h3>Action Cards</h3>
-        <p>With every game played, you have the chance to earn one action card. All earned cards are shown here:</p>
+        <p style="max-width: 620px">With every game played, you have the chance to earn at least one action card. Some cards of the same type can be merged to a better one (E.g. two Level Up 4 to one Level Up 7 Card). All earned cards are shown here:</p>
         <div class="row" id="action-cards">
           ${this.actionCards.map((card, idx) => this._renderActionCard(card, idx)).join('')}
           <div class="col ${this.actionCards.length === 0 ? '' : 'hidden'}">
@@ -134,7 +157,6 @@ export class DashboardPage extends UIElement {
     this.messages = await server.getLogMessages(pageIndex, pageSize)
   }
 
-
   /**
    * @param {Object} messageItem
    * @returns {string}
@@ -158,24 +180,16 @@ export class DashboardPage extends UIElement {
     const canMerge = (actionCard.action === 'LEVEL_UP_PLAYER_4' && this.actionCards.filter(a => a.action === 'LEVEL_UP_PLAYER_4').length > 1) ||
       (actionCard.action === 'LEVEL_UP_PLAYER_7' && this.actionCards.filter(a => a.action === 'LEVEL_UP_PLAYER_7').length > 1)
 
-    const mergeButton = canMerge
-      ? `<button type="button" class="btn btn-warning mt-2 w-100">Merge Cards</button>`
+    const imageSrc = actionCardImages[actionCard.action] || 'assets/action-cards/level-up-player-4.svg'
+    const mergeBadge = canMerge
+      ? `<span class="action-card-merge-badge">Mergeable</span>`
       : ''
 
     return `
-      <div class="col-12 col-sm-6 col-md-4 mb-4" data-action-card="${index}">
-        <div class="action-card card text-white bg-dark">
-          <div class="card-header">
-            <i class="fa fa-magic" aria-hidden="true"></i>
-            <i>Action Card</i>
-          </div>
-          <img class="card-img-top" src="assets/stock-image-${(actionCard.id % 4) + 1}.jpg" alt="Football">
-          <div class="card-body">
-            <h5 class="card-title">${actionCardTexts[actionCard.action].title}</h5>
-            <p class="card-text">${actionCardTexts[actionCard.action].description}</p>
-            <button type="button" class="btn btn-success w-100">Use now</button>
-            ${mergeButton}
-          </div>
+      <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4" data-action-card="${index}" data-can-merge="${canMerge}">
+        <div class="action-card-wrapper">
+          <img class="action-card-image" src="${imageSrc}" alt="${actionCardTexts[actionCard.action].title}">
+          ${mergeBadge}
         </div>
       </div>
     `
@@ -196,7 +210,7 @@ export class DashboardPage extends UIElement {
       title: 'Merge Cards?',
       text: `Merging combines two identical action cards into a more powerful one.
              You will lose both cards and receive one "${upgradeTo}" card instead.
-             This allows you to level up players to higher levels!`,
+             This allows you e.g. to level up players to higher levels!`,
       buttonText: 'Merge Cards',
       hasInput: false,
       buttonType: 'warning'
