@@ -374,6 +374,33 @@ td.hover-text:hover {
   color: white;
 }
 
+/* App Footer */
+.app-footer {
+  text-align: center;
+  padding: 2rem 1rem;
+  margin-top: 2rem;
+}
+
+.app-footer .text-muted {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.default-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.default-layout .centered-container {
+  flex: 1;
+}
+
+.default-layout .app-footer {
+  padding: 1rem;
+}
+
 @media screen and (max-width: 768px) {
   ul.list-group,
   table.table {

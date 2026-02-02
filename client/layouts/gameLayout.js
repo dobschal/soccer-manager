@@ -20,6 +20,7 @@ export class GameLayout extends UIElement {
   _nextGameDate = null
   _navItemEventIds = []
   _isDevelopment = false
+  _version = ''
 
   /**
    * @returns {string}
@@ -59,6 +60,9 @@ export class GameLayout extends UIElement {
           </div>
         </nav>
         <div class="container" id="page"></div>
+        <footer class="app-footer">
+          <span class="text-muted">SoccerManagerIO v${this._version}</span>
+        </footer>
       </div>
     `
   }
@@ -67,12 +71,14 @@ export class GameLayout extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const [gameDate, devMode] = await Promise.all([
+    const [gameDate, devMode, versionData] = await Promise.all([
       server.getNextGameDate(),
-      server.isDevelopment()
+      server.isDevelopment(),
+      server.getVersion()
     ])
     this._nextGameDate = gameDate.date
     this._isDevelopment = devMode.isDevelopment
+    this._version = versionData.version
   }
 
   /**
