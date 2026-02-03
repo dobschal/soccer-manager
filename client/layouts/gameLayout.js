@@ -41,6 +41,7 @@ export class GameLayout extends UIElement {
           </button>
           <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav px-2">
+              ${this._navItem('dashboard', '<i class="fa fa-home" aria-hidden="true"></i> Home')}
               ${this._navItem('my-team', '<i class="fa fa-users" aria-hidden="true"></i> Team')}
               ${this._navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
               ${this._navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}

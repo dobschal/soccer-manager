@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350">
     <defs>
         <linearGradient id="cardBg4" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#cd7f32"/>
-            <stop offset="50%" style="stop-color:#daa06d"/>
-            <stop offset="100%" style="stop-color:#b87333"/>
+            <stop offset="0%" style="stop-color:#ff7c4d"/>
+            <stop offset="50%" style="stop-color:#ff6b35"/>
+            <stop offset="100%" style="stop-color:#fb4300"/>
         </linearGradient>
         <linearGradient id="innerBg4" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style="stop-color:#1a1a2e"/>
             <stop offset="100%" style="stop-color:#16213e"/>
         </linearGradient>
         <linearGradient id="bronzeShine" x1="0%" y1="100%" x2="0%" y2="0%">
-            <stop offset="0%" style="stop-color:#8b4513"/>
-            <stop offset="50%" style="stop-color:#cd7f32"/>
-            <stop offset="100%" style="stop-color:#deb887"/>
+            <stop offset="0%" style="stop-color:#ff7c4d"/>
+            <stop offset="50%" style="stop-color:#ff6b35"/>
+            <stop offset="100%" style="stop-color:#fb4300"/>
         </linearGradient>
         <filter id="glow4">
             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
@@ -35,36 +35,36 @@
     <rect x="8" y="8" width="234" height="334" rx="12" fill="url(#innerBg4)"/>
 
     <!-- Header banner -->
-    <rect x="15" y="15" width="220" height="28" rx="5" fill="#cd7f32" opacity="0.9"/>
+    <rect x="15" y="15" width="220" height="28" rx="5" fill="#ff6b35" opacity="0.9"/>
     <text x="125" y="34" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff"
           text-anchor="middle">ACTION CARD
     </text>
 
     <!-- Card title -->
-    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#daa06d"
+    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ff6b35"
           text-anchor="middle">BASIC PROMOTION
     </text>
 
     <!-- Image area frame -->
-    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#cd7f32" stroke-width="2"/>
+    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#ff6b35" stroke-width="2"/>
 
     <!-- Background energy circles -->
-    <circle cx="125" cy="145" r="45" fill="none" stroke="#cd7f32" stroke-width="1" opacity="0.2"/>
-    <circle cx="125" cy="145" r="35" fill="none" stroke="#cd7f32" stroke-width="1" opacity="0.3"/>
+    <circle cx="125" cy="145" r="45" fill="none" stroke="#ff6b35" stroke-width="1" opacity="0.2"/>
+    <circle cx="125" cy="145" r="35" fill="none" stroke="#ff6b35" stroke-width="1" opacity="0.3"/>
 
     <!-- Main star illustration -->
     <polygon points="125,95 136,122 165,122 141,142 151,175 125,157 99,175 109,142 85,122 114,122"
              fill="url(#bronzeShine)" filter="url(#glow4)"/>
 
     <!-- Level 4 badge -->
-    <circle cx="125" cy="145" r="22" fill="#1a1a2e" stroke="#cd7f32" stroke-width="3"/>
-    <text x="125" y="157" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#cd7f32"
+    <circle cx="125" cy="145" r="22" fill="#1a1a2e" stroke="#ff6b35" stroke-width="3"/>
+    <text x="125" y="157" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ff6b35"
           text-anchor="middle">4
     </text>
 
     <!-- Arrow up indicator -->
     <g transform="translate(0, 4)">
-        <path d="M125 122 L117 130 L121 130 L121 136 L129 136 L129 130 L133 130 Z" fill="#cd7f32"
+        <path d="M125 122 L117 130 L121 130 L121 136 L129 136 L129 130 L133 130 Z" fill="#ff6b35"
               filter="url(#softGlow4)"/>
     </g>
 
@@ -73,27 +73,27 @@
     <circle cx="190" cy="108" r="1.8" fill="#fff" opacity="0.6"/>
     <circle cx="180" cy="180" r="2" fill="#fff" opacity="0.65"/>
     <circle cx="70" cy="185" r="1.5" fill="#fff" opacity="0.5"/>
-    <circle cx="50" cy="145" r="1.5" fill="#cd7f32" opacity="0.7"/>
-    <circle cx="200" cy="135" r="1.5" fill="#cd7f32" opacity="0.6"/>
+    <circle cx="50" cy="145" r="1.5" fill="#ff6b35" opacity="0.7"/>
+    <circle cx="200" cy="135" r="1.5" fill="#ff6b35" opacity="0.6"/>
 
     <!-- Diamond sparkles -->
     <path d="M55 128 L58 132 L55 136 L52 132 Z" fill="#fff" opacity="0.6"/>
     <path d="M195 152 L198 156 L195 160 L192 156 Z" fill="#fff" opacity="0.5"/>
-    <path d="M75 168 L77 171 L75 174 L73 171 Z" fill="#cd7f32"/>
+    <path d="M75 168 L77 171 L75 174 L73 171 Z" fill="#ff6b35"/>
 
     <!-- Small floating particles -->
     <circle cx="88" cy="92" r="1" fill="#fff"/>
     <circle cx="162" cy="192" r="1" fill="#fff"/>
-    <circle cx="42" cy="165" r="1" fill="#cd7f32" opacity="0.6"/>
-    <circle cx="208" cy="118" r="1" fill="#cd7f32" opacity="0.6"/>
+    <circle cx="42" cy="165" r="1" fill="#ff6b35" opacity="0.6"/>
+    <circle cx="208" cy="118" r="1" fill="#ff6b35" opacity="0.6"/>
 
     <!-- Description box -->
-    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#cd7f32" stroke-width="1"/>
+    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#ff6b35" stroke-width="1"/>
     <text x="125" y="248" font-family="Arial, sans-serif" font-size="12" fill="#e0e0e0" text-anchor="middle">Give a
         player
         a
     </text>
-    <text x="125" y="272" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#daa06d"
+    <text x="125" y="272" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff6b35"
           text-anchor="middle">LEVEL UP
     </text>
     <text x="125" y="290" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">
@@ -102,7 +102,7 @@
 
     <!-- Rarity indicator - 1 common star -->
     <g transform="translate(0,-10)">
-        <polygon points="125,318 130,330 143,330 133,338 137,350 125,342 113,350 117,338 107,330 120,330" fill="#cd7f32"
+        <polygon points="125,318 130,330 143,330 133,338 137,350 125,342 113,350 117,338 107,330 120,330" fill="#ff6b35"
                  filter="url(#softGlow4)"/>
     </g>
 </svg>
