@@ -30,7 +30,9 @@ export async function renderPlayerImage (player, team, size = 224) {
   const imageUrl = `assets/players/soccer_player-${index}.svg`
   const rawResponse = await fetch(imageUrl)
   let svg = await rawResponse.text()
+  const height = Math.floor(size * (234 / 224)) // Maintain aspect ratio (default: 224x234)
   svg = svg.replace('width="224"', `width="${size}"`)
+  svg = svg.replace('height="234"', `height="${height}"`)
   svg = svg.replaceAll('#FF0001', team.color)
   svg = svg.replaceAll('#0000FF', hairColors[player.hair_color])
   svg = svg.replaceAll('#CC0001', shadeColor(team.color, -30))

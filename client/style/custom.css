@@ -332,7 +332,7 @@ td.hover-text:hover {
 
 .player-image {
     float: left;
-    margin-bottom: 3rem;
+    /*margin-bottom: 3rem;*/
     position: relative;
 }
 

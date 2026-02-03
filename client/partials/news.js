@@ -40,23 +40,23 @@ class NewsItem extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    // Prefer team emblem for team-related news
-    if (this.newsItem.team_id) {
-      const team = this.teams.find(t => t.id === this.newsItem.team_id)
-      if (team) {
-        this.image = renderEmblem(team, 70)
-        return
-      }
-    }
-
-    // Fall back to player image for player-related news
+    // Prefer player image for player-related news
     if (this.newsItem.player_id) {
       const player = this.players.find(p => p.id === this.newsItem.player_id)
       if (player) {
         const team = this.teams.find(t => t.id === player.team_id)
         if (team) {
           this.image = await renderPlayerImage(player, team, 70)
+          return
         }
+      }
+    }
+
+    // Fall back to team emblem
+    if (this.newsItem.team_id) {
+      const team = this.teams.find(t => t.id === this.newsItem.team_id)
+      if (team) {
+        this.image = renderEmblem(team, 70)
       }
     }
   }
