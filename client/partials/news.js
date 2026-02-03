@@ -55,7 +55,12 @@ class NewsItem extends UIElement {
           </div>
         </div>
         ${hasLink ? `
-          <button class="news-link btn btn-sm btn-outline-info position-absolute" style="bottom: 10px; right: 10px;">
+          <button
+            class="news-link btn btn-sm btn-outline-info position-absolute"
+            style="bottom: 10px; right: 10px;"
+            aria-label="${this.linkType === 'player' ? 'View player' : 'View team'}"
+            title="${this.linkType === 'player' ? 'View player' : 'View team'}"
+          >
             <i class="fa fa-chevron-right" aria-hidden="true"></i>
           </button>
         ` : ''}
