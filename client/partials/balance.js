@@ -31,6 +31,11 @@ export class Balance extends UIElement {
   onMounted () {
     // Start polling every 3 seconds
     this._pollingInterval = setInterval(async () => {
+      // Stop polling if user logged out
+      if (!window.localStorage.getItem('auth-token')) {
+        this.onDestroy()
+        return
+      }
       await this.load()
       await this.update(true)
     }, 3000)

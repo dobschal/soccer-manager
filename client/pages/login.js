@@ -49,10 +49,7 @@ export class LoginPage extends UIElement {
           </button>
         </form>
         <small style="opacity: 0.66">
-          This web page is not using Cookies or any external loaded or linked content or tools. 
-          All scripts, content and data is hosted and served by the same own SoccerManagerIO server. 
-          No data is given to third parties. <br>
-          We are storing your username and password in our database in order to make the game working for you.
+          <a href="imprint.html" class="text-white">Imprint & Privacy Policy</a>
         </small>
       </div>
     `
