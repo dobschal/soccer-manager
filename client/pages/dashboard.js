@@ -194,7 +194,19 @@ export class DashboardPage extends UIElement {
    */
   async onQueryChanged ({ player_id: playerId }) {
     if (playerId) {
-      await showPlayerModal(Number(playerId))
+      const id = Number(playerId)
+      if (Number.isFinite(id) && id > 0) {
+        await showPlayerModal(id)
+      } else if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
+        // Clear invalid player_id from the URL to avoid repeated invalid calls
+        try {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('player_id')
+          window.history.replaceState(window.history.state, document.title, url.toString())
+        } catch {
+          // Ignore URL manipulation errors
+        }
+      }
     }
   }
 
