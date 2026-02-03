@@ -485,6 +485,27 @@ const migrations = [{
     }
     await Promise.all(promises)
   }
+}, {
+  name: 'Create news table for league news',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS news
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        game_day INT NOT NULL,
+        season INT NOT NULL,
+        level INT NOT NULL,
+        league INT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        title TEXT NOT NULL,
+        text TEXT NOT NULL,
+        player_id BIGINT(20),
+        team_id BIGINT(20),
+        metadata TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_news_lookup (season, game_day, level, league)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

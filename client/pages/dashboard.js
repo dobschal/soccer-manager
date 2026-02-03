@@ -7,6 +7,7 @@ import { toast } from '../partials/toast.js'
 import { formatDate } from '../lib/date.js'
 import { News } from '../partials/news.js'
 import { renderEmblem } from '../partials/emblem.js'
+import { showPlayerModal } from '../partials/playerModal.js'
 
 const pageIndex = 0
 const pageSize = 10
@@ -185,6 +186,28 @@ export class DashboardPage extends UIElement {
     }
 
     this.messages = await server.getLogMessages(pageIndex, pageSize)
+  }
+
+  /**
+   * @param {{ player_id?: string }} queryParams
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({ player_id: playerId }) {
+    if (playerId) {
+      const id = Number(playerId)
+      if (Number.isFinite(id) && id > 0) {
+        await showPlayerModal(id)
+      } else if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
+        // Clear invalid player_id from the URL to avoid repeated invalid calls
+        try {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('player_id')
+          window.history.replaceState(window.history.state, document.title, url.toString())
+        } catch {
+          // Ignore URL manipulation errors
+        }
+      }
+    }
   }
 
   /**

@@ -33,11 +33,11 @@
 @keyframes overlay-fade-in-2 {
     0% {
         opacity: 0;
-        transform: translateY(50vh);
+        transform: translateY(1vh);
     }
     50% {
         opacity: 0;
-        transform: translateY(50vh);
+        transform: translateY(1vh);
     }
     100% {
         opacity: 1;
@@ -332,7 +332,7 @@ td.hover-text:hover {
 
 .player-image {
     float: left;
-    margin-bottom: 3rem;
+    /*margin-bottom: 3rem;*/
     position: relative;
 }
 

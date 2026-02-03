@@ -1,96 +1,107 @@
-import { getTeamById } from '../helper/teamHelper.js'
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { getPlayerById } from '../helper/playerHelper.js'
-import { euroFormat } from '../../client/lib/currency.js'
-import { randomItem } from '../lib/util.js'
-
-/** @type {{news: NewsArticle[], season: number, gameDay: number}[]} */
-const newsCache = []
-
-const texts = {
-  transfer: [{
-    title: 'Record-breaking Transfer Sees {playerName} Join {toTeam} for {price}',
-    text: 'In a groundbreaking deal that has shattered previous transfer records, {fromTeam}\' star player {playerName} has completed a historic move to {toTeam} for an eye-popping sum of {price}. The soccer world is buzzing with excitement and disbelief at the magnitude of this transfer fee. This move not only solidifies {playerName}\'s status as one of the most sought-after talents but also underlines {toTeam}\'s commitment to assembling a championship-caliber team. Fans are eager to witness how {playerName}\'s exceptional skills will mesh with {toTeam}\'s style of play, making this one of the most anticipated pairings of the upcoming season.'
-  }, {
-    title: ' {playerName}\'s Shocking Transfer to {toTeam}: A Bargain at {price}',
-    text: 'In a jaw-dropping twist, {fromTeam}\' beloved {playerName} has switched sides to join {toTeam} for a mere {price}. Analysts are calling this move one of the biggest bargains in recent soccer history, given {playerName}\'s reputation as a top-tier player. As {fromTeam}\' faithful come to terms with the departure of their talisman, {toTeam}\'s supporters are rejoicing at the prospect of having {playerName} bolster their ranks at such an affordable price. This transfer has ignited debates about valuation in the soccer market, and all eyes will be on {playerName}\'s performances as he takes to the field in {toTeam}\'s colors.'
-  }, {
-    title: '{playerName}\'s Mega Move: {fromTeam} Sells Star Player to {toTeam} for {price}',
-    text: '{fromTeam} FC has bid farewell to their star player {playerName}, who has embarked on a new journey with {toTeam}, all for the nominal fee of {price}. This unexpected move has left fans on both sides in awe, questioning the rationale behind such a seemingly low transfer amount for a player of {playerName}\'s caliber. {toTeam}\'s management, however, sees this as a strategic coup, bringing in a world-class talent at a fraction of the usual cost. As the soccer community debates the implications of this transfer, {playerName}\'s performance at {toTeam} will undoubtedly be under the microscope as he adapts to his new surroundings.'
-  }, {
-    title: '{toTeam} lands {playerName} from {fromTeam} for {price} in Sensational Transfer',
-    text: '{toTeam} has pulled off a transfer coup by securing the services of {playerName} from {fromTeam} for a remarkably modest sum of {price}. This unexpected move has caught the soccer world off guard, prompting speculation about the behind-the-scenes negotiations that led to such an affordable deal. {toTeam}\'s management has expressed their delight at adding {playerName} to their roster, believing his skills will be a perfect fit for their squad. Meanwhile, {fromTeam}\' fans are left reflecting on the departure of their star player and the implications for their team\'s performance in the upcoming season.'
-  }, {
-    title: '{playerName}\'s Transfer Saga: {fromTeam} to {toTeam} for {price}',
-    text: 'The much-anticipated transfer of {playerName} from {fromTeam} to {toTeam} has been finalized for a transfer fee of just {price}. This move has sparked widespread discussion, with pundits and fans alike debating the value of such a transfer for a player of {playerName}\'s stature. While some view it as a steal for {toTeam}, others question {fromTeam}\' decision to let go of their key asset for such a nominal amount. As {playerName} settles into his new environment under the guidance of {toTeam}\'s management, the soccer community eagerly awaits the impact he will make on the pitch in his new team\'s colors.'
-  }]
-}
+import { getTeam } from '../helper/teamHelper.js'
+import { getNewsByLeague } from '../helper/newsHelper.js'
 
 export default {
 
   /**
-   * @typedef {object} NewsArticle
-   * @property {string} title
-   * @property {string} text
-   * @property {number} [playerId]
-   *
-   * Collect information to write some nice news articles about:
-   * * most expensive trade (/)
-   * * highest win
-   * * team new in the relegation places
-   * * team new in the promotion places
-   * * level up history
-   * * new top scorer
-   * @param {Request} req
-   * @returns {Promise<{news: NewsArticle[], season: number, gameDay: number}>}
+   * @typedef {object} NewsResponse
+   * @property {number} gameDay
+   * @property {number} season
+   * @property {Array<NewsType>} news
+   * @property {Array<TeamType>} teams
+   * @property {Array<PlayerType>} players
    */
-  async getLeagueNews (_req) {
-    const {
-      gameDay,
-      season
-    } = await getGameDayAndSeason()
-    const cachedNews = newsCache.find(n => n.gameDay === gameDay && n.season === season)
-    if (cachedNews) {
-      return cachedNews
+
+  /**
+   * Get league news filtered by current game day, season, and user's league
+   * @param {Request} req
+   * @returns {Promise<NewsResponse>}
+   */
+  async getLeagueNews (req) {
+    const { gameDay, season } = await getGameDayAndSeason()
+    const team = await getTeam(req)
+
+    // Get news for the previous game day (current day's games may not have been processed yet)
+    const newsGameDay = gameDay > 1 ? gameDay - 1 : gameDay
+
+    const news = await getNewsByLeague(newsGameDay, season, team.level, team.league)
+
+    // Collect related teams and players for rendering
+    const teamIds = new Set()
+    const playerIds = new Set()
+
+    for (const item of news) {
+      if (item.team_id) teamIds.add(item.team_id)
+      if (item.player_id) playerIds.add(item.player_id)
     }
-    const news = []
-    const results = await query('SELECT * FROM trade_history WHERE season=? AND game_day=? ORDER BY price DESC LIMIT 1', [season, gameDay])
-    if (results.length > 0) {
-      const tradeHistory = results[0]
-      const player = await getPlayerById(tradeHistory.player_id)
-      const newTeam = await getTeamById(tradeHistory.to_team_id)
-      const oldTeam = await getTeamById(tradeHistory.from_team_id)
-      let {
-        title,
-        text
-      } = randomItem(texts.transfer)
-      const playerLink = `<a href="#team?id=${newTeam.id}&player_id=${player.id}">${player.name}</a>`
-      const oldTeamLink = `<a href="#team?id=${oldTeam.id}">${oldTeam.name}</a>`
-      const newTeamLink = `<a href="#team?id=${newTeam.id}">${newTeam.name}</a>`
-      title = title.replaceAll('{playerName}', playerLink)
-      text = text.replaceAll('{playerName}', playerLink)
-      title = title.replaceAll('{fromTeam}', oldTeamLink)
-      text = text.replaceAll('{fromTeam}', oldTeamLink)
-      title = title.replaceAll('{toTeam}', newTeamLink)
-      text = text.replaceAll('{toTeam}', newTeamLink)
-      title = title.replaceAll('{price}', euroFormat.format(tradeHistory.price))
-      text = text.replaceAll('{price}', euroFormat.format(tradeHistory.price))
-      news.push({
-        title,
-        text,
-        playerId: player.id
-      })
+
+    let teams = []
+    if (teamIds.size > 0) {
+      teams = await query(`SELECT * FROM team WHERE id IN (${[...teamIds].join(', ')})`)
     }
-    newsCache.push({
-      gameDay,
+
+    let players = []
+    if (playerIds.size > 0) {
+      players = await query(`SELECT * FROM player WHERE id IN (${[...playerIds].join(', ')})`)
+      // Also get team info for players
+      const playerTeamIds = players.map(p => p.team_id).filter(id => id && !teamIds.has(id))
+      if (playerTeamIds.length > 0) {
+        const playerTeams = await query(`SELECT * FROM team WHERE id IN (${playerTeamIds.join(', ')})`)
+        teams = [...teams, ...playerTeams]
+      }
+    }
+
+    return {
+      gameDay: newsGameDay,
       season,
-      news
-    })
+      news,
+      teams,
+      players
+    }
+  },
+
+  /**
+   * Get news for a specific game day
+   * @param {number} gameDay
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @returns {Promise<NewsResponse>}
+   */
+  async getNewsForGameDay (gameDay, season, level, league) {
+    const news = await getNewsByLeague(gameDay, season, level, league)
+
+    const teamIds = new Set()
+    const playerIds = new Set()
+
+    for (const item of news) {
+      if (item.team_id) teamIds.add(item.team_id)
+      if (item.player_id) playerIds.add(item.player_id)
+    }
+
+    let teams = []
+    if (teamIds.size > 0) {
+      teams = await query(`SELECT * FROM team WHERE id IN (${[...teamIds].join(', ')})`)
+    }
+
+    let players = []
+    if (playerIds.size > 0) {
+      players = await query(`SELECT * FROM player WHERE id IN (${[...playerIds].join(', ')})`)
+      const playerTeamIds = players.map(p => p.team_id).filter(id => id && !teamIds.has(id))
+      if (playerTeamIds.length > 0) {
+        const playerTeams = await query(`SELECT * FROM team WHERE id IN (${playerTeamIds.join(', ')})`)
+        teams = [...teams, ...playerTeams]
+      }
+    }
+
     return {
       gameDay,
       season,
-      news
+      news,
+      teams,
+      players
     }
   }
 }
