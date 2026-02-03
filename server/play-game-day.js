@@ -8,6 +8,7 @@ import { sallaryPerLevel } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances } from './helper/actionCardHelper.js'
+import { generateNewsForGameDay } from './helper/newsHelper.js'
 
 /**
  * @returns {Promise<void>}
@@ -22,6 +23,7 @@ export async function calculateGames () {
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)
   await _giveAllPlayersFreshness(season)
+  await generateNewsForGameDay(gameDay, season)
   console.log('\n\nPlayed game day ' + gameDay)
 }
 
