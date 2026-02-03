@@ -137,10 +137,12 @@ export class DashboardPage extends UIElement {
         </div>
         <h3>Action Cards</h3>
         <p style="max-width: 620px">With every game played, you have the chance to earn at least one action card. Some cards of the same type can be merged to a better one (E.g. two Level Up 4 to one Level Up 7 Card). All earned cards are shown here:</p>
-        <div class="row" id="action-cards">
+        <div class="card card-body bg-dark pt-4 mb-4" id="action-cards">
+        <div class="row">
           ${this.actionCards.map((card, idx) => this._renderActionCard(card, idx)).join('')}
           <div class="col ${this.actionCards.length === 0 ? '' : 'hidden'}">
             <h4 class="text-muted text-center mt-5 mb-5">No action cards available...</h4>
+          </div>
           </div>
         </div>
 
