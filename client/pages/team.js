@@ -5,6 +5,7 @@ import { showPlayerModal } from '../partials/playerModal.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { UIElement } from '../lib/UIElement.js'
 import { formatLeague } from '../util/league.js'
+import { showStadiumModal } from '../partials/stadiumModal.js'
 
 /**
  * Information to render:
@@ -36,18 +37,18 @@ export class TeamPage extends UIElement {
           </div>
           <h2>${this.team.name}</h2>
           <p>
-            <b>League</b>: ${formatLeague(this.team.level, this.team.league)}<br>
+            <b>League</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
             <b>Team Strength</b>: ${this._teamStrength}<br>
             <b>Ø Freshness</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
             <b>Trainer</b>: ${this._username}<br>
-            <b>Stadium Size</b>: ${this._stadiumSize} seats
+            <b>Stadium Size</b>: <a href="#" class="stadium-link text-info">${this._stadiumSize} seats</a>
           </p>
         </div>
         ${new PlayerList(
-          this.players,
-          true,
-          (player) => setQueryParams({ player_id: player.id + '' })
-        )}
+      this.players,
+      true,
+      (player) => setQueryParams({ player_id: player.id + '' })
+    )}
       </div>
     `
   }
@@ -56,7 +57,14 @@ export class TeamPage extends UIElement {
    * @returns {UIElementEvents}
    */
   get events () {
-    return super.events
+    return {
+      '.stadium-link': {
+        click: (event) => {
+          event.preventDefault()
+          showStadiumModal(this.team.id)
+        }
+      }
+    }
   }
 
   /**
@@ -64,7 +72,11 @@ export class TeamPage extends UIElement {
    */
   async load () {
     if (!this.teamId) throw new Error('No team id present...')
-    const { team, players, user } = await server.getTeam(this.teamId)
+    const {
+      team,
+      players,
+      user
+    } = await server.getTeam(this.teamId)
     this.user = user
     this.team = team
     this.players = players
@@ -77,7 +89,10 @@ export class TeamPage extends UIElement {
    * @param {string} params.id
    * @returns {Promise<void>}
    */
-  async onQueryChanged ({ player_id: playerId, id }) {
+  async onQueryChanged ({
+    player_id: playerId,
+    id
+  }) {
     if (playerId) await showPlayerModal(Number(playerId))
     this.teamId = Number(id)
   }

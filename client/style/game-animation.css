@@ -51,13 +51,15 @@
     left: initial !important;
     right: 25%;
 }
+
 .game-animation .player .player-image {
     position: absolute;
     float: none;
-    top: -138px;
+    top: -52px;
     left: 50%;
     transform: translateX(-25px);
 }
+
 .game-animation .ball {
     position: absolute;
     z-index: 4;
@@ -266,7 +268,6 @@
 .game-animation.play .home.LA {
     left: 75%;
 }
-
 
 
 .game-animation.play .away.LD {

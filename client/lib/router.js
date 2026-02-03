@@ -90,7 +90,7 @@ async function _resolvePage () {
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
   if (!layoutChanged) {
     pageElement.style.opacity = '0'
-    pageElement.style.transform = 'translateX(100vw)'
+    pageElement.style.transform = 'translateY(50px)'
   }
   pageElement.innerHTML = ''
   await _renderNewPage(pageRenderFn, currentPath, pageElement)
@@ -133,7 +133,7 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
 function _afterPageLoad (pageElement) {
   _hideLoadingIndicator()
   fire('page-changed')
-  pageElement.style.transform = 'translateX(0vw)'
+  pageElement.style.transform = 'translateY(0)'
   pageElement.style.opacity = '1'
 }
 

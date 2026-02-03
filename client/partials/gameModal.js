@@ -18,8 +18,14 @@ export async function showGameModal (resultId) {
     setQueryParams({ game_id: null })
     return
   }
-  const { players: playersTeam1, team: team1 } = await server.getTeam(game.team1Id)
-  const { players: playersTeam2, team: team2 } = await server.getTeam(game.team2Id)
+  const {
+    players: playersTeam1,
+    team: team1
+  } = await server.getTeam(game.team1Id)
+  const {
+    players: playersTeam2,
+    team: team2
+  } = await server.getTeam(game.team2Id)
   const players = {}
   playersTeam1.forEach(p => {
     p.team1 = true
@@ -58,7 +64,7 @@ export async function showGameModal (resultId) {
     `${game.team1} - ${game.team2}`,
     '',
     `
-      <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} guests at their stadium!</p>
+      <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} as guests at their stadium!</p>
       ${renderGameAnimation(game, team1, team2)}
       <table class="table">
         <thead>
