@@ -53,7 +53,7 @@ async function _makeBotMove (botTeam, players) {
   await _checkActionCards(botTeam, playersOfTeam, isStrongTeam)
   await _chooseSponsor(botTeam, isStrongTeam)
   await _checkStadium(botTeam)
-  await _checkTrades(botTeam, playersOfTeam, isStrongTeam)
+  await _checkTrades(botTeam, playersOfTeam)
 }
 
 /**
@@ -116,131 +116,227 @@ async function _checkStadium (botTeam) {
 
 /**
  * @param {TeamType} botTeam
+ * @param {PlayerType[]} players
  * @returns {Promise<void>}
  */
-async function _checkIncomingOffers (botTeam) {
+async function _checkIncomingOffers (botTeam, players) {
   const { gameDay, season } = await getGameDayAndSeason()
   const openSellOffers = await getOpenSellOffersByTeamId(botTeam.id)
   const incomingOffers = await getIncomingBuyOffers(botTeam.id)
+
+  // Group incoming offers by player, sorted by highest offer first
   /** @type {{[playerId: number]: Array<TradeOfferType>}} */
   const incomingOffersPerPlayer = {}
   incomingOffers.forEach(offer => {
     incomingOffersPerPlayer[offer.player_id] = incomingOffersPerPlayer[offer.player_id] ?? []
     incomingOffersPerPlayer[offer.player_id].push(offer)
   })
+
+  // Calculate minimum players needed per position for the formation
+  const positionsNeeded = getPositionsOfFormation(botTeam.formation)
+
   for (let playerId in incomingOffersPerPlayer) {
     playerId = Number(playerId)
     const offer = incomingOffersPerPlayer[playerId][0] // take first as it is highest offer
+    const player = await getPlayerById(playerId)
+    if (!player) {
+      await declineOffer(offer)
+      continue
+    }
+
+    // Check if we can afford to sell this player (need at least 1 player per position in formation)
+    const playersInSamePosition = players.filter(p => p.position === player.position && p.id !== playerId)
+    const positionsRequiredForFormation = positionsNeeded.filter(p => p === player.position).length
+    if (playersInSamePosition.length < positionsRequiredForFormation) {
+      // Can't sell - would leave formation incomplete
+      await declineOffer(offer)
+      continue
+    }
+
     const matchingSellOffer = openSellOffers.find(sellOffer => sellOffer.player_id === playerId)
-    if (matchingSellOffer && matchingSellOffer.offer_value * 0.5 < offer.offer_value && Math.random() < 0.2) {
+    const averagePrice = await getAveragePlanPriceOfPlayer(player)
+
+    // Determine minimum acceptable price with randomization (80% - 120% of average/sell price)
+    const basePrice = matchingSellOffer ? matchingSellOffer.offer_value : averagePrice
+    const randomFactor = 0.8 + Math.random() * 0.4 // 0.8 to 1.2
+    const minAcceptablePrice = basePrice * randomFactor
+
+    if (offer.offer_value >= minAcceptablePrice) {
       await acceptOffer(offer, botTeam, gameDay, season)
-    } else if (matchingSellOffer && matchingSellOffer.offer_value < offer.offer_value) {
-      await acceptOffer(offer, botTeam, gameDay, season)
+      // Update local players array to reflect the sale
+      const soldPlayerIndex = players.findIndex(p => p.id === playerId)
+      if (soldPlayerIndex !== -1) players.splice(soldPlayerIndex, 1)
+      console.log(`🤝 ${botTeam.name} sold player ${player.name} for ${offer.offer_value}`)
     } else {
-      const player = await getPlayerById(playerId)
-      const averagePrice = await getAveragePlanPriceOfPlayer(player)
-      if (offer.offer_value > averagePrice && !player.in_game_position && Math.random() < 0.8) {
-        await acceptOffer(offer, botTeam, gameDay, season)
-      } else {
-        await declineOffer(offer)
-      }
+      await declineOffer(offer)
     }
   }
 }
 
 /**
  * @param {TeamType} botTeam
+ * @param {PlayerType[]} players
  * @returns {Promise<void>}
  */
-async function _checkSellOffers (botTeam) {
-  const offers = await getOpenSellOffersByTeamId(botTeam.id)
-  if (offers.length === 0) {
-    const players = await getPlayersByTeamId(botTeam.id)
-    // Figure out, which player we want to sell
-    // each position in the lineup should added twice
-    // if players position is not in lineup --> sell
-    // if too many players in lineup for same position --> sell random of position
-    const positionsNeeded = getPositionsOfFormation(botTeam.formation)
-    let playerToSell
-    for (const player of players) {
-      if (!positionsNeeded.includes(player.position)) {
-        playerToSell = player
-        break
+async function _checkSellOffers (botTeam, players) {
+  // First, delete old offers that haven't been answered
+  const existingOffers = await getOpenSellOffersByTeamId(botTeam.id)
+  await deleteTooOldOffers(existingOffers, 24)
+
+  // Get updated list of offers after cleanup
+  const currentOffers = await getOpenSellOffersByTeamId(botTeam.id)
+  const playerIdsWithOffers = new Set(currentOffers.map(o => o.player_id))
+
+  // Determine which positions are needed for the formation
+  const positionsNeeded = getPositionsOfFormation(botTeam.formation)
+
+  // Find players to sell:
+  // 1. Players whose position doesn't fit the formation
+  // 2. Excess players for positions (keep 2x what formation needs)
+  const playersToSell = []
+
+  for (const player of players) {
+    // Skip if already has a sell offer
+    if (playerIdsWithOffers.has(player.id)) continue
+
+    // Check if position is not in formation at all
+    if (!positionsNeeded.includes(player.position)) {
+      playersToSell.push(player)
+      continue
+    }
+
+    // Check if we have too many players for this position
+    const positionsRequiredForFormation = positionsNeeded.filter(p => p === player.position).length
+    const maxPlayersWanted = positionsRequiredForFormation * 2 // Keep 2x formation requirement
+    const playersInPosition = players.filter(p => p.position === player.position)
+
+    if (playersInPosition.length > maxPlayersWanted) {
+      // Sell the weakest player(s) in this position
+      const sortedByLevel = [...playersInPosition].sort((a, b) => a.level - b.level)
+      const weakestPlayer = sortedByLevel[0]
+      if (weakestPlayer.id === player.id && !playerIdsWithOffers.has(player.id)) {
+        playersToSell.push(player)
       }
-      const amountOfPlayersNeeded = positionsNeeded.filter(position => player.position === position).length * 2
-      if (players.filter(p => p.position === player.position).length > amountOfPlayersNeeded) {
-        playerToSell = player
-        break
-      }
-    }
-    // In case there is no potential player to sell, still add a sell offer at random
-    // to create movement on market.
-    if (!playerToSell && Math.random() > 0.5) {
-      playerToSell = randomItem(players)
-    }
-    if (playerToSell) {
-      const price = await playersRoutes.estimateValue(playerToSell.id)
-      const val = (Math.random() * 0.6 + 0.7) * price
-      const tradeOffer = new TradeOffer({
-        offer_value: val,
-        type: 'sell',
-        player_id: playerToSell.id,
-        from_team_id: botTeam.id
-      })
-      await query('INSERT INTO trade_offer SET ?', tradeOffer)
-    }
-  } else {
-    // There is at least one sell offer from the bot team
-    // for each offer check if the offer exists longer than 24 hours
-    // if so, remove offer, _checkSellOffers again to create a new one
-    if (await deleteTooOldOffers(offers)) {
-      await _checkSellOffers(botTeam)
     }
   }
-}
 
-/**
- * @param {TeamType} botTeam
- * @returns {Promise<void>}
- */
-async function _checkBuyOffers (botTeam) {
-  const offers = await getOpenByOffersByTeamId(botTeam.id)
-  if (offers.length === 0) {
-    const maxPrice = Math.floor(botTeam.balance * 0.8)
-    if (maxPrice <= 0) return // no money to buy a player...
-    // figure out for which positions, players are needed
-    const players = await getPlayersByTeamId(botTeam.id)
-    const positionsNeeded = getPositionsOfFormation(botTeam.formation)
-    const positionsToBuy = []
-    for (const position of positionsNeeded) {
-      const amountNeeded = positionsNeeded.filter(p => p === position).length
-      const amountOfPlayersOnPosition = players.filter(p => p.position === position).length
-      if (amountOfPlayersOnPosition < amountNeeded) {
-        positionsToBuy.push(position)
-      }
-    }
-    if (positionsToBuy.length === 0) return // no players needed...
-    /** @type {TradeOfferType[]} */
-    const sellOffers = await query(`
-        SELECT * FROM trade_offer t JOIN player p on t.player_id = p.id
-                 WHERE t.from_team_id<>? AND t.offer_value<? AND t.type='sell' AND p.position IN ("${positionsToBuy.join('", "')}")
-    `, [botTeam.id, maxPrice])
-    if (sellOffers.length === 0) return // no sell offers available
-    const offer = randomItem(sellOffers)
-    const rand = offer.offer_value * (Math.random() * 0.3)
+  // Create sell offers for players to sell (max 3 at a time to not flood market)
+  const maxNewOffers = Math.min(3 - currentOffers.length, playersToSell.length)
+  for (let i = 0; i < maxNewOffers; i++) {
+    const playerToSell = playersToSell[i]
+    const price = await playersRoutes.estimateValue(playerToSell.id)
+    // Randomize price between 70% and 130% of estimated value
+    const randomFactor = 0.7 + Math.random() * 0.6
+    const offerValue = Math.floor(price * randomFactor)
+
     const tradeOffer = new TradeOffer({
-      offer_value: Math.min(maxPrice, Math.floor(offer.offer_value * 0.9 + rand)),
-      type: 'buy',
-      player_id: offer.player_id,
+      offer_value: offerValue,
+      type: 'sell',
+      player_id: playerToSell.id,
       from_team_id: botTeam.id
     })
     await query('INSERT INTO trade_offer SET ?', tradeOffer)
-    console.log('Added new buy offer for ', offer)
-  } else {
-    if (await deleteTooOldOffers(offers)) {
-      await _checkBuyOffers(botTeam)
+    console.log(`📢 ${botTeam.name} put ${playerToSell.name} on market for ${offerValue}`)
+  }
+}
+
+/**
+ * @param {TeamType} botTeam
+ * @param {PlayerType[]} players
+ * @returns {Promise<void>}
+ */
+async function _checkBuyOffers (botTeam, players) {
+  // First, delete old buy offers that haven't been answered
+  const existingOffers = await getOpenByOffersByTeamId(botTeam.id)
+  await deleteTooOldOffers(existingOffers, 24)
+
+  // Get updated list of buy offers after cleanup
+  const currentBuyOffers = await getOpenByOffersByTeamId(botTeam.id)
+
+  // Don't create too many buy offers at once
+  if (currentBuyOffers.length >= 2) return
+
+  const maxPrice = Math.floor(botTeam.balance * 0.8)
+  if (maxPrice <= 0) return // no money to buy a player...
+
+  const positionsNeeded = getPositionsOfFormation(botTeam.formation)
+
+  // Find positions where we need players or could upgrade
+  const positionsToBuy = new Set()
+  const playerIdsAlreadyBidding = new Set(currentBuyOffers.map(o => o.player_id))
+
+  for (const position of positionsNeeded) {
+    const minPlayersNeeded = positionsNeeded.filter(p => p === position).length
+    const playersInPosition = players.filter(p => p.position === position)
+
+    // Need more players for this position
+    if (playersInPosition.length < minPlayersNeeded) {
+      positionsToBuy.add(position)
+      continue
+    }
+
+    // Look for upgrades - if there's a player on market better than our weakest
+    const weakestLevel = Math.min(...playersInPosition.map(p => p.level))
+    if (weakestLevel < 8) { // Only look for upgrades if we don't have max level
+      positionsToBuy.add(position)
     }
   }
+
+  if (positionsToBuy.size === 0) return
+
+  // Find sell offers for positions we want
+  const positionsArray = Array.from(positionsToBuy)
+  /** @type {(TradeOfferType & PlayerType)[]} */
+  const sellOffers = await query(`
+      SELECT t.*, p.name as player_name, p.level as player_level, p.position as player_position
+      FROM trade_offer t
+      JOIN player p ON t.player_id = p.id
+      WHERE t.from_team_id <> ?
+        AND t.offer_value <= ?
+        AND t.type = 'sell'
+        AND p.position IN ("${positionsArray.join('", "')}")
+      ORDER BY p.level DESC
+  `, [botTeam.id, maxPrice])
+
+  if (sellOffers.length === 0) return
+
+  // Filter out players we're already bidding on
+  const availableOffers = sellOffers.filter(o => !playerIdsAlreadyBidding.has(o.player_id))
+  if (availableOffers.length === 0) return
+
+  // Prefer offers where the player is better than our current players
+  let bestOffer = null
+  for (const offer of availableOffers) {
+    const ourPlayersInPosition = players.filter(p => p.position === offer.player_position)
+    const ourWeakestLevel = ourPlayersInPosition.length > 0
+      ? Math.min(...ourPlayersInPosition.map(p => p.level))
+      : 0
+
+    // This player would be an upgrade or we need more players
+    if (offer.player_level > ourWeakestLevel || ourPlayersInPosition.length < positionsNeeded.filter(p => p === offer.player_position).length) {
+      bestOffer = offer
+      break
+    }
+  }
+
+  // If no upgrade found, pick a random affordable offer
+  if (!bestOffer) {
+    bestOffer = randomItem(availableOffers)
+  }
+
+  // Create buy offer with slight randomization (90% - 110% of asking price)
+  // Higher offers are more likely to be accepted
+  const randomFactor = 0.9 + Math.random() * 0.2
+  const offerValue = Math.min(maxPrice, Math.floor(bestOffer.offer_value * randomFactor))
+
+  const tradeOffer = new TradeOffer({
+    offer_value: offerValue,
+    type: 'buy',
+    player_id: bestOffer.player_id,
+    from_team_id: botTeam.id
+  })
+  await query('INSERT INTO trade_offer SET ?', tradeOffer)
+  console.log(`💰 ${botTeam.name} made buy offer of ${offerValue} for ${bestOffer.player_name}`)
 }
 
 /**
@@ -277,13 +373,29 @@ async function _firePlayerIfTooMany (botTeam) {
 
 /**
  * @param {TeamType} botTeam
+ * @param {PlayerType[]} _players - Not used directly, we fetch fresh data
  * @returns {Promise<void>}
  */
-async function _checkTrades (botTeam) {
+async function _checkTrades (botTeam, _players) {
+  // 1. First, clean up old unanswered offers from this bot
+  const ownSellOffers = await getOpenSellOffersByTeamId(botTeam.id)
+  const ownBuyOffers = await getOpenByOffersByTeamId(botTeam.id)
+  await deleteTooOldOffers([...ownSellOffers, ...ownBuyOffers], 48)
+
+  // 2. Fire players if team has too many
   await _firePlayerIfTooMany(botTeam)
-  await _checkIncomingOffers(botTeam)
-  await _checkSellOffers(botTeam)
-  await _checkBuyOffers(botTeam)
+
+  // Refresh player list after potential firing
+  const currentPlayers = await getPlayersByTeamId(botTeam.id)
+
+  // 3. Check incoming buy offers and accept/decline them
+  await _checkIncomingOffers(botTeam, currentPlayers)
+
+  // 4. Create sell offers for unneeded players
+  await _checkSellOffers(botTeam, currentPlayers)
+
+  // 5. Look for players to buy that would improve the team
+  await _checkBuyOffers(botTeam, currentPlayers)
 }
 
 /**
