@@ -458,7 +458,7 @@ const migrations = [{
   name: 'Update emblem column to TEXT and assign random emblems',
   async run () {
     // Change emblem column to TEXT to store JSON
-    await query('ALTER TABLE team MODIFY COLUMN emblem TEXT;')
+    await query('ALTER TABLE team ADD COLUMN emblem TEXT;')
 
     // Emblem configuration options
     const shapes = ['circle', 'oval', 'triangle', 'shield', 'shield2', 'shield3', 'crest', 'pentagon']
