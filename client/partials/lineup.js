@@ -59,10 +59,10 @@ export class Lineup extends UIElement {
           const playerEl = event.target.closest('.player')
           if (!playerEl) return
 
-          const playerEls = document.querySelectorAll(`${this._elementQuery} .squad .player`)
-          const playersInLineup = this.players.filter(p => p.in_game_position)
-          const index = Array.from(playerEls).indexOf(playerEl)
-          const player = playersInLineup[index]
+          const playerId = playerEl.dataset.playerId
+          const player = playerId.startsWith('fake-')
+            ? this.players.find(p => p.fake && p.in_game_position === playerId.replace('fake-', ''))
+            : this.players.find(p => p.id === Number(playerId))
 
           if (player) {
             this._overlay = showOverlay(
@@ -151,14 +151,14 @@ export class Lineup extends UIElement {
    * @returns {void}
    */
   _loadPlayerImages () {
-    this.players.filter(p => p.in_game_position).forEach((player, index) => {
+    this.players.filter(p => p.in_game_position).forEach((player) => {
       renderPlayerImage(player, this.team, 100).then(image => {
-        const playerEl = document.querySelectorAll(`${this._elementQuery} .squad .player`)[index]
+        const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
+        const playerEl = document.querySelector(`${this._elementQuery} .squad .player[data-player-id="${playerId}"]`)
         playerEl?.insertAdjacentHTML('afterbegin', image)
       })
     })
   }
-
 
   /**
    * @param {PlayerType} player
@@ -193,9 +193,11 @@ export class Lineup extends UIElement {
     const displayName = player.name.includes(' ')
       ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
       : player.name
+    // Use player ID for real players, or 'fake-{position}' for empty slots
+    const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
 
     return `
-      <div class="player ${player.position}">
+      <div class="player ${player.position}" data-player-id="${playerId}">
         <span class="position-badge ${player.position}">${player.position}</span>
         <span class="freshness-badge ${freshnessClass}">
             ${Math.floor(player.freshness * 100)}%
