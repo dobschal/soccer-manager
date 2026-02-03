@@ -14,15 +14,20 @@ vi.mock('../../helper/sponsorHelper.js', () => ({
   getSponsor: vi.fn()
 }))
 
+vi.mock('../../prepare-season.js', () => ({
+  prepareSeason: vi.fn()
+}))
+
 // Import after mocking
 import { query } from '../../lib/database.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getSponsor } from '../../helper/sponsorHelper.js'
+import { prepareSeason } from '../../prepare-season.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
   })
 
   describe('login', () => {
@@ -64,7 +69,7 @@ describe('auth routes', () => {
   })
 
   describe('createAccount', () => {
-    it('creates account successfully', async () => {
+    it('creates account successfully when team available', async () => {
       const team = testData.team({ user_id: null })
       query
         .mockResolvedValueOnce([{ amount: 0 }]) // username check
@@ -77,9 +82,10 @@ describe('auth routes', () => {
       addLogMessage.mockResolvedValue()
       getSponsor.mockResolvedValue({ sponsor: { id: 1 } })
 
-      const result = await handlers.createAccount('newuser', 'password123', 'My Team')
+      const result = await handlers.createAccount('newuser', 'password123')
 
       expect(result).toEqual({ success: true })
+      expect(prepareSeason).not.toHaveBeenCalled()
       expect(query).toHaveBeenCalledWith('SELECT COUNT(*) AS amount FROM user WHERE username=?', 'newuser')
     })
 
@@ -100,13 +106,65 @@ describe('auth routes', () => {
         .rejects.toMatchObject({ message: 'Username already taken' })
     })
 
-    it('throws BadRequestError when no team available', async () => {
-      query
-        .mockResolvedValueOnce([{ amount: 0 }])
-        .mockResolvedValueOnce([]) // no team available
+    it('calls prepareSeason when no team available', async () => {
+      const newTeam = testData.team({ id: 99, user_id: null, name: 'New Team' })
 
-      await expect(handlers.createAccount('newuser', 'password123', 'Team'))
+      query
+        .mockResolvedValueOnce([{ amount: 0 }]) // username check
+        .mockResolvedValueOnce([]) // no team available initially
+        .mockResolvedValueOnce([newTeam]) // team available after prepareSeason
+        .mockResolvedValueOnce({ insertId: 1 }) // insert user
+        .mockResolvedValueOnce({}) // update team
+        .mockResolvedValueOnce({}) // delete sponsor
+        .mockResolvedValueOnce({}) // delete action cards
+
+      prepareSeason.mockResolvedValue()
+      addLogMessage.mockResolvedValue()
+      getSponsor.mockResolvedValue({ sponsor: null })
+
+      const result = await handlers.createAccount('newuser', 'password123')
+
+      expect(result).toEqual({ success: true })
+      expect(prepareSeason).toHaveBeenCalledTimes(1)
+    })
+
+    it('creates account with team from new league after prepareSeason', async () => {
+      const newTeam = testData.team({ id: 50, user_id: null, name: 'Fresh Team' })
+
+      query
+        .mockResolvedValueOnce([{ amount: 0 }]) // username check
+        .mockResolvedValueOnce([]) // no team available initially
+        .mockResolvedValueOnce([newTeam]) // team available after prepareSeason
+        .mockResolvedValueOnce({ insertId: 5 }) // insert user
+        .mockResolvedValueOnce({}) // update team
+        .mockResolvedValueOnce({}) // delete sponsor
+        .mockResolvedValueOnce({}) // delete action cards
+
+      prepareSeason.mockResolvedValue()
+      addLogMessage.mockResolvedValue()
+      getSponsor.mockResolvedValue({ sponsor: null })
+
+      await handlers.createAccount('newuser', 'password123')
+
+      // Verify the team from prepareSeason is used
+      expect(addLogMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Fresh Team'),
+        expect.objectContaining({ id: 50 })
+      )
+    })
+
+    it('throws error if still no team after prepareSeason', async () => {
+      query
+        .mockResolvedValueOnce([{ amount: 0 }]) // username check
+        .mockResolvedValueOnce([]) // no team available initially
+        .mockResolvedValueOnce([]) // still no team after prepareSeason
+
+      prepareSeason.mockResolvedValue()
+
+      await expect(handlers.createAccount('newuser', 'password123'))
         .rejects.toMatchObject({ message: 'No team available.' })
+
+      expect(prepareSeason).toHaveBeenCalledTimes(1)
     })
   })
 })

@@ -4,6 +4,7 @@ import { query } from '../lib/database.js'
 import jwt from 'jsonwebtoken'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
+import { prepareSeason } from '../prepare-season.js'
 
 export default {
 
@@ -23,9 +24,14 @@ export default {
     if (amount > 0) {
       throw new BadRequestError('Username already taken')
     }
-    const [team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
+    let [team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
     if (!team) {
-      throw new BadRequestError('No team available.')
+      // No team available - create new league(s) with prepareSeason and retry
+      await prepareSeason()
+      ;[team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
+      if (!team) {
+        throw new BadRequestError('No team available.')
+      }
     }
     const { insertId: userId } = await query('INSERT INTO user SET ?', {
       username,

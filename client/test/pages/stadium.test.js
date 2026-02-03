@@ -119,11 +119,12 @@ describe('StadiumPage', () => {
       expect(page.template).toContain('Save Prices')
     })
 
-    it('template contains stadium visualization', async () => {
+    it('template contains stadium canvas container', async () => {
       const page = new StadiumPage()
       await page.load()
-      expect(page.template).toContain('stadium-wrapper')
-      expect(page.template).toContain('stand')
+      expect(page.template).toContain('stadium-canvas-container')
+      // StadiumCanvas renders as a template placeholder that gets replaced async
+      expect(page.template).toContain('template')
     })
 
     it('has events for form submission', () => {
