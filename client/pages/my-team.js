@@ -13,8 +13,8 @@ import { sallaryPerLevel } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { formatLeague } from '../util/league.js'
 import { renderLineup, lineUpData } from '../partials/lineup.js'
-import { randomItem } from '../lib/randomItem.js'
-import { Emblem } from '../partials/emblem.js'
+import { renderEmblem } from '../partials/emblem.js'
+import { generateEmblem, EMBLEM_SHAPES, EMBLEM_PATTERNS, EMBLEM_COLORS, parseEmblemParams } from '../util/emblemGenerator.js'
 import { UIElement } from '../lib/UIElement.js'
 
 export class MyTeamPage extends UIElement {
@@ -32,7 +32,7 @@ export class MyTeamPage extends UIElement {
             <h3>Lineup</h3>
             <div class="mb-4" id="squad" >
               ${renderLineup(this.data.players, this.data.team, this)}
-            </div>   
+            </div>
           </div>
           <div class="col-12 col-xl-6">
             ${new PlayerList(
@@ -79,9 +79,9 @@ export class MyTeamPage extends UIElement {
     })
     return `
       <h2>${this.data.team.name}</h2>
-      <div class="row"> 
-        <div class="col-12 col-md-4 mb-4">     
-          <div class="card bg-dark text-white" style="min-height: 230px">        
+      <div class="row">
+        <div class="col-12 col-md-4 mb-4">
+          <div class="card bg-dark text-white" style="min-height: 230px">
             <div class="card-body">
               <h5 class="card-title">Team</h5>
               <p class="card-text">
@@ -91,18 +91,18 @@ export class MyTeamPage extends UIElement {
                 <b>Strength: </b> ${this._calculateTeamStrength(this.data.players)}
               </p>
             </div>
-          </div>        
+          </div>
         </div>
-        <div class="col-12 col-md-4 mb-4">     
-          <div class="card bg-dark text-white" style="min-height: 230px">        
+        <div class="col-12 col-md-4 mb-4">
+          <div class="card bg-dark text-white" style="min-height: 230px">
             <div class="card-body" style="perspective: 40px;">
-              <h5 class="card-title">Icon <i class="fa fa-pencil" aria-hidden="true"></i></h5>
-              ${this._renderIconViewer()}
+              <h5 class="card-title">Emblem <i class="fa fa-pencil" aria-hidden="true"></i></h5>
+              ${this._renderEmblemViewer()}
             </div>
           </div>
         </div>
-        <div class="col-12 col-md-4 mb-4">     
-          <div class="card bg-dark text-white" style="min-height: 230px">        
+        <div class="col-12 col-md-4 mb-4">
+          <div class="card bg-dark text-white" style="min-height: 230px">
             <div class="card-body">
               <h5 class="card-title">Lineup</h5>
               <p class="card-text">Choose from one of the following line-ups:</p>
@@ -111,7 +111,7 @@ export class MyTeamPage extends UIElement {
               </div>
             </div>
           </div>
-        </div>      
+        </div>
       </div>
     `
   }
@@ -119,15 +119,15 @@ export class MyTeamPage extends UIElement {
   /**
    * @returns {string}
    */
-  _renderIconViewer () {
+  _renderEmblemViewer () {
     const id = generateId()
 
     onClick(id, () => {
-      this._showColorPicker()
+      this._showEmblemEditor()
     })
 
-    return `<div id="${id}" class="mb-4">
-      ${new Emblem({ team: this.data.team })}
+    return `<div id="${id}" class="mb-4" style="cursor: pointer; text-align: center;">
+      ${renderEmblem(this.data.team, 150)}
     </div>`
   }
 
@@ -182,42 +182,145 @@ export class MyTeamPage extends UIElement {
   /**
    * @returns {void}
    */
-  _showColorPicker () {
-    const chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-    const colors = []
-    for (let j = 0; j < 50; j++) {
-      let color = '#'
-      for (let i = 0; i < 6; i++) {
-        color += randomItem(chars)
-      }
-      colors.push(color)
+  _showEmblemEditor () {
+    // Get current emblem params or defaults
+    const currentParams = parseEmblemParams(this.data.team.emblem) || {
+      shape: 'shield',
+      pattern: 'solid',
+      color: this.data.team.color || EMBLEM_COLORS[0]
     }
-    const colorItems = colors
-      .map(c => {
-        const id = generateId()
-        onClick(id, async () => {
-          try {
-            await server.updateColor(c)
-            toast('You have chosen a new color!', 'success')
-            await this.update(false)
-            overlay.remove()
-          } catch (e) {
-            showServerError(e)
-          }
+
+    let selectedShape = currentParams.shape
+    let selectedPattern = currentParams.pattern
+    let selectedColor = currentParams.color
+
+    const previewId = generateId()
+    const saveButtonId = generateId()
+
+    const updatePreview = () => {
+      const previewEl = el(previewId)
+      if (previewEl) {
+        previewEl.innerHTML = generateEmblem({
+          shape: selectedShape,
+          pattern: selectedPattern,
+          color: selectedColor,
+          teamName: this.data.team.name,
+          size: 150
         })
-        return `
-          <div id="${id}" class="color-picker-item" style="background-color: ${c}"></div>
-        `
-      })
-      .join('')
-    const overlay = showOverlay(
-      'Choose a color',
-      'The chosen color will be used on your trikots and team icon',
+      }
+    }
+
+    // Shape options
+    const shapeOptions = Object.entries(EMBLEM_SHAPES).map(([key]) => {
+      const id = generateId()
+      setTimeout(() => {
+        const element = el(id)
+        if (element) {
+          element.addEventListener('click', () => {
+            selectedShape = key
+            document.querySelectorAll('.shape-option').forEach(item => {
+              item.style.borderColor = 'transparent'
+            })
+            element.style.borderColor = '#007bff'
+            updatePreview()
+          })
+        }
+      }, 100)
+      const isSelected = key === selectedShape
+      const previewSvg = generateEmblem({ shape: key, pattern: 'solid', color: '#666', teamName: '', size: 40 })
+      return `
+        <div id="${id}" class="shape-option" style="display: inline-block; padding: 8px; margin: 4px; border: 2px solid ${isSelected ? '#007bff' : 'transparent'}; border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.1);">
+          ${previewSvg}
+        </div>
       `
-      <div>
-        ${colorItems}
+    }).join('')
+
+    // Pattern options
+    const patternOptions = Object.entries(EMBLEM_PATTERNS).map(([key, pattern]) => {
+      const id = generateId()
+      setTimeout(() => {
+        const element = el(id)
+        if (element) {
+          element.addEventListener('click', () => {
+            selectedPattern = key
+            document.querySelectorAll('.pattern-option').forEach(item => {
+              item.style.borderColor = 'transparent'
+            })
+            element.style.borderColor = '#007bff'
+            updatePreview()
+          })
+        }
+      }, 100)
+      const isSelected = key === selectedPattern
+      return `
+        <div id="${id}" class="pattern-option" style="display: inline-block; padding: 8px 12px; margin: 4px; border: 2px solid ${isSelected ? '#007bff' : 'transparent'}; border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.1); font-size: 12px;">
+          ${pattern.name}
+        </div>
+      `
+    }).join('')
+
+    // Color options (20 predefined colors)
+    const colorOptions = EMBLEM_COLORS.map(c => {
+      const id = generateId()
+      setTimeout(() => {
+        const element = el(id)
+        if (element) {
+          element.addEventListener('click', () => {
+            selectedColor = c
+            document.querySelectorAll('.color-option').forEach(item => {
+              item.style.border = '2px solid transparent'
+            })
+            element.style.border = '2px solid white'
+            updatePreview()
+          })
+        }
+      }, 100)
+      const isSelected = c === selectedColor
+      return `
+        <div id="${id}" class="color-option" style="display: inline-block; width: 36px; height: 36px; margin: 3px; border-radius: 4px; cursor: pointer; background-color: ${c}; border: 2px solid ${isSelected ? 'white' : 'transparent'};"></div>
+      `
+    }).join('')
+
+    // Save button handler
+    onClick(saveButtonId, async () => {
+      try {
+        const emblemParams = JSON.stringify({ shape: selectedShape, pattern: selectedPattern, color: selectedColor })
+        await server.updateEmblem(emblemParams, selectedColor)
+        toast('Your emblem has been updated!', 'success')
+        this.data.team.emblem = emblemParams
+        this.data.team.color = selectedColor
+        await this.update(false)
+        overlay.remove()
+      } catch (e) {
+        showServerError(e)
+      }
+    })
+
+    const overlay = showOverlay(
+      'Create Your Emblem',
+      'Design a unique emblem for your team',
+      `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div id="${previewId}">${generateEmblem({ shape: selectedShape, pattern: selectedPattern, color: selectedColor, teamName: this.data.team.name, size: 150 })}</div>
       </div>
-  `)
+
+      <h6>Shape</h6>
+      <div style="margin-bottom: 15px; text-align: center;">
+        ${shapeOptions}
+      </div>
+
+      <h6>Pattern</h6>
+      <div style="margin-bottom: 15px; text-align: center;">
+        ${patternOptions}
+      </div>
+
+      <h6>Color</h6>
+      <div style="margin-bottom: 20px; text-align: center;">
+        ${colorOptions}
+      </div>
+
+      <button id="${saveButtonId}" class="btn btn-primary w-100">Save Emblem</button>
+    `)
   }
 
   /**

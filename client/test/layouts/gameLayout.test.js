@@ -4,7 +4,8 @@ vi.mock('../../lib/gateway.js', () => ({
   server: {
     getNextGameDate: vi.fn().mockResolvedValue({ date: new Date(Date.now() + 60000).toISOString() }),
     getMyBalance: vi.fn().mockResolvedValue({ balance: 100000 }),
-    isDevelopment: vi.fn().mockResolvedValue({ isDevelopment: false })
+    isDevelopment: vi.fn().mockResolvedValue({ isDevelopment: false }),
+    getVersion: vi.fn().mockResolvedValue({ version: '1.0.0' })
   }
 }))
 

@@ -8,6 +8,7 @@ import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 import { Stadium } from './entities/stadium.js'
 import { addLogMessage } from './helper/logMessageHelper.js'
 import { getTeamById } from './helper/teamHelper.js'
+import { generateRandomEmblem } from './lib/emblem.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -228,12 +229,16 @@ async function _ajustAmountOfTeams () {
  * @returns {Promise<Team>}
  */
 async function _createRandomTeam (level) {
+  const { shape, pattern, color } = generateRandomEmblem()
+  const emblem = JSON.stringify({ shape, pattern, color })
+
   const team = new Team({
     name: _generateRandomTeamName(),
     level,
     balance: startBalance,
     formation: _generateRandomFormation(),
-    color: '#00d9ff'
+    color,
+    emblem
   })
   const { insertId: teamId } = await query('INSERT INTO team SET ?', team)
   team.id = teamId

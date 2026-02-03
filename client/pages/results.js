@@ -6,24 +6,37 @@ import { showPlayerModal } from '../partials/playerModal.js'
 import { formatLeague } from '../util/league.js'
 import { showGameModal } from '../partials/gameModal.js'
 import { UIElement } from '../lib/UIElement.js'
+import { renderEmblem } from '../partials/emblem.js'
 
 export class ResultsPage extends UIElement {
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {
       '#prev-game-day-button': {
-        click: () => setQueryParams({ season: this.season, gameDay: this.gameDay - 1 })
+        click: () => setQueryParams({
+          season: this.season,
+          gameDay: this.gameDay - 1
+        })
       },
       '#next-game-day-button': {
-        click: () => setQueryParams({ season: this.season, gameDay: this.gameDay + 1 })
+        click: () => setQueryParams({
+          season: this.season,
+          gameDay: this.gameDay + 1
+        })
       },
       '#prev-season-button': {
-        click: () => setQueryParams({ season: this.season - 1, gameDay: 0 })
+        click: () => setQueryParams({
+          season: this.season - 1,
+          gameDay: 0
+        })
       },
       '#next-season-button': {
-        click: () => setQueryParams({ season: this.season + 1, gameDay: 0 })
+        click: () => setQueryParams({
+          season: this.season + 1,
+          gameDay: 0
+        })
       },
       '#prev-league-button': {
         click: () => setQueryParams(this._getPrevLeague(this.level, this.league))
@@ -120,7 +133,6 @@ export class ResultsPage extends UIElement {
     `
   }
 
-
   /**
    * @param {Object} queryParams
    * @returns {Promise<void>}
@@ -203,13 +215,19 @@ export class ResultsPage extends UIElement {
    * @returns {Object}
    */
   _getLeagueAndLevel () {
-    let { level, league } = getQueryParams()
+    let {
+      level,
+      league
+    } = getQueryParams()
     if (typeof level === 'undefined' || typeof league === 'undefined') return {}
     level = Number(level)
     league = Number(league)
     if (league < 0) league = 0
     if (level < 0) level = 0
-    return { level, league }
+    return {
+      level,
+      league
+    }
   }
 
   /**
@@ -218,14 +236,22 @@ export class ResultsPage extends UIElement {
    * @returns {Object}
    */
   _getPrevLeague (level, league) {
-    if (level === 0) return { level, league }
+    if (level === 0) {
+      return {
+        level,
+        league
+      }
+    }
     if (league === 0) {
       level--
       league = Math.pow(2, level) - 1
     } else {
       league--
     }
-    return { level, league }
+    return {
+      level,
+      league
+    }
   }
 
   /**
@@ -240,7 +266,10 @@ export class ResultsPage extends UIElement {
     } else {
       league++
     }
-    return { level, league }
+    return {
+      level,
+      league
+    }
   }
 
   /**
@@ -266,7 +295,7 @@ export class ResultsPage extends UIElement {
       <tr id="${id}" class="${trClasses.join(' ')}">
         <th style="width: 30px">${index + 1}.</th>
         <td class="d-none d-md-table-cell" style="width: 30px">${diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : '')}</td>
-        <td>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}</td>
+        <td><span style="display: inline-block; width: 20px; height: 20px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(standingItem.team, 24)}</span>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}</td>
         <td class="d-none d-md-table-cell">${standingItem.games}</td>
         <td class="d-none d-md-table-cell">${standingItem.goals}:${standingItem.against}</td>
         <td class="d-none d-lg-table-cell">${standingItem.goals - standingItem.against}</td>
@@ -279,7 +308,10 @@ export class ResultsPage extends UIElement {
    * @returns {Promise<Object>}
    */
   async _getSeasonAndGameDay () {
-    let { season, gameDay } = getQueryParams()
+    let {
+      season,
+      gameDay
+    } = getQueryParams()
     if (typeof season === 'undefined' && typeof gameDay === 'undefined') {
       return {}
     }
@@ -288,7 +320,10 @@ export class ResultsPage extends UIElement {
     if (gameDay > 33) gameDay = 33
     if (gameDay < 0) gameDay = 0
     if (season < 0) season = 0
-    return { season, gameDay }
+    return {
+      season,
+      gameDay
+    }
   }
 
   /**
@@ -304,16 +339,23 @@ export class ResultsPage extends UIElement {
       setQueryParams({ game_id: result.id })
     })
 
+    // Find team objects from standing to get emblem data
+    const team1Data = this.standing.find(s => s.team.id === result.team1Id)?.team
+    const team2Data = this.standing.find(s => s.team.id === result.team2Id)?.team
+
+    const emblem1 = team1Data ? `<span style="display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(team1Data, 24)}</span>` : ''
+    const emblem2 = team2Data ? `<span style="display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(team2Data, 24)}</span>` : ''
+
     return `
     <tr id="${id}">
       <td>
         ${this.myTeamId === result.team1Id ? '<b class="text-info">' : ''}
-        ${result.team1} (${details.strengthTeamA ?? '-'}) 
+        ${emblem1}${result.team1} (${details.strengthTeamA ?? '-'})
         ${this.myTeamId === result.team1Id ? '</b>' : ''}
       </td>
       <td>
         ${this.myTeamId === result.team2Id ? '<b class="text-info">' : ''}
-        ${result.team2} (${details.strengthTeamB ?? '-'})
+        ${emblem2}${result.team2} (${details.strengthTeamB ?? '-'})
         ${this.myTeamId === result.team2Id ? '</b>' : ''}
       </td>
       <td>${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}</td>

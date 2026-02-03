@@ -8,7 +8,7 @@ import { FreePlayers } from './trades/freePlayers.js'
 
 export class TradesPage extends UIElement {
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return super.events

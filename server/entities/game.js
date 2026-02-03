@@ -1,5 +1,5 @@
 /**
- * @typedef {Object} GameType
+ * @typedef {object} GameType
  * @property {number} id
  * @property {number} season
  * @property {number} game_day
@@ -14,7 +14,7 @@
  * @property {string} created_at
  */
 
-import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
+import { checkType, OptionalNumber, OptionalObject, RequiredNumber, RequiredString } from '../lib/type-checker.js'
 
 /**
  * @param {GameType} raw

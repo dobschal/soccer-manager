@@ -11,7 +11,7 @@ export class IncomingOffersPage extends UIElement {
   teams = []
 
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

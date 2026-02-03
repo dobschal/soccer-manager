@@ -6,6 +6,7 @@ import { PlayerList } from '../partials/playerList.js'
 import { toast } from '../partials/toast.js'
 import { formatDate } from '../lib/date.js'
 import { News } from '../partials/news.js'
+import { renderEmblem } from '../partials/emblem.js'
 
 const pageIndex = 0
 const pageSize = 10
@@ -54,8 +55,13 @@ export class DashboardPage extends UIElement {
   season = 0
   gameDay = 0
   game = {}
+  gameTeam1 = null
+  gameTeam2 = null
   messages = []
 
+  /**
+   * @returns {UIElementEvents}
+   */
   get events () {
     return {
       '#action-cards': {
@@ -99,22 +105,34 @@ export class DashboardPage extends UIElement {
    */
   get template () {
     const isHomeGame = this.game.team1Id === this.team.id
+    const myGoals = isHomeGame ? this.game.goalsTeam1 : this.game.goalsTeam2
+    const opponentGoals = isHomeGame ? this.game.goalsTeam2 : this.game.goalsTeam1
+    const hasResult = typeof myGoals === 'number' && typeof opponentGoals === 'number'
+    const isWin = hasResult && myGoals > opponentGoals
+    const isDraw = hasResult && myGoals === opponentGoals
+    const resultMessage = !hasResult
+      ? 'The result is not yet available.'
+      : isWin
+        ? 'Congratulations on your victory! Keep up the great work!'
+        : isDraw
+          ? 'A draw is not a loss. Every point counts in the race for the title!'
+          : 'Tough loss, but champions are made by how they respond. Next game is yours!'
 
     return `
       <div>
         <h2>${this.team.name}</h2>
         <p>
-          Welcome ${this.user.username}! We hope you are doing well!
+          Nice to see you ${this.user.username}! We hope you are doing well!<br>
+          On game day ${this.gameDay} of season ${this.season + 1}, your team faced ${isHomeGame ? this.game.team2 : this.game.team1}.
+          ${resultMessage}
         </p>
-        <h3>Last Game</h3>
-        <p>
-          <b>Season: </b> ${this.season + 1}, <b>Game day: </b> ${this.gameDay}
-        </p>
-        <div class="card card-body mb-4 bg-light">
-          <a class="row pt-2 d-flex" href="#results?game_id=${this.game.id}">
-            <div class="col-12 col-sm-5 text-dark text-center ${isHomeGame ? 'font-weight-bold' : ''}"><h4>${this.game.team1 ?? ''}</h4></div>
-            <div class="col-12 col-sm-2 text-dark text-center"><h4><span class="badge bg-info">${this.game.goalsTeam1 ?? '-'}:${this.game.goalsTeam2 ?? '-'}</span></h4></div>
-            <div class="col-12 col-sm-5 text-dark text-center ${!isHomeGame ? 'font-weight-bold' : ''}"><h4>${this.game.team2 ?? ''}</h4></div>
+        <div class="card card-body mb-4 bg-dark">
+          <a class="row pt-2 d-flex align-items-center" href="#results?game_id=${this.game.id}">            
+            <div class="col-4 col-sm-3 text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}"><h5>${this.game.team1 ?? ''}</h5></div>
+            <div class="col-2 col-sm-2 text-center">${this.gameTeam1 ? renderEmblem(this.gameTeam1, 120) : ''}</div>
+            <div class="col-12 col-sm-2 text-dark text-center order-first order-sm-0 mb-2 mb-sm-0"><h3><span class="badge bg-info">${this.game.goalsTeam1 ?? '-'}:${this.game.goalsTeam2 ?? '-'}</span></h3></div>
+            <div class="col-2 col-sm-2 text-center">${this.gameTeam2 ? renderEmblem(this.gameTeam2, 120) : ''}</div>
+            <div class="col-4 col-sm-3 text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}"><h5>${this.game.team2 ?? ''}</h5></div>            
           </a>
         </div>
         <h3>Action Cards</h3>
@@ -153,6 +171,16 @@ export class DashboardPage extends UIElement {
 
     const resultsResponse = await server.getResults(this.gameDay - 1, this.season, this.team.level, this.team.league)
     this.game = resultsResponse.results.find(r => r.team1Id === this.team.id || r.team2Id === this.team.id) ?? {}
+
+    // Fetch team data for emblems
+    if (this.game.team1Id && this.game.team2Id) {
+      const [team1Response, team2Response] = await Promise.all([
+        server.getTeamById(this.game.team1Id),
+        server.getTeamById(this.game.team2Id)
+      ])
+      this.gameTeam1 = team1Response
+      this.gameTeam2 = team2Response
+    }
 
     this.messages = await server.getLogMessages(pageIndex, pageSize)
   }

@@ -6,7 +6,7 @@ import { UIElement } from '../lib/UIElement.js'
 
 export class LoginPage extends UIElement {
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

@@ -11,7 +11,7 @@ export class FinancesPage extends UIElement {
   financeLog = []
 
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

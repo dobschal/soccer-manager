@@ -23,7 +23,7 @@ export default {
   },
 
   /**
-   * @typedef {Object} GameResultType
+   * @typedef {object} GameResultType
    * @property {number} id,
    * @property {number} gameDay,
    * @property {number} season,
@@ -48,22 +48,25 @@ export default {
   async getSeasonResults (season, tilGameDay, level, league, req) {
     const team = await getTeam(req)
     return await query(`
-      SELECT
-        g.id as id,
-        g.game_day as gameDay,
-        g.season as season,
-        g.goals_team_1 as goalsTeam1,
-        g.goals_team_2 as goalsTeam2,
-        t1.name as team1,
-        t2.name as team2,
-        g.team_1_id as team1Id,
-        g.team_2_id as team2Id,
-        g.details as details,
-        g.created_at as created_at
-      FROM game g
-      JOIN team t1 ON t1.id=g.team_1_id
-      JOIN team t2 ON t2.id=g.team_2_id
-      WHERE g.game_day<=? AND g.season=? AND g.level=? AND g.league=? AND played=1
+        SELECT g.id           as id,
+               g.game_day     as gameDay,
+               g.season       as season,
+               g.goals_team_1 as goalsTeam1,
+               g.goals_team_2 as goalsTeam2,
+               t1.name        as team1,
+               t2.name        as team2,
+               g.team_1_id    as team1Id,
+               g.team_2_id    as team2Id,
+               g.details      as details,
+               g.created_at   as created_at
+        FROM game g
+                 JOIN team t1 ON t1.id = g.team_1_id
+                 JOIN team t2 ON t2.id = g.team_2_id
+        WHERE g.game_day <= ?
+          AND g.season = ?
+          AND g.level = ?
+          AND g.league = ?
+          AND played = 1
     `, [tilGameDay, season, level ?? team.level, league ?? team.league])
   },
 
@@ -85,22 +88,24 @@ export default {
   async getResults (gameDay, season, level, league, req) {
     const team = await getTeam(req)
     const results = await query(`
-      SELECT
-        g.id as id,
-        g.goals_team_1 as goalsTeam1,
-        g.goals_team_2 as goalsTeam2,
-        g.game_day as gameDay,
-        g.season as season,
-        t1.name as team1,
-        t2.name as team2,
-        g.team_1_id as team1Id,
-        g.team_2_id as team2Id,
-        g.details as details,
-        g.created_at as created_at
-      FROM game g
-      JOIN team t1 ON t1.id=g.team_1_id
-      JOIN team t2 ON t2.id=g.team_2_id
-      WHERE g.game_day=? AND g.season=? AND g.level=? AND g.league=?
+        SELECT g.id           as id,
+               g.goals_team_1 as goalsTeam1,
+               g.goals_team_2 as goalsTeam2,
+               g.game_day     as gameDay,
+               g.season       as season,
+               t1.name        as team1,
+               t2.name        as team2,
+               g.team_1_id    as team1Id,
+               g.team_2_id    as team2Id,
+               g.details      as details,
+               g.created_at   as created_at
+        FROM game g
+                 JOIN team t1 ON t1.id = g.team_1_id
+                 JOIN team t2 ON t2.id = g.team_2_id
+        WHERE g.game_day = ?
+          AND g.season = ?
+          AND g.level = ?
+          AND g.league = ?
     `, [gameDay, season, level ?? team.level, league ?? team.league])
     return { results }
   },
@@ -111,22 +116,21 @@ export default {
    */
   async getResult (gameId) {
     const results = await query(`
-      SELECT
-        g.id as id,
-        g.goals_team_1 as goalsTeam1,
-        g.goals_team_2 as goalsTeam2,
-        g.game_day as gameDay,
-        g.season as season,
-        t1.name as team1,
-        t2.name as team2,
-        g.team_1_id as team1Id,
-        g.team_2_id as team2Id,
-        g.details as details,
-        g.created_at as created_at
-      FROM game g
-      JOIN team t1 ON t1.id=g.team_1_id
-      JOIN team t2 ON t2.id=g.team_2_id
-      WHERE g.id=?
+        SELECT g.id           as id,
+               g.goals_team_1 as goalsTeam1,
+               g.goals_team_2 as goalsTeam2,
+               g.game_day     as gameDay,
+               g.season       as season,
+               t1.name        as team1,
+               t2.name        as team2,
+               g.team_1_id    as team1Id,
+               g.team_2_id    as team2Id,
+               g.details      as details,
+               g.created_at   as created_at
+        FROM game g
+                 JOIN team t1 ON t1.id = g.team_1_id
+                 JOIN team t2 ON t2.id = g.team_2_id
+        WHERE g.id = ?
     `, [gameId])
     if (results.length === 0) throw new BadRequestError('Game not found')
     return { result: results[0] }
@@ -147,8 +151,13 @@ export default {
     const t1 = Date.now()
     const games = await query(
       `
-        SELECT * FROM game g
-        WHERE g.game_day<=? AND g.season=? AND g.level=? AND g.league=? AND g.played=1
+          SELECT *
+          FROM game g
+          WHERE g.game_day <= ?
+            AND g.season = ?
+            AND g.level = ?
+            AND g.league = ?
+            AND g.played = 1
       `,
       [gameDay, season, actualLevel, actualLeague]
     )
@@ -159,7 +168,9 @@ export default {
         teamIds.add(game.team_1_id)
         teamIds.add(game.team_2_id)
       })
-      teams = await query(`SELECT * FROM team WHERE id IN (${[...teamIds].join(', ')})`)
+      teams = await query(`SELECT *
+                           FROM team
+                           WHERE id IN (${[...teamIds].join(', ')})`)
     } else {
       teams = await query('SELECT * FROM team WHERE level=? AND league=?', [actualLevel, actualLeague])
     }

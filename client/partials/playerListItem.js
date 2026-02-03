@@ -4,7 +4,7 @@ import { euroFormat } from '../lib/currency.js'
 
 export class PlayerListItem extends UIElement {
   /**
-   * @returns {object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

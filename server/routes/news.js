@@ -30,7 +30,7 @@ const texts = {
 export default {
 
   /**
-   * @typedef {Object} NewsArticle
+   * @typedef {object} NewsArticle
    * @property {string} title
    * @property {string} text
    * @property {number} [playerId]

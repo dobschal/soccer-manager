@@ -24,7 +24,7 @@ export class PlayerList extends UIElement {
   }
 
   /**
-   * @returns {object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return super.events
