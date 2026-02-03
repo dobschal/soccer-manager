@@ -1,5 +1,6 @@
 import { query } from './lib/database.js'
 import { randomItem } from '../client/lib/randomItem.js'
+import { EMBLEM_COLORS, EMBLEM_PATTERNS, EMBLEM_SHAPES } from '../client/util/emblemGenerator.js'
 
 /**
  * @typedef {object} Migration
@@ -460,22 +461,16 @@ const migrations = [{
     // Change emblem column to TEXT to store JSON
     await query('ALTER TABLE team ADD COLUMN emblem TEXT;')
 
-    // Emblem configuration options
-    const shapes = ['circle', 'oval', 'triangle', 'shield', 'shield2', 'shield3', 'crest', 'pentagon']
-    const patterns = ['solid', 'stripes', 'horizontalStripes', 'quartered', 'diagonal', 'halved']
-    const colors = [
-      '#1a5f7a', '#c41e3a', '#0047ab', '#228b22', '#6b3fa0',
-      '#ff6b35', '#2c3e50', '#8b0000', '#006400', '#191970',
-      '#4a0080', '#b8860b', '#008080', '#800020', '#355e3b',
-      '#003366', '#8b4513', '#4b0082', '#2f4f4f', '#800080'
-    ]
+    // Use shared emblem configuration
+    const shapes = Object.keys(EMBLEM_SHAPES)
+    const patterns = Object.keys(EMBLEM_PATTERNS)
 
     const teams = await query('SELECT * FROM team')
     const promises = []
     for (const team of teams) {
       const shape = shapes[Math.floor(Math.random() * shapes.length)]
       const pattern = patterns[Math.floor(Math.random() * patterns.length)]
-      const color = colors[Math.floor(Math.random() * colors.length)]
+      const color = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
       const emblem = JSON.stringify({
         shape,
         pattern,

@@ -12,9 +12,15 @@ import { setQueryParams } from '../lib/router.js'
 import { sallaryPerLevel } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { formatLeague } from '../util/league.js'
-import { renderLineup, lineUpData } from '../partials/lineup.js'
+import { lineUpData, renderLineup } from '../partials/lineup.js'
 import { renderEmblem } from '../partials/emblem.js'
-import { generateEmblem, EMBLEM_SHAPES, EMBLEM_PATTERNS, EMBLEM_COLORS, parseEmblemParams } from '../util/emblemGenerator.js'
+import {
+  EMBLEM_COLORS,
+  EMBLEM_PATTERNS,
+  EMBLEM_SHAPES,
+  generateEmblem,
+  parseEmblemParams
+} from '../util/emblemGenerator.js'
 import { UIElement } from '../lib/UIElement.js'
 
 export class MyTeamPage extends UIElement {
@@ -36,14 +42,14 @@ export class MyTeamPage extends UIElement {
           </div>
           <div class="col-12 col-xl-6">
             ${new PlayerList(
-              this.data.players,
-              true,
-              p => { // open player modal
-                setQueryParams({
-                  player_id: p.id
-                })
-              })
-            }
+      this.data.players,
+      true,
+      p => { // open player modal
+        setQueryParams({
+          player_id: p.id
+        })
+      })
+    }
           </div>
         </div>
       </div>
@@ -227,9 +233,15 @@ export class MyTeamPage extends UIElement {
         }
       }, 100)
       const isSelected = key === selectedShape
-      const previewSvg = generateEmblem({ shape: key, pattern: 'solid', color: '#666', teamName: '', size: 40 })
+      const previewSvg = generateEmblem({
+        shape: key,
+        pattern: 'solid',
+        color: '#666',
+        teamName: '',
+        size: 40
+      })
       return `
-        <div id="${id}" class="shape-option" style="display: inline-block; padding: 8px; margin: 4px; border: 2px solid ${isSelected ? '#007bff' : 'transparent'}; border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.1);">
+        <div id="${id}" class="shape-option" style="display: inline-block; padding: 8px; margin: 4px; border: 2px solid ${isSelected ? '#007bff' : 'transparent'}; border-radius: 4px; cursor: pointer; background: rgba(0,0,0,0.1);">
           ${previewSvg}
         </div>
       `
@@ -253,7 +265,7 @@ export class MyTeamPage extends UIElement {
       }, 100)
       const isSelected = key === selectedPattern
       return `
-        <div id="${id}" class="pattern-option" style="display: inline-block; padding: 8px 12px; margin: 4px; border: 2px solid ${isSelected ? '#007bff' : 'transparent'}; border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.1); font-size: 12px;">
+        <div id="${id}" class="pattern-option" style="display: inline-block; padding: 8px 12px; margin: 4px; border: 2px solid ${isSelected ? '#007bff' : 'transparent'}; border-radius: 4px; cursor: pointer; background: rgba(0,0,0,0.1); font-size: 14px;">
           ${pattern.name}
         </div>
       `
@@ -277,14 +289,18 @@ export class MyTeamPage extends UIElement {
       }, 100)
       const isSelected = c === selectedColor
       return `
-        <div id="${id}" class="color-option" style="display: inline-block; width: 36px; height: 36px; margin: 3px; border-radius: 4px; cursor: pointer; background-color: ${c}; border: 2px solid ${isSelected ? 'white' : 'transparent'};"></div>
+        <div id="${id}" class="color-option" style="display: inline-block; width: 36px; height: 36px; margin: 3px; border-radius: 4px; cursor: pointer; background-color: ${c}; border: 2px solid ${isSelected ? 'black' : 'transparent'};"></div>
       `
     }).join('')
 
     // Save button handler
     onClick(saveButtonId, async () => {
       try {
-        const emblemParams = JSON.stringify({ shape: selectedShape, pattern: selectedPattern, color: selectedColor })
+        const emblemParams = JSON.stringify({
+          shape: selectedShape,
+          pattern: selectedPattern,
+          color: selectedColor
+        })
         await server.updateEmblem(emblemParams, selectedColor)
         toast('Your emblem has been updated!', 'success')
         this.data.team.emblem = emblemParams
@@ -301,7 +317,13 @@ export class MyTeamPage extends UIElement {
       'Design a unique emblem for your team',
       `
       <div style="text-align: center; margin-bottom: 20px;">
-        <div id="${previewId}">${generateEmblem({ shape: selectedShape, pattern: selectedPattern, color: selectedColor, teamName: this.data.team.name, size: 150 })}</div>
+        <div id="${previewId}">${generateEmblem({
+        shape: selectedShape,
+        pattern: selectedPattern,
+        color: selectedColor,
+        teamName: this.data.team.name,
+        size: 150
+      })}</div>
       </div>
 
       <h6>Shape</h6>

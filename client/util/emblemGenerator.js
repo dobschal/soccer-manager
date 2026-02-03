@@ -95,25 +95,42 @@ export const EMBLEM_PATTERNS = {
   }
 }
 
-// colors with good contrast against white
+// Colors with good contrast - full spectrum from red to purple
 export const EMBLEM_COLORS = [
+  // Reds
   '#c41e3a', // Cardinal Red
   '#8b0000', // Dark Red
-  '#8b4513', // Saddle Brown
+  '#800000', // Maroon
+  '#dc143c', // Crimson
+  // Oranges
   '#ff6b35', // Vibrant Orange
+  '#cc8800', // Amber
+  '#8b4513', // Saddle Brown
+  // Yellows/Golds
   '#b8860b', // Dark Goldenrod
+  '#d4af37', // Metallic Gold
+  // Greens
   '#228b22', // Forest Green
   '#355e3b', // Hunter Green
   '#006400', // Dark Green
+  '#32cd32', // Lime Green
+  '#556b2f', // Dark Olive Green
+  // Cyans/Teals
   '#008080', // Teal
   '#1a5f7a', // Deep Teal
-  '#2f4f4f', // Dark Slate Gray
+  '#20b2aa', // Light Sea Green
+  // Blues
   '#003366', // Navy Blue
   '#0047ab', // Cobalt Blue
   '#191970', // Midnight Blue
+  '#4682b4', // Steel Blue
+  '#483d8b', // Dark Slate Blue
+  // Purples
   '#4a0080', // Deep Purple
   '#6b3fa0', // Royal Purple
-  '#800080'  // Purple
+  '#800080', // Purple
+  '#c71585', // Magenta Pink
+  '#2f4f4f'  // Dark Slate Gray
 ]
 
 /**
