@@ -128,12 +128,20 @@ export class DashboardPage extends UIElement {
           ${resultMessage}
         </p>
         <div class="card card-body mb-4 bg-dark">
-          <a class="row pt-2 d-flex align-items-center" href="#results?game_id=${this.game.id}">            
-            <div class="col-4 col-sm-3 text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}"><h5>${this.game.team1 ?? ''}</h5></div>
-            <div class="col-2 col-sm-2 text-center">${this.gameTeam1 ? renderEmblem(this.gameTeam1, 120) : ''}</div>
-            <div class="col-12 col-sm-2 text-dark text-center order-first order-sm-0 mb-2 mb-sm-0"><h3><span class="badge bg-info">${this.game.goalsTeam1 ?? '-'}:${this.game.goalsTeam2 ?? '-'}</span></h3></div>
-            <div class="col-2 col-sm-2 text-center">${this.gameTeam2 ? renderEmblem(this.gameTeam2, 120) : ''}</div>
-            <div class="col-4 col-sm-3 text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}"><h5>${this.game.team2 ?? ''}</h5></div>            
+          <a class="row pt-2 d-flex align-items-center" href="#results?game_id=${this.game.id}">
+            <div class="col-5 col-sm-5 text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
+              <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center">
+                <div class="order-1 order-sm-0 mb-2 mb-sm-0 me-sm-2">${this.gameTeam1 ? renderEmblem(this.gameTeam1, 80) : ''}</div>
+                <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${this.game.team1 ?? ''}</h5>
+              </div>
+            </div>
+            <div class="col-2 col-sm-2 text-dark text-center"><h3><span class="badge bg-info">${this.game.goalsTeam1 ?? '-'}:${this.game.goalsTeam2 ?? '-'}</span></h3></div>
+            <div class="col-5 col-sm-5 text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
+              <div class="d-flex flex-column flex-sm-row-reverse align-items-center justify-content-center">
+                <div class="order-1 order-sm-0 mb-2 mb-sm-0 ms-sm-2">${this.gameTeam2 ? renderEmblem(this.gameTeam2, 80) : ''}</div>
+                <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${this.game.team2 ?? ''}</h5>
+              </div>
+            </div>
           </a>
         </div>
         <h3>Action Cards</h3>

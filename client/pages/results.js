@@ -7,6 +7,7 @@ import { formatLeague } from '../util/league.js'
 import { showGameModal } from '../partials/gameModal.js'
 import { UIElement } from '../lib/UIElement.js'
 import { renderEmblem } from '../partials/emblem.js'
+import { renderPlayerImage } from '../partials/playerImage.js'
 
 export class ResultsPage extends UIElement {
   /**
@@ -189,7 +190,29 @@ export class ResultsPage extends UIElement {
   }
 
   /**
-   * @param {Object} scorer
+   * @returns {void}
+   */
+  onMounted () {
+    this._loadTopScorerImages()
+  }
+
+  /**
+   * @returns {void}
+   */
+  _loadTopScorerImages () {
+    this.topScorer.forEach((scorer) => {
+      if (!scorer || !scorer.team) return
+      renderPlayerImage(scorer, scorer.team, 48).then(image => {
+        const imageEl = document.querySelector(`${this._elementQuery} .scorer-image[data-scorer-id="${scorer.id}"]`)
+        if (imageEl) {
+          imageEl.innerHTML = image
+        }
+      })
+    })
+  }
+
+  /**
+   * @param {PlayerType & { team: TeamType, goals: number }} scorer
    * @param {number} index
    * @returns {string}
    */
@@ -199,13 +222,18 @@ export class ResultsPage extends UIElement {
     onClick(teamId, () => goTo(`team?id=${scorer.team.id}`))
     const playerId = generateId()
     onClick(playerId, () => {
-      setQueryParams({ player_id: scorer.id })
+      setQueryParams({ player_id: scorer.id + '' })
     })
     return `
       <tr class="${this.myTeamId === scorer.team.id ? 'table-info' : ''}">
           <th>${index + 1}.</th>
           <td>${scorer.goals}</td>
-          <td id="${playerId}">${scorer.name}</td>
+          <td id="${playerId}" style="cursor: pointer;">
+            <div class="d-flex align-items-center">
+              <span class="scorer-image me-2" data-scorer-id="${scorer.id}" style="width: 48px; height: 20px; margin-top: -32px;"></span>
+              ${scorer.name}
+            </div>
+          </td>
           <td class="d-none d-sm-table-cell" id="${teamId}">${scorer.team.name}</td>
       </tr>
     `
