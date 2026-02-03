@@ -7,6 +7,7 @@ import { toast } from '../partials/toast.js'
 import { formatDate } from '../lib/date.js'
 import { News } from '../partials/news.js'
 import { renderEmblem } from '../partials/emblem.js'
+import { showPlayerModal } from '../partials/playerModal.js'
 
 const pageIndex = 0
 const pageSize = 10
@@ -185,6 +186,16 @@ export class DashboardPage extends UIElement {
     }
 
     this.messages = await server.getLogMessages(pageIndex, pageSize)
+  }
+
+  /**
+   * @param {{ player_id?: string }} queryParams
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({ player_id: playerId }) {
+    if (playerId) {
+      await showPlayerModal(Number(playerId))
+    }
   }
 
   /**

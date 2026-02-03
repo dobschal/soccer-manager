@@ -33,11 +33,11 @@
 @keyframes overlay-fade-in-2 {
     0% {
         opacity: 0;
-        transform: translateY(50vh);
+        transform: translateY(1vh);
     }
     50% {
         opacity: 0;
-        transform: translateY(50vh);
+        transform: translateY(1vh);
     }
     100% {
         opacity: 1;
