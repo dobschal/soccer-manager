@@ -11,6 +11,72 @@ import { actionCardChances } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
 
 /**
+ * @typedef {object} KickoffLogEvent
+ * @property {number} player
+ * @property {true} kickoff
+ */
+
+/**
+ * @typedef {object} PassLogEvent
+ * @property {true} pass
+ * @property {number} newPlayer
+ * @property {number} oldPlayer
+ */
+
+/**
+ * @typedef {object} FightLogEvent
+ * @property {number} player
+ * @property {number} oponentPlayer
+ * @property {boolean} lostBall
+ */
+
+/**
+ * @typedef {object} KeeperHoldsLogEvent
+ * @property {number} player
+ * @property {true} keeperHolds
+ * @property {number} goalKeeper
+ */
+
+/**
+ * @typedef {object} GoalLogEvent
+ * @property {true} goal
+ * @property {number} player
+ */
+
+/**
+ * @typedef {KickoffLogEvent | PassLogEvent | FightLogEvent | KeeperHoldsLogEvent | GoalLogEvent} GameLogEvent
+ */
+
+/**
+ * @typedef {object} StadiumDetails
+ * @property {number} northGuests
+ * @property {number} northEarnings
+ * @property {number} southGuests
+ * @property {number} southEarnings
+ * @property {number} westGuests
+ * @property {number} westEarnings
+ * @property {number} eastGuests
+ * @property {number} eastEarnings
+ */
+
+/**
+ * @typedef {PlayerType & { hasBall?: boolean }} GamePlayer
+ */
+
+/**
+ * @typedef {object} GameDetails
+ * @property {GameLogEvent[]} log
+ * @property {number} goalsTeamA
+ * @property {number} goalsTeamB
+ * @property {number} strengthTeamA
+ * @property {number} strengthTeamB
+ * @property {StadiumDetails} stadiumDetails
+ * @property {GamePlayer[]} playerTeamA
+ * @property {GamePlayer[]} playerTeamB
+ * @property {number} [streak]
+ */
+
+/**
  * @returns {Promise<void>}
  */
 export async function calculateGames () {
@@ -155,7 +221,7 @@ async function _giveUsersActionCards () {
  * @param {number} strengthTeamB
  * @param {number} gameDay
  * @param {number} season
- * @returns {Promise<Object>}
+ * @returns {Promise<StadiumDetails>}
  */
 async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strengthTeamB, gameDay, season) {
   const strengthFactor = strengthTeamA * strengthTeamB
@@ -233,9 +299,9 @@ async function _playGame (game) {
 }
 
 /**
- * @param {Array<Player>} playerTeamA
- * @param {Array<Player>} playerTeamB
- * @param {Object} gameDetails
+ * @param {GamePlayer[]} playerTeamA
+ * @param {GamePlayer[]} playerTeamB
+ * @param {GameDetails} gameDetails
  * @returns {void}
  */
 function _kickoff (playerTeamA, playerTeamB, gameDetails) {
@@ -249,9 +315,9 @@ function _kickoff (playerTeamA, playerTeamB, gameDetails) {
 }
 
 /**
- * @param {Array<Player>} playerTeamA
- * @param {Array<Player>} playerTeamB
- * @param {Object} gameDetails
+ * @param {GamePlayer[]} playerTeamA
+ * @param {GamePlayer[]} playerTeamB
+ * @param {GameDetails} gameDetails
  * @returns {void}
  */
 function _playGameStep (playerTeamA, playerTeamB, gameDetails) {
@@ -261,9 +327,9 @@ function _playGameStep (playerTeamA, playerTeamB, gameDetails) {
 }
 
 /**
- * @param {Array<PlayerType>} playerTeamA
- * @param {Array<PlayerType>} playerTeamB
- * @param {Object} gameDetails
+ * @param {GamePlayer[]} playerTeamA
+ * @param {GamePlayer[]} playerTeamB
+ * @param {GameDetails} gameDetails
  * @returns {boolean} false if lost ball
  */
 function _fightsOponents (playerTeamA, playerTeamB, gameDetails) {
@@ -307,9 +373,9 @@ function _fightsOponents (playerTeamA, playerTeamB, gameDetails) {
 }
 
 /**
- * @param {Array<Player>} playerTeamA
- * @param {Array<Player>} playerTeamB
- * @param {Object} gameDetails
+ * @param {GamePlayer[]} playerTeamA
+ * @param {GamePlayer[]} playerTeamB
+ * @param {GameDetails} gameDetails
  * @returns {boolean} false if lost ball
  */
 function _shootBall (playerTeamA, playerTeamB, gameDetails) {
@@ -375,9 +441,9 @@ function _chanceToFight (player) {
 }
 
 /**
- * @param {Array<Player>} playerTeamA
- * @param {Array<Player>} playerTeamB
- * @param {Object} gameDetails
+ * @param {GamePlayer[]} playerTeamA
+ * @param {GamePlayer[]} playerTeamB
+ * @param {GameDetails} gameDetails
  * @returns {void}
  */
 function _passBall (playerTeamA, playerTeamB, gameDetails) {
