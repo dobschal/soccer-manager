@@ -251,7 +251,9 @@ async function _generateStandingNews (gameDay, season, level, league) {
 
   if (teamIds.size === 0) return
 
-  const teams = await query(`SELECT * FROM team WHERE id IN (${[...teamIds].join(', ')})`)
+  const teamIdArray = [...teamIds]
+  const placeholders = teamIdArray.map(() => '?').join(', ')
+  const teams = await query(`SELECT * FROM team WHERE id IN (${placeholders})`, teamIdArray)
   const currentStanding = calculateStanding(currentGames, teams)
 
   if (currentStanding.length === 0) return
