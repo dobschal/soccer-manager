@@ -13,7 +13,7 @@ export class Link extends UIElement {
   }
 
   /**
-   * @returns {Object.<string, Object.<string, Function>>}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

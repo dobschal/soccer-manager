@@ -53,7 +53,7 @@ export class TeamPage extends UIElement {
   }
 
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return super.events

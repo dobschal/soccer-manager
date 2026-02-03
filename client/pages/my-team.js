@@ -211,7 +211,7 @@ export class MyTeamPage extends UIElement {
     }
 
     // Shape options
-    const shapeOptions = Object.entries(EMBLEM_SHAPES).map(([key, _shape]) => {
+    const shapeOptions = Object.entries(EMBLEM_SHAPES).map(([key]) => {
       const id = generateId()
       setTimeout(() => {
         const element = el(id)

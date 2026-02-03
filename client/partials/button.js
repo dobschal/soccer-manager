@@ -14,7 +14,7 @@ export class Button extends UIElement {
   }
 
   /**
-   * @returns {object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

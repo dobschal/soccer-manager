@@ -10,7 +10,7 @@ import { renderEmblem } from '../partials/emblem.js'
 
 export class ResultsPage extends UIElement {
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

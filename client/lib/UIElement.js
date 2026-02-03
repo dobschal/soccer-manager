@@ -3,6 +3,10 @@ import { el, generateId } from './html.js'
 import { off, on } from './event.js'
 import { onDOMNodeChanged } from './observeDOM.js'
 
+/**
+ * @typedef {Record<string, Record<string, (event: Event) => void>>} UIElementEvents
+ */
+
 export class UIElement {
   /**
    * @param {Object} params
@@ -32,7 +36,7 @@ export class UIElement {
 
   /**
    * @abstract
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {}

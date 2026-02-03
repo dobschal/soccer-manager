@@ -8,6 +8,7 @@ import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 import { Stadium } from './entities/stadium.js'
 import { addLogMessage } from './helper/logMessageHelper.js'
 import { getTeamById } from './helper/teamHelper.js'
+import { generateRandomEmblem } from './lib/emblem.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -228,18 +229,7 @@ async function _ajustAmountOfTeams () {
  * @returns {Promise<Team>}
  */
 async function _createRandomTeam (level) {
-  // Generate random emblem
-  const shapes = ['circle', 'oval', 'triangle', 'shield', 'shield2', 'shield3', 'crest', 'pentagon']
-  const patterns = ['solid', 'stripes', 'horizontalStripes', 'quartered', 'diagonal', 'halved']
-  const colors = [
-    '#1a5f7a', '#c41e3a', '#0047ab', '#228b22', '#6b3fa0',
-    '#ff6b35', '#2c3e50', '#8b0000', '#006400', '#191970',
-    '#4a0080', '#b8860b', '#008080', '#800020', '#355e3b',
-    '#003366', '#8b4513', '#4b0082', '#2f4f4f', '#800080'
-  ]
-  const shape = randomItem(shapes)
-  const pattern = randomItem(patterns)
-  const color = randomItem(colors)
+  const { shape, pattern, color } = generateRandomEmblem()
   const emblem = JSON.stringify({ shape, pattern, color })
 
   const team = new Team({

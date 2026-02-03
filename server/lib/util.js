@@ -16,7 +16,10 @@ export function randomItem (array) {
 export function calculateGamePlan (teams) {
   if (!teams || teams < 0) throw new TypeError('Parameter must be greater than zero')
   if (teams % 2) teams++
-  let i; let j; const result = []; const teamNumber = []
+  let i
+  let j
+  const result = []
+  const teamNumber = []
   for (i = 1; i < teams; i++) teamNumber.push(i)
   for (i = 1; i < teams; i++) {
     const tmp = []
@@ -34,7 +37,7 @@ export function calculateGamePlan (teams) {
 }
 
 /**
- * @typedef {Object} StandingType
+ * @typedef {object} StandingType
  * @property {number} points
  * @property {number} games
  * @property {number} goals

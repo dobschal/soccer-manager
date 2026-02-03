@@ -14,7 +14,7 @@ export class MarketPage extends UIElement {
   teams = []
 
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

@@ -50,7 +50,7 @@ export class Lineup extends UIElement {
   }
 
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {

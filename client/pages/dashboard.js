@@ -59,6 +59,9 @@ export class DashboardPage extends UIElement {
   gameTeam2 = null
   messages = []
 
+  /**
+   * @returns {UIElementEvents}
+   */
   get events () {
     return {
       '#action-cards': {

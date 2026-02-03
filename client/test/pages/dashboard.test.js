@@ -96,7 +96,7 @@ describe('DashboardPage', () => {
     it('template contains welcome message', async () => {
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('Welcome testuser')
+      expect(page.template).toContain('Nice to see you testuser')
     })
 
     it('template contains action cards section', async () => {
@@ -124,8 +124,8 @@ describe('DashboardPage', () => {
 
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('Player Level Up')
-      expect(page.template).toContain('Use now')
+      expect(page.template).toContain('Legendary Mastery')
+      expect(page.template).toContain('data-action-card="0"')
     })
 
     it('extends UIElement', () => {

@@ -21,7 +21,7 @@ export class StadiumPage extends UIElement {
   _resizeObserver = null
 
   /**
-   * @returns {Object}
+   * @returns {UIElementEvents}
    */
   get events () {
     return {
@@ -704,7 +704,7 @@ export class StadiumPage extends UIElement {
   }
 
   /**
-   * @typedef {Object} StandConfig
+   * @typedef {object} StandConfig
    * @property {'north'|'south'|'east'|'west'} position
    * @property {number} width
    * @property {number} seats

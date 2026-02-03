@@ -3,7 +3,7 @@ import { el } from '../lib/html.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
 
 /**
- * @typedef {Object} TableHeadCellConfig
+ * @typedef {object} TableHeadCellConfig
  * @property {string} name
  * @property {string} sortKey
  * @property {(val1: object, val2: object, isAscending: boolean) => number} sortFn
@@ -13,7 +13,7 @@ import { getQueryParams, setQueryParams } from '../lib/router.js'
  */
 
 /**
- * @typedef {Object} TableConfig
+ * @typedef {object} TableConfig
  * @property {Array<TableHeadCellConfig>} cols
  * @property {(data: object) => Array<string>} renderRow
  * @property {Array<object>} data
@@ -62,7 +62,10 @@ export class Table extends UIElement {
    * @returns {void}
    */
   _applyInitialSort () {
-    const { sort_dir: sortDirection, col: colIndex } = getQueryParams()
+    const {
+      sort_dir: sortDirection,
+      col: colIndex
+    } = getQueryParams()
     if (sortDirection && colIndex !== undefined) {
       const col = this.config.cols[Number(colIndex)]
       if (col && (col.sortKey || col.sortFn)) {

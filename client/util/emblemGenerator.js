@@ -95,7 +95,7 @@ export const EMBLEM_PATTERNS = {
   }
 }
 
-// 20 colors with good contrast against white
+// colors with good contrast against white
 export const EMBLEM_COLORS = [
   '#c41e3a', // Cardinal Red
   '#8b0000', // Dark Red
@@ -157,9 +157,8 @@ export function generateEmblem ({
 
   // Create unique IDs for this emblem
   const clipId = `clip-${Math.random().toString(36).substr(2, 9)}`
-  const patternId = `pattern-${Math.random().toString(36).substr(2, 9)}`
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shapeData.viewBox}" width="${size}" height="${size}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shapeData.viewBox}" width="${size}" height="${size}">
   <defs>
     <clipPath id="${clipId}">
       <path d="${shapeData.path}"/>
@@ -190,8 +189,6 @@ export function generateEmblem ({
     <text x="100" y="170" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">${displayName.toUpperCase()}</text>
   </g>
 </svg>`
-
-  return svg
 }
 
 /**
