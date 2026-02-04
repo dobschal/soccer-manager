@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350">
+    <defs>
+        <linearGradient id="cardBgMoney" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4169e1"/>
+            <stop offset="50%" style="stop-color:#3157d1"/>
+            <stop offset="100%" style="stop-color:#1e3a8a"/>
+        </linearGradient>
+        <linearGradient id="innerBgMoney" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e"/>
+            <stop offset="100%" style="stop-color:#16213e"/>
+        </linearGradient>
+        <filter id="glowMoney">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <linearGradient id="coinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4169e1"/>
+            <stop offset="50%" style="stop-color:#6b8cff"/>
+            <stop offset="100%" style="stop-color:#2c4a9e"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Card outer frame -->
+    <rect x="0" y="0" width="250" height="350" rx="15" fill="url(#cardBgMoney)"/>
+    <rect x="8" y="8" width="234" height="334" rx="12" fill="url(#innerBgMoney)"/>
+
+    <!-- Header banner -->
+    <rect x="15" y="15" width="220" height="28" rx="5" fill="#4169e1" opacity="0.9"/>
+    <text x="125" y="35" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff"
+          text-anchor="middle">ACTION CARD
+    </text>
+
+    <!-- Card title -->
+    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#6b8cff"
+          text-anchor="middle">CASH BONUS
+    </text>
+
+    <!-- Image area frame -->
+    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#4169e1" stroke-width="2"/>
+
+    <!-- Large coin stack -->
+    <ellipse cx="125" cy="180" rx="40" ry="10" fill="#1e3a8a"/>
+    <ellipse cx="125" cy="175" rx="40" ry="10" fill="url(#coinGrad)"/>
+    <ellipse cx="125" cy="170" rx="40" ry="10" fill="#1e3a8a"/>
+    <ellipse cx="125" cy="165" rx="40" ry="10" fill="url(#coinGrad)"/>
+    <ellipse cx="125" cy="160" rx="40" ry="10" fill="#1e3a8a"/>
+    <ellipse cx="125" cy="155" rx="40" ry="10" fill="url(#coinGrad)"/>
+
+    <!-- Euro symbol on top coin -->
+    <text x="125" y="160" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ffffff"
+          text-anchor="middle">€</text>
+
+    <!-- Flying coins -->
+    <ellipse cx="70" cy="110" rx="18" ry="5" fill="url(#coinGrad)" filter="url(#glowMoney)"/>
+    <text x="70" y="113" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ffffff"
+          text-anchor="middle">€</text>
+
+    <ellipse cx="180" cy="100" rx="18" ry="5" fill="url(#coinGrad)" filter="url(#glowMoney)"/>
+    <text x="180" y="103" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#ffffff"
+          text-anchor="middle">€</text>
+
+    <ellipse cx="160" cy="130" rx="15" ry="4" fill="url(#coinGrad)" filter="url(#glowMoney)"/>
+    <text x="160" y="133" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#ffffff"
+          text-anchor="middle">€</text>
+
+    <ellipse cx="90" cy="140" rx="15" ry="4" fill="url(#coinGrad)" filter="url(#glowMoney)"/>
+    <text x="90" y="143" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#ffffff"
+          text-anchor="middle">€</text>
+
+    <!-- Sparkle effects -->
+    <path d="M55 95 L60 100 L55 105 L50 100 Z" fill="#fff"/>
+    <path d="M195 115 L198 120 L195 125 L192 120 Z" fill="#fff"/>
+    <path d="M100 125 L103 130 L100 135 L97 130 Z" fill="#fff"/>
+
+    <!-- 100K indicator -->
+    <circle cx="45" cy="190" r="20" fill="#1a1a2e" stroke="#4169e1" stroke-width="2"/>
+    <text x="45" y="186" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#6b8cff"
+          text-anchor="middle">100K
+    </text>
+    <text x="45" y="198" font-family="Arial, sans-serif" font-size="8" fill="#6b8cff"
+          text-anchor="middle">€</text>
+
+    <!-- Description box -->
+    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#4169e1" stroke-width="1"/>
+    <text x="125" y="248" font-family="Arial, sans-serif" font-size="12" fill="#e0e0e0" text-anchor="middle">Receive an instant
+    </text>
+    <text x="125" y="270" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#6b8cff"
+          text-anchor="middle">BONUS OF 100,000€
+    </text>
+    <text x="125" y="288" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">Boost your team's
+        finances
+    </text>
+
+    <!-- Rarity indicator - 2 stars (uncommon) -->
+    <g transform="translate(15, 55) scale(0.8)">
+        <polygon points="115,318 119,330 132,330 122,338 126,350 115,342 104,350 108,338 98,330 111,330"
+                 fill="#4169e1"/>
+    </g>
+    <g transform="translate(35, 55) scale(0.8)">
+        <polygon points="115,318 119,330 132,330 122,338 126,350 115,342 104,350 108,338 98,330 111,330"
+                 fill="#4169e1"/>
+    </g>
+</svg>

@@ -8,6 +8,7 @@ import { formatDate } from '../lib/date.js'
 import { News } from '../partials/news.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { showPlayerModal } from '../partials/playerModal.js'
+import { delay } from '../lib/delay.js'
 
 const pageIndex = 0
 const pageSize = 10
@@ -36,6 +37,10 @@ const actionCardTexts = {
   FRESHNESS_10: {
     title: 'Energy Boost',
     description: 'Restore a player\'s freshness by 10.'
+  },
+  BONUS_100K: {
+    title: 'Cash Bonus',
+    description: 'Receive an instant bonus of 100,000€.'
   }
 }
 
@@ -45,11 +50,13 @@ const actionCardImages = {
   LEVEL_UP_PLAYER_4: 'assets/action-cards/level-up-player-4.svg',
   CHANGE_PLAYER_POSITION: 'assets/action-cards/change-player-position.svg',
   NEW_YOUTH_PLAYER: 'assets/action-cards/new-youth-player.svg',
-  FRESHNESS_10: 'assets/action-cards/freshness-10.svg'
+  FRESHNESS_10: 'assets/action-cards/freshness-10.svg',
+  BONUS_100K: 'assets/action-cards/bonus-100k.svg'
 }
 
 export class DashboardPage extends UIElement {
   _overlay = null
+  _currentCardElement = null
   actionCards = []
   team = {}
   user = {}
@@ -74,6 +81,7 @@ export class DashboardPage extends UIElement {
           const idx = parseInt(actionCardEl.dataset.actionCard, 10)
           const card = this.actionCards[idx]
           const canMerge = actionCardEl.dataset.canMerge === 'true'
+          this._currentCardElement = actionCardEl
 
           if (canMerge) {
             const {
@@ -81,12 +89,12 @@ export class DashboardPage extends UIElement {
               value
             } = await showDialog({
               title: actionCardTexts[card.action].title,
-              text: 'What do you want to do with this card?',
+              text: 'Do you want to merge two cards into a better one, or use this card now? ',
               buttonText: 'Use Card',
               hasInput: false,
               buttonType: 'success',
               secondaryButtonText: 'Merge Cards',
-              secondaryButtonType: 'warning'
+              secondaryButtonType: 'info'
             })
             if (ok) {
               void this._useActionCard(card)
@@ -147,12 +155,9 @@ export class DashboardPage extends UIElement {
         <h3>Action Cards</h3>
         <p style="max-width: 620px">With every game played, you have the chance to earn at least one action card. Some cards of the same type can be merged to a better one (E.g. two Level Up 4 to one Level Up 7 Card). All earned cards are shown here:</p>
         <div class="card card-body bg-dark pt-4 mb-4" id="action-cards">
-        <div class="row">
-          ${this.actionCards.map((card, idx) => this._renderActionCard(card, idx)).join('')}
-          <div class="col ${this.actionCards.length === 0 ? '' : 'hidden'}">
-            <h4 class="text-muted text-center mt-5 mb-5">No action cards available...</h4>
-          </div>
-          </div>
+          ${this.actionCards.length === 0
+      ? '<h4 class="text-muted text-center mt-3 mb-3">No action cards available...</h4>'
+      : `<div class="action-cards-scroll">${this._renderGroupedActionCards()}</div>`}
         </div>
 
         ${new News()}
@@ -237,23 +242,48 @@ export class DashboardPage extends UIElement {
    * @param {number} index
    * @returns {string}
    */
-  _renderActionCard (actionCard, index) {
-    const canMerge = (actionCard.action === 'LEVEL_UP_PLAYER_4' && this.actionCards.filter(a => a.action === 'LEVEL_UP_PLAYER_4').length > 1) ||
-      (actionCard.action === 'LEVEL_UP_PLAYER_7' && this.actionCards.filter(a => a.action === 'LEVEL_UP_PLAYER_7').length > 1)
+  /**
+   * Groups action cards by type and renders them as stacks
+   * @returns {string}
+   */
+  _renderGroupedActionCards () {
+    // Group cards by action type
+    const grouped = {}
+    this.actionCards.forEach((card, idx) => {
+      if (!grouped[card.action]) {
+        grouped[card.action] = []
+      }
+      grouped[card.action].push({
+        card,
+        idx
+      })
+    })
 
-    const imageSrc = actionCardImages[actionCard.action] || 'assets/action-cards/level-up-player-4.svg'
-    const mergeBadge = canMerge
-      ? `<span class="action-card-merge-badge">Mergeable</span>`
-      : ''
+    // Sort action types alphabetically for consistent ordering
+    const sortedTypes = Object.keys(grouped).sort()
 
-    return `
-      <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4" data-action-card="${index}" data-can-merge="${canMerge}">
-        <div class="action-card-wrapper">
-          <img class="action-card-image" src="${imageSrc}" alt="${actionCardTexts[actionCard.action].title}">
-          ${mergeBadge}
+    return sortedTypes.map(actionType => {
+      const cards = grouped[actionType]
+      const canMerge = (actionType === 'LEVEL_UP_PLAYER_4' || actionType === 'LEVEL_UP_PLAYER_7') && cards.length > 1
+      const imageSrc = actionCardImages[actionType] || 'assets/action-cards/level-up-player-4.svg'
+      const cardText = actionCardTexts[actionType] || { title: 'Unknown Card' }
+
+      // Render stack - use first card's index for the click handler
+      const firstCardIdx = cards[0].idx
+      const stackOffset = Math.min(cards.length - 1, 4) // Max 4 cards visible in stack
+
+      return `
+        <div class="action-card-stack" data-action-card="${firstCardIdx}" data-can-merge="${canMerge}">
+          ${cards.slice(0, 5).map((_, i) => `
+            <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
+              <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
+            </div>
+          `).join('')}
+          ${canMerge ? '<span class="action-card-merge-badge">Mergeable</span>' : ''}
+          ${cards.length > 1 ? `<span class="action-card-count">${cards.length}</span>` : ''}
         </div>
-      </div>
-    `
+      `
+    }).join('')
   }
 
   /**
@@ -261,24 +291,6 @@ export class DashboardPage extends UIElement {
    * @returns {Promise<void>}
    */
   async _mergeCards (actionCard) {
-    const upgradeMap = {
-      LEVEL_UP_PLAYER_4: 'Level Up (max. 7)',
-      LEVEL_UP_PLAYER_7: 'Level Up (max. 10)'
-    }
-    const upgradeTo = upgradeMap[actionCard.action] ?? 'a better card'
-
-    const { ok } = await showDialog({
-      title: 'Merge Cards?',
-      text: `Merging combines two identical action cards into a more powerful one.
-             You will lose both cards and receive one "${upgradeTo}" card instead.
-             This allows you e.g. to level up players to higher levels!`,
-      buttonText: 'Merge Cards',
-      hasInput: false,
-      buttonType: 'warning'
-    })
-
-    if (!ok) return
-
     try {
       const cardsToMerge = this.actionCards.filter(a => a.action === actionCard.action)
       await server.mergeCards(cardsToMerge[0], cardsToMerge[1])
@@ -289,6 +301,20 @@ export class DashboardPage extends UIElement {
       console.error(e)
       toast(e.message ?? 'Something went wrong', 'error')
     }
+  }
+
+  /**
+   * Animates the card being used and waits for animation to complete
+   * @returns {Promise<void>}
+   */
+  async _animateCardUsed () {
+    if (!this._currentCardElement) return
+    const topCard = this._currentCardElement.querySelector('.action-card-wrapper')
+    if (topCard) {
+      topCard.classList.add('card-used')
+      await delay(1000)
+    }
+    this._currentCardElement = null
   }
 
   /**
@@ -312,6 +338,20 @@ export class DashboardPage extends UIElement {
       try {
         await server.useActionCard(actionCard, null, null)
         toast('You got a new player!', 'success')
+        await this._animateCardUsed()
+        await this.load()
+        await this.update(true)
+      } catch (e) {
+        console.error(e)
+        toast(e.message ?? 'Something went wrong...', 'error')
+      }
+      return
+    }
+    if (actionCard.action === 'BONUS_100K') {
+      try {
+        await server.useActionCard(actionCard, null, null)
+        toast('You received 100,000€!', 'success')
+        await this._animateCardUsed()
         await this.load()
         await this.update(true)
       } catch (e) {
@@ -332,14 +372,15 @@ export class DashboardPage extends UIElement {
     const playerList = new PlayerList(data.players, false, async player => {
       try {
         await server.useActionCard(actionCard, player, null)
+        this._overlay?.remove()
         toast(`OK. ${player.name} got fitness boost!`, 'success')
+        await this._animateCardUsed()
         await this.load()
         await this.update(true)
       } catch (e) {
         console.error(e)
         toast(e.message ?? 'Something went wrong...', 'error')
       }
-      this._overlay?.remove()
     })
     this._overlay = showOverlay(
       'Select player',
@@ -361,6 +402,7 @@ export class DashboardPage extends UIElement {
           await server.useActionCard(actionCard, player, position)
           this._overlay?.remove()
           toast(`OK. ${player.name} plays another position now!`, 'success')
+          await this._animateCardUsed()
           await this.load()
           await this.update(true)
         } catch (e) {
@@ -428,6 +470,7 @@ export class DashboardPage extends UIElement {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
         toast(`Nice. ${player.name} got a level up!`, 'success')
+        await this._animateCardUsed()
         await this.load()
         await this.update(true)
       } catch (e) {

@@ -2,6 +2,23 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { el, generateId } from '../lib/html.js'
 
 /**
+ * Applies fadeout animation and removes the overlay
+ * @param {string} overlayId
+ * @param {Array<() => void>} listeners
+ */
+function fadeOutAndRemove (overlayId, listeners) {
+  const overlayEl = el('#' + overlayId)
+  if (!overlayEl) return
+
+  listeners.forEach(c => c())
+  overlayEl.classList.add('fade-out')
+
+  overlayEl.addEventListener('animationend', () => {
+    overlayEl.remove()
+  }, { once: true })
+}
+
+/**
  * @param {string} title
  * @param {string} subttitle
  * @param {string} text
@@ -14,13 +31,11 @@ export function showOverlay (title, subttitle, text) {
   const listeners = []
 
   onClick('#' + closeButtonId, () => {
-    listeners.forEach(c => c())
-    el('#' + overlayId)?.remove()
+    fadeOutAndRemove(overlayId, listeners)
   })
 
   onClick('#' + overlayId, () => {
-    listeners.forEach(c => c())
-    el('#' + overlayId)?.remove()
+    fadeOutAndRemove(overlayId, listeners)
   })
 
   onClick('#' + overlayInnerId, event => {
@@ -48,8 +63,7 @@ export function showOverlay (title, subttitle, text) {
       listeners.push(callback)
     },
     remove () {
-      listeners.forEach(c => c())
-      el('#' + overlayId)?.remove()
+      fadeOutAndRemove(overlayId, listeners)
     }
   }
 }

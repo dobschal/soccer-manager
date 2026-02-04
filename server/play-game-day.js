@@ -214,6 +214,13 @@ async function _giveUsersActionCards () {
           played: 0
         }))
       }
+      if (Math.random() < actionCardChances.BONUS_100K) {
+        actionCards.push(new ActionCard({
+          team_id: team.id,
+          action: 'BONUS_100K',
+          played: 0
+        }))
+      }
     }
     for (const actionCard of actionCards) {
       promises.push(query('INSERT INTO action_card SET ?', actionCard))

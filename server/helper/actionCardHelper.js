@@ -8,6 +8,7 @@ import { generateRandomPlayerName } from '../prepare-season.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
 import { getPlayerById } from './playerHelper.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
+import { updateTeamBalance } from './financeHelper.js'
 
 export const actionCardChances = {
   LEVEL_UP_PLAYER_10: 0.05,
@@ -15,7 +16,8 @@ export const actionCardChances = {
   LEVEL_UP_PLAYER_4: 0.4,
   CHANGE_PLAYER_POSITION: 0.05,
   NEW_YOUTH_PLAYER: 0.1,
-  FRESHNESS_10: 0.4
+  FRESHNESS_10: 0.4,
+  BONUS_100K: 0.15
 }
 
 /**
@@ -125,6 +127,13 @@ export async function playActionCard ({ player: p, position, actionCard }, team)
     await query('INSERT INTO player SET ?', player)
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     await addLogMessage(`You got a new young talent ${player.name}.`, team)
+    return { success: true }
+  }
+  if (actionCard.action === 'BONUS_100K') {
+    const { gameDay, season } = await getGameDayAndSeason()
+    await updateTeamBalance(team, 100000, 'Action Card: Bonus Money', gameDay, season)
+    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await addLogMessage('You received a bonus of 100,000€!', team)
     return { success: true }
   }
   throw new BadRequestError('Unknown action...')

@@ -44,6 +44,38 @@
     }
 }
 
+@keyframes overlay-fade-out-1 {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes overlay-fade-out-2 {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(1vh);
+    }
+}
+
+.overlay-backdrop.fade-out {
+    animation-name: overlay-fade-out-1;
+    animation-duration: 0.2s;
+    animation-fill-mode: forwards;
+}
+
+.overlay-backdrop.fade-out .overlay {
+    animation-name: overlay-fade-out-2;
+    animation-duration: 0.2s;
+    animation-fill-mode: forwards;
+}
+
 body {
     font-variant-numeric: tabular-nums !important;
     width: 100%;
