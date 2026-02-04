@@ -80,7 +80,10 @@ import { generateNewsForGameDay } from './helper/newsHelper.js'
  * @returns {Promise<void>}
  */
 export async function calculateGames () {
-  const { gameDay, season } = await getGameDayAndSeason()
+  const {
+    gameDay,
+    season
+  } = await getGameDayAndSeason()
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   if (games.length === 0) return console.error('No games to play...')
@@ -103,11 +106,17 @@ async function _giveAllPlayersFreshness (season) {
   const promises = []
   for (const player of players) {
     const age = await getPlayerAge(player, season)
-    if (age <= 21) player.freshness = Math.min(1.0, player.freshness + 0.1)
-    else if (age <= 26) player.freshness = Math.min(1.0, player.freshness + 0.08)
-    else if (age <= 29) player.freshness = Math.min(1.0, player.freshness + 0.06)
-    else if (age <= 32) player.freshness = Math.min(1.0, player.freshness + 0.05)
-    else player.freshness = Math.min(1.0, player.freshness + 0.04)
+    if (age <= 21) {
+      player.freshness = Math.min(1.0, player.freshness + 0.1)
+    } else if (age <= 26) {
+      player.freshness = Math.min(1.0, player.freshness + 0.08)
+    } else if (age <= 29) {
+      player.freshness = Math.min(1.0, player.freshness + 0.06)
+    } else if (age <= 32) {
+      player.freshness = Math.min(1.0, player.freshness + 0.05)
+    } else {
+      player.freshness = Math.min(1.0, player.freshness + 0.04)
+    }
     if (!player.in_game_position) {
       player.freshness = Math.min(1.0, player.freshness + 0.03)
     }
@@ -252,8 +261,8 @@ async function _playGame (game) {
   const [[teamA], [teamB], playerTeamA, playerTeamB] = await Promise.all([
     await query('SELECT * FROM team WHERE id=?', [game.team_1_id]),
     await query('SELECT * FROM team WHERE id=?', [game.team_2_id]),
-    await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>"" AND in_game_position IS NOT NULL', [game.team_1_id]),
-    await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>"" AND in_game_position IS NOT NULL', [game.team_2_id])
+    await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>\'\' AND in_game_position IS NOT NULL', [game.team_1_id]),
+    await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>\'\' AND in_game_position IS NOT NULL', [game.team_2_id])
   ])
   const strengthTeamA = playerTeamA.reduce((totalStrength, player) => totalStrength + player.level, 0)
   const strengthTeamB = playerTeamB.reduce((totalStrength, player) => totalStrength + player.level, 0)
@@ -280,7 +289,6 @@ async function _playGame (game) {
   for (let minute = 0; minute < 900 + overtime; minute++) {
     _playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
-  console.log('Result: ', gameDetails.goalsTeamA, gameDetails.goalsTeamB)
   await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
     JSON.stringify(gameDetails),
     gameDetails.goalsTeamA,

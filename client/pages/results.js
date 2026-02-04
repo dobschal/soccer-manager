@@ -175,7 +175,6 @@ export class ResultsPage extends UIElement {
       this.season = response.season
       this.gameDay = Math.max(0, response.gameDay - 1)
     }
-    console.log(this.gameDay, this.season, this.level, this.league)
     const [{ results }, standing, yesterday] = await Promise.all([
       server.getResults(this.gameDay, this.season, this.level, this.league),
       server.getStanding(this.gameDay, this.season, this.level, this.league),
@@ -359,7 +358,6 @@ export class ResultsPage extends UIElement {
    * @returns {string}
    */
   _renderResultListItem (result) {
-    const details = JSON.parse(result.details)
     const id = generateId()
 
     onClick(id, () => {
@@ -378,12 +376,12 @@ export class ResultsPage extends UIElement {
     <tr id="${id}">
       <td>
         ${this.myTeamId === result.team1Id ? '<b class="text-info">' : ''}
-        ${emblem1}${result.team1} (${details.strengthTeamA ?? '-'})
+        ${emblem1}${result.team1} (${result.strengthTeamA ?? '-'})
         ${this.myTeamId === result.team1Id ? '</b>' : ''}
       </td>
       <td>
         ${this.myTeamId === result.team2Id ? '<b class="text-info">' : ''}
-        ${emblem2}${result.team2} (${details.strengthTeamB ?? '-'})
+        ${emblem2}${result.team2} (${result.strengthTeamB ?? '-'})
         ${this.myTeamId === result.team2Id ? '</b>' : ''}
       </td>
       <td>${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}</td>

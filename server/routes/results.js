@@ -107,7 +107,18 @@ export default {
           AND g.level = ?
           AND g.league = ?
     `, [gameDay, season, level ?? team.level, league ?? team.league])
-    return { results }
+    // Extract only needed fields from details to reduce payload size
+    return {
+      results: results.map(r => {
+        const details = r.details ? JSON.parse(r.details) : {}
+        return {
+          ...r,
+          strengthTeamA: details.strengthTeamA,
+          strengthTeamB: details.strengthTeamB,
+          details: undefined
+        }
+      })
+    }
   },
 
   /**

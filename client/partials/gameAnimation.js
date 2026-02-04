@@ -112,7 +112,7 @@ export class GameAnimation extends UIElement {
         if (this.isPlaying) {
           playBtn.innerHTML = '<i class="fa fa-pause text-white" aria-hidden="true"></i>'
           await this._playGameAnimation()
-          playBtn.innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
+          if (playBtn) playBtn.innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
         } else {
           playBtn.innerHTML = '<i class="fa fa-play text-white" aria-hidden="true"></i>'
         }
@@ -159,8 +159,11 @@ export class GameAnimation extends UIElement {
       }
 
       i++
-      el(this._messageId).innerHTML = `${goalsTeamA} : ${goalsTeamB}`
-      el(this._timerId).innerHTML = `'${Math.floor(i / 10)}`
+      const messageEl = el(this._messageId)
+      const timerEl = el(this._timerId)
+      if (!messageEl || !timerEl) return
+      messageEl.innerHTML = `${goalsTeamA} : ${goalsTeamB}`
+      timerEl.innerHTML = `'${Math.floor(i / 10)}`
 
       if (item.goal) {
         const isTeamAGoal = this.playerTeamA.some(p => p.id === item.player)
@@ -178,18 +181,23 @@ export class GameAnimation extends UIElement {
         }
 
         await this._moveBallToPlayer(item.player)
-        el(this._messageId).innerHTML = `${this._getPlayerName(item.player)} shoots...`
+        const msgEl1 = el(this._messageId)
+        if (msgEl1) msgEl1.innerHTML = `${this._getPlayerName(item.player)} shoots...`
         await delay(1000)
 
-        if (isTeamAGoal) {
-          el(this._ballId).className = 'ball away GK'
-          goalsTeamA++
-        } else {
-          el(this._ballId).className = 'ball home GK'
-          goalsTeamB++
+        const ballEl1 = el(this._ballId)
+        if (ballEl1) {
+          if (isTeamAGoal) {
+            ballEl1.className = 'ball away GK'
+            goalsTeamA++
+          } else {
+            ballEl1.className = 'ball home GK'
+            goalsTeamB++
+          }
         }
 
-        el(this._messageId).innerHTML = 'GOAL!!!'
+        const msgEl2 = el(this._messageId)
+        if (msgEl2) msgEl2.innerHTML = 'GOAL!!!'
         await delay(1000)
       }
 
@@ -209,11 +217,14 @@ export class GameAnimation extends UIElement {
         }
 
         await this._moveBallToPlayer(item.player)
-        el(this._messageId).innerHTML = `${this._getPlayerName(item.player)} shoots...`
+        const msgEl3 = el(this._messageId)
+        if (msgEl3) msgEl3.innerHTML = `${this._getPlayerName(item.player)} shoots...`
         await delay(500)
 
-        el(this._ballId).className = isTeamAShot ? 'ball away GK' : 'ball home GK'
-        el(this._messageId).innerHTML = 'No goal...'
+        const ballEl2 = el(this._ballId)
+        if (ballEl2) ballEl2.className = isTeamAShot ? 'ball away GK' : 'ball home GK'
+        const msgEl4 = el(this._messageId)
+        if (msgEl4) msgEl4.innerHTML = 'No goal...'
         await delay(500)
       }
     }
@@ -250,13 +261,15 @@ export class GameAnimation extends UIElement {
    * @returns {Promise<void>}
    */
   async _moveBallToPlayer (playerId) {
+    const ballEl = el(this._ballId)
+    if (!ballEl) return
     let player = this.playerTeamA.find(p => p.id === playerId)
     if (player) {
-      el(this._ballId).className = 'ball home ' + player.position
+      ballEl.className = 'ball home ' + player.position
     } else {
       player = this.playerTeamB.find(p => p.id === playerId)
       if (player) {
-        el(this._ballId).className = 'ball away ' + player.position
+        ballEl.className = 'ball away ' + player.position
       }
     }
     await delay(500)
