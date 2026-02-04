@@ -13,6 +13,8 @@ export class DefaultLayout extends UIElement {
         <div class="centered-container" id="page"></div>
         <footer class="app-footer">
           <span class="text-muted">SoccerManagerIO v${this._version}</span>
+          <br>
+          <a href="imprint.html" class="text-muted">Imprint & Privacy Policy</a>
         </footer>
       </div>
     `

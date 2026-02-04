@@ -2,6 +2,10 @@
     --bs-dark-rgb: 51, 51, 51;
 }
 
+.bg-dark {
+    background: linear-gradient(136deg, #1a1a2e 0%, #16213e 50%, #0d4a5a 100%) !important;
+}
+
 @font-face {
     font-family: 'Dai Banna';
     src: url('../fonts/DaiBannaSIL-Regular.ttf');
@@ -116,6 +120,12 @@ body {
     box-shadow: 3px 3px 15px rgba(0, 0, 0, 0.5);
 }
 
+.container.bg-transparent {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+}
+
 #page {
     animation-name: page-enter-animation;
     animation-duration: 1s;
@@ -139,17 +149,17 @@ body {
     margin: 0 !important;
 }
 
-.centered-container > * {
-    width: 100%;
-    max-width: 640px;
-    margin: auto;
-    padding: 2rem;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
-    box-shadow: 3px 3px 15px rgba(0, 0, 0, 0.5);
-    border-radius: 0.5rem;
+/*.centered-container > * {*/
+/*    width: 100%;*/
+/*    max-width: 640px;*/
+/*    margin: auto;*/
+/*    padding: 2rem;*/
+/*    background: rgba(0, 0, 0, 0.5);*/
+/*    backdrop-filter: blur(5px);*/
+/*    box-shadow: 3px 3px 15px rgba(0, 0, 0, 0.5);*/
+/*    border-radius: 0.5rem;*/
 
-}
+/*}*/
 
 .hidden {
     display: none;
@@ -426,7 +436,7 @@ td.hover-text:hover {
 .app-footer {
     text-align: center;
     padding: 2rem 1rem;
-    margin-top: 2rem;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .app-footer .text-muted {

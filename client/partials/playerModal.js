@@ -125,11 +125,12 @@ export async function showPlayerModal (playerId) {
  * @private
  */
 const _renderPlayerHistory = renderAsync(async function (item) {
+  const prefix = `<small class="text-muted">S${item.season + 1} D${item.game_day}</small>`
   if (item.type === 'LEVEL_UP') {
-    return `<div>#${item.game_day} Player reached level ${item.value}</div>`
+    return `<div>${prefix} Player reached level ${item.value}</div>`
   } else if (item.type === 'TRANSFER') {
     const { team } = await server.getTeam(Number(item.value))
-    return `<div>#${item.game_day} Moved to new club: ${team.name}</div>`
+    return `<div>${prefix} Moved to new club: ${team.name}</div>`
   }
   return '<div>unknown</div>'
 })

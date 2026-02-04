@@ -1,4 +1,3 @@
-import { formatDate } from '../lib/date.js'
 import { Formation, getPositionsOfFormation } from '../util/formation.js'
 import { server, showServerError } from '../lib/gateway.js'
 import { el, generateId } from '../lib/html.js'
@@ -9,7 +8,7 @@ import { PlayerList } from '../partials/playerList.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { setQueryParams } from '../lib/router.js'
-import { sallaryPerLevel } from '../util/player.js'
+import { sallaryPerLevel, calculatePlayerAge } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { formatLeague } from '../util/league.js'
 import { lineUpData, renderLineup } from '../partials/lineup.js'
@@ -60,7 +59,12 @@ export class MyTeamPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    this.data = await server.getMyTeam()
+    const [teamData, gamedayData] = await Promise.all([
+      server.getMyTeam(),
+      server.getCurrentGameday()
+    ])
+    this.data = teamData
+    this.season = gamedayData.season
     lineUpData.squadDataChanged = false
   }
 
@@ -79,28 +83,34 @@ export class MyTeamPage extends UIElement {
    * @returns {string}
    */
   _renderHeader () {
-    let sallary = 0
-    this.data.players.forEach(player => {
-      sallary += sallaryPerLevel[player.level]
-    })
+    const realPlayers = this.data.players.filter(p => !p.fake)
+    const totalSalary = realPlayers.reduce((sum, p) => sum + sallaryPerLevel[p.level], 0)
+    const totalStrength = realPlayers.reduce((sum, p) => sum + p.level, 0)
+    const lineupStrength = this._calculateTeamStrength(this.data.players)
+    const avgLevel = realPlayers.length > 0 ? (totalStrength / realPlayers.length).toFixed(1) : 0
+    const avgAge = realPlayers.length > 0
+      ? (realPlayers.reduce((sum, p) => sum + calculatePlayerAge(p, this.season), 0) / realPlayers.length).toFixed(1)
+      : 0
     return `
       <h2>${this.data.team.name}</h2>
       <div class="row">
         <div class="col-12 col-md-4 mb-4">
-          <div class="card bg-dark text-white" style="min-height: 230px">
+          <div class="card h-100 text-white" style="background: #333">
             <div class="card-body">
-              <h5 class="card-title">Team</h5>
+              <h5 class="card-title">Team Info</h5>
               <p class="card-text">
                 <b>League: </b> ${formatLeague(this.data.team.level, this.data.team.league)}<br>
-                <b>Player Sallary (∑): </b> ${euroFormat.format(sallary)}<br>
-                <b>Coach: </b> ${this.data.user.username} since ${formatDate('DD. MMM YYYY', this.data.user.created_at)}<br>
-                <b>Strength: </b> ${this._calculateTeamStrength(this.data.players)}
+                <b>Salary (∑): </b> ${euroFormat.format(totalSalary)}<br>
+                <b>Avg. Age: </b> ${avgAge} years<br>
+                <b>Avg. Level: </b> ${avgLevel}<br>
+                <b>Total Strength: </b> ${totalStrength}<br>
+                <b>Lineup Strength: </b> ${lineupStrength}
               </p>
             </div>
           </div>
         </div>
         <div class="col-12 col-md-4 mb-4">
-          <div class="card bg-dark text-white" style="min-height: 230px">
+          <div class="card h-100 text-white" style="background: #333">
             <div class="card-body" style="perspective: 40px;">
               <h5 class="card-title">Emblem <i class="fa fa-pencil" aria-hidden="true"></i></h5>
               ${this._renderEmblemViewer()}
@@ -108,7 +118,7 @@ export class MyTeamPage extends UIElement {
           </div>
         </div>
         <div class="col-12 col-md-4 mb-4">
-          <div class="card bg-dark text-white" style="min-height: 230px">
+          <div class="card h-100 text-white" style="background: #333">
             <div class="card-body">
               <h5 class="card-title">Lineup</h5>
               <p class="card-text">Choose from one of the following line-ups:</p>
