@@ -5,14 +5,26 @@ vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 5, season: 1 })
+}))
+
 vi.mock('../../helper/stadiumHelper.js', () => ({
   getStadiumOfCurrentUser: vi.fn(),
   calcuateStadiumBuild: vi.fn(),
-  buildStadium: vi.fn()
+  buildStadium: vi.fn(),
+  getConstructionInfo: vi.fn().mockReturnValue({
+    north: { underConstruction: false },
+    south: { underConstruction: false },
+    east: { underConstruction: false },
+    west: { underConstruction: false }
+  }),
+  isStandUnderConstruction: vi.fn().mockReturnValue(false),
+  calculateConstructionTime: vi.fn().mockReturnValue(3)
 }))
 
 import { query } from '../../lib/database.js'
-import { getStadiumOfCurrentUser, calcuateStadiumBuild, buildStadium } from '../../helper/stadiumHelper.js'
+import { getStadiumOfCurrentUser, calcuateStadiumBuild, buildStadium, getConstructionInfo, isStandUnderConstruction } from '../../helper/stadiumHelper.js'
 import handlers from '../../routes/stadium.js'
 
 describe('stadium routes', () => {
@@ -33,19 +45,21 @@ describe('stadium routes', () => {
   })
 
   describe('getStadium', () => {
-    it('returns stadium for current user', async () => {
+    it('returns stadium for current user with construction info', async () => {
       const stadium = testData.stadium()
       getStadiumOfCurrentUser.mockResolvedValue(stadium)
 
       const req = createMockRequest()
       const result = await handlers.getStadium(req)
 
-      expect(result).toEqual({ stadium })
+      expect(result.stadium).toEqual(stadium)
+      expect(result.constructionInfo).toBeDefined()
+      expect(getConstructionInfo).toHaveBeenCalled()
     })
   })
 
   describe('calculateStadiumPrice', () => {
-    it('calculates price for stadium upgrade', async () => {
+    it('calculates price and construction times for stadium upgrade', async () => {
       const currentStadium = testData.stadium()
       const plannedStadium = testData.stadium({ north_stand_size: 10000 })
 
@@ -55,7 +69,9 @@ describe('stadium routes', () => {
       const req = createMockRequest()
       const result = await handlers.calculateStadiumPrice(plannedStadium, req)
 
-      expect(result).toEqual({ totalPrice: 500000 })
+      expect(result.totalPrice).toEqual(500000)
+      expect(result.constructionTimes).toBeDefined()
+      expect(result.constructionTimes.north).toBeDefined()
     })
 
     it('throws error for unauthorized stadium', async () => {
@@ -72,21 +88,28 @@ describe('stadium routes', () => {
   })
 
   describe('buildStadium', () => {
-    it('builds stadium when user has enough money', async () => {
+    it('starts construction when user has enough money', async () => {
       const currentStadium = testData.stadium()
       const plannedStadium = testData.stadium({ north_stand_size: 10000 })
       const team = testData.team({ balance: 1000000 })
+      const constructionInfo = {
+        north: { underConstruction: true, remainingGameDays: 5 },
+        south: { underConstruction: false },
+        east: { underConstruction: false },
+        west: { underConstruction: false }
+      }
 
       getStadiumOfCurrentUser.mockResolvedValue(currentStadium)
       calcuateStadiumBuild.mockReturnValue(500000)
       query.mockResolvedValue([team])
-      buildStadium.mockResolvedValue()
+      buildStadium.mockResolvedValue({ constructionInfo })
 
       const req = createMockRequest()
       const result = await handlers.buildStadium(plannedStadium, req)
 
-      expect(result).toEqual({ success: true })
-      expect(buildStadium).toHaveBeenCalledWith(team, plannedStadium, 500000)
+      expect(result.success).toBe(true)
+      expect(result.constructionInfo).toEqual(constructionInfo)
+      expect(buildStadium).toHaveBeenCalledWith(team, currentStadium, plannedStadium, 500000)
     })
 
     it('throws error when not enough money', async () => {
@@ -102,6 +125,22 @@ describe('stadium routes', () => {
 
       await expect(handlers.buildStadium(plannedStadium, req))
         .rejects.toMatchObject({ message: 'Not enough money...' })
+    })
+
+    it('throws error when stand is already under construction', async () => {
+      const currentStadium = testData.stadium()
+      const plannedStadium = testData.stadium({ north_stand_size: 10000 })
+      const team = testData.team({ balance: 1000000 })
+
+      getStadiumOfCurrentUser.mockResolvedValue(currentStadium)
+      calcuateStadiumBuild.mockReturnValue(500000)
+      query.mockResolvedValue([team])
+      isStandUnderConstruction.mockReturnValue(true)
+
+      const req = createMockRequest()
+
+      await expect(handlers.buildStadium(plannedStadium, req))
+        .rejects.toMatchObject({ message: 'Cannot expand north stand - already under construction' })
     })
   })
 

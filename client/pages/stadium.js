@@ -8,8 +8,11 @@ import { StadiumCanvas } from '../partials/stadiumCanvas.js'
 export class StadiumPage extends UIElement {
   stadium = {}
   team = {}
+  constructionInfo = {}
   /** @type {StadiumCanvas|null} */
   _stadiumCanvas = null
+  /** @type {boolean} */
+  _hasValidConstruction = false
 
   /**
    * @returns {UIElementEvents}
@@ -81,8 +84,10 @@ export class StadiumPage extends UIElement {
       server.getMyTeam()
     ])
     this.stadium = stadiumResponse.stadium
+    this.constructionInfo = stadiumResponse.constructionInfo || {}
     this.team = teamResponse.team
     console.log('Stadium: ', this.stadium)
+    console.log('Construction Info: ', this.constructionInfo)
   }
 
   /**
@@ -105,9 +110,19 @@ export class StadiumPage extends UIElement {
    */
   async _onStadiumFormSubmit (event) {
     event.preventDefault()
+
+    // Safety check - don't submit if no valid construction
+    if (!this._hasValidConstruction) {
+      toast('Please make changes and wait for cost calculation', 'error')
+      return
+    }
+
     try {
-      await server.buildStadium(this.stadium)
-      toast('You got a new stadium', 'success')
+      const result = await server.buildStadium(this.stadium)
+      this.constructionInfo = result.constructionInfo || {}
+      toast('Construction has started!', 'success')
+      // Reload and re-render to show construction status
+      void this.update(false)
     } catch (e) {
       toast(e.message ?? 'Something went wrong', 'error')
     }
@@ -117,13 +132,55 @@ export class StadiumPage extends UIElement {
    * @returns {Promise<void>}
    */
   async _updatePrice () {
+    const submitBtn = el(`${this._elementQuery} #stadium-form button[type="submit"]`)
+
     try {
-      const { totalPrice } = await server.calculateStadiumPrice(this.stadium)
+      const {
+        totalPrice,
+        constructionTimes
+      } = await server.calculateStadiumPrice(this.stadium)
       const priceEl = el(`${this._elementQuery} #total-price`)
       if (priceEl) {
         priceEl.innerText = euroFormat.format(totalPrice)
       }
+
+      // Display construction time preview
+      const previewEl = el(`${this._elementQuery} #construction-time-preview`)
+      let hasValidChanges = false
+
+      if (previewEl && constructionTimes) {
+        const previews = Object.entries(constructionTimes)
+          .filter(([, info]) => info && !info.blocked)
+          .map(([stand, info]) => {
+            let details = `${info.days} gameday${info.days !== 1 ? 's' : ''}`
+            if (info.addingRoof) details += ' (includes roof)'
+            return `<li><strong>${stand}</strong>: ${details}</li>`
+          })
+
+        if (previews.length > 0 && totalPrice > 0) {
+          previewEl.innerHTML = `
+            <div class="alert alert-info">
+              <strong>Construction Time Estimate:</strong>
+              <ul class="mb-0">${previews.join('')}</ul>
+            </div>
+          `
+          hasValidChanges = true
+        } else {
+          previewEl.innerHTML = ''
+        }
+      }
+
+      // Enable/disable submit button based on valid changes
+      this._hasValidConstruction = hasValidChanges
+      if (submitBtn) {
+        submitBtn.disabled = !hasValidChanges
+      }
     } catch (e) {
+      // Disable button on error
+      this._hasValidConstruction = false
+      if (submitBtn) {
+        submitBtn.disabled = true
+      }
       toast(e.message ?? 'Something went wrong', 'error')
     }
   }
@@ -163,24 +220,44 @@ export class StadiumPage extends UIElement {
    * @returns {string}
    */
   _renderExpandForm () {
-    const formGroups = ['north', 'south', 'east', 'west'].map(name => `
-      <div class="col-6 col-sm-3 mb-4">
-        <div class="form-group">
-          <label>Seats on ${name} stand</label>
-          <input data-size-input="${name}" class="form-control" type="number" value="${this.stadium[name + '_stand_size']}">
-          <small class="form-text text-muted">Change the amount of seats here to expand your stadium.</small>
+    const formGroups = ['north', 'south', 'east', 'west'].map(name => {
+      const standInfo = this.constructionInfo?.[name]
+      const underConstruction = standInfo?.underConstruction
+      const remaining = standInfo?.remainingGameDays
+
+      const constructionBadge = underConstruction
+        ? `<div class="alert alert-warning mt-2 py-2">
+             <small>Under construction - ${remaining} gameday${remaining !== 1 ? 's' : ''} remaining</small>
+           </div>`
+        : ''
+
+      const disabledAttr = underConstruction ? 'disabled' : ''
+
+      return `
+        <div class="col-6 col-sm-3 mb-4">
+          <div class="form-group">
+            <label>Seats on ${name} stand</label>
+            <input data-size-input="${name}"
+                   class="form-control"
+                   type="number"
+                   value="${this.stadium[name + '_stand_size']}"
+                   ${disabledAttr}>
+            <small class="form-text text-muted">Change the amount of seats here to expand your stadium.</small>
+          </div>
+          <div class="form-check">
+            <label class="form-check-label">
+              <input class="form-check-input"
+                     data-roof-input="${name}"
+                     type="checkbox"
+                     ${this.stadium[name + '_stand_roof'] ? 'checked' : ''}
+                     ${disabledAttr}>
+                  Roof on ${name} stand?
+            </label>
+          </div>
+          ${constructionBadge}
         </div>
-        <div class="form-check">
-          <label class="form-check-label">
-            <input class="form-check-input"
-                   data-roof-input="${name}"
-                   type="checkbox"
-                   ${this.stadium[name + '_stand_roof'] ? 'checked' : ''}>
-                Roof on ${name} stand?
-          </label>
-        </div>
-      </div>
-    `).join('')
+      `
+    }).join('')
 
     return `
       <div class="row">
@@ -189,7 +266,8 @@ export class StadiumPage extends UIElement {
       <p>
         Total Price for construction: <span id="total-price">0 €</span>
       </p>
-      <button type="submit" class="btn btn-primary">Expand Stadium</button>
+      <div id="construction-time-preview" class="mb-3"></div>
+      <button type="submit" class="btn btn-primary" disabled>Start Construction</button>
     `
   }
 

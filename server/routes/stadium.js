@@ -1,4 +1,12 @@
-import { buildStadium, calcuateStadiumBuild, getStadiumOfCurrentUser } from '../helper/stadiumHelper.js'
+import {
+  buildStadium,
+  calcuateStadiumBuild,
+  getStadiumOfCurrentUser,
+  getConstructionInfo,
+  isStandUnderConstruction,
+  calculateConstructionTime
+} from '../helper/stadiumHelper.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { query } from '../lib/database.js'
 
@@ -15,36 +23,80 @@ export default {
 
   /**
    * @param {Request} req
-   * @returns {Promise<{stadium: StadiumType}>}
+   * @returns {Promise<{stadium: StadiumType, constructionInfo: Object}>}
    */
   async getStadium (req) {
-    return { stadium: await getStadiumOfCurrentUser(req) }
+    const stadium = await getStadiumOfCurrentUser(req)
+    const { gameDay, season } = await getGameDayAndSeason()
+    const constructionInfo = getConstructionInfo(stadium, gameDay, season)
+    return { stadium, constructionInfo }
   },
 
   /**
    * @param {StadiumType} stadium
    * @param {Request} req
-   * @returns {Promise<{totalPrice: number}>}
+   * @returns {Promise<{totalPrice: number, constructionTimes: Object}>}
    */
   async calculateStadiumPrice (stadium, req) {
     const currentStadium = await getStadiumOfCurrentUser(req)
     if (currentStadium.id !== stadium.id) throw new UnauthorizedError('Not your stadium dude')
-    return { totalPrice: calcuateStadiumBuild(currentStadium, stadium) }
+
+    const stands = ['north', 'south', 'east', 'west']
+    const constructionTimes = {}
+
+    for (const stand of stands) {
+      const currentSize = currentStadium[`${stand}_stand_size`]
+      const targetSize = stadium[`${stand}_stand_size`]
+      const currentRoof = currentStadium[`${stand}_stand_roof`]
+      const targetRoof = stadium[`${stand}_stand_roof`]
+
+      if (currentSize !== targetSize || currentRoof !== targetRoof) {
+        if (isStandUnderConstruction(currentStadium, stand)) {
+          constructionTimes[stand] = {
+            blocked: true,
+            message: 'Already under construction'
+          }
+        } else {
+          constructionTimes[stand] = {
+            days: calculateConstructionTime(currentSize, targetSize, currentRoof, targetRoof),
+            seatsDiff: targetSize - currentSize,
+            addingRoof: !currentRoof && targetRoof
+          }
+        }
+      }
+    }
+
+    return {
+      totalPrice: calcuateStadiumBuild(currentStadium, stadium),
+      constructionTimes
+    }
   },
 
   /**
    * @param {StadiumType} stadium
    * @param {Request} req
-   * @returns {Promise<{success: boolean}>}
+   * @returns {Promise<{success: boolean, constructionInfo: Object}>}
    */
   async buildStadium (stadium, req) {
     const currentStadium = await getStadiumOfCurrentUser(req)
     if (currentStadium.id !== stadium.id) throw new UnauthorizedError('Not your stadium dude')
+
+    // Validate no stands being expanded are under construction
+    const stands = ['north', 'south', 'east', 'west']
+    for (const stand of stands) {
+      const hasChanges = currentStadium[`${stand}_stand_size`] !== stadium[`${stand}_stand_size`] ||
+                         currentStadium[`${stand}_stand_roof`] !== stadium[`${stand}_stand_roof`]
+
+      if (hasChanges && isStandUnderConstruction(currentStadium, stand)) {
+        throw new BadRequestError(`Cannot expand ${stand} stand - already under construction`)
+      }
+    }
+
     const price = calcuateStadiumBuild(currentStadium, stadium)
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
     if (team.balance < price) throw new BadRequestError('Not enough money...')
-    await buildStadium(team, stadium, price)
-    return { success: true }
+    const result = await buildStadium(team, currentStadium, stadium, price)
+    return { success: true, constructionInfo: result.constructionInfo }
   },
 
   /**

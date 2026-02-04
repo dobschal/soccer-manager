@@ -13,6 +13,12 @@ import { FinanceLog } from '../entities/financeLog.js'
  * @returns {Promise<void>}
  */
 export async function updateTeamBalance (team, diff, reason, gameDay, season) {
+  // Guard against NaN - log error and use 0 to prevent SQL errors
+  if (isNaN(diff) || diff === null || diff === undefined) {
+    console.error(`[FINANCE ERROR] NaN/invalid diff detected for team ${team?.id} (${team?.name}), reason: "${reason}". Using 0 instead.`)
+    diff = 0
+  }
+
   await transaction(async (query) => {
     // Use atomic update to prevent race conditions
     await query('UPDATE team SET balance = balance + ? WHERE id = ?', [diff, team.id])

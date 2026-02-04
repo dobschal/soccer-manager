@@ -46,31 +46,37 @@ export class UIElement {
    * @abstract
    * @returns {void}
    */
-  onQueryChanged () {}
+  onQueryChanged () {
+  }
 
   /**
    * @abstract
    * @returns {void}
    */
-  onMounted () {}
+  onMounted () {
+  }
 
   /**
    * @abstract
    * @returns {void}
    */
-  onDestroy () {}
+  onDestroy () {
+  }
 
   /**
    * @abstract
    * @returns {string}
    */
-  get template () { return '' }
+  get template () {
+    return ''
+  }
 
   /**
    * @abstract
    * @returns {Promise<void>}
    */
-  async load () {}
+  async load () {
+  }
 
   /**
    * Render the current UIElement --> call load and return the template string then
@@ -184,7 +190,7 @@ export class UIElement {
 
   /**
    * @returns {string}
-   * @private
+   * @protected
    */
   get _elementQuery () {
     return `[data-render_id="${this._renderId}"]`

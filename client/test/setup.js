@@ -112,6 +112,31 @@ export const testData = {
     south_stand_roof: 0,
     east_stand_roof: 0,
     west_stand_roof: 0,
+    // Construction tracking fields
+    north_construction_end_game_day: null,
+    north_construction_end_season: null,
+    north_construction_target_size: null,
+    north_construction_target_roof: null,
+    south_construction_end_game_day: null,
+    south_construction_end_season: null,
+    south_construction_target_size: null,
+    south_construction_target_roof: null,
+    east_construction_end_game_day: null,
+    east_construction_end_season: null,
+    east_construction_target_size: null,
+    east_construction_target_roof: null,
+    west_construction_end_game_day: null,
+    west_construction_end_season: null,
+    west_construction_target_size: null,
+    west_construction_target_roof: null,
+    ...overrides
+  }),
+
+  constructionInfo: (overrides = {}) => ({
+    north: { underConstruction: false },
+    south: { underConstruction: false },
+    east: { underConstruction: false },
+    west: { underConstruction: false },
     ...overrides
   }),
 

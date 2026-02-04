@@ -9,6 +9,7 @@ import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
+import { completeStadiumConstructions } from './helper/stadiumHelper.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -85,6 +86,10 @@ export async function calculateGames () {
     season
   } = await getGameDayAndSeason()
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
+
+  // Complete any stadium constructions that are due
+  await completeStadiumConstructions(gameDay, season)
+
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   if (games.length === 0) return console.error('No games to play...')
   await Promise.all(games.map(game => _playGame(game)))
@@ -240,14 +245,38 @@ async function _giveUsersActionCards () {
  * @returns {Promise<StadiumDetails>}
  */
 async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strengthTeamB, gameDay, season) {
-  const strengthFactor = strengthTeamA * strengthTeamB
+  const strengthFactor = (strengthTeamA || 0) * (strengthTeamB || 0)
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [teamA.id])
+
+  // If no stadium found, return empty details with no earnings
+  if (!stadium) {
+    console.warn(`No stadium found for team ${teamA.id}`)
+    return {}
+  }
+
   const stands = ['north', 'south', 'west', 'east']
   const details = {}
   let totalEarnings = 0
   for (const stand of stands) {
-    const price = stadium[stand + '_stand_price']
-    const size = stadium[stand + '_stand_size']
+    // Skip if stand is under construction (check for truthy value to handle missing columns)
+    const constructionEndDay = stadium[`${stand}_construction_end_game_day`]
+    if (constructionEndDay != null) {
+      details[stand + 'Guests'] = 0
+      details[stand + 'Earnings'] = 0
+      details[stand + 'UnderConstruction'] = true
+      continue
+    }
+
+    const price = stadium[stand + '_stand_price'] || 0
+    const size = stadium[stand + '_stand_size'] || 0
+
+    // Skip if price is 0 to avoid division by zero
+    if (price <= 0 || size <= 0) {
+      details[stand + 'Guests'] = 0
+      details[stand + 'Earnings'] = 0
+      continue
+    }
+
     const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
     const priceFactor = 15 / price
     const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor))
@@ -256,6 +285,13 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     details[stand + 'Earnings'] = earnings
     totalEarnings += earnings
   }
+
+  // Final safety check - never pass NaN to balance update
+  if (isNaN(totalEarnings)) {
+    console.error(`NaN earnings detected for team ${teamA.id}, stadium:`, stadium)
+    totalEarnings = 0
+  }
+
   await updateTeamBalance(teamA, totalEarnings, 'Stadium ticket earnings', gameDay, season)
   return details
 }

@@ -100,6 +100,11 @@ async function _checkStadium (botTeam) {
       ])
     }
   }
+  // Check if any stand is under construction - if so, skip expansion
+  const stands = ['north', 'south', 'east', 'west']
+  const anyUnderConstruction = stands.some(stand => stadium[`${stand}_construction_end_game_day`] != null)
+  if (anyUnderConstruction) return
+
   /** @type {StadiumType} */
   const newStadium = JSON.parse(JSON.stringify(stadium))
   if (Math.random() > 0.5) newStadium.east_stand_size = Math.floor(newStadium.east_stand_size * (1 + Math.random()))
@@ -112,8 +117,8 @@ async function _checkStadium (botTeam) {
   if (Math.random() > 0.5) newStadium.south_stand_roof = 1
   const price = calcuateStadiumBuild(stadium, newStadium)
   if (price > 0 && price < botTeam.balance * 0.8) {
-    await buildStadium(botTeam, newStadium, price)
-    console.log(`🏗️ ${botTeam.name} is getting a new stadium!`)
+    await buildStadium(botTeam, stadium, newStadium, price)
+    console.log(`🏗️ ${botTeam.name} is starting stadium construction!`)
     botTeam.balance -= price
   }
 }

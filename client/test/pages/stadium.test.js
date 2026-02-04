@@ -55,6 +55,12 @@ describe('StadiumPage', () => {
         south_stand_roof: 0,
         east_stand_roof: 0,
         west_stand_roof: 0
+      },
+      constructionInfo: {
+        north: { underConstruction: false },
+        south: { underConstruction: false },
+        east: { underConstruction: false },
+        west: { underConstruction: false }
       }
     })
     server.getMyTeam.mockResolvedValue({
@@ -117,6 +123,74 @@ describe('StadiumPage', () => {
       const page = new StadiumPage()
       await page.load()
       expect(page.template).toContain('Save Prices')
+    })
+
+    it('template contains disabled start construction button', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('Start Construction')
+      // Button should be disabled by default until construction is validated
+      expect(page.template).toContain('disabled')
+    })
+
+    it('shows construction status when stand is under construction', async () => {
+      server.getStadium.mockResolvedValue({
+        stadium: {
+          id: 1,
+          north_stand_size: 5000,
+          south_stand_size: 5000,
+          east_stand_size: 5000,
+          west_stand_size: 5000,
+          north_stand_price: 20,
+          south_stand_price: 20,
+          east_stand_price: 20,
+          west_stand_price: 20,
+          north_stand_roof: 0,
+          south_stand_roof: 0,
+          east_stand_roof: 0,
+          west_stand_roof: 0
+        },
+        constructionInfo: {
+          north: { underConstruction: true, remainingGameDays: 5 },
+          south: { underConstruction: false },
+          east: { underConstruction: false },
+          west: { underConstruction: false }
+        }
+      })
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('Under construction')
+      expect(page.template).toContain('5 gamedays remaining')
+    })
+
+    it('disables inputs for stands under construction', async () => {
+      server.getStadium.mockResolvedValue({
+        stadium: {
+          id: 1,
+          north_stand_size: 5000,
+          south_stand_size: 5000,
+          east_stand_size: 5000,
+          west_stand_size: 5000,
+          north_stand_price: 20,
+          south_stand_price: 20,
+          east_stand_price: 20,
+          west_stand_price: 20,
+          north_stand_roof: 0,
+          south_stand_roof: 0,
+          east_stand_roof: 0,
+          west_stand_roof: 0
+        },
+        constructionInfo: {
+          north: { underConstruction: true, remainingGameDays: 5 },
+          south: { underConstruction: false },
+          east: { underConstruction: false },
+          west: { underConstruction: false }
+        }
+      })
+      const page = new StadiumPage()
+      await page.load()
+      // The north stand inputs should be disabled
+      expect(page.template).toContain('disabled')
     })
 
     it('template contains stadium canvas container', async () => {

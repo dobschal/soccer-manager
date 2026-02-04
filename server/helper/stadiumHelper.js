@@ -5,6 +5,8 @@ import { updateTeamBalance } from './financeHelper.js'
 import { getTeam } from './teamHelper.js'
 import { addLogMessage } from './logMessageHelper.js'
 
+const GAMEDAYS_PER_SEASON = 34
+
 /**
  * @param {Request} req
  * @returns {Promise<StadiumType>}
@@ -13,6 +15,127 @@ export async function getStadiumOfCurrentUser (req) {
   const team = await getTeam(req)
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=? LIMIT 1', [team.id])
   return stadium
+}
+
+/**
+ * Calculates construction time in gamedays for a stand expansion
+ * @param {number} currentSize - Current stand size
+ * @param {number} targetSize - Target stand size
+ * @param {boolean|number} currentRoof - Current roof status
+ * @param {boolean|number} targetRoof - Target roof status
+ * @returns {number} Construction time in gamedays
+ */
+export function calculateConstructionTime (currentSize, targetSize, currentRoof, targetRoof) {
+  const seatsDiff = targetSize - currentSize
+  const baseTime = Math.max(3, Math.ceil(seatsDiff / 1000))
+  const addingRoof = !currentRoof && targetRoof
+  const roofTime = addingRoof ? 3 : 0
+  return baseTime + roofTime
+}
+
+/**
+ * Calculates the end gameday and season for construction
+ * @param {number} gameDay - Current gameday
+ * @param {number} season - Current season
+ * @param {number} constructionDays - Number of gamedays for construction
+ * @returns {{endGameDay: number, endSeason: number}}
+ */
+export function calculateConstructionEndDate (gameDay, season, constructionDays) {
+  let endGameDay = gameDay + constructionDays
+  let endSeason = season
+
+  while (endGameDay > GAMEDAYS_PER_SEASON) {
+    endGameDay -= GAMEDAYS_PER_SEASON
+    endSeason++
+  }
+
+  return { endGameDay, endSeason }
+}
+
+/**
+ * Checks if a stand is currently under construction
+ * @param {StadiumType} stadium
+ * @param {string} standName - 'north', 'south', 'east', or 'west'
+ * @returns {boolean}
+ */
+export function isStandUnderConstruction (stadium, standName) {
+  const endGameDay = stadium[`${standName}_construction_end_game_day`]
+  return endGameDay != null
+}
+
+/**
+ * Gets construction info for all stands
+ * @param {StadiumType} stadium
+ * @param {number} currentGameDay
+ * @param {number} currentSeason
+ * @returns {Object} Construction info per stand
+ */
+export function getConstructionInfo (stadium, currentGameDay, currentSeason) {
+  const stands = ['north', 'south', 'east', 'west']
+  const info = {}
+
+  for (const stand of stands) {
+    const endGameDay = stadium[`${stand}_construction_end_game_day`]
+    const endSeason = stadium[`${stand}_construction_end_season`]
+
+    if (endGameDay === null || endGameDay === undefined) {
+      info[stand] = { underConstruction: false }
+    } else {
+      const currentTotal = currentSeason * GAMEDAYS_PER_SEASON + currentGameDay
+      const endTotal = endSeason * GAMEDAYS_PER_SEASON + endGameDay
+      const remaining = Math.max(0, endTotal - currentTotal)
+
+      info[stand] = {
+        underConstruction: true,
+        remainingGameDays: remaining,
+        endGameDay,
+        endSeason,
+        targetSize: stadium[`${stand}_construction_target_size`],
+        targetRoof: stadium[`${stand}_construction_target_roof`]
+      }
+    }
+  }
+
+  return info
+}
+
+/**
+ * Completes any stadium constructions that are due
+ * @param {number} gameDay
+ * @param {number} season
+ * @returns {Promise<void>}
+ */
+export async function completeStadiumConstructions (gameDay, season) {
+  const stands = ['north', 'south', 'east', 'west']
+
+  for (const stand of stands) {
+    const stadiums = await query(`
+      SELECT s.*, t.id as team_id_ref, t.name as team_name
+      FROM stadium s
+      JOIN team t ON s.team_id = t.id
+      WHERE s.${stand}_construction_end_game_day IS NOT NULL
+        AND (s.${stand}_construction_end_season < ?
+             OR (s.${stand}_construction_end_season = ? AND s.${stand}_construction_end_game_day <= ?))
+    `, [season, season, gameDay])
+
+    for (const stadium of stadiums) {
+      await query(`
+        UPDATE stadium
+        SET ${stand}_stand_size = ${stand}_construction_target_size,
+            ${stand}_stand_roof = ${stand}_construction_target_roof,
+            ${stand}_construction_end_game_day = NULL,
+            ${stand}_construction_end_season = NULL,
+            ${stand}_construction_target_size = NULL,
+            ${stand}_construction_target_roof = NULL
+        WHERE id = ?
+      `, [stadium.id])
+
+      const [team] = await query('SELECT * FROM team WHERE id=?', [stadium.team_id])
+      if (team) {
+        await addLogMessage(`Your ${stand} stand construction is complete!`, team)
+      }
+    }
+  }
 }
 
 /**
@@ -79,37 +202,53 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
 
 /**
  * @param {TeamType} team
+ * @param {StadiumType} currentStadium
  * @param {StadiumType} plannedStadium
  * @param {number} price
- * @returns {Promise<void>}
+ * @returns {Promise<{constructionInfo: Object}>}
  */
-export async function buildStadium (team, plannedStadium, price) {
-  const {
-    gameDay,
-    season
-  } = await getGameDayAndSeason()
-  await updateTeamBalance(team, price * -1, 'Stadium construction build', gameDay, season)
-  await query(`
-      UPDATE stadium
-      SET north_stand_size=?,
-          south_stand_size=?,
-          west_stand_size=?,
-          east_stand_size=?,
-          north_stand_roof=?,
-          south_stand_roof=?,
-          west_stand_roof=?,
-          east_stand_roof=?
-      WHERE id = ?
-  `, [
-    plannedStadium.north_stand_size,
-    plannedStadium.south_stand_size,
-    plannedStadium.west_stand_size,
-    plannedStadium.east_stand_size,
-    plannedStadium.north_stand_roof,
-    plannedStadium.south_stand_roof,
-    plannedStadium.west_stand_roof,
-    plannedStadium.east_stand_roof,
-    plannedStadium.id
-  ])
-  await addLogMessage('Congratulations! You expanded your stadium!', team)
+export async function buildStadium (team, currentStadium, plannedStadium, price) {
+  const { gameDay, season } = await getGameDayAndSeason()
+  await updateTeamBalance(team, price * -1, 'Stadium construction started', gameDay, season)
+
+  const stands = ['north', 'south', 'east', 'west']
+  const updateFields = {}
+
+  for (const stand of stands) {
+    const currentSize = currentStadium[`${stand}_stand_size`]
+    const targetSize = plannedStadium[`${stand}_stand_size`]
+    const currentRoof = currentStadium[`${stand}_stand_roof`]
+    const targetRoof = plannedStadium[`${stand}_stand_roof`]
+
+    // Skip if no changes for this stand
+    if (currentSize === targetSize && currentRoof === targetRoof) continue
+
+    // Check if stand is already under construction
+    if (isStandUnderConstruction(currentStadium, stand)) {
+      throw new BadRequestError(`${stand} stand is already under construction`)
+    }
+
+    const constructionDays = calculateConstructionTime(currentSize, targetSize, currentRoof, targetRoof)
+    const { endGameDay, endSeason } = calculateConstructionEndDate(gameDay, season, constructionDays)
+
+    updateFields[`${stand}_construction_end_game_day`] = endGameDay
+    updateFields[`${stand}_construction_end_season`] = endSeason
+    updateFields[`${stand}_construction_target_size`] = targetSize
+    updateFields[`${stand}_construction_target_roof`] = targetRoof ? 1 : 0
+  }
+
+  if (Object.keys(updateFields).length === 0) {
+    throw new BadRequestError('No changes to build')
+  }
+
+  // Build the dynamic UPDATE query
+  const setClauses = Object.keys(updateFields).map(k => `${k}=?`).join(', ')
+  const values = [...Object.values(updateFields), currentStadium.id]
+
+  await query(`UPDATE stadium SET ${setClauses} WHERE id=?`, values)
+  await addLogMessage('Construction has started on your stadium!', team)
+
+  // Return updated construction info
+  const updatedStadium = { ...currentStadium, ...updateFields }
+  return { constructionInfo: getConstructionInfo(updatedStadium, gameDay, season) }
 }

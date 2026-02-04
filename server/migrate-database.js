@@ -501,6 +501,19 @@ const migrations = [{
         INDEX idx_news_lookup (season, game_day, level, league)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Add stadium construction tracking columns',
+  async run () {
+    const stands = ['north', 'south', 'east', 'west']
+    for (const stand of stands) {
+      await query(`ALTER TABLE stadium
+        ADD COLUMN ${stand}_construction_end_game_day INT DEFAULT NULL,
+        ADD COLUMN ${stand}_construction_end_season INT DEFAULT NULL,
+        ADD COLUMN ${stand}_construction_target_size INT DEFAULT NULL,
+        ADD COLUMN ${stand}_construction_target_roof TINYINT(1) DEFAULT NULL
+      `)
+    }
+  }
 }]
 
 /**
