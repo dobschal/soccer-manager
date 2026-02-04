@@ -5,9 +5,22 @@ import { Balance } from '../partials/balance.js'
 import { euroFormat } from '../lib/currency.js'
 import { BalanceChart } from '../partials/balanceChart.js'
 
+/**
+ * @typedef {Object} FinanceLogEntry
+ * @property {number} id
+ * @property {number} season
+ * @property {number} game_day
+ * @property {number} value - Positive for income, negative for expenses
+ * @property {number} balance - Team balance after this transaction
+ * @property {number} team_id
+ * @property {string} reason
+ * @property {string} created_at - ISO date string
+ */
+
 export class FinancesPage extends UIElement {
   sponsor = null
   offers = []
+  /** @type {FinanceLogEntry[]} */
   financeLog = []
 
   /**
@@ -91,10 +104,9 @@ export class FinancesPage extends UIElement {
     this.financeLog = logResponse.log
   }
 
-
   /**
-   * @param {Object} logA
-   * @param {Object} logB
+   * @param {FinanceLogEntry} logA
+   * @param {FinanceLogEntry} logB
    * @returns {number}
    */
   _sortFinanceLog (logA, logB) {
@@ -105,9 +117,9 @@ export class FinancesPage extends UIElement {
   }
 
   /**
-   * @param {Object} logItem
+   * @param {FinanceLogEntry} logItem
    * @param {number} index
-   * @param {Array} array
+   * @param {FinanceLogEntry[]} array
    * @returns {string}
    */
   _renderFinanceLog (logItem, index, array) {

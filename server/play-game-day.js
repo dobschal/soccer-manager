@@ -393,7 +393,9 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
   if (!goalKeeper) {
     console.log('Team has no goalkeeper set!')
   }
-  if ((goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)) || Math.random() > 0.25) {
+  const keeperSaves = goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)
+  const shotMisses = Math.random() > 0.25
+  if (keeperSaves || (goalKeeper && shotMisses)) {
     gameDetails.log.push({
       player: activePlayer.id,
       keeperHolds: true,
@@ -402,6 +404,10 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     goalKeeper.hasBall = true
     activePlayer.hasBall = false
     return false
+  }
+  if (!goalKeeper && shotMisses) {
+    // Shot missed, ball goes to random opponent
+    return true
   }
   if (teamAHasBall) {
     gameDetails.goalsTeamA = gameDetails.goalsTeamA ?? 0

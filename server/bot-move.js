@@ -29,6 +29,10 @@ import playersRoutes from './routes/players.js'
 export async function makeBotMoves () {
   /** @type {TeamType[]} */
   const botTeams = await query('SELECT * FROM team WHERE user_id IS NULL')
+  if (botTeams.length === 0) {
+    console.log('No bot teams to process')
+    return
+  }
   const botTeamIds = botTeams.map(t => t.id).join(', ')
   /** @type {PlayerType[]} */
   const players = await query(`SELECT * FROM player WHERE team_id IN (${botTeamIds})`)
