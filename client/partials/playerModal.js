@@ -12,6 +12,39 @@ import { showDialog } from './dialog.js'
 import { renderAsync } from '../lib/renderAsync.js'
 
 /**
+ * Get color for player level (bronze/silver/gold)
+ * @param {number} level
+ * @returns {{ text: string }}
+ */
+function getLevelColor (level) {
+  if (level >= 7) return { text: '#f0c75e' } // Gold
+  if (level >= 4) return { text: '#d8d8d8' } // Silver
+  return { text: '#daa06d' } // Bronze
+}
+
+/**
+ * Get color for freshness (red/yellow/green)
+ * @param {number} freshness
+ * @returns {string}
+ */
+function getFreshnessColor (freshness) {
+  if (freshness >= 0.7) return '#28a745' // Green
+  if (freshness >= 0.4) return '#ffc107' // Yellow
+  return '#dc3545' // Red
+}
+
+/**
+ * Format currency amount compactly (e.g., 3543 → "3.5K€")
+ * @param {number} amount
+ * @returns {string}
+ */
+function formatCompactCurrency (amount) {
+  if (amount >= 1000000) return (amount / 1000000).toFixed(1) + 'M€'
+  if (amount >= 1000) return (amount / 1000).toFixed(1) + 'K€'
+  return amount + '€'
+}
+
+/**
  * @param {number} playerId
  * @returns {Promise<void>}
  */
@@ -30,7 +63,11 @@ export async function showPlayerModal (playerId) {
   const { offer } = await server.myOfferForPlayer(player)
   const { offers } = await server.getOffers()
   const hasSellOffer = (offers || []).some(o => o.player_id === player.id && o.type === 'sell')
-  console.log('Player modal - checking sell offers:', { playerId: player.id, offers, hasSellOffer })
+  console.log('Player modal - checking sell offers:', {
+    playerId: player.id,
+    offers,
+    hasSellOffer
+  })
 
   onClick(teamLinkId, () => {
     goTo(`team?id=${playersTeam.id}`)
@@ -67,19 +104,45 @@ export async function showPlayerModal (playerId) {
     }
   }, 'danger')
 
+  const levelColor = getLevelColor(player.level)
+  const freshnessColor = getFreshnessColor(player.freshness)
+  const statCardStyle = 'background: linear-gradient(136deg, #1a1a2e 0%, #16213e 50%, #0d4a5a 100%); border-radius: 12px; width: 108px; height: 108px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;'
+
   const overlay = showOverlay(
     player.name,
-    `Position: ${player.position}`,
+    `<span id="${teamLinkId}" class="text-info" style="cursor: pointer">${playersTeam.name}</span>`,
     `
-      <p class="mb-4">
-        ${playerImage}
-        <b>Age</b>: ${calculatePlayerAge(player, season)}<br>
-        <b>Level</b>: ${player.level}<br>
-        <b>Freshness</b>: ${Math.floor(player.freshness * 100)}%<br>
-        <b>Sallary</b>: ${euroFormat.format(sallaryPerLevel[player.level])}<br>
-        <b>Value</b>: ${euroFormat.format(price)}<br>
-        <b>Team</b>: <span id="${teamLinkId}" class="text-info">${playersTeam.name}</span>
-      </p>
+      <div class="d-flex gap-3 mb-4">
+        <div style="flex-shrink: 0;">${playerImage}</div>
+        <div class="d-flex flex-column justify-content-center">
+          <div class="d-flex flex-wrap gap-2">
+            <div style="${statCardStyle}">
+              <div style="font-size: 14px; opacity: 0.7;">Position</div>
+              <div style="font-size: 28px; font-weight: bold;">${player.position}</div>
+            </div>
+            <div style="${statCardStyle}">
+              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Age</div>
+              <div style="font-size: 28px; font-weight: bold;">${calculatePlayerAge(player, season)}</div>
+            </div>
+            <div style="${statCardStyle}">
+              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Level</div>
+              <div style="font-size: 28px; font-weight: bold; color: ${levelColor.text}; text-shadow: 0 0 8px ${levelColor.text};">${player.level}</div>
+            </div>            
+            <div style="${statCardStyle}">
+              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Freshness</div>
+              <div style="font-size: 28px; font-weight: bold; color: ${freshnessColor}">${Math.floor(player.freshness * 100)}%</div>
+            </div>
+            <div style="${statCardStyle}">
+              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Salary</div>
+              <div style="font-size: 28px; font-weight: bold;">${formatCompactCurrency(sallaryPerLevel[player.level])}</div>
+            </div>
+            <div style="${statCardStyle}">
+              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Value</div>
+              <div style="font-size: 28px; font-weight: bold;">${formatCompactCurrency(price)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="${offer ? 'hidden' : ''} mb-4" style="clear: both">
         <b>💰 ${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>
         <p>Just enter a wanted price:</p>

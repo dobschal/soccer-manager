@@ -38,7 +38,7 @@ export class TeamPage extends UIElement {
           <h2>${this.team.name}</h2>
           <p>
             <b>League</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
-            <b>Team Strength</b>: ${this._teamStrength}<br>
+            <b>Lineup Strength</b>: ${this._teamStrength}<br>
             <b>Ø Freshness</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
             <b>Trainer</b>: ${this._username}<br>
             <b>Stadium Size</b>: <a href="#" class="stadium-link text-info">${this._stadiumSize} seats</a>
