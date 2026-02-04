@@ -78,6 +78,58 @@ export default {
   },
 
   /**
+   * Get the next upcoming game for the user's team
+   * @param {Request} req
+   * @returns {Promise<{game: GameResultType|null, nextGameDate: Date, opponent: object|null}>}
+   */
+  async getNextGame (req) {
+    const team = await getTeam(req)
+    const { season } = await getGameDayAndSeason()
+
+    // Get the next unplayed game for this team
+    const games = await query(`
+        SELECT g.id           as id,
+               g.game_day     as gameDay,
+               g.season       as season,
+               g.goals_team_1 as goalsTeam1,
+               g.goals_team_2 as goalsTeam2,
+               t1.name        as team1,
+               t2.name        as team2,
+               g.team_1_id    as team1Id,
+               g.team_2_id    as team2Id
+        FROM game g
+                 JOIN team t1 ON t1.id = g.team_1_id
+                 JOIN team t2 ON t2.id = g.team_2_id
+        WHERE g.played = 0
+          AND g.season = ?
+          AND (g.team_1_id = ? OR g.team_2_id = ?)
+        ORDER BY g.game_day ASC
+        LIMIT 1
+    `, [season, team.id, team.id])
+
+    if (games.length === 0) {
+      return { game: null, nextGameDate: null, opponent: null }
+    }
+
+    const game = games[0]
+    const opponentId = game.team1Id === team.id ? game.team2Id : game.team1Id
+    const [opponent] = await query('SELECT * FROM team WHERE id = ?', [opponentId])
+
+    // Calculate next game date
+    const d = new Date()
+    d.setHours(12)
+    d.setMinutes(0)
+    d.setSeconds(0)
+    if (Date.now() > d.getTime()) {
+      d.setHours(23)
+      d.setMinutes(59)
+      d.setSeconds(59)
+    }
+
+    return { game, nextGameDate: d, opponent }
+  },
+
+  /**
    * @param {number} gameDay
    * @param {number} season
    * @param {number} level

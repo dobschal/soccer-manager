@@ -9,6 +9,7 @@ import { News } from '../partials/news.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { delay } from '../lib/delay.js'
+import { el, generateId } from '../lib/html.js'
 
 const pageIndex = 0
 const pageSize = 10
@@ -57,6 +58,8 @@ const actionCardImages = {
 export class DashboardPage extends UIElement {
   _overlay = null
   _currentCardElement = null
+  _timerInterval = null
+  _countdownElementId = generateId()
   actionCards = []
   team = {}
   user = {}
@@ -65,6 +68,9 @@ export class DashboardPage extends UIElement {
   game = {}
   gameTeam1 = null
   gameTeam2 = null
+  nextGame = null
+  nextGameDate = null
+  nextGameOpponent = null
   messages = []
 
   /**
@@ -152,6 +158,7 @@ export class DashboardPage extends UIElement {
             </div>
           </a>
         </div>
+        ${this._renderUpcomingGame()}
         <h3>Action Cards</h3>
         <p style="max-width: 620px">With every game played, you have the chance to earn at least one action card. Some cards of the same type can be merged to a better one (E.g. two Level Up 4 to one Level Up 7 Card). All earned cards are shown here:</p>
         <div class="card card-body bg-dark pt-4 mb-4" id="action-cards">
@@ -199,6 +206,66 @@ export class DashboardPage extends UIElement {
     }
 
     this.messages = await server.getLogMessages(pageIndex, pageSize)
+
+    // Fetch next upcoming game
+    const nextGameResponse = await server.getNextGame()
+    this.nextGame = nextGameResponse.game
+    this.nextGameDate = nextGameResponse.nextGameDate
+    this.nextGameOpponent = nextGameResponse.opponent
+  }
+
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._startCountdownTimer()
+  }
+
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    this._stopCountdownTimer()
+  }
+
+  /**
+   * @returns {void}
+   */
+  _startCountdownTimer () {
+    if (this._timerInterval) clearInterval(this._timerInterval)
+    if (!this.nextGameDate) return
+
+    this._timerInterval = setInterval(() => {
+      const diff = new Date(this.nextGameDate).getTime() - Date.now()
+      const timerEl = el('#' + this._countdownElementId)
+
+      if (!timerEl) {
+        this._stopCountdownTimer()
+        return
+      }
+
+      if (diff < 0) {
+        timerEl.innerHTML = 'Starting soon...'
+        return
+      }
+
+      const seconds = Math.floor(diff / 1000)
+      const minutes = Math.floor(seconds / 60)
+      const hours = Math.floor(minutes / 60)
+      const twoDigits = (v) => v < 10 ? '0' + v : v
+
+      timerEl.innerHTML = `${twoDigits(hours)}:${twoDigits(minutes % 60)}:${twoDigits(seconds % 60)}`
+    }, 1000)
+  }
+
+  /**
+   * @returns {void}
+   */
+  _stopCountdownTimer () {
+    if (this._timerInterval) {
+      clearInterval(this._timerInterval)
+      this._timerInterval = null
+    }
   }
 
   /**
@@ -234,6 +301,45 @@ export class DashboardPage extends UIElement {
         <small>${formatDate('WORDY hh:mm', messageItem.created_at)}</small><br>
         <i class="fa fa-chevron-right" aria-hidden="true"></i> ${messageItem.message}
       </li>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderUpcomingGame () {
+    if (!this.nextGame || !this.nextGameOpponent) {
+      return ''
+    }
+
+    const isHomeGame = this.nextGame.team1Id === this.team.id
+    const myTeamData = isHomeGame ? this.gameTeam1 : this.gameTeam2
+
+    return `
+      <h3 class="mt-4">Upcoming Match</h3>
+      <p>Your next match is on game day ${this.nextGame.gameDay} of season ${this.season + 1}.</p>
+      <div class="card card-body mb-4 bg-dark">
+        <div class="row pt-2 d-flex align-items-center">
+          <div class="col-5 col-sm-5 text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
+            <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center">
+              <div class="order-1 order-sm-0 mb-2 mb-sm-0 me-sm-2">${isHomeGame && myTeamData ? renderEmblem(myTeamData, 80) : renderEmblem(this.nextGameOpponent, 80)}</div>
+              <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${isHomeGame ? this.team.name : this.nextGameOpponent.name}</h5>
+            </div>
+          </div>
+          <div class="col-2 col-sm-2 text-center">
+            <div class="badge bg-info p-2" style="font-size: 1.2rem;">
+              <i class="fa fa-clock-o" aria-hidden="true"></i><br>
+              <span id="${this._countdownElementId}">--:--:--</span>
+            </div>
+          </div>
+          <div class="col-5 col-sm-5 text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
+            <div class="d-flex flex-column flex-sm-row-reverse align-items-center justify-content-center">
+              <div class="order-1 order-sm-0 mb-2 mb-sm-0 ms-sm-2">${!isHomeGame && myTeamData ? renderEmblem(myTeamData, 80) : renderEmblem(this.nextGameOpponent, 80)}</div>
+              <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${!isHomeGame ? this.team.name : this.nextGameOpponent.name}</h5>
+            </div>
+          </div>
+        </div>
+      </div>
     `
   }
 

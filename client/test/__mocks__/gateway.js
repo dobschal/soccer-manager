@@ -34,6 +34,7 @@ export const server = {
   login: vi.fn(),
   register: vi.fn(),
   getNextGameDate: vi.fn(),
+  getNextGame: vi.fn(),
   saveLineup: vi.fn(),
   getStanding: vi.fn(),
   getResult: vi.fn(),

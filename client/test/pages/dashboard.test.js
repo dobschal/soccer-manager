@@ -8,6 +8,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getCurrentGameday: vi.fn(),
     getResults: vi.fn(),
     getLogMessages: vi.fn(),
+    getNextGame: vi.fn(),
+    getTeamById: vi.fn(),
     useActionCard: vi.fn(),
     mergeCards: vi.fn()
   }
@@ -67,6 +69,8 @@ describe('DashboardPage', () => {
     server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
     server.getResults.mockResolvedValue({ results: [] })
     server.getLogMessages.mockResolvedValue([])
+    server.getNextGame.mockResolvedValue({ game: null, nextGameDate: null, opponent: null })
+    server.getTeamById.mockResolvedValue({ id: 1, name: 'Test FC' })
   })
 
   describe('DashboardPage class', () => {
