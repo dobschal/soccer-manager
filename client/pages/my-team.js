@@ -8,7 +8,7 @@ import { PlayerList } from '../partials/playerList.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { setQueryParams } from '../lib/router.js'
-import { sallaryPerLevel, calculatePlayerAge } from '../util/player.js'
+import { calculatePlayerAge, sallaryPerLevel } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { formatLeague } from '../util/league.js'
 import { lineUpData, renderLineup } from '../partials/lineup.js'
@@ -95,7 +95,7 @@ export class MyTeamPage extends UIElement {
       <h2>${this.data.team.name}</h2>
       <div class="row">
         <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 text-white" style="background: #333">
+          <div class="card h-100 text-white bg-dark">
             <div class="card-body">
               <h5 class="card-title">Team Info</h5>
               <p class="card-text">
@@ -110,7 +110,7 @@ export class MyTeamPage extends UIElement {
           </div>
         </div>
         <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 text-white" style="background: #333">
+          <div class="card h-100 text-white bg-dark" >
             <div class="card-body" style="perspective: 40px;">
               <h5 class="card-title">Emblem <i class="fa fa-pencil" aria-hidden="true"></i></h5>
               ${this._renderEmblemViewer()}
@@ -118,7 +118,7 @@ export class MyTeamPage extends UIElement {
           </div>
         </div>
         <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 text-white" style="background: #333">
+          <div class="card h-100 text-white bg-dark" >
             <div class="card-body">
               <h5 class="card-title">Lineup</h5>
               <p class="card-text">Choose from one of the following line-ups:</p>

@@ -55,7 +55,8 @@ export class Table extends UIElement {
    */
   onMounted () {
     this._applyInitialSort()
-    this._attachEventHandlers()
+    this._attachHeaderEventHandlers()
+    this._attachBodyEventHandlers()
   }
 
   /**
@@ -75,24 +76,44 @@ export class Table extends UIElement {
   }
 
   /**
+   * @param {Object} params
+   * @param {string} params.sort_dir
+   * @param {string} params.col
    * @returns {void}
    */
-  _attachEventHandlers () {
-    // Attach header click handlers for sorting
-    const headers = document.querySelectorAll(`${this._elementQuery} th.sort-header`)
-    headers.forEach((header, index) => {
-      const col = this.config.cols[index]
-      if (col.sortKey || col.sortFn) {
+  onQueryChanged ({ sort_dir: sortDirection, col: colIndex }) {
+    if (sortDirection && colIndex !== undefined) {
+      const col = this.config.cols[Number(colIndex)]
+      if (col && (col.sortKey || col.sortFn)) {
+        this._sortTable(Number(colIndex), sortDirection)
+      }
+    }
+  }
+
+  /**
+   * @returns {void}
+   */
+  _attachHeaderEventHandlers () {
+    const headers = document.querySelectorAll(`${this._elementQuery} th`)
+    headers.forEach((header, colIndex) => {
+      const col = this.config.cols[colIndex]
+      if (col && (col.sortKey || col.sortFn)) {
         header.addEventListener('click', () => {
-          const { sort_dir: currentDir } = getQueryParams()
+          const { sort_dir: currentDir, col: currentCol } = getQueryParams()
+          const newDir = (currentCol === colIndex.toString() && currentDir === 'ASC') ? 'DESC' : 'ASC'
           setQueryParams({
-            sort_dir: currentDir === 'DESC' ? 'ASC' : 'DESC',
-            col: index.toString()
+            sort_dir: newDir,
+            col: colIndex.toString()
           })
         })
       }
     })
+  }
 
+  /**
+   * @returns {void}
+   */
+  _attachBodyEventHandlers () {
     // Attach row click handlers
     if (typeof this.config.onClick === 'function') {
       const rows = document.querySelectorAll(`${this._elementQuery} tbody tr`)
@@ -124,7 +145,7 @@ export class Table extends UIElement {
    */
   _sortTable (colIndex, sortDirection) {
     const col = this.config.cols[colIndex]
-    const tableEl = el(`${this._elementQuery} table`)
+    const tableEl = el(this._elementQuery)
     if (!tableEl) return
 
     // Remove existing sort indicators
@@ -153,7 +174,7 @@ export class Table extends UIElement {
     const tbody = tableEl.querySelector('tbody')
     if (tbody) {
       tbody.innerHTML = this._renderTableRows()
-      this._attachEventHandlers()
+      this._attachBodyEventHandlers()
     }
   }
 

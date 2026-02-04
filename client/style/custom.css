@@ -3,7 +3,7 @@
 }
 
 .bg-dark {
-    background: linear-gradient(136deg, #1a1a2e 0%, #16213e 50%, #0d4a5a 100%) !important;
+    background: linear-gradient(136deg, #222 0%, #333 100%) !important;
 }
 
 @font-face {
@@ -223,7 +223,7 @@ body {
 table.table thead tr th {
     text-transform: uppercase;
     letter-spacing: 1px;
-    background-color: #333;
+    background: linear-gradient(136deg, #222 0%, #333 100%) !important;
     color: white;
     border-radius: 255px 0 217px 0px/25px 225px 0px 249px;
     border-bottom: none;
@@ -457,6 +457,29 @@ td.hover-text:hover {
 
 .default-layout .app-footer {
     padding: 1rem;
+}
+
+/* Player Modal Stat Cards */
+.stat-card {
+    border-radius: 12px;
+    width: 108px;
+    height: 108px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.stat-card-label {
+    font-size: 14px;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.stat-card-value {
+    font-size: 28px;
+    font-weight: bold;
 }
 
 @media screen and (max-width: 768px) {

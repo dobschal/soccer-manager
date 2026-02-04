@@ -1,7 +1,6 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
 import { calculatePlayerAge, sallaryPerLevel } from '../util/player.js'
-import { euroFormat } from '../lib/currency.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from './toast.js'
@@ -106,7 +105,6 @@ export async function showPlayerModal (playerId) {
 
   const levelColor = getLevelColor(player.level)
   const freshnessColor = getFreshnessColor(player.freshness)
-  const statCardStyle = 'background: linear-gradient(136deg, #1a1a2e 0%, #16213e 50%, #0d4a5a 100%); border-radius: 12px; width: 108px; height: 108px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;'
 
   const overlay = showOverlay(
     player.name,
@@ -116,29 +114,29 @@ export async function showPlayerModal (playerId) {
         <div style="flex-shrink: 0;">${playerImage}</div>
         <div class="d-flex flex-column justify-content-center">
           <div class="d-flex flex-wrap gap-2">
-            <div style="${statCardStyle}">
-              <div style="font-size: 14px; opacity: 0.7;">Position</div>
-              <div style="font-size: 28px; font-weight: bold;">${player.position}</div>
+            <div class="stat-card bg-dark">
+              <div class="stat-card-label">Position</div>
+              <div class="stat-card-value">${player.position}</div>
             </div>
-            <div style="${statCardStyle}">
-              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Age</div>
-              <div style="font-size: 28px; font-weight: bold;">${calculatePlayerAge(player, season)}</div>
+            <div class="stat-card bg-dark">
+              <div class="stat-card-label">Age</div>
+              <div class="stat-card-value">${calculatePlayerAge(player, season)}</div>
             </div>
-            <div style="${statCardStyle}">
-              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Level</div>
-              <div style="font-size: 28px; font-weight: bold; color: ${levelColor.text}; text-shadow: 0 0 8px ${levelColor.text};">${player.level}</div>
-            </div>            
-            <div style="${statCardStyle}">
-              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Freshness</div>
-              <div style="font-size: 28px; font-weight: bold; color: ${freshnessColor}">${Math.floor(player.freshness * 100)}%</div>
+            <div class="stat-card bg-dark">
+              <div class="stat-card-label">Level</div>
+              <div class="stat-card-value" style="color: ${levelColor.text}; text-shadow: 0 0 8px ${levelColor.text};">${player.level}</div>
             </div>
-            <div style="${statCardStyle}">
-              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Salary</div>
-              <div style="font-size: 28px; font-weight: bold;">${formatCompactCurrency(sallaryPerLevel[player.level])}</div>
+            <div class="stat-card bg-dark">
+              <div class="stat-card-label">Freshness</div>
+              <div class="stat-card-value" style="color: ${freshnessColor}">${Math.floor(player.freshness * 100)}%</div>
             </div>
-            <div style="${statCardStyle}">
-              <div style="font-size: 14px; text-transform: uppercase; opacity: 0.7;">Value</div>
-              <div style="font-size: 28px; font-weight: bold;">${formatCompactCurrency(price)}</div>
+            <div class="stat-card bg-dark">
+              <div class="stat-card-label">Salary</div>
+              <div class="stat-card-value">${formatCompactCurrency(sallaryPerLevel[player.level])}</div>
+            </div>
+            <div class="stat-card bg-dark">
+              <div class="stat-card-label">Value</div>
+              <div class="stat-card-value">${formatCompactCurrency(price)}</div>
             </div>
           </div>
         </div>
@@ -155,7 +153,7 @@ export async function showPlayerModal (playerId) {
                  aria-describedby="Yeah">
           <div class="input-group-append">
             <button id="${buttonId}"  class="btn btn-outline-primary" type="button">
-              ${isMyPlayer ? 'Sell' : 'Buy'}
+              ${isMyPlayer ? 'Sell' : 'Submit Offer'}
             </button>
           </div>
         </div>

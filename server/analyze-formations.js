@@ -91,7 +91,7 @@ function randomItem (array) {
  * @param {GamePlayer[]} playerTeamB
  * @param {GameDetails} gameDetails
  */
-function kickoff (playerTeamA, playerTeamB, gameDetails) {
+function kickoff (playerTeamA, playerTeamB, _gameDetails) {
   const player = randomItem(playerTeamA.concat(playerTeamB))
   player.hasBall = true
 }
@@ -210,7 +210,7 @@ function shootBall (playerTeamA, playerTeamB, gameDetails) {
  * @param {GamePlayer[]} playerTeamB
  * @param {GameDetails} gameDetails
  */
-function passBall (playerTeamA, playerTeamB, gameDetails) {
+function passBall (playerTeamA, playerTeamB, _gameDetails) {
   let activePlayer = playerTeamA.find(p => p.hasBall)
   let teamAHasBall = true
 
