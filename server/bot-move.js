@@ -148,22 +148,38 @@ async function _checkIncomingOffers (botTeam, players) {
       continue
     }
 
-    // Check if we can afford to sell this player (need at least 1 player per position in formation)
     const playersInSamePosition = players.filter(p => p.position === player.position && p.id !== playerId)
     const positionsRequiredForFormation = positionsNeeded.filter(p => p === player.position).length
-    if (playersInSamePosition.length < positionsRequiredForFormation) {
-      // Can't sell - would leave formation incomplete
-      await declineOffer(offer)
-      continue
-    }
 
+    // Check if selling would leave a hole in the formation
+    const wouldLeaveHole = playersInSamePosition.length < positionsRequiredForFormation
+
+    // Calculate player value and offer premium
     const matchingSellOffer = openSellOffers.find(sellOffer => sellOffer.player_id === playerId)
     const averagePrice = await getAveragePlanPriceOfPlayer(player)
-
-    // Determine minimum acceptable price with randomization (80% - 120% of average/sell price)
     const basePrice = matchingSellOffer ? matchingSellOffer.offer_value : averagePrice
-    const randomFactor = 0.8 + Math.random() * 0.4 // 0.8 to 1.2
-    const minAcceptablePrice = basePrice * randomFactor
+
+    // Check if team would still be competitive after selling
+    const remainingPlayersInPosition = playersInSamePosition.filter(p => p.level >= player.level - 2)
+    const teamWouldBeOkAfterSale = remainingPlayersInPosition.length >= positionsRequiredForFormation
+
+    // Determine minimum acceptable price
+    let minAcceptablePrice
+    if (wouldLeaveHole) {
+      // Can't sell if it leaves a hole, unless offer is exceptionally high (2x+ value)
+      // and we have backup players that can cover
+      if (!teamWouldBeOkAfterSale || playersInSamePosition.length === 0) {
+        await declineOffer(offer)
+        continue
+      }
+      // Require a premium for selling a critical player (1.5x - 2x base price)
+      const premiumFactor = 1.5 + Math.random() * 0.5
+      minAcceptablePrice = basePrice * premiumFactor
+    } else {
+      // Normal sale - randomize acceptance threshold (80% - 120% of base price)
+      const randomFactor = 0.8 + Math.random() * 0.4
+      minAcceptablePrice = basePrice * randomFactor
+    }
 
     if (offer.offer_value >= minAcceptablePrice) {
       await acceptOffer(offer, botTeam, gameDay, season)
@@ -245,6 +261,19 @@ async function _checkSellOffers (botTeam, players) {
 }
 
 /**
+ * Calculate value-for-money score (higher is better)
+ * @param {number} level
+ * @param {number} price
+ * @returns {number}
+ */
+function _calculateValueScore (level, price) {
+  // Base value per level (exponential - higher levels are worth more)
+  const levelValue = Math.pow(2, level)
+  // Return value per unit of price (higher = better deal)
+  return levelValue / (price / 100000)
+}
+
+/**
  * @param {TeamType} botTeam
  * @param {PlayerType[]} players
  * @returns {Promise<void>}
@@ -265,32 +294,49 @@ async function _checkBuyOffers (botTeam, players) {
 
   const positionsNeeded = getPositionsOfFormation(botTeam.formation)
 
-  // Find positions where we need players or could upgrade
-  const positionsToBuy = new Set()
+  // Analyze team needs with priority scoring
+  /** @type {{position: string, priority: 'critical'|'upgrade'|'depth', currentLevel: number}[]} */
+  const teamNeeds = []
   const playerIdsAlreadyBidding = new Set(currentBuyOffers.map(o => o.player_id))
 
-  for (const position of positionsNeeded) {
+  const uniquePositions = [...new Set(positionsNeeded)]
+  for (const position of uniquePositions) {
     const minPlayersNeeded = positionsNeeded.filter(p => p === position).length
     const playersInPosition = players.filter(p => p.position === position)
+    const currentBestLevel = playersInPosition.length > 0
+      ? Math.max(...playersInPosition.map(p => p.level))
+      : 0
+    const currentWeakestLevel = playersInPosition.length > 0
+      ? Math.min(...playersInPosition.map(p => p.level))
+      : 0
 
-    // Need more players for this position
+    // Critical: Missing players for formation
     if (playersInPosition.length < minPlayersNeeded) {
-      positionsToBuy.add(position)
+      teamNeeds.push({ position, priority: 'critical', currentLevel: 0 })
       continue
     }
 
-    // Look for upgrades - if there's a player on market better than our weakest
-    const weakestLevel = Math.min(...playersInPosition.map(p => p.level))
-    if (weakestLevel < 8) { // Only look for upgrades if we don't have max level
-      positionsToBuy.add(position)
+    // Upgrade: Weakest player in position is below level 6
+    if (currentWeakestLevel < 6) {
+      teamNeeds.push({ position, priority: 'upgrade', currentLevel: currentWeakestLevel })
+      continue
+    }
+
+    // Depth: Have minimum but could use backup (only if best player is good)
+    if (playersInPosition.length < minPlayersNeeded + 1 && currentBestLevel >= 5) {
+      teamNeeds.push({ position, priority: 'depth', currentLevel: currentWeakestLevel })
     }
   }
 
-  if (positionsToBuy.size === 0) return
+  if (teamNeeds.length === 0) return
 
-  // Find sell offers for positions we want
-  const positionsArray = Array.from(positionsToBuy)
-  /** @type {(TradeOfferType & PlayerType)[]} */
+  // Sort needs by priority: critical > upgrade > depth
+  const priorityOrder = { critical: 0, upgrade: 1, depth: 2 }
+  teamNeeds.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+
+  // Find sell offers for positions we need
+  const positionsArray = teamNeeds.map(n => n.position)
+  /** @type {(TradeOfferType & {player_name: string, player_level: number, player_position: string})[]} */
   const sellOffers = await query(`
       SELECT t.*, p.name as player_name, p.level as player_level, p.position as player_position
       FROM trade_offer t
@@ -308,30 +354,62 @@ async function _checkBuyOffers (botTeam, players) {
   const availableOffers = sellOffers.filter(o => !playerIdsAlreadyBidding.has(o.player_id))
   if (availableOffers.length === 0) return
 
-  // Prefer offers where the player is better than our current players
+  // Find the best offer based on team needs and value-for-money
   let bestOffer = null
-  for (const offer of availableOffers) {
-    const ourPlayersInPosition = players.filter(p => p.position === offer.player_position)
-    const ourWeakestLevel = ourPlayersInPosition.length > 0
-      ? Math.min(...ourPlayersInPosition.map(p => p.level))
-      : 0
+  let bestScore = -1
 
-    // This player would be an upgrade or we need more players
-    if (offer.player_level > ourWeakestLevel || ourPlayersInPosition.length < positionsNeeded.filter(p => p === offer.player_position).length) {
+  for (const offer of availableOffers) {
+    const need = teamNeeds.find(n => n.position === offer.player_position)
+    if (!need) continue
+
+    // Skip if player wouldn't be an improvement (unless critical need)
+    if (need.priority !== 'critical' && offer.player_level <= need.currentLevel) {
+      continue
+    }
+
+    // Calculate score based on priority, level improvement, and value
+    let score = 0
+
+    // Priority bonus
+    if (need.priority === 'critical') score += 1000
+    else if (need.priority === 'upgrade') score += 500
+
+    // Level improvement bonus
+    const levelImprovement = offer.player_level - need.currentLevel
+    score += levelImprovement * 100
+
+    // Value-for-money score
+    score += _calculateValueScore(offer.player_level, offer.offer_value) * 10
+
+    // Prefer higher level players
+    score += offer.player_level * 50
+
+    if (score > bestScore) {
+      bestScore = score
       bestOffer = offer
-      break
     }
   }
 
-  // If no upgrade found, pick a random affordable offer
-  if (!bestOffer) {
-    bestOffer = randomItem(availableOffers)
+  // Only buy if we found a good offer
+  if (!bestOffer) return
+
+  // Determine offer price
+  // Base: match or slightly exceed asking price
+  // Small chance (10%) to overpay by up to 20% (eager buyer)
+  let offerValue
+  const isEagerBuyer = Math.random() < 0.1
+  if (isEagerBuyer) {
+    // Overpay by 5-20%
+    const overpayFactor = 1.05 + Math.random() * 0.15
+    offerValue = Math.floor(bestOffer.offer_value * overpayFactor)
+  } else {
+    // Normal offer: 95-105% of asking price
+    const normalFactor = 0.95 + Math.random() * 0.1
+    offerValue = Math.floor(bestOffer.offer_value * normalFactor)
   }
 
-  // Create buy offer with slight randomization (90% - 110% of asking price)
-  // Higher offers are more likely to be accepted
-  const randomFactor = 0.9 + Math.random() * 0.2
-  const offerValue = Math.min(maxPrice, Math.floor(bestOffer.offer_value * randomFactor))
+  // Cap at max affordable price
+  offerValue = Math.min(maxPrice, offerValue)
 
   const tradeOffer = new TradeOffer({
     offer_value: offerValue,
@@ -340,7 +418,8 @@ async function _checkBuyOffers (botTeam, players) {
     from_team_id: botTeam.id
   })
   await query('INSERT INTO trade_offer SET ?', tradeOffer)
-  console.log(`💰 ${botTeam.name} made buy offer of ${offerValue} for ${bestOffer.player_name}`)
+  const need = teamNeeds.find(n => n.position === bestOffer.player_position)
+  console.log(`💰 ${botTeam.name} made ${isEagerBuyer ? 'eager ' : ''}buy offer of ${offerValue} for ${bestOffer.player_name} (${need?.priority} need)`)
 }
 
 /**
