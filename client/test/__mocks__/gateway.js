@@ -27,6 +27,8 @@ export const server = {
   hirePlayer: vi.fn(),
   getPlayerById: vi.fn(),
   getTeam: vi.fn(),
+  getTeamValue: vi.fn(),
+  getStadiumByTeamId: vi.fn(),
   estimateValue: vi.fn(),
   getPlayerHistory: vi.fn(),
   myOfferForPlayer: vi.fn(),

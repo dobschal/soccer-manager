@@ -3,9 +3,11 @@ import { setQueryParams } from '../lib/router.js'
 import { PlayerList } from '../partials/playerList.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { renderEmblem } from '../partials/emblem.js'
+import { renderPlayerImage } from '../partials/playerImage.js'
 import { UIElement } from '../lib/UIElement.js'
 import { formatLeague } from '../util/league.js'
 import { showStadiumModal } from '../partials/stadiumModal.js'
+import { euroFormat } from '../lib/currency.js'
 
 /**
  * Information to render:
@@ -24,25 +26,45 @@ import { showStadiumModal } from '../partials/stadiumModal.js'
 export class TeamPage extends UIElement {
   /** @type {StadiumType} */
   stadium
+  /** @type {string} */
+  _bestPlayerImage = ''
+  /** @type {number} */
+  _teamValue = 0
 
   /**
    * @returns {string}
    */
   get template () {
+    const bestPlayer = this._bestPlayer
     return `
       <div>
-        <div class="mb-4">
-          <div class="float-start me-4 mb-4 ms-2">
-              ${renderEmblem(this.team, 300)}
+        <div class="row mb-4 align-items-center">
+          <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
+            ${renderEmblem(this.team, 200)}
           </div>
-          <h2>${this.team.name}</h2>
-          <p>
-            <b>League</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
-            <b>Lineup Strength</b>: ${this._teamStrength}<br>
-            <b>Ø Freshness</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
-            <b>Trainer</b>: ${this._username}<br>
-            <b>Stadium Size</b>: <a href="#" class="stadium-link text-info">${this._stadiumSize} seats</a>
-          </p>
+          <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
+            <h2>${this.team.name}</h2>
+            <p class="mb-0">
+              <b>League</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
+              <b>Team Value</b>: ${euroFormat.format(this._teamValue)}<br>
+              <b>Lineup Strength</b>: ${this._teamStrength}<br>
+              <b>Ø Freshness</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
+              <b>Trainer</b>: ${this._username}<br>
+              <b>Stadium Size</b>: <a href="#" class="stadium-link text-info">${this._stadiumSize} seats</a>
+            </p>
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            ${bestPlayer ? `
+              <div class="best-player-link" style="cursor: pointer;" data-player-id="${bestPlayer.id}">
+                <div class="mb-2" style="display: inline-block;">${this._bestPlayerImage}</div>
+                <div style="clear: both;">
+                  <div class="text-muted small">Best Player</div>
+                  <div><strong>${bestPlayer.name}</strong></div>
+                  <div class="text-info">Level ${bestPlayer.level}</div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
         </div>
         ${new PlayerList(
       this.players,
@@ -63,6 +85,14 @@ export class TeamPage extends UIElement {
           event.preventDefault()
           showStadiumModal(this.team.id)
         }
+      },
+      '.best-player-link': {
+        click: (event) => {
+          const playerId = event.currentTarget.dataset.playerId
+          if (playerId) {
+            setQueryParams({ player_id: playerId })
+          }
+        }
       }
     }
   }
@@ -80,7 +110,19 @@ export class TeamPage extends UIElement {
     this.user = user
     this.team = team
     this.players = players
-    this.stadium = await server.getStadiumByTeamId(this.team.id)
+
+    const [stadium, teamValue] = await Promise.all([
+      server.getStadiumByTeamId(this.team.id),
+      server.getTeamValue(this.team.id)
+    ])
+    this.stadium = stadium
+    this._teamValue = teamValue.value
+
+    // Render best player image
+    const bestPlayer = this._bestPlayer
+    if (bestPlayer) {
+      this._bestPlayerImage = await renderPlayerImage(bestPlayer, this.team, 150)
+    }
   }
 
   /**
@@ -125,5 +167,17 @@ export class TeamPage extends UIElement {
    */
   get _stadiumSize () {
     return this.stadium.south_stand_size + this.stadium.north_stand_size + this.stadium.east_stand_size + this.stadium.west_stand_size
+  }
+
+  /**
+   * @returns {PlayerType|null}
+   * @private
+   */
+  get _bestPlayer () {
+    if (!this.players || this.players.length === 0) return null
+    return this.players.reduce((best, player) => {
+      if (!best || player.level > best.level) return player
+      return best
+    }, null)
   }
 }

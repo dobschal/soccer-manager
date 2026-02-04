@@ -1,6 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
+import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
 
 export default {
 
@@ -71,6 +72,17 @@ export default {
       }
     }
     return { team, players, user }
+  },
+
+  /**
+   * @param {number} teamId
+   * @returns {Promise<{value: number}>}
+   */
+  async getTeamValue (teamId) {
+    const players = await query('SELECT * FROM player WHERE team_id=?', [teamId])
+    const values = await Promise.all(players.map(p => getAveragePlanPriceOfPlayer(p)))
+    const totalValue = values.reduce((sum, v) => sum + v, 0)
+    return { value: totalValue }
   },
 
   /**
