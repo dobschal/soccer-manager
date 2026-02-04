@@ -1,5 +1,5 @@
 import { UIElement } from '../lib/UIElement.js'
-import { on, off } from '../lib/event.js'
+import { off, on } from '../lib/event.js'
 import { el, generateId } from '../lib/html.js'
 import { goTo } from '../lib/router.js'
 import { Balance } from '../partials/balance.js'
@@ -21,6 +21,8 @@ export class GameLayout extends UIElement {
   _navItemEventIds = []
   _isDevelopment = false
   _version = ''
+  _gameDay = 0
+  _season = 0
 
   /**
    * @returns {string}
@@ -48,7 +50,10 @@ export class GameLayout extends UIElement {
               ${this._navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
               ${this._navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Trades')}
             </ul>
-            <div class="px-2 d-none d-md-block">|</div>
+            <div class="px-2 d-none d-lg-block">|</div>
+            <div class="navbar-info-item px-2">
+              <i class="fa fa-calendar" aria-hidden="true"></i> Day ${this._gameDay} (${this._season + 1})
+            </div>
             <div class="navbar-info-item px-2" id="${this._nextGameInElementId}">
             </div>
             <div class="navbar-info-item px-2">
@@ -72,14 +77,17 @@ export class GameLayout extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const [gameDate, devMode, versionData] = await Promise.all([
+    const [gameDate, devMode, versionData, currentGameday] = await Promise.all([
       server.getNextGameDate(),
       server.isDevelopment(),
-      server.getVersion()
+      server.getVersion(),
+      server.getCurrentGameday()
     ])
     this._nextGameDate = gameDate.date
     this._isDevelopment = devMode.isDevelopment
     this._version = versionData.version
+    this._gameDay = currentGameday.gameDay
+    this._season = currentGameday.season
   }
 
   /**
