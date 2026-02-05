@@ -60,16 +60,18 @@ export class FinancesPage extends UIElement {
   get template () {
     return `
       <div>
+      <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
         <h2>Finances</h2>
-        <p>
-          <b>Balance</b>: ${new Balance()}
-          ${new BalanceChart(this.financeLog)}
-        </p>
-        <div class="${!this.sponsor ? 'hidden' : ''}">
-          <h3>Sponsor</h3>
-          <p>Here is your current sponsor:</p>
-          <div class="row">
-            ${this._renderSponsorCard()}
+        <h3>${new Balance()}</h3>
+        </div>
+        <div class="row">
+          <div class="col-12 ${this.sponsor ? 'col-lg-8' : ''}">
+            <h5>Account Balance</h5>
+            ${new BalanceChart(this.financeLog)}
+          </div>
+          <div class="col-12 col-lg-4 ${!this.sponsor ? 'd-none' : ''}">
+            <h5>Sponsor</h5>
+            ${this._renderSponsorCardCompact()}
           </div>
         </div>
         <div class="${this.sponsor ? 'hidden' : ''}">
@@ -166,23 +168,21 @@ export class FinancesPage extends UIElement {
   /**
    * @returns {string}
    */
-  _renderSponsorCard () {
+  _renderSponsorCardCompact () {
     if (!this.sponsor) return ''
     const imagePath = this._getSponsorImagePath(this.sponsor.name)
     return `
-      <div class="col-12 col-md-6 mb-4">
-        <div class="action-card card text-white bg-success">
-          <div class="card-header">
-            <i class="fa fa-magic" aria-hidden="true"></i>
-            <i>Sponsor</i>
-          </div>
-          <img class="card-img-top" src="${imagePath}" alt="${this.sponsor.name}">
-          <div class="card-body">
-            <h5 class="card-title">${this.sponsor.name}</h5>
-            <p class="card-text">
-              ${this.sponsor.name} is sending you ${euroFormat.format(this.sponsor.value)} per game day.
-            </p>
-          </div>
+      <div class="action-card card text-white bg-success">
+        <div class="card-header">
+          <i class="fa fa-magic" aria-hidden="true"></i>
+          <i>Sponsor</i>
+        </div>
+        <img class="card-img-top" src="${imagePath}" alt="${this.sponsor.name}">
+        <div class="card-body">
+          <h5 class="card-title">${this.sponsor.name}</h5>
+          <p class="card-text">
+            ${this.sponsor.name} is sending you ${euroFormat.format(this.sponsor.value)} per game day.
+          </p>
         </div>
       </div>
     `
