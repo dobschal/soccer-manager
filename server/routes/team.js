@@ -2,7 +2,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
-import { clubPrefixes1, clubPrefixes2, cityNames } from '../lib/name-library.js'
+import { cityNames, clubPrefixes1, clubPrefixes2 } from '../lib/name-library.js'
 
 export default {
 
@@ -14,7 +14,11 @@ export default {
     const team = await getTeam(req)
     const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
     delete req.user.password
-    return { user: req.user, team, players }
+    return {
+      user: req.user,
+      team,
+      players
+    }
   },
 
   /**
@@ -56,6 +60,10 @@ export default {
    */
   async updateTeamName (name, req) {
     const team = await getTeam(req)
+    const [existing] = await query('SELECT id FROM team WHERE name=? AND id<>?', [name, team.id])
+    if (existing) {
+      throw new BadRequestError('A team with this name already exists')
+    }
     await query('UPDATE team SET name=? WHERE id=?', [name, team.id])
     return { success: true }
   },
@@ -65,9 +73,9 @@ export default {
    */
   async getNameLibrary () {
     return {
-      clubPrefixes1,
-      clubPrefixes2,
-      cityNames
+      clubPrefixes1: [...new Set(clubPrefixes1)], // Remove duplicates
+      clubPrefixes2: [...new Set(clubPrefixes2)], // Remove duplicates
+      cityNames: [...new Set(cityNames)] // Remove duplicates
     }
   },
 
@@ -86,7 +94,11 @@ export default {
   async getTeam (teamId) {
     const team = await getTeamById(teamId)
     if (!team) {
-      return { team: null, players: [], user: undefined }
+      return {
+        team: null,
+        players: [],
+        user: undefined
+      }
     }
     const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
     let user
@@ -97,7 +109,11 @@ export default {
         delete user.password
       }
     }
-    return { team, players, user }
+    return {
+      team,
+      players,
+      user
+    }
   },
 
   /**

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 let idCounter = 0
 vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn(() => `test-id-${idCounter++}`),
-  el: vi.fn((query) => document.querySelector(query))
+  el: vi.fn()
 }))
 
 vi.mock('../../lib/event.js', () => ({
