@@ -63,7 +63,9 @@ export default {
         await addLogMessage(
           `New offer: ${team.name} wants to buy ${playerData.name} for ${price.toLocaleString()}€`,
           receivingTeam,
-          'OPEN_INCOMING_OFFERS'
+          'OPEN_INCOMING_OFFERS',
+          null,
+          'shopping-cart'
         )
       }
     }

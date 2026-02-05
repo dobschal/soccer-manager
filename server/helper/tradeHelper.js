@@ -78,8 +78,8 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   })
   await query('INSERT INTO trade_history SET ?', historyItem)
 
-  await addLogMessage(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam, 'OPEN_TEAM_PAGE', buyingTeam.id)
-  await addLogMessage(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam, 'OPEN_PLAYER', player.id)
+  await addLogMessage(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam, 'OPEN_TEAM_PAGE', buyingTeam.id, 'exchange')
+  await addLogMessage(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam, 'OPEN_PLAYER', player.id, 'exchange')
   await addPlayerHistory(player.id, 'TRANSFER', buyingTeam.id)
 
   // Check both teams for lineup issues after trade
@@ -95,7 +95,7 @@ export async function declineOffer (offer) {
   await query('DELETE FROM trade_offer WHERE type="buy" AND id=?', [offer.id])
   const player = await getPlayerById(offer.player_id)
   const team = await getTeamById(offer.from_team_id)
-  await addLogMessage(`Your buy offer for ${player.name} was NOT accepted!`, team, 'OPEN_PLAYER', player.id)
+  await addLogMessage(`Your buy offer for ${player.name} was NOT accepted!`, team, 'OPEN_PLAYER', player.id, 'times-circle')
 }
 
 /**

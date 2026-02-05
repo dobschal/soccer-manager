@@ -51,16 +51,16 @@ export class GameLayout extends UIElement {
               ${this._navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Trades')}
             </ul>
             <div class="px-2 d-none d-lg-block">|</div>
-            <div class="navbar-info-item px-2">
+            <div class="navbar-info-item px-2 d-none d-xl-block">
               <i class="fa fa-calendar" aria-hidden="true"></i> Day ${this._gameDay} (${this._season + 1})
             </div>
-            <div class="navbar-info-item px-2" id="${this._nextGameInElementId}">
+            <div class="navbar-info-item px-2 d-none d-xl-block" id="${this._nextGameInElementId}">
             </div>
-            <div class="navbar-info-item px-2">
+            <div class="navbar-info-item px-2 d-none d-lg-block">
                 <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </div>
             <button id="dev-trigger-button" class="btn btn-outline-warning my-2 my-sm-0 mx-1 ${this._isDevelopment ? '' : 'hidden'}" type="button">
-              <i class="fa fa-play" aria-hidden="true"></i> Run Game Day
+              <i class="fa fa-play" aria-hidden="true"></i> Run
             </button>
             <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
           </div>
@@ -215,7 +215,7 @@ export class GameLayout extends UIElement {
 
     return `
       <li id="${id}" class="nav-item">
-        <a class="nav-link" href="#${path}">
+        <a class="nav-link text-center" href="#${path}">
           ${text}
         </a>
       </li>

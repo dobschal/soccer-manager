@@ -525,6 +525,11 @@ const migrations = [{
     await query('ALTER TABLE log_message ADD COLUMN action VARCHAR(50);')
     await query('ALTER TABLE log_message ADD COLUMN action_value BIGINT;')
   }
+}, {
+  name: 'Add icon column to log_message table',
+  async run () {
+    await query('ALTER TABLE log_message ADD COLUMN icon VARCHAR(50);')
+  }
 }]
 
 /**

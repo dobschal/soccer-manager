@@ -81,7 +81,7 @@ export async function playActionCard ({
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage(`You gave ${player.name} a level up.`, team)
+    await addLogMessage(`You gave ${player.name} a level up.`, team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
@@ -96,7 +96,7 @@ export async function playActionCard ({
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage(`You gave ${player.name} a level up.`, team)
+    await addLogMessage(`You gave ${player.name} a level up.`, team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
@@ -111,7 +111,7 @@ export async function playActionCard ({
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage(`You gave ${player.name} a level up.`, team)
+    await addLogMessage(`You gave ${player.name} a level up.`, team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
@@ -147,7 +147,7 @@ export async function playActionCard ({
     })
     await query('INSERT INTO player SET ?', player)
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage(`You got a new young talent ${player.name}.`, team)
+    await addLogMessage(`You got a new young talent ${player.name}.`, team, null, null, 'child')
     return { success: true }
   }
   if (actionCard.action === 'BONUS_100K') {
@@ -157,7 +157,7 @@ export async function playActionCard ({
     } = await getGameDayAndSeason()
     await updateTeamBalance(team, 100000, 'Action Card: Bonus Money', gameDay, season)
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage('You received a bonus of 100,000€!', team)
+    await addLogMessage('You received a bonus of 100,000€!', team, null, null, 'money')
     return { success: true }
   }
   throw new BadRequestError('Unknown action...')

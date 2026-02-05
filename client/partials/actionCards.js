@@ -101,7 +101,7 @@ export class ActionCards extends UIElement {
     return `
       <div>
         <h3>Action Cards</h3>
-        <p style="max-width: 620px">With every game played, you have the chance to earn at least one action card. Some cards of the same type can be merged to a better one (E.g. two Level Up 4 to one Level Up 7 Card). All earned cards are shown here:</p>
+        <p style="max-width: 620px">Use the action cards below to improve your team:</p>
         <div class="card card-body bg-dark pt-4 mb-4 action-cards-container">
           ${this.cards.length === 0
       ? '<h4 class="text-muted text-center mt-3 mb-3">No action cards available...</h4>'
@@ -274,7 +274,10 @@ export class ActionCards extends UIElement {
     this.cards.splice(lower, 1)
 
     // Add the new merged card to our array
-    const newCard = { action: newCardType, id: Date.now() }
+    const newCard = {
+      action: newCardType,
+      id: Date.now()
+    }
     this.cards.push(newCard)
 
     // Count remaining cards of the OLD type

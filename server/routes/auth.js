@@ -37,7 +37,7 @@ export default {
       username,
       password
     })
-    await addLogMessage(`Hey  ${username}! The president of ${team.name} is sending you a warm welcome!`, team)
+    await addLogMessage(`Hey  ${username}! The president of ${team.name} is sending you a warm welcome!`, team, null, null, 'hand-peace-o')
     await query(`UPDATE team SET user_id=${userId}, balance=500000 WHERE id=${team.id}`)
     const { sponsor } = await getSponsor(team)
     if (sponsor) {

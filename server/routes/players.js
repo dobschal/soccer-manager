@@ -39,7 +39,7 @@ export default {
     if (!playerFromDb) throw new BadRequestError('Not your player...')
     await query('UPDATE player SET team_id=NULL WHERE id=?', [player.id])
     await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
-    await addLogMessage('You fired your player ' + playerFromDb.name + '.', team)
+    await addLogMessage('You fired your player ' + playerFromDb.name + '.', team, null, null, 'user-times')
     await addPlayerHistory(player.id, 'FIRED', team.name)
     return { success: true }
   },
@@ -61,7 +61,7 @@ export default {
     const player = await getPlayerById(playerId)
     if (player.team_id) throw new BadRequestError('Player has a team already...')
     await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
-    await addLogMessage('Congratulations! You signed a new player contract with ' + player.name + '', team)
+    await addLogMessage('Congratulations! You signed a new player contract with ' + player.name + '', team, null, null, 'pencil')
     await addPlayerHistory(playerId, 'HIRED', team.name)
   },
 

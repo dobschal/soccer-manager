@@ -95,12 +95,13 @@ export class LogMessages extends UIElement {
     const actionAttrs = hasAction
       ? `data-message-action="${message.action}" data-message-action-value="${message.action_value || ''}"`
       : ''
+    const icon = message.icon || 'envelope'
 
     return `
       <li class="list-group-item d-flex justify-content-between align-items-center ${isToday ? 'text-primary' : 'text-muted'}">
         <div>
           <small>${formatDate('WORDY hh:mm', message.created_at)}</small><br>
-          <i class="fa fa-chevron-right" aria-hidden="true"></i> ${message.message}
+          <i class="fa fa-${icon}" aria-hidden="true"></i> ${message.message}
         </div>
         <div class="d-flex">
           <button class="btn btn-sm btn-outline-info ms-2${hasAction ? '' : ' disabled'}" ${actionAttrs} title="Open">

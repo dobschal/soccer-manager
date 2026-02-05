@@ -8,9 +8,10 @@ import { LogMessage } from '../entities/logMessage.js'
  * @param {TeamType} team
  * @param {string} [action]
  * @param {number} [actionValue]
+ * @param {string} [icon] - Font Awesome icon name (e.g., 'trophy', 'money', 'user')
  * @returns {Promise<void>}
  */
-export async function addLogMessage (message, team, action, actionValue) {
+export async function addLogMessage (message, team, action, actionValue, icon) {
   const { gameDay, season } = await getGameDayAndSeason()
   const data = {
     message,
@@ -23,6 +24,9 @@ export async function addLogMessage (message, team, action, actionValue) {
   }
   if (actionValue !== undefined && actionValue !== null) {
     data.action_value = actionValue
+  }
+  if (icon) {
+    data.icon = icon
   }
   const logMessage = new LogMessage(data)
   await query('INSERT INTO log_message SET ?', logMessage)
@@ -76,7 +80,9 @@ export async function checkTeamAndNotify (team) {
     await addLogMessage(
       `Warning: Your lineup only has ${playersInLineup.length} players! You need 11 players for optimal performance.`,
       team,
-      'OPEN_MY_TEAM_PAGE'
+      'OPEN_MY_TEAM_PAGE',
+      null,
+      'exclamation-triangle'
     )
   }
 
@@ -87,7 +93,8 @@ export async function checkTeamAndNotify (team) {
       `Warning: ${player.name} has low freshness (${Math.floor(player.freshness * 100)}%). Consider resting them.`,
       team,
       'OPEN_PLAYER',
-      player.id
+      player.id,
+      'exclamation-triangle'
     )
   }
 }

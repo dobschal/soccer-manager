@@ -524,7 +524,7 @@ td.hover-text:hover {
     position: absolute;
     bottom: 150px;
     left: 0;
-    background-color: rgba(255, 193, 7, 1);
+    background-color: rgba(255, 193, 7, 0.3);
     border-radius: 24px;
     padding: 1rem 1.25rem;
     margin-left: -10px;
@@ -544,7 +544,7 @@ td.hover-text:hover {
     left: 140px;
     border-width: 0 30px 20px 0;
     border-style: solid;
-    border-color: transparent rgba(255, 193, 7, 1) transparent transparent;
+    border-color: transparent rgba(255, 193, 7, 0.3) transparent transparent;
 }
 
 .chat-bubble p {

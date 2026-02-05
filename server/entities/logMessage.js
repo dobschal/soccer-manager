@@ -7,6 +7,7 @@
  * @property {number} team_id
  * @property {string} [action]
  * @property {number} [action_value]
+ * @property {string} [icon]
  * @property {Date} created_at
  */
 
@@ -25,6 +26,7 @@ export function LogMessage (raw) {
     team_id: RequiredNumber,
     action: OptionalString,
     action_value: OptionalNumber,
+    icon: OptionalString,
     created_at: OptionalObject
   })
   for (const key in raw) {

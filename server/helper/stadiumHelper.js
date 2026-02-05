@@ -132,7 +132,7 @@ export async function completeStadiumConstructions (gameDay, season) {
 
       const [team] = await query('SELECT * FROM team WHERE id=?', [stadium.team_id])
       if (team) {
-        await addLogMessage(`Your ${stand} stand construction is complete!`, team)
+        await addLogMessage(`Your ${stand} stand construction is complete!`, team, null, null, 'building')
       }
     }
   }
@@ -246,7 +246,7 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
   const values = [...Object.values(updateFields), currentStadium.id]
 
   await query(`UPDATE stadium SET ${setClauses} WHERE id=?`, values)
-  await addLogMessage('Construction has started on your stadium!', team)
+  await addLogMessage('Construction has started on your stadium!', team, null, null, 'building')
 
   // Return updated construction info
   const updatedStadium = { ...currentStadium, ...updateFields }
