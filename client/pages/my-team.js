@@ -407,6 +407,14 @@ export class MyTeamPage extends UIElement {
     const citySelectId = generateId()
     const saveButtonId = generateId()
     const previewId = generateId()
+    
+    // Simple HTML escape for safety
+    const escapeHtml = (str) => String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
 
     const updatePreview = () => {
       const prefix1 = el(prefix1SelectId)?.value || ''
@@ -421,15 +429,15 @@ export class MyTeamPage extends UIElement {
 
     // Create select options
     const prefix1Options = clubPrefixes1.map(p => 
-      `<option value="${p}" ${p === selectedPrefix1 ? 'selected' : ''}>${p || '(none)'}</option>`
+      `<option value="${escapeHtml(p)}" ${p === selectedPrefix1 ? 'selected' : ''}>${escapeHtml(p) || '(none)'}</option>`
     ).join('')
     
     const prefix2Options = clubPrefixes2.map(p => 
-      `<option value="${p}" ${p === selectedPrefix2 ? 'selected' : ''}>${p}</option>`
+      `<option value="${escapeHtml(p)}" ${p === selectedPrefix2 ? 'selected' : ''}>${escapeHtml(p)}</option>`
     ).join('')
     
     const cityOptions = cityNames.map(c => 
-      `<option value="${c}" ${c === selectedCity ? 'selected' : ''}>${c}</option>`
+      `<option value="${escapeHtml(c)}" ${c === selectedCity ? 'selected' : ''}>${escapeHtml(c)}</option>`
     ).join('')
 
     // Add change listeners
@@ -475,7 +483,7 @@ export class MyTeamPage extends UIElement {
       <div style="margin-bottom: 20px;">
         <h6>Preview</h6>
         <div id="${previewId}" style="font-size: 24px; font-weight: bold; padding: 15px; background: rgba(0,0,0,0.1); border-radius: 4px; text-align: center; min-height: 60px; display: flex; align-items: center; justify-content: center;">
-          ${currentName}
+          ${escapeHtml(currentName)}
         </div>
       </div>
 
