@@ -52,10 +52,13 @@ export async function showPlayerModal (playerId) {
   const { season } = await server.getCurrentGameday()
   const { team: myTeam } = await server.getMyTeam()
   const isMyPlayer = myTeam.id === player.team_id
+  const isFreeAgent = !player.team_id
   const buttonId = generateId()
   const inputId = generateId()
-  const playerImage = await renderPlayerImage(player, myTeam)
-  const { team: playersTeam } = await server.getTeam(player.team_id)
+  const hireButtonId = generateId()
+  const playersTeam = player.team_id ? (await server.getTeam(player.team_id)).team : null
+  // Render player with their team (or null for free agents to show grey shirt)
+  const playerImage = await renderPlayerImage(player, playersTeam)
   const teamLinkId = generateId()
   const price = await server.estimateValue(player.id)
   const history = await server.getPlayerHistory(player.id)
@@ -68,10 +71,12 @@ export async function showPlayerModal (playerId) {
     hasSellOffer
   })
 
-  onClick(teamLinkId, () => {
-    goTo(`team?id=${playersTeam.id}`)
-    overlay.remove()
-  })
+  if (playersTeam) {
+    onClick(teamLinkId, () => {
+      goTo(`team?id=${playersTeam.id}`)
+      overlay.remove()
+    })
+  }
 
   onClick(buttonId, async () => {
     try {
@@ -79,6 +84,27 @@ export async function showPlayerModal (playerId) {
       await server.addTradeOffer(player, price, isMyPlayer ? 'sell' : 'buy')
       toast('You added a trade offer for ' + player.name, 'success')
       overlay.remove()
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? 'Something went wrong', 'error')
+    }
+  })
+
+  onClick(hireButtonId, async () => {
+    try {
+      const { ok } = await showDialog({
+        title: `Hire ${player.name}?`,
+        text: `Do you want to hire ${player.name} for your team? The salary would be ${sallaryPerLevel[player.level]}€ per game day.`,
+        hasInput: false,
+        buttonText: 'Yes, hire!',
+        buttonType: 'success'
+      })
+      if (!ok) return
+      await server.givePlayerContract(player.id)
+      toast('You gave ' + player.name + ' a new contract.', 'success')
+      overlay.remove()
+      // Dispatch event so pages like FreePlayers can refresh
+      window.dispatchEvent(new CustomEvent('player-hired', { detail: { playerId: player.id } }))
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong', 'error')
@@ -108,7 +134,9 @@ export async function showPlayerModal (playerId) {
 
   const overlay = showOverlay(
     player.name,
-    `<span id="${teamLinkId}" class="text-info" style="cursor: pointer">${playersTeam.name}</span>`,
+    playersTeam
+      ? `<span id="${teamLinkId}" class="text-info" style="cursor: pointer">${playersTeam.name}</span>`
+      : '<span class="text-muted">Free player</span>',
     `
       <div class="d-flex gap-3 mb-4">
         <div style="flex-shrink: 0;">${playerImage}</div>
@@ -141,11 +169,11 @@ export async function showPlayerModal (playerId) {
           </div>
         </div>
       </div>
-      <div class="${offer ? 'hidden' : ''} mb-4" style="clear: both">
+      <div class="${isFreeAgent ? 'hidden' : ''} ${offer ? 'hidden' : ''} mb-4" style="clear: both">
         <b>💰 ${isMyPlayer ? 'Sell' : 'Buy'} Player?</b>
         <p>Just enter a wanted price:</p>
         <div class="input-group mb-3">
-          <input type="number" 
+          <input type="number"
                  id="${inputId}"
                  class="form-control"
                  placeholder="Price"
@@ -157,6 +185,13 @@ export async function showPlayerModal (playerId) {
             </button>
           </div>
         </div>
+      </div>
+      <div class="${isFreeAgent ? '' : 'hidden'} mb-4" style="clear: both">
+        <b>🤝 Hire Player?</b>
+        <p>This player is a free agent. Hire them directly for your team:</p>
+        <button id="${hireButtonId}" class="btn btn-success">
+          Hire ${player.name}
+        </button>
       </div>
       <div class="mb-4">
         <b><i class="fa fa-calendar" aria-hidden="true"></i> History</b>
@@ -191,7 +226,13 @@ const _renderPlayerHistory = renderAsync(async function (item) {
     return `<div>${prefix} Player reached level ${item.value}</div>`
   } else if (item.type === 'TRANSFER') {
     const { team } = await server.getTeam(Number(item.value))
-    return `<div>${prefix} Moved to new club: ${team.name}</div>`
+    return `<div>${prefix} Moved to new club: ${team?.name ?? 'Unknown'}</div>`
+  } else if (item.type === 'FIRED') {
+    return `<div>${prefix} Released by ${item.value}</div>`
+  } else if (item.type === 'HIRED') {
+    return `<div>${prefix} Signed with ${item.value}</div>`
+  } else if (item.type === 'CHANGE_PLAYER_POSITION') {
+    return `<div>${prefix} Changed position to ${item.value}</div>`
   }
-  return '<div>unknown</div>'
+  return `<div>${prefix} ${item.type}: ${item.value}</div>`
 })

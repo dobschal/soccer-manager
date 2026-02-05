@@ -62,7 +62,10 @@ export default {
    */
   async getTeam (teamId) {
     const team = await getTeamById(teamId)
-    const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
+    if (!team) {
+      return { team: null, players: [], user: undefined }
+    }
+    const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
     let user
     if (team.user_id) {
       const users = await query('SELECT * FROM user WHERE id=? LIMIT 1', [team.user_id])

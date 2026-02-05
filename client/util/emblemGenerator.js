@@ -34,6 +34,16 @@ export const EMBLEM_SHAPES = {
     path: 'M100,10 L170,50 L170,110 L100,190 L30,110 L30,50 Z',
     viewBox: '0 0 200 200'
   },
+  shield4: {
+    name: 'Awesome Shield',
+    path: 'M100 13C100 13 112 25 142 26C167 27 176 21 176 21C176 21 198 86 161 140C142 168 104 187 100 188C96 187 59 168 39 140C2 86 25 21 25 21C25 21 34 27 59 26C88 25 100 13 100 13Z',
+    viewBox: '0 0 200 200'
+  },
+  shield5: {
+    name: 'Curved Shield',
+    path: 'M98 200C104 188 176 179 163 125C143 45 168 37 168 37L152 18C152 18 142 28 126 25C106 22 103 7 98 0C93 7 90 22 70 25C54 28 44 18 44 18L28 37C28 37 52 45 33 125C20 179 92 188 98 200Z',
+    viewBox: '0 0 200 200'
+  },
   crest: {
     name: 'Crest',
     path: 'M100,10 C140,10 170,30 175,60 L175,120 C175,160 140,185 100,190 C60,185 25,160 25,120 L25,60 C30,30 60,10 100,10 Z',
@@ -98,39 +108,35 @@ export const EMBLEM_PATTERNS = {
 // Colors with good contrast - full spectrum from red to purple
 export const EMBLEM_COLORS = [
   // Reds
-  '#c41e3a', // Cardinal Red
-  '#8b0000', // Dark Red
-  '#800000', // Maroon
-  '#dc143c', // Crimson
+  '#ea3636',
+  '#960c0c',
+  // Pink
+  '#dc1061',
   // Oranges
-  '#ff6b35', // Vibrant Orange
-  '#cc8800', // Amber
-  '#8b4513', // Saddle Brown
+  '#f56600',
   // Yellows/Golds
-  '#b8860b', // Dark Goldenrod
-  '#d4af37', // Metallic Gold
+  '#ffca46',
+  '#c99c00',
+  // Brown
+  '#815d53',
   // Greens
-  '#228b22', // Forest Green
-  '#355e3b', // Hunter Green
-  '#006400', // Dark Green
-  '#32cd32', // Lime Green
-  '#556b2f', // Dark Olive Green
+  '#90c954',
+  '#319a35',
+  '#0f4b13',
   // Cyans/Teals
-  '#008080', // Teal
-  '#1a5f7a', // Deep Teal
-  '#20b2aa', // Light Sea Green
+  '#0fc7c2',
+  '#036c69',
   // Blues
-  '#003366', // Navy Blue
-  '#0047ab', // Cobalt Blue
-  '#191970', // Midnight Blue
-  '#4682b4', // Steel Blue
-  '#483d8b', // Dark Slate Blue
+  '#2c87e1',
+  '#0a3b88',
   // Purples
-  '#4a0080', // Deep Purple
-  '#6b3fa0', // Royal Purple
-  '#800080', // Purple
-  '#c71585', // Magenta Pink
-  '#2f4f4f'  // Dark Slate Gray
+  '#902abb',
+  '#512DA8',
+  // Neutrals
+  '#F5E6C8',
+  '#BDBDBD',
+  '#8ca1ab',
+  '#424242'
 ]
 
 /**
@@ -192,18 +198,18 @@ export function generateEmblem ({
 
   <!-- Banner -->
   <g>
-    <!-- Left ribbon fold (behind) -->
-    <path d="M25,152 L5,152 L12,165 L5,178 L25,178 L30,165 Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="1.5"/>
-    <!-- Right ribbon fold (behind) -->
-    <path d="M175,152 L195,152 L188,165 L195,178 L175,178 L170,165 Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="1.5"/>
-    <!-- Main banner ribbon -->
-    <path d="M25,150 L175,150 L175,180 L25,180 Z" fill="${color}" stroke="white" stroke-width="2"/>
-    <!-- Banner curve effect (top) -->
-    <path d="M25,150 Q100,145 175,150" fill="none" stroke="white" stroke-width="2"/>
-    <!-- Banner curve effect (bottom) -->
-    <path d="M25,180 Q100,185 175,180" fill="none" stroke="white" stroke-width="2"/>
+    <!-- Left ribbon -->
+    <path d="M3 175L42 175L26 168V154H3L15 165L3 175Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="3"/>
+    <!-- Right ribbon -->
+    <path d="M197 175L159 175L175 168V153H197L186 165L197 175Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="3"/>
+    <!-- Left dark fold -->
+    <path d="M28 168H42V173L28 168Z" fill="${adjustBrightness(color, -40)}"/>
+    <!-- Right dark fold -->
+    <path d="M173 167H159V173L173 167Z" fill="${adjustBrightness(color, -40)}"/>
+    <!-- Main banner body -->
+    <path d="M173 144H26V167H175V144Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="3"/>
     <!-- Team name on banner -->
-    <text x="100" y="170" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">${displayName.toUpperCase()}</text>
+    <text x="100" y="161" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">${displayName.toUpperCase()}</text>
   </g>
 </svg>`
 }

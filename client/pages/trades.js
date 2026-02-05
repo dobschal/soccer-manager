@@ -26,7 +26,7 @@ export class TradesPage extends UIElement {
           <a class="nav-link ${this.pageName === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">Incoming</a>
           <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">My Offers</a>
           <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">History</a>
-          <a class="nav-link ${this.pageName === 'free-players' ? 'active' : ''}" href="#trades?sub_page=free_players">Free Players</a>
+          <a class="nav-link ${this.pageName === 'free_players' ? 'active' : ''}" href="#trades?sub_page=free_players">Free Players</a>
         </nav>
         ${this.page ?? 'Loading...'}
       </div>
@@ -53,7 +53,10 @@ export class TradesPage extends UIElement {
    * @param {string} params.player_id
    * @returns {Promise<void>}
    */
-  async onQueryChanged ({ sub_page: pageName, player_id: playerId }) {
+  async onQueryChanged ({
+    sub_page: pageName,
+    player_id: playerId
+  }) {
     if (playerId) await showPlayerModal(Number(playerId))
     if (pageName && pageName === this.pageName) return
     this.pageName = pageName

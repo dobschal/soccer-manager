@@ -1,9 +1,11 @@
 import { query } from '../lib/database.js'
 import { TradeOffer } from '../entities/tradeOffer.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getTeam } from '../helper/teamHelper.js'
+import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
+import { addLogMessage } from '../helper/logMessageHelper.js'
+import { getPlayerById } from '../helper/playerHelper.js'
 
 export default {
 
@@ -52,6 +54,20 @@ export default {
     const results = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [tradeOffer.from_team_id, tradeOffer.player_id])
     if (results.length > 0) throw new BadRequestError('Already added an offer for that player...')
     await query('INSERT INTO trade_offer SET ?', tradeOffer)
+
+    // Notify the player's team about the incoming buy offer
+    if (type === 'buy' && player.team_id) {
+      const playerData = await getPlayerById(player.id)
+      const receivingTeam = await getTeamById(player.team_id)
+      if (receivingTeam && receivingTeam.user_id) {
+        await addLogMessage(
+          `New offer: ${team.name} wants to buy ${playerData.name} for ${price.toLocaleString()}€`,
+          receivingTeam,
+          'OPEN_INCOMING_OFFERS'
+        )
+      }
+    }
+
     return { success: true }
   },
 

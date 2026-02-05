@@ -221,6 +221,9 @@ export class LogMessages extends UIElement {
           goTo(`team?id=${actionValue}`)
         }
         break
+      case 'OPEN_INCOMING_OFFERS':
+        goTo('trades#incoming')
+        break
       default:
         console.log('Unknown action:', action, actionValue)
     }

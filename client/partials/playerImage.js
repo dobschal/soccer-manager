@@ -18,9 +18,12 @@ const hairColors = [
   '#3E3155'
 ]
 
+// Grey color for free agents without a team
+const FREE_AGENT_COLOR = '#808080'
+
 /**
  * @param {PlayerType} player
- * @param {TeamType} team
+ * @param {TeamType|null} team - Pass null for free agents to render grey shirt without emblem
  * @param {number} size
  * @returns {Promise<string>}
  */
@@ -33,10 +36,13 @@ export async function renderPlayerImage (player, team, size = 224) {
   const height = Math.floor(size * (234 / 224)) // Maintain aspect ratio (default: 224x234)
   svg = svg.replace('width="224"', `width="${size}"`)
   svg = svg.replace('height="234"', `height="${height}"`)
-  svg = svg.replaceAll('#FF0001', team.color)
+
+  // Use team color or grey for free agents
+  const shirtColor = team?.color ?? FREE_AGENT_COLOR
+  svg = svg.replaceAll('#FF0001', shirtColor)
   svg = svg.replaceAll('#0000FF', hairColors[player.hair_color])
-  svg = svg.replaceAll('#CC0001', shadeColor(team.color, -30))
-  svg = svg.replaceAll('#00FF00', shadeColor(team.color, -80))
+  svg = svg.replaceAll('#CC0001', shadeColor(shirtColor, -30))
+  svg = svg.replaceAll('#00FF00', shadeColor(shirtColor, -80))
   for (const skinColor of skinColors) {
     svg = svg.replaceAll(skinColor[0], skinColors[player.skin_color][0])
     svg = svg.replaceAll(skinColor[1], skinColors[player.skin_color][1])
@@ -45,12 +51,17 @@ export async function renderPlayerImage (player, team, size = 224) {
   // Calculate emblem size relative to player image
   const emblemSize = Math.floor(size * 0.11)
 
+  // Only render emblem if player has a team
+  const emblemHtml = team
+    ? `<div class="emblem-wrapper" style="width: ${emblemSize}px; height: ${emblemSize}px; left: ${size / 1.8}px; top: 50%; transform: translateY(${size / 7}px);">
+            ${renderEmblem(team, emblemSize)}
+        </div>`
+    : ''
+
   return `
     <div class="player-image">
         ${svg}
-        <div class="emblem-wrapper" style="width: ${emblemSize}px; height: ${emblemSize}px; left: ${size / 1.8}px; top: 50%; transform: translateY(${size / 7}px);">
-            ${renderEmblem(team, emblemSize)}
-        </div>
+        ${emblemHtml}
     </div>
   `
 }

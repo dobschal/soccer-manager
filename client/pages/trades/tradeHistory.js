@@ -2,12 +2,29 @@ import { UIElement } from '../../lib/UIElement.js'
 import { server } from '../../lib/gateway.js'
 import { euroFormat } from '../../lib/currency.js'
 import { calculatePlayerAge } from '../../util/player.js'
-import { Link } from '../../partials/link.js'
+import { goTo } from '../../lib/router.js'
 
 export class TradeHistoryPage extends UIElement {
   trades = []
   teams = []
   players = []
+
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      div: {
+        click: (event) => {
+          const target = event.target
+          const teamLink = target.closest('[data-team-link]')
+          if (teamLink) {
+            goTo('team?id=' + teamLink.dataset.teamLink)
+          }
+        }
+      }
+    }
+  }
 
   /**
    * @returns {string}
@@ -73,9 +90,9 @@ export class TradeHistoryPage extends UIElement {
       return `
         ${dividerRow}
         <tr>
-          <td>${player.name} (${player.position}, ${player.level}, ${calculatePlayerAge(player, trade.season)})</td>
-          <td class="d-none d-sm-table-cell">${new Link(fromTeam.name, 'team?id=' + trade.from_team_id)}</td>
-          <td class="d-none d-sm-table-cell">${new Link(toTeam.name, 'team?id=' + trade.to_team_id)}</td>
+          <td>${player?.name ?? 'Unknown'} (${player?.position ?? '?'}, ${player?.level ?? '?'}, ${player ? calculatePlayerAge(player, trade.season) : '?'})</td>
+          <td class="d-none d-sm-table-cell"><span class="hover-text" data-team-link="${trade.from_team_id}">${fromTeam?.name ?? 'Unknown'}</span></td>
+          <td class="d-none d-sm-table-cell"><span class="hover-text" data-team-link="${trade.to_team_id}">${toTeam?.name ?? 'Unknown'}</span></td>
           <td class="text-right">${euroFormat.format(trade.price)}</td>
         </tr>
       `

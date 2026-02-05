@@ -15,6 +15,7 @@ import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { buildStadium, calcuateStadiumBuild } from './helper/stadiumHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId } from './helper/playerHelper.js'
 import { getPositionsOfFormation } from '../client/util/formation.js'
+import { addPlayerHistory } from './helper/playerHistoryHelper.js'
 import playersRoutes from './routes/players.js'
 
 // 1. Check Tactic (/)
@@ -455,6 +456,7 @@ async function _firePlayerIfTooMany (botTeam) {
     const playerToFire = randomItem(players.filter(p => !p.in_game_position))
     await query('UPDATE player SET team_id=NULL WHERE id=?', [playerToFire.id])
     await query('DELETE FROM trade_offer WHERE player_id=?', [playerToFire.id])
+    await addPlayerHistory(playerToFire.id, 'FIRED', botTeam.name)
     console.log('Bot fired player, as has too many...')
   }
 }

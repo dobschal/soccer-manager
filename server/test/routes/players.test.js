@@ -23,6 +23,10 @@ vi.mock('../../helper/logMessageHelper.js', () => ({
   addLogMessage: vi.fn()
 }))
 
+vi.mock('../../helper/playerHistoryHelper.js', () => ({
+  addPlayerHistory: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getPlayerById, getPlayerAge, getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'

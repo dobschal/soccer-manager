@@ -1,48 +1,76 @@
 import { UIElement } from '../../lib/UIElement.js'
-import { renderTable } from '../../partials/table.js'
+import { Table } from '../../partials/table.js'
 import { euroFormat } from '../../lib/currency.js'
-import { renderButton } from '../../partials/button.js'
 import { server } from '../../lib/gateway.js'
-import { calculatePlayerAge, sallaryPerLevel } from '../../util/player.js'
+import { calculatePlayerAge, sallaryPerLevel, sortByPosition } from '../../util/player.js'
 import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
+import { setQueryParams } from '../../lib/router.js'
 
 export class FreePlayers extends UIElement {
+  players = []
+  season = 0
+
+  /** @type {() => void} */
+  _onPlayerHired = () => this.update(false)
+
+  onMounted () {
+    window.addEventListener('player-hired', this._onPlayerHired)
+  }
+
+  onDestroy () {
+    window.removeEventListener('player-hired', this._onPlayerHired)
+  }
+
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      div: {
+        click: (event) => {
+          const target = event.target
+          const hireBtn = target.closest('[data-hire-player]')
+          if (!hireBtn) return
+
+          const playerId = Number(hireBtn.dataset.hirePlayer)
+          const player = this.players.find(p => p.id === playerId)
+          if (player) {
+            this._showHireDialog(player)
+          }
+        }
+      }
+    }
+  }
+
   /**
    * @returns {string}
    */
   get template () {
+    const table = new Table({
+      data: this.players,
+      cols: this._prepareTableCols(),
+      renderRow: player => [
+        player.name,
+        player.position,
+        calculatePlayerAge(player, this.season),
+        player.level,
+        `<button class="btn btn-success btn-sm" data-hire-player="${player.id}">Hire</button>`
+      ]
+    })
+
     return `
       <div>
         <h2>Free Players</h2>
         <p>Here is a list of free players without team. </p>
-        ${this.table}
+        ${table}
         <div class="row ${this.players.length === 0 ? '' : 'hidden'}">
           <div class="col">
             <h4 class="text-muted text-center mt-5 mb-5">No players without team currently...</h4>
           </div>
         </div>
-      </div>  
+      </div>
     `
-  }
-
-  /**
-   * @returns {Array<TableHeadCellConfig>}
-   */
-  get columns () {
-    return [
-      {
-        name: 'Name'
-      }, {
-        name: 'Position'
-      }, {
-        name: 'Age'
-      }, {
-        name: 'Level'
-      }, {
-        name: 'Action'
-      }
-    ]
   }
 
   /**
@@ -50,29 +78,46 @@ export class FreePlayers extends UIElement {
    */
   async load () {
     const response = await server.getCurrentGameday()
-    this.gameDay = response.gameDay
     this.season = response.season
     this.players = await server.getPlayersWithoutTeam()
-    this.table = renderTable({
-      data: this.players,
-      cols: this.columns,
-      renderRow: this._renderRow.bind(this)
-    })
   }
 
   /**
-   * @param {PlayerType} player
-   * @returns {Array<string>}
-   * @private
+   * @returns {Array<TableHeadCellConfig>}
    */
-  _renderRow (player) {
-    return [
-      player.name,
-      player.position,
-      calculatePlayerAge(player, this.season),
-      player.level,
-      renderButton('Hire', () => this._showHireDialog(player), 'success')
-    ]
+  _prepareTableCols () {
+    return [{
+      name: 'Name',
+      onClick: (player) => {
+        setQueryParams({ player_id: player.id })
+      }
+    }, {
+      name: 'Position',
+      sortFn: (playerA, playerB, isAsc) => {
+        if (isAsc) {
+          return sortByPosition(playerB, playerA)
+        }
+        return sortByPosition(playerA, playerB)
+      }
+    }, {
+      name: 'Age',
+      sortFn: (playerA, playerB, isAsc) => {
+        const ageA = calculatePlayerAge(playerA, this.season)
+        const ageB = calculatePlayerAge(playerB, this.season)
+        if (isAsc) {
+          return ageA - ageB
+        }
+        return ageB - ageA
+      },
+      align: 'right'
+    }, {
+      name: 'Level',
+      sortKey: 'level',
+      align: 'right'
+    }, {
+      name: '',
+      largeScreenOnly: true
+    }]
   }
 
   /**

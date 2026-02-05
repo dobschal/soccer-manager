@@ -4,6 +4,7 @@ import { getTeam } from '../helper/teamHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById } from '../helper/playerHelper.js'
 import { getPastTrades } from '../helper/tradeHelper.js'
+import { addPlayerHistory } from '../helper/playerHistoryHelper.js'
 
 export default {
 
@@ -38,7 +39,8 @@ export default {
     if (!playerFromDb) throw new BadRequestError('Not your player...')
     await query('UPDATE player SET team_id=NULL WHERE id=?', [player.id])
     await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
-    await addLogMessage('You fired your place ' + playerFromDb.name + '.', team)
+    await addLogMessage('You fired your player ' + playerFromDb.name + '.', team)
+    await addPlayerHistory(player.id, 'FIRED', team.name)
     return { success: true }
   },
 
@@ -60,6 +62,7 @@ export default {
     if (player.team_id) throw new BadRequestError('Player has a team already...')
     await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
     await addLogMessage('Congratulations! You signed a new player contract with ' + player.name + '', team)
+    await addPlayerHistory(playerId, 'HIRED', team.name)
   },
 
   /**

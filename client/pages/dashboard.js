@@ -199,7 +199,6 @@ export class DashboardPage extends UIElement {
     }
 
     const isHomeGame = this.nextGame.team1Id === this.team.id
-    const myTeamData = isHomeGame ? this.gameTeam1 : this.gameTeam2
 
     return `
       <h3 class="mt-4">Upcoming Match</h3>
@@ -208,7 +207,7 @@ export class DashboardPage extends UIElement {
         <div class="row pt-2 d-flex align-items-center">
           <div class="col-4 col-sm-5 text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
             <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center">
-              <div class="order-1 order-sm-0 mb-2 mb-sm-0 me-sm-2">${isHomeGame && myTeamData ? renderEmblem(myTeamData, 80) : renderEmblem(this.nextGameOpponent, 80)}</div>
+              <div class="order-1 order-sm-0 mb-2 mb-sm-0 me-sm-2">${isHomeGame ? renderEmblem(this.team, 80) : renderEmblem(this.nextGameOpponent, 80)}</div>
               <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${isHomeGame ? this.team.name : this.nextGameOpponent.name}</h5>
             </div>
           </div>
@@ -220,7 +219,7 @@ export class DashboardPage extends UIElement {
           </div>
           <div class="col-4 col-sm-5 text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
             <div class="d-flex flex-column flex-sm-row-reverse align-items-center justify-content-center">
-              <div class="order-1 order-sm-0 mb-2 mb-sm-0 ms-sm-2">${!isHomeGame && myTeamData ? renderEmblem(myTeamData, 80) : renderEmblem(this.nextGameOpponent, 80)}</div>
+              <div class="order-1 order-sm-0 mb-2 mb-sm-0 ms-sm-2">${!isHomeGame ? renderEmblem(this.team, 80) : renderEmblem(this.nextGameOpponent, 80)}</div>
               <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${!isHomeGame ? this.team.name : this.nextGameOpponent.name}</h5>
             </div>
           </div>
