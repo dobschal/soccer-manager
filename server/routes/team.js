@@ -2,6 +2,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
+import { clubPrefixes1, clubPrefixes2, cityNames } from '../lib/name-library.js'
 
 export default {
 
@@ -57,6 +58,17 @@ export default {
     const team = await getTeam(req)
     await query('UPDATE team SET name=? WHERE id=?', [name, team.id])
     return { success: true }
+  },
+
+  /**
+   * @returns {Promise<{clubPrefixes1: Array<string>, clubPrefixes2: Array<string>, cityNames: Array<string>}>}
+   */
+  async getNameLibrary () {
+    return {
+      clubPrefixes1,
+      clubPrefixes2,
+      cityNames
+    }
   },
 
   /**

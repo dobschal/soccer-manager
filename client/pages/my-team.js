@@ -22,7 +22,6 @@ import {
 } from '../util/emblemGenerator.js'
 import { UIElement } from '../lib/UIElement.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
-import { clubPrefixes1, clubPrefixes2, cityNames } from '../../server/lib/name-library.js'
 
 export class MyTeamPage extends UIElement {
   /**
@@ -371,9 +370,13 @@ export class MyTeamPage extends UIElement {
   }
 
   /**
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  _showTeamNameEditor () {
+  async _showTeamNameEditor () {
+    // Fetch name library from server
+    const nameLibrary = await server.getNameLibrary()
+    const { clubPrefixes1, clubPrefixes2, cityNames } = nameLibrary
+    
     // Parse current team name to extract parts
     const currentName = this.data.team.name
     const nameParts = currentName.trim().split(' ')
