@@ -13,8 +13,6 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
  * @property {string} created_at - ISO date string
  */
 
-const GAMEDAYS_PER_SEASON = 34
-
 export default {
   /**
    * Get finance log with optional filtering by season/gameday range

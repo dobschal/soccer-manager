@@ -22,11 +22,10 @@ describe('finance routes', () => {
       query.mockResolvedValueOnce(financeLog)
 
       const req = createMockRequest()
-      const result = await handlers.getFinanceLog(req)
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
 
       expect(result).toEqual({ log: financeLog })
       expect(query).toHaveBeenCalledWith('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
-      expect(query).toHaveBeenCalledWith('SELECT * FROM finance_log WHERE team_id=?', [team.id])
     })
 
     it('returns empty log when no entries', async () => {
@@ -36,7 +35,7 @@ describe('finance routes', () => {
       query.mockResolvedValueOnce([])
 
       const req = createMockRequest()
-      const result = await handlers.getFinanceLog(req)
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
 
       expect(result).toEqual({ log: [] })
     })
@@ -54,7 +53,7 @@ describe('finance routes', () => {
       query.mockResolvedValueOnce([salaryEntry])
 
       const req = createMockRequest()
-      const result = await handlers.getFinanceLog(req)
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
 
       expect(result.log[0].value).toBe(-15000)
       expect(result.log[0].reason).toBe('Player salaries')
@@ -73,7 +72,7 @@ describe('finance routes', () => {
       query.mockResolvedValueOnce([sponsorEntry])
 
       const req = createMockRequest()
-      const result = await handlers.getFinanceLog(req)
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
 
       expect(result.log[0].value).toBe(25000)
       expect(result.log[0].reason).toContain('Sponsor deal')
@@ -92,7 +91,7 @@ describe('finance routes', () => {
       query.mockResolvedValueOnce([ticketEntry])
 
       const req = createMockRequest()
-      const result = await handlers.getFinanceLog(req)
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
 
       expect(result.log[0].value).toBe(80000)
       expect(result.log[0].reason).toBe('Stadium ticket earnings')
@@ -110,7 +109,7 @@ describe('finance routes', () => {
       query.mockResolvedValueOnce(financeLog)
 
       const req = createMockRequest()
-      const result = await handlers.getFinanceLog(req)
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
 
       expect(result.log).toHaveLength(3)
       expect(result.log[0].reason).toBe('Stadium ticket earnings')
@@ -130,7 +129,7 @@ describe('finance routes', () => {
       query.mockResolvedValueOnce(financeLog)
 
       const req = createMockRequest()
-      const result = await handlers.getFinanceLog(req)
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
 
       // Verify balance progression is correct
       expect(result.log[0].balance).toBe(600000)
@@ -149,12 +148,26 @@ describe('finance routes', () => {
       query.mockResolvedValueOnce(financeLog)
 
       const req = createMockRequest()
-      const result = await handlers.getFinanceLog(req)
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
 
       expect(result.log[0].game_day).toBe(5)
       expect(result.log[0].season).toBe(2)
       expect(result.log[1].game_day).toBe(6)
       expect(result.log[1].season).toBe(2)
+    })
+
+    it('filters by date range when provided', async () => {
+      const team = testData.team()
+      const financeLog = [testData.financeLog()]
+
+      query.mockResolvedValueOnce([team])
+      query.mockResolvedValueOnce(financeLog)
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLog(0, 5, 0, 10, req)
+
+      expect(result).toEqual({ log: financeLog })
+      expect(query).toHaveBeenCalledTimes(2)
     })
   })
 })

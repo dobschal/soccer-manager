@@ -5,6 +5,7 @@ vi.mock('../../lib/gateway.js', () => ({
     getSponsor: vi.fn(),
     getSponsorOffers: vi.fn(),
     getFinanceLog: vi.fn(),
+    getFinanceLogBounds: vi.fn(),
     getSponsorNames: vi.fn(),
     chooseSponsor: vi.fn(),
     getMyBalance: vi.fn()
@@ -47,6 +48,10 @@ vi.mock('../../partials/balanceChart.js', () => ({
   }
 }))
 
+vi.mock('../../partials/tutorialOverlay.js', () => ({
+  showTutorialIfNeeded: vi.fn()
+}))
+
 import { FinancesPage, renderFinancesPage } from '../../pages/finances.js'
 import { server } from '../../lib/gateway.js'
 
@@ -61,6 +66,12 @@ describe('FinancesPage', () => {
       ]
     })
     server.getFinanceLog.mockResolvedValue({ log: [] })
+    server.getFinanceLogBounds.mockResolvedValue({
+      minSeason: 0,
+      minGameDay: 0,
+      maxSeason: 0,
+      maxGameDay: 5
+    })
     server.getSponsorNames.mockResolvedValue({
       sponsorNames: ['Sponsor A', 'Sponsor B', 'Sponsor C']
     })

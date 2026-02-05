@@ -18,6 +18,6 @@ export default [
     }
   },
   {
-    ignores: ['node_modules/**', 'client/lib/chart.js']
+    ignores: ['node_modules/**', 'client/lib/chart.js', 'client/vendor/**']
   }
 ]

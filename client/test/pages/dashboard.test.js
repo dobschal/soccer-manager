@@ -13,7 +13,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getNextGame: vi.fn(),
     getTeamById: vi.fn(),
     useActionCard: vi.fn(),
-    mergeCards: vi.fn()
+    mergeCards: vi.fn(),
+    getStanding: vi.fn()
   }
 }))
 
@@ -93,6 +94,9 @@ describe('DashboardPage', () => {
     server.deleteLogMessage.mockResolvedValue({ success: true })
     server.getNextGame.mockResolvedValue({ game: null, nextGameDate: null, opponent: null })
     server.getTeamById.mockResolvedValue({ id: 1, name: 'Test FC' })
+    server.getStanding.mockResolvedValue([
+      { team: { id: 1, name: 'Test FC' }, points: 10 }
+    ])
   })
 
   describe('DashboardPage class', () => {
@@ -114,7 +118,7 @@ describe('DashboardPage', () => {
     it('template contains welcome message', async () => {
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('Nice to see you testuser')
+      expect(page.template).toContain('Hey <b>testuser</b>')
     })
 
     it('template contains action cards component', async () => {

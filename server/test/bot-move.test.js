@@ -368,7 +368,6 @@ describe('Bot Trading', () => {
       const playersNeedingCM = botPlayers.filter(p => p.position !== 'CM')
       getPlayersByTeamId.mockResolvedValue(playersNeedingCM)
 
-      let selectedPlayerId = null
       query.mockImplementation(async (sql, params) => {
         if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) {
           return [botTeam]
@@ -405,8 +404,6 @@ describe('Bot Trading', () => {
           ]
         }
         if (sql.includes('INSERT INTO trade_offer')) {
-          // Capture which player was selected
-          selectedPlayerId = params.player_id
           return { insertId: 777 }
         }
         return []

@@ -177,7 +177,8 @@ describe('tradeHelper', () => {
         'You sold your player Star Player to the team Buying FC.',
         sellingTeam,
         'OPEN_TEAM_PAGE',
-        2
+        2,
+        'exchange'
       )
     })
 
@@ -204,7 +205,8 @@ describe('tradeHelper', () => {
         'You bought the player Star Player from Selling FC.',
         buyingTeam,
         'OPEN_PLAYER',
-        10
+        10,
+        'exchange'
       )
     })
 

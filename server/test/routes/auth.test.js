@@ -149,7 +149,10 @@ describe('auth routes', () => {
       // Verify the team from prepareSeason is used
       expect(addLogMessage).toHaveBeenCalledWith(
         expect.stringContaining('Fresh Team'),
-        expect.objectContaining({ id: 50 })
+        expect.objectContaining({ id: 50 }),
+        null,
+        null,
+        'hand-peace-o'
       )
     })
 
