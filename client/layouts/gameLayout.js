@@ -215,7 +215,7 @@ export class GameLayout extends UIElement {
 
     return `
       <li id="${id}" class="nav-item">
-        <a class="nav-link text-center" href="#${path}">
+        <a class="nav-link w-100 text-center" href="#${path}">
           ${text}
         </a>
       </li>

@@ -99,8 +99,14 @@ export class MyTeamPage extends UIElement {
     const avgAge = realPlayers.length > 0
       ? (realPlayers.reduce((sum, p) => sum + calculatePlayerAge(p, this.season), 0) / realPlayers.length).toFixed(1)
       : 0
+    
+    const teamNameId = generateId()
+    onClick(teamNameId, () => {
+      this._showTeamNameEditor()
+    })
+    
     return `
-      <h2>${this.data.team.name}</h2>
+      <h2 id="${teamNameId}" style="cursor: pointer;" title="Click to edit team name">${this.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i></h2>
       <div class="row">
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 text-white bg-dark">
@@ -360,6 +366,152 @@ export class MyTeamPage extends UIElement {
       </div>
 
       <button id="${saveButtonId}" class="btn btn-primary w-100">Save Emblem</button>
+    `)
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async _showTeamNameEditor () {
+    // Fetch name library from server
+    const nameLibrary = await server.getNameLibrary()
+    const { clubPrefixes1, clubPrefixes2, cityNames } = nameLibrary
+
+    // Parse current team name to extract parts
+    const currentName = this.data.team.name
+    const nameParts = currentName.trim().split(' ')
+
+    // Try to find matching parts in the arrays
+    let selectedPrefix1 = ''
+    let selectedPrefix2 = ''
+    let selectedCity = ''
+    
+    // Simple logic to extract parts: check if parts exist in arrays
+    if (nameParts.length >= 3) {
+      const lastPart = nameParts[nameParts.length - 1]
+      const middlePart = nameParts[nameParts.length - 2]
+      const firstParts = nameParts.slice(0, -2).join(' ')
+      
+      if (cityNames.includes(lastPart)) selectedCity = lastPart
+      if (clubPrefixes2.includes(middlePart)) selectedPrefix2 = middlePart
+      if (clubPrefixes1.includes(firstParts)) selectedPrefix1 = firstParts
+    } else if (nameParts.length === 2) {
+      const lastPart = nameParts[1]
+      const firstPart = nameParts[0]
+      
+      if (cityNames.includes(lastPart)) selectedCity = lastPart
+      if (clubPrefixes2.includes(firstPart)) selectedPrefix2 = firstPart
+    } else if (nameParts.length === 1) {
+      if (cityNames.includes(nameParts[0])) selectedCity = nameParts[0]
+    }
+
+    const prefix1SelectId = generateId()
+    const prefix2SelectId = generateId()
+    const citySelectId = generateId()
+    const saveButtonId = generateId()
+    const previewId = generateId()
+    
+    // Simple HTML escape for safety
+    const escapeHtml = (str) => String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+
+    const updatePreview = () => {
+      const prefix1 = el(prefix1SelectId)?.value || ''
+      const prefix2 = el(prefix2SelectId)?.value || ''
+      const city = el(citySelectId)?.value || ''
+      const newName = `${prefix1} ${prefix2} ${city}`.trim()
+      const previewEl = el(previewId)
+      if (previewEl) {
+        previewEl.textContent = newName
+      }
+    }
+
+    // Create select options
+    const prefix1Options = clubPrefixes1.map(p => 
+      `<option value="${escapeHtml(p)}" ${p === selectedPrefix1 ? 'selected' : ''}>${escapeHtml(p) || '(none)'}</option>`
+    ).join('')
+    
+    const prefix2Options = clubPrefixes2.map(p => 
+      `<option value="${escapeHtml(p)}" ${p === selectedPrefix2 ? 'selected' : ''}>${escapeHtml(p)}</option>`
+    ).join('')
+    
+    const cityOptions = cityNames.map(c => 
+      `<option value="${escapeHtml(c)}" ${c === selectedCity ? 'selected' : ''}>${escapeHtml(c)}</option>`
+    ).join('')
+
+    // Add change listeners
+    setTimeout(() => {
+      const prefix1El = el(prefix1SelectId)
+      const prefix2El = el(prefix2SelectId)
+      const cityEl = el(citySelectId)
+      
+      if (prefix1El) prefix1El.addEventListener('change', updatePreview)
+      if (prefix2El) prefix2El.addEventListener('change', updatePreview)
+      if (cityEl) cityEl.addEventListener('change', updatePreview)
+      
+      updatePreview()
+    }, 100)
+
+    // Save button handler
+    onClick(saveButtonId, async () => {
+      try {
+        const prefix1 = el(prefix1SelectId)?.value || ''
+        const prefix2 = el(prefix2SelectId)?.value || ''
+        const city = el(citySelectId)?.value || ''
+        const newName = `${prefix1} ${prefix2} ${city}`.trim()
+        
+        if (!newName) {
+          toast('Please select at least one name part', 'error')
+          return
+        }
+        
+        await server.updateTeamName(newName)
+        toast('Your team name has been updated!', 'success')
+        this.data.team.name = newName
+        await this.update(false)
+        overlay.remove()
+      } catch (e) {
+        showServerError(e)
+      }
+    })
+
+    const overlay = showOverlay(
+      'Customize Team Name',
+      'Create a unique name for your team',
+      `
+      <div style="margin-bottom: 20px;">
+        <h6>Preview</h6>
+        <div id="${previewId}" style="font-size: 24px; font-weight: bold; padding: 15px; background: rgba(0,0,0,0.1); border-radius: 4px; text-align: center; min-height: 60px; display: flex; align-items: center; justify-content: center;">
+          ${escapeHtml(currentName)}
+        </div>
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="${prefix1SelectId}"><h6>Club Prefix 1</h6></label>
+        <select id="${prefix1SelectId}" class="form-control">
+          ${prefix1Options}
+        </select>
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="${prefix2SelectId}"><h6>Club Prefix 2</h6></label>
+        <select id="${prefix2SelectId}" class="form-control">
+          ${prefix2Options}
+        </select>
+      </div>
+
+      <div class="form-group mb-3">
+        <label for="${citySelectId}"><h6>City Name</h6></label>
+        <select id="${citySelectId}" class="form-control">
+          ${cityOptions}
+        </select>
+      </div>
+
+      <button id="${saveButtonId}" class="btn btn-primary w-100">Save Team Name</button>
     `)
   }
 
