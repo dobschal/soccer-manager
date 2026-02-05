@@ -8,6 +8,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getCurrentGameday: vi.fn(),
     getResults: vi.fn(),
     getLogMessages: vi.fn(),
+    getLogMessageCount: vi.fn(),
+    deleteLogMessage: vi.fn(),
     getNextGame: vi.fn(),
     getTeamById: vi.fn(),
     useActionCard: vi.fn(),
@@ -54,6 +56,24 @@ vi.mock('../../partials/news.js', () => ({
   }
 }))
 
+vi.mock('../../partials/actionCards.js', () => ({
+  ActionCards: class {
+    cards = []
+    async load() {
+      this.cards = (await import('../../lib/gateway.js')).server.getActionCards().then(r => r.actionCards)
+    }
+    toString() { return '<div>Action Cards Component</div>' }
+  }
+}))
+
+vi.mock('../../partials/logMessages.js', () => ({
+  LogMessages: class {
+    messages = []
+    async load() {}
+    toString() { return '<div>Log Messages Component</div>' }
+  }
+}))
+
 import { DashboardPage, renderDashboardPage } from '../../pages/dashboard.js'
 import { server } from '../../lib/gateway.js'
 
@@ -69,26 +89,20 @@ describe('DashboardPage', () => {
     server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
     server.getResults.mockResolvedValue({ results: [] })
     server.getLogMessages.mockResolvedValue([])
+    server.getLogMessageCount.mockResolvedValue({ count: 0 })
+    server.deleteLogMessage.mockResolvedValue({ success: true })
     server.getNextGame.mockResolvedValue({ game: null, nextGameDate: null, opponent: null })
     server.getTeamById.mockResolvedValue({ id: 1, name: 'Test FC' })
   })
 
   describe('DashboardPage class', () => {
-    it('has correct initial state', () => {
-      const page = new DashboardPage()
-      expect(page.actionCards).toEqual([])
-      expect(page.messages).toEqual([])
-    })
-
     it('loads data from server', async () => {
       const page = new DashboardPage()
       await page.load()
 
-      expect(server.getActionCards).toHaveBeenCalled()
       expect(server.getMyTeam).toHaveBeenCalled()
       expect(server.getCurrentGameday).toHaveBeenCalled()
       expect(server.getResults).toHaveBeenCalled()
-      expect(server.getLogMessages).toHaveBeenCalled()
     })
 
     it('template contains team name after load', async () => {
@@ -103,33 +117,28 @@ describe('DashboardPage', () => {
       expect(page.template).toContain('Nice to see you testuser')
     })
 
-    it('template contains action cards section', async () => {
+    it('template contains action cards component', async () => {
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('Action Cards')
+      expect(page.template).toContain('Action Cards Component')
     })
 
-    it('template shows empty state when no action cards', async () => {
+    it('template contains log messages component', async () => {
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('No action cards available')
+      expect(page.template).toContain('Log Messages Component')
     })
 
-    it('template contains messages section', async () => {
+    it('initializes log messages component', async () => {
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('Messages')
+      expect(page._logMessages).toBeDefined()
     })
 
-    it('renders action cards when available', async () => {
-      server.getActionCards.mockResolvedValue({
-        actionCards: [{ id: 1, action: 'LEVEL_UP_PLAYER_10' }]
-      })
-
+    it('initializes action cards component', async () => {
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('Legendary Mastery')
-      expect(page.template).toContain('data-action-card="0"')
+      expect(page._actionCards).toBeDefined()
     })
 
     it('extends UIElement', () => {

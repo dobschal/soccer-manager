@@ -519,6 +519,12 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE team ADD COLUMN tutorial_completed TEXT;')
   }
+}, {
+  name: 'Add action columns to log_message table',
+  async run () {
+    await query('ALTER TABLE log_message ADD COLUMN action VARCHAR(50);')
+    await query('ALTER TABLE log_message ADD COLUMN action_value BIGINT;')
+  }
 }]
 
 /**

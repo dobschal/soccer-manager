@@ -10,6 +10,7 @@ import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
 import { completeStadiumConstructions } from './helper/stadiumHelper.js'
+import { checkTeamAndNotify } from './helper/logMessageHelper.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -98,7 +99,19 @@ export async function calculateGames () {
   await _giveSponsorMoney(gameDay, season)
   await _giveAllPlayersFreshness(season)
   await generateNewsForGameDay(gameDay, season)
+  await _checkUserTeamsForIssues()
   console.log('\n\nPlayed game day ' + gameDay)
+}
+
+/**
+ * Checks all user teams for issues and notifies them
+ * @returns {Promise<void>}
+ */
+async function _checkUserTeamsForIssues () {
+  const t1 = Date.now()
+  const teams = await query('SELECT * FROM team WHERE user_id IS NOT NULL')
+  await Promise.all(teams.map(team => checkTeamAndNotify(team)))
+  console.log(`Checked user teams for issues in ${Date.now() - t1}ms`)
 }
 
 /**
@@ -340,11 +353,15 @@ async function _playGame (game) {
     game.id
   ])
   for (const player of playerTeamA) {
-    player.freshness = Math.max(0, player.freshness - 0.1)
+    // Goalkeepers lose half the freshness of other players
+    const freshnessLoss = player.position === 'GK' ? 0.05 : 0.1
+    player.freshness = Math.max(0, player.freshness - freshnessLoss)
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
   }
   for (const player of playerTeamB) {
-    player.freshness = Math.max(0, player.freshness - 0.1)
+    // Goalkeepers lose half the freshness of other players
+    const freshnessLoss = player.position === 'GK' ? 0.05 : 0.1
+    player.freshness = Math.max(0, player.freshness - freshnessLoss)
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
   }
 }

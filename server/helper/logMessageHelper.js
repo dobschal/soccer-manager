@@ -6,16 +6,25 @@ import { LogMessage } from '../entities/logMessage.js'
 /**
  * @param {string} message
  * @param {TeamType} team
+ * @param {string} [action]
+ * @param {number} [actionValue]
  * @returns {Promise<void>}
  */
-export async function addLogMessage (message, team) {
+export async function addLogMessage (message, team, action, actionValue) {
   const { gameDay, season } = await getGameDayAndSeason()
-  const logMessage = new LogMessage({
+  const data = {
     message,
     team_id: team.id,
     game_day: gameDay,
     season
-  })
+  }
+  if (action) {
+    data.action = action
+  }
+  if (actionValue !== undefined && actionValue !== null) {
+    data.action_value = actionValue
+  }
+  const logMessage = new LogMessage(data)
   await query('INSERT INTO log_message SET ?', logMessage)
 }
 
@@ -28,4 +37,57 @@ export async function addLogMessage (message, team) {
 export async function getLogMessages (pageIndex, pageSize, req) {
   const team = await getTeam(req)
   return await query('SELECT * FROM log_message WHERE team_id=? ORDER BY id DESC LIMIT ?, ?', [team.id, pageIndex * pageSize, pageSize])
+}
+
+/**
+ * @param {Request} req
+ * @returns {Promise<number>}
+ */
+export async function getLogMessageCount (req) {
+  const team = await getTeam(req)
+  const [result] = await query('SELECT COUNT(*) as count FROM log_message WHERE team_id=?', [team.id])
+  return result.count
+}
+
+/**
+ * @param {number} messageId
+ * @param {Request} req
+ * @returns {Promise<void>}
+ */
+export async function deleteLogMessage (messageId, req) {
+  const team = await getTeam(req)
+  await query('DELETE FROM log_message WHERE id=? AND team_id=?', [messageId, team.id])
+}
+
+/**
+ * Checks a team for issues (incomplete lineup, low freshness) and adds log messages
+ * @param {TeamType} team
+ * @returns {Promise<void>}
+ */
+export async function checkTeamAndNotify (team) {
+  // Only check teams with a user (not bots)
+  if (!team.user_id) return
+
+  const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
+  const playersInLineup = players.filter(p => p.in_game_position)
+
+  // Check for incomplete lineup
+  if (playersInLineup.length < 11) {
+    await addLogMessage(
+      `Warning: Your lineup only has ${playersInLineup.length} players! You need 11 players for optimal performance.`,
+      team,
+      'OPEN_MY_TEAM_PAGE'
+    )
+  }
+
+  // Check for low freshness players in lineup
+  const tiredPlayers = playersInLineup.filter(p => p.freshness < 0.4)
+  for (const player of tiredPlayers) {
+    await addLogMessage(
+      `Warning: ${player.name} has low freshness (${Math.floor(player.freshness * 100)}%). Consider resting them.`,
+      team,
+      'OPEN_PLAYER',
+      player.id
+    )
+  }
 }

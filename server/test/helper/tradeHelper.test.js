@@ -10,7 +10,8 @@ vi.mock('../../helper/financeHelper.js', () => ({
 }))
 
 vi.mock('../../helper/logMessageHelper.js', () => ({
-  addLogMessage: vi.fn()
+  addLogMessage: vi.fn(),
+  checkTeamAndNotify: vi.fn()
 }))
 
 vi.mock('../../helper/teamHelper.js', () => ({
@@ -174,7 +175,9 @@ describe('tradeHelper', () => {
 
       expect(addLogMessage).toHaveBeenCalledWith(
         'You sold your player Star Player to the team Buying FC.',
-        sellingTeam
+        sellingTeam,
+        'OPEN_TEAM_PAGE',
+        2
       )
     })
 
@@ -199,7 +202,9 @@ describe('tradeHelper', () => {
 
       expect(addLogMessage).toHaveBeenCalledWith(
         'You bought the player Star Player from Selling FC.',
-        buyingTeam
+        buyingTeam,
+        'OPEN_PLAYER',
+        10
       )
     })
 

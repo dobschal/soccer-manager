@@ -10,14 +10,24 @@ import { getPlayerById } from './playerHelper.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 
+// Probabilities per game day (34 game days per season)
+// Note: 2x LEVEL_UP_4 can merge into 1x LEVEL_UP_7, and 2x LEVEL_UP_7 into 1x LEVEL_UP_10
+//
+// - FRESHNESS_10: ~30/season → 0.88/day
+// - LEVEL_UP_PLAYER_4: ~4/season → 0.12/day (can merge into ~2 LEVEL_UP_7)
+// - CHANGE_PLAYER_POSITION: ~4/season → 0.12/day
+// - BONUS_100K: ~2/season → 0.06/day
+// - NEW_YOUTH_PLAYER: ~1/season → 0.03/day
+// - LEVEL_UP_PLAYER_7: ~1/season → 0.03/day (+ ~2 from merge = ~3 effective, medium amount reach level 7)
+// - LEVEL_UP_PLAYER_10: ~0.2/season → 0.006/day (+ ~1.5 from merge = ~1.7 effective, rare to reach level 10)
 export const actionCardChances = {
-  LEVEL_UP_PLAYER_10: 0.025,
-  LEVEL_UP_PLAYER_7: 0.1,
-  LEVEL_UP_PLAYER_4: 0.4,
-  CHANGE_PLAYER_POSITION: 0.05,
-  NEW_YOUTH_PLAYER: 0.1,
-  FRESHNESS_10: 0.4,
-  BONUS_100K: 0.15
+  FRESHNESS_10: 0.88,
+  LEVEL_UP_PLAYER_4: 0.12,
+  CHANGE_PLAYER_POSITION: 0.12,
+  BONUS_100K: 0.06,
+  NEW_YOUTH_PLAYER: 0.03,
+  LEVEL_UP_PLAYER_7: 0.03,
+  LEVEL_UP_PLAYER_10: 0.006
 }
 
 /**
@@ -106,6 +116,13 @@ export async function playActionCard ({
     return { success: true }
   }
   if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
+    const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
+    if (player.position === 'GK') {
+      throw new BadRequestError('Goalkeepers cannot change their position.')
+    }
+    if (position === 'GK') {
+      throw new BadRequestError('Players cannot become goalkeepers.')
+    }
     await query('UPDATE player SET position=? WHERE id=?', [position, p.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     await addPlayerHistory(p.id, 'CHANGE_PLAYER_POSITION', position)
@@ -144,4 +161,29 @@ export async function playActionCard ({
     return { success: true }
   }
   throw new BadRequestError('Unknown action...')
+}
+
+/**
+ * Merge two action cards of the same type into a better one
+ * @param {ActionCardType} actionCard1
+ * @param {ActionCardType} actionCard2
+ * @param {TeamType} team
+ * @returns {Promise<{success: boolean, newCardType: string}>}
+ */
+export async function mergeActionCards (actionCard1, actionCard2, team) {
+  if (actionCard2.action !== actionCard1.action) {
+    throw new BadRequestError('You can only merge cards of the same type')
+  }
+  if (actionCard1.action !== 'LEVEL_UP_PLAYER_4' && actionCard1.action !== 'LEVEL_UP_PLAYER_7') {
+    throw new BadRequestError('Cannot merge this card type')
+  }
+  const newCardType = actionCard1.action === 'LEVEL_UP_PLAYER_4' ? 'LEVEL_UP_PLAYER_7' : 'LEVEL_UP_PLAYER_10'
+  await query('DELETE FROM action_card WHERE id=?', [actionCard1.id])
+  await query('DELETE FROM action_card WHERE id=?', [actionCard2.id])
+  await query('INSERT INTO action_card SET ?', {
+    team_id: team.id,
+    action: newCardType,
+    played: 0
+  })
+  return { success: true, newCardType }
 }

@@ -5,10 +5,12 @@
  * @property {number} season
  * @property {string} message
  * @property {number} team_id
+ * @property {string} [action]
+ * @property {number} [action_value]
  * @property {Date} created_at
  */
 
-import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
+import { OptionalNumber, OptionalObject, OptionalString, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
  * @param {LogMessageType} raw
@@ -21,6 +23,8 @@ export function LogMessage (raw) {
     season: RequiredNumber,
     message: RequiredString,
     team_id: RequiredNumber,
+    action: OptionalString,
+    action_value: OptionalNumber,
     created_at: OptionalObject
   })
   for (const key in raw) {

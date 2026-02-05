@@ -113,17 +113,17 @@ export class News extends UIElement {
     const seasonDisplay = this.season + 1
     return `
       <div>
-        <h3>News <small class="text-muted">- Game Day ${this.gameDay}, Season ${seasonDisplay}</small></h3>
+        <h3>News <small class="text-muted">- Game Day ${this.gameDay + 1}, Season ${seasonDisplay}</small></h3>
         ${this.news.length > 0
-          ? `<div class="row">
+      ? `<div class="row">
               ${this.news.map(item => `
                 <div class="col-12 col-lg-6">
                   ${new NewsItem(item, this.teams, this.players)}
                 </div>
               `).join('')}
             </div>`
-          : `<p class="text-muted">No news available...</p>`
-        }
+      : `<p class="text-muted">No news available...</p>`
+    }
       </div>
     `
   }

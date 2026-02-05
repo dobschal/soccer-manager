@@ -24,9 +24,25 @@ export default {
     const team = await getTeam(req)
 
     // Get news for the previous game day (current day's games may not have been processed yet)
-    const newsGameDay = gameDay > 1 ? gameDay - 1 : gameDay
+    let newsGameDay = gameDay - 1
+    let newsSeason = season
 
-    const news = await getNewsByLeague(newsGameDay, season, team.level, team.league)
+    // On first game day of a new season, show last game day from previous season
+    if (newsGameDay < 0 && season > 0) {
+      newsSeason = season - 1
+      const [lastGame] = await query(
+        'SELECT MAX(game_day) as lastGameDay FROM game WHERE season = ?',
+        [newsSeason]
+      )
+      newsGameDay = lastGame?.lastGameDay ?? 0
+    }
+
+    // For very first game ever, no news yet
+    if (newsGameDay < 0) {
+      return { gameDay: 0, season, news: [], teams: [], players: [] }
+    }
+
+    const news = await getNewsByLeague(newsGameDay, newsSeason, team.level, team.league)
 
     // Collect related teams and players for rendering
     const teamIds = new Set()
@@ -55,7 +71,7 @@ export default {
 
     return {
       gameDay: newsGameDay,
-      season,
+      season: newsSeason,
       news,
       teams,
       players

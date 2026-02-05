@@ -1,5 +1,5 @@
 import { query } from './lib/database.js'
-import { getActionCards, playActionCard } from './helper/actionCardHelper.js'
+import { getActionCards, playActionCard, mergeActionCards } from './helper/actionCardHelper.js'
 import { randomItem } from './lib/util.js'
 import { getSponsor, getSponsorOffers } from './helper/sponsorHelper.js'
 import { Sponsor } from './entities/sponsor.js'
@@ -508,32 +508,83 @@ async function _chooseSponsor (botTeam, _isStrongTeam) {
  */
 async function _checkActionCards (botTeam, players, _isStrongTeam) {
   const actionCards = await getActionCards(botTeam)
-  for (const actionCard of actionCards) {
+
+  // First, try to merge level up cards
+  const level4Cards = actionCards.filter(c => c.action === 'LEVEL_UP_PLAYER_4')
+  const level7Cards = actionCards.filter(c => c.action === 'LEVEL_UP_PLAYER_7')
+
+  // Merge pairs of LEVEL_UP_PLAYER_4 cards
+  for (let i = 0; i + 1 < level4Cards.length; i += 2) {
     try {
+      await mergeActionCards(level4Cards[i], level4Cards[i + 1], botTeam)
+      console.log(`${botTeam.name} merged two Level 4 cards into Level 7`)
+    } catch (e) {
+      console.warn('Merging Level 4 cards failed: ', e.message)
+    }
+  }
+
+  // Merge pairs of LEVEL_UP_PLAYER_7 cards
+  for (let i = 0; i + 1 < level7Cards.length; i += 2) {
+    try {
+      await mergeActionCards(level7Cards[i], level7Cards[i + 1], botTeam)
+      console.log(`${botTeam.name} merged two Level 7 cards into Level 10`)
+    } catch (e) {
+      console.warn('Merging Level 7 cards failed: ', e.message)
+    }
+  }
+
+  // Re-fetch cards after merging
+  const remainingCards = await getActionCards(botTeam)
+
+  for (const actionCard of remainingCards) {
+    try {
+      // NEW_YOUTH_PLAYER - creates a new young player
       if (actionCard.action === 'NEW_YOUTH_PLAYER') {
         await playActionCard({ actionCard }, botTeam)
-        console.log(`${botTeam.name} got a new player`)
+        console.log(`${botTeam.name} used NEW_YOUTH_PLAYER card`)
         continue
       }
+
+      // BONUS_100K - free money
+      if (actionCard.action === 'BONUS_100K') {
+        await playActionCard({ actionCard }, botTeam)
+        console.log(`${botTeam.name} used BONUS_100K card`)
+        continue
+      }
+
+      // FRESHNESS_10 - apply to player with lowest freshness
+      if (actionCard.action === 'FRESHNESS_10') {
+        const tiredPlayers = players.filter(p => p.freshness < 1.0).sort((a, b) => a.freshness - b.freshness)
+        const player = tiredPlayers[0]
+        if (player) {
+          await playActionCard({ actionCard, player }, botTeam)
+          console.log(`${botTeam.name} used FRESHNESS card on ${player.name}`)
+        }
+        continue
+      }
+
+      // LEVEL_UP_PLAYER_* - apply to eligible player
       if (actionCard.action.startsWith('LEVEL_UP_PLAYER')) {
-        const player = randomItem(players.filter(p => {
-          if (actionCard.action.endsWith('_4')) {
-            return p.level < 4
-          }
-          if (actionCard.action.endsWith('_7')) {
-            return p.level < 7
-          }
-          return p.level < 10
-        }))
-        if (!player) continue
-        await playActionCard({
-          actionCard,
-          player
-        }, botTeam)
-        console.log(`${botTeam.name} got a level up`)
+        let maxLevel = 10
+        if (actionCard.action.endsWith('_4')) maxLevel = 4
+        if (actionCard.action.endsWith('_7')) maxLevel = 7
+
+        const eligiblePlayers = players.filter(p => p.level < maxLevel)
+        const player = randomItem(eligiblePlayers)
+        if (player) {
+          await playActionCard({ actionCard, player }, botTeam)
+          console.log(`${botTeam.name} used ${actionCard.action} on ${player.name}`)
+        }
+        continue
+      }
+
+      // CHANGE_PLAYER_POSITION - bots skip this (complex decision)
+      if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
+        // Bots don't use position change cards - they accumulate
+        continue
       }
     } catch (e) {
-      console.warn('Playing action card failed: ', e)
+      console.warn('Playing action card failed: ', e.message)
     }
   }
 }
