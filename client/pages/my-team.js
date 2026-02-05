@@ -376,11 +376,11 @@ export class MyTeamPage extends UIElement {
     // Fetch name library from server
     const nameLibrary = await server.getNameLibrary()
     const { clubPrefixes1, clubPrefixes2, cityNames } = nameLibrary
-    
+
     // Parse current team name to extract parts
     const currentName = this.data.team.name
     const nameParts = currentName.trim().split(' ')
-    
+
     // Try to find matching parts in the arrays
     let selectedPrefix1 = ''
     let selectedPrefix2 = ''
