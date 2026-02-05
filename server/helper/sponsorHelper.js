@@ -4,9 +4,11 @@ import { randomItem } from '../lib/util.js'
 import { sponsorNames } from '../lib/name-library.js'
 import { Sponsor } from '../entities/sponsor.js'
 
+const GAMEDAYS_PER_SEASON = 34
+
 /**
  * @param {TeamType} team
- * @returns {Promise<{sponsor: SponsorType}>}
+ * @returns {Promise<{sponsor: SponsorType & {remaining_days?: number}}>}
  */
 export async function getSponsor (team) {
   const { gameDay, season } = await getGameDayAndSeason()
@@ -18,6 +20,15 @@ export async function getSponsor (team) {
           OR (s.start_season = ? - 1
               AND s.start_game_day + s.duration - 34 >= ?));
   `, [team.id, gameDay, season, season, gameDay])
+
+  if (sponsor) {
+    // Calculate remaining days
+    const contractEndTotal = sponsor.start_season * GAMEDAYS_PER_SEASON + sponsor.start_game_day + sponsor.duration
+    const currentTotal = season * GAMEDAYS_PER_SEASON + gameDay
+    const remaining_days = Math.max(0, contractEndTotal - currentTotal)
+    return { sponsor: { ...sponsor, remaining_days } }
+  }
+
   return { sponsor }
 }
 

@@ -43,7 +43,7 @@ export class BalanceChart extends UIElement {
    * @returns {string}
    */
   get template () {
-    return `<div style="position: relative; height: 350px; width: 100%; background: rgb(239,239,239); padding: 16px; border-radius: 8px; box-sizing: border-box;"><canvas class="finance-canvas"></canvas></div>`
+    return `<div class="bg-dark" style="position: relative; height: 350px; width: 100%; padding: 16px; border-radius: 8px; box-sizing: border-box;"><canvas class="finance-canvas"></canvas></div>`
   }
 
   /**
@@ -94,18 +94,8 @@ export class BalanceChart extends UIElement {
       this._chart.destroy()
     }
 
-    const ctx = canvas.getContext('2d')
     const data = this.logItems.map(l => l.balance)
     const percentageChanges = this._calculatePercentageChanges()
-
-    // Create gradients for green and red
-    const greenGradient = ctx.createLinearGradient(0, 0, 0, 300)
-    greenGradient.addColorStop(0, 'rgba(34, 197, 94, 0.8)')
-    greenGradient.addColorStop(1, 'rgba(34, 197, 94, 0.2)')
-
-    const redGradient = ctx.createLinearGradient(0, 0, 0, 300)
-    redGradient.addColorStop(0, 'rgba(239, 68, 68, 0.8)')
-    redGradient.addColorStop(1, 'rgba(239, 68, 68, 0.2)')
 
     // Plugin to draw percentage labels
     const percentagePlugin = {
@@ -124,7 +114,7 @@ export class BalanceChart extends UIElement {
           const change = percentageChanges[index]
           const isPositive = change.startsWith('+')
 
-          ctx.fillStyle = isPositive ? '#16a34a' : '#dc2626'
+          ctx.fillStyle = isPositive ? '#39ff14' : '#ff073a'
 
           // Position label above/below the point
           const yOffset = isPositive ? -12 : 16
@@ -147,18 +137,13 @@ export class BalanceChart extends UIElement {
           pointHoverRadius: 6,
           tension: 0.4,
           fill: true,
+          backgroundColor: 'rgba(0, 0, 0, 0.0)',
           segment: {
             borderColor: (ctx) => {
-              if (ctx.p0DataIndex === undefined) return '#22c55e'
+              if (ctx.p0DataIndex === undefined) return '#39ff14'
               const prev = data[ctx.p0DataIndex]
               const curr = data[ctx.p1DataIndex]
-              return curr >= prev ? '#22c55e' : '#ef4444'
-            },
-            backgroundColor: (ctx) => {
-              if (ctx.p0DataIndex === undefined) return greenGradient
-              const prev = data[ctx.p0DataIndex]
-              const curr = data[ctx.p1DataIndex]
-              return curr >= prev ? greenGradient : redGradient
+              return curr >= prev ? '#39ff14' : '#ff073a'
             }
           }
         }]
@@ -201,15 +186,11 @@ export class BalanceChart extends UIElement {
             },
             border: {
               display: true,
-              color: '#1f2937',
-              width: 2
+              color: 'rgba(255, 255, 255, 0.1)',
+              width: 3
             },
             ticks: {
-              color: '#1f2937',
-              font: {
-                size: 12,
-                weight: 'bold'
-              }
+              display: false
             }
           },
           y: {
@@ -219,21 +200,19 @@ export class BalanceChart extends UIElement {
             },
             border: {
               display: true,
-              color: '#1f2937',
-              width: 2
+              color: 'rgba(255, 255, 255, 0.1)',
+              width: 3
             },
             ticks: {
-              color: '#1f2937',
+              color: 'rgba(255, 255, 255, 0.7)',
               font: {
-                size: 12,
+                size: 11,
                 weight: 'bold'
               },
               callback: (value) => {
-                return new Intl.NumberFormat('de-DE', {
-                  style: 'currency',
-                  currency: 'EUR',
-                  notation: 'compact'
-                }).format(value)
+                if (value >= 1000000) return (value / 1000000).toFixed(1) + 'm'
+                if (value >= 1000) return (value / 1000).toFixed(0) + 'k'
+                return value
               }
             }
           }
