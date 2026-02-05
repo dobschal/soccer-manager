@@ -23,6 +23,8 @@ export class DashboardPage extends UIElement {
   nextGame = null
   nextGameDate = null
   nextGameOpponent = null
+  standing = []
+  teamPosition = 0
 
   /**
    * @returns {string}
@@ -45,29 +47,20 @@ export class DashboardPage extends UIElement {
     return `
       <div>
         <h2>${this.team.name}</h2>
-        <p>
-          Nice to see you ${this.user.username}! We hope you are doing well!<br>
-          On game day ${Math.max(1, this.gameDay)} of season ${this.season + 1}, your team faced ${isHomeGame ? this.game.team2 : this.game.team1}.
-          ${resultMessage}
-        </p>
-        <div class="card card-body mb-4 bg-dark">
-          <a class="row pt-2 d-flex align-items-center" href="#results?game_id=${this.game.id}">
-            <div class="col-4 col-sm-5 text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
-              <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center">
-                <div class="order-1 order-sm-0 mb-2 mb-sm-0 me-sm-2">${this.gameTeam1 ? renderEmblem(this.gameTeam1, 80) : ''}</div>
-                <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${this.game.team1 ?? ''}</h5>
-              </div>
+        <div class="d-flex align-items-start gap-3 mb-4">
+          <div class="manager-chat d-none d-lg-block">
+            <div class="chat-bubble">
+              <p class="mb-1">Hey <b>${this.user.username}</b>!</p>
+              <p class="mb-1">Your team is currently <b>${this._getPositionText()}</b> in League ${this.team.level + 1}.</p>
+              <p class="mb-0">On game day ${Math.max(1, this.gameDay)} of season ${this.season + 1}, your team faced <b>${isHomeGame ? this.game.team2 : this.game.team1}</b>. ${resultMessage}</p>
             </div>
-            <div class="col-4 col-sm-2 text-dark text-center"><h3><span class="badge bg-info">${this.game.goalsTeam1 ?? '-'}:${this.game.goalsTeam2 ?? '-'}</span></h3></div>
-            <div class="col-4 col-sm-5 text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
-              <div class="d-flex flex-column flex-sm-row-reverse align-items-center justify-content-center">
-                <div class="order-1 order-sm-0 mb-2 mb-sm-0 ms-sm-2">${this.gameTeam2 ? renderEmblem(this.gameTeam2, 80) : ''}</div>
-                <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${this.game.team2 ?? ''}</h5>
-              </div>
-            </div>
-          </a>
+            <img src="assets/manager-3.png" alt="Manager" class="manager-image" style="width: 300px; height: auto;">            
+          </div>
+          <div class="flex-grow-1">
+            ${this._renderLatestGame()}
+            ${this._renderUpcomingGame()}
+          </div>
         </div>
-        ${this._renderUpcomingGame()}
 
         ${this._actionCards}
 
@@ -111,6 +104,10 @@ export class DashboardPage extends UIElement {
     this.nextGame = nextGameResponse.game
     this.nextGameDate = nextGameResponse.nextGameDate
     this.nextGameOpponent = nextGameResponse.opponent
+
+    // Fetch current standing to show league position
+    this.standing = await server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league)
+    this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
   }
 
   /**
@@ -193,6 +190,46 @@ export class DashboardPage extends UIElement {
   /**
    * @returns {string}
    */
+  _getPositionText () {
+    if (this.teamPosition === 0) return 'not ranked yet'
+    const pos = this.teamPosition
+    const suffix = pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'
+    return `${pos}${suffix} place`
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderLatestGame () {
+    if (!this.game || !this.game.id) {
+      return ''
+    }
+
+    const isHomeGame = this.game.team1Id === this.team.id
+
+    return `
+      <div class="card card-body bg-dark mb-2">
+        <a class="row d-flex align-items-center flex-nowrap" href="#results?game_id=${this.game.id}">
+          <div class="col text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
+            <div class="mb-2">${this.gameTeam1 ? renderEmblem(this.gameTeam1, 60) : ''}</div>
+            <h6 class="mb-0">${this.game.team1 ?? ''}</h6>
+          </div>
+          <div class="col-auto text-center">
+            <small class="text-white d-block mb-1">Latest Result</small>
+            <h3 class="mb-0"><span class="badge bg-info">${this.game.goalsTeam1 ?? '-'}:${this.game.goalsTeam2 ?? '-'}</span></h3>
+          </div>
+          <div class="col text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
+            <div class="mb-2">${this.gameTeam2 ? renderEmblem(this.gameTeam2, 60) : ''}</div>
+            <h6 class="mb-0">${this.game.team2 ?? ''}</h6>
+          </div>
+        </a>
+      </div>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
   _renderUpcomingGame () {
     if (!this.nextGame || !this.nextGameOpponent) {
       return ''
@@ -201,27 +238,22 @@ export class DashboardPage extends UIElement {
     const isHomeGame = this.nextGame.team1Id === this.team.id
 
     return `
-      <h3 class="mt-4">Upcoming Match</h3>
-      <p>Your next match is on game day ${this.nextGame.gameDay + 1} of season ${this.season + 1}.</p>
-      <div class="card card-body mb-4 bg-dark">
-        <div class="row pt-2 d-flex align-items-center">
-          <div class="col-4 col-sm-5 text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
-            <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center">
-              <div class="order-1 order-sm-0 mb-2 mb-sm-0 me-sm-2">${isHomeGame ? renderEmblem(this.team, 80) : renderEmblem(this.nextGameOpponent, 80)}</div>
-              <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${isHomeGame ? this.team.name : this.nextGameOpponent.name}</h5>
-            </div>
+      <div class="card card-body bg-dark">
+        <div class="row d-flex align-items-center flex-nowrap">
+          <div class="col text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
+            <div class="mb-2">${isHomeGame ? renderEmblem(this.team, 60) : renderEmblem(this.nextGameOpponent, 60)}</div>
+            <h6 class="mb-0">${isHomeGame ? this.team.name : this.nextGameOpponent.name}</h6>
           </div>
-          <div class="col-4 col-sm-2 text-center">
+          <div class="col-auto text-center">
+            <small class="text-white d-block mb-1">Next Match</small>
             <div class="badge bg-info p-2" style="font-size: 1.2rem;">
               <i class="fa fa-clock-o" aria-hidden="true"></i><br>
               <span id="${this._countdownElementId}">--:--:--</span>
             </div>
           </div>
-          <div class="col-4 col-sm-5 text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
-            <div class="d-flex flex-column flex-sm-row-reverse align-items-center justify-content-center">
-              <div class="order-1 order-sm-0 mb-2 mb-sm-0 ms-sm-2">${!isHomeGame ? renderEmblem(this.team, 80) : renderEmblem(this.nextGameOpponent, 80)}</div>
-              <h5 class="order-0 order-sm-1 mb-2 mb-sm-0">${!isHomeGame ? this.team.name : this.nextGameOpponent.name}</h5>
-            </div>
+          <div class="col text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
+            <div class="mb-2">${!isHomeGame ? renderEmblem(this.team, 60) : renderEmblem(this.nextGameOpponent, 60)}</div>
+            <h6 class="mb-0">${!isHomeGame ? this.team.name : this.nextGameOpponent.name}</h6>
           </div>
         </div>
       </div>
