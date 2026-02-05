@@ -49,6 +49,17 @@ export default {
   },
 
   /**
+   * @param {string} name - New team name
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateTeamName (name, req) {
+    const team = await getTeam(req)
+    await query('UPDATE team SET name=? WHERE id=?', [name, team.id])
+    return { success: true }
+  },
+
+  /**
    * @param {number} teamId
    * @returns {Promise<TeamType>}
    */
