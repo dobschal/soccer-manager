@@ -4,6 +4,7 @@ import { el } from '../lib/html.js'
 import { toast } from '../partials/toast.js'
 import { euroFormat } from '../lib/currency.js'
 import { StadiumCanvas } from '../partials/stadiumCanvas.js'
+import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 
 export class StadiumPage extends UIElement {
   stadium = {}
@@ -278,6 +279,7 @@ export class StadiumPage extends UIElement {
     if (this._stadiumCanvas) {
       this._stadiumCanvas.onMounted()
     }
+    void showTutorialIfNeeded('stadium')
   }
 
   /**

@@ -8,6 +8,7 @@ import { showGameModal } from '../partials/gameModal.js'
 import { UIElement } from '../lib/UIElement.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { renderPlayerImage } from '../partials/playerImage.js'
+import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 
 export class ResultsPage extends UIElement {
   /**
@@ -193,6 +194,7 @@ export class ResultsPage extends UIElement {
    */
   onMounted () {
     this._loadTopScorerImages()
+    void showTutorialIfNeeded('results')
   }
 
   /**

@@ -21,6 +21,7 @@ import {
   parseEmblemParams
 } from '../util/emblemGenerator.js'
 import { UIElement } from '../lib/UIElement.js'
+import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 
 export class MyTeamPage extends UIElement {
   /**
@@ -77,6 +78,13 @@ export class MyTeamPage extends UIElement {
     if (playerId) {
       await showPlayerModal(Number(playerId))
     }
+  }
+
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    void showTutorialIfNeeded('team')
   }
 
   /**

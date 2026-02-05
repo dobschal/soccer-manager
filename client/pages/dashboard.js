@@ -10,6 +10,7 @@ import { renderEmblem } from '../partials/emblem.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { delay } from '../lib/delay.js'
 import { el, generateId } from '../lib/html.js'
+import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 
 const pageIndex = 0
 const pageSize = 10
@@ -219,6 +220,7 @@ export class DashboardPage extends UIElement {
    */
   onMounted () {
     this._startCountdownTimer()
+    void showTutorialIfNeeded('dashboard')
   }
 
   /**

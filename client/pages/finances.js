@@ -4,6 +4,7 @@ import { toast } from '../partials/toast.js'
 import { Balance } from '../partials/balance.js'
 import { euroFormat } from '../lib/currency.js'
 import { BalanceChart } from '../partials/balanceChart.js'
+import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 
 /**
  * @typedef {Object} FinanceLogEntry
@@ -102,6 +103,13 @@ export class FinancesPage extends UIElement {
 
     const logResponse = await server.getFinanceLog()
     this.financeLog = logResponse.log
+  }
+
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    void showTutorialIfNeeded('finances')
   }
 
   /**

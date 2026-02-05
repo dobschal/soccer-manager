@@ -5,6 +5,7 @@ import { renderTradeHistory } from './trades/tradeHistory.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { UIElement } from '../lib/UIElement.js'
 import { FreePlayers } from './trades/freePlayers.js'
+import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 
 export class TradesPage extends UIElement {
   /**
@@ -37,6 +38,13 @@ export class TradesPage extends UIElement {
    */
   async load () {
     await super.load()
+  }
+
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    void showTutorialIfNeeded('trades')
   }
 
   /**

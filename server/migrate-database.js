@@ -514,6 +514,11 @@ const migrations = [{
       `)
     }
   }
+}, {
+  name: 'Add tutorial_completed column to team table',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN tutorial_completed TEXT;')
+  }
 }]
 
 /**
