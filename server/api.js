@@ -10,6 +10,7 @@ import { prepareSeason } from './prepare-season.js'
 import { calculateGames } from './play-game-day.js'
 import { makeBotMoves } from './bot-move.js'
 import { getLocaleFromRequest } from './i18n/index.js'
+import { cleanupOldFreePlayers } from './helper/playerHelper.js'
 
 const app = express()
 const port = 3000
@@ -85,6 +86,7 @@ async function start () {
     await prepareSeason()
     await makeBotMoves()
     await calculateGames()
+    await cleanupOldFreePlayers()
   })
   app.listen(port, () => {
     console.log(`🚀 App running on port ${port}`)
