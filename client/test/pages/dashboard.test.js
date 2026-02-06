@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { DashboardPage, renderDashboardPage } from '../../pages/dashboard.js'
+import { server } from '../../lib/gateway.js'
 
 // Mock all dependencies before importing
 vi.mock('../../lib/gateway.js', () => ({
@@ -38,8 +40,12 @@ vi.mock('../../partials/overlay.js', () => ({
 
 vi.mock('../../partials/playerList.js', () => ({
   PlayerList: class {
-    constructor() {}
-    toString() { return '<div>Player List</div>' }
+    constructor () {
+    }
+
+    toString () {
+      return '<div>Player List</div>'
+    }
   }
 }))
 
@@ -53,30 +59,38 @@ vi.mock('../../lib/date.js', () => ({
 
 vi.mock('../../partials/news.js', () => ({
   News: class {
-    toString() { return '<div>News</div>' }
+    toString () {
+      return '<div>News</div>'
+    }
   }
 }))
 
 vi.mock('../../partials/actionCards.js', () => ({
   ActionCards: class {
     cards = []
-    async load() {
+
+    async load () {
       this.cards = (await import('../../lib/gateway.js')).server.getActionCards().then(r => r.actionCards)
     }
-    toString() { return '<div>Action Cards Component</div>' }
+
+    toString () {
+      return '<div>Action Cards Component</div>'
+    }
   }
 }))
 
 vi.mock('../../partials/logMessages.js', () => ({
   LogMessages: class {
     messages = []
-    async load() {}
-    toString() { return '<div>Log Messages Component</div>' }
+
+    async load () {
+    }
+
+    toString () {
+      return '<div>Log Messages Component</div>'
+    }
   }
 }))
-
-import { DashboardPage, renderDashboardPage } from '../../pages/dashboard.js'
-import { server } from '../../lib/gateway.js'
 
 describe('DashboardPage', () => {
   beforeEach(() => {
@@ -84,18 +98,39 @@ describe('DashboardPage', () => {
 
     server.getActionCards.mockResolvedValue({ actionCards: [] })
     server.getMyTeam.mockResolvedValue({
-      team: { id: 1, name: 'Test FC', level: 1, league: 1 },
+      team: {
+        id: 1,
+        name: 'Test FC',
+        level: 1,
+        league: 1
+      },
       user: { username: 'testuser' }
     })
-    server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
+    server.getCurrentGameday.mockResolvedValue({
+      season: 0,
+      gameDay: 5
+    })
     server.getResults.mockResolvedValue({ results: [] })
     server.getLogMessages.mockResolvedValue([])
     server.getLogMessageCount.mockResolvedValue({ count: 0 })
     server.deleteLogMessage.mockResolvedValue({ success: true })
-    server.getNextGame.mockResolvedValue({ game: null, nextGameDate: null, opponent: null })
-    server.getTeamById.mockResolvedValue({ id: 1, name: 'Test FC' })
+    server.getNextGame.mockResolvedValue({
+      game: null,
+      nextGameDate: null,
+      opponent: null
+    })
+    server.getTeamById.mockResolvedValue({
+      id: 1,
+      name: 'Test FC'
+    })
     server.getStanding.mockResolvedValue([
-      { team: { id: 1, name: 'Test FC' }, points: 10 }
+      {
+        team: {
+          id: 1,
+          name: 'Test FC'
+        },
+        points: 10
+      }
     ])
   })
 
@@ -131,18 +166,6 @@ describe('DashboardPage', () => {
       const page = new DashboardPage()
       await page.load()
       expect(page.template).toContain('Log Messages Component')
-    })
-
-    it('initializes log messages component', async () => {
-      const page = new DashboardPage()
-      await page.load()
-      expect(page._logMessages).toBeDefined()
-    })
-
-    it('initializes action cards component', async () => {
-      const page = new DashboardPage()
-      await page.load()
-      expect(page._actionCards).toBeDefined()
     })
 
     it('extends UIElement', () => {

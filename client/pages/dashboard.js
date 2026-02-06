@@ -11,8 +11,6 @@ import { LogMessages } from '../partials/logMessages.js'
 export class DashboardPage extends UIElement {
   _timerInterval = null
   _countdownElementId = generateId()
-  _actionCards = null
-  _logMessages = null
   team = {}
   user = {}
   season = 0
@@ -62,11 +60,11 @@ export class DashboardPage extends UIElement {
           </div>
         </div>
 
-        ${this._actionCards}
+        ${new ActionCards()}
 
         ${new News()}
 
-        ${this._logMessages}
+        ${new LogMessages()}
       </div>
     `
   }
@@ -75,9 +73,6 @@ export class DashboardPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    this._actionCards = new ActionCards()
-    this._logMessages = new LogMessages()
-
     const teamResponse = await server.getMyTeam()
     this.team = teamResponse.team
     this.user = teamResponse.user

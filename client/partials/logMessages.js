@@ -38,15 +38,24 @@ export class LogMessages extends UIElement {
           }
         }
       },
-      '.log-messages-prev': {
-        click: () => this._loadPage(this._pageIndex - 1)
-      },
-      '.log-messages-next': {
-        click: () => this._loadPage(this._pageIndex + 1)
-      },
-      '.log-messages-pagination': {
+      '.log-messages-pagination-wrapper': {
         click: (event) => {
-          const pageLink = event.target.closest('[data-page-index]')
+          const target = event.target
+
+          // Handle prev button
+          if (target.closest('.log-messages-prev')) {
+            this._loadPage(this._pageIndex - 1)
+            return
+          }
+
+          // Handle next button
+          if (target.closest('.log-messages-next')) {
+            this._loadPage(this._pageIndex + 1)
+            return
+          }
+
+          // Handle page number
+          const pageLink = target.closest('[data-page-index]')
           if (pageLink) {
             const pageIndex = parseInt(pageLink.dataset.pageIndex, 10)
             this._loadPage(pageIndex)
@@ -68,7 +77,9 @@ export class LogMessages extends UIElement {
             ? '<li class="list-group-item text-muted">No messages yet...</li>'
             : this.messages.map(m => this._renderMessage(m)).join('')}
         </ul>
-        ${this._renderPagination()}
+        <div class="log-messages-pagination-wrapper">
+          ${this._renderPagination()}
+        </div>
       </div>
     `
   }
