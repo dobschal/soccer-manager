@@ -555,6 +555,11 @@ const migrations = [{
     }
     await Promise.all(promises)
   }
+}, {
+  name: 'Add language column to user table',
+  async run () {
+    await query("ALTER TABLE user ADD COLUMN language VARCHAR(5) DEFAULT 'en'")
+  }
 }]
 
 /**

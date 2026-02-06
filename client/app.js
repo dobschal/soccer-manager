@@ -10,6 +10,10 @@ import { StadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
+import { initLocale } from './i18n/index.js'
+
+// Initialize locale from localStorage or browser settings
+initLocale()
 
 server.getVersion().then(({ version }) => {
   console.log(`Soccer Manager v${version}`)

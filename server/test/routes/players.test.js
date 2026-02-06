@@ -56,17 +56,19 @@ describe('players routes', () => {
       const players = [testData.player({ id: 1 }), testData.player({ id: 2 })]
       query.mockResolvedValue(players)
 
-      const result = await handlers.getPlayersWithIds([1, 2])
+      const req = { locale: 'en' }
+      const result = await handlers.getPlayersWithIds([1, 2], req)
 
       expect(result).toEqual({ players })
     })
 
     it('throws error for missing playerIds', async () => {
-      await expect(handlers.getPlayersWithIds([]))
-        .rejects.toMatchObject({ message: 'playerIds missing' })
+      const req = { locale: 'en' }
+      await expect(handlers.getPlayersWithIds([], req))
+        .rejects.toMatchObject({ message: 'Invalid request' })
 
-      await expect(handlers.getPlayersWithIds(null))
-        .rejects.toMatchObject({ message: 'playerIds missing' })
+      await expect(handlers.getPlayersWithIds(null, req))
+        .rejects.toMatchObject({ message: 'Invalid request' })
     })
   })
 
@@ -99,7 +101,7 @@ describe('players routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.firePlayer({ id: 999 }, req))
-        .rejects.toMatchObject({ message: 'Not your player...' })
+        .rejects.toMatchObject({ message: 'This is not your player' })
     })
   })
 
@@ -141,7 +143,7 @@ describe('players routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.givePlayerContract(1, req))
-        .rejects.toMatchObject({ message: 'Player has a team already...' })
+        .rejects.toMatchObject({ message: 'Player not found' })
     })
   })
 

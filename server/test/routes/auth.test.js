@@ -35,7 +35,8 @@ describe('auth routes', () => {
       const user = testData.user({ password: 'password123' })
       query.mockResolvedValue([user])
 
-      const result = await handlers.login('testuser', 'password123')
+      const req = { locale: 'en' }
+      const result = await handlers.login('testuser', 'password123', req)
 
       expect(result).toHaveProperty('token')
       expect(typeof result.token).toBe('string')
@@ -43,12 +44,14 @@ describe('auth routes', () => {
     })
 
     it('throws BadRequestError for non-string username', async () => {
-      await expect(handlers.login(123, 'password'))
+      const req = { locale: 'en' }
+      await expect(handlers.login(123, 'password', req))
         .rejects.toMatchObject({ message: 'Username needs to be string' })
     })
 
     it('throws BadRequestError for non-string password', async () => {
-      await expect(handlers.login('testuser', 123))
+      const req = { locale: 'en' }
+      await expect(handlers.login('testuser', 123, req))
         .rejects.toMatchObject({ message: 'Password needs to be string' })
     })
 
@@ -56,14 +59,16 @@ describe('auth routes', () => {
       const user = testData.user({ password: 'correctpassword' })
       query.mockResolvedValue([user])
 
-      await expect(handlers.login('testuser', 'wrongpassword'))
+      const req = { locale: 'en' }
+      await expect(handlers.login('testuser', 'wrongpassword', req))
         .rejects.toMatchObject({ message: 'Wrong credentials' })
     })
 
     it('throws UnauthorizedError for non-existent user', async () => {
       query.mockResolvedValue([])
 
-      await expect(handlers.login('nonexistent', 'password'))
+      const req = { locale: 'en' }
+      await expect(handlers.login('nonexistent', 'password', req))
         .rejects.toMatchObject({ message: 'Wrong credentials' })
     })
   })
@@ -82,7 +87,8 @@ describe('auth routes', () => {
       addLogMessage.mockResolvedValue()
       getSponsor.mockResolvedValue({ sponsor: { id: 1 } })
 
-      const result = await handlers.createAccount('newuser', 'password123')
+      const req = { locale: 'en' }
+      const result = await handlers.createAccount('newuser', 'password123', req)
 
       expect(result).toEqual({ success: true })
       expect(prepareSeason).not.toHaveBeenCalled()
@@ -90,19 +96,22 @@ describe('auth routes', () => {
     })
 
     it('throws BadRequestError for non-string username', async () => {
-      await expect(handlers.createAccount(123, 'password123', 'Team'))
+      const req = { locale: 'en' }
+      await expect(handlers.createAccount(123, 'password123', req))
         .rejects.toMatchObject({ message: 'Username needs to be string' })
     })
 
     it('throws BadRequestError for short password', async () => {
-      await expect(handlers.createAccount('user', 'short', 'Team'))
-        .rejects.toMatchObject({ message: 'Password needs to be string longer then 8 character' })
+      const req = { locale: 'en' }
+      await expect(handlers.createAccount('user', 'short', req))
+        .rejects.toMatchObject({ message: 'Password needs to be string longer than 8 characters' })
     })
 
     it('throws BadRequestError for taken username', async () => {
       query.mockResolvedValueOnce([{ amount: 1 }])
 
-      await expect(handlers.createAccount('existinguser', 'password123', 'Team'))
+      const req = { locale: 'en' }
+      await expect(handlers.createAccount('existinguser', 'password123', req))
         .rejects.toMatchObject({ message: 'Username already taken' })
     })
 
@@ -122,7 +131,8 @@ describe('auth routes', () => {
       addLogMessage.mockResolvedValue()
       getSponsor.mockResolvedValue({ sponsor: null })
 
-      const result = await handlers.createAccount('newuser', 'password123')
+      const req = { locale: 'en' }
+      const result = await handlers.createAccount('newuser', 'password123', req)
 
       expect(result).toEqual({ success: true })
       expect(prepareSeason).toHaveBeenCalledTimes(1)
@@ -144,7 +154,8 @@ describe('auth routes', () => {
       addLogMessage.mockResolvedValue()
       getSponsor.mockResolvedValue({ sponsor: null })
 
-      await handlers.createAccount('newuser', 'password123')
+      const req = { locale: 'en' }
+      await handlers.createAccount('newuser', 'password123', req)
 
       // Verify the team from prepareSeason is used
       expect(addLogMessage).toHaveBeenCalledWith(
@@ -164,7 +175,8 @@ describe('auth routes', () => {
 
       prepareSeason.mockResolvedValue()
 
-      await expect(handlers.createAccount('newuser', 'password123'))
+      const req = { locale: 'en' }
+      await expect(handlers.createAccount('newuser', 'password123', req))
         .rejects.toMatchObject({ message: 'No team available.' })
 
       expect(prepareSeason).toHaveBeenCalledTimes(1)

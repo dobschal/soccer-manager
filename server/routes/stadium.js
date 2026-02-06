@@ -9,6 +9,7 @@ import {
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { query } from '../lib/database.js'
+import { t } from '../i18n/index.js'
 
 export default {
 
@@ -38,8 +39,9 @@ export default {
    * @returns {Promise<{totalPrice: number, constructionTimes: Object}>}
    */
   async calculateStadiumPrice (stadium, req) {
+    const locale = req.locale || 'en'
     const currentStadium = await getStadiumOfCurrentUser(req)
-    if (currentStadium.id !== stadium.id) throw new UnauthorizedError('Not your stadium dude')
+    if (currentStadium.id !== stadium.id) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
 
     const stands = ['north', 'south', 'east', 'west']
     const constructionTimes = {}
@@ -54,7 +56,7 @@ export default {
         if (isStandUnderConstruction(currentStadium, stand)) {
           constructionTimes[stand] = {
             blocked: true,
-            message: 'Already under construction'
+            message: t('error.standUnderConstruction', {}, locale)
           }
         } else {
           constructionTimes[stand] = {
@@ -78,8 +80,9 @@ export default {
    * @returns {Promise<{success: boolean, constructionInfo: Object}>}
    */
   async buildStadium (stadium, req) {
+    const locale = req.locale || 'en'
     const currentStadium = await getStadiumOfCurrentUser(req)
-    if (currentStadium.id !== stadium.id) throw new UnauthorizedError('Not your stadium dude')
+    if (currentStadium.id !== stadium.id) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
 
     // Validate no stands being expanded are under construction
     const stands = ['north', 'south', 'east', 'west']
@@ -88,13 +91,13 @@ export default {
                          currentStadium[`${stand}_stand_roof`] !== stadium[`${stand}_stand_roof`]
 
       if (hasChanges && isStandUnderConstruction(currentStadium, stand)) {
-        throw new BadRequestError(`Cannot expand ${stand} stand - already under construction`)
+        throw new BadRequestError(t('error.standUnderConstruction', {}, locale))
       }
     }
 
     const price = calcuateStadiumBuild(currentStadium, stadium)
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
-    if (team.balance < price) throw new BadRequestError('Not enough money...')
+    if (team.balance < price) throw new BadRequestError(t('error.notEnoughMoney', {}, locale))
     const result = await buildStadium(team, currentStadium, stadium, price)
     return { success: true, constructionInfo: result.constructionInfo }
   },
@@ -105,12 +108,13 @@ export default {
    * @returns {Promise<{success: boolean}>}
    */
   async updatePrices (stadium, req) {
+    const locale = req.locale || 'en'
     const currentStadium = await getStadiumOfCurrentUser(req)
-    if (currentStadium.id !== stadium.id) throw new UnauthorizedError('Not your stadium dude')
+    if (currentStadium.id !== stadium.id) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const stands = ['north', 'south', 'east', 'west']
     for (const stand of stands) {
       const val = stadium[stand + '_stand_price']
-      if (!Number.isInteger(val) || val <= 0 || val > 100) throw new BadRequestError('Price needs to be a integer number greater than 0 and less than 100.')
+      if (!Number.isInteger(val) || val <= 0 || val > 100) throw new BadRequestError(t('error.invalidTicketPrice', {}, locale))
     }
     await query(`UPDATE stadium
         SET ${stands.map(n => n + '_stand_price=?').join(', ')}

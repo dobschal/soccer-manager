@@ -9,6 +9,7 @@ import { addPlayerHistory } from './playerHistoryHelper.js'
 import { getPlayerById } from './playerHelper.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
+import { t, getUserLocale } from '../i18n/index.js'
 
 // Probabilities per game day (34 game days per season)
 // Note: 2x LEVEL_UP_4 can merge into 1x LEVEL_UP_7, and 2x LEVEL_UP_7 into 1x LEVEL_UP_10
@@ -56,13 +57,20 @@ async function levelUpsCurrentSeason (player) {
  * @param {string} position
  * @param {ActionCardType} actionCard
  * @param {TeamType} team
+ * @param {string} [locale]
  * @returns {Promise<{success: boolean}>}
  */
 export async function playActionCard ({
   player: p,
   position,
   actionCard
-}, team) {
+}, team, locale) {
+  // Get locale if not provided
+  if (!locale && team.user_id) {
+    locale = await getUserLocale(team.user_id)
+  }
+  locale = locale || 'en'
+
   if (actionCard.action === 'FRESHNESS_10') {
     const player = await getPlayerById(p.id)
     player.freshness = Math.min(1.0, player.freshness + 0.1)
@@ -73,55 +81,55 @@ export async function playActionCard ({
   if (actionCard.action === 'LEVEL_UP_PLAYER_10') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (await levelUpsCurrentSeason(player) >= 2) {
-      throw new BadRequestError('Player already got 2 level ups this season...')
+      throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
     if (player.level >= 10) {
-      throw new BadRequestError('Player already reached the maximum level')
+      throw new BadRequestError(t('error.playerMaxLevel', {}, locale))
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage(`You gave ${player.name} a level up.`, team, null, null, 'level-up')
+    await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_7') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (await levelUpsCurrentSeason(player) >= 2) {
-      throw new BadRequestError('Player already got 2 level ups this season...')
+      throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
     if (player.level >= 7) {
-      throw new BadRequestError('Action card only allows level ups until level 7.')
+      throw new BadRequestError(t('error.cardMaxLevel7', {}, locale))
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage(`You gave ${player.name} a level up.`, team, null, null, 'level-up')
+    await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_4') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (await levelUpsCurrentSeason(player) >= 2) {
-      throw new BadRequestError('Player already got 2 level ups this season...')
+      throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
     if (player.level >= 4) {
-      throw new BadRequestError('Action card only allows level ups until level 4.')
+      throw new BadRequestError(t('error.cardMaxLevel4', {}, locale))
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage(`You gave ${player.name} a level up.`, team, null, null, 'level-up')
+    await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
   if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (player.position === 'GK') {
-      throw new BadRequestError('Goalkeepers cannot change their position.')
+      throw new BadRequestError(t('error.goalkeeperCannotChange', {}, locale))
     }
     if (position === 'GK') {
-      throw new BadRequestError('Players cannot become goalkeepers.')
+      throw new BadRequestError(t('error.cannotBecomeGoalkeeper', {}, locale))
     }
     await query('UPDATE player SET position=? WHERE id=?', [position, p.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
@@ -147,7 +155,7 @@ export async function playActionCard ({
     })
     await query('INSERT INTO player SET ?', player)
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage(`You got a new young talent ${player.name}.`, team, null, null, 'child')
+    await addLogMessage(t('log.cardYouth', { playerName: player.name }, locale), team, null, null, 'child')
     return { success: true }
   }
   if (actionCard.action === 'BONUS_100K') {
@@ -155,12 +163,12 @@ export async function playActionCard ({
       gameDay,
       season
     } = await getGameDayAndSeason()
-    await updateTeamBalance(team, 100000, 'Action Card: Bonus Money', gameDay, season)
+    await updateTeamBalance(team, 100000, t('finance.actionCardBonus', {}, locale), gameDay, season)
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
-    await addLogMessage('You received a bonus of 100,000€!', team, null, null, 'money')
+    await addLogMessage(t('log.cardMoney', { amount: '100,000€' }, locale), team, null, null, 'money')
     return { success: true }
   }
-  throw new BadRequestError('Unknown action...')
+  throw new BadRequestError(t('error.invalidCardAction', {}, locale))
 }
 
 /**
@@ -168,14 +176,15 @@ export async function playActionCard ({
  * @param {ActionCardType} actionCard1
  * @param {ActionCardType} actionCard2
  * @param {TeamType} team
+ * @param {string} [locale]
  * @returns {Promise<{success: boolean, newCardType: string}>}
  */
-export async function mergeActionCards (actionCard1, actionCard2, team) {
+export async function mergeActionCards (actionCard1, actionCard2, team, locale = 'en') {
   if (actionCard2.action !== actionCard1.action) {
-    throw new BadRequestError('You can only merge cards of the same type')
+    throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
   }
   if (actionCard1.action !== 'LEVEL_UP_PLAYER_4' && actionCard1.action !== 'LEVEL_UP_PLAYER_7') {
-    throw new BadRequestError('Cannot merge this card type')
+    throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
   }
   const newCardType = actionCard1.action === 'LEVEL_UP_PLAYER_4' ? 'LEVEL_UP_PLAYER_7' : 'LEVEL_UP_PLAYER_10'
   await query('DELETE FROM action_card WHERE id=?', [actionCard1.id])

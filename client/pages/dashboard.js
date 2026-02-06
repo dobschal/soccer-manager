@@ -7,6 +7,7 @@ import { el, generateId } from '../lib/html.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from '../partials/actionCards.js'
 import { LogMessages } from '../partials/logMessages.js'
+import { t } from '../i18n/index.js'
 
 export class DashboardPage extends UIElement {
   _timerInterval = null
@@ -35,12 +36,12 @@ export class DashboardPage extends UIElement {
     const isWin = hasResult && myGoals > opponentGoals
     const isDraw = hasResult && myGoals === opponentGoals
     const resultMessage = !hasResult
-      ? 'The result is not yet available.'
+      ? t('dashboard.resultNotAvailable')
       : isWin
-        ? 'Congratulations on your victory! Keep up the great work!'
+        ? t('dashboard.congratsWin')
         : isDraw
-          ? 'A draw is not a loss. Every point counts in the race for the title!'
-          : 'Tough loss, but champions are made by how they respond. Next game is yours!'
+          ? t('dashboard.drawMessage')
+          : t('dashboard.lossMessage')
 
     return `
       <div>
@@ -48,11 +49,11 @@ export class DashboardPage extends UIElement {
         <div class="d-flex align-items-start gap-3 mb-4">
           <div class="manager-chat d-none d-lg-block">
             <div class="chat-bubble">
-              <p class="mb-1">Hey <b>${this.user.username}</b>!</p>
-              <p class="mb-1">Your team is currently <b>${this._getPositionText()}</b> in League ${this.team.level + 1}.</p>
-              <p class="mb-0">On game day ${Math.max(1, this.gameDay)} of season ${this.season + 1}, your team faced <b>${isHomeGame ? this.game.team2 : this.game.team1}</b>. ${resultMessage}</p>
+              <p class="mb-1">${t('dashboard.hey')} <b>${this.user.username}</b>!</p>
+              <p class="mb-1">${t('dashboard.teamPosition', { position: this._getPositionText(), league: this.team.level + 1 })}</p>
+              <p class="mb-0">${t('dashboard.gameDayInfo', { gameDay: Math.max(1, this.gameDay), season: this.season + 1, opponent: isHomeGame ? this.game.team2 : this.game.team1 })} ${resultMessage}</p>
             </div>
-            <img src="assets/manager-3.png" alt="Manager" class="manager-image" style="width: 300px; height: auto;">            
+            <img src="assets/manager-3.png" alt="Manager" class="manager-image" style="width: 300px; height: auto;">
           </div>
           <div class="flex-grow-1">
             ${this._renderLatestGame()}
@@ -137,7 +138,7 @@ export class DashboardPage extends UIElement {
       }
 
       if (diff < 0) {
-        timerEl.innerHTML = 'Starting soon...'
+        timerEl.innerHTML = t('dashboard.startingSoon')
         return
       }
 
@@ -186,10 +187,12 @@ export class DashboardPage extends UIElement {
    * @returns {string}
    */
   _getPositionText () {
-    if (this.teamPosition === 0) return 'not ranked yet'
+    if (this.teamPosition === 0) return t('dashboard.notRankedYet')
     const pos = this.teamPosition
-    const suffix = pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'
-    return `${pos}${suffix} place`
+    if (pos === 1) return t('dashboard.positionSt', { pos })
+    if (pos === 2) return t('dashboard.positionNd', { pos })
+    if (pos === 3) return t('dashboard.positionRd', { pos })
+    return t('dashboard.positionTh', { pos })
   }
 
   /**
@@ -210,7 +213,7 @@ export class DashboardPage extends UIElement {
             <h6 class="mb-0">${this.game.team1 ?? ''}</h6>
           </div>
           <div class="col-auto text-center">
-            <small class="text-white d-block mb-1">Latest Result</small>
+            <small class="text-white d-block mb-1">${t('dashboard.latestResult')}</small>
             <h3 class="mb-0"><span class="badge bg-info">${this.game.goalsTeam1 ?? '-'}:${this.game.goalsTeam2 ?? '-'}</span></h3>
           </div>
           <div class="col text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
@@ -240,7 +243,7 @@ export class DashboardPage extends UIElement {
             <h6 class="mb-0">${isHomeGame ? this.team.name : this.nextGameOpponent.name}</h6>
           </div>
           <div class="col-auto text-center">
-            <small class="text-white d-block mb-1">Next Match</small>
+            <small class="text-white d-block mb-1">${t('dashboard.nextMatch')}</small>
             <div class="badge bg-info p-2" style="font-size: 1.2rem;">
               <i class="fa fa-clock-o" aria-hidden="true"></i><br>
               <span id="${this._countdownElementId}">--:--:--</span>

@@ -83,7 +83,7 @@ describe('stadium routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.calculateStadiumPrice(plannedStadium, req))
-        .rejects.toMatchObject({ message: 'Not your stadium dude' })
+        .rejects.toMatchObject({ message: 'Not authorized' })
     })
   })
 
@@ -124,7 +124,7 @@ describe('stadium routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.buildStadium(plannedStadium, req))
-        .rejects.toMatchObject({ message: 'Not enough money...' })
+        .rejects.toMatchObject({ message: 'Not enough money' })
     })
 
     it('throws error when stand is already under construction', async () => {
@@ -140,7 +140,7 @@ describe('stadium routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.buildStadium(plannedStadium, req))
-        .rejects.toMatchObject({ message: 'Cannot expand north stand - already under construction' })
+        .rejects.toMatchObject({ message: 'This stand is already under construction' })
     })
   })
 
@@ -172,7 +172,7 @@ describe('stadium routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.updatePrices(plannedStadium, req))
-        .rejects.toMatchObject({ message: 'Price needs to be a integer number greater than 0 and less than 100.' })
+        .rejects.toMatchObject({ message: 'Invalid ticket price' })
     })
 
     it('throws error for price over 100', async () => {
@@ -184,7 +184,7 @@ describe('stadium routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.updatePrices(plannedStadium, req))
-        .rejects.toMatchObject({ message: 'Price needs to be a integer number greater than 0 and less than 100.' })
+        .rejects.toMatchObject({ message: 'Invalid ticket price' })
     })
   })
 })

@@ -25,6 +25,25 @@ vi.mock('../../helper/financeHelper.js', () => ({
   updateTeamBalance: vi.fn()
 }))
 
+vi.mock('../../i18n/index.js', () => ({
+  t: vi.fn((key, params = {}) => {
+    const translations = {
+      'error.playerMaxLevelUps': 'Player already got 2 level ups this season',
+      'error.playerMaxLevel': 'Player already reached the maximum level',
+      'error.cardMaxLevel7': 'Action card only allows level ups until level 7',
+      'error.cardMaxLevel4': 'Action card only allows level ups until level 4',
+      'error.invalidCardAction': 'Invalid card action',
+      'finance.actionCardBonus': 'Action Card: Bonus Money',
+      'log.cardLevelUp': `${params.playerName} has leveled up to level ${params.level}!`,
+      'log.cardFreshness': `${params.playerName}'s freshness has been restored!`,
+      'log.cardMoney': `You received a bonus of ${params.amount}!`,
+      'log.cardYouth': `A new youth talent ${params.playerName} has joined your team!`
+    }
+    return translations[key] || key
+  }),
+  getUserLocale: vi.fn().mockResolvedValue('en')
+}))
+
 import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
@@ -97,7 +116,7 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 4.' })
+        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 4' })
     })
 
     it('throws error when player is above level 4', async () => {
@@ -116,7 +135,7 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 4.' })
+        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 4' })
     })
   })
 
@@ -179,7 +198,7 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 7.' })
+        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 7' })
     })
 
     it('throws error when player is above level 7', async () => {
@@ -198,7 +217,7 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 7.' })
+        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 7' })
     })
   })
 
@@ -304,7 +323,7 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Player already got 2 level ups this season...' })
+        .rejects.toMatchObject({ message: 'Player already got 2 level ups this season' })
     })
 
     it('allows level up when player has only 1 level up this season', async () => {
@@ -470,7 +489,7 @@ describe('actionCardHelper', () => {
       const actionCard = testData.actionCard({ action: 'INVALID_ACTION' })
 
       await expect(playActionCard({ actionCard }, team))
-        .rejects.toMatchObject({ message: 'Unknown action...' })
+        .rejects.toMatchObject({ message: 'Invalid card action' })
     })
   })
 })

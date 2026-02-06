@@ -13,6 +13,17 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: vi.fn()
 }))
 
+vi.mock('../../i18n/index.js', () => ({
+  t: vi.fn((key, params = {}) => {
+    const translations = {
+      'log.incompleteLineup': `Warning: Your lineup only has ${params.count} players!`,
+      'log.lowFreshness': `Warning: ${params.playerName} has low freshness (${params.freshness}%).`
+    }
+    return translations[key] || key
+  }),
+  getUserLocale: vi.fn().mockResolvedValue('en')
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'

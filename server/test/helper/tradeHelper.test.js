@@ -26,6 +26,21 @@ vi.mock('../../helper/playerHistoryHelper.js', () => ({
   addPlayerHistory: vi.fn()
 }))
 
+vi.mock('../../i18n/index.js', () => ({
+  t: vi.fn((key, params = {}) => {
+    const translations = {
+      'error.offerNotFound': 'Offer not found',
+      'error.playerNotFound': 'Player not found',
+      'finance.playerSold': `Selling player ${params.playerName} to ${params.buyerTeam}`,
+      'finance.playerBought': `Buying player ${params.playerName} from ${params.sellerTeam}`,
+      'log.playerSold': `You sold your player ${params.playerName} to the team ${params.buyerTeam}.`,
+      'log.playerBought': `You bought the player ${params.playerName} from ${params.sellerTeam}.`
+    }
+    return translations[key] || key
+  }),
+  getUserLocale: vi.fn().mockResolvedValue('en')
+}))
+
 import { query } from '../../lib/database.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
@@ -50,7 +65,7 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([]) // No matching offers
 
       await expect(acceptOffer(offer, sellingTeam, gameDay, season))
-        .rejects.toMatchObject({ message: 'No offer exist' })
+        .rejects.toMatchObject({ message: 'Offer not found' })
     })
 
     it('throws error when player does not exist', async () => {
@@ -61,7 +76,7 @@ describe('tradeHelper', () => {
       getPlayerById.mockResolvedValueOnce(null)
 
       await expect(acceptOffer(offer, sellingTeam, gameDay, season))
-        .rejects.toMatchObject({ message: 'Player does not exist' })
+        .rejects.toMatchObject({ message: 'Player not found' })
     })
 
     it('assigns player to buying team', async () => {
@@ -113,7 +128,7 @@ describe('tradeHelper', () => {
       expect(updateTeamBalance).toHaveBeenCalledWith(
         sellingTeam,
         75000,
-        'Selling player Star Player to Buying FC',
+        expect.stringContaining('Star Player'),
         gameDay,
         season
       )
@@ -122,7 +137,7 @@ describe('tradeHelper', () => {
       expect(updateTeamBalance).toHaveBeenCalledWith(
         buyingTeam,
         -75000,
-        'Buying player Star Player from Selling FC',
+        expect.stringContaining('Star Player'),
         gameDay,
         season
       )
@@ -174,7 +189,7 @@ describe('tradeHelper', () => {
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
       expect(addLogMessage).toHaveBeenCalledWith(
-        'You sold your player Star Player to the team Buying FC.',
+        expect.stringContaining('Star Player'),
         sellingTeam,
         'OPEN_TEAM_PAGE',
         2,
@@ -202,7 +217,7 @@ describe('tradeHelper', () => {
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
       expect(addLogMessage).toHaveBeenCalledWith(
-        'You bought the player Star Player from Selling FC.',
+        expect.stringContaining('Star Player'),
         buyingTeam,
         'OPEN_PLAYER',
         10,

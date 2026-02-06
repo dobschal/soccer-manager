@@ -5,24 +5,27 @@ import jwt from 'jsonwebtoken'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
 import { prepareSeason } from '../prepare-season.js'
+import { t, getSupportedLocales } from '../i18n/index.js'
 
 export default {
 
   /**
    * @param {string} username
    * @param {string} password
+   * @param {Request} req
    * @returns {Promise<{success: boolean}>}
    */
-  async createAccount (username, password) {
+  async createAccount (username, password, req) {
+    const locale = req.locale || 'en'
     if (typeof username !== 'string') {
-      throw new BadRequestError('Username needs to be string')
+      throw new BadRequestError(t('error.usernameString', {}, locale))
     }
     if (typeof password !== 'string' || password.length < 8) {
-      throw new BadRequestError('Password needs to be string longer then 8 character')
+      throw new BadRequestError(t('error.passwordLength', {}, locale))
     }
     const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM user WHERE username=?', username)
     if (amount > 0) {
-      throw new BadRequestError('Username already taken')
+      throw new BadRequestError(t('error.usernameTaken', {}, locale))
     }
     let [team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
     if (!team) {
@@ -30,14 +33,15 @@ export default {
       await prepareSeason()
       ;[team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
       if (!team) {
-        throw new BadRequestError('No team available.')
+        throw new BadRequestError(t('error.noTeamAvailable', {}, locale))
       }
     }
     const { insertId: userId } = await query('INSERT INTO user SET ?', {
       username,
-      password
+      password,
+      language: locale
     })
-    await addLogMessage(`Hey  ${username}! The president of ${team.name} is sending you a warm welcome!`, team, null, null, 'hand-peace-o')
+    await addLogMessage(t('log.welcome', { username, teamName: team.name }, locale), team, null, null, 'hand-peace-o')
     await query(`UPDATE team SET user_id=${userId}, balance=500000 WHERE id=${team.id}`)
     const { sponsor } = await getSponsor(team)
     if (sponsor) {
@@ -50,21 +54,42 @@ export default {
   /**
    * @param {string} username
    * @param {string} password
+   * @param {Request} req
    * @returns {Promise<{ token: string }>}
    */
-  async login (username, password) {
+  async login (username, password, req) {
+    const locale = req.locale || 'en'
     if (typeof username !== 'string') {
-      throw new BadRequestError('Username needs to be string')
+      throw new BadRequestError(t('error.usernameString', {}, locale))
     }
     if (typeof password !== 'string') {
-      throw new BadRequestError('Password needs to be string')
+      throw new BadRequestError(t('error.passwordString', {}, locale))
     }
     const [user] = await query('SELECT * FROM user WHERE username=?', [username])
     if (!user || user.password !== password) {
-      throw new UnauthorizedError('Wrong credentials')
+      throw new UnauthorizedError(t('error.wrongCredentials', {}, locale))
     }
     const token = jwt.sign({ sub: user.id }, config.SECRET)
     return { token }
+  },
+
+  /**
+   * Set the user's preferred language
+   * @param {string} language
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async setLanguage (language, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    const supportedLocales = getSupportedLocales()
+    if (!supportedLocales.includes(language)) {
+      throw new BadRequestError(t('error.invalidLanguage', {}, locale))
+    }
+    await query('UPDATE user SET language=? WHERE id=?', [language, req.user.id])
+    return { success: true }
   }
 
 }
