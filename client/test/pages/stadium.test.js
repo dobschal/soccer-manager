@@ -1,5 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('../../i18n/index.js', () => ({
+  t: vi.fn((key, params = {}) => {
+    const translations = {
+      'stadium.yourStadium': 'Your Stadium',
+      'stadium.stadiumDesc': `Here is your beautiful stadium with ${params.seats || ''} seats:`,
+      'stadium.ticketPrices': 'Ticket Prices',
+      'stadium.adjustPrices': 'Adjust the prices of your stadium tickets.',
+      'stadium.priceFor': `Price for tickets on ${params.stand || ''} stand`,
+      'stadium.savePrices': 'Save Prices',
+      'stadium.expandStadium': 'Expand Stadium',
+      'stadium.expandDesc': 'Add more seats to your stadium to get more fans excited.',
+      'stadium.seatsOnStand': `Seats on ${params.stand || ''} stand`,
+      'stadium.changeSeatsHint': 'Change the amount of seats here to expand your stadium.',
+      'stadium.roofOnStand': `Roof on ${params.stand || ''} stand?`,
+      'stadium.totalPrice': 'Total Price for construction:',
+      'stadium.startConstruction': 'Start Construction',
+      'stadium.constructionRemaining': `Under construction - ${params.days || ''} gameday(s) remaining`,
+      'stadium.north': 'north',
+      'stadium.south': 'south',
+      'stadium.east': 'east',
+      'stadium.west': 'west',
+      'toast.somethingWentWrong': 'Something went wrong!'
+    }
+    return translations[key] || key
+  })
+}))
+
 vi.mock('../../lib/gateway.js', () => ({
   server: {
     getStadium: vi.fn(),
@@ -160,7 +187,7 @@ describe('StadiumPage', () => {
       const page = new StadiumPage()
       await page.load()
       expect(page.template).toContain('Under construction')
-      expect(page.template).toContain('5 gamedays remaining')
+      expect(page.template).toContain('5 gameday(s) remaining')
     })
 
     it('disables inputs for stands under construction', async () => {

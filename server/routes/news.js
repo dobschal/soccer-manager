@@ -2,6 +2,7 @@ import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { getNewsByLeague } from '../helper/newsHelper.js'
+import { getLocaleFromRequest } from '../i18n/index.js'
 
 export default {
 
@@ -42,7 +43,8 @@ export default {
       return { gameDay: 0, season, news: [], teams: [], players: [] }
     }
 
-    const news = await getNewsByLeague(newsGameDay, newsSeason, team.level, team.league)
+    const locale = getLocaleFromRequest(req)
+    const news = await getNewsByLeague(newsGameDay, newsSeason, team.level, team.league, locale)
 
     // Collect related teams and players for rendering
     const teamIds = new Set()
@@ -84,10 +86,12 @@ export default {
    * @param {number} season
    * @param {number} level
    * @param {number} league
+   * @param {Request} req
    * @returns {Promise<NewsResponse>}
    */
-  async getNewsForGameDay (gameDay, season, level, league) {
-    const news = await getNewsByLeague(gameDay, season, level, league)
+  async getNewsForGameDay (gameDay, season, level, league, req) {
+    const locale = getLocaleFromRequest(req)
+    const news = await getNewsByLeague(gameDay, season, level, league, locale)
 
     const teamIds = new Set()
     const playerIds = new Set()

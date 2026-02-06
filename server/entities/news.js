@@ -8,6 +8,7 @@
  * @property {string} type
  * @property {string} title
  * @property {string} text
+ * @property {string} locale
  * @property {number} [player_id]
  * @property {number} [team_id]
  * @property {string} [metadata]
@@ -30,6 +31,7 @@ export function News (raw) {
     type: RequiredString,
     title: RequiredString,
     text: RequiredString,
+    locale: RequiredString,
     player_id: OptionalNumber,
     team_id: OptionalNumber,
     metadata: OptionalString,

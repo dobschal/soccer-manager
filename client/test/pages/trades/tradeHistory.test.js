@@ -1,5 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('../../../i18n/index.js', () => ({
+  t: vi.fn((key, params = {}) => {
+    const translations = {
+      'trades.tradeHistoryTitle': 'Trade History',
+      'trades.tradeHistoryDesc': 'Here are the recent transfers:',
+      'trades.player': 'Player',
+      'finances.from': 'From',
+      'finances.to': 'To',
+      'finances.to2': 'To',
+      'trades.price': 'Price',
+      'results.gameDay': `Game Day ${params.day || ''}`,
+      'finances.season': `Season ${params.season || ''}`
+    }
+    return translations[key] || key
+  })
+}))
+
 vi.mock('../../../lib/gateway.js', () => ({
   server: {
     getTradeHistory: vi.fn()
@@ -67,7 +84,7 @@ describe('TradeHistoryPage', () => {
     it('template contains description text', async () => {
       const page = new TradeHistoryPage()
       await page.load()
-      expect(page.template).toContain('Trades happened in the past')
+      expect(page.template).toContain('Here are the recent transfers')
     })
 
     it('template contains table headers', async () => {
@@ -97,7 +114,7 @@ describe('TradeHistoryPage', () => {
       await page.load()
       expect(page.template).toContain('Traded Player')
       expect(page.template).toContain('50,000 EUR')
-      expect(page.template).toContain('Game Day: 6')
+      expect(page.template).toContain('Game Day 6')
     })
 
     it('template shows game day dividers', async () => {
@@ -118,8 +135,8 @@ describe('TradeHistoryPage', () => {
 
       const page = new TradeHistoryPage()
       await page.load()
-      expect(page.template).toContain('Game Day: 6')
-      expect(page.template).toContain('Game Day: 7')
+      expect(page.template).toContain('Game Day 6')
+      expect(page.template).toContain('Game Day 7')
     })
 
     it('extends UIElement', () => {

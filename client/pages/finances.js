@@ -5,6 +5,7 @@ import { Balance } from '../partials/balance.js'
 import { euroFormat } from '../lib/currency.js'
 import { BalanceChart } from '../partials/balanceChart.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
+import { t } from '../i18n/index.js'
 
 /**
  * @typedef {Object} FinanceLogEntry
@@ -57,11 +58,11 @@ export class FinancesPage extends UIElement {
 
           try {
             await server.chooseSponsor(offer)
-            toast(`You signed a sponsor contract with ${offer.name}`)
+            toast(t('finances.signedContract', { name: offer.name }))
             await this.load()
             await this.update(true)
           } catch (e) {
-            toast(e.message ?? 'Something went wrong', 'error')
+            toast(e.message ?? t('toast.somethingWentWrong'), 'error')
           }
         }
       },
@@ -93,38 +94,38 @@ export class FinancesPage extends UIElement {
     return `
       <div>
       <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
-        <h2>Finances</h2>
+        <h2>${t('finances.title')}</h2>
         <h3>${new Balance()}</h3>
         </div>
         <div class="row">
           <div class="col-12 ${this.sponsor ? 'col-lg-8' : ''}">
-            <h5>Account Balance (€)</h5>
+            <h5>${t('finances.accountBalance')}</h5>
             ${new BalanceChart(this.financeLog)}
-            
+
           </div>
           <div class="col-12 col-lg-4 ${!this.sponsor ? 'd-none' : ''}">
-            <h5>Sponsor</h5>
+            <h5>${t('finances.sponsor')}</h5>
             ${this._renderSponsorCardCompact()}
           </div>
         </div>
         <div class="${this.sponsor ? 'hidden' : ''}">
-          <h3>Choose Sponsor</h3>
-          <p>The following sponsor would help you out with some money.</p>
+          <h3>${t('finances.chooseSponsor')}</h3>
+          <p>${t('finances.sponsorHelp')}</p>
           <div class="row" id="sponsor-offers">
             ${this.offers.map((offer, idx) => this._renderSponsorOfferCard(offer, idx)).join('')}
           </div>
         </div>
         <div>
-          <h3>Transactions</h3>
+          <h3>${t('finances.transactions')}</h3>
           <div class="row mb-3">
             <div class="col-6 col-md-3">
-              <label for="filter-from" class="form-label">From</label>
+              <label for="filter-from" class="form-label">${t('finances.from')}</label>
               <select class="form-select" id="filter-from">
                 ${this._renderGameDayOptions(this.fromSeason, this.fromGameDay)}
               </select>
             </div>
             <div class="col-6 col-md-3">
-              <label for="filter-to" class="form-label">To</label>
+              <label for="filter-to" class="form-label">${t('finances.to')}</label>
               <select class="form-select" id="filter-to">
                 ${this._renderGameDayOptions(this.toSeason, this.toGameDay)}
               </select>
@@ -133,9 +134,9 @@ export class FinancesPage extends UIElement {
           <table class="table">
              <thead>
               <tr>
-                <th scope="col">Value</th>
-                <th scope="col" class="d-none d-sm-table-cell">Balance</th>
-                <th scope="col">Description</th>
+                <th scope="col">${t('finances.value')}</th>
+                <th scope="col" class="d-none d-sm-table-cell">${t('finances.balance')}</th>
+                <th scope="col">${t('finances.description')}</th>
               </tr>
             </thead>
             <tbody>
@@ -216,7 +217,10 @@ export class FinancesPage extends UIElement {
       const season = Math.floor(total / GAMEDAYS_PER_SEASON)
       const gameDay = total % GAMEDAYS_PER_SEASON
       const selected = total === selectedTotal ? 'selected' : ''
-      options.push(`<option value="${total}" ${selected}>Season ${season + 1}, Day ${gameDay + 1}</option>`)
+      options.push(`<option value="${total}" ${selected}>${t('finances.seasonDayOption', {
+        season: season + 1,
+        day: gameDay + 1
+      })}</option>`)
     }
     return options.join('')
   }
@@ -244,7 +248,7 @@ export class FinancesPage extends UIElement {
     if (array[index - 1]?.game_day !== logItem.game_day) {
       dividerRow = `
         <tr class="table-group-divider table-warning">
-          <td >Game Day: ${logItem.game_day + 1}</td>
+          <td >${t('finances.gameDayLabel', { day: logItem.game_day + 1 })}</td>
           <td class="d-none d-sm-table-cell"></td>
           <td ></td>
         </tr>`
@@ -282,14 +286,17 @@ export class FinancesPage extends UIElement {
       <div class="action-card card text-white bg-success">
         <div class="card-header">
           <i class="fa fa-magic" aria-hidden="true"></i>
-          <i>Sponsor</i>
+          <i>${t('finances.sponsor')}</i>
         </div>
         <img class="card-img-top" src="${imagePath}" alt="${this.sponsor.name}">
         <div class="card-body">
           <h5 class="card-title">${this.sponsor.name}</h5>
           <p class="card-text">
-            ${this.sponsor.name} is sending you ${euroFormat.format(this.sponsor.value)} per game day.
-            <br><small>${this.sponsor.remaining_days} game days remaining</small>
+            ${t('finances.sponsorSending', {
+      name: this.sponsor.name,
+      value: euroFormat.format(this.sponsor.value)
+    })}
+            <br>${t('finances.daysRemaining', { days: this.sponsor.remaining_days })}
           </p>
         </div>
       </div>
@@ -310,16 +317,19 @@ export class FinancesPage extends UIElement {
         <div class="action-card card text-white bg-${classes[index]}">
           <div class="card-header">
             <i class="fa fa-magic" aria-hidden="true"></i>
-            <i>Sponsor</i>
+            <i>${t('finances.sponsor')}</i>
           </div>
           <img class="card-img-top" src="${imagePath}" alt="${offer.name}">
           <div class="card-body">
-            <h5 class="card-title">${offer.name}, ${offer.duration} Days</h5>
+            <h5 class="card-title">${offer.name}, ${t('finances.days', { duration: offer.duration })}</h5>
             <p class="card-text">
-              ${offer.name} offers you a contract for ${offer.duration} days.
-              They will send you ${euroFormat.format(offer.value)} per game day.
+              ${t('finances.offerContract', {
+      name: offer.name,
+      duration: offer.duration
+    })}
+              ${t('finances.offerValue', { value: euroFormat.format(offer.value) })}
             </p>
-            <button type="button" class="btn btn-primary">Sign Contract</button>
+            <button type="button" class="btn btn-primary">${t('finances.signContract')}</button>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { setQueryParams } from '../../lib/router.js'
 import { UIElement } from '../../lib/UIElement.js'
+import { t } from '../../i18n/index.js'
 
 export class MyOffersPage extends UIElement {
   /**
@@ -19,17 +20,17 @@ export class MyOffersPage extends UIElement {
   get template () {
     return `
       <div>
-        <h2>My Offers</h2>
-        <p>Here are the offers you made:</p>
+        <h2>${t('trades.myOffersTitle')}</h2>
+        <p>${t('trades.myOffersDesc')}</p>
         <table class="table">
           <thead>
             <tr>
-              <th scope="col">Type</th>
-              <th scope="col">Name</th>
-              <th scope="col" class="d-none d-sm-table-cell">Team</th>
-              <th scope="col" class="d-none d-sm-table-cell">Position</th>                    
-              <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
-              <th scope="col" class="text-right">Price</th>
+              <th scope="col">${t('trades.type')}</th>
+              <th scope="col">${t('results.name')}</th>
+              <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
+              <th scope="col" class="d-none d-sm-table-cell">${t('player.position')}</th>
+              <th scope="col" class="text-right d-none d-sm-table-cell">${t('player.level')}</th>
+              <th scope="col" class="text-right">${t('trades.price')}</th>
               <th scope="col"></th>
             </tr>
           </thead>
@@ -39,7 +40,7 @@ export class MyOffersPage extends UIElement {
         </table>
         <div class="row">
           <div class="col ${this.hasOpenOffers ? 'hidden' : ''}">
-            <h4 class="text-muted text-center mt-5 mb-5">No open offers from you...</h4>
+            <h4 class="text-muted text-center mt-5 mb-5">${t('trades.noOpenOffers')}</h4>
           </div>
         </div>
       </div>
@@ -141,7 +142,7 @@ class MyOfferListItem extends UIElement {
       await server.cancelOffer(this.offer)
       await this.parentInstance.update(false)
     } catch (e) {
-      toast(e.message ?? 'Something went wrong', 'error')
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
   }
 

@@ -560,6 +560,13 @@ const migrations = [{
   async run () {
     await query("ALTER TABLE user ADD COLUMN language VARCHAR(5) DEFAULT 'en'")
   }
+}, {
+  name: 'Add locale column to news table',
+  async run () {
+    await query("ALTER TABLE news ADD COLUMN locale VARCHAR(5) DEFAULT 'en'")
+    await query('ALTER TABLE news DROP INDEX idx_news_lookup')
+    await query('CREATE INDEX idx_news_lookup ON news (season, game_day, level, league, locale)')
+  }
 }]
 
 /**

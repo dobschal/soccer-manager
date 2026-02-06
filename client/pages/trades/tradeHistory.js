@@ -3,6 +3,7 @@ import { server } from '../../lib/gateway.js'
 import { euroFormat } from '../../lib/currency.js'
 import { calculatePlayerAge } from '../../util/player.js'
 import { goTo } from '../../lib/router.js'
+import { t } from '../../i18n/index.js'
 
 export class TradeHistoryPage extends UIElement {
   trades = []
@@ -32,15 +33,15 @@ export class TradeHistoryPage extends UIElement {
   get template () {
     return `
       <div>
-        <h2>Trade History</h2>
-        <p>Trades happened in the past:</p>
+        <h2>${t('trades.tradeHistoryTitle')}</h2>
+        <p>${t('trades.tradeHistoryDesc')}</p>
         <table class="table">
           <thead>
             <tr>
-              <th scope="col">Player</th>
-              <th scope="col" class="d-none d-sm-table-cell">From</th>
-              <th scope="col" class="d-none d-sm-table-cell">To</th>
-              <th scope="col" class="text-right">Price</th>
+              <th scope="col">${t('trades.player')}</th>
+              <th scope="col" class="d-none d-sm-table-cell">${t('finances.from')}</th>
+              <th scope="col" class="d-none d-sm-table-cell">${t('finances.to2')}</th>
+              <th scope="col" class="text-right">${t('trades.price')}</th>
             </tr>
           </thead>
           <tbody>
@@ -75,7 +76,7 @@ export class TradeHistoryPage extends UIElement {
         currentGameDay = trade.game_day
         dividerRow = `
           <tr>
-            <td><small class="table-divider-text">Game Day: ${trade.game_day + 1} (${trade.season + 1})</small></td>
+            <td><small class="table-divider-text">${t('results.gameDay', { day: trade.game_day + 1 })} (${t('finances.season', { season: trade.season + 1 })})</small></td>
             <td class="d-none d-sm-table-cell"></td>
             <td class="d-none d-sm-table-cell"></td>
             <td></td>

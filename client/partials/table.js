@@ -54,13 +54,15 @@ export class Table extends UIElement {
    * @returns {void}
    */
   onMounted () {
-    this._applyInitialSort()
+    const sortApplied = this._applyInitialSort()
     this._attachHeaderEventHandlers()
-    this._attachBodyEventHandlers()
+    if (!sortApplied) {
+      this._attachBodyEventHandlers()
+    }
   }
 
   /**
-   * @returns {void}
+   * @returns {boolean} Whether sorting was applied
    */
   _applyInitialSort () {
     const {
@@ -71,8 +73,10 @@ export class Table extends UIElement {
       const col = this.config.cols[Number(colIndex)]
       if (col && (col.sortKey || col.sortFn)) {
         this._sortTable(Number(colIndex), sortDirection)
+        return true
       }
     }
+    return false
   }
 
   /**

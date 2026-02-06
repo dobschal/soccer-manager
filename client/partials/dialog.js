@@ -1,6 +1,7 @@
 import { showOverlay } from './overlay.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
+import { t } from '../i18n/index.js'
 
 /**
  * @param {string} title
@@ -53,7 +54,7 @@ export function showDialog ({ title, text, buttonText, hasInput, inputType, inpu
       <p class="${hasInput ? '' : 'hidden'}">
         <input type="${inputType ?? 'text'}" id="${inputId}" placeholder="${inputLabel ?? title}">
       </p>
-      <button id="${cancelButtonId}" type="button" class="btn btn-secondary">Cancel</button>
+      <button id="${cancelButtonId}" type="button" class="btn btn-secondary">${t('dialog.cancel')}</button>
       ${secondaryButton}
       <button id="${submitButtonId}" type="button" class="btn btn-${buttonType}">${buttonText ?? 'OK'}</button>
     `

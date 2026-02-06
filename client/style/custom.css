@@ -113,7 +113,9 @@ body {
 }
 
 body.overlay-open {
-    overflow: hidden;
+    overflow-y: scroll;
+    position: fixed;
+    width: 100%;
 }
 
 #logout-button {
@@ -267,6 +269,10 @@ body.overlay-open {
 .overlay table.table {
     margin: 0;
     width: 100%;
+}
+
+.table tbody tr {
+    border-color: #333 !important;
 }
 
 .table-hover tr:hover {

@@ -17,6 +17,10 @@ vi.mock('../../helper/newsHelper.js', () => ({
   getNewsByLeague: vi.fn()
 }))
 
+vi.mock('../../i18n/index.js', () => ({
+  getLocaleFromRequest: vi.fn(() => 'en')
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
@@ -62,7 +66,7 @@ describe('news routes', () => {
       expect(result.news[0].type).toBe('TRANSFER')
       expect(result.teams).toEqual([newsTeam])
       expect(result.players).toEqual([newsPlayer])
-      expect(getNewsByLeague).toHaveBeenCalledWith(4, 1, 1, 1)
+      expect(getNewsByLeague).toHaveBeenCalledWith(4, 1, 1, 1, 'en')
     })
 
     it('returns empty news when no news exists', async () => {

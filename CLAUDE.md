@@ -67,6 +67,37 @@ Key directories:
 - **New page**: Create component in `client/pages/` extending `UIElement`, register in `app.js` router
 - **New tests**: Mirror file path with `.test.js` in respective `test/` folder
 
+## League System
+
+The game uses a hierarchical league structure with levels and subdivisions:
+
+### Structure
+- **Level**: Represents the division tier (0 = top division, higher = lower divisions)
+- **League**: The subdivision index within a level
+- Each level has `2^level` leagues:
+  - Level 0: 1 league (the top division)
+  - Level 1: 2 leagues (North, South)
+  - Level 2: 4 leagues (North, South, East, West)
+  - Level 3: 8 leagues (adds North-East, South-East, etc.)
+  - Level 4: 16 leagues (adds North-North-East, etc.)
+- Each league contains up to 18 teams
+
+### Display Names
+League names combine the division number with a compass direction:
+- A team at level 1, league 1 displays as "2. South"
+- A team at level 2, league 3 displays as "3. West"
+- Subdivision names are translated (see `client/util/league.js` and `client/i18n/`)
+
+### Team Assignment
+- New users are assigned to bot teams in existing leagues
+- When all bot teams are taken, new leagues are created with fresh bot teams
+- Teams are distributed across leagues to maintain ~18 teams per league
+- Season preparation (`server/prepare-season.js`) handles league assignment
+
+### Promotion/Relegation
+- Top teams in a league get promoted to a higher division (lower level number)
+- Bottom teams get relegated to a lower division (higher level number)
+
 ## Tech Stack
 
 - **Backend**: Node.js 20, Express 4.18, MySQL 8.0, JWT auth
