@@ -104,17 +104,16 @@ body {
     font-variant-numeric: tabular-nums !important;
     width: 100%;
     overflow-x: hidden;
-}
-
-body.overlay-open {
-    overflow: hidden;
-
     background-image: url("../assets/bg-1.jpg");
     background-size: 100vw auto;
     background-position: top left;
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-color: #2a2c2e;
+}
+
+body.overlay-open {
+    overflow: hidden;
 }
 
 #logout-button {
@@ -161,11 +160,16 @@ body.overlay-open {
     animation-timing-function: cubic-bezier(.65, .27, .69, 1.42);
     transition: transform 0.3s ease-in-out;
     will-change: auto;
-    margin-top: 5rem;
+    margin-top: 6rem;
     margin-bottom: 5rem;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.2);
+    border-color: #333;
+    border-style: solid;
+    border-width: 2px;
+    border-radius: 25px 25px 55px 5px / 5px 55px 25px 25px;
 }
 
 .centered-container {
@@ -263,6 +267,10 @@ body.overlay-open {
 
 .table-hover tr:hover {
     cursor: pointer;
+}
+
+table.table td {
+    vertical-align: middle;
 }
 
 table.table thead tr th {
@@ -557,7 +565,7 @@ td.hover-text:hover {
     position: absolute;
     bottom: 150px;
     left: 0;
-    background-color: rgba(255, 193, 7, 0.3);
+    background-color: #ffd043;
     border-radius: 24px;
     padding: 1rem 1.25rem;
     margin-left: -10px;
@@ -577,7 +585,7 @@ td.hover-text:hover {
     left: 140px;
     border-width: 0 30px 20px 0;
     border-style: solid;
-    border-color: transparent rgba(255, 193, 7, 0.3) transparent transparent;
+    border-color: transparent #ffd043 transparent transparent;
 }
 
 .chat-bubble p {
