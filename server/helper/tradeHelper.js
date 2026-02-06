@@ -43,9 +43,10 @@ export async function getIncomingBuyOffers (teamId) {
  * @param {TeamType} sellingTeam
  * @param {number} gameDay
  * @param {number} season
+ * @param {string} [locale='en']
  * @returns {Promise<void>}
  */
-export async function acceptOffer (offer, sellingTeam, gameDay, season) {
+export async function acceptOffer (offer, sellingTeam, gameDay, season, locale = 'en') {
   offer = new TradeOffer(offer)
   const offers = await query(`
       SELECT tro.* FROM trade_offer tro
@@ -53,11 +54,11 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
           JOIN team t on p.team_id = t.id
                WHERE t.id=? AND tro.type='buy'
     `, [sellingTeam.id])
-  if (!offers.some(o => o.id === offer.id)) throw new BadRequestError(t('error.offerNotFound'))
+  if (!offers.some(o => o.id === offer.id)) throw new BadRequestError(t('error.offerNotFound', {}, locale))
 
   // get corresponding player
   const player = await getPlayerById(offer.player_id)
-  if (!player) throw new BadRequestError(t('error.playerNotFound'))
+  if (!player) throw new BadRequestError(t('error.playerNotFound', {}, locale))
 
   // Update player and trade offer
   player.team_id = offer.from_team_id

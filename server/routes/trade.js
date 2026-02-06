@@ -82,10 +82,11 @@ export default {
    * @returns {Promise<{success: boolean}>}
    */
   async acceptOffer (offer, req) {
+    const locale = req.locale || 'en'
     const { gameDay, season } = await getGameDayAndSeason()
     const sellingTeam = await getTeam(req)
     delete offer.created_at
-    await acceptOffer(offer, sellingTeam, gameDay, season)
+    await acceptOffer(offer, sellingTeam, gameDay, season, locale)
     return { success: true }
   },
 

@@ -150,7 +150,8 @@ describe('trade routes', () => {
         expect.not.objectContaining({ created_at: '2024-01-01' }),
         team,
         5,
-        1
+        1,
+        'en'
       )
     })
   })
