@@ -15,7 +15,6 @@ export function hideNavigation () {
 
 export class GameLayout extends UIElement {
   _interval = null
-  _mobileNavigationOpen = false
   _nextGameInElementId = generateId()
   _nextGameDate = null
   _navItemEventIds = []
@@ -141,8 +140,10 @@ export class GameLayout extends UIElement {
     const toggleBtn = document.querySelector(`${this._elementQuery} .navbar-toggler`)
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
-        this._mobileNavigationOpen = !this._mobileNavigationOpen
-        el('.navbar-collapse').classList[this._mobileNavigationOpen ? 'add' : 'remove']('show')
+        const navCollapse = el('.navbar-collapse')
+        if (navCollapse) {
+          navCollapse.classList.toggle('show')
+        }
       })
     }
   }

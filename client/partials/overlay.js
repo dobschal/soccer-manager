@@ -2,6 +2,16 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { el, generateId } from '../lib/html.js'
 
 /**
+ * Re-enables body scrolling if no overlays remain
+ */
+function restoreBodyScroll () {
+  const remainingOverlays = document.querySelectorAll('.overlay-backdrop')
+  if (remainingOverlays.length === 0) {
+    document.body.classList.remove('overlay-open')
+  }
+}
+
+/**
  * Applies fadeout animation and removes the overlay
  * @param {string} overlayId
  * @param {Array<() => void>} listeners
@@ -15,7 +25,116 @@ function fadeOutAndRemove (overlayId, listeners) {
 
   overlayEl.addEventListener('animationend', () => {
     overlayEl.remove()
+    restoreBodyScroll()
   }, { once: true })
+}
+
+/**
+ * Applies swipe-down animation and removes the overlay
+ * @param {string} overlayId
+ * @param {string} overlayInnerId
+ * @param {Array<() => void>} listeners
+ * @param {number} currentOffset - Current swipe offset in pixels
+ */
+function swipeDownAndRemove (overlayId, overlayInnerId, listeners, currentOffset = 0) {
+  const overlayEl = el('#' + overlayId)
+  const innerEl = el('#' + overlayInnerId)
+  if (!overlayEl) return
+
+  listeners.forEach(c => c())
+
+  if (innerEl) {
+    innerEl.style.setProperty('--swipe-offset', `${currentOffset}px`)
+  }
+  overlayEl.classList.add('swipe-down')
+
+  overlayEl.addEventListener('animationend', () => {
+    overlayEl.remove()
+    restoreBodyScroll()
+  }, { once: true })
+}
+
+/**
+ * Sets up touch swipe-to-close functionality for the overlay
+ * @param {string} overlayId
+ * @param {string} overlayInnerId
+ * @param {Array<() => void>} listeners
+ */
+function setupTouchSwipe (overlayId, overlayInnerId, listeners) {
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+
+  if (!isTouchDevice) return
+
+  const backdropEl = el('#' + overlayId) // The scrollable backdrop
+  const innerEl = el('#' + overlayInnerId) // The card we animate
+  if (!backdropEl || !innerEl) return
+
+  let touchStartY = 0
+  let touchCurrentY = 0
+  let isSwiping = false
+  let startedAtTop = false
+  const swipeThreshold = 80
+
+  backdropEl.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY
+    touchCurrentY = touchStartY
+    // Remember if we started at the top - only then can we potentially close
+    startedAtTop = backdropEl.scrollTop <= 0
+    isSwiping = false // Will be set to true on first downward move if conditions are met
+  }, { passive: true })
+
+  backdropEl.addEventListener('touchmove', (e) => {
+    const isScrolledToTop = backdropEl.scrollTop <= 0
+    const isNotScrollable = backdropEl.scrollHeight <= backdropEl.clientHeight
+
+    touchCurrentY = e.touches[0].clientY
+    const deltaY = touchCurrentY - touchStartY
+
+    // If we're swiping and scroll position changed, cancel the swipe
+    if (isSwiping && !isScrolledToTop) {
+      isSwiping = false
+      innerEl.style.transform = ''
+      innerEl.style.transition = ''
+      return
+    }
+
+    // Start swipe gesture if: at top, swiping down, and (started at top OR content not scrollable)
+    if (isScrolledToTop && deltaY > 0 && (startedAtTop || isNotScrollable)) {
+      if (!isSwiping) {
+        isSwiping = true
+      }
+      // Apply visual feedback - move overlay down as user swipes
+      const offset = Math.min(deltaY * 0.5, 150)
+      innerEl.style.transform = `translateY(${offset}px)`
+      innerEl.style.transition = 'none'
+    } else if (isSwiping && deltaY <= 0) {
+      // User reversed direction, cancel swipe
+      isSwiping = false
+      innerEl.style.transform = ''
+      innerEl.style.transition = ''
+    }
+  }, { passive: true })
+
+  backdropEl.addEventListener('touchend', () => {
+    if (!isSwiping) return
+
+    const deltaY = touchCurrentY - touchStartY
+
+    if (deltaY > swipeThreshold) {
+      // Swipe was far enough, close the overlay
+      const currentOffset = Math.min(deltaY * 0.5, 150)
+      swipeDownAndRemove(overlayId, overlayInnerId, listeners, currentOffset)
+    } else {
+      // Swipe wasn't far enough, reset position
+      innerEl.style.transform = ''
+      innerEl.style.transition = 'transform 0.2s ease-out'
+      setTimeout(() => {
+        innerEl.style.transition = ''
+      }, 200)
+    }
+
+    isSwiping = false
+  }, { passive: true })
 }
 
 /**
@@ -57,6 +176,9 @@ export function showOverlay (title, subttitle, text) {
     </div>
   `
   document.body.insertAdjacentHTML('beforeend', html)
+  document.body.classList.add('overlay-open')
+
+  setupTouchSwipe(overlayId, overlayInnerId, listeners)
 
   return {
     onClose (callback) {

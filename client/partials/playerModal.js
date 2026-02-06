@@ -138,10 +138,10 @@ export async function showPlayerModal (playerId) {
       ? `<span id="${teamLinkId}" class="text-info" style="cursor: pointer">${playersTeam.name}</span>`
       : '<span class="text-muted">Free player</span>',
     `
-      <div class="d-flex gap-3 mb-4">
+      <div class="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-3 mb-4">
         <div style="flex-shrink: 0;">${playerImage}</div>
         <div class="d-flex flex-column justify-content-center">
-          <div class="d-flex flex-wrap gap-2">
+          <div class="d-flex flex-wrap justify-content-center justify-content-sm-start gap-2">
             <div class="stat-card bg-dark">
               <div class="stat-card-label">Position</div>
               <div class="stat-card-value">${player.position}</div>

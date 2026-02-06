@@ -530,6 +530,31 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE log_message ADD COLUMN icon VARCHAR(50);')
   }
+}, {
+  name: 'Migrate team emblems to new pattern variants',
+  async run () {
+    const validPatterns = Object.keys(EMBLEM_PATTERNS)
+    const teams = await query('SELECT id, emblem FROM team WHERE emblem IS NOT NULL')
+    const promises = []
+    for (const team of teams) {
+      try {
+        const emblemData = JSON.parse(team.emblem)
+        // Check if pattern is invalid (solid or any other non-existent pattern)
+        if (!validPatterns.includes(emblemData.pattern)) {
+          emblemData.pattern = validPatterns[Math.floor(Math.random() * validPatterns.length)]
+          promises.push(query('UPDATE team SET emblem=? WHERE id=?', [JSON.stringify(emblemData), team.id]))
+        }
+      } catch {
+        // If JSON parsing fails, assign a random valid emblem
+        const shape = Object.keys(EMBLEM_SHAPES)[Math.floor(Math.random() * Object.keys(EMBLEM_SHAPES).length)]
+        const pattern = validPatterns[Math.floor(Math.random() * validPatterns.length)]
+        const color = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
+        const emblem = JSON.stringify({ shape, pattern, color })
+        promises.push(query('UPDATE team SET emblem=? WHERE id=?', [emblem, team.id]))
+      }
+    }
+    await Promise.all(promises)
+  }
 }]
 
 /**
