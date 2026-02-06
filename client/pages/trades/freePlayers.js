@@ -22,26 +22,6 @@ export class FreePlayers extends UIElement {
     window.removeEventListener('player-hired', this._onPlayerHired)
   }
 
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      div: {
-        click: (event) => {
-          const target = event.target
-          const hireBtn = target.closest('[data-hire-player]')
-          if (!hireBtn) return
-
-          const playerId = Number(hireBtn.dataset.hirePlayer)
-          const player = this.players.find(p => p.id === playerId)
-          if (player) {
-            this._showHireDialog(player)
-          }
-        }
-      }
-    }
-  }
 
   /**
    * @returns {string}
@@ -50,6 +30,9 @@ export class FreePlayers extends UIElement {
     const table = new Table({
       data: this.players,
       cols: this._prepareTableCols(),
+      onClick: (player) => {
+        setQueryParams({ player_id: player.id })
+      },
       renderRow: player => [
         player.name,
         player.position,
@@ -87,10 +70,7 @@ export class FreePlayers extends UIElement {
    */
   _prepareTableCols () {
     return [{
-      name: 'Name',
-      onClick: (player) => {
-        setQueryParams({ player_id: player.id })
-      }
+      name: 'Name'
     }, {
       name: 'Position',
       sortFn: (playerA, playerB, isAsc) => {
@@ -116,7 +96,10 @@ export class FreePlayers extends UIElement {
       align: 'right'
     }, {
       name: '',
-      largeScreenOnly: true
+      largeScreenOnly: true,
+      onClick: (player) => {
+        this._showHireDialog(player)
+      }
     }]
   }
 
