@@ -22,6 +22,7 @@ import {
 } from '../util/emblemGenerator.js'
 import { UIElement } from '../lib/UIElement.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
+import { t } from '../i18n/index.js'
 
 export class MyTeamPage extends UIElement {
   /**
@@ -35,7 +36,7 @@ export class MyTeamPage extends UIElement {
         </div>
         <div class="row">
           <div class="col-12 col-xl-6">
-            <h3>Lineup</h3>
+            <h3>${t('myTeam.lineup')}</h3>
             <div class="mb-4" id="squad" >
               ${renderLineup(this.data.players, this.data.team, this)}
             </div>
@@ -99,26 +100,26 @@ export class MyTeamPage extends UIElement {
     const avgAge = realPlayers.length > 0
       ? (realPlayers.reduce((sum, p) => sum + calculatePlayerAge(p, this.season), 0) / realPlayers.length).toFixed(1)
       : 0
-    
+
     const teamNameId = generateId()
     onClick(teamNameId, () => {
       this._showTeamNameEditor()
     })
-    
+
     return `
-      <h2 id="${teamNameId}" style="cursor: pointer;" title="Click to edit team name">${this.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i></h2>
+      <h2 id="${teamNameId}" style="cursor: pointer;" title="${t('myTeam.clickToEditName')}">${this.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i></h2>
       <div class="row">
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 text-white bg-dark">
             <div class="card-body">
-              <h5 class="card-title">Team Info</h5>
+              <h5 class="card-title">${t('myTeam.teamInfo')}</h5>
               <p class="card-text">
-                <b>League: </b> ${formatLeague(this.data.team.level, this.data.team.league)}<br>
-                <b>Salary (∑): </b> ${euroFormat.format(totalSalary)}<br>
-                <b>Avg. Age: </b> ${avgAge} years<br>
-                <b>Avg. Level: </b> ${avgLevel}<br>
-                <b>Total Strength: </b> ${totalStrength}<br>
-                <b>Lineup Strength: </b> ${lineupStrength}
+                <b>${t('myTeam.league')}</b> ${formatLeague(this.data.team.level, this.data.team.league)}<br>
+                <b>${t('myTeam.salaryTotal')}</b> ${euroFormat.format(totalSalary)}<br>
+                <b>${t('myTeam.avgAge')}</b> ${avgAge} ${t('myTeam.years')}<br>
+                <b>${t('myTeam.avgLevel')}</b> ${avgLevel}<br>
+                <b>${t('myTeam.totalStrength')}</b> ${totalStrength}<br>
+                <b>${t('myTeam.lineupStrength')}</b> ${lineupStrength}
               </p>
             </div>
           </div>
@@ -126,7 +127,7 @@ export class MyTeamPage extends UIElement {
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 text-white bg-dark" >
             <div class="card-body" style="perspective: 40px;">
-              <h5 class="card-title">Emblem <i class="fa fa-pencil" aria-hidden="true"></i></h5>
+              <h5 class="card-title">${t('myTeam.emblem')} <i class="fa fa-pencil" aria-hidden="true"></i></h5>
               ${this._renderEmblemViewer()}
             </div>
           </div>
@@ -134,8 +135,8 @@ export class MyTeamPage extends UIElement {
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 text-white bg-dark" >
             <div class="card-body">
-              <h5 class="card-title">Lineup</h5>
-              <p class="card-text">Choose from one of the following line-ups:</p>
+              <h5 class="card-title">${t('myTeam.lineup')}</h5>
+              <p class="card-text">${t('myTeam.chooseLineup')}</p>
               <div class="form-group">
                 ${this._renderLineupSelect()}
               </div>
@@ -326,7 +327,7 @@ export class MyTeamPage extends UIElement {
           color: selectedColor
         })
         await server.updateEmblem(emblemParams, selectedColor)
-        toast('Your emblem has been updated!', 'success')
+        toast(t('myTeam.emblemUpdated'), 'success')
         this.data.team.emblem = emblemParams
         this.data.team.color = selectedColor
         await this.update(false)
@@ -337,8 +338,8 @@ export class MyTeamPage extends UIElement {
     })
 
     const overlay = showOverlay(
-      'Create Your Emblem',
-      'Design a unique emblem for your team',
+      t('myTeam.createEmblem'),
+      t('myTeam.designEmblem'),
       `
       <div style="text-align: center; margin-bottom: 20px;">
         <div id="${previewId}">${generateEmblem({
@@ -350,22 +351,22 @@ export class MyTeamPage extends UIElement {
       })}</div>
       </div>
 
-      <h6>Shape</h6>
+      <h6>${t('myTeam.shape')}</h6>
       <div style="margin-bottom: 15px; text-align: center;">
         ${shapeOptions}
       </div>
 
-      <h6>Pattern</h6>
+      <h6>${t('myTeam.pattern')}</h6>
       <div style="margin-bottom: 15px; text-align: center;">
         ${patternOptions}
       </div>
 
-      <h6>Color</h6>
+      <h6>${t('myTeam.color')}</h6>
       <div style="margin-bottom: 20px; text-align: center;">
         ${colorOptions}
       </div>
 
-      <button id="${saveButtonId}" class="btn btn-primary w-100">Save Emblem</button>
+      <button id="${saveButtonId}" class="btn btn-primary w-100">${t('myTeam.saveEmblem')}</button>
     `)
   }
 
@@ -463,14 +464,14 @@ export class MyTeamPage extends UIElement {
         const prefix2 = el(prefix2SelectId)?.value || ''
         const city = el(citySelectId)?.value || ''
         const newName = `${prefix1} ${prefix2} ${city}`.trim()
-        
+
         if (!newName) {
-          toast('Please select at least one name part', 'error')
+          toast(t('myTeam.selectNamePart'), 'error')
           return
         }
-        
+
         await server.updateTeamName(newName)
-        toast('Your team name has been updated!', 'success')
+        toast(t('myTeam.nameUpdated'), 'success')
         this.data.team.name = newName
         await this.update(false)
         overlay.remove()
@@ -480,38 +481,38 @@ export class MyTeamPage extends UIElement {
     })
 
     const overlay = showOverlay(
-      'Customize Team Name',
-      'Create a unique name for your team',
+      t('myTeam.customizeTeamName'),
+      t('myTeam.createUniqueName'),
       `
       <div style="margin-bottom: 20px;">
-        <h6>Preview</h6>
+        <h6>${t('myTeam.preview')}</h6>
         <div id="${previewId}" style="font-size: 24px; font-weight: bold; padding: 15px; background: rgba(0,0,0,0.1); border-radius: 4px; text-align: center; min-height: 60px; display: flex; align-items: center; justify-content: center;">
           ${escapeHtml(currentName)}
         </div>
       </div>
 
       <div class="form-group mb-3">
-        <label for="${prefix1SelectId}"><h6>Club Prefix 1</h6></label>
+        <label for="${prefix1SelectId}"><h6>${t('myTeam.clubPrefix1')}</h6></label>
         <select id="${prefix1SelectId}" class="form-control">
           ${prefix1Options}
         </select>
       </div>
 
       <div class="form-group mb-3">
-        <label for="${prefix2SelectId}"><h6>Club Prefix 2</h6></label>
+        <label for="${prefix2SelectId}"><h6>${t('myTeam.clubPrefix2')}</h6></label>
         <select id="${prefix2SelectId}" class="form-control">
           ${prefix2Options}
         </select>
       </div>
 
       <div class="form-group mb-3">
-        <label for="${citySelectId}"><h6>City Name</h6></label>
+        <label for="${citySelectId}"><h6>${t('myTeam.cityName')}</h6></label>
         <select id="${citySelectId}" class="form-control">
           ${cityOptions}
         </select>
       </div>
 
-      <button id="${saveButtonId}" class="btn btn-primary w-100">Save Team Name</button>
+      <button id="${saveButtonId}" class="btn btn-primary w-100">${t('myTeam.saveTeamName')}</button>
     `)
   }
 

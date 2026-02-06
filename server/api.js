@@ -9,6 +9,7 @@ import cron from 'node-cron'
 import { prepareSeason } from './prepare-season.js'
 import { calculateGames } from './play-game-day.js'
 import { makeBotMoves } from './bot-move.js'
+import { getLocaleFromRequest } from './i18n/index.js'
 
 const app = express()
 const port = 3000
@@ -19,7 +20,7 @@ app.use('/', express.static('client', { index: 'index.html' }))
 /**
  * Check if the authorization header is available, if so validate the JWT and
  * load the user info based on the id from the database. The user is attached to
- * the request object.
+ * the request object. Also parse the locale from the request.
  */
 app.use(async (req, res, next) => {
   if (req.headers.authorization) {
@@ -34,6 +35,7 @@ app.use(async (req, res, next) => {
       return res.status(401).send({ message: 'Invalid authorization header!' })
     }
   }
+  req.locale = getLocaleFromRequest(req)
   next()
 })
 

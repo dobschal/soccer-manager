@@ -1,71 +1,75 @@
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { el, generateId } from '../lib/html.js'
 import { server, showServerError } from '../lib/gateway.js'
+import { t } from '../i18n/index.js'
 
 /**
- * Tutorial content for each page
+ * Get tutorial content for each page (translated)
+ * @returns {Object}
  */
-const TUTORIALS = {
-  results: {
-    title: 'Game Results',
-    subtitle: 'Track your progress and standings',
-    items: [
-      'View match results from each game day',
-      'Check the league standings and your position',
-      'See top scorers and their statistics',
-      'Click on a match to see detailed game events'
-    ]
-  },
-  team: {
-    title: 'Your Team',
-    subtitle: 'Manage your squad and lineup',
-    items: [
-      'View all players in your squad with their stats',
-      'Check player freshness - tired players perform worse',
-      'Set your formation and lineup for matches',
-      'Drag players to positions or use the dropdown to assign them'
-    ]
-  },
-  trades: {
-    title: 'Player Market',
-    subtitle: 'Buy, sell and manage transfers',
-    items: [
-      'Browse the transfer market for new players',
-      'Make offers on players from other teams',
-      'View and respond to offers on your players',
-      'Check transfer history and free agents'
-    ]
-  },
-  dashboard: {
-    title: 'Welcome to SoccerManagerIO!',
-    subtitle: 'This is your dashboard that keeps you updated:',
-    items: [
-      'See your last match result and upcoming game',
-      'Use action cards to boost players or earn bonuses',
-      'Merge two identical cards into a better one',
-      'Read important messages about your team',
-      'See latest news from your league and top transfers'
-    ]
-  },
-  stadium: {
-    title: 'Stadium Management',
-    subtitle: 'Expand and earn revenue',
-    items: [
-      'Set ticket prices for each stand',
-      'Expand stands to increase capacity',
-      'Add roofs to improve fan experience',
-      'Construction takes time - plan ahead!'
-    ]
-  },
-  finances: {
-    title: 'Finances',
-    subtitle: 'Manage your club finances',
-    items: [
-      'View your current balance and transaction history',
-      'Sign sponsor contracts for regular income',
-      'Track income from ticket sales and sponsors',
-      'Monitor expenses like player salaries'
-    ]
+function getTutorials () {
+  return {
+    results: {
+      title: t('tutorial.results.title'),
+      subtitle: t('tutorial.results.subtitle'),
+      items: [
+        t('tutorial.results.item1'),
+        t('tutorial.results.item2'),
+        t('tutorial.results.item3'),
+        t('tutorial.results.item4')
+      ]
+    },
+    team: {
+      title: t('tutorial.teamPage.title'),
+      subtitle: t('tutorial.teamPage.subtitle'),
+      items: [
+        t('tutorial.teamPage.item1'),
+        t('tutorial.teamPage.item2'),
+        t('tutorial.teamPage.item3'),
+        t('tutorial.teamPage.item4')
+      ]
+    },
+    trades: {
+      title: t('tutorial.trades.title'),
+      subtitle: t('tutorial.trades.subtitle'),
+      items: [
+        t('tutorial.trades.item1'),
+        t('tutorial.trades.item2'),
+        t('tutorial.trades.item3'),
+        t('tutorial.trades.item4')
+      ]
+    },
+    dashboard: {
+      title: t('tutorial.dashboardPage.title'),
+      subtitle: t('tutorial.dashboardPage.subtitle'),
+      items: [
+        t('tutorial.dashboardPage.item1'),
+        t('tutorial.dashboardPage.item2'),
+        t('tutorial.dashboardPage.item3'),
+        t('tutorial.dashboardPage.item4'),
+        t('tutorial.dashboardPage.item5')
+      ]
+    },
+    stadium: {
+      title: t('tutorial.stadiumPage.title'),
+      subtitle: t('tutorial.stadiumPage.subtitle'),
+      items: [
+        t('tutorial.stadiumPage.item1'),
+        t('tutorial.stadiumPage.item2'),
+        t('tutorial.stadiumPage.item3'),
+        t('tutorial.stadiumPage.item4')
+      ]
+    },
+    finances: {
+      title: t('tutorial.financesPage.title'),
+      subtitle: t('tutorial.financesPage.subtitle'),
+      items: [
+        t('tutorial.financesPage.item1'),
+        t('tutorial.financesPage.item2'),
+        t('tutorial.financesPage.item3'),
+        t('tutorial.financesPage.item4')
+      ]
+    }
   }
 }
 
@@ -91,7 +95,8 @@ export async function showTutorialIfNeeded (tutorialKey) {
  * @param {string} tutorialKey
  */
 function showTutorialOverlay (tutorialKey) {
-  const tutorial = TUTORIALS[tutorialKey]
+  const tutorials = getTutorials()
+  const tutorial = tutorials[tutorialKey]
   if (!tutorial) return
 
   const overlayId = generateId()
@@ -124,10 +129,10 @@ function showTutorialOverlay (tutorialKey) {
           <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" id="${checkboxId}">
             <label class="form-check-label" for="${checkboxId}">
-              Do not show this again
+              ${t('tutorial.doNotShowAgain')}
             </label>
           </div>
-          <button id="${gotItButtonId}" class="btn btn-info w-100">Got it!</button>
+          <button id="${gotItButtonId}" class="btn btn-info w-100">${t('tutorial.gotIt')}</button>
         </div>
       </div>
     </div>

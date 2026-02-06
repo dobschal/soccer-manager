@@ -89,7 +89,7 @@ describe('trade routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.addTradeOffer(player, 50000, 'buy', req))
-        .rejects.toMatchObject({ message: 'Not enough money...' })
+        .rejects.toMatchObject({ message: 'Not enough money' })
     })
 
     it('throws error for invalid price', async () => {
@@ -101,10 +101,10 @@ describe('trade routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.addTradeOffer(player, 0, 'sell', req))
-        .rejects.toMatchObject({ message: 'Price needs to be greater than 0.' })
+        .rejects.toMatchObject({ message: 'Invalid offer value' })
 
       await expect(handlers.addTradeOffer(player, -100, 'sell', req))
-        .rejects.toMatchObject({ message: 'Price needs to be greater than 0.' })
+        .rejects.toMatchObject({ message: 'Invalid offer value' })
     })
 
     it('throws error for duplicate offer', async () => {
@@ -118,7 +118,7 @@ describe('trade routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.addTradeOffer(player, 50000, 'sell', req))
-        .rejects.toMatchObject({ message: 'Already added an offer for that player...' })
+        .rejects.toMatchObject({ message: 'Player is already listed' })
     })
 
     it('throws error when player is missing', async () => {
@@ -129,7 +129,7 @@ describe('trade routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.addTradeOffer(null, 50000, 'sell', req))
-        .rejects.toMatchObject({ message: 'Player is required' })
+        .rejects.toMatchObject({ message: 'Player not found' })
     })
   })
 
@@ -150,7 +150,8 @@ describe('trade routes', () => {
         expect.not.objectContaining({ created_at: '2024-01-01' }),
         team,
         5,
-        1
+        1,
+        'en'
       )
     })
   })
@@ -181,7 +182,7 @@ describe('trade routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.cancelOffer({ id: null }, req))
-        .rejects.toMatchObject({ message: 'Nope...' })
+        .rejects.toMatchObject({ message: 'Offer not found' })
     })
   })
 
@@ -202,10 +203,10 @@ describe('trade routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.declineOffer(null, req))
-        .rejects.toMatchObject({ message: 'Nope...' })
+        .rejects.toMatchObject({ message: 'Offer not found' })
 
       await expect(handlers.declineOffer({ id: null }, req))
-        .rejects.toMatchObject({ message: 'Nope...' })
+        .rejects.toMatchObject({ message: 'Offer not found' })
     })
   })
 

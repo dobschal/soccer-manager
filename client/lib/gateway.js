@@ -1,5 +1,6 @@
 import { toast } from '../partials/toast.js'
 import { deepCopy } from './deepCopy.js'
+import { getLocale } from '../i18n/index.js'
 
 /**
  * @param {Error} e
@@ -35,7 +36,8 @@ export const server = new Proxy({}, {
       const options = {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept-Language': getLocale()
         },
         body: JSON.stringify(requestBody)
       }

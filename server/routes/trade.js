@@ -6,6 +6,7 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getPlayerById } from '../helper/playerHelper.js'
+import { t, getUserLocale } from '../i18n/index.js'
 
 export default {
 
@@ -39,12 +40,13 @@ export default {
    * @returns {Promise<{success: boolean}>}
    */
   async addTradeOffer (player, price, type, req) {
+    const locale = req.locale || 'en'
     const team = await getTeam(req)
-    if (type === 'buy' && team.balance < price) throw new BadRequestError('Not enough money...')
-    if (!player || typeof player !== 'object') throw new BadRequestError('Player is required')
-    if (typeof price !== 'number') throw new BadRequestError('Price must be a number')
-    if (typeof type !== 'string') throw new BadRequestError('Type must be a string')
-    if (price <= 0) throw new BadRequestError('Price needs to be greater than 0.')
+    if (type === 'buy' && team.balance < price) throw new BadRequestError(t('error.notEnoughMoney', {}, locale))
+    if (!player || typeof player !== 'object') throw new BadRequestError(t('error.playerNotFound', {}, locale))
+    if (typeof price !== 'number') throw new BadRequestError(t('error.invalidOfferValue', {}, locale))
+    if (typeof type !== 'string') throw new BadRequestError(t('error.invalidRequest', {}, locale))
+    if (price <= 0) throw new BadRequestError(t('error.invalidOfferValue', {}, locale))
     const tradeOffer = new TradeOffer({
       offer_value: price,
       type: type,
@@ -52,7 +54,7 @@ export default {
       from_team_id: team.id
     })
     const results = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [tradeOffer.from_team_id, tradeOffer.player_id])
-    if (results.length > 0) throw new BadRequestError('Already added an offer for that player...')
+    if (results.length > 0) throw new BadRequestError(t('error.playerAlreadyListed', {}, locale))
     await query('INSERT INTO trade_offer SET ?', tradeOffer)
 
     // Notify the player's team about the incoming buy offer
@@ -60,8 +62,9 @@ export default {
       const playerData = await getPlayerById(player.id)
       const receivingTeam = await getTeamById(player.team_id)
       if (receivingTeam && receivingTeam.user_id) {
+        const receiverLocale = await getUserLocale(receivingTeam.user_id)
         await addLogMessage(
-          `New offer: ${team.name} wants to buy ${playerData.name} for ${price.toLocaleString()}€`,
+          t('log.offerReceived', { price: price.toLocaleString(), playerName: playerData.name, fromTeam: team.name }, receiverLocale),
           receivingTeam,
           'OPEN_INCOMING_OFFERS',
           null,
@@ -79,10 +82,11 @@ export default {
    * @returns {Promise<{success: boolean}>}
    */
   async acceptOffer (offer, req) {
+    const locale = req.locale || 'en'
     const { gameDay, season } = await getGameDayAndSeason()
     const sellingTeam = await getTeam(req)
     delete offer.created_at
-    await acceptOffer(offer, sellingTeam, gameDay, season)
+    await acceptOffer(offer, sellingTeam, gameDay, season, locale)
     return { success: true }
   },
 
@@ -92,8 +96,9 @@ export default {
    * @returns {Promise<{success: boolean}>}
    */
   async cancelOffer (offer, req) {
+    const locale = req.locale || 'en'
     const team = await getTeam(req)
-    if (!offer.id || !team.id) throw new BadRequestError('Nope...')
+    if (!offer.id || !team.id) throw new BadRequestError(t('error.offerNotFound', {}, locale))
     await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=?', [team.id, offer.id])
     return { success: true }
   },
@@ -103,8 +108,9 @@ export default {
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
    */
-  async declineOffer (offer, _req) {
-    if (!offer || !offer.id) throw new BadRequestError('Nope...')
+  async declineOffer (offer, req) {
+    const locale = req.locale || 'en'
+    if (!offer || !offer.id) throw new BadRequestError(t('error.offerNotFound', {}, locale))
     await declineOffer(offer)
     return { success: true }
   },

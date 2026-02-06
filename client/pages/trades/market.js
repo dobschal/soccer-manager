@@ -6,6 +6,7 @@ import { euroFormat } from '../../lib/currency.js'
 import { Table } from '../../partials/table.js'
 import { setQueryParams } from '../../lib/router.js'
 import { sortByPosition } from '../../util/player.js'
+import { t } from '../../i18n/index.js'
 
 export class MarketPage extends UIElement {
   team = {}
@@ -52,15 +53,15 @@ export class MarketPage extends UIElement {
           player.position,
           player.level,
           euroFormat.format(offer.offer_value),
-          `<button class="btn btn-primary" data-buy-player="${player.id}">Buy</button>`
+          `<button class="btn btn-primary" data-buy-player="${player.id}">${t('trades.buy')}</button>`
         ]
       }
     })
 
     return `
       <div>
-        <h2>Transfer market</h2>
-        <p>Have a look on the transfer market to catch better players:</p>
+        <h2>${t('trades.transferMarket')}</h2>
+        <p>${t('trades.transferMarketDesc')}</p>
         ${table}
       </div>
     `
@@ -87,15 +88,15 @@ export class MarketPage extends UIElement {
    */
   _prepareTableCols () {
     return [{
-      name: 'Name',
+      name: t('results.name'),
       onClick: (offer) => {
         setQueryParams({ player_id: offer.player_id })
       }
     }, {
-      name: 'Team',
+      name: t('results.team'),
       largeScreenOnly: true
     }, {
-      name: 'Position',
+      name: t('player.position'),
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
         const playerB = this.players.find(p => p.id === offerB.player_id)
@@ -105,7 +106,7 @@ export class MarketPage extends UIElement {
         return sortByPosition(playerA, playerB)
       }
     }, {
-      name: 'Level',
+      name: t('player.level'),
       largeScreenOnly: true,
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
@@ -117,7 +118,7 @@ export class MarketPage extends UIElement {
       },
       align: 'right'
     }, {
-      name: 'Price',
+      name: t('trades.price'),
       align: 'right',
       sortKey: 'offer_value'
     }, {
@@ -132,30 +133,30 @@ export class MarketPage extends UIElement {
    */
   async _showBuyDialog (player) {
     const { ok, value } = await showDialog({
-      title: `Buy ${player.name}?`,
-      text: 'Please enter the value of your offer to buy this player.',
+      title: t('trades.buyPlayer', { playerName: player.name }),
+      text: t('trades.enterOfferValue'),
       hasInput: true,
       inputType: 'number',
-      inputLabel: 'Price',
-      buttonText: 'Submit Offer'
+      inputLabel: t('trades.price'),
+      buttonText: t('trades.submitOffer')
     })
 
     if (!ok) return
 
     const price = Number(value)
     if (price <= 0) {
-      toast('Please enter a valid price.', 'error')
+      toast(t('trades.validPrice'), 'error')
       return
     }
 
     try {
       await server.addTradeOffer(player, price, 'buy')
-      toast('You\'ve sent a buy offer')
+      toast(t('trades.sentBuyOffer'))
       await this.load()
       await this.update(true)
     } catch (e) {
       console.error(e)
-      toast(e.message ?? 'Something went wrong', 'error')
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
   }
 }

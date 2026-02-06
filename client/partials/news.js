@@ -3,6 +3,7 @@ import { server } from '../lib/gateway.js'
 import { renderPlayerImage } from './playerImage.js'
 import { renderEmblem } from './emblem.js'
 import { goTo, setQueryParams } from '../lib/router.js'
+import { t } from '../i18n/index.js'
 
 class NewsItem extends UIElement {
   /**
@@ -58,8 +59,8 @@ class NewsItem extends UIElement {
           <button
             class="news-link btn btn-sm btn-outline-info position-absolute"
             style="bottom: 10px; right: 10px;"
-            aria-label="${this.linkType === 'player' ? 'View player' : 'View team'}"
-            title="${this.linkType === 'player' ? 'View player' : 'View team'}"
+            aria-label="${this.linkType === 'player' ? t('news.viewPlayer') : t('news.viewTeam')}"
+            title="${this.linkType === 'player' ? t('news.viewPlayer') : t('news.viewTeam')}"
           >
             <i class="fa fa-chevron-right" aria-hidden="true"></i>
           </button>
@@ -113,7 +114,7 @@ export class News extends UIElement {
     const seasonDisplay = this.season + 1
     return `
       <div>
-        <h3>News <small class="text-muted">- Game Day ${this.gameDay + 1}, Season ${seasonDisplay}</small></h3>
+        <h3>${t('news.title')} <small class="text-muted">- ${t('results.gameDay', { day: this.gameDay + 1 })}, ${t('finances.season', { season: seasonDisplay })}</small></h3>
         ${this.news.length > 0
       ? `<div class="row">
               ${this.news.map(item => `
@@ -122,7 +123,7 @@ export class News extends UIElement {
                 </div>
               `).join('')}
             </div>`
-      : `<p class="text-muted">No news available...</p>`
+      : `<p class="text-muted">${t('news.noNews')}</p>`
     }
       </div>
     `

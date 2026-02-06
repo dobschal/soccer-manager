@@ -113,12 +113,18 @@ body {
 }
 
 body.overlay-open {
-    overflow: hidden;
+    overflow-y: scroll;
+    position: fixed;
+    width: 100%;
 }
 
 #logout-button {
-    margin-left: auto;
     margin-right: 2rem;
+}
+
+#language-selector {
+    margin-left: auto;
+    display: block;
 }
 
 .navbar .navbar-toggler {
@@ -263,6 +269,10 @@ body.overlay-open {
 .overlay table.table {
     margin: 0;
     width: 100%;
+}
+
+.table tbody tr {
+    border-color: #333 !important;
 }
 
 .table-hover tr:hover {
@@ -488,8 +498,8 @@ td.hover-text:hover {
 /* App Footer */
 .app-footer {
     text-align: center;
-    padding: 2rem 1rem;
-    background-color: rgba(0, 0, 0, 0.5);
+    padding: 6rem 1rem;
+    background-color: #222;
 }
 
 .app-footer .text-muted {

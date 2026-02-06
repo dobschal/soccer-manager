@@ -11,6 +11,7 @@ import { actionCardChances } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
 import { completeStadiumConstructions } from './helper/stadiumHelper.js'
 import { checkTeamAndNotify } from './helper/logMessageHelper.js'
+import { t, getUserLocale } from './i18n/index.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -158,7 +159,9 @@ async function _giveSponsorMoney (gameDay, season) {
     const { sponsor } = await getSponsor(team)
     console.log('Get team sponsor in ' + (Date.now() - t1) + 'ms')
     if (!sponsor) return
-    await updateTeamBalance(team, sponsor.value, `Sponsor deal with ${sponsor.name}`, gameDay, season)
+    const locale = await getUserLocale(team.user_id)
+    const reason = t('finance.sponsorDeal', { name: sponsor.name }, locale)
+    await updateTeamBalance(team, sponsor.value, reason, gameDay, season)
   }))
   console.log('Gave all teams their sponsor money in' + (Date.now() - t1) + 'ms')
 }
@@ -174,7 +177,9 @@ async function _letTeamsPaySallaries (gameDay, season) {
   await Promise.all(teams.map(async team => {
     const players = await query('SELECT * FROM player WHERE team_ID=?', [team.id])
     const totalSallaryCosts = players.reduce((total, player) => total + sallaryPerLevel[player.level], 0) * -1
-    await updateTeamBalance(team, totalSallaryCosts, 'Player salaries', gameDay, season)
+    const locale = await getUserLocale(team.user_id)
+    const reason = t('finance.playerSalaries', {}, locale)
+    await updateTeamBalance(team, totalSallaryCosts, reason, gameDay, season)
   }))
   console.log('Paid all salaries in' + (Date.now() - t1) + 'ms')
 }
@@ -305,7 +310,9 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     totalEarnings = 0
   }
 
-  await updateTeamBalance(teamA, totalEarnings, 'Stadium ticket earnings', gameDay, season)
+  const locale = await getUserLocale(teamA.user_id)
+  const reason = t('finance.stadiumTicketEarnings', {}, locale)
+  await updateTeamBalance(teamA, totalEarnings, reason, gameDay, season)
   return details
 }
 

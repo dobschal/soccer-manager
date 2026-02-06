@@ -9,6 +9,7 @@ import { UIElement } from '../lib/UIElement.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { renderPlayerImage } from '../partials/playerImage.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
+import { t } from '../i18n/index.js'
 
 export class ResultsPage extends UIElement {
   /**
@@ -56,11 +57,11 @@ export class ResultsPage extends UIElement {
     return `
     <div>
       <div class="mb-4">
-        <h2>Results</h2>
+        <h2>${t('results.resultsTitle')}</h2>
         <table>
           <tr>
             <th>
-                League
+                ${t('results.league')}
             </th>
             <td>
               <span id="prev-league-button" class="fa fa-chevron-left fa-button"></span>
@@ -69,7 +70,7 @@ export class ResultsPage extends UIElement {
             </td>
           </tr>
           <tr>
-            <th>Season</th>
+            <th>${t('results.season')}</th>
             <td>
               <span id="prev-season-button" class="fa fa-chevron-left fa-button"></span>
               ${this.season + 1}
@@ -77,7 +78,7 @@ export class ResultsPage extends UIElement {
             </td>
           </tr>
           <tr>
-            <th>Game Day</th>
+            <th>${t('results.gameDayLabel')}</th>
             <td>
               <span id="prev-game-day-button" class="fa fa-chevron-left fa-button"></span>
               ${this.gameDay + 1}
@@ -86,45 +87,45 @@ export class ResultsPage extends UIElement {
           </tr>
         </table>
       </div>
-      
-      <h3>Games</h3>
+
+      <h3>${t('results.games')}</h3>
       <table class="table table-hover mb-4">
         <thead>
           <tr>
-            <th scope="col">Team 1</th>
-            <th scope="col">Team 2</th>
-            <th scope="col">Result</th>
+            <th scope="col">${t('results.team1')}</th>
+            <th scope="col">${t('results.team2')}</th>
+            <th scope="col">${t('results.result')}</th>
           </tr>
         </thead>
         <tbody>
             ${this.results.map(this._renderResultListItem.bind(this)).join('')}
         </tbody>
-      </table>    
-      <h3>Standing</h3>
+      </table>
+      <h3>${t('results.standing')}</h3>
       <table class="table table-hover mb-4">
         <thead>
           <tr>
             <th scope="col" style="width: 30px">#</th>
             <th scope="col" class="d-none d-md-table-cell" style="width: 30px"></th>
-            <th scope="col">Team</th>
-            <th scope="col" class="d-none d-md-table-cell">Games</th>
-            <th scope="col" class="d-none d-md-table-cell">Goals</th>
-            <th scope="col" class="d-none d-lg-table-cell">Diff</th>
-            <th scope="col">Points</th>
+            <th scope="col">${t('results.team')}</th>
+            <th scope="col" class="d-none d-md-table-cell">${t('results.games')}</th>
+            <th scope="col" class="d-none d-md-table-cell">${t('results.goals')}</th>
+            <th scope="col" class="d-none d-lg-table-cell">${t('results.diff')}</th>
+            <th scope="col">${t('results.points')}</th>
           </tr>
         </thead>
         <tbody>
           ${this.standing.map(this._renderStandingListItem.bind(this)).join('')}
         </tbody>
       </table>
-      <h3>Top Scorer</h3>
+      <h3>${t('results.topScorer')}</h3>
       <table class="table table-hover">
         <thead>
           <tr>
             <th scope="col">#</th>
-            <th scope="col">Goals</th>
-            <th scope="col">Name</th>
-            <th scope="col" class="d-none d-sm-table-cell">Team</th>
+            <th scope="col">${t('results.goals')}</th>
+            <th scope="col">${t('results.name')}</th>
+            <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
           </tr>
         </thead>
         <tbody>

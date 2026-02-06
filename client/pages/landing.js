@@ -3,6 +3,7 @@ import { value } from '../lib/html.js'
 import { goTo, setQueryParams } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
 import { UIElement } from '../lib/UIElement.js'
+import { t } from '../i18n/index.js'
 
 export class LandingPage extends UIElement {
   /**
@@ -38,44 +39,43 @@ export class LandingPage extends UIElement {
             <div class="row align-items-center">
               <!-- Left side: Content -->
               <div class="col-lg-8 hero-content">
-                <span class="hero-badge">Free to Play</span>
-                <h1 class="hero-title text-white">Soccer Manager IO</h1>
+                <span class="hero-badge">${t('landing.freeToPlay')}</span>
+                <h1 class="hero-title text-white">${t('landing.title')}</h1>
                 <p class="hero-subtitle text-white">
-                  Build your dream team from scratch, rise through the leagues, and become the ultimate football manager.
-                  No downloads, no payments - just pure football strategy in your browser.
+                  ${t('landing.subtitle')}
                 </p>
                 <img style="width: 100%; max-width: 520px" src="assets/landing-page/preview.png" alt="Game Preview" class="hero-preview-image mt-4">
               </div>
               <!-- Right side: Login form -->
               <div class="col-lg-4">
                 <div class="login-card">
-                  <h2 class="text-white">${this.isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+                  <h2 class="text-white">${this.isLogin ? t('landing.welcomeBack') : t('landing.createAccount')}</h2>
                   <form>
                     <div class="form-group mb-3">
-                      <label for="username-input">Username</label>
-                      <input autofocus class="form-control" id="username-input" type="text" placeholder="Enter username">
+                      <label for="username-input">${t('landing.username')}</label>
+                      <input autofocus class="form-control" id="username-input" type="text" placeholder="${t('landing.enterUsername')}">
                     </div>
                     <div class="form-group mb-3">
-                      <label for="password-input">Password</label>
-                      <input class="form-control" id="password-input" type="password" placeholder="Enter password">
+                      <label for="password-input">${t('landing.password')}</label>
+                      <input class="form-control" id="password-input" type="password" placeholder="${t('landing.enterPassword')}">
                     </div>
                     <div class="form-group mb-3 ${this.isLogin ? 'hidden' : ''}" id="password-repeat-area">
-                      <label for="password-repeat-input">Repeat Password</label>
-                      <input class="form-control" id="password-repeat-input" type="password" placeholder="Repeat password">
+                      <label for="password-repeat-input">${t('landing.repeatPassword')}</label>
+                      <input class="form-control" id="password-repeat-input" type="password" placeholder="${t('landing.repeatPasswordPlaceholder')}">
                     </div>
                     <button class="btn btn-success w-100 mb-2" type="submit">
-                      ${this.isLogin ? 'Login' : 'Create Account'}
+                      ${this.isLogin ? t('landing.loginBtn') : t('landing.createAccountBtn')}
                     </button>
                     <button data-toggle class="btn btn-link text-white w-100 p-0" type="button">
-                      ${this.isLogin ? 'New here? Create an account' : 'Already have an account? Login'}
+                      ${this.isLogin ? t('landing.newHere') : t('landing.alreadyHaveAccount')}
                     </button>
                   </form>
                 </div>
                 <ul class="feature-list text-white d-none d-lg-block">
-                  <li>Manage your own fantasy football club</li>
-                  <li>Compete against other players online</li>
-                  <li>Build and upgrade your stadium</li>
-                  <li>Climb up to League 1</li>
+                  <li>${t('landing.feature1')}</li>
+                  <li>${t('landing.feature2')}</li>
+                  <li>${t('landing.feature3')}</li>
+                  <li>${t('landing.feature4')}</li>
                 </ul>
               </div>
             </div>
@@ -91,15 +91,12 @@ export class LandingPage extends UIElement {
             <div class="row align-items-center">
               <div class="col-lg-6">
                 <span class="feature-icon">🏆</span>
-                <h2 class="text-white">Your Club, Your Rules</h2>
+                <h2 class="text-white">${t('landing.yourClub')}</h2>
                 <p class="text-white">
-                  Take control of your very own fantasy football club. Start in the lowest league with a squad of unknown
-                  talents and work your way up to the top division. Every decision matters - from player transfers
-                  to tactical formations.
+                  ${t('landing.yourClubDesc')}
                 </p>
                 <p class="text-white">
-                  Track your progress on the dashboard, collect action cards after each match, and stay updated
-                  with the latest news from your league.
+                  ${t('landing.yourClubDesc2')}
                 </p>
               </div>
               <div class="col-lg-6">
@@ -115,15 +112,12 @@ export class LandingPage extends UIElement {
             <div class="row align-items-center">
               <div class="col-lg-6 order-lg-2">
                 <span class="feature-icon">⚽</span>
-                <h2 class="text-white">Master Your Tactics</h2>
+                <h2 class="text-white">${t('landing.masterTactics')}</h2>
                 <p class="text-white">
-                  Football is a game of strategy. Choose from various formations - whether you prefer the classic
-                  4-4-2, the attacking 3-4-3, or a defensive 5-3-2. Position your players wisely and watch them
-                  execute your game plan.
+                  ${t('landing.masterTacticsDesc')}
                 </p>
                 <p class="text-white">
-                  Each player has unique attributes and fitness levels. Rotate your squad, develop young talents,
-                  and build a team that reflects your playing style.
+                  ${t('landing.masterTacticsDesc2')}
                 </p>
               </div>
               <div class="col-lg-6 order-lg-1">
@@ -139,14 +133,12 @@ export class LandingPage extends UIElement {
             <div class="row align-items-center">
               <div class="col-lg-6">
                 <span class="feature-icon">🏟️</span>
-                <h2 class="text-white">Build Your Stadium</h2>
+                <h2 class="text-white">${t('landing.buildStadium')}</h2>
                 <p class="text-white">
-                  Your stadium is the heart of your club. Expand the stands to welcome more fans, set ticket
-                  prices strategically, and add roofs to boost attendance. More fans mean more revenue to
-                  invest in your squad.
+                  ${t('landing.buildStadiumDesc')}
                 </p>
                 <p class="text-white">
-                  Watch your home ground grow from a small venue into a legendary arena as you climb the leagues.
+                  ${t('landing.buildStadiumDesc2')}
                 </p>
               </div>
               <div class="col-lg-6">
@@ -161,14 +153,12 @@ export class LandingPage extends UIElement {
           <div class="container bg-transparent">
             <div class="row align-items-center">
               <div class="col-lg-6 order-lg-2">
-                <h2 class="text-white">Collect Action Cards</h2>
+                <h2 class="text-white">${t('landing.actionCards')}</h2>
                 <p class="text-white">
-                  After each match day, you earn action cards with special abilities. Level up your players,
-                  boost their fitness, recruit youth talents, or receive cash bonuses. Some cards can even be
-                  merged into more powerful versions!
+                  ${t('landing.actionCardsDesc')}
                 </p>
                 <p class="text-white">
-                  Use your cards strategically to gain an edge over your rivals and accelerate your rise to the top.
+                  ${t('landing.actionCardsDesc2')}
                 </p>
               </div>
               <div class="col-lg-6 order-lg-1">
@@ -181,9 +171,9 @@ export class LandingPage extends UIElement {
         <!-- CTA Section -->
         <section class="cta-section">
           <div class="container bg-transparent">
-            <h2 class="text-white">Ready to Start Your Journey?</h2>
-            <p class="text-white">Join thousands of managers competing for glory. Free to play, no downloads required.</p>
-            <button id="play-now-btn" class="btn btn-light btn-lg" type="button">Play Now</button>
+            <h2 class="text-white">${t('landing.readyToStart')}</h2>
+            <p class="text-white">${t('landing.joinThousands')}</p>
+            <button id="play-now-btn" class="btn btn-light btn-lg" type="button">${t('landing.playNow')}</button>
           </div>
         </section>
       </div>
@@ -221,19 +211,19 @@ export class LandingPage extends UIElement {
       if (!this.isLogin) {
         if (repeatedPassword !== password) {
           this.isSubmitting = false
-          return toast('Passwords are not equal...', 'error')
+          return toast(t('landing.passwordsNotEqual'), 'error')
         }
         await server.createAccount(username, password)
         setQueryParams({ type: this.isLogin ? 'registration' : 'login' })
-        toast('Registration successful!', 'success')
+        toast(t('landing.registrationSuccess'), 'success')
       } else {
         const { token } = await server.login(username, password)
         window.localStorage.setItem('auth-token', token)
         goTo('')
-        toast('Login successful!', 'success')
+        toast(t('landing.loginSuccess'), 'success')
       }
     } catch (e) {
-      toast(e.message ?? 'Something went wrong...', 'error')
+      toast(e.message ?? t('landing.somethingWentWrong'), 'error')
     }
     this.isSubmitting = false
   }

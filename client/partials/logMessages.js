@@ -3,6 +3,7 @@ import { server } from '../lib/gateway.js'
 import { toast } from './toast.js'
 import { formatDate } from '../lib/date.js'
 import { goTo, setQueryParams } from '../lib/router.js'
+import { t } from '../i18n/index.js'
 
 const PAGE_SIZE = 10
 
@@ -71,10 +72,10 @@ export class LogMessages extends UIElement {
   get template () {
     return `
       <div>
-        <h3>Messages</h3>
+        <h3>${t('log.title')}</h3>
         <ul class="list-group log-messages-list">
           ${this.messages.length === 0
-            ? '<li class="list-group-item text-muted">No messages yet...</li>'
+            ? `<li class="list-group-item text-muted">${t('log.noMessages')}</li>`
             : this.messages.map(m => this._renderMessage(m)).join('')}
         </ul>
         <div class="log-messages-pagination-wrapper">
@@ -115,10 +116,10 @@ export class LogMessages extends UIElement {
           <i class="fa fa-${icon}" aria-hidden="true"></i> ${message.message}
         </div>
         <div class="d-flex">
-          <button class="btn btn-sm btn-outline-info ms-2${hasAction ? '' : ' disabled'}" ${actionAttrs} title="Open">
+          <button class="btn btn-sm btn-outline-info ms-2${hasAction ? '' : ' disabled'}" ${actionAttrs} title="${t('log.viewMore')}">
             <i class="fa fa-external-link" aria-hidden="true"></i>
           </button>
-          <button class="btn btn-sm btn-outline-dark ms-2" data-delete-message="${message.id}" title="Delete message">
+          <button class="btn btn-sm btn-outline-dark ms-2" data-delete-message="${message.id}" title="${t('log.delete')}">
             <i class="fa fa-trash" aria-hidden="true"></i>
           </button>
         </div>
@@ -149,11 +150,11 @@ export class LogMessages extends UIElement {
       <nav class="mt-3 log-messages-pagination">
         <ul class="pagination pagination-sm justify-content-center flex-wrap">
           <li class="page-item ${hasPrev ? '' : 'disabled'}">
-            <span class="page-link log-messages-prev" style="cursor: pointer;">Previous</span>
+            <span class="page-link log-messages-prev" style="cursor: pointer;">${t('common.prev')}</span>
           </li>
           ${pageNumbers}
           <li class="page-item ${hasNext ? '' : 'disabled'}">
-            <span class="page-link log-messages-next" style="cursor: pointer;">Next</span>
+            <span class="page-link log-messages-next" style="cursor: pointer;">${t('common.next')}</span>
           </li>
         </ul>
       </nav>
@@ -196,7 +197,7 @@ export class LogMessages extends UIElement {
         // Show empty state
         const list = document.querySelector('.log-messages-list')
         if (list) {
-          list.innerHTML = '<li class="list-group-item text-muted">No messages yet...</li>'
+          list.innerHTML = `<li class="list-group-item text-muted">${t('log.noMessages')}</li>`
         }
         // Remove pagination
         const pagination = document.querySelector('.log-messages-pagination')
@@ -210,7 +211,7 @@ export class LogMessages extends UIElement {
         }
       }
     } catch (e) {
-      toast(e.message ?? 'Failed to delete message', 'error')
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
   }
 

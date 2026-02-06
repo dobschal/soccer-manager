@@ -6,6 +6,7 @@ import { showPlayerModal } from '../partials/playerModal.js'
 import { UIElement } from '../lib/UIElement.js'
 import { FreePlayers } from './trades/freePlayers.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
+import { t } from '../i18n/index.js'
 
 export class TradesPage extends UIElement {
   /**
@@ -22,13 +23,13 @@ export class TradesPage extends UIElement {
     return `
       <div>
         <nav class="nav nav-pills mb-2">
-          <a class="nav-link ${!this.pageName ? 'active' : ''}" href="#trades">Market</a>
-          <a class="nav-link ${this.pageName === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">Incoming</a>
-          <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">My Offers</a>
-          <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">History</a>
-          <a class="nav-link ${this.pageName === 'free_players' ? 'active' : ''}" href="#trades?sub_page=free_players">Free Players</a>
+          <a class="nav-link ${!this.pageName ? 'active' : ''}" href="#trades">${t('trades.market')}</a>
+          <a class="nav-link ${this.pageName === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">${t('trades.incomingOffers')}</a>
+          <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">${t('trades.myOffers')}</a>
+          <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">${t('player.history')}</a>
+          <a class="nav-link ${this.pageName === 'free_players' ? 'active' : ''}" href="#trades?sub_page=free_players">${t('trades.freePlayers')}</a>
         </nav>
-        ${this.page ?? 'Loading...'}
+        ${this.page ?? t('common.loading')}
       </div>
     `
   }

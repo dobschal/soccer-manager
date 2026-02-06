@@ -2,6 +2,7 @@ import { getGameDayAndSeason } from './gameDayHelper.js'
 import { getTeam } from './teamHelper.js'
 import { query } from '../lib/database.js'
 import { LogMessage } from '../entities/logMessage.js'
+import { t, getUserLocale } from '../i18n/index.js'
 
 /**
  * @param {string} message
@@ -72,13 +73,14 @@ export async function checkTeamAndNotify (team) {
   // Only check teams with a user (not bots)
   if (!team.user_id) return
 
+  const locale = await getUserLocale(team.user_id)
   const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
   const playersInLineup = players.filter(p => p.in_game_position)
 
   // Check for incomplete lineup
   if (playersInLineup.length < 11) {
     await addLogMessage(
-      `Warning: Your lineup only has ${playersInLineup.length} players! You need 11 players for optimal performance.`,
+      t('log.incompleteLineup', { count: playersInLineup.length }, locale),
       team,
       'OPEN_MY_TEAM_PAGE',
       null,
@@ -90,7 +92,7 @@ export async function checkTeamAndNotify (team) {
   const tiredPlayers = playersInLineup.filter(p => p.freshness < 0.4)
   for (const player of tiredPlayers) {
     await addLogMessage(
-      `Warning: ${player.name} has low freshness (${Math.floor(player.freshness * 100)}%). Consider resting them.`,
+      t('log.lowFreshness', { playerName: player.name, freshness: Math.floor(player.freshness * 100) }, locale),
       team,
       'OPEN_PLAYER',
       player.id,

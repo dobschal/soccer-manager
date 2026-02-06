@@ -8,6 +8,7 @@ import { UIElement } from '../lib/UIElement.js'
 import { formatLeague } from '../util/league.js'
 import { showStadiumModal } from '../partials/stadiumModal.js'
 import { euroFormat } from '../lib/currency.js'
+import { t } from '../i18n/index.js'
 
 /**
  * Information to render:
@@ -45,12 +46,12 @@ export class TeamPage extends UIElement {
           <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
             <h2>${this.team.name}</h2>
             <p class="mb-0">
-              <b>League</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
-              <b>Team Value</b>: ${euroFormat.format(this._teamValue)}<br>
-              <b>Lineup Strength</b>: ${this._teamStrength}<br>
-              <b>Ø Freshness</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
-              <b>Trainer</b>: ${this._username}<br>
-              <b>Stadium Size</b>: <a href="#" class="stadium-link text-info">${this._stadiumSize} seats</a>
+              <b>${t('team.leagueLabel')}</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
+              <b>${t('team.teamValue')}</b>: ${euroFormat.format(this._teamValue)}<br>
+              <b>${t('team.lineupStrength')}</b>: ${this._teamStrength}<br>
+              <b>${t('team.avgFreshness')}</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
+              <b>${t('team.trainer')}</b>: ${this._username}<br>
+              <b>${t('team.stadiumSize')}</b>: <a href="#" class="stadium-link text-info">${t('team.seats', { seats: this._stadiumSize })}</a>
             </p>
           </div>
           <div class="col-12 col-md-4 text-center">
@@ -58,9 +59,9 @@ export class TeamPage extends UIElement {
               <div class="best-player-link" style="cursor: pointer;" data-player-id="${bestPlayer.id}">
                 <div class="mb-2" style="display: inline-block;">${this._bestPlayerImage}</div>
                 <div style="clear: both;">
-                  <div class="text-muted small">Best Player</div>
+                  <div class="text-muted small">${t('team.bestPlayer')}</div>
                   <div><strong>${bestPlayer.name}</strong></div>
-                  <div class="text-info">Level ${bestPlayer.level}</div>
+                  <div class="text-info">${t('team.levelLabel', { level: bestPlayer.level })}</div>
                 </div>
               </div>
             ` : ''}

@@ -1,5 +1,6 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
+import { t } from '../i18n/index.js'
 
 export class DefaultLayout extends UIElement {
   _version = ''
@@ -14,7 +15,7 @@ export class DefaultLayout extends UIElement {
         <footer class="app-footer">
           <span class="text-muted">SoccerManagerIO v${this._version}</span>
           <br>
-          <a href="imprint.html" class="text-muted">Imprint & Privacy Policy</a>
+          <a href="imprint.html" class="text-muted">${t('footer.imprintPrivacy')}</a>
         </footer>
       </div>
     `

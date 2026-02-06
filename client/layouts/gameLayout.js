@@ -5,6 +5,7 @@ import { goTo } from '../lib/router.js'
 import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
+import { getLocale, setLocale, t } from '../i18n/index.js'
 
 /**
  * @returns {void}
@@ -42,31 +43,40 @@ export class GameLayout extends UIElement {
           </button>
           <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav px-2">
-              ${this._navItem('dashboard', '<i class="fa fa-home" aria-hidden="true"></i> Home')}
-              ${this._navItem('my-team', '<i class="fa fa-users" aria-hidden="true"></i> Team')}
-              ${this._navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
-              ${this._navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}
-              ${this._navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
-              ${this._navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Transfers')}
+              ${this._navItem('dashboard', `<i class="fa fa-home" aria-hidden="true"></i> ${t('nav.home')}`)}
+              ${this._navItem('my-team', `<i class="fa fa-users" aria-hidden="true"></i> ${t('nav.team')}`)}
+              ${this._navItem('results', `<i class="fa fa-trophy" aria-hidden="true"></i> ${t('nav.league')}`)}
+              ${this._navItem('finances', `<i class="fa fa-money" aria-hidden="true"></i> ${t('nav.finances')}`)}
+              ${this._navItem('stadium', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.stadium')}`)}
+              ${this._navItem('trades', `<i class="fa fa-handshake-o" aria-hidden="true"></i> ${t('nav.transfers')}`)}
             </ul>
             <div class="px-2 d-none d-lg-block">|</div>
             <div class="navbar-info-item px-2 d-none d-xl-block">
-              <i class="fa fa-calendar" aria-hidden="true"></i> Day ${this._gameDay} (${this._season + 1})
+              <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
+      gameDay: this._gameDay,
+      season: this._season + 1
+    })}
             </div>
             <div class="navbar-info-item px-2 d-none d-xl-block" id="${this._nextGameInElementId}">
             </div>
             <div class="navbar-info-item px-2 d-none d-lg-block">
                 <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </div>
+            <select id="language-selector" class="form-control form-control-sm pointer" style="width: auto;">
+              <option value="en" ${getLocale() === 'en' ? 'selected' : ''}>EN</option>
+              <option value="de" ${getLocale() === 'de' ? 'selected' : ''}>DE</option>
+            </select>            
             <button id="dev-trigger-button" class="btn btn-outline-warning my-2 my-sm-0 mx-1 ${this._isDevelopment ? '' : 'hidden'}" type="button">
-              <i class="fa fa-play" aria-hidden="true"></i> Run
+              <i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}
             </button>
-            <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">Logout</button>
+            <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">${t('nav.logout')}</button>
           </div>
         </nav>
         <div class="container" id="page"></div>
         <footer class="app-footer">
           <span class="text-muted">SoccerManagerIO v${this._version}</span>
+          <br>
+          <a href="imprint.html" class="text-muted">${t('footer.imprintPrivacy')}</a>
         </footer>
       </div>
     `
@@ -123,16 +133,16 @@ export class GameLayout extends UIElement {
       devTriggerBtn.addEventListener('click', async () => {
         try {
           devTriggerBtn.disabled = true
-          devTriggerBtn.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Running...'
+          devTriggerBtn.innerHTML = `<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> ${t('nav.running')}`
           await server.triggerGameDay()
-          toast('Game day completed!', 'success')
+          toast(t('toast.gameDayCompleted'), 'success')
           window.location.reload()
         } catch (e) {
           console.error(e)
-          toast(e.message ?? 'Something went wrong', 'error')
+          toast(e.message ?? t('toast.somethingWentWrong'), 'error')
         } finally {
           devTriggerBtn.disabled = false
-          devTriggerBtn.innerHTML = '<i class="fa fa-play" aria-hidden="true"></i> Run Game Day'
+          devTriggerBtn.innerHTML = `<i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}`
         }
       })
     }
@@ -144,6 +154,20 @@ export class GameLayout extends UIElement {
         if (navCollapse) {
           navCollapse.classList.toggle('show')
         }
+      })
+    }
+
+    const languageSelector = document.querySelector(`${this._elementQuery} #language-selector`)
+    if (languageSelector) {
+      languageSelector.addEventListener('change', async (e) => {
+        const newLocale = e.target.value
+        setLocale(newLocale)
+        try {
+          await server.setLanguage(newLocale)
+        } catch (err) {
+          console.error('Failed to save language preference:', err)
+        }
+        window.location.reload()
       })
     }
   }

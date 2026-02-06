@@ -4,6 +4,7 @@ import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { getTeam } from './teamHelper.js'
 import { addLogMessage } from './logMessageHelper.js'
+import { t, getUserLocale } from '../i18n/index.js'
 
 const GAMEDAYS_PER_SEASON = 34
 
@@ -209,7 +210,9 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
  */
 export async function buildStadium (team, currentStadium, plannedStadium, price) {
   const { gameDay, season } = await getGameDayAndSeason()
-  await updateTeamBalance(team, price * -1, 'Stadium construction started', gameDay, season)
+  const locale = await getUserLocale(team.user_id)
+  const reason = t('finance.stadiumConstruction', {}, locale)
+  await updateTeamBalance(team, price * -1, reason, gameDay, season)
 
   const stands = ['north', 'south', 'east', 'west']
   const updateFields = {}

@@ -5,6 +5,7 @@ import { toast } from '../partials/toast.js'
 import { euroFormat } from '../lib/currency.js'
 import { StadiumCanvas } from '../partials/stadiumCanvas.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
+import { t } from '../i18n/index.js'
 
 export class StadiumPage extends UIElement {
   stadium = {}
@@ -57,18 +58,18 @@ export class StadiumPage extends UIElement {
     this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas')
     return `
       <div>
-        <h2>Your Stadium</h2>
-        <p>Here is your beautiful stadium with ${this._stadiumCanvas.calculateTotalSeats()} seats:</p>
+        <h2>${t('stadium.yourStadium')}</h2>
+        <p>${t('stadium.stadiumDesc', { seats: this._stadiumCanvas.calculateTotalSeats() })}</p>
         <div class="mb-4" id="stadium-canvas-container">
           ${this._stadiumCanvas}
         </div>
-        <h3>Ticket Prices</h3>
-        <p>Adjust the prices of your stadium tickets.</p>
+        <h3>${t('stadium.ticketPrices')}</h3>
+        <p>${t('stadium.adjustPrices')}</p>
         <form class="pb-4 mb-4" id="price-form">
           ${this._renderPriceForm()}
         </form>
-        <h3>Expand Stadium</h3>
-        <p>Add more seats to your stadium to get more fans excited.</p>
+        <h3>${t('stadium.expandStadium')}</h3>
+        <p>${t('stadium.expandDesc')}</p>
         <form class="pb-4 mb-4" id="stadium-form">
           ${this._renderExpandForm()}
         </form>
@@ -99,9 +100,9 @@ export class StadiumPage extends UIElement {
     event.preventDefault()
     try {
       await server.updatePrices(this.stadium)
-      toast('Prices updated')
+      toast(t('stadium.pricesUpdated'))
     } catch (e) {
-      toast(e.message ?? 'Something went wrong', 'error')
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
   }
 
@@ -114,18 +115,18 @@ export class StadiumPage extends UIElement {
 
     // Safety check - don't submit if no valid construction
     if (!this._hasValidConstruction) {
-      toast('Please make changes and wait for cost calculation', 'error')
+      toast(t('stadium.makeChangesFirst'), 'error')
       return
     }
 
     try {
       const result = await server.buildStadium(this.stadium)
       this.constructionInfo = result.constructionInfo || {}
-      toast('Construction has started!', 'success')
+      toast(t('stadium.constructionStarted'), 'success')
       // Reload and re-render to show construction status
       void this.update(false)
     } catch (e) {
-      toast(e.message ?? 'Something went wrong', 'error')
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
   }
 
@@ -153,15 +154,15 @@ export class StadiumPage extends UIElement {
         const previews = Object.entries(constructionTimes)
           .filter(([, info]) => info && !info.blocked)
           .map(([stand, info]) => {
-            let details = `${info.days} gameday${info.days !== 1 ? 's' : ''}`
-            if (info.addingRoof) details += ' (includes roof)'
+            let details = info.days === 1 ? t('stadium.gameDaysSingle', { days: info.days }) : t('stadium.gameDaysPlural', { days: info.days })
+            if (info.addingRoof) details += ' ' + t('stadium.includesRoof')
             return `<li><strong>${stand}</strong>: ${details}</li>`
           })
 
         if (previews.length > 0 && totalPrice > 0) {
           previewEl.innerHTML = `
             <div class="alert alert-info">
-              <strong>Construction Time Estimate:</strong>
+              <strong>${t('stadium.constructionTimeEstimate')}</strong>
               <ul class="mb-0">${previews.join('')}</ul>
             </div>
           `
@@ -182,7 +183,7 @@ export class StadiumPage extends UIElement {
       if (submitBtn) {
         submitBtn.disabled = true
       }
-      toast(e.message ?? 'Something went wrong', 'error')
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
   }
 
@@ -194,7 +195,7 @@ export class StadiumPage extends UIElement {
       <div class="col-6 col-sm-3 mb-2">
         <div class="form-group">
           <label>
-            Price for tickets on ${name} stand
+            ${t('stadium.priceFor', { stand: t('stadium.' + name) })}
           </label>
           <div class="input-group">
             <input data-price-input="${name}"
@@ -213,7 +214,7 @@ export class StadiumPage extends UIElement {
       <div class="row">
         ${formGroups}
       </div>
-      <button type="submit" class="btn btn-primary">Save Prices</button>
+      <button type="submit" class="btn btn-primary">${t('stadium.savePrices')}</button>
     `
   }
 
@@ -228,7 +229,7 @@ export class StadiumPage extends UIElement {
 
       const constructionBadge = underConstruction
         ? `<div class="alert alert-warning mt-2 py-2">
-             <small>Under construction - ${remaining} gameday${remaining !== 1 ? 's' : ''} remaining</small>
+             <small>${t('stadium.constructionRemaining', { days: remaining })}</small>
            </div>`
         : ''
 
@@ -237,13 +238,13 @@ export class StadiumPage extends UIElement {
       return `
         <div class="col-6 col-sm-3 mb-4">
           <div class="form-group">
-            <label>Seats on ${name} stand</label>
+            <label>${t('stadium.seatsOnStand', { stand: t('stadium.' + name) })}</label>
             <input data-size-input="${name}"
                    class="form-control"
                    type="number"
                    value="${this.stadium[name + '_stand_size']}"
                    ${disabledAttr}>
-            <small class="form-text text-muted">Change the amount of seats here to expand your stadium.</small>
+            <small class="form-text text-muted">${t('stadium.changeSeatsHint')}</small>
           </div>
           <div class="form-check">
             <label class="form-check-label">
@@ -252,7 +253,7 @@ export class StadiumPage extends UIElement {
                      type="checkbox"
                      ${this.stadium[name + '_stand_roof'] ? 'checked' : ''}
                      ${disabledAttr}>
-                  Roof on ${name} stand?
+                  ${t('stadium.roofOnStand', { stand: t('stadium.' + name) })}
             </label>
           </div>
           ${constructionBadge}
@@ -265,10 +266,10 @@ export class StadiumPage extends UIElement {
         ${formGroups}
       </div>
       <p>
-        Total Price for construction: <span id="total-price">0 €</span>
+        ${t('stadium.totalPrice')} <span id="total-price">0 €</span>
       </p>
       <div id="construction-time-preview" class="mb-3"></div>
-      <button type="submit" class="btn btn-primary" disabled>Start Construction</button>
+      <button type="submit" class="btn btn-primary" disabled>${t('stadium.startConstruction')}</button>
     `
   }
 

@@ -8,6 +8,7 @@ import { getPlayerAge, getPlayerById, getPlayersByTeamId } from './playerHelper.
 import { TradeHistory } from '../entities/tradeHistory.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
+import { t, getUserLocale } from '../i18n/index.js'
 
 /**
  * @param {number} teamId
@@ -42,31 +43,35 @@ export async function getIncomingBuyOffers (teamId) {
  * @param {TeamType} sellingTeam
  * @param {number} gameDay
  * @param {number} season
+ * @param {string} [locale='en']
  * @returns {Promise<void>}
  */
-export async function acceptOffer (offer, sellingTeam, gameDay, season) {
+export async function acceptOffer (offer, sellingTeam, gameDay, season, locale = 'en') {
   offer = new TradeOffer(offer)
   const offers = await query(`
-      SELECT tro.* FROM trade_offer tro 
-          JOIN player p ON p.id=tro.player_id 
-          JOIN team t on p.team_id = t.id 
+      SELECT tro.* FROM trade_offer tro
+          JOIN player p ON p.id=tro.player_id
+          JOIN team t on p.team_id = t.id
                WHERE t.id=? AND tro.type='buy'
     `, [sellingTeam.id])
-  if (!offers.some(o => o.id === offer.id)) throw new BadRequestError('No offer exist')
+  if (!offers.some(o => o.id === offer.id)) throw new BadRequestError(t('error.offerNotFound', {}, locale))
 
   // get corresponding player
   const player = await getPlayerById(offer.player_id)
-  if (!player) throw new BadRequestError('Player does not exist')
+  if (!player) throw new BadRequestError(t('error.playerNotFound', {}, locale))
 
   // Update player and trade offer
   player.team_id = offer.from_team_id
   await query('UPDATE player SET team_id=?, in_game_position=NULL WHERE id=?', [player.team_id, player.id])
   await query('DELETE FROM trade_offer WHERE player_id=?', player.id)
 
-  // Move balance
+  // Move balance - use user's language for log messages
   const buyingTeam = await getTeamById(offer.from_team_id)
-  await updateTeamBalance(sellingTeam, offer.offer_value, `Selling player ${player.name} to ${buyingTeam.name}`, gameDay, season)
-  await updateTeamBalance(buyingTeam, offer.offer_value * -1, `Buying player ${player.name} from ${sellingTeam.name}`, gameDay, season)
+  const sellerLocale = sellingTeam.user_id ? await getUserLocale(sellingTeam.user_id) : 'en'
+  const buyerLocale = buyingTeam.user_id ? await getUserLocale(buyingTeam.user_id) : 'en'
+
+  await updateTeamBalance(sellingTeam, offer.offer_value, t('finance.playerSold', { playerName: player.name }, sellerLocale), gameDay, season)
+  await updateTeamBalance(buyingTeam, offer.offer_value * -1, t('finance.playerBought', { playerName: player.name }, buyerLocale), gameDay, season)
 
   const historyItem = new TradeHistory({
     season,
@@ -78,8 +83,8 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season) {
   })
   await query('INSERT INTO trade_history SET ?', historyItem)
 
-  await addLogMessage(`You sold your player ${player.name} to the team ${buyingTeam.name}.`, sellingTeam, 'OPEN_TEAM_PAGE', buyingTeam.id, 'exchange')
-  await addLogMessage(`You bought the player ${player.name} from ${sellingTeam.name}.`, buyingTeam, 'OPEN_PLAYER', player.id, 'exchange')
+  await addLogMessage(t('log.playerSold', { playerName: player.name, buyerTeam: buyingTeam.name, price: offer.offer_value.toLocaleString() }, sellerLocale), sellingTeam, 'OPEN_TEAM_PAGE', buyingTeam.id, 'exchange')
+  await addLogMessage(t('log.playerBought', { playerName: player.name, sellerTeam: sellingTeam.name, price: offer.offer_value.toLocaleString() }, buyerLocale), buyingTeam, 'OPEN_PLAYER', player.id, 'exchange')
   await addPlayerHistory(player.id, 'TRANSFER', buyingTeam.id)
 
   // Check both teams for lineup issues after trade
@@ -95,7 +100,8 @@ export async function declineOffer (offer) {
   await query('DELETE FROM trade_offer WHERE type="buy" AND id=?', [offer.id])
   const player = await getPlayerById(offer.player_id)
   const team = await getTeamById(offer.from_team_id)
-  await addLogMessage(`Your buy offer for ${player.name} was NOT accepted!`, team, 'OPEN_PLAYER', player.id, 'times-circle')
+  const locale = team.user_id ? await getUserLocale(team.user_id) : 'en'
+  await addLogMessage(t('log.offerRejected', { playerName: player.name }, locale), team, 'OPEN_PLAYER', player.id, 'times-circle')
 }
 
 /**

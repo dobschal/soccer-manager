@@ -13,6 +13,15 @@ vi.mock('../../lib/util.js', async (importOriginal) => {
   }
 })
 
+vi.mock('../../i18n/index.js', () => ({
+  t: vi.fn((key, params = {}) => {
+    // Return the key plus all param values for testability
+    const paramValues = Object.values(params).join(' | ')
+    return paramValues ? `${key} [${paramValues}]` : key
+  }),
+  getSupportedLocales: vi.fn(() => ['en']) // Only use 'en' for tests to simplify assertions
+}))
+
 import { query } from '../../lib/database.js'
 import { generateNewsForGameDay, getNewsByLeague } from '../../helper/newsHelper.js'
 
@@ -131,8 +140,9 @@ describe('newsHelper', () => {
         const insertedNews = insertCalls[0][1]
         expect(insertedNews.type).toBe('HIGHEST_WIN')
         expect(insertedNews.title).toContain('Dominant FC')
-        expect(insertedNews.title).toContain('4')
-        expect(insertedNews.text).toContain('5-1')
+        expect(insertedNews.title).toContain('4') // Goal difference
+        expect(insertedNews.text).toContain('5') // Goals for
+        expect(insertedNews.text).toContain('1') // Goals against
         expect(insertedNews.team_id).toBe(1)
       })
 
@@ -458,9 +468,9 @@ describe('newsHelper', () => {
 
         expect(insertCalls.length).toBe(2)
         expect(insertCalls[0][1].type).toBe('LEVEL_UP')
-        expect(insertCalls[0][1].text).toContain('level 10') // Level is in the text
+        expect(insertCalls[0][1].text).toContain('10') // Level 10 is in the text
         expect(insertCalls[1][1].type).toBe('LEVEL_UP')
-        expect(insertCalls[1][1].text).toContain('level 4') // Level is in the text
+        expect(insertCalls[1][1].text).toContain('4') // Level 4 is in the text
       })
     })
 
@@ -521,29 +531,40 @@ describe('newsHelper', () => {
   })
 
   describe('getNewsByLeague', () => {
-    it('returns news filtered by game day, season, level, and league', async () => {
+    it('returns news filtered by game day, season, level, league, and locale', async () => {
       const newsItems = [
-        { id: 1, type: 'TRANSFER', title: 'Transfer News', game_day: 5, season: 1, level: 1, league: 1 },
-        { id: 2, type: 'HIGHEST_WIN', title: 'Big Win', game_day: 5, season: 1, level: 1, league: 1 }
+        { id: 1, type: 'TRANSFER', title: 'Transfer News', game_day: 5, season: 1, level: 1, league: 1, locale: 'en' },
+        { id: 2, type: 'HIGHEST_WIN', title: 'Big Win', game_day: 5, season: 1, level: 1, league: 1, locale: 'en' }
       ]
 
       query.mockResolvedValueOnce(newsItems)
 
-      const result = await getNewsByLeague(5, 1, 1, 1)
+      const result = await getNewsByLeague(5, 1, 1, 1, 'en')
 
       expect(result).toEqual(newsItems)
       expect(query).toHaveBeenCalledWith(
-        'SELECT * FROM news WHERE game_day=? AND season=? AND level=? AND league=? ORDER BY created_at DESC',
-        [5, 1, 1, 1]
+        'SELECT * FROM news WHERE game_day=? AND season=? AND level=? AND league=? AND locale=? ORDER BY created_at DESC',
+        [5, 1, 1, 1, 'en']
       )
     })
 
     it('returns empty array when no news exists', async () => {
       query.mockResolvedValueOnce([])
 
-      const result = await getNewsByLeague(5, 1, 1, 1)
+      const result = await getNewsByLeague(5, 1, 1, 1, 'en')
 
       expect(result).toEqual([])
+    })
+
+    it('defaults to en locale when not specified', async () => {
+      query.mockResolvedValueOnce([])
+
+      await getNewsByLeague(5, 1, 1, 1)
+
+      expect(query).toHaveBeenCalledWith(
+        'SELECT * FROM news WHERE game_day=? AND season=? AND level=? AND league=? AND locale=? ORDER BY created_at DESC',
+        [5, 1, 1, 1, 'en']
+      )
     })
   })
 })

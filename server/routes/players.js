@@ -5,6 +5,7 @@ import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById } from '../helper/playerHelper.js'
 import { getPastTrades } from '../helper/tradeHelper.js'
 import { addPlayerHistory } from '../helper/playerHistoryHelper.js'
+import { t } from '../i18n/index.js'
 
 export default {
 
@@ -18,10 +19,12 @@ export default {
 
   /**
    * @param {Array<number>} playerIds
+   * @param {Request} req
    * @returns {Promise<{players: Array<PlayerType>}>}
    */
-  async getPlayersWithIds (playerIds) {
-    if (!Array.isArray(playerIds) || playerIds.length === 0) throw new BadRequestError('playerIds missing')
+  async getPlayersWithIds (playerIds, req) {
+    const locale = req.locale || 'en'
+    if (!Array.isArray(playerIds) || playerIds.length === 0) throw new BadRequestError(t('error.invalidRequest', {}, locale))
     const players = await query(`SELECT *
                                  FROM player
                                  WHERE id IN (${playerIds.join(', ')})`)
@@ -34,12 +37,13 @@ export default {
    * @returns {Promise<{success: boolean}>}
    */
   async firePlayer (player, req) {
+    const locale = req.locale || 'en'
     const team = await getTeam(req)
     const [playerFromDb] = await query('SELECT * FROM player WHERE id=? AND team_id=?', [player.id, team.id])
-    if (!playerFromDb) throw new BadRequestError('Not your player...')
+    if (!playerFromDb) throw new BadRequestError(t('error.notYourPlayer', {}, locale))
     await query('UPDATE player SET team_id=NULL WHERE id=?', [player.id])
     await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
-    await addLogMessage('You fired your player ' + playerFromDb.name + '.', team, null, null, 'user-times')
+    await addLogMessage(t('log.playerFired', { playerName: playerFromDb.name }, locale), team, null, null, 'user-times')
     await addPlayerHistory(player.id, 'FIRED', team.name)
     return { success: true }
   },
@@ -57,11 +61,12 @@ export default {
    * @returns {Promise<void>}
    */
   async givePlayerContract (playerId, req) {
+    const locale = req.locale || 'en'
     const team = await getTeam(req)
     const player = await getPlayerById(playerId)
-    if (player.team_id) throw new BadRequestError('Player has a team already...')
+    if (player.team_id) throw new BadRequestError(t('error.playerNotFound', {}, locale))
     await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
-    await addLogMessage('Congratulations! You signed a new player contract with ' + player.name + '', team, null, null, 'pencil')
+    await addLogMessage(t('log.playerSigned', { playerName: player.name }, locale), team, null, null, 'pencil')
     await addPlayerHistory(playerId, 'HIRED', team.name)
   },
 

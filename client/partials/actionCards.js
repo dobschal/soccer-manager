@@ -5,35 +5,41 @@ import { showDialog } from './dialog.js'
 import { PlayerList } from './playerList.js'
 import { toast } from './toast.js'
 import { delay } from '../lib/delay.js'
+import { t } from '../i18n/index.js'
 
-const ACTION_CARD_TEXTS = {
-  LEVEL_UP_PLAYER_10: {
-    title: 'Legendary Mastery',
-    description: 'Level up a player to reach level 10.'
-  },
-  LEVEL_UP_PLAYER_7: {
-    title: 'Epic Advancement',
-    description: 'Level up a player to reach level 7.'
-  },
-  LEVEL_UP_PLAYER_4: {
-    title: 'Basic Promotion',
-    description: 'Level up a player to reach level 4.'
-  },
-  CHANGE_PLAYER_POSITION: {
-    title: 'Tactical Shift',
-    description: 'Change a player\'s position on the field.'
-  },
-  NEW_YOUTH_PLAYER: {
-    title: 'Youth Prospect',
-    description: 'Recruit a promising youth player.'
-  },
-  FRESHNESS_10: {
-    title: 'Energy Boost',
-    description: 'Restore a player\'s freshness by 10.'
-  },
-  BONUS_100K: {
-    title: 'Cash Bonus',
-    description: 'Receive an instant bonus of 100,000€.'
+/**
+ * @returns {Object.<string, {title: string, description: string}>}
+ */
+function getActionCardTexts () {
+  return {
+    LEVEL_UP_PLAYER_10: {
+      title: t('actionCards.type.legendaryMastery'),
+      description: t('actionCards.type.legendaryMasteryDesc')
+    },
+    LEVEL_UP_PLAYER_7: {
+      title: t('actionCards.type.epicAdvancement'),
+      description: t('actionCards.type.epicAdvancementDesc')
+    },
+    LEVEL_UP_PLAYER_4: {
+      title: t('actionCards.type.basicPromotion'),
+      description: t('actionCards.type.basicPromotionDesc')
+    },
+    CHANGE_PLAYER_POSITION: {
+      title: t('actionCards.type.tacticalShift'),
+      description: t('actionCards.type.tacticalShiftDesc')
+    },
+    NEW_YOUTH_PLAYER: {
+      title: t('actionCards.type.youthProspect'),
+      description: t('actionCards.type.youthProspectDesc')
+    },
+    FRESHNESS_10: {
+      title: t('actionCards.type.energyBoost'),
+      description: t('actionCards.type.energyBoostDesc')
+    },
+    BONUS_100K: {
+      title: t('actionCards.type.cashBonus'),
+      description: t('actionCards.type.cashBonusDesc')
+    }
   }
 }
 
@@ -73,12 +79,12 @@ export class ActionCards extends UIElement {
               ok,
               value
             } = await showDialog({
-              title: ACTION_CARD_TEXTS[card.action].title,
-              text: 'Do you want to merge two cards into a better one, or use this card now? ',
-              buttonText: 'Use Card',
+              title: getActionCardTexts()[card.action].title,
+              text: t('actionCards.mergeOrUsePrompt'),
+              buttonText: t('actionCards.useCard'),
               hasInput: false,
               buttonType: 'success',
-              secondaryButtonText: 'Merge Cards',
+              secondaryButtonText: t('actionCards.mergeCards'),
               secondaryButtonType: 'info'
             })
             if (ok) {
@@ -100,11 +106,11 @@ export class ActionCards extends UIElement {
   get template () {
     return `
       <div>
-        <h3>Action Cards</h3>
-        <p style="max-width: 620px">Use the action cards below to improve your team:</p>
+        <h3>${t('actionCards.title')}</h3>
+        <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
         <div class="card card-body bg-dark pt-4 mb-4 action-cards-container">
           ${this.cards.length === 0
-      ? '<h4 class="text-muted text-center mt-3 mb-3">No action cards available...</h4>'
+      ? `<h4 class="text-muted text-center mt-3 mb-3">${t('actionCards.noCards')}</h4>`
       : `<div class="action-cards-scroll">${this._renderGroupedCards()}</div>`}
         </div>
       </div>
@@ -140,7 +146,7 @@ export class ActionCards extends UIElement {
       const cards = grouped[actionType]
       const canMerge = (actionType === 'LEVEL_UP_PLAYER_4' || actionType === 'LEVEL_UP_PLAYER_7') && cards.length > 1
       const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
-      const cardText = ACTION_CARD_TEXTS[actionType] || { title: 'Unknown Card' }
+      const cardText = getActionCardTexts()[actionType] || { title: 'Unknown Card' }
       const firstCardIdx = cards[0].idx
       const stackOffset = Math.min(cards.length - 1, 4)
 
@@ -151,7 +157,7 @@ export class ActionCards extends UIElement {
               <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
             </div>
           `).join('')}
-          ${canMerge ? '<span class="action-card-merge-badge">Mergeable</span>' : ''}
+          ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
           ${cards.length > 1 ? `<span class="action-card-count">${cards.length}</span>` : ''}
         </div>
       `
@@ -173,7 +179,7 @@ export class ActionCards extends UIElement {
       })
 
       await server.mergeCards(this.cards[indices[0]], this.cards[indices[1]])
-      toast('Merged cards to a better one!', 'success')
+      toast(t('actionCards.cardsMerged'), 'success')
 
       // Determine the new card type
       const newCardType = actionCard.action === 'LEVEL_UP_PLAYER_4' ? 'LEVEL_UP_PLAYER_7' : 'LEVEL_UP_PLAYER_10'
@@ -216,7 +222,7 @@ export class ActionCards extends UIElement {
       if (this.cards.length === 0) {
         const container = document.querySelector('.action-cards-container')
         if (container) {
-          container.innerHTML = '<h4 class="text-muted text-center mt-3 mb-3">No action cards available...</h4>'
+          container.innerHTML = `<h4 class="text-muted text-center mt-3 mb-3">${t('actionCards.noCards')}</h4>`
         }
       }
     } else {
@@ -341,7 +347,7 @@ export class ActionCards extends UIElement {
 
     const canMerge = (actionType === 'LEVEL_UP_PLAYER_4' || actionType === 'LEVEL_UP_PLAYER_7') && cardsOfType.length > 1
     const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
-    const cardText = ACTION_CARD_TEXTS[actionType] || { title: 'Unknown Card' }
+    const cardText = getActionCardTexts()[actionType] || { title: 'Unknown Card' }
     const firstCardIdx = this.cards.findIndex(c => c.action === actionType)
     const stackOffset = Math.min(cardsOfType.length - 1, 4)
 
@@ -357,7 +363,7 @@ export class ActionCards extends UIElement {
         </div>
       `).join('')
 
-      const mergeBadge = canMerge ? '<span class="action-card-merge-badge">Mergeable</span>' : ''
+      const mergeBadge = canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''
       const countBadge = cardsOfType.length > 1 ? `<span class="action-card-count">${cardsOfType.length}</span>` : ''
 
       existingStack.innerHTML = wrappersHtml + mergeBadge + countBadge
@@ -370,7 +376,7 @@ export class ActionCards extends UIElement {
               <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
             </div>
           `).join('')}
-          ${canMerge ? '<span class="action-card-merge-badge">Mergeable</span>' : ''}
+          ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
           ${cardsOfType.length > 1 ? `<span class="action-card-count">${cardsOfType.length}</span>` : ''}
         </div>
       `
@@ -423,7 +429,7 @@ export class ActionCards extends UIElement {
     if (actionCard.action === 'NEW_YOUTH_PLAYER') {
       try {
         await server.useActionCard(actionCard, null, null)
-        toast('You got a new player!', 'success')
+        toast(t('actionCards.newPlayer'), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)
@@ -434,7 +440,7 @@ export class ActionCards extends UIElement {
     if (actionCard.action === 'BONUS_100K') {
       try {
         await server.useActionCard(actionCard, null, null)
-        toast('You received 100,000€!', 'success')
+        toast(t('actionCards.bonusReceived'), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)
@@ -442,7 +448,7 @@ export class ActionCards extends UIElement {
       }
       return
     }
-    toast('Not implemented yet...')
+    toast(t('actionCards.notImplemented'))
   }
 
   /**
@@ -456,7 +462,7 @@ export class ActionCards extends UIElement {
       try {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
-        toast(`OK. ${player.name} got fitness boost!`, 'success')
+        toast(t('actionCards.fitnessBoost', { playerName: player.name }), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)
@@ -464,8 +470,8 @@ export class ActionCards extends UIElement {
       }
     })
     this._overlay = showOverlay(
-      'Select player',
-      'Which player should get a fitness boost?',
+      t('actionCards.selectPlayer'),
+      t('actionCards.whichPlayerFitness'),
       `${playerList}`
     )
   }
@@ -485,7 +491,7 @@ export class ActionCards extends UIElement {
         try {
           await server.useActionCard(actionCard, player, position)
           this._overlay?.remove()
-          toast(`OK. ${player.name} plays another position now!`, 'success')
+          toast(t('actionCards.positionChanged', { playerName: player.name }), 'success')
           await this._animateAndRemoveCard(cardIndex)
         } catch (e) {
           console.error(e)
@@ -493,14 +499,14 @@ export class ActionCards extends UIElement {
         }
       })
       this._overlay = showOverlay(
-        'Select position',
-        'Which position should the player play in the future?',
+        t('actionCards.selectPosition'),
+        t('actionCards.whichPosition'),
         `${positionList}`
       )
     })
     this._overlay = showOverlay(
-      'Select player',
-      'Which player should change his position?',
+      t('actionCards.selectPlayer'),
+      t('actionCards.whichPlayerPosition'),
       `${playerList}`
     )
   }
@@ -511,29 +517,17 @@ export class ActionCards extends UIElement {
    */
   _renderPositionList (onClickHandler) {
     // GK is excluded - players cannot become goalkeepers
-    const positions = [
-      ['Left Defender', 'LD'],
-      ['Central Defender', 'CD'],
-      ['Right Defender', 'RD'],
-      ['Left Midfielder', 'LM'],
-      ['Defensive Midfielder', 'DM'],
-      ['Central Midfielder', 'CM'],
-      ['Right Midfielder', 'RM'],
-      ['Offensive Midfielder', 'OM'],
-      ['Left Attacker', 'LA'],
-      ['Central Attacker', 'CA'],
-      ['Right Attacker', 'RA']
-    ]
+    const positions = ['LD', 'CD', 'RD', 'LM', 'DM', 'CM', 'RM', 'OM', 'LA', 'CA', 'RA']
 
-    const items = positions.map((p) => `
-      <li class="list-group-item list-group-item-action" data-position="${p[1]}">${p[0]} (${p[1]})</li>
+    const items = positions.map((pos) => `
+      <li class="list-group-item list-group-item-action" data-position="${pos}">${t('actionCards.position.' + pos)}</li>
     `).join('')
 
     setTimeout(() => {
-      positions.forEach(p => {
-        const item = document.querySelector(`[data-position="${p[1]}"]`)
+      positions.forEach(pos => {
+        const item = document.querySelector(`[data-position="${pos}"]`)
         if (item) {
-          item.addEventListener('click', () => onClickHandler(p[1]))
+          item.addEventListener('click', () => onClickHandler(pos))
         }
       })
     })
@@ -552,7 +546,7 @@ export class ActionCards extends UIElement {
       try {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
-        toast(`Nice. ${player.name} got a level up!`, 'success')
+        toast(t('actionCards.levelUpSuccess', { playerName: player.name }), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)
@@ -560,8 +554,8 @@ export class ActionCards extends UIElement {
       }
     })
     this._overlay = showOverlay(
-      'Select player',
-      'Which player should get a level up?',
+      t('actionCards.selectPlayer'),
+      t('actionCards.whichPlayerLevelUp'),
       `${playerList}`
     )
   }

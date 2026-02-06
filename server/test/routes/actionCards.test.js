@@ -39,10 +39,10 @@ describe('actionCards routes', () => {
     })
 
     it('throws error when not authenticated', async () => {
-      const req = { user: null, body: {}, headers: {} }
+      const req = { user: null, body: {}, headers: {}, locale: 'en' }
 
       await expect(handlers.getActionCards(req))
-        .rejects.toMatchObject({ message: 'Missing user' })
+        .rejects.toMatchObject({ message: 'Not authorized' })
     })
   })
 
@@ -95,7 +95,7 @@ describe('actionCards routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.mergeCards(card1, card2, req))
-        .rejects.toMatchObject({ message: 'You can only merge cards of the same type' })
+        .rejects.toMatchObject({ message: 'Cannot merge these cards' })
     })
 
     it('throws error when merging non-mergeable cards', async () => {
@@ -108,7 +108,7 @@ describe('actionCards routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.mergeCards(card1, card2, req))
-        .rejects.toMatchObject({ message: 'Cannot merge' })
+        .rejects.toMatchObject({ message: 'Cannot merge these cards' })
     })
 
     it('throws error when trying to merge LEVEL_UP_PLAYER_10 cards (already max tier)', async () => {
@@ -121,7 +121,7 @@ describe('actionCards routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.mergeCards(card1, card2, req))
-        .rejects.toMatchObject({ message: 'Cannot merge' })
+        .rejects.toMatchObject({ message: 'Cannot merge these cards' })
     })
 
     it('throws error when trying to merge NEW_YOUTH_PLAYER cards', async () => {
@@ -134,7 +134,7 @@ describe('actionCards routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.mergeCards(card1, card2, req))
-        .rejects.toMatchObject({ message: 'Cannot merge' })
+        .rejects.toMatchObject({ message: 'Cannot merge these cards' })
     })
 
     it('throws error when trying to merge CHANGE_PLAYER_POSITION cards', async () => {
@@ -147,7 +147,7 @@ describe('actionCards routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.mergeCards(card1, card2, req))
-        .rejects.toMatchObject({ message: 'Cannot merge' })
+        .rejects.toMatchObject({ message: 'Cannot merge these cards' })
     })
 
     it('deletes both original cards when merging', async () => {
@@ -187,10 +187,10 @@ describe('actionCards routes', () => {
       const card1 = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
       const card2 = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
 
-      const req = { user: null, body: {}, headers: {} }
+      const req = { user: null, body: {}, headers: {}, locale: 'en' }
 
       await expect(handlers.mergeCards(card1, card2, req))
-        .rejects.toMatchObject({ message: 'Missing user' })
+        .rejects.toMatchObject({ message: 'Not authorized' })
     })
   })
 
@@ -210,7 +210,8 @@ describe('actionCards routes', () => {
       expect(result).toEqual({ success: true })
       expect(playActionCard).toHaveBeenCalledWith(
         { actionCard, player, position: null },
-        team
+        team,
+        'en'
       )
     })
 
@@ -224,7 +225,7 @@ describe('actionCards routes', () => {
       const req = createMockRequest()
 
       await expect(handlers.useActionCard(actionCard, null, null, req))
-        .rejects.toMatchObject({ message: 'Action card does not exist' })
+        .rejects.toMatchObject({ message: 'Action card not found' })
     })
   })
 })

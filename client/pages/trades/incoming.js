@@ -3,6 +3,7 @@ import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { setQueryParams } from '../../lib/router.js'
+import { t } from '../../i18n/index.js'
 
 export class IncomingOffersPage extends UIElement {
   team = {}
@@ -32,22 +33,22 @@ export class IncomingOffersPage extends UIElement {
           } else if (target.closest('.btn-success')) {
             try {
               await server.acceptOffer(offer)
-              toast(`You accepted the buy offer from ${fromTeam.name}`)
+              toast(t('trades.acceptedOffer', { teamName: fromTeam.name }))
               await this.load()
               await this.update(true)
             } catch (e) {
               console.error(e)
-              toast(e.message ?? 'Something went wrong', 'error')
+              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
             }
           } else if (target.closest('.btn-danger')) {
             try {
               await server.declineOffer(offer)
-              toast(`You declined the buy offer from ${fromTeam.name}`)
+              toast(t('trades.declinedOffer', { teamName: fromTeam.name }))
               await this.load()
               await this.update(true)
             } catch (e) {
               console.error(e)
-              toast(e.message ?? 'Something went wrong', 'error')
+              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
             }
           }
         }
@@ -64,16 +65,16 @@ export class IncomingOffersPage extends UIElement {
 
     return `
       <div>
-        <h2>Incoming Offers</h2>
-        <p>Someone wants to buy your players:</p>
+        <h2>${t('trades.incomingOffersTitle')}</h2>
+        <p>${t('trades.incomingOffersDesc')}</p>
         <table class="table">
           <thead>
             <tr>
-              <th scope="col">Name</th>
-              <th scope="col" class="d-none d-sm-table-cell">Team</th>
-              <th scope="col" class="d-none d-sm-table-cell">Position</th>
-              <th scope="col" class="text-right d-none d-sm-table-cell">Level</th>
-              <th scope="col" class="text-right">Price</th>
+              <th scope="col">${t('results.name')}</th>
+              <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
+              <th scope="col" class="d-none d-sm-table-cell">${t('player.position')}</th>
+              <th scope="col" class="text-right d-none d-sm-table-cell">${t('player.level')}</th>
+              <th scope="col" class="text-right">${t('trades.price')}</th>
               <th scope="col"></th>
             </tr>
           </thead>
@@ -83,7 +84,7 @@ export class IncomingOffersPage extends UIElement {
         </table>
         <div class="row">
           <div class="col ${hasIncomingOffers ? 'hidden' : ''}">
-            <h4 class="text-muted text-center mt-5 mb-5">No incoming buy offers...</h4>
+            <h4 class="text-muted text-center mt-5 mb-5">${t('trades.noIncomingOffers')}</h4>
           </div>
         </div>
       </div>
