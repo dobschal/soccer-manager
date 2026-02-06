@@ -47,7 +47,7 @@ export class GameLayout extends UIElement {
               ${this._navItem('results', '<i class="fa fa-trophy" aria-hidden="true"></i> League')}
               ${this._navItem('finances', '<i class="fa fa-money" aria-hidden="true"></i> Finances')}
               ${this._navItem('stadium', '<i class="fa fa-futbol-o" aria-hidden="true"></i> Stadium')}
-              ${this._navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Trades')}
+              ${this._navItem('trades', '<i class="fa fa-handshake-o" aria-hidden="true"></i> Transfers')}
             </ul>
             <div class="px-2 d-none d-lg-block">|</div>
             <div class="navbar-info-item px-2 d-none d-xl-block">

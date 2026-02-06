@@ -3,10 +3,8 @@
 ⚽️ This is a soccer manager simulation game built with Node.js and MySQL.
 Further details about the implementation can be found here: [CLAUDE.md](CLAUDE.md)
 
-![Version](https://img.shields.io/github/v/release/dobschal/soccer-manager?label=Version)
-![Lint](https://img.shields.io/github/actions/workflow/status/dobschal/soccer-manager/ci.yml?label=Lint&branch=main)
-![Tests](https://img.shields.io/github/actions/workflow/status/dobschal/soccer-manager/ci.yml?label=Tests&branch=main)
-![Deploy](https://img.shields.io/github/actions/workflow/status/dobschal/soccer-manager/ci.yml?label=Deploy&branch=main)
+[![Version](https://img.shields.io/github/v/release/dobschal/soccer-manager?label=Version)](https://github.com/dobschal/soccer-manager/releases)
+[![CI](https://github.com/dobschal/soccer-manager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dobschal/soccer-manager/actions/workflows/ci.yml)
 
 ## Get Started
 

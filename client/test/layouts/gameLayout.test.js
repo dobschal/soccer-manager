@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { GameLayout, hideNavigation, renderGameLayout } from '../../layouts/gameLayout.js'
+import { server } from '../../lib/gateway.js'
 
 vi.mock('../../lib/gateway.js', () => ({
   server: {
@@ -30,12 +32,11 @@ vi.mock('../../lib/router.js', () => ({
 
 vi.mock('../../partials/balance.js', () => ({
   Balance: class {
-    toString() { return '<span>100,000 EUR</span>' }
+    toString () {
+      return '<span>100,000 EUR</span>'
+    }
   }
 }))
-
-import { GameLayout, renderGameLayout, hideNavigation } from '../../layouts/gameLayout.js'
-import { server } from '../../lib/gateway.js'
 
 describe('GameLayout', () => {
   beforeEach(() => {
@@ -65,7 +66,7 @@ describe('GameLayout', () => {
       expect(layout.template).toContain('League')
       expect(layout.template).toContain('Finances')
       expect(layout.template).toContain('Stadium')
-      expect(layout.template).toContain('Trades')
+      expect(layout.template).toContain('Transfers')
     })
 
     it('template contains page container', async () => {
