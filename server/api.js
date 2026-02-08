@@ -68,10 +68,32 @@ for (const filename of filenames) {
 }
 
 /**
+ * Retry a function with exponential backoff
+ * @param {Function} fn - The async function to retry
+ * @param {number} maxRetries - Maximum number of retries
+ * @param {number} initialDelay - Initial delay in ms
+ * @returns {Promise<any>}
+ */
+async function withRetry (fn, maxRetries = 5, initialDelay = 1000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (attempt === maxRetries) throw error
+      const isRetryable = error.code === 'EAI_AGAIN' || error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND'
+      if (!isRetryable) throw error
+      const delay = initialDelay * Math.pow(2, attempt - 1)
+      console.log(`Database connection failed (${error.code}), retrying in ${delay}ms... (attempt ${attempt}/${maxRetries})`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+}
+
+/**
  * @returns {Promise<void>}
  */
 async function start () {
-  await runMigration()
+  await withRetry(runMigration)
   await prepareSeason()
   cron.schedule('0 0 */12 * * *', async () => {
     //           * * * * * *

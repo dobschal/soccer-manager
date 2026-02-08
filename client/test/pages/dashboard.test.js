@@ -16,7 +16,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getTeamById: vi.fn(),
     useActionCard: vi.fn(),
     mergeCards: vi.fn(),
-    getStanding: vi.fn()
+    getStanding: vi.fn(),
+    getGamesForSlider: vi.fn()
   }
 }))
 
@@ -132,6 +133,11 @@ describe('DashboardPage', () => {
         points: 10
       }
     ])
+    server.getGamesForSlider.mockResolvedValue({
+      pastGames: [],
+      upcomingGames: [],
+      nextGameDate: null
+    })
   })
 
   describe('DashboardPage class', () => {
@@ -141,7 +147,7 @@ describe('DashboardPage', () => {
 
       expect(server.getMyTeam).toHaveBeenCalled()
       expect(server.getCurrentGameday).toHaveBeenCalled()
-      expect(server.getResults).toHaveBeenCalled()
+      expect(server.getGamesForSlider).toHaveBeenCalled()
     })
 
     it('template contains team name after load', async () => {
@@ -150,10 +156,11 @@ describe('DashboardPage', () => {
       expect(page.template).toContain('Test FC')
     })
 
-    it('template contains welcome message', async () => {
+    it('template contains standing section', async () => {
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('Hey <b>testuser</b>')
+      expect(page.template).toContain('table')
+      expect(page.template).toContain('#results')
     })
 
     it('template contains action cards component', async () => {

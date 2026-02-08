@@ -30,6 +30,36 @@ vi.mock('../../lib/router.js', () => ({
   goTo: vi.fn()
 }))
 
+vi.mock('../../partials/toast.js', () => ({
+  toast: vi.fn()
+}))
+
+vi.mock('../../partials/overlay.js', () => ({
+  showOverlay: vi.fn().mockReturnValue({ remove: vi.fn() })
+}))
+
+vi.mock('../../i18n/index.js', () => ({
+  t: (key) => {
+    const translations = {
+      'nav.home': 'Home',
+      'nav.team': 'Team',
+      'nav.league': 'League',
+      'nav.finances': 'Finances',
+      'nav.stadium': 'Stadium',
+      'nav.transfers': 'Transfers',
+      'nav.settings': 'Settings',
+      'nav.logout': 'Logout',
+      'nav.language': 'Language',
+      'nav.run': 'Run',
+      'nav.day': 'Day 1 Season 1',
+      'footer.imprintPrivacy': 'Imprint & Privacy'
+    }
+    return translations[key] || key
+  },
+  getLocale: () => 'en',
+  setLocale: vi.fn()
+}))
+
 vi.mock('../../partials/balance.js', () => ({
   Balance: class {
     toString () {
@@ -75,11 +105,11 @@ describe('GameLayout', () => {
       expect(layout.template).toContain('id="page"')
     })
 
-    it('template contains logout button', async () => {
+    it('template contains settings button', async () => {
       const layout = new GameLayout()
       await layout.load()
-      expect(layout.template).toContain('Logout')
-      expect(layout.template).toContain('logout-button')
+      expect(layout.template).toContain('settings-button')
+      expect(layout.template).toContain('Settings')
     })
 
     it('template contains balance', async () => {
