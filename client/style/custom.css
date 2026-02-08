@@ -104,7 +104,7 @@ body {
     font-variant-numeric: tabular-nums !important;
     width: 100%;
     overflow-x: hidden;
-    background-image: url("../assets/bg-1.jpg");
+    background-image: url("../assets/football-field-horizontal.jpg");
     background-size: 100vw auto;
     background-position: top left;
     background-repeat: no-repeat;
@@ -136,14 +136,92 @@ body.overlay-open {
 }
 
 .navbar {
-    margin-bottom: 4rem;
     width: 100vw !important;
     overflow-x: hidden;
+    background: linear-gradient(136deg, #222 0%, #333 100%) !important;
 }
 
-.navbar .navbar-info-item {
-    margin: 0.5rem 0 0.5rem 1rem;
-    color: #17a2b8;
+.navbar.navbar-dark .navbar-brand,
+.navbar.navbar-dark .nav-link {
+    color: white !important;
+}
+
+.navbar.navbar-dark .nav-link:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 1rem;
+    position: relative;
+}
+
+.navbar-nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: row;
+}
+
+/* Info Bar */
+.info-bar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff;
+    z-index: 7;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0;
+    border-style: solid;
+    border-width: 2px;
+    border-radius: 25px 25px 55px 5px / 5px 55px 25px 25px;
+}
+
+.info-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.info-bar-item {
+    color: #055160;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+/* Navbar collapse for mobile */
+@media screen and (max-width: 991px) {
+    .navbar-content {
+        flex-wrap: wrap;
+    }
+
+    .navbar-collapse {
+        flex-basis: 100%;
+        background: linear-gradient(136deg, #222 0%, #333 100%);
+        margin: 0.5rem -1rem -0.5rem -1rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .navbar-nav-center {
+        position: static;
+        transform: none;
+        flex-direction: column;
+    }
+
+    .navbar-collapse .nav-settings-btn {
+        margin-top: 0.5rem;
+        margin-left: 0;
+        padding-left: 0;
+    }
 }
 
 .container {
@@ -166,7 +244,7 @@ body.overlay-open {
     animation-timing-function: cubic-bezier(.65, .27, .69, 1.42);
     transition: transform 0.3s ease-in-out;
     will-change: auto;
-    margin-top: 6rem;
+    margin-top: 9rem;
     margin-bottom: 5rem;
     min-height: 100vh;
     display: flex;
@@ -205,7 +283,7 @@ body.overlay-open {
 
 .toast {
     position: fixed;
-    top: 4rem;
+    top: 6rem;
     left: 50%;
     z-index: 10;
     width: 300px;
@@ -432,7 +510,7 @@ td.hover-text:hover {
     left: 0;
     z-index: 8;
     width: 100%;
-    box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.3);
 }
 
 .player-image {
@@ -571,41 +649,6 @@ td.hover-text:hover {
     z-index: 21;
 }
 
-.chat-bubble {
-    position: absolute;
-    bottom: 150px;
-    left: 0;
-    background-color: #ffd043;
-    border-radius: 24px;
-    padding: 1rem 1.25rem;
-    margin-left: -10px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    width: 300px;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    z-index: 20;
-}
-
-.chat-bubble::before {
-    content: '';
-    position: absolute;
-    transform: rotate(-90deg);
-    bottom: -25px;
-    left: 140px;
-    border-width: 0 30px 20px 0;
-    border-style: solid;
-    border-color: transparent #ffd043 transparent transparent;
-}
-
-.chat-bubble p {
-    margin: 0;
-}
-
-.chat-bubble p + p {
-    margin-top: 0.5rem;
-}
-
 @media screen and (max-width: 768px) {
     ul.list-group,
     table.table {
@@ -619,8 +662,17 @@ td.hover-text:hover {
     }
 
     #page {
-        margin-top: 3rem;
+        margin-top: 4rem;
         border-radius: 0;
+    }
+
+    .info-bar {
+        top: 56px;
+    }
+
+    .info-bar-content {
+        gap: 1rem;
+        font-size: 0.85rem;
     }
 
     #logout-button {
@@ -653,4 +705,194 @@ td.hover-text:hover {
     .d-flex.align-items-start.gap-3 {
         flex-direction: column;
     }
+}
+
+/* Fixed Manager Chat */
+.manager-chat-container {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+}
+
+.manager-chat-wrapper {
+    position: fixed;
+    bottom: 0;
+    right: 1rem;
+    width: 300px;
+    animation: manager-chat-slide-in 0.3s ease-out;
+}
+
+.manager-chat-bubble {
+    background-color: #d1ecf1;
+    border-radius: 24px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(209, 236, 241, 0.5);
+    font-size: 1rem;
+    line-height: 1.5;
+    position: relative;
+}
+
+.manager-chat-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    right: 85px;
+    border-width: 15px 15px 0 15px;
+    border-style: solid;
+    border-color: #d1ecf1 transparent transparent transparent;
+}
+
+.manager-chat-bubble p {
+    margin: 0;
+}
+
+.manager-chat-bubble p + p {
+    margin-top: 0.5rem;
+}
+
+.manager-chat-image svg {
+    width: 200px;
+    height: auto;
+    display: block;
+    margin-left: auto;
+}
+
+@keyframes manager-chat-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.manager-chat-fade-out {
+    animation: manager-chat-fade-out 0.2s ease-out forwards;
+}
+
+@keyframes manager-chat-fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Game Slider */
+.game-slider {
+    position: relative;
+}
+
+.game-slider-track {
+    position: relative;
+}
+
+.game-slider-slide {
+    display: none;
+    animation: slide-fade-in 0.3s ease-out;
+}
+
+.game-slider-slide.active {
+    display: block;
+}
+
+@keyframes slide-fade-in {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.game-slider-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-100%);
+    background: var(--bs-info);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    transition: background-color 0.2s;
+}
+
+.game-slider-nav:hover {
+    background: #0A5F6C;
+}
+
+.game-slider-prev {
+    left: 0;
+    padding: 3px 2px 0 0;
+}
+
+.game-slider-next {
+    right: 0;
+    padding: 3px 0 0 2px;
+}
+
+.game-slider-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.game-slider-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.game-slider-indicator.past {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.game-slider-indicator.upcoming {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.game-slider-indicator.active {
+    background: var(--bs-info);
+    transform: scale(1.2);
+}
+
+.game-slider-indicator:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Navigation Settings Button */
+.nav-settings-btn {
+    color: white !important;
+    padding: 0.5rem;
+}
+
+.nav-settings-btn:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.nav-settings-btn .fa-cog {
+    transition: transform 0.3s ease;
+}
+
+.nav-settings-btn:hover .fa-cog {
+    transform: rotate(90deg);
+}
+
+/* Settings Overlay Content */
+.settings-overlay-content {
+    min-width: 250px;
 }

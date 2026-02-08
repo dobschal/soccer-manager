@@ -108,7 +108,7 @@ export class ActionCards extends UIElement {
       <div>
         <h3>${t('actionCards.title')}</h3>
         <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
-        <div class="card card-body bg-dark pt-4 mb-4 action-cards-container">
+        <div class="mb-4 action-cards-container">
           ${this.cards.length === 0
       ? `<h4 class="text-muted text-center mt-3 mb-3">${t('actionCards.noCards')}</h4>`
       : `<div class="action-cards-scroll">${this._renderGroupedCards()}</div>`}

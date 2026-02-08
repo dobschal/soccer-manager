@@ -8,20 +8,21 @@ import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from '../partials/actionCards.js'
 import { LogMessages } from '../partials/logMessages.js'
 import { t } from '../i18n/index.js'
+import { showManagerChat, wasManagerChatShown } from '../partials/managerChat.js'
+import { goTo } from '../lib/router.js'
+import { onClick } from '../lib/htmlEventHandlers.js'
+import { GameSlider } from '../partials/gameSlider.js'
 
 export class DashboardPage extends UIElement {
   _timerInterval = null
-  _countdownElementId = generateId()
+  _gameSlider = null
+  _sliderGames = []
+  _initialSlideIndex = 0
   team = {}
   user = {}
   season = 0
   gameDay = 0
-  game = {}
-  gameTeam1 = null
-  gameTeam2 = null
-  nextGame = null
   nextGameDate = null
-  nextGameOpponent = null
   standing = []
   teamPosition = 0
 
@@ -29,35 +30,25 @@ export class DashboardPage extends UIElement {
    * @returns {string}
    */
   get template () {
-    const isHomeGame = this.game.team1Id === this.team.id
-    const myGoals = isHomeGame ? this.game.goalsTeam1 : this.game.goalsTeam2
-    const opponentGoals = isHomeGame ? this.game.goalsTeam2 : this.game.goalsTeam1
-    const hasResult = typeof myGoals === 'number' && typeof opponentGoals === 'number'
-    const isWin = hasResult && myGoals > opponentGoals
-    const isDraw = hasResult && myGoals === opponentGoals
-    const resultMessage = !hasResult
-      ? t('dashboard.resultNotAvailable')
-      : isWin
-        ? t('dashboard.congratsWin')
-        : isDraw
-          ? t('dashboard.drawMessage')
-          : t('dashboard.lossMessage')
+    // Create the game slider instance
+    this._gameSlider = new GameSlider({
+      games: this._sliderGames,
+      teamId: this.team.id,
+      initialIndex: this._initialSlideIndex
+    })
 
     return `
       <div>
-        <h2>${this.team.name}</h2>
-        <div class="d-flex align-items-start gap-3 mb-4">
-          <div class="manager-chat d-none d-lg-block">
-            <div class="chat-bubble">
-              <p class="mb-1">${t('dashboard.hey')} <b>${this.user.username}</b>!</p>
-              <p class="mb-1">${t('dashboard.teamPosition', { position: this._getPositionText(), league: this.team.level + 1 })}</p>
-              <p class="mb-0">${t('dashboard.gameDayInfo', { gameDay: Math.max(1, this.gameDay), season: this.season + 1, opponent: isHomeGame ? this.game.team2 : this.game.team1 })} ${resultMessage}</p>
-            </div>
-            <img src="assets/manager-3.png" alt="Manager" class="manager-image" style="width: 300px; height: auto;">
-          </div>
+        <h2 class="d-flex gap-3 align-items-center">${renderEmblem(this.team, 40)} ${this.team.name}</h2>
+        <div class="d-flex align-items-center gap-5 mb-5">
           <div class="flex-grow-1">
-            ${this._renderLatestGame()}
-            ${this._renderUpcomingGame()}
+            ${this._gameSlider}
+          </div>
+          <div class="d-none d-lg-block flex-shrink-0" style="min-width: 280px;">
+            ${this._renderMiniStanding()}
+            <a href="#results" class="d-block mt-2 text-info border-0" style="width: 100%; text-align: right">
+                <small>...${t('dashboard.standingLink')}</small>
+            </a>
           </div>
         </div>
 
@@ -82,28 +73,49 @@ export class DashboardPage extends UIElement {
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
 
-    const resultsResponse = await server.getResults(this.gameDay - 1, this.season, this.team.level, this.team.league)
-    this.game = resultsResponse.results.find(r => r.team1Id === this.team.id || r.team2Id === this.team.id) ?? {}
+    // Fetch games for slider (past 3 and upcoming 3)
+    const sliderResponse = await server.getGamesForSlider(3, 3)
+    this.nextGameDate = sliderResponse.nextGameDate
 
-    // Fetch team data for emblems
-    if (this.game.team1Id && this.game.team2Id) {
-      const [team1Response, team2Response] = await Promise.all([
-        server.getTeamById(this.game.team1Id),
-        server.getTeamById(this.game.team2Id)
-      ])
-      this.gameTeam1 = team1Response
-      this.gameTeam2 = team2Response
-    }
+    // Combine past and upcoming games for the slider
+    // Add team data for emblems directly from the response
+    this._sliderGames = [
+      ...sliderResponse.pastGames.map(g => ({
+        ...g,
+        isPlayed: true,
+        team1Data: this._extractTeamData(g, 1),
+        team2Data: this._extractTeamData(g, 2)
+      })),
+      ...sliderResponse.upcomingGames.map(g => ({
+        ...g,
+        isPlayed: false,
+        team1Data: this._extractTeamData(g, 1),
+        team2Data: this._extractTeamData(g, 2)
+      }))
+    ]
 
-    // Fetch next upcoming game
-    const nextGameResponse = await server.getNextGame()
-    this.nextGame = nextGameResponse.game
-    this.nextGameDate = nextGameResponse.nextGameDate
-    this.nextGameOpponent = nextGameResponse.opponent
+    // Set initial slide to the latest played game (last of past games)
+    this._initialSlideIndex = Math.max(0, sliderResponse.pastGames.length - 1)
 
     // Fetch current standing to show league position
     this.standing = await server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league)
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
+  }
+
+  /**
+   * Extract team data for emblem rendering from flattened game response
+   * @param {Object} game
+   * @param {number} teamNum - 1 or 2
+   * @returns {Object}
+   */
+  _extractTeamData (game, teamNum) {
+    const prefix = `team${teamNum}`
+    return {
+      id: game[`${prefix}Id`],
+      name: game[prefix],
+      color: game[`${prefix}Color`],
+      emblem: game[`${prefix}Emblem`] // Keep as JSON string for renderEmblem
+    }
   }
 
   /**
@@ -112,6 +124,50 @@ export class DashboardPage extends UIElement {
   onMounted () {
     this._startCountdownTimer()
     void showTutorialIfNeeded('dashboard')
+    this._showManagerChatIfNeeded()
+  }
+
+  /**
+   * Shows the manager chat if it's the first visit on this game day and on a large screen
+   * @returns {void}
+   */
+  _showManagerChatIfNeeded () {
+    const isLargeScreen = window.matchMedia('(min-width: 992px)').matches
+    if (!isLargeScreen) return
+    if (wasManagerChatShown(this.gameDay, this.season)) return
+
+    // Get the latest played game for the chat message
+    const latestGame = this._sliderGames.filter(g => g.isPlayed).pop()
+    if (!latestGame) return
+
+    const isHomeGame = latestGame.team1Id === this.team.id
+    const myGoals = isHomeGame ? latestGame.goalsTeam1 : latestGame.goalsTeam2
+    const opponentGoals = isHomeGame ? latestGame.goalsTeam2 : latestGame.goalsTeam1
+    const hasResult = typeof myGoals === 'number' && typeof opponentGoals === 'number'
+    const isWin = hasResult && myGoals > opponentGoals
+    const isDraw = hasResult && myGoals === opponentGoals
+    const resultMessage = !hasResult
+      ? t('dashboard.resultNotAvailable')
+      : isWin
+        ? t('dashboard.congratsWin')
+        : isDraw
+          ? t('dashboard.drawMessage')
+          : t('dashboard.lossMessage')
+
+    const chatText = `
+      <p class="mb-1">${t('dashboard.hey')} <b>${this.user.username}</b>!</p>
+      <p class="mb-1">${t('dashboard.teamPosition', {
+      position: this._getPositionText(),
+      league: this.team.level + 1
+    })}</p>
+      <p class="mb-0">${t('dashboard.gameDayInfo', {
+      gameDay: Math.max(1, this.gameDay),
+      season: this.season + 1,
+      opponent: isHomeGame ? latestGame.team2 : latestGame.team1
+    })} ${resultMessage}</p>
+    `
+
+    void showManagerChat(this.team.color, chatText, this.gameDay, this.season)
   }
 
   /**
@@ -126,11 +182,13 @@ export class DashboardPage extends UIElement {
    */
   _startCountdownTimer () {
     if (this._timerInterval) clearInterval(this._timerInterval)
-    if (!this.nextGameDate) return
+    if (!this.nextGameDate || !this._gameSlider) return
+
+    const countdownElementId = this._gameSlider.getCountdownElementId()
 
     this._timerInterval = setInterval(() => {
       const diff = new Date(this.nextGameDate).getTime() - Date.now()
-      const timerEl = el('#' + this._countdownElementId)
+      const timerEl = el('#' + countdownElementId)
 
       if (!timerEl) {
         this._stopCountdownTimer()
@@ -198,63 +256,63 @@ export class DashboardPage extends UIElement {
   /**
    * @returns {string}
    */
-  _renderLatestGame () {
-    if (!this.game || !this.game.id) {
+  _renderMiniStanding () {
+    if (!this.standing || this.standing.length === 0) {
       return ''
     }
 
-    const isHomeGame = this.game.team1Id === this.team.id
-
-    return `
-      <div class="card card-body bg-dark mb-2">
-        <a class="row d-flex align-items-center flex-nowrap" href="#results?game_id=${this.game.id}">
-          <div class="col text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
-            <div class="mb-2">${this.gameTeam1 ? renderEmblem(this.gameTeam1, 60) : ''}</div>
-            <h6 class="mb-0">${this.game.team1 ?? ''}</h6>
-          </div>
-          <div class="col-auto text-center">
-            <small class="text-white d-block mb-1">${t('dashboard.latestResult')}</small>
-            <h3 class="mb-0"><span class="badge bg-info">${this.game.goalsTeam1 ?? '-'}:${this.game.goalsTeam2 ?? '-'}</span></h3>
-          </div>
-          <div class="col text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
-            <div class="mb-2">${this.gameTeam2 ? renderEmblem(this.gameTeam2, 60) : ''}</div>
-            <h6 class="mb-0">${this.game.team2 ?? ''}</h6>
-          </div>
-        </a>
-      </div>
-    `
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderUpcomingGame () {
-    if (!this.nextGame || !this.nextGameOpponent) {
-      return ''
+    // Calculate which 5 teams to show based on user's position
+    // Position is 1-indexed, array is 0-indexed
+    const pos = this.teamPosition - 1
+    let startIndex = Math.max(0, pos - 2)
+    const endIndex = Math.min(this.standing.length, startIndex + 5)
+    // Adjust start if we're near the end
+    if (endIndex - startIndex < 5) {
+      startIndex = Math.max(0, endIndex - 5)
     }
 
-    const isHomeGame = this.nextGame.team1Id === this.team.id
+    const teamsToShow = this.standing.slice(startIndex, endIndex)
+
+    const rows = teamsToShow.map((item, idx) => {
+      const actualIndex = startIndex + idx
+      const hasUser = Boolean(item.team.user_id)
+      const id = generateId()
+
+      onClick('#' + id, () => goTo(`team?id=${item.team.id}`))
+
+      const trClasses = [
+        this.team.id === item.team.id ? 'table-info' : '',
+        actualIndex < 2 ? 'table-success' : '',
+        actualIndex > 13 ? 'table-warning' : ''
+      ]
+
+      return `
+        <tr id="${id}" class="${trClasses.join(' ')}">
+          <th style="width: 30px">${actualIndex + 1}.</th>
+          <td>
+            <span style="display: inline-block; width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; margin-top: -4px;">
+              ${renderEmblem(item.team, 20)}
+            </span>
+            ${item.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}
+          </td>
+          <td>${item.points}</td>
+        </tr>
+      `
+    }).join('')
 
     return `
-      <div class="card card-body bg-dark">
-        <div class="row d-flex align-items-center flex-nowrap">
-          <div class="col text-white text-center ${isHomeGame ? 'font-weight-bold' : ''}">
-            <div class="mb-2">${isHomeGame ? renderEmblem(this.team, 60) : renderEmblem(this.nextGameOpponent, 60)}</div>
-            <h6 class="mb-0">${isHomeGame ? this.team.name : this.nextGameOpponent.name}</h6>
-          </div>
-          <div class="col-auto text-center">
-            <small class="text-white d-block mb-1">${t('dashboard.nextMatch')}</small>
-            <div class="badge bg-info p-2" style="font-size: 1.2rem;">
-              <i class="fa fa-clock-o" aria-hidden="true"></i><br>
-              <span id="${this._countdownElementId}">--:--:--</span>
-            </div>
-          </div>
-          <div class="col text-white text-center ${!isHomeGame ? 'font-weight-bold' : ''}">
-            <div class="mb-2">${!isHomeGame ? renderEmblem(this.team, 60) : renderEmblem(this.nextGameOpponent, 60)}</div>
-            <h6 class="mb-0">${!isHomeGame ? this.team.name : this.nextGameOpponent.name}</h6>
-          </div>
-        </div>
-      </div>
+      <table class="table table-hover table-sm mb-0">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">${t('results.team')}</th>
+            <th scope="col">${t('results.points')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
     `
   }
 }

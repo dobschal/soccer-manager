@@ -45,14 +45,14 @@ class NewsItem extends UIElement {
   get template () {
     const hasLink = this.linkType !== null
     return `
-      <div class="card card-body bg-dark mb-3 position-relative">
-        <div class="row align-items-center">
-          <div class="col-auto">
+      <div class="mb-4 position-relative">
+        <div class="row align-items-start">
+          <div class="col-auto py-2" style="background: #e1e1e1; border-radius: 8px;">
             ${this.image}
           </div>
-          <div class="col">
+          <div class="col" style="padding-bottom: 2rem;">
             <h5 class="text-info mb-1">${this.newsItem.title}</h5>
-            <p class="text-white mb-0" style="font-size: 0.9em;">${this.newsItem.text}</p>
+            <p class="mb-0" style="font-size: 0.9em;">${this.newsItem.text}</p>
           </div>
         </div>
         ${hasLink ? `
@@ -116,7 +116,7 @@ export class News extends UIElement {
       <div>
         <h3>${t('news.title')} <small class="text-muted">- ${t('results.gameDay', { day: this.gameDay + 1 })}, ${t('finances.season', { season: seasonDisplay })}</small></h3>
         ${this.news.length > 0
-      ? `<div class="row">
+      ? `<div class="row mt-4">
               ${this.news.map(item => `
                 <div class="col-12 col-lg-6">
                   ${new NewsItem(item, this.teams, this.players)}

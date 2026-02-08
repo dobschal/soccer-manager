@@ -10,6 +10,8 @@ export default {
   'nav.day': 'Tag {gameDay} ({season})',
   'nav.run': 'Start',
   'nav.running': 'Läuft...',
+  'nav.settings': 'Einstellungen',
+  'nav.language': 'Sprache',
 
   // Landing page
   'landing.freeToPlay': 'Kostenlos spielen',
@@ -67,6 +69,8 @@ export default {
   'dashboard.latestResult': 'Letztes Ergebnis',
   'dashboard.nextMatch': 'Nächstes Spiel',
   'dashboard.startingSoon': 'Beginnt bald...',
+  'dashboard.gameDay': 'Spieltag {gameDay}',
+  'dashboard.standingLink': 'Tabelle ansehen',
 
   // Stadium
   'stadium.title': 'Stadion',

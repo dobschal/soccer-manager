@@ -106,8 +106,8 @@ export class Lineup extends UIElement {
    */
   get template () {
     return `
-      <div>
-        <div class="squad">
+      <div class="card">
+        <div class="squad card-body">
           ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
         </div>
         ${this._renderSaveButton()}

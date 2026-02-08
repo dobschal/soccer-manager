@@ -6,6 +6,7 @@ import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
+import { showOverlay } from '../partials/overlay.js'
 
 /**
  * @returns {void}
@@ -30,48 +31,51 @@ export class GameLayout extends UIElement {
   get template () {
     return `
       <div class="game-layout">
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-          <a class="navbar-brand px-3" href="#">SoccerManagerIO</a>
-          <button class="navbar-toggler"
-                  type="button"
-                  data-toggle="collapse"
-                  data-target="#navbarNav"
-                  aria-controls="navbarNav"
-                  aria-expanded="false"
-                  aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav px-2">
-              ${this._navItem('dashboard', `<i class="fa fa-home" aria-hidden="true"></i> ${t('nav.home')}`)}
-              ${this._navItem('my-team', `<i class="fa fa-users" aria-hidden="true"></i> ${t('nav.team')}`)}
-              ${this._navItem('results', `<i class="fa fa-trophy" aria-hidden="true"></i> ${t('nav.league')}`)}
-              ${this._navItem('finances', `<i class="fa fa-money" aria-hidden="true"></i> ${t('nav.finances')}`)}
-              ${this._navItem('stadium', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.stadium')}`)}
-              ${this._navItem('trades', `<i class="fa fa-handshake-o" aria-hidden="true"></i> ${t('nav.transfers')}`)}
-            </ul>
-            <div class="px-2 d-none d-lg-block">|</div>
-            <div class="navbar-info-item px-2 d-none d-xl-block">
+        <nav class="navbar navbar-expand-lg navbar-dark">
+          <div class="navbar-content">
+            <a class="navbar-brand" href="#">SoccerManagerIO</a>
+            <button class="navbar-toggler"
+                    type="button"
+                    data-toggle="collapse"
+                    data-target="#navbarNav"
+                    aria-controls="navbarNav"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+              <ul class="navbar-nav navbar-nav-center">
+                ${this._navItem('dashboard', `<i class="fa fa-home" aria-hidden="true"></i> ${t('nav.home')}`)}
+                ${this._navItem('my-team', `<i class="fa fa-users" aria-hidden="true"></i> ${t('nav.team')}`)}
+                ${this._navItem('results', `<i class="fa fa-trophy" aria-hidden="true"></i> ${t('nav.league')}`)}
+                ${this._navItem('finances', `<i class="fa fa-money" aria-hidden="true"></i> ${t('nav.finances')}`)}
+                ${this._navItem('stadium', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.stadium')}`)}
+                ${this._navItem('trades', `<i class="fa fa-handshake-o" aria-hidden="true"></i> ${t('nav.transfers')}`)}
+              </ul>
+              <button id="settings-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.settings')}">
+                <i class="fa fa-cog" aria-hidden="true"></i> ${t('nav.settings')}
+              </button>
+            </div>
+            <button id="settings-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.settings')}">
+              <i class="fa fa-cog fa-lg" aria-hidden="true"></i>
+            </button>
+          </div>
+        </nav>
+        <div class="info-bar">
+          <div class="info-bar-content">
+            <div class="info-bar-item">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
       gameDay: this._gameDay,
       season: this._season + 1
     })}
             </div>
-            <div class="navbar-info-item px-2 d-none d-xl-block" id="${this._nextGameInElementId}">
+            <div class="info-bar-item" id="${this._nextGameInElementId}">
             </div>
-            <div class="navbar-info-item px-2 d-none d-lg-block">
-                <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
+            <div class="info-bar-item">
+              <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </div>
-            <select id="language-selector" class="form-control form-control-sm pointer" style="width: auto;">
-              <option value="en" ${getLocale() === 'en' ? 'selected' : ''}>EN</option>
-              <option value="de" ${getLocale() === 'de' ? 'selected' : ''}>DE</option>
-            </select>            
-            <button id="dev-trigger-button" class="btn btn-outline-warning my-2 my-sm-0 mx-1 ${this._isDevelopment ? '' : 'hidden'}" type="button">
-              <i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}
-            </button>
-            <button id="logout-button" class="btn btn-outline-info my-2 my-sm-0" type="submit">${t('nav.logout')}</button>
           </div>
-        </nav>
+        </div>
         <div class="container" id="page"></div>
         <footer class="app-footer">
           <span class="text-muted">SoccerManagerIO v${this._version}</span>
@@ -119,31 +123,19 @@ export class GameLayout extends UIElement {
    * @returns {void}
    */
   _attachEventHandlers () {
-    const logoutBtn = document.querySelector(`${this._elementQuery} #logout-button`)
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
+    const settingsBtn = document.querySelector(`${this._elementQuery} #settings-button`)
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
         hideNavigation()
-        window.localStorage.removeItem('auth-token')
-        goTo('login')
+        this._showSettingsOverlay()
       })
     }
 
-    const devTriggerBtn = document.querySelector(`${this._elementQuery} #dev-trigger-button`)
-    if (devTriggerBtn) {
-      devTriggerBtn.addEventListener('click', async () => {
-        try {
-          devTriggerBtn.disabled = true
-          devTriggerBtn.innerHTML = `<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> ${t('nav.running')}`
-          await server.triggerGameDay()
-          toast(t('toast.gameDayCompleted'), 'success')
-          window.location.reload()
-        } catch (e) {
-          console.error(e)
-          toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-        } finally {
-          devTriggerBtn.disabled = false
-          devTriggerBtn.innerHTML = `<i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}`
-        }
+    const settingsBtnMobile = document.querySelector(`${this._elementQuery} #settings-button-mobile`)
+    if (settingsBtnMobile) {
+      settingsBtnMobile.addEventListener('click', () => {
+        hideNavigation()
+        this._showSettingsOverlay()
       })
     }
 
@@ -156,20 +148,98 @@ export class GameLayout extends UIElement {
         }
       })
     }
+  }
 
-    const languageSelector = document.querySelector(`${this._elementQuery} #language-selector`)
-    if (languageSelector) {
-      languageSelector.addEventListener('change', async (e) => {
-        const newLocale = e.target.value
-        setLocale(newLocale)
-        try {
-          await server.setLanguage(newLocale)
-        } catch (err) {
-          console.error('Failed to save language preference:', err)
-        }
-        window.location.reload()
-      })
-    }
+  /**
+   * Shows the settings overlay with language, run (dev), and logout options
+   * @returns {void}
+   */
+  _showSettingsOverlay () {
+    const currentLocale = getLocale()
+    const devButtonHtml = this._isDevelopment
+      ? `<button id="settings-dev-trigger" class="btn btn-warning w-100 mb-2">
+           <i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}
+         </button>`
+      : ''
+
+    const content = `
+      <div class="settings-overlay-content">
+        <div class="mb-3">
+          <label class="form-label">${t('nav.language')}</label>
+          <div class="btn-group w-100" role="group">
+            <button id="settings-lang-en" class="btn ${currentLocale === 'en' ? 'btn-info' : 'btn-outline-info'}">English</button>
+            <button id="settings-lang-de" class="btn ${currentLocale === 'de' ? 'btn-info' : 'btn-outline-info'}">Deutsch</button>
+          </div>
+        </div>
+        ${devButtonHtml}
+        <button id="settings-logout" class="btn btn-outline-danger w-100">
+          <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
+        </button>
+      </div>
+    `
+
+    const overlay = showOverlay(t('nav.settings'), '', content)
+
+    // Attach event handlers after overlay is shown
+    setTimeout(() => {
+      const langEnBtn = el('#settings-lang-en')
+      const langDeBtn = el('#settings-lang-de')
+      const logoutBtn = el('#settings-logout')
+      const devTriggerBtn = el('#settings-dev-trigger')
+
+      if (langEnBtn) {
+        langEnBtn.addEventListener('click', async () => {
+          if (currentLocale !== 'en') {
+            setLocale('en')
+            try {
+              await server.setLanguage('en')
+            } catch (err) {
+              console.error('Failed to save language preference:', err)
+            }
+            window.location.reload()
+          }
+        })
+      }
+
+      if (langDeBtn) {
+        langDeBtn.addEventListener('click', async () => {
+          if (currentLocale !== 'de') {
+            setLocale('de')
+            try {
+              await server.setLanguage('de')
+            } catch (err) {
+              console.error('Failed to save language preference:', err)
+            }
+            window.location.reload()
+          }
+        })
+      }
+
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          overlay.remove()
+          window.localStorage.removeItem('auth-token')
+          goTo('login')
+        })
+      }
+
+      if (devTriggerBtn) {
+        devTriggerBtn.addEventListener('click', async () => {
+          try {
+            devTriggerBtn.disabled = true
+            devTriggerBtn.innerHTML = `<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> ${t('nav.running')}`
+            await server.triggerGameDay()
+            toast(t('toast.gameDayCompleted'), 'success')
+            window.location.reload()
+          } catch (e) {
+            console.error(e)
+            toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+            devTriggerBtn.disabled = false
+            devTriggerBtn.innerHTML = `<i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}`
+          }
+        })
+      }
+    }, 0)
   }
 
   /**

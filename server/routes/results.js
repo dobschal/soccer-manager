@@ -78,6 +78,85 @@ export default {
   },
 
   /**
+   * Get recent played games and upcoming games for the user's team (for dashboard slider)
+   * @param {number} pastCount - Number of past games to fetch
+   * @param {number} upcomingCount - Number of upcoming games to fetch
+   * @param {Request} req
+   * @returns {Promise<{pastGames: Array, upcomingGames: Array, nextGameDate: Date}>}
+   */
+  async getGamesForSlider (pastCount, upcomingCount, req) {
+    const team = await getTeam(req)
+    const { season } = await getGameDayAndSeason()
+
+    // Get past played games for this team
+    const pastGames = await query(`
+        SELECT g.id           as id,
+               g.game_day     as gameDay,
+               g.season       as season,
+               g.goals_team_1 as goalsTeam1,
+               g.goals_team_2 as goalsTeam2,
+               t1.name        as team1,
+               t2.name        as team2,
+               g.team_1_id    as team1Id,
+               g.team_2_id    as team2Id,
+               t1.color       as team1Color,
+               t1.emblem      as team1Emblem,
+               t2.color       as team2Color,
+               t2.emblem      as team2Emblem
+        FROM game g
+                 JOIN team t1 ON t1.id = g.team_1_id
+                 JOIN team t2 ON t2.id = g.team_2_id
+        WHERE g.played = 1
+          AND g.season = ?
+          AND (g.team_1_id = ? OR g.team_2_id = ?)
+        ORDER BY g.game_day DESC
+        LIMIT ?
+    `, [season, team.id, team.id, pastCount])
+
+    // Get upcoming unplayed games for this team
+    const upcomingGames = await query(`
+        SELECT g.id           as id,
+               g.game_day     as gameDay,
+               g.season       as season,
+               g.goals_team_1 as goalsTeam1,
+               g.goals_team_2 as goalsTeam2,
+               t1.name        as team1,
+               t2.name        as team2,
+               g.team_1_id    as team1Id,
+               g.team_2_id    as team2Id,
+               t1.color       as team1Color,
+               t1.emblem      as team1Emblem,
+               t2.color       as team2Color,
+               t2.emblem      as team2Emblem
+        FROM game g
+                 JOIN team t1 ON t1.id = g.team_1_id
+                 JOIN team t2 ON t2.id = g.team_2_id
+        WHERE g.played = 0
+          AND g.season = ?
+          AND (g.team_1_id = ? OR g.team_2_id = ?)
+        ORDER BY g.game_day ASC
+        LIMIT ?
+    `, [season, team.id, team.id, upcomingCount])
+
+    // Calculate next game date
+    const d = new Date()
+    d.setHours(12)
+    d.setMinutes(0)
+    d.setSeconds(0)
+    if (Date.now() > d.getTime()) {
+      d.setHours(23)
+      d.setMinutes(59)
+      d.setSeconds(59)
+    }
+
+    return {
+      pastGames: pastGames.reverse(), // Oldest first
+      upcomingGames,
+      nextGameDate: d
+    }
+  },
+
+  /**
    * Get the next upcoming game for the user's team
    * @param {Request} req
    * @returns {Promise<{game: GameResultType|null, nextGameDate: Date, opponent: object|null}>}

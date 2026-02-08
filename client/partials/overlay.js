@@ -2,12 +2,25 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { el, generateId } from '../lib/html.js'
 
 /**
- * Re-enables body scrolling if no overlays remain
+ * Disables body scrolling and preserves scroll position (only on first overlay)
+ */
+function lockBodyScroll () {
+  if (document.body.classList.contains('overlay-open')) return
+  const scrollY = window.scrollY
+  document.body.style.top = `-${scrollY}px`
+  document.body.classList.add('overlay-open')
+}
+
+/**
+ * Re-enables body scrolling if no overlays remain and restores scroll position
  */
 function restoreBodyScroll () {
   const remainingOverlays = document.querySelectorAll('.overlay-backdrop')
   if (remainingOverlays.length === 0) {
+    const scrollY = parseInt(document.body.style.top || '0', 10) * -1
     document.body.classList.remove('overlay-open')
+    document.body.style.top = ''
+    window.scrollTo({ top: scrollY, behavior: 'instant' })
   }
 }
 
@@ -176,7 +189,7 @@ export function showOverlay (title, subttitle, text) {
     </div>
   `
   document.body.insertAdjacentHTML('beforeend', html)
-  document.body.classList.add('overlay-open')
+  lockBodyScroll()
 
   setupTouchSwipe(overlayId, overlayInnerId, listeners)
 
