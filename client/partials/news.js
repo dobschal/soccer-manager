@@ -113,8 +113,9 @@ export class News extends UIElement {
   get template () {
     const seasonDisplay = this.season + 1
     return `
-      <div>
-        <h3>${t('news.title')} <small class="text-muted">- ${t('results.gameDay', { day: this.gameDay + 1 })}, ${t('finances.season', { season: seasonDisplay })}</small></h3>
+      <div class="mb-5">
+        <h3>${t('news.title')}</h3>
+        <p class="text-muted">${t('results.gameDay', { day: this.gameDay + 1 })}, ${t('finances.season', { season: seasonDisplay })}</p>
         ${this.news.length > 0
       ? `<div class="row mt-4">
               ${this.news.map(item => `

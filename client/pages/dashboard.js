@@ -40,11 +40,11 @@ export class DashboardPage extends UIElement {
     return `
       <div>
         <h2 class="d-flex gap-3 align-items-center">${renderEmblem(this.team, 40)} ${this.team.name}</h2>
-        <div class="d-flex align-items-center gap-5 mb-5">
+        <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
           <div class="flex-grow-1">
             ${this._gameSlider}
           </div>
-          <div class="d-none d-lg-block flex-shrink-0" style="min-width: 280px;">
+          <div class="d-none d-lg-block flex-shrink-1" style="min-width: 280px; width: 33%;">
             ${this._renderMiniStanding()}
             <a href="#results" class="d-block mt-2 text-info border-0" style="width: 100%; text-align: right">
                 <small>...${t('dashboard.standingLink')}</small>

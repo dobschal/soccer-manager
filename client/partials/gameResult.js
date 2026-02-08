@@ -25,7 +25,15 @@ function renderResponsiveEmblem (team) {
  * @param {string} [options.href] - Optional link URL
  * @returns {string}
  */
-export function renderGameResult ({ team1, team2, team1Name, team2Name, isTeam1Highlighted, centerContent, href }) {
+export function renderGameResult ({
+  team1,
+  team2,
+  team1Name,
+  team2Name,
+  isTeam1Highlighted,
+  centerContent,
+  href
+}) {
   const content = `
     <div class="col text-center ${isTeam1Highlighted ? 'font-weight-bold' : ''}">
       <div class="mb-2">${renderResponsiveEmblem(team1)}</div>

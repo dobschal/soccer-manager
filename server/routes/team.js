@@ -144,5 +144,20 @@ export default {
     }
     await query('UPDATE team SET formation=? WHERE id=?', [formation, team.id])
     return { success: true }
+  },
+
+  /**
+   * @param {string} passStyle - 'short', 'mixed', or 'long'
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updatePassStyle (passStyle, req) {
+    const validStyles = ['short', 'mixed', 'long']
+    if (!validStyles.includes(passStyle)) {
+      throw new BadRequestError('Invalid pass style')
+    }
+    const team = await getTeam(req)
+    await query('UPDATE team SET pass_style=? WHERE id=?', [passStyle, team.id])
+    return { success: true }
   }
 }

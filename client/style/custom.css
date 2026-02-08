@@ -785,6 +785,7 @@ td.hover-text:hover {
 /* Game Slider */
 .game-slider {
     position: relative;
+    max-width: 760px;
 }
 
 .game-slider-track {

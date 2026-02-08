@@ -105,7 +105,7 @@ export class ActionCards extends UIElement {
    */
   get template () {
     return `
-      <div>
+      <div class="mb-5">
         <h3>${t('actionCards.title')}</h3>
         <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
         <div class="mb-4 action-cards-container">

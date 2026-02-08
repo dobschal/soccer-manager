@@ -11,7 +11,7 @@ import { actionCardChances } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
 import { completeStadiumConstructions } from './helper/stadiumHelper.js'
 import { checkTeamAndNotify } from './helper/logMessageHelper.js'
-import { t, getUserLocale } from './i18n/index.js'
+import { getUserLocale, t } from './i18n/index.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -76,8 +76,42 @@ import { t, getUserLocale } from './i18n/index.js'
  * @property {StadiumDetails} stadiumDetails
  * @property {GamePlayer[]} playerTeamA
  * @property {GamePlayer[]} playerTeamB
+ * @property {TeamType} teamA
+ * @property {TeamType} teamB
  * @property {number} [streak]
  */
+
+/**
+ * Position coordinates for calculating pass distances
+ * @type {Object<string, {x: number, y: number}>}
+ */
+const POSITION_COORDS = {
+  GK: { x: 1, y: 0 },
+  LD: { x: 0, y: 1 },
+  CD: { x: 1, y: 1 },
+  RD: { x: 2, y: 1 },
+  DM: { x: 1, y: 1.5 },
+  LM: { x: 0, y: 2 },
+  CM: { x: 1, y: 2 },
+  RM: { x: 2, y: 2 },
+  OM: { x: 1, y: 2.5 },
+  LA: { x: 0, y: 3 },
+  CA: { x: 1, y: 3 },
+  RA: { x: 2, y: 3 }
+}
+
+/**
+ * Calculate the distance between two positions
+ * @param {string} pos1
+ * @param {string} pos2
+ * @returns {number}
+ */
+function _getPositionDistance (pos1, pos2) {
+  const coord1 = POSITION_COORDS[pos1]
+  const coord2 = POSITION_COORDS[pos2]
+  if (!coord1 || !coord2) return 1
+  return Math.sqrt(Math.pow(coord2.x - coord1.x, 2) + Math.pow(coord2.y - coord1.y, 2))
+}
 
 /**
  * @returns {Promise<void>}
@@ -339,7 +373,9 @@ async function _playGame (game) {
     strengthTeamB,
     stadiumDetails,
     playerTeamA,
-    playerTeamB
+    playerTeamB,
+    teamA,
+    teamB
   }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level
@@ -463,7 +499,8 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     goalKeeper = playerTeamA.find(p => p.position === 'GK')
     teamAHasBall = false
   }
-  const chanceForShoot = Math.min(0.95, _chanceToShoot(activePlayer, gameDetails) * (gameDetails.streak * 0.5))
+  // Base chance + streak bonus (allows shots even at streak 0)
+  const chanceForShoot = Math.min(0.95, _chanceToShoot(activePlayer, gameDetails) * (1 + gameDetails.streak * 0.3))
   if (Math.random() > chanceForShoot) return true
   if (!goalKeeper) {
     console.log('Team has no goalkeeper set!')
@@ -500,14 +537,15 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
 }
 
 /**
+ * Base chance to attempt a shot per game step (scaled to match Bundesliga ~13 shots/team/game)
  * @param {PlayerType} player
  * @returns {number}
  */
 function _chanceToShoot (player) {
-  if (player.position.endsWith('A')) return 0.13
+  if (player.position.endsWith('A')) return 0.11
   if (player.position.endsWith('M')) return 0.045
-  if (player.position.endsWith('D')) return 0.0045
-  return 0.000045
+  if (player.position.endsWith('D')) return 0.005
+  return 0.00006
 }
 
 /**
@@ -534,12 +572,16 @@ function _passBall (playerTeamA, playerTeamB, gameDetails) {
     activePlayer = playerTeamB.find(p => p.hasBall)
     teamAHasBall = false
   }
-  let nextPlayer
-  if (teamAHasBall) {
-    nextPlayer = randomItem(playerTeamA.filter(p => p.id !== activePlayer.id))
-  } else {
-    nextPlayer = randomItem(playerTeamB.filter(p => p.id !== activePlayer.id))
-  }
+
+  const teammates = teamAHasBall
+    ? playerTeamA.filter(p => p.id !== activePlayer.id)
+    : playerTeamB.filter(p => p.id !== activePlayer.id)
+
+  const team = teamAHasBall ? gameDetails.teamA : gameDetails.teamB
+  const passStyle = team.pass_style || 'mixed'
+
+  const nextPlayer = _selectPassTarget(activePlayer, teammates, passStyle)
+
   activePlayer.hasBall = false
   nextPlayer.hasBall = true
   gameDetails.log.push({
@@ -547,4 +589,44 @@ function _passBall (playerTeamA, playerTeamB, gameDetails) {
     newPlayer: nextPlayer.id,
     oldPlayer: activePlayer.id
   })
+}
+
+/**
+ * Select the next player to pass to based on pass style
+ * @param {GamePlayer} activePlayer
+ * @param {GamePlayer[]} teammates
+ * @param {string} passStyle - 'short', 'mixed', or 'long'
+ * @returns {GamePlayer}
+ */
+function _selectPassTarget (activePlayer, teammates, passStyle) {
+  if (teammates.length === 0) return activePlayer
+
+  // Calculate distances to all teammates
+  const teammatesWithDistance = teammates.map(player => ({
+    player,
+    distance: _getPositionDistance(activePlayer.in_game_position, player.in_game_position)
+  }))
+
+  // Sort by distance
+  teammatesWithDistance.sort((a, b) => a.distance - b.distance)
+
+  // Determine the threshold for short vs long (median distance)
+  const medianIndex = Math.floor(teammatesWithDistance.length / 2)
+  const shortPassTargets = teammatesWithDistance.slice(0, Math.max(1, medianIndex + 1))
+  const longPassTargets = teammatesWithDistance.slice(Math.max(1, medianIndex))
+
+  if (passStyle === 'short') {
+    // Always pick from nearby players
+    return randomItem(shortPassTargets).player
+  } else if (passStyle === 'long') {
+    // Always pick from far players
+    return randomItem(longPassTargets).player
+  } else {
+    // Mixed: 50% chance for short, 50% for long
+    if (Math.random() < 0.5) {
+      return randomItem(shortPassTargets).player
+    } else {
+      return randomItem(longPassTargets).player
+    }
+  }
 }

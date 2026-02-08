@@ -110,9 +110,11 @@ export class MyTeamPage extends UIElement {
       <h2 id="${teamNameId}" style="cursor: pointer;" title="${t('myTeam.clickToEditName')}">${this.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i></h2>
       <div class="row">
         <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 text-white bg-dark">
+          <div class="card h-100 border-0">
+            <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
+              <h5 class="card-title mb-0">${t('myTeam.teamInfo')}</h5>
+            </div>
             <div class="card-body">
-              <h5 class="card-title">${t('myTeam.teamInfo')}</h5>
               <p class="card-text">
                 <b>${t('myTeam.league')}</b> ${formatLeague(this.data.team.level, this.data.team.league)}<br>
                 <b>${t('myTeam.salaryTotal')}</b> ${euroFormat.format(totalSalary)}<br>
@@ -125,20 +127,28 @@ export class MyTeamPage extends UIElement {
           </div>
         </div>
         <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 text-white bg-dark" >
+          <div class="card h-100 border-0">
+            <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
+              <h5 class="card-title mb-0">${t('myTeam.emblem')} <i class="fa fa-pencil" aria-hidden="true"></i></h5>
+            </div>
             <div class="card-body" style="perspective: 40px;">
-              <h5 class="card-title">${t('myTeam.emblem')} <i class="fa fa-pencil" aria-hidden="true"></i></h5>
               ${this._renderEmblemViewer()}
             </div>
           </div>
         </div>
         <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 text-white bg-dark" >
+          <div class="card h-100 border-0">
+            <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
+              <h5 class="card-title mb-0">${t('myTeam.lineup')}</h5>
+            </div>
             <div class="card-body">
-              <h5 class="card-title">${t('myTeam.lineup')}</h5>
               <p class="card-text">${t('myTeam.chooseLineup')}</p>
-              <div class="form-group">
+              <div class="form-group mb-3">
                 ${this._renderLineupSelect()}
+              </div>
+              <p class="card-text">${t('myTeam.choosePassStyle')}</p>
+              <div class="form-group">
+                ${this._renderPassStyleSelect()}
               </div>
             </div>
           </div>
@@ -181,6 +191,36 @@ export class MyTeamPage extends UIElement {
     return `
       <select id="${id}" class="form-control">
         ${Object.values(Formation).map(f => `<option value="${f}">${f}</option>`)}
+      </select>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderPassStyleSelect () {
+    const id = generateId()
+    const passStyles = ['short', 'mixed', 'long']
+    const currentPassStyle = this.data.team.pass_style || 'mixed'
+    onChange(id, async (event) => {
+      if (event.target.value !== currentPassStyle) {
+        try {
+          await server.updatePassStyle(event.target.value)
+          this.data.team.pass_style = event.target.value
+          toast(t('myTeam.passStyleUpdated'), 'success')
+        } catch (e) {
+          showServerError(e)
+        }
+      }
+    })
+    setTimeout(() => {
+      const element = el(id)
+      if (!element) return
+      element.value = currentPassStyle
+    })
+    return `
+      <select id="${id}" class="form-control">
+        ${passStyles.map(style => `<option value="${style}">${t('myTeam.passStyle.' + style)}</option>`).join('')}
       </select>
     `
   }

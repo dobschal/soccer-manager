@@ -567,6 +567,19 @@ const migrations = [{
     await query('ALTER TABLE news DROP INDEX idx_news_lookup')
     await query('CREATE INDEX idx_news_lookup ON news (season, game_day, level, league, locale)')
   }
+}, {
+  name: 'Add pass_style column to team table',
+  async run () {
+    await query("ALTER TABLE team ADD COLUMN pass_style VARCHAR(10) DEFAULT 'mixed'")
+    const teams = await query('SELECT id FROM team')
+    const passStyles = ['short', 'mixed', 'long']
+    const promises = []
+    for (const team of teams) {
+      const randomStyle = passStyles[Math.floor(Math.random() * passStyles.length)]
+      promises.push(query('UPDATE team SET pass_style=? WHERE id=?', [randomStyle, team.id]))
+    }
+    await Promise.all(promises)
+  }
 }]
 
 /**

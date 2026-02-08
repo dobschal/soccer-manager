@@ -208,6 +208,11 @@ export default {
   'myTeam.saveTeamName': 'Save Team Name',
   'myTeam.selectNamePart': 'Please select at least one name part',
   'myTeam.nameUpdated': 'Your team name has been updated!',
+  'myTeam.choosePassStyle': 'Choose your pass style:',
+  'myTeam.passStyleUpdated': 'Pass style updated!',
+  'myTeam.passStyle.short': 'Short Passes',
+  'myTeam.passStyle.mixed': 'Mixed',
+  'myTeam.passStyle.long': 'Long Passes',
 
   // Trades / Transfers
   'trades.title': 'Transfers',
