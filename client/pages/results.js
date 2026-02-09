@@ -313,10 +313,11 @@ export class ResultsPage extends UIElement {
 
     onClick('#' + id, () => goTo(`team?id=${standingItem.team.id}`))
 
+    const isMyTeam = this.myTeamId === standingItem.team.id
     const trClasses = [
-      this.myTeamId === standingItem.team.id ? 'table-info' : '',
-      index < 2 ? 'table-success' : '',
-      index > 13 ? 'table-warning' : ''
+      isMyTeam ? 'table-info' : '',
+      !isMyTeam && index < 2 ? 'table-success' : '',
+      !isMyTeam && index > 13 ? 'table-warning' : ''
     ]
 
     const diff = this.yesterdayStanding.findIndex(s => s.team.id === standingItem.team.id) - index

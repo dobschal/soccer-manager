@@ -107,7 +107,7 @@ body {
     background-image: url("../assets/football-field-horizontal.jpg");
     background-size: 100vw auto;
     background-position: top left;
-    background-repeat: no-repeat;
+    background-repeat: repeat-y;
     background-attachment: fixed;
     background-color: #2a2c2e;
 }
@@ -662,7 +662,7 @@ td.hover-text:hover {
     }
 
     #page {
-        margin-top: 4rem;
+        margin-top: 6rem;
         border-radius: 0;
     }
 

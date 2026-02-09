@@ -248,6 +248,13 @@ export class UIElement {
     } else {
       neighborNode.style.display = 'none'
     }
+
+    // This ensures to have only one indicator in similar places
+    const neighborIsTemplate = neighborNode?.tagName === 'TEMPLATE'
+    if (neighborIsTemplate) {
+      return
+    }
+    
     if (!neighborNode?.parentElement) {
       document.body.insertAdjacentHTML(
         'beforeend',

@@ -222,13 +222,14 @@ export class DashboardPage extends UIElement {
       const actualIndex = startIndex + idx
       const hasUser = Boolean(item.team.user_id)
       const id = generateId()
+      const isMyTeam = this.team.id === item.team.id
 
       onClick('#' + id, () => goTo(`team?id=${item.team.id}`))
 
       const trClasses = [
-        this.team.id === item.team.id ? 'table-info' : '',
-        actualIndex < 2 ? 'table-success' : '',
-        actualIndex > 13 ? 'table-warning' : ''
+        isMyTeam ? 'table-info' : '',
+        !isMyTeam && actualIndex < 2 ? 'table-success' : '',
+        !isMyTeam && actualIndex > 13 ? 'table-warning' : ''
       ]
 
       return `
