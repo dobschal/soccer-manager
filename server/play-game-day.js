@@ -12,6 +12,7 @@ import { generateNewsForGameDay } from './helper/newsHelper.js'
 import { completeStadiumConstructions } from './helper/stadiumHelper.js'
 import { checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
+import { processYouthTraining } from './helper/youthPlayerHelper.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -133,6 +134,7 @@ export async function calculateGames () {
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)
   await _giveAllPlayersFreshness(season)
+  await _processYouthTeams()
   await generateNewsForGameDay(gameDay, season)
   await _checkUserTeamsForIssues()
   console.log('\n\nPlayed game day ' + gameDay)
@@ -147,6 +149,17 @@ async function _checkUserTeamsForIssues () {
   const teams = await query('SELECT * FROM team WHERE user_id IS NOT NULL')
   await Promise.all(teams.map(team => checkTeamAndNotify(team)))
   console.log(`Checked user teams for issues in ${Date.now() - t1}ms`)
+}
+
+/**
+ * Process youth training for all teams
+ * @returns {Promise<void>}
+ */
+async function _processYouthTeams () {
+  const t1 = Date.now()
+  const teams = await query('SELECT * FROM team')
+  await Promise.all(teams.map(team => processYouthTraining(team)))
+  console.log(`Processed youth teams in ${Date.now() - t1}ms`)
 }
 
 /**

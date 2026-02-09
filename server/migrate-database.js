@@ -580,6 +580,63 @@ const migrations = [{
     }
     await Promise.all(promises)
   }
+}, {
+  name: 'Create youth_player table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS youth_player
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        team_id BIGINT(20) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        position VARCHAR(255) NOT NULL,
+        level DECIMAL(4,3) DEFAULT 0.1,
+        talent DECIMAL(4,3) NOT NULL,
+        moral DECIMAL(4,3) DEFAULT 0.7,
+        fitness DECIMAL(4,3) DEFAULT 0.7,
+        hair_color INT NOT NULL,
+        skin_color INT NOT NULL,
+        birth_season INT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_youth_team (team_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Add youth_training_mode column to team table',
+  async run () {
+    await query("ALTER TABLE team ADD COLUMN youth_training_mode VARCHAR(20) DEFAULT 'rest'")
+  }
+}, {
+  name: 'Seed 3 youth players per team',
+  async run () {
+    const teams = await query('SELECT id FROM team')
+    const [game] = await query('SELECT * FROM game g ORDER BY g.season DESC LIMIT 1')
+    const season = game?.season ?? 0
+    const positions = ['GK', 'CD', 'LD', 'RD', 'CM', 'LM', 'RM', 'DM', 'OM', 'CA', 'LA', 'RA']
+    const nameLibrary = await import('./lib/name-library.js')
+    const util = await import('./lib/util.js')
+
+    for (const team of teams) {
+      for (let i = 0; i < 3; i++) {
+        const name = `${util.randomItem(nameLibrary.playerNames).firstName} ${util.randomItem(nameLibrary.playerNames).lastName}`
+        const talent = 0.1 + Math.random() * 0.9 // 0.1 to 1.0
+        const level = 0.1 + Math.random() * 0.9 // 0.1 to 1.0
+        const youthPlayer = {
+          team_id: team.id,
+          name,
+          position: util.randomItem(positions),
+          level,
+          talent,
+          moral: 0.5 + Math.random() * 0.5, // 0.5 to 1.0
+          fitness: 0.5 + Math.random() * 0.5, // 0.5 to 1.0
+          hair_color: Math.floor(Math.random() * 7),
+          skin_color: Math.floor(Math.random() * 3),
+          birth_season: season // They are 15 years old at current season
+        }
+        await query('INSERT INTO youth_player SET ?', youthPlayer)
+      }
+    }
+  }
 }]
 
 /**

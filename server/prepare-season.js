@@ -9,6 +9,8 @@ import { Stadium } from './entities/stadium.js'
 import { addLogMessage } from './helper/logMessageHelper.js'
 import { getTeamById } from './helper/teamHelper.js'
 import { generateRandomEmblem } from './lib/emblem.js'
+import { archiveOverageYouthPlayers, getYouthPlayersAt18 } from './helper/youthPlayerHelper.js'
+import { getUserLocale, t } from './i18n/index.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -27,6 +29,8 @@ const minimumTeams = 126 // three leagues, will be overwritten by amount of user
  */
 export async function prepareSeason () {
   await _archiveTooOldPlayers()
+  await _archiveOverageYouth()
+  await _warnYouthPlayersAt18()
   await _ajustAmountOfTeams()
   await _promotionRelegation()
   await _createGames()
@@ -46,6 +50,40 @@ async function _archiveTooOldPlayers () {
     await addLogMessage(`Your player ${player.name} is saying goodbye and ends his carrier today.`, team, null, null, 'heart')
   }
   console.log(`👴🏽 ${result.affectedRows} players ended their carrier...`, result)
+}
+
+/**
+ * Archive youth players who are 19+ years old
+ * @returns {Promise<void>}
+ */
+async function _archiveOverageYouth () {
+  const season = await _latestSeason() ?? 0
+  const archivedCount = await archiveOverageYouthPlayers(season)
+  console.log(`👶 ${archivedCount} youth players were auto-fired (age 19+)`)
+}
+
+/**
+ * Warn users about youth players who will be auto-fired next season (currently 18)
+ * @returns {Promise<void>}
+ */
+async function _warnYouthPlayersAt18 () {
+  const season = await _latestSeason() ?? 0
+  const teams = await query('SELECT * FROM team WHERE user_id IS NOT NULL')
+
+  for (const team of teams) {
+    const youthAt18 = await getYouthPlayersAt18(team.id, season)
+    const locale = await getUserLocale(team.user_id)
+
+    for (const youth of youthAt18) {
+      await addLogMessage(
+        t('log.youthPlayerAt18Warning', { playerName: youth.name }, locale),
+        team,
+        null,
+        null,
+        'exclamation-triangle'
+      )
+    }
+  }
 }
 
 /**

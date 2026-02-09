@@ -25,6 +25,10 @@ vi.mock('../../helper/financeHelper.js', () => ({
   updateTeamBalance: vi.fn()
 }))
 
+vi.mock('../../helper/youthPlayerHelper.js', () => ({
+  createYouthPlayer: vi.fn()
+}))
+
 vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key, params = {}) => {
     const translations = {
@@ -48,6 +52,7 @@ import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
+import { createYouthPlayer } from '../../helper/youthPlayerHelper.js'
 import { playActionCard } from '../../helper/actionCardHelper.js'
 
 describe('actionCardHelper', () => {
@@ -420,43 +425,50 @@ describe('actionCardHelper', () => {
       const team = testData.team({ id: 5 })
       const actionCard = testData.actionCard({ action: 'NEW_YOUTH_PLAYER' })
 
-      query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM game g ORDER BY')) {
-          return [{ season: 2 }]
-        }
-        return {}
-      })
+      const mockYouthPlayer = {
+        id: 1,
+        team_id: 5,
+        name: 'Young Talent',
+        position: 'CM',
+        level: 0.5,
+        talent: 0.8,
+        moral: 0.7,
+        fitness: 0.7,
+        birth_season: 2
+      }
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 2 })
+      createYouthPlayer.mockResolvedValue(mockYouthPlayer)
 
       const result = await playActionCard({ actionCard }, team)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('INSERT INTO player SET ?', expect.objectContaining({
-        team_id: 5
-      }))
+      expect(createYouthPlayer).toHaveBeenCalledWith(5, 2)
       expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     })
 
-    it('creates player with correct properties', async () => {
-      const team = testData.team({ id: 5 })
+    it('creates youth player with team and season from context', async () => {
+      const team = testData.team({ id: 7 })
       const actionCard = testData.actionCard({ action: 'NEW_YOUTH_PLAYER' })
 
-      query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM game g ORDER BY')) {
-          return [{ season: 2 }]
-        }
-        return {}
-      })
+      const mockYouthPlayer = {
+        id: 2,
+        team_id: 7,
+        name: 'New Talent',
+        position: 'GK',
+        level: 0.3,
+        talent: 0.5,
+        moral: 0.7,
+        fitness: 0.7,
+        birth_season: 5
+      }
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 5 })
+      createYouthPlayer.mockResolvedValue(mockYouthPlayer)
 
       await playActionCard({ actionCard }, team)
 
-      const insertCall = query.mock.calls.find(call => call[0].includes('INSERT INTO player'))
-      const newPlayer = insertCall[1]
-
-      expect(newPlayer.team_id).toBe(5)
-      expect(newPlayer.level).toBeGreaterThanOrEqual(1)
-      expect(newPlayer.level).toBeLessThanOrEqual(3)
-      expect(newPlayer.freshness).toBe(1.0)
-      expect(newPlayer.in_game_position).toBe('')
+      expect(createYouthPlayer).toHaveBeenCalledWith(7, 5)
     })
   })
 

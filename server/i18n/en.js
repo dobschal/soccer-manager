@@ -33,6 +33,11 @@ export default {
   'error.positionAlreadyTaken': 'Position is already taken',
   'error.playerNotInTeam': 'Player is not in your team',
 
+  // Youth player errors
+  'error.youthPlayerNotFound': 'Youth player not found',
+  'error.notYourYouthPlayer': 'This is not your youth player',
+  'error.youthPlayerTooYoung': 'Youth player must be at least 16 years old to be promoted',
+
   // Action card errors
   'error.cardNotFound': 'Action card not found',
   'error.cardAlreadyPlayed': 'This card has already been played',
@@ -93,6 +98,11 @@ export default {
   'log.playerInjured': '{playerName} is injured and will miss the next game.',
   'log.playerFired': 'You fired your player {playerName}.',
   'log.playerSigned': 'Congratulations! You signed a new player contract with {playerName}.',
+
+  // Log messages - Youth players
+  'log.youthPlayerPromoted': '{playerName} has been promoted to the A Team at level {level}!',
+  'log.youthPlayerFired': 'Youth player {playerName} has been released from the youth team.',
+  'log.youthPlayerAt18Warning': 'Warning: Youth player {playerName} will be automatically released next season if not promoted!',
 
   // Finance reasons
   'finance.playerSalaries': 'Player salaries',

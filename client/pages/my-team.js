@@ -23,6 +23,7 @@ import {
 import { UIElement } from '../lib/UIElement.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
+import { YouthTeamPage } from './my-team/youthTeam.js'
 
 export class MyTeamPage extends UIElement {
   /**
@@ -31,30 +32,53 @@ export class MyTeamPage extends UIElement {
   get template () {
     return `
       <div>
-        <div id="header">
-          ${this._renderHeader()}
+        <nav class="nav nav-pills mb-2">
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#my-team">${t('myTeam.aTeam')}</a>
+          <a class="nav-link ${this.subPage === 'youth' ? 'active' : ''}" href="#my-team?sub_page=youth">${t('myTeam.youthTeam')}</a>
+        </nav>
+        ${this.subPage === 'youth' ? this._renderYouthTeamPage() : this._renderATeamPage()}
+      </div>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderATeamPage () {
+    return `
+      <div id="header">
+        ${this._renderHeader()}
+      </div>
+      <div class="row">
+        <div class="col-12 col-xl-6">
+          <h3>${t('myTeam.lineup')}</h3>
+          <div class="mb-4" id="squad" >
+            ${renderLineup(this.data.players, this.data.team, this)}
+          </div>
         </div>
-        <div class="row">
-          <div class="col-12 col-xl-6">
-            <h3>${t('myTeam.lineup')}</h3>
-            <div class="mb-4" id="squad" >
-              ${renderLineup(this.data.players, this.data.team, this)}
-            </div>
-          </div>
-          <div class="col-12 col-xl-6">
-            ${new PlayerList(
-      this.data.players,
-      true,
-      p => { // open player modal
-        setQueryParams({
-          player_id: p.id
-        })
+        <div class="col-12 col-xl-6">
+          ${new PlayerList(
+    this.data.players,
+    true,
+    p => { // open player modal
+      setQueryParams({
+        player_id: p.id
       })
-    }
-          </div>
+    })
+  }
         </div>
       </div>
     `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderYouthTeamPage () {
+    if (!this.youthPage) {
+      this.youthPage = new YouthTeamPage(this)
+    }
+    return this.youthPage
   }
 
   /**
@@ -73,11 +97,21 @@ export class MyTeamPage extends UIElement {
   /**
    * @param {Object} params
    * @param {string} params.player_id
+   * @param {string} params.sub_page
    * @returns {Promise<void>}
    */
-  async onQueryChanged ({ player_id: playerId }) {
+  async onQueryChanged ({ player_id: playerId, sub_page: subPage }) {
     if (playerId) {
       await showPlayerModal(Number(playerId))
+    }
+
+    // Handle tab switching
+    if (subPage !== this.subPage) {
+      this.subPage = subPage
+      if (subPage === 'youth') {
+        this.youthPage = new YouthTeamPage(this)
+      }
+      await this.update()
     }
   }
 

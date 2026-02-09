@@ -4,7 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Soccer Manager IO - a browser-based football manager game where players build teams, compete in leagues, and manage finances. Full-stack Node.js application with MySQL database.
+Soccer Manager IO - a browser-based football manager game where players build teams, compete in leagues, and manage
+finances. Full-stack Node.js application with MySQL database.
 
 ## Commands
 
@@ -42,6 +43,7 @@ node server/play-game-day.cmd.js      # Simulate one game day
 - **CRON jobs**: Run every 12 hours (midnight/noon) - season prep, bot moves, game calculation
 
 Key directories:
+
 - `routes/` - API endpoint handlers
 - `entities/` - Domain models
 - `helper/` - Business logic
@@ -52,10 +54,12 @@ Key directories:
 - **Entry point**: `app.js` - initializes router with page mappings
 - **Routing**: Hash-based client-side router (`lib/router.js`)
 - **Components**: Class-based extending `UIElement` base class
-- **Server communication**: Proxy-based gateway (`lib/gateway.js`) - `server.functionName(...params)` calls `/api/functionName`
+- **Server communication**: Proxy-based gateway (`lib/gateway.js`) - `server.functionName(...params)` calls
+  `/api/functionName`
 - **Caching**: Gateway auto-caches `get*` methods for 60 seconds
 
 Key directories:
+
 - `pages/` - Page components (dashboard, my-team, trades, finances, stadium, results)
 - `partials/` - Reusable UI widgets
 - `layouts/` - Page layout templates
@@ -72,31 +76,85 @@ Key directories:
 The game uses a hierarchical league structure with levels and subdivisions:
 
 ### Structure
+
 - **Level**: Represents the division tier (0 = top division, higher = lower divisions)
 - **League**: The subdivision index within a level
 - Each level has `2^level` leagues:
-  - Level 0: 1 league (the top division)
-  - Level 1: 2 leagues (North, South)
-  - Level 2: 4 leagues (North, South, East, West)
-  - Level 3: 8 leagues (adds North-East, South-East, etc.)
-  - Level 4: 16 leagues (adds North-North-East, etc.)
+    - Level 0: 1 league (the top division)
+    - Level 1: 2 leagues (North, South)
+    - Level 2: 4 leagues (North, South, East, West)
+    - Level 3: 8 leagues (adds North-East, South-East, etc.)
+    - Level 4: 16 leagues (adds North-North-East, etc.)
 - Each league contains up to 18 teams
 
 ### Display Names
+
 League names combine the division number with a compass direction:
+
 - A team at level 1, league 1 displays as "2. South"
 - A team at level 2, league 3 displays as "3. West"
 - Subdivision names are translated (see `client/util/league.js` and `client/i18n/`)
 
 ### Team Assignment
+
 - New users are assigned to bot teams in existing leagues
 - When all bot teams are taken, new leagues are created with fresh bot teams
 - Teams are distributed across leagues to maintain ~18 teams per league
 - Season preparation (`server/prepare-season.js`) handles league assignment
 
 ### Promotion/Relegation
+
 - Top teams in a league get promoted to a higher division (lower level number)
 - Bottom teams get relegated to a lower division (higher level number)
+
+## Youth Players
+
+Youth players appear in the age of 15 with level between 0.1 and 1.0 and can be brought to the A Team at 16, latest 18.
+Add a database migration to give each team with 3 random youth players.
+The action card "YOUTH_PLAYER" should appear 3 times in average per season, giving the user the chance to acquire a new
+youth player.
+The my-team page should have two tabs: "A Team" and "Youth Team". The youth team tab should show the youth players.
+Besides the standard player properties, each youth player has the following properties:
+
+- level
+- talent
+- moral
+- fitness
+
+talent, moral and fitness are float numbers between 0 and 1.
+The talent value is hidden for the user and only used for the game logic. The moral and fitness values are shown to the
+user and can be improved by training or matches.
+The Youth Team tab should show two buttons per player: "Promote" and "Fire". The promote button moves the player to the
+A Team
+and the fire button deletes the player.
+The promote button is only active if the player is 16 or older. The fire button is always active.
+If a youth player gets 19 years old and is not promoted, he is automatically fired. So when the player gets 18 years
+old, show a warning in the log messages that the player will be fired in the next season if not promoted.
+
+On the Youth Team tab the user can select between three different options for the game day:
+
+- training
+- friendly match
+- rest
+
+training improves the fitness of the youth players, but will lower the moral. It improves the level a bit.
+friendly match improves the moral of the players, but will lower the fitness. It improves the level a bit.
+rest improves the moral and fitness of the players, but does not improve the level.
+It should always apply little randomness of about 10%. So the user cannot always predict the exact outcome of the
+training, friendly match or rest.
+
+The ideal rhythm is two gamedays training, one gameday friendly match and one gameday rest. So the user has to find the
+right balance between training, friendly matches and rest to improve the youth players and get them ready for the A
+Team.
+
+The improvement per game day should be calculated based on the following:
+A youth player appearing with talent = 1.0 and level = 1, while having the perfect training rhythm, should reach level 3
+while being 16 years old.
+At minimum, a youth player should reach level 1 while being 18 years old, even with the worst training rhythm. So the
+training rhythm should have a significant impact on the development of the youth players.
+
+There should be test cases for the youth player development logic, including the effects of training, friendly matches,
+and rest on the player's level, moral, and fitness.
 
 ## Tech Stack
 
