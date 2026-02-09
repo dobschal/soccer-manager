@@ -98,6 +98,92 @@ describe('team routes', () => {
     })
   })
 
+  describe('updatePassStyle', () => {
+    it('updates team pass style', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      const result = await handlers.updatePassStyle('long', req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE team SET pass_style=? WHERE id=?', ['long', team.id])
+    })
+
+    it('rejects invalid pass style', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.updatePassStyle('invalid', req))
+        .rejects.toMatchObject({ message: 'Invalid pass style' })
+    })
+  })
+
+  describe('updatePlayStyle', () => {
+    it('updates team play style to aggressive', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      const result = await handlers.updatePlayStyle('aggressive', req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE team SET play_style=? WHERE id=?', ['aggressive', team.id])
+    })
+
+    it('updates team play style to friendly', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      const result = await handlers.updatePlayStyle('friendly', req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE team SET play_style=? WHERE id=?', ['friendly', team.id])
+    })
+
+    it('updates team play style to normal', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      const result = await handlers.updatePlayStyle('normal', req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE team SET play_style=? WHERE id=?', ['normal', team.id])
+    })
+
+    it('rejects invalid play style', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.updatePlayStyle('invalid', req))
+        .rejects.toMatchObject({ message: 'Invalid play style' })
+    })
+
+    it('rejects empty play style', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.updatePlayStyle('', req))
+        .rejects.toMatchObject({ message: 'Invalid play style' })
+    })
+  })
+
   describe('saveLineup', () => {
     it('updates player positions and formation', async () => {
       const team = testData.team()

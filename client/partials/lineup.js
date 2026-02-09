@@ -65,11 +65,13 @@ export class Lineup extends UIElement {
             : this.players.find(p => p.id === Number(playerId))
 
           if (player) {
+            // Filter out suspended players from selection
+            const availablePlayers = this.players.filter(p => p.position === player.position && !p.fake && !p.is_suspended)
             this._overlay = showOverlay(
               'Select player',
               '',
               `${new PlayerList(
-                this.players.filter(p => p.position === player.position && !p.fake),
+                availablePlayers,
                 false,
                 newPlayer => this._exchangePlayer(player, newPlayer)
               )}`
@@ -195,18 +197,21 @@ export class Lineup extends UIElement {
       : player.name
     // Use player ID for real players, or 'fake-{position}' for empty slots
     const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
+    const isSuspended = player.is_suspended
+    const suspendedStyle = isSuspended ? 'opacity: 0.5; filter: grayscale(100%);' : ''
 
     return `
-      <div class="player ${player.position}" data-player-id="${playerId}">
+      <div class="player ${player.position}" data-player-id="${playerId}" style="${suspendedStyle}">
         <span class="position-badge ${player.position}">${player.position}</span>
         <span class="freshness-badge ${freshnessClass}">
             ${Math.floor(player.freshness * 100)}%
         </span>
-        ${displayName}
+        ${isSuspended ? '🚫 ' : ''}${displayName}
         <span class="level-badge level-${player.level}">${player.level}</span>
       </div>
     `
   }
+  
 }
 
 /**

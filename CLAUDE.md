@@ -156,6 +156,35 @@ training rhythm should have a significant impact on the development of the youth
 There should be test cases for the youth player development logic, including the effects of training, friendly matches,
 and rest on the player's level, moral, and fitness.
 
+## Play Style
+
+The user can choose a play style for their team, which affects the team's performance in matches.
+The play style can be one of the following:
+
+- aggressive: Increases the chances to win the ball, but also increases the chances to get yellow or red cards.
+- normal: No changes to the team's performance.
+- friendly: Decreases the chances to win the ball, but also decreases the chances to get yellow or red cards.
+
+If a player get two yellow cards in a match, they get a red card and are sent off for the rest of the match.
+If a player gets a red card, they are sent off for the rest of the match and also miss the next match.
+The play style should have a significant impact on the team's performance in matches, and the user should be able to see
+the effects of their chosen play style in the match results.
+
+Check the _fightsOpponents method in play-game-day.js for the implementation of the play style logic in matches.
+
+The playerList shown in team.js and my-team.js should show per player the number of yellow and red cards they have.
+A player with a red card or 5 yellow cards should be marked as unavailable (cannot be put into lineup) for the next
+match and should be removed from the lineup automatically. After the next match, the red card and yellow cards should be
+reset to 0.
+A log message should be shown when a player gets a yellow or red card, and when a player is unavailable for the next
+match due to cards.
+
+Test should cover the play style logic in matches, including the chances to win the ball and get cards, as well as the
+effects of cards on player availability.
+Check that the overall statistics are still similar to the stats of the Bundesliga in terms of goals per match, yellow
+cards per match, and red cards per match. Run tests to check which play style gives the best results in terms of wins,
+goals scored, and cards received.
+
 ## Tech Stack
 
 - **Backend**: Node.js 20, Express 4.18, MySQL 8.0, JWT auth

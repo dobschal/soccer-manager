@@ -104,6 +104,14 @@ export default {
   'log.youthPlayerFired': 'Jugendspieler {playerName} wurde aus der Jugendmannschaft entlassen.',
   'log.youthPlayerAt18Warning': 'Warnung: Jugendspieler {playerName} wird nächste Saison automatisch entlassen, wenn er nicht befördert wird!',
 
+  // Log messages - Cards and suspensions
+  'log.playerYellowCard': '{playerName} hat eine gelbe Karte erhalten!',
+  'log.playerRedCard': '{playerName} hat eine rote Karte erhalten!',
+  'log.playerFiveYellows': '{playerName} hat 5 gelbe Karten angesammelt!',
+  'log.playerSuspended': '{playerName} ist gesperrt und wird das nächste Spiel verpassen.',
+  'log.playerRemovedFromLineup': '{playerName} wurde aufgrund einer Sperre automatisch aus der Aufstellung entfernt.',
+  'log.playerAt4Yellows': 'Warnung: {playerName} hat 4 gelbe Karten. Eine weitere und er ist gesperrt!',
+
   // Finance reasons
   'finance.playerSalaries': 'Spielergehälter',
   'finance.ticketRevenue': 'Ticketeinnahmen',

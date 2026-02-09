@@ -1,10 +1,11 @@
 /**
- * Formation & Pass Style Analysis Script
+ * Formation, Pass Style & Play Style Analysis Script
  *
- * Simulates many games between teams with different formations and pass styles to determine:
- * 1. Which formation + pass style combination performs best overall
+ * Simulates many games between teams with different formations, pass styles, and play styles to determine:
+ * 1. Which formation + pass style + play style combination performs best overall
  * 2. Which combinations counter other combinations
  * 3. Goal chances and goals per game compared to real Bundesliga statistics
+ * 4. Card statistics (yellow/red) compared to Bundesliga
  *
  * Run with: node server/analyze-formations.js
  */
@@ -15,7 +16,7 @@ import { determineOponentPosition } from '../client/util/formation.js'
 // Configuration
 // ============================================================================
 
-const GAMES_PER_MATCHUP = 500 // Number of games per formation matchup
+const GAMES_PER_MATCHUP = 100 // Number of games per matchup (reduced for faster analysis with more combos)
 const TEAM_TOTAL_LEVEL = 50 // Total level points distributed across 11 players
 const PLAYER_FRESHNESS = 1.0 // All players at full freshness for fair comparison
 
@@ -28,7 +29,11 @@ const BUNDESLIGA_STATS = {
   goalsPerTeam: 1.585, // Goals per team per match
   shotsPerTeam: 13.2, // Total shots per team per match
   shotsOnTargetPerTeam: 4.5, // Shots on target per team
-  conversionRate: 0.12 // Goals / shots (~12%)
+  conversionRate: 0.12, // Goals / shots (~12%)
+  yellowCardsPerGame: 3.5, // Yellow cards per match (both teams)
+  yellowCardsPerTeam: 1.75, // Yellow cards per team per match
+  redCardsPerGame: 0.15, // Red cards per match (both teams)
+  redCardsPerTeam: 0.075 // Red cards per team per match
 }
 
 // ============================================================================
@@ -49,6 +54,14 @@ const FORMATIONS = {
 }
 
 const PASS_STYLES = ['short', 'mixed', 'long']
+const PLAY_STYLES = ['aggressive', 'normal', 'friendly']
+
+// Play style modifiers (from play-game-day.js)
+const PLAY_STYLE_MODIFIERS = {
+  aggressive: { fightBonus: 0.15, cardChance: 0.002 },
+  normal: { fightBonus: 0, cardChance: 0.0008 },
+  friendly: { fightBonus: -0.15, cardChance: 0.0003 }
+}
 
 // ============================================================================
 // Position Coordinates (from play-game-day.js)
@@ -76,13 +89,14 @@ const POSITION_COORDS = {
 let playerId = 0
 
 /**
- * Creates a team with the specified formation and pass style
+ * Creates a team with the specified formation, pass style, and play style
  * @param {string} formationName
  * @param {string[]} positions
  * @param {string} passStyle
- * @returns {{ players: GamePlayer[], team: { pass_style: string } }}
+ * @param {string} playStyle
+ * @returns {{ players: GamePlayer[], team: { pass_style: string, play_style: string } }}
  */
-function createTeam (formationName, positions, passStyle) {
+function createTeam (formationName, positions, passStyle, playStyle) {
   const players = []
   const allPositions = ['GK', ...positions]
 
@@ -97,13 +111,15 @@ function createTeam (formationName, positions, passStyle) {
       in_game_position: position,
       level: baseLevel,
       freshness: PLAYER_FRESHNESS,
-      hasBall: false
+      hasBall: false,
+      yellowCardsInMatch: 0,
+      sentOff: false
     })
   }
 
   return {
     players,
-    team: { pass_style: passStyle }
+    team: { pass_style: passStyle, play_style: playStyle }
   }
 }
 
@@ -138,7 +154,9 @@ function getPositionDistance (pos1, pos2) {
  * @param {GameDetails} gameDetails
  */
 function kickoff (playerTeamA, playerTeamB, _gameDetails) {
-  const player = randomItem(playerTeamA.concat(playerTeamB))
+  const availableA = playerTeamA.filter(p => !p.sentOff)
+  const availableB = playerTeamB.filter(p => !p.sentOff)
+  const player = randomItem(availableA.concat(availableB))
   player.hasBall = true
 }
 
@@ -166,19 +184,94 @@ function chanceToShoot (player) {
 }
 
 /**
+ * Check if a player receives a card during a fight
+ * @param {GamePlayer} player
+ * @param {string} playStyle
+ * @param {GameDetails} gameDetails
+ * @param {GamePlayer[]} team
+ * @param {boolean} isTeamA
+ */
+function checkForCard (player, playStyle, gameDetails, team, isTeamA) {
+  if (player.sentOff) return
+
+  const modifier = PLAY_STYLE_MODIFIERS[playStyle] || PLAY_STYLE_MODIFIERS.normal
+
+  // Check for yellow card
+  if (Math.random() < modifier.cardChance) {
+    player.yellowCardsInMatch = (player.yellowCardsInMatch || 0) + 1
+
+    if (isTeamA) {
+      gameDetails.yellowCardsTeamA++
+    } else {
+      gameDetails.yellowCardsTeamB++
+    }
+
+    if (player.yellowCardsInMatch >= 2) {
+      // Second yellow = red card
+      player.sentOff = true
+      if (isTeamA) {
+        gameDetails.redCardsTeamA++
+      } else {
+        gameDetails.redCardsTeamB++
+      }
+
+      // If player had ball, give to teammate
+      if (player.hasBall) {
+        player.hasBall = false
+        const availablePlayers = team.filter(p => !p.sentOff && p.id !== player.id)
+        if (availablePlayers.length > 0) {
+          randomItem(availablePlayers).hasBall = true
+        }
+      }
+    }
+  }
+
+  // Small chance for direct red card (very aggressive play)
+  if (playStyle === 'aggressive' && Math.random() < 0.0005 && !player.sentOff) {
+    player.sentOff = true
+    if (isTeamA) {
+      gameDetails.redCardsTeamA++
+    } else {
+      gameDetails.redCardsTeamB++
+    }
+
+    // If player had ball, give to teammate
+    if (player.hasBall) {
+      player.hasBall = false
+      const availablePlayers = team.filter(p => !p.sentOff && p.id !== player.id)
+      if (availablePlayers.length > 0) {
+        randomItem(availablePlayers).hasBall = true
+      }
+    }
+  }
+}
+
+/**
  * @param {GamePlayer[]} playerTeamA
  * @param {GamePlayer[]} playerTeamB
  * @param {GameDetails} gameDetails
  * @returns {boolean}
  */
 function fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
-  let activePlayer = playerTeamA.find(p => p.hasBall)
+  let activePlayer = playerTeamA.find(p => p.hasBall && !p.sentOff)
   gameDetails.streak = gameDetails.streak ?? 0
   let teamAHasBall = true
 
   if (!activePlayer) {
-    activePlayer = playerTeamB.find(p => p.hasBall)
+    activePlayer = playerTeamB.find(p => p.hasBall && !p.sentOff)
     teamAHasBall = false
+  }
+
+  // If player was sent off, pass ball to teammate
+  if (!activePlayer) {
+    const teamWithBall = teamAHasBall ? playerTeamA : playerTeamB
+    const availablePlayers = teamWithBall.filter(p => !p.sentOff)
+    if (availablePlayers.length > 0) {
+      activePlayer = randomItem(availablePlayers)
+      activePlayer.hasBall = true
+    } else {
+      return true // No players available
+    }
   }
 
   if (Math.random() > chanceToFight(activePlayer)) {
@@ -186,22 +279,48 @@ function fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
   }
 
   const opponentPosition = determineOponentPosition(activePlayer.position)
-  const opponentPlayers = (teamAHasBall ? playerTeamB : playerTeamA)
-    .filter(p => p.position === opponentPosition)
+  const defendingTeam = teamAHasBall ? playerTeamB : playerTeamA
+  const opponentPlayers = defendingTeam.filter(p => p.position === opponentPosition && !p.sentOff)
 
   if (opponentPlayers.length === 0) {
     return true
   }
 
+  // Get play styles
+  const defendingPlayStyle = teamAHasBall ? gameDetails.playStyleB : gameDetails.playStyleA
+  const attackingPlayStyle = teamAHasBall ? gameDetails.playStyleA : gameDetails.playStyleB
+
   for (const opponentPlayer of opponentPlayers) {
-    const chanceToKeepBall = activePlayer.level / (opponentPlayer.level + activePlayer.level)
+    // Apply play style modifiers to fight chance
+    const defendingModifier = PLAY_STYLE_MODIFIERS[defendingPlayStyle] || PLAY_STYLE_MODIFIERS.normal
+    const attackingModifier = PLAY_STYLE_MODIFIERS[attackingPlayStyle] || PLAY_STYLE_MODIFIERS.normal
+
+    // Defender's bonus helps them win the ball
+    const effectiveDefenderLevel = opponentPlayer.level * (1 + defendingModifier.fightBonus)
+    // Attacker's bonus helps them keep the ball
+    const effectiveAttackerLevel = activePlayer.level * (1 + attackingModifier.fightBonus)
+
+    const chanceToKeepBall = effectiveAttackerLevel / (effectiveDefenderLevel + effectiveAttackerLevel)
     const loseBall = Math.random() > chanceToKeepBall
+
+    // Check for cards during the fight
+    checkForCard(opponentPlayer, defendingPlayStyle, gameDetails, defendingTeam, !teamAHasBall)
+    checkForCard(activePlayer, attackingPlayStyle, gameDetails, teamAHasBall ? playerTeamA : playerTeamB, teamAHasBall)
 
     if (!loseBall) {
       gameDetails.streak++
     } else {
       gameDetails.streak = 0
-      opponentPlayer.hasBall = true
+      // If the opponent was sent off during this fight, ball goes to random teammate
+      if (opponentPlayer.sentOff) {
+        const availableDefenders = defendingTeam.filter(p => !p.sentOff)
+        if (availableDefenders.length > 0) {
+          const newPlayer = randomItem(availableDefenders)
+          newPlayer.hasBall = true
+        }
+      } else {
+        opponentPlayer.hasBall = true
+      }
       activePlayer.hasBall = false
       return false
     }
@@ -216,16 +335,18 @@ function fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
  * @returns {boolean}
  */
 function shootBall (playerTeamA, playerTeamB, gameDetails) {
-  let activePlayer = playerTeamA.find(p => p.hasBall)
-  let goalKeeper = playerTeamB.find(p => p.position === 'GK')
+  let activePlayer = playerTeamA.find(p => p.hasBall && !p.sentOff)
+  let goalKeeper = playerTeamB.find(p => p.position === 'GK' && !p.sentOff)
   gameDetails.streak = gameDetails.streak ?? 0
   let teamAHasBall = true
 
   if (!activePlayer) {
-    activePlayer = playerTeamB.find(p => p.hasBall)
-    goalKeeper = playerTeamA.find(p => p.position === 'GK')
+    activePlayer = playerTeamB.find(p => p.hasBall && !p.sentOff)
+    goalKeeper = playerTeamA.find(p => p.position === 'GK' && !p.sentOff)
     teamAHasBall = false
   }
+
+  if (!activePlayer) return true
 
   // Base chance + streak bonus (allows shots even at streak 0)
   const chanceForShoot = Math.min(0.95, chanceToShoot(activePlayer) * (1 + gameDetails.streak * 0.3))
@@ -250,7 +371,9 @@ function shootBall (playerTeamA, playerTeamB, gameDetails) {
         gameDetails.shotsOnTargetTeamB++
       }
     }
-    goalKeeper.hasBall = true
+    if (goalKeeper) {
+      goalKeeper.hasBall = true
+    }
     activePlayer.hasBall = false
     return false
   }
@@ -315,17 +438,21 @@ function selectPassTarget (activePlayer, teammates, passStyle) {
  * @param {GameDetails} gameDetails
  */
 function passBall (playerTeamA, playerTeamB, gameDetails) {
-  let activePlayer = playerTeamA.find(p => p.hasBall)
+  let activePlayer = playerTeamA.find(p => p.hasBall && !p.sentOff)
   let teamAHasBall = true
 
   if (!activePlayer) {
-    activePlayer = playerTeamB.find(p => p.hasBall)
+    activePlayer = playerTeamB.find(p => p.hasBall && !p.sentOff)
     teamAHasBall = false
   }
 
+  if (!activePlayer) return
+
   const teammates = teamAHasBall
-    ? playerTeamA.filter(p => p.id !== activePlayer.id)
-    : playerTeamB.filter(p => p.id !== activePlayer.id)
+    ? playerTeamA.filter(p => p.id !== activePlayer.id && !p.sentOff)
+    : playerTeamB.filter(p => p.id !== activePlayer.id && !p.sentOff)
+
+  if (teammates.length === 0) return
 
   const passStyle = teamAHasBall ? gameDetails.passStyleA : gameDetails.passStyleB
   const nextPlayer = selectPassTarget(activePlayer, teammates, passStyle)
@@ -351,17 +478,23 @@ function playGameStep (playerTeamA, playerTeamB, gameDetails) {
  * @param {GamePlayer[]} teamB
  * @param {string} passStyleA
  * @param {string} passStyleB
- * @returns {{ goalsA: number, goalsB: number, shotsA: number, shotsB: number, shotsOnTargetA: number, shotsOnTargetB: number }}
+ * @param {string} playStyleA
+ * @param {string} playStyleB
+ * @returns {Object}
  */
-function simulateGame (teamA, teamB, passStyleA, passStyleB) {
+function simulateGame (teamA, teamB, passStyleA, passStyleB, playStyleA, playStyleB) {
   // Reset player state
   for (const player of teamA) {
     player.hasBall = false
     player.level = player.freshness * (TEAM_TOTAL_LEVEL / 11)
+    player.yellowCardsInMatch = 0
+    player.sentOff = false
   }
   for (const player of teamB) {
     player.hasBall = false
     player.level = player.freshness * (TEAM_TOTAL_LEVEL / 11)
+    player.yellowCardsInMatch = 0
+    player.sentOff = false
   }
 
   const gameDetails = {
@@ -371,9 +504,15 @@ function simulateGame (teamA, teamB, passStyleA, passStyleB) {
     shotsTeamB: 0,
     shotsOnTargetTeamA: 0,
     shotsOnTargetTeamB: 0,
+    yellowCardsTeamA: 0,
+    yellowCardsTeamB: 0,
+    redCardsTeamA: 0,
+    redCardsTeamB: 0,
     streak: 0,
     passStyleA,
-    passStyleB
+    passStyleB,
+    playStyleA,
+    playStyleB
   }
 
   kickoff(teamA, teamB, gameDetails)
@@ -389,7 +528,11 @@ function simulateGame (teamA, teamB, passStyleA, passStyleB) {
     shotsA: gameDetails.shotsTeamA,
     shotsB: gameDetails.shotsTeamB,
     shotsOnTargetA: gameDetails.shotsOnTargetTeamA,
-    shotsOnTargetB: gameDetails.shotsOnTargetTeamB
+    shotsOnTargetB: gameDetails.shotsOnTargetTeamB,
+    yellowCardsA: gameDetails.yellowCardsTeamA,
+    yellowCardsB: gameDetails.yellowCardsTeamB,
+    redCardsA: gameDetails.redCardsTeamA,
+    redCardsB: gameDetails.redCardsTeamB
   }
 }
 
@@ -424,23 +567,31 @@ function isSignificant (zScore) {
 
 async function runAnalysis () {
   console.log('='.repeat(100))
-  console.log('FORMATION & PASS STYLE ANALYSIS')
+  console.log('FORMATION, PASS STYLE & PLAY STYLE ANALYSIS')
   console.log('='.repeat(100))
   console.log(`Games per matchup: ${GAMES_PER_MATCHUP}`)
   console.log(`Team total level: ${TEAM_TOTAL_LEVEL}`)
   console.log(`Formations tested: ${Object.keys(FORMATIONS).length}`)
   console.log(`Pass styles tested: ${PASS_STYLES.length}`)
-  console.log(`Total combinations: ${Object.keys(FORMATIONS).length * PASS_STYLES.length}`)
+  console.log(`Play styles tested: ${PLAY_STYLES.length}`)
+  console.log(`Total combinations: ${Object.keys(FORMATIONS).length * PASS_STYLES.length * PLAY_STYLES.length}`)
   console.log('='.repeat(100))
   console.log()
 
   const formationNames = Object.keys(FORMATIONS)
   const combinations = []
 
-  // Create all formation + pass style combinations
+  // Create all formation + pass style + play style combinations
   for (const formation of formationNames) {
     for (const passStyle of PASS_STYLES) {
-      combinations.push({ formation, passStyle, key: `${formation} (${passStyle})` })
+      for (const playStyle of PLAY_STYLES) {
+        combinations.push({
+          formation,
+          passStyle,
+          playStyle,
+          key: `${formation} (${passStyle}/${playStyle})`
+        })
+      }
     }
   }
 
@@ -457,6 +608,8 @@ async function runAnalysis () {
       goalsAgainst: 0,
       shots: 0,
       shotsOnTarget: 0,
+      yellowCards: 0,
+      redCards: 0,
       games: 0
     }
     results[combo.key] = {}
@@ -467,6 +620,8 @@ async function runAnalysis () {
   let totalGoals = 0
   let totalShots = 0
   let totalShotsOnTarget = 0
+  let totalYellowCards = 0
+  let totalRedCards = 0
 
   // Run all matchups
   const totalMatchups = combinations.length * combinations.length
@@ -474,8 +629,8 @@ async function runAnalysis () {
 
   for (const comboA of combinations) {
     for (const comboB of combinations) {
-      const { players: teamA } = createTeam(comboA.formation, FORMATIONS[comboA.formation], comboA.passStyle)
-      const { players: teamB } = createTeam(comboB.formation, FORMATIONS[comboB.formation], comboB.passStyle)
+      const { players: teamA } = createTeam(comboA.formation, FORMATIONS[comboA.formation], comboA.passStyle, comboA.playStyle)
+      const { players: teamB } = createTeam(comboB.formation, FORMATIONS[comboB.formation], comboB.passStyle, comboB.playStyle)
 
       let winsA = 0
       let winsB = 0
@@ -486,15 +641,23 @@ async function runAnalysis () {
       let totalShotsB = 0
       let totalShotsOnTargetA = 0
       let totalShotsOnTargetB = 0
+      let totalYellowCardsA = 0
+      let totalYellowCardsB = 0
+      let totalRedCardsA = 0
+      let totalRedCardsB = 0
 
       for (let i = 0; i < GAMES_PER_MATCHUP; i++) {
-        const result = simulateGame(teamA, teamB, comboA.passStyle, comboB.passStyle)
+        const result = simulateGame(teamA, teamB, comboA.passStyle, comboB.passStyle, comboA.playStyle, comboB.playStyle)
         totalGoalsA += result.goalsA
         totalGoalsB += result.goalsB
         totalShotsA += result.shotsA
         totalShotsB += result.shotsB
         totalShotsOnTargetA += result.shotsOnTargetA
         totalShotsOnTargetB += result.shotsOnTargetB
+        totalYellowCardsA += result.yellowCardsA
+        totalYellowCardsB += result.yellowCardsB
+        totalRedCardsA += result.redCardsA
+        totalRedCardsB += result.redCardsB
 
         if (result.goalsA > result.goalsB) winsA++
         else if (result.goalsB > result.goalsA) winsB++
@@ -505,6 +668,8 @@ async function runAnalysis () {
         totalGoals += result.goalsA + result.goalsB
         totalShots += result.shotsA + result.shotsB
         totalShotsOnTarget += result.shotsOnTargetA + result.shotsOnTargetB
+        totalYellowCards += result.yellowCardsA + result.yellowCardsB
+        totalRedCards += result.redCardsA + result.redCardsB
       }
 
       results[comboA.key][comboB.key] = {
@@ -525,6 +690,8 @@ async function runAnalysis () {
       overallStats[comboA.key].goalsAgainst += totalGoalsB
       overallStats[comboA.key].shots += totalShotsA
       overallStats[comboA.key].shotsOnTarget += totalShotsOnTargetA
+      overallStats[comboA.key].yellowCards += totalYellowCardsA
+      overallStats[comboA.key].redCards += totalRedCardsA
       overallStats[comboA.key].games += GAMES_PER_MATCHUP
 
       // Update overall stats for combo B
@@ -535,6 +702,8 @@ async function runAnalysis () {
       overallStats[comboB.key].goalsAgainst += totalGoalsA
       overallStats[comboB.key].shots += totalShotsB
       overallStats[comboB.key].shotsOnTarget += totalShotsOnTargetB
+      overallStats[comboB.key].yellowCards += totalYellowCardsB
+      overallStats[comboB.key].redCards += totalRedCardsB
       overallStats[comboB.key].games += GAMES_PER_MATCHUP
 
       completedMatchups++
@@ -558,14 +727,21 @@ async function runAnalysis () {
   const simShotsPerTeam = (totalShots / totalGames) / 2
   const simShotsOnTargetPerTeam = (totalShotsOnTarget / totalGames) / 2
   const simConversionRate = simGoalsPerTeam / simShotsPerTeam
+  const simYellowCardsPerGame = totalYellowCards / totalGames
+  const simYellowCardsPerTeam = simYellowCardsPerGame / 2
+  const simRedCardsPerGame = totalRedCards / totalGames
+  const simRedCardsPerTeam = simRedCardsPerGame / 2
 
-  console.log('Statistic                  | Simulation | Bundesliga | Difference')
-  console.log('-'.repeat(70))
-  console.log(`Goals per game (total)     | ${simGoalsPerGame.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.goalsPerGameTotal.toFixed(2).padStart(10)} | ${(simGoalsPerGame - BUNDESLIGA_STATS.goalsPerGameTotal).toFixed(2).padStart(10)}`)
-  console.log(`Goals per team             | ${simGoalsPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.goalsPerTeam.toFixed(2).padStart(10)} | ${(simGoalsPerTeam - BUNDESLIGA_STATS.goalsPerTeam).toFixed(2).padStart(10)}`)
-  console.log(`Shots per team             | ${simShotsPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.shotsPerTeam.toFixed(2).padStart(10)} | ${(simShotsPerTeam - BUNDESLIGA_STATS.shotsPerTeam).toFixed(2).padStart(10)}`)
-  console.log(`Shots on target per team   | ${simShotsOnTargetPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.shotsOnTargetPerTeam.toFixed(2).padStart(10)} | ${(simShotsOnTargetPerTeam - BUNDESLIGA_STATS.shotsOnTargetPerTeam).toFixed(2).padStart(10)}`)
-  console.log(`Conversion rate            | ${(simConversionRate * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.conversionRate * 100).toFixed(1).padStart(9)}% | ${((simConversionRate - BUNDESLIGA_STATS.conversionRate) * 100).toFixed(1).padStart(9)}%`)
+  console.log('Statistic                  | Simulation | Bundesliga | Difference | Match?')
+  console.log('-'.repeat(80))
+  console.log(`Goals per game (total)     | ${simGoalsPerGame.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.goalsPerGameTotal.toFixed(2).padStart(10)} | ${(simGoalsPerGame - BUNDESLIGA_STATS.goalsPerGameTotal).toFixed(2).padStart(10)} | ${Math.abs(simGoalsPerGame - BUNDESLIGA_STATS.goalsPerGameTotal) < 0.5 ? '✓' : '✗'}`)
+  console.log(`Goals per team             | ${simGoalsPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.goalsPerTeam.toFixed(2).padStart(10)} | ${(simGoalsPerTeam - BUNDESLIGA_STATS.goalsPerTeam).toFixed(2).padStart(10)} | ${Math.abs(simGoalsPerTeam - BUNDESLIGA_STATS.goalsPerTeam) < 0.3 ? '✓' : '✗'}`)
+  console.log(`Shots per team             | ${simShotsPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.shotsPerTeam.toFixed(2).padStart(10)} | ${(simShotsPerTeam - BUNDESLIGA_STATS.shotsPerTeam).toFixed(2).padStart(10)} | ${Math.abs(simShotsPerTeam - BUNDESLIGA_STATS.shotsPerTeam) < 3 ? '✓' : '✗'}`)
+  console.log(`Shots on target per team   | ${simShotsOnTargetPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.shotsOnTargetPerTeam.toFixed(2).padStart(10)} | ${(simShotsOnTargetPerTeam - BUNDESLIGA_STATS.shotsOnTargetPerTeam).toFixed(2).padStart(10)} | ${Math.abs(simShotsOnTargetPerTeam - BUNDESLIGA_STATS.shotsOnTargetPerTeam) < 1 ? '✓' : '✗'}`)
+  console.log(`Conversion rate            | ${(simConversionRate * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.conversionRate * 100).toFixed(1).padStart(9)}% | ${((simConversionRate - BUNDESLIGA_STATS.conversionRate) * 100).toFixed(1).padStart(9)}% | ${Math.abs(simConversionRate - BUNDESLIGA_STATS.conversionRate) < 0.03 ? '✓' : '✗'}`)
+  console.log(`Yellow cards per game      | ${simYellowCardsPerGame.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.yellowCardsPerGame.toFixed(2).padStart(10)} | ${(simYellowCardsPerGame - BUNDESLIGA_STATS.yellowCardsPerGame).toFixed(2).padStart(10)} | ${Math.abs(simYellowCardsPerGame - BUNDESLIGA_STATS.yellowCardsPerGame) < 1 ? '✓' : '✗'}`)
+  console.log(`Yellow cards per team      | ${simYellowCardsPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.yellowCardsPerTeam.toFixed(2).padStart(10)} | ${(simYellowCardsPerTeam - BUNDESLIGA_STATS.yellowCardsPerTeam).toFixed(2).padStart(10)} | ${Math.abs(simYellowCardsPerTeam - BUNDESLIGA_STATS.yellowCardsPerTeam) < 0.5 ? '✓' : '✗'}`)
+  console.log(`Red cards per game         | ${simRedCardsPerGame.toFixed(3).padStart(10)} | ${BUNDESLIGA_STATS.redCardsPerGame.toFixed(3).padStart(10)} | ${(simRedCardsPerGame - BUNDESLIGA_STATS.redCardsPerGame).toFixed(3).padStart(10)} | ${Math.abs(simRedCardsPerGame - BUNDESLIGA_STATS.redCardsPerGame) < 0.1 ? '✓' : '✗'}`)
   console.log()
 
   // ============================================================================
@@ -573,7 +749,7 @@ async function runAnalysis () {
   // ============================================================================
 
   console.log('='.repeat(100))
-  console.log('TOP 15 COMBINATIONS (by win rate)')
+  console.log('TOP 20 COMBINATIONS (by win rate)')
   console.log('='.repeat(100))
   console.log()
 
@@ -585,46 +761,101 @@ async function runAnalysis () {
       key: combo.key,
       formation: combo.formation,
       passStyle: combo.passStyle,
+      playStyle: combo.playStyle,
       winRate,
       goalDiff,
       avgGoalsFor: stats.goalsFor / stats.games,
       avgGoalsAgainst: stats.goalsAgainst / stats.games,
       avgShots: stats.shots / stats.games,
       avgShotsOnTarget: stats.shotsOnTarget / stats.games,
+      avgYellowCards: stats.yellowCards / stats.games,
+      avgRedCards: stats.redCards / stats.games,
       ...stats
     }
   }).sort((a, b) => b.winRate - a.winRate)
 
-  console.log('Rank | Combination              | Win Rate | GF/Game | GA/Game | Shots | Shots OT')
-  console.log('-'.repeat(90))
+  console.log('Rank | Combination                     | Win Rate | GF/Gm | GA/Gm | YC/Gm | RC/Gm')
+  console.log('-'.repeat(95))
 
-  rankings.slice(0, 15).forEach((r, i) => {
+  rankings.slice(0, 20).forEach((r, i) => {
     console.log(
       `${String(i + 1).padStart(4)} | ` +
-      `${r.key.padEnd(24)} | ` +
+      `${r.key.padEnd(31)} | ` +
       `${(r.winRate * 100).toFixed(1).padStart(6)}% | ` +
-      `${r.avgGoalsFor.toFixed(2).padStart(7)} | ` +
-      `${r.avgGoalsAgainst.toFixed(2).padStart(7)} | ` +
-      `${r.avgShots.toFixed(1).padStart(5)} | ` +
-      `${r.avgShotsOnTarget.toFixed(1).padStart(8)}`
+      `${r.avgGoalsFor.toFixed(2).padStart(5)} | ` +
+      `${r.avgGoalsAgainst.toFixed(2).padStart(5)} | ` +
+      `${r.avgYellowCards.toFixed(2).padStart(5)} | ` +
+      `${r.avgRedCards.toFixed(3).padStart(5)}`
     )
   })
 
   console.log()
-  console.log('BOTTOM 5 COMBINATIONS')
-  console.log('-'.repeat(90))
+  console.log('BOTTOM 10 COMBINATIONS')
+  console.log('-'.repeat(95))
 
-  rankings.slice(-5).forEach((r, i) => {
+  rankings.slice(-10).forEach((r, i) => {
     console.log(
-      `${String(rankings.length - 4 + i).padStart(4)} | ` +
-      `${r.key.padEnd(24)} | ` +
+      `${String(rankings.length - 9 + i).padStart(4)} | ` +
+      `${r.key.padEnd(31)} | ` +
       `${(r.winRate * 100).toFixed(1).padStart(6)}% | ` +
-      `${r.avgGoalsFor.toFixed(2).padStart(7)} | ` +
-      `${r.avgGoalsAgainst.toFixed(2).padStart(7)} | ` +
-      `${r.avgShots.toFixed(1).padStart(5)} | ` +
-      `${r.avgShotsOnTarget.toFixed(1).padStart(8)}`
+      `${r.avgGoalsFor.toFixed(2).padStart(5)} | ` +
+      `${r.avgGoalsAgainst.toFixed(2).padStart(5)} | ` +
+      `${r.avgYellowCards.toFixed(2).padStart(5)} | ` +
+      `${r.avgRedCards.toFixed(3).padStart(5)}`
     )
   })
+
+  // ============================================================================
+  // Play Style Analysis
+  // ============================================================================
+
+  console.log()
+  console.log('='.repeat(100))
+  console.log('PLAY STYLE ANALYSIS (aggregated across all formations and pass styles)')
+  console.log('='.repeat(100))
+  console.log()
+
+  const playStyleStats = {}
+  for (const style of PLAY_STYLES) {
+    playStyleStats[style] = { wins: 0, draws: 0, losses: 0, goals: 0, games: 0, shots: 0, shotsOnTarget: 0, yellowCards: 0, redCards: 0 }
+  }
+
+  for (const combo of combinations) {
+    const stats = overallStats[combo.key]
+    playStyleStats[combo.playStyle].wins += stats.wins
+    playStyleStats[combo.playStyle].draws += stats.draws
+    playStyleStats[combo.playStyle].losses += stats.losses
+    playStyleStats[combo.playStyle].goals += stats.goalsFor
+    playStyleStats[combo.playStyle].games += stats.games
+    playStyleStats[combo.playStyle].shots += stats.shots
+    playStyleStats[combo.playStyle].shotsOnTarget += stats.shotsOnTarget
+    playStyleStats[combo.playStyle].yellowCards += stats.yellowCards
+    playStyleStats[combo.playStyle].redCards += stats.redCards
+  }
+
+  console.log('Play Style  | Win Rate | Avg Goals | Avg Shots | YC/Game | RC/Game | Analysis')
+  console.log('-'.repeat(100))
+  for (const style of PLAY_STYLES) {
+    const s = playStyleStats[style]
+    const winRate = s.wins / s.games
+    const avgGoals = s.goals / s.games
+    const avgShots = s.shots / s.games
+    const avgYC = s.yellowCards / s.games
+    const avgRC = s.redCards / s.games
+    let analysis = ''
+    if (style === 'aggressive') analysis = 'More cards, slight fight advantage'
+    if (style === 'normal') analysis = 'Balanced approach'
+    if (style === 'friendly') analysis = 'Fewer cards, slight fight disadvantage'
+    console.log(
+      `${style.padEnd(11)} | ` +
+      `${(winRate * 100).toFixed(2).padStart(6)}% | ` +
+      `${avgGoals.toFixed(2).padStart(9)} | ` +
+      `${avgShots.toFixed(1).padStart(9)} | ` +
+      `${avgYC.toFixed(2).padStart(7)} | ` +
+      `${avgRC.toFixed(3).padStart(7)} | ` +
+      `${analysis}`
+    )
+  }
 
   // ============================================================================
   // Pass Style Analysis
@@ -632,7 +863,7 @@ async function runAnalysis () {
 
   console.log()
   console.log('='.repeat(100))
-  console.log('PASS STYLE ANALYSIS (aggregated across all formations)')
+  console.log('PASS STYLE ANALYSIS (aggregated across all formations and play styles)')
   console.log('='.repeat(100))
   console.log()
 
@@ -670,12 +901,12 @@ async function runAnalysis () {
   }
 
   // ============================================================================
-  // Formation Analysis (aggregated across all pass styles)
+  // Formation Analysis (aggregated across all pass and play styles)
   // ============================================================================
 
   console.log()
   console.log('='.repeat(100))
-  console.log('FORMATION ANALYSIS (aggregated across all pass styles)')
+  console.log('FORMATION ANALYSIS (aggregated across all pass and play styles)')
   console.log('='.repeat(100))
   console.log()
 
@@ -748,12 +979,12 @@ async function runAnalysis () {
 
   if (significantCounters.length === 0) {
     console.log('No statistically significant counter matchups found (>55% win rate).')
-    console.log('This suggests the game is well-balanced across formations and pass styles.')
+    console.log('This suggests the game is well-balanced across formations, pass styles, and play styles.')
   } else {
     console.log(`Found ${significantCounters.length} significant counter matchups:`)
     console.log()
     significantCounters.slice(0, 20).forEach(c => {
-      console.log(`${c.attacker.padEnd(24)} beats ${c.defender.padEnd(24)} (${(c.winRate * 100).toFixed(1)}% win rate, z=${c.zScore.toFixed(2)})`)
+      console.log(`${c.attacker.padEnd(31)} beats ${c.defender.padEnd(31)} (${(c.winRate * 100).toFixed(1)}% win rate, z=${c.zScore.toFixed(2)})`)
     })
   }
 
@@ -777,20 +1008,33 @@ async function runAnalysis () {
   console.log(`Win rate spread (max - min): ${(maxSpread * 100).toFixed(2)}%`)
   console.log(`Win rate std deviation: ${(stdDev * 100).toFixed(2)}%`)
   console.log()
-  console.log(`Best combination: ${rankings[0].key} (${(rankings[0].winRate * 100).toFixed(1)}% win rate)`)
-  console.log(`Worst combination: ${rankings[rankings.length - 1].key} (${(rankings[rankings.length - 1].winRate * 100).toFixed(1)}% win rate)`)
+  console.log(`BEST combination: ${rankings[0].key} (${(rankings[0].winRate * 100).toFixed(1)}% win rate)`)
+  console.log(`WORST combination: ${rankings[rankings.length - 1].key} (${(rankings[rankings.length - 1].winRate * 100).toFixed(1)}% win rate)`)
   console.log()
 
-  // Pass style conclusion
+  // Best by category
+  const bestFormation = formationRankings[0].formation
   const bestPassStyle = PASS_STYLES.reduce((best, style) =>
     passStyleStats[style].wins / passStyleStats[style].games > passStyleStats[best].wins / passStyleStats[best].games ? style : best
   )
-  const worstPassStyle = PASS_STYLES.reduce((worst, style) =>
-    passStyleStats[style].wins / passStyleStats[style].games < passStyleStats[worst].wins / passStyleStats[worst].games ? style : worst
+  const bestPlayStyle = PLAY_STYLES.reduce((best, style) =>
+    playStyleStats[style].wins / playStyleStats[style].games > playStyleStats[best].wins / playStyleStats[best].games ? style : best
   )
 
+  console.log(`Best formation overall: ${bestFormation} (${(formationStats[bestFormation].wins / formationStats[bestFormation].games * 100).toFixed(2)}%)`)
   console.log(`Best pass style overall: ${bestPassStyle} (${(passStyleStats[bestPassStyle].wins / passStyleStats[bestPassStyle].games * 100).toFixed(2)}%)`)
-  console.log(`Worst pass style overall: ${worstPassStyle} (${(passStyleStats[worstPassStyle].wins / passStyleStats[worstPassStyle].games * 100).toFixed(2)}%)`)
+  console.log(`Best play style overall: ${bestPlayStyle} (${(playStyleStats[bestPlayStyle].wins / playStyleStats[bestPlayStyle].games * 100).toFixed(2)}%)`)
+  console.log()
+
+  // Play style analysis
+  const aggressiveWinRate = playStyleStats.aggressive.wins / playStyleStats.aggressive.games
+  const normalWinRate = playStyleStats.normal.wins / playStyleStats.normal.games
+  const friendlyWinRate = playStyleStats.friendly.wins / playStyleStats.friendly.games
+
+  console.log('PLAY STYLE IMPACT:')
+  console.log(`  Aggressive vs Normal: ${((aggressiveWinRate - normalWinRate) * 100).toFixed(2)}% difference`)
+  console.log(`  Normal vs Friendly: ${((normalWinRate - friendlyWinRate) * 100).toFixed(2)}% difference`)
+  console.log(`  Aggressive YC/game: ${(playStyleStats.aggressive.yellowCards / playStyleStats.aggressive.games).toFixed(2)} vs Normal: ${(playStyleStats.normal.yellowCards / playStyleStats.normal.games).toFixed(2)} vs Friendly: ${(playStyleStats.friendly.yellowCards / playStyleStats.friendly.games).toFixed(2)}`)
   console.log()
 
   if (maxSpread < 0.03) {

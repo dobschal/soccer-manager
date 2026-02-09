@@ -58,14 +58,14 @@ export class MyTeamPage extends UIElement {
         </div>
         <div class="col-12 col-xl-6">
           ${new PlayerList(
-    this.data.players,
-    true,
-    p => { // open player modal
-      setQueryParams({
-        player_id: p.id
+      this.data.players,
+      true,
+      p => { // open player modal
+        setQueryParams({
+          player_id: p.id
+        })
       })
-    })
-  }
+    }
         </div>
       </div>
     `
@@ -100,7 +100,10 @@ export class MyTeamPage extends UIElement {
    * @param {string} params.sub_page
    * @returns {Promise<void>}
    */
-  async onQueryChanged ({ player_id: playerId, sub_page: subPage }) {
+  async onQueryChanged ({
+    player_id: playerId,
+    sub_page: subPage
+  }) {
     if (playerId) {
       await showPlayerModal(Number(playerId))
     }
@@ -141,7 +144,9 @@ export class MyTeamPage extends UIElement {
     })
 
     return `
-      <h2 id="${teamNameId}" style="cursor: pointer;" title="${t('myTeam.clickToEditName')}">${this.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i></h2>
+      <h2 id="${teamNameId}" style="cursor: pointer;" title="${t('myTeam.clickToEditName')}">
+        ${this.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i>
+      </h2>
       <div class="row">
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 border-0">
@@ -175,14 +180,18 @@ export class MyTeamPage extends UIElement {
             <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
               <h5 class="card-title mb-0">${t('myTeam.tactic')}</h5>
             </div>
-            <div class="card-body">
-              <p class="card-text">${t('myTeam.chooseLineup')}</p>
+            <div class="card-body">              
               <div class="form-group mb-3">
+                <p class="card-text mb-0">${t('myTeam.chooseLineup')}</p>
                 ${this._renderLineupSelect()}
-              </div>
-              <p class="card-text">${t('myTeam.choosePassStyle')}</p>
-              <div class="form-group">
+              </div>              
+              <div class="form-group mb-3">
+                <p class="card-text mb-0">${t('myTeam.choosePassStyle')}</p>
                 ${this._renderPassStyleSelect()}
+              </div>              
+              <div class="form-group">
+              <p class="card-text mb-0">${t('myTeam.choosePlayStyle')}</p>
+                ${this._renderPlayStyleSelect()}
               </div>
             </div>
           </div>
@@ -255,6 +264,36 @@ export class MyTeamPage extends UIElement {
     return `
       <select id="${id}" class="form-control">
         ${passStyles.map(style => `<option value="${style}">${t('myTeam.passStyle.' + style)}</option>`).join('')}
+      </select>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderPlayStyleSelect () {
+    const id = generateId()
+    const playStyles = ['aggressive', 'normal', 'friendly']
+    const currentPlayStyle = this.data.team.play_style || 'normal'
+    onChange(id, async (event) => {
+      if (event.target.value !== currentPlayStyle) {
+        try {
+          await server.updatePlayStyle(event.target.value)
+          this.data.team.play_style = event.target.value
+          toast(t('myTeam.playStyleUpdated'), 'success')
+        } catch (e) {
+          showServerError(e)
+        }
+      }
+    })
+    setTimeout(() => {
+      const element = el(id)
+      if (!element) return
+      element.value = currentPlayStyle
+    })
+    return `
+      <select id="${id}" class="form-control">
+        ${playStyles.map(style => `<option value="${style}" title="${t('myTeam.playStyleDesc.' + style)}">${t('myTeam.playStyle.' + style)}</option>`).join('')}
       </select>
     `
   }

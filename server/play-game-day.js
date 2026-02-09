@@ -13,6 +13,7 @@ import { completeStadiumConstructions } from './helper/stadiumHelper.js'
 import { checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
 import { processYouthTraining } from './helper/youthPlayerHelper.js'
+import { addLogMessage } from './helper/logMessageHelper.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -48,7 +49,20 @@ import { processYouthTraining } from './helper/youthPlayerHelper.js'
  */
 
 /**
- * @typedef {KickoffLogEvent | PassLogEvent | FightLogEvent | KeeperHoldsLogEvent | GoalLogEvent} GameLogEvent
+ * @typedef {object} YellowCardLogEvent
+ * @property {true} yellowCard
+ * @property {number} player
+ */
+
+/**
+ * @typedef {object} RedCardLogEvent
+ * @property {true} redCard
+ * @property {number} player
+ * @property {boolean} [secondYellow] - True if red card from second yellow
+ */
+
+/**
+ * @typedef {KickoffLogEvent | PassLogEvent | FightLogEvent | KeeperHoldsLogEvent | GoalLogEvent | YellowCardLogEvent | RedCardLogEvent} GameLogEvent
  */
 
 /**
@@ -64,7 +78,7 @@ import { processYouthTraining } from './helper/youthPlayerHelper.js'
  */
 
 /**
- * @typedef {PlayerType & { hasBall?: boolean }} GamePlayer
+ * @typedef {PlayerType & { hasBall?: boolean, yellowCardsInMatch?: number, sentOff?: boolean }} GamePlayer
  */
 
 /**
@@ -80,25 +94,73 @@ import { processYouthTraining } from './helper/youthPlayerHelper.js'
  * @property {TeamType} teamA
  * @property {TeamType} teamB
  * @property {number} [streak]
+ * @property {Object<number, number>} [yellowCardsInMatch] - Yellow cards by player id during this match
+ * @property {number[]} [sentOffPlayerIds] - Player IDs sent off during this match
  */
+
+/**
+ * Play style modifiers for fight chance and card chance
+ * @type {Object<string, {fightBonus: number, cardChance: number}>}
+ */
+const PLAY_STYLE_MODIFIERS = {
+  aggressive: { fightBonus: 0.15, cardChance: 0.002 }, // +15% fight chance, higher card chance
+  normal: { fightBonus: 0, cardChance: 0.0008 },
+  friendly: { fightBonus: -0.15, cardChance: 0.0003 } // -15% fight chance, lower card chance
+}
 
 /**
  * Position coordinates for calculating pass distances
  * @type {Object<string, {x: number, y: number}>}
  */
 const POSITION_COORDS = {
-  GK: { x: 1, y: 0 },
-  LD: { x: 0, y: 1 },
-  CD: { x: 1, y: 1 },
-  RD: { x: 2, y: 1 },
-  DM: { x: 1, y: 1.5 },
-  LM: { x: 0, y: 2 },
-  CM: { x: 1, y: 2 },
-  RM: { x: 2, y: 2 },
-  OM: { x: 1, y: 2.5 },
-  LA: { x: 0, y: 3 },
-  CA: { x: 1, y: 3 },
-  RA: { x: 2, y: 3 }
+  GK: {
+    x: 1,
+    y: 0
+  },
+  LD: {
+    x: 0,
+    y: 1
+  },
+  CD: {
+    x: 1,
+    y: 1
+  },
+  RD: {
+    x: 2,
+    y: 1
+  },
+  DM: {
+    x: 1,
+    y: 1.5
+  },
+  LM: {
+    x: 0,
+    y: 2
+  },
+  CM: {
+    x: 1,
+    y: 2
+  },
+  RM: {
+    x: 2,
+    y: 2
+  },
+  OM: {
+    x: 1,
+    y: 2.5
+  },
+  LA: {
+    x: 0,
+    y: 3
+  },
+  CA: {
+    x: 1,
+    y: 3
+  },
+  RA: {
+    x: 2,
+    y: 3
+  }
 }
 
 /**
@@ -368,12 +430,24 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
  * @returns {Promise<void>}
  */
 async function _playGame (game) {
-  const [[teamA], [teamB], playerTeamA, playerTeamB] = await Promise.all([
+  const [[teamA], [teamB], allPlayerTeamA, allPlayerTeamB] = await Promise.all([
     await query('SELECT * FROM team WHERE id=?', [game.team_1_id]),
     await query('SELECT * FROM team WHERE id=?', [game.team_2_id]),
     await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>\'\' AND in_game_position IS NOT NULL', [game.team_1_id]),
     await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>\'\' AND in_game_position IS NOT NULL', [game.team_2_id])
   ])
+
+  // Filter out suspended players (they miss this game)
+  const playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
+  const playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
+
+  // Clear suspensions for players who served their ban (they were in lineup but filtered out)
+  const suspendedPlayersA = allPlayerTeamA.filter(p => p.is_suspended)
+  const suspendedPlayersB = allPlayerTeamB.filter(p => p.is_suspended)
+  for (const player of [...suspendedPlayersA, ...suspendedPlayersB]) {
+    await query('UPDATE player SET is_suspended=0, yellow_cards=0, red_cards=0 WHERE id=?', [player.id])
+    console.log(`Suspension cleared for ${player.name}`)
+  }
   const strengthTeamA = playerTeamA.reduce((totalStrength, player) => totalStrength + player.level, 0)
   const strengthTeamB = playerTeamB.reduce((totalStrength, player) => totalStrength + player.level, 0)
   const stadiumDetails = await _giveStadiumTicketEarnings(teamA, teamB, strengthTeamA, strengthTeamB, game.game_day, game.season)
@@ -408,18 +482,99 @@ async function _playGame (game) {
     new Date(),
     game.id
   ])
+
+  // Update freshness and card counts for all players
   for (const player of playerTeamA) {
     // Goalkeepers lose half the freshness of other players
     const freshnessLoss = player.position === 'GK' ? 0.05 : 0.1
     player.freshness = Math.max(0, player.freshness - freshnessLoss)
-    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
+    await _updatePlayerAfterGame(player, gameDetails, teamA)
   }
   for (const player of playerTeamB) {
     // Goalkeepers lose half the freshness of other players
     const freshnessLoss = player.position === 'GK' ? 0.05 : 0.1
     player.freshness = Math.max(0, player.freshness - freshnessLoss)
-    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
+    await _updatePlayerAfterGame(player, gameDetails, teamB)
   }
+}
+
+/**
+ * Update player card counts and suspension status after a game
+ * @param {GamePlayer} player
+ * @param {GameDetails} gameDetails
+ * @param {TeamType} team
+ */
+async function _updatePlayerAfterGame (player, gameDetails, team) {
+  const yellowsInMatch = gameDetails.yellowCardsInMatch?.[player.id] || 0
+  const sentOff = gameDetails.sentOffPlayerIds?.includes(player.id)
+
+  // Get current card counts from database
+  const [currentPlayer] = await query('SELECT yellow_cards, red_cards FROM player WHERE id=?', [player.id])
+  let newYellowCards = (currentPlayer?.yellow_cards || 0) + yellowsInMatch
+  let newRedCards = currentPlayer?.red_cards || 0
+  let isSuspended = false
+
+  if (sentOff) {
+    // Red card = suspended for next match
+    newRedCards = 1
+    isSuspended = true
+
+    // Add log message for team owner
+    if (team.user_id) {
+      const locale = await getUserLocale(team.user_id)
+      await addLogMessage(
+        t('log.playerRedCard', { playerName: player.name }, locale),
+        team,
+        'OPEN_PLAYER',
+        player.id,
+        'square'
+      )
+      await addLogMessage(
+        t('log.playerSuspended', { playerName: player.name }, locale),
+        team,
+        'OPEN_PLAYER',
+        player.id,
+        'ban'
+      )
+    }
+  } else if (newYellowCards >= 5) {
+    // 5 yellow cards = suspended for next match
+    isSuspended = true
+
+    if (team.user_id) {
+      const locale = await getUserLocale(team.user_id)
+      await addLogMessage(
+        t('log.playerFiveYellows', { playerName: player.name }, locale),
+        team,
+        'OPEN_PLAYER',
+        player.id,
+        'exclamation-triangle'
+      )
+      await addLogMessage(
+        t('log.playerSuspended', { playerName: player.name }, locale),
+        team,
+        'OPEN_PLAYER',
+        player.id,
+        'ban'
+      )
+    }
+  } else if (yellowsInMatch > 0 && team.user_id) {
+    // Log yellow card(s) for this match
+    const locale = await getUserLocale(team.user_id)
+    await addLogMessage(
+      t('log.playerYellowCard', { playerName: player.name, count: yellowsInMatch }, locale),
+      team,
+      'OPEN_PLAYER',
+      player.id,
+      'square'
+    )
+  }
+
+  // Update player in database
+  await query(
+    'UPDATE player SET freshness=?, yellow_cards=?, red_cards=?, is_suspended=? WHERE id=?',
+    [player.freshness, newYellowCards, newRedCards, isSuspended ? 1 : 0, player.id]
+  )
 }
 
 /**
@@ -445,7 +600,7 @@ function _kickoff (playerTeamA, playerTeamB, gameDetails) {
  * @returns {void}
  */
 function _playGameStep (playerTeamA, playerTeamB, gameDetails) {
-  if (!_fightsOponents(playerTeamA, playerTeamB, gameDetails)) return
+  if (!_fightsOpponents(playerTeamA, playerTeamB, gameDetails)) return
   if (!_shootBall(playerTeamA, playerTeamB, gameDetails)) return
   _passBall(playerTeamA, playerTeamB, gameDetails)
 }
@@ -456,31 +611,70 @@ function _playGameStep (playerTeamA, playerTeamB, gameDetails) {
  * @param {GameDetails} gameDetails
  * @returns {boolean} false if lost ball
  */
-function _fightsOponents (playerTeamA, playerTeamB, gameDetails) {
-  let activePlayer = playerTeamA.find(p => p.hasBall)
+function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
+  let activePlayer = playerTeamA.find(p => p.hasBall && !p.sentOff)
   gameDetails.streak = gameDetails.streak ?? 0
+  gameDetails.yellowCardsInMatch = gameDetails.yellowCardsInMatch ?? {}
+  gameDetails.sentOffPlayerIds = gameDetails.sentOffPlayerIds ?? []
   let teamAHasBall = true
   if (!activePlayer) {
-    activePlayer = playerTeamB.find(p => p.hasBall)
+    activePlayer = playerTeamB.find(p => p.hasBall && !p.sentOff)
     teamAHasBall = false
   }
+
+  // If player was sent off, pass ball to teammate
+  if (!activePlayer) {
+    const teamWithBall = teamAHasBall ? playerTeamA : playerTeamB
+    const availablePlayers = teamWithBall.filter(p => !p.sentOff)
+    if (availablePlayers.length > 0) {
+      activePlayer = randomItem(availablePlayers)
+      activePlayer.hasBall = true
+    } else {
+      return true // No players available
+    }
+  }
+
   if (Math.random() > _chanceToFight(activePlayer)) {
     return true
   }
+
   const oponentPosition = determineOponentPosition(activePlayer.position)
-  const oponentPlayers = (teamAHasBall ? playerTeamB : playerTeamA).filter(p => p.position === oponentPosition)
+  const defendingTeam = teamAHasBall ? playerTeamB : playerTeamA
+  const oponentPlayers = defendingTeam.filter(p => p.position === oponentPosition && !p.sentOff)
+
   if (oponentPlayers.length === 0) {
     console.log(`${activePlayer.name} has no oponents`)
     return true
   }
+
+  const defendingTeamObj = teamAHasBall ? gameDetails.teamB : gameDetails.teamA
+  const attackingTeamObj = teamAHasBall ? gameDetails.teamA : gameDetails.teamB
+  const defendingPlayStyle = defendingTeamObj.play_style || 'normal'
+  const attackingPlayStyle = attackingTeamObj.play_style || 'normal'
+
   for (const oponentPlayer of oponentPlayers) {
-    const chanceToLooseBall = activePlayer.level / (oponentPlayer.level + activePlayer.level)
+    // Apply play style modifiers to fight chance
+    const defendingModifier = PLAY_STYLE_MODIFIERS[defendingPlayStyle] || PLAY_STYLE_MODIFIERS.normal
+    const attackingModifier = PLAY_STYLE_MODIFIERS[attackingPlayStyle] || PLAY_STYLE_MODIFIERS.normal
+
+    // Defender's bonus helps them win the ball
+    const effectiveDefenderLevel = oponentPlayer.level * (1 + defendingModifier.fightBonus)
+    // Attacker's bonus helps them keep the ball
+    const effectiveAttackerLevel = activePlayer.level * (1 + attackingModifier.fightBonus)
+
+    const chanceToLooseBall = effectiveAttackerLevel / (effectiveDefenderLevel + effectiveAttackerLevel)
     const looseBall = Math.random() > chanceToLooseBall
+
+    // Check for cards during the fight (defender has card chance based on their play style)
+    _checkForCard(oponentPlayer, defendingPlayStyle, gameDetails, defendingTeam)
+    _checkForCard(activePlayer, attackingPlayStyle, gameDetails, teamAHasBall ? playerTeamA : playerTeamB)
+
     gameDetails.log.push({
       player: activePlayer.id,
       oponentPlayer: oponentPlayer.id,
       lostBall: looseBall
     })
+
     if (!looseBall) {
       gameDetails.streak++
       if (gameDetails.streak > 10) {
@@ -488,12 +682,87 @@ function _fightsOponents (playerTeamA, playerTeamB, gameDetails) {
       }
     } else {
       gameDetails.streak = 0
-      oponentPlayer.hasBall = true
+      // If the opponent was sent off during this fight, ball goes to random teammate
+      if (oponentPlayer.sentOff) {
+        const availableDefenders = defendingTeam.filter(p => !p.sentOff)
+        if (availableDefenders.length > 0) {
+          const newPlayer = randomItem(availableDefenders)
+          newPlayer.hasBall = true
+        }
+      } else {
+        oponentPlayer.hasBall = true
+      }
       activePlayer.hasBall = false
       return false
     }
   }
   return true
+}
+
+/**
+ * Check if a player receives a card during a fight
+ * @param {GamePlayer} player
+ * @param {string} playStyle
+ * @param {GameDetails} gameDetails
+ * @param {GamePlayer[]} team
+ */
+function _checkForCard (player, playStyle, gameDetails, team) {
+  if (player.sentOff) return
+
+  const modifier = PLAY_STYLE_MODIFIERS[playStyle] || PLAY_STYLE_MODIFIERS.normal
+
+  // Check for yellow card
+  if (Math.random() < modifier.cardChance) {
+    player.yellowCardsInMatch = (player.yellowCardsInMatch || 0) + 1
+    gameDetails.yellowCardsInMatch[player.id] = player.yellowCardsInMatch
+
+    if (player.yellowCardsInMatch >= 2) {
+      // Second yellow = red card
+      player.sentOff = true
+      gameDetails.sentOffPlayerIds.push(player.id)
+      gameDetails.log.push({
+        redCard: true,
+        player: player.id,
+        secondYellow: true
+      })
+      console.log(`RED CARD (2nd yellow): ${player.name}`)
+
+      // If player had ball, give to teammate
+      if (player.hasBall) {
+        player.hasBall = false
+        const availablePlayers = team.filter(p => !p.sentOff && p.id !== player.id)
+        if (availablePlayers.length > 0) {
+          randomItem(availablePlayers).hasBall = true
+        }
+      }
+    } else {
+      gameDetails.log.push({
+        yellowCard: true,
+        player: player.id
+      })
+      console.log(`YELLOW CARD: ${player.name}`)
+    }
+  }
+
+  // Small chance for direct red card (very aggressive play)
+  if (playStyle === 'aggressive' && Math.random() < 0.0005 && !player.sentOff) {
+    player.sentOff = true
+    gameDetails.sentOffPlayerIds.push(player.id)
+    gameDetails.log.push({
+      redCard: true,
+      player: player.id
+    })
+    console.log(`DIRECT RED CARD: ${player.name}`)
+
+    // If player had ball, give to teammate
+    if (player.hasBall) {
+      player.hasBall = false
+      const availablePlayers = team.filter(p => !p.sentOff && p.id !== player.id)
+      if (availablePlayers.length > 0) {
+        randomItem(availablePlayers).hasBall = true
+      }
+    }
+  }
 }
 
 /**

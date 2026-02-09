@@ -637,6 +637,26 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Add play_style column to team table',
+  async run () {
+    await query("ALTER TABLE team ADD COLUMN play_style VARCHAR(20) DEFAULT 'normal'")
+    const teams = await query('SELECT id FROM team')
+    const playStyles = ['aggressive', 'normal', 'friendly']
+    const promises = []
+    for (const team of teams) {
+      const randomStyle = playStyles[Math.floor(Math.random() * playStyles.length)]
+      promises.push(query('UPDATE team SET play_style=? WHERE id=?', [randomStyle, team.id]))
+    }
+    await Promise.all(promises)
+  }
+}, {
+  name: 'Add card columns to player table',
+  async run () {
+    await query('ALTER TABLE player ADD COLUMN yellow_cards INT DEFAULT 0')
+    await query('ALTER TABLE player ADD COLUMN red_cards INT DEFAULT 0')
+    await query('ALTER TABLE player ADD COLUMN is_suspended TINYINT(1) DEFAULT 0')
+  }
 }]
 
 /**

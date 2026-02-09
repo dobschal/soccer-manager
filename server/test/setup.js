@@ -50,6 +50,9 @@ export const testData = {
     birth_season: 0,
     hair_color: 0,
     skin_color: 0,
+    yellow_cards: 0,
+    red_cards: 0,
+    is_suspended: false,
     ...overrides
   }),
 

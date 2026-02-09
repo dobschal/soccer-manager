@@ -159,5 +159,20 @@ export default {
     const team = await getTeam(req)
     await query('UPDATE team SET pass_style=? WHERE id=?', [passStyle, team.id])
     return { success: true }
+  },
+
+  /**
+   * @param {string} playStyle - 'aggressive', 'normal', or 'friendly'
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updatePlayStyle (playStyle, req) {
+    const validStyles = ['aggressive', 'normal', 'friendly']
+    if (!validStyles.includes(playStyle)) {
+      throw new BadRequestError('Invalid play style')
+    }
+    const team = await getTeam(req)
+    await query('UPDATE team SET play_style=? WHERE id=?', [playStyle, team.id])
+    return { success: true }
   }
 }

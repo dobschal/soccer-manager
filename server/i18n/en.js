@@ -104,6 +104,14 @@ export default {
   'log.youthPlayerFired': 'Youth player {playerName} has been released from the youth team.',
   'log.youthPlayerAt18Warning': 'Warning: Youth player {playerName} will be automatically released next season if not promoted!',
 
+  // Log messages - Cards and suspensions
+  'log.playerYellowCard': '{playerName} received a yellow card!',
+  'log.playerRedCard': '{playerName} received a red card!',
+  'log.playerFiveYellows': '{playerName} has accumulated 5 yellow cards!',
+  'log.playerSuspended': '{playerName} is suspended and will miss the next match.',
+  'log.playerRemovedFromLineup': '{playerName} was automatically removed from the lineup due to suspension.',
+  'log.playerAt4Yellows': 'Warning: {playerName} has 4 yellow cards. One more and they will be suspended!',
+
   // Finance reasons
   'finance.playerSalaries': 'Player salaries',
   'finance.ticketRevenue': 'Ticket revenue',

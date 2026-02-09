@@ -65,7 +65,7 @@ export async function deleteLogMessage (messageId, req) {
 }
 
 /**
- * Checks a team for issues (incomplete lineup, low freshness) and adds log messages
+ * Checks a team for issues (incomplete lineup, low freshness, suspended players) and adds log messages
  * @param {TeamType} team
  * @returns {Promise<void>}
  */
@@ -77,10 +77,27 @@ export async function checkTeamAndNotify (team) {
   const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
   const playersInLineup = players.filter(p => p.in_game_position)
 
-  // Check for incomplete lineup
-  if (playersInLineup.length < 11) {
+  // Check for suspended players in lineup and remove them
+  const suspendedInLineup = playersInLineup.filter(p => p.is_suspended)
+  for (const player of suspendedInLineup) {
+    // Remove from lineup
+    await query('UPDATE player SET in_game_position=\'\' WHERE id=?', [player.id])
     await addLogMessage(
-      t('log.incompleteLineup', { count: playersInLineup.length }, locale),
+      t('log.playerRemovedFromLineup', { playerName: player.name }, locale),
+      team,
+      'OPEN_MY_TEAM_PAGE',
+      null,
+      'ban'
+    )
+  }
+
+  // Re-check lineup count after removing suspended players
+  const availablePlayersInLineup = playersInLineup.filter(p => !p.is_suspended)
+
+  // Check for incomplete lineup
+  if (availablePlayersInLineup.length < 11) {
+    await addLogMessage(
+      t('log.incompleteLineup', { count: availablePlayersInLineup.length }, locale),
       team,
       'OPEN_MY_TEAM_PAGE',
       null,
@@ -89,10 +106,22 @@ export async function checkTeamAndNotify (team) {
   }
 
   // Check for low freshness players in lineup
-  const tiredPlayers = playersInLineup.filter(p => p.freshness < 0.4)
+  const tiredPlayers = availablePlayersInLineup.filter(p => p.freshness < 0.4)
   for (const player of tiredPlayers) {
     await addLogMessage(
       t('log.lowFreshness', { playerName: player.name, freshness: Math.floor(player.freshness * 100) }, locale),
+      team,
+      'OPEN_PLAYER',
+      player.id,
+      'exclamation-triangle'
+    )
+  }
+
+  // Warn about players close to 5 yellow card suspension
+  const playersAt4Yellows = players.filter(p => p.yellow_cards === 4)
+  for (const player of playersAt4Yellows) {
+    await addLogMessage(
+      t('log.playerAt4Yellows', { playerName: player.name }, locale),
       team,
       'OPEN_PLAYER',
       player.id,

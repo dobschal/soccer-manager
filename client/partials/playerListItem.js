@@ -33,12 +33,17 @@ export class PlayerListItem extends UIElement {
    */
   get template () {
     const hasSellOffer = this.sellOfferPlayerIds.has(this.player.id)
+    const isSuspended = this.player.is_suspended
+    const yellowCards = this.player.yellow_cards || 0
+    const redCards = this.player.red_cards || 0
+    const rowClass = isSuspended ? 'table-danger' : (this.player.in_game_position ? 'table-info' : 'table-warning')
     return `
-      <tr class="${this.player.in_game_position ? 'table-info' : 'table-warning'}">
-        <th scope="row">${this.player.name}${hasSellOffer ? ' 💰' : ''}</th>
+      <tr class="${rowClass}">
+        <th scope="row">${this.player.name}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''}</th>
         <td>${this.player.position}</td>
         <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(this.player, this.season)}</td>
         <td class="text-right ${this.player.freshness < 0.4 ? 'text-danger' : (this.player.freshness < 0.7 ? 'text-warning' : 'text-success')}">${Math.floor(this.player.freshness * 100)}%</td>
+        <td class="text-right d-none d-sm-table-cell">${this._renderCards(yellowCards, redCards)}</td>
         <td class="text-right"><span class="circle level-${this.player.level}">${this.player.level}</span></td>
         <td class="text-right d-none d-md-table-cell">${euroFormat.format(sallaryPerLevel[this.player.level])}</td>
       </tr>
@@ -46,12 +51,33 @@ export class PlayerListItem extends UIElement {
   }
 
   /**
-   * @returns {Promise<void>}
+   * @param {number} yellowCards
+   * @param {number} redCards
+   * @returns {string}
    */
-  async load () {}
+  _renderCards (yellowCards, redCards) {
+    let html = ''
+    if (redCards > 0) {
+      html += `<span style="display: inline-block; width: 14px; height: 20px; background: #dc3545; border-radius: 2px; margin-right: 2px;" title="Red card"></span>`
+    }
+    if (yellowCards > 0) {
+      html += `<span style="display: inline-block; width: 14px; height: 20px; background: #ffc107; border-radius: 2px; position: relative;" title="${yellowCards} yellow card(s)"><span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: #000;">${yellowCards}</span></span>`
+    }
+    if (!html) {
+      html = '-'
+    }
+    return html
+  }
 
   /**
    * @returns {Promise<void>}
    */
-  async onQueryChanged () {}
+  async load () {
+  }
+
+  /**
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged () {
+  }
 }
