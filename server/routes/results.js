@@ -138,21 +138,34 @@ export default {
         LIMIT ?
     `, [season, team.id, team.id, upcomingCount])
 
-    // Calculate next game date
-    const d = new Date()
-    d.setHours(12)
-    d.setMinutes(0)
-    d.setSeconds(0)
-    if (Date.now() > d.getTime()) {
-      d.setHours(23)
-      d.setMinutes(59)
-      d.setSeconds(59)
+    // Calculate next game date (games happen at noon and midnight)
+    const nextGameDate = new Date()
+    nextGameDate.setHours(12)
+    nextGameDate.setMinutes(0)
+    nextGameDate.setSeconds(0)
+    if (Date.now() > nextGameDate.getTime()) {
+      nextGameDate.setHours(23)
+      nextGameDate.setMinutes(59)
+      nextGameDate.setSeconds(59)
     }
+
+    // Calculate game dates for upcoming games based on their game day offset
+    // Games happen every 12 hours (noon and midnight)
+    const nextGameDay = upcomingGames.length > 0 ? upcomingGames[0].gameDay : null
+    const upcomingGamesWithDates = upcomingGames.map((game) => {
+      const gameDate = new Date(nextGameDate)
+      if (nextGameDay !== null) {
+        const dayOffset = game.gameDay - nextGameDay
+        // Each game day is 12 hours apart
+        gameDate.setTime(gameDate.getTime() + dayOffset * 12 * 60 * 60 * 1000)
+      }
+      return { ...game, gameDate }
+    })
 
     return {
       pastGames: pastGames.reverse(), // Oldest first
-      upcomingGames,
-      nextGameDate: d
+      upcomingGames: upcomingGamesWithDates,
+      nextGameDate
     }
   },
 

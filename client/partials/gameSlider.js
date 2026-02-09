@@ -10,11 +10,12 @@ import { renderGameResult } from './gameResult.js'
 export class GameSlider extends UIElement {
   _sliderId = generateId()
   _sliderIndex = 0
-  _countdownElementId = generateId()
+  _countdownElementIds = []
+  _timerInterval = null
 
   /**
    * @param {Object} options
-   * @param {Array} options.games - Array of game objects with isPlayed, team1Data, team2Data, etc.
+   * @param {Array} options.games - Array of game objects with isPlayed, team1Data, team2Data, gameDate, etc.
    * @param {number} options.teamId - Current user's team ID
    * @param {number} options.initialIndex - Index of the initially active slide
    */
@@ -37,26 +38,14 @@ export class GameSlider extends UIElement {
     onClick('#' + prevBtnId, () => this._navigate(-1))
     onClick('#' + nextBtnId, () => this._navigate(1))
 
+    // Reset countdown element IDs for this render
+    this._countdownElementIds = []
+
     const slides = this._games.map((game, index) => {
       const isHomeGame = game.team1Id === this._teamId
       const isActive = index === this._initialIndex
 
-      let centerContent
-      if (game.isPlayed) {
-        centerContent = `
-          <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
-          <h3 class="mb-0"><span class="badge bg-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h3>
-        `
-      } else {
-        const countdownId = index === this._games.findIndex(g => !g.isPlayed) ? this._countdownElementId : generateId()
-        centerContent = `
-          <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
-          <div class="badge bg-secondary p-2" style="font-size: 1.2rem;">
-            <i class="fa fa-clock-o" aria-hidden="true"></i><br>
-            <span id="${countdownId}">--:--:--</span>
-          </div>
-        `
-      }
+      const centerContent = this._generateCenterContent(game)
 
       const slideContent = renderGameResult({
         team1: game.team1Data,
@@ -103,14 +92,124 @@ export class GameSlider extends UIElement {
 
   onMounted () {
     this._setupTouchSwipe()
+    this._startCountdownTimer()
+  }
+
+  onDestroy () {
+    this._stopCountdownTimer()
   }
 
   /**
-   * Get the countdown element ID for external timer setup
+   * Generate the center content for a game slide based on its state
+   * @param {Object} game
    * @returns {string}
    */
-  getCountdownElementId () {
-    return this._countdownElementId
+  _generateCenterContent (game) {
+    if (game.isPlayed) {
+      // Played game: show game day and result
+      return `
+        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
+        <h3 class="mb-0"><span class="badge bg-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h3>
+      `
+    }
+
+    // Upcoming game: check how far away it is
+    const gameDate = game.gameDate ? new Date(game.gameDate) : null
+    if (!gameDate) {
+      // No date available, show simple countdown placeholder
+      const countdownId = generateId()
+      this._countdownElementIds.push({ id: countdownId, gameDate: null })
+      return `
+        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
+        <div class="badge bg-secondary p-2" style="font-size: 1.2rem;">
+          <i class="fa fa-clock-o" aria-hidden="true"></i><br>
+          <span id="${countdownId}">--:--:--</span>
+        </div>
+      `
+    }
+
+    const diff = gameDate.getTime() - Date.now()
+    const hoursAway = diff / (1000 * 60 * 60)
+
+    if (hoursAway > 24) {
+      // More than 24 hours away: show "in X days"
+      const daysAway = Math.ceil(hoursAway / 24)
+      const daysText = daysAway === 1
+        ? t('dashboard.inOneDay')
+        : t('dashboard.inDays', { days: daysAway })
+
+      return `
+        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
+        <div class="badge bg-secondary p-2" style="font-size: 1.2rem;">
+          <i class="fa fa-calendar" aria-hidden="true"></i><br>
+          <span>${daysText}</span>
+        </div>
+      `
+    }
+
+    // Less than 24 hours: show countdown timer
+    const countdownId = generateId()
+    this._countdownElementIds.push({ id: countdownId, gameDate })
+    return `
+      <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
+      <div class="badge bg-secondary p-2" style="font-size: 1.2rem;">
+        <i class="fa fa-clock-o" aria-hidden="true"></i><br>
+        <span id="${countdownId}">--:--:--</span>
+      </div>
+    `
+  }
+
+  /**
+   * Start the countdown timer for all upcoming games with countdowns
+   */
+  _startCountdownTimer () {
+    if (this._timerInterval) clearInterval(this._timerInterval)
+    if (this._countdownElementIds.length === 0) return
+
+    this._timerInterval = setInterval(() => {
+      let anyUpdated = false
+
+      for (const { id, gameDate } of this._countdownElementIds) {
+        const timerEl = el('#' + id)
+        if (!timerEl) continue
+
+        if (!gameDate) {
+          timerEl.innerHTML = '--:--:--'
+          continue
+        }
+
+        const diff = new Date(gameDate).getTime() - Date.now()
+
+        if (diff < 0) {
+          timerEl.innerHTML = t('dashboard.startingSoon')
+          anyUpdated = true
+          continue
+        }
+
+        const seconds = Math.floor(diff / 1000)
+        const minutes = Math.floor(seconds / 60)
+        const hours = Math.floor(minutes / 60)
+        const twoDigits = (v) => v < 10 ? '0' + v : v
+
+        timerEl.innerHTML = `${twoDigits(hours)}:${twoDigits(minutes % 60)}:${twoDigits(seconds % 60)}`
+        anyUpdated = true
+      }
+
+      // If no elements were updated, stop the timer
+      if (!anyUpdated) {
+        this._stopCountdownTimer()
+      }
+    }, 1000)
+  }
+
+  /**
+   * Stop the countdown timer
+   */
+  _stopCountdownTimer () {
+    if (this._timerInterval) {
+      clearInterval(this._timerInterval)
+      this._timerInterval = null
+    }
   }
 
   /**

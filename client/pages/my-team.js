@@ -139,7 +139,7 @@ export class MyTeamPage extends UIElement {
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 border-0">
             <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
-              <h5 class="card-title mb-0">${t('myTeam.lineup')}</h5>
+              <h5 class="card-title mb-0">${t('myTeam.tactic')}</h5>
             </div>
             <div class="card-body">
               <p class="card-text">${t('myTeam.chooseLineup')}</p>
@@ -416,7 +416,11 @@ export class MyTeamPage extends UIElement {
   async _showTeamNameEditor () {
     // Fetch name library from server
     const nameLibrary = await server.getNameLibrary()
-    const { clubPrefixes1, clubPrefixes2, cityNames } = nameLibrary
+    const {
+      clubPrefixes1,
+      clubPrefixes2,
+      cityNames
+    } = nameLibrary
 
     // Parse current team name to extract parts
     const currentName = this.data.team.name
@@ -426,20 +430,20 @@ export class MyTeamPage extends UIElement {
     let selectedPrefix1 = ''
     let selectedPrefix2 = ''
     let selectedCity = ''
-    
+
     // Simple logic to extract parts: check if parts exist in arrays
     if (nameParts.length >= 3) {
       const lastPart = nameParts[nameParts.length - 1]
       const middlePart = nameParts[nameParts.length - 2]
       const firstParts = nameParts.slice(0, -2).join(' ')
-      
+
       if (cityNames.includes(lastPart)) selectedCity = lastPart
       if (clubPrefixes2.includes(middlePart)) selectedPrefix2 = middlePart
       if (clubPrefixes1.includes(firstParts)) selectedPrefix1 = firstParts
     } else if (nameParts.length === 2) {
       const lastPart = nameParts[1]
       const firstPart = nameParts[0]
-      
+
       if (cityNames.includes(lastPart)) selectedCity = lastPart
       if (clubPrefixes2.includes(firstPart)) selectedPrefix2 = firstPart
     } else if (nameParts.length === 1) {
@@ -451,7 +455,7 @@ export class MyTeamPage extends UIElement {
     const citySelectId = generateId()
     const saveButtonId = generateId()
     const previewId = generateId()
-    
+
     // Simple HTML escape for safety
     const escapeHtml = (str) => String(str)
       .replace(/&/g, '&amp;')
@@ -472,15 +476,15 @@ export class MyTeamPage extends UIElement {
     }
 
     // Create select options
-    const prefix1Options = clubPrefixes1.map(p => 
+    const prefix1Options = clubPrefixes1.map(p =>
       `<option value="${escapeHtml(p)}" ${p === selectedPrefix1 ? 'selected' : ''}>${escapeHtml(p) || '(none)'}</option>`
     ).join('')
-    
-    const prefix2Options = clubPrefixes2.map(p => 
+
+    const prefix2Options = clubPrefixes2.map(p =>
       `<option value="${escapeHtml(p)}" ${p === selectedPrefix2 ? 'selected' : ''}>${escapeHtml(p)}</option>`
     ).join('')
-    
-    const cityOptions = cityNames.map(c => 
+
+    const cityOptions = cityNames.map(c =>
       `<option value="${escapeHtml(c)}" ${c === selectedCity ? 'selected' : ''}>${escapeHtml(c)}</option>`
     ).join('')
 
@@ -489,11 +493,11 @@ export class MyTeamPage extends UIElement {
       const prefix1El = el(prefix1SelectId)
       const prefix2El = el(prefix2SelectId)
       const cityEl = el(citySelectId)
-      
+
       if (prefix1El) prefix1El.addEventListener('change', updatePreview)
       if (prefix2El) prefix2El.addEventListener('change', updatePreview)
       if (cityEl) cityEl.addEventListener('change', updatePreview)
-      
+
       updatePreview()
     }, 100)
 

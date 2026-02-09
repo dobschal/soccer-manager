@@ -3,7 +3,7 @@ import { server } from '../lib/gateway.js'
 import { News } from '../partials/news.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { showPlayerModal } from '../partials/playerModal.js'
-import { el, generateId } from '../lib/html.js'
+import { generateId } from '../lib/html.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from '../partials/actionCards.js'
 import { LogMessages } from '../partials/logMessages.js'
@@ -14,15 +14,12 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { GameSlider } from '../partials/gameSlider.js'
 
 export class DashboardPage extends UIElement {
-  _timerInterval = null
-  _gameSlider = null
   _sliderGames = []
   _initialSlideIndex = 0
   team = {}
   user = {}
   season = 0
   gameDay = 0
-  nextGameDate = null
   standing = []
   teamPosition = 0
 
@@ -30,19 +27,17 @@ export class DashboardPage extends UIElement {
    * @returns {string}
    */
   get template () {
-    // Create the game slider instance
-    this._gameSlider = new GameSlider({
+    const gameSliderArgs = {
       games: this._sliderGames,
       teamId: this.team.id,
       initialIndex: this._initialSlideIndex
-    })
-
+    }
     return `
       <div>
         <h2 class="d-flex gap-3 align-items-center">${renderEmblem(this.team, 40)} ${this.team.name}</h2>
         <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
           <div class="flex-grow-1">
-            ${this._gameSlider}
+            ${new GameSlider(gameSliderArgs)}
           </div>
           <div class="d-none d-lg-block flex-shrink-1" style="min-width: 280px; width: 33%;">
             ${this._renderMiniStanding()}
@@ -75,7 +70,6 @@ export class DashboardPage extends UIElement {
 
     // Fetch games for slider (past 3 and upcoming 3)
     const sliderResponse = await server.getGamesForSlider(3, 3)
-    this.nextGameDate = sliderResponse.nextGameDate
 
     // Combine past and upcoming games for the slider
     // Add team data for emblems directly from the response
@@ -89,6 +83,7 @@ export class DashboardPage extends UIElement {
       ...sliderResponse.upcomingGames.map(g => ({
         ...g,
         isPlayed: false,
+        gameDate: g.gameDate,
         team1Data: this._extractTeamData(g, 1),
         team2Data: this._extractTeamData(g, 2)
       }))
@@ -122,7 +117,6 @@ export class DashboardPage extends UIElement {
    * @returns {void}
    */
   onMounted () {
-    this._startCountdownTimer()
     void showTutorialIfNeeded('dashboard')
     this._showManagerChatIfNeeded()
   }
@@ -168,55 +162,6 @@ export class DashboardPage extends UIElement {
     `
 
     void showManagerChat(this.team.color, chatText, this.gameDay, this.season)
-  }
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {
-    this._stopCountdownTimer()
-  }
-
-  /**
-   * @returns {void}
-   */
-  _startCountdownTimer () {
-    if (this._timerInterval) clearInterval(this._timerInterval)
-    if (!this.nextGameDate || !this._gameSlider) return
-
-    const countdownElementId = this._gameSlider.getCountdownElementId()
-
-    this._timerInterval = setInterval(() => {
-      const diff = new Date(this.nextGameDate).getTime() - Date.now()
-      const timerEl = el('#' + countdownElementId)
-
-      if (!timerEl) {
-        this._stopCountdownTimer()
-        return
-      }
-
-      if (diff < 0) {
-        timerEl.innerHTML = t('dashboard.startingSoon')
-        return
-      }
-
-      const seconds = Math.floor(diff / 1000)
-      const minutes = Math.floor(seconds / 60)
-      const hours = Math.floor(minutes / 60)
-      const twoDigits = (v) => v < 10 ? '0' + v : v
-
-      timerEl.innerHTML = `${twoDigits(hours)}:${twoDigits(minutes % 60)}:${twoDigits(seconds % 60)}`
-    }, 1000)
-  }
-
-  /**
-   * @returns {void}
-   */
-  _stopCountdownTimer () {
-    if (this._timerInterval) {
-      clearInterval(this._timerInterval)
-      this._timerInterval = null
-    }
   }
 
   /**

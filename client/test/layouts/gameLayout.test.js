@@ -51,7 +51,7 @@ vi.mock('../../i18n/index.js', () => ({
       'nav.logout': 'Logout',
       'nav.language': 'Language',
       'nav.run': 'Run',
-      'nav.day': 'Day 1 Season 1',
+      'nav.day': 'Gameday 1 Season 1',
       'footer.imprintPrivacy': 'Imprint & Privacy'
     }
     return translations[key] || key

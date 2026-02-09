@@ -43,7 +43,7 @@ export class BalanceChart extends UIElement {
    * @returns {string}
    */
   get template () {
-    return `<div class="bg-dark" style="position: relative; height: 350px; width: 100%; padding: 16px; border-radius: 8px; box-sizing: border-box;"><canvas class="finance-canvas"></canvas></div>`
+    return `<div class="card card-body bg-dark mb-4" style="position: relative; height: 400px; width: 100%; padding: 16px; box-sizing: border-box;"><canvas class="finance-canvas"></canvas></div>`
   }
 
   /**
@@ -118,7 +118,7 @@ export class BalanceChart extends UIElement {
 
           // Position label above/below the point
           const yOffset = isPositive ? -12 : 16
-          ctx.fillText(change, point.x, point.y + yOffset)
+          ctx.fillText(change, point.x - 15, point.y + yOffset)
         })
         ctx.restore()
       }
@@ -135,7 +135,7 @@ export class BalanceChart extends UIElement {
           borderWidth: 4,
           pointRadius: 0,
           pointHoverRadius: 6,
-          tension: 0.4,
+          tension: 0.05,
           fill: true,
           backgroundColor: 'rgba(0, 0, 0, 0.0)',
           segment: {
@@ -185,8 +185,8 @@ export class BalanceChart extends UIElement {
               display: false
             },
             border: {
-              display: true,
-              color: 'rgba(255, 255, 255, 0.1)',
+              display: false,
+              color: 'rgba(255, 255, 255, 1)',
               width: 3
             },
             ticks: {
@@ -200,17 +200,19 @@ export class BalanceChart extends UIElement {
             },
             border: {
               display: true,
-              color: 'rgba(255, 255, 255, 0.1)',
+              color: 'rgba(0, 0, 0, 0.3)',
               width: 3
             },
             ticks: {
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: 'rgba(255, 255, 255, 1)',
               font: {
-                size: 11,
-                weight: 'bold'
+                size: 12,
+                weight: 'normal'
               },
               callback: (value) => {
                 if (value >= 1000000) return (value / 1000000).toFixed(1) + 'm'
+                if (value >= 1000) return (value / 1000).toFixed(0) + 'k'
+                if (value <= 1000000) return (value / 1000000).toFixed(1) + 'm'
                 if (value >= 1000) return (value / 1000).toFixed(0) + 'k'
                 return value
               }

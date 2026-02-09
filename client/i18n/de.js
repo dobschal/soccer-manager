@@ -7,7 +7,7 @@ export default {
   'nav.stadium': 'Stadion',
   'nav.transfers': 'Transfers',
   'nav.logout': 'Abmelden',
-  'nav.day': 'Tag {gameDay} ({season})',
+  'nav.day': 'Spieltag {gameDay} ({season})',
   'nav.run': 'Start',
   'nav.running': 'Läuft...',
   'nav.settings': 'Einstellungen',
@@ -70,6 +70,8 @@ export default {
   'dashboard.nextMatch': 'Nächstes Spiel',
   'dashboard.startingSoon': 'Beginnt bald...',
   'dashboard.gameDay': 'Spieltag {gameDay}',
+  'dashboard.inOneDay': 'in 1 Tag',
+  'dashboard.inDays': 'in {days} Tagen',
   'dashboard.standingLink': 'Tabelle ansehen',
 
   // Stadium
@@ -192,6 +194,7 @@ export default {
   'myTeam.totalStrength': 'Gesamtstärke:',
   'myTeam.lineupStrength': 'Aufstellungsstärke:',
   'myTeam.chooseLineup': 'Wähle aus einer der folgenden Aufstellungen:',
+  'myTeam.tactic': 'Taktik',
   'myTeam.createEmblem': 'Wappen erstellen',
   'myTeam.designEmblem': 'Gestalte ein einzigartiges Wappen für dein Team',
   'myTeam.shape': 'Form',
