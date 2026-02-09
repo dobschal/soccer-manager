@@ -224,7 +224,7 @@ export default {
   // Youth Team
   'youthTeam.title': 'Youth Team',
   'youthTeam.trainingMode': 'Training Mode',
-  'youthTeam.trainingModeDesc': 'Choose what your youth team does on each game day:',
+  'youthTeam.trainingModeDesc': 'What should your youth players do next?',
   'youthTeam.training': 'Training',
   'youthTeam.trainingDesc': 'Improves level but lowers fitness and moral',
   'youthTeam.friendlyMatch': 'Friendly Match',
@@ -241,6 +241,7 @@ export default {
   'youthTeam.promoted': '{playerName} has been promoted to the A Team!',
   'youthTeam.fired': '{playerName} has been released from the youth team.',
   'youthTeam.trainingModeUpdated': 'Training mode updated!',
+  'youthTeam.nextTrainingIn': 'Next {mode} in {time}',
   'youthTeam.playerTooYoung': 'Player must be at least 16 years old to be promoted.',
   'youthTeam.age': 'Age',
   'youthTeam.level': 'Level',

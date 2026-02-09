@@ -1,10 +1,11 @@
 import { server, showServerError } from '../../lib/gateway.js'
-import { generateId } from '../../lib/html.js'
+import { el, generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { t } from '../../i18n/index.js'
+import { ProgressBar } from '../../partials/progressBar.js'
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -13,6 +14,8 @@ export class YouthTeamPage extends UIElement {
   constructor (parent) {
     super()
     this.parent = parent
+    this.timerInterval = null
+    this.timerId = null
   }
 
   /**
@@ -23,15 +26,9 @@ export class YouthTeamPage extends UIElement {
       <div>
         <h3>${t('youthTeam.title')}</h3>
 
-        <div class="card mb-4 border-0">
-          <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
-            <h5 class="card-title mb-0">${t('youthTeam.trainingMode')}</h5>
-          </div>
-          <div class="card-body">
-            <p class="text-muted">${t('youthTeam.trainingModeDesc')}</p>
-            <p class="text-muted small"><i class="fa fa-lightbulb-o"></i> ${t('youthTeam.idealRhythm')}</p>
-            ${this._renderTrainingModeSelector()}
-          </div>
+        <div class="mb-4">
+          <p class="text-muted">${t('youthTeam.trainingModeDesc')}</p>
+          ${this._renderTrainingModeSelector()}
         </div>
 
         ${this._renderYouthPlayerTable()}
@@ -50,33 +47,139 @@ export class YouthTeamPage extends UIElement {
   }
 
   /**
+   * Called when component is mounted to DOM
+   * @returns {void}
+   */
+  onMounted () {
+    this._startTimer()
+  }
+
+  /**
+   * Called when component is unmounted from DOM
+   * @returns {void}
+   */
+  onUnmounted () {
+    this._stopTimer()
+  }
+
+  /**
+   * Start the countdown timer
+   * @returns {void}
+   */
+  _startTimer () {
+    this._stopTimer()
+    this._updateTimer()
+    this.timerInterval = setInterval(() => this._updateTimer(), 1000)
+  }
+
+  /**
+   * Stop the countdown timer
+   * @returns {void}
+   */
+  _stopTimer () {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval)
+      this.timerInterval = null
+    }
+  }
+
+  /**
+   * Update the timer display
+   * @returns {void}
+   */
+  _updateTimer () {
+    if (!this.timerId) return
+    const timerEl = el(this.timerId)
+    if (!timerEl) return
+
+    const timeRemaining = this._getTimeUntilNextGameDay()
+    const modeLabel = this._getTrainingModeLabel(this.trainingMode)
+    timerEl.textContent = t('youthTeam.nextTrainingIn', {
+      mode: modeLabel,
+      time: timeRemaining
+    })
+  }
+
+  /**
+   * Get formatted time until next game day (midnight or noon)
+   * @returns {string} - Formatted time string HH:MM:SS
+   */
+  _getTimeUntilNextGameDay () {
+    const now = new Date()
+    const hours = now.getHours()
+
+    // Next game day is at midnight (0:00) or noon (12:00)
+    let nextGameDay = new Date(now)
+    if (hours < 12) {
+      // Next is noon today
+      nextGameDay.setHours(12, 0, 0, 0)
+    } else {
+      // Next is midnight tomorrow
+      nextGameDay.setDate(nextGameDay.getDate() + 1)
+      nextGameDay.setHours(0, 0, 0, 0)
+    }
+
+    const diffMs = nextGameDay - now
+    const diffSeconds = Math.floor(diffMs / 1000)
+    const h = Math.floor(diffSeconds / 3600)
+    const m = Math.floor((diffSeconds % 3600) / 60)
+    const s = diffSeconds % 60
+
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+
+  /**
+   * Get the display label for a training mode
+   * @param {string} mode
+   * @returns {string}
+   */
+  _getTrainingModeLabel (mode) {
+    if (mode === 'friendly_match') {
+      return t('youthTeam.friendlyMatch').toLowerCase()
+    }
+    return t('youthTeam.' + mode).toLowerCase()
+  }
+
+  /**
    * @returns {string}
    */
   _renderTrainingModeSelector () {
     const modes = [
-      { key: 'training', icon: 'fa-dumbbell' },
-      { key: 'friendly_match', icon: 'fa-futbol-o' },
-      { key: 'rest', icon: 'fa-bed' }
+      {
+        key: 'training',
+        icon: 'fa-bolt'
+      },
+      {
+        key: 'friendly_match',
+        icon: 'fa-futbol-o'
+      },
+      {
+        key: 'rest',
+        icon: 'fa-bed'
+      }
     ]
 
+    // Generate timer ID for the active mode
+    this.timerId = generateId()
+
     return `
-      <div class="btn-group w-100" role="group">
+      <div class="d-flex flex-column flex-md-row gap-2 w-100" role="group">
         ${modes.map(mode => {
-          const id = generateId()
-          const isActive = this.trainingMode === mode.key
-          onClick(id, () => this._setTrainingMode(mode.key))
-          return `
+      const id = generateId()
+      const isActive = this.trainingMode === mode.key
+      onClick(id, () => this._setTrainingMode(mode.key))
+      return `
             <button
               id="${id}"
-              class="btn ${isActive ? 'btn-primary' : 'btn-outline-secondary'}"
-              style="flex: 1;"
+              class="btn ${isActive ? 'btn-primary' : 'btn-outline-secondary'} flex-fill"
             >
               <i class="fa ${mode.icon}"></i><br>
               <strong>${t('youthTeam.' + (mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key))}</strong><br>
-              <small class="text-muted">${t('youthTeam.' + (mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key) + 'Desc')}</small>
+              <small>${t('youthTeam.' + (mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key) + 'Desc')}</small>
+              ${isActive ? `<br><small id="${this.timerId}" class="text-light opacity-75"><i class="fa fa-clock-o"></i> ...</small>` : ''}
             </button>
           `
-        }).join('')}
+    }).join('')}
       </div>
     `
   }
@@ -109,7 +212,7 @@ export class YouthTeamPage extends UIElement {
     }
 
     return `
-      <div class="table-responsive">
+      <div class="table-responsive" style="margin: 0 -2rem; padding: 0 2rem;">
         <table class="table table-striped">
           <thead>
             <tr>
@@ -148,8 +251,8 @@ export class YouthTeamPage extends UIElement {
         <td><span class="badge bg-secondary">${player.position}</span></td>
         <td>${player.age}</td>
         <td>${player.level.toFixed(2)}</td>
-        <td>${this._renderProgressBar(player.moral, 'warning')}</td>
-        <td>${this._renderProgressBar(player.fitness, 'success')}</td>
+        <td>${new ProgressBar(player.moral)}</td>
+        <td>${new ProgressBar(player.fitness)}</td>
         <td>
           <button
             id="${promoteId}"
@@ -164,29 +267,6 @@ export class YouthTeamPage extends UIElement {
           </button>
         </td>
       </tr>
-    `
-  }
-
-  /**
-   * @param {number} value - Value between 0 and 1
-   * @param {string} colorClass - Bootstrap color class (success, warning, danger, etc.)
-   * @returns {string}
-   */
-  _renderProgressBar (value, colorClass) {
-    const percentage = Math.round(value * 100)
-    return `
-      <div class="progress" style="height: 20px; min-width: 80px;">
-        <div
-          class="progress-bar bg-${colorClass}"
-          role="progressbar"
-          style="width: ${percentage}%"
-          aria-valuenow="${percentage}"
-          aria-valuemin="0"
-          aria-valuemax="100"
-        >
-          ${percentage}%
-        </div>
-      </div>
     `
   }
 
@@ -212,7 +292,10 @@ export class YouthTeamPage extends UIElement {
 
     const overlay = showOverlay(
       t('youthTeam.promoteConfirm', { playerName: player.name }),
-      t('youthTeam.promoteConfirmText', { playerName: player.name, level }),
+      t('youthTeam.promoteConfirmText', {
+        playerName: player.name,
+        level
+      }),
       `<button id="${confirmId}" class="btn btn-success w-100">${t('youthTeam.promote')}</button>`
     )
   }

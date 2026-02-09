@@ -224,7 +224,7 @@ export default {
   // Youth Team
   'youthTeam.title': 'Jugendmannschaft',
   'youthTeam.trainingMode': 'Trainingsmodus',
-  'youthTeam.trainingModeDesc': 'Wähle, was deine Jugendmannschaft an jedem Spieltag macht:',
+  'youthTeam.trainingModeDesc': 'Was soll deine Jugendmannschaft als nächstes tun?',
   'youthTeam.training': 'Training',
   'youthTeam.trainingDesc': 'Verbessert Level, senkt aber Fitness und Moral',
   'youthTeam.friendlyMatch': 'Freundschaftsspiel',
@@ -241,6 +241,7 @@ export default {
   'youthTeam.promoted': '{playerName} wurde in die A-Mannschaft befördert!',
   'youthTeam.fired': '{playerName} wurde aus der Jugendmannschaft entlassen.',
   'youthTeam.trainingModeUpdated': 'Trainingsmodus aktualisiert!',
+  'youthTeam.nextTrainingIn': 'Nächste {mode} in {time}',
   'youthTeam.playerTooYoung': 'Spieler muss mindestens 16 Jahre alt sein, um befördert zu werden.',
   'youthTeam.age': 'Alter',
   'youthTeam.level': 'Level',
