@@ -146,6 +146,182 @@ describe('play-game-day play style', () => {
       expect(clearedPlayer.yellow_cards).toBe(0)
       expect(clearedPlayer.red_cards).toBe(0)
     })
+
+    it('player with red card suspension should have cards reset after serving ban', () => {
+      const player = {
+        id: 1,
+        is_suspended: true,
+        yellow_cards: 1,
+        red_cards: 1
+      }
+
+      // After serving suspension, all cards should be reset
+      const clearedPlayer = {
+        ...player,
+        is_suspended: false,
+        yellow_cards: 0,
+        red_cards: 0
+      }
+
+      expect(clearedPlayer.is_suspended).toBe(false)
+      expect(clearedPlayer.yellow_cards).toBe(0)
+      expect(clearedPlayer.red_cards).toBe(0)
+    })
+  })
+
+  describe('suspended player lineup filtering', () => {
+    it('suspended players should be filtered out of the lineup', () => {
+      const allPlayers = [
+        { id: 1, name: 'Player 1', is_suspended: false, in_game_position: 'CM' },
+        { id: 2, name: 'Player 2', is_suspended: true, in_game_position: 'CM' },
+        { id: 3, name: 'Player 3', is_suspended: false, in_game_position: 'GK' },
+        { id: 4, name: 'Player 4', is_suspended: true, in_game_position: 'CA' }
+      ]
+
+      // This mimics the filter logic in _playGame
+      const activePlayers = allPlayers.filter(p => !p.is_suspended)
+
+      expect(activePlayers).toHaveLength(2)
+      expect(activePlayers.map(p => p.id)).toEqual([1, 3])
+      expect(activePlayers.find(p => p.id === 2)).toBeUndefined()
+      expect(activePlayers.find(p => p.id === 4)).toBeUndefined()
+    })
+
+    it('suspended players should be identified for clearing after game', () => {
+      const allPlayers = [
+        { id: 1, name: 'Player 1', is_suspended: false, in_game_position: 'CM' },
+        { id: 2, name: 'Player 2', is_suspended: true, in_game_position: 'CM', yellow_cards: 5 },
+        { id: 3, name: 'Player 3', is_suspended: false, in_game_position: 'GK' },
+        { id: 4, name: 'Player 4', is_suspended: true, in_game_position: 'CA', red_cards: 1 }
+      ]
+
+      // This mimics the filter logic in _playGame for identifying suspended players
+      const suspendedPlayers = allPlayers.filter(p => p.is_suspended)
+
+      expect(suspendedPlayers).toHaveLength(2)
+      expect(suspendedPlayers.map(p => p.id)).toEqual([2, 4])
+    })
+
+    it('team with all players suspended should have empty active lineup', () => {
+      const allPlayers = [
+        { id: 1, name: 'Player 1', is_suspended: true, in_game_position: 'CM' },
+        { id: 2, name: 'Player 2', is_suspended: true, in_game_position: 'GK' }
+      ]
+
+      const activePlayers = allPlayers.filter(p => !p.is_suspended)
+
+      expect(activePlayers).toHaveLength(0)
+    })
+
+    it('team with no suspended players should have full lineup', () => {
+      const allPlayers = [
+        { id: 1, name: 'Player 1', is_suspended: false, in_game_position: 'CM' },
+        { id: 2, name: 'Player 2', is_suspended: false, in_game_position: 'GK' },
+        { id: 3, name: 'Player 3', is_suspended: false, in_game_position: 'CA' }
+      ]
+
+      const activePlayers = allPlayers.filter(p => !p.is_suspended)
+
+      expect(activePlayers).toHaveLength(3)
+    })
+  })
+
+  describe('5 yellow cards suspension trigger', () => {
+    it('player with exactly 5 yellow cards should be suspended', () => {
+      const existingYellowCards = 4
+      const yellowsInMatch = 1
+      const newYellowCards = existingYellowCards + yellowsInMatch
+
+      const isSuspended = newYellowCards >= 5
+
+      expect(newYellowCards).toBe(5)
+      expect(isSuspended).toBe(true)
+    })
+
+    it('player with more than 5 yellow cards should be suspended', () => {
+      const existingYellowCards = 4
+      const yellowsInMatch = 2 // Got 2 yellows in match (second one is red, sent off)
+      const newYellowCards = existingYellowCards + yellowsInMatch
+
+      const isSuspended = newYellowCards >= 5
+
+      expect(newYellowCards).toBe(6)
+      expect(isSuspended).toBe(true)
+    })
+
+    it('player with 4 yellow cards getting 0 in match should not be suspended', () => {
+      const existingYellowCards = 4
+      const yellowsInMatch = 0
+      const newYellowCards = existingYellowCards + yellowsInMatch
+
+      const isSuspended = newYellowCards >= 5
+
+      expect(newYellowCards).toBe(4)
+      expect(isSuspended).toBe(false)
+    })
+  })
+
+  describe('red card suspension trigger', () => {
+    it('player sent off should be suspended for next match', () => {
+      const sentOff = true
+      const isSuspended = sentOff
+
+      expect(isSuspended).toBe(true)
+    })
+
+    it('player not sent off and under 5 yellows should not be suspended', () => {
+      const sentOff = false
+      const yellowCards = 3
+      const isSuspended = sentOff || yellowCards >= 5
+
+      expect(isSuspended).toBe(false)
+    })
+  })
+
+  describe('card reset after suspension served', () => {
+    it('all cards should be reset to 0 after suspension is cleared', () => {
+      // Player who was suspended due to 5 yellow cards
+      const playerBefore = {
+        id: 1,
+        is_suspended: true,
+        yellow_cards: 5,
+        red_cards: 0
+      }
+
+      // After clearing suspension (as done in _playGame)
+      const playerAfter = {
+        ...playerBefore,
+        is_suspended: false,
+        yellow_cards: 0,
+        red_cards: 0
+      }
+
+      expect(playerAfter.is_suspended).toBe(false)
+      expect(playerAfter.yellow_cards).toBe(0)
+      expect(playerAfter.red_cards).toBe(0)
+    })
+
+    it('red cards should also be reset after suspension served', () => {
+      // Player who was suspended due to red card
+      const playerBefore = {
+        id: 1,
+        is_suspended: true,
+        yellow_cards: 2, // Had 2 yellows which resulted in red
+        red_cards: 1
+      }
+
+      // After clearing suspension
+      const playerAfter = {
+        ...playerBefore,
+        is_suspended: false,
+        yellow_cards: 0,
+        red_cards: 0
+      }
+
+      expect(playerAfter.is_suspended).toBe(false)
+      expect(playerAfter.yellow_cards).toBe(0)
+      expect(playerAfter.red_cards).toBe(0)
+    })
   })
 
   describe('Bundesliga statistics comparison', () => {

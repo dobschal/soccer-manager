@@ -742,6 +742,7 @@ async function runAnalysis () {
   console.log(`Yellow cards per game      | ${simYellowCardsPerGame.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.yellowCardsPerGame.toFixed(2).padStart(10)} | ${(simYellowCardsPerGame - BUNDESLIGA_STATS.yellowCardsPerGame).toFixed(2).padStart(10)} | ${Math.abs(simYellowCardsPerGame - BUNDESLIGA_STATS.yellowCardsPerGame) < 1 ? '✓' : '✗'}`)
   console.log(`Yellow cards per team      | ${simYellowCardsPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.yellowCardsPerTeam.toFixed(2).padStart(10)} | ${(simYellowCardsPerTeam - BUNDESLIGA_STATS.yellowCardsPerTeam).toFixed(2).padStart(10)} | ${Math.abs(simYellowCardsPerTeam - BUNDESLIGA_STATS.yellowCardsPerTeam) < 0.5 ? '✓' : '✗'}`)
   console.log(`Red cards per game         | ${simRedCardsPerGame.toFixed(3).padStart(10)} | ${BUNDESLIGA_STATS.redCardsPerGame.toFixed(3).padStart(10)} | ${(simRedCardsPerGame - BUNDESLIGA_STATS.redCardsPerGame).toFixed(3).padStart(10)} | ${Math.abs(simRedCardsPerGame - BUNDESLIGA_STATS.redCardsPerGame) < 0.1 ? '✓' : '✗'}`)
+  console.log(`Red cards per team         | ${simRedCardsPerTeam.toFixed(3).padStart(10)} | ${BUNDESLIGA_STATS.redCardsPerTeam.toFixed(3).padStart(10)} | ${(simRedCardsPerTeam - BUNDESLIGA_STATS.redCardsPerTeam).toFixed(3).padStart(10)} | ${Math.abs(simRedCardsPerTeam - BUNDESLIGA_STATS.redCardsPerTeam) < 0.05 ? '✓' : '✗'}`)
   console.log()
 
   // ============================================================================
