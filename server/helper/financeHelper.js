@@ -1,5 +1,6 @@
 import { transaction } from '../lib/database.js'
 import { FinanceLog } from '../entities/financeLog.js'
+import { sendToUser } from '../lib/websocket.js'
 
 /**
  * Updates team balance atomically and creates a finance log entry.
@@ -19,13 +20,14 @@ export async function updateTeamBalance (team, diff, reason, gameDay, season) {
     diff = 0
   }
 
+  let newBalance = 0
   await transaction(async (query) => {
     // Use atomic update to prevent race conditions
     await query('UPDATE team SET balance = balance + ? WHERE id = ?', [diff, team.id])
 
     // Get the new balance after atomic update
     const [updatedTeam] = await query('SELECT balance FROM team WHERE id = ?', [team.id])
-    const newBalance = updatedTeam.balance
+    newBalance = updatedTeam.balance
 
     // Update the local team object to reflect the new balance
     team.balance = newBalance
@@ -40,4 +42,9 @@ export async function updateTeamBalance (team, diff, reason, gameDay, season) {
       reason
     }))
   })
+
+  // Send WebSocket event to notify client of balance change
+  if (team.user_id) {
+    sendToUser(team.user_id, 'BALANCE_UPDATED', { balance: newBalance, diff, reason })
+  }
 }

@@ -12,7 +12,7 @@ export class FreePlayers extends UIElement {
   season = 0
 
   /** @type {() => void} */
-  _onPlayerHired = () => this.update(false)
+  _onPlayerHired = () => this.update(true)
 
   onMounted () {
     window.addEventListener('player-hired', this._onPlayerHired)
@@ -122,7 +122,7 @@ export class FreePlayers extends UIElement {
     try {
       await server.givePlayerContract(player.id)
       toast(t('player.contractGiven', { playerName: player.name }), 'success')
-      await this.update(false)
+      await this.update(true)
     } catch (e) {
       console.error(e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')

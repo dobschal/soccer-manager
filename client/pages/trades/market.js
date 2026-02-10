@@ -153,7 +153,7 @@ export class MarketPage extends UIElement {
       await server.addTradeOffer(player, price, 'buy')
       toast(t('trades.sentBuyOffer'))
       await this.load()
-      await this.update(true)
+      await this.update()
     } catch (e) {
       console.error(e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')

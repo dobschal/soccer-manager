@@ -6,7 +6,12 @@ vi.mock('../../lib/database.js', () => ({
   transaction: vi.fn()
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  sendToUser: vi.fn()
+}))
+
 import { transaction } from '../../lib/database.js'
+import { sendToUser } from '../../lib/websocket.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 
 describe('financeHelper', () => {
@@ -193,6 +198,46 @@ describe('financeHelper', () => {
       // Verify transaction was called
       expect(transaction).toHaveBeenCalledTimes(1)
       expect(transaction).toHaveBeenCalledWith(expect.any(Function))
+    })
+
+    it('sends WebSocket event when team has a user', async () => {
+      const team = testData.team({ id: 1, user_id: 42, balance: 100000 })
+
+      transaction.mockImplementation(async (callback) => {
+        mockQuery = vi.fn().mockImplementation(async (sql) => {
+          if (sql.includes('SELECT balance FROM team')) {
+            return [{ balance: 105000 }]
+          }
+          return []
+        })
+        await callback(mockQuery)
+      })
+
+      await updateTeamBalance(team, 5000, 'Sponsor payment', 1, 0)
+
+      expect(sendToUser).toHaveBeenCalledWith(42, 'BALANCE_UPDATED', {
+        balance: 105000,
+        diff: 5000,
+        reason: 'Sponsor payment'
+      })
+    })
+
+    it('does not send WebSocket event when team has no user', async () => {
+      const team = testData.team({ id: 1, user_id: null, balance: 100000 })
+
+      transaction.mockImplementation(async (callback) => {
+        mockQuery = vi.fn().mockImplementation(async (sql) => {
+          if (sql.includes('SELECT balance FROM team')) {
+            return [{ balance: 105000 }]
+          }
+          return []
+        })
+        await callback(mockQuery)
+      })
+
+      await updateTeamBalance(team, 5000, 'Sponsor payment', 1, 0)
+
+      expect(sendToUser).not.toHaveBeenCalled()
     })
   })
 })

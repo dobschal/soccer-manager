@@ -2,6 +2,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import fs from 'fs'
 import jwt from 'jsonwebtoken'
+import http from 'http'
 import { config } from './config.js'
 import { query } from './lib/database.js'
 import { runMigration } from './migrate-database.js'
@@ -11,6 +12,7 @@ import { calculateGames } from './play-game-day.js'
 import { makeBotMoves } from './bot-move.js'
 import { getLocaleFromRequest } from './i18n/index.js'
 import { cleanupOldFreePlayers } from './helper/playerHelper.js'
+import { initWebSocket } from './lib/websocket.js'
 
 const app = express()
 const port = 3000
@@ -110,7 +112,12 @@ async function start () {
     await calculateGames()
     await cleanupOldFreePlayers()
   })
-  app.listen(port, () => {
+
+  // Create HTTP server and attach WebSocket
+  const server = http.createServer(app)
+  initWebSocket(server)
+
+  server.listen(port, () => {
     console.log(`🚀 App running on port ${port}`)
   })
 }

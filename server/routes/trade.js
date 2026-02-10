@@ -73,6 +73,19 @@ export default {
       }
     }
 
+    // Log sell offer creation to the selling team
+    if (type === 'sell') {
+      const playerData = await getPlayerById(player.id)
+      await addLogMessage(
+        t('log.sellOfferCreated', { price: price.toLocaleString(), playerName: playerData.name }, locale),
+        team,
+        'OPEN_MARKET',
+        null,
+        'tag',
+        'NEW_SELL_TRADE_OFFER'
+      )
+    }
+
     return { success: true }
   },
 

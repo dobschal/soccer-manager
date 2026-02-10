@@ -159,7 +159,7 @@ export class ResultsPage extends UIElement {
     } = await this._getSeasonAndGameDay()
     this.season = season
     this.gameDay = gameDay
-    await this.update(false)
+    await this.update(true)
   }
 
   /**

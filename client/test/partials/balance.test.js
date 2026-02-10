@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock dependencies
 vi.mock('../../lib/gateway.js', () => ({
@@ -11,18 +11,17 @@ vi.mock('../../lib/currency.js', () => ({
   euroFormat: { format: vi.fn((val) => `€${val}`) }
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  onServerEvent: vi.fn(),
+  offServerEvent: vi.fn()
+}))
+
 import { Balance, balanceSpan } from '../../partials/balance.js'
 import { server } from '../../lib/gateway.js'
 
 describe('Balance', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.useFakeTimers()
-    window.localStorage.getItem = vi.fn(() => 'test-token')
-  })
-
-  afterEach(() => {
-    vi.useRealTimers()
   })
 
   describe('template', () => {
@@ -64,68 +63,21 @@ describe('Balance', () => {
     })
   })
 
-  describe('polling', () => {
-    it('starts polling on mount', async () => {
-      server.getMyBalance.mockResolvedValue({ balance: 100000 })
-
+  describe('serverEvents', () => {
+    it('defines BALANCE_UPDATED event handler', () => {
       const balance = new Balance()
-      balance.load = vi.fn()
+
+      expect(balance.serverEvents).toHaveProperty('BALANCE_UPDATED')
+      expect(typeof balance.serverEvents.BALANCE_UPDATED).toBe('function')
+    })
+
+    it('calls update with reloadData=true when BALANCE_UPDATED event is received', () => {
+      const balance = new Balance()
       balance.update = vi.fn()
-      balance.onMounted()
 
-      expect(balance._pollingInterval).not.toBeNull()
-    })
+      balance.serverEvents.BALANCE_UPDATED()
 
-    it('polls every 3 seconds', async () => {
-      server.getMyBalance.mockResolvedValue({ balance: 100000 })
-
-      const balance = new Balance()
-      balance.load = vi.fn()
-      balance.update = vi.fn()
-      balance.onMounted()
-
-      // Initially not called
-      expect(balance.load).not.toHaveBeenCalled()
-
-      // After 3 seconds
-      await vi.advanceTimersByTimeAsync(3000)
-      expect(balance.load).toHaveBeenCalledTimes(1)
-
-      // After 6 seconds total
-      await vi.advanceTimersByTimeAsync(3000)
-      expect(balance.load).toHaveBeenCalledTimes(2)
-    })
-
-    it('stops polling when user logs out', async () => {
-      server.getMyBalance.mockResolvedValue({ balance: 100000 })
-      window.localStorage.getItem = vi.fn(() => null) // No token = logged out
-
-      const balance = new Balance()
-      balance.load = vi.fn()
-      balance.update = vi.fn()
-      balance.onDestroy = vi.fn()
-      balance.onMounted()
-
-      await vi.advanceTimersByTimeAsync(3000)
-
-      expect(balance.onDestroy).toHaveBeenCalled()
-    })
-
-    it('clears interval on destroy', () => {
-      const balance = new Balance()
-      balance._pollingInterval = setInterval(() => {}, 1000)
-
-      balance.onDestroy()
-
-      expect(balance._pollingInterval).toBeNull()
-    })
-
-    it('does nothing on destroy when no interval', () => {
-      const balance = new Balance()
-      balance._pollingInterval = null
-
-      // Should not throw
-      expect(() => balance.onDestroy()).not.toThrow()
+      expect(balance.update).toHaveBeenCalledWith(true)
     })
   })
 

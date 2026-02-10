@@ -171,7 +171,7 @@ export class LogMessages extends UIElement {
 
     this._pageIndex = pageIndex
     this.messages = await server.getLogMessages(this._pageIndex, PAGE_SIZE)
-    await this.update(false)
+    await this.update(true)
   }
 
   /**

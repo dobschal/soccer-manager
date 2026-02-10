@@ -60,7 +60,7 @@ export class FinancesPage extends UIElement {
             await server.chooseSponsor(offer)
             toast(t('finances.signedContract', { name: offer.name }))
             await this.load()
-            await this.update(true)
+            await this.update()
           } catch (e) {
             toast(e.message ?? t('toast.somethingWentWrong'), 'error')
           }
@@ -72,7 +72,7 @@ export class FinancesPage extends UIElement {
           this.fromSeason = Math.floor(value / GAMEDAYS_PER_SEASON)
           this.fromGameDay = value % GAMEDAYS_PER_SEASON
           await this._loadFinanceLog()
-          await this.update(true)
+          await this.update()
         }
       },
       '#filter-to': {
@@ -81,7 +81,7 @@ export class FinancesPage extends UIElement {
           this.toSeason = Math.floor(value / GAMEDAYS_PER_SEASON)
           this.toGameDay = value % GAMEDAYS_PER_SEASON
           await this._loadFinanceLog()
-          await this.update(true)
+          await this.update()
         }
       }
     }

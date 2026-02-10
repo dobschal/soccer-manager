@@ -68,6 +68,7 @@ export default {
   'log.offerReceived': 'Du hast ein Angebot von {price} für {playerName} von {fromTeam} erhalten.',
   'log.offerAccepted': 'Dein Angebot für {playerName} wurde angenommen!',
   'log.offerRejected': 'Dein Angebot für {playerName} wurde abgelehnt.',
+  'log.sellOfferCreated': 'Du hast ein Verkaufsangebot für {playerName} zu {price} erstellt.',
 
   // Log messages - Action cards
   'log.cardLevelUp': '{playerName} ist auf Level {level} aufgestiegen!',

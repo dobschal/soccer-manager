@@ -3,6 +3,7 @@ import { getTeam } from './teamHelper.js'
 import { query } from '../lib/database.js'
 import { LogMessage } from '../entities/logMessage.js'
 import { t, getUserLocale } from '../i18n/index.js'
+import { sendToUser } from '../lib/websocket.js'
 
 /**
  * @param {string} message
@@ -10,9 +11,10 @@ import { t, getUserLocale } from '../i18n/index.js'
  * @param {string} [action]
  * @param {number} [actionValue]
  * @param {string} [icon] - Font Awesome icon name (e.g., 'trophy', 'money', 'user')
+ * @param {string} [event] - WebSocket event to send to the user (e.g., 'NEW_LOG_MESSAGE')
  * @returns {Promise<void>}
  */
-export async function addLogMessage (message, team, action, actionValue, icon) {
+export async function addLogMessage (message, team, action, actionValue, icon, event) {
   const { gameDay, season } = await getGameDayAndSeason()
   const data = {
     message,
@@ -31,6 +33,11 @@ export async function addLogMessage (message, team, action, actionValue, icon) {
   }
   const logMessage = new LogMessage(data)
   await query('INSERT INTO log_message SET ?', logMessage)
+
+  // Send WebSocket event if specified and team has a user
+  if (event && team.user_id) {
+    sendToUser(team.user_id, event, { message, action, actionValue, icon })
+  }
 }
 
 /**

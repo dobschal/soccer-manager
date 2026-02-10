@@ -140,7 +140,7 @@ class MyOfferListItem extends UIElement {
   async _cancelOffer () {
     try {
       await server.cancelOffer(this.offer)
-      await this.parentInstance.update(false)
+      await this.parentInstance.update(true)
     } catch (e) {
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }

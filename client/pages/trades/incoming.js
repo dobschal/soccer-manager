@@ -35,7 +35,7 @@ export class IncomingOffersPage extends UIElement {
               await server.acceptOffer(offer)
               toast(t('trades.acceptedOffer', { teamName: fromTeam.name }))
               await this.load()
-              await this.update(true)
+              await this.update()
             } catch (e) {
               console.error(e)
               toast(e.message ?? t('toast.somethingWentWrong'), 'error')
@@ -45,7 +45,7 @@ export class IncomingOffersPage extends UIElement {
               await server.declineOffer(offer)
               toast(t('trades.declinedOffer', { teamName: fromTeam.name }))
               await this.load()
-              await this.update(true)
+              await this.update()
             } catch (e) {
               console.error(e)
               toast(e.message ?? t('toast.somethingWentWrong'), 'error')

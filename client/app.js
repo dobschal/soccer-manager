@@ -11,9 +11,15 @@ import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
 import { initLocale } from './i18n/index.js'
+import { connectWebSocket } from './lib/websocket.js'
 
 // Initialize locale from localStorage or browser settings
 initLocale()
+
+// Connect WebSocket if user is authenticated
+if (window.localStorage.getItem('auth-token')) {
+  connectWebSocket()
+}
 
 server.getVersion().then(({ version }) => {
   console.log(`Soccer Manager v${version}`)

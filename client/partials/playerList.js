@@ -31,6 +31,16 @@ export class PlayerList extends UIElement {
   }
 
   /**
+   * Server events to listen for
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      NEW_SELL_TRADE_OFFER: () => this.update(true)
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {

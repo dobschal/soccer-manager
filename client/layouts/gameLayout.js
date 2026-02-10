@@ -7,6 +7,7 @@ import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showOverlay } from '../partials/overlay.js'
+import { disconnectWebSocket } from '../lib/websocket.js'
 
 /**
  * @returns {void}
@@ -218,6 +219,7 @@ export class GameLayout extends UIElement {
       if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
           overlay.remove()
+          disconnectWebSocket()
           window.localStorage.removeItem('auth-token')
           goTo('login')
         })

@@ -443,7 +443,7 @@ export class MyTeamPage extends UIElement {
         toast(t('myTeam.emblemUpdated'), 'success')
         this.data.team.emblem = emblemParams
         this.data.team.color = selectedColor
-        await this.update(false)
+        await this.update(true)
         overlay.remove()
       } catch (e) {
         showServerError(e)
@@ -590,7 +590,7 @@ export class MyTeamPage extends UIElement {
         await server.updateTeamName(newName)
         toast(t('myTeam.nameUpdated'), 'success')
         this.data.team.name = newName
-        await this.update(false)
+        await this.update(true)
         overlay.remove()
       } catch (e) {
         showServerError(e)

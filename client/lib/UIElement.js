@@ -2,6 +2,7 @@ import { toast } from '../partials/toast.js'
 import { el, generateId } from './html.js'
 import { off, on } from './event.js'
 import { onDOMNodeChanged } from './observeDOM.js'
+import { offServerEvent, onServerEvent } from './websocket.js'
 
 /**
  * @typedef {Record<string, Record<string, (event: Event) => void>>} UIElementEvents
@@ -39,6 +40,20 @@ export class UIElement {
    * @returns {UIElementEvents}
    */
   get events () {
+    return {}
+  }
+
+  /**
+   * Override this getter to define server event handlers
+   * Example:
+   * get serverEvents() {
+   *   return {
+   *     NEW_SELL_TRADE_OFFER: () => this.update(true)
+   *   }
+   * }
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
     return {}
   }
 
@@ -98,7 +113,8 @@ export class UIElement {
         setTimeout(waitAndRender, 10)
         return
       }
-      await this._renderIntoTemplateEl(templateEl, false)
+      await this._load()
+      await this._renderIntoTemplateEl(templateEl)
       this._renderIntoDOM(templateEl, templateEl)
     }
     setTimeout(waitAndRender)
@@ -108,13 +124,14 @@ export class UIElement {
   /**
    * Find the currently rendered DOM nodes for this UIElement and replace those
    * with the current template rendered.
-   * @param {boolean} skipLoad - default is true to not reload the data
+   * @param {boolean} reloadData - default is false to not reload the data
    */
-  async update (skipLoad = true) {
+  async update (reloadData = false) {
     if (!this.isRendered) return
     const node = document.querySelector(this._elementQuery)
     const templateEl = document.createElement('template')
-    await this._renderIntoTemplateEl(templateEl, skipLoad)
+    if (reloadData) await this._load()
+    await this._renderIntoTemplateEl(templateEl)
     this._renderIntoDOM(node, templateEl)
     this._applyEventHandlers()
   }
@@ -142,18 +159,29 @@ export class UIElement {
 
   _renderId = generateId()
   _isMounted = false
+  /** @type {Map<string, Function>} */
+  _serverEventHandlers = new Map()
 
   /**
    * @param {HTMLTemplateElement} templateEl
-   * @param {boolean} skipLoad
    * @private
    */
-  async _renderIntoTemplateEl (templateEl, skipLoad) {
+  async _renderIntoTemplateEl (templateEl) {
     if (!templateEl) return console.error('Template element isn\'t available for rendering')
-    if (!skipLoad) this._showLoadingIndicator()
-    templateEl.innerHTML = await this._render(skipLoad)
+    templateEl.innerHTML = this.template
     if (templateEl.content.children.length !== 1) throw new Error('UIElement needs to have exactly one element as root: ' + templateEl.content.children.length)
-    if (!skipLoad) this._hideLoadingIndicator()
+  }
+
+  async _load () {
+    try {
+      this._showLoadingIndicator()
+      await this.load()
+    } catch (e) {
+      console.error('Error on load: ', e)
+      toast(e.message ?? 'Something went wrong', 'error')
+    } finally {
+      this._hideLoadingIndicator()
+    }
   }
 
   /**
@@ -206,6 +234,7 @@ export class UIElement {
     this._isMounted = true
     console.log('Mounted: ', this.constructor.name)
     this._applyEventHandlers()
+    this._registerServerEventHandlers()
     this.onMounted()
   }
 
@@ -218,22 +247,8 @@ export class UIElement {
     this._isMounted = false
     console.log('Destroy: ', this.constructor.name)
     off(this._queryChangedEventId)
+    this._unregisterServerEventHandlers()
     this.onDestroy()
-  }
-
-  /**
-   * Render the current UIElement --> call load and return the template string then
-   * @returns {Promise<string>}
-   */
-  async _render (skipLoad = false) {
-    try {
-      if (!skipLoad) await this.load()
-      return this.template
-    } catch (e) {
-      console.error('Error on render: ', e)
-      toast(e.message ?? 'Something went wrong', 'error')
-      return ''
-    }
   }
 
   /**
@@ -254,7 +269,7 @@ export class UIElement {
     if (neighborIsTemplate) {
       return
     }
-    
+
     if (!neighborNode?.parentElement) {
       document.body.insertAdjacentHTML(
         'beforeend',
@@ -277,5 +292,33 @@ export class UIElement {
    */
   _hideLoadingIndicator () {
     el(this._loadingIndicatorId)?.remove()
+  }
+
+  /**
+   * Register server event handlers defined in serverEvents getter
+   * @returns {void}
+   * @private
+   */
+  _registerServerEventHandlers () {
+    const serverEvents = this.serverEvents
+    for (const eventName in serverEvents) {
+      const handler = serverEvents[eventName].bind(this)
+      this._serverEventHandlers.set(eventName, handler)
+      onServerEvent(eventName, handler)
+      console.log(`Registered server event handler: ${eventName} for ${this.constructor.name}`)
+    }
+  }
+
+  /**
+   * Unregister all server event handlers
+   * @returns {void}
+   * @private
+   */
+  _unregisterServerEventHandlers () {
+    for (const [eventName, handler] of this._serverEventHandlers) {
+      offServerEvent(eventName, handler)
+      console.log(`Unregistered server event handler: ${eventName} for ${this.constructor.name}`)
+    }
+    this._serverEventHandlers.clear()
   }
 }

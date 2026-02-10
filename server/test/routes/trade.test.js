@@ -18,10 +18,20 @@ vi.mock('../../helper/tradeHelper.js', () => ({
   declineOffer: vi.fn()
 }))
 
+vi.mock('../../helper/playerHelper.js', () => ({
+  getPlayerById: vi.fn()
+}))
+
+vi.mock('../../helper/logMessageHelper.js', () => ({
+  addLogMessage: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../../helper/tradeHelper.js'
+import { getPlayerById } from '../../helper/playerHelper.js'
+import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/trade.js'
 
 describe('trade routes', () => {
@@ -61,6 +71,7 @@ describe('trade routes', () => {
       const player = testData.player()
 
       getTeam.mockResolvedValue(team)
+      getPlayerById.mockResolvedValue(player)
       query
         .mockResolvedValueOnce([])  // no existing offers
         .mockResolvedValueOnce({})  // insert
@@ -78,6 +89,7 @@ describe('trade routes', () => {
           from_team_id: team.id
         })
       )
+      expect(addLogMessage).toHaveBeenCalled()
     })
 
     it('throws error for buy offer when not enough money', async () => {

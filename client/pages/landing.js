@@ -4,6 +4,7 @@ import { goTo, setQueryParams } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
 import { UIElement } from '../lib/UIElement.js'
 import { t } from '../i18n/index.js'
+import { connectWebSocket } from '../lib/websocket.js'
 
 export class LandingPage extends UIElement {
   /**
@@ -219,6 +220,7 @@ export class LandingPage extends UIElement {
       } else {
         const { token } = await server.login(username, password)
         window.localStorage.setItem('auth-token', token)
+        connectWebSocket()
         goTo('')
         toast(t('landing.loginSuccess'), 'success')
       }

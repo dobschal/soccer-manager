@@ -124,7 +124,7 @@ export class StadiumPage extends UIElement {
       this.constructionInfo = result.constructionInfo || {}
       toast(t('stadium.constructionStarted'), 'success')
       // Reload and re-render to show construction status
-      void this.update(false)
+      void this.update(true)
     } catch (e) {
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }

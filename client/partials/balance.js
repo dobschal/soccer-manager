@@ -3,7 +3,6 @@ import { server } from '../lib/gateway.js'
 import { euroFormat } from '../lib/currency.js'
 
 export class Balance extends UIElement {
-  _pollingInterval = null
   balance = 0
 
   /**
@@ -11,6 +10,16 @@ export class Balance extends UIElement {
    */
   get template () {
     return `<span>${euroFormat.format(this.balance)}</span>`
+  }
+
+  /**
+   * Server events to listen for
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      BALANCE_UPDATED: () => this.update(true)
+    }
   }
 
   /**
@@ -22,32 +31,6 @@ export class Balance extends UIElement {
       this.balance = balance
     } catch {
       this.balance = 0
-    }
-  }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    // Start polling every 3 seconds
-    this._pollingInterval = setInterval(async () => {
-      // Stop polling if user logged out
-      if (!window.localStorage.getItem('auth-token')) {
-        this.onDestroy()
-        return
-      }
-      await this.load()
-      await this.update(true)
-    }, 3000)
-  }
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {
-    if (this._pollingInterval) {
-      clearInterval(this._pollingInterval)
-      this._pollingInterval = null
     }
   }
 }
