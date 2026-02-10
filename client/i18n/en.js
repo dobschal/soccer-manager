@@ -525,6 +525,18 @@ export default {
   'actionCards.position.CA': 'Central Attacker (CA)',
   'actionCards.position.RA': 'Right Attacker (RA)',
 
+  // Tutorial Progress Card
+  'tutorialProgress.title': 'Getting Started',
+  'tutorialProgress.description': 'Complete these tutorials to learn how to manage your club effectively.',
+  'tutorialProgress.nextTutorial': 'Continue: {page}',
+  'tutorialProgress.page.dashboard': 'Dashboard',
+  'tutorialProgress.page.team': 'Team',
+  'tutorialProgress.page.results': 'League',
+  'tutorialProgress.page.trades': 'Transfers',
+  'tutorialProgress.page.stadium': 'Stadium',
+  'tutorialProgress.page.finances': 'Finances',
+  'tutorialProgress.page.youth': 'Youth Team',
+
   // Tutorial
   'tutorial.welcome': 'Welcome to Soccer Manager IO!',
   'tutorial.welcomeDesc': 'Let\'s take a quick tour of the game. You can skip this tutorial at any time.',
@@ -585,6 +597,13 @@ export default {
   'tutorial.financesPage.item2': 'Sign sponsor contracts for regular income',
   'tutorial.financesPage.item3': 'Track income from ticket sales and sponsors',
   'tutorial.financesPage.item4': 'Monitor expenses like player salaries',
+  'tutorial.youthPage.title': 'Youth Academy',
+  'tutorial.youthPage.subtitle': 'Develop future stars for your team',
+  'tutorial.youthPage.item1': 'Youth players appear at age 15 and can be promoted at 16',
+  'tutorial.youthPage.item2': 'Choose training modes: Training, Friendly Match, or Rest',
+  'tutorial.youthPage.item3': 'Ideal rhythm: 2x training, 1x friendly, 1x rest',
+  'tutorial.youthPage.item4': 'Promote talented players to your A Team before they turn 19',
+  'tutorial.youthPage.item5': 'Balance moral and fitness for optimal development',
 
   // Log Messages
   'log.title': 'Messages',

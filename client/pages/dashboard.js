@@ -13,11 +13,13 @@ import { goTo } from '../lib/router.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { GameSlider } from '../partials/gameSlider.js'
 import { formatLeague } from '../util/league.js'
+import { TutorialProgress } from '../partials/tutorialProgress.js'
 
 export class DashboardPage extends UIElement {
   _sliderGames = []
   _friendlyGames = []
   _initialSlideIndex = 0
+  _tutorialProgress = new TutorialProgress()
   team = {}
   user = {}
   season = 0
@@ -35,7 +37,9 @@ export class DashboardPage extends UIElement {
       initialIndex: this._initialSlideIndex
     }
     return `
-      <div>       
+      <div>
+        ${this._tutorialProgress}
+
         <h5 class="mb-2"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
         <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
           <div class="flex-grow-1">
@@ -81,10 +85,11 @@ export class DashboardPage extends UIElement {
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
 
-    // Fetch games for slider (past 3 and upcoming 3) and friendly games
+    // Fetch games for slider (past 3 and upcoming 3), friendly games, and tutorial progress
     const [sliderResponse, friendlyResponse] = await Promise.all([
       server.getGamesForSlider(3, 3),
-      server.getFriendlyGames(5)
+      server.getFriendlyGames(5),
+      this._tutorialProgress.load()
     ])
 
     // Combine past and upcoming games for the slider
@@ -224,10 +229,19 @@ export class DashboardPage extends UIElement {
 
   /**
    * Render friendly games section
-   * @returns {GameSlider}
+   * @returns {GameSlider|string}
    */
   _renderFriendlyGames () {
-    if (this._friendlyGames.length === 0) return ''
+    if (this._friendlyGames.length === 0) {
+      return `
+        <div class="card bg-light border-0">
+          <div class="card-body text-center text-muted py-4">
+            <i class="fa fa-handshake-o fa-2x mb-2 opacity-50"></i>
+            <p class="mb-0">${t('friendly.noGames')}</p>
+          </div>
+        </div>
+      `
+    }
 
     const friendlySliderArgs = {
       games: this._friendlyGames,

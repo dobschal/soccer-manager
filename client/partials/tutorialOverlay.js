@@ -70,6 +70,17 @@ function getTutorials () {
         t('tutorial.financesPage.item3'),
         t('tutorial.financesPage.item4')
       ]
+    },
+    youth: {
+      title: t('tutorial.youthPage.title'),
+      subtitle: t('tutorial.youthPage.subtitle'),
+      items: [
+        t('tutorial.youthPage.item1'),
+        t('tutorial.youthPage.item2'),
+        t('tutorial.youthPage.item3'),
+        t('tutorial.youthPage.item4'),
+        t('tutorial.youthPage.item5')
+      ]
     }
   }
 }

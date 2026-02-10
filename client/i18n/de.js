@@ -525,6 +525,18 @@ export default {
   'actionCards.position.CA': 'Mittelstürmer (MS)',
   'actionCards.position.RA': 'Rechter Angreifer (RA)',
 
+  // Tutorial Progress Card
+  'tutorialProgress.title': 'Erste Schritte',
+  'tutorialProgress.description': 'Schließe diese Tutorials ab, um zu lernen, wie du deinen Club effektiv managst.',
+  'tutorialProgress.nextTutorial': 'Weiter: {page}',
+  'tutorialProgress.page.dashboard': 'Dashboard',
+  'tutorialProgress.page.team': 'Team',
+  'tutorialProgress.page.results': 'Liga',
+  'tutorialProgress.page.trades': 'Transfers',
+  'tutorialProgress.page.stadium': 'Stadion',
+  'tutorialProgress.page.finances': 'Finanzen',
+  'tutorialProgress.page.youth': 'Jugendteam',
+
   // Tutorial
   'tutorial.welcome': 'Willkommen bei Soccer Manager IO!',
   'tutorial.welcomeDesc': 'Lass uns eine kurze Tour durch das Spiel machen. Du kannst dieses Tutorial jederzeit überspringen.',
@@ -585,6 +597,13 @@ export default {
   'tutorial.financesPage.item2': 'Unterschreibe Sponsorenverträge für regelmäßige Einnahmen',
   'tutorial.financesPage.item3': 'Verfolge Einnahmen aus Ticketverkäufen und Sponsoren',
   'tutorial.financesPage.item4': 'Überwache Ausgaben wie Spielergehälter',
+  'tutorial.youthPage.title': 'Jugendakademie',
+  'tutorial.youthPage.subtitle': 'Entwickle zukünftige Stars für dein Team',
+  'tutorial.youthPage.item1': 'Jugendspieler erscheinen mit 15 und können mit 16 befördert werden',
+  'tutorial.youthPage.item2': 'Wähle Trainingsmodi: Training, Freundschaftsspiel oder Ruhe',
+  'tutorial.youthPage.item3': 'Idealer Rhythmus: 2x Training, 1x Freundschaftsspiel, 1x Ruhe',
+  'tutorial.youthPage.item4': 'Befördere talentierte Spieler ins A-Team bevor sie 19 werden',
+  'tutorial.youthPage.item5': 'Balance Moral und Fitness für optimale Entwicklung',
 
   // Log Messages
   'log.title': 'Nachrichten',

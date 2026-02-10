@@ -6,6 +6,7 @@ import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { t } from '../../i18n/index.js'
 import { ProgressBar } from '../../partials/progressBar.js'
+import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -52,6 +53,7 @@ export class YouthTeamPage extends UIElement {
    */
   onMounted () {
     this._startTimer()
+    void showTutorialIfNeeded('youth')
   }
 
   /**
