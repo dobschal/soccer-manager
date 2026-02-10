@@ -486,15 +486,18 @@ async function _playGame (game) {
   ])
 
   // Update freshness and card counts for all players
+  // Freshness loss depends on play style: aggressive 15%, normal 12%, friendly 10%
+  // Goalkeepers always lose 8%
+  const freshnessLossByStyle = { aggressive: 0.15, normal: 0.12, friendly: 0.10 }
   for (const player of playerTeamA) {
-    // Goalkeepers lose half the freshness of other players
-    const freshnessLoss = player.position === 'GK' ? 0.05 : 0.1
+    const playStyle = teamA.play_style || 'normal'
+    const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
     player.freshness = Math.max(0, player.freshness - freshnessLoss)
     await _updatePlayerAfterGame(player, gameDetails, teamA)
   }
   for (const player of playerTeamB) {
-    // Goalkeepers lose half the freshness of other players
-    const freshnessLoss = player.position === 'GK' ? 0.05 : 0.1
+    const playStyle = teamB.play_style || 'normal'
+    const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
     player.freshness = Math.max(0, player.freshness - freshnessLoss)
     await _updatePlayerAfterGame(player, gameDetails, teamB)
   }

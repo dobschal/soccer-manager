@@ -47,7 +47,7 @@ class NewsItem extends UIElement {
     return `
       <div class="mb-4 position-relative">
         <div class="row align-items-start">
-          <div class="col-auto py-2" style="background: #e1e1e1; border-radius: 8px;">
+          <div class="col-auto py-2" style="background: linear-gradient(135deg, #dedede 0%, #f3f3f3 100%); border-radius: 8px;">
             ${this.image}
           </div>
           <div class="col" style="padding-bottom: 2rem;">

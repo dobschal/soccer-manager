@@ -1,8 +1,10 @@
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
+import { generateRandomPlayerName } from '../prepare-season.js'
+import { Position } from '../../client/util/formation.js'
+import { randomItem } from '../lib/util.js'
 
-const GAME_DAYS_PER_SEASON = 34
-const FREE_PLAYER_EXPIRY_GAME_DAYS = 6
+const MIN_FREE_PLAYERS = 20
 
 /**
  * @param {number} id
@@ -54,70 +56,80 @@ export async function getPlayersByTeamId (teamId) {
 }
 
 /**
- * Calculate the total game days since a given season/gameDay
- * @param {number} season
- * @param {number} gameDay
- * @param {number} currentSeason
- * @param {number} currentGameDay
- * @returns {number}
- */
-function calculateGameDaysDifference (season, gameDay, currentSeason, currentGameDay) {
-  const totalGameDaysThen = season * GAME_DAYS_PER_SEASON + gameDay
-  const totalGameDaysNow = currentSeason * GAME_DAYS_PER_SEASON + currentGameDay
-  return totalGameDaysNow - totalGameDaysThen
-}
-
-/**
- * Delete free players that have been without a team for too long
- * Players are deleted if they were fired more than 6 game days ago (~3 real days)
- * @returns {Promise<number>} Number of players deleted
+ * Maintains exactly MIN_FREE_PLAYERS free players in the market.
+ * Deletes random excess players if above minimum, generates weak players if below.
+ * @returns {Promise<{deleted: number, generated: number}>}
  */
 export async function cleanupOldFreePlayers () {
-  const { gameDay, season } = await getGameDayAndSeason()
+  const { season } = await getGameDayAndSeason()
 
   // Find all free players (no team)
   const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL')
 
-  if (freePlayers.length === 0) {
-    return 0
-  }
-
   let deletedCount = 0
+  let generatedCount = 0
 
-  for (const player of freePlayers) {
-    // Find the most recent FIRED entry in player history
-    const [lastFired] = await query(
-      'SELECT * FROM player_history WHERE player_id = ? AND type = ? ORDER BY created_at DESC LIMIT 1',
-      [player.id, 'FIRED']
-    )
+  // Delete random players if above minimum
+  if (freePlayers.length > MIN_FREE_PLAYERS) {
+    // Shuffle and pick excess players to delete
+    const shuffled = [...freePlayers].sort(() => Math.random() - 0.5)
+    const playersToDelete = shuffled.slice(0, freePlayers.length - MIN_FREE_PLAYERS)
 
-    if (!lastFired) {
-      // No FIRED history - might be a player that was never on a team, skip
-      continue
-    }
-
-    const daysSinceFired = calculateGameDaysDifference(
-      lastFired.season,
-      lastFired.game_day,
-      season,
-      gameDay
-    )
-
-    if (daysSinceFired >= FREE_PLAYER_EXPIRY_GAME_DAYS) {
-      // Delete player history first (foreign key constraint)
+    for (const player of playersToDelete) {
       await query('DELETE FROM player_history WHERE player_id = ?', [player.id])
-      // Delete any remaining trade offers
       await query('DELETE FROM trade_offer WHERE player_id = ?', [player.id])
-      // Delete the player
       await query('DELETE FROM player WHERE id = ?', [player.id])
       deletedCount++
-      console.log(`🗑️ Deleted expired free player: ${player.name} (ID: ${player.id})`)
+      console.log(`🗑️ Deleted free player: ${player.name} (ID: ${player.id})`)
+    }
+
+    if (deletedCount > 0) {
+      console.log(`🧹 Cleaned up ${deletedCount} free player(s)`)
     }
   }
 
-  if (deletedCount > 0) {
-    console.log(`🧹 Cleaned up ${deletedCount} expired free player(s)`)
+  // Generate new weak free players if below minimum
+  const currentFreeCount = freePlayers.length - deletedCount
+  const playersToGenerate = Math.max(0, MIN_FREE_PLAYERS - currentFreeCount)
+
+  for (let i = 0; i < playersToGenerate; i++) {
+    await _generateWeakFreePlayer(season)
+    generatedCount++
   }
 
-  return deletedCount
+  if (generatedCount > 0) {
+    console.log(`🆕 Generated ${generatedCount} new free player(s)`)
+  }
+
+  return { deleted: deletedCount, generated: generatedCount }
+}
+
+/**
+ * Generate a weak free player with low market value (< 50,000 EUR)
+ * @param {number} season
+ */
+async function _generateWeakFreePlayer (season) {
+  // Level 1-2 players aged 28-32 have very low market value
+  const level = Math.random() < 0.7 ? 1 : 2
+  const age = 28 + Math.floor(Math.random() * 5) // 28-32 years old
+  const carrierStartSeason = season - age + 16
+  const carrierEndSeason = carrierStartSeason + 22 + Math.floor(Math.random() * 4)
+
+  const positions = Object.values(Position).filter(p => p !== 'GK') // No goalkeepers
+  const position = randomItem(positions)
+
+  const player = {
+    hair_color: Math.floor(Math.random() * 7),
+    skin_color: Math.floor(Math.random() * 3),
+    team_id: null,
+    name: await generateRandomPlayerName(),
+    carrier_start_season: carrierStartSeason,
+    carrier_end_season: carrierEndSeason,
+    level,
+    in_game_position: '',
+    position,
+    freshness: 0.5 + Math.random() * 0.5 // 50-100% freshness
+  }
+
+  await query('INSERT INTO player SET ?', player)
 }

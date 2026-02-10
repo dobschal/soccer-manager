@@ -2,6 +2,7 @@ import { prepareSeason } from '../prepare-season.js'
 import { calculateGames } from '../play-game-day.js'
 import { makeBotMoves } from '../bot-move.js'
 import { BadRequestError } from '../lib/errors.js'
+import { cleanupOldFreePlayers } from '../helper/playerHelper.js'
 
 export default {
   /**
@@ -24,6 +25,7 @@ export default {
     await prepareSeason()
     await makeBotMoves()
     await calculateGames()
+    await cleanupOldFreePlayers()
     console.log('Game day calculation completed.')
     return { success: true }
   }

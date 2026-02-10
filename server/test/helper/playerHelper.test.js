@@ -8,8 +8,17 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: vi.fn()
 }))
 
+vi.mock('../../prepare-season.js', () => ({
+  generateRandomPlayerName: vi.fn()
+}))
+
+vi.mock('../../lib/util.js', () => ({
+  randomItem: vi.fn((arr) => arr[0])
+}))
+
 import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { generateRandomPlayerName } from '../../prepare-season.js'
 import { cleanupOldFreePlayers } from '../../helper/playerHelper.js'
 
 describe('playerHelper', () => {
@@ -18,102 +27,105 @@ describe('playerHelper', () => {
   })
 
   describe('cleanupOldFreePlayers', () => {
-    it('deletes free players fired more than 6 game days ago', async () => {
-      const freePlayer = { id: 1, name: 'Old Free Player', team_id: null }
-      const firedHistory = { player_id: 1, type: 'FIRED', season: 1, game_day: 1 }
-
-      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 }) // 9 days later
-      query
-        .mockResolvedValueOnce([freePlayer]) // Free players query
-        .mockResolvedValueOnce([firedHistory]) // Player history query
-        .mockResolvedValueOnce({}) // Delete player history
-        .mockResolvedValueOnce({}) // Delete trade offers
-        .mockResolvedValueOnce({}) // Delete player
-
-      const result = await cleanupOldFreePlayers()
-
-      expect(result).toBe(1)
-      expect(query).toHaveBeenCalledWith('DELETE FROM player WHERE id = ?', [1])
-    })
-
-    it('does not delete free players fired less than 6 game days ago', async () => {
-      const freePlayer = { id: 1, name: 'Recent Free Player', team_id: null }
-      const firedHistory = { player_id: 1, type: 'FIRED', season: 1, game_day: 5 }
-
-      getGameDayAndSeason.mockResolvedValue({ gameDay: 8, season: 1 }) // 3 days later
-      query
-        .mockResolvedValueOnce([freePlayer]) // Free players query
-        .mockResolvedValueOnce([firedHistory]) // Player history query
-
-      const result = await cleanupOldFreePlayers()
-
-      expect(result).toBe(0)
-      expect(query).not.toHaveBeenCalledWith('DELETE FROM player WHERE id = ?', [1])
-    })
-
-    it('handles season changes correctly', async () => {
-      const freePlayer = { id: 1, name: 'Cross Season Player', team_id: null }
-      const firedHistory = { player_id: 1, type: 'FIRED', season: 0, game_day: 32 }
-
-      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 }) // New season, day 5
-      query
-        .mockResolvedValueOnce([freePlayer]) // Free players query
-        .mockResolvedValueOnce([firedHistory]) // Player history query
-        .mockResolvedValueOnce({}) // Delete player history
-        .mockResolvedValueOnce({}) // Delete trade offers
-        .mockResolvedValueOnce({}) // Delete player
-
-      const result = await cleanupOldFreePlayers()
-
-      // 34 - 32 + 5 = 7 game days passed
-      expect(result).toBe(1)
-    })
-
-    it('skips players without FIRED history', async () => {
-      const freePlayer = { id: 1, name: 'Mystery Player', team_id: null }
+    it('deletes excess free players when above minimum of 20', async () => {
+      // 22 free players, should delete 2
+      const freePlayers = Array.from({ length: 22 }, (_, i) => ({
+        id: i + 1,
+        name: `Free Player ${i + 1}`,
+        team_id: null
+      }))
 
       getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
-      query
-        .mockResolvedValueOnce([freePlayer]) // Free players query
-        .mockResolvedValueOnce([]) // No FIRED history
+      query.mockResolvedValueOnce(freePlayers) // Free players query
+
+      // Mock delete queries for 2 players
+      for (let i = 0; i < 2; i++) {
+        query.mockResolvedValueOnce({}) // Delete player history
+        query.mockResolvedValueOnce({}) // Delete trade offers
+        query.mockResolvedValueOnce({}) // Delete player
+      }
 
       const result = await cleanupOldFreePlayers()
 
-      expect(result).toBe(0)
+      expect(result).toEqual({ deleted: 2, generated: 0 })
     })
 
-    it('returns 0 when no free players exist', async () => {
+    it('generates players when below minimum of 20', async () => {
+      const freePlayers = [{ id: 1, name: 'Lonely Player', team_id: null }]
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 8, season: 1 })
+      query.mockResolvedValueOnce(freePlayers) // Free players query
+
+      // Should generate 19 players to reach minimum of 20
+      generateRandomPlayerName.mockResolvedValue('Generated Player')
+      for (let i = 0; i < 19; i++) {
+        query.mockResolvedValueOnce({ insertId: 100 + i }) // Insert player
+      }
+
+      const result = await cleanupOldFreePlayers()
+
+      expect(result).toEqual({ deleted: 0, generated: 19 })
+    })
+
+    it('does nothing when exactly at minimum of 20', async () => {
+      const freePlayers = Array.from({ length: 20 }, (_, i) => ({
+        id: i + 1,
+        name: `Free Player ${i + 1}`,
+        team_id: null
+      }))
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      query.mockResolvedValueOnce(freePlayers)
+
+      const result = await cleanupOldFreePlayers()
+
+      expect(result).toEqual({ deleted: 0, generated: 0 })
+    })
+
+    it('generates all 20 players when no free players exist', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
       query.mockResolvedValueOnce([]) // No free players
 
+      // Should generate 20 players
+      generateRandomPlayerName.mockResolvedValue('Generated Player')
+      for (let i = 0; i < 20; i++) {
+        query.mockResolvedValueOnce({ insertId: 100 + i })
+      }
+
       const result = await cleanupOldFreePlayers()
 
-      expect(result).toBe(0)
+      expect(result).toEqual({ deleted: 0, generated: 20 })
     })
 
-    it('deletes multiple expired free players', async () => {
-      const freePlayers = [
-        { id: 1, name: 'Old Player 1', team_id: null },
-        { id: 2, name: 'Old Player 2', team_id: null }
-      ]
-      const firedHistory1 = { player_id: 1, type: 'FIRED', season: 1, game_day: 1 }
-      const firedHistory2 = { player_id: 2, type: 'FIRED', season: 1, game_day: 2 }
+    it('generates weak free players with correct attributes', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 5 })
+      query.mockResolvedValueOnce([]) // No free players
 
-      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
-      query
-        .mockResolvedValueOnce(freePlayers) // Free players query
-        .mockResolvedValueOnce([firedHistory1]) // Player 1 history
-        .mockResolvedValueOnce({}) // Delete player 1 history
-        .mockResolvedValueOnce({}) // Delete player 1 offers
-        .mockResolvedValueOnce({}) // Delete player 1
-        .mockResolvedValueOnce([firedHistory2]) // Player 2 history
-        .mockResolvedValueOnce({}) // Delete player 2 history
-        .mockResolvedValueOnce({}) // Delete player 2 offers
-        .mockResolvedValueOnce({}) // Delete player 2
+      generateRandomPlayerName.mockResolvedValue('Test Player')
 
-      const result = await cleanupOldFreePlayers()
+      // Capture the insert calls
+      const insertCalls = []
+      query.mockImplementation((sql, params) => {
+        if (sql === 'INSERT INTO player SET ?') {
+          insertCalls.push(params)
+        }
+        return Promise.resolve({ insertId: 1 })
+      })
 
-      expect(result).toBe(2)
+      await cleanupOldFreePlayers()
+
+      // Should have generated 20 players
+      expect(insertCalls.length).toBe(20)
+
+      // Check first generated player has expected structure
+      const player = insertCalls[0]
+      expect(player.team_id).toBeNull()
+      expect(player.level).toBeGreaterThanOrEqual(1)
+      expect(player.level).toBeLessThanOrEqual(2)
+      expect(player.freshness).toBeGreaterThanOrEqual(0.5)
+      expect(player.freshness).toBeLessThanOrEqual(1.0)
+      expect(player.position).toBeDefined()
+      expect(player.position).not.toBe('GK') // No goalkeepers
     })
   })
 })
