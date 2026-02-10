@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
 import { prepareSeason } from '../prepare-season.js'
-import { t, getSupportedLocales } from '../i18n/index.js'
+import { getSupportedLocales, t } from '../i18n/index.js'
 
 export default {
 
@@ -30,8 +30,8 @@ export default {
     let [team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
     if (!team) {
       // No team available - create new league(s) with prepareSeason and retry
-      await prepareSeason()
-      ;[team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
+      await prepareSeason();
+      [team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
       if (!team) {
         throw new BadRequestError(t('error.noTeamAvailable', {}, locale))
       }
@@ -41,8 +41,18 @@ export default {
       password,
       language: locale
     })
-    await addLogMessage(t('log.welcome', { username, teamName: team.name }, locale), team, null, null, 'hand-peace-o')
-    await query(`UPDATE team SET user_id=${userId}, balance=500000 WHERE id=${team.id}`)
+    // Clean up old bot data before assigning team to user
+    await query('DELETE FROM log_message WHERE team_id=?', [team.id])
+    await query('DELETE FROM trade_offer WHERE from_team_id=?', [team.id])
+    await query('DELETE FROM trade_offer WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
+    await addLogMessage(t('log.welcome', {
+      username,
+      teamName: team.name
+    }, locale), team, null, null, 'hand-peace-o')
+    await query(`UPDATE team
+                 SET user_id=${userId},
+                     balance=500000
+                 WHERE id = ${team.id}`)
     const { sponsor } = await getSponsor(team)
     if (sponsor) {
       await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
