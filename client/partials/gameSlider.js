@@ -260,10 +260,13 @@ export class GameSlider extends UIElement {
 
     let touchStartX = 0
     let touchEndX = 0
+    let touchTarget = null
     const swipeThreshold = 50
 
     slider.addEventListener('touchstart', (e) => {
       touchStartX = e.touches[0].clientX
+      touchEndX = touchStartX // Initialize to same position so taps don't trigger swipe
+      touchTarget = e.target
     }, { passive: true })
 
     slider.addEventListener('touchmove', (e) => {
@@ -281,10 +284,17 @@ export class GameSlider extends UIElement {
           // Swipe right → previous
           this._navigate(-1)
         }
+      } else if (touchTarget) {
+        // It's a tap, not a swipe - find and click the nearest link
+        const link = touchTarget.closest('a[href]')
+        if (link) {
+          link.click()
+        }
       }
 
       touchStartX = 0
       touchEndX = 0
+      touchTarget = null
     }, { passive: true })
   }
 }
