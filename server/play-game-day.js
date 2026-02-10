@@ -103,8 +103,8 @@ import { addLogMessage } from './helper/logMessageHelper.js'
  * @type {Object<string, {fightBonus: number, cardChance: number}>}
  */
 const PLAY_STYLE_MODIFIERS = {
-  aggressive: { fightBonus: 0.15, cardChance: 0.002 }, // +15% fight chance, higher card chance
-  normal: { fightBonus: 0, cardChance: 0.0008 },
+  aggressive: { fightBonus: 0.15, cardChance: 0.005 }, // +15% fight chance, higher card chance (target: 2-3 yellows/game, ~33% red)
+  normal: { fightBonus: 0, cardChance: 0.001 },
   friendly: { fightBonus: -0.15, cardChance: 0.0003 } // -15% fight chance, lower card chance
 }
 
@@ -745,7 +745,7 @@ function _checkForCard (player, playStyle, gameDetails, team) {
   }
 
   // Small chance for direct red card (very aggressive play)
-  if (playStyle === 'aggressive' && Math.random() < 0.0005 && !player.sentOff) {
+  if (playStyle === 'aggressive' && Math.random() < 0.0001 && !player.sentOff) {
     player.sentOff = true
     gameDetails.sentOffPlayerIds.push(player.id)
     gameDetails.log.push({
