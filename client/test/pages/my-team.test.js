@@ -143,7 +143,7 @@ describe('MyTeamPage', () => {
       await page.load()
       page.onMounted()
 
-      expect(showTutorialIfNeeded).toHaveBeenCalledWith('team')
+      expect(showTutorialIfNeeded).toHaveBeenCalledWith('team', expect.any(Object))
     })
 
     it('handles query param for player modal', async () => {

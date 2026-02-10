@@ -198,7 +198,7 @@ export class FinancesPage extends UIElement {
    * @returns {void}
    */
   onMounted () {
-    void showTutorialIfNeeded('finances')
+    void showTutorialIfNeeded('finances', this)
   }
 
   /**

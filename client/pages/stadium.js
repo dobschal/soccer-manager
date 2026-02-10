@@ -280,7 +280,7 @@ export class StadiumPage extends UIElement {
     if (this._stadiumCanvas) {
       this._stadiumCanvas.onMounted()
     }
-    void showTutorialIfNeeded('stadium')
+    void showTutorialIfNeeded('stadium', this)
   }
 
   /**

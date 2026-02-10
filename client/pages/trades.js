@@ -45,7 +45,7 @@ export class TradesPage extends UIElement {
    * @returns {void}
    */
   onMounted () {
-    void showTutorialIfNeeded('trades')
+    void showTutorialIfNeeded('trades', this)
   }
 
   /**

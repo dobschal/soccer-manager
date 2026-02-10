@@ -195,7 +195,7 @@ export class ResultsPage extends UIElement {
    */
   onMounted () {
     this._loadTopScorerImages()
-    void showTutorialIfNeeded('results')
+    void showTutorialIfNeeded('results', this)
   }
 
   /**

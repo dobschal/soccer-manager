@@ -121,7 +121,7 @@ describe('ResultsPage', () => {
       await page.load()
       page.onMounted()
 
-      expect(showTutorialIfNeeded).toHaveBeenCalledWith('results')
+      expect(showTutorialIfNeeded).toHaveBeenCalledWith('results', expect.any(Object))
     })
   })
 

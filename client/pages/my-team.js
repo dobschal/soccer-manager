@@ -122,7 +122,7 @@ export class MyTeamPage extends UIElement {
    * @returns {void}
    */
   onMounted () {
-    void showTutorialIfNeeded('team')
+    void showTutorialIfNeeded('team', this)
   }
 
   /**

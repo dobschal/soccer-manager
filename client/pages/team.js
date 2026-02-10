@@ -157,7 +157,7 @@ export class TeamPage extends UIElement {
   }
 
   onMounted () {
-    void showTutorialIfNeeded('team')
+    void showTutorialIfNeeded('team', this)
   }
 
   /**

@@ -146,7 +146,7 @@ export class DashboardPage extends UIElement {
    * @returns {void}
    */
   onMounted () {
-    void showTutorialIfNeeded('dashboard')
+    void showTutorialIfNeeded('dashboard', this)
     this._showManagerChatIfNeeded()
   }
 

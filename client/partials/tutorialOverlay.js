@@ -88,15 +88,22 @@ function getTutorials () {
 /**
  * Shows the tutorial overlay if not already completed
  * @param {string} tutorialKey
+ * @param {import('../lib/UIElement.js').UIElement} [component] - Optional component to check if still mounted
  * @returns {Promise<void>}
  */
-export async function showTutorialIfNeeded (tutorialKey) {
+export async function showTutorialIfNeeded (tutorialKey, component = null) {
   try {
     const { tutorialCompleted } = await server.getTutorialStatus()
     if (tutorialCompleted[tutorialKey]) {
       return
     }
-    setTimeout(() => showTutorialOverlay(tutorialKey), 1500)
+    setTimeout(() => {
+      // Don't show tutorial if component was unmounted (user navigated away)
+      if (component && !component._isMounted) {
+        return
+      }
+      showTutorialOverlay(tutorialKey)
+    }, 1500)
   } catch (e) {
     console.error('Failed to check tutorial status:', e)
   }

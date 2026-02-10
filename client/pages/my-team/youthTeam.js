@@ -53,7 +53,7 @@ export class YouthTeamPage extends UIElement {
    */
   onMounted () {
     this._startTimer()
-    void showTutorialIfNeeded('youth')
+    void showTutorialIfNeeded('youth', this)
   }
 
   /**
