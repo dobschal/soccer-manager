@@ -6,6 +6,7 @@ import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
 import { prepareSeason } from '../prepare-season.js'
 import { getSupportedLocales, t } from '../i18n/index.js'
+import { ActionCard } from '../entities/actionCard.js'
 
 export default {
 
@@ -58,6 +59,15 @@ export default {
       await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
     }
     await query('DELETE FROM action_card WHERE team_id=?', [team.id])
+    // Give new user 3 starter action cards
+    const starterCards = [
+      new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_4', played: 0 }),
+      new ActionCard({ team_id: team.id, action: 'FRESHNESS_10', played: 0 }),
+      new ActionCard({ team_id: team.id, action: 'CHANGE_PLAYER_POSITION', played: 0 })
+    ]
+    for (const card of starterCards) {
+      await query('INSERT INTO action_card SET ?', card)
+    }
     return { success: true }
   },
 
