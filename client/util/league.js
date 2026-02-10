@@ -37,9 +37,13 @@ const subKeys = [
 export function formatLeague (level, league) {
   const division = level + 1
   const subKey = subKeys[league]
+  if (division === 1) {
+    // Top division doesn't have subdivisions
+    return `${division}. ${t('results.league')}`
+  }
   if (!subKey) {
     // Fallback for leagues beyond supported subdivisions
-    return `${division}. #${league + 1}`
+    return `${division}. ${t('results.league')} #${league + 1}`
   }
-  return `${division}. ${t(subKey)}`
+  return `${division}. ${t('results.league')} ${t(subKey)}`
 }

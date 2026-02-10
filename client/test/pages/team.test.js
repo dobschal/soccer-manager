@@ -6,7 +6,10 @@ vi.mock('../../lib/gateway.js', () => ({
   server: {
     getTeam: vi.fn(),
     getStadiumByTeamId: vi.fn(),
-    getTeamValue: vi.fn()
+    getTeamValue: vi.fn(),
+    getMyTeam: vi.fn(),
+    canPlayFriendlyToday: vi.fn(),
+    playFriendlyMatch: vi.fn()
   }
 }))
 
@@ -33,6 +36,18 @@ vi.mock('../../partials/stadiumModal.js', () => ({
   showStadiumModal: vi.fn()
 }))
 
+vi.mock('../../partials/toast.js', () => ({
+  toast: vi.fn()
+}))
+
+vi.mock('../../partials/gameModal.js', () => ({
+  showGameModal: vi.fn()
+}))
+
+vi.mock('../../partials/tutorialOverlay.js', () => ({
+  showTutorialIfNeeded: vi.fn()
+}))
+
 vi.mock('../../util/league.js', () => ({
   formatLeague: vi.fn((level, league) => `${level + 1}. League ${league}`)
 }))
@@ -55,6 +70,9 @@ import { setQueryParams } from '../../lib/router.js'
 describe('TeamPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Default mocks for the new friendly match methods
+    server.getMyTeam.mockResolvedValue({ team: testData.team({ id: 999 }) })
+    server.canPlayFriendlyToday.mockResolvedValue({ canPlay: true })
   })
 
   describe('TeamPage class', () => {

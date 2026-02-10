@@ -387,6 +387,21 @@ export default {
   'team.seats': '{seats} seats',
   'team.bestPlayer': 'Best Player',
   'team.levelLabel': 'Level {level}',
+  'team.playFriendly': 'Play Friendly Match',
+  'team.friendlyPlayed': 'Friendly match already played today',
+  'team.cannotPlayOwnTeam': 'Cannot play against your own team',
+
+  // Friendly matches
+  'friendly.title': 'Friendly Matches',
+  'friendly.noGames': 'No friendly matches played yet.',
+  'friendly.playedToday': 'You have already played a friendly match today.',
+  'friendly.confirmTitle': 'Play Friendly Match?',
+  'friendly.confirmText': 'Do you want to play a friendly match against {teamName}? You can only play one friendly match per game day.',
+  'friendly.confirmBtn': 'Play Match',
+  'friendly.cancel': 'Cancel',
+  'friendly.matchPlayed': 'Friendly match played!',
+  'friendly.result': 'Result: {goals1} - {goals2}',
+  'friendly.halfFans': 'Friendly matches have half the normal attendance.',
 
   // Player positions
   'position.GK': 'Goalkeeper',
@@ -544,6 +559,7 @@ export default {
   'tutorial.teamPage.item2': 'Check player freshness - tired players perform worse',
   'tutorial.teamPage.item3': 'Set your formation and lineup for matches',
   'tutorial.teamPage.item4': 'Drag players to positions or use the dropdown to assign them',
+  'tutorial.teamPage.item5': 'Play friendly matches against other teams once per game day',
   'tutorial.trades.title': 'Player Market',
   'tutorial.trades.subtitle': 'Buy, sell and manage transfers',
   'tutorial.trades.item1': 'Browse the transfer market for new players',

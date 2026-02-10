@@ -109,6 +109,7 @@ export default {
         WHERE g.played = 1
           AND g.season = ?
           AND (g.team_1_id = ? OR g.team_2_id = ?)
+          AND (g.game_type = 'league' OR g.game_type IS NULL)
         ORDER BY g.game_day DESC
         LIMIT ?
     `, [season, team.id, team.id, pastCount])
@@ -134,6 +135,7 @@ export default {
         WHERE g.played = 0
           AND g.season = ?
           AND (g.team_1_id = ? OR g.team_2_id = ?)
+          AND (g.game_type = 'league' OR g.game_type IS NULL)
         ORDER BY g.game_day ASC
         LIMIT ?
     `, [season, team.id, team.id, upcomingCount])

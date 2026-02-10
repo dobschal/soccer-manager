@@ -431,12 +431,14 @@ async function _calculateGoals (level, league, season, gameDay, standing) {
   const playersWithGoals = Object.keys(goalsByPlayers)
     .map(playerId => {
       const player = players.find(p => p.id === Number(playerId))
+      if (!player) return null
       return {
         team: standing.find(({ team }) => team.id === player.team_id)?.team,
         goals: goalsByPlayers[playerId],
         ...player
       }
     })
+    .filter(Boolean)
   playersWithGoals.sort((a, b) => b.goals - a.goals)
   return playersWithGoals.slice(0, 10)
 }

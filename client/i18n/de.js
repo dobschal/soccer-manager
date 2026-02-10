@@ -387,6 +387,21 @@ export default {
   'team.seats': '{seats} Plätze',
   'team.bestPlayer': 'Bester Spieler',
   'team.levelLabel': 'Level {level}',
+  'team.playFriendly': 'Freundschaftsspiel',
+  'team.friendlyPlayed': 'Heute wurde bereits ein Freundschaftsspiel gespielt',
+  'team.cannotPlayOwnTeam': 'Kann nicht gegen das eigene Team spielen',
+
+  // Friendly matches
+  'friendly.title': 'Freundschaftsspiele',
+  'friendly.noGames': 'Noch keine Freundschaftsspiele gespielt.',
+  'friendly.playedToday': 'Du hast heute bereits ein Freundschaftsspiel gespielt.',
+  'friendly.confirmTitle': 'Freundschaftsspiel spielen?',
+  'friendly.confirmText': 'Möchtest du ein Freundschaftsspiel gegen {teamName} spielen? Du kannst nur ein Freundschaftsspiel pro Spieltag spielen.',
+  'friendly.confirmBtn': 'Spiel starten',
+  'friendly.cancel': 'Abbrechen',
+  'friendly.matchPlayed': 'Freundschaftsspiel gespielt!',
+  'friendly.result': 'Ergebnis: {goals1} - {goals2}',
+  'friendly.halfFans': 'Freundschaftsspiele haben die halbe normale Zuschauerzahl.',
 
   // Player positions
   'position.GK': 'Torwart',
@@ -544,6 +559,7 @@ export default {
   'tutorial.teamPage.item2': 'Prüfe die Frische der Spieler - müde Spieler spielen schlechter',
   'tutorial.teamPage.item3': 'Lege deine Formation und Aufstellung für Spiele fest',
   'tutorial.teamPage.item4': 'Ziehe Spieler auf Positionen oder nutze das Dropdown',
+  'tutorial.teamPage.item5': 'Spiele einmal pro Spieltag Freundschaftsspiele gegen andere Teams',
   'tutorial.trades.title': 'Transfermarkt',
   'tutorial.trades.subtitle': 'Kaufen, verkaufen und Transfers verwalten',
   'tutorial.trades.item1': 'Durchsuche den Transfermarkt nach neuen Spielern',

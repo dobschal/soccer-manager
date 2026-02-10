@@ -17,7 +17,8 @@ vi.mock('../../lib/gateway.js', () => ({
     useActionCard: vi.fn(),
     mergeCards: vi.fn(),
     getStanding: vi.fn(),
-    getGamesForSlider: vi.fn()
+    getGamesForSlider: vi.fn(),
+    getFriendlyGames: vi.fn()
   }
 }))
 
@@ -137,6 +138,9 @@ describe('DashboardPage', () => {
       pastGames: [],
       upcomingGames: [],
       nextGameDate: null
+    })
+    server.getFriendlyGames.mockResolvedValue({
+      games: []
     })
   })
 

@@ -657,6 +657,12 @@ const migrations = [{
     await query('ALTER TABLE player ADD COLUMN red_cards INT DEFAULT 0')
     await query('ALTER TABLE player ADD COLUMN is_suspended TINYINT(1) DEFAULT 0')
   }
+}, {
+  name: 'Add game_type column to game table for friendly matches',
+  async run () {
+    await query("ALTER TABLE game ADD COLUMN game_type VARCHAR(20) DEFAULT 'league'")
+    await query('CREATE INDEX idx_game_type ON game (game_type)')
+  }
 }]
 
 /**

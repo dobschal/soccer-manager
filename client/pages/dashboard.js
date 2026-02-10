@@ -12,9 +12,11 @@ import { showManagerChat, wasManagerChatShown } from '../partials/managerChat.js
 import { goTo } from '../lib/router.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { GameSlider } from '../partials/gameSlider.js'
+import { formatLeague } from '../util/league.js'
 
 export class DashboardPage extends UIElement {
   _sliderGames = []
+  _friendlyGames = []
   _initialSlideIndex = 0
   team = {}
   user = {}
@@ -34,7 +36,11 @@ export class DashboardPage extends UIElement {
     }
     return `
       <div>
-        <h2 class="d-flex gap-3 align-items-center">${renderEmblem(this.team, 40)} ${this.team.name}</h2>
+        <h2 class="mb-4 d-flex gap-3 align-items-center justify-content-center">
+            ${renderEmblem(this.team, 40)} ${this.team.name}
+            </h2>
+        
+        <h5 class="mb-0"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
         <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
           <div class="flex-grow-1">
             ${new GameSlider(gameSliderArgs)}
@@ -46,6 +52,8 @@ export class DashboardPage extends UIElement {
             </a>
           </div>
         </div>
+
+        ${this._renderFriendlyGames()}
 
         ${new ActionCards()}
 
@@ -68,8 +76,11 @@ export class DashboardPage extends UIElement {
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
 
-    // Fetch games for slider (past 3 and upcoming 3)
-    const sliderResponse = await server.getGamesForSlider(3, 3)
+    // Fetch games for slider (past 3 and upcoming 3) and friendly games
+    const [sliderResponse, friendlyResponse] = await Promise.all([
+      server.getGamesForSlider(3, 3),
+      server.getFriendlyGames(5)
+    ])
 
     // Combine past and upcoming games for the slider
     // Add team data for emblems directly from the response
@@ -88,6 +99,14 @@ export class DashboardPage extends UIElement {
         team2Data: this._extractTeamData(g, 2)
       }))
     ]
+
+    // Process friendly games for display
+    this._friendlyGames = friendlyResponse.games.map(g => ({
+      ...g,
+      isPlayed: true,
+      team1Data: this._extractTeamData(g, 1),
+      team2Data: this._extractTeamData(g, 2)
+    }))
 
     // Set initial slide to the latest played game (last of past games)
     this._initialSlideIndex = Math.max(0, sliderResponse.pastGames.length - 1)
@@ -196,6 +215,29 @@ export class DashboardPage extends UIElement {
     if (pos === 2) return t('dashboard.positionNd', { pos })
     if (pos === 3) return t('dashboard.positionRd', { pos })
     return t('dashboard.positionTh', { pos })
+  }
+
+  /**
+   * Render friendly games section
+   * @returns {string}
+   */
+  _renderFriendlyGames () {
+    if (this._friendlyGames.length === 0) return ''
+
+    const friendlySliderArgs = {
+      games: this._friendlyGames,
+      teamId: this.team.id,
+      initialIndex: this._friendlyGames.length - 1
+    }
+
+    return `
+      <div class="mb-4">
+        <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
+        <div>
+          ${new GameSlider(friendlySliderArgs)}
+        </div>
+      </div>
+    `
   }
 
   /**

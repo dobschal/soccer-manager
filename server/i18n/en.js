@@ -124,6 +124,7 @@ export default {
   'finance.playerBought': 'Player bought: {playerName}',
   'finance.stadiumExpansion': 'Stadium expansion: {stand}',
   'finance.roofConstruction': 'Roof construction: {stand}',
+  'finance.friendlyMatchTickets': 'Friendly match ticket earnings',
   'finance.actionCardBonus': 'Action card bonus',
   'finance.leagueBonus': 'League bonus',
   'finance.promotionBonus': 'Promotion bonus',

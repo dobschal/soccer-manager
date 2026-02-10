@@ -9,6 +9,10 @@ import { formatLeague } from '../util/league.js'
 import { showStadiumModal } from '../partials/stadiumModal.js'
 import { euroFormat } from '../lib/currency.js'
 import { t } from '../i18n/index.js'
+import { toast } from '../partials/toast.js'
+import { showGameModal } from '../partials/gameModal.js'
+import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
+import { showDialog } from '../partials/dialog.js'
 
 /**
  * Information to render:
@@ -31,6 +35,12 @@ export class TeamPage extends UIElement {
   _bestPlayerImage = ''
   /** @type {number} */
   _teamValue = 0
+  /** @type {boolean} */
+  _canPlayFriendly = false
+  /** @type {boolean} */
+  _isOwnTeam = false
+  /** @type {boolean} */
+  _isPlayingFriendly = false
 
   /**
    * @returns {string}
@@ -38,7 +48,7 @@ export class TeamPage extends UIElement {
   get template () {
     const bestPlayer = this._bestPlayer
     return `
-      <div>
+      <div>        
         <div class="row mb-4 align-items-center">
           <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
             ${renderEmblem(this.team, 200)}
@@ -53,6 +63,7 @@ export class TeamPage extends UIElement {
               <b>${t('team.trainer')}</b>: ${this._username}<br>
               <b>${t('team.stadiumSize')}</b>: <a href="#" class="stadium-link text-info">${t('team.seats', { seats: this._stadiumSize })}</a>
             </p>
+            ${this._renderFriendlyMatchButton()}
           </div>
           <div class="col-12 col-md-4 text-center">
             ${bestPlayer ? `
@@ -94,6 +105,12 @@ export class TeamPage extends UIElement {
             setQueryParams({ player_id: playerId })
           }
         }
+      },
+      '.friendly-match-btn': {
+        click: (event) => {
+          event.preventDefault()
+          this._handleFriendlyMatchClick()
+        }
       }
     }
   }
@@ -102,6 +119,15 @@ export class TeamPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
+    // Get teamId from URL query params if not already set
+    if (!this.teamId) {
+      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
+      const idParam = urlParams.get('id')
+      if (idParam) {
+        this.teamId = Number(idParam)
+      }
+    }
+
     if (!this.teamId) throw new Error('No team id present...')
     const {
       team,
@@ -112,18 +138,26 @@ export class TeamPage extends UIElement {
     this.team = team
     this.players = players
 
-    const [stadium, teamValue] = await Promise.all([
+    const [stadium, teamValue, myTeam, friendlyStatus] = await Promise.all([
       server.getStadiumByTeamId(this.team.id),
-      server.getTeamValue(this.team.id)
+      server.getTeamValue(this.team.id),
+      server.getMyTeam(),
+      server.canPlayFriendlyToday()
     ])
     this.stadium = stadium
     this._teamValue = teamValue.value
+    this._isOwnTeam = myTeam.team.id === this.team.id
+    this._canPlayFriendly = friendlyStatus.canPlay && !this._isOwnTeam
 
     // Render best player image
     const bestPlayer = this._bestPlayer
     if (bestPlayer) {
       this._bestPlayerImage = await renderPlayerImage(bestPlayer, this.team, 150)
     }
+  }
+
+  onMounted () {
+    void showTutorialIfNeeded('team')
   }
 
   /**
@@ -183,5 +217,74 @@ export class TeamPage extends UIElement {
       if (!best || player.level > best.level) return player
       return best
     }, null)
+  }
+
+  /**
+   * Render the friendly match button if applicable
+   * @returns {string}
+   * @private
+   */
+  _renderFriendlyMatchButton () {
+    // Don't show for own team
+    if (this._isOwnTeam) return ''
+
+    const buttonDisabled = !this._canPlayFriendly || this._isPlayingFriendly
+    const buttonText = this._isPlayingFriendly
+      ? '<i class="fa fa-spinner fa-spin"></i>'
+      : `<i class="fa fa-futbol-o"></i> ${t('team.playFriendly')}`
+    const buttonTitle = !this._canPlayFriendly ? t('team.friendlyPlayed') : ''
+
+    return `
+      <div class="mb-4 mt-4">
+        <button class="btn btn-outline-info friendly-match-btn" ${buttonDisabled ? 'disabled' : ''} title="${buttonTitle}">
+          ${buttonText}
+        </button>
+      </div>
+    `
+  }
+
+  /**
+   * Handle click on friendly match button
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _handleFriendlyMatchClick () {
+    if (this._isPlayingFriendly || !this._canPlayFriendly) return
+
+    // Show confirmation dialog
+    const { ok } = await showDialog({
+      title: t('friendly.confirmTitle'),
+      text: t('friendly.confirmText', { teamName: this.team.name }),
+      buttonText: t('friendly.confirmBtn'),
+      buttonType: 'info'
+    })
+
+    if (!ok) return
+
+    try {
+      this._isPlayingFriendly = true
+      await this.update()
+
+      const result = await server.playFriendlyMatch(this.team.id)
+      const game = result.game
+
+      toast(t('friendly.result', {
+        goals1: game.goalsTeam1,
+        goals2: game.goalsTeam2
+      }), 'success')
+
+      // Update state and show game details
+      this._canPlayFriendly = false
+      this._isPlayingFriendly = false
+      await this.update()
+
+      // Show the game modal
+      await showGameModal(game.id)
+    } catch (e) {
+      console.error('Error playing friendly match:', e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+      this._isPlayingFriendly = false
+      await this.update()
+    }
   }
 }
