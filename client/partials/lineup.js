@@ -108,7 +108,7 @@ export class Lineup extends UIElement {
    */
   get template () {
     return `
-      <div class="card">
+      <div class="card bg-dark">
         <div class="squad card-body">
           ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
         </div>
@@ -183,7 +183,7 @@ export class Lineup extends UIElement {
    */
   _renderSaveButton () {
     if (!lineUpData.squadDataChanged) return ''
-    return `<button class="btn btn-primary w-100" type="button">Save</button>`
+    return `<button class="btn btn-info w-100 mt-2" type="button">Save</button>`
   }
 
   /**
@@ -211,7 +211,7 @@ export class Lineup extends UIElement {
       </div>
     `
   }
-  
+
 }
 
 /**

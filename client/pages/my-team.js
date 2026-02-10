@@ -479,7 +479,7 @@ export class MyTeamPage extends UIElement {
         ${colorOptions}
       </div>
 
-      <button id="${saveButtonId}" class="btn btn-primary w-100">${t('myTeam.saveEmblem')}</button>
+      <button id="${saveButtonId}" class="btn btn-info w-100">${t('myTeam.saveEmblem')}</button>
     `)
   }
 

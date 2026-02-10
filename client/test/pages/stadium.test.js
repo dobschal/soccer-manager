@@ -187,7 +187,7 @@ describe('StadiumPage', () => {
       const page = new StadiumPage()
       await page.load()
       expect(page.template).toContain('Under construction')
-      expect(page.template).toContain('5 gameday(s) remaining')
+      expect(page.template).toContain('6 gameday(s) remaining')
     })
 
     it('disables inputs for stands under construction', async () => {
