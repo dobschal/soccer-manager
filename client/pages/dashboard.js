@@ -35,15 +35,22 @@ export class DashboardPage extends UIElement {
       initialIndex: this._initialSlideIndex
     }
     return `
-      <div>
-        <h2 class="mb-4 d-flex gap-3 align-items-center justify-content-center">
-            ${renderEmblem(this.team, 40)} ${this.team.name}
-            </h2>
-        
-        <h5 class="mb-0"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
+      <div>       
+        <h5 class="mb-2"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
         <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
           <div class="flex-grow-1">
             ${new GameSlider(gameSliderArgs)}
+          </div>
+          <div class="d-none d-lg-block flex-shrink-1 text-center" style="min-width: 280px; width: 33%;">
+            ${renderEmblem(this.team, 160)}
+            <h2>${this.team.name}</h2>
+          </div>
+        </div>
+        
+        <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
+        <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
+          <div class="flex-grow-1">
+            ${this._renderFriendlyGames()}            
           </div>
           <div class="d-none d-lg-block flex-shrink-1" style="min-width: 280px; width: 33%;">
             ${this._renderMiniStanding()}
@@ -52,8 +59,6 @@ export class DashboardPage extends UIElement {
             </a>
           </div>
         </div>
-
-        ${this._renderFriendlyGames()}
 
         ${new ActionCards()}
 
@@ -219,7 +224,7 @@ export class DashboardPage extends UIElement {
 
   /**
    * Render friendly games section
-   * @returns {string}
+   * @returns {GameSlider}
    */
   _renderFriendlyGames () {
     if (this._friendlyGames.length === 0) return ''
@@ -230,14 +235,7 @@ export class DashboardPage extends UIElement {
       initialIndex: this._friendlyGames.length - 1
     }
 
-    return `
-      <div class="mb-4">
-        <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
-        <div>
-          ${new GameSlider(friendlySliderArgs)}
-        </div>
-      </div>
-    `
+    return new GameSlider(friendlySliderArgs)
   }
 
   /**

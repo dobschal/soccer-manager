@@ -9,12 +9,13 @@ import { randomItem } from '../lib/util.js'
 
 /**
  * Play style modifiers for fight chance and card chance
+ * Target yellow cards per game: aggressive 4.0, normal 3.5, friendly 3.0
  * @type {Object<string, {fightBonus: number, cardChance: number}>}
  */
 const PLAY_STYLE_MODIFIERS = {
   aggressive: { fightBonus: 0.15, cardChance: 0.005 },
-  normal: { fightBonus: 0, cardChance: 0.001 },
-  friendly: { fightBonus: -0.15, cardChance: 0.0003 }
+  normal: { fightBonus: 0, cardChance: 0.004 },
+  friendly: { fightBonus: -0.15, cardChance: 0.003 }
 }
 
 /**
@@ -455,10 +456,17 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
   const chanceForShoot = Math.min(0.95, _chanceToShoot(activePlayer, gameDetails) * (1 + gameDetails.streak * 0.3))
   if (Math.random() > chanceForShoot) return true
 
-  const keeperSaves = goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)
-  const shotMisses = Math.random() > 0.25
+  // Shot is on target ~24% of the time
+  const shotOnTarget = Math.random() < 0.24
 
-  if (keeperSaves || (goalKeeper && shotMisses)) {
+  if (!shotOnTarget) {
+    return true
+  }
+
+  // Shot on target - check if keeper saves
+  const keeperSaves = goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)
+
+  if (keeperSaves) {
     gameDetails.log.push({
       player: activePlayer.id,
       keeperHolds: true,
@@ -469,10 +477,7 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     return false
   }
 
-  if (!goalKeeper && shotMisses) {
-    return true
-  }
-
+  // GOAL!
   if (teamAHasBall) {
     gameDetails.goalsTeamA = gameDetails.goalsTeamA ?? 0
     gameDetails.goalsTeamA++
@@ -486,10 +491,10 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
 }
 
 function _chanceToShoot (player) {
-  if (player.position.endsWith('A')) return 0.11
-  if (player.position.endsWith('M')) return 0.045
-  if (player.position.endsWith('D')) return 0.005
-  return 0.00006
+  if (player.position.endsWith('A')) return 0.095
+  if (player.position.endsWith('M')) return 0.04
+  if (player.position.endsWith('D')) return 0.004
+  return 0.00005
 }
 
 function _chanceToFight (player) {

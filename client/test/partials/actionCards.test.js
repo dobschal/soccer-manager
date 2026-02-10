@@ -58,14 +58,19 @@ describe('ActionCards', () => {
       expect(html).toContain('actionCards.subtitle')
     })
 
-    it('shows no cards message when empty', async () => {
+    it('shows placeholder cards when empty', async () => {
       server.getActionCards.mockResolvedValue({ actionCards: [] })
 
       const cards = new ActionCards()
       await cards.load()
 
       const html = cards.template
-      expect(html).toContain('actionCards.noCards')
+      expect(html).toContain('action-cards-scroll')
+      expect(html).toContain('action-card-placeholder')
+      expect(html).toContain('action-card-empty')
+      // Should have 5 placeholder cards
+      const placeholderCount = (html.match(/action-card-placeholder/g) || []).length
+      expect(placeholderCount).toBe(5)
     })
 
     it('renders cards container when cards exist', async () => {
@@ -78,7 +83,10 @@ describe('ActionCards', () => {
 
       const html = cards.template
       expect(html).toContain('action-cards-scroll')
-      expect(html).not.toContain('actionCards.noCards')
+      expect(html).toContain('action-card-stack')
+      // Should have 1 real card + 4 placeholders = 5 total slots
+      const placeholderCount = (html.match(/action-card-placeholder/g) || []).length
+      expect(placeholderCount).toBe(4)
     })
   })
 

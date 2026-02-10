@@ -16,24 +16,38 @@ import { determineOponentPosition } from '../client/util/formation.js'
 // Configuration
 // ============================================================================
 
-const GAMES_PER_MATCHUP = 100 // Number of games per matchup (reduced for faster analysis with more combos)
+const GAMES_PER_MATCHUP = 50 // Number of games per matchup (reduced for faster analysis)
 const TEAM_TOTAL_LEVEL = 50 // Total level points distributed across 11 players
 const PLAYER_FRESHNESS = 1.0 // All players at full freshness for fair comparison
 
 // ============================================================================
-// Bundesliga Reference Statistics (2023/24 Season)
+// Bundesliga Reference Statistics (from CLAUDE.md)
 // ============================================================================
 
 const BUNDESLIGA_STATS = {
-  goalsPerGameTotal: 3.17, // Total goals per match (both teams)
-  goalsPerTeam: 1.585, // Goals per team per match
-  shotsPerTeam: 13.2, // Total shots per team per match
+  goalsPerGameTotal: 3.16, // Total goals per match (both teams)
+  goalsPerTeam: 1.58, // Goals per team per match
+  shotsPerTeam: 13, // Total shots per team per match
   shotsOnTargetPerTeam: 4.5, // Shots on target per team
   conversionRate: 0.12, // Goals / shots (~12%)
-  yellowCardsPerGame: 3.5, // Yellow cards per match (both teams)
+  yellowCardsPerGame: 3.5, // Yellow cards per match (both teams) - normal play style
   yellowCardsPerTeam: 1.75, // Yellow cards per team per match
-  redCardsPerGame: 0.15, // Red cards per match (both teams)
-  redCardsPerTeam: 0.075 // Red cards per team per match
+  redCardsPerGame: 0.1, // Red cards per match (both teams) - normal play style
+  redCardsPerTeam: 0.05, // Red cards per team per match
+  // Goal difference distribution
+  drawPercentage: 0.24, // 24% of games end in a draw
+  oneDiffPercentage: 0.32, // 32% end with 1 goal difference
+  twoDiffPercentage: 0.22, // 22% end with 2 goals difference
+  threeDiffPercentage: 0.11, // 11% end with 3 goals difference
+  fourDiffPercentage: 0.06, // 6% end with 4 goals difference
+  fivePlusDiffPercentage: 0.04, // 4% end with 5+ goals difference
+  // Card targets by play style
+  yellowCardsAggressive: 4.0,
+  yellowCardsNormal: 3.5,
+  yellowCardsFriendly: 3.0,
+  redCardsAggressive: 0.13,
+  redCardsNormal: 0.1,
+  redCardsFriendly: 0.07
 }
 
 // ============================================================================
@@ -57,10 +71,13 @@ const PASS_STYLES = ['short', 'mixed', 'long']
 const PLAY_STYLES = ['aggressive', 'normal', 'friendly']
 
 // Play style modifiers (from play-game-day.js)
+// Target yellow cards: aggressive 4.0, normal 3.5, friendly 3.0 per game
+// Target red cards: aggressive 0.13, normal 0.1, friendly 0.07 per game
+// With ~600 card checks per team per game, need ~1.75 yellows/team (0.003) for normal
 const PLAY_STYLE_MODIFIERS = {
-  aggressive: { fightBonus: 0.15, cardChance: 0.002 },
-  normal: { fightBonus: 0, cardChance: 0.0008 },
-  friendly: { fightBonus: -0.15, cardChance: 0.0003 }
+  aggressive: { fightBonus: 0.15, cardChance: 0.005 },
+  normal: { fightBonus: 0, cardChance: 0.004 },
+  friendly: { fightBonus: -0.15, cardChance: 0.003 }
 }
 
 // ============================================================================
@@ -173,14 +190,15 @@ function chanceToFight (player) {
 
 /**
  * Base chance to attempt a shot per game step (scaled to match Bundesliga ~13 shots/team/game)
+ * Reduced slightly to bring goals closer to 3.16 target
  * @param {PlayerType} player
  * @returns {number}
  */
 function chanceToShoot (player) {
-  if (player.position.endsWith('A')) return 0.11
-  if (player.position.endsWith('M')) return 0.045
-  if (player.position.endsWith('D')) return 0.005
-  return 0.00006
+  if (player.position.endsWith('A')) return 0.095
+  if (player.position.endsWith('M')) return 0.04
+  if (player.position.endsWith('D')) return 0.004
+  return 0.00005
 }
 
 /**
@@ -227,7 +245,8 @@ function checkForCard (player, playStyle, gameDetails, team, isTeamA) {
   }
 
   // Small chance for direct red card (very aggressive play)
-  if (playStyle === 'aggressive' && Math.random() < 0.0005 && !player.sentOff) {
+  // Target: ~0.03 extra reds per game from direct reds (to get total ~0.13 for aggressive)
+  if (playStyle === 'aggressive' && Math.random() < 0.00003 && !player.sentOff) {
     player.sentOff = true
     if (isTeamA) {
       gameDetails.redCardsTeamA++
@@ -352,35 +371,41 @@ function shootBall (playerTeamA, playerTeamB, gameDetails) {
   const chanceForShoot = Math.min(0.95, chanceToShoot(activePlayer) * (1 + gameDetails.streak * 0.3))
   if (Math.random() > chanceForShoot) return true
 
-  // Track shot attempt (goal chance)
+  // Track shot attempt
   if (teamAHasBall) {
     gameDetails.shotsTeamA++
   } else {
     gameDetails.shotsTeamB++
   }
 
-  const keeperSaves = goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)
-  const shotMisses = Math.random() > 0.25
+  // First check if shot is on target (~24% chance)
+  // With 50% keeper save rate, this gives ~12% conversion rate (target)
+  const shotOnTarget = Math.random() < 0.24
 
-  if (keeperSaves || (goalKeeper && shotMisses)) {
-    // Track shot on target (keeper save)
-    if (keeperSaves) {
-      if (teamAHasBall) {
-        gameDetails.shotsOnTargetTeamA++
-      } else {
-        gameDetails.shotsOnTargetTeamB++
-      }
-    }
-    if (goalKeeper) {
-      goalKeeper.hasBall = true
-    }
+  if (!shotOnTarget) {
+    // Shot misses the target entirely - ball stays with shooter for another attempt
+    return true
+  }
+
+  // Shot is on target - track it
+  if (teamAHasBall) {
+    gameDetails.shotsOnTargetTeamA++
+  } else {
+    gameDetails.shotsOnTargetTeamB++
+  }
+
+  // Check if keeper saves (based on levels)
+  // With equal levels, keeper saves ~50% of shots on target
+  const keeperSaveChance = goalKeeper ? goalKeeper.level / (goalKeeper.level + activePlayer.level) : 0
+  const keeperSaves = goalKeeper && Math.random() < keeperSaveChance
+
+  if (keeperSaves) {
+    goalKeeper.hasBall = true
     activePlayer.hasBall = false
     return false
   }
 
-  if (!goalKeeper && shotMisses) {
-    return true
-  }
+  // Shot beats keeper - it's a goal!
 
   // Goal scored - also counts as shot on target
   if (teamAHasBall) {
@@ -622,6 +647,13 @@ async function runAnalysis () {
   let totalShotsOnTarget = 0
   let totalYellowCards = 0
   let totalRedCards = 0
+  // Goal difference distribution
+  let draws = 0
+  let oneDiff = 0
+  let twoDiff = 0
+  let threeDiff = 0
+  let fourDiff = 0
+  let fivePlusDiff = 0
 
   // Run all matchups
   const totalMatchups = combinations.length * combinations.length
@@ -670,6 +702,15 @@ async function runAnalysis () {
         totalShotsOnTarget += result.shotsOnTargetA + result.shotsOnTargetB
         totalYellowCards += result.yellowCardsA + result.yellowCardsB
         totalRedCards += result.redCardsA + result.redCardsB
+
+        // Track goal difference distribution
+        const goalDiff = Math.abs(result.goalsA - result.goalsB)
+        if (goalDiff === 0) draws++
+        else if (goalDiff === 1) oneDiff++
+        else if (goalDiff === 2) twoDiff++
+        else if (goalDiff === 3) threeDiff++
+        else if (goalDiff === 4) fourDiff++
+        else fivePlusDiff++
       }
 
       results[comboA.key][comboB.key] = {
@@ -741,8 +782,26 @@ async function runAnalysis () {
   console.log(`Conversion rate            | ${(simConversionRate * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.conversionRate * 100).toFixed(1).padStart(9)}% | ${((simConversionRate - BUNDESLIGA_STATS.conversionRate) * 100).toFixed(1).padStart(9)}% | ${Math.abs(simConversionRate - BUNDESLIGA_STATS.conversionRate) < 0.03 ? '✓' : '✗'}`)
   console.log(`Yellow cards per game      | ${simYellowCardsPerGame.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.yellowCardsPerGame.toFixed(2).padStart(10)} | ${(simYellowCardsPerGame - BUNDESLIGA_STATS.yellowCardsPerGame).toFixed(2).padStart(10)} | ${Math.abs(simYellowCardsPerGame - BUNDESLIGA_STATS.yellowCardsPerGame) < 1 ? '✓' : '✗'}`)
   console.log(`Yellow cards per team      | ${simYellowCardsPerTeam.toFixed(2).padStart(10)} | ${BUNDESLIGA_STATS.yellowCardsPerTeam.toFixed(2).padStart(10)} | ${(simYellowCardsPerTeam - BUNDESLIGA_STATS.yellowCardsPerTeam).toFixed(2).padStart(10)} | ${Math.abs(simYellowCardsPerTeam - BUNDESLIGA_STATS.yellowCardsPerTeam) < 0.5 ? '✓' : '✗'}`)
-  console.log(`Red cards per game         | ${simRedCardsPerGame.toFixed(3).padStart(10)} | ${BUNDESLIGA_STATS.redCardsPerGame.toFixed(3).padStart(10)} | ${(simRedCardsPerGame - BUNDESLIGA_STATS.redCardsPerGame).toFixed(3).padStart(10)} | ${Math.abs(simRedCardsPerGame - BUNDESLIGA_STATS.redCardsPerGame) < 0.1 ? '✓' : '✗'}`)
-  console.log(`Red cards per team         | ${simRedCardsPerTeam.toFixed(3).padStart(10)} | ${BUNDESLIGA_STATS.redCardsPerTeam.toFixed(3).padStart(10)} | ${(simRedCardsPerTeam - BUNDESLIGA_STATS.redCardsPerTeam).toFixed(3).padStart(10)} | ${Math.abs(simRedCardsPerTeam - BUNDESLIGA_STATS.redCardsPerTeam) < 0.05 ? '✓' : '✗'}`)
+  console.log(`Red cards per game         | ${simRedCardsPerGame.toFixed(3).padStart(10)} | ${BUNDESLIGA_STATS.redCardsPerGame.toFixed(3).padStart(10)} | ${(simRedCardsPerGame - BUNDESLIGA_STATS.redCardsPerGame).toFixed(3).padStart(10)} | ${Math.abs(simRedCardsPerGame - BUNDESLIGA_STATS.redCardsPerGame) < 0.05 ? '✓' : '✗'}`)
+  console.log(`Red cards per team         | ${simRedCardsPerTeam.toFixed(3).padStart(10)} | ${BUNDESLIGA_STATS.redCardsPerTeam.toFixed(3).padStart(10)} | ${(simRedCardsPerTeam - BUNDESLIGA_STATS.redCardsPerTeam).toFixed(3).padStart(10)} | ${Math.abs(simRedCardsPerTeam - BUNDESLIGA_STATS.redCardsPerTeam) < 0.03 ? '✓' : '✗'}`)
+  console.log()
+
+  // Goal difference distribution
+  const simDrawPct = draws / totalGames
+  const simOneDiffPct = oneDiff / totalGames
+  const simTwoDiffPct = twoDiff / totalGames
+  const simThreeDiffPct = threeDiff / totalGames
+  const simFourDiffPct = fourDiff / totalGames
+  const simFivePlusDiffPct = fivePlusDiff / totalGames
+
+  console.log('GOAL DIFFERENCE DISTRIBUTION')
+  console.log('-'.repeat(80))
+  console.log(`Draws (0 diff)             | ${(simDrawPct * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.drawPercentage * 100).toFixed(1).padStart(9)}% | ${((simDrawPct - BUNDESLIGA_STATS.drawPercentage) * 100).toFixed(1).padStart(9)}% | ${Math.abs(simDrawPct - BUNDESLIGA_STATS.drawPercentage) < 0.05 ? '✓' : '✗'}`)
+  console.log(`1 goal difference          | ${(simOneDiffPct * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.oneDiffPercentage * 100).toFixed(1).padStart(9)}% | ${((simOneDiffPct - BUNDESLIGA_STATS.oneDiffPercentage) * 100).toFixed(1).padStart(9)}% | ${Math.abs(simOneDiffPct - BUNDESLIGA_STATS.oneDiffPercentage) < 0.05 ? '✓' : '✗'}`)
+  console.log(`2 goals difference         | ${(simTwoDiffPct * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.twoDiffPercentage * 100).toFixed(1).padStart(9)}% | ${((simTwoDiffPct - BUNDESLIGA_STATS.twoDiffPercentage) * 100).toFixed(1).padStart(9)}% | ${Math.abs(simTwoDiffPct - BUNDESLIGA_STATS.twoDiffPercentage) < 0.05 ? '✓' : '✗'}`)
+  console.log(`3 goals difference         | ${(simThreeDiffPct * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.threeDiffPercentage * 100).toFixed(1).padStart(9)}% | ${((simThreeDiffPct - BUNDESLIGA_STATS.threeDiffPercentage) * 100).toFixed(1).padStart(9)}% | ${Math.abs(simThreeDiffPct - BUNDESLIGA_STATS.threeDiffPercentage) < 0.03 ? '✓' : '✗'}`)
+  console.log(`4 goals difference         | ${(simFourDiffPct * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.fourDiffPercentage * 100).toFixed(1).padStart(9)}% | ${((simFourDiffPct - BUNDESLIGA_STATS.fourDiffPercentage) * 100).toFixed(1).padStart(9)}% | ${Math.abs(simFourDiffPct - BUNDESLIGA_STATS.fourDiffPercentage) < 0.02 ? '✓' : '✗'}`)
+  console.log(`5+ goals difference        | ${(simFivePlusDiffPct * 100).toFixed(1).padStart(9)}% | ${(BUNDESLIGA_STATS.fivePlusDiffPercentage * 100).toFixed(1).padStart(9)}% | ${((simFivePlusDiffPct - BUNDESLIGA_STATS.fivePlusDiffPercentage) * 100).toFixed(1).padStart(9)}% | ${Math.abs(simFivePlusDiffPct - BUNDESLIGA_STATS.fivePlusDiffPercentage) < 0.02 ? '✓' : '✗'}`)
   console.log()
 
   // ============================================================================

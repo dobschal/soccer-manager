@@ -185,6 +185,43 @@ Check that the overall statistics are still similar to the stats of the Bundesli
 cards per match, and red cards per match. Run tests to check which play style gives the best results in terms of wins,
 goals scored, and cards received.
 
+## Game Calculation
+
+The game calculation simulates a game by simulating single steps like passing, shooting, and fighting for the ball.
+The calculation should match the following statistics of the Bundesliga (having teams with a similar strength +-10 total
+strength):
+
+- Average goals per match: 3.16
+- Average of 24% of the games should end in a draw
+- Average of 32% of the games should end with 1 goal difference
+- Average of 22% of the games should end with 2 goals difference
+- Average of 11% of the games should end with 3 goals difference
+- Average of 6% of the games should end with 4 goals difference
+- Average of 4% of the games should end with 5 or more goals difference
+
+- Average of 13 shots per team per match
+- A maximum of 30 shots per team per match
+- A minimum of 0 shots per team per match
+
+- In average 3.5 yellow cards per match
+    - is aggressive play style: 4.0 yellow cards per match
+    - is normal play style: 3.5 yellow cards per match
+    - is friendly play style: 3.0 yellow cards per match
+- In average 0.1 red cards per match
+    - is aggressive play style: 0.13 red cards per match
+    - is normal play style: 0.1 yellow cards per match
+    - is friendly play style: 0.07 yellow cards per match
+
+The game calculation should apply a bit of randomness, but not to much. Two games with the same teams and the same
+lineups should not always end with the same result, but the results should be similar in terms of goals scored, goals
+conceded, yellow cards, and red cards. Comparing the two similar games: A difference of 1 or 2 goals in the results is
+OK, while a difference of 3 or more goals should be rare.
+
+The analyze-formation.js script should analyze the game calculation logic by simulating a large number of games with
+different formations and play styles, and then calculating the average goals scored, goals conceded, yellow cards, and
+red cards for each formation and play style combination. The results should be compared to the expected statistics based
+on the Bundesliga data.
+
 ## Tech Stack
 
 - **Backend**: Node.js 20, Express 4.18, MySQL 8.0, JWT auth
