@@ -59,9 +59,11 @@ export class UIElement {
 
   /**
    * @abstract
+   * @param {Record<string, string>} params
    * @returns {void}
    */
-  onQueryChanged () {
+  onQueryChanged (params) {
+    console.debug('onQueryChanged', params)
   }
 
   /**

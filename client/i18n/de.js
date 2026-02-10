@@ -12,6 +12,16 @@ export default {
   'nav.running': 'Läuft...',
   'nav.settings': 'Einstellungen',
   'nav.language': 'Sprache',
+  'nav.search': 'Suche',
+
+  // Search
+  'search.title': 'Suche',
+  'search.placeholder': 'Spieler oder Teams suchen...',
+  'search.players': 'Spieler',
+  'search.teams': 'Teams',
+  'search.minChars': 'Mindestens 3 Zeichen eingeben',
+  'search.noResults': 'Keine Ergebnisse gefunden',
+  'search.level': 'Level',
 
   // Landing page
   'landing.freeToPlay': 'Kostenlos spielen',

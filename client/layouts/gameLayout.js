@@ -8,6 +8,7 @@ import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
+import { showSearchOverlay } from '../partials/search.js'
 
 /**
  * @returns {void}
@@ -53,10 +54,16 @@ export class GameLayout extends UIElement {
                 ${this._navItem('stadium', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.stadium')}`)}
                 ${this._navItem('trades', `<i class="fa fa-handshake-o" aria-hidden="true"></i> ${t('nav.transfers')}`)}
               </ul>
+              <button id="search-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.search')}">
+                <i class="fa fa-search" aria-hidden="true"></i> ${t('nav.search')}
+              </button>
               <button id="settings-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.settings')}">
                 <i class="fa fa-cog" aria-hidden="true"></i> ${t('nav.settings')}
               </button>
             </div>
+            <button id="search-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.search')}">
+              <i class="fa fa-search fa-lg" aria-hidden="true"></i>
+            </button>
             <button id="settings-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.settings')}">
               <i class="fa fa-cog fa-lg" aria-hidden="true"></i>
             </button>
@@ -137,6 +144,22 @@ export class GameLayout extends UIElement {
       settingsBtnMobile.addEventListener('click', () => {
         hideNavigation()
         this._showSettingsOverlay()
+      })
+    }
+
+    const searchBtn = document.querySelector(`${this._elementQuery} #search-button`)
+    if (searchBtn) {
+      searchBtn.addEventListener('click', () => {
+        hideNavigation()
+        showSearchOverlay()
+      })
+    }
+
+    const searchBtnMobile = document.querySelector(`${this._elementQuery} #search-button-mobile`)
+    if (searchBtnMobile) {
+      searchBtnMobile.addEventListener('click', () => {
+        hideNavigation()
+        showSearchOverlay()
       })
     }
 
