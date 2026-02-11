@@ -7,29 +7,46 @@ import { Sponsor } from '../entities/sponsor.js'
 const GAMEDAYS_PER_SEASON = 34
 
 /**
+ * Get the active sponsor for a team
  * @param {TeamType} team
- * @returns {Promise<{sponsor: SponsorType & {remaining_days?: number}}>}
+ * @param {Object} [options] - Optional parameters for specific game day calculation
+ * @param {number} [options.gameDay] - Specific game day to check
+ * @param {number} [options.season] - Specific season to check
+ * @returns {Promise<{sponsor: (SponsorType & {remaining_days: number}) | null}>}
  */
-export async function getSponsor (team) {
-  const { gameDay, season } = await getGameDayAndSeason()
+export async function getSponsor (team, options = {}) {
+  const current = await getGameDayAndSeason()
+  const gameDay = options.gameDay ?? current.gameDay
+  const season = options.season ?? current.season
+
   const [sponsor] = await query(`
       SELECT s.*
       FROM sponsor s
       WHERE s.team_id = ?
-        AND ((s.start_game_day + s.duration >= ? AND s.start_season = ?)
-          OR (s.start_season = ? - 1
-              AND s.start_game_day + s.duration - 34 >= ?));
-  `, [team.id, gameDay, season, season, gameDay])
+      ORDER BY s.id DESC
+      LIMIT 1;
+  `, [team.id])
 
   if (sponsor) {
     // Calculate remaining days
     const contractEndTotal = sponsor.start_season * GAMEDAYS_PER_SEASON + sponsor.start_game_day + sponsor.duration
     const currentTotal = season * GAMEDAYS_PER_SEASON + gameDay
-    const remaining_days = Math.max(0, contractEndTotal - currentTotal)
-    return { sponsor: { ...sponsor, remaining_days } }
+    const remaining_days = contractEndTotal - currentTotal
+
+    // If contract has expired (0 or negative days), return no sponsor
+    if (remaining_days <= 0) {
+      return { sponsor: null }
+    }
+
+    return {
+      sponsor: {
+        ...sponsor,
+        remaining_days
+      }
+    }
   }
 
-  return { sponsor }
+  return { sponsor: null }
 }
 
 /**
@@ -37,7 +54,10 @@ export async function getSponsor (team) {
  * @returns {Promise<SponsorType[]>}
  */
 export async function getSponsorOffers (team) {
-  const { gameDay, season } = await getGameDayAndSeason()
+  const {
+    gameDay,
+    season
+  } = await getGameDayAndSeason()
   const games = await query('SELECT * FROM game WHERE (team_1_id=? OR team_2_id=?) AND played=1 ORDER BY season DESC, game_day DESC', [team.id, team.id])
   const contractLengths = [
     3, 9, 16, 34

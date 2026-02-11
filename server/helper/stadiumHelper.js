@@ -4,7 +4,7 @@ import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { getTeam } from './teamHelper.js'
 import { addLogMessage } from './logMessageHelper.js'
-import { t, getUserLocale } from '../i18n/index.js'
+import { getUserLocale, t } from '../i18n/index.js'
 
 const GAMEDAYS_PER_SEASON = 34
 
@@ -50,7 +50,10 @@ export function calculateConstructionEndDate (gameDay, season, constructionDays)
     endSeason++
   }
 
-  return { endGameDay, endSeason }
+  return {
+    endGameDay,
+    endSeason
+  }
 }
 
 /**
@@ -84,15 +87,20 @@ export function getConstructionInfo (stadium, currentGameDay, currentSeason) {
     } else {
       const currentTotal = currentSeason * GAMEDAYS_PER_SEASON + currentGameDay
       const endTotal = endSeason * GAMEDAYS_PER_SEASON + endGameDay
-      const remaining = Math.max(0, endTotal - currentTotal)
+      const remaining = endTotal - currentTotal
 
-      info[stand] = {
-        underConstruction: true,
-        remainingGameDays: remaining,
-        endGameDay,
-        endSeason,
-        targetSize: stadium[`${stand}_construction_target_size`],
-        targetRoof: stadium[`${stand}_construction_target_roof`]
+      // If remaining days <= 0, construction is complete
+      if (remaining <= 0) {
+        info[stand] = { underConstruction: false }
+      } else {
+        info[stand] = {
+          underConstruction: true,
+          remainingGameDays: remaining,
+          endGameDay,
+          endSeason,
+          targetSize: stadium[`${stand}_construction_target_size`],
+          targetRoof: stadium[`${stand}_construction_target_roof`]
+        }
       }
     }
   }
@@ -111,24 +119,24 @@ export async function completeStadiumConstructions (gameDay, season) {
 
   for (const stand of stands) {
     const stadiums = await query(`
-      SELECT s.*, t.id as team_id_ref, t.name as team_name
-      FROM stadium s
-      JOIN team t ON s.team_id = t.id
-      WHERE s.${stand}_construction_end_game_day IS NOT NULL
-        AND (s.${stand}_construction_end_season < ?
-             OR (s.${stand}_construction_end_season = ? AND s.${stand}_construction_end_game_day <= ?))
+        SELECT s.*, t.id as team_id_ref, t.name as team_name
+        FROM stadium s
+                 JOIN team t ON s.team_id = t.id
+        WHERE s.${stand}_construction_end_game_day IS NOT NULL
+          AND (s.${stand}_construction_end_season < ?
+            OR (s.${stand}_construction_end_season = ? AND s.${stand}_construction_end_game_day <= ?))
     `, [season, season, gameDay])
 
     for (const stadium of stadiums) {
       await query(`
-        UPDATE stadium
-        SET ${stand}_stand_size = ${stand}_construction_target_size,
-            ${stand}_stand_roof = ${stand}_construction_target_roof,
-            ${stand}_construction_end_game_day = NULL,
-            ${stand}_construction_end_season = NULL,
-            ${stand}_construction_target_size = NULL,
-            ${stand}_construction_target_roof = NULL
-        WHERE id = ?
+          UPDATE stadium
+          SET ${stand}_stand_size                = ${stand}_construction_target_size,
+              ${stand}_stand_roof                = ${stand}_construction_target_roof,
+              ${stand}_construction_end_game_day = NULL,
+              ${stand}_construction_end_season   = NULL,
+              ${stand}_construction_target_size  = NULL,
+              ${stand}_construction_target_roof  = NULL
+          WHERE id = ?
       `, [stadium.id])
 
       const [team] = await query('SELECT * FROM team WHERE id=?', [stadium.team_id])
@@ -187,17 +195,20 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
 
     // Alianz Arena was 360_000_000 € for 60000 seats
     // --> 6000 per seat incl Roof
-    const pricePerSeat = (seatsDiff / 60_000) * 5000
+    const pricePerSeat = (seatsDiff / 60_000) * 6000
     let standPrice = pricePerSeat * seatsDiff
     if (currentStadium[standName + '_stand_roof'] && !plannedStadium[standName + '_stand_roof']) {
       throw new BadRequestError('Roof cannot be removed')
     }
+
+    // roof price is 20% of stand price with minimum of 300_000 €
     if (!currentStadium[standName + '_stand_roof'] && plannedStadium[standName + '_stand_roof']) {
-      standPrice = Math.max(250_000, standPrice * 1.1)
+      standPrice = Math.max(300_000, standPrice * 1.2)
     }
+    
     totalPrice += standPrice
   }
-  if (totalPrice > 0) totalPrice += 100_000 // costs of architect
+  if (totalPrice > 0) totalPrice += 200_000 // costs of architect
   return totalPrice
 }
 
@@ -209,7 +220,10 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
  * @returns {Promise<{constructionInfo: Object}>}
  */
 export async function buildStadium (team, currentStadium, plannedStadium, price) {
-  const { gameDay, season } = await getGameDayAndSeason()
+  const {
+    gameDay,
+    season
+  } = await getGameDayAndSeason()
   const locale = await getUserLocale(team.user_id)
   const reason = t('finance.stadiumConstruction', {}, locale)
   await updateTeamBalance(team, price * -1, reason, gameDay, season)
@@ -232,7 +246,10 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
     }
 
     const constructionDays = calculateConstructionTime(currentSize, targetSize, currentRoof, targetRoof)
-    const { endGameDay, endSeason } = calculateConstructionEndDate(gameDay, season, constructionDays)
+    const {
+      endGameDay,
+      endSeason
+    } = calculateConstructionEndDate(gameDay, season, constructionDays)
 
     updateFields[`${stand}_construction_end_game_day`] = endGameDay
     updateFields[`${stand}_construction_end_season`] = endSeason
@@ -248,7 +265,9 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
   const setClauses = Object.keys(updateFields).map(k => `${k}=?`).join(', ')
   const values = [...Object.values(updateFields), currentStadium.id]
 
-  await query(`UPDATE stadium SET ${setClauses} WHERE id=?`, values)
+  await query(`UPDATE stadium
+               SET ${setClauses}
+               WHERE id = ?`, values)
   await addLogMessage('Construction has started on your stadium!', team, null, null, 'building')
 
   // Return updated construction info

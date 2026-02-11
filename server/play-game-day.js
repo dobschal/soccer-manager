@@ -267,7 +267,7 @@ async function _giveSponsorMoney (gameDay, season) {
 
   await Promise.all(teams.map(async team => {
     const t1 = Date.now()
-    const { sponsor } = await getSponsor(team)
+    const { sponsor } = await getSponsor(team, { gameDay, season })
     console.log('Get team sponsor in ' + (Date.now() - t1) + 'ms')
     if (!sponsor) return
     const locale = await getUserLocale(team.user_id)

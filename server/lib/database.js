@@ -12,7 +12,7 @@ const pool = mysql.createPool({
  * Wrapper of the existing database query method, but returns a promise.
  *
  * @param {any} params
- * @returns {Promise<Array>}
+ * @returns {Promise<Array<unknown>>}
  */
 export function query (...params) {
   return new Promise((resolve, reject) => {

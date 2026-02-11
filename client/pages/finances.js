@@ -296,7 +296,7 @@ export class FinancesPage extends UIElement {
       name: this.sponsor.name,
       value: euroFormat.format(this.sponsor.value)
     })}
-            <br>${t('finances.daysRemaining', { days: this.sponsor.remaining_days + 1 })}
+            <br>${t('finances.daysRemaining', { days: this.sponsor.remaining_days })}
           </p>
         </div>
       </div>
