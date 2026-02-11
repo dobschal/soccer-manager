@@ -63,7 +63,7 @@ for (const filename of filenames) {
           res.status(e.status ?? 500).send({ message: e.message ?? 'Unknown error' })
         }
         const duration = Date.now() - t1
-        if (duration > 10) {
+        if (duration > 100) {
           console.warn(`👉 Request️ ${fnName} took ${duration}ms`)
         }
       })

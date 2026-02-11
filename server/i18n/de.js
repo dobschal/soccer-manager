@@ -211,5 +211,14 @@ export default {
   'news.levelUp.4.title': '{playerName} durchbricht Level {newLevel}',
   'news.levelUp.4.text': 'Was für ein Meilenstein für {playerName}! Der Star von {teamName} hat Level {newLevel} erreicht und festigt seinen Platz als eines der Top-Talente der Liga.',
   'news.levelUp.5.title': '{teamName}s {playerName} erreicht Level {newLevel}',
-  'news.levelUp.5.text': 'Die Entwicklung geht weiter! {playerName} ist auf Level {newLevel} aufgestiegen, ein Zeugnis seiner Hingabe und des exzellenten Trainerteams von {teamName}.'
+  'news.levelUp.5.text': 'Die Entwicklung geht weiter! {playerName} ist auf Level {newLevel} aufgestiegen, ein Zeugnis seiner Hingabe und des exzellenten Trainerteams von {teamName}.',
+
+  // Cup log messages
+  'log.cupMatchWin': 'Pokalsieg! Du hast {opponent} mit {goalsFor}:{goalsAgainst} geschlagen!',
+  'log.cupMatchLoss': 'Pokal-Aus. Verloren mit {goalsFor}:{goalsAgainst} gegen {opponent}.',
+  'log.cupMatchDraw': 'Pokal-Unentschieden gegen {opponent} {goalsFor}:{goalsAgainst}. Im Elfmeterschießen entschieden.',
+  'log.cupWinner': 'Herzlichen Glückwunsch! Du hast den Pokal gewonnen! Preis: {prize}',
+
+  // Cup finance
+  'finance.cupPrize': 'Pokalsieg-Prämie'
 }

@@ -211,5 +211,14 @@ export default {
   'news.levelUp.4.title': '{playerName} Breaks Through to Level {newLevel}',
   'news.levelUp.4.text': 'What a milestone for {playerName}! The {teamName} star has reached level {newLevel}, cementing their place as one of the league\'s top talents.',
   'news.levelUp.5.title': '{teamName}\'s {playerName} Achieves Level {newLevel}',
-  'news.levelUp.5.text': 'The development continues! {playerName} has progressed to level {newLevel}, a testament to their dedication and {teamName}\'s excellent coaching staff.'
+  'news.levelUp.5.text': 'The development continues! {playerName} has progressed to level {newLevel}, a testament to their dedication and {teamName}\'s excellent coaching staff.',
+
+  // Cup log messages
+  'log.cupMatchWin': 'Cup victory! You beat {opponent} {goalsFor}-{goalsAgainst}!',
+  'log.cupMatchLoss': 'Cup elimination. Lost {goalsFor}-{goalsAgainst} to {opponent}.',
+  'log.cupMatchDraw': 'Cup draw against {opponent} {goalsFor}-{goalsAgainst}. Decided on penalties.',
+  'log.cupWinner': 'Congratulations! You won the Cup! Prize: {prize}',
+
+  // Cup finance
+  'finance.cupPrize': 'Cup winner prize'
 }

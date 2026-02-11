@@ -12,10 +12,40 @@ import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 
 export class ResultsPage extends UIElement {
+  // Cup-related state
+  subPage = null
+  cupSeason = null
+  cupRound = null
+  cupRounds = []
+  cupResults = []
+  cupSeasons = []
+
+  // Suspended players
+  suspendedPlayers = []
+
   /**
    * @returns {UIElementEvents}
    */
   get events () {
+    // Cup-specific events when on cup sub-page
+    if (this.subPage === 'cup') {
+      return {
+        '#prev-cup-round-button': {
+          click: () => this._navigateCupRound(-1)
+        },
+        '#next-cup-round-button': {
+          click: () => this._navigateCupRound(1)
+        },
+        '#prev-cup-season-button': {
+          click: () => this._navigateCupSeason(-1)
+        },
+        '#next-cup-season-button': {
+          click: () => this._navigateCupSeason(1)
+        }
+      }
+    }
+
+    // League-specific events
     return {
       '#prev-game-day-button': {
         click: () => setQueryParams({
@@ -56,6 +86,22 @@ export class ResultsPage extends UIElement {
   get template () {
     return `
     <div>
+      <nav class="nav nav-pills mb-4">
+        <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#results">${t('results.leagueResults')}</a>
+        <a class="nav-link ${this.subPage === 'cup' ? 'active' : ''}" href="#results?sub_page=cup">${t('results.cupResults')}</a>
+      </nav>
+
+      ${this.subPage === 'cup' ? this._renderCupResults() : this._renderLeagueResults()}
+    </div>
+    `
+  }
+
+  /**
+   * Render the league results view
+   * @returns {string}
+   */
+  _renderLeagueResults () {
+    return `
       <div class="mb-4">
         <h2>${t('results.resultsTitle')}</h2>
         <table>
@@ -132,7 +178,150 @@ export class ResultsPage extends UIElement {
           ${this.topScorer.map(this._renderTopScorer.bind(this)).join('')}
         </tbody>
       </table>
-    </div>
+
+      ${this.suspendedPlayers.length > 0 ? `
+        <h3>${t('results.suspendedPlayers')}</h3>
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col">${t('results.name')}</th>
+              <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
+              <th scope="col">${t('player.cards')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${this.suspendedPlayers.map(this._renderSuspendedPlayer.bind(this)).join('')}
+          </tbody>
+        </table>
+      ` : ''}
+    `
+  }
+
+  /**
+   * Render the cup results view
+   * @returns {string}
+   */
+  _renderCupResults () {
+    const roundName = this._getCupRoundName(this.cupRound)
+
+    return `
+      <div class="mb-4">
+        <h2>${t('cup.results')}</h2>
+        <table>
+          <tr>
+            <th>${t('results.season')}</th>
+            <td>
+              <span id="prev-cup-season-button" class="fa fa-chevron-left fa-button"></span>
+              ${(this.cupSeason ?? 0) + 1}
+              <span id="next-cup-season-button" class="fa fa-chevron-right fa-button"></span>
+            </td>
+          </tr>
+          <tr>
+            <th>${t('cup.round')}</th>
+            <td>
+              <span id="prev-cup-round-button" class="fa fa-chevron-left fa-button"></span>
+              ${roundName}
+              <span id="next-cup-round-button" class="fa fa-chevron-right fa-button"></span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>${t('results.games')}</h3>
+      ${this.cupResults.length === 0
+        ? `<p class="text-muted">${t('cup.noGames')}</p>`
+        : `
+          <table class="table table-hover mb-4">
+            <thead>
+              <tr>
+                <th scope="col">${t('results.team1')}</th>
+                <th scope="col">${t('results.team2')}</th>
+                <th scope="col">${t('results.result')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${this.cupResults.map(this._renderCupResultItem.bind(this)).join('')}
+            </tbody>
+          </table>
+        `
+      }
+    `
+  }
+
+  /**
+   * Get display name for a cup round number
+   * @param {number} round
+   * @returns {string}
+   */
+  _getCupRoundName (round) {
+    if (round === 1) return t('cup.final')
+    if (round === 2) return t('cup.semiFinal')
+    if (round === 4) return t('cup.quarterFinal')
+    return t('cup.roundOf', { count: round * 2 })
+  }
+
+  /**
+   * Navigate to a different cup round
+   * @param {number} direction - -1 for larger rounds, 1 for smaller rounds (toward final)
+   */
+  _navigateCupRound (direction) {
+    const currentIndex = this.cupRounds.findIndex(r => r.round === this.cupRound)
+    const newIndex = currentIndex + direction
+
+    if (newIndex >= 0 && newIndex < this.cupRounds.length) {
+      setQueryParams({
+        sub_page: 'cup',
+        cup_season: this.cupSeason,
+        cup_round: this.cupRounds[newIndex].round
+      })
+    }
+  }
+
+  /**
+   * Navigate to a different cup season
+   * @param {number} direction - -1 for previous season, 1 for next season
+   */
+  _navigateCupSeason (direction) {
+    const currentIndex = this.cupSeasons.indexOf(this.cupSeason)
+    const newIndex = currentIndex - direction // Reverse because seasons are sorted DESC
+
+    if (newIndex >= 0 && newIndex < this.cupSeasons.length) {
+      setQueryParams({
+        sub_page: 'cup',
+        cup_season: this.cupSeasons[newIndex]
+      })
+    }
+  }
+
+  /**
+   * Render a cup result item
+   * @param {Object} result
+   * @returns {string}
+   */
+  _renderCupResultItem (result) {
+    const id = generateId()
+
+    onClick(id, () => {
+      setQueryParams({ game_id: result.id })
+    })
+
+    const isPlayed = result.played === 1
+
+    return `
+      <tr id="${id}">
+        <td>
+          ${this.myTeamId === result.team1Id ? '<b class="text-info">' : ''}
+          ${result.team1}
+          ${this.myTeamId === result.team1Id ? '</b>' : ''}
+        </td>
+        <td>
+          ${this.myTeamId === result.team2Id ? '<b class="text-info">' : ''}
+          ${result.team2}
+          ${this.myTeamId === result.team2Id ? '</b>' : ''}
+        </td>
+        <td>${isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming')}</td>
+      </tr>
     `
   }
 
@@ -147,18 +336,34 @@ export class ResultsPage extends UIElement {
     if (queryParams.player_id) {
       await showPlayerModal(Number(queryParams.player_id))
     }
-    const {
-      level,
-      league
-    } = this._getLeagueAndLevel()
-    this.level = level
-    this.league = league
-    const {
-      season,
-      gameDay
-    } = await this._getSeasonAndGameDay()
-    this.season = season
-    this.gameDay = gameDay
+
+    // Handle sub-page (cup vs league)
+    this.subPage = queryParams.sub_page || null
+
+    if (this.subPage === 'cup') {
+      // Handle cup-specific query params
+      if (queryParams.cup_season !== undefined) {
+        this.cupSeason = Number(queryParams.cup_season)
+      }
+      if (queryParams.cup_round !== undefined) {
+        this.cupRound = Number(queryParams.cup_round)
+      }
+    } else {
+      // Handle league-specific query params
+      const {
+        level,
+        league
+      } = this._getLeagueAndLevel()
+      this.level = level
+      this.league = league
+      const {
+        season,
+        gameDay
+      } = await this._getSeasonAndGameDay()
+      this.season = season
+      this.gameDay = gameDay
+    }
+
     await this.update(true)
   }
 
@@ -168,6 +373,19 @@ export class ResultsPage extends UIElement {
   async load () {
     this.info = await server.getMyTeam()
     this.myTeamId = this.info.team.id
+
+    if (this.subPage === 'cup') {
+      await this._loadCupData()
+    } else {
+      await this._loadLeagueData()
+    }
+  }
+
+  /**
+   * Load league-specific data
+   * @returns {Promise<void>}
+   */
+  async _loadLeagueData () {
     if (typeof this.level === 'undefined' || typeof this.league === 'undefined') {
       this.level = this.info.team.level
       this.league = this.info.team.league
@@ -177,18 +395,59 @@ export class ResultsPage extends UIElement {
       this.season = response.season
       this.gameDay = Math.max(0, response.gameDay - 1)
     }
-    const [{ results }, standing, yesterday] = await Promise.all([
+    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }] = await Promise.all([
       server.getResults(this.gameDay, this.season, this.level, this.league),
       server.getStanding(this.gameDay, this.season, this.level, this.league),
-      server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league)
+      server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league),
+      server.getTopScorers(this.season, this.level, this.league, 10),
+      server.getSuspendedPlayers(this.level, this.league)
     ])
     this.results = results
     this.yesterdayStanding = yesterday
     this.standing = standing
     this.standing.sort(_sortStanding)
     this.yesterdayStanding.sort(_sortStanding)
-    const { topScorers } = await server.getTopScorers(this.season, this.level, this.league, 10)
     this.topScorer = topScorers
+    this.suspendedPlayers = suspendedPlayers
+  }
+
+  /**
+   * Load cup-specific data
+   * @returns {Promise<void>}
+   */
+  async _loadCupData () {
+    // Get available cup seasons
+    const { seasons } = await server.getAvailableCupSeasons()
+    this.cupSeasons = seasons
+
+    // Default to current season if not set
+    if (this.cupSeason === null && seasons.length > 0) {
+      this.cupSeason = seasons[0]
+    }
+
+    if (this.cupSeason === null) {
+      this.cupRounds = []
+      this.cupResults = []
+      return
+    }
+
+    // Get rounds for this season
+    const { rounds } = await server.getCupRounds(this.cupSeason)
+    this.cupRounds = rounds
+
+    // Default to first round (highest round number) if not set
+    if ((this.cupRound === null || !rounds.some(r => r.round === this.cupRound)) && rounds.length > 0) {
+      this.cupRound = rounds[0].round
+    }
+
+    if (this.cupRound === null) {
+      this.cupResults = []
+      return
+    }
+
+    // Get results for the selected round
+    const { results } = await server.getCupResults(this.cupSeason, this.cupRound)
+    this.cupResults = results
   }
 
   /**
@@ -203,15 +462,29 @@ export class ResultsPage extends UIElement {
    * @returns {void}
    */
   _loadTopScorerImages () {
-    this.topScorer.forEach((scorer) => {
-      if (!scorer || !scorer.team) return
-      renderPlayerImage(scorer, scorer.team, 48).then(image => {
-        const imageEl = document.querySelector(`${this._elementQuery} .scorer-image[data-scorer-id="${scorer.id}"]`)
-        if (imageEl) {
-          imageEl.innerHTML = image
-        }
+    if (this.topScorer) {
+      this.topScorer.forEach((scorer) => {
+        if (!scorer || !scorer.team) return
+        renderPlayerImage(scorer, scorer.team, 48).then(image => {
+          const imageEl = document.querySelector(`${this._elementQuery} .scorer-image[data-scorer-id="${scorer.id}"]`)
+          if (imageEl) {
+            imageEl.innerHTML = image
+          }
+        })
       })
-    })
+    }
+
+    if (this.suspendedPlayers) {
+      this.suspendedPlayers.forEach((player) => {
+        if (!player || !player.team) return
+        renderPlayerImage(player, player.team, 48).then(image => {
+          const imageEl = document.querySelector(`${this._elementQuery} .suspended-image[data-suspended-id="${player.id}"]`)
+          if (imageEl) {
+            imageEl.innerHTML = image
+          }
+        })
+      })
+    }
   }
 
   /**
@@ -238,6 +511,35 @@ export class ResultsPage extends UIElement {
             </div>
           </td>
           <td class="d-none d-sm-table-cell" id="${teamId}">${scorer.team.name}</td>
+      </tr>
+    `
+  }
+
+  /**
+   * @param {PlayerType & { team: TeamType }} player
+   * @returns {string}
+   */
+  _renderSuspendedPlayer (player) {
+    if (!player || !player.team) return ''
+    const teamId = generateId()
+    onClick(teamId, () => goTo(`team?id=${player.team.id}`))
+    const playerId = generateId()
+    onClick(playerId, () => {
+      setQueryParams({ player_id: player.id + '' })
+    })
+    const yellowCards = player.yellow_cards || 0
+    const redCards = player.red_cards || 0
+    return `
+      <tr class="${this.myTeamId === player.team.id ? 'table-info' : ''}">
+          <td style="width: 48px;">
+            <span class="suspended-image" data-suspended-id="${player.id}" style="width: 48px; height: 20px; margin-top: -32px; display: inline-block;"></span>
+          </td>
+          <td id="${playerId}" style="cursor: pointer;">${player.name}</td>
+          <td class="d-none d-sm-table-cell" id="${teamId}" style="cursor: pointer;">${player.team.name}</td>
+          <td>
+            ${yellowCards > 0 ? `<span class="text-warning">${yellowCards} <i class="fa fa-square"></i></span>` : ''}
+            ${redCards > 0 ? `<span class="text-danger ms-1">${redCards} <i class="fa fa-square"></i></span>` : ''}
+          </td>
       </tr>
     `
   }

@@ -2,7 +2,7 @@ export default {
   // Navigation
   'nav.home': 'Home',
   'nav.team': 'Team',
-  'nav.league': 'League',
+  'nav.league': 'Games',
   'nav.finances': 'Finances',
   'nav.stadium': 'Stadium',
   'nav.transfers': 'Transfers',
@@ -370,6 +370,7 @@ export default {
   'results.watchReplay': 'Watch Replay',
   'results.noGamesYet': 'No games played yet.',
   'results.topScorer': 'Top Scorer',
+  'results.suspendedPlayers': 'Suspended Players',
   'results.name': 'Name',
 
   // Team (opponent view)
@@ -676,5 +677,25 @@ export default {
   'footer.imprintPrivacy': 'Imprint & Privacy Policy',
 
   // Currency
-  'currency.format': '{value}'
+  'currency.format': '{value}',
+
+  // Cup
+  'cup.title': 'Cup',
+  'cup.results': 'Cup Results',
+  'cup.round': 'Round',
+  'cup.final': 'Final',
+  'cup.semiFinal': 'Semi-Final',
+  'cup.quarterFinal': 'Quarter-Final',
+  'cup.roundOf': 'Round of {count}',
+  'cup.noGames': 'No cup matches yet.',
+  'cup.selectRound': 'Select round',
+  'cup.selectSeason': 'Select season',
+  'cup.winner': 'Cup Winner',
+  'cup.eliminated': 'Eliminated',
+  'cup.advancing': 'Advancing',
+  'cup.upcoming': 'Upcoming',
+
+  // Results page tabs
+  'results.leagueResults': 'League',
+  'results.cupResults': 'Cup'
 }

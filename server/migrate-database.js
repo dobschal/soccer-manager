@@ -743,6 +743,34 @@ const migrations = [{
         INDEX idx_top_scorers (season, level, league, goals DESC)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Add cup_round column to game table',
+  async run () {
+    await query('ALTER TABLE game ADD COLUMN cup_round INT DEFAULT NULL')
+    await query('CREATE INDEX idx_game_cup ON game (game_type, season, cup_round)')
+  }
+}, {
+  name: 'Delete incorrectly created cup games',
+  async run () {
+    // Delete all cup games that were created for seasons that have already started
+    // This fixes a bug where cup games were created for the wrong season
+    const result = await query("DELETE FROM game WHERE game_type = 'cup'")
+    if (result.affectedRows > 0) {
+      console.log(`🗑️ Deleted ${result.affectedRows} incorrectly created cup games`)
+    }
+  }
+}, {
+  name: 'Fix accumulated red/yellow cards bug',
+  async run () {
+    // Fix players with accumulated red cards (should never have more than 1)
+    // and clear suspensions/cards for players who shouldn't be suspended
+    const result = await query(
+      'UPDATE player SET red_cards=0, yellow_cards=0, is_suspended=0 WHERE red_cards > 1 OR (is_suspended=0 AND red_cards > 0)'
+    )
+    if (result.affectedRows > 0) {
+      console.log(`🔧 Fixed ${result.affectedRows} players with accumulated cards bug`)
+    }
+  }
 }]
 
 /**

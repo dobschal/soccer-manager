@@ -2,7 +2,7 @@ export default {
   // Navigation
   'nav.home': 'Start',
   'nav.team': 'Team',
-  'nav.league': 'Liga',
+  'nav.league': 'Spiele',
   'nav.finances': 'Finanzen',
   'nav.stadium': 'Stadion',
   'nav.transfers': 'Transfers',
@@ -370,6 +370,7 @@ export default {
   'results.watchReplay': 'Wiederholung ansehen',
   'results.noGamesYet': 'Noch keine Spiele gespielt.',
   'results.topScorer': 'Torschützenliste',
+  'results.suspendedPlayers': 'Gesperrte Spieler',
   'results.name': 'Name',
 
   // Team (opponent view)
@@ -676,5 +677,25 @@ export default {
   'footer.imprintPrivacy': 'Impressum & Datenschutz',
 
   // Currency
-  'currency.format': '{value}'
+  'currency.format': '{value}',
+
+  // Cup
+  'cup.title': 'Pokal',
+  'cup.results': 'Pokalergebnisse',
+  'cup.round': 'Runde',
+  'cup.final': 'Finale',
+  'cup.semiFinal': 'Halbfinale',
+  'cup.quarterFinal': 'Viertelfinale',
+  'cup.roundOf': 'Runde der {count}',
+  'cup.noGames': 'Noch keine Pokalspiele.',
+  'cup.selectRound': 'Runde auswählen',
+  'cup.selectSeason': 'Saison auswählen',
+  'cup.winner': 'Pokalsieger',
+  'cup.eliminated': 'Ausgeschieden',
+  'cup.advancing': 'Weiter',
+  'cup.upcoming': 'Kommend',
+
+  // Results page tabs
+  'results.leagueResults': 'Liga',
+  'results.cupResults': 'Pokal'
 }

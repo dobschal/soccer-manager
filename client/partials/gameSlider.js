@@ -3,6 +3,7 @@ import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { t } from '../i18n/index.js'
 import { renderGameResult } from './gameResult.js'
+import { showGameModal } from './gameModal.js'
 
 /**
  * Game slider component for displaying past and upcoming games
@@ -47,6 +48,26 @@ export class GameSlider extends UIElement {
 
       const centerContent = this._generateCenterContent(game)
 
+      // Determine href based on game type
+      let href
+      const slideId = generateId()
+      if (game.isPlayed) {
+        if (game.game_type === 'friendly' || game.isFriendly) {
+          // Friendly games: show modal on click (href set to '#' to make it clickable)
+          href = '#'
+          onClick('#' + slideId + ' a', (e) => {
+            e.preventDefault()
+            void showGameModal(game.id)
+          })
+        } else if (game.isCup || game.game_type === 'cup') {
+          // Cup games: navigate to cup results
+          href = `#results?game_id=${game.id}&sub_page=cup`
+        } else {
+          // League games: navigate to league results
+          href = `#results?game_id=${game.id}`
+        }
+      }
+
       const slideContent = renderGameResult({
         team1: game.team1Data,
         team2: game.team2Data,
@@ -54,11 +75,11 @@ export class GameSlider extends UIElement {
         team2Name: game.team2 ?? '',
         isTeam1Highlighted: isHomeGame,
         centerContent,
-        href: game.isPlayed ? `#results?game_id=${game.id}` : undefined
+        href
       })
 
       return `
-        <div class="game-slider-slide ${isActive ? 'active' : ''}" data-index="${index}">
+        <div id="${slideId}" class="game-slider-slide ${isActive ? 'active' : ''}" data-index="${index}">
           ${slideContent}
         </div>
       `

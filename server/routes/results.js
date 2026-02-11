@@ -377,5 +377,38 @@ export default {
 
     const topScorers = await getTopScorersFromCache(season, actualLevel, actualLeague, limit)
     return { topScorers }
+  },
+
+  /**
+   * Get suspended players for a league
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
+   * @returns {Promise<{suspendedPlayers: Array}>}
+   */
+  async getSuspendedPlayers (level, league, req) {
+    const team = await getTeam(req)
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+
+    const suspendedPlayers = await query(`
+      SELECT p.*, t.name as team_name, t.color as team_color, t.emblem as team_emblem
+      FROM player p
+      JOIN team t ON t.id = p.team_id
+      WHERE t.level = ? AND t.league = ? AND p.is_suspended = 1
+      ORDER BY t.name, p.name
+    `, [actualLevel, actualLeague])
+
+    return {
+      suspendedPlayers: suspendedPlayers.map(p => ({
+        ...p,
+        team: {
+          id: p.team_id,
+          name: p.team_name,
+          color: p.team_color,
+          emblem: p.team_emblem
+        }
+      }))
+    }
   }
 }

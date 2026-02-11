@@ -14,10 +14,13 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { GameSlider } from '../partials/gameSlider.js'
 import { formatLeague } from '../util/league.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
+import { MiniBalanceChart } from '../partials/miniBalanceChart.js'
 
 export class DashboardPage extends UIElement {
   _sliderGames = []
   _friendlyGames = []
+  _cupGames = []
+  _financeLog = []
   _initialSlideIndex = 0
   _tutorialProgress = new TutorialProgress()
   team = {}
@@ -51,10 +54,10 @@ export class DashboardPage extends UIElement {
           </div>
         </div>
         
-        <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
+        <h5 class="mb-2"><i class="fa fa-trophy"></i> ${t('cup.title')}</h5>
         <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
           <div class="flex-grow-1">
-            ${this._renderFriendlyGames()}            
+            ${this._renderCupGames()}
           </div>
           <div class="d-none d-lg-block flex-shrink-1" style="min-width: 280px; width: 33%;">
             ${this._renderMiniStanding()}
@@ -62,6 +65,21 @@ export class DashboardPage extends UIElement {
                 <small>...${t('dashboard.standingLink')}</small>
             </a>
           </div>
+        </div>
+
+        <div class="d-flex align-items-start mb-5" style="gap: 2rem;">
+          <div class="flex-grow-1">
+            <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
+            ${this._renderFriendlyGames()}
+          </div>
+          ${this._financeLog.length > 0 ? `
+            <div class="d-none d-lg-block flex-shrink-0" style="min-width: 280px; width: 33%;">
+              <a href="#finances" class="text-decoration-none d-block">
+                <h5 class="mb-2"><i class="fa fa-line-chart"></i> ${t('finances.balance')}</h5>
+                ${new MiniBalanceChart(this._financeLog)}
+              </a>
+            </div>
+          ` : ''}
         </div>
 
         ${new ActionCards()}
@@ -85,10 +103,11 @@ export class DashboardPage extends UIElement {
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
 
-    // Fetch games for slider (past 3 and upcoming 3), friendly games, and tutorial progress
-    const [sliderResponse, friendlyResponse] = await Promise.all([
+    // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, and tutorial progress
+    const [sliderResponse, friendlyResponse, cupResponse] = await Promise.all([
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
+      server.getMyCupGames(5),
       this._tutorialProgress.load()
     ])
 
@@ -114,6 +133,16 @@ export class DashboardPage extends UIElement {
     this._friendlyGames = friendlyResponse.games.map(g => ({
       ...g,
       isPlayed: true,
+      isFriendly: true,
+      team1Data: this._extractTeamData(g, 1),
+      team2Data: this._extractTeamData(g, 2)
+    }))
+
+    // Process cup games for display
+    this._cupGames = cupResponse.games.map(g => ({
+      ...g,
+      isPlayed: g.played === 1,
+      isCup: true,
       team1Data: this._extractTeamData(g, 1),
       team2Data: this._extractTeamData(g, 2)
     }))
@@ -121,9 +150,20 @@ export class DashboardPage extends UIElement {
     // Set initial slide to the latest played game (last of past games)
     this._initialSlideIndex = Math.max(0, sliderResponse.pastGames.length - 1)
 
-    // Fetch current standing to show league position
-    this.standing = await server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league)
+    // Fetch current standing and finance log in parallel
+    const [standing, financeLogResponse] = await Promise.all([
+      server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
+      server.getFinanceLog(
+        this.season,
+        Math.max(0, this.gameDay - 6),
+        this.season,
+        this.gameDay
+      )
+    ])
+
+    this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
+    this._financeLog = financeLogResponse.log || []
   }
 
   /**
@@ -225,6 +265,34 @@ export class DashboardPage extends UIElement {
     if (pos === 2) return t('dashboard.positionNd', { pos })
     if (pos === 3) return t('dashboard.positionRd', { pos })
     return t('dashboard.positionTh', { pos })
+  }
+
+  /**
+   * Render cup games section
+   * @returns {GameSlider|string}
+   */
+  _renderCupGames () {
+    if (this._cupGames.length === 0) {
+      return `
+        <div class="card bg-light border-0">
+          <div class="card-body text-center text-muted py-4">
+            <i class="fa fa-trophy fa-2x mb-2 opacity-50"></i>
+            <p class="mb-0">${t('cup.noGames')}</p>
+          </div>
+        </div>
+      `
+    }
+
+    // Find the initial index (last played game or first upcoming)
+    const lastPlayedIndex = this._cupGames.reduce((acc, g, i) => g.isPlayed ? i : acc, 0)
+
+    const cupSliderArgs = {
+      games: this._cupGames,
+      teamId: this.team.id,
+      initialIndex: lastPlayedIndex
+    }
+
+    return new GameSlider(cupSliderArgs)
   }
 
   /**

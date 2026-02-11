@@ -8,7 +8,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getCurrentGameday: vi.fn(),
     getResults: vi.fn(),
     getStanding: vi.fn(),
-    getTopScorers: vi.fn()
+    getTopScorers: vi.fn(),
+    getSuspendedPlayers: vi.fn()
   }
 }))
 
@@ -57,6 +58,8 @@ describe('ResultsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getQueryParams.mockReturnValue({})
+    // Default mock for suspended players (empty list)
+    server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
   })
 
   describe('ResultsPage class', () => {

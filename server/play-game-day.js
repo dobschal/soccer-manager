@@ -17,6 +17,7 @@ import { addLogMessage } from './helper/logMessageHelper.js'
 import { cacheStandingsForGameDay } from './helper/standingHelper.js'
 import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from './lib/cache.js'
+import { progressCupRound, sendCupMatchLogMessages, getCupRoundsForSeason } from './helper/cupHelper.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -194,9 +195,18 @@ export async function calculateGames () {
   // Complete any stadium constructions that are due
   await completeStadiumConstructions(gameDay, season)
 
-  const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
-  if (games.length === 0) return console.error('No games to play...')
-  await Promise.all(games.map(game => _playGame(game)))
+  // Play league games
+  const leagueGames = await query(
+    "SELECT * FROM game WHERE season=? AND game_day=? AND played=0 AND (game_type='league' OR game_type IS NULL)",
+    [season, gameDay]
+  )
+  if (leagueGames.length > 0) {
+    await Promise.all(leagueGames.map(game => _playGame(game)))
+  }
+
+  // Play cup games for this game day
+  await _playCupGames(gameDay, season)
+
   // Clear season results cache after games are played
   clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
   await cacheStandingsForGameDay(gameDay, season)
@@ -209,6 +219,140 @@ export async function calculateGames () {
   await generateNewsForGameDay(gameDay, season)
   await _checkUserTeamsForIssues()
   console.log('\n\nPlayed game day ' + gameDay)
+}
+
+/**
+ * Play cup games for the current game day and progress rounds if complete
+ * @param {number} gameDay
+ * @param {number} season
+ * @returns {Promise<void>}
+ */
+async function _playCupGames (gameDay, season) {
+  const cupGames = await query(
+    "SELECT * FROM game WHERE season=? AND game_day=? AND played=0 AND game_type='cup'",
+    [season, gameDay]
+  )
+
+  if (cupGames.length === 0) {
+    return console.log('No cup games to play on this game day')
+  }
+
+  console.log(`Playing ${cupGames.length} cup games...`)
+
+  for (const game of cupGames) {
+    await _playCupGame(game)
+  }
+
+  // Check if any rounds are complete and progress them
+  const rounds = await getCupRoundsForSeason(season)
+  for (const round of rounds) {
+    if (round.played) continue
+
+    // Check if all games in this round are now played
+    const unplayedInRound = await query(
+      "SELECT * FROM game WHERE game_type='cup' AND season=? AND cup_round=? AND played=0",
+      [season, round.round]
+    )
+
+    if (unplayedInRound.length === 0) {
+      const result = await progressCupRound(season, round.round)
+      if (result.isComplete) {
+        console.log('🏆 Cup is complete!')
+      } else if (result.advanced) {
+        console.log(`Cup round ${round.round} complete, advanced to next round`)
+      }
+    }
+  }
+}
+
+/**
+ * Play a single cup game (similar to _playGame but with cup-specific handling)
+ * @param {GameType} game
+ * @returns {Promise<void>}
+ */
+async function _playCupGame (game) {
+  const [[teamA], [teamB], allPlayerTeamA, allPlayerTeamB] = await Promise.all([
+    await query('SELECT * FROM team WHERE id=?', [game.team_1_id]),
+    await query('SELECT * FROM team WHERE id=?', [game.team_2_id]),
+    await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>\'\' AND in_game_position IS NOT NULL', [game.team_1_id]),
+    await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>\'\' AND in_game_position IS NOT NULL', [game.team_2_id])
+  ])
+
+  // Filter out suspended players (they miss this game)
+  const playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
+  const playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
+
+  // Clear suspensions for ALL players on both teams who served their ban (not just those in lineup)
+  const clearedA = await query(
+    'UPDATE player SET is_suspended=0, yellow_cards=0, red_cards=0 WHERE team_id=? AND is_suspended=1',
+    [game.team_1_id]
+  )
+  const clearedB = await query(
+    'UPDATE player SET is_suspended=0, yellow_cards=0, red_cards=0 WHERE team_id=? AND is_suspended=1',
+    [game.team_2_id]
+  )
+  if (clearedA.affectedRows > 0 || clearedB.affectedRows > 0) {
+    console.log(`Cup suspensions cleared: ${clearedA.affectedRows} for ${teamA.name}, ${clearedB.affectedRows} for ${teamB.name}`)
+  }
+
+  const strengthTeamA = playerTeamA.reduce((totalStrength, player) => totalStrength + player.level, 0)
+  const strengthTeamB = playerTeamB.reduce((totalStrength, player) => totalStrength + player.level, 0)
+
+  // Cup games don't have stadium earnings (neutral venue concept)
+  console.log(`\n\n🏆 Cup match: ${teamA.name} (${strengthTeamA}) vs ${teamB.name} (${strengthTeamB})`)
+
+  const gameDetails = {
+    log: [],
+    goalsTeamB: 0,
+    goalsTeamA: 0,
+    strengthTeamA,
+    strengthTeamB,
+    stadiumDetails: {},
+    playerTeamA,
+    playerTeamB,
+    teamA,
+    teamB,
+    isCup: true
+  }
+
+  for (const player of playerTeamA) {
+    player.level = player.freshness * player.level
+  }
+  for (const player of playerTeamB) {
+    player.level = player.freshness * player.level
+  }
+
+  _kickoff(playerTeamA, playerTeamB, gameDetails)
+  const overtime = Math.floor(Math.random() * 50)
+  for (let minute = 0; minute < 900 + overtime; minute++) {
+    _playGameStep(playerTeamA, playerTeamB, gameDetails)
+  }
+
+  await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
+    JSON.stringify(gameDetails),
+    gameDetails.goalsTeamA,
+    gameDetails.goalsTeamB,
+    new Date(),
+    game.id
+  ])
+
+  // Update freshness and card counts for cup games too
+  const freshnessLossByStyle = { aggressive: 0.15, normal: 0.12, friendly: 0.10 }
+  for (const player of playerTeamA) {
+    const playStyle = teamA.play_style || 'normal'
+    const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
+    player.freshness = Math.max(0, player.freshness - freshnessLoss)
+    await _updatePlayerAfterGame(player, gameDetails, teamA)
+  }
+  for (const player of playerTeamB) {
+    const playStyle = teamB.play_style || 'normal'
+    const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
+    player.freshness = Math.max(0, player.freshness - freshnessLoss)
+    await _updatePlayerAfterGame(player, gameDetails, teamB)
+  }
+
+  // Send log messages to team owners about the cup match result
+  await sendCupMatchLogMessages(game, gameDetails)
 }
 
 /**
@@ -450,12 +594,18 @@ async function _playGame (game) {
   const playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
   const playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
 
-  // Clear suspensions for players who served their ban (they were in lineup but filtered out)
-  const suspendedPlayersA = allPlayerTeamA.filter(p => p.is_suspended)
-  const suspendedPlayersB = allPlayerTeamB.filter(p => p.is_suspended)
-  for (const player of [...suspendedPlayersA, ...suspendedPlayersB]) {
-    await query('UPDATE player SET is_suspended=0, yellow_cards=0, red_cards=0 WHERE id=?', [player.id])
-    console.log(`Suspension cleared for ${player.name}`)
+  // Clear suspensions for ALL players on both teams who served their ban (not just those in lineup)
+  // This ensures benched players with suspensions also get cleared
+  const clearedA = await query(
+    'UPDATE player SET is_suspended=0, yellow_cards=0, red_cards=0 WHERE team_id=? AND is_suspended=1',
+    [game.team_1_id]
+  )
+  const clearedB = await query(
+    'UPDATE player SET is_suspended=0, yellow_cards=0, red_cards=0 WHERE team_id=? AND is_suspended=1',
+    [game.team_2_id]
+  )
+  if (clearedA.affectedRows > 0 || clearedB.affectedRows > 0) {
+    console.log(`Suspensions cleared: ${clearedA.affectedRows} for ${teamA.name}, ${clearedB.affectedRows} for ${teamB.name}`)
   }
   const strengthTeamA = playerTeamA.reduce((totalStrength, player) => totalStrength + player.level, 0)
   const strengthTeamB = playerTeamB.reduce((totalStrength, player) => totalStrength + player.level, 0)

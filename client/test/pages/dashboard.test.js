@@ -18,7 +18,9 @@ vi.mock('../../lib/gateway.js', () => ({
     mergeCards: vi.fn(),
     getStanding: vi.fn(),
     getGamesForSlider: vi.fn(),
-    getFriendlyGames: vi.fn()
+    getFriendlyGames: vi.fn(),
+    getMyCupGames: vi.fn(),
+    getFinanceLog: vi.fn()
   }
 }))
 
@@ -141,6 +143,12 @@ describe('DashboardPage', () => {
     })
     server.getFriendlyGames.mockResolvedValue({
       games: []
+    })
+    server.getMyCupGames.mockResolvedValue({
+      games: []
+    })
+    server.getFinanceLog.mockResolvedValue({
+      log: []
     })
   })
 

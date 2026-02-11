@@ -11,6 +11,7 @@ import { getTeamById } from './helper/teamHelper.js'
 import { generateRandomEmblem } from './lib/emblem.js'
 import { archiveOverageYouthPlayers, getYouthPlayersAt18 } from './helper/youthPlayerHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
+import { createCupDraw } from './helper/cupHelper.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -34,7 +35,45 @@ export async function prepareSeason () {
   await _ajustAmountOfTeams()
   await _promotionRelegation()
   await _createGames()
+  await _createCupDraw()
   console.log('✅ Prepared Season')
+}
+
+/**
+ * Create the cup draw for the new season
+ * @returns {Promise<void>}
+ */
+async function _createCupDraw () {
+  // Get the current season (the one with unplayed games or the latest played)
+  const [currentSeasonGame] = await query(
+    'SELECT season, game_day FROM game WHERE played=0 ORDER BY season ASC, game_day ASC LIMIT 1'
+  )
+
+  if (!currentSeasonGame) {
+    return console.log('⏭️ No active season found for cup draw.')
+  }
+
+  const season = currentSeasonGame.season
+  const currentGameDay = currentSeasonGame.game_day
+
+  // Cup first round is on game day 4 - if we're past that, skip cup creation
+  const FIRST_CUP_ROUND_GAME_DAY = 4
+  if (currentGameDay > FIRST_CUP_ROUND_GAME_DAY) {
+    return console.log(`⏭️ Season ${season} already past game day ${FIRST_CUP_ROUND_GAME_DAY}, skipping cup draw.`)
+  }
+
+  // Check if cup games already exist for this season
+  const existingCupGames = await query(
+    'SELECT * FROM game WHERE game_type=? AND season=? LIMIT 1',
+    ['cup', season]
+  )
+
+  if (existingCupGames.length > 0) {
+    return console.log('⏭️ Cup draw already exists for this season.')
+  }
+
+  const matchesCreated = await createCupDraw(season)
+  console.log(`🏆 Cup draw created for season ${season}: ${matchesCreated} first round matches`)
 }
 
 /**
