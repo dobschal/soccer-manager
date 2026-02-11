@@ -301,13 +301,14 @@ async function _checkBuyOffers (botTeam, players) {
   const positionsNeeded = getPositionsOfFormation(botTeam.formation)
 
   // Analyze team needs with priority scoring
-  /** @type {{position: string, priority: 'critical'|'upgrade'|'depth', currentLevel: number}[]} */
+  /** @type {{position: string, priority: 'critical'|'freshness'|'depth'|'upgrade', currentLevel: number}[]} */
   const teamNeeds = []
   const playerIdsAlreadyBidding = new Set(currentBuyOffers.map(o => o.player_id))
 
   const uniquePositions = [...new Set(positionsNeeded)]
   for (const position of uniquePositions) {
     const minPlayersNeeded = positionsNeeded.filter(p => p === position).length
+    const targetSquadSize = minPlayersNeeded * 2 // Want 2 players per formation slot
     const playersInPosition = players.filter(p => p.position === position)
     const currentBestLevel = playersInPosition.length > 0
       ? Math.max(...playersInPosition.map(p => p.level))
@@ -316,28 +317,38 @@ async function _checkBuyOffers (botTeam, players) {
       ? Math.min(...playersInPosition.map(p => p.level))
       : 0
 
-    // Critical: Missing players for formation
+    // Critical: Missing players for formation (can't even field a full lineup)
     if (playersInPosition.length < minPlayersNeeded) {
       teamNeeds.push({ position, priority: 'critical', currentLevel: 0 })
       continue
     }
 
-    // Upgrade: Weakest player in position is below level 6
-    if (currentWeakestLevel < 6) {
-      teamNeeds.push({ position, priority: 'upgrade', currentLevel: currentWeakestLevel })
+    // Freshness: Lineup player is tired and no fresh backup available
+    const lineupPlayers = playersInPosition.filter(p => p.in_game_position)
+    const benchPlayers = playersInPosition.filter(p => !p.in_game_position)
+    const tiredLineupPlayer = lineupPlayers.find(p => p.freshness < 0.5)
+    const hasFreshBackup = benchPlayers.some(p => p.freshness >= 0.7)
+    if (tiredLineupPlayer && !hasFreshBackup) {
+      teamNeeds.push({ position, priority: 'freshness', currentLevel: currentWeakestLevel })
       continue
     }
 
-    // Depth: Have minimum but could use backup (only if best player is good)
-    if (playersInPosition.length < minPlayersNeeded + 1 && currentBestLevel >= 5) {
+    // Depth: Don't have 2 players per formation slot
+    if (playersInPosition.length < targetSquadSize) {
       teamNeeds.push({ position, priority: 'depth', currentLevel: currentWeakestLevel })
+      continue
+    }
+
+    // Upgrade: Have enough players but weakest is below level 5
+    if (currentWeakestLevel < 5) {
+      teamNeeds.push({ position, priority: 'upgrade', currentLevel: currentWeakestLevel })
     }
   }
 
   if (teamNeeds.length === 0) return
 
-  // Sort needs by priority: critical > upgrade > depth
-  const priorityOrder = { critical: 0, upgrade: 1, depth: 2 }
+  // Sort needs by priority: critical > freshness > depth > upgrade
+  const priorityOrder = { critical: 0, freshness: 1, depth: 2, upgrade: 3 }
   teamNeeds.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
   // Find sell offers for positions we need
@@ -378,7 +389,9 @@ async function _checkBuyOffers (botTeam, players) {
 
     // Priority bonus
     if (need.priority === 'critical') score += 1000
-    else if (need.priority === 'upgrade') score += 500
+    else if (need.priority === 'freshness') score += 800
+    else if (need.priority === 'depth') score += 600
+    else if (need.priority === 'upgrade') score += 400
 
     // Level improvement bonus
     const levelImprovement = offer.player_level - need.currentLevel
@@ -601,21 +614,49 @@ async function _checkTactic (botTeam, players, _isStrongTeam) {
   // remove all players from formation
   players.forEach(p => (p.in_game_position = null))
 
-  // find best freshest player for formation
+  // find best available player for each formation position
   const positions = getPositionsOfFormation(botTeam.formation)
   for (const position of positions) {
     let selectedPlayer
     for (const player of players) {
-      if (player.in_game_position || player.position !== position) {
+      // Skip if already in lineup, wrong position, or suspended
+      if (player.in_game_position || player.position !== position || player.is_suspended) {
         continue
       }
-      if (!selectedPlayer || selectedPlayer.freshness < player.freshness || selectedPlayer.level < player.level) {
+
+      if (!selectedPlayer) {
         selectedPlayer = player
+        continue
       }
+
+      // Compare players: prioritize freshness, then level as tiebreaker
+      // A player with significantly higher freshness (>0.2 difference) is preferred
+      const freshnessDiff = player.freshness - selectedPlayer.freshness
+      if (freshnessDiff > 0.2) {
+        // New player is significantly fresher
+        selectedPlayer = player
+      } else if (freshnessDiff >= -0.2) {
+        // Similar freshness - prefer higher level
+        if (player.level > selectedPlayer.level) {
+          selectedPlayer = player
+        } else if (player.level === selectedPlayer.level && player.freshness > selectedPlayer.freshness) {
+          // Same level - prefer fresher player
+          selectedPlayer = player
+        }
+      }
+      // If new player is significantly less fresh (>0.2 diff), keep current selection
     }
+
     if (!selectedPlayer) {
-      console.error('Team has no player for position! ', botTeam, position)
-      continue
+      // Try to find any available player (even if suspended, as last resort for incomplete lineup)
+      const anyPlayer = players.find(p => !p.in_game_position && p.position === position)
+      if (anyPlayer) {
+        selectedPlayer = anyPlayer
+        console.warn(`${botTeam.name}: Using suspended player ${anyPlayer.name} for ${position} (no alternatives)`)
+      } else {
+        console.error(`${botTeam.name} has no player for position ${position}!`)
+        continue
+      }
     }
     selectedPlayer.in_game_position = position
   }

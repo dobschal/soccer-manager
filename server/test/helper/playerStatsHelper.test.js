@@ -1,0 +1,221 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+vi.mock('../../lib/database.js', () => ({
+  query: vi.fn()
+}))
+
+import { query } from '../../lib/database.js'
+import {
+  getTopScorers,
+  cachePlayerStatsForGameDay
+} from '../../helper/playerStatsHelper.js'
+
+describe('playerStatsHelper', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('getTopScorers', () => {
+    it('returns top scorers with correct data structure', async () => {
+      const dbResult = [
+        {
+          player_id: 1,
+          goals: 5,
+          name: 'John Striker',
+          position: 'CA',
+          hair_color: 2,
+          skin_color: 1,
+          team_id: 10,
+          team_name: 'FC Test',
+          team_color: '#ff0000',
+          team_emblem: '{"shape":"shield"}'
+        },
+        {
+          player_id: 2,
+          goals: 3,
+          name: 'Jane Forward',
+          position: 'LA',
+          hair_color: 1,
+          skin_color: 0,
+          team_id: 11,
+          team_name: 'SC Test',
+          team_color: '#0000ff',
+          team_emblem: '{"shape":"circle"}'
+        }
+      ]
+      query.mockResolvedValue(dbResult)
+
+      const result = await getTopScorers(0, 0, 0, 10)
+
+      expect(result).toHaveLength(2)
+      expect(result[0]).toEqual({
+        id: 1,
+        name: 'John Striker',
+        position: 'CA',
+        hair_color: 2,
+        skin_color: 1,
+        goals: 5,
+        team: {
+          id: 10,
+          name: 'FC Test',
+          color: '#ff0000',
+          emblem: '{"shape":"shield"}'
+        }
+      })
+      expect(result[1].goals).toBe(3)
+    })
+
+    it('returns empty array when no scorers found', async () => {
+      query.mockResolvedValue([])
+
+      const result = await getTopScorers(0, 0, 0, 10)
+
+      expect(result).toEqual([])
+    })
+
+    it('passes correct parameters to query', async () => {
+      query.mockResolvedValue([])
+
+      await getTopScorers(2, 1, 3, 5)
+
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE pss.season = ? AND pss.level = ? AND pss.league = ?'),
+        [2, 1, 3, 5]
+      )
+    })
+  })
+
+  describe('cachePlayerStatsForGameDay', () => {
+    it('processes games and extracts goals from log', async () => {
+      const games = [{
+        id: 1,
+        level: 0,
+        league: 0,
+        team_1_id: 10,
+        team_2_id: 11,
+        details: JSON.stringify({
+          log: [
+            { goal: true, player: 101 },
+            { goal: true, player: 101 },
+            { goal: true, player: 102 },
+            { yellowCard: true, player: 103 },
+            { redCard: true, player: 104 }
+          ],
+          playerTeamA: [{ id: 101 }, { id: 103 }],
+          playerTeamB: [{ id: 102 }, { id: 104 }]
+        })
+      }]
+
+      query
+        .mockResolvedValueOnce(games) // Get games
+        .mockResolvedValue({ affectedRows: 1 }) // Upsert calls
+
+      await cachePlayerStatsForGameDay(1, 0)
+
+      // Should have 4 upsert calls (4 players with stats)
+      expect(query).toHaveBeenCalledTimes(5) // 1 for games + 4 for players
+    })
+
+    it('handles games with no details gracefully', async () => {
+      const games = [{
+        id: 1,
+        level: 0,
+        league: 0,
+        team_1_id: 10,
+        team_2_id: 11,
+        details: null
+      }]
+
+      query.mockResolvedValueOnce(games)
+
+      await cachePlayerStatsForGameDay(1, 0)
+
+      // Should only call once for games, no upserts
+      expect(query).toHaveBeenCalledTimes(1)
+    })
+
+    it('handles invalid JSON details gracefully', async () => {
+      const games = [{
+        id: 1,
+        level: 0,
+        league: 0,
+        team_1_id: 10,
+        team_2_id: 11,
+        details: 'invalid json{'
+      }]
+
+      query.mockResolvedValueOnce(games)
+
+      await cachePlayerStatsForGameDay(1, 0)
+
+      // Should only call once for games, no upserts due to parse error
+      expect(query).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns early when no games to process', async () => {
+      query.mockResolvedValueOnce([])
+
+      await cachePlayerStatsForGameDay(1, 0)
+
+      expect(query).toHaveBeenCalledTimes(1)
+    })
+
+    it('tracks yellow and red cards correctly', async () => {
+      const games = [{
+        id: 1,
+        level: 0,
+        league: 0,
+        team_1_id: 10,
+        team_2_id: 11,
+        details: JSON.stringify({
+          log: [
+            { yellowCard: true, player: 101 },
+            { yellowCard: true, player: 101 },
+            { redCard: true, player: 102 }
+          ],
+          playerTeamA: [{ id: 101 }],
+          playerTeamB: [{ id: 102 }]
+        })
+      }]
+
+      query
+        .mockResolvedValueOnce(games)
+        .mockResolvedValue({ affectedRows: 1 })
+
+      await cachePlayerStatsForGameDay(1, 0)
+
+      // Should insert stats for both players
+      const upsertCalls = query.mock.calls.filter(
+        call => typeof call[0] === 'string' && call[0].includes('INSERT INTO player_season_stats')
+      )
+      expect(upsertCalls.length).toBe(2)
+    })
+
+    it('increments stats correctly with ON DUPLICATE KEY UPDATE', async () => {
+      const games = [{
+        id: 1,
+        level: 0,
+        league: 0,
+        team_1_id: 10,
+        team_2_id: 11,
+        details: JSON.stringify({
+          log: [{ goal: true, player: 101 }],
+          playerTeamA: [{ id: 101 }],
+          playerTeamB: []
+        })
+      }]
+
+      query
+        .mockResolvedValueOnce(games)
+        .mockResolvedValue({ affectedRows: 1 })
+
+      await cachePlayerStatsForGameDay(1, 0)
+
+      const upsertCall = query.mock.calls.find(
+        call => typeof call[0] === 'string' && call[0].includes('ON DUPLICATE KEY UPDATE')
+      )
+      expect(upsertCall).toBeDefined()
+      expect(upsertCall[0]).toContain('goals = goals + VALUES(goals)')
+    })
+  })
+})

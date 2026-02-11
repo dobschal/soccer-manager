@@ -15,6 +15,7 @@ import { getUserLocale, t } from './i18n/index.js'
 import { processYouthTraining } from './helper/youthPlayerHelper.js'
 import { addLogMessage } from './helper/logMessageHelper.js'
 import { cacheStandingsForGameDay } from './helper/standingHelper.js'
+import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from './lib/cache.js'
 
 /**
@@ -199,6 +200,7 @@ export async function calculateGames () {
   // Clear season results cache after games are played
   clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
   await cacheStandingsForGameDay(gameDay, season)
+  await cachePlayerStatsForGameDay(gameDay, season)
   await _giveUsersActionCards()
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)

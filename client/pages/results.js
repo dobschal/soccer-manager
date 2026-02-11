@@ -187,7 +187,8 @@ export class ResultsPage extends UIElement {
     this.standing = standing
     this.standing.sort(_sortStanding)
     this.yesterdayStanding.sort(_sortStanding)
-    this.topScorer = await _calculateGoals(this.level, this.league, this.season, this.gameDay, this.standing)
+    const { topScorers } = await server.getTopScorers(this.season, this.level, this.league, 10)
+    this.topScorer = topScorers
   }
 
   /**
@@ -407,38 +408,3 @@ function _sortStanding (s1, s2) {
   return retVal
 }
 
-/**
- * @param {number} level
- * @param {number} league
- * @param {number} season
- * @param {number} gameDay
- * @param {Array} standing
- * @returns {Promise<Array>}
- */
-async function _calculateGoals (level, league, season, gameDay, standing) {
-  const games = await server.getSeasonResults(season, gameDay, level, league)
-  games.forEach((game) => (game.details = JSON.parse(game.details ?? '{}')))
-  if (games.length === 0) return []
-  const goalsByPlayers = {}
-  for (const game of games) {
-    game.details.log.filter(logItem => logItem.goal).forEach(({ player: playerId }) => {
-      goalsByPlayers[playerId] = goalsByPlayers[playerId] ?? 0
-      goalsByPlayers[playerId]++
-    })
-  }
-  if (Object.keys(goalsByPlayers).length === 0) return []
-  const { players } = await server.getPlayersWithIds(Object.keys(goalsByPlayers))
-  const playersWithGoals = Object.keys(goalsByPlayers)
-    .map(playerId => {
-      const player = players.find(p => p.id === Number(playerId))
-      if (!player) return null
-      return {
-        team: standing.find(({ team }) => team.id === player.team_id)?.team,
-        goals: goalsByPlayers[playerId],
-        ...player
-      }
-    })
-    .filter(Boolean)
-  playersWithGoals.sort((a, b) => b.goals - a.goals)
-  return playersWithGoals.slice(0, 10)
-}

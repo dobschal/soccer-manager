@@ -722,6 +722,27 @@ const migrations = [{
     // Equality columns first, then range column last for optimal index usage
     await query('CREATE INDEX idx_game_season_results ON game (season, level, league, played, game_day)')
   }
+}, {
+  name: 'Create player_season_stats table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS player_season_stats
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        player_id BIGINT(20) NOT NULL,
+        season INT NOT NULL,
+        level INT NOT NULL,
+        league INT NOT NULL,
+        goals INT DEFAULT 0,
+        yellow_cards INT DEFAULT 0,
+        red_cards INT DEFAULT 0,
+        games_played INT DEFAULT 0,
+        last_updated_game_day INT DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY idx_player_season_league (player_id, season, level, league),
+        INDEX idx_top_scorers (season, level, league, goals DESC)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

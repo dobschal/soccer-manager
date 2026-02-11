@@ -8,8 +8,7 @@ vi.mock('../../lib/gateway.js', () => ({
     getCurrentGameday: vi.fn(),
     getResults: vi.fn(),
     getStanding: vi.fn(),
-    getSeasonResults: vi.fn(),
-    getPlayersWithIds: vi.fn()
+    getTopScorers: vi.fn()
   }
 }))
 
@@ -74,7 +73,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
       server.getResults.mockResolvedValue({ results })
       server.getStanding.mockResolvedValue(standing)
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -97,7 +96,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 1 })
       server.getResults.mockResolvedValue({ results })
       server.getStanding.mockResolvedValue(standing)
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -115,7 +114,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 0 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -172,7 +171,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 0 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       page.level = 0
@@ -195,7 +194,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 0 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       page.level = 0
@@ -220,7 +219,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -237,7 +236,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -254,7 +253,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 2, gameDay: 5 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -271,7 +270,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -293,7 +292,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue(standing)
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -312,7 +311,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue(standing)
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()
@@ -331,7 +330,7 @@ describe('ResultsPage', () => {
       server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue(standing)
-      server.getSeasonResults.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
 
       const page = new ResultsPage()
       await page.load()

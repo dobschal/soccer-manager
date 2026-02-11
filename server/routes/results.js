@@ -5,6 +5,7 @@ import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper.js'
 import { getCached, cacheKey, CACHE_NAMESPACES } from '../lib/cache.js'
+import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
 
 export default {
 
@@ -358,5 +359,23 @@ export default {
 
     console.log('Calculated standing in ' + (Date.now() - t1) + 'ms')
     return standing
+  },
+
+  /**
+   * Get top scorers for a league from cached stats
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @param {number} limit
+   * @param {Request} [req]
+   * @returns {Promise<{topScorers: Array}>}
+   */
+  async getTopScorers (season, level, league, limit = 10, req) {
+    const team = await getTeam(req)
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+
+    const topScorers = await getTopScorersFromCache(season, actualLevel, actualLeague, limit)
+    return { topScorers }
   }
 }
