@@ -47,3 +47,15 @@ export function formatLeague (level, league) {
   }
   return `${division}. ${t('results.league')} ${t(subKey)}`
 }
+
+/**
+ * Format a cup round for display
+ * @param {number} round - The cup round (1=final, 2=semi, 4=quarter, etc.)
+ * @returns {string} Formatted cup round name
+ */
+export function formatCupRound (round) {
+  if (round === 1) return t('cup.final')
+  if (round === 2) return t('cup.semiFinal')
+  if (round === 4) return t('cup.quarterFinal')
+  return t('cup.roundOf', { count: round * 2 })
+}

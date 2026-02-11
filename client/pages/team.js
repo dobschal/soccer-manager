@@ -5,7 +5,7 @@ import { showPlayerModal } from '../partials/playerModal.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { renderPlayerImage } from '../partials/playerImage.js'
 import { UIElement } from '../lib/UIElement.js'
-import { formatLeague } from '../util/league.js'
+import { formatCupRound, formatLeague } from '../util/league.js'
 import { showStadiumModal } from '../partials/stadiumModal.js'
 import { euroFormat } from '../lib/currency.js'
 import { t } from '../i18n/index.js'
@@ -13,6 +13,7 @@ import { toast } from '../partials/toast.js'
 import { showGameModal } from '../partials/gameModal.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { showDialog } from '../partials/dialog.js'
+import { Table } from '../partials/table.js'
 
 /**
  * Information to render:
@@ -41,6 +42,10 @@ export class TeamPage extends UIElement {
   _isOwnTeam = false
   /** @type {boolean} */
   _isPlayingFriendly = false
+  /** @type {Array} */
+  _transferHistory = []
+  /** @type {Array} */
+  _seasonHistory = []
 
   /**
    * @returns {string}
@@ -56,7 +61,7 @@ export class TeamPage extends UIElement {
           <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
             <h2>${this.team.name}</h2>
             <p class="mb-0">
-              <b>${t('team.leagueLabel')}</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
+              <b>${t('team.leagueLabel')}</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}&gameDay=33" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
               <b>${t('team.teamValue')}</b>: ${euroFormat.format(this._teamValue)}<br>
               <b>${t('team.lineupStrength')}</b>: ${this._teamStrength}<br>
               <b>${t('team.avgFreshness')}</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
@@ -83,6 +88,17 @@ export class TeamPage extends UIElement {
       true,
       (player) => setQueryParams({ player_id: player.id + '' })
     )}
+
+        <div class="row mt-5">
+          <div class="col-12 col-lg-6 mb-4">
+            <h4>${t('team.transferHistory')}</h4>
+            ${this._renderTransferHistoryTable()}
+          </div>
+          <div class="col-12 col-lg-6 mb-4">
+            <h4>${t('team.seasonHistory')}</h4>
+            ${this._renderSeasonHistoryTable()}
+          </div>
+        </div>
       </div>
     `
   }
@@ -111,6 +127,15 @@ export class TeamPage extends UIElement {
           event.preventDefault()
           this._handleFriendlyMatchClick()
         }
+      },
+      '(optional) .player-link': {
+        click: (event) => {
+          event.preventDefault()
+          const playerId = event.currentTarget.dataset.playerId
+          if (playerId) {
+            setQueryParams({ player_id: playerId })
+          }
+        }
       }
     }
   }
@@ -138,16 +163,20 @@ export class TeamPage extends UIElement {
     this.team = team
     this.players = players
 
-    const [stadium, teamValue, myTeam, friendlyStatus] = await Promise.all([
+    const [stadium, teamValue, myTeam, friendlyStatus, transferHistory, seasonHistory] = await Promise.all([
       server.getStadiumByTeamId(this.team.id),
       server.getTeamValue(this.team.id),
       server.getMyTeam(),
-      server.canPlayFriendlyToday()
+      server.canPlayFriendlyToday(),
+      server.getTeamTransferHistory(this.team.id),
+      server.getTeamSeasonHistory(this.team.id)
     ])
     this.stadium = stadium
     this._teamValue = teamValue.value
     this._isOwnTeam = myTeam.team.id === this.team.id
     this._canPlayFriendly = friendlyStatus.canPlay && !this._isOwnTeam
+    this._transferHistory = transferHistory.transfers || []
+    this._seasonHistory = seasonHistory.seasons || []
 
     // Render best player image
     const bestPlayer = this._bestPlayer
@@ -286,5 +315,143 @@ export class TeamPage extends UIElement {
       this._isPlayingFriendly = false
       await this.update()
     }
+  }
+
+  /**
+   * Render the transfer history table
+   * @returns {string}
+   * @private
+   */
+  _renderTransferHistoryTable () {
+    if (this._transferHistory.length === 0) {
+      return `<p class="text-muted">${t('team.noTransferHistory')}</p>`
+    }
+
+    const table = new Table({
+      cols: [
+        {
+          name: t('team.historyPlayer'),
+          align: 'left'
+        },
+        {
+          name: t('team.historyFrom'),
+          align: 'left',
+          largeScreenOnly: true
+        },
+        {
+          name: t('team.historyTo'),
+          align: 'left',
+          largeScreenOnly: true
+        },
+        {
+          name: t('team.historyPrice'),
+          align: 'right'
+        },
+        {
+          name: t('team.historySeason'),
+          align: 'center',
+          largeScreenOnly: true
+        }
+      ],
+      data: this._transferHistory,
+      renderRow: (transfer) => {
+        const fromTeamHtml = transfer.fromTeam
+          ? `<a href="#team?id=${transfer.fromTeamId}" class="text-info">${this._renderSmallEmblem(transfer.fromTeam)} ${transfer.fromTeamName}</a>`
+          : '-'
+        const toTeamHtml = transfer.toTeam
+          ? `<a href="#team?id=${transfer.toTeamId}" class="text-info">${this._renderSmallEmblem(transfer.toTeam)} ${transfer.toTeamName}</a>`
+          : '-'
+
+        return [
+          `<span class="player-link text-info" data-player-id="${transfer.playerId}" style="cursor: pointer;">${transfer.playerName}</span>`,
+          fromTeamHtml,
+          toTeamHtml,
+          euroFormat.format(transfer.price),
+          `S${transfer.season + 1}`
+        ]
+      }
+    })
+
+    return table.toString()
+  }
+
+  /**
+   * Render the season history table
+   * @returns {string}
+   * @private
+   */
+  _renderSeasonHistoryTable () {
+    if (this._seasonHistory.length === 0) {
+      return `<p class="text-muted">${t('team.noSeasonHistory')}</p>`
+    }
+
+    const table = new Table({
+      cols: [
+        {
+          name: t('team.historySeason'),
+          align: 'center'
+        },
+        {
+          name: t('team.historyLeague'),
+          align: 'left'
+        },
+        {
+          name: t('team.historyPosition'),
+          align: 'center'
+        },
+        {
+          name: t('team.historyPoints'),
+          align: 'center'
+        },
+        {
+          name: t('team.historyCup'),
+          align: 'center',
+          largeScreenOnly: true
+        }
+      ],
+      data: this._seasonHistory,
+      renderRow: (season) => {
+        const positionClass = season.position === 1 ? 'text-warning fw-bold' : (season.position <= 2 ? 'text-success' : '')
+        const cupHtml = this._formatCupResult(season.cupResult)
+
+        return [
+          `S${season.season + 1}`,
+          `<a href="#results?level=${season.level}&league=${season.league}&season=${season.season}&gameDay=33" class="text-info">${formatLeague(season.level, season.league)}</a>`,
+          `<span class="${positionClass}">${season.position}.</span>`,
+          `${season.points}`,
+          cupHtml
+        ]
+      }
+    })
+
+    return table.toString()
+  }
+
+  /**
+   * Format cup result for display
+   * @param {Object|null} cupResult
+   * @returns {string}
+   * @private
+   */
+  _formatCupResult (cupResult) {
+    if (!cupResult) {
+      return '-'
+    }
+
+    if (cupResult.isWinner) {
+      return `<span class="text-warning"><i class="fa fa-trophy"></i> ${t('cup.winner')}</span>`
+    }
+
+    return formatCupRound(cupResult.roundReached)
+  }
+
+  /**
+   * Render a small emblem for inline display
+   * @param {Object} team
+   * @returns {string}
+   * @private
+   */
+  _renderSmallEmblem (team) {
+    return renderEmblem(team, 20)
   }
 }

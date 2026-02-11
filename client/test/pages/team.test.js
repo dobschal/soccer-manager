@@ -9,7 +9,9 @@ vi.mock('../../lib/gateway.js', () => ({
     getTeamValue: vi.fn(),
     getMyTeam: vi.fn(),
     canPlayFriendlyToday: vi.fn(),
-    playFriendlyMatch: vi.fn()
+    playFriendlyMatch: vi.fn(),
+    getTeamTransferHistory: vi.fn(),
+    getTeamSeasonHistory: vi.fn()
   }
 }))
 
@@ -26,6 +28,13 @@ vi.mock('../../partials/playerList.js', () => ({
 
 vi.mock('../../partials/playerImage.js', () => ({
   renderPlayerImage: vi.fn(() => Promise.resolve('<div class="player-image-mock"></div>'))
+}))
+
+vi.mock('../../partials/table.js', () => ({
+  Table: class {
+    constructor () {}
+    toString () { return '<div class="table-mock"></div>' }
+  }
 }))
 
 vi.mock('../../partials/playerModal.js', () => ({
@@ -49,7 +58,8 @@ vi.mock('../../partials/tutorialOverlay.js', () => ({
 }))
 
 vi.mock('../../util/league.js', () => ({
-  formatLeague: vi.fn((level, league) => `${level + 1}. League ${league}`)
+  formatLeague: vi.fn((level, league) => `${level + 1}. League ${league}`),
+  formatCupRound: vi.fn((round) => `Round ${round}`)
 }))
 
 vi.mock('../../lib/router.js', () => ({
@@ -73,6 +83,9 @@ describe('TeamPage', () => {
     // Default mocks for the new friendly match methods
     server.getMyTeam.mockResolvedValue({ team: testData.team({ id: 999 }) })
     server.canPlayFriendlyToday.mockResolvedValue({ canPlay: true })
+    // Default mocks for transfer and season history
+    server.getTeamTransferHistory.mockResolvedValue({ transfers: [] })
+    server.getTeamSeasonHistory.mockResolvedValue({ seasons: [] })
   })
 
   describe('TeamPage class', () => {

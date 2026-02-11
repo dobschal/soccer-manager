@@ -1,7 +1,7 @@
 import mysql from 'mysql'
 
 const pool = mysql.createPool({
-  connectionLimit: 10,
+  connectionLimit: 25,
   host: process.env.DB_HOST ?? 'database', // switch to localhost if running locally
   user: 'root',
   password: 'root',
