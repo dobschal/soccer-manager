@@ -259,22 +259,33 @@ export class GameSlider extends UIElement {
     if (!slider) return
 
     let touchStartX = 0
+    let touchStartY = 0
     let touchEndX = 0
+    let touchEndY = 0
+    let touchStartTime = 0
     let touchTarget = null
     const swipeThreshold = 50
+    const tapThreshold = 10 // Max movement for a tap
+    const tapMaxDuration = 300 // Max duration in ms for a tap
 
     slider.addEventListener('touchstart', (e) => {
       touchStartX = e.touches[0].clientX
-      touchEndX = touchStartX // Initialize to same position so taps don't trigger swipe
+      touchStartY = e.touches[0].clientY
+      touchEndX = touchStartX
+      touchEndY = touchStartY
+      touchStartTime = Date.now()
       touchTarget = e.target
     }, { passive: true })
 
     slider.addEventListener('touchmove', (e) => {
       touchEndX = e.touches[0].clientX
+      touchEndY = e.touches[0].clientY
     }, { passive: true })
 
     slider.addEventListener('touchend', () => {
       const deltaX = touchEndX - touchStartX
+      const deltaY = touchEndY - touchStartY
+      const touchDuration = Date.now() - touchStartTime
 
       if (Math.abs(deltaX) > swipeThreshold) {
         if (deltaX < 0) {
@@ -284,16 +295,25 @@ export class GameSlider extends UIElement {
           // Swipe right → previous
           this._navigate(-1)
         }
-      } else if (touchTarget) {
-        // It's a tap, not a swipe - find and click the nearest link
+      } else if (
+        touchTarget &&
+        Math.abs(deltaX) < tapThreshold &&
+        Math.abs(deltaY) < tapThreshold &&
+        touchDuration < tapMaxDuration
+      ) {
+        // It's a tap: small movement, short duration
         const link = touchTarget.closest('a[href]')
         if (link) {
           link.click()
         }
       }
+      // Otherwise: scrolling or long press - do nothing
 
       touchStartX = 0
+      touchStartY = 0
       touchEndX = 0
+      touchEndY = 0
+      touchStartTime = 0
       touchTarget = null
     }, { passive: true })
   }
