@@ -308,16 +308,23 @@ export class ResultsPage extends UIElement {
 
     const isPlayed = result.played === 1
 
+    // Construct team objects for emblem rendering
+    const team1Data = { name: result.team1, color: result.team1Color, emblem: result.team1Emblem }
+    const team2Data = { name: result.team2, color: result.team2Color, emblem: result.team2Emblem }
+
+    const emblem1 = `<span style="display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(team1Data, 24)}</span>`
+    const emblem2 = `<span style="display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(team2Data, 24)}</span>`
+
     return `
       <tr id="${id}">
         <td>
           ${this.myTeamId === result.team1Id ? '<b class="text-info">' : ''}
-          ${result.team1}
+          ${emblem1}${result.team1}
           ${this.myTeamId === result.team1Id ? '</b>' : ''}
         </td>
         <td>
           ${this.myTeamId === result.team2Id ? '<b class="text-info">' : ''}
-          ${result.team2}
+          ${emblem2}${result.team2}
           ${this.myTeamId === result.team2Id ? '</b>' : ''}
         </td>
         <td>${isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming')}</td>
@@ -365,6 +372,11 @@ export class ResultsPage extends UIElement {
     }
 
     await this.update(true)
+
+    // Load images after update when on league view
+    if (this.subPage !== 'cup') {
+      this._loadTopScorerImages()
+    }
   }
 
   /**

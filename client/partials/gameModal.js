@@ -5,6 +5,66 @@ import { renderGameAnimation } from './gameAnimation.js'
 import { setQueryParams } from '../lib/router.js'
 
 /**
+ * Render the event ticker showing goals and cards
+ * @param {Array} log - Game log entries
+ * @param {Object} players - Map of player id to player object
+ * @param {string} team1Name - Name of team 1
+ * @param {string} team2Name - Name of team 2
+ * @returns {string} HTML for the event ticker
+ */
+function renderEventTicker (log, players, team1Name, team2Name) {
+  const events = log.filter(l => l.goal || l.yellowCard || l.redCard)
+    .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
+
+  if (events.length === 0) {
+    return ''
+  }
+
+  const eventItems = events.map(event => {
+    const player = players[event.player]
+    const playerName = player?.name || 'Unknown'
+    const isTeam1 = player?.team1
+    const minute = event.minute !== undefined ? `${event.minute}'` : ''
+
+    if (event.goal) {
+      const teamName = isTeam1 ? team1Name : team2Name
+      return `
+        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
+          <span class="badge bg-success"><i class="fa fa-futbol-o"></i></span>
+          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small></span>
+        </div>
+      `
+    } else if (event.redCard) {
+      const teamName = isTeam1 ? team1Name : team2Name
+      return `
+        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
+          <span class="text-danger" style="font-size: 1.2em;"><i class="fa fa-square"></i></span>
+          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small>${event.secondYellow ? ' <small>(2nd yellow)</small>' : ''}</span>
+        </div>
+      `
+    } else if (event.yellowCard) {
+      const teamName = isTeam1 ? team1Name : team2Name
+      return `
+        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
+          <span class="text-warning" style="font-size: 1.2em;"><i class="fa fa-square"></i></span>
+          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small></span>
+        </div>
+      `
+    }
+    return ''
+  }).join('')
+
+  return `
+    <div class="card mb-3">
+      <div class="card-header"><i class="fa fa-clock-o me-2"></i>Match Events</div>
+      <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+        ${eventItems}
+      </div>
+    </div>
+  `
+}
+
+/**
  * @param {number} resultId
  * @returns {Promise<void>}
  * @private
@@ -66,6 +126,7 @@ export async function showGameModal (resultId) {
     `
       <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} as guests at their stadium!</p>
       ${renderGameAnimation(game, team1, team2)}
+      ${renderEventTicker(details.log, players, team1.name, team2.name)}
       <table class="table">
         <thead>
           <tr>

@@ -324,9 +324,13 @@ async function _playCupGame (game) {
 
   _kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)
-  for (let minute = 0; minute < 900 + overtime; minute++) {
+  const totalSteps = 900 + overtime
+  for (let step = 0; step < totalSteps; step++) {
+    // Convert step to match minute (0-89 for regular time, 90+ for overtime)
+    gameDetails.currentMinute = step < 900 ? Math.floor(step / 10) : 90 + Math.floor((step - 900) / 10)
     _playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
+  delete gameDetails.currentMinute // Don't persist internal tracking field
 
   await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
     JSON.stringify(gameDetails),
@@ -631,9 +635,14 @@ async function _playGame (game) {
   }
   _kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)
-  for (let minute = 0; minute < 900 + overtime; minute++) {
+  const totalSteps = 900 + overtime
+  for (let step = 0; step < totalSteps; step++) {
+    // Convert step to match minute (0-89 for regular time, 90+ for overtime)
+    // Each 10 steps = 1 minute in regular time
+    gameDetails.currentMinute = step < 900 ? Math.floor(step / 10) : 90 + Math.floor((step - 900) / 10)
     _playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
+  delete gameDetails.currentMinute // Don't persist internal tracking field
   await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
     JSON.stringify(gameDetails),
     gameDetails.goalsTeamA,
@@ -672,9 +681,12 @@ async function _updatePlayerAfterGame (player, gameDetails, team) {
 
   // Get current card counts from database
   const [currentPlayer] = await query('SELECT yellow_cards, red_cards FROM player WHERE id=?', [player.id])
-  let newYellowCards = (currentPlayer?.yellow_cards || 0) + yellowsInMatch
   let newRedCards = currentPlayer?.red_cards || 0
   let isSuspended = false
+
+  // If sent off, don't persist the yellows from this match (they converted to a red)
+  // Only add yellows if player was NOT sent off
+  let newYellowCards = (currentPlayer?.yellow_cards || 0) + (sentOff ? 0 : yellowsInMatch)
 
   if (sentOff) {
     // Red card = suspended for next match
@@ -885,7 +897,8 @@ function _checkForCard (player, playStyle, gameDetails, team) {
       gameDetails.log.push({
         redCard: true,
         player: player.id,
-        secondYellow: true
+        secondYellow: true,
+        minute: gameDetails.currentMinute
       })
       console.log(`RED CARD (2nd yellow): ${player.name}`)
 
@@ -900,7 +913,8 @@ function _checkForCard (player, playStyle, gameDetails, team) {
     } else {
       gameDetails.log.push({
         yellowCard: true,
-        player: player.id
+        player: player.id,
+        minute: gameDetails.currentMinute
       })
       console.log(`YELLOW CARD: ${player.name}`)
     }
@@ -912,7 +926,8 @@ function _checkForCard (player, playStyle, gameDetails, team) {
     gameDetails.sentOffPlayerIds.push(player.id)
     gameDetails.log.push({
       redCard: true,
-      player: player.id
+      player: player.id,
+      minute: gameDetails.currentMinute
     })
     console.log(`DIRECT RED CARD: ${player.name}`)
 
@@ -984,7 +999,9 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
   console.log('GOAL!', gameDetails.goalsTeamA ?? 0, gameDetails.goalsTeamB ?? 0, 'streak: ' + gameDetails.streak, 'player level: ' + activePlayer.level, 'GK level: ' + (goalKeeper?.level ?? 0), 'shoot chance: ' + chanceForShoot)
   gameDetails.log.push({
     goal: true,
-    player: activePlayer.id
+    player: activePlayer.id,
+    minute: gameDetails.currentMinute,
+    teamA: teamAHasBall
   })
   return true
 }

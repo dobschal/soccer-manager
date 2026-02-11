@@ -58,7 +58,7 @@ export class TutorialProgress extends UIElement {
    */
   get template () {
     if (!this._loaded) {
-      return ''
+      return '<div></div>'
     }
 
     const completed = TUTORIALS.filter(tut => this._tutorialCompleted[tut.key]).length
@@ -66,7 +66,7 @@ export class TutorialProgress extends UIElement {
 
     // Hide if all tutorials completed
     if (completed >= total) {
-      return ''
+      return '<div></div>'
     }
 
     const progress = Math.round((completed / total) * 100)
