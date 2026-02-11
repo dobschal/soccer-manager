@@ -37,6 +37,7 @@ export default {
   'error.youthPlayerNotFound': 'Jugendspieler nicht gefunden',
   'error.notYourYouthPlayer': 'Das ist nicht dein Jugendspieler',
   'error.youthPlayerTooYoung': 'Jugendspieler muss mindestens 16 Jahre alt sein, um befördert zu werden',
+  'error.youthPlayerLevelTooLow': 'Jugendspieler muss mindestens Level 1 haben, um befördert zu werden',
 
   // Action card errors
   'error.cardNotFound': 'Aktionskarte nicht gefunden',

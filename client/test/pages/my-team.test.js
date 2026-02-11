@@ -56,10 +56,17 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key) => key)
 }))
 
+vi.mock('../../lib/event.js', () => ({
+  on: vi.fn(),
+  off: vi.fn(),
+  fire: vi.fn()
+}))
+
 import { server } from '../../lib/gateway.js'
 import { MyTeamPage } from '../../pages/my-team.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { showPlayerModal } from '../../partials/playerModal.js'
+import { on, off, fire } from '../../lib/event.js'
 
 describe('MyTeamPage', () => {
   beforeEach(() => {
@@ -228,6 +235,75 @@ describe('MyTeamPage', () => {
 
       const html = page._renderHeader()
       expect(html).toContain('myTeam.avgAge')
+    })
+  })
+
+  describe('YOUTH_PLAYER_PROMOTED event', () => {
+    it('registers event listener on mount', async () => {
+      const team = testData.team()
+      const players = [testData.player()]
+
+      server.getMyTeam.mockResolvedValue({ team, players })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+      on.mockReturnValue(123)
+
+      const page = new MyTeamPage()
+      await page.load()
+      page.onMounted()
+
+      expect(on).toHaveBeenCalledWith('YOUTH_PLAYER_PROMOTED', expect.any(Function))
+      expect(page._youthPlayerPromotedEventId).toBe(123)
+    })
+
+    it('unregisters event listener on destroy', async () => {
+      const team = testData.team()
+      const players = [testData.player()]
+
+      server.getMyTeam.mockResolvedValue({ team, players })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+      on.mockReturnValue(456)
+
+      const page = new MyTeamPage()
+      await page.load()
+      page.onMounted()
+      page.onDestroy()
+
+      expect(off).toHaveBeenCalledWith(456)
+    })
+
+    it('reloads and updates when YOUTH_PLAYER_PROMOTED event fires', async () => {
+      const team = testData.team()
+      const initialPlayers = [testData.player({ id: 1, name: 'Initial Player' })]
+      const updatedPlayers = [
+        testData.player({ id: 1, name: 'Initial Player' }),
+        testData.player({ id: 2, name: 'Promoted Youth' })
+      ]
+
+      let eventCallback
+      on.mockImplementation((eventName, callback) => {
+        if (eventName === 'YOUTH_PLAYER_PROMOTED') {
+          eventCallback = callback
+        }
+        return 789
+      })
+
+      server.getMyTeam
+        .mockResolvedValueOnce({ team, players: initialPlayers })
+        .mockResolvedValueOnce({ team, players: updatedPlayers })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+      const page = new MyTeamPage()
+      await page.load()
+      page.onMounted()
+
+      expect(page.data.players).toHaveLength(1)
+
+      // Simulate the event firing
+      await eventCallback()
+
+      expect(server.getMyTeam).toHaveBeenCalledTimes(2)
+      expect(page.data.players).toHaveLength(2)
+      expect(page.data.players[1].name).toBe('Promoted Youth')
     })
   })
 })

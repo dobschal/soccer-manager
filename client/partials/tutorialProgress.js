@@ -6,13 +6,34 @@ import { t } from '../i18n/index.js'
  * Tutorial definitions with page routes
  */
 const TUTORIALS = [
-  { key: 'dashboard', route: '#dashboard' },
-  { key: 'team', route: '#my-team' },
-  { key: 'youth', route: '#my-team?tab=youth' },
-  { key: 'results', route: '#results' },
-  { key: 'trades', route: '#trades' },
-  { key: 'stadium', route: '#stadium' },
-  { key: 'finances', route: '#finances' }
+  {
+    key: 'dashboard',
+    route: '#dashboard'
+  },
+  {
+    key: 'team',
+    route: '#my-team'
+  },
+  {
+    key: 'youth',
+    route: '#my-team?sub_page=youth'
+  },
+  {
+    key: 'results',
+    route: '#results'
+  },
+  {
+    key: 'trades',
+    route: '#trades'
+  },
+  {
+    key: 'stadium',
+    route: '#stadium'
+  },
+  {
+    key: 'finances',
+    route: '#finances'
+  }
 ]
 
 export class TutorialProgress extends UIElement {

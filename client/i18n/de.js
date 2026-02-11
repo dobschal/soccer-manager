@@ -261,6 +261,7 @@ export default {
   'youthTeam.trainingModeUpdated': 'Trainingsmodus aktualisiert!',
   'youthTeam.nextTrainingIn': 'Nächste {mode} in {time}',
   'youthTeam.playerTooYoung': 'Spieler muss mindestens 16 Jahre alt sein, um befördert zu werden.',
+  'youthTeam.playerLevelTooLow': 'Spieler muss mindestens Level 1 haben, um befördert zu werden.',
   'youthTeam.age': 'Alter',
   'youthTeam.level': 'Level',
   'youthTeam.moral': 'Moral',
@@ -514,16 +515,16 @@ export default {
   'actionCards.type.cashBonus': 'Geldbonus',
   'actionCards.type.cashBonusDesc': 'Erhalte einen Sofortbonus von 100.000€.',
   // Positions for action cards
-  'actionCards.position.LD': 'Linker Verteidiger (LV)',
-  'actionCards.position.CD': 'Innenverteidiger (IV)',
-  'actionCards.position.RD': 'Rechter Verteidiger (RV)',
+  'actionCards.position.LD': 'Linker Verteidiger (LD)',
+  'actionCards.position.CD': 'Innenverteidiger (CD)',
+  'actionCards.position.RD': 'Rechter Verteidiger (RD)',
   'actionCards.position.LM': 'Linkes Mittelfeld (LM)',
   'actionCards.position.DM': 'Defensives Mittelfeld (DM)',
   'actionCards.position.CM': 'Zentrales Mittelfeld (ZM)',
   'actionCards.position.RM': 'Rechtes Mittelfeld (RM)',
   'actionCards.position.OM': 'Offensives Mittelfeld (OM)',
   'actionCards.position.LA': 'Linker Angreifer (LA)',
-  'actionCards.position.CA': 'Mittelstürmer (MS)',
+  'actionCards.position.CA': 'Mittelstürmer (CA)',
   'actionCards.position.RA': 'Rechter Angreifer (RA)',
 
   // Tutorial Progress Card

@@ -7,6 +7,7 @@ import { showOverlay } from '../../partials/overlay.js'
 import { t } from '../../i18n/index.js'
 import { ProgressBar } from '../../partials/progressBar.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
+import { fire } from '../../lib/event.js'
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -242,10 +243,19 @@ export class YouthTeamPage extends UIElement {
   _renderYouthPlayerRow (player) {
     const promoteId = generateId()
     const fireId = generateId()
-    const canPromote = player.age >= 16
+    const isOldEnough = player.age >= 16
+    const hasMinLevel = player.level >= 1
+    const canPromote = isOldEnough && hasMinLevel
 
     onClick(promoteId, () => this._showPromoteConfirm(player))
     onClick(fireId, () => this._showFireConfirm(player))
+
+    let disabledReason = ''
+    if (!isOldEnough) {
+      disabledReason = t('youthTeam.playerTooYoung')
+    } else if (!hasMinLevel) {
+      disabledReason = t('youthTeam.playerLevelTooLow')
+    }
 
     return `
       <tr>
@@ -260,7 +270,7 @@ export class YouthTeamPage extends UIElement {
             id="${promoteId}"
             class="btn btn-sm btn-success me-1"
             ${!canPromote ? 'disabled' : ''}
-            title="${!canPromote ? t('youthTeam.playerTooYoung') : ''}"
+            title="${disabledReason}"
           >
             <i class="fa fa-arrow-up"></i> ${t('youthTeam.promote')}
           </button>
@@ -278,13 +288,14 @@ export class YouthTeamPage extends UIElement {
    */
   _showPromoteConfirm (player) {
     const confirmId = generateId()
-    const level = Math.max(1, Math.round(player.level))
+    const level = Math.floor(player.level)
 
     onClick(confirmId, async () => {
       try {
         await server.promoteYouthPlayer(player.id)
         toast(t('youthTeam.promoted', { playerName: player.name }), 'success')
         overlay.remove()
+        fire('YOUTH_PLAYER_PROMOTED')
         await this.load()
         await this.update()
       } catch (e) {

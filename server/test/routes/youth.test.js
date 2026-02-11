@@ -133,10 +133,10 @@ describe('youth routes', () => {
   })
 
   describe('promoteYouthPlayer', () => {
-    it('promotes youth player aged 16 or older', async () => {
+    it('promotes youth player aged 16 or older with level >= 1', async () => {
       const team = testData.team()
-      const youthPlayer = { id: 1, name: 'Youth Star', team_id: team.id, birth_season: 0 }
-      const promotedPlayer = testData.player({ name: 'Youth Star', level: 3 })
+      const youthPlayer = { id: 1, name: 'Youth Star', team_id: team.id, birth_season: 0, level: 2.5 }
+      const promotedPlayer = testData.player({ name: 'Youth Star', level: 2 })
 
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ season: 2 })
@@ -165,6 +165,21 @@ describe('youth routes', () => {
 
       await expect(handlers.promoteYouthPlayer(1, req))
         .rejects.toMatchObject({ message: 'error.youthPlayerTooYoung' })
+    })
+
+    it('throws error for youth player level too low', async () => {
+      const team = testData.team()
+      const youthPlayer = { id: 1, name: 'Low Level Player', team_id: team.id, birth_season: 0, level: 0.8 }
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 2 })
+      getYouthPlayerById.mockResolvedValue(youthPlayer)
+      getYouthPlayerAge.mockReturnValue(16)
+
+      const req = createMockRequest()
+
+      await expect(handlers.promoteYouthPlayer(1, req))
+        .rejects.toMatchObject({ message: 'error.youthPlayerLevelTooLow' })
     })
 
     it('throws error for non-existent youth player', async () => {

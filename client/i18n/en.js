@@ -261,6 +261,7 @@ export default {
   'youthTeam.trainingModeUpdated': 'Training mode updated!',
   'youthTeam.nextTrainingIn': 'Next {mode} in {time}',
   'youthTeam.playerTooYoung': 'Player must be at least 16 years old to be promoted.',
+  'youthTeam.playerLevelTooLow': 'Player must have at least level 1 to be promoted.',
   'youthTeam.age': 'Age',
   'youthTeam.level': 'Level',
   'youthTeam.moral': 'Moral',

@@ -24,6 +24,7 @@ import { UIElement } from '../lib/UIElement.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 import { YouthTeamPage } from './my-team/youthTeam.js'
+import { on, off } from '../lib/event.js'
 
 export class MyTeamPage extends UIElement {
   /**
@@ -123,6 +124,19 @@ export class MyTeamPage extends UIElement {
    */
   onMounted () {
     void showTutorialIfNeeded('team', this)
+    this._youthPlayerPromotedEventId = on('YOUTH_PLAYER_PROMOTED', async () => {
+      await this.load()
+      await this.update()
+    })
+  }
+
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    if (this._youthPlayerPromotedEventId !== undefined) {
+      off(this._youthPlayerPromotedEventId)
+    }
   }
 
   /**

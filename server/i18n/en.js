@@ -37,6 +37,7 @@ export default {
   'error.youthPlayerNotFound': 'Youth player not found',
   'error.notYourYouthPlayer': 'This is not your youth player',
   'error.youthPlayerTooYoung': 'Youth player must be at least 16 years old to be promoted',
+  'error.youthPlayerLevelTooLow': 'Youth player must have at least level 1 to be promoted',
 
   // Action card errors
   'error.cardNotFound': 'Action card not found',

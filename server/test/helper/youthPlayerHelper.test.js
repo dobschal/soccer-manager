@@ -278,22 +278,22 @@ describe('youthPlayerHelper', () => {
         team_id: 1,
         name: 'Test Player',
         position: 'CM',
-        level: 3, // Rounded from 2.5
+        level: 2, // Floored from 2.5
         hair_color: 3,
         skin_color: 1
       }))
       expect(query).toHaveBeenCalledWith('DELETE FROM youth_player WHERE id=?', [1])
       expect(result.id).toBe(100)
-      expect(result.level).toBe(3)
+      expect(result.level).toBe(2)
     })
 
-    it('sets minimum level to 1 when promoting', async () => {
+    it('floors the level when promoting', async () => {
       const youthPlayer = {
         id: 1,
         team_id: 1,
         name: 'Test Player',
         position: 'GK',
-        level: 0.3,
+        level: 1.9,
         hair_color: 1,
         skin_color: 2,
         birth_season: 5,
@@ -308,7 +308,7 @@ describe('youthPlayerHelper', () => {
       const insertCall = query.mock.calls.find(call =>
         call[0].includes('INSERT INTO player')
       )
-      expect(insertCall[1].level).toBe(1)
+      expect(insertCall[1].level).toBe(1) // Floored from 1.9
     })
   })
 

@@ -143,7 +143,7 @@ export async function promoteYouthPlayer (youthPlayer, _season) {
     name: youthPlayer.name,
     position: youthPlayer.position,
     in_game_position: '',
-    level: Math.max(1, Math.round(youthPlayer.level)), // Minimum level 1, rounded
+    level: Math.floor(youthPlayer.level), // Floor the level
     hair_color: youthPlayer.hair_color,
     skin_color: youthPlayer.skin_color,
     carrier_start_season: carrierStartSeason,
