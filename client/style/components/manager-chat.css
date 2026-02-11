@@ -1,0 +1,98 @@
+/* ==========================================================================
+   Manager Chat Styles
+   ========================================================================== */
+
+/* Manager Chat Bubble */
+.manager-chat {
+    flex-shrink: 0;
+    min-width: 300px;
+    min-height: 340px;
+    position: relative;
+}
+
+.manager-image {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 21;
+}
+
+/* Fixed Manager Chat */
+.manager-chat-container {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+}
+
+.manager-chat-wrapper {
+    position: fixed;
+    bottom: 0;
+    right: 1rem;
+    width: 300px;
+    animation: manager-chat-slide-in 0.3s ease-out;
+}
+
+.manager-chat-bubble {
+    background-color: #d1ecf1;
+    border-radius: 24px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(209, 236, 241, 0.5);
+    font-size: 1rem;
+    line-height: 1.5;
+    position: relative;
+}
+
+.manager-chat-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    right: 85px;
+    border-width: 15px 15px 0 15px;
+    border-style: solid;
+    border-color: #d1ecf1 transparent transparent transparent;
+}
+
+.manager-chat-bubble p {
+    margin: 0;
+}
+
+.manager-chat-bubble p + p {
+    margin-top: 0.5rem;
+}
+
+.manager-chat-image svg {
+    width: 200px;
+    height: auto;
+    display: block;
+    margin-left: auto;
+}
+
+.manager-chat-fade-out {
+    animation: manager-chat-fade-out 0.2s ease-out forwards;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .manager-chat {
+        flex-direction: column;
+        align-items: center !important;
+    }
+
+    .chat-bubble {
+        margin-left: 0;
+        margin-top: -10px;
+        max-width: 100%;
+    }
+
+    .chat-bubble::before {
+        bottom: auto;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%) rotate(90deg);
+    }
+
+    .d-flex.align-items-start.gap-3 {
+        flex-direction: column;
+    }
+}

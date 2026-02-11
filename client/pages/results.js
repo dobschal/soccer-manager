@@ -151,8 +151,8 @@ export class ResultsPage extends UIElement {
       <table class="table table-hover mb-4">
         <thead>
           <tr>
-            <th scope="col" style="width: 30px">#</th>
-            <th scope="col" class="d-none d-md-table-cell" style="width: 30px"></th>
+            <th scope="col" class="results-rank-cell">#</th>
+            <th scope="col" class="d-none d-md-table-cell results-rank-cell"></th>
             <th scope="col">${t('results.team')}</th>
             <th scope="col" class="d-none d-md-table-cell">${t('results.games')}</th>
             <th scope="col" class="d-none d-md-table-cell">${t('results.goals')}</th>
@@ -312,8 +312,8 @@ export class ResultsPage extends UIElement {
     const team1Data = { name: result.team1, color: result.team1Color, emblem: result.team1Emblem }
     const team2Data = { name: result.team2, color: result.team2Color, emblem: result.team2Emblem }
 
-    const emblem1 = `<span style="display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(team1Data, 24)}</span>`
-    const emblem2 = `<span style="display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(team2Data, 24)}</span>`
+    const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
+    const emblem2 = `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`
 
     return `
       <tr id="${id}">
@@ -516,9 +516,9 @@ export class ResultsPage extends UIElement {
       <tr class="${this.myTeamId === scorer.team.id ? 'table-info' : ''}">
           <th>${index + 1}.</th>
           <td>${scorer.goals}</td>
-          <td id="${playerId}" style="cursor: pointer;">
+          <td id="${playerId}" class="u-cursor-pointer">
             <div class="d-flex align-items-center">
-              <span class="scorer-image me-2" data-scorer-id="${scorer.id}" style="width: 48px; height: 20px; margin-top: -32px;"></span>
+              <span class="scorer-image me-2" data-scorer-id="${scorer.id}"></span>
               ${scorer.name}
             </div>
           </td>
@@ -544,10 +544,10 @@ export class ResultsPage extends UIElement {
     return `
       <tr class="${this.myTeamId === player.team.id ? 'table-info' : ''}">
           <td style="width: 48px;">
-            <span class="suspended-image" data-suspended-id="${player.id}" style="width: 48px; height: 20px; margin-top: -32px; display: inline-block;"></span>
+            <span class="suspended-image" data-suspended-id="${player.id}"></span>
           </td>
-          <td id="${playerId}" style="cursor: pointer;">${player.name}</td>
-          <td class="d-none d-sm-table-cell" id="${teamId}" style="cursor: pointer;">${player.team.name}</td>
+          <td id="${playerId}" class="u-cursor-pointer">${player.name}</td>
+          <td class="d-none d-sm-table-cell u-cursor-pointer" id="${teamId}">${player.team.name}</td>
           <td>
             ${yellowCards > 0 ? `<span class="text-warning">${yellowCards} <i class="fa fa-square"></i></span>` : ''}
             ${redCards > 0 ? `<span class="text-danger ms-1">${redCards} <i class="fa fa-square"></i></span>` : ''}
@@ -639,9 +639,9 @@ export class ResultsPage extends UIElement {
 
     return `
       <tr id="${id}" class="${trClasses.join(' ')}">
-        <th style="width: 30px">${index + 1}.</th>
-        <td class="d-none d-md-table-cell" style="width: 30px">${diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : '')}</td>
-        <td><span style="display: inline-block; width: 20px; height: 20px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(standingItem.team, 24)}</span>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}</td>
+        <th class="results-rank-cell">${index + 1}.</th>
+        <td class="d-none d-md-table-cell results-rank-cell">${diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : '')}</td>
+        <td><span class="emblem-thumb">${renderEmblem(standingItem.team, 24)}</span>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}</td>
         <td class="d-none d-md-table-cell">${standingItem.games}</td>
         <td class="d-none d-md-table-cell">${standingItem.goals}:${standingItem.against}</td>
         <td class="d-none d-lg-table-cell">${standingItem.goals - standingItem.against}</td>
@@ -688,8 +688,8 @@ export class ResultsPage extends UIElement {
     const team1Data = this.standing.find(s => s.team.id === result.team1Id)?.team
     const team2Data = this.standing.find(s => s.team.id === result.team2Id)?.team
 
-    const emblem1 = team1Data ? `<span style="display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(team1Data, 24)}</span>` : ''
-    const emblem2 = team2Data ? `<span style="display: inline-block; width: 18px; height: 18px; vertical-align: middle; margin-right: 12px; margin-top: -8px;">${renderEmblem(team2Data, 24)}</span>` : ''
+    const emblem1 = team1Data ? `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>` : ''
+    const emblem2 = team2Data ? `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>` : ''
 
     return `
     <tr id="${id}">

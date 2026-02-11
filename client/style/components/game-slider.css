@@ -1,0 +1,91 @@
+/* ==========================================================================
+   Game Slider Styles
+   ========================================================================== */
+
+.game-slider {
+    position: relative;
+    max-width: 760px;
+}
+
+.game-slider-track {
+    position: relative;
+}
+
+.game-slider-slide {
+    display: none;
+    animation: slide-fade-in 0.3s ease-out;
+}
+
+.game-slider-slide.active {
+    display: block;
+}
+
+/* Navigation Buttons */
+.game-slider-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-100%);
+    background: var(--bs-info);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    transition: background-color 0.2s;
+}
+
+.game-slider-nav:hover {
+    background: #0A5F6C;
+}
+
+.game-slider-prev {
+    left: 0;
+    padding: 3px 2px 0 0;
+}
+
+.game-slider-next {
+    right: 0;
+    padding: 3px 0 0 2px;
+}
+
+/* Indicators */
+.game-slider-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.game-slider-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.game-slider-indicator.past {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.game-slider-indicator.upcoming {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.game-slider-indicator.active {
+    background: var(--bs-info);
+    transform: scale(1.2);
+}
+
+.game-slider-indicator:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Countdown Badge */
+.countdown-badge {
+    font-size: 1.2rem;
+}

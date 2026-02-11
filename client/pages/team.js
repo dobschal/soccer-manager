@@ -72,9 +72,9 @@ export class TeamPage extends UIElement {
           </div>
           <div class="col-12 col-md-4 text-center">
             ${bestPlayer ? `
-              <div class="best-player-link" style="cursor: pointer;" data-player-id="${bestPlayer.id}">
-                <div class="mb-2" style="display: inline-block;">${this._bestPlayerImage}</div>
-                <div style="clear: both;">
+              <div class="best-player-link u-cursor-pointer" data-player-id="${bestPlayer.id}">
+                <div class="mb-2 d-inline-block">${this._bestPlayerImage}</div>
+                <div class="clearfix">
                   <div class="text-muted small">${t('team.bestPlayer')}</div>
                   <div><strong>${bestPlayer.name}</strong></div>
                   <div class="text-info">${t('team.levelLabel', { level: bestPlayer.level })}</div>
@@ -363,7 +363,7 @@ export class TeamPage extends UIElement {
           : '-'
 
         return [
-          `<span class="player-link text-info" data-player-id="${transfer.playerId}" style="cursor: pointer;">${transfer.playerName}</span>`,
+          `<span class="player-link text-info u-cursor-pointer" data-player-id="${transfer.playerId}">${transfer.playerName}</span>`,
           fromTeamHtml,
           toTeamHtml,
           euroFormat.format(transfer.price),

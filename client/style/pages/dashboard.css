@@ -1,0 +1,26 @@
+/* ==========================================================================
+   Dashboard Page Styles
+   ========================================================================== */
+
+/* Dashboard mini standing emblem */
+.dashboard-emblem {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    margin-right: 8px;
+    margin-top: -4px;
+}
+
+/* Finance Canvas */
+.finance-canvas {
+    width: 100%;
+    aspect-ratio: 3/1;
+}
+
+/* Sponsor Sprite */
+.sponsor-sprite {
+    background-size: 1536px 1024px;
+    max-width: 100%;
+    border-radius: 0;
+}

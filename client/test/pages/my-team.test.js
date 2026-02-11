@@ -66,7 +66,7 @@ import { server } from '../../lib/gateway.js'
 import { MyTeamPage } from '../../pages/my-team.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { showPlayerModal } from '../../partials/playerModal.js'
-import { on, off, fire } from '../../lib/event.js'
+import { on, off } from '../../lib/event.js'
 
 describe('MyTeamPage', () => {
   beforeEach(() => {

@@ -58,10 +58,10 @@ export class PlayerListItem extends UIElement {
   _renderCards (yellowCards, redCards) {
     let html = ''
     if (redCards > 0) {
-      html += `<span style="display: inline-block; width: 14px; height: 20px; background: #dc3545; border-radius: 2px; margin-right: 2px;" title="Red card"></span>`
+      html += `<span class="card-badge card-badge--red" title="Red card"></span>`
     }
     if (yellowCards > 0) {
-      html += `<span style="display: inline-block; width: 14px; height: 20px; background: #ffc107; border-radius: 2px; position: relative;" title="${yellowCards} yellow card(s)"><span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: #000;">${yellowCards}</span></span>`
+      html += `<span class="card-badge card-badge--yellow" title="${yellowCards} yellow card(s)"><span class="card-badge__count">${yellowCards}</span></span>`
     }
     if (!html) {
       html = '-'

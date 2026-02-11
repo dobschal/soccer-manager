@@ -44,36 +44,36 @@ export class DashboardPage extends UIElement {
         ${this._tutorialProgress}
 
         <h5 class="mb-2"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
-        <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
+        <div class="d-flex align-items-center mb-5 u-gap-lg">
           <div class="flex-grow-1">
             ${new GameSlider(gameSliderArgs)}
           </div>
-          <div class="d-none d-lg-block flex-shrink-1 text-center" style="min-width: 280px; width: 33%;">
+          <div class="d-none d-lg-block flex-shrink-1 text-center u-min-w-280 u-w-33">
             ${renderEmblem(this.team, 160)}
             <h2>${this.team.name}</h2>
           </div>
         </div>
-        
+
         <h5 class="mb-2"><i class="fa fa-trophy"></i> ${t('cup.title')}</h5>
-        <div class="d-flex align-items-center mb-5" style="gap: 4rem;">
+        <div class="d-flex align-items-center mb-5 u-gap-lg">
           <div class="flex-grow-1">
             ${this._renderCupGames()}
           </div>
-          <div class="d-none d-lg-block flex-shrink-1" style="min-width: 280px; width: 33%;">
+          <div class="d-none d-lg-block flex-shrink-1 u-min-w-280 u-w-33">
             ${this._renderMiniStanding()}
-            <a href="#results" class="d-block mt-2 text-info border-0" style="width: 100%; text-align: right">
+            <a href="#results" class="d-block mt-2 text-info border-0 text-end w-100">
                 <small>...${t('dashboard.standingLink')}</small>
             </a>
           </div>
         </div>
 
-        <div class="d-flex align-items-start mb-5" style="gap: 2rem;">
+        <div class="d-flex align-items-start mb-5 u-gap-md">
           <div class="flex-grow-1">
             <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
             ${this._renderFriendlyGames()}
           </div>
           ${this._financeLog.length > 0 ? `
-            <div class="d-none d-lg-block flex-shrink-0" style="min-width: 280px; width: 33%;">
+            <div class="d-none d-lg-block flex-shrink-0 u-min-w-280 u-w-33">
               <a href="#finances" class="text-decoration-none d-block">
                 <h5 class="mb-2"><i class="fa fa-line-chart"></i> ${t('finances.balance')}</h5>
                 ${new MiniBalanceChart(this._financeLog)}
@@ -356,9 +356,9 @@ export class DashboardPage extends UIElement {
 
       return `
         <tr id="${id}" class="${trClasses.join(' ')}">
-          <th style="width: 30px">${actualIndex + 1}.</th>
+          <th class="results-rank-cell">${actualIndex + 1}.</th>
           <td>
-            <span style="display: inline-block; width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; margin-top: -4px;">
+            <span class="emblem-thumb--sm">
               ${renderEmblem(item.team, 20)}
             </span>
             ${item.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}

@@ -1,0 +1,10 @@
+/* ==========================================================================
+   Results Page Styles
+   ========================================================================== */
+
+/* Results table cell with fixed width for ranking */
+.results-rank-cell {
+    width: 30px;
+}
+
+/* Scorer/Suspended player image containers are now in components/player.css */

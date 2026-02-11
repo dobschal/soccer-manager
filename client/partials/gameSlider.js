@@ -142,7 +142,7 @@ export class GameSlider extends UIElement {
       this._countdownElementIds.push({ id: countdownId, gameDate: null })
       return `
         <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
-        <div class="badge bg-secondary p-2" style="font-size: 1.2rem;">
+        <div class="badge bg-secondary p-2 countdown-badge">
           <i class="fa fa-clock-o" aria-hidden="true"></i><br>
           <span id="${countdownId}">--:--:--</span>
         </div>
@@ -161,7 +161,7 @@ export class GameSlider extends UIElement {
 
       return `
         <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
-        <div class="badge bg-secondary p-2" style="font-size: 1.2rem;">
+        <div class="badge bg-secondary p-2 countdown-badge">
           <i class="fa fa-calendar" aria-hidden="true"></i><br>
           <span>${daysText}</span>
         </div>
@@ -173,7 +173,7 @@ export class GameSlider extends UIElement {
     this._countdownElementIds.push({ id: countdownId, gameDate })
     return `
       <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
-      <div class="badge bg-secondary p-2" style="font-size: 1.2rem;">
+      <div class="badge bg-secondary p-2 countdown-badge">
         <i class="fa fa-clock-o" aria-hidden="true"></i><br>
         <span id="${countdownId}">--:--:--</span>
       </div>

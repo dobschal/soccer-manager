@@ -158,13 +158,13 @@ export class MyTeamPage extends UIElement {
     })
 
     return `
-      <h2 id="${teamNameId}" style="cursor: pointer;" title="${t('myTeam.clickToEditName')}">
+      <h2 id="${teamNameId}" class="u-cursor-pointer" title="${t('myTeam.clickToEditName')}">
         ${this.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i>
       </h2>
       <div class="row">
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 border-0">
-            <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
+            <div class="card-header text-white gradient-header">
               <h5 class="card-title mb-0">${t('myTeam.teamInfo')}</h5>
             </div>
             <div class="card-body">
@@ -181,17 +181,17 @@ export class MyTeamPage extends UIElement {
         </div>
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 border-0">
-            <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
+            <div class="card-header text-white gradient-header">
               <h5 class="card-title mb-0">${t('myTeam.emblem')} <i class="fa fa-pencil" aria-hidden="true"></i></h5>
             </div>
-            <div class="card-body" style="perspective: 40px;">
+            <div class="card-body u-perspective-40">
               ${this._renderEmblemViewer()}
             </div>
           </div>
         </div>
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 border-0">
-            <div class="card-header text-white" style="background: linear-gradient(136deg, #222 0%, #333 100%);">
+            <div class="card-header text-white gradient-header">
               <h5 class="card-title mb-0">${t('myTeam.tactic')}</h5>
             </div>
             <div class="card-body">              
@@ -224,7 +224,7 @@ export class MyTeamPage extends UIElement {
       this._showEmblemEditor()
     })
 
-    return `<div id="${id}" class="mb-4" style="cursor: pointer; text-align: center;">
+    return `<div id="${id}" class="mb-4 emblem-viewer">
       ${renderEmblem(this.data.team, 150)}
     </div>`
   }
@@ -376,10 +376,10 @@ export class MyTeamPage extends UIElement {
         if (element) {
           element.addEventListener('click', () => {
             selectedShape = key
-            document.querySelectorAll('.shape-option').forEach(item => {
-              item.style.borderColor = 'transparent'
+            document.querySelectorAll('.emblem-editor__option').forEach(item => {
+              item.classList.remove('emblem-editor__option--selected')
             })
-            element.style.borderColor = '#007bff'
+            element.classList.add('emblem-editor__option--selected')
             updatePreview()
           })
         }
@@ -393,7 +393,7 @@ export class MyTeamPage extends UIElement {
         size: 40
       })
       return `
-        <div id="${id}" class="shape-option" style="display: inline-block; padding: 8px; margin: 4px; border: 2px solid ${isSelected ? '#007bff' : 'transparent'}; border-radius: 4px; cursor: pointer; background: rgba(0,0,0,0.1);">
+        <div id="${id}" class="emblem-editor__option ${isSelected ? 'emblem-editor__option--selected' : ''}">
           ${previewSvg}
         </div>
       `
@@ -407,17 +407,17 @@ export class MyTeamPage extends UIElement {
         if (element) {
           element.addEventListener('click', () => {
             selectedPattern = key
-            document.querySelectorAll('.pattern-option').forEach(item => {
-              item.style.borderColor = 'transparent'
+            document.querySelectorAll('.emblem-editor__option--pattern').forEach(item => {
+              item.classList.remove('emblem-editor__option--selected')
             })
-            element.style.borderColor = '#007bff'
+            element.classList.add('emblem-editor__option--selected')
             updatePreview()
           })
         }
       }, 100)
       const isSelected = key === selectedPattern
       return `
-        <div id="${id}" class="pattern-option" style="display: inline-block; padding: 8px 12px; margin: 4px; border: 2px solid ${isSelected ? '#007bff' : 'transparent'}; border-radius: 4px; cursor: pointer; background: rgba(0,0,0,0.1); font-size: 14px;">
+        <div id="${id}" class="emblem-editor__option emblem-editor__option--pattern ${isSelected ? 'emblem-editor__option--selected' : ''}">
           ${pattern.name}
         </div>
       `
@@ -431,17 +431,18 @@ export class MyTeamPage extends UIElement {
         if (element) {
           element.addEventListener('click', () => {
             selectedColor = c
-            document.querySelectorAll('.color-option').forEach(item => {
-              item.style.border = '2px solid transparent'
+            document.querySelectorAll('.emblem-editor__color').forEach(item => {
+              item.classList.remove('emblem-editor__color--selected')
             })
-            element.style.border = '2px solid white'
+            element.classList.add('emblem-editor__color--selected')
             updatePreview()
           })
         }
       }, 100)
       const isSelected = c === selectedColor
+      // Note: background-color must remain inline as it's dynamic per color
       return `
-        <div id="${id}" class="color-option" style="display: inline-block; width: 36px; height: 36px; margin: 3px; border-radius: 4px; cursor: pointer; background-color: ${c}; border: 2px solid ${isSelected ? 'black' : 'transparent'};"></div>
+        <div id="${id}" class="emblem-editor__color ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${c};"></div>
       `
     }).join('')
 
@@ -468,7 +469,7 @@ export class MyTeamPage extends UIElement {
       t('myTeam.createEmblem'),
       t('myTeam.designEmblem'),
       `
-      <div style="text-align: center; margin-bottom: 20px;">
+      <div class="emblem-editor__preview">
         <div id="${previewId}">${generateEmblem({
         shape: selectedShape,
         pattern: selectedPattern,
@@ -479,17 +480,17 @@ export class MyTeamPage extends UIElement {
       </div>
 
       <h6>${t('myTeam.shape')}</h6>
-      <div style="margin-bottom: 15px; text-align: center;">
+      <div class="emblem-editor__section">
         ${shapeOptions}
       </div>
 
       <h6>${t('myTeam.pattern')}</h6>
-      <div style="margin-bottom: 15px; text-align: center;">
+      <div class="emblem-editor__section">
         ${patternOptions}
       </div>
 
       <h6>${t('myTeam.color')}</h6>
-      <div style="margin-bottom: 20px; text-align: center;">
+      <div class="emblem-editor__section mb-4">
         ${colorOptions}
       </div>
 
@@ -615,9 +616,9 @@ export class MyTeamPage extends UIElement {
       t('myTeam.customizeTeamName'),
       t('myTeam.createUniqueName'),
       `
-      <div style="margin-bottom: 20px;">
+      <div class="mb-4">
         <h6>${t('myTeam.preview')}</h6>
-        <div id="${previewId}" style="font-size: 24px; font-weight: bold; padding: 15px; background: rgba(0,0,0,0.1); border-radius: 4px; text-align: center; min-height: 60px; display: flex; align-items: center; justify-content: center;">
+        <div id="${previewId}" class="team-name-preview">
           ${escapeHtml(currentName)}
         </div>
       </div>

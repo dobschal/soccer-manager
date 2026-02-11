@@ -116,7 +116,7 @@ describe('PlayerListItem', () => {
       const item = new PlayerListItem(player, 1, vi.fn())
 
       const html = item._renderCards(3, 0)
-      expect(html).toContain('ffc107') // Yellow background
+      expect(html).toContain('card-badge--yellow') // Yellow card CSS class
       expect(html).toContain('3')
       expect(html).toContain('3 yellow card(s)')
     })
@@ -126,7 +126,7 @@ describe('PlayerListItem', () => {
       const item = new PlayerListItem(player, 1, vi.fn())
 
       const html = item._renderCards(0, 1)
-      expect(html).toContain('dc3545') // Red background
+      expect(html).toContain('card-badge--red') // Red card CSS class
       expect(html).toContain('Red card')
     })
 
@@ -135,8 +135,8 @@ describe('PlayerListItem', () => {
       const item = new PlayerListItem(player, 1, vi.fn())
 
       const html = item._renderCards(2, 1)
-      expect(html).toContain('ffc107')
-      expect(html).toContain('dc3545')
+      expect(html).toContain('card-badge--yellow')
+      expect(html).toContain('card-badge--red')
     })
 
     it('shows dash when no cards', () => {

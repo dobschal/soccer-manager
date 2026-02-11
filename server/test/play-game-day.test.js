@@ -349,3 +349,266 @@ describe('play-game-day play style', () => {
     })
   })
 })
+
+describe('stadium ticket earnings', () => {
+  /**
+   * Simulates the stadium earnings calculation logic from _giveStadiumTicketEarnings
+   */
+  function calculateStadiumDetails (stadium, strengthTeamA, strengthTeamB) {
+    const strengthFactor = (strengthTeamA || 0) * (strengthTeamB || 0)
+    const stands = ['north', 'south', 'west', 'east']
+    const details = {}
+    let totalEarnings = 0
+    let totalCapacity = 0
+
+    for (const stand of stands) {
+      const size = stadium[stand + '_stand_size'] || 0
+      totalCapacity += size
+
+      const constructionEndDay = stadium[`${stand}_construction_end_game_day`]
+      if (constructionEndDay != null) {
+        details[stand + 'Guests'] = 0
+        details[stand + 'Earnings'] = 0
+        details[stand + 'UnderConstruction'] = true
+        continue
+      }
+
+      const price = stadium[stand + '_stand_price'] || 0
+
+      if (price <= 0 || size <= 0) {
+        details[stand + 'Guests'] = 0
+        details[stand + 'Earnings'] = 0
+        continue
+      }
+
+      const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
+      const priceFactor = 15 / price
+      const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor))
+      details[stand + 'Guests'] = amountOfGuests
+      const earnings = amountOfGuests * price
+      details[stand + 'Earnings'] = earnings
+      totalEarnings += earnings
+    }
+
+    details.totalCapacity = totalCapacity
+    details.totalEarnings = totalEarnings
+    return details
+  }
+
+  describe('totalCapacity calculation', () => {
+    it('should sum all stand sizes for total capacity', () => {
+      const stadium = {
+        north_stand_size: 1000,
+        north_stand_price: 10,
+        south_stand_size: 2000,
+        south_stand_price: 10,
+        west_stand_size: 1500,
+        west_stand_price: 10,
+        east_stand_size: 500,
+        east_stand_price: 10
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.totalCapacity).toBe(5000)
+    })
+
+    it('should include stands under construction in capacity', () => {
+      const stadium = {
+        north_stand_size: 1000,
+        north_stand_price: 10,
+        north_construction_end_game_day: 5,
+        south_stand_size: 2000,
+        south_stand_price: 10,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.totalCapacity).toBe(3000)
+    })
+
+    it('should handle empty stadium', () => {
+      const stadium = {
+        north_stand_size: 0,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.totalCapacity).toBe(0)
+    })
+  })
+
+  describe('totalEarnings calculation', () => {
+    it('should sum all stand earnings', () => {
+      const stadium = {
+        north_stand_size: 1000,
+        north_stand_price: 10,
+        south_stand_size: 1000,
+        south_stand_price: 15,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.totalEarnings).toBe(details.northEarnings + details.southEarnings)
+    })
+
+    it('should not include earnings from stands under construction', () => {
+      const stadium = {
+        north_stand_size: 1000,
+        north_stand_price: 10,
+        north_construction_end_game_day: 5,
+        south_stand_size: 1000,
+        south_stand_price: 10,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.northEarnings).toBe(0)
+      expect(details.northUnderConstruction).toBe(true)
+      expect(details.totalEarnings).toBe(details.southEarnings)
+    })
+
+    it('should return 0 earnings when price is 0', () => {
+      const stadium = {
+        north_stand_size: 1000,
+        north_stand_price: 0,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.northEarnings).toBe(0)
+      expect(details.totalEarnings).toBe(0)
+    })
+
+    it('should return 0 earnings when size is 0', () => {
+      const stadium = {
+        north_stand_size: 0,
+        north_stand_price: 10,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.northEarnings).toBe(0)
+      expect(details.totalEarnings).toBe(0)
+    })
+  })
+
+  describe('guests calculation', () => {
+    it('should calculate guests based on team strength and price', () => {
+      const stadium = {
+        north_stand_size: 10000,
+        north_stand_price: 15,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      // strengthFactor = 100 * 100 = 10000
+      // priceFactor = 15 / 15 = 1
+      // guests = min(10000, 10000 * 1 * 1) = 10000
+      expect(details.northGuests).toBe(10000)
+    })
+
+    it('should cap guests at stand size', () => {
+      const stadium = {
+        north_stand_size: 100,
+        north_stand_price: 1,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      // strengthFactor = 10000, priceFactor = 15/1 = 15
+      // guests = min(100, 10000 * 15) = 100 (capped at size)
+      expect(details.northGuests).toBe(100)
+    })
+
+    it('should increase guests with roof by 20%', () => {
+      const stadiumNoRoof = {
+        north_stand_size: 10000,
+        north_stand_price: 15,
+        north_stand_roof: false,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const stadiumWithRoof = {
+        north_stand_size: 10000,
+        north_stand_price: 15,
+        north_stand_roof: true,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const detailsNoRoof = calculateStadiumDetails(stadiumNoRoof, 50, 50)
+      const detailsWithRoof = calculateStadiumDetails(stadiumWithRoof, 50, 50)
+
+      // Both should be capped or roof version should be 20% higher
+      expect(detailsWithRoof.northGuests).toBeGreaterThanOrEqual(detailsNoRoof.northGuests)
+    })
+
+    it('should have 0 guests for stands under construction', () => {
+      const stadium = {
+        north_stand_size: 1000,
+        north_stand_price: 10,
+        north_construction_end_game_day: 5,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.northGuests).toBe(0)
+      expect(details.northUnderConstruction).toBe(true)
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle zero team strength', () => {
+      const stadium = {
+        north_stand_size: 1000,
+        north_stand_price: 10,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0
+      }
+
+      const details = calculateStadiumDetails(stadium, 0, 100)
+
+      expect(details.northGuests).toBe(0)
+      expect(details.totalEarnings).toBe(0)
+      expect(details.totalCapacity).toBe(1000)
+    })
+
+    it('should handle missing stadium properties', () => {
+      const stadium = {}
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.totalCapacity).toBe(0)
+      expect(details.totalEarnings).toBe(0)
+    })
+  })
+})

@@ -1,0 +1,245 @@
+/* ==========================================================================
+   Layout Styles
+   Navbar, info-bar, footer, container, and general page layout
+   ========================================================================== */
+
+/* Gradient background utility */
+.bg-dark {
+    background: linear-gradient(136deg, #222 0%, #333 100%) !important;
+}
+
+/* Gradient header for cards */
+.gradient-header {
+    background: linear-gradient(136deg, #222 0%, #333 100%);
+}
+
+/* ==========================================================================
+   Navbar
+   ========================================================================== */
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 8;
+    width: 100vw !important;
+    overflow-x: hidden;
+    background: linear-gradient(136deg, #222 0%, #333 100%) !important;
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.3);
+}
+
+.navbar .navbar-toggler {
+    border: none;
+}
+
+.navbar .navbar-toggler:focus {
+    box-shadow: none;
+}
+
+.navbar.navbar-dark .navbar-brand,
+.navbar.navbar-dark .nav-link {
+    color: white !important;
+}
+
+.navbar.navbar-dark .nav-link:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.navbar a:link,
+.navbar a:visited,
+a:link.row,
+a:visited.row {
+    border: none;
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 1rem;
+    position: relative;
+}
+
+.navbar-nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: row;
+}
+
+#logout-button {
+    margin-right: 2rem;
+}
+
+#language-selector {
+    margin-left: auto;
+    display: block;
+}
+
+/* ==========================================================================
+   Info Bar
+   ========================================================================== */
+
+.info-bar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff;
+    z-index: 7;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0;
+    border-style: solid;
+    border-width: 2px;
+    border-radius: 25px 25px 55px 5px / 5px 55px 25px 25px;
+}
+
+.info-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.info-bar-item {
+    color: #055160;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   Container
+   ========================================================================== */
+
+.container {
+    background: rgba(255, 255, 255, 1);
+    padding: 2rem;
+    border-radius: 0.5rem;
+    box-shadow: 3px 3px 15px rgba(0, 0, 0, 0.5);
+}
+
+.container.bg-transparent {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+/* ==========================================================================
+   Page Container
+   ========================================================================== */
+
+#page {
+    animation-name: page-enter-animation;
+    animation-duration: 1s;
+    animation-iteration-count: 1;
+    animation-timing-function: cubic-bezier(.65, .27, .69, 1.42);
+    transition: transform 0.3s ease-in-out;
+    will-change: auto;
+    margin-top: 9rem;
+    margin-bottom: 5rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.2);
+    border-color: #333;
+    border-style: solid;
+    border-width: 2px;
+    border-radius: 25px 25px 55px 5px / 5px 55px 25px 25px;
+}
+
+.centered-container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    margin: 0 !important;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+
+.app-footer {
+    text-align: center;
+    padding: 6rem 1rem;
+    background-color: #222;
+}
+
+.app-footer .text-muted {
+    color: rgba(255, 255, 255, 0.5) !important;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.default-layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.default-layout .centered-container {
+    flex: 1;
+}
+
+.default-layout .app-footer {
+    padding: 1rem;
+}
+
+/* ==========================================================================
+   Responsive Styles
+   ========================================================================== */
+
+@media screen and (max-width: 991px) {
+    .navbar-content {
+        flex-wrap: wrap;
+    }
+
+    .navbar-collapse {
+        flex-basis: 100%;
+        background: linear-gradient(136deg, #222 0%, #333 100%);
+        margin: 0.5rem -1rem -0.5rem -1rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .navbar-nav-center {
+        position: static;
+        transform: none;
+        flex-direction: column;
+    }
+
+    .navbar-collapse .nav-settings-btn {
+        margin-top: 0.5rem;
+        margin-left: 0;
+        padding-left: 0;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    #page {
+        margin-top: 6rem;
+        border-radius: 0;
+    }
+
+    .info-bar {
+        top: 56px;
+    }
+
+    .info-bar-content {
+        gap: 1rem;
+        font-size: 0.85rem;
+    }
+
+    #logout-button {
+        margin-left: 1rem;
+    }
+
+    .navbar .navbar-nav {
+        margin-left: 1rem;
+    }
+}

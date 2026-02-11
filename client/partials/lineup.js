@@ -202,7 +202,7 @@ export class Lineup extends UIElement {
         <span class="freshness-badge ${freshnessClass}">
             ${Math.floor(player.freshness * 100)}%
         </span>
-        ${isSuspended ? '🚫 ' : ''}${displayName}
+        <span class="name">${isSuspended ? '🚫 ' : ''}${displayName}</span>
         <span class="level-badge level-${player.level}">${player.level}</span>
       </div>
     `

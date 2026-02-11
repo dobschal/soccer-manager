@@ -1,0 +1,53 @@
+/* ==========================================================================
+   Emblem Styles
+   ========================================================================== */
+
+.emblem {
+    position: relative;
+    margin: auto;
+    will-change: transform;
+    transition: transform 1s ease-out;
+}
+
+.emblem:hover {
+    cursor: pointer;
+    transform: scale(1.2);
+}
+
+.emblem > h2 {
+    position: absolute;
+    display: block;
+    top: 33%;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    margin: 0;
+    text-shadow: 1px 1px 2px rgb(0 0 0 / 68%);
+    letter-spacing: -1px;
+    color: white;
+}
+
+.emblem-wrapper {
+    position: absolute;
+}
+
+/* ==========================================================================
+   Emblem Thumbnail
+   Small inline emblem used in tables and results
+   ========================================================================== */
+
+.emblem-thumb {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 12px;
+    margin-top: -8px;
+}
+
+.emblem-thumb--sm {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    margin-top: -4px;
+}

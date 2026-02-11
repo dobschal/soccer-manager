@@ -1,0 +1,146 @@
+/* ==========================================================================
+   Base Styles
+   CSS variables, body, fonts, and animations
+   ========================================================================== */
+
+/* CSS Variables */
+:root {
+    --bs-dark-rgb: 51, 51, 51;
+}
+
+/* Fonts */
+@font-face {
+    font-family: 'Dai Banna';
+    src: url('../fonts/DaiBannaSIL-Regular.ttf');
+}
+
+/* Body */
+body {
+    font-variant-numeric: tabular-nums !important;
+    width: 100%;
+    overflow-x: hidden;
+    background-image: url("../assets/football-field-horizontal.jpg");
+    background-size: 100vw auto;
+    background-position: top left;
+    background-repeat: repeat-y;
+    background-attachment: fixed;
+    background-color: #2a2c2e;
+}
+
+body.overlay-open {
+    overflow-y: scroll;
+    position: fixed;
+    width: 100%;
+}
+
+/* Hidden utility */
+.hidden {
+    display: none;
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes page-enter-animation {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes overlay-fade-in-1 {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes overlay-fade-in-2 {
+    0% {
+        opacity: 0;
+        transform: translateY(1vh);
+    }
+    50% {
+        opacity: 0;
+        transform: translateY(1vh);
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes overlay-fade-out-1 {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes overlay-fade-out-2 {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(1vh);
+    }
+}
+
+@keyframes overlay-swipe-down {
+    0% {
+        opacity: 1;
+        transform: translateY(var(--swipe-offset, 0));
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(100vh);
+    }
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes slide-fade-in {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes manager-chat-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes manager-chat-fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}

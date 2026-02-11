@@ -1,0 +1,43 @@
+/* ==========================================================================
+   Player Image Styles
+   ========================================================================== */
+
+.player-image {
+    position: relative;
+}
+
+.player-image .emblem-wrapper svg {
+    pointer-events: none;
+}
+
+.player-image .emblem-wrapper:hover {
+    transform: none;
+}
+
+/* Article Player Image */
+.article .player-image svg {
+    height: 150px;
+}
+
+.article .player-image {
+    height: 150px;
+    overflow: hidden;
+    margin: 0 1rem 1rem 0;
+}
+
+/* Color Picker */
+.color-picker-item {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    display: inline-block;
+}
+
+/* Scorer/Suspended Image Container */
+.scorer-image,
+.suspended-image {
+    width: 48px;
+    height: 20px;
+    margin-top: -32px;
+    display: inline-block;
+}

@@ -310,9 +310,6 @@ async function _checkBuyOffers (botTeam, players) {
     const minPlayersNeeded = positionsNeeded.filter(p => p === position).length
     const targetSquadSize = minPlayersNeeded * 2 // Want 2 players per formation slot
     const playersInPosition = players.filter(p => p.position === position)
-    const currentBestLevel = playersInPosition.length > 0
-      ? Math.max(...playersInPosition.map(p => p.level))
-      : 0
     const currentWeakestLevel = playersInPosition.length > 0
       ? Math.min(...playersInPosition.map(p => p.level))
       : 0

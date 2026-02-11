@@ -541,7 +541,11 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
   const stands = ['north', 'south', 'west', 'east']
   const details = {}
   let totalEarnings = 0
+  let totalCapacity = 0
   for (const stand of stands) {
+    const size = stadium[stand + '_stand_size'] || 0
+    totalCapacity += size
+
     // Skip if stand is under construction (check for truthy value to handle missing columns)
     const constructionEndDay = stadium[`${stand}_construction_end_game_day`]
     if (constructionEndDay != null) {
@@ -552,7 +556,6 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     }
 
     const price = stadium[stand + '_stand_price'] || 0
-    const size = stadium[stand + '_stand_size'] || 0
 
     // Skip if price is 0 to avoid division by zero
     if (price <= 0 || size <= 0) {
@@ -569,6 +572,9 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     details[stand + 'Earnings'] = earnings
     totalEarnings += earnings
   }
+
+  details.totalCapacity = totalCapacity
+  details.totalEarnings = totalEarnings
 
   // Final safety check - never pass NaN to balance update
   if (isNaN(totalEarnings)) {

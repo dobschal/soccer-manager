@@ -1,0 +1,43 @@
+/* ==========================================================================
+   Button Styles
+   ========================================================================== */
+
+.fa-button {
+    margin: 0 1rem;
+    font-size: 20px;
+}
+
+.fa-button:hover {
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
+/* Navigation Settings Button */
+.nav-settings-btn {
+    color: white !important;
+    padding: 0.5rem;
+}
+
+.nav-settings-btn:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.nav-settings-btn .fa-cog {
+    transition: transform 0.3s ease;
+}
+
+.nav-settings-btn:hover .fa-cog {
+    transform: rotate(90deg);
+}
+
+/* Nav Pills */
+.nav-pills .nav-link {
+    background: #EFEFEF;
+    margin-bottom: 1rem;
+    margin-right: 1rem;
+}
+
+/* Settings Overlay Content */
+.settings-overlay-content {
+    min-width: 250px;
+}

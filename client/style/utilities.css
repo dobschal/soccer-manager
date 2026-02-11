@@ -1,0 +1,67 @@
+/* ==========================================================================
+   Utility Classes
+   Gap, cursor, text alignment, and other reusable utilities
+   ========================================================================== */
+
+/* Gap utilities */
+.u-gap-sm {
+    gap: 1rem;
+}
+
+.u-gap-md {
+    gap: 2rem;
+}
+
+.u-gap-lg {
+    gap: 4rem;
+}
+
+/* Cursor utilities */
+.u-cursor-pointer {
+    cursor: pointer;
+}
+
+.pointer:hover {
+    cursor: pointer;
+}
+
+/* Text alignment utilities */
+.u-text-center {
+    text-align: center;
+}
+
+/* Perspective utility for 3D effects */
+.u-perspective-40 {
+    perspective: 40px;
+}
+
+/* Width utilities */
+.u-min-w-280 {
+    min-width: 280px;
+}
+
+.u-w-33 {
+    width: 33%;
+}
+
+/* Links */
+a:link,
+a:visited,
+.hover-text:not(td) {
+    text-decoration: none;
+    color: initial;
+    border-bottom: dotted 1px #C0C0C0;
+    display: inline-block;
+    transition: transform 0.3s ease-in-out;
+}
+
+a:hover, a:active,
+.hover-text:not(td):hover {
+    cursor: pointer;
+    transform: scale(1.05);
+}
+
+td.hover-text:hover {
+    cursor: pointer;
+    background-color: #EFEFEF;
+}

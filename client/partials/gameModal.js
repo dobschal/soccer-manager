@@ -38,7 +38,7 @@ function renderEventTicker (log, players, team1Name, team2Name) {
       const teamName = isTeam1 ? team1Name : team2Name
       return `
         <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
-          <span class="text-danger" style="font-size: 1.2em;"><i class="fa fa-square"></i></span>
+          <span class="text-danger event-ticker-icon"><i class="fa fa-square"></i></span>
           <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small>${event.secondYellow ? ' <small>(2nd yellow)</small>' : ''}</span>
         </div>
       `
@@ -46,7 +46,7 @@ function renderEventTicker (log, players, team1Name, team2Name) {
       const teamName = isTeam1 ? team1Name : team2Name
       return `
         <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
-          <span class="text-warning" style="font-size: 1.2em;"><i class="fa fa-square"></i></span>
+          <span class="text-warning event-ticker-icon"><i class="fa fa-square"></i></span>
           <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small></span>
         </div>
       `
@@ -57,7 +57,7 @@ function renderEventTicker (log, players, team1Name, team2Name) {
   return `
     <div class="card mb-3">
       <div class="card-header"><i class="fa fa-clock-o me-2"></i>Match Events</div>
-      <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+      <div class="card-body event-ticker-body">
         ${eventItems}
       </div>
     </div>
@@ -78,14 +78,15 @@ export async function showGameModal (resultId) {
     setQueryParams({ game_id: null })
     return
   }
-  const {
-    players: playersTeam1,
-    team: team1
-  } = await server.getTeam(game.team1Id)
-  const {
-    players: playersTeam2,
-    team: team2
-  } = await server.getTeam(game.team2Id)
+  const [
+    { players: playersTeam1, team: team1 },
+    { players: playersTeam2, team: team2 },
+    stadium
+  ] = await Promise.all([
+    server.getTeam(game.team1Id),
+    server.getTeam(game.team2Id),
+    server.getStadiumByTeamId(game.team1Id)
+  ])
   const players = {}
   playersTeam1.forEach(p => {
     p.team1 = true
@@ -96,7 +97,12 @@ export async function showGameModal (resultId) {
     players[p.id] = p
   })
   const details = JSON.parse(game.details)
-  const guests = details.stadiumDetails.northGuests + details.stadiumDetails.southGuests + details.stadiumDetails.eastGuests + details.stadiumDetails.westGuests
+  const sd = details.stadiumDetails || {}
+  const guests = (sd.northGuests || 0) + (sd.southGuests || 0) + (sd.eastGuests || 0) + (sd.westGuests || 0)
+  const totalEarnings = sd.totalEarnings ?? ((sd.northEarnings || 0) + (sd.southEarnings || 0) + (sd.eastEarnings || 0) + (sd.westEarnings || 0))
+  const totalCapacity = sd.totalCapacity || (stadium
+    ? (stadium.north_stand_size || 0) + (stadium.south_stand_size || 0) + (stadium.east_stand_size || 0) + (stadium.west_stand_size || 0)
+    : 0)
   if (!details.log) return toast('No game result available')
   let ballControllA = 0
   let ballControllB = 0
@@ -126,8 +132,7 @@ export async function showGameModal (resultId) {
     `
       <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} as guests at their stadium!</p>
       ${renderGameAnimation(game, team1, team2)}
-      ${renderEventTicker(details.log, players, team1.name, team2.name)}
-      <table class="table">
+      <table class="table mb-4">
         <thead>
           <tr>
             <td scope="col" class="text-end">${team1.name}</td>
@@ -157,10 +162,30 @@ export async function showGameModal (resultId) {
           <tr>
             <td scope="col" class="text-end">${freshnessTeamA}%</td>
             <th scope="col" class="text-center">Freshness</th>
-            <td scope="col">${freshnessTeamB}%</td>        
+            <td scope="col">${freshnessTeamB}%</td>
           </tr>
-        </thead> 
+        </thead>
       </table>
+      ${renderEventTicker(details.log, players, team1.name, team2.name)}      
+      <div class="card">
+        <div class="card-header"><i class="fa fa-ticket me-2"></i>Stadium</div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-4">
+              <div class="fs-4 fw-bold">${guests.toLocaleString()}</div>
+              <div class="text-muted small">Guests</div>
+            </div>
+            <div class="col-4">
+              <div class="fs-4 fw-bold">${totalCapacity ? Math.round(guests / totalCapacity * 100) : '-'}%</div>
+              <div class="text-muted small">Capacity</div>
+            </div>
+            <div class="col-4">
+              <div class="fs-4 fw-bold">${totalEarnings.toLocaleString()} €</div>
+              <div class="text-muted small">Ticket Earnings</div>
+            </div>
+          </div>
+        </div>
+      </div>
     `
   )
   overlay.onClose(() => {
