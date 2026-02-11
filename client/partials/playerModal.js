@@ -64,13 +64,7 @@ export async function showPlayerModal (playerId) {
   const price = await server.estimateValue(player.id)
   const history = await server.getPlayerHistory(player.id)
   const { offer } = await server.myOfferForPlayer(player)
-  const { offers } = await server.getOffers()
-  const hasSellOffer = (offers || []).some(o => o.player_id === player.id && o.type === 'sell')
-  console.log('Player modal - checking sell offers:', {
-    playerId: player.id,
-    offers,
-    hasSellOffer
-  })
+  const { hasSellOffer } = await server.hasPlayerSellOffer(player.id)
 
   if (playersTeam) {
     onClick(teamLinkId, () => {

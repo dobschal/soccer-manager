@@ -17,10 +17,16 @@ vi.mock('../../lib/util.js', () => ({
   calculateStanding: vi.fn()
 }))
 
+vi.mock('../../helper/standingHelper.js', () => ({
+  getCachedStanding: vi.fn(),
+  saveStandingToCache: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { calculateStanding } from '../../lib/util.js'
+import { getCachedStanding, saveStandingToCache } from '../../helper/standingHelper.js'
 import handlers from '../../routes/results.js'
 
 describe('results routes', () => {
@@ -86,29 +92,48 @@ describe('results routes', () => {
   })
 
   describe('getStanding', () => {
-    it('returns standing for specified league', async () => {
+    it('returns cached standing when available', async () => {
+      const team = testData.team({ level: 1, league: 1 })
+      const standing = [{ team_id: 1, points: 3 }]
+
+      getTeam.mockResolvedValue(team)
+      getCachedStanding.mockResolvedValue(standing)
+
+      const req = createMockRequest()
+      const result = await handlers.getStanding(5, 1, 1, 1, req)
+
+      expect(result).toEqual(standing)
+      expect(getCachedStanding).toHaveBeenCalledWith(5, 1, 1, 1)
+      expect(calculateStanding).not.toHaveBeenCalled()
+    })
+
+    it('calculates standing when cache miss', async () => {
       const team = testData.team({ level: 1, league: 1 })
       const games = [testData.gameResult()]
       const teams = [testData.team({ id: 1 }), testData.team({ id: 2 })]
       const standing = [{ team_id: 1, points: 3 }]
 
       getTeam.mockResolvedValue(team)
+      getCachedStanding.mockResolvedValue(null) // Cache miss
       query
         .mockResolvedValueOnce(games)
         .mockResolvedValueOnce(teams)
       calculateStanding.mockReturnValue(standing)
+      saveStandingToCache.mockResolvedValue()
 
       const req = createMockRequest()
       const result = await handlers.getStanding(5, 1, 1, 1, req)
 
       expect(result).toEqual(standing)
       expect(calculateStanding).toHaveBeenCalledWith(games, teams)
+      expect(saveStandingToCache).toHaveBeenCalledWith(5, 1, 1, 1, standing)
     })
 
     it('uses team level and league when not specified', async () => {
       const team = testData.team({ level: 2, league: 3 })
 
       getTeam.mockResolvedValue(team)
+      getCachedStanding.mockResolvedValue(null)
       query
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
@@ -117,10 +142,7 @@ describe('results routes', () => {
       const req = createMockRequest()
       await handlers.getStanding(5, 1, null, null, req)
 
-      expect(query).toHaveBeenCalledWith(
-        expect.any(String),
-        [5, 1, 2, 3]
-      )
+      expect(getCachedStanding).toHaveBeenCalledWith(5, 1, 2, 3)
     })
 
     it('fetches teams by level/league when no games played', async () => {
@@ -128,6 +150,7 @@ describe('results routes', () => {
       const teams = [testData.team()]
 
       getTeam.mockResolvedValue(team)
+      getCachedStanding.mockResolvedValue(null)
       query
         .mockResolvedValueOnce([])  // no games
         .mockResolvedValueOnce(teams)
@@ -140,6 +163,8 @@ describe('results routes', () => {
         'SELECT * FROM team WHERE level=? AND league=?',
         [1, 1]
       )
+      // Should not cache when no games
+      expect(saveStandingToCache).not.toHaveBeenCalled()
     })
   })
 

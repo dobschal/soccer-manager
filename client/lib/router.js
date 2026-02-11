@@ -24,7 +24,7 @@ export function goTo (path) {
 export function initRouter (p) {
   pages = p
   window.addEventListener('hashchange', _resolvePage)
-  _resolvePage().then(() => console.log('Router initialised and first page resolved.'))
+  _resolvePage().then(() => console.log('⚙️ Router initialised and first page resolved.'))
 }
 
 /**

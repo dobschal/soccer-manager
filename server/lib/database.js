@@ -16,8 +16,13 @@ const pool = mysql.createPool({
  */
 export function query (...params) {
   return new Promise((resolve, reject) => {
+    const t1 = Date.now()
     params.push(function (error, results) {
       if (error) return reject(error)
+      const duration = Date.now() - t1
+      if (params[0].includes('SELECT') && duration > 10) {
+        console.warn(`🔍 Query "${params[0].substring(0, 50)}" took ${duration}ms`)
+      }
       resolve(results)
     })
     pool.query(...params)

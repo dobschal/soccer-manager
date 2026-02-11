@@ -39,13 +39,15 @@ export function connectWebSocket () {
     ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
-      console.log('WebSocket connected')
+      console.log('⚙️ WebSocket connected')
     }
 
     ws.onmessage = (event) => {
       try {
-        const { event: eventName, data } = JSON.parse(event.data)
-        console.log('WebSocket event:', eventName, data)
+        const {
+          event: eventName,
+          data
+        } = JSON.parse(event.data)
         dispatchEvent(eventName, data)
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e)

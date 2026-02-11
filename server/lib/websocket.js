@@ -2,6 +2,7 @@ import { WebSocketServer } from 'ws'
 import jwt from 'jsonwebtoken'
 import { config } from '../config.js'
 import { query } from './database.js'
+import { getCachedUser } from './userCache.js'
 
 /** @type {Map<number, import('ws').WebSocket>} */
 const clients = new Map()
@@ -31,7 +32,7 @@ export function initWebSocket (server) {
       const { sub: userId } = jwt.verify(token, config.SECRET)
 
       // Verify user exists
-      const [user] = await query('SELECT id FROM user WHERE id=? LIMIT 1', [userId])
+      const user = await getCachedUser(userId)
       if (!user) {
         ws.close(4002, 'User not found')
         return
@@ -39,11 +40,9 @@ export function initWebSocket (server) {
 
       // Store connection by user ID
       clients.set(userId, ws)
-      console.log(`WebSocket connected for user ${userId}`)
 
       ws.on('close', () => {
         clients.delete(userId)
-        console.log(`WebSocket disconnected for user ${userId}`)
       })
 
       ws.on('error', (error) => {
@@ -52,14 +51,17 @@ export function initWebSocket (server) {
       })
 
       // Send a welcome message
-      ws.send(JSON.stringify({ event: 'CONNECTED', data: { userId } }))
+      ws.send(JSON.stringify({
+        event: 'CONNECTED',
+        data: { userId }
+      }))
     } catch (error) {
       console.error('WebSocket authentication failed:', error.message)
       ws.close(4003, 'Authentication failed')
     }
   })
 
-  console.log('WebSocket server initialized')
+  console.log('🆙 WebSocket server initialized')
 }
 
 /**
@@ -72,8 +74,10 @@ export function initWebSocket (server) {
 export function sendToUser (userId, event, data = null) {
   const ws = clients.get(userId)
   if (ws && ws.readyState === ws.OPEN) {
-    ws.send(JSON.stringify({ event, data }))
-    console.log(`Sent ${event} to user ${userId}`)
+    ws.send(JSON.stringify({
+      event,
+      data
+    }))
     return true
   }
   return false

@@ -3,6 +3,8 @@ import { calculateStanding } from '../lib/util.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper.js'
+import { getCached, cacheKey, CACHE_NAMESPACES } from '../lib/cache.js'
 
 export default {
 
@@ -47,27 +49,34 @@ export default {
    */
   async getSeasonResults (season, tilGameDay, level, league, req) {
     const team = await getTeam(req)
-    return await query(`
-        SELECT g.id           as id,
-               g.game_day     as gameDay,
-               g.season       as season,
-               g.goals_team_1 as goalsTeam1,
-               g.goals_team_2 as goalsTeam2,
-               t1.name        as team1,
-               t2.name        as team2,
-               g.team_1_id    as team1Id,
-               g.team_2_id    as team2Id,
-               g.details      as details,
-               g.created_at   as created_at
-        FROM game g
-                 JOIN team t1 ON t1.id = g.team_1_id
-                 JOIN team t2 ON t2.id = g.team_2_id
-        WHERE g.game_day <= ?
-          AND g.season = ?
-          AND g.level = ?
-          AND g.league = ?
-          AND played = 1
-    `, [tilGameDay, season, level ?? team.level, league ?? team.league])
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+
+    const key = cacheKey(CACHE_NAMESPACES.SEASON_RESULTS, season, tilGameDay, actualLevel, actualLeague)
+
+    return getCached(key, async () => {
+      return await query(`
+          SELECT g.id           as id,
+                 g.game_day     as gameDay,
+                 g.season       as season,
+                 g.goals_team_1 as goalsTeam1,
+                 g.goals_team_2 as goalsTeam2,
+                 t1.name        as team1,
+                 t2.name        as team2,
+                 g.team_1_id    as team1Id,
+                 g.team_2_id    as team2Id,
+                 g.details      as details,
+                 g.created_at   as created_at
+          FROM game g
+                   JOIN team t1 ON t1.id = g.team_1_id
+                   JOIN team t2 ON t2.id = g.team_2_id
+          WHERE g.game_day <= ?
+            AND g.season = ?
+            AND g.level = ?
+            AND g.league = ?
+            AND played = 1
+      `, [tilGameDay, season, actualLevel, actualLeague])
+    })
   },
 
   /**
@@ -306,6 +315,15 @@ export default {
     const actualLevel = level ?? team.level
     const actualLeague = league ?? team.league
     const t1 = Date.now()
+
+    // Try to get cached standing first
+    const cached = await getCachedStanding(gameDay, season, actualLevel, actualLeague)
+    if (cached) {
+      console.log('Got cached standing in ' + (Date.now() - t1) + 'ms')
+      return cached
+    }
+
+    // Calculate standing if not cached (for historical data or edge cases)
     const games = await query(
       `
           SELECT *
@@ -332,7 +350,13 @@ export default {
       teams = await query('SELECT * FROM team WHERE level=? AND league=?', [actualLevel, actualLeague])
     }
     const standing = calculateStanding(games, teams)
-    console.log('Calculate standing in ' + (Date.now() - t1) + 'ms')
+
+    // Cache the calculated standing for future requests
+    if (games.length > 0) {
+      await saveStandingToCache(gameDay, season, actualLevel, actualLeague, standing)
+    }
+
+    console.log('Calculated standing in ' + (Date.now() - t1) + 'ms')
     return standing
   }
 }

@@ -244,7 +244,7 @@ export class UIElement {
   _onMounted (_node) {
     if (this._isMounted) return // Skip if already mounted (this is an update, not initial mount)
     this._isMounted = true
-    console.log('Mounted: ', this.constructor.name)
+    console.log('🖌️ Mounted: ', this.constructor.name)
     this._applyEventHandlers()
     this._registerServerEventHandlers()
     this.onMounted()
@@ -257,7 +257,7 @@ export class UIElement {
    */
   _onDestroy (_node) {
     this._isMounted = false
-    console.log('Destroy: ', this.constructor.name)
+    console.log('🗑️Destroy: ', this.constructor.name)
     off(this._queryChangedEventId)
     this._unregisterServerEventHandlers()
     this.onDestroy()
@@ -317,7 +317,7 @@ export class UIElement {
       const handler = serverEvents[eventName].bind(this)
       this._serverEventHandlers.set(eventName, handler)
       onServerEvent(eventName, handler)
-      console.log(`Registered server event handler: ${eventName} for ${this.constructor.name}`)
+      console.log(`📋 Registered server event handler: ${eventName} for ${this.constructor.name}`)
     }
   }
 

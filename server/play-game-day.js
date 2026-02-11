@@ -14,6 +14,8 @@ import { checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
 import { processYouthTraining } from './helper/youthPlayerHelper.js'
 import { addLogMessage } from './helper/logMessageHelper.js'
+import { cacheStandingsForGameDay } from './helper/standingHelper.js'
+import { clearCacheByPrefix, CACHE_NAMESPACES } from './lib/cache.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -194,6 +196,9 @@ export async function calculateGames () {
   const games = await query('SELECT * FROM game WHERE season=? AND game_day=? AND played=0', [season, gameDay])
   if (games.length === 0) return console.error('No games to play...')
   await Promise.all(games.map(game => _playGame(game)))
+  // Clear season results cache after games are played
+  clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
+  await cacheStandingsForGameDay(gameDay, season)
   await _giveUsersActionCards()
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)

@@ -222,6 +222,21 @@ different formations and play styles, and then calculating the average goals sco
 red cards for each formation and play style combination. The results should be compared to the expected statistics based
 on the Bundesliga data.
 
+## The Cup
+
+Besides the league system, there is also a cup competition. The cup is a knockout tournament that runs parallel to the
+league system.
+The cup includes teams from all levels of the league system, and the matches are played as single elimination.
+The winner of the cup retrieves a 2_000_000€.
+Schedule the cup matches according to the amount of teams participating in the cup. The final should be before the last
+season gameday.
+Possible match times are: 3am, 6am, 9am, 3pm, 6pm, 9pm. League games are always played at noon and midnight.
+Extend the dashboard to sho another game slider for the cup matches, showing the next cup match and the last cup match
+results.
+The results page should have two tabs: "League Results" and "Cup Results". The cup results tab should show the results
+of the cup matches, including the teams, the score, and the date of the match.
+It should be possible to see cup matches from cups of past seasons too.
+
 ## Tech Stack
 
 - **Backend**: Node.js 20, Express 4.18, MySQL 8.0, JWT auth

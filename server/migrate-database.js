@@ -663,6 +663,65 @@ const migrations = [{
     await query("ALTER TABLE game ADD COLUMN game_type VARCHAR(20) DEFAULT 'league'")
     await query('CREATE INDEX idx_game_type ON game (game_type)')
   }
+}, {
+  name: 'Add index for game table to optimize getGameDayAndSeason',
+  async run () {
+    // Composite index for queries that filter by played and order by season, game_day
+    await query('CREATE INDEX idx_game_played_season_gameday ON game (played, season, game_day)')
+  }
+}, {
+  name: 'Create standing_cache table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS standing_cache
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        season INT NOT NULL,
+        game_day INT NOT NULL,
+        level INT NOT NULL,
+        league INT NOT NULL,
+        data LONGTEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY idx_standing_lookup (season, game_day, level, league)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Add index for game table season column',
+  async run () {
+    // Index for queries that order by season DESC (e.g., _seasonForNewGames)
+    await query('CREATE INDEX idx_game_season ON game (season DESC)')
+  }
+}, {
+  name: 'Add index for trade_offer table for team sell offers lookup',
+  async run () {
+    // Index for getMySellOfferPlayerIds query
+    await query('CREATE INDEX idx_trade_offer_team_type ON trade_offer (from_team_id, type)')
+  }
+}, {
+  name: 'Add index for trade_offer table for player sell offer lookup',
+  async run () {
+    // Index for hasPlayerSellOffer query
+    await query('CREATE INDEX idx_trade_offer_player_type ON trade_offer (player_id, type)')
+  }
+}, {
+  name: 'Add index for team table user_id lookup',
+  async run () {
+    // Index for getTeam queries that look up team by user_id
+    await query('CREATE INDEX idx_team_user_id ON team (user_id)')
+  }
+}, {
+  name: 'Add index for game table results lookup',
+  async run () {
+    // Index for getResults query that filters by game_day, season, level, league
+    await query('CREATE INDEX idx_game_results_lookup ON game (season, game_day, level, league)')
+  }
+}, {
+  name: 'Add index for game table season results lookup with played filter',
+  async run () {
+    // Index for getSeasonResults query that filters by season, level, league, played and range on game_day
+    // Equality columns first, then range column last for optimal index usage
+    await query('CREATE INDEX idx_game_season_results ON game (season, level, league, played, game_day)')
+  }
 }]
 
 /**

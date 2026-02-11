@@ -22,7 +22,7 @@ if (window.localStorage.getItem('auth-token')) {
 }
 
 server.getVersion().then(({ version }) => {
-  console.log(`Soccer Manager v${version}`)
+  console.log(`🚀 SoccerManagerIO running version ${version}`)
 })
 
 const pages = {

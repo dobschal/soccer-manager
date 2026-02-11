@@ -71,14 +71,12 @@ export class PlayerList extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const [{ season }, { offers }] = await Promise.all([
+    const [{ season }, { playerIds }] = await Promise.all([
       server.getCurrentGameday(),
-      server.getOffers()
+      server.getMySellOfferPlayerIds()
     ])
     this.season = season
-    this.sellOfferPlayerIds = new Set(
-      offers.filter(o => o.type === 'sell').map(o => o.player_id)
-    )
+    this.sellOfferPlayerIds = new Set(playerIds)
     this.players.sort(sortByPosition)
   }
 }

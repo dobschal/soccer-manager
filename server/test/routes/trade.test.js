@@ -277,4 +277,65 @@ describe('trade routes', () => {
       expect(result).toEqual({ trades: [], players: [], teams: [] })
     })
   })
+
+  describe('getMySellOfferPlayerIds', () => {
+    it('returns player IDs of sell offers from user team', async () => {
+      const team = testData.team({ id: 1 })
+      const offers = [
+        { player_id: 10 },
+        { player_id: 20 },
+        { player_id: 30 }
+      ]
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue(offers)
+
+      const req = createMockRequest()
+      const result = await handlers.getMySellOfferPlayerIds(req)
+
+      expect(result).toEqual({ playerIds: [10, 20, 30] })
+      expect(query).toHaveBeenCalledWith(
+        'SELECT player_id FROM trade_offer WHERE from_team_id=? AND type=?',
+        [team.id, 'sell']
+      )
+    })
+
+    it('returns empty array when no sell offers', async () => {
+      const team = testData.team({ id: 1 })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue([])
+
+      const req = createMockRequest()
+      const result = await handlers.getMySellOfferPlayerIds(req)
+
+      expect(result).toEqual({ playerIds: [] })
+    })
+  })
+
+  describe('hasPlayerSellOffer', () => {
+    it('returns true when player has a sell offer', async () => {
+      query.mockResolvedValue([{ id: 1 }])
+
+      const result = await handlers.hasPlayerSellOffer(123)
+
+      expect(result).toEqual({ hasSellOffer: true })
+      expect(query).toHaveBeenCalledWith(
+        'SELECT id FROM trade_offer WHERE player_id=? AND type=? LIMIT 1',
+        [123, 'sell']
+      )
+    })
+
+    it('returns false when player has no sell offer', async () => {
+      query.mockResolvedValue([])
+
+      const result = await handlers.hasPlayerSellOffer(456)
+
+      expect(result).toEqual({ hasSellOffer: false })
+      expect(query).toHaveBeenCalledWith(
+        'SELECT id FROM trade_offer WHERE player_id=? AND type=? LIMIT 1',
+        [456, 'sell']
+      )
+    })
+  })
 })

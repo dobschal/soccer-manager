@@ -140,6 +140,33 @@ export default {
   },
 
   /**
+   * Get player IDs that have sell offers from the current user's team
+   * @param {Request} req
+   * @returns {Promise<{playerIds: number[]}>}
+   */
+  async getMySellOfferPlayerIds (req) {
+    const team = await getTeam(req)
+    const offers = await query(
+      'SELECT player_id FROM trade_offer WHERE from_team_id=? AND type=?',
+      [team.id, 'sell']
+    )
+    return { playerIds: offers.map(o => o.player_id) }
+  },
+
+  /**
+   * Check if a player has a sell offer
+   * @param {number} playerId
+   * @returns {Promise<{hasSellOffer: boolean}>}
+   */
+  async hasPlayerSellOffer (playerId) {
+    const [offer] = await query(
+      'SELECT id FROM trade_offer WHERE player_id=? AND type=? LIMIT 1',
+      [playerId, 'sell']
+    )
+    return { hasSellOffer: !!offer }
+  },
+
+  /**
    * @returns {Promise<{ trades: TradeHistoryType[] }>}
    */
   async getTradeHistory () {

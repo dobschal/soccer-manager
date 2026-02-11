@@ -7,6 +7,7 @@ import { getSponsor } from '../helper/sponsorHelper.js'
 import { prepareSeason } from '../prepare-season.js'
 import { getSupportedLocales, t } from '../i18n/index.js'
 import { ActionCard } from '../entities/actionCard.js'
+import { clearUserCache } from '../lib/userCache.js'
 
 export default {
 
@@ -109,6 +110,7 @@ export default {
       throw new BadRequestError(t('error.invalidLanguage', {}, locale))
     }
     await query('UPDATE user SET language=? WHERE id=?', [language, req.user.id])
+    clearUserCache(req.user.id)
     return { success: true }
   }
 

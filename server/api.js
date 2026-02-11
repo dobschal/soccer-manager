@@ -4,7 +4,6 @@ import fs from 'fs'
 import jwt from 'jsonwebtoken'
 import http from 'http'
 import { config } from './config.js'
-import { query } from './lib/database.js'
 import { runMigration } from './migrate-database.js'
 import cron from 'node-cron'
 import { prepareSeason } from './prepare-season.js'
@@ -13,6 +12,7 @@ import { makeBotMoves } from './bot-move.js'
 import { getLocaleFromRequest } from './i18n/index.js'
 import { cleanupOldFreePlayers } from './helper/playerHelper.js'
 import { initWebSocket } from './lib/websocket.js'
+import { getCachedUser } from './lib/userCache.js'
 
 const app = express()
 const port = 3000
@@ -30,7 +30,7 @@ app.use(async (req, res, next) => {
     try {
       const token = req.headers.authorization.substring(7)
       const { sub: userId } = jwt.verify(token, config.SECRET)
-      const [user] = await query('SELECT * FROM user WHERE id=? LIMIT 1', [userId])
+      const user = await getCachedUser(userId)
       if (!user) return res.status(401).send({ error: 'Invalid authorization header!' })
       req.user = user
     } catch (e) {
@@ -52,7 +52,6 @@ for (const filename of filenames) {
   for (const fnName in mod.default) {
     if (Object.hasOwnProperty.call(mod.default, fnName)) {
       const fn = mod.default[fnName]
-      console.log(fnName)
       app.post(`/api/${fnName}`, async (req, res) => {
         const t1 = Date.now()
         try {
@@ -63,7 +62,10 @@ for (const filename of filenames) {
           console.error('Error: ', e)
           res.status(e.status ?? 500).send({ message: e.message ?? 'Unknown error' })
         }
-        console.log(`${fnName} took ${Date.now() - t1}ms`)
+        const duration = Date.now() - t1
+        if (duration > 10) {
+          console.warn(`👉 Request️ ${fnName} took ${duration}ms`)
+        }
       })
     }
   }

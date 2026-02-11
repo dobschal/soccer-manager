@@ -3,6 +3,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
 import { cityNames, clubPrefixes1, clubPrefixes2 } from '../lib/name-library.js'
+import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
 
 export default {
 
@@ -65,6 +66,8 @@ export default {
       throw new BadRequestError('A team with this name already exists')
     }
     await query('UPDATE team SET name=? WHERE id=?', [name, team.id])
+    // Clear season results cache since team name appears in results
+    clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
     return { success: true }
   },
 
