@@ -6,6 +6,7 @@ import { showOverlay } from './overlay.js'
 import { PlayerList } from './playerList.js'
 import { renderPlayerImage } from './playerImage.js'
 import { getPositionsOfFormation } from '../util/formation.js'
+import { deepCopy } from '../lib/deepCopy.js'
 
 export const lineUpData = {
   squadDataChanged: false,
@@ -22,7 +23,7 @@ export class Lineup extends UIElement {
    */
   constructor (players, team, parentInstance) {
     super()
-    this.players = players
+    this.players = deepCopy(players)
     this.team = team
     lineUpData.parentInstance = parentInstance
     this._fillEmptyPositions()
@@ -83,18 +84,25 @@ export class Lineup extends UIElement {
   }
 
   /**
-   * @param {MouseEvent} event
+   * @returns {boolean}
+   */
+  _allowedToSave () {
+    const playersInLineup = this.players.filter(p => p.in_game_position && !p.fake)
+    return playersInLineup.length > 0
+  }
+
+  /**
+   * Auto-save the lineup if it's complete
    * @returns {Promise<void>}
    */
-  async _onSaveButtonClick (event) {
-    if (!event.target.closest('button.btn-primary')) return
+  async _autoSaveIfComplete () {
+    if (!this._allowedToSave()) return
+
     try {
-      if (this.players.some(p => p.fake && p.in_game_position)) {
-        return toast('Your lineup is incomplete!')
-      }
       const playersToSave = this.players.filter(p => !p.fake)
       await server.saveLineup(playersToSave, this.team.formation)
-      toast('Saved lineup.', 'success')
+      toast('Lineup saved.', 'success')
+      lineUpData.squadDataChanged = false
       await lineUpData.parentInstance.load()
       lineUpData.parentInstance.update()
     } catch (e) {
@@ -112,7 +120,6 @@ export class Lineup extends UIElement {
         <div class="squad card-body">
           ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
         </div>
-        ${this._renderSaveButton()}
       </div>
     `
   }
@@ -123,11 +130,6 @@ export class Lineup extends UIElement {
   onMounted () {
     this._applyPositionHacks()
     this._loadPlayerImages()
-    // Use event delegation for save button since it may not exist on initial mount
-    const rootEl = document.querySelector(this._elementQuery)
-    if (rootEl) {
-      rootEl.addEventListener('click', this._onSaveButtonClick.bind(this))
-    }
   }
 
   /**
@@ -176,14 +178,8 @@ export class Lineup extends UIElement {
       lineUpData.squadDataChanged = true
     }
     render('#squad', renderLineup(this.players, this.team, lineUpData.parentInstance))
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderSaveButton () {
-    if (!lineUpData.squadDataChanged) return ''
-    return `<button class="btn btn-info w-100 mt-2" type="button">Save</button>`
+    // Auto-save if lineup is now complete
+    this._autoSaveIfComplete()
   }
 
   /**

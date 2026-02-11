@@ -201,7 +201,11 @@ export class UIElement {
    * @private
    */
   _applyEventHandlers () {
-    for (const elementQuery in this.events) {
+    for (let elementQuery in this.events) {
+      const isOptional = elementQuery.toLowerCase().startsWith('(optional)')
+      if (isOptional) {
+        elementQuery = elementQuery.replace('(optional)', '').trim()
+      }
       // First try to find as a child element
       let element = el(`${this._elementQuery} ${elementQuery}`)
       // If not found, check if the root element itself matches the selector
@@ -211,7 +215,13 @@ export class UIElement {
           element = rootEl
         }
       }
-      if (!element) throw new Error('Cannot apply event listener. No element: ' + `${this._elementQuery} ${elementQuery}`)
+      if (!element) {
+        if (!isOptional) {
+          throw new Error('Cannot apply event listener. No element: ' + `${this._elementQuery} ${elementQuery}`)
+        } else {
+          continue
+        }
+      }
       for (const eventName in this.events[elementQuery]) {
         element.addEventListener(eventName, this.events[elementQuery][eventName].bind(this))
       }
