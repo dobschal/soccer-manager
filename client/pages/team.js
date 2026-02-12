@@ -61,7 +61,7 @@ export class TeamPage extends UIElement {
           <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
             <h2>${this.team.name}</h2>
             <p class="mb-0">
-              <b>${t('team.leagueLabel')}</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}&game_day=33" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
+              <b>${t('team.leagueLabel')}</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
               <b>${t('team.teamValue')}</b>: ${euroFormat.format(this._teamValue)}<br>
               <b>${t('team.lineupStrength')}</b>: ${this._teamStrength}<br>
               <b>${t('team.avgFreshness')}</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
