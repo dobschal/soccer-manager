@@ -48,14 +48,12 @@ export async function renderPlayerImage (player, team, size = 224) {
     svg = svg.replaceAll(skinColor[1], skinColors[player.skin_color][1])
   }
 
-  // Calculate emblem size and position relative to player image
+  // Calculate emblem size relative to player image, use percentage positioning for consistency
   const emblemSize = Math.floor(size * 0.11)
-  const emblemLeft = Math.floor(size * 0.56)
-  const emblemTop = Math.floor(height * 0.55)
 
   // Only render emblem if player has a team
   const emblemHtml = team
-    ? `<div class="emblem-wrapper" style="width: ${emblemSize}px; height: ${emblemSize}px; left: ${emblemLeft}px; top: ${emblemTop}px;">
+    ? `<div class="emblem-wrapper" style="width: ${emblemSize}px; height: 100%; left: 56%; top: 55%;">
             ${renderEmblem(team, emblemSize)}
         </div>`
     : ''

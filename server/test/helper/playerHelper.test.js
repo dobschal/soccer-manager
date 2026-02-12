@@ -37,6 +37,7 @@ describe('playerHelper', () => {
 
       getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
       query.mockResolvedValueOnce(freePlayers) // Free players query
+      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
 
       // Mock delete queries for 2 players
       for (let i = 0; i < 2; i++) {
@@ -55,6 +56,7 @@ describe('playerHelper', () => {
 
       getGameDayAndSeason.mockResolvedValue({ gameDay: 8, season: 1 })
       query.mockResolvedValueOnce(freePlayers) // Free players query
+      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
 
       // Should generate 19 players to reach minimum of 20
       generateRandomPlayerName.mockResolvedValue('Generated Player')
@@ -75,7 +77,8 @@ describe('playerHelper', () => {
       }))
 
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
-      query.mockResolvedValueOnce(freePlayers)
+      query.mockResolvedValueOnce(freePlayers) // Free players query
+      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
 
       const result = await cleanupOldFreePlayers()
 
@@ -85,6 +88,7 @@ describe('playerHelper', () => {
     it('generates all 20 players when no free players exist', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
       query.mockResolvedValueOnce([]) // No free players
+      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
 
       // Should generate 20 players
       generateRandomPlayerName.mockResolvedValue('Generated Player')
@@ -100,6 +104,7 @@ describe('playerHelper', () => {
     it('generates weak free players with correct attributes', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 5 })
       query.mockResolvedValueOnce([]) // No free players
+      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
 
       generateRandomPlayerName.mockResolvedValue('Test Player')
 

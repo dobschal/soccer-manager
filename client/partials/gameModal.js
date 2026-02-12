@@ -5,6 +5,61 @@ import { renderGameAnimation } from './gameAnimation.js'
 import { setQueryParams } from '../lib/router.js'
 
 /**
+ * Sort players by position for display: GK, defenders, midfielders, attackers
+ * @param {Object} a
+ * @param {Object} b
+ * @returns {number}
+ */
+function positionOrder (a, b) {
+  const order = { GK: 0, LD: 1, CD: 2, RD: 3, DM: 4, LM: 5, CM: 6, RM: 7, OM: 8, LA: 9, CA: 10, RA: 11 }
+  return (order[a.in_game_position] ?? 99) - (order[b.in_game_position] ?? 99)
+}
+
+/**
+ * Render a squad list table for one team
+ * @param {Array} teamPlayers - Players from details.playerTeamA or playerTeamB
+ * @param {string} teamName
+ * @returns {string} HTML
+ */
+function renderSquadList (teamPlayers, teamName) {
+  if (!teamPlayers || teamPlayers.length === 0) return ''
+
+  const sorted = [...teamPlayers].sort(positionOrder)
+  const rows = sorted.map(p => {
+    const freshnessPct = Math.floor(p.freshness * 100)
+    const originalLevel = p.freshness > 0 ? Math.round(p.level / p.freshness) : p.level
+    const freshnessColor = freshnessPct < 40 ? 'text-danger' : freshnessPct < 70 ? 'text-warning' : 'text-success'
+    return `
+      <tr>
+        <td><small class="text-muted">${p.in_game_position || '-'}</small></td>
+        <td>${p.name}</td>
+        <td class="text-end">${originalLevel}</td>
+        <td class="text-end ${freshnessColor}">${freshnessPct}%</td>
+      </tr>
+    `
+  }).join('')
+
+  return `
+    <div class="card mb-3">
+      <div class="card-header"><i class="fa fa-users me-2"></i>${teamName}</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>Name</th>
+              <th class="text-end">Lvl</th>
+              <th class="text-end">Fit</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `
+}
+
+/**
  * Render the event ticker showing goals and cards
  * @param {Array} log - Game log entries
  * @param {Object} players - Map of player id to player object
@@ -79,8 +134,14 @@ export async function showGameModal (resultId) {
     return
   }
   const [
-    { players: playersTeam1, team: team1 },
-    { players: playersTeam2, team: team2 },
+    {
+      players: playersTeam1,
+      team: team1
+    },
+    {
+      players: playersTeam2,
+      team: team2
+    },
     stadium
   ] = await Promise.all([
     server.getTeam(game.team1Id),
@@ -166,7 +227,10 @@ export async function showGameModal (resultId) {
           </tr>
         </thead>
       </table>
-      ${renderEventTicker(details.log, players, team1.name, team2.name)}      
+      ${renderEventTicker(details.log, players, team1.name, team2.name)}
+      ${renderSquadList(details.playerTeamA, team1.name)}
+      ${renderSquadList(details.playerTeamB, team2.name)}
+
       <div class="card">
         <div class="card-header"><i class="fa fa-ticket me-2"></i>Stadium</div>
         <div class="card-body">
