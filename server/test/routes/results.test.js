@@ -27,11 +27,13 @@ import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { calculateStanding } from '../../lib/util.js'
 import { getCachedStanding, saveStandingToCache } from '../../helper/standingHelper.js'
+import { clearAllCache } from '../../lib/cache.js'
 import handlers from '../../routes/results.js'
 
 describe('results routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    clearAllCache()
   })
 
   describe('getResults', () => {
@@ -63,6 +65,19 @@ describe('results routes', () => {
         expect.any(String),
         [5, 1, 2, 3]
       )
+    })
+
+    it('filters out friendly matches with game_type filter', async () => {
+      const team = testData.team({ level: 1, league: 1 })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue([])
+
+      const req = createMockRequest()
+      await handlers.getResults(5, 1, 1, 1, req)
+
+      const sql = query.mock.calls[0][0]
+      expect(sql).toContain("g.game_type = 'league' OR g.game_type IS NULL")
     })
   })
 
@@ -166,6 +181,23 @@ describe('results routes', () => {
       // Should not cache when no games
       expect(saveStandingToCache).not.toHaveBeenCalled()
     })
+
+    it('filters out friendly matches with game_type filter in fallback query', async () => {
+      const team = testData.team({ level: 1, league: 1 })
+
+      getTeam.mockResolvedValue(team)
+      getCachedStanding.mockResolvedValue(null)
+      query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+      calculateStanding.mockReturnValue([])
+
+      const req = createMockRequest()
+      await handlers.getStanding(5, 1, 1, 1, req)
+
+      const sql = query.mock.calls[0][0]
+      expect(sql).toContain("g.game_type = 'league' OR g.game_type IS NULL")
+    })
   })
 
   describe('getCurrentGameday', () => {
@@ -193,6 +225,19 @@ describe('results routes', () => {
       const result = await handlers.getSeasonResults(1, 5, 1, 1, req)
 
       expect(result).toEqual(results)
+    })
+
+    it('filters out friendly matches with game_type filter', async () => {
+      const team = testData.team({ level: 1, league: 1 })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue([])
+
+      const req = createMockRequest()
+      await handlers.getSeasonResults(1, 5, 1, 1, req)
+
+      const sql = query.mock.calls[0][0]
+      expect(sql).toContain("g.game_type = 'league' OR g.game_type IS NULL")
     })
   })
 })

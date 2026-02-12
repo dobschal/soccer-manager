@@ -1,7 +1,7 @@
 import { UIElement } from '../../lib/UIElement.js'
 import { Table } from '../../partials/table.js'
 import { server } from '../../lib/gateway.js'
-import { calculatePlayerAge, sallaryPerLevel, sortByPosition } from '../../util/player.js'
+import { calculatePlayerAge, salaryPerLevel, sortByPosition } from '../../util/player.js'
 import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
 import { setQueryParams } from '../../lib/router.js'
@@ -112,7 +112,7 @@ export class FreePlayers extends UIElement {
       title: t('player.hireConfirmTitle', { playerName: player.name }),
       text: t('player.hireConfirmText', {
         playerName: player.name,
-        salary: sallaryPerLevel[player.level]
+        salary: salaryPerLevel[player.level]
       }),
       hasInput: false,
       buttonText: t('player.yesHire'),

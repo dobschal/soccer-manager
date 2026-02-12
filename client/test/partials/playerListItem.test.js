@@ -4,7 +4,7 @@ import { testData } from '../setup.js'
 // Mock dependencies
 vi.mock('../../util/player.js', () => ({
   calculatePlayerAge: vi.fn((player, season) => 18 + season - player.birth_season),
-  sallaryPerLevel: { 1: 1000, 2: 2000, 3: 3000, 4: 4000, 5: 5000, 6: 6000, 7: 7000, 8: 8000, 9: 9000, 10: 10000 }
+  salaryPerLevel: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
 }))
 
 vi.mock('../../lib/currency.js', () => ({

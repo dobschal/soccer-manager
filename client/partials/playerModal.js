@@ -1,6 +1,6 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
-import { calculatePlayerAge, sallaryPerLevel } from '../util/player.js'
+import { calculatePlayerAge, salaryPerLevel } from '../util/player.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from './toast.js'
@@ -89,7 +89,10 @@ export async function showPlayerModal (playerId) {
     try {
       const { ok } = await showDialog({
         title: t('player.hireConfirmTitle', { playerName: player.name }),
-        text: t('player.hireConfirmText', { playerName: player.name, salary: sallaryPerLevel[player.level] }),
+        text: t('player.hireConfirmText', {
+          playerName: player.name,
+          salary: salaryPerLevel[player.level]
+        }),
         hasInput: false,
         buttonText: t('player.yesHire'),
         buttonType: 'success'
@@ -155,7 +158,7 @@ export async function showPlayerModal (playerId) {
             </div>
             <div class="stat-card bg-dark">
               <div class="stat-card-label">${t('player.salary')}</div>
-              <div class="stat-card-value">${formatCompactCurrency(sallaryPerLevel[player.level])}</div>
+              <div class="stat-card-value">${formatCompactCurrency(salaryPerLevel[player.level])}</div>
             </div>
             <div class="stat-card bg-dark">
               <div class="stat-card-label">${t('player.value')}</div>

@@ -711,5 +711,7 @@ export default {
 
   // Results page tabs
   'results.leagueResults': 'Liga',
-  'results.cupResults': 'Pokal'
+  'results.cupResults': 'Pokal',
+  'results.friendlyResults': 'Freundschaftsspiele',
+  'friendly.noResults': 'Keine Freundschaftsspiele in dieser Saison.'
 }

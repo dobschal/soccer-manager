@@ -711,5 +711,7 @@ export default {
 
   // Results page tabs
   'results.leagueResults': 'League',
-  'results.cupResults': 'Cup'
+  'results.cupResults': 'Cup',
+  'results.friendlyResults': 'Friendlies',
+  'friendly.noResults': 'No friendly matches this season.'
 }

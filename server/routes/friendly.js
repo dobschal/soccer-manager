@@ -140,6 +140,47 @@ export default {
   },
 
   /**
+   * Get the user's friendly matches for a season
+   * @param {number} season
+   * @param {Request} req
+   * @returns {Promise<{results: Array}>}
+   */
+  async getFriendlyResults (season, req) {
+    if (!req.user) throw new UnauthorizedError('Not authorized')
+
+    const myTeam = await getTeam(req)
+
+    const results = await query(
+      `SELECT g.id           as id,
+              g.game_day     as gameDay,
+              g.season       as season,
+              g.goals_team_1 as goalsTeam1,
+              g.goals_team_2 as goalsTeam2,
+              t1.name        as team1,
+              t2.name        as team2,
+              g.team_1_id    as team1Id,
+              g.team_2_id    as team2Id,
+              t1.color       as team1Color,
+              t1.emblem      as team1Emblem,
+              t2.color       as team2Color,
+              t2.emblem      as team2Emblem,
+              g.details      as details,
+              g.created_at   as created_at
+       FROM game g
+       JOIN team t1 ON t1.id = g.team_1_id
+       JOIN team t2 ON t2.id = g.team_2_id
+       WHERE g.game_type = 'friendly'
+         AND g.played = 1
+         AND g.season = ?
+         AND (g.team_1_id = ? OR g.team_2_id = ?)
+       ORDER BY g.game_day ASC, g.created_at ASC`,
+      [season, myTeam.id, myTeam.id]
+    )
+
+    return { results }
+  },
+
+  /**
    * Get friendly matches for the user's team
    * @param {number} limit - Maximum number of games to return
    * @param {Request} req

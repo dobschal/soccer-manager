@@ -4,7 +4,10 @@ import { generateRandomPlayerName } from '../prepare-season.js'
 import { Position } from '../../client/util/formation.js'
 import { randomItem } from '../lib/util.js'
 
-const MIN_FREE_PLAYERS = 20
+async function getTeamCount () {
+  const [{ count }] = await query('SELECT COUNT(*) AS count FROM team')
+  return count
+}
 
 /**
  * @param {number} id
@@ -56,7 +59,7 @@ export async function getPlayersByTeamId (teamId) {
 }
 
 /**
- * Maintains exactly MIN_FREE_PLAYERS free players in the market.
+ * Maintains free players in the market equal to the current number of teams.
  * Deletes random excess players if above minimum, generates weak players if below.
  * @returns {Promise<{deleted: number, generated: number}>}
  */
@@ -69,11 +72,13 @@ export async function cleanupOldFreePlayers () {
   let deletedCount = 0
   let generatedCount = 0
 
+  const teamCount = await getTeamCount()
+
   // Delete random players if above minimum
-  if (freePlayers.length > MIN_FREE_PLAYERS) {
+  if (freePlayers.length > teamCount) {
     // Shuffle and pick excess players to delete
     const shuffled = [...freePlayers].sort(() => Math.random() - 0.5)
-    const playersToDelete = shuffled.slice(0, freePlayers.length - MIN_FREE_PLAYERS)
+    const playersToDelete = shuffled.slice(0, freePlayers.length - teamCount)
 
     for (const player of playersToDelete) {
       await query('DELETE FROM player_history WHERE player_id = ?', [player.id])
@@ -90,7 +95,7 @@ export async function cleanupOldFreePlayers () {
 
   // Generate new weak free players if below minimum
   const currentFreeCount = freePlayers.length - deletedCount
-  const playersToGenerate = Math.max(0, MIN_FREE_PLAYERS - currentFreeCount)
+  const playersToGenerate = Math.max(0, teamCount - currentFreeCount)
 
   for (let i = 0; i < playersToGenerate; i++) {
     await _generateWeakFreePlayer(season)

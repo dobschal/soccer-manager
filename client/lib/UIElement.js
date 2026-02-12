@@ -101,6 +101,7 @@ export class UIElement {
    * @returns {string}
    */
   renderSync () {
+    this._isMounted = false
     let retries = 0
     const maxRetries = 500 // 5 seconds max wait
     const waitAndRender = async () => {

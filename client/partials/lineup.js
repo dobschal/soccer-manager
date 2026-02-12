@@ -144,9 +144,9 @@ export class Lineup extends UIElement {
         elements.item(1).style.left = '62%'
       }
       if (elements.length === 3) {
-        elements.item(0).style.left = '38%'
+        elements.item(0).style.left = '32%'
         elements.item(1).style.left = '50%'
-        elements.item(2).style.left = '62%'
+        elements.item(2).style.left = '68%'
       }
     })
   }

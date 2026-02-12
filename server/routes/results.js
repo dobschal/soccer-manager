@@ -76,6 +76,7 @@ export default {
             AND g.level = ?
             AND g.league = ?
             AND played = 1
+            AND (g.game_type = 'league' OR g.game_type IS NULL)
       `, [tilGameDay, season, actualLevel, actualLeague])
     })
   },
@@ -262,6 +263,7 @@ export default {
           AND g.season = ?
           AND g.level = ?
           AND g.league = ?
+          AND (g.game_type = 'league' OR g.game_type IS NULL)
     `, [gameDay, season, level ?? team.level, league ?? team.league])
     // Extract only needed fields from details to reduce payload size
     return {
@@ -334,6 +336,7 @@ export default {
             AND g.level = ?
             AND g.league = ?
             AND g.played = 1
+            AND (g.game_type = 'league' OR g.game_type IS NULL)
       `,
       [gameDay, season, actualLevel, actualLeague]
     )

@@ -147,8 +147,8 @@ export class DashboardPage extends UIElement {
       team2Data: this._extractTeamData(g, 2)
     }))
 
-    // Set initial slide to the latest played game (last of past games)
-    this._initialSlideIndex = Math.max(0, sliderResponse.pastGames.length - 1)
+    // Show next game if it starts within 2 hours, otherwise show latest result
+    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
 
     // Fetch current standing and finance log in parallel
     const [standing, financeLogResponse] = await Promise.all([
@@ -180,6 +180,29 @@ export class DashboardPage extends UIElement {
       color: game[`${prefix}Color`],
       emblem: game[`${prefix}Emblem`] // Keep as JSON string for renderEmblem
     }
+  }
+
+  /**
+   * Find the initial slide index for a game slider.
+   * Shows the next upcoming game if it starts within 2 hours, otherwise the latest played game.
+   * @param {Array} games
+   * @returns {number}
+   */
+  _findInitialSlideIndex (games) {
+    const TWO_HOURS = 2 * 60 * 60 * 1000
+    const now = Date.now()
+
+    const nextUpcomingIndex = games.findIndex(g => !g.isPlayed && g.gameDate)
+    if (nextUpcomingIndex !== -1) {
+      const gameTime = new Date(games[nextUpcomingIndex].gameDate).getTime()
+      if (gameTime - now < TWO_HOURS) {
+        return nextUpcomingIndex
+      }
+    }
+
+    // Fall back to last played game
+    const lastPlayedIndex = games.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
+    return Math.max(0, lastPlayedIndex)
   }
 
   /**
@@ -283,13 +306,10 @@ export class DashboardPage extends UIElement {
       `
     }
 
-    // Find the initial index (last played game or first upcoming)
-    const lastPlayedIndex = this._cupGames.reduce((acc, g, i) => g.isPlayed ? i : acc, 0)
-
     const cupSliderArgs = {
       games: this._cupGames,
       teamId: this.team.id,
-      initialIndex: lastPlayedIndex
+      initialIndex: this._findInitialSlideIndex(this._cupGames)
     }
 
     return new GameSlider(cupSliderArgs)

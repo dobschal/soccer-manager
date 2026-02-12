@@ -326,6 +326,12 @@ export class GameSlider extends UIElement {
         const link = touchTarget.closest('a[href]')
         if (link) {
           link.click()
+          // Block the native click that browsers fire after a touch sequence,
+          // to prevent the handler from running a second time.
+          slider.addEventListener('click', (e) => {
+            e.stopPropagation()
+            e.preventDefault()
+          }, { once: true, capture: true })
         }
       }
       // Otherwise: scrolling or long press - do nothing

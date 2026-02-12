@@ -4,20 +4,19 @@ import { randomItem } from './lib/util.js'
 import { ActionCard } from './entities/actionCard.js'
 import { getSponsor } from './helper/sponsorHelper.js'
 import { updateTeamBalance } from './helper/financeHelper.js'
-import { sallaryPerLevel } from '../client/util/player.js'
+import { salaryPerLevel } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
 import { completeStadiumConstructions } from './helper/stadiumHelper.js'
-import { checkTeamAndNotify } from './helper/logMessageHelper.js'
+import { addLogMessage, checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
 import { processYouthTraining } from './helper/youthPlayerHelper.js'
-import { addLogMessage } from './helper/logMessageHelper.js'
 import { cacheStandingsForGameDay } from './helper/standingHelper.js'
 import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
-import { clearCacheByPrefix, CACHE_NAMESPACES } from './lib/cache.js'
-import { progressCupRound, sendCupMatchLogMessages, getCupRoundsForSeason } from './helper/cupHelper.js'
+import { CACHE_NAMESPACES, clearCacheByPrefix } from './lib/cache.js'
+import { getCupRoundsForSeason, progressCupRound, sendCupMatchLogMessages } from './helper/cupHelper.js'
 
 /**
  * @typedef {object} KickoffLogEvent
@@ -109,9 +108,18 @@ import { progressCupRound, sendCupMatchLogMessages, getCupRoundsForSeason } from
  * @type {Object<string, {fightBonus: number, cardChance: number}>}
  */
 const PLAY_STYLE_MODIFIERS = {
-  aggressive: { fightBonus: 0.15, cardChance: 0.005 },
-  normal: { fightBonus: 0, cardChance: 0.004 },
-  friendly: { fightBonus: -0.15, cardChance: 0.003 }
+  aggressive: {
+    fightBonus: 0.15,
+    cardChance: 0.005
+  },
+  normal: {
+    fightBonus: 0,
+    cardChance: 0.004
+  },
+  friendly: {
+    fightBonus: -0.15,
+    cardChance: 0.003
+  }
 }
 
 /**
@@ -197,7 +205,7 @@ export async function calculateGames () {
 
   // Play league games
   const leagueGames = await query(
-    "SELECT * FROM game WHERE season=? AND game_day=? AND played=0 AND (game_type='league' OR game_type IS NULL)",
+    'SELECT * FROM game WHERE season=? AND game_day=? AND played=0 AND (game_type=\'league\' OR game_type IS NULL)',
     [season, gameDay]
   )
   if (leagueGames.length > 0) {
@@ -229,7 +237,7 @@ export async function calculateGames () {
  */
 async function _playCupGames (gameDay, season) {
   const cupGames = await query(
-    "SELECT * FROM game WHERE season=? AND game_day=? AND played=0 AND game_type='cup'",
+    'SELECT * FROM game WHERE season=? AND game_day=? AND played=0 AND game_type=\'cup\'',
     [season, gameDay]
   )
 
@@ -250,7 +258,7 @@ async function _playCupGames (gameDay, season) {
 
     // Check if all games in this round are now played
     const unplayedInRound = await query(
-      "SELECT * FROM game WHERE game_type='cup' AND season=? AND cup_round=? AND played=0",
+      'SELECT * FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=? AND played=0',
       [season, round.round]
     )
 
@@ -341,7 +349,11 @@ async function _playCupGame (game) {
   ])
 
   // Update freshness and card counts for cup games too
-  const freshnessLossByStyle = { aggressive: 0.15, normal: 0.12, friendly: 0.10 }
+  const freshnessLossByStyle = {
+    aggressive: 0.15,
+    normal: 0.12,
+    friendly: 0.10
+  }
   for (const player of playerTeamA) {
     const playStyle = teamA.play_style || 'normal'
     const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
@@ -422,7 +434,10 @@ async function _giveSponsorMoney (gameDay, season) {
 
   await Promise.all(teams.map(async team => {
     const t1 = Date.now()
-    const { sponsor } = await getSponsor(team, { gameDay, season })
+    const { sponsor } = await getSponsor(team, {
+      gameDay,
+      season
+    })
     console.log('Get team sponsor in ' + (Date.now() - t1) + 'ms')
     if (!sponsor) return
     const locale = await getUserLocale(team.user_id)
@@ -442,7 +457,7 @@ async function _letTeamsPaySallaries (gameDay, season) {
   const teams = await query('SELECT * FROM team')
   await Promise.all(teams.map(async team => {
     const players = await query('SELECT * FROM player WHERE team_ID=?', [team.id])
-    const totalSallaryCosts = players.reduce((total, player) => total + sallaryPerLevel[player.level], 0) * -1
+    const totalSallaryCosts = players.reduce((total, player) => total + salaryPerLevel[player.level], 0) * -1
     const locale = await getUserLocale(team.user_id)
     const reason = t('finance.playerSalaries', {}, locale)
     await updateTeamBalance(team, totalSallaryCosts, reason, gameDay, season)
@@ -660,7 +675,11 @@ async function _playGame (game) {
   // Update freshness and card counts for all players
   // Freshness loss depends on play style: aggressive 15%, normal 12%, friendly 10%
   // Goalkeepers always lose 8%
-  const freshnessLossByStyle = { aggressive: 0.15, normal: 0.12, friendly: 0.10 }
+  const freshnessLossByStyle = {
+    aggressive: 0.13,
+    normal: 0.10,
+    friendly: 0.08
+  }
   for (const player of playerTeamA) {
     const playStyle = teamA.play_style || 'normal'
     const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
@@ -742,7 +761,10 @@ async function _updatePlayerAfterGame (player, gameDetails, team) {
     // Log yellow card(s) for this match
     const locale = await getUserLocale(team.user_id)
     await addLogMessage(
-      t('log.playerYellowCard', { playerName: player.name, count: yellowsInMatch }, locale),
+      t('log.playerYellowCard', {
+        playerName: player.name,
+        count: yellowsInMatch
+      }, locale),
       team,
       'OPEN_PLAYER',
       player.id,
