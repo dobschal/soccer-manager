@@ -15,6 +15,7 @@ export function showSearchOverlay () {
   const searchInputId = generateId()
   const tabPlayersId = generateId()
   const tabTeamsId = generateId()
+  const tabUsersId = generateId()
   const resultsContainerId = generateId()
 
   let currentTab = 'players'
@@ -61,12 +62,21 @@ export function showSearchOverlay () {
     performSearch()
   })
 
+  onClick('#' + tabUsersId, (e) => {
+    e.preventDefault()
+    currentTab = 'users'
+    updateTabs()
+    performSearch()
+  })
+
   const updateTabs = () => {
     const playersTab = el('#' + tabPlayersId)
     const teamsTab = el('#' + tabTeamsId)
-    if (playersTab && teamsTab) {
+    const usersTab = el('#' + tabUsersId)
+    if (playersTab && teamsTab && usersTab) {
       playersTab.classList.toggle('active', currentTab === 'players')
       teamsTab.classList.toggle('active', currentTab === 'teams')
+      usersTab.classList.toggle('active', currentTab === 'users')
     }
   }
 
@@ -88,9 +98,12 @@ export function showSearchOverlay () {
           teams
         } = await server.searchPlayers(currentQuery)
         renderPlayerResults(resultsContainer, players, teams)
-      } else {
+      } else if (currentTab === 'teams') {
         const { teams } = await server.searchTeams(currentQuery)
         renderTeamResults(resultsContainer, teams)
+      } else {
+        const { users } = await server.searchUsers(currentQuery)
+        renderUserResults(resultsContainer, users)
       }
     } catch (e) {
       resultsContainer.innerHTML = `<p class="text-danger">${e.message || t('toast.somethingWentWrong')}</p>`
@@ -157,6 +170,31 @@ export function showSearchOverlay () {
     container.innerHTML = html
   }
 
+  const renderUserResults = (container, users) => {
+    if (users.length === 0) {
+      container.innerHTML = `<p class="text-muted text-center">${t('search.noResults')}</p>`
+      return
+    }
+
+    const html = `
+      <div class="list-group">
+        ${users.map(user => `
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center search-result-item"
+                 ${user.team_id ? `data-team-id="${user.team_id}"` : ''}
+                 style="cursor: ${user.team_id ? 'pointer' : 'default'};">
+              <div>
+                <strong><i class="fa fa-user"></i> ${user.username}</strong>
+              </div>
+              <div class="text-end">
+                <small class="text-muted">${user.team_name || t('search.noTeam')}</small>
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    `
+    container.innerHTML = html
+  }
+
   const html = `
     <div id="${overlayId}" class="overlay-backdrop">
       <div id="${overlayInnerId}" class="card overlay" style="max-width: 500px;">
@@ -185,6 +223,11 @@ export function showSearchOverlay () {
                 <i class="fa fa-users"></i> ${t('search.teams')}
               </a>
             </li>
+            <li class="nav-item">
+              <a id="${tabUsersId}" class="nav-link" href="#">
+                <i class="fa fa-id-card"></i> ${t('search.users')}
+              </a>
+            </li>
           </ul>
 
           <div id="${resultsContainerId}" style="max-height: 400px; overflow-y: auto;">
@@ -203,7 +246,7 @@ export function showSearchOverlay () {
   if (resultsContainer) {
     resultsContainer.addEventListener('click', (e) => {
       const resultItem = e.target.closest('.search-result-item')
-      if (resultItem) {
+      if (resultItem && resultItem.dataset.teamId) {
         e.preventDefault()
         e.stopPropagation()
         const teamId = parseInt(resultItem.dataset.teamId, 10)

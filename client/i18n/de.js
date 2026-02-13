@@ -16,12 +16,14 @@ export default {
 
   // Search
   'search.title': 'Suche',
-  'search.placeholder': 'Spieler oder Teams suchen...',
+  'search.placeholder': 'Spieler, Teams oder Benutzer suchen...',
   'search.players': 'Spieler',
   'search.teams': 'Teams',
+  'search.users': 'Benutzer',
   'search.minChars': 'Mindestens 3 Zeichen eingeben',
   'search.noResults': 'Keine Ergebnisse gefunden',
   'search.level': 'Level',
+  'search.noTeam': 'Kein Team',
 
   // Landing page
   'landing.freeToPlay': 'Kostenlos spielen',

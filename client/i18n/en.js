@@ -16,12 +16,14 @@ export default {
 
   // Search
   'search.title': 'Search',
-  'search.placeholder': 'Search for players or teams...',
+  'search.placeholder': 'Search for players, teams or users...',
   'search.players': 'Players',
   'search.teams': 'Teams',
+  'search.users': 'Users',
   'search.minChars': 'Enter at least 3 characters to search',
   'search.noResults': 'No results found',
   'search.level': 'Level',
+  'search.noTeam': 'No team',
 
   // Landing page
   'landing.freeToPlay': 'Free to Play',

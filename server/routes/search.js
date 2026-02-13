@@ -66,5 +66,31 @@ export default {
     )
 
     return { teams }
+  },
+
+  /**
+   * Search for users by username
+   * @param {string} searchQuery
+   * @param {Request} req
+   * @returns {Promise<{users: Array<{id: number, username: string, team_id: number, team_name: string}>}>}
+   */
+  async searchUsers (searchQuery, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+
+    if (!searchQuery || typeof searchQuery !== 'string' || searchQuery.length < 3) {
+      return { users: [] }
+    }
+
+    const searchPattern = `%${searchQuery}%`
+
+    const users = await query(
+      'SELECT u.id, u.username, t.id AS team_id, t.name AS team_name FROM user u LEFT JOIN team t ON t.user_id = u.id WHERE u.username LIKE ? LIMIT 10',
+      [searchPattern]
+    )
+
+    return { users }
   }
 }
