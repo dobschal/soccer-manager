@@ -11,6 +11,8 @@ export class StadiumPage extends UIElement {
   stadium = {}
   team = {}
   constructionInfo = {}
+  attendanceData = []
+  constructionHistory = []
   /** @type {StadiumCanvas|null} */
   _stadiumCanvas = null
   /** @type {boolean} */
@@ -73,6 +75,12 @@ export class StadiumPage extends UIElement {
         <form class="pb-4 mb-4" id="stadium-form">
           ${this._renderExpandForm()}
         </form>
+        <h3>${t('stadium.attendance')}</h3>
+        <p>${t('stadium.attendanceDesc')}</p>
+        ${this._renderAttendanceSection()}
+        <h3>${t('stadium.constructionHistory')}</h3>
+        <p>${t('stadium.constructionHistoryDesc')}</p>
+        ${this._renderConstructionHistory()}
       </div>
     `
   }
@@ -81,15 +89,17 @@ export class StadiumPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const [stadiumResponse, teamResponse] = await Promise.all([
+    const [stadiumResponse, teamResponse, attendanceResponse, historyResponse] = await Promise.all([
       server.getStadium(),
-      server.getMyTeam()
+      server.getMyTeam(),
+      server.getStadiumAttendance(),
+      server.getConstructionHistory()
     ])
     this.stadium = stadiumResponse.stadium
     this.constructionInfo = stadiumResponse.constructionInfo || {}
     this.team = teamResponse.team
-    console.log('Stadium: ', this.stadium)
-    console.log('Construction Info: ', this.constructionInfo)
+    this.attendanceData = attendanceResponse.attendance || []
+    this.constructionHistory = historyResponse.history || []
   }
 
   /**
@@ -270,6 +280,82 @@ export class StadiumPage extends UIElement {
       </p>
       <div id="construction-time-preview" class="mb-3"></div>
       <button type="submit" class="btn btn-primary" disabled>${t('stadium.startConstruction')}</button>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderAttendanceSection () {
+    if (!this.attendanceData || this.attendanceData.length === 0) {
+      return `<p class="text-muted mb-4">${t('stadium.noAttendanceData')}</p>`
+    }
+
+    const stands = ['north', 'south', 'east', 'west']
+    const headerCells = stands.map(s => `<th>${t('stadium.' + s)}</th>`).join('')
+    const rows = this.attendanceData.map(row => {
+      const standCells = stands.map(s => {
+        const data = row.stands[s]
+        return `<td>${data.guests.toLocaleString()} / ${data.size.toLocaleString()} (${data.percentage}%)</td>`
+      }).join('')
+      return `<tr><td>${t('stadium.seasonDay', {
+        season: row.season + 1,
+        day: row.gameDay + 1
+      })}</td>${standCells}</tr>`
+    }).join('')
+
+    return `
+      <div class="table-responsive mb-4">
+        <table class="table table-sm table-striped">
+          <thead><tr><th></th>${headerCells}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderConstructionHistory () {
+    if (!this.constructionHistory || this.constructionHistory.length === 0) {
+      return `<p class="text-muted mb-4">${t('stadium.noConstructionHistory')}</p>`
+    }
+
+    const rows = this.constructionHistory.map(h => {
+      const completedCol = h.completed_game_day != null
+        ? t('stadium.seasonDay', {
+          season: h.completed_season + 1,
+          day: h.completed_game_day
+        })
+        : `<span class="badge text-bg-warning">${t('stadium.inProgress')}</span>`
+      return `<tr>
+        <td>${t('stadium.' + h.stand)}</td>
+        <td>${h.old_size.toLocaleString()}</td>
+        <td>${h.new_size.toLocaleString()}</td>
+        <td>${h.added_roof ? '✓' : '—'}</td>
+        <td>${t('stadium.seasonDay', {
+        season: h.started_season + 1,
+        day: h.started_game_day + 1
+      })}</td>
+        <td>${completedCol}</td>
+      </tr>`
+    }).join('')
+
+    return `
+      <div class="table-responsive mb-4">
+        <table class="table table-sm table-striped">
+          <thead><tr>
+            <th>${t('stadium.stand')}</th>
+            <th>${t('stadium.oldSize')}</th>
+            <th>${t('stadium.newSize2')}</th>
+            <th>${t('stadium.roofAdded')}</th>
+            <th>${t('stadium.started')}</th>
+            <th>${t('stadium.completed')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     `
   }
 

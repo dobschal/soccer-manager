@@ -771,6 +771,25 @@ const migrations = [{
       console.log(`🔧 Fixed ${result.affectedRows} players with accumulated cards bug`)
     }
   }
+}, {
+  name: 'Create stadium_construction_history table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS stadium_construction_history
+    (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        stadium_id BIGINT NOT NULL,
+        stand VARCHAR(10) NOT NULL,
+        old_size INT NOT NULL,
+        new_size INT NOT NULL,
+        added_roof TINYINT(1) DEFAULT 0,
+        started_game_day INT NOT NULL,
+        started_season INT NOT NULL,
+        completed_game_day INT DEFAULT NULL,
+        completed_season INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_construction_stadium (stadium_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

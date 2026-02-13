@@ -103,6 +103,47 @@ export default {
   },
 
   /**
+   * @param {Request} req
+   * @returns {Promise<{attendance: Array}>}
+   */
+  async getStadiumAttendance (req) {
+    const stadium = await getStadiumOfCurrentUser(req)
+    const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+    const games = await query(
+      "SELECT * FROM game WHERE team_1_id=? AND played=1 AND game_type='league' ORDER BY season DESC, game_day DESC LIMIT 5",
+      [team.id]
+    )
+
+    const stands = ['north', 'south', 'east', 'west']
+    const attendance = games.map(game => {
+      const details = JSON.parse(game.details || '{}')
+      const sd = details.stadiumDetails || {}
+      const row = { season: game.season, gameDay: game.game_day, stands: {} }
+      for (const stand of stands) {
+        const guests = sd[stand + 'Guests'] || 0
+        const size = stadium[stand + '_stand_size'] || 1
+        row.stands[stand] = { guests, size, percentage: Math.round((guests / size) * 100) }
+      }
+      return row
+    })
+
+    return { attendance }
+  },
+
+  /**
+   * @param {Request} req
+   * @returns {Promise<{history: Array}>}
+   */
+  async getConstructionHistory (req) {
+    const stadium = await getStadiumOfCurrentUser(req)
+    const history = await query(
+      'SELECT * FROM stadium_construction_history WHERE stadium_id=? ORDER BY created_at DESC',
+      [stadium.id]
+    )
+    return { history }
+  },
+
+  /**
    * @param {StadiumType} stadium
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}

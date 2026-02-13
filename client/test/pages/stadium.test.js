@@ -21,6 +21,20 @@ vi.mock('../../i18n/index.js', () => ({
       'stadium.south': 'south',
       'stadium.east': 'east',
       'stadium.west': 'west',
+      'stadium.attendance': 'Attendance',
+      'stadium.attendanceDesc': 'Attendance per stand for your last 5 home games.',
+      'stadium.noAttendanceData': 'No attendance data available yet.',
+      'stadium.constructionHistory': 'Construction History',
+      'stadium.constructionHistoryDesc': 'All past and current stadium construction projects.',
+      'stadium.noConstructionHistory': 'No construction history yet.',
+      'stadium.stand': 'Stand',
+      'stadium.oldSize': 'Old Size',
+      'stadium.newSize2': 'New Size',
+      'stadium.roofAdded': 'Roof Added',
+      'stadium.started': 'Started',
+      'stadium.completed': 'Completed',
+      'stadium.inProgress': 'In Progress',
+      'stadium.seasonDay': `S${params.season || ''} Day ${params.day || ''}`,
       'toast.somethingWentWrong': 'Something went wrong!'
     }
     return translations[key] || key
@@ -33,7 +47,9 @@ vi.mock('../../lib/gateway.js', () => ({
     getMyTeam: vi.fn(),
     buildStadium: vi.fn(),
     updatePrices: vi.fn(),
-    calculateStadiumPrice: vi.fn()
+    calculateStadiumPrice: vi.fn(),
+    getStadiumAttendance: vi.fn(),
+    getConstructionHistory: vi.fn()
   }
 }))
 
@@ -97,6 +113,8 @@ describe('StadiumPage', () => {
         color: '#FF0000'
       }
     })
+    server.getStadiumAttendance.mockResolvedValue({ attendance: [] })
+    server.getConstructionHistory.mockResolvedValue({ history: [] })
   })
 
   describe('StadiumPage class', () => {
@@ -237,6 +255,88 @@ describe('StadiumPage', () => {
     it('extends UIElement', () => {
       const page = new StadiumPage()
       expect(page.isUIElement).toBe(true)
+    })
+  })
+
+  describe('Attendance section', () => {
+    it('renders empty state when no attendance data', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('No attendance data available yet.')
+    })
+
+    it('renders attendance table with data', async () => {
+      server.getStadiumAttendance.mockResolvedValue({
+        attendance: [
+          {
+            season: 1,
+            gameDay: 5,
+            stands: {
+              north: { guests: 4000, size: 5000, percentage: 80 },
+              south: { guests: 3500, size: 5000, percentage: 70 },
+              east: { guests: 2500, size: 5000, percentage: 50 },
+              west: { guests: 4500, size: 5000, percentage: 90 }
+            }
+          }
+        ]
+      })
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('4,000')
+      expect(page.template).toContain('80%')
+      expect(page.template).toContain('S1 Day 5')
+    })
+  })
+
+  describe('Construction history section', () => {
+    it('renders empty state when no history', async () => {
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('No construction history yet.')
+    })
+
+    it('renders history table with past constructions', async () => {
+      server.getConstructionHistory.mockResolvedValue({
+        history: [
+          {
+            stand: 'north',
+            old_size: 5000,
+            new_size: 8000,
+            added_roof: 0,
+            started_game_day: 3,
+            started_season: 1,
+            completed_game_day: 8,
+            completed_season: 1
+          }
+        ]
+      })
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('5,000')
+      expect(page.template).toContain('8,000')
+      expect(page.template).toContain('S1 Day 3')
+      expect(page.template).toContain('S1 Day 8')
+    })
+
+    it('renders in-progress badge for active construction', async () => {
+      server.getConstructionHistory.mockResolvedValue({
+        history: [
+          {
+            stand: 'south',
+            old_size: 3000,
+            new_size: 6000,
+            added_roof: 1,
+            started_game_day: 10,
+            started_season: 2,
+            completed_game_day: null,
+            completed_season: null
+          }
+        ]
+      })
+      const page = new StadiumPage()
+      await page.load()
+      expect(page.template).toContain('In Progress')
+      expect(page.template).toContain('badge')
     })
   })
 

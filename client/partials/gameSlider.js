@@ -20,7 +20,11 @@ export class GameSlider extends UIElement {
    * @param {number} options.teamId - Current user's team ID
    * @param {number} options.initialIndex - Index of the initially active slide
    */
-  constructor ({ games = [], teamId, initialIndex = 0 }) {
+  constructor ({
+    games = [],
+    teamId,
+    initialIndex = 0
+  }) {
     super()
     this._games = games
     this._teamId = teamId
@@ -129,7 +133,7 @@ export class GameSlider extends UIElement {
     if (game.isPlayed) {
       // Played game: show game day and result
       return `
-        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
+        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay + 1 })}</small>
         <h3 class="mb-0"><span class="badge bg-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h3>
       `
     }
@@ -139,9 +143,12 @@ export class GameSlider extends UIElement {
     if (!gameDate) {
       // No date available, show simple countdown placeholder
       const countdownId = generateId()
-      this._countdownElementIds.push({ id: countdownId, gameDate: null })
+      this._countdownElementIds.push({
+        id: countdownId,
+        gameDate: null
+      })
       return `
-        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
+        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay + 1 })}</small>
         <div class="badge bg-secondary p-2 countdown-badge">
           <i class="fa fa-clock-o" aria-hidden="true"></i><br>
           <span id="${countdownId}">--:--:--</span>
@@ -170,9 +177,12 @@ export class GameSlider extends UIElement {
 
     // Less than 24 hours: show countdown timer
     const countdownId = generateId()
-    this._countdownElementIds.push({ id: countdownId, gameDate })
+    this._countdownElementIds.push({
+      id: countdownId,
+      gameDate
+    })
     return `
-      <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
+      <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay + 1 })}</small>
       <div class="badge bg-secondary p-2 countdown-badge">
         <i class="fa fa-clock-o" aria-hidden="true"></i><br>
         <span id="${countdownId}">--:--:--</span>
@@ -190,7 +200,10 @@ export class GameSlider extends UIElement {
     this._timerInterval = setInterval(() => {
       let anyUpdated = false
 
-      for (const { id, gameDate } of this._countdownElementIds) {
+      for (const {
+        id,
+        gameDate
+      } of this._countdownElementIds) {
         const timerEl = el('#' + id)
         if (!timerEl) continue
 
@@ -331,7 +344,10 @@ export class GameSlider extends UIElement {
           slider.addEventListener('click', (e) => {
             e.stopPropagation()
             e.preventDefault()
-          }, { once: true, capture: true })
+          }, {
+            once: true,
+            capture: true
+          })
         }
       }
       // Otherwise: scrolling or long press - do nothing

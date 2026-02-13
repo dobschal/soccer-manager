@@ -139,6 +139,13 @@ export async function completeStadiumConstructions (gameDay, season) {
           WHERE id = ?
       `, [stadium.id])
 
+      // Mark construction history as completed
+      await query(`
+          UPDATE stadium_construction_history
+          SET completed_game_day = ?, completed_season = ?
+          WHERE stadium_id = ? AND stand = ? AND completed_game_day IS NULL
+      `, [gameDay, season, stadium.id, stand])
+
       const [team] = await query('SELECT * FROM team WHERE id=?', [stadium.team_id])
       if (team) {
         await addLogMessage(`Your ${stand} stand construction is complete!`, team, null, null, 'building')
@@ -268,6 +275,27 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
   await query(`UPDATE stadium
                SET ${setClauses}
                WHERE id = ?`, values)
+
+  // Record construction history for each changed stand
+  for (const stand of stands) {
+    const currentSize = currentStadium[`${stand}_stand_size`]
+    const targetSize = plannedStadium[`${stand}_stand_size`]
+    const currentRoof = currentStadium[`${stand}_stand_roof`]
+    const targetRoof = plannedStadium[`${stand}_stand_roof`]
+
+    if (currentSize === targetSize && currentRoof === targetRoof) continue
+
+    await query('INSERT INTO stadium_construction_history SET ?', {
+      stadium_id: currentStadium.id,
+      stand,
+      old_size: currentSize,
+      new_size: targetSize,
+      added_roof: (!currentRoof && targetRoof) ? 1 : 0,
+      started_game_day: gameDay,
+      started_season: season
+    })
+  }
+
   await addLogMessage('Construction has started on your stadium!', team, null, null, 'building')
 
   // Return updated construction info

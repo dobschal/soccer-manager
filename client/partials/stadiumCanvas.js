@@ -123,7 +123,7 @@ export class StadiumCanvas extends UIElement {
 
     const container = canvas.parentElement
     const width = container.clientWidth
-    const height = Math.min(400, width * 0.6)
+    const height = Math.min(600, width * 0.9)
 
     this._scene = new THREE.Scene()
     this._scene.background = new THREE.Color(0x0a0a1a)
@@ -190,7 +190,7 @@ export class StadiumCanvas extends UIElement {
     this._resizeObserver = new ResizeObserver(() => {
       if (!this._camera || !this._renderer) return
       const newWidth = container.clientWidth
-      const newHeight = Math.min(400, newWidth * 0.6)
+      const newHeight = Math.min(600, newWidth * 0.9)
       this._camera.aspect = newWidth / newHeight
       this._camera.updateProjectionMatrix()
       this._renderer.setSize(newWidth, newHeight)

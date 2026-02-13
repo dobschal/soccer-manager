@@ -73,7 +73,7 @@ export class GameLayout extends UIElement {
           <div class="info-bar-content">
             <div class="info-bar-item">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
-      gameDay: this._gameDay,
+      gameDay: this._gameDay + 1,
       season: this._season + 1
     })}
             </div>
