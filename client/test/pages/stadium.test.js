@@ -17,6 +17,7 @@ vi.mock('../../i18n/index.js', () => ({
       'stadium.totalPrice': 'Total Price for construction:',
       'stadium.startConstruction': 'Start Construction',
       'stadium.constructionRemaining': `Under construction - ${params.days ?? ''} gameday(s) remaining`,
+      'stadium.constructionCompletesToday': 'Completes today.',
       'stadium.north': 'north',
       'stadium.south': 'south',
       'stadium.east': 'east',
@@ -493,11 +494,11 @@ describe('StadiumPage', () => {
         })
       })
 
-      it('still shows as under construction', async () => {
+      it('still shows as under construction with completes-today message', async () => {
         const page = new StadiumPage()
         await page.load()
-        expect(page.template).toContain('Under construction')
-        expect(page.template).toContain('0 gameday(s) remaining')
+        expect(page.template).toContain('Completes today.')
+        expect(page.template).not.toContain('0 gameday(s) remaining')
       })
 
       it('still disables the stand input', async () => {
@@ -633,11 +634,11 @@ describe('StadiumPage', () => {
         expect(page.template).toContain('5 gameday(s) remaining')
       })
 
-      it('east (due, 0 days remaining) is disabled with badge', async () => {
+      it('east (due, 0 days remaining) is disabled with completes-today badge', async () => {
         const page = new StadiumPage()
         await page.load()
         expect(page.template).toMatch(/data-size-input="east"[^>]*disabled/)
-        expect(page.template).toContain('0 gameday(s) remaining')
+        expect(page.template).toContain('Completes today.')
       })
 
       it('west (no construction) is enabled', async () => {

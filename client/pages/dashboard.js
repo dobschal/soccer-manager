@@ -9,6 +9,7 @@ import { ActionCards } from '../partials/actionCards.js'
 import { LogMessages } from '../partials/logMessages.js'
 import { t } from '../i18n/index.js'
 import { showManagerChat, wasManagerChatShown } from '../partials/managerChat.js'
+import { showOverlay } from '../partials/overlay.js'
 import { goTo } from '../lib/router.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { GameSlider } from '../partials/gameSlider.js'
@@ -21,6 +22,7 @@ export class DashboardPage extends UIElement {
   _friendlyGames = []
   _cupGames = []
   _financeLog = []
+  _urgencies = []
   _initialSlideIndex = 0
   _tutorialProgress = new TutorialProgress()
   team = {}
@@ -150,20 +152,22 @@ export class DashboardPage extends UIElement {
     // Show next game if it starts within 2 hours, otherwise show latest result
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
 
-    // Fetch current standing and finance log in parallel
-    const [standing, financeLogResponse] = await Promise.all([
+    // Fetch current standing, finance log, and urgencies in parallel
+    const [standing, financeLogResponse, urgencyResponse] = await Promise.all([
       server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
       server.getFinanceLog(
         this.season,
         Math.max(0, this.gameDay - 6),
         this.season,
         this.gameDay
-      )
+      ),
+      server.getDashboardUrgencies()
     ])
 
     this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
     this._financeLog = financeLogResponse.log || []
+    this._urgencies = urgencyResponse.urgencies || []
   }
 
   /**
@@ -211,6 +215,7 @@ export class DashboardPage extends UIElement {
   onMounted () {
     void showTutorialIfNeeded('dashboard', this)
     this._showManagerChatIfNeeded()
+    this._showUrgencyOverlayIfNeeded()
   }
 
   /**
@@ -254,6 +259,64 @@ export class DashboardPage extends UIElement {
     `
 
     void showManagerChat(this.team.color, chatText, this.gameDay, this.season)
+  }
+
+  /**
+   * Shows the urgency overlay once per game day if there are pending actions
+   * @returns {void}
+   */
+  _showUrgencyOverlayIfNeeded () {
+    const isLargeScreen = window.matchMedia('(min-width: 992px)').matches
+    if (!isLargeScreen) return
+    if (this._urgencies.length === 0) return
+
+    const storageKey = `urgencyOverlayShown_${this.season}_${this.gameDay}`
+    if (localStorage.getItem(storageKey) === 'true') return
+
+    const urgencyMap = {
+      INCOMPLETE_LINEUP: {
+        text: 'dashboard.urgencyLineup',
+        link: '#my-team',
+        linkText: 'dashboard.urgencyLinkTeam'
+      },
+      LOW_FRESHNESS: {
+        text: 'dashboard.urgencyFreshness',
+        link: '#my-team',
+        linkText: 'dashboard.urgencyLinkTeam'
+      },
+      YOUTH_LOW_STATS: {
+        text: 'dashboard.urgencyYouth',
+        link: '#my-team?tab=youth',
+        linkText: 'dashboard.urgencyLinkYouth'
+      },
+      INCOMING_OFFERS: {
+        text: 'dashboard.urgencyOffers',
+        link: '#trades?tab=incoming',
+        linkText: 'dashboard.urgencyLinkTrades'
+      },
+      NO_SPONSOR: {
+        text: 'dashboard.urgencySponsor',
+        link: '#finances',
+        linkText: 'dashboard.urgencyLinkFinances'
+      }
+    }
+
+    const items = this._urgencies.map(u => {
+      const config = urgencyMap[u.type]
+      if (!config) return ''
+      const message = t(config.text, { count: u.count || 0 })
+      return `<li class="mb-2">${message} <a class="text-info" href="${config.link}"> 👉 ${t(config.linkText)}</a></li>`
+    }).filter(Boolean).join('')
+
+    const delay = wasManagerChatShown(this.gameDay, this.season) ? 0 : 1500
+    setTimeout(() => {
+      showOverlay(
+        t('dashboard.urgencyTitle'),
+        t('dashboard.urgencySubtitle'),
+        `<ul class="list-unstyled mb-0">${items}</ul>`
+      )
+      localStorage.setItem(storageKey, 'true')
+    }, delay)
   }
 
   /**

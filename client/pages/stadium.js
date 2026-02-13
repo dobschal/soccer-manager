@@ -239,7 +239,7 @@ export class StadiumPage extends UIElement {
 
       const constructionBadge = underConstruction
         ? `<div class="alert alert-warning mt-2 py-2">
-             <small>${t('stadium.constructionRemaining', { days: remaining })}</small>
+             <small>${remaining > 0 ? t('stadium.constructionRemaining', { days: remaining }) : t('stadium.constructionCompletesToday')}</small>
            </div>`
         : ''
 
