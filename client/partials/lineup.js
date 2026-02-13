@@ -178,7 +178,6 @@ export class Lineup extends UIElement {
       lineUpData.squadDataChanged = true
     }
     render('#squad', renderLineup(this.players, this.team, lineUpData.parentInstance))
-    // Auto-save if lineup is now complete
     this._autoSaveIfComplete()
   }
 

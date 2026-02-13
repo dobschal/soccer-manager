@@ -1,6 +1,7 @@
 services:
   database:
     image: mysql:8.0
+    restart: always
     environment:
       - MYSQL_DATABASE=soccer
       - MYSQL_ROOT_PASSWORD=root

@@ -53,7 +53,7 @@ export async function renderPlayerImage (player, team, size = 224) {
 
   // Only render emblem if player has a team
   const emblemHtml = team
-    ? `<div class="emblem-wrapper" style="width: ${emblemSize}px; height: 100%; left: 56%; top: 55%;">
+    ? `<div class="emblem-wrapper" style="width: ${emblemSize}px; height: ${emblemSize}px; left: 56%; top: 64%;">
             ${renderEmblem(team, emblemSize)}
         </div>`
     : ''
