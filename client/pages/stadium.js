@@ -299,8 +299,8 @@ export class StadiumPage extends UIElement {
         return `<td>${data.guests.toLocaleString()} / ${data.size.toLocaleString()} (${data.percentage}%)</td>`
       }).join('')
       return `<tr><td>${t('stadium.seasonDay', {
-        season: row.season + 1,
-        day: row.gameDay + 1
+        season: row.season,
+        day: row.gameDay
       })}</td>${standCells}</tr>`
     }).join('')
 
@@ -325,18 +325,18 @@ export class StadiumPage extends UIElement {
     const rows = this.constructionHistory.map(h => {
       const completedCol = h.completed_game_day != null
         ? t('stadium.seasonDay', {
-          season: h.completed_season + 1,
+          season: h.completed_season,
           day: h.completed_game_day
         })
-        : `<span class="badge text-bg-warning">${t('stadium.inProgress')}</span>`
+        : `<span class="badge badge-warning">${t('stadium.inProgress')}</span>`
       return `<tr>
         <td>${t('stadium.' + h.stand)}</td>
         <td>${h.old_size.toLocaleString()}</td>
         <td>${h.new_size.toLocaleString()}</td>
         <td>${h.added_roof ? '✓' : '—'}</td>
         <td>${t('stadium.seasonDay', {
-        season: h.started_season + 1,
-        day: h.started_game_day + 1
+        season: h.started_season,
+        day: h.started_game_day
       })}</td>
         <td>${completedCol}</td>
       </tr>`
