@@ -75,7 +75,7 @@ describe('stadiumHelper', () => {
       expect(info.north.remainingGameDays).toBeGreaterThan(0)
     })
 
-    it('returns underConstruction: false when remaining days = 0 (construction complete)', () => {
+    it('returns underConstruction: true with 0 remaining when end day reached but not yet completed', () => {
       const stadium = {
         north_construction_end_game_day: 15,
         north_construction_end_season: 1,
@@ -90,12 +90,14 @@ describe('stadiumHelper', () => {
       }
 
       // Current: day 15, season 1. End: day 15, season 1. Remaining: 0
+      // Still under construction because completeStadiumConstructions hasn't cleared the fields
       const info = getConstructionInfo(stadium, 15, 1)
 
-      expect(info.north.underConstruction).toBe(false)
+      expect(info.north.underConstruction).toBe(true)
+      expect(info.north.remainingGameDays).toBe(0)
     })
 
-    it('returns underConstruction: false when remaining days < 0 (past construction end)', () => {
+    it('returns underConstruction: true with 0 remaining when past end day but not yet completed', () => {
       const stadium = {
         north_construction_end_game_day: 15,
         north_construction_end_season: 1,
@@ -109,10 +111,12 @@ describe('stadiumHelper', () => {
         west_construction_end_season: null
       }
 
-      // Current: day 20, season 1. End: day 15, season 1. Remaining: -5
+      // Current: day 20, season 1. End: day 15, season 1.
+      // Still under construction because completeStadiumConstructions hasn't cleared the fields
       const info = getConstructionInfo(stadium, 20, 1)
 
-      expect(info.north.underConstruction).toBe(false)
+      expect(info.north.underConstruction).toBe(true)
+      expect(info.north.remainingGameDays).toBe(0)
     })
 
     it('handles cross-season construction correctly', () => {
@@ -169,9 +173,9 @@ describe('stadiumHelper', () => {
       }
     })
 
-    it('stand earns no ticket revenue while remainingGameDays > 0', () => {
-      // This test documents the expected behavior:
-      // While construction is ongoing (remainingGameDays > 0), the stand should not generate earnings
+    it('stand shows under construction until fields are cleared', () => {
+      // While construction fields are set, the stand is always under construction.
+      // Only completeStadiumConstructions clears the fields and makes it available.
       const stadium = {
         north_construction_end_game_day: 10,
         north_construction_end_season: 1,
@@ -187,24 +191,21 @@ describe('stadiumHelper', () => {
         west_construction_end_season: null
       }
 
-      // Days 1-9: construction ongoing, no earnings expected
+      // Days 1-9: construction ongoing with remaining days > 0
       for (let day = 1; day <= 9; day++) {
         const info = getConstructionInfo(stadium, day, 1)
         expect(info.north.underConstruction).toBe(true)
         expect(info.north.remainingGameDays).toBeGreaterThan(0)
-        // When underConstruction is true, the game logic skips ticket earnings for this stand
       }
 
-      // Day 10: construction complete
+      // Day 10+: still under construction (fields not cleared), but remaining is 0
       const infoDay10 = getConstructionInfo(stadium, 10, 1)
-      expect(infoDay10.north.underConstruction).toBe(false)
-      // Now the stand can generate earnings
+      expect(infoDay10.north.underConstruction).toBe(true)
+      expect(infoDay10.north.remainingGameDays).toBe(0)
     })
 
-    it('construction duration matches exactly the days where underConstruction is true', () => {
-      // Start construction on day 5, duration 5 days -> ends on day 10
-      // Construction should be true for days 5, 6, 7, 8, 9 (5 days)
-      // Construction should be false from day 10 onwards
+    it('remaining days decrease correctly and reach 0 at end day', () => {
+      // End day is 10, season 1. Construction fields remain until completeStadiumConstructions runs.
       const stadium = {
         north_construction_end_game_day: 10,
         north_construction_end_season: 1,
@@ -218,22 +219,19 @@ describe('stadiumHelper', () => {
         west_construction_end_season: null
       }
 
-      const constructionDays = []
-      const completeDays = []
-
-      for (let day = 5; day <= 15; day++) {
+      // Days 5-9: remaining counts down
+      for (let day = 5; day <= 9; day++) {
         const info = getConstructionInfo(stadium, day, 1)
-        if (info.north.underConstruction) {
-          constructionDays.push(day)
-        } else {
-          completeDays.push(day)
-        }
+        expect(info.north.underConstruction).toBe(true)
+        expect(info.north.remainingGameDays).toBe(10 - day)
       }
 
-      // Construction active on days 5-9 (5 days)
-      expect(constructionDays).toEqual([5, 6, 7, 8, 9])
-      // Construction complete from day 10 onwards
-      expect(completeDays).toEqual([10, 11, 12, 13, 14, 15])
+      // Day 10+: remaining is 0, still under construction until fields cleared
+      for (let day = 10; day <= 15; day++) {
+        const info = getConstructionInfo(stadium, day, 1)
+        expect(info.north.underConstruction).toBe(true)
+        expect(info.north.remainingGameDays).toBe(0)
+      }
     })
   })
 

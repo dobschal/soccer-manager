@@ -144,6 +144,95 @@ describe('stadium routes', () => {
     })
   })
 
+  describe('getStadiumAttendance', () => {
+    it('returns attendance data from last 5 home games', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      const games = [
+        {
+          season: 0, game_day: 5, details: JSON.stringify({
+            stadiumDetails: { northGuests: 4000, southGuests: 3500, eastGuests: 2000, westGuests: 2000 }
+          })
+        },
+        {
+          season: 0, game_day: 3, details: JSON.stringify({
+            stadiumDetails: { northGuests: 4500, southGuests: 4000, eastGuests: 3000, westGuests: 3000 }
+          })
+        }
+      ]
+      // First query is for the team, second for games
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce(games)
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance).toHaveLength(2)
+      expect(result.attendance[0].stands.north.guests).toBe(4000)
+      expect(result.attendance[0].stands.north.percentage).toBe(80)
+      expect(result.attendance[0].season).toBe(0)
+      expect(result.attendance[0].gameDay).toBe(5)
+    })
+
+    it('returns empty attendance when no home games played', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([])
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance).toEqual([])
+    })
+
+    it('handles missing stadiumDetails in game details gracefully', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      const games = [{ season: 0, game_day: 1, details: '{}' }]
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce(games)
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance).toHaveLength(1)
+      expect(result.attendance[0].stands.north.guests).toBe(0)
+      expect(result.attendance[0].stands.north.percentage).toBe(0)
+    })
+  })
+
+  describe('getConstructionHistory', () => {
+    it('returns construction history for current user stadium', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const history = [
+        { id: 1, stadium_id: 1, stand: 'north', old_size: 5000, new_size: 8000, added_roof: 1, started_game_day: 5, started_season: 0, completed_game_day: 10, completed_season: 0 }
+      ]
+      query.mockResolvedValue(history)
+
+      const req = createMockRequest()
+      const result = await handlers.getConstructionHistory(req)
+
+      expect(result.history).toEqual(history)
+      expect(query).toHaveBeenCalledWith(
+        'SELECT * FROM stadium_construction_history WHERE stadium_id=? ORDER BY created_at DESC',
+        [1]
+      )
+    })
+
+    it('returns empty history for new stadium', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      query.mockResolvedValue([])
+
+      const req = createMockRequest()
+      const result = await handlers.getConstructionHistory(req)
+
+      expect(result.history).toEqual([])
+    })
+  })
+
   describe('updatePrices', () => {
     it('updates stadium prices', async () => {
       const currentStadium = testData.stadium()

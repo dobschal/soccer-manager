@@ -85,22 +85,19 @@ export function getConstructionInfo (stadium, currentGameDay, currentSeason) {
     if (endGameDay === null || endGameDay === undefined) {
       info[stand] = { underConstruction: false }
     } else {
+      // Construction fields are still set, so completion hasn't run yet.
+      // Show as under construction until completeStadiumConstructions clears the fields.
       const currentTotal = currentSeason * GAMEDAYS_PER_SEASON + currentGameDay
       const endTotal = endSeason * GAMEDAYS_PER_SEASON + endGameDay
-      const remaining = endTotal - currentTotal
+      const remaining = Math.max(0, endTotal - currentTotal)
 
-      // If remaining days <= 0, construction is complete
-      if (remaining <= 0) {
-        info[stand] = { underConstruction: false }
-      } else {
-        info[stand] = {
-          underConstruction: true,
-          remainingGameDays: remaining,
-          endGameDay,
-          endSeason,
-          targetSize: stadium[`${stand}_construction_target_size`],
-          targetRoof: stadium[`${stand}_construction_target_roof`]
-        }
+      info[stand] = {
+        underConstruction: true,
+        remainingGameDays: remaining,
+        endGameDay,
+        endSeason,
+        targetSize: stadium[`${stand}_construction_target_size`],
+        targetRoof: stadium[`${stand}_construction_target_roof`]
       }
     }
   }
