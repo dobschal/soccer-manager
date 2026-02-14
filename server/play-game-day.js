@@ -949,7 +949,7 @@ function _checkForCard (player, playStyle, gameDetails, team) {
   }
 
   // Small chance for direct red card (very aggressive play)
-  if (playStyle === 'aggressive' && Math.random() < 0.0001 && !player.sentOff) {
+  if (playStyle === 'aggressive' && Math.random() < 0.00005 && !player.sentOff) {
     player.sentOff = true
     gameDetails.sentOffPlayerIds.push(player.id)
     gameDetails.log.push({
