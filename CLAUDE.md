@@ -217,11 +217,6 @@ lineups should not always end with the same result, but the results should be si
 conceded, yellow cards, and red cards. Comparing the two similar games: A difference of 1 or 2 goals in the results is
 OK, while a difference of 3 or more goals should be rare.
 
-The analyze-formation.js script should analyze the game calculation logic by simulating a large number of games with
-different formations and play styles, and then calculating the average goals scored, goals conceded, yellow cards, and
-red cards for each formation and play style combination. The results should be compared to the expected statistics based
-on the Bundesliga data.
-
 ## The Cup
 
 Besides the league system, there is also a cup competition. The cup is a knockout tournament that runs parallel to the

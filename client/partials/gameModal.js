@@ -211,9 +211,14 @@ export async function showGameModal (resultId) {
             <td scope="col">${Math.ceil(ballControllB / total * 100)}%</td>        
           </tr>
           <tr>
+            <td scope="col" class="text-end">${details.shotsTeamA || goalsChancesA}</td>
+            <th scope="col" class="text-center">Shots</th>
+            <td scope="col">${details.shotsTeamB || goalsChancesB}</td>
+          </tr>
+          <tr>
             <td scope="col" class="text-end">${goalsChancesA}</td>
-            <th scope="col" class="text-center">Chances</th>
-            <td scope="col">${goalsChancesB}</td>        
+            <th scope="col" class="text-center">On Target</th>
+            <td scope="col">${goalsChancesB}</td>
           </tr>
           <tr>
             <td scope="col" class="text-end">${details.strengthTeamA}</td>
