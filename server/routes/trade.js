@@ -167,6 +167,34 @@ export default {
   },
 
   /**
+   * @param {string} position
+   * @returns {Promise<Record<string, {avgPrice: number, count: number}>>}
+   */
+  async getTransferStats (position) {
+    const trades = await query(`
+      SELECT th.price, th.season, COALESCE(th.player_level, p.level) AS level, p.carrier_start_season
+      FROM trade_history th
+      JOIN player p ON th.player_id = p.id
+      WHERE p.position = ?
+    `, [position])
+
+    const stats = {}
+    for (const trade of trades) {
+      const age = trade.season - trade.carrier_start_season + 16
+      const key = `${trade.level}:${age}`
+      if (!stats[key]) stats[key] = { totalPrice: 0, count: 0 }
+      stats[key].totalPrice += trade.price
+      stats[key].count++
+    }
+
+    const result = {}
+    for (const [key, val] of Object.entries(stats)) {
+      result[key] = { avgPrice: Math.floor(val.totalPrice / val.count), count: val.count }
+    }
+    return result
+  },
+
+  /**
    * @returns {Promise<{ trades: TradeHistoryType[] }>}
    */
   async getTradeHistory () {

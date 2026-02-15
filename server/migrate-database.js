@@ -790,6 +790,12 @@ const migrations = [{
         INDEX idx_construction_stadium (stadium_id)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+},
+{
+  name: 'Add player_level column to trade_history',
+  async run () {
+    await query('ALTER TABLE trade_history ADD COLUMN player_level INT')
+  }
 }]
 
 /**

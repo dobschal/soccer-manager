@@ -3,12 +3,16 @@ import { server } from '../../lib/gateway.js'
 import { euroFormat } from '../../lib/currency.js'
 import { calculatePlayerAge } from '../../util/player.js'
 import { goTo } from '../../lib/router.js'
+import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
+
+const PAGE_SIZE = 20
 
 export class TradeHistoryPage extends UIElement {
   trades = []
   teams = []
   players = []
+  _page = 0
 
   /**
    * @returns {UIElementEvents}
@@ -23,6 +27,26 @@ export class TradeHistoryPage extends UIElement {
             goTo('team?id=' + teamLink.dataset.teamLink)
           }
         }
+      },
+      '(optional).trade-history-pagination': {
+        click: (event) => {
+          const target = event.target
+
+          if (target.closest('.trade-history-prev')) {
+            this._loadPage(this._page - 1)
+            return
+          }
+
+          if (target.closest('.trade-history-next')) {
+            this._loadPage(this._page + 1)
+            return
+          }
+
+          const pageLink = target.closest('[data-page-index]')
+          if (pageLink) {
+            this._loadPage(parseInt(pageLink.dataset.pageIndex, 10))
+          }
+        }
       }
     }
   }
@@ -31,23 +55,44 @@ export class TradeHistoryPage extends UIElement {
    * @returns {string}
    */
   get template () {
+    if (this.trades.length === 0) {
+      return `
+        <div>
+          <h2>${t('trades.tradeHistoryTitle')}</h2>
+          <p>${t('trades.tradeHistoryDesc')}</p>
+          <p>${t('trades.noTradeHistory')}</p>
+        </div>
+      `
+    }
+
+    const start = this._page * PAGE_SIZE
+    const pageData = this.trades.slice(start, start + PAGE_SIZE)
+
+    const table = new Table({
+      data: pageData,
+      cols: this._getTableCols(),
+      renderRow: (trade) => {
+        const player = this.players.find(p => p.id === trade.player_id)
+        const fromTeam = this.teams.find(te => te.id === trade.from_team_id)
+        const toTeam = this.teams.find(te => te.id === trade.to_team_id)
+        return [
+          `${player?.name ?? 'Unknown'} (${player?.position ?? '?'}, ${player?.level ?? '?'}, ${player ? calculatePlayerAge(player, trade.season) : '?'})`,
+          `<span class="hover-text" data-team-link="${trade.from_team_id}">${fromTeam?.name ?? 'Unknown'}</span>`,
+          `<span class="hover-text" data-team-link="${trade.to_team_id}">${toTeam?.name ?? 'Unknown'}</span>`,
+          `${t('finances.season', { season: trade.season + 1 })}, ${t('results.gameDay', { day: trade.game_day + 1 })}`,
+          euroFormat.format(trade.price)
+        ]
+      }
+    })
+
     return `
       <div>
         <h2>${t('trades.tradeHistoryTitle')}</h2>
         <p>${t('trades.tradeHistoryDesc')}</p>
-        <table class="table">
-          <thead>
-            <tr>
-              <th scope="col">${t('trades.player')}</th>
-              <th scope="col" class="d-none d-sm-table-cell">${t('finances.from')}</th>
-              <th scope="col" class="d-none d-sm-table-cell">${t('finances.to2')}</th>
-              <th scope="col" class="text-right">${t('trades.price')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${this._renderTradeHistory()}
-          </tbody>
-        </table>
+        ${table}
+        <div class="trade-history-pagination">
+          ${this._renderPagination()}
+        </div>
       </div>
     `
   }
@@ -63,41 +108,116 @@ export class TradeHistoryPage extends UIElement {
   }
 
   /**
+   * @param {Object} params
+   * @param {string} params.sort_dir
+   * @param {string} params.col
+   */
+  onQueryChanged ({ sort_dir, col }) {
+    if (sort_dir && col !== undefined) {
+      const cols = this._getTableCols()
+      const colConfig = cols[Number(col)]
+      if (colConfig && (colConfig.sortKey || colConfig.sortFn)) {
+        this.trades.sort((a, b) => {
+          if (colConfig.sortFn) return colConfig.sortFn(a, b, sort_dir !== 'DESC')
+          if (sort_dir === 'ASC') return a[colConfig.sortKey] - b[colConfig.sortKey]
+          return b[colConfig.sortKey] - a[colConfig.sortKey]
+        })
+        this._page = 0
+        this.update()
+      }
+    }
+  }
+
+  /**
+   * @returns {Array}
+   */
+  _getTableCols () {
+    return [{
+      name: t('trades.player'),
+      sortFn: (a, b, isAsc) => {
+        const playerA = this.players.find(p => p.id === a.player_id)
+        const playerB = this.players.find(p => p.id === b.player_id)
+        const nameA = playerA?.name ?? ''
+        const nameB = playerB?.name ?? ''
+        return isAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
+      }
+    }, {
+      name: t('finances.from'),
+      largeScreenOnly: true,
+      sortFn: (a, b, isAsc) => {
+        const teamA = this.teams.find(te => te.id === a.from_team_id)
+        const teamB = this.teams.find(te => te.id === b.from_team_id)
+        const nameA = teamA?.name ?? ''
+        const nameB = teamB?.name ?? ''
+        return isAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
+      }
+    }, {
+      name: t('finances.to2'),
+      largeScreenOnly: true,
+      sortFn: (a, b, isAsc) => {
+        const teamA = this.teams.find(te => te.id === a.to_team_id)
+        const teamB = this.teams.find(te => te.id === b.to_team_id)
+        const nameA = teamA?.name ?? ''
+        const nameB = teamB?.name ?? ''
+        return isAsc ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
+      }
+    }, {
+      name: t('finances.date'),
+      largeScreenOnly: true,
+      sortFn: (a, b, isAsc) => {
+        const valA = a.season * 1000 + a.game_day
+        const valB = b.season * 1000 + b.game_day
+        return isAsc ? valA - valB : valB - valA
+      }
+    }, {
+      name: t('trades.price'),
+      sortKey: 'price',
+      align: 'right'
+    }]
+  }
+
+  /**
    * @returns {string}
    */
-  _renderTradeHistory () {
-    let currentSeason = null
-    let currentGameDay = null
+  _renderPagination () {
+    const totalPages = Math.ceil(this.trades.length / PAGE_SIZE)
+    if (totalPages <= 1) return ''
 
-    return this.trades.map(trade => {
-      let dividerRow = ''
-      if (trade.season !== currentSeason || trade.game_day !== currentGameDay) {
-        currentSeason = trade.season
-        currentGameDay = trade.game_day
-        dividerRow = `
-          <tr>
-            <td><small class="table-divider-text">${t('results.gameDay', { day: trade.game_day + 1 })} (${t('finances.season', { season: trade.season + 1 })})</small></td>
-            <td class="d-none d-sm-table-cell"></td>
-            <td class="d-none d-sm-table-cell"></td>
-            <td></td>
-          </tr>
-        `
-      }
+    const hasPrev = this._page > 0
+    const hasNext = this._page < totalPages - 1
 
-      const player = this.players.find(p => p.id === trade.player_id)
-      const fromTeam = this.teams.find(t => t.id === trade.from_team_id)
-      const toTeam = this.teams.find(t => t.id === trade.to_team_id)
-
+    const pageNumbers = Array.from({ length: totalPages }, (_, i) => {
+      const isActive = i === this._page
       return `
-        ${dividerRow}
-        <tr>
-          <td>${player?.name ?? 'Unknown'} (${player?.position ?? '?'}, ${player?.level ?? '?'}, ${player ? calculatePlayerAge(player, trade.season) : '?'})</td>
-          <td class="d-none d-sm-table-cell"><span class="hover-text" data-team-link="${trade.from_team_id}">${fromTeam?.name ?? 'Unknown'}</span></td>
-          <td class="d-none d-sm-table-cell"><span class="hover-text" data-team-link="${trade.to_team_id}">${toTeam?.name ?? 'Unknown'}</span></td>
-          <td class="text-right">${euroFormat.format(trade.price)}</td>
-        </tr>
+        <li class="page-item ${isActive ? 'active' : ''}">
+          <span class="page-link" style="cursor: pointer;" data-page-index="${i}">${i + 1}</span>
+        </li>
       `
     }).join('')
+
+    return `
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-center flex-wrap">
+          <li class="page-item ${hasPrev ? '' : 'disabled'}">
+            <span class="page-link trade-history-prev" style="cursor: pointer;">${t('common.prev')}</span>
+          </li>
+          ${pageNumbers}
+          <li class="page-item ${hasNext ? '' : 'disabled'}">
+            <span class="page-link trade-history-next" style="cursor: pointer;">${t('common.next')}</span>
+          </li>
+        </ul>
+      </nav>
+    `
+  }
+
+  /**
+   * @param {number} pageIndex
+   */
+  _loadPage (pageIndex) {
+    const totalPages = Math.ceil(this.trades.length / PAGE_SIZE)
+    if (pageIndex < 0 || pageIndex >= totalPages) return
+    this._page = pageIndex
+    this.update()
   }
 }
 

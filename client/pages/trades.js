@@ -5,6 +5,7 @@ import { renderTradeHistory } from './trades/tradeHistory.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { UIElement } from '../lib/UIElement.js'
 import { FreePlayers } from './trades/freePlayers.js'
+import { MarketValuesPage } from './trades/marketValues.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 
@@ -28,6 +29,7 @@ export class TradesPage extends UIElement {
           <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">${t('trades.myOffers')}</a>
           <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">${t('player.history')}</a>
           <a class="nav-link ${this.pageName === 'free_players' ? 'active' : ''}" href="#trades?sub_page=free_players">${t('trades.freePlayers')}</a>
+          <a class="nav-link ${this.pageName === 'market_values' ? 'active' : ''}" href="#trades?sub_page=market_values">${t('trades.marketValues')}</a>
         </nav>
         ${this.page ?? t('common.loading')}
       </div>
@@ -73,6 +75,9 @@ export class TradesPage extends UIElement {
         break
       case 'free_players':
         this.page = new FreePlayers()
+        break
+      case 'market_values':
+        this.page = new MarketValuesPage()
         break
       default:
         this.page = await renderMarket()

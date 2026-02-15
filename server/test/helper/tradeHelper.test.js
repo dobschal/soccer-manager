@@ -277,7 +277,8 @@ describe('tradeHelper', () => {
         player_id: 10,
         from_team_id: 1,
         to_team_id: 2,
-        price: 80000
+        price: 80000,
+        player_level: expect.any(Number)
       })
     })
 

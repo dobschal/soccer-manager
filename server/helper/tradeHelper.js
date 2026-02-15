@@ -79,7 +79,8 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
     player_id: player.id,
     from_team_id: sellingTeam.id,
     to_team_id: buyingTeam.id,
-    price: offer.offer_value
+    price: offer.offer_value,
+    player_level: player.level
   })
   await query('INSERT INTO trade_history SET ?', historyItem)
 

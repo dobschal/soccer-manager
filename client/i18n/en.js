@@ -362,6 +362,12 @@ export default {
   'trades.noTradeHistory': 'No trade history...',
   'trades.buyer': 'Buyer',
   'trades.seller': 'Seller',
+  'trades.marketValues': 'Market Values',
+  'trades.marketValuesTitle': 'Market Values',
+  'trades.marketValuesDesc': 'Reference table showing estimated player market values by level and age.',
+  'trades.marketValuesPosition': 'Position',
+  'trades.marketValuesLevel': 'Level',
+  'trades.marketValuesAge': 'Age',
 
   // Results / League
   'results.title': 'League',

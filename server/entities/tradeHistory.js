@@ -7,6 +7,7 @@
  * @property {number} player_id
  * @property {number} from_team_id
  * @property {number} to_team_id
+ * @property {number} player_level
  * @property {Date} created_at
  */
 
@@ -25,6 +26,7 @@ export function TradeHistory (raw) {
     price: RequiredNumber,
     game_day: RequiredNumber,
     season: RequiredNumber,
+    player_level: OptionalNumber,
     created_at: OptionalObject
   })
   for (const key in raw) {
