@@ -53,8 +53,8 @@ describe('youth routes', () => {
     it('returns youth players with age but without talent', async () => {
       const team = testData.team({ youth_training_mode: 'training' })
       const youthPlayers = [
-        { id: 1, name: 'Youth 1', talent: 0.8, moral: 0.7, fitness: 0.6, level: 0.5, birth_season: 0 },
-        { id: 2, name: 'Youth 2', talent: 0.9, moral: 0.8, fitness: 0.7, level: 0.6, birth_season: 0 }
+        { id: 1, name: 'Youth 1', talent: 0.8, moral: 0.7, fitness: 0.6, level: 5, birth_season: 0 },
+        { id: 2, name: 'Youth 2', talent: 0.9, moral: 0.8, fitness: 0.7, level: 6, birth_season: 0 }
       ]
 
       getTeam.mockResolvedValue(team)
@@ -133,10 +133,10 @@ describe('youth routes', () => {
   })
 
   describe('promoteYouthPlayer', () => {
-    it('promotes youth player aged 16 or older with level >= 1', async () => {
+    it('promotes youth player aged 16 or older', async () => {
       const team = testData.team()
-      const youthPlayer = { id: 1, name: 'Youth Star', team_id: team.id, birth_season: 0, level: 2.5 }
-      const promotedPlayer = testData.player({ name: 'Youth Star', level: 2 })
+      const youthPlayer = { id: 1, name: 'Youth Star', team_id: team.id, birth_season: 0, level: 25 }
+      const promotedPlayer = testData.player({ name: 'Youth Star', level: 25 })
 
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ season: 2 })
@@ -165,21 +165,6 @@ describe('youth routes', () => {
 
       await expect(handlers.promoteYouthPlayer(1, req))
         .rejects.toMatchObject({ message: 'error.youthPlayerTooYoung' })
-    })
-
-    it('throws error for youth player level too low', async () => {
-      const team = testData.team()
-      const youthPlayer = { id: 1, name: 'Low Level Player', team_id: team.id, birth_season: 0, level: 0.8 }
-
-      getTeam.mockResolvedValue(team)
-      getGameDayAndSeason.mockResolvedValue({ season: 2 })
-      getYouthPlayerById.mockResolvedValue(youthPlayer)
-      getYouthPlayerAge.mockReturnValue(16)
-
-      const req = createMockRequest()
-
-      await expect(handlers.promoteYouthPlayer(1, req))
-        .rejects.toMatchObject({ message: 'error.youthPlayerLevelTooLow' })
     })
 
     it('throws error for non-existent youth player', async () => {

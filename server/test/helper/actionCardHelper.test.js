@@ -34,8 +34,8 @@ vi.mock('../../i18n/index.js', () => ({
     const translations = {
       'error.playerMaxLevelUps': 'Player already got 2 level ups this season',
       'error.playerMaxLevel': 'Player already reached the maximum level',
-      'error.cardMaxLevel7': 'Action card only allows level ups until level 7',
-      'error.cardMaxLevel4': 'Action card only allows level ups until level 4',
+      'error.cardMaxLevel70': 'Action card only allows level ups until level 70',
+      'error.cardMaxLevel40': 'Action card only allows level ups until level 40',
       'error.invalidCardAction': 'Invalid card action',
       'finance.actionCardBonus': 'Action Card: Bonus Money',
       'log.cardLevelUp': `${params.playerName} has leveled up to level ${params.level}!`,
@@ -61,11 +61,11 @@ describe('actionCardHelper', () => {
     getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 0 })
   })
 
-  describe('playActionCard - LEVEL_UP_PLAYER_4', () => {
-    it('levels up a player from level 1 to level 2', async () => {
+  describe('playActionCard - LEVEL_UP_PLAYER_40', () => {
+    it('levels up a player from level 10 to level 11', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 1 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
+      const player = testData.player({ id: 1, level: 10 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -80,14 +80,14 @@ describe('actionCardHelper', () => {
       const result = await playActionCard({ player, actionCard }, team)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [2, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [11, 1])
       expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     })
 
-    it('levels up a player from level 3 to level 4 (at boundary)', async () => {
+    it('levels up a player from level 39 to level 40 (at boundary)', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 3 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
+      const player = testData.player({ id: 1, level: 39 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -102,13 +102,13 @@ describe('actionCardHelper', () => {
       const result = await playActionCard({ player, actionCard }, team)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [4, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [40, 1])
     })
 
-    it('throws error when player is already at level 4', async () => {
+    it('throws error when player is already at level 40', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 4 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
+      const player = testData.player({ id: 1, level: 40 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -121,13 +121,13 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 4' })
+        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 40' })
     })
 
-    it('throws error when player is above level 4', async () => {
+    it('throws error when player is above level 40', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 7 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
+      const player = testData.player({ id: 1, level: 70 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -140,15 +140,15 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 4' })
+        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 40' })
     })
   })
 
-  describe('playActionCard - LEVEL_UP_PLAYER_7', () => {
-    it('levels up a player from level 4 to level 5', async () => {
+  describe('playActionCard - LEVEL_UP_PLAYER_70', () => {
+    it('levels up a player from level 40 to level 41', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 4 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_7' })
+      const player = testData.player({ id: 1, level: 40 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_70' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -163,13 +163,13 @@ describe('actionCardHelper', () => {
       const result = await playActionCard({ player, actionCard }, team)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [5, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [41, 1])
     })
 
-    it('levels up a player from level 6 to level 7 (at boundary)', async () => {
+    it('levels up a player from level 69 to level 70 (at boundary)', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 6 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_7' })
+      const player = testData.player({ id: 1, level: 69 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_70' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -184,13 +184,13 @@ describe('actionCardHelper', () => {
       const result = await playActionCard({ player, actionCard }, team)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [7, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [70, 1])
     })
 
-    it('throws error when player is already at level 7', async () => {
+    it('throws error when player is already at level 70', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 7 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_7' })
+      const player = testData.player({ id: 1, level: 70 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_70' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -203,13 +203,13 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 7' })
+        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 70' })
     })
 
-    it('throws error when player is above level 7', async () => {
+    it('throws error when player is above level 70', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 9 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_7' })
+      const player = testData.player({ id: 1, level: 90 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_70' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -222,15 +222,15 @@ describe('actionCardHelper', () => {
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 7' })
+        .rejects.toMatchObject({ message: 'Action card only allows level ups until level 70' })
     })
   })
 
-  describe('playActionCard - LEVEL_UP_PLAYER_10', () => {
-    it('levels up a player from level 7 to level 8', async () => {
+  describe('playActionCard - LEVEL_UP_PLAYER_100', () => {
+    it('levels up a player from level 70 to level 71', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 7 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_10' })
+      const player = testData.player({ id: 1, level: 70 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -245,13 +245,13 @@ describe('actionCardHelper', () => {
       const result = await playActionCard({ player, actionCard }, team)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [8, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [71, 1])
     })
 
-    it('levels up a player from level 9 to level 10 (at boundary)', async () => {
+    it('levels up a player from level 99 to level 100 (at boundary)', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 9 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_10' })
+      const player = testData.player({ id: 1, level: 99 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -266,13 +266,13 @@ describe('actionCardHelper', () => {
       const result = await playActionCard({ player, actionCard }, team)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [10, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [100, 1])
     })
 
-    it('throws error when player is already at level 10 (max level)', async () => {
+    it('throws error when player is already at level 100 (max level)', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 10 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_10' })
+      const player = testData.player({ id: 1, level: 100 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -288,10 +288,10 @@ describe('actionCardHelper', () => {
         .rejects.toMatchObject({ message: 'Player already reached the maximum level' })
     })
 
-    it('can level up players at any level below 10', async () => {
+    it('can level up players at any level below 100', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 1 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_10' })
+      const player = testData.player({ id: 1, level: 10 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -306,15 +306,15 @@ describe('actionCardHelper', () => {
       const result = await playActionCard({ player, actionCard }, team)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [2, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [11, 1])
     })
   })
 
   describe('playActionCard - level up limits per season', () => {
     it('throws error when player already has 2 level ups this season', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 3 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_10' })
+      const player = testData.player({ id: 1, level: 30 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -333,8 +333,8 @@ describe('actionCardHelper', () => {
 
     it('allows level up when player has only 1 level up this season', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, level: 3 })
-      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_10' })
+      const player = testData.player({ id: 1, level: 30 })
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
       query.mockImplementation(async (sql) => {
         if (sql.includes('SELECT * FROM player WHERE id=?')) {
@@ -430,7 +430,7 @@ describe('actionCardHelper', () => {
         team_id: 5,
         name: 'Young Talent',
         position: 'CM',
-        level: 0.5,
+        level: 5,
         talent: 0.8,
         moral: 0.7,
         fitness: 0.7,
@@ -456,7 +456,7 @@ describe('actionCardHelper', () => {
         team_id: 7,
         name: 'New Talent',
         position: 'GK',
-        level: 0.3,
+        level: 3,
         talent: 0.5,
         moral: 0.7,
         fitness: 0.7,

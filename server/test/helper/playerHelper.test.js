@@ -125,8 +125,8 @@ describe('playerHelper', () => {
       // Check first generated player has expected structure
       const player = insertCalls[0]
       expect(player.team_id).toBeNull()
-      expect(player.level).toBeGreaterThanOrEqual(1)
-      expect(player.level).toBeLessThanOrEqual(2)
+      expect(player.level).toBeGreaterThanOrEqual(10)
+      expect(player.level).toBeLessThanOrEqual(20)
       expect(player.freshness).toBeGreaterThanOrEqual(0.5)
       expect(player.freshness).toBeLessThanOrEqual(1.0)
       expect(player.position).toBeDefined()

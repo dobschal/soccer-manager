@@ -12,15 +12,15 @@ import { t } from '../i18n/index.js'
  */
 function getActionCardTexts () {
   return {
-    LEVEL_UP_PLAYER_10: {
+    LEVEL_UP_PLAYER_100: {
       title: t('actionCards.type.legendaryMastery'),
       description: t('actionCards.type.legendaryMasteryDesc')
     },
-    LEVEL_UP_PLAYER_7: {
+    LEVEL_UP_PLAYER_70: {
       title: t('actionCards.type.epicAdvancement'),
       description: t('actionCards.type.epicAdvancementDesc')
     },
-    LEVEL_UP_PLAYER_4: {
+    LEVEL_UP_PLAYER_40: {
       title: t('actionCards.type.basicPromotion'),
       description: t('actionCards.type.basicPromotionDesc')
     },
@@ -44,9 +44,9 @@ function getActionCardTexts () {
 }
 
 const ACTION_CARD_IMAGES = {
-  LEVEL_UP_PLAYER_10: 'assets/action-cards/level-up-player-10.svg',
-  LEVEL_UP_PLAYER_7: 'assets/action-cards/level-up-player-7.svg',
-  LEVEL_UP_PLAYER_4: 'assets/action-cards/level-up-player-4.svg',
+  LEVEL_UP_PLAYER_100: 'assets/action-cards/level-up-player-10.svg',
+  LEVEL_UP_PLAYER_70: 'assets/action-cards/level-up-player-7.svg',
+  LEVEL_UP_PLAYER_40: 'assets/action-cards/level-up-player-4.svg',
   CHANGE_PLAYER_POSITION: 'assets/action-cards/change-player-position.svg',
   NEW_YOUTH_PLAYER: 'assets/action-cards/new-youth-player.svg',
   FRESHNESS_10: 'assets/action-cards/freshness-10.svg',
@@ -175,7 +175,7 @@ export class ActionCards extends UIElement {
 
     return sortedTypes.map(actionType => {
       const cards = grouped[actionType]
-      const canMerge = (actionType === 'LEVEL_UP_PLAYER_4' || actionType === 'LEVEL_UP_PLAYER_7') && cards.length > 1
+      const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && cards.length > 1
       const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
       const cardText = getActionCardTexts()[actionType] || { title: 'Unknown Card' }
       const firstCardIdx = cards[0].idx
@@ -213,7 +213,7 @@ export class ActionCards extends UIElement {
       toast(t('actionCards.cardsMerged'), 'success')
 
       // Determine the new card type
-      const newCardType = actionCard.action === 'LEVEL_UP_PLAYER_4' ? 'LEVEL_UP_PLAYER_7' : 'LEVEL_UP_PLAYER_10'
+      const newCardType = actionCard.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100'
       await this._animateAndRemoveMergedCards(indices[0], indices[1], newCardType)
     } catch (e) {
       console.error(e)
@@ -263,7 +263,7 @@ export class ActionCards extends UIElement {
       }
 
       // Update merge badge
-      const canStillMerge = (actionType === 'LEVEL_UP_PLAYER_4' || actionType === 'LEVEL_UP_PLAYER_7') && remainingOfType > 1
+      const canStillMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && remainingOfType > 1
       if (!canStillMerge) {
         const mergeBadge = stackEl.querySelector('.action-card-merge-badge')
         mergeBadge?.remove()
@@ -369,7 +369,7 @@ export class ActionCards extends UIElement {
       }
     })
 
-    const canMerge = (actionType === 'LEVEL_UP_PLAYER_4' || actionType === 'LEVEL_UP_PLAYER_7') && cardsOfType.length > 1
+    const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && cardsOfType.length > 1
     const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
     const cardText = getActionCardTexts()[actionType] || { title: 'Unknown Card' }
     const firstCardIdx = this.cards.findIndex(c => c.action === actionType)

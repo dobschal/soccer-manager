@@ -8,7 +8,7 @@ import { PlayerList } from '../partials/playerList.js'
 import { toast } from '../partials/toast.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { setQueryParams } from '../lib/router.js'
-import { calculatePlayerAge, salaryPerLevel } from '../util/player.js'
+import { calculatePlayerAge, getSalary } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { formatLeague } from '../util/league.js'
 import { lineUpData, renderLineup } from '../partials/lineup.js'
@@ -144,7 +144,7 @@ export class MyTeamPage extends UIElement {
    */
   _renderHeader () {
     const realPlayers = this.data.players.filter(p => !p.fake)
-    const totalSalary = realPlayers.reduce((sum, p) => sum + salaryPerLevel[p.level], 0)
+    const totalSalary = realPlayers.reduce((sum, p) => sum + getSalary(p.level), 0)
     const totalStrength = realPlayers.reduce((sum, p) => sum + p.level, 0)
     const lineupStrength = this._calculateTeamStrength(this.data.players)
     const avgLevel = realPlayers.length > 0 ? (totalStrength / realPlayers.length).toFixed(1) : 0

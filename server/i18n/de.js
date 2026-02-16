@@ -37,7 +37,6 @@ export default {
   'error.youthPlayerNotFound': 'Jugendspieler nicht gefunden',
   'error.notYourYouthPlayer': 'Das ist nicht dein Jugendspieler',
   'error.youthPlayerTooYoung': 'Jugendspieler muss mindestens 16 Jahre alt sein, um befördert zu werden',
-  'error.youthPlayerLevelTooLow': 'Jugendspieler muss mindestens Level 1 haben, um befördert zu werden',
 
   // Action card errors
   'error.cardNotFound': 'Aktionskarte nicht gefunden',
@@ -47,8 +46,8 @@ export default {
   'error.invalidCardAction': 'Ungültige Kartenaktion',
   'error.playerMaxLevelUps': 'Spieler hat bereits 2 Level-Ups in dieser Saison erhalten',
   'error.playerMaxLevel': 'Spieler hat bereits das maximale Level erreicht',
-  'error.cardMaxLevel7': 'Aktionskarte erlaubt nur Level-Ups bis Level 7',
-  'error.cardMaxLevel4': 'Aktionskarte erlaubt nur Level-Ups bis Level 4',
+  'error.cardMaxLevel70': 'Aktionskarte erlaubt nur Level-Ups bis Level 70',
+  'error.cardMaxLevel40': 'Aktionskarte erlaubt nur Level-Ups bis Level 40',
   'error.goalkeeperCannotChange': 'Torhüter können ihre Position nicht wechseln',
   'error.cannotBecomeGoalkeeper': 'Spieler können nicht zu Torhütern werden',
 

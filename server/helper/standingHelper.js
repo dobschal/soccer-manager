@@ -48,7 +48,8 @@ export async function cacheStandingsForGameDay (gameDay, season) {
 
   // Get all unique level/league combinations that had games this day
   const leagues = await query(
-    `SELECT DISTINCT level, league FROM game WHERE season=? AND game_day=? AND played=1`,
+    `SELECT DISTINCT level, league FROM game
+     WHERE season=? AND game_day=? AND played=1 AND (game_type = 'league' OR game_type IS NULL)`,
     [season, gameDay]
   )
 
@@ -56,7 +57,8 @@ export async function cacheStandingsForGameDay (gameDay, season) {
     // Get all played games for this league up to this game day
     const games = await query(
       `SELECT * FROM game
-       WHERE season=? AND game_day<=? AND level=? AND league=? AND played=1`,
+       WHERE season=? AND game_day<=? AND level=? AND league=? AND played=1
+       AND (game_type = 'league' OR game_type IS NULL)`,
       [season, gameDay, level, league]
     )
 

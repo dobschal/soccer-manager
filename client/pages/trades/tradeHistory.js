@@ -5,6 +5,7 @@ import { calculatePlayerAge } from '../../util/player.js'
 import { goTo } from '../../lib/router.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
+import { renderLevelBadge } from '../../partials/levelBadge.js'
 
 const PAGE_SIZE = 20
 
@@ -76,7 +77,7 @@ export class TradeHistoryPage extends UIElement {
         const fromTeam = this.teams.find(te => te.id === trade.from_team_id)
         const toTeam = this.teams.find(te => te.id === trade.to_team_id)
         return [
-          `${player?.name ?? 'Unknown'} (${player?.position ?? '?'}, ${player?.level ?? '?'}, ${player ? calculatePlayerAge(player, trade.season) : '?'})`,
+          `${player?.name ?? 'Unknown'} (${player?.position ?? '?'}, ${player ? renderLevelBadge(player.level) : '?'}, ${player ? calculatePlayerAge(player, trade.season) : '?'})`,
           `<span class="hover-text" data-team-link="${trade.from_team_id}">${fromTeam?.name ?? 'Unknown'}</span>`,
           `<span class="hover-text" data-team-link="${trade.to_team_id}">${toTeam?.name ?? 'Unknown'}</span>`,
           `${t('finances.season', { season: trade.season + 1 })}, ${t('results.gameDay', { day: trade.game_day + 1 })}`,

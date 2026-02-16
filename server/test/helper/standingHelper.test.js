@@ -103,9 +103,12 @@ describe('standingHelper', () => {
       await cacheStandingsForGameDay(1, 0)
 
       expect(query).toHaveBeenCalledWith(
-        'SELECT DISTINCT level, league FROM game WHERE season=? AND game_day=? AND played=1',
+        expect.stringContaining('SELECT DISTINCT level, league FROM game'),
         [0, 1]
       )
+      // Verify game_type filter is applied
+      expect(query.mock.calls[0][0]).toContain("game_type = 'league' OR game_type IS NULL")
+      expect(query.mock.calls[1][0]).toContain("game_type = 'league' OR game_type IS NULL")
       expect(calculateStanding).toHaveBeenCalledTimes(2)
     })
 

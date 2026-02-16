@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('../../../lib/gateway.js', () => ({
   server: {
     getMyTeam: vi.fn(),
+    getCurrentGameday: vi.fn(),
     getOffers: vi.fn(),
     addTradeOffer: vi.fn()
   }
@@ -48,6 +49,7 @@ vi.mock('../../../lib/router.js', () => ({
 }))
 
 vi.mock('../../../util/player.js', () => ({
+  calculatePlayerAge: vi.fn((player, season) => (season - player.carrier_start_season) + 16),
   sortByPosition: vi.fn()
 }))
 
@@ -61,6 +63,8 @@ describe('MarketPage', () => {
     server.getMyTeam.mockResolvedValue({
       team: { id: 1, name: 'Test FC' }
     })
+
+    server.getCurrentGameday.mockResolvedValue({ season: 2 })
 
     server.getOffers.mockResolvedValue({
       offers: [],

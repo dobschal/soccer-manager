@@ -2,7 +2,7 @@ import { query } from './lib/database.js'
 import { ActionCard } from './entities/actionCard.js'
 import { getSponsor } from './helper/sponsorHelper.js'
 import { updateTeamBalance } from './helper/financeHelper.js'
-import { salaryPerLevel } from '../client/util/player.js'
+import { getSalary } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances } from './helper/actionCardHelper.js'
@@ -284,7 +284,7 @@ async function _letTeamsPaySallaries (gameDay, season) {
   const teams = await query('SELECT * FROM team')
   await Promise.all(teams.map(async team => {
     const players = await query('SELECT * FROM player WHERE team_ID=?', [team.id])
-    const totalSallaryCosts = players.reduce((total, player) => total + salaryPerLevel[player.level], 0) * -1
+    const totalSallaryCosts = players.reduce((total, player) => total + getSalary(player.level), 0) * -1
     const locale = await getUserLocale(team.user_id)
     const reason = t('finance.playerSalaries', {}, locale)
     await updateTeamBalance(team, totalSallaryCosts, reason, gameDay, season)
@@ -303,54 +303,16 @@ async function _giveUsersActionCards () {
   for (const team of teams) {
     const actionCards = []
     while (actionCards.length === 0) {
-      if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_10) {
-        actionCards.push(new ActionCard({
-          team_id: team.id,
-          action: 'LEVEL_UP_PLAYER_10',
-          played: 0
-        }))
-      }
-      if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_7) {
-        actionCards.push(new ActionCard({
-          team_id: team.id,
-          action: 'LEVEL_UP_PLAYER_7',
-          played: 0
-        }))
-      }
-      if (Math.random() < actionCardChances.LEVEL_UP_PLAYER_4) {
-        actionCards.push(new ActionCard({
-          team_id: team.id,
-          action: 'LEVEL_UP_PLAYER_4',
-          played: 0
-        }))
-      }
-      if (Math.random() < actionCardChances.CHANGE_PLAYER_POSITION) {
-        actionCards.push(new ActionCard({
-          team_id: team.id,
-          action: 'CHANGE_PLAYER_POSITION',
-          played: 0
-        }))
-      }
-      if (Math.random() < actionCardChances.NEW_YOUTH_PLAYER) {
-        actionCards.push(new ActionCard({
-          team_id: team.id,
-          action: 'NEW_YOUTH_PLAYER',
-          played: 0
-        }))
-      }
-      if (Math.random() < actionCardChances.FRESHNESS_10) {
-        actionCards.push(new ActionCard({
-          team_id: team.id,
-          action: 'FRESHNESS_10',
-          played: 0
-        }))
-      }
-      if (Math.random() < actionCardChances.BONUS_100K) {
-        actionCards.push(new ActionCard({
-          team_id: team.id,
-          action: 'BONUS_100K',
-          played: 0
-        }))
+      for (const [action, chance] of Object.entries(actionCardChances)) {
+        // For probabilities > 1, give floor(chance) guaranteed cards + remainder chance for one more
+        const guaranteed = Math.floor(chance)
+        const remainder = chance - guaranteed
+        for (let i = 0; i < guaranteed; i++) {
+          actionCards.push(new ActionCard({ team_id: team.id, action, played: 0 }))
+        }
+        if (Math.random() < remainder) {
+          actionCards.push(new ActionCard({ team_id: team.id, action, played: 0 }))
+        }
       }
     }
     for (const actionCard of actionCards) {

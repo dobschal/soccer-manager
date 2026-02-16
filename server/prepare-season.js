@@ -350,11 +350,11 @@ async function _createRandomPlayer (team, i, season) {
   const carrierLength = 22 + Math.floor(Math.random() * 4)
   let maxLevel
   if (age + 16 < 19) {
-    maxLevel = 3
+    maxLevel = 30
   } else if (age + 16 < 25) {
-    maxLevel = 5
+    maxLevel = 50
   } else {
-    maxLevel = 7 // not too strong players on start
+    maxLevel = 70 // not too strong players on start
   }
   const player = new Player({
     hair_color: Math.floor(Math.random() * 7),

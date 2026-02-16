@@ -7,6 +7,7 @@ import { PlayerList } from './playerList.js'
 import { renderPlayerImage } from './playerImage.js'
 import { getPositionsOfFormation } from '../util/formation.js'
 import { deepCopy } from '../lib/deepCopy.js'
+import { renderLevelBadge } from './levelBadge.js'
 
 export const lineUpData = {
   squadDataChanged: false,
@@ -202,7 +203,7 @@ export class Lineup extends UIElement {
             ${Math.floor(player.freshness * 100)}%
         </span>
         <span class="name">${isSuspended ? '🚫 ' : ''}${displayName}</span>
-        <span class="level-badge level-${player.level}">${player.level}</span>
+        ${renderLevelBadge(player.level, { size: 'lg' })}
       </div>
     `
   }

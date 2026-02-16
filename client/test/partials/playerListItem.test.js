@@ -4,11 +4,18 @@ import { testData } from '../setup.js'
 // Mock dependencies
 vi.mock('../../util/player.js', () => ({
   calculatePlayerAge: vi.fn((player, season) => 18 + season - player.birth_season),
-  salaryPerLevel: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
+  getSalary: vi.fn((level) => Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99)))
 }))
 
 vi.mock('../../lib/currency.js', () => ({
   euroFormat: { format: vi.fn((val) => `€${val}`) }
+}))
+
+vi.mock('../../partials/levelBadge.js', () => ({
+  renderLevelBadge: vi.fn((level) => {
+    const tier = level > 70 ? 'gold' : level > 40 ? 'silver' : 'bronze'
+    return `<span class="level-badge level-badge--sm level-badge--${tier}">${level}</span>`
+  })
 }))
 
 import { PlayerListItem } from '../../partials/playerListItem.js'
@@ -28,13 +35,13 @@ describe('PlayerListItem', () => {
       expect(html).toContain('CM')
     })
 
-    it('shows player level with circle', () => {
-      const player = testData.player({ level: 7 })
+    it('shows player level with badge', () => {
+      const player = testData.player({ level: 70 })
       const item = new PlayerListItem(player, 1, vi.fn())
 
       const html = item.template
-      expect(html).toContain('level-7')
-      expect(html).toContain('>7<')
+      expect(html).toContain('level-badge--silver')
+      expect(html).toContain('>70<')
     })
 
     it('shows sell offer indicator when player has offer', () => {

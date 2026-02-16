@@ -4,6 +4,7 @@ import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
+import { renderLevelBadge } from '../../partials/levelBadge.js'
 
 export class IncomingOffersPage extends UIElement {
   team = {}
@@ -129,7 +130,7 @@ export class IncomingOffersPage extends UIElement {
         <td class="hover-text player-name">${player.name}</td>
         <td class="d-none d-sm-table-cell">${fromTeam.name}</td>
         <td class="d-none d-sm-table-cell">${player.position}</td>
-        <td class="text-right d-none d-sm-table-cell">${player.level}</td>
+        <td class="text-right d-none d-sm-table-cell">${renderLevelBadge(player.level)}</td>
         <td class="text-right">${euroFormat.format(offer.offer_value)}</td>
         <td>
           <button class="btn btn-success"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button>

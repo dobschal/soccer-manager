@@ -79,10 +79,6 @@ export default {
       throw new BadRequestError(t('error.youthPlayerTooYoung', {}, locale))
     }
 
-    if (youthPlayer.level < 1) {
-      throw new BadRequestError(t('error.youthPlayerLevelTooLow', {}, locale))
-    }
-
     const player = await promoteYouthPlayer(youthPlayer, season)
 
     await addLogMessage(

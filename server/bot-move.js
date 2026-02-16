@@ -337,7 +337,7 @@ async function _checkBuyOffers (botTeam, players) {
     }
 
     // Upgrade: Have enough players but weakest is below level 5
-    if (currentWeakestLevel < 5) {
+    if (currentWeakestLevel < 50) {
       teamNeeds.push({ position, priority: 'upgrade', currentLevel: currentWeakestLevel })
     }
   }
@@ -522,26 +522,26 @@ async function _checkActionCards (botTeam, players, _isStrongTeam) {
   const actionCards = await getActionCards(botTeam)
 
   // First, try to merge level up cards
-  const level4Cards = actionCards.filter(c => c.action === 'LEVEL_UP_PLAYER_4')
-  const level7Cards = actionCards.filter(c => c.action === 'LEVEL_UP_PLAYER_7')
+  const level4Cards = actionCards.filter(c => c.action === 'LEVEL_UP_PLAYER_40')
+  const level7Cards = actionCards.filter(c => c.action === 'LEVEL_UP_PLAYER_70')
 
-  // Merge pairs of LEVEL_UP_PLAYER_4 cards
+  // Merge pairs of LEVEL_UP_PLAYER_40 cards
   for (let i = 0; i + 1 < level4Cards.length; i += 2) {
     try {
       await mergeActionCards(level4Cards[i], level4Cards[i + 1], botTeam)
-      console.log(`${botTeam.name} merged two Level 4 cards into Level 7`)
+      console.log(`${botTeam.name} merged two Level 40 cards into Level 70`)
     } catch (e) {
-      console.warn('Merging Level 4 cards failed: ', e.message)
+      console.warn('Merging Level 40 cards failed: ', e.message)
     }
   }
 
-  // Merge pairs of LEVEL_UP_PLAYER_7 cards
+  // Merge pairs of LEVEL_UP_PLAYER_70 cards
   for (let i = 0; i + 1 < level7Cards.length; i += 2) {
     try {
       await mergeActionCards(level7Cards[i], level7Cards[i + 1], botTeam)
-      console.log(`${botTeam.name} merged two Level 7 cards into Level 10`)
+      console.log(`${botTeam.name} merged two Level 70 cards into Level 100`)
     } catch (e) {
-      console.warn('Merging Level 7 cards failed: ', e.message)
+      console.warn('Merging Level 70 cards failed: ', e.message)
     }
   }
 
@@ -577,9 +577,9 @@ async function _checkActionCards (botTeam, players, _isStrongTeam) {
 
       // LEVEL_UP_PLAYER_* - apply to eligible player
       if (actionCard.action.startsWith('LEVEL_UP_PLAYER')) {
-        let maxLevel = 10
-        if (actionCard.action.endsWith('_4')) maxLevel = 4
-        if (actionCard.action.endsWith('_7')) maxLevel = 7
+        let maxLevel = 100
+        if (actionCard.action.endsWith('_40')) maxLevel = 40
+        if (actionCard.action.endsWith('_70')) maxLevel = 70
 
         const eligiblePlayers = players.filter(p => p.level < maxLevel)
         const player = randomItem(eligiblePlayers)

@@ -37,7 +37,6 @@ export default {
   'error.youthPlayerNotFound': 'Youth player not found',
   'error.notYourYouthPlayer': 'This is not your youth player',
   'error.youthPlayerTooYoung': 'Youth player must be at least 16 years old to be promoted',
-  'error.youthPlayerLevelTooLow': 'Youth player must have at least level 1 to be promoted',
 
   // Action card errors
   'error.cardNotFound': 'Action card not found',
@@ -47,8 +46,8 @@ export default {
   'error.invalidCardAction': 'Invalid card action',
   'error.playerMaxLevelUps': 'Player already got 2 level ups this season',
   'error.playerMaxLevel': 'Player already reached the maximum level',
-  'error.cardMaxLevel7': 'Action card only allows level ups until level 7',
-  'error.cardMaxLevel4': 'Action card only allows level ups until level 4',
+  'error.cardMaxLevel70': 'Action card only allows level ups until level 70',
+  'error.cardMaxLevel40': 'Action card only allows level ups until level 40',
   'error.goalkeeperCannotChange': 'Goalkeepers cannot change their position',
   'error.cannotBecomeGoalkeeper': 'Players cannot become goalkeepers',
 

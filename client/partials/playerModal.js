@@ -1,6 +1,6 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
-import { calculatePlayerAge, salaryPerLevel } from '../util/player.js'
+import { calculatePlayerAge, getSalary } from '../util/player.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { toast } from './toast.js'
@@ -10,17 +10,7 @@ import { renderPlayerImage } from './playerImage.js'
 import { showDialog } from './dialog.js'
 import { renderAsync } from '../lib/renderAsync.js'
 import { t } from '../i18n/index.js'
-
-/**
- * Get color for player level (bronze/silver/gold)
- * @param {number} level
- * @returns {{ text: string }}
- */
-function getLevelColor (level) {
-  if (level >= 7) return { text: '#f0c75e' } // Gold
-  if (level >= 4) return { text: '#d8d8d8' } // Silver
-  return { text: '#daa06d' } // Bronze
-}
+import { getLevelColor } from './levelBadge.js'
 
 /**
  * Get color for freshness (red/yellow/green)
@@ -91,7 +81,7 @@ export async function showPlayerModal (playerId) {
         title: t('player.hireConfirmTitle', { playerName: player.name }),
         text: t('player.hireConfirmText', {
           playerName: player.name,
-          salary: salaryPerLevel[player.level]
+          salary: getSalary(player.level)
         }),
         hasInput: false,
         buttonText: t('player.yesHire'),
@@ -150,7 +140,7 @@ export async function showPlayerModal (playerId) {
             </div>
             <div class="stat-card bg-dark">
               <div class="stat-card-label">${t('player.level')}</div>
-              <div class="stat-card-value" style="color: ${levelColor.text}; text-shadow: 0 0 8px ${levelColor.text};">${player.level}</div>
+              <div class="stat-card-value" style="color: ${levelColor};">${player.level}</div>
             </div>
             <div class="stat-card bg-dark">
               <div class="stat-card-label">${t('player.freshness')}</div>
@@ -158,7 +148,7 @@ export async function showPlayerModal (playerId) {
             </div>
             <div class="stat-card bg-dark">
               <div class="stat-card-label">${t('player.salary')}</div>
-              <div class="stat-card-value">${formatCompactCurrency(salaryPerLevel[player.level])}</div>
+              <div class="stat-card-value">${formatCompactCurrency(getSalary(player.level))}</div>
             </div>
             <div class="stat-card bg-dark">
               <div class="stat-card-label">${t('player.value')}</div>

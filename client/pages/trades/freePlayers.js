@@ -1,11 +1,12 @@
 import { UIElement } from '../../lib/UIElement.js'
 import { Table } from '../../partials/table.js'
 import { server } from '../../lib/gateway.js'
-import { calculatePlayerAge, salaryPerLevel, sortByPosition } from '../../util/player.js'
+import { calculatePlayerAge, getSalary, sortByPosition } from '../../util/player.js'
 import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
 import { setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
+import { renderLevelBadge } from '../../partials/levelBadge.js'
 
 export class FreePlayers extends UIElement {
   players = []
@@ -36,7 +37,7 @@ export class FreePlayers extends UIElement {
         player.name,
         player.position,
         calculatePlayerAge(player, this.season),
-        player.level,
+        renderLevelBadge(player.level),
         `<button class="btn btn-success btn-sm" data-hire-player="${player.id}">${t('player.hireBtn', { playerName: '' }).trim()}</button>`
       ]
     })
@@ -112,7 +113,7 @@ export class FreePlayers extends UIElement {
       title: t('player.hireConfirmTitle', { playerName: player.name }),
       text: t('player.hireConfirmText', {
         playerName: player.name,
-        salary: salaryPerLevel[player.level]
+        salary: getSalary(player.level)
       }),
       hasInput: false,
       buttonText: t('player.yesHire'),

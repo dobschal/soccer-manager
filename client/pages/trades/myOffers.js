@@ -4,6 +4,7 @@ import { euroFormat } from '../../lib/currency.js'
 import { setQueryParams } from '../../lib/router.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { t } from '../../i18n/index.js'
+import { renderLevelBadge } from '../../partials/levelBadge.js'
 
 export class MyOffersPage extends UIElement {
   /**
@@ -114,7 +115,7 @@ class MyOfferListItem extends UIElement {
         <td class="hover-text" data-show-player>${this.player.name}</td>
         <td class="d-none d-sm-table-cell">${this.offer.type === 'sell' ? '' : this.team.name}</td>
         <td class="d-none d-sm-table-cell">${this.player.position}</td>
-        <td class="text-right d-none d-sm-table-cell">${this.player.level}</td>
+        <td class="text-right d-none d-sm-table-cell">${renderLevelBadge(this.player.level)}</td>
         <td class="text-right">${euroFormat.format(this.offer.offer_value)}</td>
         <td>
             <button type="button" class="btn btn-danger" data-cancel>

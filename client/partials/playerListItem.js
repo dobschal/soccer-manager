@@ -1,6 +1,7 @@
 import { UIElement } from '../lib/UIElement.js'
-import { calculatePlayerAge, salaryPerLevel } from '../util/player.js'
+import { calculatePlayerAge, getSalary } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
+import { renderLevelBadge } from './levelBadge.js'
 
 export class PlayerListItem extends UIElement {
   /**
@@ -44,8 +45,8 @@ export class PlayerListItem extends UIElement {
         <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(this.player, this.season)}</td>
         <td class="text-right ${this.player.freshness < 0.4 ? 'text-danger' : (this.player.freshness < 0.7 ? 'text-warning' : 'text-success')}">${Math.floor(this.player.freshness * 100)}%</td>
         <td class="text-right d-none d-sm-table-cell">${this._renderCards(yellowCards, redCards)}</td>
-        <td class="text-right"><span class="circle level-${this.player.level}">${this.player.level}</span></td>
-        <td class="text-right d-none d-md-table-cell">${euroFormat.format(salaryPerLevel[this.player.level])}</td>
+        <td class="text-right">${renderLevelBadge(this.player.level)}</td>
+        <td class="text-right d-none d-md-table-cell">${euroFormat.format(getSalary(this.player.level))}</td>
       </tr>
     `
   }

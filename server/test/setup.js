@@ -43,7 +43,7 @@ export const testData = {
     id: 1,
     name: 'Test Player',
     position: 'CM',
-    level: 5,
+    level: 50,
     freshness: 0.85,
     team_id: 1,
     in_game_position: 'CM',
@@ -58,7 +58,7 @@ export const testData = {
 
   actionCard: (overrides = {}) => ({
     id: 1,
-    action: 'LEVEL_UP_PLAYER_10',
+    action: 'LEVEL_UP_PLAYER_100',
     team_id: 1,
     ...overrides
   }),

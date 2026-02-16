@@ -30,12 +30,12 @@ export default {
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const team = await getTeam(req)
     if (actionCard2.action !== actionCard1.action) throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
-    if (actionCard2.action === 'LEVEL_UP_PLAYER_4' || actionCard2.action === 'LEVEL_UP_PLAYER_7') {
+    if (actionCard2.action === 'LEVEL_UP_PLAYER_40' || actionCard2.action === 'LEVEL_UP_PLAYER_70') {
       await query('DELETE FROM action_card WHERE id=?', [actionCard1.id])
       await query('DELETE FROM action_card WHERE id=?', [actionCard2.id])
       const actionCard = new ActionCard({
         team_id: team.id,
-        action: actionCard1.action === 'LEVEL_UP_PLAYER_4' ? 'LEVEL_UP_PLAYER_7' : 'LEVEL_UP_PLAYER_10',
+        action: actionCard1.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100',
         played: 0
       })
       await query('INSERT INTO action_card SET ?', actionCard)

@@ -46,7 +46,7 @@ describe('youthPlayerHelper', () => {
   describe('applyTrainingEffects', () => {
     it('applies training mode effects correctly', () => {
       const youthPlayer = {
-        level: 1.0,
+        level: 10.0,
         talent: 0.5,
         moral: 0.7,
         fitness: 0.7
@@ -64,15 +64,15 @@ describe('youthPlayerHelper', () => {
       expect(youthPlayer.moral).toBeCloseTo(0.67, 2) // 0.7 - 0.03
 
       // Level gain = BASE_GAIN * (1 + talent * 2.5) * modeBonus * avgCondition * randomFactor
-      // = 0.02 * (1 + 0.5 * 2.5) * 1.2 * 0.66 * 1.0 = 0.02 * 2.25 * 1.2 * 0.66 = 0.0356
-      expect(youthPlayer.level).toBeGreaterThan(1.0)
+      // = 0.2 * (1 + 0.5 * 2.5) * 1.2 * 0.66 * 1.0 = 0.2 * 2.25 * 1.2 * 0.66 = 0.356
+      expect(youthPlayer.level).toBeGreaterThan(10.0)
 
       Math.random = originalRandom
     })
 
     it('applies friendly_match mode effects correctly', () => {
       const youthPlayer = {
-        level: 1.0,
+        level: 10.0,
         talent: 0.5,
         moral: 0.7,
         fitness: 0.7
@@ -92,7 +92,7 @@ describe('youthPlayerHelper', () => {
 
     it('applies rest mode effects correctly', () => {
       const youthPlayer = {
-        level: 1.0,
+        level: 10.0,
         talent: 0.5,
         moral: 0.7,
         fitness: 0.7
@@ -112,7 +112,7 @@ describe('youthPlayerHelper', () => {
 
     it('clamps fitness and moral between 0 and 1', () => {
       const youthPlayer = {
-        level: 1.0,
+        level: 10.0,
         talent: 0.5,
         moral: 0.02, // Very low
         fitness: 0.98 // Very high
@@ -134,24 +134,24 @@ describe('youthPlayerHelper', () => {
       Math.random = () => 0.5
 
       const lowTalent = {
-        level: 1.0,
+        level: 10.0,
         talent: 0.1,
         moral: 0.7,
         fitness: 0.7
       }
 
       const highTalent = {
-        level: 1.0,
+        level: 10.0,
         talent: 1.0,
         moral: 0.7,
         fitness: 0.7
       }
 
       applyTrainingEffects(lowTalent, 'training')
-      const lowTalentGain = lowTalent.level - 1.0
+      const lowTalentGain = lowTalent.level - 10.0
 
       applyTrainingEffects(highTalent, 'training')
-      const highTalentGain = highTalent.level - 1.0
+      const highTalentGain = highTalent.level - 10.0
 
       expect(highTalentGain).toBeGreaterThan(lowTalentGain)
 
@@ -211,8 +211,8 @@ describe('youthPlayerHelper', () => {
       expect(result.name).toBe('Test Player')
       expect(result.talent).toBeGreaterThanOrEqual(0.1)
       expect(result.talent).toBeLessThanOrEqual(1.0)
-      expect(result.level).toBeGreaterThanOrEqual(0.1)
-      expect(result.level).toBeLessThanOrEqual(1.0)
+      expect(result.level).toBeGreaterThanOrEqual(1)
+      expect(result.level).toBeLessThanOrEqual(10)
     })
   })
 
@@ -220,8 +220,8 @@ describe('youthPlayerHelper', () => {
     it('applies training to all youth players of a team', async () => {
       const team = { id: 1, youth_training_mode: 'training' }
       const mockPlayers = [
-        { id: 1, team_id: 1, level: 1.0, talent: 0.5, moral: 0.7, fitness: 0.7 },
-        { id: 2, team_id: 1, level: 1.5, talent: 0.8, moral: 0.6, fitness: 0.8 }
+        { id: 1, team_id: 1, level: 10.0, talent: 0.5, moral: 0.7, fitness: 0.7 },
+        { id: 2, team_id: 1, level: 15.0, talent: 0.8, moral: 0.6, fitness: 0.8 }
       ]
 
       query.mockResolvedValueOnce(mockPlayers) // getYouthPlayersByTeam
@@ -239,7 +239,7 @@ describe('youthPlayerHelper', () => {
     it('uses rest mode by default', async () => {
       const team = { id: 1, youth_training_mode: null }
       const mockPlayers = [
-        { id: 1, team_id: 1, level: 1.0, talent: 0.5, moral: 0.5, fitness: 0.5 }
+        { id: 1, team_id: 1, level: 10.0, talent: 0.5, moral: 0.5, fitness: 0.5 }
       ]
 
       query.mockResolvedValueOnce(mockPlayers)
@@ -262,7 +262,7 @@ describe('youthPlayerHelper', () => {
         team_id: 1,
         name: 'Test Player',
         position: 'CM',
-        level: 2.5,
+        level: 25,
         hair_color: 3,
         skin_color: 1,
         birth_season: 5,
@@ -278,13 +278,13 @@ describe('youthPlayerHelper', () => {
         team_id: 1,
         name: 'Test Player',
         position: 'CM',
-        level: 2, // Floored from 2.5
+        level: 25, // Floored from 25
         hair_color: 3,
         skin_color: 1
       }))
       expect(query).toHaveBeenCalledWith('DELETE FROM youth_player WHERE id=?', [1])
       expect(result.id).toBe(100)
-      expect(result.level).toBe(2)
+      expect(result.level).toBe(25)
     })
 
     it('floors the level when promoting', async () => {
@@ -293,7 +293,7 @@ describe('youthPlayerHelper', () => {
         team_id: 1,
         name: 'Test Player',
         position: 'GK',
-        level: 1.9,
+        level: 19,
         hair_color: 1,
         skin_color: 2,
         birth_season: 5,
@@ -308,7 +308,7 @@ describe('youthPlayerHelper', () => {
       const insertCall = query.mock.calls.find(call =>
         call[0].includes('INSERT INTO player')
       )
-      expect(insertCall[1].level).toBe(1) // Floored from 1.9
+      expect(insertCall[1].level).toBe(19) // Floored from 19
     })
   })
 
@@ -388,10 +388,10 @@ describe('youthPlayerHelper', () => {
   })
 
   describe('development targets from CLAUDE.md', () => {
-    it('high talent player with perfect rhythm reaches ~level 3 in 34 game days', () => {
+    it('high talent player with perfect rhythm reaches ~level 30 in 34 game days', () => {
       // Simulate 34 game days with perfect rhythm: 2x training, 1x friendly, 1x rest
       const player = {
-        level: 1.0,
+        level: 10.0,
         talent: 1.0,
         moral: 0.7,
         fitness: 0.7
@@ -409,14 +409,14 @@ describe('youthPlayerHelper', () => {
 
       Math.random = originalRandom
 
-      // Should be close to level 3 (allowing some variance)
-      expect(player.level).toBeGreaterThan(2.0)
-      expect(player.level).toBeLessThan(4.0)
+      // Should be close to level 30 (allowing some variance)
+      expect(player.level).toBeGreaterThan(20.0)
+      expect(player.level).toBeLessThan(40.0)
     })
 
-    it('low talent player reaches at least level 1 by age 18 (102 game days)', () => {
+    it('low talent player reaches at least level 10 by age 18 (102 game days)', () => {
       const player = {
-        level: 0.1, // Starting level
+        level: 1.0, // Starting level
         talent: 0.1, // Lowest talent
         moral: 0.7,
         fitness: 0.7
@@ -432,8 +432,8 @@ describe('youthPlayerHelper', () => {
 
       Math.random = originalRandom
 
-      // Should reach at least level 1
-      expect(player.level).toBeGreaterThanOrEqual(0.5)
+      // Should reach at least level 10
+      expect(player.level).toBeGreaterThanOrEqual(5.0)
     })
   })
 })

@@ -244,8 +244,7 @@ export class YouthTeamPage extends UIElement {
     const promoteId = generateId()
     const fireId = generateId()
     const isOldEnough = player.age >= 16
-    const hasMinLevel = player.level >= 1
-    const canPromote = isOldEnough && hasMinLevel
+    const canPromote = isOldEnough
 
     onClick(promoteId, () => this._showPromoteConfirm(player))
     onClick(fireId, () => this._showFireConfirm(player))
@@ -253,8 +252,6 @@ export class YouthTeamPage extends UIElement {
     let disabledReason = ''
     if (!isOldEnough) {
       disabledReason = t('youthTeam.playerTooYoung')
-    } else if (!hasMinLevel) {
-      disabledReason = t('youthTeam.playerLevelTooLow')
     }
 
     return `

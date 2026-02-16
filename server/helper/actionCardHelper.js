@@ -9,23 +9,24 @@ import { t, getUserLocale } from '../i18n/index.js'
 import { createYouthPlayer } from './youthPlayerHelper.js'
 
 // Probabilities per game day (34 game days per season)
-// Note: 2x LEVEL_UP_4 can merge into 1x LEVEL_UP_7, and 2x LEVEL_UP_7 into 1x LEVEL_UP_10
+// Note: 2x LEVEL_UP_40 can merge into 1x LEVEL_UP_70, and 2x LEVEL_UP_70 into 1x LEVEL_UP_100
+// Levels are now 1-100 (was 1-10). Cards still give +1 level per use but appear 10x more often.
 //
+// - LEVEL_UP_PLAYER_40: ~40/season → 1.2/day (can merge into ~20 LEVEL_UP_70)
 // - FRESHNESS_10: ~30/season → 0.88/day
-// - LEVEL_UP_PLAYER_4: ~4/season → 0.12/day (can merge into ~2 LEVEL_UP_7)
 // - CHANGE_PLAYER_POSITION: ~4/season → 0.12/day
-// - NEW_YOUTH_PLAYER: ~3/season → 0.1/day (increased from 0.03 to give more chances for youth talent)
+// - NEW_YOUTH_PLAYER: ~3/season → 0.1/day
 // - BONUS_100K: ~2/season → 0.06/day
-// - LEVEL_UP_PLAYER_7: ~1/season → 0.03/day (+ ~2 from merge = ~3 effective, medium amount reach level 7)
-// - LEVEL_UP_PLAYER_10: ~0.2/season → 0.006/day (+ ~1.5 from merge = ~1.7 effective, rare to reach level 10)
+// - LEVEL_UP_PLAYER_70: ~10/season → 0.3/day (+ ~20 from merge, medium amount reach level 70)
+// - LEVEL_UP_PLAYER_100: ~2/season → 0.06/day (+ ~10 from merge, rare to reach level 100)
 export const actionCardChances = {
   FRESHNESS_10: 0.88,
-  LEVEL_UP_PLAYER_4: 0.12,
+  LEVEL_UP_PLAYER_40: 1.2,
   CHANGE_PLAYER_POSITION: 0.12,
   NEW_YOUTH_PLAYER: 0.1,
   BONUS_100K: 0.06,
-  LEVEL_UP_PLAYER_7: 0.03,
-  LEVEL_UP_PLAYER_10: 0.006
+  LEVEL_UP_PLAYER_70: 0.3,
+  LEVEL_UP_PLAYER_100: 0.06
 }
 
 /**
@@ -75,12 +76,12 @@ export async function playActionCard ({
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     return { success: true }
   }
-  if (actionCard.action === 'LEVEL_UP_PLAYER_10') {
+  if (actionCard.action === 'LEVEL_UP_PLAYER_100') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (await levelUpsCurrentSeason(player) >= 2) {
       throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
-    if (player.level >= 10) {
+    if (player.level >= 100) {
       throw new BadRequestError(t('error.playerMaxLevel', {}, locale))
     }
     player.level += 1
@@ -90,13 +91,13 @@ export async function playActionCard ({
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
-  if (actionCard.action === 'LEVEL_UP_PLAYER_7') {
+  if (actionCard.action === 'LEVEL_UP_PLAYER_70') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (await levelUpsCurrentSeason(player) >= 2) {
       throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
-    if (player.level >= 7) {
-      throw new BadRequestError(t('error.cardMaxLevel7', {}, locale))
+    if (player.level >= 70) {
+      throw new BadRequestError(t('error.cardMaxLevel70', {}, locale))
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
@@ -105,13 +106,13 @@ export async function playActionCard ({
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
-  if (actionCard.action === 'LEVEL_UP_PLAYER_4') {
+  if (actionCard.action === 'LEVEL_UP_PLAYER_40') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (await levelUpsCurrentSeason(player) >= 2) {
       throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
-    if (player.level >= 4) {
-      throw new BadRequestError(t('error.cardMaxLevel4', {}, locale))
+    if (player.level >= 40) {
+      throw new BadRequestError(t('error.cardMaxLevel40', {}, locale))
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
@@ -165,10 +166,10 @@ export async function mergeActionCards (actionCard1, actionCard2, team, locale =
   if (actionCard2.action !== actionCard1.action) {
     throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
   }
-  if (actionCard1.action !== 'LEVEL_UP_PLAYER_4' && actionCard1.action !== 'LEVEL_UP_PLAYER_7') {
+  if (actionCard1.action !== 'LEVEL_UP_PLAYER_40' && actionCard1.action !== 'LEVEL_UP_PLAYER_70') {
     throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
   }
-  const newCardType = actionCard1.action === 'LEVEL_UP_PLAYER_4' ? 'LEVEL_UP_PLAYER_7' : 'LEVEL_UP_PLAYER_10'
+  const newCardType = actionCard1.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100'
   await query('DELETE FROM action_card WHERE id=?', [actionCard1.id])
   await query('DELETE FROM action_card WHERE id=?', [actionCard2.id])
   await query('INSERT INTO action_card SET ?', {

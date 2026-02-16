@@ -5,8 +5,9 @@ import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { Table } from '../../partials/table.js'
 import { setQueryParams } from '../../lib/router.js'
-import { sortByPosition } from '../../util/player.js'
+import { calculatePlayerAge, sortByPosition } from '../../util/player.js'
 import { t } from '../../i18n/index.js'
+import { renderLevelBadge } from '../../partials/levelBadge.js'
 
 export class MarketPage extends UIElement {
   team = {}
@@ -51,7 +52,8 @@ export class MarketPage extends UIElement {
           player.name,
           offerTeam.name,
           player.position,
-          player.level,
+          calculatePlayerAge(player, this.season),
+          renderLevelBadge(player.level),
           euroFormat.format(offer.offer_value),
           `<button class="btn btn-primary" data-buy-player="${player.id}">${t('trades.buy')}</button>`
         ]
@@ -73,6 +75,9 @@ export class MarketPage extends UIElement {
   async load () {
     const teamResponse = await server.getMyTeam()
     this.team = teamResponse.team
+
+    const { season } = await server.getCurrentGameday()
+    this.season = season
 
     const offersResponse = await server.getOffers()
     this.offers = offersResponse.offers
@@ -105,6 +110,17 @@ export class MarketPage extends UIElement {
         }
         return sortByPosition(playerA, playerB)
       }
+    }, {
+      name: t('player.age'),
+      largeScreenOnly: true,
+      sortFn: (offerA, offerB, isAsc) => {
+        const playerA = this.players.find(p => p.id === offerA.player_id)
+        const playerB = this.players.find(p => p.id === offerB.player_id)
+        const ageA = calculatePlayerAge(playerA, this.season)
+        const ageB = calculatePlayerAge(playerB, this.season)
+        return isAsc ? ageA - ageB : ageB - ageA
+      },
+      align: 'right'
     }, {
       name: t('player.level'),
       largeScreenOnly: true,

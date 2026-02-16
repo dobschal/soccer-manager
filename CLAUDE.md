@@ -107,9 +107,21 @@ League names combine the division number with a compass direction:
 - Top teams in a league get promoted to a higher division (lower level number)
 - Bottom teams get relegated to a lower division (higher level number)
 
+## Level System
+
+- Players have levels 1-100 (integers)
+- Youth players have levels 1-10 (decimals, can grow beyond 10 through training)
+- Action cards: LEVEL_UP_PLAYER_40 (cap 40), LEVEL_UP_PLAYER_70 (cap 70), LEVEL_UP_PLAYER_100 (cap 100)
+- Each card gives +1 level; cards appear 10x more often than the old system
+- Merging: 2x LEVEL_UP_PLAYER_40 -> 1x LEVEL_UP_PLAYER_70, 2x LEVEL_UP_PLAYER_70 -> 1x LEVEL_UP_PLAYER_100
+- Salary: exponential formula `getSalary(level)` from 150 (level 1) to 10,308 (level 100) in `client/util/player.js`
+- Market value: base 50M at level 100 age 22; halves every 10 levels below
+- CSS level tiers: bronze (1-40), silver (41-70), gold (71-100)
+- Youth player promotion requires age >= 16 (no level requirement)
+
 ## Youth Players
 
-Youth players appear in the age of 15 with level between 0.1 and 1.0 and can be brought to the A Team at 16, latest 18.
+Youth players appear in the age of 15 with level between 1 and 10 and can be brought to the A Team at 16 (no level requirement), latest 18.
 Add a database migration to give each team with 3 random youth players.
 The action card "YOUTH_PLAYER" should appear 3 times in average per season, giving the user the chance to acquire a new
 youth player.
@@ -148,9 +160,9 @@ right balance between training, friendly matches and rest to improve the youth p
 Team.
 
 The improvement per game day should be calculated based on the following:
-A youth player appearing with talent = 1.0 and level = 1, while having the perfect training rhythm, should reach level 3
+A youth player appearing with talent = 1.0 and level = 10, while having the perfect training rhythm, should reach level 30
 while being 16 years old.
-At minimum, a youth player should reach level 1 while being 18 years old, even with the worst training rhythm. So the
+At minimum, a youth player should reach level 10 while being 18 years old, even with the worst training rhythm. So the
 training rhythm should have a significant impact on the development of the youth players.
 
 There should be test cases for the youth player development logic, including the effects of training, friendly matches,

@@ -75,7 +75,7 @@ describe('ActionCards', () => {
 
     it('renders cards container when cards exist', async () => {
       server.getActionCards.mockResolvedValue({
-        actionCards: [{ id: 1, action: 'LEVEL_UP_PLAYER_4' }]
+        actionCards: [{ id: 1, action: 'LEVEL_UP_PLAYER_40' }]
       })
 
       const cards = new ActionCards()
@@ -93,7 +93,7 @@ describe('ActionCards', () => {
   describe('load', () => {
     it('fetches action cards from server', async () => {
       const mockCards = [
-        { id: 1, action: 'LEVEL_UP_PLAYER_4' },
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' },
         { id: 2, action: 'BONUS_100K' }
       ]
       server.getActionCards.mockResolvedValue({ actionCards: mockCards })
@@ -108,8 +108,8 @@ describe('ActionCards', () => {
   describe('_renderGroupedCards', () => {
     it('groups cards by action type', async () => {
       const mockCards = [
-        { id: 1, action: 'LEVEL_UP_PLAYER_4' },
-        { id: 2, action: 'LEVEL_UP_PLAYER_4' },
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' },
+        { id: 2, action: 'LEVEL_UP_PLAYER_40' },
         { id: 3, action: 'BONUS_100K' }
       ]
       server.getActionCards.mockResolvedValue({ actionCards: mockCards })
@@ -122,10 +122,10 @@ describe('ActionCards', () => {
       expect(html).toContain('action-card-stack')
     })
 
-    it('shows merge badge for multiple LEVEL_UP_PLAYER_4 cards', async () => {
+    it('shows merge badge for multiple LEVEL_UP_PLAYER_40 cards', async () => {
       const mockCards = [
-        { id: 1, action: 'LEVEL_UP_PLAYER_4' },
-        { id: 2, action: 'LEVEL_UP_PLAYER_4' }
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' },
+        { id: 2, action: 'LEVEL_UP_PLAYER_40' }
       ]
       server.getActionCards.mockResolvedValue({ actionCards: mockCards })
 
@@ -137,10 +137,10 @@ describe('ActionCards', () => {
       expect(html).toContain('action-card-merge-badge')
     })
 
-    it('shows merge badge for multiple LEVEL_UP_PLAYER_7 cards', async () => {
+    it('shows merge badge for multiple LEVEL_UP_PLAYER_70 cards', async () => {
       const mockCards = [
-        { id: 1, action: 'LEVEL_UP_PLAYER_7' },
-        { id: 2, action: 'LEVEL_UP_PLAYER_7' }
+        { id: 1, action: 'LEVEL_UP_PLAYER_70' },
+        { id: 2, action: 'LEVEL_UP_PLAYER_70' }
       ]
       server.getActionCards.mockResolvedValue({ actionCards: mockCards })
 
@@ -153,7 +153,7 @@ describe('ActionCards', () => {
 
     it('does not show merge badge for single card', async () => {
       const mockCards = [
-        { id: 1, action: 'LEVEL_UP_PLAYER_4' }
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' }
       ]
       server.getActionCards.mockResolvedValue({ actionCards: mockCards })
 

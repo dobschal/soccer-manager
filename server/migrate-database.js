@@ -796,6 +796,24 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE trade_history ADD COLUMN player_level INT')
   }
+},
+{
+  name: 'Refactor level system from 1-10 to 1-100',
+  async run () {
+    // Change youth_player.level column FIRST to accommodate new range (max 10.00)
+    await query('ALTER TABLE youth_player MODIFY COLUMN level DECIMAL(5,2) DEFAULT 1.0')
+    // Multiply all existing player levels by 10
+    await query('UPDATE player SET level = level * 10')
+    // Multiply all existing youth player levels by 10
+    await query('UPDATE youth_player SET level = level * 10')
+    // Multiply all existing trade history player levels by 10
+    await query('UPDATE trade_history SET player_level = player_level * 10')
+    // Rename action card types
+    await query("UPDATE action_card SET action = 'LEVEL_UP_PLAYER_40' WHERE action = 'LEVEL_UP_PLAYER_4'")
+    await query("UPDATE action_card SET action = 'LEVEL_UP_PLAYER_70' WHERE action = 'LEVEL_UP_PLAYER_7'")
+    await query("UPDATE action_card SET action = 'LEVEL_UP_PLAYER_100' WHERE action = 'LEVEL_UP_PLAYER_10'")
+    console.log('✅ Level system refactored from 1-10 to 1-100')
+  }
 }]
 
 /**

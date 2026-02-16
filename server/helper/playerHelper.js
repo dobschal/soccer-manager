@@ -32,9 +32,9 @@ export async function getPlayerAge (player, season) {
 }
 
 /**
- * A player at level 10 in age 22 is 50mio
+ * A player at level 100 in age 22 is 50mio
  * for every age above you take the amount times 0.75
- * for every level less, the same
+ * for every 10 levels less, the price halves
  * @param {PlayerType} player
  * @returns {Promise<number>} - price in EUR
  */
@@ -44,7 +44,7 @@ export async function getAveragePlanPriceOfPlayer (player) {
   for (let a = 22; a < age; a++) {
     price *= 0.75
   }
-  for (let l = 10; l > player.level; l--) {
+  for (let l = 100; l > player.level; l -= 10) {
     price *= 0.5
   }
   return Math.floor(price)
@@ -114,8 +114,8 @@ export async function cleanupOldFreePlayers () {
  * @param {number} season
  */
 async function _generateWeakFreePlayer (season) {
-  // Level 1-2 players aged 28-32 have very low market value
-  const level = Math.random() < 0.7 ? 1 : 2
+  // Level 10-20 players aged 28-32 have very low market value
+  const level = Math.random() < 0.7 ? 10 : 20
   const age = 28 + Math.floor(Math.random() * 5) // 28-32 years old
   const carrierStartSeason = season - age + 16
   const carrierEndSeason = carrierStartSeason + 22 + Math.floor(Math.random() * 4)

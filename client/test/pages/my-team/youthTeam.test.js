@@ -56,7 +56,7 @@ describe('YouthTeamPage', () => {
   describe('YouthTeamPage class', () => {
     it('loads youth team data from server', async () => {
       const youthPlayers = [
-        { id: 1, name: 'Youth Player 1', age: 16, level: 1.5 }
+        { id: 1, name: 'Youth Player 1', age: 16, level: 15 }
       ]
 
       server.getYouthTeam.mockResolvedValue({
@@ -75,7 +75,7 @@ describe('YouthTeamPage', () => {
 
     it('template contains youth players table', async () => {
       const youthPlayers = [
-        { id: 1, name: 'Test Youth', position: 'CM', age: 16, level: 1.5, moral: 0.8, fitness: 0.7 }
+        { id: 1, name: 'Test Youth', position: 'CM', age: 16, level: 15, moral: 0.8, fitness: 0.7 }
       ]
 
       server.getYouthTeam.mockResolvedValue({
@@ -98,7 +98,7 @@ describe('YouthTeamPage', () => {
   describe('promote youth player', () => {
     it('fires YOUTH_PLAYER_PROMOTED event after successful promotion', async () => {
       const youthPlayers = [
-        { id: 1, name: 'Promoted Player', position: 'CM', age: 16, level: 1.5, moral: 0.8, fitness: 0.7 }
+        { id: 1, name: 'Promoted Player', position: 'CM', age: 16, level: 15, moral: 0.8, fitness: 0.7 }
       ]
 
       server.getYouthTeam.mockResolvedValue({
@@ -133,7 +133,7 @@ describe('YouthTeamPage', () => {
 
     it('does not fire event if promotion fails', async () => {
       const youthPlayers = [
-        { id: 1, name: 'Failed Player', position: 'CM', age: 16, level: 0.5, moral: 0.8, fitness: 0.7 }
+        { id: 1, name: 'Failed Player', position: 'CM', age: 16, level: 5, moral: 0.8, fitness: 0.7 }
       ]
 
       server.getYouthTeam.mockResolvedValue({
@@ -164,7 +164,7 @@ describe('YouthTeamPage', () => {
   describe('promote button disabled states', () => {
     it('disables promote button when player age < 16', async () => {
       const youthPlayers = [
-        { id: 1, name: 'Young Player', position: 'CM', age: 15, level: 1.5, moral: 0.8, fitness: 0.7 }
+        { id: 1, name: 'Young Player', position: 'CM', age: 15, level: 15, moral: 0.8, fitness: 0.7 }
       ]
 
       server.getYouthTeam.mockResolvedValue({
@@ -182,29 +182,9 @@ describe('YouthTeamPage', () => {
       expect(html).toContain('youthTeam.playerTooYoung')
     })
 
-    it('disables promote button when player level < 1', async () => {
+    it('enables promote button when player age >= 16', async () => {
       const youthPlayers = [
-        { id: 1, name: 'Low Level Player', position: 'CM', age: 16, level: 0.8, moral: 0.8, fitness: 0.7 }
-      ]
-
-      server.getYouthTeam.mockResolvedValue({
-        youthPlayers,
-        trainingMode: 'rest',
-        season: 1
-      })
-
-      const mockParent = { load: vi.fn(), update: vi.fn() }
-      const page = new YouthTeamPage(mockParent)
-      await page.load()
-
-      const html = page._renderYouthPlayerRow(youthPlayers[0])
-      expect(html).toContain('disabled')
-      expect(html).toContain('youthTeam.playerLevelTooLow')
-    })
-
-    it('enables promote button when player age >= 16 and level >= 1', async () => {
-      const youthPlayers = [
-        { id: 1, name: 'Ready Player', position: 'CM', age: 16, level: 1.5, moral: 0.8, fitness: 0.7 }
+        { id: 1, name: 'Ready Player', position: 'CM', age: 16, level: 15, moral: 0.8, fitness: 0.7 }
       ]
 
       server.getYouthTeam.mockResolvedValue({

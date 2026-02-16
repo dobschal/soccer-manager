@@ -290,7 +290,6 @@ export default {
   'youthTeam.trainingModeUpdated': 'Trainingsmodus aktualisiert!',
   'youthTeam.nextTrainingIn': 'Nächste {mode} in {time}',
   'youthTeam.playerTooYoung': 'Spieler muss mindestens 16 Jahre alt sein, um befördert zu werden.',
-  'youthTeam.playerLevelTooLow': 'Spieler muss mindestens Level 1 haben, um befördert zu werden.',
   'youthTeam.age': 'Alter',
   'youthTeam.level': 'Level',
   'youthTeam.moral': 'Moral',
@@ -367,6 +366,8 @@ export default {
   'trades.marketValuesDesc': 'Referenztabelle mit geschätzten Marktwerten von Spielern nach Level und Alter.',
   'trades.marketValuesPosition': 'Position',
   'trades.marketValuesLevel': 'Level',
+  'trades.marketValuesFromLevel': 'Von Level',
+  'trades.marketValuesToLevel': 'Bis Level',
   'trades.marketValuesAge': 'Alter',
 
   // Results / League
@@ -549,11 +550,11 @@ export default {
   'actionCards.whichPlayerLevelUp': 'Welcher Spieler soll ein Level-Up erhalten?',
   // Action Card Types
   'actionCards.type.legendaryMastery': 'Legendäre Meisterschaft',
-  'actionCards.type.legendaryMasteryDesc': 'Verbessere einen Spieler auf Level 10.',
+  'actionCards.type.legendaryMasteryDesc': 'Verbessere einen Spieler auf Level 100.',
   'actionCards.type.epicAdvancement': 'Epischer Aufstieg',
-  'actionCards.type.epicAdvancementDesc': 'Verbessere einen Spieler auf Level 7.',
+  'actionCards.type.epicAdvancementDesc': 'Verbessere einen Spieler auf Level 70.',
   'actionCards.type.basicPromotion': 'Basis-Beförderung',
-  'actionCards.type.basicPromotionDesc': 'Verbessere einen Spieler auf Level 4.',
+  'actionCards.type.basicPromotionDesc': 'Verbessere einen Spieler auf Level 40.',
   'actionCards.type.tacticalShift': 'Taktischer Wechsel',
   'actionCards.type.tacticalShiftDesc': 'Ändere die Position eines Spielers auf dem Feld.',
   'actionCards.type.youthProspect': 'Nachwuchstalent',

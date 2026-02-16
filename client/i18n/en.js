@@ -290,7 +290,6 @@ export default {
   'youthTeam.trainingModeUpdated': 'Training mode updated!',
   'youthTeam.nextTrainingIn': 'Next {mode} in {time}',
   'youthTeam.playerTooYoung': 'Player must be at least 16 years old to be promoted.',
-  'youthTeam.playerLevelTooLow': 'Player must have at least level 1 to be promoted.',
   'youthTeam.age': 'Age',
   'youthTeam.level': 'Level',
   'youthTeam.moral': 'Moral',
@@ -367,6 +366,8 @@ export default {
   'trades.marketValuesDesc': 'Reference table showing estimated player market values by level and age.',
   'trades.marketValuesPosition': 'Position',
   'trades.marketValuesLevel': 'Level',
+  'trades.marketValuesFromLevel': 'From Level',
+  'trades.marketValuesToLevel': 'To Level',
   'trades.marketValuesAge': 'Age',
 
   // Results / League
@@ -549,11 +550,11 @@ export default {
   'actionCards.whichPlayerLevelUp': 'Which player should get a level up?',
   // Action Card Types
   'actionCards.type.legendaryMastery': 'Legendary Mastery',
-  'actionCards.type.legendaryMasteryDesc': 'Level up a player to reach level 10.',
+  'actionCards.type.legendaryMasteryDesc': 'Level up a player to reach level 100.',
   'actionCards.type.epicAdvancement': 'Epic Advancement',
-  'actionCards.type.epicAdvancementDesc': 'Level up a player to reach level 7.',
+  'actionCards.type.epicAdvancementDesc': 'Level up a player to reach level 70.',
   'actionCards.type.basicPromotion': 'Basic Promotion',
-  'actionCards.type.basicPromotionDesc': 'Level up a player to reach level 4.',
+  'actionCards.type.basicPromotionDesc': 'Level up a player to reach level 40.',
   'actionCards.type.tacticalShift': 'Tactical Shift',
   'actionCards.type.tacticalShiftDesc': 'Change a player\'s position on the field.',
   'actionCards.type.youthProspect': 'Youth Prospect',

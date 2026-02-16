@@ -1,16 +1,22 @@
-export const salaryPerLevel = [
-  0,
-  150, // level 1
-  240,
-  384,
-  614,
-  983, // level 5
-  1573,
-  2517,
-  4027,
-  6442,
-  10308 // level 10
-]
+/**
+ * Calculate salary for a given player level (1-100)
+ * Exponential curve: Level 1 = 150, Level 100 = 10,308
+ * @param {number} level
+ * @returns {number}
+ */
+export function getSalary (level) {
+  if (level <= 0) return 0
+  return Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99))
+}
+
+/** @deprecated Use getSalary(level) instead */
+export const salaryPerLevel = new Proxy([], {
+  get (_, prop) {
+    const idx = Number(prop)
+    if (!isNaN(idx)) return getSalary(idx)
+    return undefined
+  }
+})
 
 /**
  * @param {PlayerType} player

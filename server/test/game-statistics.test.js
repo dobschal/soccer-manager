@@ -14,8 +14,8 @@ let nextPlayerId = 1
 /**
  * Create a team of 11 players with a random formation and player levels within a range.
  * @param {object} options
- * @param {number} [options.minLevel] - Minimum player level (default 3)
- * @param {number} [options.maxLevel] - Maximum player level (default 7)
+ * @param {number} [options.minLevel] - Minimum player level (default 30)
+ * @param {number} [options.maxLevel] - Maximum player level (default 70)
  * @param {string} [options.playStyle] - Team play style (default 'normal')
  * @param {string} [options.passStyle] - Team pass style (default 'mixed')
  * @param {string} [options.formation] - Formation to use (default random)
@@ -23,8 +23,8 @@ let nextPlayerId = 1
  */
 function createTeam (options = {}) {
   const {
-    minLevel = 3,
-    maxLevel = 7,
+    minLevel = 30,
+    maxLevel = 70,
     playStyle = 'normal',
     passStyle = 'mixed',
     formation = FORMATIONS[Math.floor(Math.random() * FORMATIONS.length)]
@@ -131,7 +131,7 @@ describe('Game Statistics - Bundesliga Comparison', () => {
   beforeAll(() => {
     for (let i = 0; i < NUM_GAMES; i++) {
       // Teams with similar strength (+-10 total strength as per CLAUDE.md)
-      const baseLevel = 3 + Math.random() * 4 // 3-7
+      const baseLevel = 30 + Math.random() * 40 // 30-70
       const teamA = createTeam({ minLevel: baseLevel - 0.5, maxLevel: baseLevel + 0.5, playStyle: 'normal' })
       const teamB = createTeam({ minLevel: baseLevel - 0.5, maxLevel: baseLevel + 0.5, playStyle: 'normal' })
       const game = simulateGame(teamA, teamB)
@@ -216,9 +216,9 @@ describe('Play Style Impact on Statistics', () => {
   function runGamesWithStyle (playStyleA, playStyleB) {
     const games = []
     for (let i = 0; i < NUM_GAMES; i++) {
-      const baseLevel = 4 + Math.random() * 2
-      const teamA = createTeam({ minLevel: baseLevel - 0.3, maxLevel: baseLevel + 0.3, playStyle: playStyleA })
-      const teamB = createTeam({ minLevel: baseLevel - 0.3, maxLevel: baseLevel + 0.3, playStyle: playStyleB })
+      const baseLevel = 40 + Math.random() * 20
+      const teamA = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, playStyle: playStyleA })
+      const teamB = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, playStyle: playStyleB })
       games.push(simulateGame(teamA, teamB))
     }
     return games
@@ -269,8 +269,8 @@ describe('Randomness Control - Same Game Reproducibility', () => {
   it('replaying the same matchup many times should rarely differ by more than 2 goals', () => {
     const NUM_REPLAYS = 200
     // Create two fixed teams
-    const teamATemplate = createTeam({ minLevel: 4.5, maxLevel: 5.5, playStyle: 'normal', formation: '442b' })
-    const teamBTemplate = createTeam({ minLevel: 4.5, maxLevel: 5.5, playStyle: 'normal', formation: '433' })
+    const teamATemplate = createTeam({ minLevel: 45, maxLevel: 55, playStyle: 'normal', formation: '442b' })
+    const teamBTemplate = createTeam({ minLevel: 45, maxLevel: 55, playStyle: 'normal', formation: '433' })
 
     const totalGoals = []
     for (let i = 0; i < NUM_REPLAYS; i++) {
@@ -299,8 +299,8 @@ describe('Randomness Control - Same Game Reproducibility', () => {
 
   it('same team replays should have goal results within a reasonable range', () => {
     const NUM_REPLAYS = 100
-    const teamA = createTeam({ minLevel: 5, maxLevel: 5, playStyle: 'normal', formation: '442b' })
-    const teamB = createTeam({ minLevel: 5, maxLevel: 5, playStyle: 'normal', formation: '442b' })
+    const teamA = createTeam({ minLevel: 50, maxLevel: 50, playStyle: 'normal', formation: '442b' })
+    const teamB = createTeam({ minLevel: 50, maxLevel: 50, playStyle: 'normal', formation: '442b' })
 
     const goalsA = []
     const goalsB = []
@@ -337,8 +337,8 @@ describe('Strength Imbalance Effects', () => {
     let draws = 0
 
     for (let i = 0; i < NUM_GAMES; i++) {
-      const strongTeam = createTeam({ minLevel: 7, maxLevel: 9, playStyle: 'normal' })
-      const weakTeam = createTeam({ minLevel: 1, maxLevel: 3, playStyle: 'normal' })
+      const strongTeam = createTeam({ minLevel: 70, maxLevel: 90, playStyle: 'normal' })
+      const weakTeam = createTeam({ minLevel: 10, maxLevel: 30, playStyle: 'normal' })
       const game = simulateGame(strongTeam, weakTeam)
       if ((game.goalsTeamA || 0) > (game.goalsTeamB || 0)) strongWins++
       else if ((game.goalsTeamA || 0) < (game.goalsTeamB || 0)) weakWins++
@@ -357,8 +357,8 @@ describe('Strength Imbalance Effects', () => {
     let teamBWins = 0
 
     for (let i = 0; i < NUM_GAMES; i++) {
-      const teamA = createTeam({ minLevel: 5, maxLevel: 5, playStyle: 'normal' })
-      const teamB = createTeam({ minLevel: 5, maxLevel: 5, playStyle: 'normal' })
+      const teamA = createTeam({ minLevel: 50, maxLevel: 50, playStyle: 'normal' })
+      const teamB = createTeam({ minLevel: 50, maxLevel: 50, playStyle: 'normal' })
       const game = simulateGame(teamA, teamB)
       if ((game.goalsTeamA || 0) > (game.goalsTeamB || 0)) teamAWins++
       else if ((game.goalsTeamA || 0) < (game.goalsTeamB || 0)) teamBWins++
@@ -381,9 +381,9 @@ describe('Detailed Statistics Report', () => {
     for (const style of ['aggressive', 'normal', 'friendly']) {
       const games = []
       for (let i = 0; i < NUM_GAMES; i++) {
-        const baseLevel = 4 + Math.random() * 2
-        const teamA = createTeam({ minLevel: baseLevel - 0.3, maxLevel: baseLevel + 0.3, playStyle: style })
-        const teamB = createTeam({ minLevel: baseLevel - 0.3, maxLevel: baseLevel + 0.3, playStyle: style })
+        const baseLevel = 40 + Math.random() * 20
+        const teamA = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, playStyle: style })
+        const teamB = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, playStyle: style })
         games.push(simulateGame(teamA, teamB))
       }
 

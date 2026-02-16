@@ -17,11 +17,11 @@ export const TRAINING_MODE_EFFECTS = {
 
 /**
  * Base level gain per game day
- * Calculated to allow talent=1.0, perfect rhythm player to reach level 3.0 in 34 game days
- * With talent=1.0 and avg condition=0.85: gain = BASE * 3.5 * 1.0 * 0.85 ≈ 0.059/day
- * Over 34 days: 34 * 0.059 = 2.0 level gain (from 1.0 to 3.0)
+ * Calculated to allow talent=1.0, perfect rhythm player to reach level 30 in 34 game days
+ * With talent=1.0 and avg condition=0.85: gain = BASE * 3.5 * 1.0 * 0.85 ≈ 0.59/day
+ * Over 34 days: 34 * 0.59 = 20.0 level gain (from 10.0 to 30.0)
  */
-export const BASE_LEVEL_GAIN = 0.02
+export const BASE_LEVEL_GAIN = 0.2
 
 /**
  * Calculate the age of a youth player in the given season
@@ -61,7 +61,7 @@ export async function getYouthPlayerById (id) {
 export async function createYouthPlayer (teamId, season) {
   const name = await generateRandomPlayerName()
   const talent = 0.1 + Math.random() * 0.9 // 0.1 to 1.0
-  const level = 0.1 + Math.random() * 0.9 // 0.1 to 1.0
+  const level = 1 + Math.random() * 9 // 1 to 10
 
   const youthPlayer = new YouthPlayer({
     team_id: teamId,

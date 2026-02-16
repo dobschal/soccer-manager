@@ -47,10 +47,10 @@ describe('actionCards routes', () => {
   })
 
   describe('mergeCards', () => {
-    it('merges two LEVEL_UP_PLAYER_4 cards into LEVEL_UP_PLAYER_7', async () => {
+    it('merges two LEVEL_UP_PLAYER_40 cards into LEVEL_UP_PLAYER_70', async () => {
       const team = testData.team()
-      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_4' })
-      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_4' })
+      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_40' })
+      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_40' })
 
       getTeam.mockResolvedValue(team)
       query.mockResolvedValue({})
@@ -63,15 +63,15 @@ describe('actionCards routes', () => {
       expect(query).toHaveBeenCalledWith('DELETE FROM action_card WHERE id=?', [2])
       expect(query).toHaveBeenCalledWith('INSERT INTO action_card SET ?', expect.objectContaining({
         team_id: team.id,
-        action: 'LEVEL_UP_PLAYER_7',
+        action: 'LEVEL_UP_PLAYER_70',
         played: 0
       }))
     })
 
-    it('merges two LEVEL_UP_PLAYER_7 cards into LEVEL_UP_PLAYER_10', async () => {
+    it('merges two LEVEL_UP_PLAYER_70 cards into LEVEL_UP_PLAYER_100', async () => {
       const team = testData.team()
-      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_7' })
-      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_7' })
+      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_70' })
+      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_70' })
 
       getTeam.mockResolvedValue(team)
       query.mockResolvedValue({})
@@ -81,13 +81,13 @@ describe('actionCards routes', () => {
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith('INSERT INTO action_card SET ?', expect.objectContaining({
-        action: 'LEVEL_UP_PLAYER_10'
+        action: 'LEVEL_UP_PLAYER_100'
       }))
     })
 
     it('throws error when merging different card types', async () => {
       const team = testData.team()
-      const card1 = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
+      const card1 = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
       const card2 = testData.actionCard({ action: 'FRESHNESS_10' })
 
       getTeam.mockResolvedValue(team)
@@ -111,10 +111,10 @@ describe('actionCards routes', () => {
         .rejects.toMatchObject({ message: 'Cannot merge these cards' })
     })
 
-    it('throws error when trying to merge LEVEL_UP_PLAYER_10 cards (already max tier)', async () => {
+    it('throws error when trying to merge LEVEL_UP_PLAYER_100 cards (already max tier)', async () => {
       const team = testData.team()
-      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_10' })
-      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_10' })
+      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_100' })
+      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_100' })
 
       getTeam.mockResolvedValue(team)
 
@@ -152,8 +152,8 @@ describe('actionCards routes', () => {
 
     it('deletes both original cards when merging', async () => {
       const team = testData.team()
-      const card1 = testData.actionCard({ id: 10, action: 'LEVEL_UP_PLAYER_4' })
-      const card2 = testData.actionCard({ id: 20, action: 'LEVEL_UP_PLAYER_4' })
+      const card1 = testData.actionCard({ id: 10, action: 'LEVEL_UP_PLAYER_40' })
+      const card2 = testData.actionCard({ id: 20, action: 'LEVEL_UP_PLAYER_40' })
 
       getTeam.mockResolvedValue(team)
       query.mockResolvedValue({})
@@ -167,8 +167,8 @@ describe('actionCards routes', () => {
 
     it('creates new card with correct team_id when merging', async () => {
       const team = testData.team({ id: 42 })
-      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_7' })
-      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_7' })
+      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_70' })
+      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_70' })
 
       getTeam.mockResolvedValue(team)
       query.mockResolvedValue({})
@@ -178,14 +178,14 @@ describe('actionCards routes', () => {
 
       expect(query).toHaveBeenCalledWith('INSERT INTO action_card SET ?', expect.objectContaining({
         team_id: 42,
-        action: 'LEVEL_UP_PLAYER_10',
+        action: 'LEVEL_UP_PLAYER_100',
         played: 0
       }))
     })
 
     it('throws error when not authenticated', async () => {
-      const card1 = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
-      const card2 = testData.actionCard({ action: 'LEVEL_UP_PLAYER_4' })
+      const card1 = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
+      const card2 = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
       const req = { user: null, body: {}, headers: {}, locale: 'en' }
 
