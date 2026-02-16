@@ -288,27 +288,12 @@ describe('DashboardPage', () => {
       expect(showOverlay).not.toHaveBeenCalled()
     })
 
-    it('does NOT show overlay on small screens', async () => {
-      window.matchMedia = vi.fn().mockReturnValue({ matches: false })
-
-      server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{ type: 'NO_SPONSOR' }]
-      })
-
-      const page = new DashboardPage()
-      await page.load()
-
-      vi.useFakeTimers()
-      page.onMounted()
-      vi.runAllTimers()
-      vi.useRealTimers()
-
-      expect(showOverlay).not.toHaveBeenCalled()
-    })
-
     it('renders correct link for INCOMPLETE_LINEUP', async () => {
       server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{ type: 'INCOMPLETE_LINEUP', count: 7 }]
+        urgencies: [{
+          type: 'INCOMPLETE_LINEUP',
+          count: 7
+        }]
       })
 
       const page = new DashboardPage()
@@ -326,7 +311,10 @@ describe('DashboardPage', () => {
 
     it('renders correct link for YOUTH_LOW_STATS', async () => {
       server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{ type: 'YOUTH_LOW_STATS', count: 2 }]
+        urgencies: [{
+          type: 'YOUTH_LOW_STATS',
+          count: 2
+        }]
       })
 
       const page = new DashboardPage()
@@ -344,7 +332,10 @@ describe('DashboardPage', () => {
 
     it('renders correct link for INCOMING_OFFERS', async () => {
       server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{ type: 'INCOMING_OFFERS', count: 3 }]
+        urgencies: [{
+          type: 'INCOMING_OFFERS',
+          count: 3
+        }]
       })
 
       const page = new DashboardPage()

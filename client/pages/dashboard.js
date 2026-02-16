@@ -266,8 +266,6 @@ export class DashboardPage extends UIElement {
    * @returns {void}
    */
   _showUrgencyOverlayIfNeeded () {
-    const isLargeScreen = window.matchMedia('(min-width: 992px)').matches
-    if (!isLargeScreen) return
     if (this._urgencies.length === 0) return
 
     const storageKey = `urgencyOverlayShown_${this.season}_${this.gameDay}`
