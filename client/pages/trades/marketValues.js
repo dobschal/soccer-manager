@@ -63,8 +63,8 @@ export class MarketValuesPage extends UIElement {
             ${positions.map(pos => `<option value="${pos}" ${pos === this._selectedPosition ? 'selected' : ''}>${t('actionCards.position.' + pos)}</option>`).join('')}
           </select>
         </div>
-        <div style="overflow-x: auto;">
-          <table class="table table-sm table-bordered">
+        <div style="overflow-x: auto; margin: 0 -2rem">
+          <table class="table table-sm table-bordered" style="margin: 0">
             <thead>
               <tr>
                 <th>${t('trades.marketValuesLevel')}</th>
@@ -76,13 +76,13 @@ export class MarketValuesPage extends UIElement {
                 <tr>
                   <td><strong>${level}</strong></td>
                   ${ages.map(age => {
-                    const key = `${level}:${age}`
-                    const stat = this._transferStats[key]
-                    const estimate = calculateMarketValue(level, age)
-                    const style = stat ? getCellColor(stat.avgPrice, estimate) : 'background: #f0f0f0'
-                    const displayValue = stat ? stat.avgPrice : estimate
-                    return `<td class="text-end text-nowrap" style="${style}">${euroFormat.format(displayValue)}</td>`
-                  }).join('')}
+      const key = `${level}:${age}`
+      const stat = this._transferStats[key]
+      const estimate = calculateMarketValue(level, age)
+      const style = stat ? getCellColor(stat.avgPrice, estimate) : 'background: #f0f0f0'
+      const displayValue = stat ? stat.avgPrice : estimate
+      return `<td class="text-end text-nowrap" style="${style}">${euroFormat.format(displayValue)}</td>`
+    }).join('')}
                 </tr>
               `).join('')}
             </tbody>
