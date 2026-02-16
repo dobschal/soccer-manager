@@ -178,8 +178,8 @@ async function _playCupGame (game) {
   // Update freshness and card counts for cup games too
   const freshnessLossByStyle = {
     aggressive: 0.15,
-    normal: 0.12,
-    friendly: 0.10
+    normal: 0.13,
+    friendly: 0.11
   }
   for (const player of playerTeamA) {
     const playStyle = teamA.play_style || 'normal'
