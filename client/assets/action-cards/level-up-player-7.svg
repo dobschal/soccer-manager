@@ -42,7 +42,7 @@
 
     <!-- Card title -->
     <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#e0e0e0"
-          text-anchor="middle">EPIC ADVANCEMENT
+          text-anchor="middle">ADVANCED TRAINING
     </text>
 
     <!-- Image area frame -->
@@ -60,7 +60,7 @@
     <!-- Level 7 badge -->
     <circle cx="125" cy="145" r="22" fill="#1a1a2e" stroke="#d8d8d8" stroke-width="3"/>
     <text x="125" y="157" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#e0e0e0"
-          text-anchor="middle">7
+          text-anchor="middle">70
     </text>
 
     <!-- Arrow up indicator -->
@@ -98,7 +98,7 @@
           text-anchor="middle">LEVEL UP
     </text>
     <text x="125" y="290" font-family="Arial, sans-serif" font-size="10" fill="#d8d8d8" text-anchor="middle">
-        Up to level 7
+        Up to level 70
     </text>
 
     <!-- Rarity indicator - 2 epic stars -->

@@ -42,7 +42,7 @@
 
     <!-- Card title -->
     <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ff6b35"
-          text-anchor="middle">BASIC PROMOTION
+          text-anchor="middle">BASIC TRAINING
     </text>
 
     <!-- Image area frame -->
@@ -59,7 +59,7 @@
     <!-- Level 4 badge -->
     <circle cx="125" cy="145" r="22" fill="#1a1a2e" stroke="#ff6b35" stroke-width="3"/>
     <text x="125" y="157" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ff6b35"
-          text-anchor="middle">4
+          text-anchor="middle">40
     </text>
 
     <!-- Arrow up indicator -->
@@ -97,7 +97,7 @@
           text-anchor="middle">LEVEL UP
     </text>
     <text x="125" y="290" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">
-        Up to level 4
+        Up to level 40
     </text>
 
     <!-- Rarity indicator - 1 common star -->
