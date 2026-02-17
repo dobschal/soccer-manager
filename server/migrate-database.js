@@ -850,6 +850,23 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE player ADD COLUMN sort_index INT DEFAULT 0')
   }
+},
+{
+  name: 'Seed fitness_studio building for all teams',
+  async run () {
+    const teams = await query('SELECT id FROM team')
+    for (const team of teams) {
+      const existing = await query("SELECT id FROM building WHERE team_id=? AND type='fitness_studio' LIMIT 1", [team.id])
+      if (existing.length === 0) {
+        await query('INSERT INTO building SET ?', {
+          team_id: team.id,
+          type: 'fitness_studio',
+          level: 1
+        })
+      }
+    }
+    console.log(`✅ Seeded ${teams.length} teams with fitness_studio level 1`)
+  }
 }]
 
 /**

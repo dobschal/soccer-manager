@@ -20,7 +20,9 @@ import { createYouthPlayer } from './youthPlayerHelper.js'
 // - LEVEL_UP_PLAYER_70: ~10/season → 0.3/day (+ ~20 from merge, medium amount reach level 70)
 // - LEVEL_UP_PLAYER_100: ~2/season → 0.06/day (+ ~10 from merge, rare to reach level 100)
 export const actionCardChances = {
+  FRESHNESS_5: 0,
   FRESHNESS_10: 0.88,
+  FRESHNESS_20: 0,
   LEVEL_UP_PLAYER_40: 1.2,
   CHANGE_PLAYER_POSITION: 0.12,
   NEW_YOUTH_PLAYER: 0.1,
@@ -69,9 +71,23 @@ export async function playActionCard ({
   }
   locale = locale || 'en'
 
+  if (actionCard.action === 'FRESHNESS_5') {
+    const player = await getPlayerById(p.id)
+    player.freshness = Math.min(1.0, player.freshness + 0.05)
+    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
+    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    return { success: true }
+  }
   if (actionCard.action === 'FRESHNESS_10') {
     const player = await getPlayerById(p.id)
     player.freshness = Math.min(1.0, player.freshness + 0.1)
+    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
+    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    return { success: true }
+  }
+  if (actionCard.action === 'FRESHNESS_20') {
+    const player = await getPlayerById(p.id)
+    player.freshness = Math.min(1.0, player.freshness + 0.2)
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
     await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
     return { success: true }

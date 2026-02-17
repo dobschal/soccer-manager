@@ -15,7 +15,10 @@ const GAMEDAYS_PER_SEASON = 34
 export const BUILDING_UPGRADES = {
   training_area_1: { cost: 500_000, constructionDays: 5 },
   training_area_2: { cost: 1_500_000, constructionDays: 10 },
-  training_area_3: { cost: 4_000_000, constructionDays: 17 }
+  training_area_3: { cost: 4_000_000, constructionDays: 17 },
+  fitness_studio_1: { cost: 400_000, constructionDays: 4 },
+  fitness_studio_2: { cost: 1_200_000, constructionDays: 8 },
+  fitness_studio_3: { cost: 3_500_000, constructionDays: 15 }
 }
 
 /**
@@ -27,6 +30,25 @@ export const TRAINING_AREA_CARD_CHANCES = {
   1: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0, LEVEL_UP_PLAYER_100: 0 },
   2: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0.3, LEVEL_UP_PLAYER_100: 0 },
   3: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0.3, LEVEL_UP_PLAYER_100: 0.06 }
+}
+
+/**
+ * Action card chances per game day, keyed by fitness studio level.
+ * Only FRESHNESS cards are affected; other cards use global defaults.
+ */
+export const FITNESS_STUDIO_CARD_CHANCES = {
+  0: { FRESHNESS_5: 0, FRESHNESS_10: 0.5, FRESHNESS_20: 0 },
+  1: { FRESHNESS_5: 0.6, FRESHNESS_10: 0.88, FRESHNESS_20: 0 },
+  2: { FRESHNESS_5: 0.6, FRESHNESS_10: 0.88, FRESHNESS_20: 0.15 },
+  3: { FRESHNESS_5: 0.6, FRESHNESS_10: 0.88, FRESHNESS_20: 0.3 }
+}
+
+/**
+ * Map building type to i18n key for log messages.
+ */
+const BUILDING_NAME_KEYS = {
+  training_area: 'building.trainingArea',
+  fitness_studio: 'building.fitnessStudio'
 }
 
 /**
@@ -56,6 +78,32 @@ export async function getTrainingAreaLevel (teamId) {
  */
 export async function getAllTrainingAreaLevels () {
   const buildings = await query("SELECT team_id, level FROM building WHERE type='training_area'")
+  const map = new Map()
+  for (const b of buildings) {
+    map.set(b.team_id, b.level)
+  }
+  return map
+}
+
+/**
+ * @param {number} teamId
+ * @returns {Promise<number>}
+ */
+export async function getFitnessStudioLevel (teamId) {
+  const [building] = await query(
+    "SELECT * FROM building WHERE team_id=? AND type='fitness_studio' LIMIT 1",
+    [teamId]
+  )
+  return building?.level ?? 1
+}
+
+/**
+ * Batch-fetch fitness studio levels for all teams.
+ * Returns a Map of teamId -> level.
+ * @returns {Promise<Map<number, number>>}
+ */
+export async function getAllFitnessStudioLevels () {
+  const buildings = await query("SELECT team_id, level FROM building WHERE type='fitness_studio'")
   const map = new Map()
   for (const b of buildings) {
     map.set(b.team_id, b.level)
@@ -133,8 +181,9 @@ export async function upgradeBuilding (team, buildingType, locale) {
     [endGameDay, endSeason, targetLevel, building.id]
   )
 
+  const buildingNameKey = BUILDING_NAME_KEYS[buildingType] || buildingType
   await addLogMessage(
-    t('log.buildingUpgradeStarted', { buildingName: t('building.trainingArea', {}, locale) }, locale),
+    t('log.buildingUpgradeStarted', { buildingName: t(buildingNameKey, {}, locale) }, locale),
     team,
     null,
     null,
@@ -169,8 +218,9 @@ export async function completeBuildingConstructions (gameDay, season) {
     const [team] = await query('SELECT * FROM team WHERE id=?', [building.team_id])
     if (team) {
       const locale = await getUserLocale(team.user_id)
+      const buildingNameKey = BUILDING_NAME_KEYS[building.type] || building.type
       await addLogMessage(
-        t('log.buildingUpgradeComplete', { buildingName: t('building.trainingArea', {}, locale) }, locale),
+        t('log.buildingUpgradeComplete', { buildingName: t(buildingNameKey, {}, locale) }, locale),
         team,
         null,
         null,

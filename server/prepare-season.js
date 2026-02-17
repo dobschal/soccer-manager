@@ -340,6 +340,11 @@ async function _createRandomTeam (level) {
     type: 'training_area',
     level: 1
   })
+  await query('INSERT INTO building SET ?', {
+    team_id: team.id,
+    type: 'fitness_studio',
+    level: 1
+  })
   return team
 }
 

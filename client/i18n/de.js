@@ -565,6 +565,10 @@ export default {
   'actionCards.type.youthProspectDesc': 'Rekrutiere einen vielversprechenden Jugendspieler.',
   'actionCards.type.energyBoost': 'Energie-Boost',
   'actionCards.type.energyBoostDesc': 'Stelle die Frische eines Spielers um 10 wieder her.',
+  'actionCards.type.quickRecovery': 'Schnelle Erholung',
+  'actionCards.type.quickRecoveryDesc': 'Stelle die Frische eines Spielers um 5 wieder her.',
+  'actionCards.type.fullRecovery': 'Volle Erholung',
+  'actionCards.type.fullRecoveryDesc': 'Stelle die Frische eines Spielers um 20 wieder her.',
   'actionCards.type.cashBonus': 'Geldbonus',
   'actionCards.type.cashBonusDesc': 'Erhalte einen Sofortbonus von 100.000€.',
   // Positions for action cards
@@ -780,5 +784,13 @@ export default {
   'buildings.level0Desc': 'Kein Trainingsgelände vorhanden.',
   'buildings.level1Desc': 'Einfaches Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card "Basic Training" zu erhalten. Damit kannst du Spieler bis Level 40 trainieren.',
   'buildings.level2Desc': 'Mittelmäßiges Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card vom Typ "Basic Training" oder "Advanced Training" zu erhalten. Damit kannst du Spieler bis Level 70 trainieren.',
-  'buildings.level3Desc': 'Professionelles Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card vom Typ "Basic Training", "Advanced Training" oder "Master Training" zu erhalten. Damit kannst du Spieler bis Level 100 trainieren.'
+  'buildings.level3Desc': 'Professionelles Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card vom Typ "Basic Training", "Advanced Training" oder "Master Training" zu erhalten. Damit kannst du Spieler bis Level 100 trainieren.',
+
+  // Fitness Studio
+  'buildings.fitnessStudio': 'Fitnessstudio',
+  'buildings.fitnessStudioDesc': 'Baue dein Fitnessstudio aus, um bessere Frische-Aktionskarten für die Spielererholung freizuschalten.',
+  'buildings.fitnessLevel0Desc': 'Kein Fitnessstudio. Du erhältst eine reduzierte Chance auf "Energie-Boost" Frische-Karten.',
+  'buildings.fitnessLevel1Desc': 'Einfaches Fitnessstudio. Erhöht die Chance auf "Energie-Boost" Karten und schaltet "Schnelle Erholung" Karten frei.',
+  'buildings.fitnessLevel2Desc': 'Mittelmäßiges Fitnessstudio. Schaltet "Volle Erholung" Karten neben bestehenden Frische-Karten frei.',
+  'buildings.fitnessLevel3Desc': 'Professionelles Fitnessstudio. Maximale Chance auf alle Frische-Karten einschließlich "Volle Erholung".'
 }

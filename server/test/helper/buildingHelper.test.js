@@ -32,11 +32,14 @@ import { addLogMessage } from '../../helper/logMessageHelper.js'
 import {
   getBuildingConstructionInfo,
   TRAINING_AREA_CARD_CHANCES,
+  FITNESS_STUDIO_CARD_CHANCES,
   BUILDING_UPGRADES,
   upgradeBuilding,
   completeBuildingConstructions,
   getTrainingAreaLevel,
   getAllTrainingAreaLevels,
+  getFitnessStudioLevel,
+  getAllFitnessStudioLevels,
   getBuildingsForTeam
 } from '../../helper/buildingHelper.js'
 
@@ -75,15 +78,52 @@ describe('buildingHelper', () => {
     })
   })
 
+  describe('FITNESS_STUDIO_CARD_CHANCES', () => {
+    it('level 0 has reduced FRESHNESS_10, no others', () => {
+      const chances = FITNESS_STUDIO_CARD_CHANCES[0]
+      expect(chances.FRESHNESS_5).toBe(0)
+      expect(chances.FRESHNESS_10).toBe(0.5)
+      expect(chances.FRESHNESS_20).toBe(0)
+    })
+
+    it('level 1 has FRESHNESS_5 and FRESHNESS_10, no FRESHNESS_20', () => {
+      const chances = FITNESS_STUDIO_CARD_CHANCES[1]
+      expect(chances.FRESHNESS_5).toBe(0.6)
+      expect(chances.FRESHNESS_10).toBe(0.88)
+      expect(chances.FRESHNESS_20).toBe(0)
+    })
+
+    it('level 2 has all three freshness types', () => {
+      const chances = FITNESS_STUDIO_CARD_CHANCES[2]
+      expect(chances.FRESHNESS_5).toBe(0.6)
+      expect(chances.FRESHNESS_10).toBe(0.88)
+      expect(chances.FRESHNESS_20).toBe(0.15)
+    })
+
+    it('level 3 has best chances for all freshness cards', () => {
+      const chances = FITNESS_STUDIO_CARD_CHANCES[3]
+      expect(chances.FRESHNESS_5).toBe(0.6)
+      expect(chances.FRESHNESS_10).toBe(0.88)
+      expect(chances.FRESHNESS_20).toBe(0.3)
+    })
+  })
+
   describe('BUILDING_UPGRADES', () => {
-    it('has correct costs and construction times', () => {
+    it('has correct costs and construction times for training area', () => {
       expect(BUILDING_UPGRADES.training_area_1).toEqual({ cost: 500_000, constructionDays: 5 })
       expect(BUILDING_UPGRADES.training_area_2).toEqual({ cost: 1_500_000, constructionDays: 10 })
       expect(BUILDING_UPGRADES.training_area_3).toEqual({ cost: 4_000_000, constructionDays: 17 })
     })
 
+    it('has correct costs and construction times for fitness studio', () => {
+      expect(BUILDING_UPGRADES.fitness_studio_1).toEqual({ cost: 400_000, constructionDays: 4 })
+      expect(BUILDING_UPGRADES.fitness_studio_2).toEqual({ cost: 1_200_000, constructionDays: 8 })
+      expect(BUILDING_UPGRADES.fitness_studio_3).toEqual({ cost: 3_500_000, constructionDays: 15 })
+    })
+
     it('does not have upgrade for level 4', () => {
       expect(BUILDING_UPGRADES.training_area_4).toBeUndefined()
+      expect(BUILDING_UPGRADES.fitness_studio_4).toBeUndefined()
     })
   })
 
@@ -171,6 +211,40 @@ describe('buildingHelper', () => {
       const map = await getAllTrainingAreaLevels()
 
       expect(map.get(1)).toBe(2)
+      expect(map.get(2)).toBe(0)
+      expect(map.get(3)).toBe(3)
+    })
+  })
+
+  describe('getFitnessStudioLevel', () => {
+    it('returns building level when found', async () => {
+      query.mockResolvedValue([{ level: 2 }])
+
+      const level = await getFitnessStudioLevel(1)
+
+      expect(level).toBe(2)
+    })
+
+    it('returns 1 as default when no building found', async () => {
+      query.mockResolvedValue([])
+
+      const level = await getFitnessStudioLevel(1)
+
+      expect(level).toBe(1)
+    })
+  })
+
+  describe('getAllFitnessStudioLevels', () => {
+    it('returns map of team_id to level', async () => {
+      query.mockResolvedValue([
+        { team_id: 1, level: 1 },
+        { team_id: 2, level: 0 },
+        { team_id: 3, level: 3 }
+      ])
+
+      const map = await getAllFitnessStudioLevels()
+
+      expect(map.get(1)).toBe(1)
       expect(map.get(2)).toBe(0)
       expect(map.get(3)).toBe(3)
     })

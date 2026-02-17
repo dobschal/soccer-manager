@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350">
+    <defs>
+        <linearGradient id="cardBgFresh5" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#48b1bf"/>
+            <stop offset="50%" style="stop-color:#6dd5c4"/>
+            <stop offset="100%" style="stop-color:#06847a"/>
+        </linearGradient>
+        <linearGradient id="innerBgFresh5" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e"/>
+            <stop offset="100%" style="stop-color:#16213e"/>
+        </linearGradient>
+        <filter id="glowFresh5">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <linearGradient id="energyGrad5" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#48b1bf"/>
+            <stop offset="100%" style="stop-color:#a8edea"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Card outer frame -->
+    <rect x="0" y="0" width="250" height="350" rx="15" fill="url(#cardBgFresh5)"/>
+    <rect x="8" y="8" width="234" height="334" rx="12" fill="url(#innerBgFresh5)"/>
+
+    <!-- Header banner -->
+    <rect x="15" y="15" width="220" height="28" rx="5" fill="#6dd5c4" opacity="0.9"/>
+    <text x="125" y="35" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a2e"
+          text-anchor="middle">ACTION CARD
+    </text>
+
+    <!-- Card title -->
+    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#6dd5c4"
+          text-anchor="middle">QUICK RECOVERY
+    </text>
+
+    <!-- Image area frame -->
+    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#6dd5c4" stroke-width="2"/>
+
+    <!-- Small water drop -->
+    <path d="M125 100 Q115 130 105 150 Q105 170 125 175 Q145 170 145 150 Q135 130 125 100 Z" fill="url(#energyGrad5)"
+          filter="url(#glowFresh5)" opacity="0.9"/>
+
+    <!-- Ripple circles -->
+    <circle cx="125" cy="155" r="25" fill="none" stroke="#6dd5c4" stroke-width="1.5" opacity="0.4"/>
+    <circle cx="125" cy="155" r="35" fill="none" stroke="#6dd5c4" stroke-width="1" opacity="0.2"/>
+
+    <!-- Sparkle effects -->
+    <path d="M70 100 L73 105 L70 110 L67 105 Z" fill="#fff" opacity="0.6"/>
+    <path d="M185 120 L188 125 L185 130 L182 125 Z" fill="#fff" opacity="0.6"/>
+
+    <!-- +5 indicator -->
+    <circle cx="180" cy="100" r="18" fill="#1a1a2e" stroke="#6dd5c4" stroke-width="2"/>
+    <text x="180" y="106" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#6dd5c4"
+          text-anchor="middle">+5
+    </text>
+
+    <!-- Description box -->
+    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#6dd5c4" stroke-width="1"/>
+    <text x="125" y="248" font-family="Arial, sans-serif" font-size="12" fill="#e0e0e0" text-anchor="middle">Restore a
+        player's
+    </text>
+    <text x="125" y="270" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#6dd5c4"
+          text-anchor="middle">FRESHNESS +5
+    </text>
+    <text x="125" y="288" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">A quick
+        recovery boost
+    </text>
+
+    <!-- Rarity indicator - 1 star (common) -->
+    <g transform="translate(25, 55) scale(0.8)">
+        <polygon points="125,318 129,330 142,330 132,338 136,350 125,342 114,350 118,338 108,330 121,330"
+                 fill="#6dd5c4"/>
+    </g>
+</svg>

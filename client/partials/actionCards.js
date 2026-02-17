@@ -32,9 +32,17 @@ function getActionCardTexts () {
       title: t('actionCards.type.youthProspect'),
       description: t('actionCards.type.youthProspectDesc')
     },
+    FRESHNESS_5: {
+      title: t('actionCards.type.quickRecovery'),
+      description: t('actionCards.type.quickRecoveryDesc')
+    },
     FRESHNESS_10: {
       title: t('actionCards.type.energyBoost'),
       description: t('actionCards.type.energyBoostDesc')
+    },
+    FRESHNESS_20: {
+      title: t('actionCards.type.fullRecovery'),
+      description: t('actionCards.type.fullRecoveryDesc')
     },
     BONUS_100K: {
       title: t('actionCards.type.cashBonus'),
@@ -49,7 +57,9 @@ const ACTION_CARD_IMAGES = {
   LEVEL_UP_PLAYER_40: 'assets/action-cards/level-up-player-4.svg',
   CHANGE_PLAYER_POSITION: 'assets/action-cards/change-player-position.svg',
   NEW_YOUTH_PLAYER: 'assets/action-cards/new-youth-player.svg',
+  FRESHNESS_5: 'assets/action-cards/freshness-5.svg',
   FRESHNESS_10: 'assets/action-cards/freshness-10.svg',
+  FRESHNESS_20: 'assets/action-cards/freshness-20.svg',
   BONUS_100K: 'assets/action-cards/bonus-100k.svg'
 }
 

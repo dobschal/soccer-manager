@@ -565,6 +565,10 @@ export default {
   'actionCards.type.youthProspectDesc': 'Recruit a promising youth player.',
   'actionCards.type.energyBoost': 'Energy Boost',
   'actionCards.type.energyBoostDesc': 'Restore a player\'s freshness by 10.',
+  'actionCards.type.quickRecovery': 'Quick Recovery',
+  'actionCards.type.quickRecoveryDesc': 'Restore a player\'s freshness by 5.',
+  'actionCards.type.fullRecovery': 'Full Recovery',
+  'actionCards.type.fullRecoveryDesc': 'Restore a player\'s freshness by 20.',
   'actionCards.type.cashBonus': 'Cash Bonus',
   'actionCards.type.cashBonusDesc': 'Receive an instant bonus of 100,000€.',
   // Positions for action cards
@@ -780,5 +784,13 @@ export default {
   'buildings.level0Desc': 'No training area available.',
   'buildings.level1Desc': 'Basic training area. Each game day you have a chance to receive a "Basic Training" action card. This allows you to train players up to level 40.',
   'buildings.level2Desc': 'Intermediate training area. Each game day you have a chance to receive a "Basic Training" or "Advanced Training" action card. This allows you to train players up to level 70.',
-  'buildings.level3Desc': 'Professional training area. Each game day you have a chance to receive a "Basic Training", "Advanced Training" or "Master Training" action card. This allows you to train players up to level 100.'
+  'buildings.level3Desc': 'Professional training area. Each game day you have a chance to receive a "Basic Training", "Advanced Training" or "Master Training" action card. This allows you to train players up to level 100.',
+
+  // Fitness Studio
+  'buildings.fitnessStudio': 'Fitness Studio',
+  'buildings.fitnessStudioDesc': 'Upgrade your fitness studio to unlock better freshness action cards for player recovery.',
+  'buildings.fitnessLevel0Desc': 'No fitness studio. You receive a reduced chance of "Energy Boost" freshness cards.',
+  'buildings.fitnessLevel1Desc': 'Basic fitness studio. Increases your chance of "Energy Boost" cards and unlocks "Quick Recovery" cards.',
+  'buildings.fitnessLevel2Desc': 'Intermediate fitness studio. Unlocks "Full Recovery" cards alongside existing freshness cards.',
+  'buildings.fitnessLevel3Desc': 'Professional fitness studio. Maximum chance for all freshness cards including "Full Recovery".'
 }

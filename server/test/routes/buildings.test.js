@@ -20,13 +20,22 @@ vi.mock('../../helper/buildingHelper.js', () => ({
   BUILDING_UPGRADES: {
     training_area_1: { cost: 500_000, constructionDays: 5 },
     training_area_2: { cost: 1_500_000, constructionDays: 10 },
-    training_area_3: { cost: 4_000_000, constructionDays: 17 }
+    training_area_3: { cost: 4_000_000, constructionDays: 17 },
+    fitness_studio_1: { cost: 400_000, constructionDays: 4 },
+    fitness_studio_2: { cost: 1_200_000, constructionDays: 8 },
+    fitness_studio_3: { cost: 3_500_000, constructionDays: 15 }
   },
   TRAINING_AREA_CARD_CHANCES: {
     0: { LEVEL_UP_PLAYER_40: 0.2, LEVEL_UP_PLAYER_70: 0, LEVEL_UP_PLAYER_100: 0 },
     1: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0, LEVEL_UP_PLAYER_100: 0 },
     2: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0.3, LEVEL_UP_PLAYER_100: 0 },
     3: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0.3, LEVEL_UP_PLAYER_100: 0.06 }
+  },
+  FITNESS_STUDIO_CARD_CHANCES: {
+    0: { FRESHNESS_5: 0, FRESHNESS_10: 0.5, FRESHNESS_20: 0 },
+    1: { FRESHNESS_5: 0.6, FRESHNESS_10: 0.88, FRESHNESS_20: 0 },
+    2: { FRESHNESS_5: 0.6, FRESHNESS_10: 0.88, FRESHNESS_20: 0.15 },
+    3: { FRESHNESS_5: 0.6, FRESHNESS_10: 0.88, FRESHNESS_20: 0.3 }
   }
 }))
 
@@ -60,6 +69,7 @@ describe('buildings routes', () => {
       expect(result.buildings[0].constructionInfo).toEqual({ underConstruction: false })
       expect(result.upgrades).toBeDefined()
       expect(result.cardChances).toBeDefined()
+      expect(result.fitnessCardChances).toBeDefined()
     })
 
     it('returns empty array when no buildings', async () => {

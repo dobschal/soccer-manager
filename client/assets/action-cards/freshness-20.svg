@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 350">
+    <defs>
+        <linearGradient id="cardBgFresh20" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#d4a017"/>
+            <stop offset="50%" style="stop-color:#f5c842"/>
+            <stop offset="100%" style="stop-color:#b8860b"/>
+        </linearGradient>
+        <linearGradient id="innerBgFresh20" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#1a1a2e"/>
+            <stop offset="100%" style="stop-color:#16213e"/>
+        </linearGradient>
+        <filter id="glowFresh20">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <linearGradient id="energyGrad20" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" style="stop-color:#d4a017"/>
+            <stop offset="100%" style="stop-color:#ffe066"/>
+        </linearGradient>
+        <radialGradient id="burstGrad20" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" style="stop-color:#ffe066;stop-opacity:0.8"/>
+            <stop offset="100%" style="stop-color:#d4a017;stop-opacity:0"/>
+        </radialGradient>
+    </defs>
+
+    <!-- Card outer frame -->
+    <rect x="0" y="0" width="250" height="350" rx="15" fill="url(#cardBgFresh20)"/>
+    <rect x="8" y="8" width="234" height="334" rx="12" fill="url(#innerBgFresh20)"/>
+
+    <!-- Header banner -->
+    <rect x="15" y="15" width="220" height="28" rx="5" fill="#f5c842" opacity="0.9"/>
+    <text x="125" y="35" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a2e"
+          text-anchor="middle">ACTION CARD
+    </text>
+
+    <!-- Card title -->
+    <text x="125" y="65" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#f5c842"
+          text-anchor="middle">FULL RECOVERY
+    </text>
+
+    <!-- Image area frame -->
+    <rect x="20" y="75" width="210" height="140" rx="8" fill="#0f0f1a" stroke="#f5c842" stroke-width="2"/>
+
+    <!-- Energy burst background -->
+    <circle cx="125" cy="145" r="55" fill="url(#burstGrad20)"/>
+
+    <!-- Large energy bolt -->
+    <path d="M140 95 L115 140 L135 140 L110 195 L145 135 L125 135 Z" fill="url(#energyGrad20)"
+          filter="url(#glowFresh20)" opacity="0.95"/>
+
+    <!-- Outer ring -->
+    <circle cx="125" cy="145" r="50" fill="none" stroke="#f5c842" stroke-width="2" opacity="0.5"/>
+    <circle cx="125" cy="145" r="60" fill="none" stroke="#f5c842" stroke-width="1" opacity="0.2"/>
+
+    <!-- Sparkle effects -->
+    <path d="M60 100 L64 108 L60 116 L56 108 Z" fill="#fff" opacity="0.7"/>
+    <path d="M190 110 L194 118 L190 126 L186 118 Z" fill="#fff" opacity="0.7"/>
+    <path d="M75 175 L78 180 L75 185 L72 180 Z" fill="#fff" opacity="0.5"/>
+    <path d="M175 90 L178 95 L175 100 L172 95 Z" fill="#fff" opacity="0.5"/>
+
+    <!-- +20 indicator -->
+    <circle cx="180" cy="100" r="20" fill="#1a1a2e" stroke="#f5c842" stroke-width="2.5"/>
+    <text x="180" y="106" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#f5c842"
+          text-anchor="middle">+20
+    </text>
+
+    <!-- Description box -->
+    <rect x="20" y="225" width="210" height="80" rx="8" fill="#0f0f1a" stroke="#f5c842" stroke-width="1"/>
+    <text x="125" y="248" font-family="Arial, sans-serif" font-size="12" fill="#e0e0e0" text-anchor="middle">Fully
+        restore a player's
+    </text>
+    <text x="125" y="270" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#f5c842"
+          text-anchor="middle">FRESHNESS +20
+    </text>
+    <text x="125" y="288" font-family="Arial, sans-serif" font-size="10" fill="#c0c0c0" text-anchor="middle">A
+        powerful recovery surge
+    </text>
+
+    <!-- Rarity indicator - 3 stars (rare) -->
+    <g transform="translate(-25, 55) scale(0.8)">
+        <polygon points="100,318 104,330 117,330 107,338 111,350 100,342 89,350 93,338 83,330 96,330"
+                 fill="#f5c842"/>
+        <polygon points="125,318 129,330 142,330 132,338 136,350 125,342 114,350 118,338 108,330 121,330"
+                 fill="#f5c842"/>
+        <polygon points="150,318 154,330 167,330 157,338 161,350 150,342 139,350 143,338 133,330 146,330"
+                 fill="#f5c842"/>
+    </g>
+</svg>

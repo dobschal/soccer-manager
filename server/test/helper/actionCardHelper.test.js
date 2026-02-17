@@ -395,6 +395,64 @@ describe('actionCardHelper', () => {
     })
   })
 
+  describe('playActionCard - FRESHNESS_5', () => {
+    it('restores player freshness by 0.05', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 1, freshness: 0.5 })
+      const actionCard = testData.actionCard({ action: 'FRESHNESS_5' })
+
+      getPlayerById.mockResolvedValue(player)
+
+      const result = await playActionCard({ player, actionCard }, team)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE player SET freshness=? WHERE id=?', [0.55, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    })
+
+    it('caps freshness at 1.0', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 1, freshness: 0.97 })
+      const actionCard = testData.actionCard({ action: 'FRESHNESS_5' })
+
+      getPlayerById.mockResolvedValue(player)
+
+      const result = await playActionCard({ player, actionCard }, team)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE player SET freshness=? WHERE id=?', [1.0, 1])
+    })
+  })
+
+  describe('playActionCard - FRESHNESS_20', () => {
+    it('restores player freshness by 0.2', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 1, freshness: 0.5 })
+      const actionCard = testData.actionCard({ action: 'FRESHNESS_20' })
+
+      getPlayerById.mockResolvedValue(player)
+
+      const result = await playActionCard({ player, actionCard }, team)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE player SET freshness=? WHERE id=?', [0.7, 1])
+      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    })
+
+    it('caps freshness at 1.0', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 1, freshness: 0.9 })
+      const actionCard = testData.actionCard({ action: 'FRESHNESS_20' })
+
+      getPlayerById.mockResolvedValue(player)
+
+      const result = await playActionCard({ player, actionCard }, team)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE player SET freshness=? WHERE id=?', [1.0, 1])
+    })
+  })
+
   describe('playActionCard - CHANGE_PLAYER_POSITION', () => {
     it('changes player position', async () => {
       const team = testData.team()
