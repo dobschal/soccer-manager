@@ -115,7 +115,7 @@ export async function cleanupOldFreePlayers () {
  */
 async function _generateWeakFreePlayer (season) {
   // Level 10-20 players aged 28-32 have very low market value
-  const level = Math.random() < 0.7 ? 10 : 20
+  const level = 10 + Math.floor(Math.random() * 11) // 10-20
   const age = 28 + Math.floor(Math.random() * 5) // 28-32 years old
   const carrierStartSeason = season - age + 16
   const carrierEndSeason = carrierStartSeason + 22 + Math.floor(Math.random() * 4)
