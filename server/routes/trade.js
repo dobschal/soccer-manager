@@ -61,6 +61,26 @@ export default {
     if (type === 'buy' && player.team_id) {
       const playerData = await getPlayerById(player.id)
       const receivingTeam = await getTeamById(player.team_id)
+
+      // Auto-accept: if the player's team is a bot and has a sell offer at or below the buy price
+      if (receivingTeam && !receivingTeam.user_id) {
+        const [sellOffer] = await query(
+          'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'sell\'',
+          [receivingTeam.id, player.id]
+        )
+        if (sellOffer && price >= sellOffer.offer_value) {
+          const { gameDay, season } = await getGameDayAndSeason()
+          const [insertedOffer] = await query(
+            'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\'',
+            [team.id, player.id]
+          )
+          if (insertedOffer) {
+            await acceptOffer(insertedOffer, receivingTeam, gameDay, season, locale)
+          }
+          return { success: true }
+        }
+      }
+
       if (receivingTeam && receivingTeam.user_id) {
         const receiverLocale = await getUserLocale(receivingTeam.user_id)
         await addLogMessage(

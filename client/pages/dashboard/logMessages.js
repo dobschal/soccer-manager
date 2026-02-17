@@ -1,9 +1,9 @@
-import { UIElement } from '../lib/UIElement.js'
-import { server } from '../lib/gateway.js'
-import { toast } from './toast.js'
-import { formatDate } from '../lib/date.js'
-import { goTo, setQueryParams } from '../lib/router.js'
-import { t } from '../i18n/index.js'
+import { UIElement } from '../../lib/UIElement.js'
+import { server } from '../../lib/gateway.js'
+import { toast } from '../../partials/toast.js'
+import { formatDate } from '../../lib/date.js'
+import { goTo, setQueryParams } from '../../lib/router.js'
+import { t } from '../../i18n/index.js'
 
 const PAGE_SIZE = 10
 

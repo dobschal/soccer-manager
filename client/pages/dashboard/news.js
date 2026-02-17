@@ -1,9 +1,9 @@
-import { UIElement } from '../lib/UIElement.js'
-import { server } from '../lib/gateway.js'
-import { renderPlayerImage } from './playerImage.js'
-import { renderEmblem } from './emblem.js'
-import { goTo, setQueryParams } from '../lib/router.js'
-import { t } from '../i18n/index.js'
+import { UIElement } from '../../lib/UIElement.js'
+import { server } from '../../lib/gateway.js'
+import { renderPlayerImage } from '../../partials/playerImage.js'
+import { renderEmblem } from '../../partials/emblem.js'
+import { goTo, setQueryParams } from '../../lib/router.js'
+import { t } from '../../i18n/index.js'
 
 class NewsItem extends UIElement {
   /**

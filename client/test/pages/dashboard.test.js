@@ -64,7 +64,7 @@ vi.mock('../../lib/date.js', () => ({
   formatDate: vi.fn().mockReturnValue('Today 12:00')
 }))
 
-vi.mock('../../partials/news.js', () => ({
+vi.mock('../../pages/dashboard/news.js', () => ({
   News: class {
     toString () {
       return '<div>News</div>'
@@ -72,7 +72,7 @@ vi.mock('../../partials/news.js', () => ({
   }
 }))
 
-vi.mock('../../partials/actionCards.js', () => ({
+vi.mock('../../pages/dashboard/actionCards.js', () => ({
   ActionCards: class {
     cards = []
 
@@ -86,7 +86,7 @@ vi.mock('../../partials/actionCards.js', () => ({
   }
 }))
 
-vi.mock('../../partials/logMessages.js', () => ({
+vi.mock('../../pages/dashboard/logMessages.js', () => ({
   LogMessages: class {
     messages = []
 

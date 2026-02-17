@@ -552,6 +552,7 @@ export default {
   'actionCards.whichPlayerPosition': 'Which player should change his position?',
   'actionCards.whichPosition': 'Which position should the player play in the future?',
   'actionCards.whichPlayerLevelUp': 'Which player should get a level up?',
+  'actionCards.buildingsHint': 'Upgrade your buildings to increase the chance of receiving action cards on game days.',
   // Action Card Types
   'actionCards.type.legendaryMastery': 'Master Training',
   'actionCards.type.legendaryMasteryDesc': 'Level up a player to reach level 100.',

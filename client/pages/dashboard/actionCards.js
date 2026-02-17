@@ -1,11 +1,11 @@
-import { UIElement } from '../lib/UIElement.js'
-import { server } from '../lib/gateway.js'
-import { showOverlay } from './overlay.js'
-import { showDialog } from './dialog.js'
-import { PlayerList } from './playerList.js'
-import { toast } from './toast.js'
-import { delay } from '../lib/delay.js'
-import { t } from '../i18n/index.js'
+import { UIElement } from '../../lib/UIElement.js'
+import { server } from '../../lib/gateway.js'
+import { showOverlay } from '../../partials/overlay.js'
+import { showDialog } from '../../partials/dialog.js'
+import { PlayerList } from '../../partials/playerList.js'
+import { toast } from '../../partials/toast.js'
+import { delay } from '../../lib/delay.js'
+import { t } from '../../i18n/index.js'
 
 /**
  * @returns {Object.<string, {title: string, description: string}>}
@@ -120,6 +120,9 @@ export class ActionCards extends UIElement {
         <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
         <div class="mb-4 action-cards-container">
           <div class="action-cards-scroll">${this._renderCardsWithPlaceholders()}</div>
+        </div>
+        <div class="alert alert-info" style="max-width: 620px">
+          <i class="fa fa-info-circle me-1"></i> ${t('actionCards.buildingsHint')}
         </div>
       </div>
     `

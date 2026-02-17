@@ -552,6 +552,7 @@ export default {
   'actionCards.whichPlayerPosition': 'Welcher Spieler soll seine Position wechseln?',
   'actionCards.whichPosition': 'Welche Position soll der Spieler in Zukunft spielen?',
   'actionCards.whichPlayerLevelUp': 'Welcher Spieler soll ein Level-Up erhalten?',
+  'actionCards.buildingsHint': 'Baue deine Gebäude aus, um die Chance auf Aktionskarten an Spieltagen zu erhöhen.',
   // Action Card Types
   'actionCards.type.legendaryMastery': 'Meister-Training',
   'actionCards.type.legendaryMasteryDesc': 'Verbessere einen Spieler auf Level 100.',

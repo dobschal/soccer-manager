@@ -52,13 +52,13 @@ export class MyTeamPage extends UIElement {
         ${this._renderHeader()}
       </div>
       <div class="row">
-        <div class="col-12 col-xl-6">
+        <div class="col-12 col-xl-7">
           <h3>${t('myTeam.lineup')}</h3>
           <div class="mb-4" id="squad" >
             ${renderLineup(this.data.players, this.data.team, this)}
           </div>
         </div>
-        <div class="col-12 col-xl-6" id="player-list-container">
+        <div class="col-12 col-xl-5" id="player-list-container">
           ${new PlayerList(
       this.data.players,
       true,

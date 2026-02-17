@@ -24,7 +24,7 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key, params) => params ? `${key}: ${JSON.stringify(params)}` : key)
 }))
 
-import { News, renderNews } from '../../partials/news.js'
+import { News, renderNews } from '../../pages/dashboard/news.js'
 import { server } from '../../lib/gateway.js'
 
 describe('News', () => {

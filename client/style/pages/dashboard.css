@@ -18,6 +18,18 @@
     aspect-ratio: 3/1;
 }
 
+/* Action Card Badge */
+.action-card-badge {
+    width: 20px;
+    padding: 0;
+    height: 20px;
+    line-height: 22px;
+    border: none;
+    position: absolute;
+    transform: translate(0px, -14px);
+    font-size: 10px;
+}
+
 /* Sponsor Sprite */
 .sponsor-sprite {
     background-size: 1536px 1024px;

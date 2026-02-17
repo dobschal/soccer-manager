@@ -1,12 +1,12 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
-import { News } from '../partials/news.js'
+import { News } from './dashboard/news.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { generateId } from '../lib/html.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
-import { ActionCards } from '../partials/actionCards.js'
-import { LogMessages } from '../partials/logMessages.js'
+import { ActionCards } from './dashboard/actionCards.js'
+import { LogMessages } from './dashboard/logMessages.js'
 import { t } from '../i18n/index.js'
 import { showManagerChat, wasManagerChatShown } from '../partials/managerChat.js'
 import { showOverlay } from '../partials/overlay.js'
@@ -32,6 +32,7 @@ export class DashboardPage extends UIElement {
   standing = []
   teamPosition = 0
 
+  _actionCardCount = 0
   subPage = null
 
   /**
@@ -44,7 +45,7 @@ export class DashboardPage extends UIElement {
 
         <nav class="nav nav-pills mb-4">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
-          <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''}" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}</a>
+          <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''} position-relative" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this._renderCardBadge()}</a>
           <a class="nav-link ${this.subPage === 'news' ? 'active' : ''}" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
           <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''}" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}</a>
         </nav>
@@ -52,6 +53,15 @@ export class DashboardPage extends UIElement {
         ${this._renderSubPage()}
       </div>
     `
+  }
+
+  /**
+   * Render the badge for new action cards
+   * @returns {string}
+   */
+  _renderCardBadge () {
+    if (this._actionCardCount <= 0 || this.subPage === 'cards') return ''
+    return ` <span class="badge rounded-pill bg-danger action-card-badge">${this._actionCardCount}</span>`
   }
 
   /**
@@ -182,8 +192,8 @@ export class DashboardPage extends UIElement {
     // Show next game if it starts within 2 hours, otherwise show latest result
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
 
-    // Fetch current standing, finance log, and urgencies in parallel
-    const [standing, financeLogResponse, urgencyResponse] = await Promise.all([
+    // Fetch current standing, finance log, urgencies, and action card count in parallel
+    const [standing, financeLogResponse, urgencyResponse, actionCardsResponse] = await Promise.all([
       server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
       server.getFinanceLog(
         this.season,
@@ -191,13 +201,19 @@ export class DashboardPage extends UIElement {
         this.season,
         this.gameDay
       ),
-      server.getDashboardUrgencies()
+      server.getDashboardUrgencies(),
+      server.getActionCards()
     ])
 
     this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
     this._financeLog = financeLogResponse.log || []
     this._urgencies = urgencyResponse.urgencies || []
+
+    // Determine if there are unseen action cards
+    const cardCount = actionCardsResponse.actionCards?.length || 0
+    const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
+    this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
   }
 
   /**
@@ -360,7 +376,10 @@ export class DashboardPage extends UIElement {
    * @param {{ player_id?: string, sub_page?: string }} queryParams
    * @returns {Promise<void>}
    */
-  async onQueryChanged ({ player_id: playerId, sub_page: subPage }) {
+  async onQueryChanged ({
+    player_id: playerId,
+    sub_page: subPage
+  }) {
     if (playerId) {
       const id = Number(playerId)
       if (Number.isFinite(id) && id > 0) {
@@ -378,6 +397,11 @@ export class DashboardPage extends UIElement {
     }
 
     const newSubPage = subPage || null
+    if (newSubPage === 'cards' && this._actionCardCount > 0) {
+      const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
+      localStorage.setItem(seenKey, '1')
+      this._actionCardCount = 0
+    }
     if (newSubPage !== this.subPage) {
       this.subPage = newSubPage
       this.update()

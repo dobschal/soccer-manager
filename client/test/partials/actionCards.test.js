@@ -37,7 +37,7 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key) => key)
 }))
 
-import { ActionCards } from '../../partials/actionCards.js'
+import { ActionCards } from '../../pages/dashboard/actionCards.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 
