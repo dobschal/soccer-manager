@@ -43,7 +43,7 @@ export async function generateNewsForGameDay (gameDay, season) {
 
   // Get all unique level/league combinations that had games
   const leagues = await query(
-    'SELECT DISTINCT level, league FROM game WHERE game_day=? AND season=? AND played=1',
+    'SELECT DISTINCT level, league FROM game WHERE game_day=? AND season=? AND played=1 AND game_type=\'league\'',
     [gameDay, season]
   )
 
@@ -56,6 +56,9 @@ export async function generateNewsForGameDay (gameDay, season) {
 
   // Stadium news is not league-specific, assign to team's league
   await _generateStadiumNews(gameDay, season)
+
+  // Cup news spans all leagues
+  await _generateCupNews(gameDay, season)
 
   console.log(`📰 News generation complete`)
 }
@@ -125,7 +128,7 @@ async function _generateHighestWinNews (gameDay, season, level, league) {
      FROM game g
      JOIN team t1 ON t1.id = g.team_1_id
      JOIN team t2 ON t2.id = g.team_2_id
-     WHERE g.game_day=? AND g.season=? AND g.level=? AND g.league=? AND g.played=1
+     WHERE g.game_day=? AND g.season=? AND g.level=? AND g.league=? AND g.played=1 AND g.game_type='league'
        AND g.goals_team_1 <> g.goals_team_2
      ORDER BY goal_diff DESC
      LIMIT 1`,
@@ -183,7 +186,7 @@ async function _generateStandingNews (gameDay, season, level, league) {
 
   // Calculate current standing
   const currentGames = await query(
-    'SELECT * FROM game WHERE game_day<=? AND season=? AND level=? AND league=? AND played=1',
+    'SELECT * FROM game WHERE game_day<=? AND season=? AND level=? AND league=? AND played=1 AND game_type=\'league\'',
     [gameDay, season, level, league]
   )
 
@@ -206,7 +209,7 @@ async function _generateStandingNews (gameDay, season, level, league) {
 
   // Calculate previous standing
   const prevGames = await query(
-    'SELECT * FROM game WHERE game_day<? AND season=? AND level=? AND league=? AND played=1',
+    'SELECT * FROM game WHERE game_day<? AND season=? AND level=? AND league=? AND played=1 AND game_type=\'league\'',
     [gameDay, season, level, league]
   )
 
@@ -357,6 +360,73 @@ async function _generateLevelUpNews (gameDay, season, level, league) {
         metadata: JSON.stringify({ newLevel: levelUp.new_level })
       })
       await query('INSERT INTO news SET ?', news)
+    }
+  }
+}
+
+/**
+ * @param {number} gameDay
+ * @param {number} season
+ */
+async function _generateCupNews (gameDay, season) {
+  const games = await query(
+    `SELECT g.*, t1.name as team1_name, t2.name as team2_name,
+            t1.level as team1_level, t1.league as team1_league,
+            t2.level as team2_level, t2.league as team2_league,
+            ABS(g.goals_team_1 - g.goals_team_2) as goal_diff
+     FROM game g
+     JOIN team t1 ON t1.id = g.team_1_id
+     JOIN team t2 ON t2.id = g.team_2_id
+     WHERE g.game_day=? AND g.season=? AND g.game_type='cup' AND g.played=1
+     ORDER BY g.cup_round ASC
+     LIMIT 3`,
+    [gameDay, season]
+  )
+
+  for (const game of games) {
+    // Only newsworthy if 2+ goal difference or semi-final/final
+    const isBigRound = game.cup_round <= 4
+    if (game.goal_diff < 2 && !isBigRound) continue
+
+    const isTeam1Winner = game.goals_team_1 > game.goals_team_2
+    const winnerName = isTeam1Winner ? game.team1_name : game.team2_name
+    const winnerId = isTeam1Winner ? game.team_1_id : game.team_2_id
+    const loserName = isTeam1Winner ? game.team2_name : game.team1_name
+    const goalsFor = isTeam1Winner ? game.goals_team_1 : game.goals_team_2
+    const goalsAgainst = isTeam1Winner ? game.goals_team_2 : game.goals_team_1
+
+    let roundLabel
+    if (game.cup_round === 1) roundLabel = 'Final'
+    else if (game.cup_round === 2) roundLabel = 'Semi-Final'
+    else if (game.cup_round === 4) roundLabel = 'Quarter-Final'
+    else roundLabel = `Round of ${game.cup_round * 2}`
+
+    const params = { winnerName, loserName, goalsFor, goalsAgainst, roundLabel }
+    const templateIndex = getRandomTemplateIndex()
+    const locales = getSupportedLocales()
+
+    // Determine unique level/league combos from both teams
+    const leagueCombos = new Map()
+    leagueCombos.set(`${game.team1_level}-${game.team1_league}`, { level: game.team1_level, league: game.team1_league })
+    leagueCombos.set(`${game.team2_level}-${game.team2_league}`, { level: game.team2_level, league: game.team2_league })
+
+    for (const { level, league } of leagueCombos.values()) {
+      for (const locale of locales) {
+        const template = getNewsTemplate('cupMatch', params, locale, templateIndex)
+        const news = new News({
+          game_day: gameDay,
+          season,
+          level,
+          league,
+          type: 'CUP_MATCH',
+          title: template.title,
+          text: template.text,
+          locale,
+          team_id: winnerId,
+          metadata: JSON.stringify({ goalsFor, goalsAgainst, cupRound: game.cup_round, roundLabel })
+        })
+        await query('INSERT INTO news SET ?', news)
+      }
     }
   }
 }

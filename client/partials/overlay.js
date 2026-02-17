@@ -171,6 +171,11 @@ export function showOverlay (title, subttitle, text) {
   })
 
   onClick('#' + overlayInnerId, event => {
+    // Close overlay when clicking a navigation link inside it
+    if (event.target.closest('a[href]')) {
+      fadeOutAndRemove(overlayId, listeners)
+      return
+    }
     event.stopPropagation()
   })
 

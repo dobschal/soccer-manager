@@ -65,6 +65,9 @@ describe('newsHelper', () => {
         // Mock: stadium expansion query
         query.mockResolvedValueOnce([])
 
+        // Mock: cup news query
+        query.mockResolvedValueOnce([])
+
         await generateNewsForGameDay(5, 1)
 
         // Find the INSERT call for news
@@ -92,6 +95,7 @@ describe('newsHelper', () => {
         query.mockResolvedValueOnce([]) // No standing games
         query.mockResolvedValueOnce([]) // No level ups
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -129,6 +133,7 @@ describe('newsHelper', () => {
         query.mockResolvedValueOnce([]) // No standing games
         query.mockResolvedValueOnce([]) // No level ups
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -171,6 +176,7 @@ describe('newsHelper', () => {
         query.mockResolvedValueOnce([]) // No standing games
         query.mockResolvedValueOnce([]) // No level ups
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -207,6 +213,7 @@ describe('newsHelper', () => {
         query.mockResolvedValueOnce([]) // No standing games
         query.mockResolvedValueOnce([]) // No level ups
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -214,6 +221,44 @@ describe('newsHelper', () => {
           typeof call[0] === 'string' && call[0].includes('INSERT INTO news')
         )
         expect(insertCalls.length).toBe(0)
+      })
+
+      it('filters out friendly games from highest win news via game_type=league', async () => {
+        // The initial league query only returns leagues from league games
+        // So if only friendly games exist, no leagues are returned and no news is generated
+        query.mockResolvedValueOnce([]) // No league games => no level/league combos
+        query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
+
+        await generateNewsForGameDay(5, 1)
+
+        const insertCalls = query.mock.calls.filter(call =>
+          typeof call[0] === 'string' && call[0].includes('INSERT INTO news')
+        )
+        expect(insertCalls.length).toBe(0)
+
+        // Verify the initial query uses game_type='league' filter
+        const leagueQuery = query.mock.calls[0][0]
+        expect(leagueQuery).toContain("game_type='league'")
+      })
+
+      it('highest win query includes game_type=league filter', async () => {
+        query.mockResolvedValueOnce([{ level: 1, league: 1 }])
+        query.mockResolvedValueOnce([]) // No transfers
+
+        // Return empty for highest win - we just want to check the query
+        query.mockResolvedValueOnce([])
+
+        query.mockResolvedValueOnce([]) // No standing games
+        query.mockResolvedValueOnce([]) // No level ups
+        query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
+
+        await generateNewsForGameDay(5, 1)
+
+        // The highest win query is the 3rd call (index 2)
+        const highestWinQuery = query.mock.calls[2][0]
+        expect(highestWinQuery).toContain("game_type='league'")
       })
     })
 
@@ -249,6 +294,7 @@ describe('newsHelper', () => {
 
         query.mockResolvedValueOnce([]) // No level ups
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -270,6 +316,7 @@ describe('newsHelper', () => {
         // Standing news is skipped for gameDay < 2, so no standing queries
         query.mockResolvedValueOnce([]) // No level ups
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(1, 1)
 
@@ -299,6 +346,7 @@ describe('newsHelper', () => {
 
         query.mockResolvedValueOnce([]) // No level ups
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -311,6 +359,25 @@ describe('newsHelper', () => {
           call[1].type === 'POSITION_LAST'
         )
         expect(positionLastCalls.length).toBe(0)
+      })
+
+      it('standing queries include game_type=league filter', async () => {
+        query.mockResolvedValueOnce([{ level: 1, league: 1 }])
+        query.mockResolvedValueOnce([]) // No transfers
+        query.mockResolvedValueOnce([]) // No high wins
+
+        // Return empty for current standing games
+        query.mockResolvedValueOnce([])
+
+        query.mockResolvedValueOnce([]) // No level ups
+        query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
+
+        await generateNewsForGameDay(5, 1)
+
+        // The standing current games query is the 4th call (index 3)
+        const standingQuery = query.mock.calls[3][0]
+        expect(standingQuery).toContain("game_type='league'")
       })
     })
 
@@ -337,6 +404,9 @@ describe('newsHelper', () => {
 
         // Insert STADIUM_EXTENSION news
         query.mockResolvedValueOnce({ insertId: 1 })
+
+        // Cup news query
+        query.mockResolvedValueOnce([])
 
         await generateNewsForGameDay(5, 1)
 
@@ -376,6 +446,7 @@ describe('newsHelper', () => {
         query.mockResolvedValueOnce({ insertId: 1 })
 
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -412,6 +483,7 @@ describe('newsHelper', () => {
         }])
 
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -459,6 +531,7 @@ describe('newsHelper', () => {
         query.mockResolvedValueOnce({ insertId: 2 })
 
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
@@ -471,6 +544,250 @@ describe('newsHelper', () => {
         expect(insertCalls[0][1].text).toContain('10') // Level 10 is in the text
         expect(insertCalls[1][1].type).toBe('LEVEL_UP')
         expect(insertCalls[1][1].text).toContain('4') // Level 4 is in the text
+      })
+    })
+
+    describe('cup news', () => {
+      it('creates cup news for cup matches with 2+ goal difference', async () => {
+        // No league games
+        query.mockResolvedValueOnce([])
+        // No stadium expansions
+        query.mockResolvedValueOnce([])
+
+        // Cup games query - FOUND
+        query.mockResolvedValueOnce([{
+          id: 100,
+          team_1_id: 1,
+          team_2_id: 2,
+          goals_team_1: 4,
+          goals_team_2: 1,
+          team1_name: 'Cup Winners FC',
+          team2_name: 'Cup Losers United',
+          team1_level: 1,
+          team1_league: 1,
+          team2_level: 2,
+          team2_league: 3,
+          goal_diff: 3,
+          cup_round: 8,
+          game_day: 5,
+          season: 1,
+          game_type: 'cup',
+          played: 1
+        }])
+
+        // Insert CUP_MATCH news for team1's league
+        query.mockResolvedValueOnce({ insertId: 1 })
+        // Insert CUP_MATCH news for team2's league
+        query.mockResolvedValueOnce({ insertId: 2 })
+
+        await generateNewsForGameDay(5, 1)
+
+        const insertCalls = query.mock.calls.filter(call =>
+          typeof call[0] === 'string' && call[0].includes('INSERT INTO news')
+        )
+
+        expect(insertCalls.length).toBe(2)
+        // First insert for team1's league
+        expect(insertCalls[0][1].type).toBe('CUP_MATCH')
+        expect(insertCalls[0][1].level).toBe(1)
+        expect(insertCalls[0][1].league).toBe(1)
+        expect(insertCalls[0][1].title).toContain('Cup Winners FC')
+        expect(insertCalls[0][1].title).toContain('Cup Losers United')
+        expect(insertCalls[0][1].team_id).toBe(1) // Winner
+        // Second insert for team2's league
+        expect(insertCalls[1][1].type).toBe('CUP_MATCH')
+        expect(insertCalls[1][1].level).toBe(2)
+        expect(insertCalls[1][1].league).toBe(3)
+      })
+
+      it('creates cup news for semi-final/final even with low goal difference', async () => {
+        query.mockResolvedValueOnce([]) // No league games
+        query.mockResolvedValueOnce([]) // No stadium expansions
+
+        // Cup semi-final with 1-0 result
+        query.mockResolvedValueOnce([{
+          id: 100,
+          team_1_id: 1,
+          team_2_id: 2,
+          goals_team_1: 1,
+          goals_team_2: 0,
+          team1_name: 'Finalist FC',
+          team2_name: 'Eliminated United',
+          team1_level: 0,
+          team1_league: 0,
+          team2_level: 0,
+          team2_league: 0,
+          goal_diff: 1,
+          cup_round: 2, // Semi-final
+          game_day: 5,
+          season: 1,
+          game_type: 'cup',
+          played: 1
+        }])
+
+        // Insert CUP_MATCH news (only one league combo since both teams in same league)
+        query.mockResolvedValueOnce({ insertId: 1 })
+
+        await generateNewsForGameDay(5, 1)
+
+        const insertCalls = query.mock.calls.filter(call =>
+          typeof call[0] === 'string' && call[0].includes('INSERT INTO news')
+        )
+
+        expect(insertCalls.length).toBe(1)
+        expect(insertCalls[0][1].type).toBe('CUP_MATCH')
+        expect(insertCalls[0][1].title).toContain('Finalist FC')
+        const metadata = JSON.parse(insertCalls[0][1].metadata)
+        expect(metadata.roundLabel).toBe('Semi-Final')
+      })
+
+      it('does not create cup news for early round with low goal difference', async () => {
+        query.mockResolvedValueOnce([]) // No league games
+        query.mockResolvedValueOnce([]) // No stadium expansions
+
+        // Cup early round with 1-0 result
+        query.mockResolvedValueOnce([{
+          id: 100,
+          team_1_id: 1,
+          team_2_id: 2,
+          goals_team_1: 1,
+          goals_team_2: 0,
+          team1_name: 'Team A',
+          team2_name: 'Team B',
+          team1_level: 1,
+          team1_league: 1,
+          team2_level: 1,
+          team2_league: 1,
+          goal_diff: 1,
+          cup_round: 16, // Round of 32 - early round
+          game_day: 5,
+          season: 1,
+          game_type: 'cup',
+          played: 1
+        }])
+
+        await generateNewsForGameDay(5, 1)
+
+        const insertCalls = query.mock.calls.filter(call =>
+          typeof call[0] === 'string' && call[0].includes('INSERT INTO news')
+        )
+        expect(insertCalls.length).toBe(0)
+      })
+
+      it('creates cup news for final with correct round label', async () => {
+        query.mockResolvedValueOnce([]) // No league games
+        query.mockResolvedValueOnce([]) // No stadium expansions
+
+        query.mockResolvedValueOnce([{
+          id: 100,
+          team_1_id: 1,
+          team_2_id: 2,
+          goals_team_1: 2,
+          goals_team_2: 1,
+          team1_name: 'Champion FC',
+          team2_name: 'Runner Up',
+          team1_level: 0,
+          team1_league: 0,
+          team2_level: 1,
+          team2_league: 0,
+          goal_diff: 1,
+          cup_round: 1, // Final
+          game_day: 5,
+          season: 1,
+          game_type: 'cup',
+          played: 1
+        }])
+
+        // Insert CUP_MATCH news for team1's league (0-0)
+        query.mockResolvedValueOnce({ insertId: 1 })
+        // Insert CUP_MATCH news for team2's league (1-0)
+        query.mockResolvedValueOnce({ insertId: 2 })
+
+        await generateNewsForGameDay(5, 1)
+
+        const insertCalls = query.mock.calls.filter(call =>
+          typeof call[0] === 'string' && call[0].includes('INSERT INTO news')
+        )
+
+        expect(insertCalls.length).toBe(2)
+        const metadata = JSON.parse(insertCalls[0][1].metadata)
+        expect(metadata.roundLabel).toBe('Final')
+        expect(metadata.cupRound).toBe(1)
+      })
+
+      it('creates only one news entry when both teams are in the same league', async () => {
+        query.mockResolvedValueOnce([]) // No league games
+        query.mockResolvedValueOnce([]) // No stadium expansions
+
+        query.mockResolvedValueOnce([{
+          id: 100,
+          team_1_id: 1,
+          team_2_id: 2,
+          goals_team_1: 3,
+          goals_team_2: 0,
+          team1_name: 'Same League FC',
+          team2_name: 'Same League United',
+          team1_level: 1,
+          team1_league: 1,
+          team2_level: 1,
+          team2_league: 1, // Same league as team 1
+          goal_diff: 3,
+          cup_round: 8,
+          game_day: 5,
+          season: 1,
+          game_type: 'cup',
+          played: 1
+        }])
+
+        query.mockResolvedValueOnce({ insertId: 1 })
+
+        await generateNewsForGameDay(5, 1)
+
+        const insertCalls = query.mock.calls.filter(call =>
+          typeof call[0] === 'string' && call[0].includes('INSERT INTO news')
+        )
+
+        // Only one insert since both teams are in the same league
+        expect(insertCalls.length).toBe(1)
+        expect(insertCalls[0][1].level).toBe(1)
+        expect(insertCalls[0][1].league).toBe(1)
+      })
+
+      it('assigns correct round labels for different cup rounds', async () => {
+        query.mockResolvedValueOnce([]) // No league games
+        query.mockResolvedValueOnce([]) // No stadium expansions
+
+        // Quarter-final with big goal diff
+        query.mockResolvedValueOnce([{
+          id: 100,
+          team_1_id: 1,
+          team_2_id: 2,
+          goals_team_1: 5,
+          goals_team_2: 0,
+          team1_name: 'QF Winner',
+          team2_name: 'QF Loser',
+          team1_level: 0,
+          team1_league: 0,
+          team2_level: 0,
+          team2_league: 0,
+          goal_diff: 5,
+          cup_round: 4, // Quarter-final
+          game_day: 5,
+          season: 1,
+          game_type: 'cup',
+          played: 1
+        }])
+
+        query.mockResolvedValueOnce({ insertId: 1 })
+
+        await generateNewsForGameDay(5, 1)
+
+        const insertCalls = query.mock.calls.filter(call =>
+          typeof call[0] === 'string' && call[0].includes('INSERT INTO news')
+        )
+
+        const metadata = JSON.parse(insertCalls[0][1].metadata)
+        expect(metadata.roundLabel).toBe('Quarter-Final')
       })
     })
 
@@ -516,6 +833,7 @@ describe('newsHelper', () => {
         query.mockResolvedValueOnce([]) // No level ups league 2
 
         query.mockResolvedValueOnce([]) // No stadium expansions
+        query.mockResolvedValueOnce([]) // No cup games
 
         await generateNewsForGameDay(5, 1)
 
