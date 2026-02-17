@@ -184,16 +184,34 @@ describe('DashboardPage', () => {
       expect(page.template).toContain('#results')
     })
 
-    it('template contains action cards component', async () => {
+    it('template contains action cards component on cards sub-page', async () => {
       const page = new DashboardPage()
       await page.load()
+      page.subPage = 'cards'
       expect(page.template).toContain('Action Cards Component')
     })
 
-    it('template contains log messages component', async () => {
+    it('template contains log messages component on messages sub-page', async () => {
       const page = new DashboardPage()
       await page.load()
+      page.subPage = 'messages'
       expect(page.template).toContain('Log Messages Component')
+    })
+
+    it('default template contains nav pills for tabs', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      expect(page.template).toContain('nav-pills')
+      expect(page.template).toContain('#dashboard?sub_page=cards')
+      expect(page.template).toContain('#dashboard?sub_page=news')
+      expect(page.template).toContain('#dashboard?sub_page=messages')
+    })
+
+    it('default sub-page does not contain action cards or log messages', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      expect(page.template).not.toContain('Action Cards Component')
+      expect(page.template).not.toContain('Log Messages Component')
     })
 
     it('extends UIElement', () => {

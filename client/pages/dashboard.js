@@ -32,63 +32,93 @@ export class DashboardPage extends UIElement {
   standing = []
   teamPosition = 0
 
+  subPage = null
+
   /**
    * @returns {string}
    */
   get template () {
+    return `
+      <div>
+        ${this._tutorialProgress}
+
+        <nav class="nav nav-pills mb-4">
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
+          <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''}" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}</a>
+          <a class="nav-link ${this.subPage === 'news' ? 'active' : ''}" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
+          <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''}" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}</a>
+        </nav>
+
+        ${this._renderSubPage()}
+      </div>
+    `
+  }
+
+  /**
+   * Render the active sub-page content
+   * @returns {string|ActionCards|News|LogMessages}
+   */
+  _renderSubPage () {
+    switch (this.subPage) {
+      case 'cards':
+        return new ActionCards()
+      case 'news':
+        return new News()
+      case 'messages':
+        return new LogMessages()
+      default:
+        return this._renderStartPage()
+    }
+  }
+
+  /**
+   * Render the start page with game sliders, standings, and charts
+   * @returns {string}
+   */
+  _renderStartPage () {
     const gameSliderArgs = {
       games: this._sliderGames,
       teamId: this.team.id,
       initialIndex: this._initialSlideIndex
     }
     return `
-      <div>
-        ${this._tutorialProgress}
-
-        <h5 class="mb-2"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
-        <div class="d-flex align-items-center mb-5 u-gap-lg">
-          <div class="flex-grow-1">
-            ${new GameSlider(gameSliderArgs)}
-          </div>
-          <div class="d-none d-lg-block flex-shrink-1 text-center u-min-w-280 u-w-33">
-            ${renderEmblem(this.team, 160)}
-            <h2>${this.team.name}</h2>
-          </div>
+      <h5 class="mb-2"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
+      <div class="d-flex align-items-center mb-5 u-gap-lg">
+        <div class="flex-grow-1">
+          ${new GameSlider(gameSliderArgs)}
         </div>
+        <div class="d-none d-lg-block flex-shrink-1 text-center u-min-w-280 u-w-33">
+          ${renderEmblem(this.team, 160)}
+          <h2>${this.team.name}</h2>
+        </div>
+      </div>
 
-        <h5 class="mb-2"><i class="fa fa-trophy"></i> ${t('cup.title')}</h5>
-        <div class="d-flex align-items-center mb-5 u-gap-lg">
-          <div class="flex-grow-1">
-            ${this._renderCupGames()}
-          </div>
-          <div class="d-none d-lg-block flex-shrink-1 u-min-w-280 u-w-33">
-            ${this._renderMiniStanding()}
-            <a href="#results" class="d-block mt-2 text-info border-0 text-end w-100">
-                <small>...${t('dashboard.standingLink')}</small>
+      <h5 class="mb-2"><i class="fa fa-trophy"></i> ${t('cup.title')}</h5>
+      <div class="d-flex align-items-center mb-5 u-gap-lg">
+        <div class="flex-grow-1">
+          ${this._renderCupGames()}
+        </div>
+        <div class="d-none d-lg-block flex-shrink-1 u-min-w-280 u-w-33">
+          ${this._renderMiniStanding()}
+          <a href="#results" class="d-block mt-2 text-info border-0 text-end w-100">
+              <small>...${t('dashboard.standingLink')}</small>
+          </a>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-start mb-5 u-gap-md">
+        <div class="flex-grow-1">
+          <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
+          ${this._renderFriendlyGames()}
+        </div>
+        ${this._financeLog.length > 0 ? `
+          <div class="d-none d-lg-block flex-shrink-0 u-min-w-280 u-w-33">
+            <a href="#finances" class="text-decoration-none d-block">
+              <h5 class="mb-2"><i class="fa fa-line-chart"></i> ${t('finances.balance')}</h5>
+              ${new MiniBalanceChart(this._financeLog)}
             </a>
           </div>
-        </div>
-
-        <div class="d-flex align-items-start mb-5 u-gap-md">
-          <div class="flex-grow-1">
-            <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
-            ${this._renderFriendlyGames()}
-          </div>
-          ${this._financeLog.length > 0 ? `
-            <div class="d-none d-lg-block flex-shrink-0 u-min-w-280 u-w-33">
-              <a href="#finances" class="text-decoration-none d-block">
-                <h5 class="mb-2"><i class="fa fa-line-chart"></i> ${t('finances.balance')}</h5>
-                ${new MiniBalanceChart(this._financeLog)}
-              </a>
-            </div>
-          ` : ''}
-        </div>
-
-        ${new ActionCards()}
-
-        ${new News()}
-
-        ${new LogMessages()}
+        ` : ''}
       </div>
     `
   }
@@ -318,10 +348,10 @@ export class DashboardPage extends UIElement {
   }
 
   /**
-   * @param {{ player_id?: string }} queryParams
+   * @param {{ player_id?: string, sub_page?: string }} queryParams
    * @returns {Promise<void>}
    */
-  async onQueryChanged ({ player_id: playerId }) {
+  async onQueryChanged ({ player_id: playerId, sub_page: subPage }) {
     if (playerId) {
       const id = Number(playerId)
       if (Number.isFinite(id) && id > 0) {
@@ -336,6 +366,12 @@ export class DashboardPage extends UIElement {
           // Ignore URL manipulation errors
         }
       }
+    }
+
+    const newSubPage = subPage || null
+    if (newSubPage !== this.subPage) {
+      this.subPage = newSubPage
+      this.update()
     }
   }
 

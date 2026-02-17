@@ -96,6 +96,10 @@ export default {
   'dashboard.urgencyLinkYouth': 'Zur Jugendmannschaft',
   'dashboard.urgencyLinkTrades': 'Zu den Angeboten',
   'dashboard.urgencyLinkFinances': 'Zu den Finanzen',
+  'dashboard.tabStart': 'Start',
+  'dashboard.tabCards': 'Aktionskarten',
+  'dashboard.tabNews': 'Neuigkeiten',
+  'dashboard.tabMessages': 'Nachrichten',
 
   // Stadium
   'stadium.title': 'Stadion',

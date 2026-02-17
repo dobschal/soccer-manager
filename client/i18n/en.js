@@ -96,6 +96,10 @@ export default {
   'dashboard.urgencyLinkYouth': 'Go to Youth Team',
   'dashboard.urgencyLinkTrades': 'Go to Incoming Offers',
   'dashboard.urgencyLinkFinances': 'Go to Finances',
+  'dashboard.tabStart': 'Start',
+  'dashboard.tabCards': 'Action Cards',
+  'dashboard.tabNews': 'News',
+  'dashboard.tabMessages': 'Messages',
 
   // Stadium
   'stadium.title': 'Stadium',
