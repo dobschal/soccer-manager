@@ -33,6 +33,10 @@ const TUTORIALS = [
   {
     key: 'finances',
     route: '#finances'
+  },
+  {
+    key: 'buildings',
+    route: '#stadium?sub_page=buildings'
   }
 ]
 

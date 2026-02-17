@@ -81,6 +81,17 @@ function getTutorials () {
         t('tutorial.youthPage.item4'),
         t('tutorial.youthPage.item5')
       ]
+    },
+    buildings: {
+      title: t('tutorial.buildingsPage.title'),
+      subtitle: t('tutorial.buildingsPage.subtitle'),
+      items: [
+        t('tutorial.buildingsPage.item1'),
+        t('tutorial.buildingsPage.item2'),
+        t('tutorial.buildingsPage.item3'),
+        t('tutorial.buildingsPage.item4'),
+        t('tutorial.buildingsPage.item5')
+      ]
     }
   }
 }

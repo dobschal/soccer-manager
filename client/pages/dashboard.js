@@ -295,11 +295,20 @@ export class DashboardPage extends UIElement {
    * Shows the urgency overlay once per game day if there are pending actions
    * @returns {void}
    */
-  _showUrgencyOverlayIfNeeded () {
+  async _showUrgencyOverlayIfNeeded () {
     if (this._urgencies.length === 0) return
 
     const storageKey = `urgencyOverlayShown_${this.season}_${this.gameDay}`
     if (localStorage.getItem(storageKey) === 'true') return
+
+    // Don't show urgencies while the dashboard tutorial is being shown
+    try {
+      const { tutorialCompleted } = await server.getTutorialStatus()
+      if (!tutorialCompleted.dashboard) return
+    } catch {
+      // If we can't check, skip urgencies to be safe
+      return
+    }
 
     const urgencyMap = {
       INCOMPLETE_LINEUP: {

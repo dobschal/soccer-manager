@@ -23,6 +23,9 @@ export class StadiumPage extends UIElement {
    * @returns {UIElementEvents}
    */
   get events () {
+    if (this.subPage === 'buildings') {
+      return {}
+    }
     return {
       '#price-form': {
         submit: this._onPriceFormSubmit.bind(this),
@@ -414,7 +417,11 @@ export class StadiumPage extends UIElement {
     if (this._stadiumCanvas && !this.subPage) {
       this._stadiumCanvas.onMounted()
     }
-    void showTutorialIfNeeded('stadium', this)
+    if (this.subPage === 'buildings') {
+      void showTutorialIfNeeded('buildings', this)
+    } else {
+      void showTutorialIfNeeded('stadium', this)
+    }
   }
 
   /**

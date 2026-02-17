@@ -260,7 +260,10 @@ describe('DashboardPage', () => {
 
       vi.useFakeTimers()
       page.onMounted()
-      vi.runAllTimers()
+      // Flush the async getTutorialStatus promise
+      await vi.advanceTimersByTimeAsync(0)
+      // Advance past the setTimeout delay
+      vi.advanceTimersByTime(2000)
       vi.useRealTimers()
 
       expect(showOverlay).toHaveBeenCalled()
@@ -319,7 +322,8 @@ describe('DashboardPage', () => {
 
       vi.useFakeTimers()
       page.onMounted()
-      vi.runAllTimers()
+      await vi.advanceTimersByTimeAsync(0)
+      vi.advanceTimersByTime(2000)
       vi.useRealTimers()
 
       const content = showOverlay.mock.calls[0][2]
@@ -340,7 +344,8 @@ describe('DashboardPage', () => {
 
       vi.useFakeTimers()
       page.onMounted()
-      vi.runAllTimers()
+      await vi.advanceTimersByTimeAsync(0)
+      vi.advanceTimersByTime(2000)
       vi.useRealTimers()
 
       const content = showOverlay.mock.calls[0][2]
@@ -361,12 +366,33 @@ describe('DashboardPage', () => {
 
       vi.useFakeTimers()
       page.onMounted()
-      vi.runAllTimers()
+      await vi.advanceTimersByTimeAsync(0)
+      vi.advanceTimersByTime(2000)
       vi.useRealTimers()
 
       const content = showOverlay.mock.calls[0][2]
       expect(content).toContain('#trades?tab=incoming')
       expect(content).toContain('Go to Incoming Offers')
+    })
+
+    it('does NOT show urgency overlay when dashboard tutorial is not yet completed', async () => {
+      server.getTutorialStatus.mockResolvedValue({
+        tutorialCompleted: {}
+      })
+      server.getDashboardUrgencies.mockResolvedValue({
+        urgencies: [{ type: 'NO_SPONSOR' }]
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
+      vi.useFakeTimers()
+      page.onMounted()
+      await vi.advanceTimersByTimeAsync(0)
+      vi.advanceTimersByTime(2000)
+      vi.useRealTimers()
+
+      expect(showOverlay).not.toHaveBeenCalled()
     })
   })
 })

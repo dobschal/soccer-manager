@@ -595,6 +595,7 @@ export default {
   'tutorialProgress.page.stadium': 'Stadion',
   'tutorialProgress.page.finances': 'Finanzen',
   'tutorialProgress.page.youth': 'Jugendteam',
+  'tutorialProgress.page.buildings': 'Gebäude',
 
   // Tutorial
   'tutorial.welcome': 'Willkommen bei Soccer Manager IO!',
@@ -663,6 +664,13 @@ export default {
   'tutorial.youthPage.item3': 'Idealer Rhythmus: 2x Training, 1x Freundschaftsspiel, 1x Ruhe',
   'tutorial.youthPage.item4': 'Befördere talentierte Spieler ins A-Team bevor sie 19 werden',
   'tutorial.youthPage.item5': 'Balance Moral und Fitness für optimale Entwicklung',
+  'tutorial.buildingsPage.title': 'Gebäude',
+  'tutorial.buildingsPage.subtitle': 'Baue Gebäude aus, um bessere Aktionskarten freizuschalten',
+  'tutorial.buildingsPage.item1': 'Der Trainingsplatz erhöht die Chance auf Level-Up-Karten',
+  'tutorial.buildingsPage.item2': 'Das Fitnessstudio verbessert die Frische-Karten pro Spieltag',
+  'tutorial.buildingsPage.item3': 'Höhere Gebäudestufen schalten seltenere und stärkere Karten frei',
+  'tutorial.buildingsPage.item4': 'Ausbauten kosten Geld und dauern mehrere Spieltage',
+  'tutorial.buildingsPage.item5': 'Jedes Gebäude kann bis auf Stufe 3 ausgebaut werden',
 
   // Log Messages
   'log.title': 'Nachrichten',

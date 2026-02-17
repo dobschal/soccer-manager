@@ -211,5 +211,14 @@ describe('tutorialOverlay', () => {
       expect(htmlContent).toContain('Finances')
       expect(htmlContent).toContain('sponsor')
     })
+
+    it('has content for buildings page', async () => {
+      await showTutorialIfNeeded('buildings')
+      vi.advanceTimersByTime(1500)
+
+      const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
+      expect(htmlContent).toContain('Buildings')
+      expect(htmlContent).toContain('Training Area')
+    })
   })
 })

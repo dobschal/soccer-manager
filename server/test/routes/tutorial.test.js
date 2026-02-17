@@ -104,7 +104,7 @@ describe('tutorial routes', () => {
     })
 
     it('accepts all valid tutorial keys', async () => {
-      const validKeys = ['results', 'team', 'trades', 'dashboard', 'stadium', 'finances']
+      const validKeys = ['results', 'team', 'trades', 'dashboard', 'stadium', 'finances', 'youth', 'buildings']
 
       for (const key of validKeys) {
         vi.clearAllMocks()

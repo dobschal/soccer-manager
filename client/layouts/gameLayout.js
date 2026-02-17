@@ -9,6 +9,7 @@ import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
 import { showSearchOverlay } from '../partials/search.js'
+import { ADMIN_USERNAME } from '../util/constants.js'
 
 /**
  * @returns {void}
@@ -200,7 +201,7 @@ export class GameLayout extends UIElement {
    * @returns {boolean}
    */
   get _showPlayButton () {
-    return this._isDevelopment || this._username === 'Emmo'
+    return this._isDevelopment || this._username === ADMIN_USERNAME
   }
 
   /**
