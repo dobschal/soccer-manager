@@ -6,6 +6,7 @@ import { euroFormat } from '../lib/currency.js'
 import { StadiumCanvas } from '../partials/stadiumCanvas.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
+import { BuildingsPage } from './stadium/buildingsPage.js'
 
 export class StadiumPage extends UIElement {
   stadium = {}
@@ -57,6 +58,31 @@ export class StadiumPage extends UIElement {
    * @returns {string}
    */
   get template () {
+    return `
+      <div>
+        <nav class="nav nav-pills mb-2">
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#stadium">${t('stadium.tabStadium')}</a>
+          <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#stadium?sub_page=buildings">${t('stadium.tabBuildings')}</a>
+        </nav>
+        ${this.subPage === 'buildings' ? this._renderBuildingsPage() : this._renderStadiumPage()}
+      </div>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderBuildingsPage () {
+    if (!this.buildingsPage) {
+      this.buildingsPage = new BuildingsPage(this)
+    }
+    return this.buildingsPage
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderStadiumPage () {
     this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas')
     return `
       <div>
@@ -100,6 +126,28 @@ export class StadiumPage extends UIElement {
     this.team = teamResponse.team
     this.attendanceData = attendanceResponse.attendance || []
     this.constructionHistory = historyResponse.history || []
+  }
+
+  /**
+   * @param {Object} params
+   * @param {string} params.sub_page
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({ sub_page: subPage }) {
+    if (subPage !== this.subPage) {
+      // Cleanup Three.js when leaving stadium tab
+      if (this.subPage !== 'buildings' && subPage === 'buildings') {
+        if (this._stadiumCanvas) {
+          this._stadiumCanvas.onDestroy()
+          this._stadiumCanvas = null
+        }
+      }
+      this.subPage = subPage
+      if (subPage === 'buildings') {
+        this.buildingsPage = new BuildingsPage(this)
+      }
+      await this.update()
+    }
   }
 
   /**
@@ -363,7 +411,7 @@ export class StadiumPage extends UIElement {
    * Called after component is mounted - initializes Three.js scene
    */
   onMounted () {
-    if (this._stadiumCanvas) {
+    if (this._stadiumCanvas && !this.subPage) {
       this._stadiumCanvas.onMounted()
     }
     void showTutorialIfNeeded('stadium', this)

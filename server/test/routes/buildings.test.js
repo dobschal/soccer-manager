@@ -1,0 +1,110 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createMockRequest, testData } from '../setup.js'
+
+vi.mock('../../lib/database.js', () => ({
+  query: vi.fn()
+}))
+
+vi.mock('../../helper/teamHelper.js', () => ({
+  getTeam: vi.fn()
+}))
+
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 5, season: 1 })
+}))
+
+vi.mock('../../helper/buildingHelper.js', () => ({
+  getBuildingsForTeam: vi.fn(),
+  getBuildingConstructionInfo: vi.fn(),
+  upgradeBuilding: vi.fn(),
+  BUILDING_UPGRADES: {
+    training_area_1: { cost: 500_000, constructionDays: 5 },
+    training_area_2: { cost: 1_500_000, constructionDays: 10 },
+    training_area_3: { cost: 4_000_000, constructionDays: 17 }
+  },
+  TRAINING_AREA_CARD_CHANCES: {
+    0: { LEVEL_UP_PLAYER_40: 0.2, LEVEL_UP_PLAYER_70: 0, LEVEL_UP_PLAYER_100: 0 },
+    1: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0, LEVEL_UP_PLAYER_100: 0 },
+    2: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0.3, LEVEL_UP_PLAYER_100: 0 },
+    3: { LEVEL_UP_PLAYER_40: 1.2, LEVEL_UP_PLAYER_70: 0.3, LEVEL_UP_PLAYER_100: 0.06 }
+  }
+}))
+
+vi.mock('../../i18n/index.js', () => ({
+  getUserLocale: vi.fn().mockResolvedValue('en'),
+  t: vi.fn((key) => key)
+}))
+
+import { getTeam } from '../../helper/teamHelper.js'
+import { getBuildingsForTeam, getBuildingConstructionInfo, upgradeBuilding } from '../../helper/buildingHelper.js'
+import handlers from '../../routes/buildings.js'
+
+describe('buildings routes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('getBuildings', () => {
+    it('returns buildings with construction info', async () => {
+      const team = testData.team()
+      const building = testData.building()
+
+      getTeam.mockResolvedValue(team)
+      getBuildingsForTeam.mockResolvedValue([building])
+      getBuildingConstructionInfo.mockReturnValue({ underConstruction: false })
+
+      const req = createMockRequest()
+      const result = await handlers.getBuildings(req)
+
+      expect(result.buildings).toHaveLength(1)
+      expect(result.buildings[0].constructionInfo).toEqual({ underConstruction: false })
+      expect(result.upgrades).toBeDefined()
+      expect(result.cardChances).toBeDefined()
+    })
+
+    it('returns empty array when no buildings', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      getBuildingsForTeam.mockResolvedValue([])
+
+      const req = createMockRequest()
+      const result = await handlers.getBuildings(req)
+
+      expect(result.buildings).toHaveLength(0)
+    })
+  })
+
+  describe('upgradeBuilding', () => {
+    it('calls upgradeBuilding helper with correct params', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      upgradeBuilding.mockResolvedValue({ success: true })
+
+      const req = createMockRequest()
+      const result = await handlers.upgradeBuilding('training_area', req)
+
+      expect(result.success).toBe(true)
+      expect(upgradeBuilding).toHaveBeenCalledWith(team, 'training_area', 'en')
+    })
+
+    it('throws on invalid building type', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.upgradeBuilding(null, req)).rejects.toThrow()
+    })
+
+    it('throws on empty string building type', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.upgradeBuilding('', req)).rejects.toThrow()
+    })
+  })
+})

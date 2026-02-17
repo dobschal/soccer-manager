@@ -159,5 +159,16 @@ export const testData = {
     game_day: 1,
     season: 0,
     ...overrides
+  }),
+
+  building: (overrides = {}) => ({
+    id: 1,
+    team_id: 1,
+    type: 'training_area',
+    level: 1,
+    construction_end_game_day: null,
+    construction_end_season: null,
+    construction_target_level: null,
+    ...overrides
   })
 }

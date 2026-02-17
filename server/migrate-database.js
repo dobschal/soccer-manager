@@ -814,6 +814,36 @@ const migrations = [{
     await query("UPDATE action_card SET action = 'LEVEL_UP_PLAYER_100' WHERE action = 'LEVEL_UP_PLAYER_10'")
     console.log('✅ Level system refactored from 1-10 to 1-100')
   }
+},
+{
+  name: 'Create building table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS building
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        team_id BIGINT(20) NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        level INT NOT NULL DEFAULT 0,
+        construction_end_game_day INT DEFAULT NULL,
+        construction_end_season INT DEFAULT NULL,
+        construction_target_level INT DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_building_team (team_id),
+        UNIQUE KEY idx_building_team_type (team_id, type)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+
+    // Seed existing teams with training_area at level 1
+    const teams = await query('SELECT id FROM team')
+    for (const team of teams) {
+      await query('INSERT INTO building SET ?', {
+        team_id: team.id,
+        type: 'training_area',
+        level: 1
+      })
+    }
+    console.log(`✅ Created building table and seeded ${teams.length} teams with training_area level 1`)
+  }
 }]
 
 /**

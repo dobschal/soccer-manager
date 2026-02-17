@@ -749,5 +749,32 @@ export default {
   'results.leagueResults': 'League',
   'results.cupResults': 'Cup',
   'results.friendlyResults': 'Friendlies',
-  'friendly.noResults': 'No friendly matches this season.'
+  'friendly.noResults': 'No friendly matches this season.',
+
+  // Stadium tabs
+  'stadium.tabStadium': 'Stadium',
+  'stadium.tabBuildings': 'Buildings',
+
+  // Buildings
+  'buildings.title': 'Buildings',
+  'buildings.trainingArea': 'Training Area',
+  'buildings.trainingAreaDesc': 'Upgrade your training area to unlock better action cards for player development.',
+  'buildings.level': 'Level {level}',
+  'buildings.maxLevel': 'Max Level',
+  'buildings.currentEffects': 'Current Effects',
+  'buildings.nextLevelEffects': 'Next Level Effects',
+  'buildings.upgrade': 'Upgrade to Level {level}',
+  'buildings.upgradeCost': 'Cost: {cost}',
+  'buildings.constructionDays': 'Construction: {days} game days',
+  'buildings.underConstruction': 'Under Construction',
+  'buildings.constructionRemaining': '{days} game day(s) remaining',
+  'buildings.constructionCompletesToday': 'Completes today!',
+  'buildings.upgradeConfirmTitle': 'Upgrade {buildingName}?',
+  'buildings.upgradeConfirmText': 'This will cost {cost} and take {days} game days.',
+  'buildings.upgradeStarted': 'Upgrade started!',
+  'buildings.noBuilding': 'No training area built yet.',
+  'buildings.level0Desc': 'No training area available.',
+  'buildings.level1Desc': 'Basic training area. Each game day you have a chance to receive a "Basic Training" action card. This allows you to train players up to level 40.',
+  'buildings.level2Desc': 'Intermediate training area. Each game day you have a chance to receive a "Basic Training" or "Advanced Training" action card. This allows you to train players up to level 70.',
+  'buildings.level3Desc': 'Professional training area. Each game day you have a chance to receive a "Basic Training", "Advanced Training" or "Master Training" action card. This allows you to train players up to level 100.'
 }

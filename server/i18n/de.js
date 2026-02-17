@@ -220,5 +220,20 @@ export default {
   'log.cupWinner': 'Herzlichen Glückwunsch! Du hast den Pokal gewonnen! Preis: {prize}',
 
   // Cup finance
-  'finance.cupPrize': 'Pokalsieg-Prämie'
+  'finance.cupPrize': 'Pokalsieg-Prämie',
+
+  // Building errors
+  'error.buildingNotFound': 'Gebäude nicht gefunden',
+  'error.buildingUnderConstruction': 'Gebäude wird bereits gebaut',
+  'error.buildingMaxLevel': 'Gebäude hat bereits das maximale Level erreicht',
+
+  // Building log messages
+  'log.buildingUpgradeStarted': 'Bau begonnen: {buildingName} wird ausgebaut!',
+  'log.buildingUpgradeComplete': 'Bau abgeschlossen: {buildingName} wurde ausgebaut!',
+
+  // Building names
+  'building.trainingArea': 'Trainingsgelände',
+
+  // Building finance
+  'finance.buildingUpgrade': 'Gebäude-Ausbau'
 }

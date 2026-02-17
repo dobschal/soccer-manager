@@ -23,6 +23,7 @@ export class GameLayout extends UIElement {
   _nextGameDate = null
   _navItemEventIds = []
   _isDevelopment = false
+  _username = ''
   _version = ''
   _gameDay = 0
   _season = 0
@@ -57,6 +58,9 @@ export class GameLayout extends UIElement {
               <button id="search-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.search')}">
                 <i class="fa fa-search" aria-hidden="true"></i> ${t('nav.search')}
               </button>
+              ${this._showPlayButton ? `<button id="play-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.run')}">
+                <i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}
+              </button>` : ''}
               <button id="settings-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.settings')}">
                 <i class="fa fa-cog" aria-hidden="true"></i> ${t('nav.settings')}
               </button>
@@ -64,6 +68,9 @@ export class GameLayout extends UIElement {
             <button id="search-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.search')}">
               <i class="fa fa-search fa-lg" aria-hidden="true"></i>
             </button>
+            ${this._showPlayButton ? `<button id="play-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.run')}">
+              <i class="fa fa-play fa-lg" aria-hidden="true"></i>
+            </button>` : ''}
             <button id="settings-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.settings')}">
               <i class="fa fa-cog fa-lg" aria-hidden="true"></i>
             </button>
@@ -98,14 +105,16 @@ export class GameLayout extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const [gameDate, devMode, versionData, currentGameday] = await Promise.all([
+    const [gameDate, devMode, versionData, currentGameday, teamData] = await Promise.all([
       server.getNextGameDate(),
       server.isDevelopment(),
       server.getVersion(),
-      server.getCurrentGameday()
+      server.getCurrentGameday(),
+      server.getMyTeam()
     ])
     this._nextGameDate = gameDate.date
     this._isDevelopment = devMode.isDevelopment
+    this._username = teamData.user?.username || ''
     this._version = versionData.version
     this._gameDay = currentGameday.gameDay
     this._season = currentGameday.season
@@ -163,6 +172,19 @@ export class GameLayout extends UIElement {
       })
     }
 
+    const playBtn = document.querySelector(`${this._elementQuery} #play-button`)
+    if (playBtn) {
+      playBtn.addEventListener('click', () => this._triggerGameDay(playBtn))
+    }
+
+    const playBtnMobile = document.querySelector(`${this._elementQuery} #play-button-mobile`)
+    if (playBtnMobile) {
+      playBtnMobile.addEventListener('click', () => {
+        hideNavigation()
+        this._triggerGameDay(playBtnMobile)
+      })
+    }
+
     const toggleBtn = document.querySelector(`${this._elementQuery} .navbar-toggler`)
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
@@ -175,16 +197,18 @@ export class GameLayout extends UIElement {
   }
 
   /**
-   * Shows the settings overlay with language, run (dev), and logout options
+   * @returns {boolean}
+   */
+  get _showPlayButton () {
+    return this._isDevelopment || this._username === 'Emmo'
+  }
+
+  /**
+   * Shows the settings overlay with language and logout options
    * @returns {void}
    */
   _showSettingsOverlay () {
     const currentLocale = getLocale()
-    const devButtonHtml = this._isDevelopment
-      ? `<button id="settings-dev-trigger" class="btn btn-warning w-100 mb-2">
-           <i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}
-         </button>`
-      : ''
 
     const content = `
       <div class="settings-overlay-content">
@@ -195,7 +219,6 @@ export class GameLayout extends UIElement {
             <button id="settings-lang-de" class="btn ${currentLocale === 'de' ? 'btn-info' : 'btn-outline-info'}">Deutsch</button>
           </div>
         </div>
-        ${devButtonHtml}
         <button id="settings-logout" class="btn btn-outline-danger w-100">
           <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
         </button>
@@ -209,7 +232,6 @@ export class GameLayout extends UIElement {
       const langEnBtn = el('#settings-lang-en')
       const langDeBtn = el('#settings-lang-de')
       const logoutBtn = el('#settings-logout')
-      const devTriggerBtn = el('#settings-dev-trigger')
 
       if (langEnBtn) {
         langEnBtn.addEventListener('click', async () => {
@@ -247,24 +269,26 @@ export class GameLayout extends UIElement {
           goTo('login')
         })
       }
-
-      if (devTriggerBtn) {
-        devTriggerBtn.addEventListener('click', async () => {
-          try {
-            devTriggerBtn.disabled = true
-            devTriggerBtn.innerHTML = `<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> ${t('nav.running')}`
-            await server.triggerGameDay()
-            toast(t('toast.gameDayCompleted'), 'success')
-            window.location.reload()
-          } catch (e) {
-            console.error(e)
-            toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-            devTriggerBtn.disabled = false
-            devTriggerBtn.innerHTML = `<i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}`
-          }
-        })
-      }
     }, 0)
+  }
+
+  /**
+   * @param {HTMLButtonElement} btn
+   * @returns {Promise<void>}
+   */
+  async _triggerGameDay (btn) {
+    try {
+      btn.disabled = true
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>'
+      await server.triggerGameDay()
+      toast(t('toast.gameDayCompleted'), 'success')
+      window.location.reload()
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+      btn.disabled = false
+      btn.innerHTML = '<i class="fa fa-play fa-lg" aria-hidden="true"></i>'
+    }
   }
 
   /**

@@ -8,6 +8,7 @@ import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
 import { completeStadiumConstructions } from './helper/stadiumHelper.js'
+import { completeBuildingConstructions, getAllTrainingAreaLevels, TRAINING_AREA_CARD_CHANCES } from './helper/buildingHelper.js'
 import { addLogMessage, checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
 import { processYouthTraining } from './helper/youthPlayerHelper.js'
@@ -27,8 +28,9 @@ export async function calculateGames () {
   } = await getGameDayAndSeason()
   console.log(`Calculate games for season ${season} game day ${gameDay}`)
 
-  // Complete any stadium constructions that are due
+  // Complete any constructions that are due
   await completeStadiumConstructions(gameDay, season)
+  await completeBuildingConstructions(gameDay, season)
 
   // Play league games
   const leagueGames = await query(
@@ -299,11 +301,16 @@ async function _giveUsersActionCards () {
   const t1 = Date.now()
   /** @type {TeamType[]} */
   const teams = await query('SELECT * FROM team')
+  const trainingAreaLevels = await getAllTrainingAreaLevels()
   const promises = []
   for (const team of teams) {
+    const trainingLevel = trainingAreaLevels.get(team.id) ?? 1
+    const cardOverrides = TRAINING_AREA_CARD_CHANCES[trainingLevel] || TRAINING_AREA_CARD_CHANCES[1]
     const actionCards = []
     while (actionCards.length === 0) {
-      for (const [action, chance] of Object.entries(actionCardChances)) {
+      for (const [action, defaultChance] of Object.entries(actionCardChances)) {
+        // Override LEVEL_UP card chances based on training area level
+        const chance = cardOverrides[action] !== undefined ? cardOverrides[action] : defaultChance
         // For probabilities > 1, give floor(chance) guaranteed cards + remainder chance for one more
         const guaranteed = Math.floor(chance)
         const remainder = chance - guaranteed

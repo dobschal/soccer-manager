@@ -220,5 +220,20 @@ export default {
   'log.cupWinner': 'Congratulations! You won the Cup! Prize: {prize}',
 
   // Cup finance
-  'finance.cupPrize': 'Cup winner prize'
+  'finance.cupPrize': 'Cup winner prize',
+
+  // Building errors
+  'error.buildingNotFound': 'Building not found',
+  'error.buildingUnderConstruction': 'Building is already under construction',
+  'error.buildingMaxLevel': 'Building is already at maximum level',
+
+  // Building log messages
+  'log.buildingUpgradeStarted': 'Construction started: Upgrading {buildingName}!',
+  'log.buildingUpgradeComplete': 'Construction complete: {buildingName} has been upgraded!',
+
+  // Building names
+  'building.trainingArea': 'Training Area',
+
+  // Building finance
+  'finance.buildingUpgrade': 'Building upgrade'
 }

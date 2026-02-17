@@ -335,6 +335,11 @@ async function _createRandomTeam (level) {
     west_stand_price: 13
   })
   await query('INSERT INTO stadium SET ?', stadium)
+  await query('INSERT INTO building SET ?', {
+    team_id: team.id,
+    type: 'training_area',
+    level: 1
+  })
   return team
 }
 

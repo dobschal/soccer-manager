@@ -749,5 +749,32 @@ export default {
   'results.leagueResults': 'Liga',
   'results.cupResults': 'Pokal',
   'results.friendlyResults': 'Freundschaftsspiele',
-  'friendly.noResults': 'Keine Freundschaftsspiele in dieser Saison.'
+  'friendly.noResults': 'Keine Freundschaftsspiele in dieser Saison.',
+
+  // Stadium tabs
+  'stadium.tabStadium': 'Stadion',
+  'stadium.tabBuildings': 'Gebäude',
+
+  // Buildings
+  'buildings.title': 'Gebäude',
+  'buildings.trainingArea': 'Trainingsgelände',
+  'buildings.trainingAreaDesc': 'Baue dein Trainingsgelände aus, um bessere Aktionskarten für die Spielerentwicklung freizuschalten.',
+  'buildings.level': 'Stufe {level}',
+  'buildings.maxLevel': 'Maximale Stufe',
+  'buildings.currentEffects': 'Aktuelle Effekte',
+  'buildings.nextLevelEffects': 'Effekte nächste Stufe',
+  'buildings.upgrade': 'Auf Stufe {level} ausbauen',
+  'buildings.upgradeCost': 'Kosten: {cost}',
+  'buildings.constructionDays': 'Bauzeit: {days} Spieltage',
+  'buildings.underConstruction': 'Im Bau',
+  'buildings.constructionRemaining': '{days} Spieltag(e) verbleibend',
+  'buildings.constructionCompletesToday': 'Wird heute fertig!',
+  'buildings.upgradeConfirmTitle': '{buildingName} ausbauen?',
+  'buildings.upgradeConfirmText': 'Dies kostet {cost} und dauert {days} Spieltage.',
+  'buildings.upgradeStarted': 'Ausbau gestartet!',
+  'buildings.noBuilding': 'Noch kein Trainingsgelände gebaut.',
+  'buildings.level0Desc': 'Kein Trainingsgelände vorhanden.',
+  'buildings.level1Desc': 'Einfaches Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card "Basic Training" zu erhalten. Damit kannst du Spieler bis Level 40 trainieren.',
+  'buildings.level2Desc': 'Mittelmäßiges Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card vom Typ "Basic Training" oder "Advanced Training" zu erhalten. Damit kannst du Spieler bis Level 70 trainieren.',
+  'buildings.level3Desc': 'Professionelles Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card vom Typ "Basic Training", "Advanced Training" oder "Master Training" zu erhalten. Damit kannst du Spieler bis Level 100 trainieren.'
 }
