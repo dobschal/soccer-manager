@@ -209,12 +209,12 @@ export class ActionCards extends UIElement {
         }
       })
 
-      await server.mergeCards(this.cards[indices[0]], this.cards[indices[1]])
+      const response = await server.mergeCards(this.cards[indices[0]], this.cards[indices[1]])
       toast(t('actionCards.cardsMerged'), 'success')
 
       // Determine the new card type
       const newCardType = actionCard.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100'
-      await this._animateAndRemoveMergedCards(indices[0], indices[1], newCardType)
+      await this._animateAndRemoveMergedCards(indices[0], indices[1], newCardType, response.actionCard)
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong', 'error')
@@ -281,9 +281,10 @@ export class ActionCards extends UIElement {
    * @param {number} cardIndex1 - Index of first card to merge
    * @param {number} cardIndex2 - Index of second card to merge
    * @param {string} newCardType - The type of the newly created card
+   * @param {Object} serverCard - The new card returned by the server
    * @returns {Promise<void>}
    */
-  async _animateAndRemoveMergedCards (cardIndex1, cardIndex2, newCardType) {
+  async _animateAndRemoveMergedCards (cardIndex1, cardIndex2, newCardType, serverCard) {
     const stackEl = this._currentCardElement
     if (!stackEl) return
 
@@ -302,12 +303,8 @@ export class ActionCards extends UIElement {
     this.cards.splice(higher, 1)
     this.cards.splice(lower, 1)
 
-    // Add the new merged card to our array
-    const newCard = {
-      action: newCardType,
-      id: Date.now()
-    }
-    this.cards.push(newCard)
+    // Add the new merged card to our array using the server-provided card
+    this.cards.push(serverCard)
 
     // Count remaining cards of the OLD type
     const remainingOfType = this.cards.filter(c => c.action === actionType).length

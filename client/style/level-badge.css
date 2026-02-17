@@ -2,7 +2,6 @@
     display: inline-block;
     text-align: center;
     border-radius: 50%;
-    border: solid 1px rgba(0, 0, 0, 0.1);
     box-sizing: border-box;
     font-weight: bold;
     color: black;
@@ -11,31 +10,34 @@
 .level-badge--sm {
     height: 24px;
     width: 24px;
-    line-height: 24px;
+    line-height: 26px;
     font-size: inherit;
 }
 
 .level-badge--lg {
     width: 30px;
     height: 30px;
-    line-height: 30px;
-    font-size: 16px;
+    line-height: 32px;
+    font-size: 17px;
 }
 
 .level-badge--bronze {
-    background-color: #eaa347;
-    color: #593c15;
-    text-shadow: 1px 1px 0 #a27d4e;
+    background: linear-gradient(80deg, #f0ae6d, #CD7F32);
+    color: #000000a1;
+    text-shadow: 1px 1px 0 #ffffff6e;
+    box-shadow: 1px 1px 0 0 #995e25;
 }
 
 .level-badge--silver {
-    background-color: #EFEFEF;
-    color: #343434;
-    text-shadow: 1px 1px 0 #c0c0c0;
+    background: linear-gradient(80deg, #EFEFEF, #C0C0C0);
+    color: #000000a1;
+    text-shadow: 1px 1px 0 #ffffff6e;
+    box-shadow: 1px 1px 0 0 #a2a2a2;
 }
 
 .level-badge--gold {
-    background-color: #FFD700;
-    color: #5c4a00;
-    text-shadow: 1px 1px 0 #c9a800;
+    background: linear-gradient(80deg, #ffdb40, #FFD700);
+    color: #000000a1;
+    text-shadow: 1px 1px 0 #ffffff6e;
+    box-shadow: 1px 1px 0 0 #a48900;
 }

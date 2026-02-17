@@ -38,8 +38,8 @@ export default {
         action: actionCard1.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100',
         played: 0
       })
-      await query('INSERT INTO action_card SET ?', actionCard)
-      return { success: true }
+      const result = await query('INSERT INTO action_card SET ?', actionCard)
+      return { success: true, actionCard: { id: result.insertId, action: actionCard.action } }
     }
     throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
   },

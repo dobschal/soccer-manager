@@ -53,12 +53,12 @@ describe('actionCards routes', () => {
       const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_40' })
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValue({})
+      query.mockResolvedValue({ insertId: 99 })
 
       const req = createMockRequest()
       const result = await handlers.mergeCards(card1, card2, req)
 
-      expect(result).toEqual({ success: true })
+      expect(result).toEqual({ success: true, actionCard: { id: 99, action: 'LEVEL_UP_PLAYER_70' } })
       expect(query).toHaveBeenCalledWith('DELETE FROM action_card WHERE id=?', [1])
       expect(query).toHaveBeenCalledWith('DELETE FROM action_card WHERE id=?', [2])
       expect(query).toHaveBeenCalledWith('INSERT INTO action_card SET ?', expect.objectContaining({
@@ -74,12 +74,12 @@ describe('actionCards routes', () => {
       const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_70' })
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValue({})
+      query.mockResolvedValue({ insertId: 100 })
 
       const req = createMockRequest()
       const result = await handlers.mergeCards(card1, card2, req)
 
-      expect(result).toEqual({ success: true })
+      expect(result).toEqual({ success: true, actionCard: { id: 100, action: 'LEVEL_UP_PLAYER_100' } })
       expect(query).toHaveBeenCalledWith('INSERT INTO action_card SET ?', expect.objectContaining({
         action: 'LEVEL_UP_PLAYER_100'
       }))
