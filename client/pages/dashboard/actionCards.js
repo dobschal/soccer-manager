@@ -119,7 +119,7 @@ export class ActionCards extends UIElement {
         <h3>${t('actionCards.title')}</h3>
         <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
         <div class="mb-4 action-cards-container">
-          <div class="action-cards-scroll">${this._renderCardsWithPlaceholders()}</div>
+          <div class="action-cards-scroll">${this._renderGroupedCards()}</div>
         </div>
         <div class="alert alert-info" style="max-width: 620px">
           <i class="fa fa-info-circle me-1"></i> ${t('actionCards.buildingsHint')}
@@ -134,39 +134,6 @@ export class ActionCards extends UIElement {
   async load () {
     const response = await server.getActionCards()
     this.cards = response.actionCards
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderCardsWithPlaceholders () {
-    const groupedCards = this._renderGroupedCards()
-    const cardCount = this._getGroupedCardCount()
-    const minSlots = 5
-    const placeholdersNeeded = Math.max(0, minSlots - cardCount)
-
-    const placeholders = Array(placeholdersNeeded).fill(0).map(() => `
-      <div class="action-card-stack action-card-placeholder">
-        <div class="action-card-wrapper" style="--stack-index: 0; --stack-total: 0;">
-          <div class="action-card-image action-card-empty"></div>
-        </div>
-      </div>
-    `).join('')
-
-    return groupedCards + placeholders
-  }
-
-  /**
-   * @returns {number}
-   */
-  _getGroupedCardCount () {
-    const grouped = {}
-    this.cards.forEach((card) => {
-      if (!grouped[card.action]) {
-        grouped[card.action] = true
-      }
-    })
-    return Object.keys(grouped).length
   }
 
   /**
@@ -259,8 +226,7 @@ export class ActionCards extends UIElement {
     const remainingOfType = this.cards.filter(c => c.action === actionType).length
 
     if (remainingOfType === 0) {
-      // Convert the stack to a placeholder
-      this._convertToPlaceholder(stackEl)
+      stackEl.remove()
     } else {
       // Remove the top card wrapper from visual stack
       topCard?.remove()
@@ -323,8 +289,7 @@ export class ActionCards extends UIElement {
     const remainingOfType = this.cards.filter(c => c.action === actionType).length
 
     if (remainingOfType === 0) {
-      // Convert the stack to a placeholder
-      this._convertToPlaceholder(stackEl)
+      stackEl.remove()
     } else {
       // Remove two card wrappers
       wrappers[0]?.remove()
@@ -440,21 +405,6 @@ export class ActionCards extends UIElement {
         stack.dataset.actionCard = newIdx
       }
     })
-  }
-
-  /**
-   * Converts a card stack element into a placeholder
-   * @param {HTMLElement} stackEl - The stack element to convert
-   */
-  _convertToPlaceholder (stackEl) {
-    stackEl.classList.add('action-card-placeholder')
-    delete stackEl.dataset.actionCard
-    delete stackEl.dataset.canMerge
-    stackEl.innerHTML = `
-      <div class="action-card-wrapper" style="--stack-index: 0; --stack-total: 0;">
-        <div class="action-card-image action-card-empty"></div>
-      </div>
-    `
   }
 
   /**

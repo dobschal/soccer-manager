@@ -130,6 +130,11 @@ export class MyTeamPage extends UIElement {
       await this.load()
       await this.update()
     })
+    this._onPlayerFired = async () => {
+      await this.load()
+      await this.update()
+    }
+    window.addEventListener('player-fired', this._onPlayerFired)
     if (!this.subPage) {
       this._initDragDrop()
     }
@@ -141,6 +146,9 @@ export class MyTeamPage extends UIElement {
   onDestroy () {
     if (this._youthPlayerPromotedEventId !== undefined) {
       off(this._youthPlayerPromotedEventId)
+    }
+    if (this._onPlayerFired) {
+      window.removeEventListener('player-fired', this._onPlayerFired)
     }
     this._dragDropCleanup?.destroy()
   }

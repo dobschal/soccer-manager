@@ -8,7 +8,7 @@
 
 .building-card__overlay {
     /*background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.5) 100%);*/
-    padding: 5rem 1rem;
+    padding: 1rem 1rem 10rem 1rem;
     min-height: 400px;
     display: flex;
     flex-direction: column;
@@ -18,7 +18,8 @@
 .building-card__content {
     border-radius: 8px;
     padding: 1.25rem;
-    width: 50%;
+    width: 100%;
+    max-width: 480px;
 }
 
 .building-card__title {

@@ -111,6 +111,7 @@ export async function showPlayerModal (playerId) {
       await server.firePlayer(player)
       toast(t('player.playerFired'))
       overlay.remove()
+      window.dispatchEvent(new CustomEvent('player-fired', { detail: { playerId: player.id } }))
       goTo('my-team')
     } catch (e) {
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
