@@ -39,12 +39,11 @@ export class PlayerListItem extends UIElement {
     const redCards = this.player.red_cards || 0
     const rowClass = isSuspended ? 'table-danger' : (this.player.in_game_position ? 'table-info' : 'table-warning')
     return `
-      <tr class="${rowClass}">
-        <th scope="row">${this.player.name}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''}</th>
+      <tr class="${rowClass}" data-player-id="${this.player.id}">
+        <th scope="row">${this.player.name}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''} ${this._renderCards(yellowCards, redCards)}</th>
         <td>${this.player.position}</td>
         <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(this.player, this.season)}</td>
         <td class="text-right ${this.player.freshness < 0.4 ? 'text-danger' : (this.player.freshness < 0.7 ? 'text-warning' : 'text-success')}">${Math.floor(this.player.freshness * 100)}%</td>
-        <td class="text-right d-none d-sm-table-cell">${this._renderCards(yellowCards, redCards)}</td>
         <td class="text-right">${renderLevelBadge(this.player.level)}</td>
         <td class="text-right d-none d-md-table-cell">${euroFormat.format(getSalary(this.player.level))}</td>
       </tr>
@@ -65,7 +64,7 @@ export class PlayerListItem extends UIElement {
       html += `<span class="card-badge card-badge--yellow" title="${yellowCards} yellow card(s)"><span class="card-badge__count">${yellowCards}</span></span>`
     }
     if (!html) {
-      html = '-'
+      html = ''
     }
     return html
   }

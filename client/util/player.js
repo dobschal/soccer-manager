@@ -41,7 +41,7 @@ export function sortByPosition (playerA, playerB) {
  * @returns {number}
  */
 function _positionValue (player) {
-  let playingValue = player.in_game_position ? 100 : 0
+  let playingValue = player.in_game_position ? 10000 : 0
   if (player.position.startsWith('L')) {
     playingValue += 3
   } else if (player.position.startsWith('R')) {
@@ -49,8 +49,11 @@ function _positionValue (player) {
   } else {
     playingValue += 2
   }
-  if (player.position.endsWith('K')) return 30 + playingValue
-  if (player.position.endsWith('D')) return 20 + playingValue
-  if (player.position.endsWith('M')) return 10 + playingValue
+  if (player.position.endsWith('K')) playingValue += 30
+  else if (player.position.endsWith('D')) playingValue += 20
+  else if (player.position.endsWith('M')) playingValue += 10
+  // For bench players, use sort_index to allow custom ordering (lower sort_index = higher priority)
+  const sortIndex = player.sort_index || 0
+  playingValue += (9999 - sortIndex) / 10000
   return playingValue
 }

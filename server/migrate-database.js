@@ -844,6 +844,12 @@ const migrations = [{
     }
     console.log(`✅ Created building table and seeded ${teams.length} teams with training_area level 1`)
   }
+},
+{
+  name: 'Add sort_index column to player table',
+  async run () {
+    await query('ALTER TABLE player ADD COLUMN sort_index INT DEFAULT 0')
+  }
 }]
 
 /**

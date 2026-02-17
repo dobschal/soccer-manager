@@ -181,6 +181,23 @@ export default {
   },
 
   /**
+   * @param {Array<{playerId: number, sortIndex: number}>} sortData
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async saveBenchSortOrder (sortData, req) {
+    const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+    if (!team) throw new BadRequestError('No team found')
+    const playersFromDb = await query('SELECT id FROM player WHERE team_id=?', [team.id])
+    const validIds = new Set(playersFromDb.map(p => p.id))
+    for (const { playerId, sortIndex } of sortData) {
+      if (!validIds.has(playerId)) throw new BadRequestError('Unknown player...')
+      await query('UPDATE player SET sort_index=? WHERE id=?', [sortIndex, playerId])
+    }
+    return { success: true }
+  },
+
+  /**
    * Get transfer history for a specific team
    * @param {number} teamId
    * @returns {Promise<{transfers: Array}>}

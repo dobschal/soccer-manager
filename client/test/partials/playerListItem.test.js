@@ -146,12 +146,12 @@ describe('PlayerListItem', () => {
       expect(html).toContain('card-badge--red')
     })
 
-    it('shows dash when no cards', () => {
+    it('shows empty string when no cards', () => {
       const player = testData.player({ yellow_cards: 0, red_cards: 0 })
       const item = new PlayerListItem(player, 1, vi.fn())
 
       const html = item._renderCards(0, 0)
-      expect(html).toBe('-')
+      expect(html).toBe('')
     })
   })
 

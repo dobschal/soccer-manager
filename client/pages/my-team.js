@@ -25,6 +25,7 @@ import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 import { YouthTeamPage } from './my-team/youthTeam.js'
 import { off, on } from '../lib/event.js'
+import { initDragDrop } from '../lib/dragDrop.js'
 
 export class MyTeamPage extends UIElement {
   /**
@@ -57,7 +58,7 @@ export class MyTeamPage extends UIElement {
             ${renderLineup(this.data.players, this.data.team, this)}
           </div>
         </div>
-        <div class="col-12 col-xl-6">
+        <div class="col-12 col-xl-6" id="player-list-container">
           ${new PlayerList(
       this.data.players,
       true,
@@ -65,8 +66,9 @@ export class MyTeamPage extends UIElement {
         setQueryParams({
           player_id: p.id
         })
-      })
-    }
+      },
+      true
+    )}
         </div>
       </div>
     `
@@ -128,6 +130,9 @@ export class MyTeamPage extends UIElement {
       await this.load()
       await this.update()
     })
+    if (!this.subPage) {
+      this._initDragDrop()
+    }
   }
 
   /**
@@ -137,6 +142,52 @@ export class MyTeamPage extends UIElement {
     if (this._youthPlayerPromotedEventId !== undefined) {
       off(this._youthPlayerPromotedEventId)
     }
+    this._dragDropCleanup?.destroy()
+  }
+
+  /**
+   * Initialize drag-and-drop connections between player list and pitch
+   * @returns {void}
+   */
+  _initDragDrop () {
+    this._dragDropCleanup?.destroy()
+    // Wait for child components to render
+    setTimeout(() => {
+      const tableBody = document.querySelector(`${this._elementQuery} #player-list-container tbody`)
+      const squadEl = document.querySelector(`${this._elementQuery} #squad .squad`)
+      if (!tableBody || !squadEl) return
+
+      this._dragDropCleanup = initDragDrop({
+        tableBodyEl: tableBody,
+        squadEl,
+        players: this.data.players,
+        team: this.data.team,
+        onLineupChange: async (playersToSave, formation) => {
+          try {
+            await server.saveLineup(playersToSave, formation)
+            toast('Lineup saved.', 'success')
+            lineUpData.squadDataChanged = false
+            await this.load()
+            await this.update()
+            this._initDragDrop()
+          } catch (e) {
+            console.error(e)
+            toast(e.message ?? 'Something went wrong...', 'error')
+          }
+        },
+        onSortChanged: async (sortData) => {
+          try {
+            await server.saveBenchSortOrder(sortData)
+            await this.load()
+            await this.update()
+            this._initDragDrop()
+          } catch (e) {
+            console.error(e)
+            toast(e.message ?? 'Something went wrong...', 'error')
+          }
+        }
+      })
+    }, 200)
   }
 
   /**
@@ -335,6 +386,7 @@ export class MyTeamPage extends UIElement {
     lineUpData.squadDataChanged = true
     render('#squad', renderLineup(this.data.players, this.data.team, this))
     render('#header', this._renderHeader())
+    this._initDragDrop()
   }
 
   /**
