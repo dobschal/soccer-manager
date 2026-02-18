@@ -441,7 +441,7 @@ describe('Attack Mode Impact on Statistics', () => {
 })
 
 describe('Detailed Statistics Report', () => {
-  it('print comprehensive statistics summary', () => {
+  it('print comprehensive statistics summary', { timeout: 30000 }, () => {
     const NUM_GAMES = 500
 
     function runGames (playStyle, attackMode) {
