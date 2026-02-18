@@ -311,7 +311,7 @@ describe('actionCardHelper', () => {
   })
 
   describe('playActionCard - level up limits per season', () => {
-    it('throws error when player already has 2 level ups this season', async () => {
+    it('throws error when player already has 20 level ups this season', async () => {
       const team = testData.team()
       const player = testData.player({ id: 1, level: 30 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
@@ -321,14 +321,14 @@ describe('actionCardHelper', () => {
           return [player]
         }
         if (sql.includes('SELECT * FROM player_history')) {
-          // Return 2 level ups already this season
-          return [{ type: 'LEVEL_UP' }, { type: 'LEVEL_UP' }]
+          // Return 20 level ups already this season
+          return Array.from({ length: 20 }, () => ({ type: 'LEVEL_UP' }))
         }
         return {}
       })
 
       await expect(playActionCard({ player, actionCard }, team))
-        .rejects.toMatchObject({ message: 'Player already got 2 level ups this season' })
+        .rejects.toMatchObject({ message: 'Player already got 20 level ups this season' })
     })
 
     it('allows level up when player has only 1 level up this season', async () => {
