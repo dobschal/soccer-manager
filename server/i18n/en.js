@@ -44,7 +44,7 @@ export default {
   'error.cannotMergeCards': 'Cannot merge these cards',
   'error.notEnoughCards': 'Not enough cards to merge',
   'error.invalidCardAction': 'Invalid card action',
-  'error.playerMaxLevelUps': 'Player already got 2 level ups this season',
+  'error.playerMaxLevelUps': 'Player already got 20 level ups this season',
   'error.playerMaxLevel': 'Player already reached the maximum level',
   'error.cardMaxLevel70': 'Action card only allows level ups until level 70',
   'error.cardMaxLevel40': 'Action card only allows level ups until level 40',

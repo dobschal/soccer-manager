@@ -44,7 +44,7 @@ export default {
   'error.cannotMergeCards': 'Diese Karten können nicht verschmolzen werden',
   'error.notEnoughCards': 'Nicht genug Karten zum Verschmelzen',
   'error.invalidCardAction': 'Ungültige Kartenaktion',
-  'error.playerMaxLevelUps': 'Spieler hat bereits 2 Level-Ups in dieser Saison erhalten',
+  'error.playerMaxLevelUps': 'Spieler hat bereits 20 Level-Ups in dieser Saison erhalten',
   'error.playerMaxLevel': 'Spieler hat bereits das maximale Level erreicht',
   'error.cardMaxLevel70': 'Aktionskarte erlaubt nur Level-Ups bis Level 70',
   'error.cardMaxLevel40': 'Aktionskarte erlaubt nur Level-Ups bis Level 40',

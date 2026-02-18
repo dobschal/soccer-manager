@@ -32,7 +32,7 @@ vi.mock('../../helper/youthPlayerHelper.js', () => ({
 vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key, params = {}) => {
     const translations = {
-      'error.playerMaxLevelUps': 'Player already got 2 level ups this season',
+      'error.playerMaxLevelUps': 'Player already got 20 level ups this season',
       'error.playerMaxLevel': 'Player already reached the maximum level',
       'error.cardMaxLevel70': 'Action card only allows level ups until level 70',
       'error.cardMaxLevel40': 'Action card only allows level ups until level 40',

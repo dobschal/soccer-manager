@@ -125,7 +125,7 @@ export async function playActionCard ({
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_100') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
-    if (await levelUpsCurrentSeason(player) >= 2) {
+    if (await levelUpsCurrentSeason(player) >= 20) {
       throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
     if (player.level >= 100) {
@@ -140,7 +140,7 @@ export async function playActionCard ({
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_70') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
-    if (await levelUpsCurrentSeason(player) >= 2) {
+    if (await levelUpsCurrentSeason(player) >= 20) {
       throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
     if (player.level >= 70) {
@@ -155,7 +155,7 @@ export async function playActionCard ({
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_40') {
     const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
-    if (await levelUpsCurrentSeason(player) >= 2) {
+    if (await levelUpsCurrentSeason(player) >= 20) {
       throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
     if (player.level >= 40) {

@@ -4,7 +4,7 @@
     border-radius: 50%;
     box-sizing: border-box;
     font-weight: bold;
-    color: black;
+    color: rgba(0, 0, 0, 0.5);
 }
 
 .level-badge--sm {
@@ -23,21 +23,18 @@
 
 .level-badge--bronze {
     background: linear-gradient(80deg, #f0ae6d, #CD7F32);
-    color: #000000a1;
     text-shadow: 1px 1px 0 #ffffff6e;
     box-shadow: 1px 1px 0 0 #995e25;
 }
 
 .level-badge--silver {
     background: linear-gradient(80deg, #EFEFEF, #C0C0C0);
-    color: #000000a1;
     text-shadow: 1px 1px 0 #ffffff6e;
     box-shadow: 1px 1px 0 0 #a2a2a2;
 }
 
 .level-badge--gold {
     background: linear-gradient(80deg, #ffdb40, #FFD700);
-    color: #000000a1;
     text-shadow: 1px 1px 0 #ffffff6e;
     box-shadow: 1px 1px 0 0 #a48900;
 }
