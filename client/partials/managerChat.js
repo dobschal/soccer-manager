@@ -4,6 +4,37 @@ import { generateId } from '../lib/html.js'
 const STORAGE_KEY_PREFIX = 'managerChatShown_'
 
 /**
+ * Returns HTML string for an inline manager chat (no overlay)
+ * @param {string} svgContainerId - ID for the SVG placeholder element
+ * @param {string} text - HTML text for the speech bubble
+ * @returns {string}
+ */
+export function renderManagerChatInline (svgContainerId, text) {
+  return `
+    <div class="manager-chat-inline">
+      <div class="manager-chat-bubble">${text}</div>
+      <div class="manager-chat-image" id="${svgContainerId}"></div>
+    </div>
+  `
+}
+
+/**
+ * Fetches the manager SVG and injects it into the given element, replacing the placeholder color with team color
+ * @param {string} elementId - ID of the container element
+ * @param {string} teamColor - Hex color (e.g., "#3498db" or "3498db")
+ * @returns {Promise<void>}
+ */
+export async function loadManagerChatSvg (elementId, teamColor) {
+  const response = await fetch('assets/manager.svg')
+  let svgContent = await response.text()
+  svgContent = svgContent.replace(/#ff0000/gi, `${teamColor}`)
+  const el = document.getElementById(elementId)
+  if (el) {
+    el.innerHTML = svgContent
+  }
+}
+
+/**
  * Checks if the manager chat was already shown for the current game day
  * @param {number} gameDay
  * @param {number} season

@@ -46,11 +46,12 @@
 .manager-chat-bubble::after {
     content: '';
     position: absolute;
-    bottom: -15px;
-    right: 85px;
+    top: 25px;
+    right: -20px;
     border-width: 15px 15px 0 15px;
     border-style: solid;
     border-color: #d1ecf1 transparent transparent transparent;
+    transform: rotate(-90deg);
 }
 
 .manager-chat-bubble p {
@@ -70,6 +71,31 @@
 
 .manager-chat-fade-out {
     animation: manager-chat-fade-out 0.2s ease-out forwards;
+}
+
+/* Inline Manager Chat (results page) */
+.manager-chat-inline {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+}
+
+.manager-chat-inline .manager-chat-bubble {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    height: fit-content;
+    max-width: 400px;
+    margin-bottom: 0;
+}
+
+.manager-chat-image {
+    height: 0;
+    overflow: visible;
+}
+
+.manager-chat-inline .manager-chat-image svg {
+    width: 150px;
+    transform: translateY(-36px);
 }
 
 /* Responsive */

@@ -6,6 +6,7 @@ import { formatLeague } from '../../util/league.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
+import { loadManagerChatSvg, renderManagerChatInline } from '../../partials/managerChat.js'
 import { t } from '../../i18n/index.js'
 
 export class LeagueResultsPage extends UIElement {
@@ -57,36 +58,39 @@ export class LeagueResultsPage extends UIElement {
   get template () {
     return `
       <div>
-        <div class="mb-4">
-          <h2>${t('results.resultsTitle')}</h2>
-          <table>
-            <tr>
-              <th>
-                  ${t('results.league')}
-              </th>
-              <td>
-                <span id="prev-league-button" class="fa fa-chevron-left fa-button"></span>
-                ${formatLeague(this.level, this.league)}
-                <span id="next-league-button" class="fa fa-chevron-right fa-button"></span>
-              </td>
-            </tr>
-            <tr>
-              <th>${t('results.season')}</th>
-              <td>
-                <span id="prev-season-button" class="fa fa-chevron-left fa-button"></span>
-                ${this.season + 1}
-                <span id="next-season-button" class="fa fa-chevron-right fa-button"></span>
-              </td>
-            </tr>
-            <tr>
-              <th>${t('results.gameDayLabel')}</th>
-              <td>
-                <span id="prev-game-day-button" class="fa fa-chevron-left fa-button"></span>
-                ${this.gameDay + 1}
-                <span id="next-game-day-button" class="fa fa-chevron-right fa-button"></span><br>
-              </td>
-            </tr>
-          </table>
+        <div class="d-flex align-items-start gap-3 mb-4">
+          <div class="flex-grow-1 w-50">
+            <h2>${t('results.resultsTitle')}</h2>
+            <table>
+              <tr>
+                <th>
+                    ${t('results.league')}
+                </th>
+                <td>
+                  <span id="prev-league-button" class="fa fa-chevron-left fa-button"></span>
+                  ${formatLeague(this.level, this.league)}
+                  <span id="next-league-button" class="fa fa-chevron-right fa-button"></span>
+                </td>
+              </tr>
+              <tr>
+                <th>${t('results.season')}</th>
+                <td>
+                  <span id="prev-season-button" class="fa fa-chevron-left fa-button"></span>
+                  ${this.season + 1}
+                  <span id="next-season-button" class="fa fa-chevron-right fa-button"></span>
+                </td>
+              </tr>
+              <tr>
+                <th>${t('results.gameDayLabel')}</th>
+                <td>
+                  <span id="prev-game-day-button" class="fa fa-chevron-left fa-button"></span>
+                  ${this.gameDay + 1}
+                  <span id="next-game-day-button" class="fa fa-chevron-right fa-button"></span><br>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="d-none d-lg-block">${this._managerChatHtml || ''}</div>
         </div>
 
         <h3>${t('results.games')}</h3>
@@ -182,10 +186,78 @@ export class LeagueResultsPage extends UIElement {
     this.yesterdayStanding.sort(_sortStanding)
     this.topScorer = topScorers
     this.suspendedPlayers = suspendedPlayers
+
+    this._buildManagerChat()
+  }
+
+  /**
+   * Builds manager chat HTML from results data
+   */
+  _buildManagerChat () {
+    this._managerSvgId = generateId()
+    this._teamColor = this.parentPage.info.team.color
+    this._managerChatHtml = ''
+
+    const team = this.parentPage.info.team
+    const user = this.parentPage.info.user
+    if (!user) return
+
+    // Find the user's game in the current results
+    const myGame = this.results.find(
+      r => r.team1Id === this.myTeamId || r.team2Id === this.myTeamId
+    )
+    if (!myGame) return
+
+    const isHomeGame = myGame.team1Id === this.myTeamId
+    const myGoals = isHomeGame ? myGame.goalsTeam1 : myGame.goalsTeam2
+    const opponentGoals = isHomeGame ? myGame.goalsTeam2 : myGame.goalsTeam1
+    const hasResult = typeof myGoals === 'number' && typeof opponentGoals === 'number'
+    const isWin = hasResult && myGoals > opponentGoals
+    const isDraw = hasResult && myGoals === opponentGoals
+    const resultMessage = !hasResult
+      ? t('dashboard.resultNotAvailable')
+      : isWin
+        ? t('dashboard.congratsWin')
+        : isDraw
+          ? t('dashboard.drawMessage')
+          : t('dashboard.lossMessage')
+
+    const teamPosition = this.standing.findIndex(s => s.team.id === this.myTeamId) + 1
+    const positionText = this._getPositionText(teamPosition)
+
+    const chatText = `
+      <p class="mb-1">${t('dashboard.hey')} <b>${user.username}</b>!</p>
+      <p class="mb-1">${t('dashboard.teamPosition', {
+      position: positionText,
+      league: team.level + 1
+    })}</p>
+      <p class="mb-0">${t('dashboard.gameDayInfo', {
+      gameDay: Math.max(1, this.gameDay + 1),
+      season: this.season + 1,
+      opponent: isHomeGame ? myGame.team2 : myGame.team1
+    })} ${resultMessage}</p>
+    `
+    this._managerChatHtml = renderManagerChatInline(this._managerSvgId, chatText)
+  }
+
+  /**
+   * @param {number} teamPosition
+   * @returns {string}
+   */
+  _getPositionText (teamPosition) {
+    if (teamPosition === 0) return t('dashboard.notRankedYet')
+    const pos = teamPosition
+    if (pos === 1) return t('dashboard.positionSt', { pos })
+    if (pos === 2) return t('dashboard.positionNd', { pos })
+    if (pos === 3) return t('dashboard.positionRd', { pos })
+    return t('dashboard.positionTh', { pos })
   }
 
   onMounted () {
     this._loadTopScorerImages()
+    if (this._managerSvgId && this._teamColor) {
+      void loadManagerChatSvg(this._managerSvgId, this._teamColor)
+    }
   }
 
   _loadTopScorerImages () {

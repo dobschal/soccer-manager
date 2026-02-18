@@ -881,6 +881,16 @@ const migrations = [{
     }
     await Promise.all(promises)
   }
+},
+{
+  name: 'Add state column to action_card table',
+  async run () {
+    await query("ALTER TABLE action_card ADD COLUMN state VARCHAR(20) DEFAULT 'received'")
+    // Backfill existing rows
+    await query("UPDATE action_card SET state='received' WHERE played=0")
+    await query("UPDATE action_card SET state='played' WHERE played=1")
+    console.log('✅ Added state column to action_card table')
+  }
 }]
 
 /**

@@ -2,7 +2,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { ActionCard } from '../entities/actionCard.js'
-import { getActionCards, playActionCard } from '../helper/actionCardHelper.js'
+import { getActionCards, playActionCard, getPendingActionCards, claimActionCard } from '../helper/actionCardHelper.js'
 import { t } from '../i18n/index.js'
 
 export default {
@@ -17,6 +17,31 @@ export default {
     const team = await getTeam(req)
     const actionCards = await getActionCards(team)
     return { success: true, actionCards }
+  },
+
+  /**
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, pendingCards: Array}>}
+   */
+  async getPendingActionCards (req) {
+    const locale = req.locale || 'en'
+    if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    const team = await getTeam(req)
+    const pendingCards = await getPendingActionCards(team)
+    return { success: true, pendingCards }
+  },
+
+  /**
+   * @param {number} cardId
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, card: Object}>}
+   */
+  async claimActionCard (cardId, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    const team = await getTeam(req)
+    const card = await claimActionCard(cardId, team.id)
+    return { success: true, card }
   },
 
   /**
@@ -36,7 +61,8 @@ export default {
       const actionCard = new ActionCard({
         team_id: team.id,
         action: actionCard1.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100',
-        played: 0
+        played: 0,
+        state: 'received'
       })
       const result = await query('INSERT INTO action_card SET ?', actionCard)
       return { success: true, actionCard: { id: result.insertId, action: actionCard.action } }
@@ -55,7 +81,7 @@ export default {
     const locale = req.locale || 'en'
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const team = await getTeam(req)
-    const actionCards = await query('SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0', [actionCard.id, team.id])
+    const actionCards = await query("SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0 AND state='received'", [actionCard.id, team.id])
     if (actionCards.length !== 1) throw new BadRequestError(t('error.cardNotFound', {}, locale))
     await playActionCard({ actionCard, player, position }, team, locale)
     return { success: true }

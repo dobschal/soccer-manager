@@ -5,7 +5,7 @@ import { updateTeamBalance } from './helper/financeHelper.js'
 import { getSalary } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
-import { actionCardChances } from './helper/actionCardHelper.js'
+import { actionCardChances, deleteExpiredPendingCards } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
 import { completeStadiumConstructions } from './helper/stadiumHelper.js'
 import { completeBuildingConstructions, getAllTrainingAreaLevels, getAllFitnessStudioLevels, TRAINING_AREA_CARD_CHANCES, FITNESS_STUDIO_CARD_CHANCES } from './helper/buildingHelper.js'
@@ -48,6 +48,7 @@ export async function calculateGames () {
   clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
   await cacheStandingsForGameDay(gameDay, season)
   await cachePlayerStatsForGameDay(gameDay, season)
+  await deleteExpiredPendingCards()
   await _giveUsersActionCards()
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)
@@ -321,10 +322,10 @@ async function _giveUsersActionCards () {
         const guaranteed = Math.floor(chance)
         const remainder = chance - guaranteed
         for (let i = 0; i < guaranteed; i++) {
-          actionCards.push(new ActionCard({ team_id: team.id, action, played: 0 }))
+          actionCards.push(new ActionCard({ team_id: team.id, action, played: 0, state: 'pending' }))
         }
         if (Math.random() < remainder) {
-          actionCards.push(new ActionCard({ team_id: team.id, action, played: 0 }))
+          actionCards.push(new ActionCard({ team_id: team.id, action, played: 0, state: 'pending' }))
         }
       }
     }

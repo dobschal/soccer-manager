@@ -53,7 +53,7 @@ import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { createYouthPlayer } from '../../helper/youthPlayerHelper.js'
-import { playActionCard } from '../../helper/actionCardHelper.js'
+import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, deleteExpiredPendingCards } from '../../helper/actionCardHelper.js'
 
 describe('actionCardHelper', () => {
   beforeEach(() => {
@@ -81,7 +81,7 @@ describe('actionCardHelper', () => {
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith('UPDATE player SET level=? WHERE id=?', [11, 1])
-      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     })
 
     it('levels up a player from level 39 to level 40 (at boundary)', async () => {
@@ -365,7 +365,7 @@ describe('actionCardHelper', () => {
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith('UPDATE player SET freshness=? WHERE id=?', [0.6, 1])
-      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     })
 
     it('caps freshness at 1.0', async () => {
@@ -407,7 +407,7 @@ describe('actionCardHelper', () => {
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith('UPDATE player SET freshness=? WHERE id=?', [0.55, 1])
-      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     })
 
     it('caps freshness at 1.0', async () => {
@@ -436,7 +436,7 @@ describe('actionCardHelper', () => {
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith('UPDATE player SET freshness=? WHERE id=?', [0.7, 1])
-      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     })
 
     it('caps freshness at 1.0', async () => {
@@ -463,7 +463,7 @@ describe('actionCardHelper', () => {
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith('UPDATE player SET position=? WHERE id=?', ['CM', 1])
-      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     })
 
     it('can change to any position', async () => {
@@ -502,7 +502,7 @@ describe('actionCardHelper', () => {
 
       expect(result).toEqual({ success: true })
       expect(createYouthPlayer).toHaveBeenCalledWith(5, 2)
-      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     })
 
     it('creates youth player with team and season from context', async () => {
@@ -539,7 +539,7 @@ describe('actionCardHelper', () => {
 
       expect(result).toEqual({ success: true })
       expect(updateTeamBalance).toHaveBeenCalledWith(team, 100000, 'Action Card: Bonus Money', 1, 0)
-      expect(query).toHaveBeenCalledWith('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     })
 
     it('does not require player selection', async () => {
@@ -560,6 +560,101 @@ describe('actionCardHelper', () => {
 
       await expect(playActionCard({ actionCard }, team))
         .rejects.toMatchObject({ message: 'Invalid card action' })
+    })
+  })
+
+  describe('getActionCards', () => {
+    it('queries for received cards only', async () => {
+      const team = testData.team({ id: 5 })
+      const cards = [testData.actionCard({ state: 'received' })]
+      query.mockResolvedValue(cards)
+
+      const result = await getActionCards(team)
+
+      expect(result).toEqual(cards)
+      expect(query).toHaveBeenCalledWith(
+        "SELECT * FROM action_card WHERE team_id=? AND played=0 AND state='received'",
+        [5]
+      )
+    })
+  })
+
+  describe('getPendingActionCards', () => {
+    it('queries for pending cards', async () => {
+      const team = testData.team({ id: 5 })
+      const cards = [testData.actionCard({ state: 'pending' })]
+      query.mockResolvedValue(cards)
+
+      const result = await getPendingActionCards(team)
+
+      expect(result).toEqual(cards)
+      expect(query).toHaveBeenCalledWith(
+        "SELECT * FROM action_card WHERE team_id=? AND state='pending'",
+        [5]
+      )
+    })
+
+    it('returns empty array when no pending cards', async () => {
+      const team = testData.team({ id: 5 })
+      query.mockResolvedValue([])
+
+      const result = await getPendingActionCards(team)
+
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('claimActionCard', () => {
+    it('claims a pending card and returns it as received', async () => {
+      const card = testData.actionCard({ id: 10, team_id: 5, state: 'pending' })
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT')) return [card]
+        return {}
+      })
+
+      const result = await claimActionCard(10, 5)
+
+      expect(result.state).toBe('received')
+      expect(query).toHaveBeenCalledWith(
+        "SELECT * FROM action_card WHERE id=? AND team_id=? AND state='pending'",
+        [10, 5]
+      )
+      expect(query).toHaveBeenCalledWith(
+        "UPDATE action_card SET state='received' WHERE id=?",
+        [10]
+      )
+    })
+
+    it('throws error when card not found', async () => {
+      query.mockResolvedValue([])
+
+      await expect(claimActionCard(999, 5))
+        .rejects.toMatchObject({ message: 'Card not found or already claimed' })
+    })
+
+    it('throws error when card belongs to different team', async () => {
+      query.mockResolvedValue([])
+
+      await expect(claimActionCard(10, 999))
+        .rejects.toMatchObject({ message: 'Card not found or already claimed' })
+    })
+  })
+
+  describe('deleteExpiredPendingCards', () => {
+    it('deletes all pending cards', async () => {
+      query.mockResolvedValue({ affectedRows: 3 })
+
+      await deleteExpiredPendingCards()
+
+      expect(query).toHaveBeenCalledWith("DELETE FROM action_card WHERE state='pending'")
+    })
+
+    it('does nothing when no pending cards exist', async () => {
+      query.mockResolvedValue({ affectedRows: 0 })
+
+      await deleteExpiredPendingCards()
+
+      expect(query).toHaveBeenCalledWith("DELETE FROM action_card WHERE state='pending'")
     })
   })
 })

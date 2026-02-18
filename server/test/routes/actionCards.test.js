@@ -11,12 +11,14 @@ vi.mock('../../helper/teamHelper.js', () => ({
 
 vi.mock('../../helper/actionCardHelper.js', () => ({
   getActionCards: vi.fn(),
-  playActionCard: vi.fn()
+  playActionCard: vi.fn(),
+  getPendingActionCards: vi.fn(),
+  claimActionCard: vi.fn()
 }))
 
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
-import { getActionCards, playActionCard } from '../../helper/actionCardHelper.js'
+import { getActionCards, playActionCard, getPendingActionCards, claimActionCard } from '../../helper/actionCardHelper.js'
 import handlers from '../../routes/actionCards.js'
 
 describe('actionCards routes', () => {
@@ -64,7 +66,8 @@ describe('actionCards routes', () => {
       expect(query).toHaveBeenCalledWith('INSERT INTO action_card SET ?', expect.objectContaining({
         team_id: team.id,
         action: 'LEVEL_UP_PLAYER_70',
-        played: 0
+        played: 0,
+        state: 'received'
       }))
     })
 
@@ -179,7 +182,8 @@ describe('actionCards routes', () => {
       expect(query).toHaveBeenCalledWith('INSERT INTO action_card SET ?', expect.objectContaining({
         team_id: 42,
         action: 'LEVEL_UP_PLAYER_100',
-        played: 0
+        played: 0,
+        state: 'received'
       }))
     })
 
@@ -215,6 +219,24 @@ describe('actionCards routes', () => {
       )
     })
 
+    it('queries with state=received filter', async () => {
+      const team = testData.team()
+      const actionCard = testData.actionCard({ id: 5 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue([actionCard])
+      playActionCard.mockResolvedValue()
+
+      const req = createMockRequest()
+      await handlers.useActionCard(actionCard, player, null, req)
+
+      expect(query).toHaveBeenCalledWith(
+        "SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0 AND state='received'",
+        [5, team.id]
+      )
+    })
+
     it('throws error when card does not exist', async () => {
       const team = testData.team()
       const actionCard = testData.actionCard({ id: 999 })
@@ -226,6 +248,79 @@ describe('actionCards routes', () => {
 
       await expect(handlers.useActionCard(actionCard, null, null, req))
         .rejects.toMatchObject({ message: 'Action card not found' })
+    })
+  })
+
+  describe('getPendingActionCards', () => {
+    it('returns pending cards for user', async () => {
+      const team = testData.team()
+      const pendingCards = [
+        testData.actionCard({ id: 1, state: 'pending' }),
+        testData.actionCard({ id: 2, state: 'pending' })
+      ]
+
+      getTeam.mockResolvedValue(team)
+      getPendingActionCards.mockResolvedValue(pendingCards)
+
+      const req = createMockRequest()
+      const result = await handlers.getPendingActionCards(req)
+
+      expect(result).toEqual({ success: true, pendingCards })
+      expect(getPendingActionCards).toHaveBeenCalledWith(team)
+    })
+
+    it('returns empty array when no pending cards', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      getPendingActionCards.mockResolvedValue([])
+
+      const req = createMockRequest()
+      const result = await handlers.getPendingActionCards(req)
+
+      expect(result).toEqual({ success: true, pendingCards: [] })
+    })
+
+    it('throws error when not authenticated', async () => {
+      const req = { user: null, body: {}, headers: {}, locale: 'en' }
+
+      await expect(handlers.getPendingActionCards(req))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+  })
+
+  describe('claimActionCard', () => {
+    it('claims a pending card', async () => {
+      const team = testData.team()
+      const claimedCard = testData.actionCard({ id: 10, state: 'received' })
+
+      getTeam.mockResolvedValue(team)
+      claimActionCard.mockResolvedValue(claimedCard)
+
+      const req = createMockRequest()
+      const result = await handlers.claimActionCard(10, req)
+
+      expect(result).toEqual({ success: true, card: claimedCard })
+      expect(claimActionCard).toHaveBeenCalledWith(10, team.id)
+    })
+
+    it('throws error when not authenticated', async () => {
+      const req = { user: null, body: {}, headers: {}, locale: 'en' }
+
+      await expect(handlers.claimActionCard(10, req))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+
+    it('propagates error when card not found', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      claimActionCard.mockRejectedValue(new Error('Card not found or already claimed'))
+
+      const req = createMockRequest()
+
+      await expect(handlers.claimActionCard(999, req))
+        .rejects.toMatchObject({ message: 'Card not found or already claimed' })
     })
   })
 })

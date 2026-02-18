@@ -4,10 +4,11 @@
  * @property {number} team_id
  * @property {string} action
  * @property {number} played
+ * @property {string} [state]
  * @property {Date} created_at
  */
 
-import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
+import { OptionalNumber, OptionalObject, OptionalString, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
  * @param {ActionCardType} raw
@@ -19,6 +20,7 @@ export function ActionCard (raw) {
     team_id: RequiredNumber,
     action: RequiredString,
     played: RequiredNumber,
+    state: OptionalString,
     created_at: OptionalObject
   })
   for (const key in raw) {

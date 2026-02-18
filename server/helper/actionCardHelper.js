@@ -36,7 +36,38 @@ export const actionCardChances = {
  * @returns {Promise<ActionCardType[]>}
  */
 export async function getActionCards (team) {
-  return await query('SELECT * FROM action_card WHERE team_id=? AND played=0', [team.id])
+  return await query("SELECT * FROM action_card WHERE team_id=? AND played=0 AND state='received'", [team.id])
+}
+
+/**
+ * @param {TeamType} team
+ * @returns {Promise<ActionCardType[]>}
+ */
+export async function getPendingActionCards (team) {
+  return await query("SELECT * FROM action_card WHERE team_id=? AND state='pending'", [team.id])
+}
+
+/**
+ * @param {number} cardId
+ * @param {number} teamId
+ * @returns {Promise<ActionCardType>}
+ */
+export async function claimActionCard (cardId, teamId) {
+  const [card] = await query("SELECT * FROM action_card WHERE id=? AND team_id=? AND state='pending'", [cardId, teamId])
+  if (!card) throw new BadRequestError('Card not found or already claimed')
+  await query("UPDATE action_card SET state='received' WHERE id=?", [cardId])
+  return { ...card, state: 'received' }
+}
+
+/**
+ * Delete all pending action cards (expired - user didn't claim before next game day)
+ * @returns {Promise<void>}
+ */
+export async function deleteExpiredPendingCards () {
+  const result = await query("DELETE FROM action_card WHERE state='pending'")
+  if (result.affectedRows > 0) {
+    console.log(`🗑️ Deleted ${result.affectedRows} expired pending action cards`)
+  }
 }
 
 /**
@@ -75,21 +106,21 @@ export async function playActionCard ({
     const player = await getPlayerById(p.id)
     player.freshness = Math.min(1.0, player.freshness + 0.05)
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     return { success: true }
   }
   if (actionCard.action === 'FRESHNESS_10') {
     const player = await getPlayerById(p.id)
     player.freshness = Math.min(1.0, player.freshness + 0.1)
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     return { success: true }
   }
   if (actionCard.action === 'FRESHNESS_20') {
     const player = await getPlayerById(p.id)
     player.freshness = Math.min(1.0, player.freshness + 0.2)
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     return { success: true }
   }
   if (actionCard.action === 'LEVEL_UP_PLAYER_100') {
@@ -102,7 +133,7 @@ export async function playActionCard ({
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
@@ -117,7 +148,7 @@ export async function playActionCard ({
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
@@ -132,7 +163,7 @@ export async function playActionCard ({
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
@@ -146,14 +177,14 @@ export async function playActionCard ({
       throw new BadRequestError(t('error.cannotBecomeGoalkeeper', {}, locale))
     }
     await query('UPDATE player SET position=? WHERE id=?', [position, p.id])
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     await addPlayerHistory(p.id, 'CHANGE_PLAYER_POSITION', position)
     return { success: true }
   }
   if (actionCard.action === 'NEW_YOUTH_PLAYER') {
     const { season } = await getGameDayAndSeason()
     const youthPlayer = await createYouthPlayer(team.id, season)
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     await addLogMessage(t('log.cardYouth', { playerName: youthPlayer.name }, locale), team, null, null, 'child')
     return { success: true }
   }
@@ -163,7 +194,7 @@ export async function playActionCard ({
       season
     } = await getGameDayAndSeason()
     await updateTeamBalance(team, 100000, t('finance.actionCardBonus', {}, locale), gameDay, season)
-    await query('UPDATE action_card SET played=1 WHERE id=?', [actionCard.id])
+    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     await addLogMessage(t('log.cardMoney', { amount: '100,000€' }, locale), team, null, null, 'money')
     return { success: true }
   }
@@ -191,7 +222,8 @@ export async function mergeActionCards (actionCard1, actionCard2, team, locale =
   await query('INSERT INTO action_card SET ?', {
     team_id: team.id,
     action: newCardType,
-    played: 0
+    played: 0,
+    state: 'received'
   })
   return { success: true, newCardType }
 }

@@ -566,6 +566,8 @@ export default {
   'actionCards.whichPosition': 'Welche Position soll der Spieler in Zukunft spielen?',
   'actionCards.whichPlayerLevelUp': 'Welcher Spieler soll ein Level-Up erhalten?',
   'actionCards.buildingsHint': 'Baue deine Gebäude aus, um die Chance auf Aktionskarten an Spieltagen zu erhöhen.',
+  // Card Claim Overlay
+  'actionCards.claim.tapToReveal': 'Tippe auf die Karte, um sie aufzudecken!',
   // Action Card Types
   'actionCards.type.legendaryMastery': 'Meister-Training',
   'actionCards.type.legendaryMasteryDesc': 'Verbessere einen Spieler auf Level 100.',

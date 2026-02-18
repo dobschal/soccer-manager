@@ -7,8 +7,8 @@ import { ActionCards } from './dashboard/actionCards.js'
 import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
 import { t } from '../i18n/index.js'
-import { showManagerChat, wasManagerChatShown } from '../partials/managerChat.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
+import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
 
 export class DashboardPage extends UIElement {
   _sliderGames = []
@@ -25,6 +25,7 @@ export class DashboardPage extends UIElement {
   teamPosition = 0
 
   _actionCardCount = 0
+  _pendingCards = []
   subPage = null
 
   /**
@@ -152,19 +153,21 @@ export class DashboardPage extends UIElement {
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, resultAlreadySeen)
     localStorage.setItem(resultSeenKey, '1')
 
-    // Fetch current standing, urgencies, and action card count in parallel
-    const [standing, urgencyResponse, actionCardsResponse] = await Promise.all([
+    // Fetch current standing, urgencies, action card count, and pending cards in parallel
+    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse] = await Promise.all([
       server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(),
-      server.getActionCards()
+      server.getActionCards(),
+      server.getPendingActionCards()
     ])
 
     this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
     this._urgencies = urgencyResponse.urgencies || []
+    this._pendingCards = pendingCardsResponse.pendingCards || []
 
-    // Determine if there are unseen action cards
-    const cardCount = actionCardsResponse.actionCards?.length || 0
+    // Determine if there are unseen action cards (include pending cards in the count)
+    const cardCount = (actionCardsResponse.actionCards?.length || 0) + this._pendingCards.length
     const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
     this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
   }
@@ -208,50 +211,26 @@ export class DashboardPage extends UIElement {
    */
   onMounted () {
     void showTutorialIfNeeded('dashboard', this)
-    this._showManagerChatIfNeeded()
+    this._showPendingCardsIfNeeded()
   }
 
   /**
-   * Shows the manager chat if it's the first visit on this game day and on a large screen
+   * Shows the card claim overlay if there are pending cards
    * @returns {void}
    */
-  _showManagerChatIfNeeded () {
-    const isLargeScreen = window.matchMedia('(min-width: 992px)').matches
-    if (!isLargeScreen) return
-    if (wasManagerChatShown(this.gameDay, this.season)) return
-
-    // Get the latest played game for the chat message
-    const latestGame = this._sliderGames.filter(g => g.isPlayed).pop()
-    if (!latestGame) return
-
-    const isHomeGame = latestGame.team1Id === this.team.id
-    const myGoals = isHomeGame ? latestGame.goalsTeam1 : latestGame.goalsTeam2
-    const opponentGoals = isHomeGame ? latestGame.goalsTeam2 : latestGame.goalsTeam1
-    const hasResult = typeof myGoals === 'number' && typeof opponentGoals === 'number'
-    const isWin = hasResult && myGoals > opponentGoals
-    const isDraw = hasResult && myGoals === opponentGoals
-    const resultMessage = !hasResult
-      ? t('dashboard.resultNotAvailable')
-      : isWin
-        ? t('dashboard.congratsWin')
-        : isDraw
-          ? t('dashboard.drawMessage')
-          : t('dashboard.lossMessage')
-
-    const chatText = `
-      <p class="mb-1">${t('dashboard.hey')} <b>${this.user.username}</b>!</p>
-      <p class="mb-1">${t('dashboard.teamPosition', {
-      position: this._getPositionText(),
-      league: this.team.level + 1
-    })}</p>
-      <p class="mb-0">${t('dashboard.gameDayInfo', {
-      gameDay: Math.max(1, this.gameDay),
-      season: this.season + 1,
-      opponent: isHomeGame ? latestGame.team2 : latestGame.team1
-    })} ${resultMessage}</p>
-    `
-
-    void showManagerChat(this.team.color, chatText, this.gameDay, this.season)
+  _showPendingCardsIfNeeded () {
+    if (this._pendingCards.length === 0) return
+    setTimeout(async () => {
+      if (!this._isMounted) return
+      await showCardClaimOverlay(this._pendingCards)
+      this._pendingCards = []
+      // Update badge count after claiming
+      const actionCardsResponse = await server.getActionCards()
+      const cardCount = actionCardsResponse.actionCards?.length || 0
+      const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
+      this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
+      this.update()
+    }, 500)
   }
 
   /**
@@ -288,18 +267,6 @@ export class DashboardPage extends UIElement {
       this.subPage = newSubPage
       this.update()
     }
-  }
-
-  /**
-   * @returns {string}
-   */
-  _getPositionText () {
-    if (this.teamPosition === 0) return t('dashboard.notRankedYet')
-    const pos = this.teamPosition
-    if (pos === 1) return t('dashboard.positionSt', { pos })
-    if (pos === 2) return t('dashboard.positionNd', { pos })
-    if (pos === 3) return t('dashboard.positionRd', { pos })
-    return t('dashboard.positionTh', { pos })
   }
 
 }
