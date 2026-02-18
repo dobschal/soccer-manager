@@ -33,25 +33,29 @@ export class StartPage {
    * @returns {string}
    */
   toString () {
+    const leagueCardId = generateId()
+    const cupCardId = generateId()
+    const friendlyCardId = generateId()
     const gameSliderArgs = {
       games: this._sliderGames,
       teamId: this.team.id,
-      initialIndex: this._initialSlideIndex
+      initialIndex: this._initialSlideIndex,
+      cardId: leagueCardId
     }
     return `
       <div class="d-flex flex-column flex-lg-row align-items-start mb-5 u-gap-md">
         <div class="flex-grow-1 order-2 order-lg-1 w-100">
-            <div class="card card-body mb-2 bg-info-subtle">
+            <div id="${leagueCardId}" class="card card-body mb-2">
             <h5 class="mb-2 text-center"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
             ${new GameSlider(gameSliderArgs)}
           </div>
-          <div class="card card-body bg-success-subtle mb-2">
+          <div id="${cupCardId}" class="card card-body mb-2">
             <h5 class="mb-2 text-center"><i class="fa fa-trophy"></i> ${t('cup.title')}</h5>
-            ${this._renderCupGames()}
+            ${this._renderCupGames(cupCardId)}
           </div>
-          <div class="card card-body bg-light-subtle mb-2">
+          <div id="${friendlyCardId}" class="card card-body mb-2">
             <h5 class="mb-2 text-center"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
-            ${this._renderFriendlyGames()}
+            ${this._renderFriendlyGames(friendlyCardId)}
           </div>
         </div>
         <div class="u-w-lg-33 u-w-100 flex-shrink-0 text-center order-1 order-lg-2 mb-3 mb-lg-0">
@@ -137,9 +141,10 @@ export class StartPage {
 
   /**
    * Render cup games section
+   * @param {string} cardId - ID of the wrapper card element
    * @returns {GameSlider|string}
    */
-  _renderCupGames () {
+  _renderCupGames (cardId) {
     if (this._cupGames.length === 0) {
       return `
         <div class="card bg-light border-0">
@@ -154,7 +159,8 @@ export class StartPage {
     const cupSliderArgs = {
       games: this._cupGames,
       teamId: this.team.id,
-      initialIndex: this._findInitialSlideIndex(this._cupGames)
+      initialIndex: this._findInitialSlideIndex(this._cupGames),
+      cardId
     }
 
     return new GameSlider(cupSliderArgs)
@@ -162,9 +168,10 @@ export class StartPage {
 
   /**
    * Render friendly games section
+   * @param {string} cardId - ID of the wrapper card element
    * @returns {GameSlider|string}
    */
-  _renderFriendlyGames () {
+  _renderFriendlyGames (cardId) {
     if (this._friendlyGames.length === 0) {
       return `
         <div class="card bg-transparent border-0">
@@ -179,7 +186,8 @@ export class StartPage {
     const friendlySliderArgs = {
       games: this._friendlyGames,
       teamId: this.team.id,
-      initialIndex: this._friendlyGames.length - 1
+      initialIndex: this._friendlyGames.length - 1,
+      cardId
     }
 
     return new GameSlider(friendlySliderArgs)

@@ -19,17 +19,20 @@ export class GameSlider extends UIElement {
    * @param {Array} options.games - Array of game objects with isPlayed, team1Data, team2Data, gameDate, etc.
    * @param {number} options.teamId - Current user's team ID
    * @param {number} options.initialIndex - Index of the initially active slide
+   * @param {string} [options.cardId] - ID of wrapper card element to apply team color gradient to
    */
   constructor ({
     games = [],
     teamId,
-    initialIndex = 0
+    initialIndex = 0,
+    cardId
   }) {
     super()
     this._games = games
     this._teamId = teamId
     this._sliderIndex = initialIndex
     this._initialIndex = initialIndex
+    this._cardId = cardId
   }
 
   get template () {
@@ -118,6 +121,7 @@ export class GameSlider extends UIElement {
   onMounted () {
     this._setupTouchSwipe()
     this._startCountdownTimer()
+    this._updateCardGradient()
   }
 
   onDestroy () {
@@ -280,6 +284,22 @@ export class GameSlider extends UIElement {
     indicators.forEach((indicator, idx) => {
       indicator.classList.toggle('active', idx === index)
     })
+
+    this._updateCardGradient()
+  }
+
+  /**
+   * Update the wrapper card's background gradient based on the active slide's team colors
+   */
+  _updateCardGradient () {
+    if (!this._cardId) return
+    const card = el('#' + this._cardId)
+    if (!card) return
+    const game = this._games[this._sliderIndex]
+    if (!game) return
+    const color2 = game.team1Data?.color || '#1a5f7a'
+    const color1 = game.team2Data?.color || '#1a5f7a'
+    card.style.background = `linear-gradient(-55deg, ${color1}25, ${color1}50 48.999%, ${color2}50 49%, ${color2}25)`
   }
 
   /**
