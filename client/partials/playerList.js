@@ -19,20 +19,6 @@ export class PlayerList extends UIElement {
   }
 
   /**
-   * @returns {void}
-   */
-  onQueryChanged () {
-    super.onQueryChanged()
-  }
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return super.events
-  }
-
-  /**
    * Server events to listen for
    * @returns {Record<string, (data: any) => void>}
    */
@@ -57,7 +43,7 @@ export class PlayerList extends UIElement {
               <th scope="col" class="text-right">Age</th>
               <th scope="col" class="text-right">Fit</th>
               <th scope="col" class="text-right">Lvl</th>
-              <th scope="col" class="text-right d-none d-md-table-cell">Sallary</th>
+              <th scope="col" class="text-right d-none d-md-table-cell">Salary</th>
             </tr>
           </thead>
           <tbody>

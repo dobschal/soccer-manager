@@ -63,21 +63,7 @@ export class PlayerListItem extends UIElement {
     if (yellowCards > 0) {
       html += `<span class="card-badge card-badge--yellow" title="${yellowCards} yellow card(s)"><span class="card-badge__count">${yellowCards}</span></span>`
     }
-    if (!html) {
-      html = ''
-    }
     return html
   }
 
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged () {
-  }
 }

@@ -298,7 +298,7 @@ export class GameLayout extends UIElement {
   _startTimer () {
     if (this._interval) clearInterval(this._interval)
 
-    this._interval = setInterval(() => {
+    const tick = () => {
       const diff = new Date(Date.parse(this._nextGameDate)).getTime() - Date.now()
       if (diff < 0) {
         server.getNextGameDate()
@@ -324,7 +324,10 @@ export class GameLayout extends UIElement {
         : `${twoDigits(minutes % 60)}min ${twoDigits(seconds % 60)}sec`
 
       timerEl.innerHTML = `<i class="fa fa-clock-o" aria-hidden="true"></i> ${time}`
-    }, 1000)
+    }
+
+    tick()
+    this._interval = setInterval(tick, 1000)
   }
 
   /**

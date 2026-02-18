@@ -201,7 +201,7 @@ export class GameSlider extends UIElement {
     if (this._timerInterval) clearInterval(this._timerInterval)
     if (this._countdownElementIds.length === 0) return
 
-    this._timerInterval = setInterval(() => {
+    const tick = () => {
       let anyUpdated = false
 
       for (const {
@@ -237,7 +237,10 @@ export class GameSlider extends UIElement {
       if (!anyUpdated) {
         this._stopCountdownTimer()
       }
-    }, 1000)
+    }
+
+    tick()
+    this._timerInterval = setInterval(tick, 1000)
   }
 
   /**

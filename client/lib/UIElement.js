@@ -16,7 +16,7 @@ export class UIElement {
     for (const paramsKey in params) {
       this[paramsKey] = params[paramsKey]
     }
-    if (typeof this.onQueryChanged === 'function') {
+    if (this.onQueryChanged !== UIElement.prototype.onQueryChanged) {
       this._queryChangedEventId = on('query-changed', this.onQueryChanged.bind(this))
     }
     onDOMNodeChanged(document.body, (addedNodes, removedNodes) => {
@@ -55,15 +55,6 @@ export class UIElement {
    */
   get serverEvents () {
     return {}
-  }
-
-  /**
-   * @abstract
-   * @param {Record<string, string>} params
-   * @returns {void}
-   */
-  onQueryChanged (params) {
-    console.debug('onQueryChanged', params)
   }
 
   /**

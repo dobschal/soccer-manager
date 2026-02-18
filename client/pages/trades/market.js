@@ -84,7 +84,6 @@ export class MarketPage extends UIElement {
     this.players = offersResponse.players
     this.teams = offersResponse.teams
 
-    console.log('Render market...')
   }
 
 

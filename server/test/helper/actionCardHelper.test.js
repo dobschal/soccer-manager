@@ -67,10 +67,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 10 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return [] // No level ups this season
         }
@@ -89,10 +87,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 39 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -110,10 +106,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 40 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -129,10 +123,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 70 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -150,10 +142,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 40 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_70' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -171,10 +161,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 69 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_70' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -192,10 +180,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 70 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_70' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -211,10 +197,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 90 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_70' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -232,10 +216,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 70 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -253,10 +235,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 99 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -274,10 +254,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 100 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -293,10 +271,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 10 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           return []
         }
@@ -316,10 +292,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 30 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           // Return 20 level ups already this season
           return Array.from({ length: 20 }, () => ({ type: 'LEVEL_UP' }))
@@ -336,10 +310,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, level: 30 })
       const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_100' })
 
+      getPlayerById.mockResolvedValue(player)
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT * FROM player WHERE id=?')) {
-          return [player]
-        }
         if (sql.includes('SELECT * FROM player_history')) {
           // Return 1 level up already this season
           return [{ type: 'LEVEL_UP' }]
@@ -459,6 +431,8 @@ describe('actionCardHelper', () => {
       const player = testData.player({ id: 1, position: 'CD' })
       const actionCard = testData.actionCard({ action: 'CHANGE_PLAYER_POSITION' })
 
+      getPlayerById.mockResolvedValue(player)
+
       const result = await playActionCard({ player, position: 'CM', actionCard }, team)
 
       expect(result).toEqual({ success: true })
@@ -466,15 +440,28 @@ describe('actionCardHelper', () => {
       expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     })
 
-    it('can change to any position', async () => {
+    it('can change to any non-GK position', async () => {
       const team = testData.team()
-      const player = testData.player({ id: 1, position: 'GK' })
+      const player = testData.player({ id: 1, position: 'CM' })
       const actionCard = testData.actionCard({ action: 'CHANGE_PLAYER_POSITION' })
+
+      getPlayerById.mockResolvedValue(player)
 
       const result = await playActionCard({ player, position: 'CA', actionCard }, team)
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith('UPDATE player SET position=? WHERE id=?', ['CA', 1])
+    })
+
+    it('throws error when trying to change GK position', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 1, position: 'GK' })
+      const actionCard = testData.actionCard({ action: 'CHANGE_PLAYER_POSITION' })
+
+      getPlayerById.mockResolvedValue(player)
+
+      await expect(playActionCard({ player, position: 'CA', actionCard }, team))
+        .rejects.toThrow()
     })
   })
 

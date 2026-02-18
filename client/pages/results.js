@@ -12,10 +12,6 @@ export class ResultsPage extends UIElement {
   subPage = null
   page = null
 
-  get events () {
-    return super.events
-  }
-
   get template () {
     return `
       <div>

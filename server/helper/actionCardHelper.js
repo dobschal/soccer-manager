@@ -102,64 +102,27 @@ export async function playActionCard ({
   }
   locale = locale || 'en'
 
-  if (actionCard.action === 'FRESHNESS_5') {
+  const freshnessValues = { FRESHNESS_5: 0.05, FRESHNESS_10: 0.1, FRESHNESS_20: 0.2 }
+  if (actionCard.action in freshnessValues) {
     const player = await getPlayerById(p.id)
-    player.freshness = Math.min(1.0, player.freshness + 0.05)
+    player.freshness = Math.min(1.0, player.freshness + freshnessValues[actionCard.action])
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
     await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
     return { success: true }
   }
-  if (actionCard.action === 'FRESHNESS_10') {
+  const levelUpCaps = {
+    LEVEL_UP_PLAYER_40: { max: 40, errorKey: 'error.cardMaxLevel40' },
+    LEVEL_UP_PLAYER_70: { max: 70, errorKey: 'error.cardMaxLevel70' },
+    LEVEL_UP_PLAYER_100: { max: 100, errorKey: 'error.playerMaxLevel' }
+  }
+  if (actionCard.action in levelUpCaps) {
+    const { max, errorKey } = levelUpCaps[actionCard.action]
     const player = await getPlayerById(p.id)
-    player.freshness = Math.min(1.0, player.freshness + 0.1)
-    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
-    return { success: true }
-  }
-  if (actionCard.action === 'FRESHNESS_20') {
-    const player = await getPlayerById(p.id)
-    player.freshness = Math.min(1.0, player.freshness + 0.2)
-    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
-    return { success: true }
-  }
-  if (actionCard.action === 'LEVEL_UP_PLAYER_100') {
-    const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
     if (await levelUpsCurrentSeason(player) >= 20) {
       throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
     }
-    if (player.level >= 100) {
-      throw new BadRequestError(t('error.playerMaxLevel', {}, locale))
-    }
-    player.level += 1
-    await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
-    await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
-    await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
-    return { success: true }
-  }
-  if (actionCard.action === 'LEVEL_UP_PLAYER_70') {
-    const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
-    if (await levelUpsCurrentSeason(player) >= 20) {
-      throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
-    }
-    if (player.level >= 70) {
-      throw new BadRequestError(t('error.cardMaxLevel70', {}, locale))
-    }
-    player.level += 1
-    await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
-    await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
-    await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
-    return { success: true }
-  }
-  if (actionCard.action === 'LEVEL_UP_PLAYER_40') {
-    const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
-    if (await levelUpsCurrentSeason(player) >= 20) {
-      throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
-    }
-    if (player.level >= 40) {
-      throw new BadRequestError(t('error.cardMaxLevel40', {}, locale))
+    if (player.level >= max) {
+      throw new BadRequestError(t(errorKey, {}, locale))
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
@@ -169,7 +132,7 @@ export async function playActionCard ({
     return { success: true }
   }
   if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
-    const [player] = await query('SELECT * FROM player WHERE id=?', [p.id])
+    const player = await getPlayerById(p.id)
     if (player.position === 'GK') {
       throw new BadRequestError(t('error.goalkeeperCannotChange', {}, locale))
     }

@@ -49,20 +49,6 @@ export class MyOffersPage extends UIElement {
   }
 
   /**
-   * @returns {void}
-   */
-  onQueryChanged () {
-    super.onQueryChanged()
-  }
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return super.events
-  }
-
-  /**
    * @returns {Promise<void>}
    */
   async load () {
@@ -132,7 +118,6 @@ class MyOfferListItem extends UIElement {
   async load () {
     this.player = await server.getPlayerById(this.offer.player_id)
     this.team = await server.getTeamById(this.player.team_id)
-    console.log('Got player and team: ', this.player, this.team)
   }
 
   /**
@@ -147,18 +132,4 @@ class MyOfferListItem extends UIElement {
     }
   }
 
-  /**
-   * @returns {void}
-   */
-  onQueryChanged () {}
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {}
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {}
 }

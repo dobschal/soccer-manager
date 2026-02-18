@@ -11,13 +11,6 @@ import { t } from '../i18n/index.js'
 
 export class TradesPage extends UIElement {
   /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return super.events
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -34,13 +27,6 @@ export class TradesPage extends UIElement {
         ${this.page ?? t('common.loading')}
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    await super.load()
   }
 
   /**
