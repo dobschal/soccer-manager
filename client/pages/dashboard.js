@@ -1,27 +1,19 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
 import { News } from './dashboard/news.js'
-import { renderEmblem } from '../partials/emblem.js'
 import { showPlayerModal } from '../partials/playerModal.js'
-import { generateId } from '../lib/html.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from './dashboard/actionCards.js'
 import { LogMessages } from './dashboard/logMessages.js'
+import { StartPage } from './dashboard/startPage.js'
 import { t } from '../i18n/index.js'
 import { showManagerChat, wasManagerChatShown } from '../partials/managerChat.js'
-import { showOverlay } from '../partials/overlay.js'
-import { goTo } from '../lib/router.js'
-import { onClick } from '../lib/htmlEventHandlers.js'
-import { GameSlider } from '../partials/gameSlider.js'
-import { formatLeague } from '../util/league.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
-import { MiniBalanceChart } from '../partials/miniBalanceChart.js'
 
 export class DashboardPage extends UIElement {
   _sliderGames = []
   _friendlyGames = []
   _cupGames = []
-  _financeLog = []
   _urgencies = []
   _initialSlideIndex = 0
   _tutorialProgress = new TutorialProgress()
@@ -83,54 +75,19 @@ export class DashboardPage extends UIElement {
 
   /**
    * Render the start page with game sliders, standings, and charts
-   * @returns {string}
+   * @returns {StartPage}
    */
   _renderStartPage () {
-    const gameSliderArgs = {
-      games: this._sliderGames,
-      teamId: this.team.id,
-      initialIndex: this._initialSlideIndex
-    }
-    return `
-      <h5 class="mb-2"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
-      <div class="d-flex align-items-center mb-5 u-gap-lg">
-        <div class="flex-grow-1">
-          ${new GameSlider(gameSliderArgs)}
-        </div>
-        <div class="d-none d-lg-block flex-shrink-1 text-center u-min-w-280 u-w-33">
-          ${renderEmblem(this.team, 160)}
-          <h2>${this.team.name}</h2>
-        </div>
-      </div>
-
-      <h5 class="mb-2"><i class="fa fa-trophy"></i> ${t('cup.title')}</h5>
-      <div class="d-flex align-items-center mb-5 u-gap-lg">
-        <div class="flex-grow-1">
-          ${this._renderCupGames()}
-        </div>
-        <div class="d-none d-lg-block flex-shrink-1 u-min-w-280 u-w-33">
-          ${this._renderMiniStanding()}
-          <a href="#results" class="d-block mt-2 text-info border-0 text-end w-100">
-              <small>...${t('dashboard.standingLink')}</small>
-          </a>
-        </div>
-      </div>
-
-      <div class="d-flex align-items-start mb-5 u-gap-md">
-        <div class="flex-grow-1">
-          <h5 class="mb-2"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
-          ${this._renderFriendlyGames()}
-        </div>
-        ${this._financeLog.length > 0 ? `
-          <div class="d-none d-lg-block flex-shrink-0 u-min-w-280 u-w-33">
-            <a href="#finances" class="text-decoration-none d-block">
-              <h5 class="mb-2"><i class="fa fa-line-chart"></i> ${t('finances.balance')}</h5>
-              ${new MiniBalanceChart(this._financeLog)}
-            </a>
-          </div>
-        ` : ''}
-      </div>
-    `
+    return new StartPage({
+      sliderGames: this._sliderGames,
+      initialSlideIndex: this._initialSlideIndex,
+      team: this.team,
+      cupGames: this._cupGames,
+      friendlyGames: this._friendlyGames,
+      standing: this.standing,
+      teamPosition: this.teamPosition,
+      urgencies: this._urgencies
+    })
   }
 
   /**
@@ -189,25 +146,21 @@ export class DashboardPage extends UIElement {
       team2Data: this._extractTeamData(g, 2)
     }))
 
-    // Show next game if it starts within 2 hours, otherwise show latest result
-    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
+    // Show the latest result once, then show the upcoming game on subsequent visits
+    const resultSeenKey = `resultSeen_${this.season}_${this.gameDay}`
+    const resultAlreadySeen = localStorage.getItem(resultSeenKey)
+    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, resultAlreadySeen)
+    localStorage.setItem(resultSeenKey, '1')
 
-    // Fetch current standing, finance log, urgencies, and action card count in parallel
-    const [standing, financeLogResponse, urgencyResponse, actionCardsResponse] = await Promise.all([
+    // Fetch current standing, urgencies, and action card count in parallel
+    const [standing, urgencyResponse, actionCardsResponse] = await Promise.all([
       server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
-      server.getFinanceLog(
-        this.season,
-        Math.max(0, this.gameDay - 6),
-        this.season,
-        this.gameDay
-      ),
       server.getDashboardUrgencies(),
       server.getActionCards()
     ])
 
     this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
-    this._financeLog = financeLogResponse.log || []
     this._urgencies = urgencyResponse.urgencies || []
 
     // Determine if there are unseen action cards
@@ -234,24 +187,19 @@ export class DashboardPage extends UIElement {
 
   /**
    * Find the initial slide index for a game slider.
-   * Shows the next upcoming game if it starts within 2 hours, otherwise the latest played game.
+   * Shows the latest result on first visit, then the next upcoming game on subsequent visits.
    * @param {Array} games
+   * @param {boolean} resultAlreadySeen - whether the latest result was already seen
    * @returns {number}
    */
-  _findInitialSlideIndex (games) {
-    const TWO_HOURS = 2 * 60 * 60 * 1000
-    const now = Date.now()
-
+  _findInitialSlideIndex (games, resultAlreadySeen) {
+    const lastPlayedIndex = games.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
     const nextUpcomingIndex = games.findIndex(g => !g.isPlayed && g.gameDate)
-    if (nextUpcomingIndex !== -1) {
-      const gameTime = new Date(games[nextUpcomingIndex].gameDate).getTime()
-      if (gameTime - now < TWO_HOURS) {
-        return nextUpcomingIndex
-      }
+
+    if (resultAlreadySeen && nextUpcomingIndex !== -1) {
+      return nextUpcomingIndex
     }
 
-    // Fall back to last played game
-    const lastPlayedIndex = games.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
     return Math.max(0, lastPlayedIndex)
   }
 
@@ -261,7 +209,6 @@ export class DashboardPage extends UIElement {
   onMounted () {
     void showTutorialIfNeeded('dashboard', this)
     this._showManagerChatIfNeeded()
-    this._showUrgencyOverlayIfNeeded()
   }
 
   /**
@@ -305,71 +252,6 @@ export class DashboardPage extends UIElement {
     `
 
     void showManagerChat(this.team.color, chatText, this.gameDay, this.season)
-  }
-
-  /**
-   * Shows the urgency overlay once per game day if there are pending actions
-   * @returns {void}
-   */
-  async _showUrgencyOverlayIfNeeded () {
-    if (this._urgencies.length === 0) return
-
-    const storageKey = `urgencyOverlayShown_${this.season}_${this.gameDay}`
-    if (localStorage.getItem(storageKey) === 'true') return
-
-    // Don't show urgencies while the dashboard tutorial is being shown
-    try {
-      const { tutorialCompleted } = await server.getTutorialStatus()
-      if (!tutorialCompleted.dashboard) return
-    } catch {
-      // If we can't check, skip urgencies to be safe
-      return
-    }
-
-    const urgencyMap = {
-      INCOMPLETE_LINEUP: {
-        text: 'dashboard.urgencyLineup',
-        link: '#my-team',
-        linkText: 'dashboard.urgencyLinkTeam'
-      },
-      LOW_FRESHNESS: {
-        text: 'dashboard.urgencyFreshness',
-        link: '#my-team',
-        linkText: 'dashboard.urgencyLinkTeam'
-      },
-      YOUTH_LOW_STATS: {
-        text: 'dashboard.urgencyYouth',
-        link: '#my-team?tab=youth',
-        linkText: 'dashboard.urgencyLinkYouth'
-      },
-      INCOMING_OFFERS: {
-        text: 'dashboard.urgencyOffers',
-        link: '#trades?tab=incoming',
-        linkText: 'dashboard.urgencyLinkTrades'
-      },
-      NO_SPONSOR: {
-        text: 'dashboard.urgencySponsor',
-        link: '#finances',
-        linkText: 'dashboard.urgencyLinkFinances'
-      }
-    }
-
-    const items = this._urgencies.map(u => {
-      const config = urgencyMap[u.type]
-      if (!config) return ''
-      const message = t(config.text, { count: u.count || 0 })
-      return `<li class="mb-2">${message} <a class="text-info" href="${config.link}"> 👉 ${t(config.linkText)}</a></li>`
-    }).filter(Boolean).join('')
-
-    const delay = wasManagerChatShown(this.gameDay, this.season) ? 0 : 1500
-    setTimeout(() => {
-      showOverlay(
-        t('dashboard.urgencyTitle'),
-        t('dashboard.urgencySubtitle'),
-        `<ul class="list-unstyled mb-0">${items}</ul>`
-      )
-      localStorage.setItem(storageKey, 'true')
-    }, delay)
   }
 
   /**
@@ -420,119 +302,6 @@ export class DashboardPage extends UIElement {
     return t('dashboard.positionTh', { pos })
   }
 
-  /**
-   * Render cup games section
-   * @returns {GameSlider|string}
-   */
-  _renderCupGames () {
-    if (this._cupGames.length === 0) {
-      return `
-        <div class="card bg-light border-0">
-          <div class="card-body text-center text-muted py-4">
-            <i class="fa fa-trophy fa-2x mb-2 opacity-50"></i>
-            <p class="mb-0">${t('cup.noGames')}</p>
-          </div>
-        </div>
-      `
-    }
-
-    const cupSliderArgs = {
-      games: this._cupGames,
-      teamId: this.team.id,
-      initialIndex: this._findInitialSlideIndex(this._cupGames)
-    }
-
-    return new GameSlider(cupSliderArgs)
-  }
-
-  /**
-   * Render friendly games section
-   * @returns {GameSlider|string}
-   */
-  _renderFriendlyGames () {
-    if (this._friendlyGames.length === 0) {
-      return `
-        <div class="card bg-light border-0">
-          <div class="card-body text-center text-muted py-4">
-            <i class="fa fa-handshake-o fa-2x mb-2 opacity-50"></i>
-            <p class="mb-0">${t('friendly.noGames')}</p>
-          </div>
-        </div>
-      `
-    }
-
-    const friendlySliderArgs = {
-      games: this._friendlyGames,
-      teamId: this.team.id,
-      initialIndex: this._friendlyGames.length - 1
-    }
-
-    return new GameSlider(friendlySliderArgs)
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderMiniStanding () {
-    if (!this.standing || this.standing.length === 0) {
-      return ''
-    }
-
-    // Calculate which 5 teams to show based on user's position
-    // Position is 1-indexed, array is 0-indexed
-    const pos = this.teamPosition - 1
-    let startIndex = Math.max(0, pos - 2)
-    const endIndex = Math.min(this.standing.length, startIndex + 5)
-    // Adjust start if we're near the end
-    if (endIndex - startIndex < 5) {
-      startIndex = Math.max(0, endIndex - 5)
-    }
-
-    const teamsToShow = this.standing.slice(startIndex, endIndex)
-
-    const rows = teamsToShow.map((item, idx) => {
-      const actualIndex = startIndex + idx
-      const hasUser = Boolean(item.team.user_id)
-      const id = generateId()
-      const isMyTeam = this.team.id === item.team.id
-
-      onClick('#' + id, () => goTo(`team?id=${item.team.id}`))
-
-      const trClasses = [
-        isMyTeam ? 'table-info' : '',
-        !isMyTeam && actualIndex < 2 ? 'table-success' : '',
-        !isMyTeam && actualIndex > 13 ? 'table-warning' : ''
-      ]
-
-      return `
-        <tr id="${id}" class="${trClasses.join(' ')}">
-          <th class="results-rank-cell">${actualIndex + 1}.</th>
-          <td>
-            <span class="emblem-thumb--sm">
-              ${renderEmblem(item.team, 20)}
-            </span>
-            ${item.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}
-          </td>
-          <td>${item.points}</td>
-        </tr>
-      `
-    }).join('')
-
-    return `
-      <table class="table table-hover table-sm mb-0">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">${t('results.team')}</th>
-            <th scope="col">${t('results.points')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-    `
-  }
 }
 
 /**

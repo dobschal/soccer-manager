@@ -288,7 +288,7 @@ export class MyTeamPage extends UIElement {
     })
 
     return `<div id="${id}" class="mb-4 emblem-viewer">
-      ${renderEmblem(this.data.team, 150)}
+      ${renderEmblem(this.data.team, 200)}
     </div>`
   }
 

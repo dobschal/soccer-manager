@@ -17,21 +17,6 @@ Take a look into the docker files to check the version used for the database and
 
 Inside the server folder several scripts exists that are executed via CRON job when `api.js` is running.
 
-## Scripts
-
-Here are some script that help you to setup and run the simulation manually:
-
-```bash
-# Prepare database
-node server/migrate-database.cmd.js
-
-# Setup teams and games
-node server/prepare-season.cmd.js
-
-# calculate the games for the current gameday ---> repeat for each game day to play
-node server/play-game-day.cmd.js
-```
-
 ## Deployment
 
 Use docker compose to deploy the application. There is a restart script that rebuilds the docker images and restarts the

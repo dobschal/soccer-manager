@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DashboardPage, renderDashboardPage } from '../../pages/dashboard.js'
 import { server } from '../../lib/gateway.js'
-import { showOverlay } from '../../partials/overlay.js'
 
 // Mock all dependencies before importing
 vi.mock('../../lib/gateway.js', () => ({
@@ -21,7 +20,6 @@ vi.mock('../../lib/gateway.js', () => ({
     getGamesForSlider: vi.fn(),
     getFriendlyGames: vi.fn(),
     getMyCupGames: vi.fn(),
-    getFinanceLog: vi.fn(),
     getDashboardUrgencies: vi.fn(),
     getTutorialStatus: vi.fn()
   }
@@ -62,6 +60,29 @@ vi.mock('../../partials/toast.js', () => ({
 
 vi.mock('../../lib/date.js', () => ({
   formatDate: vi.fn().mockReturnValue('Today 12:00')
+}))
+
+vi.mock('../../partials/gameSlider.js', () => ({
+  GameSlider: class {
+    toString () { return '<div>Game Slider</div>' }
+  }
+}))
+
+vi.mock('../../partials/emblem.js', () => ({
+  renderEmblem: vi.fn().mockReturnValue('<svg>emblem</svg>')
+}))
+
+vi.mock('../../util/league.js', () => ({
+  formatLeague: vi.fn().mockReturnValue('1. League')
+}))
+
+vi.mock('../../lib/router.js', () => ({
+  goTo: vi.fn(),
+  setQueryParams: vi.fn()
+}))
+
+vi.mock('../../lib/htmlEventHandlers.js', () => ({
+  onClick: vi.fn()
 }))
 
 vi.mock('../../pages/dashboard/news.js', () => ({
@@ -150,14 +171,11 @@ describe('DashboardPage', () => {
     server.getMyCupGames.mockResolvedValue({
       games: []
     })
-    server.getFinanceLog.mockResolvedValue({
-      log: []
-    })
     server.getDashboardUrgencies.mockResolvedValue({
       urgencies: []
     })
     server.getTutorialStatus.mockResolvedValue({
-      tutorialCompleted: { dashboard: true }
+      tutorialCompleted: {}
     })
   })
 
@@ -226,12 +244,7 @@ describe('DashboardPage', () => {
     })
   })
 
-  describe('urgency overlay', () => {
-    beforeEach(() => {
-      // Mock large screen
-      window.matchMedia = vi.fn().mockReturnValue({ matches: true })
-    })
-
+  describe('urgency checklist', () => {
     it('calls getDashboardUrgencies during load', async () => {
       const page = new DashboardPage()
       await page.load()
@@ -250,50 +263,7 @@ describe('DashboardPage', () => {
       expect(page._urgencies).toEqual([{ type: 'NO_SPONSOR' }])
     })
 
-    it('shows overlay when urgencies exist and not yet shown this gameday', async () => {
-      server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{ type: 'NO_SPONSOR' }]
-      })
-
-      const page = new DashboardPage()
-      await page.load()
-
-      vi.useFakeTimers()
-      page.onMounted()
-      // Flush the async getTutorialStatus promise
-      await vi.advanceTimersByTimeAsync(0)
-      // Advance past the setTimeout delay
-      vi.advanceTimersByTime(2000)
-      vi.useRealTimers()
-
-      expect(showOverlay).toHaveBeenCalled()
-      const [title, , content] = showOverlay.mock.calls[0]
-      expect(title).toBe('Action Required')
-      expect(content).toContain('#finances')
-    })
-
-    it('does NOT show overlay when already shown this gameday', async () => {
-      // localStorage is mocked in setup.js - configure getItem to return 'true' for urgency key
-      window.localStorage.getItem.mockImplementation((key) =>
-        key === 'urgencyOverlayShown_0_5' ? 'true' : null
-      )
-
-      server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{ type: 'NO_SPONSOR' }]
-      })
-
-      const page = new DashboardPage()
-      await page.load()
-
-      vi.useFakeTimers()
-      page.onMounted()
-      vi.runAllTimers()
-      vi.useRealTimers()
-
-      expect(showOverlay).not.toHaveBeenCalled()
-    })
-
-    it('does NOT show overlay when no urgencies', async () => {
+    it('shows checkmarks for all items when no urgencies', async () => {
       server.getDashboardUrgencies.mockResolvedValue({
         urgencies: []
       })
@@ -301,84 +271,52 @@ describe('DashboardPage', () => {
       const page = new DashboardPage()
       await page.load()
 
-      vi.useFakeTimers()
-      page.onMounted()
-      vi.runAllTimers()
-      vi.useRealTimers()
-
-      expect(showOverlay).not.toHaveBeenCalled()
+      const html = page.template
+      expect(html).toContain('fa-check-circle')
+      expect(html).not.toContain('fa-exclamation-circle')
     })
 
-    it('renders correct link for INCOMPLETE_LINEUP', async () => {
+    it('shows exclamation mark with link for INCOMPLETE_LINEUP', async () => {
       server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{
-          type: 'INCOMPLETE_LINEUP',
-          count: 7
-        }]
+        urgencies: [{ type: 'INCOMPLETE_LINEUP', count: 7 }]
       })
 
       const page = new DashboardPage()
       await page.load()
 
-      vi.useFakeTimers()
-      page.onMounted()
-      await vi.advanceTimersByTimeAsync(0)
-      vi.advanceTimersByTime(2000)
-      vi.useRealTimers()
-
-      const content = showOverlay.mock.calls[0][2]
-      expect(content).toContain('#my-team')
-      expect(content).toContain('Go to My Team')
+      const html = page.template
+      expect(html).toContain('fa-exclamation-circle')
+      expect(html).toContain('#my-team')
+      expect(html).toContain('7/11')
     })
 
-    it('renders correct link for YOUTH_LOW_STATS', async () => {
+    it('shows exclamation mark with link for YOUTH_LOW_STATS', async () => {
       server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{
-          type: 'YOUTH_LOW_STATS',
-          count: 2
-        }]
+        urgencies: [{ type: 'YOUTH_LOW_STATS', count: 2 }]
       })
 
       const page = new DashboardPage()
       await page.load()
 
-      vi.useFakeTimers()
-      page.onMounted()
-      await vi.advanceTimersByTimeAsync(0)
-      vi.advanceTimersByTime(2000)
-      vi.useRealTimers()
-
-      const content = showOverlay.mock.calls[0][2]
-      expect(content).toContain('#my-team?tab=youth')
-      expect(content).toContain('Go to Youth Team')
+      const html = page.template
+      expect(html).toContain('fa-exclamation-circle')
+      expect(html).toContain('#my-team?sub_page=youth')
     })
 
-    it('renders correct link for INCOMING_OFFERS', async () => {
+    it('shows exclamation mark with link for INCOMING_OFFERS', async () => {
       server.getDashboardUrgencies.mockResolvedValue({
-        urgencies: [{
-          type: 'INCOMING_OFFERS',
-          count: 3
-        }]
+        urgencies: [{ type: 'INCOMING_OFFERS', count: 3 }]
       })
 
       const page = new DashboardPage()
       await page.load()
 
-      vi.useFakeTimers()
-      page.onMounted()
-      await vi.advanceTimersByTimeAsync(0)
-      vi.advanceTimersByTime(2000)
-      vi.useRealTimers()
-
-      const content = showOverlay.mock.calls[0][2]
-      expect(content).toContain('#trades?tab=incoming')
-      expect(content).toContain('Go to Incoming Offers')
+      const html = page.template
+      expect(html).toContain('fa-exclamation-circle')
+      expect(html).toContain('#trades?tab=incoming')
     })
 
-    it('does NOT show urgency overlay when dashboard tutorial is not yet completed', async () => {
-      server.getTutorialStatus.mockResolvedValue({
-        tutorialCompleted: {}
-      })
+    it('shows exclamation mark with link for NO_SPONSOR', async () => {
       server.getDashboardUrgencies.mockResolvedValue({
         urgencies: [{ type: 'NO_SPONSOR' }]
       })
@@ -386,13 +324,23 @@ describe('DashboardPage', () => {
       const page = new DashboardPage()
       await page.load()
 
-      vi.useFakeTimers()
-      page.onMounted()
-      await vi.advanceTimersByTimeAsync(0)
-      vi.advanceTimersByTime(2000)
-      vi.useRealTimers()
+      const html = page.template
+      expect(html).toContain('fa-exclamation-circle')
+      expect(html).toContain('#finances')
+    })
 
-      expect(showOverlay).not.toHaveBeenCalled()
+    it('shows mix of checkmarks and exclamation marks', async () => {
+      server.getDashboardUrgencies.mockResolvedValue({
+        urgencies: [{ type: 'NO_SPONSOR' }]
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
+      const html = page.template
+      // Should have both check marks (for other items) and exclamation (for NO_SPONSOR)
+      expect(html).toContain('fa-check-circle')
+      expect(html).toContain('fa-exclamation-circle')
     })
   })
 })
