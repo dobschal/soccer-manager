@@ -132,7 +132,9 @@ describe('friendly routes', () => {
         .mockResolvedValueOnce(myPlayers) // My team players
         .mockResolvedValueOnce(opponentPlayers) // Opponent players
         .mockResolvedValueOnce([stadium]) // Stadium
-        .mockResolvedValueOnce({ insertId: 999 }) // Insert game
+      // 22 freshness update queries (11 per team)
+      for (let i = 0; i < 22; i++) query.mockResolvedValueOnce()
+      query.mockResolvedValueOnce({ insertId: 999 }) // Insert game
 
       updateTeamBalance.mockResolvedValue()
 

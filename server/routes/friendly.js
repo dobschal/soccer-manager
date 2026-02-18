@@ -247,8 +247,24 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
     playGameStep(activePlayerTeamA, activePlayerTeamB, gameDetails)
   }
 
-  // In friendly matches, don't update player freshness or card counts
-  // Cards shown in the game are for display only
+  // Friendly matches cost half the freshness of league games (no card persistence)
+  const freshnessLossByStyle = {
+    aggressive: 0.065,
+    normal: 0.05,
+    friendly: 0.04
+  }
+  for (const player of activePlayerTeamA) {
+    const playStyle = teamA.play_style || 'normal'
+    const freshnessLoss = player.position === 'GK' ? 0.04 : freshnessLossByStyle[playStyle]
+    player.freshness = Math.max(0, player.freshness - freshnessLoss)
+    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
+  }
+  for (const player of activePlayerTeamB) {
+    const playStyle = teamB.play_style || 'normal'
+    const freshnessLoss = player.position === 'GK' ? 0.04 : freshnessLossByStyle[playStyle]
+    player.freshness = Math.max(0, player.freshness - freshnessLoss)
+    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
+  }
 
   return gameDetails
 }
