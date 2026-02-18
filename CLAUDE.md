@@ -168,6 +168,20 @@ training rhythm should have a significant impact on the development of the youth
 There should be test cases for the youth player development logic, including the effects of training, friendly matches,
 and rest on the player's level, moral, and fitness.
 
+## Attack Mode
+
+The user can choose an attack mode for their team, which controls the direction of passes and interception risk:
+
+- offensive: 85% of passes go forward, 6% base interception chance on forward passes
+- balanced: 50% of passes go forward, 3% base interception chance on forward passes
+- defensive: 20% of passes go forward, 1% base interception chance on forward passes
+
+Forward passes are passes to a teammate with a higher y-coordinate on the pitch (closer to the opponent's goal).
+The actual interception chance is scaled by the passing player's level: `ballLossBase * (1 - level / 150)`.
+Higher-level players are more accurate passers and less likely to be intercepted.
+
+The attack mode is stored in the `team.attack_mode` column (default: `'balanced'`).
+
 ## Play Style
 
 The user can choose a play style for their team, which affects the team's performance in matches.

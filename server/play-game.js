@@ -90,6 +90,16 @@ import { randomItem } from './lib/util.js'
  * Target red cards per game: aggressive 0.13, normal 0.1, friendly 0.07
  * @type {Object<string, {fightBonus: number, cardChance: number}>}
  */
+/**
+ * Attack mode modifiers for forward pass bias and ball loss risk
+ * @type {Object<string, {forwardBias: number, ballLossBase: number}>}
+ */
+export const ATTACK_MODE_MODIFIERS = {
+  offensive: { forwardBias: 0.85, ballLossBase: 0.06 },
+  balanced: { forwardBias: 0.50, ballLossBase: 0.03 },
+  defensive: { forwardBias: 0.20, ballLossBase: 0.01 }
+}
+
 export const PLAY_STYLE_MODIFIERS = {
   aggressive: {
     fightBonus: 0.15,
@@ -483,8 +493,35 @@ function _passBall (playerTeamA, playerTeamB, gameDetails) {
 
   const team = teamAHasBall ? gameDetails.teamA : gameDetails.teamB
   const passStyle = team.pass_style || 'mixed'
+  const attackMode = team.attack_mode || 'balanced'
 
-  const nextPlayer = _selectPassTarget(activePlayer, teammates, passStyle)
+  const nextPlayer = _selectPassTarget(activePlayer, teammates, passStyle, attackMode)
+
+  // Check for interception on forward passes
+  const activeCoord = POSITION_COORDS[activePlayer.in_game_position]
+  const targetCoord = POSITION_COORDS[nextPlayer.in_game_position]
+  if (activeCoord && targetCoord && targetCoord.y > activeCoord.y) {
+    const modifiers = ATTACK_MODE_MODIFIERS[attackMode] || ATTACK_MODE_MODIFIERS.balanced
+    const ballLossChance = modifiers.ballLossBase * (1 - activePlayer.level / 150)
+    if (Math.random() < ballLossChance) {
+      // Interception: ball goes to a random opponent
+      const opponents = teamAHasBall
+        ? playerTeamB.filter(p => !p.sentOff)
+        : playerTeamA.filter(p => !p.sentOff)
+      if (opponents.length > 0) {
+        activePlayer.hasBall = false
+        const interceptor = randomItem(opponents)
+        interceptor.hasBall = true
+        gameDetails.streak = 0
+        gameDetails.log.push({
+          pass: true,
+          newPlayer: interceptor.id,
+          oldPlayer: activePlayer.id
+        })
+        return
+      }
+    }
+  }
 
   activePlayer.hasBall = false
   nextPlayer.hasBall = true
@@ -496,17 +533,38 @@ function _passBall (playerTeamA, playerTeamB, gameDetails) {
 }
 
 /**
- * Select the next player to pass to based on pass style
+ * Select the next player to pass to based on pass style and attack mode
  * @param {GamePlayer} activePlayer
  * @param {GamePlayer[]} teammates
  * @param {string} passStyle - 'short', 'mixed', or 'long'
+ * @param {string} attackMode - 'offensive', 'balanced', or 'defensive'
  * @returns {GamePlayer}
  */
-function _selectPassTarget (activePlayer, teammates, passStyle) {
+function _selectPassTarget (activePlayer, teammates, passStyle, attackMode) {
   if (teammates.length === 0) return activePlayer
 
-  // Calculate distances to all teammates
-  const teammatesWithDistance = teammates.map(player => ({
+  // Apply forward bias based on attack mode
+  const modifiers = ATTACK_MODE_MODIFIERS[attackMode] || ATTACK_MODE_MODIFIERS.balanced
+  const activeCoord = POSITION_COORDS[activePlayer.in_game_position]
+
+  let filteredTeammates = teammates
+  if (activeCoord) {
+    const forward = teammates.filter(p => {
+      const coord = POSITION_COORDS[p.in_game_position]
+      return coord && coord.y > activeCoord.y
+    })
+    const backward = teammates.filter(p => {
+      const coord = POSITION_COORDS[p.in_game_position]
+      return !coord || coord.y <= activeCoord.y
+    })
+
+    if (forward.length > 0 && backward.length > 0) {
+      filteredTeammates = Math.random() < modifiers.forwardBias ? forward : backward
+    }
+  }
+
+  // Calculate distances to filtered teammates
+  const teammatesWithDistance = filteredTeammates.map(player => ({
     player,
     distance: _getPositionDistance(activePlayer.in_game_position, player.in_game_position)
   }))
@@ -514,23 +572,31 @@ function _selectPassTarget (activePlayer, teammates, passStyle) {
   // Sort by distance
   teammatesWithDistance.sort((a, b) => a.distance - b.distance)
 
+  // If only 1 teammate, return them directly
+  if (teammatesWithDistance.length === 1) {
+    return teammatesWithDistance[0].player
+  }
+
   // Determine the threshold for short vs long (median distance)
   const medianIndex = Math.floor(teammatesWithDistance.length / 2)
   const shortPassTargets = teammatesWithDistance.slice(0, Math.max(1, medianIndex + 1))
   const longPassTargets = teammatesWithDistance.slice(Math.max(1, medianIndex))
+
+  // Ensure long pass targets is not empty
+  const effectiveLongTargets = longPassTargets.length > 0 ? longPassTargets : shortPassTargets
 
   if (passStyle === 'short') {
     // Always pick from nearby players
     return randomItem(shortPassTargets).player
   } else if (passStyle === 'long') {
     // Always pick from far players
-    return randomItem(longPassTargets).player
+    return randomItem(effectiveLongTargets).player
   } else {
     // Mixed: 50% chance for short, 50% for long
     if (Math.random() < 0.5) {
       return randomItem(shortPassTargets).player
     } else {
-      return randomItem(longPassTargets).player
+      return randomItem(effectiveLongTargets).player
     }
   }
 }

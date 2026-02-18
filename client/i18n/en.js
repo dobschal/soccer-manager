@@ -267,6 +267,14 @@ export default {
   'myTeam.playStyleDesc.aggressive': 'Higher chance to win the ball, but more cards',
   'myTeam.playStyleDesc.normal': 'Balanced play',
   'myTeam.playStyleDesc.friendly': 'Fewer cards, but less ball pressure',
+  'myTeam.chooseAttackMode': 'Choose your attack mode:',
+  'myTeam.attackModeUpdated': 'Attack mode updated!',
+  'myTeam.attackMode.offensive': 'Offensive',
+  'myTeam.attackMode.balanced': 'Balanced',
+  'myTeam.attackMode.defensive': 'Defensive',
+  'myTeam.attackModeDesc.offensive': 'More forward passes, higher interception risk',
+  'myTeam.attackModeDesc.balanced': 'Balanced passing direction',
+  'myTeam.attackModeDesc.defensive': 'More backward passes, lower interception risk',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A Team',

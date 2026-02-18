@@ -42,7 +42,7 @@ export class PlayerListItem extends UIElement {
       <tr class="${rowClass}" data-player-id="${this.player.id}">
         <th scope="row">${this.player.name}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''} ${this._renderCards(yellowCards, redCards)}</th>
         <td>${this.player.position}</td>
-        <td class="text-right d-none d-sm-table-cell">${calculatePlayerAge(this.player, this.season)}</td>
+        <td class="text-right">${calculatePlayerAge(this.player, this.season)}</td>
         <td class="text-right ${this.player.freshness < 0.4 ? 'text-danger' : (this.player.freshness < 0.7 ? 'text-warning' : 'text-success')}">${Math.floor(this.player.freshness * 100)}%</td>
         <td class="text-right">${renderLevelBadge(this.player.level)}</td>
         <td class="text-right d-none d-md-table-cell">${euroFormat.format(getSalary(this.player.level))}</td>

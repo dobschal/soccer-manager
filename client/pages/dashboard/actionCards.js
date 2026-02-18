@@ -119,7 +119,7 @@ export class ActionCards extends UIElement {
         <h3>${t('actionCards.title')}</h3>
         <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
         <div class="mb-4 action-cards-container">
-          <div class="action-cards-scroll">${this._renderGroupedCards()}</div>
+          <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>
         </div>
         <div class="alert alert-info" style="max-width: 620px">
           <i class="fa fa-info-circle me-1"></i> ${t('actionCards.buildingsHint')}
@@ -162,14 +162,16 @@ export class ActionCards extends UIElement {
       const stackOffset = Math.min(cards.length - 1, 4)
 
       return `
-        <div class="action-card-stack" data-action-card="${firstCardIdx}" data-can-merge="${canMerge}">
-          ${cards.slice(0, 5).map((_, i) => `
-            <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-              <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
-            </div>
-          `).join('')}
-          ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
-          ${cards.length > 1 ? `<span class="action-card-count">${cards.length}</span>` : ''}
+        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+          <div class="action-card-stack" data-action-card="${firstCardIdx}" data-can-merge="${canMerge}">
+            ${cards.slice(0, 5).map((_, i) => `
+              <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
+                <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
+              </div>
+            `).join('')}
+            ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
+            ${cards.length > 1 ? `<span class="action-card-count">${cards.length}</span>` : ''}
+          </div>
         </div>
       `
     }).join('')
@@ -367,16 +369,18 @@ export class ActionCards extends UIElement {
 
       existingStack.innerHTML = wrappersHtml + mergeBadge + countBadge
     } else {
-      // Create new stack
+      // Create new stack wrapped in Bootstrap col
       const newStackHtml = `
-        <div class="action-card-stack" data-action-card="${firstCardIdx}" data-can-merge="${canMerge}">
-          ${cardsOfType.slice(0, 5).map((_, i) => `
-            <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-              <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
-            </div>
-          `).join('')}
-          ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
-          ${cardsOfType.length > 1 ? `<span class="action-card-count">${cardsOfType.length}</span>` : ''}
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <div class="action-card-stack" data-action-card="${firstCardIdx}" data-can-merge="${canMerge}">
+            ${cardsOfType.slice(0, 5).map((_, i) => `
+              <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
+                <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
+              </div>
+            `).join('')}
+            ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
+            ${cardsOfType.length > 1 ? `<span class="action-card-count">${cardsOfType.length}</span>` : ''}
+          </div>
         </div>
       `
       container.insertAdjacentHTML('beforeend', newStackHtml)

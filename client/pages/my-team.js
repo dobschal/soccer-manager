@@ -262,9 +262,13 @@ export class MyTeamPage extends UIElement {
                 <p class="card-text mb-0">${t('myTeam.choosePassStyle')}</p>
                 ${this._renderPassStyleSelect()}
               </div>              
-              <div class="form-group">
+              <div class="form-group mb-3">
               <p class="card-text mb-0">${t('myTeam.choosePlayStyle')}</p>
                 ${this._renderPlayStyleSelect()}
+              </div>
+              <div class="form-group">
+              <p class="card-text mb-0">${t('myTeam.chooseAttackMode')}</p>
+                ${this._renderAttackModeSelect()}
               </div>
             </div>
           </div>
@@ -367,6 +371,36 @@ export class MyTeamPage extends UIElement {
     return `
       <select id="${id}" class="form-control">
         ${playStyles.map(style => `<option value="${style}" title="${t('myTeam.playStyleDesc.' + style)}">${t('myTeam.playStyle.' + style)}</option>`).join('')}
+      </select>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderAttackModeSelect () {
+    const id = generateId()
+    const attackModes = ['offensive', 'balanced', 'defensive']
+    const currentAttackMode = this.data.team.attack_mode || 'balanced'
+    onChange(id, async (event) => {
+      if (event.target.value !== currentAttackMode) {
+        try {
+          await server.updateAttackMode(event.target.value)
+          this.data.team.attack_mode = event.target.value
+          toast(t('myTeam.attackModeUpdated'), 'success')
+        } catch (e) {
+          showServerError(e)
+        }
+      }
+    })
+    setTimeout(() => {
+      const element = el(id)
+      if (!element) return
+      element.value = currentAttackMode
+    })
+    return `
+      <select id="${id}" class="form-control">
+        ${attackModes.map(mode => `<option value="${mode}" title="${t('myTeam.attackModeDesc.' + mode)}">${t('myTeam.attackMode.' + mode)}</option>`).join('')}
       </select>
     `
   }

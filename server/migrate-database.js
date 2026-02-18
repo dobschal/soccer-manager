@@ -867,6 +867,20 @@ const migrations = [{
     }
     console.log(`✅ Seeded ${teams.length} teams with fitness_studio level 1`)
   }
+},
+{
+  name: 'Add attack_mode column to team table',
+  async run () {
+    await query("ALTER TABLE team ADD COLUMN attack_mode VARCHAR(20) DEFAULT 'balanced'")
+    const teams = await query('SELECT id FROM team')
+    const attackModes = ['offensive', 'balanced', 'defensive']
+    const promises = []
+    for (const team of teams) {
+      const randomMode = attackModes[Math.floor(Math.random() * attackModes.length)]
+      promises.push(query('UPDATE team SET attack_mode=? WHERE id=?', [randomMode, team.id]))
+    }
+    await Promise.all(promises)
+  }
 }]
 
 /**

@@ -181,6 +181,21 @@ export default {
   },
 
   /**
+   * @param {string} attackMode - 'offensive', 'balanced', or 'defensive'
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateAttackMode (attackMode, req) {
+    const validModes = ['offensive', 'balanced', 'defensive']
+    if (!validModes.includes(attackMode)) {
+      throw new BadRequestError('Invalid attack mode')
+    }
+    const team = await getTeam(req)
+    await query('UPDATE team SET attack_mode=? WHERE id=?', [attackMode, team.id])
+    return { success: true }
+  },
+
+  /**
    * @param {Array<{playerId: number, sortIndex: number}>} sortData
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}

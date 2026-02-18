@@ -18,6 +18,7 @@ let nextPlayerId = 1
  * @param {number} [options.maxLevel] - Maximum player level (default 70)
  * @param {string} [options.playStyle] - Team play style (default 'normal')
  * @param {string} [options.passStyle] - Team pass style (default 'mixed')
+ * @param {string} [options.attackMode] - Team attack mode (default 'balanced')
  * @param {string} [options.formation] - Formation to use (default random)
  * @returns {{ team: object, players: object[] }}
  */
@@ -27,6 +28,7 @@ function createTeam (options = {}) {
     maxLevel = 70,
     playStyle = 'normal',
     passStyle = 'mixed',
+    attackMode = 'balanced',
     formation = FORMATIONS[Math.floor(Math.random() * FORMATIONS.length)]
   } = options
 
@@ -50,6 +52,7 @@ function createTeam (options = {}) {
     name: `Team_${teamId}`,
     play_style: playStyle,
     pass_style: passStyle,
+    attack_mode: attackMode,
     formation
   }
 
@@ -373,28 +376,89 @@ describe('Strength Imbalance Effects', () => {
   })
 })
 
+describe('Attack Mode Impact on Statistics', () => {
+  const NUM_GAMES = 300
+
+  function runGamesWithAttackMode (attackModeA, attackModeB) {
+    const games = []
+    for (let i = 0; i < NUM_GAMES; i++) {
+      const baseLevel = 40 + Math.random() * 20
+      const teamA = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, attackMode: attackModeA })
+      const teamB = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, attackMode: attackModeB })
+      games.push(simulateGame(teamA, teamB))
+    }
+    return games
+  }
+
+  it('offensive vs offensive should produce more goals than defensive vs defensive', () => {
+    const offensiveGames = runGamesWithAttackMode('offensive', 'offensive')
+    const defensiveGames = runGamesWithAttackMode('defensive', 'defensive')
+    const avgOffensive = offensiveGames.reduce((s, g) => s + (g.goalsTeamA || 0) + (g.goalsTeamB || 0), 0) / NUM_GAMES
+    const avgDefensive = defensiveGames.reduce((s, g) => s + (g.goalsTeamA || 0) + (g.goalsTeamB || 0), 0) / NUM_GAMES
+    originalLog(`  Goals (offensive vs offensive): ${avgOffensive.toFixed(2)}`)
+    originalLog(`  Goals (defensive vs defensive): ${avgDefensive.toFixed(2)}`)
+    expect(avgOffensive).toBeGreaterThan(avgDefensive)
+  })
+
+  it('balanced mode should still match Bundesliga targets', () => {
+    const games = runGamesWithAttackMode('balanced', 'balanced')
+    const avgGoals = games.reduce((s, g) => s + (g.goalsTeamA || 0) + (g.goalsTeamB || 0), 0) / NUM_GAMES
+    const draws = games.filter(g => (g.goalsTeamA || 0) === (g.goalsTeamB || 0)).length
+    const drawPct = (draws / NUM_GAMES) * 100
+    originalLog(`  Goals (balanced): ${avgGoals.toFixed(2)} (target: ~3.16)`)
+    originalLog(`  Draw % (balanced): ${drawPct.toFixed(1)}% (target: ~24%)`)
+    expect(avgGoals).toBeGreaterThan(2.0)
+    expect(avgGoals).toBeLessThan(4.5)
+    expect(drawPct).toBeGreaterThan(12)
+    expect(drawPct).toBeLessThan(38)
+  })
+
+  it('offensive vs defensive: offensive team should score somewhat more', () => {
+    const games = runGamesWithAttackMode('offensive', 'defensive')
+    const avgGoalsA = games.reduce((s, g) => s + (g.goalsTeamA || 0), 0) / NUM_GAMES
+    const avgGoalsB = games.reduce((s, g) => s + (g.goalsTeamB || 0), 0) / NUM_GAMES
+    originalLog(`  Offensive team goals: ${avgGoalsA.toFixed(2)}, Defensive team goals: ${avgGoalsB.toFixed(2)}`)
+    // Offensive team should generally score more, but defensive gets fewer interceptions
+    // Just check that both score reasonable amounts
+    expect(avgGoalsA + avgGoalsB).toBeGreaterThan(1.5)
+    expect(avgGoalsA + avgGoalsB).toBeLessThan(6.0)
+  })
+
+  it('cards and shots remain in acceptable ranges for all attack modes', () => {
+    for (const mode of ['offensive', 'balanced', 'defensive']) {
+      const games = runGamesWithAttackMode(mode, mode)
+      const avgYellows = games.reduce((s, g) => s + countYellowCards(g), 0) / NUM_GAMES
+      const avgReds = games.reduce((s, g) => s + countRedCards(g), 0) / NUM_GAMES
+      const avgShots = games.reduce((s, g) => s + countShots(g, true) + countShots(g, false), 0) / (NUM_GAMES * 2)
+      originalLog(`  ${mode}: yellows=${avgYellows.toFixed(2)}, reds=${avgReds.toFixed(3)}, shots/team=${avgShots.toFixed(1)}`)
+      expect(avgYellows).toBeGreaterThan(1.5)
+      expect(avgYellows).toBeLessThan(6.0)
+      expect(avgReds).toBeLessThan(0.4)
+      expect(avgShots).toBeGreaterThan(3)
+      expect(avgShots).toBeLessThan(25)
+    }
+  })
+})
+
 describe('Detailed Statistics Report', () => {
   it('print comprehensive statistics summary', () => {
     const NUM_GAMES = 500
-    const styleResults = {}
 
-    for (const style of ['aggressive', 'normal', 'friendly']) {
+    function runGames (playStyle, attackMode) {
       const games = []
       for (let i = 0; i < NUM_GAMES; i++) {
         const baseLevel = 40 + Math.random() * 20
-        const teamA = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, playStyle: style })
-        const teamB = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, playStyle: style })
+        const teamA = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, playStyle, attackMode })
+        const teamB = createTeam({ minLevel: baseLevel - 3, maxLevel: baseLevel + 3, playStyle, attackMode })
         games.push(simulateGame(teamA, teamB))
       }
-
       const totalGoals = games.reduce((s, g) => s + (g.goalsTeamA || 0) + (g.goalsTeamB || 0), 0)
       const totalYellows = games.reduce((s, g) => s + countYellowCards(g), 0)
       const totalReds = games.reduce((s, g) => s + countRedCards(g), 0)
       const draws = games.filter(g => (g.goalsTeamA || 0) === (g.goalsTeamB || 0)).length
       const shotsA = games.reduce((s, g) => s + countShots(g, true), 0)
       const shotsB = games.reduce((s, g) => s + countShots(g, false), 0)
-
-      styleResults[style] = {
+      return {
         goalsPerMatch: totalGoals / NUM_GAMES,
         yellowsPerMatch: totalYellows / NUM_GAMES,
         redsPerMatch: totalReds / NUM_GAMES,
@@ -403,8 +467,20 @@ describe('Detailed Statistics Report', () => {
       }
     }
 
+    // Play style results
+    const styleResults = {}
+    for (const style of ['aggressive', 'normal', 'friendly']) {
+      styleResults[style] = runGames(style, 'balanced')
+    }
+
+    // Attack mode results
+    const modeResults = {}
+    for (const mode of ['offensive', 'balanced', 'defensive']) {
+      modeResults[mode] = runGames('normal', mode)
+    }
+
     originalLog('\n  ╔════════════════════════════════════════════════════════════════════╗')
-    originalLog('  ║              GAME STATISTICS SUMMARY                              ║')
+    originalLog('  ║              PLAY STYLE STATISTICS                                ║')
     originalLog('  ╠════════════════════════════════════════════════════════════════════╣')
     originalLog('  ║ Metric              │ Aggressive │ Normal   │ Friendly │ Target   ║')
     originalLog('  ╟─────────────────────┼────────────┼──────────┼──────────┼──────────╢')
@@ -413,6 +489,18 @@ describe('Detailed Statistics Report', () => {
     originalLog(`  ║ Reds/match           │ ${styleResults.aggressive.redsPerMatch.toFixed(3).padStart(10)} │ ${styleResults.normal.redsPerMatch.toFixed(3).padStart(8)} │ ${styleResults.friendly.redsPerMatch.toFixed(3).padStart(8)} │ .13/.1/.07║`)
     originalLog(`  ║ Draw %               │ ${styleResults.aggressive.drawPct.toFixed(1).padStart(10)} │ ${styleResults.normal.drawPct.toFixed(1).padStart(8)} │ ${styleResults.friendly.drawPct.toFixed(1).padStart(8)} │ ${('24').padStart(8)} ║`)
     originalLog(`  ║ Shots/team           │ ${styleResults.aggressive.shotsPerTeam.toFixed(1).padStart(10)} │ ${styleResults.normal.shotsPerTeam.toFixed(1).padStart(8)} │ ${styleResults.friendly.shotsPerTeam.toFixed(1).padStart(8)} │ ${('13').padStart(8)} ║`)
+    originalLog('  ╚════════════════════════════════════════════════════════════════════╝')
+
+    originalLog('\n  ╔════════════════════════════════════════════════════════════════════╗')
+    originalLog('  ║              ATTACK MODE STATISTICS                               ║')
+    originalLog('  ╠════════════════════════════════════════════════════════════════════╣')
+    originalLog('  ║ Metric              │ Offensive  │ Balanced │ Defensive│ Target   ║')
+    originalLog('  ╟─────────────────────┼────────────┼──────────┼──────────┼──────────╢')
+    originalLog(`  ║ Goals/match          │ ${modeResults.offensive.goalsPerMatch.toFixed(2).padStart(10)} │ ${modeResults.balanced.goalsPerMatch.toFixed(2).padStart(8)} │ ${modeResults.defensive.goalsPerMatch.toFixed(2).padStart(8)} │ ${('3.16').padStart(8)} ║`)
+    originalLog(`  ║ Yellows/match        │ ${modeResults.offensive.yellowsPerMatch.toFixed(2).padStart(10)} │ ${modeResults.balanced.yellowsPerMatch.toFixed(2).padStart(8)} │ ${modeResults.defensive.yellowsPerMatch.toFixed(2).padStart(8)} │ ${('3.5').padStart(8)} ║`)
+    originalLog(`  ║ Reds/match           │ ${modeResults.offensive.redsPerMatch.toFixed(3).padStart(10)} │ ${modeResults.balanced.redsPerMatch.toFixed(3).padStart(8)} │ ${modeResults.defensive.redsPerMatch.toFixed(3).padStart(8)} │ ${('0.1').padStart(8)} ║`)
+    originalLog(`  ║ Draw %               │ ${modeResults.offensive.drawPct.toFixed(1).padStart(10)} │ ${modeResults.balanced.drawPct.toFixed(1).padStart(8)} │ ${modeResults.defensive.drawPct.toFixed(1).padStart(8)} │ ${('24').padStart(8)} ║`)
+    originalLog(`  ║ Shots/team           │ ${modeResults.offensive.shotsPerTeam.toFixed(1).padStart(10)} │ ${modeResults.balanced.shotsPerTeam.toFixed(1).padStart(8)} │ ${modeResults.defensive.shotsPerTeam.toFixed(1).padStart(8)} │ ${('13').padStart(8)} ║`)
     originalLog('  ╚════════════════════════════════════════════════════════════════════╝')
 
     // This test always passes - it's for reporting

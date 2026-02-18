@@ -53,18 +53,13 @@
 
 /* Wrapping card container */
 .action-cards-scroll {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    padding: 16px 8px 24px;
+    padding: 16px 0 24px;
 }
 
 /* Card stack container */
 .action-card-stack {
     position: relative;
-    flex-shrink: 0;
-    width: 175px;
-    height: 260px;
+    aspect-ratio: 175 / 260;
     cursor: pointer;
 }
 
@@ -72,7 +67,7 @@
     position: absolute;
     top: calc(var(--stack-index, 0) * 4px);
     left: calc(var(--stack-index, 0) * 4px);
-    width: 175px;
+    width: 100%;
     z-index: calc(10 - var(--stack-index, 0));
     transition: transform 0.2s ease, top 0.2s ease, left 0.2s ease;
 }
@@ -83,7 +78,7 @@
 }
 
 .action-card-stack .action-card-image {
-    width: 175px;
+    width: 100%;
     height: auto;
     border-radius: 15px;
 }
@@ -142,18 +137,4 @@
     .action-card-image {
         transform: rotateX(3deg) rotateY(-2deg);
     }
-
-    .action-card-stack {
-        width: 150px;
-        height: 220px;
-    }
-
-    .action-card-stack .action-card-wrapper {
-        width: 150px;
-    }
-
-    .action-card-stack .action-card-image {
-        width: 150px;
-    }
-
 }
