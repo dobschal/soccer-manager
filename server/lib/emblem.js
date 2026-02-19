@@ -11,11 +11,15 @@ export const emblemColors = EMBLEM_COLORS
 
 /**
  * Generates a random emblem configuration
- * @returns {{ shape: string, pattern: string, color: string }}
+ * @returns {{ shape: string, pattern: string, color: string, color2: string }}
  */
 export function generateRandomEmblem () {
   const shape = emblemShapes[Math.floor(Math.random() * emblemShapes.length)]
   const pattern = emblemPatterns[Math.floor(Math.random() * emblemPatterns.length)]
   const color = emblemColors[Math.floor(Math.random() * emblemColors.length)]
-  return { shape, pattern, color }
+  let color2 = emblemColors[Math.floor(Math.random() * emblemColors.length)]
+  while (color2 === color) {
+    color2 = emblemColors[Math.floor(Math.random() * emblemColors.length)]
+  }
+  return { shape, pattern, color, color2 }
 }

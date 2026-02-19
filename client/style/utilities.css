@@ -75,3 +75,8 @@ td.hover-text:hover {
     cursor: pointer;
     background-color: #EFEFEF;
 }
+
+/* Override Bootstrap's .text-warning to be darker/more orange for better readability on white */
+.text-warning {
+    color: #ff8200 !important;
+}

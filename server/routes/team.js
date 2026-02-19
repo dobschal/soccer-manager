@@ -82,6 +82,9 @@ export default {
     await query('UPDATE team SET name=? WHERE id=?', [name, team.id])
     // Clear season results cache since team name appears in results
     clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
+    // Clear standing cache in database since it stores serialized team names
+    const { season } = await getGameDayAndSeason()
+    await query('DELETE FROM standing_cache WHERE season=? AND level=? AND league=?', [season, team.level, team.league])
     return { success: true }
   },
 

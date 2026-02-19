@@ -1,6 +1,6 @@
 import { query } from './lib/database.js'
 import { randomItem } from '../client/lib/randomItem.js'
-import { EMBLEM_COLORS, EMBLEM_PATTERNS, EMBLEM_SHAPES } from '../client/util/emblemGenerator.js'
+import { EMBLEM_COLORS, EMBLEM_PATTERNS, EMBLEM_SHAPES, adjustBrightness } from '../client/util/emblemGenerator.js'
 
 /**
  * @typedef {object} Migration
@@ -471,10 +471,15 @@ const migrations = [{
       const shape = shapes[Math.floor(Math.random() * shapes.length)]
       const pattern = patterns[Math.floor(Math.random() * patterns.length)]
       const color = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
+      let color2 = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
+      while (color2 === color) {
+        color2 = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
+      }
       const emblem = JSON.stringify({
         shape,
         pattern,
-        color
+        color,
+        color2
       })
       promises.push(query('UPDATE team SET emblem=?, color=? WHERE id=?', [emblem, color, team.id]))
     }
@@ -549,7 +554,11 @@ const migrations = [{
         const shape = Object.keys(EMBLEM_SHAPES)[Math.floor(Math.random() * Object.keys(EMBLEM_SHAPES).length)]
         const pattern = validPatterns[Math.floor(Math.random() * validPatterns.length)]
         const color = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
-        const emblem = JSON.stringify({ shape, pattern, color })
+        let color2 = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
+        while (color2 === color) {
+          color2 = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
+        }
+        const emblem = JSON.stringify({ shape, pattern, color, color2 })
         promises.push(query('UPDATE team SET emblem=? WHERE id=?', [emblem, team.id]))
       }
     }
@@ -921,6 +930,44 @@ const migrations = [{
       updated++
     }
     console.log(`✅ Renamed ${updated} bot teams with new random names`)
+  }
+}, {
+  name: 'Migrate team emblems to two-color pattern system',
+  async run () {
+    // Map old pattern names to new ones and compute color2
+    const patternMapping = {
+      stripesDark: { pattern: 'stripes', brightness: -40 },
+      stripesBright: { pattern: 'stripes', brightness: 40 },
+      horizontalStripesDark: { pattern: 'horizontalStripes', brightness: -40 },
+      horizontalStripesBright: { pattern: 'horizontalStripes', brightness: 40 },
+      quarteredDark: { pattern: 'quartered', brightness: -40 },
+      quarteredBright: { pattern: 'quartered', brightness: 40 },
+      diagonalDark: { pattern: 'diagonal', brightness: -40 },
+      diagonalBright: { pattern: 'diagonal', brightness: 40 },
+      halvedDark: { pattern: 'halved', brightness: -40 },
+      halvedBright: { pattern: 'halved', brightness: 40 }
+    }
+
+    const teams = await query('SELECT id, emblem FROM team WHERE emblem IS NOT NULL')
+    const promises = []
+    for (const team of teams) {
+      try {
+        const emblemData = JSON.parse(team.emblem)
+        if (emblemData.color2) continue // Already migrated
+        const mapping = patternMapping[emblemData.pattern]
+        if (mapping) {
+          emblemData.color2 = adjustBrightness(emblemData.color, mapping.brightness)
+          emblemData.pattern = mapping.pattern
+        } else {
+          // For patterns already using new names or 'solid', pick a random second color
+          emblemData.color2 = EMBLEM_COLORS[Math.floor(Math.random() * EMBLEM_COLORS.length)]
+        }
+        promises.push(query('UPDATE team SET emblem=? WHERE id=?', [JSON.stringify(emblemData), team.id]))
+      } catch {
+        // Skip teams with invalid JSON
+      }
+    }
+    await Promise.all(promises)
   }
 }]
 

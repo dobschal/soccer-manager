@@ -449,12 +449,14 @@ export class MyTeamPage extends UIElement {
     const currentParams = parseEmblemParams(this.data.team.emblem) || {
       shape: 'shield',
       pattern: 'solid',
-      color: this.data.team.color || EMBLEM_COLORS[0]
+      color: this.data.team.color || EMBLEM_COLORS[0],
+      color2: EMBLEM_COLORS[1]
     }
 
     let selectedShape = currentParams.shape
     let selectedPattern = currentParams.pattern
     let selectedColor = currentParams.color
+    let selectedColor2 = currentParams.color2 || EMBLEM_COLORS[1]
 
     const previewId = generateId()
     const saveButtonId = generateId()
@@ -466,6 +468,7 @@ export class MyTeamPage extends UIElement {
           shape: selectedShape,
           pattern: selectedPattern,
           color: selectedColor,
+          color2: selectedColor2,
           teamName: this.data.team.name,
           size: 150
         })
@@ -527,7 +530,7 @@ export class MyTeamPage extends UIElement {
       `
     }).join('')
 
-    // Color options (20 predefined colors)
+    // Color 1 options
     const colorOptions = EMBLEM_COLORS.map(c => {
       const id = generateId()
       setTimeout(() => {
@@ -550,13 +553,37 @@ export class MyTeamPage extends UIElement {
       `
     }).join('')
 
+    // Color 2 options
+    const color2Options = EMBLEM_COLORS.map(c => {
+      const id = generateId()
+      setTimeout(() => {
+        const element = el(id)
+        if (element) {
+          element.addEventListener('click', () => {
+            selectedColor2 = c
+            document.querySelectorAll('.emblem-editor__color2').forEach(item => {
+              item.classList.remove('emblem-editor__color--selected')
+            })
+            element.classList.add('emblem-editor__color--selected')
+            updatePreview()
+          })
+        }
+      }, 100)
+      const isSelected = c === selectedColor2
+      // Note: background-color must remain inline as it's dynamic per color
+      return `
+        <div id="${id}" class="emblem-editor__color2 emblem-editor__color ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${c};"></div>
+      `
+    }).join('')
+
     // Save button handler
     onClick(saveButtonId, async () => {
       try {
         const emblemParams = JSON.stringify({
           shape: selectedShape,
           pattern: selectedPattern,
-          color: selectedColor
+          color: selectedColor,
+          color2: selectedColor2
         })
         await server.updateEmblem(emblemParams, selectedColor)
         toast(t('myTeam.emblemUpdated'), 'success')
@@ -578,6 +605,7 @@ export class MyTeamPage extends UIElement {
         shape: selectedShape,
         pattern: selectedPattern,
         color: selectedColor,
+        color2: selectedColor2,
         teamName: this.data.team.name,
         size: 150
       })}</div>
@@ -593,9 +621,14 @@ export class MyTeamPage extends UIElement {
         ${patternOptions}
       </div>
 
-      <h6>${t('myTeam.color')}</h6>
-      <div class="emblem-editor__section mb-4">
+      <h6>${t('myTeam.color1')}</h6>
+      <div class="emblem-editor__section">
         ${colorOptions}
+      </div>
+
+      <h6>${t('myTeam.color2')}</h6>
+      <div class="emblem-editor__section mb-4">
+        ${color2Options}
       </div>
 
       <button id="${saveButtonId}" class="btn btn-info w-100">${t('myTeam.saveEmblem')}</button>

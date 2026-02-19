@@ -53,7 +53,7 @@ export class PlayerList extends UIElement {
    */
   get template () {
     const toggleBtn = this.onToggleExtended
-      ? `<button class="btn btn-sm btn-outline-secondary ms-2 player-list-toggle-btn" title="${this.extended ? 'Collapse' : 'Expand'}"><i class="fa fa-${this.extended ? 'compress' : 'expand'}"></i></button>`
+      ? `<button class="btn btn-sm btn-outline-info player-list-toggle-btn float-end" title="${this.extended ? 'Collapse' : 'Expand'}"><i class="fa fa-${this.extended ? 'compress' : 'expand'}"></i></button>`
       : ''
 
     return `

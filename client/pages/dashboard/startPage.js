@@ -19,7 +19,17 @@ export class StartPage {
    * @param {number} options.teamPosition
    * @param {Array} options.urgencies
    */
-  constructor ({ sliderGames, initialSlideIndex, team, cupGames, cupResultAlreadySeen, friendlyGames, standing, teamPosition, urgencies }) {
+  constructor ({
+    sliderGames,
+    initialSlideIndex,
+    team,
+    cupGames,
+    cupResultAlreadySeen,
+    friendlyGames,
+    standing,
+    teamPosition,
+    urgencies
+  }) {
     this._sliderGames = sliderGames
     this._initialSlideIndex = initialSlideIndex
     this.team = team
@@ -130,7 +140,7 @@ export class StartPage {
       const message = t(check.text, { count: urgency?.count || 0 })
       return `
         <li class="list-group-item d-flex align-items-center py-2 px-3 border-0 ">
-          <a href="${check.link}" class="text-decoration-none">
+          <a href="${check.link}" class="text-decoration-none text-start">
             <i class="fa fa-exclamation-circle text-warning me-2"></i>
             <span class="text-warning small">${message}</span>
           </a>

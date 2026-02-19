@@ -24,6 +24,7 @@ export function renderEmblem (team, size = 200) {
     shape: params.shape,
     pattern: params.pattern,
     color: params.color,
+    color2: params.color2,
     teamName: team.name,
     size
   })

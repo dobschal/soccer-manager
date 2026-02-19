@@ -322,6 +322,20 @@ export default {
     // Try to get cached standing first
     const cached = await getCachedStanding(gameDay, season, actualLevel, actualLeague)
     if (cached) {
+      // Refresh team display data (name, emblem, color) from database
+      const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
+      if (teamIds.length > 0) {
+        const freshTeams = await query(`SELECT id, name, emblem, color FROM team WHERE id IN (${teamIds.join(', ')})`)
+        const teamMap = Object.fromEntries(freshTeams.map(t => [t.id, t]))
+        for (const entry of cached) {
+          const fresh = entry.team?.id ? teamMap[entry.team.id] : null
+          if (fresh) {
+            entry.team.name = fresh.name
+            entry.team.emblem = fresh.emblem
+            entry.team.color = fresh.color
+          }
+        }
+      }
       console.log('Got cached standing in ' + (Date.now() - t1) + 'ms')
       return cached
     }

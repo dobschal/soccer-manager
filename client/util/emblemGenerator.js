@@ -56,88 +56,53 @@ export const EMBLEM_SHAPES = {
   }
 }
 
-// Pattern definitions - Dark variants have more contrast, Bright variants are lighter
+// Pattern definitions - each pattern uses two colors
 export const EMBLEM_PATTERNS = {
-  stripesDark: {
-    name: 'Vertical Stripes (Dark)',
+  solid: {
+    name: 'Solid',
     render: (color) => `
       <rect x="0" y="0" width="200" height="200" fill="${color}"/>
-      <rect x="40" y="0" width="20" height="200" fill="${adjustBrightness(color, -40)}"/>
-      <rect x="90" y="0" width="20" height="200" fill="${adjustBrightness(color, -40)}"/>
-      <rect x="140" y="0" width="20" height="200" fill="${adjustBrightness(color, -40)}"/>
     `
   },
-  stripesBright: {
-    name: 'Vertical Stripes (Bright)',
-    render: (color) => `
+  stripes: {
+    name: 'Vertical Stripes',
+    render: (color, color2) => `
       <rect x="0" y="0" width="200" height="200" fill="${color}"/>
-      <rect x="40" y="0" width="20" height="200" fill="${adjustBrightness(color, 40)}"/>
-      <rect x="90" y="0" width="20" height="200" fill="${adjustBrightness(color, 40)}"/>
-      <rect x="140" y="0" width="20" height="200" fill="${adjustBrightness(color, 40)}"/>
+      <rect x="40" y="0" width="20" height="200" fill="${color2}"/>
+      <rect x="90" y="0" width="20" height="200" fill="${color2}"/>
+      <rect x="140" y="0" width="20" height="200" fill="${color2}"/>
     `
   },
-  horizontalStripesDark: {
-    name: 'Horizontal Stripes (Dark)',
-    render: (color) => `
+  horizontalStripes: {
+    name: 'Horizontal Stripes',
+    render: (color, color2) => `
       <rect x="0" y="0" width="200" height="200" fill="${color}"/>
-      <rect x="0" y="40" width="200" height="20" fill="${adjustBrightness(color, -40)}"/>
-      <rect x="0" y="90" width="200" height="20" fill="${adjustBrightness(color, -40)}"/>
-      <rect x="0" y="140" width="200" height="20" fill="${adjustBrightness(color, -40)}"/>
+      <rect x="0" y="40" width="200" height="20" fill="${color2}"/>
+      <rect x="0" y="90" width="200" height="20" fill="${color2}"/>
+      <rect x="0" y="140" width="200" height="20" fill="${color2}"/>
     `
   },
-  horizontalStripesBright: {
-    name: 'Horizontal Stripes (Bright)',
-    render: (color) => `
-      <rect x="0" y="0" width="200" height="200" fill="${color}"/>
-      <rect x="0" y="40" width="200" height="20" fill="${adjustBrightness(color, 40)}"/>
-      <rect x="0" y="90" width="200" height="20" fill="${adjustBrightness(color, 40)}"/>
-      <rect x="0" y="140" width="200" height="20" fill="${adjustBrightness(color, 40)}"/>
-    `
-  },
-  quarteredDark: {
-    name: 'Quartered (Dark)',
-    render: (color) => `
+  quartered: {
+    name: 'Quartered',
+    render: (color, color2) => `
       <rect x="0" y="0" width="100" height="100" fill="${color}"/>
-      <rect x="100" y="0" width="100" height="100" fill="${adjustBrightness(color, -40)}"/>
-      <rect x="0" y="100" width="100" height="100" fill="${adjustBrightness(color, -40)}"/>
+      <rect x="100" y="0" width="100" height="100" fill="${color2}"/>
+      <rect x="0" y="100" width="100" height="100" fill="${color2}"/>
       <rect x="100" y="100" width="100" height="100" fill="${color}"/>
     `
   },
-  quarteredBright: {
-    name: 'Quartered (Bright)',
-    render: (color) => `
-      <rect x="0" y="0" width="100" height="100" fill="${color}"/>
-      <rect x="100" y="0" width="100" height="100" fill="${adjustBrightness(color, 40)}"/>
-      <rect x="0" y="100" width="100" height="100" fill="${adjustBrightness(color, 40)}"/>
-      <rect x="100" y="100" width="100" height="100" fill="${color}"/>
-    `
-  },
-  diagonalDark: {
-    name: 'Diagonal (Dark)',
-    render: (color) => `
+  diagonal: {
+    name: 'Diagonal',
+    render: (color, color2) => `
       <rect x="0" y="0" width="200" height="200" fill="${color}"/>
-      <polygon points="0,0 200,0 0,200" fill="${adjustBrightness(color, -40)}"/>
+      <polygon points="0,0 200,0 0,200" fill="${color2}"/>
     `
   },
-  diagonalBright: {
-    name: 'Diagonal (Bright)',
-    render: (color) => `
-      <rect x="0" y="0" width="200" height="200" fill="${color}"/>
-      <polygon points="0,0 200,0 0,200" fill="${adjustBrightness(color, 40)}"/>
-    `
-  },
-  halvedDark: {
-    name: 'Halved (Dark)',
-    render: (color) => `
+  halved: {
+    name: 'Halved',
+    render: (color, color2) => `
       <rect x="0" y="0" width="100" height="200" fill="${color}"/>
-      <rect x="100" y="0" width="100" height="200" fill="${adjustBrightness(color, -40)}"/>
-    `
-  },
-  halvedBright: {
-    name: 'Halved (Bright)',
-    render: (color) => `
-      <rect x="0" y="0" width="100" height="200" fill="${color}"/>
-      <rect x="100" y="0" width="100" height="200" fill="${adjustBrightness(color, 40)}"/>
+      <rect x="100" y="0" width="100" height="200" fill="${color2}"/>
     `
   }
 }
@@ -182,7 +147,7 @@ export const EMBLEM_COLORS = [
  * @param {number} percent
  * @returns {string}
  */
-function adjustBrightness (hex, percent) {
+export function adjustBrightness (hex, percent) {
   const num = parseInt(hex.replace('#', ''), 16)
   const amt = Math.round(2.55 * percent)
   const R = Math.max(0, Math.min(255, (num >> 16) + amt))
@@ -196,7 +161,8 @@ function adjustBrightness (hex, percent) {
  * @param {Object} options
  * @param {string} options.shape - Shape key from EMBLEM_SHAPES
  * @param {string} options.pattern - Pattern key from EMBLEM_PATTERNS
- * @param {string} options.color - Hex color
+ * @param {string} options.color - Primary hex color
+ * @param {string} [options.color2] - Secondary hex color for pattern
  * @param {string} options.teamName - Team name to display
  * @param {number} [options.size=200] - Size of the emblem
  * @returns {string} SVG string
@@ -205,11 +171,12 @@ export function generateEmblem ({
   shape,
   pattern,
   color,
+  color2,
   teamName,
   size = 200
 }) {
   const shapeData = EMBLEM_SHAPES[shape] || EMBLEM_SHAPES.shield
-  const patternData = EMBLEM_PATTERNS[pattern] || EMBLEM_PATTERNS.stripesBright
+  const patternData = EMBLEM_PATTERNS[pattern] || EMBLEM_PATTERNS.stripes
 
   // Get display name (last word of team name)
   const nameParts = teamName.split(' ')
@@ -227,7 +194,7 @@ export function generateEmblem ({
 
   <!-- Background pattern clipped to shape -->
   <g clip-path="url(#${clipId})">
-    ${patternData.render(color)}
+    ${patternData.render(color, color2 || color)}
   </g>
 
   <!-- Shape border -->

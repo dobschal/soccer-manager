@@ -306,8 +306,8 @@ async function _ajustAmountOfTeams () {
  * @returns {Promise<Team>}
  */
 async function _createRandomTeam (level) {
-  const { shape, pattern, color } = generateRandomEmblem()
-  const emblem = JSON.stringify({ shape, pattern, color })
+  const { shape, pattern, color, color2 } = generateRandomEmblem()
+  const emblem = JSON.stringify({ shape, pattern, color, color2 })
 
   const team = new Team({
     name: _generateRandomTeamName(),
