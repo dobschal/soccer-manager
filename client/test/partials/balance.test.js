@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Mock dependencies
 vi.mock('../../lib/gateway.js', () => ({
@@ -22,6 +22,11 @@ import { server } from '../../lib/gateway.js'
 describe('Balance', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('template', () => {

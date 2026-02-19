@@ -10,7 +10,6 @@ import { StadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
-import { SimulatorPage } from './pages/simulator.js'
 import { initLocale } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 
@@ -34,7 +33,6 @@ const pages = {
   results: [NativeAppLayout, ResultsPage],
   login: [DefaultLayout, LandingPage],
   'my-team': [NativeAppLayout, MyTeamPage],
-  simulator: [NativeAppLayout, SimulatorPage],
   '*': [NativeAppLayout, DashboardPage]
 }
 
