@@ -673,12 +673,20 @@ export class MyTeamPage extends UIElement {
     ).join('')
 
     const prefix2Options = clubPrefixes2.map(p =>
-      `<option value="${escapeHtml(p)}" ${p === selectedPrefix2 ? 'selected' : ''}>${escapeHtml(p)}</option>`
+      `<option value="${escapeHtml(p)}" ${p === selectedPrefix2 ? 'selected' : ''}>${escapeHtml(p) || '(none)'}</option>`
     ).join('')
 
-    const cityOptions = cityNames.map(c =>
-      `<option value="${escapeHtml(c)}" ${c === selectedCity ? 'selected' : ''}>${escapeHtml(c)}</option>`
-    ).join('')
+    const sortedCityNames = [...cityNames].sort((a, b) => a.localeCompare(b))
+    let currentLetter = ''
+    const cityOptions = sortedCityNames.map(c => {
+      const firstLetter = c.charAt(0).toUpperCase()
+      let divider = ''
+      if (firstLetter !== currentLetter) {
+        currentLetter = firstLetter
+        divider = `<option disabled>── ${firstLetter} ──</option>`
+      }
+      return `${divider}<option value="${escapeHtml(c)}" ${c === selectedCity ? 'selected' : ''}>${escapeHtml(c)}</option>`
+    }).join('')
 
     // Add change listeners
     setTimeout(() => {

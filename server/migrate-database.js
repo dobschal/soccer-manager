@@ -891,6 +891,37 @@ const migrations = [{
     await query("UPDATE action_card SET state='played' WHERE played=1")
     console.log('✅ Added state column to action_card table')
   }
+},
+{
+  name: 'Rename all bot teams with new random names',
+  async run () {
+    const nameLibrary = await import('./lib/name-library.js')
+    const util = await import('./lib/util.js')
+
+    function generateName () {
+      let prefix1, prefix2
+      do {
+        prefix1 = util.randomItem(nameLibrary.clubPrefixes1)
+        prefix2 = util.randomItem(nameLibrary.clubPrefixes2)
+      } while (!prefix1 && !prefix2)
+      return `${prefix1} ${prefix2} ${util.randomItem(nameLibrary.cityNames)}`.replace(/\s+/g, ' ').trim()
+    }
+
+    const botTeams = await query('SELECT id FROM team WHERE user_id IS NULL')
+    const usedNames = new Set()
+    let updated = 0
+
+    for (const team of botTeams) {
+      let name
+      do {
+        name = generateName()
+      } while (usedNames.has(name))
+      usedNames.add(name)
+      await query('UPDATE team SET name=? WHERE id=?', [name, team.id])
+      updated++
+    }
+    console.log(`✅ Renamed ${updated} bot teams with new random names`)
+  }
 }]
 
 /**

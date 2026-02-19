@@ -408,7 +408,12 @@ async function _newGamesNeeded () {
  * @returns {string}
  */
 function _generateRandomTeamName () {
-  return `${randomItem(clubPrefixes1)} ${randomItem(clubPrefixes2)} ${randomItem(cityNames)}`.trim()
+  let prefix1, prefix2
+  do {
+    prefix1 = randomItem(clubPrefixes1)
+    prefix2 = randomItem(clubPrefixes2)
+  } while (!prefix1 && !prefix2)
+  return `${prefix1} ${prefix2} ${randomItem(cityNames)}`.replace(/\s+/g, ' ').trim()
 }
 
 /**
