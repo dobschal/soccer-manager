@@ -85,6 +85,53 @@
     background: rgba(0, 0, 0, 0.5);
 }
 
+/* Card gradient clash animation */
+.card-gradient-animate {
+    position: relative !important;
+    overflow: hidden !important;
+    isolation: isolate;
+}
+
+.card-gradient-animate::before,
+.card-gradient-animate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.card-gradient-animate::before {
+    background: linear-gradient(-55deg, transparent 48.999%, var(--color-left-50) 49%, var(--color-left-25));
+    animation: clash-from-left 1s cubic-bezier(1, 0, .91, 1) forwards;
+}
+
+.card-gradient-animate::after {
+    background: linear-gradient(-55deg, var(--color-right-25), var(--color-right-50) 48.999%, transparent 49%);
+    animation: clash-from-right 1s cubic-bezier(1, 0, .91, 1) forwards;
+}
+
+@keyframes clash-from-left {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+@keyframes clash-from-right {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
 /* Countdown Badge */
 .countdown-badge {
     font-size: 1.2rem;

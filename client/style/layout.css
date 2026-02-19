@@ -13,6 +13,10 @@
     background: linear-gradient(136deg, #222 0%, #333 100%);
 }
 
+.game-layout {
+    padding-top: 9rem;
+}
+
 /* ==========================================================================
    Navbar
    ========================================================================== */
@@ -140,7 +144,6 @@ a:visited.row {
     animation-timing-function: cubic-bezier(.65, .27, .69, 1.42);
     transition: transform 0.3s ease-in-out;
     will-change: auto;
-    margin-top: 9rem;
     margin-bottom: 5rem;
     min-height: calc(100vh - 12rem);
     display: flex;
@@ -221,8 +224,12 @@ a:visited.row {
 }
 
 @media screen and (max-width: 768px) {
+
+    .game-layout {
+        padding-top: 6rem;
+    }
+
     #page {
-        margin-top: 6rem;
         border-radius: 0;
     }
 
