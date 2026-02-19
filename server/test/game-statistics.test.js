@@ -269,65 +269,92 @@ describe('Play Style Impact on Statistics', () => {
 })
 
 describe('Randomness Control - Same Game Reproducibility', () => {
-  it('replaying the same matchup many times should rarely differ by more than 2 goals', () => {
-    const NUM_REPLAYS = 200
-    // Create two fixed teams
-    const teamATemplate = createTeam({ minLevel: 45, maxLevel: 55, playStyle: 'normal', formation: '442b' })
-    const teamBTemplate = createTeam({ minLevel: 45, maxLevel: 55, playStyle: 'normal', formation: '433' })
+  // Shared replay data for all tests in this block
+  const NUM_REPLAYS = 300
+  const replays = []
 
-    const totalGoals = []
+  beforeAll(() => {
+    const teamA = createTeam({ minLevel: 45, maxLevel: 55, playStyle: 'normal', formation: '442b' })
+    const teamB = createTeam({ minLevel: 45, maxLevel: 55, playStyle: 'normal', formation: '433' })
+
     for (let i = 0; i < NUM_REPLAYS; i++) {
-      const game = simulateGame(teamATemplate, teamBTemplate)
-      totalGoals.push((game.goalsTeamA || 0) + (game.goalsTeamB || 0))
+      const game = simulateGame(teamA, teamB)
+      replays.push({
+        goalsA: game.goalsTeamA || 0,
+        goalsB: game.goalsTeamB || 0,
+        result: (game.goalsTeamA || 0) - (game.goalsTeamB || 0),
+        yellows: countYellowCards(game),
+        reds: countRedCards(game)
+      })
     }
+  })
 
-    // Compare all pairs: count how often the total goals differ by > 4
-    // (which approximates a 3+ goal swing in the result)
+  it('results should not always be identical (there must be variation)', () => {
+    const uniqueResults = new Set(replays.map(r => `${r.goalsA}-${r.goalsB}`))
+    originalLog(`  Unique scorelines: ${uniqueResults.size} out of ${NUM_REPLAYS} replays`)
+    expect(uniqueResults.size).toBeGreaterThan(3)
+  })
+
+  it('result difference between replays should rarely be 3 or more goals', () => {
+    // Compare consecutive pairs: check how the match result (goalsA - goalsB)
+    // differs between two replays of the same matchup
     let bigDiffCount = 0
     let totalComparisons = 0
     for (let i = 0; i < NUM_REPLAYS; i++) {
       for (let j = i + 1; j < Math.min(i + 10, NUM_REPLAYS); j++) {
         totalComparisons++
-        if (Math.abs(totalGoals[i] - totalGoals[j]) > 4) {
+        const resultDiff = Math.abs(replays[i].result - replays[j].result)
+        if (resultDiff >= 3) {
           bigDiffCount++
         }
       }
     }
 
     const bigDiffPct = (bigDiffCount / totalComparisons) * 100
-    originalLog(`  Large total-goal difference (>4) between replays: ${bigDiffPct.toFixed(1)}% of ${totalComparisons} comparisons`)
-    // At most 20% of replays should have a huge total goal difference
-    expect(bigDiffPct).toBeLessThan(20)
+    originalLog(`  Result difference >= 3 goals between replays: ${bigDiffPct.toFixed(1)}% of ${totalComparisons} comparisons`)
+    // A 3+ goal swing in the result between two replays should be rare (< 40%)
+    expect(bigDiffPct).toBeLessThan(40)
   })
 
-  it('same team replays should have goal results within a reasonable range', () => {
-    const NUM_REPLAYS = 100
-    const teamA = createTeam({ minLevel: 50, maxLevel: 50, playStyle: 'normal', formation: '442b' })
-    const teamB = createTeam({ minLevel: 50, maxLevel: 50, playStyle: 'normal', formation: '442b' })
+  it('goals scored and conceded should be similar across replays', () => {
+    const avgA = replays.reduce((s, r) => s + r.goalsA, 0) / NUM_REPLAYS
+    const avgB = replays.reduce((s, r) => s + r.goalsB, 0) / NUM_REPLAYS
+    const maxA = Math.max(...replays.map(r => r.goalsA))
+    const maxB = Math.max(...replays.map(r => r.goalsB))
 
-    const goalsA = []
-    const goalsB = []
-    for (let i = 0; i < NUM_REPLAYS; i++) {
-      const game = simulateGame(teamA, teamB)
-      goalsA.push(game.goalsTeamA || 0)
-      goalsB.push(game.goalsTeamB || 0)
-    }
+    originalLog(`  Team A goals: avg=${avgA.toFixed(2)}, max=${maxA}`)
+    originalLog(`  Team B goals: avg=${avgB.toFixed(2)}, max=${maxB}`)
 
-    const avgA = goalsA.reduce((a, b) => a + b, 0) / NUM_REPLAYS
-    const avgB = goalsB.reduce((a, b) => a + b, 0) / NUM_REPLAYS
-    const maxA = Math.max(...goalsA)
-    const minA = Math.min(...goalsA)
-    const maxB = Math.max(...goalsB)
-    const minB = Math.min(...goalsB)
-
-    originalLog(`  Team A goals: avg=${avgA.toFixed(2)}, min=${minA}, max=${maxA}`)
-    originalLog(`  Team B goals: avg=${avgB.toFixed(2)}, min=${minB}, max=${maxB}`)
-
-    // With equal teams, averages should be somewhat close
+    // With similar-strength teams, averages should be close
     expect(Math.abs(avgA - avgB)).toBeLessThan(1.0)
-    // Max goals for a single team in a match should not be absurd
-    expect(maxA).toBeLessThan(12)
-    expect(maxB).toBeLessThan(12)
+    // No team should score an absurd number in a single match
+    expect(maxA).toBeLessThan(10)
+    expect(maxB).toBeLessThan(10)
+  })
+
+  it('yellow cards should be similar across replays', () => {
+    const avgYellows = replays.reduce((s, r) => s + r.yellows, 0) / NUM_REPLAYS
+    const maxYellows = Math.max(...replays.map(r => r.yellows))
+    const minYellows = Math.min(...replays.map(r => r.yellows))
+
+    originalLog(`  Yellow cards: avg=${avgYellows.toFixed(2)}, min=${minYellows}, max=${maxYellows}`)
+
+    // Yellow card range across replays should not be wildly different
+    expect(maxYellows - minYellows).toBeLessThan(12)
+    // Average should be in the Bundesliga ballpark
+    expect(avgYellows).toBeGreaterThan(2.0)
+    expect(avgYellows).toBeLessThan(5.0)
+  })
+
+  it('red cards should be similar across replays', () => {
+    const avgReds = replays.reduce((s, r) => s + r.reds, 0) / NUM_REPLAYS
+    const maxReds = Math.max(...replays.map(r => r.reds))
+
+    originalLog(`  Red cards: avg=${avgReds.toFixed(3)}, max=${maxReds}`)
+
+    // Red cards should be rare; no replay should produce an absurd number
+    expect(avgReds).toBeLessThan(0.3)
+    expect(maxReds).toBeLessThan(4)
   })
 })
 

@@ -72,15 +72,15 @@ async function _resolvePage () {
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
   }
-  if (currentPath === lastPath) {
-    fire('query-changed', getQueryParams())
-    return
-  }
   window.scrollTo({
     top: 0,
     left: 0,
     behavior: 'smooth'
   })
+  if (currentPath === lastPath) {
+    fire('query-changed', getQueryParams())
+    return
+  }
   lastPath = currentPath
   const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
   const layoutChanged = await _renderLayout(layoutRenderFn)

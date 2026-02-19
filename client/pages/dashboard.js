@@ -84,6 +84,7 @@ export class DashboardPage extends UIElement {
       initialSlideIndex: this._initialSlideIndex,
       team: this.team,
       cupGames: this._cupGames,
+      cupResultAlreadySeen: this._cupResultAlreadySeen,
       friendlyGames: this._friendlyGames,
       standing: this.standing,
       teamPosition: this.teamPosition,
@@ -152,6 +153,11 @@ export class DashboardPage extends UIElement {
     const resultAlreadySeen = localStorage.getItem(resultSeenKey)
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, resultAlreadySeen)
     localStorage.setItem(resultSeenKey, '1')
+
+    // Same logic for cup games
+    const cupResultSeenKey = `cupResultSeen_${this.season}_${this.gameDay}`
+    this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
+    localStorage.setItem(cupResultSeenKey, '1')
 
     // Fetch current standing, urgencies, action card count, and pending cards in parallel
     const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse] = await Promise.all([

@@ -13,16 +13,18 @@ export class StartPage {
    * @param {number} options.initialSlideIndex
    * @param {object} options.team
    * @param {Array} options.cupGames
+   * @param {boolean} options.cupResultAlreadySeen
    * @param {Array} options.friendlyGames
    * @param {Array} options.standing
    * @param {number} options.teamPosition
    * @param {Array} options.urgencies
    */
-  constructor ({ sliderGames, initialSlideIndex, team, cupGames, friendlyGames, standing, teamPosition, urgencies }) {
+  constructor ({ sliderGames, initialSlideIndex, team, cupGames, cupResultAlreadySeen, friendlyGames, standing, teamPosition, urgencies }) {
     this._sliderGames = sliderGames
     this._initialSlideIndex = initialSlideIndex
     this.team = team
     this._cupGames = cupGames
+    this._cupResultAlreadySeen = cupResultAlreadySeen
     this._friendlyGames = friendlyGames
     this.standing = standing
     this.teamPosition = teamPosition
@@ -159,7 +161,7 @@ export class StartPage {
     const cupSliderArgs = {
       games: this._cupGames,
       teamId: this.team.id,
-      initialIndex: this._findInitialSlideIndex(this._cupGames),
+      initialIndex: this._findCupInitialSlideIndex(),
       cardId
     }
 
@@ -255,23 +257,18 @@ export class StartPage {
   }
 
   /**
-   * Find the initial slide index for a game slider.
-   * @param {Array} games
+   * Find the initial slide index for the cup game slider.
+   * Shows the latest result on first visit, then the next upcoming game on subsequent visits.
    * @returns {number}
    */
-  _findInitialSlideIndex (games) {
-    const TWO_HOURS = 2 * 60 * 60 * 1000
-    const now = Date.now()
+  _findCupInitialSlideIndex () {
+    const lastPlayedIndex = this._cupGames.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
+    const nextUpcomingIndex = this._cupGames.findIndex(g => !g.isPlayed && g.gameDate)
 
-    const nextUpcomingIndex = games.findIndex(g => !g.isPlayed && g.gameDate)
-    if (nextUpcomingIndex !== -1) {
-      const gameTime = new Date(games[nextUpcomingIndex].gameDate).getTime()
-      if (gameTime - now < TWO_HOURS) {
-        return nextUpcomingIndex
-      }
+    if (this._cupResultAlreadySeen && nextUpcomingIndex !== -1) {
+      return nextUpcomingIndex
     }
 
-    const lastPlayedIndex = games.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
     return Math.max(0, lastPlayedIndex)
   }
 }
