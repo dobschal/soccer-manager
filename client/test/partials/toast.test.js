@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../../lib/html.js', () => ({
   generateId: vi.fn().mockReturnValue('test-toast-id'),
-  el: vi.fn()
+  el: vi.fn((query) => document.querySelector(query))
 }))
 
 vi.mock('../../lib/htmlEventHandlers.js', () => ({
@@ -56,7 +56,10 @@ describe('toast', () => {
 
   it('removes toast after 5 seconds', () => {
     const mockElement = { remove: vi.fn() }
-    el.mockReturnValue(mockElement)
+    el.mockImplementation((query) => {
+      if (query === '#test-toast-id') return mockElement
+      return document.querySelector(query)
+    })
 
     toast('Message')
 
