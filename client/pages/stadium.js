@@ -34,6 +34,13 @@ export class StadiumPage extends UIElement {
           if (input) {
             const name = input.dataset.priceInput
             this.stadium[name + '_stand_price'] = Number(input.value)
+            this._updatePriceButton()
+          }
+        },
+        click: (event) => {
+          if (event.target.closest('#cancel-prices-btn')) {
+            event.preventDefault()
+            this._resetPrices()
           }
         }
       },
@@ -51,6 +58,12 @@ export class StadiumPage extends UIElement {
             const name = roofInput.dataset.roofInput
             this.stadium[name + '_stand_roof'] = roofInput.checked ? 1 : 0
             await this._updatePrice()
+          }
+        },
+        click: (event) => {
+          if (event.target.closest('#cancel-expand-btn')) {
+            event.preventDefault()
+            this._resetExpand()
           }
         }
       }
@@ -125,6 +138,22 @@ export class StadiumPage extends UIElement {
       server.getConstructionHistory()
     ])
     this.stadium = stadiumResponse.stadium
+    this._originalPrices = {
+      north: this.stadium.north_stand_price,
+      south: this.stadium.south_stand_price,
+      east: this.stadium.east_stand_price,
+      west: this.stadium.west_stand_price
+    }
+    this._originalExpand = {
+      north_size: this.stadium.north_stand_size,
+      south_size: this.stadium.south_stand_size,
+      east_size: this.stadium.east_stand_size,
+      west_size: this.stadium.west_stand_size,
+      north_roof: this.stadium.north_stand_roof,
+      south_roof: this.stadium.south_stand_roof,
+      east_roof: this.stadium.east_stand_roof,
+      west_roof: this.stadium.west_stand_roof
+    }
     this.constructionInfo = stadiumResponse.constructionInfo || {}
     this.team = teamResponse.team
     this.attendanceData = attendanceResponse.attendance || []
@@ -161,10 +190,61 @@ export class StadiumPage extends UIElement {
     event.preventDefault()
     try {
       await server.updatePrices(this.stadium)
-      toast(t('stadium.pricesUpdated'))
+      this._originalPrices = {
+        north: this.stadium.north_stand_price,
+        south: this.stadium.south_stand_price,
+        east: this.stadium.east_stand_price,
+        west: this.stadium.west_stand_price
+      }
+      this._updatePriceButton()
+      toast(t('stadium.pricesUpdated'), 'success')
     } catch (e) {
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
+  }
+
+  _updatePriceButton () {
+    const btn = el(`${this._elementQuery} #save-prices-btn`)
+    const cancelBtn = el(`${this._elementQuery} #cancel-prices-btn`)
+    if (!btn) return
+    const hasChange = ['north', 'south', 'east', 'west'].some(
+      name => this.stadium[name + '_stand_price'] !== this._originalPrices[name]
+    )
+    btn.disabled = !hasChange
+    btn.className = hasChange ? 'btn btn-success' : 'btn btn-primary'
+    if (cancelBtn) cancelBtn.className = hasChange ? 'btn btn-secondary ml-2' : 'btn btn-secondary ml-2 d-none'
+  }
+
+  _resetPrices () {
+    for (const name of ['north', 'south', 'east', 'west']) {
+      this.stadium[name + '_stand_price'] = this._originalPrices[name]
+      const input = el(`${this._elementQuery} [data-price-input="${name}"]`)
+      if (input) input.value = this._originalPrices[name]
+    }
+    this._updatePriceButton()
+  }
+
+  _resetExpand () {
+    for (const name of ['north', 'south', 'east', 'west']) {
+      this.stadium[name + '_stand_size'] = this._originalExpand[name + '_size']
+      this.stadium[name + '_stand_roof'] = this._originalExpand[name + '_roof']
+      const sizeInput = el(`${this._elementQuery} [data-size-input="${name}"]`)
+      if (sizeInput) sizeInput.value = this._originalExpand[name + '_size']
+      const roofInput = el(`${this._elementQuery} [data-roof-input="${name}"]`)
+      if (roofInput) roofInput.checked = !!this._originalExpand[name + '_roof']
+    }
+    this._hasValidConstruction = false
+    const submitBtn = el(`${this._elementQuery} #start-construction-btn`)
+    const cancelBtn = el(`${this._elementQuery} #cancel-expand-btn`)
+    if (submitBtn) {
+      submitBtn.disabled = true
+      submitBtn.className = 'btn btn-primary'
+    }
+    if (cancelBtn) cancelBtn.className = 'btn btn-secondary ml-2 d-none'
+    const priceEl = el(`${this._elementQuery} #total-price`)
+    if (priceEl) priceEl.innerText = '0 €'
+    const previewEl = el(`${this._elementQuery} #construction-time-preview`)
+    if (previewEl) previewEl.innerHTML = ''
   }
 
   /**
@@ -195,7 +275,8 @@ export class StadiumPage extends UIElement {
    * @returns {Promise<void>}
    */
   async _updatePrice () {
-    const submitBtn = el(`${this._elementQuery} #stadium-form button[type="submit"]`)
+    const submitBtn = el(`${this._elementQuery} #start-construction-btn`)
+    const cancelBtn = el(`${this._elementQuery} #cancel-expand-btn`)
 
     try {
       const {
@@ -237,13 +318,17 @@ export class StadiumPage extends UIElement {
       this._hasValidConstruction = hasValidChanges
       if (submitBtn) {
         submitBtn.disabled = !hasValidChanges
+        submitBtn.className = hasValidChanges ? 'btn btn-success' : 'btn btn-primary'
       }
+      if (cancelBtn) cancelBtn.className = hasValidChanges ? 'btn btn-secondary ml-2' : 'btn btn-secondary ml-2 d-none'
     } catch (e) {
       // Disable button on error
       this._hasValidConstruction = false
       if (submitBtn) {
         submitBtn.disabled = true
+        submitBtn.className = 'btn btn-primary'
       }
+      if (cancelBtn) cancelBtn.className = 'btn btn-secondary ml-2 d-none'
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
   }
@@ -275,7 +360,8 @@ export class StadiumPage extends UIElement {
       <div class="row">
         ${formGroups}
       </div>
-      <button type="submit" class="btn btn-primary">${t('stadium.savePrices')}</button>
+      <button type="submit" class="btn btn-primary" id="save-prices-btn" disabled>${t('stadium.savePrices')}</button>
+      <button type="button" class="btn btn-secondary ml-2 d-none" id="cancel-prices-btn">${t('stadium.cancel')}</button>
     `
   }
 
@@ -330,7 +416,8 @@ export class StadiumPage extends UIElement {
         ${t('stadium.totalPrice')} <span id="total-price">0 €</span>
       </p>
       <div id="construction-time-preview" class="mb-3"></div>
-      <button type="submit" class="btn btn-primary" disabled>${t('stadium.startConstruction')}</button>
+      <button type="submit" class="btn btn-primary" id="start-construction-btn" disabled>${t('stadium.startConstruction')}</button>
+      <button type="button" class="btn btn-secondary ml-2 d-none" id="cancel-expand-btn">${t('stadium.cancel')}</button>
     `
   }
 

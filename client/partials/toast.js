@@ -9,8 +9,14 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 export function toast (text, type = 'info') {
   const id = generateId()
 
-  document.body.insertAdjacentHTML('beforeend', `
-    <div id="${id}" class="toast ${type === 'error' ? 'bg-danger' : type === 'success' ? 'bg-success' : 'bg-dark'} text-white  show" data-autohide="false">
+  let container = el('#toast-container')
+  if (!container) {
+    document.body.insertAdjacentHTML('beforeend', '<div id="toast-container"></div>')
+    container = el('#toast-container')
+  }
+
+  container.insertAdjacentHTML('beforeend', `
+    <div id="${id}" class="toast ${type === 'error' ? 'bg-danger' : type === 'success' ? 'bg-success' : 'bg-dark'} text-white show" data-autohide="false">
       <div class="toast-body">
         ${text}
       </div>
