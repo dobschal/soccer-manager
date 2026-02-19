@@ -376,7 +376,7 @@ async function _giveUsersActionCards () {
  * @returns {Promise<StadiumDetails>}
  */
 async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strengthTeamB, gameDay, season) {
-  const strengthFactor = (strengthTeamA || 0) * (strengthTeamB || 0)
+  const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 100
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [teamA.id])
 
   // If no stadium found, return empty details with no earnings

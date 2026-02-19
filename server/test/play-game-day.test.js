@@ -355,7 +355,7 @@ describe('stadium ticket earnings', () => {
    * Simulates the stadium earnings calculation logic from _giveStadiumTicketEarnings
    */
   function calculateStadiumDetails (stadium, strengthTeamA, strengthTeamB) {
-    const strengthFactor = (strengthTeamA || 0) * (strengthTeamB || 0)
+    const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 100
     const stands = ['north', 'south', 'west', 'east']
     const details = {}
     let totalEarnings = 0
@@ -518,9 +518,9 @@ describe('stadium ticket earnings', () => {
         east_stand_size: 0
       }
 
-      const details = calculateStadiumDetails(stadium, 100, 100)
+      const details = calculateStadiumDetails(stadium, 1000, 1000)
 
-      // strengthFactor = 100 * 100 = 10000
+      // strengthFactor = (1000 * 1000) / 100 = 10000
       // priceFactor = 15 / 15 = 1
       // guests = min(10000, 10000 * 1 * 1) = 10000
       expect(details.northGuests).toBe(10000)
@@ -535,9 +535,9 @@ describe('stadium ticket earnings', () => {
         east_stand_size: 0
       }
 
-      const details = calculateStadiumDetails(stadium, 100, 100)
+      const details = calculateStadiumDetails(stadium, 1000, 1000)
 
-      // strengthFactor = 10000, priceFactor = 15/1 = 15
+      // strengthFactor = (1000 * 1000) / 100 = 10000, priceFactor = 15/1 = 15
       // guests = min(100, 10000 * 15) = 100 (capped at size)
       expect(details.northGuests).toBe(100)
     })
@@ -561,8 +561,8 @@ describe('stadium ticket earnings', () => {
         east_stand_size: 0
       }
 
-      const detailsNoRoof = calculateStadiumDetails(stadiumNoRoof, 50, 50)
-      const detailsWithRoof = calculateStadiumDetails(stadiumWithRoof, 50, 50)
+      const detailsNoRoof = calculateStadiumDetails(stadiumNoRoof, 500, 500)
+      const detailsWithRoof = calculateStadiumDetails(stadiumWithRoof, 500, 500)
 
       // Both should be capped or roof version should be 20% higher
       expect(detailsWithRoof.northGuests).toBeGreaterThanOrEqual(detailsNoRoof.northGuests)
