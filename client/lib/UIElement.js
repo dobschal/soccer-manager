@@ -193,7 +193,8 @@ export class UIElement {
    * @private
    */
   _applyEventHandlers () {
-    for (let elementQuery in this.events) {
+    for (const originalQuery in this.events) {
+      let elementQuery = originalQuery
       const isOptional = elementQuery.toLowerCase().startsWith('(optional)')
       if (isOptional) {
         elementQuery = elementQuery.replace('(optional)', '').trim()
@@ -214,8 +215,8 @@ export class UIElement {
           continue
         }
       }
-      for (const eventName in this.events[elementQuery]) {
-        element.addEventListener(eventName, this.events[elementQuery][eventName].bind(this))
+      for (const eventName in this.events[originalQuery]) {
+        element.addEventListener(eventName, this.events[originalQuery][eventName].bind(this))
       }
     }
   }

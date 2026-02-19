@@ -62,9 +62,9 @@ export default {
     await query('DELETE FROM action_card WHERE team_id=?', [team.id])
     // Give new user 3 starter action cards
     const starterCards = [
-      new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0 }),
-      new ActionCard({ team_id: team.id, action: 'FRESHNESS_10', played: 0 }),
-      new ActionCard({ team_id: team.id, action: 'CHANGE_PLAYER_POSITION', played: 0 })
+      new ActionCard({ team_id: team.id, action: 'CHANGE_PLAYER_POSITION', played: 0 }),
+      new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER', played: 0 }),
+      new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0 })
     ]
     for (const card of starterCards) {
       await query('INSERT INTO action_card SET ?', card)
