@@ -71,34 +71,63 @@ async function _playCupGames (gameDay, season) {
     [season, gameDay]
   )
 
-  if (cupGames.length === 0) {
-    return console.log('No cup games to play on this game day')
-  }
+  if (cupGames.length > 0) {
+    console.log(`Playing ${cupGames.length} cup games...`)
 
-  console.log(`Playing ${cupGames.length} cup games...`)
+    // Track which rounds had games played this game day
+    const roundsPlayed = new Set()
+    for (const game of cupGames) {
+      await _playCupGame(game)
+      roundsPlayed.add(game.cup_round)
+    }
 
-  for (const game of cupGames) {
-    await _playCupGame(game)
-  }
-
-  // Check if any rounds are complete and progress them
-  const rounds = await getCupRoundsForSeason(season)
-  for (const round of rounds) {
-    if (round.played) continue
-
-    // Check if all games in this round are now played
-    const unplayedInRound = await query(
-      'SELECT * FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=? AND played=0',
-      [season, round.round]
-    )
-
-    if (unplayedInRound.length === 0) {
-      const result = await progressCupRound(season, round.round)
+    // Progress rounds that just had all their games completed
+    for (const roundNumber of roundsPlayed) {
+      const result = await progressCupRound(season, roundNumber)
       if (result.isComplete) {
         console.log('🏆 Cup is complete!')
       } else if (result.advanced) {
-        console.log(`Cup round ${round.round} complete, advanced to next round`)
+        console.log(`Cup round ${roundNumber} complete, advanced to next round`)
       }
+    }
+  } else {
+    console.log('No cup games to play on this game day')
+  }
+
+  // Catch-up: check for any fully played rounds that were never progressed
+  await _progressUnhandledCupRounds(season)
+}
+
+/**
+ * Check for cup rounds where all games are played but the next round was never created.
+ * This handles recovery from the bug where progression was skipped.
+ * @param {number} season
+ * @returns {Promise<void>}
+ */
+async function _progressUnhandledCupRounds (season) {
+  const rounds = await getCupRoundsForSeason(season)
+
+  for (const round of rounds) {
+    if (!round.played) continue
+
+    // Check if this round has already been progressed by looking for next round games
+    const nextRoundNumber = Math.floor(round.round / 2)
+    if (nextRoundNumber >= 1) {
+      const [{ count }] = await query(
+        'SELECT COUNT(*) as count FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=?',
+        [season, nextRoundNumber]
+      )
+      if (count > 0) continue // Next round already exists
+    } else {
+      continue // round.round is 1 (the final) and it's played — cup is done
+    }
+
+    console.log(`Cup catch-up: round ${round.round} was played but never progressed, fixing now...`)
+    const result = await progressCupRound(season, round.round)
+    if (result.isComplete) {
+      console.log('🏆 Cup is complete!')
+    } else if (result.advanced) {
+      console.log(`Cup round ${round.round} complete, advanced to next round`)
     }
   }
 }
