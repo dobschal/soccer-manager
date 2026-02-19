@@ -28,6 +28,8 @@ import { off, on } from '../lib/event.js'
 import { initDragDrop } from '../lib/dragDrop.js'
 
 export class MyTeamPage extends UIElement {
+  _extendedPlayerList = false
+
   /**
    * @returns {string}
    */
@@ -47,18 +49,21 @@ export class MyTeamPage extends UIElement {
    * @returns {string}
    */
   _renderATeamPage () {
+    const lineupCol = this._extendedPlayerList ? 'col-xl-4' : 'col-xl-7'
+    const playerListCol = this._extendedPlayerList ? 'col-xl-8' : 'col-xl-5'
+
     return `
       <div id="header">
         ${this._renderHeader()}
       </div>
       <div class="row">
-        <div class="col-12 col-xl-7">
+        <div class="col-12 ${lineupCol}">
           <h3>${t('myTeam.lineup')}</h3>
           <div class="mb-4" id="squad" >
             ${renderLineup(this.data.players, this.data.team, this)}
           </div>
         </div>
-        <div class="col-12 col-xl-5" id="player-list-container">
+        <div class="col-12 ${playerListCol}" id="player-list-container">
           ${new PlayerList(
       this.data.players,
       true,
@@ -67,7 +72,12 @@ export class MyTeamPage extends UIElement {
           player_id: p.id
         })
       },
-      true
+      true,
+      this._extendedPlayerList,
+      () => {
+        this._extendedPlayerList = !this._extendedPlayerList
+        this.update()
+      }
     )}
         </div>
       </div>

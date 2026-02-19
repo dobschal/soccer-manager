@@ -302,10 +302,10 @@ export class GameSlider extends UIElement {
     if (!game) return
     const color2 = game.team1Data?.color || '#1a5f7a'
     const color1 = game.team2Data?.color || '#1a5f7a'
-    card.style.setProperty('--color-left-25', color2 + '10')
-    card.style.setProperty('--color-left-50', color2 + '50')
-    card.style.setProperty('--color-right-25', color1 + '10')
-    card.style.setProperty('--color-right-50', color1 + '50')
+    card.style.setProperty('--color-left-25', color2 + '18')
+    card.style.setProperty('--color-left-50', color2 + '2f')
+    card.style.setProperty('--color-right-25', color1 + '18')
+    card.style.setProperty('--color-right-50', color1 + '2f')
     card.style.background = 'transparent'
     card.classList.remove('card-gradient-animate')
     // Force reflow to restart animation

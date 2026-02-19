@@ -8,12 +8,17 @@ import { setQueryParams } from '../../lib/router.js'
 import { calculatePlayerAge, sortByPosition } from '../../util/player.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { Position } from '../../util/formation.js'
+
+const PAGE_SIZE = 20
 
 export class MarketPage extends UIElement {
   team = {}
   offers = []
   players = []
   teams = []
+  _page = 0
+  _positionFilter = ''
 
   /**
    * @returns {UIElementEvents}
@@ -32,6 +37,33 @@ export class MarketPage extends UIElement {
             this._showBuyDialog(player)
           }
         }
+      },
+      '#market-position-select': {
+        change: (event) => {
+          this._positionFilter = event.target.value
+          this._page = 0
+          this.update()
+        }
+      },
+      '(optional).market-pagination': {
+        click: (event) => {
+          const target = event.target
+
+          if (target.closest('.market-prev')) {
+            this._loadPage(this._page - 1)
+            return
+          }
+
+          if (target.closest('.market-next')) {
+            this._loadPage(this._page + 1)
+            return
+          }
+
+          const pageLink = target.closest('[data-page-index]')
+          if (pageLink) {
+            this._loadPage(parseInt(pageLink.dataset.pageIndex, 10))
+          }
+        }
       }
     }
   }
@@ -40,10 +72,24 @@ export class MarketPage extends UIElement {
    * @returns {string}
    */
   get template () {
-    const sellOffers = this.offers.filter(o => o.type === 'sell' && o.from_team_id !== this.team.id)
+    let sellOffers = this.offers.filter(o => o.type === 'sell' && o.from_team_id !== this.team.id)
+
+    if (this._positionFilter) {
+      sellOffers = sellOffers.filter(o => {
+        const player = this.players.find(p => p.id === o.player_id)
+        return player && player.position === this._positionFilter
+      })
+    }
+
+    const start = this._page * PAGE_SIZE
+    const pageData = sellOffers.slice(start, start + PAGE_SIZE)
+
+    const positionOptions = Object.values(Position).map(pos =>
+      `<option value="${pos}" ${this._positionFilter === pos ? 'selected' : ''}>${t('actionCards.position.' + pos)}</option>`
+    ).join('')
 
     const table = new Table({
-      data: sellOffers,
+      data: pageData,
       cols: this._prepareTableCols(),
       renderRow: offer => {
         const player = this.players.find(p => p.id === offer.player_id)
@@ -64,7 +110,17 @@ export class MarketPage extends UIElement {
       <div>
         <h2>${t('trades.transferMarket')}</h2>
         <p>${t('trades.transferMarketDesc')}</p>
+        <div class="mb-3">
+          <label for="market-position-select" class="form-label">${t('trades.position')}</label>
+          <select id="market-position-select" class="form-select form-select-sm" style="width: auto; display: inline-block;">
+            <option value="" ${!this._positionFilter ? 'selected' : ''}>${t('trades.all')}</option>
+            ${positionOptions}
+          </select>
+        </div>
         ${table}
+        <div class="market-pagination">
+          ${this._renderPagination(sellOffers.length)}
+        </div>
       </div>
     `
   }
@@ -100,7 +156,7 @@ export class MarketPage extends UIElement {
       name: t('results.team'),
       largeScreenOnly: true
     }, {
-      name: t('player.position'),
+      name: `<span class="d-sm-none">POS</span><span class="d-none d-sm-inline">${t('player.position')}</span>`,
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
         const playerB = this.players.find(p => p.id === offerB.player_id)
@@ -111,7 +167,6 @@ export class MarketPage extends UIElement {
       }
     }, {
       name: t('player.age'),
-      largeScreenOnly: true,
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
         const playerB = this.players.find(p => p.id === offerB.player_id)
@@ -121,8 +176,7 @@ export class MarketPage extends UIElement {
       },
       align: 'right'
     }, {
-      name: t('player.level'),
-      largeScreenOnly: true,
+      name: `<span class="d-sm-none">Lev</span><span class="d-none d-sm-inline">${t('player.level')}</span>`,
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
         const playerB = this.players.find(p => p.id === offerB.player_id)
@@ -140,6 +194,69 @@ export class MarketPage extends UIElement {
       name: '',
       largeScreenOnly: true
     }]
+  }
+
+  /**
+   * @param {Object} params
+   * @param {string} params.sort_dir
+   * @param {string} params.col
+   */
+  onQueryChanged ({ sort_dir, col }) {
+    if (sort_dir && col !== undefined) {
+      this._page = 0
+    }
+  }
+
+  /**
+   * @param {number} totalItems
+   * @returns {string}
+   */
+  _renderPagination (totalItems) {
+    const totalPages = Math.ceil(totalItems / PAGE_SIZE)
+    if (totalPages <= 1) return ''
+
+    const hasPrev = this._page > 0
+    const hasNext = this._page < totalPages - 1
+
+    const pageNumbers = Array.from({ length: totalPages }, (_, i) => {
+      const isActive = i === this._page
+      return `
+        <li class="page-item ${isActive ? 'active' : ''}">
+          <span class="page-link" style="cursor: pointer;" data-page-index="${i}">${i + 1}</span>
+        </li>
+      `
+    }).join('')
+
+    return `
+      <nav class="mt-3">
+        <ul class="pagination pagination-sm justify-content-center flex-wrap">
+          <li class="page-item ${hasPrev ? '' : 'disabled'}">
+            <span class="page-link market-prev" style="cursor: pointer;">${t('common.prev')}</span>
+          </li>
+          ${pageNumbers}
+          <li class="page-item ${hasNext ? '' : 'disabled'}">
+            <span class="page-link market-next" style="cursor: pointer;">${t('common.next')}</span>
+          </li>
+        </ul>
+      </nav>
+    `
+  }
+
+  /**
+   * @param {number} pageIndex
+   */
+  _loadPage (pageIndex) {
+    let sellOffers = this.offers.filter(o => o.type === 'sell' && o.from_team_id !== this.team.id)
+    if (this._positionFilter) {
+      sellOffers = sellOffers.filter(o => {
+        const player = this.players.find(p => p.id === o.player_id)
+        return player && player.position === this._positionFilter
+      })
+    }
+    const totalPages = Math.ceil(sellOffers.length / PAGE_SIZE)
+    if (pageIndex < 0 || pageIndex >= totalPages) return
+    this._page = pageIndex
+    this.update()
   }
 
   /**

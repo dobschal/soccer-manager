@@ -16,6 +16,19 @@ export default {
     const team = await getTeam(req)
     const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
     delete req.user.password
+
+    const { season } = await getGameDayAndSeason()
+    const stats = await query(
+      'SELECT player_id, SUM(goals) as goals, SUM(games_played) as games_played FROM player_season_stats WHERE season=? AND player_id IN (?) GROUP BY player_id',
+      [season, players.map(p => p.id)]
+    )
+    const statsMap = new Map(stats.map(s => [s.player_id, s]))
+    for (const player of players) {
+      const s = statsMap.get(player.id)
+      player.season_goals = s ? s.goals : 0
+      player.season_games = s ? s.games_played : 0
+    }
+
     return {
       user: req.user,
       team,

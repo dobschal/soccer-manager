@@ -523,6 +523,8 @@ export default {
   'player.offerAdded': 'You added a trade offer for {playerName}',
   'player.contractGiven': 'You gave {playerName} a new contract.',
   'player.playerFired': 'You fired your player!',
+  'player.goals': 'Goals',
+  'player.games': 'Games',
   'player.historyLevelUp': 'Player reached level {level}',
   'player.historyTransfer': 'Moved to new club: {teamName}',
   'player.historyFired': 'Released by {teamName}',
@@ -588,6 +590,7 @@ export default {
   'actionCards.type.cashBonus': 'Cash Bonus',
   'actionCards.type.cashBonusDesc': 'Receive an instant bonus of 100,000€.',
   // Positions for action cards
+  'actionCards.position.GK': 'Goalkeeper (GK)',
   'actionCards.position.LD': 'Left Defender (LD)',
   'actionCards.position.CD': 'Central Defender (CD)',
   'actionCards.position.RD': 'Right Defender (RD)',
