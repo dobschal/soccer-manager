@@ -25,7 +25,7 @@ export class MarketPage extends UIElement {
    */
   get events () {
     return {
-      div: {
+      '.market-page': {
         click: (event) => {
           const target = event.target
           const buyBtn = target.closest('[data-buy-player]')
@@ -107,7 +107,7 @@ export class MarketPage extends UIElement {
     })
 
     return `
-      <div>
+      <div class="market-page">
         <h2>${t('trades.transferMarket')}</h2>
         <p>${t('trades.transferMarketDesc')}</p>
         <div class="mb-3">

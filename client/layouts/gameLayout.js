@@ -30,6 +30,17 @@ export class GameLayout extends UIElement {
   _season = 0
 
   /**
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      BUY_OFFER_ACCEPTED: (data) => {
+        toast(t('trades.buyOfferAccepted', { playerName: data.playerName, teamName: data.sellerTeamName, price: data.price }), 'success')
+      }
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {

@@ -9,6 +9,7 @@ import { TradeHistory } from '../entities/tradeHistory.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
+import { sendToTeam } from '../lib/websocket.js'
 
 /**
  * @param {number} teamId
@@ -87,6 +88,13 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
   await addLogMessage(t('log.playerSold', { playerName: player.name, buyerTeam: buyingTeam.name, price: offer.offer_value.toLocaleString() }, sellerLocale), sellingTeam, 'OPEN_TEAM_PAGE', buyingTeam.id, 'exchange')
   await addLogMessage(t('log.playerBought', { playerName: player.name, sellerTeam: sellingTeam.name, price: offer.offer_value.toLocaleString() }, buyerLocale), buyingTeam, 'OPEN_PLAYER', player.id, 'exchange')
   await addPlayerHistory(player.id, 'TRANSFER', buyingTeam.id)
+
+  // Notify buying team via websocket
+  await sendToTeam(buyingTeam.id, 'BUY_OFFER_ACCEPTED', {
+    playerName: player.name,
+    sellerTeamName: sellingTeam.name,
+    price: offer.offer_value
+  })
 
   // Check both teams for lineup issues after trade
   await checkTeamAndNotify(sellingTeam)

@@ -26,6 +26,10 @@ vi.mock('../../helper/playerHistoryHelper.js', () => ({
   addPlayerHistory: vi.fn()
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  sendToTeam: vi.fn().mockResolvedValue(true)
+}))
+
 vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key, params = {}) => {
     const translations = {
@@ -47,6 +51,7 @@ import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getTeamById } from '../../helper/teamHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
 import { addPlayerHistory } from '../../helper/playerHistoryHelper.js'
+import { sendToTeam } from '../../lib/websocket.js'
 import { acceptOffer } from '../../helper/tradeHelper.js'
 
 describe('tradeHelper', () => {
@@ -311,6 +316,32 @@ describe('tradeHelper', () => {
         'UPDATE player SET team_id=?, in_game_position=NULL WHERE id=?',
         [2, 10]
       )
+    })
+
+    it('sends BUY_OFFER_ACCEPTED websocket event to buying team', async () => {
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC' })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({
+        id: 1,
+        type: 'buy',
+        player_id: 10,
+        from_team_id: 2,
+        offer_value: 50000
+      })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      query.mockResolvedValue({})
+
+      await acceptOffer(offer, sellingTeam, gameDay, season)
+
+      expect(sendToTeam).toHaveBeenCalledWith(2, 'BUY_OFFER_ACCEPTED', {
+        playerName: 'Star Player',
+        sellerTeamName: 'Selling FC',
+        price: 50000
+      })
     })
 
     it('allows transfer even if buying team would go negative (no balance validation)', async () => {

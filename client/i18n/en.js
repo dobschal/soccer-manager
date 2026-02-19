@@ -351,6 +351,7 @@ export default {
   'trades.offerRejected': 'Offer rejected!',
   'trades.playerListed': 'Player listed on market!',
   'trades.playerRemoved': 'Player removed from market!',
+  'trades.buyOfferAccepted': 'Your offer for {playerName} was accepted by {teamName}!',
   'trades.transferComplete': 'Transfer complete!',
   'trades.freePlayers': 'Free Players',
   'trades.history': 'History',

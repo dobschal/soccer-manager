@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GameLayout, hideNavigation, renderGameLayout } from '../../layouts/gameLayout.js'
 import { server } from '../../lib/gateway.js'
+import { toast } from '../../partials/toast.js'
 
 vi.mock('../../lib/gateway.js', () => ({
   server: {
@@ -37,6 +38,12 @@ vi.mock('../../partials/toast.js', () => ({
 
 vi.mock('../../partials/overlay.js', () => ({
   showOverlay: vi.fn().mockReturnValue({ remove: vi.fn() })
+}))
+
+vi.mock('../../lib/websocket.js', () => ({
+  disconnectWebSocket: vi.fn(),
+  onServerEvent: vi.fn(),
+  offServerEvent: vi.fn()
 }))
 
 vi.mock('../../i18n/index.js', () => ({
@@ -132,6 +139,27 @@ describe('GameLayout', () => {
     it('extends UIElement', () => {
       const layout = new GameLayout()
       expect(layout.isUIElement).toBe(true)
+    })
+  })
+
+  describe('serverEvents', () => {
+    it('has a BUY_OFFER_ACCEPTED handler', () => {
+      const layout = new GameLayout()
+      expect(layout.serverEvents).toHaveProperty('BUY_OFFER_ACCEPTED')
+      expect(typeof layout.serverEvents.BUY_OFFER_ACCEPTED).toBe('function')
+    })
+
+    it('BUY_OFFER_ACCEPTED handler calls toast with success', () => {
+      const layout = new GameLayout()
+      layout.serverEvents.BUY_OFFER_ACCEPTED({
+        playerName: 'Star Player',
+        sellerTeamName: 'Selling FC',
+        price: 50000
+      })
+      expect(toast).toHaveBeenCalledWith(
+        expect.any(String),
+        'success'
+      )
     })
   })
 
