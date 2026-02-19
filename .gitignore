@@ -2,3 +2,6 @@ node_modules
 /client/.DS_Store
 /.DS_Store
 /client/vendor
+/native-app/web/
+/native-app/platforms/
+/native-app/node_modules/

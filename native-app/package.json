@@ -1,0 +1,25 @@
+{
+  "name": "soccermanager-native",
+  "version": "1.0.0",
+  "description": "Soccer Manager IO - Native App",
+  "main": "app/app.ts",
+  "nativescript": {
+    "id": "io.soccermanager.app"
+  },
+  "scripts": {
+    "copy-client": "node scripts/copy-web-assets.mjs",
+    "build:ios": "npm run copy-client && ns build ios",
+    "build:android": "npm run copy-client && ns build android",
+    "run:ios": "npm run copy-client && ns run ios",
+    "run:android": "npm run copy-client && ns run android"
+  },
+  "dependencies": {
+    "@nativescript/core": "~8.8.0"
+  },
+  "devDependencies": {
+    "@nativescript/ios": "9.0.3",
+    "@nativescript/webpack": "~5.0.0",
+    "copy-webpack-plugin": "~12.0.0",
+    "typescript": "~5.4.0"
+  }
+}

@@ -32,8 +32,15 @@ export function connectWebSocket () {
     reconnectTimeout = null
   }
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const wsUrl = `${protocol}//${window.location.host}?token=${token}`
+  let wsUrl
+  if (window.__NATIVE_SERVER_URL) {
+    const url = new URL(window.__NATIVE_SERVER_URL)
+    const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    wsUrl = `${wsProtocol}//${url.host}?token=${token}`
+  } else {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    wsUrl = `${protocol}//${window.location.host}?token=${token}`
+  }
 
   try {
     ws = new WebSocket(wsUrl)

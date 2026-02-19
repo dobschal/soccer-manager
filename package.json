@@ -11,7 +11,10 @@
     "test:server:watch": "vitest --config server/vitest.config.js",
     "test": "npm run test:client && npm run test:server",
     "copy-vendor": "mkdir -p client/vendor/three/addons/controls client/vendor/chart.js/auto client/vendor/chart.js/dist client/vendor/@kurkle && cp node_modules/three/build/three.module.js node_modules/three/build/three.core.js client/vendor/three/ && cp node_modules/three/examples/jsm/controls/OrbitControls.js client/vendor/three/addons/controls/ && cp node_modules/chart.js/auto/auto.js client/vendor/chart.js/auto/ && cp node_modules/chart.js/dist/chart.js client/vendor/chart.js/dist/ && cp -r node_modules/chart.js/dist/chunks client/vendor/chart.js/dist/ && cp node_modules/@kurkle/color/dist/color.esm.js client/vendor/@kurkle/",
-    "postinstall": "npm run copy-vendor"
+    "postinstall": "npm run copy-vendor",
+    "native:copy-client": "node native-app/scripts/copy-web-assets.mjs",
+    "native:ios": "npm run native:copy-client && cd native-app && ns run ios",
+    "native:android": "npm run native:copy-client && cd native-app && ns run android"
   },
   "keywords": [],
   "author": "",

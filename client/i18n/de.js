@@ -24,6 +24,7 @@ export default {
   'search.noResults': 'Keine Ergebnisse gefunden',
   'search.level': 'Level',
   'search.noTeam': 'Kein Team',
+  'search.showAll': 'Alle anzeigen',
 
   // Landing page
   'landing.freeToPlay': 'Kostenlos spielen',

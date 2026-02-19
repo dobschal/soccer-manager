@@ -29,7 +29,7 @@ export const server = new Proxy({}, {
       if (authToken) {
         options.headers.Authorization = `Bearer ${authToken}`
       }
-      const response = await fetch(`/api/${key}`, options)
+      const response = await fetch(`${window.__NATIVE_SERVER_URL || ''}/api/${key}`, options)
       if (response.status >= 400) {
         if (response.status === 401) {
           window.localStorage.removeItem('auth-token')

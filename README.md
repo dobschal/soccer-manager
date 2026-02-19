@@ -15,7 +15,13 @@ Take a look into the docker files to check the version used for the database and
 3. Then run via IntelliJ or Terminal `DB_HOST=localhost IS_DEVELOPMENT=true node server/api.js`
 4. You can open the UI on http://localhost:3000
 
-Inside the server folder several scripts exists that are executed via CRON job when `api.js` is running.
+### Run native iOS app
+
+This will start the iOS simulator and run the native iOS app. Make sure you have Xcode installed and properly set up.
+
+```bash
+npm run native:ios
+```
 
 ## Deployment
 
@@ -26,4 +32,17 @@ Ensure to create the docker network first:
 ```bash
 docker network create soccer-manager
 ```
+
+## Structure
+
+The project is structured into three main directories:
+
+- `server`: Contains the backend API built with Node.js and Express. It handles all the game logic, database
+  interactions, and serves the frontend.
+- `client`: Contains the frontend built with a custom UIElement class based framework. It provides the user interface
+  for managing the soccer teams, players, and matches.
+
+For more details on the implementation, please refer to the [CLAUDE.md](CLAUDE.md) file, which contains an in-depth
+analysis of the codebase and design decisions.
+
 

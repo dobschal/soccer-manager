@@ -92,5 +92,122 @@ export default {
     )
 
     return { users }
+  },
+
+  /**
+   * Browse all players with pagination
+   * @param {string} searchQuery
+   * @param {number} pageIndex
+   * @param {number} pageSize
+   * @param {Request} req
+   * @returns {Promise<{players: Array, totalCount: number}>}
+   */
+  async browseAllPlayers (searchQuery, pageIndex, pageSize, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+
+    pageIndex = Math.max(0, parseInt(pageIndex) || 0)
+    pageSize = Math.min(50, Math.max(1, parseInt(pageSize) || 20))
+    const offset = pageIndex * pageSize
+
+    let whereClause = 'WHERE p.team_id IS NOT NULL'
+    const params = []
+
+    if (searchQuery && typeof searchQuery === 'string' && searchQuery.length >= 3) {
+      whereClause += ' AND p.name LIKE ?'
+      params.push(`%${searchQuery}%`)
+    }
+
+    const [countResult] = await query(
+      `SELECT COUNT(*) AS total FROM player p ${whereClause}`,
+      params
+    )
+
+    const players = await query(
+      `SELECT p.*, t.name AS team_name FROM player p LEFT JOIN team t ON t.id = p.team_id ${whereClause} ORDER BY p.level DESC LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
+    )
+
+    return { players, totalCount: countResult.total }
+  },
+
+  /**
+   * Browse all teams with pagination
+   * @param {string} searchQuery
+   * @param {number} pageIndex
+   * @param {number} pageSize
+   * @param {Request} req
+   * @returns {Promise<{teams: Array, totalCount: number}>}
+   */
+  async browseAllTeams (searchQuery, pageIndex, pageSize, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+
+    pageIndex = Math.max(0, parseInt(pageIndex) || 0)
+    pageSize = Math.min(50, Math.max(1, parseInt(pageSize) || 20))
+    const offset = pageIndex * pageSize
+
+    let whereClause = ''
+    const params = []
+
+    if (searchQuery && typeof searchQuery === 'string' && searchQuery.length >= 3) {
+      whereClause = 'WHERE name LIKE ?'
+      params.push(`%${searchQuery}%`)
+    }
+
+    const [countResult] = await query(
+      `SELECT COUNT(*) AS total FROM team ${whereClause}`,
+      params
+    )
+
+    const teams = await query(
+      `SELECT * FROM team ${whereClause} ORDER BY level DESC LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
+    )
+
+    return { teams, totalCount: countResult.total }
+  },
+
+  /**
+   * Browse all users with pagination
+   * @param {string} searchQuery
+   * @param {number} pageIndex
+   * @param {number} pageSize
+   * @param {Request} req
+   * @returns {Promise<{users: Array, totalCount: number}>}
+   */
+  async browseAllUsers (searchQuery, pageIndex, pageSize, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+
+    pageIndex = Math.max(0, parseInt(pageIndex) || 0)
+    pageSize = Math.min(50, Math.max(1, parseInt(pageSize) || 20))
+    const offset = pageIndex * pageSize
+
+    let whereClause = ''
+    const params = []
+
+    if (searchQuery && typeof searchQuery === 'string' && searchQuery.length >= 3) {
+      whereClause = 'WHERE u.username LIKE ?'
+      params.push(`%${searchQuery}%`)
+    }
+
+    const [countResult] = await query(
+      `SELECT COUNT(*) AS total FROM user u ${whereClause}`,
+      params
+    )
+
+    const users = await query(
+      `SELECT u.id, u.username, t.id AS team_id, t.name AS team_name FROM user u LEFT JOIN team t ON t.user_id = u.id ${whereClause} ORDER BY u.username ASC LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
+    )
+
+    return { users, totalCount: countResult.total }
   }
 }

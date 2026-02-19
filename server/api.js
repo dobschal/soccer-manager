@@ -17,6 +17,18 @@ import { getCachedUser } from './lib/userCache.js'
 const app = express()
 const port = 3000
 
+// CORS: allow requests from native app (file:// sends origin "null")
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+  if (origin === 'null' || origin === 'file://') {
+    res.setHeader('Access-Control-Allow-Origin', 'null')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language')
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204)
+  next()
+})
+
 app.use(bodyParser.json())
 app.use('/', express.static('client', { index: 'index.html' }))
 

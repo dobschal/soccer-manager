@@ -1,5 +1,5 @@
 import { DefaultLayout } from './layouts/defaultLayout.js'
-import { GameLayout } from './layouts/gameLayout.js'
+import { NativeAppLayout } from './layouts/nativeAppLayout.js'
 import { initRouter } from './lib/router.js'
 import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
@@ -11,7 +11,6 @@ import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
 import { SimulatorPage } from './pages/simulator.js'
-import { BrowsePage } from './pages/browse.js'
 import { initLocale } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 
@@ -24,20 +23,19 @@ if (window.localStorage.getItem('auth-token')) {
 }
 
 server.getVersion().then(({ version }) => {
-  console.log(`🚀 SoccerManagerIO running version ${version}`)
+  console.log(`SoccerManagerIO running version ${version}`)
 })
 
 const pages = {
-  trades: [GameLayout, TradesPage],
-  stadium: [GameLayout, StadiumPage],
-  finances: [GameLayout, FinancesPage],
-  team: [GameLayout, TeamPage],
-  results: [GameLayout, ResultsPage],
+  trades: [NativeAppLayout, TradesPage],
+  stadium: [NativeAppLayout, StadiumPage],
+  finances: [NativeAppLayout, FinancesPage],
+  team: [NativeAppLayout, TeamPage],
+  results: [NativeAppLayout, ResultsPage],
   login: [DefaultLayout, LandingPage],
-  'my-team': [GameLayout, MyTeamPage],
-  simulator: [GameLayout, SimulatorPage],
-  browse: [GameLayout, BrowsePage],
-  '*': [GameLayout, DashboardPage]
+  'my-team': [NativeAppLayout, MyTeamPage],
+  simulator: [NativeAppLayout, SimulatorPage],
+  '*': [NativeAppLayout, DashboardPage]
 }
 
 initRouter(pages)

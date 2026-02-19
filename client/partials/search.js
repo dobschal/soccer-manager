@@ -17,6 +17,7 @@ export function showSearchOverlay () {
   const tabTeamsId = generateId()
   const tabUsersId = generateId()
   const resultsContainerId = generateId()
+  const showAllButtonId = generateId()
 
   let currentTab = 'players'
   let searchTimeout = null
@@ -67,6 +68,20 @@ export function showSearchOverlay () {
     currentTab = 'users'
     updateTabs()
     performSearch()
+  })
+
+  onClick('#' + showAllButtonId, (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    remove()
+    setTimeout(() => {
+      const subPage = currentTab === 'players' ? null : currentTab
+      const params = new URLSearchParams()
+      if (subPage) params.set('sub_page', subPage)
+      if (currentQuery.length >= 3) params.set('search_query', currentQuery)
+      const qs = params.toString()
+      goTo('browse' + (qs ? '?' + qs : ''))
+    }, 50)
   })
 
   const updateTabs = () => {
@@ -232,6 +247,12 @@ export function showSearchOverlay () {
 
           <div id="${resultsContainerId}" style="max-height: 400px; overflow-y: auto;">
             <p class="text-muted text-center">${t('search.minChars')}</p>
+          </div>
+
+          <div class="text-center mt-3">
+            <button id="${showAllButtonId}" class="btn btn-outline-primary btn-sm">
+              <i class="fa fa-list"></i> ${t('search.showAll')}
+            </button>
           </div>
         </div>
       </div>
