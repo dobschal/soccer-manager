@@ -1,0 +1,141 @@
+/* Native app overrides */
+
+/* Layout: top bar + content + bottom tab bar */
+.native-app-layout {
+    padding-top: 0 !important;
+    padding-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+/* Top bar with game info and settings */
+.native-top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    background: #222;
+    background: linear-gradient(136deg, #222 0%, #333 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+.native-top-bar.hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.native-top-bar .info-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+}
+
+.native-top-bar .info-bar-item {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.native-settings-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    padding: 0.25rem 0.5rem;
+    margin-left: auto;
+    cursor: pointer;
+}
+
+.native-settings-btn:active {
+    color: white;
+}
+
+/* Content area */
+.native-app-layout .container {
+    flex: 1;
+    padding-top: 2.5rem;
+    padding-bottom: 4rem;
+}
+
+/* Bottom tab bar */
+.native-tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+    background: #222;
+    background: linear-gradient(136deg, #222 0%, #333 100%);
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.native-tab-item {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 1rem 0 2rem 0;
+    color: rgba(255, 255, 255, 0.66) !important;
+    text-decoration: none;
+    font-size: 0.65rem;
+    gap: 0.2rem;
+    transition: color 0.15s ease;
+    border: none;
+}
+
+.native-tab-item i {
+    font-size: 1.2rem;
+}
+
+.native-tab-item:hover,
+.native-tab-item:active {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+}
+
+.native-tab-item.active {
+    color: #17a2b8 !important;
+}
+
+/* Hide the regular navbar and info-bar in native layout */
+.native-app-layout .navbar {
+    display: none !important;
+}
+
+.native-app-layout > .info-bar {
+    display: none !important;
+}
+
+/* Hide footer in native app */
+.app-footer {
+    display: none !important;
+}
+
+/* Native feel: disable text selection except in inputs */
+body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    padding-top: 3rem;
+}
+
+input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Prevent overscroll bounce */
+html, body {
+    overscroll-behavior: none;
+}

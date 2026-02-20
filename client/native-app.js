@@ -3,7 +3,6 @@ import { NativeAppLayout } from './layouts/nativeAppLayout.js'
 import { initRouter } from './lib/router.js'
 import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
-import { FinancesPage } from './pages/finances.js'
 import { LandingPage } from './pages/landing.js'
 import { MyTeamPage } from './pages/my-team.js'
 import { StadiumPage } from './pages/stadium.js'
@@ -28,7 +27,6 @@ server.getVersion().then(({ version }) => {
 const pages = {
   trades: [NativeAppLayout, TradesPage],
   stadium: [NativeAppLayout, StadiumPage],
-  finances: [NativeAppLayout, FinancesPage],
   team: [NativeAppLayout, TeamPage],
   results: [NativeAppLayout, ResultsPage],
   login: [DefaultLayout, LandingPage],

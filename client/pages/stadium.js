@@ -7,6 +7,7 @@ import { StadiumCanvas } from '../partials/stadiumCanvas.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 import { BuildingsPage } from './stadium/buildingsPage.js'
+import { FinancesPage } from '../pages/finances.js'
 
 export class StadiumPage extends UIElement {
   stadium = {}
@@ -23,7 +24,7 @@ export class StadiumPage extends UIElement {
    * @returns {UIElementEvents}
    */
   get events () {
-    if (this.subPage === 'buildings') {
+    if (this.subPage === 'buildings' || this.subPage === 'finances') {
       return {}
     }
     return {
@@ -79,8 +80,9 @@ export class StadiumPage extends UIElement {
         <nav class="nav nav-pills mb-2">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#stadium">${t('stadium.tabStadium')}</a>
           <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#stadium?sub_page=buildings">${t('stadium.tabBuildings')}</a>
+          <a class="nav-link ${this.subPage === 'finances' ? 'active' : ''}" href="#stadium?sub_page=finances">${t('stadium.tabFinances')}</a>
         </nav>
-        ${this.subPage === 'buildings' ? this._renderBuildingsPage() : this._renderStadiumPage()}
+        ${this.subPage === 'buildings' ? this._renderBuildingsPage() : this.subPage === 'finances' ? this._renderFinancesPage() : this._renderStadiumPage()}
       </div>
     `
   }
@@ -93,6 +95,16 @@ export class StadiumPage extends UIElement {
       this.buildingsPage = new BuildingsPage(this)
     }
     return this.buildingsPage
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderFinancesPage () {
+    if (!this.financesPage) {
+      this.financesPage = new FinancesPage()
+    }
+    return this.financesPage
   }
 
   /**
@@ -168,7 +180,7 @@ export class StadiumPage extends UIElement {
   async onQueryChanged ({ sub_page: subPage }) {
     if (subPage !== this.subPage) {
       // Cleanup Three.js when leaving stadium tab
-      if (this.subPage !== 'buildings' && subPage === 'buildings') {
+      if (!this.subPage && (subPage === 'buildings' || subPage === 'finances')) {
         if (this._stadiumCanvas) {
           this._stadiumCanvas.onDestroy()
           this._stadiumCanvas = null
@@ -177,6 +189,8 @@ export class StadiumPage extends UIElement {
       this.subPage = subPage
       if (subPage === 'buildings') {
         this.buildingsPage = new BuildingsPage(this)
+      } else if (subPage === 'finances') {
+        this.financesPage = new FinancesPage()
       }
       await this.update()
     }
@@ -506,6 +520,8 @@ export class StadiumPage extends UIElement {
     }
     if (this.subPage === 'buildings') {
       void showTutorialIfNeeded('buildings', this)
+    } else if (this.subPage === 'finances') {
+      void showTutorialIfNeeded('finances', this)
     } else {
       void showTutorialIfNeeded('stadium', this)
     }

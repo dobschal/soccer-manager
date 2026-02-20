@@ -32,7 +32,7 @@ const TUTORIALS = [
   },
   {
     key: 'finances',
-    route: '#finances'
+    route: '#stadium?sub_page=finances'
   },
   {
     key: 'buildings',

@@ -8,9 +8,7 @@ import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
-import { showSearchOverlay } from '../partials/search.js'
 import { ADMIN_USERNAME } from '../util/constants.js'
-import { hideNavigation } from './gameLayout.js'
 
 export class NativeAppLayout extends UIElement {
   _interval = null
@@ -22,6 +20,7 @@ export class NativeAppLayout extends UIElement {
   _version = ''
   _gameDay = 0
   _season = 0
+  _scrollHandler = null
 
   get serverEvents () {
     return {
@@ -34,49 +33,7 @@ export class NativeAppLayout extends UIElement {
   get template () {
     return `
       <div class="game-layout native-app-layout">
-        <nav class="navbar navbar-expand-lg navbar-dark">
-          <div class="navbar-content">
-            <a class="navbar-brand" href="#">SoccerManagerIO</a>
-            <button class="navbar-toggler"
-                    type="button"
-                    data-toggle="collapse"
-                    data-target="#navbarNav"
-                    aria-controls="navbarNav"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation">
-              <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-              <ul class="navbar-nav navbar-nav-center gap-2">
-                ${this._navItem('dashboard', `<i class="fa fa-home" aria-hidden="true"></i> ${t('nav.home')}`)}
-                ${this._navItem('my-team', `<i class="fa fa-users" aria-hidden="true"></i> ${t('nav.team')}`)}
-                ${this._navItem('results', `<i class="fa fa-trophy" aria-hidden="true"></i> ${t('nav.league')}`)}
-                ${this._navItem('finances', `<i class="fa fa-money" aria-hidden="true"></i> ${t('nav.finances')}`)}
-                ${this._navItem('stadium', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.stadium')}`)}
-                ${this._navItem('trades', `<i class="fa fa-handshake-o" aria-hidden="true"></i> ${t('nav.transfers')}`)}
-              </ul>
-              <button id="search-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.search')}">
-                <i class="fa fa-search" aria-hidden="true"></i> ${t('nav.search')}
-              </button>
-              ${this._showPlayButton ? `<button id="play-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.run')}">
-                <i class="fa fa-play" aria-hidden="true"></i> ${t('nav.run')}
-              </button>` : ''}
-              <button id="settings-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.settings')}">
-                <i class="fa fa-cog" aria-hidden="true"></i> ${t('nav.settings')}
-              </button>
-            </div>
-            <button id="search-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.search')}">
-              <i class="fa fa-search fa-lg" aria-hidden="true"></i>
-            </button>
-            ${this._showPlayButton ? `<button id="play-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.run')}">
-              <i class="fa fa-play fa-lg" aria-hidden="true"></i>
-            </button>` : ''}
-            <button id="settings-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.settings')}">
-              <i class="fa fa-cog fa-lg" aria-hidden="true"></i>
-            </button>
-          </div>
-        </nav>
-        <div class="info-bar">
+        <div class="native-top-bar">
           <div class="info-bar-content">
             <div class="info-bar-item">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
@@ -89,9 +46,19 @@ export class NativeAppLayout extends UIElement {
             <div class="info-bar-item">
               <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </div>
+            <button id="settings-button" class="native-settings-btn" type="button" aria-label="${t('nav.settings')}">
+              <i class="fa fa-cog" aria-hidden="true"></i>
+            </button>
           </div>
         </div>
         <div class="container" id="page"></div>
+        <nav class="native-tab-bar">
+          ${this._tabItem('dashboard', 'fa-home', t('nav.home'))}
+          ${this._tabItem('my-team', 'fa-users', t('nav.team'))}
+          ${this._tabItem('results', 'fa-trophy', t('nav.league'))}
+          ${this._tabItem('stadium', 'fa-futbol-o', t('nav.club'))}
+          ${this._tabItem('trades', 'fa-handshake-o', t('nav.transfers'))}
+        </nav>
       </div>
     `
   }
@@ -115,66 +82,37 @@ export class NativeAppLayout extends UIElement {
   onMounted () {
     this._attachEventHandlers()
     this._startTimer()
+    this._setupScrollListener()
   }
 
   onDestroy () {
     this._stopTimer()
     this._cleanupNavItemEvents()
+    this._removeScrollListener()
+  }
+
+  _setupScrollListener () {
+    const topBar = document.querySelector(`${this._elementQuery} .native-top-bar`)
+    if (!topBar) return
+    this._scrollHandler = () => {
+      topBar.classList.toggle('hidden', window.scrollY > 10)
+    }
+    this._scrollHandler()
+    window.addEventListener('scroll', this._scrollHandler, { passive: true })
+  }
+
+  _removeScrollListener () {
+    if (this._scrollHandler) {
+      window.removeEventListener('scroll', this._scrollHandler)
+      this._scrollHandler = null
+    }
   }
 
   _attachEventHandlers () {
     const settingsBtn = document.querySelector(`${this._elementQuery} #settings-button`)
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => {
-        hideNavigation()
         this._showSettingsOverlay()
-      })
-    }
-
-    const settingsBtnMobile = document.querySelector(`${this._elementQuery} #settings-button-mobile`)
-    if (settingsBtnMobile) {
-      settingsBtnMobile.addEventListener('click', () => {
-        hideNavigation()
-        this._showSettingsOverlay()
-      })
-    }
-
-    const searchBtn = document.querySelector(`${this._elementQuery} #search-button`)
-    if (searchBtn) {
-      searchBtn.addEventListener('click', () => {
-        hideNavigation()
-        showSearchOverlay()
-      })
-    }
-
-    const searchBtnMobile = document.querySelector(`${this._elementQuery} #search-button-mobile`)
-    if (searchBtnMobile) {
-      searchBtnMobile.addEventListener('click', () => {
-        hideNavigation()
-        showSearchOverlay()
-      })
-    }
-
-    const playBtn = document.querySelector(`${this._elementQuery} #play-button`)
-    if (playBtn) {
-      playBtn.addEventListener('click', () => this._triggerGameDay(playBtn))
-    }
-
-    const playBtnMobile = document.querySelector(`${this._elementQuery} #play-button-mobile`)
-    if (playBtnMobile) {
-      playBtnMobile.addEventListener('click', () => {
-        hideNavigation()
-        this._triggerGameDay(playBtnMobile)
-      })
-    }
-
-    const toggleBtn = document.querySelector(`${this._elementQuery} .navbar-toggler`)
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        const navCollapse = el('.navbar-collapse')
-        if (navCollapse) {
-          navCollapse.classList.toggle('show')
-        }
       })
     }
   }
@@ -309,7 +247,7 @@ export class NativeAppLayout extends UIElement {
     this._navItemEventIds = []
   }
 
-  _navItem (path, text) {
+  _tabItem (path, icon, label) {
     const id = generateId()
     const eventId = on('page-changed', () => {
       const isCurrentPage = window.location.hash.substring(1).split('?')[0] === path
@@ -318,11 +256,10 @@ export class NativeAppLayout extends UIElement {
     this._navItemEventIds.push(eventId)
 
     return `
-      <li id="${id}" class="nav-item">
-        <a class="nav-link w-100 text-center" href="#${path}">
-          ${text}
-        </a>
-      </li>
+      <a id="${id}" class="native-tab-item" href="#${path}">
+        <i class="fa ${icon}" aria-hidden="true"></i>
+        <span>${label}</span>
+      </a>
     `
   }
 }

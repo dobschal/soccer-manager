@@ -330,7 +330,7 @@ describe('DashboardPage', () => {
 
       const html = page.template
       expect(html).toContain('fa-exclamation-circle')
-      expect(html).toContain('#finances')
+      expect(html).toContain('#stadium?sub_page=finances')
     })
 
     it('shows mix of checkmarks and exclamation marks', async () => {

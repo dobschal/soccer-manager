@@ -63,8 +63,7 @@ export class GameLayout extends UIElement {
                 ${this._navItem('dashboard', `<i class="fa fa-home" aria-hidden="true"></i> ${t('nav.home')}`)}
                 ${this._navItem('my-team', `<i class="fa fa-users" aria-hidden="true"></i> ${t('nav.team')}`)}
                 ${this._navItem('results', `<i class="fa fa-trophy" aria-hidden="true"></i> ${t('nav.league')}`)}
-                ${this._navItem('finances', `<i class="fa fa-money" aria-hidden="true"></i> ${t('nav.finances')}`)}
-                ${this._navItem('stadium', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.stadium')}`)}
+                ${this._navItem('stadium', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.club')}`)}
                 ${this._navItem('trades', `<i class="fa fa-handshake-o" aria-hidden="true"></i> ${t('nav.transfers')}`)}
               </ul>
               <button id="search-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.search')}">

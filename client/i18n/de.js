@@ -3,8 +3,7 @@ export default {
   'nav.home': 'Start',
   'nav.team': 'Team',
   'nav.league': 'Spiele',
-  'nav.finances': 'Finanzen',
-  'nav.stadium': 'Stadion',
+  'nav.club': 'Club',
   'nav.transfers': 'Transfers',
   'nav.logout': 'Abmelden',
   'nav.day': 'Spieltag {gameDay} ({season})',
@@ -792,6 +791,7 @@ export default {
   // Stadium tabs
   'stadium.tabStadium': 'Stadion',
   'stadium.tabBuildings': 'Gebäude',
+  'stadium.tabFinances': 'Finanzen',
 
   // Buildings
   'buildings.title': 'Gebäude',

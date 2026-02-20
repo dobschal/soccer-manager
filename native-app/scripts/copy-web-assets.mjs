@@ -1,5 +1,5 @@
-import { cpSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync } from 'fs'
-import { resolve, dirname } from 'path'
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -33,48 +33,6 @@ if (existsSync(vendorSrc)) {
   console.warn('WARNING: client/vendor/ not found. Run `npm run copy-vendor` in root first.')
 }
 
-// Generate native-app.css
-const nativeCssDir = resolve(WEB_DIR, 'style')
-mkdirSync(nativeCssDir, { recursive: true })
-
-writeFileSync(resolve(nativeCssDir, 'native-app.css'), `/* Native app overrides */
-.native-app-layout {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.native-app-layout .navbar {
-  padding-top: env(safe-area-inset-top);
-}
-
-.native-app-layout .container {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Hide footer in native app */
-.app-footer {
-  display: none !important;
-}
-
-/* Native feel: disable text selection except in inputs */
-body {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-}
-
-input, textarea, [contenteditable] {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/* Prevent overscroll bounce */
-html, body {
-  overscroll-behavior: none;
-}
-`)
-console.log('Generated native-app.css')
-
 // Generate modified index.html
 const originalHtml = readFileSync(resolve(CLIENT_DIR, 'index.html'), 'utf-8')
 
@@ -86,7 +44,7 @@ nativeHtml = nativeHtml.replace(/\s*<!-- SEO Meta Tags -->[\s\S]*?<!-- Open Grap
 // Update viewport to disable user scaling
 nativeHtml = nativeHtml.replace(
   'width=device-width, initial-scale=1, shrink-to-fit=no',
-  'width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no, viewport-fit=cover'
+  'width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no'
 )
 
 // Add native-app.css link after the last CSS link
@@ -98,7 +56,7 @@ nativeHtml = nativeHtml.replace(
 // Inject __NATIVE_SERVER_URL before the module script, and change app.js to native-app.js
 nativeHtml = nativeHtml.replace(
   '<script src="app.js" defer type="module"></script>',
-  '<script>window.__NATIVE_SERVER_URL = \'https://soccermanager.io\';</script>\n    <script src="native-app.js" defer type="module"></script>'
+  '<script>window.__NATIVE_SERVER_URL = \'http://localhost:3000\';</script>\n    <script src="native-app.js" defer type="module"></script>'
 )
 
 // Update title for native

@@ -52,8 +52,7 @@ vi.mock('../../i18n/index.js', () => ({
       'nav.home': 'Home',
       'nav.team': 'Team',
       'nav.league': 'League',
-      'nav.finances': 'Finances',
-      'nav.stadium': 'Stadium',
+      'nav.club': 'Club',
       'nav.transfers': 'Transfers',
       'nav.settings': 'Settings',
       'nav.logout': 'Logout',
@@ -102,8 +101,7 @@ describe('GameLayout', () => {
       await layout.load()
       expect(layout.template).toContain('Team')
       expect(layout.template).toContain('League')
-      expect(layout.template).toContain('Finances')
-      expect(layout.template).toContain('Stadium')
+      expect(layout.template).toContain('Club')
       expect(layout.template).toContain('Transfers')
     })
 
@@ -131,7 +129,6 @@ describe('GameLayout', () => {
       await layout.load()
       expect(layout.template).toContain('href="#my-team"')
       expect(layout.template).toContain('href="#results"')
-      expect(layout.template).toContain('href="#finances"')
       expect(layout.template).toContain('href="#stadium"')
       expect(layout.template).toContain('href="#trades"')
     })
