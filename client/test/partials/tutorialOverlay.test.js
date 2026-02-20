@@ -109,7 +109,7 @@ describe('tutorialOverlay', () => {
       vi.advanceTimersByTime(1500)
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
-      expect(htmlContent).toContain('Welcome to SoccerManagerIO!')
+      expect(htmlContent).toContain('Welcome to FootballManager.IO!')
     })
 
     it('renders tutorial content with list items', async () => {

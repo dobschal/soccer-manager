@@ -27,7 +27,7 @@ export default {
 
   // Landing page
   'landing.freeToPlay': 'Kostenlos spielen',
-  'landing.title': 'Soccer Manager IO',
+  'landing.title': 'FootballManager.IO',
   'landing.subtitle': 'Baue dein Traumteam von Grund auf auf, steige durch die Ligen auf und werde der ultimative Fußballmanager. Keine Downloads, keine Zahlungen - pure Fußballstrategie in deinem Browser.',
   'landing.welcomeBack': 'Willkommen zurück',
   'landing.createAccount': 'Konto erstellen',
@@ -619,7 +619,7 @@ export default {
   'tutorialProgress.page.buildings': 'Gebäude',
 
   // Tutorial
-  'tutorial.welcome': 'Willkommen bei Soccer Manager IO!',
+  'tutorial.welcome': 'Willkommen bei FootballManager.IO!',
   'tutorial.welcomeDesc': 'Lass uns eine kurze Tour durch das Spiel machen. Du kannst dieses Tutorial jederzeit überspringen.',
   'tutorial.dashboard': 'Dashboard',
   'tutorial.dashboardDesc': 'Das ist dein Dashboard. Hier siehst du deine letzten Ergebnisse, kommende Spiele, Nachrichten und Aktionskarten.',
@@ -659,7 +659,7 @@ export default {
   'tutorial.trades.item2': 'Gib Angebote für Spieler anderer Teams ab',
   'tutorial.trades.item3': 'Sieh und beantworte Angebote für deine Spieler',
   'tutorial.trades.item4': 'Prüfe die Transferhistorie und freie Spieler',
-  'tutorial.dashboardPage.title': 'Willkommen bei SoccerManagerIO!',
+  'tutorial.dashboardPage.title': 'Willkommen bei FootballManager.IO!',
   'tutorial.dashboardPage.subtitle': 'Dies ist dein Dashboard, das dich auf dem Laufenden hält:',
   'tutorial.dashboardPage.item1': 'Sieh dein letztes Spielergebnis und das nächste Spiel',
   'tutorial.dashboardPage.item2': 'Nutze Aktionskarten, um Spieler zu verbessern oder Boni zu erhalten',

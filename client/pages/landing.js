@@ -41,7 +41,10 @@ export class LandingPage extends UIElement {
               <!-- Left side: Content -->
               <div class="col-lg-8 hero-content">
                 <span class="hero-badge">${t('landing.freeToPlay')}</span>
-                <h1 class="hero-title text-white">${t('landing.title')}</h1>
+                <h1 class="hero-title text-white">
+                    <img src="assets/logo.svg" alt="FootballManager.IO" height="40" class="d-inline-block mb-2">
+                    <span class="ps-2">${t('landing.title')}</span>
+                 </h1>
                 <p class="hero-subtitle text-white">
                   ${t('landing.subtitle')}
                 </p>

@@ -3,7 +3,7 @@ import { NativeAppLayout } from './layouts/nativeAppLayout.js'
 import { initRouter } from './lib/router.js'
 import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
-import { LandingPage } from './pages/landing.js'
+import { NativeLandingPage } from './pages/native-landing.js'
 import { MyTeamPage } from './pages/my-team.js'
 import { StadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
@@ -21,7 +21,7 @@ if (window.localStorage.getItem('auth-token')) {
 }
 
 server.getVersion().then(({ version }) => {
-  console.log(`SoccerManagerIO running version ${version}`)
+  console.log(`FootballManager.IO running version ${version}`)
 })
 
 const pages = {
@@ -29,7 +29,7 @@ const pages = {
   stadium: [NativeAppLayout, StadiumPage],
   team: [NativeAppLayout, TeamPage],
   results: [NativeAppLayout, ResultsPage],
-  login: [DefaultLayout, LandingPage],
+  login: [DefaultLayout, NativeLandingPage],
   'my-team': [NativeAppLayout, MyTeamPage],
   '*': [NativeAppLayout, DashboardPage]
 }

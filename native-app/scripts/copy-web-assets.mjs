@@ -61,8 +61,8 @@ nativeHtml = nativeHtml.replace(
 
 // Update title for native
 nativeHtml = nativeHtml.replace(
-  '<title>Soccer Manager IO - Free Online Football Manager Game</title>',
-  '<title>SoccerManager</title>'
+  '<title>FootballManager.IO - Free Online Football Manager Game</title>',
+  '<title>FootballManager.IO</title>'
 )
 
 writeFileSync(resolve(WEB_DIR, 'index.html'), nativeHtml)

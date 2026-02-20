@@ -42,11 +42,15 @@
 
 .navbar.navbar-dark .navbar-brand,
 .navbar.navbar-dark .nav-link {
-    color: white !important;
+    color: white;
 }
 
 .navbar.navbar-dark .nav-link:hover {
-    color: rgba(255, 255, 255, 0.8) !important;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-item .nav-link.active {
+    color: #47d9f3 !important;
 }
 
 .navbar a:link,
@@ -231,6 +235,11 @@ a:visited.row {
 
     #page {
         border-radius: 0;
+    }
+
+    .player-list-table {
+        margin: 0 -2rem;
+        padding: 0 2rem;
     }
 
     .info-bar {

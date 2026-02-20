@@ -7,6 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   test: {
     root: __dirname,
+    cache: { dir: '../node_modules/.vitest/client' },
     environment: 'jsdom',
     setupFiles: ['./test/setup.js'],
     globals: true,

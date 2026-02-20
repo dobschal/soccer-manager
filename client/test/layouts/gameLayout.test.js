@@ -92,7 +92,7 @@ describe('GameLayout', () => {
     it('template contains navbar with brand', async () => {
       const layout = new GameLayout()
       await layout.load()
-      expect(layout.template).toContain('SoccerManagerIO')
+      expect(layout.template).toContain('FootballManager.IO')
       expect(layout.template).toContain('navbar')
     })
 

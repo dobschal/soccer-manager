@@ -127,6 +127,10 @@ body {
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
+}
+
+/* Only add top padding when the native game layout is active (for status bar + top bar) */
+body:has(.native-app-layout) {
     padding-top: 3rem;
 }
 
@@ -138,4 +142,64 @@ input, textarea, [contenteditable] {
 /* Prevent overscroll bounce */
 html, body {
     overscroll-behavior: none;
+}
+
+/* Native landing page */
+.native-landing-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0d4a5a 100%);
+    padding: 2rem;
+}
+
+.native-landing-card {
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    color: white;
+}
+
+.native-landing-logo {
+    width: 80px;
+    height: auto;
+    margin-bottom: 0.75rem;
+}
+
+.native-landing-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+}
+
+.native-landing-card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+    opacity: 0.85;
+}
+
+.native-landing-card .form-control {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.native-landing-card .form-control:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #17a2b8;
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+    color: #fff;
+}
+
+.native-landing-card .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.native-landing-card label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: left;
+    display: block;
 }

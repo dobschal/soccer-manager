@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Soccer Manager IO - a browser-based football manager game where players build teams, compete in leagues, and manage
+FootballManager.IO - a browser-based football manager game where players build teams, compete in leagues, and manage
 finances. Full-stack Node.js application with MySQL database.
 
 ## Commands

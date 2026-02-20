@@ -35,7 +35,11 @@ export class GameLayout extends UIElement {
   get serverEvents () {
     return {
       BUY_OFFER_ACCEPTED: (data) => {
-        toast(t('trades.buyOfferAccepted', { playerName: data.playerName, teamName: data.sellerTeamName, price: data.price }), 'success')
+        toast(t('trades.buyOfferAccepted', {
+          playerName: data.playerName,
+          teamName: data.sellerTeamName,
+          price: data.price
+        }), 'success')
       }
     }
   }
@@ -48,7 +52,10 @@ export class GameLayout extends UIElement {
       <div class="game-layout">
         <nav class="navbar navbar-expand-lg navbar-dark">
           <div class="navbar-content">
-            <a class="navbar-brand" href="#">SoccerManagerIO</a>
+            <a class="navbar-brand" href="#">
+                <img src="assets/logo.svg" alt="FootballManager.IO" height="28">
+                <span class="ps-2">FootballManager.IO</span>
+            </a>
             <button class="navbar-toggler"
                     type="button"
                     data-toggle="collapse"
@@ -104,7 +111,7 @@ export class GameLayout extends UIElement {
         </div>
         <div class="container" id="page"></div>
         <footer class="app-footer">
-          <span class="text-muted">SoccerManagerIO v${this._version}</span>
+          <span class="text-muted">FootballManager.IO v${this._version}</span>
           <br>
           <a href="imprint.html" class="text-muted">${t('footer.imprintPrivacy')}</a>
         </footer>
@@ -366,14 +373,15 @@ export class GameLayout extends UIElement {
   _navItem (path, text) {
     const id = generateId()
     const eventId = on('page-changed', () => {
-      const isCurrentPage = window.location.hash.substring(1).split('?')[0] === path
+      const currentPath = window.location.hash.substring(1).split('?')[0]
+      const isCurrentPage = (currentPath === path) || (currentPath === '' && path === 'dashboard')
       el('#' + id)?.classList[isCurrentPage ? 'add' : 'remove']('active')
     })
     this._navItemEventIds.push(eventId)
 
     return `
-      <li id="${id}" class="nav-item">
-        <a class="nav-link w-100 text-center" href="#${path}">
+      <li class="nav-item">
+        <a id="${id}" class="nav-link w-100 text-center" href="#${path}">
           ${text}
         </a>
       </li>

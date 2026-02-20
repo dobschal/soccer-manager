@@ -1,7 +1,7 @@
 {
   "name": "soccermanager-native",
   "version": "1.0.0",
-  "description": "Soccer Manager IO - Native App",
+  "description": "FootballManager.IO - Native App",
   "main": "app/app.ts",
   "nativescript": {
     "id": "io.soccermanager.app"

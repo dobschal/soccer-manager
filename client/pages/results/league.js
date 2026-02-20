@@ -58,8 +58,8 @@ export class LeagueResultsPage extends UIElement {
   get template () {
     return `
       <div>
-        <div class="d-flex align-items-start gap-3 mb-4">
-          <div class="flex-grow-1 w-50">
+        <div class="d-flex flex-column flex-lg-row align-items-start gap-3 mb-4">
+          <div class="flex-grow-1 u-w-lg-50">
             <h2>${t('results.resultsTitle')}</h2>
             <table>
               <tr>

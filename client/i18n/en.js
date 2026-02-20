@@ -27,7 +27,7 @@ export default {
 
   // Landing page
   'landing.freeToPlay': 'Free to Play',
-  'landing.title': 'Soccer Manager IO',
+  'landing.title': 'FootballManager.IO',
   'landing.subtitle': 'Build your dream team from scratch, rise through the leagues, and become the ultimate football manager. No downloads, no payments - just pure football strategy in your browser.',
   'landing.welcomeBack': 'Welcome Back',
   'landing.createAccount': 'Create Account',
@@ -619,7 +619,7 @@ export default {
   'tutorialProgress.page.buildings': 'Buildings',
 
   // Tutorial
-  'tutorial.welcome': 'Welcome to Soccer Manager IO!',
+  'tutorial.welcome': 'Welcome to FootballManager.IO!',
   'tutorial.welcomeDesc': 'Let\'s take a quick tour of the game. You can skip this tutorial at any time.',
   'tutorial.dashboard': 'Dashboard',
   'tutorial.dashboardDesc': 'This is your dashboard. Here you can see your latest results, upcoming matches, news, and action cards.',
@@ -659,7 +659,7 @@ export default {
   'tutorial.trades.item2': 'Make offers on players from other teams',
   'tutorial.trades.item3': 'View and respond to offers on your players',
   'tutorial.trades.item4': 'Check transfer history and free agents',
-  'tutorial.dashboardPage.title': 'Welcome to SoccerManagerIO!',
+  'tutorial.dashboardPage.title': 'Welcome to FootballManager.IO!',
   'tutorial.dashboardPage.subtitle': 'This is your dashboard that keeps you updated:',
   'tutorial.dashboardPage.item1': 'See your last match result and upcoming game',
   'tutorial.dashboardPage.item2': 'Use action cards to boost players or earn bonuses',

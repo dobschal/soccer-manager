@@ -80,6 +80,7 @@ export class NativeAppLayout extends UIElement {
   }
 
   onMounted () {
+    window.scrollTo(0, 0)
     this._attachEventHandlers()
     this._startTimer()
     this._setupScrollListener()

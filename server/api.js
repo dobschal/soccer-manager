@@ -20,7 +20,6 @@ const port = 3000
 // CORS: allow requests from native app (file:// or missing origin)
 app.use((req, res, next) => {
   const origin = req.headers.origin
-  console.log('Headers:', req.headers)
   if (!origin || origin === 'null' || origin === 'file://') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language')

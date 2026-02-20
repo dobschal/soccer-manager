@@ -59,7 +59,7 @@ export class PlayerList extends UIElement {
     return `
       <div>
         <h3 class="${this.showTitle ? '' : 'hidden'}" style="clear: both;">Players (${this.players.length}) ${toggleBtn}</h3>
-        <div class="table-responsive">
+        <div class="table-responsive player-list-table">
           <table class="table table-hover">
             <thead>
               <tr>

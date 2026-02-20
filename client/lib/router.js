@@ -162,6 +162,9 @@ function _hideLoadingIndicator () {
  */
 async function _renderLayout (LayoutElement) {
   if (!currentLayoutRenderFn || currentLayoutRenderFn !== LayoutElement) {
+    // Clean up any scroll-lock state left by overlays before replacing body content
+    document.body.classList.remove('overlay-open')
+    document.body.style.top = ''
     if (LayoutElement.isUIElement) {
       const layout = new LayoutElement()
       render('body', layout)

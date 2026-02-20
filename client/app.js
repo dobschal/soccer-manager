@@ -22,7 +22,7 @@ if (window.localStorage.getItem('auth-token')) {
 }
 
 server.getVersion().then(({ version }) => {
-  console.log(`🚀 SoccerManagerIO running version ${version}`)
+  console.log(`🚀 FootballManager.IO running version ${version}`)
 })
 
 const pages = {
