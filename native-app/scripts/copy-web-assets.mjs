@@ -56,7 +56,7 @@ nativeHtml = nativeHtml.replace(
 // Inject __NATIVE_SERVER_URL before the module script, and change app.js to native-app.js
 nativeHtml = nativeHtml.replace(
   '<script src="app.js" defer type="module"></script>',
-  '<script>window.__NATIVE_SERVER_URL = \'http://localhost:3000\';</script>\n    <script src="native-app.js" defer type="module"></script>'
+  '<script>window.__NATIVE_SERVER_URL = \'https://footballmanager.io\';</script>\n    <script src="native-app.js" defer type="module"></script>'
 )
 
 // Update title for native

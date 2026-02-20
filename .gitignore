@@ -5,3 +5,4 @@ node_modules
 /native-app/web/
 /native-app/platforms/
 /native-app/node_modules/
+.DS_Store
