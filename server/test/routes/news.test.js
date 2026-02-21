@@ -21,6 +21,11 @@ vi.mock('../../i18n/index.js', () => ({
   getLocaleFromRequest: vi.fn(() => 'en')
 }))
 
+vi.mock('../../lib/badWordsFilter.js', async () => {
+  const actual = await vi.importActual('../../lib/badWordsFilter.js')
+  return actual
+})
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
@@ -54,6 +59,9 @@ describe('news routes', () => {
       getTeam.mockResolvedValue(team)
       getNewsByLeague.mockResolvedValue([newsItem])
       query
+        .mockResolvedValueOnce([]) // like counts query
+        .mockResolvedValueOnce([]) // user likes query
+        .mockResolvedValueOnce([]) // comment counts query
         .mockResolvedValueOnce([newsTeam]) // teams query
         .mockResolvedValueOnce([newsPlayer]) // players query
 
@@ -64,6 +72,7 @@ describe('news routes', () => {
       expect(result.season).toBe(1)
       expect(result.news.length).toBe(1)
       expect(result.news[0].type).toBe('TRANSFER')
+      expect(result.news[0].commentCount).toBe(0)
       expect(result.teams).toEqual([newsTeam])
       expect(result.players).toEqual([newsPlayer])
       expect(getNewsByLeague).toHaveBeenCalledWith(4, 1, 1, 1, 'en')
@@ -105,6 +114,9 @@ describe('news routes', () => {
       getTeam.mockResolvedValue(team)
       getNewsByLeague.mockResolvedValue([newsItem])
       query
+        .mockResolvedValueOnce([]) // like counts query
+        .mockResolvedValueOnce([]) // user likes query
+        .mockResolvedValueOnce([]) // comment counts query
         .mockResolvedValueOnce([newsPlayer]) // players query
         .mockResolvedValueOnce([playerTeam]) // player teams query
 
@@ -112,6 +124,102 @@ describe('news routes', () => {
       const result = await handlers.getLeagueNews(req)
 
       expect(result.teams).toContainEqual(playerTeam)
+    })
+
+    it('includes comment counts in enriched news', async () => {
+      const team = testData.team({ id: 1, level: 1, league: 1 })
+      const newsItem = {
+        id: 5,
+        game_day: 4,
+        season: 1,
+        level: 1,
+        league: 1,
+        type: 'TRANSFER',
+        title: 'Transfer',
+        text: 'A transfer happened',
+        player_id: null,
+        team_id: 1
+      }
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getTeam.mockResolvedValue(team)
+      getNewsByLeague.mockResolvedValue([newsItem])
+      query
+        .mockResolvedValueOnce([]) // like counts
+        .mockResolvedValueOnce([]) // user likes
+        .mockResolvedValueOnce([{ news_id: 5, count: 3 }]) // comment counts
+        .mockResolvedValueOnce([team]) // teams query
+
+      const req = createMockRequest()
+      const result = await handlers.getLeagueNews(req)
+
+      expect(result.news[0].commentCount).toBe(3)
+    })
+  })
+
+  describe('getNewsComments', () => {
+    it('returns comments for a news item', async () => {
+      const comments = [
+        { id: 1, news_id: 5, user_id: 1, text: 'Great news!', created_at: new Date(), author_name: 'testuser' },
+        { id: 2, news_id: 5, user_id: 2, text: 'Indeed!', created_at: new Date(), author_name: 'otheruser' }
+      ]
+      query.mockResolvedValueOnce(comments)
+
+      const req = createMockRequest()
+      const result = await handlers.getNewsComments(5, req)
+
+      expect(result.comments).toEqual(comments)
+      expect(result.comments.length).toBe(2)
+    })
+
+    it('returns empty array when no comments exist', async () => {
+      query.mockResolvedValueOnce([])
+
+      const req = createMockRequest()
+      const result = await handlers.getNewsComments(5, req)
+
+      expect(result.comments).toEqual([])
+    })
+  })
+
+  describe('addNewsComment', () => {
+    it('adds and returns a comment with author name', async () => {
+      const comment = { id: 1, news_id: 5, user_id: 1, text: 'Nice game!', created_at: new Date(), author_name: 'testuser' }
+      query
+        .mockResolvedValueOnce({ insertId: 1 }) // INSERT
+        .mockResolvedValueOnce([comment]) // SELECT back
+
+      const req = createMockRequest()
+      const result = await handlers.addNewsComment(5, 'Nice game!', req)
+
+      expect(result.comment).toEqual(comment)
+      expect(result.comment.author_name).toBe('testuser')
+    })
+
+    it('filters bad words before storing', async () => {
+      const comment = { id: 1, news_id: 5, user_id: 1, text: '**** this', created_at: new Date(), author_name: 'testuser' }
+      query
+        .mockResolvedValueOnce({ insertId: 1 })
+        .mockResolvedValueOnce([comment])
+
+      const req = createMockRequest()
+      await handlers.addNewsComment(5, 'fuck this', req)
+
+      // Check that the INSERT was called with masked text
+      const insertCall = query.mock.calls[0]
+      expect(insertCall[1].text).toBe('**** this')
+    })
+
+    it('rejects empty text', async () => {
+      const req = createMockRequest()
+      await expect(handlers.addNewsComment(5, '', req)).rejects.toThrow('Comment text cannot be empty')
+      await expect(handlers.addNewsComment(5, '   ', req)).rejects.toThrow('Comment text cannot be empty')
+    })
+
+    it('rejects text exceeding 500 characters', async () => {
+      const req = createMockRequest()
+      const longText = 'a'.repeat(501)
+      await expect(handlers.addNewsComment(5, longText, req)).rejects.toThrow('Comment text cannot exceed 500 characters')
     })
   })
 })

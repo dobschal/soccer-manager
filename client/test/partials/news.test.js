@@ -3,8 +3,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // Mock dependencies
 vi.mock('../../lib/gateway.js', () => ({
   server: {
-    getLeagueNews: vi.fn()
+    getLeagueNews: vi.fn(),
+    getLikedNews: vi.fn()
   }
+}))
+
+vi.mock('../../lib/html.js', () => ({
+  generateId: vi.fn(() => '_mock_id_' + Math.random().toString(36).slice(2, 8)),
+  el: vi.fn(),
+  value: vi.fn()
+}))
+
+vi.mock('../../lib/htmlEventHandlers.js', () => ({
+  onClick: vi.fn(),
+  onChange: vi.fn(),
+  on: vi.fn()
 }))
 
 vi.mock('../../partials/playerImage.js', () => ({
@@ -24,8 +37,13 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key, params) => params ? `${key}: ${JSON.stringify(params)}` : key)
 }))
 
+vi.mock('../../partials/commentOverlay.js', () => ({
+  showCommentOverlay: vi.fn()
+}))
+
 import { News, renderNews } from '../../pages/dashboard/news.js'
 import { server } from '../../lib/gateway.js'
+import { showCommentOverlay } from '../../partials/commentOverlay.js'
 
 describe('News', () => {
   beforeEach(() => {
@@ -44,8 +62,11 @@ describe('News', () => {
         teams: [],
         players: [],
         gameDay: 5,
-        season: 1
+        season: 1,
+        level: 0,
+        league: 0
       })
+      server.getLikedNews.mockResolvedValue({ news: [], teams: [], players: [] })
 
       const news = new News()
       await news.load()
@@ -60,8 +81,11 @@ describe('News', () => {
         teams: [],
         players: [],
         gameDay: 0,
-        season: 0
+        season: 0,
+        level: 0,
+        league: 0
       })
+      server.getLikedNews.mockResolvedValue({ news: [], teams: [], players: [] })
 
       const news = new News()
       await news.load()
@@ -71,14 +95,17 @@ describe('News', () => {
     })
 
     it('renders news items when present', async () => {
-      const newsItem = { id: 1, title: 'Big Win!', text: 'Team A won 5-0' }
+      const newsItem = { id: 1, title: 'Big Win!', text: 'Team A won 5-0', likeCount: 0, liked: false, commentCount: 0 }
       server.getLeagueNews.mockResolvedValue({
         news: [newsItem],
         teams: [],
         players: [],
         gameDay: 5,
-        season: 1
+        season: 1,
+        level: 0,
+        league: 0
       })
+      server.getLikedNews.mockResolvedValue({ news: [], teams: [], players: [] })
 
       const news = new News()
       await news.load()
@@ -88,14 +115,39 @@ describe('News', () => {
       expect(html).toContain('row mt-4')
     })
 
+    it('renders news items with commentCount data without errors', async () => {
+      const newsItem = { id: 1, title: 'Big Win!', text: 'Team A won 5-0', likeCount: 0, liked: false, commentCount: 7 }
+      server.getLeagueNews.mockResolvedValue({
+        news: [newsItem],
+        teams: [],
+        players: [],
+        gameDay: 5,
+        season: 1,
+        level: 0,
+        league: 0
+      })
+      server.getLikedNews.mockResolvedValue({ news: [], teams: [], players: [] })
+
+      const news = new News()
+      await news.load()
+
+      const html = news.template
+      expect(html).toContain('row mt-4')
+      // showCommentOverlay is correctly imported and mocked
+      expect(showCommentOverlay).toBeDefined()
+    })
+
     it('displays game day and season', async () => {
       server.getLeagueNews.mockResolvedValue({
         news: [],
         teams: [],
         players: [],
         gameDay: 10,
-        season: 2
+        season: 2,
+        level: 0,
+        league: 0
       })
+      server.getLikedNews.mockResolvedValue({ news: [], teams: [], players: [] })
 
       const news = new News()
       await news.load()
@@ -113,9 +165,12 @@ describe('News', () => {
         teams: [{ id: 1, name: 'Team A' }],
         players: [{ id: 1, name: 'Player 1' }],
         gameDay: 5,
-        season: 1
+        season: 1,
+        level: 0,
+        league: 0
       }
       server.getLeagueNews.mockResolvedValue(mockResponse)
+      server.getLikedNews.mockResolvedValue({ news: [], teams: [], players: [] })
 
       const news = new News()
       await news.load()
@@ -129,6 +184,7 @@ describe('News', () => {
 
     it('defaults to empty arrays and zeros on missing data', async () => {
       server.getLeagueNews.mockResolvedValue({})
+      server.getLikedNews.mockResolvedValue({})
 
       const news = new News()
       await news.load()

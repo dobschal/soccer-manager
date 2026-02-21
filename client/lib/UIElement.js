@@ -179,6 +179,21 @@ export class UIElement {
   }
 
   /**
+   * If this is called the first time for this instance, the target itself is a template element.
+   * This target gets replaced with the actual content. The node inserted into the DOM gets the
+   * same render_id as the template to be able to find it later for updates.
+   *
+   * TODO:
+   *  In case of updates, this method is currently replacing the whole content.
+   *  It would be better to only replace the changed parts. The templateEl contains the updated content and
+   *  the target contains the currently rendered content. We could compare those and only update the changed parts.
+   *  So check all children and update attributes and text content if changed, instead of replacing the whole node.
+   *  Ensure that the addEventListeners are still working after the update, maybe by re-applying them after the update
+   *  and ensure that they are not duplicated.
+   *  If a child has a render_id, we need to find the corresponding UIElement instance and call update on it,
+   *  instead of replacing it, to ensure that the event listeners are still working and the state is preserved.
+   *  Write tests for all cases and edge cases (lists, sorting, nested UIElements, etc.)
+   *
    * @param {HTMLElement} target
    * @param {HTMLTemplateElement} templateEl
    * @private

@@ -705,6 +705,11 @@ export default {
   'news.noNews': 'Keine Neuigkeiten verfügbar...',
   'news.viewPlayer': 'Spieler ansehen',
   'news.viewTeam': 'Team ansehen',
+  'news.like': 'Gefällt mir',
+  'news.likedTitle': 'Deine Favoriten',
+  'news.comments': 'Kommentare',
+  'news.noComments': 'Noch keine Kommentare. Sei der Erste!',
+  'news.commentPlaceholder': 'Kommentar schreiben...',
 
   // Toast messages
   'toast.success': 'Erfolg!',

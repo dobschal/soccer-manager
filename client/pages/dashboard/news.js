@@ -4,22 +4,29 @@ import { renderPlayerImage } from '../../partials/playerImage.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { goTo, setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
+import { generateId } from '../../lib/html.js'
+import { onClick } from '../../lib/htmlEventHandlers.js'
+import { showCommentOverlay } from '../../partials/commentOverlay.js'
 
 class NewsItem extends UIElement {
   /**
    * @param {object} newsItem
    * @param {object[]} teams
    * @param {object[]} players
+   * @param {(newsId: number) => void} onLikeToggle
    */
-  constructor (newsItem, teams, players) {
+  constructor (newsItem, teams, players, onLikeToggle) {
     super()
     this.newsItem = newsItem
     this.teams = teams
     this.players = players
+    this.onLikeToggle = onLikeToggle
     this.image = ''
     this.linkType = null // 'player' or 'team'
     this.linkId = null
     this.teamId = null
+    this.likeBtnId = generateId()
+    this.commentBtnId = generateId()
   }
 
   /**
@@ -27,7 +34,7 @@ class NewsItem extends UIElement {
    */
   get events () {
     return {
-      '.news-link': {
+      '(optional).news-link': {
         click: () => {
           if (this.linkType === 'player') {
             setQueryParams({ player_id: this.linkId })
@@ -39,32 +46,65 @@ class NewsItem extends UIElement {
     }
   }
 
+  onMounted () {
+    onClick(this.likeBtnId, () => {
+      if (this.onLikeToggle) this.onLikeToggle(this.newsItem.id)
+    })
+    onClick(this.commentBtnId, () => {
+      showCommentOverlay(this.newsItem.id, this.newsItem.title, () => {
+        this.newsItem.commentCount = (this.newsItem.commentCount || 0) + 1
+        this.update()
+      })
+    })
+  }
+
   /**
    * @returns {string}
    */
   get template () {
     const hasLink = this.linkType !== null
+    const liked = this.newsItem.liked
+    const likeCount = this.newsItem.likeCount || 0
+    const commentCount = this.newsItem.commentCount || 0
+    const btnClass = liked ? 'btn-danger' : 'btn-outline-secondary'
+    const heartIcon = liked ? 'fa-heart' : 'fa-heart-o'
+
     return `
-      <div class="mb-4 position-relative">
+      <div class="mb-4">
         <div class="row align-items-start">
           <div class="col-auto py-2" style="background: linear-gradient(135deg, #dedede 0%, #f3f3f3 100%); border-radius: 8px;">
             ${this.image}
           </div>
-          <div class="col" style="padding-bottom: 2rem;">
+          <div class="col">
             <h5 class="text-info mb-1">${this.newsItem.title}</h5>
             <p class="mb-0" style="font-size: 0.9em;">${this.newsItem.text}</p>
           </div>
         </div>
-        ${hasLink ? `
+        <div class="d-flex justify-content-end gap-2 mt-2">
           <button
-            class="news-link btn btn-sm btn-outline-info position-absolute"
-            style="bottom: 10px; right: 10px;"
-            aria-label="${this.linkType === 'player' ? t('news.viewPlayer') : t('news.viewTeam')}"
-            title="${this.linkType === 'player' ? t('news.viewPlayer') : t('news.viewTeam')}"
+            id="${this.likeBtnId}"
+            class="btn btn-sm ${btnClass}"
+            title="${t('news.like')}"
           >
-            <i class="fa fa-chevron-right" aria-hidden="true"></i>
+            <i class="fa ${heartIcon}" aria-hidden="true"></i> ${likeCount}
           </button>
-        ` : ''}
+          <button
+            id="${this.commentBtnId}"
+            class="btn btn-sm btn-outline-secondary"
+            title="${t('news.comments')}"
+          >
+            <i class="fa fa-comment-o" aria-hidden="true"></i> ${commentCount}
+          </button>
+          ${hasLink ? `
+            <button
+              class="news-link btn btn-sm btn-outline-info"
+              aria-label="${this.linkType === 'player' ? t('news.viewPlayer') : t('news.viewTeam')}"
+              title="${this.linkType === 'player' ? t('news.viewPlayer') : t('news.viewTeam')}"
+            >
+              <i class="fa fa-chevron-right" aria-hidden="true"></i>
+            </button>
+          ` : ''}
+        </div>
       </div>
     `
   }
@@ -106,40 +146,135 @@ export class News extends UIElement {
   players = []
   gameDay = 0
   season = 0
+  level = 0
+  league = 0
+  initialGameDay = 0
+  initialSeason = 0
+  likedNews = []
+  likedTeams = []
+  likedPlayers = []
+  prevBtnId = generateId()
+  nextBtnId = generateId()
 
   /**
    * @returns {string}
    */
   get template () {
     const seasonDisplay = this.season + 1
+    const isAtStart = this.season === 0 && this.gameDay === 0
+    const isAtEnd = this.season === this.initialSeason && this.gameDay === this.initialGameDay
     return `
       <div class="mb-5">
         <h3>${t('news.title')}</h3>
-        <p class="text-muted">${t('results.gameDay', { day: this.gameDay + 1 })}, ${t('finances.season', { season: seasonDisplay })}</p>
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <button id="${this.prevBtnId}" class="btn btn-sm btn-outline-secondary" ${isAtStart ? 'disabled' : ''}>
+            <i class="fa fa-chevron-left" aria-hidden="true"></i>
+          </button>
+          <span class="text-muted">${t('results.gameDay', { day: this.gameDay + 1 })}, ${t('finances.season', { season: seasonDisplay })}</span>
+          <button id="${this.nextBtnId}" class="btn btn-sm btn-outline-secondary" ${isAtEnd ? 'disabled' : ''}>
+            <i class="fa fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
         ${this.news.length > 0
       ? `<div class="row mt-4">
               ${this.news.map(item => `
                 <div class="col-12 col-lg-6">
-                  ${new NewsItem(item, this.teams, this.players)}
+                  ${new NewsItem(item, this.teams, this.players, (newsId) => this._handleLikeToggle(newsId))}
                 </div>
               `).join('')}
             </div>`
       : `<p class="text-muted">${t('news.noNews')}</p>`
     }
+        ${this.likedNews.length > 0 ? `
+          <hr class="my-4">
+          <h4>${t('news.likedTitle')}</h4>
+          <div class="row mt-3">
+            ${this.likedNews.map(item => `
+              <div class="col-12 col-lg-6">
+                ${new NewsItem(item, this.likedTeams, this.likedPlayers, (newsId) => this._handleLikeToggle(newsId))}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       </div>
     `
+  }
+
+  onMounted () {
+    onClick(this.prevBtnId, () => this._navigateGameDay(-1))
+    onClick(this.nextBtnId, () => this._navigateGameDay(1))
   }
 
   /**
    * @returns {Promise<void>}
    */
   async load () {
-    const response = await server.getLeagueNews()
+    const [response, likedResponse] = await Promise.all([
+      server.getLeagueNews(),
+      server.getLikedNews()
+    ])
     this.news = response.news || []
     this.teams = response.teams || []
     this.players = response.players || []
     this.gameDay = response.gameDay || 0
     this.season = response.season || 0
+    this.level = response.level || 0
+    this.league = response.league || 0
+    this.initialGameDay = this.gameDay
+    this.initialSeason = this.season
+
+    this.likedNews = likedResponse.news || []
+    this.likedTeams = likedResponse.teams || []
+    this.likedPlayers = likedResponse.players || []
+  }
+
+  /**
+   * @param {number} direction - -1 for previous, +1 for next
+   */
+  async _navigateGameDay (direction) {
+    let newGameDay = this.gameDay + direction
+    let newSeason = this.season
+
+    if (newGameDay < 0) {
+      if (newSeason <= 0) return
+      newSeason--
+      const result = await server.getMaxGameDay(newSeason)
+      newGameDay = result.maxGameDay ?? 0
+    }
+
+    if (newSeason > this.initialSeason || (newSeason === this.initialSeason && newGameDay > this.initialGameDay)) {
+      return
+    }
+
+    const response = await server.getNewsForGameDay(newGameDay, newSeason, this.level, this.league)
+    this.news = response.news || []
+    this.teams = response.teams || []
+    this.players = response.players || []
+    this.gameDay = newGameDay
+    this.season = newSeason
+    await this.update()
+  }
+
+  /**
+   * @param {number} newsId
+   */
+  async _handleLikeToggle (newsId) {
+    await server.toggleNewsLike(newsId)
+
+    // Reload current gameday news and liked news
+    const [response, likedResponse] = await Promise.all([
+      server.getNewsForGameDay(this.gameDay, this.season, this.level, this.league),
+      server.getLikedNews()
+    ])
+    this.news = response.news || []
+    this.teams = response.teams || []
+    this.players = response.players || []
+
+    this.likedNews = likedResponse.news || []
+    this.likedTeams = likedResponse.teams || []
+    this.likedPlayers = likedResponse.players || []
+
+    await this.update()
   }
 }
 

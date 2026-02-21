@@ -969,6 +969,37 @@ const migrations = [{
     }
     await Promise.all(promises)
   }
+},
+{
+  name: 'Create news_like table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS news_like
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        news_id BIGINT(20) UNSIGNED NOT NULL,
+        user_id BIGINT(20) UNSIGNED NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY unique_news_user (news_id, user_id),
+        INDEX idx_news_like_user_id (user_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+},
+{
+  name: 'Create news_comment table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS news_comment
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        news_id BIGINT(20) UNSIGNED NOT NULL,
+        user_id BIGINT(20) UNSIGNED NOT NULL,
+        text TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_news_comment_news_id (news_id),
+        INDEX idx_news_comment_user_id (user_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

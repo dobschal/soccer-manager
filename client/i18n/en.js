@@ -705,6 +705,11 @@ export default {
   'news.noNews': 'No news available...',
   'news.viewPlayer': 'View player',
   'news.viewTeam': 'View team',
+  'news.like': 'Like',
+  'news.likedTitle': 'Your Liked News',
+  'news.comments': 'Comments',
+  'news.noComments': 'No comments yet. Be the first!',
+  'news.commentPlaceholder': 'Write a comment...',
 
   // Toast messages
   'toast.success': 'Success!',
