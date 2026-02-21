@@ -41,8 +41,8 @@ const TUTORIALS = [
 ]
 
 export class TutorialProgress extends UIElement {
+  showLoadingIndicator = false
   _tutorialCompleted = {}
-  _loaded = false
 
   /**
    * Server events to listen for
@@ -61,10 +61,6 @@ export class TutorialProgress extends UIElement {
    * @returns {string}
    */
   get template () {
-    if (!this._loaded) {
-      return '<div></div>'
-    }
-
     const completed = TUTORIALS.filter(tut => this._tutorialCompleted[tut.key]).length
     const total = TUTORIALS.length
 
@@ -111,10 +107,8 @@ export class TutorialProgress extends UIElement {
     try {
       const { tutorialCompleted } = await server.getTutorialStatus()
       this._tutorialCompleted = tutorialCompleted
-      this._loaded = true
     } catch (e) {
       console.error('Failed to load tutorial status:', e)
-      this._loaded = true
     }
   }
 

@@ -3,8 +3,11 @@ import { fire } from './event.js'
 import { el } from './html.js'
 import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
+import { pushLoadingIndicator, popLoadingIndicator } from './loadingIndicator.js'
 
 let pages, lastPath
+/** @type {Object<string, {page: Object, wrapper: HTMLElement}>} */
+let _pageCache = {}
 
 /**
  * Open a page under a specific path.
@@ -84,6 +87,11 @@ async function _resolvePage () {
   lastPath = currentPath
   const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
   const layoutChanged = await _renderLayout(layoutRenderFn)
+
+  if (layoutChanged) {
+    _pageCache = {}
+  }
+
   _showLoadingIndicator()
   hideNavigation()
   const pageElement = el('#page')
@@ -92,8 +100,21 @@ async function _resolvePage () {
     pageElement.style.opacity = '0'
     pageElement.style.transform = 'translateY(50px)'
   }
-  pageElement.innerHTML = ''
-  await _renderNewPage(pageRenderFn, currentPath, pageElement)
+
+  // Hide all cached page wrappers
+  for (const child of [...pageElement.children]) {
+    child.style.display = 'none'
+  }
+
+  const cached = _pageCache[currentPath]
+  if (cached && pageElement.contains(cached.wrapper)) {
+    cached.wrapper.style.display = ''
+    _afterPageLoad(pageElement)
+    fire('query-changed', getQueryParams())
+    if (cached.page?.silentUpdate) cached.page.silentUpdate()
+  } else {
+    _renderNewPage(pageRenderFn, currentPath, pageElement)
+  }
 }
 
 /**
@@ -103,11 +124,16 @@ async function _resolvePage () {
  * @returns {Promise<void>}
  */
 async function _renderNewPage (PageUIElement, currentPath, pageElement) {
+  const wrapper = document.createElement('div')
+  wrapper.setAttribute('data-page', currentPath)
+
   if (PageUIElement.isUIElement) {
     /** @type {UIElement} */
     const page = new PageUIElement()
     fire('query-changed', getQueryParams())
-    render('#page', page)
+    wrapper.insertAdjacentHTML('afterbegin', String(page))
+    pageElement.appendChild(wrapper)
+    _pageCache[currentPath] = { page, wrapper }
     const startTime = Date.now()
     const timeoutMs = 60000
     const interval = setInterval(() => {
@@ -121,7 +147,8 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
     }, 100)
   } else {
     console.warn('Deprecated: ', currentPath)
-    render('#page', await PageUIElement())
+    wrapper.insertAdjacentHTML('afterbegin', await PageUIElement())
+    pageElement.appendChild(wrapper)
     _afterPageLoad(pageElement)
   }
 }
@@ -137,23 +164,26 @@ function _afterPageLoad (pageElement) {
   pageElement.style.opacity = '1'
 }
 
+let _routerLoadingIndicatorId = null
+
 /**
  * @returns {void}
  */
 function _showLoadingIndicator () {
-  const element = el('#loading-indicator')
-  if (element) return
-  document.body.insertAdjacentHTML(
-    'beforeend',
-    '<div id="loading-indicator"></div>'
-  )
+  if (_routerLoadingIndicatorId) return
+  const spinnerEl = document.createElement('div')
+  spinnerEl.classList.add('loading-indicator')
+  document.body.appendChild(spinnerEl)
+  _routerLoadingIndicatorId = pushLoadingIndicator(spinnerEl)
 }
 
 /**
  * @returns {void}
  */
 function _hideLoadingIndicator () {
-  el('#loading-indicator')?.remove()
+  if (!_routerLoadingIndicatorId) return
+  popLoadingIndicator(_routerLoadingIndicatorId)
+  _routerLoadingIndicatorId = null
 }
 
 /**

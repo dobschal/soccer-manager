@@ -3,6 +3,7 @@ import { el, generateId } from './html.js'
 import { off, on } from './event.js'
 import { onDOMNodeChanged } from './observeDOM.js'
 import { offServerEvent, onServerEvent } from './websocket.js'
+import { pushLoadingIndicator, popLoadingIndicator } from './loadingIndicator.js'
 
 /**
  * @typedef {Record<string, Record<string, (event: Event) => void>>} UIElementEvents
@@ -17,7 +18,12 @@ export class UIElement {
       this[paramsKey] = params[paramsKey]
     }
     if (this.onQueryChanged !== UIElement.prototype.onQueryChanged) {
-      this._queryChangedEventId = on('query-changed', this.onQueryChanged.bind(this))
+      const boundHandler = this.onQueryChanged.bind(this)
+      this._queryChangedEventId = on('query-changed', (params) => {
+        const node = document.querySelector(this._elementQuery)
+        if (!node || UIElement._isInsideHiddenContainer(node)) return
+        boundHandler(params)
+      })
     }
     onDOMNodeChanged(document.body, (addedNodes, removedNodes) => {
       for (const addedNode of addedNodes) {
@@ -110,6 +116,8 @@ export class UIElement {
       await this._load()
       await this._renderIntoTemplateEl(templateEl)
       this._renderIntoDOM(templateEl, templateEl)
+      const newEl = document.querySelector(this._elementQuery)
+      if (newEl) newEl.classList.add('ui-element-fade-in')
     }
     setTimeout(waitAndRender)
     return `<template id="${this._renderId}"></template>`
@@ -131,6 +139,20 @@ export class UIElement {
   }
 
   /**
+   * Reload data and re-render without showing a loading indicator.
+   * Used for cached elements that are already visible with stale content.
+   */
+  async silentUpdate () {
+    const prev = this.showLoadingIndicator
+    this.showLoadingIndicator = false
+    try {
+      await this.update(true)
+    } finally {
+      this.showLoadingIndicator = prev
+    }
+  }
+
+  /**
    * @returns {string}
    */
   toString () {
@@ -144,6 +166,7 @@ export class UIElement {
     return Boolean(this._renderId && el(this._elementQuery))
   }
 
+  showLoadingIndicator = true
   isUIElement = true
   static isUIElement = true
 
@@ -168,13 +191,13 @@ export class UIElement {
 
   async _load () {
     try {
-      this._showLoadingIndicator()
+      if (this.showLoadingIndicator) this._showLoadingIndicator()
       await this.load()
     } catch (e) {
       console.error('Error on load: ', e)
       toast(e.message ?? 'Something went wrong', 'error')
     } finally {
-      this._hideLoadingIndicator()
+      if (this.showLoadingIndicator) this._hideLoadingIndicator()
     }
   }
 
@@ -182,18 +205,6 @@ export class UIElement {
    * If this is called the first time for this instance, the target itself is a template element.
    * This target gets replaced with the actual content. The node inserted into the DOM gets the
    * same render_id as the template to be able to find it later for updates.
-   *
-   * TODO:
-   *  In case of updates, this method is currently replacing the whole content.
-   *  It would be better to only replace the changed parts. The templateEl contains the updated content and
-   *  the target contains the currently rendered content. We could compare those and only update the changed parts.
-   *  So check all children and update attributes and text content if changed, instead of replacing the whole node.
-   *  Ensure that the addEventListeners are still working after the update, maybe by re-applying them after the update
-   *  and ensure that they are not duplicated.
-   *  If a child has a render_id, we need to find the corresponding UIElement instance and call update on it,
-   *  instead of replacing it, to ensure that the event listeners are still working and the state is preserved.
-   *  Write tests for all cases and edge cases (lists, sorting, nested UIElements, etc.)
-   *
    * @param {HTMLElement} target
    * @param {HTMLTemplateElement} templateEl
    * @private
@@ -276,7 +287,6 @@ export class UIElement {
    * @private
    */
   _showLoadingIndicator () {
-    this._loadingIndicatorId = generateId()
     let neighborNode = el(this._elementQuery)
     if (!neighborNode?.parentElement) {
       neighborNode = el(this._renderId)
@@ -284,26 +294,18 @@ export class UIElement {
       neighborNode.style.display = 'none'
     }
 
-    // This ensures to have only one indicator in similar places
-    const neighborIsTemplate = neighborNode?.tagName === 'TEMPLATE'
-    if (neighborIsTemplate) {
-      return
+    const spinnerEl = document.createElement('div')
+    const useLocal = neighborNode?.parentElement && !UIElement._isInsideHiddenContainer(neighborNode)
+
+    if (useLocal) {
+      spinnerEl.classList.add('loading-indicator-local')
+      neighborNode.parentNode.insertBefore(spinnerEl, neighborNode)
+    } else {
+      spinnerEl.classList.add('loading-indicator')
+      document.body.appendChild(spinnerEl)
     }
 
-    if (!neighborNode?.parentElement) {
-      document.body.insertAdjacentHTML(
-        'beforeend',
-        `<div id="${this._loadingIndicatorId}" class="loading-indicator"></div>`
-      )
-    } else {
-      const spinnerEl = document.createElement('div')
-      spinnerEl.classList.add('loading-indicator-local')
-      spinnerEl.id = this._loadingIndicatorId
-      neighborNode.parentNode.insertBefore(
-        spinnerEl,
-        neighborNode
-      )
-    }
+    this._loadingIndicatorId = pushLoadingIndicator(spinnerEl)
   }
 
   /**
@@ -311,7 +313,22 @@ export class UIElement {
    * @private
    */
   _hideLoadingIndicator () {
-    el(this._loadingIndicatorId)?.remove()
+    popLoadingIndicator(this._loadingIndicatorId)
+  }
+
+  /**
+   * Check if a node is inside a container hidden via inline styles
+   * @param {HTMLElement} node
+   * @returns {boolean}
+   * @private
+   */
+  static _isInsideHiddenContainer (node) {
+    let current = node.parentElement
+    while (current && current !== document.body) {
+      if (current.style.opacity === '0' || current.style.display === 'none') return true
+      current = current.parentElement
+    }
+    return false
   }
 
   /**

@@ -86,7 +86,6 @@ describe('ResultsPage', () => {
       const page = new ResultsPage()
       await page.load()
       page.subPage = null
-      page.page = '<div>mock</div>'
 
       const html = page.template
       expect(html).toContain('results.leagueResults')
@@ -119,8 +118,6 @@ describe('ResultsPage', () => {
 
       const page = new ResultsPage()
       await page.load()
-      page.page = '<div>mock</div>'
-
       await page.onQueryChanged({ game_id: '42' })
 
       expect(showGameModal).toHaveBeenCalledWith(42)
@@ -137,8 +134,6 @@ describe('ResultsPage', () => {
 
       const page = new ResultsPage()
       await page.load()
-      page.page = '<div>mock</div>'
-
       await page.onQueryChanged({ player_id: '15' })
 
       expect(showPlayerModal).toHaveBeenCalledWith(15)
@@ -158,7 +153,7 @@ describe('ResultsPage', () => {
 
       await page.onQueryChanged({})
 
-      expect(page.page).toBeInstanceOf(LeagueResultsPage)
+      expect(page._subPageCache.league).toBeInstanceOf(LeagueResultsPage)
     })
   })
 

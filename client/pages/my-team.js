@@ -29,20 +29,71 @@ import { initDragDrop } from '../lib/dragDrop.js'
 
 export class MyTeamPage extends UIElement {
   _extendedPlayerList = false
+  _subPageCache = {}
+  _subPageContainerId = generateId()
 
   /**
    * @returns {string}
    */
   get template () {
+    const key = this.subPage || 'ateam'
+    const subPage = this._getOrCreateSubPage()
     return `
       <div>
         <nav class="nav nav-pills mb-2">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#my-team">${t('myTeam.aTeam')}</a>
           <a class="nav-link ${this.subPage === 'youth' ? 'active' : ''}" href="#my-team?sub_page=youth">${t('myTeam.youthTeam')}</a>
         </nav>
-        ${this.subPage === 'youth' ? this._renderYouthTeamPage() : this._renderATeamPage()}
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
       </div>
     `
+  }
+
+  _getOrCreateSubPage () {
+    const key = this.subPage || 'ateam'
+    if (key === 'youth') {
+      if (!this._subPageCache.youth) {
+        this._subPageCache.youth = new YouthTeamPage(this)
+      }
+      return this._subPageCache.youth
+    }
+    return this._renderATeamPage()
+  }
+
+  _switchSubPage () {
+    const container = el('#' + this._subPageContainerId)
+    if (!container) return
+    const key = this.subPage || 'ateam'
+
+    container.querySelectorAll('[data-subpage]').forEach(w => { w.style.display = 'none' })
+
+    const existing = container.querySelector(`[data-subpage="${key}"]`)
+    if (existing) {
+      existing.style.display = ''
+      const cached = this._subPageCache[key]
+      if (cached?.silentUpdate) cached.silentUpdate()
+      return
+    }
+
+    const subPage = this._getOrCreateSubPage()
+    const wrapper = document.createElement('div')
+    wrapper.setAttribute('data-subpage', key)
+    wrapper.insertAdjacentHTML('afterbegin', String(subPage))
+    container.appendChild(wrapper)
+  }
+
+  _updateNav () {
+    const root = document.querySelector(this._elementQuery)
+    if (!root) return
+    root.querySelectorAll('.nav-link').forEach(link => {
+      const href = link.getAttribute('href')
+      const isActive = this.subPage
+        ? href === `#my-team?sub_page=${this.subPage}`
+        : href === '#my-team'
+      link.classList.toggle('active', isActive)
+    })
   }
 
   /**
@@ -76,22 +127,12 @@ export class MyTeamPage extends UIElement {
       this._extendedPlayerList,
       () => {
         this._extendedPlayerList = !this._extendedPlayerList
-        this.update()
+        void this.update()
       }
     )}
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderYouthTeamPage () {
-    if (!this.youthPage) {
-      this.youthPage = new YouthTeamPage(this)
-    }
-    return this.youthPage
   }
 
   /**
@@ -122,12 +163,12 @@ export class MyTeamPage extends UIElement {
     }
 
     // Handle tab switching
-    if (subPage !== this.subPage) {
-      this.subPage = subPage
-      if (subPage === 'youth') {
-        this.youthPage = new YouthTeamPage(this)
-      }
-      await this.update()
+    const newSubPage = subPage || null
+    if (newSubPage !== this.subPage) {
+      this.subPage = newSubPage
+      this._switchSubPage()
+      this._updateNav()
+      if (!newSubPage) this._initDragDrop()
     }
   }
 
@@ -138,11 +179,15 @@ export class MyTeamPage extends UIElement {
     void showTutorialIfNeeded('team', this)
     this._youthPlayerPromotedEventId = on('YOUTH_PLAYER_PROMOTED', async () => {
       await this.load()
+      this._subPageCache = {}
       await this.update()
+      if (!this.subPage) this._initDragDrop()
     })
     this._onPlayerFired = async () => {
       await this.load()
+      this._subPageCache = {}
       await this.update()
+      if (!this.subPage) this._initDragDrop()
     }
     window.addEventListener('player-fired', this._onPlayerFired)
     if (!this.subPage) {

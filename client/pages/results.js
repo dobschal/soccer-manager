@@ -2,6 +2,7 @@ import { server } from '../lib/gateway.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { showGameModal } from '../partials/gameModal.js'
 import { UIElement } from '../lib/UIElement.js'
+import { el, generateId } from '../lib/html.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 import { LeagueResultsPage } from './results/league.js'
@@ -10,9 +11,12 @@ import { FriendlyResultsPage } from './results/friendly.js'
 
 export class ResultsPage extends UIElement {
   subPage = null
-  page = null
+  _subPageCache = {}
+  _subPageContainerId = generateId()
 
   get template () {
+    const key = this.subPage || 'league'
+    const subPage = this._getOrCreateSubPage()
     return `
       <div>
         <nav class="nav nav-pills mb-4">
@@ -21,9 +25,61 @@ export class ResultsPage extends UIElement {
           <a class="nav-link ${this.subPage === 'friendly' ? 'active' : ''}" href="#results?sub_page=friendly"><i class="fa fa-handshake-o"></i> ${t('results.friendlyResults')}</a>
         </nav>
 
-        ${this.page ?? t('common.loading')}
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
       </div>
     `
+  }
+
+  _getOrCreateSubPage () {
+    const key = this.subPage || 'league'
+    if (!this._subPageCache[key]) {
+      this._subPageCache[key] = this._createSubPage(key)
+    }
+    return this._subPageCache[key]
+  }
+
+  _createSubPage (key) {
+    switch (key) {
+      case 'cup': return new CupResultsPage(this)
+      case 'friendly': return new FriendlyResultsPage(this)
+      default: return new LeagueResultsPage(this)
+    }
+  }
+
+  _switchSubPage () {
+    const container = el('#' + this._subPageContainerId)
+    if (!container) return
+    const key = this.subPage || 'league'
+
+    container.querySelectorAll('[data-subpage]').forEach(w => { w.style.display = 'none' })
+
+    const existing = container.querySelector(`[data-subpage="${key}"]`)
+    if (existing) {
+      existing.style.display = ''
+      const cached = this._subPageCache[key]
+      if (cached?.silentUpdate) cached.silentUpdate()
+      return
+    }
+
+    const subPage = this._getOrCreateSubPage()
+    const wrapper = document.createElement('div')
+    wrapper.setAttribute('data-subpage', key)
+    wrapper.insertAdjacentHTML('afterbegin', String(subPage))
+    container.appendChild(wrapper)
+  }
+
+  _updateNav () {
+    const root = document.querySelector(this._elementQuery)
+    if (!root) return
+    root.querySelectorAll('.nav-link').forEach(link => {
+      const href = link.getAttribute('href')
+      const isActive = this.subPage
+        ? href === `#results?sub_page=${this.subPage}`
+        : href === '#results'
+      link.classList.toggle('active', isActive)
+    })
   }
 
   async load () {
@@ -45,26 +101,19 @@ export class ResultsPage extends UIElement {
 
     const newSubPage = queryParams.sub_page || null
 
-    // Switch sub-page if changed or not yet created
-    if (newSubPage !== this.subPage || this.page === null) {
+    if (newSubPage !== this.subPage) {
       this.subPage = newSubPage
-      switch (this.subPage) {
-        case 'cup':
-          this.page = new CupResultsPage(this)
-          break
-        case 'friendly':
-          this.page = new FriendlyResultsPage(this)
-          break
-        default:
-          this.page = new LeagueResultsPage(this)
-      }
+      this._switchSubPage()
+      this._updateNav()
     }
 
-    // Let the sub-page apply query params before update
-    if (this.page && typeof this.page.applyQueryParams === 'function') {
-      await this.page.applyQueryParams(queryParams)
+    const key = newSubPage || 'league'
+    if (!this._subPageCache[key]) {
+      this._subPageCache[key] = this._createSubPage(key)
     }
-
-    await this.update(true)
+    const cached = this._subPageCache[key]
+    if (cached && typeof cached.applyQueryParams === 'function') {
+      await cached.applyQueryParams(queryParams)
+    }
   }
 }

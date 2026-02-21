@@ -7,6 +7,7 @@ import { ActionCards } from './dashboard/actionCards.js'
 import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
 import { t } from '../i18n/index.js'
+import { el, generateId } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
 
@@ -27,11 +28,15 @@ export class DashboardPage extends UIElement {
   _actionCardCount = 0
   _pendingCards = []
   subPage = null
+  _subPageCache = {}
+  _subPageContainerId = generateId()
 
   /**
    * @returns {string}
    */
   get template () {
+    const key = this.subPage || 'start'
+    const subPage = this._getOrCreateSubPage()
     return `
       <div>
         ${this._tutorialProgress}
@@ -43,7 +48,9 @@ export class DashboardPage extends UIElement {
           <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''}" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}</a>
         </nav>
 
-        ${this._renderSubPage()}
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
       </div>
     `
   }
@@ -58,27 +65,36 @@ export class DashboardPage extends UIElement {
   }
 
   /**
-   * Render the active sub-page content
-   * @returns {string|ActionCards|News|LogMessages}
+   * Get or create a sub-page instance
+   * @returns {UIElement|StartPage}
    */
-  _renderSubPage () {
-    switch (this.subPage) {
-      case 'cards':
-        return new ActionCards()
-      case 'news':
-        return new News()
-      case 'messages':
-        return new LogMessages()
-      default:
-        return this._renderStartPage()
+  _getOrCreateSubPage () {
+    const key = this.subPage || 'start'
+    if (!this._subPageCache[key]) {
+      this._subPageCache[key] = this._createSubPage(key)
+    }
+    return this._subPageCache[key]
+  }
+
+  /**
+   * Create a new sub-page instance
+   * @param {string} key
+   * @returns {UIElement|StartPage}
+   */
+  _createSubPage (key) {
+    switch (key) {
+      case 'cards': return new ActionCards()
+      case 'news': return new News()
+      case 'messages': return new LogMessages()
+      default: return this._createStartPage()
     }
   }
 
   /**
-   * Render the start page with game sliders, standings, and charts
+   * Create a new StartPage with current data
    * @returns {StartPage}
    */
-  _renderStartPage () {
+  _createStartPage () {
     return new StartPage({
       sliderGames: this._sliderGames,
       initialSlideIndex: this._initialSlideIndex,
@@ -90,6 +106,60 @@ export class DashboardPage extends UIElement {
       teamPosition: this.teamPosition,
       urgencies: this._urgencies
     })
+  }
+
+  /**
+   * Switch the visible sub-page, using cached instances when available
+   */
+  _switchSubPage () {
+    const container = el('#' + this._subPageContainerId)
+    if (!container) return
+
+    const key = this.subPage || 'start'
+
+    // Hide all sub-page wrappers
+    container.querySelectorAll('[data-subpage]').forEach(wrapper => {
+      wrapper.style.display = 'none'
+    })
+
+    // Check if this sub-page is already in the container
+    const existing = container.querySelector(`[data-subpage="${key}"]`)
+    if (existing) {
+      existing.style.display = ''
+      const cached = this._subPageCache[key]
+      if (cached?.silentUpdate) cached.silentUpdate()
+      return
+    }
+
+    // Create and render new sub-page
+    const subPage = this._getOrCreateSubPage()
+    const wrapper = document.createElement('div')
+    wrapper.setAttribute('data-subpage', key)
+    wrapper.insertAdjacentHTML('afterbegin', String(subPage))
+    container.appendChild(wrapper)
+  }
+
+  /**
+   * Update nav link active states to match current subPage
+   */
+  _updateNav () {
+    const root = document.querySelector(this._elementQuery)
+    if (!root) return
+    root.querySelectorAll('.nav-link').forEach(link => {
+      const href = link.getAttribute('href')
+      const isActive = this.subPage
+        ? href === `#dashboard?sub_page=${this.subPage}`
+        : href === '#dashboard'
+      link.classList.toggle('active', isActive)
+    })
+    // Update badge
+    const badge = root.querySelector('.action-card-badge')
+    if (this._actionCardCount <= 0 || this.subPage === 'cards') {
+      if (badge) badge.remove()
+    } else if (!badge) {
+      const cardsLink = root.querySelector('a[href="#dashboard?sub_page=cards"]')
+      if (cardsLink) cardsLink.insertAdjacentHTML('beforeend', ` <span class="badge rounded-pill bg-danger action-card-badge">${this._actionCardCount}</span>`)
+    }
   }
 
   /**
@@ -235,7 +305,7 @@ export class DashboardPage extends UIElement {
       const cardCount = actionCardsResponse.actionCards?.length || 0
       const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
       this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
-      this.update()
+      this._updateNav()
     }, 500)
   }
 
@@ -271,7 +341,10 @@ export class DashboardPage extends UIElement {
     }
     if (newSubPage !== this.subPage) {
       this.subPage = newSubPage
-      this.update()
+      // StartPage is synchronous — always recreate with fresh data
+      if (!newSubPage) this._subPageCache.start = this._createStartPage()
+      this._switchSubPage()
+      this._updateNav()
     }
   }
 

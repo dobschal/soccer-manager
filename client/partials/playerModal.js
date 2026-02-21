@@ -39,6 +39,15 @@ function formatCompactCurrency (amount) {
  * @returns {Promise<void>}
  */
 export async function showPlayerModal (playerId) {
+  const loadingOverlay = showOverlay(
+    t('common.loading'),
+    '',
+    '<div class="d-flex justify-content-center py-4"><div class="loading-indicator-local"></div></div>'
+  )
+  loadingOverlay.onClose(() => {
+    setQueryParams({ player_id: null })
+  })
+
   const player = await server.getPlayerById(playerId)
   const { season } = await server.getCurrentGameday()
   const { team: myTeam } = await server.getMyTeam()
@@ -55,6 +64,8 @@ export async function showPlayerModal (playerId) {
   const history = await server.getPlayerHistory(player.id)
   const { offer } = await server.myOfferForPlayer(player)
   const { hasSellOffer } = await server.hasPlayerSellOffer(player.id)
+
+  loadingOverlay.remove()
 
   if (playersTeam) {
     onClick(teamLinkId, () => {

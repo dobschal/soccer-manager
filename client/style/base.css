@@ -23,6 +23,7 @@ html {
 body {
     font-variant-numeric: tabular-nums !important;
     width: 100%;
+    min-height: 100vh;
     overflow-x: hidden;
     background-image: url("../assets/football-field-horizontal.jpg");
     background-size: 100vw auto;

@@ -1,6 +1,6 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
-import { el } from '../lib/html.js'
+import { el, generateId } from '../lib/html.js'
 import { toast } from '../partials/toast.js'
 import { euroFormat } from '../lib/currency.js'
 import { StadiumCanvas } from '../partials/stadiumCanvas.js'
@@ -19,6 +19,8 @@ export class StadiumPage extends UIElement {
   _stadiumCanvas = null
   /** @type {boolean} */
   _hasValidConstruction = false
+  _subPageCache = {}
+  _subPageContainerId = generateId()
 
   /**
    * @returns {UIElementEvents}
@@ -75,6 +77,8 @@ export class StadiumPage extends UIElement {
    * @returns {string}
    */
   get template () {
+    const key = this.subPage || 'stadium'
+    const subPage = this._getOrCreateSubPage()
     return `
       <div>
         <nav class="nav nav-pills mb-2">
@@ -82,29 +86,84 @@ export class StadiumPage extends UIElement {
           <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#stadium?sub_page=buildings">${t('stadium.tabBuildings')}</a>
           <a class="nav-link ${this.subPage === 'finances' ? 'active' : ''}" href="#stadium?sub_page=finances">${t('stadium.tabFinances')}</a>
         </nav>
-        ${this.subPage === 'buildings' ? this._renderBuildingsPage() : this.subPage === 'finances' ? this._renderFinancesPage() : this._renderStadiumPage()}
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
       </div>
     `
   }
 
-  /**
-   * @returns {string}
-   */
-  _renderBuildingsPage () {
-    if (!this.buildingsPage) {
-      this.buildingsPage = new BuildingsPage(this)
+  _getOrCreateSubPage () {
+    const key = this.subPage || 'stadium'
+    if (key === 'stadium') {
+      // Stadium tab has Three.js canvas — always recreate
+      return this._renderStadiumPage()
     }
-    return this.buildingsPage
+    if (!this._subPageCache[key]) {
+      this._subPageCache[key] = this._createSubPage(key)
+    }
+    return this._subPageCache[key]
   }
 
-  /**
-   * @returns {string}
-   */
-  _renderFinancesPage () {
-    if (!this.financesPage) {
-      this.financesPage = new FinancesPage()
+  _createSubPage (key) {
+    switch (key) {
+      case 'buildings': return new BuildingsPage(this)
+      case 'finances': return new FinancesPage()
+      default: return this._renderStadiumPage()
     }
-    return this.financesPage
+  }
+
+  _switchSubPage () {
+    const container = el('#' + this._subPageContainerId)
+    if (!container) return
+    const key = this.subPage || 'stadium'
+
+    // Cleanup Three.js when leaving stadium tab
+    if (this._stadiumCanvas) {
+      this._stadiumCanvas.onDestroy()
+      this._stadiumCanvas = null
+    }
+
+    container.querySelectorAll('[data-subpage]').forEach(w => { w.style.display = 'none' })
+
+    // Stadium tab: always recreate (Three.js needs fresh canvas)
+    if (key === 'stadium') {
+      const oldWrapper = container.querySelector('[data-subpage="stadium"]')
+      if (oldWrapper) oldWrapper.remove()
+      const subPage = this._renderStadiumPage()
+      const wrapper = document.createElement('div')
+      wrapper.setAttribute('data-subpage', 'stadium')
+      wrapper.insertAdjacentHTML('afterbegin', String(subPage))
+      container.appendChild(wrapper)
+      this._stadiumCanvas.onMounted()
+      return
+    }
+
+    const existing = container.querySelector(`[data-subpage="${key}"]`)
+    if (existing) {
+      existing.style.display = ''
+      const cached = this._subPageCache[key]
+      if (cached?.silentUpdate) cached.silentUpdate()
+      return
+    }
+
+    const subPage = this._getOrCreateSubPage()
+    const wrapper = document.createElement('div')
+    wrapper.setAttribute('data-subpage', key)
+    wrapper.insertAdjacentHTML('afterbegin', String(subPage))
+    container.appendChild(wrapper)
+  }
+
+  _updateNav () {
+    const root = document.querySelector(this._elementQuery)
+    if (!root) return
+    root.querySelectorAll('.nav-link').forEach(link => {
+      const href = link.getAttribute('href')
+      const isActive = this.subPage
+        ? href === `#stadium?sub_page=${this.subPage}`
+        : href === '#stadium'
+      link.classList.toggle('active', isActive)
+    })
   }
 
   /**
@@ -178,21 +237,11 @@ export class StadiumPage extends UIElement {
    * @returns {Promise<void>}
    */
   async onQueryChanged ({ sub_page: subPage }) {
-    if (subPage !== this.subPage) {
-      // Cleanup Three.js when leaving stadium tab
-      if (!this.subPage && (subPage === 'buildings' || subPage === 'finances')) {
-        if (this._stadiumCanvas) {
-          this._stadiumCanvas.onDestroy()
-          this._stadiumCanvas = null
-        }
-      }
-      this.subPage = subPage
-      if (subPage === 'buildings') {
-        this.buildingsPage = new BuildingsPage(this)
-      } else if (subPage === 'finances') {
-        this.financesPage = new FinancesPage()
-      }
-      await this.update()
+    const newSubPage = subPage || null
+    if (newSubPage !== this.subPage) {
+      this.subPage = newSubPage
+      this._switchSubPage()
+      this._updateNav()
     }
   }
 
@@ -518,13 +567,7 @@ export class StadiumPage extends UIElement {
     if (this._stadiumCanvas && !this.subPage) {
       this._stadiumCanvas.onMounted()
     }
-    if (this.subPage === 'buildings') {
-      void showTutorialIfNeeded('buildings', this)
-    } else if (this.subPage === 'finances') {
-      void showTutorialIfNeeded('finances', this)
-    } else {
-      void showTutorialIfNeeded('stadium', this)
-    }
+    void showTutorialIfNeeded('stadium', this)
   }
 
   /**
