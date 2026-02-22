@@ -130,7 +130,6 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
   if (PageUIElement.isUIElement) {
     /** @type {UIElement} */
     const page = new PageUIElement()
-    fire('query-changed', getQueryParams())
     wrapper.insertAdjacentHTML('afterbegin', String(page))
     pageElement.appendChild(wrapper)
     _pageCache[currentPath] = { page, wrapper }
@@ -140,6 +139,7 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
       if (page.isRendered) {
         clearInterval(interval)
         _afterPageLoad(pageElement)
+        fire('query-changed', getQueryParams())
       } else if (Date.now() - startTime > timeoutMs) {
         clearInterval(interval)
         throw new Error(`Page "${currentPath}" failed to render within ${timeoutMs / 1000} seconds`)

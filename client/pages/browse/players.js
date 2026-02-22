@@ -6,6 +6,8 @@ import { calculatePlayerAge } from '../../util/player.js'
 import { goTo, setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 
+const SORT_COL_MAP = ['name', 'position', 'level', 'age', 'team_name']
+
 export class BrowsePlayersPage extends UIElement {
   players = []
   totalCount = 0
@@ -13,6 +15,8 @@ export class BrowsePlayersPage extends UIElement {
   pageSize = 20
   searchQuery = ''
   season = 0
+  sortColumn = ''
+  sortDirection = ''
 
   /**
    * @param {UIElement} parentPage
@@ -23,14 +27,25 @@ export class BrowsePlayersPage extends UIElement {
   }
 
   async applyQueryParams (params) {
+    const newSortDir = params.sort_dir || ''
+    const newSortCol = params.col !== undefined ? (SORT_COL_MAP[Number(params.col)] || '') : ''
+
+    // Reset page when sort changes
+    if (newSortDir !== this.sortDirection || newSortCol !== this.sortColumn) {
+      this.pageIndex = 0
+    } else {
+      this.pageIndex = parseInt(params.page) || 0
+    }
+
     this.searchQuery = params.search_query || ''
-    this.pageIndex = parseInt(params.page) || 0
+    this.sortColumn = newSortCol
+    this.sortDirection = newSortDir
   }
 
   async load () {
     const { season } = await server.getCurrentGameday()
     this.season = season
-    const result = await server.browseAllPlayers(this.searchQuery, this.pageIndex, this.pageSize)
+    const result = await server.browseAllPlayers(this.searchQuery, this.pageIndex, this.pageSize, this.sortColumn, this.sortDirection)
     this.players = result.players
     this.totalCount = result.totalCount
   }

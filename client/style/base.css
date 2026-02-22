@@ -33,6 +33,12 @@ body {
     background-color: #222;
 }
 
+@media (orientation: portrait) {
+    body {
+        background-image: url("../assets/football-field-vertical.jpg");
+    }
+}
+
 body.overlay-open {
     overflow-y: scroll;
     position: fixed;

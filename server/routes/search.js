@@ -99,10 +99,12 @@ export default {
    * @param {string} searchQuery
    * @param {number} pageIndex
    * @param {number} pageSize
+   * @param {string} sortColumn
+   * @param {string} sortDirection
    * @param {Request} req
    * @returns {Promise<{players: Array, totalCount: number}>}
    */
-  async browseAllPlayers (searchQuery, pageIndex, pageSize, req) {
+  async browseAllPlayers (searchQuery, pageIndex, pageSize, sortColumn, sortDirection, req) {
     const locale = req.locale || 'en'
     if (!req.user) {
       throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
@@ -111,6 +113,21 @@ export default {
     pageIndex = Math.max(0, parseInt(pageIndex) || 0)
     pageSize = Math.min(50, Math.max(1, parseInt(pageSize) || 20))
     const offset = pageIndex * pageSize
+
+    const allowedSortColumns = {
+      name: 'p.name',
+      position: 'p.position',
+      level: 'p.level',
+      age: 'p.born_in_season',
+      team_name: 't.name'
+    }
+    const dir = sortDirection === 'ASC' ? 'ASC' : 'DESC'
+    let orderBy = 'p.level DESC'
+    if (sortColumn && allowedSortColumns[sortColumn]) {
+      // Age sorting is reversed: higher born_in_season = younger
+      const effectiveDir = sortColumn === 'age' ? (dir === 'ASC' ? 'DESC' : 'ASC') : dir
+      orderBy = `${allowedSortColumns[sortColumn]} ${effectiveDir}`
+    }
 
     let whereClause = 'WHERE p.team_id IS NOT NULL'
     const params = []
@@ -126,7 +143,7 @@ export default {
     )
 
     const players = await query(
-      `SELECT p.*, t.name AS team_name FROM player p LEFT JOIN team t ON t.id = p.team_id ${whereClause} ORDER BY p.level DESC LIMIT ? OFFSET ?`,
+      `SELECT p.*, t.name AS team_name FROM player p LEFT JOIN team t ON t.id = p.team_id ${whereClause} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
       [...params, pageSize, offset]
     )
 
@@ -138,10 +155,12 @@ export default {
    * @param {string} searchQuery
    * @param {number} pageIndex
    * @param {number} pageSize
+   * @param {string} sortColumn
+   * @param {string} sortDirection
    * @param {Request} req
    * @returns {Promise<{teams: Array, totalCount: number}>}
    */
-  async browseAllTeams (searchQuery, pageIndex, pageSize, req) {
+  async browseAllTeams (searchQuery, pageIndex, pageSize, sortColumn, sortDirection, req) {
     const locale = req.locale || 'en'
     if (!req.user) {
       throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
@@ -150,6 +169,13 @@ export default {
     pageIndex = Math.max(0, parseInt(pageIndex) || 0)
     pageSize = Math.min(50, Math.max(1, parseInt(pageSize) || 20))
     const offset = pageIndex * pageSize
+
+    const allowedSortColumns = { name: 'name', level: 'level' }
+    const dir = sortDirection === 'ASC' ? 'ASC' : 'DESC'
+    let orderBy = 'level DESC'
+    if (sortColumn && allowedSortColumns[sortColumn]) {
+      orderBy = `${allowedSortColumns[sortColumn]} ${dir}`
+    }
 
     let whereClause = ''
     const params = []
@@ -165,7 +191,7 @@ export default {
     )
 
     const teams = await query(
-      `SELECT * FROM team ${whereClause} ORDER BY level DESC LIMIT ? OFFSET ?`,
+      `SELECT * FROM team ${whereClause} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
       [...params, pageSize, offset]
     )
 
@@ -177,10 +203,12 @@ export default {
    * @param {string} searchQuery
    * @param {number} pageIndex
    * @param {number} pageSize
+   * @param {string} sortColumn
+   * @param {string} sortDirection
    * @param {Request} req
    * @returns {Promise<{users: Array, totalCount: number}>}
    */
-  async browseAllUsers (searchQuery, pageIndex, pageSize, req) {
+  async browseAllUsers (searchQuery, pageIndex, pageSize, sortColumn, sortDirection, req) {
     const locale = req.locale || 'en'
     if (!req.user) {
       throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
@@ -189,6 +217,13 @@ export default {
     pageIndex = Math.max(0, parseInt(pageIndex) || 0)
     pageSize = Math.min(50, Math.max(1, parseInt(pageSize) || 20))
     const offset = pageIndex * pageSize
+
+    const allowedSortColumns = { username: 'u.username', team_name: 't.name' }
+    const dir = sortDirection === 'ASC' ? 'ASC' : 'DESC'
+    let orderBy = 'u.username ASC'
+    if (sortColumn && allowedSortColumns[sortColumn]) {
+      orderBy = `${allowedSortColumns[sortColumn]} ${dir}`
+    }
 
     let whereClause = ''
     const params = []
@@ -204,7 +239,7 @@ export default {
     )
 
     const users = await query(
-      `SELECT u.id, u.username, t.id AS team_id, t.name AS team_name FROM user u LEFT JOIN team t ON t.user_id = u.id ${whereClause} ORDER BY u.username ASC LIMIT ? OFFSET ?`,
+      `SELECT u.id, u.username, t.id AS team_id, t.name AS team_name FROM user u LEFT JOIN team t ON t.user_id = u.id ${whereClause} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
       [...params, pageSize, offset]
     )
 

@@ -6,12 +6,16 @@ import { renderEmblem } from '../../partials/emblem.js'
 import { goTo, setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 
+const SORT_COL_MAP = [null, 'name', 'level']
+
 export class BrowseTeamsPage extends UIElement {
   teams = []
   totalCount = 0
   pageIndex = 0
   pageSize = 20
   searchQuery = ''
+  sortColumn = ''
+  sortDirection = ''
 
   /**
    * @param {UIElement} parentPage
@@ -22,12 +26,22 @@ export class BrowseTeamsPage extends UIElement {
   }
 
   async applyQueryParams (params) {
+    const newSortDir = params.sort_dir || ''
+    const newSortCol = params.col !== undefined ? (SORT_COL_MAP[Number(params.col)] || '') : ''
+
+    if (newSortDir !== this.sortDirection || newSortCol !== this.sortColumn) {
+      this.pageIndex = 0
+    } else {
+      this.pageIndex = parseInt(params.page) || 0
+    }
+
     this.searchQuery = params.search_query || ''
-    this.pageIndex = parseInt(params.page) || 0
+    this.sortColumn = newSortCol
+    this.sortDirection = newSortDir
   }
 
   async load () {
-    const result = await server.browseAllTeams(this.searchQuery, this.pageIndex, this.pageSize)
+    const result = await server.browseAllTeams(this.searchQuery, this.pageIndex, this.pageSize, this.sortColumn, this.sortDirection)
     this.teams = result.teams
     this.totalCount = result.totalCount
   }

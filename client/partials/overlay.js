@@ -20,7 +20,10 @@ function restoreBodyScroll () {
     const scrollY = parseInt(document.body.style.top || '0', 10) * -1
     document.body.classList.remove('overlay-open')
     document.body.style.top = ''
-    window.scrollTo({ top: scrollY, behavior: 'instant' })
+    window.scrollTo({
+      top: scrollY,
+      behavior: 'instant'
+    })
   }
 }
 
@@ -78,8 +81,8 @@ function setupTouchSwipe (overlayId, overlayInnerId, listeners) {
 
   if (!isTouchDevice) return
 
-  const backdropEl = el('#' + overlayId) // The scrollable backdrop
-  const innerEl = el('#' + overlayInnerId) // The card we animate
+  const backdropEl = el('#' + overlayId) // The full-screen backdrop
+  const innerEl = el('#' + overlayInnerId) // The scrollable card we animate
   if (!backdropEl || !innerEl) return
 
   let touchStartY = 0
@@ -92,13 +95,13 @@ function setupTouchSwipe (overlayId, overlayInnerId, listeners) {
     touchStartY = e.touches[0].clientY
     touchCurrentY = touchStartY
     // Remember if we started at the top - only then can we potentially close
-    startedAtTop = backdropEl.scrollTop <= 0
+    startedAtTop = innerEl.scrollTop <= 0
     isSwiping = false // Will be set to true on first downward move if conditions are met
   }, { passive: true })
 
   backdropEl.addEventListener('touchmove', (e) => {
-    const isScrolledToTop = backdropEl.scrollTop <= 0
-    const isNotScrollable = backdropEl.scrollHeight <= backdropEl.clientHeight
+    const isScrolledToTop = innerEl.scrollTop <= 0
+    const isNotScrollable = innerEl.scrollHeight <= innerEl.clientHeight
 
     touchCurrentY = e.touches[0].clientY
     const deltaY = touchCurrentY - touchStartY
@@ -182,13 +185,15 @@ export function showOverlay (title, subttitle, text) {
   const html = `
     <div id="${overlayId}" class="overlay-backdrop">
       <div id="${overlayInnerId}" class="card overlay">
+        <div class="card-header overlay-header">
+            <div>
+              <h5 class="card-title mb-0">${title}</h5>
+              <h6 class="card-subtitle text-muted mb-0">${subttitle}</h6>
+            </div>
+            <span id="${closeButtonId}" class="fa fa-close overlay-close-btn"></span>
+        </div>
         <div class="card-body">
-          <span id="${closeButtonId}" class="fa fa-close fa-button fa-lg float-end"></span>
-          <h5 class="card-title">${title}</h5>
-          <h6 class="card-subtitle mb-2 text-muted">${subttitle}</h6>
-          <p class="card-text">
             ${text}
-          </p>          
         </div>
       </div>
     </div>

@@ -44,10 +44,6 @@ export async function showPlayerModal (playerId) {
     '',
     '<div class="d-flex justify-content-center py-4"><div class="loading-indicator-local"></div></div>'
   )
-  loadingOverlay.onClose(() => {
-    setQueryParams({ player_id: null })
-  })
-
   const player = await server.getPlayerById(playerId)
   const { season } = await server.getCurrentGameday()
   const { team: myTeam } = await server.getMyTeam()

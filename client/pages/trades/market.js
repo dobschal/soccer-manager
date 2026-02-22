@@ -4,7 +4,7 @@ import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { Table } from '../../partials/table.js'
-import { setQueryParams } from '../../lib/router.js'
+import { getQueryParams, setQueryParams } from '../../lib/router.js'
 import { calculatePlayerAge, sortByPosition } from '../../util/player.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
@@ -79,6 +79,23 @@ export class MarketPage extends UIElement {
         const player = this.players.find(p => p.id === o.player_id)
         return player && player.position === this._positionFilter
       })
+    }
+
+    // Sort the full dataset before slicing for pagination
+    const { sort_dir: sortDir, col } = getQueryParams()
+    if (sortDir && col !== undefined) {
+      const cols = this._prepareTableCols()
+      const colConfig = cols[Number(col)]
+      if (colConfig && (colConfig.sortFn || colConfig.sortKey)) {
+        sellOffers = [...sellOffers].sort((a, b) => {
+          if (colConfig.sortFn) {
+            return colConfig.sortFn(a, b, sortDir !== 'DESC')
+          }
+          return sortDir === 'ASC'
+            ? a[colConfig.sortKey] - b[colConfig.sortKey]
+            : b[colConfig.sortKey] - a[colConfig.sortKey]
+        })
+      }
     }
 
     const start = this._page * PAGE_SIZE
@@ -204,6 +221,7 @@ export class MarketPage extends UIElement {
   onQueryChanged ({ sort_dir, col }) {
     if (sort_dir && col !== undefined) {
       this._page = 0
+      this.update()
     }
   }
 
@@ -246,6 +264,18 @@ export class MarketPage extends UIElement {
    * @param {number} pageIndex
    */
   _loadPage (pageIndex) {
+    const sellOffers = this._getFilteredOffers()
+    const totalPages = Math.ceil(sellOffers.length / PAGE_SIZE)
+    if (pageIndex < 0 || pageIndex >= totalPages) return
+    this._page = pageIndex
+    this.update()
+  }
+
+  /**
+   * Get filtered sell offers (excluding own team, applying position filter)
+   * @returns {Array}
+   */
+  _getFilteredOffers () {
     let sellOffers = this.offers.filter(o => o.type === 'sell' && o.from_team_id !== this.team.id)
     if (this._positionFilter) {
       sellOffers = sellOffers.filter(o => {
@@ -253,10 +283,7 @@ export class MarketPage extends UIElement {
         return player && player.position === this._positionFilter
       })
     }
-    const totalPages = Math.ceil(sellOffers.length / PAGE_SIZE)
-    if (pageIndex < 0 || pageIndex >= totalPages) return
-    this._page = pageIndex
-    this.update()
+    return sellOffers
   }
 
   /**

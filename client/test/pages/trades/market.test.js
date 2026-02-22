@@ -45,7 +45,8 @@ vi.mock('../../../partials/table.js', () => ({
 }))
 
 vi.mock('../../../lib/router.js', () => ({
-  setQueryParams: vi.fn()
+  setQueryParams: vi.fn(),
+  getQueryParams: vi.fn().mockReturnValue({})
 }))
 
 vi.mock('../../../util/player.js', () => ({

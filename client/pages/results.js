@@ -114,6 +114,7 @@ export class ResultsPage extends UIElement {
     const cached = this._subPageCache[key]
     if (cached && typeof cached.applyQueryParams === 'function') {
       await cached.applyQueryParams(queryParams)
+      await cached.update(true)
     }
   }
 }
