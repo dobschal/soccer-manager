@@ -118,13 +118,13 @@ export default {
       name: 'p.name',
       position: 'p.position',
       level: 'p.level',
-      age: 'p.born_in_season',
+      age: 'p.carrier_start_season',
       team_name: 't.name'
     }
     const dir = sortDirection === 'ASC' ? 'ASC' : 'DESC'
     let orderBy = 'p.level DESC'
     if (sortColumn && allowedSortColumns[sortColumn]) {
-      // Age sorting is reversed: higher born_in_season = younger
+      // Age sorting is reversed: higher carrier_start_season = younger
       const effectiveDir = sortColumn === 'age' ? (dir === 'ASC' ? 'DESC' : 'ASC') : dir
       orderBy = `${allowedSortColumns[sortColumn]} ${effectiveDir}`
     }

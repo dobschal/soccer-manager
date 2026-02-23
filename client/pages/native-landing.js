@@ -38,7 +38,7 @@ export class NativeLandingPage extends UIElement {
               <label for="password-repeat-input">${t('landing.repeatPassword')}</label>
               <input class="form-control" id="password-repeat-input" type="password" placeholder="${t('landing.repeatPasswordPlaceholder')}">
             </div>
-            <button class="btn btn-success w-100 mb-2" type="submit">
+            <button class="btn btn-primary w-100 mb-2" type="submit">
               ${this.isLogin ? t('landing.loginBtn') : t('landing.createAccountBtn')}
             </button>
             <button data-toggle class="btn btn-link text-white w-100 p-0" type="button">

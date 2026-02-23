@@ -31,7 +31,7 @@ export class IncomingOffersPage extends UIElement {
 
           if (target.closest('.player-name')) {
             setQueryParams({ player_id: player.id })
-          } else if (target.closest('.btn-success')) {
+          } else if (target.closest('.btn-primary')) {
             try {
               await server.acceptOffer(offer)
               toast(t('trades.acceptedOffer', { teamName: fromTeam.name }))
@@ -105,7 +105,6 @@ export class IncomingOffersPage extends UIElement {
     this.teams = offersResponse.teams
   }
 
-
   /**
    * @returns {Array}
    */
@@ -133,7 +132,7 @@ export class IncomingOffersPage extends UIElement {
         <td class="text-right d-none d-sm-table-cell">${renderLevelBadge(player.level)}</td>
         <td class="text-right">${euroFormat.format(offer.offer_value)}</td>
         <td>
-          <button class="btn btn-success"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button>
+          <button class="btn btn-primary"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button>
           <button class="btn btn-danger"><i class="fa fa-times-circle-o" aria-hidden="true"></i></button>
         </td>
       </tr>

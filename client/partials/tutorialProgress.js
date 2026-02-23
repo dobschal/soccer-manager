@@ -89,7 +89,7 @@ export class TutorialProgress extends UIElement {
               </div>
             </div>
             ${nextTutorial ? `
-              <a href="${nextTutorial.route}" class="btn btn-info btn-sm flex-shrink-0">
+              <a href="${nextTutorial.route}" class="btn btn-primary btn-sm flex-shrink-0">
                 <i class="fa fa-arrow-right me-1"></i>${t('tutorialProgress.nextTutorial', { page: t(`tutorialProgress.page.${nextTutorial.key}`) })}
               </a>
             ` : ''}

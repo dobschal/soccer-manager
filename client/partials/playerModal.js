@@ -149,7 +149,7 @@ export default class PlayerModal extends UIElement {
         <div class="${this.isFreeAgent ? '' : 'hidden'} mb-4" style="clear: both">
           <b>🤝 ${t('player.hirePlayer')}</b>
           <p>${t('player.hirePlayerDesc')}</p>
-          <button class="hire-btn btn btn-success">
+          <button class="hire-btn btn btn-primary">
             ${t('player.hireBtn', { playerName: this.player.name })}
           </button>
         </div>

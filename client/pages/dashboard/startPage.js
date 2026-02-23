@@ -57,16 +57,16 @@ export class StartPage {
     return `
       <div class="d-flex flex-column flex-lg-row align-items-start u-gap-md">
         <div class="flex-grow-1 order-2 order-lg-1 w-100">
-            <div id="${leagueCardId}" class="card card-body mb-2">
-            <h5 class="mb-2 text-center"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
+            <div id="${leagueCardId}" class="card card-body mb-2 bg-dark">
+            <h5 class="mb-2 text-center text-white"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
             ${new GameSlider(gameSliderArgs)}
           </div>
-          <div id="${cupCardId}" class="card card-body mb-2">
-            <h5 class="mb-2 text-center"><i class="fa fa-trophy"></i> ${t('cup.title')}</h5>
+          <div id="${cupCardId}" class="card card-body mb-2 bg-dark">
+            <h5 class="mb-2 text-center text-white"><i class="fa fa-trophy"></i> ${t('cup.title')}</h5>
             ${this._renderCupGames(cupCardId)}
           </div>
-          <div id="${friendlyCardId}" class="card card-body mb-2">
-            <h5 class="mb-2 text-center"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
+          <div id="${friendlyCardId}" class="card card-body mb-2 bg-dark">
+            <h5 class="mb-2 text-center text-white"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
             ${this._renderFriendlyGames(friendlyCardId)}
           </div>
         </div>
@@ -160,7 +160,7 @@ export class StartPage {
     if (this._cupGames.length === 0) {
       return `
         <div class="card bg-light border-0">
-          <div class="card-body text-center text-muted py-4">
+          <div class="card-body text-center text-white text-muted py-4">
             <i class="fa fa-trophy fa-2x mb-2 opacity-50"></i>
             <p class="mb-0">${t('cup.noGames')}</p>
           </div>
@@ -188,8 +188,8 @@ export class StartPage {
       return `
         <div class="card bg-transparent border-0">
           <div class="card-body text-center text-muted py-4">
-            <i class="fa fa-handshake-o fa-2x mb-2 opacity-50"></i>
-            <p class="mb-0">${t('friendly.noGames')}</p>
+            <i class="fa text-white fa-handshake-o fa-2x mb-2 opacity-50"></i>
+            <p class="mb-0 text-white">${t('friendly.noGames')}</p>
           </div>
         </div>
       `

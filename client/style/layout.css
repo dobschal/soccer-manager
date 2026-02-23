@@ -233,9 +233,10 @@ a:visited.row {
         padding-bottom: 0;
     }
 
-    .player-list-table {
+    .horizontal-scrollable-table {
         margin: 0 -2rem;
         padding: 0 2rem;
+        overflow-x: auto;
     }
 
     .info-bar {

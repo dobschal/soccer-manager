@@ -3,7 +3,7 @@ import { server } from '../lib/gateway.js'
 import { t } from '../i18n/index.js'
 import { formatDate } from '../lib/date.js'
 import { generateId } from '../lib/html.js'
-import { onClick, on } from '../lib/htmlEventHandlers.js'
+import { on, onClick } from '../lib/htmlEventHandlers.js'
 
 /**
  * Escape HTML special characters to prevent XSS
@@ -51,7 +51,7 @@ export function showCommentOverlay (newsId, newsTitle, onCommentAdded) {
     </div>
     <div class="input-group">
       <input id="${inputId}" type="text" class="form-control" placeholder="${t('news.commentPlaceholder')}" maxlength="500">
-      <button id="${sendBtnId}" class="btn btn-info" type="button">
+      <button id="${sendBtnId}" class="btn btn-primary" type="button">
         <i class="fa fa-paper-plane" aria-hidden="true"></i>
       </button>
     </div>

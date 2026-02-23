@@ -117,8 +117,8 @@ export class NativeAppLayout extends UIElement {
         <div class="mb-3">
           <label class="form-label">${t('nav.language')}</label>
           <div class="btn-group w-100" role="group">
-            <button id="settings-lang-en" class="btn ${currentLocale === 'en' ? 'btn-info' : 'btn-outline-info'}">English</button>
-            <button id="settings-lang-de" class="btn ${currentLocale === 'de' ? 'btn-info' : 'btn-outline-info'}">Deutsch</button>
+            <button id="settings-lang-en" class="btn ${currentLocale === 'en' ? 'btn-primary' : 'btn-outline-info'}">English</button>
+            <button id="settings-lang-de" class="btn ${currentLocale === 'de' ? 'btn-primary' : 'btn-outline-info'}">Deutsch</button>
           </div>
         </div>
         <button id="settings-logout" class="btn btn-outline-danger w-100">

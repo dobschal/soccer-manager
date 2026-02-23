@@ -1,4 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { showDialog } from '../../partials/dialog.js'
+import { showOverlay } from '../../partials/overlay.js'
+import { _clearHandlers, _getClickHandler, onClick } from '../../lib/htmlEventHandlers.js'
+import { renderCurrencyInput, setupCurrencyInput } from '../../partials/currencyInput.js'
+import { el } from '../../lib/html.js'
 
 // Mock dependencies
 vi.mock('../../partials/overlay.js', () => ({
@@ -37,9 +42,10 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key) => key)
 }))
 
-import { showDialog } from '../../partials/dialog.js'
-import { showOverlay } from '../../partials/overlay.js'
-import { onClick, _clearHandlers } from '../../lib/htmlEventHandlers.js'
+vi.mock('../../partials/currencyInput.js', () => ({
+  renderCurrencyInput: vi.fn((id, placeholder) => `<div class="input-group"><input type="text" inputmode="numeric" id="${id}" class="form-control" placeholder="${placeholder}" data-raw-value="0"><div class="input-group-append"><span class="input-group-text">,00 €</span></div></div>`),
+  setupCurrencyInput: vi.fn()
+}))
 
 describe('dialog', () => {
   beforeEach(() => {
@@ -196,6 +202,46 @@ describe('dialog', () => {
       })
 
       expect(onClick).toHaveBeenCalledTimes(3)
+    })
+
+    it('renders currency input when inputType is currency', async () => {
+      showDialog({
+        title: 'Enter Price',
+        text: 'How much?',
+        buttonText: 'Submit',
+        hasInput: true,
+        inputType: 'currency',
+        inputLabel: 'Price'
+      })
+
+      expect(renderCurrencyInput).toHaveBeenCalled()
+      expect(setupCurrencyInput).toHaveBeenCalled()
+      const overlayContent = showOverlay.mock.calls[0][2]
+      expect(overlayContent).toContain('input-group')
+      expect(overlayContent).toContain(',00 €')
+      expect(overlayContent).toContain('inputmode="numeric"')
+    })
+
+    it('reads raw value from dataset for currency input on submit', async () => {
+      el.mockImplementation((_selector) => {
+        return { value: '1.000', dataset: { rawValue: '1000' } }
+      })
+
+      const promise = showDialog({
+        title: 'Enter Price',
+        text: 'How much?',
+        buttonText: 'Submit',
+        hasInput: true,
+        inputType: 'currency',
+        inputLabel: 'Price'
+      })
+
+      // The submit button is the second onClick call (cancel is first)
+      const submitId = onClick.mock.calls[1][0]
+      _getClickHandler(submitId)()
+
+      const result = await promise
+      expect(result).toEqual({ ok: true, value: '1000' })
     })
   })
 

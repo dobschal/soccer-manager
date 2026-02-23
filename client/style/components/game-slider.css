@@ -5,6 +5,12 @@
 .game-slider {
     position: relative;
     max-width: 760px;
+    color: white;
+}
+
+.game-slider a {
+    color: inherit;
+    text-decoration: none;
 }
 
 .game-slider-track {
@@ -63,26 +69,26 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.3);
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s;
 }
 
 .game-slider-indicator.past {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .game-slider-indicator.upcoming {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .game-slider-indicator.active {
-    background: var(--bs-info);
+    background: rgba(255, 255, 255, 0.9);
     transform: scale(1.2);
 }
 
 .game-slider-indicator:hover:not(.active) {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.6);
 }
 
 /* Card gradient clash animation */

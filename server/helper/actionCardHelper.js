@@ -5,7 +5,7 @@ import { addPlayerHistory } from './playerHistoryHelper.js'
 import { getPlayerById } from './playerHelper.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
-import { t, getUserLocale } from '../i18n/index.js'
+import { getUserLocale, t } from '../i18n/index.js'
 import { createYouthPlayer } from './youthPlayerHelper.js'
 
 // Probabilities per game day (34 game days per season)
@@ -24,7 +24,7 @@ export const actionCardChances = {
   FRESHNESS_10: 0.88,
   FRESHNESS_20: 0,
   LEVEL_UP_PLAYER_40: 1.2,
-  CHANGE_PLAYER_POSITION: 0.12,
+  CHANGE_PLAYER_POSITION: 0.06,
   NEW_YOUTH_PLAYER: 0.1,
   BONUS_100K: 0.06,
   LEVEL_UP_PLAYER_70: 0.3,
@@ -36,7 +36,7 @@ export const actionCardChances = {
  * @returns {Promise<ActionCardType[]>}
  */
 export async function getActionCards (team) {
-  return await query("SELECT * FROM action_card WHERE team_id=? AND played=0 AND state='received'", [team.id])
+  return await query('SELECT * FROM action_card WHERE team_id=? AND played=0 AND state=\'received\'', [team.id])
 }
 
 /**
@@ -44,7 +44,7 @@ export async function getActionCards (team) {
  * @returns {Promise<ActionCardType[]>}
  */
 export async function getPendingActionCards (team) {
-  return await query("SELECT * FROM action_card WHERE team_id=? AND state='pending'", [team.id])
+  return await query('SELECT * FROM action_card WHERE team_id=? AND state=\'pending\'', [team.id])
 }
 
 /**
@@ -53,10 +53,13 @@ export async function getPendingActionCards (team) {
  * @returns {Promise<ActionCardType>}
  */
 export async function claimActionCard (cardId, teamId) {
-  const [card] = await query("SELECT * FROM action_card WHERE id=? AND team_id=? AND state='pending'", [cardId, teamId])
+  const [card] = await query('SELECT * FROM action_card WHERE id=? AND team_id=? AND state=\'pending\'', [cardId, teamId])
   if (!card) throw new BadRequestError('Card not found or already claimed')
-  await query("UPDATE action_card SET state='received' WHERE id=?", [cardId])
-  return { ...card, state: 'received' }
+  await query('UPDATE action_card SET state=\'received\' WHERE id=?', [cardId])
+  return {
+    ...card,
+    state: 'received'
+  }
 }
 
 /**
@@ -64,7 +67,7 @@ export async function claimActionCard (cardId, teamId) {
  * @returns {Promise<void>}
  */
 export async function deleteExpiredPendingCards () {
-  const result = await query("DELETE FROM action_card WHERE state='pending'")
+  const result = await query('DELETE FROM action_card WHERE state=\'pending\'')
   if (result.affectedRows > 0) {
     console.log(`🗑️ Deleted ${result.affectedRows} expired pending action cards`)
   }
@@ -102,21 +105,37 @@ export async function playActionCard ({
   }
   locale = locale || 'en'
 
-  const freshnessValues = { FRESHNESS_5: 0.05, FRESHNESS_10: 0.1, FRESHNESS_20: 0.2 }
+  const freshnessValues = {
+    FRESHNESS_5: 0.05,
+    FRESHNESS_10: 0.1,
+    FRESHNESS_20: 0.2
+  }
   if (actionCard.action in freshnessValues) {
     const player = await getPlayerById(p.id)
     player.freshness = Math.min(1.0, player.freshness + freshnessValues[actionCard.action])
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     return { success: true }
   }
   const levelUpCaps = {
-    LEVEL_UP_PLAYER_40: { max: 40, errorKey: 'error.cardMaxLevel40' },
-    LEVEL_UP_PLAYER_70: { max: 70, errorKey: 'error.cardMaxLevel70' },
-    LEVEL_UP_PLAYER_100: { max: 100, errorKey: 'error.playerMaxLevel' }
+    LEVEL_UP_PLAYER_40: {
+      max: 40,
+      errorKey: 'error.cardMaxLevel40'
+    },
+    LEVEL_UP_PLAYER_70: {
+      max: 70,
+      errorKey: 'error.cardMaxLevel70'
+    },
+    LEVEL_UP_PLAYER_100: {
+      max: 100,
+      errorKey: 'error.playerMaxLevel'
+    }
   }
   if (actionCard.action in levelUpCaps) {
-    const { max, errorKey } = levelUpCaps[actionCard.action]
+    const {
+      max,
+      errorKey
+    } = levelUpCaps[actionCard.action]
     const player = await getPlayerById(p.id)
     if (await levelUpsCurrentSeason(player) >= 20) {
       throw new BadRequestError(t('error.playerMaxLevelUps', {}, locale))
@@ -126,8 +145,11 @@ export async function playActionCard ({
     }
     player.level += 1
     await query('UPDATE player SET level=? WHERE id=?', [player.level, player.id])
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
-    await addLogMessage(t('log.cardLevelUp', { playerName: player.name, level: player.level }, locale), team, null, null, 'level-up')
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
+    await addLogMessage(t('log.cardLevelUp', {
+      playerName: player.name,
+      level: player.level
+    }, locale), team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
@@ -140,14 +162,14 @@ export async function playActionCard ({
       throw new BadRequestError(t('error.cannotBecomeGoalkeeper', {}, locale))
     }
     await query('UPDATE player SET position=? WHERE id=?', [position, p.id])
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addPlayerHistory(p.id, 'CHANGE_PLAYER_POSITION', position)
     return { success: true }
   }
   if (actionCard.action === 'NEW_YOUTH_PLAYER') {
     const { season } = await getGameDayAndSeason()
     const youthPlayer = await createYouthPlayer(team.id, season)
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardYouth', { playerName: youthPlayer.name }, locale), team, null, null, 'child')
     return { success: true }
   }
@@ -157,7 +179,7 @@ export async function playActionCard ({
       season
     } = await getGameDayAndSeason()
     await updateTeamBalance(team, 100000, t('finance.actionCardBonus', {}, locale), gameDay, season)
-    await query("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardMoney', { amount: '100,000€' }, locale), team, null, null, 'money')
     return { success: true }
   }
@@ -188,5 +210,8 @@ export async function mergeActionCards (actionCard1, actionCard2, team, locale =
     played: 0,
     state: 'received'
   })
-  return { success: true, newCardType }
+  return {
+    success: true,
+    newCardType
+  }
 }

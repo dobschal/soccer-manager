@@ -38,7 +38,7 @@ export class FreePlayers extends UIElement {
         player.position,
         calculatePlayerAge(player, this.season),
         renderLevelBadge(player.level),
-        `<button class="btn btn-success btn-sm" data-hire-player="${player.id}">${t('player.hireBtn', { playerName: '' }).trim()}</button>`
+        `<button class="btn btn-primary btn-sm" data-hire-player="${player.id}">${t('player.hireBtn', { playerName: '' }).trim()}</button>`
       ]
     })
 

@@ -134,10 +134,12 @@ export class GameSlider extends UIElement {
    * @returns {string}
    */
   _generateCenterContent (game) {
+    const label = this._getGameLabel(game)
+
     if (game.isPlayed) {
       // Played game: show game day and result
       return `
-        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay + 1 })}</small>
+        <small class="d-block mb-1">${label}</small>
         <h3 class="mb-0"><span class="badge bg-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h3>
       `
     }
@@ -152,7 +154,7 @@ export class GameSlider extends UIElement {
         gameDate: null
       })
       return `
-        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay + 1 })}</small>
+        <small class="d-block mb-1">${label}</small>
         <div class="badge bg-secondary p-2 countdown-badge">
           <i class="fa fa-clock-o" aria-hidden="true"></i><br>
           <span id="${countdownId}">--:--:--</span>
@@ -171,7 +173,7 @@ export class GameSlider extends UIElement {
         : t('dashboard.inDays', { days: daysAway })
 
       return `
-        <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay })}</small>
+        <small class="d-block mb-1">${label}</small>
         <div class="badge bg-secondary p-2 countdown-badge">
           <i class="fa fa-calendar" aria-hidden="true"></i><br>
           <span>${daysText}</span>
@@ -186,12 +188,26 @@ export class GameSlider extends UIElement {
       gameDate
     })
     return `
-      <small class="d-block mb-1">${t('dashboard.gameDay', { gameDay: game.gameDay + 1 })}</small>
+      <small class="d-block mb-1">${label}</small>
       <div class="badge bg-secondary p-2 countdown-badge">
         <i class="fa fa-clock-o" aria-hidden="true"></i><br>
         <span id="${countdownId}">--:--:--</span>
       </div>
     `
+  }
+
+  /**
+   * @param {Object} game
+   * @returns {string}
+   */
+  _getGameLabel (game) {
+    if (game.isCup && game.cupRound != null) {
+      if (game.cupRound === 1) return t('cup.final')
+      if (game.cupRound === 2) return t('cup.semiFinal')
+      if (game.cupRound === 4) return t('cup.quarterFinal')
+      return t('cup.roundOf', { count: game.cupRound * 2 })
+    }
+    return t('dashboard.gameDay', { gameDay: game.gameDay + 1 })
   }
 
   /**
@@ -302,10 +318,10 @@ export class GameSlider extends UIElement {
     if (!game) return
     const color2 = game.team1Data?.color || '#1a5f7a'
     const color1 = game.team2Data?.color || '#1a5f7a'
-    card.style.setProperty('--color-left-25', color2 + '18')
-    card.style.setProperty('--color-left-50', color2 + '2f')
-    card.style.setProperty('--color-right-25', color1 + '18')
-    card.style.setProperty('--color-right-50', color1 + '2f')
+    card.style.setProperty('--color-left-25', color2 + 'ff')
+    card.style.setProperty('--color-left-50', color2 + 'bb')
+    card.style.setProperty('--color-right-25', color1 + 'ff')
+    card.style.setProperty('--color-right-50', color1 + 'bb')
     card.style.background = 'transparent'
     card.classList.remove('card-gradient-animate')
     // Force reflow to restart animation

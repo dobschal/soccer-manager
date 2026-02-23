@@ -34,7 +34,7 @@ export class MarketPage extends UIElement {
           const playerId = Number(buyBtn.dataset.buyPlayer)
           const player = this.players.find(p => p.id === playerId)
           if (player) {
-            this._showBuyDialog(player)
+            void this._showBuyDialog(player)
           }
         }
       },
@@ -82,7 +82,10 @@ export class MarketPage extends UIElement {
     }
 
     // Sort the full dataset before slicing for pagination
-    const { sort_dir: sortDir, col } = getQueryParams()
+    const {
+      sort_dir: sortDir,
+      col
+    } = getQueryParams()
     if (sortDir && col !== undefined) {
       const cols = this._prepareTableCols()
       const colConfig = cols[Number(col)]
@@ -159,7 +162,6 @@ export class MarketPage extends UIElement {
 
   }
 
-
   /**
    * @returns {Array}
    */
@@ -218,7 +220,10 @@ export class MarketPage extends UIElement {
    * @param {string} params.sort_dir
    * @param {string} params.col
    */
-  onQueryChanged ({ sort_dir, col }) {
+  onQueryChanged ({
+    sort_dir,
+    col
+  }) {
     if (sort_dir && col !== undefined) {
       this._page = 0
       this.update()
@@ -291,11 +296,14 @@ export class MarketPage extends UIElement {
    * @returns {Promise<void>}
    */
   async _showBuyDialog (player) {
-    const { ok, value } = await showDialog({
+    const {
+      ok,
+      value
+    } = await showDialog({
       title: t('trades.buyPlayer', { playerName: player.name }),
       text: t('trades.enterOfferValue'),
       hasInput: true,
-      inputType: 'number',
+      inputType: 'currency',
       inputLabel: t('trades.price'),
       buttonText: t('trades.submitOffer')
     })

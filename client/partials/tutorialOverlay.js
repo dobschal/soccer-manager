@@ -162,7 +162,7 @@ function showTutorialOverlay (tutorialKey) {
               ${t('tutorial.doNotShowAgain')}
             </label>
           </div>
-          <button id="${gotItButtonId}" class="btn btn-info w-100">${t('tutorial.gotIt')}</button>
+          <button id="${gotItButtonId}" class="btn btn-primary w-100">${t('tutorial.gotIt')}</button>
         </div>
       </div>
     </div>

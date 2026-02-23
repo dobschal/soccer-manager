@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Button, renderButton } from '../../partials/button.js'
 
 // Mock UIElement dependencies
 vi.mock('../../lib/html.js', () => ({
@@ -19,8 +20,6 @@ vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-import { Button, renderButton } from '../../partials/button.js'
-
 describe('Button UIElement', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -29,17 +28,20 @@ describe('Button UIElement', () => {
 
   describe('Button class', () => {
     it('creates a Button instance with text', () => {
-      const btn = new Button('Click Me', () => {})
+      const btn = new Button('Click Me', () => {
+      })
       expect(btn.text).toBe('Click Me')
     })
 
     it('creates a Button instance with default primary type', () => {
-      const btn = new Button('Click Me', () => {})
+      const btn = new Button('Click Me', () => {
+      })
       expect(btn.type).toBe('primary')
     })
 
     it('creates a Button instance with custom type', () => {
-      const btn = new Button('Delete', () => {}, 'danger')
+      const btn = new Button('Delete', () => {
+      }, 'danger')
       expect(btn.type).toBe('danger')
     })
 
@@ -58,26 +60,30 @@ describe('Button UIElement', () => {
     })
 
     it('renders button HTML in template', () => {
-      const btn = new Button('Click Me', () => {}, 'success')
+      const btn = new Button('Click Me', () => {
+      }, 'success')
       expect(btn.template).toContain('Click Me')
       expect(btn.template).toContain('btn-success')
       expect(btn.template).toContain('<button')
     })
 
     it('extends UIElement', () => {
-      const btn = new Button('Click', () => {})
+      const btn = new Button('Click', () => {
+      })
       expect(btn.isUIElement).toBe(true)
     })
   })
 
   describe('renderButton (backwards compatibility)', () => {
     it('returns a string', () => {
-      const result = renderButton('Click', () => {})
+      const result = renderButton('Click', () => {
+      })
       expect(typeof result).toBe('string')
     })
 
     it('returns template element for async rendering', () => {
-      const result = renderButton('Click', () => {})
+      const result = renderButton('Click', () => {
+      })
       expect(result).toContain('<template')
     })
   })

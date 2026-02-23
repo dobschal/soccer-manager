@@ -2,6 +2,7 @@ import { showOverlay } from './overlay.js'
 import { el, generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { t } from '../i18n/index.js'
+import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
 
 /**
  * @param {string} title
@@ -15,7 +16,17 @@ import { t } from '../i18n/index.js'
  * @param {string} [secondaryButtonType]
  * @returns {Promise<{ok: boolean, value: string}>}
  */
-export function showDialog ({ title, text, buttonText, hasInput, inputType, inputLabel, buttonType = 'primary', secondaryButtonText, secondaryButtonType = 'warning' }) {
+export function showDialog ({
+  title,
+  text,
+  buttonText,
+  hasInput,
+  inputType,
+  inputLabel,
+  buttonType = 'primary',
+  secondaryButtonText,
+  secondaryButtonType = 'warning'
+}) {
   return new Promise(resolve => {
     const submitButtonId = generateId()
     const cancelButtonId = generateId()
@@ -23,19 +34,31 @@ export function showDialog ({ title, text, buttonText, hasInput, inputType, inpu
     const inputId = generateId()
 
     onClick(cancelButtonId, () => {
-      resolve({ ok: false, value: undefined })
+      resolve({
+        ok: false,
+        value: undefined
+      })
       overlay.remove()
     })
 
+    const isCurrency = inputType === 'currency'
+
     onClick(submitButtonId, () => {
-      const inputValue = el('#' + inputId)?.value
-      resolve({ ok: true, value: inputValue })
+      const inputEl = el('#' + inputId)
+      const inputValue = isCurrency ? inputEl?.dataset?.rawValue : inputEl?.value
+      resolve({
+        ok: true,
+        value: inputValue
+      })
       overlay.remove()
     })
 
     if (secondaryButtonText) {
       onClick(secondaryButtonId, () => {
-        resolve({ ok: false, value: 'secondary' })
+        resolve({
+          ok: false,
+          value: 'secondary'
+        })
         overlay.remove()
       })
     }
@@ -47,17 +70,23 @@ export function showDialog ({ title, text, buttonText, hasInput, inputType, inpu
     const overlay = showOverlay(
       title,
       '',
-    `
+      `
       <p>
        ${text}
       </p>
       <p class="${hasInput ? '' : 'hidden'}">
-        <input type="${inputType ?? 'text'}" id="${inputId}" placeholder="${inputLabel ?? title}">
+        ${isCurrency
+        ? renderCurrencyInput(inputId, inputLabel ?? title)
+        : `<input type="${inputType ?? 'text'}" id="${inputId}" placeholder="${inputLabel ?? title}">`}
       </p>
       <button id="${cancelButtonId}" type="button" class="btn btn-secondary">${t('dialog.cancel')}</button>
       ${secondaryButton}
       <button id="${submitButtonId}" type="button" class="btn btn-${buttonType}">${buttonText ?? 'OK'}</button>
     `
     )
+
+    if (isCurrency) {
+      setupCurrencyInput(inputId)
+    }
   })
 }

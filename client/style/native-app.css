@@ -125,6 +125,8 @@ body {
     background-color: #222;
     background-image: none;
     overflow: hidden;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
 }
 
 input, textarea, [contenteditable] {
@@ -208,7 +210,7 @@ html, body {
 }
 
 .native-app-layout #page {
-    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 11rem);
+    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12rem);
     width: 100%;
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;

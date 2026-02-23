@@ -72,17 +72,18 @@ export class BuildingsPage extends UIElement {
     const imageUrl = TRAINING_AREA_IMAGES[Math.max(1, Math.min(level, 3))]
 
     return `
-      <div class="building-card mb-4" style="background-image: url('${imageUrl || TRAINING_AREA_IMAGES[1]}');">
-        <div class="building-card__overlay">
-          <div class="building-card__content bg-dark">
-            <h4 class="building-card__title mb-2">
-              ${t('buildings.trainingArea')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
-            </h4>
-            ${this._renderEffects(level)}
-            ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
-            ${!constructionInfo.underConstruction && upgrade ? this._renderUpgradeButton(building, upgrade, nextLevel) : ''}
-            ${isMaxLevel ? '<p class="building-card__max-level mb-0"><i class="fa fa-check-circle"></i> ' + t('buildings.maxLevel') + '</p>' : ''}
-          </div>
+      <div class="building-card mb-4">
+        <div class="building-card__image">
+          <img src="${imageUrl || TRAINING_AREA_IMAGES[1]}" alt="${t('buildings.trainingArea')}">
+        </div>
+        <div class="building-card__content bg-dark">
+          <h4 class="building-card__title mb-2">
+            ${t('buildings.trainingArea')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
+          </h4>
+          ${this._renderEffects(level)}
+          ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
+          ${!constructionInfo.underConstruction && upgrade ? this._renderUpgradeButton(building, upgrade, nextLevel) : ''}
+          ${isMaxLevel ? '<p class="building-card__max-level mb-0"><i class="fa fa-check-circle"></i> ' + t('buildings.maxLevel') + '</p>' : ''}
         </div>
       </div>
     `
@@ -106,17 +107,18 @@ export class BuildingsPage extends UIElement {
     const imageUrl = FITNESS_STUDIO_IMAGES[Math.max(1, Math.min(level, 3))]
 
     return `
-      <div class="building-card mb-4" style="background-image: url('${imageUrl || FITNESS_STUDIO_IMAGES[1]}');">
-        <div class="building-card__overlay">
-          <div class="building-card__content bg-dark">
-            <h4 class="building-card__title mb-2">
-              ${t('buildings.fitnessStudio')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
-            </h4>
-            ${this._renderFitnessEffects(level)}
-            ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
-            ${!constructionInfo.underConstruction && upgrade ? this._renderFitnessUpgradeButton(building, upgrade, nextLevel) : ''}
-            ${isMaxLevel ? '<p class="building-card__max-level mb-0"><i class="fa fa-check-circle"></i> ' + t('buildings.maxLevel') + '</p>' : ''}
-          </div>
+      <div class="building-card mb-4">
+        <div class="building-card__image">
+          <img src="${imageUrl || FITNESS_STUDIO_IMAGES[1]}" alt="${t('buildings.fitnessStudio')}">
+        </div>
+        <div class="building-card__content bg-dark">
+          <h4 class="building-card__title mb-2">
+            ${t('buildings.fitnessStudio')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
+          </h4>
+          ${this._renderFitnessEffects(level)}
+          ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
+          ${!constructionInfo.underConstruction && upgrade ? this._renderFitnessUpgradeButton(building, upgrade, nextLevel) : ''}
+          ${isMaxLevel ? '<p class="building-card__max-level mb-0"><i class="fa fa-check-circle"></i> ' + t('buildings.maxLevel') + '</p>' : ''}
         </div>
       </div>
     `
@@ -176,7 +178,7 @@ export class BuildingsPage extends UIElement {
         ${this._renderNextLevelPreview(nextLevel)}
         <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', { cost: euroFormat.format(upgrade.cost) })}</p>
         <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', { days: upgrade.constructionDays })}</p>
-        <button id="${btnId}" class="btn btn-success">
+        <button id="${btnId}" class="btn btn-outline-light">
           ${t('buildings.upgrade', { level: nextLevel })}
         </button>
       </div>
@@ -202,7 +204,7 @@ export class BuildingsPage extends UIElement {
         <p class="building-card__desc mb-2">${t(`buildings.fitnessLevel${nextLevel}Desc`)}</p>
         <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', { cost: euroFormat.format(upgrade.cost) })}</p>
         <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', { days: upgrade.constructionDays })}</p>
-        <button id="${btnId}" class="btn btn-success">
+        <button id="${btnId}" class="btn btn-outline-light">
           ${t('buildings.upgrade', { level: nextLevel })}
         </button>
       </div>

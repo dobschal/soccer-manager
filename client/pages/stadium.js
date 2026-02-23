@@ -15,6 +15,7 @@ export class StadiumPage extends UIElement {
   constructionInfo = {}
   attendanceData = []
   constructionHistory = []
+  subPage = null
   /** @type {StadiumCanvas|null} */
   _stadiumCanvas = null
   /** @type {boolean} */
@@ -32,7 +33,7 @@ export class StadiumPage extends UIElement {
     return {
       '#price-form': {
         submit: this._onPriceFormSubmit.bind(this),
-        change: (event) => {
+        input: (event) => {
           const input = event.target.closest('[data-price-input]')
           if (input) {
             const name = input.dataset.priceInput
@@ -49,7 +50,7 @@ export class StadiumPage extends UIElement {
       },
       '#stadium-form': {
         submit: this._onStadiumFormSubmit.bind(this),
-        change: async (event) => {
+        input: async (event) => {
           const sizeInput = event.target.closest('[data-size-input]')
           const roofInput = event.target.closest('[data-roof-input]')
 
@@ -141,6 +142,7 @@ export class StadiumPage extends UIElement {
       wrapper.insertAdjacentHTML('afterbegin', String(subPage))
       container.appendChild(wrapper)
       this._stadiumCanvas.onMounted()
+      this._applyEventHandlers()
       return
     }
 
@@ -279,7 +281,7 @@ export class StadiumPage extends UIElement {
       name => this.stadium[name + '_stand_price'] !== this._originalPrices[name]
     )
     btn.disabled = !hasChange
-    btn.className = hasChange ? 'btn btn-success' : 'btn btn-primary'
+    btn.className = hasChange ? 'btn btn-primary' : 'btn btn-primary'
     if (cancelBtn) cancelBtn.className = hasChange ? 'btn btn-secondary ml-2' : 'btn btn-secondary ml-2 d-none'
   }
 
@@ -386,7 +388,7 @@ export class StadiumPage extends UIElement {
       this._hasValidConstruction = hasValidChanges
       if (submitBtn) {
         submitBtn.disabled = !hasValidChanges
-        submitBtn.className = hasValidChanges ? 'btn btn-success' : 'btn btn-primary'
+        submitBtn.className = hasValidChanges ? 'btn btn-primary' : 'btn btn-primary'
       }
       if (cancelBtn) cancelBtn.className = hasValidChanges ? 'btn btn-secondary ml-2' : 'btn btn-secondary ml-2 d-none'
     } catch (e) {
@@ -502,7 +504,7 @@ export class StadiumPage extends UIElement {
     const rows = this.attendanceData.map(row => {
       const standCells = stands.map(s => {
         const data = row.stands[s]
-        return `<td>${data.guests.toLocaleString()} / ${data.size.toLocaleString()} (${data.percentage}%)</td>`
+        return `<td><span class="d-none d-sm-inline">${data.guests.toLocaleString()} / ${data.size.toLocaleString()} </span>(${data.percentage}%)</td>`
       }).join('')
       return `<tr><td>${t('stadium.seasonDay', {
         season: row.season + 1,
@@ -511,12 +513,10 @@ export class StadiumPage extends UIElement {
     }).join('')
 
     return `
-      <div class="table-responsive mb-4">
-        <table class="table table-sm table-striped">
+        <table class="table table-sm table-striped wide-on-mobile mb-4">
           <thead><tr><th></th>${headerCells}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>
     `
   }
 

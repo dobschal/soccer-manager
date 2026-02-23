@@ -215,16 +215,16 @@ export class YouthTeamPage extends UIElement {
     }
 
     return `
-      <div class="table-responsive" style="margin: 0 -2rem; padding: 0 2rem;">
-        <table class="table table-striped">
+    <div class="horizontal-scrollable-table">
+        <table class="table table-striped wide-on-mobile">
           <thead>
             <tr>
               <th>${t('youthTeam.name')}</th>
-              <th>${t('youthTeam.position')}</th>
+              <th><span class="d-none d-sm-inline">${t('youthTeam.position')}</span><span class="d-sm-none">Pos</span></th>
               <th>${t('youthTeam.age')}</th>
-              <th>${t('youthTeam.level')}</th>
-              <th>${t('youthTeam.moral')}</th>
-              <th>${t('youthTeam.fitness')}</th>
+              <th><span class="d-none d-sm-inline">${t('youthTeam.level')}</span><span class="d-sm-none">Lvl</span></th>
+              <th><span class="d-none d-sm-inline">${t('youthTeam.moral')}</span><span class="d-sm-none">Mor</span></th>
+              <th><span class="d-none d-sm-inline">${t('youthTeam.fitness')}</span><span class="d-sm-none">Fit</span></th>
               <th>${t('youthTeam.actions')}</th>
             </tr>
           </thead>
@@ -232,7 +232,7 @@ export class YouthTeamPage extends UIElement {
             ${this.youthPlayers.map(player => this._renderYouthPlayerRow(player)).join('')}
           </tbody>
         </table>
-      </div>
+       </div>
     `
   }
 
@@ -256,16 +256,16 @@ export class YouthTeamPage extends UIElement {
 
     return `
       <tr>
-        <td>${player.name}</td>
+        <td style="white-space:nowrap">${player.name}</td>
         <td><span class="badge bg-secondary">${player.position}</span></td>
         <td>${player.age}</td>
         <td>${player.level.toFixed(2)}</td>
         <td>${new ProgressBar(player.moral)}</td>
         <td>${new ProgressBar(player.fitness)}</td>
-        <td>
+        <td style="white-space:nowrap">
           <button
             id="${promoteId}"
-            class="btn btn-sm btn-success me-1"
+            class="btn btn-sm btn-primary me-1"
             ${!canPromote ? 'disabled' : ''}
             title="${disabledReason}"
           >
@@ -306,7 +306,7 @@ export class YouthTeamPage extends UIElement {
         playerName: player.name,
         level
       }),
-      `<button id="${confirmId}" class="btn btn-success w-100">${t('youthTeam.promote')}</button>`
+      `<button id="${confirmId}" class="btn btn-primary w-100">${t('youthTeam.promote')}</button>`
     )
   }
 
