@@ -1,14 +1,29 @@
 import {EventData, isAndroid, isIOS, knownFolders, Page, path, WebView} from '@nativescript/core'
 
 declare const NSURL: any
+declare const UIColor: any
+declare const android: any
 
 export function onPageLoaded(args: EventData) {
     const page = args.object as Page
     page.backgroundColor = '#222222'
 }
 
+function setWebViewBackgroundColor(webView: WebView) {
+    if (isIOS) {
+        const wkWebView = webView.ios as any
+        wkWebView.opaque = false
+        wkWebView.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0x22 / 255, 0x22 / 255, 0x22 / 255, 1)
+        wkWebView.scrollView.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0x22 / 255, 0x22 / 255, 0x22 / 255, 1)
+    } else if (isAndroid) {
+        const nativeWebView = webView.android as any
+        nativeWebView.setBackgroundColor(android.graphics.Color.parseColor('#222222'))
+    }
+}
+
 export function onWebViewLoaded(args: EventData) {
     const webView = args.object as WebView
+    setWebViewBackgroundColor(webView)
 
     if (isIOS) {
         loadWebViewIOS(webView)

@@ -94,10 +94,6 @@ async function _resolvePage () {
   hideNavigation()
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
-  if (!layoutChanged) {
-    pageElement.style.opacity = '0'
-    pageElement.style.transform = 'translateY(50px)'
-  }
 
   // Hide all cached page wrappers
   for (const child of [...pageElement.children]) {
@@ -107,16 +103,16 @@ async function _resolvePage () {
   const cached = _pageCache[currentPath]
   if (cached && pageElement.contains(cached.wrapper)) {
     cached.wrapper.style.display = ''
-    _afterPageLoad(pageElement)
+    _afterPageLoad()
     fire('query-changed', getQueryParams())
     if (cached.page?.update) cached.page.update(true)
   } else {
-    _renderNewPage(pageRenderFn, currentPath, pageElement)
+    void _renderNewPage(pageRenderFn, currentPath, pageElement)
   }
 }
 
 /**
- * @param {Function} PageUIElement
+ * @param {Function | UIElement} PageUIElement
  * @param {string} currentPath
  * @param {HTMLElement} pageElement
  * @returns {Promise<void>}
@@ -139,7 +135,7 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
     const interval = setInterval(() => {
       if (page.isRendered) {
         clearInterval(interval)
-        _afterPageLoad(pageElement)
+        _afterPageLoad()
         fire('query-changed', getQueryParams())
       } else if (Date.now() - startTime > timeoutMs) {
         clearInterval(interval)
@@ -150,19 +146,16 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
     console.warn('Deprecated: ', currentPath)
     wrapper.insertAdjacentHTML('afterbegin', await PageUIElement())
     pageElement.appendChild(wrapper)
-    _afterPageLoad(pageElement)
+    _afterPageLoad()
   }
 }
 
 /**
- * @param {HTMLElement} pageElement
  * @returns {void}
  */
-function _afterPageLoad (pageElement) {
+function _afterPageLoad () {
   fire('page-changed')
   window.scrollTo(0, 0)
-  pageElement.style.transform = 'translateY(0)'
-  pageElement.style.opacity = '1'
 }
 
 /**

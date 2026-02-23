@@ -2,12 +2,8 @@
 
 /* Layout: top bar + content + bottom tab bar */
 .native-app-layout {
-    padding-top: 0 !important;
-    padding-bottom: 10rem !important;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    min-height: 100dvh;
 }
 
 @keyframes native-bar-fade-in {
@@ -21,19 +17,11 @@
 
 /* Top bar with game info and settings */
 .native-top-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
     width: 100%;
     z-index: 100;
     background: #222;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     transition: opacity 0.5s ease;
-}
-
-.native-top-bar.hidden {
-    opacity: 0;
-    pointer-events: none;
 }
 
 .native-top-bar .info-bar-content {
@@ -73,9 +61,6 @@
 
 /* Bottom tab bar */
 .native-tab-bar {
-    position: fixed;
-    top: calc(100vh - env(safe-area-inset-bottom, 0px) - 10rem);
-    left: 0;
     width: 100%;
     z-index: 100;
     display: flex;
@@ -91,7 +76,7 @@
     align-items: center;
     justify-content: center;
     flex: 1;
-    padding: 1rem 0 calc(env(safe-area-inset-bottom, 0px) + 10rem) 0;
+    padding: 1rem 0;
     color: rgba(255, 255, 255, 0.66) !important;
     text-decoration: none;
     font-size: 0.65rem;
@@ -139,11 +124,7 @@ body {
     -webkit-touch-callout: none;
     background-color: #222;
     background-image: none;
-}
-
-/* Only add top padding when the native game layout is active (for status bar + top bar) */
-body:has(.native-app-layout) {
-    padding-top: 3rem;
+    overflow: hidden;
 }
 
 input, textarea, [contenteditable] {
@@ -154,6 +135,7 @@ input, textarea, [contenteditable] {
 /* Remove 300ms tap delay and disable double-tap-to-zoom in WebView */
 *, *::before, *::after {
     touch-action: pan-y pan-x;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Prevent overscroll bounce */
@@ -224,4 +206,15 @@ html, body {
 /* Let overlay scroll past the fixed tab bar */
 .native-app-layout ~ .overlay-backdrop .overlay {
     padding-bottom: 10rem;
+}
+
+#page {
+    height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 11rem);
+    width: 100%;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    border: none !important;
+    overflow-x: hidden;
+    background-color: white;
+    padding: 2rem 2rem 0 2rem;
 }

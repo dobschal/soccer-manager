@@ -253,6 +253,14 @@ export class LeagueResultsPage extends UIElement {
     return t('dashboard.positionTh', { pos })
   }
 
+  async update (reloadData = false) {
+    await super.update(reloadData)
+    this._loadTopScorerImages()
+    if (this._managerSvgId && this._teamColor) {
+      void loadManagerChatSvg(this._managerSvgId, this._teamColor)
+    }
+  }
+
   onMounted () {
     this._loadTopScorerImages()
     if (this._managerSvgId && this._teamColor) {

@@ -53,14 +53,14 @@ export class PlayerList extends UIElement {
    */
   get template () {
     const toggleBtn = this.onToggleExtended
-      ? `<button class="btn btn-sm btn-outline-info player-list-toggle-btn float-end" title="${this.extended ? 'Collapse' : 'Expand'}"><i class="fa fa-${this.extended ? 'compress' : 'expand'}"></i></button>`
+      ? `<button class="btn btn-sm btn-outline-info player-list-toggle-btn float-end d-none d-md-inline-block" title="${this.extended ? 'Collapse' : 'Expand'}"><i class="fa fa-${this.extended ? 'compress' : 'expand'}"></i></button>`
       : ''
 
     return `
       <div>
         <h3 class="${this.showTitle ? '' : 'hidden'}" style="clear: both;">Players (${this.players.length}) ${toggleBtn}</h3>
         <div class="table-responsive player-list-table">
-          <table class="table table-hover">
+          <table class="table table-hover wide-on-mobile">
             <thead>
               <tr>
                 <th scope="col">Name</th>
@@ -68,10 +68,10 @@ export class PlayerList extends UIElement {
                 <th scope="col" class="text-right">Age</th>
                 <th scope="col" class="text-right">Fit</th>
                 <th scope="col" class="text-right">Lvl</th>
-                <th scope="col" class="text-right ${this.extended ? '' : 'd-none d-md-table-cell'}">${t('player.salary')}</th>
-                ${this.extended ? `<th scope="col" class="text-right">${t('player.value')}</th>` : ''}
-                ${this.extended ? `<th scope="col" class="text-right">${t('player.goals')}</th>` : ''}
-                ${this.extended ? `<th scope="col" class="text-right">${t('player.games')}</th>` : ''}
+                <th scope="col" class="text-right">${t('player.salary')}</th>
+                <th scope="col" class="text-right ${this.extended ? '' : 'd-md-none'}">${t('player.value')}</th>
+                <th scope="col" class="text-right ${this.extended ? '' : 'd-md-none'}">${t('player.goals')}</th>
+                <th scope="col" class="text-right ${this.extended ? '' : 'd-md-none'}">${t('player.games')}</th>
               </tr>
             </thead>
             <tbody>

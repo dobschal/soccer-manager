@@ -109,7 +109,8 @@ export class CupResultsPage extends UIElement {
     this.cupRounds = rounds
 
     if ((this.cupRound === null || !rounds.some(r => r.round === this.cupRound)) && rounds.length > 0) {
-      this.cupRound = rounds[0].round
+      const lastPlayedRound = [...rounds].reverse().find(r => r.played)
+      this.cupRound = lastPlayedRound ? lastPlayedRound.round : rounds[0].round
     }
 
     if (this.cupRound === null) {

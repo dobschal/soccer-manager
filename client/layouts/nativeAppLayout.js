@@ -1,5 +1,5 @@
 import { UIElement } from '../lib/UIElement.js'
-import { fire, off, on } from '../lib/event.js'
+import { off, on } from '../lib/event.js'
 import { el, generateId } from '../lib/html.js'
 import { goTo } from '../lib/router.js'
 import { Balance } from '../partials/balance.js'
@@ -36,8 +36,8 @@ export class NativeAppLayout extends UIElement {
 
   get template () {
     return `
-      <div class="game-layout native-app-layout">
-        <div class="native-top-bar hidden">
+      <div class="native-app-layout">
+        <div class="native-top-bar">
           <div class="info-bar-content">
             <div class="info-bar-item">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
@@ -55,8 +55,8 @@ export class NativeAppLayout extends UIElement {
             </button>
           </div>
         </div>
-        <div class="container" id="page"></div>
-        <nav class="native-tab-bar hidden">
+        <div id="page"></div>
+        <nav class="native-tab-bar">
           ${this._tabItem('dashboard', 'fa-home', t('nav.home'))}
           ${this._tabItem('my-team', 'fa-users', t('nav.team'))}
           ${this._tabItem('results', 'fa-trophy', t('nav.league'))}
@@ -87,40 +87,13 @@ export class NativeAppLayout extends UIElement {
     window.scrollTo(0, 0)
     this._attachEventHandlers()
     this._startTimer()
-    this._setupScrollListener()
-    fire('page-changed')
-    setTimeout(() => {
-      const tabBar = document.querySelector(`${this._elementQuery} .native-tab-bar`)
-      if (tabBar) {
-        tabBar.classList.remove('hidden')
-      }
-    }, 1000)
+    setTimeout(() => document.querySelector(`${this._elementQuery} .native-tab-bar`)
+      ?.classList.remove('hidden'), 1000)
   }
 
   onDestroy () {
     this._stopTimer()
     this._cleanupNavItemEvents()
-    this._removeScrollListener()
-  }
-
-  _setupScrollListener () {
-    const topBar = document.querySelector(`${this._elementQuery} .native-top-bar`)
-    if (!topBar) return
-    this._scrollHandler = () => {
-      console.log('Toggle top bar: ', window.scrollY)
-      topBar.classList.toggle('hidden', window.scrollY > 10)
-    }
-    setTimeout(() => {
-      this._scrollHandler()
-    }, 1000) // Initial check after 1s to account for any automatic scrolling on page load
-    window.addEventListener('scroll', this._scrollHandler, { passive: true })
-  }
-
-  _removeScrollListener () {
-    if (this._scrollHandler) {
-      window.removeEventListener('scroll', this._scrollHandler)
-      this._scrollHandler = null
-    }
   }
 
   _attachEventHandlers () {

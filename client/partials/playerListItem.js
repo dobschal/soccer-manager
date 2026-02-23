@@ -44,15 +44,13 @@ export class PlayerListItem extends UIElement {
     const age = calculatePlayerAge(this.player, this.season)
 
     const salary = getSalary(this.player.level)
-    let extendedCells = ''
-    if (this.extended) {
-      const value = calculateMarketValue(this.player.level, age)
-      extendedCells = `
-        <td class="text-right">${euroFormat.format(value)}</td>
-        <td class="text-right">${this.player.season_goals ?? 0}</td>
-        <td class="text-right">${this.player.season_games ?? 0}</td>
-      `
-    }
+    const value = calculateMarketValue(this.player.level, age)
+    const hiddenClass = this.extended ? '' : 'd-md-none'
+    const extendedCells = `
+      <td class="text-right ${hiddenClass}">${euroFormat.format(value)}</td>
+      <td class="text-right ${hiddenClass}">${this.player.season_goals ?? 0}</td>
+      <td class="text-right ${hiddenClass}">${this.player.season_games ?? 0}</td>
+    `
 
     return `
       <tr class="${rowClass}" data-player-id="${this.player.id}">
@@ -61,7 +59,7 @@ export class PlayerListItem extends UIElement {
         <td class="text-right">${age}</td>
         <td class="text-right ${this.player.freshness < 0.4 ? 'text-danger' : (this.player.freshness < 0.7 ? 'text-warning' : 'text-success')}">${Math.floor(this.player.freshness * 100)}%</td>
         <td class="text-right">${renderLevelBadge(this.player.level)}</td>
-        <td class="text-right ${this.extended ? '' : 'd-none d-md-table-cell'}">${euroFormat.format(salary)}</td>
+        <td class="text-right">${euroFormat.format(salary)}</td>
         ${extendedCells}
       </tr>
     `

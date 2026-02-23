@@ -37,7 +37,7 @@ export class Table extends UIElement {
   get template () {
     const hasHover = typeof this.config.onClick === 'function'
     return `
-      <table class="table${hasHover ? ' table-hover' : ''}">
+      <table class="table${hasHover ? ' table-hover' : ''} wide-on-mobile">
         <thead>
           <tr>
             ${this._renderHeaderCells()}
@@ -85,7 +85,10 @@ export class Table extends UIElement {
    * @param {string} params.col
    * @returns {void}
    */
-  onQueryChanged ({ sort_dir: sortDirection, col: colIndex }) {
+  onQueryChanged ({
+    sort_dir: sortDirection,
+    col: colIndex
+  }) {
     if (sortDirection && colIndex !== undefined) {
       const col = this.config.cols[Number(colIndex)]
       if (col && (col.sortKey || col.sortFn)) {
@@ -103,7 +106,10 @@ export class Table extends UIElement {
       const col = this.config.cols[colIndex]
       if (col && (col.sortKey || col.sortFn)) {
         header.addEventListener('click', () => {
-          const { sort_dir: currentDir, col: currentCol } = getQueryParams()
+          const {
+            sort_dir: currentDir,
+            col: currentCol
+          } = getQueryParams()
           const newDir = (currentCol === colIndex.toString() && currentDir === 'ASC') ? 'DESC' : 'ASC'
           setQueryParams({
             sort_dir: newDir,
