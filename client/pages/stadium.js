@@ -107,9 +107,12 @@ export class StadiumPage extends UIElement {
 
   _createSubPage (key) {
     switch (key) {
-      case 'buildings': return new BuildingsPage(this)
-      case 'finances': return new FinancesPage()
-      default: return this._renderStadiumPage()
+      case 'buildings':
+        return new BuildingsPage(this)
+      case 'finances':
+        return new FinancesPage()
+      default:
+        return this._renderStadiumPage()
     }
   }
 
@@ -124,7 +127,9 @@ export class StadiumPage extends UIElement {
       this._stadiumCanvas = null
     }
 
-    container.querySelectorAll('[data-subpage]').forEach(w => { w.style.display = 'none' })
+    container.querySelectorAll('[data-subpage]').forEach(w => {
+      w.style.display = 'none'
+    })
 
     // Stadium tab: always recreate (Three.js needs fresh canvas)
     if (key === 'stadium') {
@@ -143,7 +148,7 @@ export class StadiumPage extends UIElement {
     if (existing) {
       existing.style.display = ''
       const cached = this._subPageCache[key]
-      if (cached?.silentUpdate) cached.silentUpdate()
+      if (cached?.update) cached.update()
       return
     }
 

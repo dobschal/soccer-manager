@@ -51,12 +51,18 @@ export class TradesPage extends UIElement {
    */
   async _createSubPage (key) {
     switch (key) {
-      case 'incoming': return await renderIncomingOffers()
-      case 'my_offers': return new MyOffersPage(this)
-      case 'history': return renderTradeHistory()
-      case 'free_players': return new FreePlayers()
-      case 'market_values': return new MarketValuesPage()
-      default: return await renderMarket()
+      case 'incoming':
+        return await renderIncomingOffers()
+      case 'my_offers':
+        return new MyOffersPage(this)
+      case 'history':
+        return renderTradeHistory()
+      case 'free_players':
+        return new FreePlayers()
+      case 'market_values':
+        return new MarketValuesPage()
+      default:
+        return await renderMarket()
     }
   }
 
@@ -68,13 +74,15 @@ export class TradesPage extends UIElement {
     if (!container) return
     const key = this.pageName || 'market'
 
-    container.querySelectorAll('[data-subpage]').forEach(w => { w.style.display = 'none' })
+    container.querySelectorAll('[data-subpage]').forEach(w => {
+      w.style.display = 'none'
+    })
 
     const existing = container.querySelector(`[data-subpage="${key}"]`)
     if (existing) {
       existing.style.display = ''
       const cached = this._subPageCache[key]
-      if (cached?.silentUpdate) cached.silentUpdate()
+      if (cached?.update) cached.update()
       return
     }
 

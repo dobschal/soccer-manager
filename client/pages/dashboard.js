@@ -83,10 +83,14 @@ export class DashboardPage extends UIElement {
    */
   _createSubPage (key) {
     switch (key) {
-      case 'cards': return new ActionCards()
-      case 'news': return new News()
-      case 'messages': return new LogMessages()
-      default: return this._createStartPage()
+      case 'cards':
+        return new ActionCards()
+      case 'news':
+        return new News()
+      case 'messages':
+        return new LogMessages()
+      default:
+        return this._createStartPage()
     }
   }
 
@@ -127,7 +131,7 @@ export class DashboardPage extends UIElement {
     if (existing) {
       existing.style.display = ''
       const cached = this._subPageCache[key]
-      if (cached?.silentUpdate) cached.silentUpdate()
+      if (cached?.update) cached.update()
       return
     }
 

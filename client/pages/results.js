@@ -42,9 +42,12 @@ export class ResultsPage extends UIElement {
 
   _createSubPage (key) {
     switch (key) {
-      case 'cup': return new CupResultsPage(this)
-      case 'friendly': return new FriendlyResultsPage(this)
-      default: return new LeagueResultsPage(this)
+      case 'cup':
+        return new CupResultsPage(this)
+      case 'friendly':
+        return new FriendlyResultsPage(this)
+      default:
+        return new LeagueResultsPage(this)
     }
   }
 
@@ -53,13 +56,15 @@ export class ResultsPage extends UIElement {
     if (!container) return
     const key = this.subPage || 'league'
 
-    container.querySelectorAll('[data-subpage]').forEach(w => { w.style.display = 'none' })
+    container.querySelectorAll('[data-subpage]').forEach(w => {
+      w.style.display = 'none'
+    })
 
     const existing = container.querySelector(`[data-subpage="${key}"]`)
     if (existing) {
       existing.style.display = ''
       const cached = this._subPageCache[key]
-      if (cached?.silentUpdate) cached.silentUpdate()
+      if (cached?.update) cached.update()
       return
     }
 

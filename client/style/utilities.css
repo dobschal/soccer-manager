@@ -3,6 +3,10 @@
    Gap, cursor, text alignment, and other reusable utilities
    ========================================================================== */
 
+.hidden {
+    display: none !important;
+}
+
 /* Gap utilities */
 .u-gap-sm {
     gap: 1rem;

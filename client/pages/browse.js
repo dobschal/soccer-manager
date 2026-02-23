@@ -39,9 +39,12 @@ export class BrowsePage extends UIElement {
 
   _createSubPage (key) {
     switch (key) {
-      case 'teams': return new BrowseTeamsPage(this)
-      case 'users': return new BrowseUsersPage(this)
-      default: return new BrowsePlayersPage(this)
+      case 'teams':
+        return new BrowseTeamsPage(this)
+      case 'users':
+        return new BrowseUsersPage(this)
+      default:
+        return new BrowsePlayersPage(this)
     }
   }
 
@@ -50,13 +53,15 @@ export class BrowsePage extends UIElement {
     if (!container) return
     const key = this.subPage || 'players'
 
-    container.querySelectorAll('[data-subpage]').forEach(w => { w.style.display = 'none' })
+    container.querySelectorAll('[data-subpage]').forEach(w => {
+      w.style.display = 'none'
+    })
 
     const existing = container.querySelector(`[data-subpage="${key}"]`)
     if (existing) {
       existing.style.display = ''
       const cached = this._subPageCache[key]
-      if (cached?.silentUpdate) cached.silentUpdate()
+      if (cached?.update) cached.update()
       return
     }
 

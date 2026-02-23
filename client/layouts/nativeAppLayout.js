@@ -1,5 +1,5 @@
 import { UIElement } from '../lib/UIElement.js'
-import { off, on } from '../lib/event.js'
+import { fire, off, on } from '../lib/event.js'
 import { el, generateId } from '../lib/html.js'
 import { goTo } from '../lib/router.js'
 import { Balance } from '../partials/balance.js'
@@ -25,7 +25,11 @@ export class NativeAppLayout extends UIElement {
   get serverEvents () {
     return {
       BUY_OFFER_ACCEPTED: (data) => {
-        toast(t('trades.buyOfferAccepted', { playerName: data.playerName, teamName: data.sellerTeamName, price: data.price }), 'success')
+        toast(t('trades.buyOfferAccepted', {
+          playerName: data.playerName,
+          teamName: data.sellerTeamName,
+          price: data.price
+        }), 'success')
       }
     }
   }
@@ -33,7 +37,7 @@ export class NativeAppLayout extends UIElement {
   get template () {
     return `
       <div class="game-layout native-app-layout">
-        <div class="native-top-bar">
+        <div class="native-top-bar hidden">
           <div class="info-bar-content">
             <div class="info-bar-item">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
@@ -52,7 +56,7 @@ export class NativeAppLayout extends UIElement {
           </div>
         </div>
         <div class="container" id="page"></div>
-        <nav class="native-tab-bar">
+        <nav class="native-tab-bar hidden">
           ${this._tabItem('dashboard', 'fa-home', t('nav.home'))}
           ${this._tabItem('my-team', 'fa-users', t('nav.team'))}
           ${this._tabItem('results', 'fa-trophy', t('nav.league'))}
@@ -84,6 +88,13 @@ export class NativeAppLayout extends UIElement {
     this._attachEventHandlers()
     this._startTimer()
     this._setupScrollListener()
+    fire('page-changed')
+    setTimeout(() => {
+      const tabBar = document.querySelector(`${this._elementQuery} .native-tab-bar`)
+      if (tabBar) {
+        tabBar.classList.remove('hidden')
+      }
+    }, 1000)
   }
 
   onDestroy () {
@@ -96,9 +107,12 @@ export class NativeAppLayout extends UIElement {
     const topBar = document.querySelector(`${this._elementQuery} .native-top-bar`)
     if (!topBar) return
     this._scrollHandler = () => {
+      console.log('Toggle top bar: ', window.scrollY)
       topBar.classList.toggle('hidden', window.scrollY > 10)
     }
-    this._scrollHandler()
+    setTimeout(() => {
+      this._scrollHandler()
+    }, 1000) // Initial check after 1s to account for any automatic scrolling on page load
     window.addEventListener('scroll', this._scrollHandler, { passive: true })
   }
 
@@ -251,7 +265,8 @@ export class NativeAppLayout extends UIElement {
   _tabItem (path, icon, label) {
     const id = generateId()
     const eventId = on('page-changed', () => {
-      const isCurrentPage = window.location.hash.substring(1).split('?')[0] === path
+      const currentPath = window.location.hash.substring(1).split('?')[0]
+      const isCurrentPage = currentPath === path || (path === 'dashboard' && currentPath === '')
       el('#' + id)?.classList[isCurrentPage ? 'add' : 'remove']('active')
     })
     this._navItemEventIds.push(eventId)

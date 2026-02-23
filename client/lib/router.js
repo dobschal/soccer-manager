@@ -3,7 +3,6 @@ import { fire } from './event.js'
 import { el } from './html.js'
 import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
-import { pushLoadingIndicator, popLoadingIndicator } from './loadingIndicator.js'
 
 let pages, lastPath
 /** @type {Object<string, {page: Object, wrapper: HTMLElement}>} */
@@ -92,7 +91,6 @@ async function _resolvePage () {
     _pageCache = {}
   }
 
-  _showLoadingIndicator()
   hideNavigation()
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
@@ -111,7 +109,7 @@ async function _resolvePage () {
     cached.wrapper.style.display = ''
     _afterPageLoad(pageElement)
     fire('query-changed', getQueryParams())
-    if (cached.page?.silentUpdate) cached.page.silentUpdate()
+    if (cached.page?.update) cached.page.update()
   } else {
     _renderNewPage(pageRenderFn, currentPath, pageElement)
   }
@@ -132,7 +130,10 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
     const page = new PageUIElement()
     wrapper.insertAdjacentHTML('afterbegin', String(page))
     pageElement.appendChild(wrapper)
-    _pageCache[currentPath] = { page, wrapper }
+    _pageCache[currentPath] = {
+      page,
+      wrapper
+    }
     const startTime = Date.now()
     const timeoutMs = 60000
     const interval = setInterval(() => {
@@ -158,32 +159,9 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
  * @returns {void}
  */
 function _afterPageLoad (pageElement) {
-  _hideLoadingIndicator()
   fire('page-changed')
   pageElement.style.transform = 'translateY(0)'
   pageElement.style.opacity = '1'
-}
-
-let _routerLoadingIndicatorId = null
-
-/**
- * @returns {void}
- */
-function _showLoadingIndicator () {
-  if (_routerLoadingIndicatorId) return
-  const spinnerEl = document.createElement('div')
-  spinnerEl.classList.add('loading-indicator')
-  document.body.appendChild(spinnerEl)
-  _routerLoadingIndicatorId = pushLoadingIndicator(spinnerEl)
-}
-
-/**
- * @returns {void}
- */
-function _hideLoadingIndicator () {
-  if (!_routerLoadingIndicatorId) return
-  popLoadingIndicator(_routerLoadingIndicatorId)
-  _routerLoadingIndicatorId = null
 }
 
 /**

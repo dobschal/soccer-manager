@@ -3,7 +3,6 @@ import { el, generateId } from './html.js'
 import { off, on } from './event.js'
 import { onDOMNodeChanged } from './observeDOM.js'
 import { offServerEvent, onServerEvent } from './websocket.js'
-import { pushLoadingIndicator, popLoadingIndicator } from './loadingIndicator.js'
 
 /**
  * @typedef {Record<string, Record<string, (event: Event) => void>>} UIElementEvents
@@ -116,8 +115,6 @@ export class UIElement {
       await this._load()
       await this._renderIntoTemplateEl(templateEl)
       this._renderIntoDOM(templateEl, templateEl)
-      const newEl = document.querySelector(this._elementQuery)
-      if (newEl) newEl.classList.add('ui-element-fade-in')
     }
     setTimeout(waitAndRender)
     return `<template id="${this._renderId}"></template>`
@@ -139,20 +136,6 @@ export class UIElement {
   }
 
   /**
-   * Reload data and re-render without showing a loading indicator.
-   * Used for cached elements that are already visible with stale content.
-   */
-  async silentUpdate () {
-    const prev = this.showLoadingIndicator
-    this.showLoadingIndicator = false
-    try {
-      await this.update(true)
-    } finally {
-      this.showLoadingIndicator = prev
-    }
-  }
-
-  /**
    * @returns {string}
    */
   toString () {
@@ -166,7 +149,6 @@ export class UIElement {
     return Boolean(this._renderId && el(this._elementQuery))
   }
 
-  showLoadingIndicator = true
   isUIElement = true
   static isUIElement = true
 
@@ -191,13 +173,10 @@ export class UIElement {
 
   async _load () {
     try {
-      if (this.showLoadingIndicator) this._showLoadingIndicator()
       await this.load()
     } catch (e) {
       console.error('Error on load: ', e)
       toast(e.message ?? 'Something went wrong', 'error')
-    } finally {
-      if (this.showLoadingIndicator) this._hideLoadingIndicator()
     }
   }
 
@@ -280,40 +259,6 @@ export class UIElement {
     off(this._queryChangedEventId)
     this._unregisterServerEventHandlers()
     this.onDestroy()
-  }
-
-  /**
-   * @returns {void}
-   * @private
-   */
-  _showLoadingIndicator () {
-    let neighborNode = el(this._elementQuery)
-    if (!neighborNode?.parentElement) {
-      neighborNode = el(this._renderId)
-    } else {
-      neighborNode.style.display = 'none'
-    }
-
-    const spinnerEl = document.createElement('div')
-    const useLocal = neighborNode?.parentElement && !UIElement._isInsideHiddenContainer(neighborNode)
-
-    if (useLocal) {
-      spinnerEl.classList.add('loading-indicator-local')
-      neighborNode.parentNode.insertBefore(spinnerEl, neighborNode)
-    } else {
-      spinnerEl.classList.add('loading-indicator')
-      document.body.appendChild(spinnerEl)
-    }
-
-    this._loadingIndicatorId = pushLoadingIndicator(spinnerEl)
-  }
-
-  /**
-   * @returns {void}
-   * @private
-   */
-  _hideLoadingIndicator () {
-    popLoadingIndicator(this._loadingIndicatorId)
   }
 
   /**

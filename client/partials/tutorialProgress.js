@@ -41,7 +41,6 @@ const TUTORIALS = [
 ]
 
 export class TutorialProgress extends UIElement {
-  showLoadingIndicator = false
   _tutorialCompleted = {}
 
   /**
