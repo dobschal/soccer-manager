@@ -41,12 +41,6 @@ let nativeHtml = originalHtml
 // Remove SEO meta tags (description, keywords, author, robots, canonical, theme-color, og:*, twitter:*)
 nativeHtml = nativeHtml.replace(/\s*<!-- SEO Meta Tags -->[\s\S]*?<!-- Open Graph[\s\S]*?<meta name="twitter:image:alt"[^>]*>\n/m, '\n')
 
-// Update viewport to disable user scaling
-nativeHtml = nativeHtml.replace(
-  'width=device-width, initial-scale=1, shrink-to-fit=no',
-  'width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no'
-)
-
 // Add native-app.css link after the last CSS link
 nativeHtml = nativeHtml.replace(
   '<link rel="stylesheet" href="style/landing.css">',

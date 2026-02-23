@@ -3,7 +3,7 @@
 /* Layout: top bar + content + bottom tab bar */
 .native-app-layout {
     padding-top: 0 !important;
-    padding-bottom: 0;
+    padding-bottom: 10rem !important;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -74,7 +74,7 @@
 /* Bottom tab bar */
 .native-tab-bar {
     position: fixed;
-    top: calc(100vh - 9rem);
+    top: calc(100vh - env(safe-area-inset-bottom, 0px) - 10rem);
     left: 0;
     width: 100%;
     z-index: 100;
@@ -91,7 +91,7 @@
     align-items: center;
     justify-content: center;
     flex: 1;
-    padding: 1rem 0 4rem 0;
+    padding: 1rem 0 calc(env(safe-area-inset-bottom, 0px) + 10rem) 0;
     color: rgba(255, 255, 255, 0.66) !important;
     text-decoration: none;
     font-size: 0.65rem;
@@ -151,9 +151,9 @@ input, textarea, [contenteditable] {
     user-select: text;
 }
 
-/* Remove 300ms tap delay and disable pinch-zoom in WebView */
+/* Remove 300ms tap delay and disable double-tap-to-zoom in WebView */
 *, *::before, *::after {
-    touch-action: pan-x pan-y;
+    touch-action: pan-y pan-x;
 }
 
 /* Prevent overscroll bounce */
@@ -221,11 +221,7 @@ html, body {
     display: block;
 }
 
-#page {
-    padding-bottom: 2rem;
-}
-
 /* Let overlay scroll past the fixed tab bar */
 .native-app-layout ~ .overlay-backdrop .overlay {
-    padding-bottom: 6rem;
+    padding-bottom: 10rem;
 }

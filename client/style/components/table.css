@@ -60,14 +60,8 @@ td small.table-divider-text {
 
 /* Responsive Tables */
 @media screen and (max-width: 768px) {
-    ul.list-group,
-    table.table {
+    table.table.wide-on-mobile {
         margin: 0 -2rem 0 -2rem;
         width: calc(100% + 4rem);
-    }
-
-    li.list-group-item {
-        padding-left: 2rem;
-        padding-right: 2rem;
     }
 }

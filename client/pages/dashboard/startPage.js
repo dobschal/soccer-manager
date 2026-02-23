@@ -55,7 +55,7 @@ export class StartPage {
       cardId: leagueCardId
     }
     return `
-      <div class="d-flex flex-column flex-lg-row align-items-start mb-5 u-gap-md">
+      <div class="d-flex flex-column flex-lg-row align-items-start u-gap-md">
         <div class="flex-grow-1 order-2 order-lg-1 w-100">
             <div id="${leagueCardId}" class="card card-body mb-2">
             <h5 class="mb-2 text-center"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>

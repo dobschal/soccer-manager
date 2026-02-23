@@ -109,7 +109,7 @@ async function _resolvePage () {
     cached.wrapper.style.display = ''
     _afterPageLoad(pageElement)
     fire('query-changed', getQueryParams())
-    if (cached.page?.update) cached.page.update()
+    if (cached.page?.update) cached.page.update(true)
   } else {
     _renderNewPage(pageRenderFn, currentPath, pageElement)
   }
@@ -160,6 +160,7 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement) {
  */
 function _afterPageLoad (pageElement) {
   fire('page-changed')
+  window.scrollTo(0, 0)
   pageElement.style.transform = 'translateY(0)'
   pageElement.style.opacity = '1'
 }

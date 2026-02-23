@@ -26,6 +26,9 @@ function loadWebViewIOS(webView: WebView) {
     // Enable Safari Web Inspector
     wkWebView.inspectable = true
 
+    // Disable zoom
+    wkWebView.isMultipleTouchEnabled = false
+
     // Allow cross-origin requests from file:// URLs
     wkWebView.configuration.preferences.setValueForKey(true, 'allowFileAccessFromFileURLs')
     wkWebView.configuration.setValueForKey(true, 'allowUniversalAccessFromFileURLs')

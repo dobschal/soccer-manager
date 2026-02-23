@@ -102,8 +102,8 @@ export default {
   'dashboard.urgencyOk.offers': 'Keine offenen Angebote.',
   'dashboard.urgencyOk.sponsor': 'Sponsorvertrag ist aktiv.',
   'dashboard.tabStart': 'Start',
-  'dashboard.tabCards': 'Aktionskarten',
-  'dashboard.tabNews': 'Neuigkeiten',
+  'dashboard.tabCards': 'Aktionen',
+  'dashboard.tabNews': 'News',
   'dashboard.tabMessages': 'Nachrichten',
 
   // Stadium
@@ -462,7 +462,7 @@ export default {
   'team.historyCup': 'Pokal',
 
   // Friendly matches
-  'friendly.title': 'Freundschaftsspiele',
+  'friendly.title': 'Friendlies',
   'friendly.noGames': 'Noch keine Freundschaftsspiele gespielt.',
   'friendly.playedToday': 'Du hast heute bereits ein Freundschaftsspiel gespielt.',
   'friendly.confirmTitle': 'Freundschaftsspiel spielen?',
@@ -790,7 +790,7 @@ export default {
   // Results page tabs
   'results.leagueResults': 'Liga',
   'results.cupResults': 'Pokal',
-  'results.friendlyResults': 'Freundschaftsspiele',
+  'results.friendlyResults': 'Friendlies',
   'friendly.noResults': 'Keine Freundschaftsspiele in dieser Saison.',
 
   // Stadium tabs

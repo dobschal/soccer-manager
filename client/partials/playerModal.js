@@ -1,8 +1,7 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
 import { calculatePlayerAge, getSalary } from '../util/player.js'
-import { el, generateId } from '../lib/html.js'
-import { onClick } from '../lib/htmlEventHandlers.js'
+import { el } from '../lib/html.js'
 import { toast } from './toast.js'
 import { renderButton } from './button.js'
 import { goTo, setQueryParams } from '../lib/router.js'
@@ -11,6 +10,7 @@ import { showDialog } from './dialog.js'
 import { renderAsync } from '../lib/renderAsync.js'
 import { t } from '../i18n/index.js'
 import { getLevelColor } from './levelBadge.js'
+import { UIElement } from '../lib/UIElement.js'
 
 /**
  * Get color for freshness (red/yellow/green)
@@ -35,176 +35,6 @@ function formatCompactCurrency (amount) {
 }
 
 /**
- * @param {number} playerId
- * @returns {Promise<void>}
- */
-export async function showPlayerModal (playerId) {
-  const player = await server.getPlayerById(playerId)
-  const { season } = await server.getCurrentGameday()
-  const { team: myTeam } = await server.getMyTeam()
-  const isMyPlayer = myTeam.id === player.team_id
-  const isFreeAgent = !player.team_id
-  const buttonId = generateId()
-  const inputId = generateId()
-  const hireButtonId = generateId()
-  const playersTeam = player.team_id ? (await server.getTeam(player.team_id)).team : null
-  // Render player with their team (or null for free agents to show grey shirt)
-  const playerImage = await renderPlayerImage(player, playersTeam)
-  const teamLinkId = generateId()
-  const price = await server.estimateValue(player.id)
-  const history = await server.getPlayerHistory(player.id)
-  const { offer } = await server.myOfferForPlayer(player)
-  const { hasSellOffer } = await server.hasPlayerSellOffer(player.id)
-
-  if (playersTeam) {
-    onClick(teamLinkId, () => {
-      goTo(`team?id=${playersTeam.id}`)
-      overlay.remove()
-    })
-  }
-
-  onClick(buttonId, async () => {
-    try {
-      const price = Number(el('#' + inputId).value)
-      await server.addTradeOffer(player, price, isMyPlayer ? 'sell' : 'buy')
-      toast(t('player.offerAdded', { playerName: player.name }), 'success')
-      overlay.remove()
-    } catch (e) {
-      console.error(e)
-      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-    }
-  })
-
-  onClick(hireButtonId, async () => {
-    try {
-      const { ok } = await showDialog({
-        title: t('player.hireConfirmTitle', { playerName: player.name }),
-        text: t('player.hireConfirmText', {
-          playerName: player.name,
-          salary: getSalary(player.level)
-        }),
-        hasInput: false,
-        buttonText: t('player.yesHire'),
-        buttonType: 'success'
-      })
-      if (!ok) return
-      await server.givePlayerContract(player.id)
-      toast(t('player.contractGiven', { playerName: player.name }), 'success')
-      overlay.remove()
-      // Dispatch event so pages like FreePlayers can refresh
-      window.dispatchEvent(new CustomEvent('player-hired', { detail: { playerId: player.id } }))
-    } catch (e) {
-      console.error(e)
-      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-    }
-  })
-
-  const fireButton = renderButton(t('player.fireBtn'), async () => {
-    try {
-      const { ok } = await showDialog({
-        title: t('player.fireConfirmTitle'),
-        text: t('player.fireConfirmText', { playerName: player.name }),
-        hasInput: false,
-        buttonText: t('player.yesFire')
-      })
-      if (!ok) return
-      await server.firePlayer(player)
-      toast(t('player.playerFired'))
-      overlay.remove()
-      window.dispatchEvent(new CustomEvent('player-fired', { detail: { playerId: player.id } }))
-      goTo('my-team')
-    } catch (e) {
-      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-    }
-  }, 'danger')
-
-  const levelColor = getLevelColor(player.level)
-  const freshnessColor = getFreshnessColor(player.freshness)
-
-  const overlay = showOverlay(
-    player.name,
-    playersTeam
-      ? `<span id="${teamLinkId}" class="text-info" style="cursor: pointer">${playersTeam.name}</span>`
-      : `<span class="text-muted">${t('player.freePlayer')}</span>`,
-    `
-      <div class="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-3 mb-4">
-        <div style="flex-shrink: 0;">${playerImage}</div>
-        <div class="d-flex flex-column justify-content-center">
-          <div class="d-flex flex-wrap justify-content-center justify-content-sm-start gap-2">
-            <div class="stat-card bg-dark">
-              <div class="stat-card-label">${t('player.position')}</div>
-              <div class="stat-card-value">${player.position}</div>
-            </div>
-            <div class="stat-card bg-dark">
-              <div class="stat-card-label">${t('player.age')}</div>
-              <div class="stat-card-value">${calculatePlayerAge(player, season)}</div>
-            </div>
-            <div class="stat-card bg-dark">
-              <div class="stat-card-label">${t('player.level')}</div>
-              <div class="stat-card-value" style="color: ${levelColor};">${player.level}</div>
-            </div>
-            <div class="stat-card bg-dark">
-              <div class="stat-card-label">${t('player.freshness')}</div>
-              <div class="stat-card-value" style="color: ${freshnessColor}">${Math.floor(player.freshness * 100)}%</div>
-            </div>
-            <div class="stat-card bg-dark">
-              <div class="stat-card-label">${t('player.salary')}</div>
-              <div class="stat-card-value">${formatCompactCurrency(getSalary(player.level))}</div>
-            </div>
-            <div class="stat-card bg-dark">
-              <div class="stat-card-label">${t('player.value')}</div>
-              <div class="stat-card-value">${formatCompactCurrency(price)}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="${isFreeAgent ? 'hidden' : ''} ${offer ? 'hidden' : ''} mb-4" style="clear: both">
-        <b>💰 ${isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
-        <p>${t('player.enterPrice')}</p>
-        <div class="input-group mb-3">
-          <input type="number"
-                 id="${inputId}"
-                 class="form-control"
-                 placeholder="${t('player.pricePlaceholder')}"
-                 aria-label="${t('player.pricePlaceholder')}"
-                 aria-describedby="Yeah">
-          <div class="input-group-append">
-            <button id="${buttonId}"  class="btn btn-outline-primary" type="button">
-              ${isMyPlayer ? t('player.sell') : t('player.submitOffer')}
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="${isFreeAgent ? '' : 'hidden'} mb-4" style="clear: both">
-        <b>🤝 ${t('player.hirePlayer')}</b>
-        <p>${t('player.hirePlayerDesc')}</p>
-        <button id="${hireButtonId}" class="btn btn-success">
-          ${t('player.hireBtn', { playerName: player.name })}
-        </button>
-      </div>
-      <div class="mb-4">
-        <b><i class="fa fa-calendar" aria-hidden="true"></i> ${t('player.history')}</b>
-        ${history.map(_renderPlayerHistory).join('')}
-        ${history.length === 0 ? `<p>${t('player.noHistory')}</p>` : ''}
-      </div>
-      <div class="mb-4 ${hasSellOffer ? '' : 'hidden'}">
-        💰 ${t('player.onMarket')} <a href="#trades">${t('trades.market')}</a>
-      </div>
-      <div class="${isMyPlayer ? '' : 'hidden'}">
-        <b>${t('player.firePlayer')}</b>
-        <p>${t('player.firePlayerDesc')}</p>
-        ${fireButton}
-      </div>
-    `
-  )
-  overlay.onClose(() => {
-    setQueryParams({
-      player_id: null
-    })
-  })
-}
-
-/**
  * @param {PlayerHistoryType} item
  * @returns {string}
  * @private
@@ -225,3 +55,207 @@ const _renderPlayerHistory = renderAsync(async function (item) {
   }
   return `<div>${prefix} ${item.type}: ${item.value}</div>`
 })
+
+export default class PlayerModal extends UIElement {
+  /**
+   * @param {number} playerId
+   */
+  constructor (playerId) {
+    super()
+    this.playerId = playerId
+    /** @type {{ onClose: (cb: () => void) => void, remove: () => void } | null} */
+    this.overlay = null
+  }
+
+  async load () {
+    this.player = await server.getPlayerById(this.playerId)
+    const { season } = await server.getCurrentGameday()
+    this.season = season
+    const { team: myTeam } = await server.getMyTeam()
+    this.myTeam = myTeam
+    this.isMyPlayer = myTeam.id === this.player.team_id
+    this.isFreeAgent = !this.player.team_id
+    this.playersTeam = this.player.team_id ? (await server.getTeam(this.player.team_id)).team : null
+    this.playerImage = await renderPlayerImage(this.player, this.playersTeam)
+    this.price = await server.estimateValue(this.player.id)
+    this.history = await server.getPlayerHistory(this.player.id)
+    const { offer } = await server.myOfferForPlayer(this.player)
+    this.offer = offer
+    const { hasSellOffer } = await server.hasPlayerSellOffer(this.player.id)
+    this.hasSellOffer = hasSellOffer
+  }
+
+  get events () {
+    return {
+      '(optional).trade-offer-btn': { click: this._onTradeOffer },
+      '(optional).hire-btn': { click: this._onHire }
+    }
+  }
+
+  get template () {
+    const levelColor = getLevelColor(this.player.level)
+    const freshnessColor = getFreshnessColor(this.player.freshness)
+    const fireButton = renderButton(t('player.fireBtn'), () => this._onFire(), 'danger')
+
+    return `
+      <div>
+        <div class="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-3 mb-4">
+          <div style="flex-shrink: 0;">${this.playerImage}</div>
+          <div class="d-flex flex-column justify-content-center">
+            <div class="d-flex flex-wrap justify-content-center justify-content-sm-start gap-2">
+              <div class="stat-card bg-dark">
+                <div class="stat-card-label">${t('player.position')}</div>
+                <div class="stat-card-value">${this.player.position}</div>
+              </div>
+              <div class="stat-card bg-dark">
+                <div class="stat-card-label">${t('player.age')}</div>
+                <div class="stat-card-value">${calculatePlayerAge(this.player, this.season)}</div>
+              </div>
+              <div class="stat-card bg-dark">
+                <div class="stat-card-label">${t('player.level')}</div>
+                <div class="stat-card-value" style="color: ${levelColor};">${this.player.level}</div>
+              </div>
+              <div class="stat-card bg-dark">
+                <div class="stat-card-label">${t('player.freshness')}</div>
+                <div class="stat-card-value" style="color: ${freshnessColor}">${Math.floor(this.player.freshness * 100)}%</div>
+              </div>
+              <div class="stat-card bg-dark">
+                <div class="stat-card-label">${t('player.salary')}</div>
+                <div class="stat-card-value">${formatCompactCurrency(getSalary(this.player.level))}</div>
+              </div>
+              <div class="stat-card bg-dark">
+                <div class="stat-card-label">${t('player.value')}</div>
+                <div class="stat-card-value">${formatCompactCurrency(this.price)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4" style="clear: both">
+          <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
+          <p>${t('player.enterPrice')}</p>
+          <div class="input-group mb-3">
+            <input type="number"
+                   class="trade-price-input form-control"
+                   placeholder="${t('player.pricePlaceholder')}"
+                   aria-label="${t('player.pricePlaceholder')}"
+                   aria-describedby="Yeah">
+            <div class="input-group-append">
+              <button class="trade-offer-btn btn btn-outline-primary" type="button">
+                ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="${this.isFreeAgent ? '' : 'hidden'} mb-4" style="clear: both">
+          <b>🤝 ${t('player.hirePlayer')}</b>
+          <p>${t('player.hirePlayerDesc')}</p>
+          <button class="hire-btn btn btn-success">
+            ${t('player.hireBtn', { playerName: this.player.name })}
+          </button>
+        </div>
+        <div class="mb-4">
+          <b><i class="fa fa-calendar" aria-hidden="true"></i> ${t('player.history')}</b>
+          ${this.history.map(_renderPlayerHistory).join('')}
+          ${this.history.length === 0 ? `<p>${t('player.noHistory')}</p>` : ''}
+        </div>
+        <div class="mb-4 ${this.hasSellOffer ? '' : 'hidden'}">
+          💰 ${t('player.onMarket')} <a href="#trades">${t('trades.market')}</a>
+        </div>
+        <div class="${this.isMyPlayer ? '' : 'hidden'}">
+          <b>${t('player.firePlayer')}</b>
+          <p>${t('player.firePlayerDesc')}</p>
+          ${fireButton}
+        </div>
+      </div>
+    `
+  }
+
+  onMounted () {
+    const root = el(this._elementQuery)
+    const overlayCard = root.closest('.overlay')
+    if (!overlayCard) return
+
+    const titleEl = overlayCard.querySelector('.card-title')
+    const subtitleEl = overlayCard.querySelector('.card-subtitle')
+
+    if (titleEl) titleEl.textContent = this.player.name
+    if (subtitleEl) {
+      if (this.playersTeam) {
+        subtitleEl.innerHTML = `<span class="text-info" style="cursor: pointer">${this.playersTeam.name}</span>`
+        subtitleEl.querySelector('span').addEventListener('click', () => {
+          goTo(`team?id=${this.playersTeam.id}`)
+          this.overlay.remove()
+        })
+      } else {
+        subtitleEl.innerHTML = `<span class="text-muted">${t('player.freePlayer')}</span>`
+      }
+    }
+  }
+
+  async _onTradeOffer () {
+    try {
+      const root = el(this._elementQuery)
+      const price = Number(root.querySelector('.trade-price-input').value)
+      await server.addTradeOffer(this.player, price, this.isMyPlayer ? 'sell' : 'buy')
+      toast(t('player.offerAdded', { playerName: this.player.name }), 'success')
+      this.overlay.remove()
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    }
+  }
+
+  async _onHire () {
+    try {
+      const { ok } = await showDialog({
+        title: t('player.hireConfirmTitle', { playerName: this.player.name }),
+        text: t('player.hireConfirmText', {
+          playerName: this.player.name,
+          salary: getSalary(this.player.level)
+        }),
+        hasInput: false,
+        buttonText: t('player.yesHire'),
+        buttonType: 'success'
+      })
+      if (!ok) return
+      await server.givePlayerContract(this.player.id)
+      toast(t('player.contractGiven', { playerName: this.player.name }), 'success')
+      this.overlay.remove()
+      window.dispatchEvent(new CustomEvent('player-hired', { detail: { playerId: this.player.id } }))
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    }
+  }
+
+  async _onFire () {
+    try {
+      const { ok } = await showDialog({
+        title: t('player.fireConfirmTitle'),
+        text: t('player.fireConfirmText', { playerName: this.player.name }),
+        hasInput: false,
+        buttonText: t('player.yesFire')
+      })
+      if (!ok) return
+      await server.firePlayer(this.player)
+      toast(t('player.playerFired'))
+      this.overlay.remove()
+      window.dispatchEvent(new CustomEvent('player-fired', { detail: { playerId: this.player.id } }))
+      goTo('my-team')
+    } catch (e) {
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    }
+  }
+}
+
+/**
+ * @param {number} playerId
+ */
+export function showPlayerModal (playerId) {
+  const modal = new PlayerModal(playerId)
+  const overlay = showOverlay(t('common.loading'), '', `${modal}`)
+  modal.overlay = overlay
+  overlay.onClose(() => {
+    setQueryParams({ player_id: null })
+  })
+}

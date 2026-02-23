@@ -44,12 +44,12 @@
 
 @media screen and (max-width: 768px) {
     .nav.nav-pills {
-        margin: -1rem -1rem 0 -1rem;
+        margin: -1rem -2rem 0 -2rem;
         display: flex;
         flex-wrap: nowrap;
-        width: calc(100% + 3rem);
+        width: calc(100% + 4rem);
         overflow-x: auto;
-        padding-right: 4rem;
+        padding: 0 2rem;
     }
 
     .nav-pills .nav-link {

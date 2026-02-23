@@ -94,7 +94,7 @@ export class LeagueResultsPage extends UIElement {
         </div>
 
         <h3>${t('results.games')}</h3>
-        <table class="table table-hover mb-4">
+        <table class="table table-hover mb-4 wide-on-mobile">
           <thead>
             <tr>
               <th scope="col">${t('results.team1')}</th>
@@ -106,8 +106,8 @@ export class LeagueResultsPage extends UIElement {
               ${this.results.map(this._renderResultListItem.bind(this)).join('')}
           </tbody>
         </table>
-        <h3>${t('results.standing')}</h3>
-        <table class="table table-hover mb-4">
+        <h3>${t('results.standing')} - ${this.gameDay + 1}. ${t('results.gameDayLabel')}</h3>
+        <table class="table table-hover mb-4 wide-on-mobile">
           <thead>
             <tr>
               <th scope="col" class="results-rank-cell">#</th>
@@ -115,7 +115,7 @@ export class LeagueResultsPage extends UIElement {
               <th scope="col">${t('results.team')}</th>
               <th scope="col" class="d-none d-md-table-cell">${t('results.games')}</th>
               <th scope="col" class="d-none d-md-table-cell">${t('results.goals')}</th>
-              <th scope="col" class="d-none d-lg-table-cell">${t('results.diff')}</th>
+              <th scope="col">${t('results.diff')}</th>
               <th scope="col">${t('results.points')}</th>
             </tr>
           </thead>
@@ -124,7 +124,7 @@ export class LeagueResultsPage extends UIElement {
           </tbody>
         </table>
         <h3>${t('results.topScorer')}</h3>
-        <table class="table table-hover">
+        <table class="table table-hover wide-on-mobile">
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -140,7 +140,7 @@ export class LeagueResultsPage extends UIElement {
 
         ${this.suspendedPlayers.length > 0 ? `
           <h3>${t('results.suspendedPlayers')}</h3>
-          <table class="table table-hover">
+          <table class="table table-hover wide-on-mobile">
             <thead>
               <tr>
                 <th scope="col"></th>
@@ -404,7 +404,7 @@ export class LeagueResultsPage extends UIElement {
         <td><span class="emblem-thumb">${renderEmblem(standingItem.team, 24)}</span>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}</td>
         <td class="d-none d-md-table-cell">${standingItem.games}</td>
         <td class="d-none d-md-table-cell">${standingItem.goals}:${standingItem.against}</td>
-        <td class="d-none d-lg-table-cell">${standingItem.goals - standingItem.against}</td>
+        <td>${standingItem.goals - standingItem.against}</td>
         <td>${standingItem.points}</td>
       </tr>
     `

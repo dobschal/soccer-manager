@@ -1,5 +1,5 @@
 {
-  "name": "soccermanager-native",
+  "name": "soccermanagerio",
   "version": "1.0.0",
   "description": "FootballManager.IO - Native App",
   "main": "app/app.ts",
