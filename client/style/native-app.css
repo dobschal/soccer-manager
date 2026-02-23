@@ -150,7 +150,6 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0d4a5a 100%);
     padding: 2rem;
 }
 
@@ -208,7 +207,7 @@ html, body {
     padding-bottom: 10rem;
 }
 
-#page {
+.native-app-layout #page {
     height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 11rem);
     width: 100%;
     overflow-y: scroll;

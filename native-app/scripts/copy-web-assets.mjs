@@ -1,4 +1,5 @@
 import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { execSync } from 'child_process'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -50,7 +51,8 @@ nativeHtml = nativeHtml.replace(
 // Inject __NATIVE_SERVER_URL before the module script, and change app.js to native-app.js
 nativeHtml = nativeHtml.replace(
   '<script src="app.js" defer type="module"></script>',
-  '<script>window.__NATIVE_SERVER_URL = \'https://footballmanager.io\';</script>\n    <script src="native-app.js" defer type="module"></script>'
+  `<script>window.__NATIVE_SERVER_URL = 'https://footballmanager.io';</script>
+    <script src="native-app.js" defer type="module"></script>`
 )
 
 // Update title for native
@@ -61,5 +63,23 @@ nativeHtml = nativeHtml.replace(
 
 writeFileSync(resolve(WEB_DIR, 'index.html'), nativeHtml)
 console.log('Generated native index.html')
+
+// Write native-version.json into the web dir for bundled builds
+const pkg = JSON.parse(readFileSync(resolve(ROOT, '..', 'package.json'), 'utf-8'))
+let commitHash = 'unknown'
+try {
+  commitHash = execSync('git rev-parse --short HEAD', {
+    encoding: 'utf-8',
+    cwd: resolve(ROOT, '..')
+  }).trim()
+} catch (e) {
+  console.warn('WARNING: Could not get git commit hash, using "unknown"')
+}
+const versionData = {
+  version: pkg.version,
+  commitHash
+}
+writeFileSync(resolve(WEB_DIR, 'native-version.json'), JSON.stringify(versionData, null, 2))
+console.log('Wrote native-version.json')
 
 console.log('Done! Web assets ready in native-app/web/')

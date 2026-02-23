@@ -124,6 +124,13 @@ export class NativeAppLayout extends UIElement {
         <button id="settings-logout" class="btn btn-outline-danger w-100">
           <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
         </button>
+        ${window.__NATIVE_SERVER_URL ? `
+        <div class="mt-3 text-muted small" id="settings-version-info">
+          <hr>
+          <div>Server: v${this._version}</div>
+          <div id="settings-client-version">${t('common.loading')}</div>
+        </div>
+        ` : ''}
       </div>
     `
 
@@ -169,6 +176,21 @@ export class NativeAppLayout extends UIElement {
           window.localStorage.removeItem('auth-token')
           goTo('login')
         })
+      }
+
+      // Load client version info for native app
+      if (window.__NATIVE_SERVER_URL) {
+        const clientVersionEl = el('#settings-client-version')
+        if (clientVersionEl) {
+          fetch('./native-version.json')
+            .then(r => r.json())
+            .then(data => {
+              clientVersionEl.textContent = `Client: v${data.version} (${data.commitHash})`
+            })
+            .catch(() => {
+              clientVersionEl.textContent = 'Client: unknown'
+            })
+        }
       }
     }, 0)
   }

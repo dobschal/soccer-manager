@@ -23,6 +23,8 @@ This will start the iOS simulator and run the native iOS app. Make sure you have
 npm run native:ios
 ```
 
+(!!!) The native iOS app loads the frontend as ZIP
+
 ## Deployment
 
 Use docker compose to deploy the application. There is a restart script that rebuilds the docker images and restarts the

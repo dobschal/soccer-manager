@@ -821,6 +821,9 @@ export default {
   'buildings.level2Desc': 'Intermediate training area. Each game day you have a chance to receive a "Basic Training" or "Advanced Training" action card. This allows you to train players up to level 70.',
   'buildings.level3Desc': 'Professional training area. Each game day you have a chance to receive a "Basic Training", "Advanced Training" or "Master Training" action card. This allows you to train players up to level 100.',
 
+  // OTA
+  'ota.updateInstalled': 'App updated in the background!',
+
   // Fitness Studio
   'buildings.fitnessStudio': 'Fitness Studio',
   'buildings.fitnessStudioDesc': 'Upgrade your fitness studio to unlock better freshness action cards for player recovery.',

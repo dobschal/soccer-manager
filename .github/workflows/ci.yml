@@ -141,14 +141,15 @@ jobs:
 
       - name: Deploy
         run: |
-          ssh hetzner << 'EOF'
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          ssh hetzner << EOF
             cd /root/deployments/soccer-manager
             git fetch
             git reset --hard origin/main
             # Build new image while old container keeps running
-            docker compose build soccer-manager --no-cache
+            COMMIT_HASH=$COMMIT_HASH docker compose build soccer-manager --no-cache
             # Start new container - Compose will stop old one and start new one
             # Use --wait to ensure container is healthy before considering deploy complete
-            docker compose up soccer-manager -d --wait --wait-timeout 60
+            COMMIT_HASH=$COMMIT_HASH docker compose up soccer-manager -d --wait --wait-timeout 60
             docker system prune -f
           EOF

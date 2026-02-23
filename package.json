@@ -14,7 +14,8 @@
     "postinstall": "npm run copy-vendor",
     "native:copy-client": "node native-app/scripts/copy-web-assets.mjs",
     "native:ios": "npm run native:copy-client && cd native-app && ns run ios",
-    "native:android": "npm run native:copy-client && cd native-app && ns run android"
+    "native:android": "npm run native:copy-client && cd native-app && ns run android",
+    "build:native-bundle": "node scripts/build-native-bundle.mjs"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@testing-library/dom": "^10.4.1",
+    "archiver": "^7.0.1",
     "chart.js": "^4.5.1",
     "eslint": "^9.39.2",
     "globals": "^16.0.0",

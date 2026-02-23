@@ -9,8 +9,14 @@ import { StadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
-import { initLocale } from './i18n/index.js'
+import { initLocale, t } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
+import { toast } from './partials/toast.js'
+
+// OTA update toast - called from native side via evaluateJavascript
+window.__showOtaToast = function () {
+  toast(t('ota.updateInstalled'), 'success')
+}
 
 // Initialize locale from localStorage or browser settings
 initLocale()

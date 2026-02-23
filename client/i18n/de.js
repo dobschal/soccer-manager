@@ -821,6 +821,9 @@ export default {
   'buildings.level2Desc': 'Mittelmäßiges Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card vom Typ "Basic Training" oder "Advanced Training" zu erhalten. Damit kannst du Spieler bis Level 70 trainieren.',
   'buildings.level3Desc': 'Professionelles Trainingsgelände. Du hast mit jedem Spieltag die Chance eine Action Card vom Typ "Basic Training", "Advanced Training" oder "Master Training" zu erhalten. Damit kannst du Spieler bis Level 100 trainieren.',
 
+  // OTA
+  'ota.updateInstalled': 'App im Hintergrund aktualisiert!',
+
   // Fitness Studio
   'buildings.fitnessStudio': 'Fitnessstudio',
   'buildings.fitnessStudioDesc': 'Baue dein Fitnessstudio aus, um bessere Frische-Aktionskarten für die Spielererholung freizuschalten.',

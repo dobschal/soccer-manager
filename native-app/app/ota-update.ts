@@ -1,0 +1,261 @@
+import {ApplicationSettings, File, Folder, Http, knownFolders, path} from '@nativescript/core'
+
+declare const __DEV__: boolean
+const SERVER_URL = __DEV__ ? 'http://localhost:3000' : 'https://footballmanager.io'
+const OTA_DIR_NAME = 'ota-web'
+const STAGING_DIR_NAME = 'ota-web-staging'
+const UPDATE_INSTALLED_KEY = 'ota_update_installed'
+const LOCAL_VERSION_KEY = 'ota_commit_hash'
+
+function getOtaDir(): Folder {
+    return knownFolders.documents().getFolder(OTA_DIR_NAME)
+}
+
+function getStagingDir(): Folder {
+    return knownFolders.documents().getFolder(STAGING_DIR_NAME)
+}
+
+/**
+ * Returns true if a staged update is ready to be promoted.
+ */
+export function hasStagedUpdate(): boolean {
+    const stagingIndex = path.join(getStagingDir().path, 'index.html')
+    return File.exists(stagingIndex)
+}
+
+/**
+ * If a staging update exists, promote it to the active OTA dir.
+ * Must be called BEFORE getWebContentPath() and BEFORE the WebView loads.
+ */
+export function promoteStagingIfReady(): void {
+    const stagingDir = getStagingDir()
+    const stagingIndex = path.join(stagingDir.path, 'index.html')
+
+    if (!File.exists(stagingIndex)) {
+        return
+    }
+
+    console.log('[OTA] Promoting staged update to active OTA dir...')
+
+    // Remove old OTA dir
+    const otaDir = getOtaDir()
+    if (Folder.exists(otaDir.path)) {
+        otaDir.removeSync()
+    }
+
+    // Rename staging → active
+    stagingDir.renameSync(OTA_DIR_NAME)
+    console.log('[OTA] Staged update promoted.')
+}
+
+/**
+ * Returns the path to use for loading web content.
+ * Promotes any staged OTA update first, then checks for OTA dir.
+ * Falls back to the bundled web assets.
+ */
+export function getWebContentPath(): string {
+    // Promote staging to active before deciding which path to use
+    promoteStagingIfReady()
+
+    const otaDir = getOtaDir()
+    const otaIndex = path.join(otaDir.path, 'index.html')
+
+    if (File.exists(otaIndex)) {
+        console.log('[OTA] Using OTA web content from:', otaDir.path)
+        return otaDir.path
+    }
+
+    const bundledPath = path.join(knownFolders.currentApp().path, 'web')
+    console.log('[OTA] Using bundled web content from:', bundledPath)
+    return bundledPath
+}
+
+/**
+ * Checks if an update was installed (from a previous session) and clears the flag.
+ * Returns true if a new OTA update was applied since last check.
+ */
+export function wasUpdateInstalled(): boolean {
+    const installed = ApplicationSettings.getBoolean(UPDATE_INSTALLED_KEY, false)
+    if (installed) {
+        ApplicationSettings.setBoolean(UPDATE_INSTALLED_KEY, false)
+    }
+    return installed
+}
+
+/**
+ * Fetches the server's native-version.json, compares commitHash with local,
+ * downloads and extracts zip to a staging directory (never touching the active OTA dir).
+ */
+export async function checkForUpdate(): Promise<void> {
+    try {
+        const versionUrl = `${SERVER_URL}/assets/native-version.json`
+        console.log('[OTA] Checking for update at:', versionUrl)
+
+        const response = await Http.getJSON<{ version: string; commitHash: string }>(versionUrl)
+        const remoteHash = response.commitHash
+        const localHash = getLocalCommitHash()
+
+        console.log(`[OTA] Remote: ${remoteHash}, Local: ${localHash}`)
+
+        if (remoteHash === localHash) {
+            console.log('[OTA] Already up to date.')
+            return
+        }
+
+        console.log('[OTA] New version available, downloading...')
+        const zipUrl = `${SERVER_URL}/assets/native-client.zip`
+        const tempZip = path.join(knownFolders.temp().path, 'native-client.zip')
+
+        const zipFile = await Http.getFile(zipUrl, tempZip)
+        console.log('[OTA] Downloaded zip to:', zipFile.path)
+
+        // Clear old staging dir (safe - WebView never loads from staging)
+        const stagingDir = getStagingDir()
+        if (Folder.exists(stagingDir.path)) {
+            stagingDir.clearSync()
+        }
+
+        // Extract zip to staging
+        await unzipFile(zipFile.path, stagingDir.path)
+        console.log('[OTA] Extracted to staging:', stagingDir.path)
+
+        // Verify extraction
+        const indexPath = path.join(stagingDir.path, 'index.html')
+        if (!File.exists(indexPath)) {
+            console.error('[OTA] Extraction failed - index.html not found in staging')
+            return
+        }
+
+        // Save new commit hash and set update flag
+        ApplicationSettings.setString(LOCAL_VERSION_KEY, remoteHash)
+        ApplicationSettings.setBoolean(UPDATE_INSTALLED_KEY, true)
+        console.log('[OTA] Update staged successfully! Will load on next restart.')
+
+        // Clean up temp zip
+        const tempFile = File.fromPath(tempZip)
+        if (File.exists(tempZip)) {
+            tempFile.removeSync()
+        }
+    } catch (error) {
+        console.error('[OTA] Update check failed:', error)
+    }
+}
+
+/**
+ * Gets the locally stored commit hash (from OTA or bundled version).
+ */
+function getLocalCommitHash(): string {
+    // First check ApplicationSettings (set after OTA download)
+    const storedHash = ApplicationSettings.getString(LOCAL_VERSION_KEY, '')
+    if (storedHash) {
+        return storedHash
+    }
+
+    // Fall back to reading from bundled native-version.json
+    try {
+        const bundledVersionPath = path.join(knownFolders.currentApp().path, 'web', 'native-version.json')
+        if (File.exists(bundledVersionPath)) {
+            const content = File.fromPath(bundledVersionPath).readTextSync()
+            const data = JSON.parse(content)
+            return data.commitHash || ''
+        }
+    } catch (e) {
+        console.error('[OTA] Failed to read bundled version:', e)
+    }
+
+    return ''
+}
+
+/**
+ * Extracts a zip file to a destination directory.
+ * Uses @nativescript/zip if available, otherwise falls back to native APIs.
+ */
+async function unzipFile(zipPath: string, destPath: string): Promise<void> {
+    try {
+        // Try using @nativescript/zip
+        const {Zip} = require('@nativescript/zip')
+        await Zip.unzip({
+            archive: zipPath,
+            directory: destPath
+        })
+    } catch (e) {
+        console.warn('[OTA] nativescript-zip not available, using native unzip:', e)
+        await nativeUnzip(zipPath, destPath)
+    }
+}
+
+/**
+ * Fallback native unzip implementation using platform APIs.
+ */
+async function nativeUnzip(zipPath: string, destPath: string): Promise<void> {
+    // @ts-ignore - NativeScript platform detection
+    if (typeof NSFileManager !== 'undefined') {
+        // iOS: Use Foundation framework via NativeScript runtime
+        await iosUnzip(zipPath, destPath)
+    } else if (typeof java !== 'undefined') {
+        // Android: Use java.util.zip
+        androidUnzip(zipPath, destPath)
+    } else {
+        throw new Error('No unzip implementation available for this platform')
+    }
+}
+
+declare const NSFileManager: any
+declare const NSData: any
+declare const SSZipArchive: any
+declare const java: any
+
+function iosUnzip(zipPath: string, destPath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        try {
+            reject(new Error('iOS native unzip requires @nativescript/zip plugin'))
+        } catch (e) {
+            reject(e)
+        }
+    })
+}
+
+function androidUnzip(zipPath: string, destPath: string): void {
+    const ZipInputStream = java.util.zip.ZipInputStream
+    const FileInputStream = java.io.FileInputStream
+    const FileOutputStream = java.io.FileOutputStream
+    const BufferedOutputStream = java.io.BufferedOutputStream
+
+    const fis = new FileInputStream(zipPath)
+    const zis = new ZipInputStream(fis)
+    let entry = zis.getNextEntry()
+
+    while (entry !== null) {
+        const filePath = path.join(destPath, entry.getName())
+
+        if (entry.isDirectory()) {
+            const dir = new java.io.File(filePath)
+            dir.mkdirs()
+        } else {
+            // Ensure parent directory exists
+            const parent = new java.io.File(filePath).getParentFile()
+            if (!parent.exists()) {
+                parent.mkdirs()
+            }
+
+            const fos = new FileOutputStream(filePath)
+            const bos = new BufferedOutputStream(fos)
+            const buffer = (Array as any).create('byte', 4096)
+            let count: number
+
+            while ((count = zis.read(buffer)) !== -1) {
+                bos.write(buffer, 0, count)
+            }
+
+            bos.flush()
+            bos.close()
+            fos.close()
+        }
+
+        zis.closeEntry()
+        entry = zis.getNextEntry()
+    }
+
+    zis.close()
+    fis.close()
+}
