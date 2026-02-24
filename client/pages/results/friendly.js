@@ -53,23 +53,25 @@ export class FriendlyResultsPage extends UIElement {
 
         <h3>${t('results.games')}</h3>
         ${this.results.length === 0
-          ? `<p class="text-muted">${t('friendly.noResults')}</p>`
-          : `
-            <table class="table table-hover mb-4">
-              <thead>
-                <tr>
-                  <th scope="col">${t('results.gameDayLabel')}</th>
-                  <th scope="col">${t('results.team1')}</th>
-                  <th scope="col">${t('results.team2')}</th>
-                  <th scope="col">${t('results.result')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${this.results.map(this._renderResultItem.bind(this)).join('')}
-              </tbody>
-            </table>
+      ? `<p class="text-muted">${t('friendly.noResults')}</p>`
+      : `
+            <div class="horizontal-scrollable-table">
+              <table class="table table-hover mb-4 wide-on-mobile">
+                <thead>
+                  <tr>
+                    <th scope="col">${t('results.gameDayLabel')}</th>
+                    <th scope="col">${t('results.team1')}</th>
+                    <th scope="col">${t('results.team2')}</th>
+                    <th scope="col">${t('results.result')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${this.results.map(this._renderResultItem.bind(this)).join('')}
+                </tbody>
+              </table>
+            </div>
           `
-        }
+    }
       </div>
     `
   }
@@ -94,8 +96,16 @@ export class FriendlyResultsPage extends UIElement {
       setQueryParams({ game_id: result.id })
     })
 
-    const team1Data = { name: result.team1, color: result.team1Color, emblem: result.team1Emblem }
-    const team2Data = { name: result.team2, color: result.team2Color, emblem: result.team2Emblem }
+    const team1Data = {
+      name: result.team1,
+      color: result.team1Color,
+      emblem: result.team1Emblem
+    }
+    const team2Data = {
+      name: result.team2,
+      color: result.team2Color,
+      emblem: result.team2Emblem
+    }
 
     const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
     const emblem2 = `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`

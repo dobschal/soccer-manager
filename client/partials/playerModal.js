@@ -1,9 +1,10 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
 import { calculatePlayerAge, getSalary } from '../util/player.js'
+import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
 import { el } from '../lib/html.js'
 import { toast } from './toast.js'
-import { renderButton } from './button.js'
+import { Button } from './button.js'
 import { goTo, setQueryParams } from '../lib/router.js'
 import { renderPlayerImage } from './playerImage.js'
 import { showDialog } from './dialog.js'
@@ -88,14 +89,23 @@ export default class PlayerModal extends UIElement {
   get events () {
     return {
       '(optional).trade-offer-btn': { click: this._onTradeOffer },
-      '(optional).hire-btn': { click: this._onHire }
+      '(optional).hire-btn': { click: this._onHire },
+      '(optional)#trade-price-input': {
+        keydown: (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            e.stopPropagation()
+            void this._onTradeOffer()
+          }
+        }
+      }
     }
   }
 
   get template () {
     const levelColor = getLevelColor(this.player.level)
     const freshnessColor = getFreshnessColor(this.player.freshness)
-    const fireButton = renderButton(t('player.fireBtn'), () => this._onFire(), 'danger')
+    const fireButton = new Button(t('player.fireBtn'), () => this._onFire(), 'danger', 'mb-4')
 
     return `
       <div>
@@ -133,18 +143,10 @@ export default class PlayerModal extends UIElement {
         <div class="${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4" style="clear: both">
           <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
           <p>${t('player.enterPrice')}</p>
-          <div class="input-group mb-3">
-            <input type="number"
-                   class="trade-price-input form-control"
-                   placeholder="${t('player.pricePlaceholder')}"
-                   aria-label="${t('player.pricePlaceholder')}"
-                   aria-describedby="Yeah">
-            <div class="input-group-append">
-              <button class="trade-offer-btn btn btn-outline-primary" type="button">
-                ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}
-              </button>
-            </div>
-          </div>
+          ${renderCurrencyInput('trade-price-input', t('player.pricePlaceholder'))}
+          <button class="trade-offer-btn btn btn-primary mt-2" type="button">
+            ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}
+          </button>
         </div>
         <div class="${this.isFreeAgent ? '' : 'hidden'} mb-4" style="clear: both">
           <b>🤝 ${t('player.hirePlayer')}</b>
@@ -178,6 +180,8 @@ export default class PlayerModal extends UIElement {
     const titleEl = overlayCard.querySelector('.card-title')
     const subtitleEl = overlayCard.querySelector('.card-subtitle')
 
+    setupCurrencyInput('trade-price-input')
+
     if (titleEl) titleEl.textContent = this.player.name
     if (subtitleEl) {
       if (this.playersTeam) {
@@ -194,8 +198,8 @@ export default class PlayerModal extends UIElement {
 
   async _onTradeOffer () {
     try {
-      const root = el(this._elementQuery)
-      const price = Number(root.querySelector('.trade-price-input').value)
+      const input = document.getElementById('trade-price-input')
+      const price = Number(input?.dataset.rawValue || 0)
       await server.addTradeOffer(this.player, price, this.isMyPlayer ? 'sell' : 'buy')
       toast(t('player.offerAdded', { playerName: this.player.name }), 'success')
       this.overlay.remove()

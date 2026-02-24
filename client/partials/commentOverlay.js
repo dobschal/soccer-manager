@@ -99,7 +99,7 @@ export function showCommentOverlay (newsId, newsTitle, onCommentAdded) {
   }
 
   onClick(sendBtnId, submitComment)
-  on('#' + inputId, 'keydown', (e) => {
+  on('keydown', '#' + inputId, (e) => {
     if (e.key === 'Enter') submitComment()
   })
 

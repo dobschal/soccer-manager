@@ -155,7 +155,7 @@ export class GameSlider extends UIElement {
       })
       return `
         <small class="d-block mb-1">${label}</small>
-        <div class="badge bg-secondary p-2 countdown-badge">
+        <div class="badge p-2 countdown-badge">
           <i class="fa fa-clock-o" aria-hidden="true"></i><br>
           <span id="${countdownId}">--:--:--</span>
         </div>
@@ -174,7 +174,7 @@ export class GameSlider extends UIElement {
 
       return `
         <small class="d-block mb-1">${label}</small>
-        <div class="badge bg-secondary p-2 countdown-badge">
+        <div class="badge p-2 countdown-badge">
           <i class="fa fa-calendar" aria-hidden="true"></i><br>
           <span>${daysText}</span>
         </div>
@@ -189,7 +189,7 @@ export class GameSlider extends UIElement {
     })
     return `
       <small class="d-block mb-1">${label}</small>
-      <div class="badge bg-secondary p-2 countdown-badge">
+      <div class="badge p-2 countdown-badge">
         <i class="fa fa-clock-o" aria-hidden="true"></i><br>
         <span id="${countdownId}">--:--:--</span>
       </div>

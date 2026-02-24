@@ -67,22 +67,24 @@ export class CupResultsPage extends UIElement {
 
         <h3>${t('results.games')}</h3>
         ${this.cupResults.length === 0
-          ? `<p class="text-muted">${t('cup.noGames')}</p>`
-          : `
-            <table class="table table-hover mb-4">
-              <thead>
-                <tr>
-                  <th scope="col">${t('results.team1')}</th>
-                  <th scope="col">${t('results.team2')}</th>
-                  <th scope="col">${t('results.result')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${this.cupResults.map(this._renderCupResultItem.bind(this)).join('')}
-              </tbody>
-            </table>
+      ? `<p class="text-muted">${t('cup.noGames')}</p>`
+      : `
+            <div class="horizontal-scrollable-table">
+              <table class="table table-hover mb-4 wide-on-mobile">
+                <thead>
+                  <tr>
+                    <th scope="col">${t('results.team1')}</th>
+                    <th scope="col">${t('results.team2')}</th>
+                    <th scope="col">${t('results.result')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${this.cupResults.map(this._renderCupResultItem.bind(this)).join('')}
+                </tbody>
+              </table>
+            </div>
           `
-        }
+    }
       </div>
     `
   }
@@ -163,8 +165,16 @@ export class CupResultsPage extends UIElement {
 
     const isPlayed = result.played === 1
 
-    const team1Data = { name: result.team1, color: result.team1Color, emblem: result.team1Emblem }
-    const team2Data = { name: result.team2, color: result.team2Color, emblem: result.team2Emblem }
+    const team1Data = {
+      name: result.team1,
+      color: result.team1Color,
+      emblem: result.team1Emblem
+    }
+    const team2Data = {
+      name: result.team2,
+      color: result.team2Color,
+      emblem: result.team2Emblem
+    }
 
     const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
     const emblem2 = `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`

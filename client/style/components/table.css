@@ -10,8 +10,10 @@
     cursor: pointer;
 }
 
-table.table td {
+table.table td,
+table.table th[scope="row"] {
     vertical-align: middle;
+    white-space: nowrap;
 }
 
 table.table thead tr th {

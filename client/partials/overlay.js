@@ -169,7 +169,9 @@ export function showOverlay (title, subttitle, text) {
     fadeOutAndRemove(overlayId, listeners)
   })
 
-  onClick('#' + overlayId, () => {
+  onClick('#' + overlayId, (event) => {
+    // Only close on actual mouse clicks on the backdrop, not keyboard-triggered events
+    if (event.target.id !== overlayId) return
     fadeOutAndRemove(overlayId, listeners)
   })
 

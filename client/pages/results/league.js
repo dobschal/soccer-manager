@@ -4,6 +4,7 @@ import { onClick } from '../../lib/htmlEventHandlers.js'
 import { getQueryParams, goTo, setQueryParams } from '../../lib/router.js'
 import { formatLeague } from '../../util/league.js'
 import { UIElement } from '../../lib/UIElement.js'
+import { calculatePlayerAge } from '../../util/player.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
 import { loadManagerChatSvg, renderManagerChatInline } from '../../partials/managerChat.js'
@@ -61,6 +62,7 @@ export class LeagueResultsPage extends UIElement {
         <div class="d-flex flex-column flex-lg-row align-items-start gap-3 mb-4">
           <div class="flex-grow-1 u-w-lg-50">
             <h2>${t('results.resultsTitle')}</h2>
+            <div>
             <table>
               <tr>
                 <th>
@@ -89,42 +91,47 @@ export class LeagueResultsPage extends UIElement {
                 </td>
               </tr>
             </table>
+            </div>
           </div>
           <div class="d-none d-lg-block">${this._managerChatHtml || ''}</div>
         </div>
 
         <h3>${t('results.games')}</h3>
-        <table class="table table-hover mb-4 wide-on-mobile">
-          <thead>
-            <tr>
-              <th scope="col">${t('results.team1')}</th>
-              <th scope="col">${t('results.team2')}</th>
-              <th scope="col">${t('results.result')}</th>
-            </tr>
-          </thead>
-          <tbody>
-              ${this.results.map(this._renderResultListItem.bind(this)).join('')}
-          </tbody>
-        </table>
+        <div class="horizontal-scrollable-table">
+          <table class="table table-hover mb-4 wide-on-mobile">
+            <thead>
+              <tr>
+                <th scope="col">${t('results.team1')}</th>
+                <th scope="col">${t('results.team2')}</th>
+                <th scope="col">${t('results.result')}</th>
+              </tr>
+            </thead>
+            <tbody>
+                ${this.results.map(this._renderResultListItem.bind(this)).join('')}
+            </tbody>
+          </table>
+        </div>
         <h3>${t('results.standing')} - ${this.gameDay + 1}. ${t('results.gameDayLabel')}</h3>
-        <table class="table table-hover mb-4 wide-on-mobile">
-          <thead>
-            <tr>
-              <th scope="col" class="results-rank-cell">#</th>
-              <th scope="col" class="d-none d-md-table-cell results-rank-cell"></th>
-              <th scope="col">${t('results.team')}</th>
-              <th scope="col" class="d-none d-md-table-cell">${t('results.games')}</th>
-              <th scope="col" class="d-none d-md-table-cell">${t('results.goals')}</th>
-              <th scope="col">${t('results.diff')}</th>
-              <th scope="col">${t('results.points')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${this.standing.map(this._renderStandingListItem.bind(this)).join('')}
-          </tbody>
-        </table>
+        <div class="horizontal-scrollable-table">
+          <table class="table table-hover mb-4 wide-on-mobile">
+            <thead>
+              <tr>
+                <th scope="col" class="results-rank-cell">#</th>
+                <th scope="col" class="results-rank-cell"></th>
+                <th scope="col">${t('results.team')}</th>
+                <th scope="col" >${t('results.games')}</th>
+                <th scope="col" >${t('results.goals')}</th>
+                <th scope="col">${t('results.diff')}</th>
+                <th scope="col">${t('results.points')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${this.standing.map(this._renderStandingListItem.bind(this)).join('')}
+            </tbody>
+          </table>
+        </div>
         <h3>${t('results.topScorer')}</h3>
-        <table class="table table-hover wide-on-mobile">
+        <table class="table table-hover wide-on-mobile mb-4">
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -140,7 +147,7 @@ export class LeagueResultsPage extends UIElement {
 
         ${this.suspendedPlayers.length > 0 ? `
           <h3>${t('results.suspendedPlayers')}</h3>
-          <table class="table table-hover wide-on-mobile">
+          <table class="table table-hover wide-on-mobile mb-4">
             <thead>
               <tr>
                 <th scope="col"></th>
@@ -309,7 +316,7 @@ export class LeagueResultsPage extends UIElement {
           <td id="${playerId}" class="u-cursor-pointer">
             <div class="d-flex align-items-center">
               <span class="scorer-image me-2" data-scorer-id="${scorer.id}"></span>
-              ${scorer.name}
+              ${scorer.name} <small class="text-muted">${scorer.position} Lv.${scorer.level} Age ${calculatePlayerAge(scorer, this.season)}</small>
             </div>
           </td>
           <td class="d-none d-sm-table-cell" id="${teamId}">${scorer.team.name}</td>
@@ -408,10 +415,10 @@ export class LeagueResultsPage extends UIElement {
     return `
       <tr id="${id}" class="${trClasses.join(' ')}">
         <th class="results-rank-cell">${index + 1}.</th>
-        <td class="d-none d-md-table-cell results-rank-cell">${diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : '')}</td>
+        <td class="results-rank-cell">${diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : '')}</td>
         <td><span class="emblem-thumb">${renderEmblem(standingItem.team, 24)}</span>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}</td>
-        <td class="d-none d-md-table-cell">${standingItem.games}</td>
-        <td class="d-none d-md-table-cell">${standingItem.goals}:${standingItem.against}</td>
+        <td>${standingItem.games}</td>
+        <td>${standingItem.goals}:${standingItem.against}</td>
         <td>${standingItem.goals - standingItem.against}</td>
         <td>${standingItem.points}</td>
       </tr>

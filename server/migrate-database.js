@@ -1000,6 +1000,11 @@ const migrations = [{
         INDEX idx_news_comment_user_id (user_id)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Convert news_comment table to utf8mb4 for emoji support',
+  async run () {
+    await query(`ALTER TABLE news_comment CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)
+  }
 }]
 
 /**

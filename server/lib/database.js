@@ -5,7 +5,8 @@ const pool = mysql.createPool({
   host: process.env.DB_HOST ?? 'database', // switch to localhost if running locally
   user: 'root',
   password: 'root',
-  database: 'soccer'
+  database: 'soccer',
+  charset: 'utf8mb4'
 })
 
 /**
