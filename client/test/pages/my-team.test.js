@@ -134,8 +134,9 @@ describe('MyTeamPage', () => {
 
       const page = new MyTeamPage()
       await page.load()
+      void page.template // ensure ATeamPage is created
 
-      const strength = page._calculateTeamStrength(players)
+      const strength = page._subPageCache.ateam._calculateTeamStrength(players)
       expect(strength).toBe(8) // 5 + 3, excluding player not in lineup
     })
 
@@ -194,7 +195,8 @@ describe('MyTeamPage', () => {
 
       const page = new MyTeamPage()
       await page.load()
-      page._changeFormation('4-3-3')
+      void page.template // ensure ATeamPage is created
+      page._subPageCache.ateam._changeFormation('4-3-3')
 
       expect(page.data.team.formation).toBe('4-3-3')
       // Real players should have position cleared
@@ -216,8 +218,9 @@ describe('MyTeamPage', () => {
 
       const page = new MyTeamPage()
       await page.load()
+      void page.template // ensure ATeamPage is created
 
-      const html = page._renderHeader()
+      const html = page._subPageCache.ateam._renderHeader()
       expect(html).toContain('myTeam.salaryTotal')
     })
 
@@ -232,8 +235,9 @@ describe('MyTeamPage', () => {
 
       const page = new MyTeamPage()
       await page.load()
+      void page.template // ensure ATeamPage is created
 
-      const html = page._renderHeader()
+      const html = page._subPageCache.ateam._renderHeader()
       expect(html).toContain('myTeam.avgAge')
     })
   })

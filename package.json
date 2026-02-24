@@ -4,18 +4,14 @@
   "description": "",
   "main": "server/app.js",
   "scripts": {
+    "start": "node server/api.js",
     "lint": "eslint server ./client",
-    "test:client": "vitest run --config client/vitest.config.js",
-    "test:client:watch": "vitest --config client/vitest.config.js",
-    "test:server": "vitest run --config server/vitest.config.js",
-    "test:server:watch": "vitest --config server/vitest.config.js",
     "test": "npm run test:client && npm run test:server",
-    "copy-vendor": "mkdir -p client/vendor/three/addons/controls client/vendor/chart.js/auto client/vendor/chart.js/dist client/vendor/@kurkle && cp node_modules/three/build/three.module.js node_modules/three/build/three.core.js client/vendor/three/ && cp node_modules/three/examples/jsm/controls/OrbitControls.js client/vendor/three/addons/controls/ && cp node_modules/chart.js/auto/auto.js client/vendor/chart.js/auto/ && cp node_modules/chart.js/dist/chart.js client/vendor/chart.js/dist/ && cp -r node_modules/chart.js/dist/chunks client/vendor/chart.js/dist/ && cp node_modules/@kurkle/color/dist/color.esm.js client/vendor/@kurkle/",
-    "postinstall": "npm run copy-vendor",
-    "native:copy-client": "node native-app/scripts/copy-web-assets.mjs",
-    "native:ios": "npm run native:copy-client && cd native-app && ns run ios",
-    "native:android": "npm run native:copy-client && cd native-app && ns run android",
-    "build:native-bundle": "node scripts/build-native-bundle.mjs"
+    "test:client": "vitest run --config client/vitest.config.js",
+    "test:server": "vitest run --config server/vitest.config.js",
+    "postinstall": "./scripts/copy-vendor.sh",
+    "ios": "./scripts/copy-native-client.sh && cd native-app && ns run ios",
+    "android": "./scripts/copy-native-client.sh && cd native-app && ns run android"
   },
   "keywords": [],
   "author": "",
@@ -38,6 +34,7 @@
     "globals": "^16.0.0",
     "happy-dom": "^20.4.0",
     "jsdom": "^27.4.0",
+    "sharp": "^0.34.5",
     "three": "^0.182.0",
     "vitest": "^4.0.18"
   },

@@ -1,6 +1,7 @@
 import { UIElement } from '../lib/UIElement.js'
 import { el, generateId } from '../lib/html.js'
 import { showPlayerModal } from '../partials/playerModal.js'
+import { getQueryParams, setQueryParams } from '../lib/router.js'
 import { t } from '../i18n/index.js'
 import { BrowsePlayersPage } from './browse/players.js'
 import { BrowseTeamsPage } from './browse/teams.js'
@@ -10,10 +11,12 @@ export class BrowsePage extends UIElement {
   subPage = null
   _subPageCache = {}
   _subPageContainerId = generateId()
+  _debounce = null
 
   get template () {
     const key = this.subPage || 'players'
     const subPage = this._getOrCreateSubPage()
+    const searchQuery = getQueryParams().search_query || ''
     return `
       <div>
         <nav class="nav nav-pills mb-4">
@@ -22,11 +25,34 @@ export class BrowsePage extends UIElement {
           <a class="nav-link ${this.subPage === 'users' ? 'active' : ''}" href="#browse?sub_page=users"><i class="fa fa-id-card"></i> ${t('search.users')}</a>
         </nav>
 
+        <div class="mb-3">
+          <input
+            type="text"
+            id="browse-search-input"
+            class="form-control"
+            placeholder="${t('search.placeholder')}"
+            value="${searchQuery}"
+          >
+        </div>
+
         <div id="${this._subPageContainerId}">
           <div data-subpage="${key}">${subPage}</div>
         </div>
       </div>
     `
+  }
+
+  get events () {
+    return {
+      '#browse-search-input': {
+        input: (e) => {
+          clearTimeout(this._debounce)
+          this._debounce = setTimeout(() => {
+            setQueryParams({ search_query: e.target.value.trim() || null, page: null })
+          }, 300)
+        }
+      }
+    }
   }
 
   _getOrCreateSubPage () {
@@ -95,6 +121,7 @@ export class BrowsePage extends UIElement {
       this.subPage = newSubPage
       this._switchSubPage()
       this._updateNav()
+      this._syncSearchInput(queryParams.search_query || '')
     }
 
     const key = newSubPage || 'players'
@@ -105,6 +132,13 @@ export class BrowsePage extends UIElement {
     if (cached && typeof cached.applyQueryParams === 'function') {
       await cached.applyQueryParams(queryParams)
       await cached.update(true)
+    }
+  }
+
+  _syncSearchInput (value) {
+    const input = document.querySelector(`${this._elementQuery} #browse-search-input`)
+    if (input && input !== document.activeElement) {
+      input.value = value
     }
   }
 }

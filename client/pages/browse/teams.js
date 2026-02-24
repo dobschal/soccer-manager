@@ -48,18 +48,10 @@ export class BrowseTeamsPage extends UIElement {
 
   get events () {
     return {
-      '#browse-search-input': {
-        input: (e) => {
-          clearTimeout(this._debounce)
-          this._debounce = setTimeout(() => {
-            setQueryParams({ search_query: e.target.value.trim() || null, page: null })
-          }, 300)
-        }
-      },
-      '#browse-prev-page': {
+      '(optional) #browse-prev-page': {
         click: () => setQueryParams({ page: this.pageIndex - 1 })
       },
-      '#browse-next-page': {
+      '(optional) #browse-next-page': {
         click: () => setQueryParams({ page: this.pageIndex + 1 })
       }
     }
@@ -87,16 +79,6 @@ export class BrowseTeamsPage extends UIElement {
 
     return `
       <div>
-        <div class="mb-3">
-          <input
-            type="text"
-            id="browse-search-input"
-            class="form-control"
-            placeholder="${t('search.placeholder')}"
-            value="${this.searchQuery}"
-          >
-        </div>
-
         ${this.teams.length === 0
           ? `<p class="text-muted text-center">${t('search.noResults')}</p>`
           : table}

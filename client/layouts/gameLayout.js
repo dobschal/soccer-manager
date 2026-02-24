@@ -8,7 +8,6 @@ import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
-import { showSearchOverlay } from '../partials/search.js'
 import { ADMIN_USERNAME } from '../util/constants.js'
 
 /**
@@ -178,7 +177,7 @@ export class GameLayout extends UIElement {
     if (searchBtn) {
       searchBtn.addEventListener('click', () => {
         hideNavigation()
-        showSearchOverlay()
+        goTo('browse')
       })
     }
 
@@ -186,7 +185,7 @@ export class GameLayout extends UIElement {
     if (searchBtnMobile) {
       searchBtnMobile.addEventListener('click', () => {
         hideNavigation()
-        showSearchOverlay()
+        goTo('browse')
       })
     }
 

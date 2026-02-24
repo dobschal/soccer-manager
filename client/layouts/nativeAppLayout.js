@@ -50,6 +50,9 @@ export class NativeAppLayout extends UIElement {
             <div class="info-bar-item">
               <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </div>
+            <button id="search-button" class="native-settings-btn" type="button" aria-label="${t('nav.search')}">
+              <i class="fa fa-search" aria-hidden="true"></i>
+            </button>
             <button id="settings-button" class="native-settings-btn" type="button" aria-label="${t('nav.settings')}">
               <i class="fa fa-cog" aria-hidden="true"></i>
             </button>
@@ -97,6 +100,13 @@ export class NativeAppLayout extends UIElement {
   }
 
   _attachEventHandlers () {
+    const searchBtn = document.querySelector(`${this._elementQuery} #search-button`)
+    if (searchBtn) {
+      searchBtn.addEventListener('click', () => {
+        goTo('browse')
+      })
+    }
+
     const settingsBtn = document.querySelector(`${this._elementQuery} #settings-button`)
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => {

@@ -10,13 +10,14 @@
  * @param {Object} options
  * @param {HTMLElement} options.tableBodyEl  - <tbody> of the player list
  * @param {HTMLElement} options.squadEl      - .squad element on the pitch
+ * @param {HTMLElement} [options.benchEl]    - .bench element (sidebar bench panel)
  * @param {Array} options.players           - players array reference
  * @param {Object} options.team             - team object reference
  * @param {(players: Array, formation: string) => Promise} options.onLineupChange
  * @param {(sortData: Array<{playerId:number,sortIndex:number}>) => Promise} options.onSortChanged
  * @returns {{ destroy: () => void }}
  */
-export function initDragDrop ({ tableBodyEl, squadEl, players, team, onLineupChange, onSortChanged }) {
+export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, onLineupChange, onSortChanged }) {
   // Skip on touch devices — the click overlay remains as fallback
   if (navigator.maxTouchPoints > 0) {
     return { destroy () {} }
@@ -189,6 +190,81 @@ export function initDragDrop ({ tableBodyEl, squadEl, players, team, onLineupCha
     }
   }
 
+  // --- bench panel: make bench players draggable + drop targets ---
+
+  const benchPlayerEls = benchEl ? benchEl.querySelectorAll('.player') : []
+  benchPlayerEls.forEach(el => {
+    const playerId = Number(el.dataset.playerId)
+    const player = getPlayerById(playerId)
+    if (!player || player.is_suspended) return
+
+    el.draggable = true
+
+    el.addEventListener('dragstart', onBenchDragStart)
+    el.addEventListener('dragend', onBenchDragEnd)
+    el.addEventListener('dragover', onBenchDragOver)
+    el.addEventListener('dragenter', onBenchDragEnter)
+    el.addEventListener('dragleave', onBenchDragLeave)
+    el.addEventListener('drop', onBenchDrop)
+  })
+
+  function onBenchDragStart (e) {
+    draggedPlayerId = Number(e.currentTarget.dataset.playerId)
+    draggedRow = e.currentTarget
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(draggedPlayerId))
+    requestAnimationFrame(() => {
+      if (draggedRow) draggedRow.classList.add('dragging')
+    })
+  }
+
+  function onBenchDragEnd () {
+    if (draggedRow) draggedRow.classList.remove('dragging')
+    clearAllHighlights()
+    draggedPlayerId = null
+    draggedRow = null
+  }
+
+  function onBenchDragOver (e) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  function onBenchDragEnter (e) {
+    const benchPlayerEl = e.currentTarget
+    const draggedPlayer = getPlayerById(draggedPlayerId)
+    if (!draggedPlayer) return
+
+    const targetId = Number(benchPlayerEl.dataset.playerId)
+    const targetPlayer = getPlayerById(targetId)
+    if (!targetPlayer) return
+
+    if (positionsCompatible(draggedPlayer.position, targetPlayer.position)) {
+      benchPlayerEl.classList.add('drop-target-highlight')
+    }
+  }
+
+  function onBenchDragLeave (e) {
+    e.currentTarget.classList.remove('drop-target-highlight')
+  }
+
+  function onBenchDrop (e) {
+    e.preventDefault()
+    const benchPlayerEl = e.currentTarget
+    benchPlayerEl.classList.remove('drop-target-highlight')
+
+    const draggedPlayer = getPlayerById(draggedPlayerId)
+    if (!draggedPlayer) return
+
+    const targetId = Number(benchPlayerEl.dataset.playerId)
+    const targetPlayer = getPlayerById(targetId)
+    if (!targetPlayer) return
+
+    if (positionsCompatible(draggedPlayer.position, targetPlayer.position)) {
+      swapLineupPositions(draggedPlayer, targetPlayer)
+    }
+  }
+
   // --- utilities ---
 
   function getPitchPosition (el) {
@@ -237,6 +313,11 @@ export function initDragDrop ({ tableBodyEl, squadEl, players, team, onLineupCha
     squadEl.querySelectorAll('.drop-target-highlight').forEach(el => {
       el.classList.remove('drop-target-highlight')
     })
+    if (benchEl) {
+      benchEl.querySelectorAll('.drop-target-highlight').forEach(el => {
+        el.classList.remove('drop-target-highlight')
+      })
+    }
   }
 
   // --- cleanup ---
@@ -257,6 +338,16 @@ export function initDragDrop ({ tableBodyEl, squadEl, players, team, onLineupCha
       el.removeEventListener('dragenter', onPitchDragEnter)
       el.removeEventListener('dragleave', onPitchDragLeave)
       el.removeEventListener('drop', onPitchDrop)
+    })
+    benchPlayerEls.forEach(el => {
+      el.removeAttribute('draggable')
+      el.classList.remove('dragging')
+      el.removeEventListener('dragstart', onBenchDragStart)
+      el.removeEventListener('dragend', onBenchDragEnd)
+      el.removeEventListener('dragover', onBenchDragOver)
+      el.removeEventListener('dragenter', onBenchDragEnter)
+      el.removeEventListener('dragleave', onBenchDragLeave)
+      el.removeEventListener('drop', onBenchDrop)
     })
   }
 

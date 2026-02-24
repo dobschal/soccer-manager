@@ -23,7 +23,8 @@ This will start the iOS simulator and run the native iOS app. Make sure you have
 npm run native:ios
 ```
 
-(!!!) The native iOS app loads the frontend as ZIP
+(!!!) The native iOS app loads the frontend as ZIP from the server. So make sure to start the server before running the
+above command.
 
 ## Deployment
 
@@ -34,6 +35,13 @@ Ensure to create the docker network first:
 ```bash
 docker network create soccer-manager
 ```
+
+## Deploy iOS
+
+Use Xcode to build and run the iOS app. Make sure to set the correct environment variables for the API URL in the Xcode
+project.
+Use the "Archive" option in Xcode to create an archive of the app, and then use the "Distribute App" option to upload it
+to the App Store.
 
 ## Structure
 

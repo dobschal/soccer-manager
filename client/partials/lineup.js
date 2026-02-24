@@ -116,10 +116,19 @@ export class Lineup extends UIElement {
    * @returns {string}
    */
   get template () {
+    const benchPlayers = this.players.filter(p => !p.in_game_position && !p.fake)
     return `
-      <div class="card bg-dark">
-        <div class="squad card-body">
-          ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
+      <div class="lineup-container">
+        <div class="card bg-dark lineup-pitch">
+          <div class="squad card-body">
+            ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
+          </div>
+        </div>
+        <div class="bench">
+          <h6 class="bench-title">Bench</h6>
+          ${benchPlayers.length > 0
+      ? benchPlayers.map(p => this._renderSquadPlayer(p)).join('')
+      : '<span class="bench-empty">No bench players</span>'}
         </div>
       </div>
     `
@@ -139,7 +148,7 @@ export class Lineup extends UIElement {
   _applyPositionHacks () {
     // Position hack for 2x CM, 2x CD, 2x DM
     ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
-      const elements = document.querySelectorAll(`${this._elementQuery} ${positionClass}`)
+      const elements = document.querySelectorAll(`${this._elementQuery} .squad ${positionClass}`)
       if (elements.length === 2) {
         elements.item(0).style.left = '38%'
         elements.item(1).style.left = '62%'
@@ -163,6 +172,13 @@ export class Lineup extends UIElement {
         playerEl?.insertAdjacentHTML('afterbegin', image)
       })
     })
+    // Load images for bench players
+    this.players.filter(p => !p.in_game_position && !p.fake).forEach((player) => {
+      renderPlayerImage(player, this.team, 80).then(image => {
+        const playerEl = document.querySelector(`${this._elementQuery} .bench .player[data-player-id="${player.id}"]`)
+        playerEl?.insertAdjacentHTML('afterbegin', image)
+      })
+    })
   }
 
   /**
@@ -179,7 +195,7 @@ export class Lineup extends UIElement {
       lineUpData.squadDataChanged = true
     }
     render('#squad', renderLineup(this.players, this.team, lineUpData.parentInstance))
-    this._autoSaveIfComplete()
+    void this._autoSaveIfComplete()
   }
 
   /**
