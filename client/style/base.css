@@ -50,6 +50,10 @@ body.overlay-open {
     display: none;
 }
 
+img, svg {
+    animation: image-fade-in .5s ease-in-out;
+}
+
 /* ==========================================================================
    Animations
    ========================================================================== */
@@ -145,5 +149,16 @@ body.overlay-open {
     }
     to {
         opacity: 0;
+    }
+}
+
+@keyframes image-fade-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) rotateX(45deg);
+        transform-origin: bottom center;
+    }
+    100% {
+        opacity: 1;
     }
 }

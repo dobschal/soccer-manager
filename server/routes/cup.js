@@ -54,7 +54,7 @@ export default {
     if (!req.user) throw new UnauthorizedError('Not authorized')
 
     const team = await getTeam(req)
-    const { season } = await getGameDayAndSeason()
+    const { season, gameDay: currentGameDay } = await getGameDayAndSeason()
 
     const games = await getCupGamesForTeam(team.id, season, limit)
 
@@ -65,7 +65,27 @@ export default {
       allGames = [...prevSeasonGames, ...games]
     }
 
-    return { games: allGames }
+    // Calculate gameDate for unplayed cup games (same logic as league slider)
+    // League games happen every 12 hours (noon and midnight)
+    const nextGameDate = new Date()
+    nextGameDate.setHours(12)
+    nextGameDate.setMinutes(0)
+    nextGameDate.setSeconds(0)
+    if (Date.now() > nextGameDate.getTime()) {
+      nextGameDate.setHours(23)
+      nextGameDate.setMinutes(59)
+      nextGameDate.setSeconds(59)
+    }
+
+    const gamesWithDates = allGames.map(game => {
+      if (game.played) return game
+      const gameDate = new Date(nextGameDate)
+      const dayOffset = game.gameDay - currentGameDay
+      gameDate.setTime(gameDate.getTime() + dayOffset * 12 * 60 * 60 * 1000)
+      return { ...game, gameDate }
+    })
+
+    return { games: gamesWithDates }
   },
 
   /**
