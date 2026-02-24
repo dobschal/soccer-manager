@@ -259,12 +259,7 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
     player.freshness = Math.max(0, player.freshness - freshnessLoss)
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
   }
-  for (const player of activePlayerTeamB) {
-    const playStyle = teamB.play_style || 'normal'
-    const freshnessLoss = player.position === 'GK' ? 0.04 : freshnessLossByStyle[playStyle]
-    player.freshness = Math.max(0, player.freshness - freshnessLoss)
-    await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
-  }
+  // Opponent team does NOT lose freshness in friendly matches (they didn't choose to play)
 
   return gameDetails
 }
@@ -311,7 +306,7 @@ async function _getFriendlyStadiumEarnings (teamA, teamB, strengthTeamA, strengt
     }
 
     const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
-    const priceFactor = 15 / price
+    const priceFactor = (15 / price) ** 2
     // Friendly matches have HALF the normal attendance
     const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor * 0.5))
     details[stand + 'Guests'] = amountOfGuests

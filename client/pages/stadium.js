@@ -549,7 +549,7 @@ export class StadiumPage extends UIElement {
     }).join('')
 
     return `
-      <div class="table-responsive mb-4">
+      <div class="horizontal-scrollable-table mb-4">
         <table class="table table-sm table-striped">
           <thead><tr>
             <th>${t('stadium.stand')}</th>

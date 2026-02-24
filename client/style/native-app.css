@@ -205,7 +205,7 @@ html, body {
 }
 
 .native-app-layout #page {
-    height: calc(100vh - 12rem);
+    height: calc(100dvh - 12rem);
     width: 100%;
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
@@ -213,5 +213,5 @@ html, body {
     overflow-x: hidden;
     background-color: white;
     padding: 2rem 2rem 0 2rem;
-    min-height: 10vh;
+    min-height: 10dvh;
 }

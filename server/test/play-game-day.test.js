@@ -382,7 +382,7 @@ describe('stadium ticket earnings', () => {
       }
 
       const roofFactor = stadium[stand + '_stand_roof'] ? 1.2 : 1
-      const priceFactor = 15 / price
+      const priceFactor = (15 / price) ** 2
       const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor))
       details[stand + 'Guests'] = amountOfGuests
       const earnings = amountOfGuests * price
@@ -521,7 +521,7 @@ describe('stadium ticket earnings', () => {
       const details = calculateStadiumDetails(stadium, 1000, 1000)
 
       // strengthFactor = (1000 * 1000) / 100 = 10000
-      // priceFactor = 15 / 15 = 1
+      // priceFactor = (15 / 15) ** 2 = 1
       // guests = min(10000, 10000 * 1 * 1) = 10000
       expect(details.northGuests).toBe(10000)
     })
@@ -537,8 +537,8 @@ describe('stadium ticket earnings', () => {
 
       const details = calculateStadiumDetails(stadium, 1000, 1000)
 
-      // strengthFactor = (1000 * 1000) / 100 = 10000, priceFactor = 15/1 = 15
-      // guests = min(100, 10000 * 15) = 100 (capped at size)
+      // strengthFactor = (1000 * 1000) / 100 = 10000, priceFactor = (15/1) ** 2 = 225
+      // guests = min(100, 10000 * 225) = 100 (capped at size)
       expect(details.northGuests).toBe(100)
     })
 
