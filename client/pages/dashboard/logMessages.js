@@ -4,6 +4,7 @@ import { toast } from '../../partials/toast.js'
 import { formatDate } from '../../lib/date.js'
 import { goTo, setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
+import { renderPageNumbers } from '../../partials/pagination.js'
 
 const PAGE_SIZE = 10
 
@@ -137,14 +138,7 @@ export class LogMessages extends UIElement {
     const hasPrev = this._pageIndex > 0
     const hasNext = this._pageIndex < totalPages - 1
 
-    const pageNumbers = Array.from({ length: totalPages }, (_, i) => {
-      const isActive = i === this._pageIndex
-      return `
-        <li class="page-item ${isActive ? 'active' : ''}">
-          <span class="page-link" style="cursor: pointer;" data-page-index="${i}">${i + 1}</span>
-        </li>
-      `
-    }).join('')
+    const pageNumbers = renderPageNumbers(totalPages, this._pageIndex)
 
     return `
       <nav class="mt-3 log-messages-pagination">

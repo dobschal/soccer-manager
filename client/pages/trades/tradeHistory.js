@@ -6,6 +6,7 @@ import { goTo } from '../../lib/router.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { renderPageNumbers } from '../../partials/pagination.js'
 
 const PAGE_SIZE = 20
 
@@ -187,14 +188,7 @@ export class TradeHistoryPage extends UIElement {
     const hasPrev = this._page > 0
     const hasNext = this._page < totalPages - 1
 
-    const pageNumbers = Array.from({ length: totalPages }, (_, i) => {
-      const isActive = i === this._page
-      return `
-        <li class="page-item ${isActive ? 'active' : ''}">
-          <span class="page-link" style="cursor: pointer;" data-page-index="${i}">${i + 1}</span>
-        </li>
-      `
-    }).join('')
+    const pageNumbers = renderPageNumbers(totalPages, this._page)
 
     return `
       <nav class="mt-3">
