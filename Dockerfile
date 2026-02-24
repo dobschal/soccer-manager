@@ -5,12 +5,12 @@ ARG COMMIT_HASH=unknown
 WORKDIR /usr/src/app
 
 COPY package.json ./
+COPY scripts ./scripts
 
 RUN npm install
 
 COPY server ./server
 COPY client ./client
-COPY scripts ./scripts
 
 RUN node scripts/build-native-bundle.mjs $COMMIT_HASH
 

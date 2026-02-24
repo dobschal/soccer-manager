@@ -145,6 +145,7 @@ jobs:
         run: |
           COMMIT_HASH=$(git rev-parse --short HEAD)
           ssh hetzner << EOF
+            set -e
             cd /root/deployments/soccer-manager
             git fetch
             git reset --hard origin/main
