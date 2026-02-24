@@ -1,7 +1,6 @@
 import {ApplicationSettings, File, Folder, Http, knownFolders, path} from '@nativescript/core'
 
-declare const __DEV__: boolean
-const SERVER_URL = __DEV__ ? 'http://localhost:3000' : 'https://footballmanager.io'
+const SERVER_URL = 'https://footballmanager.io'
 const OTA_DIR_NAME = 'ota-web'
 const STAGING_DIR_NAME = 'ota-web-staging'
 const UPDATE_INSTALLED_KEY = 'ota_update_installed'
