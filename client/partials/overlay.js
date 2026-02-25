@@ -154,6 +154,59 @@ function setupTouchSwipe (overlayId, overlayInnerId, listeners) {
 }
 
 /**
+ * Shows a confirm dialog as an overlay. Works in WKWebView unlike native confirm().
+ * @param {string} message - The confirmation message
+ * @param {string} confirmLabel - Label for the confirm button
+ * @param {string} cancelLabel - Label for the cancel button
+ * @returns {Promise<boolean>}
+ */
+export function showConfirmDialog (message, confirmLabel = 'OK', cancelLabel = 'Cancel') {
+  return new Promise((resolve) => {
+    const confirmBtnId = generateId()
+    const cancelBtnId = generateId()
+
+    const content = `
+      <p>${message}</p>
+      <div class="d-flex gap-2 mt-3">
+        <button id="${cancelBtnId}" class="btn btn-outline-secondary flex-fill">${cancelLabel}</button>
+        <button id="${confirmBtnId}" class="btn btn-danger flex-fill">${confirmLabel}</button>
+      </div>
+    `
+
+    const overlay = showOverlay('', '', content)
+    let resolved = false
+
+    overlay.onClose(() => {
+      if (!resolved) {
+        resolved = true
+        resolve(false)
+      }
+    })
+
+    setTimeout(() => {
+      const confirmBtn = el('#' + confirmBtnId)
+      const cancelBtn = el('#' + cancelBtnId)
+
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+          resolved = true
+          overlay.remove()
+          resolve(true)
+        })
+      }
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+          resolved = true
+          overlay.remove()
+          resolve(false)
+        })
+      }
+    }, 0)
+  })
+}
+
+/**
  * @param {string} title
  * @param {string} subttitle
  * @param {string} text

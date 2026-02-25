@@ -6,7 +6,7 @@ import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
-import { showOverlay } from '../partials/overlay.js'
+import { showOverlay, showConfirmDialog } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
 import { ADMIN_USERNAME } from '../util/constants.js'
 
@@ -299,7 +299,8 @@ export class GameLayout extends UIElement {
       const deleteAccountBtn = el('#settings-delete-account')
       if (deleteAccountBtn) {
         deleteAccountBtn.addEventListener('click', async () => {
-          if (!confirm(t('nav.deleteAccountConfirm'))) return
+          const confirmed = await showConfirmDialog(t('nav.deleteAccountConfirm'), t('nav.deleteAccount'))
+          if (!confirmed) return
           try {
             await server.deleteAccount()
             overlay.remove()
