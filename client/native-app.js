@@ -9,6 +9,7 @@ import { StadiumPage } from './pages/stadium.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
+import { BrowsePage } from './pages/browse.js'
 import { initLocale, t } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 import { toast } from './partials/toast.js'
@@ -37,6 +38,7 @@ const pages = {
   results: [NativeAppLayout, ResultsPage],
   login: [DefaultLayout, NativeLandingPage],
   'my-team': [NativeAppLayout, MyTeamPage],
+  browse: [NativeAppLayout, BrowsePage],
   '*': [NativeAppLayout, DashboardPage]
 }
 

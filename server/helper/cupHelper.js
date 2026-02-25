@@ -69,10 +69,15 @@ export function calculateCupSchedule (teamCount, totalGameDays = 33) {
   const roundNames = []
   let teamsInRound = 2
   for (let i = 0; i < roundCount; i++) {
-    if (teamsInRound === 2) roundNames.unshift('final')
-    else if (teamsInRound === 4) roundNames.unshift('semiFinal')
-    else if (teamsInRound === 8) roundNames.unshift('quarterFinal')
-    else roundNames.unshift(`roundOf${teamsInRound}`)
+    if (teamsInRound === 2) {
+      roundNames.unshift('final')
+    } else if (teamsInRound === 4) {
+      roundNames.unshift('semiFinal')
+    } else if (teamsInRound === 8) {
+      roundNames.unshift('quarterFinal')
+    } else {
+      roundNames.unshift(`roundOf${teamsInRound}`)
+    }
     teamsInRound *= 2
   }
 
@@ -218,17 +223,30 @@ export async function createCupDraw (season, currentGameDay = 0) {
 export async function progressCupRound (season, completedRound) {
   // Check if all games in this round are played
   const unplayedGames = await query(
-    `SELECT * FROM game WHERE game_type='cup' AND season=? AND cup_round=? AND played=0`,
+    `SELECT *
+     FROM game
+     WHERE game_type = 'cup'
+       AND season = ?
+       AND cup_round = ?
+       AND played = 0`,
     [season, completedRound]
   )
 
   if (unplayedGames.length > 0) {
-    return { advanced: false, isComplete: false }
+    return {
+      advanced: false,
+      isComplete: false
+    }
   }
 
   // Get all played games in this round
   const playedGames = await query(
-    `SELECT * FROM game WHERE game_type='cup' AND season=? AND cup_round=? AND played=1`,
+    `SELECT *
+     FROM game
+     WHERE game_type = 'cup'
+       AND season = ?
+       AND cup_round = ?
+       AND played = 1`,
     [season, completedRound]
   )
 
@@ -243,7 +261,7 @@ export async function progressCupRound (season, completedRound) {
 
   const nextRoundTeams = [...winners]
 
-  const [maxRoundResult] = await query(
+  await query(
     'SELECT MAX(cup_round) as maxRound FROM game WHERE game_type=\'cup\' AND season=?',
     [season]
   )
@@ -251,13 +269,19 @@ export async function progressCupRound (season, completedRound) {
   // If only 1 team left, cup is complete
   if (nextRoundTeams.length === 1) {
     await awardCupWinner(season, nextRoundTeams[0])
-    return { advanced: true, isComplete: true }
+    return {
+      advanced: true,
+      isComplete: true
+    }
   }
 
   // Calculate next round number
   const nextRound = completedRound / 2
   if (nextRound < 1) {
-    return { advanced: false, isComplete: true }
+    return {
+      advanced: false,
+      isComplete: true
+    }
   }
 
   // Get the schedule to find the game day for next round
@@ -267,7 +291,10 @@ export async function progressCupRound (season, completedRound) {
 
   if (!nextRoundSchedule) {
     console.error(`Could not find schedule for round ${nextRound}`)
-    return { advanced: false, isComplete: false }
+    return {
+      advanced: false,
+      isComplete: false
+    }
   }
 
   // Ensure the next round is scheduled in the future (not before the completed round's game day)
@@ -301,7 +328,10 @@ export async function progressCupRound (season, completedRound) {
   }
 
   console.log(`Cup round ${completedRound} complete. ${shuffledTeams.length / 2} matches created for round ${nextRound}`)
-  return { advanced: true, isComplete: false }
+  return {
+    advanced: true,
+    isComplete: false
+  }
 }
 
 /**
@@ -351,29 +381,29 @@ export async function awardCupWinner (season, winnerTeamId) {
  */
 export async function getCupGamesForTeam (teamId, season, limit = 10) {
   const games = await query(`
-    SELECT g.id as id,
-           g.game_day as gameDay,
-           g.season as season,
-           g.goals_team_1 as goalsTeam1,
-           g.goals_team_2 as goalsTeam2,
-           g.cup_round as cupRound,
-           g.played as played,
-           t1.name as team1,
-           t2.name as team2,
-           g.team_1_id as team1Id,
-           g.team_2_id as team2Id,
-           t1.color as team1Color,
-           t1.emblem as team1Emblem,
-           t2.color as team2Color,
-           t2.emblem as team2Emblem
-    FROM game g
-    JOIN team t1 ON t1.id = g.team_1_id
-    LEFT JOIN team t2 ON t2.id = g.team_2_id
-    WHERE g.game_type = 'cup'
-      AND g.season = ?
-      AND (g.team_1_id = ? OR g.team_2_id = ?)
-    ORDER BY g.cup_round DESC, g.game_day ASC
-    LIMIT ?
+      SELECT g.id           as id,
+             g.game_day     as gameDay,
+             g.season       as season,
+             g.goals_team_1 as goalsTeam1,
+             g.goals_team_2 as goalsTeam2,
+             g.cup_round    as cupRound,
+             g.played       as played,
+             t1.name        as team1,
+             t2.name        as team2,
+             g.team_1_id    as team1Id,
+             g.team_2_id    as team2Id,
+             t1.color       as team1Color,
+             t1.emblem      as team1Emblem,
+             t2.color       as team2Color,
+             t2.emblem      as team2Emblem
+      FROM game g
+               JOIN team t1 ON t1.id = g.team_1_id
+               LEFT JOIN team t2 ON t2.id = g.team_2_id
+      WHERE g.game_type = 'cup'
+        AND g.season = ?
+        AND (g.team_1_id = ? OR g.team_2_id = ?)
+      ORDER BY g.cup_round DESC, g.game_day ASC
+      LIMIT ?
   `, [season, teamId, teamId, limit])
 
   return games
@@ -387,28 +417,28 @@ export async function getCupGamesForTeam (teamId, season, limit = 10) {
  */
 export async function getCupResultsForRound (season, round) {
   const games = await query(`
-    SELECT g.id as id,
-           g.game_day as gameDay,
-           g.season as season,
-           g.goals_team_1 as goalsTeam1,
-           g.goals_team_2 as goalsTeam2,
-           g.cup_round as cupRound,
-           g.played as played,
-           t1.name as team1,
-           t2.name as team2,
-           g.team_1_id as team1Id,
-           g.team_2_id as team2Id,
-           t1.color as team1Color,
-           t1.emblem as team1Emblem,
-           t2.color as team2Color,
-           t2.emblem as team2Emblem
-    FROM game g
-    JOIN team t1 ON t1.id = g.team_1_id
-    LEFT JOIN team t2 ON t2.id = g.team_2_id
-    WHERE g.game_type = 'cup'
-      AND g.season = ?
-      AND g.cup_round = ?
-    ORDER BY g.game_day ASC
+      SELECT g.id           as id,
+             g.game_day     as gameDay,
+             g.season       as season,
+             g.goals_team_1 as goalsTeam1,
+             g.goals_team_2 as goalsTeam2,
+             g.cup_round    as cupRound,
+             g.played       as played,
+             t1.name        as team1,
+             t2.name        as team2,
+             g.team_1_id    as team1Id,
+             g.team_2_id    as team2Id,
+             t1.color       as team1Color,
+             t1.emblem      as team1Emblem,
+             t2.color       as team2Color,
+             t2.emblem      as team2Emblem
+      FROM game g
+               JOIN team t1 ON t1.id = g.team_1_id
+               LEFT JOIN team t2 ON t2.id = g.team_2_id
+      WHERE g.game_type = 'cup'
+        AND g.season = ?
+        AND g.cup_round = ?
+      ORDER BY g.game_day ASC
   `, [season, round])
 
   return games
@@ -421,14 +451,15 @@ export async function getCupResultsForRound (season, round) {
  */
 export async function getCupRoundsForSeason (season) {
   const rounds = await query(`
-    SELECT cup_round as round,
-           MIN(game_day) as gameDay,
-           MIN(played) = 1 AND MAX(played) = 1 as allPlayed,
-           COUNT(*) as matchCount
-    FROM game
-    WHERE game_type = 'cup' AND season = ?
-    GROUP BY cup_round
-    ORDER BY cup_round DESC
+      SELECT cup_round                           as round,
+             MIN(game_day)                       as gameDay,
+             MIN(played) = 1 AND MAX(played) = 1 as allPlayed,
+             COUNT(*)                            as matchCount
+      FROM game
+      WHERE game_type = 'cup'
+        AND season = ?
+      GROUP BY cup_round
+      ORDER BY cup_round DESC
   `, [season])
 
   return rounds.map(r => ({
@@ -458,7 +489,10 @@ export async function getTotalRoundsForSeason (season) {
  */
 export async function getCupSeasons () {
   const seasons = await query(`
-    SELECT DISTINCT season FROM game WHERE game_type = 'cup' ORDER BY season DESC
+      SELECT DISTINCT season
+      FROM game
+      WHERE game_type = 'cup'
+      ORDER BY season DESC
   `)
   return seasons.map(s => s.season)
 }
@@ -567,7 +601,11 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
       // In case of draw, we still have a winner determined randomly
       // This shouldn't happen often, but handle it gracefully
       await addLogMessage(
-        t('log.cupMatchDraw', { opponent, goalsFor: myGoals, goalsAgainst: theirGoals }, locale),
+        t('log.cupMatchDraw', {
+          opponent,
+          goalsFor: myGoals,
+          goalsAgainst: theirGoals
+        }, locale),
         team,
         'OPEN_GAME',
         game.id,
@@ -575,7 +613,11 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
       )
     } else if (won) {
       await addLogMessage(
-        t('log.cupMatchWin', { opponent, goalsFor: myGoals, goalsAgainst: theirGoals }, locale),
+        t('log.cupMatchWin', {
+          opponent,
+          goalsFor: myGoals,
+          goalsAgainst: theirGoals
+        }, locale),
         team,
         'OPEN_GAME',
         game.id,
@@ -583,7 +625,11 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
       )
     } else {
       await addLogMessage(
-        t('log.cupMatchLoss', { opponent, goalsFor: myGoals, goalsAgainst: theirGoals }, locale),
+        t('log.cupMatchLoss', {
+          opponent,
+          goalsFor: myGoals,
+          goalsAgainst: theirGoals
+        }, locale),
         team,
         'OPEN_GAME',
         game.id,

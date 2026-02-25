@@ -10,8 +10,8 @@
     "test:client": "vitest run --config client/vitest.config.js",
     "test:server": "vitest run --config server/vitest.config.js",
     "postinstall": "./scripts/copy-vendor.sh",
-    "ios": "./scripts/copy-native-client.sh && ./scripts/build-native-bundle.mjs && cd native-app && ns run ios",
-    "android": "./scripts/copy-native-client.sh && ./scripts/build-native-bundle.mjs && cd native-app && ns run android"
+    "ios": "./scripts/copy-native-client.sh && node ./scripts/build-native-bundle.mjs && cd native-app && ns run ios",
+    "android": "./scripts/copy-native-client.sh && node ./scripts/build-native-bundle.mjs && cd native-app && ns run android"
   },
   "keywords": [],
   "author": "",
