@@ -13,7 +13,12 @@ vi.mock('../../helper/cupHelper.js', () => ({
   getCupResultsForRound: vi.fn(),
   getCupRoundsForSeason: vi.fn(),
   getCupSeasons: vi.fn(),
-  getCupBracket: vi.fn()
+  getCupBracket: vi.fn(),
+  getTotalRoundsForSeason: vi.fn().mockResolvedValue(5),
+  getTotalRounds: vi.fn(maxRound => {
+    if (!maxRound || maxRound < 1) return 0
+    return Math.log2(maxRound) + 1
+  })
 }))
 
 import { getTeam } from '../../helper/teamHelper.js'

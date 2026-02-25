@@ -12,6 +12,7 @@ export class CupResultsPage extends UIElement {
   cupRounds = []
   cupResults = []
   cupSeasons = []
+  cupTotalRounds = 0
 
   /**
    * @param {UIElement} parentPage
@@ -107,8 +108,9 @@ export class CupResultsPage extends UIElement {
       return
     }
 
-    const { rounds } = await server.getCupRounds(this.cupSeason)
+    const { rounds, totalRounds } = await server.getCupRounds(this.cupSeason)
     this.cupRounds = rounds
+    this.cupTotalRounds = totalRounds || 0
 
     if ((this.cupRound === null || !rounds.some(r => r.round === this.cupRound)) && rounds.length > 0) {
       const lastPlayedRound = [...rounds].reverse().find(r => r.played)
@@ -128,7 +130,9 @@ export class CupResultsPage extends UIElement {
     if (round === 1) return t('cup.final')
     if (round === 2) return t('cup.semiFinal')
     if (round === 4) return t('cup.quarterFinal')
-    return t('cup.roundOf', { count: round * 2 })
+    if (round === 8) return t('cup.roundOf16')
+    const sequentialNumber = this.cupTotalRounds - Math.log2(round)
+    return t('cup.roundNumber', { number: sequentialNumber })
   }
 
   _navigateCupRound (direction) {
@@ -170,14 +174,18 @@ export class CupResultsPage extends UIElement {
       color: result.team1Color,
       emblem: result.team1Emblem
     }
-    const team2Data = {
-      name: result.team2,
-      color: result.team2Color,
-      emblem: result.team2Emblem
-    }
+    const isBye = !result.team2 && !result.team2Id
+
+    const team2Data = isBye
+      ? null
+      : {
+          name: result.team2,
+          color: result.team2Color,
+          emblem: result.team2Emblem
+        }
 
     const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
-    const emblem2 = `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`
+    const emblem2 = isBye ? '' : `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`
 
     return `
       <tr id="${id}">
@@ -187,11 +195,14 @@ export class CupResultsPage extends UIElement {
           ${this.myTeamId === result.team1Id ? '</b>' : ''}
         </td>
         <td>
-          ${this.myTeamId === result.team2Id ? '<b class="text-info">' : ''}
-          ${emblem2}${result.team2}
-          ${this.myTeamId === result.team2Id ? '</b>' : ''}
+          ${isBye
+            ? `<span class="text-muted">${t('cup.bye')}</span>`
+            : `${this.myTeamId === result.team2Id ? '<b class="text-info">' : ''}
+              ${emblem2}${result.team2}
+              ${this.myTeamId === result.team2Id ? '</b>' : ''}`
+          }
         </td>
-        <td>${isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming')}</td>
+        <td>${isBye ? t('cup.bye') : (isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming'))}</td>
       </tr>
     `
   }

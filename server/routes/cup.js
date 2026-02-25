@@ -6,7 +6,9 @@ import {
   getCupResultsForRound,
   getCupRoundsForSeason,
   getCupSeasons,
-  getCupBracket
+  getCupBracket,
+  getTotalRoundsForSeason,
+  getTotalRounds
 } from '../helper/cupHelper.js'
 
 export default {
@@ -36,11 +38,14 @@ export default {
     const results = await getCupResultsForRound(actualSeason, actualRound)
     const roundInfo = rounds.find(r => r.round === actualRound)
 
+    const maxRound = Math.max(...rounds.map(r => r.round))
+    const totalRounds = getTotalRounds(maxRound)
     return {
       results,
       round: roundInfo,
       rounds,
-      season: actualSeason
+      season: actualSeason,
+      totalRounds
     }
   },
 
@@ -85,7 +90,9 @@ export default {
       return { ...game, gameDate }
     })
 
-    return { games: gamesWithDates }
+    const totalRounds = await getTotalRoundsForSeason(season)
+
+    return { games: gamesWithDates, totalRounds }
   },
 
   /**
@@ -131,7 +138,9 @@ export default {
     const actualSeason = season ?? currentSeason
 
     const rounds = await getCupRoundsForSeason(actualSeason)
+    const maxRound = rounds.length > 0 ? Math.max(...rounds.map(r => r.round)) : 0
+    const totalRounds = getTotalRounds(maxRound)
 
-    return { rounds, season: actualSeason }
+    return { rounds, season: actualSeason, totalRounds }
   }
 }

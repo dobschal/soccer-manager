@@ -4,7 +4,7 @@ import { query } from '../lib/database.js'
  * @returns {Promise<{season: number, gameDay: number}>}
  */
 export async function getGameDayAndSeason () {
-  let results = await query('SELECT * FROM game WHERE played=0 ORDER BY season ASC, game_day ASC LIMIT 1')
+  let results = await query('SELECT * FROM game WHERE played=0 AND (game_type=\'league\' OR game_type IS NULL) ORDER BY season ASC, game_day ASC LIMIT 1')
   if (results.length === 0) {
     results = await query('SELECT * FROM game WHERE played=1 ORDER BY season DESC, game_day DESC LIMIT 1')
   }

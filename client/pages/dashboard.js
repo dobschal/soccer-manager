@@ -221,6 +221,7 @@ export class DashboardPage extends UIElement {
       ...g,
       isPlayed: g.played === 1,
       isCup: true,
+      totalRounds: cupResponse.totalRounds,
       team1Data: this._extractTeamData(g, 1),
       team2Data: this._extractTeamData(g, 2)
     }))

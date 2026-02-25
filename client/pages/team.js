@@ -442,7 +442,7 @@ export class TeamPage extends UIElement {
       return `<span class="text-warning"><i class="fa fa-trophy"></i> ${t('cup.winner')}</span>`
     }
 
-    return formatCupRound(cupResult.roundReached)
+    return formatCupRound(cupResult.roundReached, cupResult.totalRounds)
   }
 
   /**

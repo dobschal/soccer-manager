@@ -1005,6 +1005,12 @@ const migrations = [{
   async run () {
     await query(`ALTER TABLE news_comment CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)
   }
+},
+{
+  name: 'Allow NULL team_2_id in game table for bye games',
+  async run () {
+    await query('ALTER TABLE game MODIFY team_2_id BIGINT(20) NULL')
+  }
 }]
 
 /**

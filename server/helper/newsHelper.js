@@ -3,6 +3,7 @@ import { News } from '../entities/news.js'
 import { calculateStanding } from '../lib/util.js'
 import { euroFormat } from '../../client/lib/currency.js'
 import { t, getSupportedLocales } from '../i18n/index.js'
+import { getCupRoundDisplayName, getTotalRoundsForSeason } from './cupHelper.js'
 
 const TEMPLATE_COUNT = 5
 
@@ -383,6 +384,8 @@ async function _generateCupNews (gameDay, season) {
     [gameDay, season]
   )
 
+  const totalRounds = games.length > 0 ? await getTotalRoundsForSeason(season) : 0
+
   for (const game of games) {
     // Only newsworthy if 2+ goal difference or semi-final/final
     const isBigRound = game.cup_round <= 4
@@ -395,11 +398,7 @@ async function _generateCupNews (gameDay, season) {
     const goalsFor = isTeam1Winner ? game.goals_team_1 : game.goals_team_2
     const goalsAgainst = isTeam1Winner ? game.goals_team_2 : game.goals_team_1
 
-    let roundLabel
-    if (game.cup_round === 1) roundLabel = 'Final'
-    else if (game.cup_round === 2) roundLabel = 'Semi-Final'
-    else if (game.cup_round === 4) roundLabel = 'Quarter-Final'
-    else roundLabel = `Round of ${game.cup_round * 2}`
+    const roundLabel = getCupRoundDisplayName(game.cup_round, totalRounds)
 
     const params = { winnerName, loserName, goalsFor, goalsAgainst, roundLabel }
     const templateIndex = getRandomTemplateIndex()

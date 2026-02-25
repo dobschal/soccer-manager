@@ -28,7 +28,9 @@ import {
   getCupGamesForTeam,
   getCupResultsForRound,
   getCupRoundsForSeason,
-  getCupSeasons
+  getCupSeasons,
+  getCupRoundDisplayName,
+  getTotalRounds
 } from '../../helper/cupHelper.js'
 
 describe('cupHelper', () => {
@@ -178,10 +180,10 @@ describe('cupHelper', () => {
       // All games played
       query.mockResolvedValueOnce([]) // No unplayed games
       query.mockResolvedValueOnce([ // Played games
-        { id: 1, team_1_id: 1, team_2_id: 2, goals_team_1: 2, goals_team_2: 1 },
-        { id: 2, team_1_id: 3, team_2_id: 4, goals_team_1: 0, goals_team_2: 3 }
+        { id: 1, team_1_id: 1, team_2_id: 2, goals_team_1: 2, goals_team_2: 1, game_day: 10 },
+        { id: 2, team_1_id: 3, team_2_id: 4, goals_team_1: 0, goals_team_2: 3, game_day: 10 }
       ])
-      query.mockResolvedValueOnce([]) // No teams in cup (for byes check)
+      query.mockResolvedValueOnce([{ maxRound: 4 }]) // MAX(cup_round) - first round was 4 (not 2, so no byes)
       query.mockResolvedValueOnce([ // All teams for schedule calculation
         { id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }
       ])
@@ -198,7 +200,7 @@ describe('cupHelper', () => {
       query.mockResolvedValueOnce([ // Final game
         { id: 1, team_1_id: 1, team_2_id: 2, goals_team_1: 3, goals_team_2: 1 }
       ])
-      query.mockResolvedValueOnce([]) // No bye teams
+      query.mockResolvedValueOnce([{ maxRound: 4 }]) // MAX(cup_round) - first round was 4, so round 1 is not first round
       // Mock for awardCupWinner
       query.mockResolvedValueOnce([{ id: 1, name: 'Winner Team', user_id: 1 }])
       query.mockResolvedValueOnce([{ game_day: 32, season: 1 }])
@@ -304,6 +306,89 @@ describe('cupHelper', () => {
       expect(result.length).toBe(2)
       expect(result[0]).toHaveProperty('round', 32)
       expect(result[0]).toHaveProperty('played', true)
+    })
+  })
+
+  describe('getCupRoundDisplayName', () => {
+    it('returns "Round of 16" for cup_round=8', () => {
+      const totalRounds = getTotalRounds(64)
+      expect(getCupRoundDisplayName(8, totalRounds)).toBe('Round of 16')
+    })
+
+    it('returns "Quarter-Final" for cup_round=4', () => {
+      expect(getCupRoundDisplayName(4, 7)).toBe('Quarter-Final')
+    })
+
+    it('returns sequential round name for rounds > 8', () => {
+      const totalRounds = getTotalRounds(64)
+      // cup_round=16 → Round 3
+      expect(getCupRoundDisplayName(16, totalRounds)).toBe('Round 3')
+    })
+  })
+
+  describe('createCupDraw with byes', () => {
+    it('creates bye game entries for bye teams', async () => {
+      // 5 teams → 8 bracket → 3 byes
+      const teams = Array.from({ length: 5 }, (_, i) => ({
+        id: i + 1,
+        name: `Team ${i + 1}`,
+        level: Math.floor(i / 3),
+        league: i % 3
+      }))
+
+      query.mockResolvedValueOnce(teams)
+      query.mockResolvedValue({ insertId: 1 })
+
+      await createCupDraw(1)
+
+      // 1 real match + 3 bye game entries = 4 INSERT calls
+      const insertCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO game')
+      )
+      expect(insertCalls.length).toBe(4)
+
+      // Bye games should have team_2_id=null, played=1
+      const byeInserts = insertCalls.filter(call => call[1].team_2_id == null)
+      expect(byeInserts.length).toBe(3)
+      for (const byeInsert of byeInserts) {
+        expect(byeInsert[1].played).toBe(1)
+        expect(byeInsert[1].game_type).toBe('cup')
+      }
+    })
+  })
+
+  describe('progressCupRound with bye games', () => {
+    it('advances bye teams (team_2_id=null) automatically', async () => {
+      // Round 8: 2 real games + 6 bye games, all played
+      const realGames = [
+        { id: 1, team_1_id: 7, team_2_id: 8, goals_team_1: 2, goals_team_2: 0, game_day: 4 },
+        { id: 2, team_1_id: 9, team_2_id: 10, goals_team_1: 1, goals_team_2: 3, game_day: 4 }
+      ]
+      const byeGames = [
+        { id: 3, team_1_id: 1, team_2_id: null, goals_team_1: 0, goals_team_2: 0, game_day: 4 },
+        { id: 4, team_1_id: 2, team_2_id: null, goals_team_1: 0, goals_team_2: 0, game_day: 4 },
+        { id: 5, team_1_id: 3, team_2_id: null, goals_team_1: 0, goals_team_2: 0, game_day: 4 },
+        { id: 6, team_1_id: 4, team_2_id: null, goals_team_1: 0, goals_team_2: 0, game_day: 4 },
+        { id: 7, team_1_id: 5, team_2_id: null, goals_team_1: 0, goals_team_2: 0, game_day: 4 },
+        { id: 8, team_1_id: 6, team_2_id: null, goals_team_1: 0, goals_team_2: 0, game_day: 4 }
+      ]
+
+      query
+        .mockResolvedValueOnce([]) // No unplayed games in round 8
+        .mockResolvedValueOnce([...realGames, ...byeGames]) // All played games
+        .mockResolvedValueOnce([{ maxRound: 8 }]) // MAX(cup_round)
+        .mockResolvedValueOnce(Array.from({ length: 10 }, (_, i) => ({ id: i + 1 }))) // All teams for schedule
+        .mockResolvedValue({ insertId: 100 }) // INSERT new games
+
+      const result = await progressCupRound(1, 8)
+
+      expect(result.advanced).toBe(true)
+
+      // Winners: team 7 (real), team 10 (real), teams 1-6 (bye) = 8 teams → 4 next round games
+      const insertCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO game')
+      )
+      expect(insertCalls.length).toBe(4)
     })
   })
 

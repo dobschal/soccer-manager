@@ -26,7 +26,7 @@ export function Game (raw) {
     season: RequiredNumber,
     game_day: RequiredNumber,
     team_1_id: RequiredNumber,
-    team_2_id: RequiredNumber,
+    team_2_id: { type: ['number', 'null'] },
     level: RequiredNumber,
     league: RequiredNumber,
     played: RequiredNumber,

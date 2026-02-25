@@ -12,6 +12,9 @@ export default {
   'nav.settings': 'Einstellungen',
   'nav.language': 'Sprache',
   'nav.search': 'Suche',
+  'nav.support': 'Support',
+  'nav.deleteAccount': 'Konto löschen',
+  'nav.deleteAccountConfirm': 'Bist du sicher? Dein Konto und alle deine Daten werden unwiderruflich gelöscht. Dies kann nicht rückgängig gemacht werden.',
 
   // Search
   'search.title': 'Suche',
@@ -768,6 +771,7 @@ export default {
 
   // Footer
   'footer.imprintPrivacy': 'Impressum & Datenschutz',
+  'footer.support': 'Support',
 
   // Currency
   'currency.format': '{value}',
@@ -779,7 +783,10 @@ export default {
   'cup.final': 'Finale',
   'cup.semiFinal': 'Halbfinale',
   'cup.quarterFinal': 'Viertelfinale',
+  'cup.roundOf16': 'Achtelfinale',
   'cup.roundOf': 'Runde der {count}',
+  'cup.roundNumber': 'Runde {number}',
+  'cup.bye': 'Freilos',
   'cup.noGames': 'Noch keine Pokalspiele.',
   'cup.selectRound': 'Runde auswählen',
   'cup.selectSeason': 'Saison auswählen',

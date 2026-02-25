@@ -75,11 +75,12 @@ export class GameSlider extends UIElement {
         }
       }
 
+      const isBye = !game.team2Data?.name && !game.team2Id
       const slideContent = renderGameResult({
         team1: game.team1Data,
-        team2: game.team2Data,
+        team2: isBye ? null : game.team2Data,
         team1Name: game.team1 ?? '',
-        team2Name: game.team2 ?? '',
+        team2Name: isBye ? t('cup.bye') : (game.team2 ?? ''),
         isTeam1Highlighted: isHomeGame,
         centerContent,
         href
@@ -205,7 +206,9 @@ export class GameSlider extends UIElement {
       if (game.cupRound === 1) return t('cup.final')
       if (game.cupRound === 2) return t('cup.semiFinal')
       if (game.cupRound === 4) return t('cup.quarterFinal')
-      return t('cup.roundOf', { count: game.cupRound * 2 })
+      if (game.cupRound === 8) return t('cup.roundOf16')
+      const sequentialNumber = (game.totalRounds || 0) - Math.log2(game.cupRound)
+      return t('cup.roundNumber', { number: sequentialNumber })
     }
     return t('dashboard.gameDay', { gameDay: game.gameDay + 1 })
   }

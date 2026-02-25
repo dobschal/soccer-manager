@@ -11,7 +11,7 @@ import { getTeamById } from './helper/teamHelper.js'
 import { generateRandomEmblem } from './lib/emblem.js'
 import { archiveOverageYouthPlayers, getYouthPlayersAt18 } from './helper/youthPlayerHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
-import { createCupDraw } from './helper/cupHelper.js'
+import { createCupDraw, validateAndProgressCupRounds } from './helper/cupHelper.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -56,12 +56,6 @@ async function _createCupDraw () {
   const season = currentSeasonGame.season
   const currentGameDay = currentSeasonGame.game_day
 
-  // Cup first round is on game day 4 - if we're past that, skip cup creation
-  const FIRST_CUP_ROUND_GAME_DAY = 4
-  if (currentGameDay > FIRST_CUP_ROUND_GAME_DAY) {
-    return console.log(`⏭️ Season ${season} already past game day ${FIRST_CUP_ROUND_GAME_DAY}, skipping cup draw.`)
-  }
-
   // Check if cup games already exist for this season
   const existingCupGames = await query(
     'SELECT * FROM game WHERE game_type=? AND season=? LIMIT 1',
@@ -69,11 +63,20 @@ async function _createCupDraw () {
   )
 
   if (existingCupGames.length > 0) {
-    return console.log('⏭️ Cup draw already exists for this season.')
+    console.log('⏭️ Cup draw already exists for this season.')
+    await validateAndProgressCupRounds(season)
+    return
   }
 
-  const matchesCreated = await createCupDraw(season)
+  // Only skip cup creation if the season is nearly over (last 2 game days)
+  const TOTAL_GAME_DAYS = 33
+  if (currentGameDay > TOTAL_GAME_DAYS - 2) {
+    return console.log(`⏭️ Season ${season} nearly over (game day ${currentGameDay}), skipping cup draw.`)
+  }
+
+  const matchesCreated = await createCupDraw(season, currentGameDay)
   console.log(`🏆 Cup draw created for season ${season}: ${matchesCreated} first round matches`)
+  await validateAndProgressCupRounds(season)
 }
 
 /**

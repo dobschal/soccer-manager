@@ -164,13 +164,11 @@ export class MyTeamPage extends UIElement {
   _initDragDrop () {
     this._dragDropCleanup?.destroy()
     setTimeout(() => {
-      const tableBody = document.querySelector(`${this._elementQuery} #player-list-container tbody`)
       const squadEl = document.querySelector(`${this._elementQuery} #squad .squad`)
       const benchEl = document.querySelector(`${this._elementQuery} #squad .bench`)
-      if (!tableBody || !squadEl) return
+      if (!squadEl) return
 
       this._dragDropCleanup = initDragDrop({
-        tableBodyEl: tableBody,
         squadEl,
         benchEl,
         players: this.data.players,
@@ -186,6 +184,7 @@ export class MyTeamPage extends UIElement {
           } catch (e) {
             console.error(e)
             toast(e.message ?? 'Something went wrong...', 'error')
+            this._dragDropCleanup?.unlock()
           }
         },
         onSortChanged: async (sortData) => {
@@ -197,6 +196,7 @@ export class MyTeamPage extends UIElement {
           } catch (e) {
             console.error(e)
             toast(e.message ?? 'Something went wrong...', 'error')
+            this._dragDropCleanup?.unlock()
           }
         }
       })

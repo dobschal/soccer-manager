@@ -5,6 +5,7 @@ import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
 import { cityNames, clubPrefixes1, clubPrefixes2 } from '../lib/name-library.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
 
 export default {
 
@@ -345,9 +346,11 @@ export default {
           (lastCupGame.team_2_id === teamId && lastCupGame.goals_team_2 > lastCupGame.goals_team_1)
         )
         const roundReached = lastCupGame.cup_round
+        const totalRounds = await getTotalRoundsForSeason(row.season)
 
         cupResult = {
           roundReached,
+          totalRounds,
           isWinner: isWinner && roundReached === 1,
           gamesPlayed: cupGames.filter(g => g.played === 1).length
         }

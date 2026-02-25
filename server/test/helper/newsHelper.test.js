@@ -575,6 +575,9 @@ describe('newsHelper', () => {
           played: 1
         }])
 
+        // getTotalRoundsForSeason query
+        query.mockResolvedValueOnce([{ maxRound: 32 }])
+
         // Insert CUP_MATCH news for team1's league
         query.mockResolvedValueOnce({ insertId: 1 })
         // Insert CUP_MATCH news for team2's league
@@ -625,6 +628,9 @@ describe('newsHelper', () => {
           played: 1
         }])
 
+        // getTotalRoundsForSeason query
+        query.mockResolvedValueOnce([{ maxRound: 32 }])
+
         // Insert CUP_MATCH news (only one league combo since both teams in same league)
         query.mockResolvedValueOnce({ insertId: 1 })
 
@@ -666,6 +672,9 @@ describe('newsHelper', () => {
           played: 1
         }])
 
+        // getTotalRoundsForSeason query
+        query.mockResolvedValueOnce([{ maxRound: 32 }])
+
         await generateNewsForGameDay(5, 1)
 
         const insertCalls = query.mock.calls.filter(call =>
@@ -697,6 +706,9 @@ describe('newsHelper', () => {
           game_type: 'cup',
           played: 1
         }])
+
+        // getTotalRoundsForSeason query
+        query.mockResolvedValueOnce([{ maxRound: 32 }])
 
         // Insert CUP_MATCH news for team1's league (0-0)
         query.mockResolvedValueOnce({ insertId: 1 })
@@ -739,6 +751,9 @@ describe('newsHelper', () => {
           played: 1
         }])
 
+        // getTotalRoundsForSeason query
+        query.mockResolvedValueOnce([{ maxRound: 32 }])
+
         query.mockResolvedValueOnce({ insertId: 1 })
 
         await generateNewsForGameDay(5, 1)
@@ -777,6 +792,9 @@ describe('newsHelper', () => {
           game_type: 'cup',
           played: 1
         }])
+
+        // getTotalRoundsForSeason query
+        query.mockResolvedValueOnce([{ maxRound: 32 }])
 
         query.mockResolvedValueOnce({ insertId: 1 })
 

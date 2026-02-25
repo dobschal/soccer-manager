@@ -51,11 +51,13 @@ export function formatLeague (level, league) {
 /**
  * Format a cup round for display
  * @param {number} round - The cup round (1=final, 2=semi, 4=quarter, etc.)
+ * @param {number} totalRounds - Total number of rounds in the tournament
  * @returns {string} Formatted cup round name
  */
-export function formatCupRound (round) {
+export function formatCupRound (round, totalRounds) {
   if (round === 1) return t('cup.final')
   if (round === 2) return t('cup.semiFinal')
   if (round === 4) return t('cup.quarterFinal')
-  return t('cup.roundOf', { count: round * 2 })
+  const sequentialNumber = totalRounds - Math.log2(round)
+  return t('cup.roundNumber', { number: sequentialNumber })
 }

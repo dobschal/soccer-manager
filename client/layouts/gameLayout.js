@@ -113,6 +113,8 @@ export class GameLayout extends UIElement {
           <span class="text-muted">FootballManager.IO v${this._version}</span>
           <br>
           <a href="imprint.html" class="text-muted">${t('footer.imprintPrivacy')}</a>
+          <span class="text-muted"> | </span>
+          <a href="support.html" class="text-muted">${t('footer.support')}</a>
         </footer>
       </div>
     `
@@ -230,7 +232,7 @@ export class GameLayout extends UIElement {
     const content = `
       <div class="settings-overlay-content">
         <div class="mb-3">
-          <label class="form-label">${t('nav.language')}</label>
+          <label class="form-label mt-2">${t('nav.language')}</label>
           <div class="btn-group w-100" role="group">
             <button id="settings-lang-en" class="btn ${currentLocale === 'en' ? 'btn-primary' : 'btn-outline-info'}">English</button>
             <button id="settings-lang-de" class="btn ${currentLocale === 'de' ? 'btn-primary' : 'btn-outline-info'}">Deutsch</button>
@@ -238,6 +240,13 @@ export class GameLayout extends UIElement {
         </div>
         <button id="settings-logout" class="btn btn-outline-danger w-100">
           <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
+        </button>
+        <hr>
+        <a href="support.html" class="btn btn-outline-info w-100 mb-2">
+          <i class="fa fa-life-ring" aria-hidden="true"></i> ${t('nav.support')}
+        </a>
+        <button id="settings-delete-account" class="btn btn-outline-danger w-100">
+          <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
         </button>
       </div>
     `
@@ -284,6 +293,22 @@ export class GameLayout extends UIElement {
           disconnectWebSocket()
           window.localStorage.removeItem('auth-token')
           goTo('login')
+        })
+      }
+
+      const deleteAccountBtn = el('#settings-delete-account')
+      if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', async () => {
+          if (!confirm(t('nav.deleteAccountConfirm'))) return
+          try {
+            await server.deleteAccount()
+            overlay.remove()
+            disconnectWebSocket()
+            window.localStorage.removeItem('auth-token')
+            goTo('login')
+          } catch (err) {
+            toast(err.message ?? t('toast.somethingWentWrong'), 'error')
+          }
         })
       }
     }, 0)

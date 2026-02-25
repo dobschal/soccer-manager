@@ -2,29 +2,29 @@
  * Drag-and-drop manager for the my-team page.
  * Supports three scenarios:
  *   A. Bench player → pitch position (assign to lineup)
- *   B. Swap two lineup players in the list
+ *   B. Swap bench player with lineup player on pitch
  *   C. Reorder bench players (persisted via sort_index)
  *
  * Uses native HTML5 Drag and Drop API. Skipped on touch devices.
  *
  * @param {Object} options
- * @param {HTMLElement} options.tableBodyEl  - <tbody> of the player list
  * @param {HTMLElement} options.squadEl      - .squad element on the pitch
  * @param {HTMLElement} [options.benchEl]    - .bench element (sidebar bench panel)
  * @param {Array} options.players           - players array reference
  * @param {Object} options.team             - team object reference
  * @param {(players: Array, formation: string) => Promise} options.onLineupChange
  * @param {(sortData: Array<{playerId:number,sortIndex:number}>) => Promise} options.onSortChanged
- * @returns {{ destroy: () => void }}
+ * @returns {{ destroy: () => void, unlock: () => void }}
  */
-export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, onLineupChange, onSortChanged }) {
+export function initDragDrop ({ squadEl, benchEl, players, team, onLineupChange, onSortChanged }) {
   // Skip on touch devices — the click overlay remains as fallback
   if (navigator.maxTouchPoints > 0) {
-    return { destroy () {} }
+    return { destroy () {}, unlock () {} }
   }
 
   let draggedPlayerId = null
   let draggedRow = null
+  let isSaving = false
 
   // --- helpers ---
 
@@ -40,25 +40,6 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     return posA === posB
   }
 
-  // --- make rows draggable ---
-
-  const rows = tableBodyEl.querySelectorAll('tr[data-player-id]')
-  rows.forEach(row => {
-    const playerId = Number(row.dataset.playerId)
-    const player = getPlayerById(playerId)
-    if (!player || player.is_suspended) return
-
-    row.draggable = true
-    row.classList.add('drag-enabled')
-
-    row.addEventListener('dragstart', onRowDragStart)
-    row.addEventListener('dragend', onRowDragEnd)
-    row.addEventListener('dragover', onRowDragOver)
-    row.addEventListener('dragenter', onRowDragEnter)
-    row.addEventListener('dragleave', onRowDragLeave)
-    row.addEventListener('drop', onRowDrop)
-  })
-
   // --- make pitch players drop targets ---
 
   const pitchPlayers = squadEl.querySelectorAll('.player')
@@ -68,74 +49,6 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     el.addEventListener('dragleave', onPitchDragLeave)
     el.addEventListener('drop', onPitchDrop)
   })
-
-  // --- row event handlers ---
-
-  function onRowDragStart (e) {
-    draggedPlayerId = Number(e.currentTarget.dataset.playerId)
-    draggedRow = e.currentTarget
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', String(draggedPlayerId))
-    requestAnimationFrame(() => {
-      if (draggedRow) draggedRow.classList.add('dragging')
-    })
-  }
-
-  function onRowDragEnd () {
-    if (draggedRow) draggedRow.classList.remove('dragging')
-    clearAllHighlights()
-    draggedPlayerId = null
-    draggedRow = null
-  }
-
-  function onRowDragOver (e) {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  function onRowDragEnter (e) {
-    const row = e.currentTarget
-    if (row === draggedRow) return
-    const targetId = Number(row.dataset.playerId)
-    const draggedPlayer = getPlayerById(draggedPlayerId)
-    const targetPlayer = getPlayerById(targetId)
-    if (!draggedPlayer || !targetPlayer) return
-
-    // Both bench → show sort indicator
-    if (isOnBench(draggedPlayer) && isOnBench(targetPlayer)) {
-      row.classList.add('drag-over-below')
-    } else if (!isOnBench(draggedPlayer) || !isOnBench(targetPlayer)) {
-      // At least one in lineup — highlight if compatible
-      if (positionsCompatible(draggedPlayer.position, targetPlayer.position)) {
-        row.classList.add('drag-over-below')
-      }
-    }
-  }
-
-  function onRowDragLeave (e) {
-    e.currentTarget.classList.remove('drag-over-above', 'drag-over-below')
-  }
-
-  function onRowDrop (e) {
-    e.preventDefault()
-    const row = e.currentTarget
-    row.classList.remove('drag-over-above', 'drag-over-below')
-
-    const targetId = Number(row.dataset.playerId)
-    if (targetId === draggedPlayerId) return
-
-    const draggedPlayer = getPlayerById(draggedPlayerId)
-    const targetPlayer = getPlayerById(targetId)
-    if (!draggedPlayer || !targetPlayer) return
-
-    if (isOnBench(draggedPlayer) && isOnBench(targetPlayer)) {
-      // Scenario C: reorder bench players
-      reorderBench(draggedPlayer, targetPlayer)
-    } else if (positionsCompatible(draggedPlayer.position, targetPlayer.position)) {
-      // Scenario B: swap in_game_position
-      swapLineupPositions(draggedPlayer, targetPlayer)
-    }
-  }
 
   // --- pitch event handlers ---
 
@@ -165,6 +78,8 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     const pitchEl = e.currentTarget
     pitchEl.classList.remove('drop-target-highlight')
 
+    if (isSaving) return
+
     const draggedPlayer = getPlayerById(draggedPlayerId)
     if (!draggedPlayer) return
 
@@ -176,18 +91,20 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     const isFake = String(pitchPlayerId).startsWith('fake-')
 
     if (isFake) {
-      // Empty slot — just assign dragged player
+      // Empty slot — assign dragged player, but guard against exceeding 11
+      const currentLineupCount = players.filter(p => !p.fake && p.in_game_position).length
+      if (currentLineupCount >= 11) return
       draggedPlayer.in_game_position = pitchPosition
-      onLineupChange(players.filter(p => !p.fake), team.formation)
     } else {
       const occupant = getPlayerById(Number(pitchPlayerId))
-      if (occupant) {
-        // Swap: occupant goes to bench, dragged player takes the spot
-        occupant.in_game_position = draggedPlayer.in_game_position || ''
-        draggedPlayer.in_game_position = pitchPosition
-        onLineupChange(players.filter(p => !p.fake), team.formation)
-      }
+      if (!occupant) return
+      // Swap: occupant goes to bench, dragged player takes the spot
+      occupant.in_game_position = draggedPlayer.in_game_position || ''
+      draggedPlayer.in_game_position = pitchPosition
     }
+
+    isSaving = true
+    onLineupChange(players.filter(p => !p.fake), team.formation)
   }
 
   // --- bench panel: make bench players draggable + drop targets ---
@@ -239,7 +156,9 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     const targetPlayer = getPlayerById(targetId)
     if (!targetPlayer) return
 
-    if (positionsCompatible(draggedPlayer.position, targetPlayer.position)) {
+    // Allow drop for bench-to-bench reorder or compatible position swap
+    if ((isOnBench(draggedPlayer) && isOnBench(targetPlayer)) ||
+        positionsCompatible(draggedPlayer.position, targetPlayer.position)) {
       benchPlayerEl.classList.add('drop-target-highlight')
     }
   }
@@ -253,6 +172,8 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     const benchPlayerEl = e.currentTarget
     benchPlayerEl.classList.remove('drop-target-highlight')
 
+    if (isSaving) return
+
     const draggedPlayer = getPlayerById(draggedPlayerId)
     if (!draggedPlayer) return
 
@@ -260,7 +181,9 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     const targetPlayer = getPlayerById(targetId)
     if (!targetPlayer) return
 
-    if (positionsCompatible(draggedPlayer.position, targetPlayer.position)) {
+    if (isOnBench(draggedPlayer) && isOnBench(targetPlayer)) {
+      reorderBench(draggedPlayer, targetPlayer)
+    } else if (positionsCompatible(draggedPlayer.position, targetPlayer.position)) {
       swapLineupPositions(draggedPlayer, targetPlayer)
     }
   }
@@ -279,6 +202,7 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     const posB = playerB.in_game_position
     playerA.in_game_position = posB
     playerB.in_game_position = posA
+    isSaving = true
     onLineupChange(players.filter(p => !p.fake), team.formation)
   }
 
@@ -303,13 +227,11 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
       return { playerId: p.id, sortIndex: i + 1 }
     })
 
+    isSaving = true
     onSortChanged(sortData)
   }
 
   function clearAllHighlights () {
-    tableBodyEl.querySelectorAll('.drag-over-above, .drag-over-below').forEach(el => {
-      el.classList.remove('drag-over-above', 'drag-over-below')
-    })
     squadEl.querySelectorAll('.drop-target-highlight').forEach(el => {
       el.classList.remove('drop-target-highlight')
     })
@@ -323,16 +245,6 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
   // --- cleanup ---
 
   function destroy () {
-    rows.forEach(row => {
-      row.removeAttribute('draggable')
-      row.classList.remove('drag-enabled', 'dragging')
-      row.removeEventListener('dragstart', onRowDragStart)
-      row.removeEventListener('dragend', onRowDragEnd)
-      row.removeEventListener('dragover', onRowDragOver)
-      row.removeEventListener('dragenter', onRowDragEnter)
-      row.removeEventListener('dragleave', onRowDragLeave)
-      row.removeEventListener('drop', onRowDrop)
-    })
     pitchPlayers.forEach(el => {
       el.removeEventListener('dragover', onPitchDragOver)
       el.removeEventListener('dragenter', onPitchDragEnter)
@@ -351,5 +263,8 @@ export function initDragDrop ({ tableBodyEl, squadEl, benchEl, players, team, on
     })
   }
 
-  return { destroy }
+  return {
+    destroy,
+    unlock () { isSaving = false }
+  }
 }

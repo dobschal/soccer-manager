@@ -15,7 +15,7 @@ import { processYouthTraining } from './helper/youthPlayerHelper.js'
 import { cacheStandingsForGameDay } from './helper/standingHelper.js'
 import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { CACHE_NAMESPACES, clearCacheByPrefix } from './lib/cache.js'
-import { getCupRoundsForSeason, progressCupRound, sendCupMatchLogMessages } from './helper/cupHelper.js'
+import { progressCupRound, sendCupMatchLogMessages, validateAndProgressCupRounds } from './helper/cupHelper.js'
 import { kickoff, playGameStep } from './play-game.js'
 
 /**
@@ -95,41 +95,7 @@ async function _playCupGames (gameDay, season) {
   }
 
   // Catch-up: check for any fully played rounds that were never progressed
-  await _progressUnhandledCupRounds(season)
-}
-
-/**
- * Check for cup rounds where all games are played but the next round was never created.
- * This handles recovery from the bug where progression was skipped.
- * @param {number} season
- * @returns {Promise<void>}
- */
-async function _progressUnhandledCupRounds (season) {
-  const rounds = await getCupRoundsForSeason(season)
-
-  for (const round of rounds) {
-    if (!round.played) continue
-
-    // Check if this round has already been progressed by looking for next round games
-    const nextRoundNumber = Math.floor(round.round / 2)
-    if (nextRoundNumber >= 1) {
-      const [{ count }] = await query(
-        'SELECT COUNT(*) as count FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=?',
-        [season, nextRoundNumber]
-      )
-      if (count > 0) continue // Next round already exists
-    } else {
-      continue // round.round is 1 (the final) and it's played — cup is done
-    }
-
-    console.log(`Cup catch-up: round ${round.round} was played but never progressed, fixing now...`)
-    const result = await progressCupRound(season, round.round)
-    if (result.isComplete) {
-      console.log('🏆 Cup is complete!')
-    } else if (result.advanced) {
-      console.log(`Cup round ${round.round} complete, advanced to next round`)
-    }
-  }
+  await validateAndProgressCupRounds(season)
 }
 
 /**

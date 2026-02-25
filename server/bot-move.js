@@ -70,7 +70,7 @@ async function _checkStadium (botTeam) {
   /** @type {StadiumType} */
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [botTeam.id])
   /** @type {GameType[]} */
-  const [game] = await query('SELECT * FROM game where team_1_id=? AND played=1 ORDER BY season DESC, game_day DESC', [botTeam.id])
+  const [game] = await query('SELECT * FROM game where team_1_id=? AND played=1 AND (game_type=\'league\' OR game_type IS NULL) ORDER BY season DESC, game_day DESC', [botTeam.id])
   if (game && game.details) {
     const details = JSON.parse(game.details)
     const totalGuests = details.stadiumDetails.northGuests + details.stadiumDetails.southGuests + details.stadiumDetails.eastGuests + details.stadiumDetails.westGuests

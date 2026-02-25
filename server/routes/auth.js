@@ -1,6 +1,6 @@
 import { config } from '../config.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
-import { query } from '../lib/database.js'
+import { query, transaction } from '../lib/database.js'
 import jwt from 'jsonwebtoken'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
@@ -111,6 +111,62 @@ export default {
     }
     await query('UPDATE user SET language=? WHERE id=?', [language, req.user.id])
     clearUserCache(req.user.id)
+    return { success: true }
+  },
+
+  /**
+   * Delete the current user's account and disassociate from their team.
+   * The team is kept as a bot (user_id = NULL) for league integrity.
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async deleteAccount (req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    const userId = req.user.id
+    const [team] = await query('SELECT * FROM team WHERE user_id=?', [userId])
+
+    await transaction(async (txQuery) => {
+      if (team) {
+        // Delete news interactions
+        await txQuery('DELETE FROM news_comment WHERE user_id=?', [userId])
+        await txQuery('DELETE FROM news_like WHERE user_id=?', [userId])
+
+        // Delete player-related data
+        await txQuery('DELETE FROM player_history WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
+        await txQuery('DELETE FROM player_season_stats WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
+
+        // Delete trade data
+        await txQuery('DELETE FROM trade_history WHERE from_team_id=? OR to_team_id=?', [team.id, team.id])
+        await txQuery('DELETE FROM trade_offer WHERE from_team_id=? OR player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id, team.id])
+
+        // Delete team entities
+        await txQuery('DELETE FROM player WHERE team_id=?', [team.id])
+        await txQuery('DELETE FROM youth_player WHERE team_id=?', [team.id])
+        await txQuery('DELETE FROM action_card WHERE team_id=?', [team.id])
+        await txQuery('DELETE FROM finance_log WHERE team_id=?', [team.id])
+        await txQuery('DELETE FROM log_message WHERE team_id=?', [team.id])
+        await txQuery('DELETE FROM building WHERE team_id=?', [team.id])
+        await txQuery('DELETE FROM sponsor WHERE team_id=?', [team.id])
+
+        // Delete stadium data
+        const [stadium] = await txQuery('SELECT id FROM stadium WHERE team_id=?', [team.id])
+        if (stadium) {
+          await txQuery('DELETE FROM stadium_construction_history WHERE stadium_id=?', [stadium.id])
+        }
+        await txQuery('DELETE FROM stadium WHERE team_id=?', [team.id])
+
+        // Keep team as bot for league integrity
+        await txQuery('UPDATE team SET user_id=NULL WHERE id=?', [team.id])
+      }
+
+      // Delete user
+      await txQuery('DELETE FROM user WHERE id=?', [userId])
+    })
+
+    clearUserCache(userId)
     return { success: true }
   }
 

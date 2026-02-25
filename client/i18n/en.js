@@ -12,6 +12,9 @@ export default {
   'nav.settings': 'Settings',
   'nav.language': 'Language',
   'nav.search': 'Search',
+  'nav.support': 'Support',
+  'nav.deleteAccount': 'Delete Account',
+  'nav.deleteAccountConfirm': 'Are you sure? This will permanently delete your account and all your data. This cannot be undone.',
 
   // Search
   'search.title': 'Search',
@@ -768,6 +771,7 @@ export default {
 
   // Footer
   'footer.imprintPrivacy': 'Imprint & Privacy Policy',
+  'footer.support': 'Support',
 
   // Currency
   'currency.format': '{value}',
@@ -779,7 +783,10 @@ export default {
   'cup.final': 'Final',
   'cup.semiFinal': 'Semi-Final',
   'cup.quarterFinal': 'Quarter-Final',
+  'cup.roundOf16': 'Round of 16',
   'cup.roundOf': 'Round of {count}',
+  'cup.roundNumber': 'Round {number}',
+  'cup.bye': 'Bye',
   'cup.noGames': 'No cup matches yet.',
   'cup.selectRound': 'Select round',
   'cup.selectSeason': 'Select season',

@@ -3,8 +3,45 @@ import { Game } from '../entities/game.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { addLogMessage } from './logMessageHelper.js'
 import { getUserLocale, t } from '../i18n/index.js'
+import { getGameDayAndSeason } from './gameDayHelper.js'
 
 const CUP_PRIZE = 2000000 // 2 million euros
+
+/**
+ * Compute the total number of rounds from the first round's cup_round value.
+ * cup_round uses powers of 2: first round has highest value (e.g., 64), final = 1.
+ * @param {number} maxCupRound - The highest cup_round value (first round)
+ * @returns {number} Total number of rounds in the tournament
+ */
+export function getTotalRounds (maxCupRound) {
+  if (!maxCupRound || maxCupRound < 1) return 0
+  return Math.log2(maxCupRound) + 1
+}
+
+/**
+ * Get the sequential round number from a cup_round value.
+ * @param {number} cupRound - The cup_round value (power of 2, 1=final)
+ * @param {number} totalRounds - Total number of rounds in tournament
+ * @returns {number} Sequential round number (1 = first round)
+ */
+export function getSequentialRoundNumber (cupRound, totalRounds) {
+  return totalRounds - Math.log2(cupRound)
+}
+
+/**
+ * Get the display name for a cup round (server-side, no i18n).
+ * @param {number} cupRound - The cup_round value (power of 2, 1=final)
+ * @param {number} totalRounds - Total number of rounds in tournament
+ * @returns {string} Display name like "Round 1", "Quarter-Final", etc.
+ */
+export function getCupRoundDisplayName (cupRound, totalRounds) {
+  if (cupRound === 1) return 'Final'
+  if (cupRound === 2) return 'Semi-Final'
+  if (cupRound === 4) return 'Quarter-Final'
+  if (cupRound === 8) return 'Round of 16'
+  const sequential = getSequentialRoundNumber(cupRound, totalRounds)
+  return `Round ${sequential}`
+}
 
 /**
  * Calculate the cup schedule based on team count and total game days
@@ -64,9 +101,10 @@ export function calculateCupSchedule (teamCount, totalGameDays = 33) {
 /**
  * Create the initial cup draw for a season
  * @param {number} season
+ * @param {number} [currentGameDay=0] - Current game day (used for mid-season cup creation to adjust schedule)
  * @returns {Promise<number>} Number of matches created
  */
-export async function createCupDraw (season) {
+export async function createCupDraw (season, currentGameDay = 0) {
   // Get all teams
   const teams = await query('SELECT * FROM team ORDER BY level ASC, league ASC')
   const teamCount = teams.length
@@ -81,6 +119,25 @@ export async function createCupDraw (season) {
   if (schedule.length === 0) {
     console.log('No cup schedule could be calculated')
     return 0
+  }
+
+  // For mid-season creation, adjust round game days so they are in the future
+  if (currentGameDay > 0) {
+    const futureRounds = schedule.filter(s => s.gameDay > currentGameDay)
+    if (futureRounds.length === 0) {
+      // No room left — put all rounds on remaining days
+      const remainingDays = 32 - currentGameDay
+      for (let i = 0; i < schedule.length; i++) {
+        schedule[i].gameDay = currentGameDay + 1 + Math.round(i * remainingDays / schedule.length)
+      }
+    } else {
+      // Push early rounds to be at least currentGameDay + 1
+      for (const round of schedule) {
+        if (round.gameDay <= currentGameDay) {
+          round.gameDay = currentGameDay + 1
+        }
+      }
+    }
   }
 
   const firstRound = schedule[0]
@@ -127,8 +184,26 @@ export async function createCupDraw (season) {
     matchesCreated++
   }
 
-  // If there are bye teams, they automatically advance to the next round
-  // We'll handle this when the first round completes
+  // Create bye game entries for teams that get a bye
+  for (const byeTeam of byeTeams) {
+    const byeGame = new Game({
+      team_1_id: byeTeam.id,
+      team_2_id: null,
+      season,
+      game_day: firstRound.gameDay,
+      level: 0,
+      league: 0,
+      played: 1,
+      details: '{}',
+      goals_team_1: 0,
+      goals_team_2: 0,
+      game_type: 'cup',
+      cup_round: firstRound.round
+    })
+
+    await query('INSERT INTO game SET ?', byeGame)
+  }
+
   console.log(`Cup draw created: ${matchesCreated} first round matches, ${byeCount} byes`)
 
   return matchesCreated
@@ -157,22 +232,21 @@ export async function progressCupRound (season, completedRound) {
     [season, completedRound]
   )
 
-  // Get winners
+  // Get winners — bye games (team_2_id IS NULL) automatically advance team_1
   const winners = playedGames.map(game => {
+    if (game.team_2_id == null) return game.team_1_id
     if (game.goals_team_1 > game.goals_team_2) return game.team_1_id
     if (game.goals_team_2 > game.goals_team_1) return game.team_2_id
     // In case of draw, random winner (should use penalties in real implementation)
     return Math.random() < 0.5 ? game.team_1_id : game.team_2_id
   })
 
-  // Get teams that had byes (if any)
-  // These are teams that are in the cup but weren't in any match of the completed round
-  const allCupTeams = await _getAllCupTeamsForSeason(season)
-  const teamsInRound = new Set(playedGames.flatMap(g => [g.team_1_id, g.team_2_id]))
-  const byeTeams = allCupTeams.filter(t => !teamsInRound.has(t.id))
+  const nextRoundTeams = [...winners]
 
-  // Combine winners and bye teams for next round
-  const nextRoundTeams = [...winners, ...byeTeams.map(t => t.id)]
+  const [maxRoundResult] = await query(
+    'SELECT MAX(cup_round) as maxRound FROM game WHERE game_type=\'cup\' AND season=?',
+    [season]
+  )
 
   // If only 1 team left, cup is complete
   if (nextRoundTeams.length === 1) {
@@ -196,6 +270,10 @@ export async function progressCupRound (season, completedRound) {
     return { advanced: false, isComplete: false }
   }
 
+  // Ensure the next round is scheduled in the future (not before the completed round's game day)
+  const completedGameDay = Math.max(...playedGames.map(g => g.game_day))
+  const nextGameDay = Math.max(nextRoundSchedule.gameDay, completedGameDay + 1)
+
   // Shuffle next round teams for random matchups
   const shuffledTeams = [...nextRoundTeams].sort(() => Math.random() - 0.5)
 
@@ -210,7 +288,7 @@ export async function progressCupRound (season, completedRound) {
       team_1_id: teamAId,
       team_2_id: teamBId,
       season,
-      game_day: nextRoundSchedule.gameDay,
+      game_day: nextGameDay,
       level: 0,
       league: 0,
       played: 0,
@@ -265,29 +343,6 @@ export async function awardCupWinner (season, winnerTeamId) {
 }
 
 /**
- * Get all teams participating in the cup for a season
- * @param {number} season
- * @returns {Promise<TeamType[]>}
- */
-async function _getAllCupTeamsForSeason (season) {
-  // Get all unique team IDs from cup games this season
-  const teamIds = await query(`
-    SELECT DISTINCT team_id FROM (
-      SELECT team_1_id as team_id FROM game WHERE game_type='cup' AND season=?
-      UNION
-      SELECT team_2_id as team_id FROM game WHERE game_type='cup' AND season=?
-    ) teams
-  `, [season, season])
-
-  if (teamIds.length === 0) {
-    return []
-  }
-
-  const ids = teamIds.map(t => t.team_id)
-  return await query(`SELECT * FROM team WHERE id IN (${ids.join(',')})`)
-}
-
-/**
  * Get cup games for a specific team
  * @param {number} teamId
  * @param {number} season
@@ -313,7 +368,7 @@ export async function getCupGamesForTeam (teamId, season, limit = 10) {
            t2.emblem as team2Emblem
     FROM game g
     JOIN team t1 ON t1.id = g.team_1_id
-    JOIN team t2 ON t2.id = g.team_2_id
+    LEFT JOIN team t2 ON t2.id = g.team_2_id
     WHERE g.game_type = 'cup'
       AND g.season = ?
       AND (g.team_1_id = ? OR g.team_2_id = ?)
@@ -349,7 +404,7 @@ export async function getCupResultsForRound (season, round) {
            t2.emblem as team2Emblem
     FROM game g
     JOIN team t1 ON t1.id = g.team_1_id
-    JOIN team t2 ON t2.id = g.team_2_id
+    LEFT JOIN team t2 ON t2.id = g.team_2_id
     WHERE g.game_type = 'cup'
       AND g.season = ?
       AND g.cup_round = ?
@@ -382,6 +437,19 @@ export async function getCupRoundsForSeason (season) {
     gameDay: r.gameDay,
     matchCount: r.matchCount
   }))
+}
+
+/**
+ * Get total number of cup rounds for a season from the database.
+ * @param {number} season
+ * @returns {Promise<number>}
+ */
+export async function getTotalRoundsForSeason (season) {
+  const [result] = await query(
+    'SELECT MAX(cup_round) as maxRound FROM game WHERE game_type=\'cup\' AND season=?',
+    [season]
+  )
+  return getTotalRounds(result?.maxRound)
 }
 
 /**
@@ -420,7 +488,59 @@ export async function getCupBracket (season) {
  * @param {GameType} game - The completed cup game
  * @param {Object} gameDetails - Game details including goals
  */
+/**
+ * Validate and progress any cup rounds that were played but never progressed.
+ * This can be called at startup (prepareSeason) or after game day calculation.
+ * @param {number} season
+ * @returns {Promise<void>}
+ */
+export async function validateAndProgressCupRounds (season) {
+  // Fix unplayed cup games that are scheduled in the past
+  const { gameDay: currentGameDay } = await getGameDayAndSeason()
+  const pastCupGames = await query(
+    'SELECT id, game_day FROM game WHERE game_type=\'cup\' AND season=? AND played=0 AND game_day < ?',
+    [season, currentGameDay]
+  )
+  if (pastCupGames.length > 0) {
+    const newGameDay = currentGameDay + 1
+    await query(
+      'UPDATE game SET game_day=? WHERE game_type=\'cup\' AND season=? AND played=0 AND game_day < ?',
+      [newGameDay, season, currentGameDay]
+    )
+    console.log(`Cup fix-up: rescheduled ${pastCupGames.length} unplayed cup games from past game days to day ${newGameDay}`)
+  }
+
+  const rounds = await getCupRoundsForSeason(season)
+
+  for (const round of rounds) {
+    if (!round.played) continue
+
+    // Check if this round has already been progressed by looking for next round games
+    const nextRoundNumber = Math.floor(round.round / 2)
+    if (nextRoundNumber >= 1) {
+      const [{ count }] = await query(
+        'SELECT COUNT(*) as count FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=?',
+        [season, nextRoundNumber]
+      )
+      if (count > 0) continue // Next round already exists
+    } else {
+      continue // round.round is 1 (the final) and it's played — cup is done
+    }
+
+    console.log(`Cup catch-up: round ${round.round} was played but never progressed, fixing now...`)
+    const result = await progressCupRound(season, round.round)
+    if (result.isComplete) {
+      console.log('🏆 Cup is complete!')
+    } else if (result.advanced) {
+      console.log(`Cup round ${round.round} complete, advanced to next round`)
+    }
+  }
+}
+
 export async function sendCupMatchLogMessages (game, gameDetails) {
+  // Bye games have no team_2 — no log messages needed
+  if (game.team_2_id == null) return
+
   const [[team1], [team2]] = await Promise.all([
     query('SELECT * FROM team WHERE id=?', [game.team_1_id]),
     query('SELECT * FROM team WHERE id=?', [game.team_2_id])
