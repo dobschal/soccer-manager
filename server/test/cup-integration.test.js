@@ -292,11 +292,11 @@ describe('Cup Integration Tests', () => {
         if (sql.includes('SELECT * FROM team WHERE id=?')) {
           return [teams.find(t => t.id === params[0])]
         }
-        if (sql.includes('SELECT * FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=? AND played=0')) {
+        if (/played\s*=\s*0/.test(sql) && sql.includes('cup_round')) {
           const [, round] = params
           return allGames.filter(g => g.cup_round === round && !g.played)
         }
-        if (sql.includes('SELECT * FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=? AND played=1')) {
+        if (/played\s*=\s*1/.test(sql) && sql.includes('cup_round') && !sql.includes('MIN')) {
           const [, round] = params
           return allGames.filter(g => g.cup_round === round && g.played)
         }
@@ -403,11 +403,11 @@ describe('Cup Integration Tests', () => {
         if (sql.includes('SELECT * FROM team WHERE id=?')) {
           return [teams.find(t => t.id === params[0])]
         }
-        if (sql.includes('SELECT * FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=? AND played=0')) {
+        if (/played\s*=\s*0/.test(sql) && sql.includes('cup_round')) {
           const [, round] = params
           return allGames.filter(g => g.cup_round === round && !g.played)
         }
-        if (sql.includes('SELECT * FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=? AND played=1')) {
+        if (/played\s*=\s*1/.test(sql) && sql.includes('cup_round') && !sql.includes('MIN')) {
           const [, round] = params
           return allGames.filter(g => g.cup_round === round && g.played)
         }
@@ -545,11 +545,11 @@ describe('Cup Integration Tests', () => {
         if (sql.includes('SELECT * FROM team WHERE id=?')) {
           return [teams.find(t => t.id === params[0])]
         }
-        if (sql.includes('SELECT * FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=? AND played=0')) {
+        if (/played\s*=\s*0/.test(sql) && sql.includes('cup_round')) {
           const [, round] = params
           return allGames.filter(g => g.cup_round === round && !g.played)
         }
-        if (sql.includes('SELECT * FROM game WHERE game_type=\'cup\' AND season=? AND cup_round=? AND played=1')) {
+        if (/played\s*=\s*1/.test(sql) && sql.includes('cup_round') && !sql.includes('MIN')) {
           const [, round] = params
           return allGames.filter(g => g.cup_round === round && g.played)
         }
@@ -608,7 +608,7 @@ describe('Cup Integration Tests', () => {
 
       query.mockImplementation(async (sql, params) => {
         // getCupRoundsForSeason
-        if (sql.includes('SELECT cup_round as round')) {
+        if (sql.includes('GROUP BY cup_round')) {
           return [{ round: 4, gameDay: 4, allPlayed: 1, matchCount: 2 }]
         }
         // Check for next round existence
@@ -618,11 +618,11 @@ describe('Cup Integration Tests', () => {
           return [{ count }]
         }
         // progressCupRound queries
-        if (sql.includes('played=0') && sql.includes('cup_round')) {
+        if (/played\s*=\s*0/.test(sql) && sql.includes('cup_round')) {
           const [, round] = params
           return allGames.filter(g => g.cup_round === round && !g.played)
         }
-        if (sql.includes('played=1') && sql.includes('cup_round')) {
+        if (/played\s*=\s*1/.test(sql) && sql.includes('cup_round') && !sql.includes('MIN')) {
           const [, round] = params
           return allGames.filter(g => g.cup_round === round && g.played)
         }
@@ -649,7 +649,7 @@ describe('Cup Integration Tests', () => {
 
     it('does nothing when all rounds are already progressed', async () => {
       query.mockImplementation(async (sql) => {
-        if (sql.includes('SELECT cup_round as round')) {
+        if (sql.includes('GROUP BY cup_round')) {
           return [
             { round: 4, gameDay: 4, allPlayed: 1, matchCount: 2 },
             { round: 2, gameDay: 10, allPlayed: 0, matchCount: 1 }
