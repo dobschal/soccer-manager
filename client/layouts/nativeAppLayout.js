@@ -134,6 +134,13 @@ export class NativeAppLayout extends UIElement {
         <button id="settings-logout" class="btn btn-outline-danger w-100">
           <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
         </button>
+        <hr>
+        <a href="support.html" class="btn btn-outline-info w-100 mb-2">
+          <i class="fa fa-life-ring" aria-hidden="true"></i> ${t('nav.support')}
+        </a>
+        <button id="settings-delete-account" class="btn btn-outline-danger w-100">
+          <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
+        </button>
         ${window.__NATIVE_SERVER_URL ? `
         <div class="mt-3 text-muted small" id="settings-version-info">
           <hr>
@@ -185,6 +192,22 @@ export class NativeAppLayout extends UIElement {
           disconnectWebSocket()
           window.localStorage.removeItem('auth-token')
           goTo('login')
+        })
+      }
+
+      const deleteAccountBtn = el('#settings-delete-account')
+      if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', async () => {
+          if (!confirm(t('nav.deleteAccountConfirm'))) return
+          try {
+            await server.deleteAccount()
+            overlay.remove()
+            disconnectWebSocket()
+            window.localStorage.removeItem('auth-token')
+            goTo('login')
+          } catch (err) {
+            toast(err.message ?? t('toast.somethingWentWrong'), 'error')
+          }
         })
       }
 
