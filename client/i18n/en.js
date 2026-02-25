@@ -472,6 +472,7 @@ export default {
   'friendly.matchPlayed': 'Friendly match played!',
   'friendly.result': 'Result: {goals1} - {goals2}',
   'friendly.halfFans': 'Friendly matches have half the normal attendance.',
+  'friendly.playRandomFriendly': 'Play Random Friendly',
 
   // Player positions
   'position.GK': 'Goalkeeper',

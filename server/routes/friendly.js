@@ -86,6 +86,79 @@ export default {
    * @param {Request} req
    * @returns {Promise<{canPlay: boolean, reason?: string}>}
    */
+  /**
+   * Play a friendly match against a random team
+   * @param {Request} req
+   * @returns {Promise<{game: object}>}
+   */
+  async playRandomFriendly (req) {
+    if (!req.user) throw new UnauthorizedError('Not authorized')
+
+    const myTeam = await getTeam(req)
+    const { gameDay, season } = await getGameDayAndSeason()
+
+    // Check if user already played a friendly today
+    const existingFriendly = await query(
+      `SELECT * FROM game
+       WHERE game_type = 'friendly'
+       AND season = ?
+       AND game_day = ?
+       AND (team_1_id = ? OR team_2_id = ?)`,
+      [season, gameDay, myTeam.id, myTeam.id]
+    )
+
+    if (existingFriendly.length > 0) {
+      throw new BadRequestError('You can only play one friendly match per game day')
+    }
+
+    // Pick a random team that is not the user's team
+    const [opponent] = await query(
+      'SELECT * FROM team WHERE id <> ? ORDER BY RAND() LIMIT 1',
+      [myTeam.id]
+    )
+
+    if (!opponent) {
+      throw new BadRequestError('No opponent team found')
+    }
+
+    // Play the game
+    const gameDetails = await _playFriendlyGame(myTeam, opponent, gameDay, season)
+
+    // Insert the game record
+    const result = await query(
+      'INSERT INTO game SET ?',
+      {
+        season,
+        game_day: gameDay,
+        level: myTeam.level,
+        league: myTeam.league,
+        team_1_id: myTeam.id,
+        team_2_id: opponent.id,
+        played: 1,
+        goals_team_1: gameDetails.goalsTeamA,
+        goals_team_2: gameDetails.goalsTeamB,
+        details: JSON.stringify(gameDetails),
+        game_type: 'friendly'
+      }
+    )
+
+    return {
+      game: {
+        id: result.insertId,
+        gameDay,
+        season,
+        goalsTeam1: gameDetails.goalsTeamA,
+        goalsTeam2: gameDetails.goalsTeamB,
+        team1Id: myTeam.id,
+        team2Id: opponent.id,
+        team1: myTeam.name,
+        team2: opponent.name,
+        details: gameDetails,
+        isFriendly: true
+      }
+    }
+  },
+
   async canPlayFriendlyToday (req) {
     if (!req.user) throw new UnauthorizedError('Not authorized')
 

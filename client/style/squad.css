@@ -163,12 +163,16 @@
 .lineup-container {
     display: flex;
     gap: 1rem;
-    align-items: stretch;
+    align-items: flex-start;
+    justify-content: center;
+    max-height: 80vh;
 }
 
 .lineup-pitch {
     flex: 1;
     min-width: 0;
+    /* Cap width so the squad (aspect-ratio 1/1.1) never exceeds 80vh in height */
+    max-width: calc(80vh / 1.1);
 }
 
 /* Bench panel */
@@ -183,6 +187,7 @@
     border-radius: 0.5rem;
     overflow-y: auto;
     min-height: 0;
+    max-height: 80vh;
 }
 
 .bench-title {
@@ -235,11 +240,13 @@
     transform: translateY(-80%);
 }
 
-@media screen and (max-width: 1119px) {
-    .squad {
-        aspect-ratio: 1.1 / 1;
+@media screen and (max-width: 991px) {
+    .squad .player {
+        transform: translateX(-52px) translateY(12px) scale(0.8);
     }
+}
 
+@media screen and (max-width: 768px) {
     #squad {
         width: calc(100% + 4rem);
         margin: 0 -2rem;
@@ -249,16 +256,9 @@
         display: none;
     }
 
-    .lineup-container {
-        display: block;
-    }
 }
 
-@media screen and (max-width: 640px) {
-    .squad {
-        aspect-ratio: 0.8 / 1;
-    }
-
+@media screen and (max-width: 575px) {
     .squad .player {
         transform: translateX(-52px) translateY(12px) scale(0.6);
     }

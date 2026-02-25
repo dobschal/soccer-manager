@@ -472,6 +472,7 @@ export default {
   'friendly.matchPlayed': 'Freundschaftsspiel gespielt!',
   'friendly.result': 'Ergebnis: {goals1} - {goals2}',
   'friendly.halfFans': 'Freundschaftsspiele haben die halbe normale Zuschauerzahl.',
+  'friendly.playRandomFriendly': 'Zufälliges Freundschaftsspiel',
 
   // Player positions
   'position.GK': 'Torwart',

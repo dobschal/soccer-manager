@@ -106,6 +106,7 @@ export class DashboardPage extends UIElement {
       cupGames: this._cupGames,
       cupResultAlreadySeen: this._cupResultAlreadySeen,
       friendlyGames: this._friendlyGames,
+      canPlayFriendly: this._canPlayFriendly,
       standing: this.standing,
       teamPosition: this.teamPosition,
       urgencies: this._urgencies
@@ -179,12 +180,14 @@ export class DashboardPage extends UIElement {
     this.gameDay = gamedayResponse.gameDay
 
     // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, and tutorial progress
-    const [sliderResponse, friendlyResponse, cupResponse] = await Promise.all([
+    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse] = await Promise.all([
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
       server.getMyCupGames(5),
+      server.canPlayFriendlyToday(),
       this._tutorialProgress.load()
     ])
+    this._canPlayFriendly = canPlayFriendlyResponse.canPlay
 
     // Combine past and upcoming games for the slider
     // Add team data for emblems directly from the response

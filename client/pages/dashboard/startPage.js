@@ -5,6 +5,9 @@ import { generateId } from '../../lib/html.js'
 import { goTo } from '../../lib/router.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
 import { t } from '../../i18n/index.js'
+import { server } from '../../lib/gateway.js'
+import { toast } from '../../partials/toast.js'
+import { showGameModal } from '../../partials/gameModal.js'
 
 export class StartPage {
   /**
@@ -15,6 +18,7 @@ export class StartPage {
    * @param {Array} options.cupGames
    * @param {boolean} options.cupResultAlreadySeen
    * @param {Array} options.friendlyGames
+   * @param {boolean} options.canPlayFriendly
    * @param {Array} options.standing
    * @param {number} options.teamPosition
    * @param {Array} options.urgencies
@@ -26,6 +30,7 @@ export class StartPage {
     cupGames,
     cupResultAlreadySeen,
     friendlyGames,
+    canPlayFriendly,
     standing,
     teamPosition,
     urgencies
@@ -36,6 +41,7 @@ export class StartPage {
     this._cupGames = cupGames
     this._cupResultAlreadySeen = cupResultAlreadySeen
     this._friendlyGames = friendlyGames
+    this._canPlayFriendly = canPlayFriendly
     this.standing = standing
     this.teamPosition = teamPosition
     this._urgencies = urgencies
@@ -184,12 +190,15 @@ export class StartPage {
    * @returns {GameSlider|string}
    */
   _renderFriendlyGames (cardId) {
+    const playButton = this._canPlayFriendly ? this._renderPlayRandomFriendlyButton() : ''
+
     if (this._friendlyGames.length === 0) {
       return `
         <div class="card bg-transparent border-0">
           <div class="card-body text-center text-muted py-4">
             <i class="fa text-white fa-handshake-o fa-2x mb-2 opacity-50"></i>
             <p class="mb-0 text-white">${t('friendly.noGames')}</p>
+            ${playButton}
           </div>
         </div>
       `
@@ -202,7 +211,35 @@ export class StartPage {
       cardId
     }
 
-    return new GameSlider(friendlySliderArgs)
+    return `${new GameSlider(friendlySliderArgs)}${playButton}`
+  }
+
+  /**
+   * Render the "Play Random Friendly" button
+   * @returns {string}
+   */
+  _renderPlayRandomFriendlyButton () {
+    const btnId = generateId()
+    onClick('#' + btnId, async () => {
+      const btn = document.getElementById(btnId)
+      if (!btn || btn.disabled) return
+      btn.disabled = true
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + t('friendly.playRandomFriendly')
+      try {
+        const result = await server.playRandomFriendly()
+        const game = result.game
+        toast(t('friendly.result', { goals1: game.goalsTeam1, goals2: game.goalsTeam2 }), 'success')
+        await showGameModal(game.id)
+        window.location.reload()
+      } catch (e) {
+        toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+        btn.disabled = false
+        btn.innerHTML = '<i class="fa fa-random"></i> ' + t('friendly.playRandomFriendly')
+      }
+    })
+    return `<div class="text-center mt-2">
+      <button id="${btnId}" class="btn btn-outline-info btn-sm"><i class="fa fa-random"></i> ${t('friendly.playRandomFriendly')}</button>
+    </div>`
   }
 
   /**

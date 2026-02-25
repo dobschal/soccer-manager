@@ -446,7 +446,16 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     minute: gameDetails.currentMinute,
     teamA: teamAHasBall
   })
-  return true
+
+  // After a goal, the opposing team gets the kickoff (like in real football)
+  activePlayer.hasBall = false
+  gameDetails.streak = 0
+  const kickoffTeam = teamAHasBall ? playerTeamB : playerTeamA
+  const kickoffPlayers = kickoffTeam.filter(p => !p.sentOff)
+  if (kickoffPlayers.length > 0) {
+    randomItem(kickoffPlayers).hasBall = true
+  }
+  return false
 }
 
 /**
