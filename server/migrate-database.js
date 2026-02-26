@@ -1011,6 +1011,12 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE game MODIFY team_2_id BIGINT(20) NULL')
   }
+},
+{
+  name: 'Add is_star_player column to player table',
+  async run () {
+    await query('ALTER TABLE player ADD COLUMN is_star_player TINYINT(1) DEFAULT 0')
+  }
 }]
 
 /**

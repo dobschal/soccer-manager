@@ -536,6 +536,9 @@ export default {
   'player.historyFired': 'Released by {teamName}',
   'player.historyHired': 'Signed with {teamName}',
   'player.historyPositionChange': 'Changed position to {position}',
+  'player.starPlayer': 'Star Player',
+  'player.starPlayerDesc': 'This player receives a permanent 10% level bonus in matches.',
+  'player.historyStarPlayer': 'Promoted to Star Player',
 
   // Action Cards
   'actionCards.title': 'Action Cards',
@@ -573,6 +576,8 @@ export default {
   'actionCards.whichPlayerPosition': 'Which player should change his position?',
   'actionCards.whichPosition': 'Which position should the player play in the future?',
   'actionCards.whichPlayerLevelUp': 'Which player should get a level up?',
+  'actionCards.whichPlayerStar': 'Which player should become a star player?',
+  'actionCards.starPlayerSuccess': '{playerName} is now a star player!',
   'actionCards.buildingsHint': 'Upgrade your buildings to increase the chance of receiving action cards on game days.',
   // Card Claim Overlay
   'actionCards.claim.tapToReveal': 'Tap the card to reveal it!',
@@ -595,6 +600,8 @@ export default {
   'actionCards.type.fullRecoveryDesc': 'Restore a player\'s freshness by 20.',
   'actionCards.type.cashBonus': 'Cash Bonus',
   'actionCards.type.cashBonusDesc': 'Receive an instant bonus of 100,000€.',
+  'actionCards.type.starPlayer': 'Star Player',
+  'actionCards.type.starPlayerDesc': 'Promote a player to star status with a permanent 10% level bonus.',
   // Positions for action cards
   'actionCards.position.GK': 'Goalkeeper (GK)',
   'actionCards.position.LD': 'Left Defender (LD)',

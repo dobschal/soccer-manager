@@ -53,6 +53,8 @@ const _renderPlayerHistory = renderAsync(async function (item) {
     return `<div>${prefix} ${t('player.historyHired', { teamName: item.value })}</div>`
   } else if (item.type === 'CHANGE_PLAYER_POSITION') {
     return `<div>${prefix} ${t('player.historyPositionChange', { position: item.value })}</div>`
+  } else if (item.type === 'STAR_PLAYER') {
+    return `<div>${prefix} ⭐ ${t('player.historyStarPlayer')}</div>`
   }
   return `<div>${prefix} ${item.type}: ${item.value}</div>`
 })
@@ -140,6 +142,12 @@ export default class PlayerModal extends UIElement {
             </div>
           </div>
         </div>
+        ${this.player.is_star_player ? `
+        <div class="alert alert-warning mb-4">
+          <b>⭐ ${t('player.starPlayer')}</b><br>
+          ${t('player.starPlayerDesc')}
+        </div>
+        ` : ''}
         <div class="${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4" style="clear: both">
           <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
           <p>${t('player.enterPrice')}</p>
@@ -182,7 +190,7 @@ export default class PlayerModal extends UIElement {
 
     setupCurrencyInput('trade-price-input')
 
-    if (titleEl) titleEl.textContent = this.player.name
+    if (titleEl) titleEl.textContent = this.player.name + (this.player.is_star_player ? ' ⭐' : '')
     if (subtitleEl) {
       if (this.playersTeam) {
         subtitleEl.innerHTML = `<span class="text-info" style="cursor: pointer">${this.playersTeam.name}</span>`

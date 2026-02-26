@@ -28,7 +28,8 @@ export const actionCardChances = {
   NEW_YOUTH_PLAYER: 0.1,
   BONUS_100K: 0.06,
   LEVEL_UP_PLAYER_70: 0.3,
-  LEVEL_UP_PLAYER_100: 0.06
+  LEVEL_UP_PLAYER_100: 0.06,
+  STAR_PLAYER: 0.015
 }
 
 /**
@@ -171,6 +172,20 @@ export async function playActionCard ({
     const youthPlayer = await createYouthPlayer(team.id, season)
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardYouth', { playerName: youthPlayer.name }, locale), team, null, null, 'child')
+    return { success: true }
+  }
+  if (actionCard.action === 'STAR_PLAYER') {
+    const player = await getPlayerById(p.id)
+    if (player.team_id !== team.id) {
+      throw new BadRequestError(t('error.playerNotInTeam', {}, locale))
+    }
+    if (player.is_star_player) {
+      throw new BadRequestError(t('error.alreadyStarPlayer', {}, locale))
+    }
+    await query('UPDATE player SET is_star_player=1 WHERE id=?', [player.id])
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
+    await addLogMessage(t('log.cardStarPlayer', { playerName: player.name }, locale), team, null, null, 'star')
+    await addPlayerHistory(player.id, 'STAR_PLAYER', '1')
     return { success: true }
   }
   if (actionCard.action === 'BONUS_100K') {

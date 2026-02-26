@@ -50,6 +50,7 @@ export default {
   'error.cardMaxLevel40': 'Aktionskarte erlaubt nur Level-Ups bis Level 40',
   'error.goalkeeperCannotChange': 'Torhüter können ihre Position nicht wechseln',
   'error.cannotBecomeGoalkeeper': 'Spieler können nicht zu Torhütern werden',
+  'error.alreadyStarPlayer': 'Dieser Spieler ist bereits ein Starspieler.',
 
   // Generic errors
   'error.invalidRequest': 'Ungültige Anfrage',
@@ -76,6 +77,7 @@ export default {
   'log.cardMoney': 'Du hast einen Bonus von {amount} erhalten!',
   'log.cardYouth': 'Ein neues Nachwuchstalent {playerName} ist deinem Team beigetreten!',
   'log.cardsMerged': 'Karten wurden zu einer mächtigeren Karte verschmolzen!',
+  'log.cardStarPlayer': '{playerName} wurde zum Starspieler befördert!',
 
   // Log messages - Stadium
   'log.stadiumExpansionStarted': 'Bau begonnen: {stand} Erweiterung auf {newSize} Plätze.',

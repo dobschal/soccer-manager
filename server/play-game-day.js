@@ -149,10 +149,10 @@ async function _playCupGame (game) {
   }
 
   for (const player of playerTeamA) {
-    player.level = player.freshness * player.level
+    player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
   }
   for (const player of playerTeamB) {
-    player.level = player.freshness * player.level
+    player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
   }
 
   kickoff(playerTeamA, playerTeamB, gameDetails)
@@ -447,10 +447,10 @@ async function _playGame (game) {
     teamB
   }
   for (const player of playerTeamA) {
-    player.level = player.freshness * player.level
+    player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
   }
   for (const player of playerTeamB) {
-    player.level = player.freshness * player.level
+    player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
   }
   kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)

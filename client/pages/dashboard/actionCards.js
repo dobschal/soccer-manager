@@ -47,6 +47,10 @@ function getActionCardTexts () {
     BONUS_100K: {
       title: t('actionCards.type.cashBonus'),
       description: t('actionCards.type.cashBonusDesc')
+    },
+    STAR_PLAYER: {
+      title: t('actionCards.type.starPlayer'),
+      description: t('actionCards.type.starPlayerDesc')
     }
   }
 }
@@ -60,7 +64,8 @@ const ACTION_CARD_IMAGES = {
   FRESHNESS_5: 'assets/action-cards/freshness-5.svg',
   FRESHNESS_10: 'assets/action-cards/freshness-10.svg',
   FRESHNESS_20: 'assets/action-cards/freshness-20.svg',
-  BONUS_100K: 'assets/action-cards/bonus-100k.svg'
+  BONUS_100K: 'assets/action-cards/bonus-100k.svg',
+  STAR_PLAYER: 'assets/action-cards/star-player.svg'
 }
 
 export class ActionCards extends UIElement {
@@ -440,6 +445,10 @@ export class ActionCards extends UIElement {
       }
       return
     }
+    if (actionCard.action === 'STAR_PLAYER') {
+      await this._handleStarPlayerCard(actionCard, cardIndex)
+      return
+    }
     if (actionCard.action === 'BONUS_100K') {
       try {
         await server.useActionCard(actionCard, null, null)
@@ -559,6 +568,32 @@ export class ActionCards extends UIElement {
     this._overlay = showOverlay(
       t('actionCards.selectPlayer'),
       t('actionCards.whichPlayerLevelUp'),
+      `${playerList}`
+    )
+  }
+
+  /**
+   * @param {Object} actionCard
+   * @param {number} cardIndex
+   * @returns {Promise<void>}
+   */
+  async _handleStarPlayerCard (actionCard, cardIndex) {
+    const data = await server.getMyTeam()
+    const eligiblePlayers = data.players.filter(p => !p.is_star_player)
+    const playerList = new PlayerList(eligiblePlayers, false, async player => {
+      try {
+        await server.useActionCard(actionCard, player, null)
+        this._overlay?.remove()
+        toast(t('actionCards.starPlayerSuccess', { playerName: player.name }), 'success')
+        await this._animateAndRemoveCard(cardIndex)
+      } catch (e) {
+        console.error(e)
+        toast(e.message ?? 'Something went wrong...', 'error')
+      }
+    })
+    this._overlay = showOverlay(
+      t('actionCards.selectPlayer'),
+      t('actionCards.whichPlayerStar'),
       `${playerList}`
     )
   }
