@@ -237,17 +237,18 @@ async function _checkSellOffers (botTeam, players) {
     const playersInPosition = players.filter(p => p.position === player.position)
 
     if (playersInPosition.length > maxPlayersWanted) {
-      // Sell the weakest player(s) in this position
+      // Sell the weakest excess players in this position
+      const excessCount = playersInPosition.length - maxPlayersWanted
       const sortedByLevel = [...playersInPosition].sort((a, b) => a.level - b.level)
-      const weakestPlayer = sortedByLevel[0]
-      if (weakestPlayer.id === player.id && !playerIdsWithOffers.has(player.id)) {
+      const excessPlayers = sortedByLevel.slice(0, excessCount)
+      if (excessPlayers.some(p => p.id === player.id)) {
         playersToSell.push(player)
       }
     }
   }
 
-  // Create sell offers for players to sell (max 3 at a time to not flood market)
-  const maxNewOffers = Math.min(3 - currentOffers.length, playersToSell.length)
+  // Create sell offers for players to sell (max 5 at a time to clear excess positions)
+  const maxNewOffers = Math.min(5 - currentOffers.length, playersToSell.length)
   for (let i = 0; i < maxNewOffers; i++) {
     const playerToSell = playersToSell[i]
     const price = await playersRoutes.estimateValue(playerToSell.id)
@@ -590,9 +591,54 @@ async function _checkActionCards (botTeam, players, _isStrongTeam) {
         continue
       }
 
-      // CHANGE_PLAYER_POSITION - bots skip this (complex decision)
+      // CHANGE_PLAYER_POSITION - convert excess position players to positions we need
       if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
-        // Bots don't use position change cards - they accumulate
+        const positionsNeeded = getPositionsOfFormation(botTeam.formation)
+        const uniquePositions = [...new Set(positionsNeeded)]
+
+        // Find positions with excess players
+        let bestCandidate = null
+        let bestTargetPosition = null
+
+        for (const position of uniquePositions) {
+          const required = positionsNeeded.filter(p => p === position).length
+          const targetSquadSize = required * 2
+          const playersInPosition = players.filter(p => p.position === position)
+          if (playersInPosition.length >= targetSquadSize) continue
+          // This position needs more players - it's a target
+          // Find an excess player from another position to convert
+          if (!bestTargetPosition) {
+            bestTargetPosition = position
+          }
+        }
+
+        if (bestTargetPosition) {
+          // Find the best excess player to convert (not GK)
+          for (const position of uniquePositions) {
+            const required = positionsNeeded.filter(p => p === position).length
+            const maxWanted = required * 2
+            const playersInPosition = players.filter(p => p.position === position && p.position !== 'GK')
+            if (playersInPosition.length > maxWanted) {
+              const sortedByLevel = [...playersInPosition].sort((a, b) => b.level - a.level)
+              // Pick the weakest excess player
+              bestCandidate = sortedByLevel[sortedByLevel.length - 1]
+              break
+            }
+          }
+          // Also check players in positions not in formation at all
+          if (!bestCandidate) {
+            const nonFormationPlayers = players.filter(p => p.position !== 'GK' && !positionsNeeded.includes(p.position))
+            if (nonFormationPlayers.length > 0) {
+              bestCandidate = nonFormationPlayers.sort((a, b) => b.level - a.level)[0]
+            }
+          }
+        }
+
+        if (bestCandidate && bestTargetPosition && bestTargetPosition !== 'GK') {
+          await playActionCard({ actionCard, player: bestCandidate, position: bestTargetPosition }, botTeam)
+          bestCandidate.position = bestTargetPosition
+          console.log(`${botTeam.name} changed ${bestCandidate.name} position to ${bestTargetPosition}`)
+        }
         continue
       }
     } catch (e) {

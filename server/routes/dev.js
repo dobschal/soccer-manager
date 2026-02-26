@@ -26,8 +26,8 @@ export default {
     }
     console.log('Manually triggered game day calculation...')
     await prepareSeason()
-    await makeBotMoves()
     await calculateGames()
+    await makeBotMoves()
     await cleanupOldFreePlayers()
     console.log('Game day calculation completed.')
     return { success: true }

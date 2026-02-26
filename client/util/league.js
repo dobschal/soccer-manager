@@ -35,6 +35,9 @@ const subKeys = [
  * @returns {string} Formatted league name like "2. South"
  */
 export function formatLeague (level, league) {
+  if (typeof level === 'undefined' || typeof league === 'undefined') {
+    return t('results.league')
+  }
   const division = level + 1
   const subKey = subKeys[league]
   if (division === 1) {

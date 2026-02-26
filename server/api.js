@@ -122,8 +122,8 @@ async function start () {
     //           second ( optional )
     console.log('Started CRON job for game day calculation and bot moves.')
     await prepareSeason()
-    await makeBotMoves()
     await calculateGames()
+    await makeBotMoves()
     await cleanupOldFreePlayers()
   })
 

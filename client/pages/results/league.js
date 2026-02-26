@@ -483,14 +483,20 @@ export class LeagueResultsPage extends UIElement {
       level,
       league
     } = this._getLeagueAndLevel()
-    this.level = level
-    this.league = league
+    if (typeof level !== 'undefined' && typeof league !== 'undefined') {
+      this.level = level
+      this.league = league
+    }
     const {
       season,
       gameDay
     } = await this._getSeasonAndGameDay()
-    this.season = season
-    this.gameDay = gameDay
+    if (typeof season !== 'undefined') {
+      this.season = season
+    }
+    if (typeof gameDay !== 'undefined') {
+      this.gameDay = gameDay
+    }
   }
 }
 
