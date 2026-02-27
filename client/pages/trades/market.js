@@ -117,7 +117,7 @@ export class MarketPage extends UIElement {
         const offerTeam = this.teams.find(t => t.id === offer.from_team_id)
         return [
           player.name,
-          offerTeam.name,
+          `<a href="#team?id=${offerTeam.id}" class="text-info">${offerTeam.name}</a>`,
           player.position,
           calculatePlayerAge(player, this.season),
           renderLevelBadge(player.level),

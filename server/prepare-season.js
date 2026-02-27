@@ -139,7 +139,7 @@ async function _promotionRelegation () {
   if (typeof season === 'undefined') {
     return console.log('⏭️ No promotion, relegation needed because no season available.')
   }
-  const games = await query('SELECT * FROM game WHERE season=?', [season])
+  const games = await query('SELECT * FROM game WHERE season=? AND (game_type=\'league\' OR game_type IS NULL)', [season])
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   if (teams.some(t => typeof t.league !== 'number')) {
     return console.log('Relegation and promotion for this season already ran')
@@ -403,7 +403,7 @@ function _determineLevelForNewTeam (teams) {
  * @returns {Promise<boolean>}
  */
 async function _newGamesNeeded () {
-  const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM game g WHERE g.played=0')
+  const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM game g WHERE g.played=0 AND (g.game_type=\'league\' OR g.game_type IS NULL)')
   return amount === 0
 }
 

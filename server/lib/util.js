@@ -65,20 +65,23 @@ export function calculateStanding (games, teams) {
     }
   }
   for (const game of games) {
+    const s1 = standing[game.team_1_id]
+    const s2 = standing[game.team_2_id]
+    if (!s1 || !s2) continue
     if (game.goals_team_1 > game.goals_team_2) {
-      standing[game.team_1_id].points += 3
+      s1.points += 3
     } else if (game.goals_team_1 < game.goals_team_2) {
-      standing[game.team_2_id].points += 3
+      s2.points += 3
     } else {
-      standing[game.team_1_id].points += 1
-      standing[game.team_2_id].points += 1
+      s1.points += 1
+      s2.points += 1
     }
-    standing[game.team_1_id].goals += game.goals_team_1
-    standing[game.team_2_id].goals += game.goals_team_2
-    standing[game.team_1_id].against += game.goals_team_2
-    standing[game.team_2_id].against += game.goals_team_1
-    standing[game.team_1_id].games++
-    standing[game.team_2_id].games++
+    s1.goals += game.goals_team_1
+    s2.goals += game.goals_team_2
+    s1.against += game.goals_team_2
+    s2.against += game.goals_team_1
+    s1.games++
+    s2.games++
   }
   return Object.values(standing).sort(_sortStanding)
 }

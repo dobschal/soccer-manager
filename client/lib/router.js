@@ -149,7 +149,7 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
       // Phase 2: slide back in
       container.style.transition = 'transform 0.3s ease-in-out'
       container.style.transform = 'translateX(0)'
-    }, 150)
+    }, 40)
 
     const onSlideIn = (e) => {
       if (e.target !== container) return

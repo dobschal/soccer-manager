@@ -6,7 +6,7 @@ import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
-import { showOverlay, showConfirmDialog } from '../partials/overlay.js'
+import { showConfirmDialog, showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
 import { ADMIN_USERNAME } from '../util/constants.js'
 
@@ -103,9 +103,9 @@ export class GameLayout extends UIElement {
             </div>
             <div class="info-bar-item" id="${this._nextGameInElementId}">
             </div>
-            <div class="info-bar-item">
+            <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info" style="color: inherit;">
               <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
-            </div>
+            </a>
           </div>
         </div>
         <div class="container mb-sm-5" id="page"></div>
@@ -361,9 +361,7 @@ export class GameLayout extends UIElement {
       const hours = Math.floor(minutes / 60)
       const twoDigits = (v) => v < 10 ? '0' + v : v
 
-      const time = hours > 0
-        ? `${hours}h ${twoDigits(minutes % 60)}min`
-        : `${twoDigits(minutes % 60)}min ${twoDigits(seconds % 60)}sec`
+      const time = `${hours}:${twoDigits(minutes % 60)}:${twoDigits(seconds % 60)}`
 
       timerEl.innerHTML = `<i class="fa fa-clock-o" aria-hidden="true"></i> ${time}`
     }

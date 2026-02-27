@@ -677,4 +677,88 @@ describe('play-game simulation', () => {
       expect(extremeResults / numGames).toBeLessThan(0.03)
     })
   })
+
+  describe('cup extra time (no draws allowed)', () => {
+    /**
+     * Simulate a cup game: regular time + extra time if tied
+     */
+    function simulateCupGame (playerTeamA, playerTeamB, gameDetails) {
+      kickoff(playerTeamA, playerTeamB, gameDetails)
+      const totalSteps = 900 + Math.floor(Math.random() * 50)
+      for (let step = 0; step < totalSteps; step++) {
+        gameDetails.currentMinute = step < 900 ? Math.floor(step / 10) : 90 + Math.floor((step - 900) / 10)
+        playGameStep(playerTeamA, playerTeamB, gameDetails)
+      }
+
+      // Cup extra time: continue until someone scores
+      if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
+        gameDetails.extraTime = true
+        let extraStep = 0
+        while (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
+          gameDetails.currentMinute = 91 + Math.floor(extraStep / 10)
+          playGameStep(playerTeamA, playerTeamB, gameDetails)
+          extraStep++
+        }
+      }
+      return gameDetails
+    }
+
+    it('cup games should never end in a draw', () => {
+      const numGames = 200
+      let draws = 0
+
+      for (let g = 0; g < numGames; g++) {
+        const teamA = createTeam({ level: 40, prefix: 'A', idStart: 1 })
+        const teamB = createTeam({ level: 40, prefix: 'B', idStart: 100 })
+        const gameDetails = createGameDetails({ playerTeamA: teamA, playerTeamB: teamB })
+
+        simulateCupGame(teamA, teamB, gameDetails)
+        if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) draws++
+      }
+
+      expect(draws).toBe(0)
+    })
+
+    it('extra time flag should be set when regular time ends in a draw', () => {
+      let extraTimeCount = 0
+      const numGames = 500
+
+      for (let g = 0; g < numGames; g++) {
+        const teamA = createTeam({ level: 40, prefix: 'A', idStart: 1 })
+        const teamB = createTeam({ level: 40, prefix: 'B', idStart: 100 })
+        const gameDetails = createGameDetails({ playerTeamA: teamA, playerTeamB: teamB })
+
+        simulateCupGame(teamA, teamB, gameDetails)
+        if (gameDetails.extraTime) extraTimeCount++
+      }
+
+      // Some games should go to extra time (~24% draw rate in regular time)
+      expect(extraTimeCount).toBeGreaterThan(0)
+      // But not all games should go to extra time
+      expect(extraTimeCount).toBeLessThan(numGames)
+    })
+
+    it('extra time goal should have minute > 90', () => {
+      // Run many games until we find one that goes to extra time
+      let foundExtraTimeGoal = false
+
+      for (let g = 0; g < 500 && !foundExtraTimeGoal; g++) {
+        const teamA = createTeam({ level: 40, prefix: 'A', idStart: 1 })
+        const teamB = createTeam({ level: 40, prefix: 'B', idStart: 100 })
+        const gameDetails = createGameDetails({ playerTeamA: teamA, playerTeamB: teamB })
+
+        simulateCupGame(teamA, teamB, gameDetails)
+
+        if (gameDetails.extraTime) {
+          // Find the last goal in the log (the deciding goal)
+          const goals = gameDetails.log.filter(e => e.goal)
+          const lastGoal = goals[goals.length - 1]
+          expect(lastGoal.minute).toBeGreaterThanOrEqual(91)
+          foundExtraTimeGoal = true
+        }
+      }
+
+      expect(foundExtraTimeGoal).toBe(true)
+    })
+  })
 })

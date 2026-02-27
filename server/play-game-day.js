@@ -171,6 +171,19 @@ async function _playCupGame (game) {
     gameDetails.currentMinute = step < 900 ? Math.floor(step / 10) : 90 + Math.floor((step - 900) / 10)
     playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
+
+  // Cup games cannot end in a draw — play extra time until someone scores
+  if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
+    gameDetails.extraTime = true
+    console.log(`Cup match is a draw after regular time (${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}), playing extra time...`)
+    let extraStep = 0
+    while (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
+      gameDetails.currentMinute = 91 + Math.floor(extraStep / 10)
+      playGameStep(playerTeamA, playerTeamB, gameDetails)
+      extraStep++
+    }
+    console.log(`Cup extra time decided after ${Math.floor(extraStep / 10)} extra minutes: ${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}`)
+  }
   delete gameDetails.currentMinute // Don't persist internal tracking field
 
   await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [

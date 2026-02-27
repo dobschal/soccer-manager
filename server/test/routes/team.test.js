@@ -10,8 +10,18 @@ vi.mock('../../helper/teamHelper.js', () => ({
   getTeamById: vi.fn()
 }))
 
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn()
+}))
+
+vi.mock('../../helper/cupHelper.js', () => ({
+  getTotalRoundsForSeason: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
+import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { getTotalRoundsForSeason } from '../../helper/cupHelper.js'
 import handlers from '../../routes/team.js'
 
 describe('team routes', () => {
@@ -26,13 +36,16 @@ describe('team routes', () => {
       const user = testData.user()
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValue(players)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
+      query
+        .mockResolvedValueOnce(players) // SELECT players
+        .mockResolvedValueOnce([]) // SELECT player_season_stats
 
       const req = createMockRequest({ user })
       const result = await handlers.getMyTeam(req)
 
       expect(result.team).toEqual(team)
-      expect(result.players).toEqual(players)
+      expect(result.players).toHaveLength(2)
       expect(result.user).not.toHaveProperty('password')
     })
   })
@@ -221,6 +234,133 @@ describe('team routes', () => {
 
       await expect(handlers.saveLineup(updatedPlayers, '4-3-3', req))
         .rejects.toMatchObject({ message: 'Unknown player...' })
+    })
+  })
+
+  describe('getTeamSeasonHistory', () => {
+    it('returns correct position and points for a completed season', async () => {
+      const teamId = 5
+      const team = testData.team({ id: teamId, level: 1, league: 0 })
+
+      // Team played at level 1, league 0 during season 0
+      const leagueTeams = Array.from({ length: 18 }, (_, i) => ({
+        id: i + 1, name: `Team ${i + 1}`, level: 1, league: 0
+      }))
+
+      // Create games where team 5 wins most games
+      const games = []
+      for (let i = 0; i < 18; i++) {
+        for (let j = i + 1; j < 18; j++) {
+          games.push({
+            team_1_id: i + 1,
+            team_2_id: j + 1,
+            goals_team_1: i + 1 === teamId ? 3 : 1,
+            goals_team_2: j + 1 === teamId ? 3 : 1,
+            season: 0, level: 1, league: 0, played: 1, game_day: 0,
+            game_type: 'league'
+          })
+        }
+      }
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 1, gameDay: 0 })
+
+      query
+        // seasonData: DISTINCT season/level/league (league games only)
+        .mockResolvedValueOnce([{ season: 0, level: 1, league: 0 }])
+        // lastGameDay
+        .mockResolvedValueOnce([{ lastGameDay: 33 }])
+        // games for standing
+        .mockResolvedValueOnce(games)
+        // teams for standing
+        .mockResolvedValueOnce(leagueTeams)
+        // cup games
+        .mockResolvedValueOnce([])
+
+      const result = await handlers.getTeamSeasonHistory(teamId)
+
+      expect(result.seasons).toHaveLength(1)
+      expect(result.seasons[0].position).toBeGreaterThan(0)
+      expect(result.seasons[0].points).toBeGreaterThan(0)
+      expect(result.seasons[0].season).toBe(0)
+      expect(result.seasons[0].level).toBe(1)
+      expect(result.seasons[0].league).toBe(0)
+    })
+
+    it('excludes cup games from season data query to prevent wrong level/league', async () => {
+      const teamId = 5
+      const team = testData.team({ id: teamId, level: 1, league: 0 })
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 1, gameDay: 0 })
+
+      // Return no seasons so the loop doesn't run
+      query.mockResolvedValueOnce([])
+
+      await handlers.getTeamSeasonHistory(teamId)
+
+      // Verify the seasonData query filters for league games
+      const seasonDataCall = query.mock.calls[0]
+      expect(seasonDataCall[0]).toContain('game_type')
+      expect(seasonDataCall[0]).toContain("game_type = 'league'")
+    })
+
+    it('returns empty seasons when team has no completed seasons', async () => {
+      const team = testData.team({ id: 1 })
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
+
+      query.mockResolvedValueOnce([]) // no completed seasons
+
+      const result = await handlers.getTeamSeasonHistory(1)
+
+      expect(result.seasons).toEqual([])
+    })
+
+    it('returns empty seasons when team does not exist', async () => {
+      getTeamById.mockResolvedValue(null)
+
+      const result = await handlers.getTeamSeasonHistory(999)
+
+      expect(result.seasons).toEqual([])
+    })
+
+    it('includes cup results when team participated in cup', async () => {
+      const teamId = 1
+      const team = testData.team({ id: teamId })
+      const leagueTeams = [
+        { id: 1, name: 'Team 1', level: 0, league: 0 },
+        { id: 2, name: 'Team 2', level: 0, league: 0 }
+      ]
+
+      const games = [
+        { team_1_id: 1, team_2_id: 2, goals_team_1: 2, goals_team_2: 1, season: 0, level: 0, league: 0, played: 1, game_day: 0, game_type: 'league' }
+      ]
+
+      // Ordered by cup_round ASC (as the SQL query returns): smallest = deepest round reached
+      const cupGames = [
+        { id: 11, team_1_id: 1, team_2_id: 4, goals_team_1: 1, goals_team_2: 2, season: 0, level: 0, league: 0, played: 1, game_day: 10, game_type: 'cup', cup_round: 2 },
+        { id: 10, team_1_id: 1, team_2_id: 3, goals_team_1: 2, goals_team_2: 0, season: 0, level: 0, league: 0, played: 1, game_day: 5, game_type: 'cup', cup_round: 4 }
+      ]
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 1, gameDay: 0 })
+      getTotalRoundsForSeason.mockResolvedValue(3)
+
+      query
+        .mockResolvedValueOnce([{ season: 0, level: 0, league: 0 }]) // seasonData
+        .mockResolvedValueOnce([{ lastGameDay: 33 }]) // lastGameDay
+        .mockResolvedValueOnce(games) // league games
+        .mockResolvedValueOnce(leagueTeams) // teams
+        .mockResolvedValueOnce(cupGames) // cup games
+
+      const result = await handlers.getTeamSeasonHistory(teamId)
+
+      expect(result.seasons[0].cupResult).toBeDefined()
+      expect(result.seasons[0].cupResult.roundReached).toBe(2)
+      expect(result.seasons[0].cupResult.totalRounds).toBe(3)
+      expect(result.seasons[0].cupResult.gamesPlayed).toBe(2)
     })
   })
 })

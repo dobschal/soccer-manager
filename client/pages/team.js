@@ -153,7 +153,7 @@ export class TeamPage extends UIElement {
       }
     }
 
-    if (!this.teamId) throw new Error('No team id present...')
+    if (!this.teamId) return
     const {
       team,
       players,

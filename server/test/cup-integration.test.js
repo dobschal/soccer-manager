@@ -824,7 +824,7 @@ describe('Cup Integration Tests', () => {
       )
     })
 
-    it('should not award prize on draw', async () => {
+    it('should not award prize on draw (safety fallback — cup games should not end in draws)', async () => {
       const game = {
         id: 4,
         team_1_id: 10,

@@ -284,10 +284,12 @@ export default {
     const { season: currentSeason } = await getGameDayAndSeason()
 
     // Get all completed seasons this team has played in (exclude current season)
+    // Filter to league games only — cup games have level=0/league=0 which would override the real values
     const seasonData = await query(`
       SELECT DISTINCT season, level, league
       FROM game
       WHERE (team_1_id = ? OR team_2_id = ?) AND played = 1 AND season < ?
+        AND (game_type = 'league' OR game_type IS NULL)
       ORDER BY season DESC
     `, [teamId, teamId, currentSeason])
 
@@ -340,12 +342,14 @@ export default {
 
       let cupResult = null
       if (cupGames.length > 0) {
-        const lastCupGame = cupGames[cupGames.length - 1]
-        const isWinner = lastCupGame.played === 1 && (
-          (lastCupGame.team_1_id === teamId && lastCupGame.goals_team_1 > lastCupGame.goals_team_2) ||
-          (lastCupGame.team_2_id === teamId && lastCupGame.goals_team_2 > lastCupGame.goals_team_1)
+        // cup_round uses descending numbering (64→32→16→8→4→2→1), so the
+        // deepest round reached is the smallest cup_round value (first in ASC order)
+        const deepestCupGame = cupGames[0]
+        const isWinner = deepestCupGame.played === 1 && (
+          (deepestCupGame.team_1_id === teamId && deepestCupGame.goals_team_1 > deepestCupGame.goals_team_2) ||
+          (deepestCupGame.team_2_id === teamId && deepestCupGame.goals_team_2 > deepestCupGame.goals_team_1)
         )
-        const roundReached = lastCupGame.cup_round
+        const roundReached = deepestCupGame.cup_round
         const totalRounds = await getTotalRoundsForSeason(row.season)
 
         cupResult = {

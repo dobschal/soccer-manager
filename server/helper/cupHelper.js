@@ -267,8 +267,9 @@ export async function progressCupRound (season, completedRound) {
     if (game.team_2_id == null) return game.team_1_id
     if (game.goals_team_1 > game.goals_team_2) return game.team_1_id
     if (game.goals_team_2 > game.goals_team_1) return game.team_2_id
-    // In case of draw, random winner (should use penalties in real implementation)
-    return Math.random() < 0.5 ? game.team_1_id : game.team_2_id
+    // Cup games should never end in a draw (extra time is played), but as a safety fallback pick team 1
+    console.warn(`Cup game ${game.id} ended in a draw (${game.goals_team_1}-${game.goals_team_2}) — this should not happen`)
+    return game.team_1_id
   })
 
   const nextRoundTeams = [...winners]
