@@ -29,11 +29,11 @@ export default {
     if (amount > 0) {
       throw new BadRequestError(t('error.usernameTaken', {}, locale))
     }
-    let [team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
+    let [team] = await query('SELECT * FROM team WHERE user_id IS NULL AND is_system_team = 0 ORDER BY level DESC LIMIT 1')
     if (!team) {
       // No team available - create new league(s) with prepareSeason and retry
       await prepareSeason();
-      [team] = await query('SELECT * FROM team WHERE user_id IS NULL ORDER BY level DESC LIMIT 1')
+      [team] = await query('SELECT * FROM team WHERE user_id IS NULL AND is_system_team = 0 ORDER BY level DESC LIMIT 1')
       if (!team) {
         throw new BadRequestError(t('error.noTeamAvailable', {}, locale))
       }

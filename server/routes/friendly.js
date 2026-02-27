@@ -113,7 +113,7 @@ export default {
 
     // Pick a random team that is not the user's team
     const [opponent] = await query(
-      'SELECT * FROM team WHERE id <> ? ORDER BY RAND() LIMIT 1',
+      'SELECT * FROM team WHERE id <> ? AND is_system_team = 0 ORDER BY RAND() LIMIT 1',
       [myTeam.id]
     )
 

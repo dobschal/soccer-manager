@@ -95,9 +95,18 @@ import { randomItem } from './lib/util.js'
  * @type {Object<string, {forwardBias: number, ballLossBase: number}>}
  */
 export const ATTACK_MODE_MODIFIERS = {
-  offensive: { forwardBias: 0.85, ballLossBase: 0.06 },
-  balanced: { forwardBias: 0.50, ballLossBase: 0.03 },
-  defensive: { forwardBias: 0.20, ballLossBase: 0.01 }
+  offensive: {
+    forwardBias: 0.85,
+    ballLossBase: 0.06
+  },
+  balanced: {
+    forwardBias: 0.50,
+    ballLossBase: 0.03
+  },
+  defensive: {
+    forwardBias: 0.20,
+    ballLossBase: 0.01
+  }
 }
 
 export const PLAY_STYLE_MODIFIERS = {
@@ -249,7 +258,6 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
   const oponentPlayers = defendingTeam.filter(p => p.position === oponentPosition && !p.sentOff)
 
   if (oponentPlayers.length === 0) {
-    console.log(`${activePlayer.name} has no oponents`)
     return true
   }
 

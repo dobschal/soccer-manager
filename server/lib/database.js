@@ -21,8 +21,8 @@ export function query (...params) {
     params.push(function (error, results) {
       if (error) return reject(error)
       const duration = Date.now() - t1
-      if (params[0].includes('SELECT') && duration > 10) {
-        console.warn(`🔍 Query "${params[0].substring(0, 50)}" took ${duration}ms`)
+      if (params[0].includes('SELECT') && duration > 100) {
+        console.warn(`🔍 Query "${params[0].substring(0, 150)}" took ${duration}ms`)
       }
       resolve(results)
     })

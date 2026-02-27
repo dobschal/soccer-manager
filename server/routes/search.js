@@ -61,7 +61,7 @@ export default {
 
     /** @type {TeamType[]} */
     const teams = await query(
-      'SELECT * FROM team WHERE name LIKE ? ORDER BY level DESC LIMIT 10',
+      'SELECT * FROM team WHERE name LIKE ? AND is_system_team = 0 ORDER BY level DESC LIMIT 10',
       [searchPattern]
     )
 
@@ -177,11 +177,11 @@ export default {
       orderBy = `${allowedSortColumns[sortColumn]} ${dir}`
     }
 
-    let whereClause = ''
+    let whereClause = 'WHERE is_system_team = 0'
     const params = []
 
     if (searchQuery && typeof searchQuery === 'string' && searchQuery.length >= 3) {
-      whereClause = 'WHERE name LIKE ?'
+      whereClause += ' AND name LIKE ?'
       params.push(`%${searchQuery}%`)
     }
 

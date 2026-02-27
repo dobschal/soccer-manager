@@ -1017,6 +1017,30 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE player ADD COLUMN is_star_player TINYINT(1) DEFAULT 0')
   }
+},
+{
+  name: 'Add is_system_team column to team table',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN is_system_team TINYINT(1) DEFAULT 0')
+  }
+},
+{
+  name: 'Create International Oversea Club system team',
+  async run () {
+    await query("INSERT INTO team SET name='International Oversea Club', is_system_team=1, balance=0, formation='442b', color='#1a237e', league=NULL, level=NULL")
+  }
+},
+{
+  name: 'Add index for game table bot stadium query',
+  async run () {
+    await query('CREATE INDEX idx_game_team1_played ON game (team_1_id, played, season DESC, game_day DESC)')
+  }
+},
+{
+  name: 'Add index for action_card team lookup',
+  async run () {
+    await query('CREATE INDEX idx_action_card_team_state ON action_card (team_id, played, state)')
+  }
 }]
 
 /**

@@ -11,6 +11,7 @@ import { calculateGames } from './play-game-day.js'
 import { makeBotMoves } from './bot-move.js'
 import { getLocaleFromRequest } from './i18n/index.js'
 import { cleanupOldFreePlayers } from './helper/playerHelper.js'
+import { cleanupIOCPlayers, fillMarketGaps, iocBuyUndervaluedPlayers } from './helper/overseaClubHelper.js'
 import { initWebSocket } from './lib/websocket.js'
 import { getCachedUser } from './lib/userCache.js'
 
@@ -125,6 +126,9 @@ async function start () {
     await calculateGames()
     await makeBotMoves()
     await cleanupOldFreePlayers()
+    await cleanupIOCPlayers()
+    await fillMarketGaps()
+    await iocBuyUndervaluedPlayers()
   })
 
   // Create HTTP server and attach WebSocket

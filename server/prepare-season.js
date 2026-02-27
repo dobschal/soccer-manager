@@ -140,7 +140,7 @@ async function _promotionRelegation () {
     return console.log('⏭️ No promotion, relegation needed because no season available.')
   }
   const games = await query('SELECT * FROM game WHERE season=?', [season])
-  const teams = await query('SELECT * FROM team')
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   if (teams.some(t => typeof t.league !== 'number')) {
     return console.log('Relegation and promotion for this season already ran')
   }
@@ -199,7 +199,7 @@ async function _createGames () {
   }
   const season = await _seasonForNewGames()
   const gamePlan = calculateGamePlan(teamsPerLeague)
-  const teams = await query('SELECT * FROM team')
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   for (let level = 0; level < maxLevels; level++) {
     const teamsOfLevel = teams.filter(t => t.level === level)
     if (teamsOfLevel.length === 0) break
@@ -295,12 +295,12 @@ async function _ajustAmountOfTeams () {
   const season = await _latestSeason() ?? 0
   const [{ amount: amountOfUsers }] = await query('SELECT COUNT(*) AS amount FROM team WHERE user_id IS NOT NULL')
   const minimumAmountOfTeams = Math.max((amountOfUsers ?? 0) * 2, minimumTeams)
-  let teams = await query('SELECT * FROM team')
+  let teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   while (teams.length === 0 || teams.length % teamsPerLeague !== 0 || teams.length < minimumAmountOfTeams) {
     const levelForNewTeam = _determineLevelForNewTeam(teams)
     const team = await _createRandomTeam(levelForNewTeam)
     await Promise.all([...Array(18)].map((_, i) => _createRandomPlayer(team, i, season)))
-    teams = await query('SELECT * FROM team')
+    teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   }
 }
 

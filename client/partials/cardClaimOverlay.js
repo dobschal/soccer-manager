@@ -39,22 +39,28 @@ function getActionCardTitles () {
  * @returns {Promise<void>}
  */
 export async function showCardClaimOverlay (pendingCards) {
-  for (const card of pendingCards) {
-    await _showSingleCardClaim(card)
+  const state = { skipped: false }
+  for (let i = 0; i < pendingCards.length; i++) {
+    if (state.skipped) break
+    const remainingCards = pendingCards.slice(i)
+    await _showSingleCardClaim(pendingCards[i], remainingCards, state)
   }
 }
 
 /**
  * Shows a single card claim with flip animation
  * @param {Object} card - Pending action card
+ * @param {Array} remainingCards - All remaining unclaimed cards (including current)
+ * @param {{ skipped: boolean }} state - Shared state for skip signaling
  * @returns {Promise<void>}
  */
-function _showSingleCardClaim (card) {
+function _showSingleCardClaim (card, remainingCards, state) {
   return new Promise((resolve) => {
     const overlayId = generateId()
     const flipContainerId = generateId()
     const hintId = generateId()
     const titleId = generateId()
+    const skipBtnId = generateId()
 
     const cardImage = ACTION_CARD_IMAGES[card.action] || 'assets/action-cards/level-up-player-4.svg'
     const cardTitle = getActionCardTitles()[card.action] || 'Action Card'
@@ -73,12 +79,28 @@ function _showSingleCardClaim (card) {
         </div>
         <div id="${hintId}" class="card-claim-hint">${t('actionCards.claim.tapToReveal')}</div>
         <div id="${titleId}" class="card-claim-title" style="display: none;">${cardTitle}</div>
+        <button id="${skipBtnId}" class="card-claim-skip-btn">${t('actionCards.claim.skip')}</button>
       </div>
     `
 
     document.body.insertAdjacentHTML('beforeend', html)
 
     let claimed = false
+
+    onClick('#' + skipBtnId, async () => {
+      if (claimed) return
+      claimed = true
+      state.skipped = true
+
+      // Claim all remaining cards at once
+      await Promise.all(remainingCards.map(c =>
+        server.claimActionCard(c.id).catch(e => console.error('Failed to claim card:', e))
+      ))
+
+      const overlay = document.getElementById(overlayId)
+      if (overlay) overlay.remove()
+      resolve()
+    })
 
     onClick('#' + flipContainerId, async () => {
       if (claimed) return

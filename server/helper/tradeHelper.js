@@ -96,6 +96,15 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
     price: offer.offer_value
   })
 
+  // If the buying team is the IOC (system team), delete the player from the game
+  if (buyingTeam.is_system_team) {
+    await query('DELETE FROM player_history WHERE player_id = ?', [player.id])
+    await query('DELETE FROM trade_offer WHERE player_id = ?', [player.id])
+    await query('DELETE FROM trade_history WHERE player_id = ?', [player.id])
+    await query('DELETE FROM player WHERE id = ?', [player.id])
+    return
+  }
+
   // Check both teams for lineup issues after trade
   await checkTeamAndNotify(sellingTeam)
   await checkTeamAndNotify(buyingTeam)

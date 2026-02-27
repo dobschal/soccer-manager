@@ -581,6 +581,7 @@ export default {
   'actionCards.buildingsHint': 'Baue deine Gebäude aus, um die Chance auf Aktionskarten an Spieltagen zu erhöhen.',
   // Card Claim Overlay
   'actionCards.claim.tapToReveal': 'Tippe auf die Karte, um sie aufzudecken!',
+  'actionCards.claim.skip': 'Überspringen',
   // Action Card Types
   'actionCards.type.legendaryMastery': 'Meister-Training',
   'actionCards.type.legendaryMasteryDesc': 'Verbessere einen Spieler auf Level 100.',

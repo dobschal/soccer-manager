@@ -5,7 +5,7 @@ import { Position } from '../../client/util/formation.js'
 import { randomItem } from '../lib/util.js'
 
 async function getTeamCount () {
-  const [{ count }] = await query('SELECT COUNT(*) AS count FROM team')
+  const [{ count }] = await query('SELECT COUNT(*) AS count FROM team WHERE is_system_team = 0')
   return count
 }
 

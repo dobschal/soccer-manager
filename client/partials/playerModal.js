@@ -192,7 +192,9 @@ export default class PlayerModal extends UIElement {
 
     if (titleEl) titleEl.textContent = this.player.name + (this.player.is_star_player ? ' ⭐' : '')
     if (subtitleEl) {
-      if (this.playersTeam) {
+      if (this.playersTeam && this.playersTeam.is_system_team) {
+        subtitleEl.innerHTML = `<span class="text-muted">${this.playersTeam.name}</span>`
+      } else if (this.playersTeam) {
         subtitleEl.innerHTML = `<span class="text-info" style="cursor: pointer">${this.playersTeam.name}</span>`
         subtitleEl.querySelector('span').addEventListener('click', () => {
           goTo(`team?id=${this.playersTeam.id}`)

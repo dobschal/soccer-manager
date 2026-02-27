@@ -3,6 +3,7 @@ import { calculateGames } from '../play-game-day.js'
 import { makeBotMoves } from '../bot-move.js'
 import { BadRequestError } from '../lib/errors.js'
 import { cleanupOldFreePlayers } from '../helper/playerHelper.js'
+import { cleanupIOCPlayers, fillMarketGaps, iocBuyUndervaluedPlayers } from '../helper/overseaClubHelper.js'
 import { config } from '../config.js'
 
 export default {
@@ -29,6 +30,9 @@ export default {
     await calculateGames()
     await makeBotMoves()
     await cleanupOldFreePlayers()
+    await cleanupIOCPlayers()
+    await fillMarketGaps()
+    await iocBuyUndervaluedPlayers()
     console.log('Game day calculation completed.')
     return { success: true }
   }

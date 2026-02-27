@@ -123,7 +123,7 @@ export function calculateCupSchedule (teamCount, totalGameDays = 33) {
  */
 export async function createCupDraw (season, currentGameDay = 0) {
   // Get all teams
-  const teams = await query('SELECT * FROM team ORDER BY level ASC, league ASC')
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0 ORDER BY level ASC, league ASC')
   const teamCount = teams.length
 
   if (teamCount < 2) {

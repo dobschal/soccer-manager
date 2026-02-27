@@ -29,7 +29,7 @@ import playersRoutes from './routes/players.js'
  */
 export async function makeBotMoves () {
   /** @type {TeamType[]} */
-  const botTeams = await query('SELECT * FROM team WHERE user_id IS NULL')
+  const botTeams = await query('SELECT * FROM team WHERE user_id IS NULL AND is_system_team = 0')
   if (botTeams.length === 0) {
     console.log('No bot teams to process')
     return
@@ -37,10 +37,13 @@ export async function makeBotMoves () {
   const botTeamIds = botTeams.map(t => t.id).join(', ')
   /** @type {PlayerType[]} */
   const players = await query(`SELECT * FROM player WHERE team_id IN (${botTeamIds})`)
+  /** @type {import('./entities/actionCard.js').ActionCardType[]} */
+  const allActionCards = await query(`SELECT * FROM action_card WHERE team_id IN (${botTeamIds}) AND played=0 AND state='received'`)
   const t1 = Date.now()
   const promises = []
   for (const botTeam of botTeams) {
-    promises.push(_makeBotMove(botTeam, players))
+    const teamCards = allActionCards.filter(c => c.team_id === botTeam.id)
+    promises.push(_makeBotMove(botTeam, players, teamCards))
   }
   await Promise.all(promises)
   console.log(`Made bot moves in ${Math.floor((Date.now() - t1) / 1000)}sec`)
@@ -49,13 +52,14 @@ export async function makeBotMoves () {
 /**
  * @param {TeamType} botTeam
  * @param {PlayerType[]} players
+ * @param {import('./entities/actionCard.js').ActionCardType[]} actionCards
  * @returns {Promise<void>}
  */
-async function _makeBotMove (botTeam, players) {
+async function _makeBotMove (botTeam, players, actionCards) {
   const isStrongTeam = botTeam.id % 2 === 0
   const playersOfTeam = players.filter(p => p.team_id === botTeam.id)
   await _checkTactic(botTeam, playersOfTeam, isStrongTeam)
-  await _checkActionCards(botTeam, playersOfTeam, isStrongTeam)
+  await _checkActionCards(botTeam, playersOfTeam, isStrongTeam, actionCards)
   await _chooseSponsor(botTeam, isStrongTeam)
   await _checkStadium(botTeam)
   await _checkTrades(botTeam, playersOfTeam)
@@ -70,7 +74,7 @@ async function _checkStadium (botTeam) {
   /** @type {StadiumType} */
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [botTeam.id])
   /** @type {GameType[]} */
-  const [game] = await query('SELECT * FROM game where team_1_id=? AND played=1 AND (game_type=\'league\' OR game_type IS NULL) ORDER BY season DESC, game_day DESC', [botTeam.id])
+  const [game] = await query('SELECT details FROM game WHERE team_1_id=? AND played=1 AND game_type=\'league\' ORDER BY season DESC, game_day DESC LIMIT 1', [botTeam.id])
   if (game && game.details) {
     const details = JSON.parse(game.details)
     const totalGuests = details.stadiumDetails.northGuests + details.stadiumDetails.southGuests + details.stadiumDetails.eastGuests + details.stadiumDetails.westGuests
@@ -188,11 +192,16 @@ async function _checkIncomingOffers (botTeam, players) {
     }
 
     if (offer.offer_value >= minAcceptablePrice) {
-      await acceptOffer(offer, botTeam, gameDay, season)
-      // Update local players array to reflect the sale
-      const soldPlayerIndex = players.findIndex(p => p.id === playerId)
-      if (soldPlayerIndex !== -1) players.splice(soldPlayerIndex, 1)
-      console.log(`🤝 ${botTeam.name} sold player ${player.name} for ${offer.offer_value}`)
+      try {
+        await acceptOffer(offer, botTeam, gameDay, season)
+        // Update local players array to reflect the sale
+        const soldPlayerIndex = players.findIndex(p => p.id === playerId)
+        if (soldPlayerIndex !== -1) players.splice(soldPlayerIndex, 1)
+        console.log(`🤝 ${botTeam.name} sold player ${player.name} for ${offer.offer_value}`)
+      } catch (e) {
+        // Offer may have been consumed by another parallel bot move - skip gracefully
+        console.log(`⚠️ ${botTeam.name} could not accept offer for ${player.name}: ${e.message}`)
+      }
     } else {
       await declineOffer(offer)
     }
@@ -519,8 +528,7 @@ async function _chooseSponsor (botTeam, _isStrongTeam) {
  * @param {boolean} isStrongTeam
  * @returns {Promise<void>}
  */
-async function _checkActionCards (botTeam, players, _isStrongTeam) {
-  const actionCards = await getActionCards(botTeam)
+async function _checkActionCards (botTeam, players, _isStrongTeam, actionCards) {
 
   // First, try to merge level up cards
   const level4Cards = actionCards.filter(c => c.action === 'LEVEL_UP_PLAYER_40')

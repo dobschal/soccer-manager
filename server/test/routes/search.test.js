@@ -88,7 +88,7 @@ describe('search routes', () => {
 
       expect(result.teams).toHaveLength(1)
       expect(query).toHaveBeenCalledWith(
-        'SELECT * FROM team WHERE name LIKE ? ORDER BY level DESC LIMIT 10',
+        'SELECT * FROM team WHERE name LIKE ? AND is_system_team = 0 ORDER BY level DESC LIMIT 10',
         ['%Test%']
       )
     })

@@ -221,7 +221,7 @@ async function _checkUserTeamsForIssues () {
  */
 async function _processYouthTeams () {
   const t1 = Date.now()
-  const teams = await query('SELECT * FROM team')
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   await Promise.all(teams.map(team => processYouthTraining(team)))
   console.log(`Processed youth teams in ${Date.now() - t1}ms`)
 }
@@ -263,7 +263,7 @@ async function _giveAllPlayersFreshness (season) {
 async function _giveSponsorMoney (gameDay, season) {
   const t1 = Date.now()
   /** @type {Array<import('./entities/team.js').TeamType>} */
-  const teams = await query('SELECT * FROM team')
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
 
   await Promise.all(teams.map(async team => {
     const t1 = Date.now()
@@ -287,7 +287,7 @@ async function _giveSponsorMoney (gameDay, season) {
  */
 async function _letTeamsPaySallaries (gameDay, season) {
   const t1 = Date.now()
-  const teams = await query('SELECT * FROM team')
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   await Promise.all(teams.map(async team => {
     const players = await query('SELECT * FROM player WHERE team_ID=?', [team.id])
     const totalSallaryCosts = players.reduce((total, player) => total + getSalary(player.level), 0) * -1
@@ -304,7 +304,7 @@ async function _letTeamsPaySallaries (gameDay, season) {
 async function _giveUsersActionCards () {
   const t1 = Date.now()
   /** @type {TeamType[]} */
-  const teams = await query('SELECT * FROM team')
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   const trainingAreaLevels = await getAllTrainingAreaLevels()
   const fitnessStudioLevels = await getAllFitnessStudioLevels()
   const promises = []
@@ -446,7 +446,7 @@ async function _playGame (game) {
     [game.team_2_id]
   )
   if (clearedA.affectedRows > 0 || clearedB.affectedRows > 0) {
-    console.log(`Suspensions cleared: ${clearedA.affectedRows} for ${teamA.name}, ${clearedB.affectedRows} for ${teamB.name}`)
+    console.log(`🛑 Suspensions cleared: ${clearedA.affectedRows} for ${teamA.name}, ${clearedB.affectedRows} for ${teamB.name}`)
   }
   const strengthTeamA = playerTeamA.reduce((totalStrength, player) => totalStrength + player.level, 0)
   const strengthTeamB = playerTeamB.reduce((totalStrength, player) => totalStrength + player.level, 0)
