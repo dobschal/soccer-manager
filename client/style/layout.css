@@ -15,6 +15,7 @@
 
 .game-layout {
     padding-top: 9rem;
+    overflow-x: hidden;
 }
 
 /* ==========================================================================
@@ -142,8 +143,6 @@ a:visited.row {
    ========================================================================== */
 
 #page {
-    transition: transform 0.3s ease-in-out;
-    will-change: auto;
     min-height: calc(100vh - 12rem);
     display: flex;
     flex-direction: column;
