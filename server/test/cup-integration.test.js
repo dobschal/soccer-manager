@@ -16,7 +16,11 @@ vi.mock('../i18n/index.js', () => ({
   getUserLocale: vi.fn().mockResolvedValue('en'),
   t: vi.fn((key, params) => {
     if (key === 'finance.cupPrize') return 'Cup winner prize'
+    if (key === 'finance.cupRoundPrize') return 'Cup round prize'
     if (key === 'log.cupWinner') return `Cup winner! Prize: ${params?.prize}`
+    if (key === 'log.cupMatchWin') return `Cup victory! You beat ${params?.opponent} ${params?.goalsFor}-${params?.goalsAgainst}! Prize: ${params?.prize}`
+    if (key === 'log.cupMatchLoss') return `Cup elimination. Lost ${params?.goalsFor}-${params?.goalsAgainst} to ${params?.opponent}.`
+    if (key === 'log.cupMatchDraw') return `Cup draw against ${params?.opponent} ${params?.goalsFor}-${params?.goalsAgainst}.`
     return key
   })
 }))
@@ -31,6 +35,8 @@ import {
   getTotalRounds,
   getSequentialRoundNumber,
   getCupRoundDisplayName,
+  getCupRoundPrize,
+  sendCupMatchLogMessages,
   validateAndProgressCupRounds
 } from '../helper/cupHelper.js'
 
@@ -689,6 +695,209 @@ describe('Cup Integration Tests', () => {
 
     it('shows "Final" for cup_round=1', () => {
       expect(getCupRoundDisplayName(1, 7)).toBe('Final')
+    })
+  })
+
+  describe('Cup round prize calculation', () => {
+    it('should return 25000 for the first round', () => {
+      // 16-team tournament: maxCupRound=8, first round cup_round=8
+      expect(getCupRoundPrize(8, 8)).toBe(25000)
+    })
+
+    it('should double each round', () => {
+      // 16-team tournament: maxCupRound=8
+      expect(getCupRoundPrize(8, 8)).toBe(25000)   // Round 1
+      expect(getCupRoundPrize(4, 8)).toBe(50000)   // Round 2 (Quarter-Final)
+      expect(getCupRoundPrize(2, 8)).toBe(100000)  // Round 3 (Semi-Final)
+      expect(getCupRoundPrize(1, 8)).toBe(200000)  // Round 4 (Final)
+    })
+
+    it('should scale correctly for large tournaments', () => {
+      // 128-team tournament: maxCupRound=64
+      expect(getCupRoundPrize(64, 64)).toBe(25000)    // Round 1
+      expect(getCupRoundPrize(32, 64)).toBe(50000)    // Round 2
+      expect(getCupRoundPrize(16, 64)).toBe(100000)   // Round 3
+      expect(getCupRoundPrize(8, 64)).toBe(200000)    // Round of 16
+      expect(getCupRoundPrize(4, 64)).toBe(400000)    // Quarter-Final
+      expect(getCupRoundPrize(2, 64)).toBe(800000)    // Semi-Final
+      expect(getCupRoundPrize(1, 64)).toBe(1600000)   // Final
+    })
+
+    it('should work for small 4-team tournaments', () => {
+      // 4-team tournament: maxCupRound=2
+      expect(getCupRoundPrize(2, 2)).toBe(25000)  // Round 1 (Semi-Final)
+      expect(getCupRoundPrize(1, 2)).toBe(50000)  // Round 2 (Final)
+    })
+  })
+
+  describe('Cup round prize awarding', () => {
+    it('should award prize money to the winning team', async () => {
+      const game = {
+        id: 1,
+        team_1_id: 10,
+        team_2_id: 20,
+        cup_round: 8,
+        season: 1,
+        game_day: 5
+      }
+      const gameDetails = { goalsTeamA: 3, goalsTeamB: 1 }
+
+      const team1 = { id: 10, name: 'Winner FC', user_id: 1 }
+      const team2 = { id: 20, name: 'Loser FC', user_id: 2 }
+
+      query
+        .mockResolvedValueOnce([team1]) // SELECT team1
+        .mockResolvedValueOnce([team2]) // SELECT team2
+        .mockResolvedValueOnce([{ maxRound: 8 }]) // MAX(cup_round)
+
+      await sendCupMatchLogMessages(game, gameDetails)
+
+      // updateTeamBalance should be called with 25000 (first round prize)
+      expect(updateTeamBalance).toHaveBeenCalledWith(
+        team1,
+        25000,
+        'Cup round prize',
+        5,
+        1
+      )
+    })
+
+    it('should award higher prize for later rounds', async () => {
+      const game = {
+        id: 2,
+        team_1_id: 10,
+        team_2_id: 20,
+        cup_round: 2,
+        season: 1,
+        game_day: 25
+      }
+      const gameDetails = { goalsTeamA: 2, goalsTeamB: 0 }
+
+      const team1 = { id: 10, name: 'Winner FC', user_id: 1 }
+      const team2 = { id: 20, name: 'Loser FC', user_id: 2 }
+
+      query
+        .mockResolvedValueOnce([team1]) // SELECT team1
+        .mockResolvedValueOnce([team2]) // SELECT team2
+        .mockResolvedValueOnce([{ maxRound: 8 }]) // MAX(cup_round)
+
+      await sendCupMatchLogMessages(game, gameDetails)
+
+      // Semi-final (cup_round=2, maxRound=8): 25000 * (8/2) = 100000
+      expect(updateTeamBalance).toHaveBeenCalledWith(
+        team1,
+        100000,
+        'Cup round prize',
+        25,
+        1
+      )
+    })
+
+    it('should award prize to team2 when team2 wins', async () => {
+      const game = {
+        id: 3,
+        team_1_id: 10,
+        team_2_id: 20,
+        cup_round: 4,
+        season: 1,
+        game_day: 15
+      }
+      const gameDetails = { goalsTeamA: 0, goalsTeamB: 2 }
+
+      const team1 = { id: 10, name: 'Loser FC', user_id: 1 }
+      const team2 = { id: 20, name: 'Winner FC', user_id: 2 }
+
+      query
+        .mockResolvedValueOnce([team1]) // SELECT team1
+        .mockResolvedValueOnce([team2]) // SELECT team2
+        .mockResolvedValueOnce([{ maxRound: 8 }]) // MAX(cup_round)
+
+      await sendCupMatchLogMessages(game, gameDetails)
+
+      // Quarter-final (cup_round=4, maxRound=8): 25000 * (8/4) = 50000
+      expect(updateTeamBalance).toHaveBeenCalledWith(
+        team2,
+        50000,
+        'Cup round prize',
+        15,
+        1
+      )
+    })
+
+    it('should not award prize on draw', async () => {
+      const game = {
+        id: 4,
+        team_1_id: 10,
+        team_2_id: 20,
+        cup_round: 4,
+        season: 1,
+        game_day: 15
+      }
+      const gameDetails = { goalsTeamA: 1, goalsTeamB: 1 }
+
+      const team1 = { id: 10, name: 'Team A', user_id: 1 }
+      const team2 = { id: 20, name: 'Team B', user_id: 2 }
+
+      query
+        .mockResolvedValueOnce([team1])
+        .mockResolvedValueOnce([team2])
+
+      await sendCupMatchLogMessages(game, gameDetails)
+
+      // No prize should be awarded on draw
+      expect(updateTeamBalance).not.toHaveBeenCalled()
+    })
+
+    it('should include prize amount in the win log message', async () => {
+      const game = {
+        id: 5,
+        team_1_id: 10,
+        team_2_id: 20,
+        cup_round: 4,
+        season: 1,
+        game_day: 15
+      }
+      const gameDetails = { goalsTeamA: 3, goalsTeamB: 1 }
+
+      const team1 = { id: 10, name: 'Winner FC', user_id: 1 }
+      const team2 = { id: 20, name: 'Loser FC', user_id: 2 }
+
+      query
+        .mockResolvedValueOnce([team1])
+        .mockResolvedValueOnce([team2])
+        .mockResolvedValueOnce([{ maxRound: 8 }]) // MAX(cup_round) for prize
+
+      await sendCupMatchLogMessages(game, gameDetails)
+
+      // Winner log message should include the prize amount
+      const winLogCall = addLogMessage.mock.calls.find(c =>
+        c[0].includes('Cup victory')
+      )
+      expect(winLogCall).toBeDefined()
+      expect(winLogCall[0]).toContain('50,000€') // 25000 * (8/4) = 50000
+
+      // Loser log message should not mention prize
+      const lossLogCall = addLogMessage.mock.calls.find(c =>
+        c[0].includes('Cup elimination')
+      )
+      expect(lossLogCall).toBeDefined()
+    })
+
+    it('should not award prize for bye games', async () => {
+      const game = {
+        id: 6,
+        team_1_id: 10,
+        team_2_id: null,
+        cup_round: 8,
+        season: 1,
+        game_day: 5
+      }
+      const gameDetails = { goalsTeamA: 0, goalsTeamB: 0 }
+
+      await sendCupMatchLogMessages(game, gameDetails)
+
+      expect(updateTeamBalance).not.toHaveBeenCalled()
+      expect(addLogMessage).not.toHaveBeenCalled()
     })
   })
 })

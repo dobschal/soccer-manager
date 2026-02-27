@@ -8,7 +8,13 @@ import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances, deleteExpiredPendingCards } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
 import { completeStadiumConstructions } from './helper/stadiumHelper.js'
-import { completeBuildingConstructions, getAllTrainingAreaLevels, getAllFitnessStudioLevels, TRAINING_AREA_CARD_CHANCES, FITNESS_STUDIO_CARD_CHANCES } from './helper/buildingHelper.js'
+import {
+  completeBuildingConstructions,
+  FITNESS_STUDIO_CARD_CHANCES,
+  getAllFitnessStudioLevels,
+  getAllTrainingAreaLevels,
+  TRAINING_AREA_CARD_CHANCES
+} from './helper/buildingHelper.js'
 import { addLogMessage, checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
 import { processYouthTraining } from './helper/youthPlayerHelper.js'
@@ -131,8 +137,10 @@ async function _playCupGame (game) {
   const strengthTeamA = playerTeamA.reduce((totalStrength, player) => totalStrength + player.level, 0)
   const strengthTeamB = playerTeamB.reduce((totalStrength, player) => totalStrength + player.level, 0)
 
-  // Cup games don't have stadium earnings (neutral venue concept)
   console.log(`\n\n🏆 Cup match: ${teamA.name} (${strengthTeamA}) vs ${teamB.name} (${strengthTeamB})`)
+
+  // Calculate stadium earnings for cup games (team A is the home team)
+  const stadiumDetails = await _giveStadiumTicketEarnings(teamA, teamB, strengthTeamA, strengthTeamB, game.game_day, game.season)
 
   const gameDetails = {
     log: [],
@@ -140,7 +148,7 @@ async function _playCupGame (game) {
     goalsTeamA: 0,
     strengthTeamA,
     strengthTeamB,
-    stadiumDetails: {},
+    stadiumDetails,
     playerTeamA,
     playerTeamB,
     teamA,
@@ -175,9 +183,9 @@ async function _playCupGame (game) {
 
   // Update freshness and card counts for cup games too
   const freshnessLossByStyle = {
-    aggressive: 0.15,
-    normal: 0.13,
-    friendly: 0.11
+    aggressive: 0.12,
+    normal: 0.1,
+    friendly: 0.08
   }
   for (const player of playerTeamA) {
     const playStyle = teamA.play_style || 'normal'
@@ -317,10 +325,20 @@ async function _giveUsersActionCards () {
         const guaranteed = Math.floor(chance)
         const remainder = chance - guaranteed
         for (let i = 0; i < guaranteed; i++) {
-          actionCards.push(new ActionCard({ team_id: team.id, action, played: 0, state: 'pending' }))
+          actionCards.push(new ActionCard({
+            team_id: team.id,
+            action,
+            played: 0,
+            state: 'pending'
+          }))
         }
         if (Math.random() < remainder) {
-          actionCards.push(new ActionCard({ team_id: team.id, action, played: 0, state: 'pending' }))
+          actionCards.push(new ActionCard({
+            team_id: team.id,
+            action,
+            played: 0,
+            state: 'pending'
+          }))
         }
       }
     }
@@ -474,7 +492,7 @@ async function _playGame (game) {
   // Freshness loss depends on play style: aggressive 15%, normal 12%, friendly 10%
   // Goalkeepers always lose 8%
   const freshnessLossByStyle = {
-    aggressive: 0.13,
+    aggressive: 0.12,
     normal: 0.10,
     friendly: 0.08
   }

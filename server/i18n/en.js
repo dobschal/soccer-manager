@@ -228,13 +228,14 @@ export default {
   'news.cupMatch.5.text': '{winnerName} secured their place in the next cup round by defeating {loserName} {goalsFor}-{goalsAgainst} in the {roundLabel}. The cup campaign is gathering momentum for the winners and prize money beckons. {loserName} fought bravely but were ultimately outclassed on the night. The remaining cup contenders should be wary.',
 
   // Cup log messages
-  'log.cupMatchWin': 'Cup victory! You beat {opponent} {goalsFor}-{goalsAgainst}!',
+  'log.cupMatchWin': 'Cup victory! You beat {opponent} {goalsFor}-{goalsAgainst}! Prize: {prize}',
   'log.cupMatchLoss': 'Cup elimination. Lost {goalsFor}-{goalsAgainst} to {opponent}.',
   'log.cupMatchDraw': 'Cup draw against {opponent} {goalsFor}-{goalsAgainst}. Decided on penalties.',
   'log.cupWinner': 'Congratulations! You won the Cup! Prize: {prize}',
 
   // Cup finance
   'finance.cupPrize': 'Cup winner prize',
+  'finance.cupRoundPrize': 'Cup round prize',
 
   // Building errors
   'error.buildingNotFound': 'Building not found',

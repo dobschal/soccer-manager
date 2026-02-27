@@ -6,6 +6,7 @@ import { getUserLocale, t } from '../i18n/index.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 
 const CUP_PRIZE = 2000000 // 2 million euros
+const CUP_ROUND_BASE_PRIZE = 25000 // 25k for first round, doubles each round
 
 /**
  * Compute the total number of rounds from the first round's cup_round value.
@@ -26,6 +27,17 @@ export function getTotalRounds (maxCupRound) {
  */
 export function getSequentialRoundNumber (cupRound, totalRounds) {
   return totalRounds - Math.log2(cupRound)
+}
+
+/**
+ * Calculate the prize money for winning a cup round.
+ * 25,000€ for the first round, doubling each round.
+ * @param {number} cupRound - The cup_round value (power of 2, 1=final)
+ * @param {number} maxCupRound - The highest cup_round value (first round)
+ * @returns {number} Prize money in euros
+ */
+export function getCupRoundPrize (cupRound, maxCupRound) {
+  return CUP_ROUND_BASE_PRIZE * (maxCupRound / cupRound)
 }
 
 /**
@@ -586,6 +598,22 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
   // Determine winner and loser
   const team1Won = goalsTeam1 > goalsTeam2
   const isDraw = goalsTeam1 === goalsTeam2
+  const winnerTeam = team1Won ? team1 : (goalsTeam2 > goalsTeam1 ? team2 : null)
+
+  // Calculate round prize (25k for first round, doubles each round)
+  let roundPrize = 0
+  if (winnerTeam) {
+    const [{ maxRound }] = await query(
+      'SELECT MAX(cup_round) as maxRound FROM game WHERE season=? AND game_type=\'cup\'',
+      [game.season]
+    )
+    if (maxRound) {
+      roundPrize = getCupRoundPrize(game.cup_round, maxRound)
+      const locale = await getUserLocale(winnerTeam.user_id)
+      const reason = t('finance.cupRoundPrize', {}, locale)
+      await updateTeamBalance(winnerTeam, roundPrize, reason, game.game_day, game.season)
+    }
+  }
 
   // Send messages to team owners
   for (const [team, isTeam1] of [[team1, true], [team2, false]]) {
@@ -598,8 +626,6 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
     const won = isTeam1 ? team1Won : !team1Won
 
     if (isDraw) {
-      // In case of draw, we still have a winner determined randomly
-      // This shouldn't happen often, but handle it gracefully
       await addLogMessage(
         t('log.cupMatchDraw', {
           opponent,
@@ -616,7 +642,8 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
         t('log.cupMatchWin', {
           opponent,
           goalsFor: myGoals,
-          goalsAgainst: theirGoals
+          goalsAgainst: theirGoals,
+          prize: roundPrize.toLocaleString() + '€'
         }, locale),
         team,
         'OPEN_GAME',

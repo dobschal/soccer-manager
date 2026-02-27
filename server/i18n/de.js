@@ -228,13 +228,14 @@ export default {
   'news.cupMatch.5.text': '{winnerName} sicherte sich den Platz in der nächsten Pokalrunde durch einen {goalsFor}:{goalsAgainst}-Sieg über {loserName} im {roundLabel}. Die Pokalkampagne gewinnt an Schwung und Preisgeld winkt. {loserName} kämpfte tapfer, wurde aber letztlich deklassiert. Die verbleibenden Pokalaspiranten sollten gewarnt sein.',
 
   // Cup log messages
-  'log.cupMatchWin': 'Pokalsieg! Du hast {opponent} mit {goalsFor}:{goalsAgainst} geschlagen!',
+  'log.cupMatchWin': 'Pokalsieg! Du hast {opponent} mit {goalsFor}:{goalsAgainst} geschlagen! Prämie: {prize}',
   'log.cupMatchLoss': 'Pokal-Aus. Verloren mit {goalsFor}:{goalsAgainst} gegen {opponent}.',
   'log.cupMatchDraw': 'Pokal-Unentschieden gegen {opponent} {goalsFor}:{goalsAgainst}. Im Elfmeterschießen entschieden.',
   'log.cupWinner': 'Herzlichen Glückwunsch! Du hast den Pokal gewonnen! Preis: {prize}',
 
   // Cup finance
   'finance.cupPrize': 'Pokalsieg-Prämie',
+  'finance.cupRoundPrize': 'Pokalrunden-Prämie',
 
   // Building errors
   'error.buildingNotFound': 'Gebäude nicht gefunden',
