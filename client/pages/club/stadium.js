@@ -1,35 +1,27 @@
-import { UIElement } from '../lib/UIElement.js'
-import { server } from '../lib/gateway.js'
-import { el, generateId } from '../lib/html.js'
-import { toast } from '../partials/toast.js'
-import { euroFormat } from '../lib/currency.js'
-import { StadiumCanvas } from '../partials/stadiumCanvas.js'
-import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
-import { t } from '../i18n/index.js'
-import { BuildingsPage } from './stadium/buildingsPage.js'
-import { FinancesPage } from '../pages/finances.js'
+import { UIElement } from '../../lib/UIElement.js'
+import { server } from '../../lib/gateway.js'
+import { el } from '../../lib/html.js'
+import { toast } from '../../partials/toast.js'
+import { euroFormat } from '../../lib/currency.js'
+import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
+import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
+import { t } from '../../i18n/index.js'
 
-export class StadiumPage extends UIElement {
+export class StadiumSubPage extends UIElement {
   stadium = {}
   team = {}
   constructionInfo = {}
   attendanceData = []
   constructionHistory = []
-  subPage = null
   /** @type {StadiumCanvas|null} */
   _stadiumCanvas = null
   /** @type {boolean} */
   _hasValidConstruction = false
-  _subPageCache = {}
-  _subPageContainerId = generateId()
 
   /**
    * @returns {UIElementEvents}
    */
   get events () {
-    if (this.subPage === 'buildings' || this.subPage === 'finances') {
-      return {}
-    }
     return {
       '#price-form': {
         submit: this._onPriceFormSubmit.bind(this),
@@ -78,105 +70,6 @@ export class StadiumPage extends UIElement {
    * @returns {string}
    */
   get template () {
-    const key = this.subPage || 'stadium'
-    const subPage = this._getOrCreateSubPage()
-    return `
-      <div>
-        <nav class="nav nav-pills mb-2">
-          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#stadium">${t('stadium.tabStadium')}</a>
-          <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#stadium?sub_page=buildings">${t('stadium.tabBuildings')}</a>
-          <a class="nav-link ${this.subPage === 'finances' ? 'active' : ''}" href="#stadium?sub_page=finances">${t('stadium.tabFinances')}</a>
-        </nav>
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
-      </div>
-    `
-  }
-
-  _getOrCreateSubPage () {
-    const key = this.subPage || 'stadium'
-    if (key === 'stadium') {
-      // Stadium tab has Three.js canvas — always recreate
-      return this._renderStadiumPage()
-    }
-    if (!this._subPageCache[key]) {
-      this._subPageCache[key] = this._createSubPage(key)
-    }
-    return this._subPageCache[key]
-  }
-
-  _createSubPage (key) {
-    switch (key) {
-      case 'buildings':
-        return new BuildingsPage(this)
-      case 'finances':
-        return new FinancesPage()
-      default:
-        return this._renderStadiumPage()
-    }
-  }
-
-  _switchSubPage () {
-    const container = el('#' + this._subPageContainerId)
-    if (!container) return
-    const key = this.subPage || 'stadium'
-
-    // Cleanup Three.js when leaving stadium tab
-    if (this._stadiumCanvas) {
-      this._stadiumCanvas.onDestroy()
-      this._stadiumCanvas = null
-    }
-
-    container.querySelectorAll('[data-subpage]').forEach(w => {
-      w.style.display = 'none'
-    })
-
-    // Stadium tab: always recreate (Three.js needs fresh canvas)
-    if (key === 'stadium') {
-      const oldWrapper = container.querySelector('[data-subpage="stadium"]')
-      if (oldWrapper) oldWrapper.remove()
-      const subPage = this._renderStadiumPage()
-      const wrapper = document.createElement('div')
-      wrapper.setAttribute('data-subpage', 'stadium')
-      wrapper.insertAdjacentHTML('afterbegin', String(subPage))
-      container.appendChild(wrapper)
-      this._stadiumCanvas.onMounted()
-      this._applyEventHandlers()
-      return
-    }
-
-    const existing = container.querySelector(`[data-subpage="${key}"]`)
-    if (existing) {
-      existing.style.display = ''
-      const cached = this._subPageCache[key]
-      if (cached?.update) cached.update()
-      return
-    }
-
-    const subPage = this._getOrCreateSubPage()
-    const wrapper = document.createElement('div')
-    wrapper.setAttribute('data-subpage', key)
-    wrapper.insertAdjacentHTML('afterbegin', String(subPage))
-    container.appendChild(wrapper)
-  }
-
-  _updateNav () {
-    const root = document.querySelector(this._elementQuery)
-    if (!root) return
-    root.querySelectorAll('.nav-link').forEach(link => {
-      const href = link.getAttribute('href')
-      const isActive = this.subPage
-        ? href === `#stadium?sub_page=${this.subPage}`
-        : href === '#stadium'
-      link.classList.toggle('active', isActive)
-    })
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderStadiumPage () {
     this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas')
     return `
       <div>
@@ -236,20 +129,6 @@ export class StadiumPage extends UIElement {
     this.team = teamResponse.team
     this.attendanceData = attendanceResponse.attendance || []
     this.constructionHistory = historyResponse.history || []
-  }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.sub_page
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({ sub_page: subPage }) {
-    const newSubPage = subPage || null
-    if (newSubPage !== this.subPage) {
-      this.subPage = newSubPage
-      this._switchSubPage()
-      this._updateNav()
-    }
   }
 
   /**
@@ -569,7 +448,7 @@ export class StadiumPage extends UIElement {
    * Called after component is mounted - initializes Three.js scene
    */
   onMounted () {
-    if (this._stadiumCanvas && !this.subPage) {
+    if (this._stadiumCanvas) {
       this._stadiumCanvas.onMounted()
     }
     void showTutorialIfNeeded('stadium', this)
@@ -584,11 +463,4 @@ export class StadiumPage extends UIElement {
       this._stadiumCanvas = null
     }
   }
-}
-
-/**
- * @returns {Promise<string>}
- */
-export async function renderStadiumPage () {
-  return new StadiumPage().toString()
 }

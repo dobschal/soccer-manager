@@ -28,15 +28,15 @@ const TUTORIALS = [
   },
   {
     key: 'stadium',
-    route: '#stadium'
+    route: '#club'
   },
   {
     key: 'finances',
-    route: '#stadium?sub_page=finances'
+    route: '#club?sub_page=finances'
   },
   {
     key: 'buildings',
-    route: '#stadium?sub_page=buildings'
+    route: '#club?sub_page=buildings'
   }
 ]
 

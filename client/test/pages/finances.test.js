@@ -52,7 +52,7 @@ vi.mock('../../partials/tutorialOverlay.js', () => ({
   showTutorialIfNeeded: vi.fn()
 }))
 
-import { FinancesPage, renderFinancesPage } from '../../pages/finances.js'
+import { FinancesPage } from '../../pages/club/finances.js'
 import { server } from '../../lib/gateway.js'
 
 describe('FinancesPage', () => {
@@ -130,9 +130,9 @@ describe('FinancesPage', () => {
     })
   })
 
-  describe('renderFinancesPage (backwards compatibility)', () => {
-    it('is exported as a function', () => {
-      expect(typeof renderFinancesPage).toBe('function')
+  describe('FinancesPage export', () => {
+    it('is a UIElement class', () => {
+      expect(FinancesPage.isUIElement).toBe(true)
     })
   })
 })

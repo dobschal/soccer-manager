@@ -126,7 +126,7 @@ export class StartPage {
         type: 'NO_SPONSOR',
         text: 'dashboard.urgencySponsor',
         okText: 'dashboard.urgencyOk.sponsor',
-        link: '#stadium?sub_page=finances'
+        link: '#club?sub_page=finances'
       }
     ]
 

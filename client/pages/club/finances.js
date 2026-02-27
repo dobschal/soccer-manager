@@ -1,11 +1,11 @@
-import { UIElement } from '../lib/UIElement.js'
-import { server } from '../lib/gateway.js'
-import { toast } from '../partials/toast.js'
-import { Balance } from '../partials/balance.js'
-import { euroFormat } from '../lib/currency.js'
-import { BalanceChart } from '../partials/balanceChart.js'
-import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
-import { t } from '../i18n/index.js'
+import { UIElement } from '../../lib/UIElement.js'
+import { server } from '../../lib/gateway.js'
+import { toast } from '../../partials/toast.js'
+import { Balance } from '../../partials/balance.js'
+import { euroFormat } from '../../lib/currency.js'
+import { BalanceChart } from '../../partials/balanceChart.js'
+import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
+import { t } from '../../i18n/index.js'
 
 /**
  * @typedef {Object} FinanceLogEntry
@@ -335,11 +335,4 @@ export class FinancesPage extends UIElement {
       </div>
     `
   }
-}
-
-/**
- * @returns {Promise<string>}
- */
-export async function renderFinancesPage () {
-  return new FinancesPage().toString()
 }

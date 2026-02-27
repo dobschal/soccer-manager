@@ -5,7 +5,7 @@ import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
 import { NativeLandingPage } from './pages/native-landing.js'
 import { MyTeamPage } from './pages/my-team.js'
-import { StadiumPage } from './pages/stadium.js'
+import { ClubPage } from './pages/club.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
@@ -33,7 +33,7 @@ server.getVersion().then(({ version }) => {
 
 const pages = {
   trades: [NativeAppLayout, TradesPage],
-  stadium: [NativeAppLayout, StadiumPage],
+  club: [NativeAppLayout, ClubPage],
   team: [NativeAppLayout, TeamPage],
   results: [NativeAppLayout, ResultsPage],
   login: [DefaultLayout, NativeLandingPage],

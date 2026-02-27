@@ -129,7 +129,7 @@ describe('GameLayout', () => {
       await layout.load()
       expect(layout.template).toContain('href="#my-team"')
       expect(layout.template).toContain('href="#results"')
-      expect(layout.template).toContain('href="#stadium"')
+      expect(layout.template).toContain('href="#club"')
       expect(layout.template).toContain('href="#trades"')
     })
 

@@ -63,7 +63,7 @@ export class NativeAppLayout extends UIElement {
           ${this._tabItem('dashboard', 'fa-home', t('nav.home'))}
           ${this._tabItem('my-team', 'fa-users', t('nav.team'))}
           ${this._tabItem('results', 'fa-trophy', t('nav.league'))}
-          ${this._tabItem('stadium', 'fa-futbol-o', t('nav.club'))}
+          ${this._tabItem('club', 'fa-futbol-o', t('nav.club'))}
           ${this._tabItem('trades', 'fa-handshake-o', t('nav.transfers'))}
         </nav>
       </div>

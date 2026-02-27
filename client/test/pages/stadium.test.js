@@ -78,10 +78,10 @@ vi.mock('../../lib/currency.js', () => ({
   }
 }))
 
-import { StadiumPage, renderStadiumPage } from '../../pages/stadium.js'
+import { StadiumSubPage } from '../../pages/club/stadium.js'
 import { server } from '../../lib/gateway.js'
 
-describe('StadiumPage', () => {
+describe('StadiumSubPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     server.getStadium.mockResolvedValue({
@@ -118,39 +118,39 @@ describe('StadiumPage', () => {
     server.getConstructionHistory.mockResolvedValue({ history: [] })
   })
 
-  describe('StadiumPage class', () => {
+  describe('StadiumSubPage class', () => {
     it('loads data from server', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(server.getStadium).toHaveBeenCalled()
     })
 
     it('template contains page title', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('Your Stadium')
     })
 
     it('template contains stadium seat count', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('20000')
     })
 
     it('template contains ticket prices section', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('Ticket Prices')
     })
 
     it('template contains expand stadium section', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('Expand Stadium')
     })
 
     it('template contains stand inputs', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('north stand')
       expect(page.template).toContain('south stand')
@@ -159,20 +159,20 @@ describe('StadiumPage', () => {
     })
 
     it('template contains roof checkboxes', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('Roof on')
       expect(page.template).toContain('type="checkbox"')
     })
 
     it('template contains save prices button', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('Save Prices')
     })
 
     it('template contains disabled start construction button', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('Start Construction')
       // Button should be disabled by default until construction is validated
@@ -203,7 +203,7 @@ describe('StadiumPage', () => {
           west: { underConstruction: false }
         }
       })
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('Under construction')
       expect(page.template).toContain('5 gameday(s) remaining')
@@ -233,14 +233,14 @@ describe('StadiumPage', () => {
           west: { underConstruction: false }
         }
       })
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       // The north stand inputs should be disabled
       expect(page.template).toContain('disabled')
     })
 
     it('template contains stadium canvas container', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('stadium-canvas-container')
       // StadiumCanvas renders as a template placeholder that gets replaced async
@@ -248,20 +248,20 @@ describe('StadiumPage', () => {
     })
 
     it('has events for form submission', () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       expect(page.events).toHaveProperty('#price-form')
       expect(page.events).toHaveProperty('#stadium-form')
     })
 
     it('extends UIElement', () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       expect(page.isUIElement).toBe(true)
     })
   })
 
   describe('Attendance section', () => {
     it('renders empty state when no attendance data', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('No attendance data available yet.')
     })
@@ -281,7 +281,7 @@ describe('StadiumPage', () => {
           }
         ]
       })
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('4,000')
       expect(page.template).toContain('80%')
@@ -291,7 +291,7 @@ describe('StadiumPage', () => {
 
   describe('Construction history section', () => {
     it('renders empty state when no history', async () => {
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('No construction history yet.')
     })
@@ -311,7 +311,7 @@ describe('StadiumPage', () => {
           }
         ]
       })
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('5,000')
       expect(page.template).toContain('8,000')
@@ -334,7 +334,7 @@ describe('StadiumPage', () => {
           }
         ]
       })
-      const page = new StadiumPage()
+      const page = new StadiumSubPage()
       await page.load()
       expect(page.template).toContain('In Progress')
       expect(page.template).toContain('badge')
@@ -360,14 +360,14 @@ describe('StadiumPage', () => {
 
     describe('Phase 1: Before construction', () => {
       it('shows current sizes in expand form inputs', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         const tpl = page.template
         expect(tpl).toContain('value="5000"')
       })
 
       it('all stand inputs are enabled', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         const tpl = page.template
         const sizeInputs = tpl.match(/data-size-input="(north|south|east|west)"/g)
@@ -379,20 +379,20 @@ describe('StadiumPage', () => {
       })
 
       it('shows no construction badges', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).not.toContain('Under construction')
         expect(page.template).not.toContain('gameday(s) remaining')
       })
 
       it('shows empty construction history', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toContain('No construction history yet.')
       })
 
       it('shows total seat count for all 4 stands', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         // 4 x 5000 = 20000
         expect(page.template).toContain('20000')
@@ -425,26 +425,26 @@ describe('StadiumPage', () => {
       })
 
       it('shows construction badge with remaining days on the stand under construction', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toContain('Under construction')
         expect(page.template).toContain('3 gameday(s) remaining')
       })
 
       it('disables size input for the stand under construction', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toMatch(/data-size-input="north"[^>]*disabled/)
       })
 
       it('disables roof checkbox for the stand under construction', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toMatch(/data-roof-input="north"[^>]*disabled/)
       })
 
       it('keeps other stands enabled', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         const tpl = page.template
         for (const stand of ['south', 'east', 'west']) {
@@ -453,7 +453,7 @@ describe('StadiumPage', () => {
       })
 
       it('still shows old size in input (not the target size)', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         // The stadium still has 5000 for north_stand_size (construction hasn't completed)
         const northMatch = page.template.match(/data-size-input="north"[\s\S]*?value="(\d+)"/)
@@ -462,7 +462,7 @@ describe('StadiumPage', () => {
       })
 
       it('shows in-progress badge in construction history', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toContain('In Progress')
         expect(page.template).toContain('badge')
@@ -495,27 +495,27 @@ describe('StadiumPage', () => {
       })
 
       it('still shows as under construction with completes-today message', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toContain('Completes today.')
         expect(page.template).not.toContain('0 gameday(s) remaining')
       })
 
       it('still disables the stand input', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toMatch(/data-size-input="north"[^>]*disabled/)
       })
 
       it('still shows old size (construction not finalized)', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         const northMatch = page.template.match(/data-size-input="north"[\s\S]*?value="(\d+)"/)
         expect(northMatch[1]).toBe('5000')
       })
 
       it('history still shows in-progress badge', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toContain('In Progress')
       })
@@ -551,39 +551,39 @@ describe('StadiumPage', () => {
       })
 
       it('shows updated size in expand form input', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         const northMatch = page.template.match(/data-size-input="north"[\s\S]*?value="(\d+)"/)
         expect(northMatch[1]).toBe('8000')
       })
 
       it('shows updated total seat count', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         // 8000 + 5000 + 5000 + 5000 = 23000
         expect(page.template).toContain('23000')
       })
 
       it('roof checkbox is now checked', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toMatch(/data-roof-input="north"[\s\S]*?checked/)
       })
 
       it('no construction badges shown', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).not.toContain('gameday(s) remaining')
       })
 
       it('stand input is enabled again', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).not.toMatch(/data-size-input="north"[^>]*disabled/)
       })
 
       it('construction history shows completed entry with dates', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).not.toContain('In Progress')
         // started: season 0 + 1 = S1, day 5 + 1 = Day 6
@@ -620,7 +620,7 @@ describe('StadiumPage', () => {
       })
 
       it('north (completed) is enabled with new size', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).not.toMatch(/data-size-input="north"[^>]*disabled/)
         const northMatch = page.template.match(/data-size-input="north"[\s\S]*?value="(\d+)"/)
@@ -628,27 +628,27 @@ describe('StadiumPage', () => {
       })
 
       it('south (active, 5 days remaining) is disabled with badge', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toMatch(/data-size-input="south"[^>]*disabled/)
         expect(page.template).toContain('5 gameday(s) remaining')
       })
 
       it('east (due, 0 days remaining) is disabled with completes-today badge', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toMatch(/data-size-input="east"[^>]*disabled/)
         expect(page.template).toContain('Completes today.')
       })
 
       it('west (no construction) is enabled', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         expect(page.template).not.toMatch(/data-size-input="west"[^>]*disabled/)
       })
 
       it('construction history shows 2 in-progress and 1 completed entry', async () => {
-        const page = new StadiumPage()
+        const page = new StadiumSubPage()
         await page.load()
         const tpl = page.template
         const inProgressMatches = tpl.match(/In Progress/g)
@@ -659,9 +659,9 @@ describe('StadiumPage', () => {
     })
   })
 
-  describe('renderStadiumPage (backwards compatibility)', () => {
-    it('is exported as a function', () => {
-      expect(typeof renderStadiumPage).toBe('function')
+  describe('StadiumSubPage export', () => {
+    it('is a UIElement class', () => {
+      expect(StadiumSubPage.isUIElement).toBe(true)
     })
   })
 })

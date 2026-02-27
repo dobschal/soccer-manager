@@ -5,7 +5,7 @@ import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
 import { LandingPage } from './pages/landing.js'
 import { MyTeamPage } from './pages/my-team.js'
-import { StadiumPage } from './pages/stadium.js'
+import { ClubPage } from './pages/club.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
@@ -27,7 +27,7 @@ server.getVersion().then(({ version }) => {
 
 const pages = {
   trades: [GameLayout, TradesPage],
-  stadium: [GameLayout, StadiumPage],
+  club: [GameLayout, ClubPage],
   team: [GameLayout, TeamPage],
   results: [GameLayout, ResultsPage],
   login: [DefaultLayout, LandingPage],
