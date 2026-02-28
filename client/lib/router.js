@@ -130,7 +130,7 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
 
   // Phase 1: slide the whole container out
   container.style.transition = 'transform 0.15s ease-in'
-  container.style.transform = direction === 'right' ? 'translateX(-100%)' : 'translateX(100%)'
+  container.style.transform = direction === 'right' ? 'translateX(-120%)' : 'translateX(120%)'
 
   const startSlideIn = () => {
     if (_transitionCleanup !== cleanup) return
@@ -141,7 +141,7 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
 
     // Jump to the opposite side (no transition)
     container.style.transition = 'none'
-    container.style.transform = direction === 'right' ? 'translateX(100%)' : 'translateX(-100%)'
+    container.style.transform = direction === 'right' ? 'translateX(120%)' : 'translateX(-120%)'
 
     // Wait two frames so the browser commits the jump before starting the slide-in
     setTimeout(() => {

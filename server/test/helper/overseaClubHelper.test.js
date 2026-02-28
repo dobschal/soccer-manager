@@ -24,11 +24,6 @@ vi.mock('../../helper/teamHelper.js', () => ({
   getTeamById: vi.fn()
 }))
 
-import { query } from '../../lib/database.js'
-import { getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
-import { acceptOffer } from '../../helper/tradeHelper.js'
-import { getTeamById } from '../../helper/teamHelper.js'
-
 // We need to reset the module cache to clear the cached IOC team ID between tests
 let fillMarketGaps, iocBuyUndervaluedPlayers, cleanupIOCPlayers, getIOCTeamId
 

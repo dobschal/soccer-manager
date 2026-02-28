@@ -176,13 +176,20 @@ async function _playCupGame (game) {
   if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
     gameDetails.extraTime = true
     console.log(`Cup match is a draw after regular time (${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}), playing extra time...`)
+    const maxExtraSteps = 9000 // Safety limit (~15 hours of match time)
     let extraStep = 0
-    while (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
+    while (gameDetails.goalsTeamA === gameDetails.goalsTeamB && extraStep < maxExtraSteps) {
       gameDetails.currentMinute = 91 + Math.floor(extraStep / 10)
       playGameStep(playerTeamA, playerTeamB, gameDetails)
       extraStep++
     }
-    console.log(`Cup extra time decided after ${Math.floor(extraStep / 10)} extra minutes: ${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}`)
+    // If still tied after max extra steps, award to home team
+    if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
+      gameDetails.goalsTeamA++
+      console.log('Cup extra time: no goal scored, awarding to home team')
+    } else {
+      console.log(`Cup extra time decided after ${Math.floor(extraStep / 10)} extra minutes: ${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}`)
+    }
   }
   delete gameDetails.currentMinute // Don't persist internal tracking field
 
