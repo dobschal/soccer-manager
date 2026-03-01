@@ -1041,6 +1041,11 @@ const migrations = [{
   async run () {
     await query('CREATE INDEX idx_action_card_team_state ON action_card (team_id, played, state)')
   }
+}, {
+  name: 'Add last_login column to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN last_login TIMESTAMP NULL DEFAULT NULL')
+  }
 }]
 
 /**

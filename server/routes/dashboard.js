@@ -6,6 +6,9 @@ import { query } from '../lib/database.js'
 
 export default {
   async getDashboardUrgencies (req) {
+    // Update last login timestamp (fire-and-forget)
+    query('UPDATE user SET last_login = NOW() WHERE id = ?', [req.user.id])
+
     const team = await getTeam(req)
     const urgencies = []
 

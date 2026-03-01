@@ -255,24 +255,42 @@ async function _giveAllPlayersFreshness (season) {
   const players = await query('SELECT * FROM player WHERE freshness < 1.0')
   const promises = []
   for (const player of players) {
-    const age = await getPlayerAge(player, season)
-    if (age <= 21) {
-      player.freshness = Math.min(1.0, player.freshness + 0.1)
-    } else if (age <= 26) {
-      player.freshness = Math.min(1.0, player.freshness + 0.08)
-    } else if (age <= 29) {
-      player.freshness = Math.min(1.0, player.freshness + 0.06)
-    } else if (age <= 32) {
-      player.freshness = Math.min(1.0, player.freshness + 0.05)
-    } else {
-      player.freshness = Math.min(1.0, player.freshness + 0.04)
-    }
-    if (!player.in_game_position) {
-      player.freshness = Math.min(1.0, player.freshness + 0.03)
-    }
+    const recovery = _calculateFreshnessRecovery(await getPlayerAge(player, season), !!player.in_game_position)
+    player.freshness = Math.min(1.0, player.freshness + recovery)
     promises.push(query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id]))
   }
   await Promise.all(promises)
+}
+
+/**
+ * Calculate freshness recovery for a player based on age and whether they played.
+ * Applies +-20% randomness to the result.
+ * @param {number} age
+ * @param {boolean} isInLineup - whether the player is in the lineup (has in_game_position)
+ * @returns {number}
+ */
+export function _calculateFreshnessRecovery (age, isInLineup) {
+  let baseRecovery
+  if (age <= 21) {
+    baseRecovery = 0.10
+  } else if (age <= 26) {
+    baseRecovery = 0.08
+  } else if (age <= 29) {
+    baseRecovery = 0.06
+  } else if (age <= 32) {
+    baseRecovery = 0.05
+  } else {
+    baseRecovery = 0.04
+  }
+
+  // Players not in lineup recover significantly more
+  if (!isInLineup) {
+    baseRecovery += 0.08
+  }
+
+  // Apply +-20% randomness
+  const randomFactor = 0.8 + Math.random() * 0.4 // 0.8 to 1.2
+  return baseRecovery * randomFactor
 }
 
 /**

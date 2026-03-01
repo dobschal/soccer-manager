@@ -415,11 +415,11 @@ export async function getCupGamesForTeam (teamId, season, limit = 10) {
       WHERE g.game_type = 'cup'
         AND g.season = ?
         AND (g.team_1_id = ? OR g.team_2_id = ?)
-      ORDER BY g.cup_round DESC, g.game_day ASC
+      ORDER BY g.cup_round ASC, g.game_day ASC
       LIMIT ?
   `, [season, teamId, teamId, limit])
 
-  return games
+  return games.reverse()
 }
 
 /**
