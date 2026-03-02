@@ -612,8 +612,8 @@ describe('play-game simulation', () => {
         if (gameDetails.goalsTeamB > gameDetails.goalsTeamA) incompleteTeamWins++
       }
 
-      // Full team should win more often than the incomplete team
-      expect(fullTeamWins).toBeGreaterThanOrEqual(incompleteTeamWins)
+      // Full team should win significantly more often (at least 3:1 ratio)
+      expect(fullTeamWins).toBeGreaterThan(incompleteTeamWins * 3)
     })
 
     it('team with 7 players should lose to full team of same level most of the time', () => {
@@ -642,8 +642,8 @@ describe('play-game simulation', () => {
         if (gameDetails.goalsTeamA > gameDetails.goalsTeamB) fullTeamWins++
       }
 
-      // Full team should win majority of games
-      expect(fullTeamWins / numGames).toBeGreaterThan(0.5)
+      // Full team should win at least 65% of games against 7-player team
+      expect(fullTeamWins / numGames).toBeGreaterThan(0.65)
     })
   })
 

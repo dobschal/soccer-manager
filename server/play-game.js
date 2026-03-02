@@ -215,6 +215,30 @@ export function kickoff (playerTeamA, playerTeamB, gameDetails) {
  * @returns {void}
  */
 export function playGameStep (playerTeamA, playerTeamB, gameDetails) {
+  // Numerical disadvantage: team with fewer active players loses possession more often
+  const activeA = playerTeamA.filter(p => !p.sentOff).length
+  const activeB = playerTeamB.filter(p => !p.sentOff).length
+  if (activeA !== activeB) {
+    const ballHolder = playerTeamA.find(p => p.hasBall && !p.sentOff) || playerTeamB.find(p => p.hasBall && !p.sentOff)
+    if (ballHolder) {
+      const teamAHasBall = playerTeamA.some(p => p.id === ballHolder.id)
+      const holdingTeamSize = teamAHasBall ? activeA : activeB
+      const opposingTeamSize = teamAHasBall ? activeB : activeA
+      if (opposingTeamSize > holdingTeamSize) {
+        // 2% turnover chance per missing player per step
+        const turnoverChance = (opposingTeamSize - holdingTeamSize) * 0.02
+        if (Math.random() < turnoverChance) {
+          ballHolder.hasBall = false
+          const opponents = (teamAHasBall ? playerTeamB : playerTeamA).filter(p => !p.sentOff)
+          if (opponents.length > 0) {
+            randomItem(opponents).hasBall = true
+            gameDetails.streak = 0
+            return
+          }
+        }
+      }
+    }
+  }
   if (!_fightsOpponents(playerTeamA, playerTeamB, gameDetails)) return
   if (!_shootBall(playerTeamA, playerTeamB, gameDetails)) return
   _passBall(playerTeamA, playerTeamB, gameDetails)
@@ -258,6 +282,8 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
   const oponentPlayers = defendingTeam.filter(p => p.position === oponentPosition && !p.sentOff)
 
   if (oponentPlayers.length === 0) {
+    // No defender at this position - massive advantage for attacker (open space)
+    gameDetails.streak += 3
     return true
   }
 

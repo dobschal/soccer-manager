@@ -63,6 +63,9 @@ async function _makeBotMove (botTeam, players, actionCards) {
   await _chooseSponsor(botTeam, isStrongTeam)
   await _checkStadium(botTeam)
   await _checkTrades(botTeam, playersOfTeam)
+  // Re-check lineup after trades to fill holes left by sold/fired players
+  const updatedPlayers = await getPlayersByTeamId(botTeam.id)
+  await _checkTactic(botTeam, updatedPlayers, isStrongTeam)
 }
 
 /**
