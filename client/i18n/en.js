@@ -391,6 +391,8 @@ export default {
   'trades.marketValuesFromLevel': 'From Level',
   'trades.marketValuesToLevel': 'To Level',
   'trades.marketValuesAge': 'Age',
+  'trades.marketValuesFromAge': 'From Age',
+  'trades.marketValuesToAge': 'To Age',
 
   // Results / League
   'results.title': 'League',

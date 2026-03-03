@@ -391,6 +391,8 @@ export default {
   'trades.marketValuesFromLevel': 'Von Level',
   'trades.marketValuesToLevel': 'Bis Level',
   'trades.marketValuesAge': 'Alter',
+  'trades.marketValuesFromAge': 'Von Alter',
+  'trades.marketValuesToAge': 'Bis Alter',
 
   // Results / League
   'results.title': 'Liga',

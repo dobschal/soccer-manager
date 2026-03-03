@@ -12,7 +12,7 @@ import { server } from '../../lib/gateway.js'
 export function calculateMarketValue (level, age) {
   let price = 50_000_000
   for (let a = 22; a < age; a++) price *= 0.75
-  for (let l = 100; l > level; l -= 10) price *= 0.5
+  for (let l = 100; l > level; l--) price *= 0.9330329915368074
   return Math.floor(price)
 }
 
@@ -29,8 +29,10 @@ export function getCellColor (avgPrice, estimate) {
 
 export class MarketValuesPage extends UIElement {
   _selectedPosition = 'CM'
-  _fromLevel = 30
+  _fromLevel = 40
   _toLevel = 50
+  _fromAge = 20
+  _toAge = 30
   _transferStats = {}
 
   async load () {
@@ -62,6 +64,24 @@ export class MarketValuesPage extends UIElement {
           }
           this.update()
         }
+      },
+      '#from-age-select': {
+        change: (e) => {
+          this._fromAge = Number(e.target.value)
+          if (this._fromAge > this._toAge) {
+            this._toAge = this._fromAge
+          }
+          this.update()
+        }
+      },
+      '#to-age-select': {
+        change: (e) => {
+          this._toAge = Number(e.target.value)
+          if (this._toAge < this._fromAge) {
+            this._fromAge = this._toAge
+          }
+          this.update()
+        }
       }
     }
   }
@@ -69,12 +89,15 @@ export class MarketValuesPage extends UIElement {
   get template () {
     const positions = Object.keys(Position)
     const ages = []
-    for (let a = 16; a <= 35; a++) ages.push(a)
+    for (let a = this._fromAge; a <= this._toAge; a++) ages.push(a)
     const levels = []
     for (let l = this._toLevel; l >= this._fromLevel; l--) levels.push(l)
 
     const allLevels = []
     for (let l = 1; l <= 100; l++) allLevels.push(l)
+
+    const allAges = []
+    for (let a = 16; a <= 35; a++) allAges.push(a)
 
     return `
       <div>
@@ -99,9 +122,21 @@ export class MarketValuesPage extends UIElement {
               ${allLevels.map(l => `<option value="${l}" ${l === this._toLevel ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
           </div>
+          <div>
+            <label class="form-label" for="from-age-select">${t('trades.marketValuesFromAge')}</label>
+            <select class="form-select" id="from-age-select" style="max-width: 200px;">
+              ${allAges.map(a => `<option value="${a}" ${a === this._fromAge ? 'selected' : ''}>${a}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="to-age-select">${t('trades.marketValuesToAge')}</label>
+            <select class="form-select" id="to-age-select" style="max-width: 200px;">
+              ${allAges.map(a => `<option value="${a}" ${a === this._toAge ? 'selected' : ''}>${a}</option>`).join('')}
+            </select>
+          </div>
         </div>
-        <div style="overflow-x: auto; margin: 0 -2rem">
-          <table class="table table-sm table-bordered" style="margin: 0">
+        <div class="horizontal-scrollable-table">
+          <table class="table wide-on-mobile">
             <thead>
               <tr>
                 <th>${t('trades.marketValuesLevel')}</th>
@@ -116,7 +151,7 @@ export class MarketValuesPage extends UIElement {
       const key = `${level}:${age}`
       const stat = this._transferStats[key]
       const estimate = calculateMarketValue(level, age)
-      const style = stat ? getCellColor(stat.avgPrice, estimate) : 'background: #f0f0f0'
+      const style = stat ? '' : 'color: #c0c0c0;'
       const displayValue = stat ? stat.avgPrice : estimate
       return `<td class="text-end text-nowrap" style="${style}">${euroFormat.format(displayValue)}</td>`
     }).join('')}
