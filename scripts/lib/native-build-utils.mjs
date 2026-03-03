@@ -20,7 +20,7 @@ export function copyClientFiles(clientDir, outputDir) {
   console.log('Copying client files...')
   cpSync(clientDir, outputDir, {
     recursive: true,
-    filter: (src) => !src.includes('/test/')
+    filter: (src) => !src.includes('/test/') && !src.endsWith('native-client.zip') && !src.endsWith('native-version.json')
   })
 }
 
