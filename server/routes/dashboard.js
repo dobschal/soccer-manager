@@ -5,9 +5,12 @@ import { getYouthPlayersByTeam } from '../helper/youthPlayerHelper.js'
 import { query } from '../lib/database.js'
 
 export default {
-  async getDashboardUrgencies (req) {
+  async getDashboardUrgencies (platformOrReq, maybeReq) {
+    let platform, req
+    if (typeof platformOrReq === 'string') { platform = platformOrReq; req = maybeReq } else { platform = 'web'; req = platformOrReq }
+    const col = platform === 'ios' ? 'last_login_ios' : platform === 'android' ? 'last_login_android' : 'last_login_web'
     // Update last login timestamp (fire-and-forget)
-    query('UPDATE user SET last_login = NOW() WHERE id = ?', [req.user.id])
+    query(`UPDATE user SET last_login = NOW(), ${col} = NOW() WHERE id = ?`, [req.user.id])
 
     const team = await getTeam(req)
     const urgencies = []

@@ -78,6 +78,7 @@ export default {
   'log.cardYouth': 'Ein neues Nachwuchstalent {playerName} ist deinem Team beigetreten!',
   'log.cardsMerged': 'Karten wurden zu einer mächtigeren Karte verschmolzen!',
   'log.cardStarPlayer': '{playerName} wurde zum Starspieler befördert!',
+  'log.cardMotivatingSpeech': 'Dein Team ist motiviert! +10% Stärke für den nächsten Spieltag!',
 
   // Log messages - Stadium
   'log.stadiumExpansionStarted': 'Bau begonnen: {stand} Erweiterung auf {newSize} Plätze.',

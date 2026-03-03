@@ -78,6 +78,7 @@ export default {
   'log.cardYouth': 'A new youth talent {playerName} has joined your team!',
   'log.cardsMerged': 'Cards have been merged into a more powerful card!',
   'log.cardStarPlayer': '{playerName} has been promoted to Star Player!',
+  'log.cardMotivatingSpeech': 'Your team is fired up! +10% strength for the next game day!',
 
   // Log messages - Stadium
   'log.stadiumExpansionStarted': 'Construction started: {stand} expansion to {newSize} seats.',

@@ -24,12 +24,13 @@ export const actionCardChances = {
   FRESHNESS_10: 0.88,
   FRESHNESS_20: 0,
   LEVEL_UP_PLAYER_40: 1.2,
-  CHANGE_PLAYER_POSITION: 0.06,
+  CHANGE_PLAYER_POSITION: 0.03,
   NEW_YOUTH_PLAYER: 0.1,
   BONUS_100K: 0.06,
   LEVEL_UP_PLAYER_70: 0.3,
   LEVEL_UP_PLAYER_100: 0.06,
-  STAR_PLAYER: 0.015
+  STAR_PLAYER: 0.015,
+  MOTIVATING_SPEECH: 0.059
 }
 
 /**
@@ -196,6 +197,12 @@ export async function playActionCard ({
     await updateTeamBalance(team, 100000, t('finance.actionCardBonus', {}, locale), gameDay, season)
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardMoney', { amount: '100,000€' }, locale), team, null, null, 'money')
+    return { success: true }
+  }
+  if (actionCard.action === 'MOTIVATING_SPEECH') {
+    await query('UPDATE team SET motivating_speech_active=1 WHERE id=?', [team.id])
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
+    await addLogMessage(t('log.cardMotivatingSpeech', {}, locale), team, null, null, 'bullhorn')
     return { success: true }
   }
   throw new BadRequestError(t('error.invalidCardAction', {}, locale))

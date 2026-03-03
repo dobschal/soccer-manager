@@ -1084,6 +1084,12 @@ const migrations = [{
     console.log(`✅ Hashed ${count} existing plaintext passwords`)
   }
 }, {
+  name: 'Add motivating_speech_active column to team table',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN motivating_speech_active TINYINT(1) DEFAULT 0')
+  }
+},
+{
   name: 'Create team_stats_cache table',
   async run () {
     await query(`CREATE TABLE IF NOT EXISTS team_stats_cache

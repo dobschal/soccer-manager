@@ -605,6 +605,9 @@ export default {
   'actionCards.type.cashBonusDesc': 'Erhalte einen Sofortbonus von 100.000€.',
   'actionCards.type.starPlayer': 'Starspieler',
   'actionCards.type.starPlayerDesc': 'Befördere einen Spieler zum Star mit einem permanenten 10% Level-Bonus.',
+  'actionCards.type.motivatingSpeech': 'Motivierende Ansprache',
+  'actionCards.type.motivatingSpeechDesc': 'Gibt deinem gesamten Team einen 10% Level-Boost für den nächsten Spieltag.',
+  'actionCards.motivatingSpeechSuccess': 'Dein Team ist motiviert! +10% Stärke für den nächsten Spieltag!',
   // Positions for action cards
   'actionCards.position.GK': 'Torhüter (GK)',
   'actionCards.position.LD': 'Linker Verteidiger (LD)',

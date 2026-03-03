@@ -1,6 +1,6 @@
 import {Application, EventData, isAndroid, isIOS, knownFolders, Page, path, WebView} from '@nativescript/core'
 import {getWebContentPath, wasUpdateInstalled, checkForUpdate, hasStagedUpdate, promoteStagingIfReady} from './ota-update'
-import {onTokenAvailable} from './pushNotifications'
+import {deviceToken, onTokenAvailable} from './pushNotifications'
 
 declare const NSURL: any
 declare const UIColor: any
@@ -142,15 +142,16 @@ function setupIOSPushNotifications(webView: WebView): void {
         wkWebView.evaluateJavaScriptCompletionHandler(script, () => {})
     })
 
-    // Inject platform info on every page load so the web client always knows it's on iOS
+    // Inject platform info (and device token if available) on every page load
     webView.on(WebView.loadFinishedEvent, (loadArgs: any) => {
         if (!loadArgs.error && isIOS) {
             const wkWebView = webView.ios as any
             if (!wkWebView) return
-            wkWebView.evaluateJavaScriptCompletionHandler(
-                `window.__nativePlatform = 'ios';`,
-                () => {}
-            )
+            let script = `window.__nativePlatform = 'ios';`
+            if (deviceToken) {
+                script += ` window.__nativeDeviceToken = '${deviceToken}'; if (typeof window.__onNativeDeviceToken === 'function') { window.__onNativeDeviceToken('${deviceToken}', 'ios'); }`
+            }
+            wkWebView.evaluateJavaScriptCompletionHandler(script, () => {})
         }
     })
 }

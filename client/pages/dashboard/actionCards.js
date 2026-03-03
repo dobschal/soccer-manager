@@ -51,6 +51,10 @@ function getActionCardTexts () {
     STAR_PLAYER: {
       title: t('actionCards.type.starPlayer'),
       description: t('actionCards.type.starPlayerDesc')
+    },
+    MOTIVATING_SPEECH: {
+      title: t('actionCards.type.motivatingSpeech'),
+      description: t('actionCards.type.motivatingSpeechDesc')
     }
   }
 }
@@ -65,7 +69,8 @@ const ACTION_CARD_IMAGES = {
   FRESHNESS_10: 'assets/action-cards/freshness-10.svg',
   FRESHNESS_20: 'assets/action-cards/freshness-20.svg',
   BONUS_100K: 'assets/action-cards/bonus-100k.svg',
-  STAR_PLAYER: 'assets/action-cards/star-player.svg'
+  STAR_PLAYER: 'assets/action-cards/star-player.svg',
+  MOTIVATING_SPEECH: 'assets/action-cards/motivating-speech.svg'
 }
 
 export class ActionCards extends UIElement {
@@ -453,6 +458,17 @@ export class ActionCards extends UIElement {
       try {
         await server.useActionCard(actionCard, null, null)
         toast(t('actionCards.bonusReceived'), 'success')
+        await this._animateAndRemoveCard(cardIndex)
+      } catch (e) {
+        console.error(e)
+        toast(e.message ?? 'Something went wrong...', 'error')
+      }
+      return
+    }
+    if (actionCard.action === 'MOTIVATING_SPEECH') {
+      try {
+        await server.useActionCard(actionCard, null, null)
+        toast(t('actionCards.motivatingSpeechSuccess'), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)

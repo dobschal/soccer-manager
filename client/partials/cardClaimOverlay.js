@@ -13,7 +13,8 @@ const ACTION_CARD_IMAGES = {
   FRESHNESS_5: 'assets/action-cards/freshness-5.svg',
   FRESHNESS_10: 'assets/action-cards/freshness-10.svg',
   FRESHNESS_20: 'assets/action-cards/freshness-20.svg',
-  BONUS_100K: 'assets/action-cards/bonus-100k.svg'
+  BONUS_100K: 'assets/action-cards/bonus-100k.svg',
+  MOTIVATING_SPEECH: 'assets/action-cards/motivating-speech.svg'
 }
 
 /**
@@ -29,7 +30,8 @@ function getActionCardTitles () {
     FRESHNESS_5: t('actionCards.type.quickRecovery'),
     FRESHNESS_10: t('actionCards.type.energyBoost'),
     FRESHNESS_20: t('actionCards.type.fullRecovery'),
-    BONUS_100K: t('actionCards.type.cashBonus')
+    BONUS_100K: t('actionCards.type.cashBonus'),
+    MOTIVATING_SPEECH: t('actionCards.type.motivatingSpeech')
   }
 }
 

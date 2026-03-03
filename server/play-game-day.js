@@ -53,6 +53,9 @@ export async function calculateGames () {
   // Play cup games for this game day
   await _playCupGames(gameDay, season)
 
+  // Reset motivating speech boosts after all games are played
+  await _resetMotivatingSpeeches()
+
   // Clear season results cache after games are played
   clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
   await cacheStandingsForGameDay(gameDay, season)
@@ -171,6 +174,17 @@ async function _playCupGame (game) {
   for (const player of playerTeamB) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
   }
+  // Apply motivating speech boost (+10% level for all players)
+  if (teamA.motivating_speech_active) {
+    for (const player of playerTeamA) {
+      player.level *= 1.1
+    }
+  }
+  if (teamB.motivating_speech_active) {
+    for (const player of playerTeamB) {
+      player.level *= 1.1
+    }
+  }
 
   kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)
@@ -253,6 +267,17 @@ async function _processYouthTeams () {
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   await Promise.all(teams.map(team => processYouthTraining(team)))
   console.log(`Processed youth teams in ${Date.now() - t1}ms`)
+}
+
+/**
+ * Reset motivating speech boosts after games are played
+ * @returns {Promise<void>}
+ */
+async function _resetMotivatingSpeeches () {
+  const result = await query('UPDATE team SET motivating_speech_active=0 WHERE motivating_speech_active=1')
+  if (result.affectedRows > 0) {
+    console.log(`Reset motivating speech for ${result.affectedRows} teams`)
+  }
 }
 
 /**
@@ -592,6 +617,17 @@ async function _playGame (game) {
   }
   for (const player of playerTeamB) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
+  }
+  // Apply motivating speech boost (+10% level for all players)
+  if (teamA.motivating_speech_active) {
+    for (const player of playerTeamA) {
+      player.level *= 1.1
+    }
+  }
+  if (teamB.motivating_speech_active) {
+    for (const player of playerTeamB) {
+      player.level *= 1.1
+    }
   }
   kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)

@@ -175,6 +175,12 @@ export class DashboardPage extends UIElement {
     this.team = teamResponse.team
     this.user = teamResponse.user
 
+    // Register device token for push notifications (fire-and-forget)
+    if (window.__nativeDeviceToken && window.__nativePlatform) {
+      server.registerDeviceToken(window.__nativeDeviceToken, window.__nativePlatform)
+        .catch(e => console.error('[Push] Failed to register device token:', e))
+    }
+
     const gamedayResponse = await server.getCurrentGameday()
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
@@ -240,7 +246,7 @@ export class DashboardPage extends UIElement {
     // Fetch current standing, urgencies, action card count, and pending cards in parallel
     const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse] = await Promise.all([
       server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
-      server.getDashboardUrgencies(),
+      server.getDashboardUrgencies(window.__nativePlatform || 'web'),
       server.getActionCards(),
       server.getPendingActionCards()
     ])

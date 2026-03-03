@@ -605,6 +605,9 @@ export default {
   'actionCards.type.cashBonusDesc': 'Receive an instant bonus of 100,000€.',
   'actionCards.type.starPlayer': 'Star Player',
   'actionCards.type.starPlayerDesc': 'Promote a player to star status with a permanent 10% level bonus.',
+  'actionCards.type.motivatingSpeech': 'Motivating Speech',
+  'actionCards.type.motivatingSpeechDesc': 'Gives your entire team a 10% level boost for the next game day.',
+  'actionCards.motivatingSpeechSuccess': 'Your team is motivated! +10% strength for the next game day!',
   // Positions for action cards
   'actionCards.position.GK': 'Goalkeeper (GK)',
   'actionCards.position.LD': 'Left Defender (LD)',

@@ -56,21 +56,21 @@ describe('MarketValuesPage', () => {
     }
   })
 
-  it('table has rows for default level range (30-50) and 20 age columns', () => {
+  it('table has rows for default level range (40-50) and age columns 20-30', () => {
     const page = new MarketValuesPage()
     const html = page.template
 
-    // Default range: levels 30 to 50
-    for (let level = 30; level <= 50; level++) {
+    // Default range: levels 40 to 50
+    for (let level = 40; level <= 50; level++) {
       expect(html).toContain(`<td><strong>${level}</strong></td>`)
     }
 
     // Levels outside default range should not appear
-    expect(html).not.toContain(`<td><strong>29</strong></td>`)
+    expect(html).not.toContain(`<td><strong>39</strong></td>`)
     expect(html).not.toContain(`<td><strong>51</strong></td>`)
 
-    // 20 age columns in header (16 through 35)
-    for (let age = 16; age <= 35; age++) {
+    // Age columns in header (20 through 30)
+    for (let age = 20; age <= 30; age++) {
       expect(html).toContain(`<th class="text-center">${age}</th>`)
     }
   })
@@ -122,65 +122,77 @@ describe('MarketValuesPage', () => {
     expect(page._fromLevel).toBe(20)
   })
 
-  it('cells have gray background when no transfer data exists', () => {
+  it('cells have gray text when no transfer data exists', () => {
     const page = new MarketValuesPage()
     page._transferStats = {}
     const html = page.template
-    expect(html).toContain('background: #f0f0f0')
+    expect(html).toContain('color: #c0c0c0;')
   })
 
-  it('cells have green background when avg price < 80% of estimate', async () => {
-    const page = new MarketValuesPage()
-    const estimate = calculateMarketValue(50, 22)
-    const avgPrice = Math.floor(estimate * 0.5)
-    page._transferStats = {
-      '50:22': { avgPrice, count: 3 }
-    }
-    const html = page.template
-    expect(html).toContain('background: #d1e7dd')
-  })
-
-  it('displays avgPrice in colored cell when transfer data exists', () => {
-    const page = new MarketValuesPage()
-    const estimate = calculateMarketValue(50, 22)
-    const avgPrice = Math.floor(estimate * 0.5)
-    page._transferStats = {
-      '50:22': { avgPrice, count: 3 }
-    }
-    const html = page.template
-    // The green-colored cell should contain avgPrice, not the estimate
-    const formattedAvg = `${avgPrice.toLocaleString('de-DE')} €`
-    expect(html).toContain(`background: #d1e7dd">${formattedAvg}</td>`)
-  })
-
-  it('displays estimate in gray cell when no transfer data exists', () => {
+  it('cells without transfer data show estimate in gray text', () => {
     const page = new MarketValuesPage()
     page._transferStats = {}
     const html = page.template
     const estimate = calculateMarketValue(50, 22)
     const formattedEstimate = `${estimate.toLocaleString('de-DE')} €`
-    // Gray cells show the estimate
-    expect(html).toContain(`background: #f0f0f0">${formattedEstimate}</td>`)
+    expect(html).toContain(`color: #c0c0c0;">${formattedEstimate}</td>`)
   })
 
-  it('cells have yellow background when avg price is within 80-120% of estimate', async () => {
+  it('cells with transfer data show avgPrice without gray styling', () => {
+    const page = new MarketValuesPage()
+    const estimate = calculateMarketValue(50, 22)
+    const avgPrice = Math.floor(estimate * 0.5)
+    page._transferStats = {
+      '50:22': { avgPrice, count: 3 }
+    }
+    const html = page.template
+    const formattedAvg = `${avgPrice.toLocaleString('de-DE')} €`
+    expect(html).toContain(`style="">${formattedAvg}</td>`)
+  })
+
+  it('cells with transfer data display avgPrice value', () => {
+    const page = new MarketValuesPage()
+    const estimate = calculateMarketValue(50, 22)
+    const avgPrice = Math.floor(estimate * 0.5)
+    page._transferStats = {
+      '50:22': { avgPrice, count: 3 }
+    }
+    const html = page.template
+    const formattedAvg = `${avgPrice.toLocaleString('de-DE')} €`
+    expect(html).toContain(formattedAvg)
+  })
+
+  it('cells without transfer data display estimate value', () => {
+    const page = new MarketValuesPage()
+    page._transferStats = {}
+    const html = page.template
+    const estimate = calculateMarketValue(50, 22)
+    const formattedEstimate = `${estimate.toLocaleString('de-DE')} €`
+    expect(html).toContain(formattedEstimate)
+  })
+
+  it('cells with transfer data use empty style, cells without use gray color', () => {
     const page = new MarketValuesPage()
     const estimate = calculateMarketValue(50, 22)
     page._transferStats = {
       '50:22': { avgPrice: estimate, count: 3 }
     }
     const html = page.template
-    expect(html).toContain('background: #fff3cd')
+    // Cell with data has empty style
+    expect(html).toContain('style="">')
+    // Cells without data have gray color
+    expect(html).toContain('color: #c0c0c0;')
   })
 
-  it('cells have red background when avg price > 120% of estimate', async () => {
+  it('cells with high avgPrice still render without background color', () => {
     const page = new MarketValuesPage()
     const estimate = calculateMarketValue(50, 22)
     page._transferStats = {
       '50:22': { avgPrice: Math.floor(estimate * 1.5), count: 3 }
     }
     const html = page.template
-    expect(html).toContain('background: #f8d7da')
+    const formattedAvg = `${Math.floor(estimate * 1.5).toLocaleString('de-DE')} €`
+    expect(html).toContain(formattedAvg)
   })
 
   it('load fetches transfer stats for selected position', async () => {
