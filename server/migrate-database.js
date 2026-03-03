@@ -1046,6 +1046,28 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE user ADD COLUMN last_login TIMESTAMP NULL DEFAULT NULL')
   }
+}, {
+  name: 'Add platform-specific last_login columns to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN last_login_web TIMESTAMP NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_login_ios TIMESTAMP NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_login_android TIMESTAMP NULL DEFAULT NULL')
+  }
+}, {
+  name: 'Create device_token table for push notifications',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS device_token (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT(20) UNSIGNED NOT NULL,
+      token VARCHAR(512) NOT NULL,
+      platform VARCHAR(20) NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_user_platform (user_id, platform),
+      INDEX idx_device_token_platform (platform)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

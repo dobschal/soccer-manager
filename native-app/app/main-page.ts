@@ -1,5 +1,6 @@
 import {Application, EventData, isAndroid, isIOS, knownFolders, Page, path, WebView} from '@nativescript/core'
 import {getWebContentPath, wasUpdateInstalled, checkForUpdate, hasStagedUpdate, promoteStagingIfReady} from './ota-update'
+import {onTokenAvailable} from './pushNotifications'
 
 declare const NSURL: any
 declare const UIColor: any
@@ -8,6 +9,11 @@ declare const WKWebsiteDataStore: any
 declare const NSSet: any
 declare const WKWebsiteDataRecord: any
 declare const NSDate: any
+declare const UNUserNotificationCenter: any
+declare const UNAuthorizationOptionAlert: number
+declare const UNAuthorizationOptionBadge: number
+declare const UNAuthorizationOptionSound: number
+declare const UIApplication: any
 
 let webViewRef: WebView | null = null
 let resumeHandler: (() => void) | null = null
@@ -103,6 +109,7 @@ export function onWebViewLoaded(args: EventData) {
 
     if (isIOS) {
         loadWebViewIOS(webView, webPath)
+        setupIOSPushNotifications(webView)
     } else if (isAndroid) {
         loadWebViewAndroid(webView, webPath)
     }
@@ -111,6 +118,41 @@ export function onWebViewLoaded(args: EventData) {
     if (wasUpdateInstalled()) {
         setTimeout(() => showOtaToast(webView), 3000)
     }
+}
+
+function setupIOSPushNotifications(webView: WebView): void {
+    // Request push notification permissions
+    const center = UNUserNotificationCenter.currentNotificationCenter()
+    center.requestAuthorizationWithOptionsCompletionHandler(
+        UNAuthorizationOptionAlert | UNAuthorizationOptionBadge | UNAuthorizationOptionSound,
+        (granted: boolean, _error: any) => {
+            if (granted) {
+                UIApplication.sharedApplication.registerForRemoteNotifications()
+            } else {
+                console.log('[Push] User denied push notification permission')
+            }
+        }
+    )
+
+    // When a device token becomes available, inject it into the WebView
+    onTokenAvailable((token: string, platform: string) => {
+        const wkWebView = webView.ios as any
+        if (!wkWebView) return
+        const script = `window.__nativeDeviceToken = '${token}'; window.__nativePlatform = '${platform}'; if (typeof window.__onNativeDeviceToken === 'function') { window.__onNativeDeviceToken('${token}', '${platform}'); }`
+        wkWebView.evaluateJavaScriptCompletionHandler(script, () => {})
+    })
+
+    // Inject platform info on every page load so the web client always knows it's on iOS
+    webView.on(WebView.loadFinishedEvent, (loadArgs: any) => {
+        if (!loadArgs.error && isIOS) {
+            const wkWebView = webView.ios as any
+            if (!wkWebView) return
+            wkWebView.evaluateJavaScriptCompletionHandler(
+                `window.__nativePlatform = 'ios';`,
+                () => {}
+            )
+        }
+    })
 }
 
 function loadWebViewIOS(webView: WebView, webPath: string) {

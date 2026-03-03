@@ -23,6 +23,7 @@ import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { CACHE_NAMESPACES, clearCacheByPrefix } from './lib/cache.js'
 import { progressCupRound, sendCupMatchLogMessages, validateAndProgressCupRounds } from './helper/cupHelper.js'
 import { kickoff, playGameStep } from './play-game.js'
+import { sendGameDayPushNotifications } from './lib/pushNotification.js'
 
 /**
  * @returns {Promise<void>}
@@ -62,6 +63,7 @@ export async function calculateGames () {
   await _processYouthTeams()
   await generateNewsForGameDay(gameDay, season)
   await _checkUserTeamsForIssues()
+  await sendGameDayPushNotifications(gameDay, season)
   console.log('\n\nPlayed game day ' + gameDay)
 }
 

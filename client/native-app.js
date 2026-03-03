@@ -19,12 +19,33 @@ window.__showOtaToast = function () {
   toast(t('ota.updateInstalled'), 'success')
 }
 
+// Called from native side when a device token is available
+window.__onNativeDeviceToken = async function (token, platform) {
+  window.__nativeDeviceToken = token
+  window.__nativePlatform = platform
+  const authToken = window.localStorage.getItem('auth-token')
+  if (authToken) {
+    try {
+      await server.registerDeviceToken(token, platform)
+      console.log('[Push] Device token registered')
+    } catch (e) {
+      console.error('[Push] Failed to register device token:', e)
+    }
+  }
+}
+
 // Initialize locale from localStorage or browser settings
 initLocale()
 
 // Connect WebSocket if user is authenticated
 if (window.localStorage.getItem('auth-token')) {
   connectWebSocket()
+}
+
+// If device token was already injected before JS loaded, register it now
+if (window.__nativeDeviceToken && window.__nativePlatform && window.localStorage.getItem('auth-token')) {
+  server.registerDeviceToken(window.__nativeDeviceToken, window.__nativePlatform)
+    .catch(e => console.error('[Push] Failed to register device token on startup:', e))
 }
 
 server.getVersion().then(({ version }) => {

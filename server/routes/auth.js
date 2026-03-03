@@ -75,10 +75,19 @@ export default {
   /**
    * @param {string} username
    * @param {string} password
-   * @param {Request} req
+   * @param {string|Request} platformOrReq - platform string ('web'|'ios'|'android') or req if old client
+   * @param {Request} [maybeReq]
    * @returns {Promise<{ token: string }>}
    */
-  async login (username, password, req) {
+  async login (username, password, platformOrReq, maybeReq) {
+    let platform, req
+    if (typeof platformOrReq === 'string') {
+      platform = platformOrReq
+      req = maybeReq
+    } else {
+      platform = 'web'
+      req = platformOrReq
+    }
     const locale = req.locale || 'en'
     if (typeof username !== 'string') {
       throw new BadRequestError(t('error.usernameString', {}, locale))
@@ -90,8 +99,41 @@ export default {
     if (!user || user.password !== password) {
       throw new UnauthorizedError(t('error.wrongCredentials', {}, locale))
     }
+    const now = new Date()
+    const platformColumn = platform === 'ios' ? 'last_login_ios'
+      : platform === 'android' ? 'last_login_android'
+        : 'last_login_web'
+    await query(
+      `UPDATE user SET last_login = ?, ${platformColumn} = ? WHERE id = ?`,
+      [now, now, user.id]
+    )
     const token = jwt.sign({ sub: user.id }, config.SECRET)
     return { token }
+  },
+
+  /**
+   * Register or update a device token for push notifications
+   * @param {string} token - device token
+   * @param {string} platform - 'ios' or 'android'
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async registerDeviceToken (token, platform, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    if (typeof token !== 'string' || !token) {
+      throw new BadRequestError('Invalid device token')
+    }
+    if (!['ios', 'android'].includes(platform)) {
+      throw new BadRequestError('Invalid platform, must be ios or android')
+    }
+    await query(
+      'INSERT INTO device_token (user_id, token, platform) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, updated_at = NOW()',
+      [req.user.id, token, platform, token]
+    )
+    return { success: true }
   },
 
   /**
@@ -161,6 +203,9 @@ export default {
         // Keep team as bot for league integrity
         await txQuery('UPDATE team SET user_id=NULL WHERE id=?', [team.id])
       }
+
+      // Delete device tokens
+      await txQuery('DELETE FROM device_token WHERE user_id=?', [userId])
 
       // Delete user
       await txQuery('DELETE FROM user WHERE id=?', [userId])

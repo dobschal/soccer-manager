@@ -24,6 +24,13 @@ services:
     restart: always
     ports:
       - "3013:3000"
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - APN_KEY_PATH=${APN_KEY_PATH}
+      - APN_KEY_ID=${APN_KEY_ID}
+      - APN_TEAM_ID=${APN_TEAM_ID}
+    volumes:
+      - ${APN_KEY_PATH:-/dev/null}:${APN_KEY_PATH:-/dev/null}:ro
     depends_on:
       database:
         condition: service_healthy

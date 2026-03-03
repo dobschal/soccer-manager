@@ -220,12 +220,12 @@ export class LandingPage extends UIElement {
         await server.createAccount(username, password)
         toast(t('landing.registrationSuccess'), 'success')
         // Auto-login after successful registration
-        const { token } = await server.login(username, password)
+        const { token } = await server.login(username, password, 'web')
         window.localStorage.setItem('auth-token', token)
         connectWebSocket()
         goTo('')
       } else {
-        const { token } = await server.login(username, password)
+        const { token } = await server.login(username, password, 'web')
         window.localStorage.setItem('auth-token', token)
         connectWebSocket()
         goTo('')

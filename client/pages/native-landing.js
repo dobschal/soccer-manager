@@ -6,6 +6,17 @@ import { UIElement } from '../lib/UIElement.js'
 import { t } from '../i18n/index.js'
 import { connectWebSocket } from '../lib/websocket.js'
 
+async function _registerDeviceToken () {
+  const token = window.__nativeDeviceToken
+  const platform = window.__nativePlatform || 'ios'
+  if (!token) return
+  try {
+    await server.registerDeviceToken(token, platform)
+  } catch (e) {
+    console.error('[Push] Failed to register device token:', e)
+  }
+}
+
 export class NativeLandingPage extends UIElement {
   get events () {
     return {
@@ -66,6 +77,7 @@ export class NativeLandingPage extends UIElement {
     const password = value('#password-input')
     const repeatedPassword = value('#password-repeat-input')
     try {
+      const platform = window.__nativePlatform || 'ios'
       if (!this.isLogin) {
         if (repeatedPassword !== password) {
           this.isSubmitting = false
@@ -73,14 +85,16 @@ export class NativeLandingPage extends UIElement {
         }
         await server.createAccount(username, password)
         toast(t('landing.registrationSuccess'), 'success')
-        const { token } = await server.login(username, password)
+        const { token } = await server.login(username, password, platform)
         window.localStorage.setItem('auth-token', token)
         connectWebSocket()
+        await _registerDeviceToken()
         goTo('')
       } else {
-        const { token } = await server.login(username, password)
+        const { token } = await server.login(username, password, platform)
         window.localStorage.setItem('auth-token', token)
         connectWebSocket()
+        await _registerDeviceToken()
         goTo('')
         toast(t('landing.loginSuccess'), 'success')
       }
