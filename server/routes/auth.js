@@ -121,19 +121,24 @@ export default {
    */
   async registerDeviceToken (token, platform, req) {
     const locale = req.locale || 'en'
+    console.log(`[Push] registerDeviceToken called - user: ${req.user?.id ?? 'none'}, platform: ${platform}, token: ${token ? token.substring(0, 10) + '...' : 'EMPTY/NULL'} (length: ${token?.length ?? 0})`)
     if (!req.user) {
+      console.log('[Push] registerDeviceToken REJECTED: no user on request')
       throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     }
     if (typeof token !== 'string' || !token) {
+      console.log(`[Push] registerDeviceToken REJECTED: invalid token (type: ${typeof token}, value: ${JSON.stringify(token)})`)
       throw new BadRequestError('Invalid device token')
     }
     if (!['ios', 'android'].includes(platform)) {
+      console.log(`[Push] registerDeviceToken REJECTED: invalid platform "${platform}"`)
       throw new BadRequestError('Invalid platform, must be ios or android')
     }
     await query(
       'INSERT INTO device_token (user_id, token, platform) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE token = ?, updated_at = NOW()',
       [req.user.id, token, platform, token]
     )
+    console.log(`[Push] registerDeviceToken SUCCESS - user: ${req.user.id}, platform: ${platform}`)
     return { success: true }
   },
 
