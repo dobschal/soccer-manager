@@ -19,11 +19,12 @@ import { getCachedUser } from './lib/userCache.js'
 const app = express()
 const port = 3000
 
-// CORS: allow requests from native app (file:// or missing origin)
+// CORS: allow requests from native app (file:// or missing origin) and localhost dev servers
 app.use((req, res, next) => {
   const origin = req.headers.origin
-  if (!origin || origin === 'null' || origin === 'file://') {
-    res.setHeader('Access-Control-Allow-Origin', '*')
+  const isLocalhost = origin && /^https?:\/\/localhost(:\d+)?$/.test(origin)
+  if (!origin || origin === 'null' || origin === 'file://' || isLocalhost) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language')
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   }
