@@ -1113,6 +1113,24 @@ const migrations = [{
         INDEX idx_team_stats_league (season, game_day, level, league)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+},
+{
+  name: 'Create client_log table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS client_log
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        level VARCHAR(10) NOT NULL DEFAULT 'info',
+        message TEXT NOT NULL,
+        user_id BIGINT(20) UNSIGNED DEFAULT NULL,
+        user_agent TEXT,
+        platform VARCHAR(50),
+        url TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_client_log_created_at (created_at)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;`)
+  }
 }]
 
 /**

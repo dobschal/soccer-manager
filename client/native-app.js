@@ -1,3 +1,4 @@
+import { installGlobalErrorHandler } from './lib/clientLogger.js'
 import { DefaultLayout } from './layouts/defaultLayout.js'
 import { NativeAppLayout } from './layouts/nativeAppLayout.js'
 import { initRouter } from './lib/router.js'
@@ -13,6 +14,8 @@ import { BrowsePage } from './pages/browse.js'
 import { initLocale, t } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 import { toast } from './partials/toast.js'
+
+installGlobalErrorHandler()
 
 // OTA update toast - called from native side via evaluateJavascript
 window.__showOtaToast = function () {

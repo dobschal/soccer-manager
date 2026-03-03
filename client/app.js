@@ -1,3 +1,4 @@
+import { installGlobalErrorHandler } from './lib/clientLogger.js'
 import { DefaultLayout } from './layouts/defaultLayout.js'
 import { GameLayout } from './layouts/gameLayout.js'
 import { initRouter } from './lib/router.js'
@@ -12,6 +13,8 @@ import { ResultsPage } from './pages/results.js'
 import { BrowsePage } from './pages/browse.js'
 import { initLocale } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
+
+installGlobalErrorHandler()
 
 // Initialize locale from localStorage or browser settings
 initLocale()
