@@ -408,7 +408,9 @@ export async function getCupGamesForTeam (teamId, season, limit = 10) {
              t1.color       as team1Color,
              t1.emblem      as team1Emblem,
              t2.color       as team2Color,
-             t2.emblem      as team2Emblem
+             t2.emblem      as team2Emblem,
+             t1.user_id     as team1UserId,
+             t2.user_id     as team2UserId
       FROM game g
                JOIN team t1 ON t1.id = g.team_1_id
                LEFT JOIN team t2 ON t2.id = g.team_2_id
@@ -444,7 +446,9 @@ export async function getCupResultsForRound (season, round) {
              t1.color       as team1Color,
              t1.emblem      as team1Emblem,
              t2.color       as team2Color,
-             t2.emblem      as team2Emblem
+             t2.emblem      as team2Emblem,
+             t1.user_id     as team1UserId,
+             t2.user_id     as team2UserId
       FROM game g
                JOIN team t1 ON t1.id = g.team_1_id
                LEFT JOIN team t2 ON t2.id = g.team_2_id

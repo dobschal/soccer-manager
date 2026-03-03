@@ -74,9 +74,9 @@ export class CupResultsPage extends UIElement {
               <table class="table table-hover mb-4 wide-on-mobile">
                 <thead>
                   <tr>
-                    <th scope="col">${t('results.team1')}</th>
+                    <th scope="col" class="text-end">${t('results.team1')}</th>
+                    <th scope="col" class="text-center">${t('results.result')}</th>
                     <th scope="col">${t('results.team2')}</th>
-                    <th scope="col">${t('results.result')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -168,14 +168,13 @@ export class CupResultsPage extends UIElement {
     })
 
     const isPlayed = result.played === 1
+    const isBye = !result.team2 && !result.team2Id
 
     const team1Data = {
       name: result.team1,
       color: result.team1Color,
       emblem: result.team1Emblem
     }
-    const isBye = !result.team2 && !result.team2Id
-
     const team2Data = isBye
       ? null
       : {
@@ -187,22 +186,34 @@ export class CupResultsPage extends UIElement {
     const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
     const emblem2 = isBye ? '' : `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`
 
+    const team1HasUser = Boolean(result.team1UserId)
+    const team2HasUser = Boolean(result.team2UserId)
+    const hasResult = isPlayed && typeof result.goalsTeam1 === 'number' && typeof result.goalsTeam2 === 'number'
+    const team1Won = hasResult && result.goalsTeam1 > result.goalsTeam2
+    const team2Won = hasResult && result.goalsTeam2 > result.goalsTeam1
+
+    const userIcon = '<i class="fa fa-user fa-sm ms-1" aria-hidden="true"></i>'
+
+    const team1IsMyTeam = this.myTeamId === result.team1Id
+    const team2IsMyTeam = this.myTeamId === result.team2Id
+
+    const short1 = result.team1.split(' ').pop()
+    const short2 = isBye ? '' : result.team2.split(' ').pop()
+
+    const nameLabel1 = `<span class="d-none d-lg-inline">${result.team1}</span><span class="d-lg-none">${short1}</span>`
+    const nameLabel2 = isBye ? '' : `<span class="d-none d-lg-inline">${result.team2}</span><span class="d-lg-none">${short2}</span>`
+
+    const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${nameLabel1}${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
+
+    const team2Name = isBye
+      ? `<span class="text-muted">${t('cup.bye')}</span>`
+      : `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${nameLabel2}${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
+
     return `
       <tr id="${id}">
-        <td>
-          ${this.myTeamId === result.team1Id ? '<b class="text-info">' : ''}
-          ${emblem1}${result.team1}
-          ${this.myTeamId === result.team1Id ? '</b>' : ''}
-        </td>
-        <td>
-          ${isBye
-            ? `<span class="text-muted">${t('cup.bye')}</span>`
-            : `${this.myTeamId === result.team2Id ? '<b class="text-info">' : ''}
-              ${emblem2}${result.team2}
-              ${this.myTeamId === result.team2Id ? '</b>' : ''}`
-          }
-        </td>
-        <td>${isBye ? t('cup.bye') : (isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming'))}</td>
+        <td class="text-end">${team1Name}${emblem1}</td>
+        <td class="text-center">${isBye ? t('cup.bye') : (isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming'))}</td>
+        <td>${emblem2}${team2Name}</td>
       </tr>
     `
   }

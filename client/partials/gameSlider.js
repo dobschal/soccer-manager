@@ -76,6 +76,7 @@ export class GameSlider extends UIElement {
       }
 
       const isBye = !game.team2Data?.name && !game.team2Id
+      const hasResult = game.isPlayed && typeof game.goalsTeam1 === 'number' && typeof game.goalsTeam2 === 'number'
       const slideContent = renderGameResult({
         team1: game.team1Data,
         team2: isBye ? null : game.team2Data,
@@ -83,7 +84,11 @@ export class GameSlider extends UIElement {
         team2Name: isBye ? t('cup.bye') : (game.team2 ?? ''),
         isTeam1Highlighted: isHomeGame,
         centerContent,
-        href
+        href,
+        team1HasUser: Boolean(game.team1UserId),
+        team2HasUser: Boolean(game.team2UserId),
+        team1Won: hasResult && game.goalsTeam1 > game.goalsTeam2,
+        team2Won: hasResult && game.goalsTeam2 > game.goalsTeam1
       })
 
       return `

@@ -4,9 +4,15 @@ import { t } from '../i18n/index.js'
 import { StadiumSubPage } from './club/stadium.js'
 import { BuildingsPage } from './club/buildings.js'
 import { FinancesPage } from './club/finances.js'
+import { getQueryParams } from '../lib/router.js'
 
 export class ClubPage extends UIElement {
   subPage = null
+
+  constructor () {
+    super()
+    this.subPage = getQueryParams().sub_page || null
+  }
   _subPageCache = {}
   _subPageContainerId = generateId()
   /** @type {StadiumSubPage|null} */

@@ -11,7 +11,9 @@
     "test:server": "vitest run --config server/vitest.config.js",
     "postinstall": "./scripts/copy-vendor.sh",
     "ios": "./scripts/copy-native-client.sh && node ./scripts/build-native-bundle.mjs && cd native-app && ns run ios",
-    "android": "./scripts/copy-native-client.sh && node ./scripts/build-native-bundle.mjs && cd native-app && ns run android"
+    "android": "./scripts/copy-native-client.sh && node ./scripts/build-native-bundle.mjs && cd native-app && ns run android",
+    "serve:native": "./scripts/copy-native-client.sh && node ./scripts/serve-native-client.mjs",
+    "serve:native:local": "./scripts/copy-native-client.sh && NATIVE_SERVER_URL=http://localhost:3000 node ./scripts/serve-native-client.mjs"
   },
   "keywords": [],
   "author": "",

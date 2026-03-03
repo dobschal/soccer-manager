@@ -60,9 +60,9 @@ export class FriendlyResultsPage extends UIElement {
                 <thead>
                   <tr>
                     <th scope="col">${t('results.gameDayLabel')}</th>
-                    <th scope="col">${t('results.team1')}</th>
+                    <th scope="col" class="text-end">${t('results.team1')}</th>
+                    <th scope="col" class="text-center">${t('results.result')}</th>
                     <th scope="col">${t('results.team2')}</th>
-                    <th scope="col">${t('results.result')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -110,20 +110,25 @@ export class FriendlyResultsPage extends UIElement {
     const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
     const emblem2 = `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`
 
+    const short1 = result.team1.split(' ').pop()
+    const short2 = result.team2.split(' ').pop()
+
+    const nameLabel1 = `<span class="d-none d-lg-inline">${result.team1}</span><span class="d-lg-none">${short1}</span>`
+    const nameLabel2 = `<span class="d-none d-lg-inline">${result.team2}</span><span class="d-lg-none">${short2}</span>`
+
+    const team1IsMyTeam = this.myTeamId === result.team1Id
+    const team2IsMyTeam = this.myTeamId === result.team2Id
+
     return `
       <tr id="${id}">
         <td>${result.gameDay + 1}</td>
-        <td>
-          ${this.myTeamId === result.team1Id ? '<b class="text-info">' : ''}
-          ${emblem1}${result.team1}
-          ${this.myTeamId === result.team1Id ? '</b>' : ''}
+        <td class="text-end">
+          ${team1IsMyTeam ? `<b class="text-info">${nameLabel1}</b>` : nameLabel1}${emblem1}
         </td>
+        <td class="text-center">${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}</td>
         <td>
-          ${this.myTeamId === result.team2Id ? '<b class="text-info">' : ''}
-          ${emblem2}${result.team2}
-          ${this.myTeamId === result.team2Id ? '</b>' : ''}
+          ${emblem2}${team2IsMyTeam ? `<b class="text-info">${nameLabel2}</b>` : nameLabel2}
         </td>
-        <td>${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}</td>
       </tr>
     `
   }
