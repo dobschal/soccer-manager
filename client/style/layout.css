@@ -196,6 +196,12 @@ a:visited.row {
    Responsive Styles
    ========================================================================== */
 
+.horizontal-scrollable-table {
+    margin: 0 -2rem;
+    padding: 0 2rem;
+    overflow-x: auto;
+}
+
 @media screen and (max-width: 991px) {
     .navbar-content {
         flex-wrap: wrap;
@@ -230,12 +236,6 @@ a:visited.row {
     #page {
         border-radius: 0;
         padding-bottom: 0;
-    }
-
-    .horizontal-scrollable-table {
-        margin: 0 -2rem;
-        padding: 0 2rem;
-        overflow-x: auto;
     }
 
     .info-bar {

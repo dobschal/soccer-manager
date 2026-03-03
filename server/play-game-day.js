@@ -19,11 +19,13 @@ import { addLogMessage, checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
 import { processYouthTraining } from './helper/youthPlayerHelper.js'
 import { cacheStandingsForGameDay } from './helper/standingHelper.js'
+import { cacheTeamStatsForGameDay } from './helper/teamStatsHelper.js'
 import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { CACHE_NAMESPACES, clearCacheByPrefix } from './lib/cache.js'
 import { progressCupRound, sendCupMatchLogMessages, validateAndProgressCupRounds } from './helper/cupHelper.js'
+import { getPositionsOfFormation } from '../client/util/formation.js'
 import { kickoff, playGameStep } from './play-game.js'
-import { sendGameDayPushNotifications } from './lib/pushNotification.js'
+import { sendGameDayPushNotifications } from './helper/pushNotificationHelper.js'
 
 /**
  * @returns {Promise<void>}
@@ -55,6 +57,7 @@ export async function calculateGames () {
   clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
   await cacheStandingsForGameDay(gameDay, season)
   await cachePlayerStatsForGameDay(gameDay, season)
+  await cacheTeamStatsForGameDay(gameDay, season)
   await deleteExpiredPendingCards()
   await _giveUsersActionCards()
   await _letTeamsPaySallaries(gameDay, season)
@@ -120,8 +123,12 @@ async function _playCupGame (game) {
   ])
 
   // Filter out suspended players (they miss this game)
-  const playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
-  const playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
+  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
+  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
+
+  // Auto-fill incomplete lineups before the game
+  playerTeamA = await _autoFillLineup(teamA, playerTeamA)
+  playerTeamB = await _autoFillLineup(teamB, playerTeamB)
 
   // Clear suspensions for ALL players on both teams who served their ban (not just those in lineup)
   const clearedA = await query(
@@ -460,6 +467,78 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
 }
 
 /**
+ * Auto-fill incomplete lineup for a team before a game.
+ * Finds missing positions and assigns random matching bench players.
+ * @param {TeamType} team
+ * @param {PlayerType[]} lineupPlayers - players currently in the lineup (non-suspended)
+ * @returns {Promise<PlayerType[]>} updated lineup players
+ */
+async function _autoFillLineup (team, lineupPlayers) {
+  const requiredPositions = getPositionsOfFormation(team.formation)
+  if (!requiredPositions) return lineupPlayers
+
+  // Count filled positions
+  const filledPositions = lineupPlayers.map(p => p.in_game_position)
+
+  // Find missing positions: for each required position, remove one matching filled position
+  const remainingFilled = [...filledPositions]
+  const missingPositions = []
+  for (const pos of requiredPositions) {
+    const idx = remainingFilled.indexOf(pos)
+    if (idx !== -1) {
+      remainingFilled.splice(idx, 1)
+    } else {
+      missingPositions.push(pos)
+    }
+  }
+
+  if (missingPositions.length === 0) return lineupPlayers
+
+  // Get all bench players (not in lineup, not suspended)
+  const benchPlayers = await query(
+    'SELECT * FROM player WHERE team_id=? AND (in_game_position=\'\' OR in_game_position IS NULL) AND is_suspended=0',
+    [team.id]
+  )
+
+  const locale = team.user_id ? await getUserLocale(team.user_id) : 'en'
+  const addedPlayers = []
+
+  for (const position of missingPositions) {
+    // Try to find a bench player whose natural position matches
+    let candidates = benchPlayers.filter(p =>
+      p.position === position && !addedPlayers.includes(p.id)
+    )
+
+    // If no exact match, try any remaining bench player not yet assigned
+    if (candidates.length === 0) {
+      candidates = benchPlayers.filter(p => !addedPlayers.includes(p.id))
+    }
+
+    if (candidates.length === 0) break
+
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)]
+    chosen.in_game_position = position
+    addedPlayers.push(chosen.id)
+
+    await query('UPDATE player SET in_game_position=? WHERE id=?', [position, chosen.id])
+
+    if (team.user_id) {
+      await addLogMessage(
+        t('log.lineupAutoFilled', { playerName: chosen.name, position }, locale),
+        team,
+        'OPEN_MY_TEAM_PAGE',
+        null,
+        'users'
+      )
+    }
+
+    lineupPlayers.push(chosen)
+  }
+
+  return lineupPlayers
+}
+
+/**
  * @param {GameType} game
  * @returns {Promise<void>}
  */
@@ -472,8 +551,12 @@ async function _playGame (game) {
   ])
 
   // Filter out suspended players (they miss this game)
-  const playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
-  const playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
+  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
+  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
+
+  // Auto-fill incomplete lineups before the game
+  playerTeamA = await _autoFillLineup(teamA, playerTeamA)
+  playerTeamB = await _autoFillLineup(teamB, playerTeamB)
 
   // Clear suspensions for ALL players on both teams who served their ban (not just those in lineup)
   // This ensures benched players with suspensions also get cleared

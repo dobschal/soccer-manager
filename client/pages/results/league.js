@@ -12,6 +12,9 @@ import { t } from '../../i18n/index.js'
 
 export class LeagueResultsPage extends UIElement {
   suspendedPlayers = []
+  teamStats = []
+  _teamStatsSortCol = 'squad_value'
+  _teamStatsSortDir = -1 // -1 = desc, 1 = asc
 
   /**
    * @param {UIElement} parentPage
@@ -164,6 +167,46 @@ export class LeagueResultsPage extends UIElement {
             </tbody>
           </table>
         ` : ''}
+
+        ${this.teamStats.length > 0 ? `
+          <h3>${t('results.teamStats')}</h3>
+          <div class="horizontal-scrollable-table">
+            <table class="table table-hover wide-on-mobile mb-4">
+              <thead class="team-stats-thead">
+                <tr>
+                  <th scope="col"></th>
+                  <th scope="col" class="u-cursor-pointer text-nowrap" data-col="name">
+                    ${t('results.team')} <span class="ts-sort-icon" data-sort-col="name">${this._sortIcon('name')}</span>
+                  </th>
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="player_count">
+                    ${t('results.playerCount')} <span class="ts-sort-icon" data-sort-col="player_count">${this._sortIcon('player_count')}</span>
+                  </th>
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap d-none d-sm-table-cell" data-col="avg_strength">
+                    ${t('results.avgStrength')} <span class="ts-sort-icon" data-sort-col="avg_strength">${this._sortIcon('avg_strength')}</span>
+                  </th>
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="total_strength">
+                    ${t('results.totalStrength')} <span class="ts-sort-icon" data-sort-col="total_strength">${this._sortIcon('total_strength')}</span>
+                  </th>
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap d-none d-sm-table-cell" data-col="squad_size">
+                    ${t('results.squadSize')} <span class="ts-sort-icon" data-sort-col="squad_size">${this._sortIcon('squad_size')}</span>
+                  </th>
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap d-none d-md-table-cell" data-col="avg_freshness">
+                    ${t('results.avgFreshness')} <span class="ts-sort-icon" data-sort-col="avg_freshness">${this._sortIcon('avg_freshness')}</span>
+                  </th>
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap d-none d-md-table-cell" data-col="stadium_size">
+                    ${t('results.stadiumSize')} <span class="ts-sort-icon" data-sort-col="stadium_size">${this._sortIcon('stadium_size')}</span>
+                  </th>
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_value">
+                    ${t('results.squadValue')} <span class="ts-sort-icon" data-sort-col="squad_value">${this._sortIcon('squad_value')}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="team-stats-tbody">
+                ${this._getSortedTeamStats().map(this._renderTeamStatsRow.bind(this)).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
       </div>
     `
   }
@@ -182,12 +225,13 @@ export class LeagueResultsPage extends UIElement {
       this.season = response.season
       this.gameDay = Math.max(0, response.gameDay - 1)
     }
-    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }] = await Promise.all([
+    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }] = await Promise.all([
       server.getResults(this.gameDay, this.season, this.level, this.league),
       server.getStanding(this.gameDay, this.season, this.level, this.league),
       server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league),
       server.getTopScorers(this.season, this.level, this.league, 10),
-      server.getSuspendedPlayers(this.level, this.league)
+      server.getSuspendedPlayers(this.level, this.league),
+      server.getTeamStats(this.gameDay, this.season, this.level, this.league)
     ])
     this.results = results
     this.yesterdayStanding = yesterday
@@ -196,6 +240,7 @@ export class LeagueResultsPage extends UIElement {
     this.yesterdayStanding.sort(_sortStanding)
     this.topScorer = topScorers
     this.suspendedPlayers = suspendedPlayers
+    this.teamStats = teamStats || []
 
     this._buildManagerChat()
   }
@@ -266,6 +311,7 @@ export class LeagueResultsPage extends UIElement {
   async update (reloadData = false) {
     await super.update(reloadData)
     this._loadTopScorerImages()
+    this._attachTeamStatsHeaderHandler()
     if (this._managerSvgId && this._teamColor) {
       void loadManagerChatSvg(this._managerSvgId, this._teamColor)
     }
@@ -273,9 +319,38 @@ export class LeagueResultsPage extends UIElement {
 
   onMounted () {
     this._loadTopScorerImages()
+    this._attachTeamStatsHeaderHandler()
     if (this._managerSvgId && this._teamColor) {
       void loadManagerChatSvg(this._managerSvgId, this._teamColor)
     }
+  }
+
+  _attachTeamStatsHeaderHandler () {
+    const thead = document.querySelector(`${this._elementQuery} .team-stats-thead`)
+    if (!thead) return
+    thead.addEventListener('click', (e) => {
+      const th = e.target.closest('[data-col]')
+      if (!th) return
+      const col = th.dataset.col
+      if (this._teamStatsSortCol === col) {
+        this._teamStatsSortDir *= -1
+      } else {
+        this._teamStatsSortCol = col
+        this._teamStatsSortDir = col === 'name' ? 1 : -1
+      }
+      this._updateTeamStatsTable()
+    })
+  }
+
+  _updateTeamStatsTable () {
+    const tbody = document.querySelector(`${this._elementQuery} #team-stats-tbody`)
+    if (tbody) {
+      tbody.innerHTML = this._getSortedTeamStats().map(this._renderTeamStatsRow.bind(this)).join('')
+    }
+    document.querySelectorAll(`${this._elementQuery} .ts-sort-icon`).forEach(el => {
+      const col = el.dataset.sortCol
+      if (col) el.innerHTML = this._sortIcon(col)
+    })
   }
 
   _loadTopScorerImages () {
@@ -492,6 +567,47 @@ export class LeagueResultsPage extends UIElement {
   `
   }
 
+  _sortIcon (col) {
+    if (this._teamStatsSortCol !== col) return '<i class="fa fa-sort text-muted"></i>'
+    return this._teamStatsSortDir === 1
+      ? '<i class="fa fa-sort-up"></i>'
+      : '<i class="fa fa-sort-down"></i>'
+  }
+
+  _getSortedTeamStats () {
+    const col = this._teamStatsSortCol
+    const dir = this._teamStatsSortDir
+    return [...this.teamStats].sort((a, b) => {
+      const av = col === 'name'
+        ? (a[col] || '').localeCompare(b[col] || '')
+        : Number(a[col]) - Number(b[col])
+      return av * dir
+    })
+  }
+
+  _renderTeamStatsRow (stat) {
+    const id = generateId()
+    onClick('#' + id, () => goTo(`team?id=${stat.team_id}`))
+    const isMyTeam = this.myTeamId === stat.team_id
+    const team = { id: stat.team_id, name: stat.name, emblem: stat.emblem, color: stat.color, user_id: stat.user_id }
+    const hasUser = Boolean(stat.user_id)
+    const avgFreshness = Math.round(parseFloat(stat.avg_freshness) * 100)
+    const squadValue = _formatValue(Number(stat.squad_value))
+    return `
+      <tr id="${id}" class="u-cursor-pointer ${isMyTeam ? 'table-info' : ''}">
+        <td style="width:32px;"><span class="emblem-thumb">${renderEmblem(team, 24)}</span></td>
+        <td>${stat.name}${hasUser ? ' <i class="fa fa-user fa-sm" aria-hidden="true"></i>' : ''}</td>
+        <td class="text-end">${stat.player_count}</td>
+        <td class="text-end d-none d-sm-table-cell">${parseFloat(stat.avg_strength).toFixed(1)}</td>
+        <td class="text-end">${stat.total_strength}</td>
+        <td class="text-end d-none d-sm-table-cell">${stat.squad_size}</td>
+        <td class="text-end d-none d-md-table-cell">${avgFreshness}%</td>
+        <td class="text-end d-none d-md-table-cell">${Number(stat.stadium_size).toLocaleString()}</td>
+        <td class="text-end">${squadValue}</td>
+      </tr>
+    `
+  }
+
   /**
    * Called by parent when query params change
    * @param {Object} queryParams
@@ -524,4 +640,10 @@ function _sortStanding (s1, s2) {
     return (s2.goals - s2.against) - (s1.goals - s1.against)
   }
   return retVal
+}
+
+function _formatValue (value) {
+  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M €'
+  if (value >= 1_000) return (value / 1_000).toFixed(0) + 'K €'
+  return value + ' €'
 }

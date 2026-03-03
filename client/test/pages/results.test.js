@@ -10,6 +10,7 @@ vi.mock('../../lib/gateway.js', () => ({
     getStanding: vi.fn(),
     getTopScorers: vi.fn(),
     getSuspendedPlayers: vi.fn(),
+    getTeamStats: vi.fn(),
     getAvailableCupSeasons: vi.fn(),
     getCupRounds: vi.fn(),
     getCupResults: vi.fn(),
@@ -64,6 +65,7 @@ describe('ResultsPage', () => {
     vi.clearAllMocks()
     getQueryParams.mockReturnValue({})
     server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+    server.getTeamStats.mockResolvedValue({ teamStats: [] })
   })
 
   describe('ResultsPage tab container', () => {

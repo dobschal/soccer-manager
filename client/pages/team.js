@@ -89,15 +89,15 @@ export class TeamPage extends UIElement {
       (player) => setQueryParams({ player_id: player.id + '' })
     )}
 
-        <div class="row mt-5">
-          <div class="col-12 col-lg-6 mb-4">
+        <div class="mt-5">
             <h4>${t('team.transferHistory')}</h4>
-            ${this._renderTransferHistoryTable()}
-          </div>
-          <div class="col-12 col-lg-6 mb-4">
+            <div class="horizontal-scrollable-table mb-4">
+                ${this._renderTransferHistoryTable()}
+            </div>
             <h4>${t('team.seasonHistory')}</h4>
-            ${this._renderSeasonHistoryTable()}
-          </div>
+            <div class="horizontal-scrollable-table">
+                ${this._renderSeasonHistoryTable()}
+            </div>
         </div>
       </div>
     `

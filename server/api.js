@@ -124,14 +124,14 @@ async function start () {
     //           | minute
     //           second ( optional )
     console.log('Started CRON job for game day calculation and bot moves.')
-    await prepareSeason()
-    await calculateGames()
-    await makeBotMoves()
-    await cleanupInactiveUsers()
-    await cleanupOldFreePlayers()
-    await cleanupIOCPlayers()
-    await fillMarketGaps()
-    await iocBuyUndervaluedPlayers()
+    try { await prepareSeason() } catch (e) { console.error('prepareSeason failed:', e) }
+    try { await calculateGames() } catch (e) { console.error('calculateGames failed:', e) }
+    try { await makeBotMoves() } catch (e) { console.error('makeBotMoves failed:', e) }
+    try { await cleanupInactiveUsers() } catch (e) { console.error('cleanupInactiveUsers failed:', e) }
+    try { await cleanupOldFreePlayers() } catch (e) { console.error('cleanupOldFreePlayers failed:', e) }
+    try { await cleanupIOCPlayers() } catch (e) { console.error('cleanupIOCPlayers failed:', e) }
+    try { await fillMarketGaps() } catch (e) { console.error('fillMarketGaps failed:', e) }
+    try { await iocBuyUndervaluedPlayers() } catch (e) { console.error('iocBuyUndervaluedPlayers failed:', e) }
   })
 
   // Create HTTP server and attach WebSocket

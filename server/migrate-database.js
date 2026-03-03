@@ -1068,6 +1068,45 @@ const migrations = [{
       INDEX idx_device_token_platform (platform)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Hash existing plaintext passwords',
+  async run () {
+    const { hashPassword } = await import('./lib/passwordHash.js')
+    const users = await query('SELECT id, password FROM user')
+    let count = 0
+    for (const user of users) {
+      // Skip already-hashed passwords (format is "salt:derivedKeyHex")
+      if (user.password && user.password.includes(':')) continue
+      const hashed = await hashPassword(user.password)
+      await query('UPDATE user SET password=? WHERE id=?', [hashed, user.id])
+      count++
+    }
+    console.log(`✅ Hashed ${count} existing plaintext passwords`)
+  }
+}, {
+  name: 'Create team_stats_cache table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS team_stats_cache
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        team_id BIGINT(20) NOT NULL,
+        season INT NOT NULL,
+        game_day INT NOT NULL,
+        level INT NOT NULL,
+        league INT NOT NULL,
+        player_count INT DEFAULT 0,
+        avg_strength DECIMAL(10,2) DEFAULT 0,
+        total_strength INT DEFAULT 0,
+        squad_size INT DEFAULT 0,
+        avg_freshness DECIMAL(6,4) DEFAULT 0,
+        stadium_size INT DEFAULT 0,
+        squad_value BIGINT DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY idx_team_stats_cache (team_id, season, game_day),
+        INDEX idx_team_stats_league (season, game_day, level, league)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

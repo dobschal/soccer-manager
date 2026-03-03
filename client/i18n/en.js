@@ -807,6 +807,14 @@ export default {
   'results.leagueResults': 'League',
   'results.cupResults': 'Cup',
   'results.friendlyResults': 'Friendlies',
+  'results.teamStats': 'Team Statistics',
+  'results.playerCount': 'Lineup',
+  'results.avgStrength': 'Avg. Strength',
+  'results.totalStrength': 'Total Strength',
+  'results.squadSize': 'Squad Size',
+  'results.avgFreshness': 'Avg. Freshness',
+  'results.stadiumSize': 'Stadium',
+  'results.squadValue': 'Squad Value',
   'friendly.noResults': 'No friendly matches this season.',
 
   // Stadium tabs

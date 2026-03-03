@@ -18,11 +18,17 @@ vi.mock('../../prepare-season.js', () => ({
   prepareSeason: vi.fn()
 }))
 
+vi.mock('../../lib/passwordHash.js', () => ({
+  hashPassword: vi.fn(p => Promise.resolve(`hashed:${p}`)),
+  verifyPassword: vi.fn((p, h) => Promise.resolve(h === `hashed:${p}`))
+}))
+
 // Import after mocking
 import { query } from '../../lib/database.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getSponsor } from '../../helper/sponsorHelper.js'
 import { prepareSeason } from '../../prepare-season.js'
+import { hashPassword } from '../../lib/passwordHash.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
@@ -32,7 +38,7 @@ describe('auth routes', () => {
 
   describe('login', () => {
     it('returns token for valid credentials', async () => {
-      const user = testData.user({ password: 'password123' })
+      const user = testData.user({ password: 'hashed:password123' })
       query.mockResolvedValue([user])
 
       const req = { locale: 'en' }
@@ -56,7 +62,7 @@ describe('auth routes', () => {
     })
 
     it('throws UnauthorizedError for wrong password', async () => {
-      const user = testData.user({ password: 'correctpassword' })
+      const user = testData.user({ password: 'hashed:correctpassword' })
       query.mockResolvedValue([user])
 
       const req = { locale: 'en' }
@@ -93,6 +99,11 @@ describe('auth routes', () => {
       expect(result).toEqual({ success: true })
       expect(prepareSeason).not.toHaveBeenCalled()
       expect(query).toHaveBeenCalledWith('SELECT COUNT(*) AS amount FROM user WHERE username=?', 'newuser')
+      expect(hashPassword).toHaveBeenCalledWith('password123')
+      expect(query).toHaveBeenCalledWith('INSERT INTO user SET ?', expect.objectContaining({
+        username: 'newuser',
+        password: 'hashed:password123'
+      }))
     })
 
     it('throws BadRequestError for non-string username', async () => {

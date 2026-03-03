@@ -114,6 +114,7 @@ export default {
   'log.playerSuspended': '{playerName} is suspended and will miss the next match.',
   'log.playerRemovedFromLineup': '{playerName} was automatically removed from the lineup due to suspension.',
   'log.playerAt4Yellows': 'Warning: {playerName} has 4 yellow cards. One more and they will be suspended!',
+  'log.lineupAutoFilled': 'Your lineup was incomplete. {playerName} was automatically assigned to {position}.',
 
   // Finance reasons
   'finance.playerSalaries': 'Player salaries',

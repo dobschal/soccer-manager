@@ -3,10 +3,11 @@ import { TradeOffer } from '../entities/tradeOffer.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { acceptOffer, declineOffer } from '../helper/tradeHelper.js'
+import { acceptOffer, declineOffer, getOpenSellOffersByTeamId } from '../helper/tradeHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
-import { getPlayerById } from '../helper/playerHelper.js'
+import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId } from '../helper/playerHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
+import { getPositionsOfFormation } from '../../client/util/formation.js'
 
 export default {
 
@@ -79,6 +80,47 @@ export default {
           }
           return { success: true }
         }
+
+        // No matching sell offer or price too low — full bot evaluation
+        const { gameDay, season } = await getGameDayAndSeason()
+        const [insertedOffer] = await query(
+          'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\'',
+          [team.id, player.id]
+        )
+        if (insertedOffer) {
+          const players = await getPlayersByTeamId(receivingTeam.id)
+          const positionsNeeded = getPositionsOfFormation(receivingTeam.formation)
+          const playersInSamePosition = players.filter(p => p.position === playerData.position && p.id !== playerData.id)
+          const positionsRequiredForFormation = positionsNeeded.filter(p => p === playerData.position).length
+          const wouldLeaveHole = playersInSamePosition.length < positionsRequiredForFormation
+          const remainingPlayersInPosition = playersInSamePosition.filter(p => p.level >= playerData.level - 2)
+          const teamWouldBeOkAfterSale = remainingPlayersInPosition.length >= positionsRequiredForFormation
+
+          const openSellOffers = await getOpenSellOffersByTeamId(receivingTeam.id)
+          const matchingSellOffer = openSellOffers.find(o => o.player_id === playerData.id)
+          const averagePrice = await getAveragePlanPriceOfPlayer(playerData)
+          const basePrice = matchingSellOffer ? matchingSellOffer.offer_value : averagePrice
+
+          let minAcceptablePrice
+          if (wouldLeaveHole) {
+            if (!teamWouldBeOkAfterSale || playersInSamePosition.length === 0) {
+              await declineOffer(insertedOffer)
+              return { success: true }
+            }
+            const premiumFactor = 1.5 + Math.random() * 0.5
+            minAcceptablePrice = basePrice * premiumFactor
+          } else {
+            const randomFactor = 0.8 + Math.random() * 0.4
+            minAcceptablePrice = basePrice * randomFactor
+          }
+
+          if (price >= minAcceptablePrice) {
+            await acceptOffer(insertedOffer, receivingTeam, gameDay, season, locale)
+          } else {
+            await declineOffer(insertedOffer)
+          }
+        }
+        return { success: true }
       }
 
       if (receivingTeam && receivingTeam.user_id) {

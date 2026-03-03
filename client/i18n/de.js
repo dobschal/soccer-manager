@@ -807,6 +807,14 @@ export default {
   'results.leagueResults': 'Liga',
   'results.cupResults': 'Pokal',
   'results.friendlyResults': 'Friendlies',
+  'results.teamStats': 'Mannschaftsstatistiken',
+  'results.playerCount': 'Aufstellung',
+  'results.avgStrength': 'Ø Stärke',
+  'results.totalStrength': 'Gesamtstärke',
+  'results.squadSize': 'Kadergröße',
+  'results.avgFreshness': 'Ø Frische',
+  'results.stadiumSize': 'Stadion',
+  'results.squadValue': 'Kaderwert',
   'friendly.noResults': 'Keine Freundschaftsspiele in dieser Saison.',
 
   // Stadium tabs

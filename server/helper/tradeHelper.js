@@ -33,6 +33,7 @@ export async function getOpenByOffersByTeamId (teamId) {
  */
 export async function getIncomingBuyOffers (teamId) {
   const players = await getPlayersByTeamId(teamId)
+  if (players.length === 0) return []
   return await query(
     `SELECT * FROM trade_offer WHERE from_team_id <> ? AND type = 'buy' AND player_id IN (${players.map(p => p.id).join(', ')}) ORDER BY offer_value DESC`,
     [teamId]

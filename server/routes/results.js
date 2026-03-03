@@ -6,6 +6,7 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper.js'
 import { getCached, cacheKey, CACHE_NAMESPACES } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
+import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
 
 export default {
 
@@ -403,6 +404,23 @@ export default {
    * @param {Request} [req]
    * @returns {Promise<{suspendedPlayers: Array}>}
    */
+  /**
+   * Get team statistics for all teams in a league on a given game day
+   * @param {number} gameDay
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
+   * @returns {Promise<{teamStats: Array}>}
+   */
+  async getTeamStats (gameDay, season, level, league, req) {
+    const team = await getTeam(req)
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+    const stats = await getTeamStatsFromCache(gameDay, season, actualLevel, actualLeague)
+    return { teamStats: stats }
+  },
+
   async getSuspendedPlayers (level, league, req) {
     const team = await getTeam(req)
     const actualLevel = level ?? team.level

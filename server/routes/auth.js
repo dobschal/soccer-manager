@@ -8,6 +8,7 @@ import { prepareSeason } from '../prepare-season.js'
 import { getSupportedLocales, t } from '../i18n/index.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
+import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 
 export default {
 
@@ -40,7 +41,7 @@ export default {
     }
     const { insertId: userId } = await query('INSERT INTO user SET ?', {
       username,
-      password,
+      password: await hashPassword(password),
       language: locale
     })
     // Clean up old bot data before assigning team to user
@@ -96,7 +97,7 @@ export default {
       throw new BadRequestError(t('error.passwordString', {}, locale))
     }
     const [user] = await query('SELECT * FROM user WHERE username=?', [username])
-    if (!user || user.password !== password) {
+    if (!user || !(await verifyPassword(password, user.password))) {
       throw new UnauthorizedError(t('error.wrongCredentials', {}, locale))
     }
     const now = new Date()
