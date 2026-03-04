@@ -7,10 +7,12 @@ declare const UIApplicationDelegate: any
 if (isIOS) {
   const CustomAppDelegate = (NSObject as any).extend({
     applicationDidRegisterForRemoteNotificationsWithDeviceToken (application: any, deviceToken: any): void {
-      // Convert NSData to lowercase hex string
+      // Convert NSData to lowercase hex string using interop.bufferFromData
+      // (NSData.bytes returns an interop.Pointer which cannot be indexed directly)
+      const buffer = interop.bufferFromData(deviceToken)
       let token = ''
-      for (let i = 0; i < deviceToken.length; i++) {
-        token += ('0' + (deviceToken.bytes[i] & 0xFF).toString(16)).slice(-2)
+      for (let i = 0; i < buffer.length; i++) {
+        token += ('0' + (buffer[i] & 0xFF).toString(16)).slice(-2)
       }
       onDeviceToken(token)
     },
