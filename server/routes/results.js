@@ -4,7 +4,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper.js'
-import { getCached, cacheKey, CACHE_NAMESPACES } from '../lib/cache.js'
+import { CACHE_NAMESPACES, cacheKey, getCached } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
 import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
 
@@ -173,7 +173,10 @@ export default {
         // Each game day is 12 hours apart
         gameDate.setTime(gameDate.getTime() + dayOffset * 12 * 60 * 60 * 1000)
       }
-      return { ...game, gameDate }
+      return {
+        ...game,
+        gameDate
+      }
     })
 
     return {
@@ -214,7 +217,11 @@ export default {
     `, [season, team.id, team.id])
 
     if (games.length === 0) {
-      return { game: null, nextGameDate: null, opponent: null }
+      return {
+        game: null,
+        nextGameDate: null,
+        opponent: null
+      }
     }
 
     const game = games[0]
@@ -232,7 +239,11 @@ export default {
       d.setSeconds(59)
     }
 
-    return { game, nextGameDate: d, opponent }
+    return {
+      game,
+      nextGameDate: d,
+      opponent
+    }
   },
 
   /**
@@ -318,7 +329,6 @@ export default {
     const team = await getTeam(req)
     const actualLevel = level ?? team.level
     const actualLeague = league ?? team.league
-    const t1 = Date.now()
 
     // Try to get cached standing first
     const cached = await getCachedStanding(gameDay, season, actualLevel, actualLeague)
@@ -326,7 +336,9 @@ export default {
       // Refresh team display data (name, emblem, color) from database
       const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
       if (teamIds.length > 0) {
-        const freshTeams = await query(`SELECT id, name, emblem, color FROM team WHERE id IN (${teamIds.join(', ')})`)
+        const freshTeams = await query(`SELECT id, name, emblem, color
+                                        FROM team
+                                        WHERE id IN (${teamIds.join(', ')})`)
         const teamMap = Object.fromEntries(freshTeams.map(t => [t.id, t]))
         for (const entry of cached) {
           const fresh = entry.team?.id ? teamMap[entry.team.id] : null
@@ -337,7 +349,6 @@ export default {
           }
         }
       }
-      console.log('Got cached standing in ' + (Date.now() - t1) + 'ms')
       return cached
     }
 
@@ -375,7 +386,6 @@ export default {
       await saveStandingToCache(gameDay, season, actualLevel, actualLeague, standing)
     }
 
-    console.log('Calculated standing in ' + (Date.now() - t1) + 'ms')
     return standing
   },
 
@@ -427,11 +437,13 @@ export default {
     const actualLeague = league ?? team.league
 
     const suspendedPlayers = await query(`
-      SELECT p.*, t.name as team_name, t.color as team_color, t.emblem as team_emblem
-      FROM player p
-      JOIN team t ON t.id = p.team_id
-      WHERE t.level = ? AND t.league = ? AND p.is_suspended = 1
-      ORDER BY t.name, p.name
+        SELECT p.*, t.name as team_name, t.color as team_color, t.emblem as team_emblem
+        FROM player p
+                 JOIN team t ON t.id = p.team_id
+        WHERE t.level = ?
+          AND t.league = ?
+          AND p.is_suspended = 1
+        ORDER BY t.name, p.name
     `, [actualLevel, actualLeague])
 
     return {

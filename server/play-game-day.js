@@ -732,19 +732,6 @@ async function _updatePlayerAfterGame (player, gameDetails, team) {
         'ban'
       )
     }
-  } else if (yellowsInMatch > 0 && team.user_id) {
-    // Log yellow card(s) for this match
-    const locale = await getUserLocale(team.user_id)
-    await addLogMessage(
-      t('log.playerYellowCard', {
-        playerName: player.name,
-        count: yellowsInMatch
-      }, locale),
-      team,
-      'OPEN_PLAYER',
-      player.id,
-      'square'
-    )
   }
 
   // Update player in database

@@ -1,4 +1,4 @@
-import {Application, EventData, isAndroid, isIOS, knownFolders, Page, path, WebView} from '@nativescript/core'
+import {Application, EventData, isAndroid, isIOS, knownFolders, Page, path, Utils, WebView} from '@nativescript/core'
 import {getWebContentPath, wasUpdateInstalled, checkForUpdate, hasStagedUpdate, promoteStagingIfReady} from './ota-update'
 import {deviceToken, onTokenAvailable} from './pushNotifications'
 
@@ -130,7 +130,10 @@ function setupIOSPushNotifications(webView: WebView): void {
             console.log(`[Push] Permission result: granted=${granted}, error=${error ? error.localizedDescription : 'none'}`)
             if (granted) {
                 console.log('[Push] Calling registerForRemoteNotifications...')
-                UIApplication.sharedApplication.registerForRemoteNotifications()
+                // Must dispatch to main thread — this callback runs on an arbitrary queue
+                Utils.executeOnMainThread(() => {
+                    UIApplication.sharedApplication.registerForRemoteNotifications()
+                })
             } else {
                 console.log('[Push] User denied push notification permission')
             }
