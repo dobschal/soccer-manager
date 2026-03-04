@@ -70,11 +70,11 @@ img, svg {
 @keyframes overlay-fade-in-2 {
     0% {
         opacity: 0;
-        transform: translateY(1vh);
+        transform: translateY(50%);
     }
     50% {
         opacity: 0;
-        transform: translateY(1vh);
+        transform: translateY(50%);
     }
     100% {
         opacity: 1;

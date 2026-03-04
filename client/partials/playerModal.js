@@ -1,6 +1,6 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
-import { calculatePlayerAge, getSalary } from '../util/player.js'
+import { calculatePlayerAge, calculateMarketValue, getSalary } from '../util/player.js'
 import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
 import { euroFormat } from '../lib/currency.js'
 import { el } from '../lib/html.js'
@@ -81,7 +81,7 @@ export default class PlayerModal extends UIElement {
     this.isFreeAgent = !this.player.team_id
     this.playersTeam = this.player.team_id ? (await server.getTeam(this.player.team_id)).team : null
     this.playerImage = await renderPlayerImage(this.player, this.playersTeam)
-    this.price = await server.estimateValue(this.player.id)
+    this.price = calculateMarketValue(this.player.level, calculatePlayerAge(this.player, this.season))
     this.history = await server.getPlayerHistory(this.player.id)
     const { offer } = await server.myOfferForPlayer(this.player)
     this.offer = offer

@@ -178,22 +178,22 @@ export class LeagueResultsPage extends UIElement {
                   <th scope="col" class="u-cursor-pointer text-nowrap" data-col="name">
                     ${t('results.team')} <span class="ts-sort-icon" data-sort-col="name">${this._sortIcon('name')}</span>
                   </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="player_count">
-                    ${t('results.playerCount')} <span class="ts-sort-icon" data-sort-col="player_count">${this._sortIcon('player_count')}</span>
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_size">
+                    ${t('results.playerCount')} <span class="ts-sort-icon" data-sort-col="squad_size">${this._sortIcon('squad_size')}</span>
                   </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap d-none d-sm-table-cell" data-col="avg_strength">
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="avg_strength">
                     ${t('results.avgStrength')} <span class="ts-sort-icon" data-sort-col="avg_strength">${this._sortIcon('avg_strength')}</span>
                   </th>
                   <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="total_strength">
                     ${t('results.totalStrength')} <span class="ts-sort-icon" data-sort-col="total_strength">${this._sortIcon('total_strength')}</span>
                   </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap d-none d-sm-table-cell" data-col="squad_size">
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_size">
                     ${t('results.squadSize')} <span class="ts-sort-icon" data-sort-col="squad_size">${this._sortIcon('squad_size')}</span>
                   </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap d-none d-md-table-cell" data-col="avg_freshness">
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="avg_freshness">
                     ${t('results.avgFreshness')} <span class="ts-sort-icon" data-sort-col="avg_freshness">${this._sortIcon('avg_freshness')}</span>
                   </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap d-none d-md-table-cell" data-col="stadium_size">
+                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="stadium_size">
                     ${t('results.stadiumSize')} <span class="ts-sort-icon" data-sort-col="stadium_size">${this._sortIcon('stadium_size')}</span>
                   </th>
                   <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_value">
@@ -597,12 +597,12 @@ export class LeagueResultsPage extends UIElement {
       <tr id="${id}" class="u-cursor-pointer ${isMyTeam ? 'table-info' : ''}">
         <td style="width:32px;"><span class="emblem-thumb">${renderEmblem(team, 24)}</span></td>
         <td>${stat.name}${hasUser ? ' <i class="fa fa-user fa-sm" aria-hidden="true"></i>' : ''}</td>
-        <td class="text-end">${stat.player_count}</td>
-        <td class="text-end d-none d-sm-table-cell">${parseFloat(stat.avg_strength).toFixed(1)}</td>
+        <td class="text-end">${stat.squad_size}</td>
+        <td class="text-end">${parseFloat(stat.avg_strength).toFixed(1)}</td>
         <td class="text-end">${stat.total_strength}</td>
-        <td class="text-end d-none d-sm-table-cell">${stat.squad_size}</td>
-        <td class="text-end d-none d-md-table-cell">${avgFreshness}%</td>
-        <td class="text-end d-none d-md-table-cell">${Number(stat.stadium_size).toLocaleString()}</td>
+        <td class="text-end">${stat.squad_size}</td>
+        <td class="text-end">${avgFreshness}%</td>
+        <td class="text-end">${Number(stat.stadium_size).toLocaleString()}</td>
         <td class="text-end">${squadValue}</td>
       </tr>
     `

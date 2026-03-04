@@ -820,7 +820,7 @@ export default {
   'results.cupResults': 'Pokal',
   'results.friendlyResults': 'Friendlies',
   'results.teamStats': 'Mannschaftsstatistiken',
-  'results.playerCount': 'Aufstellung',
+  'results.playerCount': 'Spieler',
   'results.avgStrength': 'Ø Stärke',
   'results.totalStrength': 'Gesamtstärke',
   'results.squadSize': 'Kadergröße',

@@ -820,7 +820,7 @@ export default {
   'results.cupResults': 'Cup',
   'results.friendlyResults': 'Friendlies',
   'results.teamStats': 'Team Statistics',
-  'results.playerCount': 'Lineup',
+  'results.playerCount': 'Player',
   'results.avgStrength': 'Avg. Strength',
   'results.totalStrength': 'Total Strength',
   'results.squadSize': 'Squad Size',

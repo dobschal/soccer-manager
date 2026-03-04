@@ -3,18 +3,8 @@ import { euroFormat } from '../../lib/currency.js'
 import { Position } from '../../util/formation.js'
 import { t } from '../../i18n/index.js'
 import { server } from '../../lib/gateway.js'
-
-/**
- * @param {number} level
- * @param {number} age
- * @returns {number}
- */
-export function calculateMarketValue (level, age) {
-  let price = 50_000_000
-  for (let a = 22; a < age; a++) price *= 0.75
-  for (let l = 100; l > level; l--) price *= 0.9330329915368074
-  return Math.floor(price)
-}
+import { calculateMarketValue } from '../../util/player.js'
+export { calculateMarketValue }
 
 /**
  * @param {number} avgPrice

@@ -2,7 +2,7 @@ import { UIElement } from '../lib/UIElement.js'
 import { calculatePlayerAge, getSalary } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { renderLevelBadge } from './levelBadge.js'
-import { calculateMarketValue } from '../pages/trades/marketValues.js'
+import { calculateMarketValue } from '../util/player.js'
 
 export class PlayerListItem extends UIElement {
   /**

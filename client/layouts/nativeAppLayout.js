@@ -51,15 +51,15 @@ export class NativeAppLayout extends UIElement {
       <div class="native-app-layout">
         <div class="native-top-bar">
           <div class="info-bar-content">
-            <a href="#results" class="info-bar-item text-decoration-none text-info">
+            <a href="#results" class="info-bar-item text-decoration-none text-info border-0">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
       gameDay: this._gameDay + 1,
       season: this._season + 1
     })}
             </a>
-            <a href="#dashboard" class="info-bar-item text-decoration-none text-info" id="${this._nextGameInElementId}">
+            <a href="#dashboard" class="info-bar-item text-decoration-none text-info border-0" id="${this._nextGameInElementId}">
             </a>
-            <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info">
+            <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info border-0">
               <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </a>
             <button id="search-button" class="native-settings-btn" type="button" aria-label="${t('nav.search')}">

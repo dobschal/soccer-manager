@@ -107,15 +107,15 @@ export class GameLayout extends UIElement {
         </nav>
         <div class="info-bar">
           <div class="info-bar-content">
-            <a href="#results" class="info-bar-item text-decoration-none text-info">
+            <a href="#results" class="info-bar-item text-decoration-none text-info border-0">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
       gameDay: this._gameDay + 1,
       season: this._season + 1
     })}
             </a>
-            <a href="#dashboard" class="info-bar-item text-decoration-none text-info" id="${this._nextGameInElementId}">
+            <a href="#dashboard" class="info-bar-item text-decoration-none text-info border-0" id="${this._nextGameInElementId}">
             </a>
-            <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info">
+            <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info border-0">
               <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </a>
           </div>

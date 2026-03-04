@@ -9,7 +9,20 @@ import { renderEmblem } from './emblem.js'
  * @returns {number}
  */
 function positionOrder (a, b) {
-  const order = { GK: 0, LD: 1, CD: 2, RD: 3, DM: 4, LM: 5, CM: 6, RM: 7, OM: 8, LA: 9, CA: 10, RA: 11 }
+  const order = {
+    GK: 0,
+    LD: 1,
+    CD: 2,
+    RD: 3,
+    DM: 4,
+    LM: 5,
+    CM: 6,
+    RM: 7,
+    OM: 8,
+    LA: 9,
+    CA: 10,
+    RA: 11
+  }
   return (order[a.in_game_position] ?? 99) - (order[b.in_game_position] ?? 99)
 }
 
@@ -136,7 +149,16 @@ export class GameDetails extends UIElement {
   }
 
   get template () {
-    const { game, team1, team2, details, players, playersTeam1, playersTeam2, stadium } = this
+    const {
+      game,
+      team1,
+      team2,
+      details,
+      players,
+      playersTeam1,
+      playersTeam2,
+      stadium
+    } = this
 
     const sd = details.stadiumDetails || {}
     const guests = (sd.northGuests || 0) + (sd.southGuests || 0) + (sd.eastGuests || 0) + (sd.westGuests || 0)
@@ -175,12 +197,36 @@ export class GameDetails extends UIElement {
     const extraTimeLabel = details.extraTime ? ' <small class="text-warning">(E.T.)</small>' : ''
 
     const statsRows = [
-      { label: `Goals${extraTimeLabel}`, valA: game.goalsTeam1, valB: game.goalsTeam2 },
-      { label: 'Control', valA: `${Math.floor(ballControllA / total * 100)}%`, valB: `${Math.ceil(ballControllB / total * 100)}%` },
-      { label: 'Shots', valA: details.shotsTeamA || goalsChancesA, valB: details.shotsTeamB || goalsChancesB },
-      { label: 'On Target', valA: goalsChancesA, valB: goalsChancesB },
-      { label: 'Strength', valA: details.strengthTeamA, valB: details.strengthTeamB },
-      { label: 'Freshness', valA: `${freshnessTeamA}%`, valB: `${freshnessTeamB}%` }
+      {
+        label: `Goals${extraTimeLabel}`,
+        valA: game.goalsTeam1,
+        valB: game.goalsTeam2
+      },
+      {
+        label: 'Control',
+        valA: `${Math.floor(ballControllA / total * 100)}%`,
+        valB: `${Math.ceil(ballControllB / total * 100)}%`
+      },
+      {
+        label: 'Shots',
+        valA: details.shotsTeamA || goalsChancesA,
+        valB: details.shotsTeamB || goalsChancesB
+      },
+      {
+        label: 'On Target',
+        valA: goalsChancesA,
+        valB: goalsChancesB
+      },
+      {
+        label: 'Strength',
+        valA: details.strengthTeamA,
+        valB: details.strengthTeamB
+      },
+      {
+        label: 'Freshness',
+        valA: `${freshnessTeamA}%`,
+        valB: `${freshnessTeamB}%`
+      }
     ]
 
     return `
@@ -196,11 +242,11 @@ export class GameDetails extends UIElement {
           <thead>
             <tr>
               <td class="text-end">
-                <a href="#team?id=${team1.id}" class="text-info">${team1Emblem} ${team1.name}</a>
+                <a href="#team?id=${team1.id}" class="text-info border-0">${team1Emblem} <span class="d-none d-sm-inline">${team1.name}</span><span class="d-sm-none">${team1.name.split(' ').pop()}</span></a>
               </td>
               <th class="text-center">Team</th>
               <td>
-                <a href="#team?id=${team2.id}" class="text-info">${team2.name} ${team2Emblem}</a>
+                <a href="#team?id=${team2.id}" class="text-info border-0"><span class="d-none d-sm-inline">${team2.name}</span><span class="d-sm-none">${team2.name.split(' ').pop()}</span> ${team2Emblem}</a>
               </td>
             </tr>
             ${statsRows.map(row => `
