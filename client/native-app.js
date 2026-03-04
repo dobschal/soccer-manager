@@ -1,4 +1,4 @@
-import { installGlobalErrorHandler } from './lib/clientLogger.js'
+import { installGlobalErrorHandler, sendLog } from './lib/clientLogger.js'
 import { DefaultLayout } from './layouts/defaultLayout.js'
 import { NativeAppLayout } from './layouts/nativeAppLayout.js'
 import { initRouter } from './lib/router.js'
@@ -24,16 +24,21 @@ window.__showOtaToast = function () {
 
 // Called from native side when a device token is available
 window.__onNativeDeviceToken = async function (token, platform) {
+  sendLog(`[Push] __onNativeDeviceToken called - platform: ${platform}, token: ${token ? token.substring(0, 10) + '...' : 'EMPTY'}, tokenLength: ${token?.length ?? 0}`)
   window.__nativeDeviceToken = token
   window.__nativePlatform = platform
   const authToken = window.localStorage.getItem('auth-token')
+  sendLog(`[Push] authToken present: ${!!authToken}`)
   if (authToken) {
     try {
+      sendLog(`[Push] Calling server.registerDeviceToken...`)
       await server.registerDeviceToken(token, platform)
-      console.log('[Push] Device token registered')
+      sendLog('[Push] Device token registered successfully')
     } catch (e) {
-      console.error('[Push] Failed to register device token:', e)
+      sendLog(`[Push] Failed to register device token: ${e?.message || JSON.stringify(e)}`, 'error')
     }
+  } else {
+    sendLog('[Push] No auth token - skipping device token registration', 'warn')
   }
 }
 
@@ -46,9 +51,14 @@ if (window.localStorage.getItem('auth-token')) {
 }
 
 // If device token was already injected before JS loaded, register it now
+sendLog(`[Push] Startup check - nativeDeviceToken: ${window.__nativeDeviceToken ? 'present(' + window.__nativeDeviceToken.substring(0, 10) + '...)' : 'MISSING'}, nativePlatform: ${window.__nativePlatform || 'MISSING'}, authToken: ${!!window.localStorage.getItem('auth-token')}`)
 if (window.__nativeDeviceToken && window.__nativePlatform && window.localStorage.getItem('auth-token')) {
+  sendLog('[Push] Startup fallback: calling registerDeviceToken...')
   server.registerDeviceToken(window.__nativeDeviceToken, window.__nativePlatform)
-    .catch(e => console.error('[Push] Failed to register device token on startup:', e))
+    .then(() => sendLog('[Push] Startup fallback: device token registered successfully'))
+    .catch(e => sendLog(`[Push] Startup fallback FAILED: ${e?.message || JSON.stringify(e)}`, 'error'))
+} else {
+  sendLog('[Push] Startup fallback: conditions not met, skipping')
 }
 
 server.getVersion().then(({ version }) => {

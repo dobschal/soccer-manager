@@ -5,15 +5,21 @@ import { toast } from '../partials/toast.js'
 import { UIElement } from '../lib/UIElement.js'
 import { t } from '../i18n/index.js'
 import { connectWebSocket } from '../lib/websocket.js'
+import { sendLog } from '../lib/clientLogger.js'
 
 async function _registerDeviceToken () {
   const token = window.__nativeDeviceToken
   const platform = window.__nativePlatform || 'ios'
-  if (!token) return
+  sendLog(`[Push] _registerDeviceToken called - token: ${token ? token.substring(0, 10) + '...' : 'MISSING'}, platform: ${platform}`)
+  if (!token) {
+    sendLog('[Push] _registerDeviceToken aborted: no token', 'warn')
+    return
+  }
   try {
     await server.registerDeviceToken(token, platform)
+    sendLog('[Push] _registerDeviceToken succeeded')
   } catch (e) {
-    console.error('[Push] Failed to register device token:', e)
+    sendLog(`[Push] _registerDeviceToken FAILED: ${e?.message || JSON.stringify(e)}`, 'error')
   }
 }
 

@@ -195,8 +195,11 @@ export class DashboardPage extends UIElement {
 
     // Register device token for push notifications (fire-and-forget)
     if (window.__nativeDeviceToken && window.__nativePlatform) {
+      const { sendLog } = await import('../lib/clientLogger.js')
+      sendLog(`[Push] Dashboard load: registering token ${window.__nativeDeviceToken.substring(0, 10)}... platform=${window.__nativePlatform}`)
       server.registerDeviceToken(window.__nativeDeviceToken, window.__nativePlatform)
-        .catch(e => console.error('[Push] Failed to register device token:', e))
+        .then(() => sendLog('[Push] Dashboard: device token registered successfully'))
+        .catch(e => sendLog(`[Push] Dashboard: device token registration FAILED: ${e?.message || JSON.stringify(e)}`, 'error'))
     }
 
     const gamedayResponse = await server.getCurrentGameday()
