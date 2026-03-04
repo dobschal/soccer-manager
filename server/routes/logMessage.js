@@ -1,4 +1,4 @@
-import { getLogMessages, getLogMessageCount, deleteLogMessage } from '../helper/logMessageHelper.js'
+import { getLogMessages, getLogMessageCount, getNewLogMessageCount, deleteLogMessage } from '../helper/logMessageHelper.js'
 
 export default {
   /**
@@ -17,6 +17,16 @@ export default {
    */
   async getLogMessageCount (req) {
     const count = await getLogMessageCount(req)
+    return { count }
+  },
+
+  /**
+   * @param {number} lastSeenId
+   * @param {Request} req
+   * @returns {Promise<{count: number}>}
+   */
+  async getNewLogMessageCount (lastSeenId, req) {
+    const count = await getNewLogMessageCount(lastSeenId, req)
     return { count }
   },
 

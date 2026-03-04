@@ -123,10 +123,13 @@ export function onWebViewLoaded(args: EventData) {
 function setupIOSPushNotifications(webView: WebView): void {
     // Request push notification permissions
     const center = UNUserNotificationCenter.currentNotificationCenter()
+    console.log('[Push] Requesting push notification permissions...')
     center.requestAuthorizationWithOptionsCompletionHandler(
         UNAuthorizationOptionAlert | UNAuthorizationOptionBadge | UNAuthorizationOptionSound,
-        (granted: boolean, _error: any) => {
+        (granted: boolean, error: any) => {
+            console.log(`[Push] Permission result: granted=${granted}, error=${error ? error.localizedDescription : 'none'}`)
             if (granted) {
+                console.log('[Push] Calling registerForRemoteNotifications...')
                 UIApplication.sharedApplication.registerForRemoteNotifications()
             } else {
                 console.log('[Push] User denied push notification permission')

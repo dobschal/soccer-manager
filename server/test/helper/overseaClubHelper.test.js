@@ -25,7 +25,7 @@ vi.mock('../../helper/teamHelper.js', () => ({
 }))
 
 // We need to reset the module cache to clear the cached IOC team ID between tests
-let fillMarketGaps, iocBuyUndervaluedPlayers, cleanupIOCPlayers, getIOCTeamId
+let fillMarketGaps, iocBuyUndervaluedPlayers, cleanupIOCPlayers, getIOCTeamId, iocEnsureMinimumTransfers
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -57,6 +57,7 @@ beforeEach(async () => {
   iocBuyUndervaluedPlayers = mod.iocBuyUndervaluedPlayers
   cleanupIOCPlayers = mod.cleanupIOCPlayers
   getIOCTeamId = mod.getIOCTeamId
+  iocEnsureMinimumTransfers = mod.iocEnsureMinimumTransfers
 
   // Get fresh references to mocked modules
   const dbMod = await import('../../lib/database.js')
@@ -260,6 +261,77 @@ describe('overseaClubHelper', () => {
 
       const cleaned = await cleanupIOCPlayers()
       expect(cleaned).toBe(0)
+    })
+  })
+
+  describe('iocEnsureMinimumTransfers', () => {
+    it('buys cheapest offers when transfers below minimum', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // COUNT teams (20 non-system teams → min 2 transfers)
+      globalThis._query.mockResolvedValueOnce([{ cnt: 20 }])
+
+      // COUNT current transfers this game day (0 so far)
+      globalThis._query.mockResolvedValueOnce([{ cnt: 0 }])
+
+      // Cheapest sell offers (need 2)
+      globalThis._query.mockResolvedValueOnce([
+        { id: 1, player_id: 10, from_team_id: 5, offer_value: 30000, level: 20, position: 'CM', player_team_id: 5 },
+        { id: 2, player_id: 11, from_team_id: 6, offer_value: 40000, level: 25, position: 'ST', player_team_id: 6 }
+      ])
+
+      // Both are bot sellers
+      globalThis._getTeamById.mockResolvedValue({ id: 5, name: 'Bot A', user_id: null })
+
+      // INSERT buy offer + SELECT it back + acceptOffer (for each)
+      globalThis._query.mockResolvedValue([{ id: 200, from_team_id: 999, player_id: 10, type: 'buy', offer_value: 30000 }])
+      globalThis._acceptOffer.mockResolvedValue()
+
+      const bought = await iocEnsureMinimumTransfers()
+      expect(bought).toBe(2)
+      expect(globalThis._acceptOffer).toHaveBeenCalledTimes(2)
+    })
+
+    it('does nothing when enough transfers already happened', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // COUNT teams (10 → min 1 transfer)
+      globalThis._query.mockResolvedValueOnce([{ cnt: 10 }])
+
+      // COUNT current transfers (5 already happened, exceeds minimum of 1)
+      globalThis._query.mockResolvedValueOnce([{ cnt: 5 }])
+
+      const bought = await iocEnsureMinimumTransfers()
+      expect(bought).toBe(0)
+    })
+
+    it('places buy offer for user seller instead of auto-accepting', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // COUNT teams (10 → min 1)
+      globalThis._query.mockResolvedValueOnce([{ cnt: 10 }])
+
+      // 0 transfers so far
+      globalThis._query.mockResolvedValueOnce([{ cnt: 0 }])
+
+      // One sell offer from a user team
+      globalThis._query.mockResolvedValueOnce([
+        { id: 1, player_id: 10, from_team_id: 5, offer_value: 50000, level: 30, position: 'LM', player_team_id: 5 }
+      ])
+
+      // Selling team is a user team
+      globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'User FC', user_id: 42 })
+
+      // INSERT buy offer
+      globalThis._query.mockResolvedValueOnce({ insertId: 300 })
+
+      const bought = await iocEnsureMinimumTransfers()
+      expect(bought).toBe(1)
+      // Should NOT auto-accept (user seller)
+      expect(globalThis._acceptOffer).not.toHaveBeenCalled()
     })
   })
 

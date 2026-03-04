@@ -49,6 +49,7 @@ vi.mock('../../client/util/formation.js', () => ({
   getPositionsOfFormation: vi.fn()
 }))
 
+import playersRoutes from '../routes/players.js'
 import { makeBotMoves } from '../bot-move.js'
 import { query } from '../lib/database.js'
 import {
@@ -125,6 +126,7 @@ describe('Bot Trading', () => {
       if (teamId === 10) return [...botPlayers]
       return []
     })
+    playersRoutes.estimateValue.mockResolvedValue(50000)
 
     // Default query mock
     query.mockImplementation(async (sql, params) => {
@@ -412,12 +414,12 @@ describe('Bot Trading', () => {
       await makeBotMoves()
 
       // Should prefer the higher level CM for critical need
-      const insertCalls = query.mock.calls.filter(call =>
-        call[0].includes('INSERT INTO trade_offer')
+      const insertBuyCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO trade_offer') && call[1]?.type === 'buy'
       )
 
-      if (insertCalls.length > 0) {
-        const insertedOffer = insertCalls[0][1]
+      if (insertBuyCalls.length > 0) {
+        const insertedOffer = insertBuyCalls[0][1]
         // The high level player (302) should be selected due to critical need priority
         expect(insertedOffer.player_id).toBe(302)
       }
@@ -464,6 +466,135 @@ describe('Bot Trading', () => {
 
       expect(declineOffer).toHaveBeenCalledWith(offerForMissingPlayer)
       expect(acceptOffer).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Guaranteed minimum sell offer', () => {
+    it('lists weakest bench player when no sell offers exist', async () => {
+      // All players fit the formation, no excess → normal logic produces 0 sell offers
+      // But the guarantee should list the weakest non-starter
+      getOpenSellOffersByTeamId.mockResolvedValue([]) // no existing sell offers
+
+      playersRoutes.estimateValue.mockResolvedValue(50000)
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return botPlayers
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        if (sql.includes('INSERT INTO trade_offer')) return { insertId: 500 }
+        // No sell offers from other teams for buying
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) return []
+        return []
+      })
+
+      await makeBotMoves()
+
+      // Should create at least one sell offer for a bench player
+      const insertCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO trade_offer') && call[1]?.type === 'sell'
+      )
+      expect(insertCalls.length).toBeGreaterThanOrEqual(1)
+
+      // The player should be a non-starter (one of id 112, 113, 114)
+      const soldPlayerId = insertCalls[0][1].player_id
+      const benchPlayerIds = [112, 113, 114]
+      expect(benchPlayerIds).toContain(soldPlayerId)
+    })
+
+    it('does not add guaranteed offer when sell offers already exist', async () => {
+      // Bot already has a sell offer
+      getOpenSellOffersByTeamId.mockResolvedValue([
+        testData.tradeOffer({ id: 50, player_id: 114, from_team_id: botTeam.id, type: 'sell' })
+      ])
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return botPlayers
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        if (sql.includes('INSERT INTO trade_offer')) return { insertId: 500 }
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) return []
+        return []
+      })
+
+      await makeBotMoves()
+
+      // Should NOT create a guaranteed sell offer (already has one)
+      const insertSellCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO trade_offer') && call[1]?.type === 'sell'
+      )
+      expect(insertSellCalls.length).toBe(0)
+    })
+  })
+
+  describe('Opportunistic buying', () => {
+    it('bot makes opportunistic buy when market has better player than weakest', async () => {
+      // All positions filled, squad depth good, but weakest player is level 3 (GK2, id=112)
+      // A level 10 GK is on the market → opportunistic buy
+      getPlayersByTeamId.mockResolvedValue([...botPlayers])
+      getOpenByOffersByTeamId.mockResolvedValue([])
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return botPlayers
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        // Market: a higher-level GK available
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) {
+          return [{
+            id: 300,
+            player_id: 400,
+            from_team_id: botTeam2.id,
+            type: 'sell',
+            offer_value: 100000,
+            player_name: 'Better GK',
+            player_level: 10,
+            player_position: 'GK'
+          }]
+        }
+        if (sql.includes('INSERT INTO trade_offer')) return { insertId: 600 }
+        return []
+      })
+
+      await makeBotMoves()
+
+      const insertBuyCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO trade_offer') && call[1]?.type === 'buy'
+      )
+      expect(insertBuyCalls.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('bot with upgrade threshold 70 tries to buy when weakest is level 50', async () => {
+      // Modify players so all are level 50+ except one at level 50
+      const upgradePlayers = botPlayers.map(p => ({ ...p, level: p.id === 112 ? 50 : 60 }))
+      getPlayersByTeamId.mockResolvedValue(upgradePlayers)
+      getOpenByOffersByTeamId.mockResolvedValue([])
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return upgradePlayers
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) {
+          return [{
+            id: 301,
+            player_id: 401,
+            from_team_id: botTeam2.id,
+            type: 'sell',
+            offer_value: 200000,
+            player_name: 'Upgrade GK',
+            player_level: 65,
+            player_position: 'GK'
+          }]
+        }
+        if (sql.includes('INSERT INTO trade_offer')) return { insertId: 601 }
+        return []
+      })
+
+      await makeBotMoves()
+
+      // With threshold raised to 70, level 50 triggers upgrade need
+      const insertBuyCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO trade_offer') && call[1]?.type === 'buy'
+      )
+      expect(insertBuyCalls.length).toBeGreaterThanOrEqual(1)
     })
   })
 })

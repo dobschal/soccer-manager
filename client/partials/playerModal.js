@@ -2,6 +2,7 @@ import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
 import { calculatePlayerAge, getSalary } from '../util/player.js'
 import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
+import { euroFormat } from '../lib/currency.js'
 import { el } from '../lib/html.js'
 import { toast } from './toast.js'
 import { Button } from './button.js'
@@ -84,8 +85,9 @@ export default class PlayerModal extends UIElement {
     this.history = await server.getPlayerHistory(this.player.id)
     const { offer } = await server.myOfferForPlayer(this.player)
     this.offer = offer
-    const { hasSellOffer } = await server.hasPlayerSellOffer(this.player.id)
+    const { hasSellOffer, sellOfferPrice } = await server.hasPlayerSellOffer(this.player.id)
     this.hasSellOffer = hasSellOffer
+    this.sellOfferPrice = sellOfferPrice
   }
 
   get events () {
@@ -150,7 +152,7 @@ export default class PlayerModal extends UIElement {
         ` : ''}
         <div class="${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4" style="clear: both">
           <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
-          <p>${t('player.enterPrice')}</p>
+          ${!this.isMyPlayer && this.sellOfferPrice ? `<p>${t('player.askingPrice')}: <b>${euroFormat.format(this.sellOfferPrice)}</b></p>` : `<p>${t('player.enterPrice')}</p>`}
           ${renderCurrencyInput('trade-price-input', t('player.pricePlaceholder'))}
           <button class="trade-offer-btn btn btn-primary mt-2" type="button">
             ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}

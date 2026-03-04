@@ -168,10 +168,15 @@ describe('tradeHelper', () => {
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
-      // Verify all offers for this player are deleted
+      // Verify the accepted offer is marked as accepted
       expect(query).toHaveBeenCalledWith(
-        'DELETE FROM trade_offer WHERE player_id=?',
-        10
+        'UPDATE trade_offer SET status=\'accepted\' WHERE id=?',
+        [offer.id]
+      )
+      // Verify other offers for this player are deleted
+      expect(query).toHaveBeenCalledWith(
+        'DELETE FROM trade_offer WHERE player_id=? AND id != ?',
+        [10, offer.id]
       )
     })
 
@@ -381,31 +386,33 @@ describe('tradeHelper', () => {
   })
 
   describe('declineOffer', () => {
-    it('deletes the buy offer from the database', async () => {
+    it('updates the buy offer status to rejected', async () => {
       const buyingTeam = testData.team({ id: 2, name: 'Buying FC', user_id: 1 })
-      const player = testData.player({ id: 10, name: 'Star Player' })
+      const sellerTeam = testData.team({ id: 1, name: 'Seller FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 7, type: 'buy', player_id: 10, from_team_id: 2 })
 
       query.mockResolvedValue({})
       getPlayerById.mockResolvedValue(player)
-      getTeamById.mockResolvedValue(buyingTeam)
+      getTeamById.mockResolvedValueOnce(buyingTeam).mockResolvedValueOnce(sellerTeam)
 
       await declineOffer(offer)
 
       expect(query).toHaveBeenCalledWith(
-        'DELETE FROM trade_offer WHERE type="buy" AND id=?',
+        'UPDATE trade_offer SET status=\'rejected\' WHERE type=\'buy\' AND id=?',
         [7]
       )
     })
 
     it('sends a log message to the offering team', async () => {
       const buyingTeam = testData.team({ id: 2, name: 'Buying FC', user_id: 1 })
-      const player = testData.player({ id: 10, name: 'Star Player' })
+      const sellerTeam = testData.team({ id: 1, name: 'Seller FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 7, type: 'buy', player_id: 10, from_team_id: 2 })
 
       query.mockResolvedValue({})
       getPlayerById.mockResolvedValue(player)
-      getTeamById.mockResolvedValue(buyingTeam)
+      getTeamById.mockResolvedValueOnce(buyingTeam).mockResolvedValueOnce(sellerTeam)
 
       await declineOffer(offer)
 
@@ -420,32 +427,53 @@ describe('tradeHelper', () => {
 
     it('looks up the offering team by from_team_id', async () => {
       const buyingTeam = testData.team({ id: 5, name: 'Other FC', user_id: 3 })
-      const player = testData.player({ id: 20, name: 'Another Player' })
+      const sellerTeam = testData.team({ id: 1, name: 'Seller FC' })
+      const player = testData.player({ id: 20, name: 'Another Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 8, type: 'buy', player_id: 20, from_team_id: 5 })
 
       query.mockResolvedValue({})
       getPlayerById.mockResolvedValue(player)
-      getTeamById.mockResolvedValue(buyingTeam)
+      getTeamById.mockResolvedValueOnce(buyingTeam).mockResolvedValueOnce(sellerTeam)
 
       await declineOffer(offer)
 
       expect(getTeamById).toHaveBeenCalledWith(5)
     })
 
-    it('skips log message for bot teams (no user_id)', async () => {
+    it('sends websocket event to buying team', async () => {
+      const { sendToTeam } = await import('../../lib/websocket.js')
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC', user_id: 1 })
+      const sellerTeam = testData.team({ id: 1, name: 'Seller FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({ id: 7, type: 'buy', player_id: 10, from_team_id: 2 })
+
+      query.mockResolvedValue({})
+      getPlayerById.mockResolvedValue(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam).mockResolvedValueOnce(sellerTeam)
+
+      await declineOffer(offer)
+
+      expect(sendToTeam).toHaveBeenCalledWith(buyingTeam.id, 'BUY_OFFER_REJECTED', {
+        playerName: 'Star Player',
+        sellerTeamName: 'Seller FC'
+      })
+    })
+
+    it('handles bot teams (no user_id)', async () => {
       const botTeam = testData.team({ id: 3, name: 'Bot FC', user_id: null })
-      const player = testData.player({ id: 10, name: 'Star Player' })
+      const sellerTeam = testData.team({ id: 1, name: 'Seller FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 9, type: 'buy', player_id: 10, from_team_id: 3 })
 
       query.mockResolvedValue({})
       getPlayerById.mockResolvedValue(player)
-      getTeamById.mockResolvedValue(botTeam)
+      getTeamById.mockResolvedValueOnce(botTeam).mockResolvedValueOnce(sellerTeam)
 
       await declineOffer(offer)
 
-      // Offer should still be deleted
+      // Offer should be updated to rejected
       expect(query).toHaveBeenCalledWith(
-        'DELETE FROM trade_offer WHERE type="buy" AND id=?',
+        'UPDATE trade_offer SET status=\'rejected\' WHERE type=\'buy\' AND id=?',
         [9]
       )
       // Log message is still called (addLogMessage handles bot teams gracefully)

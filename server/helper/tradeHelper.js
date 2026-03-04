@@ -16,7 +16,7 @@ import { sendToTeam } from '../lib/websocket.js'
  * @returns {Promise<TradeOfferType[]>}
  */
 export async function getOpenSellOffersByTeamId (teamId) {
-  return await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'sell\'', [teamId])
+  return await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'sell\' AND status=\'open\'', [teamId])
 }
 
 /**
@@ -24,7 +24,7 @@ export async function getOpenSellOffersByTeamId (teamId) {
  * @returns {Promise<TradeOfferType[]>}
  */
 export async function getOpenByOffersByTeamId (teamId) {
-  return await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'buy\'', [teamId])
+  return await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'buy\' AND status=\'open\'', [teamId])
 }
 
 /**
@@ -35,7 +35,7 @@ export async function getIncomingBuyOffers (teamId) {
   const players = await getPlayersByTeamId(teamId)
   if (players.length === 0) return []
   return await query(
-    `SELECT * FROM trade_offer WHERE from_team_id <> ? AND type = 'buy' AND player_id IN (${players.map(p => p.id).join(', ')}) ORDER BY offer_value DESC`,
+    `SELECT * FROM trade_offer WHERE from_team_id <> ? AND type = 'buy' AND status = 'open' AND player_id IN (${players.map(p => p.id).join(', ')}) ORDER BY offer_value DESC`,
     [teamId]
   )
 }
@@ -54,7 +54,7 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
       SELECT tro.* FROM trade_offer tro
           JOIN player p ON p.id=tro.player_id
           JOIN team t on p.team_id = t.id
-               WHERE t.id=? AND tro.type='buy'
+               WHERE t.id=? AND tro.type='buy' AND tro.status='open'
     `, [sellingTeam.id])
   if (!offers.some(o => o.id === offer.id)) throw new BadRequestError(t('error.offerNotFound', {}, locale))
 
@@ -65,7 +65,8 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
   // Update player and trade offer
   player.team_id = offer.from_team_id
   await query('UPDATE player SET team_id=?, in_game_position=NULL WHERE id=?', [player.team_id, player.id])
-  await query('DELETE FROM trade_offer WHERE player_id=?', player.id)
+  await query('UPDATE trade_offer SET status=\'accepted\' WHERE id=?', [offer.id])
+  await query('DELETE FROM trade_offer WHERE player_id=? AND id != ?', [player.id, offer.id])
 
   // Move balance - use user's language for log messages
   const buyingTeam = await getTeamById(offer.from_team_id)
@@ -116,11 +117,18 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
  * @returns {Promise<void>}
  */
 export async function declineOffer (offer) {
-  await query('DELETE FROM trade_offer WHERE type="buy" AND id=?', [offer.id])
+  await query('UPDATE trade_offer SET status=\'rejected\' WHERE type=\'buy\' AND id=?', [offer.id])
   const player = await getPlayerById(offer.player_id)
-  const team = await getTeamById(offer.from_team_id)
-  const locale = team.user_id ? await getUserLocale(team.user_id) : 'en'
-  await addLogMessage(t('log.offerRejected', { playerName: player.name }, locale), team, 'OPEN_PLAYER', player.id, 'times-circle')
+  const buyingTeam = await getTeamById(offer.from_team_id)
+  const sellerTeam = await getTeamById(player.team_id)
+  const locale = buyingTeam.user_id ? await getUserLocale(buyingTeam.user_id) : 'en'
+  await addLogMessage(t('log.offerRejected', { playerName: player.name }, locale), buyingTeam, 'OPEN_PLAYER', player.id, 'times-circle')
+
+  // Notify the buying team via websocket
+  await sendToTeam(buyingTeam.id, 'BUY_OFFER_REJECTED', {
+    playerName: player.name,
+    sellerTeamName: sellerTeam.name
+  })
 }
 
 /**

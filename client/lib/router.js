@@ -175,7 +175,7 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
  * @returns {Promise<void>}
  */
 async function _resolvePage () {
-  const currentPath = window.location.hash.substring(1).split('?')[0]
+  const currentPath = window.location.hash.substring(1).split('?')[0] || 'dashboard'
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
   }
@@ -214,7 +214,11 @@ async function _resolvePage () {
   if (cached && pageElement.contains(cached.wrapper)) {
     _animateTransition(pageElement, oldWrapper, cached.wrapper, direction)
     _afterPageLoad()
-    fire('query-changed', getQueryParams())
+    const queryParams = getQueryParams()
+    fire('query-changed', queryParams)
+    // Directly call onQueryChanged on cached page — the event-based call may be
+    // blocked by _isInsideHiddenContainer during the slide animation.
+    if (cached.page?.onQueryChanged) cached.page.onQueryChanged(queryParams)
     if (cached.page?.update) cached.page.update(true)
   } else {
     void _renderNewPage(pageRenderFn, currentPath, pageElement, oldWrapper, direction)

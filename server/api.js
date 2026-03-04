@@ -11,9 +11,10 @@ import { calculateGames } from './play-game-day.js'
 import { makeBotMoves } from './bot-move.js'
 import { getLocaleFromRequest } from './i18n/index.js'
 import { cleanupOldFreePlayers } from './helper/playerHelper.js'
-import { cleanupIOCPlayers, fillMarketGaps, iocBuyUndervaluedPlayers } from './helper/overseaClubHelper.js'
+import { cleanupIOCPlayers, fillMarketGaps, iocBuyUndervaluedPlayers, iocEnsureMinimumTransfers } from './helper/overseaClubHelper.js'
 import { cleanupInactiveUsers } from './helper/teamHelper.js'
 import { cleanupOldClientLogs } from './helper/clientLogHelper.js'
+import { cleanupOldLogMessages } from './helper/logMessageHelper.js'
 import { initWebSocket } from './lib/websocket.js'
 import { getCachedUser } from './lib/userCache.js'
 
@@ -133,7 +134,9 @@ async function start () {
     try { await cleanupIOCPlayers() } catch (e) { console.error('cleanupIOCPlayers failed:', e) }
     try { await fillMarketGaps() } catch (e) { console.error('fillMarketGaps failed:', e) }
     try { await iocBuyUndervaluedPlayers() } catch (e) { console.error('iocBuyUndervaluedPlayers failed:', e) }
+    try { await iocEnsureMinimumTransfers() } catch (e) { console.error('iocEnsureMinimumTransfers failed:', e) }
     try { await cleanupOldClientLogs() } catch (e) { console.error('cleanupOldClientLogs failed:', e) }
+    try { await cleanupOldLogMessages() } catch (e) { console.error('cleanupOldLogMessages failed:', e) }
   })
 
   // Create HTTP server and attach WebSocket

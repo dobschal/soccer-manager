@@ -1398,5 +1398,281 @@ export const playerNames = [
   {
     firstName: 'Victor',
     lastName: 'Gomez'
+  },
+  {
+    firstName: 'Marcus',
+    lastName: 'Rashford'
+  },
+  {
+    firstName: 'James',
+    lastName: 'Henderson'
+  },
+  {
+    firstName: 'Harry',
+    lastName: 'Wilson'
+  },
+  {
+    firstName: 'Jack',
+    lastName: 'Taylor'
+  },
+  {
+    firstName: 'George',
+    lastName: 'Campbell'
+  },
+  {
+    firstName: 'Charlie',
+    lastName: 'Wright'
+  },
+  {
+    firstName: 'Oliver',
+    lastName: 'Thompson'
+  },
+  {
+    firstName: 'Thomas',
+    lastName: 'Robinson'
+  },
+  {
+    firstName: 'Liam',
+    lastName: 'Clarke'
+  },
+  {
+    firstName: 'Callum',
+    lastName: 'Mitchell'
+  },
+  {
+    firstName: 'Ryan',
+    lastName: 'Stewart'
+  },
+  {
+    firstName: 'Connor',
+    lastName: 'Walsh'
+  },
+  {
+    firstName: 'Declan',
+    lastName: 'Murray'
+  },
+  {
+    firstName: 'Mason',
+    lastName: 'Phillips'
+  },
+  {
+    firstName: 'Ethan',
+    lastName: 'Bennett'
+  },
+  {
+    firstName: 'Antoine',
+    lastName: 'Dupont'
+  },
+  {
+    firstName: 'Kylian',
+    lastName: 'Moreau'
+  },
+  {
+    firstName: 'Ousmane',
+    lastName: 'Diallo'
+  },
+  {
+    firstName: 'Adrien',
+    lastName: 'Lambert'
+  },
+  {
+    firstName: 'Theo',
+    lastName: 'Bernard'
+  },
+  {
+    firstName: 'Mathis',
+    lastName: 'Girard'
+  },
+  {
+    firstName: 'Rayan',
+    lastName: 'Morel'
+  },
+  {
+    firstName: 'Jules',
+    lastName: 'Fournier'
+  },
+  {
+    firstName: 'Clement',
+    lastName: 'Roux'
+  },
+  {
+    firstName: 'Baptiste',
+    lastName: 'Bonnet'
+  },
+  {
+    firstName: 'Marco',
+    lastName: 'Rossi'
+  },
+  {
+    firstName: 'Alessandro',
+    lastName: 'Conti'
+  },
+  {
+    firstName: 'Andrea',
+    lastName: 'Esposito'
+  },
+  {
+    firstName: 'Luca',
+    lastName: 'Romano'
+  },
+  {
+    firstName: 'Mattia',
+    lastName: 'Colombo'
+  },
+  {
+    firstName: 'Lorenzo',
+    lastName: 'Ricci'
+  },
+  {
+    firstName: 'Davide',
+    lastName: 'Marino'
+  },
+  {
+    firstName: 'Francesco',
+    lastName: 'Barbieri'
+  },
+  {
+    firstName: 'Giorgio',
+    lastName: 'Pellegrini'
+  },
+  {
+    firstName: 'Tommaso',
+    lastName: 'Ferrara'
+  },
+  {
+    firstName: 'Bernardo',
+    lastName: 'Almeida'
+  },
+  {
+    firstName: 'Diogo',
+    lastName: 'Carvalho'
+  },
+  {
+    firstName: 'Goncalo',
+    lastName: 'Ferreira'
+  },
+  {
+    firstName: 'Ruben',
+    lastName: 'Pereira'
+  },
+  {
+    firstName: 'Joao',
+    lastName: 'Mendes'
+  },
+  {
+    firstName: 'Rui',
+    lastName: 'Sousa'
+  },
+  {
+    firstName: 'Nuno',
+    lastName: 'Oliveira'
+  },
+  {
+    firstName: 'Tiago',
+    lastName: 'Ribeiro'
+  },
+  {
+    firstName: 'Matthijs',
+    lastName: 'de Jong'
+  },
+  {
+    firstName: 'Frenkie',
+    lastName: 'van Dijk'
+  },
+  {
+    firstName: 'Donyell',
+    lastName: 'Bakker'
+  },
+  {
+    firstName: 'Jurrien',
+    lastName: 'Visser'
+  },
+  {
+    firstName: 'Quinten',
+    lastName: 'Janssen'
+  },
+  {
+    firstName: 'Davy',
+    lastName: 'Smit'
+  },
+  {
+    firstName: 'Moussa',
+    lastName: 'Dembele'
+  },
+  {
+    firstName: 'Sadio',
+    lastName: 'Traore'
+  },
+  {
+    firstName: 'Ismaila',
+    lastName: 'Toure'
+  },
+  {
+    firstName: 'Amadou',
+    lastName: 'Keita'
+  },
+  {
+    firstName: 'Ibrahim',
+    lastName: 'Diop'
+  },
+  {
+    firstName: 'Youssef',
+    lastName: 'Balde'
+  },
+  {
+    firstName: 'Samuel',
+    lastName: 'Mensah'
+  },
+  {
+    firstName: 'Kwame',
+    lastName: 'Osei'
+  },
+  {
+    firstName: 'Victor',
+    lastName: 'Osimhen'
+  },
+  {
+    firstName: 'Kelechi',
+    lastName: 'Ndidi'
+  },
+  {
+    firstName: 'Luka',
+    lastName: 'Petrovic'
+  },
+  {
+    firstName: 'Nikola',
+    lastName: 'Jovanovic'
+  },
+  {
+    firstName: 'Stefan',
+    lastName: 'Markovic'
+  },
+  {
+    firstName: 'Ivan',
+    lastName: 'Popovic'
+  },
+  {
+    firstName: 'Patrik',
+    lastName: 'Lindqvist'
+  },
+  {
+    firstName: 'Rasmus',
+    lastName: 'Eriksson'
+  },
+  {
+    firstName: 'Kasper',
+    lastName: 'Larsen'
+  },
+  {
+    firstName: 'Mikkel',
+    lastName: 'Christensen'
+  },
+  {
+    firstName: 'Sander',
+    lastName: 'Berge'
+  },
+  {
+    firstName: 'Erling',
+    lastName: 'Solberg'
   }
 ]

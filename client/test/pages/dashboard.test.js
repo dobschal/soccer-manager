@@ -23,6 +23,7 @@ vi.mock('../../lib/gateway.js', () => ({
     canPlayFriendlyToday: vi.fn(),
     getDashboardUrgencies: vi.fn(),
     getPendingActionCards: vi.fn(),
+    getNewLogMessageCount: vi.fn(),
     getTutorialStatus: vi.fn()
   }
 }))
@@ -181,6 +182,9 @@ describe('DashboardPage', () => {
     })
     server.getPendingActionCards.mockResolvedValue({
       pendingCards: []
+    })
+    server.getNewLogMessageCount.mockResolvedValue({
+      count: 0
     })
     server.getTutorialStatus.mockResolvedValue({
       tutorialCompleted: {}

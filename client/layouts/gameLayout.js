@@ -20,7 +20,9 @@ export function hideNavigation () {
 export class GameLayout extends UIElement {
   _interval = null
   _nextGameInElementId = generateId()
+  _messageBadgeId = generateId()
   _nextGameDate = null
+  _newMessageCount = 0
   _navItemEventIds = []
   _isDevelopment = false
   _username = ''
@@ -39,6 +41,16 @@ export class GameLayout extends UIElement {
           teamName: data.sellerTeamName,
           price: data.price
         }), 'success')
+      },
+      BUY_OFFER_REJECTED: (data) => {
+        toast(t('trades.buyOfferRejected', {
+          playerName: data.playerName,
+          teamName: data.sellerTeamName
+        }), 'error')
+      },
+      NEW_LOG_MESSAGE: () => {
+        this._newMessageCount++
+        this._updateMessageBadge()
       }
     }
   }
@@ -95,15 +107,15 @@ export class GameLayout extends UIElement {
         </nav>
         <div class="info-bar">
           <div class="info-bar-content">
-            <div class="info-bar-item">
+            <a href="#results" class="info-bar-item text-decoration-none text-info">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
       gameDay: this._gameDay + 1,
       season: this._season + 1
     })}
-            </div>
-            <div class="info-bar-item" id="${this._nextGameInElementId}">
-            </div>
-            <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info" style="color: inherit;">
+            </a>
+            <a href="#dashboard" class="info-bar-item text-decoration-none text-info" id="${this._nextGameInElementId}">
+            </a>
+            <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info">
               <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </a>
           </div>
@@ -124,12 +136,14 @@ export class GameLayout extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const [gameDate, devMode, versionData, currentGameday, teamData] = await Promise.all([
+    const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
+    const [gameDate, devMode, versionData, currentGameday, teamData, newMessageResponse] = await Promise.all([
       server.getNextGameDate(),
       server.isDevelopment(),
       server.getVersion(),
       server.getCurrentGameday(),
-      server.getMyTeam()
+      server.getMyTeam(),
+      server.getNewLogMessageCount(lastSeenMessageId)
     ])
     this._nextGameDate = gameDate.date
     this._isDevelopment = devMode.isDevelopment
@@ -137,6 +151,7 @@ export class GameLayout extends UIElement {
     this._version = versionData.version
     this._gameDay = currentGameday.gameDay
     this._season = currentGameday.season
+    this._newMessageCount = newMessageResponse.count || 0
   }
 
   /**
@@ -331,6 +346,19 @@ export class GameLayout extends UIElement {
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
       btn.disabled = false
       btn.innerHTML = '<i class="fa fa-play fa-lg" aria-hidden="true"></i>'
+    }
+  }
+
+  /**
+   * @returns {void}
+   */
+  _updateMessageBadge () {
+    const badgeEl = el('#' + this._messageBadgeId)
+    if (!badgeEl) return
+    if (this._newMessageCount > 0) {
+      badgeEl.innerHTML = `<i class="fa fa-envelope" aria-hidden="true"></i> <span class="badge rounded-pill bg-danger">${this._newMessageCount}</span>`
+    } else {
+      badgeEl.innerHTML = '<i class="fa fa-envelope" aria-hidden="true"></i>'
     }
   }
 

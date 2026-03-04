@@ -57,7 +57,7 @@ export async function fillMarketGaps () {
     SELECT p.position, p.level, COUNT(*) AS cnt
     FROM trade_offer tro
     JOIN player p ON p.id = tro.player_id
-    WHERE tro.type = 'sell'
+    WHERE tro.type = 'sell' AND tro.status = 'open'
     GROUP BY p.position, p.level
   `)
 
@@ -155,7 +155,7 @@ export async function iocBuyUndervaluedPlayers () {
     SELECT tro.*, p.level, p.position, p.carrier_start_season, p.carrier_end_season, p.team_id AS player_team_id
     FROM trade_offer tro
     JOIN player p ON p.id = tro.player_id
-    WHERE tro.type = 'sell' AND tro.from_team_id <> ?
+    WHERE tro.type = 'sell' AND tro.status = 'open' AND tro.from_team_id <> ?
   `, [iocTeamId])
 
   let buyCount = 0
@@ -209,6 +209,88 @@ export async function iocBuyUndervaluedPlayers () {
 
   if (buyCount > 0) {
     console.log(`IOC: Bought ${buyCount} undervalued player(s)`)
+  }
+  return buyCount
+}
+
+/**
+ * Ensure a minimum number of transfers happen each game day.
+ * If fewer than ceil(teamCount * 0.1) transfers occurred this game day,
+ * IOC buys the cheapest available sell offers to reach the minimum.
+ * @returns {Promise<number>} Number of additional buys made
+ */
+export async function iocEnsureMinimumTransfers () {
+  const iocTeamId = await getIOCTeamId()
+  if (!iocTeamId) {
+    console.log('IOC team not found, skipping iocEnsureMinimumTransfers')
+    return 0
+  }
+
+  const { gameDay, season } = await getGameDayAndSeason()
+
+  // Count non-system teams to determine minimum transfers
+  const [{ cnt: teamCount }] = await query('SELECT COUNT(*) AS cnt FROM team WHERE is_system_team = 0')
+  const minTransfers = Math.ceil(teamCount * 0.1)
+
+  // Count transfers that already happened this game day
+  const [{ cnt: currentTransfers }] = await query(
+    'SELECT COUNT(*) AS cnt FROM trade_history WHERE game_day = ? AND season = ?',
+    [gameDay, season]
+  )
+
+  const deficit = minTransfers - currentTransfers
+  if (deficit <= 0) return 0
+
+  // Get cheapest available sell offers (not from IOC)
+  const sellOffers = await query(`
+    SELECT tro.*, p.level, p.position, p.team_id AS player_team_id
+    FROM trade_offer tro
+    JOIN player p ON p.id = tro.player_id
+    WHERE tro.type = 'sell' AND tro.status = 'open' AND tro.from_team_id <> ?
+    ORDER BY tro.offer_value ASC
+    LIMIT ?
+  `, [iocTeamId, deficit])
+
+  let buyCount = 0
+
+  for (const offer of sellOffers) {
+    const sellingTeam = await getTeamById(offer.from_team_id)
+    if (!sellingTeam) continue
+
+    if (!sellingTeam.user_id) {
+      // Bot seller: insert buy offer and auto-accept
+      try {
+        await query('INSERT INTO trade_offer SET ?', {
+          offer_value: offer.offer_value,
+          type: 'buy',
+          player_id: offer.player_id,
+          from_team_id: iocTeamId
+        })
+        const [buyOffer] = await query(
+          'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\'',
+          [iocTeamId, offer.player_id]
+        )
+        if (buyOffer) {
+          await acceptOffer(buyOffer, sellingTeam, gameDay, season)
+        }
+      } catch (e) {
+        console.log(`⚠️ IOC minimum transfer failed for player ${offer.player_id}: ${e.message}`)
+      }
+    } else {
+      // User seller: place a buy offer at the sell price
+      await query('INSERT INTO trade_offer SET ?', {
+        offer_value: offer.offer_value,
+        type: 'buy',
+        player_id: offer.player_id,
+        from_team_id: iocTeamId
+      })
+    }
+
+    buyCount++
+  }
+
+  if (buyCount > 0) {
+    console.log(`IOC: Ensured minimum transfers - bought ${buyCount} additional player(s) (target: ${minTransfers}, had: ${currentTransfers})`)
   }
   return buyCount
 }

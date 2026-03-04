@@ -31,8 +31,10 @@ import {
   getLogMessages,
   addLogMessage,
   getLogMessageCount,
+  getNewLogMessageCount,
   deleteLogMessage,
-  checkTeamAndNotify
+  checkTeamAndNotify,
+  cleanupOldLogMessages
 } from '../../helper/logMessageHelper.js'
 
 describe('logMessageHelper', () => {
@@ -196,6 +198,61 @@ describe('logMessageHelper', () => {
         'DELETE FROM log_message WHERE id=? AND team_id=?',
         [999, 5]
       )
+    })
+  })
+
+  describe('getNewLogMessageCount', () => {
+    it('returns count of messages newer than lastSeenId', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue([{ count: 7 }])
+
+      const req = createMockRequest()
+      const result = await getNewLogMessageCount(50, req)
+
+      expect(result).toBe(7)
+      expect(query).toHaveBeenCalledWith(
+        'SELECT COUNT(*) as count FROM log_message WHERE team_id=? AND id > ?',
+        [team.id, 50]
+      )
+    })
+
+    it('defaults to 0 when lastSeenId is falsy', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue([{ count: 3 }])
+
+      const req = createMockRequest()
+      const result = await getNewLogMessageCount(null, req)
+
+      expect(result).toBe(3)
+      expect(query).toHaveBeenCalledWith(
+        'SELECT COUNT(*) as count FROM log_message WHERE team_id=? AND id > ?',
+        [team.id, 0]
+      )
+    })
+  })
+
+  describe('cleanupOldLogMessages', () => {
+    it('deletes log messages older than 7 days', async () => {
+      query.mockResolvedValueOnce({ affectedRows: 12 })
+
+      const result = await cleanupOldLogMessages()
+
+      expect(result).toEqual({ deleted: 12 })
+      expect(query).toHaveBeenCalledWith(
+        'DELETE FROM log_message WHERE created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)'
+      )
+    })
+
+    it('returns deleted 0 when no old messages exist', async () => {
+      query.mockResolvedValueOnce({ affectedRows: 0 })
+
+      const result = await cleanupOldLogMessages()
+
+      expect(result).toEqual({ deleted: 0 })
     })
   })
 

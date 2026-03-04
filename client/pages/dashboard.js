@@ -26,6 +26,7 @@ export class DashboardPage extends UIElement {
   teamPosition = 0
 
   _actionCardCount = 0
+  _newMessageCount = 0
   _pendingCards = []
   subPage = null
   _subPageCache = {}
@@ -45,7 +46,7 @@ export class DashboardPage extends UIElement {
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
           <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''} position-relative" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this._renderCardBadge()}</a>
           <a class="nav-link ${this.subPage === 'news' ? 'active' : ''}" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
-          <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''}" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}</a>
+          <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''}" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}${this._renderMessageBadge()}</a>
         </nav>
 
         <div id="${this._subPageContainerId}">
@@ -62,6 +63,15 @@ export class DashboardPage extends UIElement {
   _renderCardBadge () {
     if (this._actionCardCount <= 0 || this.subPage === 'cards') return ''
     return ` <span class="badge rounded-pill bg-danger action-card-badge">${this._actionCardCount}</span>`
+  }
+
+  /**
+   * Render the badge for new log messages
+   * @returns {string}
+   */
+  _renderMessageBadge () {
+    if (this._newMessageCount <= 0 || this.subPage === 'messages') return ''
+    return ` <span class="badge rounded-pill bg-danger action-card-badge message-badge">${this._newMessageCount}</span>`
   }
 
   /**
@@ -157,13 +167,21 @@ export class DashboardPage extends UIElement {
         : href === '#dashboard'
       link.classList.toggle('active', isActive)
     })
-    // Update badge
+    // Update action card badge
     const badge = root.querySelector('.action-card-badge')
     if (this._actionCardCount <= 0 || this.subPage === 'cards') {
       if (badge) badge.remove()
     } else if (!badge) {
       const cardsLink = root.querySelector('a[href="#dashboard?sub_page=cards"]')
       if (cardsLink) cardsLink.insertAdjacentHTML('beforeend', ` <span class="badge rounded-pill bg-danger action-card-badge">${this._actionCardCount}</span>`)
+    }
+    // Update message badge
+    const msgBadge = root.querySelector('.message-badge')
+    if (this._newMessageCount <= 0 || this.subPage === 'messages') {
+      if (msgBadge) msgBadge.remove()
+    } else if (!msgBadge) {
+      const messagesLink = root.querySelector('a[href="#dashboard?sub_page=messages"]')
+      if (messagesLink) messagesLink.insertAdjacentHTML('beforeend', ` <span class="badge rounded-pill bg-danger action-card-badge message-badge">${this._newMessageCount}</span>`)
     }
   }
 
@@ -243,12 +261,14 @@ export class DashboardPage extends UIElement {
     this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
     localStorage.setItem(cupResultSeenKey, '1')
 
-    // Fetch current standing, urgencies, action card count, and pending cards in parallel
-    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse] = await Promise.all([
+    // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
+    const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
+    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse, newMessageResponse] = await Promise.all([
       server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(window.__nativePlatform || 'web'),
       server.getActionCards(),
-      server.getPendingActionCards()
+      server.getPendingActionCards(),
+      server.getNewLogMessageCount(lastSeenMessageId)
     ])
 
     this.standing = standing
@@ -260,6 +280,9 @@ export class DashboardPage extends UIElement {
     const cardCount = (actionCardsResponse.actionCards?.length || 0) + this._pendingCards.length
     const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
     this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
+
+    // Set new message count
+    this._newMessageCount = newMessageResponse.count || 0
   }
 
   /**
@@ -352,6 +375,15 @@ export class DashboardPage extends UIElement {
       const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
       localStorage.setItem(seenKey, '1')
       this._actionCardCount = 0
+    }
+    if (newSubPage === 'messages' && this._newMessageCount > 0) {
+      // Mark messages as seen by storing the latest message ID
+      server.getLogMessages(0, 1).then(messages => {
+        if (messages?.length > 0) {
+          localStorage.setItem('lastSeenMessageId', String(messages[0].id))
+        }
+      })
+      this._newMessageCount = 0
     }
     if (newSubPage !== this.subPage) {
       this.subPage = newSubPage

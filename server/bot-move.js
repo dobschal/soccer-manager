@@ -277,6 +277,28 @@ async function _checkSellOffers (botTeam, players) {
     await query('INSERT INTO trade_offer SET ?', tradeOffer)
     console.log(`📢 ${botTeam.name} put ${playerToSell.name} on market for ${offerValue}`)
   }
+
+  // Ensure at least 1 sell offer: if none exist after above logic, list weakest non-starter
+  const totalOffers = currentOffers.length + maxNewOffers
+  if (totalOffers === 0) {
+    const nonStarters = players.filter(p => !p.in_game_position && !playerIdsWithOffers.has(p.id))
+    if (nonStarters.length > 0) {
+      const weakest = nonStarters.sort((a, b) => a.level - b.level)[0]
+      const price = await playersRoutes.estimateValue(weakest.id)
+      // Slight premium (100-130%) since this player isn't truly "for sale"
+      const premiumFactor = 1.0 + Math.random() * 0.3
+      const offerValue = Math.floor(price * premiumFactor)
+
+      const tradeOffer = new TradeOffer({
+        offer_value: offerValue,
+        type: 'sell',
+        player_id: weakest.id,
+        from_team_id: botTeam.id
+      })
+      await query('INSERT INTO trade_offer SET ?', tradeOffer)
+      console.log(`📢 ${botTeam.name} listed weakest bench player ${weakest.name} for ${offerValue} (guaranteed offer)`)
+    }
+  }
 }
 
 /**
@@ -306,7 +328,7 @@ async function _checkBuyOffers (botTeam, players) {
   const currentBuyOffers = await getOpenByOffersByTeamId(botTeam.id)
 
   // Don't create too many buy offers at once
-  if (currentBuyOffers.length >= 2) return
+  if (currentBuyOffers.length >= 3) return
 
   const maxPrice = Math.floor(botTeam.balance * 0.8)
   if (maxPrice <= 0) return // no money to buy a player...
@@ -349,16 +371,25 @@ async function _checkBuyOffers (botTeam, players) {
       continue
     }
 
-    // Upgrade: Have enough players but weakest is below level 5
-    if (currentWeakestLevel < 50) {
+    // Upgrade: Have enough players but weakest is below level 70
+    if (currentWeakestLevel < 70) {
       teamNeeds.push({ position, priority: 'upgrade', currentLevel: currentWeakestLevel })
     }
   }
 
+  // Opportunistic: look for any market deal better than our weakest player overall
+  const allPlayerLevels = players.map(p => p.level)
+  const weakestOverallLevel = allPlayerLevels.length > 0 ? Math.min(...allPlayerLevels) : 0
+  if (teamNeeds.length === 0 && weakestOverallLevel > 0) {
+    // Find the position of the weakest player to target upgrades there
+    const weakestPlayer = players.reduce((a, b) => a.level < b.level ? a : b)
+    teamNeeds.push({ position: weakestPlayer.position, priority: 'opportunistic', currentLevel: weakestOverallLevel })
+  }
+
   if (teamNeeds.length === 0) return
 
-  // Sort needs by priority: critical > freshness > depth > upgrade
-  const priorityOrder = { critical: 0, freshness: 1, depth: 2, upgrade: 3 }
+  // Sort needs by priority: critical > freshness > depth > upgrade > opportunistic
+  const priorityOrder = { critical: 0, freshness: 1, depth: 2, upgrade: 3, opportunistic: 4 }
   teamNeeds.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
   // Find sell offers for positions we need
@@ -371,6 +402,7 @@ async function _checkBuyOffers (botTeam, players) {
       WHERE t.from_team_id <> ?
         AND t.offer_value <= ?
         AND t.type = 'sell'
+        AND t.status = 'open'
         AND p.position IN ("${positionsArray.join('", "')}")
       ORDER BY p.level DESC
   `, [botTeam.id, maxPrice])
@@ -402,6 +434,7 @@ async function _checkBuyOffers (botTeam, players) {
     else if (need.priority === 'freshness') score += 800
     else if (need.priority === 'depth') score += 600
     else if (need.priority === 'upgrade') score += 400
+    else if (need.priority === 'opportunistic') score += 200
 
     // Level improvement bonus
     const levelImprovement = offer.player_level - need.currentLevel

@@ -1131,6 +1131,13 @@ const migrations = [{
         INDEX idx_client_log_created_at (created_at)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;`)
   }
+},
+{
+  name: 'Add status column to trade_offer table',
+  async run () {
+    await query("ALTER TABLE trade_offer ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'open'")
+    await query('CREATE INDEX idx_trade_offer_status ON trade_offer (status)')
+  }
 }]
 
 /**

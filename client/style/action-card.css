@@ -235,7 +235,7 @@
 /* Skip button */
 .card-claim-skip-btn {
     position: absolute;
-    bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(6rem + env(safe-area-inset-bottom, 0));
     background: none;
     border: 1px solid rgba(255, 255, 255, 0.4);
     color: rgba(255, 255, 255, 0.7);

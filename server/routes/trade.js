@@ -16,7 +16,7 @@ export default {
    */
   async getOffers () {
     /** @type {TradeOfferType[]} */
-    const offers = await query('SELECT * FROM trade_offer')
+    const offers = await query('SELECT * FROM trade_offer WHERE status=\'open\'')
     if (offers.length === 0) return { offers, players: [], teams: [] }
     const playerIds = offers.map(o => o.player_id).join(', ')
     /** @type {PlayerType[]} */
@@ -54,7 +54,7 @@ export default {
       player_id: player.id,
       from_team_id: team.id
     })
-    const results = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [tradeOffer.from_team_id, tradeOffer.player_id])
+    const results = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'', [tradeOffer.from_team_id, tradeOffer.player_id])
     if (results.length > 0) throw new BadRequestError(t('error.playerAlreadyListed', {}, locale))
     await query('INSERT INTO trade_offer SET ?', tradeOffer)
 
@@ -66,13 +66,13 @@ export default {
       // Auto-accept: if the player's team is a bot and has a sell offer at or below the buy price
       if (receivingTeam && !receivingTeam.user_id) {
         const [sellOffer] = await query(
-          'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'sell\'',
+          'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'sell\' AND status=\'open\'',
           [receivingTeam.id, player.id]
         )
         if (sellOffer && price >= sellOffer.offer_value) {
           const { gameDay, season } = await getGameDayAndSeason()
           const [insertedOffer] = await query(
-            'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\'',
+            'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\' AND status=\'open\'',
             [team.id, player.id]
           )
           if (insertedOffer) {
@@ -84,7 +84,7 @@ export default {
         // No matching sell offer or price too low — full bot evaluation
         const { gameDay, season } = await getGameDayAndSeason()
         const [insertedOffer] = await query(
-          'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\'',
+          'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\' AND status=\'open\'',
           [team.id, player.id]
         )
         if (insertedOffer) {
@@ -174,7 +174,7 @@ export default {
     const locale = req.locale || 'en'
     const team = await getTeam(req)
     if (!offer.id || !team.id) throw new BadRequestError(t('error.offerNotFound', {}, locale))
-    await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=?', [team.id, offer.id])
+    await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=? AND status=\'open\'', [team.id, offer.id])
     return { success: true }
   },
 
@@ -197,7 +197,7 @@ export default {
    */
   async myOfferForPlayer (player, req) {
     const team = await getTeam(req)
-    const [offer] = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=?', [team.id, player.id])
+    const [offer] = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'', [team.id, player.id])
     return { offer }
   },
 
@@ -209,7 +209,7 @@ export default {
   async getMySellOfferPlayerIds (req) {
     const team = await getTeam(req)
     const offers = await query(
-      'SELECT player_id FROM trade_offer WHERE from_team_id=? AND type=?',
+      'SELECT player_id FROM trade_offer WHERE from_team_id=? AND type=? AND status=\'open\'',
       [team.id, 'sell']
     )
     return { playerIds: offers.map(o => o.player_id) }
@@ -222,10 +222,43 @@ export default {
    */
   async hasPlayerSellOffer (playerId) {
     const [offer] = await query(
-      'SELECT id FROM trade_offer WHERE player_id=? AND type=? LIMIT 1',
+      'SELECT id, offer_value FROM trade_offer WHERE player_id=? AND type=? AND status=\'open\' LIMIT 1',
       [playerId, 'sell']
     )
-    return { hasSellOffer: !!offer }
+    return { hasSellOffer: !!offer, sellOfferPrice: offer?.offer_value ?? null }
+  },
+
+  /**
+   * @param {Request} req
+   * @returns {Promise<{answeredOffers: TradeOfferType[], players: PlayerType[], teams: TeamType[]}>}
+   */
+  async getAnsweredOffers (req) {
+    const team = await getTeam(req)
+    const answeredOffers = await query(
+      'SELECT * FROM trade_offer WHERE from_team_id=? AND status IN (\'accepted\', \'rejected\') ORDER BY id DESC',
+      [team.id]
+    )
+    if (answeredOffers.length === 0) return { answeredOffers, players: [], teams: [] }
+    const playerIds = answeredOffers.map(o => o.player_id)
+    const players = await query(`SELECT * FROM player WHERE id IN (${playerIds.join(', ')})`)
+    const teamIds = [...new Set(players.map(p => p.team_id))]
+    const teams = teamIds.length > 0
+      ? await query(`SELECT * FROM team WHERE id IN (${teamIds.join(', ')})`)
+      : []
+    return { answeredOffers, players, teams }
+  },
+
+  /**
+   * @param {TradeOfferType} offer
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async dismissOffer (offer, req) {
+    const locale = req.locale || 'en'
+    const team = await getTeam(req)
+    if (!offer.id || !team.id) throw new BadRequestError(t('error.offerNotFound', {}, locale))
+    await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=? AND status IN (\'accepted\', \'rejected\')', [team.id, offer.id])
+    return { success: true }
   },
 
   /**

@@ -15,6 +15,18 @@ export class TradesPage extends UIElement {
   _subPageCache = {}
   _subPageContainerId = generateId()
 
+  get serverEvents () {
+    return {
+      BUY_OFFER_ACCEPTED: () => this._refreshMyOffers(),
+      BUY_OFFER_REJECTED: () => this._refreshMyOffers()
+    }
+  }
+
+  _refreshMyOffers () {
+    const cached = this._subPageCache.my_offers
+    if (cached?.update) cached.update(true)
+  }
+
   /**
    * @returns {string}
    */

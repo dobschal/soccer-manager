@@ -181,7 +181,7 @@ describe('trade routes', () => {
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith(
-        'DELETE FROM trade_offer WHERE from_team_id=? AND id=?',
+        'DELETE FROM trade_offer WHERE from_team_id=? AND id=? AND status=\'open\'',
         [team.id, offer.id]
       )
     })
@@ -295,7 +295,7 @@ describe('trade routes', () => {
 
       expect(result).toEqual({ playerIds: [10, 20, 30] })
       expect(query).toHaveBeenCalledWith(
-        'SELECT player_id FROM trade_offer WHERE from_team_id=? AND type=?',
+        'SELECT player_id FROM trade_offer WHERE from_team_id=? AND type=? AND status=\'open\'',
         [team.id, 'sell']
       )
     })
@@ -315,13 +315,13 @@ describe('trade routes', () => {
 
   describe('hasPlayerSellOffer', () => {
     it('returns true when player has a sell offer', async () => {
-      query.mockResolvedValue([{ id: 1 }])
+      query.mockResolvedValue([{ id: 1, offer_value: 500000 }])
 
       const result = await handlers.hasPlayerSellOffer(123)
 
-      expect(result).toEqual({ hasSellOffer: true })
+      expect(result).toEqual({ hasSellOffer: true, sellOfferPrice: 500000 })
       expect(query).toHaveBeenCalledWith(
-        'SELECT id FROM trade_offer WHERE player_id=? AND type=? LIMIT 1',
+        'SELECT id, offer_value FROM trade_offer WHERE player_id=? AND type=? AND status=\'open\' LIMIT 1',
         [123, 'sell']
       )
     })
@@ -331,9 +331,9 @@ describe('trade routes', () => {
 
       const result = await handlers.hasPlayerSellOffer(456)
 
-      expect(result).toEqual({ hasSellOffer: false })
+      expect(result).toEqual({ hasSellOffer: false, sellOfferPrice: null })
       expect(query).toHaveBeenCalledWith(
-        'SELECT id FROM trade_offer WHERE player_id=? AND type=? LIMIT 1',
+        'SELECT id, offer_value FROM trade_offer WHERE player_id=? AND type=? AND status=\'open\' LIMIT 1',
         [456, 'sell']
       )
     })

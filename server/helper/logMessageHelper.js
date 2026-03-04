@@ -136,3 +136,31 @@ export async function checkTeamAndNotify (team) {
     )
   }
 }
+
+/**
+ * Get count of new log messages since a given message ID
+ * @param {number} lastSeenId - The ID of the last seen message
+ * @param {Request} req
+ * @returns {Promise<number>}
+ */
+export async function getNewLogMessageCount (lastSeenId, req) {
+  const team = await getTeam(req)
+  const [result] = await query(
+    'SELECT COUNT(*) as count FROM log_message WHERE team_id=? AND id > ?',
+    [team.id, lastSeenId || 0]
+  )
+  return result.count
+}
+
+/**
+ * Delete log messages older than 7 days
+ * @returns {Promise<{deleted: number}>}
+ */
+export async function cleanupOldLogMessages () {
+  const result = await query('DELETE FROM log_message WHERE created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)')
+  const deleted = result.affectedRows || 0
+  if (deleted > 0) {
+    console.log(`🧹 Cleaned up ${deleted} old log messages`)
+  }
+  return { deleted }
+}

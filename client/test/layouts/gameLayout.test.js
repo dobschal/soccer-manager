@@ -10,7 +10,8 @@ vi.mock('../../lib/gateway.js', () => ({
     isDevelopment: vi.fn().mockResolvedValue({ isDevelopment: false }),
     getVersion: vi.fn().mockResolvedValue({ version: '1.0.0' }),
     getCurrentGameday: vi.fn().mockResolvedValue({ gameday: 1 }),
-    getMyTeam: vi.fn().mockResolvedValue({ user: { username: 'testuser' }, team: { id: 1 } })
+    getMyTeam: vi.fn().mockResolvedValue({ user: { username: 'testuser' }, team: { id: 1 } }),
+    getNewLogMessageCount: vi.fn().mockResolvedValue({ count: 0 })
   }
 }))
 
