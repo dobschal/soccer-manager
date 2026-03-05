@@ -2,32 +2,6 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { el, generateId } from '../lib/html.js'
 
 /**
- * Disables body scrolling and preserves scroll position (only on first overlay)
- */
-function lockBodyScroll () {
-  if (document.body.classList.contains('overlay-open')) return
-  const scrollY = window.scrollY
-  document.body.style.top = `-${scrollY}px`
-  document.body.classList.add('overlay-open')
-}
-
-/**
- * Re-enables body scrolling if no overlays remain and restores scroll position
- */
-function restoreBodyScroll () {
-  const remainingOverlays = document.querySelectorAll('.overlay-backdrop')
-  if (remainingOverlays.length === 0) {
-    const scrollY = parseInt(document.body.style.top || '0', 10) * -1
-    document.body.classList.remove('overlay-open')
-    document.body.style.top = ''
-    window.scrollTo({
-      top: scrollY,
-      behavior: 'instant'
-    })
-  }
-}
-
-/**
  * Applies fadeout animation and removes the overlay
  * @param {string} overlayId
  * @param {Array<() => void>} listeners
@@ -41,7 +15,6 @@ function fadeOutAndRemove (overlayId, listeners) {
 
   overlayEl.addEventListener('animationend', () => {
     overlayEl.remove()
-    restoreBodyScroll()
   }, { once: true })
 }
 
@@ -66,7 +39,6 @@ function swipeDownAndRemove (overlayId, overlayInnerId, listeners, currentOffset
 
   overlayEl.addEventListener('animationend', () => {
     overlayEl.remove()
-    restoreBodyScroll()
   }, { once: true })
 }
 
@@ -254,7 +226,6 @@ export function showOverlay (title, subttitle, text) {
     </div>
   `
   document.body.insertAdjacentHTML('beforeend', html)
-  lockBodyScroll()
 
   setupTouchSwipe(overlayId, overlayInnerId, listeners)
 

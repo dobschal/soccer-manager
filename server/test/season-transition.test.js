@@ -431,6 +431,10 @@ describe('season transition (prepareSeason)', () => {
       .mockResolvedValueOnce([{ season }])
       // _warnYouthPlayersAt18: SELECT teams with user_id
       .mockResolvedValueOnce([])
+      // _resetPlayersForNewSeason: _newGamesNeeded
+      .mockResolvedValueOnce([{ amount: 0 }])
+      // _resetPlayersForNewSeason: UPDATE player
+      .mockResolvedValueOnce({ affectedRows: 0 })
       // _ajustAmountOfTeams: _latestSeason
       .mockResolvedValueOnce([{ season }])
       // _ajustAmountOfTeams: count users
@@ -476,6 +480,8 @@ describe('season transition (prepareSeason)', () => {
       .mockResolvedValueOnce([{ season }])
       // _warnYouthPlayersAt18: SELECT teams
       .mockResolvedValueOnce([])
+      // _resetPlayersForNewSeason: _newGamesNeeded (5 games remain, skip reset)
+      .mockResolvedValueOnce([{ amount: 5 }])
       // _ajustAmountOfTeams: _latestSeason
       .mockResolvedValueOnce([{ season }])
       // _ajustAmountOfTeams: count users
@@ -559,6 +565,10 @@ describe('season transition (prepareSeason)', () => {
       .mockResolvedValueOnce([{ season }])
       // _warnYouthPlayersAt18: SELECT teams
       .mockResolvedValueOnce([])
+      // _resetPlayersForNewSeason: _newGamesNeeded
+      .mockResolvedValueOnce([{ amount: 0 }])
+      // _resetPlayersForNewSeason: UPDATE player
+      .mockResolvedValueOnce({ affectedRows: 0 })
       // _ajustAmountOfTeams: _latestSeason
       .mockResolvedValueOnce([{ season }])
       // _ajustAmountOfTeams: count users

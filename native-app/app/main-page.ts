@@ -1,6 +1,6 @@
 import {Application, EventData, isAndroid, isIOS, knownFolders, Page, path, Utils, WebView} from '@nativescript/core'
 import {getWebContentPath, wasUpdateInstalled, checkForUpdate, hasStagedUpdate, promoteStagingIfReady} from './ota-update'
-import {deviceToken, onTokenAvailable} from './pushNotifications'
+import {deviceToken, registrationError, onTokenAvailable} from './pushNotifications'
 
 declare const NSURL: any
 declare const UIColor: any
@@ -175,7 +175,7 @@ function setupIOSPushNotifications(webView: WebView): void {
         if (!loadArgs.error && isIOS) {
             const wkWebView = webView.ios as any
             if (!wkWebView) return
-            nativeLog(webView, `[Push][Native] loadFinished - deviceToken imported value: ${deviceToken ? deviceToken.substring(0, 10) + '...' : 'NULL'}`)
+            nativeLog(webView, `[Push][Native] loadFinished - deviceToken: ${deviceToken ? deviceToken.substring(0, 10) + '...' : 'NULL'}, registrationError: ${registrationError || 'none'}`)
             let script = `window.__nativePlatform = 'ios';`
             if (deviceToken) {
                 script += ` window.__nativeDeviceToken = '${deviceToken}'; if (typeof window.__onNativeDeviceToken === 'function') { window.__onNativeDeviceToken('${deviceToken}', 'ios'); }`

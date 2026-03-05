@@ -39,12 +39,6 @@ body {
     }
 }
 
-body.overlay-open {
-    overflow-y: scroll;
-    position: fixed;
-    width: 100%;
-}
-
 /* Hidden utility */
 .hidden {
     display: none;

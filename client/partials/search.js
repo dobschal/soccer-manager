@@ -29,7 +29,6 @@ export function showSearchOverlay () {
     overlayEl.classList.add('fade-out')
     overlayEl.addEventListener('animationend', () => {
       overlayEl.remove()
-      document.body.classList.remove('overlay-open')
     }, { once: true })
   }
 
@@ -260,7 +259,6 @@ export function showSearchOverlay () {
   `
 
   document.body.insertAdjacentHTML('beforeend', html)
-  document.body.classList.add('overlay-open')
 
   // Setup event delegation for search results
   const resultsContainer = el('#' + resultsContainerId)

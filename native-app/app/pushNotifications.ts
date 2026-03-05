@@ -5,6 +5,7 @@
  */
 
 export let deviceToken: string | null = null
+export let registrationError: string | null = null
 
 type TokenCallback = (token: string, platform: string) => void
 let _tokenCallback: TokenCallback | null = null
@@ -15,10 +16,19 @@ let _tokenCallback: TokenCallback | null = null
  */
 export function onDeviceToken (token: string): void {
   deviceToken = token
+  registrationError = null
   console.log('[Push] Device token received:', token.substring(0, 10) + '...')
   if (_tokenCallback) {
     _tokenCallback(token, 'ios')
   }
+}
+
+/**
+ * Called by the AppDelegate when iOS fails to register for remote notifications.
+ */
+export function onRegistrationError (error: string): void {
+  registrationError = error
+  console.error('[Push] Registration error stored:', error)
 }
 
 /**

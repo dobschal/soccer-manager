@@ -32,6 +32,7 @@ export async function prepareSeason () {
   await _archiveTooOldPlayers()
   await _archiveOverageYouth()
   await _warnYouthPlayersAt18()
+  await _resetPlayersForNewSeason()
   await _ajustAmountOfTeams()
   await _promotionRelegation()
   await _createGames()
@@ -126,6 +127,20 @@ async function _warnYouthPlayersAt18 () {
       )
     }
   }
+}
+
+/**
+ * Reset all players to full freshness and clear cards/suspensions for the new season
+ * @returns {Promise<void>}
+ */
+async function _resetPlayersForNewSeason () {
+  if (!(await _newGamesNeeded())) {
+    return console.log('⏭️ No player reset needed because still games to play.')
+  }
+  const result = await query(
+    'UPDATE player SET freshness=1.0, yellow_cards=0, red_cards=0, is_suspended=0 WHERE team_id IS NOT NULL'
+  )
+  console.log(`🔄 Reset ${result.affectedRows} players: freshness=100%, cards and suspensions cleared.`)
 }
 
 /**
