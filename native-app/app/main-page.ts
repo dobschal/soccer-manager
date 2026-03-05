@@ -120,30 +120,52 @@ export function onWebViewLoaded(args: EventData) {
     }
 }
 
+/**
+ * Inject a log message into the WebView so it gets sent to the server via sendLog.
+ * Falls back to console.log if webView is not available.
+ */
+function nativeLog(webView: WebView, message: string, level: string = 'info'): void {
+    console.log(message)
+    try {
+        const wkWebView = webView.ios as any
+        if (!wkWebView) return
+        const escaped = message.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')
+        const script = `if (typeof window.__nativeLogs === 'undefined') window.__nativeLogs = []; window.__nativeLogs.push('${escaped}'); try { import('./lib/clientLogger.js').then(m => m.sendLog('${escaped}', '${level}')).catch(() => {}); } catch(e) {}`
+        wkWebView.evaluateJavaScriptCompletionHandler(script, () => {})
+    } catch (e) {
+        // ignore — logging must never break the app
+    }
+}
+
 function setupIOSPushNotifications(webView: WebView): void {
     // Request push notification permissions
     const center = UNUserNotificationCenter.currentNotificationCenter()
-    console.log('[Push] Requesting push notification permissions...')
+    nativeLog(webView, '[Push][Native] Requesting push notification permissions...')
     center.requestAuthorizationWithOptionsCompletionHandler(
         UNAuthorizationOptionAlert | UNAuthorizationOptionBadge | UNAuthorizationOptionSound,
         (granted: boolean, error: any) => {
-            console.log(`[Push] Permission result: granted=${granted}, error=${error ? error.localizedDescription : 'none'}`)
+            nativeLog(webView, `[Push][Native] Permission result: granted=${granted}, error=${error ? error.localizedDescription : 'none'}`)
             if (granted) {
-                console.log('[Push] Calling registerForRemoteNotifications...')
+                nativeLog(webView, '[Push][Native] Calling registerForRemoteNotifications...')
                 // Must dispatch to main thread — this callback runs on an arbitrary queue
                 Utils.executeOnMainThread(() => {
                     UIApplication.sharedApplication.registerForRemoteNotifications()
+                    nativeLog(webView, '[Push][Native] registerForRemoteNotifications called on main thread')
                 })
             } else {
-                console.log('[Push] User denied push notification permission')
+                nativeLog(webView, '[Push][Native] User denied push notification permission', 'warn')
             }
         }
     )
 
     // When a device token becomes available, inject it into the WebView
     onTokenAvailable((token: string, platform: string) => {
+        nativeLog(webView, `[Push][Native] onTokenAvailable fired - token: ${token ? token.substring(0, 10) + '...' : 'EMPTY'}, platform: ${platform}`)
         const wkWebView = webView.ios as any
-        if (!wkWebView) return
+        if (!wkWebView) {
+            nativeLog(webView, '[Push][Native] onTokenAvailable: wkWebView is null!', 'error')
+            return
+        }
         const script = `window.__nativeDeviceToken = '${token}'; window.__nativePlatform = '${platform}'; if (typeof window.__onNativeDeviceToken === 'function') { window.__onNativeDeviceToken('${token}', '${platform}'); }`
         wkWebView.evaluateJavaScriptCompletionHandler(script, () => {})
     })
@@ -153,6 +175,7 @@ function setupIOSPushNotifications(webView: WebView): void {
         if (!loadArgs.error && isIOS) {
             const wkWebView = webView.ios as any
             if (!wkWebView) return
+            nativeLog(webView, `[Push][Native] loadFinished - deviceToken imported value: ${deviceToken ? deviceToken.substring(0, 10) + '...' : 'NULL'}`)
             let script = `window.__nativePlatform = 'ios';`
             if (deviceToken) {
                 script += ` window.__nativeDeviceToken = '${deviceToken}'; if (typeof window.__onNativeDeviceToken === 'function') { window.__onNativeDeviceToken('${deviceToken}', 'ios'); }`

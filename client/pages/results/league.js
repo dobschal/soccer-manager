@@ -138,12 +138,12 @@ export class LeagueResultsPage extends UIElement {
           <thead>
             <tr>
               <th scope="col">#</th>
-              <th scope="col">${t('results.goals')}</th>
               <th scope="col">${t('results.name')}</th>
+              <th scope="col">${t('results.goals')}</th>
+              <th scope="col">${t('results.team')}</th>
               <th scope="col" class="d-none d-sm-table-cell">Pos</th>
               <th scope="col" class="d-none d-sm-table-cell">Lvl</th>
               <th scope="col" class="d-none d-sm-table-cell">Age</th>
-              <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
             </tr>
           </thead>
           <tbody>
@@ -390,17 +390,20 @@ export class LeagueResultsPage extends UIElement {
     return `
       <tr class="${this.myTeamId === scorer.team.id ? 'table-info' : ''}">
           <th>${index + 1}.</th>
-          <td>${scorer.goals}</td>
           <td id="${playerId}" class="u-cursor-pointer">
             <div class="d-flex align-items-center">
               <span class="scorer-image me-2" data-scorer-id="${scorer.id}"></span>
               ${scorer.name}
             </div>
           </td>
+          <td>${scorer.goals}</td>
+          <td id="${teamId}" class="u-cursor-pointer">
+            <span class="emblem-thumb">${renderEmblem(scorer.team, 24)}</span>
+            <span class="d-none d-sm-inline">${scorer.team.name}</span>
+          </td>
           <td class="d-none d-sm-table-cell text-muted">${scorer.position}</td>
           <td class="d-none d-sm-table-cell text-muted">${scorer.level}</td>
           <td class="d-none d-sm-table-cell text-muted">${calculatePlayerAge(scorer, this.season)}</td>
-          <td class="d-none d-sm-table-cell" id="${teamId}">${scorer.team.name}</td>
       </tr>
     `
   }

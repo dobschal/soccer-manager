@@ -200,6 +200,7 @@ export class TeamPage extends UIElement {
     id
   }) {
     if (playerId) await showPlayerModal(Number(playerId))
+    if (!id) return
     if (!this.teamId || this.teamId !== Number(id)) {
       this.teamId = Number(id)
       await this.update(true)

@@ -204,6 +204,7 @@ html, body {
 }
 
 .native-app-layout #page {
+    position: relative;
     height: calc(100dvh - 7.5rem);
     width: 100%;
     overflow-y: scroll;
