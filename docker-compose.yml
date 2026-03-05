@@ -29,6 +29,7 @@ services:
       - APN_KEY_PATH=${APN_KEY_PATH}
       - APN_KEY_ID=${APN_KEY_ID}
       - APN_TEAM_ID=${APN_TEAM_ID}
+      - APN_PRODUCTION=true
     volumes:
       - ${APN_KEY_PATH:-/dev/null}:${APN_KEY_PATH:-/dev/null}:ro
     depends_on:
