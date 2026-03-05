@@ -47,7 +47,7 @@ export async function sendGameDayPushNotifications (gameDay, season) {
       await sendPushNotifications(
         userIds,
         t.gameDayTitle,
-        t.gameDayBody(season + 1, gameDay + 1),
+        t.gameDayBody(season, gameDay),
         {
           type: 'GAME_DAY',
           gameDay,
