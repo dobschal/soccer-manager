@@ -34,6 +34,8 @@ export const server = new Proxy({}, {
         if (response.status === 401) {
           window.localStorage.removeItem('auth-token')
           toast('Please reload the page.', 'error')
+
+          setTimeout(() => window.location.reload(), 1000)
         }
         throw (await response.json())
       }

@@ -263,6 +263,10 @@ export class GameLayout extends UIElement {
         <button id="settings-delete-account" class="btn btn-outline-danger w-100">
           <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
         </button>
+        ${this._showPlayButton ? `<hr>
+        <a href="#admin" id="settings-admin-link" class="btn btn-outline-warning w-100">
+          <i class="fa fa-shield" aria-hidden="true"></i> Admin
+        </a>` : ''}
       </div>
     `
 
@@ -308,6 +312,13 @@ export class GameLayout extends UIElement {
           disconnectWebSocket()
           window.localStorage.removeItem('auth-token')
           goTo('login')
+        })
+      }
+
+      const adminLink = el('#settings-admin-link')
+      if (adminLink) {
+        adminLink.addEventListener('click', () => {
+          overlay.remove()
         })
       }
 
