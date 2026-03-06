@@ -5,6 +5,7 @@ import { euroFormat } from '../../lib/currency.js'
 import { setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { Table } from '../../partials/table.js'
 
 export class IncomingOffersPage extends UIElement {
   team = {}
@@ -68,21 +69,19 @@ export class IncomingOffersPage extends UIElement {
       <div>
         <h2>${t('trades.incomingOffersTitle')}</h2>
         <p>${t('trades.incomingOffersDesc')}</p>
-        <table class="table">
-          <thead>
-            <tr>
-              <th scope="col">${t('results.name')}</th>
-              <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
-              <th scope="col" class="d-none d-sm-table-cell">${t('player.position')}</th>
-              <th scope="col" class="text-right d-none d-sm-table-cell">${t('player.level')}</th>
-              <th scope="col" class="text-right">${t('trades.price')}</th>
-              <th scope="col"></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${incomingOffers.map((o, idx) => this._renderOfferRow(o, idx)).join('')}
-          </tbody>
-        </table>
+        ${new Table({
+          cols: [
+            { name: t('results.name') },
+            { name: t('results.team') },
+            { name: t('player.position') },
+            { name: t('player.level'), align: 'right' },
+            { name: t('trades.price'), align: 'right' },
+            { name: '' }
+          ],
+          renderRow: (offer, index) => this._renderOfferRow(offer, index),
+          data: incomingOffers,
+          rowAttrs: (offer, index) => 'data-offer="' + index + '"'
+        }).template}
         <div class="row">
           <div class="col ${hasIncomingOffers ? 'hidden' : ''}">
             <h4 class="text-muted text-center mt-5 mb-5">${t('trades.noIncomingOffers')}</h4>
@@ -120,23 +119,19 @@ export class IncomingOffersPage extends UIElement {
    * @param {number} index
    * @returns {string}
    */
-  _renderOfferRow (offer, index) {
+  _renderOfferRow (offer) {
     const player = this.players.find(p => p.id === offer.player_id)
     const fromTeam = this.teams.find(t => t.id === offer.from_team_id)
 
-    return `
-      <tr data-offer="${index}">
-        <td class="hover-text player-name">${player.name}</td>
-        <td class="d-none d-sm-table-cell">${fromTeam.name}</td>
-        <td class="d-none d-sm-table-cell">${player.position}</td>
-        <td class="text-right d-none d-sm-table-cell">${renderLevelBadge(player.level)}</td>
-        <td class="text-right">${euroFormat.format(offer.offer_value)}</td>
-        <td>
-          <button class="btn btn-primary"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button>
-          <button class="btn btn-danger"><i class="fa fa-times-circle-o" aria-hidden="true"></i></button>
-        </td>
-      </tr>
-    `
+    return [
+      `<span class="hover-text player-name">${player.name}</span>`,
+      fromTeam.name,
+      player.position,
+      renderLevelBadge(player.level),
+      euroFormat.format(offer.offer_value),
+      `<button class="btn btn-primary"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button>
+          <button class="btn btn-danger"><i class="fa fa-times-circle-o" aria-hidden="true"></i></button>`
+    ]
   }
 }
 

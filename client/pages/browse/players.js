@@ -69,8 +69,8 @@ export class BrowsePlayersPage extends UIElement {
         { name: t('search.players'), sortKey: 'name' },
         { name: t('trades.position'), sortKey: 'position' },
         { name: t('search.level'), sortKey: 'level', align: 'right' },
-        { name: t('player.age'), sortKey: '_age', align: 'right', largeScreenOnly: true },
-        { name: t('results.team'), sortKey: 'team_name', largeScreenOnly: true }
+        { name: t('player.age'), sortKey: '_age', align: 'right' },
+        { name: t('results.team'), sortKey: 'team_name' }
       ],
       data: this.players.map(p => ({ ...p, _age: calculatePlayerAge(p, this.season) })),
       renderRow: (player) => [

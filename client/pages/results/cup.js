@@ -4,6 +4,7 @@ import { onClick } from '../../lib/htmlEventHandlers.js'
 import { setQueryParams } from '../../lib/router.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { renderEmblem } from '../../partials/emblem.js'
+import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 
 export class CupResultsPage extends UIElement {
@@ -69,22 +70,16 @@ export class CupResultsPage extends UIElement {
         <h3>${t('results.games')}</h3>
         ${this.cupResults.length === 0
       ? `<p class="text-muted">${t('cup.noGames')}</p>`
-      : `
-            <div class="horizontal-scrollable-table">
-              <table class="table table-hover mb-4 wide-on-mobile">
-                <thead>
-                  <tr>
-                    <th scope="col" class="text-end">${t('results.team1')}</th>
-                    <th scope="col" class="text-center">${t('results.result')}</th>
-                    <th scope="col">${t('results.team2')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${this.cupResults.map(this._renderCupResultItem.bind(this)).join('')}
-                </tbody>
-              </table>
-            </div>
-          `
+      : new Table({
+          cols: [
+            { name: t('results.team1'), align: 'right' },
+            { name: t('results.result'), align: 'center' },
+            { name: t('results.team2') }
+          ],
+          renderRow: (result) => this._renderCupResultItem(result),
+          data: this.cupResults,
+          rowAttrs: (result) => `id="${result._rowId}"`
+        })
     }
       </div>
     `
@@ -161,11 +156,12 @@ export class CupResultsPage extends UIElement {
   }
 
   _renderCupResultItem (result) {
-    const id = generateId()
-
-    onClick(id, () => {
-      setQueryParams({ game_id: result.id })
-    })
+    if (!result._rowId) {
+      result._rowId = generateId()
+      onClick(result._rowId, () => {
+        setQueryParams({ game_id: result.id })
+      })
+    }
 
     const isPlayed = result.played === 1
     const isBye = !result.team2 && !result.team2Id
@@ -197,11 +193,8 @@ export class CupResultsPage extends UIElement {
     const team1IsMyTeam = this.myTeamId === result.team1Id
     const team2IsMyTeam = this.myTeamId === result.team2Id
 
-    const short1 = result.team1.split(' ').pop()
-    const short2 = isBye ? '' : result.team2.split(' ').pop()
-
-    const nameLabel1 = `<span class="d-none d-lg-inline">${result.team1}</span><span class="d-lg-none">${short1}</span>`
-    const nameLabel2 = isBye ? '' : `<span class="d-none d-lg-inline">${result.team2}</span><span class="d-lg-none">${short2}</span>`
+    const nameLabel1 = result.team1
+    const nameLabel2 = isBye ? '' : result.team2
 
     const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${nameLabel1}${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
 
@@ -209,13 +202,11 @@ export class CupResultsPage extends UIElement {
       ? `<span class="text-muted">${t('cup.bye')}</span>`
       : `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${nameLabel2}${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
 
-    return `
-      <tr id="${id}">
-        <td class="text-end">${team1Name}${emblem1}</td>
-        <td class="text-center">${isBye ? t('cup.bye') : (isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming'))}</td>
-        <td>${emblem2}${team2Name}</td>
-      </tr>
-    `
+    return [
+      `${team1Name}${emblem1}`,
+      `${isBye ? t('cup.bye') : (isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming'))}`,
+      `${emblem2}${team2Name}`
+    ]
   }
 
   /**

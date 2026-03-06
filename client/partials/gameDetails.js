@@ -54,7 +54,8 @@ function renderSquadList (teamPlayers, teamName) {
     <div class="card mb-3">
       <div class="card-header"><i class="fa fa-users me-2"></i>${teamName}</div>
       <div class="card-body p-0">
-        <table class="table table-sm mb-0">
+        <div class="horizontal-scrollable-table">
+        <table class="table table-sm mb-0 wide-on-mobile">
           <thead>
             <tr>
               <th>Pos</th>
@@ -65,6 +66,7 @@ function renderSquadList (teamPlayers, teamName) {
           </thead>
           <tbody>${rows}</tbody>
         </table>
+        </div>
       </div>
     </div>
   `
@@ -233,7 +235,8 @@ export class GameDetails extends UIElement {
       <div>
         <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} as guests at their stadium!</p>
         ${renderGameAnimation(game, team1, team2)}
-        <table class="table mb-4 game-details-table">
+        <div class="horizontal-scrollable-table">
+        <table class="table mb-4 wide-on-mobile game-details-table">
           <colgroup>
             <col style="width: 40%">
             <col style="width: 20%">
@@ -242,11 +245,11 @@ export class GameDetails extends UIElement {
           <thead>
             <tr>
               <td class="text-end">
-                <a href="#team?id=${team1.id}" class="text-info border-0">${team1Emblem} <span class="d-none d-sm-inline">${team1.name}</span><span class="d-sm-none">${team1.name.split(' ').pop()}</span></a>
+                <a href="#team?id=${team1.id}" class="text-info border-0">${team1Emblem} ${team1.name}</a>
               </td>
               <th class="text-center">Team</th>
               <td>
-                <a href="#team?id=${team2.id}" class="text-info border-0"><span class="d-none d-sm-inline">${team2.name}</span><span class="d-sm-none">${team2.name.split(' ').pop()}</span> ${team2Emblem}</a>
+                <a href="#team?id=${team2.id}" class="text-info border-0">${team2.name} ${team2Emblem}</a>
               </td>
             </tr>
             ${statsRows.map(row => `
@@ -258,6 +261,7 @@ export class GameDetails extends UIElement {
             `).join('')}
           </thead>
         </table>
+        </div>
         ${renderEventTicker(details.log, players, team1.name, team2.name)}
         ${renderSquadList(details.playerTeamA, team1.name)}
         ${renderSquadList(details.playerTeamB, team2.name)}

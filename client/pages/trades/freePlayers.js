@@ -96,7 +96,6 @@ export class FreePlayers extends UIElement {
       align: 'right'
     }, {
       name: '',
-      largeScreenOnly: true,
       onClick: (player) => {
         void this._showHireDialog(player)
       }

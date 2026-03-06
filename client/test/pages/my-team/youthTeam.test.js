@@ -88,10 +88,11 @@ describe('YouthTeamPage', () => {
       const page = new YouthTeamPage(mockParent)
       await page.load()
 
-      const html = page.template
-      expect(html).toContain('Test Youth')
-      expect(html).toContain('youthTeam.promote')
-      expect(html).toContain('youthTeam.fire')
+      const row = page._renderYouthPlayerRow(youthPlayers[0])
+      expect(row).toBeInstanceOf(Array)
+      expect(row.join('')).toContain('Test Youth')
+      expect(row.join('')).toContain('youthTeam.promote')
+      expect(row.join('')).toContain('youthTeam.fire')
     })
   })
 
@@ -177,7 +178,8 @@ describe('YouthTeamPage', () => {
       const page = new YouthTeamPage(mockParent)
       await page.load()
 
-      const html = page._renderYouthPlayerRow(youthPlayers[0])
+      const row = page._renderYouthPlayerRow(youthPlayers[0])
+      const html = row.join('')
       expect(html).toContain('disabled')
       expect(html).toContain('youthTeam.playerTooYoung')
     })
@@ -197,9 +199,9 @@ describe('YouthTeamPage', () => {
       const page = new YouthTeamPage(mockParent)
       await page.load()
 
-      const html = page._renderYouthPlayerRow(youthPlayers[0])
-      // Button should not have disabled attribute (check it doesn't have 'disabled')
-      // The button HTML should have an empty string for the disabled attribute position
+      const row = page._renderYouthPlayerRow(youthPlayers[0])
+      const html = row.join('')
+      // Button should not have disabled attribute
       expect(html).not.toMatch(/disabled.*youthTeam\.promote/)
     })
   })

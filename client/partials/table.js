@@ -7,17 +7,20 @@ import { getQueryParams, setQueryParams } from '../lib/router.js'
  * @property {string} name
  * @property {string} sortKey
  * @property {(val1: object, val2: object, isAscending: boolean) => number} sortFn
- * @property {boolean} largeScreenOnly
  * @property {'right'|'left'|'center'} align
+ * @property {string} [width] - CSS width for the column (e.g. '32px')
  * @property {(dataItem: object, rowIndex: number, colIndex: number) => void} [onClick]
  */
 
 /**
  * @typedef {object} TableConfig
  * @property {Array<TableHeadCellConfig>} cols
- * @property {(data: object) => Array<string>} renderRow
+ * @property {(data: object, rowIndex: number) => Array<string>} renderRow
  * @property {Array<object>} data
  * @property {(dataItem: object, rowIndex: number) => void} [onClick]
+ * @property {(dataItem: object, rowIndex: number) => string} [rowClass]
+ * @property {(dataItem: object, rowIndex: number) => string} [rowAttrs]
+ * @property {string} [classes] - Extra CSS classes for the table element
  */
 
 export class Table extends UIElement {
@@ -36,17 +39,20 @@ export class Table extends UIElement {
    */
   get template () {
     const hasHover = typeof this.config.onClick === 'function'
+    const extraClasses = this.config.classes || ''
     return `
-      <table class="table${hasHover ? ' table-hover' : ''} wide-on-mobile">
-        <thead>
-          <tr>
-            ${this._renderHeaderCells()}
-          </tr>
-        </thead>
-        <tbody>
-          ${this._renderTableRows()}
-        </tbody>
-      </table>
+      <div class="horizontal-scrollable-table">
+        <table class="table${hasHover ? ' table-hover' : ''} mb-4 wide-on-mobile ${extraClasses}">
+          <thead>
+            <tr>
+              ${this._renderHeaderCells()}
+            </tr>
+          </thead>
+          <tbody>
+            ${this._renderTableRows()}
+          </tbody>
+        </table>
+      </div>
     `
   }
 
@@ -196,12 +202,12 @@ export class Table extends UIElement {
       .map((col) => {
         const isSortable = col.sortKey || col.sortFn
         const classes = [
-          col.align ? `text-${col.align}` : '',
-          isSortable ? 'sort-header' : '',
-          col.largeScreenOnly ? 'd-none d-sm-table-cell' : ''
+          col.align ? `text-${_alignClass(col.align)}` : '',
+          isSortable ? 'sort-header' : ''
         ].filter(Boolean).join(' ')
 
-        return `<th scope="col" class="${classes}">${col.name}</th>`
+        const style = col.width ? ` style="width:${col.width}"` : ''
+        return `<th scope="col" class="${classes}"${style}>${col.name}</th>`
       })
       .join('')
   }
@@ -212,8 +218,14 @@ export class Table extends UIElement {
   _renderTableRows () {
     return this.config.data
       .map((item, rowIndex) => {
-        const rowContent = this.config.renderRow(item)
-        return `<tr>${this._renderTableCells(rowContent, rowIndex)}</tr>`
+        const rowContent = this.config.renderRow(item, rowIndex)
+        const rowClass = typeof this.config.rowClass === 'function'
+          ? this.config.rowClass(item, rowIndex)
+          : ''
+        const rowAttrs = typeof this.config.rowAttrs === 'function'
+          ? this.config.rowAttrs(item, rowIndex)
+          : ''
+        return `<tr class="${rowClass}" ${rowAttrs}>${this._renderTableCells(rowContent, rowIndex)}</tr>`
       })
       .join('')
   }
@@ -228,14 +240,24 @@ export class Table extends UIElement {
       const col = this.config.cols[colIndex]
       const hasClickFn = typeof col.onClick === 'function'
       const classes = [
-        col.align ? `text-${col.align}` : '',
-        col.largeScreenOnly ? 'd-none d-sm-table-cell' : '',
+        col.align ? `text-${_alignClass(col.align)}` : '',
         hasClickFn ? 'hover-text' : ''
       ].filter(Boolean).join(' ')
 
       return `<td class="${classes}">${cellContent}</td>`
     }).join('')
   }
+}
+
+/**
+ * Maps logical alignment names to Bootstrap 5 CSS classes.
+ * @param {string} align - 'right', 'left', or 'center'
+ * @returns {string}
+ */
+function _alignClass (align) {
+  if (align === 'right') return 'end'
+  if (align === 'left') return 'start'
+  return align
 }
 
 /**

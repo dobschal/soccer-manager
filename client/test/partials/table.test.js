@@ -94,16 +94,48 @@ describe('Table UIElement', () => {
         cols: [{ name: 'Price', align: 'right' }],
         renderRow: () => ['$100']
       })
-      expect(table.template).toContain('text-right')
+      expect(table.template).toContain('text-end')
     })
 
-    it('applies largeScreenOnly class to cells', () => {
+    it('wraps table in horizontal-scrollable-table div', () => {
       const table = new Table({
-        data: [{ value: 'test' }],
-        cols: [{ name: 'Details', largeScreenOnly: true }],
-        renderRow: () => ['Details here']
+        data: [],
+        cols: [{ name: 'Name' }],
+        renderRow: () => ['Test']
       })
-      expect(table.template).toContain('d-none d-sm-table-cell')
+      expect(table.template).toContain('horizontal-scrollable-table')
+      expect(table.template).toContain('wide-on-mobile')
+    })
+
+    it('supports rowClass callback', () => {
+      const table = new Table({
+        data: [{ active: true }],
+        cols: [{ name: 'Name' }],
+        renderRow: () => ['Test'],
+        rowClass: (item) => item.active ? 'table-info' : ''
+      })
+      expect(table.template).toContain('table-info')
+    })
+
+    it('supports rowAttrs callback', () => {
+      const table = new Table({
+        data: [{ id: 42 }],
+        cols: [{ name: 'Name' }],
+        renderRow: () => ['Test'],
+        rowAttrs: (item) => `data-id="${item.id}"`
+      })
+      expect(table.template).toContain('data-id="42"')
+    })
+
+    it('supports extra classes via config.classes', () => {
+      const table = new Table({
+        data: [],
+        cols: [{ name: 'Name' }],
+        renderRow: () => ['Test'],
+        classes: 'table-sm table-striped'
+      })
+      expect(table.template).toContain('table-sm')
+      expect(table.template).toContain('table-striped')
     })
 
     it('adds sort-header class for sortable columns', () => {

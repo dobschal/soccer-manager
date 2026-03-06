@@ -1,4 +1,5 @@
 import { GameSlider } from '../../partials/gameSlider.js'
+import { Table } from '../../partials/table.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { formatLeague } from '../../util/league.js'
 import { generateId } from '../../lib/html.js'
@@ -80,9 +81,6 @@ export class StartPage {
           ${renderEmblem(this.team, 160)}
           <h2 class="mb-4">${this.team.name}</h2>
           ${this._renderMiniStanding()}
-          <a href="#results" class="d-block mt-2 text-info border-0 text-end w-100 mb-3">
-              <small>...${t('dashboard.standingLink')}</small>
-          </a>
           <h5 class="mb-2 text-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')}</h5>
           ${this._renderUrgencyChecklist()}
         </div>
@@ -228,7 +226,10 @@ export class StartPage {
       try {
         const result = await server.playRandomFriendly()
         const game = result.game
-        toast(t('friendly.result', { goals1: game.goalsTeam1, goals2: game.goalsTeam2 }), 'success')
+        toast(t('friendly.result', {
+          goals1: game.goalsTeam1,
+          goals2: game.goalsTeam2
+        }), 'success')
         await showGameModal(game.id)
         window.location.reload()
       } catch (e) {
@@ -259,48 +260,37 @@ export class StartPage {
 
     const teamsToShow = this.standing.slice(startIndex, endIndex)
 
-    const rows = teamsToShow.map((item, idx) => {
-      const actualIndex = startIndex + idx
-      const hasUser = Boolean(item.team.user_id)
-      const id = generateId()
-      const isMyTeam = this.team.id === item.team.id
-
-      onClick('#' + id, () => goTo(`team?id=${item.team.id}`))
-
-      const trClasses = [
-        isMyTeam ? 'table-info' : '',
-        !isMyTeam && actualIndex < 2 ? 'table-success' : '',
-        !isMyTeam && actualIndex > 13 ? 'table-warning' : ''
-      ]
-
-      return `
-        <tr id="${id}" class="${trClasses.join(' ')}">
-          <th class="results-rank-cell">${actualIndex + 1}.</th>
-          <td class="text-start">
-            <span class="emblem-thumb--sm">
-              ${renderEmblem(item.team, 20)}
-            </span>
-            ${item.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}
-          </td>
-          <td>${item.points}</td>
-        </tr>
-      `
-    }).join('')
-
-    return `
-      <table class="table table-hover table-sm mb-0">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">${t('results.team')}</th>
-            <th scope="col">${t('results.points')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-    `
+    return new Table({
+      cols: [
+        { name: '#' },
+        { name: t('results.team') },
+        { name: t('results.points') }
+      ],
+      data: teamsToShow,
+      classes: 'table-sm',
+      rowClass: (item, rowIndex) => {
+        const actualIndex = startIndex + rowIndex
+        const isMyTeam = this.team.id === item.team.id
+        if (isMyTeam) return 'table-info'
+        if (actualIndex < 2) return 'table-success'
+        if (actualIndex > 13) return 'table-warning'
+        return ''
+      },
+      rowAttrs: (item) => {
+        const id = generateId()
+        onClick('#' + id, () => goTo(`team?id=${item.team.id}`))
+        return `id="${id}"`
+      },
+      renderRow: (item, rowIndex) => {
+        const actualIndex = startIndex + rowIndex
+        const hasUser = Boolean(item.team.user_id)
+        return [
+          `${actualIndex + 1}.`,
+          `<span class="emblem-thumb--sm">${renderEmblem(item.team, 20)}</span>${item.team.name} ${hasUser ? '<i class="fa fa-user"></i>' : ''}`,
+          `${item.points}`
+        ]
+      }
+    }).template
   }
 
   /**

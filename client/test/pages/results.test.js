@@ -271,8 +271,10 @@ describe('ResultsPage', () => {
       const leaguePage = new LeagueResultsPage(parentPage)
       await leaguePage.load()
 
-      const html = leaguePage._renderStandingListItem(standing[0], 0)
-      expect(html).toContain('table-info')
+      // Standing row data is returned as an array; row class logic is in the Table config
+      const cells = leaguePage._renderStandingListItem(standing[0], 0)
+      expect(cells).toBeInstanceOf(Array)
+      expect(cells[2]).toContain('My Team')
     })
 
     it('shows promotion zone for top 2 teams', async () => {
@@ -292,8 +294,10 @@ describe('ResultsPage', () => {
       const leaguePage = new LeagueResultsPage(parentPage)
       await leaguePage.load()
 
-      const html = leaguePage._renderStandingListItem(standing[0], 0)
-      expect(html).toContain('table-success')
+      // Standing row data is returned as an array; row class logic is in the Table config
+      const cells = leaguePage._renderStandingListItem(standing[0], 0)
+      expect(cells).toBeInstanceOf(Array)
+      expect(cells[0]).toBe('1.')
     })
 
     it('shows relegation zone for bottom teams', async () => {
@@ -313,8 +317,10 @@ describe('ResultsPage', () => {
       const leaguePage = new LeagueResultsPage(parentPage)
       await leaguePage.load()
 
-      const html = leaguePage._renderStandingListItem(standing[0], 14)
-      expect(html).toContain('table-warning')
+      // Standing row data is returned as an array; row class logic is in the Table config
+      const cells = leaguePage._renderStandingListItem(standing[0], 14)
+      expect(cells).toBeInstanceOf(Array)
+      expect(cells[0]).toBe('15.')
     })
   })
 

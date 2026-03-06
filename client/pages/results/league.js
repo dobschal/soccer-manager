@@ -9,6 +9,7 @@ import { renderEmblem } from '../../partials/emblem.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
 import { loadManagerChatSvg, renderManagerChatInline } from '../../partials/managerChat.js'
 import { t } from '../../i18n/index.js'
+import { Table } from '../../partials/table.js'
 
 export class LeagueResultsPage extends UIElement {
   suspendedPlayers = []
@@ -100,72 +101,68 @@ export class LeagueResultsPage extends UIElement {
         </div>
 
         <h3>${t('results.games')}</h3>
-        <div class="horizontal-scrollable-table">
-          <table class="table table-hover mb-4 wide-on-mobile">
-            <thead>
-              <tr>
-                <th scope="col" class="text-end">${t('results.team1')}</th>
-                <th scope="col" class="text-center">${t('results.result')}</th>
-                <th scope="col">${t('results.team2')}</th>
-              </tr>
-            </thead>
-            <tbody>
-                ${this.results.map(this._renderResultListItem.bind(this)).join('')}
-            </tbody>
-          </table>
-        </div>
+        ${new Table({
+          cols: [
+            { name: t('results.team1'), align: 'right' },
+            { name: t('results.result'), align: 'center' },
+            { name: t('results.team2') }
+          ],
+          data: this.results,
+          renderRow: (result) => this._renderResultListItem(result),
+          onClick: (result) => setQueryParams({ game_id: result.id })
+        })}
         <h3>${t('results.standing')} - ${this.gameDay + 1}. ${t('results.gameDayLabel')}</h3>
-        <div class="horizontal-scrollable-table">
-          <table class="table table-hover mb-4 wide-on-mobile">
-            <thead>
-              <tr>
-                <th scope="col" class="results-rank-cell">#</th>
-                <th scope="col" class="results-rank-cell"></th>
-                <th scope="col">${t('results.team')}</th>
-                <th scope="col" >${t('results.games')}</th>
-                <th scope="col" >${t('results.goals')}</th>
-                <th scope="col">${t('results.diff')}</th>
-                <th scope="col">${t('results.points')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${this.standing.map(this._renderStandingListItem.bind(this)).join('')}
-            </tbody>
-          </table>
-        </div>
+        ${new Table({
+          cols: [
+            { name: '#', width: '32px' },
+            { name: '', width: '32px' },
+            { name: t('results.team') },
+            { name: t('results.games') },
+            { name: t('results.goals') },
+            { name: t('results.diff') },
+            { name: t('results.points') }
+          ],
+          data: this.standing,
+          renderRow: (item, index) => this._renderStandingListItem(item, index),
+          onClick: (item) => goTo(`team?id=${item.team.id}`),
+          rowClass: (item, index) => {
+            const isMyTeam = this.myTeamId === item.team.id
+            return [
+              isMyTeam ? 'table-info' : '',
+              !isMyTeam && index < 2 ? 'table-success' : '',
+              !isMyTeam && index > 13 ? 'table-warning' : ''
+            ].join(' ')
+          }
+        })}
         <h3>${t('results.topScorer')}</h3>
-        <table class="table table-hover wide-on-mobile mb-4">
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">${t('results.name')}</th>
-              <th scope="col">${t('results.goals')}</th>
-              <th scope="col">${t('results.team')}</th>
-              <th scope="col" class="d-none d-sm-table-cell">Pos</th>
-              <th scope="col" class="d-none d-sm-table-cell">Lvl</th>
-              <th scope="col" class="d-none d-sm-table-cell">Age</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${this.topScorer.map(this._renderTopScorer.bind(this)).join('')}
-          </tbody>
-        </table>
+        ${new Table({
+          cols: [
+            { name: '#' },
+            { name: t('results.name') },
+            { name: t('results.goals') },
+            { name: t('results.team') },
+            { name: 'Pos' },
+            { name: 'Lvl' },
+            { name: 'Age' }
+          ],
+          data: this.topScorer,
+          renderRow: (scorer, index) => this._renderTopScorer(scorer, index),
+          rowClass: (scorer) => scorer && scorer.team && this.myTeamId === scorer.team.id ? 'table-info' : ''
+        })}
 
         ${this.suspendedPlayers.length > 0 ? `
           <h3>${t('results.suspendedPlayers')}</h3>
-          <table class="table table-hover wide-on-mobile mb-4">
-            <thead>
-              <tr>
-                <th scope="col"></th>
-                <th scope="col">${t('results.name')}</th>
-                <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
-                <th scope="col">${t('player.cards')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${this.suspendedPlayers.map(this._renderSuspendedPlayer.bind(this)).join('')}
-            </tbody>
-          </table>
+          ${new Table({
+            cols: [
+              { name: '' },
+              { name: t('results.name') },
+              { name: t('results.team') },
+              { name: t('player.cards') }
+            ],
+            data: this.suspendedPlayers,
+            renderRow: (player) => this._renderSuspendedPlayer(player),
+            rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
+          })}
         ` : ''}
 
         ${this.teamStats.length > 0 ? `
@@ -380,36 +377,26 @@ export class LeagueResultsPage extends UIElement {
   }
 
   _renderTopScorer (scorer, index) {
-    if (!scorer || !scorer.team) return ''
+    if (!scorer || !scorer.team) return ['', '', '', '', '', '', '']
     const teamId = generateId()
     onClick(teamId, () => goTo(`team?id=${scorer.team.id}`))
     const playerId = generateId()
     onClick(playerId, () => {
       setQueryParams({ player_id: scorer.id + '' })
     })
-    return `
-      <tr class="${this.myTeamId === scorer.team.id ? 'table-info' : ''}">
-          <th>${index + 1}.</th>
-          <td id="${playerId}" class="u-cursor-pointer">
-            <div class="d-flex align-items-center">
-              <span class="scorer-image me-2" data-scorer-id="${scorer.id}"></span>
-              ${scorer.name}
-            </div>
-          </td>
-          <td>${scorer.goals}</td>
-          <td id="${teamId}" class="u-cursor-pointer">
-            <span class="emblem-thumb">${renderEmblem(scorer.team, 24)}</span>
-            <span class="d-none d-sm-inline">${scorer.team.name}</span>
-          </td>
-          <td class="d-none d-sm-table-cell text-muted">${scorer.position}</td>
-          <td class="d-none d-sm-table-cell text-muted">${scorer.level}</td>
-          <td class="d-none d-sm-table-cell text-muted">${calculatePlayerAge(scorer, this.season)}</td>
-      </tr>
-    `
+    return [
+      `${index + 1}.`,
+      `<div id="${playerId}" class="d-flex align-items-center u-cursor-pointer"><span class="scorer-image me-2" data-scorer-id="${scorer.id}"></span>${scorer.name}</div>`,
+      `${scorer.goals}`,
+      `<span id="${teamId}" class="u-cursor-pointer"><span class="emblem-thumb">${renderEmblem(scorer.team, 24)}</span>${scorer.team.name}</span>`,
+      `<span class="text-muted">${scorer.position}</span>`,
+      `<span class="text-muted">${scorer.level}</span>`,
+      `<span class="text-muted">${calculatePlayerAge(scorer, this.season)}</span>`
+    ]
   }
 
   _renderSuspendedPlayer (player) {
-    if (!player || !player.team) return ''
+    if (!player || !player.team) return ['', '', '', '']
     const teamId = generateId()
     onClick(teamId, () => goTo(`team?id=${player.team.id}`))
     const playerId = generateId()
@@ -418,19 +405,12 @@ export class LeagueResultsPage extends UIElement {
     })
     const yellowCards = player.yellow_cards || 0
     const redCards = player.red_cards || 0
-    return `
-      <tr class="${this.myTeamId === player.team.id ? 'table-info' : ''}">
-          <td style="width: 48px;">
-            <span class="suspended-image" data-suspended-id="${player.id}"></span>
-          </td>
-          <td id="${playerId}" class="u-cursor-pointer">${player.name}</td>
-          <td class="d-none d-sm-table-cell u-cursor-pointer" id="${teamId}">${player.team.name}</td>
-          <td>
-            ${yellowCards > 0 ? `<span class="text-warning">${yellowCards} <i class="fa fa-square"></i></span>` : ''}
-            ${redCards > 0 ? `<span class="text-danger ms-1">${redCards} <i class="fa fa-square"></i></span>` : ''}
-          </td>
-      </tr>
-    `
+    return [
+      `<span class="suspended-image" data-suspended-id="${player.id}" style="display:inline-block;width:48px;"></span>`,
+      `<span id="${playerId}" class="u-cursor-pointer">${player.name}</span>`,
+      `<span id="${teamId}" class="u-cursor-pointer">${player.team.name}</span>`,
+      `${yellowCards > 0 ? `<span class="text-warning">${yellowCards} <i class="fa fa-square"></i></span>` : ''}${redCards > 0 ? `<span class="text-danger ms-1">${redCards} <i class="fa fa-square"></i></span>` : ''}`
+    ]
   }
 
   _getLeagueAndLevel () {
@@ -483,30 +463,17 @@ export class LeagueResultsPage extends UIElement {
 
   _renderStandingListItem (standingItem, index) {
     const hasUser = Boolean(standingItem.team.user_id)
-    const id = generateId()
-
-    onClick('#' + id, () => goTo(`team?id=${standingItem.team.id}`))
-
-    const isMyTeam = this.myTeamId === standingItem.team.id
-    const trClasses = [
-      isMyTeam ? 'table-info' : '',
-      !isMyTeam && index < 2 ? 'table-success' : '',
-      !isMyTeam && index > 13 ? 'table-warning' : ''
-    ]
-
     const diff = this.yesterdayStanding.findIndex(s => s.team.id === standingItem.team.id) - index
 
-    return `
-      <tr id="${id}" class="${trClasses.join(' ')}">
-        <th class="results-rank-cell">${index + 1}.</th>
-        <td class="results-rank-cell">${diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : '')}</td>
-        <td><span class="emblem-thumb">${renderEmblem(standingItem.team, 24)}</span>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}</td>
-        <td>${standingItem.games}</td>
-        <td>${standingItem.goals}:${standingItem.against}</td>
-        <td>${standingItem.goals - standingItem.against}</td>
-        <td>${standingItem.points}</td>
-      </tr>
-    `
+    return [
+      `${index + 1}.`,
+      diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : ''),
+      `<span class="emblem-thumb">${renderEmblem(standingItem.team, 24)}</span>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}`,
+      `${standingItem.games}`,
+      `${standingItem.goals}:${standingItem.against}`,
+      `${standingItem.goals - standingItem.against}`,
+      `${standingItem.points}`
+    ]
   }
 
   async _getSeasonAndGameDay () {
@@ -529,12 +496,6 @@ export class LeagueResultsPage extends UIElement {
   }
 
   _renderResultListItem (result) {
-    const id = generateId()
-
-    onClick(id, () => {
-      setQueryParams({ game_id: result.id })
-    })
-
     const team1Data = this.standing.find(s => s.team.id === result.team1Id)?.team
     const team2Data = this.standing.find(s => s.team.id === result.team2Id)?.team
 
@@ -552,22 +513,14 @@ export class LeagueResultsPage extends UIElement {
     const team1IsMyTeam = this.myTeamId === result.team1Id
     const team2IsMyTeam = this.myTeamId === result.team2Id
 
-    const short1 = result.team1.split(' ').pop()
-    const short2 = result.team2.split(' ').pop()
+    const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${result.team1} (${result.strengthTeamA ?? '-'})${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
+    const team2Name = `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${result.team2} (${result.strengthTeamB ?? '-'})${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
 
-    const nameLabel1 = `<span class="d-none d-lg-inline">${result.team1} (${result.strengthTeamA ?? '-'})</span><span class="d-lg-none">${short1}</span>`
-    const nameLabel2 = `<span class="d-none d-lg-inline">${result.team2} (${result.strengthTeamB ?? '-'})</span><span class="d-lg-none">${short2}</span>`
-
-    const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${nameLabel1}${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
-    const team2Name = `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${nameLabel2}${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
-
-    return `
-    <tr id="${id}">
-      <td class="text-end">${team1Name}${emblem1}</td>
-      <td class="text-center">${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}</td>
-      <td>${emblem2}${team2Name}</td>
-    </tr>
-  `
+    return [
+      `${team1Name}${emblem1}`,
+      `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}`,
+      `${emblem2}${team2Name}`
+    ]
   }
 
   _sortIcon (col) {

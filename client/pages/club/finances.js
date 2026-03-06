@@ -131,11 +131,12 @@ export class FinancesPage extends UIElement {
               </select>
             </div>
           </div>
-          <table class="table">
+          <div class="horizontal-scrollable-table">
+          <table class="table mb-4 wide-on-mobile">
              <thead>
               <tr>
                 <th scope="col">${t('finances.value')}</th>
-                <th scope="col" class="d-none d-sm-table-cell">${t('finances.balance')}</th>
+                <th scope="col">${t('finances.balance')}</th>
                 <th scope="col">${t('finances.description')}</th>
               </tr>
             </thead>
@@ -143,6 +144,7 @@ export class FinancesPage extends UIElement {
               ${this.financeLog.sort(this._sortFinanceLog).map((item, idx, arr) => this._renderFinanceLog(item, idx, arr)).join('')}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     `
@@ -249,7 +251,7 @@ export class FinancesPage extends UIElement {
       dividerRow = `
         <tr class="table-group-divider table-warning">
           <td >${t('finances.gameDayLabel', { day: logItem.game_day + 1 })}</td>
-          <td class="d-none d-sm-table-cell"></td>
+          <td></td>
           <td ></td>
         </tr>`
     }
@@ -257,7 +259,7 @@ export class FinancesPage extends UIElement {
       ${dividerRow}
       <tr class="table-warning">
         <td class="text-right ${logItem.value > 0 ? 'text-success' : 'text-danger'}">${logItem.value > 0 ? '+' : ''}${euroFormat.format(logItem.value)}</td>
-        <td class="d-none d-md-table-cell text-right">${euroFormat.format(logItem.balance)}</td>
+        <td class="text-right">${euroFormat.format(logItem.balance)}</td>
         <td>${logItem.reason}</td>
       </tr>
     `

@@ -5,6 +5,7 @@ import { setQueryParams } from '../../lib/router.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { Table } from '../../partials/table.js'
 
 export class MyOffersPage extends UIElement {
   /**
@@ -16,6 +17,54 @@ export class MyOffersPage extends UIElement {
   }
 
   /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '.my-offers-table': {
+        click: async (event) => {
+          const row = event.target.closest('[data-offer-id]')
+          if (!row) return
+          const offerId = Number(row.dataset.offerId)
+          const offer = this.offers.find(o => o.id === offerId)
+          if (!offer) return
+
+          if (event.target.closest('.player-name')) {
+            setQueryParams({ player_id: offer.player_id })
+          } else if (event.target.closest('.btn-danger')) {
+            try {
+              await server.cancelOffer(offer)
+              await this.parentInstance.update(true)
+            } catch (e) {
+              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+            }
+          }
+        }
+      },
+      '.answered-offers-table': {
+        click: async (event) => {
+          const row = event.target.closest('[data-offer-id]')
+          if (!row) return
+          const offerId = Number(row.dataset.offerId)
+          const offer = this.answeredOffers.find(o => o.id === offerId)
+          if (!offer) return
+
+          if (event.target.closest('.player-name')) {
+            setQueryParams({ player_id: offer.player_id })
+          } else if (event.target.closest('.btn-outline-secondary')) {
+            try {
+              await server.dismissOffer(offer)
+              await this.parentInstance.update(true)
+            } catch (e) {
+              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {
@@ -23,23 +72,21 @@ export class MyOffersPage extends UIElement {
       <div>
         <h2>${t('trades.myOffersTitle')}</h2>
         <p>${t('trades.myOffersDesc')}</p>
-        <div class="horizontal-scrollable-table">
-          <table class="table wide-on-mobile">
-            <thead>
-              <tr>
-                <th scope="col">${t('trades.type')}</th>
-                <th scope="col">${t('results.name')}</th>
-                <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
-                <th scope="col" class="d-none d-sm-table-cell">${t('player.position')}</th>
-                <th scope="col" class="text-right d-none d-sm-table-cell">${t('player.level')}</th>
-                <th scope="col" class="text-right">${t('trades.price')}</th>
-                <th scope="col"></th>
-              </tr>
-            </thead>
-            <tbody>
-              ${this.offers.map(offer => new MyOfferListItem(offer, this.parentInstance)).join('')}
-            </tbody>
-          </table>
+        <div class="my-offers-table">
+          ${new Table({
+            cols: [
+              { name: t('trades.type') },
+              { name: t('results.name') },
+              { name: t('results.team') },
+              { name: t('player.position') },
+              { name: t('player.level'), align: 'right' },
+              { name: t('trades.price'), align: 'right' },
+              { name: '' }
+            ],
+            renderRow: (offer) => this._renderOfferRow(offer),
+            data: this.offers,
+            rowAttrs: (offer) => `data-offer-id="${offer.id}"`
+          }).template}
         </div>
         <div class="row">
           <div class="col ${this.hasOpenOffers ? 'hidden' : ''}">
@@ -48,23 +95,21 @@ export class MyOffersPage extends UIElement {
         </div>
 
         <h2 class="mt-4">${t('trades.answeredOffersTitle')}</h2>
-        <div class="horizontal-scrollable-table">
-          <table class="table wide-on-mobile ${this.answeredOffers.length === 0 ? 'hidden' : ''}">
-            <thead>
-              <tr>
-                <th scope="col">${t('trades.status')}</th>
-                <th scope="col">${t('results.name')}</th>
-                <th scope="col" class="d-none d-sm-table-cell">${t('results.team')}</th>
-                <th scope="col" class="d-none d-sm-table-cell">${t('player.position')}</th>
-                <th scope="col" class="text-right d-none d-sm-table-cell">${t('player.level')}</th>
-                <th scope="col" class="text-right">${t('trades.price')}</th>
-                <th scope="col"></th>
-              </tr>
-            </thead>
-            <tbody>
-              ${this.answeredOffers.map(offer => new AnsweredOfferListItem(offer, this.parentInstance)).join('')}
-            </tbody>
-          </table>
+        <div class="answered-offers-table ${this.answeredOffers.length === 0 ? 'hidden' : ''}">
+          ${new Table({
+            cols: [
+              { name: t('trades.status') },
+              { name: t('results.name') },
+              { name: t('results.team') },
+              { name: t('player.position') },
+              { name: t('player.level'), align: 'right' },
+              { name: t('trades.price'), align: 'right' },
+              { name: '' }
+            ],
+            renderRow: (offer) => this._renderAnsweredOfferRow(offer),
+            data: this.answeredOffers,
+            rowAttrs: (offer) => `data-offer-id="${offer.id}"`
+          }).template}
         </div>
         <div class="row">
           <div class="col ${this.answeredOffers.length > 0 ? 'hidden' : ''}">
@@ -81,10 +126,18 @@ export class MyOffersPage extends UIElement {
   async load () {
     const response = await server.getMyTeam()
     this.team = response.team
-    const [{ offers }, answeredData] = await Promise.all([
+    const [{ offers, players, teams }, answeredData] = await Promise.all([
       server.getOffers(),
       server.getAnsweredOffers()
     ])
+    this._playerMap = new Map()
+    this._teamMap = new Map()
+    for (const p of [...players, ...(answeredData.players || [])]) {
+      this._playerMap.set(p.id, p)
+    }
+    for (const tm of [...teams, ...(answeredData.teams || [])]) {
+      this._teamMap.set(tm.id, tm)
+    }
     this.offers = offers.filter(o => o.from_team_id === this.team.id)
     this.answeredOffers = answeredData.answeredOffers || []
   }
@@ -95,141 +148,43 @@ export class MyOffersPage extends UIElement {
   get hasOpenOffers () {
     return this.offers.length > 0
   }
-}
 
-class MyOfferListItem extends UIElement {
   /**
-   * @param {TradeOfferType} offer
-   * @param {UIElement} parentInstance
+   * @param {Object} offer
+   * @returns {Array<string>}
    */
-  constructor (offer, parentInstance) {
-    super()
-    this.offer = offer
-    this.parentInstance = parentInstance
+  _renderOfferRow (offer) {
+    const player = this._playerMap.get(offer.player_id)
+    const team = this._teamMap.get(player?.team_id)
+    return [
+      `<span class="badge bg-${offer.type === 'sell' ? 'secondary' : 'primary'}">${offer.type}</span>`,
+      `<span class="hover-text player-name">${player?.name ?? ''}</span>`,
+      offer.type === 'sell' ? '' : (team?.name ?? ''),
+      player?.position ?? '',
+      renderLevelBadge(player?.level ?? 0),
+      euroFormat.format(offer.offer_value),
+      `<button type="button" class="btn btn-danger"><i class="fa fa-times-circle-o" aria-hidden="true"></i></button>`
+    ]
   }
 
   /**
-   * @returns {UIElementEvents}
+   * @param {Object} offer
+   * @returns {Array<string>}
    */
-  get events () {
-    return {
-      'td[data-show-player]': {
-        click: () => setQueryParams({ player_id: this.player.id })
-      },
-      'button[data-cancel]': {
-        click: this._cancelOffer
-      }
-    }
-  }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `
-      <tr >
-        <td><span class="badge bg-${this.offer.type === 'sell' ? 'secondary' : 'primary'}">${this.offer.type}</span></td>
-        <td class="hover-text" data-show-player>${this.player.name}</td>
-        <td class="d-none d-sm-table-cell">${this.offer.type === 'sell' ? '' : this.team.name}</td>
-        <td class="d-none d-sm-table-cell">${this.player.position}</td>
-        <td class="text-right d-none d-sm-table-cell">${renderLevelBadge(this.player.level)}</td>
-        <td class="text-right">${euroFormat.format(this.offer.offer_value)}</td>
-        <td>
-            <button type="button" class="btn btn-danger" data-cancel>
-                <i class="fa fa-times-circle-o" aria-hidden="true"></i>
-            </button>
-        </td>
-      </tr>
-    `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    this.player = await server.getPlayerById(this.offer.player_id)
-    this.team = await server.getTeamById(this.player.team_id)
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async _cancelOffer () {
-    try {
-      await server.cancelOffer(this.offer)
-      await this.parentInstance.update(true)
-    } catch (e) {
-      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-    }
-  }
-}
-
-class AnsweredOfferListItem extends UIElement {
-  /**
-   * @param {TradeOfferType} offer
-   * @param {UIElement} parentInstance
-   */
-  constructor (offer, parentInstance) {
-    super()
-    this.offer = offer
-    this.parentInstance = parentInstance
-  }
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      'td[data-show-player]': {
-        click: () => setQueryParams({ player_id: this.player.id })
-      },
-      'button[data-dismiss]': {
-        click: this._dismissOffer
-      }
-    }
-  }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    const isAccepted = this.offer.status === 'accepted'
+  _renderAnsweredOfferRow (offer) {
+    const player = this._playerMap.get(offer.player_id)
+    const team = this._teamMap.get(player?.team_id)
+    const isAccepted = offer.status === 'accepted'
     const badgeClass = isAccepted ? 'bg-success' : 'bg-danger'
     const badgeText = isAccepted ? t('trades.accepted') : t('trades.rejected')
-    return `
-      <tr>
-        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-        <td class="hover-text" data-show-player>${this.player.name}</td>
-        <td class="d-none d-sm-table-cell">${this.team.name}</td>
-        <td class="d-none d-sm-table-cell">${this.player.position}</td>
-        <td class="text-right d-none d-sm-table-cell">${renderLevelBadge(this.player.level)}</td>
-        <td class="text-right">${euroFormat.format(this.offer.offer_value)}</td>
-        <td>
-            <button type="button" class="btn btn-outline-secondary" data-dismiss>
-                ${t('trades.dismiss')}
-            </button>
-        </td>
-      </tr>
-    `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    this.player = await server.getPlayerById(this.offer.player_id)
-    this.team = await server.getTeamById(this.player.team_id)
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async _dismissOffer () {
-    try {
-      await server.dismissOffer(this.offer)
-      await this.parentInstance.update(true)
-    } catch (e) {
-      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-    }
+    return [
+      `<span class="badge ${badgeClass}">${badgeText}</span>`,
+      `<span class="hover-text player-name">${player?.name ?? ''}</span>`,
+      team?.name ?? '',
+      player?.position ?? '',
+      renderLevelBadge(player?.level ?? 0),
+      euroFormat.format(offer.offer_value),
+      `<button type="button" class="btn btn-outline-secondary">${t('trades.dismiss')}</button>`
+    ]
   }
 }

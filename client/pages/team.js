@@ -336,13 +336,11 @@ export class TeamPage extends UIElement {
         },
         {
           name: t('team.historyFrom'),
-          align: 'left',
-          largeScreenOnly: true
+          align: 'left'
         },
         {
           name: t('team.historyTo'),
-          align: 'left',
-          largeScreenOnly: true
+          align: 'left'
         },
         {
           name: t('team.historyPrice'),
@@ -350,8 +348,7 @@ export class TeamPage extends UIElement {
         },
         {
           name: t('team.historySeason'),
-          align: 'center',
-          largeScreenOnly: true
+          align: 'center'
         }
       ],
       data: this._transferHistory,
@@ -406,8 +403,7 @@ export class TeamPage extends UIElement {
         },
         {
           name: t('team.historyCup'),
-          align: 'center',
-          largeScreenOnly: true
+          align: 'center'
         }
       ],
       data: this._seasonHistory,

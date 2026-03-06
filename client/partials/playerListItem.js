@@ -45,7 +45,7 @@ export class PlayerListItem extends UIElement {
 
     const salary = getSalary(this.player.level)
     const value = calculateMarketValue(this.player.level, age)
-    const hiddenClass = this.extended ? '' : 'd-md-none'
+    const hiddenClass = ''
     const extendedCells = `
       <td class="text-right ${hiddenClass}">${euroFormat.format(value)}</td>
       <td class="text-right ${hiddenClass}">${this.player.season_goals ?? 0}</td>

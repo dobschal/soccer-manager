@@ -6,6 +6,7 @@ import { euroFormat } from '../../lib/currency.js'
 import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { t } from '../../i18n/index.js'
+import { Table } from '../../partials/table.js'
 
 export class StadiumSubPage extends UIElement {
   stadium = {}
@@ -379,24 +380,22 @@ export class StadiumSubPage extends UIElement {
     }
 
     const stands = ['north', 'south', 'east', 'west']
-    const headerCells = stands.map(s => `<th>${t('stadium.' + s)}</th>`).join('')
-    const rows = this.attendanceData.map(row => {
-      const standCells = stands.map(s => {
-        const data = row.stands[s]
-        return `<td><span class="d-none d-sm-inline">${data.guests.toLocaleString()} / ${data.size.toLocaleString()} </span>(${data.percentage}%)</td>`
-      }).join('')
-      return `<tr><td>${t('stadium.seasonDay', {
-        season: row.season + 1,
-        day: row.gameDay + 1
-      })}</td>${standCells}</tr>`
-    }).join('')
 
-    return `
-        <table class="table table-sm table-striped wide-on-mobile mb-4">
-          <thead><tr><th></th>${headerCells}</tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-    `
+    return new Table({
+      cols: [
+        { name: '' },
+        ...stands.map(s => ({ name: t('stadium.' + s) }))
+      ],
+      renderRow: (row) => [
+        t('stadium.seasonDay', { season: row.season + 1, day: row.gameDay + 1 }),
+        ...stands.map(s => {
+          const data = row.stands[s]
+          return `${data.guests.toLocaleString()} / ${data.size.toLocaleString()} (${data.percentage}%)`
+        })
+      ],
+      data: this.attendanceData,
+      classes: 'table-sm table-striped'
+    }).template
   }
 
   /**
@@ -407,41 +406,28 @@ export class StadiumSubPage extends UIElement {
       return `<p class="text-muted mb-4">${t('stadium.noConstructionHistory')}</p>`
     }
 
-    const rows = this.constructionHistory.map(h => {
-      const completedCol = h.completed_game_day != null
-        ? t('stadium.seasonDay', {
-          season: h.completed_season + 1,
-          day: h.completed_game_day + 1
-        })
-        : `<span class="badge badge-warning">${t('stadium.inProgress')}</span>`
-      return `<tr>
-        <td>${t('stadium.' + h.stand)}</td>
-        <td>${h.old_size.toLocaleString()}</td>
-        <td>${h.new_size.toLocaleString()}</td>
-        <td>${h.added_roof ? '✓' : '—'}</td>
-        <td>${t('stadium.seasonDay', {
-        season: h.started_season + 1,
-        day: h.started_game_day + 1
-      })}</td>
-        <td>${completedCol}</td>
-      </tr>`
-    }).join('')
-
-    return `
-      <div class="horizontal-scrollable-table mb-4">
-        <table class="table table-sm table-striped wide-on-mobile">
-          <thead><tr>
-            <th>${t('stadium.stand')}</th>
-            <th>${t('stadium.oldSize')}</th>
-            <th>${t('stadium.newSize2')}</th>
-            <th>${t('stadium.roofAdded')}</th>
-            <th>${t('stadium.started')}</th>
-            <th>${t('stadium.completed')}</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    `
+    return new Table({
+      cols: [
+        { name: t('stadium.stand') },
+        { name: t('stadium.oldSize') },
+        { name: t('stadium.newSize2') },
+        { name: t('stadium.roofAdded') },
+        { name: t('stadium.started') },
+        { name: t('stadium.completed') }
+      ],
+      renderRow: (h) => [
+        t('stadium.' + h.stand),
+        h.old_size.toLocaleString(),
+        h.new_size.toLocaleString(),
+        h.added_roof ? '✓' : '—',
+        t('stadium.seasonDay', { season: h.started_season + 1, day: h.started_game_day + 1 }),
+        h.completed_game_day != null
+          ? t('stadium.seasonDay', { season: h.completed_season + 1, day: h.completed_game_day + 1 })
+          : `<span class="badge badge-warning">${t('stadium.inProgress')}</span>`
+      ],
+      data: this.constructionHistory,
+      classes: 'table-sm table-striped'
+    }).template
   }
 
   /**

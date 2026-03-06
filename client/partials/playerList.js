@@ -60,7 +60,7 @@ export class PlayerList extends UIElement {
       <div>
         <h3 class="${this.showTitle ? '' : 'hidden'}" style="clear: both;">Players (${this.players.length}) ${toggleBtn}</h3>
         <div class="horizontal-scrollable-table">
-          <table class="table table-hover wide-on-mobile">
+          <table class="table table-hover mb-4 wide-on-mobile">
             <thead>
               <tr>
                 <th scope="col">Name</th>
@@ -69,9 +69,9 @@ export class PlayerList extends UIElement {
                 <th scope="col" class="text-right">Fit</th>
                 <th scope="col" class="text-right">Lvl</th>
                 <th scope="col" class="text-right">${t('player.salary')}</th>
-                <th scope="col" class="text-right ${this.extended ? '' : 'd-md-none'}">${t('player.value')}</th>
-                <th scope="col" class="text-right ${this.extended ? '' : 'd-md-none'}">${t('player.goals')}</th>
-                <th scope="col" class="text-right ${this.extended ? '' : 'd-md-none'}">${t('player.games')}</th>
+                <th scope="col" class="text-right">${t('player.value')}</th>
+                <th scope="col" class="text-right">${t('player.goals')}</th>
+                <th scope="col" class="text-right">${t('player.games')}</th>
               </tr>
             </thead>
             <tbody>

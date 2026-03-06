@@ -145,7 +145,6 @@ export class TradeHistoryPage extends UIElement {
       }
     }, {
       name: t('finances.from'),
-      largeScreenOnly: true,
       sortFn: (a, b, isAsc) => {
         const teamA = this.teams.find(te => te.id === a.from_team_id)
         const teamB = this.teams.find(te => te.id === b.from_team_id)
@@ -155,7 +154,6 @@ export class TradeHistoryPage extends UIElement {
       }
     }, {
       name: t('finances.to2'),
-      largeScreenOnly: true,
       sortFn: (a, b, isAsc) => {
         const teamA = this.teams.find(te => te.id === a.to_team_id)
         const teamB = this.teams.find(te => te.id === b.to_team_id)
@@ -165,7 +163,6 @@ export class TradeHistoryPage extends UIElement {
       }
     }, {
       name: t('finances.date'),
-      largeScreenOnly: true,
       sortFn: (a, b, isAsc) => {
         const valA = a.season * 1000 + a.game_day
         const valB = b.season * 1000 + b.game_day

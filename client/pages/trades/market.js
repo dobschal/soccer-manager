@@ -173,10 +173,9 @@ export class MarketPage extends UIElement {
         setQueryParams({ player_id: offer.player_id })
       }
     }, {
-      name: t('results.team'),
-      largeScreenOnly: true
+      name: t('results.team')
     }, {
-      name: `<span class="d-sm-none">POS</span><span class="d-none d-sm-inline">${t('player.position')}</span>`,
+      name: t('player.position'),
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
         const playerB = this.players.find(p => p.id === offerB.player_id)
@@ -196,7 +195,7 @@ export class MarketPage extends UIElement {
       },
       align: 'right'
     }, {
-      name: `<span class="d-sm-none">Lev</span><span class="d-none d-sm-inline">${t('player.level')}</span>`,
+      name: t('player.level'),
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
         const playerB = this.players.find(p => p.id === offerB.player_id)
@@ -212,7 +211,6 @@ export class MarketPage extends UIElement {
       sortKey: 'offer_value'
     }, {
       name: '',
-      largeScreenOnly: true
     }]
   }
 

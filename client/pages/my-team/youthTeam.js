@@ -6,6 +6,7 @@ import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { t } from '../../i18n/index.js'
 import { ProgressBar } from '../../partials/progressBar.js'
+import { Table } from '../../partials/table.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { fire } from '../../lib/event.js'
 
@@ -214,26 +215,20 @@ export class YouthTeamPage extends UIElement {
       `
     }
 
-    return `
-    <div class="horizontal-scrollable-table">
-        <table class="table table-striped wide-on-mobile">
-          <thead>
-            <tr>
-              <th>${t('youthTeam.name')}</th>
-              <th><span class="d-none d-sm-inline">${t('youthTeam.position')}</span><span class="d-sm-none">Pos</span></th>
-              <th>${t('youthTeam.age')}</th>
-              <th><span class="d-none d-sm-inline">${t('youthTeam.level')}</span><span class="d-sm-none">Lvl</span></th>
-              <th><span class="d-none d-sm-inline">${t('youthTeam.moral')}</span><span class="d-sm-none">Mor</span></th>
-              <th><span class="d-none d-sm-inline">${t('youthTeam.fitness')}</span><span class="d-sm-none">Fit</span></th>
-              <th>${t('youthTeam.actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${this.youthPlayers.map(player => this._renderYouthPlayerRow(player)).join('')}
-          </tbody>
-        </table>
-       </div>
-    `
+    return new Table({
+      cols: [
+        { name: t('youthTeam.name') },
+        { name: t('youthTeam.position') },
+        { name: t('youthTeam.age') },
+        { name: t('youthTeam.level') },
+        { name: t('youthTeam.moral') },
+        { name: t('youthTeam.fitness') },
+        { name: t('youthTeam.actions') }
+      ],
+      data: this.youthPlayers,
+      classes: 'table-striped',
+      renderRow: (player) => this._renderYouthPlayerRow(player)
+    })
   }
 
   /**
@@ -254,29 +249,20 @@ export class YouthTeamPage extends UIElement {
       disabledReason = t('youthTeam.playerTooYoung')
     }
 
-    return `
-      <tr>
-        <td style="white-space:nowrap">${player.name}</td>
-        <td><span class="badge bg-secondary">${player.position}</span></td>
-        <td>${player.age}</td>
-        <td>${player.level.toFixed(2)}</td>
-        <td>${new ProgressBar(player.moral)}</td>
-        <td>${new ProgressBar(player.fitness)}</td>
-        <td style="white-space:nowrap">
-          <button
+    return [
+      `<span style="white-space:nowrap">${player.name}</span>`,
+      `<span class="badge bg-secondary">${player.position}</span>`,
+      `${player.age}`,
+      `${player.level.toFixed(2)}`,
+      `${new ProgressBar(player.moral)}`,
+      `${new ProgressBar(player.fitness)}`,
+      `<span style="white-space:nowrap"><button
             id="${promoteId}"
             class="btn btn-sm btn-primary me-1"
             ${!canPromote ? 'disabled' : ''}
             title="${disabledReason}"
-          >
-            <i class="fa fa-arrow-up"></i> ${t('youthTeam.promote')}
-          </button>
-          <button id="${fireId}" class="btn btn-sm btn-danger">
-            <i class="fa fa-times"></i> ${t('youthTeam.fire')}
-          </button>
-        </td>
-      </tr>
-    `
+          ><i class="fa fa-arrow-up"></i> ${t('youthTeam.promote')}</button><button id="${fireId}" class="btn btn-sm btn-danger"><i class="fa fa-times"></i> ${t('youthTeam.fire')}</button></span>`
+    ]
   }
 
   /**
