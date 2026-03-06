@@ -129,7 +129,9 @@ async function _playCupGame (game) {
   let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
   let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
 
-  // Auto-fill incomplete lineups before the game
+  // Trim excess players and auto-fill incomplete lineups before the game
+  playerTeamA = await _trimExcessLineup(teamA, playerTeamA)
+  playerTeamB = await _trimExcessLineup(teamB, playerTeamB)
   playerTeamA = await _autoFillLineup(teamA, playerTeamA)
   playerTeamB = await _autoFillLineup(teamB, playerTeamB)
 
@@ -564,6 +566,43 @@ async function _autoFillLineup (team, lineupPlayers) {
 }
 
 /**
+ * Trim lineup to match the formation's required positions.
+ * If a team has more players with in_game_position than the formation allows,
+ * remove extras by keeping players whose in_game_position matches a required slot.
+ * @param {TeamType} team
+ * @param {PlayerType[]} lineupPlayers
+ * @returns {Promise<PlayerType[]>}
+ */
+async function _trimExcessLineup (team, lineupPlayers) {
+  const requiredPositions = getPositionsOfFormation(team.formation)
+  if (!requiredPositions || lineupPlayers.length <= requiredPositions.length) return lineupPlayers
+
+  console.log(`Team ${team.name} has ${lineupPlayers.length} players in lineup but formation ${team.formation} needs ${requiredPositions.length} - trimming excess`)
+
+  const kept = []
+  const remainingSlots = [...requiredPositions]
+
+  // First pass: keep players that match a required slot
+  for (const player of lineupPlayers) {
+    const idx = remainingSlots.indexOf(player.in_game_position)
+    if (idx !== -1) {
+      kept.push(player)
+      remainingSlots.splice(idx, 1)
+    }
+  }
+
+  // Remove in_game_position from players not kept
+  const keptIds = new Set(kept.map(p => p.id))
+  for (const player of lineupPlayers) {
+    if (!keptIds.has(player.id)) {
+      await query('UPDATE player SET in_game_position=\'\' WHERE id=?', [player.id])
+    }
+  }
+
+  return kept
+}
+
+/**
  * @param {GameType} game
  * @returns {Promise<void>}
  */
@@ -579,7 +618,9 @@ async function _playGame (game) {
   let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
   let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
 
-  // Auto-fill incomplete lineups before the game
+  // Trim excess players and auto-fill incomplete lineups before the game
+  playerTeamA = await _trimExcessLineup(teamA, playerTeamA)
+  playerTeamB = await _trimExcessLineup(teamB, playerTeamB)
   playerTeamA = await _autoFillLineup(teamA, playerTeamA)
   playerTeamB = await _autoFillLineup(teamB, playerTeamB)
 

@@ -104,8 +104,6 @@ export class Lineup extends UIElement {
       await server.saveLineup(playersToSave, this.team.formation)
       toast('Lineup saved.', 'success')
       lineUpData.squadDataChanged = false
-      await lineUpData.parentInstance.load()
-      lineUpData.parentInstance.update()
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
