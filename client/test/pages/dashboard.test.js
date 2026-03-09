@@ -207,11 +207,12 @@ describe('DashboardPage', () => {
       expect(page.template).toContain('Test FC')
     })
 
-    it('template contains standing section', async () => {
+    it('loads standing data', async () => {
       const page = new DashboardPage()
       await page.load()
-      expect(page.template).toContain('table')
-      expect(page.template).toContain('#results')
+      expect(server.getStanding).toHaveBeenCalled()
+      expect(page.standing).toHaveLength(1)
+      expect(page.standing[0].team.name).toBe('Test FC')
     })
 
     it('template contains action cards component on cards sub-page', async () => {

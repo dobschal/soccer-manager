@@ -6,6 +6,7 @@ import { UIElement } from '../../lib/UIElement.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
+import { shortenTeamName } from '../../util/team.js'
 
 export class FriendlyResultsPage extends UIElement {
   results = []
@@ -106,8 +107,8 @@ export class FriendlyResultsPage extends UIElement {
     const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
     const emblem2 = `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`
 
-    const nameLabel1 = result.team1
-    const nameLabel2 = result.team2
+    const nameLabel1 = shortenTeamName(result.team1)
+    const nameLabel2 = shortenTeamName(result.team2)
 
     const team1IsMyTeam = this.myTeamId === result.team1Id
     const team2IsMyTeam = this.myTeamId === result.team2Id

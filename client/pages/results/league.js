@@ -10,6 +10,7 @@ import { renderPlayerImage } from '../../partials/playerImage.js'
 import { loadManagerChatSvg, renderManagerChatInline } from '../../partials/managerChat.js'
 import { t } from '../../i18n/index.js'
 import { Table } from '../../partials/table.js'
+import { shortenTeamName } from '../../util/team.js'
 
 export class LeagueResultsPage extends UIElement {
   suspendedPlayers = []
@@ -513,8 +514,8 @@ export class LeagueResultsPage extends UIElement {
     const team1IsMyTeam = this.myTeamId === result.team1Id
     const team2IsMyTeam = this.myTeamId === result.team2Id
 
-    const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${result.team1} (${result.strengthTeamA ?? '-'})${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
-    const team2Name = `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${result.team2} (${result.strengthTeamB ?? '-'})${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
+    const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team1)} (${result.strengthTeamA ?? '-'})${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
+    const team2Name = `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team2)} (${result.strengthTeamB ?? '-'})${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
 
     return [
       `${team1Name}${emblem1}`,

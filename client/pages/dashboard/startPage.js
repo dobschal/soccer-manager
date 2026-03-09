@@ -81,7 +81,7 @@ export class StartPage {
           ${renderEmblem(this.team, 160)}
           <h2 class="mb-4">${this.team.name}</h2>
           ${this._renderMiniStanding()}
-          <h5 class="mb-2 text-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')}</h5>
+          <h5 class="mb-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')}</h5>
           ${this._renderUrgencyChecklist()}
         </div>
       </div>
@@ -244,7 +244,7 @@ export class StartPage {
   }
 
   /**
-   * @returns {string}
+   * @returns {UIElement|string}
    */
   _renderMiniStanding () {
     if (!this.standing || this.standing.length === 0) {
@@ -290,7 +290,7 @@ export class StartPage {
           `${item.points}`
         ]
       }
-    }).template
+    })
   }
 
   /**

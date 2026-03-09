@@ -20,6 +20,7 @@ import {
   parseEmblemParams
 } from '../../util/emblemGenerator.js'
 import { t } from '../../i18n/index.js'
+
 export class ATeamPage {
 
   /**
@@ -71,12 +72,10 @@ export class ATeamPage {
       : 0
 
     const teamNameId = generateId()
-    onClick(teamNameId, () => {
-      this._showTeamNameEditor()
-    })
+    onClick(teamNameId, () => this._showTeamNameEditor())
 
     return `
-      <h2 id="${teamNameId}" class="u-cursor-pointer" title="${t('myTeam.clickToEditName')}">
+      <h2 id="${teamNameId}" class="u-cursor-pointer mb-4 text-center text-lg-start" title="${t('myTeam.clickToEditName')}">
         ${this.parent.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i>
       </h2>
       <div class="row">
@@ -86,14 +85,16 @@ export class ATeamPage {
               <h5 class="card-title mb-0">${t('myTeam.teamInfo')}</h5>
             </div>
             <div class="card-body">
-              <p class="card-text">
-                <b>${t('myTeam.league')}</b> ${formatLeague(this.parent.data.team.level, this.parent.data.team.league)}<br>
-                <b>${t('myTeam.salaryTotal')}</b> ${euroFormat.format(totalSalary)}<br>
-                <b>${t('myTeam.avgAge')}</b> ${avgAge} ${t('myTeam.years')}<br>
-                <b>${t('myTeam.avgLevel')}</b> ${avgLevel}<br>
-                <b>${t('myTeam.totalStrength')}</b> ${totalStrength}<br>
-                <b>${t('myTeam.lineupStrength')}</b> ${lineupStrength}
-              </p>
+              <table class="table table-sm table-borderless mb-0">
+                <tbody>
+                  <tr><td class="text-muted">${t('myTeam.league')}</td><td class="text-end">${formatLeague(this.parent.data.team.level, this.parent.data.team.league)}</td></tr>
+                  <tr><td class="text-muted">${t('myTeam.salaryTotal')}</td><td class="text-end">${euroFormat.format(totalSalary)}</td></tr>
+                  <tr><td class="text-muted">${t('myTeam.avgAge')}</td><td class="text-end">${avgAge} ${t('myTeam.years')}</td></tr>
+                  <tr><td class="text-muted">${t('myTeam.avgLevel')}</td><td class="text-end">${avgLevel}</td></tr>
+                  <tr><td class="text-muted">${t('myTeam.totalStrength')}</td><td class="text-end">${totalStrength}</td></tr>
+                  <tr><td class="text-muted">${t('myTeam.lineupStrength')}</td><td class="text-end">${lineupStrength}</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { UIElement } from '../../lib/UIElement.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
+import { shortenTeamName } from '../../util/team.js'
 
 export class CupResultsPage extends UIElement {
   cupSeason = null
@@ -193,8 +194,8 @@ export class CupResultsPage extends UIElement {
     const team1IsMyTeam = this.myTeamId === result.team1Id
     const team2IsMyTeam = this.myTeamId === result.team2Id
 
-    const nameLabel1 = result.team1
-    const nameLabel2 = isBye ? '' : result.team2
+    const nameLabel1 = shortenTeamName(result.team1)
+    const nameLabel2 = isBye ? '' : shortenTeamName(result.team2)
 
     const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${nameLabel1}${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
 

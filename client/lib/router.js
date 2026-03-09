@@ -18,9 +18,6 @@ const PAGE_ORDER = {
   trades: 4
 }
 
-/** Cleanup function for any in-progress page transition */
-let _transitionCleanup = null
-
 /**
  * Open a page under a specific path.
  *
@@ -105,6 +102,7 @@ function _getDirection (fromPath, toPath) {
 function _animateTransition (container, oldWrapper, newWrapper, direction) {
   // No animation on first load or same wrapper
   if (!oldWrapper || oldWrapper === newWrapper) {
+    console.log('No animation: ', !oldWrapper ? 'first load' : 'same wrapper')
     for (const child of [...container.children]) {
       child.style.display = child === newWrapper ? '' : 'none'
     }
@@ -112,28 +110,21 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
   }
 
   // Keep old content visible, hide everything else
-  for (const child of [...container.children]) {
-    if (child !== oldWrapper) {
-      child.style.display = 'none'
-    }
-  }
+  // TODO: Is that needed?
+  // for (const child of [...container.children]) {
+  //   if (child !== oldWrapper) {
+  //     child.style.display = 'none'
+  //   }
+  // }
 
   const cleanup = () => {
-    if (_transitionCleanup !== cleanup) return
-    _transitionCleanup = null
     oldWrapper.style.display = 'none'
     newWrapper.style.display = ''
     container.style.transition = ''
     container.style.transform = ''
   }
-  _transitionCleanup = cleanup
-
-  // Phase 1: slide the whole container out
-  container.style.transition = 'transform 0.15s ease-in'
-  container.style.transform = direction === 'right' ? 'translateX(-120%)' : 'translateX(120%)'
 
   const startSlideIn = () => {
-    if (_transitionCleanup !== cleanup) return
 
     // Swap content while off-screen
     oldWrapper.style.display = 'none'
@@ -143,32 +134,19 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
     container.style.transition = 'none'
     container.style.transform = direction === 'right' ? 'translateX(120%)' : 'translateX(-120%)'
 
-    // Wait two frames so the browser commits the jump before starting the slide-in
-    setTimeout(() => {
-      if (_transitionCleanup !== cleanup) return
-      // Phase 2: slide back in
-      container.style.transition = 'transform 0.3s ease-in-out'
-      container.style.transform = 'translateX(0)'
-    }, 40)
-
-    const onSlideIn = (e) => {
-      if (e.target !== container) return
-      container.removeEventListener('transitionend', onSlideIn)
-      cleanup()
-    }
-    container.addEventListener('transitionend', onSlideIn)
-    setTimeout(cleanup, 400)
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        container.style.transition = 'transform 0.3s ease-in-out'
+        container.style.transform = 'translateX(0)'
+        setTimeout(cleanup, 310)
+      })
+    })
   }
 
-  const onSlideOut = (e) => {
-    if (e.target !== container) return
-    container.removeEventListener('transitionend', onSlideOut)
-    startSlideIn()
-  }
-  container.addEventListener('transitionend', onSlideOut)
-  setTimeout(() => {
-    if (_transitionCleanup === cleanup) startSlideIn()
-  }, 150)
+  // Phase 1: slide the whole container out
+  container.style.transition = 'transform 0.3s ease-in-out'
+  container.style.transform = direction === 'right' ? 'translateX(-120%)' : 'translateX(120%)'
+  setTimeout(() => startSlideIn(), 310)
 }
 
 /**
@@ -200,12 +178,6 @@ async function _resolvePage () {
   hideNavigation()
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
-
-  // Finish any in-progress transition immediately
-  if (_transitionCleanup) {
-    _transitionCleanup()
-    _transitionCleanup = null
-  }
 
   const direction = _getDirection(previousPath, currentPath)
   const oldWrapper = previousPath != null ? _pageCache[previousPath]?.wrapper : null
