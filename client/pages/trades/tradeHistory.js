@@ -2,11 +2,12 @@ import { UIElement } from '../../lib/UIElement.js'
 import { server } from '../../lib/gateway.js'
 import { euroFormat } from '../../lib/currency.js'
 import { calculatePlayerAge } from '../../util/player.js'
-import { goTo } from '../../lib/router.js'
+import { goTo, setQueryParams } from '../../lib/router.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
 import { renderPageNumbers } from '../../partials/pagination.js'
+import { toast } from '../../partials/toast.js'
 
 const PAGE_SIZE = 20
 
@@ -21,15 +22,6 @@ export class TradeHistoryPage extends UIElement {
    */
   get events () {
     return {
-      div: {
-        click: (event) => {
-          const target = event.target
-          const teamLink = target.closest('[data-team-link]')
-          if (teamLink) {
-            goTo('team?id=' + teamLink.dataset.teamLink)
-          }
-        }
-      },
       '(optional).trade-history-pagination': {
         click: (event) => {
           const target = event.target
@@ -79,8 +71,8 @@ export class TradeHistoryPage extends UIElement {
         const toTeam = this.teams.find(te => te.id === trade.to_team_id)
         return [
           `${player?.name ?? 'Unknown'} (${player?.position ?? '?'}, ${player ? renderLevelBadge(player.level) : '?'}, ${player ? calculatePlayerAge(player, trade.season) : '?'})`,
-          `<span class="hover-text" data-team-link="${trade.from_team_id}">${fromTeam?.name ?? 'Unknown'}</span>`,
-          `<span class="hover-text" data-team-link="${trade.to_team_id}">${toTeam?.name ?? 'Unknown'}</span>`,
+          fromTeam?.name ?? 'Unknown',
+          toTeam?.name ?? 'Unknown',
           `${t('finances.season', { season: trade.season + 1 })}, ${t('results.gameDay', { day: trade.game_day + 1 })}`,
           euroFormat.format(trade.price)
         ]
@@ -136,6 +128,9 @@ export class TradeHistoryPage extends UIElement {
   _getTableCols () {
     return [{
       name: t('trades.player'),
+      onClick: (trade) => {
+        setQueryParams({ player_id: trade.player_id })
+      },
       sortFn: (a, b, isAsc) => {
         const playerA = this.players.find(p => p.id === a.player_id)
         const playerB = this.players.find(p => p.id === b.player_id)
@@ -145,6 +140,14 @@ export class TradeHistoryPage extends UIElement {
       }
     }, {
       name: t('finances.from'),
+      onClick: (trade) => {
+        const team = this.teams.find(te => te.id === trade.from_team_id)
+        if (team?.is_system_team) {
+          toast(t('trades.noTeamInfo'))
+          return
+        }
+        goTo(`team?id=${trade.from_team_id}`)
+      },
       sortFn: (a, b, isAsc) => {
         const teamA = this.teams.find(te => te.id === a.from_team_id)
         const teamB = this.teams.find(te => te.id === b.from_team_id)
@@ -154,6 +157,14 @@ export class TradeHistoryPage extends UIElement {
       }
     }, {
       name: t('finances.to2'),
+      onClick: (trade) => {
+        const team = this.teams.find(te => te.id === trade.to_team_id)
+        if (team?.is_system_team) {
+          toast(t('trades.noTeamInfo'))
+          return
+        }
+        goTo(`team?id=${trade.to_team_id}`)
+      },
       sortFn: (a, b, isAsc) => {
         const teamA = this.teams.find(te => te.id === a.to_team_id)
         const teamB = this.teams.find(te => te.id === b.to_team_id)

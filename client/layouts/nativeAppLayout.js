@@ -102,7 +102,11 @@ export class NativeAppLayout extends UIElement {
   }
 
   onMounted () {
-    window.scrollTo(0, 0)
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant'
+    })
     this._attachEventHandlers()
     this._startTimer()
     setTimeout(() => document.querySelector(`${this._elementQuery} .native-tab-bar`)

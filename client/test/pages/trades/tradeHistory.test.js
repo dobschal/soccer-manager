@@ -189,7 +189,7 @@ describe('TradeHistoryPage', () => {
       expect(page.template).toContain('Season 1')
     })
 
-    it('shows team names with team link attributes', async () => {
+    it('shows team names in table', async () => {
       server.getTradeHistory.mockResolvedValue({
         trades: [
           { id: 1, player_id: 1, from_team_id: 1, to_team_id: 2, price: 50000, season: 0, game_day: 5 }
@@ -205,8 +205,6 @@ describe('TradeHistoryPage', () => {
 
       const page = new TradeHistoryPage()
       await page.load()
-      expect(page.template).toContain('data-team-link="1"')
-      expect(page.template).toContain('data-team-link="2"')
       expect(page.template).toContain('Team A')
       expect(page.template).toContain('Team B')
     })

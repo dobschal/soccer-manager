@@ -366,6 +366,7 @@ export default {
   'trades.history': 'Verlauf',
   'trades.transferMarket': 'Transfermarkt',
   'trades.transferMarketDesc': 'Schau dir den Transfermarkt an, um bessere Spieler zu finden:',
+  'trades.noTeamInfo': 'Keine Teaminformationen verfügbar.',
   'trades.buy': 'Kaufen',
   'trades.buyPlayer': '{playerName} kaufen?',
   'trades.enterOfferValue': 'Bitte gib den Wert deines Angebots ein, um diesen Spieler zu kaufen.',

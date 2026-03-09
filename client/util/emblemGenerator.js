@@ -67,10 +67,11 @@ export const EMBLEM_PATTERNS = {
   stripes: {
     name: 'Vertical Stripes',
     render: (color, color2) => `
-      <rect x="0" y="0" width="200" height="200" fill="${color}"/>
-      <rect x="40" y="0" width="20" height="200" fill="${color2}"/>
-      <rect x="90" y="0" width="20" height="200" fill="${color2}"/>
-      <rect x="140" y="0" width="20" height="200" fill="${color2}"/>
+      <rect x="10" y="0" width="200" height="200" fill="${color}"/>
+      <rect x="30" y="0" width="20" height="200" fill="${color2}"/>
+      <rect x="70" y="0" width="20" height="200" fill="${color2}"/>
+      <rect x="110" y="0" width="20" height="200" fill="${color2}"/>
+      <rect x="150" y="0" width="20" height="200" fill="${color2}"/>
     `
   },
   horizontalStripes: {
@@ -78,8 +79,9 @@ export const EMBLEM_PATTERNS = {
     render: (color, color2) => `
       <rect x="0" y="0" width="200" height="200" fill="${color}"/>
       <rect x="0" y="40" width="200" height="20" fill="${color2}"/>
-      <rect x="0" y="90" width="200" height="20" fill="${color2}"/>
-      <rect x="0" y="140" width="200" height="20" fill="${color2}"/>
+      <rect x="0" y="80" width="200" height="20" fill="${color2}"/>
+      <rect x="0" y="120" width="200" height="20" fill="${color2}"/>
+      <rect x="0" y="160" width="200" height="20" fill="${color2}"/>
     `
   },
   quartered: {

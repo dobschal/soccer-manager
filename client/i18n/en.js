@@ -366,6 +366,7 @@ export default {
   'trades.history': 'History',
   'trades.transferMarket': 'Transfer market',
   'trades.transferMarketDesc': 'Have a look on the transfer market to catch better players:',
+  'trades.noTeamInfo': 'No team information available.',
   'trades.buy': 'Buy',
   'trades.buyPlayer': 'Buy {playerName}?',
   'trades.enterOfferValue': 'Please enter the value of your offer to buy this player.',

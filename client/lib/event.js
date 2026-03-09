@@ -28,10 +28,10 @@ export function off (id) {
 
 /**
  * @param {string} eventName
- * @param {*} data
+ * @param {*} [data]
  * @returns {void}
  */
-export function fire (eventName, data) {
+export function fire (eventName, data = null) {
   _listeners.forEach(listener => {
     if (listener.eventName === eventName) {
       listener.callback(data)

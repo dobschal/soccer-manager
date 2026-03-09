@@ -4,7 +4,7 @@ import { showDialog } from '../../partials/dialog.js'
 import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { Table } from '../../partials/table.js'
-import { getQueryParams, setQueryParams } from '../../lib/router.js'
+import { getQueryParams, goTo, setQueryParams } from '../../lib/router.js'
 import { calculatePlayerAge, sortByPosition } from '../../util/player.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
@@ -43,7 +43,7 @@ export class MarketPage extends UIElement {
         change: (event) => {
           this._positionFilter = event.target.value
           this._page = 0
-          this.update()
+          void this.update()
         }
       },
       '(optional).market-pagination': {
@@ -117,7 +117,7 @@ export class MarketPage extends UIElement {
         const offerTeam = this.teams.find(t => t.id === offer.from_team_id)
         return [
           player.name,
-          `<a href="#team?id=${offerTeam.id}" class="text-info">${offerTeam.name}</a>`,
+          offerTeam.name,
           player.position,
           calculatePlayerAge(player, this.season),
           renderLevelBadge(player.level),
@@ -173,7 +173,15 @@ export class MarketPage extends UIElement {
         setQueryParams({ player_id: offer.player_id })
       }
     }, {
-      name: t('results.team')
+      name: t('results.team'),
+      onClick: (offer) => {
+        const team = this.teams.find(t => t.id === offer.from_team_id)
+        if (team?.is_system_team) {
+          toast(t('trades.noTeamInfo'))
+          return
+        }
+        goTo(`team?id=${offer.from_team_id}`)
+      }
     }, {
       name: t('player.position'),
       sortFn: (offerA, offerB, isAsc) => {

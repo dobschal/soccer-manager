@@ -212,7 +212,7 @@ export function showOverlay (title, subttitle, text) {
   const html = `
     <div id="${overlayId}" class="overlay-backdrop">
       <div id="${overlayInnerId}" class="card overlay">
-        <div class="card-header overlay-header">
+        <div class="card-header overlay-header border-0">
             <div>
               <h5 class="card-title mb-0">${title}</h5>
               <h6 class="card-subtitle text-muted mb-0">${subttitle}</h6>

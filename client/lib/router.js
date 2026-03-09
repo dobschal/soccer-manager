@@ -164,7 +164,7 @@ async function _resolvePage () {
   window.scrollTo({
     top: 0,
     left: 0,
-    behavior: 'smooth'
+    behavior: 'instant'
   })
   const previousPath = lastPath
   lastPath = currentPath
@@ -246,7 +246,11 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement, oldWrapp
  */
 function _afterPageLoad () {
   fire('page-changed')
-  window.scrollTo(0, 0)
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'instant'
+  })
 }
 
 /**
