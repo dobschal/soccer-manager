@@ -42,7 +42,6 @@ describe('ProgressBar', () => {
 
       const html = bar.template
       expect(html).toContain('bg-success')
-      expect(html).toContain('#198754') // Success text color
     })
 
     it('shows success for exactly 80%', () => {
@@ -57,7 +56,6 @@ describe('ProgressBar', () => {
 
       const html = bar.template
       expect(html).toContain('bg-warning')
-      expect(html).toContain('#cc9a06') // Warning text color
     })
 
     it('shows warning for exactly 60%', () => {
@@ -87,7 +85,6 @@ describe('ProgressBar', () => {
 
       const html = bar.template
       expect(html).toContain('bg-danger')
-      expect(html).toContain('#dc3545') // Danger text color
     })
 
     it('shows danger for 0%', () => {
@@ -99,20 +96,12 @@ describe('ProgressBar', () => {
   })
 
   describe('responsive design', () => {
-    it('has progress bar for large screens', () => {
+    it('has progress bar visible on all screens', () => {
       const bar = new ProgressBar(0.5)
 
       const html = bar.template
-      expect(html).toContain('d-none d-lg-flex')
       expect(html).toContain('progress')
-    })
-
-    it('has text-only display for small screens', () => {
-      const bar = new ProgressBar(0.5)
-
-      const html = bar.template
-      expect(html).toContain('d-lg-none')
-      expect(html).toContain('fw-bold')
+      expect(html).not.toContain('d-none')
     })
   })
 

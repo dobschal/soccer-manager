@@ -84,15 +84,15 @@ export class ATeamPage {
             <div class="card-header text-white gradient-header">
               <h5 class="card-title mb-0">${t('myTeam.teamInfo')}</h5>
             </div>
-            <div class="card-body">
-              <table class="table table-sm table-borderless mb-0">
+            <div class="card-body pt-0">
+              <table class="table table-sm mb-0" style="margin: 0 -1rem; width: calc(100% + 2rem);">
                 <tbody>
-                  <tr><td class="text-muted">${t('myTeam.league')}</td><td class="text-end">${formatLeague(this.parent.data.team.level, this.parent.data.team.league)}</td></tr>
-                  <tr><td class="text-muted">${t('myTeam.salaryTotal')}</td><td class="text-end">${euroFormat.format(totalSalary)}</td></tr>
-                  <tr><td class="text-muted">${t('myTeam.avgAge')}</td><td class="text-end">${avgAge} ${t('myTeam.years')}</td></tr>
-                  <tr><td class="text-muted">${t('myTeam.avgLevel')}</td><td class="text-end">${avgLevel}</td></tr>
-                  <tr><td class="text-muted">${t('myTeam.totalStrength')}</td><td class="text-end">${totalStrength}</td></tr>
-                  <tr><td class="text-muted">${t('myTeam.lineupStrength')}</td><td class="text-end">${lineupStrength}</td></tr>
+                  <tr><td class="text-muted ps-3">${t('myTeam.league')}</td><td class="text-end pe-3">${formatLeague(this.parent.data.team.level, this.parent.data.team.league)}</td></tr>
+                  <tr><td class="text-muted ps-3">${t('myTeam.salaryTotal')}</td><td class="text-end pe-3">${euroFormat.format(totalSalary)}</td></tr>
+                  <tr><td class="text-muted ps-3">${t('myTeam.avgAge')}</td><td class="text-end pe-3">${avgAge} ${t('myTeam.years')}</td></tr>
+                  <tr><td class="text-muted ps-3">${t('myTeam.avgLevel')}</td><td class="text-end pe-3">${avgLevel}</td></tr>
+                  <tr><td class="text-muted ps-3">${t('myTeam.totalStrength')}</td><td class="text-end pe-3">${totalStrength}</td></tr>
+                  <tr><td class="text-muted ps-3">${t('myTeam.lineupStrength')}</td><td class="text-end pe-3">${lineupStrength}</td></tr>
                 </tbody>
               </table>
             </div>

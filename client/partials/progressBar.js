@@ -12,17 +12,6 @@ function getColorClass (percentage) {
   return 'danger' // red
 }
 
-/**
- * Get text color style based on value
- * @param {number} percentage - Value between 0 and 100
- * @returns {string} - CSS color value
- */
-function getTextColor (percentage) {
-  if (percentage >= 80) return '#198754' // Bootstrap success green
-  if (percentage >= 60) return '#cc9a06' // Darker yellow
-  if (percentage >= 40) return '#fd7e14' // Bootstrap orange
-  return '#dc3545' // Bootstrap danger red
-}
 
 export class ProgressBar extends UIElement {
   /**
@@ -39,16 +28,13 @@ export class ProgressBar extends UIElement {
   get template () {
     const percentage = Math.round(this.value * 100)
     const colorClass = getColorClass(percentage)
-    const textColor = getTextColor(percentage)
-
     // Custom orange color for Bootstrap (not built-in)
     const bgClass = colorClass === 'orange' ? '' : `bg-${colorClass}`
     const bgStyle = colorClass === 'orange' ? 'background-color: #fd7e14;' : ''
 
     return `
       <div>
-        <!-- Progress bar for medium+ screens -->
-        <div class="progress d-none d-lg-flex" style="height: 22px; min-width: 60px;">
+        <div class="progress" style="height: 22px; min-width: 60px;">
           <div
             class="progress-bar ${bgClass}"
             role="progressbar"
@@ -60,10 +46,6 @@ export class ProgressBar extends UIElement {
             ${percentage}%
           </div>
         </div>
-        <!-- Text only for small screens -->
-        <span class="d-lg-none fw-bold" style="color: ${textColor};">
-          ${percentage}%
-        </span>
       </div>
     `
   }

@@ -3,6 +3,7 @@ import { calculatePlayerAge, getSalary } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { renderLevelBadge } from './levelBadge.js'
 import { calculateMarketValue } from '../util/player.js'
+import { ProgressBar } from './progressBar.js'
 
 export class PlayerListItem extends UIElement {
   /**
@@ -57,7 +58,7 @@ export class PlayerListItem extends UIElement {
         <th scope="row">${this.player.name}${this.player.is_star_player ? ' ⭐' : ''}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''} ${this._renderCards(yellowCards, redCards)}</th>
         <td>${this.player.position}</td>
         <td class="text-right">${age}</td>
-        <td class="text-right ${this.player.freshness < 0.4 ? 'text-danger' : (this.player.freshness < 0.7 ? 'text-warning' : 'text-success')}">${Math.floor(this.player.freshness * 100)}%</td>
+        <td class="text-right">${new ProgressBar(this.player.freshness)}</td>
         <td class="text-right">${renderLevelBadge(this.player.level)}</td>
         <td class="text-right">${euroFormat.format(salary)}</td>
         ${extendedCells}

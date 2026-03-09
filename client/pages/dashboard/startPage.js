@@ -238,8 +238,8 @@ export class StartPage {
         btn.innerHTML = '<i class="fa fa-random"></i> ' + t('friendly.playRandomFriendly')
       }
     })
-    return `<div class="text-center mt-2">
-      <button id="${btnId}" class="btn btn-outline-info btn-sm"><i class="fa fa-random"></i> ${t('friendly.playRandomFriendly')}</button>
+    return `<div class="text-center mt-4">
+      <button id="${btnId}" class="btn btn-info btn-sm"><i class="fa fa-random"></i> ${t('friendly.playRandomFriendly')}</button>
     </div>`
   }
 

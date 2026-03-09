@@ -95,31 +95,13 @@ describe('PlayerListItem', () => {
   })
 
   describe('freshness display', () => {
-    it('shows text-success for high freshness', () => {
+    it('renders a progress bar component for freshness', () => {
       const player = testData.player({ freshness: 0.9 })
       const item = new PlayerListItem(player, 1, vi.fn())
 
       const html = item.template
-      expect(html).toContain('text-success')
-      expect(html).toContain('90%')
-    })
-
-    it('shows text-warning for medium freshness', () => {
-      const player = testData.player({ freshness: 0.5 })
-      const item = new PlayerListItem(player, 1, vi.fn())
-
-      const html = item.template
-      expect(html).toContain('text-warning')
-      expect(html).toContain('50%')
-    })
-
-    it('shows text-danger for low freshness', () => {
-      const player = testData.player({ freshness: 0.3 })
-      const item = new PlayerListItem(player, 1, vi.fn())
-
-      const html = item.template
-      expect(html).toContain('text-danger')
-      expect(html).toContain('30%')
+      // ProgressBar is a UIElement, rendered as a <template> placeholder
+      expect(html).toContain('<template id=')
     })
   })
 
