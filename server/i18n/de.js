@@ -114,7 +114,6 @@ export default {
   'log.playerFiveYellows': '{playerName} hat 5 gelbe Karten angesammelt!',
   'log.playerSuspended': '{playerName} ist gesperrt und wird das nächste Spiel verpassen.',
   'log.playerRemovedFromLineup': '{playerName} wurde aufgrund einer Sperre automatisch aus der Aufstellung entfernt.',
-  'log.playerAt4Yellows': 'Warnung: {playerName} hat 4 gelbe Karten. Eine weitere und er ist gesperrt!',
   'log.lineupAutoFilled': 'Deine Aufstellung war unvollständig. {playerName} wurde automatisch auf {position} gesetzt.',
 
   // Finance reasons

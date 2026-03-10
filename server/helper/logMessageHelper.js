@@ -124,17 +124,6 @@ export async function checkTeamAndNotify (team) {
     )
   }
 
-  // Warn about players close to 5 yellow card suspension
-  const playersAt4Yellows = players.filter(p => p.yellow_cards === 4)
-  for (const player of playersAt4Yellows) {
-    await addLogMessage(
-      t('log.playerAt4Yellows', { playerName: player.name }, locale),
-      team,
-      'OPEN_PLAYER',
-      player.id,
-      'exclamation-triangle'
-    )
-  }
 }
 
 /**
