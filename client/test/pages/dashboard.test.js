@@ -257,6 +257,44 @@ describe('DashboardPage', () => {
     })
   })
 
+  describe('urgency refresh on navigation back to start', () => {
+    it('re-fetches urgencies when navigating back to start page so resolved urgencies disappear', async () => {
+      // 1. Initial load with an urgency (e.g. INCOMPLETE_LINEUP)
+      server.getDashboardUrgencies.mockResolvedValue({
+        urgencies: [{ type: 'INCOMPLETE_LINEUP', count: 7 }]
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
+      // Verify urgency is present in the initial render
+      const initialHtml = page.template
+      expect(initialHtml).toContain('fa-exclamation-circle')
+
+      // 2. Navigate away to another sub-page (e.g. cards)
+      await page.onQueryChanged({ sub_page: 'cards' })
+      expect(page.subPage).toBe('cards')
+
+      // 3. User fixes the issue (lineup is now complete) — server returns no urgencies
+      server.getDashboardUrgencies.mockResolvedValue({
+        urgencies: []
+      })
+
+      // 4. Navigate back to the start page
+      await page.onQueryChanged({ sub_page: undefined })
+
+      // 5. Verify urgencies were re-fetched
+      expect(server.getDashboardUrgencies).toHaveBeenCalledTimes(2)
+
+      // 6. Verify the start page no longer shows the urgency
+      expect(page._urgencies).toEqual([])
+      // Invalidate cached sub-page so template uses fresh data
+      const html = page._subPageCache.start.toString()
+      expect(html).toContain('fa-check-circle')
+      expect(html).not.toContain('fa-exclamation-circle')
+    })
+  })
+
   describe('urgency checklist', () => {
     it('calls getDashboardUrgencies during load', async () => {
       const page = new DashboardPage()

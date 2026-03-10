@@ -390,8 +390,12 @@ export class DashboardPage extends UIElement {
     }
     if (newSubPage !== this.subPage) {
       this.subPage = newSubPage
-      // StartPage is synchronous — always recreate with fresh data
-      if (!newSubPage) this._subPageCache.start = this._createStartPage()
+      // Refresh urgencies and recreate StartPage with fresh data
+      if (!newSubPage) {
+        const urgencyResponse = await server.getDashboardUrgencies(window.__nativePlatform || 'web')
+        this._urgencies = urgencyResponse.urgencies || []
+        this._subPageCache.start = this._createStartPage()
+      }
       this._switchSubPage()
       this._updateNav()
     }
