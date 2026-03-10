@@ -1138,6 +1138,19 @@ const migrations = [{
     await query("ALTER TABLE trade_offer ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'open'")
     await query('CREATE INDEX idx_trade_offer_status ON trade_offer (status)')
   }
+}, {
+  name: 'Add IP and country columns per platform to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN last_ip_web VARCHAR(45) NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_ip_ios VARCHAR(45) NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_ip_android VARCHAR(45) NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_country_web VARCHAR(2) NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_country_ios VARCHAR(2) NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_country_android VARCHAR(2) NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_region_web VARCHAR(10) NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_region_ios VARCHAR(10) NULL DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN last_region_android VARCHAR(10) NULL DEFAULT NULL')
+  }
 }]
 
 /**

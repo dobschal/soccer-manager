@@ -3,14 +3,18 @@ import { getIncomingBuyOffers } from '../helper/tradeHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
 import { getYouthPlayersByTeam } from '../helper/youthPlayerHelper.js'
 import { query } from '../lib/database.js'
+import { getGeoFromRequest } from '../lib/geoip.js'
 
 export default {
   async getDashboardUrgencies (platformOrReq, maybeReq) {
     let platform, req
     if (typeof platformOrReq === 'string') { platform = platformOrReq; req = maybeReq } else { platform = 'web'; req = platformOrReq }
-    const col = platform === 'ios' ? 'last_login_ios' : platform === 'android' ? 'last_login_android' : 'last_login_web'
-    // Update last login timestamp (fire-and-forget)
-    query(`UPDATE user SET last_login = NOW(), ${col} = NOW() WHERE id = ?`, [req.user.id])
+    const suffix = platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web'
+    const col = `last_login_${suffix}`
+    const geo = getGeoFromRequest(req)
+    // Update last login timestamp and geo info (fire-and-forget)
+    query(`UPDATE user SET last_login = NOW(), ${col} = NOW(), last_ip_${suffix} = ?, last_country_${suffix} = ?, last_region_${suffix} = ? WHERE id = ?`,
+      [geo.ip, geo.country, geo.region, req.user.id])
 
     const team = await getTeam(req)
     const urgencies = []

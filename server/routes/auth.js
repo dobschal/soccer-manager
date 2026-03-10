@@ -9,6 +9,7 @@ import { getSupportedLocales, t } from '../i18n/index.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
+import { getGeoFromRequest } from '../lib/geoip.js'
 
 export default {
 
@@ -104,9 +105,13 @@ export default {
     const platformColumn = platform === 'ios' ? 'last_login_ios'
       : platform === 'android' ? 'last_login_android'
         : 'last_login_web'
+    const ipCol = `last_ip_${platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web'}`
+    const countryCol = `last_country_${platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web'}`
+    const regionCol = `last_region_${platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web'}`
+    const geo = getGeoFromRequest(req)
     await query(
-      `UPDATE user SET last_login = ?, ${platformColumn} = ? WHERE id = ?`,
-      [now, now, user.id]
+      `UPDATE user SET last_login = ?, ${platformColumn} = ?, ${ipCol} = ?, ${countryCol} = ?, ${regionCol} = ? WHERE id = ?`,
+      [now, now, geo.ip, geo.country, geo.region, user.id]
     )
     const token = jwt.sign({ sub: user.id }, config.SECRET)
     return { token }
