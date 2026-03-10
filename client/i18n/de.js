@@ -472,6 +472,10 @@ export default {
   'team.historyPosition': 'Pl.',
   'team.historyPoints': 'Pkt',
   'team.historyCup': 'Pokal',
+  'team.highestWin': 'Höchster Sieg',
+  'team.highestLoss': 'Höchste Niederlage',
+  'team.recordVs': 'gegen',
+  'team.recordGameDay': 'ST',
 
   // Friendly matches
   'friendly.title': 'Friendlies',

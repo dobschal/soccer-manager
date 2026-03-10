@@ -11,7 +11,8 @@ vi.mock('../../lib/gateway.js', () => ({
     canPlayFriendlyToday: vi.fn(),
     playFriendlyMatch: vi.fn(),
     getTeamTransferHistory: vi.fn(),
-    getTeamSeasonHistory: vi.fn()
+    getTeamSeasonHistory: vi.fn(),
+    getTeamRecordResults: vi.fn()
   }
 }))
 
@@ -86,6 +87,7 @@ describe('TeamPage', () => {
     // Default mocks for transfer and season history
     server.getTeamTransferHistory.mockResolvedValue({ transfers: [] })
     server.getTeamSeasonHistory.mockResolvedValue({ seasons: [] })
+    server.getTeamRecordResults.mockResolvedValue({ highestWin: null, highestLoss: null })
   })
 
   describe('TeamPage class', () => {

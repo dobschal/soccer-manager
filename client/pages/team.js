@@ -46,6 +46,10 @@ export class TeamPage extends UIElement {
   _transferHistory = []
   /** @type {Array} */
   _seasonHistory = []
+  /** @type {Object|null} */
+  _highestWin = null
+  /** @type {Object|null} */
+  _highestLoss = null
 
   /**
    * @returns {string}
@@ -83,6 +87,7 @@ export class TeamPage extends UIElement {
             ` : ''}
           </div>
         </div>
+        ${this._renderRecordResults()}
         ${new PlayerList(
       this.players,
       true,
@@ -163,13 +168,14 @@ export class TeamPage extends UIElement {
     this.team = team
     this.players = players
 
-    const [stadium, teamValue, myTeam, friendlyStatus, transferHistory, seasonHistory] = await Promise.all([
+    const [stadium, teamValue, myTeam, friendlyStatus, transferHistory, seasonHistory, recordResults] = await Promise.all([
       server.getStadiumByTeamId(this.team.id),
       server.getTeamValue(this.team.id),
       server.getMyTeam(),
       server.canPlayFriendlyToday(),
       server.getTeamTransferHistory(this.team.id),
-      server.getTeamSeasonHistory(this.team.id)
+      server.getTeamSeasonHistory(this.team.id),
+      server.getTeamRecordResults(this.team.id)
     ])
     this.stadium = stadium
     this._teamValue = teamValue.value
@@ -177,6 +183,8 @@ export class TeamPage extends UIElement {
     this._canPlayFriendly = friendlyStatus.canPlay && !this._isOwnTeam
     this._transferHistory = transferHistory.transfers || []
     this._seasonHistory = seasonHistory.seasons || []
+    this._highestWin = recordResults.highestWin
+    this._highestLoss = recordResults.highestLoss
 
     // Render best player image
     const bestPlayer = this._bestPlayer
@@ -450,5 +458,41 @@ export class TeamPage extends UIElement {
    */
   _renderSmallEmblem (team) {
     return renderEmblem(team, 20)
+  }
+
+  /**
+   * Render the record results (highest win and highest loss)
+   * @returns {string}
+   * @private
+   */
+  _renderRecordResults () {
+    if (!this._highestWin && !this._highestLoss) return ''
+
+    const renderCard = (record, label, emoji, bgClass) => {
+      if (!record) return ''
+      const emblem = this._renderSmallEmblem(record.opponent)
+      return `
+        <div class="col-12 col-md-6 mb-3">
+          <div class="card text-dark ${bgClass}">
+            <div class="card-body d-flex align-items-center">
+              <span style="font-size: 2.5rem" class="me-3">${emoji}</span>
+              <div>
+                <h5 class="card-title mb-1">${label} - ${record.ownGoals}:${record.oppGoals}</h5>
+                <div>
+                    ${t('team.recordVs')} <a href="#team?id=${record.opponentId}" class="text-dark text-decoration-underline">${emblem} ${record.opponentName}</a>
+                    </div>
+                <small>S${record.season + 1} ${t('team.recordGameDay')} ${record.gameDay + 1}</small>
+              </div>
+            </div>
+          </div>
+        </div>`
+    }
+
+    return `
+      <div class="row mb-4">
+        ${renderCard(this._highestWin, t('team.highestWin'), '🚀', 'bg-info-subtle')}
+        ${renderCard(this._highestLoss, t('team.highestLoss'), '👎', 'bg-warning-subtle')}
+      </div>
+    `
   }
 }

@@ -472,6 +472,10 @@ export default {
   'team.historyPosition': 'Pos',
   'team.historyPoints': 'Pts',
   'team.historyCup': 'Cup',
+  'team.highestWin': 'Highest Win',
+  'team.highestLoss': 'Highest Loss',
+  'team.recordVs': 'vs',
+  'team.recordGameDay': 'GD',
 
   // Friendly matches
   'friendly.title': 'Friendly Matches',

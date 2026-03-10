@@ -230,6 +230,63 @@ export default {
   },
 
   /**
+   * Get the highest win and highest loss for a team across all played games.
+   * @param {number} teamId
+   * @returns {Promise<{highestWin: Object|null, highestLoss: Object|null}>}
+   */
+  async getTeamRecordResults (teamId) {
+    const games = await query(`
+      SELECT g.id, g.season, g.game_day, g.goals_team_1, g.goals_team_2,
+             g.team_1_id, g.team_2_id, g.game_type,
+             t1.name as team1Name, t1.color as team1Color, t1.emblem as team1Emblem,
+             t2.name as team2Name, t2.color as team2Color, t2.emblem as team2Emblem
+      FROM game g
+      JOIN team t1 ON t1.id = g.team_1_id
+      JOIN team t2 ON t2.id = g.team_2_id
+      WHERE (g.team_1_id = ? OR g.team_2_id = ?) AND g.played = 1
+    `, [teamId, teamId])
+
+    let highestWin = null
+    let highestLoss = null
+    let bestDiff = 0
+    let worstDiff = 0
+
+    for (const g of games) {
+      const isTeam1 = g.team_1_id === teamId
+      const ownGoals = isTeam1 ? g.goals_team_1 : g.goals_team_2
+      const oppGoals = isTeam1 ? g.goals_team_2 : g.goals_team_1
+      const diff = ownGoals - oppGoals
+
+      const opponentId = isTeam1 ? g.team_2_id : g.team_1_id
+      const opponentName = isTeam1 ? g.team2Name : g.team1Name
+      const opponentColor = isTeam1 ? g.team2Color : g.team1Color
+      const opponentEmblem = isTeam1 ? g.team2Emblem : g.team1Emblem
+
+      const record = {
+        gameId: g.id,
+        season: g.season,
+        gameDay: g.game_day,
+        ownGoals,
+        oppGoals,
+        opponentId,
+        opponentName,
+        opponent: { id: opponentId, name: opponentName, color: opponentColor, emblem: opponentEmblem }
+      }
+
+      if (diff > bestDiff || (diff > 0 && diff === bestDiff && ownGoals > (highestWin?.ownGoals ?? 0))) {
+        bestDiff = diff
+        highestWin = record
+      }
+      if (diff < worstDiff || (diff < 0 && diff === worstDiff && oppGoals > (highestLoss?.oppGoals ?? 0))) {
+        worstDiff = diff
+        highestLoss = record
+      }
+    }
+
+    return { highestWin, highestLoss }
+  },
+
+  /**
    * Get transfer history for a specific team
    * @param {number} teamId
    * @returns {Promise<{transfers: Array}>}
