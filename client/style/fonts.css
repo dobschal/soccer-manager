@@ -1,0 +1,15 @@
+@font-face {
+  font-family: 'Cabin Sketch';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/cabin-sketch-400.ttf) format('truetype');
+}
+
+@font-face {
+  font-family: 'Neucha';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/neucha-400.ttf) format('truetype');
+}

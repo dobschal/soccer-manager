@@ -74,14 +74,6 @@ export function transformIndexHtml(clientDir, outputDir) {
   writeFileSync(resolve(outputDir, 'index.html'), html)
   console.log('Generated native index.html')
 
-  // Strip Google Fonts @import from bootstrap CSS (blocks rendering in file:// WebView)
-  const bootstrapPath = resolve(outputDir, 'style', 'bootstrap.min.css')
-  if (existsSync(bootstrapPath)) {
-    let css = readFileSync(bootstrapPath, 'utf-8')
-    css = css.replace(/@import\s+url\([^)]*fonts\.googleapis\.com[^)]*\)\s*;?/g, '')
-    writeFileSync(bootstrapPath, css)
-    console.log('Stripped Google Fonts @import from bootstrap.min.css')
-  }
 }
 
 /**
