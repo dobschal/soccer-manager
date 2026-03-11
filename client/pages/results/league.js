@@ -119,6 +119,7 @@ export class LeagueResultsPage extends UIElement {
             { name: '', width: '32px' },
             { name: t('results.team') },
             { name: t('results.games') },
+            { name: 'W/D/L' },
             { name: t('results.goals') },
             { name: t('results.diff') },
             { name: t('results.points') }
@@ -471,6 +472,7 @@ export class LeagueResultsPage extends UIElement {
       diff < 0 ? '<i class="fa fa-arrow-down text-danger" aria-hidden="true"></i>' : (diff > 0 ? '<i class="fa fa-arrow-up text-success" aria-hidden="true"></i>' : ''),
       `<span class="emblem-thumb">${renderEmblem(standingItem.team, 24)}</span>${standingItem.team.name} ${hasUser ? '<i class="fa fa-user" aria-hidden="true"></i>' : ''}`,
       `${standingItem.games}`,
+      `${standingItem.wins || 0}/${standingItem.draws || 0}/${standingItem.losses || 0}`,
       `${standingItem.goals}:${standingItem.against}`,
       `${standingItem.goals - standingItem.against}`,
       `${standingItem.points}`

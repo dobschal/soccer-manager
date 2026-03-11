@@ -7,7 +7,7 @@ import { showOverlay } from '../../partials/overlay.js'
 import { PlayerList } from '../../partials/playerList.js'
 import { toast } from '../../partials/toast.js'
 import { setQueryParams } from '../../lib/router.js'
-import { calculatePlayerAge, getSalary } from '../../util/player.js'
+import { calculatePlayerAge, getSalary, sortByPosition } from '../../util/player.js'
 import { euroFormat } from '../../lib/currency.js'
 import { formatLeague } from '../../util/league.js'
 import { lineUpData, renderLineup } from '../../partials/lineup.js'
@@ -28,6 +28,13 @@ export class ATeamPage {
    */
   constructor (parent) {
     this.parent = parent
+    this._playerList = null
+    lineUpData.onExchange = (updatedPlayers) => {
+      if (this._playerList) {
+        this._playerList.players = updatedPlayers.filter(p => !p.fake).sort(sortByPosition)
+        this._playerList.update()
+      }
+    }
   }
 
   /**
@@ -43,7 +50,16 @@ export class ATeamPage {
         ${renderLineup(this.parent.data.players, this.parent.data.team, this.parent)}
       </div>
       <div id="player-list-container">
-        ${new PlayerList(
+        ${this._createPlayerList()}
+      </div>
+    `
+  }
+
+  /**
+   * @returns {PlayerList}
+   */
+  _createPlayerList () {
+    this._playerList = new PlayerList(
       this.parent.data.players,
       true,
       p => {
@@ -53,9 +69,8 @@ export class ATeamPage {
       },
       true,
       true
-    )}
-      </div>
-    `
+    )
+    return this._playerList
   }
 
   /**

@@ -173,7 +173,7 @@ export class ActionCards extends UIElement {
 
       return `
         <div class="col-6 col-md-4 col-lg-3 col-xl-2">
-          <div class="action-card-stack" data-action-card="${firstCardIdx}" data-can-merge="${canMerge}">
+          <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
             ${cards.slice(0, 5).map((_, i) => `
               <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
                 <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
@@ -221,21 +221,21 @@ export class ActionCards extends UIElement {
     const stackEl = this._currentCardElement
     if (!stackEl) return
 
+    // Get the action type and update array BEFORE animation
+    // so that clicking the stack again during animation picks the next card
+    const usedCard = this.cards[usedCardIndex]
+    const actionType = usedCard.action
+    this.cards.splice(usedCardIndex, 1)
+    const remainingOfType = this.cards.filter(c => c.action === actionType).length
+
+    // Update all data-action-card indices immediately
+    this._updateAllStackIndices()
+
     const topCard = stackEl.querySelector('.action-card-wrapper')
     if (topCard) {
       topCard.classList.add('card-used')
       await delay(1000)
     }
-
-    // Get the action type before removing from array
-    const usedCard = this.cards[usedCardIndex]
-    const actionType = usedCard.action
-
-    // Remove the card from internal array
-    this.cards.splice(usedCardIndex, 1)
-
-    // Count remaining cards of this type
-    const remainingOfType = this.cards.filter(c => c.action === actionType).length
 
     if (remainingOfType === 0) {
       stackEl.remove()
@@ -243,27 +243,30 @@ export class ActionCards extends UIElement {
       // Remove the top card wrapper from visual stack
       topCard?.remove()
 
-      // Update count badge
-      const countBadge = stackEl.querySelector('.action-card-count')
-      if (remainingOfType > 1) {
-        if (countBadge) {
-          countBadge.textContent = remainingOfType
-        }
+      // If all visual wrappers are gone but cards remain, rebuild the stack
+      const remainingWrappers = stackEl.querySelectorAll('.action-card-wrapper')
+      if (remainingWrappers.length === 0) {
+        this._rebuildStackVisuals(stackEl, actionType, remainingOfType)
       } else {
-        countBadge?.remove()
-      }
+        // Update count badge
+        const countBadge = stackEl.querySelector('.action-card-count')
+        if (remainingOfType > 1) {
+          if (countBadge) {
+            countBadge.textContent = remainingOfType
+          }
+        } else {
+          countBadge?.remove()
+        }
 
-      // Update merge badge
-      const canStillMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && remainingOfType > 1
-      if (!canStillMerge) {
-        const mergeBadge = stackEl.querySelector('.action-card-merge-badge')
-        mergeBadge?.remove()
-        stackEl.dataset.canMerge = 'false'
+        // Update merge badge
+        const canStillMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && remainingOfType > 1
+        if (!canStillMerge) {
+          const mergeBadge = stackEl.querySelector('.action-card-merge-badge')
+          mergeBadge?.remove()
+          stackEl.dataset.canMerge = 'false'
+        }
       }
     }
-
-    // Update all data-action-card indices since array positions changed
-    this._updateAllStackIndices()
 
     this._currentCardElement = null
   }
@@ -346,15 +349,7 @@ export class ActionCards extends UIElement {
     const cardsOfType = this.cards.filter(c => c.action === actionType)
     if (cardsOfType.length === 0) return
 
-    // Find existing stack for this type by matching image src (reliable identifier)
-    const expectedImageSrc = ACTION_CARD_IMAGES[actionType]
-    let existingStack = null
-    container.querySelectorAll('.action-card-stack').forEach(stack => {
-      const img = stack.querySelector('.action-card-image')
-      if (img && img.getAttribute('src') === expectedImageSrc) {
-        existingStack = stack
-      }
-    })
+    const existingStack = container.querySelector(`.action-card-stack[data-action-type="${actionType}"]`)
 
     const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && cardsOfType.length > 1
     const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
@@ -382,7 +377,7 @@ export class ActionCards extends UIElement {
       // Create new stack wrapped in Bootstrap col
       const newStackHtml = `
         <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-          <div class="action-card-stack" data-action-card="${firstCardIdx}" data-can-merge="${canMerge}">
+          <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
             ${cardsOfType.slice(0, 5).map((_, i) => `
               <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
                 <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
@@ -398,6 +393,31 @@ export class ActionCards extends UIElement {
   }
 
   /**
+   * Rebuilds the visual wrappers and badges for a stack element
+   * @param {Element} stackEl
+   * @param {string} actionType
+   * @param {number} count
+   */
+  _rebuildStackVisuals (stackEl, actionType, count) {
+    const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
+    const cardText = getActionCardTexts()[actionType] || { title: 'Unknown Card' }
+    const stackOffset = Math.min(count - 1, 4)
+    const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && count > 1
+
+    const wrappersHtml = Array.from({ length: Math.min(count, 5) }, (_, i) => `
+      <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
+        <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
+      </div>
+    `).join('')
+
+    const mergeBadge = canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''
+    const countBadge = count > 1 ? `<span class="action-card-count">${count}</span>` : ''
+
+    stackEl.innerHTML = wrappersHtml + mergeBadge + countBadge
+    stackEl.dataset.canMerge = canMerge
+  }
+
+  /**
    * Updates all data-action-card indices after array modifications
    */
   _updateAllStackIndices () {
@@ -405,15 +425,9 @@ export class ActionCards extends UIElement {
     if (!container) return
 
     container.querySelectorAll('.action-card-stack').forEach(stack => {
-      // Find which action type this stack represents from the image
-      const img = stack.querySelector('.action-card-image')
-      if (!img) return
-
-      const src = img.getAttribute('src')
-      const actionType = Object.entries(ACTION_CARD_IMAGES).find(([_, path]) => path === src)?.[0]
+      const actionType = stack.dataset.actionType
       if (!actionType) return
 
-      // Always find the correct index for this action type
       const newIdx = this.cards.findIndex(c => c.action === actionType)
       if (newIdx >= 0) {
         stack.dataset.actionCard = newIdx

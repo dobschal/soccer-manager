@@ -69,6 +69,8 @@ export default class PlayerModal extends UIElement {
     this.playerId = playerId
     /** @type {{ onClose: (cb: () => void) => void, remove: () => void } | null} */
     this.overlay = null
+    this.historyPage = 0
+    this.historyPageSize = 5
   }
 
   async load () {
@@ -100,6 +102,23 @@ export default class PlayerModal extends UIElement {
             e.preventDefault()
             e.stopPropagation()
             void this._onTradeOffer()
+          }
+        }
+      },
+      '(optional).history-prev-btn': {
+        click: () => {
+          if (this.historyPage > 0) {
+            this.historyPage--
+            this._renderHistoryPage()
+          }
+        }
+      },
+      '(optional).history-next-btn': {
+        click: () => {
+          const totalPages = Math.ceil(this.history.length / this.historyPageSize)
+          if (this.historyPage < totalPages - 1) {
+            this.historyPage++
+            this._renderHistoryPage()
           }
         }
       }
@@ -167,8 +186,17 @@ export default class PlayerModal extends UIElement {
         </div>
         <div class="mb-4">
           <b><i class="fa fa-calendar" aria-hidden="true"></i> ${t('player.history')}</b>
-          ${this.history.map(_renderPlayerHistory).join('')}
+          <div class="history-items">
+            ${this._getHistoryPageItems().map(_renderPlayerHistory).join('')}
+          </div>
           ${this.history.length === 0 ? `<p>${t('player.noHistory')}</p>` : ''}
+          ${this.history.length > this.historyPageSize ? `
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <button class="history-prev-btn btn btn-sm btn-outline-secondary" ${this.historyPage === 0 ? 'disabled' : ''}><i class="fa fa-chevron-left"></i></button>
+            <small class="text-muted history-page-info">${this.historyPage + 1} / ${Math.ceil(this.history.length / this.historyPageSize)}</small>
+            <button class="history-next-btn btn btn-sm btn-outline-secondary" ${this.historyPage >= Math.ceil(this.history.length / this.historyPageSize) - 1 ? 'disabled' : ''}><i class="fa fa-chevron-right"></i></button>
+          </div>
+          ` : ''}
         </div>
         <div class="mb-4 ${this.hasSellOffer ? '' : 'hidden'}">
           💰 ${t('player.onMarket')} <a href="#trades">${t('trades.market')}</a>
@@ -206,6 +234,27 @@ export default class PlayerModal extends UIElement {
         subtitleEl.innerHTML = `<span class="text-muted">${t('player.freePlayer')}</span>`
       }
     }
+  }
+
+  _getHistoryPageItems () {
+    const start = this.historyPage * this.historyPageSize
+    return this.history.slice(start, start + this.historyPageSize)
+  }
+
+  _renderHistoryPage () {
+    const root = el(this._elementQuery)
+    if (!root) return
+    const container = root.querySelector('.history-items')
+    if (container) {
+      container.innerHTML = this._getHistoryPageItems().map(_renderPlayerHistory).join('')
+    }
+    const totalPages = Math.ceil(this.history.length / this.historyPageSize)
+    const prevBtn = root.querySelector('.history-prev-btn')
+    const nextBtn = root.querySelector('.history-next-btn')
+    const pageInfo = root.querySelector('.history-page-info')
+    if (prevBtn) prevBtn.disabled = this.historyPage === 0
+    if (nextBtn) nextBtn.disabled = this.historyPage >= totalPages - 1
+    if (pageInfo) pageInfo.textContent = `${this.historyPage + 1} / ${totalPages}`
   }
 
   async _onTradeOffer () {

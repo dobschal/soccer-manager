@@ -4,6 +4,7 @@ import { showGameModal } from '../partials/gameModal.js'
 import { UIElement } from '../lib/UIElement.js'
 import { el, generateId } from '../lib/html.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
+import { getQueryParams } from '../lib/router.js'
 import { t } from '../i18n/index.js'
 import { LeagueResultsPage } from './results/league.js'
 import { CupResultsPage } from './results/cup.js'
@@ -94,6 +95,13 @@ export class ResultsPage extends UIElement {
 
   onMounted () {
     void showTutorialIfNeeded('results', this)
+    const queryParams = getQueryParams()
+    if (queryParams.game_id) {
+      void showGameModal(Number(queryParams.game_id))
+    }
+    if (queryParams.player_id) {
+      void showPlayerModal(Number(queryParams.player_id))
+    }
   }
 
   async onQueryChanged (queryParams) {

@@ -11,7 +11,8 @@ import { renderLevelBadge } from './levelBadge.js'
 
 export const lineUpData = {
   squadDataChanged: false,
-  parentInstance: null
+  parentInstance: null,
+  onExchange: null
 }
 
 export class Lineup extends UIElement {
@@ -184,16 +185,19 @@ export class Lineup extends UIElement {
    * @param {PlayerType} newPlayer
    * @returns {void}
    */
-  _exchangePlayer (player, newPlayer) {
+  async _exchangePlayer (player, newPlayer) {
     const oldPosition = player.in_game_position
     player.in_game_position = newPlayer.in_game_position
     newPlayer.in_game_position = oldPosition
-    this._overlay?.remove()
     if (player.id !== newPlayer.id) {
       lineUpData.squadDataChanged = true
     }
     render('#squad', renderLineup(this.players, this.team, lineUpData.parentInstance))
-    void this._autoSaveIfComplete()
+    if (lineUpData.onExchange) lineUpData.onExchange(this.players)
+    await this._autoSaveIfComplete()
+    setTimeout(() => {
+      this._overlay?.remove()
+    }, 300)
   }
 
   /**

@@ -42,6 +42,9 @@ export function calculateGamePlan (teams) {
  * @property {number} games
  * @property {number} goals
  * @property {number} against
+ * @property {number} wins
+ * @property {number} draws
+ * @property {number} losses
  * @property {TeamType} team
  */
 
@@ -61,6 +64,9 @@ export function calculateStanding (games, teams) {
       points: 0,
       goals: 0,
       against: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
       team
     }
   }
@@ -70,11 +76,17 @@ export function calculateStanding (games, teams) {
     if (!s1 || !s2) continue
     if (game.goals_team_1 > game.goals_team_2) {
       s1.points += 3
+      s1.wins++
+      s2.losses++
     } else if (game.goals_team_1 < game.goals_team_2) {
       s2.points += 3
+      s2.wins++
+      s1.losses++
     } else {
       s1.points += 1
       s2.points += 1
+      s1.draws++
+      s2.draws++
     }
     s1.goals += game.goals_team_1
     s2.goals += game.goals_team_2
