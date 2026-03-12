@@ -10,6 +10,7 @@ import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
+import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
 
 export default {
 
@@ -144,6 +145,19 @@ export default {
       [req.user.id, token, platform, token]
     )
     console.log(`[Push] registerDeviceToken SUCCESS - user: ${req.user.id}, platform: ${platform}`)
+    return { success: true }
+  },
+
+  /**
+   * Clear the iOS badge count by sending a silent push with badge = 0
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async clearBadge (req) {
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, req.locale || 'en'))
+    }
+    await clearPushBadge(req.user.id)
     return { success: true }
   },
 

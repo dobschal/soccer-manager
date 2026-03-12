@@ -42,12 +42,20 @@ window.__onNativeDeviceToken = async function (token, platform) {
   }
 }
 
+// Clear iOS badge when app becomes active
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && window.localStorage.getItem('auth-token')) {
+    server.clearBadge().catch(() => {})
+  }
+})
+
 // Initialize locale from localStorage or browser settings
 initLocale()
 
 // Connect WebSocket if user is authenticated
 if (window.localStorage.getItem('auth-token')) {
   connectWebSocket()
+  server.clearBadge().catch(() => {})
 }
 
 // If device token was already injected before JS loaded, register it now

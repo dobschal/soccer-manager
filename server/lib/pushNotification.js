@@ -75,6 +75,30 @@ export async function sendPushNotifications (userIds, title, body, data = {}) {
 }
 
 /**
+ * Clear the badge count for a user's iOS devices
+ * @param {number} userId
+ */
+export async function clearBadge (userId) {
+  try {
+    const provider = getApnProvider()
+    if (!provider) return
+    const tokens = await query(
+      "SELECT token FROM device_token WHERE user_id = ? AND platform = 'ios'",
+      [userId]
+    )
+    if (!tokens.length) return
+    const notification = new apn.Notification()
+    notification.badge = 0
+    notification.topic = config.APN_BUNDLE_ID
+    notification.pushType = 'alert'
+    notification.priority = 5
+    await provider.send(notification, tokens.map(t => t.token))
+  } catch (e) {
+    console.error('[Push] Error clearing badge:', e)
+  }
+}
+
+/**
  * Send a push notification directly to a device token (for testing)
  * @param {string} deviceToken
  * @param {string} message
