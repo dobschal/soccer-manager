@@ -12,7 +12,37 @@ import { toast } from '../../partials/toast.js'
 const PAGE_SIZE = 20
 
 export class TradeHistoryPage extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const response = await server.getTradeHistory()
+    this.trades = response.trades
+    this.teams = response.teams
+    this.players = response.players
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.sort_dir
+   * @param {string} params.col
+   */
+  onQueryChanged ({ sort_dir, col }) {
+    if (sort_dir && col !== undefined) {
+      const cols = this._getTableCols()
+      const colConfig = cols[Number(col)]
+      if (colConfig && (colConfig.sortKey || colConfig.sortFn)) {
+        this.trades.sort((a, b) => {
+          if (colConfig.sortFn) return colConfig.sortFn(a, b, sort_dir !== 'DESC')
+          if (sort_dir === 'ASC') return a[colConfig.sortKey] - b[colConfig.sortKey]
+          return b[colConfig.sortKey] - a[colConfig.sortKey]
+        })
+        this._page = 0
+        this.update()
+      }
+    }
+  }
   trades = []
+
   teams = []
   players = []
   _page = 0
@@ -89,37 +119,6 @@ export class TradeHistoryPage extends UIElement {
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const response = await server.getTradeHistory()
-    this.trades = response.trades
-    this.teams = response.teams
-    this.players = response.players
-  }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.sort_dir
-   * @param {string} params.col
-   */
-  onQueryChanged ({ sort_dir, col }) {
-    if (sort_dir && col !== undefined) {
-      const cols = this._getTableCols()
-      const colConfig = cols[Number(col)]
-      if (colConfig && (colConfig.sortKey || colConfig.sortFn)) {
-        this.trades.sort((a, b) => {
-          if (colConfig.sortFn) return colConfig.sortFn(a, b, sort_dir !== 'DESC')
-          if (sort_dir === 'ASC') return a[colConfig.sortKey] - b[colConfig.sortKey]
-          return b[colConfig.sortKey] - a[colConfig.sortKey]
-        })
-        this._page = 0
-        this.update()
-      }
-    }
   }
 
   /**
@@ -222,11 +221,4 @@ export class TradeHistoryPage extends UIElement {
     this._page = pageIndex
     this.update()
   }
-}
-
-/**
- * @returns {string}
- */
-export function renderTradeHistory () {
-  return new TradeHistoryPage().toString()
 }

@@ -9,19 +9,26 @@ import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
 
 export class FreePlayers extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const response = await server.getCurrentGameday()
+    this.season = response.season
+    this.players = await server.getPlayersWithoutTeam()
+  }
+  onMounted () {
+    window.addEventListener('player-hired', this._onPlayerHired)
+  }
+  onDestroy () {
+    window.removeEventListener('player-hired', this._onPlayerHired)
+  }
   players = []
+  
   season = 0
 
   /** @type {() => void} */
   _onPlayerHired = () => this.update(true)
-
-  onMounted () {
-    window.addEventListener('player-hired', this._onPlayerHired)
-  }
-
-  onDestroy () {
-    window.removeEventListener('player-hired', this._onPlayerHired)
-  }
 
   /**
    * @returns {string}
@@ -54,15 +61,6 @@ export class FreePlayers extends UIElement {
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const response = await server.getCurrentGameday()
-    this.season = response.season
-    this.players = await server.getPlayersWithoutTeam()
   }
 
   /**

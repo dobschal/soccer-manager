@@ -24,6 +24,12 @@ async function _registerDeviceToken () {
 }
 
 export class NativeLandingPage extends UIElement {
+  async load () {
+  }
+  async onQueryChanged ({ type }) {
+    this.isLogin = type !== 'registration'
+    await this.update()
+  }
   get events () {
     return {
       form: {
@@ -34,7 +40,7 @@ export class NativeLandingPage extends UIElement {
       }
     }
   }
-
+  
   get template () {
     return `
       <div class="native-landing-page">
@@ -65,14 +71,6 @@ export class NativeLandingPage extends UIElement {
         </div>
       </div>
     `
-  }
-
-  async load () {
-  }
-
-  async onQueryChanged ({ type }) {
-    this.isLogin = type !== 'registration'
-    await this.update()
   }
 
   async _onSubmit (event) {

@@ -22,7 +22,46 @@ import { t } from '../../i18n/index.js'
 const GAMEDAYS_PER_SEASON = 34
 
 export class FinancesPage extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const sponsorResponse = await server.getSponsor()
+    this.sponsor = sponsorResponse.sponsor
+
+    const offersResponse = await server.getSponsorOffers()
+    this.offers = offersResponse.sponsors
+
+    // Load bounds for the filter
+    const bounds = await server.getFinanceLogBounds()
+    this.minSeason = bounds.minSeason
+    this.minGameDay = bounds.minGameDay
+    this.maxSeason = bounds.maxSeason
+    this.maxGameDay = bounds.maxGameDay
+
+    // Set default "to" to current gameday
+    this.toSeason = this.maxSeason
+    this.toGameDay = this.maxGameDay
+
+    // Set default "from" to 10 gamedays ago
+    const currentTotal = this.maxSeason * GAMEDAYS_PER_SEASON + this.maxGameDay
+    const fromTotal = Math.max(
+      this.minSeason * GAMEDAYS_PER_SEASON + this.minGameDay,
+      currentTotal - 9
+    )
+    this.fromSeason = Math.floor(fromTotal / GAMEDAYS_PER_SEASON)
+    this.fromGameDay = fromTotal % GAMEDAYS_PER_SEASON
+
+    await this._loadFinanceLog()
+  }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    void showTutorialIfNeeded('finances', this)
+  }
   sponsor = null
+
   offers = []
   /** @type {FinanceLogEntry[]} */
   financeLog = []
@@ -153,39 +192,6 @@ export class FinancesPage extends UIElement {
   /**
    * @returns {Promise<void>}
    */
-  async load () {
-    const sponsorResponse = await server.getSponsor()
-    this.sponsor = sponsorResponse.sponsor
-
-    const offersResponse = await server.getSponsorOffers()
-    this.offers = offersResponse.sponsors
-
-    // Load bounds for the filter
-    const bounds = await server.getFinanceLogBounds()
-    this.minSeason = bounds.minSeason
-    this.minGameDay = bounds.minGameDay
-    this.maxSeason = bounds.maxSeason
-    this.maxGameDay = bounds.maxGameDay
-
-    // Set default "to" to current gameday
-    this.toSeason = this.maxSeason
-    this.toGameDay = this.maxGameDay
-
-    // Set default "from" to 10 gamedays ago
-    const currentTotal = this.maxSeason * GAMEDAYS_PER_SEASON + this.maxGameDay
-    const fromTotal = Math.max(
-      this.minSeason * GAMEDAYS_PER_SEASON + this.minGameDay,
-      currentTotal - 9
-    )
-    this.fromSeason = Math.floor(fromTotal / GAMEDAYS_PER_SEASON)
-    this.fromGameDay = fromTotal % GAMEDAYS_PER_SEASON
-
-    await this._loadFinanceLog()
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
   async _loadFinanceLog () {
     const logResponse = await server.getFinanceLog(
       this.fromSeason,
@@ -194,13 +200,6 @@ export class FinancesPage extends UIElement {
       this.toGameDay
     )
     this.financeLog = logResponse.log
-  }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    void showTutorialIfNeeded('finances', this)
   }
 
   /**
@@ -295,9 +294,9 @@ export class FinancesPage extends UIElement {
           <h5 class="card-title">${this.sponsor.name}</h5>
           <p class="card-text">
             ${t('finances.sponsorSending', {
-      name: this.sponsor.name,
-      value: euroFormat.format(this.sponsor.value)
-    })}
+    name: this.sponsor.name,
+    value: euroFormat.format(this.sponsor.value)
+  })}
             <br>${t('finances.daysRemaining', { days: this.sponsor.remaining_days })}
           </p>
         </div>
@@ -326,9 +325,9 @@ export class FinancesPage extends UIElement {
             <h5 class="card-title">${offer.name}, ${t('finances.days', { duration: offer.duration })}</h5>
             <p class="card-text">
               ${t('finances.offerContract', {
-      name: offer.name,
-      duration: offer.duration
-    })}
+    name: offer.name,
+    duration: offer.duration
+  })}
               ${t('finances.offerValue', { value: euroFormat.format(offer.value) })}
             </p>
             <button type="button" class="btn btn-primary">${t('finances.signContract')}</button>

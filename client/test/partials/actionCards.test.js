@@ -258,6 +258,13 @@ describe('ActionCards', () => {
         grouped[card.action].push({ card, idx })
       })
 
+      // Create a root element matching the component's render_id
+      const root = document.createElement('div')
+      root.dataset.render_id = actionCards._renderId
+
+      const actionCardsContainer = document.createElement('div')
+      actionCardsContainer.classList.add('action-cards-container')
+
       const container = document.createElement('div')
       container.classList.add('action-cards-scroll')
 
@@ -288,8 +295,10 @@ describe('ActionCards', () => {
         container.appendChild(stackEl)
       }
 
+      actionCardsContainer.appendChild(container)
+      root.appendChild(actionCardsContainer)
       document.body.innerHTML = ''
-      document.body.appendChild(container)
+      document.body.appendChild(root)
       return container
     }
 
@@ -449,7 +458,13 @@ describe('ActionCards', () => {
       const actionCards = new ActionCards()
       await actionCards.load()
 
-      // Override image sources to match ACTION_CARD_IMAGES for _updateAllStackIndices
+      // Create a root element matching the component's render_id
+      const root = document.createElement('div')
+      root.dataset.render_id = actionCards._renderId
+
+      const actionCardsContainer = document.createElement('div')
+      actionCardsContainer.classList.add('action-cards-container')
+
       const container = document.createElement('div')
       container.classList.add('action-cards-scroll')
 
@@ -495,8 +510,10 @@ describe('ActionCards', () => {
       freshStack.appendChild(freshCount)
       container.appendChild(freshStack)
 
+      actionCardsContainer.appendChild(container)
+      root.appendChild(actionCardsContainer)
       document.body.innerHTML = ''
-      document.body.appendChild(container)
+      document.body.appendChild(root)
 
       // Use all 3 BONUS_100K cards
       const usedBonusIds = []

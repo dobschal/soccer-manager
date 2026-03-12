@@ -7,17 +7,6 @@ import { ProgressBar } from './progressBar.js'
 
 export class PlayerListItem extends UIElement {
   /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '': {
-        click: this.onClickHandler
-      }
-    }
-  }
-
-  /**
    * @param {PlayerType} player
    * @param {number} season
    * @param {(player: PlayerType) => void} onClickHandler
@@ -31,6 +20,16 @@ export class PlayerListItem extends UIElement {
     this.onClickHandler = () => onClickHandler(this.player)
     this.sellOfferPlayerIds = sellOfferPlayerIds
     this.extended = extended
+  }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '': {
+        click: this.onClickHandler
+      }
+    }
   }
 
   /**

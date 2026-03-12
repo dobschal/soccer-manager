@@ -8,6 +8,20 @@ import { connectWebSocket } from '../lib/websocket.js'
 
 export class LandingPage extends UIElement {
   /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.type
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({ type }) {
+    this.isLogin = type !== 'registration'
+    await this.update()
+  }
+  /**
    * @returns {UIElementEvents}
    */
   get events () {
@@ -182,22 +196,6 @@ export class LandingPage extends UIElement {
         </section>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-  }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.type
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({ type }) {
-    this.isLogin = type !== 'registration'
-    await this.update()
   }
 
   /**

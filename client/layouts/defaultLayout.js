@@ -3,6 +3,13 @@ import { server } from '../lib/gateway.js'
 import { t } from '../i18n/index.js'
 
 export class DefaultLayout extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const versionData = await server.getVersion()
+    this._version = versionData.version
+  }
   _version = ''
 
   /**
@@ -20,20 +27,5 @@ export class DefaultLayout extends UIElement {
       </div>
     `
   }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const versionData = await server.getVersion()
-    this._version = versionData.version
-  }
-}
-
-// Backwards compatibility
-/**
- * @returns {string}
- */
-export function renderDefaultLayout () {
-  return new DefaultLayout().toString()
+  
 }

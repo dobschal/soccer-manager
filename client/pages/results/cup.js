@@ -9,13 +9,6 @@ import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
 
 export class CupResultsPage extends UIElement {
-  cupSeason = null
-  cupRound = null
-  cupRounds = []
-  cupResults = []
-  cupSeasons = []
-  cupTotalRounds = 0
-
   /**
    * @param {UIElement} parentPage
    */
@@ -23,7 +16,45 @@ export class CupResultsPage extends UIElement {
     super()
     this.parentPage = parentPage
   }
+  async load () {
+    const { seasons } = await server.getAvailableCupSeasons()
+    this.cupSeasons = seasons
 
+    if (this.cupSeason === null && seasons.length > 0) {
+      this.cupSeason = seasons[0]
+    }
+
+    if (this.cupSeason === null) {
+      this.cupRounds = []
+      this.cupResults = []
+      return
+    }
+
+    const { rounds, totalRounds } = await server.getCupRounds(this.cupSeason)
+    this.cupRounds = rounds
+    this.cupTotalRounds = totalRounds || 0
+
+    if ((this.cupRound === null || !rounds.some(r => r.round === this.cupRound)) && rounds.length > 0) {
+      const lastPlayedRound = [...rounds].reverse().find(r => r.played)
+      this.cupRound = lastPlayedRound ? lastPlayedRound.round : rounds[0].round
+    }
+
+    if (this.cupRound === null) {
+      this.cupResults = []
+      return
+    }
+
+    const { results } = await server.getCupResults(this.cupSeason, this.cupRound)
+    this.cupResults = results
+  }
+  cupSeason = null
+  
+  cupRound = null
+  cupRounds = []
+  cupResults = []
+  cupSeasons = []
+  cupTotalRounds = 0
+  
   get events () {
     return {
       '#prev-cup-round-button': {
@@ -70,56 +101,24 @@ export class CupResultsPage extends UIElement {
 
         <h3>${t('results.games')}</h3>
         ${this.cupResults.length === 0
-      ? `<p class="text-muted">${t('cup.noGames')}</p>`
-      : new Table({
-          cols: [
-            { name: t('results.team1'), align: 'right' },
-            { name: t('results.result'), align: 'center' },
-            { name: t('results.team2') }
-          ],
-          renderRow: (result) => this._renderCupResultItem(result),
-          data: this.cupResults,
-          rowAttrs: (result) => `id="${result._rowId}"`
-        })
-    }
+    ? `<p class="text-muted">${t('cup.noGames')}</p>`
+    : new Table({
+      cols: [
+        { name: t('results.team1'), align: 'right' },
+        { name: t('results.result'), align: 'center' },
+        { name: t('results.team2') }
+      ],
+      renderRow: (result) => this._renderCupResultItem(result),
+      data: this.cupResults,
+      rowAttrs: (result) => `id="${result._rowId}"`
+    })
+}
       </div>
     `
   }
 
   get myTeamId () {
     return this.parentPage.myTeamId
-  }
-
-  async load () {
-    const { seasons } = await server.getAvailableCupSeasons()
-    this.cupSeasons = seasons
-
-    if (this.cupSeason === null && seasons.length > 0) {
-      this.cupSeason = seasons[0]
-    }
-
-    if (this.cupSeason === null) {
-      this.cupRounds = []
-      this.cupResults = []
-      return
-    }
-
-    const { rounds, totalRounds } = await server.getCupRounds(this.cupSeason)
-    this.cupRounds = rounds
-    this.cupTotalRounds = totalRounds || 0
-
-    if ((this.cupRound === null || !rounds.some(r => r.round === this.cupRound)) && rounds.length > 0) {
-      const lastPlayedRound = [...rounds].reverse().find(r => r.played)
-      this.cupRound = lastPlayedRound ? lastPlayedRound.round : rounds[0].round
-    }
-
-    if (this.cupRound === null) {
-      this.cupResults = []
-      return
-    }
-
-    const { results } = await server.getCupResults(this.cupSeason, this.cupRound)
-    this.cupResults = results
   }
 
   _getCupRoundName (round) {
@@ -175,10 +174,10 @@ export class CupResultsPage extends UIElement {
     const team2Data = isBye
       ? null
       : {
-          name: result.team2,
-          color: result.team2Color,
-          emblem: result.team2Emblem
-        }
+        name: result.team2,
+        color: result.team2Color,
+        emblem: result.team2Emblem
+      }
 
     const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
     const emblem2 = isBye ? '' : `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`

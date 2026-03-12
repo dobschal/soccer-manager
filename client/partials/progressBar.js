@@ -12,7 +12,6 @@ function getColorClass (percentage) {
   return 'danger' // red
 }
 
-
 export class ProgressBar extends UIElement {
   /**
    * @param {number} value - Value between 0 and 1

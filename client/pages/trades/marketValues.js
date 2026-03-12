@@ -18,16 +18,15 @@ export function getCellColor (avgPrice, estimate) {
 }
 
 export class MarketValuesPage extends UIElement {
+  async load () {
+    this._transferStats = await server.getTransferStats(this._selectedPosition)
+  }
   _selectedPosition = 'CM'
   _fromLevel = 40
   _toLevel = 50
   _fromAge = 20
   _toAge = 30
   _transferStats = {}
-
-  async load () {
-    this._transferStats = await server.getTransferStats(this._selectedPosition)
-  }
 
   get events () {
     return {
@@ -138,13 +137,13 @@ export class MarketValuesPage extends UIElement {
                 <tr>
                   <td><strong>${level}</strong></td>
                   ${ages.map(age => {
-      const key = `${level}:${age}`
-      const stat = this._transferStats[key]
-      const estimate = calculateMarketValue(level, age)
-      const style = stat ? '' : 'color: #c0c0c0;'
-      const displayValue = stat ? stat.avgPrice : estimate
-      return `<td class="text-end text-nowrap" style="${style}">${euroFormat.format(displayValue)}</td>`
-    }).join('')}
+    const key = `${level}:${age}`
+    const stat = this._transferStats[key]
+    const estimate = calculateMarketValue(level, age)
+    const style = stat ? '' : 'color: #c0c0c0;'
+    const displayValue = stat ? stat.avgPrice : estimate
+    return `<td class="text-end text-nowrap" style="${style}">${euroFormat.format(displayValue)}</td>`
+  }).join('')}
                 </tr>
               `).join('')}
             </tbody>

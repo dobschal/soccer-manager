@@ -74,6 +74,13 @@ const ACTION_CARD_IMAGES = {
 }
 
 export class ActionCards extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const response = await server.getActionCards()
+    this.cards = response.actionCards
+  }
   _overlay = null
   _currentCardElement = null
   cards = []
@@ -136,14 +143,6 @@ export class ActionCards extends UIElement {
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const response = await server.getActionCards()
-    this.cards = response.actionCards
   }
 
   /**
@@ -343,7 +342,8 @@ export class ActionCards extends UIElement {
    * @param {string} actionType
    */
   _updateOrCreateStack (actionType) {
-    const container = document.querySelector('.action-cards-scroll')
+    const root = document.querySelector(this._elementQuery)
+    const container = root?.querySelector('.action-cards-scroll')
     if (!container) return
 
     const cardsOfType = this.cards.filter(c => c.action === actionType)
@@ -421,7 +421,8 @@ export class ActionCards extends UIElement {
    * Updates all data-action-card indices after array modifications
    */
   _updateAllStackIndices () {
-    const container = document.querySelector('.action-cards-scroll')
+    const root = document.querySelector(this._elementQuery)
+    const container = root?.querySelector('.action-cards-scroll')
     if (!container) return
 
     container.querySelectorAll('.action-card-stack').forEach(stack => {

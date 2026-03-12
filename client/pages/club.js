@@ -7,14 +7,44 @@ import { FinancesPage } from './club/finances.js'
 import { getQueryParams } from '../lib/router.js'
 
 export class ClubPage extends UIElement {
-  subPage = null
-
   constructor () {
     super()
     this.subPage = getQueryParams().sub_page || null
   }
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    // Sub-pages handle their own data loading
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.sub_page
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({ sub_page: subPage }) {
+    const newSubPage = subPage || null
+    if (newSubPage !== this.subPage) {
+      this.subPage = newSubPage
+      this._switchSubPage()
+      this._updateNav()
+    }
+  }
+  /**
+   * Called when component is unmounted - cleanup Three.js resources
+   */
+  onDestroy () {
+    if (this._currentStadiumPage) {
+      this._currentStadiumPage.onDestroy()
+      this._currentStadiumPage = null
+    }
+  }
+  subPage = null
+  
   _subPageCache = {}
+
   _subPageContainerId = generateId()
+
   /** @type {StadiumSubPage|null} */
   _currentStadiumPage = null
 
@@ -43,13 +73,6 @@ export class ClubPage extends UIElement {
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    // Sub-pages handle their own data loading
   }
 
   _getOrCreateSubPage () {
@@ -129,28 +152,5 @@ export class ClubPage extends UIElement {
       link.classList.toggle('active', isActive)
     })
   }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.sub_page
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({ sub_page: subPage }) {
-    const newSubPage = subPage || null
-    if (newSubPage !== this.subPage) {
-      this.subPage = newSubPage
-      this._switchSubPage()
-      this._updateNav()
-    }
-  }
-
-  /**
-   * Called when component is unmounted - cleanup Three.js resources
-   */
-  onDestroy () {
-    if (this._currentStadiumPage) {
-      this._currentStadiumPage.onDestroy()
-      this._currentStadiumPage = null
-    }
-  }
+  
 }

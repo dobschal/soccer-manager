@@ -3,6 +3,17 @@ import { server } from '../lib/gateway.js'
 import { euroFormat } from '../lib/currency.js'
 
 export class Balance extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    try {
+      const { balance } = await server.getMyBalance()
+      this.balance = balance
+    } catch {
+      this.balance = 0
+    }
+  }
   balance = 0
 
   /**
@@ -21,18 +32,7 @@ export class Balance extends UIElement {
       BALANCE_UPDATED: () => this.update(true)
     }
   }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    try {
-      const { balance } = await server.getMyBalance()
-      this.balance = balance
-    } catch {
-      this.balance = 0
-    }
-  }
+  
 }
 
 /**

@@ -92,6 +92,31 @@ export default class PlayerModal extends UIElement {
     this.sellOfferPrice = sellOfferPrice
   }
 
+  onMounted () {
+    const root = el(this._elementQuery)
+    const overlayCard = root.closest('.overlay')
+    if (!overlayCard) return
+
+    const titleEl = overlayCard.querySelector('.card-title')
+    const subtitleEl = overlayCard.querySelector('.card-subtitle')
+
+    setupCurrencyInput('trade-price-input')
+
+    if (titleEl) titleEl.textContent = this.player.name + (this.player.is_star_player ? ' ⭐' : '')
+    if (subtitleEl) {
+      if (this.playersTeam && this.playersTeam.is_system_team) {
+        subtitleEl.innerHTML = `<span class="text-muted">${this.playersTeam.name}</span>`
+      } else if (this.playersTeam) {
+        subtitleEl.innerHTML = `<span class="text-info" style="cursor: pointer">${this.playersTeam.name}</span>`
+        subtitleEl.querySelector('span').addEventListener('click', () => {
+          goTo(`team?id=${this.playersTeam.id}`)
+          this.overlay.remove()
+        })
+      } else {
+        subtitleEl.innerHTML = `<span class="text-muted">${t('player.freePlayer')}</span>`
+      }
+    }
+  }
   get events () {
     return {
       '(optional).trade-offer-btn': { click: this._onTradeOffer },
@@ -210,32 +235,6 @@ export default class PlayerModal extends UIElement {
     `
   }
 
-  onMounted () {
-    const root = el(this._elementQuery)
-    const overlayCard = root.closest('.overlay')
-    if (!overlayCard) return
-
-    const titleEl = overlayCard.querySelector('.card-title')
-    const subtitleEl = overlayCard.querySelector('.card-subtitle')
-
-    setupCurrencyInput('trade-price-input')
-
-    if (titleEl) titleEl.textContent = this.player.name + (this.player.is_star_player ? ' ⭐' : '')
-    if (subtitleEl) {
-      if (this.playersTeam && this.playersTeam.is_system_team) {
-        subtitleEl.innerHTML = `<span class="text-muted">${this.playersTeam.name}</span>`
-      } else if (this.playersTeam) {
-        subtitleEl.innerHTML = `<span class="text-info" style="cursor: pointer">${this.playersTeam.name}</span>`
-        subtitleEl.querySelector('span').addEventListener('click', () => {
-          goTo(`team?id=${this.playersTeam.id}`)
-          this.overlay.remove()
-        })
-      } else {
-        subtitleEl.innerHTML = `<span class="text-muted">${t('player.freePlayer')}</span>`
-      }
-    }
-  }
-
   _getHistoryPageItems () {
     const start = this.historyPage * this.historyPageSize
     return this.history.slice(start, start + this.historyPageSize)
@@ -259,7 +258,8 @@ export default class PlayerModal extends UIElement {
 
   async _onTradeOffer () {
     try {
-      const input = document.getElementById('trade-price-input')
+      const root = el(this._elementQuery)
+      const input = root?.querySelector('#trade-price-input')
       const price = Number(input?.dataset.rawValue || 0)
       await server.addTradeOffer(this.player, price, this.isMyPlayer ? 'sell' : 'buy')
       toast(t('player.offerAdded', { playerName: this.player.name }), 'success')

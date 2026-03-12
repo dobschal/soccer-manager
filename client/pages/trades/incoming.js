@@ -8,6 +8,18 @@ import { renderLevelBadge } from '../../partials/levelBadge.js'
 import { Table } from '../../partials/table.js'
 
 export class IncomingOffersPage extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const teamResponse = await server.getMyTeam()
+    this.team = teamResponse.team
+
+    const offersResponse = await server.getOffers()
+    this.offers = offersResponse.offers
+    this.players = offersResponse.players
+    this.teams = offersResponse.teams
+  }
   team = {}
   offers = []
   players = []
@@ -70,18 +82,18 @@ export class IncomingOffersPage extends UIElement {
         <h2>${t('trades.incomingOffersTitle')}</h2>
         <p>${t('trades.incomingOffersDesc')}</p>
         ${new Table({
-          cols: [
-            { name: t('results.name') },
-            { name: t('results.team') },
-            { name: t('player.position') },
-            { name: t('player.level'), align: 'right' },
-            { name: t('trades.price'), align: 'right' },
-            { name: '' }
-          ],
-          renderRow: (offer, index) => this._renderOfferRow(offer, index),
-          data: incomingOffers,
-          rowAttrs: (offer, index) => 'data-offer="' + index + '"'
-        }).template}
+    cols: [
+      { name: t('results.name') },
+      { name: t('results.team') },
+      { name: t('player.position') },
+      { name: t('player.level'), align: 'right' },
+      { name: t('trades.price'), align: 'right' },
+      { name: '' }
+    ],
+    renderRow: (offer, index) => this._renderOfferRow(offer, index),
+    data: incomingOffers,
+    rowAttrs: (offer, index) => 'data-offer="' + index + '"'
+  })}
         <div class="row">
           <div class="col ${hasIncomingOffers ? 'hidden' : ''}">
             <h4 class="text-muted text-center mt-5 mb-5">${t('trades.noIncomingOffers')}</h4>
@@ -89,19 +101,6 @@ export class IncomingOffersPage extends UIElement {
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const teamResponse = await server.getMyTeam()
-    this.team = teamResponse.team
-
-    const offersResponse = await server.getOffers()
-    this.offers = offersResponse.offers
-    this.players = offersResponse.players
-    this.teams = offersResponse.teams
   }
 
   /**
@@ -133,11 +132,4 @@ export class IncomingOffersPage extends UIElement {
           <button class="btn btn-danger"><i class="fa fa-times-circle-o" aria-hidden="true"></i></button>`
     ]
   }
-}
-
-/**
- * @returns {Promise<string>}
- */
-export async function renderIncomingOffers () {
-  return new IncomingOffersPage().toString()
 }

@@ -24,7 +24,7 @@ vi.mock('../../lib/router.js', () => ({
   setQueryParams: vi.fn()
 }))
 
-import { Table, renderTable } from '../../partials/table.js'
+import { Table } from '../../partials/table.js'
 import { getQueryParams } from '../../lib/router.js'
 
 describe('Table UIElement', () => {
@@ -167,23 +167,4 @@ describe('Table UIElement', () => {
     })
   })
 
-  describe('renderTable (backwards compatibility)', () => {
-    it('returns a string', () => {
-      const result = renderTable({
-        data: [],
-        cols: [{ name: 'Name' }],
-        renderRow: () => ['Test']
-      })
-      expect(typeof result).toBe('string')
-    })
-
-    it('returns template element for async rendering', () => {
-      const result = renderTable({
-        data: [],
-        cols: [{ name: 'Name' }],
-        renderRow: () => ['Test']
-      })
-      expect(result).toContain('<template')
-    })
-  })
 })

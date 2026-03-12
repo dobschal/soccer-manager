@@ -1,7 +1,6 @@
 import { isAuthenticated } from './auth.js'
 import { fire } from './event.js'
 import { el } from './html.js'
-import { render } from './render.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
 
 let pages, lastPath
@@ -254,27 +253,26 @@ function _afterPageLoad () {
 }
 
 /**
- * @param {Function} LayoutElement
+ * @param {typeof UIElement} LayoutElement
  * @returns {Promise<boolean|undefined>}
  */
 async function _renderLayout (LayoutElement) {
   if (!currentLayoutRenderFn || currentLayoutRenderFn !== LayoutElement) {
-    if (LayoutElement.isUIElement) {
-      const layout = new LayoutElement()
-      render('body', layout)
-      // Wait for layout to be rendered
-      await new Promise(resolve => {
-        const interval = setInterval(() => {
-          if (layout.isRendered) {
-            clearInterval(interval)
-            resolve()
-          }
-        }, 50)
-      })
-    } else {
-      // Backwards compatibility for function-based layouts
-      render('body', await LayoutElement())
+    if (!LayoutElement.isUIElement) {
+      throw new Error('Fatal: Layout is no UIElement.')
     }
+    const layout = new LayoutElement()
+    document.body.innerHTML = layout.toString()
+    // Wait for layout to be rendered
+    await new Promise(resolve => {
+      const interval = setInterval(() => {
+        console.log('Check that layout is rendered...')
+        if (layout.isRendered) {
+          clearInterval(interval)
+          resolve()
+        }
+      }, 50)
+    })
     currentLayoutRenderFn = LayoutElement
     return true
   }

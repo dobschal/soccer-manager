@@ -30,6 +30,46 @@ class NewsItem extends UIElement {
   }
 
   /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    // Prefer player image for player-related news
+    if (this.newsItem.player_id) {
+      const player = this.players.find(p => p.id === this.newsItem.player_id)
+      if (player) {
+        const team = this.teams.find(t => t.id === player.team_id)
+        if (team) {
+          this.image = await renderPlayerImage(player, team, 100)
+          this.linkType = 'player'
+          this.linkId = player.id
+          this.teamId = team.id
+          return
+        }
+      }
+    }
+
+    // Fall back to team emblem
+    if (this.newsItem.team_id) {
+      const team = this.teams.find(t => t.id === this.newsItem.team_id)
+      if (team) {
+        this.image = renderEmblem(team, 100)
+        this.linkType = 'team'
+        this.linkId = team.id
+      }
+    }
+  }
+  onMounted () {
+    onClick(this.likeBtnId, () => {
+      if (this.onLikeToggle) this.onLikeToggle(this.newsItem.id)
+    })
+    onClick(this.commentBtnId, () => {
+      showCommentOverlay(this.newsItem.id, this.newsItem.title, () => {
+        this.newsItem.commentCount = (this.newsItem.commentCount || 0) + 1
+        this.update()
+      })
+    })
+  }
+  /**
    * @returns {UIElementEvents}
    */
   get events () {
@@ -44,18 +84,6 @@ class NewsItem extends UIElement {
         }
       }
     }
-  }
-
-  onMounted () {
-    onClick(this.likeBtnId, () => {
-      if (this.onLikeToggle) this.onLikeToggle(this.newsItem.id)
-    })
-    onClick(this.commentBtnId, () => {
-      showCommentOverlay(this.newsItem.id, this.newsItem.title, () => {
-        this.newsItem.commentCount = (this.newsItem.commentCount || 0) + 1
-        this.update()
-      })
-    })
   }
 
   /**
@@ -108,39 +136,36 @@ class NewsItem extends UIElement {
       </div>
     `
   }
+  
+}
 
+export class News extends UIElement {
   /**
    * @returns {Promise<void>}
    */
   async load () {
-    // Prefer player image for player-related news
-    if (this.newsItem.player_id) {
-      const player = this.players.find(p => p.id === this.newsItem.player_id)
-      if (player) {
-        const team = this.teams.find(t => t.id === player.team_id)
-        if (team) {
-          this.image = await renderPlayerImage(player, team, 100)
-          this.linkType = 'player'
-          this.linkId = player.id
-          this.teamId = team.id
-          return
-        }
-      }
-    }
+    const [response, likedResponse] = await Promise.all([
+      server.getLeagueNews(),
+      server.getLikedNews()
+    ])
+    this.news = response.news || []
+    this.teams = response.teams || []
+    this.players = response.players || []
+    this.gameDay = response.gameDay || 0
+    this.season = response.season || 0
+    this.level = response.level || 0
+    this.league = response.league || 0
+    this.initialGameDay = this.gameDay
+    this.initialSeason = this.season
 
-    // Fall back to team emblem
-    if (this.newsItem.team_id) {
-      const team = this.teams.find(t => t.id === this.newsItem.team_id)
-      if (team) {
-        this.image = renderEmblem(team, 100)
-        this.linkType = 'team'
-        this.linkId = team.id
-      }
-    }
+    this.likedNews = likedResponse.news || []
+    this.likedTeams = likedResponse.teams || []
+    this.likedPlayers = likedResponse.players || []
   }
-}
-
-export class News extends UIElement {
+  onMounted () {
+    onClick(this.prevBtnId, () => this._navigateGameDay(-1))
+    onClick(this.nextBtnId, () => this._navigateGameDay(1))
+  }
   news = []
   teams = []
   players = []
@@ -176,15 +201,15 @@ export class News extends UIElement {
           </button>
         </div>
         ${this.news.length > 0
-      ? `<div class="row mt-4">
+    ? `<div class="row mt-4">
               ${this.news.map(item => `
                 <div class="col-12 col-lg-6">
                   ${new NewsItem(item, this.teams, this.players, (newsId) => this._handleLikeToggle(newsId))}
                 </div>
               `).join('')}
             </div>`
-      : `<p class="text-muted">${t('news.noNews')}</p>`
-    }
+    : `<p class="text-muted">${t('news.noNews')}</p>`
+}
         ${this.likedNews.length > 0 ? `
           <hr class="my-4">
           <h4>${t('news.likedTitle')}</h4>
@@ -198,34 +223,6 @@ export class News extends UIElement {
         ` : ''}
       </div>
     `
-  }
-
-  onMounted () {
-    onClick(this.prevBtnId, () => this._navigateGameDay(-1))
-    onClick(this.nextBtnId, () => this._navigateGameDay(1))
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const [response, likedResponse] = await Promise.all([
-      server.getLeagueNews(),
-      server.getLikedNews()
-    ])
-    this.news = response.news || []
-    this.teams = response.teams || []
-    this.players = response.players || []
-    this.gameDay = response.gameDay || 0
-    this.season = response.season || 0
-    this.level = response.level || 0
-    this.league = response.league || 0
-    this.initialGameDay = this.gameDay
-    this.initialSeason = this.season
-
-    this.likedNews = likedResponse.news || []
-    this.likedTeams = likedResponse.teams || []
-    this.likedPlayers = likedResponse.players || []
   }
 
   /**
@@ -276,11 +273,4 @@ export class News extends UIElement {
 
     await this.update()
   }
-}
-
-/**
- * @returns {string}
- */
-export function renderNews () {
-  return new News().toString()
 }

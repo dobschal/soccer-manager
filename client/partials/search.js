@@ -135,8 +135,8 @@ export function showSearchOverlay () {
     const html = `
       <div class="list-group">
         ${players.map(player => {
-      const team = teamMap.get(player.team_id)
-      return `
+    const team = teamMap.get(player.team_id)
+    return `
             <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center search-result-item"
                  data-team-id="${player.team_id}"
                  data-player-id="${player.id}"
@@ -151,7 +151,7 @@ export function showSearchOverlay () {
               </div>
             </div>
           `
-    }).join('')}
+  }).join('')}
       </div>
     `
     container.innerHTML = html

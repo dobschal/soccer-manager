@@ -4,10 +4,6 @@ import { el } from '../lib/html.js'
 import { deepCopy } from '../lib/deepCopy.js'
 
 export class MiniBalanceChart extends UIElement {
-  /** @type {FinanceLogEntry[]} */
-  logItems = []
-  _chart = null
-
   /**
    * @param {FinanceLogEntry[]} [financeLog]
    */
@@ -15,6 +11,25 @@ export class MiniBalanceChart extends UIElement {
     super()
     this._processLogItems(financeLog)
   }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._renderChart()
+  }
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    if (this._chart) {
+      this._chart.destroy()
+      this._chart = null
+    }
+  }
+  /** @type {FinanceLogEntry[]} */
+  logItems = []
+
+  _chart = null
 
   /**
    * @param {FinanceLogEntry[]} log
@@ -43,23 +58,6 @@ export class MiniBalanceChart extends UIElement {
    */
   get template () {
     return `<div class="card card-body bg-dark" style="position: relative; height: 180px; width: 100%; padding: 8px; box-sizing: border-box;"><canvas class="mini-finance-canvas"></canvas></div>`
-  }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._renderChart()
-  }
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {
-    if (this._chart) {
-      this._chart.destroy()
-      this._chart = null
-    }
   }
 
   /**

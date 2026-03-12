@@ -83,7 +83,7 @@ vi.mock('../../../partials/table.js', () => ({
   }
 }))
 
-import { TradeHistoryPage, renderTradeHistory } from '../../../pages/trades/tradeHistory.js'
+import { TradeHistoryPage } from '../../../pages/trades/tradeHistory.js'
 import { server } from '../../../lib/gateway.js'
 
 describe('TradeHistoryPage', () => {
@@ -448,9 +448,4 @@ describe('TradeHistoryPage', () => {
     })
   })
 
-  describe('renderTradeHistory (backwards compatibility)', () => {
-    it('is exported as a function', () => {
-      expect(typeof renderTradeHistory).toBe('function')
-    })
-  })
 })

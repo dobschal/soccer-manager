@@ -12,8 +12,170 @@ import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
 
 export class DashboardPage extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const teamResponse = await server.getMyTeam()
+    this.team = teamResponse.team
+    this.user = teamResponse.user
+
+    // Register device token for push notifications (fire-and-forget)
+    if (window.__nativeDeviceToken && window.__nativePlatform) {
+      const { sendLog } = await import('../lib/clientLogger.js')
+      sendLog(`[Push] Dashboard load: registering token ${window.__nativeDeviceToken.substring(0, 10)}... platform=${window.__nativePlatform}`)
+      server.registerDeviceToken(window.__nativeDeviceToken, window.__nativePlatform)
+        .then(() => sendLog('[Push] Dashboard: device token registered successfully'))
+        .catch(e => sendLog(`[Push] Dashboard: device token registration FAILED: ${e?.message || JSON.stringify(e)}`, 'error'))
+    }
+
+    const gamedayResponse = await server.getCurrentGameday()
+    this.season = gamedayResponse.season
+    this.gameDay = gamedayResponse.gameDay
+
+    // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, and tutorial progress
+    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse] = await Promise.all([
+      server.getGamesForSlider(3, 3),
+      server.getFriendlyGames(5),
+      server.getMyCupGames(5),
+      server.canPlayFriendlyToday(),
+      this._tutorialProgress.load()
+    ])
+    this._canPlayFriendly = canPlayFriendlyResponse.canPlay
+
+    // Combine past and upcoming games for the slider
+    // Add team data for emblems directly from the response
+    this._sliderGames = [
+      ...sliderResponse.pastGames.map(g => ({
+        ...g,
+        isPlayed: true,
+        team1Data: this._extractTeamData(g, 1),
+        team2Data: this._extractTeamData(g, 2)
+      })),
+      ...sliderResponse.upcomingGames.map(g => ({
+        ...g,
+        isPlayed: false,
+        gameDate: g.gameDate,
+        team1Data: this._extractTeamData(g, 1),
+        team2Data: this._extractTeamData(g, 2)
+      }))
+    ]
+
+    // Process friendly games for display
+    this._friendlyGames = friendlyResponse.games.map(g => ({
+      ...g,
+      isPlayed: true,
+      isFriendly: true,
+      team1Data: this._extractTeamData(g, 1),
+      team2Data: this._extractTeamData(g, 2)
+    }))
+
+    // Process cup games for display
+    this._cupGames = cupResponse.games.map(g => ({
+      ...g,
+      isPlayed: g.played === 1,
+      isCup: true,
+      totalRounds: cupResponse.totalRounds,
+      team1Data: this._extractTeamData(g, 1),
+      team2Data: this._extractTeamData(g, 2)
+    }))
+
+    // Show the latest result once, then show the upcoming game on subsequent visits
+    const resultSeenKey = `resultSeen_${this.season}_${this.gameDay}`
+    const resultAlreadySeen = localStorage.getItem(resultSeenKey)
+    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, resultAlreadySeen)
+    localStorage.setItem(resultSeenKey, '1')
+
+    // Same logic for cup games
+    const cupResultSeenKey = `cupResultSeen_${this.season}_${this.gameDay}`
+    this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
+    localStorage.setItem(cupResultSeenKey, '1')
+
+    // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
+    const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
+    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse, newMessageResponse] = await Promise.all([
+      server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
+      server.getDashboardUrgencies(window.__nativePlatform || 'web'),
+      server.getActionCards(),
+      server.getPendingActionCards(),
+      server.getNewLogMessageCount(lastSeenMessageId)
+    ])
+
+    this.standing = standing
+    this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
+    this._urgencies = urgencyResponse.urgencies || []
+    this._pendingCards = pendingCardsResponse.pendingCards || []
+
+    // Determine if there are unseen action cards (include pending cards in the count)
+    const cardCount = (actionCardsResponse.actionCards?.length || 0) + this._pendingCards.length
+    const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
+    this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
+
+    // Set new message count
+    this._newMessageCount = newMessageResponse.count || 0
+  }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    void showTutorialIfNeeded('dashboard', this)
+    this._showPendingCardsIfNeeded()
+  }
+  /**
+   * @param {{ player_id?: string, sub_page?: string }} queryParams
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({
+    player_id: playerId,
+    sub_page: subPage
+  }) {
+    if (playerId) {
+      const id = Number(playerId)
+      if (Number.isFinite(id) && id > 0) {
+        await showPlayerModal(id)
+      } else if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
+        // Clear invalid player_id from the URL to avoid repeated invalid calls
+        try {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('player_id')
+          window.history.replaceState(window.history.state, document.title, url.toString())
+        } catch {
+          // Ignore URL manipulation errors
+        }
+      }
+    }
+
+    const newSubPage = subPage || null
+    if (newSubPage === 'cards' && this._actionCardCount > 0) {
+      const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
+      localStorage.setItem(seenKey, '1')
+      this._actionCardCount = 0
+    }
+    if (newSubPage === 'messages' && this._newMessageCount > 0) {
+      // Mark messages as seen by storing the latest message ID
+      server.getLogMessages(0, 1).then(messages => {
+        if (messages?.length > 0) {
+          localStorage.setItem('lastSeenMessageId', String(messages[0].id))
+        }
+      })
+      this._newMessageCount = 0
+    }
+    if (newSubPage !== this.subPage) {
+      this.subPage = newSubPage
+      // Refresh urgencies and recreate StartPage with fresh data
+      if (!newSubPage) {
+        const urgencyResponse = await server.getDashboardUrgencies(window.__nativePlatform || 'web')
+        this._urgencies = urgencyResponse.urgencies || []
+        this._subPageCache.start = this._createStartPage()
+      }
+      this._switchSubPage()
+      this._updateNav()
+    }
+  }
   _sliderGames = []
+
   _friendlyGames = []
+
   _cupGames = []
   _urgencies = []
   _initialSlideIndex = 0
@@ -158,7 +320,7 @@ export class DashboardPage extends UIElement {
    * Update nav link active states to match current subPage
    */
   _updateNav () {
-    const root = document.querySelector(this._elementQuery)
+    const root = el(this._elementQuery)
     if (!root) return
     root.querySelectorAll('.nav-link').forEach(link => {
       const href = link.getAttribute('href')
@@ -183,109 +345,6 @@ export class DashboardPage extends UIElement {
       const messagesLink = root.querySelector('a[href="#dashboard?sub_page=messages"]')
       if (messagesLink) messagesLink.insertAdjacentHTML('beforeend', ` <span class="badge rounded-pill bg-danger action-card-badge message-badge">${this._newMessageCount}</span>`)
     }
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const teamResponse = await server.getMyTeam()
-    this.team = teamResponse.team
-    this.user = teamResponse.user
-
-    // Register device token for push notifications (fire-and-forget)
-    if (window.__nativeDeviceToken && window.__nativePlatform) {
-      const { sendLog } = await import('../lib/clientLogger.js')
-      sendLog(`[Push] Dashboard load: registering token ${window.__nativeDeviceToken.substring(0, 10)}... platform=${window.__nativePlatform}`)
-      server.registerDeviceToken(window.__nativeDeviceToken, window.__nativePlatform)
-        .then(() => sendLog('[Push] Dashboard: device token registered successfully'))
-        .catch(e => sendLog(`[Push] Dashboard: device token registration FAILED: ${e?.message || JSON.stringify(e)}`, 'error'))
-    }
-
-    const gamedayResponse = await server.getCurrentGameday()
-    this.season = gamedayResponse.season
-    this.gameDay = gamedayResponse.gameDay
-
-    // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, and tutorial progress
-    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse] = await Promise.all([
-      server.getGamesForSlider(3, 3),
-      server.getFriendlyGames(5),
-      server.getMyCupGames(5),
-      server.canPlayFriendlyToday(),
-      this._tutorialProgress.load()
-    ])
-    this._canPlayFriendly = canPlayFriendlyResponse.canPlay
-
-    // Combine past and upcoming games for the slider
-    // Add team data for emblems directly from the response
-    this._sliderGames = [
-      ...sliderResponse.pastGames.map(g => ({
-        ...g,
-        isPlayed: true,
-        team1Data: this._extractTeamData(g, 1),
-        team2Data: this._extractTeamData(g, 2)
-      })),
-      ...sliderResponse.upcomingGames.map(g => ({
-        ...g,
-        isPlayed: false,
-        gameDate: g.gameDate,
-        team1Data: this._extractTeamData(g, 1),
-        team2Data: this._extractTeamData(g, 2)
-      }))
-    ]
-
-    // Process friendly games for display
-    this._friendlyGames = friendlyResponse.games.map(g => ({
-      ...g,
-      isPlayed: true,
-      isFriendly: true,
-      team1Data: this._extractTeamData(g, 1),
-      team2Data: this._extractTeamData(g, 2)
-    }))
-
-    // Process cup games for display
-    this._cupGames = cupResponse.games.map(g => ({
-      ...g,
-      isPlayed: g.played === 1,
-      isCup: true,
-      totalRounds: cupResponse.totalRounds,
-      team1Data: this._extractTeamData(g, 1),
-      team2Data: this._extractTeamData(g, 2)
-    }))
-
-    // Show the latest result once, then show the upcoming game on subsequent visits
-    const resultSeenKey = `resultSeen_${this.season}_${this.gameDay}`
-    const resultAlreadySeen = localStorage.getItem(resultSeenKey)
-    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, resultAlreadySeen)
-    localStorage.setItem(resultSeenKey, '1')
-
-    // Same logic for cup games
-    const cupResultSeenKey = `cupResultSeen_${this.season}_${this.gameDay}`
-    this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
-    localStorage.setItem(cupResultSeenKey, '1')
-
-    // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
-    const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
-    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse, newMessageResponse] = await Promise.all([
-      server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
-      server.getDashboardUrgencies(window.__nativePlatform || 'web'),
-      server.getActionCards(),
-      server.getPendingActionCards(),
-      server.getNewLogMessageCount(lastSeenMessageId)
-    ])
-
-    this.standing = standing
-    this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
-    this._urgencies = urgencyResponse.urgencies || []
-    this._pendingCards = pendingCardsResponse.pendingCards || []
-
-    // Determine if there are unseen action cards (include pending cards in the count)
-    const cardCount = (actionCardsResponse.actionCards?.length || 0) + this._pendingCards.length
-    const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
-    this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
-
-    // Set new message count
-    this._newMessageCount = newMessageResponse.count || 0
   }
 
   /**
@@ -323,14 +382,6 @@ export class DashboardPage extends UIElement {
   }
 
   /**
-   * @returns {void}
-   */
-  onMounted () {
-    void showTutorialIfNeeded('dashboard', this)
-    this._showPendingCardsIfNeeded()
-  }
-
-  /**
    * Shows the card claim overlay if there are pending cards
    * @returns {void}
    */
@@ -347,58 +398,6 @@ export class DashboardPage extends UIElement {
       this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
       this._updateNav()
     }, 500)
-  }
-
-  /**
-   * @param {{ player_id?: string, sub_page?: string }} queryParams
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({
-    player_id: playerId,
-    sub_page: subPage
-  }) {
-    if (playerId) {
-      const id = Number(playerId)
-      if (Number.isFinite(id) && id > 0) {
-        await showPlayerModal(id)
-      } else if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
-        // Clear invalid player_id from the URL to avoid repeated invalid calls
-        try {
-          const url = new URL(window.location.href)
-          url.searchParams.delete('player_id')
-          window.history.replaceState(window.history.state, document.title, url.toString())
-        } catch {
-          // Ignore URL manipulation errors
-        }
-      }
-    }
-
-    const newSubPage = subPage || null
-    if (newSubPage === 'cards' && this._actionCardCount > 0) {
-      const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
-      localStorage.setItem(seenKey, '1')
-      this._actionCardCount = 0
-    }
-    if (newSubPage === 'messages' && this._newMessageCount > 0) {
-      // Mark messages as seen by storing the latest message ID
-      server.getLogMessages(0, 1).then(messages => {
-        if (messages?.length > 0) {
-          localStorage.setItem('lastSeenMessageId', String(messages[0].id))
-        }
-      })
-      this._newMessageCount = 0
-    }
-    if (newSubPage !== this.subPage) {
-      this.subPage = newSubPage
-      // Refresh urgencies and recreate StartPage with fresh data
-      if (!newSubPage) {
-        const urgencyResponse = await server.getDashboardUrgencies(window.__nativePlatform || 'web')
-        this._urgencies = urgencyResponse.urgencies || []
-        this._subPageCache.start = this._createStartPage()
-      }
-      this._switchSubPage()
-      this._updateNav()
-    }
   }
 
 }

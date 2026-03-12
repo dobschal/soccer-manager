@@ -17,6 +17,27 @@ export class MyOffersPage extends UIElement {
   }
 
   /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const response = await server.getMyTeam()
+    this.team = response.team
+    const [{ offers, players, teams }, answeredData] = await Promise.all([
+      server.getOffers(),
+      server.getAnsweredOffers()
+    ])
+    this._playerMap = new Map()
+    this._teamMap = new Map()
+    for (const p of [...players, ...(answeredData.players || [])]) {
+      this._playerMap.set(p.id, p)
+    }
+    for (const tm of [...teams, ...(answeredData.teams || [])]) {
+      this._teamMap.set(tm.id, tm)
+    }
+    this.offers = offers.filter(o => o.from_team_id === this.team.id)
+    this.answeredOffers = answeredData.answeredOffers || []
+  }
+  /**
    * @returns {UIElementEvents}
    */
   get events () {
@@ -74,19 +95,19 @@ export class MyOffersPage extends UIElement {
         <p>${t('trades.myOffersDesc')}</p>
         <div class="my-offers-table">
           ${new Table({
-            cols: [
-              { name: t('trades.type') },
-              { name: t('results.name') },
-              { name: t('results.team') },
-              { name: t('player.position') },
-              { name: t('player.level'), align: 'right' },
-              { name: t('trades.price'), align: 'right' },
-              { name: '' }
-            ],
-            renderRow: (offer) => this._renderOfferRow(offer),
-            data: this.offers,
-            rowAttrs: (offer) => `data-offer-id="${offer.id}"`
-          }).template}
+    cols: [
+      { name: t('trades.type') },
+      { name: t('results.name') },
+      { name: t('results.team') },
+      { name: t('player.position') },
+      { name: t('player.level'), align: 'right' },
+      { name: t('trades.price'), align: 'right' },
+      { name: '' }
+    ],
+    renderRow: (offer) => this._renderOfferRow(offer),
+    data: this.offers,
+    rowAttrs: (offer) => `data-offer-id="${offer.id}"`
+  })}
         </div>
         <div class="row">
           <div class="col ${this.hasOpenOffers ? 'hidden' : ''}">
@@ -97,19 +118,19 @@ export class MyOffersPage extends UIElement {
         <h2 class="mt-4">${t('trades.answeredOffersTitle')}</h2>
         <div class="answered-offers-table ${this.answeredOffers.length === 0 ? 'hidden' : ''}">
           ${new Table({
-            cols: [
-              { name: t('trades.status') },
-              { name: t('results.name') },
-              { name: t('results.team') },
-              { name: t('player.position') },
-              { name: t('player.level'), align: 'right' },
-              { name: t('trades.price'), align: 'right' },
-              { name: '' }
-            ],
-            renderRow: (offer) => this._renderAnsweredOfferRow(offer),
-            data: this.answeredOffers,
-            rowAttrs: (offer) => `data-offer-id="${offer.id}"`
-          }).template}
+    cols: [
+      { name: t('trades.status') },
+      { name: t('results.name') },
+      { name: t('results.team') },
+      { name: t('player.position') },
+      { name: t('player.level'), align: 'right' },
+      { name: t('trades.price'), align: 'right' },
+      { name: '' }
+    ],
+    renderRow: (offer) => this._renderAnsweredOfferRow(offer),
+    data: this.answeredOffers,
+    rowAttrs: (offer) => `data-offer-id="${offer.id}"`
+  })}
         </div>
         <div class="row">
           <div class="col ${this.answeredOffers.length > 0 ? 'hidden' : ''}">
@@ -118,28 +139,6 @@ export class MyOffersPage extends UIElement {
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const response = await server.getMyTeam()
-    this.team = response.team
-    const [{ offers, players, teams }, answeredData] = await Promise.all([
-      server.getOffers(),
-      server.getAnsweredOffers()
-    ])
-    this._playerMap = new Map()
-    this._teamMap = new Map()
-    for (const p of [...players, ...(answeredData.players || [])]) {
-      this._playerMap.set(p.id, p)
-    }
-    for (const tm of [...teams, ...(answeredData.teams || [])]) {
-      this._teamMap.set(tm.id, tm)
-    }
-    this.offers = offers.filter(o => o.from_team_id === this.team.id)
-    this.answeredOffers = answeredData.answeredOffers || []
   }
 
   /**

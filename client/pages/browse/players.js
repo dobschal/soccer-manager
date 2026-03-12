@@ -9,15 +9,6 @@ import { t } from '../../i18n/index.js'
 const SORT_COL_MAP = ['name', 'position', 'level', 'age', 'team_name']
 
 export class BrowsePlayersPage extends UIElement {
-  players = []
-  totalCount = 0
-  pageIndex = 0
-  pageSize = 20
-  searchQuery = ''
-  season = 0
-  sortColumn = ''
-  sortDirection = ''
-
   /**
    * @param {UIElement} parentPage
    */
@@ -25,7 +16,23 @@ export class BrowsePlayersPage extends UIElement {
     super()
     this.parentPage = parentPage
   }
-
+  async load () {
+    const { season } = await server.getCurrentGameday()
+    this.season = season
+    const result = await server.browseAllPlayers(this.searchQuery, this.pageIndex, this.pageSize, this.sortColumn, this.sortDirection)
+    this.players = result.players
+    this.totalCount = result.totalCount
+  }
+  players = []
+  
+  totalCount = 0
+  pageIndex = 0
+  pageSize = 20
+  searchQuery = ''
+  season = 0
+  sortColumn = ''
+  sortDirection = ''
+  
   async applyQueryParams (params) {
     const newSortDir = params.sort_dir || ''
     const newSortCol = params.col !== undefined ? (SORT_COL_MAP[Number(params.col)] || '') : ''
@@ -40,14 +47,6 @@ export class BrowsePlayersPage extends UIElement {
     this.searchQuery = params.search_query || ''
     this.sortColumn = newSortCol
     this.sortDirection = newSortDir
-  }
-
-  async load () {
-    const { season } = await server.getCurrentGameday()
-    this.season = season
-    const result = await server.browseAllPlayers(this.searchQuery, this.pageIndex, this.pageSize, this.sortColumn, this.sortDirection)
-    this.players = result.players
-    this.totalCount = result.totalCount
   }
 
   get events () {
@@ -88,8 +87,8 @@ export class BrowsePlayersPage extends UIElement {
     return `
       <div>
         ${this.players.length === 0
-          ? `<p class="text-muted text-center">${t('search.noResults')}</p>`
-          : table}
+    ? `<p class="text-muted text-center">${t('search.noResults')}</p>`
+    : table}
 
         ${totalPages > 1 ? `
           <nav class="d-flex justify-content-between align-items-center mt-3">

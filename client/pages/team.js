@@ -30,10 +30,79 @@ import { Table } from '../partials/table.js'
  */
 
 export class TeamPage extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    // Get teamId from URL query params if not already set
+    if (!this.teamId) {
+      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
+      const idParam = urlParams.get('id')
+      if (idParam) {
+        this.teamId = Number(idParam)
+      }
+    }
+
+    if (!this.teamId) throw new Error('No team id present...')
+    const {
+      team,
+      players,
+      user
+    } = await server.getTeam(this.teamId)
+    this.user = user
+    this.team = team
+    this.players = players
+
+    const [stadium, teamValue, myTeam, friendlyStatus, transferHistory, seasonHistory, recordResults] = await Promise.all([
+      server.getStadiumByTeamId(this.team.id),
+      server.getTeamValue(this.team.id),
+      server.getMyTeam(),
+      server.canPlayFriendlyToday(),
+      server.getTeamTransferHistory(this.team.id),
+      server.getTeamSeasonHistory(this.team.id),
+      server.getTeamRecordResults(this.team.id)
+    ])
+    this.stadium = stadium
+    this._teamValue = teamValue.value
+    this._isOwnTeam = myTeam.team.id === this.team.id
+    this._canPlayFriendly = friendlyStatus.canPlay && !this._isOwnTeam
+    this._transferHistory = transferHistory.transfers || []
+    this._seasonHistory = seasonHistory.seasons || []
+    this._highestWin = recordResults.highestWin
+    this._highestLoss = recordResults.highestLoss
+
+    // Render best player image
+    const bestPlayer = this._bestPlayer
+    if (bestPlayer) {
+      this._bestPlayerImage = await renderPlayerImage(bestPlayer, this.team, 150)
+    }
+  }
+  onMounted () {
+    void showTutorialIfNeeded('team', this)
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.player_id
+   * @param {string} params.id
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({
+    player_id: playerId,
+    id
+  }) {
+    if (playerId) await showPlayerModal(Number(playerId))
+    if (!id) return
+    if (!this.teamId || this.teamId !== Number(id)) {
+      this.teamId = Number(id)
+      await this.update(true)
+    }
+  }
   /** @type {StadiumType} */
   stadium
+
   /** @type {string} */
   _bestPlayerImage = ''
+
   /** @type {number} */
   _teamValue = 0
   /** @type {boolean} */
@@ -89,10 +158,10 @@ export class TeamPage extends UIElement {
         </div>
         ${this._renderRecordResults()}
         ${new PlayerList(
-      this.players,
-      true,
-      (player) => setQueryParams({ player_id: player.id + '' })
-    )}
+    this.players,
+    true,
+    (player) => setQueryParams({ player_id: player.id + '' })
+  )}
 
         <div class="mt-5">
             <h4>${t('team.transferHistory')}</h4>
@@ -142,76 +211,6 @@ export class TeamPage extends UIElement {
           }
         }
       }
-    }
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    // Get teamId from URL query params if not already set
-    if (!this.teamId) {
-      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
-      const idParam = urlParams.get('id')
-      if (idParam) {
-        this.teamId = Number(idParam)
-      }
-    }
-
-    if (!this.teamId) throw new Error('No team id present...')
-    const {
-      team,
-      players,
-      user
-    } = await server.getTeam(this.teamId)
-    this.user = user
-    this.team = team
-    this.players = players
-
-    const [stadium, teamValue, myTeam, friendlyStatus, transferHistory, seasonHistory, recordResults] = await Promise.all([
-      server.getStadiumByTeamId(this.team.id),
-      server.getTeamValue(this.team.id),
-      server.getMyTeam(),
-      server.canPlayFriendlyToday(),
-      server.getTeamTransferHistory(this.team.id),
-      server.getTeamSeasonHistory(this.team.id),
-      server.getTeamRecordResults(this.team.id)
-    ])
-    this.stadium = stadium
-    this._teamValue = teamValue.value
-    this._isOwnTeam = myTeam.team.id === this.team.id
-    this._canPlayFriendly = friendlyStatus.canPlay && !this._isOwnTeam
-    this._transferHistory = transferHistory.transfers || []
-    this._seasonHistory = seasonHistory.seasons || []
-    this._highestWin = recordResults.highestWin
-    this._highestLoss = recordResults.highestLoss
-
-    // Render best player image
-    const bestPlayer = this._bestPlayer
-    if (bestPlayer) {
-      this._bestPlayerImage = await renderPlayerImage(bestPlayer, this.team, 150)
-    }
-  }
-
-  onMounted () {
-    void showTutorialIfNeeded('team', this)
-  }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.player_id
-   * @param {string} params.id
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({
-    player_id: playerId,
-    id
-  }) {
-    if (playerId) await showPlayerModal(Number(playerId))
-    if (!id) return
-    if (!this.teamId || this.teamId !== Number(id)) {
-      this.teamId = Number(id)
-      await this.update(true)
     }
   }
 

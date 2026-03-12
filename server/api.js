@@ -21,6 +21,9 @@ import { getCachedUser } from './lib/userCache.js'
 const app = express()
 const port = 3000
 
+// Trust the first proxy (nginx) so req.ip uses X-Forwarded-For
+app.set('trust proxy', 1)
+
 // CORS: allow requests from native app (file:// or missing origin) and localhost dev servers
 app.use((req, res, next) => {
   const origin = req.headers.origin

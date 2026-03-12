@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { GameLayout, hideNavigation, renderGameLayout } from '../../layouts/gameLayout.js'
+import { GameLayout, hideNavigation } from '../../layouts/gameLayout.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 
@@ -7,10 +7,9 @@ vi.mock('../../lib/gateway.js', () => ({
   server: {
     getNextGameDate: vi.fn().mockResolvedValue({ date: new Date(Date.now() + 60000).toISOString() }),
     getMyBalance: vi.fn().mockResolvedValue({ balance: 100000 }),
-    isDevelopment: vi.fn().mockResolvedValue({ isDevelopment: false }),
     getVersion: vi.fn().mockResolvedValue({ version: '1.0.0' }),
     getCurrentGameday: vi.fn().mockResolvedValue({ gameday: 1 }),
-    getMyTeam: vi.fn().mockResolvedValue({ user: { username: 'testuser' }, team: { id: 1 } }),
+    getMyTeam: vi.fn().mockResolvedValue({ user: { username: 'testuser' }, team: { id: 1 }, isAdmin: false }),
     getNewLogMessageCount: vi.fn().mockResolvedValue({ count: 0 })
   }
 }))
@@ -167,9 +166,4 @@ describe('GameLayout', () => {
     })
   })
 
-  describe('renderGameLayout (backwards compatibility)', () => {
-    it('is exported as a function', () => {
-      expect(typeof renderGameLayout).toBe('function')
-    })
-  })
 })

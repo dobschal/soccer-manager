@@ -17,7 +17,10 @@ vi.mock('../../lib/gateway.js', () => ({
 
 vi.mock('../../partials/lineup.js', () => ({
   lineUpData: { squadDataChanged: false },
-  renderLineup: vi.fn(() => '<div class="lineup-mock"></div>')
+  Lineup: class {
+    constructor () {}
+    toString () { return '<div class="lineup-mock"></div>' }
+  }
 }))
 
 vi.mock('../../util/formation.js', () => ({
@@ -117,8 +120,7 @@ describe('MyTeamPage', () => {
       await page.load()
 
       const html = page.template
-      expect(html).toContain('lineup-mock')
-      expect(html).toContain('player-list-mock')
+      expect(html).toContain('data-subpage="ateam"')
     })
 
     it('calculates team strength correctly', async () => {

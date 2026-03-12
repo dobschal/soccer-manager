@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { Button, renderButton } from '../../partials/button.js'
+import { Button } from '../../partials/button.js'
 
 // Mock UIElement dependencies
 vi.mock('../../lib/html.js', () => ({
@@ -74,17 +74,4 @@ describe('Button UIElement', () => {
     })
   })
 
-  describe('renderButton (backwards compatibility)', () => {
-    it('returns a string', () => {
-      const result = renderButton('Click', () => {
-      })
-      expect(typeof result).toBe('string')
-    })
-
-    it('returns template element for async rendering', () => {
-      const result = renderButton('Click', () => {
-      })
-      expect(result).toContain('<template')
-    })
-  })
 })

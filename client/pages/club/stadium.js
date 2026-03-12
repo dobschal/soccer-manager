@@ -9,8 +9,60 @@ import { t } from '../../i18n/index.js'
 import { Table } from '../../partials/table.js'
 
 export class StadiumSubPage extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const [stadiumResponse, teamResponse, attendanceResponse, historyResponse] = await Promise.all([
+      server.getStadium(),
+      server.getMyTeam(),
+      server.getStadiumAttendance(),
+      server.getConstructionHistory()
+    ])
+    this.stadium = stadiumResponse.stadium
+    this._originalPrices = {
+      north: this.stadium.north_stand_price,
+      south: this.stadium.south_stand_price,
+      east: this.stadium.east_stand_price,
+      west: this.stadium.west_stand_price
+    }
+    this._originalExpand = {
+      north_size: this.stadium.north_stand_size,
+      south_size: this.stadium.south_stand_size,
+      east_size: this.stadium.east_stand_size,
+      west_size: this.stadium.west_stand_size,
+      north_roof: this.stadium.north_stand_roof,
+      south_roof: this.stadium.south_stand_roof,
+      east_roof: this.stadium.east_stand_roof,
+      west_roof: this.stadium.west_stand_roof
+    }
+    this.constructionInfo = stadiumResponse.constructionInfo || {}
+    this.team = teamResponse.team
+    this.attendanceData = attendanceResponse.attendance || []
+    this.constructionHistory = historyResponse.history || []
+  }
+  /**
+   * Called after component is mounted - initializes Three.js scene
+   */
+  onMounted () {
+    if (this._stadiumCanvas) {
+      this._stadiumCanvas.onMounted()
+    }
+    void showTutorialIfNeeded('stadium', this)
+  }
+  /**
+   * Called when component is unmounted - cleanup Three.js resources
+   */
+  onDestroy () {
+    if (this._stadiumCanvas) {
+      this._stadiumCanvas.onDestroy()
+      this._stadiumCanvas = null
+    }
+  }
   stadium = {}
+
   team = {}
+
   constructionInfo = {}
   attendanceData = []
   constructionHistory = []
@@ -97,39 +149,6 @@ export class StadiumSubPage extends UIElement {
         ${this._renderConstructionHistory()}
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const [stadiumResponse, teamResponse, attendanceResponse, historyResponse] = await Promise.all([
-      server.getStadium(),
-      server.getMyTeam(),
-      server.getStadiumAttendance(),
-      server.getConstructionHistory()
-    ])
-    this.stadium = stadiumResponse.stadium
-    this._originalPrices = {
-      north: this.stadium.north_stand_price,
-      south: this.stadium.south_stand_price,
-      east: this.stadium.east_stand_price,
-      west: this.stadium.west_stand_price
-    }
-    this._originalExpand = {
-      north_size: this.stadium.north_stand_size,
-      south_size: this.stadium.south_stand_size,
-      east_size: this.stadium.east_stand_size,
-      west_size: this.stadium.west_stand_size,
-      north_roof: this.stadium.north_stand_roof,
-      south_roof: this.stadium.south_stand_roof,
-      east_roof: this.stadium.east_stand_roof,
-      west_roof: this.stadium.west_stand_roof
-    }
-    this.constructionInfo = stadiumResponse.constructionInfo || {}
-    this.team = teamResponse.team
-    this.attendanceData = attendanceResponse.attendance || []
-    this.constructionHistory = historyResponse.history || []
   }
 
   /**
@@ -429,24 +448,5 @@ export class StadiumSubPage extends UIElement {
       classes: 'table-sm table-striped'
     }).template
   }
-
-  /**
-   * Called after component is mounted - initializes Three.js scene
-   */
-  onMounted () {
-    if (this._stadiumCanvas) {
-      this._stadiumCanvas.onMounted()
-    }
-    void showTutorialIfNeeded('stadium', this)
-  }
-
-  /**
-   * Called when component is unmounted - cleanup Three.js resources
-   */
-  onDestroy () {
-    if (this._stadiumCanvas) {
-      this._stadiumCanvas.onDestroy()
-      this._stadiumCanvas = null
-    }
-  }
+  
 }

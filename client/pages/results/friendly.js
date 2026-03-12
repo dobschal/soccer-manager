@@ -9,8 +9,6 @@ import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
 
 export class FriendlyResultsPage extends UIElement {
-  results = []
-
   /**
    * @param {UIElement} parentPage
    */
@@ -18,7 +16,16 @@ export class FriendlyResultsPage extends UIElement {
     super()
     this.parentPage = parentPage
   }
-
+  async load () {
+    if (typeof this.season === 'undefined') {
+      const response = await server.getCurrentGameday()
+      this.season = response.season
+    }
+    const { results } = await server.getFriendlyResults(this.season)
+    this.results = results
+  }
+  results = []
+  
   get events () {
     return {
       '#prev-season-button': {
@@ -55,34 +62,25 @@ export class FriendlyResultsPage extends UIElement {
 
         <h3>${t('results.games')}</h3>
         ${this.results.length === 0
-      ? `<p class="text-muted">${t('friendly.noResults')}</p>`
-      : new Table({
-          cols: [
-            { name: t('results.gameDayLabel') },
-            { name: t('results.team1'), align: 'right' },
-            { name: t('results.result'), align: 'center' },
-            { name: t('results.team2') }
-          ],
-          renderRow: (result) => this._renderResultItem(result),
-          data: this.results,
-          rowAttrs: (result) => `id="${result._rowId}"`
-        })
-    }
+    ? `<p class="text-muted">${t('friendly.noResults')}</p>`
+    : new Table({
+      cols: [
+        { name: t('results.gameDayLabel') },
+        { name: t('results.team1'), align: 'right' },
+        { name: t('results.result'), align: 'center' },
+        { name: t('results.team2') }
+      ],
+      renderRow: (result) => this._renderResultItem(result),
+      data: this.results,
+      rowAttrs: (result) => `id="${result._rowId}"`
+    })
+}
       </div>
     `
   }
 
   get myTeamId () {
     return this.parentPage.myTeamId
-  }
-
-  async load () {
-    if (typeof this.season === 'undefined') {
-      const response = await server.getCurrentGameday()
-      this.season = response.season
-    }
-    const { results } = await server.getFriendlyResults(this.season)
-    this.results = results
   }
 
   _renderResultItem (result) {

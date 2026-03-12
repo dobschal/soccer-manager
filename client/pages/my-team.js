@@ -12,7 +12,77 @@ import { off, on } from '../lib/event.js'
 import { initDragDrop } from '../lib/dragDrop.js'
 
 export class MyTeamPage extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const [teamData, gamedayData] = await Promise.all([
+      server.getMyTeam(),
+      server.getCurrentGameday()
+    ])
+    this.data = teamData
+    this.season = gamedayData.season
+    lineUpData.squadDataChanged = false
+  }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    void showTutorialIfNeeded('team', this)
+    this._youthPlayerPromotedEventId = on('YOUTH_PLAYER_PROMOTED', async () => {
+      await this.load()
+      this._subPageCache = {}
+      await this.update()
+      if (!this.subPage) this._initDragDrop()
+    })
+    this._onPlayerFired = async () => {
+      await this.load()
+      this._subPageCache = {}
+      await this.update()
+      if (!this.subPage) this._initDragDrop()
+    }
+    window.addEventListener('player-fired', this._onPlayerFired)
+    if (!this.subPage) {
+      this._initDragDrop()
+    }
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.player_id
+   * @param {string} params.sub_page
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({
+    player_id: playerId,
+    sub_page: subPage
+  }) {
+    if (playerId) {
+      await showPlayerModal(Number(playerId))
+    }
+
+    // Handle tab switching
+    const newSubPage = subPage || null
+    if (newSubPage !== this.subPage) {
+      this.subPage = newSubPage
+      this._switchSubPage()
+      this._updateNav()
+      if (!newSubPage) this._initDragDrop()
+    }
+  }
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    if (this._youthPlayerPromotedEventId !== undefined) {
+      off(this._youthPlayerPromotedEventId)
+    }
+    if (this._onPlayerFired) {
+      window.removeEventListener('player-fired', this._onPlayerFired)
+    }
+    this._dragDropCleanup?.destroy()
+  }
   _subPageCache = {}
+
   _subPageContainerId = generateId()
 
   /**
@@ -82,79 +152,6 @@ export class MyTeamPage extends UIElement {
         : href === '#my-team'
       link.classList.toggle('active', isActive)
     })
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const [teamData, gamedayData] = await Promise.all([
-      server.getMyTeam(),
-      server.getCurrentGameday()
-    ])
-    this.data = teamData
-    this.season = gamedayData.season
-    lineUpData.squadDataChanged = false
-  }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.player_id
-   * @param {string} params.sub_page
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({
-    player_id: playerId,
-    sub_page: subPage
-  }) {
-    if (playerId) {
-      await showPlayerModal(Number(playerId))
-    }
-
-    // Handle tab switching
-    const newSubPage = subPage || null
-    if (newSubPage !== this.subPage) {
-      this.subPage = newSubPage
-      this._switchSubPage()
-      this._updateNav()
-      if (!newSubPage) this._initDragDrop()
-    }
-  }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    void showTutorialIfNeeded('team', this)
-    this._youthPlayerPromotedEventId = on('YOUTH_PLAYER_PROMOTED', async () => {
-      await this.load()
-      this._subPageCache = {}
-      await this.update()
-      if (!this.subPage) this._initDragDrop()
-    })
-    this._onPlayerFired = async () => {
-      await this.load()
-      this._subPageCache = {}
-      await this.update()
-      if (!this.subPage) this._initDragDrop()
-    }
-    window.addEventListener('player-fired', this._onPlayerFired)
-    if (!this.subPage) {
-      this._initDragDrop()
-    }
-  }
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {
-    if (this._youthPlayerPromotedEventId !== undefined) {
-      off(this._youthPlayerPromotedEventId)
-    }
-    if (this._onPlayerFired) {
-      window.removeEventListener('player-fired', this._onPlayerFired)
-    }
-    this._dragDropCleanup?.destroy()
   }
 
   /**

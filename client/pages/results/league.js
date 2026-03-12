@@ -13,11 +13,6 @@ import { Table } from '../../partials/table.js'
 import { shortenTeamName } from '../../util/team.js'
 
 export class LeagueResultsPage extends UIElement {
-  suspendedPlayers = []
-  teamStats = []
-  _teamStatsSortCol = 'squad_value'
-  _teamStatsSortDir = -1 // -1 = desc, 1 = asc
-
   /**
    * @param {UIElement} parentPage
    */
@@ -25,7 +20,50 @@ export class LeagueResultsPage extends UIElement {
     super()
     this.parentPage = parentPage
   }
+  // -1 = desc, 1 = asc
+  async load () {
+    if (typeof this.level === 'undefined' || typeof this.league === 'undefined') {
+      this.level = this.parentPage.info.team.level
+      this.league = this.parentPage.info.team.league
+    }
+    if (typeof this.season === 'undefined' || typeof this.gameDay === 'undefined') {
+      const response = await server.getCurrentGameday()
+      this.season = response.season
+      this.gameDay = Math.max(0, response.gameDay - 1)
+    }
+    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }] = await Promise.all([
+      server.getResults(this.gameDay, this.season, this.level, this.league),
+      server.getStanding(this.gameDay, this.season, this.level, this.league),
+      server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league),
+      server.getTopScorers(this.season, this.level, this.league, 10),
+      server.getSuspendedPlayers(this.level, this.league),
+      server.getTeamStats(this.gameDay, this.season, this.level, this.league)
+    ])
+    this.results = results
+    this.yesterdayStanding = yesterday
+    this.standing = standing
+    this.standing.sort(_sortStanding)
+    this.yesterdayStanding.sort(_sortStanding)
+    this.topScorer = topScorers
+    this.suspendedPlayers = suspendedPlayers
+    this.teamStats = teamStats || []
 
+    this._buildManagerChat()
+  }
+  onMounted () {
+    this._loadTopScorerImages()
+    this._attachTeamStatsHeaderHandler()
+    if (this._managerSvgId && this._teamColor) {
+      void loadManagerChatSvg(this._managerSvgId, this._teamColor)
+    }
+  }
+  suspendedPlayers = []
+  
+  teamStats = []
+  
+  _teamStatsSortCol = 'squad_value'
+  _teamStatsSortDir = -1 
+  
   get events () {
     return {
       '#prev-game-day-button': {
@@ -60,7 +98,7 @@ export class LeagueResultsPage extends UIElement {
       }
     }
   }
-
+  
   get template () {
     return `
       <div>
@@ -103,68 +141,68 @@ export class LeagueResultsPage extends UIElement {
 
         <h3>${t('results.games')}</h3>
         ${new Table({
-          cols: [
-            { name: t('results.team1'), align: 'right' },
-            { name: t('results.result'), align: 'center' },
-            { name: t('results.team2') }
-          ],
-          data: this.results,
-          renderRow: (result) => this._renderResultListItem(result),
-          onClick: (result) => setQueryParams({ game_id: result.id })
-        })}
+    cols: [
+      { name: t('results.team1'), align: 'right' },
+      { name: t('results.result'), align: 'center' },
+      { name: t('results.team2') }
+    ],
+    data: this.results,
+    renderRow: (result) => this._renderResultListItem(result),
+    onClick: (result) => setQueryParams({ game_id: result.id })
+  })}
         <h3>${t('results.standing')} - ${this.gameDay + 1}. ${t('results.gameDayLabel')}</h3>
         ${new Table({
-          cols: [
-            { name: '#', width: '32px' },
-            { name: '', width: '32px' },
-            { name: t('results.team') },
-            { name: t('results.games') },
-            { name: 'W/D/L' },
-            { name: t('results.goals') },
-            { name: t('results.diff') },
-            { name: t('results.points') }
-          ],
-          data: this.standing,
-          renderRow: (item, index) => this._renderStandingListItem(item, index),
-          onClick: (item) => goTo(`team?id=${item.team.id}`),
-          rowClass: (item, index) => {
-            const isMyTeam = this.myTeamId === item.team.id
-            return [
-              isMyTeam ? 'table-info' : '',
-              !isMyTeam && index < 2 ? 'table-success' : '',
-              !isMyTeam && index > 13 ? 'table-warning' : ''
-            ].join(' ')
-          }
-        })}
+    cols: [
+      { name: '#', width: '32px' },
+      { name: '', width: '32px' },
+      { name: t('results.team') },
+      { name: t('results.games') },
+      { name: 'W/D/L' },
+      { name: t('results.goals') },
+      { name: t('results.diff') },
+      { name: t('results.points') }
+    ],
+    data: this.standing,
+    renderRow: (item, index) => this._renderStandingListItem(item, index),
+    onClick: (item) => goTo(`team?id=${item.team.id}`),
+    rowClass: (item, index) => {
+      const isMyTeam = this.myTeamId === item.team.id
+      return [
+        isMyTeam ? 'table-info' : '',
+        !isMyTeam && index < 2 ? 'table-success' : '',
+        !isMyTeam && index > 13 ? 'table-warning' : ''
+      ].join(' ')
+    }
+  })}
         <h3>${t('results.topScorer')}</h3>
         ${new Table({
-          cols: [
-            { name: '#' },
-            { name: t('results.name') },
-            { name: t('results.goals') },
-            { name: t('results.team') },
-            { name: 'Pos' },
-            { name: 'Lvl' },
-            { name: 'Age' }
-          ],
-          data: this.topScorer,
-          renderRow: (scorer, index) => this._renderTopScorer(scorer, index),
-          rowClass: (scorer) => scorer && scorer.team && this.myTeamId === scorer.team.id ? 'table-info' : ''
-        })}
+    cols: [
+      { name: '#' },
+      { name: t('results.name') },
+      { name: t('results.goals') },
+      { name: t('results.team') },
+      { name: 'Pos' },
+      { name: 'Lvl' },
+      { name: 'Age' }
+    ],
+    data: this.topScorer,
+    renderRow: (scorer, index) => this._renderTopScorer(scorer, index),
+    rowClass: (scorer) => scorer && scorer.team && this.myTeamId === scorer.team.id ? 'table-info' : ''
+  })}
 
         ${this.suspendedPlayers.length > 0 ? `
           <h3>${t('results.suspendedPlayers')}</h3>
           ${new Table({
-            cols: [
-              { name: '' },
-              { name: t('results.name') },
-              { name: t('results.team') },
-              { name: t('player.cards') }
-            ],
-            data: this.suspendedPlayers,
-            renderRow: (player) => this._renderSuspendedPlayer(player),
-            rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
-          })}
+    cols: [
+      { name: '' },
+      { name: t('results.name') },
+      { name: t('results.team') },
+      { name: t('player.cards') }
+    ],
+    data: this.suspendedPlayers,
+    renderRow: (player) => this._renderSuspendedPlayer(player),
+    rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
+  })}
         ` : ''}
 
         ${this.teamStats.length > 0 ? `
@@ -213,37 +251,7 @@ export class LeagueResultsPage extends UIElement {
   get myTeamId () {
     return this.parentPage.myTeamId
   }
-
-  async load () {
-    if (typeof this.level === 'undefined' || typeof this.league === 'undefined') {
-      this.level = this.parentPage.info.team.level
-      this.league = this.parentPage.info.team.league
-    }
-    if (typeof this.season === 'undefined' || typeof this.gameDay === 'undefined') {
-      const response = await server.getCurrentGameday()
-      this.season = response.season
-      this.gameDay = Math.max(0, response.gameDay - 1)
-    }
-    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }] = await Promise.all([
-      server.getResults(this.gameDay, this.season, this.level, this.league),
-      server.getStanding(this.gameDay, this.season, this.level, this.league),
-      server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league),
-      server.getTopScorers(this.season, this.level, this.league, 10),
-      server.getSuspendedPlayers(this.level, this.league),
-      server.getTeamStats(this.gameDay, this.season, this.level, this.league)
-    ])
-    this.results = results
-    this.yesterdayStanding = yesterday
-    this.standing = standing
-    this.standing.sort(_sortStanding)
-    this.yesterdayStanding.sort(_sortStanding)
-    this.topScorer = topScorers
-    this.suspendedPlayers = suspendedPlayers
-    this.teamStats = teamStats || []
-
-    this._buildManagerChat()
-  }
-
+  
   /**
    * Builds manager chat HTML from results data
    */
@@ -282,14 +290,14 @@ export class LeagueResultsPage extends UIElement {
     const chatText = `
       <p class="mb-1">${t('dashboard.hey')} <b>${user.username}</b>!</p>
       <p class="mb-1">${t('dashboard.teamPosition', {
-      position: positionText,
-      league: team.level + 1
-    })}</p>
+    position: positionText,
+    league: team.level + 1
+  })}</p>
       <p class="mb-0">${t('dashboard.gameDayInfo', {
-      gameDay: Math.max(1, this.gameDay + 1),
-      season: this.season + 1,
-      opponent: isHomeGame ? myGame.team2 : myGame.team1
-    })} ${resultMessage}</p>
+    gameDay: Math.max(1, this.gameDay + 1),
+    season: this.season + 1,
+    opponent: isHomeGame ? myGame.team2 : myGame.team1
+  })} ${resultMessage}</p>
     `
     this._managerChatHtml = renderManagerChatInline(this._managerSvgId, chatText)
   }
@@ -309,14 +317,6 @@ export class LeagueResultsPage extends UIElement {
 
   async update (reloadData = false) {
     await super.update(reloadData)
-    this._loadTopScorerImages()
-    this._attachTeamStatsHeaderHandler()
-    if (this._managerSvgId && this._teamColor) {
-      void loadManagerChatSvg(this._managerSvgId, this._teamColor)
-    }
-  }
-
-  onMounted () {
     this._loadTopScorerImages()
     this._attachTeamStatsHeaderHandler()
     if (this._managerSvgId && this._teamColor) {

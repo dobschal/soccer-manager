@@ -14,7 +14,38 @@ import { renderPageNumbers } from '../../partials/pagination.js'
 const PAGE_SIZE = 20
 
 export class MarketPage extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const teamResponse = await server.getMyTeam()
+    this.team = teamResponse.team
+
+    const { season } = await server.getCurrentGameday()
+    this.season = season
+
+    const offersResponse = await server.getOffers()
+    this.offers = offersResponse.offers
+    this.players = offersResponse.players
+    this.teams = offersResponse.teams
+
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.sort_dir
+   * @param {string} params.col
+   */
+  onQueryChanged ({
+    sort_dir,
+    col
+  }) {
+    if (sort_dir && col !== undefined) {
+      this._page = 0
+      this.update()
+    }
+  }
   team = {}
+
   offers = []
   players = []
   teams = []
@@ -147,23 +178,6 @@ export class MarketPage extends UIElement {
   }
 
   /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const teamResponse = await server.getMyTeam()
-    this.team = teamResponse.team
-
-    const { season } = await server.getCurrentGameday()
-    this.season = season
-
-    const offersResponse = await server.getOffers()
-    this.offers = offersResponse.offers
-    this.players = offersResponse.players
-    this.teams = offersResponse.teams
-
-  }
-
-  /**
    * @returns {Array}
    */
   _prepareTableCols () {
@@ -220,21 +234,6 @@ export class MarketPage extends UIElement {
     }, {
       name: '',
     }]
-  }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.sort_dir
-   * @param {string} params.col
-   */
-  onQueryChanged ({
-    sort_dir,
-    col
-  }) {
-    if (sort_dir && col !== undefined) {
-      this._page = 0
-      this.update()
-    }
   }
 
   /**

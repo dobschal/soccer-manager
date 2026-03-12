@@ -23,7 +23,7 @@ vi.mock('../../lib/router.js', () => ({
   goTo: vi.fn()
 }))
 
-import { Link, renderLink } from '../../partials/link.js'
+import { Link } from '../../partials/link.js'
 import { goTo } from '../../lib/router.js'
 
 describe('Link UIElement', () => {
@@ -68,15 +68,4 @@ describe('Link UIElement', () => {
     })
   })
 
-  describe('renderLink (backwards compatibility)', () => {
-    it('returns a string', () => {
-      const result = renderLink('Home', 'home')
-      expect(typeof result).toBe('string')
-    })
-
-    it('returns template element for async rendering', () => {
-      const result = renderLink('Home', 'home')
-      expect(result).toContain('<template')
-    })
-  })
 })

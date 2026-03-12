@@ -8,7 +8,6 @@ import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showConfirmDialog, showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
-import { ADMIN_USERNAME } from '../util/constants.js'
 
 /**
  * @returns {void}
@@ -18,13 +17,98 @@ export function hideNavigation () {
 }
 
 export class GameLayout extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
+    const [gameDate, versionData, currentGameday, teamData, newMessageResponse] = await Promise.all([
+      server.getNextGameDate(),
+      server.getVersion(),
+      server.getCurrentGameday(),
+      server.getMyTeam(),
+      server.getNewLogMessageCount(lastSeenMessageId)
+    ])
+    this._nextGameDate = gameDate.date
+    this._username = teamData.user?.username || ''
+    this._isAdmin = teamData.isAdmin || false
+    this._version = versionData.version
+    this._gameDay = currentGameday.gameDay
+    this._season = currentGameday.season
+    this._newMessageCount = newMessageResponse.count || 0
+  }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._startTimer()
+  }
+
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    this._stopTimer()
+    this._cleanupNavItemEvents()
+  }
+
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '#settings-button': {
+        click: () => {
+          hideNavigation()
+          this._showSettingsOverlay()
+        }
+      },
+      '(optional)#settings-button-mobile': {
+        click: () => {
+          hideNavigation()
+          this._showSettingsOverlay()
+        }
+      },
+      '#search-button': {
+        click: () => {
+          hideNavigation()
+          goTo('browse')
+        }
+      },
+      '(optional)#search-button-mobile': {
+        click: () => {
+          hideNavigation()
+          goTo('browse')
+        }
+      },
+      '(optional)#play-button': {
+        click: (e) => this._triggerGameDay(e.currentTarget)
+      },
+      '(optional)#play-button-mobile': {
+        click: (e) => {
+          hideNavigation()
+          this._triggerGameDay(e.currentTarget)
+        }
+      },
+      '.navbar-toggler': {
+        click: () => {
+          const navCollapse = el('.navbar-collapse')
+          if (navCollapse) {
+            navCollapse.classList.toggle('show')
+          }
+        }
+      }
+    }
+  }
   _interval = null
+
   _nextGameInElementId = generateId()
+
   _messageBadgeId = generateId()
   _nextGameDate = null
   _newMessageCount = 0
   _navItemEventIds = []
-  _isDevelopment = false
+  _isAdmin = false
   _username = ''
   _version = ''
   _gameDay = 0
@@ -109,9 +193,9 @@ export class GameLayout extends UIElement {
           <div class="info-bar-content">
             <a href="#results" class="info-bar-item text-decoration-none text-info border-0">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
-      gameDay: this._gameDay + 1,
-      season: this._season + 1
-    })}
+    gameDay: this._gameDay + 1,
+    season: this._season + 1
+  })}
             </a>
             <a href="#dashboard" class="info-bar-item text-decoration-none text-info border-0" id="${this._nextGameInElementId}">
             </a>
@@ -133,108 +217,10 @@ export class GameLayout extends UIElement {
   }
 
   /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
-    const [gameDate, devMode, versionData, currentGameday, teamData, newMessageResponse] = await Promise.all([
-      server.getNextGameDate(),
-      server.isDevelopment(),
-      server.getVersion(),
-      server.getCurrentGameday(),
-      server.getMyTeam(),
-      server.getNewLogMessageCount(lastSeenMessageId)
-    ])
-    this._nextGameDate = gameDate.date
-    this._isDevelopment = devMode.isDevelopment
-    this._username = teamData.user?.username || ''
-    this._version = versionData.version
-    this._gameDay = currentGameday.gameDay
-    this._season = currentGameday.season
-    this._newMessageCount = newMessageResponse.count || 0
-  }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._attachEventHandlers()
-    this._startTimer()
-  }
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {
-    this._stopTimer()
-    this._cleanupNavItemEvents()
-  }
-
-  /**
-   * @returns {void}
-   */
-  _attachEventHandlers () {
-    const settingsBtn = document.querySelector(`${this._elementQuery} #settings-button`)
-    if (settingsBtn) {
-      settingsBtn.addEventListener('click', () => {
-        hideNavigation()
-        this._showSettingsOverlay()
-      })
-    }
-
-    const settingsBtnMobile = document.querySelector(`${this._elementQuery} #settings-button-mobile`)
-    if (settingsBtnMobile) {
-      settingsBtnMobile.addEventListener('click', () => {
-        hideNavigation()
-        this._showSettingsOverlay()
-      })
-    }
-
-    const searchBtn = document.querySelector(`${this._elementQuery} #search-button`)
-    if (searchBtn) {
-      searchBtn.addEventListener('click', () => {
-        hideNavigation()
-        goTo('browse')
-      })
-    }
-
-    const searchBtnMobile = document.querySelector(`${this._elementQuery} #search-button-mobile`)
-    if (searchBtnMobile) {
-      searchBtnMobile.addEventListener('click', () => {
-        hideNavigation()
-        goTo('browse')
-      })
-    }
-
-    const playBtn = document.querySelector(`${this._elementQuery} #play-button`)
-    if (playBtn) {
-      playBtn.addEventListener('click', () => this._triggerGameDay(playBtn))
-    }
-
-    const playBtnMobile = document.querySelector(`${this._elementQuery} #play-button-mobile`)
-    if (playBtnMobile) {
-      playBtnMobile.addEventListener('click', () => {
-        hideNavigation()
-        this._triggerGameDay(playBtnMobile)
-      })
-    }
-
-    const toggleBtn = document.querySelector(`${this._elementQuery} .navbar-toggler`)
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        const navCollapse = el('.navbar-collapse')
-        if (navCollapse) {
-          navCollapse.classList.toggle('show')
-        }
-      })
-    }
-  }
-
-  /**
    * @returns {boolean}
    */
   get _showPlayButton () {
-    return this._isDevelopment || this._username === ADMIN_USERNAME
+    return this._isAdmin
   }
 
   /**
@@ -449,12 +435,4 @@ export class GameLayout extends UIElement {
       </li>
     `
   }
-}
-
-// Backwards compatibility
-/**
- * @returns {Promise<string>}
- */
-export async function renderGameLayout () {
-  return new GameLayout().toString()
 }

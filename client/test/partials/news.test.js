@@ -41,7 +41,7 @@ vi.mock('../../partials/commentOverlay.js', () => ({
   showCommentOverlay: vi.fn()
 }))
 
-import { News, renderNews } from '../../pages/dashboard/news.js'
+import { News } from '../../pages/dashboard/news.js'
 import { server } from '../../lib/gateway.js'
 import { showCommentOverlay } from '../../partials/commentOverlay.js'
 
@@ -197,10 +197,4 @@ describe('News', () => {
     })
   })
 
-  describe('renderNews', () => {
-    it('returns News instance as string', () => {
-      const result = renderNews()
-      expect(typeof result).toBe('string')
-    })
-  })
 })

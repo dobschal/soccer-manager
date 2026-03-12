@@ -11,8 +11,50 @@ import { CupResultsPage } from './results/cup.js'
 import { FriendlyResultsPage } from './results/friendly.js'
 
 export class ResultsPage extends UIElement {
+  async load () {
+    this.info = await server.getMyTeam()
+    this.myTeamId = this.info.team.id
+  }
+  onMounted () {
+    void showTutorialIfNeeded('results', this)
+    const queryParams = getQueryParams()
+    if (queryParams.game_id) {
+      void showGameModal(Number(queryParams.game_id))
+    }
+    if (queryParams.player_id) {
+      void showPlayerModal(Number(queryParams.player_id))
+    }
+  }
+  async onQueryChanged (queryParams) {
+    if (queryParams.game_id) {
+      await showGameModal(Number(queryParams.game_id))
+    }
+    if (queryParams.player_id) {
+      await showPlayerModal(Number(queryParams.player_id))
+    }
+
+    const newSubPage = queryParams.sub_page || null
+
+    if (newSubPage !== this.subPage) {
+      this.subPage = newSubPage
+      this._switchSubPage()
+      this._updateNav()
+    }
+
+    const key = newSubPage || 'league'
+    if (!this._subPageCache[key]) {
+      this._subPageCache[key] = this._createSubPage(key)
+    }
+    const cached = this._subPageCache[key]
+    if (cached && typeof cached.applyQueryParams === 'function') {
+      await cached.applyQueryParams(queryParams)
+      await cached.update(true)
+    }
+  }
   subPage = null
+  
   _subPageCache = {}
+  
   _subPageContainerId = generateId()
 
   get template () {
@@ -87,47 +129,5 @@ export class ResultsPage extends UIElement {
       link.classList.toggle('active', isActive)
     })
   }
-
-  async load () {
-    this.info = await server.getMyTeam()
-    this.myTeamId = this.info.team.id
-  }
-
-  onMounted () {
-    void showTutorialIfNeeded('results', this)
-    const queryParams = getQueryParams()
-    if (queryParams.game_id) {
-      void showGameModal(Number(queryParams.game_id))
-    }
-    if (queryParams.player_id) {
-      void showPlayerModal(Number(queryParams.player_id))
-    }
-  }
-
-  async onQueryChanged (queryParams) {
-    if (queryParams.game_id) {
-      await showGameModal(Number(queryParams.game_id))
-    }
-    if (queryParams.player_id) {
-      await showPlayerModal(Number(queryParams.player_id))
-    }
-
-    const newSubPage = queryParams.sub_page || null
-
-    if (newSubPage !== this.subPage) {
-      this.subPage = newSubPage
-      this._switchSubPage()
-      this._updateNav()
-    }
-
-    const key = newSubPage || 'league'
-    if (!this._subPageCache[key]) {
-      this._subPageCache[key] = this._createSubPage(key)
-    }
-    const cached = this._subPageCache[key]
-    if (cached && typeof cached.applyQueryParams === 'function') {
-      await cached.applyQueryParams(queryParams)
-      await cached.update(true)
-    }
-  }
+  
 }

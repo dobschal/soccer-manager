@@ -98,11 +98,10 @@ vi.mock('../../pages/dashboard/news.js', () => ({
 
 vi.mock('../../pages/dashboard/actionCards.js', () => ({
   ActionCards: class {
-    cards = []
-
     async load () {
       this.cards = (await import('../../lib/gateway.js')).server.getActionCards().then(r => r.actionCards)
     }
+    cards = []
 
     toString () {
       return '<div>Action Cards Component</div>'
@@ -112,10 +111,9 @@ vi.mock('../../pages/dashboard/actionCards.js', () => ({
 
 vi.mock('../../pages/dashboard/logMessages.js', () => ({
   LogMessages: class {
-    messages = []
-
     async load () {
     }
+    messages = []
 
     toString () {
       return '<div>Log Messages Component</div>'

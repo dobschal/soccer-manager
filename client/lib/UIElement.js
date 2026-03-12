@@ -27,17 +27,53 @@ export class UIElement {
     onDOMNodeChanged(document.body, (addedNodes, removedNodes) => {
       for (const addedNode of addedNodes) {
         if (addedNode.dataset?.render_id === this._renderId && el(this._elementQuery)) {
-          this._onMounted(addedNode)
+          this._onMounted()
           break
         }
       }
       for (const removedNode of removedNodes) {
         if (removedNode.dataset?.render_id === this._renderId && !el(this._elementQuery)) {
-          this._onDestroy(removedNode)
+          this._onDestroy()
           break
         }
       }
     })
+  }
+
+  /**
+   * @abstract
+   * @returns {Promise<void>}
+   */
+  async load () {
+  }
+
+  /**
+   * @abstract
+   * @returns {void}
+   */
+  onMounted () {
+  }
+
+  /**
+   * @abstract
+   * @returns {void}
+   */
+  onUpdate () {
+  }
+
+  /**
+   * @abstract
+   * @param {Record<string, string>} _params
+   * @returns {void}
+   */
+  onQueryChanged (_params) {
+  }
+
+  /**
+   * @abstract
+   * @returns {void}
+   */
+  onDestroy () {
   }
 
   /**
@@ -64,31 +100,10 @@ export class UIElement {
 
   /**
    * @abstract
-   * @returns {void}
-   */
-  onMounted () {
-  }
-
-  /**
-   * @abstract
-   * @returns {void}
-   */
-  onDestroy () {
-  }
-
-  /**
-   * @abstract
    * @returns {string}
    */
   get template () {
     return ''
-  }
-
-  /**
-   * @abstract
-   * @returns {Promise<void>}
-   */
-  async load () {
   }
 
   /**
@@ -123,7 +138,7 @@ export class UIElement {
   /**
    * Find the currently rendered DOM nodes for this UIElement and replace those
    * with the current template rendered.
-   * @param {boolean} reloadData - default is false to not reload the data
+   * @param {boolean} [reloadData] - default is false to not reload the data
    */
   async update (reloadData = false) {
     if (!this.isRendered) return
@@ -133,6 +148,7 @@ export class UIElement {
     await this._renderIntoTemplateEl(templateEl)
     this._renderIntoDOM(node, templateEl)
     this._applyEventHandlers()
+    this.onUpdate()
   }
 
   /**
@@ -235,11 +251,10 @@ export class UIElement {
   }
 
   /**
-   * @param {Node} node
    * @returns {void}
    * @private
    */
-  _onMounted (_node) {
+  _onMounted () {
     if (this._isMounted) return // Skip if already mounted (this is an update, not initial mount)
     this._isMounted = true
     console.log('🖌️ Mounted: ', this.constructor.name)
@@ -249,14 +264,15 @@ export class UIElement {
   }
 
   /**
-   * @param {Node} node
    * @returns {void}
    * @private
    */
-  _onDestroy (_node) {
+  _onDestroy () {
     this._isMounted = false
     console.log('🗑️Destroy: ', this.constructor.name)
-    off(this._queryChangedEventId)
+    if (this._queryChangedEventId) {
+      off(this._queryChangedEventId)
+    }
     this._unregisterServerEventHandlers()
     this.onDestroy()
   }

@@ -1,5 +1,5 @@
 import { UIElement } from '../lib/UIElement.js'
-import { renderGameAnimation } from './gameAnimation.js'
+import { GameAnimation } from './gameAnimation.js'
 import { renderEmblem } from './emblem.js'
 
 /**
@@ -234,7 +234,7 @@ export class GameDetails extends UIElement {
     return `
       <div>
         <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} as guests at their stadium!</p>
-        ${renderGameAnimation(game, team1, team2)}
+        ${new GameAnimation(game, team1, team2)}
         <div class="horizontal-scrollable-table">
         <table class="table mb-4 wide-on-mobile game-details-table">
           <colgroup>

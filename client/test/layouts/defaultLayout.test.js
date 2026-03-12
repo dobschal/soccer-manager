@@ -14,7 +14,7 @@ vi.mock('../../lib/observeDOM.js', () => ({
   onDOMNodeChanged: vi.fn()
 }))
 
-import { DefaultLayout, renderDefaultLayout } from '../../layouts/defaultLayout.js'
+import { DefaultLayout } from '../../layouts/defaultLayout.js'
 
 describe('DefaultLayout', () => {
   describe('DefaultLayout class', () => {
@@ -34,9 +34,4 @@ describe('DefaultLayout', () => {
     })
   })
 
-  describe('renderDefaultLayout (backwards compatibility)', () => {
-    it('is exported as a function', () => {
-      expect(typeof renderDefaultLayout).toBe('function')
-    })
-  })
 })

@@ -4,11 +4,6 @@ import { el, generateId } from '../lib/html.js'
 import { delay } from '../lib/delay.js'
 
 export class GameAnimation extends UIElement {
-  isPlaying = false
-  _timerId = null
-  _ballId = null
-  _messageId = null
-
   /**
    * @param {GameResultType} game
    * @param {TeamType} team1
@@ -25,6 +20,26 @@ export class GameAnimation extends UIElement {
     /** @type {PlayerType[]} */
     this.playerTeamB = this.details.playerTeamB
   }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._applyPositionHacks()
+    this._loadPlayerImages()
+    this._attachPlayButtonHandler()
+  }
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    this.isPlaying = false
+  }
+  isPlaying = false
+
+  _timerId = null
+
+  _ballId = null
+  _messageId = null
 
   /**
    * @returns {string}
@@ -39,22 +54,6 @@ export class GameAnimation extends UIElement {
         ${this.playerTeamB.map(p => this._renderTeamPlayer(p, this.team2, 'away')).join('')}
       </div>
     `
-  }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._applyPositionHacks()
-    this._loadPlayerImages()
-    this._attachPlayButtonHandler()
-  }
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {
-    this.isPlaying = false
   }
 
   /**
@@ -324,13 +323,3 @@ export class GameAnimation extends UIElement {
   }
 }
 
-/**
- * Backwards compatibility wrapper
- * @param {GameResultType} game
- * @param {TeamType} team1
- * @param {TeamType} team2
- * @returns {string}
- */
-export function renderGameAnimation (game, team1, team2) {
-  return new GameAnimation(game, team1, team2).toString()
-}

@@ -34,12 +34,3 @@ export class Button extends UIElement {
   }
 }
 
-/**
- * @param {string} text
- * @param {() => void} _onClick
- * @param {string} [type]
- * @returns {string}
- */
-export function renderButton (text, _onClick, type = 'primary') {
-  return new Button(text, _onClick, type).toString()
-}

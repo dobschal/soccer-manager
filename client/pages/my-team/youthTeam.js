@@ -22,6 +22,32 @@ export class YouthTeamPage extends UIElement {
   }
 
   /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const data = await server.getYouthTeam()
+    this.youthPlayers = data.youthPlayers
+    this.trainingMode = data.trainingMode
+    this.season = data.season
+  }
+  /**
+   * Called when component is mounted to DOM
+   * @returns {void}
+   */
+  onMounted () {
+    this._startTimer()
+    void showTutorialIfNeeded('youth', this)
+  }
+
+  /**
+   * Called when component is removed from DOM
+   * @returns {void}
+   */
+  onDestroy () {
+    this._stopTimer()
+  }
+
+  /**
    * @returns {string}
    */
   get template () {
@@ -37,33 +63,6 @@ export class YouthTeamPage extends UIElement {
         ${this._renderYouthPlayerTable()}
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const data = await server.getYouthTeam()
-    this.youthPlayers = data.youthPlayers
-    this.trainingMode = data.trainingMode
-    this.season = data.season
-  }
-
-  /**
-   * Called when component is mounted to DOM
-   * @returns {void}
-   */
-  onMounted () {
-    this._startTimer()
-    void showTutorialIfNeeded('youth', this)
-  }
-
-  /**
-   * Called when component is unmounted from DOM
-   * @returns {void}
-   */
-  onUnmounted () {
-    this._stopTimer()
   }
 
   /**
@@ -169,10 +168,10 @@ export class YouthTeamPage extends UIElement {
     return `
       <div class="d-flex flex-column flex-md-row gap-2 w-100" role="group">
         ${modes.map(mode => {
-      const id = generateId()
-      const isActive = this.trainingMode === mode.key
-      onClick(id, () => this._setTrainingMode(mode.key))
-      return `
+    const id = generateId()
+    const isActive = this.trainingMode === mode.key
+    onClick(id, () => this._setTrainingMode(mode.key))
+    return `
             <button
               id="${id}"
               class="btn ${isActive ? 'btn-primary' : 'btn-outline-secondary'} flex-fill"
@@ -183,7 +182,7 @@ export class YouthTeamPage extends UIElement {
               ${isActive ? `<br><small id="${this.timerId}" class="text-light opacity-75"><i class="fa fa-clock-o"></i> ...</small>` : ''}
             </button>
           `
-    }).join('')}
+  }).join('')}
       </div>
     `
   }

@@ -6,17 +6,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
  * Reusable stadium 3D canvas component
  */
 export class StadiumCanvas extends UIElement {
-  _flags = []
-  _animationTime = 0
-
-  // Three.js resources for cleanup
-  _scene = null
-  _renderer = null
-  _camera = null
-  _controls = null
-  _animationFrameId = null
-  _resizeObserver = null
-
   /**
    * @param {StadiumType} stadium
    * @param {TeamType} team
@@ -28,25 +17,12 @@ export class StadiumCanvas extends UIElement {
     this.team = team
     this.canvasId = canvasId
   }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `
-      <div class="stadium-wrapper">
-        <canvas id="${this.canvasId}"></canvas>
-      </div>
-    `
-  }
-
   /**
    * Called after component is mounted - initializes Three.js scene
    */
   onMounted () {
     this._initThreeJS()
   }
-
   /**
    * Called when component is unmounted - cleanup Three.js resources
    */
@@ -102,6 +78,28 @@ export class StadiumCanvas extends UIElement {
     this._camera = null
     this._flags = []
     this._animationTime = 0
+  }
+  _flags = []
+
+  _animationTime = 0
+
+  // Three.js resources for cleanup
+  _scene = null
+  _renderer = null
+  _camera = null
+  _controls = null
+  _animationFrameId = null
+  _resizeObserver = null
+
+  /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div class="stadium-wrapper">
+        <canvas id="${this.canvasId}"></canvas>
+      </div>
+    `
   }
 
   /**

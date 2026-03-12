@@ -41,7 +41,6 @@ export const server = {
   getStanding: vi.fn(),
   getResult: vi.fn(),
   getLeagueNews: vi.fn(),
-  isDevelopment: vi.fn(),
   triggerGameDay: vi.fn()
 }
 

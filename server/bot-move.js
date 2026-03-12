@@ -1,5 +1,5 @@
 import { query } from './lib/database.js'
-import { getActionCards, playActionCard, mergeActionCards } from './helper/actionCardHelper.js'
+import { getActionCards, mergeActionCards, playActionCard } from './helper/actionCardHelper.js'
 import { randomItem } from './lib/util.js'
 import { getSponsor, getSponsorOffers } from './helper/sponsorHelper.js'
 import { Sponsor } from './entities/sponsor.js'
@@ -36,9 +36,15 @@ export async function makeBotMoves () {
   }
   const botTeamIds = botTeams.map(t => t.id).join(', ')
   /** @type {PlayerType[]} */
-  const players = await query(`SELECT * FROM player WHERE team_id IN (${botTeamIds})`)
+  const players = await query(`SELECT *
+                               FROM player
+                               WHERE team_id IN (${botTeamIds})`)
   /** @type {import('./entities/actionCard.js').ActionCardType[]} */
-  const allActionCards = await query(`SELECT * FROM action_card WHERE team_id IN (${botTeamIds}) AND played=0 AND state='received'`)
+  const allActionCards = await query(`SELECT *
+                                      FROM action_card
+                                      WHERE team_id IN (${botTeamIds})
+                                        AND played = 0
+                                        AND state = 'received'`)
   const t1 = Date.now()
   const promises = []
   for (const botTeam of botTeams) {
@@ -137,7 +143,10 @@ async function _checkStadium (botTeam) {
  * @returns {Promise<void>}
  */
 async function _checkIncomingOffers (botTeam, players) {
-  const { gameDay, season } = await getGameDayAndSeason()
+  const {
+    gameDay,
+    season
+  } = await getGameDayAndSeason()
   const openSellOffers = await getOpenSellOffersByTeamId(botTeam.id)
   const incomingOffers = await getIncomingBuyOffers(botTeam.id)
 
@@ -302,6 +311,110 @@ async function _checkSellOffers (botTeam, players) {
 }
 
 /**
+ * Sign free players to fill gaps in the team roster.
+ * Free players cost nothing - ideal for filling critical and depth needs.
+ * @param {TeamType} botTeam
+ * @param {PlayerType[]} players
+ * @returns {Promise<void>}
+ */
+async function _signFreePlayers (botTeam, players) {
+  const positionsNeeded = getPositionsOfFormation(botTeam.formation)
+  const uniquePositions = [...new Set(positionsNeeded)]
+
+  // Find positions where we need more players
+  /** @type {{position: string, priority: 'critical'|'depth', deficit: number}[]} */
+  const needs = []
+  for (const position of uniquePositions) {
+    const minPlayersNeeded = positionsNeeded.filter(p => p === position).length
+    const targetSquadSize = minPlayersNeeded * 2
+    const playersInPosition = players.filter(p => p.position === position)
+
+    if (playersInPosition.length < minPlayersNeeded) {
+      needs.push({
+        position,
+        priority: 'critical',
+        deficit: minPlayersNeeded - playersInPosition.length
+      })
+    } else if (playersInPosition.length < targetSquadSize) {
+      needs.push({
+        position,
+        priority: 'depth',
+        deficit: targetSquadSize - playersInPosition.length
+      })
+    }
+  }
+
+  if (needs.length === 0) return
+
+  // Sort: critical first, then by deficit
+  needs.sort((a, b) => {
+    if (a.priority === 'critical' && b.priority !== 'critical') return -1
+    if (a.priority !== 'critical' && b.priority === 'critical') return 1
+    return b.deficit - a.deficit
+  })
+
+  // Get available free players
+  /** @type {PlayerType[]} */
+  const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL')
+  if (freePlayers.length === 0) return
+
+  let signed = 0
+  const maxSignings = 5 // Don't sign too many at once
+
+  for (const need of needs) {
+    if (signed >= maxSignings) break
+
+    // Find free players matching this position, sorted by level desc
+    const candidates = freePlayers
+      .filter(p => p.position === need.position)
+      .sort((a, b) => b.level - a.level)
+
+    const toSign = Math.min(need.deficit, maxSignings - signed, candidates.length)
+    for (let i = 0; i < toSign; i++) {
+      const player = candidates[i]
+      await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
+      await addPlayerHistory(player.id, 'HIRED', botTeam.name)
+      // Remove from freePlayers so other needs don't try to sign the same player
+      const idx = freePlayers.indexOf(player)
+      if (idx !== -1) freePlayers.splice(idx, 1)
+      // Add to team's players array
+      player.team_id = botTeam.id
+      players.push(player)
+      signed++
+      console.log(`📝 ${botTeam.name} signed free player ${player.name} (${player.position} L${player.level}) [${need.priority}]`)
+    }
+  }
+
+  // If still have critical needs unfilled, sign any free player regardless of position
+  const remainingCritical = needs.filter(n => n.priority === 'critical')
+  for (const need of remainingCritical) {
+    if (signed >= maxSignings) break
+    const playersInPosition = players.filter(p => p.position === need.position)
+    const minNeeded = positionsNeeded.filter(p => p === need.position).length
+    const stillNeeded = minNeeded - playersInPosition.length
+    if (stillNeeded <= 0) continue
+
+    // Sign any remaining free player (position mismatch is better than no player)
+    const anyCandidates = freePlayers
+      .filter(p => p.position !== 'GK') // Don't sign random GKs for outfield
+      .sort((a, b) => b.level - a.level)
+
+    const toSign = Math.min(stillNeeded, maxSignings - signed, anyCandidates.length)
+    for (let i = 0; i < toSign; i++) {
+      const player = anyCandidates[i]
+      await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
+      await addPlayerHistory(player.id, 'HIRED', botTeam.name)
+      const idx = freePlayers.indexOf(player)
+      if (idx !== -1) freePlayers.splice(idx, 1)
+      player.team_id = botTeam.id
+      players.push(player)
+      signed++
+      console.log(`📝 ${botTeam.name} signed free player ${player.name} (${player.position} L${player.level}) [critical-fallback for ${need.position}]`)
+    }
+  }
+}
+
+/**
  * Calculate value-for-money score (higher is better)
  * @param {number} level
  * @param {number} price
@@ -327,9 +440,6 @@ async function _checkBuyOffers (botTeam, players) {
   // Get updated list of buy offers after cleanup
   const currentBuyOffers = await getOpenByOffersByTeamId(botTeam.id)
 
-  // Don't create too many buy offers at once
-  if (currentBuyOffers.length >= 3) return
-
   const maxPrice = Math.floor(botTeam.balance * 0.8)
   if (maxPrice <= 0) return // no money to buy a player...
 
@@ -351,7 +461,11 @@ async function _checkBuyOffers (botTeam, players) {
 
     // Critical: Missing players for formation (can't even field a full lineup)
     if (playersInPosition.length < minPlayersNeeded) {
-      teamNeeds.push({ position, priority: 'critical', currentLevel: 0 })
+      teamNeeds.push({
+        position,
+        priority: 'critical',
+        currentLevel: 0
+      })
       continue
     }
 
@@ -361,19 +475,31 @@ async function _checkBuyOffers (botTeam, players) {
     const tiredLineupPlayer = lineupPlayers.find(p => p.freshness < 0.5)
     const hasFreshBackup = benchPlayers.some(p => p.freshness >= 0.7)
     if (tiredLineupPlayer && !hasFreshBackup) {
-      teamNeeds.push({ position, priority: 'freshness', currentLevel: currentWeakestLevel })
+      teamNeeds.push({
+        position,
+        priority: 'freshness',
+        currentLevel: currentWeakestLevel
+      })
       continue
     }
 
     // Depth: Don't have 2 players per formation slot
     if (playersInPosition.length < targetSquadSize) {
-      teamNeeds.push({ position, priority: 'depth', currentLevel: currentWeakestLevel })
+      teamNeeds.push({
+        position,
+        priority: 'depth',
+        currentLevel: currentWeakestLevel
+      })
       continue
     }
 
     // Upgrade: Have enough players but weakest is below level 70
     if (currentWeakestLevel < 70) {
-      teamNeeds.push({ position, priority: 'upgrade', currentLevel: currentWeakestLevel })
+      teamNeeds.push({
+        position,
+        priority: 'upgrade',
+        currentLevel: currentWeakestLevel
+      })
     }
   }
 
@@ -383,13 +509,23 @@ async function _checkBuyOffers (botTeam, players) {
   if (teamNeeds.length === 0 && weakestOverallLevel > 0) {
     // Find the position of the weakest player to target upgrades there
     const weakestPlayer = players.reduce((a, b) => a.level < b.level ? a : b)
-    teamNeeds.push({ position: weakestPlayer.position, priority: 'opportunistic', currentLevel: weakestOverallLevel })
+    teamNeeds.push({
+      position: weakestPlayer.position,
+      priority: 'opportunistic',
+      currentLevel: weakestOverallLevel
+    })
   }
 
   if (teamNeeds.length === 0) return
 
   // Sort needs by priority: critical > freshness > depth > upgrade > opportunistic
-  const priorityOrder = { critical: 0, freshness: 1, depth: 2, upgrade: 3, opportunistic: 4 }
+  const priorityOrder = {
+    critical: 0,
+    freshness: 1,
+    depth: 2,
+    upgrade: 3,
+    opportunistic: 4
+  }
   teamNeeds.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
   // Find sell offers for positions we need
@@ -398,7 +534,7 @@ async function _checkBuyOffers (botTeam, players) {
   const sellOffers = await query(`
       SELECT t.*, p.name as player_name, p.level as player_level, p.position as player_position
       FROM trade_offer t
-      JOIN player p ON t.player_id = p.id
+               JOIN player p ON t.player_id = p.id
       WHERE t.from_team_id <> ?
         AND t.offer_value <= ?
         AND t.type = 'sell'
@@ -413,75 +549,78 @@ async function _checkBuyOffers (botTeam, players) {
   const availableOffers = sellOffers.filter(o => !playerIdsAlreadyBidding.has(o.player_id))
   if (availableOffers.length === 0) return
 
-  // Find the best offer based on team needs and value-for-money
-  let bestOffer = null
-  let bestScore = -1
-
+  // Rank all offers by score and make multiple buy offers
+  /** @type {{offer: typeof availableOffers[0], score: number, need: typeof teamNeeds[0]}[]} */
+  const scoredOffers = []
   for (const offer of availableOffers) {
     const need = teamNeeds.find(n => n.position === offer.player_position)
     if (!need) continue
-
-    // Skip if player wouldn't be an improvement (unless critical need)
-    if (need.priority !== 'critical' && offer.player_level <= need.currentLevel) {
+    if (need.priority !== 'critical' && need.priority !== 'depth' && need.priority !== 'freshness' && offer.player_level <= need.currentLevel) {
       continue
     }
-
-    // Calculate score based on priority, level improvement, and value
     let score = 0
-
-    // Priority bonus
-    if (need.priority === 'critical') score += 1000
-    else if (need.priority === 'freshness') score += 800
-    else if (need.priority === 'depth') score += 600
-    else if (need.priority === 'upgrade') score += 400
-    else if (need.priority === 'opportunistic') score += 200
-
-    // Level improvement bonus
+    if (need.priority === 'critical') {
+      score += 1000
+    } else if (need.priority === 'freshness') {
+      score += 800
+    } else if (need.priority === 'depth') {
+      score += 600
+    } else if (need.priority === 'upgrade') {
+      score += 400
+    } else if (need.priority === 'opportunistic') score += 200
     const levelImprovement = offer.player_level - need.currentLevel
     score += levelImprovement * 100
-
-    // Value-for-money score
     score += _calculateValueScore(offer.player_level, offer.offer_value) * 10
-
-    // Prefer higher level players
     score += offer.player_level * 50
+    scoredOffers.push({
+      offer,
+      score,
+      need
+    })
+  }
 
-    if (score > bestScore) {
-      bestScore = score
-      bestOffer = offer
+  scoredOffers.sort((a, b) => b.score - a.score)
+
+  // Make up to maxNewOffers buy offers, one per position need
+  const maxNewOffers = Math.max(1, 5 - currentBuyOffers.length)
+  const positionsFilled = new Set()
+  let offersMade = 0
+  let remainingBudget = maxPrice
+
+  for (const {
+    offer: bestOffer,
+    need
+  } of scoredOffers) {
+    if (offersMade >= maxNewOffers) break
+    if (remainingBudget <= 0) break
+    // Only one buy offer per position to avoid overspending
+    if (positionsFilled.has(bestOffer.player_position)) continue
+
+    let offerValue
+    const isEagerBuyer = Math.random() < 0.1
+    if (isEagerBuyer) {
+      const overpayFactor = 1.05 + Math.random() * 0.15
+      offerValue = Math.floor(bestOffer.offer_value * overpayFactor)
+    } else {
+      const normalFactor = 0.95 + Math.random() * 0.1
+      offerValue = Math.floor(bestOffer.offer_value * normalFactor)
     }
+
+    offerValue = Math.min(remainingBudget, offerValue)
+    if (offerValue < bestOffer.offer_value * 0.9) continue // Don't lowball too much
+
+    const tradeOffer = new TradeOffer({
+      offer_value: offerValue,
+      type: 'buy',
+      player_id: bestOffer.player_id,
+      from_team_id: botTeam.id
+    })
+    await query('INSERT INTO trade_offer SET ?', tradeOffer)
+    remainingBudget -= offerValue
+    positionsFilled.add(bestOffer.player_position)
+    offersMade++
+    console.log(`💰 ${botTeam.name} made ${isEagerBuyer ? 'eager ' : ''}buy offer of ${offerValue} for ${bestOffer.player_name} (${need?.priority} need)`)
   }
-
-  // Only buy if we found a good offer
-  if (!bestOffer) return
-
-  // Determine offer price
-  // Base: match or slightly exceed asking price
-  // Small chance (10%) to overpay by up to 20% (eager buyer)
-  let offerValue
-  const isEagerBuyer = Math.random() < 0.1
-  if (isEagerBuyer) {
-    // Overpay by 5-20%
-    const overpayFactor = 1.05 + Math.random() * 0.15
-    offerValue = Math.floor(bestOffer.offer_value * overpayFactor)
-  } else {
-    // Normal offer: 95-105% of asking price
-    const normalFactor = 0.95 + Math.random() * 0.1
-    offerValue = Math.floor(bestOffer.offer_value * normalFactor)
-  }
-
-  // Cap at max affordable price
-  offerValue = Math.min(maxPrice, offerValue)
-
-  const tradeOffer = new TradeOffer({
-    offer_value: offerValue,
-    type: 'buy',
-    player_id: bestOffer.player_id,
-    from_team_id: botTeam.id
-  })
-  await query('INSERT INTO trade_offer SET ?', tradeOffer)
-  const need = teamNeeds.find(n => n.position === bestOffer.player_position)
-  console.log(`💰 ${botTeam.name} made ${isEagerBuyer ? 'eager ' : ''}buy offer of ${offerValue} for ${bestOffer.player_name} (${need?.priority} need)`)
 }
 
 /**
@@ -537,11 +676,17 @@ async function _checkTrades (botTeam, _players) {
   // 3. Check incoming buy offers and accept/decline them
   await _checkIncomingOffers(botTeam, currentPlayers)
 
-  // 4. Create sell offers for unneeded players
-  await _checkSellOffers(botTeam, currentPlayers)
+  // 4. Sign free players to fill critical gaps (free, immediate)
+  await _signFreePlayers(botTeam, currentPlayers)
 
-  // 5. Look for players to buy that would improve the team
-  await _checkBuyOffers(botTeam, currentPlayers)
+  // Refresh player list after signing free players
+  const playersAfterSigning = await getPlayersByTeamId(botTeam.id)
+
+  // 5. Create sell offers for unneeded players
+  await _checkSellOffers(botTeam, playersAfterSigning)
+
+  // 6. Look for players to buy that would improve the team
+  await _checkBuyOffers(botTeam, playersAfterSigning)
 }
 
 /**
@@ -614,7 +759,10 @@ async function _checkActionCards (botTeam, players, _isStrongTeam, actionCards) 
         const tiredPlayers = players.filter(p => p.freshness < 1.0).sort((a, b) => a.freshness - b.freshness)
         const player = tiredPlayers[0]
         if (player) {
-          await playActionCard({ actionCard, player }, botTeam)
+          await playActionCard({
+            actionCard,
+            player
+          }, botTeam)
           console.log(`${botTeam.name} used FRESHNESS card on ${player.name}`)
         }
         continue
@@ -629,7 +777,10 @@ async function _checkActionCards (botTeam, players, _isStrongTeam, actionCards) 
         const eligiblePlayers = players.filter(p => p.level < maxLevel)
         const player = randomItem(eligiblePlayers)
         if (player) {
-          await playActionCard({ actionCard, player }, botTeam)
+          await playActionCard({
+            actionCard,
+            player
+          }, botTeam)
           console.log(`${botTeam.name} used ${actionCard.action} on ${player.name}`)
         }
         continue
@@ -679,7 +830,11 @@ async function _checkActionCards (botTeam, players, _isStrongTeam, actionCards) 
         }
 
         if (bestCandidate && bestTargetPosition && bestTargetPosition !== 'GK') {
-          await playActionCard({ actionCard, player: bestCandidate, position: bestTargetPosition }, botTeam)
+          await playActionCard({
+            actionCard,
+            player: bestCandidate,
+            position: bestTargetPosition
+          }, botTeam)
           bestCandidate.position = bestTargetPosition
           console.log(`${botTeam.name} changed ${bestCandidate.name} position to ${bestTargetPosition}`)
         }

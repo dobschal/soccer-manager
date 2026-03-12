@@ -1,8 +1,7 @@
 import { Formation, getPositionsOfFormation } from '../../util/formation.js'
 import { server, showServerError } from '../../lib/gateway.js'
 import { el, generateId } from '../../lib/html.js'
-import { onChange, onClick } from '../../lib/htmlEventHandlers.js'
-import { render } from '../../lib/render.js'
+import { onClick } from '../../lib/htmlEventHandlers.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { PlayerList } from '../../partials/playerList.js'
 import { toast } from '../../partials/toast.js'
@@ -10,7 +9,8 @@ import { setQueryParams } from '../../lib/router.js'
 import { calculatePlayerAge, getSalary, sortByPosition } from '../../util/player.js'
 import { euroFormat } from '../../lib/currency.js'
 import { formatLeague } from '../../util/league.js'
-import { lineUpData, renderLineup } from '../../partials/lineup.js'
+import { Lineup, lineUpData } from '../../partials/lineup.js'
+import { on, off } from '../../lib/event.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import {
   EMBLEM_COLORS,
@@ -20,19 +20,88 @@ import {
   parseEmblemParams
 } from '../../util/emblemGenerator.js'
 import { t } from '../../i18n/index.js'
+import { UIElement } from '../../lib/UIElement.js'
 
-export class ATeamPage {
+export class ATeamPage extends UIElement {
 
   /**
    * @param {import('../my-team.js').MyTeamPage} parent
    */
   constructor (parent) {
+    super()
     this.parent = parent
     this._playerList = null
-    lineUpData.onExchange = (updatedPlayers) => {
+    this._exchangeEventId = on('lineup-exchange', (updatedPlayers) => {
       if (this._playerList) {
         this._playerList.players = updatedPlayers.filter(p => !p.fake).sort(sortByPosition)
         this._playerList.update()
+      }
+    })
+  }
+
+  onDestroy () {
+    off(this._exchangeEventId)
+  }
+
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '.lineup-select': {
+        change: (e) => {
+          if (e.target.value !== this.parent.data.team.formation) {
+            this._changeFormation(e.target.value)
+          }
+        }
+      },
+      '.pass-style-select': {
+        change: async (e) => {
+          const currentPassStyle = this.parent.data.team.pass_style || 'mixed'
+          if (e.target.value !== currentPassStyle) {
+            try {
+              await server.updatePassStyle(e.target.value)
+              this.parent.data.team.pass_style = e.target.value
+              toast(t('myTeam.passStyleUpdated'), 'success')
+            } catch (err) {
+              showServerError(err)
+            }
+          }
+        }
+      },
+      '.play-style-select': {
+        change: async (e) => {
+          const currentPlayStyle = this.parent.data.team.play_style || 'normal'
+          if (e.target.value !== currentPlayStyle) {
+            try {
+              await server.updatePlayStyle(e.target.value)
+              this.parent.data.team.play_style = e.target.value
+              toast(t('myTeam.playStyleUpdated'), 'success')
+            } catch (err) {
+              showServerError(err)
+            }
+          }
+        }
+      },
+      '.attack-mode-select': {
+        change: async (e) => {
+          const currentAttackMode = this.parent.data.team.attack_mode || 'balanced'
+          if (e.target.value !== currentAttackMode) {
+            try {
+              await server.updateAttackMode(e.target.value)
+              this.parent.data.team.attack_mode = e.target.value
+              toast(t('myTeam.attackModeUpdated'), 'success')
+            } catch (err) {
+              showServerError(err)
+            }
+          }
+        }
+      },
+      '.emblem-viewer': {
+        click: () => this._showEmblemEditor()
+      },
+      '.team-name-header': {
+        click: () => this._showTeamNameEditor()
       }
     }
   }
@@ -40,17 +109,19 @@ export class ATeamPage {
   /**
    * @returns {string}
    */
-  toString () {
+  get template () {
     return `
-      <div id="header">
-        ${this._renderHeader()}
-      </div>
-      <h3>${t('myTeam.lineup')}</h3>
-      <div class="mb-4" id="squad">
-        ${renderLineup(this.parent.data.players, this.parent.data.team, this.parent)}
-      </div>
-      <div id="player-list-container">
-        ${this._createPlayerList()}
+      <div>
+        <div id="header">
+          ${this._renderHeader()}
+        </div>
+        <h3>${t('myTeam.lineup')}</h3>
+        <div class="mb-4" id="squad">
+          ${new Lineup(this.parent.data.players, this.parent.data.team)}
+        </div>
+        <div id="player-list-container">
+          ${this._createPlayerList()}
+        </div>
       </div>
     `
   }
@@ -86,11 +157,8 @@ export class ATeamPage {
       ? (realPlayers.reduce((sum, p) => sum + calculatePlayerAge(p, this.parent.season), 0) / realPlayers.length).toFixed(1)
       : 0
 
-    const teamNameId = generateId()
-    onClick(teamNameId, () => this._showTeamNameEditor())
-
     return `
-      <h2 id="${teamNameId}" class="u-cursor-pointer mb-4 text-center text-lg-start" title="${t('myTeam.clickToEditName')}">
+      <h2 class="team-name-header u-cursor-pointer mb-4 text-center text-lg-start" title="${t('myTeam.clickToEditName')}">
         ${this.parent.data.team.name} <i class="fa fa-pencil" aria-hidden="true"></i>
       </h2>
       <div class="row">
@@ -156,13 +224,7 @@ export class ATeamPage {
    * @returns {string}
    */
   _renderEmblemViewer () {
-    const id = generateId()
-
-    onClick(id, () => {
-      this._showEmblemEditor()
-    })
-
-    return `<div id="${id}" class="mb-4 emblem-viewer">
+    return `<div class="mb-4 emblem-viewer">
       ${renderEmblem(this.parent.data.team, 200)}
     </div>`
   }
@@ -171,21 +233,10 @@ export class ATeamPage {
    * @returns {string}
    */
   _renderLineupSelect () {
-    const id = generateId()
     const currentFormation = this.parent.data.team.formation
-    onChange(id, (event) => {
-      if (event.target.value !== currentFormation) {
-        this._changeFormation(event.target.value)
-      }
-    })
-    setTimeout(() => {
-      const element = el(id)
-      if (!element) return
-      element.value = this.parent.data.team.formation
-    })
     return `
-      <select id="${id}" class="form-control">
-        ${Object.values(Formation).map(f => `<option value="${f}">${f}</option>`)}
+      <select class="form-control lineup-select">
+        ${Object.values(Formation).map(f => `<option value="${f}" ${f === currentFormation ? 'selected' : ''}>${f}</option>`).join('')}
       </select>
     `
   }
@@ -194,28 +245,11 @@ export class ATeamPage {
    * @returns {string}
    */
   _renderPassStyleSelect () {
-    const id = generateId()
     const passStyles = ['short', 'mixed', 'long']
     const currentPassStyle = this.parent.data.team.pass_style || 'mixed'
-    onChange(id, async (event) => {
-      if (event.target.value !== currentPassStyle) {
-        try {
-          await server.updatePassStyle(event.target.value)
-          this.parent.data.team.pass_style = event.target.value
-          toast(t('myTeam.passStyleUpdated'), 'success')
-        } catch (e) {
-          showServerError(e)
-        }
-      }
-    })
-    setTimeout(() => {
-      const element = el(id)
-      if (!element) return
-      element.value = currentPassStyle
-    })
     return `
-      <select id="${id}" class="form-control">
-        ${passStyles.map(style => `<option value="${style}">${t('myTeam.passStyle.' + style)}</option>`).join('')}
+      <select class="form-control pass-style-select">
+        ${passStyles.map(style => `<option value="${style}" ${style === currentPassStyle ? 'selected' : ''}>${t('myTeam.passStyle.' + style)}</option>`).join('')}
       </select>
     `
   }
@@ -224,28 +258,11 @@ export class ATeamPage {
    * @returns {string}
    */
   _renderPlayStyleSelect () {
-    const id = generateId()
     const playStyles = ['aggressive', 'normal', 'friendly']
     const currentPlayStyle = this.parent.data.team.play_style || 'normal'
-    onChange(id, async (event) => {
-      if (event.target.value !== currentPlayStyle) {
-        try {
-          await server.updatePlayStyle(event.target.value)
-          this.parent.data.team.play_style = event.target.value
-          toast(t('myTeam.playStyleUpdated'), 'success')
-        } catch (e) {
-          showServerError(e)
-        }
-      }
-    })
-    setTimeout(() => {
-      const element = el(id)
-      if (!element) return
-      element.value = currentPlayStyle
-    })
     return `
-      <select id="${id}" class="form-control">
-        ${playStyles.map(style => `<option value="${style}" title="${t('myTeam.playStyleDesc.' + style)}">${t('myTeam.playStyle.' + style)}</option>`).join('')}
+      <select class="form-control play-style-select">
+        ${playStyles.map(style => `<option value="${style}" ${style === currentPlayStyle ? 'selected' : ''} title="${t('myTeam.playStyleDesc.' + style)}">${t('myTeam.playStyle.' + style)}</option>`).join('')}
       </select>
     `
   }
@@ -254,28 +271,11 @@ export class ATeamPage {
    * @returns {string}
    */
   _renderAttackModeSelect () {
-    const id = generateId()
     const attackModes = ['offensive', 'balanced', 'defensive']
     const currentAttackMode = this.parent.data.team.attack_mode || 'balanced'
-    onChange(id, async (event) => {
-      if (event.target.value !== currentAttackMode) {
-        try {
-          await server.updateAttackMode(event.target.value)
-          this.parent.data.team.attack_mode = event.target.value
-          toast(t('myTeam.attackModeUpdated'), 'success')
-        } catch (e) {
-          showServerError(e)
-        }
-      }
-    })
-    setTimeout(() => {
-      const element = el(id)
-      if (!element) return
-      element.value = currentAttackMode
-    })
     return `
-      <select id="${id}" class="form-control">
-        ${attackModes.map(mode => `<option value="${mode}" title="${t('myTeam.attackModeDesc.' + mode)}">${t('myTeam.attackMode.' + mode)}</option>`).join('')}
+      <select class="form-control attack-mode-select">
+        ${attackModes.map(mode => `<option value="${mode}" ${mode === currentAttackMode ? 'selected' : ''} title="${t('myTeam.attackModeDesc.' + mode)}">${t('myTeam.attackMode.' + mode)}</option>`).join('')}
       </select>
     `
   }
@@ -284,7 +284,7 @@ export class ATeamPage {
    * @param {string} newFormation
    * @returns {void}
    */
-  _changeFormation (newFormation) {
+  async _changeFormation (newFormation) {
     this.parent.data.team.formation = newFormation
     this.parent.data.players = this.parent.data.players.filter(p => !p.fake)
     this.parent.data.players.forEach(player => {
@@ -301,8 +301,7 @@ export class ATeamPage {
       })
     })
     lineUpData.squadDataChanged = true
-    render('#squad', renderLineup(this.parent.data.players, this.parent.data.team, this.parent))
-    render('#header', this._renderHeader())
+    await this.update()
     this.parent._initDragDrop()
   }
 
@@ -467,13 +466,13 @@ export class ATeamPage {
       `
       <div class="emblem-editor__preview">
         <div id="${previewId}">${generateEmblem({
-        shape: selectedShape,
-        pattern: selectedPattern,
-        color: selectedColor,
-        color2: selectedColor2,
-        teamName: this.parent.data.team.name,
-        size: 150
-      })}</div>
+  shape: selectedShape,
+  pattern: selectedPattern,
+  color: selectedColor,
+  color2: selectedColor2,
+  teamName: this.parent.data.team.name,
+  size: 150
+})}</div>
       </div>
 
       <h6>${t('myTeam.shape')}</h6>
@@ -586,18 +585,16 @@ export class ATeamPage {
       return `${divider}<option value="${escapeHtml(c)}" ${c === selectedCity ? 'selected' : ''}>${escapeHtml(c)}</option>`
     }).join('')
 
-    // Add change listeners
-    setTimeout(() => {
-      const prefix1El = el(prefix1SelectId)
-      const prefix2El = el(prefix2SelectId)
-      const cityEl = el(citySelectId)
-
-      if (prefix1El) prefix1El.addEventListener('change', updatePreview)
-      if (prefix2El) prefix2El.addEventListener('change', updatePreview)
-      if (cityEl) cityEl.addEventListener('change', updatePreview)
-
-      updatePreview()
-    }, 100)
+    // Add change listeners via global event helper (overlay is outside component DOM)
+    const onChangeEl = (query, handler) => {
+      setTimeout(() => {
+        const element = el(query)
+        if (element) element.addEventListener('change', handler)
+      })
+    }
+    onChangeEl(prefix1SelectId, updatePreview)
+    onChangeEl(prefix2SelectId, updatePreview)
+    onChangeEl(citySelectId, updatePreview)
 
     // Save button handler
     onClick(saveButtonId, async () => {

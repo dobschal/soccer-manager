@@ -9,6 +9,17 @@ import { renderPageNumbers } from '../../partials/pagination.js'
 const PAGE_SIZE = 10
 
 export class LogMessages extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const [messagesResponse, countResponse] = await Promise.all([
+      server.getLogMessages(this._pageIndex, PAGE_SIZE),
+      server.getLogMessageCount()
+    ])
+    this.messages = messagesResponse
+    this._totalMessages = countResponse.count
+  }
   messages = []
   _pageIndex = 0
   _totalMessages = 0
@@ -76,26 +87,14 @@ export class LogMessages extends UIElement {
         <h3>${t('log.title')}</h3>
         <ul class="list-group log-messages-list">
           ${this.messages.length === 0
-            ? `<li class="list-group-item text-muted">${t('log.noMessages')}</li>`
-            : this.messages.map(m => this._renderMessage(m)).join('')}
+    ? `<li class="list-group-item text-muted">${t('log.noMessages')}</li>`
+    : this.messages.map(m => this._renderMessage(m)).join('')}
         </ul>
         <div class="log-messages-pagination-wrapper">
           ${this._renderPagination()}
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const [messagesResponse, countResponse] = await Promise.all([
-      server.getLogMessages(this._pageIndex, PAGE_SIZE),
-      server.getLogMessageCount()
-    ])
-    this.messages = messagesResponse
-    this._totalMessages = countResponse.count
   }
 
   /**

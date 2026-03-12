@@ -37,7 +37,27 @@ vi.mock('../../../lib/router.js', () => ({
   setQueryParams: vi.fn()
 }))
 
-import { IncomingOffersPage, renderIncomingOffers } from '../../../pages/trades/incoming.js'
+vi.mock('../../../partials/table.js', async () => {
+  const { UIElement } = await import('../../../lib/UIElement.js')
+  return {
+    Table: class extends UIElement {
+      constructor (config) {
+        super(config)
+      }
+      get template () {
+        const headers = this.cols.map(c => `<th>${c.name}</th>`).join('')
+        const rows = (this.data || []).map((item, i) => {
+          const cells = this.renderRow(item, i)
+          return `<tr>${Array.isArray(cells) ? cells.map(c => `<td>${c}</td>`).join('') : cells}</tr>`
+        }).join('')
+        return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`
+      }
+      toString () { return this.template }
+    }
+  }
+})
+
+import { IncomingOffersPage } from '../../../pages/trades/incoming.js'
 import { server } from '../../../lib/gateway.js'
 
 describe('IncomingOffersPage', () => {
@@ -133,9 +153,4 @@ describe('IncomingOffersPage', () => {
     })
   })
 
-  describe('renderIncomingOffers (backwards compatibility)', () => {
-    it('is exported as a function', () => {
-      expect(typeof renderIncomingOffers).toBe('function')
-    })
-  })
 })

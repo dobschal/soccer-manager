@@ -4,11 +4,6 @@ import { el } from '../lib/html.js'
 import { deepCopy } from '../lib/deepCopy.js'
 
 export class BalanceChart extends UIElement {
-  /** @type {FinanceLogEntry[]} */
-  logItems = []
-  _resizeHandler = null
-  _chart = null
-
   /**
    * @param {FinanceLogEntry[]} [financeLog]
    */
@@ -16,6 +11,33 @@ export class BalanceChart extends UIElement {
     super()
     this._processLogItems(financeLog)
   }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._resizeHandler = this._renderChart.bind(this)
+    window.addEventListener('resize', this._resizeHandler)
+    this._renderChart()
+  }
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler)
+      this._resizeHandler = null
+    }
+    if (this._chart) {
+      this._chart.destroy()
+      this._chart = null
+    }
+  }
+  /** @type {FinanceLogEntry[]} */
+  logItems = []
+
+  _resizeHandler = null
+
+  _chart = null
 
   /**
    * @param {FinanceLogEntry[]} log
@@ -44,29 +66,6 @@ export class BalanceChart extends UIElement {
    */
   get template () {
     return `<div class="card card-body bg-dark mb-4" style="position: relative; height: 400px; width: 100%; padding: 16px; box-sizing: border-box;"><canvas class="finance-canvas"></canvas></div>`
-  }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._resizeHandler = this._renderChart.bind(this)
-    window.addEventListener('resize', this._resizeHandler)
-    this._renderChart()
-  }
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {
-    if (this._resizeHandler) {
-      window.removeEventListener('resize', this._resizeHandler)
-      this._resizeHandler = null
-    }
-    if (this._chart) {
-      this._chart.destroy()
-      this._chart = null
-    }
   }
 
   /**

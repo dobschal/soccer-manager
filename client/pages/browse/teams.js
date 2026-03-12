@@ -9,14 +9,6 @@ import { t } from '../../i18n/index.js'
 const SORT_COL_MAP = [null, 'name', 'level']
 
 export class BrowseTeamsPage extends UIElement {
-  teams = []
-  totalCount = 0
-  pageIndex = 0
-  pageSize = 20
-  searchQuery = ''
-  sortColumn = ''
-  sortDirection = ''
-
   /**
    * @param {UIElement} parentPage
    */
@@ -24,7 +16,20 @@ export class BrowseTeamsPage extends UIElement {
     super()
     this.parentPage = parentPage
   }
-
+  async load () {
+    const result = await server.browseAllTeams(this.searchQuery, this.pageIndex, this.pageSize, this.sortColumn, this.sortDirection)
+    this.teams = result.teams
+    this.totalCount = result.totalCount
+  }
+  teams = []
+  
+  totalCount = 0
+  pageIndex = 0
+  pageSize = 20
+  searchQuery = ''
+  sortColumn = ''
+  sortDirection = ''
+  
   async applyQueryParams (params) {
     const newSortDir = params.sort_dir || ''
     const newSortCol = params.col !== undefined ? (SORT_COL_MAP[Number(params.col)] || '') : ''
@@ -38,12 +43,6 @@ export class BrowseTeamsPage extends UIElement {
     this.searchQuery = params.search_query || ''
     this.sortColumn = newSortCol
     this.sortDirection = newSortDir
-  }
-
-  async load () {
-    const result = await server.browseAllTeams(this.searchQuery, this.pageIndex, this.pageSize, this.sortColumn, this.sortDirection)
-    this.teams = result.teams
-    this.totalCount = result.totalCount
   }
 
   get events () {
@@ -80,8 +79,8 @@ export class BrowseTeamsPage extends UIElement {
     return `
       <div>
         ${this.teams.length === 0
-          ? `<p class="text-muted text-center">${t('search.noResults')}</p>`
-          : table}
+    ? `<p class="text-muted text-center">${t('search.noResults')}</p>`
+    : table}
 
         ${totalPages > 1 ? `
           <nav class="d-flex justify-content-between align-items-center mt-3">

@@ -6,6 +6,7 @@ import { cityNames, clubPrefixes1, clubPrefixes2 } from '../lib/name-library.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
+import { config } from '../config.js'
 
 export default {
 
@@ -33,7 +34,8 @@ export default {
     return {
       user: req.user,
       team,
-      players
+      players,
+      isAdmin: req.user?.username === config.ADMIN_USERNAME
     }
   },
 

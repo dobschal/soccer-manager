@@ -76,8 +76,8 @@ export function showDialog ({
       </p>
       <p class="${hasInput ? '' : 'hidden'}">
         ${isCurrency
-        ? renderCurrencyInput(inputId, inputLabel ?? title)
-        : `<input type="${inputType ?? 'text'}" id="${inputId}" placeholder="${inputLabel ?? title}">`}
+    ? renderCurrencyInput(inputId, inputLabel ?? title)
+    : `<input type="${inputType ?? 'text'}" id="${inputId}" placeholder="${inputLabel ?? title}">`}
       </p>
       <button id="${cancelButtonId}" type="button" class="btn btn-secondary">${t('dialog.cancel')}</button>
       ${secondaryButton}

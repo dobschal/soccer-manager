@@ -9,11 +9,6 @@ import { showGameModal } from './gameModal.js'
  * Game slider component for displaying past and upcoming games
  */
 export class GameSlider extends UIElement {
-  _sliderId = generateId()
-  _sliderIndex = 0
-  _countdownElementIds = []
-  _timerInterval = null
-
   /**
    * @param {Object} options
    * @param {Array} options.games - Array of game objects with isPlayed, team1Data, team2Data, gameDate, etc.
@@ -34,7 +29,21 @@ export class GameSlider extends UIElement {
     this._initialIndex = initialIndex
     this._cardId = cardId
   }
-
+  onMounted () {
+    this._setupTouchSwipe()
+    this._startCountdownTimer()
+    this._updateCardGradient()
+  }
+  onDestroy () {
+    this._stopCountdownTimer()
+  }
+  _sliderId = generateId()
+  
+  _sliderIndex = 0
+  
+  _countdownElementIds = []
+  _timerInterval = null
+  
   get template () {
     if (this._games.length === 0) {
       return ''
@@ -122,16 +131,6 @@ export class GameSlider extends UIElement {
         </div>
       </div>
     `
-  }
-
-  onMounted () {
-    this._setupTouchSwipe()
-    this._startCountdownTimer()
-    this._updateCardGradient()
-  }
-
-  onDestroy () {
-    this._stopCountdownTimer()
   }
 
   /**

@@ -9,22 +9,13 @@ import { sendTestPushNotification } from '../lib/pushNotification.js'
 
 export default {
   /**
-   * Returns whether development mode is enabled
-   * @returns {Promise<{isDevelopment: boolean}>}
-   */
-  async isDevelopment () {
-    return { isDevelopment: process.env.IS_DEVELOPMENT === 'true' }
-  },
-
-  /**
-   * Manually triggers the CRON job (only in development mode or for admin)
+   * Manually triggers the CRON job (admin only)
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
    */
   async triggerGameDay (req) {
-    const isAdmin = req.user?.username === config.ADMIN_USERNAME
-    if (process.env.IS_DEVELOPMENT !== 'true' && !isAdmin) {
-      throw new BadRequestError('This action is only available in development mode')
+    if (req.user?.username !== config.ADMIN_USERNAME) {
+      throw new BadRequestError('This action is only available for the admin')
     }
     console.log('Manually triggered game day calculation...')
     await prepareSeason()
@@ -46,9 +37,8 @@ export default {
    * @returns {Promise<{sent: number, failed: number, failureReason: string|null}>}
    */
   async testPushNotification (deviceToken, message, req) {
-    const isAdmin = req.user?.username === config.ADMIN_USERNAME
-    if (process.env.IS_DEVELOPMENT !== 'true' && !isAdmin) {
-      throw new BadRequestError('This action is only available in development mode')
+    if (req.user?.username !== config.ADMIN_USERNAME) {
+      throw new BadRequestError('This action is only available for the admin')
     }
     if (typeof deviceToken !== 'string' || !deviceToken) {
       throw new BadRequestError('deviceToken is required')

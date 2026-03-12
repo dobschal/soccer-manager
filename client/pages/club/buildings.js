@@ -29,6 +29,16 @@ export class BuildingsPage extends UIElement {
   }
 
   /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const data = await server.getBuildings()
+    this.buildings = data.buildings || []
+    this.upgrades = data.upgrades || {}
+    this.cardChances = data.cardChances || {}
+    this.fitnessCardChances = data.fitnessCardChances || {}
+  }
+  /**
    * @returns {string}
    */
   get template () {
@@ -41,17 +51,6 @@ export class BuildingsPage extends UIElement {
         ${this._renderFitnessStudio()}
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const data = await server.getBuildings()
-    this.buildings = data.buildings || []
-    this.upgrades = data.upgrades || {}
-    this.cardChances = data.cardChances || {}
-    this.fitnessCardChances = data.fitnessCardChances || {}
   }
 
   /**

@@ -24,6 +24,18 @@ export class PlayerList extends UIElement {
   }
 
   /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    const [{ season }, { playerIds }] = await Promise.all([
+      server.getCurrentGameday(),
+      server.getMySellOfferPlayerIds()
+    ])
+    this.season = season
+    this.sellOfferPlayerIds = new Set(playerIds)
+    this.players.sort(sortByPosition)
+  }
+  /**
    * Server events to listen for
    * @returns {Record<string, (data: any) => void>}
    */
@@ -82,17 +94,5 @@ export class PlayerList extends UIElement {
       </div>
     `
   }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    const [{ season }, { playerIds }] = await Promise.all([
-      server.getCurrentGameday(),
-      server.getMySellOfferPlayerIds()
-    ])
-    this.season = season
-    this.sellOfferPlayerIds = new Set(playerIds)
-    this.players.sort(sortByPosition)
-  }
+  
 }

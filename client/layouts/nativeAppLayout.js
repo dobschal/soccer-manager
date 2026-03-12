@@ -8,16 +8,49 @@ import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showConfirmDialog, showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
-import { ADMIN_USERNAME } from '../util/constants.js'
 
 export class NativeAppLayout extends UIElement {
+  async load () {
+    const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
+    const [gameDate, versionData, currentGameday, teamData, newMessageResponse] = await Promise.all([
+      server.getNextGameDate(),
+      server.getVersion(),
+      server.getCurrentGameday(),
+      server.getMyTeam(),
+      server.getNewLogMessageCount(lastSeenMessageId)
+    ])
+    this._nextGameDate = gameDate.date
+    this._username = teamData.user?.username || ''
+    this._isAdmin = teamData.isAdmin || false
+    this._version = versionData.version
+    this._gameDay = currentGameday.gameDay
+    this._season = currentGameday.season
+    this._newMessageCount = newMessageResponse.count || 0
+  }
+  onMounted () {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant'
+    })
+    this._attachEventHandlers()
+    this._startTimer()
+    setTimeout(() => document.querySelector(`${this._elementQuery} .native-tab-bar`)
+      ?.classList.remove('hidden'), 1000)
+  }
+  onDestroy () {
+    this._stopTimer()
+    this._cleanupNavItemEvents()
+  }
   _interval = null
+  
   _nextGameInElementId = generateId()
+  
   _messageBadgeId = generateId()
   _nextGameDate = null
   _newMessageCount = 0
   _navItemEventIds = []
-  _isDevelopment = false
+  _isAdmin = false
   _username = ''
   _version = ''
   _gameDay = 0
@@ -53,9 +86,9 @@ export class NativeAppLayout extends UIElement {
           <div class="info-bar-content">
             <a href="#results" class="info-bar-item text-decoration-none text-info border-0">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
-      gameDay: this._gameDay + 1,
-      season: this._season + 1
-    })}
+    gameDay: this._gameDay + 1,
+    season: this._season + 1
+  })}
             </a>
             <a href="#dashboard" class="info-bar-item text-decoration-none text-info border-0" id="${this._nextGameInElementId}">
             </a>
@@ -82,42 +115,6 @@ export class NativeAppLayout extends UIElement {
     `
   }
 
-  async load () {
-    const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
-    const [gameDate, devMode, versionData, currentGameday, teamData, newMessageResponse] = await Promise.all([
-      server.getNextGameDate(),
-      server.isDevelopment(),
-      server.getVersion(),
-      server.getCurrentGameday(),
-      server.getMyTeam(),
-      server.getNewLogMessageCount(lastSeenMessageId)
-    ])
-    this._nextGameDate = gameDate.date
-    this._isDevelopment = devMode.isDevelopment
-    this._username = teamData.user?.username || ''
-    this._version = versionData.version
-    this._gameDay = currentGameday.gameDay
-    this._season = currentGameday.season
-    this._newMessageCount = newMessageResponse.count || 0
-  }
-
-  onMounted () {
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'instant'
-    })
-    this._attachEventHandlers()
-    this._startTimer()
-    setTimeout(() => document.querySelector(`${this._elementQuery} .native-tab-bar`)
-      ?.classList.remove('hidden'), 1000)
-  }
-
-  onDestroy () {
-    this._stopTimer()
-    this._cleanupNavItemEvents()
-  }
-
   _attachEventHandlers () {
     const searchBtn = document.querySelector(`${this._elementQuery} #search-button`)
     if (searchBtn) {
@@ -135,7 +132,7 @@ export class NativeAppLayout extends UIElement {
   }
 
   get _showPlayButton () {
-    return this._isDevelopment || this._username === ADMIN_USERNAME
+    return this._isAdmin
   }
 
   _showSettingsOverlay () {

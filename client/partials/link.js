@@ -31,11 +31,3 @@ export class Link extends UIElement {
   }
 }
 
-/**
- * @param {string} text
- * @param {string} path
- * @returns {string}
- */
-export function renderLink (text, path) {
-  return new Link(text, path).toString()
-}

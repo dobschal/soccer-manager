@@ -41,6 +41,17 @@ const TUTORIALS = [
 ]
 
 export class TutorialProgress extends UIElement {
+  /**
+   * @returns {Promise<void>}
+   */
+  async load () {
+    try {
+      const { tutorialCompleted } = await server.getTutorialStatus()
+      this._tutorialCompleted = tutorialCompleted
+    } catch (e) {
+      console.error('Failed to load tutorial status:', e)
+    }
+  }
   _tutorialCompleted = {}
 
   /**
@@ -97,18 +108,6 @@ export class TutorialProgress extends UIElement {
         </div>
       </div>
     `
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    try {
-      const { tutorialCompleted } = await server.getTutorialStatus()
-      this._tutorialCompleted = tutorialCompleted
-    } catch (e) {
-      console.error('Failed to load tutorial status:', e)
-    }
   }
 
   /**

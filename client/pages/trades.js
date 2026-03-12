@@ -1,7 +1,7 @@
 import { MyOffersPage } from './trades/myOffers.js'
 import { renderMarket } from './trades/market.js'
-import { renderIncomingOffers } from './trades/incoming.js'
-import { renderTradeHistory } from './trades/tradeHistory.js'
+import { IncomingOffersPage } from './trades/incoming.js'
+import { TradeHistoryPage } from './trades/tradeHistory.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { UIElement } from '../lib/UIElement.js'
 import { el, generateId } from '../lib/html.js'
@@ -11,8 +11,39 @@ import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 
 export class TradesPage extends UIElement {
+  async load () {
+    const key = this.pageName || 'market'
+    if (!this._subPageCache[key]?.isUIElement) {
+      this._subPageCache[key] = await this._createSubPage(key)
+    }
+  }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    void showTutorialIfNeeded('trades', this)
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.sub_page
+   * @param {string} params.player_id
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({
+    sub_page: pageName,
+    player_id: playerId
+  }) {
+    if (playerId) await showPlayerModal(Number(playerId))
+    const newPageName = pageName || null
+    if (newPageName === this.pageName) return
+    this.pageName = newPageName
+    await this._switchSubPage()
+    this._updateNav()
+  }
   pageName = null
+
   _subPageCache = {}
+
   _subPageContainerId = generateId()
 
   get serverEvents () {
@@ -50,13 +81,6 @@ export class TradesPage extends UIElement {
     `
   }
 
-  async load () {
-    const key = this.pageName || 'market'
-    if (!this._subPageCache[key]?.isUIElement) {
-      this._subPageCache[key] = await this._createSubPage(key)
-    }
-  }
-
   /**
    * @param {string} key
    * @returns {Promise<UIElement|string>}
@@ -64,11 +88,11 @@ export class TradesPage extends UIElement {
   async _createSubPage (key) {
     switch (key) {
       case 'incoming':
-        return await renderIncomingOffers()
+        return new IncomingOffersPage()
       case 'my_offers':
         return new MyOffersPage(this)
       case 'history':
-        return renderTradeHistory()
+        return new TradeHistoryPage()
       case 'free_players':
         return new FreePlayers()
       case 'market_values':
@@ -117,29 +141,5 @@ export class TradesPage extends UIElement {
       link.classList.toggle('active', isActive)
     })
   }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    void showTutorialIfNeeded('trades', this)
-  }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.sub_page
-   * @param {string} params.player_id
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({
-    sub_page: pageName,
-    player_id: playerId
-  }) {
-    if (playerId) await showPlayerModal(Number(playerId))
-    const newPageName = pageName || null
-    if (newPageName === this.pageName) return
-    this.pageName = newPageName
-    await this._switchSubPage()
-    this._updateNav()
-  }
+  
 }

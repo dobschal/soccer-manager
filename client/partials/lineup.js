@@ -1,55 +1,51 @@
 import { UIElement } from '../lib/UIElement.js'
 import { toast } from './toast.js'
 import { server } from '../lib/gateway.js'
-import { render } from '../lib/render.js'
 import { showOverlay } from './overlay.js'
 import { PlayerList } from './playerList.js'
 import { renderPlayerImage } from './playerImage.js'
 import { getPositionsOfFormation } from '../util/formation.js'
 import { deepCopy } from '../lib/deepCopy.js'
 import { renderLevelBadge } from './levelBadge.js'
+import { fire } from '../lib/event.js'
 
 export const lineUpData = {
-  squadDataChanged: false,
-  parentInstance: null,
-  onExchange: null
+  squadDataChanged: false
 }
 
 export class Lineup extends UIElement {
-  _overlay = null
-
   /**
    * @param {PlayerType[]} players
    * @param {TeamType} team
    * @param {UIElement} parentInstance
    */
-  constructor (players, team, parentInstance) {
+  constructor (players, team) {
     super()
     this.players = deepCopy(players)
     this.team = team
-    lineUpData.parentInstance = parentInstance
     this._fillEmptyPositions()
   }
 
   /**
-   * @returns {void}
+   * @returns {string}
    */
-  _fillEmptyPositions () {
-    const positions = getPositionsOfFormation(this.team.formation)
-    this.players.filter(p => p.in_game_position).forEach(p => {
-      const index = positions.findIndex(po => p.position === po)
-      if (index === -1) return console.error('A player has a in game position that is not in formation!')
-      positions.splice(index, 1)
-    })
-    positions.forEach(position => {
-      this.players.push({
-        fake: true,
-        in_game_position: position,
-        position,
-        level: 0,
-        name: '-'
-      })
-    })
+  get template () {
+    const benchPlayers = this.players.filter(p => !p.in_game_position && !p.fake)
+    return `
+      <div class="lineup-container">
+        <div class="card bg-dark lineup-pitch">
+          <div class="squad card-body">
+            ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
+          </div>
+        </div>
+        <div class="bench">
+          <h6 class="bench-title">Bench</h6>
+          ${benchPlayers.length > 0
+    ? benchPlayers.map(p => this._renderSquadPlayer(p)).join('')
+    : '<span class="bench-empty">No bench players</span>'}
+        </div>
+      </div>
+    `
   }
 
   /**
@@ -85,6 +81,39 @@ export class Lineup extends UIElement {
     }
   }
 
+  onMounted () {
+    this._applyPositionHacks()
+    this._loadPlayerImages()
+  }
+
+  onUpdate () {
+    this._applyPositionHacks()
+    this._loadPlayerImages()
+  }
+
+  _overlay = null
+
+  /**
+   * @returns {void}
+   */
+  _fillEmptyPositions () {
+    const positions = getPositionsOfFormation(this.team.formation)
+    this.players.filter(p => p.in_game_position).forEach(p => {
+      const index = positions.findIndex(po => p.position === po)
+      if (index === -1) return console.error('A player has a in game position that is not in formation!')
+      positions.splice(index, 1)
+    })
+    positions.forEach(position => {
+      this.players.push({
+        fake: true,
+        in_game_position: position,
+        position,
+        level: 0,
+        name: '-'
+      })
+    })
+  }
+
   /**
    * @returns {boolean}
    */
@@ -109,36 +138,6 @@ export class Lineup extends UIElement {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
     }
-  }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    const benchPlayers = this.players.filter(p => !p.in_game_position && !p.fake)
-    return `
-      <div class="lineup-container">
-        <div class="card bg-dark lineup-pitch">
-          <div class="squad card-body">
-            ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
-          </div>
-        </div>
-        <div class="bench">
-          <h6 class="bench-title">Bench</h6>
-          ${benchPlayers.length > 0
-      ? benchPlayers.map(p => this._renderSquadPlayer(p)).join('')
-      : '<span class="bench-empty">No bench players</span>'}
-        </div>
-      </div>
-    `
-  }
-
-  /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._applyPositionHacks()
-    this._loadPlayerImages()
   }
 
   /**
@@ -192,12 +191,12 @@ export class Lineup extends UIElement {
     if (player.id !== newPlayer.id) {
       lineUpData.squadDataChanged = true
     }
-    render('#squad', renderLineup(this.players, this.team, lineUpData.parentInstance))
-    if (lineUpData.onExchange) lineUpData.onExchange(this.players)
+    await this.update()
+    fire('lineup-exchange', this.players)
     await this._autoSaveIfComplete()
     setTimeout(() => {
       this._overlay?.remove()
-    }, 300)
+    }, 150)
   }
 
   /**
@@ -228,13 +227,3 @@ export class Lineup extends UIElement {
 
 }
 
-/**
- * Backwards compatibility wrapper
- * @param {PlayerType[]} players
- * @param {TeamType} team
- * @param {UIElement} parentInstance
- * @returns {string}
- */
-export function renderLineup (players, team, parentInstance) {
-  return new Lineup(players, team, parentInstance).toString()
-}

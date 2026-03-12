@@ -35,54 +35,10 @@ export class Table extends UIElement {
   }
 
   /**
-   * @returns {string}
-   */
-  get template () {
-    const hasHover = typeof this.config.onClick === 'function'
-    const extraClasses = this.config.classes || ''
-    return `
-      <div class="horizontal-scrollable-table">
-        <table class="table${hasHover ? ' table-hover' : ''} mb-4 wide-on-mobile ${extraClasses}">
-          <thead>
-            <tr>
-              ${this._renderHeaderCells()}
-            </tr>
-          </thead>
-          <tbody>
-            ${this._renderTableRows()}
-          </tbody>
-        </table>
-      </div>
-    `
-  }
-
-  /**
    * @returns {void}
    */
   onMounted () {
-    const sortApplied = this._applyInitialSort()
-    this._attachHeaderEventHandlers()
-    if (!sortApplied) {
-      this._attachBodyEventHandlers()
-    }
-  }
-
-  /**
-   * @returns {boolean} Whether sorting was applied
-   */
-  _applyInitialSort () {
-    const {
-      sort_dir: sortDirection,
-      col: colIndex
-    } = getQueryParams()
-    if (sortDirection && colIndex !== undefined) {
-      const col = this.config.cols[Number(colIndex)]
-      if (col && (col.sortKey || col.sortFn)) {
-        this._sortTable(Number(colIndex), sortDirection)
-        return true
-      }
-    }
-    return false
+    this._applyInitialSort()
   }
 
   /**
@@ -104,54 +60,87 @@ export class Table extends UIElement {
   }
 
   /**
-   * @returns {void}
+   * @returns {UIElementEvents}
    */
-  _attachHeaderEventHandlers () {
-    const headers = document.querySelectorAll(`${this._elementQuery} th`)
-    headers.forEach((header, colIndex) => {
-      const col = this.config.cols[colIndex]
-      if (col && (col.sortKey || col.sortFn)) {
-        header.addEventListener('click', () => {
-          const {
-            sort_dir: currentDir,
-            col: currentCol
-          } = getQueryParams()
+  get events () {
+    return {
+      'thead': {
+        click: (e) => {
+          const th = e.target.closest('th')
+          if (!th) return
+          const headers = [...th.parentElement.children]
+          const colIndex = headers.indexOf(th)
+          const col = this.config.cols[colIndex]
+          if (!col || (!col.sortKey && !col.sortFn)) return
+          const { sort_dir: currentDir, col: currentCol } = getQueryParams()
           const newDir = (currentCol === colIndex.toString() && currentDir === 'ASC') ? 'DESC' : 'ASC'
-          setQueryParams({
-            sort_dir: newDir,
-            col: colIndex.toString()
-          })
-        })
+          setQueryParams({ sort_dir: newDir, col: colIndex.toString() })
+        }
+      },
+      'tbody': {
+        click: (e) => {
+          const tr = e.target.closest('tr')
+          if (!tr) return
+          const rows = [...tr.parentElement.children]
+          const rowIndex = rows.indexOf(tr)
+
+          // Check for cell click handlers first
+          const td = e.target.closest('td')
+          if (td) {
+            const cells = [...tr.children]
+            const colIndex = cells.indexOf(td)
+            const col = this.config.cols[colIndex]
+            if (col && typeof col.onClick === 'function') {
+              e.stopPropagation()
+              col.onClick(this.config.data[rowIndex], rowIndex, colIndex)
+              return
+            }
+          }
+
+          if (typeof this.config.onClick === 'function') {
+            this.config.onClick(this.config.data[rowIndex], rowIndex)
+          }
+        }
       }
-    })
+    }
   }
 
   /**
+   * @returns {string}
+   */
+  get template () {
+    const hasHover = typeof this.config.onClick === 'function'
+    const extraClasses = this.config.classes || ''
+    return `
+      <div class="horizontal-scrollable-table">
+        <table class="table${hasHover ? ' table-hover' : ''} mb-4 wide-on-mobile ${extraClasses}">
+          <thead>
+            <tr>
+              ${this._renderHeaderCells()}
+            </tr>
+          </thead>
+          <tbody>
+            ${this._renderTableRows()}
+          </tbody>
+        </table>
+      </div>
+    `
+  }
+  
+  /**
    * @returns {void}
    */
-  _attachBodyEventHandlers () {
-    // Attach row click handlers
-    if (typeof this.config.onClick === 'function') {
-      const rows = document.querySelectorAll(`${this._elementQuery} tbody tr`)
-      rows.forEach((row, index) => {
-        row.addEventListener('click', () => {
-          this.config.onClick(this.config.data[index], index)
-        })
-      })
-    }
-
-    // Attach cell click handlers
-    this.config.cols.forEach((col, colIndex) => {
-      if (typeof col.onClick === 'function') {
-        const cells = document.querySelectorAll(`${this._elementQuery} tbody tr td:nth-child(${colIndex + 1})`)
-        cells.forEach((cell, rowIndex) => {
-          cell.addEventListener('click', (e) => {
-            e.stopPropagation()
-            col.onClick(this.config.data[rowIndex], rowIndex, colIndex)
-          })
-        })
+  _applyInitialSort () {
+    const {
+      sort_dir: sortDirection,
+      col: colIndex
+    } = getQueryParams()
+    if (sortDirection && colIndex !== undefined) {
+      const col = this.config.cols[Number(colIndex)]
+      if (col && (col.sortKey || col.sortFn)) {
+        this._sortTable(Number(colIndex), sortDirection)
       }
-    })
+    }
   }
 
   /**
@@ -186,11 +175,10 @@ export class Table extends UIElement {
       header.classList.add(sortDirection === 'DESC' ? 'desc' : 'asc')
     }
 
-    // Re-render table body
+    // Re-render table body (delegated events on tbody survive innerHTML replacement)
     const tbody = tableEl.querySelector('tbody')
     if (tbody) {
       tbody.innerHTML = this._renderTableRows()
-      this._attachBodyEventHandlers()
     }
   }
 
@@ -258,13 +246,4 @@ function _alignClass (align) {
   if (align === 'right') return 'end'
   if (align === 'left') return 'start'
   return align
-}
-
-/**
- * Backwards compatibility wrapper
- * @param {TableConfig} config
- * @returns {string}
- */
-export function renderTable (config) {
-  return new Table(config).toString()
 }
