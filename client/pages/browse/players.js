@@ -23,43 +23,6 @@ export class BrowsePlayersPage extends UIElement {
     this.players = result.players
     this.totalCount = result.totalCount
   }
-  players = []
-  
-  totalCount = 0
-  pageIndex = 0
-  pageSize = 20
-  searchQuery = ''
-  season = 0
-  sortColumn = ''
-  sortDirection = ''
-  
-  async applyQueryParams (params) {
-    const newSortDir = params.sort_dir || ''
-    const newSortCol = params.col !== undefined ? (SORT_COL_MAP[Number(params.col)] || '') : ''
-
-    // Reset page when sort changes
-    if (newSortDir !== this.sortDirection || newSortCol !== this.sortColumn) {
-      this.pageIndex = 0
-    } else {
-      this.pageIndex = parseInt(params.page) || 0
-    }
-
-    this.searchQuery = params.search_query || ''
-    this.sortColumn = newSortCol
-    this.sortDirection = newSortDir
-  }
-
-  get events () {
-    return {
-      '(optional) #browse-prev-page': {
-        click: () => setQueryParams({ page: this.pageIndex - 1 })
-      },
-      '(optional) #browse-next-page': {
-        click: () => setQueryParams({ page: this.pageIndex + 1 })
-      }
-    }
-  }
-
   get template () {
     const totalPages = Math.ceil(this.totalCount / this.pageSize)
 
@@ -104,4 +67,40 @@ export class BrowsePlayersPage extends UIElement {
       </div>
     `
   }
+  get events () {
+    return {
+      '(optional) #browse-prev-page': {
+        click: () => setQueryParams({ page: this.pageIndex - 1 })
+      },
+      '(optional) #browse-next-page': {
+        click: () => setQueryParams({ page: this.pageIndex + 1 })
+      }
+    }
+  }
+  players = []
+  
+  totalCount = 0
+  pageIndex = 0
+  pageSize = 20
+  searchQuery = ''
+  season = 0
+  sortColumn = ''
+  sortDirection = ''
+  
+  async applyQueryParams (params) {
+    const newSortDir = params.sort_dir || ''
+    const newSortCol = params.col !== undefined ? (SORT_COL_MAP[Number(params.col)] || '') : ''
+
+    // Reset page when sort changes
+    if (newSortDir !== this.sortDirection || newSortCol !== this.sortColumn) {
+      this.pageIndex = 0
+    } else {
+      this.pageIndex = parseInt(params.page) || 0
+    }
+
+    this.searchQuery = params.search_query || ''
+    this.sortColumn = newSortCol
+    this.sortDirection = newSortDir
+  }
+  
 }

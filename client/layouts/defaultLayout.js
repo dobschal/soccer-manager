@@ -10,8 +10,6 @@ export class DefaultLayout extends UIElement {
     const versionData = await server.getVersion()
     this._version = versionData.version
   }
-  _version = ''
-
   /**
    * @returns {string}
    */
@@ -27,5 +25,6 @@ export class DefaultLayout extends UIElement {
       </div>
     `
   }
+  _version = ''
   
 }

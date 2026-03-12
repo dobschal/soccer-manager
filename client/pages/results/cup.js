@@ -47,31 +47,6 @@ export class CupResultsPage extends UIElement {
     const { results } = await server.getCupResults(this.cupSeason, this.cupRound)
     this.cupResults = results
   }
-  cupSeason = null
-  
-  cupRound = null
-  cupRounds = []
-  cupResults = []
-  cupSeasons = []
-  cupTotalRounds = 0
-  
-  get events () {
-    return {
-      '#prev-cup-round-button': {
-        click: () => this._navigateCupRound(-1)
-      },
-      '#next-cup-round-button': {
-        click: () => this._navigateCupRound(1)
-      },
-      '#prev-cup-season-button': {
-        click: () => this._navigateCupSeason(-1)
-      },
-      '#next-cup-season-button': {
-        click: () => this._navigateCupSeason(1)
-      }
-    }
-  }
-
   get template () {
     const roundName = this._getCupRoundName(this.cupRound)
 
@@ -116,6 +91,29 @@ export class CupResultsPage extends UIElement {
       </div>
     `
   }
+  get events () {
+    return {
+      '#prev-cup-round-button': {
+        click: () => this._navigateCupRound(-1)
+      },
+      '#next-cup-round-button': {
+        click: () => this._navigateCupRound(1)
+      },
+      '#prev-cup-season-button': {
+        click: () => this._navigateCupSeason(-1)
+      },
+      '#next-cup-season-button': {
+        click: () => this._navigateCupSeason(1)
+      }
+    }
+  }
+  cupSeason = null
+  
+  cupRound = null
+  cupRounds = []
+  cupResults = []
+  cupSeasons = []
+  cupTotalRounds = 0
 
   get myTeamId () {
     return this.parentPage.myTeamId

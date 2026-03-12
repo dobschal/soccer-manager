@@ -5,7 +5,7 @@
   "main": "server/app.js",
   "scripts": {
     "start": "node server/api.js",
-    "lint": "eslint server ./client",
+    "lint": "eslint server ./client --fix",
     "test": "npm run test:client && npm run test:server",
     "test:client": "vitest run --config client/vitest.config.js",
     "test:server": "vitest run --config server/vitest.config.js",

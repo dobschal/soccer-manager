@@ -77,49 +77,6 @@ export class TeamPage extends UIElement {
       this._bestPlayerImage = await renderPlayerImage(bestPlayer, this.team, 150)
     }
   }
-  onMounted () {
-    void showTutorialIfNeeded('team', this)
-  }
-  /**
-   * @param {Object} params
-   * @param {string} params.player_id
-   * @param {string} params.id
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({
-    player_id: playerId,
-    id
-  }) {
-    if (playerId) await showPlayerModal(Number(playerId))
-    if (!id) return
-    if (!this.teamId || this.teamId !== Number(id)) {
-      this.teamId = Number(id)
-      await this.update(true)
-    }
-  }
-  /** @type {StadiumType} */
-  stadium
-
-  /** @type {string} */
-  _bestPlayerImage = ''
-
-  /** @type {number} */
-  _teamValue = 0
-  /** @type {boolean} */
-  _canPlayFriendly = false
-  /** @type {boolean} */
-  _isOwnTeam = false
-  /** @type {boolean} */
-  _isPlayingFriendly = false
-  /** @type {Array} */
-  _transferHistory = []
-  /** @type {Array} */
-  _seasonHistory = []
-  /** @type {Object|null} */
-  _highestWin = null
-  /** @type {Object|null} */
-  _highestLoss = null
-
   /**
    * @returns {string}
    */
@@ -176,7 +133,6 @@ export class TeamPage extends UIElement {
       </div>
     `
   }
-
   /**
    * @returns {UIElementEvents}
    */
@@ -213,6 +169,49 @@ export class TeamPage extends UIElement {
       }
     }
   }
+  onMounted () {
+    void showTutorialIfNeeded('team', this)
+  }
+
+  /**
+   * @param {Object} params
+   * @param {string} params.player_id
+   * @param {string} params.id
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({
+    player_id: playerId,
+    id
+  }) {
+    if (playerId) await showPlayerModal(Number(playerId))
+    if (!id) return
+    if (!this.teamId || this.teamId !== Number(id)) {
+      this.teamId = Number(id)
+      await this.update(true)
+    }
+  }
+  /** @type {StadiumType} */
+  stadium
+
+  /** @type {string} */
+  _bestPlayerImage = ''
+
+  /** @type {number} */
+  _teamValue = 0
+  /** @type {boolean} */
+  _canPlayFriendly = false
+  /** @type {boolean} */
+  _isOwnTeam = false
+  /** @type {boolean} */
+  _isPlayingFriendly = false
+  /** @type {Array} */
+  _transferHistory = []
+  /** @type {Array} */
+  _seasonHistory = []
+  /** @type {Object|null} */
+  _highestWin = null
+  /** @type {Object|null} */
+  _highestLoss = null
 
   /**
    * @returns {number}

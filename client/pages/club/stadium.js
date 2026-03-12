@@ -42,35 +42,36 @@ export class StadiumSubPage extends UIElement {
     this.constructionHistory = historyResponse.history || []
   }
   /**
-   * Called after component is mounted - initializes Three.js scene
+   * @returns {string}
    */
-  onMounted () {
-    if (this._stadiumCanvas) {
-      this._stadiumCanvas.onMounted()
-    }
-    void showTutorialIfNeeded('stadium', this)
+  get template () {
+    this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas')
+    return `
+      <div>
+        <h2>${t('stadium.yourStadium')}</h2>
+        <p>${t('stadium.stadiumDesc', { seats: this._stadiumCanvas.calculateTotalSeats() })}</p>
+        <div class="mb-4" id="stadium-canvas-container">
+          ${this._stadiumCanvas}
+        </div>
+        <h3>${t('stadium.ticketPrices')}</h3>
+        <p>${t('stadium.adjustPrices')}</p>
+        <form class="pb-4 mb-4" id="price-form">
+          ${this._renderPriceForm()}
+        </form>
+        <h3>${t('stadium.expandStadium')}</h3>
+        <p>${t('stadium.expandDesc')}</p>
+        <form class="pb-4 mb-4" id="stadium-form">
+          ${this._renderExpandForm()}
+        </form>
+        <h3>${t('stadium.attendance')}</h3>
+        <p>${t('stadium.attendanceDesc')}</p>
+        ${this._renderAttendanceSection()}
+        <h3>${t('stadium.constructionHistory')}</h3>
+        <p>${t('stadium.constructionHistoryDesc')}</p>
+        ${this._renderConstructionHistory()}
+      </div>
+    `
   }
-  /**
-   * Called when component is unmounted - cleanup Three.js resources
-   */
-  onDestroy () {
-    if (this._stadiumCanvas) {
-      this._stadiumCanvas.onDestroy()
-      this._stadiumCanvas = null
-    }
-  }
-  stadium = {}
-
-  team = {}
-
-  constructionInfo = {}
-  attendanceData = []
-  constructionHistory = []
-  /** @type {StadiumCanvas|null} */
-  _stadiumCanvas = null
-  /** @type {boolean} */
-  _hasValidConstruction = false
-
   /**
    * @returns {UIElementEvents}
    */
@@ -118,38 +119,35 @@ export class StadiumSubPage extends UIElement {
       }
     }
   }
-
   /**
-   * @returns {string}
+   * Called after component is mounted - initializes Three.js scene
    */
-  get template () {
-    this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas')
-    return `
-      <div>
-        <h2>${t('stadium.yourStadium')}</h2>
-        <p>${t('stadium.stadiumDesc', { seats: this._stadiumCanvas.calculateTotalSeats() })}</p>
-        <div class="mb-4" id="stadium-canvas-container">
-          ${this._stadiumCanvas}
-        </div>
-        <h3>${t('stadium.ticketPrices')}</h3>
-        <p>${t('stadium.adjustPrices')}</p>
-        <form class="pb-4 mb-4" id="price-form">
-          ${this._renderPriceForm()}
-        </form>
-        <h3>${t('stadium.expandStadium')}</h3>
-        <p>${t('stadium.expandDesc')}</p>
-        <form class="pb-4 mb-4" id="stadium-form">
-          ${this._renderExpandForm()}
-        </form>
-        <h3>${t('stadium.attendance')}</h3>
-        <p>${t('stadium.attendanceDesc')}</p>
-        ${this._renderAttendanceSection()}
-        <h3>${t('stadium.constructionHistory')}</h3>
-        <p>${t('stadium.constructionHistoryDesc')}</p>
-        ${this._renderConstructionHistory()}
-      </div>
-    `
+  onMounted () {
+    if (this._stadiumCanvas) {
+      this._stadiumCanvas.onMounted()
+    }
+    void showTutorialIfNeeded('stadium', this)
   }
+  /**
+   * Called when component is unmounted - cleanup Three.js resources
+   */
+  onDestroy () {
+    if (this._stadiumCanvas) {
+      this._stadiumCanvas.onDestroy()
+      this._stadiumCanvas = null
+    }
+  }
+  stadium = {}
+
+  team = {}
+
+  constructionInfo = {}
+  attendanceData = []
+  constructionHistory = []
+  /** @type {StadiumCanvas|null} */
+  _stadiumCanvas = null
+  /** @type {boolean} */
+  _hasValidConstruction = false
 
   /**
    * @param {Event} event

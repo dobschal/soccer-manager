@@ -39,10 +39,25 @@ export class ATeamPage extends UIElement {
     })
   }
 
-  onDestroy () {
-    off(this._exchangeEventId)
+  /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div>
+        <div id="header">
+          ${this._renderHeader()}
+        </div>
+        <h3>${t('myTeam.lineup')}</h3>
+        <div class="mb-4" id="squad">
+          ${new Lineup(this.parent.data.players, this.parent.data.team)}
+        </div>
+        <div id="player-list-container">
+          ${this._createPlayerList()}
+        </div>
+      </div>
+    `
   }
-
   /**
    * @returns {UIElementEvents}
    */
@@ -105,25 +120,8 @@ export class ATeamPage extends UIElement {
       }
     }
   }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `
-      <div>
-        <div id="header">
-          ${this._renderHeader()}
-        </div>
-        <h3>${t('myTeam.lineup')}</h3>
-        <div class="mb-4" id="squad">
-          ${new Lineup(this.parent.data.players, this.parent.data.team)}
-        </div>
-        <div id="player-list-container">
-          ${this._createPlayerList()}
-        </div>
-      </div>
-    `
+  onDestroy () {
+    off(this._exchangeEventId)
   }
 
   /**

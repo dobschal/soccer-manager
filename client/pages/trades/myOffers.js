@@ -38,54 +38,6 @@ export class MyOffersPage extends UIElement {
     this.answeredOffers = answeredData.answeredOffers || []
   }
   /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '.my-offers-table': {
-        click: async (event) => {
-          const row = event.target.closest('[data-offer-id]')
-          if (!row) return
-          const offerId = Number(row.dataset.offerId)
-          const offer = this.offers.find(o => o.id === offerId)
-          if (!offer) return
-
-          if (event.target.closest('.player-name')) {
-            setQueryParams({ player_id: offer.player_id })
-          } else if (event.target.closest('.btn-danger')) {
-            try {
-              await server.cancelOffer(offer)
-              await this.parentInstance.update(true)
-            } catch (e) {
-              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-            }
-          }
-        }
-      },
-      '.answered-offers-table': {
-        click: async (event) => {
-          const row = event.target.closest('[data-offer-id]')
-          if (!row) return
-          const offerId = Number(row.dataset.offerId)
-          const offer = this.answeredOffers.find(o => o.id === offerId)
-          if (!offer) return
-
-          if (event.target.closest('.player-name')) {
-            setQueryParams({ player_id: offer.player_id })
-          } else if (event.target.closest('.btn-outline-secondary')) {
-            try {
-              await server.dismissOffer(offer)
-              await this.parentInstance.update(true)
-            } catch (e) {
-              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -139,6 +91,53 @@ export class MyOffersPage extends UIElement {
         </div>
       </div>
     `
+  }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '.my-offers-table': {
+        click: async (event) => {
+          const row = event.target.closest('[data-offer-id]')
+          if (!row) return
+          const offerId = Number(row.dataset.offerId)
+          const offer = this.offers.find(o => o.id === offerId)
+          if (!offer) return
+
+          if (event.target.closest('.player-name')) {
+            setQueryParams({ player_id: offer.player_id })
+          } else if (event.target.closest('.btn-danger')) {
+            try {
+              await server.cancelOffer(offer)
+              await this.parentInstance.update(true)
+            } catch (e) {
+              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+            }
+          }
+        }
+      },
+      '.answered-offers-table': {
+        click: async (event) => {
+          const row = event.target.closest('[data-offer-id]')
+          if (!row) return
+          const offerId = Number(row.dataset.offerId)
+          const offer = this.answeredOffers.find(o => o.id === offerId)
+          if (!offer) return
+
+          if (event.target.closest('.player-name')) {
+            setQueryParams({ player_id: offer.player_id })
+          } else if (event.target.closest('.btn-outline-secondary')) {
+            try {
+              await server.dismissOffer(offer)
+              await this.parentInstance.update(true)
+            } catch (e) {
+              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+            }
+          }
+        }
+      }
+    }
   }
 
   /**

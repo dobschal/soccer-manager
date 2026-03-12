@@ -29,21 +29,6 @@ export class GameSlider extends UIElement {
     this._initialIndex = initialIndex
     this._cardId = cardId
   }
-  onMounted () {
-    this._setupTouchSwipe()
-    this._startCountdownTimer()
-    this._updateCardGradient()
-  }
-  onDestroy () {
-    this._stopCountdownTimer()
-  }
-  _sliderId = generateId()
-  
-  _sliderIndex = 0
-  
-  _countdownElementIds = []
-  _timerInterval = null
-  
   get template () {
     if (this._games.length === 0) {
       return ''
@@ -132,6 +117,20 @@ export class GameSlider extends UIElement {
       </div>
     `
   }
+  onMounted () {
+    this._setupTouchSwipe()
+    this._startCountdownTimer()
+    this._updateCardGradient()
+  }
+  onDestroy () {
+    this._stopCountdownTimer()
+  }
+  _sliderId = generateId()
+  
+  _sliderIndex = 0
+  
+  _countdownElementIds = []
+  _timerInterval = null
 
   /**
    * Generate the center content for a game slide based on its state

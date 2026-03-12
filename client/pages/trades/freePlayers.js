@@ -17,19 +17,6 @@ export class FreePlayers extends UIElement {
     this.season = response.season
     this.players = await server.getPlayersWithoutTeam()
   }
-  onMounted () {
-    window.addEventListener('player-hired', this._onPlayerHired)
-  }
-  onDestroy () {
-    window.removeEventListener('player-hired', this._onPlayerHired)
-  }
-  players = []
-  
-  season = 0
-
-  /** @type {() => void} */
-  _onPlayerHired = () => this.update(true)
-
   /**
    * @returns {string}
    */
@@ -62,6 +49,18 @@ export class FreePlayers extends UIElement {
       </div>
     `
   }
+  onMounted () {
+    window.addEventListener('player-hired', this._onPlayerHired)
+  }
+  onDestroy () {
+    window.removeEventListener('player-hired', this._onPlayerHired)
+  }
+  players = []
+  
+  season = 0
+
+  /** @type {() => void} */
+  _onPlayerHired = () => this.update(true)
 
   /**
    * @returns {Array<TableHeadCellConfig>}

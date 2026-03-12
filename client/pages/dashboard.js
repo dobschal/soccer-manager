@@ -115,6 +115,29 @@ export class DashboardPage extends UIElement {
     this._newMessageCount = newMessageResponse.count || 0
   }
   /**
+   * @returns {string}
+   */
+  get template () {
+    const key = this.subPage || 'start'
+    const subPage = this._getOrCreateSubPage()
+    return `
+      <div>
+        ${this._tutorialProgress}
+
+        <nav class="nav nav-pills mb-4">
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
+          <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''} position-relative" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this._renderCardBadge()}</a>
+          <a class="nav-link ${this.subPage === 'news' ? 'active' : ''}" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
+          <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''}" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}${this._renderMessageBadge()}</a>
+        </nav>
+
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
+      </div>
+    `
+  }
+  /**
    * @returns {void}
    */
   onMounted () {
@@ -193,30 +216,6 @@ export class DashboardPage extends UIElement {
   subPage = null
   _subPageCache = {}
   _subPageContainerId = generateId()
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    const key = this.subPage || 'start'
-    const subPage = this._getOrCreateSubPage()
-    return `
-      <div>
-        ${this._tutorialProgress}
-
-        <nav class="nav nav-pills mb-4">
-          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
-          <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''} position-relative" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this._renderCardBadge()}</a>
-          <a class="nav-link ${this.subPage === 'news' ? 'active' : ''}" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
-          <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''}" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}${this._renderMessageBadge()}</a>
-        </nav>
-
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
-      </div>
-    `
-  }
 
   /**
    * Render the badge for new action cards

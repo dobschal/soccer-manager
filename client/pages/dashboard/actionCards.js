@@ -81,10 +81,23 @@ export class ActionCards extends UIElement {
     const response = await server.getActionCards()
     this.cards = response.actionCards
   }
-  _overlay = null
-  _currentCardElement = null
-  cards = []
-
+  /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div class="mb-5">
+        <h3>${t('actionCards.title')}</h3>
+        <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
+        <div class="mb-4 action-cards-container">
+          <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>
+        </div>
+        <div class="alert alert-info" style="max-width: 620px">
+          <i class="fa fa-info-circle me-1"></i> ${t('actionCards.buildingsHint')}
+        </div>
+      </div>
+    `
+  }
   /**
    * @returns {UIElementEvents}
    */
@@ -126,24 +139,9 @@ export class ActionCards extends UIElement {
       }
     }
   }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `
-      <div class="mb-5">
-        <h3>${t('actionCards.title')}</h3>
-        <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
-        <div class="mb-4 action-cards-container">
-          <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>
-        </div>
-        <div class="alert alert-info" style="max-width: 620px">
-          <i class="fa fa-info-circle me-1"></i> ${t('actionCards.buildingsHint')}
-        </div>
-      </div>
-    `
-  }
+  _overlay = null
+  _currentCardElement = null
+  cards = []
 
   /**
    * @returns {string}

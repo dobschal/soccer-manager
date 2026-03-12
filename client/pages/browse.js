@@ -8,35 +8,6 @@ import { BrowseTeamsPage } from './browse/teams.js'
 import { BrowseUsersPage } from './browse/users.js'
 
 export class BrowsePage extends UIElement {
-  async onQueryChanged (queryParams) {
-    if (queryParams.player_id) {
-      await showPlayerModal(Number(queryParams.player_id))
-    }
-
-    const newSubPage = queryParams.sub_page || null
-
-    if (newSubPage !== this.subPage) {
-      this.subPage = newSubPage
-      this._switchSubPage()
-      this._updateNav()
-      this._syncSearchInput(queryParams.search_query || '')
-    }
-
-    const key = newSubPage || 'players'
-    if (!this._subPageCache[key]) {
-      this._subPageCache[key] = this._createSubPage(key)
-    }
-    const cached = this._subPageCache[key]
-    if (cached && typeof cached.applyQueryParams === 'function') {
-      await cached.applyQueryParams(queryParams)
-      await cached.update(true)
-    }
-  }
-  subPage = null
-  _subPageCache = {}
-  _subPageContainerId = generateId()
-  _debounce = null
-
   get template () {
     const key = this.subPage || 'players'
     const subPage = this._getOrCreateSubPage()
@@ -65,7 +36,6 @@ export class BrowsePage extends UIElement {
       </div>
     `
   }
-
   get events () {
     return {
       '#browse-search-input': {
@@ -78,6 +48,35 @@ export class BrowsePage extends UIElement {
       }
     }
   }
+  async onQueryChanged (queryParams) {
+    if (queryParams.player_id) {
+      await showPlayerModal(Number(queryParams.player_id))
+    }
+
+    const newSubPage = queryParams.sub_page || null
+
+    if (newSubPage !== this.subPage) {
+      this.subPage = newSubPage
+      this._switchSubPage()
+      this._updateNav()
+      this._syncSearchInput(queryParams.search_query || '')
+    }
+
+    const key = newSubPage || 'players'
+    if (!this._subPageCache[key]) {
+      this._subPageCache[key] = this._createSubPage(key)
+    }
+    const cached = this._subPageCache[key]
+    if (cached && typeof cached.applyQueryParams === 'function') {
+      await cached.applyQueryParams(queryParams)
+      await cached.update(true)
+    }
+  }
+  
+  subPage = null
+  _subPageCache = {}
+  _subPageContainerId = generateId()
+  _debounce = null
 
   _getOrCreateSubPage () {
     const key = this.subPage || 'players'

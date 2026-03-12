@@ -13,36 +13,6 @@ export class LandingPage extends UIElement {
   async load () {
   }
   /**
-   * @param {Object} params
-   * @param {string} params.type
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({ type }) {
-    this.isLogin = type !== 'registration'
-    await this.update()
-  }
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      form: {
-        submit: this._onSubmit
-      },
-      'button.btn-link': {
-        click: () => setQueryParams({ type: this.isLogin ? 'registration' : 'login' })
-      },
-      '#play-now-btn': {
-        click: () => {
-          setQueryParams({ type: 'registration' })
-          document.querySelector('.login-card')?.scrollIntoView({ behavior: 'smooth' })
-          setTimeout(() => document.getElementById('username-input')?.focus(), 500)
-        }
-      }
-    }
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -196,6 +166,35 @@ export class LandingPage extends UIElement {
         </section>
       </div>
     `
+  }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      form: {
+        submit: this._onSubmit
+      },
+      'button.btn-link': {
+        click: () => setQueryParams({ type: this.isLogin ? 'registration' : 'login' })
+      },
+      '#play-now-btn': {
+        click: () => {
+          setQueryParams({ type: 'registration' })
+          document.querySelector('.login-card')?.scrollIntoView({ behavior: 'smooth' })
+          setTimeout(() => document.getElementById('username-input')?.focus(), 500)
+        }
+      }
+    }
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.type
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({ type }) {
+    this.isLogin = type !== 'registration'
+    await this.update()
   }
 
   /**

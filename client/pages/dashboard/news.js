@@ -58,34 +58,6 @@ class NewsItem extends UIElement {
       }
     }
   }
-  onMounted () {
-    onClick(this.likeBtnId, () => {
-      if (this.onLikeToggle) this.onLikeToggle(this.newsItem.id)
-    })
-    onClick(this.commentBtnId, () => {
-      showCommentOverlay(this.newsItem.id, this.newsItem.title, () => {
-        this.newsItem.commentCount = (this.newsItem.commentCount || 0) + 1
-        this.update()
-      })
-    })
-  }
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '(optional).news-link': {
-        click: () => {
-          if (this.linkType === 'player') {
-            setQueryParams({ player_id: this.linkId })
-          } else if (this.linkType === 'team') {
-            goTo(`team?id=${this.linkId}`)
-          }
-        }
-      }
-    }
-  }
-
   /**
    * @returns {string}
    */
@@ -136,6 +108,33 @@ class NewsItem extends UIElement {
       </div>
     `
   }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '(optional).news-link': {
+        click: () => {
+          if (this.linkType === 'player') {
+            setQueryParams({ player_id: this.linkId })
+          } else if (this.linkType === 'team') {
+            goTo(`team?id=${this.linkId}`)
+          }
+        }
+      }
+    }
+  }
+  onMounted () {
+    onClick(this.likeBtnId, () => {
+      if (this.onLikeToggle) this.onLikeToggle(this.newsItem.id)
+    })
+    onClick(this.commentBtnId, () => {
+      showCommentOverlay(this.newsItem.id, this.newsItem.title, () => {
+        this.newsItem.commentCount = (this.newsItem.commentCount || 0) + 1
+        this.update()
+      })
+    })
+  }
   
 }
 
@@ -162,25 +161,6 @@ export class News extends UIElement {
     this.likedTeams = likedResponse.teams || []
     this.likedPlayers = likedResponse.players || []
   }
-  onMounted () {
-    onClick(this.prevBtnId, () => this._navigateGameDay(-1))
-    onClick(this.nextBtnId, () => this._navigateGameDay(1))
-  }
-  news = []
-  teams = []
-  players = []
-  gameDay = 0
-  season = 0
-  level = 0
-  league = 0
-  initialGameDay = 0
-  initialSeason = 0
-  likedNews = []
-  likedTeams = []
-  likedPlayers = []
-  prevBtnId = generateId()
-  nextBtnId = generateId()
-
   /**
    * @returns {string}
    */
@@ -224,6 +204,24 @@ export class News extends UIElement {
       </div>
     `
   }
+  onMounted () {
+    onClick(this.prevBtnId, () => this._navigateGameDay(-1))
+    onClick(this.nextBtnId, () => this._navigateGameDay(1))
+  }
+  news = []
+  teams = []
+  players = []
+  gameDay = 0
+  season = 0
+  level = 0
+  league = 0
+  initialGameDay = 0
+  initialSeason = 0
+  likedNews = []
+  likedTeams = []
+  likedPlayers = []
+  prevBtnId = generateId()
+  nextBtnId = generateId()
 
   /**
    * @param {number} direction - -1 for previous, +1 for next

@@ -21,6 +21,20 @@ export class GameAnimation extends UIElement {
     this.playerTeamB = this.details.playerTeamB
   }
   /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div class="game-animation">
+        <div class="play-button">
+          <i class="fa fa-play text-white" aria-hidden="true"></i>
+        </div>
+        ${this.playerTeamA.map(p => this._renderTeamPlayer(p, this.team1, 'home')).join('')}
+        ${this.playerTeamB.map(p => this._renderTeamPlayer(p, this.team2, 'away')).join('')}
+      </div>
+    `
+  }
+  /**
    * @returns {void}
    */
   onMounted () {
@@ -40,21 +54,6 @@ export class GameAnimation extends UIElement {
 
   _ballId = null
   _messageId = null
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `
-      <div class="game-animation">
-        <div class="play-button">
-          <i class="fa fa-play text-white" aria-hidden="true"></i>
-        </div>
-        ${this.playerTeamA.map(p => this._renderTeamPlayer(p, this.team1, 'home')).join('')}
-        ${this.playerTeamB.map(p => this._renderTeamPlayer(p, this.team2, 'away')).join('')}
-      </div>
-    `
-  }
 
   /**
    * @returns {void}

@@ -31,76 +31,6 @@ export class MarketPage extends UIElement {
 
   }
   /**
-   * @param {Object} params
-   * @param {string} params.sort_dir
-   * @param {string} params.col
-   */
-  onQueryChanged ({
-    sort_dir,
-    col
-  }) {
-    if (sort_dir && col !== undefined) {
-      this._page = 0
-      this.update()
-    }
-  }
-  team = {}
-
-  offers = []
-  players = []
-  teams = []
-  _page = 0
-  _positionFilter = ''
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '.market-page': {
-        click: (event) => {
-          const target = event.target
-          const buyBtn = target.closest('[data-buy-player]')
-          if (!buyBtn) return
-
-          const playerId = Number(buyBtn.dataset.buyPlayer)
-          const player = this.players.find(p => p.id === playerId)
-          if (player) {
-            void this._showBuyDialog(player)
-          }
-        }
-      },
-      '#market-position-select': {
-        change: (event) => {
-          this._positionFilter = event.target.value
-          this._page = 0
-          void this.update()
-        }
-      },
-      '(optional).market-pagination': {
-        click: (event) => {
-          const target = event.target
-
-          if (target.closest('.market-prev')) {
-            this._loadPage(this._page - 1)
-            return
-          }
-
-          if (target.closest('.market-next')) {
-            this._loadPage(this._page + 1)
-            return
-          }
-
-          const pageLink = target.closest('[data-page-index]')
-          if (pageLink) {
-            this._loadPage(parseInt(pageLink.dataset.pageIndex, 10))
-          }
-        }
-      }
-    }
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -176,6 +106,74 @@ export class MarketPage extends UIElement {
       </div>
     `
   }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '.market-page': {
+        click: (event) => {
+          const target = event.target
+          const buyBtn = target.closest('[data-buy-player]')
+          if (!buyBtn) return
+
+          const playerId = Number(buyBtn.dataset.buyPlayer)
+          const player = this.players.find(p => p.id === playerId)
+          if (player) {
+            void this._showBuyDialog(player)
+          }
+        }
+      },
+      '#market-position-select': {
+        change: (event) => {
+          this._positionFilter = event.target.value
+          this._page = 0
+          void this.update()
+        }
+      },
+      '(optional).market-pagination': {
+        click: (event) => {
+          const target = event.target
+
+          if (target.closest('.market-prev')) {
+            this._loadPage(this._page - 1)
+            return
+          }
+
+          if (target.closest('.market-next')) {
+            this._loadPage(this._page + 1)
+            return
+          }
+
+          const pageLink = target.closest('[data-page-index]')
+          if (pageLink) {
+            this._loadPage(parseInt(pageLink.dataset.pageIndex, 10))
+          }
+        }
+      }
+    }
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.sort_dir
+   * @param {string} params.col
+   */
+  onQueryChanged ({
+    sort_dir,
+    col
+  }) {
+    if (sort_dir && col !== undefined) {
+      this._page = 0
+      this.update()
+    }
+  }
+  team = {}
+
+  offers = []
+  players = []
+  teams = []
+  _page = 0
+  _positionFilter = ''
 
   /**
    * @returns {Array}

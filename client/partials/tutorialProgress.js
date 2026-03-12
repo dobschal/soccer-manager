@@ -52,21 +52,6 @@ export class TutorialProgress extends UIElement {
       console.error('Failed to load tutorial status:', e)
     }
   }
-  _tutorialCompleted = {}
-
-  /**
-   * Server events to listen for
-   * @returns {Record<string, (data: any) => void>}
-   */
-  get serverEvents () {
-    return {
-      TUTORIAL_COMPLETED: (data) => {
-        this._tutorialCompleted = data.tutorialCompleted
-        this.update(false)
-      }
-    }
-  }
-
   /**
    * @returns {string}
    */
@@ -109,6 +94,19 @@ export class TutorialProgress extends UIElement {
       </div>
     `
   }
+  /**
+   * Server events to listen for
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      TUTORIAL_COMPLETED: (data) => {
+        this._tutorialCompleted = data.tutorialCompleted
+        this.update(false)
+      }
+    }
+  }
+  _tutorialCompleted = {}
 
   /**
    * Get the next uncompleted tutorial

@@ -27,58 +27,6 @@ export class NativeAppLayout extends UIElement {
     this._season = currentGameday.season
     this._newMessageCount = newMessageResponse.count || 0
   }
-  onMounted () {
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'instant'
-    })
-    this._attachEventHandlers()
-    this._startTimer()
-    setTimeout(() => document.querySelector(`${this._elementQuery} .native-tab-bar`)
-      ?.classList.remove('hidden'), 1000)
-  }
-  onDestroy () {
-    this._stopTimer()
-    this._cleanupNavItemEvents()
-  }
-  _interval = null
-  
-  _nextGameInElementId = generateId()
-  
-  _messageBadgeId = generateId()
-  _nextGameDate = null
-  _newMessageCount = 0
-  _navItemEventIds = []
-  _isAdmin = false
-  _username = ''
-  _version = ''
-  _gameDay = 0
-  _season = 0
-  _scrollHandler = null
-
-  get serverEvents () {
-    return {
-      BUY_OFFER_ACCEPTED: (data) => {
-        toast(t('trades.buyOfferAccepted', {
-          playerName: data.playerName,
-          teamName: data.sellerTeamName,
-          price: data.price
-        }), 'success')
-      },
-      BUY_OFFER_REJECTED: (data) => {
-        toast(t('trades.buyOfferRejected', {
-          playerName: data.playerName,
-          teamName: data.sellerTeamName
-        }), 'error')
-      },
-      NEW_LOG_MESSAGE: () => {
-        this._newMessageCount++
-        this._updateMessageBadge()
-      }
-    }
-  }
-
   get template () {
     return `
       <div class="native-app-layout">
@@ -114,6 +62,56 @@ export class NativeAppLayout extends UIElement {
       </div>
     `
   }
+  get serverEvents () {
+    return {
+      BUY_OFFER_ACCEPTED: (data) => {
+        toast(t('trades.buyOfferAccepted', {
+          playerName: data.playerName,
+          teamName: data.sellerTeamName,
+          price: data.price
+        }), 'success')
+      },
+      BUY_OFFER_REJECTED: (data) => {
+        toast(t('trades.buyOfferRejected', {
+          playerName: data.playerName,
+          teamName: data.sellerTeamName
+        }), 'error')
+      },
+      NEW_LOG_MESSAGE: () => {
+        this._newMessageCount++
+        this._updateMessageBadge()
+      }
+    }
+  }
+  onMounted () {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'instant'
+    })
+    this._attachEventHandlers()
+    this._startTimer()
+    setTimeout(() => document.querySelector(`${this._elementQuery} .native-tab-bar`)
+      ?.classList.remove('hidden'), 1000)
+  }
+  onDestroy () {
+    this._stopTimer()
+    this._cleanupNavItemEvents()
+  }
+  _interval = null
+  
+  _nextGameInElementId = generateId()
+  
+  _messageBadgeId = generateId()
+  _nextGameDate = null
+  _newMessageCount = 0
+  _navItemEventIds = []
+  _isAdmin = false
+  _username = ''
+  _version = ''
+  _gameDay = 0
+  _season = 0
+  _scrollHandler = null
 
   _attachEventHandlers () {
     const searchBtn = document.querySelector(`${this._elementQuery} #search-button`)

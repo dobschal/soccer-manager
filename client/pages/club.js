@@ -18,6 +18,31 @@ export class ClubPage extends UIElement {
     // Sub-pages handle their own data loading
   }
   /**
+   * @returns {string}
+   */
+  get template () {
+    const key = this.subPage || 'stadium'
+    const subPage = this._getOrCreateSubPage()
+    return `
+      <div>
+        <nav class="nav nav-pills mb-2">
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#club">${t('stadium.tabStadium')}</a>
+          <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#club?sub_page=buildings">${t('stadium.tabBuildings')}</a>
+          <a class="nav-link ${this.subPage === 'finances' ? 'active' : ''}" href="#club?sub_page=finances">${t('stadium.tabFinances')}</a>
+        </nav>
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
+      </div>
+    `
+  }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {}
+  }
+  /**
    * @param {Object} params
    * @param {string} params.sub_page
    * @returns {Promise<void>}
@@ -47,33 +72,6 @@ export class ClubPage extends UIElement {
 
   /** @type {StadiumSubPage|null} */
   _currentStadiumPage = null
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {}
-  }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    const key = this.subPage || 'stadium'
-    const subPage = this._getOrCreateSubPage()
-    return `
-      <div>
-        <nav class="nav nav-pills mb-2">
-          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#club">${t('stadium.tabStadium')}</a>
-          <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#club?sub_page=buildings">${t('stadium.tabBuildings')}</a>
-          <a class="nav-link ${this.subPage === 'finances' ? 'active' : ''}" href="#club?sub_page=finances">${t('stadium.tabFinances')}</a>
-        </nav>
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
-      </div>
-    `
-  }
 
   _getOrCreateSubPage () {
     const key = this.subPage || 'stadium'

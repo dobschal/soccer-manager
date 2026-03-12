@@ -12,6 +12,12 @@ export class MiniBalanceChart extends UIElement {
     this._processLogItems(financeLog)
   }
   /**
+   * @returns {string}
+   */
+  get template () {
+    return `<div class="card card-body bg-dark" style="position: relative; height: 180px; width: 100%; padding: 8px; box-sizing: border-box;"><canvas class="mini-finance-canvas"></canvas></div>`
+  }
+  /**
    * @returns {void}
    */
   onMounted () {
@@ -51,13 +57,6 @@ export class MiniBalanceChart extends UIElement {
       if (a.season !== b.season) return a.season - b.season
       return a.game_day - b.game_day
     })
-  }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `<div class="card card-body bg-dark" style="position: relative; height: 180px; width: 100%; padding: 8px; box-sizing: border-box;"><canvas class="mini-finance-canvas"></canvas></div>`
   }
 
   /**

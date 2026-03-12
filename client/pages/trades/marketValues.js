@@ -21,60 +21,6 @@ export class MarketValuesPage extends UIElement {
   async load () {
     this._transferStats = await server.getTransferStats(this._selectedPosition)
   }
-  _selectedPosition = 'CM'
-  _fromLevel = 40
-  _toLevel = 50
-  _fromAge = 20
-  _toAge = 30
-  _transferStats = {}
-
-  get events () {
-    return {
-      '#position-select': {
-        change: (e) => {
-          this._selectedPosition = e.target.value
-          this.update(true)
-        }
-      },
-      '#from-level-select': {
-        change: (e) => {
-          this._fromLevel = Number(e.target.value)
-          if (this._fromLevel > this._toLevel) {
-            this._toLevel = this._fromLevel
-          }
-          this.update()
-        }
-      },
-      '#to-level-select': {
-        change: (e) => {
-          this._toLevel = Number(e.target.value)
-          if (this._toLevel < this._fromLevel) {
-            this._fromLevel = this._toLevel
-          }
-          this.update()
-        }
-      },
-      '#from-age-select': {
-        change: (e) => {
-          this._fromAge = Number(e.target.value)
-          if (this._fromAge > this._toAge) {
-            this._toAge = this._fromAge
-          }
-          this.update()
-        }
-      },
-      '#to-age-select': {
-        change: (e) => {
-          this._toAge = Number(e.target.value)
-          if (this._toAge < this._fromAge) {
-            this._fromAge = this._toAge
-          }
-          this.update()
-        }
-      }
-    }
-  }
-
   get template () {
     const positions = Object.keys(Position)
     const ages = []
@@ -152,4 +98,57 @@ export class MarketValuesPage extends UIElement {
       </div>
     `
   }
+  get events () {
+    return {
+      '#position-select': {
+        change: (e) => {
+          this._selectedPosition = e.target.value
+          this.update(true)
+        }
+      },
+      '#from-level-select': {
+        change: (e) => {
+          this._fromLevel = Number(e.target.value)
+          if (this._fromLevel > this._toLevel) {
+            this._toLevel = this._fromLevel
+          }
+          this.update()
+        }
+      },
+      '#to-level-select': {
+        change: (e) => {
+          this._toLevel = Number(e.target.value)
+          if (this._toLevel < this._fromLevel) {
+            this._fromLevel = this._toLevel
+          }
+          this.update()
+        }
+      },
+      '#from-age-select': {
+        change: (e) => {
+          this._fromAge = Number(e.target.value)
+          if (this._fromAge > this._toAge) {
+            this._toAge = this._fromAge
+          }
+          this.update()
+        }
+      },
+      '#to-age-select': {
+        change: (e) => {
+          this._toAge = Number(e.target.value)
+          if (this._toAge < this._fromAge) {
+            this._fromAge = this._toAge
+          }
+          this.update()
+        }
+      }
+    }
+  }
+  _selectedPosition = 'CM'
+  _fromLevel = 40
+  _toLevel = 50
+  _fromAge = 20
+  _toAge = 30
+  _transferStats = {}
+  
 }

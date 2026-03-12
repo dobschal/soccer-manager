@@ -49,6 +49,33 @@ export class UIElement {
 
   /**
    * @abstract
+   * @returns {string}
+   */
+  get template () {
+    return ''
+  }
+  /**
+   * @abstract
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {}
+  }
+  /**
+   * Override this getter to define server event handlers
+   * Example:
+   * get serverEvents() {
+   *   return {
+   *     NEW_SELL_TRADE_OFFER: () => this.update(true)
+   *   }
+   * }
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {}
+  }
+  /**
+   * @abstract
    * @returns {void}
    */
   onMounted () {
@@ -74,36 +101,6 @@ export class UIElement {
    * @returns {void}
    */
   onDestroy () {
-  }
-
-  /**
-   * @abstract
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {}
-  }
-
-  /**
-   * Override this getter to define server event handlers
-   * Example:
-   * get serverEvents() {
-   *   return {
-   *     NEW_SELL_TRADE_OFFER: () => this.update(true)
-   *   }
-   * }
-   * @returns {Record<string, (data: any) => void>}
-   */
-  get serverEvents () {
-    return {}
-  }
-
-  /**
-   * @abstract
-   * @returns {string}
-   */
-  get template () {
-    return ''
   }
 
   /**

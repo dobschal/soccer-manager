@@ -35,30 +35,26 @@ export class Table extends UIElement {
   }
 
   /**
-   * @returns {void}
+   * @returns {string}
    */
-  onMounted () {
-    this._applyInitialSort()
+  get template () {
+    const hasHover = typeof this.config.onClick === 'function'
+    const extraClasses = this.config.classes || ''
+    return `
+      <div class="horizontal-scrollable-table">
+        <table class="table${hasHover ? ' table-hover' : ''} mb-4 wide-on-mobile ${extraClasses}">
+          <thead>
+            <tr>
+              ${this._renderHeaderCells()}
+            </tr>
+          </thead>
+          <tbody>
+            ${this._renderTableRows()}
+          </tbody>
+        </table>
+      </div>
+    `
   }
-
-  /**
-   * @param {Object} params
-   * @param {string} params.sort_dir
-   * @param {string} params.col
-   * @returns {void}
-   */
-  onQueryChanged ({
-    sort_dir: sortDirection,
-    col: colIndex
-  }) {
-    if (sortDirection && colIndex !== undefined) {
-      const col = this.config.cols[Number(colIndex)]
-      if (col && (col.sortKey || col.sortFn)) {
-        this._sortTable(Number(colIndex), sortDirection)
-      }
-    }
-  }
-
   /**
    * @returns {UIElementEvents}
    */
@@ -104,27 +100,29 @@ export class Table extends UIElement {
       }
     }
   }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._applyInitialSort()
+  }
 
   /**
-   * @returns {string}
+   * @param {Object} params
+   * @param {string} params.sort_dir
+   * @param {string} params.col
+   * @returns {void}
    */
-  get template () {
-    const hasHover = typeof this.config.onClick === 'function'
-    const extraClasses = this.config.classes || ''
-    return `
-      <div class="horizontal-scrollable-table">
-        <table class="table${hasHover ? ' table-hover' : ''} mb-4 wide-on-mobile ${extraClasses}">
-          <thead>
-            <tr>
-              ${this._renderHeaderCells()}
-            </tr>
-          </thead>
-          <tbody>
-            ${this._renderTableRows()}
-          </tbody>
-        </table>
-      </div>
-    `
+  onQueryChanged ({
+    sort_dir: sortDirection,
+    col: colIndex
+  }) {
+    if (sortDirection && colIndex !== undefined) {
+      const col = this.config.cols[Number(colIndex)]
+      if (col && (col.sortKey || col.sortFn)) {
+        this._sortTable(Number(colIndex), sortDirection)
+      }
+    }
   }
   
   /**

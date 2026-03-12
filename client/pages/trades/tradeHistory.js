@@ -22,60 +22,6 @@ export class TradeHistoryPage extends UIElement {
     this.players = response.players
   }
   /**
-   * @param {Object} params
-   * @param {string} params.sort_dir
-   * @param {string} params.col
-   */
-  onQueryChanged ({ sort_dir, col }) {
-    if (sort_dir && col !== undefined) {
-      const cols = this._getTableCols()
-      const colConfig = cols[Number(col)]
-      if (colConfig && (colConfig.sortKey || colConfig.sortFn)) {
-        this.trades.sort((a, b) => {
-          if (colConfig.sortFn) return colConfig.sortFn(a, b, sort_dir !== 'DESC')
-          if (sort_dir === 'ASC') return a[colConfig.sortKey] - b[colConfig.sortKey]
-          return b[colConfig.sortKey] - a[colConfig.sortKey]
-        })
-        this._page = 0
-        this.update()
-      }
-    }
-  }
-  trades = []
-
-  teams = []
-  players = []
-  _page = 0
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '(optional).trade-history-pagination': {
-        click: (event) => {
-          const target = event.target
-
-          if (target.closest('.trade-history-prev')) {
-            this._loadPage(this._page - 1)
-            return
-          }
-
-          if (target.closest('.trade-history-next')) {
-            this._loadPage(this._page + 1)
-            return
-          }
-
-          const pageLink = target.closest('[data-page-index]')
-          if (pageLink) {
-            this._loadPage(parseInt(pageLink.dataset.pageIndex, 10))
-          }
-        }
-      }
-    }
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -120,6 +66,58 @@ export class TradeHistoryPage extends UIElement {
       </div>
     `
   }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '(optional).trade-history-pagination': {
+        click: (event) => {
+          const target = event.target
+
+          if (target.closest('.trade-history-prev')) {
+            this._loadPage(this._page - 1)
+            return
+          }
+
+          if (target.closest('.trade-history-next')) {
+            this._loadPage(this._page + 1)
+            return
+          }
+
+          const pageLink = target.closest('[data-page-index]')
+          if (pageLink) {
+            this._loadPage(parseInt(pageLink.dataset.pageIndex, 10))
+          }
+        }
+      }
+    }
+  }
+  /**
+   * @param {Object} params
+   * @param {string} params.sort_dir
+   * @param {string} params.col
+   */
+  onQueryChanged ({ sort_dir, col }) {
+    if (sort_dir && col !== undefined) {
+      const cols = this._getTableCols()
+      const colConfig = cols[Number(col)]
+      if (colConfig && (colConfig.sortKey || colConfig.sortFn)) {
+        this.trades.sort((a, b) => {
+          if (colConfig.sortFn) return colConfig.sortFn(a, b, sort_dir !== 'DESC')
+          if (sort_dir === 'ASC') return a[colConfig.sortKey] - b[colConfig.sortKey]
+          return b[colConfig.sortKey] - a[colConfig.sortKey]
+        })
+        this._page = 0
+        this.update()
+      }
+    }
+  }
+  trades = []
+
+  teams = []
+  players = []
+  _page = 0
 
   /**
    * @returns {Array}

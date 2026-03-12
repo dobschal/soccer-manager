@@ -20,10 +20,24 @@ export class LogMessages extends UIElement {
     this.messages = messagesResponse
     this._totalMessages = countResponse.count
   }
-  messages = []
-  _pageIndex = 0
-  _totalMessages = 0
-
+  /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div>
+        <h3>${t('log.title')}</h3>
+        <ul class="list-group log-messages-list">
+          ${this.messages.length === 0
+    ? `<li class="list-group-item text-muted">${t('log.noMessages')}</li>`
+    : this.messages.map(m => this._renderMessage(m)).join('')}
+        </ul>
+        <div class="log-messages-pagination-wrapper">
+          ${this._renderPagination()}
+        </div>
+      </div>
+    `
+  }
   /**
    * @returns {UIElementEvents}
    */
@@ -77,25 +91,9 @@ export class LogMessages extends UIElement {
       }
     }
   }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `
-      <div>
-        <h3>${t('log.title')}</h3>
-        <ul class="list-group log-messages-list">
-          ${this.messages.length === 0
-    ? `<li class="list-group-item text-muted">${t('log.noMessages')}</li>`
-    : this.messages.map(m => this._renderMessage(m)).join('')}
-        </ul>
-        <div class="log-messages-pagination-wrapper">
-          ${this._renderPagination()}
-        </div>
-      </div>
-    `
-  }
+  messages = []
+  _pageIndex = 0
+  _totalMessages = 0
 
   /**
    * @param {Object} message

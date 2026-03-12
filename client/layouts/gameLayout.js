@@ -38,108 +38,6 @@ export class GameLayout extends UIElement {
     this._newMessageCount = newMessageResponse.count || 0
   }
   /**
-   * @returns {void}
-   */
-  onMounted () {
-    this._startTimer()
-  }
-
-  /**
-   * @returns {void}
-   */
-  onDestroy () {
-    this._stopTimer()
-    this._cleanupNavItemEvents()
-  }
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '#settings-button': {
-        click: () => {
-          hideNavigation()
-          this._showSettingsOverlay()
-        }
-      },
-      '(optional)#settings-button-mobile': {
-        click: () => {
-          hideNavigation()
-          this._showSettingsOverlay()
-        }
-      },
-      '#search-button': {
-        click: () => {
-          hideNavigation()
-          goTo('browse')
-        }
-      },
-      '(optional)#search-button-mobile': {
-        click: () => {
-          hideNavigation()
-          goTo('browse')
-        }
-      },
-      '(optional)#play-button': {
-        click: (e) => this._triggerGameDay(e.currentTarget)
-      },
-      '(optional)#play-button-mobile': {
-        click: (e) => {
-          hideNavigation()
-          this._triggerGameDay(e.currentTarget)
-        }
-      },
-      '.navbar-toggler': {
-        click: () => {
-          const navCollapse = el('.navbar-collapse')
-          if (navCollapse) {
-            navCollapse.classList.toggle('show')
-          }
-        }
-      }
-    }
-  }
-  _interval = null
-
-  _nextGameInElementId = generateId()
-
-  _messageBadgeId = generateId()
-  _nextGameDate = null
-  _newMessageCount = 0
-  _navItemEventIds = []
-  _isAdmin = false
-  _username = ''
-  _version = ''
-  _gameDay = 0
-  _season = 0
-
-  /**
-   * @returns {Record<string, (data: any) => void>}
-   */
-  get serverEvents () {
-    return {
-      BUY_OFFER_ACCEPTED: (data) => {
-        toast(t('trades.buyOfferAccepted', {
-          playerName: data.playerName,
-          teamName: data.sellerTeamName,
-          price: data.price
-        }), 'success')
-      },
-      BUY_OFFER_REJECTED: (data) => {
-        toast(t('trades.buyOfferRejected', {
-          playerName: data.playerName,
-          teamName: data.sellerTeamName
-        }), 'error')
-      },
-      NEW_LOG_MESSAGE: () => {
-        this._newMessageCount++
-        this._updateMessageBadge()
-      }
-    }
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -215,6 +113,106 @@ export class GameLayout extends UIElement {
       </div>
     `
   }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '#settings-button': {
+        click: () => {
+          hideNavigation()
+          this._showSettingsOverlay()
+        }
+      },
+      '(optional)#settings-button-mobile': {
+        click: () => {
+          hideNavigation()
+          this._showSettingsOverlay()
+        }
+      },
+      '#search-button': {
+        click: () => {
+          hideNavigation()
+          goTo('browse')
+        }
+      },
+      '(optional)#search-button-mobile': {
+        click: () => {
+          hideNavigation()
+          goTo('browse')
+        }
+      },
+      '(optional)#play-button': {
+        click: (e) => this._triggerGameDay(e.currentTarget)
+      },
+      '(optional)#play-button-mobile': {
+        click: (e) => {
+          hideNavigation()
+          this._triggerGameDay(e.currentTarget)
+        }
+      },
+      '.navbar-toggler': {
+        click: () => {
+          const navCollapse = el('.navbar-collapse')
+          if (navCollapse) {
+            navCollapse.classList.toggle('show')
+          }
+        }
+      }
+    }
+  }
+  /**
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      BUY_OFFER_ACCEPTED: (data) => {
+        toast(t('trades.buyOfferAccepted', {
+          playerName: data.playerName,
+          teamName: data.sellerTeamName,
+          price: data.price
+        }), 'success')
+      },
+      BUY_OFFER_REJECTED: (data) => {
+        toast(t('trades.buyOfferRejected', {
+          playerName: data.playerName,
+          teamName: data.sellerTeamName
+        }), 'error')
+      },
+      NEW_LOG_MESSAGE: () => {
+        this._newMessageCount++
+        this._updateMessageBadge()
+      }
+    }
+  }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._startTimer()
+  }
+
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    this._stopTimer()
+    this._cleanupNavItemEvents()
+  }
+
+  _interval = null
+
+  _nextGameInElementId = generateId()
+
+  _messageBadgeId = generateId()
+  _nextGameDate = null
+  _newMessageCount = 0
+  _navItemEventIds = []
+  _isAdmin = false
+  _username = ''
+  _version = ''
+  _gameDay = 0
+  _season = 0
 
   /**
    * @returns {boolean}

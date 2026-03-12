@@ -18,6 +18,34 @@ export class TradesPage extends UIElement {
     }
   }
   /**
+   * @returns {string}
+   */
+  get template () {
+    const key = this.pageName || 'market'
+    const subPage = this._subPageCache[key] ?? t('common.loading')
+    return `
+      <div>
+        <nav class="nav nav-pills mb-2">
+          <a class="nav-link ${!this.pageName ? 'active' : ''}" href="#trades">${t('trades.market')}</a>
+          <a class="nav-link ${this.pageName === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">${t('trades.incomingOffers')}</a>
+          <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">${t('trades.myOffers')}</a>
+          <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">${t('player.history')}</a>
+          <a class="nav-link ${this.pageName === 'free_players' ? 'active' : ''}" href="#trades?sub_page=free_players">${t('trades.freePlayers')}</a>
+          <a class="nav-link ${this.pageName === 'market_values' ? 'active' : ''}" href="#trades?sub_page=market_values">${t('trades.marketValues')}</a>
+        </nav>
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
+      </div>
+    `
+  }
+  get serverEvents () {
+    return {
+      BUY_OFFER_ACCEPTED: () => this._refreshMyOffers(),
+      BUY_OFFER_REJECTED: () => this._refreshMyOffers()
+    }
+  }
+  /**
    * @returns {void}
    */
   onMounted () {
@@ -46,39 +74,9 @@ export class TradesPage extends UIElement {
 
   _subPageContainerId = generateId()
 
-  get serverEvents () {
-    return {
-      BUY_OFFER_ACCEPTED: () => this._refreshMyOffers(),
-      BUY_OFFER_REJECTED: () => this._refreshMyOffers()
-    }
-  }
-
   _refreshMyOffers () {
     const cached = this._subPageCache.my_offers
     if (cached?.update) cached.update(true)
-  }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    const key = this.pageName || 'market'
-    const subPage = this._subPageCache[key] ?? t('common.loading')
-    return `
-      <div>
-        <nav class="nav nav-pills mb-2">
-          <a class="nav-link ${!this.pageName ? 'active' : ''}" href="#trades">${t('trades.market')}</a>
-          <a class="nav-link ${this.pageName === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">${t('trades.incomingOffers')}</a>
-          <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">${t('trades.myOffers')}</a>
-          <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">${t('player.history')}</a>
-          <a class="nav-link ${this.pageName === 'free_players' ? 'active' : ''}" href="#trades?sub_page=free_players">${t('trades.freePlayers')}</a>
-          <a class="nav-link ${this.pageName === 'market_values' ? 'active' : ''}" href="#trades?sub_page=market_values">${t('trades.marketValues')}</a>
-        </nav>
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
-      </div>
-    `
   }
 
   /**

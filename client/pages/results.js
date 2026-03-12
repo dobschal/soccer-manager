@@ -15,6 +15,23 @@ export class ResultsPage extends UIElement {
     this.info = await server.getMyTeam()
     this.myTeamId = this.info.team.id
   }
+  get template () {
+    const key = this.subPage || 'league'
+    const subPage = this._getOrCreateSubPage()
+    return `
+      <div>
+        <nav class="nav nav-pills mb-4">
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#results"><i class="fa fa-futbol-o"></i> ${t('results.leagueResults')}</a>
+          <a class="nav-link ${this.subPage === 'cup' ? 'active' : ''}" href="#results?sub_page=cup"><i class="fa fa-trophy"></i> ${t('results.cupResults')}</a>
+          <a class="nav-link ${this.subPage === 'friendly' ? 'active' : ''}" href="#results?sub_page=friendly"><i class="fa fa-handshake-o"></i> ${t('results.friendlyResults')}</a>
+        </nav>
+
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
+      </div>
+    `
+  }
   onMounted () {
     void showTutorialIfNeeded('results', this)
     const queryParams = getQueryParams()
@@ -56,24 +73,6 @@ export class ResultsPage extends UIElement {
   _subPageCache = {}
   
   _subPageContainerId = generateId()
-
-  get template () {
-    const key = this.subPage || 'league'
-    const subPage = this._getOrCreateSubPage()
-    return `
-      <div>
-        <nav class="nav nav-pills mb-4">
-          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#results"><i class="fa fa-futbol-o"></i> ${t('results.leagueResults')}</a>
-          <a class="nav-link ${this.subPage === 'cup' ? 'active' : ''}" href="#results?sub_page=cup"><i class="fa fa-trophy"></i> ${t('results.cupResults')}</a>
-          <a class="nav-link ${this.subPage === 'friendly' ? 'active' : ''}" href="#results?sub_page=friendly"><i class="fa fa-handshake-o"></i> ${t('results.friendlyResults')}</a>
-        </nav>
-
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
-      </div>
-    `
-  }
 
   _getOrCreateSubPage () {
     const key = this.subPage || 'league'

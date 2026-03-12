@@ -92,64 +92,6 @@ export default class PlayerModal extends UIElement {
     this.sellOfferPrice = sellOfferPrice
   }
 
-  onMounted () {
-    const root = el(this._elementQuery)
-    const overlayCard = root.closest('.overlay')
-    if (!overlayCard) return
-
-    const titleEl = overlayCard.querySelector('.card-title')
-    const subtitleEl = overlayCard.querySelector('.card-subtitle')
-
-    setupCurrencyInput('trade-price-input')
-
-    if (titleEl) titleEl.textContent = this.player.name + (this.player.is_star_player ? ' ⭐' : '')
-    if (subtitleEl) {
-      if (this.playersTeam && this.playersTeam.is_system_team) {
-        subtitleEl.innerHTML = `<span class="text-muted">${this.playersTeam.name}</span>`
-      } else if (this.playersTeam) {
-        subtitleEl.innerHTML = `<span class="text-info" style="cursor: pointer">${this.playersTeam.name}</span>`
-        subtitleEl.querySelector('span').addEventListener('click', () => {
-          goTo(`team?id=${this.playersTeam.id}`)
-          this.overlay.remove()
-        })
-      } else {
-        subtitleEl.innerHTML = `<span class="text-muted">${t('player.freePlayer')}</span>`
-      }
-    }
-  }
-  get events () {
-    return {
-      '(optional).trade-offer-btn': { click: this._onTradeOffer },
-      '(optional).hire-btn': { click: this._onHire },
-      '(optional)#trade-price-input': {
-        keydown: (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            e.stopPropagation()
-            void this._onTradeOffer()
-          }
-        }
-      },
-      '(optional).history-prev-btn': {
-        click: () => {
-          if (this.historyPage > 0) {
-            this.historyPage--
-            this._renderHistoryPage()
-          }
-        }
-      },
-      '(optional).history-next-btn': {
-        click: () => {
-          const totalPages = Math.ceil(this.history.length / this.historyPageSize)
-          if (this.historyPage < totalPages - 1) {
-            this.historyPage++
-            this._renderHistoryPage()
-          }
-        }
-      }
-    }
-  }
-
   get template () {
     const levelColor = getLevelColor(this.player.level)
     const freshnessColor = getFreshnessColor(this.player.freshness)
@@ -233,6 +175,63 @@ export default class PlayerModal extends UIElement {
         </div>
       </div>
     `
+  }
+  get events () {
+    return {
+      '(optional).trade-offer-btn': { click: this._onTradeOffer },
+      '(optional).hire-btn': { click: this._onHire },
+      '(optional)#trade-price-input': {
+        keydown: (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            e.stopPropagation()
+            void this._onTradeOffer()
+          }
+        }
+      },
+      '(optional).history-prev-btn': {
+        click: () => {
+          if (this.historyPage > 0) {
+            this.historyPage--
+            this._renderHistoryPage()
+          }
+        }
+      },
+      '(optional).history-next-btn': {
+        click: () => {
+          const totalPages = Math.ceil(this.history.length / this.historyPageSize)
+          if (this.historyPage < totalPages - 1) {
+            this.historyPage++
+            this._renderHistoryPage()
+          }
+        }
+      }
+    }
+  }
+  onMounted () {
+    const root = el(this._elementQuery)
+    const overlayCard = root.closest('.overlay')
+    if (!overlayCard) return
+
+    const titleEl = overlayCard.querySelector('.card-title')
+    const subtitleEl = overlayCard.querySelector('.card-subtitle')
+
+    setupCurrencyInput('trade-price-input')
+
+    if (titleEl) titleEl.textContent = this.player.name + (this.player.is_star_player ? ' ⭐' : '')
+    if (subtitleEl) {
+      if (this.playersTeam && this.playersTeam.is_system_team) {
+        subtitleEl.innerHTML = `<span class="text-muted">${this.playersTeam.name}</span>`
+      } else if (this.playersTeam) {
+        subtitleEl.innerHTML = `<span class="text-info" style="cursor: pointer">${this.playersTeam.name}</span>`
+        subtitleEl.querySelector('span').addEventListener('click', () => {
+          goTo(`team?id=${this.playersTeam.id}`)
+          this.overlay.remove()
+        })
+      } else {
+        subtitleEl.innerHTML = `<span class="text-muted">${t('player.freePlayer')}</span>`
+      }
+    }
   }
 
   _getHistoryPageItems () {

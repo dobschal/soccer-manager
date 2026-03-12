@@ -20,11 +20,38 @@ export class IncomingOffersPage extends UIElement {
     this.players = offersResponse.players
     this.teams = offersResponse.teams
   }
-  team = {}
-  offers = []
-  players = []
-  teams = []
+  /**
+   * @returns {string}
+   */
+  get template () {
+    const incomingOffers = this._filterIncomingBuyOffers()
+    const hasIncomingOffers = incomingOffers.length > 0
 
+    return `
+      <div>
+        <h2>${t('trades.incomingOffersTitle')}</h2>
+        <p>${t('trades.incomingOffersDesc')}</p>
+        ${new Table({
+    cols: [
+      { name: t('results.name') },
+      { name: t('results.team') },
+      { name: t('player.position') },
+      { name: t('player.level'), align: 'right' },
+      { name: t('trades.price'), align: 'right' },
+      { name: '' }
+    ],
+    renderRow: (offer, index) => this._renderOfferRow(offer, index),
+    data: incomingOffers,
+    rowAttrs: (offer, index) => 'data-offer="' + index + '"'
+  })}
+        <div class="row">
+          <div class="col ${hasIncomingOffers ? 'hidden' : ''}">
+            <h4 class="text-muted text-center mt-5 mb-5">${t('trades.noIncomingOffers')}</h4>
+          </div>
+        </div>
+      </div>
+    `
+  }
   /**
    * @returns {UIElementEvents}
    */
@@ -69,39 +96,10 @@ export class IncomingOffersPage extends UIElement {
       }
     }
   }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    const incomingOffers = this._filterIncomingBuyOffers()
-    const hasIncomingOffers = incomingOffers.length > 0
-
-    return `
-      <div>
-        <h2>${t('trades.incomingOffersTitle')}</h2>
-        <p>${t('trades.incomingOffersDesc')}</p>
-        ${new Table({
-    cols: [
-      { name: t('results.name') },
-      { name: t('results.team') },
-      { name: t('player.position') },
-      { name: t('player.level'), align: 'right' },
-      { name: t('trades.price'), align: 'right' },
-      { name: '' }
-    ],
-    renderRow: (offer, index) => this._renderOfferRow(offer, index),
-    data: incomingOffers,
-    rowAttrs: (offer, index) => 'data-offer="' + index + '"'
-  })}
-        <div class="row">
-          <div class="col ${hasIncomingOffers ? 'hidden' : ''}">
-            <h4 class="text-muted text-center mt-5 mb-5">${t('trades.noIncomingOffers')}</h4>
-          </div>
-        </div>
-      </div>
-    `
-  }
+  team = {}
+  offers = []
+  players = []
+  teams = []
 
   /**
    * @returns {Array}

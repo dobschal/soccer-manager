@@ -14,15 +14,12 @@ export class Balance extends UIElement {
       this.balance = 0
     }
   }
-  balance = 0
-
   /**
    * @returns {string}
    */
   get template () {
     return `<span>${euroFormat.format(this.balance)}</span>`
   }
-
   /**
    * Server events to listen for
    * @returns {Record<string, (data: any) => void>}
@@ -32,6 +29,7 @@ export class Balance extends UIElement {
       BALANCE_UPDATED: () => this.update(true)
     }
   }
+  balance = 0
   
 }
 

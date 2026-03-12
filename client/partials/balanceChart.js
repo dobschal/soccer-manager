@@ -12,6 +12,12 @@ export class BalanceChart extends UIElement {
     this._processLogItems(financeLog)
   }
   /**
+   * @returns {string}
+   */
+  get template () {
+    return `<div class="card card-body bg-dark mb-4" style="position: relative; height: 400px; width: 100%; padding: 16px; box-sizing: border-box;"><canvas class="finance-canvas"></canvas></div>`
+  }
+  /**
    * @returns {void}
    */
   onMounted () {
@@ -59,13 +65,6 @@ export class BalanceChart extends UIElement {
       if (a.season !== b.season) return a.season - b.season
       return a.game_day - b.game_day
     })
-  }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `<div class="card card-body bg-dark mb-4" style="position: relative; height: 400px; width: 100%; padding: 16px; box-sizing: border-box;"><canvas class="finance-canvas"></canvas></div>`
   }
 
   /**

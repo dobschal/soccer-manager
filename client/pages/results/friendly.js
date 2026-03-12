@@ -24,25 +24,6 @@ export class FriendlyResultsPage extends UIElement {
     const { results } = await server.getFriendlyResults(this.season)
     this.results = results
   }
-  results = []
-  
-  get events () {
-    return {
-      '#prev-season-button': {
-        click: () => setQueryParams({
-          sub_page: 'friendly',
-          season: this.season - 1
-        })
-      },
-      '#next-season-button': {
-        click: () => setQueryParams({
-          sub_page: 'friendly',
-          season: this.season + 1
-        })
-      }
-    }
-  }
-
   get template () {
     return `
       <div>
@@ -78,6 +59,23 @@ export class FriendlyResultsPage extends UIElement {
       </div>
     `
   }
+  get events () {
+    return {
+      '#prev-season-button': {
+        click: () => setQueryParams({
+          sub_page: 'friendly',
+          season: this.season - 1
+        })
+      },
+      '#next-season-button': {
+        click: () => setQueryParams({
+          sub_page: 'friendly',
+          season: this.season + 1
+        })
+      }
+    }
+  }
+  results = []
 
   get myTeamId () {
     return this.parentPage.myTeamId

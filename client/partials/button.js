@@ -16,6 +16,12 @@ export class Button extends UIElement {
   }
 
   /**
+   * @returns {string}
+   */
+  get template () {
+    return `<button class="btn btn-${this.type} ${this.cssClass}" type="button">${this.text}</button>`
+  }
+  /**
    * @returns {UIElementEvents}
    */
   get events () {
@@ -25,12 +31,6 @@ export class Button extends UIElement {
       }
     }
   }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `<button class="btn btn-${this.type} ${this.cssClass}" type="button">${this.text}</button>`
-  }
+  
 }
 

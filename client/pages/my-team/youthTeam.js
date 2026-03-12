@@ -31,23 +31,6 @@ export class YouthTeamPage extends UIElement {
     this.season = data.season
   }
   /**
-   * Called when component is mounted to DOM
-   * @returns {void}
-   */
-  onMounted () {
-    this._startTimer()
-    void showTutorialIfNeeded('youth', this)
-  }
-
-  /**
-   * Called when component is removed from DOM
-   * @returns {void}
-   */
-  onDestroy () {
-    this._stopTimer()
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -63,6 +46,22 @@ export class YouthTeamPage extends UIElement {
         ${this._renderYouthPlayerTable()}
       </div>
     `
+  }
+  /**
+   * Called when component is mounted to DOM
+   * @returns {void}
+   */
+  onMounted () {
+    this._startTimer()
+    void showTutorialIfNeeded('youth', this)
+  }
+
+  /**
+   * Called when component is removed from DOM
+   * @returns {void}
+   */
+  onDestroy () {
+    this._stopTimer()
   }
 
   /**

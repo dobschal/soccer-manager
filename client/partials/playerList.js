@@ -36,31 +36,6 @@ export class PlayerList extends UIElement {
     this.players.sort(sortByPosition)
   }
   /**
-   * Server events to listen for
-   * @returns {Record<string, (data: any) => void>}
-   */
-  get serverEvents () {
-    return {
-      NEW_SELL_TRADE_OFFER: () => this.update(true)
-    }
-  }
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '(optional).player-list-toggle-btn': {
-        click: () => {
-          if (this.onToggleExtended) {
-            this.onToggleExtended()
-          }
-        }
-      }
-    }
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -93,6 +68,29 @@ export class PlayerList extends UIElement {
         </div>
       </div>
     `
+  }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '(optional).player-list-toggle-btn': {
+        click: () => {
+          if (this.onToggleExtended) {
+            this.onToggleExtended()
+          }
+        }
+      }
+    }
+  }
+  /**
+   * Server events to listen for
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      NEW_SELL_TRADE_OFFER: () => this.update(true)
+    }
   }
   
 }

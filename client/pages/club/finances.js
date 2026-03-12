@@ -55,78 +55,6 @@ export class FinancesPage extends UIElement {
     await this._loadFinanceLog()
   }
   /**
-   * @returns {void}
-   */
-  onMounted () {
-    void showTutorialIfNeeded('finances', this)
-  }
-  sponsor = null
-
-  offers = []
-  /** @type {FinanceLogEntry[]} */
-  financeLog = []
-
-  // Filter bounds
-  minSeason = 0
-  minGameDay = 0
-  maxSeason = 0
-  maxGameDay = 0
-
-  // Selected filter values
-  fromSeason = 0
-  fromGameDay = 0
-  toSeason = 0
-  toGameDay = 0
-
-  /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '#sponsor-offers': {
-        click: async (event) => {
-          const target = event.target
-          const btn = target.closest('.btn-primary')
-          if (!btn) return
-
-          const offerCard = target.closest('[data-sponsor-offer]')
-          if (!offerCard) return
-
-          const idx = parseInt(offerCard.dataset.sponsorOffer, 10)
-          const offer = this.offers[idx]
-
-          try {
-            await server.chooseSponsor(offer)
-            toast(t('finances.signedContract', { name: offer.name }))
-            await this.load()
-            await this.update()
-          } catch (e) {
-            toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-          }
-        }
-      },
-      '#filter-from': {
-        change: async (event) => {
-          const value = parseInt(event.target.value, 10)
-          this.fromSeason = Math.floor(value / GAMEDAYS_PER_SEASON)
-          this.fromGameDay = value % GAMEDAYS_PER_SEASON
-          await this._loadFinanceLog()
-          await this.update()
-        }
-      },
-      '#filter-to': {
-        change: async (event) => {
-          const value = parseInt(event.target.value, 10)
-          this.toSeason = Math.floor(value / GAMEDAYS_PER_SEASON)
-          this.toGameDay = value % GAMEDAYS_PER_SEASON
-          await this._loadFinanceLog()
-          await this.update()
-        }
-      }
-    }
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -188,6 +116,76 @@ export class FinancesPage extends UIElement {
       </div>
     `
   }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '#sponsor-offers': {
+        click: async (event) => {
+          const target = event.target
+          const btn = target.closest('.btn-primary')
+          if (!btn) return
+
+          const offerCard = target.closest('[data-sponsor-offer]')
+          if (!offerCard) return
+
+          const idx = parseInt(offerCard.dataset.sponsorOffer, 10)
+          const offer = this.offers[idx]
+
+          try {
+            await server.chooseSponsor(offer)
+            toast(t('finances.signedContract', { name: offer.name }))
+            await this.load()
+            await this.update()
+          } catch (e) {
+            toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+          }
+        }
+      },
+      '#filter-from': {
+        change: async (event) => {
+          const value = parseInt(event.target.value, 10)
+          this.fromSeason = Math.floor(value / GAMEDAYS_PER_SEASON)
+          this.fromGameDay = value % GAMEDAYS_PER_SEASON
+          await this._loadFinanceLog()
+          await this.update()
+        }
+      },
+      '#filter-to': {
+        change: async (event) => {
+          const value = parseInt(event.target.value, 10)
+          this.toSeason = Math.floor(value / GAMEDAYS_PER_SEASON)
+          this.toGameDay = value % GAMEDAYS_PER_SEASON
+          await this._loadFinanceLog()
+          await this.update()
+        }
+      }
+    }
+  }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    void showTutorialIfNeeded('finances', this)
+  }
+  sponsor = null
+
+  offers = []
+  /** @type {FinanceLogEntry[]} */
+  financeLog = []
+
+  // Filter bounds
+  minSeason = 0
+  minGameDay = 0
+  maxSeason = 0
+  maxGameDay = 0
+
+  // Selected filter values
+  fromSeason = 0
+  fromGameDay = 0
+  toSeason = 0
+  toGameDay = 0
 
   /**
    * @returns {Promise<void>}

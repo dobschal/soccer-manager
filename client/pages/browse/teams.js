@@ -21,41 +21,6 @@ export class BrowseTeamsPage extends UIElement {
     this.teams = result.teams
     this.totalCount = result.totalCount
   }
-  teams = []
-  
-  totalCount = 0
-  pageIndex = 0
-  pageSize = 20
-  searchQuery = ''
-  sortColumn = ''
-  sortDirection = ''
-  
-  async applyQueryParams (params) {
-    const newSortDir = params.sort_dir || ''
-    const newSortCol = params.col !== undefined ? (SORT_COL_MAP[Number(params.col)] || '') : ''
-
-    if (newSortDir !== this.sortDirection || newSortCol !== this.sortColumn) {
-      this.pageIndex = 0
-    } else {
-      this.pageIndex = parseInt(params.page) || 0
-    }
-
-    this.searchQuery = params.search_query || ''
-    this.sortColumn = newSortCol
-    this.sortDirection = newSortDir
-  }
-
-  get events () {
-    return {
-      '(optional) #browse-prev-page': {
-        click: () => setQueryParams({ page: this.pageIndex - 1 })
-      },
-      '(optional) #browse-next-page': {
-        click: () => setQueryParams({ page: this.pageIndex + 1 })
-      }
-    }
-  }
-
   get template () {
     const totalPages = Math.ceil(this.totalCount / this.pageSize)
 
@@ -96,4 +61,38 @@ export class BrowseTeamsPage extends UIElement {
       </div>
     `
   }
+  get events () {
+    return {
+      '(optional) #browse-prev-page': {
+        click: () => setQueryParams({ page: this.pageIndex - 1 })
+      },
+      '(optional) #browse-next-page': {
+        click: () => setQueryParams({ page: this.pageIndex + 1 })
+      }
+    }
+  }
+  teams = []
+  
+  totalCount = 0
+  pageIndex = 0
+  pageSize = 20
+  searchQuery = ''
+  sortColumn = ''
+  sortDirection = ''
+  
+  async applyQueryParams (params) {
+    const newSortDir = params.sort_dir || ''
+    const newSortCol = params.col !== undefined ? (SORT_COL_MAP[Number(params.col)] || '') : ''
+
+    if (newSortDir !== this.sortDirection || newSortCol !== this.sortColumn) {
+      this.pageIndex = 0
+    } else {
+      this.pageIndex = parseInt(params.page) || 0
+    }
+
+    this.searchQuery = params.search_query || ''
+    this.sortColumn = newSortCol
+    this.sortDirection = newSortDir
+  }
+  
 }

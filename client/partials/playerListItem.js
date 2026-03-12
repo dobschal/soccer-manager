@@ -22,17 +22,6 @@ export class PlayerListItem extends UIElement {
     this.extended = extended
   }
   /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '': {
-        click: this.onClickHandler
-      }
-    }
-  }
-
-  /**
    * @returns {string}
    */
   get template () {
@@ -63,6 +52,16 @@ export class PlayerListItem extends UIElement {
         ${extendedCells}
       </tr>
     `
+  }
+  /**
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '': {
+        click: this.onClickHandler
+      }
+    }
   }
 
   /**

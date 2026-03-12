@@ -13,6 +13,12 @@ export class Link extends UIElement {
   }
 
   /**
+   * @returns {string}
+   */
+  get template () {
+    return `<span class="hover-text">${this.text}</span>`
+  }
+  /**
    * @returns {UIElementEvents}
    */
   get events () {
@@ -22,12 +28,6 @@ export class Link extends UIElement {
       }
     }
   }
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    return `<span class="hover-text">${this.text}</span>`
-  }
+  
 }
 

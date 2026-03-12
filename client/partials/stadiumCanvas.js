@@ -1,6 +1,4 @@
 import { UIElement } from '../lib/UIElement.js'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 /**
  * Reusable stadium 3D canvas component
@@ -16,6 +14,16 @@ export class StadiumCanvas extends UIElement {
     this.stadium = stadium
     this.team = team
     this.canvasId = canvasId
+  }
+  /**
+   * @returns {string}
+   */
+  get template () {
+    return `
+      <div class="stadium-wrapper">
+        <canvas id="${this.canvasId}"></canvas>
+      </div>
+    `
   }
   /**
    * Called after component is mounted - initializes Three.js scene
@@ -92,17 +100,6 @@ export class StadiumCanvas extends UIElement {
   _resizeObserver = null
 
   /**
-   * @returns {string}
-   */
-  get template () {
-    return `
-      <div class="stadium-wrapper">
-        <canvas id="${this.canvasId}"></canvas>
-      </div>
-    `
-  }
-
-  /**
    * @returns {number}
    */
   calculateTotalSeats () {
@@ -115,7 +112,14 @@ export class StadiumCanvas extends UIElement {
   /**
    * Initialize Three.js scene
    */
-  _initThreeJS () {
+  async _initThreeJS () {
+    const [THREE, { OrbitControls }] = await Promise.all([
+      import('three'),
+      import('three/addons/controls/OrbitControls.js')
+    ])
+    this._THREE = THREE
+    this._OrbitControls = OrbitControls
+
     const canvas = document.querySelector(`${this._elementQuery} #${this.canvasId}`)
     if (!canvas) return
 
@@ -123,30 +127,30 @@ export class StadiumCanvas extends UIElement {
     const width = container.clientWidth
     const height = Math.min(600, width * 0.9)
 
-    this._scene = new THREE.Scene()
-    this._scene.background = new THREE.Color(0x0a0a1a)
+    this._scene = new this._THREE.Scene()
+    this._scene.background = new this._THREE.Color(0x0a0a1a)
 
-    this._camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+    this._camera = new this._THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
     this._camera.position.set(80, 100, 80)
     this._camera.lookAt(0, 0, 0)
 
-    this._renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
+    this._renderer = new this._THREE.WebGLRenderer({ canvas, antialias: true })
     this._renderer.setSize(width, height)
     this._renderer.setPixelRatio(window.devicePixelRatio)
     this._renderer.shadowMap.enabled = true
-    this._renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    this._renderer.shadowMap.type = this._THREE.PCFSoftShadowMap
 
-    this._controls = new OrbitControls(this._camera, this._renderer.domElement)
+    this._controls = new this._OrbitControls(this._camera, this._renderer.domElement)
     this._controls.enableDamping = true
     this._controls.dampingFactor = 0.05
     this._controls.maxPolarAngle = Math.PI / 2.2
     this._controls.minDistance = 50
     this._controls.maxDistance = 150
 
-    const ambientLight = new THREE.AmbientLight(0x404060, 0.5)
+    const ambientLight = new this._THREE.AmbientLight(0x404060, 0.5)
     this._scene.add(ambientLight)
 
-    const moonLight = new THREE.DirectionalLight(0x6688cc, 0.5)
+    const moonLight = new this._THREE.DirectionalLight(0x6688cc, 0.5)
     moonLight.position.set(30, 100, 30)
     this._scene.add(moonLight)
 
@@ -209,9 +213,9 @@ export class StadiumCanvas extends UIElement {
     const eastSeats = this.stadium.east_stand_size || 0
     const westSeats = this.stadium.west_stand_size || 0
 
-    const groundGeo = new THREE.PlaneGeometry(250, 250)
-    const groundMat = new THREE.MeshLambertMaterial({ color: 0x3d5c3d })
-    const ground = new THREE.Mesh(groundGeo, groundMat)
+    const groundGeo = new this._THREE.PlaneGeometry(250, 250)
+    const groundMat = new this._THREE.MeshLambertMaterial({ color: 0x3d5c3d })
+    const ground = new this._THREE.Mesh(groundGeo, groundMat)
     ground.rotation.x = -Math.PI / 2
     ground.position.y = -0.1
     ground.receiveShadow = true
@@ -269,9 +273,9 @@ export class StadiumCanvas extends UIElement {
    * @param {string} teamColor
    */
   _createField (scene, width, depth, teamColor) {
-    const fieldGeo = new THREE.PlaneGeometry(width, depth)
-    const fieldMat = new THREE.MeshLambertMaterial({ color: 0x2e8b2e })
-    const field = new THREE.Mesh(fieldGeo, fieldMat)
+    const fieldGeo = new this._THREE.PlaneGeometry(width, depth)
+    const fieldMat = new this._THREE.MeshLambertMaterial({ color: 0x2e8b2e })
+    const field = new this._THREE.Mesh(fieldGeo, fieldMat)
     field.rotation.x = -Math.PI / 2
     field.position.y = 0.01
     field.receiveShadow = true
@@ -280,9 +284,9 @@ export class StadiumCanvas extends UIElement {
     const stripeCount = 8
     const stripeWidth = depth / stripeCount
     for (let i = 0; i < stripeCount; i += 2) {
-      const stripeGeo = new THREE.PlaneGeometry(width, stripeWidth)
-      const stripeMat = new THREE.MeshLambertMaterial({ color: 0x35a535 })
-      const stripe = new THREE.Mesh(stripeGeo, stripeMat)
+      const stripeGeo = new this._THREE.PlaneGeometry(width, stripeWidth)
+      const stripeMat = new this._THREE.MeshLambertMaterial({ color: 0x35a535 })
+      const stripe = new this._THREE.Mesh(stripeGeo, stripeMat)
       stripe.rotation.x = -Math.PI / 2
       stripe.position.y = 0.02
       stripe.position.z = -depth / 2 + stripeWidth / 2 + i * stripeWidth
@@ -290,28 +294,28 @@ export class StadiumCanvas extends UIElement {
       scene.add(stripe)
     }
 
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff })
+    const lineMaterial = new this._THREE.LineBasicMaterial({ color: 0xffffff })
 
     const outlinePoints = [
-      new THREE.Vector3(-width / 2, 0.03, -depth / 2),
-      new THREE.Vector3(width / 2, 0.03, -depth / 2),
-      new THREE.Vector3(width / 2, 0.03, depth / 2),
-      new THREE.Vector3(-width / 2, 0.03, depth / 2),
-      new THREE.Vector3(-width / 2, 0.03, -depth / 2)
+      new this._THREE.Vector3(-width / 2, 0.03, -depth / 2),
+      new this._THREE.Vector3(width / 2, 0.03, -depth / 2),
+      new this._THREE.Vector3(width / 2, 0.03, depth / 2),
+      new this._THREE.Vector3(-width / 2, 0.03, depth / 2),
+      new this._THREE.Vector3(-width / 2, 0.03, -depth / 2)
     ]
-    const outlineGeo = new THREE.BufferGeometry().setFromPoints(outlinePoints)
-    scene.add(new THREE.Line(outlineGeo, lineMaterial))
+    const outlineGeo = new this._THREE.BufferGeometry().setFromPoints(outlinePoints)
+    scene.add(new this._THREE.Line(outlineGeo, lineMaterial))
 
     const centerLinePoints = [
-      new THREE.Vector3(0, 0.03, -depth / 2),
-      new THREE.Vector3(0, 0.03, depth / 2)
+      new this._THREE.Vector3(0, 0.03, -depth / 2),
+      new this._THREE.Vector3(0, 0.03, depth / 2)
     ]
-    const centerLineGeo = new THREE.BufferGeometry().setFromPoints(centerLinePoints)
-    scene.add(new THREE.Line(centerLineGeo, lineMaterial))
+    const centerLineGeo = new this._THREE.BufferGeometry().setFromPoints(centerLinePoints)
+    scene.add(new this._THREE.Line(centerLineGeo, lineMaterial))
 
-    const circleGeo = new THREE.RingGeometry(4.9, 5, 32)
-    const circleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide })
-    const circle = new THREE.Mesh(circleGeo, circleMat)
+    const circleGeo = new this._THREE.RingGeometry(4.9, 5, 32)
+    const circleMat = new this._THREE.MeshBasicMaterial({ color: 0xffffff, side: this._THREE.DoubleSide })
+    const circle = new this._THREE.Mesh(circleGeo, circleMat)
     circle.rotation.x = -Math.PI / 2
     circle.position.y = 0.03
     scene.add(circle)
@@ -342,18 +346,18 @@ export class StadiumCanvas extends UIElement {
     const flagWidth = 1.5
     const flagHeight = 1.0
 
-    const poleGeo = new THREE.CylinderGeometry(0.05, 0.05, poleHeight, 8)
-    const poleMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-    const pole = new THREE.Mesh(poleGeo, poleMat)
+    const poleGeo = new this._THREE.CylinderGeometry(0.05, 0.05, poleHeight, 8)
+    const poleMat = new this._THREE.MeshLambertMaterial({ color: 0xffffff })
+    const pole = new this._THREE.Mesh(poleGeo, poleMat)
     pole.position.set(x, poleHeight / 2, z)
     scene.add(pole)
 
-    const flagGeo = new THREE.PlaneGeometry(flagWidth, flagHeight, 10, 5)
-    const flagMat = new THREE.MeshLambertMaterial({
-      color: new THREE.Color(color),
-      side: THREE.DoubleSide
+    const flagGeo = new this._THREE.PlaneGeometry(flagWidth, flagHeight, 10, 5)
+    const flagMat = new this._THREE.MeshLambertMaterial({
+      color: new this._THREE.Color(color),
+      side: this._THREE.DoubleSide
     })
-    const flag = new THREE.Mesh(flagGeo, flagMat)
+    const flag = new this._THREE.Mesh(flagGeo, flagMat)
 
     flag.position.set(x + flagWidth / 2, poleHeight - flagHeight / 2, z)
 
@@ -375,34 +379,34 @@ export class StadiumCanvas extends UIElement {
     const towerHeight = 45
     const towerWidth = 1.5
 
-    const towerMat = new THREE.MeshLambertMaterial({ color: 0xcccccc })
+    const towerMat = new this._THREE.MeshLambertMaterial({ color: 0xcccccc })
 
     const poleSections = 4
     for (let i = 0; i < poleSections; i++) {
       const sectionHeight = towerHeight / poleSections
       const sectionWidth = towerWidth * (1 - i * 0.15)
 
-      const poleGeo = new THREE.BoxGeometry(sectionWidth, sectionHeight, sectionWidth)
-      const pole = new THREE.Mesh(poleGeo, towerMat)
+      const poleGeo = new this._THREE.BoxGeometry(sectionWidth, sectionHeight, sectionWidth)
+      const pole = new this._THREE.Mesh(poleGeo, towerMat)
       pole.position.set(x, sectionHeight / 2 + i * sectionHeight, z)
       scene.add(pole)
     }
 
-    const platformGeo = new THREE.BoxGeometry(1, 1, 1)
-    const platform = new THREE.Mesh(platformGeo, towerMat)
+    const platformGeo = new this._THREE.BoxGeometry(1, 1, 1)
+    const platform = new this._THREE.Mesh(platformGeo, towerMat)
     platform.castShadow = false
     platform.position.set(x, towerHeight, z)
     scene.add(platform)
 
-    const spotlightMat = new THREE.MeshLambertMaterial({ color: 0x222222 })
-    const spotlightLensMat = new THREE.MeshBasicMaterial({ color: 0xffffcc })
+    const spotlightMat = new this._THREE.MeshLambertMaterial({ color: 0x222222 })
+    const spotlightLensMat = new this._THREE.MeshBasicMaterial({ color: 0xffffcc })
 
-    const dirToCenter = new THREE.Vector3(-x, -towerHeight + 5, -z).normalize()
+    const dirToCenter = new this._THREE.Vector3(-x, -towerHeight + 5, -z).normalize()
 
     for (let row = 0; row < 2; row++) {
       for (let col = 0; col < 3; col++) {
-        const housingGeo = new THREE.BoxGeometry(1, 0.8, 1.2)
-        const housing = new THREE.Mesh(housingGeo, spotlightMat)
+        const housingGeo = new this._THREE.BoxGeometry(1, 0.8, 1.2)
+        const housing = new this._THREE.Mesh(housingGeo, spotlightMat)
 
         const offsetX = (col - 1) * 1.4
         const offsetY = towerHeight + 1 + row * 1.4
@@ -411,8 +415,8 @@ export class StadiumCanvas extends UIElement {
         housing.lookAt(0, 0, 0)
         scene.add(housing)
 
-        const lensGeo = new THREE.CircleGeometry(0.35, 16)
-        const lens = new THREE.Mesh(lensGeo, spotlightLensMat)
+        const lensGeo = new this._THREE.CircleGeometry(0.35, 16)
+        const lens = new this._THREE.Mesh(lensGeo, spotlightLensMat)
         lens.position.set(x + offsetX, offsetY, z)
         lens.lookAt(0, 0, 0)
         lens.position.add(dirToCenter.clone().multiplyScalar(0.65))
@@ -420,7 +424,7 @@ export class StadiumCanvas extends UIElement {
       }
     }
 
-    const mainLight = new THREE.SpotLight(0xfff5e6, 350, 150, Math.PI / 3, 0.6, 1.5)
+    const mainLight = new this._THREE.SpotLight(0xfff5e6, 350, 150, Math.PI / 3, 0.6, 1.5)
     mainLight.position.set(x, towerHeight + 1, z)
     mainLight.target.position.set(0, 0, 0)
 
@@ -439,22 +443,22 @@ export class StadiumCanvas extends UIElement {
    * @param {number} x
    */
   _createGoal (scene, x) {
-    const goalMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+    const goalMat = new this._THREE.MeshLambertMaterial({ color: 0xffffff })
     const postRadius = 0.15
     const goalWidth = 4
     const goalHeight = 1.5
 
-    const postGeo = new THREE.CylinderGeometry(postRadius, postRadius, goalHeight, 8)
-    const leftPost = new THREE.Mesh(postGeo, goalMat)
+    const postGeo = new this._THREE.CylinderGeometry(postRadius, postRadius, goalHeight, 8)
+    const leftPost = new this._THREE.Mesh(postGeo, goalMat)
     leftPost.position.set(x, goalHeight / 2, -goalWidth / 2)
     scene.add(leftPost)
 
-    const rightPost = new THREE.Mesh(postGeo, goalMat)
+    const rightPost = new this._THREE.Mesh(postGeo, goalMat)
     rightPost.position.set(x, goalHeight / 2, goalWidth / 2)
     scene.add(rightPost)
 
-    const crossbarGeo = new THREE.CylinderGeometry(postRadius, postRadius, goalWidth, 8)
-    const crossbar = new THREE.Mesh(crossbarGeo, goalMat)
+    const crossbarGeo = new this._THREE.CylinderGeometry(postRadius, postRadius, goalWidth, 8)
+    const crossbar = new this._THREE.Mesh(crossbarGeo, goalMat)
     crossbar.rotation.x = Math.PI / 2
     crossbar.position.set(x, goalHeight, 0)
     scene.add(crossbar)
@@ -466,7 +470,7 @@ export class StadiumCanvas extends UIElement {
    */
   _createStand (scene, config) {
     const { width, seats, x, z, rotation, hasRoof, position } = config
-    const group = new THREE.Group()
+    const group = new this._THREE.Group()
 
     const seatWidth = 0.5
     const seatsPerRow = Math.floor(width / seatWidth)
@@ -481,22 +485,22 @@ export class StadiumCanvas extends UIElement {
     const actualDepth = numRows * rowDepth
     const actualHeight = numRows * rowHeight
 
-    const baseGeo = new THREE.BoxGeometry(width + 2, 0.5, actualDepth + 1)
-    const baseMat = new THREE.MeshLambertMaterial({ color: 0x505050 })
-    const base = new THREE.Mesh(baseGeo, baseMat)
+    const baseGeo = new this._THREE.BoxGeometry(width + 2, 0.5, actualDepth + 1)
+    const baseMat = new this._THREE.MeshLambertMaterial({ color: 0x505050 })
+    const base = new this._THREE.Mesh(baseGeo, baseMat)
     base.position.y = 0.25
     base.position.z = actualDepth / 2
     base.castShadow = true
     base.receiveShadow = true
     group.add(base)
 
-    const stepGeo = new THREE.BoxGeometry(width, rowHeight, rowDepth)
-    const stepMat = new THREE.MeshLambertMaterial({ color: 0x909090 })
-    const stepInstancedMesh = new THREE.InstancedMesh(stepGeo, stepMat, numRows)
+    const stepGeo = new this._THREE.BoxGeometry(width, rowHeight, rowDepth)
+    const stepMat = new this._THREE.MeshLambertMaterial({ color: 0x909090 })
+    const stepInstancedMesh = new this._THREE.InstancedMesh(stepGeo, stepMat, numRows)
     stepInstancedMesh.castShadow = true
     stepInstancedMesh.receiveShadow = true
 
-    const stepMatrix = new THREE.Matrix4()
+    const stepMatrix = new this._THREE.Matrix4()
     for (let row = 0; row < numRows; row++) {
       const rowY = 0.5 + row * rowHeight
       const rowZ = row * rowDepth
@@ -539,14 +543,14 @@ export class StadiumCanvas extends UIElement {
       }
     }
 
-    const seatGeo = new THREE.BoxGeometry(seatWidth * 0.8, 0.4, rowDepth * 0.6)
-    const seatMatrix = new THREE.Matrix4()
+    const seatGeo = new this._THREE.BoxGeometry(seatWidth * 0.8, 0.4, rowDepth * 0.6)
+    const seatMatrix = new this._THREE.Matrix4()
 
     for (const [color, positions] of seatsByColor) {
       if (positions.length === 0) continue
 
-      const seatMat = new THREE.MeshLambertMaterial({ color })
-      const instancedSeats = new THREE.InstancedMesh(seatGeo, seatMat, positions.length)
+      const seatMat = new this._THREE.MeshLambertMaterial({ color })
+      const instancedSeats = new this._THREE.InstancedMesh(seatGeo, seatMat, positions.length)
 
       for (let i = 0; i < positions.length; i++) {
         const pos = positions[i]
@@ -558,9 +562,9 @@ export class StadiumCanvas extends UIElement {
     }
 
     const backWallHeight = actualHeight + 2
-    const backWallGeo = new THREE.BoxGeometry(width + 2, backWallHeight, 0.5)
-    const backWallMat = new THREE.MeshLambertMaterial({ color: 0x606060 })
-    const backWall = new THREE.Mesh(backWallGeo, backWallMat)
+    const backWallGeo = new this._THREE.BoxGeometry(width + 2, backWallHeight, 0.5)
+    const backWallMat = new this._THREE.MeshLambertMaterial({ color: 0x606060 })
+    const backWall = new this._THREE.Mesh(backWallGeo, backWallMat)
     backWall.position.y = backWallHeight / 2
     backWall.position.z = actualDepth + 0.25
     backWall.castShadow = true
@@ -568,15 +572,15 @@ export class StadiumCanvas extends UIElement {
 
     const extrudeSettings = { depth: 0.5, bevelEnabled: false }
 
-    const rightWallShape = new THREE.Shape()
+    const rightWallShape = new this._THREE.Shape()
     rightWallShape.moveTo(0, 0)
     rightWallShape.lineTo(actualDepth, 0)
     rightWallShape.lineTo(actualDepth, actualHeight + 2)
     rightWallShape.lineTo(0, 1.5)
     rightWallShape.closePath()
 
-    const rightWallGeo = new THREE.ExtrudeGeometry(rightWallShape, extrudeSettings)
-    const rightWall = new THREE.Mesh(rightWallGeo, backWallMat)
+    const rightWallGeo = new this._THREE.ExtrudeGeometry(rightWallShape, extrudeSettings)
+    const rightWall = new this._THREE.Mesh(rightWallGeo, backWallMat)
     rightWall.rotation.y = Math.PI * 1.5
     rightWall.position.set(width / 2 + 1, 0, 0)
     group.add(rightWall)
@@ -601,12 +605,12 @@ export class StadiumCanvas extends UIElement {
       4, 5, 6, 5, 7, 6
     ]
 
-    const leftWallGeo = new THREE.BufferGeometry()
-    leftWallGeo.setAttribute('position', new THREE.BufferAttribute(leftWallVertices, 3))
+    const leftWallGeo = new this._THREE.BufferGeometry()
+    leftWallGeo.setAttribute('position', new this._THREE.BufferAttribute(leftWallVertices, 3))
     leftWallGeo.setIndex(leftWallIndices)
     leftWallGeo.computeVertexNormals()
 
-    const leftWall = new THREE.Mesh(leftWallGeo, backWallMat)
+    const leftWall = new this._THREE.Mesh(leftWallGeo, backWallMat)
     leftWall.rotation.y = Math.PI * 1.5
     leftWall.position.set(-width / 2 - 1, 0, 0)
     group.add(leftWall)
@@ -617,42 +621,42 @@ export class StadiumCanvas extends UIElement {
       const pillarTopY = roofY + 4
       const pillarHeight = pillarTopY + 0.5
 
-      const roofGeo = new THREE.BoxGeometry(width + 4, 0.3, actualDepth + 3)
-      const roofMat = new THREE.MeshLambertMaterial({
+      const roofGeo = new this._THREE.BoxGeometry(width + 4, 0.3, actualDepth + 3)
+      const roofMat = new this._THREE.MeshLambertMaterial({
         color: 0xe6e6e6,
         transparent: true,
         opacity: 0.8
       })
-      const roof = new THREE.Mesh(roofGeo, roofMat)
+      const roof = new this._THREE.Mesh(roofGeo, roofMat)
       roof.position.y = roofY
       roof.position.z = actualDepth / 2
       roof.rotation.x = -0.05
       roof.castShadow = true
       group.add(roof)
 
-      const supportGeo = new THREE.CylinderGeometry(0.4, 0.4, pillarHeight, 8)
-      const supportMat = new THREE.MeshLambertMaterial({ color: 0x444444 })
+      const supportGeo = new this._THREE.CylinderGeometry(0.4, 0.4, pillarHeight, 8)
+      const supportMat = new this._THREE.MeshLambertMaterial({ color: 0x444444 })
 
       const pillarPositions = [-width / 2 + 3, 0, width / 2 - 3]
 
-      const cableMat = new THREE.LineBasicMaterial({ color: 0x333333, linewidth: 3 })
+      const cableMat = new this._THREE.LineBasicMaterial({ color: 0x333333, linewidth: 3 })
 
       pillarPositions.forEach(pillarX => {
-        const support = new THREE.Mesh(supportGeo, supportMat)
+        const support = new this._THREE.Mesh(supportGeo, supportMat)
         support.position.set(pillarX, pillarHeight / 2, pillarZ)
         support.castShadow = true
         group.add(support)
 
         const cablePoints = [
-          new THREE.Vector3(pillarX, pillarTopY, pillarZ),
-          new THREE.Vector3(pillarX, roofY + 0.2, pillarZ / 1.5)
+          new this._THREE.Vector3(pillarX, pillarTopY, pillarZ),
+          new this._THREE.Vector3(pillarX, roofY + 0.2, pillarZ / 1.5)
         ]
-        const cableGeo = new THREE.BufferGeometry().setFromPoints(cablePoints)
-        const cable = new THREE.Line(cableGeo, cableMat)
+        const cableGeo = new this._THREE.BufferGeometry().setFromPoints(cablePoints)
+        const cable = new this._THREE.Line(cableGeo, cableMat)
         group.add(cable)
 
-        const topCapGeo = new THREE.SphereGeometry(0.5, 8, 8)
-        const topCap = new THREE.Mesh(topCapGeo, supportMat)
+        const topCapGeo = new this._THREE.SphereGeometry(0.5, 8, 8)
+        const topCap = new this._THREE.Mesh(topCapGeo, supportMat)
         topCap.position.set(pillarX, pillarTopY, pillarZ)
         group.add(topCap)
       })

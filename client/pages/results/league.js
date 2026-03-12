@@ -50,55 +50,6 @@ export class LeagueResultsPage extends UIElement {
 
     this._buildManagerChat()
   }
-  onMounted () {
-    this._loadTopScorerImages()
-    this._attachTeamStatsHeaderHandler()
-    if (this._managerSvgId && this._teamColor) {
-      void loadManagerChatSvg(this._managerSvgId, this._teamColor)
-    }
-  }
-  suspendedPlayers = []
-  
-  teamStats = []
-  
-  _teamStatsSortCol = 'squad_value'
-  _teamStatsSortDir = -1 
-  
-  get events () {
-    return {
-      '#prev-game-day-button': {
-        click: () => setQueryParams({
-          season: this.season,
-          game_day: this.gameDay - 1
-        })
-      },
-      '#next-game-day-button': {
-        click: () => setQueryParams({
-          season: this.season,
-          game_day: this.gameDay + 1
-        })
-      },
-      '#prev-season-button': {
-        click: () => setQueryParams({
-          season: this.season - 1,
-          game_day: 0
-        })
-      },
-      '#next-season-button': {
-        click: () => setQueryParams({
-          season: this.season + 1,
-          game_day: 0
-        })
-      },
-      '#prev-league-button': {
-        click: () => setQueryParams(this._getPrevLeague(this.level, this.league))
-      },
-      '#next-league-button': {
-        click: () => setQueryParams(this._getNextLeague(this.level, this.league))
-      }
-    }
-  }
-  
   get template () {
     return `
       <div>
@@ -247,6 +198,53 @@ export class LeagueResultsPage extends UIElement {
       </div>
     `
   }
+  get events () {
+    return {
+      '#prev-game-day-button': {
+        click: () => setQueryParams({
+          season: this.season,
+          game_day: this.gameDay - 1
+        })
+      },
+      '#next-game-day-button': {
+        click: () => setQueryParams({
+          season: this.season,
+          game_day: this.gameDay + 1
+        })
+      },
+      '#prev-season-button': {
+        click: () => setQueryParams({
+          season: this.season - 1,
+          game_day: 0
+        })
+      },
+      '#next-season-button': {
+        click: () => setQueryParams({
+          season: this.season + 1,
+          game_day: 0
+        })
+      },
+      '#prev-league-button': {
+        click: () => setQueryParams(this._getPrevLeague(this.level, this.league))
+      },
+      '#next-league-button': {
+        click: () => setQueryParams(this._getNextLeague(this.level, this.league))
+      }
+    }
+  }
+  onMounted () {
+    this._loadTopScorerImages()
+    this._attachTeamStatsHeaderHandler()
+    if (this._managerSvgId && this._teamColor) {
+      void loadManagerChatSvg(this._managerSvgId, this._teamColor)
+    }
+  }
+  suspendedPlayers = []
+  
+  teamStats = []
+  
+  _teamStatsSortCol = 'squad_value'
+  _teamStatsSortDir = -1 
 
   get myTeamId () {
     return this.parentPage.myTeamId

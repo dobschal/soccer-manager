@@ -25,6 +25,24 @@ export class MyTeamPage extends UIElement {
     lineUpData.squadDataChanged = false
   }
   /**
+   * @returns {string}
+   */
+  get template () {
+    const key = this.subPage || 'ateam'
+    const subPage = this._getOrCreateSubPage()
+    return `
+      <div>
+        <nav class="nav nav-pills mb-2">
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#my-team">${t('myTeam.aTeam')}</a>
+          <a class="nav-link ${this.subPage === 'youth' ? 'active' : ''}" href="#my-team?sub_page=youth">${t('myTeam.youthTeam')}</a>
+        </nav>
+        <div id="${this._subPageContainerId}">
+          <div data-subpage="${key}">${subPage}</div>
+        </div>
+      </div>
+    `
+  }
+  /**
    * @returns {void}
    */
   onMounted () {
@@ -84,25 +102,6 @@ export class MyTeamPage extends UIElement {
   _subPageCache = {}
 
   _subPageContainerId = generateId()
-
-  /**
-   * @returns {string}
-   */
-  get template () {
-    const key = this.subPage || 'ateam'
-    const subPage = this._getOrCreateSubPage()
-    return `
-      <div>
-        <nav class="nav nav-pills mb-2">
-          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#my-team">${t('myTeam.aTeam')}</a>
-          <a class="nav-link ${this.subPage === 'youth' ? 'active' : ''}" href="#my-team?sub_page=youth">${t('myTeam.youthTeam')}</a>
-        </nav>
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
-      </div>
-    `
-  }
 
   _getOrCreateSubPage () {
     const key = this.subPage || 'ateam'

@@ -4,11 +4,6 @@ import { toast } from '../partials/toast.js'
 import { generateId } from '../lib/html.js'
 
 export class AdminPage extends UIElement {
-  _triggerBtnId = generateId()
-  _sendBtnId = generateId()
-  _tokenInputId = generateId()
-  _messageInputId = generateId()
-
   get template () {
     return `
       <div>
@@ -42,7 +37,6 @@ export class AdminPage extends UIElement {
       </div>
     `
   }
-
   get events () {
     return {
       [`#${this._triggerBtnId}`]: {
@@ -53,6 +47,11 @@ export class AdminPage extends UIElement {
       }
     }
   }
+  _triggerBtnId = generateId()
+  
+  _sendBtnId = generateId()
+  _tokenInputId = generateId()
+  _messageInputId = generateId()
 
   async _triggerGameDay () {
     const btn = document.getElementById(this._triggerBtnId)
