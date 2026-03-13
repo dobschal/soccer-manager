@@ -1,143 +1,50 @@
 import { MyOffersPage } from './trades/myOffers.js'
-import { renderMarket } from './trades/market.js'
+import { MarketPage } from './trades/market.js'
 import { IncomingOffersPage } from './trades/incoming.js'
 import { TradeHistoryPage } from './trades/tradeHistory.js'
 import { showPlayerModal } from '../partials/playerModal.js'
-import { UIElement } from '../lib/UIElement.js'
-import { el, generateId } from '../lib/html.js'
 import { FreePlayers } from './trades/freePlayers.js'
 import { MarketValuesPage } from './trades/marketValues.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
+import { TabbedPage } from '../lib/TabbedPage.js'
 
-export class TradesPage extends UIElement {
-  async load () {
-    const key = this.pageName || 'market'
-    if (!this._subPageCache[key]?.isUIElement) {
-      this._subPageCache[key] = await this._createSubPage(key)
-    }
-  }
-  /**
-   * @returns {string}
-   */
+export class TradesPage extends TabbedPage {
   get template () {
-    const key = this.pageName || 'market'
-    const subPage = this._subPageCache[key] ?? t('common.loading')
     return `
       <div>
         <nav class="nav nav-pills mb-2">
-          <a class="nav-link ${!this.pageName ? 'active' : ''}" href="#trades">${t('trades.market')}</a>
-          <a class="nav-link ${this.pageName === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">${t('trades.incomingOffers')}</a>
-          <a class="nav-link ${this.pageName === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">${t('trades.myOffers')}</a>
-          <a class="nav-link ${this.pageName === 'history' ? 'active' : ''}" href="#trades?sub_page=history">${t('player.history')}</a>
-          <a class="nav-link ${this.pageName === 'free_players' ? 'active' : ''}" href="#trades?sub_page=free_players">${t('trades.freePlayers')}</a>
-          <a class="nav-link ${this.pageName === 'market_values' ? 'active' : ''}" href="#trades?sub_page=market_values">${t('trades.marketValues')}</a>
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#trades">${t('trades.market')}</a>
+          <a class="nav-link ${this.subPage === 'incoming' ? 'active' : ''}" href="#trades?sub_page=incoming">${t('trades.incomingOffers')}</a>
+          <a class="nav-link ${this.subPage === 'my_offers' ? 'active' : ''}" href="#trades?sub_page=my_offers">${t('trades.myOffers')}</a>
+          <a class="nav-link ${this.subPage === 'history' ? 'active' : ''}" href="#trades?sub_page=history">${t('player.history')}</a>
+          <a class="nav-link ${this.subPage === 'free_players' ? 'active' : ''}" href="#trades?sub_page=free_players">${t('trades.freePlayers')}</a>
+          <a class="nav-link ${this.subPage === 'market_values' ? 'active' : ''}" href="#trades?sub_page=market_values">${t('trades.marketValues')}</a>
         </nav>
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
+        ${this.renderSubPageContainer()}
       </div>
     `
   }
-  get serverEvents () {
-    return {
-      BUY_OFFER_ACCEPTED: () => this._refreshMyOffers(),
-      BUY_OFFER_REJECTED: () => this._refreshMyOffers()
-    }
-  }
-  /**
-   * @returns {void}
-   */
   onMounted () {
     void showTutorialIfNeeded('trades', this)
   }
-  /**
-   * @param {Object} params
-   * @param {string} params.sub_page
-   * @param {string} params.player_id
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({
-    sub_page: pageName,
-    player_id: playerId
-  }) {
-    if (playerId) await showPlayerModal(Number(playerId))
-    const newPageName = pageName || null
-    if (newPageName === this.pageName) return
-    this.pageName = newPageName
-    await this._switchSubPage()
-    this._updateNav()
+  async onQueryChanged (params) {
+    if (params.player_id) await showPlayerModal(Number(params.player_id))
+    this._handleSubPageChange(params.sub_page)
   }
-  pageName = null
-
-  _subPageCache = {}
-
-  _subPageContainerId = generateId()
-
-  _refreshMyOffers () {
-    const cached = this._subPageCache.my_offers
-    if (cached?.update) cached.update(true)
-  }
-
-  /**
-   * @param {string} key
-   * @returns {Promise<UIElement|string>}
-   */
-  async _createSubPage (key) {
+  get routeName () { return 'trades' }
+  
+  get defaultSubPageKey () { return 'market' }
+  
+  createSubPage (key) {
     switch (key) {
-      case 'incoming':
-        return new IncomingOffersPage()
-      case 'my_offers':
-        return new MyOffersPage(this)
-      case 'history':
-        return new TradeHistoryPage()
-      case 'free_players':
-        return new FreePlayers()
-      case 'market_values':
-        return new MarketValuesPage()
-      default:
-        return await renderMarket()
+      case 'incoming': return new IncomingOffersPage()
+      case 'my_offers': return new MyOffersPage()
+      case 'history': return new TradeHistoryPage()
+      case 'free_players': return new FreePlayers()
+      case 'market_values': return new MarketValuesPage()
+      default: return new MarketPage()
     }
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async _switchSubPage () {
-    const container = el('#' + this._subPageContainerId)
-    if (!container) return
-    const key = this.pageName || 'market'
-
-    container.querySelectorAll('[data-subpage]').forEach(w => {
-      w.style.display = 'none'
-    })
-
-    const existing = container.querySelector(`[data-subpage="${key}"]`)
-    if (existing) {
-      existing.style.display = ''
-      const cached = this._subPageCache[key]
-      if (cached?.update) cached.update()
-      return
-    }
-
-    const subPage = await this._createSubPage(key)
-    this._subPageCache[key] = subPage
-    const wrapper = document.createElement('div')
-    wrapper.setAttribute('data-subpage', key)
-    wrapper.insertAdjacentHTML('afterbegin', String(subPage))
-    container.appendChild(wrapper)
-  }
-
-  _updateNav () {
-    const root = document.querySelector(this._elementQuery)
-    if (!root) return
-    root.querySelectorAll('.nav-link').forEach(link => {
-      const href = link.getAttribute('href')
-      const isActive = this.pageName
-        ? href === `#trades?sub_page=${this.pageName}`
-        : href === '#trades'
-      link.classList.toggle('active', isActive)
-    })
   }
   
 }

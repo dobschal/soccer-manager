@@ -9,14 +9,6 @@ import { Table } from '../../partials/table.js'
 
 export class MyOffersPage extends UIElement {
   /**
-   * @param {UIElement} parentInstance
-   */
-  constructor (parentInstance) {
-    super()
-    this.parentInstance = parentInstance
-  }
-
-  /**
    * @returns {Promise<void>}
    */
   async load () {
@@ -110,7 +102,7 @@ export class MyOffersPage extends UIElement {
           } else if (event.target.closest('.btn-danger')) {
             try {
               await server.cancelOffer(offer)
-              await this.parentInstance.update(true)
+              await this.update(true)
             } catch (e) {
               toast(e.message ?? t('toast.somethingWentWrong'), 'error')
             }
@@ -130,13 +122,19 @@ export class MyOffersPage extends UIElement {
           } else if (event.target.closest('.btn-outline-secondary')) {
             try {
               await server.dismissOffer(offer)
-              await this.parentInstance.update(true)
+              await this.update(true)
             } catch (e) {
               toast(e.message ?? t('toast.somethingWentWrong'), 'error')
             }
           }
         }
       }
+    }
+  }
+  get serverEvents () {
+    return {
+      BUY_OFFER_ACCEPTED: () => this.update(true),
+      BUY_OFFER_REJECTED: () => this.update(true)
     }
   }
 

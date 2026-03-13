@@ -81,7 +81,8 @@ vi.mock('../../util/league.js', () => ({
 
 vi.mock('../../lib/router.js', () => ({
   goTo: vi.fn(),
-  setQueryParams: vi.fn()
+  setQueryParams: vi.fn(),
+  getQueryParams: vi.fn().mockReturnValue({})
 }))
 
 vi.mock('../../lib/htmlEventHandlers.js', () => ({
@@ -362,7 +363,7 @@ describe('DashboardPage', () => {
 
       const html = page.template
       expect(html).toContain('fa-exclamation-circle')
-      expect(html).toContain('#trades?tab=incoming')
+      expect(html).toContain('#trades?sub_page=incoming')
     })
 
     it('shows exclamation mark with link for NO_SPONSOR', async () => {

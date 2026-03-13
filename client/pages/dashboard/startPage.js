@@ -118,7 +118,7 @@ export class StartPage {
         type: 'INCOMING_OFFERS',
         text: 'dashboard.urgencyOffers',
         okText: 'dashboard.urgencyOk.offers',
-        link: '#trades?tab=incoming'
+        link: '#trades?sub_page=incoming'
       },
       {
         type: 'NO_SPONSOR',

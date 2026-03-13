@@ -1,4 +1,3 @@
-import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
 import { News } from './dashboard/news.js'
 import { showPlayerModal } from '../partials/playerModal.js'
@@ -7,14 +6,12 @@ import { ActionCards } from './dashboard/actionCards.js'
 import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
 import { t } from '../i18n/index.js'
-import { el, generateId } from '../lib/html.js'
+import { el } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
+import { TabbedPage } from '../lib/TabbedPage.js'
 
-export class DashboardPage extends UIElement {
-  /**
-   * @returns {Promise<void>}
-   */
+export class DashboardPage extends TabbedPage {
   async load () {
     const teamResponse = await server.getMyTeam()
     this.team = teamResponse.team
@@ -114,12 +111,7 @@ export class DashboardPage extends UIElement {
     // Set new message count
     this._newMessageCount = newMessageResponse.count || 0
   }
-  /**
-   * @returns {string}
-   */
   get template () {
-    const key = this.subPage || 'start'
-    const subPage = this._getOrCreateSubPage()
     return `
       <div>
         ${this._tutorialProgress}
@@ -131,33 +123,21 @@ export class DashboardPage extends UIElement {
           <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''}" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}${this._renderMessageBadge()}</a>
         </nav>
 
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
+        ${this.renderSubPageContainer()}
       </div>
     `
   }
-  /**
-   * @returns {void}
-   */
   onMounted () {
     void showTutorialIfNeeded('dashboard', this)
     this._showPendingCardsIfNeeded()
   }
-  /**
-   * @param {{ player_id?: string, sub_page?: string }} queryParams
-   * @returns {Promise<void>}
-   */
-  async onQueryChanged ({
-    player_id: playerId,
-    sub_page: subPage
-  }) {
+  async onQueryChanged (params) {
+    const playerId = params.player_id
     if (playerId) {
       const id = Number(playerId)
       if (Number.isFinite(id) && id > 0) {
         await showPlayerModal(id)
       } else if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
-        // Clear invalid player_id from the URL to avoid repeated invalid calls
         try {
           const url = new URL(window.location.href)
           url.searchParams.delete('player_id')
@@ -168,14 +148,13 @@ export class DashboardPage extends UIElement {
       }
     }
 
-    const newSubPage = subPage || null
+    const newSubPage = params.sub_page || null
     if (newSubPage === 'cards' && this._actionCardCount > 0) {
       const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
       localStorage.setItem(seenKey, '1')
       this._actionCardCount = 0
     }
     if (newSubPage === 'messages' && this._newMessageCount > 0) {
-      // Mark messages as seen by storing the latest message ID
       server.getLogMessages(0, 1).then(messages => {
         if (messages?.length > 0) {
           localStorage.setItem('lastSeenMessageId', String(messages[0].id))
@@ -195,10 +174,21 @@ export class DashboardPage extends UIElement {
       this._updateNav()
     }
   }
+  get routeName () { return 'dashboard' }
+  
+  get defaultSubPageKey () { return 'start' }
+  
+  createSubPage (key) {
+    switch (key) {
+      case 'cards': return new ActionCards()
+      case 'news': return new News()
+      case 'messages': return new LogMessages()
+      default: return this._createStartPage()
+    }
+  }
+
   _sliderGames = []
-
   _friendlyGames = []
-
   _cupGames = []
   _urgencies = []
   _initialSlideIndex = 0
@@ -209,66 +199,20 @@ export class DashboardPage extends UIElement {
   gameDay = 0
   standing = []
   teamPosition = 0
-
   _actionCardCount = 0
   _newMessageCount = 0
   _pendingCards = []
-  subPage = null
-  _subPageCache = {}
-  _subPageContainerId = generateId()
 
-  /**
-   * Render the badge for new action cards
-   * @returns {string}
-   */
   _renderCardBadge () {
     if (this._actionCardCount <= 0 || this.subPage === 'cards') return ''
     return ` <span class="badge rounded-pill bg-danger action-card-badge">${this._actionCardCount}</span>`
   }
 
-  /**
-   * Render the badge for new log messages
-   * @returns {string}
-   */
   _renderMessageBadge () {
     if (this._newMessageCount <= 0 || this.subPage === 'messages') return ''
     return ` <span class="badge rounded-pill bg-danger action-card-badge message-badge">${this._newMessageCount}</span>`
   }
 
-  /**
-   * Get or create a sub-page instance
-   * @returns {UIElement|StartPage}
-   */
-  _getOrCreateSubPage () {
-    const key = this.subPage || 'start'
-    if (!this._subPageCache[key]) {
-      this._subPageCache[key] = this._createSubPage(key)
-    }
-    return this._subPageCache[key]
-  }
-
-  /**
-   * Create a new sub-page instance
-   * @param {string} key
-   * @returns {UIElement|StartPage}
-   */
-  _createSubPage (key) {
-    switch (key) {
-      case 'cards':
-        return new ActionCards()
-      case 'news':
-        return new News()
-      case 'messages':
-        return new LogMessages()
-      default:
-        return this._createStartPage()
-    }
-  }
-
-  /**
-   * Create a new StartPage with current data
-   * @returns {StartPage}
-   */
   _createStartPage () {
     return new StartPage({
       sliderGames: this._sliderGames,
@@ -285,51 +229,14 @@ export class DashboardPage extends UIElement {
   }
 
   /**
-   * Switch the visible sub-page, using cached instances when available
-   */
-  _switchSubPage () {
-    const container = el('#' + this._subPageContainerId)
-    if (!container) return
-
-    const key = this.subPage || 'start'
-
-    // Hide all sub-page wrappers
-    container.querySelectorAll('[data-subpage]').forEach(wrapper => {
-      wrapper.style.display = 'none'
-    })
-
-    // Check if this sub-page is already in the container
-    const existing = container.querySelector(`[data-subpage="${key}"]`)
-    if (existing) {
-      existing.style.display = ''
-      const cached = this._subPageCache[key]
-      if (cached?.update) cached.update()
-      return
-    }
-
-    // Create and render new sub-page
-    const subPage = this._getOrCreateSubPage()
-    const wrapper = document.createElement('div')
-    wrapper.setAttribute('data-subpage', key)
-    wrapper.insertAdjacentHTML('afterbegin', String(subPage))
-    container.appendChild(wrapper)
-  }
-
-  /**
-   * Update nav link active states to match current subPage
+   * Override to also manage badge DOM elements
    */
   _updateNav () {
+    super._updateNav()
     const root = el(this._elementQuery)
     if (!root) return
-    root.querySelectorAll('.nav-link').forEach(link => {
-      const href = link.getAttribute('href')
-      const isActive = this.subPage
-        ? href === `#dashboard?sub_page=${this.subPage}`
-        : href === '#dashboard'
-      link.classList.toggle('active', isActive)
-    })
     // Update action card badge
-    const badge = root.querySelector('.action-card-badge')
+    const badge = root.querySelector('.action-card-badge:not(.message-badge)')
     if (this._actionCardCount <= 0 || this.subPage === 'cards') {
       if (badge) badge.remove()
     } else if (!badge) {
@@ -346,29 +253,16 @@ export class DashboardPage extends UIElement {
     }
   }
 
-  /**
-   * Extract team data for emblem rendering from flattened game response
-   * @param {Object} game
-   * @param {number} teamNum - 1 or 2
-   * @returns {Object}
-   */
   _extractTeamData (game, teamNum) {
     const prefix = `team${teamNum}`
     return {
       id: game[`${prefix}Id`],
       name: game[prefix],
       color: game[`${prefix}Color`],
-      emblem: game[`${prefix}Emblem`] // Keep as JSON string for renderEmblem
+      emblem: game[`${prefix}Emblem`]
     }
   }
 
-  /**
-   * Find the initial slide index for a game slider.
-   * Shows the latest result on first visit, then the next upcoming game on subsequent visits.
-   * @param {Array} games
-   * @param {boolean} resultAlreadySeen - whether the latest result was already seen
-   * @returns {number}
-   */
   _findInitialSlideIndex (games, resultAlreadySeen) {
     const lastPlayedIndex = games.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
     const nextUpcomingIndex = games.findIndex(g => !g.isPlayed && g.gameDate)
@@ -380,10 +274,6 @@ export class DashboardPage extends UIElement {
     return Math.max(0, lastPlayedIndex)
   }
 
-  /**
-   * Shows the card claim overlay if there are pending cards
-   * @returns {void}
-   */
   _showPendingCardsIfNeeded () {
     if (this._pendingCards.length === 0) return
     setTimeout(async () => {
@@ -398,7 +288,6 @@ export class DashboardPage extends UIElement {
       this._updateNav()
     }, 500)
   }
-
 }
 
 /**

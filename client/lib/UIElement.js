@@ -54,6 +54,7 @@ export class UIElement {
   get template () {
     return ''
   }
+
   /**
    * @abstract
    * @returns {UIElementEvents}
@@ -61,6 +62,7 @@ export class UIElement {
   get events () {
     return {}
   }
+
   /**
    * Override this getter to define server event handlers
    * Example:
@@ -74,6 +76,7 @@ export class UIElement {
   get serverEvents () {
     return {}
   }
+
   /**
    * @abstract
    * @returns {void}
@@ -254,7 +257,6 @@ export class UIElement {
   _onMounted () {
     if (this._isMounted) return // Skip if already mounted (this is an update, not initial mount)
     this._isMounted = true
-    console.log('🖌️ Mounted: ', this.constructor.name)
     this._applyEventHandlers()
     this._registerServerEventHandlers()
     this.onMounted()
@@ -300,7 +302,6 @@ export class UIElement {
       const handler = serverEvents[eventName].bind(this)
       this._serverEventHandlers.set(eventName, handler)
       onServerEvent(eventName, handler)
-      console.log(`📋 Registered server event handler: ${eventName} for ${this.constructor.name}`)
     }
   }
 

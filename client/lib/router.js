@@ -101,7 +101,6 @@ function _getDirection (fromPath, toPath) {
 function _animateTransition (container, oldWrapper, newWrapper, direction) {
   // No animation on first load or same wrapper
   if (!oldWrapper || oldWrapper === newWrapper) {
-    console.log('No animation: ', !oldWrapper ? 'first load' : 'same wrapper')
     for (const child of [...container.children]) {
       child.style.display = child === newWrapper ? '' : 'none'
     }
@@ -266,7 +265,6 @@ async function _renderLayout (LayoutElement) {
     // Wait for layout to be rendered
     await new Promise(resolve => {
       const interval = setInterval(() => {
-        console.log('Check that layout is rendered...')
         if (layout.isRendered) {
           clearInterval(interval)
           resolve()

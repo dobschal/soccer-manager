@@ -56,45 +56,47 @@ export class IncomingOffersPage extends UIElement {
    * @returns {UIElementEvents}
    */
   get events () {
-    return {
-      tbody: {
-        click: async (event) => {
-          const target = event.target
-          const row = target.closest('[data-offer]')
-          if (!row) return
+    return {}
+  }
 
-          const idx = parseInt(row.dataset.offer, 10)
-          const incomingOffers = this._filterIncomingBuyOffers()
-          const offer = incomingOffers[idx]
-          const player = this.players.find(p => p.id === offer.player_id)
-          const fromTeam = this.teams.find(t => t.id === offer.from_team_id)
+  onMounted () {
+    const root = document.querySelector(this._elementQuery)
+    if (!root) return
+    root.addEventListener('click', async (event) => {
+      const target = event.target
+      const row = target.closest('[data-offer]')
+      if (!row) return
 
-          if (target.closest('.player-name')) {
-            setQueryParams({ player_id: player.id })
-          } else if (target.closest('.btn-primary')) {
-            try {
-              await server.acceptOffer(offer)
-              toast(t('trades.acceptedOffer', { teamName: fromTeam.name }))
-              await this.load()
-              await this.update()
-            } catch (e) {
-              console.error(e)
-              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-            }
-          } else if (target.closest('.btn-danger')) {
-            try {
-              await server.declineOffer(offer)
-              toast(t('trades.declinedOffer', { teamName: fromTeam.name }))
-              await this.load()
-              await this.update()
-            } catch (e) {
-              console.error(e)
-              toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-            }
-          }
+      const idx = parseInt(row.dataset.offer, 10)
+      const incomingOffers = this._filterIncomingBuyOffers()
+      const offer = incomingOffers[idx]
+      const player = this.players.find(p => p.id === offer.player_id)
+      const fromTeam = this.teams.find(t2 => t2.id === offer.from_team_id)
+
+      if (target.closest('.player-name')) {
+        setQueryParams({ player_id: player.id })
+      } else if (target.closest('.btn-primary')) {
+        try {
+          await server.acceptOffer(offer)
+          toast(t('trades.acceptedOffer', { teamName: fromTeam.name }))
+          await this.load()
+          await this.update()
+        } catch (e) {
+          console.error(e)
+          toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+        }
+      } else if (target.closest('.btn-danger')) {
+        try {
+          await server.declineOffer(offer)
+          toast(t('trades.declinedOffer', { teamName: fromTeam.name }))
+          await this.load()
+          await this.update()
+        } catch (e) {
+          console.error(e)
+          toast(e.message ?? t('toast.somethingWentWrong'), 'error')
         }
       }
-    }
+    })
   }
   team = {}
   offers = []

@@ -1,16 +1,13 @@
-import { UIElement } from '../lib/UIElement.js'
-import { el, generateId } from '../lib/html.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
 import { t } from '../i18n/index.js'
 import { BrowsePlayersPage } from './browse/players.js'
 import { BrowseTeamsPage } from './browse/teams.js'
 import { BrowseUsersPage } from './browse/users.js'
+import { TabbedPage } from '../lib/TabbedPage.js'
 
-export class BrowsePage extends UIElement {
+export class BrowsePage extends TabbedPage {
   get template () {
-    const key = this.subPage || 'players'
-    const subPage = this._getOrCreateSubPage()
     const searchQuery = getQueryParams().search_query || ''
     return `
       <div>
@@ -30,9 +27,7 @@ export class BrowsePage extends UIElement {
           >
         </div>
 
-        <div id="${this._subPageContainerId}">
-          <div data-subpage="${key}">${subPage}</div>
-        </div>
+        ${this.renderSubPageContainer()}
       </div>
     `
   }
@@ -53,85 +48,30 @@ export class BrowsePage extends UIElement {
       await showPlayerModal(Number(queryParams.player_id))
     }
 
-    const newSubPage = queryParams.sub_page || null
-
-    if (newSubPage !== this.subPage) {
-      this.subPage = newSubPage
-      this._switchSubPage()
-      this._updateNav()
+    const changed = this._handleSubPageChange(queryParams.sub_page)
+    if (changed) {
       this._syncSearchInput(queryParams.search_query || '')
     }
 
-    const key = newSubPage || 'players'
-    if (!this._subPageCache[key]) {
-      this._subPageCache[key] = this._createSubPage(key)
-    }
-    const cached = this._subPageCache[key]
-    if (cached && typeof cached.applyQueryParams === 'function') {
+    const cached = this._getOrCreateSubPage()
+    if (typeof cached.applyQueryParams === 'function') {
       await cached.applyQueryParams(queryParams)
       await cached.update(true)
     }
   }
+  get routeName () { return 'browse' }
   
-  subPage = null
-  _subPageCache = {}
-  _subPageContainerId = generateId()
-  _debounce = null
-
-  _getOrCreateSubPage () {
-    const key = this.subPage || 'players'
-    if (!this._subPageCache[key]) {
-      this._subPageCache[key] = this._createSubPage(key)
-    }
-    return this._subPageCache[key]
-  }
-
-  _createSubPage (key) {
+  get defaultSubPageKey () { return 'players' }
+  
+  createSubPage (key) {
     switch (key) {
-      case 'teams':
-        return new BrowseTeamsPage(this)
-      case 'users':
-        return new BrowseUsersPage(this)
-      default:
-        return new BrowsePlayersPage(this)
+      case 'teams': return new BrowseTeamsPage(this)
+      case 'users': return new BrowseUsersPage(this)
+      default: return new BrowsePlayersPage(this)
     }
   }
 
-  _switchSubPage () {
-    const container = el('#' + this._subPageContainerId)
-    if (!container) return
-    const key = this.subPage || 'players'
-
-    container.querySelectorAll('[data-subpage]').forEach(w => {
-      w.style.display = 'none'
-    })
-
-    const existing = container.querySelector(`[data-subpage="${key}"]`)
-    if (existing) {
-      existing.style.display = ''
-      const cached = this._subPageCache[key]
-      if (cached?.update) cached.update()
-      return
-    }
-
-    const subPage = this._getOrCreateSubPage()
-    const wrapper = document.createElement('div')
-    wrapper.setAttribute('data-subpage', key)
-    wrapper.insertAdjacentHTML('afterbegin', String(subPage))
-    container.appendChild(wrapper)
-  }
-
-  _updateNav () {
-    const root = document.querySelector(this._elementQuery)
-    if (!root) return
-    root.querySelectorAll('.nav-link').forEach(link => {
-      const href = link.getAttribute('href')
-      const isActive = this.subPage
-        ? href === `#browse?sub_page=${this.subPage}`
-        : href === '#browse'
-      link.classList.toggle('active', isActive)
-    })
-  }
+  _debounce = null
 
   _syncSearchInput (value) {
     const input = document.querySelector(`${this._elementQuery} #browse-search-input`)

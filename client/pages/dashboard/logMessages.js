@@ -226,7 +226,7 @@ export class LogMessages extends UIElement {
         }
         break
       case 'OPEN_INCOMING_OFFERS':
-        goTo('trades#incoming')
+        goTo('trades?sub_page=incoming')
         break
       default:
         console.log('Unknown action:', action, actionValue)
