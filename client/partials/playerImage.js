@@ -25,9 +25,11 @@ const FREE_AGENT_COLOR = '#808080'
  * @param {PlayerType} player
  * @param {TeamType|null} team - Pass null for free agents to render grey shirt without emblem
  * @param {number} size
+ * @param {Object} [options]
+ * @param {boolean} [options.isCaptain] - Show captain badge
  * @returns {Promise<string>}
  */
-export async function renderPlayerImage (player, team, size = 224) {
+export async function renderPlayerImage (player, team, size = 224, options = {}) {
   if (typeof player?.id === 'undefined') return ''
   const index = player.id % 18 + 1
   const imageUrl = `assets/players/soccer_player-${index}.svg`
@@ -58,10 +60,18 @@ export async function renderPlayerImage (player, team, size = 224) {
         </div>`
     : ''
 
+  const captainBadgeHtml = options.isCaptain
+    ? `<div class="captain-badge" style="position: absolute; top: 2%; left: 50%; transform: translateX(-50%); text-align: center; font-size: ${Math.max(10, Math.floor(size * 0.08))}px; line-height: 1; pointer-events: none;">
+        <div style="color: gold; text-shadow: 0 1px 2px rgba(0,0,0,0.6);">&#9733;</div>
+        <div style="color: white; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.8); font-size: ${Math.max(8, Math.floor(size * 0.06))}px;">Captain</div>
+      </div>`
+    : ''
+
   return `
     <div class="player-image" style="width: ${size}px; height: ${height}px;">
         ${svg}
         ${emblemHtml}
+        ${captainBadgeHtml}
     </div>
   `
 }

@@ -131,7 +131,11 @@ export class Lineup extends UIElement {
 
     try {
       const playersToSave = this.players.filter(p => !p.fake)
-      await server.saveLineup(playersToSave, this.team.formation)
+      const result = await server.saveLineup(playersToSave, this.team.formation)
+      if (result.captainCleared) {
+        this.team.captain_id = null
+        fire('captain-cleared')
+      }
       toast('Lineup saved.', 'success')
       lineUpData.squadDataChanged = false
     } catch (e) {
@@ -163,8 +167,10 @@ export class Lineup extends UIElement {
    * @returns {void}
    */
   _loadPlayerImages () {
+    const captainId = this.team.captain_id
     this.players.filter(p => p.in_game_position).forEach((player) => {
-      renderPlayerImage(player, this.team, 100).then(image => {
+      const isCaptain = !player.fake && player.id === captainId
+      renderPlayerImage(player, this.team, 100, { isCaptain }).then(image => {
         const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
         const playerEl = document.querySelector(`${this._elementQuery} .squad .player[data-player-id="${playerId}"]`)
         playerEl?.insertAdjacentHTML('afterbegin', image)

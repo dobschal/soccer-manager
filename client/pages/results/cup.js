@@ -16,6 +16,7 @@ export class CupResultsPage extends UIElement {
     super()
     this.parentPage = parentPage
   }
+
   async load () {
     const { seasons } = await server.getAvailableCupSeasons()
     this.cupSeasons = seasons
@@ -30,7 +31,10 @@ export class CupResultsPage extends UIElement {
       return
     }
 
-    const { rounds, totalRounds } = await server.getCupRounds(this.cupSeason)
+    const {
+      rounds,
+      totalRounds
+    } = await server.getCupRounds(this.cupSeason)
     this.cupRounds = rounds
     this.cupTotalRounds = totalRounds || 0
 
@@ -47,6 +51,7 @@ export class CupResultsPage extends UIElement {
     const { results } = await server.getCupResults(this.cupSeason, this.cupRound)
     this.cupResults = results
   }
+
   get template () {
     const roundName = this._getCupRoundName(this.cupRound)
 
@@ -79,8 +84,14 @@ export class CupResultsPage extends UIElement {
     ? `<p class="text-muted">${t('cup.noGames')}</p>`
     : new Table({
       cols: [
-        { name: t('results.team1'), align: 'right' },
-        { name: t('results.result'), align: 'center' },
+        {
+          name: t('results.team1'),
+          align: 'right'
+        },
+        {
+          name: '',
+          align: 'center'
+        },
         { name: t('results.team2') }
       ],
       renderRow: (result) => this._renderCupResultItem(result),
@@ -91,6 +102,7 @@ export class CupResultsPage extends UIElement {
       </div>
     `
   }
+
   get events () {
     return {
       '#prev-cup-round-button': {
@@ -107,8 +119,9 @@ export class CupResultsPage extends UIElement {
       }
     }
   }
+
   cupSeason = null
-  
+
   cupRound = null
   cupRounds = []
   cupResults = []

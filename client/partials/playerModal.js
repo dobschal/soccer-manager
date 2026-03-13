@@ -82,7 +82,8 @@ export default class PlayerModal extends UIElement {
     this.isMyPlayer = myTeam.id === this.player.team_id
     this.isFreeAgent = !this.player.team_id
     this.playersTeam = this.player.team_id ? (await server.getTeam(this.player.team_id)).team : null
-    this.playerImage = await renderPlayerImage(this.player, this.playersTeam)
+    const isCaptain = this.playersTeam && this.player.id === this.playersTeam.captain_id
+    this.playerImage = await renderPlayerImage(this.player, this.playersTeam, 224, { isCaptain })
     this.price = calculateMarketValue(this.player.level, calculatePlayerAge(this.player, this.season))
     this.history = await server.getPlayerHistory(this.player.id)
     const { offer } = await server.myOfferForPlayer(this.player)

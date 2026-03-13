@@ -12,14 +12,16 @@ export class PlayerListItem extends UIElement {
    * @param {(player: PlayerType) => void} onClickHandler
    * @param {Set<number>} sellOfferPlayerIds
    * @param {boolean} extended
+   * @param {number|null} captainId
    */
-  constructor (player, season, onClickHandler, sellOfferPlayerIds = new Set(), extended = false) {
+  constructor (player, season, onClickHandler, sellOfferPlayerIds = new Set(), extended = false, captainId = null) {
     super()
     this.player = player
     this.season = season
     this.onClickHandler = () => onClickHandler(this.player)
     this.sellOfferPlayerIds = sellOfferPlayerIds
     this.extended = extended
+    this.captainId = captainId
   }
   /**
    * @returns {string}
@@ -29,6 +31,7 @@ export class PlayerListItem extends UIElement {
     const isSuspended = this.player.is_suspended
     const yellowCards = this.player.yellow_cards || 0
     const redCards = this.player.red_cards || 0
+    const isCaptain = this.captainId !== null && this.player.id === this.captainId
     const rowClass = isSuspended ? 'table-danger' : (this.player.in_game_position ? 'table-info' : 'table-warning')
     const age = calculatePlayerAge(this.player, this.season)
 
@@ -43,7 +46,7 @@ export class PlayerListItem extends UIElement {
 
     return `
       <tr class="${rowClass}" data-player-id="${this.player.id}">
-        <th scope="row">${this.player.name}${this.player.is_star_player ? ' ⭐' : ''}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''} ${this._renderCards(yellowCards, redCards)}</th>
+        <th scope="row">${this.player.name}${isCaptain ? ' (C)' : ''}${this.player.is_star_player ? ' ⭐' : ''}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''} ${this._renderCards(yellowCards, redCards)}</th>
         <td>${this.player.position}</td>
         <td class="text-right">${age}</td>
         <td class="text-right">${new ProgressBar(this.player.freshness)}</td>

@@ -37,6 +37,10 @@ export class ATeamPage extends UIElement {
         this._playerList.update()
       }
     })
+    this._captainClearedEventId = on('captain-cleared', () => {
+      this.parent.data.team.captain_id = null
+      this.update()
+    })
   }
 
   /**
@@ -51,6 +55,9 @@ export class ATeamPage extends UIElement {
         <h3>${t('myTeam.lineup')}</h3>
         <div class="mb-4" id="squad">
           ${new Lineup(this.parent.data.players, this.parent.data.team)}
+        </div>
+        <div class="mb-4">
+          ${this._renderCaptainSelect()}
         </div>
         <div id="player-list-container">
           ${this._createPlayerList()}
@@ -112,6 +119,22 @@ export class ATeamPage extends UIElement {
           }
         }
       },
+      '.captain-select': {
+        change: async (e) => {
+          const newCaptainId = e.target.value ? Number(e.target.value) : null
+          const currentCaptainId = this.parent.data.team.captain_id || null
+          if (newCaptainId !== currentCaptainId) {
+            try {
+              await server.setCaptain(newCaptainId)
+              this.parent.data.team.captain_id = newCaptainId
+              toast(t('myTeam.captainUpdated'), 'success')
+              await this.update()
+            } catch (err) {
+              showServerError(err)
+            }
+          }
+        }
+      },
       '.emblem-viewer': {
         click: () => this._showEmblemEditor()
       },
@@ -122,6 +145,7 @@ export class ATeamPage extends UIElement {
   }
   onDestroy () {
     off(this._exchangeEventId)
+    off(this._captainClearedEventId)
   }
 
   /**
@@ -137,7 +161,9 @@ export class ATeamPage extends UIElement {
         })
       },
       true,
-      true
+      true,
+      null,
+      this.parent.data.team.captain_id || null
     )
     return this._playerList
   }
@@ -274,6 +300,21 @@ export class ATeamPage extends UIElement {
     return `
       <select class="form-control attack-mode-select">
         ${attackModes.map(mode => `<option value="${mode}" ${mode === currentAttackMode ? 'selected' : ''} title="${t('myTeam.attackModeDesc.' + mode)}">${t('myTeam.attackMode.' + mode)}</option>`).join('')}
+      </select>
+    `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderCaptainSelect () {
+    const lineupPlayers = this.parent.data.players.filter(p => p.in_game_position && !p.fake)
+    const currentCaptainId = this.parent.data.team.captain_id || null
+    return `
+      <p class="card-text mb-0">${t('myTeam.chooseCaptain')}</p>
+      <select class="form-control captain-select">
+        <option value="">${t('myTeam.captain.none')}</option>
+        ${lineupPlayers.map(p => `<option value="${p.id}" ${p.id === currentCaptainId ? 'selected' : ''}>${p.name} (${p.position}, Lvl ${p.level})</option>`).join('')}
       </select>
     `
   }

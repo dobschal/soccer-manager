@@ -5,6 +5,7 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getUserLocale, t } from '../i18n/index.js'
 import { updateTeamBalance } from '../helper/financeHelper.js'
 import { kickoff, playGameStep } from '../play-game.js'
+import { getCaptainStrengthMultiplier } from '../helper/captainHelper.js'
 
 export default {
   /**
@@ -312,6 +313,15 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
   }
   for (const player of activePlayerTeamB) {
     player.level = player.freshness * player.level
+  }
+  // Apply captain strength modifier
+  const friendlyCaptainMultA = getCaptainStrengthMultiplier(teamA, activePlayerTeamA, season)
+  const friendlyCaptainMultB = getCaptainStrengthMultiplier(teamB, activePlayerTeamB, season)
+  for (const player of activePlayerTeamA) {
+    player.level *= friendlyCaptainMultA
+  }
+  for (const player of activePlayerTeamB) {
+    player.level *= friendlyCaptainMultB
   }
 
   kickoff(activePlayerTeamA, activePlayerTeamB, gameDetails)

@@ -16,6 +16,7 @@ export class FriendlyResultsPage extends UIElement {
     super()
     this.parentPage = parentPage
   }
+
   async load () {
     if (typeof this.season === 'undefined') {
       const response = await server.getCurrentGameday()
@@ -24,6 +25,7 @@ export class FriendlyResultsPage extends UIElement {
     const { results } = await server.getFriendlyResults(this.season)
     this.results = results
   }
+
   get template () {
     return `
       <div>
@@ -47,8 +49,14 @@ export class FriendlyResultsPage extends UIElement {
     : new Table({
       cols: [
         { name: t('results.gameDayLabel') },
-        { name: t('results.team1'), align: 'right' },
-        { name: t('results.result'), align: 'center' },
+        {
+          name: t('results.team1'),
+          align: 'right'
+        },
+        {
+          name: '',
+          align: 'center'
+        },
         { name: t('results.team2') }
       ],
       renderRow: (result) => this._renderResultItem(result),
@@ -59,6 +67,7 @@ export class FriendlyResultsPage extends UIElement {
       </div>
     `
   }
+
   get events () {
     return {
       '#prev-season-button': {
@@ -75,6 +84,7 @@ export class FriendlyResultsPage extends UIElement {
       }
     }
   }
+
   results = []
 
   get myTeamId () {

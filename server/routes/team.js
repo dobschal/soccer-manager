@@ -166,6 +166,37 @@ export default {
       await query('UPDATE player SET in_game_position=? WHERE id=?', [playerFromDb.in_game_position, playerFromDb.id])
     }
     await query('UPDATE team SET formation=? WHERE id=?', [formation, team.id])
+
+    // Clear captain if the captain was removed from the lineup
+    let captainCleared = false
+    if (team.captain_id) {
+      const captainInLineup = players.find(p => p.id === team.captain_id && p.in_game_position)
+      if (!captainInLineup) {
+        await query('UPDATE team SET captain_id=NULL WHERE id=?', [team.id])
+        captainCleared = true
+      }
+    }
+
+    return { success: true, captainCleared }
+  },
+
+  /**
+   * @param {number|null} playerId - The player id to set as captain, or null to clear
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async setCaptain (playerId, req) {
+    const team = await getTeam(req)
+    if (playerId !== null) {
+      // Verify the player belongs to this team and is in the lineup
+      const [player] = await query(
+        'SELECT * FROM player WHERE id=? AND team_id=? LIMIT 1',
+        [playerId, team.id]
+      )
+      if (!player) throw new BadRequestError('Player not found in your team')
+      if (!player.in_game_position) throw new BadRequestError('Captain must be in the lineup')
+    }
+    await query('UPDATE team SET captain_id=? WHERE id=?', [playerId, team.id])
     return { success: true }
   },
 

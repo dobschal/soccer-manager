@@ -217,7 +217,7 @@ describe('team routes', () => {
       const req = createMockRequest()
       const result = await handlers.saveLineup(updatedPlayers, '4-3-3', req)
 
-      expect(result).toEqual({ success: true })
+      expect(result).toEqual({ success: true, captainCleared: false })
       expect(query).toHaveBeenCalledWith('UPDATE team SET formation=? WHERE id=?', ['4-3-3', team.id])
     })
 
@@ -234,6 +234,110 @@ describe('team routes', () => {
 
       await expect(handlers.saveLineup(updatedPlayers, '4-3-3', req))
         .rejects.toMatchObject({ message: 'Unknown player...' })
+    })
+
+    it('clears captain when captain is removed from lineup', async () => {
+      const team = testData.team({ captain_id: 2 })
+      const players = [
+        testData.player({ id: 1, in_game_position: 'GK' }),
+        testData.player({ id: 2, in_game_position: 'CB' })
+      ]
+      // Captain (id=2) removed from lineup
+      const updatedPlayers = [
+        { id: 1, in_game_position: 'GK' },
+        { id: 2, in_game_position: '' }
+      ]
+
+      query
+        .mockResolvedValueOnce([team])
+        .mockResolvedValueOnce(players)
+        .mockResolvedValue({})
+
+      const req = createMockRequest()
+      const result = await handlers.saveLineup(updatedPlayers, '4-3-3', req)
+
+      expect(result).toEqual({ success: true, captainCleared: true })
+      expect(query).toHaveBeenCalledWith('UPDATE team SET captain_id=NULL WHERE id=?', [team.id])
+    })
+
+    it('keeps captain when captain stays in lineup', async () => {
+      const team = testData.team({ captain_id: 1 })
+      const players = [
+        testData.player({ id: 1, in_game_position: 'GK' }),
+        testData.player({ id: 2, in_game_position: 'CB' })
+      ]
+      const updatedPlayers = [
+        { id: 1, in_game_position: 'GK' },
+        { id: 2, in_game_position: 'CB' }
+      ]
+
+      query
+        .mockResolvedValueOnce([team])
+        .mockResolvedValueOnce(players)
+        .mockResolvedValue({})
+
+      const req = createMockRequest()
+      await handlers.saveLineup(updatedPlayers, '4-3-3', req)
+
+      // Should NOT have called the captain clear query
+      const captainClearCalls = query.mock.calls.filter(
+        c => typeof c[0] === 'string' && c[0].includes('captain_id=NULL')
+      )
+      expect(captainClearCalls).toHaveLength(0)
+    })
+  })
+
+  describe('setCaptain', () => {
+    it('sets a player as captain', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player]) // SELECT player
+        .mockResolvedValueOnce({}) // UPDATE team
+
+      const req = createMockRequest()
+      const result = await handlers.setCaptain(5, req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE team SET captain_id=? WHERE id=?', [5, team.id])
+    })
+
+    it('clears captain when null is passed', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      const result = await handlers.setCaptain(null, req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE team SET captain_id=? WHERE id=?', [null, team.id])
+    })
+
+    it('rejects player not in team', async () => {
+      const team = testData.team()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValueOnce([]) // No player found
+
+      const req = createMockRequest()
+      await expect(handlers.setCaptain(99, req))
+        .rejects.toMatchObject({ message: 'Player not found in your team' })
+    })
+
+    it('rejects player not in lineup', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 5, team_id: 1, in_game_position: '' })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValueOnce([player])
+
+      const req = createMockRequest()
+      await expect(handlers.setCaptain(5, req))
+        .rejects.toMatchObject({ message: 'Captain must be in the lineup' })
     })
   })
 

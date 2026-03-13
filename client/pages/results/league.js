@@ -20,6 +20,7 @@ export class LeagueResultsPage extends UIElement {
     super()
     this.parentPage = parentPage
   }
+
   // -1 = desc, 1 = asc
   async load () {
     if (typeof this.level === 'undefined' || typeof this.league === 'undefined') {
@@ -50,6 +51,7 @@ export class LeagueResultsPage extends UIElement {
 
     this._buildManagerChat()
   }
+
   get template () {
     return `
       <div>
@@ -93,8 +95,14 @@ export class LeagueResultsPage extends UIElement {
         <h3>${t('results.games')}</h3>
         ${new Table({
     cols: [
-      { name: t('results.team1'), align: 'right' },
-      { name: t('results.result'), align: 'center' },
+      {
+        name: t('results.team1'),
+        align: 'right'
+      },
+      {
+        name: '',
+        align: 'center'
+      },
       { name: t('results.team2') }
     ],
     data: this.results,
@@ -104,8 +112,14 @@ export class LeagueResultsPage extends UIElement {
         <h3>${t('results.standing')} - ${this.gameDay + 1}. ${t('results.gameDayLabel')}</h3>
         ${new Table({
     cols: [
-      { name: '#', width: '32px' },
-      { name: '', width: '32px' },
+      {
+        name: '#',
+        width: '32px'
+      },
+      {
+        name: '',
+        width: '32px'
+      },
       { name: t('results.team') },
       { name: t('results.games') },
       { name: 'W/D/L' },
@@ -198,6 +212,7 @@ export class LeagueResultsPage extends UIElement {
       </div>
     `
   }
+
   get events () {
     return {
       '#prev-game-day-button': {
@@ -232,6 +247,7 @@ export class LeagueResultsPage extends UIElement {
       }
     }
   }
+
   onMounted () {
     this._loadTopScorerImages()
     this._attachTeamStatsHeaderHandler()
@@ -239,17 +255,18 @@ export class LeagueResultsPage extends UIElement {
       void loadManagerChatSvg(this._managerSvgId, this._teamColor)
     }
   }
+
   suspendedPlayers = []
-  
+
   teamStats = []
-  
+
   _teamStatsSortCol = 'squad_value'
-  _teamStatsSortDir = -1 
+  _teamStatsSortDir = -1
 
   get myTeamId () {
     return this.parentPage.myTeamId
   }
-  
+
   /**
    * Builds manager chat HTML from results data
    */
@@ -514,8 +531,8 @@ export class LeagueResultsPage extends UIElement {
     const team1IsMyTeam = this.myTeamId === result.team1Id
     const team2IsMyTeam = this.myTeamId === result.team2Id
 
-    const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team1)} (${result.strengthTeamA ?? '-'})${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
-    const team2Name = `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team2)} (${result.strengthTeamB ?? '-'})${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
+    const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team1)} ${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
+    const team2Name = `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team2)} ${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
 
     return [
       `${team1Name}${emblem1}`,
@@ -546,7 +563,13 @@ export class LeagueResultsPage extends UIElement {
     const id = generateId()
     onClick('#' + id, () => goTo(`team?id=${stat.team_id}`))
     const isMyTeam = this.myTeamId === stat.team_id
-    const team = { id: stat.team_id, name: stat.name, emblem: stat.emblem, color: stat.color, user_id: stat.user_id }
+    const team = {
+      id: stat.team_id,
+      name: stat.name,
+      emblem: stat.emblem,
+      color: stat.color,
+      user_id: stat.user_id
+    }
     const hasUser = Boolean(stat.user_id)
     const avgFreshness = Math.round(parseFloat(stat.avg_freshness) * 100)
     const squadValue = _formatValue(Number(stat.squad_value))

@@ -12,8 +12,9 @@ export class PlayerList extends UIElement {
    * @param {boolean} enableDragDrop
    * @param {boolean} extended
    * @param {() => void} onToggleExtended
+   * @param {number|null} captainId
    */
-  constructor (players, showTitle = true, onClickHandler, enableDragDrop = false, extended = false, onToggleExtended = null) {
+  constructor (players, showTitle = true, onClickHandler, enableDragDrop = false, extended = false, onToggleExtended = null, captainId = null) {
     super()
     this.players = players
     this.showTitle = showTitle
@@ -21,6 +22,7 @@ export class PlayerList extends UIElement {
     this.enableDragDrop = enableDragDrop
     this.extended = extended
     this.onToggleExtended = onToggleExtended
+    this.captainId = captainId
   }
 
   /**
@@ -62,7 +64,7 @@ export class PlayerList extends UIElement {
               </tr>
             </thead>
             <tbody>
-                ${this.players.map(player => new PlayerListItem(player, this.season, this.onClickHandler, this.sellOfferPlayerIds, this.extended)).join('')}
+                ${this.players.map(player => new PlayerListItem(player, this.season, this.onClickHandler, this.sellOfferPlayerIds, this.extended, this.captainId)).join('')}
             </tbody>
           </table>
         </div>

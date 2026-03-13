@@ -26,6 +26,7 @@ import { progressCupRound, sendCupMatchLogMessages, validateAndProgressCupRounds
 import { getPositionsOfFormation } from '../client/util/formation.js'
 import { kickoff, playGameStep } from './play-game.js'
 import { sendGameDayPushNotifications } from './helper/pushNotificationHelper.js'
+import { getCaptainStrengthMultiplier } from './helper/captainHelper.js'
 
 /**
  * @returns {Promise<void>}
@@ -186,6 +187,15 @@ async function _playCupGame (game) {
     for (const player of playerTeamB) {
       player.level *= 1.1
     }
+  }
+  // Apply captain strength modifier
+  const cupCaptainMultiplierA = getCaptainStrengthMultiplier(teamA, playerTeamA, game.season)
+  const cupCaptainMultiplierB = getCaptainStrengthMultiplier(teamB, playerTeamB, game.season)
+  for (const player of playerTeamA) {
+    player.level *= cupCaptainMultiplierA
+  }
+  for (const player of playerTeamB) {
+    player.level *= cupCaptainMultiplierB
   }
 
   kickoff(playerTeamA, playerTeamB, gameDetails)
@@ -669,6 +679,15 @@ async function _playGame (game) {
     for (const player of playerTeamB) {
       player.level *= 1.1
     }
+  }
+  // Apply captain strength modifier
+  const captainMultiplierA = getCaptainStrengthMultiplier(teamA, playerTeamA, game.season)
+  const captainMultiplierB = getCaptainStrengthMultiplier(teamB, playerTeamB, game.season)
+  for (const player of playerTeamA) {
+    player.level *= captainMultiplierA
+  }
+  for (const player of playerTeamB) {
+    player.level *= captainMultiplierB
   }
   kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)

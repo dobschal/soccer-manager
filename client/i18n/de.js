@@ -284,6 +284,10 @@ export default {
   'myTeam.attackModeDesc.offensive': 'Mehr Vorwärtspässe, höheres Abfangrisiko',
   'myTeam.attackModeDesc.balanced': 'Ausgeglichene Passrichtung',
   'myTeam.attackModeDesc.defensive': 'Mehr Rückwärtspässe, geringeres Abfangrisiko',
+  'myTeam.chooseCaptain': 'Wähle deinen Kapitän:',
+  'myTeam.captainUpdated': 'Kapitän aktualisiert!',
+  'myTeam.captain.none': '-- Kein Kapitän --',
+  'myTeam.captain': 'Kapitän',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A-Mannschaft',

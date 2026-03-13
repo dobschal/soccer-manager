@@ -284,6 +284,10 @@ export default {
   'myTeam.attackModeDesc.offensive': 'More forward passes, higher interception risk',
   'myTeam.attackModeDesc.balanced': 'Balanced passing direction',
   'myTeam.attackModeDesc.defensive': 'More backward passes, lower interception risk',
+  'myTeam.chooseCaptain': 'Choose your captain:',
+  'myTeam.captainUpdated': 'Captain updated!',
+  'myTeam.captain.none': '-- No Captain --',
+  'myTeam.captain': 'Captain',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A Team',

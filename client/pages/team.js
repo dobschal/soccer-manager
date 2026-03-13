@@ -74,7 +74,8 @@ export class TeamPage extends UIElement {
     // Render best player image
     const bestPlayer = this._bestPlayer
     if (bestPlayer) {
-      this._bestPlayerImage = await renderPlayerImage(bestPlayer, this.team, 150)
+      const isCaptain = bestPlayer.id === this.team.captain_id
+      this._bestPlayerImage = await renderPlayerImage(bestPlayer, this.team, 150, { isCaptain })
     }
   }
   /**
@@ -117,7 +118,11 @@ export class TeamPage extends UIElement {
         ${new PlayerList(
     this.players,
     true,
-    (player) => setQueryParams({ player_id: player.id + '' })
+    (player) => setQueryParams({ player_id: player.id + '' }),
+    false,
+    false,
+    null,
+    this.team.captain_id || null
   )}
 
         <div class="mt-5">

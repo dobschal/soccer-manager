@@ -1151,6 +1151,12 @@ const migrations = [{
     await query('ALTER TABLE user ADD COLUMN last_region_ios VARCHAR(10) NULL DEFAULT NULL')
     await query('ALTER TABLE user ADD COLUMN last_region_android VARCHAR(10) NULL DEFAULT NULL')
   }
+},
+{
+  name: 'Add captain_id column to team table',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN captain_id BIGINT(20) DEFAULT NULL')
+  }
 }]
 
 /**
