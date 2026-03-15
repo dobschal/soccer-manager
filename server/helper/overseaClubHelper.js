@@ -296,6 +296,49 @@ export async function iocEnsureMinimumTransfers () {
 }
 
 /**
+ * Auto-accept all open buy offers on IOC players.
+ * This ensures bots (and users) can actually purchase from the IOC market.
+ * @returns {Promise<number>} Number of offers accepted
+ */
+export async function iocAutoAcceptBuyOffers () {
+  const iocTeamId = await getIOCTeamId()
+  if (!iocTeamId) {
+    console.log('IOC team not found, skipping iocAutoAcceptBuyOffers')
+    return 0
+  }
+
+  const { gameDay, season } = await getGameDayAndSeason()
+  const iocTeam = await getTeamById(iocTeamId)
+  if (!iocTeam) return 0
+
+  // Find all open buy offers on IOC players
+  const buyOffers = await query(`
+    SELECT tro.*
+    FROM trade_offer tro
+    JOIN player p ON p.id = tro.player_id
+    WHERE tro.type = 'buy' AND tro.status = 'open'
+      AND p.team_id = ?
+      AND tro.from_team_id <> ?
+  `, [iocTeamId, iocTeamId])
+
+  let acceptedCount = 0
+
+  for (const offer of buyOffers) {
+    try {
+      await acceptOffer(offer, iocTeam, gameDay, season)
+      acceptedCount++
+    } catch (e) {
+      console.log(`⚠️ IOC could not accept buy offer ${offer.id}: ${e.message}`)
+    }
+  }
+
+  if (acceptedCount > 0) {
+    console.log(`IOC: Auto-accepted ${acceptedCount} incoming buy offer(s)`)
+  }
+  return acceptedCount
+}
+
+/**
  * Delete IOC players that have no active sell offer (orphans)
  * @returns {Promise<number>} Number of players cleaned up
  */

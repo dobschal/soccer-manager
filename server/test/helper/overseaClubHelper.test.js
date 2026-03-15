@@ -25,7 +25,7 @@ vi.mock('../../helper/teamHelper.js', () => ({
 }))
 
 // We need to reset the module cache to clear the cached IOC team ID between tests
-let fillMarketGaps, iocBuyUndervaluedPlayers, cleanupIOCPlayers, getIOCTeamId, iocEnsureMinimumTransfers
+let fillMarketGaps, iocBuyUndervaluedPlayers, cleanupIOCPlayers, getIOCTeamId, iocEnsureMinimumTransfers, iocAutoAcceptBuyOffers
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -58,6 +58,7 @@ beforeEach(async () => {
   cleanupIOCPlayers = mod.cleanupIOCPlayers
   getIOCTeamId = mod.getIOCTeamId
   iocEnsureMinimumTransfers = mod.iocEnsureMinimumTransfers
+  iocAutoAcceptBuyOffers = mod.iocAutoAcceptBuyOffers
 
   // Get fresh references to mocked modules
   const dbMod = await import('../../lib/database.js')
@@ -372,6 +373,65 @@ describe('overseaClubHelper', () => {
       // Price should be between 90% and 110% of market value, minimum 1000
       expect(price).toBeGreaterThanOrEqual(Math.max(1000, Math.floor(marketValue * 0.9)))
       expect(price).toBeLessThanOrEqual(Math.floor(marketValue * 1.1))
+    })
+  })
+
+  describe('iocAutoAcceptBuyOffers', () => {
+    it('accepts open buy offers on IOC players', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // getTeamById for IOC team
+      globalThis._getTeamById.mockResolvedValueOnce({ id: 999, name: 'IOC', is_system_team: 1, user_id: null })
+
+      // Open buy offers on IOC players
+      globalThis._query.mockResolvedValueOnce([
+        { id: 50, player_id: 10, from_team_id: 5, offer_value: 80000, type: 'buy', status: 'open' },
+        { id: 51, player_id: 11, from_team_id: 6, offer_value: 120000, type: 'buy', status: 'open' }
+      ])
+
+      globalThis._acceptOffer.mockResolvedValue()
+
+      const accepted = await iocAutoAcceptBuyOffers()
+      expect(accepted).toBe(2)
+      expect(globalThis._acceptOffer).toHaveBeenCalledTimes(2)
+    })
+
+    it('returns 0 when no buy offers exist', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // getTeamById for IOC team
+      globalThis._getTeamById.mockResolvedValueOnce({ id: 999, name: 'IOC', is_system_team: 1, user_id: null })
+
+      // No open buy offers
+      globalThis._query.mockResolvedValueOnce([])
+
+      const accepted = await iocAutoAcceptBuyOffers()
+      expect(accepted).toBe(0)
+      expect(globalThis._acceptOffer).not.toHaveBeenCalled()
+    })
+
+    it('continues when one offer fails', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // getTeamById for IOC team
+      globalThis._getTeamById.mockResolvedValueOnce({ id: 999, name: 'IOC', is_system_team: 1, user_id: null })
+
+      // Two buy offers
+      globalThis._query.mockResolvedValueOnce([
+        { id: 50, player_id: 10, from_team_id: 5, offer_value: 80000, type: 'buy', status: 'open' },
+        { id: 51, player_id: 11, from_team_id: 6, offer_value: 120000, type: 'buy', status: 'open' }
+      ])
+
+      // First fails, second succeeds
+      globalThis._acceptOffer.mockRejectedValueOnce(new Error('Player already sold'))
+      globalThis._acceptOffer.mockResolvedValueOnce()
+
+      const accepted = await iocAutoAcceptBuyOffers()
+      expect(accepted).toBe(1)
+      expect(globalThis._acceptOffer).toHaveBeenCalledTimes(2)
     })
   })
 })

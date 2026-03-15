@@ -41,7 +41,7 @@ describe('auth routes', () => {
       const user = testData.user({ password: 'hashed:password123' })
       query.mockResolvedValue([user])
 
-      const req = { locale: 'en' }
+      const req = { locale: 'en', headers: {} }
       const result = await handlers.login('testuser', 'password123', req)
 
       expect(result).toHaveProperty('token')
