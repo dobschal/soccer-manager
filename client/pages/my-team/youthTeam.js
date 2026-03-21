@@ -248,13 +248,13 @@ export class YouthTeamPage extends UIElement {
     }
 
     return [
-      `<span style="white-space:nowrap">${player.name}</span>`,
+      `<span class="u-nowrap">${player.name}</span>`,
       `<span class="badge bg-secondary">${player.position}</span>`,
       `${player.age}`,
       `${player.level.toFixed(2)}`,
       `${new ProgressBar(player.moral)}`,
       `${new ProgressBar(player.fitness)}`,
-      `<span style="white-space:nowrap"><button
+      `<span class="u-nowrap"><button
             id="${promoteId}"
             class="btn btn-sm btn-primary me-1"
             ${!canPromote ? 'disabled' : ''}

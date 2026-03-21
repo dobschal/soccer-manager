@@ -36,7 +36,7 @@ export async function showStadiumModal (teamId) {
     `${team.name} Stadium`,
     `Total Capacity: ${totalSeats.toLocaleString()} seats`,
     `
-      <div id="${containerId}" style="min-height: 300px;"></div>
+      <div id="${containerId}" class="stadium-modal-container"></div>
       <div class="mt-3">
         <div class="row text-muted small">
           <div class="col-6 col-sm-3"><b>North:</b> ${(stadium.north_stand_size || 0).toLocaleString()}</div>

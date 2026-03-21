@@ -29,7 +29,7 @@ export function renderPageNumbers (totalPages, currentPage) {
     const isActive = sorted[i] === currentPage
     html += `
       <li class="page-item ${isActive ? 'active' : ''}">
-        <span class="page-link" style="cursor: pointer;" data-page-index="${sorted[i]}">${sorted[i] + 1}</span>
+        <span class="page-link u-cursor-pointer" data-page-index="${sorted[i]}">${sorted[i] + 1}</span>
       </li>`
   }
   return html
@@ -45,7 +45,7 @@ function _renderPages (pages, currentPage) {
     const isActive = i === currentPage
     return `
       <li class="page-item ${isActive ? 'active' : ''}">
-        <span class="page-link" style="cursor: pointer;" data-page-index="${i}">${i + 1}</span>
+        <span class="page-link u-cursor-pointer" data-page-index="${i}">${i + 1}</span>
       </li>`
   }).join('')
 }

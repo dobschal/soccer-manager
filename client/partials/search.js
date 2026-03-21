@@ -137,10 +137,9 @@ export function showSearchOverlay () {
         ${players.map(player => {
     const team = teamMap.get(player.team_id)
     return `
-            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center search-result-item"
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center search-result-item u-cursor-pointer"
                  data-team-id="${player.team_id}"
-                 data-player-id="${player.id}"
-                 style="cursor: pointer;">
+                 data-player-id="${player.id}">
               <div>
                 <strong>${player.name}</strong>
                 <br>
@@ -166,10 +165,9 @@ export function showSearchOverlay () {
     const html = `
       <div class="list-group">
         ${teams.map(team => `
-            <div class="list-group-item list-group-item-action d-flex align-items-center search-result-item"
-                 data-team-id="${team.id}"
-                 style="cursor: pointer;">
-              <div class="me-3" style="width: 40px; height: 40px;">
+            <div class="list-group-item list-group-item-action d-flex align-items-center search-result-item u-cursor-pointer"
+                 data-team-id="${team.id}">
+              <div class="me-3 u-size-40">
                 ${renderEmblem(team, 40)}
               </div>
               <div>
@@ -193,9 +191,8 @@ export function showSearchOverlay () {
     const html = `
       <div class="list-group">
         ${users.map(user => `
-            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center search-result-item"
-                 ${user.team_id ? `data-team-id="${user.team_id}"` : ''}
-                 style="cursor: ${user.team_id ? 'pointer' : 'default'};">
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center search-result-item ${user.team_id ? 'u-cursor-pointer' : ''}"
+                 ${user.team_id ? `data-team-id="${user.team_id}"` : ''}>
               <div>
                 <strong><i class="fa fa-user"></i> ${user.username}</strong>
               </div>
@@ -211,7 +208,7 @@ export function showSearchOverlay () {
 
   const html = `
     <div id="${overlayId}" class="overlay-backdrop">
-      <div id="${overlayInnerId}" class="card overlay" style="max-width: 500px;">
+      <div id="${overlayInnerId}" class="card overlay search-overlay">
         <div class="card-body">
           <span id="${closeButtonId}" class="fa fa-close fa-button fa-lg float-end"></span>
           <h5 class="card-title"><i class="fa fa-search"></i> ${t('search.title')}</h5>
@@ -244,7 +241,7 @@ export function showSearchOverlay () {
             </li>
           </ul>
 
-          <div id="${resultsContainerId}" style="max-height: 400px; overflow-y: auto;">
+          <div id="${resultsContainerId}" class="search-results-scroll">
             <p class="text-muted text-center">${t('search.minChars')}</p>
           </div>
 

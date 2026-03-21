@@ -96,6 +96,7 @@
 /* Hero Preview Image */
 .hero-preview-image {
     width: 100%;
+    max-width: 520px;
     height: auto;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);

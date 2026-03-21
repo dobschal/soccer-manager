@@ -60,7 +60,7 @@ export class FinancesPage extends UIElement {
   get template () {
     return `
       <div>
-      <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
+      <div class="finances-header">
         <h2>${t('finances.title')}</h2>
         <h3>${new Balance()}</h3>
         </div>

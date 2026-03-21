@@ -15,7 +15,7 @@ export class MiniBalanceChart extends UIElement {
    * @returns {string}
    */
   get template () {
-    return `<div class="card card-body bg-dark" style="position: relative; height: 180px; width: 100%; padding: 8px; box-sizing: border-box;"><canvas class="mini-finance-canvas"></canvas></div>`
+    return `<div class="card card-body bg-dark mini-balance-chart-container"><canvas class="mini-finance-canvas"></canvas></div>`
   }
   /**
    * @returns {void}

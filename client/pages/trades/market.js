@@ -34,14 +34,7 @@ export class MarketPage extends UIElement {
    * @returns {string}
    */
   get template () {
-    let sellOffers = this.offers.filter(o => o.type === 'sell' && o.from_team_id !== this.team.id)
-
-    if (this._positionFilter) {
-      sellOffers = sellOffers.filter(o => {
-        const player = this.players.find(p => p.id === o.player_id)
-        return player && player.position === this._positionFilter
-      })
-    }
+    let sellOffers = this._getFilteredOffers()
 
     // Sort the full dataset before slicing for pagination
     const {
@@ -92,12 +85,30 @@ export class MarketPage extends UIElement {
       <div class="market-page">
         <h2>${t('trades.transferMarket')}</h2>
         <p>${t('trades.transferMarketDesc')}</p>
-        <div class="mb-3">
-          <label for="market-position-select" class="form-label">${t('trades.position')}</label>
-          <select id="market-position-select" class="form-select form-select-sm" style="width: auto; display: inline-block;">
-            <option value="" ${!this._positionFilter ? 'selected' : ''}>${t('trades.all')}</option>
-            ${positionOptions}
-          </select>
+        <div class="mb-3 d-flex flex-wrap align-items-end gap-3">
+          <div>
+            <label for="market-position-select" class="form-label">${t('trades.position')}</label>
+            <select id="market-position-select" class="form-select form-select-sm u-w-auto">
+              <option value="" ${!this._positionFilter ? 'selected' : ''}>${t('trades.all')}</option>
+              ${positionOptions}
+            </select>
+          </div>
+          <div>
+            <label for="market-min-age" class="form-label">${t('trades.minAge')}</label>
+            <input id="market-min-age" type="number" class="form-control form-control-sm u-w-80" min="15" max="40" value="${this._minAge}">
+          </div>
+          <div>
+            <label for="market-max-age" class="form-label">${t('trades.maxAge')}</label>
+            <input id="market-max-age" type="number" class="form-control form-control-sm u-w-80" min="15" max="40" value="${this._maxAge}">
+          </div>
+          <div>
+            <label for="market-min-level" class="form-label">${t('trades.minLevel')}</label>
+            <input id="market-min-level" type="number" class="form-control form-control-sm u-w-80" min="1" max="100" value="${this._minLevel}">
+          </div>
+          <div>
+            <label for="market-max-level" class="form-label">${t('trades.maxLevel')}</label>
+            <input id="market-max-level" type="number" class="form-control form-control-sm u-w-80" min="1" max="100" value="${this._maxLevel}">
+          </div>
         </div>
         ${table}
         <div class="market-pagination">
@@ -127,6 +138,34 @@ export class MarketPage extends UIElement {
       '#market-position-select': {
         change: (event) => {
           this._positionFilter = event.target.value
+          this._page = 0
+          void this.update()
+        }
+      },
+      '#market-min-age': {
+        change: (event) => {
+          this._minAge = event.target.value
+          this._page = 0
+          void this.update()
+        }
+      },
+      '#market-max-age': {
+        change: (event) => {
+          this._maxAge = event.target.value
+          this._page = 0
+          void this.update()
+        }
+      },
+      '#market-min-level': {
+        change: (event) => {
+          this._minLevel = event.target.value
+          this._page = 0
+          void this.update()
+        }
+      },
+      '#market-max-level': {
+        change: (event) => {
+          this._maxLevel = event.target.value
           this._page = 0
           void this.update()
         }
@@ -174,6 +213,10 @@ export class MarketPage extends UIElement {
   teams = []
   _page = 0
   _positionFilter = ''
+  _minAge = ''
+  _maxAge = ''
+  _minLevel = ''
+  _maxLevel = ''
 
   /**
    * @returns {Array}
@@ -251,11 +294,11 @@ export class MarketPage extends UIElement {
       <nav class="mt-3">
         <ul class="pagination pagination-sm justify-content-center flex-wrap">
           <li class="page-item ${hasPrev ? '' : 'disabled'}">
-            <span class="page-link market-prev" style="cursor: pointer;">${t('common.prev')}</span>
+            <span class="page-link market-prev u-cursor-pointer">${t('common.prev')}</span>
           </li>
           ${pageNumbers}
           <li class="page-item ${hasNext ? '' : 'disabled'}">
-            <span class="page-link market-next" style="cursor: pointer;">${t('common.next')}</span>
+            <span class="page-link market-next u-cursor-pointer">${t('common.next')}</span>
           </li>
         </ul>
       </nav>
@@ -279,10 +322,19 @@ export class MarketPage extends UIElement {
    */
   _getFilteredOffers () {
     let sellOffers = this.offers.filter(o => o.type === 'sell' && o.from_team_id !== this.team.id)
-    if (this._positionFilter) {
+    if (this._positionFilter || this._minAge || this._maxAge || this._minLevel || this._maxLevel) {
       sellOffers = sellOffers.filter(o => {
         const player = this.players.find(p => p.id === o.player_id)
-        return player && player.position === this._positionFilter
+        if (!player) return false
+        if (this._positionFilter && player.position !== this._positionFilter) return false
+        if (this._minAge || this._maxAge) {
+          const age = calculatePlayerAge(player, this.season)
+          if (this._minAge && age < Number(this._minAge)) return false
+          if (this._maxAge && age > Number(this._maxAge)) return false
+        }
+        if (this._minLevel && player.level < Number(this._minLevel)) return false
+        if (this._maxLevel && player.level > Number(this._maxLevel)) return false
+        return true
       })
     }
     return sellOffers

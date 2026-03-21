@@ -36,3 +36,49 @@
     max-width: 100%;
     border-radius: 0;
 }
+
+/* News Item */
+.news-image-col {
+    background: linear-gradient(135deg, #dedede 0%, #f3f3f3 100%);
+    border-radius: 8px;
+}
+
+.news-text {
+    font-size: 0.9em;
+}
+
+/* Finances Header */
+.finances-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Balance Chart Containers */
+.balance-chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.mini-balance-chart-container {
+    position: relative;
+    height: 180px;
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+/* Progress Bar */
+.progress--custom {
+    height: 22px;
+    min-width: 60px;
+}
+
+/* Card Claim Title (initially hidden) */
+.card-claim-title--hidden {
+    display: none;
+}

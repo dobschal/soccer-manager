@@ -336,6 +336,8 @@ export default {
   'trades.level': 'Level',
   'trades.minLevel': 'Min. Level',
   'trades.maxLevel': 'Max. Level',
+  'trades.minAge': 'Min. Alter',
+  'trades.maxAge': 'Max. Alter',
   'trades.search': 'Suchen',
   'trades.noPlayersFound': 'Keine Spieler gefunden.',
   'trades.makeOffer': 'Angebot machen',

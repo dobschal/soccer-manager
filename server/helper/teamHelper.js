@@ -1,6 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { clearUserCache } from '../lib/userCache.js'
+import { config } from '../config.js'
 
 /**
  * @param {Request} req
@@ -23,12 +24,12 @@ export async function getTeamById (id) {
 }
 
 /**
- * Remove users who haven't opened the dashboard in more than 10 days.
+ * Remove users who haven't opened the dashboard in more than {@link config.INACTIVE_USER_DAYS} days.
  * Their team is kept with all players/stadium intact and becomes a bot team again.
  */
 export async function cleanupInactiveUsers () {
   const inactiveUsers = await query(
-    'SELECT u.id AS user_id, t.id AS team_id FROM user u JOIN team t ON t.user_id = u.id WHERE COALESCE(u.last_login, u.created_at) < NOW() - INTERVAL 10 DAY'
+    `SELECT u.id AS user_id, t.id AS team_id FROM user u JOIN team t ON t.user_id = u.id WHERE COALESCE(u.last_login, u.created_at) < NOW() - INTERVAL ${config.INACTIVE_USER_DAYS} DAY`
   )
   for (const { user_id: userId, team_id: teamId } of inactiveUsers) {
     console.log(`Removing inactive user ${userId} from team ${teamId}`)

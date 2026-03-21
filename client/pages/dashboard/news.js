@@ -72,12 +72,12 @@ class NewsItem extends UIElement {
     return `
       <div class="mb-4">
         <div class="row align-items-start">
-          <div class="col-auto py-2" style="background: linear-gradient(135deg, #dedede 0%, #f3f3f3 100%); border-radius: 8px;">
+          <div class="col-auto py-2 news-image-col">
             ${this.image}
           </div>
           <div class="col">
             <h5 class="text-info mb-1">${this.newsItem.title}</h5>
-            <p class="mb-0" style="font-size: 0.9em;">${this.newsItem.text}</p>
+            <p class="mb-0 news-text">${this.newsItem.text}</p>
           </div>
         </div>
         <div class="d-flex justify-content-end gap-2 mt-2">

@@ -32,7 +32,7 @@ export class LandingPage extends UIElement {
                 <p class="hero-subtitle text-white">
                   ${t('landing.subtitle')}
                 </p>
-                <img style="width: 100%; max-width: 520px" src="assets/landing-page/preview.png" alt="Game Preview" class="hero-preview-image mt-4">
+                <img src="assets/landing-page/preview.png" alt="Game Preview" class="hero-preview-image mt-4">
               </div>
               <!-- Right side: Login form -->
               <div class="col-lg-4">

@@ -80,7 +80,7 @@ function _showSingleCardClaim (card, remainingCards, state) {
           </div>
         </div>
         <div id="${hintId}" class="card-claim-hint">${t('actionCards.claim.tapToReveal')}</div>
-        <div id="${titleId}" class="card-claim-title" style="display: none;">${cardTitle}</div>
+        <div id="${titleId}" class="card-claim-title card-claim-title--hidden">${cardTitle}</div>
         <button id="${skipBtnId}" class="card-claim-skip-btn">${t('actionCards.claim.skip')}</button>
       </div>
     `
@@ -120,7 +120,7 @@ function _showSingleCardClaim (card, remainingCards, state) {
 
       if (container) container.classList.add('flipped')
       if (hint) hint.classList.add('hidden')
-      if (title) title.style.display = ''
+      if (title) title.classList.remove('card-claim-title--hidden')
 
       await delay(2000)
 

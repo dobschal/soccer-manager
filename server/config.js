@@ -5,5 +5,6 @@ export const config = {
   APN_KEY_ID: process.env.APN_KEY_ID || '',
   APN_TEAM_ID: process.env.APN_TEAM_ID || '',
   APN_BUNDLE_ID: process.env.APN_BUNDLE_ID || 'io.soccermanager.app',
-  APN_PRODUCTION: process.env.APN_PRODUCTION === 'true'
+  APN_PRODUCTION: process.env.APN_PRODUCTION === 'true',
+  INACTIVE_USER_DAYS: 21
 }

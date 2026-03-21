@@ -33,7 +33,7 @@ export class ProgressBar extends UIElement {
 
     return `
       <div>
-        <div class="progress" style="height: 22px; min-width: 60px;">
+        <div class="progress progress--custom">
           <div
             class="progress-bar ${bgClass}"
             role="progressbar"

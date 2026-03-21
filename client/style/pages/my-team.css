@@ -88,3 +88,14 @@
     cursor: pointer;
     text-align: center;
 }
+
+/* Team Info Table */
+.team-info-table {
+    margin: 0 -1rem;
+    width: calc(100% + 2rem);
+}
+
+/* Stadium Modal */
+.stadium-modal-container {
+    min-height: 300px;
+}

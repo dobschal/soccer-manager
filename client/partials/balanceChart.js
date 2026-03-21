@@ -15,7 +15,7 @@ export class BalanceChart extends UIElement {
    * @returns {string}
    */
   get template () {
-    return `<div class="card card-body bg-dark mb-4" style="position: relative; height: 400px; width: 100%; padding: 16px; box-sizing: border-box;"><canvas class="finance-canvas"></canvas></div>`
+    return `<div class="card card-body bg-dark mb-4 balance-chart-container"><canvas class="finance-canvas"></canvas></div>`
   }
   /**
    * @returns {void}

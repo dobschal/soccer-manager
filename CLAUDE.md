@@ -71,6 +71,13 @@ Key directories:
 - **New page**: Create component in `client/pages/` extending `UIElement`, register in `app.js` router
 - **New tests**: Mirror file path with `.test.js` in respective `test/` folder
 
+### Styling Rules
+
+- **Never use inline styles** in JavaScript template literals. All styles must be defined in CSS files under `client/style/`.
+  - The only exception is when the style value is truly dynamic (computed from a JS variable at render time, e.g. `width: ${size}px`). Static properties must always use CSS classes.
+  - Utility classes (e.g. `u-cursor-pointer`, `u-nowrap`, `u-max-w-620`) live in `client/style/utilities.css`.
+  - Component-specific styles go in the matching CSS file (e.g. `components/player.css`, `pages/dashboard.css`).
+
 ## League System
 
 The game uses a hierarchical league structure with levels and subdivisions:

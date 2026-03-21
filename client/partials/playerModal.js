@@ -101,7 +101,7 @@ export default class PlayerModal extends UIElement {
     return `
       <div>
         <div class="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-3 mb-4">
-          <div style="flex-shrink: 0;">${this.playerImage}</div>
+          <div class="player-modal__image">${this.playerImage}</div>
           <div class="d-flex flex-column justify-content-center">
             <div class="d-flex flex-wrap justify-content-center justify-content-sm-start gap-2">
               <div class="stat-card bg-dark">
@@ -137,7 +137,7 @@ export default class PlayerModal extends UIElement {
           ${t('player.starPlayerDesc')}
         </div>
         ` : ''}
-        <div class="${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4" style="clear: both">
+        <div class="player-modal__section ${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4">
           <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
           ${!this.isMyPlayer && this.sellOfferPrice ? `<p>${t('player.askingPrice')}: <b>${euroFormat.format(this.sellOfferPrice)}</b></p>` : `<p>${t('player.enterPrice')}</p>`}
           ${renderCurrencyInput('trade-price-input', t('player.pricePlaceholder'))}
@@ -145,7 +145,7 @@ export default class PlayerModal extends UIElement {
             ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}
           </button>
         </div>
-        <div class="${this.isFreeAgent ? '' : 'hidden'} mb-4" style="clear: both">
+        <div class="player-modal__section ${this.isFreeAgent ? '' : 'hidden'} mb-4">
           <b>🤝 ${t('player.hirePlayer')}</b>
           <p>${t('player.hirePlayerDesc')}</p>
           <button class="hire-btn btn btn-primary">
@@ -224,7 +224,7 @@ export default class PlayerModal extends UIElement {
       if (this.playersTeam && this.playersTeam.is_system_team) {
         subtitleEl.innerHTML = `<span class="text-muted">${this.playersTeam.name}</span>`
       } else if (this.playersTeam) {
-        subtitleEl.innerHTML = `<span class="text-info" style="cursor: pointer">${this.playersTeam.name}</span>`
+        subtitleEl.innerHTML = `<span class="text-info u-cursor-pointer">${this.playersTeam.name}</span>`
         subtitleEl.querySelector('span').addEventListener('click', () => {
           goTo(`team?id=${this.playersTeam.id}`)
           this.overlay.remove()

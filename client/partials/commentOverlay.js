@@ -46,7 +46,7 @@ export function showCommentOverlay (newsId, newsTitle, onCommentAdded) {
   const sendBtnId = generateId()
 
   const content = `
-    <div id="${listId}" style="max-height: 300px; overflow-y: auto;" class="mb-3">
+    <div id="${listId}" class="comment-scroll mb-3">
       <p class="text-muted">${t('common.loading')}</p>
     </div>
     <div class="input-group">

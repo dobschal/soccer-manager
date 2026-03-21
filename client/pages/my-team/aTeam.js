@@ -32,6 +32,7 @@ export class ATeamPage extends UIElement {
     this.parent = parent
     this._playerList = null
     this._exchangeEventId = on('lineup-exchange', (updatedPlayers) => {
+      this.parent.data.players = updatedPlayers
       if (this._playerList) {
         this._playerList.players = updatedPlayers.filter(p => !p.fake).sort(sortByPosition)
         this._playerList.update()
@@ -192,7 +193,7 @@ export class ATeamPage extends UIElement {
               <h5 class="card-title mb-0">${t('myTeam.teamInfo')}</h5>
             </div>
             <div class="card-body pt-0">
-              <table class="table table-sm mb-0" style="margin: 0 -1rem; width: calc(100% + 2rem);">
+              <table class="table table-sm mb-0 team-info-table">
                 <tbody>
                   <tr><td class="text-muted ps-3">${t('myTeam.league')}</td><td class="text-end pe-3">${formatLeague(this.parent.data.team.level, this.parent.data.team.league)}</td></tr>
                   <tr><td class="text-muted ps-3">${t('myTeam.salaryTotal')}</td><td class="text-end pe-3">${euroFormat.format(totalSalary)}</td></tr>

@@ -88,11 +88,11 @@ export class ActionCards extends UIElement {
     return `
       <div class="mb-5">
         <h3>${t('actionCards.title')}</h3>
-        <p style="max-width: 620px">${t('actionCards.subtitle')}</p>
+        <p class="u-max-w-620">${t('actionCards.subtitle')}</p>
         <div class="mb-4 action-cards-container">
           <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>
         </div>
-        <div class="alert alert-info" style="max-width: 620px">
+        <div class="alert alert-info u-max-w-620">
           <i class="fa fa-info-circle me-1"></i> ${t('actionCards.buildingsHint')}
         </div>
       </div>

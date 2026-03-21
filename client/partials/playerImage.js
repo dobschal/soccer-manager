@@ -61,9 +61,9 @@ export async function renderPlayerImage (player, team, size = 224, options = {})
     : ''
 
   const captainBadgeHtml = options.isCaptain
-    ? `<div class="captain-badge" style="position: absolute; top: 2%; left: 50%; transform: translateX(-50%); text-align: center; font-size: ${Math.max(10, Math.floor(size * 0.08))}px; line-height: 1; pointer-events: none;">
-        <div style="color: gold; text-shadow: 0 1px 2px rgba(0,0,0,0.6);">&#9733;</div>
-        <div style="color: white; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.8); font-size: ${Math.max(8, Math.floor(size * 0.06))}px;">Captain</div>
+    ? `<div class="captain-badge" style="font-size: ${Math.max(10, Math.floor(size * 0.08))}px;">
+        <div class="captain-badge__star">&#9733;</div>
+        <div class="captain-badge__label" style="font-size: ${Math.max(8, Math.floor(size * 0.06))}px;">Captain</div>
       </div>`
     : ''
 

@@ -41,3 +41,34 @@
     margin-top: -32px;
     display: inline-block;
 }
+
+/* Captain Badge */
+.captain-badge {
+    position: absolute;
+    top: 2%;
+    right: 0%;
+    transform: translateX(-50%);
+    text-align: right;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.captain-badge__star {
+    color: gold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.captain-badge__label {
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Player Modal */
+.player-modal__image {
+    flex-shrink: 0;
+}
+
+.player-modal__section {
+    clear: both;
+}
