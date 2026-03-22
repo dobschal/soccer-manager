@@ -60,48 +60,75 @@ export class IncomingOffersPage extends UIElement {
   }
 
   onMounted () {
+    this._attachClickHandler()
+  }
+
+  onUpdate () {
+    this._attachClickHandler()
+  }
+
+  _attachClickHandler () {
     const root = document.querySelector(this._elementQuery)
     if (!root) return
-    root.addEventListener('click', async (event) => {
-      const target = event.target
-      const row = target.closest('[data-offer]')
-      if (!row) return
+    root.addEventListener('click', this._handleClick)
+  }
 
-      const idx = parseInt(row.dataset.offer, 10)
-      const incomingOffers = this._filterIncomingBuyOffers()
-      const offer = incomingOffers[idx]
-      const player = this.players.find(p => p.id === offer.player_id)
-      const fromTeam = this.teams.find(t2 => t2.id === offer.from_team_id)
+  _handleClick = async (event) => {
+    const target = event.target
+    const row = target.closest('[data-offer]')
+    if (!row) return
 
-      if (target.closest('.player-name')) {
-        setQueryParams({ player_id: player.id })
-      } else if (target.closest('.btn-primary')) {
-        try {
-          await server.acceptOffer(offer)
-          toast(t('trades.acceptedOffer', { teamName: fromTeam.name }))
-          await this.load()
-          await this.update()
-        } catch (e) {
-          console.error(e)
-          toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-        }
-      } else if (target.closest('.btn-danger')) {
-        try {
-          await server.declineOffer(offer)
-          toast(t('trades.declinedOffer', { teamName: fromTeam.name }))
-          await this.load()
-          await this.update()
-        } catch (e) {
-          console.error(e)
-          toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-        }
+    const idx = parseInt(row.dataset.offer, 10)
+    const incomingOffers = this._filterIncomingBuyOffers()
+    const offer = incomingOffers[idx]
+    const player = this.players.find(p => p.id === offer.player_id)
+    const fromTeam = this.teams.find(t2 => t2.id === offer.from_team_id)
+
+    if (target.closest('.player-name')) {
+      setQueryParams({ player_id: player.id })
+    } else if (target.closest('.btn-primary')) {
+      try {
+        await server.acceptOffer(offer)
+        toast(t('trades.acceptedOffer', { teamName: fromTeam.name }))
+        await this.load()
+        await this.update()
+      } catch (e) {
+        console.error(e)
+        toast(e.message ?? t('toast.somethingWentWrong'), 'error')
       }
-    })
+    } else if (target.closest('.btn-danger')) {
+      try {
+        await server.declineOffer(offer)
+        toast(t('trades.declinedOffer', { teamName: fromTeam.name }))
+        this.offers = this.offers.filter(o => o.id !== offer.id)
+        row.remove()
+        this._updateEmptyState()
+      } catch (e) {
+        console.error(e)
+        toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+      }
+    }
   }
   team = {}
   offers = []
   players = []
   teams = []
+
+  /**
+   * After removing a row, re-index data-offer attributes and toggle the empty state message.
+   */
+  _updateEmptyState () {
+    const root = document.querySelector(this._elementQuery)
+    if (!root) return
+    root.querySelectorAll('[data-offer]').forEach((row, i) => {
+      row.dataset.offer = i
+    })
+    const incomingOffers = this._filterIncomingBuyOffers()
+    const emptyCol = root.querySelector('.col')
+    if (emptyCol) {
+      emptyCol.classList.toggle('hidden', incomingOffers.length > 0)
+    }
+  }
 
   /**
    * @returns {Array}

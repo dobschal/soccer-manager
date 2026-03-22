@@ -7,6 +7,7 @@ import { renderEmblem } from '../../partials/emblem.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
+import { euroFormat } from '../../lib/currency.js'
 
 export class CupResultsPage extends UIElement {
   /**
@@ -57,26 +58,36 @@ export class CupResultsPage extends UIElement {
 
     return `
       <div>
-        <div class="mb-4">
-          <h2>${t('cup.results')}</h2>
-          <table>
-            <tr>
-              <th>${t('results.season')}</th>
-              <td>
-                <span id="prev-cup-season-button" class="fa fa-chevron-left fa-button"></span>
-                ${(this.cupSeason ?? 0) + 1}
-                <span id="next-cup-season-button" class="fa fa-chevron-right fa-button"></span>
-              </td>
-            </tr>
-            <tr>
-              <th>${t('cup.round')}</th>
-              <td>
-                <span id="prev-cup-round-button" class="fa fa-chevron-left fa-button"></span>
-                ${roundName}
-                <span id="next-cup-round-button" class="fa fa-chevron-right fa-button"></span>
-              </td>
-            </tr>
-          </table>
+        <div class="mb-4 d-flex align-items-center gap-4">
+          <div>
+            <h2>${t('cup.results')}</h2>
+            <table>
+              <tr>
+                <th>${t('results.season')}</th>
+                <td>
+                  <span id="prev-cup-season-button" class="fa fa-chevron-left fa-button"></span>
+                  ${(this.cupSeason ?? 0) + 1}
+                  <span id="next-cup-season-button" class="fa fa-chevron-right fa-button"></span>
+                </td>
+              </tr>
+              <tr>
+                <th>${t('cup.round')}</th>
+                <td>
+                  <span id="prev-cup-round-button" class="fa fa-chevron-left fa-button"></span>
+                  ${roundName}
+                  <span id="next-cup-round-button" class="fa fa-chevron-right fa-button"></span>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="cup-trophy-icon">🏆</div>
+        </div>
+
+        <div class="alert alert-info mb-4">
+          <i class="fa fa-info-circle me-1"></i>
+          <b>${t('cup.infoTitle')}</b><br>
+          ${t('cup.infoFormat', { totalRounds: this.cupTotalRounds })}
+          ${t('cup.infoPrize', { basePrize: euroFormat.format(25000), winnerPrize: euroFormat.format(2000000) })}
         </div>
 
         <h3>${t('results.games')}</h3>

@@ -70,14 +70,14 @@ describe('cleanupInactiveUsers', () => {
     expect(clearUserCache).not.toHaveBeenCalled()
   })
 
-  it('should only select users inactive for more than 10 days via COALESCE(last_login, created_at)', () => {
+  it('should only select users inactive for more than 21 days via COALESCE(last_login, created_at)', () => {
     query.mockResolvedValueOnce([])
 
     cleanupInactiveUsers()
 
     const selectQuery = query.mock.calls[0][0]
     expect(selectQuery).toContain('COALESCE(u.last_login, u.created_at)')
-    expect(selectQuery).toContain('INTERVAL 10 DAY')
+    expect(selectQuery).toContain('INTERVAL 21 DAY')
     // Ensures the query joins user to team — only users with a team are affected
     expect(selectQuery).toContain('JOIN team t ON t.user_id = u.id')
   })

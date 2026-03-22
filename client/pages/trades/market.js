@@ -233,10 +233,10 @@ export class MarketPage extends UIElement {
   teams = []
   _page = 0
   _positionFilter = ''
-  _minAge = ''
-  _maxAge = ''
-  _minLevel = ''
-  _maxLevel = ''
+  _minAge = '16'
+  _maxAge = '40'
+  _minLevel = '1'
+  _maxLevel = '100'
 
   /**
    * @returns {Array}

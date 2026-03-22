@@ -13,11 +13,10 @@ export function renderPageNumbers (totalPages, currentPage) {
   const pages = new Set()
   // Always show first two and last two
   pages.add(0)
-  pages.add(1)
-  pages.add(totalPages - 2)
   pages.add(totalPages - 1)
-  // Always show current
   pages.add(currentPage)
+  pages.add(Math.min(totalPages - 1, currentPage + 1))
+  pages.add(Math.max(0, currentPage - 1))
 
   const sorted = [...pages].sort((a, b) => a - b)
 

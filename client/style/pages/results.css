@@ -8,3 +8,9 @@
 }
 
 /* Scorer/Suspended player image containers are now in components/player.css */
+
+/* Cup Trophy Icon */
+.cup-trophy-icon {
+    font-size: 5rem;
+    line-height: 1;
+}

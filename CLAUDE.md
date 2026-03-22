@@ -7,6 +7,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 FootballManager.IO - a browser-based football manager game where players build teams, compete in leagues, and manage
 finances. Full-stack Node.js application with MySQL database.
 
+## Workflow
+
+After every code change, **always** run tests and linting before considering the task done:
+
+```bash
+npm test    # All tests must pass
+npm run lint # No lint errors allowed
+```
+
+If a test or lint check fails, fix the issue before moving on.
+
 ## Commands
 
 ```bash
