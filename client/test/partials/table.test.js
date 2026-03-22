@@ -25,6 +25,7 @@ vi.mock('../../lib/router.js', () => ({
 }))
 
 import { Table } from '../../partials/table.js'
+import { el } from '../../lib/html.js'
 import { getQueryParams } from '../../lib/router.js'
 
 describe('Table UIElement', () => {
@@ -164,6 +165,117 @@ describe('Table UIElement', () => {
         renderRow: () => ['Test']
       })
       expect(table.isUIElement).toBe(true)
+    })
+  })
+
+  describe('_sortTable', () => {
+    /**
+     * Helper: create a Table, mount its template in the DOM, and wire up el()
+     */
+    function mountTable (config) {
+      const table = new Table(config)
+      const wrapper = document.createElement('div')
+      wrapper.innerHTML = table.template
+      const rootEl = wrapper.firstElementChild
+      rootEl.setAttribute('data-render_id', table._renderId)
+      document.body.appendChild(rootEl)
+      el.mockImplementation((query) => document.querySelector(query))
+      return { table, rootEl }
+    }
+
+    it('sorts data in ascending order by sortKey', () => {
+      const { table } = mountTable({
+        data: [{ name: 'B', level: 10 }, { name: 'A', level: 3 }],
+        cols: [{ name: 'Name' }, { name: 'Level', sortKey: 'level' }],
+        renderRow: (item) => [item.name, String(item.level)]
+      })
+
+      table._sortTable(1, 'ASC')
+
+      expect(table.config.data[0].level).toBe(3)
+      expect(table.config.data[1].level).toBe(10)
+    })
+
+    it('sorts data in descending order by sortKey', () => {
+      const { table } = mountTable({
+        data: [{ name: 'A', level: 3 }, { name: 'B', level: 10 }],
+        cols: [{ name: 'Name' }, { name: 'Level', sortKey: 'level' }],
+        renderRow: (item) => [item.name, String(item.level)]
+      })
+
+      table._sortTable(1, 'DESC')
+
+      expect(table.config.data[0].level).toBe(10)
+      expect(table.config.data[1].level).toBe(3)
+    })
+
+    it('uses custom sortFn when provided', () => {
+      const { table } = mountTable({
+        data: [{ name: 'Zebra' }, { name: 'Apple' }],
+        cols: [{
+          name: 'Name',
+          sortFn: (a, b, isAsc) => isAsc
+            ? a.name.localeCompare(b.name)
+            : b.name.localeCompare(a.name)
+        }],
+        renderRow: (item) => [item.name]
+      })
+
+      table._sortTable(0, 'ASC')
+      expect(table.config.data[0].name).toBe('Apple')
+
+      table._sortTable(0, 'DESC')
+      expect(table.config.data[0].name).toBe('Zebra')
+    })
+
+    it('updates tbody innerHTML after sorting', () => {
+      const { table, rootEl } = mountTable({
+        data: [{ name: 'B', level: 10 }, { name: 'A', level: 3 }],
+        cols: [{ name: 'Name' }, { name: 'Level', sortKey: 'level' }],
+        renderRow: (item) => [item.name, String(item.level)]
+      })
+
+      table._sortTable(1, 'ASC')
+
+      const tbody = rootEl.querySelector('tbody')
+      const rows = tbody.querySelectorAll('tr')
+      expect(rows[0].textContent).toContain('A')
+      expect(rows[0].textContent).toContain('3')
+      expect(rows[1].textContent).toContain('B')
+      expect(rows[1].textContent).toContain('10')
+    })
+
+    it('adds sort direction class to the sorted column header', () => {
+      const { table, rootEl } = mountTable({
+        data: [{ level: 5 }, { level: 2 }],
+        cols: [{ name: 'Level', sortKey: 'level' }],
+        renderRow: (item) => [String(item.level)]
+      })
+
+      table._sortTable(0, 'ASC')
+      const th = rootEl.querySelector('th')
+      expect(th.classList.contains('asc')).toBe(true)
+
+      table._sortTable(0, 'DESC')
+      expect(th.classList.contains('desc')).toBe(true)
+      expect(th.classList.contains('asc')).toBe(false)
+    })
+
+    it('does not destroy the scroll container when re-rendering tbody', () => {
+      const { table, rootEl } = mountTable({
+        data: [{ name: 'B', level: 10 }, { name: 'A', level: 3 }],
+        cols: [{ name: 'Name' }, { name: 'Level', sortKey: 'level' }],
+        renderRow: (item) => [item.name, String(item.level)]
+      })
+
+      // The rootEl IS the .horizontal-scrollable-table div
+      const scrollContainer = rootEl
+
+      table._sortTable(1, 'ASC')
+
+      // The scroll container must be the same DOM node (not replaced)
+      const currentRoot = document.querySelector(`[data-render_id="${table._renderId}"]`)
+      expect(currentRoot).toBe(scrollContainer)
     })
   })
 

@@ -197,13 +197,33 @@ export class MarketPage extends UIElement {
    * @param {string} params.sort_dir
    * @param {string} params.col
    */
-  onQueryChanged ({
+  async onQueryChanged ({
     sort_dir,
     col
   }) {
     if (sort_dir && col !== undefined) {
+      const scrollContainer = document.querySelector(`${this._elementQuery} .horizontal-scrollable-table`)
+      const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0
       this._page = 0
-      this.update()
+      await this.update()
+      if (scrollLeft > 0) {
+        this._restoreScrollLeft(scrollLeft)
+      }
+    }
+  }
+
+  /**
+   * Poll for the scroll container (which renders asynchronously via child UIElement)
+   * and restore the horizontal scroll position once it appears.
+   * @param {number} scrollLeft
+   * @param {number} [attempts]
+   */
+  _restoreScrollLeft (scrollLeft, attempts = 0) {
+    const container = document.querySelector(`${this._elementQuery} .horizontal-scrollable-table`)
+    if (container) {
+      container.scrollLeft = scrollLeft
+    } else if (attempts < 50) {
+      setTimeout(() => this._restoreScrollLeft(scrollLeft, attempts + 1), 10)
     }
   }
   team = {}

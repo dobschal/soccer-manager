@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../../../lib/gateway.js', () => ({
   server: {
@@ -39,8 +39,10 @@ vi.mock('../../../lib/currency.js', () => ({
 
 vi.mock('../../../partials/table.js', () => ({
   Table: class {
-    constructor() {}
-    toString() { return '<table>Mock Table</table>' }
+    constructor () {}
+    toString () {
+      return '<div class="horizontal-scrollable-table"><table><thead><tr><th>Mock</th></tr></thead><tbody><tr><td>Data</td></tr></tbody></table></div>'
+    }
   }
 }))
 
@@ -56,10 +58,49 @@ vi.mock('../../../util/player.js', () => ({
 
 import { MarketPage, renderMarket } from '../../../pages/trades/market.js'
 import { server } from '../../../lib/gateway.js'
+import { el } from '../../../lib/html.js'
+
+/**
+ * Mount a MarketPage into the DOM so update() can find and replace it.
+ * Returns the page instance and a helper to find its root element.
+ */
+async function mountMarketPage () {
+  const page = new MarketPage()
+  await page.load()
+
+  // Render initial HTML into the DOM
+  const wrapper = document.createElement('div')
+  wrapper.innerHTML = page.template
+  const rootEl = wrapper.firstElementChild
+  rootEl.setAttribute('data-render_id', page._renderId)
+  document.body.appendChild(rootEl)
+
+  // Make el() delegate to real DOM queries so UIElement.update() works
+  el.mockImplementation((query) => document.querySelector(query))
+
+  return page
+}
+
+/**
+ * Simulate scrollLeft on all .horizontal-scrollable-table elements in the DOM.
+ * jsdom has no layout engine, so we use defineProperty to make get/set work.
+ */
+function simulateScrollLeft (element, value) {
+  let stored = value
+  Object.defineProperty(element, 'scrollLeft', {
+    get: () => stored,
+    set: (v) => { stored = v },
+    configurable: true
+  })
+  return {
+    get value () { return stored }
+  }
+}
 
 describe('MarketPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    document.body.innerHTML = ''
 
     server.getMyTeam.mockResolvedValue({
       team: { id: 1, name: 'Test FC' }
@@ -72,6 +113,10 @@ describe('MarketPage', () => {
       players: [],
       teams: []
     })
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
   })
 
   describe('MarketPage class', () => {
@@ -123,6 +168,91 @@ describe('MarketPage', () => {
     it('extends UIElement', () => {
       const page = new MarketPage()
       expect(page.isUIElement).toBe(true)
+    })
+  })
+
+  describe('scroll preservation on sort', () => {
+    it('saves scroll position before re-render and restores it after', async () => {
+      const page = await mountMarketPage()
+
+      // Find the scroll container rendered by the (mock) Table and simulate scroll
+      const scrollContainer = document.querySelector('.horizontal-scrollable-table')
+      expect(scrollContainer).not.toBeNull()
+      simulateScrollLeft(scrollContainer, 250)
+
+      // Trigger a sort via onQueryChanged – this calls update() which replaces the DOM
+      await page.onQueryChanged({ sort_dir: 'ASC', col: '0' })
+
+      // After update(), the old container is gone and a new one has been inserted.
+      // The page should restore scrollLeft on the new container (via _restoreScrollLeft polling).
+      // In tests the mock Table renders synchronously so it finds the container immediately.
+      const newContainer = document.querySelector('.horizontal-scrollable-table')
+      expect(newContainer).not.toBeNull()
+      expect(newContainer.scrollLeft).toBe(250)
+    })
+
+    it('restores scroll even when container appears asynchronously', async () => {
+      const page = await mountMarketPage()
+
+      const scrollContainer = document.querySelector('.horizontal-scrollable-table')
+      simulateScrollLeft(scrollContainer, 180)
+
+      // Monkey-patch update() to remove the scroll container temporarily,
+      // simulating the real scenario where child UIElements render async.
+      const originalUpdate = page.update.bind(page)
+      page.update = async function (...args) {
+        await originalUpdate(...args)
+        // After update, remove the container to simulate async child rendering
+        const container = document.querySelector('.horizontal-scrollable-table')
+        const parent = container?.parentElement
+        const placeholder = document.createElement('div')
+        placeholder.id = 'async-placeholder'
+        if (container && parent) {
+          parent.replaceChild(placeholder, container)
+        }
+        // Re-add the container after a delay (simulating renderSync setTimeout)
+        setTimeout(() => {
+          const newContainer = document.createElement('div')
+          newContainer.className = 'horizontal-scrollable-table'
+          const ph = document.getElementById('async-placeholder')
+          if (ph && ph.parentElement) {
+            ph.parentElement.replaceChild(newContainer, ph)
+          }
+        }, 20)
+      }
+
+      await page.onQueryChanged({ sort_dir: 'ASC', col: '0' })
+
+      // The container doesn't exist yet (was removed to simulate async)
+      expect(document.querySelector('.horizontal-scrollable-table')).toBeNull()
+
+      // Wait for the async container to appear and scroll to be restored
+      await new Promise(resolve => setTimeout(resolve, 50))
+
+      const newContainer = document.querySelector('.horizontal-scrollable-table')
+      expect(newContainer).not.toBeNull()
+      expect(newContainer.scrollLeft).toBe(180)
+    })
+
+    it('does not attempt scroll restoration when not scrolled', async () => {
+      const page = await mountMarketPage()
+
+      // scrollLeft is 0 (default) – no restoration needed
+      await page.onQueryChanged({ sort_dir: 'ASC', col: '0' })
+
+      const newContainer = document.querySelector('.horizontal-scrollable-table')
+      expect(newContainer).not.toBeNull()
+      // scrollLeft should remain at its default (0)
+      expect(newContainer.scrollLeft).toBe(0)
+    })
+
+    it('resets page to 0 when sorting', async () => {
+      const page = await mountMarketPage()
+      page._page = 3
+
+      await page.onQueryChanged({ sort_dir: 'ASC', col: '0' })
+
+      expect(page._page).toBe(0)
     })
   })
 
