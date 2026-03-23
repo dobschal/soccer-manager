@@ -17,6 +17,7 @@ declare const UIApplication: any
 
 let webViewRef: WebView | null = null
 let resumeHandler: (() => void) | null = null
+let webViewInitialized = false
 
 export function onPageLoaded(args: EventData) {
     const page = args.object as Page
@@ -25,22 +26,31 @@ export function onPageLoaded(args: EventData) {
     // Start OTA check in background
     checkForUpdate().catch(err => console.error('[OTA] Background check failed:', err))
 
-    // On resume: if a staged update is ready, promote it and reload the WebView
+    // On resume: if a staged update is ready, promote it and reload the WebView.
+    // Otherwise, just trigger the webapp to refresh the current page data.
     if (!resumeHandler) {
         resumeHandler = () => {
-            if (hasStagedUpdate() && webViewRef) {
+            if (!webViewRef) return
+            if (hasStagedUpdate()) {
                 console.log('[OTA] App resumed with staged update, clearing cache and reloading...')
                 promoteStagingIfReady()
+                webViewInitialized = false
                 const webPath = getWebContentPath()
                 clearWebViewCache(webViewRef).then(() => {
                     if (isIOS) {
                         loadWebViewIOS(webViewRef!, webPath)
+                        webViewInitialized = true
                     } else if (isAndroid) {
                         loadWebViewAndroid(webViewRef!, webPath)
+                        webViewInitialized = true
                     }
                     // Show toast after reload
                     setTimeout(() => showOtaToast(webViewRef!), 3000)
                 })
+            } else {
+                // No OTA update — trigger a data refresh in the webapp
+                console.log('[Resume] No OTA update, triggering webapp refresh...')
+                triggerWebAppRefresh(webViewRef!)
             }
         }
         Application.on(Application.resumeEvent, resumeHandler)
@@ -84,6 +94,17 @@ function clearWebViewCache(webView: WebView): Promise<void> {
     })
 }
 
+function triggerWebAppRefresh(webView: WebView) {
+    const script = 'if (window.__onAppResume) window.__onAppResume();'
+    if (isIOS) {
+        const wkWebView = webView.ios as any
+        wkWebView.evaluateJavaScriptCompletionHandler(script, () => {})
+    } else if (isAndroid) {
+        const nativeWebView = webView.android as any
+        nativeWebView.evaluateJavascript(script, null)
+    }
+}
+
 function showOtaToast(webView: WebView) {
     if (isIOS) {
         const wkWebView = webView.ios as any
@@ -104,6 +125,13 @@ export function onWebViewLoaded(args: EventData) {
     const webView = args.object as WebView
     webViewRef = webView
     setWebViewBackgroundColor(webView)
+
+    // Only load the web content on first initialization, not on resume from background
+    if (webViewInitialized) {
+        console.log('[WebView] Already initialized, skipping reload')
+        return
+    }
+    webViewInitialized = true
 
     const webPath = getWebContentPath()
 

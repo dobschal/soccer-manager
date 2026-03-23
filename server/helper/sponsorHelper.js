@@ -58,7 +58,12 @@ export async function getSponsorOffers (team) {
     gameDay,
     season
   } = await getGameDayAndSeason()
-  const games = await query('SELECT * FROM game WHERE (team_1_id=? OR team_2_id=?) AND played=1 ORDER BY season DESC, game_day DESC', [team.id, team.id])
+  const games = await query(`
+    (SELECT * FROM game WHERE team_1_id=? AND played=1 ORDER BY season DESC, game_day DESC LIMIT 34)
+    UNION ALL
+    (SELECT * FROM game WHERE team_2_id=? AND played=1 ORDER BY season DESC, game_day DESC LIMIT 34)
+    ORDER BY season DESC, game_day DESC LIMIT 34
+  `, [team.id, team.id])
   const contractLengths = [
     3, 9, 16, 34
   ]

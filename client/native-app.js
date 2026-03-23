@@ -1,7 +1,7 @@
 import { installGlobalErrorHandler, sendLog } from './lib/clientLogger.js'
 import { DefaultLayout } from './layouts/defaultLayout.js'
 import { NativeAppLayout } from './layouts/nativeAppLayout.js'
-import { initRouter } from './lib/router.js'
+import { initRouter, refreshCurrentPage } from './lib/router.js'
 import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
 import { NativeLandingPage } from './pages/native-landing.js'
@@ -42,10 +42,19 @@ window.__onNativeDeviceToken = async function (token, platform) {
   }
 }
 
-// Clear iOS badge when app becomes active
+// Called from native side when app returns from background
+window.__onAppResume = function () {
+  if (window.localStorage.getItem('auth-token')) {
+    server.clearBadge().catch(() => {})
+    refreshCurrentPage()
+  }
+}
+
+// Fallback: also handle visibilitychange for cases where native bridge doesn't fire
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && window.localStorage.getItem('auth-token')) {
     server.clearBadge().catch(() => {})
+    refreshCurrentPage()
   }
 })
 

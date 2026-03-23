@@ -1160,6 +1160,12 @@ const migrations = [{
   }
 },
 {
+  name: 'Add index for game table team_2_id lookup',
+  async run () {
+    await query('CREATE INDEX idx_game_team2_played ON game (team_2_id, played, season DESC, game_day DESC)')
+  }
+},
+{
   name: 'Balance existing bot team players and stadiums by league level',
   async run () {
     const botTeams = await query('SELECT * FROM team WHERE user_id IS NULL AND is_system_team = 0')

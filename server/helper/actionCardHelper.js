@@ -15,7 +15,7 @@ import { createYouthPlayer } from './youthPlayerHelper.js'
 // - LEVEL_UP_PLAYER_40: ~40/season → 1.2/day (can merge into ~20 LEVEL_UP_70)
 // - FRESHNESS_10: ~30/season → 0.88/day
 // - CHANGE_PLAYER_POSITION: ~4/season → 0.12/day
-// - NEW_YOUTH_PLAYER: ~3/season → 0.1/day
+// - NEW_YOUTH_PLAYER: ~2/season → 0.059/day
 // - BONUS_100K: ~2/season → 0.06/day
 // - LEVEL_UP_PLAYER_70: ~10/season → 0.3/day (+ ~20 from merge, medium amount reach level 70)
 // - LEVEL_UP_PLAYER_100: ~2/season → 0.06/day (+ ~10 from merge, rare to reach level 100)
@@ -25,12 +25,12 @@ export const actionCardChances = {
   FRESHNESS_20: 0,
   LEVEL_UP_PLAYER_40: 1.2,
   CHANGE_PLAYER_POSITION: 0.03,
-  NEW_YOUTH_PLAYER: 0.1,
+  NEW_YOUTH_PLAYER: 0.05,
   BONUS_100K: 0.06,
   LEVEL_UP_PLAYER_70: 0.3,
   LEVEL_UP_PLAYER_100: 0.06,
   STAR_PLAYER: 0.015,
-  MOTIVATING_SPEECH: 0.059
+  MOTIVATING_SPEECH: 0.05
 }
 
 /**

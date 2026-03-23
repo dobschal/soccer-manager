@@ -32,6 +32,18 @@ export function goTo (path) {
  *
  * @param {{[path: string]: [() => string, () => string]}} p - pages to be resolved
  */
+/**
+ * Refresh the currently visible page by calling update(true) on the cached page instance.
+ * Used when the app returns from background to reload data without a full page reload.
+ */
+export function refreshCurrentPage () {
+  if (!lastPath) return
+  const cached = _pageCache[lastPath]
+  if (cached?.page?.update) {
+    cached.page.update(true)
+  }
+}
+
 export function initRouter (p) {
   pages = p
   window.addEventListener('hashchange', _resolvePage)
