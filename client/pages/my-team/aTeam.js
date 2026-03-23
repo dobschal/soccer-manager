@@ -154,7 +154,7 @@ export class ATeamPage extends UIElement {
    */
   _createPlayerList () {
     this._playerList = new PlayerList(
-      this.parent.data.players,
+      this.parent.data.players.filter(p => !p.fake),
       true,
       p => {
         setQueryParams({

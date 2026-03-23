@@ -223,7 +223,7 @@ export class Lineup extends UIElement {
       <div class="player ${player.position}" data-player-id="${playerId}" style="${suspendedStyle}">
         <span class="position-badge ${player.position}">${player.position}</span>
         <span class="freshness-badge ${freshnessClass}">
-            ${Math.floor(player.freshness * 100)}%
+            ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
         </span>
         <span class="name">${isSuspended ? '🚫 ' : ''}${displayName}</span>
         ${renderLevelBadge(player.level, { size: 'lg' })}
