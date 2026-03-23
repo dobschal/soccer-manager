@@ -81,6 +81,7 @@ export class ActionCards extends UIElement {
     const response = await server.getActionCards()
     this.cards = response.actionCards
   }
+
   /**
    * @returns {string}
    */
@@ -98,6 +99,7 @@ export class ActionCards extends UIElement {
       </div>
     `
   }
+
   /**
    * @returns {UIElementEvents}
    */
@@ -107,7 +109,7 @@ export class ActionCards extends UIElement {
         click: async (event) => {
           const target = event.target
           const actionCardEl = target.closest('[data-action-card]')
-          if (!actionCardEl) return
+          if (!actionCardEl || this._processing) return
 
           const idx = parseInt(actionCardEl.dataset.actionCard, 10)
           const card = this.cards[idx]
@@ -139,8 +141,10 @@ export class ActionCards extends UIElement {
       }
     }
   }
+
   _overlay = null
   _currentCardElement = null
+  _processing = false
   cards = []
 
   /**
@@ -189,6 +193,7 @@ export class ActionCards extends UIElement {
    * @returns {Promise<void>}
    */
   async _mergeCards (actionCard) {
+    this._processing = true
     try {
       // Find indices of cards to merge
       const indices = []
@@ -207,6 +212,8 @@ export class ActionCards extends UIElement {
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong', 'error')
+    } finally {
+      this._processing = false
     }
   }
 
@@ -235,7 +242,12 @@ export class ActionCards extends UIElement {
     }
 
     if (remainingOfType === 0) {
-      stackEl.remove()
+      const colWrapper = stackEl.closest('.col-6')
+      if (colWrapper) {
+        colWrapper.remove()
+      } else {
+        stackEl.remove()
+      }
     } else {
       // Remove the top card wrapper from visual stack
       topCard?.remove()
@@ -301,7 +313,12 @@ export class ActionCards extends UIElement {
     const remainingOfType = this.cards.filter(c => c.action === actionType).length
 
     if (remainingOfType === 0) {
-      stackEl.remove()
+      const colWrapper = stackEl.closest('.col-6')
+      if (colWrapper) {
+        colWrapper.remove()
+      } else {
+        stackEl.remove()
+      }
     } else {
       // Remove two card wrappers
       wrappers[0]?.remove()
@@ -374,7 +391,7 @@ export class ActionCards extends UIElement {
     } else {
       // Create new stack wrapped in Bootstrap col
       const newStackHtml = `
-        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <div class="col-6 col-sm-4 col-lg-3 col-xl-2">
           <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
             ${cardsOfType.slice(0, 5).map((_, i) => `
               <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
@@ -440,6 +457,20 @@ export class ActionCards extends UIElement {
    * @returns {Promise<void>}
    */
   async _useActionCard (actionCard, cardIndex) {
+    this._processing = true
+    try {
+      await this._dispatchActionCard(actionCard, cardIndex)
+    } finally {
+      this._processing = false
+    }
+  }
+
+  /**
+   * @param {Object} actionCard
+   * @param {number} cardIndex
+   * @returns {Promise<void>}
+   */
+  async _dispatchActionCard (actionCard, cardIndex) {
     if (actionCard.action.startsWith('FRESHNESS_')) {
       await this._handleFitnessCard(actionCard, cardIndex)
       return

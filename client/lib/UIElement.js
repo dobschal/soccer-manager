@@ -174,6 +174,8 @@ export class UIElement {
 
   _renderId = generateId()
   _isMounted = false
+  /** @type {AbortController|null} */
+  _eventAbortController = null
   /** @type {Map<string, Function>} */
   _serverEventHandlers = new Map()
 
@@ -214,6 +216,13 @@ export class UIElement {
    * @private
    */
   _applyEventHandlers () {
+    // Abort previous event handlers to prevent duplicates
+    if (this._eventAbortController) {
+      this._eventAbortController.abort()
+    }
+    this._eventAbortController = new AbortController()
+    const { signal } = this._eventAbortController
+
     for (const originalQuery in this.events) {
       let elementQuery = originalQuery
       const isOptional = elementQuery.toLowerCase().startsWith('(optional)')
@@ -237,7 +246,7 @@ export class UIElement {
         }
       }
       for (const eventName in this.events[originalQuery]) {
-        element.addEventListener(eventName, this.events[originalQuery][eventName].bind(this))
+        element.addEventListener(eventName, this.events[originalQuery][eventName].bind(this), { signal })
       }
     }
   }

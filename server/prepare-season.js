@@ -337,16 +337,17 @@ async function _createRandomTeam (level) {
   })
   const { insertId: teamId } = await query('INSERT INTO team SET ?', team)
   team.id = teamId
+  const stadiumConfig = _getBotStadiumConfig(level)
   const stadium = new Stadium({
     team_id: team.id,
     north_stand_roof: 0,
     south_stand_roof: 0,
     east_stand_roof: 0,
     west_stand_roof: 0,
-    north_stand_size: 1000,
-    south_stand_size: 200,
-    east_stand_size: 100,
-    west_stand_size: 100,
+    north_stand_size: stadiumConfig.n,
+    south_stand_size: stadiumConfig.s,
+    east_stand_size: stadiumConfig.e,
+    west_stand_size: stadiumConfig.w,
     north_stand_price: 13,
     south_stand_price: 13,
     east_stand_price: 13,
@@ -376,14 +377,8 @@ async function _createRandomPlayer (team, i, season) {
   const fixPosition = getPositionsOfFormation(team.formation)[i]
   const age = Math.floor(Math.random() * 16) // have new players a bit younger, 16 means max 32 years old
   const carrierLength = 22 + Math.floor(Math.random() * 4)
-  let maxLevel
-  if (age + 16 < 19) {
-    maxLevel = 30
-  } else if (age + 16 < 25) {
-    maxLevel = 50
-  } else {
-    maxLevel = 70 // not too strong players on start
-  }
+  const levelRange = _getBotPlayerLevelRange(team.level ?? 0)
+  const level = Math.floor(Math.random() * (levelRange.max - levelRange.min + 1)) + levelRange.min
   const player = new Player({
     hair_color: Math.floor(Math.random() * 7),
     skin_color: Math.floor(Math.random() * 3),
@@ -391,7 +386,7 @@ async function _createRandomPlayer (team, i, season) {
     name: (await generateRandomPlayerName()),
     carrier_start_season: season - age,
     carrier_end_season: season - age + carrierLength,
-    level: Math.floor(Math.random() * maxLevel) + 1,
+    level,
     in_game_position: fixPosition ?? '',
     position: fixPosition ?? _generateRandomPosition(),
     freshness: 1.0
@@ -459,4 +454,44 @@ function _generateRandomPosition () {
  */
 function _generateRandomFormation () {
   return randomItem(Object.values(Formation))
+}
+
+/**
+ * Returns the player level range for bot teams at a given league level.
+ * Higher divisions (lower level numbers) get stronger players.
+ * @param {number} leagueLevel
+ * @returns {{min: number, max: number}}
+ */
+export function _getBotPlayerLevelRange (leagueLevel) {
+  const ranges = [
+    { min: 50, max: 70 }, // level 0
+    { min: 40, max: 60 }, // level 1
+    { min: 30, max: 50 }, // level 2
+    { min: 20, max: 40 } //  level 3
+  ]
+  if (leagueLevel < ranges.length) return ranges[leagueLevel]
+  return {
+    min: Math.max(1, 60 - leagueLevel * 10),
+    max: Math.max(10, 80 - leagueLevel * 10)
+  }
+}
+
+/**
+ * Returns stadium stand sizes for bot teams at a given league level.
+ * Sized so that ticket income covers salary costs for levels 0-5.
+ * @param {number} leagueLevel
+ * @returns {{n: number, s: number, e: number, w: number}}
+ */
+export function _getBotStadiumConfig (leagueLevel) {
+  const configs = [
+    { n: 2600, s: 1300, e: 650, w: 650 },   // level 0
+    { n: 1700, s: 850, e: 425, w: 425 },     // level 1
+    { n: 1200, s: 600, e: 300, w: 300 },     // level 2
+    { n: 750, s: 375, e: 188, w: 187 },      // level 3
+    { n: 750, s: 375, e: 188, w: 187 },      // level 4
+    { n: 500, s: 250, e: 125, w: 125 },      // level 5
+    { n: 200, s: 200, e: 122, w: 122 }       // level 6
+  ]
+  if (leagueLevel < configs.length) return configs[leagueLevel]
+  return { n: 200, s: 100, e: 100, w: 100 } // level 7+
 }

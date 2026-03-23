@@ -96,19 +96,22 @@ export class StadiumSubPage extends UIElement {
       },
       '#stadium-form': {
         submit: this._onStadiumFormSubmit.bind(this),
-        input: async (event) => {
+        input: (event) => {
           const sizeInput = event.target.closest('[data-size-input]')
           const roofInput = event.target.closest('[data-roof-input]')
 
           if (sizeInput) {
             const name = sizeInput.dataset.sizeInput
             this.stadium[name + '_stand_size'] = Number(sizeInput.value)
-            await this._updatePrice()
           } else if (roofInput) {
             const name = roofInput.dataset.roofInput
             this.stadium[name + '_stand_roof'] = roofInput.checked ? 1 : 0
-            await this._updatePrice()
+          } else {
+            return
           }
+
+          clearTimeout(this._updatePriceTimeout)
+          this._updatePriceTimeout = setTimeout(() => this._updatePrice(), 500)
         },
         click: (event) => {
           if (event.target.closest('#cancel-expand-btn')) {
@@ -132,6 +135,7 @@ export class StadiumSubPage extends UIElement {
    * Called when component is unmounted - cleanup Three.js resources
    */
   onDestroy () {
+    clearTimeout(this._updatePriceTimeout)
     if (this._stadiumCanvas) {
       this._stadiumCanvas.onDestroy()
       this._stadiumCanvas = null
@@ -148,6 +152,8 @@ export class StadiumSubPage extends UIElement {
   _stadiumCanvas = null
   /** @type {boolean} */
   _hasValidConstruction = false
+  /** @type {ReturnType<typeof setTimeout>|null} */
+  _updatePriceTimeout = null
 
   /**
    * @param {Event} event
@@ -407,7 +413,7 @@ export class StadiumSubPage extends UIElement {
         t('stadium.seasonDay', { season: row.season + 1, day: row.gameDay + 1 }),
         ...stands.map(s => {
           const data = row.stands[s]
-          return `${data.guests.toLocaleString()} / ${data.size.toLocaleString()} (${data.percentage}%)`
+          return `<span class="d-none d-sm-inline">${data.guests.toLocaleString()} / ${data.size.toLocaleString()} </span>${data.percentage}%`
         })
       ],
       data: this.attendanceData,

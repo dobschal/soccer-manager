@@ -21,7 +21,7 @@
 .manager-chat-container {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: 250;
 }
 
 .manager-chat-wrapper {

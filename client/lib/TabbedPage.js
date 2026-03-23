@@ -137,10 +137,7 @@ export class TabbedPage extends UIElement {
     }
 
     let target = container.querySelector(`[data-subpage="${key}"]`)
-    if (target) {
-      const cached = this._subPageCache[key]
-      if (cached?.update) cached.update()
-    } else {
+    if (!target) {
       const subPage = this._getOrCreateSubPage()
       target = document.createElement('div')
       target.setAttribute('data-subpage', key)

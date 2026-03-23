@@ -1,6 +1,7 @@
 import { query } from './lib/database.js'
 import { randomItem } from '../client/lib/randomItem.js'
 import { EMBLEM_COLORS, EMBLEM_PATTERNS, EMBLEM_SHAPES, adjustBrightness } from '../client/util/emblemGenerator.js'
+import { _getBotPlayerLevelRange, _getBotStadiumConfig } from './prepare-season.js'
 
 /**
  * @typedef {object} Migration
@@ -1156,6 +1157,26 @@ const migrations = [{
   name: 'Add captain_id column to team table',
   async run () {
     await query('ALTER TABLE team ADD COLUMN captain_id BIGINT(20) DEFAULT NULL')
+  }
+},
+{
+  name: 'Balance existing bot team players and stadiums by league level',
+  async run () {
+    const botTeams = await query('SELECT * FROM team WHERE user_id IS NULL AND is_system_team = 0')
+    for (const team of botTeams) {
+      const levelRange = _getBotPlayerLevelRange(team.level ?? 0)
+      const players = await query('SELECT id FROM player WHERE team_id = ?', [team.id])
+      for (const player of players) {
+        const newLevel = Math.floor(Math.random() * (levelRange.max - levelRange.min + 1)) + levelRange.min
+        await query('UPDATE player SET level = ? WHERE id = ?', [newLevel, player.id])
+      }
+      const stadiumConfig = _getBotStadiumConfig(team.level ?? 0)
+      await query(
+        'UPDATE stadium SET north_stand_size = ?, south_stand_size = ?, east_stand_size = ?, west_stand_size = ? WHERE team_id = ?',
+        [stadiumConfig.n, stadiumConfig.s, stadiumConfig.e, stadiumConfig.w, team.id]
+      )
+    }
+    console.log(`✅ Balanced ${botTeams.length} bot teams by league level`)
   }
 }]
 

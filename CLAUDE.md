@@ -89,6 +89,18 @@ Key directories:
   - Utility classes (e.g. `u-cursor-pointer`, `u-nowrap`, `u-max-w-620`) live in `client/style/utilities.css`.
   - Component-specific styles go in the matching CSS file (e.g. `components/player.css`, `pages/dashboard.css`).
 
+## Bot Team Balancing
+
+Bot team player levels and stadium sizes scale with the team's league level. Helpers in `server/prepare-season.js`:
+
+- `_getBotPlayerLevelRange(leagueLevel)` — returns `{min, max}` for player levels:
+  - Level 0: 50-70, Level 1: 40-60, Level 2: 30-50, Level 3: 20-40
+  - Level 4+: `max(1, 60-level*10)` to `max(10, 80-level*10)`
+
+- `_getBotStadiumConfig(leagueLevel)` — returns `{n, s, e, w}` stand sizes:
+  - Level 0: 5200 total, Level 1: 3400, Level 2: 2400, Level 3-4: 1500, Level 5: 1000, Level 6: 644, Level 7+: 500
+  - Stadium income covers salary costs for levels 0-5
+
 ## League System
 
 The game uses a hierarchical league structure with levels and subdivisions:

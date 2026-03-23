@@ -172,11 +172,11 @@ export class News extends UIElement {
       <div class="mb-5">
         <h3>${t('news.title')}</h3>
         <div class="d-flex align-items-center gap-2 mb-3">
-          <button id="${this.prevBtnId}" class="btn btn-sm btn-outline-secondary" ${isAtStart ? 'disabled' : ''}>
+          <button class="news-prev-btn btn btn-sm btn-outline-secondary" ${isAtStart ? 'disabled' : ''}>
             <i class="fa fa-chevron-left" aria-hidden="true"></i>
           </button>
           <span class="text-muted">${t('results.gameDay', { day: this.gameDay + 1 })}, ${t('finances.season', { season: seasonDisplay })}</span>
-          <button id="${this.nextBtnId}" class="btn btn-sm btn-outline-secondary" ${isAtEnd ? 'disabled' : ''}>
+          <button class="news-next-btn btn btn-sm btn-outline-secondary" ${isAtEnd ? 'disabled' : ''}>
             <i class="fa fa-chevron-right" aria-hidden="true"></i>
           </button>
         </div>
@@ -204,9 +204,15 @@ export class News extends UIElement {
       </div>
     `
   }
-  onMounted () {
-    onClick(this.prevBtnId, () => this._navigateGameDay(-1))
-    onClick(this.nextBtnId, () => this._navigateGameDay(1))
+  get events () {
+    return {
+      '.news-prev-btn': {
+        click: () => this._navigateGameDay(-1)
+      },
+      '.news-next-btn': {
+        click: () => this._navigateGameDay(1)
+      }
+    }
   }
   news = []
   teams = []
@@ -220,8 +226,6 @@ export class News extends UIElement {
   likedNews = []
   likedTeams = []
   likedPlayers = []
-  prevBtnId = generateId()
-  nextBtnId = generateId()
 
   /**
    * @param {number} direction - -1 for previous, +1 for next
