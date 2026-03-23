@@ -42,20 +42,25 @@ window.__onNativeDeviceToken = async function (token, platform) {
   }
 }
 
-// Called from native side when app returns from background
-window.__onAppResume = function () {
+// Shared resume handler – debounced so that native bridge + visibilitychange
+// firing in quick succession only trigger one refresh.
+let _lastResumeTs = 0
+function _onResume () {
+  const now = Date.now()
+  if (now - _lastResumeTs < 1000) return
+  _lastResumeTs = now
   if (window.localStorage.getItem('auth-token')) {
     server.clearBadge().catch(() => {})
     refreshCurrentPage()
   }
 }
 
+// Called from native side when app returns from background
+window.__onAppResume = _onResume
+
 // Fallback: also handle visibilitychange for cases where native bridge doesn't fire
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && window.localStorage.getItem('auth-token')) {
-    server.clearBadge().catch(() => {})
-    refreshCurrentPage()
-  }
+  if (document.visibilityState === 'visible') _onResume()
 })
 
 // Initialize locale from localStorage or browser settings
