@@ -1,13 +1,11 @@
 import { UIElement } from '../lib/UIElement.js'
 import { off, on } from '../lib/event.js'
 import { el, generateId } from '../lib/html.js'
-import { goTo } from '../lib/router.js'
 import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
-import { getLocale, setLocale, t } from '../i18n/index.js'
-import { showConfirmDialog, showOverlay } from '../partials/overlay.js'
-import { disconnectWebSocket } from '../lib/websocket.js'
+import { t } from '../i18n/index.js'
+import { showSettingsOverlay } from '../partials/settingsOverlay.js'
 
 export class NativeAppLayout extends UIElement {
   async load () {
@@ -43,9 +41,6 @@ export class NativeAppLayout extends UIElement {
             <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info border-0">
               <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
             </a>
-            <button id="search-button" class="native-settings-btn" type="button" aria-label="${t('nav.search')}">
-              <i class="fa fa-search" aria-hidden="true"></i>
-            </button>
             <button id="settings-button" class="native-settings-btn" type="button" aria-label="${t('nav.settings')}">
               <i class="fa fa-cog" aria-hidden="true"></i>
             </button>
@@ -114,147 +109,11 @@ export class NativeAppLayout extends UIElement {
   _scrollHandler = null
 
   _attachEventHandlers () {
-    const searchBtn = document.querySelector(`${this._elementQuery} #search-button`)
-    if (searchBtn) {
-      searchBtn.addEventListener('click', () => {
-        goTo('browse')
-      })
-    }
-
     const settingsBtn = document.querySelector(`${this._elementQuery} #settings-button`)
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => {
-        this._showSettingsOverlay()
+        showSettingsOverlay({ isAdmin: this._isAdmin, version: this._version })
       })
-    }
-  }
-
-  get _showPlayButton () {
-    return this._isAdmin
-  }
-
-  _showSettingsOverlay () {
-    const currentLocale = getLocale()
-
-    const content = `
-      <div class="settings-overlay-content">
-        <div class="mb-3">
-          <label class="form-label">${t('nav.language')}</label>
-          <div class="btn-group w-100" role="group">
-            <button id="settings-lang-en" class="btn ${currentLocale === 'en' ? 'btn-primary' : 'btn-outline-info'}">English</button>
-            <button id="settings-lang-de" class="btn ${currentLocale === 'de' ? 'btn-primary' : 'btn-outline-info'}">Deutsch</button>
-          </div>
-        </div>
-        <button id="settings-logout" class="btn btn-outline-danger w-100">
-          <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
-        </button>
-        <hr>
-        <a href="support.html" class="btn btn-outline-info w-100 mb-2">
-          <i class="fa fa-life-ring" aria-hidden="true"></i> ${t('nav.support')}
-        </a>
-        <button id="settings-delete-account" class="btn btn-outline-danger w-100">
-          <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
-        </button>
-        ${window.__NATIVE_SERVER_URL ? `
-        <div class="mt-3 text-muted small" id="settings-version-info">
-          <hr>
-          <div>Server: v${this._version}</div>
-          <div id="settings-client-version">${t('common.loading')}</div>
-        </div>
-        ` : ''}
-      </div>
-    `
-
-    const overlay = showOverlay(t('nav.settings'), '', content)
-
-    setTimeout(() => {
-      const langEnBtn = el('#settings-lang-en')
-      const langDeBtn = el('#settings-lang-de')
-      const logoutBtn = el('#settings-logout')
-
-      if (langEnBtn) {
-        langEnBtn.addEventListener('click', async () => {
-          if (currentLocale !== 'en') {
-            setLocale('en')
-            try {
-              await server.setLanguage('en')
-            } catch (err) {
-              console.error('Failed to save language preference:', err)
-            }
-            window.location.reload()
-          }
-        })
-      }
-
-      if (langDeBtn) {
-        langDeBtn.addEventListener('click', async () => {
-          if (currentLocale !== 'de') {
-            setLocale('de')
-            try {
-              await server.setLanguage('de')
-            } catch (err) {
-              console.error('Failed to save language preference:', err)
-            }
-            window.location.reload()
-          }
-        })
-      }
-
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-          overlay.remove()
-          disconnectWebSocket()
-          window.localStorage.removeItem('auth-token')
-          goTo('login')
-        })
-      }
-
-      const deleteAccountBtn = el('#settings-delete-account')
-      if (deleteAccountBtn) {
-        deleteAccountBtn.addEventListener('click', async () => {
-          const confirmed = await showConfirmDialog(t('nav.deleteAccountConfirm'), t('nav.deleteAccount'))
-          if (!confirmed) return
-          try {
-            await server.deleteAccount()
-            overlay.remove()
-            disconnectWebSocket()
-            window.localStorage.removeItem('auth-token')
-            goTo('login')
-          } catch (err) {
-            toast(err.message ?? t('toast.somethingWentWrong'), 'error')
-          }
-        })
-      }
-
-      // Load client version info for native app
-      if (window.__NATIVE_SERVER_URL) {
-        const clientVersionEl = el('#settings-client-version')
-        if (clientVersionEl) {
-          fetch('./native-version.json')
-            .then(r => r.json())
-            .then(data => {
-              clientVersionEl.textContent = `Client: v${data.version} (${data.commitHash})`
-            })
-            .catch(() => {
-              clientVersionEl.textContent = 'Client: unknown'
-            })
-        }
-      }
-    }, 0)
-  }
-
-  async _triggerGameDay (btn) {
-    try {
-      btn.disabled = true
-      btn.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>'
-      await server.triggerGameDay()
-      toast(t('toast.gameDayCompleted'), 'success')
-      window.location.reload()
-    } catch (e) {
-      console.error(e)
-      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-      btn.disabled = false
-      btn.innerHTML = '<i class="fa fa-play fa-lg" aria-hidden="true"></i>'
     }
   }
 

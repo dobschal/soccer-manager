@@ -12,6 +12,8 @@ export default {
   'nav.settings': 'Settings',
   'nav.language': 'Language',
   'nav.search': 'Search',
+  'nav.account': 'Account',
+  'nav.privacyPolicy': 'Privacy Policy',
   'nav.support': 'Support',
   'nav.deleteAccount': 'Delete Account',
   'nav.deleteAccountConfirm': 'Are you sure? This will permanently delete your account and all your data. This cannot be undone.',

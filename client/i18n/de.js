@@ -12,6 +12,8 @@ export default {
   'nav.settings': 'Einstellungen',
   'nav.language': 'Sprache',
   'nav.search': 'Suche',
+  'nav.account': 'Konto',
+  'nav.privacyPolicy': 'Datenschutz',
   'nav.support': 'Support',
   'nav.deleteAccount': 'Konto löschen',
   'nav.deleteAccountConfirm': 'Bist du sicher? Dein Konto und alle deine Daten werden unwiderruflich gelöscht. Dies kann nicht rückgängig gemacht werden.',
