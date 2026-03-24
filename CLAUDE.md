@@ -94,8 +94,8 @@ Key directories:
 Bot team player levels and stadium sizes scale with the team's league level. Helpers in `server/prepare-season.js`:
 
 - `_getBotPlayerLevelRange(leagueLevel)` — returns `{min, max}` for player levels:
-  - Level 0: 50-70, Level 1: 40-60, Level 2: 30-50, Level 3: 20-40
-  - Level 4+: `max(1, 60-level*10)` to `max(10, 80-level*10)`
+  - Level 0: 40-60, Level 1: 30-50, Level 2: 20-40, Level 3: 10-30
+  - Level 4+: `max(1, 50-level*10)` to `max(10, 70-level*10)`
 
 - `_getBotStadiumConfig(leagueLevel)` — returns `{n, s, e, w}` stand sizes:
   - Level 0: 5200 total, Level 1: 3400, Level 2: 2400, Level 3-4: 1500, Level 5: 1000, Level 6: 644, Level 7+: 500

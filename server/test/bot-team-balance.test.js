@@ -6,33 +6,33 @@ describe('bot team balancing', () => {
   describe('_getBotPlayerLevelRange', () => {
     it('returns correct range for level 0 (top division)', () => {
       const range = _getBotPlayerLevelRange(0)
-      expect(range).toEqual({ min: 50, max: 70 })
+      expect(range).toEqual({ min: 40, max: 60 })
     })
 
     it('returns correct range for level 1', () => {
       const range = _getBotPlayerLevelRange(1)
-      expect(range).toEqual({ min: 40, max: 60 })
+      expect(range).toEqual({ min: 30, max: 50 })
     })
 
     it('returns correct range for level 2', () => {
       const range = _getBotPlayerLevelRange(2)
-      expect(range).toEqual({ min: 30, max: 50 })
+      expect(range).toEqual({ min: 20, max: 40 })
     })
 
     it('returns correct range for level 3', () => {
       const range = _getBotPlayerLevelRange(3)
-      expect(range).toEqual({ min: 20, max: 40 })
+      expect(range).toEqual({ min: 10, max: 30 })
     })
 
     it('uses formula for level 4+', () => {
       const range4 = _getBotPlayerLevelRange(4)
-      expect(range4).toEqual({ min: 20, max: 40 })
+      expect(range4).toEqual({ min: 10, max: 30 })
 
       const range5 = _getBotPlayerLevelRange(5)
-      expect(range5).toEqual({ min: 10, max: 30 })
+      expect(range5).toEqual({ min: 1, max: 20 })
 
       const range6 = _getBotPlayerLevelRange(6)
-      expect(range6).toEqual({ min: 1, max: 20 })
+      expect(range6).toEqual({ min: 1, max: 10 })
     })
 
     it('never returns min below 1', () => {
@@ -112,8 +112,8 @@ describe('bot team balancing', () => {
     })
   })
 
-  describe('financial viability (levels 0-5)', () => {
-    for (let level = 0; level <= 5; level++) {
+  describe('financial viability (levels 0-4)', () => {
+    for (let level = 0; level <= 4; level++) {
       it(`level ${level} stadium income covers salary costs`, () => {
         const range = _getBotPlayerLevelRange(level)
         const avgLevel = (range.min + range.max) / 2

@@ -464,15 +464,15 @@ function _generateRandomFormation () {
  */
 export function _getBotPlayerLevelRange (leagueLevel) {
   const ranges = [
-    { min: 50, max: 70 }, // level 0
-    { min: 40, max: 60 }, // level 1
-    { min: 30, max: 50 }, // level 2
-    { min: 20, max: 40 } //  level 3
+    { min: 40, max: 60 }, // level 0
+    { min: 30, max: 50 }, // level 1
+    { min: 20, max: 40 }, // level 2
+    { min: 10, max: 30 } //  level 3
   ]
   if (leagueLevel < ranges.length) return ranges[leagueLevel]
   return {
-    min: Math.max(1, 60 - leagueLevel * 10),
-    max: Math.max(10, 80 - leagueLevel * 10)
+    min: Math.max(1, 50 - leagueLevel * 10),
+    max: Math.max(10, 70 - leagueLevel * 10)
   }
 }
 

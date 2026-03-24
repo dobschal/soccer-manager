@@ -1184,6 +1184,24 @@ const migrations = [{
     }
     console.log(`✅ Balanced ${botTeams.length} bot teams by league level`)
   }
+},
+{
+  name: 'Reduce bot team player levels by 10 and clear their history',
+  async run () {
+    await query(`
+      UPDATE player p
+      JOIN team t ON p.team_id = t.id
+      SET p.level = GREATEST(1, p.level - 10)
+      WHERE t.user_id IS NULL AND t.is_system_team = 0
+    `)
+    const result = await query(`
+      DELETE ph FROM player_history ph
+      JOIN player p ON ph.player_id = p.id
+      JOIN team t ON p.team_id = t.id
+      WHERE t.user_id IS NULL AND t.is_system_team = 0
+    `)
+    console.log(`✅ Reduced bot player levels by 10 and deleted ${result.affectedRows ?? 0} history entries`)
+  }
 }]
 
 /**
