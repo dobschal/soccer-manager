@@ -3,6 +3,14 @@
   margin: 0 auto;
 }
 
+.forum-notice {
+  font-size: 0.9rem;
+}
+
+.forum-notice i {
+  margin-right: 0.4rem;
+}
+
 .forum-breadcrumb {
   font-size: 0.9rem;
 }

@@ -23,6 +23,11 @@ export class ForumPage extends UIElement {
   get template () {
     return `
       <div class="forum-page">
+        <div class="forum-notice alert alert-info">
+          <i class="fa fa-info-circle"></i>
+          The forum language is <strong>English</strong>. Please be respectful and friendly.
+          Aggressive or discriminatory behavior will result in a ban.
+        </div>
         ${this._renderBreadcrumb()}
         ${this._view === 'post' ? this._renderPostDetail() : ''}
         ${this._view === 'posts' ? this._renderPostList() : ''}
@@ -141,7 +146,7 @@ export class ForumPage extends UIElement {
     } else {
       html += '<div class="list-group">'
       for (const cat of this._categories) {
-        const lastActivity = cat.last_activity ? formatDate('DD.MM.YYYY HH:mm', cat.last_activity) : '-'
+        const lastActivity = cat.last_activity ? formatDate('DD.MM.YYYY hh:mm', cat.last_activity) : '-'
         html += `
           <a href="#forum?category=${cat.id}" class="list-group-item list-group-item-action forum-category-item">
             <div class="d-flex justify-content-between align-items-start">
@@ -182,7 +187,7 @@ export class ForumPage extends UIElement {
     } else {
       html += '<div class="list-group">'
       for (const post of this._posts) {
-        const date = formatDate('DD.MM.YYYY HH:mm', post.created_at)
+        const date = formatDate('DD.MM.YYYY hh:mm', post.created_at)
         const teamLink = post.team_id ? `<a href="#team?id=${post.team_id}" class="forum-team-link">${escapeHtml(post.team_name || '')}</a>` : ''
         html += `
           <div class="list-group-item forum-post-item">
@@ -219,7 +224,7 @@ export class ForumPage extends UIElement {
     const post = this._post
     if (!post) return `<p class="text-muted">${t('forum.noPosts')}</p>`
 
-    const date = formatDate('DD.MM.YYYY HH:mm', post.created_at)
+    const date = formatDate('DD.MM.YYYY hh:mm', post.created_at)
     const teamLink = post.team_id ? `<a href="#team?id=${post.team_id}" class="forum-team-link">${escapeHtml(post.team_name || '')}</a>` : ''
 
     let html = `
@@ -244,7 +249,7 @@ export class ForumPage extends UIElement {
       html += `<p class="text-muted">${t('forum.noComments')}</p>`
     } else {
       for (const comment of this._comments) {
-        const cDate = formatDate('DD.MM.YYYY HH:mm', comment.created_at)
+        const cDate = formatDate('DD.MM.YYYY hh:mm', comment.created_at)
         const cTeamLink = comment.team_id ? `<a href="#team?id=${comment.team_id}" class="forum-team-link">${escapeHtml(comment.team_name || '')}</a>` : ''
         html += `
           <div class="forum-comment mb-2 pb-2 border-bottom">
