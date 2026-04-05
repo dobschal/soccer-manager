@@ -103,6 +103,9 @@ export class DashboardPage extends TabbedPage {
     this._urgencies = urgencyResponse.urgencies || []
     this._pendingCards = pendingCardsResponse.pendingCards || []
 
+    // Invalidate cached start page so it picks up fresh urgencies/standing
+    delete this._subPageCache.start
+
     // Determine if there are unseen action cards (include pending cards in the count)
     const cardCount = (actionCardsResponse.actionCards?.length || 0) + this._pendingCards.length
     const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`

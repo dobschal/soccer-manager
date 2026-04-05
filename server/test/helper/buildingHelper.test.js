@@ -110,15 +110,15 @@ describe('buildingHelper', () => {
 
   describe('BUILDING_UPGRADES', () => {
     it('has correct costs and construction times for training area', () => {
-      expect(BUILDING_UPGRADES.training_area_1).toEqual({ cost: 500_000, constructionDays: 5 })
-      expect(BUILDING_UPGRADES.training_area_2).toEqual({ cost: 1_500_000, constructionDays: 10 })
-      expect(BUILDING_UPGRADES.training_area_3).toEqual({ cost: 4_000_000, constructionDays: 17 })
+      expect(BUILDING_UPGRADES.training_area_1).toEqual({ cost: 375_000, constructionDays: 5 })
+      expect(BUILDING_UPGRADES.training_area_2).toEqual({ cost: 1_125_000, constructionDays: 10 })
+      expect(BUILDING_UPGRADES.training_area_3).toEqual({ cost: 3_000_000, constructionDays: 17 })
     })
 
     it('has correct costs and construction times for fitness studio', () => {
-      expect(BUILDING_UPGRADES.fitness_studio_1).toEqual({ cost: 400_000, constructionDays: 4 })
-      expect(BUILDING_UPGRADES.fitness_studio_2).toEqual({ cost: 1_200_000, constructionDays: 8 })
-      expect(BUILDING_UPGRADES.fitness_studio_3).toEqual({ cost: 3_500_000, constructionDays: 15 })
+      expect(BUILDING_UPGRADES.fitness_studio_1).toEqual({ cost: 300_000, constructionDays: 4 })
+      expect(BUILDING_UPGRADES.fitness_studio_2).toEqual({ cost: 900_000, constructionDays: 8 })
+      expect(BUILDING_UPGRADES.fitness_studio_3).toEqual({ cost: 2_625_000, constructionDays: 15 })
     })
 
     it('does not have upgrade for level 4', () => {
@@ -273,7 +273,7 @@ describe('buildingHelper', () => {
       const result = await upgradeBuilding(team, 'training_area', 'en')
 
       expect(result.success).toBe(true)
-      expect(updateTeamBalance).toHaveBeenCalledWith(team, -500_000, expect.any(String), 5, 1)
+      expect(updateTeamBalance).toHaveBeenCalledWith(team, -375_000, expect.any(String), 5, 1)
       expect(query).toHaveBeenCalledWith(
         'UPDATE building SET construction_end_game_day=?, construction_end_season=?, construction_target_level=? WHERE id=?',
         [10, 1, 1, building.id]

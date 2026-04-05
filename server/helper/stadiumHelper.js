@@ -197,9 +197,7 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
     if (seatsDiff === 0) continue
 
-    // Alianz Arena was 360_000_000 € for 60000 seats
-    // --> 6000 per seat incl Roof
-    const pricePerSeat = (seatsDiff / 60_000) * 6000
+    const pricePerSeat = 1000
     let standPrice = pricePerSeat * seatsDiff
     if (currentStadium[standName + '_stand_roof'] && !plannedStadium[standName + '_stand_roof']) {
       throw new BadRequestError('Roof cannot be removed')

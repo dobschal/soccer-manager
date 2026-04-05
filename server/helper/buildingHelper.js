@@ -13,12 +13,12 @@ const GAMEDAYS_PER_SEASON = 34
  * Key format: `${type}_${targetLevel}`
  */
 export const BUILDING_UPGRADES = {
-  training_area_1: { cost: 500_000, constructionDays: 5 },
-  training_area_2: { cost: 1_500_000, constructionDays: 10 },
-  training_area_3: { cost: 4_000_000, constructionDays: 17 },
-  fitness_studio_1: { cost: 400_000, constructionDays: 4 },
-  fitness_studio_2: { cost: 1_200_000, constructionDays: 8 },
-  fitness_studio_3: { cost: 3_500_000, constructionDays: 15 }
+  training_area_1: { cost: 375_000, constructionDays: 5 },
+  training_area_2: { cost: 1_125_000, constructionDays: 10 },
+  training_area_3: { cost: 3_000_000, constructionDays: 17 },
+  fitness_studio_1: { cost: 300_000, constructionDays: 4 },
+  fitness_studio_2: { cost: 900_000, constructionDays: 8 },
+  fitness_studio_3: { cost: 2_625_000, constructionDays: 15 }
 }
 
 /**

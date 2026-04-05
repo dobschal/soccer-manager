@@ -37,6 +37,7 @@ export class ATeamPage extends UIElement {
         this._playerList.players = updatedPlayers.filter(p => !p.fake).sort(sortByPosition)
         this._playerList.update()
       }
+      this.update()
     })
     this._captainClearedEventId = on('captain-cleared', () => {
       this.parent.data.team.captain_id = null

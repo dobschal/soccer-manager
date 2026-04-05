@@ -1,7 +1,7 @@
 import { installGlobalErrorHandler, sendLog } from './lib/clientLogger.js'
 import { DefaultLayout } from './layouts/defaultLayout.js'
 import { NativeAppLayout } from './layouts/nativeAppLayout.js'
-import { initRouter, refreshCurrentPage } from './lib/router.js'
+import { goTo, initRouter, refreshCurrentPage } from './lib/router.js'
 import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
 import { NativeLandingPage } from './pages/native-landing.js'
@@ -42,15 +42,33 @@ window.__onNativeDeviceToken = async function (token, platform) {
   }
 }
 
+// Track the last known game day so we can detect new ones on resume
+let _lastKnownGameDay = null
+let _lastKnownSeason = null
+
 // Shared resume handler – debounced so that native bridge + visibilitychange
 // firing in quick succession only trigger one refresh.
 let _lastResumeTs = 0
-function _onResume () {
+async function _onResume () {
   const now = Date.now()
   if (now - _lastResumeTs < 1000) return
   _lastResumeTs = now
   if (window.localStorage.getItem('auth-token')) {
     server.clearBadge().catch(() => {})
+    try {
+      const currentGameday = await server.getCurrentGameday()
+      if (_lastKnownGameDay !== null &&
+        (currentGameday.gameDay !== _lastKnownGameDay || currentGameday.season !== _lastKnownSeason)) {
+        _lastKnownGameDay = currentGameday.gameDay
+        _lastKnownSeason = currentGameday.season
+        goTo('dashboard')
+        return
+      }
+      _lastKnownGameDay = currentGameday.gameDay
+      _lastKnownSeason = currentGameday.season
+    } catch {
+      // Fall through to refresh
+    }
     refreshCurrentPage()
   }
 }
@@ -70,6 +88,10 @@ initLocale()
 if (window.localStorage.getItem('auth-token')) {
   connectWebSocket()
   server.clearBadge().catch(() => {})
+  // Capture initial game day so we can detect changes on resume
+  server.getCurrentGameday()
+    .then(gd => { _lastKnownGameDay = gd.gameDay; _lastKnownSeason = gd.season })
+    .catch(() => {})
 }
 
 // If device token was already injected before JS loaded, register it now
