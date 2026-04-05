@@ -1,12 +1,11 @@
 import { server } from '../../lib/gateway.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { Table } from '../../partials/table.js'
-import { renderLevelBadge } from '../../partials/levelBadge.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { goTo, setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 
-const SORT_COL_MAP = [null, 'name', 'level']
+const SORT_COL_MAP = [null, 'name']
 
 export class BrowseTeamsPage extends UIElement {
   /**
@@ -27,14 +26,12 @@ export class BrowseTeamsPage extends UIElement {
     const table = new Table({
       cols: [
         { name: '', sortKey: null },
-        { name: t('search.teams'), sortKey: 'name' },
-        { name: t('search.level'), sortKey: 'level', align: 'right' }
+        { name: t('search.teams'), sortKey: 'name' }
       ],
       data: this.teams,
       renderRow: (team) => [
         `<div style="width: 30px; height: 30px;">${renderEmblem(team, 30)}</div>`,
-        `<strong>${team.name}</strong>`,
-        renderLevelBadge(team.level)
+        `<strong>${team.name}</strong>`
       ],
       onClick: (team) => {
         goTo(`team?id=${team.id}`)

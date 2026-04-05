@@ -172,8 +172,6 @@ export function showSearchOverlay () {
               </div>
               <div>
                 <strong>${team.name}</strong>
-                <br>
-                <small class="text-muted">${t('search.level')} ${team.level}</small>
               </div>
             </div>
           `).join('')}
