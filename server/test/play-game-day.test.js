@@ -36,8 +36,8 @@ describe('play-game-day play style', () => {
       const normalCardChance = 0.0008
       const friendlyCardChance = 0.0003
 
-      // Simulate 50000 fights per style (more samples due to lower probabilities)
-      const numFights = 50000
+      // Simulate 500000 fights per style (large sample to reduce variance with low probabilities)
+      const numFights = 500000
       let aggressiveCards = 0
       let normalCards = 0
       let friendlyCards = 0
