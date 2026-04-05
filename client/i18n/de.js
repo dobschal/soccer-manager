@@ -882,5 +882,26 @@ export default {
   'buildings.fitnessLevel0Desc': 'Kein Fitnessstudio. Du erhältst eine reduzierte Chance auf "Energie-Boost" Fitness-Karten.',
   'buildings.fitnessLevel1Desc': 'Einfaches Fitnessstudio. Erhöht die Chance auf "Energie-Boost" Karten und schaltet "Schnelle Erholung" Karten frei.',
   'buildings.fitnessLevel2Desc': 'Mittelmäßiges Fitnessstudio. Schaltet "Volle Erholung" Karten neben bestehenden Fitness-Karten frei.',
-  'buildings.fitnessLevel3Desc': 'Professionelles Fitnessstudio. Maximale Chance auf alle Fitness-Karten einschließlich "Volle Erholung".'
+  'buildings.fitnessLevel3Desc': 'Professionelles Fitnessstudio. Maximale Chance auf alle Fitness-Karten einschließlich "Volle Erholung".',
+
+  // Forum
+  'forum.title': 'Forum',
+  'forum.newCategory': 'Neue Kategorie',
+  'forum.categoryName': 'Kategoriename',
+  'forum.categoryDescription': 'Beschreibung',
+  'forum.createCategory': 'Kategorie erstellen',
+  'forum.categoryCreated': 'Kategorie erstellt!',
+  'forum.noCategories': 'Noch keine Kategorien vorhanden.',
+  'forum.posts': 'Beiträge',
+  'forum.lastActivity': 'Letzte Aktivität',
+  'forum.newPost': 'Neuer Beitrag',
+  'forum.postTitle': 'Titel',
+  'forum.postText': 'Text',
+  'forum.createPost': 'Beitrag erstellen',
+  'forum.noPosts': 'Noch keine Beiträge in dieser Kategorie.',
+  'forum.comments': 'Kommentare',
+  'forum.noComments': 'Noch keine Kommentare.',
+  'forum.commentPlaceholder': 'Kommentar schreiben...',
+  'forum.delete': 'Löschen',
+  'forum.confirmDelete': 'Bist du sicher, dass du das löschen möchtest?'
 }

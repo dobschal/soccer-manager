@@ -12,6 +12,7 @@ import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
 import { BrowsePage } from './pages/browse.js'
 import { AdminPage } from './pages/admin.js'
+import { ForumPage } from './pages/forum.js'
 import { initLocale } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 
@@ -38,6 +39,7 @@ const pages = {
   'my-team': [GameLayout, MyTeamPage],
   browse: [GameLayout, BrowsePage],
   admin: [GameLayout, AdminPage],
+  forum: [GameLayout, ForumPage],
   '*': [GameLayout, DashboardPage]
 }
 

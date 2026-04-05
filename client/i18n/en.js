@@ -882,5 +882,26 @@ export default {
   'buildings.fitnessLevel0Desc': 'No fitness studio. You receive a reduced chance of "Energy Boost" fitness cards.',
   'buildings.fitnessLevel1Desc': 'Basic fitness studio. Increases your chance of "Energy Boost" cards and unlocks "Quick Recovery" cards.',
   'buildings.fitnessLevel2Desc': 'Intermediate fitness studio. Unlocks "Full Recovery" cards alongside existing fitness cards.',
-  'buildings.fitnessLevel3Desc': 'Professional fitness studio. Maximum chance for all fitness cards including "Full Recovery".'
+  'buildings.fitnessLevel3Desc': 'Professional fitness studio. Maximum chance for all fitness cards including "Full Recovery".',
+
+  // Forum
+  'forum.title': 'Forum',
+  'forum.newCategory': 'New Category',
+  'forum.categoryName': 'Category Name',
+  'forum.categoryDescription': 'Description',
+  'forum.createCategory': 'Create Category',
+  'forum.categoryCreated': 'Category created!',
+  'forum.noCategories': 'No categories yet.',
+  'forum.posts': 'Posts',
+  'forum.lastActivity': 'Last activity',
+  'forum.newPost': 'New Post',
+  'forum.postTitle': 'Title',
+  'forum.postText': 'Text',
+  'forum.createPost': 'Create Post',
+  'forum.noPosts': 'No posts in this category yet.',
+  'forum.comments': 'Comments',
+  'forum.noComments': 'No comments yet.',
+  'forum.commentPlaceholder': 'Write a comment...',
+  'forum.delete': 'Delete',
+  'forum.confirmDelete': 'Are you sure you want to delete this?'
 }

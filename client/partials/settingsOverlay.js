@@ -22,6 +22,9 @@ export function showSettingsOverlay ({ isAdmin, version }) {
         ${isAdmin ? `<a href="#admin" id="settings-admin-link" class="list-group-item list-group-item-action list-group-item-warning">
           <i class="fa fa-shield" aria-hidden="true"></i> Admin
         </a>` : ''}
+        <a href="#forum" id="settings-forum-link" class="list-group-item list-group-item-action">
+          <i class="fa fa-comments" aria-hidden="true"></i> ${t('forum.title')}
+        </a>
         <button id="settings-search" class="list-group-item list-group-item-action">
           <i class="fa fa-search" aria-hidden="true"></i> ${t('nav.search')}
         </button>
@@ -60,6 +63,13 @@ export function showSettingsOverlay ({ isAdmin, version }) {
       searchBtn.addEventListener('click', () => {
         overlay.remove()
         goTo('browse')
+      })
+    }
+
+    const forumLink = el('#settings-forum-link')
+    if (forumLink) {
+      forumLink.addEventListener('click', () => {
+        overlay.remove()
       })
     }
 
