@@ -28,6 +28,11 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  // Clear pending timers (e.g. from UIElement.renderSync) to prevent
+  // "document is not defined" errors after jsdom cleanup.
+  vi.useFakeTimers()
+  vi.runAllTimers()
+  vi.useRealTimers()
 })
 
 // Mock fetch globally
