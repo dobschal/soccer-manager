@@ -1,7 +1,7 @@
 import { installGlobalErrorHandler, sendLog } from './lib/clientLogger.js'
 import { DefaultLayout } from './layouts/defaultLayout.js'
 import { NativeAppLayout } from './layouts/nativeAppLayout.js'
-import { goTo, initRouter, refreshCurrentPage } from './lib/router.js'
+import { initRouter, refreshCurrentPage } from './lib/router.js'
 import { server } from './lib/gateway.js'
 import { DashboardPage } from './pages/dashboard.js'
 import { NativeLandingPage } from './pages/native-landing.js'
@@ -62,7 +62,10 @@ async function _onResume () {
         (currentGameday.gameDay !== _lastKnownGameDay || currentGameday.season !== _lastKnownSeason)) {
         _lastKnownGameDay = currentGameday.gameDay
         _lastKnownSeason = currentGameday.season
-        goTo('dashboard')
+        // New game day detected – do a full reload so the app starts in a
+        // clean state (clears gateway cache, in-memory component state, etc.)
+        window.location.hash = '#dashboard'
+        window.location.reload()
         return
       }
       _lastKnownGameDay = currentGameday.gameDay
