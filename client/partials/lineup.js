@@ -210,7 +210,14 @@ export class Lineup extends UIElement {
    * @returns {string}
    */
   _renderSquadPlayer (player) {
-    const freshnessClass = player.freshness < 0.4 ? 'text-danger' : (player.freshness < 0.7 ? 'text-warning' : 'text-success')
+    const freshnessPercentage = Math.round(player.freshness * 100)
+    const freshnessClass = freshnessPercentage >= 80
+      ? 'freshness-success'
+      : freshnessPercentage >= 60
+        ? 'freshness-warning'
+        : freshnessPercentage >= 40
+          ? 'freshness-orange'
+          : 'freshness-danger'
     const displayName = player.name.includes(' ')
       ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
       : player.name

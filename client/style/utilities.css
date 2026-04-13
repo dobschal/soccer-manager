@@ -93,6 +93,23 @@ td.hover-text:hover {
     color: #ff8200 !important;
 }
 
+/* Freshness badge color coding — matches the ProgressBar thresholds/colors */
+.freshness-success {
+    color: #198754 !important;
+}
+
+.freshness-warning {
+    color: #ffc107 !important;
+}
+
+.freshness-orange {
+    color: #fd7e14 !important;
+}
+
+.freshness-danger {
+    color: #dc3545 !important;
+}
+
 /* Whitespace utilities */
 .u-nowrap {
     white-space: nowrap;
