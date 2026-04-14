@@ -85,7 +85,20 @@ export class StartPage {
           ${this._renderUrgencyChecklist()}
         </div>
       </div>
-      <div class="card card-body mb-2 bg-dark mt-3">
+      ${this._renderVideoCard()}
+    `
+  }
+
+  _renderVideoCard () {
+    if (localStorage.getItem('hideVideoCard') === '1') return ''
+    const closeId = generateId()
+    onClick(closeId, () => {
+      localStorage.setItem('hideVideoCard', '1')
+      document.getElementById(closeId)?.closest('.card')?.remove()
+    })
+    return `
+      <div class="card card-body mb-2 bg-dark mt-3 position-relative">
+        <button id="${closeId}" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" type="button" aria-label="Close"></button>
         <h5 class="mb-2 text-center text-white"><i class="fa fa-youtube-play"></i> ${t('dashboard.videoTitle')}</h5>
         <div class="ratio ratio-16x9">
           <iframe src="https://www.youtube.com/embed/tkbwQh1juno" title="${t('dashboard.videoTitle')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -94,10 +107,6 @@ export class StartPage {
     `
   }
 
-  /**
-   * Render the urgency checklist with checkmarks or exclamation marks
-   * @returns {string}
-   */
   _renderUrgencyChecklist () {
     const urgencyTypes = this._urgencies.map(u => u.type)
 
