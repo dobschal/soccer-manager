@@ -48,6 +48,10 @@ img, svg {
     animation: image-fade-in .5s ease-in-out;
 }
 
+.page-settled img, .page-settled svg {
+    animation: none;
+}
+
 /* ==========================================================================
    Animations
    ========================================================================== */

@@ -50,6 +50,11 @@ export class MyTeamPage extends TabbedPage {
       this._initDragDrop()
     }
   }
+  onUpdate () {
+    if (!this.subPage) {
+      this._initDragDrop()
+    }
+  }
   async onQueryChanged (params) {
     if (params.player_id) {
       await showPlayerModal(Number(params.player_id))

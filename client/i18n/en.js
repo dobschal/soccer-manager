@@ -91,6 +91,7 @@ export default {
   'dashboard.inDays': 'in {days} days',
   'dashboard.standingLink': 'Show standing',
   'dashboard.urgencyTitle': 'Action Required',
+  'dashboard.videoTitle': 'How the game works',
   'dashboard.urgencySubtitle': 'There are some things that need your attention',
   'dashboard.urgencyLineup': 'Your lineup is incomplete ({count}/11 players set).',
   'dashboard.urgencyFreshness': '{count} player(s) in your lineup have low fitness (below 50%).',

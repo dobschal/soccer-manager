@@ -25,24 +25,26 @@ export class NativeAppLayout extends UIElement {
     this._season = currentGameday.season
     this._newMessageCount = newMessageResponse.count || 0
   }
+
   get template () {
     return `
       <div class="native-app-layout">
         <div class="native-top-bar">
           <div class="info-bar-content">
-            <a href="#results" class="info-bar-item text-decoration-none text-info border-0">
-              <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
-    gameDay: this._gameDay + 1,
-    season: this._season + 1
-  })}
-            </a>
-            <a href="#dashboard" class="info-bar-item text-decoration-none text-info border-0" id="${this._nextGameInElementId}">
-            </a>
-            <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info border-0">
-              <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
-            </a>
+            <img src="assets/logo.svg" alt="Logo" class="info-bar-logo" id="info-bar-logo">
+            <div class="info-bar-links">
+              <a href="#results" class="info-bar-item text-decoration-none text-white border-0">
+                <i class="fa fa-calendar" aria-hidden="true"></i> 
+                ${this._gameDay + 1} (${this._season + 1})
+              </a>
+              <a href="#dashboard" class="info-bar-item text-decoration-none text-white border-0" id="${this._nextGameInElementId}">
+              </a>
+              <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-white border-0">
+                <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
+              </a>
+            </div>
             <button id="settings-button" class="native-settings-btn" type="button" aria-label="${t('nav.settings')}">
-              <i class="fa fa-cog" aria-hidden="true"></i>
+              <i class="fa fa-cog text-info" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -57,6 +59,7 @@ export class NativeAppLayout extends UIElement {
       </div>
     `
   }
+
   get serverEvents () {
     return {
       BUY_OFFER_ACCEPTED: (data) => {
@@ -78,6 +81,7 @@ export class NativeAppLayout extends UIElement {
       }
     }
   }
+
   onMounted () {
     window.scrollTo({
       top: 0,
@@ -89,14 +93,16 @@ export class NativeAppLayout extends UIElement {
     setTimeout(() => document.querySelector(`${this._elementQuery} .native-tab-bar`)
       ?.classList.remove('hidden'), 1000)
   }
+
   onDestroy () {
     this._stopTimer()
     this._cleanupNavItemEvents()
   }
+
   _interval = null
-  
+
   _nextGameInElementId = generateId()
-  
+
   _messageBadgeId = generateId()
   _nextGameDate = null
   _newMessageCount = 0
@@ -112,7 +118,17 @@ export class NativeAppLayout extends UIElement {
     const settingsBtn = document.querySelector(`${this._elementQuery} #settings-button`)
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => {
-        showSettingsOverlay({ isAdmin: this._isAdmin, version: this._version })
+        showSettingsOverlay({
+          isAdmin: this._isAdmin,
+          version: this._version
+        })
+      })
+    }
+    const logoBtn = document.querySelector(`${this._elementQuery} #info-bar-logo`)
+    if (logoBtn) {
+      logoBtn.addEventListener('click', () => {
+        window.location.hash = 'dashboard'
+        window.location.reload()
       })
     }
   }

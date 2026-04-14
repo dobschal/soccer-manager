@@ -86,6 +86,7 @@ export function getQueryParams () {
 }
 
 let currentLayoutRenderFn
+let _pageSettledTimer
 
 /**
  * @param {string|undefined} fromPath
@@ -118,14 +119,6 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
     }
     return
   }
-
-  // Keep old content visible, hide everything else
-  // TODO: Is that needed?
-  // for (const child of [...container.children]) {
-  //   if (child !== oldWrapper) {
-  //     child.style.display = 'none'
-  //   }
-  // }
 
   const cleanup = () => {
     oldWrapper.style.display = 'none'
@@ -163,6 +156,10 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
  * @returns {Promise<void>}
  */
 async function _resolvePage () {
+  clearTimeout(_pageSettledTimer)
+  const pageEl = el('#page')
+  if (pageEl) pageEl.classList.remove('page-settled')
+
   const currentPath = window.location.hash.substring(1).split('?')[0] || 'dashboard'
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
@@ -261,6 +258,11 @@ function _afterPageLoad () {
     left: 0,
     behavior: 'instant'
   })
+  clearTimeout(_pageSettledTimer)
+  _pageSettledTimer = setTimeout(() => {
+    const pageEl = el('#page')
+    if (pageEl) pageEl.classList.add('page-settled')
+  }, 500)
 }
 
 /**
