@@ -1,3 +1,14 @@
+/* The squad container is a query target so children can size with cqi */
+.lineup-container {
+    container-type: inline-size;
+    container-name: lineup;
+    width: 100%;
+}
+
+.lineup-pitch {
+    width: 100%;
+}
+
 .squad {
     background-color: green;
     background-image: url("../assets/football-field-vertical.jpg");
@@ -8,24 +19,31 @@
     aspect-ratio: 1 / 1.1;
 }
 
+/* Player pill — all dimensions relative to container width */
 .squad .player {
     position: absolute;
-    width: 100px;
-    height: 40px;
+    width: 15cqi;
+    height: 6cqi;
     background-color: rgba(0, 0, 0, 0.4);
-    /*backdrop-filter: blur(5px);*/
     border: solid 1px white;
-    border-radius: 1rem;
-    transform: translateX(-60px) translateY(35px);
+    border-radius: 1.7cqi;
+    transform: translateX(-50%) translateY(50%);
     color: white;
     text-align: center;
-    line-height: 40px;
-    font-size: 12px;
+    line-height: 6cqi;
+    font-size: 1.9cqi;
     box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
 }
 
-.player .player-image {
+.squad .player .player-image {
+    width: 15cqi !important;
+    height: auto !important;
     transform: translateY(-90%);
+}
+
+.squad .player .player-image svg {
+    width: 100%;
+    height: auto;
 }
 
 .player .position-badge {
@@ -33,38 +51,36 @@
     position: absolute;
     top: 0;
     left: 0;
-    transform: translateX(-9px) translateY(-13px);
-    width: 25px;
-    height: 25px;
+    transform: translateX(-35%) translateY(-50%);
+    width: 3.8cqi;
+    height: 3.8cqi;
     background-color: rgb(54 70 45);
-    /* border: solid 1px #C0C0C0; */
     border-radius: 50%;
     color: white;
-    line-height: 25px;
+    line-height: 3.8cqi;
     box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
-    /*backdrop-filter: blur(5px);*/
-    font-size: 11px;
+    font-size: 1.7cqi;
 }
 
 .player .freshness-badge {
     display: block;
     position: absolute;
-    bottom: -19px;
+    bottom: 0;
     left: 0;
-    transform: translateX(-9px) translateY(-13px);
-    width: 36px;
-    height: 18px;
+    transform: translateX(-25%) translateY(50%);
+    width: 5.5cqi;
+    height: 2.7cqi;
     background-color: rgb(0 0 0 / 66%);
-    border-radius: 3px;
+    border-radius: 0.5cqi;
     box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
-    font-size: 12px;
-    line-height: 18px;
+    font-size: 1.9cqi;
+    line-height: 2.7cqi;
 }
 
 .player .name {
     display: block;
     font-weight: normal;
-    font-size: 12px;
+    font-size: 1.9cqi;
     position: absolute;
     top: 0;
     left: 50%;
@@ -77,8 +93,13 @@
     position: absolute;
     top: 0;
     right: 0;
-    transform: translateX(10px) translateY(20px);
+    transform: translateX(35%) translateY(50%);
     box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
+    /* Override fixed sizes from level-badge.css */
+    width: 4.7cqi !important;
+    height: 4.7cqi !important;
+    line-height: 5cqi !important;
+    font-size: 2.5cqi !important;
 }
 
 .squad .player:hover {
@@ -158,38 +179,9 @@
     z-index: 1;
 }
 
-
-/* Lineup container */
-.lineup-container {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start;
-    justify-content: center;
-    max-height: 80vh;
-}
-
-.lineup-pitch {
-    flex: 1;
-    min-width: 0;
-    /* Cap width so the squad (aspect-ratio 1/1.1) never exceeds 80vh in height */
-    max-width: calc(80vh / 1.1);
-}
-
-@media screen and (max-width: 991px) {
-    .squad .player {
-        transform: translateX(-52px) translateY(12px) scale(0.8);
-    }
-}
-
 @media screen and (max-width: 768px) {
     #squad {
         width: calc(100% + 4rem);
         margin: 0 -2rem;
-    }
-}
-
-@media screen and (max-width: 575px) {
-    .squad .player {
-        transform: translateX(-52px) translateY(12px) scale(0.6);
     }
 }
