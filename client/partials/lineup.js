@@ -30,19 +30,12 @@ export class Lineup extends UIElement {
    * @returns {string}
    */
   get template () {
-    const benchPlayers = this.players.filter(p => !p.in_game_position && !p.fake)
     return `
       <div class="lineup-container">
         <div class="card bg-dark lineup-pitch">
           <div class="squad card-body">
             ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
           </div>
-        </div>
-        <div class="bench">
-          <h6 class="bench-title">Bench</h6>
-          ${benchPlayers.length > 0
-    ? benchPlayers.map(p => this._renderSquadPlayer(p)).join('')
-    : '<span class="bench-empty">No bench players</span>'}
         </div>
       </div>
     `
@@ -173,13 +166,6 @@ export class Lineup extends UIElement {
       renderPlayerImage(player, this.team, 100, { isCaptain }).then(image => {
         const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
         const playerEl = document.querySelector(`${this._elementQuery} .squad .player[data-player-id="${playerId}"]`)
-        playerEl?.insertAdjacentHTML('afterbegin', image)
-      })
-    })
-    // Load images for bench players
-    this.players.filter(p => !p.in_game_position && !p.fake).forEach((player) => {
-      renderPlayerImage(player, this.team, 80).then(image => {
-        const playerEl = document.querySelector(`${this._elementQuery} .bench .player[data-player-id="${player.id}"]`)
         playerEl?.insertAdjacentHTML('afterbegin', image)
       })
     })

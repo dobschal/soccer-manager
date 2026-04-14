@@ -235,8 +235,6 @@ export default {
   'myTeam.dragToPosition': 'Spieler ziehen zum Positionieren',
   'myTeam.removeFromLineup': 'Aus Aufstellung entfernen',
   'myTeam.addToLineup': 'Zur Aufstellung hinzufügen',
-  'myTeam.bench': 'Bank',
-  'myTeam.noPlayersOnBench': 'Keine Spieler auf der Bank',
   'myTeam.selectFormation': 'Formation auswählen',
   'myTeam.clickToEditName': 'Klicken um Teamnamen zu bearbeiten',
   'myTeam.teamInfo': 'Team Info',

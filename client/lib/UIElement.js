@@ -124,14 +124,14 @@ export class UIElement {
           return
         }
         // Template not in DOM yet (parent still rendering), wait and retry
-        setTimeout(waitAndRender, 10)
+        requestAnimationFrame(waitAndRender)
         return
       }
       await this._load()
       await this._renderIntoTemplateEl(templateEl)
       this._renderIntoDOM(templateEl, templateEl)
     }
-    setTimeout(waitAndRender)
+    requestAnimationFrame(waitAndRender)
     return `<template id="${this._renderId}"></template>`
   }
 

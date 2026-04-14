@@ -235,8 +235,6 @@ export default {
   'myTeam.dragToPosition': 'Drag players to position them',
   'myTeam.removeFromLineup': 'Remove from Lineup',
   'myTeam.addToLineup': 'Add to Lineup',
-  'myTeam.bench': 'Bench',
-  'myTeam.noPlayersOnBench': 'No players on bench',
   'myTeam.selectFormation': 'Select Formation',
   'myTeam.clickToEditName': 'Click to edit team name',
   'myTeam.teamInfo': 'Team Info',

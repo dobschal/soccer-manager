@@ -159,7 +159,7 @@
 }
 
 
-/* Lineup container: pitch + bench side by side */
+/* Lineup container */
 .lineup-container {
     display: flex;
     gap: 1rem;
@@ -175,71 +175,6 @@
     max-width: calc(80vh / 1.1);
 }
 
-/* Bench panel */
-.bench {
-    width: 140px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4rem;
-    padding: 1rem;
-    background-color: #222;
-    border-radius: 0.5rem;
-    overflow-y: auto;
-    min-height: 0;
-    max-height: 80vh;
-}
-
-.bench-title {
-    color: white;
-    text-align: center;
-    margin: 0;
-    font-size: 20px;
-    opacity: 0.8;
-}
-
-.bench-empty {
-    color: rgba(255, 255, 255, 0.5);
-    text-align: center;
-    font-size: 12px;
-    padding: 1rem 0;
-}
-
-.bench .player {
-    position: relative;
-    width: 100px;
-    height: 40px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: solid 1px white;
-    border-radius: 1rem;
-    color: white;
-    text-align: center;
-    line-height: 40px;
-    font-size: 12px;
-    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
-    margin: 0 auto;
-    transform: none;
-    cursor: grab;
-}
-
-.bench .player:hover {
-    background-color: rgba(0, 0, 0, 0.6);
-}
-
-.bench .player.dragging {
-    opacity: 0.4;
-}
-
-.bench .player.drop-target-highlight {
-    border-color: #0f0;
-    background-color: rgba(0, 100, 0, 0.5);
-    box-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
-}
-
-.bench .player .player-image {
-    transform: translateY(-80%);
-}
-
 @media screen and (max-width: 991px) {
     .squad .player {
         transform: translateX(-52px) translateY(12px) scale(0.8);
@@ -251,11 +186,6 @@
         width: calc(100% + 4rem);
         margin: 0 -2rem;
     }
-
-    .bench {
-        display: none;
-    }
-
 }
 
 @media screen and (max-width: 575px) {

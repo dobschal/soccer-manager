@@ -343,7 +343,6 @@ export class ATeamPage extends UIElement {
     })
     lineUpData.squadDataChanged = true
     await this.update()
-    this.parent._initDragDrop()
   }
 
   /**
