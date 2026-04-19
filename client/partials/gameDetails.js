@@ -1,6 +1,7 @@
 import { UIElement } from '../lib/UIElement.js'
 import { GameAnimation } from './gameAnimation.js'
 import { renderEmblem } from './emblem.js'
+import { renderPositionBadge } from './positionBadge.js'
 
 /**
  * Sort players by position for display: GK, defenders, midfielders, attackers
@@ -42,7 +43,7 @@ function renderSquadList (teamPlayers, teamName) {
     const freshnessColor = freshnessPct < 40 ? 'text-danger' : freshnessPct < 70 ? 'text-warning' : 'text-success'
     return `
       <tr>
-        <td><small class="text-muted">${p.in_game_position || '-'}</small></td>
+        <td>${p.in_game_position ? renderPositionBadge(p.in_game_position) : '<small class="text-muted">-</small>'}</td>
         <td>${p.name}</td>
         <td class="text-end">${originalLevel}</td>
         <td class="text-end ${freshnessColor}">${freshnessPct}%</td>

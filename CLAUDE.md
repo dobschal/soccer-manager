@@ -23,7 +23,7 @@ If a test or lint check fails, fix the issue before moving on.
 ```bash
 # Development
 docker compose up database -d
-DB_HOST=localhost IS_DEVELOPMENT=true node server/api.js
+DB_HOST=localhost node server/api.js
 # Opens at http://localhost:3000
 
 # Testing

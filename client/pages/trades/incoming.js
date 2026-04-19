@@ -5,6 +5,7 @@ import { euroFormat } from '../../lib/currency.js'
 import { setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { Table } from '../../partials/table.js'
 
 export class IncomingOffersPage extends UIElement {
@@ -152,7 +153,7 @@ export class IncomingOffersPage extends UIElement {
     return [
       `<span class="hover-text player-name">${player.name}</span>`,
       fromTeam.name,
-      player.position,
+      renderPositionBadge(player.position),
       renderLevelBadge(player.level),
       euroFormat.format(offer.offer_value),
       `<button class="btn btn-primary"><i class="fa fa-check-circle-o" aria-hidden="true"></i></button>

@@ -13,6 +13,7 @@ import { renderAsync } from '../lib/renderAsync.js'
 import { t } from '../i18n/index.js'
 import { getLevelColor } from './levelBadge.js'
 import { UIElement } from '../lib/UIElement.js'
+import { getPositionColorClass } from '../util/formation.js'
 
 /**
  * Get color for freshness (red/yellow/green)
@@ -106,7 +107,7 @@ export default class PlayerModal extends UIElement {
             <div class="d-flex flex-wrap justify-content-center justify-content-sm-start gap-2">
               <div class="stat-card bg-dark">
                 <div class="stat-card-label">${t('player.position')}</div>
-                <div class="stat-card-value">${this.player.position}</div>
+                <div class="stat-card-value ${getPositionColorClass(this.player.position)}">${this.player.position}</div>
               </div>
               <div class="stat-card bg-dark">
                 <div class="stat-card-label">${t('player.age')}</div>
