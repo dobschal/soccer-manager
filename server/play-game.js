@@ -439,8 +439,8 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     gameDetails.shotsTeamB = (gameDetails.shotsTeamB || 0) + 1
   }
 
-  // Shot is on target ~23% of the time
-  const shotOnTarget = Math.random() < 0.23
+  // Shot on target scales with player level: ~17% at level 10, ~23% at level 40, ~35% at level 100
+  const shotOnTarget = Math.random() < (0.15 + activePlayer.level / 500)
 
   if (!shotOnTarget) {
     // Shot misses the target entirely

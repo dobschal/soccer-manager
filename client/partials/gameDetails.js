@@ -40,12 +40,15 @@ function renderSquadList (teamPlayers, teamName) {
   const rows = sorted.map(p => {
     const freshnessPct = Math.floor(p.freshness * 100)
     const originalLevel = p.freshness > 0 ? Math.round(p.level / p.freshness) : p.level
+    const inGameLevel = Math.round(p.level)
     const freshnessColor = freshnessPct < 40 ? 'text-danger' : freshnessPct < 70 ? 'text-warning' : 'text-success'
+    const levelDiffClass = inGameLevel > originalLevel ? 'text-success' : inGameLevel < originalLevel ? 'text-danger' : ''
     return `
       <tr>
         <td>${p.in_game_position ? renderPositionBadge(p.in_game_position) : '<small class="text-muted">-</small>'}</td>
         <td>${p.name}</td>
         <td class="text-end">${originalLevel}</td>
+        <td class="text-end ${levelDiffClass}">${inGameLevel}</td>
         <td class="text-end ${freshnessColor}">${freshnessPct}%</td>
       </tr>
     `
@@ -62,6 +65,7 @@ function renderSquadList (teamPlayers, teamName) {
               <th>Pos</th>
               <th>Name</th>
               <th class="text-end">Lvl</th>
+              <th class="text-end">IG</th>
               <th class="text-end">Fit</th>
             </tr>
           </thead>
@@ -265,6 +269,8 @@ export class GameDetails extends UIElement {
           </thead>
         </table>
         </div>
+        ${details.teamA?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team1.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
+        ${details.teamB?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team2.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
         ${renderEventTicker(details.log, players, team1.name, team2.name)}
         ${renderSquadList(details.playerTeamA, team1.name)}
         ${renderSquadList(details.playerTeamB, team2.name)}
@@ -288,6 +294,8 @@ export class GameDetails extends UIElement {
             </div>
           </div>
         </div>
+
+        <p class="text-muted small mt-3 mb-0"><strong>IG</strong> (In-Game Level) is the effective strength of a player during the match. It is based on the base level and influenced by freshness, captain choice, star player status and motivating speeches.</p>
       </div>
     `
   }
