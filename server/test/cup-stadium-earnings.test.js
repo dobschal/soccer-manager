@@ -278,7 +278,7 @@ describe('Cup game stadium earnings', () => {
     expect(sd.eastGuests).toBeDefined()
 
     // With team strength of 550 per team (11 players * 50 level),
-    // strengthFactor = (550 * 550) / 100 = 3025
+    // strengthFactor = (550 * 550) / 80 = 3781.25
     const totalGuests = sd.northGuests + sd.southGuests + sd.westGuests + sd.eastGuests
     expect(totalGuests).toBeGreaterThan(0)
 
@@ -354,11 +354,11 @@ describe('Cup game stadium earnings', () => {
     const sd = storedGameDetails.stadiumDetails
 
     // South stand has a roof, so it should have 20% more guests than an equivalent no-roof stand
-    // strengthFactor = (550 * 550) / 100 = 3025
+    // strengthFactor = (550 * 550) / 80 = 3781.25
     // South: priceFactor = (15/10)^2 = 2.25, roofFactor = 1.2
-    //   guests = min(3000, 3025 * 2.25 * 1.2) = min(3000, 8167.5) = 3000 (capped)
+    //   guests = min(3000, 3781.25 * 2.25 * 1.2) = min(3000, 10209.4) = 3000 (capped)
     // West: priceFactor = (15/12)^2 = 1.5625, roofFactor = 1
-    //   guests = min(2000, 3025 * 1.5625 * 1) = min(2000, 4726.5) = 2000 (capped)
+    //   guests = min(2000, 3781.25 * 1.5625 * 1) = min(2000, 5908.2) = 2000 (capped)
     // Both are capped here, so let's just verify the south stand has the roof factor applied
     expect(sd.southGuests).toBeGreaterThan(0)
     expect(sd.southEarnings).toBe(sd.southGuests * 10)
@@ -424,20 +424,20 @@ describe('Cup game stadium earnings', () => {
     const sd = storedGameDetails.stadiumDetails
 
     // strengthTeamA = strengthTeamB = 11 * 50 = 550
-    // strengthFactor = (550 * 550) / 100 = 3025
+    // strengthFactor = (550 * 550) / 80 = 3781.25
     // priceFactor = (15 / 30) ** 2 = 0.25
     // roofFactor = 1 (no roof)
-    // guests = min(50000, floor(3025 * 0.25 * 1)) = min(50000, 756) = 756
-    expect(sd.northGuests).toBe(756)
-    expect(sd.northEarnings).toBe(756 * 30)
-    expect(sd.totalEarnings).toBe(756 * 30)
+    // guests = min(50000, floor(3781.25 * 0.25 * 1)) = min(50000, 945) = 945
+    expect(sd.northGuests).toBe(945)
+    expect(sd.northEarnings).toBe(945 * 30)
+    expect(sd.totalEarnings).toBe(945 * 30)
 
     // Verify updateTeamBalance was called with exact amount
     const earningsCalls = updateTeamBalance.mock.calls.filter(c =>
       c[2] === 'finance.stadiumTicketEarnings'
     )
     expect(earningsCalls.length).toBe(1)
-    expect(earningsCalls[0][1]).toBe(756 * 30)
+    expect(earningsCalls[0][1]).toBe(945 * 30)
   })
 
   it('should not give stadium earnings to away team in cup games', async () => {

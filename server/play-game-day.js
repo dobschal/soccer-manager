@@ -197,6 +197,17 @@ async function _playCupGame (game) {
   for (const player of playerTeamB) {
     player.level *= cupCaptainMultiplierB
   }
+  // Bot teams play 10% weaker to give human players an advantage
+  if (!teamA.user_id) {
+    for (const player of playerTeamA) {
+      player.level *= 0.9
+    }
+  }
+  if (!teamB.user_id) {
+    for (const player of playerTeamB) {
+      player.level *= 0.9
+    }
+  }
 
   kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)
@@ -444,7 +455,7 @@ async function _giveUsersActionCards () {
  * @returns {Promise<StadiumDetails>}
  */
 async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strengthTeamB, gameDay, season) {
-  const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 100
+  const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 80
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [teamA.id])
 
   // If no stadium found, return empty details with no earnings
@@ -688,6 +699,17 @@ async function _playGame (game) {
   }
   for (const player of playerTeamB) {
     player.level *= captainMultiplierB
+  }
+  // Bot teams play 10% weaker to give human players an advantage
+  if (!teamA.user_id) {
+    for (const player of playerTeamA) {
+      player.level *= 0.9
+    }
+  }
+  if (!teamB.user_id) {
+    for (const player of playerTeamB) {
+      player.level *= 0.9
+    }
   }
   kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)

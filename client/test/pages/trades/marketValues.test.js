@@ -214,27 +214,27 @@ describe('MarketValuesPage', () => {
   })
 
   describe('calculateMarketValue', () => {
-    it('level 100, age 22 = 50,000,000', () => {
-      expect(calculateMarketValue(100, 22)).toBe(50_000_000)
+    it('level 100, age 22 = 40,000,000', () => {
+      expect(calculateMarketValue(100, 22)).toBe(40_000_000)
     })
 
-    it('level 50, age 22 = 1,562,500', () => {
-      expect(calculateMarketValue(50, 22)).toBe(1_562_500)
+    it('level 50, age 22 = 1,250,000', () => {
+      expect(calculateMarketValue(50, 22)).toBe(1_250_000)
     })
 
-    it('level 100, age 30 = floor(50M * 0.75^8)', () => {
-      const expected = Math.floor(50_000_000 * Math.pow(0.75, 8))
+    it('level 100, age 30 = floor(40M * 0.75^8)', () => {
+      const expected = Math.floor(40_000_000 * Math.pow(0.75, 8))
       expect(calculateMarketValue(100, 30)).toBe(expected)
     })
 
     it('younger age does not reduce price', () => {
-      expect(calculateMarketValue(100, 16)).toBe(50_000_000)
-      expect(calculateMarketValue(100, 20)).toBe(50_000_000)
+      expect(calculateMarketValue(100, 16)).toBe(40_000_000)
+      expect(calculateMarketValue(100, 20)).toBe(40_000_000)
     })
 
     it('lower level reduces price by half each step', () => {
-      expect(calculateMarketValue(90, 22)).toBe(25_000_000)
-      expect(calculateMarketValue(80, 22)).toBe(12_500_000)
+      expect(calculateMarketValue(90, 22)).toBe(20_000_000)
+      expect(calculateMarketValue(80, 22)).toBe(10_000_000)
     })
   })
 

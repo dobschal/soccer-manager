@@ -6,7 +6,7 @@ vi.mock('../../util/player.js', () => ({
   calculatePlayerAge: vi.fn((player, season) => 18 + season - player.birth_season),
   getSalary: vi.fn((level) => Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99))),
   calculateMarketValue: vi.fn((level, age) => {
-    let price = 50_000_000
+    let price = 40_000_000
     for (let a = 22; a < age; a++) price *= 0.75
     for (let l = 100; l > level; l--) price *= 0.9330329915368074
     return Math.floor(price)

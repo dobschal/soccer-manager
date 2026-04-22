@@ -36,6 +36,19 @@ export default {
     return { success: true }
   },
 
+  async updateForumCategory (categoryId, name, description, req) {
+    assertAdmin(req)
+    if (!name || !name.trim()) {
+      throw new BadRequestError('Category name cannot be empty')
+    }
+    await query('UPDATE forum_category SET name = ?, description = ? WHERE id = ?', [
+      name.trim(),
+      (description || '').trim(),
+      categoryId
+    ])
+    return { success: true }
+  },
+
   async deleteForumCategory (categoryId, req) {
     assertAdmin(req)
     // Delete all related data
@@ -62,7 +75,7 @@ export default {
     const [{ total }] = await query('SELECT COUNT(*) as total FROM forum_post WHERE category_id = ?', [categoryId])
 
     const posts = await query(`
-      SELECT p.id, p.title, p.created_at, p.user_id, p.team_id,
+      SELECT p.id, p.title, p.text, p.created_at, p.user_id, p.team_id,
         u.username,
         t.name AS team_name,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id) AS like_count,
@@ -109,11 +122,12 @@ export default {
     const userId = req.user.id
 
     const [post] = await query(`
-      SELECT p.*, u.username, t.name AS team_name,
+      SELECT p.*, u.username, t.name AS team_name, c.name AS category_name,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id) AS like_count,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
       FROM forum_post p
       JOIN user u ON u.id = p.user_id
+      JOIN forum_category c ON c.id = p.category_id
       LEFT JOIN team t ON t.id = p.team_id
       WHERE p.id = ?
     `, [userId, postId])

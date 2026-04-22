@@ -99,6 +99,45 @@ export async function clearBadge (userId) {
 }
 
 /**
+ * Send a push notification to all users with device tokens, grouped by language.
+ * @param {string} messageEn - English message text
+ * @param {string} messageDe - German message text
+ * @returns {Promise<{sent: number, failed: number}>}
+ */
+export async function sendBroadcastNotification (messageEn, messageDe) {
+  const provider = getApnProvider()
+  if (!provider) {
+    throw new Error('APNs not configured (set APN_KEY_PATH, APN_KEY_ID, APN_TEAM_ID)')
+  }
+
+  const users = await query(
+    `SELECT DISTINCT dt.user_id, COALESCE(u.language, 'en') as language
+     FROM device_token dt
+     JOIN user u ON u.id = dt.user_id
+     WHERE dt.platform = 'ios'`
+  )
+  if (!users.length) return { sent: 0, failed: 0 }
+
+  const messages = { en: messageEn, de: messageDe }
+  const byLanguage = {}
+  for (const user of users) {
+    const lang = user.language || 'en'
+    if (!byLanguage[lang]) byLanguage[lang] = []
+    byLanguage[lang].push(user.user_id)
+  }
+
+  let totalSent = 0
+  let totalFailed = 0
+  for (const [lang, userIds] of Object.entries(byLanguage)) {
+    const body = messages[lang] || messages.en
+    await sendPushNotifications(userIds, 'FootballManager.IO', body)
+    totalSent += userIds.length
+  }
+
+  return { sent: totalSent, failed: totalFailed }
+}
+
+/**
  * Send a push notification directly to a device token (for testing)
  * @param {string} deviceToken
  * @param {string} message

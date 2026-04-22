@@ -23,6 +23,14 @@ export class ForumPage extends UIElement {
   get template () {
     return `
       <div class="forum-page">
+        <nav class="nav nav-pills mb-4">
+          <a class="nav-link" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
+          <a class="nav-link" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}</a>
+          <a class="nav-link" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
+          <a class="nav-link" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}</a>
+          <a class="nav-link active" href="#forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
+        </nav>
+
         <div class="forum-notice alert alert-info">
           <i class="fa fa-info-circle"></i>
           The forum language is <strong>English</strong>. Please be respectful and friendly.
@@ -35,17 +43,30 @@ export class ForumPage extends UIElement {
       </div>
     `
   }
+
   get events () {
     return {
-      '(optional) #forum-cat-create': {
+      '(optional) #forum-cat-submit': {
         click: async () => {
           const name = el(`${this._elementQuery} #forum-cat-name`)?.value
           const desc = el(`${this._elementQuery} #forum-cat-desc`)?.value
           if (!name?.trim()) return
-          await server.createForumCategory(name, desc)
-          toast(t('forum.categoryCreated'), 'success')
+          if (this._editingCategory) {
+            await server.updateForumCategory(this._editingCategory.id, name, desc)
+            toast(t('forum.categoryUpdated'), 'success')
+            this._editingCategory = null
+          } else {
+            await server.createForumCategory(name, desc)
+            toast(t('forum.categoryCreated'), 'success')
+          }
           this._params = getQueryParams()
           await this._loadView()
+          this.update()
+        }
+      },
+      '(optional) #forum-cat-cancel': {
+        click: () => {
+          this._editingCategory = null
           this.update()
         }
       },
@@ -60,7 +81,10 @@ export class ForumPage extends UIElement {
       },
       '(optional) #forum-like-btn': {
         click: async () => {
-          const { liked, likeCount } = await server.toggleForumPostLike(Number(this._params.post))
+          const {
+            liked,
+            likeCount
+          } = await server.toggleForumPostLike(Number(this._params.post))
           this._post.liked = liked
           this._post.like_count = likeCount
           const btn = el(`${this._elementQuery} #forum-like-btn`)
@@ -74,7 +98,9 @@ export class ForumPage extends UIElement {
         click: () => this._submitComment()
       },
       '(optional) #forum-comment-input': {
-        keydown: (e) => { if (e.key === 'Enter') this._submitComment() }
+        keydown: (e) => {
+          if (e.key === 'Enter') this._submitComment()
+        }
       },
       '(optional) #forum-prev-page': {
         click: () => setQueryParams({ page: this._page - 1 })
@@ -84,16 +110,20 @@ export class ForumPage extends UIElement {
       }
     }
   }
+
   onMounted () {
     this._attachDelegatedEvents()
   }
+
   onUpdate () {
     this._attachDelegatedEvents()
   }
+
   onQueryChanged (params) {
     this._params = params
     this._loadView().then(() => this.update())
   }
+
   async _loadView () {
     if (this._params.post) {
       const data = await server.getForumPost(Number(this._params.post))
@@ -114,7 +144,7 @@ export class ForumPage extends UIElement {
       this._view = 'categories'
     }
   }
-  
+
   _renderBreadcrumb () {
     let crumbs = `<a href="#forum">${t('forum.title')}</a>`
     if (this._view === 'posts' || this._view === 'post') {
@@ -125,17 +155,19 @@ export class ForumPage extends UIElement {
     }
     return `<div class="forum-breadcrumb mb-3">${crumbs}</div>`
   }
-  
+
   _renderCategoryList () {
     let html = ''
     if (this._isAdmin) {
+      const editing = this._editingCategory
       html += `
         <div class="card mb-3">
           <div class="card-body">
-            <h6>${t('forum.newCategory')}</h6>
-            <input type="text" id="forum-cat-name" class="form-control mb-2" placeholder="${t('forum.categoryName')}" maxlength="255">
-            <input type="text" id="forum-cat-desc" class="form-control mb-2" placeholder="${t('forum.categoryDescription')}" maxlength="500">
-            <button id="forum-cat-create" class="btn btn-primary btn-sm">${t('forum.createCategory')}</button>
+            <h6>${editing ? t('forum.editCategory') : t('forum.newCategory')}</h6>
+            <input type="text" id="forum-cat-name" class="form-control mb-2" placeholder="${t('forum.categoryName')}" maxlength="255" value="${editing ? escapeHtml(editing.name) : ''}">
+            <input type="text" id="forum-cat-desc" class="form-control mb-2" placeholder="${t('forum.categoryDescription')}" maxlength="500" value="${editing ? escapeHtml(editing.description || '') : ''}">
+            <button id="forum-cat-submit" class="btn btn-primary btn-sm">${editing ? t('forum.save') : t('forum.createCategory')}</button>
+            ${editing ? `<button id="forum-cat-cancel" class="btn btn-secondary btn-sm ms-1">${t('forum.cancel')}</button>` : ''}
           </div>
         </div>
       `
@@ -159,7 +191,12 @@ export class ForumPage extends UIElement {
                 <br><small class="text-muted">${t('forum.lastActivity')}: ${lastActivity}</small>
               </div>
             </div>
-            ${this._isAdmin ? `<button class="btn btn-danger btn-sm mt-1 forum-delete-category" data-id="${cat.id}">${t('forum.delete')}</button>` : ''}
+            ${this._isAdmin ? `
+              <div class="mt-1">
+                <button class="btn btn-outline-primary btn-sm forum-edit-category" data-id="${cat.id}" data-name="${escapeHtml(cat.name)}" data-desc="${escapeHtml(cat.description || '')}">${t('forum.edit')}</button>
+                <button class="btn btn-danger btn-sm ms-1 forum-delete-category" data-id="${cat.id}">${t('forum.delete')}</button>
+              </div>
+            ` : ''}
           </a>
         `
       }
@@ -167,7 +204,7 @@ export class ForumPage extends UIElement {
     }
     return html
   }
-  
+
   _renderPostList () {
     let html = `<h5 class="mb-3">${escapeHtml(this._category?.name || '')}</h5>`
 
@@ -188,19 +225,17 @@ export class ForumPage extends UIElement {
       html += '<div class="list-group">'
       for (const post of this._posts) {
         const date = formatDate('DD.MM.YYYY hh:mm', post.created_at)
-        const teamLink = post.team_id ? `<a href="#team?id=${post.team_id}" class="forum-team-link">${escapeHtml(post.team_name || '')}</a>` : ''
+        const teamName = post.team_id ? `${escapeHtml(post.team_name || '')}` : ''
         html += `
-          <div class="list-group-item forum-post-item">
-            <a href="#forum?category=${this._params.category}&post=${post.id}" class="forum-post-link">
-              <h6 class="mb-1">${escapeHtml(post.title)}</h6>
-            </a>
-            <div class="forum-meta">
-              <small class="text-muted">${escapeHtml(post.username)} ${teamLink ? '- ' + teamLink : ''} - ${date}</small>
+          <a href="#forum?category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item">
+            <h6 class="mb-1">${escapeHtml(post.title)}</h6>
+            <p class="mb-1 text-muted forum-post-preview">${escapeHtml(post.text)}</p>
+            <p class="forum-meta">
+              <small class="text-muted">${escapeHtml(post.username)} ${teamName ? '- ' + teamName : ''} - ${date}</small>
               <span class="ms-2"><i class="fa fa-heart${post.liked ? '' : '-o'}"></i> ${post.like_count}</span>
               <span class="ms-2"><i class="fa fa-comment-o"></i> ${post.comment_count}</span>
-            </div>
-            ${this._isAdmin ? `<button class="btn btn-danger btn-sm mt-1 forum-delete-post" data-id="${post.id}">${t('forum.delete')}</button>` : ''}
-          </div>
+            </p>
+          </a>
         `
       }
       html += '</div>'
@@ -238,6 +273,7 @@ export class ForumPage extends UIElement {
           <button id="forum-like-btn" class="btn btn-sm ${post.liked ? 'btn-danger' : 'btn-outline-danger'}">
             <i class="fa fa-heart${post.liked ? '' : '-o'}"></i> ${post.like_count}
           </button>
+          ${this._isAdmin ? `<button class="btn btn-danger btn-sm ms-2 forum-delete-post" data-id="${post.id}">${t('forum.delete')}</button>` : ''}
         </div>
       </div>
     `
@@ -276,7 +312,7 @@ export class ForumPage extends UIElement {
 
     return html
   }
-  
+
   async _submitComment () {
     const input = el(`${this._elementQuery} #forum-comment-input`)
     if (!input || !input.value.trim()) return
@@ -294,6 +330,19 @@ export class ForumPage extends UIElement {
   _attachDelegatedEvents () {
     const root = el(this._elementQuery)
     if (!root) return
+
+    root.querySelectorAll('.forum-edit-category').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        this._editingCategory = {
+          id: Number(btn.dataset.id),
+          name: btn.dataset.name,
+          description: btn.dataset.desc
+        }
+        this.update()
+      }
+    })
 
     root.querySelectorAll('.forum-delete-category').forEach(btn => {
       btn.onclick = async (e) => {
@@ -313,9 +362,14 @@ export class ForumPage extends UIElement {
         e.stopPropagation()
         if (!confirm(t('forum.confirmDelete'))) return
         await server.deleteForumPost(Number(btn.dataset.id))
-        this._params = getQueryParams()
-        await this._loadView()
-        this.update()
+        const categoryId = this._post?.category_id || this._params.category
+        if (categoryId) {
+          setQueryParams({ category: categoryId })
+        } else {
+          this._params = getQueryParams()
+          await this._loadView()
+          this.update()
+        }
       }
     })
 

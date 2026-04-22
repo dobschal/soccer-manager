@@ -29,7 +29,7 @@ export async function getTeamById (id) {
  */
 export async function cleanupInactiveUsers () {
   const inactiveUsers = await query(
-    `SELECT u.id AS user_id, t.id AS team_id FROM user u JOIN team t ON t.user_id = u.id WHERE COALESCE(u.last_login, u.created_at) < NOW() - INTERVAL ${config.INACTIVE_USER_DAYS} DAY`
+    `SELECT u.id AS user_id, t.id AS team_id FROM user u JOIN team t ON t.user_id = u.id WHERE COALESCE(u.last_login, u.created_at) < NOW() - INTERVAL ${config.INACTIVE_USER_DAYS} DAY AND u.is_admin = 0`
   )
   for (const { user_id: userId, team_id: teamId } of inactiveUsers) {
     console.log(`Removing inactive user ${userId} from team ${teamId}`)

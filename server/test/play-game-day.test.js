@@ -355,7 +355,7 @@ describe('stadium ticket earnings', () => {
    * Simulates the stadium earnings calculation logic from _giveStadiumTicketEarnings
    */
   function calculateStadiumDetails (stadium, strengthTeamA, strengthTeamB) {
-    const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 100
+    const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 80
     const stands = ['north', 'south', 'west', 'east']
     const details = {}
     let totalEarnings = 0
@@ -520,9 +520,9 @@ describe('stadium ticket earnings', () => {
 
       const details = calculateStadiumDetails(stadium, 1000, 1000)
 
-      // strengthFactor = (1000 * 1000) / 100 = 10000
+      // strengthFactor = (1000 * 1000) / 80 = 12500
       // priceFactor = (15 / 15) ** 2 = 1
-      // guests = min(10000, 10000 * 1 * 1) = 10000
+      // guests = min(10000, 12500 * 1 * 1) = 10000 (capped at size)
       expect(details.northGuests).toBe(10000)
     })
 
@@ -537,8 +537,8 @@ describe('stadium ticket earnings', () => {
 
       const details = calculateStadiumDetails(stadium, 1000, 1000)
 
-      // strengthFactor = (1000 * 1000) / 100 = 10000, priceFactor = (15/1) ** 2 = 225
-      // guests = min(100, 10000 * 225) = 100 (capped at size)
+      // strengthFactor = (1000 * 1000) / 80 = 12500, priceFactor = (15/1) ** 2 = 225
+      // guests = min(100, 12500 * 225) = 100 (capped at size)
       expect(details.northGuests).toBe(100)
     })
 

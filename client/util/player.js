@@ -29,7 +29,7 @@ export function calculatePlayerAge (player, currentSeason) {
 
 /**
  * Calculate market value for a player based on level and age.
- * Base: 50M at level 100, age 22.
+ * Base: 40M at level 100, age 22.
  * Age: ×0.75 per year above 22.
  * Level: ×0.9330329915368074 per level below 100 (halves every 10 levels).
  * @param {number} level
@@ -37,7 +37,7 @@ export function calculatePlayerAge (player, currentSeason) {
  * @returns {number}
  */
 export function calculateMarketValue (level, age) {
-  let price = 50_000_000
+  let price = 40_000_000
   for (let a = 22; a < age; a++) price *= 0.75
   for (let l = 100; l > level; l--) price *= 0.9330329915368074
   return Math.floor(price)

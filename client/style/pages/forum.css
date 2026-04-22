@@ -43,17 +43,20 @@
   position: relative;
 }
 
-.forum-post-link {
-  text-decoration: none;
-  color: inherit;
+.forum-post-item h6 {
+  color: var(--bs-primary);
 }
 
-.forum-post-link:hover h6 {
+.forum-post-item:hover h6 {
   text-decoration: underline;
 }
 
-.forum-post-link h6 {
-  color: var(--bs-primary);
+.forum-post-preview {
+  font-size: 0.9rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .forum-meta {

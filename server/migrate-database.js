@@ -1254,6 +1254,21 @@ const migrations = [{
   }
 },
 {
+  name: 'Add is_admin column to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN is_admin TINYINT(1) DEFAULT 0')
+    // Emmo is always an admin
+    await query("UPDATE user SET is_admin = 1 WHERE username = 'Emmo'")
+  }
+},
+{
+  name: 'Increase sponsor values by 20 percent',
+  async run () {
+    const result = await query('UPDATE sponsor SET value = FLOOR(value * 1.2)')
+    console.log(`✅ Increased ${result.affectedRows ?? 0} sponsor values by 20%`)
+  }
+},
+{
   name: 'Create forum_comment table',
   async run () {
     await query(`

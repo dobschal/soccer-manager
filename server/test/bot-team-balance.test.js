@@ -119,7 +119,7 @@ describe('bot team balancing', () => {
         const avgLevel = (range.min + range.max) / 2
         const salaryCost = 18 * getSalary(Math.round(avgLevel)) * 34
 
-        const demand = Math.pow(11 * avgLevel, 2) / 100 * Math.pow(15 / 13, 2)
+        const demand = Math.pow(11 * avgLevel, 2) / 80 * Math.pow(15 / 13, 2)
         const stadiumConfig = _getBotStadiumConfig(level)
         const stands = [stadiumConfig.n, stadiumConfig.s, stadiumConfig.e, stadiumConfig.w]
         const income = 17 * stands.reduce((sum, size) => sum + Math.min(size, demand) * 13, 0)
