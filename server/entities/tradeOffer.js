@@ -5,6 +5,8 @@
  * @property {string} type - like "sell" or "buy"
  * @property {number} player_id
  * @property {number} from_team_id
+ * @property {number} [game_day]
+ * @property {number} [season]
  * @property {Date} created_at
  */
 
@@ -21,6 +23,8 @@ export function TradeOffer (raw) {
     type: RequiredString,
     player_id: RequiredNumber,
     from_team_id: RequiredNumber,
+    game_day: OptionalNumber,
+    season: OptionalNumber,
     created_at: OptionalObject
   })
   for (const key in raw) {

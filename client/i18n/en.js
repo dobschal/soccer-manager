@@ -10,6 +10,7 @@ export default {
   'nav.run': 'Run',
   'nav.running': 'Running...',
   'nav.settings': 'Settings',
+  'nav.restDay': 'Rest Day',
   'nav.language': 'Language',
   'nav.search': 'Search',
   'nav.account': 'Account',
@@ -324,6 +325,7 @@ export default {
   'youthTeam.name': 'Name',
   'youthTeam.actions': 'Actions',
   'youthTeam.idealRhythm': 'Tip: The ideal rhythm is 2x training, 1x friendly match, 1x rest for optimal development.',
+  'youthTeam.retirementWarning': 'Youth players must be promoted to the A Team by the age of 18 at the latest. Players who are still in the youth team at age 19 will retire automatically.',
 
   // Trades / Transfers
   'trades.title': 'Transfers',
@@ -526,6 +528,7 @@ export default {
   'player.history': 'History',
   'player.noHistory': '... no entry yet',
   'player.close': 'Close',
+  'player.star': 'Star',
   'player.freePlayer': 'Free player',
   'player.sellPlayer': 'Sell Player?',
   'player.buyPlayer': 'Buy Player?',
@@ -560,6 +563,9 @@ export default {
   'player.starPlayer': 'Star Player',
   'player.starPlayerDesc': 'This player receives a permanent 10% level bonus in matches.',
   'player.historyStarPlayer': 'Promoted to Star Player',
+  'player.retiringNextSeason': 'This player will retire after this season',
+  'player.retiringTitle': 'Retiring Soon',
+  'player.retiringDesc': 'This player will retire at the end of the current season and leave your team.',
 
   // Action Cards
   'actionCards.title': 'Action Cards',

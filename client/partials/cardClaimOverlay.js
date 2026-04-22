@@ -89,6 +89,22 @@ function _showSingleCardClaim (card, remainingCards, state) {
 
     let claimed = false
 
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && !claimed) {
+        document.removeEventListener('keydown', onKeyDown)
+        claimed = true
+        state.skipped = true
+        Promise.all(remainingCards.map(c =>
+          server.claimActionCard(c.id).catch(err => console.error('Failed to claim card:', err))
+        )).then(() => {
+          const overlay = document.getElementById(overlayId)
+          if (overlay) overlay.remove()
+          resolve()
+        })
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+
     onClick('#' + skipBtnId, async () => {
       if (claimed) return
       claimed = true

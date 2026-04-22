@@ -1,9 +1,10 @@
 import { server } from '../../lib/gateway.js'
 import { generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
-import { setQueryParams } from '../../lib/router.js'
+import { goTo, setQueryParams } from '../../lib/router.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { renderEmblem } from '../../partials/emblem.js'
+import { renderPlayerImage } from '../../partials/playerImage.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
@@ -49,8 +50,15 @@ export class CupResultsPage extends UIElement {
       return
     }
 
-    const { results } = await server.getCupResults(this.cupSeason, this.cupRound)
+    const nextUnplayedRound = rounds.find(r => !r.played)
+    const isNextRound = nextUnplayedRound && this.cupRound === nextUnplayedRound.round
+    const isCurrentSeason = this.cupSeasons.length > 0 && this.cupSeason === this.cupSeasons[0]
+    const [{ results }, { suspendedPlayers }] = await Promise.all([
+      server.getCupResults(this.cupSeason, this.cupRound),
+      isCurrentSeason && isNextRound ? server.getSuspendedPlayersForCup(this.cupSeason, this.cupRound) : Promise.resolve({ suspendedPlayers: [] })
+    ])
     this.cupResults = results
+    this.suspendedPlayers = suspendedPlayers
   }
 
   get template () {
@@ -110,6 +118,21 @@ export class CupResultsPage extends UIElement {
       rowAttrs: (result) => `id="${result._rowId}"`
     })
 }
+
+        ${this.suspendedPlayers.length > 0 ? `
+          <h3>${t('results.suspendedPlayers')}</h3>
+          ${new Table({
+    cols: [
+      { name: '' },
+      { name: t('results.name') },
+      { name: t('results.team') },
+      { name: t('player.cards') }
+    ],
+    data: this.suspendedPlayers,
+    renderRow: (player) => this._renderSuspendedPlayer(player),
+    rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
+  })}
+        ` : ''}
       </div>
     `
   }
@@ -131,6 +154,9 @@ export class CupResultsPage extends UIElement {
     }
   }
 
+  onMounted () {
+    this._loadSuspendedPlayerImages()
+  }
   cupSeason = null
 
   cupRound = null
@@ -138,6 +164,7 @@ export class CupResultsPage extends UIElement {
   cupResults = []
   cupSeasons = []
   cupTotalRounds = 0
+  suspendedPlayers = []
 
   get myTeamId () {
     return this.parentPage.myTeamId
@@ -228,6 +255,38 @@ export class CupResultsPage extends UIElement {
       `${team1Name}${emblem1}`,
       `${isBye ? t('cup.bye') : (isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming'))}`,
       `${emblem2}${team2Name}`
+    ]
+  }
+
+  _loadSuspendedPlayerImages () {
+    if (this.suspendedPlayers) {
+      this.suspendedPlayers.forEach((player) => {
+        if (!player || !player.team) return
+        renderPlayerImage(player, player.team, 48).then(image => {
+          const imageEl = document.querySelector(`${this._elementQuery} .suspended-image[data-suspended-id="${player.id}"]`)
+          if (imageEl) {
+            imageEl.innerHTML = image
+          }
+        })
+      })
+    }
+  }
+
+  _renderSuspendedPlayer (player) {
+    if (!player || !player.team) return ['', '', '', '']
+    const teamId = generateId()
+    onClick(teamId, () => goTo(`team?id=${player.team.id}`))
+    const playerId = generateId()
+    onClick(playerId, () => {
+      setQueryParams({ player_id: player.id + '' })
+    })
+    const yellowCards = player.yellow_cards || 0
+    const redCards = player.red_cards || 0
+    return [
+      `<span class="suspended-image" data-suspended-id="${player.id}" style="display:inline-block;width:48px;"></span>`,
+      `<span id="${playerId}" class="u-cursor-pointer">${player.name}</span>`,
+      `<span id="${teamId}" class="u-cursor-pointer">${player.team.name}</span>`,
+      `${yellowCards > 0 ? `<span class="text-warning">${yellowCards} <i class="fa fa-square"></i></span>` : ''}${redCards > 0 ? `<span class="text-danger ms-1">${redCards} <i class="fa fa-square"></i></span>` : ''}`
     ]
   }
 

@@ -22,6 +22,7 @@ import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import {
   calculateCupSchedule,
+  calculateInterleavedSchedule,
   createCupDraw,
   progressCupRound,
   awardCupWinner,
@@ -45,7 +46,7 @@ describe('cupHelper', () => {
       expect(schedule.length).toBe(6) // 64 -> 32 -> 16 -> 8 -> 4 -> 2 -> 1
       expect(schedule[schedule.length - 1].round).toBe(1) // Final
       expect(schedule[schedule.length - 1].roundName).toBe('final')
-      expect(schedule[schedule.length - 1].gameDay).toBe(32) // Final before last game day
+      expect(schedule[schedule.length - 1].gameDay).toBe(33) // Final before last league day (totalGameDays defaults to 34)
     })
 
     it('calculates schedule for 128 teams', () => {
@@ -96,6 +97,66 @@ describe('cupHelper', () => {
       for (let i = 1; i < schedule.length; i++) {
         expect(schedule[i].gameDay).toBeGreaterThanOrEqual(schedule[i - 1].gameDay)
       }
+    })
+  })
+
+  describe('calculateInterleavedSchedule', () => {
+    it('produces no overlapping game days between cup and league', () => {
+      const { leagueDayMap, cupGameDays } = calculateInterleavedSchedule(64, 34)
+
+      const leagueDays = new Set(leagueDayMap)
+      const cupDays = new Set(cupGameDays.values())
+
+      // No game day should appear in both sets
+      for (const cupDay of cupDays) {
+        expect(leagueDays.has(cupDay)).toBe(false)
+      }
+    })
+
+    it('total game days equals league days plus cup rounds', () => {
+      const { leagueDayMap, cupGameDays, totalGameDays } = calculateInterleavedSchedule(64, 34)
+
+      expect(totalGameDays).toBe(leagueDayMap.length + cupGameDays.size)
+    })
+
+    it('preserves league day ordering', () => {
+      const { leagueDayMap } = calculateInterleavedSchedule(64, 34)
+
+      for (let i = 1; i < leagueDayMap.length; i++) {
+        expect(leagueDayMap[i]).toBeGreaterThan(leagueDayMap[i - 1])
+      }
+    })
+
+    it('cup game days are in ascending order by round progression', () => {
+      const { cupGameDays, cupSchedule } = calculateInterleavedSchedule(64, 34)
+
+      // Cup schedule rounds go from highest (first round) to 1 (final)
+      // Game days should increase as rounds progress
+      const sortedByRound = [...cupSchedule].sort((a, b) => b.round - a.round)
+      for (let i = 1; i < sortedByRound.length; i++) {
+        const prevDay = cupGameDays.get(sortedByRound[i - 1].round)
+        const currDay = cupGameDays.get(sortedByRound[i].round)
+        expect(currDay).toBeGreaterThan(prevDay)
+      }
+    })
+
+    it('all game days from 0 to totalGameDays-1 are covered', () => {
+      const { leagueDayMap, cupGameDays, totalGameDays } = calculateInterleavedSchedule(64, 34)
+
+      const allDays = new Set([...leagueDayMap, ...cupGameDays.values()])
+      expect(allDays.size).toBe(totalGameDays)
+
+      for (let i = 0; i < totalGameDays; i++) {
+        expect(allDays.has(i)).toBe(true)
+      }
+    })
+
+    it('works with small team counts', () => {
+      const { leagueDayMap, cupGameDays, totalGameDays } = calculateInterleavedSchedule(4, 34)
+
+      expect(leagueDayMap.length).toBe(34)
+      expect(cupGameDays.size).toBeGreaterThan(0)
+      expect(totalGameDays).toBe(34 + cupGameDays.size)
     })
   })
 

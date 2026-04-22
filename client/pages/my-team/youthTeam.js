@@ -45,6 +45,10 @@ export class YouthTeamPage extends UIElement {
         </div>
 
         ${this._renderYouthPlayerTable()}
+
+        <div class="alert alert-warning mt-3">
+          <i class="fa fa-exclamation-triangle"></i> ${t('youthTeam.retirementWarning')}
+        </div>
       </div>
     `
   }

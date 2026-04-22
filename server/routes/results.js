@@ -11,19 +11,41 @@ import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
 export default {
 
   /**
-   * @returns {Promise<{date: Date}>}
+   * Returns the date of the team's next game. If the team has no game on the
+   * immediate next game tick (e.g. cup day and team is eliminated), isRestDay is true.
+   * @param {Request} [req]
+   * @returns {Promise<{date: Date, isRestDay: boolean}>}
    */
-  async getNextGameDate () {
-    const d = new Date()
-    d.setHours(12)
-    d.setMinutes(0)
-    d.setSeconds(0)
-    if (Date.now() > d.getTime()) { // afternoon
-      d.setHours(23)
-      d.setMinutes(59)
-      d.setSeconds(59)
+  async getNextGameDate (req) {
+    const nextTick = new Date()
+    nextTick.setHours(12)
+    nextTick.setMinutes(0)
+    nextTick.setSeconds(0)
+    if (Date.now() > nextTick.getTime()) {
+      nextTick.setHours(23)
+      nextTick.setMinutes(59)
+      nextTick.setSeconds(59)
     }
-    return { date: d }
+
+    if (!req?.user) return { date: nextTick, isRestDay: false }
+
+    try {
+      const team = await getTeam(req)
+      const { gameDay: currentGameDay, season } = await getGameDayAndSeason()
+
+      const [nextGame] = await query(
+        'SELECT game_day FROM game WHERE played=0 AND season=? AND (team_1_id=? OR team_2_id=?) ORDER BY game_day ASC LIMIT 1',
+        [season, team.id, team.id]
+      )
+
+      if (!nextGame) return { date: nextTick, isRestDay: false }
+
+      const dayOffset = nextGame.game_day - currentGameDay
+      const nextGameDate = new Date(nextTick.getTime() + dayOffset * 12 * 60 * 60 * 1000)
+      return { date: nextGameDate, isRestDay: dayOffset > 0 }
+    } catch {
+      return { date: nextTick, isRestDay: false }
+    }
   },
 
   /**
@@ -98,7 +120,7 @@ export default {
    */
   async getGamesForSlider (pastCount, upcomingCount, req) {
     const team = await getTeam(req)
-    const { season } = await getGameDayAndSeason()
+    const { season, gameDay: currentGameDay } = await getGameDayAndSeason()
 
     // Get past played games for this team
     const pastGames = await query(`
@@ -163,16 +185,12 @@ export default {
       nextGameDate.setSeconds(59)
     }
 
-    // Calculate game dates for upcoming games based on their game day offset
-    // Games happen every 12 hours (noon and midnight)
-    const nextGameDay = upcomingGames.length > 0 ? upcomingGames[0].gameDay : null
+    // Calculate game dates for upcoming games based on offset from current game day
+    // Each game day is 12 hours apart (one cron tick)
     const upcomingGamesWithDates = upcomingGames.map((game) => {
       const gameDate = new Date(nextGameDate)
-      if (nextGameDay !== null) {
-        const dayOffset = game.gameDay - nextGameDay
-        // Each game day is 12 hours apart
-        gameDate.setTime(gameDate.getTime() + dayOffset * 12 * 60 * 60 * 1000)
-      }
+      const dayOffset = game.gameDay - currentGameDay
+      gameDate.setTime(gameDate.getTime() + dayOffset * 12 * 60 * 60 * 1000)
       return {
         ...game,
         gameDate
@@ -193,7 +211,7 @@ export default {
    */
   async getNextGame (req) {
     const team = await getTeam(req)
-    const { season } = await getGameDayAndSeason()
+    const { season, gameDay: currentGameDay } = await getGameDayAndSeason()
 
     // Get the next unplayed game for this team
     const games = await query(`
@@ -228,20 +246,22 @@ export default {
     const opponentId = game.team1Id === team.id ? game.team2Id : game.team1Id
     const [opponent] = await query('SELECT * FROM team WHERE id = ?', [opponentId])
 
-    // Calculate next game date
-    const d = new Date()
-    d.setHours(12)
-    d.setMinutes(0)
-    d.setSeconds(0)
-    if (Date.now() > d.getTime()) {
-      d.setHours(23)
-      d.setMinutes(59)
-      d.setSeconds(59)
+    // Calculate next game date based on offset from current game day
+    const nextTick = new Date()
+    nextTick.setHours(12)
+    nextTick.setMinutes(0)
+    nextTick.setSeconds(0)
+    if (Date.now() > nextTick.getTime()) {
+      nextTick.setHours(23)
+      nextTick.setMinutes(59)
+      nextTick.setSeconds(59)
     }
+    const dayOffset = game.gameDay - currentGameDay
+    const nextGameDate = new Date(nextTick.getTime() + dayOffset * 12 * 60 * 60 * 1000)
 
     return {
       game,
-      nextGameDate: d,
+      nextGameDate,
       opponent
     }
   },

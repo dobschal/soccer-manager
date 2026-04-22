@@ -29,7 +29,7 @@ export const actionCardChances = {
   BONUS_100K: 0.06,
   LEVEL_UP_PLAYER_70: 0.3,
   LEVEL_UP_PLAYER_100: 0.06,
-  STAR_PLAYER: 0.015,
+  STAR_PLAYER: 0.01,
   MOTIVATING_SPEECH: 0.05
 }
 

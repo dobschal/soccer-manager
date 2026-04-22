@@ -37,8 +37,9 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '10mb' }))
 app.use('/', express.static('client', { index: 'index.html' }))
+app.use('/uploads', express.static('uploads', { maxAge: '30d' }))
 
 /**
  * Check if the authorization header is available, if so validate the JWT and

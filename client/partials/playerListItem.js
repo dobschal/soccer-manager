@@ -1,10 +1,11 @@
 import { UIElement } from '../lib/UIElement.js'
-import { calculatePlayerAge, getSalary } from '../util/player.js'
+import { calculatePlayerAge, getSalary, willRetireNextSeason } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { renderLevelBadge } from './levelBadge.js'
 import { calculateMarketValue } from '../util/player.js'
 import { ProgressBar } from './progressBar.js'
 import { renderPositionBadge } from './positionBadge.js'
+import { t } from '../i18n/index.js'
 
 export class PlayerListItem extends UIElement {
   /**
@@ -38,6 +39,7 @@ export class PlayerListItem extends UIElement {
 
     const salary = getSalary(this.player.level)
     const value = calculateMarketValue(this.player.level, age)
+    const retiring = willRetireNextSeason(this.player, this.season)
     const hiddenClass = ''
     const extendedCells = `
       <td class="text-right ${hiddenClass}">${euroFormat.format(value)}</td>
@@ -47,7 +49,7 @@ export class PlayerListItem extends UIElement {
 
     return `
       <tr class="${rowClass}" data-player-id="${this.player.id}">
-        <th scope="row">${this.player.name}${isCaptain ? ' (C)' : ''}${this.player.is_star_player ? ' ⭐' : ''}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''} ${this._renderCards(yellowCards, redCards)}</th>
+        <th scope="row">${this.player.name}${isCaptain ? ' (C)' : ''}${this.player.is_star_player ? ' ⭐' : ''}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''}${retiring ? ` <span class="retirement-icon" title="${t('player.retiringNextSeason')}"><i class="fa fa-hourglass-end"></i></span>` : ''} ${this._renderCards(yellowCards, redCards)}</th>
         <td>${renderPositionBadge(this.player.position)}</td>
         <td class="text-right">${age}</td>
         <td class="text-right">${new ProgressBar(this.player.freshness)}</td>

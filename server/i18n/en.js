@@ -20,6 +20,7 @@ export default {
   'error.playerAlreadyListed': 'Player is already listed',
   'error.invalidOfferValue': 'Invalid offer value',
   'error.offerTooLow': 'Offer is too low',
+  'error.offerLimitReached': 'You can only make 3 offers per player per game day',
 
   // Stadium errors
   'error.standNotFound': 'Stand not found',

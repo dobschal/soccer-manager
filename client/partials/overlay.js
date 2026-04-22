@@ -229,6 +229,14 @@ export function showOverlay (title, subttitle, text) {
 
   setupTouchSwipe(overlayId, overlayInnerId, listeners)
 
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      fadeOutAndRemove(overlayId, listeners)
+    }
+  }
+  document.addEventListener('keydown', onKeyDown)
+  listeners.push(() => document.removeEventListener('keydown', onKeyDown))
+
   return {
     onClose (callback) {
       listeners.push(callback)

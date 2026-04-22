@@ -7,7 +7,7 @@ import { calculatePlayerAge } from '../../util/player.js'
 import { goTo, setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 
-const SORT_COL_MAP = ['name', 'position', 'level', 'age', 'team_name']
+const SORT_COL_MAP = ['name', 'position', 'level', 'age', 'is_star_player', 'team_name']
 
 export class BrowsePlayersPage extends UIElement {
   /**
@@ -33,6 +33,7 @@ export class BrowsePlayersPage extends UIElement {
         { name: t('trades.position'), sortKey: 'position' },
         { name: t('search.level'), sortKey: 'level', align: 'right' },
         { name: t('player.age'), sortKey: '_age', align: 'right' },
+        { name: t('player.star'), sortKey: 'is_star_player', align: 'center' },
         { name: t('results.team'), sortKey: 'team_name' }
       ],
       data: this.players.map(p => ({ ...p, _age: calculatePlayerAge(p, this.season) })),
@@ -41,6 +42,7 @@ export class BrowsePlayersPage extends UIElement {
         renderPositionBadge(player.position),
         renderLevelBadge(player.level),
         `${player._age}`,
+        player.is_star_player ? '<i class="fa fa-star text-warning"></i>' : '',
         player.team_name || '-'
       ],
       onClick: (player) => {

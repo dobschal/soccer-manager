@@ -48,14 +48,24 @@ export default {
     if (typeof price !== 'number') throw new BadRequestError(t('error.invalidOfferValue', {}, locale))
     if (typeof type !== 'string') throw new BadRequestError(t('error.invalidRequest', {}, locale))
     if (price <= 0) throw new BadRequestError(t('error.invalidOfferValue', {}, locale))
+    const { gameDay, season } = await getGameDayAndSeason()
     const tradeOffer = new TradeOffer({
       offer_value: price,
       type: type,
       player_id: player.id,
-      from_team_id: team.id
+      from_team_id: team.id,
+      game_day: gameDay,
+      season: season
     })
     const results = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'', [tradeOffer.from_team_id, tradeOffer.player_id])
     if (results.length > 0) throw new BadRequestError(t('error.playerAlreadyListed', {}, locale))
+    if (type === 'buy') {
+      const [{ count }] = await query(
+        'SELECT COUNT(*) AS count FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\' AND game_day=? AND season=?',
+        [team.id, player.id, gameDay, season]
+      )
+      if (count >= 3) throw new BadRequestError(t('error.offerLimitReached', {}, locale))
+    }
     await query('INSERT INTO trade_offer SET ?', tradeOffer)
 
     // Notify the player's team about the incoming buy offer
@@ -70,7 +80,6 @@ export default {
           [receivingTeam.id, player.id]
         )
         if (sellOffer && price >= sellOffer.offer_value) {
-          const { gameDay, season } = await getGameDayAndSeason()
           const [insertedOffer] = await query(
             'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\' AND status=\'open\'',
             [team.id, player.id]
@@ -82,7 +91,6 @@ export default {
         }
 
         // No matching sell offer or price too low — full bot evaluation
-        const { gameDay, season } = await getGameDayAndSeason()
         const [insertedOffer] = await query(
           'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\' AND status=\'open\'',
           [team.id, player.id]
@@ -257,7 +265,7 @@ export default {
     const locale = req.locale || 'en'
     const team = await getTeam(req)
     if (!offer.id || !team.id) throw new BadRequestError(t('error.offerNotFound', {}, locale))
-    await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=? AND status IN (\'accepted\', \'rejected\')', [team.id, offer.id])
+    await query('UPDATE trade_offer SET status=\'dismissed\' WHERE from_team_id=? AND id=? AND status IN (\'accepted\', \'rejected\')', [team.id, offer.id])
     return { success: true }
   },
 

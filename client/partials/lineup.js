@@ -30,10 +30,14 @@ export class Lineup extends UIElement {
    * @returns {string}
    */
   get template () {
+    const lineupStrength = this.players
+      .filter(p => p.in_game_position && !p.fake)
+      .reduce((sum, p) => sum + p.level, 0)
     return `
       <div class="lineup-container">
         <div class="card bg-dark lineup-pitch">
           <div class="squad card-body">
+            <span class="lineup-strength-overlay">${lineupStrength}</span>
             ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
           </div>
         </div>

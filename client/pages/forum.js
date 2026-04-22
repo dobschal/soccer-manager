@@ -40,6 +40,9 @@ export class ForumPage extends UIElement {
         ${this._view === 'post' ? this._renderPostDetail() : ''}
         ${this._view === 'posts' ? this._renderPostList() : ''}
         ${this._view === 'categories' ? this._renderCategoryList() : ''}
+        <div id="forum-image-overlay" class="forum-image-overlay" hidden>
+          <img id="forum-overlay-img" src="" alt="">
+        </div>
       </div>
     `
   }
@@ -100,6 +103,15 @@ export class ForumPage extends UIElement {
       '(optional) #forum-comment-input': {
         keydown: (e) => {
           if (e.key === 'Enter') this._submitComment()
+        }
+      },
+      '(optional) #forum-image-input': {
+        change: (e) => this._onImagesSelected(e)
+      },
+      '(optional) #forum-image-overlay': {
+        click: () => {
+          const overlay = el(`${this._elementQuery} #forum-image-overlay`)
+          if (overlay) overlay.hidden = true
         }
       },
       '(optional) #forum-prev-page': {
@@ -287,6 +299,9 @@ export class ForumPage extends UIElement {
       for (const comment of this._comments) {
         const cDate = formatDate('DD.MM.YYYY hh:mm', comment.created_at)
         const cTeamLink = comment.team_id ? `<a href="#team?id=${comment.team_id}" class="forum-team-link">${escapeHtml(comment.team_name || '')}</a>` : ''
+        const commentImages = (comment.images || []).map(img =>
+          `<img src="/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="/uploads/forum/${escapeHtml(img.filename)}">`
+        ).join('')
         html += `
           <div class="forum-comment mb-2 pb-2 border-bottom">
             <div class="forum-meta mb-1">
@@ -296,21 +311,62 @@ export class ForumPage extends UIElement {
               ${this._isAdmin ? `<button class="btn btn-danger btn-sm ms-2 forum-delete-comment" data-id="${comment.id}">${t('forum.delete')}</button>` : ''}
             </div>
             <div>${escapeHtml(comment.text).replace(/\n/g, '<br>')}</div>
+            ${commentImages ? `<div class="forum-comment-images">${commentImages}</div>` : ''}
           </div>
         `
       }
     }
 
     html += `
-      <div class="input-group mt-3">
-        <input id="forum-comment-input" type="text" class="form-control" placeholder="${t('forum.commentPlaceholder')}" maxlength="1000">
-        <button id="forum-comment-send" class="btn btn-primary" type="button">
-          <i class="fa fa-paper-plane"></i>
-        </button>
+      <div class="mt-3">
+        <div class="input-group">
+          <input id="forum-comment-input" type="text" class="form-control" placeholder="${t('forum.commentPlaceholder')}" maxlength="1000">
+          <label id="forum-image-btn" class="btn btn-outline-secondary" title="${t('forum.addImages')}">
+            <i class="fa fa-image"></i>
+            <input id="forum-image-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+          </label>
+          <button id="forum-comment-send" class="btn btn-primary" type="button">
+            <i class="fa fa-paper-plane"></i>
+          </button>
+        </div>
+        <div id="forum-image-preview" class="forum-image-preview"></div>
       </div>
     `
 
     return html
+  }
+
+  _onImagesSelected (e) {
+    const files = Array.from(e.target.files || [])
+    if (!this._pendingImages) this._pendingImages = []
+    for (const file of files) {
+      if (this._pendingImages.length >= 5) break
+      if (!file.type.startsWith('image/')) continue
+      if (file.size > 2 * 1024 * 1024) continue
+      const reader = new FileReader()
+      reader.onload = () => {
+        this._pendingImages.push({ data: reader.result, type: file.type, name: file.name })
+        this._renderImagePreview()
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  _renderImagePreview () {
+    const container = el(`${this._elementQuery} #forum-image-preview`)
+    if (!container) return
+    container.innerHTML = (this._pendingImages || []).map((img, i) =>
+      `<div class="forum-preview-item">
+        <img src="${img.data}" class="forum-comment-thumb">
+        <button class="forum-preview-remove" data-index="${i}"><i class="fa fa-times"></i></button>
+      </div>`
+    ).join('')
+    container.querySelectorAll('.forum-preview-remove').forEach(btn => {
+      btn.onclick = () => {
+        this._pendingImages.splice(Number(btn.dataset.index), 1)
+        this._renderImagePreview()
+      }
+    })
   }
 
   async _submitComment () {
@@ -318,7 +374,9 @@ export class ForumPage extends UIElement {
     if (!input || !input.value.trim()) return
     input.disabled = true
     try {
-      await server.addForumComment(Number(this._params.post), input.value)
+      const images = (this._pendingImages || []).map(img => ({ data: img.data, type: img.type }))
+      await server.addForumComment(Number(this._params.post), input.value, images.length > 0 ? images : null)
+      this._pendingImages = []
       this._params = getQueryParams()
       await this._loadView()
       this.update()
@@ -369,6 +427,17 @@ export class ForumPage extends UIElement {
           this._params = getQueryParams()
           await this._loadView()
           this.update()
+        }
+      }
+    })
+
+    root.querySelectorAll('.forum-comment-thumb').forEach(img => {
+      img.onclick = () => {
+        const overlay = el(`${this._elementQuery} #forum-image-overlay`)
+        const overlayImg = el(`${this._elementQuery} #forum-overlay-img`)
+        if (overlay && overlayImg) {
+          overlayImg.src = img.dataset.full || img.src
+          overlay.hidden = false
         }
       }
     })

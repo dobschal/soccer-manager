@@ -24,7 +24,7 @@ export default {
 
     /** @type {PlayerType[]} */
     const players = await query(
-      'SELECT * FROM player WHERE name LIKE ? AND team_id IS NOT NULL ORDER BY level DESC LIMIT 10',
+      'SELECT p.* FROM player p JOIN team t ON t.id = p.team_id WHERE p.name LIKE ? AND t.is_system_team = 0 ORDER BY p.level DESC LIMIT 10',
       [searchPattern]
     )
 
@@ -119,7 +119,8 @@ export default {
       position: 'p.position',
       level: 'p.level',
       age: 'p.carrier_start_season',
-      team_name: 't.name'
+      team_name: 't.name',
+      is_star_player: 'p.is_star_player'
     }
     const dir = sortDirection === 'ASC' ? 'ASC' : 'DESC'
     let orderBy = 'p.level DESC'
@@ -129,7 +130,7 @@ export default {
       orderBy = `${allowedSortColumns[sortColumn]} ${effectiveDir}`
     }
 
-    let whereClause = 'WHERE p.team_id IS NOT NULL'
+    let whereClause = 'WHERE p.team_id IS NOT NULL AND t.is_system_team = 0'
     const params = []
 
     if (searchQuery && typeof searchQuery === 'string' && searchQuery.length >= 3) {
@@ -138,7 +139,7 @@ export default {
     }
 
     const [countResult] = await query(
-      `SELECT COUNT(*) AS total FROM player p ${whereClause}`,
+      `SELECT COUNT(*) AS total FROM player p LEFT JOIN team t ON t.id = p.team_id ${whereClause}`,
       params
     )
 

@@ -19,6 +19,19 @@
     aspect-ratio: 1 / 1.1;
 }
 
+/* Lineup strength overlay in top-left corner of pitch */
+.lineup-strength-overlay {
+    position: absolute;
+    top: 2cqi;
+    left: 2cqi;
+    z-index: 10;
+    font-size: 5cqi;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+}
+
 /* Player pill — all dimensions relative to container width */
 .squad .player {
     position: absolute;
@@ -201,20 +214,59 @@
     .squad {
         background-image: url("../assets/football-field-horizontal.jpg");
         background-position: left;
-        aspect-ratio: 1.1 / 1;
+        aspect-ratio: 1.5 / 1;
     }
 
-    .squad .player.GK { top: 50%; left: 10%; }
-    .squad .player.LD { top: 15%; left: 35%; }
-    .squad .player.CD { top: var(--lineup-offset, 50%); left: 30%; }
+    /* Scale players down ~20% in landscape */
+    .squad .player {
+        width: 12cqi;
+        height: 4.8cqi;
+        border-radius: 1.4cqi;
+        line-height: 4.8cqi;
+        font-size: 1.5cqi;
+    }
+
+    .squad .player .player-image {
+        width: 12cqi !important;
+    }
+
+    .player .position-badge {
+        width: 3cqi;
+        height: 3cqi;
+        line-height: 3cqi;
+        font-size: 1.4cqi;
+    }
+
+    .player .freshness-badge {
+        width: 4.4cqi;
+        height: 2.2cqi;
+        border-radius: 0.4cqi;
+        font-size: 1.5cqi;
+        line-height: 2.2cqi;
+    }
+
+    .player .name {
+        font-size: 1.5cqi;
+    }
+
+    .player .level-badge {
+        width: 3.8cqi !important;
+        height: 3.8cqi !important;
+        line-height: 4cqi !important;
+        font-size: 2cqi !important;
+    }
+
+    .squad .player.GK { top: 46%; left: 10%; }
+    .squad .player.LD { top: 9%; left: 35%; }
+    .squad .player.CD { top: calc(var(--lineup-offset, 50%) - 4%); left: 30%; }
     .squad .player.RD { top: 85%; left: 35%; }
-    .squad .player.DM { top: var(--lineup-offset, 50%); left: 45%; }
-    .squad .player.CM { top: var(--lineup-offset, 50%); left: 60%; }
-    .squad .player.LM { top: 15%; left: 60%; }
+    .squad .player.DM { top: calc(var(--lineup-offset, 50%) - 4%); left: 45%; }
+    .squad .player.CM { top: calc(var(--lineup-offset, 50%) - 4%); left: 60%; }
+    .squad .player.LM { top: 9%; left: 60%; }
     .squad .player.RM { top: 85%; left: 60%; }
-    .squad .player.OM { top: 50%; left: 75%; }
-    .squad .player.CA { top: 50%; left: 90%; }
-    .squad .player.LA { top: 25%; left: 90%; }
+    .squad .player.OM { top: 46%; left: 75%; }
+    .squad .player.CA { top: 46%; left: 90%; }
+    .squad .player.LA { top: 19%; left: 90%; }
     .squad .player.RA { top: 75%; left: 90%; }
 }
 

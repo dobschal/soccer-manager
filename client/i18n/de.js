@@ -10,6 +10,7 @@ export default {
   'nav.run': 'Start',
   'nav.running': 'Läuft...',
   'nav.settings': 'Einstellungen',
+  'nav.restDay': 'Spielfrei',
   'nav.language': 'Sprache',
   'nav.search': 'Suche',
   'nav.account': 'Konto',
@@ -324,6 +325,7 @@ export default {
   'youthTeam.name': 'Name',
   'youthTeam.actions': 'Aktionen',
   'youthTeam.idealRhythm': 'Tipp: Der ideale Rhythmus ist 2x Training, 1x Freundschaftsspiel, 1x Ruhe für optimale Entwicklung.',
+  'youthTeam.retirementWarning': 'Jugendspieler müssen spätestens im Alter von 18 Jahren in die A-Mannschaft befördert werden. Spieler, die mit 19 noch in der Jugendmannschaft sind, gehen automatisch in den Ruhestand.',
 
   // Trades / Transfers
   'trades.title': 'Transfers',
@@ -526,6 +528,7 @@ export default {
   'player.history': 'Verlauf',
   'player.noHistory': '... noch kein Eintrag',
   'player.close': 'Schließen',
+  'player.star': 'Star',
   'player.freePlayer': 'Vereinslos',
   'player.sellPlayer': 'Spieler verkaufen?',
   'player.buyPlayer': 'Spieler kaufen?',
@@ -560,6 +563,9 @@ export default {
   'player.starPlayer': 'Starspieler',
   'player.starPlayerDesc': 'Dieser Spieler erhält einen permanenten 10% Level-Bonus in Spielen.',
   'player.historyStarPlayer': 'Zum Starspieler befördert',
+  'player.retiringNextSeason': 'Dieser Spieler geht nach dieser Saison in den Ruhestand',
+  'player.retiringTitle': 'Karriereende naht',
+  'player.retiringDesc': 'Dieser Spieler wird am Ende der aktuellen Saison in den Ruhestand gehen und dein Team verlassen.',
 
   // Action Cards
   'actionCards.title': 'Aktionskarten',

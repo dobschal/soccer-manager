@@ -71,6 +71,7 @@ describe('trade routes', () => {
       const player = testData.player()
 
       getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       query
         .mockResolvedValueOnce([])  // no existing offers
@@ -86,7 +87,9 @@ describe('trade routes', () => {
           offer_value: 50000,
           type: 'sell',
           player_id: player.id,
-          from_team_id: team.id
+          from_team_id: team.id,
+          game_day: 5,
+          season: 1
         })
       )
       expect(addLogMessage).toHaveBeenCalled()
@@ -125,12 +128,46 @@ describe('trade routes', () => {
       const existingOffer = testData.tradeOffer()
 
       getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       query.mockResolvedValue([existingOffer])
 
       const req = createMockRequest()
 
       await expect(handlers.addTradeOffer(player, 50000, 'sell', req))
         .rejects.toMatchObject({ message: 'Player is already listed' })
+    })
+
+    it('throws error when buy offer limit of 3 per player per game day is reached', async () => {
+      const team = testData.team({ balance: 1000000 })
+      const player = testData.player({ team_id: 99 })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      query
+        .mockResolvedValueOnce([])  // no open offers (duplicate check)
+        .mockResolvedValueOnce([{ count: 3 }])  // 3 existing attempts this game day
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 50000, 'buy', req))
+        .rejects.toMatchObject({ message: 'You can only make 3 offers per player per game day' })
+    })
+
+    it('does not apply offer limit to sell offers', async () => {
+      const team = testData.team({ balance: 1000000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      query
+        .mockResolvedValueOnce([])  // no open offers (duplicate check)
+        .mockResolvedValueOnce({})  // insert
+
+      const req = createMockRequest()
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', req)
+
+      expect(result).toEqual({ success: true })
     })
 
     it('throws error when player is missing', async () => {

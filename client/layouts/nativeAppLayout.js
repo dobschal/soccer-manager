@@ -18,6 +18,7 @@ export class NativeAppLayout extends UIElement {
       server.getNewLogMessageCount(lastSeenMessageId)
     ])
     this._nextGameDate = gameDate.date
+    this._isRestDay = gameDate.isRestDay || false
     this._username = teamData.user?.username || ''
     this._isAdmin = teamData.isAdmin || false
     this._version = versionData.version
@@ -150,7 +151,10 @@ export class NativeAppLayout extends UIElement {
       const diff = new Date(Date.parse(this._nextGameDate)).getTime() - Date.now()
       if (diff < 0) {
         server.getNextGameDate()
-          .then(r => (this._nextGameDate = r.date))
+          .then(r => {
+            this._nextGameDate = r.date
+            this._isRestDay = r.isRestDay || false
+          })
           .catch(() => {
             this._stopTimer()
           })
@@ -159,6 +163,11 @@ export class NativeAppLayout extends UIElement {
       const timerEl = el('#' + this._nextGameInElementId)
       if (!timerEl) {
         this._stopTimer()
+        return
+      }
+
+      if (this._isRestDay && diff > 0) {
+        timerEl.innerHTML = `<i class="fa fa-bed" aria-hidden="true"></i> ${t('nav.restDay')}`
         return
       }
 

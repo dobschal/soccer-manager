@@ -6,6 +6,7 @@ import { t } from '../i18n/index.js'
 import { YouthTeamPage } from './my-team/youthTeam.js'
 import { ATeamPage } from './my-team/aTeam.js'
 import { off, on } from '../lib/event.js'
+import { ActionCards } from './dashboard/actionCards.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 
 export class MyTeamPage extends TabbedPage {
@@ -24,6 +25,7 @@ export class MyTeamPage extends TabbedPage {
         <nav class="nav nav-pills mb-2">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#my-team">${t('myTeam.aTeam')}</a>
           <a class="nav-link ${this.subPage === 'youth' ? 'active' : ''}" href="#my-team?sub_page=youth">${t('myTeam.youthTeam')}</a>
+          <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''}" href="#my-team?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}</a>
         </nav>
         ${this.renderSubPageContainer()}
       </div>
@@ -63,6 +65,7 @@ export class MyTeamPage extends TabbedPage {
   
   createSubPage (key) {
     if (key === 'youth') return new YouthTeamPage(this)
+    if (key === 'cards') return new ActionCards()
     return new ATeamPage(this)
   }
 

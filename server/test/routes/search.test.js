@@ -45,7 +45,7 @@ describe('search routes', () => {
       expect(result.players).toHaveLength(1)
       expect(result.teams).toHaveLength(1)
       expect(query).toHaveBeenCalledWith(
-        'SELECT * FROM player WHERE name LIKE ? AND team_id IS NOT NULL ORDER BY level DESC LIMIT 10',
+        'SELECT p.* FROM player p JOIN team t ON t.id = p.team_id WHERE p.name LIKE ? AND t.is_system_team = 0 ORDER BY p.level DESC LIMIT 10',
         ['%Test%']
       )
     })

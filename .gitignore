@@ -9,3 +9,4 @@ node_modules
 /client/assets/native-client.zip
 /client/assets/native-version.json
 .env
+/uploads/

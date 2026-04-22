@@ -31,15 +31,21 @@ export class LeagueResultsPage extends UIElement {
       const response = await server.getCurrentGameday()
       this.season = response.season
       this.gameDay = Math.max(0, response.gameDay - 1)
+      this._upcomingSeason = this.season
+      this._upcomingGameDay = response.gameDay
     }
-    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }] = await Promise.all([
+    const isUpcomingGameDay = this.season === this._upcomingSeason && this.gameDay === this._upcomingGameDay
+    const isMyLeague = this.level === this.parentPage.info.team.level && this.league === this.parentPage.info.team.league
+
+    const promises = [
       server.getResults(this.gameDay, this.season, this.level, this.league),
       server.getStanding(this.gameDay, this.season, this.level, this.league),
       server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league),
       server.getTopScorers(this.season, this.level, this.league, 10),
-      server.getSuspendedPlayers(this.level, this.league),
+      isUpcomingGameDay && isMyLeague ? server.getSuspendedPlayers(this.level, this.league) : Promise.resolve({ suspendedPlayers: [] }),
       server.getTeamStats(this.gameDay, this.season, this.level, this.league)
-    ])
+    ]
+    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }] = await Promise.all(promises)
     this.results = results
     this.yesterdayStanding = yesterday
     this.standing = standing

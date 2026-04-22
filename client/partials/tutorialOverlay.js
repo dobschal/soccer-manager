@@ -187,6 +187,14 @@ function showTutorialOverlay (tutorialKey) {
   onClick('#' + overlayInnerId, event => {
     event.stopPropagation()
   })
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      document.removeEventListener('keydown', onKeyDown)
+      closeOverlay()
+    }
+  }
+  document.addEventListener('keydown', onKeyDown)
 }
 
 /**

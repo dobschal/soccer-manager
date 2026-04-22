@@ -1285,6 +1285,29 @@ const migrations = [{
       ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci
     `)
   }
+},
+{
+  name: 'Create forum_comment_image table',
+  async run () {
+    await query(`
+      CREATE TABLE IF NOT EXISTS forum_comment_image (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        comment_id BIGINT(20) UNSIGNED NOT NULL,
+        filename VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_forum_comment_image_comment (comment_id)
+      ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci
+    `)
+  }
+},
+{
+  name: 'Add game_day and season columns to trade_offer table',
+  async run () {
+    await query('ALTER TABLE trade_offer ADD COLUMN game_day INT DEFAULT NULL')
+    await query('ALTER TABLE trade_offer ADD COLUMN season INT DEFAULT NULL')
+    await query('CREATE INDEX idx_trade_offer_attempts ON trade_offer (from_team_id, player_id, game_day, season)')
+  }
 }]
 
 /**

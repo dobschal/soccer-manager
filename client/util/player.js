@@ -44,6 +44,17 @@ export function calculateMarketValue (level, age) {
 }
 
 /**
+ * Check if a player will retire at the end of the current season
+ * (i.e. carrier_end_season <= current season + 1)
+ * @param {PlayerType} player
+ * @param {number} currentSeason
+ * @returns {boolean}
+ */
+export function willRetireNextSeason (player, currentSeason) {
+  return player.carrier_end_season <= currentSeason + 1
+}
+
+/**
  * @param {PlayerType} playerA
  * @param {PlayerType} playerB
  * @returns {number}

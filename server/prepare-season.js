@@ -11,7 +11,7 @@ import { getTeamById } from './helper/teamHelper.js'
 import { generateRandomEmblem } from './lib/emblem.js'
 import { archiveOverageYouthPlayers, getYouthPlayersAt18 } from './helper/youthPlayerHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
-import { createCupDraw, validateAndProgressCupRounds } from './helper/cupHelper.js'
+import { createCupDraw, validateAndProgressCupRounds, calculateInterleavedSchedule } from './helper/cupHelper.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -69,13 +69,18 @@ async function _createCupDraw () {
     return
   }
 
+  // Compute interleaved schedule to get cup game_days that don't overlap with league
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
+  const leagueGameDays = (teamsPerLeague - 1) * 2
+  const { cupGameDays } = calculateInterleavedSchedule(teams.length, leagueGameDays)
+
   // Only skip cup creation if the season is nearly over (last 2 game days)
-  const TOTAL_GAME_DAYS = 33
-  if (currentGameDay > TOTAL_GAME_DAYS - 2) {
+  const totalGameDays = leagueGameDays + cupGameDays.size
+  if (currentGameDay > totalGameDays - 2) {
     return console.log(`⏭️ Season ${season} nearly over (game day ${currentGameDay}), skipping cup draw.`)
   }
 
-  const matchesCreated = await createCupDraw(season, currentGameDay)
+  const matchesCreated = await createCupDraw(season, currentGameDay, cupGameDays)
   console.log(`🏆 Cup draw created for season ${season}: ${matchesCreated} first round matches`)
   await validateAndProgressCupRounds(season)
 }
@@ -215,6 +220,11 @@ async function _createGames () {
   const season = await _seasonForNewGames()
   const gamePlan = calculateGamePlan(teamsPerLeague)
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
+
+  // Compute interleaved schedule so league and cup days never overlap
+  const leagueGameDays = (teamsPerLeague - 1) * 2 // 34 for 18-team leagues
+  const { leagueDayMap } = calculateInterleavedSchedule(teams.length, leagueGameDays)
+
   for (let level = 0; level < maxLevels; level++) {
     const teamsOfLevel = teams.filter(t => t.level === level)
     if (teamsOfLevel.length === 0) break
@@ -228,7 +238,7 @@ async function _createGames () {
       leagues[league].push(teamsOfLevel[i])
     }
     await Promise.all(leagues.map((teamsOfLeague, league) => {
-      return _createGamesForLeague(season, level, league, teamsOfLeague, gamePlan)
+      return _createGamesForLeague(season, level, league, teamsOfLeague, gamePlan, leagueDayMap)
     }))
   }
   console.log(`Created games for season ${season}`)
@@ -240,19 +250,22 @@ async function _createGames () {
  * @param {number} league
  * @param {TeamType[]} teams
  * @param {Array} gamePlan
+ * @param {number[]} leagueDayMap - Maps original league day index to actual game_day (with cup day gaps)
  * @returns {Promise<void>}
  */
-async function _createGamesForLeague (season, level, league, teams, gamePlan) {
+async function _createGamesForLeague (season, level, league, teams, gamePlan, leagueDayMap) {
   let gameDay = 0
   for (const gamesOfGameday of gamePlan) {
     for (const gamePair of gamesOfGameday) {
       const teamA = teams[gamePair[0] - 1]
       const teamB = teams[gamePair[1] - 1]
+      const actualHomeDay = leagueDayMap ? leagueDayMap[gameDay] : gameDay
+      const actualAwayDay = leagueDayMap ? leagueDayMap[gameDay + (teamsPerLeague - 1)] : gameDay + (teamsPerLeague - 1)
       const game = new Game({
         team_1_id: teamA.id,
         team_2_id: teamB.id,
         season,
-        game_day: gameDay,
+        game_day: actualHomeDay,
         level,
         league,
         played: 0,
@@ -262,7 +275,7 @@ async function _createGamesForLeague (season, level, league, teams, gamePlan) {
         team_1_id: teamB.id,
         team_2_id: teamA.id,
         season,
-        game_day: gameDay + (teamsPerLeague - 1),
+        game_day: actualAwayDay,
         level,
         league,
         played: 0,

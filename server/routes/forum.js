@@ -2,6 +2,14 @@ import { query } from '../lib/database.js'
 import { maskBadWords } from '../lib/badWordsFilter.js'
 import { BadRequestError } from '../lib/errors.js'
 import { config } from '../config.js'
+import fs from 'fs'
+import path from 'path'
+import crypto from 'crypto'
+
+const UPLOAD_DIR = 'uploads/forum'
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024 // 2MB
+const MAX_IMAGES_PER_COMMENT = 5
 
 function assertAdmin (req) {
   if (req.user?.username !== config.ADMIN_USERNAME) {
@@ -56,6 +64,17 @@ export default {
     if (posts.length > 0) {
       const postIds = posts.map(p => p.id)
       const placeholders = postIds.map(() => '?').join(', ')
+      const comments = await query(`SELECT id FROM forum_comment WHERE post_id IN (${placeholders})`, postIds)
+      if (comments.length > 0) {
+        const commentIds = comments.map(c => c.id)
+        const cPlaceholders = commentIds.map(() => '?').join(', ')
+        const images = await query(`SELECT filename FROM forum_comment_image WHERE comment_id IN (${cPlaceholders})`, commentIds)
+        for (const img of images) {
+          const filePath = path.join(UPLOAD_DIR, img.filename)
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+        }
+        await query(`DELETE FROM forum_comment_image WHERE comment_id IN (${cPlaceholders})`, commentIds)
+      }
       await query(`DELETE FROM forum_comment WHERE post_id IN (${placeholders})`, postIds)
       await query(`DELETE FROM forum_post_like WHERE post_id IN (${placeholders})`, postIds)
     }
@@ -145,6 +164,23 @@ export default {
       ORDER BY c.created_at ASC
     `, [postId])
 
+    if (comments.length > 0) {
+      const commentIds = comments.map(c => c.id)
+      const placeholders = commentIds.map(() => '?').join(', ')
+      const images = await query(
+        `SELECT id, comment_id, filename FROM forum_comment_image WHERE comment_id IN (${placeholders})`,
+        commentIds
+      )
+      const imagesByComment = {}
+      for (const img of images) {
+        if (!imagesByComment[img.comment_id]) imagesByComment[img.comment_id] = []
+        imagesByComment[img.comment_id].push({ id: img.id, filename: img.filename })
+      }
+      for (const comment of comments) {
+        comment.images = imagesByComment[comment.id] || []
+      }
+    }
+
     return { post, comments }
   },
 
@@ -170,12 +206,16 @@ export default {
     return { liked: existing.length === 0, likeCount: count }
   },
 
-  async addForumComment (postId, text, req) {
+  async addForumComment (postId, text, images, req) {
     if (!text || !text.trim()) throw new BadRequestError('Comment text cannot be empty')
     if (text.length > 1000) throw new BadRequestError('Comment text too long')
 
     const [post] = await query('SELECT id FROM forum_post WHERE id = ?', [postId])
     if (!post) throw new BadRequestError('Post not found')
+
+    if (images && images.length > MAX_IMAGES_PER_COMMENT) {
+      throw new BadRequestError(`Maximum ${MAX_IMAGES_PER_COMMENT} images per comment`)
+    }
 
     const [team] = await query('SELECT id, name FROM team WHERE user_id = ?', [req.user.id])
 
@@ -186,6 +226,25 @@ export default {
       text: maskBadWords(text.trim())
     })
 
+    const commentId = result.insertId
+    const savedImages = []
+
+    if (images && images.length > 0) {
+      fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+      for (const img of images) {
+        if (!img.data || !img.type) continue
+        if (!ALLOWED_TYPES.includes(img.type)) continue
+        const base64Data = img.data.replace(/^data:[^;]+;base64,/, '')
+        const buffer = Buffer.from(base64Data, 'base64')
+        if (buffer.length > MAX_IMAGE_SIZE) continue
+        const ext = img.type.split('/')[1].replace('jpeg', 'jpg')
+        const filename = `${crypto.randomUUID()}.${ext}`
+        fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer)
+        await query('INSERT INTO forum_comment_image SET ?', { comment_id: commentId, filename })
+        savedImages.push({ filename })
+      }
+    }
+
     const [comment] = await query(`
       SELECT c.id, c.text, c.created_at, c.user_id, c.team_id,
         u.username, t.name AS team_name
@@ -193,13 +252,25 @@ export default {
       JOIN user u ON u.id = c.user_id
       LEFT JOIN team t ON t.id = c.team_id
       WHERE c.id = ?
-    `, [result.insertId])
+    `, [commentId])
 
+    comment.images = savedImages
     return { comment }
   },
 
   async deleteForumPost (postId, req) {
     assertAdmin(req)
+    const comments = await query('SELECT id FROM forum_comment WHERE post_id = ?', [postId])
+    if (comments.length > 0) {
+      const commentIds = comments.map(c => c.id)
+      const placeholders = commentIds.map(() => '?').join(', ')
+      const images = await query(`SELECT filename FROM forum_comment_image WHERE comment_id IN (${placeholders})`, commentIds)
+      for (const img of images) {
+        const filePath = path.join(UPLOAD_DIR, img.filename)
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+      }
+      await query(`DELETE FROM forum_comment_image WHERE comment_id IN (${placeholders})`, commentIds)
+    }
     await query('DELETE FROM forum_comment WHERE post_id = ?', [postId])
     await query('DELETE FROM forum_post_like WHERE post_id = ?', [postId])
     await query('DELETE FROM forum_post WHERE id = ?', [postId])
@@ -208,6 +279,12 @@ export default {
 
   async deleteForumComment (commentId, req) {
     assertAdmin(req)
+    const images = await query('SELECT filename FROM forum_comment_image WHERE comment_id = ?', [commentId])
+    for (const img of images) {
+      const filePath = path.join(UPLOAD_DIR, img.filename)
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    }
+    await query('DELETE FROM forum_comment_image WHERE comment_id = ?', [commentId])
     await query('DELETE FROM forum_comment WHERE id = ?', [commentId])
     return { success: true }
   }

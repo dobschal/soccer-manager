@@ -1,6 +1,7 @@
 import { UnauthorizedError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { query } from '../lib/database.js'
 import {
   getCupGamesForTeam,
   getCupResultsForRound,
@@ -70,21 +71,21 @@ export default {
       allGames = [...prevSeasonGames, ...games]
     }
 
-    // Calculate gameDate for unplayed cup games (same logic as league slider)
-    // League games happen every 12 hours (noon and midnight)
-    const nextGameDate = new Date()
-    nextGameDate.setHours(12)
-    nextGameDate.setMinutes(0)
-    nextGameDate.setSeconds(0)
-    if (Date.now() > nextGameDate.getTime()) {
-      nextGameDate.setHours(23)
-      nextGameDate.setMinutes(59)
-      nextGameDate.setSeconds(59)
+    // Calculate gameDate for unplayed cup games based on offset from current game day
+    // Each game day is 12 hours apart (one cron tick)
+    const nextTick = new Date()
+    nextTick.setHours(12)
+    nextTick.setMinutes(0)
+    nextTick.setSeconds(0)
+    if (Date.now() > nextTick.getTime()) {
+      nextTick.setHours(23)
+      nextTick.setMinutes(59)
+      nextTick.setSeconds(59)
     }
 
     const gamesWithDates = allGames.map(game => {
       if (game.played) return game
-      const gameDate = new Date(nextGameDate)
+      const gameDate = new Date(nextTick)
       const dayOffset = game.gameDay - currentGameDay
       gameDate.setTime(gameDate.getTime() + dayOffset * 12 * 60 * 60 * 1000)
       return { ...game, gameDate }
@@ -142,5 +143,44 @@ export default {
     const totalRounds = getTotalRounds(maxRound)
 
     return { rounds, season: actualSeason, totalRounds }
+  },
+
+  /**
+   * Get suspended players from teams in a specific cup round
+   * @param {number} season
+   * @param {number} round - Cup round number (power of 2)
+   * @param {Request} req
+   * @returns {Promise<{suspendedPlayers: Array}>}
+   */
+  async getSuspendedPlayersForCup (season, round, req) {
+    if (!req.user) throw new UnauthorizedError('Not authorized')
+
+    const { season: currentSeason } = await getGameDayAndSeason()
+    const actualSeason = season ?? currentSeason
+
+    const suspendedPlayers = await query(`
+        SELECT p.*, t.name as team_name, t.color as team_color, t.emblem as team_emblem
+        FROM player p
+                 JOIN team t ON t.id = p.team_id
+        WHERE p.is_suspended = 1
+          AND t.id IN (
+            SELECT team_1_id FROM game WHERE season = ? AND game_type = 'cup' AND cup_round = ?
+            UNION
+            SELECT team_2_id FROM game WHERE season = ? AND game_type = 'cup' AND cup_round = ? AND team_2_id IS NOT NULL
+          )
+        ORDER BY t.name, p.name
+    `, [actualSeason, round, actualSeason, round])
+
+    return {
+      suspendedPlayers: suspendedPlayers.map(p => ({
+        ...p,
+        team: {
+          id: p.team_id,
+          name: p.team_name,
+          color: p.team_color,
+          emblem: p.team_emblem
+        }
+      }))
+    }
   }
 }

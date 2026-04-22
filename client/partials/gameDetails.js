@@ -190,8 +190,10 @@ export class GameDetails extends UIElement {
       }
     })
 
-    const freshnessTeamA = Math.floor(100 * playersTeam1.filter(p => p.in_game_position).reduce((sum, p) => sum + p.freshness, 0) / playersTeam1.filter(p => p.in_game_position).length)
-    const freshnessTeamB = Math.floor(100 * playersTeam2.filter(p => p.in_game_position).reduce((sum, p) => sum + p.freshness, 0) / playersTeam2.filter(p => p.in_game_position).length)
+    const detailPlayersA = (details.playerTeamA || []).filter(p => p.in_game_position)
+    const detailPlayersB = (details.playerTeamB || []).filter(p => p.in_game_position)
+    const freshnessTeamA = detailPlayersA.length ? Math.floor(100 * detailPlayersA.reduce((sum, p) => sum + p.freshness, 0) / detailPlayersA.length) : 0
+    const freshnessTeamB = detailPlayersB.length ? Math.floor(100 * detailPlayersB.reduce((sum, p) => sum + p.freshness, 0) / detailPlayersB.length) : 0
     const total = ballControllA + ballControllB
 
     const team1Emblem = renderEmblem(team1, 20)

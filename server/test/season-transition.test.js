@@ -305,10 +305,14 @@ vi.mock('../i18n/index.js', () => ({
   getUserLocale: vi.fn().mockResolvedValue('en'),
   t: vi.fn((key) => key)
 }))
-vi.mock('../helper/cupHelper.js', () => ({
-  createCupDraw: vi.fn().mockResolvedValue(0),
-  validateAndProgressCupRounds: vi.fn()
-}))
+vi.mock('../helper/cupHelper.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    createCupDraw: vi.fn().mockResolvedValue(0),
+    validateAndProgressCupRounds: vi.fn()
+  }
+})
 vi.mock('../lib/emblem.js', () => ({
   generateRandomEmblem: vi.fn().mockReturnValue({ shape: 'shield', pattern: 'solid', color: '#000', color2: '#fff' })
 }))

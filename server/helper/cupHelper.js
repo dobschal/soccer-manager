@@ -58,10 +58,10 @@ export function getCupRoundDisplayName (cupRound, totalRounds) {
 /**
  * Calculate the cup schedule based on team count and total game days
  * @param {number} teamCount - Number of teams participating
- * @param {number} totalGameDays - Total game days in a season (usually 33)
+ * @param {number} totalGameDays - Total game days in a season (usually 34)
  * @returns {Array<{round: number, gameDay: number, roundName: string}>}
  */
-export function calculateCupSchedule (teamCount, totalGameDays = 33) {
+export function calculateCupSchedule (teamCount, totalGameDays = 34) {
   // Calculate the number of rounds needed
   const rounds = []
 
@@ -116,12 +116,71 @@ export function calculateCupSchedule (teamCount, totalGameDays = 33) {
 }
 
 /**
+ * Calculate an interleaved schedule where cup and league game days never overlap.
+ * Cup days are inserted between league days at the positions determined by calculateCupSchedule.
+ * @param {number} teamCount - Number of teams participating in the cup
+ * @param {number} leagueGameDays - Total number of league game days (default 34 for 18-team leagues)
+ * @returns {{ leagueDayMap: number[], cupGameDays: Map<number, number>, totalGameDays: number, cupSchedule: Array }}
+ */
+export function calculateInterleavedSchedule (teamCount, leagueGameDays = 34) {
+  const cupSchedule = calculateCupSchedule(teamCount, leagueGameDays)
+  const sortedCupEntries = [...cupSchedule].sort((a, b) => a.gameDay - b.gameDay)
+  const cupInsertDays = sortedCupEntries.map(s => s.gameDay)
+
+  const leagueDayMap = [] // index = original league day (0-33), value = actual game_day
+  const cupGameDays = new Map() // cupRound -> actual game_day
+
+  let actualDay = 0
+  let cupIdx = 0
+
+  for (let leagueDay = 0; leagueDay < leagueGameDays; leagueDay++) {
+    // Insert cup days that should be placed before or at this league day
+    while (cupIdx < cupInsertDays.length && cupInsertDays[cupIdx] <= leagueDay) {
+      cupGameDays.set(sortedCupEntries[cupIdx].round, actualDay)
+      actualDay++
+      cupIdx++
+    }
+    leagueDayMap[leagueDay] = actualDay
+    actualDay++
+  }
+  // Any remaining cup rounds go after all league days
+  while (cupIdx < cupInsertDays.length) {
+    cupGameDays.set(sortedCupEntries[cupIdx].round, actualDay)
+    actualDay++
+    cupIdx++
+  }
+
+  return { leagueDayMap, cupGameDays, totalGameDays: actualDay, cupSchedule }
+}
+
+/**
+ * Find the next game_day that has no league games scheduled (a cup-only slot).
+ * Used by progressCupRound to place next-round cup games on non-league days.
+ * @param {number} season
+ * @param {number} minGameDay - Earliest acceptable game_day
+ * @returns {Promise<number>}
+ */
+export async function findNextCupGameDay (season, minGameDay) {
+  const leagueDays = await query(
+    'SELECT DISTINCT game_day FROM game WHERE season=? AND (game_type=\'league\' OR game_type IS NULL)',
+    [season]
+  )
+  const leagueDaySet = new Set(leagueDays.map(d => d.game_day))
+  let candidate = minGameDay
+  while (leagueDaySet.has(candidate)) {
+    candidate++
+  }
+  return candidate
+}
+
+/**
  * Create the initial cup draw for a season
  * @param {number} season
  * @param {number} [currentGameDay=0] - Current game day (used for mid-season cup creation to adjust schedule)
+ * @param {Map<number, number>} [cupGameDays=null] - Pre-computed mapping of cupRound -> actual game_day from interleaved schedule
  * @returns {Promise<number>} Number of matches created
  */
-export async function createCupDraw (season, currentGameDay = 0) {
+export async function createCupDraw (season, currentGameDay = 0, cupGameDays = null) {
   // Get all teams
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0 ORDER BY level ASC, league ASC')
   const teamCount = teams.length
@@ -138,14 +197,30 @@ export async function createCupDraw (season, currentGameDay = 0) {
     return 0
   }
 
+  // Apply pre-computed interleaved game_days if provided
+  if (cupGameDays) {
+    for (const round of schedule) {
+      if (cupGameDays.has(round.round)) {
+        round.gameDay = cupGameDays.get(round.round)
+      }
+    }
+  }
+
   // For mid-season creation, adjust round game days so they are in the future
   if (currentGameDay > 0) {
     const futureRounds = schedule.filter(s => s.gameDay > currentGameDay)
     if (futureRounds.length === 0) {
-      // No room left — put all rounds on remaining days
-      const remainingDays = 32 - currentGameDay
+      // No room left — put all rounds on remaining days, finding cup-only slots
+      const leagueDays = await query(
+        'SELECT DISTINCT game_day FROM game WHERE season=? AND (game_type=\'league\' OR game_type IS NULL)',
+        [season]
+      )
+      const leagueDaySet = new Set(leagueDays.map(d => d.game_day))
+      let nextSlot = currentGameDay + 1
       for (let i = 0; i < schedule.length; i++) {
-        schedule[i].gameDay = currentGameDay + 1 + Math.round(i * remainingDays / schedule.length)
+        while (leagueDaySet.has(nextSlot)) nextSlot++
+        schedule[i].gameDay = nextSlot
+        nextSlot++
       }
     } else {
       // Push early rounds to be at least currentGameDay + 1
@@ -297,22 +372,9 @@ export async function progressCupRound (season, completedRound) {
     }
   }
 
-  // Get the schedule to find the game day for next round
-  const teams = await query('SELECT * FROM team')
-  const schedule = calculateCupSchedule(teams.length)
-  const nextRoundSchedule = schedule.find(s => s.round === nextRound)
-
-  if (!nextRoundSchedule) {
-    console.error(`Could not find schedule for round ${nextRound}`)
-    return {
-      advanced: false,
-      isComplete: false
-    }
-  }
-
-  // Ensure the next round is scheduled in the future (not before the completed round's game day)
+  // Find the next available cup-only game day (no league games on that day)
   const completedGameDay = Math.max(...playedGames.map(g => g.game_day))
-  const nextGameDay = Math.max(nextRoundSchedule.gameDay, completedGameDay + 1)
+  const nextGameDay = await findNextCupGameDay(season, completedGameDay + 1)
 
   // Shuffle next round teams for random matchups
   const shuffledTeams = [...nextRoundTeams].sort(() => Math.random() - 0.5)
@@ -553,7 +615,7 @@ export async function validateAndProgressCupRounds (season) {
     [season, currentGameDay]
   )
   if (pastCupGames.length > 0) {
-    const newGameDay = currentGameDay + 1
+    const newGameDay = await findNextCupGameDay(season, currentGameDay + 1)
     await query(
       'UPDATE game SET game_day=? WHERE game_type=\'cup\' AND season=? AND played=0 AND game_day < ?',
       [newGameDay, season, currentGameDay]
