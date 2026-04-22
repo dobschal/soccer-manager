@@ -1,0 +1,25 @@
+/* Player position badge — square with 4px radius, bootstrap position colors */
+.position-badge {
+    display: inline-block;
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    min-width: 2.3em;
+}
+
+.position-badge.GK { background-color: rgb(var(--bs-danger-rgb)); }
+.position-badge.LD,
+.position-badge.CD,
+.position-badge.RD { background-color: #b8860b; }
+.position-badge.LM,
+.position-badge.DM,
+.position-badge.CM,
+.position-badge.RM,
+.position-badge.OM { background-color: rgb(var(--bs-info-rgb)); }
+.position-badge.LA,
+.position-badge.CA,
+.position-badge.RA { background-color: rgb(var(--bs-success-rgb)); }

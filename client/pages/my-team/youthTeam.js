@@ -7,6 +7,7 @@ import { showOverlay } from '../../partials/overlay.js'
 import { t } from '../../i18n/index.js'
 import { ProgressBar } from '../../partials/progressBar.js'
 import { Table } from '../../partials/table.js'
+import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { fire } from '../../lib/event.js'
 
@@ -249,7 +250,7 @@ export class YouthTeamPage extends UIElement {
 
     return [
       `<span class="u-nowrap">${player.name}</span>`,
-      `<span class="badge bg-secondary">${player.position}</span>`,
+      renderPositionBadge(player.position),
       `${player.age}`,
       `${player.level.toFixed(2)}`,
       `${new ProgressBar(player.moral)}`,

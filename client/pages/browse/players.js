@@ -2,6 +2,7 @@ import { server } from '../../lib/gateway.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { Table } from '../../partials/table.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { calculatePlayerAge } from '../../util/player.js'
 import { goTo, setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
@@ -37,7 +38,7 @@ export class BrowsePlayersPage extends UIElement {
       data: this.players.map(p => ({ ...p, _age: calculatePlayerAge(p, this.season) })),
       renderRow: (player) => [
         `<strong>${player.name}</strong>`,
-        player.position,
+        renderPositionBadge(player.position),
         renderLevelBadge(player.level),
         `${player._age}`,
         player.team_name || '-'

@@ -141,17 +141,17 @@ export class Lineup extends UIElement {
    * @returns {void}
    */
   _applyPositionHacks () {
-    // Position hack for 2x CM, 2x CD, 2x DM
+    // Sets --lineup-offset so CSS can map it to `left` in portrait or `top` in landscape.
     ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
       const elements = document.querySelectorAll(`${this._elementQuery} .squad ${positionClass}`)
       if (elements.length === 2) {
-        elements.item(0).style.left = '38%'
-        elements.item(1).style.left = '62%'
+        elements.item(0).style.setProperty('--lineup-offset', '38%')
+        elements.item(1).style.setProperty('--lineup-offset', '62%')
       }
       if (elements.length === 3) {
-        elements.item(0).style.left = '32%'
-        elements.item(1).style.left = '50%'
-        elements.item(2).style.left = '68%'
+        elements.item(0).style.setProperty('--lineup-offset', '32%')
+        elements.item(1).style.setProperty('--lineup-offset', '50%')
+        elements.item(2).style.setProperty('--lineup-offset', '68%')
       }
     })
   }

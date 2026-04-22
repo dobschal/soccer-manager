@@ -8,6 +8,7 @@ import { getQueryParams, goTo, setQueryParams } from '../../lib/router.js'
 import { calculatePlayerAge, sortByPosition } from '../../util/player.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { Position } from '../../util/formation.js'
 import { renderPageNumbers } from '../../partials/pagination.js'
 
@@ -72,7 +73,7 @@ export class MarketPage extends UIElement {
         return [
           player.name,
           offerTeam.name,
-          player.position,
+          renderPositionBadge(player.position),
           calculatePlayerAge(player, this.season),
           renderLevelBadge(player.level),
           euroFormat.format(offer.offer_value),

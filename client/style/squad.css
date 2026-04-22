@@ -52,14 +52,13 @@
     top: 0;
     left: 0;
     transform: translateX(-35%) translateY(-50%);
+    padding: 0;
     width: 3.8cqi;
+    min-width: 0;
     height: 3.8cqi;
-    background-color: rgb(54 70 45);
-    border-radius: 50%;
-    color: white;
     line-height: 3.8cqi;
-    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
     font-size: 1.7cqi;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
 }
 
 .player .freshness-badge {
@@ -107,6 +106,20 @@
     background-color: rgba(0, 0, 0, 0.5);
 }
 
+/* Position-group border colors — match bootstrap text color groups */
+.squad .player.GK { border-color: rgb(var(--bs-danger-rgb)); }
+.squad .player.LD,
+.squad .player.CD,
+.squad .player.RD { border-color: rgb(var(--bs-warning-rgb)); }
+.squad .player.LM,
+.squad .player.DM,
+.squad .player.CM,
+.squad .player.RM,
+.squad .player.OM { border-color: rgb(var(--bs-info-rgb)); }
+.squad .player.LA,
+.squad .player.CA,
+.squad .player.RA { border-color: rgb(var(--bs-success-rgb)); }
+
 .squad .player.GK {
     top: 85%;
     left: 50%;
@@ -133,7 +146,7 @@
 
 .squad .player.CM {
     top: 40%;
-    left: 50%;
+    left: var(--lineup-offset, 50%);
     z-index: 3;
 }
 
@@ -151,7 +164,7 @@
 
 .squad .player.DM {
     top: 55%;
-    left: 50%;
+    left: var(--lineup-offset, 50%);
     z-index: 4;
 }
 
@@ -177,6 +190,32 @@
     top: 10%;
     left: 25%;
     z-index: 1;
+}
+
+.squad .player.CD {
+    left: var(--lineup-offset, 50%);
+}
+
+/* Landscape layout — rotate pitch 90° clockwise when viewport is wider than tall */
+@media (orientation: landscape) {
+    .squad {
+        background-image: url("../assets/football-field-horizontal.jpg");
+        background-position: left;
+        aspect-ratio: 1.1 / 1;
+    }
+
+    .squad .player.GK { top: 50%; left: 10%; }
+    .squad .player.LD { top: 15%; left: 35%; }
+    .squad .player.CD { top: var(--lineup-offset, 50%); left: 30%; }
+    .squad .player.RD { top: 85%; left: 35%; }
+    .squad .player.DM { top: var(--lineup-offset, 50%); left: 45%; }
+    .squad .player.CM { top: var(--lineup-offset, 50%); left: 60%; }
+    .squad .player.LM { top: 15%; left: 60%; }
+    .squad .player.RM { top: 85%; left: 60%; }
+    .squad .player.OM { top: 50%; left: 75%; }
+    .squad .player.CA { top: 50%; left: 90%; }
+    .squad .player.LA { top: 25%; left: 90%; }
+    .squad .player.RA { top: 75%; left: 90%; }
 }
 
 @media screen and (max-width: 768px) {

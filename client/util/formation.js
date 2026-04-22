@@ -49,6 +49,19 @@ export const Formation = {
 }
 
 /**
+ * Bootstrap text color class for a position, grouped by role.
+ * @param {string} position
+ * @returns {string}
+ */
+export function getPositionColorClass (position) {
+  if (position === 'GK') return 'text-danger'
+  if (['LD', 'CD', 'RD'].includes(position)) return 'text-warning'
+  if (['LM', 'DM', 'CM', 'RM', 'OM'].includes(position)) return 'text-info'
+  if (['LA', 'CA', 'RA'].includes(position)) return 'text-success'
+  return ''
+}
+
+/**
  * @param {string} position
  * @returns {string}
  */

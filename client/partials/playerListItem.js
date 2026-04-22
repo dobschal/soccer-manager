@@ -4,6 +4,7 @@ import { euroFormat } from '../lib/currency.js'
 import { renderLevelBadge } from './levelBadge.js'
 import { calculateMarketValue } from '../util/player.js'
 import { ProgressBar } from './progressBar.js'
+import { renderPositionBadge } from './positionBadge.js'
 
 export class PlayerListItem extends UIElement {
   /**
@@ -47,7 +48,7 @@ export class PlayerListItem extends UIElement {
     return `
       <tr class="${rowClass}" data-player-id="${this.player.id}">
         <th scope="row">${this.player.name}${isCaptain ? ' (C)' : ''}${this.player.is_star_player ? ' ⭐' : ''}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''} ${this._renderCards(yellowCards, redCards)}</th>
-        <td>${this.player.position}</td>
+        <td>${renderPositionBadge(this.player.position)}</td>
         <td class="text-right">${age}</td>
         <td class="text-right">${new ProgressBar(this.player.freshness)}</td>
         <td class="text-right">${renderLevelBadge(this.player.level)}</td>

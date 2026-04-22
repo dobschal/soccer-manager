@@ -7,6 +7,7 @@ import { toast } from '../../partials/toast.js'
 import { setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { renderPositionBadge } from '../../partials/positionBadge.js'
 
 export class FreePlayers extends UIElement {
   /**
@@ -29,7 +30,7 @@ export class FreePlayers extends UIElement {
       },
       renderRow: player => [
         player.name,
-        player.position,
+        renderPositionBadge(player.position),
         calculatePlayerAge(player, this.season),
         renderLevelBadge(player.level),
         `<button class="btn btn-primary btn-sm" data-hire-player="${player.id}">${t('player.hireBtn', { playerName: '' }).trim()}</button>`

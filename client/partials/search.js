@@ -4,6 +4,7 @@ import { server } from '../lib/gateway.js'
 import { goTo } from '../lib/router.js'
 import { t } from '../i18n/index.js'
 import { renderEmblem } from './emblem.js'
+import { renderPositionBadge } from './positionBadge.js'
 
 /**
  * Shows the search overlay with tabs for Players and Teams
@@ -143,7 +144,7 @@ export function showSearchOverlay () {
               <div>
                 <strong>${player.name}</strong>
                 <br>
-                <small class="text-muted">${player.position} - Level ${player.level}</small>
+                ${renderPositionBadge(player.position)} <small class="text-muted">Level ${player.level}</small>
               </div>
               <div class="text-end">
                 <small class="text-muted">${team?.name || 'Unknown'}</small>

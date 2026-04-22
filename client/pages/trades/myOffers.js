@@ -5,6 +5,7 @@ import { setQueryParams } from '../../lib/router.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
+import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { Table } from '../../partials/table.js'
 
 export class MyOffersPage extends UIElement {
@@ -156,7 +157,7 @@ export class MyOffersPage extends UIElement {
       `<span class="badge bg-${offer.type === 'sell' ? 'secondary' : 'primary'}">${offer.type}</span>`,
       `<span class="hover-text player-name">${player?.name ?? ''}</span>`,
       offer.type === 'sell' ? '' : (team?.name ?? ''),
-      player?.position ?? '',
+      renderPositionBadge(player?.position),
       renderLevelBadge(player?.level ?? 0),
       euroFormat.format(offer.offer_value),
       `<button type="button" class="btn btn-danger"><i class="fa fa-times-circle-o" aria-hidden="true"></i></button>`
@@ -177,7 +178,7 @@ export class MyOffersPage extends UIElement {
       `<span class="badge ${badgeClass}">${badgeText}</span>`,
       `<span class="hover-text player-name">${player?.name ?? ''}</span>`,
       team?.name ?? '',
-      player?.position ?? '',
+      renderPositionBadge(player?.position),
       renderLevelBadge(player?.level ?? 0),
       euroFormat.format(offer.offer_value),
       `<button type="button" class="btn btn-outline-secondary">${t('trades.dismiss')}</button>`
