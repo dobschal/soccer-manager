@@ -11,6 +11,7 @@ import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
 import { BrowsePage } from './pages/browse.js'
+import { AdminPage } from './pages/admin.js'
 import { ForumPage } from './pages/forum.js'
 import { initLocale, t } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
@@ -121,6 +122,7 @@ const pages = {
   login: [DefaultLayout, NativeLandingPage],
   'my-team': [NativeAppLayout, MyTeamPage],
   browse: [NativeAppLayout, BrowsePage],
+  admin: [NativeAppLayout, AdminPage],
   forum: [NativeAppLayout, ForumPage],
   '*': [NativeAppLayout, DashboardPage]
 }

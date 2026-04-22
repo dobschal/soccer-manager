@@ -105,7 +105,7 @@ async function _createIOCPlayerWithOffer (iocTeamId, position, tier, season) {
   const level = tier.minLevel + Math.floor(Math.random() * (tier.maxLevel - tier.minLevel + 1))
   const age = 20 + Math.floor(Math.random() * 9) // 20-28
   const carrierStartSeason = season - age + 16
-  const carrierEndSeason = carrierStartSeason + 22 + Math.floor(Math.random() * 4)
+  const carrierEndSeason = carrierStartSeason + 20 + Math.floor(Math.random() * 4)
 
   const player = {
     hair_color: Math.floor(Math.random() * 7),

@@ -118,7 +118,7 @@ async function _generateWeakFreePlayer (season) {
   const level = 10 + Math.floor(Math.random() * 11) // 10-20
   const age = 28 + Math.floor(Math.random() * 5) // 28-32 years old
   const carrierStartSeason = season - age + 16
-  const carrierEndSeason = carrierStartSeason + 22 + Math.floor(Math.random() * 4)
+  const carrierEndSeason = carrierStartSeason + 20 + Math.floor(Math.random() * 4)
 
   const positions = Object.values(Position).filter(p => p !== 'GK') // No goalkeepers
   const position = randomItem(positions)

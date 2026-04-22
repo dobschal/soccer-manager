@@ -1308,6 +1308,26 @@ const migrations = [{
     await query('ALTER TABLE trade_offer ADD COLUMN season INT DEFAULT NULL')
     await query('CREATE INDEX idx_trade_offer_attempts ON trade_offer (from_team_id, player_id, game_day, season)')
   }
+},
+{
+  name: 'Create forum_post_image table',
+  async run () {
+    await query(`
+      CREATE TABLE IF NOT EXISTS forum_post_image (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        post_id BIGINT(20) UNSIGNED NOT NULL,
+        filename VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_forum_post_image_post (post_id)
+      ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci
+    `)
+  }
+}, {
+  name: 'Reduce carrier_end_season by 2 for retirement at age 36-39',
+  async run () {
+    await query('UPDATE player SET carrier_end_season = carrier_end_season - 2')
+  }
 }]
 
 /**

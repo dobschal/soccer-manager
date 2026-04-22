@@ -10,6 +10,7 @@ const UPLOAD_DIR = 'uploads/forum'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024 // 2MB
 const MAX_IMAGES_PER_COMMENT = 5
+const MAX_IMAGES_PER_POST = 5
 
 function assertAdmin (req) {
   if (req.user?.username !== config.ADMIN_USERNAME) {
@@ -75,6 +76,12 @@ export default {
         }
         await query(`DELETE FROM forum_comment_image WHERE comment_id IN (${cPlaceholders})`, commentIds)
       }
+      const postImages = await query(`SELECT filename FROM forum_post_image WHERE post_id IN (${placeholders})`, postIds)
+      for (const img of postImages) {
+        const filePath = path.join(UPLOAD_DIR, img.filename)
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+      }
+      await query(`DELETE FROM forum_post_image WHERE post_id IN (${placeholders})`, postIds)
       await query(`DELETE FROM forum_comment WHERE post_id IN (${placeholders})`, postIds)
       await query(`DELETE FROM forum_post_like WHERE post_id IN (${placeholders})`, postIds)
     }
@@ -115,14 +122,22 @@ export default {
     return { category, posts, total, page: page || 1, totalPages: Math.ceil(total / perPage) }
   },
 
-  async createForumPost (categoryId, title, text, req) {
+  async createForumPost (categoryId, title, text, images, req) {
     if (!title || !title.trim()) throw new BadRequestError('Title cannot be empty')
     if (!text || !text.trim()) throw new BadRequestError('Text cannot be empty')
     if (title.length > 255) throw new BadRequestError('Title too long')
     if (text.length > 5000) throw new BadRequestError('Text too long')
 
-    const [category] = await query('SELECT id FROM forum_category WHERE id = ?', [categoryId])
+    if (images && images.length > MAX_IMAGES_PER_POST) {
+      throw new BadRequestError(`Maximum ${MAX_IMAGES_PER_POST} images per post`)
+    }
+
+    const [category] = await query('SELECT id, name FROM forum_category WHERE id = ?', [categoryId])
     if (!category) throw new BadRequestError('Category not found')
+
+    if (category.name === 'News' && !req.user?.is_admin) {
+      throw new BadRequestError('Only admins can post in the News category')
+    }
 
     const [team] = await query('SELECT id, name FROM team WHERE user_id = ?', [req.user.id])
 
@@ -134,7 +149,24 @@ export default {
       text: maskBadWords(text.trim())
     })
 
-    return { postId: result.insertId }
+    const postId = result.insertId
+
+    if (images && images.length > 0) {
+      fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+      for (const img of images) {
+        if (!img.data || !img.type) continue
+        if (!ALLOWED_TYPES.includes(img.type)) continue
+        const base64Data = img.data.replace(/^data:[^;]+;base64,/, '')
+        const buffer = Buffer.from(base64Data, 'base64')
+        if (buffer.length > MAX_IMAGE_SIZE) continue
+        const ext = img.type.split('/')[1].replace('jpeg', 'jpg')
+        const filename = `${crypto.randomUUID()}.${ext}`
+        fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer)
+        await query('INSERT INTO forum_post_image SET ?', { post_id: postId, filename })
+      }
+    }
+
+    return { postId }
   },
 
   async getForumPost (postId, req) {
@@ -153,6 +185,11 @@ export default {
 
     if (!post) throw new BadRequestError('Post not found')
     post.liked = post.liked > 0
+
+    post.images = await query(
+      'SELECT id, filename FROM forum_post_image WHERE post_id = ?',
+      [postId]
+    )
 
     const comments = await query(`
       SELECT c.id, c.text, c.created_at, c.user_id, c.team_id,
@@ -271,6 +308,12 @@ export default {
       }
       await query(`DELETE FROM forum_comment_image WHERE comment_id IN (${placeholders})`, commentIds)
     }
+    const postImages = await query('SELECT filename FROM forum_post_image WHERE post_id = ?', [postId])
+    for (const img of postImages) {
+      const filePath = path.join(UPLOAD_DIR, img.filename)
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    }
+    await query('DELETE FROM forum_post_image WHERE post_id = ?', [postId])
     await query('DELETE FROM forum_comment WHERE post_id = ?', [postId])
     await query('DELETE FROM forum_post_like WHERE post_id = ?', [postId])
     await query('DELETE FROM forum_post WHERE id = ?', [postId])

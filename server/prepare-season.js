@@ -389,7 +389,7 @@ async function _createRandomTeam (level) {
 async function _createRandomPlayer (team, i, season) {
   const fixPosition = getPositionsOfFormation(team.formation)[i]
   const age = Math.floor(Math.random() * 16) // have new players a bit younger, 16 means max 32 years old
-  const carrierLength = 22 + Math.floor(Math.random() * 4)
+  const carrierLength = 20 + Math.floor(Math.random() * 4)
   const levelRange = _getBotPlayerLevelRange(team.level ?? 0)
   const level = Math.floor(Math.random() * (levelRange.max - levelRange.min + 1)) + levelRange.min
   const player = new Player({

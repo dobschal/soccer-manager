@@ -78,9 +78,14 @@ export class ForumPage extends UIElement {
           const title = el(`${this._elementQuery} #forum-post-title`)?.value
           const text = el(`${this._elementQuery} #forum-post-text`)?.value
           if (!title?.trim() || !text?.trim()) return
-          const { postId } = await server.createForumPost(Number(this._params.category), title, text)
+          const images = (this._pendingPostImages || []).map(img => ({ data: img.data, type: img.type }))
+          const { postId } = await server.createForumPost(Number(this._params.category), title, text, images.length > 0 ? images : null)
+          this._pendingPostImages = []
           setQueryParams({ post: postId })
         }
+      },
+      '(optional) #forum-post-image-input': {
+        change: (e) => this._onPostImagesSelected(e)
       },
       '(optional) #forum-like-btn': {
         click: async () => {
@@ -219,17 +224,28 @@ export class ForumPage extends UIElement {
 
   _renderPostList () {
     let html = `<h5 class="mb-3">${escapeHtml(this._category?.name || '')}</h5>`
+    const isNewsCategory = this._category?.name === 'News'
+    const canPost = !isNewsCategory || this._isAdmin
 
-    html += `
-      <div class="card mb-3">
-        <div class="card-body">
-          <h6>${t('forum.newPost')}</h6>
-          <input type="text" id="forum-post-title" class="form-control mb-2" placeholder="${t('forum.postTitle')}" maxlength="255">
-          <textarea id="forum-post-text" class="form-control mb-2" placeholder="${t('forum.postText')}" rows="3" maxlength="5000"></textarea>
-          <button id="forum-post-create" class="btn btn-primary btn-sm">${t('forum.createPost')}</button>
+    if (canPost) {
+      html += `
+        <div class="card mb-3">
+          <div class="card-body">
+            <h6>${t('forum.newPost')}</h6>
+            <input type="text" id="forum-post-title" class="form-control mb-2" placeholder="${t('forum.postTitle')}" maxlength="255">
+            <textarea id="forum-post-text" class="form-control mb-2" placeholder="${t('forum.postText')}" rows="3" maxlength="5000"></textarea>
+            <div class="d-flex align-items-center gap-2">
+              <button id="forum-post-create" class="btn btn-primary btn-sm">${t('forum.createPost')}</button>
+              <label id="forum-post-image-btn" class="btn btn-outline-secondary btn-sm" title="${t('forum.addImages')}">
+                <i class="fa fa-image"></i>
+                <input id="forum-post-image-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
+              </label>
+            </div>
+            <div id="forum-post-image-preview" class="forum-image-preview"></div>
+          </div>
         </div>
-      </div>
-    `
+      `
+    }
 
     if (!this._posts || this._posts.length === 0) {
       html += `<p class="text-muted">${t('forum.noPosts')}</p>`
@@ -282,6 +298,9 @@ export class ForumPage extends UIElement {
             <small class="text-muted">${escapeHtml(post.username)} ${teamLink ? '- ' + teamLink : ''} - ${date}</small>
           </div>
           <div class="forum-post-text mb-3">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>
+          ${(post.images && post.images.length > 0) ? `<div class="forum-comment-images mb-3">${post.images.map(img =>
+    `<img src="/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="/uploads/forum/${escapeHtml(img.filename)}">`
+  ).join('')}</div>` : ''}
           <button id="forum-like-btn" class="btn btn-sm ${post.liked ? 'btn-danger' : 'btn-outline-danger'}">
             <i class="fa fa-heart${post.liked ? '' : '-o'}"></i> ${post.like_count}
           </button>
@@ -334,6 +353,39 @@ export class ForumPage extends UIElement {
     `
 
     return html
+  }
+
+  _onPostImagesSelected (e) {
+    const files = Array.from(e.target.files || [])
+    if (!this._pendingPostImages) this._pendingPostImages = []
+    for (const file of files) {
+      if (this._pendingPostImages.length >= 5) break
+      if (!file.type.startsWith('image/')) continue
+      if (file.size > 2 * 1024 * 1024) continue
+      const reader = new FileReader()
+      reader.onload = () => {
+        this._pendingPostImages.push({ data: reader.result, type: file.type, name: file.name })
+        this._renderPostImagePreview()
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  _renderPostImagePreview () {
+    const container = el(`${this._elementQuery} #forum-post-image-preview`)
+    if (!container) return
+    container.innerHTML = (this._pendingPostImages || []).map((img, i) =>
+      `<div class="forum-preview-item">
+        <img src="${img.data}" class="forum-comment-thumb">
+        <button class="forum-preview-remove" data-index="${i}"><i class="fa fa-times"></i></button>
+      </div>`
+    ).join('')
+    container.querySelectorAll('.forum-preview-remove').forEach(btn => {
+      btn.onclick = () => {
+        this._pendingPostImages.splice(Number(btn.dataset.index), 1)
+        this._renderPostImagePreview()
+      }
+    })
   }
 
   _onImagesSelected (e) {

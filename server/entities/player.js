@@ -11,7 +11,7 @@
  * @property {number} skin_color
  * @property {Date} created_at
  * @property {number} carrier_start_season - season where the player was 16 years old
- * @property {number} carrier_end_season - start_seaon + 20 (+ 3 years)
+ * @property {number} carrier_end_season - carrier_start_season + 20..23 (retire at age 36-39)
  */
 
 import { OptionalNumber, OptionalObject, OptionalString, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'

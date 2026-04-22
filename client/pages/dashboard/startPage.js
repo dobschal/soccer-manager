@@ -96,13 +96,21 @@ export class StartPage {
       localStorage.setItem('hideVideoCard', '1')
       document.getElementById(closeId)?.closest('.card')?.remove()
     })
+    const videoId = 'tkbwQh1juno'
+    const isNativeApp = Boolean(window.__nativePlatform)
+    const videoContent = isNativeApp
+      ? `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" class="d-block ratio ratio-16x9 video-thumbnail-link">
+          <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="${t('dashboard.videoTitle')}" class="video-thumbnail-img">
+          <span class="video-play-btn"><i class="fa fa-play-circle fa-4x"></i></span>
+        </a>`
+      : `<div class="ratio ratio-16x9">
+          <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1" title="${t('dashboard.videoTitle')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen webkit-playsinline></iframe>
+        </div>`
     return `
       <div class="card card-body mb-2 bg-dark mt-3 position-relative">
         <button id="${closeId}" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" type="button" aria-label="Close"></button>
         <h5 class="mb-2 text-center text-white"><i class="fa fa-youtube-play"></i> ${t('dashboard.videoTitle')}</h5>
-        <div class="ratio ratio-16x9">
-          <iframe src="https://www.youtube-nocookie.com/embed/tkbwQh1juno?playsinline=1" title="${t('dashboard.videoTitle')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen webkit-playsinline></iframe>
-        </div>
+        ${videoContent}
       </div>
     `
   }
