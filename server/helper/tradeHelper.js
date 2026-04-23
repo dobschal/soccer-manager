@@ -4,7 +4,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { addLogMessage, checkTeamAndNotify } from './logMessageHelper.js'
 import { getTeamById } from './teamHelper.js'
-import { getPlayerAge, getPlayerById, getPlayersByTeamId } from './playerHelper.js'
+import { getPlayerAge, getPlayerById, getPlayersByTeamId, MIN_TEAM_SIZE } from './playerHelper.js'
 import { TradeHistory } from '../entities/tradeHistory.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
@@ -61,6 +61,12 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
   // get corresponding player
   const player = await getPlayerById(offer.player_id)
   if (!player) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+
+  // Enforce minimum team size for user-owned teams
+  if (sellingTeam.user_id) {
+    const sellingTeamPlayers = await getPlayersByTeamId(sellingTeam.id)
+    if (sellingTeamPlayers.length <= MIN_TEAM_SIZE) throw new BadRequestError(t('error.teamTooSmall', {}, locale))
+  }
 
   // Update player and trade offer
   player.team_id = offer.from_team_id

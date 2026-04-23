@@ -1,4 +1,6 @@
 import { query } from '../lib/database.js'
+
+export const MIN_TEAM_SIZE = 14
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { generateRandomPlayerName } from '../prepare-season.js'
 import { Position } from '../../client/util/formation.js'

@@ -30,6 +30,7 @@ export default {
   'error.invalidTicketPrice': 'Ungültiger Ticketpreis',
 
   // Player errors
+  'error.teamTooSmall': 'Dein Team muss mindestens 14 Spieler haben.',
   'error.invalidPosition': 'Ungültige Position',
   'error.positionAlreadyTaken': 'Position ist bereits besetzt',
   'error.playerNotInTeam': 'Spieler ist nicht in deinem Team',

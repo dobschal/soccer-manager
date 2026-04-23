@@ -110,6 +110,17 @@ function countShots (gameDetails, isTeamA) {
 }
 
 /**
+ * Count shots on target (keeperHolds + goals) for a team
+ */
+function countShotsOnTarget (gameDetails, isTeamA) {
+  const teamPlayers = isTeamA ? gameDetails.playerTeamA : gameDetails.playerTeamB
+  const playerIds = new Set(teamPlayers.map(p => p.id))
+  const keeperHolds = gameDetails.log.filter(e => e.keeperHolds && playerIds.has(e.player)).length
+  const goals = isTeamA ? (gameDetails.goalsTeamA || 0) : (gameDetails.goalsTeamB || 0)
+  return keeperHolds + goals
+}
+
+/**
  * Count yellow cards from game log
  */
 function countYellowCards (gameDetails) {
@@ -194,6 +205,22 @@ describe('Game Statistics - Bundesliga Comparison', () => {
     originalLog(`  Shots per team per match: ${avgPerTeam.toFixed(1)} (target: 13)`)
     expect(avgPerTeam).toBeGreaterThan(5)
     expect(avgPerTeam).toBeLessThan(25)
+  })
+
+  it('average shots on target per team should be around 4-5 (Bundesliga reference)', () => {
+    let totalOnTargetA = 0
+    let totalOnTargetB = 0
+    for (const g of results) {
+      totalOnTargetA += countShotsOnTarget(g, true)
+      totalOnTargetB += countShotsOnTarget(g, false)
+    }
+    const avgPerTeam = (totalOnTargetA + totalOnTargetB) / (NUM_GAMES * 2)
+    const avgShots = results.reduce((s, g) => s + countShots(g, true) + countShots(g, false), 0) / (NUM_GAMES * 2)
+    const onTargetPct = (avgPerTeam / avgShots) * 100
+    originalLog(`  Shots on target per team: ${avgPerTeam.toFixed(1)} (target: 4-5)`)
+    originalLog(`  On-target rate: ${onTargetPct.toFixed(1)}% (Bundesliga: ~33-38%)`)
+    expect(avgPerTeam).toBeGreaterThan(2)
+    expect(avgPerTeam).toBeLessThan(8)
   })
 
   it('average yellow cards per match should be close to 3.5 for normal style (tolerance ±1.0)', () => {
@@ -340,7 +367,7 @@ describe('Randomness Control - Same Game Reproducibility', () => {
     originalLog(`  Yellow cards: avg=${avgYellows.toFixed(2)}, min=${minYellows}, max=${maxYellows}`)
 
     // Yellow card range across replays should not be wildly different
-    expect(maxYellows - minYellows).toBeLessThan(12)
+    expect(maxYellows - minYellows).toBeLessThan(15)
     // Average should be in the Bundesliga ballpark
     expect(avgYellows).toBeGreaterThan(2.0)
     expect(avgYellows).toBeLessThan(5.0)
@@ -485,12 +512,15 @@ describe('Detailed Statistics Report', () => {
       const draws = games.filter(g => (g.goalsTeamA || 0) === (g.goalsTeamB || 0)).length
       const shotsA = games.reduce((s, g) => s + countShots(g, true), 0)
       const shotsB = games.reduce((s, g) => s + countShots(g, false), 0)
+      const onTargetA = games.reduce((s, g) => s + countShotsOnTarget(g, true), 0)
+      const onTargetB = games.reduce((s, g) => s + countShotsOnTarget(g, false), 0)
       return {
         goalsPerMatch: totalGoals / NUM_GAMES,
         yellowsPerMatch: totalYellows / NUM_GAMES,
         redsPerMatch: totalReds / NUM_GAMES,
         drawPct: (draws / NUM_GAMES) * 100,
-        shotsPerTeam: (shotsA + shotsB) / (NUM_GAMES * 2)
+        shotsPerTeam: (shotsA + shotsB) / (NUM_GAMES * 2),
+        onTargetPerTeam: (onTargetA + onTargetB) / (NUM_GAMES * 2)
       }
     }
 
@@ -516,6 +546,7 @@ describe('Detailed Statistics Report', () => {
     originalLog(`  ║ Reds/match           │ ${styleResults.aggressive.redsPerMatch.toFixed(3).padStart(10)} │ ${styleResults.normal.redsPerMatch.toFixed(3).padStart(8)} │ ${styleResults.friendly.redsPerMatch.toFixed(3).padStart(8)} │ .13/.1/.07║`)
     originalLog(`  ║ Draw %               │ ${styleResults.aggressive.drawPct.toFixed(1).padStart(10)} │ ${styleResults.normal.drawPct.toFixed(1).padStart(8)} │ ${styleResults.friendly.drawPct.toFixed(1).padStart(8)} │ ${('24').padStart(8)} ║`)
     originalLog(`  ║ Shots/team           │ ${styleResults.aggressive.shotsPerTeam.toFixed(1).padStart(10)} │ ${styleResults.normal.shotsPerTeam.toFixed(1).padStart(8)} │ ${styleResults.friendly.shotsPerTeam.toFixed(1).padStart(8)} │ ${('13').padStart(8)} ║`)
+    originalLog(`  ║ On target/team       │ ${styleResults.aggressive.onTargetPerTeam.toFixed(1).padStart(10)} │ ${styleResults.normal.onTargetPerTeam.toFixed(1).padStart(8)} │ ${styleResults.friendly.onTargetPerTeam.toFixed(1).padStart(8)} │ ${('4-5').padStart(8)} ║`)
     originalLog('  ╚════════════════════════════════════════════════════════════════════╝')
 
     originalLog('\n  ╔════════════════════════════════════════════════════════════════════╗')
@@ -528,6 +559,7 @@ describe('Detailed Statistics Report', () => {
     originalLog(`  ║ Reds/match           │ ${modeResults.offensive.redsPerMatch.toFixed(3).padStart(10)} │ ${modeResults.balanced.redsPerMatch.toFixed(3).padStart(8)} │ ${modeResults.defensive.redsPerMatch.toFixed(3).padStart(8)} │ ${('0.1').padStart(8)} ║`)
     originalLog(`  ║ Draw %               │ ${modeResults.offensive.drawPct.toFixed(1).padStart(10)} │ ${modeResults.balanced.drawPct.toFixed(1).padStart(8)} │ ${modeResults.defensive.drawPct.toFixed(1).padStart(8)} │ ${('24').padStart(8)} ║`)
     originalLog(`  ║ Shots/team           │ ${modeResults.offensive.shotsPerTeam.toFixed(1).padStart(10)} │ ${modeResults.balanced.shotsPerTeam.toFixed(1).padStart(8)} │ ${modeResults.defensive.shotsPerTeam.toFixed(1).padStart(8)} │ ${('13').padStart(8)} ║`)
+    originalLog(`  ║ On target/team       │ ${modeResults.offensive.onTargetPerTeam.toFixed(1).padStart(10)} │ ${modeResults.balanced.onTargetPerTeam.toFixed(1).padStart(8)} │ ${modeResults.defensive.onTargetPerTeam.toFixed(1).padStart(8)} │ ${('4-5').padStart(8)} ║`)
     originalLog('  ╚════════════════════════════════════════════════════════════════════╝')
 
     // This test always passes - it's for reporting

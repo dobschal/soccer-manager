@@ -12,7 +12,9 @@ vi.mock('../../helper/teamHelper.js', () => ({
 vi.mock('../../helper/playerHelper.js', () => ({
   getPlayerById: vi.fn(),
   getPlayerAge: vi.fn(),
-  getAveragePlanPriceOfPlayer: vi.fn()
+  getAveragePlanPriceOfPlayer: vi.fn(),
+  getPlayersByTeamId: vi.fn(),
+  MIN_TEAM_SIZE: 14
 }))
 
 vi.mock('../../helper/tradeHelper.js', () => ({
@@ -29,7 +31,7 @@ vi.mock('../../helper/playerHistoryHelper.js', () => ({
 
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
-import { getPlayerById, getPlayerAge, getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
+import { getPlayerById, getPlayerAge, getAveragePlanPriceOfPlayer, getPlayersByTeamId } from '../../helper/playerHelper.js'
 import { getPastTrades } from '../../helper/tradeHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/players.js'
@@ -78,6 +80,7 @@ describe('players routes', () => {
       const player = testData.player({ name: 'John Doe' })
 
       getTeam.mockResolvedValue(team)
+      getPlayersByTeamId.mockResolvedValue(Array(15).fill(testData.player()))
       query
         .mockResolvedValueOnce([player])  // SELECT player
         .mockResolvedValueOnce({})        // UPDATE player
@@ -102,6 +105,37 @@ describe('players routes', () => {
 
       await expect(handlers.firePlayer({ id: 999 }, req))
         .rejects.toMatchObject({ message: 'This is not your player' })
+    })
+
+    it('throws error when team would have fewer than 14 players', async () => {
+      const team = testData.team()
+      const player = testData.player({ name: 'John Doe' })
+
+      getTeam.mockResolvedValue(team)
+      getPlayersByTeamId.mockResolvedValue(Array(14).fill(testData.player()))
+      query.mockResolvedValueOnce([player]) // SELECT player
+
+      const req = createMockRequest()
+
+      await expect(handlers.firePlayer({ id: 1 }, req))
+        .rejects.toMatchObject({ message: 'Your team must have at least 14 players.' })
+    })
+
+    it('allows firing when team has more than 14 players', async () => {
+      const team = testData.team()
+      const player = testData.player({ name: 'John Doe' })
+
+      getTeam.mockResolvedValue(team)
+      getPlayersByTeamId.mockResolvedValue(Array(15).fill(testData.player()))
+      query
+        .mockResolvedValueOnce([player])  // SELECT player
+        .mockResolvedValueOnce({})        // UPDATE player
+        .mockResolvedValueOnce({})        // DELETE trade_offer
+
+      const req = createMockRequest()
+      const result = await handlers.firePlayer({ id: 1 }, req)
+
+      expect(result).toEqual({ success: true })
     })
   })
 

@@ -4,7 +4,7 @@ import { query, transaction } from '../lib/database.js'
 import jwt from 'jsonwebtoken'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
-import { prepareSeason } from '../prepare-season.js'
+import { prepareSeason, regenerateTeamData } from '../prepare-season.js'
 import { getSupportedLocales, t } from '../i18n/index.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
@@ -62,6 +62,8 @@ export default {
     if (sponsor) {
       await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
     }
+    // Regenerate players/stadium/buildings if team was emptied (e.g. after account deletion)
+    await regenerateTeamData(team)
     await query('DELETE FROM action_card WHERE team_id=?', [team.id])
     // Give new user 3 starter action cards
     const starterCards = [

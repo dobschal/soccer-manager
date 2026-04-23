@@ -19,7 +19,9 @@ vi.mock('../../helper/teamHelper.js', () => ({
 }))
 
 vi.mock('../../helper/playerHelper.js', () => ({
-  getPlayerById: vi.fn()
+  getPlayerById: vi.fn(),
+  getPlayersByTeamId: vi.fn(),
+  MIN_TEAM_SIZE: 14
 }))
 
 vi.mock('../../helper/playerHistoryHelper.js', () => ({
@@ -35,6 +37,7 @@ vi.mock('../../i18n/index.js', () => ({
     const translations = {
       'error.offerNotFound': 'Offer not found',
       'error.playerNotFound': 'Player not found',
+      'error.teamTooSmall': 'Your team must have at least 14 players.',
       'finance.playerSold': `Selling player ${params.playerName} to ${params.buyerTeam}`,
       'finance.playerBought': `Buying player ${params.playerName} from ${params.sellerTeam}`,
       'log.playerSold': `You sold your player ${params.playerName} to the team ${params.buyerTeam}.`,
@@ -50,7 +53,7 @@ import { query } from '../../lib/database.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getTeamById } from '../../helper/teamHelper.js'
-import { getPlayerById } from '../../helper/playerHelper.js'
+import { getPlayerById, getPlayersByTeamId } from '../../helper/playerHelper.js'
 import { addPlayerHistory } from '../../helper/playerHistoryHelper.js'
 import { sendToTeam } from '../../lib/websocket.js'
 import { acceptOffer, declineOffer } from '../../helper/tradeHelper.js'
@@ -63,6 +66,11 @@ describe('tradeHelper', () => {
   describe('acceptOffer', () => {
     const gameDay = 5
     const season = 1
+
+    beforeEach(() => {
+      // Default: selling team has enough players
+      getPlayersByTeamId.mockResolvedValue(Array(18).fill(testData.player()))
+    })
 
     it('throws error when offer does not exist', async () => {
       const sellingTeam = testData.team({ id: 1 })
@@ -382,6 +390,47 @@ describe('tradeHelper', () => {
         gameDay,
         season
       )
+    })
+
+    it('throws error when selling team would drop below minimum team size', async () => {
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC', user_id: 1 })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({
+        id: 1,
+        type: 'buy',
+        player_id: 10,
+        from_team_id: 2,
+        offer_value: 50000
+      })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getPlayersByTeamId.mockResolvedValueOnce(Array(14).fill(testData.player()))
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season))
+        .rejects.toMatchObject({ message: 'Your team must have at least 14 players.' })
+    })
+
+    it('allows trade for bot teams even with few players', async () => {
+      const botTeam = testData.team({ id: 1, name: 'Bot FC', user_id: null })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({
+        id: 1,
+        type: 'buy',
+        player_id: 10,
+        from_team_id: 2,
+        offer_value: 50000
+      })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      query.mockResolvedValue({})
+
+      // Should not throw - bot teams are not subject to minimum team size
+      await expect(acceptOffer(offer, botTeam, gameDay, season))
+        .resolves.toBeUndefined()
     })
   })
 

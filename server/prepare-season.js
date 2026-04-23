@@ -386,6 +386,44 @@ async function _createRandomTeam (level) {
  * @param {number} season
  * @returns {Promise<void>}
  */
+/**
+ * Regenerate players, stadium and buildings for a team that was emptied (e.g. after account deletion).
+ * @param {Team} team
+ * @returns {Promise<void>}
+ */
+export async function regenerateTeamData (team) {
+  const season = await _latestSeason() ?? 0
+  const [{ count: playerCount }] = await query('SELECT COUNT(*) AS count FROM player WHERE team_id=?', [team.id])
+  if (playerCount === 0) {
+    await Promise.all([...Array(18)].map((_, i) => _createRandomPlayer(team, i, season)))
+  }
+  const [existingStadium] = await query('SELECT id FROM stadium WHERE team_id=?', [team.id])
+  if (!existingStadium) {
+    const stadiumConfig = _getBotStadiumConfig(team.level ?? 0)
+    const stadium = new Stadium({
+      team_id: team.id,
+      north_stand_roof: 0,
+      south_stand_roof: 0,
+      east_stand_roof: 0,
+      west_stand_roof: 0,
+      north_stand_size: stadiumConfig.n,
+      south_stand_size: stadiumConfig.s,
+      east_stand_size: stadiumConfig.e,
+      west_stand_size: stadiumConfig.w,
+      north_stand_price: 13,
+      south_stand_price: 13,
+      east_stand_price: 13,
+      west_stand_price: 13
+    })
+    await query('INSERT INTO stadium SET ?', stadium)
+  }
+  const [{ count: buildingCount }] = await query('SELECT COUNT(*) AS count FROM building WHERE team_id=?', [team.id])
+  if (buildingCount === 0) {
+    await query('INSERT INTO building SET ?', { team_id: team.id, type: 'training_area', level: 1 })
+    await query('INSERT INTO building SET ?', { team_id: team.id, type: 'fitness_studio', level: 1 })
+  }
+}
+
 async function _createRandomPlayer (team, i, season) {
   const fixPosition = getPositionsOfFormation(team.formation)[i]
   const age = Math.floor(Math.random() * 16) // have new players a bit younger, 16 means max 32 years old

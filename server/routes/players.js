@@ -2,7 +2,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
-import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById } from '../helper/playerHelper.js'
+import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById, getPlayersByTeamId, MIN_TEAM_SIZE } from '../helper/playerHelper.js'
 import { getPastTrades } from '../helper/tradeHelper.js'
 import { addPlayerHistory } from '../helper/playerHistoryHelper.js'
 import { t } from '../i18n/index.js'
@@ -41,6 +41,8 @@ export default {
     const team = await getTeam(req)
     const [playerFromDb] = await query('SELECT * FROM player WHERE id=? AND team_id=?', [player.id, team.id])
     if (!playerFromDb) throw new BadRequestError(t('error.notYourPlayer', {}, locale))
+    const teamPlayers = await getPlayersByTeamId(team.id)
+    if (teamPlayers.length <= MIN_TEAM_SIZE) throw new BadRequestError(t('error.teamTooSmall', {}, locale))
     await query('UPDATE player SET team_id=NULL WHERE id=?', [player.id])
     await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
     await addLogMessage(t('log.playerFired', { playerName: playerFromDb.name }, locale), team, null, null, 'user-times')

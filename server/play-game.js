@@ -429,7 +429,8 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     teamAHasBall = false
   }
   // Base chance + streak bonus (allows shots even at streak 0)
-  const chanceForShoot = Math.min(0.95, _chanceToShoot(activePlayer, gameDetails) * (1 + gameDetails.streak * 0.2))
+  const cappedStreak = Math.min(gameDetails.streak, 6)
+  const chanceForShoot = Math.min(0.95, _chanceToShoot(activePlayer, gameDetails) * (1 + cappedStreak * 0.15))
   if (Math.random() > chanceForShoot) return true
 
   // Track shot attempt
@@ -439,8 +440,8 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     gameDetails.shotsTeamB = (gameDetails.shotsTeamB || 0) + 1
   }
 
-  // Shot on target scales with player level: ~17% at level 10, ~23% at level 40, ~35% at level 100
-  const shotOnTarget = Math.random() < (0.15 + activePlayer.level / 500)
+  // Shot on target scales with player level: ~28% at level 10, ~38% at level 50, ~50% at level 100
+  const shotOnTarget = Math.random() < (0.25 + activePlayer.level / 400)
 
   if (!shotOnTarget) {
     // Shot misses the target entirely
@@ -451,8 +452,8 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     console.log('Team has no goalkeeper set!')
   }
 
-  // Shot on target - check if keeper saves
-  const keeperSaves = goalKeeper && Math.random() < goalKeeper.level / (goalKeeper.level + activePlayer.level)
+  // Shot on target - check if keeper saves (keeper advantage factor 2.0 for realistic conversion rate ~33%)
+  const keeperSaves = goalKeeper && Math.random() < (goalKeeper.level * 2.0) / (goalKeeper.level * 2.0 + activePlayer.level)
 
   if (keeperSaves) {
     gameDetails.log.push({
@@ -499,8 +500,8 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
  * @returns {number}
  */
 function _chanceToShoot (player) {
-  if (player.position.endsWith('A')) return 0.095
-  if (player.position.endsWith('M')) return 0.04
+  if (player.position.endsWith('A')) return 0.085
+  if (player.position.endsWith('M')) return 0.037
   if (player.position.endsWith('D')) return 0.004
   return 0.00005
 }

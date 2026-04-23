@@ -15,7 +15,8 @@ vi.mock('../../helper/sponsorHelper.js', () => ({
 }))
 
 vi.mock('../../prepare-season.js', () => ({
-  prepareSeason: vi.fn()
+  prepareSeason: vi.fn(),
+  regenerateTeamData: vi.fn()
 }))
 
 vi.mock('../../lib/passwordHash.js', () => ({
