@@ -88,6 +88,10 @@ export class StartPage {
         </div>
       </div>
       ${this._renderVideoCard()}
+      <p class="text-center text-muted mt-3 mb-0">
+        <i class="fa fa-coffee"></i> Support me and buy me a coffee:
+        <a href="https://buymeacoffee.com/dobschal" target="_blank" rel="noopener" class="buy-me-a-coffee-link">buymeacoffee.com/dobschal</a>
+      </p>
     `
   }
 

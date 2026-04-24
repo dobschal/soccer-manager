@@ -15,7 +15,7 @@ function escapeHtml (text) {
 export class ForumPage extends UIElement {
   async load () {
     const teamResponse = await server.getMyTeam()
-    this._isAdmin = teamResponse.user?.username === 'Emmo'
+    this._isAdmin = !!teamResponse.isAdmin
     this._params = getQueryParams()
     await this._loadView()
   }

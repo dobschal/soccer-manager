@@ -1,7 +1,6 @@
 import { query } from '../lib/database.js'
 import { maskBadWords } from '../lib/badWordsFilter.js'
 import { BadRequestError } from '../lib/errors.js'
-import { config } from '../config.js'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
@@ -13,7 +12,7 @@ const MAX_IMAGES_PER_COMMENT = 5
 const MAX_IMAGES_PER_POST = 5
 
 function assertAdmin (req) {
-  if (req.user?.username !== config.ADMIN_USERNAME) {
+  if (!req.user?.is_admin) {
     throw new BadRequestError('This action is only available for the admin')
   }
 }
