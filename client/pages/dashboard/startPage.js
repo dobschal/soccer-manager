@@ -65,7 +65,7 @@ export class StartPage {
       <div class="d-flex flex-column flex-lg-row align-items-start u-gap-md">
         <div class="flex-grow-1 order-2 order-lg-1 w-100">
             <div id="${leagueCardId}" class="card card-body mb-2 bg-dark">
-            <h5 class="mb-2 text-center text-white"><i class="fa fa-futbol-o"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
+            <h5 class="mb-2 text-center text-white"><i class="fa fa-diamond"></i> ${formatLeague(this.team.level, this.team.league)}</h5>
             ${new GameSlider(gameSliderArgs)}
           </div>
           <div id="${cupCardId}" class="card card-body mb-2 bg-dark">
