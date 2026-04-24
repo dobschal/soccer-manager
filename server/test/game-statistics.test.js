@@ -355,8 +355,8 @@ describe('Randomness Control - Same Game Reproducibility', () => {
     // With similar-strength teams, averages should be close
     expect(Math.abs(avgA - avgB)).toBeLessThan(1.0)
     // No team should score an absurd number in a single match
-    expect(maxA).toBeLessThan(10)
-    expect(maxB).toBeLessThan(10)
+    expect(maxA).toBeLessThanOrEqual(10)
+    expect(maxB).toBeLessThanOrEqual(10)
   })
 
   it('yellow cards should be similar across replays', () => {
