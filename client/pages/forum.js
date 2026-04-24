@@ -259,7 +259,7 @@ export class ForumPage extends UIElement {
         const teamName = post.team_id ? `${escapeHtml(post.team_name || '')}` : ''
         html += `
           <a href="#forum?category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item">
-            <h6 class="mb-1">${escapeHtml(post.title)}</h6>
+            <h6 class="mb-1">${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}</h6>
             <p class="mb-1 text-muted forum-post-preview">${escapeHtml(post.text)}</p>
             <p class="forum-meta">
               <small class="text-muted">${escapeHtml(post.username)} ${teamName ? '- ' + teamName : ''} - ${date}</small>
@@ -296,10 +296,23 @@ export class ForumPage extends UIElement {
     let html = `
       <div class="card mb-3">
         <div class="card-body">
-          <h5>${escapeHtml(post.title)}</h5>
+          <h5>${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}</h5>
           <div class="forum-meta mb-2">
             <small class="text-muted">${escapeHtml(post.username)} ${teamLink ? '- ' + teamLink : ''} - ${date}</small>
           </div>
+          ${this._isAdmin ? `
+            <div class="forum-badge-admin mb-2">
+              ${post.badge_text
+    ? `<button class="btn btn-outline-secondary btn-sm forum-remove-badge" data-id="${post.id}"><i class="fa fa-times"></i> ${t('forum.removeBadge')}</button>`
+    : `<button class="btn btn-outline-secondary btn-sm" id="forum-badge-toggle"><i class="fa fa-tag"></i> ${t('forum.addBadge')}</button>`
+}
+              <div id="forum-badge-form" class="forum-badge-form" ${post.badge_text ? '' : 'hidden'}>
+                <input type="text" id="forum-badge-text" class="form-control form-control-sm" placeholder="${t('forum.badgeText')}" maxlength="50" value="${post.badge_text ? escapeHtml(post.badge_text) : ''}">
+                <input type="color" id="forum-badge-color" class="form-control form-control-sm form-control-color" value="${post.badge_color || '#0d6efd'}">
+                <button id="forum-badge-save" class="btn btn-primary btn-sm">${t('forum.save')}</button>
+              </div>
+            </div>
+          ` : ''}
           <div class="forum-post-text mb-3">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>
           ${(post.images && post.images.length > 0) ? `<div class="forum-comment-images mb-3">${post.images.map(img =>
     `<img src="/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="/uploads/forum/${escapeHtml(img.filename)}">`
@@ -495,6 +508,40 @@ export class ForumPage extends UIElement {
           overlay.hidden = false
         }
       }
+    })
+
+    const badgeToggle = root.querySelector('#forum-badge-toggle')
+    if (badgeToggle) {
+      badgeToggle.onclick = () => {
+        const form = el(`${this._elementQuery} #forum-badge-form`)
+        if (form) form.hidden = !form.hidden
+      }
+    }
+
+    const badgeSave = root.querySelector('#forum-badge-save')
+    if (badgeSave) {
+      badgeSave.onclick = async () => {
+        const text = el(`${this._elementQuery} #forum-badge-text`)?.value
+        const color = el(`${this._elementQuery} #forum-badge-color`)?.value
+        if (!text?.trim()) return
+        await server.setForumPostBadge(Number(this._params.post), text, color)
+        toast(t('forum.badgeSaved'), 'success')
+        await this._loadView()
+        this.update()
+      }
+    }
+
+    root.querySelectorAll('.forum-remove-badge').forEach(btn => {
+      btn.onclick = async () => {
+        await server.removeForumPostBadge(Number(btn.dataset.id))
+        toast(t('forum.badgeRemoved'), 'success')
+        await this._loadView()
+        this.update()
+      }
+    })
+
+    root.querySelectorAll('.forum-badge').forEach(badge => {
+      badge.style.backgroundColor = badge.dataset.color
     })
 
     root.querySelectorAll('.forum-delete-comment').forEach(btn => {

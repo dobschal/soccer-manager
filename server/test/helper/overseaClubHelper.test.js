@@ -206,6 +206,36 @@ describe('overseaClubHelper', () => {
       expect(bought).toBe(0)
     })
 
+    it('skips player if IOC already has a rejected offer', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // One undervalued sell offer
+      globalThis._query.mockResolvedValueOnce([
+        {
+          id: 1,
+          player_id: 10,
+          from_team_id: 5,
+          offer_value: 50000,
+          type: 'sell',
+          level: 50,
+          position: 'CM',
+          carrier_start_season: 0,
+          carrier_end_season: 22,
+          player_team_id: 5
+        }
+      ])
+
+      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
+      globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'User FC', user_id: 42 })
+
+      // IOC already has a rejected offer for this player
+      globalThis._query.mockResolvedValueOnce([{ id: 77 }])
+
+      const bought = await iocBuyUndervaluedPlayers()
+      expect(bought).toBe(0)
+    })
+
     it('skips offers at or above 80% market value', async () => {
       // getIOCTeamId
       globalThis._query.mockResolvedValueOnce([{ id: 999 }])

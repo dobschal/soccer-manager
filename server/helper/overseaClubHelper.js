@@ -174,9 +174,9 @@ export async function iocBuyUndervaluedPlayers () {
     const sellingTeam = await getTeamById(offer.from_team_id)
     if (!sellingTeam) continue
 
-    // Skip if IOC already has an open offer for this player
+    // Skip if IOC already has an offer for this player (open or rejected)
     const [existingOffer] = await query(
-      'SELECT id FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'',
+      'SELECT id FROM trade_offer WHERE from_team_id=? AND player_id=? AND status IN (\'open\', \'rejected\')',
       [iocTeamId, offer.player_id]
     )
     if (existingOffer) continue
@@ -268,9 +268,9 @@ export async function iocEnsureMinimumTransfers () {
     const sellingTeam = await getTeamById(offer.from_team_id)
     if (!sellingTeam) continue
 
-    // Skip if IOC already has an open offer for this player
+    // Skip if IOC already has an offer for this player (open or rejected)
     const [existingOffer] = await query(
-      'SELECT id FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'',
+      'SELECT id FROM trade_offer WHERE from_team_id=? AND player_id=? AND status IN (\'open\', \'rejected\')',
       [iocTeamId, offer.player_id]
     )
     if (existingOffer) continue

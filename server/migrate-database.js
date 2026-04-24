@@ -1374,6 +1374,13 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE team ADD COLUMN description TEXT DEFAULT NULL')
   }
+},
+{
+  name: 'Add badge columns to forum_post table',
+  async run () {
+    await query('ALTER TABLE forum_post ADD COLUMN badge_text VARCHAR(50) DEFAULT NULL')
+    await query('ALTER TABLE forum_post ADD COLUMN badge_color VARCHAR(7) DEFAULT NULL')
+  }
 }]
 
 /**

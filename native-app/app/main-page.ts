@@ -14,6 +14,8 @@ declare const UNAuthorizationOptionAlert: number
 declare const UNAuthorizationOptionBadge: number
 declare const UNAuthorizationOptionSound: number
 declare const UIApplication: any
+declare const NSObject: any
+declare const WKUIDelegate: any
 
 let webViewRef: WebView | null = null
 let resumeHandler: (() => void) | null = null
@@ -227,10 +229,42 @@ function loadWebViewIOS(webView: WebView, webPath: string) {
     wkWebView.configuration.preferences.setValueForKey(true, 'allowFileAccessFromFileURLs')
     wkWebView.configuration.setValueForKey(true, 'allowUniversalAccessFromFileURLs')
 
+    // Open target="_blank" links in the system browser (Safari)
+    const uiDelegate = setupIOSUIDelegate()
+    wkWebView.UIDelegate = uiDelegate
+    // Keep a strong reference so ARC doesn't deallocate the delegate
+    ;(webView as any).__uiDelegate = uiDelegate
+
     const fileUrl = NSURL.fileURLWithPath(indexPath)
     const dirUrl = NSURL.fileURLWithPath(webPath)
 
     wkWebView.loadFileURLAllowingReadAccessToURL(fileUrl, dirUrl)
+}
+
+/**
+ * Creates a WKUIDelegate that intercepts target="_blank" link clicks
+ * and opens them in the external system browser instead of the WebView.
+ */
+function setupIOSUIDelegate(): any {
+    const WKUIDelegateImpl = (NSObject as any).extend({
+        // Called when a link with target="_blank" is clicked
+        webViewCreateWebViewWithConfigurationForNavigationActionWindowFeatures(
+            _webView: any, _configuration: any, navigationAction: any, _windowFeatures: any
+        ): any {
+            const request = navigationAction.request
+            if (request && request.URL) {
+                const url = request.URL.absoluteString
+                if (url && url.length > 0) {
+                    Utils.openUrl(url)
+                }
+            }
+            return null
+        }
+    }, {
+        protocols: [WKUIDelegate]
+    })
+
+    return WKUIDelegateImpl.new()
 }
 
 function loadWebViewAndroid(webView: WebView, webPath: string) {

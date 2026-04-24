@@ -101,6 +101,7 @@ export default {
 
     const posts = await query(`
       SELECT p.id, p.title, p.text, p.created_at, p.user_id, p.team_id,
+        p.badge_text, p.badge_color,
         u.username,
         t.name AS team_name,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id) AS like_count,
@@ -316,6 +317,25 @@ export default {
     await query('DELETE FROM forum_comment WHERE post_id = ?', [postId])
     await query('DELETE FROM forum_post_like WHERE post_id = ?', [postId])
     await query('DELETE FROM forum_post WHERE id = ?', [postId])
+    return { success: true }
+  },
+
+  async setForumPostBadge (postId, badgeText, badgeColor, req) {
+    assertAdmin(req)
+    if (!badgeText || !badgeText.trim()) throw new BadRequestError('Badge text cannot be empty')
+    if (badgeText.length > 50) throw new BadRequestError('Badge text too long')
+    if (!badgeColor || !/^#[0-9a-fA-F]{6}$/.test(badgeColor)) throw new BadRequestError('Invalid badge color')
+    await query('UPDATE forum_post SET badge_text = ?, badge_color = ? WHERE id = ?', [
+      badgeText.trim(),
+      badgeColor,
+      postId
+    ])
+    return { success: true }
+  },
+
+  async removeForumPostBadge (postId, req) {
+    assertAdmin(req)
+    await query('UPDATE forum_post SET badge_text = NULL, badge_color = NULL WHERE id = ?', [postId])
     return { success: true }
   },
 

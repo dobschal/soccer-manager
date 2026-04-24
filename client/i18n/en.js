@@ -961,6 +961,11 @@ export default {
   'forum.cancel': 'Cancel',
   'forum.categoryUpdated': 'Category updated!',
   'forum.confirmDelete': 'Are you sure you want to delete this?',
+  'forum.addBadge': 'Add Badge',
+  'forum.removeBadge': 'Remove Badge',
+  'forum.badgeText': 'Badge text',
+  'forum.badgeSaved': 'Badge saved!',
+  'forum.badgeRemoved': 'Badge removed!',
 
   // Admin
   'admin.title': 'Admin',
