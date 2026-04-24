@@ -21,8 +21,12 @@ export default {
       throw new BadRequestError('This action is only available for admins')
     }
     console.log('Manually triggered game day calculation...')
-    await prepareSeason()
-    await calculateGames()
+    const newSeasonCreated = await prepareSeason()
+    if (newSeasonCreated) {
+      console.log('⏸️ New season created — skipping game calculation this tick.')
+    } else {
+      await calculateGames({ skipPushNotifications: true })
+    }
     await makeBotMoves()
     await cleanupOldFreePlayers()
     await cleanupIOCPlayers()
@@ -115,7 +119,7 @@ export default {
           await txQuery('DELETE FROM stadium_construction_history WHERE stadium_id=?', [stadium.id])
         }
         await txQuery('DELETE FROM stadium WHERE team_id=?', [team.id])
-        await txQuery('UPDATE team SET user_id=NULL WHERE id=?', [team.id])
+        await txQuery('UPDATE team SET user_id=NULL, description=NULL WHERE id=?', [team.id])
       }
       await txQuery('DELETE FROM device_token WHERE user_id=?', [user.id])
       await txQuery('DELETE FROM forum_comment WHERE user_id=?', [user.id])

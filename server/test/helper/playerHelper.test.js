@@ -21,94 +21,87 @@ import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { generateRandomPlayerName } from '../../prepare-season.js'
 import { cleanupOldFreePlayers } from '../../helper/playerHelper.js'
 
+// All 12 positions
+const ALL_POSITIONS = ['GK', 'LD', 'CD', 'RD', 'LM', 'DM', 'CM', 'RM', 'OM', 'LA', 'CA', 'RA']
+
+function createFreePlayer (id, position) {
+  return { id, name: `Free ${position} ${id}`, team_id: null, position }
+}
+
 describe('playerHelper', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   describe('cleanupOldFreePlayers', () => {
-    it('deletes excess free players when above minimum of 20', async () => {
-      // 22 free players, should delete 2
-      const freePlayers = Array.from({ length: 22 }, (_, i) => ({
-        id: i + 1,
-        name: `Free Player ${i + 1}`,
-        team_id: null
-      }))
+    it('generates players to fill positions below minimum of 5', async () => {
+      // Only 2 CD players, all other positions empty
+      const freePlayers = [
+        createFreePlayer(1, 'CD'),
+        createFreePlayer(2, 'CD')
+      ]
 
       getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
       query.mockResolvedValueOnce(freePlayers) // Free players query
-      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
-
-      // Mock delete queries for 2 players
-      for (let i = 0; i < 2; i++) {
-        query.mockResolvedValueOnce({}) // Delete player history
-        query.mockResolvedValueOnce({}) // Delete trade offers
-        query.mockResolvedValueOnce({}) // Delete player
-      }
-
-      const result = await cleanupOldFreePlayers()
-
-      expect(result).toEqual({ deleted: 2, generated: 0 })
-    })
-
-    it('generates players when below minimum of 20', async () => {
-      const freePlayers = [{ id: 1, name: 'Lonely Player', team_id: null }]
-
-      getGameDayAndSeason.mockResolvedValue({ gameDay: 8, season: 1 })
-      query.mockResolvedValueOnce(freePlayers) // Free players query
-      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
-
-      // Should generate 19 players to reach minimum of 20
       generateRandomPlayerName.mockResolvedValue('Generated Player')
-      for (let i = 0; i < 19; i++) {
-        query.mockResolvedValueOnce({ insertId: 100 + i }) // Insert player
-      }
+      query.mockImplementation(() => Promise.resolve({ insertId: 100 }))
 
       const result = await cleanupOldFreePlayers()
 
-      expect(result).toEqual({ deleted: 0, generated: 19 })
+      // CD needs 3 more (5-2), all other 11 positions need 5 each = 55 + 3 = 58
+      expect(result.generated).toBe(58)
+      expect(result.deleted).toBe(0)
     })
 
-    it('does nothing when exactly at minimum of 20', async () => {
-      const freePlayers = Array.from({ length: 20 }, (_, i) => ({
-        id: i + 1,
-        name: `Free Player ${i + 1}`,
-        team_id: null
-      }))
+    it('deletes excess players above maximum of 10 per position', async () => {
+      // 12 CD players — should delete 2
+      const freePlayers = Array.from({ length: 12 }, (_, i) => createFreePlayer(i + 1, 'CD'))
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+      query.mockResolvedValueOnce(freePlayers) // Free players query
+      generateRandomPlayerName.mockResolvedValue('Generated Player')
+
+      // Mock all subsequent queries (deletes + inserts for other positions)
+      query.mockImplementation(() => Promise.resolve({ insertId: 100 }))
+
+      const result = await cleanupOldFreePlayers()
+
+      // 2 deleted (12 - 10), 11 other positions * 5 generated = 55
+      expect(result.deleted).toBe(2)
+      expect(result.generated).toBe(55)
+    })
+
+    it('does nothing for positions already at min-max range', async () => {
+      // 7 players per position — within range [5, 10]
+      const freePlayers = ALL_POSITIONS.flatMap((pos, posIdx) =>
+        Array.from({ length: 7 }, (_, i) => createFreePlayer(posIdx * 100 + i, pos))
+      )
 
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       query.mockResolvedValueOnce(freePlayers) // Free players query
-      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
 
       const result = await cleanupOldFreePlayers()
 
       expect(result).toEqual({ deleted: 0, generated: 0 })
     })
 
-    it('generates all 20 players when no free players exist', async () => {
+    it('generates all positions when no free players exist', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
       query.mockResolvedValueOnce([]) // No free players
-      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
-
-      // Should generate 20 players
       generateRandomPlayerName.mockResolvedValue('Generated Player')
-      for (let i = 0; i < 20; i++) {
-        query.mockResolvedValueOnce({ insertId: 100 + i })
-      }
+      query.mockImplementation(() => Promise.resolve({ insertId: 100 }))
 
       const result = await cleanupOldFreePlayers()
 
-      expect(result).toEqual({ deleted: 0, generated: 20 })
+      // 12 positions * 5 per position = 60
+      expect(result).toEqual({ deleted: 0, generated: 60 })
     })
 
-    it('generates weak free players with correct attributes', async () => {
+    it('generates players with the correct position', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 5 })
       query.mockResolvedValueOnce([]) // No free players
-      query.mockResolvedValueOnce([{ count: 20 }]) // Team count query
-
       generateRandomPlayerName.mockResolvedValue('Test Player')
 
-      // Capture the insert calls
       const insertCalls = []
       query.mockImplementation((sql, params) => {
         if (sql === 'INSERT INTO player SET ?') {
@@ -119,18 +112,21 @@ describe('playerHelper', () => {
 
       await cleanupOldFreePlayers()
 
-      // Should have generated 20 players
-      expect(insertCalls.length).toBe(20)
+      // Should have generated 5 players per position = 60
+      expect(insertCalls.length).toBe(60)
 
-      // Check first generated player has expected structure
-      const player = insertCalls[0]
-      expect(player.team_id).toBeNull()
-      expect(player.level).toBeGreaterThanOrEqual(10)
-      expect(player.level).toBeLessThanOrEqual(20)
-      expect(player.freshness).toBeGreaterThanOrEqual(0.5)
-      expect(player.freshness).toBeLessThanOrEqual(1.0)
-      expect(player.position).toBeDefined()
-      expect(player.position).not.toBe('GK') // No goalkeepers
+      // Check that each position gets exactly 5 players
+      const positionCounts = {}
+      for (const player of insertCalls) {
+        positionCounts[player.position] = (positionCounts[player.position] || 0) + 1
+        expect(player.team_id).toBeNull()
+        expect(player.level).toBeGreaterThanOrEqual(10)
+        expect(player.level).toBeLessThanOrEqual(20)
+      }
+
+      for (const pos of ALL_POSITIONS) {
+        expect(positionCounts[pos]).toBe(5)
+      }
     })
   })
 })

@@ -200,6 +200,10 @@ export async function playActionCard ({
     return { success: true }
   }
   if (actionCard.action === 'MOTIVATING_SPEECH') {
+    const [currentTeam] = await query('SELECT motivating_speech_active FROM team WHERE id=?', [team.id])
+    if (currentTeam && currentTeam.motivating_speech_active) {
+      throw new BadRequestError(t('error.motivatingSpeechAlreadyActive', {}, locale))
+    }
     await query('UPDATE team SET motivating_speech_active=1 WHERE id=?', [team.id])
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardMotivatingSpeech', {}, locale), team, null, null, 'bullhorn')

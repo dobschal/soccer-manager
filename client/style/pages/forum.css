@@ -1,6 +1,7 @@
 .forum-page {
   max-width: 720px;
   margin: 0 auto;
+  padding-bottom: 2rem;
 }
 
 .forum-notice {
@@ -35,8 +36,8 @@
 }
 
 .forum-category-meta {
-  white-space: nowrap;
   font-size: 0.85rem;
+  min-width: 0;
 }
 
 .forum-post-item {
@@ -75,6 +76,17 @@
 .forum-post-text {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+#forum-comment-input {
+  resize: vertical;
+}
+
+.forum-comment-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  justify-content: flex-end;
 }
 
 .forum-comment {

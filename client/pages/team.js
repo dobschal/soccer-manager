@@ -1,5 +1,5 @@
 import { server } from '../lib/gateway.js'
-import { setQueryParams } from '../lib/router.js'
+import { setQueryParams, goTo } from '../lib/router.js'
 import { PlayerList } from '../partials/playerList.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { renderEmblem } from '../partials/emblem.js'
@@ -14,6 +14,12 @@ import { showGameModal } from '../partials/gameModal.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { showDialog } from '../partials/dialog.js'
 import { Table } from '../partials/table.js'
+import { showOverlay } from '../partials/overlay.js'
+import { generateId } from '../lib/html.js'
+import { renderPositionBadge } from '../partials/positionBadge.js'
+import { renderPageNumbers } from '../partials/pagination.js'
+
+const TRANSFER_PAGE_SIZE = 10
 
 /**
  * Information to render:
@@ -49,6 +55,17 @@ export class TeamPage extends UIElement {
       players,
       user
     } = await server.getTeam(this.teamId)
+    if (!team || team.is_system_team) {
+      toast(t('team.cannotView'), 'error')
+      this._notViewable = true
+      if (window.history.length > 1) {
+        window.history.back()
+      } else {
+        goTo('dashboard')
+      }
+      return
+    }
+    this._notViewable = false
     this.user = user
     this.team = team
     this.players = players
@@ -82,6 +99,7 @@ export class TeamPage extends UIElement {
    * @returns {string}
    */
   get template () {
+    if (this._notViewable) return '<div></div>'
     const bestPlayer = this._bestPlayer
     return `
       <div>        
@@ -114,7 +132,14 @@ export class TeamPage extends UIElement {
             ` : ''}
           </div>
         </div>
+        ${this._renderDescription()}
         ${this._renderRecordResults()}
+        <div class="mb-4">
+            <h4>${t('team.seasonHistory')}</h4>
+            <div class="horizontal-scrollable-table">
+                ${this._renderSeasonHistoryTable()}
+            </div>
+        </div>
         ${new PlayerList(
     this.players,
     true,
@@ -127,12 +152,8 @@ export class TeamPage extends UIElement {
 
         <div class="mt-5">
             <h4>${t('team.transferHistory')}</h4>
-            <div class="horizontal-scrollable-table mb-4">
-                ${this._renderTransferHistoryTable()}
-            </div>
-            <h4>${t('team.seasonHistory')}</h4>
             <div class="horizontal-scrollable-table">
-                ${this._renderSeasonHistoryTable()}
+                ${this._renderTransferHistoryTable()}
             </div>
         </div>
       </div>
@@ -157,10 +178,16 @@ export class TeamPage extends UIElement {
           }
         }
       },
-      '.friendly-match-btn': {
+      '(optional) .friendly-match-btn': {
         click: (event) => {
           event.preventDefault()
           this._handleFriendlyMatchClick()
+        }
+      },
+      '(optional) .edit-description-btn': {
+        click: (event) => {
+          event.preventDefault()
+          this._showDescriptionEditor()
         }
       },
       '(optional) .player-link': {
@@ -171,13 +198,28 @@ export class TeamPage extends UIElement {
             setQueryParams({ player_id: playerId })
           }
         }
+      },
+      '(optional) .transfer-history-pagination': {
+        click: (event) => {
+          const totalPages = Math.ceil(this._transferHistory.length / TRANSFER_PAGE_SIZE)
+          if (event.target.closest('.transfer-prev')) {
+            this._setTransferPage(this._transferPage - 1, totalPages)
+          } else if (event.target.closest('.transfer-next')) {
+            this._setTransferPage(this._transferPage + 1, totalPages)
+          } else {
+            const pageLink = event.target.closest('[data-page-index]')
+            if (pageLink) this._setTransferPage(parseInt(pageLink.dataset.pageIndex, 10), totalPages)
+          }
+        }
       }
     }
   }
   onMounted () {
+    this._onPlayerChanged = () => this.update(true)
+    window.addEventListener('player-hired', this._onPlayerChanged)
+    window.addEventListener('player-fired', this._onPlayerChanged)
     void showTutorialIfNeeded('team', this)
   }
-
   /**
    * @param {Object} params
    * @param {string} params.player_id
@@ -195,6 +237,13 @@ export class TeamPage extends UIElement {
       await this.update(true)
     }
   }
+  onDestroy () {
+    if (this._onPlayerChanged) {
+      window.removeEventListener('player-hired', this._onPlayerChanged)
+      window.removeEventListener('player-fired', this._onPlayerChanged)
+    }
+  }
+  
   /** @type {StadiumType} */
   stadium
 
@@ -209,8 +258,12 @@ export class TeamPage extends UIElement {
   _isOwnTeam = false
   /** @type {boolean} */
   _isPlayingFriendly = false
+  /** @type {boolean} */
+  _notViewable = false
   /** @type {Array} */
   _transferHistory = []
+  /** @type {number} */
+  _transferPage = 0
   /** @type {Array} */
   _seasonHistory = []
   /** @type {Object|null} */
@@ -258,6 +311,80 @@ export class TeamPage extends UIElement {
       if (!best || player.level > best.level) return player
       return best
     }, null)
+  }
+
+  /**
+   * Render the team description section
+   * @returns {string}
+   * @private
+   */
+  _renderDescription () {
+    const defaultText = t('team.defaultDescription', { teamName: this.team.name })
+    const displayHtml = this.team.description || defaultText
+
+    const editBtn = this._isOwnTeam
+      ? ` <button class="btn btn-sm btn-outline-secondary edit-description-btn"><i class="fa fa-pencil"></i> ${t('team.editDescription')}</button>`
+      : ''
+
+    return `
+      <div class="mb-4">
+        <span class="team-description-content">${displayHtml}</span>${editBtn}
+      </div>
+    `
+  }
+
+  /**
+   * Show the rich text description editor overlay
+   * @private
+   */
+  _showDescriptionEditor () {
+    const editorId = generateId()
+    const saveBtnId = generateId()
+
+    const defaultText = t('team.defaultDescription', { teamName: this.team.name })
+    const currentContent = this.team.description || defaultText
+
+    const content = `
+      <div class="d-flex gap-1 flex-wrap mb-2">
+        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="bold"><i class="fa fa-bold"></i></button>
+        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="italic"><i class="fa fa-italic"></i></button>
+        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="underline"><i class="fa fa-underline"></i></button>
+        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="strikeThrough"><i class="fa fa-strikethrough"></i></button>
+        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="insertUnorderedList"><i class="fa fa-list-ul"></i></button>
+        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="insertOrderedList"><i class="fa fa-list-ol"></i></button>
+      </div>
+      <div id="${editorId}" class="description-editor" contenteditable="true">${currentContent}</div>
+      <button id="${saveBtnId}" class="btn btn-primary w-100 mt-3 mb-3">${t('common.save')}</button>
+    `
+
+    const overlay = showOverlay(t('team.editDescription'), '', content)
+
+    setTimeout(() => {
+      document.querySelectorAll('.desc-fmt-btn').forEach(btn => {
+        btn.addEventListener('mousedown', (e) => {
+          e.preventDefault()
+          document.execCommand(btn.dataset.cmd, false, null)
+        })
+      })
+
+      const saveBtn = document.getElementById(saveBtnId)
+      if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+          const editorEl = document.getElementById(editorId)
+          if (!editorEl) return
+          const html = editorEl.innerHTML
+          try {
+            await server.updateTeamDescription(html)
+            this.team.description = html
+            toast(t('team.descriptionSaved'), 'success')
+            overlay.remove()
+            await this.update()
+          } catch (e) {
+            toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+          }
+        })
+      }
+    })
   }
 
   /**
@@ -330,7 +457,7 @@ export class TeamPage extends UIElement {
   }
 
   /**
-   * Render the transfer history table
+   * Render the transfer history table with pagination
    * @returns {string}
    * @private
    */
@@ -339,49 +466,92 @@ export class TeamPage extends UIElement {
       return `<p class="text-muted">${t('team.noTransferHistory')}</p>`
     }
 
+    const start = this._transferPage * TRANSFER_PAGE_SIZE
+    const pageData = this._transferHistory.slice(start, start + TRANSFER_PAGE_SIZE)
+
     const table = new Table({
       cols: [
-        {
-          name: t('team.historyPlayer'),
-          align: 'left'
-        },
-        {
-          name: t('team.historyFrom'),
-          align: 'left'
-        },
-        {
-          name: t('team.historyTo'),
-          align: 'left'
-        },
-        {
-          name: t('team.historyPrice'),
-          align: 'right'
-        },
-        {
-          name: t('team.historySeason'),
-          align: 'center'
-        }
+        { name: t('team.historyPlayer'), align: 'left' },
+        { name: t('team.historyPosition'), align: 'center' },
+        { name: t('team.historyFrom'), align: 'left' },
+        { name: t('team.historyTo'), align: 'left' },
+        { name: t('team.historyPrice'), align: 'right' },
+        { name: t('team.historySeason'), align: 'center' }
       ],
-      data: this._transferHistory,
+      data: pageData,
       renderRow: (transfer) => {
-        const fromTeamHtml = transfer.fromTeam
-          ? `<a href="#team?id=${transfer.fromTeamId}" class="text-info">${this._renderSmallEmblem(transfer.fromTeam)} ${transfer.fromTeamName}</a>`
-          : '-'
-        const toTeamHtml = transfer.toTeam
-          ? `<a href="#team?id=${transfer.toTeamId}" class="text-info">${this._renderSmallEmblem(transfer.toTeam)} ${transfer.toTeamName}</a>`
-          : '-'
+        let fromTeamHtml
+        let toTeamHtml
+        if (transfer.type === 'hired') {
+          fromTeamHtml = `<span class="text-muted">${t('player.freePlayer')}</span>`
+          toTeamHtml = transfer.toTeam
+            ? `<a href="#team?id=${transfer.toTeamId}" class="text-info">${this._renderSmallEmblem(transfer.toTeam)} ${transfer.toTeamName}</a>`
+            : '-'
+        } else if (transfer.type === 'fired') {
+          fromTeamHtml = transfer.fromTeam
+            ? `<a href="#team?id=${transfer.fromTeamId}" class="text-info">${this._renderSmallEmblem(transfer.fromTeam)} ${transfer.fromTeamName}</a>`
+            : '-'
+          toTeamHtml = `<span class="text-muted">${t('team.historyFired')}</span>`
+        } else {
+          fromTeamHtml = transfer.fromTeam
+            ? `<a href="#team?id=${transfer.fromTeamId}" class="text-info">${this._renderSmallEmblem(transfer.fromTeam)} ${transfer.fromTeamName}</a>`
+            : '-'
+          toTeamHtml = transfer.toTeam
+            ? `<a href="#team?id=${transfer.toTeamId}" class="text-info">${this._renderSmallEmblem(transfer.toTeam)} ${transfer.toTeamName}</a>`
+            : '-'
+        }
 
         return [
-          `<span class="player-link text-info u-cursor-pointer" data-player-id="${transfer.playerId}">${transfer.playerName}</span>`,
+          `<a href="#team?id=${this.team.id}&player_id=${transfer.playerId}" class="text-info">${transfer.playerName}</a>`,
+          renderPositionBadge(transfer.playerPosition),
           fromTeamHtml,
           toTeamHtml,
-          euroFormat.format(transfer.price),
-          `S${transfer.season + 1}`
+          transfer.price ? euroFormat.format(transfer.price) : '-',
+          `${t('finances.season', { season: transfer.season + 1 })}, ${t('results.gameDay', { day: transfer.gameDay + 1 })}`
         ]
       }
     })
 
-    return table.toString()
+    return table.toString() + this._renderTransferPagination()
+  }
+
+  /**
+   * @returns {string}
+   * @private
+   */
+  _renderTransferPagination () {
+    const totalPages = Math.ceil(this._transferHistory.length / TRANSFER_PAGE_SIZE)
+    if (totalPages <= 1) return ''
+
+    const hasPrev = this._transferPage > 0
+    const hasNext = this._transferPage < totalPages - 1
+
+    return `
+      <div class="transfer-history-pagination">
+        <nav class="mt-3">
+          <ul class="pagination pagination-sm justify-content-center flex-wrap">
+            <li class="page-item ${hasPrev ? '' : 'disabled'}">
+              <span class="page-link transfer-prev u-cursor-pointer">${t('common.prev')}</span>
+            </li>
+            ${renderPageNumbers(totalPages, this._transferPage)}
+            <li class="page-item ${hasNext ? '' : 'disabled'}">
+              <span class="page-link transfer-next u-cursor-pointer">${t('common.next')}</span>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    `
+  }
+
+  /**
+   * @param {number} page
+   * @param {number} totalPages
+   * @private
+   */
+  _setTransferPage (page, totalPages) {
+    if (page < 0 || page >= totalPages) return
+    this._transferPage = page
+    this.update()
   }
 
   /**
@@ -425,7 +595,7 @@ export class TeamPage extends UIElement {
         return [
           `S${season.season + 1}`,
           `<a href="#results?level=${season.level}&league=${season.league}&season=${season.season}&game_day=33" class="text-info">${formatLeague(season.level, season.league)}</a>`,
-          `<span class="${positionClass}">${season.position}.</span>`,
+          `<span class="${positionClass}">${season.position === 1 ? '<i class="fa fa-diamond"></i> ' : ''}${season.position}.</span>`,
           `${season.points}`,
           cupHtml
         ]

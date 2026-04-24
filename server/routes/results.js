@@ -451,6 +451,34 @@ export default {
     return { teamStats: stats }
   },
 
+  async getInjuredPlayers (level, league, req) {
+    const team = await getTeam(req)
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+
+    const injuredPlayers = await query(`
+        SELECT p.*, t.name as team_name, t.color as team_color, t.emblem as team_emblem
+        FROM player p
+                 JOIN team t ON t.id = p.team_id
+        WHERE t.level = ?
+          AND t.league = ?
+          AND p.is_injured = 1
+        ORDER BY t.name, p.name
+    `, [actualLevel, actualLeague])
+
+    return {
+      injuredPlayers: injuredPlayers.map(p => ({
+        ...p,
+        team: {
+          id: p.team_id,
+          name: p.team_name,
+          color: p.team_color,
+          emblem: p.team_emblem
+        }
+      }))
+    }
+  },
+
   async getSuspendedPlayers (level, league, req) {
     const team = await getTeam(req)
     const actualLevel = level ?? team.level

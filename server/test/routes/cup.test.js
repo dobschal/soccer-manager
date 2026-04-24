@@ -105,14 +105,14 @@ describe('cup routes', () => {
       expect(getCupGamesForTeam).toHaveBeenCalledWith(1, 1, 10)
     })
 
-    it('fetches from previous season if current season has few games', async () => {
+    it('only returns games from current season even if fewer than limit', async () => {
       getCupGamesForTeam
-        .mockResolvedValueOnce([{ id: 1 }]) // Current season
-        .mockResolvedValueOnce([{ id: 2 }, { id: 3 }]) // Previous season
+        .mockResolvedValueOnce([{ id: 1 }]) // Current season - only 1 game
 
       const result = await cupRoutes.getMyCupGames(5, mockReq)
 
-      expect(result.games.length).toBe(3)
+      expect(result.games.length).toBe(1)
+      expect(getCupGamesForTeam).toHaveBeenCalledTimes(1)
     })
 
     it('throws error for unauthorized user', async () => {

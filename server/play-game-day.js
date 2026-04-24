@@ -29,9 +29,11 @@ import { sendGameDayPushNotifications } from './helper/pushNotificationHelper.js
 import { getCaptainStrengthMultiplier } from './helper/captainHelper.js'
 
 /**
+ * @param {object} [options]
+ * @param {boolean} [options.skipPushNotifications] - Skip sending push notifications (e.g. when triggered locally)
  * @returns {Promise<void>}
  */
-export async function calculateGames () {
+export async function calculateGames ({ skipPushNotifications = false } = {}) {
   const {
     gameDay,
     season
@@ -66,11 +68,14 @@ export async function calculateGames () {
   await _giveUsersActionCards()
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)
+  await _recoverInjuredPlayers()
   await _giveAllPlayersFreshness(season)
   await _processYouthTeams()
   await generateNewsForGameDay(gameDay, season)
   await _checkUserTeamsForIssues()
-  await sendGameDayPushNotifications(gameDay, season)
+  if (!skipPushNotifications) {
+    await sendGameDayPushNotifications(gameDay, season)
+  }
   console.log('\n\nPlayed game day ' + gameDay)
 }
 
@@ -126,15 +131,23 @@ async function _playCupGame (game) {
     await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>\'\' AND in_game_position IS NOT NULL', [game.team_2_id])
   ])
 
-  // Filter out suspended players (they miss this game)
-  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
-  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
+  // Filter out suspended and injured players (they miss this game)
+  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured)
+  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured)
 
   // Trim excess players and auto-fill incomplete lineups before the game
   playerTeamA = await _trimExcessLineup(teamA, playerTeamA)
   playerTeamB = await _trimExcessLineup(teamB, playerTeamB)
   playerTeamA = await _autoFillLineup(teamA, playerTeamA)
   playerTeamB = await _autoFillLineup(teamB, playerTeamB)
+
+  // Remove lineup players from bench (they can't be in both)
+  await _clearBenchForLineupPlayers(playerTeamA)
+  await _clearBenchForLineupPlayers(playerTeamB)
+
+  // Load bench players
+  const benchTeamA = await _loadBenchPlayers(game.team_1_id)
+  const benchTeamB = await _loadBenchPlayers(game.team_2_id)
 
   // Clear suspensions for ALL players on both teams who served their ban (not just those in lineup)
   const clearedA = await query(
@@ -168,15 +181,32 @@ async function _playCupGame (game) {
     playerTeamB,
     teamA,
     teamB,
-    isCup: true
+    isCup: true,
+    benchTeamA,
+    benchTeamB
   }
 
+  // Store original freshness before level modification
+  for (const player of [...playerTeamA, ...playerTeamB]) {
+    player.originalFreshness = player.freshness
+  }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
+    // Players playing out of their natural position are only half as effective
+    if (player.position !== player.in_game_position) {
+      player.level *= 0.5
+    }
   }
   for (const player of playerTeamB) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
+    // Players playing out of their natural position are only half as effective
+    if (player.position !== player.in_game_position) {
+      player.level *= 0.5
+    }
   }
+  // Apply level modifiers to bench players too
+  _applyLevelModifiersToBench(benchTeamA, teamA, game.season, playerTeamA)
+  _applyLevelModifiersToBench(benchTeamB, teamB, game.season, playerTeamB)
   // Apply motivating speech boost (+10% level for all players)
   if (teamA.motivating_speech_active) {
     for (const player of playerTeamA) {
@@ -238,6 +268,9 @@ async function _playCupGame (game) {
     }
   }
   delete gameDetails.currentMinute // Don't persist internal tracking field
+
+  // Persist injuries to database and send log messages
+  await _persistInjuries(gameDetails, teamA, teamB)
 
   await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
     JSON.stringify(gameDetails),
@@ -309,11 +342,17 @@ async function _resetMotivatingSpeeches () {
  */
 async function _giveAllPlayersFreshness (season) {
   /** @type {PlayerType[]} */
-  const players = await query('SELECT * FROM player WHERE freshness < 1.0')
+  const players = await query('SELECT * FROM player WHERE freshness < 1.0 AND is_injured = 0')
   const promises = []
   for (const player of players) {
     const recovery = _calculateFreshnessRecovery(await getPlayerAge(player, season), !!player.in_game_position)
     player.freshness = Math.min(1.0, player.freshness + recovery)
+    promises.push(query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id]))
+  }
+  // Injured players lose 5% freshness per game day instead of recovering
+  const injuredPlayers = await query('SELECT * FROM player WHERE is_injured = 1 AND freshness > 0')
+  for (const player of injuredPlayers) {
+    player.freshness = Math.max(0, player.freshness - 0.05)
     promises.push(query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id]))
   }
   await Promise.all(promises)
@@ -348,6 +387,43 @@ export function _calculateFreshnessRecovery (age, isInLineup) {
   // Apply +-20% randomness
   const randomFactor = 0.8 + Math.random() * 0.4 // 0.8 to 1.2
   return baseRecovery * randomFactor
+}
+
+/**
+ * Reduce injury_days_left by 1 for all injured players and clear injury when healed.
+ * @returns {Promise<void>}
+ */
+async function _recoverInjuredPlayers () {
+  const t1 = Date.now()
+  // Decrement injury days
+  await query('UPDATE player SET injury_days_left = injury_days_left - 1 WHERE is_injured = 1 AND injury_days_left > 0')
+  // Find healed players (still flagged as injured but days ran out) before clearing them
+  const healedPlayers = await query(
+    'SELECT p.*, t.user_id as team_user_id FROM player p JOIN team t ON t.id = p.team_id WHERE p.is_injured = 1 AND p.injury_days_left <= 0 AND t.user_id IS NOT NULL'
+  )
+  // Clear healed players
+  const result = await query(
+    'UPDATE player SET is_injured = 0, injury_type = NULL, injury_days_left = 0 WHERE is_injured = 1 AND injury_days_left <= 0'
+  )
+  if (result.affectedRows > 0) {
+    // Send recovery log messages
+    for (const player of healedPlayers) {
+      if (player.team_user_id) {
+        const locale = await getUserLocale(player.team_user_id)
+        const [team] = await query('SELECT * FROM team WHERE id=?', [player.team_id])
+        if (team) {
+          await addLogMessage(
+            t('log.playerRecovered', { playerName: player.name }, locale),
+            team,
+            'OPEN_PLAYER',
+            player.id,
+            'heartbeat'
+          )
+        }
+      }
+    }
+    console.log(`Recovered ${result.affectedRows} injured players in ${Date.now() - t1}ms`)
+  }
 }
 
 /**
@@ -542,9 +618,9 @@ async function _autoFillLineup (team, lineupPlayers) {
 
   if (missingPositions.length === 0) return lineupPlayers
 
-  // Get all bench players (not in lineup, not suspended)
+  // Get all bench players (not in lineup, not suspended, not injured)
   const benchPlayers = await query(
-    'SELECT * FROM player WHERE team_id=? AND (in_game_position=\'\' OR in_game_position IS NULL) AND is_suspended=0',
+    'SELECT * FROM player WHERE team_id=? AND (in_game_position=\'\' OR in_game_position IS NULL) AND is_suspended=0 AND is_injured=0',
     [team.id]
   )
 
@@ -635,15 +711,23 @@ async function _playGame (game) {
     await query('SELECT * FROM player WHERE team_id=? AND in_game_position<>\'\' AND in_game_position IS NOT NULL', [game.team_2_id])
   ])
 
-  // Filter out suspended players (they miss this game)
-  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended)
-  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended)
+  // Filter out suspended and injured players (they miss this game)
+  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured)
+  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured)
 
   // Trim excess players and auto-fill incomplete lineups before the game
   playerTeamA = await _trimExcessLineup(teamA, playerTeamA)
   playerTeamB = await _trimExcessLineup(teamB, playerTeamB)
   playerTeamA = await _autoFillLineup(teamA, playerTeamA)
   playerTeamB = await _autoFillLineup(teamB, playerTeamB)
+
+  // Remove lineup players from bench (they can't be in both)
+  await _clearBenchForLineupPlayers(playerTeamA)
+  await _clearBenchForLineupPlayers(playerTeamB)
+
+  // Load bench players
+  const benchTeamA = await _loadBenchPlayers(game.team_1_id)
+  const benchTeamB = await _loadBenchPlayers(game.team_2_id)
 
   // Clear suspensions for ALL players on both teams who served their ban (not just those in lineup)
   // This ensures benched players with suspensions also get cleared
@@ -672,14 +756,31 @@ async function _playGame (game) {
     playerTeamA,
     playerTeamB,
     teamA,
-    teamB
+    teamB,
+    benchTeamA,
+    benchTeamB
+  }
+  // Store original freshness before level modification
+  for (const player of [...playerTeamA, ...playerTeamB]) {
+    player.originalFreshness = player.freshness
   }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
+    // Players playing out of their natural position are only half as effective
+    if (player.position !== player.in_game_position) {
+      player.level *= 0.5
+    }
   }
   for (const player of playerTeamB) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
+    // Players playing out of their natural position are only half as effective
+    if (player.position !== player.in_game_position) {
+      player.level *= 0.5
+    }
   }
+  // Apply level modifiers to bench players too
+  _applyLevelModifiersToBench(benchTeamA, teamA, game.season, playerTeamA)
+  _applyLevelModifiersToBench(benchTeamB, teamB, game.season, playerTeamB)
   // Apply motivating speech boost (+10% level for all players)
   if (teamA.motivating_speech_active) {
     for (const player of playerTeamA) {
@@ -721,6 +822,10 @@ async function _playGame (game) {
     playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
   delete gameDetails.currentMinute // Don't persist internal tracking field
+
+  // Persist injuries to database and send log messages
+  await _persistInjuries(gameDetails, teamA, teamB)
+
   await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
     JSON.stringify(gameDetails),
     gameDetails.goalsTeamA,
@@ -821,5 +926,111 @@ async function _updatePlayerAfterGame (player, gameDetails, team) {
     'UPDATE player SET freshness=?, yellow_cards=?, red_cards=?, is_suspended=? WHERE id=?',
     [player.freshness, newYellowCards, newRedCards, isSuspended ? 1 : 0, player.id]
   )
+}
+
+/**
+ * Load bench players for a team (players with bench_position set)
+ * @param {number} teamId
+ * @returns {Promise<Object>} bench object keyed by bench position
+ */
+async function _loadBenchPlayers (teamId) {
+  const benchPlayers = await query(
+    'SELECT * FROM player WHERE team_id=? AND bench_position IS NOT NULL AND bench_position <> \'\' AND is_suspended=0 AND is_injured=0',
+    [teamId]
+  )
+  const bench = {}
+  for (const player of benchPlayers) {
+    player.originalFreshness = player.freshness
+    bench[player.bench_position] = player
+  }
+  return bench
+}
+
+/**
+ * Apply level modifiers to bench players so they're ready for substitution
+ * @param {Object} bench - Bench object keyed by bench position
+ * @param {TeamType} team
+ * @param {number} season
+ * @param {GamePlayer[]} lineupPlayers - For captain multiplier calculation
+ */
+function _applyLevelModifiersToBench (bench, team, season, lineupPlayers) {
+  if (!bench) return
+  const captainMultiplier = getCaptainStrengthMultiplier(team, lineupPlayers, season)
+  for (const player of Object.values(bench)) {
+    if (!player) continue
+    player.originalFreshness = player.freshness
+    player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
+    if (team.motivating_speech_active) player.level *= 1.1
+    player.level *= captainMultiplier
+    if (!team.user_id) player.level *= 0.9
+  }
+}
+
+/**
+ * Persist injuries from game details to database and send log messages
+ * @param {GameDetails} gameDetails
+ * @param {TeamType} teamA
+ * @param {TeamType} teamB
+ */
+async function _persistInjuries (gameDetails, teamA, teamB) {
+  if (!gameDetails.injuries || gameDetails.injuries.length === 0) return
+
+  for (const injury of gameDetails.injuries) {
+    await query(
+      'UPDATE player SET is_injured=1, injury_type=?, injury_days_left=? WHERE id=?',
+      [injury.injuryType, injury.injuryDays, injury.playerId]
+    )
+
+    const team = injury.teamIndex === 0 ? teamA : teamB
+    if (team.user_id) {
+      const locale = await getUserLocale(team.user_id)
+      await addLogMessage(
+        t('log.playerInjured', {
+          playerName: injury.playerName,
+          injuryType: injury.injuryType,
+          days: injury.injuryDays
+        }, locale),
+        team,
+        'OPEN_PLAYER',
+        injury.playerId,
+        'medkit'
+      )
+    }
+  }
+
+  // Send substitution log messages
+  if (gameDetails.substitutions) {
+    for (const sub of gameDetails.substitutions) {
+      const team = sub.teamIndex === 0 ? teamA : teamB
+      if (team.user_id) {
+        const locale = await getUserLocale(team.user_id)
+        const logKey = sub.reason === 'injury' ? 'log.playerSubstitutedInjury' : 'log.playerSubstitutedFreshness'
+        await addLogMessage(
+          t(logKey, {
+            playerOutName: sub.playerOutName,
+            playerInName: sub.playerInName
+          }, locale),
+          team,
+          'OPEN_MY_TEAM_PAGE',
+          null,
+          'exchange'
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Remove bench_position from players who are in the lineup.
+ * Prevents a player from being both in the starting XI and on the bench.
+ * @param {PlayerType[]} lineupPlayers
+ */
+async function _clearBenchForLineupPlayers (lineupPlayers) {
+  const ids = lineupPlayers.filter(p => p.bench_position).map(p => p.id)
+  if (ids.length === 0) return
+  await query('UPDATE player SET bench_position=NULL WHERE id IN (?)', [ids])
+  for (const p of lineupPlayers) {
+    p.bench_position = null
+  }
 }
 

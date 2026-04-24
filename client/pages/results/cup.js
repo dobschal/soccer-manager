@@ -53,12 +53,14 @@ export class CupResultsPage extends UIElement {
     const nextUnplayedRound = rounds.find(r => !r.played)
     const isNextRound = nextUnplayedRound && this.cupRound === nextUnplayedRound.round
     const isCurrentSeason = this.cupSeasons.length > 0 && this.cupSeason === this.cupSeasons[0]
-    const [{ results }, { suspendedPlayers }] = await Promise.all([
+    const [{ results }, { suspendedPlayers }, { injuredPlayers }] = await Promise.all([
       server.getCupResults(this.cupSeason, this.cupRound),
-      isCurrentSeason && isNextRound ? server.getSuspendedPlayersForCup(this.cupSeason, this.cupRound) : Promise.resolve({ suspendedPlayers: [] })
+      isCurrentSeason && isNextRound ? server.getSuspendedPlayersForCup(this.cupSeason, this.cupRound) : Promise.resolve({ suspendedPlayers: [] }),
+      isCurrentSeason && isNextRound ? server.getInjuredPlayersForCup(this.cupSeason, this.cupRound) : Promise.resolve({ injuredPlayers: [] })
     ])
     this.cupResults = results
     this.suspendedPlayers = suspendedPlayers
+    this.injuredPlayers = injuredPlayers
   }
 
   get template () {
@@ -133,6 +135,22 @@ export class CupResultsPage extends UIElement {
     rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
   })}
         ` : ''}
+
+        ${this.injuredPlayers.length > 0 ? `
+          <h3>${t('results.injuredPlayers')}</h3>
+          ${new Table({
+    cols: [
+      { name: '' },
+      { name: t('results.name') },
+      { name: t('results.team') },
+      { name: t('results.injuryType') },
+      { name: t('results.daysLeft') }
+    ],
+    data: this.injuredPlayers,
+    renderRow: (player) => this._renderInjuredPlayer(player),
+    rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
+  })}
+        ` : ''}
       </div>
     `
   }
@@ -165,6 +183,7 @@ export class CupResultsPage extends UIElement {
   cupSeasons = []
   cupTotalRounds = 0
   suspendedPlayers = []
+  injuredPlayers = []
 
   get myTeamId () {
     return this.parentPage.myTeamId
@@ -270,6 +289,17 @@ export class CupResultsPage extends UIElement {
         })
       })
     }
+    if (this.injuredPlayers) {
+      this.injuredPlayers.forEach((player) => {
+        if (!player || !player.team) return
+        renderPlayerImage(player, player.team, 48).then(image => {
+          const imageEl = document.querySelector(`${this._elementQuery} .injured-image[data-injured-id="${player.id}"]`)
+          if (imageEl) {
+            imageEl.innerHTML = image
+          }
+        })
+      })
+    }
   }
 
   _renderSuspendedPlayer (player) {
@@ -287,6 +317,24 @@ export class CupResultsPage extends UIElement {
       `<span id="${playerId}" class="u-cursor-pointer">${player.name}</span>`,
       `<span id="${teamId}" class="u-cursor-pointer">${player.team.name}</span>`,
       `${yellowCards > 0 ? `<span class="text-warning">${yellowCards} <i class="fa fa-square"></i></span>` : ''}${redCards > 0 ? `<span class="text-danger ms-1">${redCards} <i class="fa fa-square"></i></span>` : ''}`
+    ]
+  }
+
+  _renderInjuredPlayer (player) {
+    if (!player || !player.team) return ['', '', '', '', '']
+    const teamId = generateId()
+    onClick(teamId, () => goTo(`team?id=${player.team.id}`))
+    const playerId = generateId()
+    onClick(playerId, () => {
+      setQueryParams({ player_id: player.id + '' })
+    })
+    const injuryKey = player.injury_type ? `injury.${player.injury_type}` : ''
+    return [
+      `<span class="injured-image" data-injured-id="${player.id}" style="display:inline-block;width:48px;"></span>`,
+      `<span id="${playerId}" class="u-cursor-pointer">${player.name}</span>`,
+      `<span id="${teamId}" class="u-cursor-pointer">${player.team.name}</span>`,
+      `<span class="text-danger"><i class="fa fa-medkit"></i> ${t(injuryKey) || player.injury_type || ''}</span>`,
+      `${player.injury_days_left || 0}`
     ]
   }
 

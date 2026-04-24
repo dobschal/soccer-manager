@@ -150,7 +150,7 @@ export class AdminPage extends UIElement {
       [`#${this._addAdminBtnId}`]: {
         click: () => this._addAdmin()
       },
-      '.admin-remove-btn': {
+      '(optional).admin-remove-btn': {
         click: (e) => this._removeAdmin(e.currentTarget.dataset.username)
       }
     }

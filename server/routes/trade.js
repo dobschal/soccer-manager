@@ -21,14 +21,16 @@ export default {
     const playerIds = offers.map(o => o.player_id).join(', ')
     /** @type {PlayerType[]} */
     const players = await query(`SELECT * FROM player WHERE id IN (${playerIds})`)
-    const teamIds = players.map(p => p.team_id)
+    const teamIds = players.map(p => p.team_id).filter(id => id != null)
     for (const offer of offers) {
-      if (!teamIds.includes(offer.from_team_id)) {
+      if (offer.from_team_id != null && !teamIds.includes(offer.from_team_id)) {
         teamIds.push(offer.from_team_id)
       }
     }
     /** @type {TeamType[]} */
-    const teams = await query(`SELECT * FROM team WHERE id IN (${teamIds.join(', ')})`)
+    const teams = teamIds.length > 0
+      ? await query(`SELECT * FROM team WHERE id IN (${teamIds.join(', ')})`)
+      : []
     players.forEach(p => p.in_game_position = null)
     return { offers, players, teams }
   },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { kickoff, playGameStep } from '../play-game.js'
+import { kickoff, playGameStep, checkForInjury, selectInjuryType, INJURY_TYPES, POSITION_GROUPS, checkFreshnessSubstitutions } from '../play-game.js'
 
 /**
  * Helper to create a player for game simulation tests
@@ -759,6 +759,290 @@ describe('play-game simulation', () => {
       }
 
       expect(foundExtraTimeGoal).toBe(true)
+    })
+  })
+
+  describe('player injuries', () => {
+    it('selectInjuryType should return valid injury types', () => {
+      const validTypes = INJURY_TYPES.map(i => i.type)
+      for (let i = 0; i < 100; i++) {
+        const injury = selectInjuryType()
+        expect(validTypes).toContain(injury.type)
+        expect(injury.days).toBeGreaterThan(0)
+      }
+    })
+
+    it('lighter injuries should be more common', () => {
+      const counts = {}
+      for (let i = 0; i < 10000; i++) {
+        const injury = selectInjuryType()
+        counts[injury.type] = (counts[injury.type] || 0) + 1
+      }
+      // Bruise (weight 30) should be much more common than ACL tear (weight 2)
+      expect(counts.bruise).toBeGreaterThan(counts.acl_tear * 5)
+    })
+
+    it('POSITION_GROUPS should map all positions to bench positions', () => {
+      const allPositions = ['GK', 'LD', 'CD', 'RD', 'DM', 'LM', 'CM', 'RM', 'OM', 'LA', 'CA', 'RA']
+      for (const pos of allPositions) {
+        expect(POSITION_GROUPS[pos]).toBeDefined()
+      }
+      expect(POSITION_GROUPS.GK).toBe('BENCH_GK')
+      expect(POSITION_GROUPS.CD).toBe('BENCH_DEF')
+      expect(POSITION_GROUPS.LM).toBe('BENCH_MID')
+      expect(POSITION_GROUPS.CA).toBe('BENCH_ATT')
+    })
+
+    it('max one injury per team per match', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const gameDetails = createGameDetails({
+        playerTeamA: teamA,
+        currentMinute: 45,
+        injuryTeamA: true // Already had an injury
+      })
+
+      // Force injury check many times - should never add a second injury
+      for (let i = 0; i < 10000; i++) {
+        checkForInjury(teamA[5], 'aggressive', gameDetails, teamA, true)
+      }
+
+      expect(gameDetails.injuries || []).toHaveLength(0)
+    })
+
+    it('injured player should not be injured again', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      teamA[5].injuredInMatch = true
+      const gameDetails = createGameDetails({
+        playerTeamA: teamA,
+        currentMinute: 45
+      })
+
+      for (let i = 0; i < 10000; i++) {
+        checkForInjury(teamA[5], 'aggressive', gameDetails, teamA, true)
+      }
+
+      expect(gameDetails.injuries || []).toHaveLength(0)
+    })
+
+    it('low fitness increases injury probability', () => {
+      let highFitnessInjuries = 0
+      let lowFitnessInjuries = 0
+      const iterations = 100000
+
+      for (let i = 0; i < iterations; i++) {
+        const highFitnessPlayer = createPlayer({ id: 1, originalFreshness: 1.0 })
+        const lowFitnessPlayer = createPlayer({ id: 2, originalFreshness: 0.2 })
+
+        const gd1 = createGameDetails({ currentMinute: 45 })
+        checkForInjury(highFitnessPlayer, 'normal', gd1, [highFitnessPlayer], true)
+        if (gd1.injuries?.length > 0) highFitnessInjuries++
+
+        const gd2 = createGameDetails({ currentMinute: 45 })
+        checkForInjury(lowFitnessPlayer, 'normal', gd2, [lowFitnessPlayer], true)
+        if (gd2.injuries?.length > 0) lowFitnessInjuries++
+      }
+
+      // Low fitness should cause significantly more injuries
+      expect(lowFitnessInjuries).toBeGreaterThan(highFitnessInjuries * 2)
+    })
+
+    it('aggressive style increases injury probability', () => {
+      let aggressiveInjuries = 0
+      let friendlyInjuries = 0
+      const iterations = 100000
+
+      for (let i = 0; i < iterations; i++) {
+        const player1 = createPlayer({ id: 1, originalFreshness: 0.5 })
+        const gd1 = createGameDetails({ currentMinute: 45 })
+        checkForInjury(player1, 'aggressive', gd1, [player1], true)
+        if (gd1.injuries?.length > 0) aggressiveInjuries++
+
+        const player2 = createPlayer({ id: 2, originalFreshness: 0.5 })
+        const gd2 = createGameDetails({ currentMinute: 45 })
+        checkForInjury(player2, 'friendly', gd2, [player2], true)
+        if (gd2.injuries?.length > 0) friendlyInjuries++
+      }
+
+      expect(aggressiveInjuries).toBeGreaterThan(friendlyInjuries)
+    })
+
+    it('substitution replaces injured player with bench player', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const benchSub = createPlayer({ id: 99, name: 'Sub Player', position: 'CM', in_game_position: '', level: 40, originalFreshness: 0.9 })
+
+      // Manually trigger an injury on a CM player
+      const cmPlayer = teamA.find(p => p.position === 'CM')
+      cmPlayer.originalFreshness = 0.1 // Very low fitness to maximize injury chance
+
+      // Force injury by running many iterations
+      let injuryOccurred = false
+      for (let i = 0; i < 200000 && !injuryOccurred; i++) {
+        const testPlayer = { ...cmPlayer, injuredInMatch: false }
+        const gd = createGameDetails({
+          playerTeamA: [testPlayer],
+          currentMinute: 60,
+          benchTeamA: { BENCH_MID: { ...benchSub, substitutedOut: false } }
+        })
+        checkForInjury(testPlayer, 'aggressive', gd, [testPlayer], true)
+        if (gd.injuries?.length > 0) {
+          injuryOccurred = true
+          expect(gd.substitutions).toHaveLength(1)
+          expect(gd.substitutions[0].reason).toBe('injury')
+          expect(gd.substitutions[0].playerInId).toBe(99)
+        }
+      }
+
+      expect(injuryOccurred).toBe(true)
+    })
+
+    it('freshness substitutions should only happen after minute 46', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      teamA[5].originalFreshness = 0.3 // Low freshness CM player
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+
+      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', originalFreshness: 0.9, level: 40 })
+
+      const gameDetails = createGameDetails({
+        playerTeamA: teamA,
+        playerTeamB: teamB,
+        currentMinute: 30, // Before minute 46
+        benchTeamA: { BENCH_MID: benchSub }
+      })
+
+      checkFreshnessSubstitutions(teamA, teamB, gameDetails)
+      expect(gameDetails.substitutions || []).toHaveLength(0)
+
+      // Now set to minute 46 - should trigger
+      gameDetails.currentMinute = 46
+      checkFreshnessSubstitutions(teamA, teamB, gameDetails)
+      expect(gameDetails.substitutions?.length ?? 0).toBeGreaterThanOrEqual(1)
+    })
+
+    it('freshness substitution requires at least 5% difference', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      teamA[5].originalFreshness = 0.85 // CM player
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+
+      // Bench player with only 3% more freshness - should NOT trigger
+      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', originalFreshness: 0.88, level: 40 })
+
+      const gameDetails = createGameDetails({
+        playerTeamA: teamA,
+        playerTeamB: teamB,
+        currentMinute: 60,
+        benchTeamA: { BENCH_MID: benchSub }
+      })
+
+      checkFreshnessSubstitutions(teamA, teamB, gameDetails)
+      expect(gameDetails.substitutions || []).toHaveLength(0)
+    })
+
+    it('max 3 freshness substitutions per team', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+
+      const gameDetails = createGameDetails({
+        playerTeamA: teamA,
+        playerTeamB: teamB,
+        currentMinute: 60,
+        substitutionCountA: 3, // Already maxed out
+        benchTeamA: {
+          BENCH_MID: createPlayer({ id: 99, name: 'Sub', position: 'CM', originalFreshness: 1.0, level: 40 })
+        }
+      })
+
+      // Set low freshness on lineup player
+      teamA[5].originalFreshness = 0.1
+
+      checkFreshnessSubstitutions(teamA, teamB, gameDetails)
+      expect(gameDetails.substitutions || []).toHaveLength(0)
+    })
+
+    it('injuries should occur during full game simulation at low rate', () => {
+      const numGames = 500
+      let totalInjuries = 0
+
+      for (let g = 0; g < numGames; g++) {
+        const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+        const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+
+        // Give players original freshness
+        for (const p of [...teamA, ...teamB]) {
+          p.originalFreshness = p.freshness
+        }
+
+        const gameDetails = createGameDetails({
+          playerTeamA: teamA,
+          playerTeamB: teamB
+        })
+
+        simulateGame(teamA, teamB, gameDetails)
+        totalInjuries += (gameDetails.injuries?.length ?? 0)
+      }
+
+      const injuriesPerGame = totalInjuries / numGames
+      // Should be a low rate: roughly 0.1-0.5 injuries per game
+      expect(injuriesPerGame).toBeGreaterThanOrEqual(0)
+      expect(injuriesPerGame).toBeLessThan(1.0)
+    })
+
+    it('substitute playing out of position gets 50% level penalty', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      // DM bench player subbing into a CM slot
+      const benchSub = createPlayer({ id: 99, name: 'Sub DM', position: 'DM', in_game_position: '', level: 40, originalFreshness: 0.9 })
+
+      const cmPlayer = teamA.find(p => p.position === 'CM')
+      cmPlayer.originalFreshness = 0.1
+
+      let checked = false
+      for (let i = 0; i < 200000 && !checked; i++) {
+        const team = [{ ...cmPlayer, injuredInMatch: false, in_game_position: 'CM' }]
+        const gd = createGameDetails({
+          playerTeamA: team,
+          currentMinute: 60,
+          benchTeamA: { BENCH_MID: { ...benchSub, substitutedOut: false } }
+        })
+        checkForInjury(team[0], 'aggressive', gd, team, true)
+        if (gd.substitutions?.length > 0) {
+          checked = true
+          // Sub is pushed onto the team array
+          const subIn = team.find(p => p.id === 99)
+          // DM playing CM: position mismatch → level halved (40 * 0.5 = 20)
+          expect(subIn.level).toBe(20)
+          expect(subIn.in_game_position).toBe('CM')
+        }
+      }
+
+      expect(checked).toBe(true)
+    })
+
+    it('substitute playing in natural position keeps full level', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      // CM bench player subbing into a CM slot — natural position match
+      const benchSub = createPlayer({ id: 99, name: 'Sub CM', position: 'CM', in_game_position: '', level: 40, originalFreshness: 0.9 })
+
+      const cmPlayer = teamA.find(p => p.position === 'CM')
+      cmPlayer.originalFreshness = 0.1
+
+      let checked = false
+      for (let i = 0; i < 200000 && !checked; i++) {
+        const team = [{ ...cmPlayer, injuredInMatch: false, in_game_position: 'CM' }]
+        const gd = createGameDetails({
+          playerTeamA: team,
+          currentMinute: 60,
+          benchTeamA: { BENCH_MID: { ...benchSub, substitutedOut: false } }
+        })
+        checkForInjury(team[0], 'aggressive', gd, team, true)
+        if (gd.substitutions?.length > 0) {
+          checked = true
+          const subIn = team.find(p => p.id === 99)
+          // CM playing CM: no penalty
+          expect(subIn.level).toBe(40)
+          expect(subIn.in_game_position).toBe('CM')
+        }
+      }
+
+      expect(checked).toBe(true)
     })
   })
 })

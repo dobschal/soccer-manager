@@ -68,7 +68,7 @@ export class NativeLandingPage extends UIElement {
     }
   }
   async onQueryChanged ({ type }) {
-    this.isLogin = type !== 'registration'
+    this.isLogin = type === 'login'
     await this.update()
   }
 

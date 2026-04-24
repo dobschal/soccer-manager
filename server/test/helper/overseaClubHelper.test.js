@@ -161,6 +161,9 @@ describe('overseaClubHelper', () => {
       // getTeamById for selling team (bot team, no user_id)
       globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'Bot Team', user_id: null })
 
+      // Check for existing IOC offer on this player (none)
+      globalThis._query.mockResolvedValueOnce([])
+
       // INSERT buy offer
       globalThis._query.mockResolvedValueOnce({ insertId: 100 })
       // SELECT the inserted buy offer
@@ -171,6 +174,36 @@ describe('overseaClubHelper', () => {
       const bought = await iocBuyUndervaluedPlayers()
       expect(bought).toBe(1)
       expect(globalThis._acceptOffer).toHaveBeenCalledTimes(1)
+    })
+
+    it('skips player if IOC already has an open offer', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // One undervalued sell offer
+      globalThis._query.mockResolvedValueOnce([
+        {
+          id: 1,
+          player_id: 10,
+          from_team_id: 5,
+          offer_value: 50000,
+          type: 'sell',
+          level: 50,
+          position: 'CM',
+          carrier_start_season: 0,
+          carrier_end_season: 22,
+          player_team_id: 5
+        }
+      ])
+
+      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
+      globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'User FC', user_id: 42 })
+
+      // IOC already has an open offer for this player
+      globalThis._query.mockResolvedValueOnce([{ id: 77 }])
+
+      const bought = await iocBuyUndervaluedPlayers()
+      expect(bought).toBe(0)
     })
 
     it('skips offers at or above 80% market value', async () => {
@@ -226,8 +259,11 @@ describe('overseaClubHelper', () => {
       globalThis._getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
       // All are bot teams
       globalThis._getTeamById.mockResolvedValue({ id: 5, name: 'Bot Team', user_id: null })
-      // INSERT and SELECT for each buy
-      globalThis._query.mockResolvedValue([{ id: 200, from_team_id: 999, player_id: 100, type: 'buy', offer_value: 1000 }])
+      // Handle queries: existing-offer check returns empty, others return buy offer
+      globalThis._query.mockImplementation((sql) => {
+        if (typeof sql === 'string' && sql.includes('SELECT id FROM trade_offer')) return Promise.resolve([])
+        return Promise.resolve([{ id: 200, from_team_id: 999, player_id: 100, type: 'buy', offer_value: 1000 }])
+      })
       globalThis._acceptOffer.mockResolvedValue()
 
       const bought = await iocBuyUndervaluedPlayers()
@@ -285,8 +321,11 @@ describe('overseaClubHelper', () => {
       // Both are bot sellers
       globalThis._getTeamById.mockResolvedValue({ id: 5, name: 'Bot A', user_id: null })
 
-      // INSERT buy offer + SELECT it back + acceptOffer (for each)
-      globalThis._query.mockResolvedValue([{ id: 200, from_team_id: 999, player_id: 10, type: 'buy', offer_value: 30000 }])
+      // Handle queries: existing-offer check returns empty, others return buy offer
+      globalThis._query.mockImplementation((sql) => {
+        if (typeof sql === 'string' && sql.includes('SELECT id FROM trade_offer')) return Promise.resolve([])
+        return Promise.resolve([{ id: 200, from_team_id: 999, player_id: 10, type: 'buy', offer_value: 30000 }])
+      })
       globalThis._acceptOffer.mockResolvedValue()
 
       const bought = await iocEnsureMinimumTransfers()
@@ -325,6 +364,9 @@ describe('overseaClubHelper', () => {
 
       // Selling team is a user team
       globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'User FC', user_id: 42 })
+
+      // Check for existing IOC offer on this player (none)
+      globalThis._query.mockResolvedValueOnce([])
 
       // INSERT buy offer
       globalThis._query.mockResolvedValueOnce({ insertId: 300 })

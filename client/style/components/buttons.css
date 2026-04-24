@@ -33,6 +33,7 @@
 
 /* Nav Pills */
 .nav-pills .nav-link {
+    white-space: nowrap;
     background: #EFEFEF;
     margin-bottom: 1rem;
     margin-right: 1rem;

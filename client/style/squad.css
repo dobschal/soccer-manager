@@ -120,18 +120,29 @@
 }
 
 /* Position-group border colors — match bootstrap text color groups */
-.squad .player.GK { border-color: rgb(var(--bs-danger-rgb)); }
+.squad .player.GK {
+    border-color: rgb(var(--bs-danger-rgb));
+}
+
 .squad .player.LD,
 .squad .player.CD,
-.squad .player.RD { border-color: rgb(var(--bs-warning-rgb)); }
+.squad .player.RD {
+    border-color: rgb(var(--bs-warning-rgb));
+}
+
 .squad .player.LM,
 .squad .player.DM,
 .squad .player.CM,
 .squad .player.RM,
-.squad .player.OM { border-color: rgb(var(--bs-info-rgb)); }
+.squad .player.OM {
+    border-color: rgb(var(--bs-info-rgb));
+}
+
 .squad .player.LA,
 .squad .player.CA,
-.squad .player.RA { border-color: rgb(var(--bs-success-rgb)); }
+.squad .player.RA {
+    border-color: rgb(var(--bs-success-rgb));
+}
 
 .squad .player.GK {
     top: 85%;
@@ -256,23 +267,174 @@
         font-size: 2cqi !important;
     }
 
-    .squad .player.GK { top: 46%; left: 10%; }
-    .squad .player.LD { top: 9%; left: 35%; }
-    .squad .player.CD { top: calc(var(--lineup-offset, 50%) - 4%); left: 30%; }
-    .squad .player.RD { top: 85%; left: 35%; }
-    .squad .player.DM { top: calc(var(--lineup-offset, 50%) - 4%); left: 45%; }
-    .squad .player.CM { top: calc(var(--lineup-offset, 50%) - 4%); left: 60%; }
-    .squad .player.LM { top: 9%; left: 60%; }
-    .squad .player.RM { top: 85%; left: 60%; }
-    .squad .player.OM { top: 46%; left: 75%; }
-    .squad .player.CA { top: 46%; left: 90%; }
-    .squad .player.LA { top: 19%; left: 90%; }
-    .squad .player.RA { top: 75%; left: 90%; }
+    .squad .player.GK {
+        top: 46%;
+        left: 10%;
+    }
+
+    .squad .player.LD {
+        top: 9%;
+        left: 35%;
+    }
+
+    .squad .player.CD {
+        top: calc(var(--lineup-offset, 50%) - 4%);
+        left: 30%;
+    }
+
+    .squad .player.RD {
+        top: 85%;
+        left: 35%;
+    }
+
+    .squad .player.DM {
+        top: calc(var(--lineup-offset, 50%) - 4%);
+        left: 45%;
+    }
+
+    .squad .player.CM {
+        top: calc(var(--lineup-offset, 50%) - 4%);
+        left: 60%;
+    }
+
+    .squad .player.LM {
+        top: 9%;
+        left: 60%;
+    }
+
+    .squad .player.RM {
+        top: 85%;
+        left: 60%;
+    }
+
+    .squad .player.OM {
+        top: 46%;
+        left: 75%;
+    }
+
+    .squad .player.CA {
+        top: 46%;
+        left: 90%;
+    }
+
+    .squad .player.LA {
+        top: 19%;
+        left: 90%;
+    }
+
+    .squad .player.RA {
+        top: 75%;
+        left: 90%;
+    }
+}
+
+.bench-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 150px;
+    padding: 6px;
+    text-align: center;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+/* Position-group border colors for bench */
+.bench-slot.GK {
+    border-color: rgb(var(--bs-danger-rgb));
+}
+
+.bench-slot.LD,
+.bench-slot.CD,
+.bench-slot.RD {
+    border-color: rgb(var(--bs-warning-rgb));
+}
+
+.bench-slot.LM,
+.bench-slot.DM,
+.bench-slot.CM,
+.bench-slot.RM,
+.bench-slot.OM {
+    border-color: rgb(var(--bs-info-rgb));
+}
+
+.bench-slot.LA,
+.bench-slot.CA,
+.bench-slot.RA {
+    border-color: rgb(var(--bs-success-rgb));
+}
+
+.bench-slot:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.bench-slot__image {
+    width: 100px;
+    height: 105px;
+}
+
+.bench-slot__info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.bench-slot__info .position-badge {
+    padding: 1px 5px;
+    font-size: 11px;
+    min-width: 0;
+}
+
+.bench-slot__info .level-badge {
+    width: 22px !important;
+    height: 22px !important;
+    line-height: 22px !important;
+    font-size: 11px !important;
+}
+
+.bench-slot__name {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+.bench-slot__freshness {
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Empty bench slot */
+.bench-slot--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 150px;
+    height: 150px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border: 2px dashed rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    color: rgba(0, 0, 0, 0.4);
+    font-size: 13px;
+}
+
+.bench-slot--empty .bench-slot__label {
+    text-align: center;
 }
 
 @media screen and (max-width: 768px) {
     #squad {
         width: calc(100% + 4rem);
         margin: 0 -2rem;
+    }
+
+    .bench-slots {
+        justify-content: center;
+    }
+
+    .bench-slot,
+    .bench-slot--empty {
+        flex: 1 1 calc(50% - 1rem);
     }
 }

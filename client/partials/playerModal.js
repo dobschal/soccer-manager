@@ -132,6 +132,12 @@ export default class PlayerModal extends UIElement {
             </div>
           </div>
         </div>
+        ${this.player.is_injured ? `
+        <div class="alert alert-danger mb-4">
+          <b><i class="fa fa-medkit"></i> ${t('player.injured')}</b><br>
+          ${t('injury.' + this.player.injury_type)} — ${this.player.injury_days_left} ${t('player.daysLeft')}
+        </div>
+        ` : ''}
         ${this.player.is_star_player ? `
         <div class="alert alert-warning mb-4">
           <b>⭐ ${t('player.starPlayer')}</b><br>

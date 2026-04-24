@@ -2,6 +2,58 @@ import { determineOponentPosition } from '../client/util/formation.js'
 import { randomItem } from './lib/util.js'
 
 /**
+ * Injury types with duration (game days) and selection weight
+ */
+export const INJURY_TYPES = [
+  { type: 'bruise', days: 1, weight: 30 },
+  { type: 'muscle_strain', days: 2, weight: 25 },
+  { type: 'ligament_sprain', days: 3, weight: 18 },
+  { type: 'muscle_tear', days: 4, weight: 12 },
+  { type: 'fracture', days: 6, weight: 7 },
+  { type: 'meniscus_tear', days: 8, weight: 5 },
+  { type: 'acl_tear', days: 14, weight: 2 },
+  { type: 'achilles_rupture', days: 18, weight: 1 }
+]
+
+/**
+ * Position group mapping for bench substitutions
+ */
+export const POSITION_GROUPS = {
+  GK: 'BENCH_GK',
+  LD: 'BENCH_DEF', CD: 'BENCH_DEF', RD: 'BENCH_DEF',
+  DM: 'BENCH_MID', LM: 'BENCH_MID', CM: 'BENCH_MID', RM: 'BENCH_MID', OM: 'BENCH_MID',
+  LA: 'BENCH_ATT', CA: 'BENCH_ATT', RA: 'BENCH_ATT'
+}
+
+/**
+ * Base injury probability per fight
+ */
+const INJURY_BASE_CHANCE = 0.0003
+
+/**
+ * Play style multipliers for injury chance
+ */
+const INJURY_STYLE_MULTIPLIERS = {
+  aggressive: 1.5,
+  normal: 1.0,
+  friendly: 0.7
+}
+
+/**
+ * Select a weighted random injury type
+ * @returns {{ type: string, days: number }}
+ */
+export function selectInjuryType () {
+  const totalWeight = INJURY_TYPES.reduce((sum, i) => sum + i.weight, 0)
+  let roll = Math.random() * totalWeight
+  for (const injury of INJURY_TYPES) {
+    roll -= injury.weight
+    if (roll <= 0) return { type: injury.type, days: injury.days }
+  }
+  return INJURY_TYPES[0]
+}
+
+/**
  * @typedef {object} KickoffLogEvent
  * @property {number} player
  * @property {true} kickoff
@@ -64,7 +116,7 @@ import { randomItem } from './lib/util.js'
  */
 
 /**
- * @typedef {PlayerType & { hasBall?: boolean, yellowCardsInMatch?: number, sentOff?: boolean }} GamePlayer
+ * @typedef {PlayerType & { hasBall?: boolean, yellowCardsInMatch?: number, sentOff?: boolean, injuredInMatch?: boolean, substitutedOut?: boolean, originalFreshness?: number }} GamePlayer
  */
 
 /**
@@ -82,6 +134,14 @@ import { randomItem } from './lib/util.js'
  * @property {number} [streak]
  * @property {Object<number, number>} [yellowCardsInMatch] - Yellow cards by player id during this match
  * @property {number[]} [sentOffPlayerIds] - Player IDs sent off during this match
+ * @property {Array<{playerId: number, playerName: string, teamIndex: number, injuryType: string, injuryDays: number, minute: number}>} [injuries]
+ * @property {Array<{playerInId: number, playerInName: string, playerOutId: number, playerOutName: string, teamIndex: number, reason: string, minute: number}>} [substitutions]
+ * @property {{BENCH_GK?: GamePlayer, BENCH_DEF?: GamePlayer, BENCH_MID?: GamePlayer, BENCH_ATT?: GamePlayer}} [benchTeamA]
+ * @property {{BENCH_GK?: GamePlayer, BENCH_DEF?: GamePlayer, BENCH_MID?: GamePlayer, BENCH_ATT?: GamePlayer}} [benchTeamB]
+ * @property {number} [substitutionCountA] - Non-injury substitutions for team A
+ * @property {number} [substitutionCountB] - Non-injury substitutions for team B
+ * @property {boolean} [injuryTeamA] - Whether team A already had an injury this match
+ * @property {boolean} [injuryTeamB] - Whether team B already had an injury this match
  */
 
 /**
@@ -215,11 +275,14 @@ export function kickoff (playerTeamA, playerTeamB, gameDetails) {
  * @returns {void}
  */
 export function playGameStep (playerTeamA, playerTeamB, gameDetails) {
+  // Check freshness-based substitutions
+  checkFreshnessSubstitutions(playerTeamA, playerTeamB, gameDetails)
+
   // Numerical disadvantage: team with fewer active players loses possession more often
-  const activeA = playerTeamA.filter(p => !p.sentOff).length
-  const activeB = playerTeamB.filter(p => !p.sentOff).length
+  const activeA = playerTeamA.filter(p => !p.sentOff && !p.substitutedOut).length
+  const activeB = playerTeamB.filter(p => !p.sentOff && !p.substitutedOut).length
   if (activeA !== activeB) {
-    const ballHolder = playerTeamA.find(p => p.hasBall && !p.sentOff) || playerTeamB.find(p => p.hasBall && !p.sentOff)
+    const ballHolder = playerTeamA.find(p => p.hasBall && !p.sentOff && !p.substitutedOut) || playerTeamB.find(p => p.hasBall && !p.sentOff && !p.substitutedOut)
     if (ballHolder) {
       const teamAHasBall = playerTeamA.some(p => p.id === ballHolder.id)
       const holdingTeamSize = teamAHasBall ? activeA : activeB
@@ -229,7 +292,7 @@ export function playGameStep (playerTeamA, playerTeamB, gameDetails) {
         const turnoverChance = (opposingTeamSize - holdingTeamSize) * 0.02
         if (Math.random() < turnoverChance) {
           ballHolder.hasBall = false
-          const opponents = (teamAHasBall ? playerTeamB : playerTeamA).filter(p => !p.sentOff)
+          const opponents = (teamAHasBall ? playerTeamB : playerTeamA).filter(p => !p.sentOff && !p.substitutedOut)
           if (opponents.length > 0) {
             randomItem(opponents).hasBall = true
             gameDetails.streak = 0
@@ -251,20 +314,20 @@ export function playGameStep (playerTeamA, playerTeamB, gameDetails) {
  * @returns {boolean} false if lost ball
  */
 function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
-  let activePlayer = playerTeamA.find(p => p.hasBall && !p.sentOff)
+  let activePlayer = playerTeamA.find(p => p.hasBall && !p.sentOff && !p.substitutedOut)
   gameDetails.streak = gameDetails.streak ?? 0
   gameDetails.yellowCardsInMatch = gameDetails.yellowCardsInMatch ?? {}
   gameDetails.sentOffPlayerIds = gameDetails.sentOffPlayerIds ?? []
   let teamAHasBall = true
   if (!activePlayer) {
-    activePlayer = playerTeamB.find(p => p.hasBall && !p.sentOff)
+    activePlayer = playerTeamB.find(p => p.hasBall && !p.sentOff && !p.substitutedOut)
     teamAHasBall = false
   }
 
-  // If player was sent off, pass ball to teammate
+  // If player was sent off or substituted, pass ball to teammate
   if (!activePlayer) {
     const teamWithBall = teamAHasBall ? playerTeamA : playerTeamB
-    const availablePlayers = teamWithBall.filter(p => !p.sentOff)
+    const availablePlayers = teamWithBall.filter(p => !p.sentOff && !p.substitutedOut)
     if (availablePlayers.length > 0) {
       activePlayer = randomItem(availablePlayers)
       activePlayer.hasBall = true
@@ -279,7 +342,7 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
 
   const oponentPosition = determineOponentPosition(activePlayer.position)
   const defendingTeam = teamAHasBall ? playerTeamB : playerTeamA
-  const oponentPlayers = defendingTeam.filter(p => p.position === oponentPosition && !p.sentOff)
+  const oponentPlayers = defendingTeam.filter(p => p.position === oponentPosition && !p.sentOff && !p.substitutedOut)
 
   if (oponentPlayers.length === 0) {
     // No defender at this position - massive advantage for attacker (open space)
@@ -309,6 +372,10 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
     _checkForCard(oponentPlayer, defendingPlayStyle, gameDetails, defendingTeam)
     _checkForCard(activePlayer, attackingPlayStyle, gameDetails, teamAHasBall ? playerTeamA : playerTeamB)
 
+    // Check for injuries during the fight
+    checkForInjury(oponentPlayer, defendingPlayStyle, gameDetails, defendingTeam, !teamAHasBall)
+    checkForInjury(activePlayer, attackingPlayStyle, gameDetails, teamAHasBall ? playerTeamA : playerTeamB, teamAHasBall)
+
     gameDetails.log.push({
       player: activePlayer.id,
       oponentPlayer: oponentPlayer.id,
@@ -322,9 +389,9 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
       }
     } else {
       gameDetails.streak = 0
-      // If the opponent was sent off during this fight, ball goes to random teammate
-      if (oponentPlayer.sentOff) {
-        const availableDefenders = defendingTeam.filter(p => !p.sentOff)
+      // If the opponent was sent off or substituted during this fight, ball goes to random teammate
+      if (oponentPlayer.sentOff || oponentPlayer.substitutedOut) {
+        const availableDefenders = defendingTeam.filter(p => !p.sentOff && !p.substitutedOut)
         if (availableDefenders.length > 0) {
           const newPlayer = randomItem(availableDefenders)
           newPlayer.hasBall = true
@@ -486,7 +553,7 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
   activePlayer.hasBall = false
   gameDetails.streak = 0
   const kickoffTeam = teamAHasBall ? playerTeamB : playerTeamA
-  const kickoffPlayers = kickoffTeam.filter(p => !p.sentOff)
+  const kickoffPlayers = kickoffTeam.filter(p => !p.sentOff && !p.substitutedOut)
   if (kickoffPlayers.length > 0) {
     randomItem(kickoffPlayers).hasBall = true
   }
@@ -550,8 +617,8 @@ function _passBall (playerTeamA, playerTeamB, gameDetails) {
     if (Math.random() < ballLossChance) {
       // Interception: ball goes to a random opponent
       const opponents = teamAHasBall
-        ? playerTeamB.filter(p => !p.sentOff)
-        : playerTeamA.filter(p => !p.sentOff)
+        ? playerTeamB.filter(p => !p.sentOff && !p.substitutedOut)
+        : playerTeamA.filter(p => !p.sentOff && !p.substitutedOut)
       if (opponents.length > 0) {
         activePlayer.hasBall = false
         const interceptor = randomItem(opponents)
@@ -643,4 +710,169 @@ function _selectPassTarget (activePlayer, teammates, passStyle, attackMode) {
       return randomItem(effectiveLongTargets).player
     }
   }
+}
+
+/**
+ * Check for injury during a fight and handle substitution if needed
+ * @param {GamePlayer} player - The player involved in the fight
+ * @param {string} playStyle - Team play style
+ * @param {GameDetails} gameDetails
+ * @param {GamePlayer[]} team - The player's team array
+ * @param {boolean} isTeamA - Whether this is team A
+ */
+export function checkForInjury (player, playStyle, gameDetails, team, isTeamA) {
+  if (player.sentOff || player.injuredInMatch || player.substitutedOut) return
+
+  // Max 1 injury per team per match
+  if (isTeamA && gameDetails.injuryTeamA) return
+  if (!isTeamA && gameDetails.injuryTeamB) return
+
+  const fitnessMultiplier = 1 + (1 - (player.originalFreshness ?? 1)) * 4
+  const styleMultiplier = INJURY_STYLE_MULTIPLIERS[playStyle] || 1.0
+  const injuryChance = INJURY_BASE_CHANCE * fitnessMultiplier * styleMultiplier
+
+  if (Math.random() >= injuryChance) return
+
+  // Injury occurs!
+  gameDetails.injuries = gameDetails.injuries ?? []
+  gameDetails.substitutions = gameDetails.substitutions ?? []
+
+  const injury = selectInjuryType()
+  const teamIndex = isTeamA ? 0 : 1
+
+  player.injuredInMatch = true
+
+  gameDetails.injuries.push({
+    playerId: player.id,
+    playerName: player.name,
+    teamIndex,
+    injuryType: injury.type,
+    injuryDays: injury.days,
+    minute: gameDetails.currentMinute
+  })
+
+  if (isTeamA) {
+    gameDetails.injuryTeamA = true
+  } else {
+    gameDetails.injuryTeamB = true
+  }
+
+  console.log(`INJURY: ${player.name} - ${injury.type} (${injury.days} days)`)
+
+  // Try to substitute
+  const bench = isTeamA ? gameDetails.benchTeamA : gameDetails.benchTeamB
+  const benchPosition = POSITION_GROUPS[player.position]
+  const sub = bench?.[benchPosition]
+
+  if (sub && !sub.substitutedOut) {
+    _performSubstitution(player, sub, team, gameDetails, teamIndex, 'injury')
+  } else {
+    // No substitute available - player is effectively sent off
+    player.sentOff = true
+    if (player.hasBall) {
+      player.hasBall = false
+      const available = team.filter(p => !p.sentOff && !p.substitutedOut && p.id !== player.id)
+      if (available.length > 0) {
+        randomItem(available).hasBall = true
+      }
+    }
+  }
+}
+
+/**
+ * Check for freshness-based substitutions (from minute 46 onwards)
+ * @param {GamePlayer[]} playerTeamA
+ * @param {GamePlayer[]} playerTeamB
+ * @param {GameDetails} gameDetails
+ */
+export function checkFreshnessSubstitutions (playerTeamA, playerTeamB, gameDetails) {
+  if ((gameDetails.currentMinute ?? 0) < 46) return
+
+  gameDetails.substitutions = gameDetails.substitutions ?? []
+  gameDetails.substitutionCountA = gameDetails.substitutionCountA ?? 0
+  gameDetails.substitutionCountB = gameDetails.substitutionCountB ?? 0
+
+  _checkTeamFreshnessSubs(playerTeamA, gameDetails, true)
+  _checkTeamFreshnessSubs(playerTeamB, gameDetails, false)
+}
+
+/**
+ * @param {GamePlayer[]} team
+ * @param {GameDetails} gameDetails
+ * @param {boolean} isTeamA
+ */
+function _checkTeamFreshnessSubs (team, gameDetails, isTeamA) {
+  const countKey = isTeamA ? 'substitutionCountA' : 'substitutionCountB'
+  if (gameDetails[countKey] >= 3) return
+
+  const bench = isTeamA ? gameDetails.benchTeamA : gameDetails.benchTeamB
+  if (!bench) return
+
+  for (const player of team) {
+    if (player.sentOff || player.injuredInMatch || player.substitutedOut || player.position === 'GK') continue
+    if (gameDetails[countKey] >= 3) break
+
+    const benchPosition = POSITION_GROUPS[player.position]
+    const sub = bench?.[benchPosition]
+    if (!sub || sub.substitutedOut) continue
+
+    // Check if bench player has at least 5% more freshness
+    const playerFreshness = player.originalFreshness ?? player.freshness ?? 1
+    const subFreshness = sub.originalFreshness ?? sub.freshness ?? 1
+    if (subFreshness - playerFreshness < 0.05) continue
+
+    const teamIndex = isTeamA ? 0 : 1
+    _performSubstitution(player, sub, team, gameDetails, teamIndex, 'freshness')
+    gameDetails[countKey]++
+  }
+}
+
+/**
+ * Perform a substitution: replace playerOut with playerIn
+ * @param {GamePlayer} playerOut
+ * @param {GamePlayer} playerIn
+ * @param {GamePlayer[]} team
+ * @param {GameDetails} gameDetails
+ * @param {number} teamIndex
+ * @param {string} reason
+ */
+function _performSubstitution (playerOut, playerIn, team, gameDetails, teamIndex, reason) {
+  // Transfer ball if needed
+  if (playerOut.hasBall) {
+    playerOut.hasBall = false
+    playerIn.hasBall = true
+  }
+
+  // Mark old player as out
+  playerOut.substitutedOut = true
+
+  // Sub takes the position in the game
+  playerIn.in_game_position = playerOut.in_game_position
+  playerIn.substitutedOut = false
+  // Players playing out of their natural position are only half as effective
+  if (playerIn.position !== playerIn.in_game_position) {
+    playerIn.level *= 0.5
+  }
+
+  // Mark bench slot as used
+  const benchPosition = POSITION_GROUPS[playerOut.position]
+  const bench = teamIndex === 0 ? gameDetails.benchTeamA : gameDetails.benchTeamB
+  if (bench && benchPosition) {
+    bench[benchPosition] = { ...playerIn, substitutedOut: true } // Mark slot as used
+  }
+
+  // Add sub to team array for game simulation
+  team.push(playerIn)
+
+  gameDetails.substitutions.push({
+    playerInId: playerIn.id,
+    playerInName: playerIn.name,
+    playerOutId: playerOut.id,
+    playerOutName: playerOut.name,
+    teamIndex,
+    reason,
+    minute: gameDetails.currentMinute
+  })
+
+  console.log(`SUBSTITUTION (${reason}): ${playerOut.name} -> ${playerIn.name} (minute ${gameDetails.currentMinute})`)
 }

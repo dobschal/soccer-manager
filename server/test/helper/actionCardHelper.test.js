@@ -37,6 +37,7 @@ vi.mock('../../i18n/index.js', () => ({
       'error.cardMaxLevel70': 'Action card only allows level ups until level 70',
       'error.cardMaxLevel40': 'Action card only allows level ups until level 40',
       'error.invalidCardAction': 'Invalid card action',
+      'error.motivatingSpeechAlreadyActive': 'Motivating speech is already active for this game day.',
       'finance.actionCardBonus': 'Action Card: Bonus Money',
       'log.cardLevelUp': `${params.playerName} has leveled up to level ${params.level}!`,
       'log.cardFreshness': `${params.playerName}'s freshness has been restored!`,
@@ -537,6 +538,41 @@ describe('actionCardHelper', () => {
 
       expect(result).toEqual({ success: true })
       expect(updateTeamBalance).toHaveBeenCalled()
+    })
+  })
+
+  describe('playActionCard - MOTIVATING_SPEECH', () => {
+    it('activates motivating speech for the team', async () => {
+      const team = testData.team({ id: 5 })
+      const actionCard = testData.actionCard({ action: 'MOTIVATING_SPEECH' })
+
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT motivating_speech_active')) {
+          return [{ motivating_speech_active: 0 }]
+        }
+        return {}
+      })
+
+      const result = await playActionCard({ actionCard }, team)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith('UPDATE team SET motivating_speech_active=1 WHERE id=?', [5])
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
+    })
+
+    it('throws error when motivating speech is already active', async () => {
+      const team = testData.team({ id: 5 })
+      const actionCard = testData.actionCard({ action: 'MOTIVATING_SPEECH' })
+
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT motivating_speech_active')) {
+          return [{ motivating_speech_active: 1 }]
+        }
+        return {}
+      })
+
+      await expect(playActionCard({ actionCard }, team))
+        .rejects.toMatchObject({ message: 'Motivating speech is already active for this game day.' })
     })
   })
 

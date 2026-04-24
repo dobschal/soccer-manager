@@ -89,13 +89,6 @@ Key directories:
   - Utility classes (e.g. `u-cursor-pointer`, `u-nowrap`, `u-max-w-620`) live in `client/style/utilities.css`.
   - Component-specific styles go in the matching CSS file (e.g. `components/player.css`, `pages/dashboard.css`).
 
-## Team Size
-
-- **Minimum team size**: A user's team must have at least 14 players at all times.
-- The constant `MIN_TEAM_SIZE` is exported from `server/helper/playerHelper.js`.
-- Enforced when firing a player (`server/routes/players.js:firePlayer`) and when accepting a trade offer (`server/helper/tradeHelper.js:acceptOffer`).
-- Bot teams are exempt from this restriction.
-
 ## Requirements
 
 Detailed feature specifications are in the `requirements/` directory:

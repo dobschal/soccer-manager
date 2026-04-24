@@ -26,6 +26,14 @@ export default {
       urgencies.push({ type: 'INCOMPLETE_LINEUP', count: lineupPlayers.length })
     }
 
+    // 1b. Bench completeness - need 4 bench positions filled
+    const benchPositions = new Set(players.filter(p => p.bench_position).map(p => p.bench_position))
+    const requiredBench = ['BENCH_GK', 'BENCH_DEF', 'BENCH_MID', 'BENCH_ATT']
+    const missingBench = requiredBench.filter(pos => !benchPositions.has(pos))
+    if (missingBench.length > 0) {
+      urgencies.push({ type: 'INCOMPLETE_BENCH', count: 4 - missingBench.length })
+    }
+
     // 2. Low freshness in lineup
     const tiredPlayers = lineupPlayers.filter(p => p.freshness < 0.5)
     if (tiredPlayers.length > 0) {

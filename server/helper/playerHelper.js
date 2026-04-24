@@ -6,10 +6,7 @@ import { generateRandomPlayerName } from '../prepare-season.js'
 import { Position } from '../../client/util/formation.js'
 import { randomItem } from '../lib/util.js'
 
-async function getTeamCount () {
-  const [{ count }] = await query('SELECT COUNT(*) AS count FROM team WHERE is_system_team = 0')
-  return count
-}
+const POSITIONS = Object.values(Position)
 
 /**
  * @param {number} id
@@ -60,9 +57,12 @@ export async function getPlayersByTeamId (teamId) {
   return await query('SELECT * FROM player WHERE team_id=?', [teamId])
 }
 
+const MIN_FREE_PER_POSITION = 5
+const MAX_FREE_PER_POSITION = 10
+
 /**
- * Maintains free players in the market equal to the current number of teams.
- * Deletes random excess players if above minimum, generates weak players if below.
+ * Maintains free players in the market: at least 5 per position, at most 10 per position.
+ * Deletes excess players and generates new ones to fill gaps.
  * @returns {Promise<{deleted: number, generated: number}>}
  */
 export async function cleanupOldFreePlayers () {
@@ -71,41 +71,51 @@ export async function cleanupOldFreePlayers () {
   // Find all free players (no team)
   const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL')
 
+  // Group free players by position
+  const byPosition = {}
+  for (const pos of POSITIONS) {
+    byPosition[pos] = []
+  }
+  for (const player of freePlayers) {
+    if (byPosition[player.position]) {
+      byPosition[player.position].push(player)
+    }
+  }
+
   let deletedCount = 0
   let generatedCount = 0
 
-  const teamCount = await getTeamCount()
+  for (const pos of POSITIONS) {
+    const players = byPosition[pos]
 
-  // Delete random players if above minimum
-  if (freePlayers.length > teamCount) {
-    // Shuffle and pick excess players to delete
-    const shuffled = [...freePlayers].sort(() => Math.random() - 0.5)
-    const playersToDelete = shuffled.slice(0, freePlayers.length - teamCount)
-
-    for (const player of playersToDelete) {
-      await query('DELETE FROM player_history WHERE player_id = ?', [player.id])
-      await query('DELETE FROM trade_offer WHERE player_id = ?', [player.id])
-      await query('DELETE FROM player WHERE id = ?', [player.id])
-      deletedCount++
-      console.log(`🗑️ Deleted free player: ${player.name} (ID: ${player.id})`)
+    // Delete excess players if above maximum
+    if (players.length > MAX_FREE_PER_POSITION) {
+      const shuffled = [...players].sort(() => Math.random() - 0.5)
+      const toDelete = shuffled.slice(0, players.length - MAX_FREE_PER_POSITION)
+      for (const player of toDelete) {
+        await query('DELETE FROM player_history WHERE player_id = ?', [player.id])
+        await query('DELETE FROM trade_offer WHERE player_id = ?', [player.id])
+        await query('DELETE FROM player WHERE id = ?', [player.id])
+        deletedCount++
+      }
     }
 
-    if (deletedCount > 0) {
-      console.log(`🧹 Cleaned up ${deletedCount} free player(s)`)
+    // Generate new players if below minimum
+    const currentCount = Math.min(players.length, MAX_FREE_PER_POSITION)
+    if (currentCount < MIN_FREE_PER_POSITION) {
+      const toGenerate = MIN_FREE_PER_POSITION - currentCount
+      for (let i = 0; i < toGenerate; i++) {
+        await _generateWeakFreePlayer(season, pos)
+        generatedCount++
+      }
     }
   }
 
-  // Generate new weak free players if below minimum
-  const currentFreeCount = freePlayers.length - deletedCount
-  const playersToGenerate = Math.max(0, teamCount - currentFreeCount)
-
-  for (let i = 0; i < playersToGenerate; i++) {
-    await _generateWeakFreePlayer(season)
-    generatedCount++
+  if (deletedCount > 0) {
+    console.log(`🧹 Cleaned up ${deletedCount} excess free player(s)`)
   }
-
   if (generatedCount > 0) {
-    console.log(`🆕 Generated ${generatedCount} new free player(s)`)
+    console.log(`🆕 Generated ${generatedCount} new free player(s) to fill position gaps`)
   }
 
   return { deleted: deletedCount, generated: generatedCount }
@@ -114,16 +124,16 @@ export async function cleanupOldFreePlayers () {
 /**
  * Generate a weak free player with low market value (< 50,000 EUR)
  * @param {number} season
+ * @param {string} [forPosition] - specific position to generate, or random if omitted
  */
-async function _generateWeakFreePlayer (season) {
+async function _generateWeakFreePlayer (season, forPosition) {
   // Level 10-20 players aged 28-32 have very low market value
   const level = 10 + Math.floor(Math.random() * 11) // 10-20
   const age = 28 + Math.floor(Math.random() * 5) // 28-32 years old
   const carrierStartSeason = season - age + 16
   const carrierEndSeason = carrierStartSeason + 20 + Math.floor(Math.random() * 4)
 
-  const positions = Object.values(Position).filter(p => p !== 'GK') // No goalkeepers
-  const position = randomItem(positions)
+  const position = forPosition || randomItem(POSITIONS)
 
   const player = {
     hair_color: Math.floor(Math.random() * 7),

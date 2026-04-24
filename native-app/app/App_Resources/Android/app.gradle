@@ -1,0 +1,14 @@
+project.ext {
+    compileSdk = 35
+    targetSdk = 35
+}
+
+android {
+    defaultConfig {
+        minSdkVersion 21
+    }
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}

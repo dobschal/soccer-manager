@@ -46,8 +46,7 @@
 .captain-badge {
     position: absolute;
     top: 2%;
-    right: -2%;
-    transform: translateX(-50%);
+    right: 0;
     text-align: right;
     line-height: 1;
     pointer-events: none;

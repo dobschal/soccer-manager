@@ -86,12 +86,22 @@ describe('PlayerListItem', () => {
       expect(html).toContain('table-info')
     })
 
-    it('shows table-warning class for players not in lineup', () => {
-      const player = testData.player({ in_game_position: '', is_suspended: false })
+    it('shows table-warning class for bench players', () => {
+      const player = testData.player({ in_game_position: '', is_suspended: false, bench_position: 'BENCH_MID' })
       const item = new PlayerListItem(player, 1, vi.fn())
 
       const html = item.template
       expect(html).toContain('table-warning')
+    })
+
+    it('shows no row class for players not in lineup and not on bench', () => {
+      const player = testData.player({ in_game_position: '', is_suspended: false, bench_position: null })
+      const item = new PlayerListItem(player, 1, vi.fn())
+
+      const html = item.template
+      expect(html).not.toContain('table-warning')
+      expect(html).not.toContain('table-info')
+      expect(html).not.toContain('table-danger')
     })
   })
 

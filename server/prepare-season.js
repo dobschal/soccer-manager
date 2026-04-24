@@ -28,6 +28,9 @@ const minimumTeams = 126 // three leagues, will be overwritten by amount of user
 /**
  * @returns {Promise<void>}
  */
+/**
+ * @returns {Promise<boolean>} true if a new season was created
+ */
 export async function prepareSeason () {
   await _archiveTooOldPlayers()
   await _archiveOverageYouth()
@@ -35,9 +38,10 @@ export async function prepareSeason () {
   await _resetPlayersForNewSeason()
   await _ajustAmountOfTeams()
   await _promotionRelegation()
-  await _createGames()
+  const newSeasonCreated = await _createGames()
   await _createCupDraw()
   console.log('✅ Prepared Season')
+  return newSeasonCreated
 }
 
 /**
@@ -215,7 +219,8 @@ async function _promotionRelegation () {
  */
 async function _createGames () {
   if (!(await _newGamesNeeded())) {
-    return console.log('⏭️ No new games needed.')
+    console.log('⏭️ No new games needed.')
+    return false
   }
   const season = await _seasonForNewGames()
   const gamePlan = calculateGamePlan(teamsPerLeague)
@@ -242,6 +247,7 @@ async function _createGames () {
     }))
   }
   console.log(`Created games for season ${season}`)
+  return true
 }
 
 /**

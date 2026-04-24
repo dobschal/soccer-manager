@@ -1328,6 +1328,52 @@ const migrations = [{
   async run () {
     await query('UPDATE player SET carrier_end_season = carrier_end_season - 2')
   }
+}, {
+  name: 'Add injury and bench columns to player table',
+  async run () {
+    await query('ALTER TABLE player ADD COLUMN is_injured TINYINT(1) DEFAULT 0')
+    await query('ALTER TABLE player ADD COLUMN injury_type VARCHAR(50) DEFAULT NULL')
+    await query('ALTER TABLE player ADD COLUMN injury_days_left INT DEFAULT 0')
+    await query('ALTER TABLE player ADD COLUMN bench_position VARCHAR(20) DEFAULT NULL')
+  }
+},
+{
+  name: 'Create hall_of_fame_comment table',
+  async run () {
+    await query(`
+      CREATE TABLE IF NOT EXISTS hall_of_fame_comment (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        season INT NOT NULL,
+        user_id BIGINT(20) UNSIGNED NOT NULL,
+        text TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_hof_comment_season (season),
+        INDEX idx_hof_comment_user (user_id)
+      ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci
+    `)
+  }
+},
+{
+  name: 'Create hall_of_fame_comment_like table',
+  async run () {
+    await query(`
+      CREATE TABLE IF NOT EXISTS hall_of_fame_comment_like (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        comment_id BIGINT(20) UNSIGNED NOT NULL,
+        user_id BIGINT(20) UNSIGNED NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY unique_comment_user (comment_id, user_id),
+        INDEX idx_hof_like_comment (comment_id)
+      ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci
+    `)
+  }
+}, {
+  name: 'Add description column to team table',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN description TEXT DEFAULT NULL')
+  }
 }]
 
 /**

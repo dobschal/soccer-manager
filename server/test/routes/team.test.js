@@ -15,13 +15,13 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
 }))
 
 vi.mock('../../helper/cupHelper.js', () => ({
-  getTotalRoundsForSeason: vi.fn()
+  getTotalRounds: vi.fn()
 }))
 
 import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
-import { getTotalRoundsForSeason } from '../../helper/cupHelper.js'
+import { getTotalRounds } from '../../helper/cupHelper.js'
 import handlers from '../../routes/team.js'
 
 describe('team routes', () => {
@@ -346,11 +346,6 @@ describe('team routes', () => {
       const teamId = 5
       const team = testData.team({ id: teamId, level: 1, league: 0 })
 
-      // Team played at level 1, league 0 during season 0
-      const leagueTeams = Array.from({ length: 18 }, (_, i) => ({
-        id: i + 1, name: `Team ${i + 1}`, level: 1, league: 0
-      }))
-
       // Create games where team 5 wins most games
       const games = []
       for (let i = 0; i < 18; i++) {
@@ -372,13 +367,11 @@ describe('team routes', () => {
       query
         // seasonData: DISTINCT season/level/league (league games only)
         .mockResolvedValueOnce([{ season: 0, level: 1, league: 0 }])
-        // lastGameDay
-        .mockResolvedValueOnce([{ lastGameDay: 33 }])
-        // games for standing
+        // bulk: all league games
         .mockResolvedValueOnce(games)
-        // teams for standing
-        .mockResolvedValueOnce(leagueTeams)
-        // cup games
+        // bulk: all cup games for this team
+        .mockResolvedValueOnce([])
+        // bulk: max cup_round per season
         .mockResolvedValueOnce([])
 
       const result = await handlers.getTeamSeasonHistory(teamId)
@@ -433,10 +426,6 @@ describe('team routes', () => {
     it('includes cup results when team participated in cup', async () => {
       const teamId = 1
       const team = testData.team({ id: teamId })
-      const leagueTeams = [
-        { id: 1, name: 'Team 1', level: 0, league: 0 },
-        { id: 2, name: 'Team 2', level: 0, league: 0 }
-      ]
 
       const games = [
         { team_1_id: 1, team_2_id: 2, goals_team_1: 2, goals_team_2: 1, season: 0, level: 0, league: 0, played: 1, game_day: 0, game_type: 'league' }
@@ -450,14 +439,13 @@ describe('team routes', () => {
 
       getTeamById.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ season: 1, gameDay: 0 })
-      getTotalRoundsForSeason.mockResolvedValue(3)
+      getTotalRounds.mockReturnValue(3)
 
       query
         .mockResolvedValueOnce([{ season: 0, level: 0, league: 0 }]) // seasonData
-        .mockResolvedValueOnce([{ lastGameDay: 33 }]) // lastGameDay
-        .mockResolvedValueOnce(games) // league games
-        .mockResolvedValueOnce(leagueTeams) // teams
-        .mockResolvedValueOnce(cupGames) // cup games
+        .mockResolvedValueOnce(games) // bulk: all league games
+        .mockResolvedValueOnce(cupGames) // bulk: all cup games
+        .mockResolvedValueOnce([{ season: 0, maxRound: 4 }]) // bulk: max cup_round per season
 
       const result = await handlers.getTeamSeasonHistory(teamId)
 

@@ -68,7 +68,7 @@ export function sortByPosition (playerA, playerB) {
  * @returns {number}
  */
 function _positionValue (player) {
-  let playingValue = player.in_game_position ? 10000 : 0
+  let playingValue = player.in_game_position ? 10000 : (player.bench_position ? 5000 : 0)
   if (player.position.startsWith('L')) {
     playingValue += 3
   } else if (player.position.startsWith('R')) {

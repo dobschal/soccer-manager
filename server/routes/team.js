@@ -4,8 +4,9 @@ import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
 import { cityNames, clubPrefixes1, clubPrefixes2 } from '../lib/name-library.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
+import { sanitizeHtml } from '../lib/sanitizeHtml.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
+import { getTotalRounds } from '../helper/cupHelper.js'
 export default {
 
   /**
@@ -86,6 +87,24 @@ export default {
     // Clear standing cache in database since it stores serialized team names
     const { season } = await getGameDayAndSeason()
     await query('DELETE FROM standing_cache WHERE season=? AND level=? AND league=?', [season, team.level, team.league])
+    return { success: true }
+  },
+
+  /**
+   * @param {string} description - HTML content for the team description
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateTeamDescription (description, req) {
+    const team = await getTeam(req)
+    if (typeof description !== 'string') {
+      throw new BadRequestError('Description must be a string')
+    }
+    if (description.length > 5000) {
+      throw new BadRequestError('Description is too long')
+    }
+    const sanitized = sanitizeHtml(description)
+    await query('UPDATE team SET description=? WHERE id=?', [sanitized, team.id])
     return { success: true }
   },
 
@@ -244,6 +263,32 @@ export default {
   },
 
   /**
+   * Save bench positions (GK, DEF, MID, ATT slots)
+   * @param {Array<{playerId: number, benchPosition: string}>} benchData
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async saveBench (benchData, req) {
+    const team = await getTeam(req)
+    const playersFromDb = await query('SELECT * FROM player WHERE team_id=?', [team.id])
+    const validIds = new Set(playersFromDb.map(p => p.id))
+    const validPositions = ['BENCH_GK', 'BENCH_DEF', 'BENCH_MID', 'BENCH_ATT']
+
+    // Clear all existing bench positions
+    await query('UPDATE player SET bench_position=NULL WHERE team_id=?', [team.id])
+
+    for (const { playerId, benchPosition } of benchData) {
+      if (!validIds.has(playerId)) throw new BadRequestError('Unknown player...')
+      if (!validPositions.includes(benchPosition)) throw new BadRequestError('Invalid bench position')
+      const player = playersFromDb.find(p => p.id === playerId)
+      if (player.is_suspended || player.is_injured) throw new BadRequestError('Player is unavailable')
+      await query('UPDATE player SET bench_position=? WHERE id=?', [benchPosition, playerId])
+    }
+
+    return { success: true }
+  },
+
+  /**
    * @param {Array<{playerId: number, sortIndex: number}>} sortData
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
@@ -318,43 +363,107 @@ export default {
   },
 
   /**
-   * Get transfer history for a specific team
+   * Get transfer history for a specific team (trades + free agent signings)
    * @param {number} teamId
    * @returns {Promise<{transfers: Array}>}
    */
   async getTeamTransferHistory (teamId) {
-    const transfers = await query(`
-      SELECT th.*,
-             p.name as player_name, p.position as player_position,
-             t1.name as from_team_name, t1.color as from_team_color, t1.emblem as from_team_emblem,
-             t2.name as to_team_name, t2.color as to_team_color, t2.emblem as to_team_emblem
-      FROM trade_history th
-      JOIN player p ON p.id = th.player_id
-      LEFT JOIN team t1 ON t1.id = th.from_team_id
-      LEFT JOIN team t2 ON t2.id = th.to_team_id
-      WHERE th.from_team_id = ? OR th.to_team_id = ?
-      ORDER BY th.created_at DESC
-      LIMIT 50
-    `, [teamId, teamId])
+    const [transfers, hiredEntries, firedEntries] = await Promise.all([
+      query(`
+        SELECT th.*,
+               p.name as player_name, p.position as player_position,
+               t1.name as from_team_name, t1.color as from_team_color, t1.emblem as from_team_emblem,
+               t2.name as to_team_name, t2.color as to_team_color, t2.emblem as to_team_emblem
+        FROM trade_history th
+        JOIN player p ON p.id = th.player_id
+        LEFT JOIN team t1 ON t1.id = th.from_team_id
+        LEFT JOIN team t2 ON t2.id = th.to_team_id
+        WHERE th.from_team_id = ? OR th.to_team_id = ?
+        ORDER BY th.created_at DESC
+      `, [teamId, teamId]),
+      query(`
+        SELECT ph.player_id, ph.season, ph.game_day, ph.created_at,
+               p.name as player_name, p.position as player_position
+        FROM player_history ph
+        JOIN player p ON p.id = ph.player_id
+        WHERE ph.type = 'HIRED' AND p.team_id = ?
+        ORDER BY ph.created_at DESC
+      `, [teamId]),
+      query(`
+        SELECT ph.player_id, ph.season, ph.game_day, ph.created_at,
+               p.name as player_name, p.position as player_position
+        FROM player_history ph
+        JOIN player p ON p.id = ph.player_id
+        JOIN team t ON t.name = ph.value
+        WHERE ph.type = 'FIRED' AND t.id = ?
+        ORDER BY ph.created_at DESC
+      `, [teamId])
+    ])
 
-    return {
-      transfers: transfers.map(t => ({
-        id: t.id,
-        playerId: t.player_id,
-        playerName: t.player_name,
-        playerPosition: t.player_position,
-        fromTeamId: t.from_team_id,
-        fromTeamName: t.from_team_name,
-        fromTeam: t.from_team_id ? { id: t.from_team_id, name: t.from_team_name, color: t.from_team_color, emblem: t.from_team_emblem } : null,
-        toTeamId: t.to_team_id,
-        toTeamName: t.to_team_name,
-        toTeam: t.to_team_id ? { id: t.to_team_id, name: t.to_team_name, color: t.to_team_color, emblem: t.to_team_emblem } : null,
-        price: t.price,
-        gameDay: t.game_day,
-        season: t.season,
-        createdAt: t.created_at
-      }))
+    const tradePlayerIds = new Set(transfers.map(tr => tr.player_id))
+
+    const mapped = transfers.map(tr => ({
+      id: tr.id,
+      playerId: tr.player_id,
+      playerName: tr.player_name,
+      playerPosition: tr.player_position,
+      fromTeamId: tr.from_team_id,
+      fromTeamName: tr.from_team_name,
+      fromTeam: tr.from_team_id ? { id: tr.from_team_id, name: tr.from_team_name, color: tr.from_team_color, emblem: tr.from_team_emblem } : null,
+      toTeamId: tr.to_team_id,
+      toTeamName: tr.to_team_name,
+      toTeam: tr.to_team_id ? { id: tr.to_team_id, name: tr.to_team_name, color: tr.to_team_color, emblem: tr.to_team_emblem } : null,
+      price: tr.price,
+      gameDay: tr.game_day,
+      season: tr.season,
+      createdAt: tr.created_at,
+      type: 'trade'
+    }))
+
+    for (const h of hiredEntries) {
+      if (tradePlayerIds.has(h.player_id)) continue
+      mapped.push({
+        id: 'hired_' + h.player_id,
+        playerId: h.player_id,
+        playerName: h.player_name,
+        playerPosition: h.player_position,
+        fromTeamId: null,
+        fromTeamName: null,
+        fromTeam: null,
+        toTeamId: teamId,
+        toTeamName: null,
+        toTeam: null,
+        price: 0,
+        gameDay: h.game_day,
+        season: h.season,
+        createdAt: h.created_at,
+        type: 'hired'
+      })
     }
+
+    for (const f of firedEntries) {
+      mapped.push({
+        id: 'fired_' + f.player_id + '_' + f.created_at,
+        playerId: f.player_id,
+        playerName: f.player_name,
+        playerPosition: f.player_position,
+        fromTeamId: teamId,
+        fromTeamName: null,
+        fromTeam: null,
+        toTeamId: null,
+        toTeamName: null,
+        toTeam: null,
+        price: 0,
+        gameDay: f.game_day,
+        season: f.season,
+        createdAt: f.created_at,
+        type: 'fired'
+      })
+    }
+
+    mapped.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+    return { transfers: mapped }
   },
 
   /**
@@ -381,64 +490,102 @@ export default {
       ORDER BY season DESC
     `, [teamId, teamId, currentSeason])
 
-    const seasons = []
+    // Deduplicate seasons
+    const uniqueSeasons = []
     const processedSeasons = new Set()
-
     for (const row of seasonData) {
       if (processedSeasons.has(row.season)) continue
       processedSeasons.add(row.season)
+      uniqueSeasons.push(row)
+    }
 
-      // Get final standing for this season (game day 33 or last played day)
-      const [lastGame] = await query(`
-        SELECT MAX(game_day) as lastGameDay
-        FROM game
-        WHERE season = ? AND level = ? AND league = ? AND played = 1
-          AND (game_type = 'league' OR game_type IS NULL)
-      `, [row.season, row.level, row.league])
+    if (uniqueSeasons.length === 0) {
+      return { seasons: [] }
+    }
 
-      const lastGameDay = lastGame?.lastGameDay || 33
+    // Build WHERE clause for all season/level/league combos in one bulk query
+    const sllConditions = uniqueSeasons.map(() => '(g.season = ? AND g.level = ? AND g.league = ?)').join(' OR ')
+    const sllParams = uniqueSeasons.flatMap(r => [r.season, r.level, r.league])
+    const seasonList = uniqueSeasons.map(r => r.season)
+    const seasonPlaceholders = seasonList.map(() => '?').join(',')
 
-      // Get all games for this team in this season to calculate standing
-      const games = await query(`
-        SELECT * FROM game
-        WHERE season = ? AND level = ? AND league = ? AND played = 1
-          AND (game_type = 'league' OR game_type IS NULL)
-          AND game_day <= ?
-      `, [row.season, row.level, row.league, lastGameDay])
-
-      // Calculate standing
-      const teams = await query(`
-        SELECT DISTINCT t.* FROM team t
-        JOIN game g ON (g.team_1_id = t.id OR g.team_2_id = t.id)
-        WHERE g.season = ? AND g.level = ? AND g.league = ?
+    // Bulk-fetch all data in parallel (3 queries instead of 5*N)
+    const [allLeagueGames, allCupGames, allMaxCupRounds] = await Promise.all([
+      // All league games for all relevant season/level/league combos
+      query(`
+        SELECT g.* FROM game g
+        WHERE (${sllConditions})
+          AND g.played = 1
           AND (g.game_type = 'league' OR g.game_type IS NULL)
-      `, [row.season, row.level, row.league])
+      `, sllParams),
+      // All cup games for this team across all relevant seasons
+      query(`
+        SELECT g.*
+        FROM game g
+        WHERE g.game_type = 'cup' AND g.season IN (${seasonPlaceholders})
+          AND (g.team_1_id = ? OR g.team_2_id = ?)
+        ORDER BY g.cup_round ASC
+      `, [...seasonList, teamId, teamId]),
+      // Max cup_round per season for totalRounds calculation
+      query(`
+        SELECT season, MAX(cup_round) as maxRound
+        FROM game
+        WHERE game_type = 'cup' AND season IN (${seasonPlaceholders})
+        GROUP BY season
+      `, seasonList)
+    ])
+
+    // Index league games by season/level/league key
+    const leagueGamesByKey = new Map()
+    const teamIdsByKey = new Map()
+    for (const game of allLeagueGames) {
+      const key = `${game.season}/${game.level}/${game.league}`
+      if (!leagueGamesByKey.has(key)) {
+        leagueGamesByKey.set(key, [])
+        teamIdsByKey.set(key, new Set())
+      }
+      leagueGamesByKey.get(key).push(game)
+      teamIdsByKey.get(key).add(game.team_1_id)
+      teamIdsByKey.get(key).add(game.team_2_id)
+    }
+
+    // Index cup games by season
+    const cupGamesBySeason = new Map()
+    for (const game of allCupGames) {
+      if (!cupGamesBySeason.has(game.season)) {
+        cupGamesBySeason.set(game.season, [])
+      }
+      cupGamesBySeason.get(game.season).push(game)
+    }
+
+    // Index max cup rounds by season
+    const maxCupRoundBySeason = new Map()
+    for (const row of allMaxCupRounds) {
+      maxCupRoundBySeason.set(row.season, row.maxRound)
+    }
+
+    const seasons = []
+    for (const row of uniqueSeasons) {
+      const key = `${row.season}/${row.level}/${row.league}`
+      const games = leagueGamesByKey.get(key) || []
+
+      // Build minimal team objects from the game data (only id is needed for standing calc)
+      const tIds = teamIdsByKey.get(key) || new Set()
+      const teams = [...tIds].map(id => ({ id }))
 
       const standing = calculateStandingForTeam(games, teams, teamId)
 
-      // Get cup result for this season
-      const cupGames = await query(`
-        SELECT g.*,
-               t1.name as team1Name, t2.name as team2Name
-        FROM game g
-        JOIN team t1 ON t1.id = g.team_1_id
-        JOIN team t2 ON t2.id = g.team_2_id
-        WHERE g.game_type = 'cup' AND g.season = ?
-          AND (g.team_1_id = ? OR g.team_2_id = ?)
-        ORDER BY g.cup_round ASC
-      `, [row.season, teamId, teamId])
-
+      // Cup result
       let cupResult = null
+      const cupGames = cupGamesBySeason.get(row.season) || []
       if (cupGames.length > 0) {
-        // cup_round uses descending numbering (64→32→16→8→4→2→1), so the
-        // deepest round reached is the smallest cup_round value (first in ASC order)
         const deepestCupGame = cupGames[0]
         const isWinner = deepestCupGame.played === 1 && (
           (deepestCupGame.team_1_id === teamId && deepestCupGame.goals_team_1 > deepestCupGame.goals_team_2) ||
           (deepestCupGame.team_2_id === teamId && deepestCupGame.goals_team_2 > deepestCupGame.goals_team_1)
         )
         const roundReached = deepestCupGame.cup_round
-        const totalRounds = await getTotalRoundsForSeason(row.season)
+        const totalRounds = getTotalRounds(maxCupRoundBySeason.get(row.season))
 
         cupResult = {
           roundReached,

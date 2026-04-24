@@ -10,7 +10,7 @@
  * @property {Date} created_at
  */
 
-import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
+import { OptionalNullableNumber, OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
  * @param {TradeOfferType} raw
@@ -23,8 +23,8 @@ export function TradeOffer (raw) {
     type: RequiredString,
     player_id: RequiredNumber,
     from_team_id: RequiredNumber,
-    game_day: OptionalNumber,
-    season: OptionalNumber,
+    game_day: OptionalNullableNumber,
+    season: OptionalNullableNumber,
     created_at: OptionalObject
   })
   for (const key in raw) {

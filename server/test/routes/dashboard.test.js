@@ -109,10 +109,29 @@ describe('dashboard routes', () => {
       expect(result.urgencies).toContainEqual({ type: 'NO_SPONSOR' })
     })
 
-    it('returns empty array when all checks pass', async () => {
+    it('returns INCOMPLETE_BENCH when bench positions are missing', async () => {
       const players = Array.from({ length: 11 }, (_, i) =>
         testData.player({ id: i + 1, in_game_position: 'CM', freshness: 0.9 })
       )
+      // Only 1 bench position filled
+      players.push(testData.player({ id: 12, bench_position: 'BENCH_GK' }))
+      query.mockResolvedValue(players)
+
+      const req = createMockRequest()
+      const result = await handlers.getDashboardUrgencies(req)
+
+      expect(result.urgencies).toContainEqual({ type: 'INCOMPLETE_BENCH', count: 1 })
+    })
+
+    it('returns empty array when all checks pass', async () => {
+      const benchPositions = ['BENCH_GK', 'BENCH_DEF', 'BENCH_MID', 'BENCH_ATT']
+      const players = Array.from({ length: 11 }, (_, i) =>
+        testData.player({ id: i + 1, in_game_position: 'CM', freshness: 0.9 })
+      )
+      // Add bench players
+      benchPositions.forEach((pos, i) => {
+        players.push(testData.player({ id: 20 + i, bench_position: pos }))
+      })
       query.mockResolvedValue(players)
       getYouthPlayersByTeam.mockResolvedValue([
         { id: 1, moral: 0.8, fitness: 0.8 }

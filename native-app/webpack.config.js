@@ -9,7 +9,8 @@ module.exports = (env) => {
     config.plugin('copy-web-assets').use(CopyWebpackPlugin, [{
       patterns: [{
         from: path.resolve(__dirname, 'web'),
-        to: 'web'
+        to: 'web',
+        force: true
       }]
     }])
 

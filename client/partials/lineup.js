@@ -62,7 +62,7 @@ export class Lineup extends UIElement {
 
           if (player) {
             // Filter out suspended players from selection
-            const availablePlayers = this.players.filter(p => p.position === player.position && !p.fake && !p.is_suspended)
+            const availablePlayers = this.players.filter(p => p.position === player.position && !p.fake && !p.is_suspended && !p.is_injured)
             this._overlay = showOverlay(
               'Select player',
               '',
@@ -133,6 +133,11 @@ export class Lineup extends UIElement {
         this.team.captain_id = null
         fire('captain-cleared')
       }
+      // Also save bench to persist any bench_position changes
+      const benchData = playersToSave
+        .filter(p => p.bench_position)
+        .map(p => ({ playerId: p.id, benchPosition: p.bench_position }))
+      await server.saveBench(benchData)
       toast('Lineup saved.', 'success')
       lineUpData.squadDataChanged = false
     } catch (e) {
@@ -184,6 +189,10 @@ export class Lineup extends UIElement {
     const oldPosition = player.in_game_position
     player.in_game_position = newPlayer.in_game_position
     newPlayer.in_game_position = oldPosition
+    // Remove from bench if the new player was on the bench
+    if (newPlayer.bench_position) {
+      newPlayer.bench_position = null
+    }
     if (player.id !== newPlayer.id) {
       lineUpData.squadDataChanged = true
     }
@@ -214,15 +223,16 @@ export class Lineup extends UIElement {
     // Use player ID for real players, or 'fake-{position}' for empty slots
     const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
     const isSuspended = player.is_suspended
-    const suspendedStyle = isSuspended ? 'opacity: 0.5; filter: grayscale(100%);' : ''
+    const isInjured = player.is_injured
+    const unavailableStyle = (isSuspended || isInjured) ? 'opacity: 0.5; filter: grayscale(100%);' : ''
 
     return `
-      <div class="player ${player.position}" data-player-id="${playerId}" style="${suspendedStyle}">
+      <div class="player ${player.position}" data-player-id="${playerId}" style="${unavailableStyle}">
         <span class="position-badge ${player.position}">${player.position}</span>
         <span class="freshness-badge ${freshnessClass}">
             ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
         </span>
-        <span class="name">${isSuspended ? '🚫 ' : ''}${displayName}</span>
+        <span class="name">${isSuspended ? '🚫 ' : ''}${isInjured ? '<i class="fa fa-medkit"></i> ' : ''}${displayName}</span>
         ${renderLevelBadge(player.level, { size: 'lg' })}
       </div>
     `

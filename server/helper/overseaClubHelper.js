@@ -174,6 +174,13 @@ export async function iocBuyUndervaluedPlayers () {
     const sellingTeam = await getTeamById(offer.from_team_id)
     if (!sellingTeam) continue
 
+    // Skip if IOC already has an open offer for this player
+    const [existingOffer] = await query(
+      'SELECT id FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'',
+      [iocTeamId, offer.player_id]
+    )
+    if (existingOffer) continue
+
     if (!sellingTeam.user_id) {
       // Bot seller: insert buy offer and auto-accept
       try {
@@ -181,7 +188,9 @@ export async function iocBuyUndervaluedPlayers () {
           offer_value: offer.offer_value,
           type: 'buy',
           player_id: offer.player_id,
-          from_team_id: iocTeamId
+          from_team_id: iocTeamId,
+          game_day: gameDay,
+          season
         })
         const [buyOffer] = await query(
           'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\'',
@@ -200,7 +209,9 @@ export async function iocBuyUndervaluedPlayers () {
         offer_value: offer.offer_value,
         type: 'buy',
         player_id: offer.player_id,
-        from_team_id: iocTeamId
+        from_team_id: iocTeamId,
+        game_day: gameDay,
+        season
       })
     }
 
@@ -256,6 +267,13 @@ export async function iocEnsureMinimumTransfers () {
   for (const offer of sellOffers) {
     const sellingTeam = await getTeamById(offer.from_team_id)
     if (!sellingTeam) continue
+
+    // Skip if IOC already has an open offer for this player
+    const [existingOffer] = await query(
+      'SELECT id FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'',
+      [iocTeamId, offer.player_id]
+    )
+    if (existingOffer) continue
 
     if (!sellingTeam.user_id) {
       // Bot seller: insert buy offer and auto-accept

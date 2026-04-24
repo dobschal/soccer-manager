@@ -53,6 +53,7 @@ export default {
   'error.goalkeeperCannotChange': 'Goalkeepers cannot change their position',
   'error.cannotBecomeGoalkeeper': 'Players cannot become goalkeepers',
   'error.alreadyStarPlayer': 'This player is already a star player.',
+  'error.motivatingSpeechAlreadyActive': 'Motivating speech is already active for this game day.',
 
   // Generic errors
   'error.invalidRequest': 'Invalid request',
@@ -101,7 +102,10 @@ export default {
 
   // Log messages - Player career
   'log.playerRetired': '{playerName} has retired from professional football.',
-  'log.playerInjured': '{playerName} is injured and will miss the next game.',
+  'log.playerInjured': '{playerName} is injured: {injuryType}! Out for {days} game day(s).',
+  'log.playerSubstitutedInjury': '{playerOutName} was substituted due to injury by {playerInName}.',
+  'log.playerSubstitutedFreshness': '{playerOutName} was substituted due to low fitness by {playerInName}.',
+  'log.playerRecovered': '{playerName} has recovered and is available again.',
   'log.playerFired': 'You fired your player {playerName}.',
   'log.playerSigned': 'Congratulations! You signed a new player contract with {playerName}.',
 

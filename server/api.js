@@ -119,7 +119,6 @@ async function withRetry (fn, maxRetries = 5, initialDelay = 1000) {
  */
 async function start () {
   await withRetry(runMigration)
-  await prepareSeason()
   cron.schedule('0 0 */12 * * *', async () => {
     //           * * * * * *
     //           | | | | | |
@@ -130,11 +129,16 @@ async function start () {
     //           | minute
     //           second ( optional )
     console.log('Started CRON job for game day calculation and bot moves.')
-    try { await prepareSeason() } catch (e) { console.error('prepareSeason failed:', e) }
-    try { await calculateGames() } catch (e) { console.error('calculateGames failed:', e) }
+    let newSeasonCreated = false
+    try { newSeasonCreated = await prepareSeason() } catch (e) { console.error('prepareSeason failed:', e) }
+    if (newSeasonCreated) {
+      console.log('⏸️ New season created — skipping game calculation this tick.')
+    } else {
+      try { await calculateGames() } catch (e) { console.error('calculateGames failed:', e) }
+    }
+    try { await cleanupOldFreePlayers() } catch (e) { console.error('cleanupOldFreePlayers failed:', e) }
     try { await makeBotMoves() } catch (e) { console.error('makeBotMoves failed:', e) }
     try { await cleanupInactiveUsers() } catch (e) { console.error('cleanupInactiveUsers failed:', e) }
-    try { await cleanupOldFreePlayers() } catch (e) { console.error('cleanupOldFreePlayers failed:', e) }
     try { await cleanupIOCPlayers() } catch (e) { console.error('cleanupIOCPlayers failed:', e) }
     try { await fillMarketGaps() } catch (e) { console.error('fillMarketGaps failed:', e) }
     try { await iocBuyUndervaluedPlayers() } catch (e) { console.error('iocBuyUndervaluedPlayers failed:', e) }

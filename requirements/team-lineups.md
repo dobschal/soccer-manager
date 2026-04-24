@@ -92,9 +92,16 @@ Jedes Team hat eine Formation mit 11 Positionen, die der Spieler mit passenden S
 - **TA-LIN-19**: Formations-Dropdown mit 10 Optionen.
 - **TA-LIN-20**: Team-Info-Karte: Gesamtgehalt, Durchschnittslevel, Durchschnittsalter, Kaderstaerke, Aufstellungsstaerke.
 
+## Mindestteamgroesse
+
+- **TA-LIN-21**: Ein Team muss zu jeder Zeit mindestens 14 Spieler haben (`MIN_TEAM_SIZE` in `server/helper/playerHelper.js`).
+- **TA-LIN-22**: Wird beim Entlassen eines Spielers (`server/routes/players.js:firePlayer`) und beim Annehmen eines Handelsangebots (`server/helper/tradeHelper.js:acceptOffer`) geprueft.
+- **TA-LIN-23**: Bot-Teams sind von dieser Einschraenkung ausgenommen.
+
 ### Tests
 
 - Aufstellung speichern und Spieler-Positionen aktualisieren
 - Kapitaen-Logik (Setzen, Loeschen bei Entfernung aus Aufstellung)
 - Formationswechsel loescht Positionen
 - Taktik-Einstellungen validieren
+- Mindestteamgroesse beim Entlassen und bei Transfers

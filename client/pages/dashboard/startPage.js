@@ -78,8 +78,10 @@ export class StartPage {
           </div>
         </div>
         <div class="u-w-lg-33 u-w-100 flex-shrink-0 text-center order-1 order-lg-2 mb-3 mb-lg-0">
-          ${renderEmblem(this.team, 160)}
-          <h2 class="mb-4">${this.team.name}</h2>
+          <a href="#team?id=${this.team.id}" class="text-decoration-none">
+            ${renderEmblem(this.team, 160)}
+            <h2 class="mb-4">${this.team.name}</h2>
+          </a>
           ${this._renderMiniStanding()}
           <h5 class="mb-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')}</h5>
           ${this._renderUrgencyChecklist()}
@@ -123,6 +125,12 @@ export class StartPage {
         type: 'INCOMPLETE_LINEUP',
         text: 'dashboard.urgencyLineup',
         okText: 'dashboard.urgencyOk.lineup',
+        link: '#my-team'
+      },
+      {
+        type: 'INCOMPLETE_BENCH',
+        text: 'dashboard.urgencyBench',
+        okText: 'dashboard.urgencyOk.bench',
         link: '#my-team'
       },
       {

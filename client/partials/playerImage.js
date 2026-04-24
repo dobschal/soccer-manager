@@ -22,6 +22,21 @@ const hairColors = [
 const FREE_AGENT_COLOR = '#808080'
 
 /**
+ * Load text content via XHR (works with file:// URLs on Android WebView, unlike fetch).
+ * @param {string} url
+ * @returns {Promise<string>}
+ */
+function _loadText (url) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', url)
+    xhr.onload = () => resolve(xhr.responseText)
+    xhr.onerror = () => reject(new Error(`Failed to load ${url}`))
+    xhr.send()
+  })
+}
+
+/**
  * @param {PlayerType} player
  * @param {TeamType|null} team - Pass null for free agents to render grey shirt without emblem
  * @param {number} size
@@ -33,8 +48,7 @@ export async function renderPlayerImage (player, team, size = 224, options = {})
   if (typeof player?.id === 'undefined') return ''
   const index = player.id % 18 + 1
   const imageUrl = `assets/players/soccer_player-${index}.svg`
-  const rawResponse = await fetch(imageUrl)
-  let svg = await rawResponse.text()
+  let svg = await _loadText(imageUrl)
   const height = Math.floor(size * (234 / 224)) // Maintain aspect ratio (default: 224x234)
   svg = svg.replace('width="224"', `width="${size}"`)
   svg = svg.replace('height="234"', `height="${height}"`)

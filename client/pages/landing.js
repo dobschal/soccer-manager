@@ -193,7 +193,7 @@ export class LandingPage extends UIElement {
    * @returns {Promise<void>}
    */
   async onQueryChanged ({ type }) {
-    this.isLogin = type !== 'registration'
+    this.isLogin = type === 'login'
     await this.update()
   }
 

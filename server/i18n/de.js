@@ -53,6 +53,7 @@ export default {
   'error.goalkeeperCannotChange': 'Torhüter können ihre Position nicht wechseln',
   'error.cannotBecomeGoalkeeper': 'Spieler können nicht zu Torhütern werden',
   'error.alreadyStarPlayer': 'Dieser Spieler ist bereits ein Starspieler.',
+  'error.motivatingSpeechAlreadyActive': 'Motivationsrede ist bereits für diesen Spieltag aktiv.',
 
   // Generic errors
   'error.invalidRequest': 'Ungültige Anfrage',
@@ -101,7 +102,10 @@ export default {
 
   // Log messages - Player career
   'log.playerRetired': '{playerName} hat seine Profikarriere beendet.',
-  'log.playerInjured': '{playerName} ist verletzt und wird das nächste Spiel verpassen.',
+  'log.playerInjured': '{playerName} hat sich verletzt: {injuryType}! Ausfall für {days} Spieltag(e).',
+  'log.playerSubstitutedInjury': '{playerOutName} wird verletzungsbedingt durch {playerInName} ersetzt.',
+  'log.playerSubstitutedFreshness': '{playerOutName} wird wegen niedriger Fitness durch {playerInName} ersetzt.',
+  'log.playerRecovered': '{playerName} ist wieder fit und steht zur Verfügung.',
   'log.playerFired': 'Du hast deinen Spieler {playerName} entlassen.',
   'log.playerSigned': 'Glückwunsch! Du hast einen neuen Spielervertrag mit {playerName} unterschrieben.',
 

@@ -26,6 +26,10 @@ table.table thead tr th {
     line-height: 20px;
 }
 
+.card-body table.table thead tr th {
+    border-radius: 0;
+}
+
 /* Sort Headers */
 th.sort-header {
     cursor: pointer;

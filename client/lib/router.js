@@ -197,8 +197,11 @@ async function _resolvePage () {
     fire('query-changed', queryParams)
     // Directly call onQueryChanged on cached page — the event-based call may be
     // blocked by _isInsideHiddenContainer during the slide animation.
-    if (cached.page?.onQueryChanged) cached.page.onQueryChanged(queryParams)
-    if (cached.page?.update) cached.page.update(true)
+    if (cached.page?.onQueryChanged) {
+      cached.page.onQueryChanged(queryParams)
+    } else if (cached.page?.update) {
+      cached.page.update(true)
+    }
   } else {
     void _renderNewPage(pageRenderFn, currentPath, pageElement, oldWrapper, direction)
   }

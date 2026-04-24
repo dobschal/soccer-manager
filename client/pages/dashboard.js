@@ -170,12 +170,14 @@ export class DashboardPage extends TabbedPage {
       this.subPage = newSubPage
       // Refresh urgencies and recreate StartPage with fresh data
       if (!newSubPage) {
-        const urgencyResponse = await server.getDashboardUrgencies(window.__nativePlatform || 'web')
-        this._urgencies = urgencyResponse.urgencies || []
-        this._subPageCache.start = this._createStartPage()
+        await this._refreshStartPageData()
       }
       this._switchSubPage()
       this._updateNav()
+    } else if (!newSubPage) {
+      // Returning to the start tab from another page — refresh data
+      await this._refreshStartPageData()
+      this._switchSubPage()
     }
   }
   get routeName () { return 'dashboard' }
@@ -215,6 +217,44 @@ export class DashboardPage extends TabbedPage {
   _renderMessageBadge () {
     if (this._newMessageCount <= 0 || this.subPage === 'messages') return ''
     return ` <span class="badge rounded-pill bg-danger action-card-badge message-badge">${this._newMessageCount}</span>`
+  }
+
+  async _refreshStartPageData () {
+    const gamedayResponse = await server.getCurrentGameday()
+    this.season = gamedayResponse.season
+    this.gameDay = gamedayResponse.gameDay
+
+    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, standing, urgencyResponse] = await Promise.all([
+      server.getGamesForSlider(3, 3),
+      server.getFriendlyGames(5),
+      server.getMyCupGames(5),
+      server.canPlayFriendlyToday(),
+      server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
+      server.getDashboardUrgencies(window.__nativePlatform || 'web')
+    ])
+
+    this._sliderGames = [
+      ...sliderResponse.pastGames.map(g => ({ ...g, isPlayed: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) })),
+      ...sliderResponse.upcomingGames.map(g => ({ ...g, isPlayed: false, gameDate: g.gameDate, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
+    ]
+    this._friendlyGames = friendlyResponse.games.map(g => ({ ...g, isPlayed: true, isFriendly: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
+    this._cupGames = cupResponse.games.map(g => ({ ...g, isPlayed: g.played === 1, isCup: true, totalRounds: cupResponse.totalRounds, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
+    this._canPlayFriendly = canPlayFriendlyResponse.canPlay
+    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, true)
+
+    const cupResultSeenKey = `cupResultSeen_${this.season}_${this.gameDay}`
+    this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
+
+    this.standing = standing
+    this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
+    this._urgencies = urgencyResponse.urgencies || []
+    // Remove old start page from DOM and recreate cached instance
+    const container = el('#' + this._subPageContainerId)
+    if (container) {
+      const oldWrapper = container.querySelector('[data-subpage="start"]')
+      if (oldWrapper) oldWrapper.remove()
+    }
+    this._subPageCache.start = this._createStartPage()
   }
 
   _createStartPage () {

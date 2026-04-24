@@ -43,9 +43,10 @@ export class LeagueResultsPage extends UIElement {
       server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league),
       server.getTopScorers(this.season, this.level, this.league, 10),
       isUpcomingGameDay && isMyLeague ? server.getSuspendedPlayers(this.level, this.league) : Promise.resolve({ suspendedPlayers: [] }),
-      server.getTeamStats(this.gameDay, this.season, this.level, this.league)
+      server.getTeamStats(this.gameDay, this.season, this.level, this.league),
+      isUpcomingGameDay && isMyLeague ? server.getInjuredPlayers(this.level, this.league) : Promise.resolve({ injuredPlayers: [] })
     ]
-    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }] = await Promise.all(promises)
+    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }] = await Promise.all(promises)
     this.results = results
     this.yesterdayStanding = yesterday
     this.standing = standing
@@ -53,6 +54,7 @@ export class LeagueResultsPage extends UIElement {
     this.yesterdayStanding.sort(_sortStanding)
     this.topScorer = topScorers
     this.suspendedPlayers = suspendedPlayers
+    this.injuredPlayers = injuredPlayers
     this.teamStats = teamStats || []
 
     this._buildManagerChat()
@@ -176,6 +178,22 @@ export class LeagueResultsPage extends UIElement {
   })}
         ` : ''}
 
+        ${this.injuredPlayers.length > 0 ? `
+          <h3>${t('results.injuredPlayers')}</h3>
+          ${new Table({
+    cols: [
+      { name: '' },
+      { name: t('results.name') },
+      { name: t('results.team') },
+      { name: t('results.injuryType') },
+      { name: t('results.daysLeft') }
+    ],
+    data: this.injuredPlayers,
+    renderRow: (player) => this._renderInjuredPlayer(player),
+    rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
+  })}
+        ` : ''}
+
         ${this.teamStats.length > 0 ? `
           <h3>${t('results.teamStats')}</h3>
           <div class="horizontal-scrollable-table">
@@ -263,6 +281,8 @@ export class LeagueResultsPage extends UIElement {
   }
 
   suspendedPlayers = []
+
+  injuredPlayers = []
 
   teamStats = []
 
@@ -397,6 +417,18 @@ export class LeagueResultsPage extends UIElement {
         })
       })
     }
+
+    if (this.injuredPlayers) {
+      this.injuredPlayers.forEach((player) => {
+        if (!player || !player.team) return
+        renderPlayerImage(player, player.team, 48).then(image => {
+          const imageEl = document.querySelector(`${this._elementQuery} .injured-image[data-injured-id="${player.id}"]`)
+          if (imageEl) {
+            imageEl.innerHTML = image
+          }
+        })
+      })
+    }
   }
 
   _renderTopScorer (scorer, index) {
@@ -433,6 +465,24 @@ export class LeagueResultsPage extends UIElement {
       `<span id="${playerId}" class="u-cursor-pointer">${player.name}</span>`,
       `<span id="${teamId}" class="u-cursor-pointer">${player.team.name}</span>`,
       `${yellowCards > 0 ? `<span class="text-warning">${yellowCards} <i class="fa fa-square"></i></span>` : ''}${redCards > 0 ? `<span class="text-danger ms-1">${redCards} <i class="fa fa-square"></i></span>` : ''}`
+    ]
+  }
+
+  _renderInjuredPlayer (player) {
+    if (!player || !player.team) return ['', '', '', '', '']
+    const teamId = generateId()
+    onClick(teamId, () => goTo(`team?id=${player.team.id}`))
+    const playerId = generateId()
+    onClick(playerId, () => {
+      setQueryParams({ player_id: player.id + '' })
+    })
+    const injuryKey = player.injury_type ? `injury.${player.injury_type}` : ''
+    return [
+      `<span class="injured-image" data-injured-id="${player.id}" style="display:inline-block;width:48px;"></span>`,
+      `<span id="${playerId}" class="u-cursor-pointer">${player.name}</span>`,
+      `<span id="${teamId}" class="u-cursor-pointer">${player.team.name}</span>`,
+      `<span class="text-danger"><i class="fa fa-medkit"></i> ${t(injuryKey) || player.injury_type || ''}</span>`,
+      `${player.injury_days_left || 0}`
     ]
   }
 

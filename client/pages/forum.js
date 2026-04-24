@@ -107,7 +107,10 @@ export class ForumPage extends UIElement {
       },
       '(optional) #forum-comment-input': {
         keydown: (e) => {
-          if (e.key === 'Enter') this._submitComment()
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            this._submitComment()
+          }
         }
       },
       '(optional) #forum-image-input': {
@@ -338,14 +341,14 @@ export class ForumPage extends UIElement {
 
     html += `
       <div class="mt-3">
-        <div class="input-group">
-          <input id="forum-comment-input" type="text" class="form-control" placeholder="${t('forum.commentPlaceholder')}" maxlength="1000">
-          <label id="forum-image-btn" class="btn btn-outline-secondary" title="${t('forum.addImages')}">
+        <textarea id="forum-comment-input" class="form-control" placeholder="${t('forum.commentPlaceholder')}" maxlength="1000" rows="3"></textarea>
+        <div class="forum-comment-actions">
+          <label id="forum-image-btn" class="btn btn-outline-secondary btn-sm" title="${t('forum.addImages')}">
             <i class="fa fa-image"></i>
             <input id="forum-image-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
           </label>
-          <button id="forum-comment-send" class="btn btn-primary" type="button">
-            <i class="fa fa-paper-plane"></i>
+          <button id="forum-comment-send" class="btn btn-primary btn-sm" type="button">
+            <i class="fa fa-paper-plane me-1"></i>${t('forum.send')}
           </button>
         </div>
         <div id="forum-image-preview" class="forum-image-preview"></div>

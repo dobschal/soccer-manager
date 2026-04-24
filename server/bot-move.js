@@ -328,12 +328,13 @@ async function _signFreePlayers (botTeam, players) {
     const minPlayersNeeded = positionsNeeded.filter(p => p === position).length
     const targetSquadSize = minPlayersNeeded * 2
     const playersInPosition = players.filter(p => p.position === position)
+    const availableInPosition = playersInPosition.filter(p => !p.is_injured)
 
-    if (playersInPosition.length < minPlayersNeeded) {
+    if (availableInPosition.length < minPlayersNeeded) {
       needs.push({
         position,
         priority: 'critical',
-        deficit: minPlayersNeeded - playersInPosition.length
+        deficit: minPlayersNeeded - availableInPosition.length
       })
     } else if (playersInPosition.length < targetSquadSize) {
       needs.push({
@@ -389,9 +390,9 @@ async function _signFreePlayers (botTeam, players) {
   const remainingCritical = needs.filter(n => n.priority === 'critical')
   for (const need of remainingCritical) {
     if (signed >= maxSignings) break
-    const playersInPosition = players.filter(p => p.position === need.position)
+    const availableInPosition = players.filter(p => p.position === need.position && !p.is_injured)
     const minNeeded = positionsNeeded.filter(p => p === need.position).length
-    const stillNeeded = minNeeded - playersInPosition.length
+    const stillNeeded = minNeeded - availableInPosition.length
     if (stillNeeded <= 0) continue
 
     // Sign any remaining free player (position mismatch is better than no player)
@@ -861,8 +862,8 @@ async function _checkTactic (botTeam, players, _isStrongTeam) {
   for (const position of positions) {
     let selectedPlayer
     for (const player of players) {
-      // Skip if already in lineup, wrong position, or suspended
-      if (player.in_game_position || player.position !== position || player.is_suspended) {
+      // Skip if already in lineup, wrong position, suspended, or injured
+      if (player.in_game_position || player.position !== position || player.is_suspended || player.is_injured) {
         continue
       }
 
@@ -891,7 +892,7 @@ async function _checkTactic (botTeam, players, _isStrongTeam) {
 
     if (!selectedPlayer) {
       // Try to find any available player (even if suspended, as last resort for incomplete lineup)
-      const anyPlayer = players.find(p => !p.in_game_position && p.position === position)
+      const anyPlayer = players.find(p => !p.in_game_position && p.position === position && !p.is_injured)
       if (anyPlayer) {
         selectedPlayer = anyPlayer
         console.warn(`${botTeam.name}: Using suspended player ${anyPlayer.name} for ${position} (no alternatives)`)
@@ -903,10 +904,37 @@ async function _checkTactic (botTeam, players, _isStrongTeam) {
     selectedPlayer.in_game_position = position
   }
 
+  // Assign bench positions: best available player per position group
+  const benchGroups = {
+    BENCH_GK: 'GK',
+    BENCH_DEF: p => ['LD', 'CD', 'RD'].includes(p.position),
+    BENCH_MID: p => ['DM', 'LM', 'CM', 'RM', 'OM'].includes(p.position),
+    BENCH_ATT: p => ['LA', 'CA', 'RA'].includes(p.position)
+  }
+  const benchAssigned = new Set()
+  for (const [benchPos, matcher] of Object.entries(benchGroups)) {
+    const candidates = players.filter(p => {
+      if (p.in_game_position || p.is_suspended || p.is_injured || benchAssigned.has(p.id)) return false
+      return typeof matcher === 'function' ? matcher(p) : p.position === matcher
+    })
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => b.level - a.level)
+      candidates[0].bench_position = benchPos
+      benchAssigned.add(candidates[0].id)
+    }
+  }
+
+  // Clear bench for all players not assigned
+  for (const player of players) {
+    if (!benchAssigned.has(player.id)) {
+      player.bench_position = null
+    }
+  }
+
   // Update database
   const promises = []
   for (const player of players) {
-    promises.push(query('UPDATE player SET in_game_position=? WHERE id=?', [player.in_game_position, player.id]))
+    promises.push(query('UPDATE player SET in_game_position=?, bench_position=? WHERE id=?', [player.in_game_position, player.bench_position || null, player.id]))
   }
   await Promise.all(promises)
 }

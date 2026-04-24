@@ -64,13 +64,6 @@ export default {
 
     const games = await getCupGamesForTeam(team.id, season, limit)
 
-    // Also get games from previous season if current season has few games
-    let allGames = games
-    if (games.length < limit && season > 0) {
-      const prevSeasonGames = await getCupGamesForTeam(team.id, season - 1, limit - games.length)
-      allGames = [...prevSeasonGames, ...games]
-    }
-
     // Calculate gameDate for unplayed cup games based on offset from current game day
     // Each game day is 12 hours apart (one cron tick)
     const nextTick = new Date()
@@ -83,7 +76,7 @@ export default {
       nextTick.setSeconds(59)
     }
 
-    const gamesWithDates = allGames.map(game => {
+    const gamesWithDates = games.map(game => {
       if (game.played) return game
       const gameDate = new Date(nextTick)
       const dayOffset = game.gameDay - currentGameDay
@@ -173,6 +166,45 @@ export default {
 
     return {
       suspendedPlayers: suspendedPlayers.map(p => ({
+        ...p,
+        team: {
+          id: p.team_id,
+          name: p.team_name,
+          color: p.team_color,
+          emblem: p.team_emblem
+        }
+      }))
+    }
+  },
+
+  /**
+   * Get injured players from teams in a specific cup round
+   * @param {number} season
+   * @param {number} round - Cup round number (power of 2)
+   * @param {Request} req
+   * @returns {Promise<{injuredPlayers: Array}>}
+   */
+  async getInjuredPlayersForCup (season, round, req) {
+    if (!req.user) throw new UnauthorizedError('Not authorized')
+
+    const { season: currentSeason } = await getGameDayAndSeason()
+    const actualSeason = season ?? currentSeason
+
+    const injuredPlayers = await query(`
+        SELECT p.*, t.name as team_name, t.color as team_color, t.emblem as team_emblem
+        FROM player p
+                 JOIN team t ON t.id = p.team_id
+        WHERE p.is_injured = 1
+          AND t.id IN (
+            SELECT team_1_id FROM game WHERE season = ? AND game_type = 'cup' AND cup_round = ?
+            UNION
+            SELECT team_2_id FROM game WHERE season = ? AND game_type = 'cup' AND cup_round = ? AND team_2_id IS NOT NULL
+          )
+        ORDER BY t.name, p.name
+    `, [actualSeason, round, actualSeason, round])
+
+    return {
+      injuredPlayers: injuredPlayers.map(p => ({
         ...p,
         team: {
           id: p.team_id,

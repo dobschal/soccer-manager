@@ -32,6 +32,10 @@ export const OptionalNumber = {
   type: 'number'
 }
 
+export const OptionalNullableNumber = {
+  type: ['number', 'null']
+}
+
 export const RequiredNumber = {
   type: 'number',
   required: true

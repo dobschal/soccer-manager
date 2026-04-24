@@ -4,6 +4,20 @@ import { renderEmblem } from './emblem.js'
 import { renderPositionBadge } from './positionBadge.js'
 
 /**
+ * Return a short team name by stripping the middle part (prefix2).
+ * E.g. "SSC Dynamic Gütersloh" → "SSC Gütersloh", "Olympic Ironhold" → "Ironhold"
+ * @param {string} name
+ * @returns {string}
+ */
+function shortTeamName (name) {
+  if (!name) return ''
+  const words = name.split(' ')
+  if (words.length <= 1) return name
+  const isAbbrev = (w) => /^[A-Z.0-9]+\.?$/.test(w) || /^\d/.test(w)
+  return words.filter((w, i) => i === words.length - 1 || isAbbrev(w)).join(' ')
+}
+
+/**
  * Sort players by position for display: GK, defenders, midfielders, attackers
  * @param {Object} a
  * @param {Object} b
@@ -31,9 +45,10 @@ function positionOrder (a, b) {
  * Render a squad list table for one team
  * @param {Array} teamPlayers
  * @param {string} teamName
+ * @param {Array} substitutions - Substitution events for this team
  * @returns {string}
  */
-function renderSquadList (teamPlayers, teamName) {
+function renderSquadList (teamPlayers, teamName, substitutions) {
   if (!teamPlayers || teamPlayers.length === 0) return ''
 
   const sorted = [...teamPlayers].sort(positionOrder)
@@ -43,10 +58,19 @@ function renderSquadList (teamPlayers, teamName) {
     const inGameLevel = Math.round(p.level)
     const freshnessColor = freshnessPct < 40 ? 'text-danger' : freshnessPct < 70 ? 'text-warning' : 'text-success'
     const levelDiffClass = inGameLevel > originalLevel ? 'text-success' : inGameLevel < originalLevel ? 'text-danger' : ''
+    const subOut = substitutions.find(s => s.playerOutId === p.id)
+    const subIn = substitutions.find(s => s.playerInId === p.id)
+    let subIndicator = ''
+    if (subOut) {
+      subIndicator = ` <span class="sub-out" title="Substituted out"><i class="fa fa-arrow-right"></i> ${subOut.minute}'</span>`
+    }
+    if (subIn) {
+      subIndicator = ` <span class="sub-in" title="Substituted in"><i class="fa fa-arrow-left"></i> ${subIn.minute}'</span>`
+    }
     return `
       <tr>
         <td>${p.in_game_position ? renderPositionBadge(p.in_game_position) : '<small class="text-muted">-</small>'}</td>
-        <td>${p.name}</td>
+        <td>${p.name}${subIndicator}</td>
         <td class="text-end">${originalLevel}</td>
         <td class="text-end ${levelDiffClass}">${inGameLevel}</td>
         <td class="text-end ${freshnessColor}">${freshnessPct}%</td>
@@ -252,11 +276,11 @@ export class GameDetails extends UIElement {
           <thead>
             <tr>
               <td class="text-end">
-                <a href="#team?id=${team1.id}" class="text-info border-0">${team1Emblem} ${team1.name}</a>
+                <a href="#team?id=${team1.id}" class="text-info border-0">${team1Emblem} ${shortTeamName(team1.name)}</a>
               </td>
               <th class="text-center">Team</th>
               <td>
-                <a href="#team?id=${team2.id}" class="text-info border-0">${team2.name} ${team2Emblem}</a>
+                <a href="#team?id=${team2.id}" class="text-info border-0">${shortTeamName(team2.name)} ${team2Emblem}</a>
               </td>
             </tr>
             ${statsRows.map(row => `
@@ -272,8 +296,8 @@ export class GameDetails extends UIElement {
         ${details.teamA?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team1.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
         ${details.teamB?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team2.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
         ${renderEventTicker(details.log, players, team1.name, team2.name)}
-        ${renderSquadList(details.playerTeamA, team1.name)}
-        ${renderSquadList(details.playerTeamB, team2.name)}
+        ${renderSquadList(details.playerTeamA, team1.name, (details.substitutions || []).filter(s => s.teamIndex === 0))}
+        ${renderSquadList(details.playerTeamB, team2.name, (details.substitutions || []).filter(s => s.teamIndex === 1))}
 
         <div class="card">
           <div class="card-header"><i class="fa fa-ticket me-2"></i>Stadium</div>
