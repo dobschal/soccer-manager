@@ -25,6 +25,16 @@ export function onPageLoaded(args: EventData) {
     const page = args.object as Page
     page.backgroundColor = '#222222'
 
+    // On Android, push the content below the system status bar
+    if (isAndroid) {
+        const resources = Utils.android.getApplicationContext().getResources()
+        const resourceId = resources.getIdentifier('status_bar_height', 'dimen', 'android')
+        if (resourceId > 0) {
+            const statusBarHeightPx = resources.getDimensionPixelSize(resourceId)
+            page.nativeViewProtected.setPadding(0, statusBarHeightPx, 0, 0)
+        }
+    }
+
     // Start OTA check in background
     checkForUpdate().catch(err => console.error('[OTA] Background check failed:', err))
 

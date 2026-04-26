@@ -5,6 +5,7 @@ const OTA_DIR_NAME = 'ota-web'
 const STAGING_DIR_NAME = 'ota-web-staging'
 const UPDATE_INSTALLED_KEY = 'ota_update_installed'
 const LOCAL_VERSION_KEY = 'ota_commit_hash'
+const BUNDLED_HASH_KEY = 'ota_bundled_hash'
 
 function getOtaDir(): Folder {
     return knownFolders.documents().getFolder(OTA_DIR_NAME)
@@ -48,11 +49,47 @@ export function promoteStagingIfReady(): void {
 }
 
 /**
+ * Detects if the native app binary was updated (new install from store).
+ * If the bundled commitHash changed, the OTA cache is stale and must be cleared
+ * so the newer bundled webapp is used instead.
+ */
+function clearOtaIfAppUpdated(): void {
+    const bundledHash = getBundledCommitHash()
+    if (!bundledHash) return
+
+    const lastKnownBundledHash = ApplicationSettings.getString(BUNDLED_HASH_KEY, '')
+
+    if (lastKnownBundledHash && lastKnownBundledHash !== bundledHash) {
+        console.log(`[OTA] Native app updated (bundled hash changed: ${lastKnownBundledHash} → ${bundledHash}), clearing OTA cache...`)
+
+        const otaDir = getOtaDir()
+        if (Folder.exists(otaDir.path)) {
+            otaDir.removeSync()
+        }
+
+        const stagingDir = getStagingDir()
+        if (Folder.exists(stagingDir.path)) {
+            stagingDir.removeSync()
+        }
+
+        // Reset stored OTA hash so checkForUpdate compares against bundled version
+        ApplicationSettings.remove(LOCAL_VERSION_KEY)
+    }
+
+    // Always keep the bundled hash in sync
+    ApplicationSettings.setString(BUNDLED_HASH_KEY, bundledHash)
+}
+
+/**
  * Returns the path to use for loading web content.
- * Promotes any staged OTA update first, then checks for OTA dir.
+ * First clears stale OTA content if the native app was updated,
+ * then promotes any staged OTA update, then checks for OTA dir.
  * Falls back to the bundled web assets.
  */
 export function getWebContentPath(): string {
+    // Clear OTA if native app binary was updated
+    clearOtaIfAppUpdated()
+
     // Promote staging to active before deciding which path to use
     promoteStagingIfReady()
 
@@ -141,16 +178,9 @@ export async function checkForUpdate(): Promise<void> {
 }
 
 /**
- * Gets the locally stored commit hash (from OTA or bundled version).
+ * Reads the commitHash from the bundled native-version.json (shipped with the app binary).
  */
-function getLocalCommitHash(): string {
-    // First check ApplicationSettings (set after OTA download)
-    const storedHash = ApplicationSettings.getString(LOCAL_VERSION_KEY, '')
-    if (storedHash) {
-        return storedHash
-    }
-
-    // Fall back to reading from bundled native-version.json
+function getBundledCommitHash(): string {
     try {
         const bundledVersionPath = path.join(knownFolders.currentApp().path, 'web', 'native-version.json')
         if (File.exists(bundledVersionPath)) {
@@ -161,8 +191,21 @@ function getLocalCommitHash(): string {
     } catch (e) {
         console.error('[OTA] Failed to read bundled version:', e)
     }
-
     return ''
+}
+
+/**
+ * Gets the locally stored commit hash (from OTA or bundled version).
+ */
+function getLocalCommitHash(): string {
+    // First check ApplicationSettings (set after OTA download)
+    const storedHash = ApplicationSettings.getString(LOCAL_VERSION_KEY, '')
+    if (storedHash) {
+        return storedHash
+    }
+
+    // Fall back to reading from bundled native-version.json
+    return getBundledCommitHash()
 }
 
 /**
