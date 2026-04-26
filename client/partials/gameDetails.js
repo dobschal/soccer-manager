@@ -252,8 +252,8 @@ export class GameDetails extends UIElement {
       },
       {
         label: 'Strength',
-        valA: details.strengthTeamA,
-        valB: details.strengthTeamB
+        valA: details.effectiveStrengthTeamA ?? details.strengthTeamA,
+        valB: details.effectiveStrengthTeamB ?? details.strengthTeamB
       },
       {
         label: 'Freshness',

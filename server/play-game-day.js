@@ -239,6 +239,9 @@ async function _playCupGame (game) {
       player.level *= 0.9
     }
   }
+  // Store effective strength after all modifiers for display
+  gameDetails.effectiveStrengthTeamA = Math.round(playerTeamA.reduce((sum, p) => sum + p.level, 0))
+  gameDetails.effectiveStrengthTeamB = Math.round(playerTeamB.reduce((sum, p) => sum + p.level, 0))
 
   kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)
@@ -814,6 +817,9 @@ async function _playGame (game) {
       player.level *= 0.9
     }
   }
+  // Store effective strength after all modifiers for display
+  gameDetails.effectiveStrengthTeamA = Math.round(playerTeamA.reduce((sum, p) => sum + p.level, 0))
+  gameDetails.effectiveStrengthTeamB = Math.round(playerTeamB.reduce((sum, p) => sum + p.level, 0))
   kickoff(playerTeamA, playerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)
   const totalSteps = 900 + overtime

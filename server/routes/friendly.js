@@ -307,6 +307,11 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
     isFriendly: true
   }
 
+  // Store original level and freshness before modification
+  for (const player of [...activePlayerTeamA, ...activePlayerTeamB]) {
+    player.originalFreshness = player.freshness
+    player.originalLevel = player.level
+  }
   // Apply freshness to player levels for the game
   for (const player of activePlayerTeamA) {
     player.level = player.freshness * player.level
@@ -323,6 +328,9 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
   for (const player of activePlayerTeamB) {
     player.level *= friendlyCaptainMultB
   }
+  // Store effective strength after all modifiers for display
+  gameDetails.effectiveStrengthTeamA = Math.round(activePlayerTeamA.reduce((sum, p) => sum + p.level, 0))
+  gameDetails.effectiveStrengthTeamB = Math.round(activePlayerTeamB.reduce((sum, p) => sum + p.level, 0))
 
   kickoff(activePlayerTeamA, activePlayerTeamB, gameDetails)
   const overtime = Math.floor(Math.random() * 50)
