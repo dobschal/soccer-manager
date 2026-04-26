@@ -52,6 +52,7 @@ export class StartPage {
    * @returns {string}
    */
   toString () {
+    const coffeeId = generateId()
     const leagueCardId = generateId()
     const cupCardId = generateId()
     const friendlyCardId = generateId()
@@ -61,6 +62,10 @@ export class StartPage {
       initialIndex: this._initialSlideIndex,
       cardId: leagueCardId
     }
+    onClick('#' + coffeeId, (e) => {
+      e.preventDefault()
+      window.open('https://buymeacoffee.com/dobschal', '_blank')
+    })
     return `
       <div class="d-flex flex-column flex-lg-row align-items-start u-gap-md">
         <div class="flex-grow-1 order-2 order-lg-1 w-100">
@@ -88,9 +93,9 @@ export class StartPage {
         </div>
       </div>
       ${this._renderVideoCard()}
-      <p class="text-center text-muted mt-3 mb-0">
+      <p class="text-center text-muted mt-3 mb-0 pb-4">
         <i class="fa fa-coffee"></i> Support me and buy me a coffee:
-        <a href="https://buymeacoffee.com/dobschal" target="_blank" rel="noopener" class="buy-me-a-coffee-link">buymeacoffee.com/dobschal</a>
+        <a id="${coffeeId}" href="https://buymeacoffee.com/dobschal" target="_blank" rel="noopener" class="buy-me-a-coffee-link">buymeacoffee.com/dobschal</a>
       </p>
     `
   }
