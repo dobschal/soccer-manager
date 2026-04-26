@@ -54,7 +54,7 @@ function renderSquadList (teamPlayers, teamName, substitutions) {
   const sorted = [...teamPlayers].sort(positionOrder)
   const rows = sorted.map(p => {
     const freshnessPct = Math.floor(p.freshness * 100)
-    const originalLevel = p.freshness > 0 ? Math.round(p.level / p.freshness) : p.level
+    const originalLevel = p.originalLevel != null ? Math.round(p.originalLevel) : (p.freshness > 0 ? Math.round(p.level / p.freshness) : p.level)
     const inGameLevel = Math.round(p.level)
     const freshnessColor = freshnessPct < 40 ? 'text-danger' : freshnessPct < 70 ? 'text-warning' : 'text-success'
     const levelDiffClass = inGameLevel > originalLevel ? 'text-success' : inGameLevel < originalLevel ? 'text-danger' : ''

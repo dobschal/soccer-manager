@@ -32,11 +32,15 @@ services:
       - APN_PRODUCTION=true
     volumes:
       - ${APN_KEY_PATH:-/dev/null}:${APN_KEY_PATH:-/dev/null}:ro
+      - forum-uploads:/usr/src/app/uploads/forum
     depends_on:
       database:
         condition: service_healthy
     networks:
       - soccer-manager
+
+volumes:
+  forum-uploads:
 
 networks:
   soccer-manager:

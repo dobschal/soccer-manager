@@ -186,9 +186,10 @@ async function _playCupGame (game) {
     benchTeamB
   }
 
-  // Store original freshness before level modification
+  // Store original freshness and level before modification
   for (const player of [...playerTeamA, ...playerTeamB]) {
     player.originalFreshness = player.freshness
+    player.originalLevel = player.level
   }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
@@ -760,9 +761,10 @@ async function _playGame (game) {
     benchTeamA,
     benchTeamB
   }
-  // Store original freshness before level modification
+  // Store original freshness and level before modification
   for (const player of [...playerTeamA, ...playerTeamB]) {
     player.originalFreshness = player.freshness
+    player.originalLevel = player.level
   }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
@@ -959,6 +961,7 @@ function _applyLevelModifiersToBench (bench, team, season, lineupPlayers) {
   for (const player of Object.values(bench)) {
     if (!player) continue
     player.originalFreshness = player.freshness
+    player.originalLevel = player.level
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
     if (team.motivating_speech_active) player.level *= 1.1
     player.level *= captainMultiplier
