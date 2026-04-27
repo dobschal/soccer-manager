@@ -250,7 +250,7 @@ export default {
               t1.emblem as team1Emblem,
               t2.color as team2Color,
               t2.emblem as team2Emblem,
-              g.created_at
+              g.created_at as playedAt
         FROM game g
         JOIN team t1 ON t1.id = g.team_1_id
         JOIN team t2 ON t2.id = g.team_2_id
@@ -259,7 +259,7 @@ export default {
           AND (g.team_1_id = ? OR g.team_2_id = ?)
         ORDER BY g.created_at DESC
         LIMIT ?
-      ) recent_games ORDER BY created_at ASC`,
+      ) recent_games ORDER BY playedAt ASC`,
       [myTeam.id, myTeam.id, limit]
     )
 

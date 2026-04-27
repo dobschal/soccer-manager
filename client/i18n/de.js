@@ -438,6 +438,7 @@ export default {
   'results.goalDifference': 'TD',
   'results.points': 'Pkt',
   'results.games': 'Spiele',
+  'results.gamesPlayedAt': 'Hier sind die Ergebnisse vom {date}:',
   'results.diff': 'Diff',
   'results.gameDay': 'Spieltag {day}',
   'results.gameDayLabel': 'Spieltag',

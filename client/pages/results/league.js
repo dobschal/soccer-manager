@@ -101,6 +101,9 @@ export class LeagueResultsPage extends UIElement {
         </div>
 
         <h3>${t('results.games')}</h3>
+        ${this.results.length > 0 && this.results[0].created_at
+    ? `<p class="text-muted">${t('results.gamesPlayedAt', { date: new Date(this.results[0].created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) })}</p>`
+    : ''}
         ${new Table({
     cols: [
       {

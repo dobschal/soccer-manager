@@ -141,10 +141,14 @@ export class GameSlider extends UIElement {
     const label = this._getGameLabel(game)
 
     if (game.isPlayed) {
-      // Played game: show game day and result
+      // Played game: show game day, result, and date/time
+      const playedAtHtml = game.playedAt
+        ? `<small class="d-block mt-1">${new Date(game.playedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</small>`
+        : ''
       return `
         <small class="d-block mb-1">${label}</small>
         <h3 class="mb-0"><span class="badge bg-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h3>
+        ${playedAtHtml}
       `
     }
 

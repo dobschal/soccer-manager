@@ -472,7 +472,8 @@ export async function getCupGamesForTeam (teamId, season, limit = 10) {
              t2.color       as team2Color,
              t2.emblem      as team2Emblem,
              t1.user_id     as team1UserId,
-             t2.user_id     as team2UserId
+             t2.user_id     as team2UserId,
+             g.created_at   as playedAt
       FROM game g
                JOIN team t1 ON t1.id = g.team_1_id
                LEFT JOIN team t2 ON t2.id = g.team_2_id
