@@ -46,8 +46,10 @@ export class LeagueResultsPage extends UIElement {
       server.getTeamStats(this.gameDay, this.season, this.level, this.league),
       isUpcomingGameDay && isMyLeague ? server.getInjuredPlayers(this.level, this.league) : Promise.resolve({ injuredPlayers: [] })
     ]
-    const [{ results }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }] = await Promise.all(promises)
+    const [{ results, isCupGameDay, cupRound }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }] = await Promise.all(promises)
     this.results = results
+    this.isCupGameDay = isCupGameDay
+    this.cupRound = cupRound
     this.yesterdayStanding = yesterday
     this.standing = standing
     this.standing.sort(_sortStanding)
@@ -103,6 +105,12 @@ export class LeagueResultsPage extends UIElement {
         <h3>${t('results.games')}</h3>
         ${this.results.length > 0 && this.results[0].created_at
     ? `<p class="text-muted">${t('results.gamesPlayedAt', { date: new Date(this.results[0].created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) })}</p>`
+    : ''}
+        ${this.results.length === 0 && this.isCupGameDay
+    ? `<div class="alert alert-info">
+            <i class="fa fa-trophy"></i> ${t('results.cupGameDayNotice')}
+            <a href="#results?sub_page=cup&cup_season=${this.season}&cup_round=${this.cupRound}">${t('results.goToCupResults')}</a>
+          </div>`
     : ''}
         ${new Table({
     cols: [

@@ -286,7 +286,8 @@ export default {
    */
   async getResults (gameDay, season, level, league, req) {
     const team = await getTeam(req)
-    const results = await query(`
+    const [results, cupCheck] = await Promise.all([
+      query(`
         SELECT g.id           as id,
                g.goals_team_1 as goalsTeam1,
                g.goals_team_2 as goalsTeam2,
@@ -306,7 +307,12 @@ export default {
           AND g.level = ?
           AND g.league = ?
           AND (g.game_type = 'league' OR g.game_type IS NULL)
-    `, [gameDay, season, level ?? team.level, league ?? team.league])
+      `, [gameDay, season, level ?? team.level, league ?? team.league]),
+      query(
+        "SELECT cup_round FROM game WHERE game_day = ? AND season = ? AND game_type = 'cup' LIMIT 1",
+        [gameDay, season]
+      )
+    ])
     // Extract only needed fields from details to reduce payload size
     return {
       results: results.map(r => {
@@ -317,7 +323,9 @@ export default {
           strengthTeamB: details.strengthTeamB,
           details: undefined
         }
-      })
+      }),
+      isCupGameDay: cupCheck.length > 0,
+      cupRound: cupCheck.length > 0 ? cupCheck[0].cup_round : null
     }
   },
 

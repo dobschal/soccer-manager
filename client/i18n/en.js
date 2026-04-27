@@ -1003,5 +1003,7 @@ export default {
   'admin.sendBroadcast': 'Send to All Users',
   'admin.broadcastBothRequired': 'Both English and German messages are required.',
   'admin.broadcastConfirm': 'Send this notification to ALL users?',
-  'admin.broadcastSent': 'Broadcast sent to {sent} users.'
+  'admin.broadcastSent': 'Broadcast sent to {sent} users.',
+  'results.cupGameDayNotice': 'This game day featured cup matches.',
+  'results.goToCupResults': 'Go to cup results'
 }

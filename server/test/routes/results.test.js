@@ -44,19 +44,19 @@ describe('results routes', () => {
       ]
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValue(results)
+      query.mockResolvedValueOnce(results).mockResolvedValueOnce([])
 
       const req = createMockRequest()
       const result = await handlers.getResults(5, 1, 1, 1, req)
 
-      expect(result).toEqual({ results })
+      expect(result).toEqual({ results, isCupGameDay: false, cupRound: null })
     })
 
     it('uses team level and league when not specified', async () => {
       const team = testData.team({ level: 2, league: 3 })
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValue([])
+      query.mockResolvedValueOnce([]).mockResolvedValueOnce([])
 
       const req = createMockRequest()
       await handlers.getResults(5, 1, null, null, req)
@@ -71,7 +71,7 @@ describe('results routes', () => {
       const team = testData.team({ level: 1, league: 1 })
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValue([])
+      query.mockResolvedValueOnce([]).mockResolvedValueOnce([])
 
       const req = createMockRequest()
       await handlers.getResults(5, 1, 1, 1, req)

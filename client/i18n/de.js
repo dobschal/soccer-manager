@@ -1003,5 +1003,7 @@ export default {
   'admin.sendBroadcast': 'An alle Nutzer senden',
   'admin.broadcastBothRequired': 'Beide Nachrichten (Englisch und Deutsch) sind erforderlich.',
   'admin.broadcastConfirm': 'Diese Benachrichtigung an ALLE Nutzer senden?',
-  'admin.broadcastSent': 'Benachrichtigung an {sent} Nutzer gesendet.'
+  'admin.broadcastSent': 'Benachrichtigung an {sent} Nutzer gesendet.',
+  'results.cupGameDayNotice': 'An diesem Spieltag fanden Pokalspiele statt.',
+  'results.goToCupResults': 'Zu den Pokal-Ergebnissen'
 }
