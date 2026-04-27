@@ -29,9 +29,9 @@ export class LeagueResultsPage extends UIElement {
     }
     if (typeof this.season === 'undefined' || typeof this.gameDay === 'undefined') {
       const response = await server.getCurrentGameday()
-      this.season = response.season
-      this.gameDay = Math.max(0, response.gameDay - 1)
-      this._upcomingSeason = this.season
+      this.season = response.lastPlayedLeagueSeason ?? response.season
+      this.gameDay = response.lastPlayedLeagueGameDay ?? Math.max(0, response.gameDay - 1)
+      this._upcomingSeason = response.season
       this._upcomingGameDay = response.gameDay
     }
     const isUpcomingGameDay = this.season === this._upcomingSeason && this.gameDay === this._upcomingGameDay

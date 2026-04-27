@@ -108,7 +108,16 @@ export default {
    * @returns {Promise<{season: number, gameDay: number}>}
    */
   async getCurrentGameday () {
-    return await getGameDayAndSeason()
+    const current = await getGameDayAndSeason()
+    // Find the last played league game day (for results page default)
+    const [lastPlayed] = await query(
+      "SELECT game_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) ORDER BY season DESC, game_day DESC LIMIT 1"
+    )
+    if (lastPlayed) {
+      current.lastPlayedLeagueGameDay = lastPlayed.game_day
+      current.lastPlayedLeagueSeason = lastPlayed.season
+    }
+    return current
   },
 
   /**
