@@ -49,7 +49,10 @@ export class MyTeamPage extends TabbedPage {
     if (params.player_id) {
       await showPlayerModal(Number(params.player_id))
     }
-    this._handleSubPageChange(params.sub_page)
+    this.subPage = params.sub_page || null
+    await this.load()
+    this._subPageCache = {}
+    await this.update()
   }
   onDestroy () {
     if (this._youthPlayerPromotedEventId !== undefined) {
