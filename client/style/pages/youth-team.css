@@ -1,0 +1,70 @@
+/* ==========================================================================
+   Youth Team – Training mode selector
+   ========================================================================== */
+
+.youth-mode-btn {
+    text-align: center;
+    padding: 0.75rem;
+}
+
+.youth-mode-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.youth-mode-header .fa {
+    font-size: 1.5rem;
+}
+
+.youth-mode-effects {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 0.5rem;
+    max-width: 160px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.youth-mode-effect {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.youth-effect-label {
+    font-size: 0.85rem;
+}
+
+/* Effect icons – default (inactive button) */
+.youth-effect-positive {
+    color: #198754;
+    font-size: 1.1rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.youth-effect-negative {
+    color: #dc3545;
+    font-size: 1.1rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+/* Effect icons – active (primary button) — lighter tones for contrast */
+.youth-effect-positive-active {
+    color: #8eedb8;
+    font-size: 1.1rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.youth-effect-negative-active {
+    color: #f8a0a8;
+    font-size: 1.1rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}

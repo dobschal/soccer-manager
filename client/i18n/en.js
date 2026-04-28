@@ -308,9 +308,9 @@ export default {
   // Youth Team
   'youthTeam.title': 'Youth Team',
   'youthTeam.trainingMode': 'Training Mode',
-  'youthTeam.trainingModeDesc': 'What should your youth players do next?',
+  'youthTeam.trainingModeDesc': 'Choose what your youth team should do for the next game day:',
   'youthTeam.training': 'Training',
-  'youthTeam.trainingDesc': 'Improves level but lowers fitness and moral',
+  'youthTeam.trainingDesc': 'Improves level and fitness but lowers moral',
   'youthTeam.friendlyMatch': 'Friendly Match',
   'youthTeam.friendlyMatchDesc': 'Improves level and moral but lowers fitness',
   'youthTeam.rest': 'Rest',

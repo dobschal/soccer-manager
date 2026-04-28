@@ -808,9 +808,10 @@ function _checkTeamFreshnessSubs (team, gameDetails, isTeamA) {
   const bench = isTeamA ? gameDetails.benchTeamA : gameDetails.benchTeamB
   if (!bench) return
 
+  // Collect eligible substitution candidates with their bench player
+  const candidates = []
   for (const player of team) {
     if (player.sentOff || player.injuredInMatch || player.substitutedOut || player.position === 'GK') continue
-    if (gameDetails[countKey] >= 3) break
 
     const benchPosition = POSITION_GROUPS[player.position]
     const sub = bench?.[benchPosition]
@@ -821,9 +822,26 @@ function _checkTeamFreshnessSubs (team, gameDetails, isTeamA) {
     const subFreshness = sub.originalFreshness ?? sub.freshness ?? 1
     if (subFreshness - playerFreshness < 0.05) continue
 
-    const teamIndex = isTeamA ? 0 : 1
+    candidates.push({ player, sub, benchPosition, freshnessDiff: subFreshness - playerFreshness })
+  }
+
+  // Prioritize: exact position match first, then by freshness difference (most tired first)
+  candidates.sort((a, b) => {
+    const aMatch = a.player.in_game_position === a.sub.position ? 0 : 1
+    const bMatch = b.player.in_game_position === b.sub.position ? 0 : 1
+    if (aMatch !== bMatch) return aMatch - bMatch
+    return b.freshnessDiff - a.freshnessDiff
+  })
+
+  const usedBenchPositions = new Set()
+  const teamIndex = isTeamA ? 0 : 1
+  for (const { player, sub, benchPosition } of candidates) {
+    if (gameDetails[countKey] >= 3) break
+    if (usedBenchPositions.has(benchPosition)) continue
+
     _performSubstitution(player, sub, team, gameDetails, teamIndex, 'freshness')
     gameDetails[countKey]++
+    usedBenchPositions.add(benchPosition)
   }
 }
 

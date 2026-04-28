@@ -154,15 +154,18 @@ export class YouthTeamPage extends UIElement {
     const modes = [
       {
         key: 'training',
-        icon: 'fa-bolt'
+        icon: 'fa-bolt',
+        effects: { level: 2, fitness: 1, moral: -1 }
       },
       {
         key: 'friendly_match',
-        icon: 'fa-futbol-o'
+        icon: 'fa-futbol-o',
+        effects: { level: 1, fitness: -1, moral: 1 }
       },
       {
         key: 'rest',
-        icon: 'fa-bed'
+        icon: 'fa-bed',
+        effects: { level: 0, fitness: 2, moral: 1 }
       }
     ]
 
@@ -175,18 +178,49 @@ export class YouthTeamPage extends UIElement {
     const id = generateId()
     const isActive = this.trainingMode === mode.key
     onClick(id, () => this._setTrainingMode(mode.key))
+    const modeName = mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key
     return `
             <button
               id="${id}"
-              class="btn ${isActive ? 'btn-primary' : 'btn-outline-secondary'} flex-fill"
+              class="btn ${isActive ? 'btn-primary' : 'btn-outline-secondary'} flex-fill youth-mode-btn"
             >
-              <i class="fa ${mode.icon}"></i><br>
-              <strong>${t('youthTeam.' + (mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key))}</strong><br>
-              <small>${t('youthTeam.' + (mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key) + 'Desc')}</small>
-              ${isActive ? `<br><small id="${this.timerId}" class="text-light opacity-75"><i class="fa fa-clock-o"></i> ...</small>` : ''}
+              <div class="youth-mode-header">
+                <i class="fa ${mode.icon}"></i>
+                <strong>${t('youthTeam.' + modeName)}</strong>
+              </div>
+              <div class="youth-mode-effects">
+                ${this._renderEffectRow(t('youthTeam.level'), mode.effects.level, isActive)}
+                ${this._renderEffectRow(t('youthTeam.fitness'), mode.effects.fitness, isActive)}
+                ${this._renderEffectRow(t('youthTeam.moral'), mode.effects.moral, isActive)}
+              </div>
+              ${isActive ? `<small id="${this.timerId}" class="text-light opacity-75"><i class="fa fa-clock-o"></i> ...</small>` : ''}
             </button>
           `
   }).join('')}
+      </div>
+    `
+  }
+
+  /**
+   * Render a single effect row with +/- icons
+   * @param {string} label - Effect name (Level, Fitness, Moral)
+   * @param {number} value - Effect strength (-2 to +2)
+   * @param {boolean} isActive - Whether this mode is currently selected
+   * @returns {string}
+   */
+  _renderEffectRow (label, value, isActive) {
+    if (value === 0) return ''
+    const isPositive = value > 0
+    const colorClass = isPositive
+      ? (isActive ? 'youth-effect-positive-active' : 'youth-effect-positive')
+      : (isActive ? 'youth-effect-negative-active' : 'youth-effect-negative')
+    const icon = isPositive ? 'fa-plus' : 'fa-minus'
+    const count = Math.abs(value)
+    const icons = Array(count).fill(`<i class="fa ${icon}"></i>`).join('')
+    return `
+      <div class="youth-mode-effect">
+        <span class="youth-effect-label">${label}</span>
+        <span class="${colorClass}">${icons}</span>
       </div>
     `
   }

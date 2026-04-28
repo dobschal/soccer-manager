@@ -58,10 +58,10 @@ describe('youthPlayerHelper', () => {
 
       applyTrainingEffects(youthPlayer, 'training')
 
-      // Training mode: fitness -0.05, moral -0.03, levelBonus 1.2
+      // Training mode: fitness +0.02, moral -0.05, levelBonus 1.2
       // randomFactor = 0.9 + 0.5 * 0.2 = 1.0
-      expect(youthPlayer.fitness).toBeCloseTo(0.65, 2) // 0.7 - 0.05
-      expect(youthPlayer.moral).toBeCloseTo(0.67, 2) // 0.7 - 0.03
+      expect(youthPlayer.fitness).toBeCloseTo(0.72, 2) // 0.7 + 0.02
+      expect(youthPlayer.moral).toBeCloseTo(0.65, 2) // 0.7 - 0.05
 
       // Level gain = BASE_GAIN * (1 + talent * 2.5) * modeBonus * avgCondition * randomFactor
       // = 0.2 * (1 + 0.5 * 2.5) * 1.2 * 0.66 * 1.0 = 0.2 * 2.25 * 1.2 * 0.66 = 0.356

@@ -10,7 +10,7 @@ import { generateRandomPlayerName } from '../prepare-season.js'
  * @type {Object<string, {fitness: number, moral: number, levelBonus: number}>}
  */
 export const TRAINING_MODE_EFFECTS = {
-  training: { fitness: -0.05, moral: -0.03, levelBonus: 1.2 },
+  training: { fitness: +0.02, moral: -0.05, levelBonus: 1.2 },
   friendly_match: { fitness: -0.04, moral: +0.05, levelBonus: 1.0 },
   rest: { fitness: +0.06, moral: +0.04, levelBonus: 0.3 }
 }

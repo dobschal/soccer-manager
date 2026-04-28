@@ -28,7 +28,7 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 
 | Modus | Fitness | Moral | Level-Bonus |
 |---|---|---|---|
-| Training | -5% | -3% | 1.2x (20% mehr) |
+| Training | +2% | -5% | 1.2x (20% mehr) |
 | Freundschaftsspiel | -4% | +5% | 1.0x (Standard) |
 | Ruhe | +6% | +4% | 0.3x (70% weniger) |
 
