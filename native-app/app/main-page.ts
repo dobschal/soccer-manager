@@ -152,6 +152,7 @@ export function onWebViewLoaded(args: EventData) {
         setupIOSPushNotifications(webView)
     } else if (isAndroid) {
         loadWebViewAndroid(webView, webPath)
+        setupAndroidPlatformInjection(webView)
     }
 
     // If an OTA update was installed in a previous session, show toast after load
@@ -275,6 +276,15 @@ function setupIOSUIDelegate(): any {
     })
 
     return WKUIDelegateImpl.new()
+}
+
+function setupAndroidPlatformInjection(webView: WebView): void {
+    webView.on(WebView.loadFinishedEvent, (loadArgs: any) => {
+        if (loadArgs.error || !isAndroid) return
+        const nativeWebView = webView.android as any
+        if (!nativeWebView) return
+        nativeWebView.evaluateJavascript(`window.__nativePlatform = 'android';`, null)
+    })
 }
 
 function loadWebViewAndroid(webView: WebView, webPath: string) {

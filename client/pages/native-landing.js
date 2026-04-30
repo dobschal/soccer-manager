@@ -9,10 +9,10 @@ import { sendLog } from '../lib/clientLogger.js'
 
 async function _registerDeviceToken () {
   const token = window.__nativeDeviceToken
-  const platform = window.__nativePlatform || 'ios'
-  sendLog(`[Push] _registerDeviceToken called - token: ${token ? token.substring(0, 10) + '...' : 'MISSING'}, platform: ${platform}`)
-  if (!token) {
-    sendLog('[Push] _registerDeviceToken aborted: no token', 'warn')
+  const platform = window.__nativePlatform
+  sendLog(`[Push] _registerDeviceToken called - token: ${token ? token.substring(0, 10) + '...' : 'MISSING'}, platform: ${platform || 'MISSING'}`)
+  if (!token || !platform) {
+    sendLog('[Push] _registerDeviceToken aborted: no token or platform', 'warn')
     return
   }
   try {
@@ -80,7 +80,7 @@ export class NativeLandingPage extends UIElement {
     const password = value('#password-input')
     const repeatedPassword = value('#password-repeat-input')
     try {
-      const platform = window.__nativePlatform || 'ios'
+      const platform = window.__nativePlatform || 'web'
       if (!this.isLogin) {
         if (repeatedPassword !== password) {
           this.isSubmitting = false

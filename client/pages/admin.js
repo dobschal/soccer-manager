@@ -114,18 +114,20 @@ export class AdminPage extends UIElement {
           <div class="card-header"><h5 class="mb-0">${t('admin.activeUsers')} (${this._activeUsers.length})</h5></div>
           <div class="card-body p-0">
             ${this._activeUsers.length > 0 ? `
-            <table class="table table-sm table-hover mb-0">
-              <thead>
-                <tr>
-                  <th>${t('admin.username')}</th>
-                  <th>${t('admin.platform')}</th>
-                  <th>${t('admin.team')}</th>
-                  <th>${t('admin.country')}</th>
-                  <th>${t('admin.lastLogin')}</th>
-                </tr>
-              </thead>
-              <tbody>${userRows}</tbody>
-            </table>
+            <div class="horizontal-scrollable-table">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>${t('admin.username')}</th>
+                    <th>${t('admin.platform')}</th>
+                    <th>${t('admin.team')}</th>
+                    <th>${t('admin.country')}</th>
+                    <th>${t('admin.lastLogin')}</th>
+                  </tr>
+                </thead>
+                <tbody>${userRows}</tbody>
+              </table>
+            </div>
             ` : `<p class="p-3 mb-0 text-muted">${t('admin.noActiveUsers')}</p>`}
           </div>
         </div>

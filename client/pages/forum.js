@@ -315,7 +315,7 @@ export class ForumPage extends UIElement {
           ` : ''}
           <div class="forum-post-text mb-3">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>
           ${(post.images && post.images.length > 0) ? `<div class="forum-comment-images mb-3">${post.images.map(img =>
-    `<img src="/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="/uploads/forum/${escapeHtml(img.filename)}">`
+    `<img src="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}">`
   ).join('')}</div>` : ''}
           <button id="forum-like-btn" class="btn btn-sm ${post.liked ? 'btn-danger' : 'btn-outline-danger'}">
             <i class="fa fa-heart${post.liked ? '' : '-o'}"></i> ${post.like_count}
@@ -335,7 +335,7 @@ export class ForumPage extends UIElement {
         const cDate = formatDate('DD.MM.YYYY hh:mm', comment.created_at)
         const cTeamLink = comment.team_id ? `<a href="#team?id=${comment.team_id}" class="forum-team-link">${escapeHtml(comment.team_name || '')}</a>` : ''
         const commentImages = (comment.images || []).map(img =>
-          `<img src="/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="/uploads/forum/${escapeHtml(img.filename)}">`
+          `<img src="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}">`
         ).join('')
         html += `
           <div class="forum-comment mb-2 pb-2 border-bottom">
