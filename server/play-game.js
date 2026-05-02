@@ -867,8 +867,8 @@ function _performSubstitution (playerOut, playerIn, team, gameDetails, teamIndex
   // Sub takes the position in the game
   playerIn.in_game_position = playerOut.in_game_position
   playerIn.substitutedOut = false
-  // Players playing out of their natural position are only half as effective
-  if (playerIn.position !== playerIn.in_game_position) {
+  // Substitutes only get the out-of-position penalty when their role group differs from the slot's role group
+  if (POSITION_GROUPS[playerIn.position] !== POSITION_GROUPS[playerIn.in_game_position]) {
     playerIn.level *= 0.5
   }
 

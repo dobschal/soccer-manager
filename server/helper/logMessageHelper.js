@@ -84,25 +84,20 @@ export async function checkTeamAndNotify (team) {
   const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
   const playersInLineup = players.filter(p => p.in_game_position)
 
-  // Check for suspended players in lineup and remove them
+  // Defensive: silently remove any suspended players still in the lineup.
+  // The post-game flow already removes them and emits a combined log message,
+  // so we don't add another message here to avoid duplicates.
   const suspendedInLineup = playersInLineup.filter(p => p.is_suspended)
   for (const player of suspendedInLineup) {
-    // Remove from lineup
     await query('UPDATE player SET in_game_position=\'\' WHERE id=?', [player.id])
-    await addLogMessage(
-      t('log.playerRemovedFromLineup', { playerName: player.name }, locale),
-      team,
-      'OPEN_MY_TEAM_PAGE',
-      null,
-      'ban'
-    )
   }
 
-  // Re-check lineup count after removing suspended players
   const availablePlayersInLineup = playersInLineup.filter(p => !p.is_suspended)
 
-  // Check for incomplete lineup
-  if (availablePlayersInLineup.length < 11) {
+  // Check for incomplete lineup — skip if a current suspension already covered the deficit
+  // (the suspension log message includes the lineup count).
+  const teamHasSuspendedPlayers = players.some(p => p.is_suspended)
+  if (availablePlayersInLineup.length < 11 && !teamHasSuspendedPlayers) {
     await addLogMessage(
       t('log.incompleteLineup', { count: availablePlayersInLineup.length }, locale),
       team,

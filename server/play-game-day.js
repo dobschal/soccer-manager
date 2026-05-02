@@ -887,52 +887,58 @@ async function _updatePlayerAfterGame (player, gameDetails, team) {
     // Red card = suspended for next match
     newRedCards = 1
     isSuspended = true
-
-    // Add log message for team owner
-    if (team.user_id) {
-      const locale = await getUserLocale(team.user_id)
-      await addLogMessage(
-        t('log.playerRedCard', { playerName: player.name }, locale),
-        team,
-        'OPEN_PLAYER',
-        player.id,
-        'square'
-      )
-      await addLogMessage(
-        t('log.playerSuspended', { playerName: player.name }, locale),
-        team,
-        'OPEN_PLAYER',
-        player.id,
-        'ban'
-      )
-    }
   } else if (newYellowCards >= 5) {
     // 5 yellow cards = suspended for next match
     isSuspended = true
-
-    if (team.user_id) {
-      const locale = await getUserLocale(team.user_id)
-      await addLogMessage(
-        t('log.playerFiveYellows', { playerName: player.name }, locale),
-        team,
-        'OPEN_PLAYER',
-        player.id,
-        'exclamation-triangle'
-      )
-      await addLogMessage(
-        t('log.playerSuspended', { playerName: player.name }, locale),
-        team,
-        'OPEN_PLAYER',
-        player.id,
-        'ban'
-      )
-    }
   }
 
   // Update player in database
   await query(
     'UPDATE player SET freshness=?, yellow_cards=?, red_cards=?, is_suspended=? WHERE id=?',
     [player.freshness, newYellowCards, newRedCards, isSuspended ? 1 : 0, player.id]
+  )
+
+  // If newly suspended, remove from lineup and notify the team owner with one combined message
+  if (isSuspended && team.user_id) {
+    await _notifySuspension(player, team, sentOff ? 'red' : 'fiveYellows')
+  }
+}
+
+/**
+ * Removes a suspended player from the lineup and sends a single combined log message
+ * covering: cards reason, suspension, lineup removal, and incomplete lineup count.
+ * @param {PlayerType} player
+ * @param {TeamType} team
+ * @param {'red' | 'fiveYellows'} cause
+ */
+async function _notifySuspension (player, team, cause) {
+  const locale = await getUserLocale(team.user_id)
+  const wasInLineup = !!player.in_game_position
+
+  let lineupSuffix = ''
+  if (wasInLineup) {
+    await query('UPDATE player SET in_game_position=\'\' WHERE id=?', [player.id])
+    const [{ count }] = await query(
+      'SELECT COUNT(*) as count FROM player WHERE team_id=? AND in_game_position IS NOT NULL AND in_game_position <> \'\'',
+      [team.id]
+    )
+    lineupSuffix = ' ' + t('log.playerRemovedFromLineup', { playerName: player.name }, locale)
+    if (count < 11) {
+      lineupSuffix += ' ' + t('log.incompleteLineup', { count }, locale)
+    }
+  }
+
+  const cardsMsg = cause === 'red'
+    ? t('log.playerRedCard', { playerName: player.name }, locale)
+    : t('log.playerFiveYellows', { playerName: player.name }, locale)
+  const suspendedMsg = t('log.playerSuspended', { playerName: player.name }, locale)
+
+  await addLogMessage(
+    cardsMsg + ' ' + suspendedMsg + lineupSuffix,
+    team,
+    'OPEN_PLAYER',
+    player.id,
+    'ban'
   )
 }
 

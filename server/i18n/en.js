@@ -112,7 +112,7 @@ export default {
   // Log messages - Youth players
   'log.youthPlayerPromoted': '{playerName} has been promoted to the A Team at level {level}!',
   'log.youthPlayerFired': 'Youth player {playerName} has been released from the youth team.',
-  'log.youthPlayerAt18Warning': 'Warning: Youth player {playerName} will be automatically released next season if not promoted!',
+  'log.youthPlayerAt18Warning': 'Warning: The following youth players will be automatically released next season if not promoted: {playerNames}',
 
   // Log messages - Cards and suspensions
   'log.playerYellowCard': '{playerName} received a yellow card!',

@@ -672,11 +672,12 @@ export class LeagueResultsPage extends UIElement {
       season,
       gameDay
     } = await this._getSeasonAndGameDay()
-    if (typeof season !== 'undefined') {
+    if (typeof season !== 'undefined' && typeof gameDay !== 'undefined') {
       this.season = season
-    }
-    if (typeof gameDay !== 'undefined') {
       this.gameDay = gameDay
+    } else {
+      this.season = undefined
+      this.gameDay = undefined
     }
   }
 }

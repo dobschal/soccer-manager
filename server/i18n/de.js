@@ -112,7 +112,7 @@ export default {
   // Log messages - Youth players
   'log.youthPlayerPromoted': '{playerName} wurde auf Level {level} in die A-Mannschaft befördert!',
   'log.youthPlayerFired': 'Jugendspieler {playerName} wurde aus der Jugendmannschaft entlassen.',
-  'log.youthPlayerAt18Warning': 'Warnung: Jugendspieler {playerName} wird nächste Saison automatisch entlassen, wenn er nicht befördert wird!',
+  'log.youthPlayerAt18Warning': 'Warnung: Folgende Jugendspieler werden nächste Saison automatisch entlassen, wenn sie nicht befördert werden: {playerNames}',
 
   // Log messages - Cards and suspensions
   'log.playerYellowCard': '{playerName} hat eine gelbe Karte erhalten!',

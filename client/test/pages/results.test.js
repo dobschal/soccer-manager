@@ -324,6 +324,42 @@ describe('ResultsPage', () => {
     })
   })
 
+  describe('applyQueryParams', () => {
+    it('resets to last played game day when no season/game_day in query', async () => {
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
+
+      server.getCurrentGameday
+        .mockResolvedValueOnce({ season: 2, gameDay: 5, lastPlayedLeagueSeason: 2, lastPlayedLeagueGameDay: 4 })
+        .mockResolvedValueOnce({ season: 2, gameDay: 7, lastPlayedLeagueSeason: 2, lastPlayedLeagueGameDay: 6 })
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+
+      const leaguePage = new LeagueResultsPage(parentPage)
+      await leaguePage.load()
+      expect(leaguePage.gameDay).toBe(4)
+
+      // user navigates to a specific game day
+      getQueryParams.mockReturnValue({ season: '2', game_day: '1' })
+      await leaguePage.applyQueryParams({ season: '2', game_day: '1' })
+      expect(leaguePage.season).toBe(2)
+      expect(leaguePage.gameDay).toBe(1)
+
+      // user navigates away and back without query params -> should reset
+      getQueryParams.mockReturnValue({})
+      await leaguePage.applyQueryParams({})
+      expect(leaguePage.season).toBeUndefined()
+      expect(leaguePage.gameDay).toBeUndefined()
+
+      // load() now refetches the latest played game day
+      await leaguePage.load()
+      expect(leaguePage.gameDay).toBe(6)
+      expect(leaguePage.season).toBe(2)
+    })
+  })
+
   describe('event handlers', () => {
     it('prev game day button decrements game day', async () => {
       const team = testData.team()

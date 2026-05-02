@@ -124,17 +124,17 @@ async function _warnYouthPlayersAt18 () {
 
   for (const team of teams) {
     const youthAt18 = await getYouthPlayersAt18(team.id, season)
+    if (youthAt18.length === 0) continue
     const locale = await getUserLocale(team.user_id)
+    const playerNames = youthAt18.map(y => y.name).join(', ')
 
-    for (const youth of youthAt18) {
-      await addLogMessage(
-        t('log.youthPlayerAt18Warning', { playerName: youth.name }, locale),
-        team,
-        null,
-        null,
-        'exclamation-triangle'
-      )
-    }
+    await addLogMessage(
+      t('log.youthPlayerAt18Warning', { playerNames }, locale),
+      team,
+      null,
+      null,
+      'exclamation-triangle'
+    )
   }
 }
 

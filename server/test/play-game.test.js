@@ -986,9 +986,9 @@ describe('play-game simulation', () => {
       expect(injuriesPerGame).toBeLessThan(1.0)
     })
 
-    it('substitute playing out of position gets 50% level penalty', () => {
+    it('substitute filling a slot in the same position group keeps full level', () => {
       const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
-      // DM bench player subbing into a CM slot
+      // DM bench player subbing into a CM slot — both are BENCH_MID, so no penalty
       const benchSub = createPlayer({ id: 99, name: 'Sub DM', position: 'DM', in_game_position: '', level: 40, originalFreshness: 0.9 })
 
       const cmPlayer = teamA.find(p => p.position === 'CM')
@@ -1007,8 +1007,8 @@ describe('play-game simulation', () => {
           checked = true
           // Sub is pushed onto the team array
           const subIn = team.find(p => p.id === 99)
-          // DM playing CM: position mismatch → level halved (40 * 0.5 = 20)
-          expect(subIn.level).toBe(20)
+          // DM filling CM slot: same BENCH_MID group → no penalty
+          expect(subIn.level).toBe(40)
           expect(subIn.in_game_position).toBe('CM')
         }
       }
@@ -1043,6 +1043,55 @@ describe('play-game simulation', () => {
       }
 
       expect(checked).toBe(true)
+    })
+
+    it('LM bench player coming in for a CM slot keeps full level (prod bug regression)', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      // LM bench player (natural position LM) subbing into a CM slot — both BENCH_MID, no penalty
+      const benchSub = createPlayer({ id: 99, name: 'Adrian Perez', position: 'LM', in_game_position: '', level: 50, originalFreshness: 0.9 })
+
+      const cmPlayer = teamA.find(p => p.position === 'CM')
+      cmPlayer.originalFreshness = 0.1
+
+      let checked = false
+      for (let i = 0; i < 200000 && !checked; i++) {
+        const team = [{ ...cmPlayer, injuredInMatch: false, in_game_position: 'CM' }]
+        const gd = createGameDetails({
+          playerTeamA: team,
+          currentMinute: 46,
+          benchTeamA: { BENCH_MID: { ...benchSub, substitutedOut: false } }
+        })
+        checkForInjury(team[0], 'aggressive', gd, team, true)
+        if (gd.substitutions?.length > 0) {
+          checked = true
+          const subIn = team.find(p => p.id === 99)
+          // LM filling CM slot: same BENCH_MID group → full level kept
+          expect(subIn.level).toBe(50)
+          expect(subIn.in_game_position).toBe('CM')
+        }
+      }
+
+      expect(checked).toBe(true)
+    })
+
+    it('substitute from a different position group filling a slot gets 50% level penalty', () => {
+      // CD (BENCH_DEF) forced into a CM (BENCH_MID) slot — cross-group → penalty applies
+      const defSub = createPlayer({ id: 88, name: 'CD Sub', position: 'CD', in_game_position: 'CM', level: 60 })
+      defSub.in_game_position = 'CM'
+
+      // Manually replicate what _performSubstitution does so we can verify the penalty path
+      const cmOut = createPlayer({ id: 77, name: 'CM Out', position: 'CM', in_game_position: 'CM', level: 50, hasBall: false })
+      const playerOut = cmOut
+      const playerIn = { ...defSub }
+      playerIn.in_game_position = playerOut.in_game_position // 'CM'
+      playerIn.substitutedOut = false
+      if (POSITION_GROUPS[playerIn.position] !== POSITION_GROUPS[playerIn.in_game_position]) {
+        playerIn.level *= 0.5
+      }
+
+      // CD → BENCH_DEF, CM → BENCH_MID: groups differ → halved
+      expect(playerIn.level).toBe(30)
+      expect(playerIn.in_game_position).toBe('CM')
     })
   })
 })

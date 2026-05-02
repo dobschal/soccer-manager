@@ -5,7 +5,6 @@ import { renderEmblem } from '../../partials/emblem.js'
 import { goTo, setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 import { generateId } from '../../lib/html.js'
-import { onClick } from '../../lib/htmlEventHandlers.js'
 import { showCommentOverlay } from '../../partials/commentOverlay.js'
 
 class NewsItem extends UIElement {
@@ -121,21 +120,22 @@ class NewsItem extends UIElement {
             goTo(`team?id=${this.linkId}`)
           }
         }
+      },
+      [`#${this.likeBtnId}`]: {
+        click: () => {
+          if (this.onLikeToggle) this.onLikeToggle(this.newsItem.id)
+        }
+      },
+      [`#${this.commentBtnId}`]: {
+        click: () => {
+          showCommentOverlay(this.newsItem.id, this.newsItem.title, () => {
+            this.newsItem.commentCount = (this.newsItem.commentCount || 0) + 1
+            this.update()
+          })
+        }
       }
     }
   }
-  onMounted () {
-    onClick(this.likeBtnId, () => {
-      if (this.onLikeToggle) this.onLikeToggle(this.newsItem.id)
-    })
-    onClick(this.commentBtnId, () => {
-      showCommentOverlay(this.newsItem.id, this.newsItem.title, () => {
-        this.newsItem.commentCount = (this.newsItem.commentCount || 0) + 1
-        this.update()
-      })
-    })
-  }
-  
 }
 
 export class News extends UIElement {

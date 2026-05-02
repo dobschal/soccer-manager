@@ -115,6 +115,24 @@ Detailed feature specifications are in the `requirements/` directory:
 - [User Registration](requirements/user-registration.md) - Registrierung und Authentifizierung
 - [Youth Players](requirements/youth-players.md) - Jugendspieler-System und Training
 
+## Production Database Access
+
+The prod database runs as a MySQL 8.0 container (`soccer-manager-database-1`) on the Hetzner host.
+Claude can connect via the preconfigured SSH alias `hetzner` to inspect or analyze prod data
+(e.g. when the user mentions a specific game, team, or player ID and asks for an investigation).
+
+```bash
+# Run a query against the prod database
+ssh hetzner "docker exec soccer-manager-database-1 mysql -uroot -proot -D soccer -e 'SELECT * FROM game WHERE id = 12345 LIMIT 1;'"
+
+# Open an interactive MySQL shell (only useful when running manually, not from Claude)
+ssh hetzner "docker exec -it soccer-manager-database-1 mysql -uroot -proot soccer"
+```
+
+- Database name: `soccer`, user: `root`, password: `root` (only reachable inside the container).
+- Treat prod data as **read-only** unless the user explicitly asks for a write/fix.
+- Never dump or copy personal user data (emails, password hashes) outside the server.
+
 ## Tech Stack
 
 - **Backend**: Node.js 20, Express 4.18, MySQL 8.0, JWT auth

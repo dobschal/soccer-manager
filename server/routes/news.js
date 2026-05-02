@@ -201,7 +201,7 @@ export default {
     const userId = req.user.id
     const locale = getLocaleFromRequest(req)
 
-    const news = await query(
+    let news = await query(
       `SELECT n.*, nl.created_at as liked_at
        FROM news_like nl
        JOIN news n ON n.id = nl.news_id
@@ -211,15 +211,7 @@ export default {
       [userId, locale]
     )
 
-    // Mark all as liked since they come from the liked table
-    for (const item of news) {
-      item.liked = true
-      const [{ count }] = await query(
-        'SELECT COUNT(*) as count FROM news_like WHERE news_id=?',
-        [item.id]
-      )
-      item.likeCount = count
-    }
+    news = await enrichNewsWithLikes(news, userId)
 
     const { teams, players } = await collectTeamsAndPlayers(news)
 

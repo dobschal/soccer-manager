@@ -157,6 +157,38 @@ describe('news routes', () => {
     })
   })
 
+  describe('getLikedNews', () => {
+    it('includes commentCount on each liked news item', async () => {
+      const likedItem = {
+        id: 7,
+        game_day: 2,
+        season: 1,
+        level: 1,
+        league: 1,
+        type: 'GOAL',
+        title: 'Hat-trick',
+        text: 'A hat-trick was scored',
+        player_id: null,
+        team_id: 1,
+        liked_at: new Date()
+      }
+
+      query
+        .mockResolvedValueOnce([likedItem]) // liked news lookup
+        .mockResolvedValueOnce([{ news_id: 7, count: 4 }]) // like counts
+        .mockResolvedValueOnce([{ news_id: 7 }]) // user likes
+        .mockResolvedValueOnce([{ news_id: 7, count: 2 }]) // comment counts
+        .mockResolvedValueOnce([testData.team({ id: 1 })]) // teams
+
+      const req = createMockRequest()
+      const result = await handlers.getLikedNews(req)
+
+      expect(result.news[0].commentCount).toBe(2)
+      expect(result.news[0].likeCount).toBe(4)
+      expect(result.news[0].liked).toBe(true)
+    })
+  })
+
   describe('getNewsComments', () => {
     it('returns comments for a news item', async () => {
       const comments = [
