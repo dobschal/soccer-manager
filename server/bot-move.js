@@ -607,6 +607,16 @@ async function _checkBuyOffers (botTeam, players) {
       offerValue = Math.floor(bestOffer.offer_value * normalFactor)
     }
 
+    // Cap at fair market value so users can't extract money by listing players at inflated prices.
+    // Critical/freshness needs allow a 1.5x premium; depth/upgrade/opportunistic stay at fair value.
+    const player = await getPlayerById(bestOffer.player_id)
+    if (!player) continue
+    const fairValue = await getAveragePlanPriceOfPlayer(player)
+    const fairValueCap = Math.floor(
+      fairValue * (need.priority === 'critical' || need.priority === 'freshness' ? 1.5 : 1.0)
+    )
+    offerValue = Math.min(offerValue, fairValueCap)
+
     offerValue = Math.min(remainingBudget, offerValue)
     if (offerValue < bestOffer.offer_value * 0.9) continue // Don't lowball too much
 

@@ -127,6 +127,9 @@ describe('Bot Trading', () => {
       return []
     })
     playersRoutes.estimateValue.mockResolvedValue(50000)
+    // Default fair-value & player-fetch mocks (high enough not to cap legitimate test buys)
+    getAveragePlanPriceOfPlayer.mockResolvedValue(50_000_000)
+    getPlayerById.mockResolvedValue(testData.player({ id: 999, level: 5, carrier_start_season: 0 }))
 
     // Default query mock
     query.mockImplementation(async (sql, params) => {
@@ -422,6 +425,98 @@ describe('Bot Trading', () => {
         const insertedOffer = insertBuyCalls[0][1]
         // The high level player (302) should be selected due to critical need priority
         expect(insertedOffer.player_id).toBe(302)
+      }
+    })
+  })
+
+  describe('Buy offer fair-value cap', () => {
+    it('does not buy a player listed far above fair market value', async () => {
+      // Bot has a critical CM need, so it would normally pay a 1.5x premium.
+      const playersNeedingCM = botPlayers.filter(p => p.position !== 'CM')
+      getPlayersByTeamId.mockResolvedValue(playersNeedingCM)
+
+      const inflatedPlayer = testData.player({
+        id: 999,
+        name: 'Inflated CM',
+        position: 'CM',
+        level: 6,
+        carrier_start_season: 0
+      })
+      // Fair market value ~50k, but listing is 6x that
+      getAveragePlanPriceOfPlayer.mockResolvedValue(50_000)
+      getPlayerById.mockResolvedValue(inflatedPlayer)
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return playersNeedingCM
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) {
+          return [{
+            id: 555,
+            player_id: 999,
+            from_team_id: userTeam.id,
+            type: 'sell',
+            offer_value: 300_000, // way above fair value
+            player_name: 'Inflated CM',
+            player_level: 6,
+            player_position: 'CM'
+          }]
+        }
+        if (sql.includes('INSERT INTO trade_offer')) return { insertId: 1234 }
+        return []
+      })
+
+      await makeBotMoves()
+
+      const insertBuyCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO trade_offer') && call[1]?.type === 'buy' && call[1]?.player_id === 999
+      )
+      expect(insertBuyCalls.length).toBe(0)
+    })
+
+    it('caps buy offer at fair value premium even when listing is slightly inflated', async () => {
+      // Bot has critical CM need (1.5x fair value cap).
+      const playersNeedingCM = botPlayers.filter(p => p.position !== 'CM')
+      getPlayersByTeamId.mockResolvedValue(playersNeedingCM)
+
+      const cmPlayer = testData.player({
+        id: 888,
+        name: 'CM',
+        position: 'CM',
+        level: 6,
+        carrier_start_season: 0
+      })
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100_000)
+      getPlayerById.mockResolvedValue(cmPlayer)
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return playersNeedingCM
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) {
+          return [{
+            id: 556,
+            player_id: 888,
+            from_team_id: userTeam.id,
+            type: 'sell',
+            offer_value: 140_000, // listing slightly above 1x fair value
+            player_name: 'CM',
+            player_level: 6,
+            player_position: 'CM'
+          }]
+        }
+        if (sql.includes('INSERT INTO trade_offer')) return { insertId: 1235 }
+        return []
+      })
+
+      await makeBotMoves()
+
+      const insertBuyCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO trade_offer') && call[1]?.type === 'buy' && call[1]?.player_id === 888
+      )
+      // If the bot makes an offer, it must not exceed 1.5x fair value
+      for (const call of insertBuyCalls) {
+        expect(call[1].offer_value).toBeLessThanOrEqual(150_000)
       }
     })
   })
