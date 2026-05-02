@@ -300,6 +300,12 @@ export default {
   'myTeam.benchSelect': 'Select bench player',
   'myTeam.benchSaved': 'Bench saved!',
   'myTeam.benchEmpty': 'Empty',
+  'myTeam.benchSubMode': 'When should this player come on?',
+  'myTeam.benchSubMode.always': 'Always sub in',
+  'myTeam.benchSubMode.injury_only': 'Only on injury',
+  'myTeam.benchSubMode.leading': 'Sub in when leading',
+  'myTeam.benchSubMode.trailing': 'Sub in when trailing',
+  'myTeam.benchSubModeUpdated': 'Substitution rule updated!',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A Team',

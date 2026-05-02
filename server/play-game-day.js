@@ -190,6 +190,7 @@ async function _playCupGame (game) {
   for (const player of [...playerTeamA, ...playerTeamB]) {
     player.originalFreshness = player.freshness
     player.originalLevel = player.level
+    player.enterMinute = 0
   }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
@@ -271,6 +272,8 @@ async function _playCupGame (game) {
       console.log(`Cup extra time decided after ${Math.floor(extraStep / 10)} extra minutes: ${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}`)
     }
   }
+  const cupTotalMinutes = (gameDetails.currentMinute ?? 89) + 1
+  gameDetails.totalMinutes = cupTotalMinutes
   delete gameDetails.currentMinute // Don't persist internal tracking field
 
   // Persist injuries to database and send log messages
@@ -284,27 +287,45 @@ async function _playCupGame (game) {
     game.id
   ])
 
-  // Update freshness and card counts for cup games too
-  const freshnessLossByStyle = {
-    aggressive: 0.12,
-    normal: 0.1,
-    friendly: 0.08
-  }
   for (const player of playerTeamA) {
-    const playStyle = teamA.play_style || 'normal'
-    const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
-    player.freshness = Math.max(0, player.freshness - freshnessLoss)
+    _applyFreshnessLoss(player, teamA, cupTotalMinutes)
     await _updatePlayerAfterGame(player, gameDetails, teamA)
   }
   for (const player of playerTeamB) {
-    const playStyle = teamB.play_style || 'normal'
-    const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
-    player.freshness = Math.max(0, player.freshness - freshnessLoss)
+    _applyFreshnessLoss(player, teamB, cupTotalMinutes)
     await _updatePlayerAfterGame(player, gameDetails, teamB)
   }
 
   // Send log messages to team owners about the cup match result
   await sendCupMatchLogMessages(game, gameDetails)
+}
+
+/**
+ * Apply freshness loss scaled by the share of the match a player was on the pitch.
+ * Substitutes who came on later, and players who left early (substituted out, sent off,
+ * injured-and-replaced) lose proportionally less.
+ *
+ * @param {GamePlayer} player
+ * @param {TeamType} team
+ * @param {number} totalMinutes
+ */
+function _applyFreshnessLoss (player, team, totalMinutes) {
+  const freshnessLossByStyle = {
+    aggressive: 0.12,
+    normal: 0.1,
+    friendly: 0.08
+  }
+  const playStyle = team.play_style || 'normal'
+  const baseLoss = player.position === 'GK' ? 0.08 : (freshnessLossByStyle[playStyle] ?? 0.1)
+
+  const enterMinute = player.enterMinute ?? 0
+  const exitMinute = player.exitMinute ?? totalMinutes
+  const minutesPlayed = Math.max(0, exitMinute - enterMinute)
+  const totalRef = Math.max(1, totalMinutes)
+  const playedShare = Math.max(0, Math.min(1, minutesPlayed / totalRef))
+
+  const freshnessLoss = baseLoss * playedShare
+  player.freshness = Math.max(0, player.freshness - freshnessLoss)
 }
 
 /**
@@ -768,6 +789,7 @@ async function _playGame (game) {
   for (const player of [...playerTeamA, ...playerTeamB]) {
     player.originalFreshness = player.freshness
     player.originalLevel = player.level
+    player.enterMinute = 0
   }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
@@ -829,6 +851,8 @@ async function _playGame (game) {
     gameDetails.currentMinute = step < 900 ? Math.floor(step / 10) : 90 + Math.floor((step - 900) / 10)
     playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
+  const leagueTotalMinutes = (gameDetails.currentMinute ?? 89) + 1
+  gameDetails.totalMinutes = leagueTotalMinutes
   delete gameDetails.currentMinute // Don't persist internal tracking field
 
   // Persist injuries to database and send log messages
@@ -842,24 +866,12 @@ async function _playGame (game) {
     game.id
   ])
 
-  // Update freshness and card counts for all players
-  // Freshness loss depends on play style: aggressive 15%, normal 12%, friendly 10%
-  // Goalkeepers always lose 8%
-  const freshnessLossByStyle = {
-    aggressive: 0.12,
-    normal: 0.10,
-    friendly: 0.08
-  }
   for (const player of playerTeamA) {
-    const playStyle = teamA.play_style || 'normal'
-    const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
-    player.freshness = Math.max(0, player.freshness - freshnessLoss)
+    _applyFreshnessLoss(player, teamA, leagueTotalMinutes)
     await _updatePlayerAfterGame(player, gameDetails, teamA)
   }
   for (const player of playerTeamB) {
-    const playStyle = teamB.play_style || 'normal'
-    const freshnessLoss = player.position === 'GK' ? 0.08 : freshnessLossByStyle[playStyle]
-    player.freshness = Math.max(0, player.freshness - freshnessLoss)
+    _applyFreshnessLoss(player, teamB, leagueTotalMinutes)
     await _updatePlayerAfterGame(player, gameDetails, teamB)
   }
 }

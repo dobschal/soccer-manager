@@ -264,7 +264,7 @@ export default {
 
   /**
    * Save bench positions (GK, DEF, MID, ATT slots)
-   * @param {Array<{playerId: number, benchPosition: string}>} benchData
+   * @param {Array<{playerId: number, benchPosition: string, substitutionMode?: string}>} benchData
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
    */
@@ -273,18 +273,38 @@ export default {
     const playersFromDb = await query('SELECT * FROM player WHERE team_id=?', [team.id])
     const validIds = new Set(playersFromDb.map(p => p.id))
     const validPositions = ['BENCH_GK', 'BENCH_DEF', 'BENCH_MID', 'BENCH_ATT']
+    const validModes = ['always', 'injury_only', 'leading', 'trailing']
 
     // Clear all existing bench positions
     await query('UPDATE player SET bench_position=NULL WHERE team_id=?', [team.id])
 
-    for (const { playerId, benchPosition } of benchData) {
+    for (const { playerId, benchPosition, substitutionMode } of benchData) {
       if (!validIds.has(playerId)) throw new BadRequestError('Unknown player...')
       if (!validPositions.includes(benchPosition)) throw new BadRequestError('Invalid bench position')
+      const mode = substitutionMode ?? 'injury_only'
+      if (!validModes.includes(mode)) throw new BadRequestError('Invalid substitution mode')
       const player = playersFromDb.find(p => p.id === playerId)
       if (player.is_suspended || player.is_injured) throw new BadRequestError('Player is unavailable')
-      await query('UPDATE player SET bench_position=? WHERE id=?', [benchPosition, playerId])
+      await query('UPDATE player SET bench_position=?, bench_substitution_mode=? WHERE id=?', [benchPosition, mode, playerId])
     }
 
+    return { success: true }
+  },
+
+  /**
+   * Update only the substitution mode for a single bench player.
+   * @param {number} playerId
+   * @param {string} substitutionMode
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateBenchSubstitutionMode (playerId, substitutionMode, req) {
+    const team = await getTeam(req)
+    const validModes = ['always', 'injury_only', 'leading', 'trailing']
+    if (!validModes.includes(substitutionMode)) throw new BadRequestError('Invalid substitution mode')
+    const [player] = await query('SELECT id FROM player WHERE id=? AND team_id=?', [playerId, team.id])
+    if (!player) throw new BadRequestError('Unknown player...')
+    await query('UPDATE player SET bench_substitution_mode=? WHERE id=?', [substitutionMode, playerId])
     return { success: true }
   },
 

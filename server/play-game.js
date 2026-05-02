@@ -275,8 +275,8 @@ export function kickoff (playerTeamA, playerTeamB, gameDetails) {
  * @returns {void}
  */
 export function playGameStep (playerTeamA, playerTeamB, gameDetails) {
-  // Check freshness-based substitutions
-  checkFreshnessSubstitutions(playerTeamA, playerTeamB, gameDetails)
+  // Check user-scheduled substitutions based on bench substitution modes
+  checkScheduledSubstitutions(playerTeamA, playerTeamB, gameDetails)
 
   // Numerical disadvantage: team with fewer active players loses possession more often
   const activeA = playerTeamA.filter(p => !p.sentOff && !p.substitutedOut).length
@@ -430,6 +430,7 @@ function _checkForCard (player, playStyle, gameDetails, team) {
     if (player.yellowCardsInMatch >= 2) {
       // Second yellow = red card
       player.sentOff = true
+      player.exitMinute = gameDetails.currentMinute ?? player.exitMinute ?? 0
       gameDetails.sentOffPlayerIds.push(player.id)
       gameDetails.log.push({
         redCard: true,
@@ -460,6 +461,7 @@ function _checkForCard (player, playStyle, gameDetails, team) {
   // Small chance for direct red card (very aggressive play)
   if (playStyle === 'aggressive' && Math.random() < 0.00002 && !player.sentOff) {
     player.sentOff = true
+    player.exitMinute = gameDetails.currentMinute ?? player.exitMinute ?? 0
     gameDetails.sentOffPlayerIds.push(player.id)
     gameDetails.log.push({
       redCard: true,
@@ -769,6 +771,7 @@ export function checkForInjury (player, playStyle, gameDetails, team, isTeamA) {
   } else {
     // No substitute available - player is effectively sent off
     player.sentOff = true
+    player.exitMinute = gameDetails.currentMinute ?? player.exitMinute ?? 0
     if (player.hasBall) {
       player.hasBall = false
       const available = team.filter(p => !p.sentOff && !p.substitutedOut && p.id !== player.id)
@@ -780,20 +783,26 @@ export function checkForInjury (player, playStyle, gameDetails, team, isTeamA) {
 }
 
 /**
- * Check for freshness-based substitutions (from minute 46 onwards)
+ * Check for user-scheduled substitutions based on each bench player's
+ * configured substitution mode. Runs from minute 46 onwards.
+ * Modes:
+ *   - 'always': substitute as soon as possible
+ *   - 'injury_only': skip — only triggered by checkForInjury
+ *   - 'leading': substitute when their team is ahead
+ *   - 'trailing': substitute when their team is behind
  * @param {GamePlayer[]} playerTeamA
  * @param {GamePlayer[]} playerTeamB
  * @param {GameDetails} gameDetails
  */
-export function checkFreshnessSubstitutions (playerTeamA, playerTeamB, gameDetails) {
+export function checkScheduledSubstitutions (playerTeamA, playerTeamB, gameDetails) {
   if ((gameDetails.currentMinute ?? 0) < 46) return
 
   gameDetails.substitutions = gameDetails.substitutions ?? []
   gameDetails.substitutionCountA = gameDetails.substitutionCountA ?? 0
   gameDetails.substitutionCountB = gameDetails.substitutionCountB ?? 0
 
-  _checkTeamFreshnessSubs(playerTeamA, gameDetails, true)
-  _checkTeamFreshnessSubs(playerTeamB, gameDetails, false)
+  _checkTeamScheduledSubs(playerTeamA, gameDetails, true)
+  _checkTeamScheduledSubs(playerTeamB, gameDetails, false)
 }
 
 /**
@@ -801,48 +810,58 @@ export function checkFreshnessSubstitutions (playerTeamA, playerTeamB, gameDetai
  * @param {GameDetails} gameDetails
  * @param {boolean} isTeamA
  */
-function _checkTeamFreshnessSubs (team, gameDetails, isTeamA) {
+function _checkTeamScheduledSubs (team, gameDetails, isTeamA) {
   const countKey = isTeamA ? 'substitutionCountA' : 'substitutionCountB'
   if (gameDetails[countKey] >= 3) return
 
   const bench = isTeamA ? gameDetails.benchTeamA : gameDetails.benchTeamB
   if (!bench) return
 
-  // Collect eligible substitution candidates with their bench player
-  const candidates = []
-  for (const player of team) {
-    if (player.sentOff || player.injuredInMatch || player.substitutedOut || player.position === 'GK') continue
+  const goalsFor = isTeamA ? (gameDetails.goalsTeamA ?? 0) : (gameDetails.goalsTeamB ?? 0)
+  const goalsAgainst = isTeamA ? (gameDetails.goalsTeamB ?? 0) : (gameDetails.goalsTeamA ?? 0)
+  const isLeading = goalsFor > goalsAgainst
+  const isTrailing = goalsFor < goalsAgainst
+  const teamIndex = isTeamA ? 0 : 1
 
-    const benchPosition = POSITION_GROUPS[player.position]
-    const sub = bench?.[benchPosition]
+  for (const benchPosition of ['BENCH_GK', 'BENCH_DEF', 'BENCH_MID', 'BENCH_ATT']) {
+    if (gameDetails[countKey] >= 3) break
+    const sub = bench[benchPosition]
     if (!sub || sub.substitutedOut) continue
 
-    // Check if bench player has at least 5% more freshness
-    const playerFreshness = player.originalFreshness ?? player.freshness ?? 1
-    const subFreshness = sub.originalFreshness ?? sub.freshness ?? 1
-    if (subFreshness - playerFreshness < 0.05) continue
+    const mode = sub.bench_substitution_mode || 'injury_only'
+    if (mode === 'injury_only') continue
+    if (mode === 'leading' && !isLeading) continue
+    if (mode === 'trailing' && !isTrailing) continue
+    if (mode !== 'always' && mode !== 'leading' && mode !== 'trailing') continue
 
-    candidates.push({ player, sub, benchPosition, freshnessDiff: subFreshness - playerFreshness })
-  }
+    const target = _findSubstitutionTarget(team, benchPosition)
+    if (!target) continue
 
-  // Prioritize: exact position match first, then by freshness difference (most tired first)
-  candidates.sort((a, b) => {
-    const aMatch = a.player.in_game_position === a.sub.position ? 0 : 1
-    const bMatch = b.player.in_game_position === b.sub.position ? 0 : 1
-    if (aMatch !== bMatch) return aMatch - bMatch
-    return b.freshnessDiff - a.freshnessDiff
-  })
-
-  const usedBenchPositions = new Set()
-  const teamIndex = isTeamA ? 0 : 1
-  for (const { player, sub, benchPosition } of candidates) {
-    if (gameDetails[countKey] >= 3) break
-    if (usedBenchPositions.has(benchPosition)) continue
-
-    _performSubstitution(player, sub, team, gameDetails, teamIndex, 'freshness')
+    _performSubstitution(target, sub, team, gameDetails, teamIndex, mode)
     gameDetails[countKey]++
-    usedBenchPositions.add(benchPosition)
   }
+}
+
+/**
+ * Pick the best lineup player for a given bench slot. Prefers a player
+ * whose natural position group matches the bench slot, then the one with
+ * the lowest freshness (most tired).
+ * @param {GamePlayer[]} team
+ * @param {string} benchPosition
+ * @returns {GamePlayer | null}
+ */
+function _findSubstitutionTarget (team, benchPosition) {
+  const eligible = team.filter(p =>
+    !p.sentOff && !p.injuredInMatch && !p.substitutedOut &&
+    p.in_game_position && POSITION_GROUPS[p.in_game_position] === benchPosition
+  )
+  if (eligible.length === 0) return null
+  eligible.sort((a, b) => {
+    const fa = a.originalFreshness ?? a.freshness ?? 1
+    const fb = b.originalFreshness ?? b.freshness ?? 1
+    return fa - fb
+  })
+  return eligible[0]
 }
 
 /**
@@ -863,10 +882,12 @@ function _performSubstitution (playerOut, playerIn, team, gameDetails, teamIndex
 
   // Mark old player as out
   playerOut.substitutedOut = true
+  playerOut.exitMinute = gameDetails.currentMinute ?? 0
 
   // Sub takes the position in the game
   playerIn.in_game_position = playerOut.in_game_position
   playerIn.substitutedOut = false
+  playerIn.enterMinute = gameDetails.currentMinute ?? 0
   // Substitutes only get the out-of-position penalty when their role group differs from the slot's role group
   if (POSITION_GROUPS[playerIn.position] !== POSITION_GROUPS[playerIn.in_game_position]) {
     playerIn.level *= 0.5

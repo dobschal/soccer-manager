@@ -1383,6 +1383,12 @@ const migrations = [{
   }
 },
 {
+  name: 'Add bench_substitution_mode column to player table',
+  async run () {
+    await query("ALTER TABLE player ADD COLUMN bench_substitution_mode VARCHAR(20) NOT NULL DEFAULT 'injury_only'")
+  }
+},
+{
   name: 'Create statistics table',
   async run () {
     await query(`CREATE TABLE IF NOT EXISTS statistics

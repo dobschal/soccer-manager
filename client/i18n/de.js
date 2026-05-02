@@ -300,6 +300,12 @@ export default {
   'myTeam.benchSelect': 'Bankspieler auswählen',
   'myTeam.benchSaved': 'Bank gespeichert!',
   'myTeam.benchEmpty': 'Leer',
+  'myTeam.benchSubMode': 'Wann soll dieser Spieler eingewechselt werden?',
+  'myTeam.benchSubMode.always': 'Auf jeden Fall einwechseln',
+  'myTeam.benchSubMode.injury_only': 'Nur bei Verletzung',
+  'myTeam.benchSubMode.leading': 'Einwechseln bei Führung',
+  'myTeam.benchSubMode.trailing': 'Einwechseln bei Rückstand',
+  'myTeam.benchSubModeUpdated': 'Einwechselregel aktualisiert!',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A-Mannschaft',

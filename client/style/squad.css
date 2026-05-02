@@ -405,6 +405,14 @@
     font-weight: bold;
 }
 
+.bench-substitution-mode {
+    margin-top: 6px;
+    width: 100%;
+    font-size: 11px;
+    padding: 2px 4px;
+    cursor: pointer;
+}
+
 /* Empty bench slot */
 .bench-slot--empty {
     display: flex;

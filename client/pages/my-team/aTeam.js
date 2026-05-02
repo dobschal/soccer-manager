@@ -149,9 +149,26 @@ export class ATeamPage extends UIElement {
       },
       '.bench-slots': {
         click: (e) => {
+          // Don't open the player picker when interacting with the substitution-mode select
+          if (e.target.closest('.bench-substitution-mode')) return
           const slot = e.target.closest('.bench-slot')
           if (!slot) return
           this._showBenchPlayerSelect(slot.dataset.benchPosition)
+        },
+        change: async (e) => {
+          const select = e.target.closest('.bench-substitution-mode')
+          if (!select) return
+          const playerId = Number(select.dataset.playerId)
+          const mode = select.value
+          if (!playerId) return
+          try {
+            await server.updateBenchSubstitutionMode(playerId, mode)
+            const player = this.parent.data.players.find(p => p.id === playerId)
+            if (player) player.bench_substitution_mode = mode
+            toast(t('myTeam.benchSubModeUpdated'), 'success')
+          } catch (err) {
+            showServerError(err)
+          }
         }
       },
       '.emblem-viewer': {
@@ -405,9 +422,25 @@ export class ATeamPage extends UIElement {
             ${renderLevelBadge(player.level)}
             <span class="bench-slot__freshness ${freshnessClass}">${freshnessPercentage}%</span>
           </div>
+          ${this._renderSubstitutionModeSelect(player)}
         </div>
       `
     }).join('')
+  }
+
+  /**
+   * Render the substitution-mode dropdown for a bench player.
+   * @param {object} player
+   * @returns {string}
+   */
+  _renderSubstitutionModeSelect (player) {
+    const modes = ['always', 'injury_only', 'leading', 'trailing']
+    const current = player.bench_substitution_mode || 'injury_only'
+    return `
+      <select class="form-select form-select-sm bench-substitution-mode" data-player-id="${player.id}" title="${t('myTeam.benchSubMode')}">
+        ${modes.map(mode => `<option value="${mode}" ${mode === current ? 'selected' : ''}>${t('myTeam.benchSubMode.' + mode)}</option>`).join('')}
+      </select>
+    `
   }
 
   /**
@@ -488,7 +521,8 @@ export class ATeamPage extends UIElement {
         .filter(p => !p.fake && p.bench_position)
         .map(p => ({
           playerId: p.id,
-          benchPosition: p.bench_position
+          benchPosition: p.bench_position,
+          substitutionMode: p.bench_substitution_mode || 'injury_only'
         }))
       await server.saveBench(benchData)
       toast(t('myTeam.benchSaved'), 'success')

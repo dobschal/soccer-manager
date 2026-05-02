@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { kickoff, playGameStep, checkForInjury, selectInjuryType, INJURY_TYPES, POSITION_GROUPS, checkFreshnessSubstitutions } from '../play-game.js'
+import { kickoff, playGameStep, checkForInjury, selectInjuryType, INJURY_TYPES, POSITION_GROUPS, checkScheduledSubstitutions } from '../play-game.js'
 
 /**
  * Helper to create a player for game simulation tests
@@ -895,36 +895,106 @@ describe('play-game simulation', () => {
       expect(injuryOccurred).toBe(true)
     })
 
-    it('freshness substitutions should only happen after minute 46', () => {
+    it('scheduled substitutions should only happen after minute 46', () => {
       const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
-      teamA[5].originalFreshness = 0.3 // Low freshness CM player
       const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
 
-      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', originalFreshness: 0.9, level: 40 })
+      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', bench_substitution_mode: 'always', level: 40 })
 
       const gameDetails = createGameDetails({
         playerTeamA: teamA,
         playerTeamB: teamB,
-        currentMinute: 30, // Before minute 46
+        currentMinute: 30,
         benchTeamA: { BENCH_MID: benchSub }
       })
 
-      checkFreshnessSubstitutions(teamA, teamB, gameDetails)
+      checkScheduledSubstitutions(teamA, teamB, gameDetails)
       expect(gameDetails.substitutions || []).toHaveLength(0)
 
-      // Now set to minute 46 - should trigger
       gameDetails.currentMinute = 46
-      checkFreshnessSubstitutions(teamA, teamB, gameDetails)
+      checkScheduledSubstitutions(teamA, teamB, gameDetails)
       expect(gameDetails.substitutions?.length ?? 0).toBeGreaterThanOrEqual(1)
     })
 
-    it('freshness substitution requires at least 5% difference', () => {
+    it('injury_only mode never triggers a scheduled substitution', () => {
       const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
-      teamA[5].originalFreshness = 0.85 // CM player
       const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
 
-      // Bench player with only 3% more freshness - should NOT trigger
-      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', originalFreshness: 0.88, level: 40 })
+      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', bench_substitution_mode: 'injury_only', level: 40 })
+
+      const gameDetails = createGameDetails({
+        playerTeamA: teamA,
+        playerTeamB: teamB,
+        currentMinute: 70,
+        benchTeamA: { BENCH_MID: benchSub }
+      })
+
+      checkScheduledSubstitutions(teamA, teamB, gameDetails)
+      expect(gameDetails.substitutions || []).toHaveLength(0)
+    })
+
+    it('leading mode only subs in when team is ahead', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+
+      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', bench_substitution_mode: 'leading', level: 40 })
+
+      const tiedGd = createGameDetails({
+        playerTeamA: teamA,
+        playerTeamB: teamB,
+        currentMinute: 60,
+        goalsTeamA: 1,
+        goalsTeamB: 1,
+        benchTeamA: { BENCH_MID: { ...benchSub } }
+      })
+      checkScheduledSubstitutions(teamA, teamB, tiedGd)
+      expect(tiedGd.substitutions || []).toHaveLength(0)
+
+      const leadingGd = createGameDetails({
+        playerTeamA: teamA,
+        playerTeamB: teamB,
+        currentMinute: 60,
+        goalsTeamA: 2,
+        goalsTeamB: 1,
+        benchTeamA: { BENCH_MID: { ...benchSub } }
+      })
+      checkScheduledSubstitutions(teamA, teamB, leadingGd)
+      expect(leadingGd.substitutions?.length ?? 0).toBe(1)
+    })
+
+    it('trailing mode only subs in when team is behind', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+
+      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', bench_substitution_mode: 'trailing', level: 40 })
+
+      const leadingGd = createGameDetails({
+        playerTeamA: teamA,
+        playerTeamB: teamB,
+        currentMinute: 60,
+        goalsTeamA: 2,
+        goalsTeamB: 0,
+        benchTeamA: { BENCH_MID: { ...benchSub } }
+      })
+      checkScheduledSubstitutions(teamA, teamB, leadingGd)
+      expect(leadingGd.substitutions || []).toHaveLength(0)
+
+      const trailingGd = createGameDetails({
+        playerTeamA: teamA,
+        playerTeamB: teamB,
+        currentMinute: 60,
+        goalsTeamA: 0,
+        goalsTeamB: 2,
+        benchTeamA: { BENCH_MID: { ...benchSub } }
+      })
+      checkScheduledSubstitutions(teamA, teamB, trailingGd)
+      expect(trailingGd.substitutions?.length ?? 0).toBe(1)
+    })
+
+    it('substitute records enterMinute and player going off records exitMinute', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+      const benchSub = createPlayer({ id: 99, name: 'Sub', position: 'CM', bench_substitution_mode: 'always', level: 40 })
 
       const gameDetails = createGameDetails({
         playerTeamA: teamA,
@@ -933,11 +1003,15 @@ describe('play-game simulation', () => {
         benchTeamA: { BENCH_MID: benchSub }
       })
 
-      checkFreshnessSubstitutions(teamA, teamB, gameDetails)
-      expect(gameDetails.substitutions || []).toHaveLength(0)
+      checkScheduledSubstitutions(teamA, teamB, gameDetails)
+      expect(gameDetails.substitutions?.length ?? 0).toBe(1)
+      const subbedIn = teamA.find(p => p.id === 99)
+      expect(subbedIn?.enterMinute).toBe(60)
+      const subbedOut = teamA.find(p => p.substitutedOut)
+      expect(subbedOut?.exitMinute).toBe(60)
     })
 
-    it('max 3 freshness substitutions per team', () => {
+    it('max 3 scheduled substitutions per team', () => {
       const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
       const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
 
@@ -945,16 +1019,13 @@ describe('play-game simulation', () => {
         playerTeamA: teamA,
         playerTeamB: teamB,
         currentMinute: 60,
-        substitutionCountA: 3, // Already maxed out
+        substitutionCountA: 3,
         benchTeamA: {
-          BENCH_MID: createPlayer({ id: 99, name: 'Sub', position: 'CM', originalFreshness: 1.0, level: 40 })
+          BENCH_MID: createPlayer({ id: 99, name: 'Sub', position: 'CM', bench_substitution_mode: 'always', level: 40 })
         }
       })
 
-      // Set low freshness on lineup player
-      teamA[5].originalFreshness = 0.1
-
-      checkFreshnessSubstitutions(teamA, teamB, gameDetails)
+      checkScheduledSubstitutions(teamA, teamB, gameDetails)
       expect(gameDetails.substitutions || []).toHaveLength(0)
     })
 
