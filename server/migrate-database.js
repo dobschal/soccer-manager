@@ -1381,6 +1381,24 @@ const migrations = [{
     await query('ALTER TABLE forum_post ADD COLUMN badge_text VARCHAR(50) DEFAULT NULL')
     await query('ALTER TABLE forum_post ADD COLUMN badge_color VARCHAR(7) DEFAULT NULL')
   }
+},
+{
+  name: 'Create statistics table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS statistics
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        daily_active_users INT NOT NULL DEFAULT 0,
+        in_game_money BIGINT NOT NULL DEFAULT 0,
+        player_count INT NOT NULL DEFAULT 0,
+        avg_player_level DECIMAL(6,2) NOT NULL DEFAULT 0,
+        avg_player_age DECIMAL(6,2) NOT NULL DEFAULT 0,
+        action_card_count INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_statistics_created_at (created_at)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

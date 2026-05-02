@@ -13,13 +13,13 @@ function escapeHtml (text) {
 }
 
 export class ForumPage extends UIElement {
+
   async load () {
     const teamResponse = await server.getMyTeam()
     this._isAdmin = !!teamResponse.isAdmin
     this._params = getQueryParams()
     await this._loadView()
   }
-
   get template () {
     return `
       <div class="forum-page">
@@ -46,7 +46,6 @@ export class ForumPage extends UIElement {
       </div>
     `
   }
-
   get events () {
     return {
       '(optional) #forum-cat-submit': {
@@ -78,7 +77,10 @@ export class ForumPage extends UIElement {
           const title = el(`${this._elementQuery} #forum-post-title`)?.value
           const text = el(`${this._elementQuery} #forum-post-text`)?.value
           if (!title?.trim() || !text?.trim()) return
-          const images = (this._pendingPostImages || []).map(img => ({ data: img.data, type: img.type }))
+          const images = (this._pendingPostImages || []).map(img => ({
+            data: img.data,
+            type: img.type
+          }))
           const { postId } = await server.createForumPost(Number(this._params.category), title, text, images.length > 0 ? images : null)
           this._pendingPostImages = []
           setQueryParams({ post: postId })
@@ -130,19 +132,17 @@ export class ForumPage extends UIElement {
       }
     }
   }
-
   onMounted () {
     this._attachDelegatedEvents()
   }
-
   onUpdate () {
     this._attachDelegatedEvents()
   }
-
   onQueryChanged (params) {
     this._params = params
     this._loadView().then(() => this.update())
   }
+  showLoadingIndicator = true
 
   async _loadView () {
     if (this._params.post) {
@@ -380,7 +380,11 @@ export class ForumPage extends UIElement {
       if (file.size > 2 * 1024 * 1024) continue
       const reader = new FileReader()
       reader.onload = () => {
-        this._pendingPostImages.push({ data: reader.result, type: file.type, name: file.name })
+        this._pendingPostImages.push({
+          data: reader.result,
+          type: file.type,
+          name: file.name
+        })
         this._renderPostImagePreview()
       }
       reader.readAsDataURL(file)
@@ -413,7 +417,11 @@ export class ForumPage extends UIElement {
       if (file.size > 2 * 1024 * 1024) continue
       const reader = new FileReader()
       reader.onload = () => {
-        this._pendingImages.push({ data: reader.result, type: file.type, name: file.name })
+        this._pendingImages.push({
+          data: reader.result,
+          type: file.type,
+          name: file.name
+        })
         this._renderImagePreview()
       }
       reader.readAsDataURL(file)
@@ -442,7 +450,10 @@ export class ForumPage extends UIElement {
     if (!input || !input.value.trim()) return
     input.disabled = true
     try {
-      const images = (this._pendingImages || []).map(img => ({ data: img.data, type: img.type }))
+      const images = (this._pendingImages || []).map(img => ({
+        data: img.data,
+        type: img.type
+      }))
       await server.addForumComment(Number(this._params.post), input.value, images.length > 0 ? images : null)
       this._pendingImages = []
       this._params = getQueryParams()

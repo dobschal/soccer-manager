@@ -4,14 +4,18 @@ import { toast } from '../partials/toast.js'
 import { generateId } from '../lib/html.js'
 import { t } from '../i18n/index.js'
 
+const STATISTICS_PAGE_SIZE = 20
+
 export class AdminPage extends UIElement {
   async load () {
-    const [adminsRes, activeUsersRes] = await Promise.all([
+    const [adminsRes, statisticsRes] = await Promise.all([
       server.getAdmins(),
-      server.getActiveUsers()
+      server.getStatistics(this._statisticsPage, STATISTICS_PAGE_SIZE)
     ])
     this._admins = adminsRes.admins
-    this._activeUsers = activeUsersRes.users
+    this._statistics = statisticsRes.rows
+    this._statisticsTotal = statisticsRes.total
+    this._statisticsPageSize = statisticsRes.pageSize
   }
   get template () {
     const adminRows = this._admins.map(a => `
@@ -25,13 +29,20 @@ export class AdminPage extends UIElement {
       </tr>
     `).join('')
 
-    const userRows = this._activeUsers.map(u => `
+    const totalPages = Math.max(1, Math.ceil(this._statisticsTotal / this._statisticsPageSize))
+    const currentPage = Math.min(this._statisticsPage, totalPages)
+    const isFirstPage = currentPage <= 1
+    const isLastPage = currentPage >= totalPages
+
+    const statisticsRows = this._statistics.map(s => `
       <tr>
-        <td>${u.username}</td>
-        <td>${u.platform}</td>
-        <td>${u.teamId ? `<a href="#team?id=${u.teamId}">${u.teamName}</a>` : '-'}</td>
-        <td>${u.country || '??'}</td>
-        <td>${new Date(u.lastLogin).toLocaleDateString()}</td>
+        <td>${new Date(s.created_at).toLocaleString()}</td>
+        <td>${s.daily_active_users}</td>
+        <td>${this._formatMoney(s.in_game_money)}</td>
+        <td>${s.player_count}</td>
+        <td>${Number(s.avg_player_level).toFixed(2)}</td>
+        <td>${Number(s.avg_player_age).toFixed(2)}</td>
+        <td>${s.action_card_count}</td>
       </tr>
     `).join('')
 
@@ -111,24 +122,40 @@ export class AdminPage extends UIElement {
         </div>
 
         <div class="card mb-4">
-          <div class="card-header"><h5 class="mb-0">${t('admin.activeUsers')} (${this._activeUsers.length})</h5></div>
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">${t('admin.statistics')} (${this._statisticsTotal})</h5>
+            <button id="${this._collectBtnId}" class="btn btn-sm btn-outline-primary">
+              <i class="fa fa-refresh" aria-hidden="true"></i> ${t('admin.statisticsCollectNow')}
+            </button>
+          </div>
           <div class="card-body p-0">
-            ${this._activeUsers.length > 0 ? `
+            ${this._statistics.length > 0 ? `
             <div class="horizontal-scrollable-table">
               <table class="table table-sm table-hover mb-0">
                 <thead>
                   <tr>
-                    <th>${t('admin.username')}</th>
-                    <th>${t('admin.platform')}</th>
-                    <th>${t('admin.team')}</th>
-                    <th>${t('admin.country')}</th>
-                    <th>${t('admin.lastLogin')}</th>
+                    <th>${t('admin.statisticsCreatedAt')}</th>
+                    <th>${t('admin.statisticsDailyActiveUsers')}</th>
+                    <th>${t('admin.statisticsInGameMoney')}</th>
+                    <th>${t('admin.statisticsPlayerCount')}</th>
+                    <th>${t('admin.statisticsAvgPlayerLevel')}</th>
+                    <th>${t('admin.statisticsAvgPlayerAge')}</th>
+                    <th>${t('admin.statisticsActionCardCount')}</th>
                   </tr>
                 </thead>
-                <tbody>${userRows}</tbody>
+                <tbody>${statisticsRows}</tbody>
               </table>
             </div>
-            ` : `<p class="p-3 mb-0 text-muted">${t('admin.noActiveUsers')}</p>`}
+            <div class="d-flex align-items-center justify-content-between p-3 border-top">
+              <button id="${this._prevBtnId}" class="btn btn-sm btn-outline-secondary" ${isFirstPage ? 'disabled' : ''}>
+                <i class="fa fa-chevron-left" aria-hidden="true"></i> ${t('admin.paginationPrev')}
+              </button>
+              <span class="text-muted">${t('admin.paginationPage', { page: currentPage, total: totalPages })}</span>
+              <button id="${this._nextBtnId}" class="btn btn-sm btn-outline-secondary" ${isLastPage ? 'disabled' : ''}>
+                ${t('admin.paginationNext')} <i class="fa fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+            ` : `<p class="p-3 mb-0 text-muted">${t('admin.statisticsEmpty')}</p>`}
           </div>
         </div>
       </div>
@@ -154,6 +181,15 @@ export class AdminPage extends UIElement {
       },
       '(optional).admin-remove-btn': {
         click: (e) => this._removeAdmin(e.currentTarget.dataset.username)
+      },
+      [`(optional)#${this._collectBtnId}`]: {
+        click: () => this._collectStatistics()
+      },
+      [`(optional)#${this._prevBtnId}`]: {
+        click: () => this._goToPage(this._statisticsPage - 1)
+      },
+      [`(optional)#${this._nextBtnId}`]: {
+        click: () => this._goToPage(this._statisticsPage + 1)
       }
     }
   }
@@ -169,8 +205,47 @@ export class AdminPage extends UIElement {
   _broadcastBtnId = generateId()
   _addAdminInputId = generateId()
   _addAdminBtnId = generateId()
+  _collectBtnId = generateId()
+  _prevBtnId = generateId()
+  _nextBtnId = generateId()
   _admins = []
-  _activeUsers = []
+  _statistics = []
+  _statisticsTotal = 0
+  _statisticsPage = 1
+  _statisticsPageSize = STATISTICS_PAGE_SIZE
+
+  _formatMoney (value) {
+    const number = Number(value) || 0
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(number)
+    } catch {
+      return `${number} €`
+    }
+  }
+
+  async _goToPage (page) {
+    const totalPages = Math.max(1, Math.ceil(this._statisticsTotal / this._statisticsPageSize))
+    const next = Math.max(1, Math.min(totalPages, page))
+    if (next === this._statisticsPage) return
+    this._statisticsPage = next
+    await this.update(true)
+  }
+
+  async _collectStatistics () {
+    const btn = document.getElementById(this._collectBtnId)
+    try {
+      btn.disabled = true
+      await server.collectStatisticsNow()
+      toast(t('admin.statisticsCollected'), 'success')
+      this._statisticsPage = 1
+      await this.update(true)
+    } catch (e) {
+      toast(e.message || 'Something went wrong', 'error')
+    } finally {
+      const refreshed = document.getElementById(this._collectBtnId)
+      if (refreshed) refreshed.disabled = false
+    }
+  }
 
   async _triggerGameDay () {
     const btn = document.getElementById(this._triggerBtnId)

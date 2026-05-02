@@ -15,6 +15,7 @@ import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyUnderv
 import { cleanupInactiveUsers } from './helper/teamHelper.js'
 import { cleanupOldClientLogs } from './helper/clientLogHelper.js'
 import { cleanupOldLogMessages } from './helper/logMessageHelper.js'
+import { collectStatistics } from './helper/statisticsHelper.js'
 import { initWebSocket } from './lib/websocket.js'
 import { getCachedUser } from './lib/userCache.js'
 
@@ -146,6 +147,17 @@ async function start () {
     try { await iocAutoAcceptBuyOffers() } catch (e) { console.error('iocAutoAcceptBuyOffers failed:', e) }
     try { await cleanupOldClientLogs() } catch (e) { console.error('cleanupOldClientLogs failed:', e) }
     try { await cleanupOldLogMessages() } catch (e) { console.error('cleanupOldLogMessages failed:', e) }
+  })
+
+  // Collect a daily snapshot of game-wide statistics every night at 03:00.
+  cron.schedule('0 0 3 * * *', async () => {
+    console.log('Started CRON job for nightly statistics collection.')
+    try {
+      const row = await collectStatistics()
+      console.log(`📊 Statistics snapshot stored (id=${row.id}).`)
+    } catch (e) {
+      console.error('collectStatistics failed:', e)
+    }
   })
 
   // Create HTTP server and attach WebSocket

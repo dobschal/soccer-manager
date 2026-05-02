@@ -16,6 +16,7 @@ import { el, generateId } from './html.js'
  *   - renderSubPageContainer() helper for use inside template getters
  */
 export class TabbedPage extends UIElement {
+
   constructor () {
     super()
     this.subPage = getQueryParams().sub_page || null
@@ -29,6 +30,8 @@ export class TabbedPage extends UIElement {
   onQueryChanged (params) {
     this._handleSubPageChange(params.sub_page)
   }
+
+  showLoadingIndicator = true
 
   /**
    * @abstract
@@ -70,7 +73,9 @@ export class TabbedPage extends UIElement {
   _getOrCreateSubPage () {
     const key = this.subPageKey
     if (!this._subPageCache[key]) {
-      this._subPageCache[key] = this.createSubPage(key)
+      const subPage = this.createSubPage(key)
+      subPage.showLoadingIndicator = true
+      this._subPageCache[key] = subPage
     }
     return this._subPageCache[key]
   }

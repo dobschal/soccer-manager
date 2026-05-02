@@ -7,6 +7,7 @@ import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyUnderv
 import { sendTestPushNotification, sendBroadcastNotification } from '../lib/pushNotification.js'
 import { query, transaction } from '../lib/database.js'
 import { clearUserCache } from '../lib/userCache.js'
+import { collectStatistics, getStatistics } from '../helper/statisticsHelper.js'
 
 const PERMANENT_ADMIN = 'Emmo'
 
@@ -191,43 +192,36 @@ export default {
   },
 
   /**
-   * Get users active in the last 7 days with device info (admin only)
+   * Get a paginated list of nightly statistics snapshots (admin only).
+   * @param {number} [page] - 1-based page number
+   * @param {number} [pageSize]
    * @param {Request} req
-   * @returns {Promise<{users: Array}>}
+   * @returns {Promise<{rows: Array, total: number, page: number, pageSize: number}>}
    */
-  async getActiveUsers (req) {
+  async getStatistics (page, pageSize, req) {
     if (!req.user?.is_admin) {
       throw new BadRequestError('This action is only available for admins')
     }
-    const users = await query(`
-      SELECT u.id, u.username, u.last_login,
-             u.last_login_web, u.last_login_ios, u.last_login_android,
-             u.last_country_web, u.last_country_ios, u.last_country_android,
-             t.id AS team_id, t.name AS team_name
-      FROM user u
-      LEFT JOIN team t ON t.user_id = u.id
-      WHERE u.last_login > NOW() - INTERVAL 7 DAY
-      ORDER BY u.last_login DESC
-    `)
-    return {
-      users: users.map(u => {
-        // Determine most recent platform
-        const platforms = []
-        if (u.last_login_web) platforms.push({ platform: 'Web', date: u.last_login_web, country: u.last_country_web })
-        if (u.last_login_ios) platforms.push({ platform: 'iOS', date: u.last_login_ios, country: u.last_country_ios })
-        if (u.last_login_android) platforms.push({ platform: 'Android', date: u.last_login_android, country: u.last_country_android })
-        platforms.sort((a, b) => new Date(b.date) - new Date(a.date))
-        const latest = platforms[0]
-        return {
-          id: u.id,
-          username: u.username,
-          lastLogin: u.last_login,
-          platform: latest?.platform || 'Unknown',
-          country: latest?.country || '??',
-          teamId: u.team_id,
-          teamName: u.team_name
-        }
-      })
+    const safePageSize = Math.max(1, Math.min(200, Math.floor(Number(pageSize) || 30)))
+    const safePage = Math.max(1, Math.floor(Number(page) || 1))
+    const { rows, total } = await getStatistics({
+      limit: safePageSize,
+      offset: (safePage - 1) * safePageSize
+    })
+    return { rows, total, page: safePage, pageSize: safePageSize }
+  },
+
+  /**
+   * Manually collect a statistics snapshot now (admin only). Useful when the
+   * nightly CRON has not yet produced any rows.
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, row: object}>}
+   */
+  async collectStatisticsNow (req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
     }
+    const row = await collectStatistics()
+    return { success: true, row }
   }
 }

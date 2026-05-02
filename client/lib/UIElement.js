@@ -116,22 +116,25 @@ export class UIElement {
     let retries = 0
     const maxRetries = 500 // 5 seconds max wait
     const waitAndRender = async () => {
-      /** @type {HTMLTemplateElement} */
-      const templateEl = el(this._renderId)
-      if (!templateEl) {
+      const placeholderEl = el(this._renderId)
+      if (!placeholderEl) {
         if (++retries > maxRetries) {
-          console.error('Template element never appeared in DOM for', this.constructor.name)
+          console.error('Placeholder element never appeared in DOM for', this.constructor.name)
           return
         }
-        // Template not in DOM yet (parent still rendering), wait and retry
+        // Placeholder not in DOM yet (parent still rendering), wait and retry
         requestAnimationFrame(waitAndRender)
         return
       }
       await this._load()
+      const templateEl = document.createElement('template')
       await this._renderIntoTemplateEl(templateEl)
-      this._renderIntoDOM(templateEl, templateEl)
+      this._renderIntoDOM(placeholderEl, templateEl)
     }
     requestAnimationFrame(waitAndRender)
+    if (this.showLoadingIndicator) {
+      return `<div id="${this._renderId}" class="ui-element-loading"><i class="fa fa-spinner fa-spin fa-2x"></i></div>`
+    }
     return `<template id="${this._renderId}"></template>`
   }
 

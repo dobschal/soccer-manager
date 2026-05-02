@@ -3,7 +3,6 @@ import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 import { Balance } from '../../partials/balance.js'
 import { euroFormat } from '../../lib/currency.js'
-import { BalanceChart } from '../../partials/balanceChart.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { t } from '../../i18n/index.js'
 
@@ -26,6 +25,11 @@ export class FinancesPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
+    if (!this._BalanceChart) {
+      const module = await import('../../partials/balanceChart.js')
+      this._BalanceChart = module.BalanceChart
+    }
+
     const sponsorResponse = await server.getSponsor()
     this.sponsor = sponsorResponse.sponsor
 
@@ -67,7 +71,7 @@ export class FinancesPage extends UIElement {
         <div class="row">
           <div class="col-12 ${this.sponsor ? 'col-lg-8' : ''}">
             <h5>${t('finances.accountBalance')}</h5>
-            ${new BalanceChart(this.financeLog)}
+            ${new this._BalanceChart(this.financeLog)}
 
           </div>
           <div class="col-12 col-lg-4 ${!this.sponsor ? 'd-none' : ''}">
@@ -174,6 +178,9 @@ export class FinancesPage extends UIElement {
   offers = []
   /** @type {FinanceLogEntry[]} */
   financeLog = []
+
+  /** @type {typeof import('../../partials/balanceChart.js').BalanceChart | null} */
+  _BalanceChart = null
 
   // Filter bounds
   minSeason = 0

@@ -54,6 +54,15 @@ select.form-control {
     display: none;
 }
 
+/* Loading indicator placeholder rendered by UIElement when showLoadingIndicator is true */
+.ui-element-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #aaa;
+}
+
 img, svg {
     animation: image-fade-in .5s ease-in-out;
 }
