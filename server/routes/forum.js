@@ -23,7 +23,13 @@ export default {
     const categories = await query(`
       SELECT c.*,
         (SELECT COUNT(*) FROM forum_post p WHERE p.category_id = c.id) AS post_count,
-        (SELECT MAX(p.created_at) FROM forum_post p WHERE p.category_id = c.id) AS last_activity
+        (SELECT MAX(activity) FROM (
+          SELECT p.created_at AS activity FROM forum_post p WHERE p.category_id = c.id
+          UNION ALL
+          SELECT co.created_at FROM forum_comment co
+            JOIN forum_post p ON co.post_id = p.id
+            WHERE p.category_id = c.id
+        ) AS combined) AS last_activity
       FROM forum_category c
       ORDER BY c.sort_order ASC, c.created_at ASC
     `)

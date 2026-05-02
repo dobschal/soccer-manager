@@ -31,6 +31,13 @@
   color: var(--bs-secondary);
 }
 
+.forum-category-item:hover,
+.forum-category-item:active,
+.forum-post-item:hover,
+.forum-post-item:active {
+  transform: none;
+}
+
 .forum-category-item h6 {
   margin-bottom: 0.25rem;
 }
