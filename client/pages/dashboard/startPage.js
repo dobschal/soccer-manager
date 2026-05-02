@@ -5,7 +5,7 @@ import { formatLeague } from '../../util/league.js'
 import { generateId } from '../../lib/html.js'
 import { goTo } from '../../lib/router.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
-import { t } from '../../i18n/index.js'
+import { getLocale, t } from '../../i18n/index.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 import { showGameModal } from '../../partials/gameModal.js'
@@ -107,7 +107,7 @@ export class StartPage {
       localStorage.setItem('hideVideoCard', '1')
       document.getElementById(closeId)?.closest('.card')?.remove()
     })
-    const videoId = 'tkbwQh1juno'
+    const videoId = getLocale() === 'en' ? '5Szjg4fdVl0' : 'tkbwQh1juno'
     const isNativeApp = Boolean(window.__nativePlatform)
     const videoContent = isNativeApp
       ? `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" class="d-block ratio ratio-16x9 video-thumbnail-link">
