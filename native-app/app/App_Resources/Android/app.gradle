@@ -6,11 +6,18 @@ project.ext {
 android {
     defaultConfig {
         minSdkVersion 21
-        versionCode 5
-        versionName "1.0.2"
+        versionCode 6
+        versionName "1.0.3"
     }
     lint {
         abortOnError false
         checkReleaseBuilds false
     }
 }
+
+dependencies {
+    implementation platform("com.google.firebase:firebase-bom:33.7.0")
+    implementation "com.google.firebase:firebase-messaging"
+}
+
+apply plugin: "com.google.gms.google-services"

@@ -155,6 +155,7 @@ jobs:
             echo "APN_KEY_PATH=$APN_KEY_PATH"
             echo "APN_KEY_ID=$APN_KEY_ID"
             echo "APN_TEAM_ID=$APN_TEAM_ID"
+            echo "FCM_SERVICE_ACCOUNT_PATH=/root/fcm-service-account.json"
           } | ssh hetzner "cat > /root/deployments/soccer-manager/.env && chmod 600 /root/deployments/soccer-manager/.env"
           ssh hetzner << EOF
             set -e

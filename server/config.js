@@ -6,5 +6,6 @@ export const config = {
   APN_TEAM_ID: process.env.APN_TEAM_ID || '',
   APN_BUNDLE_ID: process.env.APN_BUNDLE_ID || 'io.soccermanager.app',
   APN_PRODUCTION: process.env.APN_PRODUCTION === 'true',
+  FCM_SERVICE_ACCOUNT_PATH: process.env.FCM_SERVICE_ACCOUNT_PATH || '',
   INACTIVE_USER_DAYS: 21
 }

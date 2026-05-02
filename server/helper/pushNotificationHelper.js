@@ -21,7 +21,7 @@ function getTranslation (language) {
 }
 
 /**
- * Send push notifications to all iOS users after a game day is calculated
+ * Send push notifications to all users (iOS + Android) after a game day is calculated
  * @param {number} gameDay
  * @param {number} season
  */
@@ -31,7 +31,7 @@ export async function sendGameDayPushNotifications (gameDay, season) {
       `SELECT DISTINCT dt.user_id, COALESCE(u.language, 'en') as language
        FROM device_token dt
                 JOIN user u ON u.id = dt.user_id
-       WHERE dt.platform = 'ios'`
+       WHERE dt.platform IN ('ios', 'android')`
     )
     if (!users.length) return
 

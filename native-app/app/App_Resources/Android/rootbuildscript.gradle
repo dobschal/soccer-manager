@@ -1,0 +1,11 @@
+// Applied via `apply from: ..., to: buildscript` from platforms/android/build.gradle,
+// so the contents go directly into the root project's buildscript {} block.
+// This adds the Google Services classpath required by
+// `apply plugin: "com.google.gms.google-services"` in app.gradle.
+repositories {
+    google()
+    mavenCentral()
+}
+dependencies {
+    classpath "com.google.gms:google-services:4.4.2"
+}

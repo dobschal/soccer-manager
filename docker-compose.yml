@@ -30,8 +30,10 @@ services:
       - APN_KEY_ID=${APN_KEY_ID}
       - APN_TEAM_ID=${APN_TEAM_ID}
       - APN_PRODUCTION=true
+      - FCM_SERVICE_ACCOUNT_PATH=${FCM_SERVICE_ACCOUNT_PATH}
     volumes:
       - ${APN_KEY_PATH:-/dev/null}:${APN_KEY_PATH:-/dev/null}:ro
+      - ${FCM_SERVICE_ACCOUNT_PATH:-/dev/null}:${FCM_SERVICE_ACCOUNT_PATH:-/dev/null}:ro
       - forum-uploads:/usr/src/app/uploads/forum
     depends_on:
       database:

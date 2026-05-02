@@ -42,10 +42,11 @@ export default {
    * Send a test push notification to a specific device token
    * @param {string} deviceToken
    * @param {string} message
+   * @param {string} [platform] - 'ios' or 'android' (defaults to 'ios')
    * @param {Request} req
    * @returns {Promise<{sent: number, failed: number, failureReason: string|null}>}
    */
-  async testPushNotification (deviceToken, message, req) {
+  async testPushNotification (deviceToken, message, platform, req) {
     if (!req.user?.is_admin) {
       throw new BadRequestError('This action is only available for admins')
     }
@@ -55,7 +56,8 @@ export default {
     if (typeof message !== 'string' || !message) {
       throw new BadRequestError('message is required')
     }
-    return sendTestPushNotification(deviceToken, message)
+    const resolvedPlatform = platform === 'android' ? 'android' : 'ios'
+    return sendTestPushNotification(deviceToken, message, resolvedPlatform)
   },
 
   /**

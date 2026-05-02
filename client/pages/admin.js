@@ -50,113 +50,108 @@ export class AdminPage extends UIElement {
       <div>
         <h3>${t('admin.title')}</h3>
 
-        <div class="card mb-4">
-          <div class="card-header"><h5 class="mb-0">${t('admin.gameDay')}</h5></div>
-          <div class="card-body">
-            <button id="${this._triggerBtnId}" class="btn btn-primary">
-              <i class="fa fa-play" aria-hidden="true"></i> ${t('admin.triggerGameDay')}
+        <div class="mb-4">
+          <h4>${t('admin.gameDay')}</h4>
+          <button id="${this._triggerBtnId}" class="btn btn-primary">
+            <i class="fa fa-play" aria-hidden="true"></i> ${t('admin.triggerGameDay')}
+          </button>
+        </div>
+
+        <div class="mb-4">
+          <h4>${t('admin.pushNotification')}</h4>
+          <div class="mb-3">
+            <label for="${this._tokenInputId}" class="form-label">${t('admin.deviceToken')}</label>
+            <input type="text" id="${this._tokenInputId}" class="form-control" placeholder="${t('admin.deviceToken')}">
+          </div>
+          <div class="mb-3">
+            <label for="${this._messageInputId}" class="form-label">${t('admin.message')}</label>
+            <input type="text" id="${this._messageInputId}" class="form-control" placeholder="${t('admin.message')}">
+          </div>
+          <div class="mb-3">
+            <label for="${this._platformSelectId}" class="form-label">Platform</label>
+            <select id="${this._platformSelectId}" class="form-control">
+              <option value="ios">iOS</option>
+              <option value="android">Android</option>
+            </select>
+          </div>
+          <button id="${this._sendBtnId}" class="btn btn-primary">
+            <i class="fa fa-bell" aria-hidden="true"></i> ${t('admin.sendNotification')}
+          </button>
+        </div>
+
+        <div class="mb-4">
+          <h4>${t('admin.broadcastNotification')}</h4>
+          <div class="mb-3">
+            <label for="${this._broadcastEnId}" class="form-label">${t('admin.messageEn')}</label>
+            <input type="text" id="${this._broadcastEnId}" class="form-control" placeholder="${t('admin.messageEnPlaceholder')}">
+          </div>
+          <div class="mb-3">
+            <label for="${this._broadcastDeId}" class="form-label">${t('admin.messageDe')}</label>
+            <input type="text" id="${this._broadcastDeId}" class="form-control" placeholder="${t('admin.messageDePlaceholder')}">
+          </div>
+          <button id="${this._broadcastBtnId}" class="btn btn-warning">
+            <i class="fa fa-bullhorn" aria-hidden="true"></i> ${t('admin.sendBroadcast')}
+          </button>
+        </div>
+
+        <div class="mb-4">
+          <h4>${t('admin.deleteUser')}</h4>
+          <div class="input-group">
+            <input type="text" id="${this._deleteUsernameId}" class="form-control" placeholder="${t('admin.usernamePlaceholder')}">
+            <button id="${this._deleteUserBtnId}" class="btn btn-danger">
+              <i class="fa fa-trash" aria-hidden="true"></i> ${t('admin.delete')}
             </button>
           </div>
         </div>
 
-        <div class="card mb-4">
-          <div class="card-header"><h5 class="mb-0">${t('admin.pushNotification')}</h5></div>
-          <div class="card-body">
-            <div class="mb-3">
-              <label for="${this._tokenInputId}" class="form-label">${t('admin.deviceToken')}</label>
-              <input type="text" id="${this._tokenInputId}" class="form-control" placeholder="${t('admin.deviceToken')}">
-            </div>
-            <div class="mb-3">
-              <label for="${this._messageInputId}" class="form-label">${t('admin.message')}</label>
-              <input type="text" id="${this._messageInputId}" class="form-control" placeholder="${t('admin.message')}">
-            </div>
-            <button id="${this._sendBtnId}" class="btn btn-primary">
-              <i class="fa fa-bell" aria-hidden="true"></i> ${t('admin.sendNotification')}
+        <div class="mb-4">
+          <h4>${t('admin.adminManagement')}</h4>
+          <table class="table table-sm mb-3">
+            <thead><tr><th>${t('admin.username')}</th><th></th></tr></thead>
+            <tbody>${adminRows}</tbody>
+          </table>
+          <div class="input-group">
+            <input type="text" id="${this._addAdminInputId}" class="form-control" placeholder="${t('admin.usernamePlaceholder')}">
+            <button id="${this._addAdminBtnId}" class="btn btn-warning">
+              <i class="fa fa-shield" aria-hidden="true"></i> ${t('admin.addAdmin')}
             </button>
           </div>
         </div>
 
-        <div class="card mb-4">
-          <div class="card-header"><h5 class="mb-0">${t('admin.broadcastNotification')}</h5></div>
-          <div class="card-body">
-            <div class="mb-3">
-              <label for="${this._broadcastEnId}" class="form-label">${t('admin.messageEn')}</label>
-              <input type="text" id="${this._broadcastEnId}" class="form-control" placeholder="${t('admin.messageEnPlaceholder')}">
-            </div>
-            <div class="mb-3">
-              <label for="${this._broadcastDeId}" class="form-label">${t('admin.messageDe')}</label>
-              <input type="text" id="${this._broadcastDeId}" class="form-control" placeholder="${t('admin.messageDePlaceholder')}">
-            </div>
-            <button id="${this._broadcastBtnId}" class="btn btn-warning">
-              <i class="fa fa-bullhorn" aria-hidden="true"></i> ${t('admin.sendBroadcast')}
-            </button>
-          </div>
-        </div>
-
-        <div class="card mb-4">
-          <div class="card-header"><h5 class="mb-0">${t('admin.deleteUser')}</h5></div>
-          <div class="card-body">
-            <div class="input-group">
-              <input type="text" id="${this._deleteUsernameId}" class="form-control" placeholder="${t('admin.usernamePlaceholder')}">
-              <button id="${this._deleteUserBtnId}" class="btn btn-danger">
-                <i class="fa fa-trash" aria-hidden="true"></i> ${t('admin.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card mb-4">
-          <div class="card-header"><h5 class="mb-0">${t('admin.adminManagement')}</h5></div>
-          <div class="card-body">
-            <table class="table table-sm mb-3">
-              <thead><tr><th>${t('admin.username')}</th><th></th></tr></thead>
-              <tbody>${adminRows}</tbody>
-            </table>
-            <div class="input-group">
-              <input type="text" id="${this._addAdminInputId}" class="form-control" placeholder="${t('admin.usernamePlaceholder')}">
-              <button id="${this._addAdminBtnId}" class="btn btn-warning">
-                <i class="fa fa-shield" aria-hidden="true"></i> ${t('admin.addAdmin')}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card mb-4">
-          <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="mb-0">${t('admin.statistics')} (${this._statisticsTotal})</h5>
+        <div class="mb-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h4 class="mb-0">${t('admin.statistics')} (${this._statisticsTotal})</h4>
             <button id="${this._collectBtnId}" class="btn btn-sm btn-outline-primary">
               <i class="fa fa-refresh" aria-hidden="true"></i> ${t('admin.statisticsCollectNow')}
             </button>
           </div>
-          <div class="card-body p-0">
-            ${this._statistics.length > 0 ? `
-            <div class="horizontal-scrollable-table">
-              <table class="table table-sm table-hover mb-0">
-                <thead>
-                  <tr>
-                    <th>${t('admin.statisticsCreatedAt')}</th>
-                    <th>${t('admin.statisticsDailyActiveUsers')}</th>
-                    <th>${t('admin.statisticsInGameMoney')}</th>
-                    <th>${t('admin.statisticsPlayerCount')}</th>
-                    <th>${t('admin.statisticsAvgPlayerLevel')}</th>
-                    <th>${t('admin.statisticsAvgPlayerAge')}</th>
-                    <th>${t('admin.statisticsActionCardCount')}</th>
-                  </tr>
-                </thead>
-                <tbody>${statisticsRows}</tbody>
-              </table>
-            </div>
-            <div class="d-flex align-items-center justify-content-between p-3 border-top">
-              <button id="${this._prevBtnId}" class="btn btn-sm btn-outline-secondary" ${isFirstPage ? 'disabled' : ''}>
-                <i class="fa fa-chevron-left" aria-hidden="true"></i> ${t('admin.paginationPrev')}
-              </button>
-              <span class="text-muted">${t('admin.paginationPage', { page: currentPage, total: totalPages })}</span>
-              <button id="${this._nextBtnId}" class="btn btn-sm btn-outline-secondary" ${isLastPage ? 'disabled' : ''}>
-                ${t('admin.paginationNext')} <i class="fa fa-chevron-right" aria-hidden="true"></i>
-              </button>
-            </div>
-            ` : `<p class="p-3 mb-0 text-muted">${t('admin.statisticsEmpty')}</p>`}
+          ${this._statistics.length > 0 ? `
+          <div class="horizontal-scrollable-table">
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>${t('admin.statisticsCreatedAt')}</th>
+                  <th>${t('admin.statisticsDailyActiveUsers')}</th>
+                  <th>${t('admin.statisticsInGameMoney')}</th>
+                  <th>${t('admin.statisticsPlayerCount')}</th>
+                  <th>${t('admin.statisticsAvgPlayerLevel')}</th>
+                  <th>${t('admin.statisticsAvgPlayerAge')}</th>
+                  <th>${t('admin.statisticsActionCardCount')}</th>
+                </tr>
+              </thead>
+              <tbody>${statisticsRows}</tbody>
+            </table>
           </div>
+          <div class="d-flex align-items-center justify-content-between mt-3">
+            <button id="${this._prevBtnId}" class="btn btn-sm btn-outline-secondary" ${isFirstPage ? 'disabled' : ''}>
+              <i class="fa fa-chevron-left" aria-hidden="true"></i> ${t('admin.paginationPrev')}
+            </button>
+            <span class="text-muted">${t('admin.paginationPage', { page: currentPage, total: totalPages })}</span>
+            <button id="${this._nextBtnId}" class="btn btn-sm btn-outline-secondary" ${isLastPage ? 'disabled' : ''}>
+              ${t('admin.paginationNext')} <i class="fa fa-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
+          ` : `<p class="text-muted">${t('admin.statisticsEmpty')}</p>`}
         </div>
       </div>
     `
@@ -198,6 +193,7 @@ export class AdminPage extends UIElement {
   _sendBtnId = generateId()
   _tokenInputId = generateId()
   _messageInputId = generateId()
+  _platformSelectId = generateId()
   _deleteUsernameId = generateId()
   _deleteUserBtnId = generateId()
   _broadcastEnId = generateId()
@@ -265,6 +261,7 @@ export class AdminPage extends UIElement {
   async _sendNotification () {
     const token = document.getElementById(this._tokenInputId).value.trim()
     const message = document.getElementById(this._messageInputId).value.trim()
+    const platform = document.getElementById(this._platformSelectId).value
     if (!token || !message) {
       toast('Device token and message are required', 'error')
       return
@@ -272,7 +269,7 @@ export class AdminPage extends UIElement {
     const btn = document.getElementById(this._sendBtnId)
     try {
       btn.disabled = true
-      const result = await server.testPushNotification(token, message)
+      const result = await server.testPushNotification(token, message, platform)
       toast(`Sent: ${result.sent}, Failed: ${result.failed}${result.failureReason ? ' - ' + result.failureReason : ''}`, result.failed ? 'error' : 'success')
     } catch (e) {
       toast(e.message || 'Something went wrong', 'error')

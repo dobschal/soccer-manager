@@ -36,7 +36,7 @@ if (isIOS) {
         }
         console.log(`[Push][AppDelegate] Converted token: ${token.substring(0, 10)}... (length: ${token.length})`)
         if (token.length > 0) {
-          onDeviceToken(token)
+          onDeviceToken(token, 'ios')
         } else {
           console.error('[Push][AppDelegate] Token conversion produced empty string')
         }

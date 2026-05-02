@@ -1,10 +1,12 @@
 import {Application, EventData, isAndroid, isIOS, knownFolders, Page, path, Utils, WebView} from '@nativescript/core'
 import {getWebContentPath, wasUpdateInstalled, checkForUpdate, hasStagedUpdate, promoteStagingIfReady} from './ota-update'
-import {deviceToken, registrationError, onTokenAvailable} from './pushNotifications'
+import {deviceToken, devicePlatform, registrationError, onDeviceToken, onTokenAvailable} from './pushNotifications'
 
 declare const NSURL: any
 declare const UIColor: any
 declare const android: any
+declare const com: any
+declare const java: any
 declare const WKWebsiteDataStore: any
 declare const NSSet: any
 declare const WKWebsiteDataRecord: any
@@ -152,7 +154,7 @@ export function onWebViewLoaded(args: EventData) {
         setupIOSPushNotifications(webView)
     } else if (isAndroid) {
         loadWebViewAndroid(webView, webPath)
-        setupAndroidPlatformInjection(webView)
+        setupAndroidPushNotifications(webView)
     }
 
     // If an OTA update was installed in a previous session, show toast after load
@@ -278,13 +280,77 @@ function setupIOSUIDelegate(): any {
     return WKUIDelegateImpl.new()
 }
 
-function setupAndroidPlatformInjection(webView: WebView): void {
+function setupAndroidPushNotifications(webView: WebView): void {
+    requestAndroidPostNotificationsPermission()
+    requestAndroidFcmToken()
+
+    onTokenAvailable((token: string, platform: string) => {
+        if (platform !== 'android') return
+        const nativeWebView = webView.android as any
+        if (!nativeWebView) return
+        const escaped = token.replace(/'/g, "\\'")
+        const script = `window.__nativeDeviceToken = '${escaped}'; window.__nativePlatform = 'android'; if (typeof window.__onNativeDeviceToken === 'function') { window.__onNativeDeviceToken('${escaped}', 'android'); }`
+        nativeWebView.evaluateJavascript(script, null)
+    })
+
     webView.on(WebView.loadFinishedEvent, (loadArgs: any) => {
         if (loadArgs.error || !isAndroid) return
         const nativeWebView = webView.android as any
         if (!nativeWebView) return
-        nativeWebView.evaluateJavascript(`window.__nativePlatform = 'android';`, null)
+        let script = `window.__nativePlatform = 'android';`
+        if (deviceToken && devicePlatform === 'android') {
+            const escaped = deviceToken.replace(/'/g, "\\'")
+            script += ` window.__nativeDeviceToken = '${escaped}'; if (typeof window.__onNativeDeviceToken === 'function') { window.__onNativeDeviceToken('${escaped}', 'android'); }`
+        }
+        nativeWebView.evaluateJavascript(script, null)
     })
+}
+
+function requestAndroidPostNotificationsPermission(): void {
+    try {
+        const sdkInt = android.os.Build.VERSION.SDK_INT
+        if (sdkInt < 33) return // Android 12 and below grants this implicitly
+        const activity = Application.android.foregroundActivity || Application.android.startActivity
+        if (!activity) {
+            console.warn('[Push][Android] No activity available to request POST_NOTIFICATIONS')
+            return
+        }
+        const PackageManager = android.content.pm.PackageManager
+        const permission = 'android.permission.POST_NOTIFICATIONS'
+        if (activity.checkSelfPermission(permission) === PackageManager.PERMISSION_GRANTED) return
+        activity.requestPermissions([permission], 1234)
+    } catch (e: any) {
+        console.error('[Push][Android] Error requesting POST_NOTIFICATIONS:', e?.message ?? e)
+    }
+}
+
+function requestAndroidFcmToken(): void {
+    try {
+        const FirebaseMessaging = com.google.firebase.messaging.FirebaseMessaging
+        const OnSuccessListener = com.google.android.gms.tasks.OnSuccessListener
+        const OnFailureListener = com.google.android.gms.tasks.OnFailureListener
+        const messaging = FirebaseMessaging.getInstance()
+        const task = messaging.getToken()
+
+        task.addOnSuccessListener(new OnSuccessListener({
+            onSuccess(token: string): void {
+                if (typeof token === 'string' && token.length > 0) {
+                    console.log(`[Push][Android] FCM token received: ${token.substring(0, 10)}... (length: ${token.length})`)
+                    onDeviceToken(token, 'android')
+                } else {
+                    console.error('[Push][Android] FCM returned empty token')
+                }
+            }
+        }))
+        task.addOnFailureListener(new OnFailureListener({
+            onFailure(error: any): void {
+                const msg = error?.getMessage?.() || String(error)
+                console.error('[Push][Android] FCM getToken failed:', msg)
+            }
+        }))
+    } catch (e: any) {
+        console.error('[Push][Android] Error initializing FCM:', e?.message ?? e)
+    }
 }
 
 function loadWebViewAndroid(webView: WebView, webPath: string) {
