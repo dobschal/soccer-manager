@@ -310,6 +310,7 @@ export default {
   // My Team - Tabs
   'myTeam.aTeam': 'A-Mannschaft',
   'myTeam.youthTeam': 'Jugendmannschaft',
+  'myTeam.viewPublicPage': 'Öffentliche Seite',
 
   // Youth Team
   'youthTeam.title': 'Jugendmannschaft',
