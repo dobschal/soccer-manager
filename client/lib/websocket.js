@@ -11,6 +11,9 @@ const eventHandlers = new Map()
 /** @type {number|null} */
 let reconnectTimeout = null
 
+let hadPreviousConnection = false
+let visibilityListenerAttached = false
+
 /**
  * Connect to WebSocket server using the auth token
  */
@@ -32,6 +35,22 @@ export function connectWebSocket () {
     reconnectTimeout = null
   }
 
+  // Force an immediate reconnect when the tab regains focus after a long idle.
+  // Browser tabs often suspend timers, so the 5s reconnect loop may never fire.
+  if (!visibilityListenerAttached && typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return
+      if (!window.localStorage.getItem('auth-token')) return
+      if (ws && ws.readyState === WebSocket.OPEN) return
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout)
+        reconnectTimeout = null
+      }
+      connectWebSocket()
+    })
+    visibilityListenerAttached = true
+  }
+
   let wsUrl
   if (window.__NATIVE_SERVER_URL) {
     const url = new URL(window.__NATIVE_SERVER_URL)
@@ -47,6 +66,12 @@ export function connectWebSocket () {
 
     ws.onopen = () => {
       console.log('⚙️ WebSocket connected')
+      if (hadPreviousConnection) {
+        // Notify components so they can refetch state for events possibly
+        // missed while the socket was down.
+        dispatchEvent('RECONNECTED', null)
+      }
+      hadPreviousConnection = true
     }
 
     ws.onmessage = (event) => {
@@ -95,6 +120,8 @@ export function disconnectWebSocket () {
     ws.close()
     ws = null
   }
+
+  hadPreviousConnection = false
 }
 
 /**

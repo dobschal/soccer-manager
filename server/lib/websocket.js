@@ -10,6 +10,11 @@ const clients = new Map()
 /** @type {WebSocketServer|null} */
 let wss = null
 
+/** @type {NodeJS.Timeout|null} */
+let heartbeatInterval = null
+
+const HEARTBEAT_INTERVAL_MS = 30_000
+
 /**
  * Initialize WebSocket server attached to HTTP server
  * @param {import('http').Server} server
@@ -41,6 +46,9 @@ export function initWebSocket (server) {
       // Store connection by user ID
       clients.set(userId, ws)
 
+      ws.isAlive = true
+      ws.on('pong', () => { ws.isAlive = true })
+
       ws.on('close', () => {
         clients.delete(userId)
       })
@@ -58,6 +66,32 @@ export function initWebSocket (server) {
     } catch (error) {
       console.error('WebSocket authentication failed:', error.message)
       ws.close(4003, 'Authentication failed')
+    }
+  })
+
+  // Detect dead connections (silent NAT/proxy disconnects don't fire 'close').
+  // Without this, the server keeps writing to a dead socket and the client
+  // never reconnects — events like BALANCE_UPDATED get lost.
+  if (heartbeatInterval) clearInterval(heartbeatInterval)
+  heartbeatInterval = setInterval(() => {
+    for (const ws of wss.clients) {
+      if (ws.isAlive === false) {
+        ws.terminate()
+        continue
+      }
+      ws.isAlive = false
+      try {
+        ws.ping()
+      } catch {
+        ws.terminate()
+      }
+    }
+  }, HEARTBEAT_INTERVAL_MS)
+
+  wss.on('close', () => {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval)
+      heartbeatInterval = null
     }
   })
 

@@ -26,7 +26,8 @@ export class Balance extends UIElement {
    */
   get serverEvents () {
     return {
-      BALANCE_UPDATED: () => this.update(true)
+      BALANCE_UPDATED: () => this.update(true),
+      RECONNECTED: () => this.update(true)
     }
   }
   balance = 0

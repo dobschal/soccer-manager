@@ -84,6 +84,15 @@ describe('Balance', () => {
 
       expect(balance.update).toHaveBeenCalledWith(true)
     })
+
+    it('reloads balance on RECONNECTED to recover events missed during disconnect', () => {
+      const balance = new Balance()
+      balance.update = vi.fn()
+
+      balance.serverEvents.RECONNECTED()
+
+      expect(balance.update).toHaveBeenCalledWith(true)
+    })
   })
 
   describe('balanceSpan', () => {
