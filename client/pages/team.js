@@ -243,6 +243,7 @@ export class TeamPage extends UIElement {
       window.removeEventListener('player-fired', this._onPlayerChanged)
     }
   }
+  static cacheKeyParams = ['id']
   showLoadingIndicator = true
 
   /** @type {StadiumType} */

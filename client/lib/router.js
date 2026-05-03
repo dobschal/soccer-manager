@@ -3,9 +3,28 @@ import { fire } from './event.js'
 import { el } from './html.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
 
-let pages, lastPath
+let pages, lastKey
 /** @type {Object<string, {page: Object, wrapper: HTMLElement}>} */
 let _pageCache = {}
+
+/**
+ * Build the cache key for a page. Pages can declare a static `cacheKeyParams`
+ * array of query-param names that contribute to their identity (e.g. ['id'] on
+ * the team page so #team?id=85 and #team?id=86 are cached separately). Query
+ * params not listed (e.g. player_id used to open a modal) don't invalidate
+ * the cached instance.
+ *
+ * @param {string} path
+ * @param {Object} queryParams
+ * @param {*} PageRenderFn
+ * @returns {string}
+ */
+function _getCacheKey (path, queryParams, PageRenderFn) {
+  const keyParams = PageRenderFn?.cacheKeyParams ?? []
+  if (keyParams.length === 0) return path
+  const parts = keyParams.map(k => `${k}=${queryParams[k] ?? ''}`).join('&')
+  return `${path}?${parts}`
+}
 
 /** Navigation page order for slide transition direction */
 const PAGE_ORDER = {
@@ -37,8 +56,8 @@ export function goTo (path) {
  * Used when the app returns from background to reload data without a full page reload.
  */
 export function refreshCurrentPage () {
-  if (!lastPath) return
-  const cached = _pageCache[lastPath]
+  if (!lastKey) return
+  const cached = _pageCache[lastKey]
   if (cached?.page?.update) {
     cached.page.update(true)
   }
@@ -164,8 +183,11 @@ async function _resolvePage () {
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
   }
-  if (currentPath === lastPath) {
-    fire('query-changed', getQueryParams())
+  const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
+  const queryParams = getQueryParams()
+  const currentKey = _getCacheKey(currentPath, queryParams, pageRenderFn)
+  if (currentKey === lastKey) {
+    fire('query-changed', queryParams)
     return
   }
   window.scrollTo({
@@ -173,9 +195,8 @@ async function _resolvePage () {
     left: 0,
     behavior: 'instant'
   })
-  const previousPath = lastPath
-  lastPath = currentPath
-  const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
+  const previousKey = lastKey
+  lastKey = currentKey
   const layoutChanged = await _renderLayout(layoutRenderFn)
 
   if (layoutChanged) {
@@ -186,14 +207,14 @@ async function _resolvePage () {
   const pageElement = el('#page')
   if (!pageElement) throw new Error('Layout has no element with id="page"!!!')
 
+  const previousPath = previousKey != null ? previousKey.split('?')[0] : undefined
   const direction = _getDirection(previousPath, currentPath)
-  const oldWrapper = previousPath != null ? _pageCache[previousPath]?.wrapper : null
+  const oldWrapper = previousKey != null ? _pageCache[previousKey]?.wrapper : null
 
-  const cached = _pageCache[currentPath]
+  const cached = _pageCache[currentKey]
   if (cached && pageElement.contains(cached.wrapper)) {
     _animateTransition(pageElement, oldWrapper, cached.wrapper, direction)
     _afterPageLoad()
-    const queryParams = getQueryParams()
     fire('query-changed', queryParams)
     // Directly call onQueryChanged on cached page — the event-based call may be
     // blocked by _isInsideHiddenContainer during the slide animation.
@@ -203,21 +224,21 @@ async function _resolvePage () {
       cached.page.update(true)
     }
   } else {
-    void _renderNewPage(pageRenderFn, currentPath, pageElement, oldWrapper, direction)
+    void _renderNewPage(pageRenderFn, currentKey, pageElement, oldWrapper, direction)
   }
 }
 
 /**
  * @param {Function | UIElement} PageUIElement
- * @param {string} currentPath
+ * @param {string} cacheKey
  * @param {HTMLElement} pageElement
  * @param {HTMLElement|null} oldWrapper
  * @param {'left'|'right'} direction
  * @returns {Promise<void>}
  */
-async function _renderNewPage (PageUIElement, currentPath, pageElement, oldWrapper, direction) {
+async function _renderNewPage (PageUIElement, cacheKey, pageElement, oldWrapper, direction) {
   const wrapper = document.createElement('div')
-  wrapper.setAttribute('data-page', currentPath)
+  wrapper.setAttribute('data-page', cacheKey)
   wrapper.style.display = 'none'
 
   if (PageUIElement.isUIElement) {
@@ -225,7 +246,7 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement, oldWrapp
     const page = new PageUIElement()
     wrapper.insertAdjacentHTML('afterbegin', String(page))
     pageElement.appendChild(wrapper)
-    _pageCache[currentPath] = {
+    _pageCache[cacheKey] = {
       page,
       wrapper
     }
@@ -239,11 +260,11 @@ async function _renderNewPage (PageUIElement, currentPath, pageElement, oldWrapp
         fire('query-changed', getQueryParams())
       } else if (Date.now() - startTime > timeoutMs) {
         clearInterval(interval)
-        throw new Error(`Page "${currentPath}" failed to render within ${timeoutMs / 1000} seconds`)
+        throw new Error(`Page "${cacheKey}" failed to render within ${timeoutMs / 1000} seconds`)
       }
     }, 100)
   } else {
-    console.warn('Deprecated: ', currentPath)
+    console.warn('Deprecated: ', cacheKey)
     wrapper.insertAdjacentHTML('afterbegin', await PageUIElement())
     pageElement.appendChild(wrapper)
     _animateTransition(pageElement, oldWrapper, wrapper, direction)
