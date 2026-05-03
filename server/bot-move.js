@@ -373,12 +373,13 @@ async function _signFreePlayers (botTeam, players) {
     const toSign = Math.min(need.deficit, maxSignings - signed, candidates.length)
     for (let i = 0; i < toSign; i++) {
       const player = candidates[i]
-      await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
-      await addPlayerHistory(player.id, 'HIRED', botTeam.name)
-      // Remove from freePlayers so other needs don't try to sign the same player
+      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
+      // Remove from freePlayers regardless — either we got him, or another parallel bot did.
       const idx = freePlayers.indexOf(player)
       if (idx !== -1) freePlayers.splice(idx, 1)
-      // Add to team's players array
+      // Lost the race to another bot running in parallel — skip history & local state.
+      if (!result?.affectedRows) continue
+      await addPlayerHistory(player.id, 'HIRED', botTeam.name)
       player.team_id = botTeam.id
       players.push(player)
       signed++
@@ -403,10 +404,11 @@ async function _signFreePlayers (botTeam, players) {
     const toSign = Math.min(stillNeeded, maxSignings - signed, anyCandidates.length)
     for (let i = 0; i < toSign; i++) {
       const player = anyCandidates[i]
-      await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
-      await addPlayerHistory(player.id, 'HIRED', botTeam.name)
+      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
       const idx = freePlayers.indexOf(player)
       if (idx !== -1) freePlayers.splice(idx, 1)
+      if (!result?.affectedRows) continue
+      await addPlayerHistory(player.id, 'HIRED', botTeam.name)
       player.team_id = botTeam.id
       players.push(player)
       signed++

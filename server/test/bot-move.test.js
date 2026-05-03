@@ -692,4 +692,64 @@ describe('Bot Trading', () => {
       expect(insertBuyCalls.length).toBeGreaterThanOrEqual(1)
     })
   })
+
+  describe('Free player signing race conditions', () => {
+    const freePlayer = testData.player({
+      id: 999,
+      name: 'Henry Kramer',
+      position: 'CM',
+      level: 5,
+      team_id: null
+    })
+
+    it('does not log HIRED entry when conditional UPDATE finds no free player (lost race)', async () => {
+      // Bot has critical CM need
+      const playersNeedingCM = botPlayers.filter(p => p.position !== 'CM')
+      getPlayersByTeamId.mockResolvedValue(playersNeedingCM)
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return playersNeedingCM
+        if (sql.includes('SELECT * FROM player WHERE team_id IS NULL')) return [freePlayer]
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        // Simulate that another parallel bot has already signed the player.
+        if (sql.includes('UPDATE player SET team_id=?') && sql.includes('AND team_id IS NULL')) {
+          return { affectedRows: 0, changedRows: 0 }
+        }
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) return []
+        return []
+      })
+
+      await makeBotMoves()
+
+      const historyInserts = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO player_history')
+      )
+      expect(historyInserts).toHaveLength(0)
+    })
+
+    it('logs a single HIRED entry when bot wins the race', async () => {
+      const playersNeedingCM = botPlayers.filter(p => p.position !== 'CM')
+      getPlayersByTeamId.mockResolvedValue(playersNeedingCM)
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return playersNeedingCM
+        if (sql.includes('SELECT * FROM player WHERE team_id IS NULL')) return [freePlayer]
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        if (sql.includes('UPDATE player SET team_id=?') && sql.includes('AND team_id IS NULL')) {
+          return { affectedRows: 1, changedRows: 1 }
+        }
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) return []
+        return []
+      })
+
+      await makeBotMoves()
+
+      const historyInserts = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO player_history')
+      )
+      expect(historyInserts).toHaveLength(1)
+    })
+  })
 })
