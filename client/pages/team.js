@@ -1,5 +1,5 @@
 import { server } from '../lib/gateway.js'
-import { setQueryParams, goTo } from '../lib/router.js'
+import { goTo, setQueryParams } from '../lib/router.js'
 import { PlayerList } from '../partials/playerList.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { renderEmblem } from '../partials/emblem.js'
@@ -243,7 +243,8 @@ export class TeamPage extends UIElement {
       window.removeEventListener('player-fired', this._onPlayerChanged)
     }
   }
-  
+  showLoadingIndicator = true
+
   /** @type {StadiumType} */
   stadium
 
@@ -471,12 +472,30 @@ export class TeamPage extends UIElement {
 
     const table = new Table({
       cols: [
-        { name: t('team.historyPlayer'), align: 'left' },
-        { name: t('team.historyPosition'), align: 'center' },
-        { name: t('team.historyFrom'), align: 'left' },
-        { name: t('team.historyTo'), align: 'left' },
-        { name: t('team.historyPrice'), align: 'right' },
-        { name: t('team.historySeason'), align: 'center' }
+        {
+          name: t('team.historyPlayer'),
+          align: 'left'
+        },
+        {
+          name: t('team.historyPosition'),
+          align: 'center'
+        },
+        {
+          name: t('team.historyFrom'),
+          align: 'left'
+        },
+        {
+          name: t('team.historyTo'),
+          align: 'left'
+        },
+        {
+          name: t('team.historyPrice'),
+          align: 'right'
+        },
+        {
+          name: t('team.historySeason'),
+          align: 'center'
+        }
       ],
       data: pageData,
       renderRow: (transfer) => {

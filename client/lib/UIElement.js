@@ -133,7 +133,12 @@ export class UIElement {
     }
     requestAnimationFrame(waitAndRender)
     if (this.showLoadingIndicator) {
-      return `<div id="${this._renderId}" class="ui-element-loading"><i class="fa fa-spinner fa-spin fa-2x"></i></div>`
+      return `<div id="${this._renderId}" class="ui-element-loading">
+        <div class="ui-element-loading-ball-wrapper">
+          <div class="ui-element-loading-ball"><img src="assets/ball.svg" alt="loading"/></div>
+          <div class="ui-element-loading-shadow"></div>
+        </div>
+      </div>`
     }
     return `<template id="${this._renderId}"></template>`
   }
