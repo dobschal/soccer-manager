@@ -83,10 +83,14 @@ export class DashboardPage extends TabbedPage {
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, resultAlreadySeen)
     localStorage.setItem(resultSeenKey, '1')
 
-    // Same logic for cup games
-    const cupResultSeenKey = `cupResultSeen_${this.season}_${this.gameDay}`
-    this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
-    localStorage.setItem(cupResultSeenKey, '1')
+    const lastPlayedCupGame = [...this._cupGames].reverse().find(g => g.isPlayed)
+    if (lastPlayedCupGame) {
+      const cupResultSeenKey = `cupResultSeenForGame_${lastPlayedCupGame.id}`
+      this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
+      localStorage.setItem(cupResultSeenKey, '1')
+    } else {
+      this._cupResultAlreadySeen = false
+    }
 
     // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
     const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
@@ -242,8 +246,10 @@ export class DashboardPage extends TabbedPage {
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, true)
 
-    const cupResultSeenKey = `cupResultSeen_${this.season}_${this.gameDay}`
-    this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
+    const lastPlayedCupGame = [...this._cupGames].reverse().find(g => g.isPlayed)
+    this._cupResultAlreadySeen = lastPlayedCupGame
+      ? Boolean(localStorage.getItem(`cupResultSeenForGame_${lastPlayedCupGame.id}`))
+      : false
 
     this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1

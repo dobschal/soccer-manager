@@ -33,7 +33,17 @@ export default {
       FROM forum_category c
       ORDER BY c.sort_order ASC, c.created_at ASC
     `)
-    return { categories }
+    const latestComments = await query(`
+      SELECT c.id, c.text, c.created_at,
+        p.id AS post_id, p.title AS post_title, p.category_id,
+        u.username
+      FROM forum_comment c
+      JOIN forum_post p ON p.id = c.post_id
+      JOIN user u ON u.id = c.user_id
+      ORDER BY c.created_at DESC
+      LIMIT 5
+    `)
+    return { categories, latestComments }
   },
 
   async createForumCategory (name, description, req) {
@@ -112,12 +122,16 @@ export default {
         t.name AS team_name,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id) AS like_count,
         (SELECT COUNT(*) FROM forum_comment c WHERE c.post_id = p.id) AS comment_count,
-        (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
+        (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id AND l.user_id = ?) AS liked,
+        COALESCE(
+          (SELECT MAX(c.created_at) FROM forum_comment c WHERE c.post_id = p.id),
+          p.created_at
+        ) AS last_activity
       FROM forum_post p
       JOIN user u ON u.id = p.user_id
       LEFT JOIN team t ON t.id = p.team_id
       WHERE p.category_id = ?
-      ORDER BY p.created_at DESC
+      ORDER BY last_activity DESC
       LIMIT ? OFFSET ?
     `, [userId, categoryId, perPage, offset])
 

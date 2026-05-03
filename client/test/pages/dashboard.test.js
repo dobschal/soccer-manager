@@ -294,6 +294,58 @@ describe('DashboardPage', () => {
     })
   })
 
+  describe('cup result seen tracking', () => {
+    it('sets _cupResultAlreadySeen to false when the old gameDay key is set but no ID-based key exists', async () => {
+      server.getMyCupGames.mockResolvedValue({
+        totalRounds: 4,
+        games: [
+          { id: 100, played: 1, gameDate: '2026-04-01', team1Id: 1, team2Id: 2 },
+          { id: 101, played: 0, gameDate: '2026-05-01', team1Id: 1, team2Id: 3 }
+        ]
+      })
+
+      // Old gameDay-based key is set, new ID-based key is not
+      localStorage.getItem.mockImplementation(key => key === 'cupResultSeen_0_5' ? '1' : null)
+
+      const page = new DashboardPage()
+      await page.load()
+
+      expect(page._cupResultAlreadySeen).toBe(false)
+    })
+
+    it('sets _cupResultAlreadySeen to true when the ID-based key for the latest played cup game is already set', async () => {
+      server.getMyCupGames.mockResolvedValue({
+        totalRounds: 4,
+        games: [
+          { id: 100, played: 1, gameDate: '2026-04-01', team1Id: 1, team2Id: 2 },
+          { id: 101, played: 0, gameDate: '2026-05-01', team1Id: 1, team2Id: 3 }
+        ]
+      })
+
+      // ID-based key is already set (simulates second visit after fix)
+      localStorage.getItem.mockImplementation(key => key === 'cupResultSeenForGame_100' ? '1' : null)
+
+      const page = new DashboardPage()
+      await page.load()
+
+      expect(page._cupResultAlreadySeen).toBe(true)
+    })
+
+    it('sets _cupResultAlreadySeen to false when there are no played cup games', async () => {
+      server.getMyCupGames.mockResolvedValue({
+        totalRounds: 4,
+        games: [
+          { id: 101, played: 0, gameDate: '2026-05-01', team1Id: 1, team2Id: 3 }
+        ]
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
+      expect(page._cupResultAlreadySeen).toBe(false)
+    })
+  })
+
   describe('urgency checklist', () => {
     it('calls getDashboardUrgencies during load', async () => {
       const page = new DashboardPage()

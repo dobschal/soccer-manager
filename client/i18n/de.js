@@ -974,6 +974,7 @@ export default {
   'forum.badgeText': 'Badge-Text',
   'forum.badgeSaved': 'Badge gespeichert!',
   'forum.badgeRemoved': 'Badge entfernt!',
+  'forum.latestComments': 'Neueste Kommentare',
 
   // Admin
   'admin.title': 'Admin',

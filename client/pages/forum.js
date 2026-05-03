@@ -161,6 +161,7 @@ export class ForumPage extends UIElement {
     } else {
       const data = await server.getForumCategories()
       this._categories = data.categories
+      this._latestComments = data.latestComments || []
       this._view = 'categories'
     }
   }
@@ -222,6 +223,26 @@ export class ForumPage extends UIElement {
       }
       html += '</div>'
     }
+    html += this._renderLatestComments()
+    return html
+  }
+
+  _renderLatestComments () {
+    if (!this._latestComments || this._latestComments.length === 0) return ''
+    let html = `<h6 class="forum-latest-comments-title mt-4 mb-2">${t('forum.latestComments')}</h6>`
+    html += '<div class="list-group">'
+    for (const c of this._latestComments) {
+      const date = formatDate('DD.MM.YYYY hh:mm', c.created_at)
+      const preview = c.text.length > 120 ? c.text.slice(0, 120) + '…' : c.text
+      html += `
+        <a href="#forum?category=${c.category_id}&post=${c.post_id}" class="list-group-item list-group-item-action forum-latest-comment-item">
+          <div class="forum-latest-comment-title">${escapeHtml(c.post_title)}</div>
+          <p class="mb-1 text-muted forum-post-preview">${escapeHtml(preview)}</p>
+          <small class="text-muted">${escapeHtml(c.username)} - ${date}</small>
+        </a>
+      `
+    }
+    html += '</div>'
     return html
   }
 
@@ -255,7 +276,7 @@ export class ForumPage extends UIElement {
     } else {
       html += '<div class="list-group">'
       for (const post of this._posts) {
-        const date = formatDate('DD.MM.YYYY hh:mm', post.created_at)
+        const date = formatDate('DD.MM.YYYY hh:mm', post.last_activity || post.created_at)
         const teamName = post.team_id ? `${escapeHtml(post.team_name || '')}` : ''
         html += `
           <a href="#forum?category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item">

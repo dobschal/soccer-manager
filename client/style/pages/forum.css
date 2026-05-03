@@ -197,3 +197,23 @@
   width: 2.5rem;
   padding: 0.2rem;
 }
+
+.forum-latest-comments-title {
+  color: var(--bs-secondary);
+}
+
+.forum-latest-comment-item:hover,
+.forum-latest-comment-item:active {
+  transform: none;
+}
+
+.forum-latest-comment-title {
+  color: var(--bs-primary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.15rem;
+}
+
+.forum-latest-comment-item:hover .forum-latest-comment-title {
+  text-decoration: underline;
+}
