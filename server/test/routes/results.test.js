@@ -22,11 +22,17 @@ vi.mock('../../helper/standingHelper.js', () => ({
   saveStandingToCache: vi.fn()
 }))
 
+vi.mock('../../helper/seenGameHelper.js', () => ({
+  getSeenGameIds: vi.fn(),
+  markGameAsSeen: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { calculateStanding } from '../../lib/util.js'
 import { getCachedStanding, saveStandingToCache } from '../../helper/standingHelper.js'
+import { getSeenGameIds, markGameAsSeen } from '../../helper/seenGameHelper.js'
 import { clearAllCache } from '../../lib/cache.js'
 import handlers from '../../routes/results.js'
 
@@ -207,6 +213,61 @@ describe('results routes', () => {
       const result = await handlers.getCurrentGameday()
 
       expect(result).toEqual({ gameDay: 5, season: 1 })
+    })
+  })
+
+  describe('getGamesForSlider', () => {
+    it('annotates each past game with a seen flag from the seen-game helper', async () => {
+      const team = testData.team({ id: 7, level: 1, league: 1 })
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 0 })
+      // First query returns past games (DESC by gameDay), second returns upcoming.
+      // pastGames are reversed inside the route, so input order is newest-first.
+      query
+        .mockResolvedValueOnce([
+          { id: 102, gameDay: 4 },
+          { id: 101, gameDay: 3 },
+          { id: 100, gameDay: 2 }
+        ])
+        .mockResolvedValueOnce([])
+      getSeenGameIds.mockResolvedValue(new Set([100, 101]))
+
+      const req = createMockRequest()
+      const result = await handlers.getGamesForSlider(3, 0, req)
+
+      expect(getSeenGameIds).toHaveBeenCalledWith(7, [100, 101, 102])
+      expect(result.pastGames).toEqual([
+        { id: 100, gameDay: 2, seen: true },
+        { id: 101, gameDay: 3, seen: true },
+        { id: 102, gameDay: 4, seen: false }
+      ])
+    })
+  })
+
+  describe('markGameAsSeen', () => {
+    it('marks the game as seen for the current team', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      markGameAsSeen.mockResolvedValue(undefined)
+
+      const req = createMockRequest()
+      const result = await handlers.markGameAsSeen(42, req)
+
+      expect(markGameAsSeen).toHaveBeenCalledWith(7, 42)
+      expect(result).toEqual({ success: true })
+    })
+
+    it('throws when called without a user', async () => {
+      await expect(handlers.markGameAsSeen(42, { user: null })).rejects.toMatchObject({
+        message: 'Not authorized'
+      })
+    })
+
+    it('throws when called without a gameId', async () => {
+      const req = createMockRequest()
+      await expect(handlers.markGameAsSeen(null, req)).rejects.toMatchObject({
+        message: 'gameId required'
+      })
     })
   })
 

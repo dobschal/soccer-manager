@@ -77,19 +77,13 @@ export class DashboardPage extends TabbedPage {
       team2Data: this._extractTeamData(g, 2)
     }))
 
-    // Show the latest result once, then show the upcoming game on subsequent visits
-    const resultSeenKey = `resultSeen_${this.season}_${this.gameDay}`
-    const resultAlreadySeen = localStorage.getItem(resultSeenKey)
-    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, resultAlreadySeen)
-    localStorage.setItem(resultSeenKey, '1')
+    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
+    this._markLastPlayedAsSeen(this._sliderGames)
 
     const lastPlayedCupGame = [...this._cupGames].reverse().find(g => g.isPlayed)
-    if (lastPlayedCupGame) {
-      const cupResultSeenKey = `cupResultSeenForGame_${lastPlayedCupGame.id}`
-      this._cupResultAlreadySeen = Boolean(localStorage.getItem(cupResultSeenKey))
-      localStorage.setItem(cupResultSeenKey, '1')
-    } else {
-      this._cupResultAlreadySeen = false
+    this._cupResultAlreadySeen = Boolean(lastPlayedCupGame?.seen)
+    if (lastPlayedCupGame && !lastPlayedCupGame.seen) {
+      server.markGameAsSeen(lastPlayedCupGame.id).catch(() => {})
     }
 
     // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
@@ -244,12 +238,14 @@ export class DashboardPage extends TabbedPage {
     this._friendlyGames = friendlyResponse.games.map(g => ({ ...g, isPlayed: true, isFriendly: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._cupGames = cupResponse.games.map(g => ({ ...g, isPlayed: g.played === 1, isCup: true, totalRounds: cupResponse.totalRounds, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
-    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames, true)
+    this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
+    this._markLastPlayedAsSeen(this._sliderGames)
 
     const lastPlayedCupGame = [...this._cupGames].reverse().find(g => g.isPlayed)
-    this._cupResultAlreadySeen = lastPlayedCupGame
-      ? Boolean(localStorage.getItem(`cupResultSeenForGame_${lastPlayedCupGame.id}`))
-      : false
+    this._cupResultAlreadySeen = Boolean(lastPlayedCupGame?.seen)
+    if (lastPlayedCupGame && !lastPlayedCupGame.seen) {
+      server.markGameAsSeen(lastPlayedCupGame.id).catch(() => {})
+    }
 
     this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
@@ -313,15 +309,23 @@ export class DashboardPage extends TabbedPage {
     }
   }
 
-  _findInitialSlideIndex (games, resultAlreadySeen) {
+  _findInitialSlideIndex (games) {
     const lastPlayedIndex = games.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
     const nextUpcomingIndex = games.findIndex(g => !g.isPlayed && g.gameDate)
+    const lastPlayedAlreadySeen = lastPlayedIndex !== -1 && games[lastPlayedIndex].seen === true
 
-    if (resultAlreadySeen && nextUpcomingIndex !== -1) {
+    if (lastPlayedAlreadySeen && nextUpcomingIndex !== -1) {
       return nextUpcomingIndex
     }
 
     return Math.max(0, lastPlayedIndex)
+  }
+
+  _markLastPlayedAsSeen (games) {
+    const lastPlayed = [...games].reverse().find(g => g.isPlayed)
+    if (lastPlayed && !lastPlayed.seen) {
+      server.markGameAsSeen(lastPlayed.id).catch(() => {})
+    }
   }
 
   _showPendingCardsIfNeeded () {

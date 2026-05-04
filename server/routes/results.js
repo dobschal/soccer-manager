@@ -1,12 +1,13 @@
 import { query } from '../lib/database.js'
 import { calculateStanding } from '../lib/util.js'
-import { BadRequestError } from '../lib/errors.js'
+import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper.js'
 import { CACHE_NAMESPACES, cacheKey, getCached } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
 import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
+import { getSeenGameIds, markGameAsSeen as markGameAsSeenInDb } from '../helper/seenGameHelper.js'
 
 export default {
 
@@ -207,11 +208,29 @@ export default {
       }
     })
 
+    const orderedPastGames = pastGames.reverse() // Oldest first
+    const seenIds = await getSeenGameIds(team.id, orderedPastGames.map(g => g.id))
+    const pastGamesWithSeen = orderedPastGames.map(g => ({ ...g, seen: seenIds.has(g.id) }))
+
     return {
-      pastGames: pastGames.reverse(), // Oldest first
+      pastGames: pastGamesWithSeen,
       upcomingGames: upcomingGamesWithDates,
       nextGameDate
     }
+  },
+
+  /**
+   * Mark a game as seen by the current user's team. Idempotent.
+   * @param {number} gameId
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async markGameAsSeen (gameId, req) {
+    if (!req?.user) throw new UnauthorizedError('Not authorized')
+    if (!gameId) throw new BadRequestError('gameId required')
+    const team = await getTeam(req)
+    await markGameAsSeenInDb(team.id, gameId)
+    return { success: true }
   },
 
   /**

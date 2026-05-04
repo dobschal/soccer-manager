@@ -24,7 +24,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getDashboardUrgencies: vi.fn(),
     getPendingActionCards: vi.fn(),
     getNewLogMessageCount: vi.fn(),
-    getTutorialStatus: vi.fn()
+    getTutorialStatus: vi.fn(),
+    markGameAsSeen: vi.fn()
   }
 }))
 
@@ -188,6 +189,7 @@ describe('DashboardPage', () => {
     server.getTutorialStatus.mockResolvedValue({
       tutorialCompleted: {}
     })
+    server.markGameAsSeen.mockResolvedValue({ success: true })
   })
 
   describe('DashboardPage class', () => {
@@ -295,40 +297,36 @@ describe('DashboardPage', () => {
   })
 
   describe('cup result seen tracking', () => {
-    it('sets _cupResultAlreadySeen to false when the old gameDay key is set but no ID-based key exists', async () => {
+    it('sets _cupResultAlreadySeen to false when the latest played cup game has seen=false', async () => {
       server.getMyCupGames.mockResolvedValue({
         totalRounds: 4,
         games: [
-          { id: 100, played: 1, gameDate: '2026-04-01', team1Id: 1, team2Id: 2 },
+          { id: 100, played: 1, seen: false, gameDate: '2026-04-01', team1Id: 1, team2Id: 2 },
           { id: 101, played: 0, gameDate: '2026-05-01', team1Id: 1, team2Id: 3 }
         ]
       })
-
-      // Old gameDay-based key is set, new ID-based key is not
-      localStorage.getItem.mockImplementation(key => key === 'cupResultSeen_0_5' ? '1' : null)
 
       const page = new DashboardPage()
       await page.load()
 
       expect(page._cupResultAlreadySeen).toBe(false)
+      expect(server.markGameAsSeen).toHaveBeenCalledWith(100)
     })
 
-    it('sets _cupResultAlreadySeen to true when the ID-based key for the latest played cup game is already set', async () => {
+    it('sets _cupResultAlreadySeen to true when the latest played cup game has seen=true', async () => {
       server.getMyCupGames.mockResolvedValue({
         totalRounds: 4,
         games: [
-          { id: 100, played: 1, gameDate: '2026-04-01', team1Id: 1, team2Id: 2 },
+          { id: 100, played: 1, seen: true, gameDate: '2026-04-01', team1Id: 1, team2Id: 2 },
           { id: 101, played: 0, gameDate: '2026-05-01', team1Id: 1, team2Id: 3 }
         ]
       })
-
-      // ID-based key is already set (simulates second visit after fix)
-      localStorage.getItem.mockImplementation(key => key === 'cupResultSeenForGame_100' ? '1' : null)
 
       const page = new DashboardPage()
       await page.load()
 
       expect(page._cupResultAlreadySeen).toBe(true)
+      expect(server.markGameAsSeen).not.toHaveBeenCalledWith(100)
     })
 
     it('sets _cupResultAlreadySeen to false when there are no played cup games', async () => {
@@ -343,6 +341,48 @@ describe('DashboardPage', () => {
       await page.load()
 
       expect(page._cupResultAlreadySeen).toBe(false)
+    })
+  })
+
+  describe('league slider initial slide selection', () => {
+    it('shows the last played game when seen=false on first visit', async () => {
+      server.getGamesForSlider.mockResolvedValue({
+        pastGames: [
+          { id: 50, gameDay: 4, seen: true, team1Id: 1, team2Id: 2, goalsTeam1: 1, goalsTeam2: 0 },
+          { id: 51, gameDay: 5, seen: false, team1Id: 1, team2Id: 3, goalsTeam1: 2, goalsTeam2: 1 }
+        ],
+        upcomingGames: [
+          { id: 52, gameDay: 6, gameDate: '2026-05-05', team1Id: 1, team2Id: 4 }
+        ],
+        nextGameDate: null
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
+      // Index 1 in the merged array is the last played game (gameDay 5)
+      expect(page._initialSlideIndex).toBe(1)
+      expect(server.markGameAsSeen).toHaveBeenCalledWith(51)
+    })
+
+    it('shows the next upcoming game when the last played has seen=true', async () => {
+      server.getGamesForSlider.mockResolvedValue({
+        pastGames: [
+          { id: 50, gameDay: 4, seen: true, team1Id: 1, team2Id: 2, goalsTeam1: 1, goalsTeam2: 0 },
+          { id: 51, gameDay: 5, seen: true, team1Id: 1, team2Id: 3, goalsTeam1: 2, goalsTeam2: 1 }
+        ],
+        upcomingGames: [
+          { id: 52, gameDay: 6, gameDate: '2026-05-05', team1Id: 1, team2Id: 4 }
+        ],
+        nextGameDate: null
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
+      // Index 2 in the merged array is the first upcoming game (gameDay 6)
+      expect(page._initialSlideIndex).toBe(2)
+      expect(server.markGameAsSeen).not.toHaveBeenCalledWith(51)
     })
   })
 

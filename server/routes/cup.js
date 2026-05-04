@@ -11,6 +11,7 @@ import {
   getTotalRoundsForSeason,
   getTotalRounds
 } from '../helper/cupHelper.js'
+import { getSeenGameIds } from '../helper/seenGameHelper.js'
 
 export default {
   /**
@@ -84,9 +85,13 @@ export default {
       return { ...game, gameDate }
     })
 
+    const playedIds = gamesWithDates.filter(g => g.played).map(g => g.id)
+    const seenIds = await getSeenGameIds(team.id, playedIds)
+    const gamesWithSeen = gamesWithDates.map(g => g.played ? { ...g, seen: seenIds.has(g.id) } : g)
+
     const totalRounds = await getTotalRoundsForSeason(season)
 
-    return { games: gamesWithDates, totalRounds }
+    return { games: gamesWithSeen, totalRounds }
   },
 
   /**
