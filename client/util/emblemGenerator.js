@@ -159,6 +159,27 @@ export function adjustBrightness (hex, percent) {
 }
 
 /**
+ * Split a generated team name (`prefix1 prefix2 city`) into its parts.
+ * Falls back gracefully when one or both prefixes are missing.
+ * The last token is always the city, the second-to-last is prefix2, and
+ * anything before is prefix1 (which may itself contain spaces, e.g. "1. FC").
+ * @param {string} teamName
+ * @returns {{prefix1: string, prefix2: string, city: string}}
+ */
+export function splitTeamName (teamName) {
+  if (!teamName) return { prefix1: '', prefix2: '', city: '' }
+  const parts = teamName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return { prefix1: '', prefix2: '', city: '' }
+  if (parts.length === 1) return { prefix1: '', prefix2: '', city: parts[0] }
+  if (parts.length === 2) return { prefix1: '', prefix2: parts[0], city: parts[1] }
+  return {
+    prefix1: parts.slice(0, -2).join(' '),
+    prefix2: parts[parts.length - 2],
+    city: parts[parts.length - 1]
+  }
+}
+
+/**
  * Generate an emblem SVG
  * @param {Object} options
  * @param {string} options.shape - Shape key from EMBLEM_SHAPES
@@ -166,6 +187,9 @@ export function adjustBrightness (hex, percent) {
  * @param {string} options.color - Primary hex color
  * @param {string} [options.color2] - Secondary hex color for pattern
  * @param {string} options.teamName - Team name to display
+ * @param {boolean} [options.prefixOnEmblem] - Render prefix1 large inside the emblem
+ * @param {boolean} [options.prefix1OnBanner] - Include prefix1 on the banner
+ * @param {boolean} [options.prefix2OnBanner] - Include prefix2 on the banner
  * @param {number} [options.size=200] - Size of the emblem
  * @returns {string} SVG string
  */
@@ -175,14 +199,32 @@ export function generateEmblem ({
   color,
   color2,
   teamName,
+  prefixOnEmblem = false,
+  prefix1OnBanner = false,
+  prefix2OnBanner = false,
   size = 200
 }) {
   const shapeData = EMBLEM_SHAPES[shape] || EMBLEM_SHAPES.shield
   const patternData = EMBLEM_PATTERNS[pattern] || EMBLEM_PATTERNS.stripes
 
-  // Get display name (last word of team name)
-  const nameParts = teamName.split(' ')
-  const displayName = nameParts[nameParts.length - 1]
+  const { prefix1, prefix2, city } = splitTeamName(teamName)
+
+  // Banner text: city is always shown; prefixes are opt-in.
+  const bannerParts = []
+  if (prefix1OnBanner && prefix1) bannerParts.push(prefix1)
+  if (prefix2OnBanner && prefix2) bannerParts.push(prefix2)
+  bannerParts.push(city)
+  const bannerText = bannerParts.join(' ').toUpperCase()
+  // Banner body is ~149px wide; shrink font when the text gets long.
+  const bannerFontSize = bannerText.length > 14
+    ? Math.max(9, Math.floor((16 * 14) / bannerText.length))
+    : 16
+
+  // Large prefix rendered inside the emblem (above the banner).
+  const emblemPrefixText = prefixOnEmblem && prefix1 ? prefix1.toUpperCase() : ''
+  const emblemPrefixFontSize = emblemPrefixText
+    ? Math.min(70, Math.floor(140 / emblemPrefixText.length))
+    : 0
 
   // Create unique IDs for this emblem
   const clipId = `clip-${Math.random().toString(36).substr(2, 9)}`
@@ -202,6 +244,11 @@ export function generateEmblem ({
   <!-- Shape border -->
   <path d="${shapeData.path}" fill="none" stroke="white" stroke-width="4"/>
 
+  ${emblemPrefixText
+    ? `<!-- Prefix inside emblem -->
+  <text x="100" y="95" font-family="Arial, sans-serif" font-size="${emblemPrefixFontSize}" font-weight="bold" fill="white" stroke="${adjustBrightness(color, -40)}" stroke-width="2" paint-order="stroke" text-anchor="middle" dominant-baseline="central">${emblemPrefixText}</text>`
+    : ''}
+
   <!-- Banner -->
   <g>
     <!-- Left ribbon -->
@@ -215,7 +262,7 @@ export function generateEmblem ({
     <!-- Main banner body -->
     <path d="M173 144H26V167H175V144Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="3"/>
     <!-- Team name on banner -->
-    <text x="100" y="161" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">${displayName.toUpperCase()}</text>
+    <text x="100" y="161" font-family="Arial, sans-serif" font-size="${bannerFontSize}" font-weight="bold" fill="white" text-anchor="middle">${bannerText}</text>
   </g>
 </svg>`
 }

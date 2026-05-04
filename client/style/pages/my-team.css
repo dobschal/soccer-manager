@@ -17,6 +17,13 @@
     text-align: center;
 }
 
+.emblem-editor__section--toggles {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 /* Option Selector Boxes (shapes, patterns) */
 .emblem-editor__option {
     display: inline-block;

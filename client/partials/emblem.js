@@ -25,6 +25,9 @@ export function renderEmblem (team, size = 200) {
     pattern: params.pattern,
     color: params.color,
     color2: params.color2,
+    prefixOnEmblem: params.prefixOnEmblem,
+    prefix1OnBanner: params.prefix1OnBanner,
+    prefix2OnBanner: params.prefix2OnBanner,
     teamName: team.name,
     size
   })

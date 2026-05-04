@@ -19,7 +19,8 @@ import {
   EMBLEM_PATTERNS,
   EMBLEM_SHAPES,
   generateEmblem,
-  parseEmblemParams
+  parseEmblemParams,
+  splitTeamName
 } from '../../util/emblemGenerator.js'
 import { t } from '../../i18n/index.js'
 import { UIElement } from '../../lib/UIElement.js'
@@ -174,6 +175,9 @@ export class ATeamPage extends UIElement {
       '.emblem-viewer': {
         click: () => this._showEmblemEditor()
       },
+      '.emblem-header': {
+        click: () => this._showEmblemEditor()
+      },
       '.team-name-header': {
         click: () => this._showTeamNameEditor()
       }
@@ -253,7 +257,7 @@ export class ATeamPage extends UIElement {
         <div class="col-12 col-md-4 mb-4">
           <div class="card h-100 border-0">
             <div class="card-header text-white gradient-header">
-              <h5 class="card-title mb-0">${t('myTeam.emblem')} <i class="fa fa-pencil" aria-hidden="true"></i></h5>
+              <h5 class="card-title mb-0 emblem-header u-cursor-pointer" title="${t('myTeam.clickToEditEmblem')}">${t('myTeam.emblem')} <i class="fa fa-pencil" aria-hidden="true"></i></h5>
             </div>
             <div class="card-body u-perspective-40">
               ${this._renderEmblemViewer()}
@@ -571,9 +575,19 @@ export class ATeamPage extends UIElement {
     let selectedPattern = currentParams.pattern
     let selectedColor = currentParams.color
     let selectedColor2 = currentParams.color2 || EMBLEM_COLORS[1]
+    // Only offer prefix toggles for prefixes that actually exist in the team name.
+    const { prefix1, prefix2 } = splitTeamName(this.parent.data.team.name)
+    const hasPrefix1 = !!prefix1
+    const hasPrefix2 = !!prefix2
+    let selectedPrefixOnEmblem = hasPrefix1 && !!currentParams.prefixOnEmblem
+    let selectedPrefix1OnBanner = hasPrefix1 && !!currentParams.prefix1OnBanner
+    let selectedPrefix2OnBanner = hasPrefix2 && !!currentParams.prefix2OnBanner
 
     const previewId = generateId()
     const saveButtonId = generateId()
+    const prefixOnEmblemId = generateId()
+    const prefix1OnBannerId = generateId()
+    const prefix2OnBannerId = generateId()
 
     const updatePreview = () => {
       const previewEl = el(previewId)
@@ -583,6 +597,9 @@ export class ATeamPage extends UIElement {
           pattern: selectedPattern,
           color: selectedColor,
           color2: selectedColor2,
+          prefixOnEmblem: selectedPrefixOnEmblem,
+          prefix1OnBanner: selectedPrefix1OnBanner,
+          prefix2OnBanner: selectedPrefix2OnBanner,
           teamName: this.parent.data.team.name,
           size: 150
         })
@@ -697,7 +714,10 @@ export class ATeamPage extends UIElement {
           shape: selectedShape,
           pattern: selectedPattern,
           color: selectedColor,
-          color2: selectedColor2
+          color2: selectedColor2,
+          prefixOnEmblem: selectedPrefixOnEmblem,
+          prefix1OnBanner: selectedPrefix1OnBanner,
+          prefix2OnBanner: selectedPrefix2OnBanner
         })
         await server.updateEmblem(emblemParams, selectedColor)
         toast(t('myTeam.emblemUpdated'), 'success')
@@ -710,6 +730,49 @@ export class ATeamPage extends UIElement {
       }
     })
 
+    // Wire up checkbox listeners after overlay renders.
+    const bindCheckbox = (id, setter) => {
+      setTimeout(() => {
+        const element = el(id)
+        if (element) {
+          element.addEventListener('change', (e) => {
+            setter(e.target.checked)
+            updatePreview()
+          })
+        }
+      }, 100)
+    }
+    if (hasPrefix1) {
+      bindCheckbox(prefixOnEmblemId, (v) => { selectedPrefixOnEmblem = v })
+      bindCheckbox(prefix1OnBannerId, (v) => { selectedPrefix1OnBanner = v })
+    }
+    if (hasPrefix2) {
+      bindCheckbox(prefix2OnBannerId, (v) => { selectedPrefix2OnBanner = v })
+    }
+
+    const nameDisplaySection = (hasPrefix1 || hasPrefix2)
+      ? `
+      <h6>${t('myTeam.nameDisplay')}</h6>
+      <div class="emblem-editor__section emblem-editor__section--toggles mb-4">
+        ${hasPrefix1
+    ? `<div class="form-check">
+          <input class="form-check-input" type="checkbox" id="${prefixOnEmblemId}" ${selectedPrefixOnEmblem ? 'checked' : ''}>
+          <label class="form-check-label" for="${prefixOnEmblemId}">${t('myTeam.prefixOnEmblem', { prefix: prefix1 })}</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="${prefix1OnBannerId}" ${selectedPrefix1OnBanner ? 'checked' : ''}>
+          <label class="form-check-label" for="${prefix1OnBannerId}">${t('myTeam.prefix1OnBanner', { prefix: prefix1 })}</label>
+        </div>`
+    : ''}
+        ${hasPrefix2
+    ? `<div class="form-check">
+          <input class="form-check-input" type="checkbox" id="${prefix2OnBannerId}" ${selectedPrefix2OnBanner ? 'checked' : ''}>
+          <label class="form-check-label" for="${prefix2OnBannerId}">${t('myTeam.prefix2OnBanner', { prefix: prefix2 })}</label>
+        </div>`
+    : ''}
+      </div>`
+      : ''
+
     const overlay = showOverlay(
       t('myTeam.createEmblem'),
       t('myTeam.designEmblem'),
@@ -720,6 +783,9 @@ export class ATeamPage extends UIElement {
   pattern: selectedPattern,
   color: selectedColor,
   color2: selectedColor2,
+  prefixOnEmblem: selectedPrefixOnEmblem,
+  prefix1OnBanner: selectedPrefix1OnBanner,
+  prefix2OnBanner: selectedPrefix2OnBanner,
   teamName: this.parent.data.team.name,
   size: 150
 })}</div>
@@ -744,6 +810,8 @@ export class ATeamPage extends UIElement {
       <div class="emblem-editor__section mb-4">
         ${color2Options}
       </div>
+
+      ${nameDisplaySection}
 
       <button id="${saveButtonId}" class="btn btn-primary w-100">${t('myTeam.saveEmblem')}</button>
     `)
