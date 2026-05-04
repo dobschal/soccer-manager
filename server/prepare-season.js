@@ -7,6 +7,7 @@ import { cityNames, clubPrefixes1, clubPrefixes2, playerNames } from './lib/name
 import { calculateGamePlan, calculateStanding, randomItem } from './lib/util.js'
 import { Stadium } from './entities/stadium.js'
 import { addLogMessage } from './helper/logMessageHelper.js'
+import { defaultStadiumName } from './helper/stadiumHelper.js'
 import { getTeamById } from './helper/teamHelper.js'
 import { generateRandomEmblem } from './lib/emblem.js'
 import { archiveOverageYouthPlayers, getYouthPlayersAt18 } from './helper/youthPlayerHelper.js'
@@ -359,6 +360,7 @@ async function _createRandomTeam (level) {
   const stadiumConfig = _getBotStadiumConfig(level)
   const stadium = new Stadium({
     team_id: team.id,
+    name: defaultStadiumName(team.name),
     north_stand_roof: 0,
     south_stand_roof: 0,
     east_stand_roof: 0,
@@ -408,6 +410,7 @@ export async function regenerateTeamData (team) {
     const stadiumConfig = _getBotStadiumConfig(team.level ?? 0)
     const stadium = new Stadium({
       team_id: team.id,
+      name: defaultStadiumName(team.name),
       north_stand_roof: 0,
       south_stand_roof: 0,
       east_stand_roof: 0,

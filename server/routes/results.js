@@ -488,6 +488,30 @@ export default {
     return { teamStats: stats }
   },
 
+  /**
+   * Get stadium info (name + size) for all teams in a league.
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
+   * @returns {Promise<{stadiums: Array}>}
+   */
+  async getLeagueStadiums (level, league, req) {
+    const team = await getTeam(req)
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+    const rows = await query(`
+      SELECT t.id AS team_id, t.name AS team_name, t.emblem, t.color, t.user_id,
+             s.name AS stadium_name,
+             COALESCE(s.north_stand_size, 0) + COALESCE(s.south_stand_size, 0)
+               + COALESCE(s.east_stand_size, 0) + COALESCE(s.west_stand_size, 0) AS stadium_size
+      FROM team t
+      LEFT JOIN stadium s ON s.team_id = t.id
+      WHERE t.level = ? AND t.league = ?
+      ORDER BY t.name
+    `, [actualLevel, actualLeague])
+    return { stadiums: rows }
+  },
+
   async getInjuredPlayers (level, league, req) {
     const team = await getTeam(req)
     const actualLevel = level ?? team.level

@@ -44,9 +44,10 @@ export class LeagueResultsPage extends UIElement {
       server.getTopScorers(this.season, this.level, this.league, 10),
       isUpcomingGameDay && isMyLeague ? server.getSuspendedPlayers(this.level, this.league) : Promise.resolve({ suspendedPlayers: [] }),
       server.getTeamStats(this.gameDay, this.season, this.level, this.league),
-      isUpcomingGameDay && isMyLeague ? server.getInjuredPlayers(this.level, this.league) : Promise.resolve({ injuredPlayers: [] })
+      isUpcomingGameDay && isMyLeague ? server.getInjuredPlayers(this.level, this.league) : Promise.resolve({ injuredPlayers: [] }),
+      server.getLeagueStadiums(this.level, this.league)
     ]
-    const [{ results, isCupGameDay, cupRound }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }] = await Promise.all(promises)
+    const [{ results, isCupGameDay, cupRound }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }, { stadiums }] = await Promise.all(promises)
     this.results = results
     this.isCupGameDay = isCupGameDay
     this.cupRound = cupRound
@@ -58,6 +59,7 @@ export class LeagueResultsPage extends UIElement {
     this.suspendedPlayers = suspendedPlayers
     this.injuredPlayers = injuredPlayers
     this.teamStats = teamStats || []
+    this.stadiums = stadiums || []
 
     this._buildManagerChat()
   }
@@ -230,9 +232,6 @@ export class LeagueResultsPage extends UIElement {
                   <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="avg_freshness">
                     ${t('results.avgFreshness')} <span class="ts-sort-icon" data-sort-col="avg_freshness">${this._sortIcon('avg_freshness')}</span>
                   </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="stadium_size">
-                    ${t('results.stadiumSize')} <span class="ts-sort-icon" data-sort-col="stadium_size">${this._sortIcon('stadium_size')}</span>
-                  </th>
                   <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_value">
                     ${t('results.squadValue')} <span class="ts-sort-icon" data-sort-col="squad_value">${this._sortIcon('squad_value')}</span>
                   </th>
@@ -244,6 +243,8 @@ export class LeagueResultsPage extends UIElement {
             </table>
           </div>
         ` : ''}
+
+        ${this._renderStadiumsTable()}
       </div>
     `
   }
@@ -626,6 +627,34 @@ export class LeagueResultsPage extends UIElement {
     })
   }
 
+  _renderStadiumsTable () {
+    if (!this.stadiums || this.stadiums.length === 0) return ''
+    return `
+      <h3>${t('stadium.stadiumsTitle')}</h3>
+      ${new Table({
+    cols: [
+      { name: '', width: '32px' },
+      { name: t('results.team') },
+      { name: t('stadium.stadiumName') },
+      { name: t('stadium.size'), align: 'right' }
+    ],
+    data: this.stadiums,
+    renderRow: (s) => {
+      const team = { id: s.team_id, name: s.team_name, emblem: s.emblem, color: s.color, user_id: s.user_id }
+      const hasUser = Boolean(s.user_id)
+      return [
+        `<span class="emblem-thumb">${renderEmblem(team, 24)}</span>`,
+        `${s.team_name}${hasUser ? ' <i class="fa fa-user fa-sm" aria-hidden="true"></i>' : ''}`,
+        s.stadium_name || '-',
+        Number(s.stadium_size || 0).toLocaleString()
+      ]
+    },
+    onClick: (s) => goTo(`team?id=${s.team_id}`),
+    rowClass: (s) => this.myTeamId === s.team_id ? 'table-info' : ''
+  })}
+    `
+  }
+
   _renderTeamStatsRow (stat) {
     const id = generateId()
     onClick('#' + id, () => goTo(`team?id=${stat.team_id}`))
@@ -649,7 +678,6 @@ export class LeagueResultsPage extends UIElement {
         <td class="text-end">${stat.total_strength}</td>
         <td class="text-end">${stat.squad_size}</td>
         <td class="text-end">${avgFreshness}%</td>
-        <td class="text-end">${Number(stat.stadium_size).toLocaleString()}</td>
         <td class="text-end">${squadValue}</td>
       </tr>
     `

@@ -594,7 +594,68 @@ export async function getCupBracket (season) {
     }
   }
 
-  return bracket
+  return orderBracketByPairings(bracket)
+}
+
+/**
+ * Determine the winner team id of a cup game.
+ * Returns null if the game is unplayed or has no winner yet.
+ * Bye games (team2Id null) automatically advance team_1.
+ * @param {Object} game
+ * @returns {number|null}
+ */
+function getCupGameWinnerId (game) {
+  if (game.team2Id == null) return game.team1Id
+  if (typeof game.goalsTeam1 === 'number' && typeof game.goalsTeam2 === 'number') {
+    if (game.goalsTeam1 > game.goalsTeam2) return game.team1Id
+    if (game.goalsTeam2 > game.goalsTeam1) return game.team2Id
+  }
+  return null
+}
+
+/**
+ * Reorder bracket games so two games from an earlier round visually align
+ * with the follow-up game in the next round. Walks from the final outward,
+ * placing each round's games in the order their winners feed into the
+ * already-ordered next round.
+ * @param {Object} bracket - keyed by cup_round
+ * @returns {Object} bracket with reordered games arrays
+ */
+export function orderBracketByPairings (bracket) {
+  const sortedRounds = Object.keys(bracket).map(Number).sort((a, b) => a - b)
+  if (sortedRounds.length === 0) return bracket
+
+  const ordered = {}
+  const finalRound = sortedRounds[0]
+  ordered[finalRound] = { ...bracket[finalRound], games: [...(bracket[finalRound].games || [])] }
+  let currentOrder = ordered[finalRound].games
+
+  for (let i = 1; i < sortedRounds.length; i++) {
+    const round = sortedRounds[i]
+    const games = [...(bracket[round].games || [])]
+    const used = new Set()
+    const newOrder = []
+
+    for (const nextGame of currentOrder) {
+      for (const teamId of [nextGame.team1Id, nextGame.team2Id]) {
+        if (teamId == null) continue
+        const feederIdx = games.findIndex((g, idx) => !used.has(idx) && getCupGameWinnerId(g) === teamId)
+        if (feederIdx !== -1) {
+          newOrder.push(games[feederIdx])
+          used.add(feederIdx)
+        }
+      }
+    }
+
+    games.forEach((g, idx) => {
+      if (!used.has(idx)) newOrder.push(g)
+    })
+
+    ordered[round] = { ...bracket[round], games: newOrder }
+    currentOrder = newOrder
+  }
+
+  return ordered
 }
 
 /**

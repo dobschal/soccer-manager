@@ -5,8 +5,30 @@ import { updateTeamBalance } from './financeHelper.js'
 import { getTeam } from './teamHelper.js'
 import { addLogMessage } from './logMessageHelper.js'
 import { getUserLocale, t } from '../i18n/index.js'
+import { cityNames } from '../lib/name-library.js'
 
 const GAMEDAYS_PER_SEASON = 34
+const _cityNameSet = new Set(cityNames)
+
+/**
+ * Generate a default stadium name from a team name. The team name follows
+ * the pattern "[prefix1] [prefix2] cityName" — we look for a known city in the
+ * name and fall back to the last whitespace-separated token.
+ * @param {string} teamName
+ * @returns {string}
+ */
+export function defaultStadiumName (teamName) {
+  const trimmed = (teamName || '').trim()
+  const parts = trimmed.split(/\s+/).filter(Boolean)
+  let city = parts[parts.length - 1] || trimmed || 'Unknown'
+  for (const part of parts) {
+    if (_cityNameSet.has(part)) {
+      city = part
+      break
+    }
+  }
+  return `Stadium ${city}`.trim()
+}
 
 /**
  * @param {Request} req

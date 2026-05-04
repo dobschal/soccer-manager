@@ -28,6 +28,7 @@ export default {
   'error.standAlreadyHasRoof': 'This stand already has a roof',
   'error.cannotExpandFurther': 'Cannot expand further',
   'error.invalidTicketPrice': 'Invalid ticket price',
+  'error.invalidStadiumName': 'Stadium name must be 1-100 characters long',
 
   // Player errors
   'error.teamTooSmall': 'Your team must have at least 14 players.',

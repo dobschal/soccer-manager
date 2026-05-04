@@ -187,7 +187,7 @@ export function splitTeamName (teamName) {
  * @param {string} options.color - Primary hex color
  * @param {string} [options.color2] - Secondary hex color for pattern
  * @param {string} options.teamName - Team name to display
- * @param {boolean} [options.prefixOnEmblem] - Render prefix1 large inside the emblem
+ * @param {boolean} [options.prefixOnEmblem] - Render the leading prefix (prefix1, falling back to prefix2 for 2-part names) large inside the emblem
  * @param {boolean} [options.prefix1OnBanner] - Include prefix1 on the banner
  * @param {boolean} [options.prefix2OnBanner] - Include prefix2 on the banner
  * @param {number} [options.size=200] - Size of the emblem
@@ -221,9 +221,12 @@ export function generateEmblem ({
     : 16
 
   // Large prefix rendered inside the emblem (above the banner).
-  const emblemPrefixText = prefixOnEmblem && prefix1 ? prefix1.toUpperCase() : ''
+  // For 2-part names there's no prefix1, so fall back to prefix2 so the user can still
+  // display their leading prefix (e.g. "FC" in "FC Berlin") large on the crest.
+  const emblemPrefix = prefix1 || prefix2
+  const emblemPrefixText = prefixOnEmblem && emblemPrefix ? emblemPrefix.toUpperCase() : ''
   const emblemPrefixFontSize = emblemPrefixText
-    ? Math.min(70, Math.floor(140 / emblemPrefixText.length))
+    ? Math.min(56, Math.floor(112 / emblemPrefixText.length))
     : 0
 
   // Create unique IDs for this emblem

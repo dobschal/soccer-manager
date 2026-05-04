@@ -2,6 +2,7 @@
  * @typedef {object} StadiumType
  * @property {number} id
  * @property {number} team_id
+ * @property {string} [name]
  * @property {number} north_stand_size
  * @property {number} south_stand_size
  * @property {number} east_stand_size
@@ -17,7 +18,7 @@
  * @property {Date} created_at
  */
 
-import { OptionalNumber, OptionalObject, RequiredNumber, checkType } from '../lib/type-checker.js'
+import { OptionalNumber, OptionalObject, OptionalString, RequiredNumber, checkType } from '../lib/type-checker.js'
 
 /**
  * @param {StadiumType} raw
@@ -27,6 +28,7 @@ export function Stadium (raw) {
   checkType(raw, {
     id: OptionalNumber,
     team_id: RequiredNumber,
+    name: OptionalString,
     north_stand_size: RequiredNumber,
     south_stand_size: RequiredNumber,
     east_stand_size: RequiredNumber,

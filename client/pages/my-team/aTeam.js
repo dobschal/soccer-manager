@@ -579,7 +579,11 @@ export class ATeamPage extends UIElement {
     const { prefix1, prefix2 } = splitTeamName(this.parent.data.team.name)
     const hasPrefix1 = !!prefix1
     const hasPrefix2 = !!prefix2
-    let selectedPrefixOnEmblem = hasPrefix1 && !!currentParams.prefixOnEmblem
+    // The "prefix on emblem" toggle uses prefix1 when available, otherwise prefix2 so
+    // 2-part names (e.g. "FC Berlin") can still display their leading prefix on the crest.
+    const emblemPrefixLabel = prefix1 || prefix2
+    const hasEmblemPrefix = !!emblemPrefixLabel
+    let selectedPrefixOnEmblem = hasEmblemPrefix && !!currentParams.prefixOnEmblem
     let selectedPrefix1OnBanner = hasPrefix1 && !!currentParams.prefix1OnBanner
     let selectedPrefix2OnBanner = hasPrefix2 && !!currentParams.prefix2OnBanner
 
@@ -742,24 +746,28 @@ export class ATeamPage extends UIElement {
         }
       }, 100)
     }
-    if (hasPrefix1) {
+    if (hasEmblemPrefix) {
       bindCheckbox(prefixOnEmblemId, (v) => { selectedPrefixOnEmblem = v })
+    }
+    if (hasPrefix1) {
       bindCheckbox(prefix1OnBannerId, (v) => { selectedPrefix1OnBanner = v })
     }
     if (hasPrefix2) {
       bindCheckbox(prefix2OnBannerId, (v) => { selectedPrefix2OnBanner = v })
     }
 
-    const nameDisplaySection = (hasPrefix1 || hasPrefix2)
+    const nameDisplaySection = (hasEmblemPrefix || hasPrefix1 || hasPrefix2)
       ? `
       <h6>${t('myTeam.nameDisplay')}</h6>
       <div class="emblem-editor__section emblem-editor__section--toggles mb-4">
-        ${hasPrefix1
+        ${hasEmblemPrefix
     ? `<div class="form-check">
           <input class="form-check-input" type="checkbox" id="${prefixOnEmblemId}" ${selectedPrefixOnEmblem ? 'checked' : ''}>
-          <label class="form-check-label" for="${prefixOnEmblemId}">${t('myTeam.prefixOnEmblem', { prefix: prefix1 })}</label>
-        </div>
-        <div class="form-check">
+          <label class="form-check-label" for="${prefixOnEmblemId}">${t('myTeam.prefixOnEmblem', { prefix: emblemPrefixLabel })}</label>
+        </div>`
+    : ''}
+        ${hasPrefix1
+    ? `<div class="form-check">
           <input class="form-check-input" type="checkbox" id="${prefix1OnBannerId}" ${selectedPrefix1OnBanner ? 'checked' : ''}>
           <label class="form-check-label" for="${prefix1OnBannerId}">${t('myTeam.prefix1OnBanner', { prefix: prefix1 })}</label>
         </div>`

@@ -30,6 +30,7 @@ export class CupResultsPage extends UIElement {
     if (this.cupSeason === null) {
       this.cupRounds = []
       this.cupResults = []
+      this.cupBracket = {}
       return
     }
 
@@ -47,20 +48,23 @@ export class CupResultsPage extends UIElement {
 
     if (this.cupRound === null) {
       this.cupResults = []
+      this.cupBracket = {}
       return
     }
 
     const nextUnplayedRound = rounds.find(r => !r.played)
     const isNextRound = nextUnplayedRound && this.cupRound === nextUnplayedRound.round
     const isCurrentSeason = this.cupSeasons.length > 0 && this.cupSeason === this.cupSeasons[0]
-    const [{ results }, { suspendedPlayers }, { injuredPlayers }] = await Promise.all([
+    const [{ results }, { suspendedPlayers }, { injuredPlayers }, { bracket }] = await Promise.all([
       server.getCupResults(this.cupSeason, this.cupRound),
       isCurrentSeason && isNextRound ? server.getSuspendedPlayersForCup(this.cupSeason, this.cupRound) : Promise.resolve({ suspendedPlayers: [] }),
-      isCurrentSeason && isNextRound ? server.getInjuredPlayersForCup(this.cupSeason, this.cupRound) : Promise.resolve({ injuredPlayers: [] })
+      isCurrentSeason && isNextRound ? server.getInjuredPlayersForCup(this.cupSeason, this.cupRound) : Promise.resolve({ injuredPlayers: [] }),
+      server.getCupBracket(this.cupSeason)
     ])
     this.cupResults = results
     this.suspendedPlayers = suspendedPlayers
     this.injuredPlayers = injuredPlayers
+    this.cupBracket = bracket || {}
   }
 
   get template () {
@@ -151,6 +155,8 @@ export class CupResultsPage extends UIElement {
     rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
   })}
         ` : ''}
+
+        ${this._renderCupBracket()}
       </div>
     `
   }
@@ -168,6 +174,10 @@ export class CupResultsPage extends UIElement {
       },
       '#next-cup-season-button': {
         click: () => this._navigateCupSeason(1)
+      },
+      '(optional) .cup-bracket': {
+        mouseover: (e) => this._handleBracketTeamHover(e, true),
+        mouseout: (e) => this._handleBracketTeamHover(e, false)
       }
     }
   }
@@ -175,6 +185,139 @@ export class CupResultsPage extends UIElement {
   onMounted () {
     this._loadSuspendedPlayerImages()
   }
+  _handleBracketTeamHover (event, enter) {
+    const teamEl = event.target.closest('.cup-bracket-team[data-team-id]')
+    if (!teamEl) return
+    const teamId = teamEl.dataset.teamId
+    const root = document.querySelector(this._elementQuery)
+    if (!root) return
+    const matches = root.querySelectorAll(`.cup-bracket-team[data-team-id="${teamId}"]`)
+    matches.forEach(el => el.classList.toggle('cup-bracket-team--highlight', enter))
+  }
+  
+  _renderCupBracket () {
+    const allBracketRounds = Object.keys(this.cupBracket || {})
+      .map(Number)
+      .sort((a, b) => b - a)
+
+    if (allBracketRounds.length === 0) return ''
+
+    const maxHide = Math.max(0, allBracketRounds.length - 1)
+    if (this.bracketHiddenLeftCount > maxHide) this.bracketHiddenLeftCount = maxHide
+    const visibleRounds = allBracketRounds.slice(this.bracketHiddenLeftCount)
+
+    const hideButtonId = generateId()
+    onClick(hideButtonId, () => {
+      if (this.bracketHiddenLeftCount < maxHide) {
+        this.bracketHiddenLeftCount++
+        this.update()
+      }
+    })
+
+    const showAllButtonId = generateId()
+    onClick(showAllButtonId, () => {
+      if (this.bracketHiddenLeftCount > 0) {
+        this.bracketHiddenLeftCount = 0
+        this.update()
+      }
+    })
+
+    const columns = visibleRounds.map((round, idx) => {
+      const roundData = this.cupBracket[round]
+      const games = roundData?.games || []
+      const matches = games.map(g => this._renderBracketMatch(g)).join('')
+      const hideIcon = idx === 0
+        ? `<i id="${hideButtonId}" class="fa fa-eye-slash cup-bracket-hide-icon" title="${t('cup.bracketHideRound')}" aria-label="${t('cup.bracketHideRound')}"></i>`
+        : ''
+      return `
+        <div class="cup-bracket-round">
+          <div class="cup-bracket-round-title">
+            <span>${this._getCupRoundName(round)}</span>
+            ${hideIcon}
+          </div>
+          <div class="cup-bracket-matches">${matches}</div>
+        </div>
+      `
+    }).join('')
+
+    const showAllButton = this.bracketHiddenLeftCount > 0
+      ? `<i id="${showAllButtonId}" class="fa fa-eye cup-bracket-show-all" title="${t('cup.bracketShowAll')}" aria-label="${t('cup.bracketShowAll')}"></i>`
+      : ''
+
+    return `
+      <h3 class="mt-4 d-flex align-items-center gap-2">
+        <span>${t('cup.bracketTitle')}</span>
+        ${showAllButton}
+      </h3>
+      <div class="cup-bracket-scroll">
+        <div class="cup-bracket">${columns}</div>
+      </div>
+    `
+  }
+  
+  _renderBracketMatch (game) {
+    const isPlayed = game.played === 1
+    const isBye = !game.team2 && !game.team2Id
+    const hasResult = isPlayed && typeof game.goalsTeam1 === 'number' && typeof game.goalsTeam2 === 'number'
+    const team1Won = hasResult && game.goalsTeam1 > game.goalsTeam2
+    const team2Won = hasResult && game.goalsTeam2 > game.goalsTeam1
+
+    const matchId = generateId()
+    onClick(matchId, () => {
+      if (!isBye && isPlayed) setQueryParams({ game_id: game.id })
+    })
+
+    const team1Row = this._renderBracketTeamRow({
+      name: game.team1,
+      color: game.team1Color,
+      emblem: game.team1Emblem,
+      teamId: game.team1Id,
+      isMyTeam: this.myTeamId === game.team1Id,
+      goals: hasResult ? game.goalsTeam1 : null,
+      won: team1Won,
+      isPlayed
+    })
+
+    const team2Row = isBye
+      ? `<div class="cup-bracket-team cup-bracket-team--bye"><span class="cup-bracket-bye">${t('cup.bye')}</span></div>`
+      : this._renderBracketTeamRow({
+        name: game.team2,
+        color: game.team2Color,
+        emblem: game.team2Emblem,
+        teamId: game.team2Id,
+        isMyTeam: this.myTeamId === game.team2Id,
+        goals: hasResult ? game.goalsTeam2 : null,
+        won: team2Won,
+        isPlayed
+      })
+
+    const clickableClass = !isBye && isPlayed ? 'u-cursor-pointer' : ''
+    return `
+      <div id="${matchId}" class="cup-bracket-match ${clickableClass}">
+        ${team1Row}
+        ${team2Row}
+      </div>
+    `
+  }
+
+  _renderBracketTeamRow ({ name, color, emblem, teamId, isMyTeam, goals, won, isPlayed }) {
+    const emblemHtml = `<span class="emblem-thumb cup-bracket-emblem">${renderEmblem({ name, color, emblem }, 20)}</span>`
+    const nameClasses = ['cup-bracket-team-name']
+    if (won) nameClasses.push('cup-bracket-team-name--won')
+    if (isMyTeam) nameClasses.push('text-info')
+    const goalsHtml = goals !== null
+      ? `<span class="cup-bracket-team-score">${goals}</span>`
+      : (isPlayed ? '' : `<span class="cup-bracket-team-score cup-bracket-team-score--upcoming">-</span>`)
+    const teamIdAttr = teamId != null ? `data-team-id="${teamId}"` : ''
+    return `
+      <div class="cup-bracket-team" ${teamIdAttr}>
+        ${emblemHtml}
+        <span class="${nameClasses.join(' ')}">${shortenTeamName(name) || ''}</span>
+        ${goalsHtml}
+      </div>
+    `
+  }
+  
   cupSeason = null
 
   cupRound = null
@@ -184,6 +327,8 @@ export class CupResultsPage extends UIElement {
   cupTotalRounds = 0
   suspendedPlayers = []
   injuredPlayers = []
+  cupBracket = {}
+  bracketHiddenLeftCount = 0
 
   get myTeamId () {
     return this.parentPage.myTeamId

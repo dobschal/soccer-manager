@@ -1,12 +1,14 @@
 import { UIElement } from '../../lib/UIElement.js'
 import { server } from '../../lib/gateway.js'
-import { el } from '../../lib/html.js'
+import { el, generateId } from '../../lib/html.js'
 import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { t } from '../../i18n/index.js'
 import { Table } from '../../partials/table.js'
+import { showOverlay } from '../../partials/overlay.js'
+import { onClick } from '../../lib/htmlEventHandlers.js'
 
 export class StadiumSubPage extends UIElement {
   /**
@@ -46,9 +48,12 @@ export class StadiumSubPage extends UIElement {
    */
   get template () {
     this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas')
+    const stadiumName = this.stadium.name || t('stadium.yourStadium')
     return `
       <div>
-        <h2>${t('stadium.yourStadium')}</h2>
+        <h2 class="stadium-name-header u-cursor-pointer" title="${t('stadium.clickToEditName')}">
+          ${stadiumName} <i class="fa fa-pencil" aria-hidden="true"></i>
+        </h2>
         <p>${t('stadium.stadiumDesc', { seats: this._stadiumCanvas.calculateTotalSeats() })}</p>
         <div class="mb-4" id="stadium-canvas-container">
           ${this._stadiumCanvas}
@@ -77,6 +82,9 @@ export class StadiumSubPage extends UIElement {
    */
   get events () {
     return {
+      '.stadium-name-header': {
+        click: () => this._showStadiumNameEditor()
+      },
       '#price-form': {
         submit: this._onPriceFormSubmit.bind(this),
         input: (event) => {
@@ -154,6 +162,49 @@ export class StadiumSubPage extends UIElement {
   _hasValidConstruction = false
   /** @type {ReturnType<typeof setTimeout>|null} */
   _updatePriceTimeout = null
+
+  _showStadiumNameEditor () {
+    const inputId = generateId()
+    const saveBtnId = generateId()
+    const escapeAttr = (str) => String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+    const currentName = this.stadium.name || ''
+    const overlay = showOverlay(
+      t('stadium.editStadiumName'),
+      t('stadium.editStadiumNameDesc'),
+      `
+        <div class="form-group mb-3">
+          <input id="${inputId}" type="text" class="form-control" maxlength="100" value="${escapeAttr(currentName)}">
+        </div>
+        <button id="${saveBtnId}" class="btn btn-primary w-100">${t('common.save')}</button>
+      `
+    )
+    setTimeout(() => {
+      const input = document.getElementById(inputId)
+      if (input) input.focus()
+    })
+    onClick('#' + saveBtnId, async () => {
+      const input = document.getElementById(inputId)
+      if (!input) return
+      const newName = input.value.trim()
+      if (!newName) {
+        toast(t('stadium.nameRequired'), 'error')
+        return
+      }
+      try {
+        await server.updateStadiumName(newName)
+        this.stadium.name = newName
+        toast(t('stadium.nameUpdated'), 'success')
+        overlay.remove()
+        await this.update()
+      } catch (e) {
+        toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+      }
+    })
+  }
 
   /**
    * @param {Event} event

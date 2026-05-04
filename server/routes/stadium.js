@@ -144,6 +144,25 @@ export default {
   },
 
   /**
+   * @param {string} name
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async updateStadiumName (name, req) {
+    const locale = req.locale || 'en'
+    if (typeof name !== 'string') {
+      throw new BadRequestError(t('error.invalidStadiumName', {}, locale))
+    }
+    const trimmed = name.trim()
+    if (trimmed.length === 0 || trimmed.length > 100) {
+      throw new BadRequestError(t('error.invalidStadiumName', {}, locale))
+    }
+    const stadium = await getStadiumOfCurrentUser(req)
+    await query('UPDATE stadium SET name=? WHERE id=?', [trimmed, stadium.id])
+    return { success: true }
+  },
+
+  /**
    * @param {StadiumType} stadium
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}

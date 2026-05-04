@@ -1419,6 +1419,18 @@ const migrations = [{
         UNIQUE KEY idx_seen_game_team_game (team_id, game_id)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Add name column to stadium table',
+  async run () {
+    await query('ALTER TABLE stadium ADD COLUMN name VARCHAR(255) DEFAULT NULL')
+    const { defaultStadiumName } = await import('./helper/stadiumHelper.js')
+    const rows = await query('SELECT s.id, t.name AS team_name FROM stadium s JOIN team t ON s.team_id = t.id')
+    const promises = []
+    for (const row of rows) {
+      promises.push(query('UPDATE stadium SET name=? WHERE id=?', [defaultStadiumName(row.team_name), row.id]))
+    }
+    await Promise.all(promises)
+  }
 }]
 
 /**

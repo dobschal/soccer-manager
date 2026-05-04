@@ -193,6 +193,14 @@ export default {
   'stadium.completed': 'Completed',
   'stadium.inProgress': 'In Progress',
   'stadium.seasonDay': 'S{season} Day {day}',
+  'stadium.clickToEditName': 'Click to edit stadium name',
+  'stadium.editStadiumName': 'Edit Stadium Name',
+  'stadium.editStadiumNameDesc': 'Choose a name for your stadium.',
+  'stadium.nameUpdated': 'Stadium name updated',
+  'stadium.nameRequired': 'Please enter a stadium name',
+  'stadium.stadiumLabel': 'Stadium',
+  'stadium.stadiumName': 'Stadium Name',
+  'stadium.stadiumsTitle': 'Stadiums',
 
   // Finances
   'finances.title': 'Finances',
@@ -877,6 +885,9 @@ export default {
   'cup.infoTitle': 'How the Cup works',
   'cup.infoFormat': 'The cup is a knockout tournament with {totalRounds} rounds. Each match is single elimination — the loser is out.',
   'cup.infoPrize': 'Prize money per round win starts at {basePrize} and doubles each round. The cup winner receives an additional {winnerPrize}.',
+  'cup.bracketTitle': 'Cup Bracket',
+  'cup.bracketHideRound': 'Hide this round',
+  'cup.bracketShowAll': 'Show all rounds',
 
   // Results page tabs
   'results.leagueResults': 'League',

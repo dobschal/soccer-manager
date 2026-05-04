@@ -28,6 +28,7 @@ export default {
   'error.standAlreadyHasRoof': 'Diese Tribüne hat bereits ein Dach',
   'error.cannotExpandFurther': 'Kann nicht weiter erweitert werden',
   'error.invalidTicketPrice': 'Ungültiger Ticketpreis',
+  'error.invalidStadiumName': 'Stadionname muss 1-100 Zeichen lang sein',
 
   // Player errors
   'error.teamTooSmall': 'Dein Team muss mindestens 14 Spieler haben.',

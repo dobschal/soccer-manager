@@ -31,7 +31,8 @@ import {
   getCupRoundsForSeason,
   getCupSeasons,
   getCupRoundDisplayName,
-  getTotalRounds
+  getTotalRounds,
+  orderBracketByPairings
 } from '../../helper/cupHelper.js'
 
 describe('cupHelper', () => {
@@ -468,6 +469,87 @@ describe('cupHelper', () => {
       const result = await getCupSeasons()
 
       expect(result).toEqual([])
+    })
+  })
+
+  describe('orderBracketByPairings', () => {
+    it('returns empty bracket unchanged', () => {
+      expect(orderBracketByPairings({})).toEqual({})
+    })
+
+    it('keeps the final round game order unchanged', () => {
+      const finalGame = { team1Id: 1, team2Id: 2, goalsTeam1: 0, goalsTeam2: 0 }
+      const bracket = { 1: { games: [finalGame] } }
+
+      const result = orderBracketByPairings(bracket)
+
+      expect(result[1].games).toEqual([finalGame])
+    })
+
+    it('orders semi-final games so feeders of final.team1 come before feeders of final.team2', () => {
+      const finalGame = { team1Id: 10, team2Id: 20, goalsTeam1: null, goalsTeam2: null }
+      const semiA = { team1Id: 30, team2Id: 20, goalsTeam1: 0, goalsTeam2: 1 } // 20 wins → final.team2
+      const semiB = { team1Id: 10, team2Id: 40, goalsTeam1: 2, goalsTeam2: 1 } // 10 wins → final.team1
+      const bracket = {
+        1: { games: [finalGame] },
+        2: { games: [semiA, semiB] }
+      }
+
+      const result = orderBracketByPairings(bracket)
+
+      expect(result[2].games).toEqual([semiB, semiA])
+    })
+
+    it('orders quarter-finals so each pair feeds the same semi-final', () => {
+      const finalGame = { team1Id: 1, team2Id: 2, goalsTeam1: null, goalsTeam2: null }
+      const semi1 = { team1Id: 1, team2Id: 3, goalsTeam1: 1, goalsTeam2: 0 }
+      const semi2 = { team1Id: 4, team2Id: 2, goalsTeam1: 0, goalsTeam2: 2 }
+      // QF games: each team won one of the QFs
+      const qfA = { team1Id: 5, team2Id: 4, goalsTeam1: 0, goalsTeam2: 1 } // 4 won → semi2.team1
+      const qfB = { team1Id: 1, team2Id: 6, goalsTeam1: 3, goalsTeam2: 0 } // 1 won → semi1.team1
+      const qfC = { team1Id: 2, team2Id: 7, goalsTeam1: 2, goalsTeam2: 1 } // 2 won → semi2.team2
+      const qfD = { team1Id: 8, team2Id: 3, goalsTeam1: 0, goalsTeam2: 3 } // 3 won → semi1.team2
+
+      const bracket = {
+        1: { games: [finalGame] },
+        2: { games: [semi1, semi2] },
+        4: { games: [qfA, qfB, qfC, qfD] }
+      }
+
+      const result = orderBracketByPairings(bracket)
+
+      // Order: feeders of semi1.team1, semi1.team2, semi2.team1, semi2.team2
+      expect(result[4].games).toEqual([qfB, qfD, qfA, qfC])
+    })
+
+    it('treats bye games (team2Id null) as feeders for the bye-receiving team', () => {
+      const semiGame = { team1Id: 100, team2Id: 200, goalsTeam1: null, goalsTeam2: null }
+      const realFirstRound = { team1Id: 100, team2Id: 300, goalsTeam1: 1, goalsTeam2: 0 } // 100 won
+      const byeGame = { team1Id: 200, team2Id: null, goalsTeam1: 0, goalsTeam2: 0 } // 200 had bye
+      const bracket = {
+        1: { games: [semiGame] },
+        2: { games: [byeGame, realFirstRound] }
+      }
+
+      const result = orderBracketByPairings(bracket)
+
+      expect(result[2].games).toEqual([realFirstRound, byeGame])
+    })
+
+    it('appends games that cannot be matched to a feeder slot', () => {
+      const finalGame = { team1Id: 1, team2Id: 2, goalsTeam1: null, goalsTeam2: null }
+      const realSemi = { team1Id: 1, team2Id: 9, goalsTeam1: 1, goalsTeam2: 0 } // matches final.team1
+      const orphan = { team1Id: 50, team2Id: 60, goalsTeam1: 0, goalsTeam2: 0 } // unrelated
+      const bracket = {
+        1: { games: [finalGame] },
+        2: { games: [orphan, realSemi] }
+      }
+
+      const result = orderBracketByPairings(bracket)
+
+      expect(result[2].games[0]).toBe(realSemi)
+      expect(result[2].games).toContain(orphan)
+      expect(result[2].games).toHaveLength(2)
     })
   })
 })

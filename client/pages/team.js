@@ -115,7 +115,7 @@ export class TeamPage extends UIElement {
               <b>${t('team.lineupStrength')}</b>: ${this._teamStrength}<br>
               <b>${t('team.avgFreshness')}</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
               <b>${t('team.trainer')}</b>: ${this._username}<br>
-              <b>${t('team.stadiumSize')}</b>: <a href="#" class="stadium-link text-info">${t('team.seats', { seats: this._stadiumSize })}</a>
+              <b>${t('stadium.stadiumLabel')}</b>: <a href="#" class="stadium-link text-info">${this._stadiumName} (${t('team.seats', { seats: this._stadiumSize })})</a>
             </p>
             ${this._renderFriendlyMatchButton()}
           </div>
@@ -301,6 +301,13 @@ export class TeamPage extends UIElement {
    */
   get _stadiumSize () {
     return this.stadium.south_stand_size + this.stadium.north_stand_size + this.stadium.east_stand_size + this.stadium.west_stand_size
+  }
+
+  /**
+   * @returns {string}
+   */
+  get _stadiumName () {
+    return this.stadium?.name || t('stadium.yourStadium')
   }
 
   /**

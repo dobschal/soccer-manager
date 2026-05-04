@@ -193,6 +193,14 @@ export default {
   'stadium.completed': 'Abgeschlossen',
   'stadium.inProgress': 'Im Bau',
   'stadium.seasonDay': 'S{season} Tag {day}',
+  'stadium.clickToEditName': 'Klicke, um den Stadionnamen zu ändern',
+  'stadium.editStadiumName': 'Stadionname ändern',
+  'stadium.editStadiumNameDesc': 'Wähle einen Namen für dein Stadion.',
+  'stadium.nameUpdated': 'Stadionname aktualisiert',
+  'stadium.nameRequired': 'Bitte gib einen Stadionnamen ein',
+  'stadium.stadiumLabel': 'Stadion',
+  'stadium.stadiumName': 'Stadionname',
+  'stadium.stadiumsTitle': 'Stadien',
 
   // Finances
   'finances.title': 'Finanzen',
@@ -877,6 +885,9 @@ export default {
   'cup.infoTitle': 'So funktioniert der Pokal',
   'cup.infoFormat': 'Der Pokal ist ein K.O.-Turnier mit {totalRounds} Runden. Jedes Spiel ist ein Ausscheidungsspiel — der Verlierer scheidet aus.',
   'cup.infoPrize': 'Das Preisgeld pro Rundensieg beginnt bei {basePrize} und verdoppelt sich jede Runde. Der Pokalsieger erhält zusätzlich {winnerPrize}.',
+  'cup.bracketTitle': 'Pokal-Baum',
+  'cup.bracketHideRound': 'Diese Runde ausblenden',
+  'cup.bracketShowAll': 'Alle Runden anzeigen',
 
   // Results page tabs
   'results.leagueResults': 'Liga',
