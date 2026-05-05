@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /imprint.html
+Disallow: /support.html
+
+Sitemap: https://footballmanager.io/sitemap.xml

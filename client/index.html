@@ -10,10 +10,11 @@
     <meta name="description"
           content="Build your dream team, expand your dream stadium, sign sponsors and trade players. Play FootballManager.IO free in your browser!">
     <meta name="keywords"
-          content="football manager, browser game, online game, free to play, fantasy football, manager simulation">
+          content="football manager, soccer manager, browser game, online game, free to play, fantasy football, manager simulation">
     <meta name="author" content="FootballManager.IO">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://soccermanager.io">
+    <meta name="googlebot" content="index, follow">
+    <link rel="canonical" href="https://footballmanager.io/">
     <meta name="theme-color" content="#222222">
 
     <!-- Open Graph / Facebook / WhatsApp -->
@@ -21,12 +22,14 @@
     <meta property="og:title" content="FootballManager.IO - Free Online Football Manager Game">
     <meta property="og:description"
           content="Build your dream team, expand your dream stadium, sign sponsors and trade players. Play free in your browser!">
-    <meta property="og:image" content="https://soccermanager.io/assets/og-preview.jpg">
+    <meta property="og:image" content="https://footballmanager.io/assets/og-preview.jpg">
+    <meta property="og:image:secure_url" content="https://footballmanager.io/assets/og-preview.jpg">
+    <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="1536">
     <meta property="og:image:height" content="1024">
     <meta property="og:image:alt" content="FootballManager.IO - Football Manager Browser Game">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://soccermanager.io">
+    <meta property="og:url" content="https://footballmanager.io/">
     <meta property="og:locale" content="en_US">
 
     <!-- Twitter Card -->
@@ -34,8 +37,43 @@
     <meta name="twitter:title" content="FootballManager.IO - Free Online Football Manager Game">
     <meta name="twitter:description"
           content="Build your dream team, expand your dream stadium, sign sponsors and trade players. Play free in your browser!">
-    <meta name="twitter:image" content="https://soccermanager.io/assets/og-preview.jpg">
+    <meta name="twitter:image" content="https://footballmanager.io/assets/og-preview.jpg">
     <meta name="twitter:image:alt" content="FootballManager.IO - Football Manager Browser Game">
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://footballmanager.io/#website",
+          "url": "https://footballmanager.io/",
+          "name": "FootballManager.IO",
+          "description": "Free online football manager browser game. Build your team, expand your stadium, sign sponsors and trade players.",
+          "inLanguage": "en"
+        },
+        {
+          "@type": "VideoGame",
+          "name": "FootballManager.IO",
+          "url": "https://footballmanager.io/",
+          "image": "https://footballmanager.io/assets/og-preview.jpg",
+          "description": "Free online football manager browser game. Build your team, expand your stadium, sign sponsors and trade players.",
+          "genre": ["Sports", "Simulation", "Manager"],
+          "gamePlatform": ["Web Browser", "iOS", "Android"],
+          "applicationCategory": "Game",
+          "operatingSystem": "Any",
+          "inLanguage": ["en", "de"],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          }
+        }
+      ]
+    }
+    </script>
 
     <link rel="stylesheet" href="style/fonts.css">
     <link rel="stylesheet" href="style/bootstrap.min.css">
