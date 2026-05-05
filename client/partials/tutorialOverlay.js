@@ -139,9 +139,9 @@ function showTutorialOverlay (tutorialKey) {
 
   const cardBodyStyle = `
     background-image: url('/assets/manager.svg');
-    background-size: auto 100%;
+    background-size: 25% auto;
     background-repeat: no-repeat;
-    background-position: right -70px top 40px;
+    background-position: right -10% bottom 0;
   `
 
   const html = `
