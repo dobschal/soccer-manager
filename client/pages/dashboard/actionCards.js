@@ -6,6 +6,7 @@ import { PlayerList } from '../../partials/playerList.js'
 import { toast } from '../../partials/toast.js'
 import { delay } from '../../lib/delay.js'
 import { t } from '../../i18n/index.js'
+import { MiniGame } from './miniGame.js'
 
 /**
  * @returns {Object.<string, {title: string, description: string}>}
@@ -96,6 +97,7 @@ export class ActionCards extends UIElement {
         <div class="alert alert-info u-max-w-620">
           <i class="fa fa-info-circle me-1"></i> ${t('actionCards.buildingsHint')}
         </div>
+        ${this._miniGame}
       </div>
     `
   }
@@ -141,6 +143,7 @@ export class ActionCards extends UIElement {
       }
     }
   }
+  _miniGame = new MiniGame()
 
   _overlay = null
   _currentCardElement = null

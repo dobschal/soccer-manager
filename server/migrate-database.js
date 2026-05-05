@@ -1431,6 +1431,24 @@ const migrations = [{
     }
     await Promise.all(promises)
   }
+}, {
+  name: 'Create mini_game_score table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS mini_game_score
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        team_id BIGINT(20) NOT NULL,
+        score INT NOT NULL,
+        goals_scored INT NOT NULL DEFAULT 0,
+        duration_ms INT NOT NULL DEFAULT 0,
+        rewarded_card_id BIGINT(20) UNSIGNED DEFAULT NULL,
+        played_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_mini_game_score_team (team_id),
+        INDEX idx_mini_game_score_played_at (played_at),
+        INDEX idx_mini_game_score_score (score)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**
