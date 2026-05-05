@@ -10,15 +10,15 @@ const PLAYER_WIDTH = 60
 const PLAYER_HEIGHT = 60
 const PLAYER_Y = FIELD_HEIGHT - PLAYER_HEIGHT - 20
 const PLAYER_SPEED = 460
-const ENEMY_SIZE = 40
+const ENEMY_SIZE = 60
 const ENEMY_BASE_SPEED = 200
-const ENEMY_SPAWN_BASE_MS = 1500
-const ENEMY_SPAWN_MIN_MS = 400
+const ENEMY_SPAWN_BASE_MS = 550
+const ENEMY_SPAWN_MIN_MS = 200
+const ENEMY_LATERAL_SPEED_MAX = 120
 const GOAL_WIDTH = 220
 const GOAL_HEIGHT = 50
 const GOAL_X = (FIELD_WIDTH - GOAL_WIDTH) / 2
 const GOAL_Y = 10
-const GOAL_KEEPER_HALF_WIDTH = 30
 const GOAL_HIT_INNER_MARGIN = 30
 const GOAL_HIT_OUTER_MARGIN = 100
 const GOAL_INTERVAL_MS = 12000
@@ -181,6 +181,9 @@ export class MiniGame extends UIElement {
   _touchLeft = false
   _touchRight = false
   _submitting = false
+  _hasBall = true
+  _animTime = 0
+  _playerStepTime = 0
 
   _startGame () {
     if (this._state === STATE_PLAYING) return
@@ -195,6 +198,9 @@ export class MiniGame extends UIElement {
     this._nextGoalAt = this._startedAtTs + GOAL_INTERVAL_MS
     this._score = 0
     this._goalsScored = 0
+    this._hasBall = true
+    this._animTime = 0
+    this._playerStepTime = 0
     this._showOverlay('idle', false)
     this._showOverlay('over', false)
     this._updateHud()
@@ -207,6 +213,7 @@ export class MiniGame extends UIElement {
     this._lastFrameTs = ts
     const elapsed = ts - this._startedAtTs
 
+    this._animTime += dt
     this._tickPlayer(dt)
     this._tickEnemies(dt, ts, elapsed)
     this._tickGoal(ts)
@@ -225,19 +232,30 @@ export class MiniGame extends UIElement {
     if (dir !== 0) {
       this._player.x += dir * PLAYER_SPEED * dt
       this._player.x = Math.max(0, Math.min(FIELD_WIDTH - PLAYER_WIDTH, this._player.x))
+      this._playerStepTime += dt
     }
   }
 
   _tickEnemies (dt, ts, elapsed) {
     const speed = ENEMY_BASE_SPEED + Math.min(elapsed / 10000, 12) * 20
-    const spawnInterval = Math.max(ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_BASE_MS - Math.floor(elapsed / 10000) * 50)
+    const spawnInterval = Math.max(ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_BASE_MS - Math.floor(elapsed / 10000) * 60)
     if (ts >= this._nextEnemyAt) {
       const x = Math.random() * (FIELD_WIDTH - ENEMY_SIZE)
-      this._enemies.push({ x, y: -ENEMY_SIZE, color: this._randomEnemyColor() })
+      const vx = (Math.random() * 2 - 1) * ENEMY_LATERAL_SPEED_MAX
+      const stepPhase = Math.random() * Math.PI * 2
+      this._enemies.push({ x, y: -ENEMY_SIZE, vx, color: this._randomEnemyColor(), stepPhase })
       this._nextEnemyAt = ts + spawnInterval
     }
     for (const enemy of this._enemies) {
       enemy.y += speed * dt
+      enemy.x += enemy.vx * dt
+      if (enemy.x < 0) {
+        enemy.x = 0
+        enemy.vx = Math.abs(enemy.vx)
+      } else if (enemy.x > FIELD_WIDTH - ENEMY_SIZE) {
+        enemy.x = FIELD_WIDTH - ENEMY_SIZE
+        enemy.vx = -Math.abs(enemy.vx)
+      }
     }
     this._enemies = this._enemies.filter(e => e.y < FIELD_HEIGHT + ENEMY_SIZE)
 
@@ -298,6 +316,7 @@ export class MiniGame extends UIElement {
         this._goalsScored += 1
         this._goal = null
         this._nextGoalAt = performance.now() + GOAL_INTERVAL_MS
+        this._hasBall = true
       }
     }
   }
@@ -305,11 +324,14 @@ export class MiniGame extends UIElement {
   _tryShoot () {
     if (this._state !== STATE_PLAYING) return
     if (!this._goal) return
-    const aimingAtGoal = !this._shots.some(s => s.aimingAtGoal && !s.consumed)
+    if (!this._hasBall) return
+    this._hasBall = false
+    // Start the shot from where the ball was sitting in front of the player's feet,
+    // so it visually reads as the same ball flying off.
     this._shots.push({
       x: this._player.x + PLAYER_WIDTH / 2,
-      y: PLAYER_Y,
-      aimingAtGoal,
+      y: PLAYER_Y + PLAYER_HEIGHT * 0.08,
+      aimingAtGoal: true,
       consumed: false
     })
   }
@@ -437,86 +459,108 @@ export class MiniGame extends UIElement {
         ctx.lineTo(x, GOAL_Y + GOAL_HEIGHT)
         ctx.stroke()
       }
-      // Goalkeeper
-      const kCenter = GOAL_X + GOAL_WIDTH / 2
-      ctx.fillStyle = '#e02020'
-      ctx.fillRect(kCenter - GOAL_KEEPER_HALF_WIDTH, GOAL_Y + 8, GOAL_KEEPER_HALF_WIDTH * 2, GOAL_HEIGHT - 16)
+      // Goalkeeper — same figure as the field players, just standing on the goal line.
+      const keeperSize = GOAL_HEIGHT - 4
+      const keeperX = GOAL_X + GOAL_WIDTH / 2 - keeperSize / 2
+      const keeperY = GOAL_Y + (GOAL_HEIGHT - keeperSize) / 2
+      // Slow shuffle in place so the keeper looks alive.
+      const keeperPhase = this._animTime * Math.PI * 3
+      this._drawFigure(ctx, keeperX, keeperY, keeperSize, keeperSize, '#e02020', false, 'down', keeperPhase)
     }
 
-    // Enemies
+    // Enemies (face down towards the player)
+    const enemyStepBase = this._animTime * Math.PI * 7
     for (const enemy of this._enemies) {
-      this._drawFigure(ctx, enemy.x, enemy.y, ENEMY_SIZE, ENEMY_SIZE, enemy.color, false)
+      this._drawFigure(ctx, enemy.x, enemy.y, ENEMY_SIZE, ENEMY_SIZE, enemy.color, false, 'down', enemyStepBase + enemy.stepPhase)
     }
 
-    // Shots
-    ctx.fillStyle = '#ffeb3b'
+    // Shots — same look as the ball at the player's feet, so it reads as the ball flying off
     for (const shot of this._shots) {
-      ctx.beginPath()
-      ctx.arc(shot.x, shot.y, 6, 0, Math.PI * 2)
-      ctx.fill()
+      this._drawBall(ctx, shot.x, shot.y, Math.max(7, PLAYER_WIDTH * 0.16))
     }
 
-    // Player (with ball)
-    this._drawFigure(ctx, this._player.x, PLAYER_Y, PLAYER_WIDTH, PLAYER_HEIGHT, '#ffd54f', true)
+    // Player (faces up towards goal; ball at the feet unless it has just been kicked)
+    const playerPhase = this._playerStepTime * Math.PI * 7
+    this._drawFigure(ctx, this._player.x, PLAYER_Y, PLAYER_WIDTH, PLAYER_HEIGHT, '#ffd54f', this._hasBall, 'up', playerPhase)
   }
 
-  _drawFigure (ctx, x, y, width, height, jerseyColor, withBall) {
+  _drawFigure (ctx, x, y, width, height, jerseyColor, withBall, facing, walkPhase = 0) {
     const cx = x + width / 2
-    const shoulderY = y + height * 0.32
-    const headY = y + height * 0.28
-    const feetY = y + height * 0.78
     const shoulderRx = width * 0.42
-    const shoulderRy = height * 0.22
+    const shoulderRy = height * 0.20
     const headRx = width * 0.16
     const headRy = height * 0.18
-    const footOffset = width * 0.18
-    const footRx = width * 0.10
+    const footOffset = width * 0.16
+    const footRx = width * 0.11
     const footRy = height * 0.13
+    const ballRadius = Math.max(7, width * 0.16)
 
-    // Shoulders / jersey (wide ellipse spanning left-right)
+    // Lay out shoulders/head and feet depending on facing direction.
+    // Head sits in the centre of the shoulders (top-down view).
+    const facingUp = facing === 'up'
+    const bodyY = y + (facingUp ? height * 0.62 : height * 0.38)
+    const feetY = y + (facingUp ? height * 0.45 : height * 0.55)
+    const ballY = y + (facingUp ? height * 0.20 : height * 0.80)
+    const stepAmp = height * 0.10
+    const forwardSign = facingUp ? -1 : 1
+    const leftStep = Math.sin(walkPhase) * stepAmp * forwardSign
+    const rightStep = Math.sin(walkPhase + Math.PI) * stepAmp * forwardSign
+
+    // Feet first so the body covers the heels (gives a slight depth illusion)
+    ctx.fillStyle = '#111'
+    ctx.beginPath()
+    ctx.ellipse(cx - footOffset, feetY + leftStep, footRx, footRy, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.ellipse(cx + footOffset, feetY + rightStep, footRx, footRy, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Shoulders (wide jersey ellipse)
     ctx.fillStyle = jerseyColor
     ctx.beginPath()
-    ctx.ellipse(cx, shoulderY, shoulderRx, shoulderRy, 0, 0, Math.PI * 2)
+    ctx.ellipse(cx, bodyY, shoulderRx, shoulderRy, 0, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)'
     ctx.lineWidth = 1
     ctx.stroke()
 
-    // Head (oval centred between shoulders)
+    // Head — same y as shoulders, just smaller, so it appears centred between the shoulders
     ctx.fillStyle = '#f5cba7'
     ctx.beginPath()
-    ctx.ellipse(cx, headY, headRx, headRy, 0, 0, Math.PI * 2)
+    ctx.ellipse(cx, bodyY, headRx, headRy, 0, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = '#3a2a1a'
     ctx.lineWidth = 1
     ctx.stroke()
 
-    // Feet (two black shoe ovals)
-    ctx.fillStyle = '#111'
-    ctx.beginPath()
-    ctx.ellipse(cx - footOffset, feetY, footRx, footRy, 0, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.beginPath()
-    ctx.ellipse(cx + footOffset, feetY, footRx, footRy, 0, 0, Math.PI * 2)
-    ctx.fill()
-
     if (!withBall) return
 
-    // Ball in front of (just below) the feet
-    const ballRadius = Math.max(5, width * 0.11)
-    const ballY = y + height + ballRadius * 0.4
+    this._drawBall(ctx, cx, ballY, ballRadius)
+  }
+
+  _drawBall (ctx, cx, cy, radius) {
+    // White outer
     ctx.fillStyle = '#ffffff'
     ctx.beginPath()
-    ctx.arc(cx, ballY, ballRadius, 0, Math.PI * 2)
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
     ctx.fill()
-    ctx.strokeStyle = '#222'
-    ctx.lineWidth = 1.5
+    ctx.strokeStyle = '#1a1a1a'
+    ctx.lineWidth = Math.max(1, radius * 0.18)
     ctx.stroke()
-    // Pentagon hint
-    ctx.fillStyle = '#222'
-    ctx.beginPath()
-    ctx.arc(cx, ballY, ballRadius * 0.28, 0, Math.PI * 2)
-    ctx.fill()
+
+    // Classic black-and-white pattern: a centred pentagon with five smaller pentagons
+    // arranged around it, scaled to the ball's radius.
+    ctx.fillStyle = '#1a1a1a'
+    const centreR = radius * 0.32
+    drawPentagon(ctx, cx, cy, centreR, -Math.PI / 2)
+    const orbitR = radius * 0.6
+    const patchR = radius * 0.22
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + (i / 5) * Math.PI * 2
+      const px = cx + Math.cos(a) * orbitR
+      const py = cy + Math.sin(a) * orbitR
+      drawPentagon(ctx, px, py, patchR, a + Math.PI / 2)
+    }
   }
 
   _randomEnemyColor () {
@@ -560,4 +604,17 @@ function escapeHtml (str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+function drawPentagon (ctx, cx, cy, radius, rotation) {
+  ctx.beginPath()
+  for (let i = 0; i < 5; i++) {
+    const a = rotation + (i / 5) * Math.PI * 2
+    const x = cx + Math.cos(a) * radius
+    const y = cy + Math.sin(a) * radius
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.closePath()
+  ctx.fill()
 }
