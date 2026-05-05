@@ -89,9 +89,9 @@ export class MiniGame extends UIElement {
         </div>
 
         <div class="mini-game-controls">
-          <button class="btn btn-outline-light mini-game-btn-left" type="button" aria-label="left">◀</button>
+          <button class="btn btn-dark mini-game-btn-left" type="button" aria-label="left">◀</button>
           <button class="btn btn-warning mini-game-btn-shoot" type="button" aria-label="shoot">⚽</button>
-          <button class="btn btn-outline-light mini-game-btn-right" type="button" aria-label="right">▶</button>
+          <button class="btn btn-dark mini-game-btn-right" type="button" aria-label="right">▶</button>
         </div>
 
         <div class="row g-3 mt-3">
@@ -445,10 +445,7 @@ export class MiniGame extends UIElement {
 
     // Enemies
     for (const enemy of this._enemies) {
-      ctx.fillStyle = enemy.color
-      ctx.fillRect(enemy.x, enemy.y, ENEMY_SIZE, ENEMY_SIZE)
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(enemy.x + 8, enemy.y + 12, ENEMY_SIZE - 16, 6)
+      this._drawFigure(ctx, enemy.x, enemy.y, ENEMY_SIZE, ENEMY_SIZE, enemy.color, false)
     }
 
     // Shots
@@ -459,12 +456,67 @@ export class MiniGame extends UIElement {
       ctx.fill()
     }
 
-    // Player
-    ctx.fillStyle = '#ffd54f'
-    ctx.fillRect(this._player.x, PLAYER_Y, PLAYER_WIDTH, PLAYER_HEIGHT)
+    // Player (with ball)
+    this._drawFigure(ctx, this._player.x, PLAYER_Y, PLAYER_WIDTH, PLAYER_HEIGHT, '#ffd54f', true)
+  }
+
+  _drawFigure (ctx, x, y, width, height, jerseyColor, withBall) {
+    const cx = x + width / 2
+    const shoulderY = y + height * 0.32
+    const headY = y + height * 0.28
+    const feetY = y + height * 0.78
+    const shoulderRx = width * 0.42
+    const shoulderRy = height * 0.22
+    const headRx = width * 0.16
+    const headRy = height * 0.18
+    const footOffset = width * 0.18
+    const footRx = width * 0.10
+    const footRy = height * 0.13
+
+    // Shoulders / jersey (wide ellipse spanning left-right)
+    ctx.fillStyle = jerseyColor
+    ctx.beginPath()
+    ctx.ellipse(cx, shoulderY, shoulderRx, shoulderRy, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)'
+    ctx.lineWidth = 1
+    ctx.stroke()
+
+    // Head (oval centred between shoulders)
+    ctx.fillStyle = '#f5cba7'
+    ctx.beginPath()
+    ctx.ellipse(cx, headY, headRx, headRy, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#3a2a1a'
+    ctx.lineWidth = 1
+    ctx.stroke()
+
+    // Feet (two black shoe ovals)
+    ctx.fillStyle = '#111'
+    ctx.beginPath()
+    ctx.ellipse(cx - footOffset, feetY, footRx, footRy, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.ellipse(cx + footOffset, feetY, footRx, footRy, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    if (!withBall) return
+
+    // Ball in front of (just below) the feet
+    const ballRadius = Math.max(5, width * 0.11)
+    const ballY = y + height + ballRadius * 0.4
+    ctx.fillStyle = '#ffffff'
+    ctx.beginPath()
+    ctx.arc(cx, ballY, ballRadius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#222'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    // Pentagon hint
     ctx.fillStyle = '#222'
-    ctx.fillRect(this._player.x + 16, PLAYER_Y + 18, PLAYER_WIDTH - 32, 8)
-    ctx.fillRect(this._player.x + 16, PLAYER_Y + 36, PLAYER_WIDTH - 32, 8)
+    ctx.beginPath()
+    ctx.arc(cx, ballY, ballRadius * 0.28, 0, Math.PI * 2)
+    ctx.fill()
   }
 
   _randomEnemyColor () {
