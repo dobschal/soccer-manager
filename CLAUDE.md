@@ -18,6 +18,19 @@ npm run lint # No lint errors allowed
 
 If a test or lint check fails, fix the issue before moving on.
 
+### Branch model & deployment
+
+- `main` → deploys to **production** (https://footballmanager.io) on every push.
+- `develop` → deploys to **sandbox** (https://sandbox.footballmanager.io) on every push.
+- The default branch in GitHub stays `main`; releases and version bumps only happen on `main`.
+
+When asked to build a feature or fix a bug:
+
+1. Work on the `develop` branch (create/checkout `develop`, base it on `main` if needed).
+2. Extend or add tests covering the change. Run `npm test` and `npm run lint`.
+3. Commit and push `develop`. CI runs lint+test and then redeploys the sandbox.
+4. **Do not merge `develop` into `main` automatically.** The user does the final prod release manually by merging `develop` → `main` when the change has been verified in sandbox.
+
 ## Commands
 
 ```bash
@@ -132,6 +145,28 @@ ssh hetzner "docker exec -it soccer-manager-database-1 mysql -uroot -proot socce
 - Database name: `soccer`, user: `root`, password: `root` (only reachable inside the container).
 - Treat prod data as **read-only** unless the user explicitly asks for a write/fix.
 - Never dump or copy personal user data (emails, password hashes) outside the server.
+
+## Deployments on Hetzner
+
+Both production and sandbox run on the same Hetzner host using the same `docker-compose.yml`,
+parametrized via env vars. The compose file uses `APP_PORT`, `DB_PORT`, `NETWORK_NAME`, and
+`COMPOSE_PROJECT_NAME` so prod defaults stay unchanged.
+
+| Environment | Branch    | URL                              | Path                                          | App port | DB port | Docker network            | Project name              |
+|-------------|-----------|----------------------------------|-----------------------------------------------|----------|---------|---------------------------|---------------------------|
+| Production  | `main`    | https://footballmanager.io       | `/root/deployments/soccer-manager`            | `3013`   | `3306`  | `soccer-manager`          | `soccer-manager`          |
+| Sandbox     | `develop` | https://sandbox.footballmanager.io | `/root/deployments/soccer-manager-sandbox`  | `3014`   | `3307`  | `soccer-manager-sandbox`  | `soccer-manager-sandbox`  |
+
+Sandbox specifics:
+- Push notifications are **disabled** (`APN_*` / `FCM_*` are intentionally empty in the sandbox `.env`).
+- The sandbox database starts empty; run schema migration / season prep against the sandbox DB the same way as locally.
+- Sandbox container names are prefixed `soccer-manager-sandbox-*` (e.g. `soccer-manager-sandbox-database-1`).
+
+Inspect the sandbox DB the same way as prod:
+
+```bash
+ssh hetzner "docker exec soccer-manager-sandbox-database-1 mysql -uroot -proot -D soccer -e 'SELECT COUNT(*) FROM game;'"
+```
 
 ## Tech Stack
 
