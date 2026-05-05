@@ -138,7 +138,7 @@ function showTutorialOverlay (tutorialKey) {
   const itemsHtml = tutorial.items.map(item => `<li>${item}</li>`).join('')
 
   const cardBodyStyle = `
-    background-image: url('/assets/manager.png');
+    background-image: url('/assets/manager.svg');
     background-size: auto 100%;
     background-repeat: no-repeat;
     background-position: right -70px top 40px;
