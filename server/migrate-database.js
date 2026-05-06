@@ -1432,6 +1432,11 @@ const migrations = [{
     await Promise.all(promises)
   }
 }, {
+  name: 'Add is_forfeit column to game table',
+  async run () {
+    await query('ALTER TABLE game ADD COLUMN is_forfeit TINYINT(1) NOT NULL DEFAULT 0;')
+  }
+}, {
   name: 'Create mini_game_score table',
   async run () {
     await query(`CREATE TABLE IF NOT EXISTS mini_game_score

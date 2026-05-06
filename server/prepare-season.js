@@ -13,6 +13,7 @@ import { generateRandomEmblem } from './lib/emblem.js'
 import { archiveOverageYouthPlayers, getYouthPlayersAt18 } from './helper/youthPlayerHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
 import { createCupDraw, validateAndProgressCupRounds, calculateInterleavedSchedule } from './helper/cupHelper.js'
+import { saveStandingToCache } from './helper/standingHelper.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -216,13 +217,33 @@ async function _promotionRelegation () {
 }
 
 /**
- * @returns {Promise<void>}
+ * Create league games. Two scenarios:
+ *  1. **New season** — no unplayed league games exist anywhere. Create the
+ *     full schedule for every level/league of the next season (returns true,
+ *     which makes the cron skip game calculation for this tick).
+ *  2. **Mid-season** — a season is in progress, but newly opened levels (e.g.
+ *     because a fresh user registration triggered level N) have no games yet.
+ *     Generate the full schedule for those level/league combos and mark all
+ *     matchdays before the current game day as forfeits (0:0, no points).
+ *     Returns false so the cron continues the regular game day calculation.
+ * @returns {Promise<boolean>} true if a brand-new season was created
  */
 async function _createGames () {
-  if (!(await _newGamesNeeded())) {
-    console.log('⏭️ No new games needed.')
-    return false
+  const [activeGame] = await query(
+    'SELECT season, game_day FROM game WHERE played=0 AND (game_type=\'league\' OR game_type IS NULL) ORDER BY season ASC, game_day ASC LIMIT 1'
+  )
+  if (!activeGame) {
+    return await _createGamesForNewSeason()
   }
+  await _createGamesForNewLevels(activeGame.season, activeGame.game_day)
+  return false
+}
+
+/**
+ * Full schedule generation for a brand-new season.
+ * @returns {Promise<boolean>} true if any games were created
+ */
+async function _createGamesForNewSeason () {
   const season = await _seasonForNewGames()
   const gamePlan = calculateGamePlan(teamsPerLeague)
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
@@ -234,17 +255,9 @@ async function _createGames () {
   for (let level = 0; level < maxLevels; level++) {
     const teamsOfLevel = teams.filter(t => t.level === level)
     if (teamsOfLevel.length === 0) break
-    const leagues = []
-    for (let i = 0; i < teamsOfLevel.length; i++) {
-      const league = Math.floor(i / teamsPerLeague)
-      if (!leagues[league]) leagues[league] = []
-      query(`UPDATE team
-             SET league=${league}
-             WHERE id = ${teamsOfLevel[i].id}`)
-      leagues[league].push(teamsOfLevel[i])
-    }
-    await Promise.all(leagues.map((teamsOfLeague, league) => {
-      return _createGamesForLeague(season, level, league, teamsOfLeague, gamePlan, leagueDayMap)
+    const teamsByLeague = _assignTeamsToParallelLeagues(teamsOfLevel)
+    await Promise.all(teamsByLeague.map((teamsOfLeague, league) => {
+      return _createGamesForLeague(season, level, league, teamsOfLeague, gamePlan, leagueDayMap, 0)
     }))
   }
   console.log(`Created games for season ${season}`)
@@ -252,15 +265,94 @@ async function _createGames () {
 }
 
 /**
+ * For each level that currently has teams but no games for the active season,
+ * generate the full schedule and mark past matchdays as forfeits.
+ * @param {number} season
+ * @param {number} currentGameDay - first unplayed game_day for the active season
+ * @returns {Promise<void>}
+ */
+async function _createGamesForNewLevels (season, currentGameDay) {
+  const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
+  const gamePlan = calculateGamePlan(teamsPerLeague)
+  const leagueGameDays = (teamsPerLeague - 1) * 2
+  const { leagueDayMap } = calculateInterleavedSchedule(teams.length, leagueGameDays)
+
+  for (let level = 0; level < maxLevels; level++) {
+    const teamsOfLevel = teams.filter(t => t.level === level)
+    if (teamsOfLevel.length === 0) break
+    const [{ amount: existingGames }] = await query(
+      'SELECT COUNT(*) AS amount FROM game WHERE season=? AND level=? AND (game_type=\'league\' OR game_type IS NULL)',
+      [season, level]
+    )
+    if (existingGames > 0) continue
+    const teamsByLeague = _assignTeamsToParallelLeagues(teamsOfLevel)
+    await Promise.all(teamsByLeague.map((teamsOfLeague, league) => {
+      return _createGamesForLeague(season, level, league, teamsOfLeague, gamePlan, leagueDayMap, currentGameDay)
+    }))
+    await Promise.all(teamsByLeague.map((teamsOfLeague, league) => {
+      return _primeStandingCacheForNewLeague(season, level, league, teamsOfLeague)
+    }))
+    console.log(`📅 Mid-season schedule created for level ${level} (${teamsByLeague.length} parallel league(s)) — backfilled past days 0..${currentGameDay - 1} as forfeits`)
+  }
+}
+
+/**
+ * After mid-season league creation, populate standing_cache entries for every
+ * past game day of the new (level, league). Since all backfilled games are
+ * forfeits, calculateStanding returns zero-point rows for all teams.
+ * @param {number} season
+ * @param {number} level
+ * @param {number} league
+ * @param {TeamType[]} teams
+ * @returns {Promise<void>}
+ */
+async function _primeStandingCacheForNewLeague (season, level, league, teams) {
+  const games = await query(
+    'SELECT * FROM game WHERE season=? AND level=? AND league=? AND played=1 AND (game_type=\'league\' OR game_type IS NULL)',
+    [season, level, league]
+  )
+  if (games.length === 0) return
+  const pastGameDays = [...new Set(games.map(g => g.game_day))].sort((a, b) => a - b)
+  for (const gameDay of pastGameDays) {
+    const gamesUpToDay = games.filter(g => g.game_day <= gameDay)
+    const standing = calculateStanding(gamesUpToDay, teams)
+    await saveStandingToCache(gameDay, season, level, league, standing)
+  }
+}
+
+/**
+ * Assign teams to parallel leagues at the same level (league = floor(i/teamsPerLeague))
+ * and persist the league number on the team row.
+ * @param {TeamType[]} teamsOfLevel
+ * @returns {TeamType[][]}
+ */
+function _assignTeamsToParallelLeagues (teamsOfLevel) {
+  const leagues = []
+  for (let i = 0; i < teamsOfLevel.length; i++) {
+    const league = Math.floor(i / teamsPerLeague)
+    if (!leagues[league]) leagues[league] = []
+    query(`UPDATE team
+           SET league=${league}
+           WHERE id = ${teamsOfLevel[i].id}`)
+    leagues[league].push(teamsOfLevel[i])
+  }
+  return leagues
+}
+
+/**
+ * Generate the full home/away schedule for one league. Matchdays before
+ * `forfeitBeforeGameDay` are inserted as `played=1, is_forfeit=1, 0:0`,
+ * the rest as normal `played=0` games.
  * @param {number} season
  * @param {number} level
  * @param {number} league
  * @param {TeamType[]} teams
  * @param {Array} gamePlan
  * @param {number[]} leagueDayMap - Maps original league day index to actual game_day (with cup day gaps)
+ * @param {number} forfeitBeforeGameDay - matchdays with actual game_day < this are inserted as forfeits
  * @returns {Promise<void>}
  */
-async function _createGamesForLeague (season, level, league, teams, gamePlan, leagueDayMap) {
+async function _createGamesForLeague (season, level, league, teams, gamePlan, leagueDayMap, forfeitBeforeGameDay) {
   let gameDay = 0
   for (const gamesOfGameday of gamePlan) {
     for (const gamePair of gamesOfGameday) {
@@ -268,31 +360,42 @@ async function _createGamesForLeague (season, level, league, teams, gamePlan, le
       const teamB = teams[gamePair[1] - 1]
       const actualHomeDay = leagueDayMap ? leagueDayMap[gameDay] : gameDay
       const actualAwayDay = leagueDayMap ? leagueDayMap[gameDay + (teamsPerLeague - 1)] : gameDay + (teamsPerLeague - 1)
-      const game = new Game({
-        team_1_id: teamA.id,
-        team_2_id: teamB.id,
-        season,
-        game_day: actualHomeDay,
-        level,
-        league,
-        played: 0,
-        details: '{}'
-      })
-      const backGame = new Game({
-        team_1_id: teamB.id,
-        team_2_id: teamA.id,
-        season,
-        game_day: actualAwayDay,
-        level,
-        league,
-        played: 0,
-        details: '{}'
-      })
-      await query('INSERT INTO game SET ?', game)
-      await query('INSERT INTO game SET ?', backGame)
+      await query('INSERT INTO game SET ?', _buildGame(season, level, league, teamA.id, teamB.id, actualHomeDay, forfeitBeforeGameDay))
+      await query('INSERT INTO game SET ?', _buildGame(season, level, league, teamB.id, teamA.id, actualAwayDay, forfeitBeforeGameDay))
     }
     gameDay++
   }
+}
+
+/**
+ * @param {number} season
+ * @param {number} level
+ * @param {number} league
+ * @param {number} team1Id
+ * @param {number} team2Id
+ * @param {number} actualGameDay
+ * @param {number} forfeitBeforeGameDay
+ * @returns {Game}
+ */
+export function _buildGame (season, level, league, team1Id, team2Id, actualGameDay, forfeitBeforeGameDay) {
+  const isForfeit = actualGameDay < forfeitBeforeGameDay
+  /** @type {object} */
+  const raw = {
+    team_1_id: team1Id,
+    team_2_id: team2Id,
+    season,
+    game_day: actualGameDay,
+    level,
+    league,
+    played: isForfeit ? 1 : 0,
+    is_forfeit: isForfeit ? 1 : 0,
+    details: '{}'
+  }
+  if (isForfeit) {
+    raw.goals_team_1 = 0
+    raw.goals_team_2 = 0
+  }
+  return new Game(raw)
 }
 
 /**
@@ -324,6 +427,11 @@ function _calculateAmountPerLevel () {
 }
 
 /**
+ * Ensure every opened level is filled to its full quota of parallel leagues
+ * (amountTeamsPerLevel[level] = 2^level * teamsPerLeague). Additionally open
+ * new levels until the total team count reaches the minimum (= max(users*2,
+ * minimumTeams)). This guarantees that whenever a new level is reached, all
+ * its parallel leagues get bot-filled in one go.
  * @returns {Promise<void>}
  */
 async function _ajustAmountOfTeams () {
@@ -331,12 +439,41 @@ async function _ajustAmountOfTeams () {
   const [{ amount: amountOfUsers }] = await query('SELECT COUNT(*) AS amount FROM team WHERE user_id IS NOT NULL')
   const minimumAmountOfTeams = Math.max((amountOfUsers ?? 0) * 2, minimumTeams)
   let teams = await query('SELECT * FROM team WHERE is_system_team = 0')
-  while (teams.length === 0 || teams.length % teamsPerLeague !== 0 || teams.length < minimumAmountOfTeams) {
-    const levelForNewTeam = _determineLevelForNewTeam(teams)
-    const team = await _createRandomTeam(levelForNewTeam)
+  while (true) {
+    const levelToFill = _nextLevelToFill(teams, minimumAmountOfTeams)
+    if (levelToFill === -1) break
+    if (levelToFill >= maxLevels) {
+      throw new Error(`Cannot open level ${levelToFill}: exceeds maxLevels=${maxLevels}`)
+    }
+    const team = await _createRandomTeam(levelToFill)
     await Promise.all([...Array(18)].map((_, i) => _createRandomPlayer(team, i, season)))
     teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   }
+}
+
+/**
+ * Return the level for the next bot team to create:
+ *  - the lowest opened level that is not yet full, OR
+ *  - the next unopened level (if total teams < minimum), OR
+ *  - -1 if every opened level is full and minimum is satisfied.
+ * @param {TeamType[]} teams
+ * @param {number} minimumAmountOfTeams
+ * @returns {number}
+ */
+export function _nextLevelToFill (teams, minimumAmountOfTeams) {
+  const counts = []
+  let highestOpenedLevel = -1
+  for (const team of teams) {
+    const lvl = team.level ?? 0
+    counts[lvl] = (counts[lvl] ?? 0) + 1
+    if (lvl > highestOpenedLevel) highestOpenedLevel = lvl
+  }
+  for (let level = 0; level <= highestOpenedLevel; level++) {
+    const count = counts[level] ?? 0
+    if (count > 0 && count < amountTeamsPerLevel[level]) return level
+  }
+  if (teams.length < minimumAmountOfTeams) return highestOpenedLevel + 1
+  return -1
 }
 
 /**
@@ -452,21 +589,6 @@ async function _createRandomPlayer (team, i, season) {
     freshness: 1.0
   })
   await query('INSERT INTO player SET ?', player)
-}
-
-/**
- * @param {Array<Team>} teams
- * @returns {number}
- */
-function _determineLevelForNewTeam (teams) {
-  let levelForNewTeams = teams.sort((ta, tb) => tb.level - ta.level)[0]?.level ?? 0
-  const amountOfTeamsInLatestLevel = teams.filter(t => t.level === levelForNewTeams).length ?? 0
-  if (amountOfTeamsInLatestLevel > amountTeamsPerLevel[levelForNewTeams]) {
-    throw new Error('Too many teams in level!!!')
-  } else if (amountOfTeamsInLatestLevel === amountTeamsPerLevel[levelForNewTeams]) {
-    levelForNewTeams++
-  }
-  return levelForNewTeams
 }
 
 /**

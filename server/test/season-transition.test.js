@@ -152,6 +152,48 @@ describe('calculateStanding', () => {
     expect(standing).toHaveLength(2)
     expect(standing.find(s => s.team.id === 1).games).toBe(1)
   })
+
+  it('skips forfeit games entirely (no points, no goals, no game count)', () => {
+    const teams = [makeTeam(1), makeTeam(2), makeTeam(3)]
+    const games = [
+      makeGame(1, 2, 2, 1), // normal: team 1 wins
+      makeGame(2, 3, 0, 0, { is_forfeit: 1 }), // forfeit: ignored
+      makeGame(1, 3, 0, 0, { is_forfeit: 1 }) // forfeit: ignored
+    ]
+
+    const standing = calculateStanding(games, teams)
+    const team1 = standing.find(s => s.team.id === 1)
+    const team2 = standing.find(s => s.team.id === 2)
+    const team3 = standing.find(s => s.team.id === 3)
+
+    expect(team1.points).toBe(3)
+    expect(team1.games).toBe(1)
+    expect(team1.goals).toBe(2)
+    expect(team1.against).toBe(1)
+
+    expect(team2.points).toBe(0)
+    expect(team2.games).toBe(1) // only the loss vs team 1
+    expect(team3.points).toBe(0)
+    expect(team3.games).toBe(0) // only forfeit games — not counted
+  })
+
+  it('every team has 0 points when all games are forfeits', () => {
+    const teams = Array.from({ length: 18 }, (_, i) => makeTeam(i + 1))
+    const games = []
+    for (let i = 0; i < teams.length; i++) {
+      for (let j = i + 1; j < teams.length; j++) {
+        games.push(makeGame(teams[i].id, teams[j].id, 0, 0, { is_forfeit: 1 }))
+        games.push(makeGame(teams[j].id, teams[i].id, 0, 0, { is_forfeit: 1 }))
+      }
+    }
+    const standing = calculateStanding(games, teams)
+    for (const entry of standing) {
+      expect(entry.points).toBe(0)
+      expect(entry.games).toBe(0)
+      expect(entry.goals).toBe(0)
+      expect(entry.against).toBe(0)
+    }
+  })
 })
 
 // --- Tests for full 18-team league season standings ---
