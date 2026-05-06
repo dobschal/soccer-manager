@@ -12,6 +12,7 @@
  * @property {number} goals_team_1
  * @property {number} goals_team_2
  * @property {string} created_at
+ * @property {number} [is_forfeit] - 1 if the game was awarded as a forfeit (no points awarded)
  */
 
 import { checkType, OptionalNumber, OptionalObject, RequiredNumber, RequiredString } from '../lib/type-checker.js'
@@ -33,7 +34,8 @@ export function Game (raw) {
     details: RequiredString,
     goals_team_1: OptionalNumber,
     goals_team_2: OptionalNumber,
-    created_at: OptionalObject
+    created_at: OptionalObject,
+    is_forfeit: OptionalNumber
   })
   for (const key in raw) {
     if (Object.hasOwnProperty.call(raw, key)) {

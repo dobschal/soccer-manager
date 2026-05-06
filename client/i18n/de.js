@@ -1043,5 +1043,30 @@ export default {
   'admin.broadcastConfirm': 'Diese Benachrichtigung an ALLE Nutzer senden?',
   'admin.broadcastSent': 'Benachrichtigung an {sent} Nutzer gesendet.',
   'results.cupGameDayNotice': 'An diesem Spieltag fanden Pokalspiele statt.',
-  'results.goToCupResults': 'Zu den Pokal-Ergebnissen'
+  'results.goToCupResults': 'Zu den Pokal-Ergebnissen',
+
+  // Mini Game
+  'miniGame.title': 'Mini-Spiel: Schuss & Tor',
+  'miniGame.subtitle': 'Weiche den heranstürmenden Spielern aus und schieße in die Ecken, wenn das Tor erscheint. Jedes Tor erhöht deine Chance auf eine Action Card!',
+  'miniGame.start': 'Start',
+  'miniGame.startTitle': 'Bereit zu spielen?',
+  'miniGame.tryAgain': 'Nochmal',
+  'miniGame.howToPlay': 'Bewege dich mit ◀ ▶ (oder Pfeiltasten), schieße mit ⚽ (oder Leertaste), wenn das Tor erscheint. Ziele in die Ecken — zu zentral und der Torwart hält, zu weit und du schießt vorbei.',
+  'miniGame.score': 'Punkte',
+  'miniGame.goals': 'Tore',
+  'miniGame.gameOver': 'Spiel vorbei',
+  'miniGame.reason.collision': 'Mit einem Spieler kollidiert',
+  'miniGame.reason.save': 'Torwart hat den Schuss gehalten',
+  'miniGame.reason.wide': 'Schuss ging daneben',
+  'miniGame.finalScore': 'Punkte: {score} • Tore: {goals}',
+  'miniGame.yourRank': 'Dein Rang: #{rank}',
+  'miniGame.personalBest': 'Persönliche Bestleistung: {score}',
+  'miniGame.personalBestNew': 'Neue persönliche Bestleistung!',
+  'miniGame.rewardWon': 'Du hast eine Karte gewonnen:',
+  'miniGame.rewardBlank': 'Diesmal kein Glück — schieße mehr Tore!',
+  'miniGame.rewardDailyUsed': 'Du hast deine heutige Karte schon eingesammelt. Komm morgen wieder für eine neue Chance.',
+  'miniGame.topToday': 'Top 10 Heute',
+  'miniGame.topAllTime': 'Top 10 Gesamt',
+  'miniGame.team': 'Team',
+  'miniGame.leaderboardEmpty': 'Noch keine Ergebnisse. Sei der Erste!'
 }

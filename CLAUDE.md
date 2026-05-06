@@ -31,6 +31,47 @@ When asked to build a feature or fix a bug:
 3. Commit and push `develop`. CI runs lint+test and then redeploys the sandbox.
 4. **Do not merge `develop` into `main` automatically.** The user does the final prod release manually by merging `develop` → `main` when the change has been verified in sandbox.
 
+### Ticket workflow
+
+The Kanban board lives at https://github.com/users/dobschal/projects/1 (project number `1`, owner `dobschal`).
+Statuses are `Backlog` → `Next` → `In Progress` → `Review` → `Done`. The user moves tickets to `Done` after
+the change is verified in production.
+
+When the user provides a ticket number (e.g. "implement #251"), follow these steps:
+
+1. **Read the ticket** with `gh issue view <number> --repo dobschal/soccer-manager` to get title, body, and labels.
+2. **Move to `In Progress`** on the project board *before* starting work (see snippet below).
+3. **Implement on `develop`**: switch to `develop`, pull, then make the change.
+4. **Extend tests**: add or extend tests under the matching `test/` folder so the new behavior is covered.
+5. **Verify locally**: run `npm test` and `npm run lint`. Fix anything that fails before continuing.
+6. **Commit & push** to `develop`. Reference the ticket in the commit message (e.g. `fix: SEO meta tags (#251)`)
+   so GitHub auto-links the issue. Pushing triggers CI which redeploys sandbox.
+7. **Wait for CI green & sandbox deploy**, then **move the ticket to `Review`**. Do not merge into `main`.
+
+Project board IDs (for `gh project item-edit`):
+
+- Project ID: `PVT_kwHOAPJwEM4BOoBP`
+- Status field ID: `PVTSSF_lAHOAPJwEM4BOoBPzg9Raf4`
+- Status option IDs: `In Progress` = `47fc9ee4`, `Review` = `c83bbafb`, `Done` = `98236657`,
+  `Next` = `7b181db2`, `Backlog` = `f75ad846`
+
+```bash
+# Find the project item ID for an issue (board item != issue number)
+ITEM_ID=$(gh project item-list 1 --owner dobschal --format json --limit 200 \
+  | jq -r '.items[] | select(.content.number == <issue-number>) | .id')
+
+# Move to "In Progress"
+gh project item-edit --id "$ITEM_ID" --project-id PVT_kwHOAPJwEM4BOoBP \
+  --field-id PVTSSF_lAHOAPJwEM4BOoBPzg9Raf4 --single-select-option-id 47fc9ee4
+
+# Move to "Review" (after sandbox deploy)
+gh project item-edit --id "$ITEM_ID" --project-id PVT_kwHOAPJwEM4BOoBP \
+  --field-id PVTSSF_lAHOAPJwEM4BOoBPzg9Raf4 --single-select-option-id c83bbafb
+```
+
+If the ticket is not yet on the board, add it first via `gh project item-add 1 --owner dobschal --url <issue-url>`,
+then proceed with the status edit.
+
 ## Commands
 
 ```bash

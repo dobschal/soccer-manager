@@ -1043,5 +1043,30 @@ export default {
   'admin.broadcastConfirm': 'Send this notification to ALL users?',
   'admin.broadcastSent': 'Broadcast sent to {sent} users.',
   'results.cupGameDayNotice': 'This game day featured cup matches.',
-  'results.goToCupResults': 'Go to cup results'
+  'results.goToCupResults': 'Go to cup results',
+
+  // Mini Game
+  'miniGame.title': 'Mini Game: Strike & Score',
+  'miniGame.subtitle': 'Dodge incoming players and shoot into the corners when the goal opens up. Each goal increases your chance of winning an action card!',
+  'miniGame.start': 'Start',
+  'miniGame.startTitle': 'Ready to play?',
+  'miniGame.tryAgain': 'Try again',
+  'miniGame.howToPlay': 'Move with ◀ ▶ (or arrow keys), shoot with ⚽ (or space) when the goal appears. Aim for the corners — too central and the keeper saves, too wide and you miss.',
+  'miniGame.score': 'Score',
+  'miniGame.goals': 'Goals',
+  'miniGame.gameOver': 'Game Over',
+  'miniGame.reason.collision': 'Crashed into a player',
+  'miniGame.reason.save': 'Goalkeeper saved your shot',
+  'miniGame.reason.wide': 'Shot went wide',
+  'miniGame.finalScore': 'Score: {score} • Goals: {goals}',
+  'miniGame.yourRank': 'Your rank: #{rank}',
+  'miniGame.personalBest': 'Personal best: {score}',
+  'miniGame.personalBestNew': 'New personal best!',
+  'miniGame.rewardWon': 'You won a card:',
+  'miniGame.rewardBlank': 'No luck this time — try scoring more goals!',
+  'miniGame.rewardDailyUsed': 'You already collected today\'s card. Come back tomorrow for another chance.',
+  'miniGame.topToday': 'Top 10 Today',
+  'miniGame.topAllTime': 'Top 10 All Time',
+  'miniGame.team': 'Team',
+  'miniGame.leaderboardEmpty': 'No scores yet. Be the first!'
 }

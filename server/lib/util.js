@@ -71,6 +71,7 @@ export function calculateStanding (games, teams) {
     }
   }
   for (const game of games) {
+    if (game.is_forfeit) continue
     const s1 = standing[game.team_1_id]
     const s2 = standing[game.team_2_id]
     if (!s1 || !s2) continue
