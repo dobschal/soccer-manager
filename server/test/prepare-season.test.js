@@ -14,7 +14,6 @@ vi.mock('../helper/teamHelper.js', () => ({
 }))
 
 // Import after mocking
-import { query } from '../lib/database.js'
 import { prepareSeason, _buildGame, _nextLevelToFill } from '../prepare-season.js'
 
 describe('prepare-season', () => {
