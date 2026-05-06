@@ -78,13 +78,6 @@ export class DashboardPage extends TabbedPage {
     }))
 
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
-    this._markLastPlayedAsSeen(this._sliderGames)
-
-    const lastPlayedCupGame = [...this._cupGames].reverse().find(g => g.isPlayed)
-    this._cupResultAlreadySeen = Boolean(lastPlayedCupGame?.seen)
-    if (lastPlayedCupGame && !lastPlayedCupGame.seen) {
-      server.markGameAsSeen(lastPlayedCupGame.id).catch(() => {})
-    }
 
     // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
     const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
@@ -239,13 +232,6 @@ export class DashboardPage extends TabbedPage {
     this._cupGames = cupResponse.games.map(g => ({ ...g, isPlayed: g.played === 1, isCup: true, totalRounds: cupResponse.totalRounds, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
-    this._markLastPlayedAsSeen(this._sliderGames)
-
-    const lastPlayedCupGame = [...this._cupGames].reverse().find(g => g.isPlayed)
-    this._cupResultAlreadySeen = Boolean(lastPlayedCupGame?.seen)
-    if (lastPlayedCupGame && !lastPlayedCupGame.seen) {
-      server.markGameAsSeen(lastPlayedCupGame.id).catch(() => {})
-    }
 
     this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
@@ -265,7 +251,6 @@ export class DashboardPage extends TabbedPage {
       initialSlideIndex: this._initialSlideIndex,
       team: this.team,
       cupGames: this._cupGames,
-      cupResultAlreadySeen: this._cupResultAlreadySeen,
       friendlyGames: this._friendlyGames,
       canPlayFriendly: this._canPlayFriendly,
       standing: this.standing,
@@ -311,21 +296,9 @@ export class DashboardPage extends TabbedPage {
 
   _findInitialSlideIndex (games) {
     const lastPlayedIndex = games.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
+    if (lastPlayedIndex !== -1) return lastPlayedIndex
     const nextUpcomingIndex = games.findIndex(g => !g.isPlayed && g.gameDate)
-    const lastPlayedAlreadySeen = lastPlayedIndex !== -1 && games[lastPlayedIndex].seen === true
-
-    if (lastPlayedAlreadySeen && nextUpcomingIndex !== -1) {
-      return nextUpcomingIndex
-    }
-
-    return Math.max(0, lastPlayedIndex)
-  }
-
-  _markLastPlayedAsSeen (games) {
-    const lastPlayed = [...games].reverse().find(g => g.isPlayed)
-    if (lastPlayed && !lastPlayed.seen) {
-      server.markGameAsSeen(lastPlayed.id).catch(() => {})
-    }
+    return Math.max(0, nextUpcomingIndex)
   }
 
   _showPendingCardsIfNeeded () {

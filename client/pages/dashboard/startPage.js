@@ -17,7 +17,6 @@ export class StartPage {
    * @param {number} options.initialSlideIndex
    * @param {object} options.team
    * @param {Array} options.cupGames
-   * @param {boolean} options.cupResultAlreadySeen
    * @param {Array} options.friendlyGames
    * @param {boolean} options.canPlayFriendly
    * @param {Array} options.standing
@@ -29,7 +28,6 @@ export class StartPage {
     initialSlideIndex,
     team,
     cupGames,
-    cupResultAlreadySeen,
     friendlyGames,
     canPlayFriendly,
     standing,
@@ -40,7 +38,6 @@ export class StartPage {
     this._initialSlideIndex = initialSlideIndex
     this.team = team
     this._cupGames = cupGames
-    this._cupResultAlreadySeen = cupResultAlreadySeen
     this._friendlyGames = friendlyGames
     this._canPlayFriendly = canPlayFriendly
     this.standing = standing
@@ -335,17 +332,13 @@ export class StartPage {
 
   /**
    * Find the initial slide index for the cup game slider.
-   * Shows the latest result on first visit, then the next upcoming game on subsequent visits.
+   * Defaults to the latest played cup game, falling back to the next upcoming one.
    * @returns {number}
    */
   _findCupInitialSlideIndex () {
     const lastPlayedIndex = this._cupGames.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
+    if (lastPlayedIndex !== -1) return lastPlayedIndex
     const nextUpcomingIndex = this._cupGames.findIndex(g => !g.isPlayed && g.gameDate)
-
-    if (this._cupResultAlreadySeen && nextUpcomingIndex !== -1) {
-      return nextUpcomingIndex
-    }
-
-    return Math.max(0, lastPlayedIndex)
+    return Math.max(0, nextUpcomingIndex)
   }
 }
