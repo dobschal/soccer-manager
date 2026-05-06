@@ -3,6 +3,7 @@ import { server } from '../../lib/gateway.js'
 import { t } from '../../i18n/index.js'
 import { el } from '../../lib/html.js'
 import { toast } from '../../partials/toast.js'
+import { showCardClaimOverlay } from '../../partials/cardClaimOverlay.js'
 
 const FIELD_WIDTH = 800
 const FIELD_HEIGHT = 600
@@ -358,6 +359,9 @@ export class MiniGame extends UIElement {
       this._submitting = false
     }
     this._renderGameOver(reason, response)
+    if (response?.awardedCard) {
+      void showCardClaimOverlay([response.awardedCard])
+    }
     void this._refreshLeaderboard()
   }
 
@@ -395,7 +399,6 @@ export class MiniGame extends UIElement {
         rewardEl.innerHTML = `
           <div class="alert alert-success mb-0">
             <strong>${t('miniGame.rewardWon')}</strong> ${label}
-            <div class="small">${t('miniGame.rewardClaimHint')}</div>
           </div>
         `
       } else if (response?.dailyRewardUsed) {

@@ -1063,7 +1063,6 @@ export default {
   'miniGame.personalBest': 'Personal best: {score}',
   'miniGame.personalBestNew': 'New personal best!',
   'miniGame.rewardWon': 'You won a card:',
-  'miniGame.rewardClaimHint': 'Open the card on your dashboard to reveal it.',
   'miniGame.rewardBlank': 'No luck this time — try scoring more goals!',
   'miniGame.rewardDailyUsed': 'You already collected today\'s card. Come back tomorrow for another chance.',
   'miniGame.topToday': 'Top 10 Today',
