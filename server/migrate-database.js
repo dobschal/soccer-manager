@@ -1407,19 +1407,6 @@ const migrations = [{
   }
 },
 {
-  name: 'Create seen_game table',
-  async run () {
-    await query(`CREATE TABLE IF NOT EXISTS seen_game
-    (
-        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-        team_id BIGINT(20) NOT NULL,
-        game_id BIGINT(20) NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        UNIQUE KEY idx_seen_game_team_game (team_id, game_id)
-    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
-  }
-}, {
   name: 'Add name column to stadium table',
   async run () {
     await query('ALTER TABLE stadium ADD COLUMN name VARCHAR(255) DEFAULT NULL')
