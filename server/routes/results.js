@@ -105,6 +105,35 @@ export default {
   },
 
   /**
+   * Returns valid filter values for the results page selects.
+   * - leagues: every (level, league) combination that has league games
+   * - seasons: every season that has league games for the given (level, league)
+   * - gameDays: every game day that has league games for the given (level, league, season)
+   * @param {number} [level]
+   * @param {number} [league]
+   * @param {number} [season]
+   * @returns {Promise<{leagues: Array<{level: number, league: number}>, seasons: number[], gameDays: number[]}>}
+   */
+  async getResultsFilters (level, league, season) {
+    const hasLeague = typeof level !== 'undefined' && typeof league !== 'undefined' && level !== null && league !== null
+    const hasSeason = hasLeague && typeof season !== 'undefined' && season !== null
+    const [leagueRows, seasonRows, gameDayRows] = await Promise.all([
+      query("SELECT DISTINCT level, league FROM game WHERE (game_type='league' OR game_type IS NULL) ORDER BY level ASC, league ASC"),
+      hasLeague
+        ? query("SELECT DISTINCT season FROM game WHERE level=? AND league=? AND (game_type='league' OR game_type IS NULL) ORDER BY season ASC", [level, league])
+        : Promise.resolve([]),
+      hasSeason
+        ? query("SELECT DISTINCT game_day FROM game WHERE level=? AND league=? AND season=? AND (game_type='league' OR game_type IS NULL) ORDER BY game_day ASC", [level, league, season])
+        : Promise.resolve([])
+    ])
+    return {
+      leagues: leagueRows.map(r => ({ level: r.level, league: r.league })),
+      seasons: seasonRows.map(r => r.season),
+      gameDays: gameDayRows.map(r => r.game_day)
+    }
+  },
+
+  /**
    * @returns {Promise<{season: number, gameDay: number}>}
    */
   async getCurrentGameday () {

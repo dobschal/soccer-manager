@@ -529,23 +529,34 @@ export default {
     const seasonList = uniqueSeasons.map(r => r.season)
     const seasonPlaceholders = seasonList.map(() => '?').join(',')
 
-    // Bulk-fetch all data in parallel (3 queries instead of 5*N)
+    // Bulk-fetch all data in parallel (3 queries instead of 5*N).
+    // Project only the columns we need — the `details` LONGTEXT column on `game`
+    // is large and unused here, so excluding it makes the query an order of
+    // magnitude faster on big tables.
     const [allLeagueGames, allCupGames, allMaxCupRounds] = await Promise.all([
       // All league games for all relevant season/level/league combos
       query(`
-        SELECT g.* FROM game g
+        SELECT g.season, g.level, g.league, g.team_1_id, g.team_2_id,
+               g.goals_team_1, g.goals_team_2
+        FROM game g
         WHERE (${sllConditions})
           AND g.played = 1
           AND (g.game_type = 'league' OR g.game_type IS NULL)
       `, sllParams),
-      // All cup games for this team across all relevant seasons
+      // All cup games for this team across all relevant seasons.
+      // Split the OR on team_1_id / team_2_id into a UNION ALL so MySQL can
+      // use the per-team indexes (idx_game_team1_played / idx_game_team2_played)
+      // instead of falling back to a scan.
       query(`
-        SELECT g.*
-        FROM game g
-        WHERE g.game_type = 'cup' AND g.season IN (${seasonPlaceholders})
-          AND (g.team_1_id = ? OR g.team_2_id = ?)
-        ORDER BY g.cup_round ASC
-      `, [...seasonList, teamId, teamId]),
+        SELECT season, team_1_id, team_2_id, goals_team_1, goals_team_2, played, cup_round
+        FROM game
+        WHERE game_type = 'cup' AND season IN (${seasonPlaceholders}) AND team_1_id = ?
+        UNION ALL
+        SELECT season, team_1_id, team_2_id, goals_team_1, goals_team_2, played, cup_round
+        FROM game
+        WHERE game_type = 'cup' AND season IN (${seasonPlaceholders}) AND team_2_id = ?
+        ORDER BY cup_round ASC
+      `, [...seasonList, teamId, ...seasonList, teamId]),
       // Max cup_round per season for totalRounds calculation
       query(`
         SELECT season, MAX(cup_round) as maxRound

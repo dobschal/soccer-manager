@@ -165,11 +165,15 @@ export class DashboardPage extends TabbedPage {
       }
       this._switchSubPage()
       this._updateNav()
-    } else if (!newSubPage) {
-      // Returning to the start tab from another page — refresh data
+    } else if (!newSubPage && this._initialQueryChangeHandled) {
+      // Returning to the start tab from another page — refresh data.
+      // Skip on the very first onQueryChanged after mount: the page just
+      // rendered with fresh data, so refreshing here would replace the
+      // start sub-page in the DOM and trigger a visible fade-in flicker.
       await this._refreshStartPageData()
       this._switchSubPage()
     }
+    this._initialQueryChangeHandled = true
   }
   get routeName () { return 'dashboard' }
   
@@ -199,6 +203,7 @@ export class DashboardPage extends TabbedPage {
   _actionCardCount = 0
   _newMessageCount = 0
   _pendingCards = []
+  _initialQueryChangeHandled = false
 
   _renderCardBadge () {
     if (this._actionCardCount <= 0 || this.subPage === 'cards') return ''
@@ -296,9 +301,17 @@ export class DashboardPage extends TabbedPage {
 
   _findInitialSlideIndex (games) {
     const lastPlayedIndex = games.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
-    if (lastPlayedIndex !== -1) return lastPlayedIndex
     const nextUpcomingIndex = games.findIndex(g => !g.isPlayed && g.gameDate)
-    return Math.max(0, nextUpcomingIndex)
+    if (lastPlayedIndex === -1) return Math.max(0, nextUpcomingIndex)
+
+    // Once the user has opened the dashboard for this game day and seen the
+    // last played game, default to the next upcoming game on subsequent visits.
+    const seenKey = `dashboardSliderSeen_${this.season}_${this.gameDay}`
+    if (localStorage.getItem(seenKey) && nextUpcomingIndex !== -1) {
+      return nextUpcomingIndex
+    }
+    localStorage.setItem(seenKey, '1')
+    return lastPlayedIndex
   }
 
   _showPendingCardsIfNeeded () {
