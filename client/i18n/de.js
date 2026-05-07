@@ -114,6 +114,9 @@ export default {
   'dashboard.tabCards': 'Aktionen',
   'dashboard.tabNews': 'News',
   'dashboard.tabMessages': 'Nachrichten',
+  'dashboard.communityTitle': 'Community-Driven',
+  'dashboard.communityText': 'Dieses Spiel wird gemeinsam mit dir entwickelt. Reiche neue Feature-Wünsche ein, kommentiere bestehende Vorschläge und stimme darüber ab, was als Nächstes ins Spiel kommt.',
+  'dashboard.communityCta': 'Zu den Feature-Requests',
 
   // Stadium
   'stadium.title': 'Stadion',
@@ -1064,9 +1067,10 @@ export default {
   'miniGame.personalBestNew': 'Neue persönliche Bestleistung!',
   'miniGame.rewardWon': 'Du hast eine Karte gewonnen:',
   'miniGame.rewardBlank': 'Diesmal kein Glück — schieße mehr Tore!',
-  'miniGame.rewardDailyUsed': 'Du hast deine heutige Karte schon eingesammelt. Komm morgen wieder für eine neue Chance.',
+  'miniGame.rewardGameDayUsed': 'Du hast deine Karte für diesen Spieltag schon eingesammelt. Beim nächsten Spieltag gibt es wieder eine Chance.',
   'miniGame.topToday': 'Top 10 Heute',
   'miniGame.topAllTime': 'Top 10 Gesamt',
   'miniGame.team': 'Team',
+  'miniGame.manager': 'Manager',
   'miniGame.leaderboardEmpty': 'Noch keine Ergebnisse. Sei der Erste!'
 }

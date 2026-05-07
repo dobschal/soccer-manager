@@ -1441,6 +1441,13 @@ const migrations = [{
         INDEX idx_mini_game_score_score (score)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Add game_day and season to mini_game_score',
+  async run () {
+    await query('ALTER TABLE mini_game_score ADD COLUMN game_day INT NOT NULL DEFAULT 0;')
+    await query('ALTER TABLE mini_game_score ADD COLUMN season INT NOT NULL DEFAULT 0;')
+    await query('CREATE INDEX idx_mini_game_score_game_day_season ON mini_game_score (game_day, season);')
+  }
 }]
 
 /**

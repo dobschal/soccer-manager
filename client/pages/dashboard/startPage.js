@@ -89,11 +89,26 @@ export class StartPage {
           ${this._renderUrgencyChecklist()}
         </div>
       </div>
+      ${this._renderCommunityCard()}
       ${this._renderVideoCard()}
       <p class="text-center text-muted mt-3 mb-0 pb-4">
         <i class="fa fa-coffee"></i> Support me and buy me a coffee:
         <a id="${coffeeId}" href="https://buymeacoffee.com/dobschal" target="_blank" rel="noopener" class="buy-me-a-coffee-link">buymeacoffee.com/dobschal</a>
       </p>
+    `
+  }
+
+  _renderCommunityCard () {
+    return `
+      <div class="card card-body mb-2 bg-dark mt-3 community-card">
+        <h5 class="mb-2 text-center text-white"><i class="fa fa-users"></i> ${t('dashboard.communityTitle')}</h5>
+        <p class="text-center text-white-50 mb-3">${t('dashboard.communityText')}</p>
+        <div class="text-center">
+          <a href="#forum?category=3" class="btn btn-info btn-sm">
+            <i class="fa fa-lightbulb-o"></i> ${t('dashboard.communityCta')}
+          </a>
+        </div>
+      </div>
     `
   }
 

@@ -248,11 +248,50 @@ describe('DashboardPage', () => {
       const page = new DashboardPage()
       expect(page.isUIElement).toBe(true)
     })
+
+    it('renders community feature-request card linking to forum category 3', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const html = page.template
+      expect(html).toContain('Community-Driven')
+      expect(html).toContain('#forum?category=3')
+    })
   })
 
   describe('renderDashboardPage (backwards compatibility)', () => {
     it('is exported as a function', () => {
       expect(typeof renderDashboardPage).toBe('function')
+    })
+  })
+
+  describe('initial onQueryChanged after first render', () => {
+    it('does not re-refresh start page data on the first onQueryChanged (would cause flicker)', async () => {
+      const page = new DashboardPage()
+      await page.load()
+
+      // After load, the router fires query-changed once. subPage is null and
+      // params.sub_page is undefined, so without the guard the else-if branch
+      // would re-fetch and re-render the start sub-page, causing a visible
+      // fade-in flicker on first page open.
+      const callsAfterLoad = server.getDashboardUrgencies.mock.calls.length
+      await page.onQueryChanged({})
+
+      expect(server.getDashboardUrgencies).toHaveBeenCalledTimes(callsAfterLoad)
+    })
+
+    it('does refresh start page data on a later onQueryChanged when returning to start', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const callsAfterLoad = server.getDashboardUrgencies.mock.calls.length
+
+      // First onQueryChanged after render: skipped (initial)
+      await page.onQueryChanged({})
+      expect(server.getDashboardUrgencies).toHaveBeenCalledTimes(callsAfterLoad)
+
+      // Subsequent onQueryChanged with no sub_page: simulates returning from
+      // another page. This should refresh.
+      await page.onQueryChanged({})
+      expect(server.getDashboardUrgencies).toHaveBeenCalledTimes(callsAfterLoad + 1)
     })
   })
 
@@ -295,7 +334,7 @@ describe('DashboardPage', () => {
   })
 
   describe('league slider initial slide selection', () => {
-    it('defaults to the last played game when one exists', async () => {
+    it('defaults to the last played game on the first visit of a game day', async () => {
       server.getGamesForSlider.mockResolvedValue({
         pastGames: [
           { id: 50, gameDay: 4, team1Id: 1, team2Id: 2, goalsTeam1: 1, goalsTeam2: 0 },
@@ -311,8 +350,67 @@ describe('DashboardPage', () => {
       await page.load()
 
       // Index 1 in the merged array is the last played game (gameDay 5).
-      // Always defaults to the last played, regardless of how many times the
-      // user has opened the dashboard since.
+      expect(page._initialSlideIndex).toBe(1)
+    })
+
+    it('marks the game day as seen on the first visit so subsequent visits can switch to upcoming', async () => {
+      server.getGamesForSlider.mockResolvedValue({
+        pastGames: [
+          { id: 51, gameDay: 5, team1Id: 1, team2Id: 3, goalsTeam1: 2, goalsTeam2: 1 }
+        ],
+        upcomingGames: [
+          { id: 52, gameDay: 6, gameDate: '2026-05-05', team1Id: 1, team2Id: 4 }
+        ],
+        nextGameDate: null
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
+      expect(localStorage.setItem).toHaveBeenCalledWith('dashboardSliderSeen_0_5', '1')
+    })
+
+    it('switches to the next upcoming game when the dashboard is opened a second time on the same game day', async () => {
+      // Simulate that the seen marker for the current game day is already set.
+      localStorage.getItem.mockImplementation(key => key === 'dashboardSliderSeen_0_5' ? '1' : null)
+
+      server.getGamesForSlider.mockResolvedValue({
+        pastGames: [
+          { id: 50, gameDay: 4, team1Id: 1, team2Id: 2, goalsTeam1: 1, goalsTeam2: 0 },
+          { id: 51, gameDay: 5, team1Id: 1, team2Id: 3, goalsTeam1: 2, goalsTeam2: 1 }
+        ],
+        upcomingGames: [
+          { id: 52, gameDay: 6, gameDate: '2026-05-05', team1Id: 1, team2Id: 4 }
+        ],
+        nextGameDate: null
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
+      // Index 2 in the merged array is the first upcoming game (gameDay 6).
+      expect(page._initialSlideIndex).toBe(2)
+    })
+
+    it('still defaults to the last played game on a new game day even if a previous one was seen', async () => {
+      // The marker from a previous game day should not affect the current one.
+      localStorage.getItem.mockImplementation(key => key === 'dashboardSliderSeen_0_4' ? '1' : null)
+
+      server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
+      server.getGamesForSlider.mockResolvedValue({
+        pastGames: [
+          { id: 50, gameDay: 4, team1Id: 1, team2Id: 2, goalsTeam1: 1, goalsTeam2: 0 },
+          { id: 51, gameDay: 5, team1Id: 1, team2Id: 3, goalsTeam1: 2, goalsTeam2: 1 }
+        ],
+        upcomingGames: [
+          { id: 52, gameDay: 6, gameDate: '2026-05-05', team1Id: 1, team2Id: 4 }
+        ],
+        nextGameDate: null
+      })
+
+      const page = new DashboardPage()
+      await page.load()
+
       expect(page._initialSlideIndex).toBe(1)
     })
 

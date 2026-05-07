@@ -13,6 +13,16 @@ const PLAYER_Y = FIELD_HEIGHT - PLAYER_HEIGHT - 20
 const PLAYER_SPEED = 460
 const ENEMY_SIZE = 60
 const ENEMY_BASE_SPEED = 200
+// Hitboxes are tighter than the sprite box. The drawn figure (shoulders + feet)
+// only fills ~84% of the box width and ~50% of the height; the rest is padding.
+// Player faces up, so feet sit near the top of the box and shoulders near the
+// bottom. Enemies face down, so it's the inverse.
+const PLAYER_HIT_INSET_X = 0.08
+const PLAYER_HIT_INSET_TOP = 0.32
+const PLAYER_HIT_INSET_BOTTOM = 0.18
+const ENEMY_HIT_INSET_X = 0.08
+const ENEMY_HIT_INSET_TOP = 0.18
+const ENEMY_HIT_INSET_BOTTOM = 0.32
 const ENEMY_SPAWN_BASE_MS = 550
 const ENEMY_SPAWN_MIN_MS = 200
 const ENEMY_LATERAL_SPEED_MAX = 120
@@ -260,15 +270,15 @@ export class MiniGame extends UIElement {
     }
     this._enemies = this._enemies.filter(e => e.y < FIELD_HEIGHT + ENEMY_SIZE)
 
-    const playerLeft = this._player.x
-    const playerRight = this._player.x + PLAYER_WIDTH
-    const playerTop = PLAYER_Y
-    const playerBottom = PLAYER_Y + PLAYER_HEIGHT
+    const playerLeft = this._player.x + PLAYER_WIDTH * PLAYER_HIT_INSET_X
+    const playerRight = this._player.x + PLAYER_WIDTH * (1 - PLAYER_HIT_INSET_X)
+    const playerTop = PLAYER_Y + PLAYER_HEIGHT * PLAYER_HIT_INSET_TOP
+    const playerBottom = PLAYER_Y + PLAYER_HEIGHT * (1 - PLAYER_HIT_INSET_BOTTOM)
     for (const enemy of this._enemies) {
-      const eLeft = enemy.x
-      const eRight = enemy.x + ENEMY_SIZE
-      const eTop = enemy.y
-      const eBottom = enemy.y + ENEMY_SIZE
+      const eLeft = enemy.x + ENEMY_SIZE * ENEMY_HIT_INSET_X
+      const eRight = enemy.x + ENEMY_SIZE * (1 - ENEMY_HIT_INSET_X)
+      const eTop = enemy.y + ENEMY_SIZE * ENEMY_HIT_INSET_TOP
+      const eBottom = enemy.y + ENEMY_SIZE * (1 - ENEMY_HIT_INSET_BOTTOM)
       if (eRight > playerLeft && eLeft < playerRight && eBottom > playerTop && eTop < playerBottom) {
         this._endGame('collision')
         return
@@ -401,8 +411,8 @@ export class MiniGame extends UIElement {
             <strong>${t('miniGame.rewardWon')}</strong> ${label}
           </div>
         `
-      } else if (response?.dailyRewardUsed) {
-        rewardEl.innerHTML = `<div class="alert alert-info mb-0">${t('miniGame.rewardDailyUsed')}</div>`
+      } else if (response?.gameDayRewardUsed) {
+        rewardEl.innerHTML = `<div class="alert alert-info mb-0">${t('miniGame.rewardGameDayUsed')}</div>`
       } else {
         rewardEl.innerHTML = `<div class="alert alert-secondary mb-0">${t('miniGame.rewardBlank')}</div>`
       }
@@ -496,6 +506,9 @@ export class MiniGame extends UIElement {
     const footOffset = width * 0.16
     const footRx = width * 0.11
     const footRy = height * 0.13
+    const armOffset = width * 0.34
+    const armRx = width * 0.08
+    const armRy = height * 0.11
     const ballRadius = Math.max(7, width * 0.16)
 
     // Lay out shoulders/head and feet depending on facing direction.
@@ -508,6 +521,9 @@ export class MiniGame extends UIElement {
     const forwardSign = facingUp ? -1 : 1
     const leftStep = Math.sin(walkPhase) * stepAmp * forwardSign
     const rightStep = Math.sin(walkPhase + Math.PI) * stepAmp * forwardSign
+    // Arms swing opposite to the corresponding leg (left arm back when left leg forward).
+    const leftArmStep = -leftStep
+    const rightArmStep = -rightStep
 
     // Feet first so the body covers the heels (gives a slight depth illusion)
     ctx.fillStyle = '#111'
@@ -525,6 +541,19 @@ export class MiniGame extends UIElement {
     ctx.fill()
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)'
     ctx.lineWidth = 1
+    ctx.stroke()
+
+    // Arms — sleeves at the shoulder edges, swinging forward/back opposite the legs
+    ctx.fillStyle = jerseyColor
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.ellipse(cx - armOffset, bodyY + leftArmStep, armRx, armRy, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.ellipse(cx + armOffset, bodyY + rightArmStep, armRx, armRy, 0, 0, Math.PI * 2)
+    ctx.fill()
     ctx.stroke()
 
     // Head — same y as shoulders, just smaller, so it appears centred between the shoulders
@@ -581,19 +610,27 @@ export class MiniGame extends UIElement {
           <tr>
             <th class="mini-game-rank">#</th>
             <th>${t('miniGame.team')}</th>
+            <th>${t('miniGame.manager')}</th>
             <th class="text-end">${t('miniGame.score')}</th>
             <th class="text-end">${t('miniGame.goals')}</th>
           </tr>
         </thead>
         <tbody>
-          ${rows.map((r, i) => `
+          ${rows.map((r, i) => {
+    const teamName = escapeHtml(r.teamName ?? '')
+    const teamCell = r.teamId
+      ? `<a href="#team?id=${r.teamId}" class="text-info">${teamName}</a>`
+      : teamName
+    return `
             <tr class="${r.isMyTeam ? 'mini-game-row-mine' : ''}">
               <td>${i + 1}</td>
-              <td>${escapeHtml(r.teamName ?? '')}</td>
+              <td>${teamCell}</td>
+              <td>${escapeHtml(r.username ?? '')}</td>
               <td class="text-end">${r.score}</td>
               <td class="text-end">${r.goalsScored}</td>
             </tr>
-          `).join('')}
+          `
+  }).join('')}
         </tbody>
       </table>
     `

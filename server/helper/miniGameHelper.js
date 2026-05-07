@@ -52,12 +52,14 @@ export function validateMiniGameSubmission (score, goalsScored, durationMs) {
 
 /**
  * @param {number} teamId
+ * @param {number} gameDay
+ * @param {number} season
  * @returns {Promise<boolean>}
  */
-export async function hasReceivedMiniGameRewardToday (teamId) {
+export async function hasReceivedMiniGameRewardThisGameDay (teamId, gameDay, season) {
   const [row] = await query(
-    'SELECT COUNT(*) AS amount FROM mini_game_score WHERE team_id=? AND rewarded_card_id IS NOT NULL AND DATE(played_at) = CURDATE()',
-    [teamId]
+    'SELECT COUNT(*) AS amount FROM mini_game_score WHERE team_id=? AND rewarded_card_id IS NOT NULL AND game_day=? AND season=?',
+    [teamId, gameDay, season]
   )
   return (row?.amount ?? 0) > 0
 }

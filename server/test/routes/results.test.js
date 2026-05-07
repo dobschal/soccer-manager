@@ -210,6 +210,42 @@ describe('results routes', () => {
     })
   })
 
+  describe('getResultsFilters', () => {
+    it('returns leagues, seasons, and game days for given context', async () => {
+      query
+        .mockResolvedValueOnce([
+          { level: 0, league: 0 },
+          { level: 1, league: 0 },
+          { level: 1, league: 1 }
+        ])
+        .mockResolvedValueOnce([{ season: 0 }, { season: 1 }, { season: 2 }])
+        .mockResolvedValueOnce([{ game_day: 0 }, { game_day: 1 }, { game_day: 2 }])
+
+      const result = await handlers.getResultsFilters(1, 0, 2)
+
+      expect(result.leagues).toEqual([
+        { level: 0, league: 0 },
+        { level: 1, league: 0 },
+        { level: 1, league: 1 }
+      ])
+      expect(result.seasons).toEqual([0, 1, 2])
+      expect(result.gameDays).toEqual([0, 1, 2])
+      expect(query.mock.calls[1][1]).toEqual([1, 0])
+      expect(query.mock.calls[2][1]).toEqual([1, 0, 2])
+    })
+
+    it('omits season and game day queries when context missing', async () => {
+      query.mockResolvedValueOnce([{ level: 0, league: 0 }])
+
+      const result = await handlers.getResultsFilters()
+
+      expect(result.leagues).toEqual([{ level: 0, league: 0 }])
+      expect(result.seasons).toEqual([])
+      expect(result.gameDays).toEqual([])
+      expect(query).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe('getGamesForSlider', () => {
     it('returns past games oldest-first and upcoming games', async () => {
       const team = testData.team({ id: 7, level: 1, league: 1 })

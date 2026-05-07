@@ -12,6 +12,7 @@ vi.mock('../../lib/gateway.js', () => ({
     getSuspendedPlayers: vi.fn(),
     getTeamStats: vi.fn(),
     getLeagueStadiums: vi.fn(),
+    getResultsFilters: vi.fn(),
     getAvailableCupSeasons: vi.fn(),
     getCupRounds: vi.fn(),
     getCupResults: vi.fn(),
@@ -68,6 +69,11 @@ describe('ResultsPage', () => {
     server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
     server.getTeamStats.mockResolvedValue({ teamStats: [] })
     server.getLeagueStadiums.mockResolvedValue({ stadiums: [] })
+    server.getResultsFilters.mockResolvedValue({
+      leagues: [{ level: 0, league: 0 }, { level: 1, league: 0 }, { level: 1, league: 1 }, { level: 2, league: 0 }],
+      seasons: [0, 1, 2],
+      gameDays: Array.from({ length: 34 }, (_, i) => i)
+    })
   })
 
   describe('ResultsPage tab container', () => {
@@ -213,45 +219,86 @@ describe('ResultsPage', () => {
     })
   })
 
-  describe('league navigation', () => {
-    it('getPrevLeague decrements league', () => {
-      const parentPage = { myTeamId: 1, info: { team: testData.team() } }
-      const leaguePage = new LeagueResultsPage(parentPage)
-      const result = leaguePage._getPrevLeague(1, 1)
+  describe('filter selects', () => {
+    async function setupLeaguePage () {
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
 
-      expect(result).toEqual({ level: 1, league: 0 })
+      server.getCurrentGameday.mockResolvedValue({
+        season: 2,
+        gameDay: 5,
+        lastPlayedLeagueSeason: 2,
+        lastPlayedLeagueGameDay: 4
+      })
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+
+      const leaguePage = new LeagueResultsPage(parentPage)
+      await leaguePage.load()
+      return leaguePage
+    }
+
+    it('renders three selects with available filter options', async () => {
+      const leaguePage = await setupLeaguePage()
+      const html = leaguePage.template
+
+      expect(html).toContain('id="results-league-select"')
+      expect(html).toContain('id="results-season-select"')
+      expect(html).toContain('id="results-game-day-select"')
+      // 4 league options from mock
+      expect((html.match(/value="\d+_\d+"/g) || []).length).toBe(4)
+      // 3 seasons + 34 game days
+      expect((html.match(/<option /g) || []).length).toBe(4 + 3 + 34)
     })
 
-    it('getPrevLeague goes to previous level when at league 0', () => {
-      const parentPage = { myTeamId: 1, info: { team: testData.team() } }
-      const leaguePage = new LeagueResultsPage(parentPage)
-      const result = leaguePage._getPrevLeague(2, 0)
+    it('clamps season and game day to last available values when current is invalid', async () => {
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
+      server.getCurrentGameday.mockResolvedValue({
+        season: 9,
+        gameDay: 30,
+        lastPlayedLeagueSeason: 9,
+        lastPlayedLeagueGameDay: 30
+      })
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getResultsFilters
+        .mockResolvedValueOnce({ leagues: [{ level: 1, league: 0 }], seasons: [0, 1], gameDays: [] })
+        .mockResolvedValueOnce({ leagues: [{ level: 1, league: 0 }], seasons: [0, 1], gameDays: [0, 1, 2] })
 
-      expect(result).toEqual({ level: 1, league: 1 })
+      const leaguePage = new LeagueResultsPage(parentPage)
+      await leaguePage.load()
+
+      expect(leaguePage.season).toBe(1)
+      expect(leaguePage.gameDay).toBe(2)
     })
 
-    it('getPrevLeague stays at level 0 league 0', () => {
-      const parentPage = { myTeamId: 1, info: { team: testData.team() } }
-      const leaguePage = new LeagueResultsPage(parentPage)
-      const result = leaguePage._getPrevLeague(0, 0)
+    it('league select change updates query params with new level/league', async () => {
+      const leaguePage = await setupLeaguePage()
+      leaguePage.events['#results-league-select'].change({ target: { value: '2_0' } })
 
-      expect(result).toEqual({ level: 0, league: 0 })
+      expect(setQueryParams).toHaveBeenCalledWith({
+        level: 2,
+        league: 0,
+        season: leaguePage.season,
+        game_day: leaguePage.gameDay
+      })
     })
 
-    it('getNextLeague increments league', () => {
-      const parentPage = { myTeamId: 1, info: { team: testData.team() } }
-      const leaguePage = new LeagueResultsPage(parentPage)
-      const result = leaguePage._getNextLeague(1, 0)
+    it('season select change updates season', async () => {
+      const leaguePage = await setupLeaguePage()
+      leaguePage.events['#results-season-select'].change({ target: { value: '1' } })
 
-      expect(result).toEqual({ level: 1, league: 1 })
+      expect(setQueryParams).toHaveBeenCalledWith({ season: 1, game_day: leaguePage.gameDay })
     })
 
-    it('getNextLeague goes to next level when at max league', () => {
-      const parentPage = { myTeamId: 1, info: { team: testData.team() } }
-      const leaguePage = new LeagueResultsPage(parentPage)
-      const result = leaguePage._getNextLeague(1, 1)
+    it('game day select change updates game day', async () => {
+      const leaguePage = await setupLeaguePage()
+      leaguePage.events['#results-game-day-select'].change({ target: { value: '7' } })
 
-      expect(result).toEqual({ level: 2, league: 0 })
+      expect(setQueryParams).toHaveBeenCalledWith({ season: leaguePage.season, game_day: 7 })
     })
   })
 
@@ -362,81 +409,4 @@ describe('ResultsPage', () => {
     })
   })
 
-  describe('event handlers', () => {
-    it('prev game day button decrements game day', async () => {
-      const team = testData.team()
-
-      const parentPage = { myTeamId: team.id, info: { team } }
-
-      server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
-      server.getResults.mockResolvedValue({ results: [] })
-      server.getStanding.mockResolvedValue([])
-      server.getTopScorers.mockResolvedValue({ topScorers: [] })
-      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
-
-      const leaguePage = new LeagueResultsPage(parentPage)
-      await leaguePage.load()
-
-      leaguePage.events['#prev-game-day-button'].click()
-
-      expect(setQueryParams).toHaveBeenCalledWith({ season: 1, game_day: 3 })
-    })
-
-    it('next game day button increments game day', async () => {
-      const team = testData.team()
-
-      const parentPage = { myTeamId: team.id, info: { team } }
-
-      server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
-      server.getResults.mockResolvedValue({ results: [] })
-      server.getStanding.mockResolvedValue([])
-      server.getTopScorers.mockResolvedValue({ topScorers: [] })
-      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
-
-      const leaguePage = new LeagueResultsPage(parentPage)
-      await leaguePage.load()
-
-      leaguePage.events['#next-game-day-button'].click()
-
-      expect(setQueryParams).toHaveBeenCalledWith({ season: 1, game_day: 5 })
-    })
-
-    it('prev season button decrements season', async () => {
-      const team = testData.team()
-
-      const parentPage = { myTeamId: team.id, info: { team } }
-
-      server.getCurrentGameday.mockResolvedValue({ season: 2, gameDay: 5 })
-      server.getResults.mockResolvedValue({ results: [] })
-      server.getStanding.mockResolvedValue([])
-      server.getTopScorers.mockResolvedValue({ topScorers: [] })
-      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
-
-      const leaguePage = new LeagueResultsPage(parentPage)
-      await leaguePage.load()
-
-      leaguePage.events['#prev-season-button'].click()
-
-      expect(setQueryParams).toHaveBeenCalledWith({ season: 1, game_day: 0 })
-    })
-
-    it('next season button increments season', async () => {
-      const team = testData.team()
-
-      const parentPage = { myTeamId: team.id, info: { team } }
-
-      server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
-      server.getResults.mockResolvedValue({ results: [] })
-      server.getStanding.mockResolvedValue([])
-      server.getTopScorers.mockResolvedValue({ topScorers: [] })
-      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
-
-      const leaguePage = new LeagueResultsPage(parentPage)
-      await leaguePage.load()
-
-      leaguePage.events['#next-season-button'].click()
-
-      expect(setQueryParams).toHaveBeenCalledWith({ season: 2, game_day: 0 })
-    })
-  })
 })

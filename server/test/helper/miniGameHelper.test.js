@@ -8,7 +8,7 @@ import { query } from '../../lib/database.js'
 import {
   rollMiniGameReward,
   validateMiniGameSubmission,
-  hasReceivedMiniGameRewardToday,
+  hasReceivedMiniGameRewardThisGameDay,
   MINI_GAME_REWARD_POOL,
   MINI_GAME_LIMITS
 } from '../../helper/miniGameHelper.js'
@@ -120,23 +120,32 @@ describe('miniGameHelper.validateMiniGameSubmission', () => {
   })
 })
 
-describe('miniGameHelper.hasReceivedMiniGameRewardToday', () => {
+describe('miniGameHelper.hasReceivedMiniGameRewardThisGameDay', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('returns true when at least one rewarded score exists today', async () => {
+  it('returns true when at least one rewarded score exists for the given game day and season', async () => {
     query.mockResolvedValueOnce([{ amount: 1 }])
-    expect(await hasReceivedMiniGameRewardToday(42)).toBe(true)
+    expect(await hasReceivedMiniGameRewardThisGameDay(42, 5, 2)).toBe(true)
   })
 
-  it('returns false when no rewarded score exists today', async () => {
+  it('returns false when no rewarded score exists for the given game day and season', async () => {
     query.mockResolvedValueOnce([{ amount: 0 }])
-    expect(await hasReceivedMiniGameRewardToday(42)).toBe(false)
+    expect(await hasReceivedMiniGameRewardThisGameDay(42, 5, 2)).toBe(false)
   })
 
   it('returns false when query returns empty result', async () => {
     query.mockResolvedValueOnce([])
-    expect(await hasReceivedMiniGameRewardToday(42)).toBe(false)
+    expect(await hasReceivedMiniGameRewardThisGameDay(42, 5, 2)).toBe(false)
+  })
+
+  it('passes teamId, gameDay and season to the query', async () => {
+    query.mockResolvedValueOnce([{ amount: 0 }])
+    await hasReceivedMiniGameRewardThisGameDay(42, 7, 3)
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('game_day=? AND season=?'),
+      [42, 7, 3]
+    )
   })
 })

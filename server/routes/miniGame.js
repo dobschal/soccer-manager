@@ -4,18 +4,20 @@ import { getTeam } from '../helper/teamHelper.js'
 import {
   rollMiniGameReward,
   validateMiniGameSubmission,
-  hasReceivedMiniGameRewardToday
+  hasReceivedMiniGameRewardThisGameDay
 } from '../helper/miniGameHelper.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { t } from '../i18n/index.js'
 
 function leaderboardSql (todayOnly) {
   const where = todayOnly ? 'WHERE DATE(s.played_at) = CURDATE()' : ''
   return `
-    SELECT team_id, score, goals_scored, played_at, team_name, emblem FROM (
-      SELECT s.team_id, s.score, s.goals_scored, s.played_at, t.name AS team_name, t.emblem,
+    SELECT team_id, score, goals_scored, played_at, team_name, emblem, username FROM (
+      SELECT s.team_id, s.score, s.goals_scored, s.played_at, t.name AS team_name, t.emblem, u.username,
              ROW_NUMBER() OVER (PARTITION BY s.team_id ORDER BY s.score DESC, s.played_at ASC) AS rn
       FROM mini_game_score s
       INNER JOIN team t ON t.id = s.team_id
+      LEFT JOIN user u ON u.id = t.user_id
       ${where}
     ) ranked
     WHERE rn = 1
@@ -31,7 +33,7 @@ export default {
    * @param {number} goalsScored
    * @param {number} durationMs
    * @param {Request} req
-   * @returns {Promise<{success: boolean, awardedCard: ({id:number,action:string}|null), isBlank: boolean, dailyRewardUsed: boolean, leaderboardRank: number|null, isPersonalBest: boolean}>}
+   * @returns {Promise<{success: boolean, awardedCard: ({id:number,action:string}|null), isBlank: boolean, gameDayRewardUsed: boolean, leaderboardRank: number|null, isPersonalBest: boolean}>}
    */
   async submitMiniGameScore (score, goalsScored, durationMs, req) {
     const locale = req.locale || 'en'
@@ -43,16 +45,18 @@ export default {
       throw new BadRequestError(`Invalid mini-game submission: ${validation.reason}`)
     }
 
+    const { gameDay, season } = await getGameDayAndSeason()
+
     const insertResult = await query(
       'INSERT INTO mini_game_score SET ?',
-      { team_id: team.id, score, goals_scored: goalsScored, duration_ms: durationMs }
+      { team_id: team.id, score, goals_scored: goalsScored, duration_ms: durationMs, game_day: gameDay, season }
     )
     const scoreId = insertResult.insertId
 
     let awardedCard = null
-    let dailyRewardUsed = false
-    if (await hasReceivedMiniGameRewardToday(team.id)) {
-      dailyRewardUsed = true
+    let gameDayRewardUsed = false
+    if (await hasReceivedMiniGameRewardThisGameDay(team.id, gameDay, season)) {
+      gameDayRewardUsed = true
     } else {
       const action = rollMiniGameReward(goalsScored)
       if (action) {
@@ -79,8 +83,8 @@ export default {
     return {
       success: true,
       awardedCard,
-      isBlank: !awardedCard && !dailyRewardUsed,
-      dailyRewardUsed,
+      isBlank: !awardedCard && !gameDayRewardUsed,
+      gameDayRewardUsed,
       leaderboardRank: rankRow?.leaderboard_rank ?? null,
       isPersonalBest
     }
@@ -105,6 +109,7 @@ export default {
       teamId: r.team_id,
       teamName: r.team_name,
       emblem: r.emblem,
+      username: r.username,
       score: r.score,
       goalsScored: r.goals_scored,
       playedAt: r.played_at,

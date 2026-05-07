@@ -27,13 +27,28 @@ export class LeagueResultsPage extends UIElement {
       this.level = this.parentPage.info.team.level
       this.league = this.parentPage.info.team.league
     }
-    if (typeof this.season === 'undefined' || typeof this.gameDay === 'undefined') {
-      const response = await server.getCurrentGameday()
-      this.season = response.lastPlayedLeagueSeason ?? response.season
-      this.gameDay = response.lastPlayedLeagueGameDay ?? Math.max(0, response.gameDay - 1)
-      this._upcomingSeason = response.season
-      this._upcomingGameDay = response.gameDay
+    const currentGameday = await server.getCurrentGameday()
+    this._upcomingSeason = currentGameday.season
+    this._upcomingGameDay = currentGameday.gameDay
+    if (typeof this.season === 'undefined') {
+      this.season = currentGameday.lastPlayedLeagueSeason ?? currentGameday.season
     }
+    if (typeof this.gameDay === 'undefined') {
+      this.gameDay = currentGameday.lastPlayedLeagueGameDay ?? Math.max(0, currentGameday.gameDay - 1)
+    }
+
+    let filters = await server.getResultsFilters(this.level, this.league, this.season)
+    if (filters.seasons.length > 0 && !filters.seasons.includes(this.season)) {
+      this.season = filters.seasons[filters.seasons.length - 1]
+      filters = await server.getResultsFilters(this.level, this.league, this.season)
+    }
+    if (filters.gameDays.length > 0 && !filters.gameDays.includes(this.gameDay)) {
+      this.gameDay = filters.gameDays[filters.gameDays.length - 1]
+    }
+    this.availableLeagues = filters.leagues
+    this.availableSeasons = filters.seasons
+    this.availableGameDays = filters.gameDays
+
     const isUpcomingGameDay = this.season === this._upcomingSeason && this.gameDay === this._upcomingGameDay
     const isMyLeague = this.level === this.parentPage.info.team.level && this.league === this.parentPage.info.team.league
 
@@ -70,35 +85,25 @@ export class LeagueResultsPage extends UIElement {
         <div class="d-flex flex-column flex-lg-row align-items-start gap-3 mb-4">
           <div class="flex-grow-1 u-w-lg-50">
             <h2>${t('results.resultsTitle')}</h2>
-            <div>
-            <table>
-              <tr>
-                <th>
-                    ${t('results.league')}
-                </th>
-                <td>
-                  <span id="prev-league-button" class="fa fa-chevron-left fa-button"></span>
-                  ${formatLeague(this.level, this.league)}
-                  <span id="next-league-button" class="fa fa-chevron-right fa-button"></span>
-                </td>
-              </tr>
-              <tr>
-                <th>${t('results.season')}</th>
-                <td>
-                  <span id="prev-season-button" class="fa fa-chevron-left fa-button"></span>
-                  ${this.season + 1}
-                  <span id="next-season-button" class="fa fa-chevron-right fa-button"></span>
-                </td>
-              </tr>
-              <tr>
-                <th>${t('results.gameDayLabel')}</th>
-                <td>
-                  <span id="prev-game-day-button" class="fa fa-chevron-left fa-button"></span>
-                  ${this.gameDay + 1}
-                  <span id="next-game-day-button" class="fa fa-chevron-right fa-button"></span><br>
-                </td>
-              </tr>
-            </table>
+            <div class="results-filters d-flex flex-wrap gap-3">
+              <div>
+                <label for="results-league-select" class="form-label mb-1">${t('results.league')}</label>
+                <select id="results-league-select" class="form-select form-select-sm u-w-auto">
+                  ${this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label for="results-season-select" class="form-label mb-1">${t('results.season')}</label>
+                <select id="results-season-select" class="form-select form-select-sm u-w-auto">
+                  ${this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label for="results-game-day-select" class="form-label mb-1">${t('results.gameDayLabel')}</label>
+                <select id="results-game-day-select" class="form-select form-select-sm u-w-auto">
+                  ${this.availableGameDays.map(d => `<option value="${d}" ${d === this.gameDay ? 'selected' : ''}>${d + 1}</option>`).join('')}
+                </select>
+              </div>
             </div>
           </div>
           <div class="d-none d-lg-block">${this._managerChatHtml || ''}</div>
@@ -251,35 +256,21 @@ export class LeagueResultsPage extends UIElement {
 
   get events () {
     return {
-      '#prev-game-day-button': {
-        click: () => setQueryParams({
-          season: this.season,
-          game_day: this.gameDay - 1
-        })
+      '#results-league-select': {
+        change: (event) => {
+          const [level, league] = event.target.value.split('_').map(Number)
+          setQueryParams({ level, league, season: this.season, game_day: this.gameDay })
+        }
       },
-      '#next-game-day-button': {
-        click: () => setQueryParams({
-          season: this.season,
-          game_day: this.gameDay + 1
-        })
+      '#results-season-select': {
+        change: (event) => {
+          setQueryParams({ season: Number(event.target.value), game_day: this.gameDay })
+        }
       },
-      '#prev-season-button': {
-        click: () => setQueryParams({
-          season: this.season - 1,
-          game_day: 0
-        })
-      },
-      '#next-season-button': {
-        click: () => setQueryParams({
-          season: this.season + 1,
-          game_day: 0
-        })
-      },
-      '#prev-league-button': {
-        click: () => setQueryParams(this._getPrevLeague(this.level, this.league))
-      },
-      '#next-league-button': {
-        click: () => setQueryParams(this._getNextLeague(this.level, this.league))
+      '#results-game-day-select': {
+        change: (event) => {
+          setQueryParams({ season: this.season, game_day: Number(event.target.value) })
+        }
       }
     }
   }
@@ -297,6 +288,10 @@ export class LeagueResultsPage extends UIElement {
   injuredPlayers = []
 
   teamStats = []
+
+  availableLeagues = []
+  availableSeasons = []
+  availableGameDays = []
 
   _teamStatsSortCol = 'squad_value'
   _teamStatsSortDir = -1
@@ -508,38 +503,6 @@ export class LeagueResultsPage extends UIElement {
     league = Number(league)
     if (league < 0) league = 0
     if (level < 0) level = 0
-    return {
-      level,
-      league
-    }
-  }
-
-  _getPrevLeague (level, league) {
-    if (level === 0) {
-      return {
-        level,
-        league
-      }
-    }
-    if (league === 0) {
-      level--
-      league = Math.pow(2, level) - 1
-    } else {
-      league--
-    }
-    return {
-      level,
-      league
-    }
-  }
-
-  _getNextLeague (level, league) {
-    if (league === Math.pow(2, level) - 1) {
-      level++
-      league = 0
-    } else {
-      league++
-    }
     return {
       level,
       league
