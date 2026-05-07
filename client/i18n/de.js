@@ -864,6 +864,10 @@ export default {
   'footer.imprintPrivacy': 'Impressum & Datenschutz',
   'footer.support': 'Support',
 
+  // Sandbox / test environment
+  'sandbox.notice': 'Du befindest dich in der Sandbox (Testumgebung). Daten können hier jederzeit zurückgesetzt werden.',
+  'sandbox.goToProd': 'Zum Live-Spiel',
+
   // Currency
   'currency.format': '{value}',
 
