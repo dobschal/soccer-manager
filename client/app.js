@@ -15,11 +15,17 @@ import { AdminPage } from './pages/admin.js'
 import { ForumPage } from './pages/forum.js'
 import { initLocale } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
+import { applyNoIndexOnSandbox, showSandboxBanner } from './partials/sandboxBanner.js'
 
 installGlobalErrorHandler()
 
 // Initialize locale from localStorage or browser settings
 initLocale()
+
+// On the sandbox/test host: hide the site from search engines and show a
+// persistent banner that links back to the production game.
+applyNoIndexOnSandbox()
+showSandboxBanner()
 
 // Connect WebSocket if user is authenticated
 if (window.localStorage.getItem('auth-token')) {

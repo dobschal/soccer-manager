@@ -165,6 +165,58 @@ a:visited.row {
 }
 
 /* ==========================================================================
+   Sandbox banner (test environment)
+   ========================================================================== */
+
+.sandbox-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 200;
+    background: repeating-linear-gradient(
+        135deg,
+        #ffc107 0,
+        #ffc107 16px,
+        #ffd24a 16px,
+        #ffd24a 32px
+    );
+    color: #222;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.4rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    flex-wrap: wrap;
+}
+
+.sandbox-banner .sandbox-banner-link {
+    color: #222;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.sandbox-banner .sandbox-banner-link:hover {
+    color: #000;
+}
+
+body:has(> #sandbox-banner) .navbar {
+    top: 2rem;
+}
+
+body:has(> #sandbox-banner) .info-bar {
+    top: calc(64px + 2rem);
+}
+
+body:has(> #sandbox-banner) .game-layout {
+    padding-top: 11rem;
+}
+
+/* ==========================================================================
    Footer
    ========================================================================== */
 

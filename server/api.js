@@ -18,6 +18,7 @@ import { cleanupOldLogMessages } from './helper/logMessageHelper.js'
 import { collectStatistics } from './helper/statisticsHelper.js'
 import { initWebSocket } from './lib/websocket.js'
 import { getCachedUser } from './lib/userCache.js'
+import { isSandboxHost } from './lib/sandboxHost.js'
 
 const app = express()
 const port = 3000
@@ -39,6 +40,19 @@ app.use((req, res, next) => {
 })
 
 app.use(bodyParser.json({ limit: '10mb' }))
+
+// Hide the sandbox/test deployment from search engines: replace the static
+// robots.txt with a "disallow everything" body and 404 the sitemap so Google
+// does not index sandbox.footballmanager.io alongside the production site.
+app.get('/robots.txt', (req, res, next) => {
+  if (!isSandboxHost(req.hostname)) return next()
+  res.type('text/plain').send('User-agent: *\nDisallow: /\n')
+})
+app.get('/sitemap.xml', (req, res, next) => {
+  if (!isSandboxHost(req.hostname)) return next()
+  res.status(404).type('text/plain').send('Not found')
+})
+
 app.use('/', express.static('client', { index: 'index.html' }))
 app.use('/uploads', express.static('uploads', { maxAge: '30d' }))
 
