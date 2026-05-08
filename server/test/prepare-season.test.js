@@ -55,6 +55,18 @@ describe('prepare-season', () => {
       expect(game.is_forfeit).toBe(0)
       expect(game.played).toBe(0)
     })
+
+    it('stores the user-facing match_day separately from internal game_day', () => {
+      // Internal game_day 4 is a cup day; the league match_day is still 3
+      const game = _buildGame(0, 0, 0, 1, 2, 5, 0, 3)
+      expect(game.game_day).toBe(5)
+      expect(game.match_day).toBe(3)
+    })
+
+    it('omits match_day when not provided', () => {
+      const game = _buildGame(0, 0, 0, 1, 2, 0, 0)
+      expect(game.match_day).toBeUndefined()
+    })
   })
 
   describe('_nextLevelToFill', () => {

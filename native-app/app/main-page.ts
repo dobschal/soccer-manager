@@ -45,27 +45,41 @@ export function onPageLoaded(args: EventData) {
     if (!resumeHandler) {
         resumeHandler = () => {
             if (!webViewRef) return
-            if (hasStagedUpdate()) {
-                console.log('[OTA] App resumed with staged update, clearing cache and reloading...')
-                promoteStagingIfReady()
-                webViewInitialized = false
-                const webPath = getWebContentPath()
-                clearWebViewCache(webViewRef).then(() => {
-                    if (isIOS) {
-                        loadWebViewIOS(webViewRef!, webPath)
-                        webViewInitialized = true
-                    } else if (isAndroid) {
-                        loadWebViewAndroid(webViewRef!, webPath)
-                        webViewInitialized = true
-                    }
-                    // Show toast after reload
-                    setTimeout(() => showOtaToast(webViewRef!), 3000)
-                })
-            } else {
+            if (!hasStagedUpdate()) {
                 // No OTA update — trigger a data refresh in the webapp
                 console.log('[Resume] No OTA update, triggering webapp refresh...')
-                triggerWebAppRefresh(webViewRef!)
+                triggerWebAppRefresh(webViewRef)
+                return
             }
+
+            console.log('[OTA] App resumed with staged update, promoting...')
+            const promoted = promoteStagingIfReady()
+            if (!promoted) {
+                // Promotion failed (e.g. WebView still holds file refs on Android).
+                // Leave staging in place so the next cold start can retry, and
+                // do NOT show the toast — content was not actually updated.
+                console.warn('[OTA] Resume-time promotion failed, will retry on cold start')
+                triggerWebAppRefresh(webViewRef)
+                return
+            }
+
+            webViewInitialized = false
+            const webPath = getWebContentPath()
+            clearWebViewCache(webViewRef).then(() => {
+                if (isIOS) {
+                    loadWebViewIOS(webViewRef!, webPath)
+                    webViewInitialized = true
+                } else if (isAndroid) {
+                    loadWebViewAndroid(webViewRef!, webPath)
+                    webViewInitialized = true
+                }
+                // wasUpdateInstalled() reads + clears the flag set by
+                // promoteStagingIfReady, ensuring the toast only fires when the
+                // OTA dir really received new content.
+                if (wasUpdateInstalled()) {
+                    setTimeout(() => showOtaToast(webViewRef!), 3000)
+                }
+            })
         }
         Application.on(Application.resumeEvent, resumeHandler)
     }

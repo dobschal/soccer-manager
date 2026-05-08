@@ -24,28 +24,68 @@ export function hasStagedUpdate(): boolean {
 }
 
 /**
- * If a staging update exists, promote it to the active OTA dir.
- * Must be called BEFORE getWebContentPath() and BEFORE the WebView loads.
+ * Recursively copies the contents of `src` into `dest`. Both folders must exist.
  */
-export function promoteStagingIfReady(): void {
+function copyFolderContents(src: Folder, dest: Folder): void {
+    const entities = src.getEntitiesSync()
+    if (!entities) return
+
+    for (const entity of entities) {
+        const destPath = path.join(dest.path, entity.name)
+        if (entity instanceof File) {
+            entity.copySync(destPath)
+        } else if (entity instanceof Folder) {
+            const destSubfolder = Folder.fromPath(destPath)
+            copyFolderContents(entity, destSubfolder)
+        }
+    }
+}
+
+/**
+ * If a staging update exists, promote it to the active OTA dir.
+ * Returns true on a successful promotion, false otherwise.
+ *
+ * Uses a copy-then-clear approach instead of `renameSync`: on Android,
+ * `java.io.File.renameTo` is unreliable and can fail silently (especially while
+ * the WebView is still referencing files in the active OTA dir on resume),
+ * leaving the staging dir intact and `hasStagedUpdate()` perpetually true —
+ * which caused the toast to fire on every app start without the WebView
+ * content actually being updated.
+ */
+export function promoteStagingIfReady(): boolean {
     const stagingDir = getStagingDir()
     const stagingIndex = path.join(stagingDir.path, 'index.html')
 
     if (!File.exists(stagingIndex)) {
-        return
+        return false
     }
 
     console.log('[OTA] Promoting staged update to active OTA dir...')
 
-    // Remove old OTA dir
-    const otaDir = getOtaDir()
-    if (Folder.exists(otaDir.path)) {
-        otaDir.removeSync()
-    }
+    try {
+        const otaDir = getOtaDir()
+        // Empty the active OTA dir contents but keep the directory itself,
+        // so we don't have to rely on `renameTo` succeeding afterwards.
+        otaDir.clearSync()
 
-    // Rename staging → active
-    stagingDir.renameSync(OTA_DIR_NAME)
-    console.log('[OTA] Staged update promoted.')
+        copyFolderContents(stagingDir, otaDir)
+
+        const newOtaIndex = path.join(otaDir.path, 'index.html')
+        if (!File.exists(newOtaIndex)) {
+            console.error('[OTA] Promotion failed: index.html missing in OTA dir after copy')
+            return false
+        }
+
+        // Clear staging so we don't try to promote the same payload again.
+        stagingDir.clearSync()
+
+        ApplicationSettings.setBoolean(UPDATE_INSTALLED_KEY, true)
+        console.log('[OTA] Staged update promoted.')
+        return true
+    } catch (e) {
+        console.error('[OTA] Failed to promote staged update:', e)
+        return false
+    }
 }
 
 /**
@@ -162,9 +202,11 @@ export async function checkForUpdate(): Promise<void> {
             return
         }
 
-        // Save new commit hash and set update flag
+        // Save new commit hash. The UPDATE_INSTALLED_KEY flag is set later by
+        // `promoteStagingIfReady` when the staging payload is actually copied
+        // into the active OTA dir, so the toast can never fire without the
+        // WebView content really being updated.
         ApplicationSettings.setString(LOCAL_VERSION_KEY, remoteHash)
-        ApplicationSettings.setBoolean(UPDATE_INSTALLED_KEY, true)
         console.log('[OTA] Update staged successfully! Will load on next restart.')
 
         // Clean up temp zip

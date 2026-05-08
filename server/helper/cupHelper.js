@@ -233,6 +233,8 @@ export async function createCupDraw (season, currentGameDay = 0, cupGameDays = n
   }
 
   const firstRound = schedule[0]
+  const totalRounds = schedule.length
+  const firstRoundMatchDay = getSequentialRoundNumber(firstRound.round, totalRounds)
 
   // Calculate how many matches in first round
   // If not a power of 2, some teams get byes
@@ -264,6 +266,7 @@ export async function createCupDraw (season, currentGameDay = 0, cupGameDays = n
       team_2_id: teamB.id,
       season,
       game_day: firstRound.gameDay,
+      match_day: firstRoundMatchDay,
       level: 0, // Cup games don't belong to a specific level
       league: 0,
       played: 0,
@@ -283,6 +286,7 @@ export async function createCupDraw (season, currentGameDay = 0, cupGameDays = n
       team_2_id: null,
       season,
       game_day: firstRound.gameDay,
+      match_day: firstRoundMatchDay,
       level: 0,
       league: 0,
       played: 1,
@@ -349,8 +353,9 @@ export async function progressCupRound (season, completedRound) {
 
   const nextRoundTeams = [...winners]
 
-  await query(
-    'SELECT MAX(cup_round) as maxRound FROM game WHERE game_type=\'cup\' AND season=?',
+  // Look up the season's max cup_round so we can derive the user-facing match_day for the next round
+  const [{ maxRound }] = await query(
+    "SELECT MAX(cup_round) as maxRound FROM game WHERE game_type='cup' AND season=?",
     [season]
   )
 
@@ -376,6 +381,10 @@ export async function progressCupRound (season, completedRound) {
   const completedGameDay = Math.max(...playedGames.map(g => g.game_day))
   const nextGameDay = await findNextCupGameDay(season, completedGameDay + 1)
 
+  // Sequential cup match day (1 = first round, totalRounds = final)
+  const totalRounds = getTotalRounds(maxRound)
+  const nextMatchDay = getSequentialRoundNumber(nextRound, totalRounds)
+
   // Shuffle next round teams for random matchups
   const shuffledTeams = [...nextRoundTeams].sort(() => Math.random() - 0.5)
 
@@ -391,6 +400,7 @@ export async function progressCupRound (season, completedRound) {
       team_2_id: teamBId,
       season,
       game_day: nextGameDay,
+      match_day: nextMatchDay,
       level: 0,
       league: 0,
       played: 0,
@@ -458,6 +468,7 @@ export async function getCupGamesForTeam (teamId, season, limit = 10) {
   const games = await query(`
       SELECT g.id           as id,
              g.game_day     as gameDay,
+             g.match_day    as matchDay,
              g.season       as season,
              g.goals_team_1 as goalsTeam1,
              g.goals_team_2 as goalsTeam2,

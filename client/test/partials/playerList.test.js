@@ -1,0 +1,152 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { testData } from '../setup.js'
+
+vi.mock('../../lib/gateway.js', () => ({
+  server: {
+    getCurrentGameday: vi.fn(),
+    getMySellOfferPlayerIds: vi.fn()
+  },
+  showServerError: vi.fn()
+}))
+
+vi.mock('../../i18n/index.js', () => ({
+  t: vi.fn((key) => key)
+}))
+
+vi.mock('../../partials/levelBadge.js', () => ({
+  renderLevelBadge: vi.fn((level) => `<span class="level-badge">${level}</span>`)
+}))
+
+vi.mock('../../partials/positionBadge.js', () => ({
+  renderPositionBadge: vi.fn((position) => `<span class="position-badge">${position}</span>`)
+}))
+
+vi.mock('../../lib/currency.js', () => ({
+  euroFormat: { format: vi.fn((val) => `€${val}`) }
+}))
+
+vi.mock('../../util/player.js', () => ({
+  calculatePlayerAge: vi.fn((player) => player.age ?? 20),
+  getSalary: vi.fn((level) => level * 100),
+  calculateMarketValue: vi.fn((level, age) => level * 1000 + age),
+  willRetireNextSeason: vi.fn(() => false),
+  sortByPosition: vi.fn(() => 0)
+}))
+
+import { PlayerList } from '../../partials/playerList.js'
+import { server } from '../../lib/gateway.js'
+
+describe('PlayerList', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    server.getCurrentGameday.mockResolvedValue({ season: 1 })
+    server.getMySellOfferPlayerIds.mockResolvedValue({ playerIds: [] })
+  })
+
+  describe('sortable columns', () => {
+    /**
+     * Internal helper: build a PlayerList, run load(), and pull the Table
+     * config out via _renderTable() so we can assert on column metadata
+     * without depending on rendered DOM.
+     */
+    async function buildTable (players, captainId = null) {
+      const list = new PlayerList(players, true, vi.fn(), false, true, null, captainId)
+      await list.load()
+      return list._renderTable()
+    }
+
+    it('marks every header as sortable so column headers trigger sort on click', async () => {
+      const table = await buildTable([testData.player()])
+
+      // Each column must declare either a sortKey or a sortFn — otherwise
+      // Table.js skips the click handler and the header isn't sortable.
+      for (const col of table.config.cols) {
+        expect(Boolean(col.sortKey || col.sortFn)).toBe(true)
+      }
+    })
+
+    it('sorts numerically by level, fitness, age, salary, value, goals, games', async () => {
+      const young = testData.player({ id: 1, level: 30, freshness: 0.4, age: 18, season_goals: 1, season_games: 5 })
+      const old = testData.player({ id: 2, level: 80, freshness: 0.9, age: 32, season_goals: 12, season_games: 20 })
+      const table = await buildTable([young, old])
+
+      const colByName = (name) => table.config.cols.find(c => c.name === name)
+
+      // Sortable by level
+      const lvl = colByName('Lvl')
+      expect(lvl.sortKey).toBe('level')
+
+      // Sortable by fitness (freshness)
+      const fit = colByName('Fit')
+      expect(fit.sortKey).toBe('freshness')
+
+      // Age uses sortFn against calculatePlayerAge so birth season is honored
+      const age = colByName('Age')
+      const ascAge = [young, old].slice().sort((a, b) => age.sortFn(a, b, true))
+      expect(ascAge[0].id).toBe(young.id)
+      const descAge = [young, old].slice().sort((a, b) => age.sortFn(a, b, false))
+      expect(descAge[0].id).toBe(old.id)
+
+      // Salary derives from level
+      const salary = colByName('player.salary')
+      const ascSalary = [old, young].slice().sort((a, b) => salary.sortFn(a, b, true))
+      expect(ascSalary[0].id).toBe(young.id)
+
+      // Value derives from level + age
+      const value = colByName('player.value')
+      const ascValue = [old, young].slice().sort((a, b) => value.sortFn(a, b, true))
+      expect(ascValue[0].id).toBe(young.id)
+
+      // Goals
+      const goals = colByName('player.goals')
+      const ascGoals = [old, young].slice().sort((a, b) => goals.sortFn(a, b, true))
+      expect(ascGoals[0].id).toBe(young.id)
+      const descGoals = [old, young].slice().sort((a, b) => goals.sortFn(a, b, false))
+      expect(descGoals[0].id).toBe(old.id)
+
+      // Games
+      const games = colByName('player.games')
+      const ascGames = [old, young].slice().sort((a, b) => games.sortFn(a, b, true))
+      expect(ascGames[0].id).toBe(young.id)
+    })
+
+    it('sorts alphabetically by name and position', async () => {
+      const a = testData.player({ id: 1, name: 'Anna', position: 'CD' })
+      const b = testData.player({ id: 2, name: 'Zebra', position: 'OM' })
+      const table = await buildTable([a, b])
+
+      const name = table.config.cols.find(c => c.name === 'Name')
+      const sortedAsc = [b, a].slice().sort((x, y) => name.sortFn(x, y, true))
+      expect(sortedAsc[0].id).toBe(a.id)
+      const sortedDesc = [a, b].slice().sort((x, y) => name.sortFn(x, y, false))
+      expect(sortedDesc[0].id).toBe(b.id)
+
+      const pos = table.config.cols.find(c => c.name === 'Pos')
+      const posAsc = [b, a].slice().sort((x, y) => pos.sortFn(x, y, true))
+      expect(posAsc[0].id).toBe(a.id) // CD before OM
+    })
+  })
+
+  describe('row click', () => {
+    it('forwards row clicks to the configured handler', async () => {
+      const onClick = vi.fn()
+      const player = testData.player({ id: 42 })
+      const list = new PlayerList([player], true, onClick)
+      await list.load()
+
+      const table = list._renderTable()
+      table.config.onClick(player, 0)
+
+      expect(onClick).toHaveBeenCalledWith(player)
+    })
+
+    it('does not throw when no click handler is supplied', async () => {
+      const player = testData.player({ id: 42 })
+      const list = new PlayerList([player], true)
+      await list.load()
+
+      const table = list._renderTable()
+      expect(() => table.config.onClick(player, 0)).not.toThrow()
+    })
+  })
+})

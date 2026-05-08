@@ -360,8 +360,10 @@ async function _createGamesForLeague (season, level, league, teams, gamePlan, le
       const teamB = teams[gamePair[1] - 1]
       const actualHomeDay = leagueDayMap ? leagueDayMap[gameDay] : gameDay
       const actualAwayDay = leagueDayMap ? leagueDayMap[gameDay + (teamsPerLeague - 1)] : gameDay + (teamsPerLeague - 1)
-      await query('INSERT INTO game SET ?', _buildGame(season, level, league, teamA.id, teamB.id, actualHomeDay, forfeitBeforeGameDay))
-      await query('INSERT INTO game SET ?', _buildGame(season, level, league, teamB.id, teamA.id, actualAwayDay, forfeitBeforeGameDay))
+      const homeMatchDay = gameDay + 1
+      const awayMatchDay = gameDay + teamsPerLeague
+      await query('INSERT INTO game SET ?', _buildGame(season, level, league, teamA.id, teamB.id, actualHomeDay, forfeitBeforeGameDay, homeMatchDay))
+      await query('INSERT INTO game SET ?', _buildGame(season, level, league, teamB.id, teamA.id, actualAwayDay, forfeitBeforeGameDay, awayMatchDay))
     }
     gameDay++
   }
@@ -375,9 +377,10 @@ async function _createGamesForLeague (season, level, league, teams, gamePlan, le
  * @param {number} team2Id
  * @param {number} actualGameDay
  * @param {number} forfeitBeforeGameDay
+ * @param {number} [matchDay] - User-facing 1-based league match day (1..2*(teamsPerLeague-1))
  * @returns {Game}
  */
-export function _buildGame (season, level, league, team1Id, team2Id, actualGameDay, forfeitBeforeGameDay) {
+export function _buildGame (season, level, league, team1Id, team2Id, actualGameDay, forfeitBeforeGameDay, matchDay) {
   const isForfeit = actualGameDay < forfeitBeforeGameDay
   /** @type {object} */
   const raw = {
@@ -390,6 +393,9 @@ export function _buildGame (season, level, league, team1Id, team2Id, actualGameD
     played: isForfeit ? 1 : 0,
     is_forfeit: isForfeit ? 1 : 0,
     details: '{}'
+  }
+  if (typeof matchDay === 'number') {
+    raw.match_day = matchDay
   }
   if (isForfeit) {
     raw.goals_team_1 = 0

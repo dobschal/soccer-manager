@@ -226,6 +226,28 @@ describe('cupHelper', () => {
       expect(insertCalls.length).toBeGreaterThan(0)
       expect(insertCalls[0][1]).toHaveProperty('game_type', 'cup')
     })
+
+    it('sets sequential match_day on first-round cup games', async () => {
+      // 4 teams → 2 rounds (semi + final). First round = round 2 → match_day 1.
+      const teams = Array.from({ length: 4 }, (_, i) => ({
+        id: i + 1,
+        name: `Team ${i + 1}`,
+        level: 0,
+        league: 0
+      }))
+
+      query.mockResolvedValueOnce(teams)
+      query.mockResolvedValue({ insertId: 1 })
+
+      await createCupDraw(1)
+
+      const insertCalls = query.mock.calls.filter(call =>
+        call[0].includes('INSERT INTO game')
+      )
+      expect(insertCalls.length).toBeGreaterThan(0)
+      // First round of 4-team cup = round 2, sequential round 1
+      expect(insertCalls[0][1]).toHaveProperty('match_day', 1)
+    })
   })
 
   describe('progressCupRound', () => {

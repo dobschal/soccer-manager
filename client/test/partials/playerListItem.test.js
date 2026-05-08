@@ -35,7 +35,7 @@ describe('PlayerListItem', () => {
   describe('template rendering', () => {
     it('renders player name and position', () => {
       const player = testData.player({ name: 'John Doe', position: 'CM' })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item.template
       expect(html).toContain('John Doe')
@@ -44,7 +44,7 @@ describe('PlayerListItem', () => {
 
     it('shows player level with badge', () => {
       const player = testData.player({ level: 70 })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item.template
       expect(html).toContain('level-badge--silver')
@@ -54,7 +54,7 @@ describe('PlayerListItem', () => {
     it('shows sell offer indicator when player has offer', () => {
       const player = testData.player({ id: 5 })
       const sellOfferPlayerIds = new Set([5])
-      const item = new PlayerListItem(player, 1, vi.fn(), sellOfferPlayerIds)
+      const item = new PlayerListItem(player, 1, sellOfferPlayerIds)
 
       const html = item.template
       expect(html).toContain('💰')
@@ -63,7 +63,7 @@ describe('PlayerListItem', () => {
     it('does not show sell offer indicator when no offer', () => {
       const player = testData.player({ id: 5 })
       const sellOfferPlayerIds = new Set([99])
-      const item = new PlayerListItem(player, 1, vi.fn(), sellOfferPlayerIds)
+      const item = new PlayerListItem(player, 1, sellOfferPlayerIds)
 
       const html = item.template
       expect(html).not.toContain('💰')
@@ -71,7 +71,7 @@ describe('PlayerListItem', () => {
 
     it('shows suspended indicator for suspended player', () => {
       const player = testData.player({ is_suspended: true })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item.template
       expect(html).toContain('🚫')
@@ -80,7 +80,7 @@ describe('PlayerListItem', () => {
 
     it('shows table-info class for players in lineup', () => {
       const player = testData.player({ in_game_position: 'CM', is_suspended: false })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item.template
       expect(html).toContain('table-info')
@@ -88,7 +88,7 @@ describe('PlayerListItem', () => {
 
     it('shows table-warning class for bench players', () => {
       const player = testData.player({ in_game_position: '', is_suspended: false, bench_position: 'BENCH_MID' })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item.template
       expect(html).toContain('table-warning')
@@ -96,7 +96,7 @@ describe('PlayerListItem', () => {
 
     it('shows no row class for players not in lineup and not on bench', () => {
       const player = testData.player({ in_game_position: '', is_suspended: false, bench_position: null })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item.template
       expect(html).not.toContain('table-warning')
@@ -105,21 +105,48 @@ describe('PlayerListItem', () => {
     })
   })
 
-  describe('freshness display', () => {
-    it('renders a progress bar component for freshness', () => {
-      const player = testData.player({ freshness: 0.9 })
-      const item = new PlayerListItem(player, 1, vi.fn())
+  describe('cells', () => {
+    it('returns one entry per visible column', () => {
+      const player = testData.player({ name: 'John Doe', position: 'CM' })
+      const item = new PlayerListItem(player, 1)
 
-      const html = item.template
+      const cells = item.cells
+      // Name, Pos, Age, Fit, Lvl, Salary, Value, Goals, Games
+      expect(cells).toHaveLength(9)
+      expect(cells[0]).toContain('John Doe')
+      expect(cells[1]).toContain('CM')
+    })
+
+    it('includes ProgressBar placeholder for fitness cell', () => {
+      const player = testData.player({ freshness: 0.9 })
+      const item = new PlayerListItem(player, 1)
+
       // ProgressBar is a UIElement, rendered as a <template> placeholder
-      expect(html).toContain('<template id=')
+      expect(item.cells[3]).toContain('<template id=')
+    })
+  })
+
+  describe('rowClass', () => {
+    it('returns table-danger for injured players', () => {
+      const player = testData.player({ is_injured: true })
+      expect(new PlayerListItem(player, 1).rowClass).toBe('table-danger')
+    })
+
+    it('returns table-info for lineup players', () => {
+      const player = testData.player({ in_game_position: 'CM', is_suspended: false, is_injured: false })
+      expect(new PlayerListItem(player, 1).rowClass).toBe('table-info')
+    })
+
+    it('returns empty string for benched-off players', () => {
+      const player = testData.player({ in_game_position: '', is_suspended: false, is_injured: false, bench_position: null })
+      expect(new PlayerListItem(player, 1).rowClass).toBe('')
     })
   })
 
   describe('cards display', () => {
     it('shows yellow cards count', () => {
       const player = testData.player({ yellow_cards: 3, red_cards: 0 })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item._renderCards(3, 0)
       expect(html).toContain('card-badge--yellow') // Yellow card CSS class
@@ -129,7 +156,7 @@ describe('PlayerListItem', () => {
 
     it('shows red card indicator', () => {
       const player = testData.player({ yellow_cards: 0, red_cards: 1 })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item._renderCards(0, 1)
       expect(html).toContain('card-badge--red') // Red card CSS class
@@ -138,7 +165,7 @@ describe('PlayerListItem', () => {
 
     it('shows both yellow and red cards', () => {
       const player = testData.player({ yellow_cards: 2, red_cards: 1 })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item._renderCards(2, 1)
       expect(html).toContain('card-badge--yellow')
@@ -147,34 +174,10 @@ describe('PlayerListItem', () => {
 
     it('shows empty string when no cards', () => {
       const player = testData.player({ yellow_cards: 0, red_cards: 0 })
-      const item = new PlayerListItem(player, 1, vi.fn())
+      const item = new PlayerListItem(player, 1)
 
       const html = item._renderCards(0, 0)
       expect(html).toBe('')
-    })
-  })
-
-  describe('click handler', () => {
-    it('calls click handler with player', () => {
-      const player = testData.player({ id: 42 })
-      const clickHandler = vi.fn()
-      const item = new PlayerListItem(player, 1, clickHandler)
-
-      item.onClickHandler()
-
-      expect(clickHandler).toHaveBeenCalledWith(player)
-    })
-  })
-
-  describe('events', () => {
-    it('registers click event on root element', () => {
-      const player = testData.player()
-      const clickHandler = vi.fn()
-      const item = new PlayerListItem(player, 1, clickHandler)
-
-      const events = item.events
-      expect(events['']).toBeDefined()
-      expect(events[''].click).toBeDefined()
     })
   })
 })

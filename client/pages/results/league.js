@@ -29,12 +29,11 @@ export class LeagueResultsPage extends UIElement {
     }
     const currentGameday = await server.getCurrentGameday()
     this._upcomingSeason = currentGameday.season
-    this._upcomingGameDay = currentGameday.gameDay
     if (typeof this.season === 'undefined') {
       this.season = currentGameday.lastPlayedLeagueSeason ?? currentGameday.season
     }
-    if (typeof this.gameDay === 'undefined') {
-      this.gameDay = currentGameday.lastPlayedLeagueGameDay ?? Math.max(0, currentGameday.gameDay - 1)
+    if (typeof this.matchDay === 'undefined') {
+      this.matchDay = currentGameday.lastPlayedLeagueMatchDay ?? 1
     }
 
     let filters = await server.getResultsFilters(this.level, this.league, this.season)
@@ -42,23 +41,26 @@ export class LeagueResultsPage extends UIElement {
       this.season = filters.seasons[filters.seasons.length - 1]
       filters = await server.getResultsFilters(this.level, this.league, this.season)
     }
-    if (filters.gameDays.length > 0 && !filters.gameDays.includes(this.gameDay)) {
-      this.gameDay = filters.gameDays[filters.gameDays.length - 1]
+    if (filters.matchDays.length > 0 && !filters.matchDays.includes(this.matchDay)) {
+      this.matchDay = filters.matchDays[filters.matchDays.length - 1]
     }
     this.availableLeagues = filters.leagues
     this.availableSeasons = filters.seasons
-    this.availableGameDays = filters.gameDays
+    this.availableMatchDays = filters.matchDays
 
-    const isUpcomingGameDay = this.season === this._upcomingSeason && this.gameDay === this._upcomingGameDay
     const isMyLeague = this.level === this.parentPage.info.team.level && this.league === this.parentPage.info.team.league
+    const lastPlayedLeagueMatchDay = currentGameday.lastPlayedLeagueMatchDay ?? 0
+    const isUpcomingGameDay = this.season === this._upcomingSeason &&
+      isMyLeague &&
+      this.matchDay > lastPlayedLeagueMatchDay
 
     const promises = [
-      server.getResults(this.gameDay, this.season, this.level, this.league),
-      server.getStanding(this.gameDay, this.season, this.level, this.league),
-      server.getStanding(Math.max(0, this.gameDay - 1), this.season, this.level, this.league),
+      server.getResults(this.matchDay, this.season, this.level, this.league),
+      server.getStanding(this.matchDay, this.season, this.level, this.league),
+      server.getStanding(Math.max(0, this.matchDay - 1), this.season, this.level, this.league),
       server.getTopScorers(this.season, this.level, this.league, 10),
       isUpcomingGameDay && isMyLeague ? server.getSuspendedPlayers(this.level, this.league) : Promise.resolve({ suspendedPlayers: [] }),
-      server.getTeamStats(this.gameDay, this.season, this.level, this.league),
+      server.getTeamStats(this.matchDay, this.season, this.level, this.league),
       isUpcomingGameDay && isMyLeague ? server.getInjuredPlayers(this.level, this.league) : Promise.resolve({ injuredPlayers: [] }),
       server.getLeagueStadiums(this.level, this.league)
     ]
@@ -101,7 +103,7 @@ export class LeagueResultsPage extends UIElement {
               <div>
                 <label for="results-game-day-select" class="form-label mb-1">${t('results.gameDayLabel')}</label>
                 <select id="results-game-day-select" class="form-select form-select-sm u-w-auto">
-                  ${this.availableGameDays.map(d => `<option value="${d}" ${d === this.gameDay ? 'selected' : ''}>${d + 1}</option>`).join('')}
+                  ${this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -135,7 +137,7 @@ export class LeagueResultsPage extends UIElement {
     renderRow: (result) => this._renderResultListItem(result),
     onClick: (result) => setQueryParams({ game_id: result.id })
   })}
-        <h3>${t('results.standing')} - ${this.gameDay + 1}. ${t('results.gameDayLabel')}</h3>
+        <h3>${t('results.standing')} - ${this.matchDay}. ${t('results.gameDayLabel')}</h3>
         ${new Table({
     cols: [
       {
@@ -259,17 +261,17 @@ export class LeagueResultsPage extends UIElement {
       '#results-league-select': {
         change: (event) => {
           const [level, league] = event.target.value.split('_').map(Number)
-          setQueryParams({ level, league, season: this.season, game_day: this.gameDay })
+          setQueryParams({ level, league, season: this.season, match_day: this.matchDay })
         }
       },
       '#results-season-select': {
         change: (event) => {
-          setQueryParams({ season: Number(event.target.value), game_day: this.gameDay })
+          setQueryParams({ season: Number(event.target.value), match_day: this.matchDay })
         }
       },
       '#results-game-day-select': {
         change: (event) => {
-          setQueryParams({ season: this.season, game_day: Number(event.target.value) })
+          setQueryParams({ season: this.season, match_day: Number(event.target.value) })
         }
       }
     }
@@ -291,7 +293,7 @@ export class LeagueResultsPage extends UIElement {
 
   availableLeagues = []
   availableSeasons = []
-  availableGameDays = []
+  availableMatchDays = []
 
   _teamStatsSortCol = 'squad_value'
   _teamStatsSortDir = -1
@@ -342,7 +344,7 @@ export class LeagueResultsPage extends UIElement {
     league: team.level + 1
   })}</p>
       <p class="mb-0">${t('dashboard.gameDayInfo', {
-    gameDay: Math.max(1, this.gameDay + 1),
+    gameDay: Math.max(1, this.matchDay),
     season: this.season + 1,
     opponent: isHomeGame ? myGame.team2 : myGame.team1
   })} ${resultMessage}</p>
@@ -525,22 +527,21 @@ export class LeagueResultsPage extends UIElement {
     ]
   }
 
-  async _getSeasonAndGameDay () {
+  async _getSeasonAndMatchDay () {
     let {
       season,
-      game_day: gameDay
+      match_day: matchDay
     } = getQueryParams()
-    if (typeof season === 'undefined' && typeof gameDay === 'undefined') {
+    if (typeof season === 'undefined' && typeof matchDay === 'undefined') {
       return {}
     }
     season = Number(season)
-    gameDay = Number(gameDay)
-    if (gameDay > 33) gameDay = 33
-    if (gameDay < 0) gameDay = 0
+    matchDay = Number(matchDay)
+    if (matchDay < 1) matchDay = 1
     if (season < 0) season = 0
     return {
       season,
-      gameDay
+      matchDay
     }
   }
 
@@ -661,14 +662,14 @@ export class LeagueResultsPage extends UIElement {
     }
     const {
       season,
-      gameDay
-    } = await this._getSeasonAndGameDay()
-    if (typeof season !== 'undefined' && typeof gameDay !== 'undefined') {
+      matchDay
+    } = await this._getSeasonAndMatchDay()
+    if (typeof season !== 'undefined' && typeof matchDay !== 'undefined') {
       this.season = season
-      this.gameDay = gameDay
+      this.matchDay = matchDay
     } else {
       this.season = undefined
-      this.gameDay = undefined
+      this.matchDay = undefined
     }
   }
 }

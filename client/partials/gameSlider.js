@@ -217,7 +217,7 @@ export class GameSlider extends UIElement {
       const sequentialNumber = (game.totalRounds || 0) - Math.log2(game.cupRound)
       return t('cup.roundNumber', { number: sequentialNumber })
     }
-    return t('dashboard.gameDay', { gameDay: game.gameDay + 1 })
+    return t('dashboard.gameDay', { gameDay: game.matchDay ?? game.gameDay + 1 })
   }
 
   /**

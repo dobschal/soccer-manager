@@ -10,6 +10,7 @@ vi.mock('../../lib/gateway.js', () => ({
     getStanding: vi.fn(),
     getTopScorers: vi.fn(),
     getSuspendedPlayers: vi.fn(),
+    getInjuredPlayers: vi.fn(),
     getTeamStats: vi.fn(),
     getLeagueStadiums: vi.fn(),
     getResultsFilters: vi.fn(),
@@ -67,12 +68,13 @@ describe('ResultsPage', () => {
     vi.clearAllMocks()
     getQueryParams.mockReturnValue({})
     server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+    server.getInjuredPlayers.mockResolvedValue({ injuredPlayers: [] })
     server.getTeamStats.mockResolvedValue({ teamStats: [] })
     server.getLeagueStadiums.mockResolvedValue({ stadiums: [] })
     server.getResultsFilters.mockResolvedValue({
       leagues: [{ level: 0, league: 0 }, { level: 1, league: 0 }, { level: 1, league: 1 }, { level: 2, league: 0 }],
       seasons: [0, 1, 2],
-      gameDays: Array.from({ length: 34 }, (_, i) => i)
+      matchDays: Array.from({ length: 34 }, (_, i) => i + 1)
     })
   })
 
@@ -228,7 +230,7 @@ describe('ResultsPage', () => {
         season: 2,
         gameDay: 5,
         lastPlayedLeagueSeason: 2,
-        lastPlayedLeagueGameDay: 4
+        lastPlayedLeagueMatchDay: 4
       })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
@@ -252,27 +254,27 @@ describe('ResultsPage', () => {
       expect((html.match(/<option /g) || []).length).toBe(4 + 3 + 34)
     })
 
-    it('clamps season and game day to last available values when current is invalid', async () => {
+    it('clamps season and match day to last available values when current is invalid', async () => {
       const team = testData.team({ level: 1, league: 0 })
       const parentPage = { myTeamId: team.id, info: { team } }
       server.getCurrentGameday.mockResolvedValue({
         season: 9,
         gameDay: 30,
         lastPlayedLeagueSeason: 9,
-        lastPlayedLeagueGameDay: 30
+        lastPlayedLeagueMatchDay: 30
       })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
       server.getTopScorers.mockResolvedValue({ topScorers: [] })
       server.getResultsFilters
-        .mockResolvedValueOnce({ leagues: [{ level: 1, league: 0 }], seasons: [0, 1], gameDays: [] })
-        .mockResolvedValueOnce({ leagues: [{ level: 1, league: 0 }], seasons: [0, 1], gameDays: [0, 1, 2] })
+        .mockResolvedValueOnce({ leagues: [{ level: 1, league: 0 }], seasons: [0, 1], matchDays: [] })
+        .mockResolvedValueOnce({ leagues: [{ level: 1, league: 0 }], seasons: [0, 1], matchDays: [1, 2, 3] })
 
       const leaguePage = new LeagueResultsPage(parentPage)
       await leaguePage.load()
 
       expect(leaguePage.season).toBe(1)
-      expect(leaguePage.gameDay).toBe(2)
+      expect(leaguePage.matchDay).toBe(3)
     })
 
     it('league select change updates query params with new level/league', async () => {
@@ -283,7 +285,7 @@ describe('ResultsPage', () => {
         level: 2,
         league: 0,
         season: leaguePage.season,
-        game_day: leaguePage.gameDay
+        match_day: leaguePage.matchDay
       })
     })
 
@@ -291,14 +293,14 @@ describe('ResultsPage', () => {
       const leaguePage = await setupLeaguePage()
       leaguePage.events['#results-season-select'].change({ target: { value: '1' } })
 
-      expect(setQueryParams).toHaveBeenCalledWith({ season: 1, game_day: leaguePage.gameDay })
+      expect(setQueryParams).toHaveBeenCalledWith({ season: 1, match_day: leaguePage.matchDay })
     })
 
-    it('game day select change updates game day', async () => {
+    it('match day select change updates match day', async () => {
       const leaguePage = await setupLeaguePage()
       leaguePage.events['#results-game-day-select'].change({ target: { value: '7' } })
 
-      expect(setQueryParams).toHaveBeenCalledWith({ season: leaguePage.season, game_day: 7 })
+      expect(setQueryParams).toHaveBeenCalledWith({ season: leaguePage.season, match_day: 7 })
     })
   })
 
@@ -374,13 +376,13 @@ describe('ResultsPage', () => {
   })
 
   describe('applyQueryParams', () => {
-    it('resets to last played game day when no season/game_day in query', async () => {
+    it('resets to last played match day when no season/match_day in query', async () => {
       const team = testData.team({ level: 1, league: 0 })
       const parentPage = { myTeamId: team.id, info: { team } }
 
       server.getCurrentGameday
-        .mockResolvedValueOnce({ season: 2, gameDay: 5, lastPlayedLeagueSeason: 2, lastPlayedLeagueGameDay: 4 })
-        .mockResolvedValueOnce({ season: 2, gameDay: 7, lastPlayedLeagueSeason: 2, lastPlayedLeagueGameDay: 6 })
+        .mockResolvedValueOnce({ season: 2, gameDay: 5, lastPlayedLeagueSeason: 2, lastPlayedLeagueMatchDay: 4 })
+        .mockResolvedValueOnce({ season: 2, gameDay: 7, lastPlayedLeagueSeason: 2, lastPlayedLeagueMatchDay: 6 })
       server.getResults.mockResolvedValue({ results: [] })
       server.getStanding.mockResolvedValue([])
       server.getTopScorers.mockResolvedValue({ topScorers: [] })
@@ -388,23 +390,23 @@ describe('ResultsPage', () => {
 
       const leaguePage = new LeagueResultsPage(parentPage)
       await leaguePage.load()
-      expect(leaguePage.gameDay).toBe(4)
+      expect(leaguePage.matchDay).toBe(4)
 
-      // user navigates to a specific game day
-      getQueryParams.mockReturnValue({ season: '2', game_day: '1' })
-      await leaguePage.applyQueryParams({ season: '2', game_day: '1' })
+      // user navigates to a specific match day
+      getQueryParams.mockReturnValue({ season: '2', match_day: '1' })
+      await leaguePage.applyQueryParams({ season: '2', match_day: '1' })
       expect(leaguePage.season).toBe(2)
-      expect(leaguePage.gameDay).toBe(1)
+      expect(leaguePage.matchDay).toBe(1)
 
       // user navigates away and back without query params -> should reset
       getQueryParams.mockReturnValue({})
       await leaguePage.applyQueryParams({})
       expect(leaguePage.season).toBeUndefined()
-      expect(leaguePage.gameDay).toBeUndefined()
+      expect(leaguePage.matchDay).toBeUndefined()
 
-      // load() now refetches the latest played game day
+      // load() now refetches the latest played match day
       await leaguePage.load()
-      expect(leaguePage.gameDay).toBe(6)
+      expect(leaguePage.matchDay).toBe(6)
       expect(leaguePage.season).toBe(2)
     })
   })

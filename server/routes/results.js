@@ -65,23 +65,24 @@ export default {
 
   /**
    * @param {number} season
-   * @param {number} tilGameDay
+   * @param {number} tilMatchDay - Inclusive upper bound on match_day (1..N)
    * @param {number} level
    * @param {number} league
    * @param {Request} [req]
    * @returns {Promise<GameResultType[]>}
    */
-  async getSeasonResults (season, tilGameDay, level, league, req) {
+  async getSeasonResults (season, tilMatchDay, level, league, req) {
     const team = await getTeam(req)
     const actualLevel = level ?? team.level
     const actualLeague = league ?? team.league
 
-    const key = cacheKey(CACHE_NAMESPACES.SEASON_RESULTS, season, tilGameDay, actualLevel, actualLeague)
+    const key = cacheKey(CACHE_NAMESPACES.SEASON_RESULTS, season, tilMatchDay, actualLevel, actualLeague)
 
     return getCached(key, async () => {
       return await query(`
           SELECT g.id           as id,
                  g.game_day     as gameDay,
+                 g.match_day    as matchDay,
                  g.season       as season,
                  g.goals_team_1 as goalsTeam1,
                  g.goals_team_2 as goalsTeam2,
@@ -94,13 +95,13 @@ export default {
           FROM game g
                    JOIN team t1 ON t1.id = g.team_1_id
                    JOIN team t2 ON t2.id = g.team_2_id
-          WHERE g.game_day <= ?
+          WHERE g.match_day <= ?
             AND g.season = ?
             AND g.level = ?
             AND g.league = ?
             AND played = 1
             AND (g.game_type = 'league' OR g.game_type IS NULL)
-      `, [tilGameDay, season, actualLevel, actualLeague])
+      `, [tilMatchDay, season, actualLevel, actualLeague])
     })
   },
 
@@ -108,42 +109,42 @@ export default {
    * Returns valid filter values for the results page selects.
    * - leagues: every (level, league) combination that has league games
    * - seasons: every season that has league games for the given (level, league)
-   * - gameDays: every game day that has league games for the given (level, league, season)
+   * - matchDays: every league match day (1..N) that has games for the given (level, league, season)
    * @param {number} [level]
    * @param {number} [league]
    * @param {number} [season]
-   * @returns {Promise<{leagues: Array<{level: number, league: number}>, seasons: number[], gameDays: number[]}>}
+   * @returns {Promise<{leagues: Array<{level: number, league: number}>, seasons: number[], matchDays: number[]}>}
    */
   async getResultsFilters (level, league, season) {
     const hasLeague = typeof level !== 'undefined' && typeof league !== 'undefined' && level !== null && league !== null
     const hasSeason = hasLeague && typeof season !== 'undefined' && season !== null
-    const [leagueRows, seasonRows, gameDayRows] = await Promise.all([
+    const [leagueRows, seasonRows, matchDayRows] = await Promise.all([
       query("SELECT DISTINCT level, league FROM game WHERE (game_type='league' OR game_type IS NULL) ORDER BY level ASC, league ASC"),
       hasLeague
         ? query("SELECT DISTINCT season FROM game WHERE level=? AND league=? AND (game_type='league' OR game_type IS NULL) ORDER BY season ASC", [level, league])
         : Promise.resolve([]),
       hasSeason
-        ? query("SELECT DISTINCT game_day FROM game WHERE level=? AND league=? AND season=? AND (game_type='league' OR game_type IS NULL) ORDER BY game_day ASC", [level, league, season])
+        ? query("SELECT DISTINCT match_day FROM game WHERE level=? AND league=? AND season=? AND (game_type='league' OR game_type IS NULL) AND match_day IS NOT NULL ORDER BY match_day ASC", [level, league, season])
         : Promise.resolve([])
     ])
     return {
       leagues: leagueRows.map(r => ({ level: r.level, league: r.league })),
       seasons: seasonRows.map(r => r.season),
-      gameDays: gameDayRows.map(r => r.game_day)
+      matchDays: matchDayRows.map(r => r.match_day)
     }
   },
 
   /**
-   * @returns {Promise<{season: number, gameDay: number}>}
+   * @returns {Promise<{season: number, gameDay: number, lastPlayedLeagueMatchDay?: number, lastPlayedLeagueSeason?: number}>}
    */
   async getCurrentGameday () {
     const current = await getGameDayAndSeason()
-    // Find the last played league game day (for results page default)
+    // Find the last played league game (for results page default)
     const [lastPlayed] = await query(
-      "SELECT game_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) ORDER BY season DESC, game_day DESC LIMIT 1"
+      "SELECT game_day, match_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) ORDER BY season DESC, game_day DESC LIMIT 1"
     )
     if (lastPlayed) {
-      current.lastPlayedLeagueGameDay = lastPlayed.game_day
+      current.lastPlayedLeagueMatchDay = lastPlayed.match_day
       current.lastPlayedLeagueSeason = lastPlayed.season
     }
     return current
@@ -164,6 +165,7 @@ export default {
     const pastGames = await query(`
         SELECT g.id           as id,
                g.game_day     as gameDay,
+               g.match_day    as matchDay,
                g.season       as season,
                g.goals_team_1 as goalsTeam1,
                g.goals_team_2 as goalsTeam2,
@@ -191,6 +193,7 @@ export default {
     const upcomingGames = await query(`
         SELECT g.id           as id,
                g.game_day     as gameDay,
+               g.match_day    as matchDay,
                g.season       as season,
                g.goals_team_1 as goalsTeam1,
                g.goals_team_2 as goalsTeam2,
@@ -306,21 +309,32 @@ export default {
   },
 
   /**
-   * @param {number} gameDay
+   * @param {number} matchDay - League match day (1..N)
    * @param {number} season
    * @param {number} level
    * @param {number} league
    * @param {Request} [req]
    * @returns {Promise<{results: GameResultType[]}>}
    */
-  async getResults (gameDay, season, level, league, req) {
+  async getResults (matchDay, season, level, league, req) {
     const team = await getTeam(req)
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+
+    // Resolve the internal game_day for this league match_day to detect adjacent cup games
+    const [matchRow] = await query(
+      "SELECT game_day FROM game WHERE match_day=? AND season=? AND level=? AND league=? AND (game_type='league' OR game_type IS NULL) LIMIT 1",
+      [matchDay, season, actualLevel, actualLeague]
+    )
+    const internalGameDay = matchRow?.game_day ?? null
+
     const [results, cupCheck] = await Promise.all([
       query(`
         SELECT g.id           as id,
                g.goals_team_1 as goalsTeam1,
                g.goals_team_2 as goalsTeam2,
                g.game_day     as gameDay,
+               g.match_day    as matchDay,
                g.season       as season,
                t1.name        as team1,
                t2.name        as team2,
@@ -331,16 +345,18 @@ export default {
         FROM game g
                  JOIN team t1 ON t1.id = g.team_1_id
                  JOIN team t2 ON t2.id = g.team_2_id
-        WHERE g.game_day = ?
+        WHERE g.match_day = ?
           AND g.season = ?
           AND g.level = ?
           AND g.league = ?
           AND (g.game_type = 'league' OR g.game_type IS NULL)
-      `, [gameDay, season, level ?? team.level, league ?? team.league]),
-      query(
-        "SELECT cup_round FROM game WHERE game_day = ? AND season = ? AND game_type = 'cup' LIMIT 1",
-        [gameDay, season]
-      )
+      `, [matchDay, season, actualLevel, actualLeague]),
+      internalGameDay !== null
+        ? query(
+          "SELECT cup_round FROM game WHERE game_day = ? AND season = ? AND game_type = 'cup' LIMIT 1",
+          [internalGameDay, season]
+        )
+        : Promise.resolve([])
     ])
     // Extract only needed fields from details to reduce payload size
     return {
@@ -385,20 +401,31 @@ export default {
   },
 
   /**
-   * @param {number} gameDay
+   * @param {number} matchDay - League match day (1..N). 0 means "before any games".
    * @param {number} season
    * @param {number} level
    * @param {number} league
    * @param {Request} [req]
    * @returns {Promise<Array<StandingType>>}
    */
-  async getStanding (gameDay, season, level, league, req) {
+  async getStanding (matchDay, season, level, league, req) {
     const team = await getTeam(req)
     const actualLevel = level ?? team.level
     const actualLeague = league ?? team.league
 
+    // Translate match_day → internal game_day (the league game_day for that match_day).
+    // The standing cache is keyed by internal game_day from the cron's per-tick caching.
+    let internalGameDay = 0
+    if (matchDay > 0) {
+      const [row] = await query(
+        "SELECT game_day FROM game WHERE match_day=? AND season=? AND level=? AND league=? AND (game_type='league' OR game_type IS NULL) LIMIT 1",
+        [matchDay, season, actualLevel, actualLeague]
+      )
+      if (row) internalGameDay = row.game_day
+    }
+
     // Try to get cached standing first
-    const cached = await getCachedStanding(gameDay, season, actualLevel, actualLeague)
+    const cached = await getCachedStanding(internalGameDay, season, actualLevel, actualLeague)
     if (cached) {
       // Refresh team display data (name, emblem, color) from database
       const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
@@ -424,14 +451,14 @@ export default {
       `
           SELECT *
           FROM game g
-          WHERE g.game_day <= ?
+          WHERE g.match_day <= ?
             AND g.season = ?
             AND g.level = ?
             AND g.league = ?
             AND g.played = 1
             AND (g.game_type = 'league' OR g.game_type IS NULL)
       `,
-      [gameDay, season, actualLevel, actualLeague]
+      [matchDay, season, actualLevel, actualLeague]
     )
     let teams = []
     if (games.length > 0) {
@@ -450,7 +477,7 @@ export default {
 
     // Cache the calculated standing for future requests
     if (games.length > 0) {
-      await saveStandingToCache(gameDay, season, actualLevel, actualLeague, standing)
+      await saveStandingToCache(internalGameDay, season, actualLevel, actualLeague, standing)
     }
 
     return standing
@@ -482,19 +509,29 @@ export default {
    * @returns {Promise<{suspendedPlayers: Array}>}
    */
   /**
-   * Get team statistics for all teams in a league on a given game day
-   * @param {number} gameDay
+   * Get team statistics for all teams in a league on a given league match day
+   * @param {number} matchDay - League match day (1..N)
    * @param {number} season
    * @param {number} level
    * @param {number} league
    * @param {Request} [req]
    * @returns {Promise<{teamStats: Array}>}
    */
-  async getTeamStats (gameDay, season, level, league, req) {
+  async getTeamStats (matchDay, season, level, league, req) {
     const team = await getTeam(req)
     const actualLevel = level ?? team.level
     const actualLeague = league ?? team.league
-    const stats = await getTeamStatsFromCache(gameDay, season, actualLevel, actualLeague)
+
+    // team_stats_cache is keyed by internal game_day. Translate.
+    let internalGameDay = 0
+    if (matchDay > 0) {
+      const [row] = await query(
+        "SELECT game_day FROM game WHERE match_day=? AND season=? AND level=? AND league=? AND (game_type='league' OR game_type IS NULL) LIMIT 1",
+        [matchDay, season, actualLevel, actualLeague]
+      )
+      if (row) internalGameDay = row.game_day
+    }
+    const stats = await getTeamStatsFromCache(internalGameDay, season, actualLevel, actualLeague)
     return { teamStats: stats }
   },
 
