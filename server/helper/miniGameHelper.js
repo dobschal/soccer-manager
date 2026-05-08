@@ -23,7 +23,7 @@ export const MINI_GAME_LIMITS = {
  */
 export function rollMiniGameReward (goalsScored, random = Math.random) {
   if (!Number.isFinite(goalsScored) || goalsScored <= 0) return null
-  const chance = Math.min(goalsScored * 0.1, 1)
+  const chance = Math.min(goalsScored / 3, 1)
   if (random() >= chance) return null
   const idx = Math.floor(random() * MINI_GAME_REWARD_POOL.length)
   return MINI_GAME_REWARD_POOL[Math.min(idx, MINI_GAME_REWARD_POOL.length - 1)]

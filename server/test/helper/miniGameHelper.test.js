@@ -24,13 +24,13 @@ describe('miniGameHelper.rollMiniGameReward', () => {
   })
 
   it('returns null when random above threshold', () => {
-    // chance for 1 goal is 0.1 — random 0.5 is above the threshold
+    // chance for 1 goal is ~0.33 — random 0.5 is above the threshold
     const random = vi.fn().mockReturnValue(0.5)
     expect(rollMiniGameReward(1, random)).toBeNull()
   })
 
   it('returns a card from the pool when random below threshold', () => {
-    // 0.05 is < chance (0.1) → wins; second call picks the pool index
+    // 0.05 is < chance (~0.33) → wins; second call picks the pool index
     const calls = [0.05, 0]
     const random = vi.fn(() => calls.shift())
     const result = rollMiniGameReward(1, random)
@@ -38,24 +38,24 @@ describe('miniGameHelper.rollMiniGameReward', () => {
     expect(result).toBe(MINI_GAME_REWARD_POOL[0])
   })
 
-  it('caps the chance at 100% for 10+ goals', () => {
-    // chance is min(goals*0.1, 1) → 100% at 10 goals.
+  it('guarantees a card at 3+ goals', () => {
+    // chance is min(goals/3, 1) → 100% at 3 goals.
     const random = vi.fn().mockReturnValueOnce(0.9999).mockReturnValueOnce(0)
-    expect(rollMiniGameReward(10, random)).not.toBeNull()
+    expect(rollMiniGameReward(3, random)).not.toBeNull()
     const random2 = vi.fn().mockReturnValueOnce(0.9999).mockReturnValueOnce(0)
-    expect(rollMiniGameReward(20, random2)).not.toBeNull()
+    expect(rollMiniGameReward(10, random2)).not.toBeNull()
   })
 
-  it('over many trials, win-rate matches goals*10%', () => {
-    // Sanity check distribution at 5 goals → ~50% win rate.
+  it('over many trials, win-rate matches goals*33%', () => {
+    // Sanity check distribution at 1 goal → ~33% win rate.
     let wins = 0
     const N = 5000
     for (let i = 0; i < N; i++) {
-      if (rollMiniGameReward(5) !== null) wins++
+      if (rollMiniGameReward(1) !== null) wins++
     }
     const rate = wins / N
-    expect(rate).toBeGreaterThan(0.4)
-    expect(rate).toBeLessThan(0.6)
+    expect(rate).toBeGreaterThan(0.27)
+    expect(rate).toBeLessThan(0.4)
   })
 
   it('selects evenly across the reward pool', () => {
