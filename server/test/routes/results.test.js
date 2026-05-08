@@ -37,14 +37,15 @@ describe('results routes', () => {
   })
 
   describe('getResults', () => {
-    it('returns results for specified game day and season', async () => {
+    it('returns results for specified match day and season', async () => {
       const team = testData.team({ level: 1, league: 1 })
       const results = [
         { id: 1, goalsTeam1: 2, goalsTeam2: 1, team1: 'Team A', team2: 'Team B' }
       ]
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValueOnce(results).mockResolvedValueOnce([])
+      // 1st: match_day → game_day lookup; 2nd: results query; 3rd: cup check
+      query.mockResolvedValueOnce([{ game_day: 4 }]).mockResolvedValueOnce(results).mockResolvedValueOnce([])
 
       const req = createMockRequest()
       const result = await handlers.getResults(5, 1, 1, 1, req)
@@ -56,27 +57,25 @@ describe('results routes', () => {
       const team = testData.team({ level: 2, league: 3 })
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValueOnce([]).mockResolvedValueOnce([])
+      query.mockResolvedValueOnce([{ game_day: 4 }]).mockResolvedValueOnce([]).mockResolvedValueOnce([])
 
       const req = createMockRequest()
       await handlers.getResults(5, 1, null, null, req)
 
-      expect(query).toHaveBeenCalledWith(
-        expect.any(String),
-        [5, 1, 2, 3]
-      )
+      // Second call is the results query, parameterized with [matchDay, season, level, league]
+      expect(query.mock.calls[1][1]).toEqual([5, 1, 2, 3])
     })
 
     it('filters out friendly matches with game_type filter', async () => {
       const team = testData.team({ level: 1, league: 1 })
 
       getTeam.mockResolvedValue(team)
-      query.mockResolvedValueOnce([]).mockResolvedValueOnce([])
+      query.mockResolvedValueOnce([{ game_day: 4 }]).mockResolvedValueOnce([]).mockResolvedValueOnce([])
 
       const req = createMockRequest()
       await handlers.getResults(5, 1, 1, 1, req)
 
-      const sql = query.mock.calls[0][0]
+      const sql = query.mock.calls[1][0]
       expect(sql).toContain("g.game_type = 'league' OR g.game_type IS NULL")
     })
   })
@@ -112,13 +111,15 @@ describe('results routes', () => {
       const standing = [{ team_id: 1, points: 3 }]
 
       getTeam.mockResolvedValue(team)
+      // First query translates match_day → internal game_day
+      query.mockResolvedValueOnce([{ game_day: 7 }])
       getCachedStanding.mockResolvedValue(standing)
 
       const req = createMockRequest()
       const result = await handlers.getStanding(5, 1, 1, 1, req)
 
       expect(result).toEqual(standing)
-      expect(getCachedStanding).toHaveBeenCalledWith(5, 1, 1, 1)
+      expect(getCachedStanding).toHaveBeenCalledWith(7, 1, 1, 1)
       expect(calculateStanding).not.toHaveBeenCalled()
     })
 
@@ -131,6 +132,7 @@ describe('results routes', () => {
       getTeam.mockResolvedValue(team)
       getCachedStanding.mockResolvedValue(null) // Cache miss
       query
+        .mockResolvedValueOnce([{ game_day: 7 }]) // match_day → game_day translation
         .mockResolvedValueOnce(games)
         .mockResolvedValueOnce(teams)
       calculateStanding.mockReturnValue(standing)
@@ -141,7 +143,7 @@ describe('results routes', () => {
 
       expect(result).toEqual(standing)
       expect(calculateStanding).toHaveBeenCalledWith(games, teams)
-      expect(saveStandingToCache).toHaveBeenCalledWith(5, 1, 1, 1, standing)
+      expect(saveStandingToCache).toHaveBeenCalledWith(7, 1, 1, 1, standing)
     })
 
     it('uses team level and league when not specified', async () => {
@@ -150,6 +152,7 @@ describe('results routes', () => {
       getTeam.mockResolvedValue(team)
       getCachedStanding.mockResolvedValue(null)
       query
+        .mockResolvedValueOnce([{ game_day: 7 }])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
       calculateStanding.mockReturnValue([])
@@ -157,7 +160,7 @@ describe('results routes', () => {
       const req = createMockRequest()
       await handlers.getStanding(5, 1, null, null, req)
 
-      expect(getCachedStanding).toHaveBeenCalledWith(5, 1, 2, 3)
+      expect(getCachedStanding).toHaveBeenCalledWith(7, 1, 2, 3)
     })
 
     it('fetches teams by level/league when no games played', async () => {
@@ -166,9 +169,11 @@ describe('results routes', () => {
 
       getTeam.mockResolvedValue(team)
       getCachedStanding.mockResolvedValue(null)
+      // matchDay=1 with no row found means we still translate (returns empty), then fallback query (no games), then teams
       query
-        .mockResolvedValueOnce([])  // no games
-        .mockResolvedValueOnce(teams)
+        .mockResolvedValueOnce([])      // no match_day → game_day mapping
+        .mockResolvedValueOnce([])      // no games for fallback
+        .mockResolvedValueOnce(teams)   // teams by level/league
       calculateStanding.mockReturnValue([])
 
       const req = createMockRequest()
@@ -188,6 +193,7 @@ describe('results routes', () => {
       getTeam.mockResolvedValue(team)
       getCachedStanding.mockResolvedValue(null)
       query
+        .mockResolvedValueOnce([{ game_day: 7 }])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
       calculateStanding.mockReturnValue([])
@@ -195,7 +201,8 @@ describe('results routes', () => {
       const req = createMockRequest()
       await handlers.getStanding(5, 1, 1, 1, req)
 
-      const sql = query.mock.calls[0][0]
+      // call[1] is the standings games query
+      const sql = query.mock.calls[1][0]
       expect(sql).toContain("g.game_type = 'league' OR g.game_type IS NULL")
     })
   })
@@ -203,15 +210,26 @@ describe('results routes', () => {
   describe('getCurrentGameday', () => {
     it('returns current game day and season', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      query.mockResolvedValueOnce([])
 
       const result = await handlers.getCurrentGameday()
 
       expect(result).toEqual({ gameDay: 5, season: 1 })
     })
+
+    it('includes lastPlayedLeagueMatchDay when a league game has been played', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 6, season: 1 })
+      query.mockResolvedValueOnce([{ game_day: 5, match_day: 4, season: 1 }])
+
+      const result = await handlers.getCurrentGameday()
+
+      expect(result.lastPlayedLeagueMatchDay).toBe(4)
+      expect(result.lastPlayedLeagueSeason).toBe(1)
+    })
   })
 
   describe('getResultsFilters', () => {
-    it('returns leagues, seasons, and game days for given context', async () => {
+    it('returns leagues, seasons, and match days for given context', async () => {
       query
         .mockResolvedValueOnce([
           { level: 0, league: 0 },
@@ -219,7 +237,7 @@ describe('results routes', () => {
           { level: 1, league: 1 }
         ])
         .mockResolvedValueOnce([{ season: 0 }, { season: 1 }, { season: 2 }])
-        .mockResolvedValueOnce([{ game_day: 0 }, { game_day: 1 }, { game_day: 2 }])
+        .mockResolvedValueOnce([{ match_day: 1 }, { match_day: 2 }, { match_day: 3 }])
 
       const result = await handlers.getResultsFilters(1, 0, 2)
 
@@ -229,19 +247,19 @@ describe('results routes', () => {
         { level: 1, league: 1 }
       ])
       expect(result.seasons).toEqual([0, 1, 2])
-      expect(result.gameDays).toEqual([0, 1, 2])
+      expect(result.matchDays).toEqual([1, 2, 3])
       expect(query.mock.calls[1][1]).toEqual([1, 0])
       expect(query.mock.calls[2][1]).toEqual([1, 0, 2])
     })
 
-    it('omits season and game day queries when context missing', async () => {
+    it('omits season and match day queries when context missing', async () => {
       query.mockResolvedValueOnce([{ level: 0, league: 0 }])
 
       const result = await handlers.getResultsFilters()
 
       expect(result.leagues).toEqual([{ level: 0, league: 0 }])
       expect(result.seasons).toEqual([])
-      expect(result.gameDays).toEqual([])
+      expect(result.matchDays).toEqual([])
       expect(query).toHaveBeenCalledTimes(1)
     })
   })
@@ -273,11 +291,11 @@ describe('results routes', () => {
   })
 
   describe('getSeasonResults', () => {
-    it('returns all season results up to specified game day', async () => {
+    it('returns all season results up to specified match day', async () => {
       const team = testData.team({ level: 1, league: 1 })
       const results = [
-        { id: 1, gameDay: 1 },
-        { id: 2, gameDay: 2 }
+        { id: 1, gameDay: 0, matchDay: 1 },
+        { id: 2, gameDay: 1, matchDay: 2 }
       ]
 
       getTeam.mockResolvedValue(team)
@@ -289,7 +307,7 @@ describe('results routes', () => {
       expect(result).toEqual(results)
     })
 
-    it('filters out friendly matches with game_type filter', async () => {
+    it('filters by match_day and excludes friendly matches', async () => {
       const team = testData.team({ level: 1, league: 1 })
 
       getTeam.mockResolvedValue(team)
@@ -299,6 +317,7 @@ describe('results routes', () => {
       await handlers.getSeasonResults(1, 5, 1, 1, req)
 
       const sql = query.mock.calls[0][0]
+      expect(sql).toContain('g.match_day <= ?')
       expect(sql).toContain("g.game_type = 'league' OR g.game_type IS NULL")
     })
   })

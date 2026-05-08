@@ -1029,6 +1029,8 @@ export default {
   'admin.statistics': 'Statistiken',
   'admin.statisticsCreatedAt': 'Datum',
   'admin.statisticsDailyActiveUsers': 'DAU',
+  'admin.statisticsMonthlyActiveUsers': 'MAU',
+  'admin.statisticsTotalUserCount': 'Nutzer gesamt',
   'admin.statisticsInGameMoney': 'Spielgeld',
   'admin.statisticsPlayerCount': 'Spieler',
   'admin.statisticsAvgPlayerLevel': 'Ø Level',

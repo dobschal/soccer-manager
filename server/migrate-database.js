@@ -1448,6 +1448,60 @@ const migrations = [{
     await query('ALTER TABLE mini_game_score ADD COLUMN season INT NOT NULL DEFAULT 0;')
     await query('CREATE INDEX idx_mini_game_score_game_day_season ON mini_game_score (game_day, season);')
   }
+}, {
+  // User-facing match day, separate from internal sequential game_day.
+  // League: 1..(2*(teamsPerLeague-1)), no gaps. Cup: 1..N (1=first round, N=final).
+  // Internal game_day stays as the cron-tick counter; cup days are interleaved
+  // between league days, which would otherwise create gaps in the league dropdown.
+  name: 'Add match_day column to game table',
+  async run () {
+    await query('ALTER TABLE game ADD COLUMN match_day INT DEFAULT NULL;')
+    await query('CREATE INDEX idx_game_match_day ON game (season, level, league, match_day);')
+
+    // Backfill league: rank distinct game_days within each (season, level, league)
+    const leagueGroups = await query(`
+      SELECT DISTINCT season, level, league
+      FROM game
+      WHERE game_type = 'league' OR game_type IS NULL
+    `)
+    for (const { season, level, league } of leagueGroups) {
+      const days = await query(
+        "SELECT DISTINCT game_day FROM game WHERE season=? AND level=? AND league=? AND (game_type='league' OR game_type IS NULL) ORDER BY game_day ASC",
+        [season, level, league]
+      )
+      for (let i = 0; i < days.length; i++) {
+        await query(
+          "UPDATE game SET match_day=? WHERE season=? AND level=? AND league=? AND game_day=? AND (game_type='league' OR game_type IS NULL)",
+          [i + 1, season, level, league, days[i].game_day]
+        )
+      }
+    }
+
+    // Backfill cup: per season, derive sequential round number from cup_round
+    const cupSeasons = await query("SELECT DISTINCT season FROM game WHERE game_type='cup'")
+    for (const { season } of cupSeasons) {
+      const [{ maxRound }] = await query(
+        "SELECT MAX(cup_round) as maxRound FROM game WHERE game_type='cup' AND season=?",
+        [season]
+      )
+      if (!maxRound) continue
+      const totalRounds = Math.log2(maxRound) + 1
+      const cupGames = await query(
+        "SELECT id, cup_round FROM game WHERE game_type='cup' AND season=?",
+        [season]
+      )
+      for (const g of cupGames) {
+        const matchDay = totalRounds - Math.log2(g.cup_round)
+        await query('UPDATE game SET match_day=? WHERE id=?', [matchDay, g.id])
+      }
+    }
+  }
+}, {
+  name: 'Add monthly_active_users and total_user_count to statistics',
+  async run () {
+    await query('ALTER TABLE statistics ADD COLUMN monthly_active_users INT NOT NULL DEFAULT 0')
+    await query('ALTER TABLE statistics ADD COLUMN total_user_count INT NOT NULL DEFAULT 0')
+  }
 }]
 
 /**

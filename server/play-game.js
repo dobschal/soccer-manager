@@ -509,16 +509,19 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     gameDetails.shotsTeamB = (gameDetails.shotsTeamB || 0) + 1
   }
 
-  // Shot on target scales with player level: ~28% at level 10, ~38% at level 50, ~50% at level 100
-  const shotOnTarget = Math.random() < (0.25 + activePlayer.level / 400)
+  if (!goalKeeper) {
+    console.log('Team has no goalkeeper set!')
+  }
+
+  // Shot-on-target rate: shooter accuracy raises it, keeper pressure (positioning, angles) lowers it.
+  // Average ~35% at equal levels — within the Bundesliga band of 33-38%. Clamped to [0.05, 0.60].
+  const keeperLevel = goalKeeper?.level ?? 0
+  const shotOnTargetChance = Math.max(0.05, Math.min(0.60, 0.35 + (activePlayer.level - keeperLevel) / 400))
+  const shotOnTarget = Math.random() < shotOnTargetChance
 
   if (!shotOnTarget) {
     // Shot misses the target entirely
     return true
-  }
-
-  if (!goalKeeper) {
-    console.log('Team has no goalkeeper set!')
   }
 
   // Shot on target - check if keeper saves (keeper advantage factor 2.0 for realistic conversion rate ~33%)

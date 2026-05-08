@@ -29,6 +29,7 @@ export class DashboardPage extends TabbedPage {
     const gamedayResponse = await server.getCurrentGameday()
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
+    this.lastPlayedLeagueMatchDay = gamedayResponse.lastPlayedLeagueMatchDay ?? 0
 
     // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, and tutorial progress
     const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse] = await Promise.all([
@@ -82,7 +83,7 @@ export class DashboardPage extends TabbedPage {
     // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
     const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
     const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse, newMessageResponse] = await Promise.all([
-      server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
+      server.getStanding(this.lastPlayedLeagueMatchDay, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(window.__nativePlatform || 'web'),
       server.getActionCards(),
       server.getPendingActionCards(),
@@ -219,13 +220,14 @@ export class DashboardPage extends TabbedPage {
     const gamedayResponse = await server.getCurrentGameday()
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
+    this.lastPlayedLeagueMatchDay = gamedayResponse.lastPlayedLeagueMatchDay ?? 0
 
     const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, standing, urgencyResponse] = await Promise.all([
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
       server.getMyCupGames(5),
       server.canPlayFriendlyToday(),
-      server.getStanding(this.gameDay - 1, this.season, this.team.level, this.team.league),
+      server.getStanding(this.lastPlayedLeagueMatchDay, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(window.__nativePlatform || 'web')
     ])
 

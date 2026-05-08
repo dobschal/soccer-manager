@@ -1,7 +1,8 @@
 import { server } from '../lib/gateway.js'
-import { sortByPosition } from '../util/player.js'
+import { calculateMarketValue, calculatePlayerAge, getSalary, sortByPosition } from '../util/player.js'
 import { UIElement } from '../lib/UIElement.js'
 import { PlayerListItem } from './playerListItem.js'
+import { Table } from './table.js'
 import { t } from '../i18n/index.js'
 
 export class PlayerList extends UIElement {
@@ -48,29 +49,11 @@ export class PlayerList extends UIElement {
     return `
       <div>
         <h3 class="${this.showTitle ? '' : 'hidden'}" style="clear: both;">Players (${this.players.length}) ${toggleBtn}</h3>
-        <div class="horizontal-scrollable-table">
-          <table class="table table-hover mb-4 wide-on-mobile">
-            <thead>
-              <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Pos</th>
-                <th scope="col" class="text-right">Age</th>
-                <th scope="col" class="text-right">Fit</th>
-                <th scope="col" class="text-right">Lvl</th>
-                <th scope="col" class="text-right">${t('player.salary')}</th>
-                <th scope="col" class="text-right">${t('player.value')}</th>
-                <th scope="col" class="text-right">${t('player.goals')}</th>
-                <th scope="col" class="text-right">${t('player.games')}</th>
-              </tr>
-            </thead>
-            <tbody>
-                ${this.players.map(player => new PlayerListItem(player, this.season, this.onClickHandler, this.sellOfferPlayerIds, this.extended, this.captainId)).join('')}
-            </tbody>
-          </table>
-        </div>
+        ${this._renderTable()}
       </div>
     `
   }
+
   /**
    * @returns {UIElementEvents}
    */
@@ -94,5 +77,95 @@ export class PlayerList extends UIElement {
       NEW_SELL_TRADE_OFFER: () => this.update(true)
     }
   }
-  
+  /**
+   * @returns {Table}
+   */
+  _renderTable () {
+    const season = this.season
+    return new Table({
+      cols: [
+        {
+          name: 'Name',
+          sortFn: (a, b, asc) => asc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+        },
+        {
+          name: 'Pos',
+          sortFn: (a, b, asc) => asc ? a.position.localeCompare(b.position) : b.position.localeCompare(a.position)
+        },
+        {
+          name: 'Age',
+          align: 'right',
+          sortFn: (a, b, asc) => {
+            const ageA = calculatePlayerAge(a, season)
+            const ageB = calculatePlayerAge(b, season)
+            return asc ? ageA - ageB : ageB - ageA
+          }
+        },
+        {
+          name: 'Fit',
+          align: 'right',
+          sortKey: 'freshness'
+        },
+        {
+          name: 'Lvl',
+          align: 'right',
+          sortKey: 'level'
+        },
+        {
+          name: t('player.salary'),
+          align: 'right',
+          sortFn: (a, b, asc) => {
+            const sA = getSalary(a.level)
+            const sB = getSalary(b.level)
+            return asc ? sA - sB : sB - sA
+          }
+        },
+        {
+          name: t('player.value'),
+          align: 'right',
+          sortFn: (a, b, asc) => {
+            const vA = calculateMarketValue(a.level, calculatePlayerAge(a, season))
+            const vB = calculateMarketValue(b.level, calculatePlayerAge(b, season))
+            return asc ? vA - vB : vB - vA
+          }
+        },
+        {
+          name: t('player.goals'),
+          align: 'right',
+          sortFn: (a, b, asc) => {
+            const gA = a.season_goals ?? 0
+            const gB = b.season_goals ?? 0
+            return asc ? gA - gB : gB - gA
+          }
+        },
+        {
+          name: t('player.games'),
+          align: 'right',
+          sortFn: (a, b, asc) => {
+            const gA = a.season_games ?? 0
+            const gB = b.season_games ?? 0
+            return asc ? gA - gB : gB - gA
+          }
+        }
+      ],
+      data: this.players,
+      renderRow: (player) => this._buildItem(player).cells,
+      rowClass: (player) => this._buildItem(player).rowClass,
+      rowAttrs: (player) => `data-player-id="${player.id}"`,
+      onClick: (player) => {
+        if (typeof this.onClickHandler === 'function') {
+          this.onClickHandler(player)
+        }
+      }
+    })
+  }
+
+  /**
+   * @param {PlayerType} player
+   * @returns {PlayerListItem}
+   */
+  _buildItem (player) {
+    return new PlayerListItem(player, this.season, this.sellOfferPlayerIds, this.captainId)
+  }
+
 }
