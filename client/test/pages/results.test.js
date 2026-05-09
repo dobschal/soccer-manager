@@ -375,6 +375,67 @@ describe('ResultsPage', () => {
     })
   })
 
+  describe('standing heading for upcoming match day', () => {
+    it('shows note and effective match day when selected match day is unplayed', async () => {
+      const team = testData.team({ id: 1, level: 1, league: 0 })
+      // Standing reflects last played match day (e.g., 20 games per team)
+      const standing = [
+        { team: { id: 2, name: 'Other' }, points: 30, goals: 25, against: 15, games: 20 },
+        { team: { id: 3, name: 'Bottom' }, points: 5, goals: 5, against: 30, games: 20 }
+      ]
+
+      const parentPage = { myTeamId: 1, info: { team } }
+
+      server.getCurrentGameday.mockResolvedValue({
+        season: 2,
+        gameDay: 20,
+        lastPlayedLeagueSeason: 2,
+        lastPlayedLeagueMatchDay: 20
+      })
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue(standing)
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+
+      const leaguePage = new LeagueResultsPage(parentPage)
+      await leaguePage.load()
+      // user selects match day 25 (still in the future)
+      leaguePage.matchDay = 25
+      const html = leaguePage.template
+
+      // Heading reflects the effective (last played) match day, not the selected 25th
+      expect(html).toContain('results.standing - 20. results.gameDayLabel')
+      // A muted note explains that match day 25 has not been played yet
+      expect(html).toContain('results.standingNotPlayedYet')
+    })
+
+    it('shows the selected match day in the heading when standing is up to date', async () => {
+      const team = testData.team({ id: 1, level: 1, league: 0 })
+      const standing = [
+        { team: { id: 2, name: 'A' }, points: 30, goals: 25, against: 15, games: 10 }
+      ]
+      const parentPage = { myTeamId: 1, info: { team } }
+
+      server.getCurrentGameday.mockResolvedValue({
+        season: 2,
+        gameDay: 10,
+        lastPlayedLeagueSeason: 2,
+        lastPlayedLeagueMatchDay: 10
+      })
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue(standing)
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+
+      const leaguePage = new LeagueResultsPage(parentPage)
+      await leaguePage.load()
+      const html = leaguePage.template
+
+      expect(html).toContain('results.standing - 10. results.gameDayLabel')
+      expect(html).not.toContain('results.standingNotPlayedYet')
+    })
+  })
+
   describe('applyQueryParams', () => {
     it('resets to last played match day when no season/match_day in query', async () => {
       const team = testData.team({ level: 1, league: 0 })

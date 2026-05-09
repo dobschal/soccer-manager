@@ -4,6 +4,8 @@ import { UIElement } from '../lib/UIElement.js'
 import { PlayerListItem } from './playerListItem.js'
 import { Table } from './table.js'
 import { t } from '../i18n/index.js'
+import { getQueryParams, setQueryParams } from '../lib/router.js'
+import { el } from '../lib/html.js'
 
 export class PlayerList extends UIElement {
   /**
@@ -49,6 +51,11 @@ export class PlayerList extends UIElement {
     return `
       <div>
         <h3 class="${this.showTitle ? '' : 'hidden'}" style="clear: both;">Players (${this.players.length}) ${toggleBtn}</h3>
+        <div class="player-list-toolbar mb-2 ${PlayerList._isSortActive() ? '' : 'hidden'}">
+          <button class="btn btn-sm btn-outline-secondary player-list-reset-sort" title="${t('common.resetSort')}">
+            <i class="fa fa-times"></i> ${t('common.resetSort')}
+          </button>
+        </div>
         ${this._renderTable()}
       </div>
     `
@@ -65,6 +72,13 @@ export class PlayerList extends UIElement {
             this.onToggleExtended()
           }
         }
+      },
+      '.player-list-reset-sort': {
+        click: () => {
+          this.players.sort(sortByPosition)
+          setQueryParams({ sort_dir: null, col: null })
+          this.update()
+        }
       }
     }
   }
@@ -77,6 +91,25 @@ export class PlayerList extends UIElement {
       NEW_SELL_TRADE_OFFER: () => this.update(true)
     }
   }
+  /**
+   * Toggle the reset-sort button visibility when the URL sort params change.
+   * Avoids a full re-render so the underlying Table keeps managing its own state.
+   * @returns {void}
+   */
+  onQueryChanged () {
+    const toolbar = el(`${this._elementQuery} .player-list-toolbar`)
+    if (!toolbar) return
+    toolbar.classList.toggle('hidden', !PlayerList._isSortActive())
+  }
+  /**
+   * @returns {boolean}
+   * @private
+   */
+  static _isSortActive () {
+    const { sort_dir: sortDir, col } = getQueryParams()
+    return Boolean(sortDir && col !== undefined)
+  }
+  
   /**
    * @returns {Table}
    */
