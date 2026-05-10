@@ -137,7 +137,7 @@ export class LeagueResultsPage extends UIElement {
     renderRow: (result) => this._renderResultListItem(result),
     onClick: (result) => setQueryParams({ game_id: result.id })
   })}
-        <h3>${t('results.standing')} - ${this.matchDay}. ${t('results.gameDayLabel')}</h3>
+        ${this._renderStandingHeading()}
         ${new Table({
     cols: [
       {
@@ -509,6 +509,18 @@ export class LeagueResultsPage extends UIElement {
       level,
       league
     }
+  }
+
+  _renderStandingHeading () {
+    const effectiveMatchDay = (this.standing || []).reduce((max, s) => Math.max(max, s.games || 0), 0)
+    const isUpcoming = effectiveMatchDay < this.matchDay
+    const heading = effectiveMatchDay > 0
+      ? `${t('results.standing')} - ${effectiveMatchDay}. ${t('results.gameDayLabel')}`
+      : t('results.standing')
+    const note = isUpcoming
+      ? `<p class="text-muted mb-3">${t('results.standingNotPlayedYet', { day: this.matchDay })}</p>`
+      : ''
+    return `<h3>${heading}</h3>${note}`
   }
 
   _renderStandingListItem (standingItem, index) {

@@ -288,8 +288,8 @@ export function playGameStep (playerTeamA, playerTeamB, gameDetails) {
       const holdingTeamSize = teamAHasBall ? activeA : activeB
       const opposingTeamSize = teamAHasBall ? activeB : activeA
       if (opposingTeamSize > holdingTeamSize) {
-        // 2% turnover chance per missing player per step
-        const turnoverChance = (opposingTeamSize - holdingTeamSize) * 0.02
+        // 4% turnover chance per missing player per step
+        const turnoverChance = (opposingTeamSize - holdingTeamSize) * 0.04
         if (Math.random() < turnoverChance) {
           ballHolder.hasBall = false
           const opponents = (teamAHasBall ? playerTeamB : playerTeamA).filter(p => !p.sentOff && !p.substitutedOut)

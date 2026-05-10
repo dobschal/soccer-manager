@@ -149,4 +149,47 @@ describe('PlayerList', () => {
       expect(() => table.config.onClick(player, 0)).not.toThrow()
     })
   })
+
+  describe('reset sort button', () => {
+    it('hides the reset-sort toolbar when no sort is active', async () => {
+      window.location.hash = '#my-team'
+      const list = new PlayerList([testData.player()], true)
+      await list.load()
+      const html = list.template
+      expect(html).toContain('player-list-toolbar')
+      expect(html).toContain('player-list-reset-sort')
+      // Toolbar starts with the `hidden` utility class when no sort params are set.
+      expect(html).toMatch(/player-list-toolbar mb-2 hidden/)
+    })
+
+    it('shows the reset-sort toolbar when sort params are present in the URL', async () => {
+      window.location.hash = '#my-team?sort_dir=ASC&col=4'
+      const list = new PlayerList([testData.player()], true)
+      await list.load()
+      const html = list.template
+      // No `hidden` class means the toolbar is visible.
+      expect(html).toMatch(/player-list-toolbar mb-2 (?!hidden)/)
+    })
+
+    it('clicking reset clears sort params and restores default position-based order', async () => {
+      window.location.hash = '#my-team?sort_dir=ASC&col=4'
+      // Two players are needed so Array.prototype.sort actually invokes the comparator.
+      const list = new PlayerList([testData.player({ id: 1 }), testData.player({ id: 2 })], true)
+      await list.load()
+      // Stub update so we don't drive the full UIElement render lifecycle.
+      list.update = vi.fn()
+      const { sortByPosition } = await import('../../util/player.js')
+      sortByPosition.mockClear()
+
+      const handler = list.events['.player-list-reset-sort'].click
+      handler.call(list)
+
+      // Hash no longer carries the sort params (router strips null entries).
+      expect(window.location.hash).not.toMatch(/sort_dir/)
+      expect(window.location.hash).not.toMatch(/col=/)
+      // Default position sorter was reapplied and a re-render was scheduled.
+      expect(sortByPosition).toHaveBeenCalled()
+      expect(list.update).toHaveBeenCalled()
+    })
+  })
 })
