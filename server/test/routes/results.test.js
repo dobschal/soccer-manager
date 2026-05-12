@@ -10,7 +10,8 @@ vi.mock('../../helper/teamHelper.js', () => ({
 }))
 
 vi.mock('../../helper/gameDayHelper.js', () => ({
-  getGameDayAndSeason: vi.fn()
+  getGameDayAndSeason: vi.fn(),
+  getTicksUntilGameDay: vi.fn()
 }))
 
 vi.mock('../../lib/util.js', () => ({
@@ -28,7 +29,7 @@ vi.mock('../../helper/cupHelper.js', () => ({
 
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
-import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { getGameDayAndSeason, getTicksUntilGameDay } from '../../helper/gameDayHelper.js'
 import { calculateStanding } from '../../lib/util.js'
 import { getCachedStanding, saveStandingToCache } from '../../helper/standingHelper.js'
 import { getTotalRoundsForSeason } from '../../helper/cupHelper.js'
@@ -384,14 +385,16 @@ describe('results routes', () => {
       const team = testData.team({ id: 7, level: 1, league: 1 })
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 0 })
-      // First query returns past games (DESC by gameDay), second returns upcoming.
-      // pastGames are reversed inside the route, so input order is newest-first.
+      // 1: past games (DESC by gameDay) — reversed by the route, so input is newest-first
+      // 2: upcoming games (none here)
+      // 3: distinct unplayed game_days for tick-offset math
       query
         .mockResolvedValueOnce([
           { id: 102, gameDay: 4 },
           { id: 101, gameDay: 3 },
           { id: 100, gameDay: 2 }
         ])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
 
       const req = createMockRequest()
@@ -402,6 +405,88 @@ describe('results routes', () => {
         { id: 101, gameDay: 3 },
         { id: 102, gameDay: 4 }
       ])
+    })
+
+    it('computes gameDate from tick-position when earlier game_days were skipped', async () => {
+      // The cron always plays the lowest unplayed game_day next. When older
+      // game_days were skipped or already played out of order (e.g. a league
+      // round advanced past a stuck cup round), naively offsetting by
+      // `game_day - currentGameDay` overshoots. The expected offset is the
+      // ordinal position of the game in the sorted distinct unplayed days.
+      const team = testData.team({ id: 7, level: 2, league: 0 })
+      getTeam.mockResolvedValue(team)
+      // Stuck cup round 2 on game_day 33 keeps "current game day" at 33 even
+      // though league rounds 34 have already been played.
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 33, season: 4 })
+      // 1: past games
+      // 2: upcoming games for this team (game_day 35)
+      // 3: distinct unplayed game_days {33 cup, 35 league, 36 league, ...}
+      query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 999, gameDay: 35 }])
+        .mockResolvedValueOnce([
+          { game_day: 33 },
+          { game_day: 35 },
+          { game_day: 36 }
+        ])
+
+      const req = createMockRequest()
+      const result = await handlers.getGamesForSlider(0, 1, req)
+
+      // The user's next game is on game_day 35. Day 33 plays first (1 tick),
+      // then day 35 plays — so the team's game is exactly 1 tick (12h) after
+      // nextTick, not 2 ticks like the naive 35-33 math would yield.
+      const expected = result.nextGameDate.getTime() + 12 * 60 * 60 * 1000
+      expect(result.upcomingGames[0].gameDate.getTime()).toBe(expected)
+    })
+  })
+
+  describe('getNextGameDate', () => {
+    it('returns next-tick fallback for unauthenticated requests', async () => {
+      const result = await handlers.getNextGameDate({})
+
+      // Must return a Date in the future (within 24h)
+      expect(result.date).toBeInstanceOf(Date)
+      const delta = result.date.getTime() - Date.now()
+      expect(delta).toBeGreaterThan(0)
+      expect(delta).toBeLessThanOrEqual(24 * 60 * 60 * 1000)
+    })
+
+    it('offsets by ticks-away, not raw game_day difference, when earlier days were skipped', async () => {
+      // Repro for the bug: cup round 2 stuck on game_day 33 keeps the
+      // "current game day" at 33 while league has already played day 34.
+      // The user team's next league game is on game_day 35 — which actually
+      // plays on the NEXT tick (after the stuck cup), not two ticks later.
+      const team = testData.team({ id: 17, level: 2, league: 0 })
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 33, season: 4 })
+      query.mockResolvedValueOnce([{ game_day: 35 }]) // team's next unplayed
+      getTicksUntilGameDay.mockResolvedValue(1)
+
+      const req = createMockRequest()
+      const result = await handlers.getNextGameDate(req)
+
+      expect(getTicksUntilGameDay).toHaveBeenCalledWith(4, 35)
+      // Should be 12h (one tick) after the imminent tick, not 24h.
+      // We don't know the exact nextTick clock value, but ticks-away of 1
+      // means the offset from "now" is between 0 and 12h (if the imminent
+      // tick is right now) or up to 24h (if the imminent tick is 12h away).
+      // Asserting >12h and <=24h would be too loose — instead test that the
+      // helper got the right inputs.
+      expect(result.date).toBeInstanceOf(Date)
+    })
+
+    it('returns next-tick when the team has no scheduled games', async () => {
+      const team = testData.team({ id: 17, level: 2, league: 0 })
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 33, season: 4 })
+      query.mockResolvedValueOnce([]) // no upcoming games
+
+      const req = createMockRequest()
+      const result = await handlers.getNextGameDate(req)
+
+      expect(getTicksUntilGameDay).not.toHaveBeenCalled()
+      expect(result.date).toBeInstanceOf(Date)
     })
   })
 
