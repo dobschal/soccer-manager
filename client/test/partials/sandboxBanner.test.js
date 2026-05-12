@@ -42,6 +42,17 @@ describe('showSandboxBanner', () => {
     showSandboxBanner()
     expect(document.querySelectorAll('#sandbox-banner').length).toBe(1)
   })
+
+  it('re-inserts the banner after the body is replaced (router layout swap)', () => {
+    setHostname('sandbox.footballmanager.io')
+    showSandboxBanner()
+    expect(document.querySelector('#sandbox-banner')).not.toBeNull()
+    // Simulate the router wiping the body when switching layouts.
+    document.body.innerHTML = '<div class="game-layout"></div>'
+    expect(document.querySelector('#sandbox-banner')).toBeNull()
+    showSandboxBanner()
+    expect(document.querySelector('#sandbox-banner')).not.toBeNull()
+  })
 })
 
 describe('applyNoIndexOnSandbox', () => {

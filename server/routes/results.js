@@ -2,7 +2,7 @@ import { query } from '../lib/database.js'
 import { calculateStanding } from '../lib/util.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
-import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { getGameDayAndSeason, getTicksUntilGameDay } from '../helper/gameDayHelper.js'
 import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper.js'
 import { CACHE_NAMESPACES, cacheKey, getCached } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
@@ -31,7 +31,7 @@ export default {
 
     try {
       const team = await getTeam(req)
-      const { gameDay: currentGameDay, season } = await getGameDayAndSeason()
+      const { season } = await getGameDayAndSeason()
 
       const [nextGame] = await query(
         'SELECT game_day FROM game WHERE played=0 AND season=? AND (team_1_id=? OR team_2_id=?) ORDER BY game_day ASC LIMIT 1',
@@ -40,8 +40,8 @@ export default {
 
       if (!nextGame) return { date: nextTick }
 
-      const dayOffset = nextGame.game_day - currentGameDay
-      const nextGameDate = new Date(nextTick.getTime() + dayOffset * 12 * 60 * 60 * 1000)
+      const ticksAway = await getTicksUntilGameDay(season, nextGame.game_day)
+      const nextGameDate = new Date(nextTick.getTime() + ticksAway * 12 * 60 * 60 * 1000)
       return { date: nextGameDate }
     } catch {
       return { date: nextTick }
@@ -211,7 +211,7 @@ export default {
    */
   async getGamesForSlider (pastCount, upcomingCount, req) {
     const team = await getTeam(req)
-    const { season, gameDay: currentGameDay } = await getGameDayAndSeason()
+    const { season } = await getGameDayAndSeason()
 
     // Get past played games for this team
     const pastGames = await query(`
@@ -279,12 +279,21 @@ export default {
       nextGameDate.setSeconds(59)
     }
 
-    // Calculate game dates for upcoming games based on offset from current game day
-    // Each game day is 12 hours apart (one cron tick)
+    // Calculate game dates for upcoming games. Each cron tick (12h) plays the
+    // lowest unplayed game_day, so the tick-offset of an upcoming game is its
+    // ordinal position in the sorted distinct unplayed game_days — not the raw
+    // difference from the current game day (which is wrong when earlier
+    // game_days were skipped or already played out of order).
+    const unplayedDayRows = await query(
+      'SELECT DISTINCT game_day FROM game WHERE played=0 AND season=? ORDER BY game_day ASC',
+      [season]
+    )
+    const unplayedDays = unplayedDayRows.map(r => r.game_day)
     const upcomingGamesWithDates = upcomingGames.map((game) => {
       const gameDate = new Date(nextGameDate)
-      const dayOffset = game.gameDay - currentGameDay
-      gameDate.setTime(gameDate.getTime() + dayOffset * 12 * 60 * 60 * 1000)
+      const idx = unplayedDays.indexOf(game.gameDay)
+      const ticksAway = idx < 0 ? 0 : idx
+      gameDate.setTime(gameDate.getTime() + ticksAway * 12 * 60 * 60 * 1000)
       return {
         ...game,
         gameDate
@@ -305,7 +314,7 @@ export default {
    */
   async getNextGame (req) {
     const team = await getTeam(req)
-    const { season, gameDay: currentGameDay } = await getGameDayAndSeason()
+    const { season } = await getGameDayAndSeason()
 
     // Get the next unplayed game for this team
     const games = await query(`
@@ -350,8 +359,8 @@ export default {
       nextTick.setMinutes(59)
       nextTick.setSeconds(59)
     }
-    const dayOffset = game.gameDay - currentGameDay
-    const nextGameDate = new Date(nextTick.getTime() + dayOffset * 12 * 60 * 60 * 1000)
+    const ticksAway = await getTicksUntilGameDay(season, game.gameDay)
+    const nextGameDate = new Date(nextTick.getTime() + ticksAway * 12 * 60 * 60 * 1000)
 
     return {
       game,
