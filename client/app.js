@@ -16,6 +16,7 @@ import { ForumPage } from './pages/forum.js'
 import { initLocale } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 import { applyNoIndexOnSandbox, showSandboxBanner } from './partials/sandboxBanner.js'
+import { on } from './lib/event.js'
 
 installGlobalErrorHandler()
 
@@ -23,9 +24,12 @@ installGlobalErrorHandler()
 initLocale()
 
 // On the sandbox/test host: hide the site from search engines and show a
-// persistent banner that links back to the production game.
+// persistent banner that links back to the production game. The router wipes
+// document.body on every layout switch, so re-insert the banner after each
+// page render (showSandboxBanner is idempotent).
 applyNoIndexOnSandbox()
 showSandboxBanner()
+on('page-changed', showSandboxBanner)
 
 // Connect WebSocket if user is authenticated
 if (window.localStorage.getItem('auth-token')) {
