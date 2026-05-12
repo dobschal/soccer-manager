@@ -347,13 +347,26 @@ export class StartPage {
 
   /**
    * Find the initial slide index for the cup game slider.
-   * Defaults to the latest played cup game, falling back to the next upcoming one.
+   *
+   * First visit after a cup round was played: show that result. On subsequent
+   * visits (tracked by a per-game seen flag in localStorage) default to the
+   * next upcoming cup game so the user sees what's coming up — not an old
+   * result they already know about.
+   *
    * @returns {number}
    */
   _findCupInitialSlideIndex () {
     const lastPlayedIndex = this._cupGames.reduce((acc, g, i) => g.isPlayed ? i : acc, -1)
-    if (lastPlayedIndex !== -1) return lastPlayedIndex
     const nextUpcomingIndex = this._cupGames.findIndex(g => !g.isPlayed && g.gameDate)
-    return Math.max(0, nextUpcomingIndex)
+
+    if (lastPlayedIndex === -1) return Math.max(0, nextUpcomingIndex)
+
+    const lastPlayed = this._cupGames[lastPlayedIndex]
+    const seenKey = `cupSliderSeen_${lastPlayed.id}`
+    if (localStorage.getItem(seenKey) && nextUpcomingIndex !== -1) {
+      return nextUpcomingIndex
+    }
+    localStorage.setItem(seenKey, '1')
+    return lastPlayedIndex
   }
 }
