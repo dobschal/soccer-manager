@@ -4,6 +4,7 @@ import { onClick } from '../../lib/htmlEventHandlers.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
+import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { t } from '../../i18n/index.js'
 import { euroFormat } from '../../lib/currency.js'
 
@@ -38,6 +39,7 @@ export class BuildingsPage extends UIElement {
     this.cardChances = data.cardChances || {}
     this.fitnessCardChances = data.fitnessCardChances || {}
   }
+
   /**
    * @returns {string}
    */
@@ -51,6 +53,10 @@ export class BuildingsPage extends UIElement {
         ${this._renderFitnessStudio()}
       </div>
     `
+  }
+
+  onMounted () {
+    void showTutorialIfNeeded('buildings', this)
   }
 
   /**

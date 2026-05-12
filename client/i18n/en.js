@@ -658,7 +658,6 @@ export default {
   'actionCards.whichPlayerLevelUp': 'Which player should get a level up?',
   'actionCards.whichPlayerStar': 'Which player should become a star player?',
   'actionCards.starPlayerSuccess': '{playerName} is now a star player!',
-  'actionCards.buildingsHint': 'Upgrade your buildings to increase the chance of receiving action cards on game days.',
   // Card Claim Overlay
   'actionCards.claim.tapToReveal': 'Tap the card to reveal it!',
   'actionCards.claim.skip': 'Skip',
