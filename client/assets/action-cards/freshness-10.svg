@@ -4,16 +4,16 @@
 <path d="M230 8H20C13.3726 8 8 13.3726 8 20V330C8 336.627 13.3726 342 20 342H230C236.627 342 242 336.627 242 330V20C242 13.3726 236.627 8 230 8Z" fill="#0F0F1A"/>
 <path opacity="0.9" d="M230 15H20C17.2386 15 15 17.2386 15 20V38C15 40.7614 17.2386 43 20 43H230C232.761 43 235 40.7614 235 38V20C235 17.2386 232.761 15 230 15Z" fill="#3EE9DA"/>
 <text fill="#0F0F1A" text-anchor="middle" font-family="Neucha" font-size="16" letter-spacing="0em"><tspan x="125" y="35.8672">{{HEADER}}</tspan></text>
-<text fill="#3EE9DA" text-anchor="middle" font-family="Neucha" font-size="17" letter-spacing="0em"><tspan x="125" y="64.6089">{{TITLE}}</tspan></text>
+<text fill="#F1F1F1" text-anchor="middle" font-family="Neucha" font-size="17" letter-spacing="0em"><tspan x="125" y="64.6089">{{TITLE}}</tspan></text>
 <path d="M222 75H28C23.5817 75 20 78.5817 20 83V207C20 211.418 23.5817 215 28 215H222C226.418 215 230 211.418 230 207V83C230 78.5817 226.418 75 222 75Z" fill="#0F0F1A" stroke="#3EE9DA" stroke-width="2"/>
 <path d="M70 100L73 105L70 110L67 105L70 100Z" fill="white" fill-opacity="0.75"/>
 <path d="M185 120L188 125L185 130L182 125L185 120Z" fill="white" fill-opacity="0.75"/>
 <path d="M222 225H28C23.5817 225 20 228.582 20 233V297C20 301.418 23.5817 305 28 305H222C226.418 305 230 301.418 230 297V233C230 228.582 226.418 225 222 225Z" fill="#0F0F1A" stroke="#3EE9DA"/>
 <text fill="white" text-anchor="middle" font-family="Neucha" font-size="15" letter-spacing="0em"><tspan x="125" y="248.125">{{BODY1}}</tspan><tspan x="125" y="265.125">{{BODY2}}</tspan></text>
-<text fill="#3EE9DA" text-anchor="middle" font-family="Neucha" font-size="22" letter-spacing="0em"><tspan x="125" y="291.317">{{FOOTER}}</tspan></text>
-<path d="M109.6 312L112.8 321.6H123.2L115.2 328L118.4 337.6L109.6 331.2L100.8 337.6L104 328L96 321.6H106.4L109.6 312Z" fill="#3EE9DA"/>
-<path d="M139.6 312L142.8 321.6H153.2L145.2 328L148.4 337.6L139.6 331.2L130.8 337.6L134 328L126 321.6H136.4L139.6 312Z" fill="#3EE9DA"/>
-<path d="M120.073 199.663L142.272 141.058L123.302 143.507L140.331 97.1741L108.644 103.766L107.998 158.009L126.363 152.869L120.073 199.663Z" fill="white" fill-opacity="0.79"/>
+<text fill="#F1F1F1" text-anchor="middle" font-family="Neucha" font-size="22" letter-spacing="0em"><tspan x="125" y="291.317">{{FOOTER}}</tspan></text>
+<path d="M109.6 312L112.8 321.6H123.2L115.2 328L118.4 337.6L109.6 331.2L100.8 337.6L104 328L96 321.6H106.4L109.6 312Z" fill="#F1F1F1"/>
+<path d="M139.6 312L142.8 321.6H153.2L145.2 328L148.4 337.6L139.6 331.2L130.8 337.6L134 328L126 321.6H136.4L139.6 312Z" fill="#F1F1F1"/>
+<path d="M120.073 199.663L142.272 141.058L123.302 143.507L140.331 97.1741L108.644 103.766L107.998 158.009L126.363 152.869L120.073 199.663Z" fill="#F1F1F1"/>
 <path d="M168.689 107.623L135.408 136.083L166.962 105.724L168.689 107.623Z" fill="white" fill-opacity="0.79"/>
 <path d="M157.593 182.012L140.887 164.809L159.338 180.131L157.593 182.012Z" fill="white" fill-opacity="0.79"/>
 <path d="M95.3848 185.645L117.373 161.389L97.3549 187.29L95.3848 185.645Z" fill="white" fill-opacity="0.79"/>
