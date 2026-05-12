@@ -6,6 +6,7 @@ import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
 import { showSettingsOverlay } from '../partials/settingsOverlay.js'
+import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 
 /**
  * @returns {void}
@@ -28,12 +29,12 @@ export class GameLayout extends UIElement {
       server.getNewLogMessageCount(lastSeenMessageId)
     ])
     this._nextGameDate = gameDate.date
-    this._isRestDay = gameDate.isRestDay || false
     this._username = teamData.user?.username || ''
     this._isAdmin = teamData.isAdmin || false
     this._version = versionData.version
     this._gameDay = currentGameday.gameDay
     this._season = currentGameday.season
+    this._currentGameday = currentGameday
     this._newMessageCount = newMessageResponse.count || 0
   }
   /**
@@ -77,10 +78,7 @@ export class GameLayout extends UIElement {
         <div class="info-bar">
           <div class="info-bar-content">
             <a href="#results" class="info-bar-item text-decoration-none text-info border-0">
-              <i class="fa fa-calendar" aria-hidden="true"></i> ${t('nav.day', {
-    gameDay: this._gameDay + 1,
-    season: this._season + 1
-  })}
+              <i class="fa fa-calendar" aria-hidden="true"></i> ${currentGamedayLabel(this._currentGameday)}
             </a>
             <a href="#dashboard" class="info-bar-item text-decoration-none text-info border-0" id="${this._nextGameInElementId}">
             </a>
@@ -205,7 +203,6 @@ export class GameLayout extends UIElement {
         server.getNextGameDate()
           .then(r => {
             this._nextGameDate = r.date
-            this._isRestDay = r.isRestDay || false
           })
           .catch(() => {
             this._stopTimer()
@@ -215,11 +212,6 @@ export class GameLayout extends UIElement {
       const timerEl = el('#' + this._nextGameInElementId)
       if (!timerEl) {
         this._stopTimer()
-        return
-      }
-
-      if (this._isRestDay && diff > 0) {
-        timerEl.innerHTML = `<i class="fa fa-bed" aria-hidden="true"></i> ${t('nav.restDay')}`
         return
       }
 

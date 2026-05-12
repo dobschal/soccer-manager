@@ -154,13 +154,40 @@ export function calculateInterleavedSchedule (teamCount, leagueGameDays = 34) {
 }
 
 /**
- * Find the next game_day that has no league games scheduled (a cup-only slot).
- * Used by progressCupRound to place next-round cup games on non-league days.
+ * Find the next game_day to place a cup match on.
+ *
+ * Without `teamIds`: returns the next game_day from `minGameDay` onward where
+ * no league game is scheduled — the original cup-only-slot semantics, used
+ * when rescheduling past-but-unplayed cup games where we don't know yet which
+ * teams are involved.
+ *
+ * With `teamIds`: returns the next game_day where none of the listed teams
+ * has a league game. Cup-vs-league overlap is fine for teams not in this
+ * round, so a "team-aware" lookup avoids pushing the round all the way to the
+ * end of the season just because some other league happens to play that day.
+ *
  * @param {number} season
  * @param {number} minGameDay - Earliest acceptable game_day
+ * @param {number[]} [teamIds] - Teams that must be league-idle on the slot
  * @returns {Promise<number>}
  */
-export async function findNextCupGameDay (season, minGameDay) {
+export async function findNextCupGameDay (season, minGameDay, teamIds) {
+  if (Array.isArray(teamIds) && teamIds.length > 0) {
+    const placeholders = teamIds.map(() => '?').join(',')
+    const conflicts = await query(
+      `SELECT DISTINCT game_day FROM game
+       WHERE season=? AND (game_type='league' OR game_type IS NULL)
+         AND (team_1_id IN (${placeholders}) OR team_2_id IN (${placeholders}))`,
+      [season, ...teamIds, ...teamIds]
+    )
+    const conflictSet = new Set(conflicts.map(d => d.game_day))
+    let candidate = minGameDay
+    while (conflictSet.has(candidate)) {
+      candidate++
+    }
+    return candidate
+  }
+
   const leagueDays = await query(
     'SELECT DISTINCT game_day FROM game WHERE season=? AND (game_type=\'league\' OR game_type IS NULL)',
     [season]
@@ -377,9 +404,12 @@ export async function progressCupRound (season, completedRound) {
     }
   }
 
-  // Find the next available cup-only game day (no league games on that day)
+  // Find the next game_day on which none of the advancing teams has a league
+  // game. Searching team-aware (vs "no league anywhere") keeps the cup-round
+  // cadence tight: it lands on a day where the participating teams are idle,
+  // even if other leagues happen to play that day.
   const completedGameDay = Math.max(...playedGames.map(g => g.game_day))
-  const nextGameDay = await findNextCupGameDay(season, completedGameDay + 1)
+  const nextGameDay = await findNextCupGameDay(season, completedGameDay + 1, nextRoundTeams)
 
   // Sequential cup match day (1 = first round, totalRounds = final)
   const totalRounds = getTotalRounds(maxRound)

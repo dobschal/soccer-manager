@@ -43,8 +43,6 @@ export function validateMiniGameSubmission (score, goalsScored, durationMs) {
   if (!Number.isInteger(durationMs) || durationMs < 0) return { valid: false, reason: 'invalid_duration' }
   if (durationMs > MINI_GAME_LIMITS.MAX_DURATION_MS) return { valid: false, reason: 'duration_too_long' }
   const seconds = durationMs / 1000
-  const maxGoals = Math.floor(seconds / 15) + 1
-  if (goalsScored > maxGoals) return { valid: false, reason: 'too_many_goals' }
   const maxScore = Math.ceil(seconds * MINI_GAME_LIMITS.MAX_POINTS_PER_SECOND + goalsScored * MINI_GAME_LIMITS.GOAL_POINTS)
   if (score > maxScore) return { valid: false, reason: 'score_too_high' }
   return { valid: true }

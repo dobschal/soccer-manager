@@ -10,7 +10,6 @@ export default {
   'nav.run': 'Start',
   'nav.running': 'Läuft...',
   'nav.settings': 'Einstellungen',
-  'nav.restDay': 'Spielfrei',
   'nav.language': 'Sprache',
   'nav.search': 'Suche',
   'nav.account': 'Konto',
@@ -659,7 +658,6 @@ export default {
   'actionCards.whichPlayerLevelUp': 'Welcher Spieler soll ein Level-Up erhalten?',
   'actionCards.whichPlayerStar': 'Welcher Spieler soll Starspieler werden?',
   'actionCards.starPlayerSuccess': '{playerName} ist jetzt ein Starspieler!',
-  'actionCards.buildingsHint': 'Baue deine Gebäude aus, um die Chance auf Aktionskarten an Spieltagen zu erhöhen.',
   // Card Claim Overlay
   'actionCards.claim.tapToReveal': 'Tippe auf die Karte, um sie aufzudecken!',
   'actionCards.claim.skip': 'Überspringen',

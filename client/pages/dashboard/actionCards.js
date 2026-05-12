@@ -94,9 +94,6 @@ export class ActionCards extends UIElement {
         <div class="mb-4 action-cards-container">
           <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>
         </div>
-        <div class="alert alert-info u-max-w-620">
-          <i class="fa fa-info-circle me-1"></i> ${t('actionCards.buildingsHint')}
-        </div>
         ${this._miniGame}
       </div>
     `

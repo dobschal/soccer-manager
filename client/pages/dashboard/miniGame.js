@@ -42,6 +42,8 @@ const STATE_IDLE = 'idle'
 const STATE_PLAYING = 'playing'
 const STATE_OVER = 'over'
 
+const HAIR_COLORS = ['#1a0e08', '#3c1f0f', '#6b3e1c', '#a67242', '#d4a857', '#e8c873', '#c14b1a', '#8a8a8a']
+
 const ACTION_CARD_LABELS = {
   LEVEL_UP_PLAYER_40: 'actionCards.type.basicPromotion',
   LEVEL_UP_PLAYER_70: 'actionCards.type.epicAdvancement',
@@ -76,7 +78,7 @@ export class MiniGame extends UIElement {
       <div class="mini-game mb-5">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
           <h3 class="m-0">${t('miniGame.title')}</h3>
-          ${this.myBest != null ? `<span class="badge bg-secondary">${t('miniGame.personalBest', { score: this.myBest })}</span>` : ''}
+          ${this.myBest != null ? `<span class="badge bg-info">${t('miniGame.personalBest', { score: this.myBest })}</span>` : ''}
         </div>
         <p class="u-max-w-620">${t('miniGame.subtitle')}</p>
 
@@ -195,6 +197,8 @@ export class MiniGame extends UIElement {
   _hasBall = true
   _animTime = 0
   _playerStepTime = 0
+  _playerHairColor = HAIR_COLORS[0]
+  _keeperHairColor = HAIR_COLORS[0]
 
   _startGame () {
     if (this._state === STATE_PLAYING) return
@@ -212,6 +216,8 @@ export class MiniGame extends UIElement {
     this._hasBall = true
     this._animTime = 0
     this._playerStepTime = 0
+    this._playerHairColor = this._randomHairColor()
+    this._keeperHairColor = this._randomHairColor()
     this._showOverlay('idle', false)
     this._showOverlay('over', false)
     this._updateHud()
@@ -254,7 +260,7 @@ export class MiniGame extends UIElement {
       const x = Math.random() * (FIELD_WIDTH - ENEMY_SIZE)
       const vx = (Math.random() * 2 - 1) * ENEMY_LATERAL_SPEED_MAX
       const stepPhase = Math.random() * Math.PI * 2
-      this._enemies.push({ x, y: -ENEMY_SIZE, vx, color: this._randomEnemyColor(), stepPhase })
+      this._enemies.push({ x, y: -ENEMY_SIZE, vx, color: this._randomEnemyColor(), hairColor: this._randomHairColor(), stepPhase })
       this._nextEnemyAt = ts + spawnInterval
     }
     for (const enemy of this._enemies) {
@@ -478,13 +484,13 @@ export class MiniGame extends UIElement {
       const keeperY = GOAL_Y + (GOAL_HEIGHT - keeperSize) / 2
       // Slow shuffle in place so the keeper looks alive.
       const keeperPhase = this._animTime * Math.PI * 3
-      this._drawFigure(ctx, keeperX, keeperY, keeperSize, keeperSize, '#e02020', false, 'down', keeperPhase)
+      this._drawFigure(ctx, keeperX, keeperY, keeperSize, keeperSize, '#e02020', false, 'down', keeperPhase, this._keeperHairColor)
     }
 
     // Enemies (face down towards the player)
     const enemyStepBase = this._animTime * Math.PI * 7
     for (const enemy of this._enemies) {
-      this._drawFigure(ctx, enemy.x, enemy.y, ENEMY_SIZE, ENEMY_SIZE, enemy.color, false, 'down', enemyStepBase + enemy.stepPhase)
+      this._drawFigure(ctx, enemy.x, enemy.y, ENEMY_SIZE, ENEMY_SIZE, enemy.color, false, 'down', enemyStepBase + enemy.stepPhase, enemy.hairColor)
     }
 
     // Shots — same look as the ball at the player's feet, so it reads as the ball flying off
@@ -494,10 +500,10 @@ export class MiniGame extends UIElement {
 
     // Player (faces up towards goal; ball at the feet unless it has just been kicked)
     const playerPhase = this._playerStepTime * Math.PI * 7
-    this._drawFigure(ctx, this._player.x, PLAYER_Y, PLAYER_WIDTH, PLAYER_HEIGHT, '#ffd54f', this._hasBall, 'up', playerPhase)
+    this._drawFigure(ctx, this._player.x, PLAYER_Y, PLAYER_WIDTH, PLAYER_HEIGHT, '#ffd54f', this._hasBall, 'up', playerPhase, this._playerHairColor)
   }
 
-  _drawFigure (ctx, x, y, width, height, jerseyColor, withBall, facing, walkPhase = 0) {
+  _drawFigure (ctx, x, y, width, height, jerseyColor, withBall, facing, walkPhase = 0, hairColor = '#3c1f0f') {
     const cx = x + width / 2
     const shoulderRx = width * 0.42
     const shoulderRy = height * 0.20
@@ -561,6 +567,23 @@ export class MiniGame extends UIElement {
     ctx.beginPath()
     ctx.ellipse(cx, bodyY, headRx, headRy, 0, 0, Math.PI * 2)
     ctx.fill()
+
+    // Hair — covers the head except for a forehead strip at the front of the face
+    ctx.save()
+    ctx.beginPath()
+    ctx.ellipse(cx, bodyY, headRx, headRy, 0, 0, Math.PI * 2)
+    ctx.clip()
+    ctx.fillStyle = hairColor
+    const foreheadStrip = headRy * 0.6
+    if (facingUp) {
+      ctx.fillRect(cx - headRx - 1, bodyY - headRy + foreheadStrip, headRx * 2 + 2, headRy * 2 + 2)
+    } else {
+      ctx.fillRect(cx - headRx - 1, bodyY - headRy - 1, headRx * 2 + 2, headRy * 2 - foreheadStrip + 1)
+    }
+    ctx.restore()
+
+    ctx.beginPath()
+    ctx.ellipse(cx, bodyY, headRx, headRy, 0, 0, Math.PI * 2)
     ctx.strokeStyle = '#3a2a1a'
     ctx.lineWidth = 1
     ctx.stroke()
@@ -598,6 +621,10 @@ export class MiniGame extends UIElement {
   _randomEnemyColor () {
     const colors = ['#1565c0', '#c62828', '#6a1b9a', '#2e7d32', '#ef6c00']
     return colors[Math.floor(Math.random() * colors.length)]
+  }
+
+  _randomHairColor () {
+    return HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)]
   }
 
   _renderLeaderboard (rows) {

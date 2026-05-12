@@ -7,14 +7,14 @@ import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper
 import { CACHE_NAMESPACES, cacheKey, getCached } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
 import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
+import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
 
 export default {
 
   /**
-   * Returns the date of the team's next game. If the team has no game on the
-   * immediate next game tick (e.g. cup day and team is eliminated), isRestDay is true.
+   * Returns the date of the team's next game.
    * @param {Request} [req]
-   * @returns {Promise<{date: Date, isRestDay: boolean}>}
+   * @returns {Promise<{date: Date}>}
    */
   async getNextGameDate (req) {
     const nextTick = new Date()
@@ -27,7 +27,7 @@ export default {
       nextTick.setSeconds(59)
     }
 
-    if (!req?.user) return { date: nextTick, isRestDay: false }
+    if (!req?.user) return { date: nextTick }
 
     try {
       const team = await getTeam(req)
@@ -38,13 +38,13 @@ export default {
         [season, team.id, team.id]
       )
 
-      if (!nextGame) return { date: nextTick, isRestDay: false }
+      if (!nextGame) return { date: nextTick }
 
       const dayOffset = nextGame.game_day - currentGameDay
       const nextGameDate = new Date(nextTick.getTime() + dayOffset * 12 * 60 * 60 * 1000)
-      return { date: nextGameDate, isRestDay: dayOffset > 0 }
+      return { date: nextGameDate }
     } catch {
-      return { date: nextTick, isRestDay: false }
+      return { date: nextTick }
     }
   },
 
@@ -135,18 +135,70 @@ export default {
   },
 
   /**
-   * @returns {Promise<{season: number, gameDay: number, lastPlayedLeagueMatchDay?: number, lastPlayedLeagueSeason?: number}>}
+   * @returns {Promise<{
+   *   season: number,
+   *   gameDay: number,
+   *   lastPlayedLeagueMatchDay?: number,
+   *   lastPlayedLeagueSeason?: number,
+   *   cupRoundToday: {cupRound: number, totalRounds: number}|null,
+   *   userMatchDayToday: number|null,
+   *   userNextMatchDay: number|null
+   * }>}
    */
-  async getCurrentGameday () {
+  async getCurrentGameday (req) {
     const current = await getGameDayAndSeason()
-    // Find the last played league game (for results page default)
-    const [lastPlayed] = await query(
-      "SELECT game_day, match_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) ORDER BY season DESC, game_day DESC LIMIT 1"
-    )
+
+    // Try to load the user's team — used for the league-specific lookups
+    // below. Falls through gracefully when unauthenticated.
+    let team = null
+    if (req?.user) {
+      try { team = await getTeam(req) } catch { /* no team: leave team null */ }
+    }
+
+    // Find the last played league game (used as the results page's default
+    // match_day). Prefer the user's own league so that, on cup-only ticks
+    // where another league happens to have advanced a match_day in the same
+    // tick, the user still lands on the latest match_day *they* actually
+    // played. Falls back to the global latest for unauthenticated callers.
+    const lastPlayedSql = team
+      ? "SELECT game_day, match_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) AND level=? AND league=? ORDER BY season DESC, game_day DESC LIMIT 1"
+      : "SELECT game_day, match_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) ORDER BY season DESC, game_day DESC LIMIT 1"
+    const lastPlayedParams = team ? [team.level, team.league] : []
+    const [lastPlayed] = await query(lastPlayedSql, lastPlayedParams)
     if (lastPlayed) {
       current.lastPlayedLeagueMatchDay = lastPlayed.match_day
       current.lastPlayedLeagueSeason = lastPlayed.season
     }
+
+    // Is a cup round scheduled on the current internal game day?
+    const [cupToday] = await query(
+      "SELECT cup_round FROM game WHERE game_type='cup' AND season=? AND game_day=? LIMIT 1",
+      [current.season, current.gameDay]
+    )
+    if (cupToday) {
+      const totalRounds = await getTotalRoundsForSeason(current.season)
+      current.cupRoundToday = { cupRound: cupToday.cup_round, totalRounds }
+    } else {
+      current.cupRoundToday = null
+    }
+
+    // Per-user league match day for today, plus their next upcoming match day
+    current.userMatchDayToday = null
+    current.userNextMatchDay = null
+    if (team) {
+      const [todayRow] = await query(
+        "SELECT match_day FROM game WHERE (game_type='league' OR game_type IS NULL) AND season=? AND level=? AND league=? AND game_day=? LIMIT 1",
+        [current.season, team.level, team.league, current.gameDay]
+      )
+      if (todayRow) current.userMatchDayToday = todayRow.match_day
+
+      const [nextRow] = await query(
+        "SELECT match_day FROM game WHERE (game_type='league' OR game_type IS NULL) AND season=? AND level=? AND league=? AND played=0 ORDER BY game_day ASC LIMIT 1",
+        [current.season, team.level, team.league]
+      )
+      if (nextRow) current.userNextMatchDay = nextRow.match_day
+    }
+
     return current
   },
 
@@ -424,26 +476,40 @@ export default {
       if (row) internalGameDay = row.game_day
     }
 
-    // Try to get cached standing first
-    const cached = await getCachedStanding(internalGameDay, season, actualLevel, actualLeague)
-    if (cached) {
-      // Refresh team display data (name, emblem, color) from database
-      const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
-      if (teamIds.length > 0) {
-        const freshTeams = await query(`SELECT id, name, emblem, color
-                                        FROM team
-                                        WHERE id IN (${teamIds.join(', ')})`)
-        const teamMap = Object.fromEntries(freshTeams.map(t => [t.id, t]))
-        for (const entry of cached) {
-          const fresh = entry.team?.id ? teamMap[entry.team.id] : null
-          if (fresh) {
-            entry.team.name = fresh.name
-            entry.team.emblem = fresh.emblem
-            entry.team.color = fresh.color
+    // The cache only represents finished league game days. If the requested
+    // match_day is in the future for this league, bypass the cache entirely:
+    // any cached row for that game_day would be a stale snapshot from an
+    // earlier request, and writing a new one would just freeze today's state
+    // under a future key (the cron only refreshes cache rows for the game day
+    // it currently plays). Compute fresh and don't persist.
+    const [lastPlayedRow] = await query(
+      "SELECT MAX(game_day) AS lastDay FROM game WHERE season=? AND level=? AND league=? AND played=1 AND (game_type='league' OR game_type IS NULL)",
+      [season, actualLevel, actualLeague]
+    )
+    const lastPlayedGameDay = lastPlayedRow?.lastDay ?? -1
+    const isFutureMatchDay = internalGameDay > lastPlayedGameDay
+
+    if (!isFutureMatchDay) {
+      const cached = await getCachedStanding(internalGameDay, season, actualLevel, actualLeague)
+      if (cached) {
+        // Refresh team display data (name, emblem, color) from database
+        const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
+        if (teamIds.length > 0) {
+          const freshTeams = await query(`SELECT id, name, emblem, color
+                                          FROM team
+                                          WHERE id IN (${teamIds.join(', ')})`)
+          const teamMap = Object.fromEntries(freshTeams.map(t => [t.id, t]))
+          for (const entry of cached) {
+            const fresh = entry.team?.id ? teamMap[entry.team.id] : null
+            if (fresh) {
+              entry.team.name = fresh.name
+              entry.team.emblem = fresh.emblem
+              entry.team.color = fresh.color
+            }
           }
         }
+        return cached
       }
-      return cached
     }
 
     // Calculate standing if not cached (for historical data or edge cases)
@@ -475,8 +541,10 @@ export default {
     }
     const standing = calculateStanding(games, teams)
 
-    // Cache the calculated standing for future requests
-    if (games.length > 0) {
+    // Only cache when the requested match day represents a finished league game day.
+    // Caching future match days would freeze a stale snapshot until the next time
+    // someone explicitly requests that key (the cron never touches it).
+    if (games.length > 0 && !isFutureMatchDay) {
       await saveStandingToCache(internalGameDay, season, actualLevel, actualLeague, standing)
     }
 

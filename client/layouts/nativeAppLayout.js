@@ -6,6 +6,7 @@ import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
 import { showSettingsOverlay } from '../partials/settingsOverlay.js'
+import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 
 export class NativeAppLayout extends UIElement {
   async load () {
@@ -18,12 +19,12 @@ export class NativeAppLayout extends UIElement {
       server.getNewLogMessageCount(lastSeenMessageId)
     ])
     this._nextGameDate = gameDate.date
-    this._isRestDay = gameDate.isRestDay || false
     this._username = teamData.user?.username || ''
     this._isAdmin = teamData.isAdmin || false
     this._version = versionData.version
     this._gameDay = currentGameday.gameDay
     this._season = currentGameday.season
+    this._currentGameday = currentGameday
     this._newMessageCount = newMessageResponse.count || 0
   }
 
@@ -35,8 +36,8 @@ export class NativeAppLayout extends UIElement {
             <img src="assets/logo.svg" alt="Logo" class="info-bar-logo" id="info-bar-logo">
             <div class="info-bar-links">
               <a href="#results" class="info-bar-item text-decoration-none text-white border-0">
-                <i class="fa fa-calendar" aria-hidden="true"></i> 
-                ${this._gameDay + 1} (${this._season + 1})
+                <i class="fa fa-calendar" aria-hidden="true"></i>
+                ${currentGamedayLabel(this._currentGameday)}
               </a>
               <a href="#dashboard" class="info-bar-item text-decoration-none text-white border-0" id="${this._nextGameInElementId}">
               </a>
@@ -153,7 +154,6 @@ export class NativeAppLayout extends UIElement {
         server.getNextGameDate()
           .then(r => {
             this._nextGameDate = r.date
-            this._isRestDay = r.isRestDay || false
           })
           .catch(() => {
             this._stopTimer()
@@ -163,11 +163,6 @@ export class NativeAppLayout extends UIElement {
       const timerEl = el('#' + this._nextGameInElementId)
       if (!timerEl) {
         this._stopTimer()
-        return
-      }
-
-      if (this._isRestDay && diff > 0) {
-        timerEl.innerHTML = `<i class="fa fa-bed" aria-hidden="true"></i> ${t('nav.restDay')}`
         return
       }
 

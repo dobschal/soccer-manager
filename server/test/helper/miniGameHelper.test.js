@@ -109,9 +109,13 @@ describe('miniGameHelper.validateMiniGameSubmission', () => {
     expect(validateMiniGameSubmission(50000, 0, 10000)).toEqual({ valid: false, reason: 'score_too_high' })
   })
 
-  it('rejects too many goals for given duration', () => {
-    // duration 1s → max ~1 goal allowed
-    expect(validateMiniGameSubmission(0, 5, 1000)).toEqual({ valid: false, reason: 'too_many_goals' })
+  it('accepts high goal counts without a per-duration cap', () => {
+    // Even an unrealistic-looking goal count is accepted as long as the
+    // resulting score is plausible — there is no hard goals/seconds limit.
+    const goals = 20
+    const durationMs = 200 * 1000
+    const score = Math.ceil(200 * MINI_GAME_LIMITS.POINTS_PER_SECOND + goals * MINI_GAME_LIMITS.GOAL_POINTS)
+    expect(validateMiniGameSubmission(score, goals, durationMs)).toEqual({ valid: true })
   })
 
   it('rejects unrealistically long durations', () => {

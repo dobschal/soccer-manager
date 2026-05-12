@@ -14,7 +14,8 @@ vi.mock('../helper/teamHelper.js', () => ({
 }))
 
 // Import after mocking
-import { prepareSeason, _buildGame, _nextLevelToFill } from '../prepare-season.js'
+import { prepareSeason, _buildGame, _nextLevelToFill, _existingLeagueDayMap } from '../prepare-season.js'
+import { query } from '../lib/database.js'
 
 describe('prepare-season', () => {
   beforeEach(() => {
@@ -66,6 +67,42 @@ describe('prepare-season', () => {
     it('omits match_day when not provided', () => {
       const game = _buildGame(0, 0, 0, 1, 2, 0, 0)
       expect(game.match_day).toBeUndefined()
+    })
+  })
+
+  describe('_existingLeagueDayMap', () => {
+    it('returns a 34-entry map when every league match day has a game_day', async () => {
+      // teamsPerLeague=18 → 34 match_days. Pretend match_day i lands on game_day (i+offset).
+      const rows = []
+      for (let md = 1; md <= 34; md++) {
+        rows.push({ match_day: md, game_day: md + (md > 4 ? 1 : 0) }) // cup-day skip after match_day 4
+      }
+      query.mockResolvedValueOnce(rows)
+
+      const map = await _existingLeagueDayMap(4)
+
+      expect(map).toHaveLength(34)
+      expect(map[0]).toBe(1)   // match_day 1 → game_day 1
+      expect(map[3]).toBe(4)   // match_day 4 → game_day 4
+      expect(map[4]).toBe(6)   // match_day 5 → game_day 6 (cup day inserted)
+      expect(map[33]).toBe(35) // match_day 34 → game_day 35
+    })
+
+    it('returns null when the season has no league games yet', async () => {
+      query.mockResolvedValueOnce([])
+      const map = await _existingLeagueDayMap(99)
+      expect(map).toBeNull()
+    })
+
+    it('returns null when match_day rows are incomplete (mid-creation)', async () => {
+      // Only 10 out of 34 match_days present — incomplete; caller falls back to a fresh schedule.
+      const rows = []
+      for (let md = 1; md <= 10; md++) rows.push({ match_day: md, game_day: md })
+      query.mockResolvedValueOnce(rows)
+
+      const map = await _existingLeagueDayMap(4)
+
+      expect(map).toBeNull()
     })
   })
 

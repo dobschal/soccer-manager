@@ -1502,6 +1502,83 @@ const migrations = [{
     await query('ALTER TABLE statistics ADD COLUMN monthly_active_users INT NOT NULL DEFAULT 0')
     await query('ALTER TABLE statistics ADD COLUMN total_user_count INT NOT NULL DEFAULT 0')
   }
+}, {
+  // Removes standing_cache rows that were written by the getStanding route for
+  // unplayed match days. Those rows freeze a "current at the time of the request"
+  // snapshot under a future game_day key and never get refreshed by the cron.
+  name: 'Purge stale future-game_day standing_cache rows',
+  async run () {
+    const result = await query(`
+      DELETE sc FROM standing_cache sc
+      LEFT JOIN (
+        SELECT season, level, league, MAX(game_day) AS lastPlayed
+        FROM game
+        WHERE played = 1 AND (game_type = 'league' OR game_type IS NULL)
+        GROUP BY season, level, league
+      ) lp
+        ON lp.season = sc.season AND lp.level = sc.level AND lp.league = sc.league
+      WHERE lp.lastPlayed IS NULL OR sc.game_day > lp.lastPlayed
+    `)
+    console.log(`🧹 Purged ${result.affectedRows} stale standing_cache rows`)
+  }
+}, {
+  // Re-place unplayed cup games on the earliest game_day where every
+  // participating team is league-idle. Previously progressCupRound used a
+  // "no league anywhere" lookup which could push late rounds (semi-final,
+  // final) far past their natural slot when no fully league-empty days
+  // remained.
+  name: 'Reschedule unplayed cup games onto team-idle slots',
+  async run () {
+    const groups = await query(`
+      SELECT season, cup_round, MIN(game_day) AS current_game_day
+      FROM game
+      WHERE game_type = 'cup' AND played = 0
+      GROUP BY season, cup_round
+    `)
+    if (groups.length === 0) {
+      console.log('⏭️ No unplayed cup games to reschedule.')
+      return
+    }
+
+    let movedRows = 0
+    for (const { season, cup_round: cupRound, current_game_day: currentGameDay } of groups) {
+      // Latest played cup game for this season — that's the floor for the new slot.
+      const [{ maxPlayedDay }] = await query(
+        "SELECT COALESCE(MAX(game_day), -1) AS maxPlayedDay FROM game WHERE game_type='cup' AND season=? AND played=1",
+        [season]
+      )
+      const minGameDay = Math.max(maxPlayedDay + 1, 0)
+
+      // All teams participating in this round/season.
+      const teamRows = await query(
+        "SELECT team_1_id, team_2_id FROM game WHERE game_type='cup' AND season=? AND cup_round=? AND played=0",
+        [season, cupRound]
+      )
+      const teamIds = [...new Set(teamRows.flatMap(r => [r.team_1_id, r.team_2_id]).filter(id => id != null))]
+      if (teamIds.length === 0) continue
+
+      const placeholders = teamIds.map(() => '?').join(',')
+      const conflicts = await query(
+        `SELECT DISTINCT game_day FROM game
+         WHERE season=? AND (game_type='league' OR game_type IS NULL)
+           AND (team_1_id IN (${placeholders}) OR team_2_id IN (${placeholders}))`,
+        [season, ...teamIds, ...teamIds]
+      )
+      const conflictSet = new Set(conflicts.map(d => d.game_day))
+      let candidate = minGameDay
+      while (conflictSet.has(candidate)) candidate++
+
+      if (candidate >= currentGameDay) continue // already at or past the team-aware slot
+
+      const result = await query(
+        "UPDATE game SET game_day=? WHERE game_type='cup' AND season=? AND cup_round=? AND played=0",
+        [candidate, season, cupRound]
+      )
+      console.log(`🏆 Season ${season} cup round ${cupRound}: moved ${result.affectedRows} game(s) from day ${currentGameDay} → ${candidate}`)
+      movedRows += result.affectedRows
+    }
+    console.log(`🏆 Cup reschedule done — moved ${movedRows} game(s) total.`)
+  }
 }]
 
 /**

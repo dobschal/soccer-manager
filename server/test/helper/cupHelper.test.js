@@ -26,6 +26,7 @@ import {
   createCupDraw,
   progressCupRound,
   awardCupWinner,
+  findNextCupGameDay,
   getCupGamesForTeam,
   getCupResultsForRound,
   getCupRoundsForSeason,
@@ -247,6 +248,45 @@ describe('cupHelper', () => {
       expect(insertCalls.length).toBeGreaterThan(0)
       // First round of 4-team cup = round 2, sequential round 1
       expect(insertCalls[0][1]).toHaveProperty('match_day', 1)
+    })
+  })
+
+  describe('findNextCupGameDay', () => {
+    it('returns the next game_day without any league game when no teamIds given', async () => {
+      query.mockResolvedValueOnce([
+        { game_day: 28 }, { game_day: 29 }, { game_day: 30 }, { game_day: 31 }
+      ])
+
+      const result = await findNextCupGameDay(4, 28)
+
+      expect(result).toBe(32)
+      expect(query.mock.calls[0][0]).not.toContain('team_1_id')
+    })
+
+    it('returns the next game_day where the supplied teams have no league game', async () => {
+      // Season-wide league days exist on 28..31, but the specific teams only
+      // play league on 28 and 31. The team-aware lookup must land on 29, not 32.
+      query.mockResolvedValueOnce([
+        { game_day: 28 }, { game_day: 31 }
+      ])
+
+      const result = await findNextCupGameDay(4, 28, [101, 102])
+
+      expect(result).toBe(29)
+      // SQL must filter by team participation, not just season.
+      const sql = query.mock.calls[0][0]
+      expect(sql).toContain('team_1_id IN')
+      expect(sql).toContain('team_2_id IN')
+      // Both team ids are passed twice (once for team_1_id IN, once for team_2_id IN).
+      expect(query.mock.calls[0][1]).toEqual([4, 101, 102, 101, 102])
+    })
+
+    it('falls back to the season-wide lookup when teamIds is empty', async () => {
+      query.mockResolvedValueOnce([{ game_day: 10 }])
+
+      await findNextCupGameDay(4, 10, [])
+
+      expect(query.mock.calls[0][0]).not.toContain('team_1_id')
     })
   })
 
