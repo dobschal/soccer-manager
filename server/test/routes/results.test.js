@@ -316,6 +316,31 @@ describe('results routes', () => {
       expect(result.userMatchDayToday).toBeNull()
       expect(result.userNextMatchDay).toBe(29)
     })
+
+    it('reports lastPlayedLeagueMatchDay for the user league (not the global latest)', async () => {
+      // The global ORDER BY game_day DESC can return a different league's
+      // row when several leagues play on the same internal game_day. The
+      // results page default must reflect the *user's* league, otherwise it
+      // lands on a match_day they haven't even played yet.
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 34, season: 4 })
+      getTeam.mockResolvedValue(testData.team({ level: 0, league: 0 }))
+      query
+        .mockResolvedValueOnce([{ game_day: 34, match_day: 29, season: 4 }]) // last played (user-league filtered)
+        .mockResolvedValueOnce([])  // cup today
+        .mockResolvedValueOnce([])  // user today
+        .mockResolvedValueOnce([])  // user next
+
+      const req = createMockRequest()
+      const result = await handlers.getCurrentGameday(req)
+
+      expect(result.lastPlayedLeagueMatchDay).toBe(29)
+      // The query must filter by the user's level and league.
+      const sql = query.mock.calls[0][0]
+      const params = query.mock.calls[0][1]
+      expect(sql).toContain('level=?')
+      expect(sql).toContain('league=?')
+      expect(params).toEqual([0, 0])
+    })
   })
 
   describe('getResultsFilters', () => {

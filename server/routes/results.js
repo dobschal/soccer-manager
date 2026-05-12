@@ -147,10 +147,24 @@ export default {
    */
   async getCurrentGameday (req) {
     const current = await getGameDayAndSeason()
-    // Find the last played league game (for results page default)
-    const [lastPlayed] = await query(
-      "SELECT game_day, match_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) ORDER BY season DESC, game_day DESC LIMIT 1"
-    )
+
+    // Try to load the user's team — used for the league-specific lookups
+    // below. Falls through gracefully when unauthenticated.
+    let team = null
+    if (req?.user) {
+      try { team = await getTeam(req) } catch { /* no team: leave team null */ }
+    }
+
+    // Find the last played league game (used as the results page's default
+    // match_day). Prefer the user's own league so that, on cup-only ticks
+    // where another league happens to have advanced a match_day in the same
+    // tick, the user still lands on the latest match_day *they* actually
+    // played. Falls back to the global latest for unauthenticated callers.
+    const lastPlayedSql = team
+      ? "SELECT game_day, match_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) AND level=? AND league=? ORDER BY season DESC, game_day DESC LIMIT 1"
+      : "SELECT game_day, match_day, season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) ORDER BY season DESC, game_day DESC LIMIT 1"
+    const lastPlayedParams = team ? [team.level, team.league] : []
+    const [lastPlayed] = await query(lastPlayedSql, lastPlayedParams)
     if (lastPlayed) {
       current.lastPlayedLeagueMatchDay = lastPlayed.match_day
       current.lastPlayedLeagueSeason = lastPlayed.season
@@ -171,23 +185,18 @@ export default {
     // Per-user league match day for today, plus their next upcoming match day
     current.userMatchDayToday = null
     current.userNextMatchDay = null
-    if (req?.user) {
-      try {
-        const team = await getTeam(req)
-        const [todayRow] = await query(
-          "SELECT match_day FROM game WHERE (game_type='league' OR game_type IS NULL) AND season=? AND level=? AND league=? AND game_day=? LIMIT 1",
-          [current.season, team.level, team.league, current.gameDay]
-        )
-        if (todayRow) current.userMatchDayToday = todayRow.match_day
+    if (team) {
+      const [todayRow] = await query(
+        "SELECT match_day FROM game WHERE (game_type='league' OR game_type IS NULL) AND season=? AND level=? AND league=? AND game_day=? LIMIT 1",
+        [current.season, team.level, team.league, current.gameDay]
+      )
+      if (todayRow) current.userMatchDayToday = todayRow.match_day
 
-        const [nextRow] = await query(
-          "SELECT match_day FROM game WHERE (game_type='league' OR game_type IS NULL) AND season=? AND level=? AND league=? AND played=0 ORDER BY game_day ASC LIMIT 1",
-          [current.season, team.level, team.league]
-        )
-        if (nextRow) current.userNextMatchDay = nextRow.match_day
-      } catch {
-        // Unauthorised / no team: leave fields null
-      }
+      const [nextRow] = await query(
+        "SELECT match_day FROM game WHERE (game_type='league' OR game_type IS NULL) AND season=? AND level=? AND league=? AND played=0 ORDER BY game_day ASC LIMIT 1",
+        [current.season, team.level, team.league]
+      )
+      if (nextRow) current.userNextMatchDay = nextRow.match_day
     }
 
     return current
