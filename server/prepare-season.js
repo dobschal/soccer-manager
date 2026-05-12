@@ -265,6 +265,35 @@ async function _createGamesForNewSeason () {
 }
 
 /**
+ * Reconstruct the leagueDayMap (index = league day 0..33, value = actual
+ * game_day) from games that already exist for the season. Returns null when
+ * the existing data doesn't cover a full schedule, so the caller can fall
+ * back to a freshly computed map.
+ * @param {number} season
+ * @returns {Promise<number[]|null>}
+ */
+export async function _existingLeagueDayMap (season) {
+  const expectedLength = (teamsPerLeague - 1) * 2
+  const rows = await query(
+    `SELECT match_day, MIN(game_day) AS game_day
+     FROM game
+     WHERE season=? AND match_day IS NOT NULL AND (game_type='league' OR game_type IS NULL)
+     GROUP BY match_day
+     ORDER BY match_day ASC`,
+    [season]
+  )
+  if (rows.length !== expectedLength) return null
+  const map = new Array(expectedLength)
+  for (const r of rows) {
+    if (r.match_day < 1 || r.match_day > expectedLength) return null
+    map[r.match_day - 1] = r.game_day
+  }
+  // Defensive: a row could have a NULL game_day in theory; treat as incomplete.
+  if (map.some(d => d == null)) return null
+  return map
+}
+
+/**
  * For each level that currently has teams but no games for the active season,
  * generate the full schedule and mark past matchdays as forfeits.
  * @param {number} season
@@ -275,7 +304,15 @@ async function _createGamesForNewLevels (season, currentGameDay) {
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   const gamePlan = calculateGamePlan(teamsPerLeague)
   const leagueGameDays = (teamsPerLeague - 1) * 2
-  const { leagueDayMap } = calculateInterleavedSchedule(teams.length, leagueGameDays)
+
+  // Reuse the season's existing match_day → game_day mapping so a new level
+  // lines up with the leagues that already exist. Recomputing with the
+  // current team count would yield a different cup-day insertion pattern
+  // (because the team count has grown since the season started) and shift
+  // every match_day onto a different game_day — leaving the new level
+  // permanently lagging the rest of the season.
+  const reusedMap = await _existingLeagueDayMap(season)
+  const leagueDayMap = reusedMap ?? calculateInterleavedSchedule(teams.length, leagueGameDays).leagueDayMap
 
   for (let level = 0; level < maxLevels; level++) {
     const teamsOfLevel = teams.filter(t => t.level === level)
