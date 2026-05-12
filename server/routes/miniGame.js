@@ -71,8 +71,15 @@ export default {
     }
 
     const [rankRow] = await query(
-      'SELECT (COUNT(*) + 1) AS leaderboard_rank FROM mini_game_score WHERE score > ?',
-      [score]
+      `SELECT (COUNT(*) + 1) AS leaderboard_rank
+       FROM (
+         SELECT MAX(score) AS best
+         FROM mini_game_score
+         WHERE team_id <> ?
+         GROUP BY team_id
+       ) b
+       WHERE b.best > (SELECT MAX(score) FROM mini_game_score WHERE team_id = ?)`,
+      [team.id, team.id]
     )
     const [bestRow] = await query(
       'SELECT MAX(score) AS best FROM mini_game_score WHERE team_id=? AND id <> ?',

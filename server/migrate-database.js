@@ -1579,6 +1579,11 @@ const migrations = [{
     }
     console.log(`🏆 Cup reschedule done — moved ${movedRows} game(s) total.`)
   }
+}, {
+  name: 'Add avatar column to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN avatar VARCHAR(255) NULL DEFAULT NULL')
+  }
 }]
 
 /**

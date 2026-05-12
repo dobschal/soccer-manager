@@ -5,6 +5,7 @@ import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 import { YouthTeamPage } from './my-team/youthTeam.js'
 import { ATeamPage } from './my-team/aTeam.js'
+import { ClubInfoPage } from './club/clubInfo.js'
 import { off, on } from '../lib/event.js'
 import { ActionCards } from './dashboard/actionCards.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
@@ -26,6 +27,7 @@ export class MyTeamPage extends TabbedPage {
           <nav class="nav nav-pills">
             <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#my-team"><i class="fa fa-male"></i> ${t('myTeam.aTeam')}</a>
             <a class="nav-link ${this.subPage === 'youth' ? 'active' : ''}" href="#my-team?sub_page=youth"><i class="fa fa-child"></i> ${t('myTeam.youthTeam')}</a>
+            <a class="nav-link ${this.subPage === 'info' ? 'active' : ''}" href="#my-team?sub_page=info"><i class="fa fa-info-circle"></i> ${t('stadium.tabClubInfo')}</a>
             <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''}" href="#my-team?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}</a>
           </nav>
           <a class="btn btn-sm btn-outline-secondary d-none d-lg-inline-block" href="#team?id=${this.data.team.id}">
@@ -74,6 +76,7 @@ export class MyTeamPage extends TabbedPage {
   createSubPage (key) {
     if (key === 'youth') return new YouthTeamPage(this)
     if (key === 'cards') return new ActionCards()
+    if (key === 'info') return new ClubInfoPage()
     return new ATeamPage(this)
   }
 

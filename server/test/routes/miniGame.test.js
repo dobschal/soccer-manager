@@ -123,6 +123,26 @@ describe('miniGame routes', () => {
       expect(result.isPersonalBest).toBe(true)
     })
 
+    it('ranks against the best score per team, not against every attempt', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      hasReceivedMiniGameRewardThisGameDay.mockResolvedValue(true)
+
+      query.mockResolvedValueOnce({ insertId: 20 })            // insert score
+      query.mockResolvedValueOnce([{ leaderboard_rank: 2 }])   // rank
+      query.mockResolvedValueOnce([{ best: 150 }])             // best (other rows)
+
+      const result = await handlers.submitMiniGameScore(150, 1, 5000, createMockRequest())
+
+      expect(result.leaderboardRank).toBe(2)
+
+      const rankCall = query.mock.calls.find(c => /leaderboard_rank/.test(c[0]))
+      expect(rankCall).toBeDefined()
+      expect(rankCall[0]).toMatch(/GROUP BY team_id/)
+      expect(rankCall[0]).toMatch(/MAX\(score\)/)
+      expect(rankCall[1]).toEqual([team.id, team.id])
+    })
+
     it('uses the current game day and season from getGameDayAndSeason', async () => {
       getTeam.mockResolvedValue(testData.team())
       getGameDayAndSeason.mockResolvedValueOnce({ gameDay: 12, season: 4 })

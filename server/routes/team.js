@@ -4,7 +4,6 @@ import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
 import { cityNames, clubPrefixes1, clubPrefixes2 } from '../lib/name-library.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
-import { sanitizeHtml } from '../lib/sanitizeHtml.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getTotalRounds } from '../helper/cupHelper.js'
 export default {
@@ -87,24 +86,6 @@ export default {
     // Clear standing cache in database since it stores serialized team names
     const { season } = await getGameDayAndSeason()
     await query('DELETE FROM standing_cache WHERE season=? AND level=? AND league=?', [season, team.level, team.league])
-    return { success: true }
-  },
-
-  /**
-   * @param {string} description - HTML content for the team description
-   * @param {Request} req
-   * @returns {Promise<{success: boolean}>}
-   */
-  async updateTeamDescription (description, req) {
-    const team = await getTeam(req)
-    if (typeof description !== 'string') {
-      throw new BadRequestError('Description must be a string')
-    }
-    if (description.length > 5000) {
-      throw new BadRequestError('Description is too long')
-    }
-    const sanitized = sanitizeHtml(description)
-    await query('UPDATE team SET description=? WHERE id=?', [sanitized, team.id])
     return { success: true }
   },
 
@@ -323,63 +304,6 @@ export default {
       await query('UPDATE player SET sort_index=? WHERE id=?', [sortIndex, playerId])
     }
     return { success: true }
-  },
-
-  /**
-   * Get the highest win and highest loss for a team across all played games.
-   * @param {number} teamId
-   * @returns {Promise<{highestWin: Object|null, highestLoss: Object|null}>}
-   */
-  async getTeamRecordResults (teamId) {
-    const games = await query(`
-      SELECT g.id, g.season, g.game_day, g.goals_team_1, g.goals_team_2,
-             g.team_1_id, g.team_2_id, g.game_type,
-             t1.name as team1Name, t1.color as team1Color, t1.emblem as team1Emblem,
-             t2.name as team2Name, t2.color as team2Color, t2.emblem as team2Emblem
-      FROM game g
-      JOIN team t1 ON t1.id = g.team_1_id
-      JOIN team t2 ON t2.id = g.team_2_id
-      WHERE (g.team_1_id = ? OR g.team_2_id = ?) AND g.played = 1
-    `, [teamId, teamId])
-
-    let highestWin = null
-    let highestLoss = null
-    let bestDiff = 0
-    let worstDiff = 0
-
-    for (const g of games) {
-      const isTeam1 = g.team_1_id === teamId
-      const ownGoals = isTeam1 ? g.goals_team_1 : g.goals_team_2
-      const oppGoals = isTeam1 ? g.goals_team_2 : g.goals_team_1
-      const diff = ownGoals - oppGoals
-
-      const opponentId = isTeam1 ? g.team_2_id : g.team_1_id
-      const opponentName = isTeam1 ? g.team2Name : g.team1Name
-      const opponentColor = isTeam1 ? g.team2Color : g.team1Color
-      const opponentEmblem = isTeam1 ? g.team2Emblem : g.team1Emblem
-
-      const record = {
-        gameId: g.id,
-        season: g.season,
-        gameDay: g.game_day,
-        ownGoals,
-        oppGoals,
-        opponentId,
-        opponentName,
-        opponent: { id: opponentId, name: opponentName, color: opponentColor, emblem: opponentEmblem }
-      }
-
-      if (diff > bestDiff || (diff > 0 && diff === bestDiff && ownGoals > (highestWin?.ownGoals ?? 0))) {
-        bestDiff = diff
-        highestWin = record
-      }
-      if (diff < worstDiff || (diff < 0 && diff === worstDiff && oppGoals > (highestLoss?.oppGoals ?? 0))) {
-        worstDiff = diff
-        highestLoss = record
-      }
-    }
-
-    return { highestWin, highestLoss }
   },
 
   /**

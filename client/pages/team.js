@@ -3,7 +3,6 @@ import { goTo, setQueryParams } from '../lib/router.js'
 import { PlayerList } from '../partials/playerList.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { renderEmblem } from '../partials/emblem.js'
-import { renderPlayerImage } from '../partials/playerImage.js'
 import { UIElement } from '../lib/UIElement.js'
 import { formatCupRound, formatLeague } from '../util/league.js'
 import { showStadiumModal } from '../partials/stadiumModal.js'
@@ -14,10 +13,10 @@ import { showGameModal } from '../partials/gameModal.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { showDialog } from '../partials/dialog.js'
 import { Table } from '../partials/table.js'
-import { showOverlay } from '../partials/overlay.js'
-import { generateId } from '../lib/html.js'
 import { renderPositionBadge } from '../partials/positionBadge.js'
 import { renderPageNumbers } from '../partials/pagination.js'
+import { formatDate } from '../lib/date.js'
+import { calculateMarketValue, calculatePlayerAge, getSalary } from '../util/player.js'
 
 const TRANSFER_PAGE_SIZE = 10
 
@@ -70,70 +69,50 @@ export class TeamPage extends UIElement {
     this.team = team
     this.players = players
 
-    const [stadium, teamValue, myTeam, friendlyStatus, transferHistory, seasonHistory, recordResults] = await Promise.all([
+    const [stadium, myTeam, friendlyStatus, transferHistory, seasonHistory, gameday] = await Promise.all([
       server.getStadiumByTeamId(this.team.id),
-      server.getTeamValue(this.team.id),
       server.getMyTeam(),
       server.canPlayFriendlyToday(),
       server.getTeamTransferHistory(this.team.id),
       server.getTeamSeasonHistory(this.team.id),
-      server.getTeamRecordResults(this.team.id)
+      server.getCurrentGameday()
     ])
     this.stadium = stadium
-    this._teamValue = teamValue.value
     this._isOwnTeam = myTeam.team.id === this.team.id
     this._canPlayFriendly = friendlyStatus.canPlay && !this._isOwnTeam
     this._transferHistory = transferHistory.transfers || []
     this._seasonHistory = seasonHistory.seasons || []
-    this._highestWin = recordResults.highestWin
-    this._highestLoss = recordResults.highestLoss
-
-    // Render best player image
-    const bestPlayer = this._bestPlayer
-    if (bestPlayer) {
-      const isCaptain = bestPlayer.id === this.team.captain_id
-      this._bestPlayerImage = await renderPlayerImage(bestPlayer, this.team, 150, { isCaptain })
-    }
+    this._season = gameday.season
   }
   /**
    * @returns {string}
    */
   get template () {
     if (this._notViewable) return '<div></div>'
-    const bestPlayer = this._bestPlayer
     return `
-      <div>        
-        <div class="row mb-4 align-items-center">
-          <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
-            ${renderEmblem(this.team, 200)}
+      <div>
+        <h2 class="mb-4 text-center text-lg-start">${this.team.name}</h2>
+        <div class="row">
+          <div class="col-12 col-md-6 col-xl-4 mb-4">
+            ${this._renderTeamInfoCard()}
           </div>
-          <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
-            <h2>${this.team.name}</h2>
-            <p class="mb-0">
-              <b>${t('team.leagueLabel')}</b>: <a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a><br>
-              <b>${t('team.teamValue')}</b>: ${euroFormat.format(this._teamValue)}<br>
-              <b>${t('team.lineupStrength')}</b>: ${this._teamStrength}<br>
-              <b>${t('team.avgFreshness')}</b>: ${Math.floor(this._teamFreshness * 100)}%<br>
-              <b>${t('team.trainer')}</b>: ${this._username}<br>
-              <b>${t('stadium.stadiumLabel')}</b>: <a href="#" class="stadium-link text-info">${this._stadiumName} (${t('team.seats', { seats: this._stadiumSize })})</a>
-            </p>
-            ${this._renderFriendlyMatchButton()}
-          </div>
-          <div class="col-12 col-md-4 text-center">
-            ${bestPlayer ? `
-              <div class="best-player-link u-cursor-pointer" data-player-id="${bestPlayer.id}">
-                <div class="mb-2 d-inline-block">${this._bestPlayerImage}</div>
-                <div class="clearfix">
-                  <div class="text-muted small">${t('team.bestPlayer')}</div>
-                  <div><strong>${bestPlayer.name}</strong></div>
-                  <div class="text-info">${t('team.levelLabel', { level: bestPlayer.level })}</div>
+          <div class="col-12 col-md-6 col-xl-4 mb-4">
+            <div class="card h-100 border-0">
+              <div class="card-header text-white gradient-header">
+                <h5 class="card-title mb-0">${t('myTeam.emblem')}</h5>
+              </div>
+              <div class="card-body u-perspective-40">
+                <div class="mb-4 emblem-viewer text-center">
+                  ${renderEmblem(this.team, 200)}
                 </div>
               </div>
-            ` : ''}
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-4 mb-4">
+            ${this._renderCoachCard()}
           </div>
         </div>
-        ${this._renderDescription()}
-        ${this._renderRecordResults()}
+        ${this._renderFriendlyMatchButton()}
         <div class="mb-4">
             <h4>${t('team.seasonHistory')}</h4>
             <div class="horizontal-scrollable-table">
@@ -170,24 +149,10 @@ export class TeamPage extends UIElement {
           showStadiumModal(this.team.id)
         }
       },
-      '.best-player-link': {
-        click: (event) => {
-          const playerId = event.currentTarget.dataset.playerId
-          if (playerId) {
-            setQueryParams({ player_id: playerId })
-          }
-        }
-      },
       '(optional) .friendly-match-btn': {
         click: (event) => {
           event.preventDefault()
           this._handleFriendlyMatchClick()
-        }
-      },
-      '(optional) .edit-description-btn': {
-        click: (event) => {
-          event.preventDefault()
-          this._showDescriptionEditor()
         }
       },
       '(optional) .player-link': {
@@ -249,11 +214,6 @@ export class TeamPage extends UIElement {
   /** @type {StadiumType} */
   stadium
 
-  /** @type {string} */
-  _bestPlayerImage = ''
-
-  /** @type {number} */
-  _teamValue = 0
   /** @type {boolean} */
   _canPlayFriendly = false
   /** @type {boolean} */
@@ -268,10 +228,6 @@ export class TeamPage extends UIElement {
   _transferPage = 0
   /** @type {Array} */
   _seasonHistory = []
-  /** @type {Object|null} */
-  _highestWin = null
-  /** @type {Object|null} */
-  _highestLoss = null
 
   /**
    * @returns {number}
@@ -290,13 +246,6 @@ export class TeamPage extends UIElement {
   }
 
   /**
-   * @returns {string}
-   */
-  get _username () {
-    return this.user?.username ?? 'N/A <i class="fa fa-user-secret" aria-hidden="true"></i>'
-  }
-
-  /**
    * @returns {number}
    */
   get _stadiumSize () {
@@ -311,89 +260,80 @@ export class TeamPage extends UIElement {
   }
 
   /**
-   * @returns {PlayerType|null}
-   * @private
-   */
-  get _bestPlayer () {
-    if (!this.players || this.players.length === 0) return null
-    return this.players.reduce((best, player) => {
-      if (!best || player.level > best.level) return player
-      return best
-    }, null)
-  }
-
-  /**
-   * Render the team description section
+   * Render the team info card (left card) with stats table
    * @returns {string}
    * @private
    */
-  _renderDescription () {
-    const defaultText = t('team.defaultDescription', { teamName: this.team.name })
-    const displayHtml = this.team.description || defaultText
-
-    const editBtn = this._isOwnTeam
-      ? ` <button class="btn btn-sm btn-outline-secondary edit-description-btn"><i class="fa fa-pencil"></i> ${t('team.editDescription')}</button>`
-      : ''
+  _renderTeamInfoCard () {
+    const realPlayers = this.players.filter(p => !p.fake)
+    const totalSalary = realPlayers.reduce((sum, p) => sum + getSalary(p.level), 0)
+    const totalStrength = realPlayers.reduce((sum, p) => sum + p.level, 0)
+    const avgLevel = realPlayers.length > 0 ? (totalStrength / realPlayers.length).toFixed(1) : 0
+    const avgAge = realPlayers.length > 0
+      ? (realPlayers.reduce((sum, p) => sum + calculatePlayerAge(p, this._season), 0) / realPlayers.length).toFixed(1)
+      : 0
+    const teamValue = realPlayers.reduce(
+      (sum, p) => sum + calculateMarketValue(p.level, calculatePlayerAge(p, this._season)),
+      0
+    )
 
     return `
-      <div class="mb-4">
-        <span class="team-description-content">${displayHtml}</span>${editBtn}
+      <div class="card h-100 border-0">
+        <div class="card-header text-white gradient-header">
+          <h5 class="card-title mb-0">${t('myTeam.teamInfo')}</h5>
+        </div>
+        <div class="card-body pt-0">
+          <table class="table table-sm mb-0 team-info-table">
+            <tbody>
+              <tr><td class="text-muted ps-3">${t('myTeam.league')}</td><td class="text-end pe-3"><a href="#results?level=${this.team.level}&league=${this.team.league}" class="text-info">${formatLeague(this.team.level, this.team.league)}</a></td></tr>
+              <tr><td class="text-muted ps-3">${t('myTeam.salaryTotal')}</td><td class="text-end pe-3">${euroFormat.format(totalSalary)}</td></tr>
+              <tr><td class="text-muted ps-3">${t('myTeam.teamValue')}</td><td class="text-end pe-3">${euroFormat.format(teamValue)}</td></tr>
+              <tr><td class="text-muted ps-3">${t('myTeam.avgAge')}</td><td class="text-end pe-3">${avgAge} ${t('myTeam.years')}</td></tr>
+              <tr><td class="text-muted ps-3">${t('myTeam.avgLevel')}</td><td class="text-end pe-3">${avgLevel}</td></tr>
+              <tr><td class="text-muted ps-3">${t('myTeam.totalStrength')}</td><td class="text-end pe-3">${totalStrength}</td></tr>
+              <tr><td class="text-muted ps-3">${t('myTeam.lineupStrength')}</td><td class="text-end pe-3">${this._teamStrength}</td></tr>
+              <tr><td class="text-muted ps-3">${t('team.avgFreshness')}</td><td class="text-end pe-3">${Math.floor(this._teamFreshness * 100)}%</td></tr>
+              <tr><td class="text-muted ps-3">${t('stadium.stadiumLabel')}</td><td class="text-end pe-3"><a href="#" class="stadium-link text-info">${this._stadiumName} (${t('team.seats', { seats: this._stadiumSize })})</a></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     `
   }
 
   /**
-   * Show the rich text description editor overlay
+   * Render the coach (trainer) card with avatar and info
+   * @returns {string}
    * @private
    */
-  _showDescriptionEditor () {
-    const editorId = generateId()
-    const saveBtnId = generateId()
+  _renderCoachCard () {
+    const username = this.user?.username
+    const coachName = username ?? `N/A <i class="fa fa-user-secret" aria-hidden="true"></i>`
+    const altText = username ?? 'N/A'
+    const coachSince = this.team.created_at ? formatDate('DD.MM.YYYY', this.team.created_at) : '-'
+    const avatarFilename = this.user?.avatar
+    const avatarImg = avatarFilename
+      ? `<img class="coach-avatar__img" src="/uploads/avatars/${avatarFilename}" alt="${altText}">`
+      : `<img class="coach-avatar__img coach-avatar__img--default" src="/assets/avatar-placeholder.svg" alt="${altText}">`
 
-    const defaultText = t('team.defaultDescription', { teamName: this.team.name })
-    const currentContent = this.team.description || defaultText
-
-    const content = `
-      <div class="d-flex gap-1 flex-wrap mb-2">
-        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="bold"><i class="fa fa-bold"></i></button>
-        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="italic"><i class="fa fa-italic"></i></button>
-        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="underline"><i class="fa fa-underline"></i></button>
-        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="strikeThrough"><i class="fa fa-strikethrough"></i></button>
-        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="insertUnorderedList"><i class="fa fa-list-ul"></i></button>
-        <button class="btn btn-sm btn-outline-secondary desc-fmt-btn" data-cmd="insertOrderedList"><i class="fa fa-list-ol"></i></button>
+    return `
+      <div class="card h-100 border-0">
+        <div class="card-header text-white gradient-header">
+          <h5 class="card-title mb-0">${t('myTeam.coach')}</h5>
+        </div>
+        <div class="card-body">
+          <div class="coach-avatar mb-3">
+            ${avatarImg}
+          </div>
+          <table class="table table-sm mb-0 team-info-table">
+            <tbody>
+              <tr><td class="text-muted ps-3">${t('myTeam.coach')}</td><td class="text-end pe-3">${coachName}</td></tr>
+              <tr><td class="text-muted ps-3">${t('myTeam.coachSince')}</td><td class="text-end pe-3">${coachSince}</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div id="${editorId}" class="description-editor" contenteditable="true">${currentContent}</div>
-      <button id="${saveBtnId}" class="btn btn-primary w-100 mt-3 mb-3">${t('common.save')}</button>
     `
-
-    const overlay = showOverlay(t('team.editDescription'), '', content)
-
-    setTimeout(() => {
-      document.querySelectorAll('.desc-fmt-btn').forEach(btn => {
-        btn.addEventListener('mousedown', (e) => {
-          e.preventDefault()
-          document.execCommand(btn.dataset.cmd, false, null)
-        })
-      })
-
-      const saveBtn = document.getElementById(saveBtnId)
-      if (saveBtn) {
-        saveBtn.addEventListener('click', async () => {
-          const editorEl = document.getElementById(editorId)
-          if (!editorEl) return
-          const html = editorEl.innerHTML
-          try {
-            await server.updateTeamDescription(html)
-            this.team.description = html
-            toast(t('team.descriptionSaved'), 'success')
-            overlay.remove()
-            await this.update()
-          } catch (e) {
-            toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-          }
-        })
-      }
-    })
   }
 
   /**
@@ -412,7 +352,7 @@ export class TeamPage extends UIElement {
     const buttonTitle = !this._canPlayFriendly ? t('team.friendlyPlayed') : ''
 
     return `
-      <div class="mb-4 mt-4">
+      <div class="mb-4 text-center">
         <button class="btn btn-outline-info friendly-match-btn" ${buttonDisabled ? 'disabled' : ''} title="${buttonTitle}">
           ${buttonText}
         </button>
@@ -658,41 +598,5 @@ export class TeamPage extends UIElement {
    */
   _renderSmallEmblem (team) {
     return renderEmblem(team, 20)
-  }
-
-  /**
-   * Render the record results (highest win and highest loss)
-   * @returns {string}
-   * @private
-   */
-  _renderRecordResults () {
-    if (!this._highestWin && !this._highestLoss) return ''
-
-    const renderCard = (record, label, emoji, bgClass) => {
-      if (!record) return ''
-      const emblem = this._renderSmallEmblem(record.opponent)
-      return `
-        <div class="col-12 col-md-6 mb-3">
-          <div class="card text-dark ${bgClass}">
-            <div class="card-body d-flex align-items-center">
-              <span style="font-size: 2.5rem" class="me-3">${emoji}</span>
-              <div>
-                <h5 class="card-title mb-1">${label} - ${record.ownGoals}:${record.oppGoals}</h5>
-                <div>
-                    ${t('team.recordVs')} <a href="#team?id=${record.opponentId}" class="text-dark text-decoration-underline">${emblem} ${record.opponentName}</a>
-                    </div>
-                <small>S${record.season + 1} ${t('team.recordGameDay')} ${record.gameDay + 1}</small>
-              </div>
-            </div>
-          </div>
-        </div>`
-    }
-
-    return `
-      <div class="row mb-4">
-        ${renderCard(this._highestWin, t('team.highestWin'), '🚀', 'bg-info-subtle')}
-        ${renderCard(this._highestLoss, t('team.highestLoss'), '👎', 'bg-warning-subtle')}
-      </div>
-    `
   }
 }

@@ -37,9 +37,16 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key) => key)
 }))
 
+vi.mock('../../lib/actionCardSvg.js', () => ({
+  preloadAllActionCardSvgs: vi.fn(() => Promise.resolve()),
+  preloadActionCardSvgs: vi.fn(() => Promise.resolve()),
+  renderActionCardSvg: vi.fn(() => '<svg class="action-card-image"></svg>')
+}))
+
 import { ActionCards } from '../../pages/dashboard/actionCards.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
+import { fire } from '../../lib/event.js'
 
 describe('ActionCards', () => {
   beforeEach(() => {
@@ -584,6 +591,144 @@ describe('ActionCards', () => {
       const events = cards.events
       expect(events['.action-cards-container']).toBeDefined()
       expect(events['.action-cards-container'].click).toBeDefined()
+    })
+  })
+
+  describe('cross-instance refresh', () => {
+    it('refetches when another instance fires ACTION_CARDS_CHANGED', async () => {
+      server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1, action: 'BONUS_100K' }] })
+
+      const cards = new ActionCards()
+      await cards.load()
+      cards.update = vi.fn()
+      cards.onMounted()
+
+      fire('ACTION_CARDS_CHANGED', 'some-other-render-id')
+
+      expect(cards.update).toHaveBeenCalledWith(true)
+
+      cards.onDestroy()
+    })
+
+    it('ignores ACTION_CARDS_CHANGED events fired by itself', async () => {
+      server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1, action: 'BONUS_100K' }] })
+
+      const cards = new ActionCards()
+      await cards.load()
+      cards.update = vi.fn()
+      cards.onMounted()
+
+      fire('ACTION_CARDS_CHANGED', cards._renderId)
+
+      expect(cards.update).not.toHaveBeenCalled()
+
+      cards.onDestroy()
+    })
+
+    it('unsubscribes on destroy', async () => {
+      server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1, action: 'BONUS_100K' }] })
+
+      const cards = new ActionCards()
+      await cards.load()
+      cards.update = vi.fn()
+      cards.onMounted()
+      cards.onDestroy()
+
+      fire('ACTION_CARDS_CHANGED', 'some-other-render-id')
+
+      expect(cards.update).not.toHaveBeenCalled()
+    })
+
+    it('notifies other instances when a card is used', async () => {
+      server.getActionCards.mockResolvedValue({
+        actionCards: [{ id: 1, action: 'BONUS_100K' }]
+      })
+      server.useActionCard.mockResolvedValue({})
+
+      const sourceCards = new ActionCards()
+      await sourceCards.load()
+
+      // Mock DOM for source so _animateAndRemoveCard works
+      const root = document.createElement('div')
+      root.dataset.render_id = sourceCards._renderId
+      const container = document.createElement('div')
+      container.classList.add('action-cards-container')
+      const scroll = document.createElement('div')
+      scroll.classList.add('action-cards-scroll')
+      const stackEl = document.createElement('div')
+      stackEl.classList.add('action-card-stack')
+      stackEl.dataset.actionCard = '0'
+      stackEl.dataset.actionType = 'BONUS_100K'
+      const wrapper = document.createElement('div')
+      wrapper.classList.add('action-card-wrapper')
+      stackEl.appendChild(wrapper)
+      scroll.appendChild(stackEl)
+      container.appendChild(scroll)
+      root.appendChild(container)
+      document.body.innerHTML = ''
+      document.body.appendChild(root)
+      sourceCards._currentCardElement = stackEl
+
+      // Set up a listener instance (simulates the cached ActionCards on the other page)
+      const listenerCards = new ActionCards()
+      await listenerCards.load()
+      listenerCards.update = vi.fn()
+      listenerCards.onMounted()
+
+      await sourceCards._useActionCard(sourceCards.cards[0], 0)
+
+      expect(listenerCards.update).toHaveBeenCalledWith(true)
+
+      listenerCards.onDestroy()
+    })
+
+    it('notifies other instances when cards are merged', async () => {
+      const mergedCard = { id: 99, action: 'LEVEL_UP_PLAYER_70' }
+      server.getActionCards.mockResolvedValue({
+        actionCards: [
+          { id: 1, action: 'LEVEL_UP_PLAYER_40' },
+          { id: 2, action: 'LEVEL_UP_PLAYER_40' }
+        ]
+      })
+      server.mergeCards.mockResolvedValue({ actionCard: mergedCard })
+
+      const sourceCards = new ActionCards()
+      await sourceCards.load()
+
+      // Mock DOM for source
+      const root = document.createElement('div')
+      root.dataset.render_id = sourceCards._renderId
+      const container = document.createElement('div')
+      container.classList.add('action-cards-container')
+      const scroll = document.createElement('div')
+      scroll.classList.add('action-cards-scroll')
+      const stackEl = document.createElement('div')
+      stackEl.classList.add('action-card-stack')
+      stackEl.dataset.actionCard = '0'
+      stackEl.dataset.actionType = 'LEVEL_UP_PLAYER_40'
+      stackEl.dataset.canMerge = 'true'
+      for (let i = 0; i < 2; i++) {
+        const w = document.createElement('div')
+        w.classList.add('action-card-wrapper')
+        stackEl.appendChild(w)
+      }
+      scroll.appendChild(stackEl)
+      container.appendChild(scroll)
+      root.appendChild(container)
+      document.body.innerHTML = ''
+      document.body.appendChild(root)
+      sourceCards._currentCardElement = stackEl
+
+      const listenerCards = new ActionCards()
+      await listenerCards.load()
+      listenerCards.update = vi.fn()
+      listenerCards.onMounted()
+
+      await sourceCards._mergeCards(sourceCards.cards[0])
+
+      expect(listenerCards.update).toHaveBeenCalledWith(true)
+
+      listenerCards.onDestroy()
     })
   })
 })
