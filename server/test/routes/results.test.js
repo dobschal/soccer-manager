@@ -116,8 +116,10 @@ describe('results routes', () => {
       const standing = [{ team_id: 1, points: 3 }]
 
       getTeam.mockResolvedValue(team)
-      // First query translates match_day → internal game_day
-      query.mockResolvedValueOnce([{ game_day: 7 }])
+      // 1: match_day → game_day translation. 2: lastPlayed game_day lookup.
+      query
+        .mockResolvedValueOnce([{ game_day: 7 }])
+        .mockResolvedValueOnce([{ lastDay: 9 }])
       getCachedStanding.mockResolvedValue(standing)
 
       const req = createMockRequest()
@@ -137,7 +139,8 @@ describe('results routes', () => {
       getTeam.mockResolvedValue(team)
       getCachedStanding.mockResolvedValue(null) // Cache miss
       query
-        .mockResolvedValueOnce([{ game_day: 7 }]) // match_day → game_day translation
+        .mockResolvedValueOnce([{ game_day: 7 }])  // match_day → game_day translation
+        .mockResolvedValueOnce([{ lastDay: 9 }])    // lastPlayed game_day
         .mockResolvedValueOnce(games)
         .mockResolvedValueOnce(teams)
       calculateStanding.mockReturnValue(standing)
@@ -151,6 +154,30 @@ describe('results routes', () => {
       expect(saveStandingToCache).toHaveBeenCalledWith(7, 1, 1, 1, standing)
     })
 
+    it('skips cache for future match days and never writes a future-game_day cache row', async () => {
+      const team = testData.team({ level: 0, league: 0 })
+      const games = [testData.gameResult()]
+      const teams = [testData.team({ id: 1 }), testData.team({ id: 2 })]
+      const standing = [{ team_id: 1, points: 3 }]
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([{ game_day: 34 }])  // match_day 29 → game_day 34
+        .mockResolvedValueOnce([{ lastDay: 32 }])    // last played was game_day 32 (match_day 28)
+        .mockResolvedValueOnce(games)
+        .mockResolvedValueOnce(teams)
+      calculateStanding.mockReturnValue(standing)
+
+      const req = createMockRequest()
+      const result = await handlers.getStanding(29, 4, 0, 0, req)
+
+      expect(result).toEqual(standing)
+      // Cache must not be read for a future match day; otherwise stale snapshots leak.
+      expect(getCachedStanding).not.toHaveBeenCalled()
+      // And we must not write a future-game_day cache row.
+      expect(saveStandingToCache).not.toHaveBeenCalled()
+    })
+
     it('uses team level and league when not specified', async () => {
       const team = testData.team({ level: 2, league: 3 })
 
@@ -158,6 +185,7 @@ describe('results routes', () => {
       getCachedStanding.mockResolvedValue(null)
       query
         .mockResolvedValueOnce([{ game_day: 7 }])
+        .mockResolvedValueOnce([{ lastDay: 9 }])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
       calculateStanding.mockReturnValue([])
@@ -174,11 +202,12 @@ describe('results routes', () => {
 
       getTeam.mockResolvedValue(team)
       getCachedStanding.mockResolvedValue(null)
-      // matchDay=1 with no row found means we still translate (returns empty), then fallback query (no games), then teams
+      // matchDay=1 with no row found means we still translate (returns empty), then lastPlayed lookup (none), then fallback query (no games), then teams
       query
-        .mockResolvedValueOnce([])      // no match_day → game_day mapping
-        .mockResolvedValueOnce([])      // no games for fallback
-        .mockResolvedValueOnce(teams)   // teams by level/league
+        .mockResolvedValueOnce([])                  // no match_day → game_day mapping
+        .mockResolvedValueOnce([{ lastDay: null }]) // no league games played yet
+        .mockResolvedValueOnce([])                  // no games for fallback
+        .mockResolvedValueOnce(teams)               // teams by level/league
       calculateStanding.mockReturnValue([])
 
       const req = createMockRequest()
@@ -199,6 +228,7 @@ describe('results routes', () => {
       getCachedStanding.mockResolvedValue(null)
       query
         .mockResolvedValueOnce([{ game_day: 7 }])
+        .mockResolvedValueOnce([{ lastDay: 9 }])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
       calculateStanding.mockReturnValue([])
@@ -206,8 +236,8 @@ describe('results routes', () => {
       const req = createMockRequest()
       await handlers.getStanding(5, 1, 1, 1, req)
 
-      // call[1] is the standings games query
-      const sql = query.mock.calls[1][0]
+      // call[2] is the standings games query (after game_day translation and lastPlayed lookup)
+      const sql = query.mock.calls[2][0]
       expect(sql).toContain("g.game_type = 'league' OR g.game_type IS NULL")
     })
   })

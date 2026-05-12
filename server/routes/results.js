@@ -467,26 +467,40 @@ export default {
       if (row) internalGameDay = row.game_day
     }
 
-    // Try to get cached standing first
-    const cached = await getCachedStanding(internalGameDay, season, actualLevel, actualLeague)
-    if (cached) {
-      // Refresh team display data (name, emblem, color) from database
-      const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
-      if (teamIds.length > 0) {
-        const freshTeams = await query(`SELECT id, name, emblem, color
-                                        FROM team
-                                        WHERE id IN (${teamIds.join(', ')})`)
-        const teamMap = Object.fromEntries(freshTeams.map(t => [t.id, t]))
-        for (const entry of cached) {
-          const fresh = entry.team?.id ? teamMap[entry.team.id] : null
-          if (fresh) {
-            entry.team.name = fresh.name
-            entry.team.emblem = fresh.emblem
-            entry.team.color = fresh.color
+    // The cache only represents finished league game days. If the requested
+    // match_day is in the future for this league, bypass the cache entirely:
+    // any cached row for that game_day would be a stale snapshot from an
+    // earlier request, and writing a new one would just freeze today's state
+    // under a future key (the cron only refreshes cache rows for the game day
+    // it currently plays). Compute fresh and don't persist.
+    const [lastPlayedRow] = await query(
+      "SELECT MAX(game_day) AS lastDay FROM game WHERE season=? AND level=? AND league=? AND played=1 AND (game_type='league' OR game_type IS NULL)",
+      [season, actualLevel, actualLeague]
+    )
+    const lastPlayedGameDay = lastPlayedRow?.lastDay ?? -1
+    const isFutureMatchDay = internalGameDay > lastPlayedGameDay
+
+    if (!isFutureMatchDay) {
+      const cached = await getCachedStanding(internalGameDay, season, actualLevel, actualLeague)
+      if (cached) {
+        // Refresh team display data (name, emblem, color) from database
+        const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
+        if (teamIds.length > 0) {
+          const freshTeams = await query(`SELECT id, name, emblem, color
+                                          FROM team
+                                          WHERE id IN (${teamIds.join(', ')})`)
+          const teamMap = Object.fromEntries(freshTeams.map(t => [t.id, t]))
+          for (const entry of cached) {
+            const fresh = entry.team?.id ? teamMap[entry.team.id] : null
+            if (fresh) {
+              entry.team.name = fresh.name
+              entry.team.emblem = fresh.emblem
+              entry.team.color = fresh.color
+            }
           }
         }
+        return cached
       }
-      return cached
     }
 
     // Calculate standing if not cached (for historical data or edge cases)
@@ -518,8 +532,10 @@ export default {
     }
     const standing = calculateStanding(games, teams)
 
-    // Cache the calculated standing for future requests
-    if (games.length > 0) {
+    // Only cache when the requested match day represents a finished league game day.
+    // Caching future match days would freeze a stale snapshot until the next time
+    // someone explicitly requests that key (the cron never touches it).
+    if (games.length > 0 && !isFutureMatchDay) {
       await saveStandingToCache(internalGameDay, season, actualLevel, actualLeague, standing)
     }
 
