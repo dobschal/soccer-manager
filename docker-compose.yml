@@ -35,6 +35,7 @@ services:
       - ${APN_KEY_PATH:-/dev/null}:${APN_KEY_PATH:-/dev/null}:ro
       - ${FCM_SERVICE_ACCOUNT_PATH:-/dev/null}:${FCM_SERVICE_ACCOUNT_PATH:-/dev/null}:ro
       - forum-uploads:/usr/src/app/uploads/forum
+      - avatar-uploads:/usr/src/app/uploads/avatars
     depends_on:
       database:
         condition: service_healthy
@@ -43,6 +44,7 @@ services:
 
 volumes:
   forum-uploads:
+  avatar-uploads:
 
 networks:
   soccer-manager:

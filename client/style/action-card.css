@@ -200,7 +200,9 @@
 }
 
 .card-claim-front img,
-.card-claim-back img {
+.card-claim-back img,
+.card-claim-front svg,
+.card-claim-back svg {
     width: 100%;
     height: 100%;
     border-radius: 15px;
@@ -218,10 +220,6 @@
     animation: card-claim-hint-pulse 1.5s ease-in-out infinite;
 }
 
-.card-claim-hint.hidden {
-    visibility: hidden;
-}
-
 /* Card title after reveal */
 .card-claim-title {
     color: #f0d060;
@@ -232,25 +230,11 @@
     animation: card-claim-title-fade-in 0.5s ease-in-out 0.4s forwards;
 }
 
-/* Skip button */
+/* Skip button positioning (visual style comes from Bootstrap .btn classes) */
 .card-claim-skip-btn {
     position: absolute;
     bottom: calc(6.5rem + env(safe-area-inset-bottom, 0));
-    background: none;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 14px;
-    padding: 8px 24px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
     z-index: 201;
-}
-
-.card-claim-skip-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-    border-color: rgba(255, 255, 255, 0.7);
 }
 
 /* Pulsate animation for unclaimed card */

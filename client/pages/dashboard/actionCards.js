@@ -6,7 +6,11 @@ import { PlayerList } from '../../partials/playerList.js'
 import { toast } from '../../partials/toast.js'
 import { delay } from '../../lib/delay.js'
 import { t } from '../../i18n/index.js'
+import { fire, off, on } from '../../lib/event.js'
 import { MiniGame } from './miniGame.js'
+import { preloadAllActionCardSvgs, renderActionCardSvg } from '../../lib/actionCardSvg.js'
+
+const ACTION_CARDS_CHANGED_EVENT = 'ACTION_CARDS_CHANGED'
 
 /**
  * @returns {Object.<string, {title: string, description: string}>}
@@ -60,20 +64,6 @@ function getActionCardTexts () {
   }
 }
 
-const ACTION_CARD_IMAGES = {
-  LEVEL_UP_PLAYER_100: 'assets/action-cards/level-up-player-10.svg',
-  LEVEL_UP_PLAYER_70: 'assets/action-cards/level-up-player-7.svg',
-  LEVEL_UP_PLAYER_40: 'assets/action-cards/level-up-player-4.svg',
-  CHANGE_PLAYER_POSITION: 'assets/action-cards/change-player-position.svg',
-  NEW_YOUTH_PLAYER: 'assets/action-cards/new-youth-player.svg',
-  FRESHNESS_5: 'assets/action-cards/freshness-5.svg',
-  FRESHNESS_10: 'assets/action-cards/freshness-10.svg',
-  FRESHNESS_20: 'assets/action-cards/freshness-20.svg',
-  BONUS_100K: 'assets/action-cards/bonus-100k.svg',
-  STAR_PLAYER: 'assets/action-cards/star-player.svg',
-  MOTIVATING_SPEECH: 'assets/action-cards/motivating-speech.svg'
-}
-
 export class ActionCards extends UIElement {
   /**
    * @returns {Promise<void>}
@@ -81,6 +71,7 @@ export class ActionCards extends UIElement {
   async load () {
     const response = await server.getActionCards()
     this.cards = response.actionCards
+    await preloadAllActionCardSvgs()
   }
 
   /**
@@ -140,11 +131,26 @@ export class ActionCards extends UIElement {
       }
     }
   }
+  onMounted () {
+    this._actionCardsChangedEventId = on(ACTION_CARDS_CHANGED_EVENT, (senderId) => {
+      if (senderId === this._renderId) return
+      void this.update(true)
+    })
+  }
+
+  onDestroy () {
+    if (this._actionCardsChangedEventId !== undefined) {
+      off(this._actionCardsChangedEventId)
+      this._actionCardsChangedEventId = undefined
+    }
+  }
+
   _miniGame = new MiniGame()
 
   _overlay = null
   _currentCardElement = null
   _processing = false
+  _actionCardsChangedEventId = undefined
   cards = []
 
   /**
@@ -167,8 +173,6 @@ export class ActionCards extends UIElement {
     return sortedTypes.map(actionType => {
       const cards = grouped[actionType]
       const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && cards.length > 1
-      const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
-      const cardText = getActionCardTexts()[actionType] || { title: 'Unknown Card' }
       const firstCardIdx = cards[0].idx
       const stackOffset = Math.min(cards.length - 1, 4)
 
@@ -177,7 +181,7 @@ export class ActionCards extends UIElement {
           <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
             ${cards.slice(0, 5).map((_, i) => `
               <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-                <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
+                ${renderActionCardSvg(actionType)}
               </div>
             `).join('')}
             ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
@@ -278,6 +282,7 @@ export class ActionCards extends UIElement {
     }
 
     this._currentCardElement = null
+    fire(ACTION_CARDS_CHANGED_EVENT, this._renderId)
   }
 
   /**
@@ -350,6 +355,7 @@ export class ActionCards extends UIElement {
     this._updateAllStackIndices()
 
     this._currentCardElement = null
+    fire(ACTION_CARDS_CHANGED_EVENT, this._renderId)
   }
 
   /**
@@ -367,8 +373,6 @@ export class ActionCards extends UIElement {
     const existingStack = container.querySelector(`.action-card-stack[data-action-type="${actionType}"]`)
 
     const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && cardsOfType.length > 1
-    const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
-    const cardText = getActionCardTexts()[actionType] || { title: 'Unknown Card' }
     const firstCardIdx = this.cards.findIndex(c => c.action === actionType)
     const stackOffset = Math.min(cardsOfType.length - 1, 4)
 
@@ -380,7 +384,7 @@ export class ActionCards extends UIElement {
       // Rebuild card wrappers
       const wrappersHtml = cardsOfType.slice(0, 5).map((_, i) => `
         <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-          <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
+          ${renderActionCardSvg(actionType)}
         </div>
       `).join('')
 
@@ -395,7 +399,7 @@ export class ActionCards extends UIElement {
           <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
             ${cardsOfType.slice(0, 5).map((_, i) => `
               <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-                <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
+                ${renderActionCardSvg(actionType)}
               </div>
             `).join('')}
             ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
@@ -414,14 +418,12 @@ export class ActionCards extends UIElement {
    * @param {number} count
    */
   _rebuildStackVisuals (stackEl, actionType, count) {
-    const imageSrc = ACTION_CARD_IMAGES[actionType] || 'assets/action-cards/level-up-player-4.svg'
-    const cardText = getActionCardTexts()[actionType] || { title: 'Unknown Card' }
     const stackOffset = Math.min(count - 1, 4)
     const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && count > 1
 
     const wrappersHtml = Array.from({ length: Math.min(count, 5) }, (_, i) => `
       <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-        <img class="action-card-image" src="${imageSrc}" alt="${cardText.title}">
+        ${renderActionCardSvg(actionType)}
       </div>
     `).join('')
 

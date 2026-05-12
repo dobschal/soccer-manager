@@ -134,20 +134,3 @@
     max-height: 300px;
     overflow-y: auto;
 }
-
-/* Description editor */
-.description-editor {
-    border: 1px solid #555;
-    border-radius: 4px;
-    padding: 12px;
-    min-height: 150px;
-    max-height: 300px;
-    overflow-y: auto;
-    background: #2a2a2e;
-    color: #fff;
-    outline: none;
-}
-
-.description-editor:focus {
-    border-color: #0dcaf0;
-}

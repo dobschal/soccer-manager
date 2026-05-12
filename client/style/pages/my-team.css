@@ -102,6 +102,25 @@
     width: calc(100% + 2rem);
 }
 
+/* Coach Avatar */
+.coach-avatar {
+    display: flex;
+    justify-content: center;
+}
+
+.coach-avatar__img {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.coach-avatar__img--default {
+    object-fit: cover;
+    opacity: 0.7;
+}
+
 /* Stadium Modal */
 .stadium-modal-container {
     min-height: 300px;

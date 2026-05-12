@@ -1,21 +1,8 @@
 import { generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
-import { delay } from '../lib/delay.js'
 import { t } from '../i18n/index.js'
-
-const ACTION_CARD_IMAGES = {
-  LEVEL_UP_PLAYER_100: 'assets/action-cards/level-up-player-10.svg',
-  LEVEL_UP_PLAYER_70: 'assets/action-cards/level-up-player-7.svg',
-  LEVEL_UP_PLAYER_40: 'assets/action-cards/level-up-player-4.svg',
-  CHANGE_PLAYER_POSITION: 'assets/action-cards/change-player-position.svg',
-  NEW_YOUTH_PLAYER: 'assets/action-cards/new-youth-player.svg',
-  FRESHNESS_5: 'assets/action-cards/freshness-5.svg',
-  FRESHNESS_10: 'assets/action-cards/freshness-10.svg',
-  FRESHNESS_20: 'assets/action-cards/freshness-20.svg',
-  BONUS_100K: 'assets/action-cards/bonus-100k.svg',
-  MOTIVATING_SPEECH: 'assets/action-cards/motivating-speech.svg'
-}
+import { preloadActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
 
 /**
  * @returns {Object.<string, string>}
@@ -41,11 +28,12 @@ function getActionCardTitles () {
  * @returns {Promise<void>}
  */
 export async function showCardClaimOverlay (pendingCards) {
+  await preloadActionCardSvgs(pendingCards.map(c => c.action))
   const state = { skipped: false }
   for (let i = 0; i < pendingCards.length; i++) {
     if (state.skipped) break
     const remainingCards = pendingCards.slice(i)
-    await _showSingleCardClaim(pendingCards[i], remainingCards, state)
+    await _showSingleCardClaim(pendingCards[i], remainingCards, state, { autoReveal: i > 0 })
   }
 }
 
@@ -54,9 +42,10 @@ export async function showCardClaimOverlay (pendingCards) {
  * @param {Object} card - Pending action card
  * @param {Array} remainingCards - All remaining unclaimed cards (including current)
  * @param {{ skipped: boolean }} state - Shared state for skip signaling
+ * @param {{ autoReveal?: boolean }} options - If autoReveal is true, the card flips automatically without waiting for a click
  * @returns {Promise<void>}
  */
-function _showSingleCardClaim (card, remainingCards, state) {
+function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false } = {}) {
   return new Promise((resolve) => {
     const overlayId = generateId()
     const flipContainerId = generateId()
@@ -64,8 +53,8 @@ function _showSingleCardClaim (card, remainingCards, state) {
     const titleId = generateId()
     const skipBtnId = generateId()
 
-    const cardImage = ACTION_CARD_IMAGES[card.action] || 'assets/action-cards/level-up-player-4.svg'
     const cardTitle = getActionCardTitles()[card.action] || 'Action Card'
+    const cardSvg = renderActionCardSvg(card.action)
 
     const html = `
       <div id="${overlayId}" class="card-claim-overlay">
@@ -75,70 +64,40 @@ function _showSingleCardClaim (card, remainingCards, state) {
               <img src="assets/action-cards/card-back.svg" alt="Card back">
             </div>
             <div class="card-claim-back">
-              <img src="${cardImage}" alt="${cardTitle}">
+              ${cardSvg}
             </div>
           </div>
         </div>
-        <div id="${hintId}" class="card-claim-hint">${t('actionCards.claim.tapToReveal')}</div>
+        <div id="${hintId}" class="card-claim-hint">${t(autoReveal ? 'actionCards.claim.tapToContinue' : 'actionCards.claim.tapToReveal')}</div>
         <div id="${titleId}" class="card-claim-title card-claim-title--hidden">${cardTitle}</div>
-        <button id="${skipBtnId}" class="card-claim-skip-btn">${t('actionCards.claim.skip')}</button>
+        <button id="${skipBtnId}" class="btn btn-secondary card-claim-skip-btn">${t('actionCards.claim.skip')}</button>
       </div>
     `
 
     document.body.insertAdjacentHTML('beforeend', html)
 
-    let claimed = false
+    let revealed = false
+    let dismissed = false
 
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape' && !claimed) {
-        document.removeEventListener('keydown', onKeyDown)
-        claimed = true
-        state.skipped = true
-        Promise.all(remainingCards.map(c =>
-          server.claimActionCard(c.id).catch(err => console.error('Failed to claim card:', err))
-        )).then(() => {
-          const overlay = document.getElementById(overlayId)
-          if (overlay) overlay.remove()
-          resolve()
-        })
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-
-    onClick('#' + skipBtnId, async () => {
-      if (claimed) return
-      claimed = true
-      state.skipped = true
-
-      // Claim all remaining cards at once
-      await Promise.all(remainingCards.map(c =>
-        server.claimActionCard(c.id).catch(e => console.error('Failed to claim card:', e))
-      ))
-
-      const overlay = document.getElementById(overlayId)
-      if (overlay) overlay.remove()
-      resolve()
-    })
-
-    onClick('#' + flipContainerId, async () => {
-      if (claimed) return
-      claimed = true
-
-      try {
-        await server.claimActionCard(card.id)
-      } catch (e) {
-        console.error('Failed to claim card:', e)
-      }
+    const reveal = () => {
+      if (revealed || dismissed) return
+      revealed = true
 
       const container = document.getElementById(flipContainerId)
       const hint = document.getElementById(hintId)
       const title = document.getElementById(titleId)
 
       if (container) container.classList.add('flipped')
-      if (hint) hint.classList.add('hidden')
       if (title) title.classList.remove('card-claim-title--hidden')
+      if (hint) hint.textContent = t('actionCards.claim.tapToContinue')
 
-      await delay(2000)
+      server.claimActionCard(card.id).catch(e => console.error('Failed to claim card:', e))
+    }
+
+    const dismiss = () => {
+      if (dismissed) return
+      dismissed = true
+      document.removeEventListener('keydown', onKeyDown)
 
       const overlay = document.getElementById(overlayId)
       if (overlay) {
@@ -150,6 +109,41 @@ function _showSingleCardClaim (card, remainingCards, state) {
       } else {
         resolve()
       }
+    }
+
+    const skip = async () => {
+      if (dismissed) return
+      dismissed = true
+      state.skipped = true
+      document.removeEventListener('keydown', onKeyDown)
+
+      await Promise.all(remainingCards.map(c =>
+        server.claimActionCard(c.id).catch(e => console.error('Failed to claim card:', e))
+      ))
+
+      const overlay = document.getElementById(overlayId)
+      if (overlay) overlay.remove()
+      resolve()
+    }
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') skip()
+    }
+    document.addEventListener('keydown', onKeyDown)
+
+    onClick('#' + skipBtnId, () => skip())
+
+    onClick('#' + flipContainerId, () => {
+      if (!revealed) {
+        reveal()
+      } else {
+        dismiss()
+      }
     })
+
+    if (autoReveal) {
+      // Defer until inserted node is laid out so the flip transition plays
+      requestAnimationFrame(() => requestAnimationFrame(() => reveal()))
+    }
   })
 }

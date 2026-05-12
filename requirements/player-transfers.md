@@ -17,12 +17,27 @@ Das Transfersystem ermoeglicht den Kauf und Verkauf von Spielern zwischen Teams 
 
 ## Marktwert-Berechnung
 
+Auf der Marktwerte-Seite werden zwei Quellen kombiniert:
+
+1. **Durchschnitt aus echten Transfers** (in der Tabelle schwarz dargestellt):
+   `getTransferStats(position)` liest alle Eintraege aus `trade_history` fuer die gewaehlte Position,
+   gruppiert sie nach `level:alter` und bildet den arithmetischen Mittelwert
+   (`SUM(price) / COUNT(*)`). Es gibt keine Gewichtung nach Saison/Aktualitaet und keine
+   Ausreisser-Bereinigung. Das Alter wird zum Transferzeitpunkt rekonstruiert via
+   `trade.season - player.carrier_start_season + 16`. Position-Filter erfolgt auf der **aktuellen**
+   Position des Spielers; ein spaeterer Positionswechsel verschiebt den Trade in die neue Spalte.
+
+2. **Schaetzung** (in der Tabelle grau dargestellt), wenn keine Transferdaten vorliegen, via
+   `calculateMarketValue(level, age)`:
+
 ```
-calculateMarketValue(level, age)
-  Basis: 40.000.000 Euro (Level 100, Alter 22)
-  Altersfaktor: x0.75 pro Jahr ueber 22
-  Levelfaktor: x0.9330 pro Level unter 100 (halbiert sich ca. alle 10 Level)
+Basis: 40.000.000 Euro (Level 100, Alter 22)
+Altersfaktor: x0.75 pro Jahr ueber 22 (Alter <= 22 hat keinen Effekt)
+Levelfaktor: x0.9330 pro Level unter 100 (halbiert sich ca. alle 10 Level)
 ```
+
+Wichtig: Die Schaetzung beruecksichtigt die **Position nicht** — ein Torwart auf Level 50/Alter 22
+wird mit denselben 1,25 M Euro geschaetzt wie ein Stuermer.
 
 ## Technische Anforderungen
 
@@ -75,7 +90,7 @@ calculateMarketValue(level, age)
 
 - **TA-TRF-18**: Trades-Seite mit 6 Tabs: Transfermarkt, Eingehende Angebote, Meine Angebote, Transfer-Historie, Freie Spieler, Marktwerte.
 - **TA-TRF-19**: Transfermarkt mit Filtern (Position, Alter 16-40, Level 1-100) und Paginierung (20/Seite).
-- **TA-TRF-20**: Marktwerte-Matrix mit Farbcodierung: Gruen = unterbewertet (<80%), Gelb = fair (80-120%), Rot = ueberbewertet (>120%).
+- **TA-TRF-20**: Marktwerte-Matrix unterscheidet Zellen mit echten Transferdaten (schwarze Schrift, Durchschnitt aus `trade_history`) und Zellen ohne Daten (graue Schrift, `calculateMarketValue`-Schaetzung).
 - **TA-TRF-21**: WebSocket-Events: `BUY_OFFER_ACCEPTED`, `BUY_OFFER_REJECTED` fuer Echtzeit-Updates.
 
 ### Tests

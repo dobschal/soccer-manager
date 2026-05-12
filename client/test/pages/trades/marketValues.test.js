@@ -30,7 +30,8 @@ vi.mock('../../../lib/currency.js', () => ({
   }
 }))
 
-import { MarketValuesPage, calculateMarketValue, getCellColor } from '../../../pages/trades/marketValues.js'
+import { MarketValuesPage } from '../../../pages/trades/marketValues.js'
+import { calculateMarketValue } from '../../../util/player.js'
 
 describe('MarketValuesPage', () => {
   beforeEach(() => {
@@ -238,27 +239,4 @@ describe('MarketValuesPage', () => {
     })
   })
 
-  describe('getCellColor', () => {
-    it('returns green when avgPrice < 80% of estimate', () => {
-      expect(getCellColor(700, 1000)).toBe('background: #d1e7dd')
-    })
-
-    it('returns red when avgPrice > 120% of estimate', () => {
-      expect(getCellColor(1300, 1000)).toBe('background: #f8d7da')
-    })
-
-    it('returns yellow when avgPrice is within 80-120% of estimate', () => {
-      expect(getCellColor(1000, 1000)).toBe('background: #fff3cd')
-      expect(getCellColor(800, 1000)).toBe('background: #fff3cd')
-      expect(getCellColor(1200, 1000)).toBe('background: #fff3cd')
-    })
-
-    it('returns green at boundary (avgPrice exactly 79.9% of estimate)', () => {
-      expect(getCellColor(799, 1000)).toBe('background: #d1e7dd')
-    })
-
-    it('returns red at boundary (avgPrice exactly 120.1% of estimate)', () => {
-      expect(getCellColor(1201, 1000)).toBe('background: #f8d7da')
-    })
-  })
 })

@@ -2,6 +2,10 @@ import { config } from '../config.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { query, transaction } from '../lib/database.js'
 import jwt from 'jsonwebtoken'
+import fs from 'fs'
+import path from 'path'
+import crypto from 'crypto'
+import sharp from 'sharp'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
 import { prepareSeason, regenerateTeamData } from '../prepare-season.js'
@@ -11,6 +15,11 @@ import { clearUserCache } from '../lib/userCache.js'
 import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
+
+const AVATAR_UPLOAD_DIR = 'uploads/avatars'
+const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const AVATAR_MAX_INPUT_SIZE = 5 * 1024 * 1024 // 5MB raw upload limit
+const AVATAR_SIZE_PX = 256
 
 export default {
 
@@ -179,6 +188,82 @@ export default {
       throw new BadRequestError(t('error.invalidLanguage', {}, locale))
     }
     await query('UPDATE user SET language=? WHERE id=?', [language, req.user.id])
+    clearUserCache(req.user.id)
+    return { success: true }
+  },
+
+  /**
+   * Upload a profile picture for the current user. The image is cropped
+   * to a centered square and resized to AVATAR_SIZE_PX before being
+   * persisted under uploads/avatars/.
+   * @param {string} data - base64 data URL (e.g. "data:image/png;base64,…")
+   * @param {string} type - MIME type, e.g. "image/png"
+   * @param {Request} req
+   * @returns {Promise<{ avatar: string }>}
+   */
+  async uploadAvatar (data, type, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    if (!data || typeof data !== 'string') {
+      throw new BadRequestError('Invalid image data')
+    }
+    if (!AVATAR_ALLOWED_TYPES.includes(type)) {
+      throw new BadRequestError('Invalid image type')
+    }
+    const base64Data = data.replace(/^data:[^;]+;base64,/, '')
+    const buffer = Buffer.from(base64Data, 'base64')
+    if (buffer.length === 0 || buffer.length > AVATAR_MAX_INPUT_SIZE) {
+      throw new BadRequestError('Image too large')
+    }
+
+    fs.mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true })
+    const filename = `${crypto.randomUUID()}.jpg`
+    const filePath = path.join(AVATAR_UPLOAD_DIR, filename)
+
+    const meta = await sharp(buffer).metadata()
+    const size = Math.min(meta.width || AVATAR_SIZE_PX, meta.height || AVATAR_SIZE_PX)
+    const left = Math.floor(((meta.width || size) - size) / 2)
+    const top = Math.floor(((meta.height || size) - size) / 2)
+    await sharp(buffer)
+      .extract({ left, top, width: size, height: size })
+      .resize(AVATAR_SIZE_PX, AVATAR_SIZE_PX)
+      .jpeg({ quality: 88 })
+      .toFile(filePath)
+
+    const [existing] = await query('SELECT avatar FROM user WHERE id=?', [req.user.id])
+    await query('UPDATE user SET avatar=? WHERE id=?', [filename, req.user.id])
+    clearUserCache(req.user.id)
+
+    if (existing?.avatar) {
+      const oldPath = path.join(AVATAR_UPLOAD_DIR, existing.avatar)
+      if (fs.existsSync(oldPath)) {
+        try { fs.unlinkSync(oldPath) } catch (e) { console.warn('Could not remove old avatar:', e.message) }
+      }
+    }
+
+    return { avatar: filename }
+  },
+
+  /**
+   * Remove the current user's profile picture.
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async removeAvatar (req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    const [existing] = await query('SELECT avatar FROM user WHERE id=?', [req.user.id])
+    if (existing?.avatar) {
+      const oldPath = path.join(AVATAR_UPLOAD_DIR, existing.avatar)
+      if (fs.existsSync(oldPath)) {
+        try { fs.unlinkSync(oldPath) } catch (e) { console.warn('Could not remove avatar:', e.message) }
+      }
+    }
+    await query('UPDATE user SET avatar=NULL WHERE id=?', [req.user.id])
     clearUserCache(req.user.id)
     return { success: true }
   },

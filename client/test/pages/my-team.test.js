@@ -8,9 +8,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getCurrentGameday: vi.fn(),
     updatePassStyle: vi.fn(),
     updatePlayStyle: vi.fn(),
-    updateEmblem: vi.fn(),
-    updateTeamName: vi.fn(),
-    getNameLibrary: vi.fn()
+    saveLineup: vi.fn().mockResolvedValue({ success: true, captainCleared: false }),
+    saveBench: vi.fn().mockResolvedValue({ success: true })
   },
   showServerError: vi.fn()
 }))
@@ -26,10 +25,6 @@ vi.mock('../../partials/lineup.js', () => ({
 vi.mock('../../util/formation.js', () => ({
   Formation: { '4-4-2': '4-4-2', '4-3-3': '4-3-3' },
   getPositionsOfFormation: vi.fn(() => ['GK', 'LD', 'CD', 'CD', 'RD', 'LM', 'CM', 'CM', 'RM', 'CA', 'CA'])
-}))
-
-vi.mock('../../partials/emblem.js', () => ({
-  renderEmblem: vi.fn(() => '<svg class="emblem-mock"></svg>')
 }))
 
 vi.mock('../../partials/playerList.js', () => ({
@@ -186,10 +181,24 @@ describe('MyTeamPage', () => {
   })
 
   describe('formation change', () => {
-    it('changes formation and resets player positions', async () => {
+    it('changes formation and auto-fills the lineup with suitable players', async () => {
       const team = testData.team({ formation: '4-4-2' })
+      // Roster with one matching player for each slot in the mocked formation
+      // ['GK', 'LD', 'CD', 'CD', 'RD', 'LM', 'CM', 'CM', 'RM', 'CA', 'CA']
       const players = [
-        testData.player({ id: 1, in_game_position: 'CM', fake: false })
+        testData.player({ id: 1, position: 'GK', in_game_position: 'GK' }),
+        testData.player({ id: 2, position: 'LD', in_game_position: '' }),
+        testData.player({ id: 3, position: 'CD', in_game_position: '' }),
+        testData.player({ id: 4, position: 'CD', in_game_position: '' }),
+        testData.player({ id: 5, position: 'RD', in_game_position: '' }),
+        testData.player({ id: 6, position: 'LM', in_game_position: '' }),
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM' }),
+        testData.player({ id: 8, position: 'CM', in_game_position: '' }),
+        testData.player({ id: 9, position: 'RM', in_game_position: '' }),
+        testData.player({ id: 10, position: 'CA', in_game_position: '', level: 80, freshness: 0.9 }),
+        testData.player({ id: 11, position: 'CA', in_game_position: '', level: 40, freshness: 0.9 }),
+        // Lower-level CA backup should NOT be picked when better ones are available
+        testData.player({ id: 12, position: 'CA', in_game_position: '', level: 10, freshness: 0.9 })
       ]
 
       server.getMyTeam.mockResolvedValue({ team, players })
@@ -198,22 +207,77 @@ describe('MyTeamPage', () => {
       const page = new MyTeamPage()
       await page.load()
       void page.template // ensure ATeamPage is created
-      page._subPageCache.ateam._changeFormation('4-3-3')
+      await page._subPageCache.ateam._changeFormation('4-3-3')
 
       expect(page.data.team.formation).toBe('4-3-3')
-      // Real players should have position cleared
-      const realPlayer = page.data.players.find(p => p.id === 1)
-      expect(realPlayer.in_game_position).toBe('')
+      const realPlayers = page.data.players.filter(p => !p.fake)
+      // Each formation slot got filled (no fake placeholders) since enough players exist
+      const lineup = realPlayers.filter(p => p.in_game_position).map(p => p.id).sort((a, b) => a - b)
+      expect(lineup).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+      // Highest-level CAs were preferred
+      expect(realPlayers.find(p => p.id === 10).in_game_position).toBe('CA')
+      expect(realPlayers.find(p => p.id === 11).in_game_position).toBe('CA')
+      expect(realPlayers.find(p => p.id === 12).in_game_position).toBe('')
+      // Lineup got persisted
+      expect(server.saveLineup).toHaveBeenCalledTimes(1)
+      const [savedPlayers, savedFormation] = server.saveLineup.mock.calls[0]
+      expect(savedFormation).toBe('4-3-3')
+      expect(savedPlayers).toEqual(realPlayers)
+    })
+
+    it('skips suspended and injured players and leaves an empty slot when no suitable player exists', async () => {
+      const team = testData.team({ formation: '4-4-2' })
+      const players = [
+        testData.player({ id: 1, position: 'GK', is_suspended: true }),
+        testData.player({ id: 2, position: 'LD' }),
+        testData.player({ id: 3, position: 'CD' }),
+        testData.player({ id: 4, position: 'CD', is_injured: true })
+      ]
+
+      server.getMyTeam.mockResolvedValue({ team, players })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+      const page = new MyTeamPage()
+      await page.load()
+      void page.template
+      await page._subPageCache.ateam._changeFormation('4-3-3')
+
+      const real = page.data.players.filter(p => !p.fake)
+      // Suspended GK and injured CD never get a lineup slot
+      expect(real.find(p => p.id === 1).in_game_position).toBe('')
+      expect(real.find(p => p.id === 4).in_game_position).toBe('')
+      // GK position remains unfilled and is represented by a fake placeholder
+      const fakes = page.data.players.filter(p => p.fake)
+      expect(fakes.some(f => f.in_game_position === 'GK')).toBe(true)
+      expect(fakes.some(f => f.in_game_position === 'CD')).toBe(true)
+    })
+
+    it('moves a player off the bench when they are auto-filled into the lineup', async () => {
+      const team = testData.team({ formation: '4-4-2' })
+      const players = [
+        testData.player({ id: 1, position: 'GK', bench_position: 'BENCH_GK' })
+      ]
+
+      server.getMyTeam.mockResolvedValue({ team, players })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+      const page = new MyTeamPage()
+      await page.load()
+      void page.template
+      await page._subPageCache.ateam._changeFormation('4-3-3')
+
+      const benchPlayer = page.data.players.find(p => p.id === 1)
+      expect(benchPlayer.in_game_position).toBe('GK')
+      expect(benchPlayer.bench_position).toBeNull()
+      // saveBench reflects the cleared bench
+      expect(server.saveBench).toHaveBeenCalledWith([])
     })
   })
 
-  describe('header rendering', () => {
-    it('calculates total salary', async () => {
+  describe('tactic section', () => {
+    it('renders the tactic header and selects below the bench', async () => {
       const team = testData.team()
-      const players = [
-        testData.player({ level: 5, fake: false }),
-        testData.player({ level: 3, fake: false })
-      ]
+      const players = [testData.player()]
 
       server.getMyTeam.mockResolvedValue({ team, players })
       server.getCurrentGameday.mockResolvedValue({ season: 1 })
@@ -222,25 +286,16 @@ describe('MyTeamPage', () => {
       await page.load()
       void page.template // ensure ATeamPage is created
 
-      const html = page._subPageCache.ateam._renderHeader()
-      expect(html).toContain('myTeam.salaryTotal')
-    })
-
-    it('calculates average age', async () => {
-      const team = testData.team()
-      const players = [
-        testData.player({ birth_season: 0, fake: false })
-      ]
-
-      server.getMyTeam.mockResolvedValue({ team, players })
-      server.getCurrentGameday.mockResolvedValue({ season: 5 })
-
-      const page = new MyTeamPage()
-      await page.load()
-      void page.template // ensure ATeamPage is created
-
-      const html = page._subPageCache.ateam._renderHeader()
-      expect(html).toContain('myTeam.avgAge')
+      const html = page._subPageCache.ateam.template
+      const benchIdx = html.indexOf('myTeam.bench')
+      const tacticIdx = html.indexOf('myTeam.tactic')
+      expect(benchIdx).toBeGreaterThan(-1)
+      expect(tacticIdx).toBeGreaterThan(benchIdx)
+      expect(html).toContain('lineup-select')
+      expect(html).toContain('pass-style-select')
+      expect(html).toContain('play-style-select')
+      expect(html).toContain('attack-mode-select')
+      expect(html).toContain('captain-select')
     })
   })
 

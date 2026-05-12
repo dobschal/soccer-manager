@@ -4,18 +4,6 @@ import { Position } from '../../util/formation.js'
 import { t } from '../../i18n/index.js'
 import { server } from '../../lib/gateway.js'
 import { calculateMarketValue } from '../../util/player.js'
-export { calculateMarketValue }
-
-/**
- * @param {number} avgPrice
- * @param {number} estimate
- * @returns {string}
- */
-export function getCellColor (avgPrice, estimate) {
-  if (avgPrice < estimate * 0.8) return 'background: #d1e7dd'
-  if (avgPrice > estimate * 1.2) return 'background: #f8d7da'
-  return 'background: #fff3cd'
-}
 
 export class MarketValuesPage extends UIElement {
   async load () {
