@@ -112,7 +112,7 @@ export class LeagueResultsPage extends UIElement {
         </div>
 
         <h3>${t('results.games')}</h3>
-        ${this.results.length > 0 && this.results[0].created_at
+        ${this.results.length > 0 && this.results[0].created_at && typeof this.results[0].goalsTeam1 === 'number' && typeof this.results[0].goalsTeam2 === 'number'
     ? `<p class="text-muted">${t('results.gamesPlayedAt', { date: new Date(this.results[0].created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) })}</p>`
     : ''}
         ${this.results.length === 0 && this.isCupGameDay
