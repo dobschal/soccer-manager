@@ -10,7 +10,6 @@ export default {
   'nav.run': 'Run',
   'nav.running': 'Running...',
   'nav.settings': 'Settings',
-  'nav.restDay': 'Rest Day',
   'nav.language': 'Language',
   'nav.search': 'Search',
   'nav.account': 'Account',

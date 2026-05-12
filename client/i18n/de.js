@@ -10,7 +10,6 @@ export default {
   'nav.run': 'Start',
   'nav.running': 'Läuft...',
   'nav.settings': 'Einstellungen',
-  'nav.restDay': 'Spielfrei',
   'nav.language': 'Sprache',
   'nav.search': 'Suche',
   'nav.account': 'Konto',

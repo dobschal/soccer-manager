@@ -7,14 +7,14 @@ import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper
 import { CACHE_NAMESPACES, cacheKey, getCached } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
 import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
+import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
 
 export default {
 
   /**
-   * Returns the date of the team's next game. If the team has no game on the
-   * immediate next game tick (e.g. cup day and team is eliminated), isRestDay is true.
+   * Returns the date of the team's next game.
    * @param {Request} [req]
-   * @returns {Promise<{date: Date, isRestDay: boolean}>}
+   * @returns {Promise<{date: Date}>}
    */
   async getNextGameDate (req) {
     const nextTick = new Date()
@@ -27,7 +27,7 @@ export default {
       nextTick.setSeconds(59)
     }
 
-    if (!req?.user) return { date: nextTick, isRestDay: false }
+    if (!req?.user) return { date: nextTick }
 
     try {
       const team = await getTeam(req)
@@ -38,13 +38,13 @@ export default {
         [season, team.id, team.id]
       )
 
-      if (!nextGame) return { date: nextTick, isRestDay: false }
+      if (!nextGame) return { date: nextTick }
 
       const dayOffset = nextGame.game_day - currentGameDay
       const nextGameDate = new Date(nextTick.getTime() + dayOffset * 12 * 60 * 60 * 1000)
-      return { date: nextGameDate, isRestDay: dayOffset > 0 }
+      return { date: nextGameDate }
     } catch {
-      return { date: nextTick, isRestDay: false }
+      return { date: nextTick }
     }
   },
 
@@ -135,9 +135,17 @@ export default {
   },
 
   /**
-   * @returns {Promise<{season: number, gameDay: number, lastPlayedLeagueMatchDay?: number, lastPlayedLeagueSeason?: number}>}
+   * @returns {Promise<{
+   *   season: number,
+   *   gameDay: number,
+   *   lastPlayedLeagueMatchDay?: number,
+   *   lastPlayedLeagueSeason?: number,
+   *   cupRoundToday: {cupRound: number, totalRounds: number}|null,
+   *   userMatchDayToday: number|null,
+   *   userNextMatchDay: number|null
+   * }>}
    */
-  async getCurrentGameday () {
+  async getCurrentGameday (req) {
     const current = await getGameDayAndSeason()
     // Find the last played league game (for results page default)
     const [lastPlayed] = await query(
@@ -147,6 +155,41 @@ export default {
       current.lastPlayedLeagueMatchDay = lastPlayed.match_day
       current.lastPlayedLeagueSeason = lastPlayed.season
     }
+
+    // Is a cup round scheduled on the current internal game day?
+    const [cupToday] = await query(
+      "SELECT cup_round FROM game WHERE game_type='cup' AND season=? AND game_day=? LIMIT 1",
+      [current.season, current.gameDay]
+    )
+    if (cupToday) {
+      const totalRounds = await getTotalRoundsForSeason(current.season)
+      current.cupRoundToday = { cupRound: cupToday.cup_round, totalRounds }
+    } else {
+      current.cupRoundToday = null
+    }
+
+    // Per-user league match day for today, plus their next upcoming match day
+    current.userMatchDayToday = null
+    current.userNextMatchDay = null
+    if (req?.user) {
+      try {
+        const team = await getTeam(req)
+        const [todayRow] = await query(
+          "SELECT match_day FROM game WHERE (game_type='league' OR game_type IS NULL) AND season=? AND level=? AND league=? AND game_day=? LIMIT 1",
+          [current.season, team.level, team.league, current.gameDay]
+        )
+        if (todayRow) current.userMatchDayToday = todayRow.match_day
+
+        const [nextRow] = await query(
+          "SELECT match_day FROM game WHERE (game_type='league' OR game_type IS NULL) AND season=? AND level=? AND league=? AND played=0 ORDER BY game_day ASC LIMIT 1",
+          [current.season, team.level, team.league]
+        )
+        if (nextRow) current.userNextMatchDay = nextRow.match_day
+      } catch {
+        // Unauthorised / no team: leave fields null
+      }
+    }
+
     return current
   },
 

@@ -22,11 +22,16 @@ vi.mock('../../helper/standingHelper.js', () => ({
   saveStandingToCache: vi.fn()
 }))
 
+vi.mock('../../helper/cupHelper.js', () => ({
+  getTotalRoundsForSeason: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { calculateStanding } from '../../lib/util.js'
 import { getCachedStanding, saveStandingToCache } from '../../helper/standingHelper.js'
+import { getTotalRoundsForSeason } from '../../helper/cupHelper.js'
 import { clearAllCache } from '../../lib/cache.js'
 import handlers from '../../routes/results.js'
 
@@ -208,23 +213,78 @@ describe('results routes', () => {
   })
 
   describe('getCurrentGameday', () => {
-    it('returns current game day and season', async () => {
+    it('returns current game day and season with null label fields when no user', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
-      query.mockResolvedValueOnce([])
+      query
+        .mockResolvedValueOnce([])  // last played
+        .mockResolvedValueOnce([])  // cup today
 
       const result = await handlers.getCurrentGameday()
 
-      expect(result).toEqual({ gameDay: 5, season: 1 })
+      expect(result).toEqual({
+        gameDay: 5,
+        season: 1,
+        cupRoundToday: null,
+        userMatchDayToday: null,
+        userNextMatchDay: null
+      })
     })
 
     it('includes lastPlayedLeagueMatchDay when a league game has been played', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 6, season: 1 })
-      query.mockResolvedValueOnce([{ game_day: 5, match_day: 4, season: 1 }])
+      query
+        .mockResolvedValueOnce([{ game_day: 5, match_day: 4, season: 1 }])  // last played
+        .mockResolvedValueOnce([])  // cup today
 
       const result = await handlers.getCurrentGameday()
 
       expect(result.lastPlayedLeagueMatchDay).toBe(4)
       expect(result.lastPlayedLeagueSeason).toBe(1)
+    })
+
+    it('returns cupRoundToday when a cup game is scheduled on the current game day', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 22, season: 4 })
+      query
+        .mockResolvedValueOnce([])                       // last played
+        .mockResolvedValueOnce([{ cup_round: 8 }])       // cup today
+      getTotalRoundsForSeason.mockResolvedValue(7)
+
+      const result = await handlers.getCurrentGameday()
+
+      expect(result.cupRoundToday).toEqual({ cupRound: 8, totalRounds: 7 })
+      expect(getTotalRoundsForSeason).toHaveBeenCalledWith(4)
+    })
+
+    it('returns userMatchDayToday when the user team has a league game on the current game day', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getTeam.mockResolvedValue(testData.team({ level: 1, league: 2 }))
+      query
+        .mockResolvedValueOnce([])                       // last played
+        .mockResolvedValueOnce([])                       // cup today
+        .mockResolvedValueOnce([{ match_day: 4 }])       // today's match day for user league
+        .mockResolvedValueOnce([{ match_day: 4 }])       // next upcoming match day
+
+      const req = createMockRequest()
+      const result = await handlers.getCurrentGameday(req)
+
+      expect(result.userMatchDayToday).toBe(4)
+      expect(result.userNextMatchDay).toBe(4)
+    })
+
+    it('returns userNextMatchDay only when the user team has no game today (rest day)', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 33, season: 4 })
+      getTeam.mockResolvedValue(testData.team({ level: 0, league: 0 }))
+      query
+        .mockResolvedValueOnce([])                       // last played
+        .mockResolvedValueOnce([])                       // cup today
+        .mockResolvedValueOnce([])                       // no league game today for user league
+        .mockResolvedValueOnce([{ match_day: 29 }])      // next upcoming match day
+
+      const req = createMockRequest()
+      const result = await handlers.getCurrentGameday(req)
+
+      expect(result.userMatchDayToday).toBeNull()
+      expect(result.userNextMatchDay).toBe(29)
     })
   })
 
