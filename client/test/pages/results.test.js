@@ -219,6 +219,37 @@ describe('ResultsPage', () => {
       expect(html).toContain('results.standing')
       expect(html).toContain('results.topScorer')
     })
+
+    it('shows played-at date only when games are actually played', async () => {
+      const team = testData.team()
+      const parentPage = { myTeamId: team.id, info: { team } }
+      const playedAt = '2026-04-24T14:00:00Z'
+
+      server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 1 })
+      server.getStanding.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+
+      // Upcoming match day: row exists (created_at from season prep) but no goals yet.
+      server.getResults.mockResolvedValue({
+        results: [
+          { id: 1, team1: 'Home', team2: 'Away', team1Id: 1, team2Id: 2, goalsTeam1: null, goalsTeam2: null, created_at: playedAt }
+        ]
+      })
+      const upcomingPage = new LeagueResultsPage(parentPage)
+      await upcomingPage.load()
+      expect(upcomingPage.template).not.toContain('results.gamesPlayedAt')
+
+      // Played match day: goals present → date is shown.
+      server.getResults.mockResolvedValue({
+        results: [
+          { id: 1, team1: 'Home', team2: 'Away', team1Id: 1, team2Id: 2, goalsTeam1: 1, goalsTeam2: 0, created_at: playedAt }
+        ]
+      })
+      const playedPage = new LeagueResultsPage(parentPage)
+      await playedPage.load()
+      expect(playedPage.template).toContain('results.gamesPlayedAt')
+    })
   })
 
   describe('filter selects', () => {
