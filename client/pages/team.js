@@ -313,7 +313,7 @@ export class TeamPage extends UIElement {
     const coachSince = this.team.created_at ? formatDate('DD.MM.YYYY', this.team.created_at) : '-'
     const avatarFilename = this.user?.avatar
     const avatarImg = avatarFilename
-      ? `<img class="coach-avatar__img" src="/uploads/avatars/${avatarFilename}" alt="${altText}">`
+      ? `<img class="coach-avatar__img" src="${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatarFilename}" alt="${altText}">`
       : `<img class="coach-avatar__img coach-avatar__img--default" src="/assets/avatar-placeholder.svg" alt="${altText}">`
 
     return `

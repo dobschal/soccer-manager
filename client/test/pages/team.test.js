@@ -202,6 +202,28 @@ describe('TeamPage', () => {
       expect(html).toContain('/uploads/avatars/foo.jpg')
     })
 
+    it('prefixes avatar URL with native server URL when running in native app', async () => {
+      const team = testData.team()
+      const players = [testData.player()]
+      const user = testData.user({ username: 'manager123', avatar: 'foo.jpg' })
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+
+      window.__NATIVE_SERVER_URL = 'https://footballmanager.io'
+      try {
+        const page = new TeamPage()
+        page.teamId = 1
+        await page.load()
+
+        const html = page._renderCoachCard()
+        expect(html).toContain('src="https://footballmanager.io/uploads/avatars/foo.jpg"')
+      } finally {
+        delete window.__NATIVE_SERVER_URL
+      }
+    })
+
     it('template contains team info', async () => {
       const team = testData.team({ name: 'Super FC' })
       const players = [testData.player()]

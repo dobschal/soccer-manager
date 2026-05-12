@@ -115,6 +115,25 @@ describe('ClubInfoPage', () => {
     expect(html).toContain('myTeam.removeAvatar')
   })
 
+  it('prefixes the avatar URL with the native server URL when running in the native app', async () => {
+    const team = testData.team()
+    const players = [testData.player({ fake: false })]
+    const user = testData.user({ username: 'CoachJoe', avatar: 'abc-123.jpg' })
+    server.getMyTeam.mockResolvedValue({ team, players, user })
+    server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+    window.__NATIVE_SERVER_URL = 'https://footballmanager.io'
+    try {
+      const page = new ClubInfoPage()
+      await page.load()
+
+      const html = page.template
+      expect(html).toContain('src="https://footballmanager.io/uploads/avatars/abc-123.jpg"')
+    } finally {
+      delete window.__NATIVE_SERVER_URL
+    }
+  })
+
   it('shows the default manager avatar when the user has no avatar', async () => {
     const team = testData.team()
     const players = [testData.player({ fake: false })]
