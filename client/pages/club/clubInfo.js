@@ -103,7 +103,7 @@ export class ClubInfoPage extends UIElement {
                 <div class="coach-avatar mb-3">
                   ${avatarFilename
     ? `<img class="coach-avatar__img" src="${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatarFilename}" alt="${coachName}">`
-    : `<img class="coach-avatar__img coach-avatar__img--default" src="/assets/avatar-placeholder.svg" alt="${coachName}">`}
+    : `<img class="coach-avatar__img coach-avatar__img--default" src="./assets/avatar-placeholder.svg" alt="${coachName}">`}
                 </div>
                 <input type="file" class="coach-avatar-input d-none" accept="image/jpeg,image/png,image/webp">
                 <div class="d-flex gap-2 flex-wrap justify-content-center mb-3">

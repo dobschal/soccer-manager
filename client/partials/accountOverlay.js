@@ -15,7 +15,7 @@ const MAX_AVATAR_SIZE = 5 * 1024 * 1024
  */
 function avatarSrc (avatar) {
   if (avatar) return `${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatar}`
-  return '/assets/avatar-placeholder.svg'
+  return './assets/avatar-placeholder.svg'
 }
 
 /**

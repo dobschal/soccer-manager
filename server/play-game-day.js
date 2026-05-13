@@ -23,6 +23,7 @@ import { cacheTeamStatsForGameDay } from './helper/teamStatsHelper.js'
 import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { CACHE_NAMESPACES, clearCacheByPrefix } from './lib/cache.js'
 import { progressCupRound, sendCupMatchLogMessages, validateAndProgressCupRounds } from './helper/cupHelper.js'
+import { recordCupWinnerForSeason, recordLeagueChampionsForSeason } from './helper/seasonTitleHelper.js'
 import { getPositionsOfFormation } from '../client/util/formation.js'
 import { kickoff, playGameStep } from './play-game.js'
 import { sendGameDayPushNotifications } from './helper/pushNotificationHelper.js'
@@ -62,6 +63,8 @@ export async function calculateGames ({ skipPushNotifications = false } = {}) {
   // Clear season results cache after games are played
   clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
   await cacheStandingsForGameDay(gameDay, season)
+  await recordLeagueChampionsForSeason(season)
+  await recordCupWinnerForSeason(season)
   await cachePlayerStatsForGameDay(gameDay, season)
   await cacheTeamStatsForGameDay(gameDay, season)
   await deleteExpiredPendingCards()
@@ -140,6 +143,13 @@ async function _playCupGame (game) {
   playerTeamB = await _trimExcessLineup(teamB, playerTeamB)
   playerTeamA = await _autoFillLineup(teamA, playerTeamA)
   playerTeamB = await _autoFillLineup(teamB, playerTeamB)
+
+  // If either side can't field anyone (e.g. inherited bot team emptied via
+  // transfers before a user took over), forfeit instead of crashing later
+  // in playGameStep. Cup needs a winner, so award 3:0 to the present team.
+  if (playerTeamA.length === 0 || playerTeamB.length === 0) {
+    return _forfeitGame(game, teamA, teamB, playerTeamA.length, playerTeamB.length, 'cup')
+  }
 
   // Remove lineup players from bench (they can't be in both)
   await _clearBenchForLineupPlayers(playerTeamA)
@@ -688,23 +698,21 @@ async function _autoFillLineup (team, lineupPlayers) {
 }
 
 /**
- * Trim lineup to match the formation's required positions.
- * If a team has more players with in_game_position than the formation allows,
- * remove extras by keeping players whose in_game_position matches a required slot.
+ * Trim lineup to match the formation's required positions. Any player whose
+ * in_game_position does not match an available slot (e.g. position is no
+ * longer in the formation, or the slot is already taken by another player)
+ * is removed from the lineup.
  * @param {TeamType} team
  * @param {PlayerType[]} lineupPlayers
  * @returns {Promise<PlayerType[]>}
  */
 async function _trimExcessLineup (team, lineupPlayers) {
   const requiredPositions = getPositionsOfFormation(team.formation)
-  if (!requiredPositions || lineupPlayers.length <= requiredPositions.length) return lineupPlayers
-
-  console.log(`Team ${team.name} has ${lineupPlayers.length} players in lineup but formation ${team.formation} needs ${requiredPositions.length} - trimming excess`)
+  if (!requiredPositions) return lineupPlayers
 
   const kept = []
   const remainingSlots = [...requiredPositions]
 
-  // First pass: keep players that match a required slot
   for (const player of lineupPlayers) {
     const idx = remainingSlots.indexOf(player.in_game_position)
     if (idx !== -1) {
@@ -713,7 +721,10 @@ async function _trimExcessLineup (team, lineupPlayers) {
     }
   }
 
-  // Remove in_game_position from players not kept
+  if (kept.length === lineupPlayers.length) return lineupPlayers
+
+  console.log(`Team ${team.name} had ${lineupPlayers.length - kept.length} mismatched lineup player(s) for formation ${team.formation} - trimming`)
+
   const keptIds = new Set(kept.map(p => p.id))
   for (const player of lineupPlayers) {
     if (!keptIds.has(player.id)) {
@@ -722,6 +733,30 @@ async function _trimExcessLineup (team, lineupPlayers) {
   }
 
   return kept
+}
+
+/**
+ * Persist a forfeit result: the side with no fielded players loses 0:3.
+ * If both sides are empty the game is recorded as 0:0 — cup logic will
+ * still pick a winner via the home-team fallback when needed.
+ * @param {GameType} game
+ * @param {TeamType} teamA
+ * @param {TeamType} teamB
+ * @param {number} fieldedA
+ * @param {number} fieldedB
+ * @param {'league'|'cup'} gameType
+ * @returns {Promise<void>}
+ */
+async function _forfeitGame (game, teamA, teamB, fieldedA, fieldedB, gameType) {
+  const aMissing = fieldedA === 0
+  const bMissing = fieldedB === 0
+  const goalsTeamA = !aMissing && bMissing ? 3 : 0
+  const goalsTeamB = aMissing && !bMissing ? 3 : 0
+  console.warn(`[FORFEIT] ${gameType} game ${game.id}: ${teamA?.name} (${fieldedA}) vs ${teamB?.name} (${fieldedB}) → ${goalsTeamA}:${goalsTeamB}`)
+  await query(
+    'UPDATE game SET played=1, is_forfeit=1, goals_team_1=?, goals_team_2=?, details=?, created_at=? WHERE id=?',
+    [goalsTeamA, goalsTeamB, '{}', new Date(), game.id]
+  )
 }
 
 /**
@@ -745,6 +780,14 @@ async function _playGame (game) {
   playerTeamB = await _trimExcessLineup(teamB, playerTeamB)
   playerTeamA = await _autoFillLineup(teamA, playerTeamA)
   playerTeamB = await _autoFillLineup(teamB, playerTeamB)
+
+  // If either side can't field anyone (e.g. inherited bot team emptied via
+  // transfers before a user took over), forfeit 3:0 to the present team
+  // instead of crashing later in playGameStep. A stuck game blocks the cron
+  // because getGameDayAndSeason() keeps returning the same game_day.
+  if (playerTeamA.length === 0 || playerTeamB.length === 0) {
+    return _forfeitGame(game, teamA, teamB, playerTeamA.length, playerTeamB.length, 'league')
+  }
 
   // Remove lineup players from bench (they can't be in both)
   await _clearBenchForLineupPlayers(playerTeamA)

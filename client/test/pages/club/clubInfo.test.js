@@ -145,7 +145,7 @@ describe('ClubInfoPage', () => {
     await page.load()
 
     const html = page.template
-    expect(html).toContain('/assets/avatar-placeholder.svg')
+    expect(html).toContain('./assets/avatar-placeholder.svg')
     expect(html).toContain('coach-avatar__img--default')
     expect(html).not.toContain('myTeam.removeAvatar')
   })

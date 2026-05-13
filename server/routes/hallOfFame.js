@@ -5,7 +5,10 @@ import { maskBadWords } from '../lib/badWordsFilter.js'
 export default {
 
   /**
-   * Get hall of fame data for a season: league champions (all levels) and cup winner
+   * Get hall of fame data for a season: league champions (all levels) and cup winner.
+   * Titles are read from the season_title table, which freezes user_id at the
+   * moment of victory so that a later bot takeover does not retroactively
+   * credit a new owner with historic trophies.
    * @param {number} season
    * @param {Request} req
    * @returns {Promise<{season: number, seasons: number[], champions: object[], cupWinner: object|null}>}
@@ -13,18 +16,10 @@ export default {
   async getHallOfFame (season, req) {
     if (!req.user) throw new UnauthorizedError('Not authorized')
 
-    // Get all completed seasons (seasons where all league games are played)
-    const completedSeasons = await query(`
-      SELECT DISTINCT s.season FROM (
-        SELECT season FROM game
-        WHERE (game_type = 'league' OR game_type IS NULL)
-          AND level = 1
-        GROUP BY season
-        HAVING COUNT(*) = SUM(played)
-      ) s
-      ORDER BY s.season DESC
-    `)
-    const seasons = completedSeasons.map(s => s.season)
+    const seasonRows = await query(
+      'SELECT DISTINCT season FROM season_title ORDER BY season DESC'
+    )
+    const seasons = seasonRows.map(s => s.season)
 
     if (seasons.length === 0) {
       return { season: null, seasons: [], champions: [], cupWinner: null }
@@ -32,75 +27,40 @@ export default {
 
     const actualSeason = season ?? seasons[0]
 
-    // Get all level+league combinations that have standings for this season
-    const levelLeagues = await query(
-      'SELECT DISTINCT level, league FROM standing_cache WHERE season = ? ORDER BY level ASC, league ASC',
-      [actualSeason]
-    )
-
-    // Get champion for each level+league
-    const champions = []
-    for (const { level, league } of levelLeagues) {
-      const [lastGameDay] = await query(
-        'SELECT MAX(game_day) as maxDay FROM standing_cache WHERE season = ? AND level = ? AND league = ?',
-        [actualSeason, level, league]
-      )
-      if (lastGameDay?.maxDay == null) continue
-
-      const [cached] = await query(
-        'SELECT data FROM standing_cache WHERE season = ? AND game_day = ? AND level = ? AND league = ?',
-        [actualSeason, lastGameDay.maxDay, level, league]
-      )
-      if (!cached?.data) continue
-
-      const standing = JSON.parse(cached.data)
-      if (standing.length === 0) continue
-
-      const topTeam = standing[0]
-      const [user] = topTeam.team?.user_id
-        ? await query('SELECT username FROM user WHERE id = ?', [topTeam.team.user_id])
-        : []
-
-      champions.push({
-        level,
-        league,
-        teamId: topTeam.team?.id,
-        teamName: topTeam.team?.name,
-        emblem: topTeam.team?.emblem,
-        color: topTeam.team?.color,
-        username: user?.username || null,
-        points: topTeam.points
-      })
-    }
-
-    // Get cup winner: winner of cup_round=1 (final) game
-    let cupWinner = null
-    const [finalGame] = await query(`
-      SELECT g.goals_team_1, g.goals_team_2,
-             t1.id as t1Id, t1.name as t1Name, t1.emblem as t1Emblem, t1.color as t1Color, t1.user_id as t1UserId,
-             t2.id as t2Id, t2.name as t2Name, t2.emblem as t2Emblem, t2.color as t2Color, t2.user_id as t2UserId
-      FROM game g
-      JOIN team t1 ON t1.id = g.team_1_id
-      JOIN team t2 ON t2.id = g.team_2_id
-      WHERE g.season = ? AND g.game_type = 'cup' AND g.cup_round = 1 AND g.played = 1
+    const titles = await query(`
+      SELECT st.title_type, st.level, st.league, st.team_id, st.user_id,
+             t.name AS team_name, t.emblem, t.color,
+             u.username, u.avatar
+      FROM season_title st
+      LEFT JOIN team t ON t.id = st.team_id
+      LEFT JOIN user u ON u.id = st.user_id
+      WHERE st.season = ?
+      ORDER BY st.title_type ASC, st.level ASC, st.league ASC
     `, [actualSeason])
 
-    if (finalGame) {
-      const team1Won = finalGame.goals_team_1 > finalGame.goals_team_2
-      const winner = team1Won
-        ? { id: finalGame.t1Id, name: finalGame.t1Name, emblem: finalGame.t1Emblem, color: finalGame.t1Color, userId: finalGame.t1UserId }
-        : { id: finalGame.t2Id, name: finalGame.t2Name, emblem: finalGame.t2Emblem, color: finalGame.t2Color, userId: finalGame.t2UserId }
-
-      const [user] = winner.userId
-        ? await query('SELECT username FROM user WHERE id = ?', [winner.userId])
-        : []
-
-      cupWinner = {
-        teamId: winner.id,
-        teamName: winner.name,
-        emblem: winner.emblem,
-        color: winner.color,
-        username: user?.username || null
+    const champions = []
+    let cupWinner = null
+    for (const row of titles) {
+      if (row.title_type === 'champion') {
+        champions.push({
+          level: row.level,
+          league: row.league,
+          teamId: row.team_id,
+          teamName: row.team_name,
+          emblem: row.emblem,
+          color: row.color,
+          username: row.username || null,
+          avatar: row.avatar || null
+        })
+      } else if (row.title_type === 'cup_winner') {
+        cupWinner = {
+          teamId: row.team_id,
+          teamName: row.team_name,
+          emblem: row.emblem,
+          color: row.color,
+          username: row.username || null,
+          avatar: row.avatar || null
+        }
       }
     }
 

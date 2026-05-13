@@ -2,7 +2,7 @@
    Table Styles
    ========================================================================== */
 
-table.table .table-nums {
+table.table tbody .table-nums {
     font-family: 'Shantell Sans', sans-serif;
     font-variant-numeric: tabular-nums lining-nums;
     font-variation-settings: 'BNCE' 0, 'INFM' 50;

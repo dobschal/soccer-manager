@@ -257,7 +257,7 @@ export class GameLayout extends UIElement {
       const baseUrl = window.__NATIVE_SERVER_URL || ''
       return `<img class="nav-avatar" src="${baseUrl}/uploads/avatars/${this._avatar}" alt="${this._username}">`
     }
-    return `<img class="nav-avatar nav-avatar--default" src="/assets/avatar-placeholder.svg" alt="${this._username}">`
+    return `<img class="nav-avatar nav-avatar--default" src="./assets/avatar-placeholder.svg" alt="${this._username}">`
   }
 
   /**
