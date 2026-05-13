@@ -111,7 +111,7 @@ describe('PlayerListItem', () => {
       const item = new PlayerListItem(player, 1)
 
       const cells = item.cells
-      // Name, Pos, Age, Fit, Lvl, Salary, Value, Goals, Games
+      // Name, Pos, Fit, Lvl, Age, Salary, Value, Goals, Games
       expect(cells).toHaveLength(9)
       expect(cells[0]).toContain('John Doe')
       expect(cells[1]).toContain('CM')
@@ -122,7 +122,7 @@ describe('PlayerListItem', () => {
       const item = new PlayerListItem(player, 1)
 
       // ProgressBar is a UIElement, rendered as a <template> placeholder
-      expect(item.cells[3]).toContain('<template id=')
+      expect(item.cells[2]).toContain('<template id=')
     })
   })
 
