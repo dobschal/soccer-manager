@@ -7,8 +7,8 @@ table.table .table-nums {
     font-variant-numeric: tabular-nums lining-nums;
     font-variation-settings: 'BNCE' 0, 'INFM' 50;
     font-weight: 400;
-    font-size: 95%;
-    letter-spacing: -0.5px;
+    font-size: 92%;
+    letter-spacing: -0.7px;
 }
 
 .table tbody tr {

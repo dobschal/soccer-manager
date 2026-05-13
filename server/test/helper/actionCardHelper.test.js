@@ -426,46 +426,6 @@ describe('actionCardHelper', () => {
     })
   })
 
-  describe('playActionCard - CHANGE_PLAYER_POSITION', () => {
-    it('changes player position', async () => {
-      const team = testData.team()
-      const player = testData.player({ id: 1, position: 'CD' })
-      const actionCard = testData.actionCard({ action: 'CHANGE_PLAYER_POSITION' })
-
-      getPlayerById.mockResolvedValue(player)
-
-      const result = await playActionCard({ player, position: 'CM', actionCard }, team)
-
-      expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET position=? WHERE id=?', ['CM', 1])
-      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
-    })
-
-    it('can change to any non-GK position', async () => {
-      const team = testData.team()
-      const player = testData.player({ id: 1, position: 'CM' })
-      const actionCard = testData.actionCard({ action: 'CHANGE_PLAYER_POSITION' })
-
-      getPlayerById.mockResolvedValue(player)
-
-      const result = await playActionCard({ player, position: 'CA', actionCard }, team)
-
-      expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith('UPDATE player SET position=? WHERE id=?', ['CA', 1])
-    })
-
-    it('throws error when trying to change GK position', async () => {
-      const team = testData.team()
-      const player = testData.player({ id: 1, position: 'GK' })
-      const actionCard = testData.actionCard({ action: 'CHANGE_PLAYER_POSITION' })
-
-      getPlayerById.mockResolvedValue(player)
-
-      await expect(playActionCard({ player, position: 'CA', actionCard }, team))
-        .rejects.toThrow()
-    })
-  })
-
   describe('playActionCard - NEW_YOUTH_PLAYER', () => {
     it('creates a new youth player', async () => {
       const team = testData.team({ id: 5 })

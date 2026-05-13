@@ -20,6 +20,7 @@ export class NativeAppLayout extends UIElement {
     ])
     this._nextGameDate = gameDate.date
     this._username = teamData.user?.username || ''
+    this._avatar = teamData.user?.avatar || ''
     this._isAdmin = teamData.isAdmin || false
     this._version = versionData.version
     this._gameDay = currentGameday.gameDay
@@ -45,8 +46,8 @@ export class NativeAppLayout extends UIElement {
                 <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
               </a>
             </div>
-            <button id="settings-button" class="native-settings-btn" type="button" aria-label="${t('nav.settings')}">
-              <i class="fa fa-cog text-info" aria-hidden="true"></i>
+            <button id="settings-button" class="native-settings-btn native-avatar-btn" type="button" aria-label="${t('nav.settings')}">
+              ${this._avatarImg()}
             </button>
           </div>
         </div>
@@ -111,6 +112,7 @@ export class NativeAppLayout extends UIElement {
   _navItemEventIds = []
   _isAdmin = false
   _username = ''
+  _avatar = ''
   _version = ''
   _gameDay = 0
   _season = 0
@@ -190,6 +192,14 @@ export class NativeAppLayout extends UIElement {
   _cleanupNavItemEvents () {
     this._navItemEventIds.forEach(id => off(id))
     this._navItemEventIds = []
+  }
+
+  _avatarImg () {
+    if (this._avatar) {
+      const baseUrl = window.__NATIVE_SERVER_URL || ''
+      return `<img class="nav-avatar" src="${baseUrl}/uploads/avatars/${this._avatar}" alt="${this._username}">`
+    }
+    return `<img class="nav-avatar nav-avatar--default" src="/assets/avatar-placeholder.svg" alt="${this._username}">`
   }
 
   _tabItem (path, icon, label) {

@@ -22,7 +22,6 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 
 - **US-AC-07**: Als Spieler kann ich Level-Up-Karten auf einen Spieler anwenden, um dessen Level um 1 zu erhöhen (bis zum Kartenlimit).
 - **US-AC-08**: Als Spieler kann ich Fitness-Karten auf einen Spieler anwenden, um dessen Frische wiederherzustellen.
-- **US-AC-09**: Als Spieler kann ich die Positionswechsel-Karte nutzen, um die Position eines Spielers zu ändern (ausgenommen Torwart).
 - **US-AC-10**: Als Spieler kann ich die Jugendspieler-Karte nutzen, um einen neuen Jugendspieler zu erhalten.
 - **US-AC-11**: Als Spieler kann ich die Bonus-100K-Karte nutzen, um 100.000 Euro zu erhalten.
 - **US-AC-12**: Als Spieler kann ich die Starspieler-Karte nutzen, um einem Spieler permanent +10% Level-Bonus in Spielen zu geben.
@@ -38,7 +37,6 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 | FRESHNESS_5 | +5% Frische | - | Nein |
 | FRESHNESS_10 | +10% Frische | - | Nein |
 | FRESHNESS_20 | +20% Frische | - | Nein |
-| CHANGE_PLAYER_POSITION | Position aendern | - | Nein |
 | NEW_YOUTH_PLAYER | Neuer Jugendspieler | - | Nein |
 | BONUS_100K | +100.000 Euro | - | Nein |
 | STAR_PLAYER | Permanenter +10% Bonus | - | Nein |
@@ -52,7 +50,6 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 | LEVEL_UP_PLAYER_70 | 0.3 |
 | LEVEL_UP_PLAYER_100 | 0.06 |
 | FRESHNESS_10 | 0.88 |
-| CHANGE_PLAYER_POSITION | 0.03 |
 | NEW_YOUTH_PLAYER | 0.05 |
 | BONUS_100K | 0.06 |
 | STAR_PLAYER | 0.01 |
@@ -70,7 +67,6 @@ Die Wahrscheinlichkeiten werden durch Gebaeude-Level modifiziert (Trainingsgelae
 - **TA-AC-04**: Gebaeude-Modifikatoren (Trainingsgelaende, Fitness-Studio) ueberschreiben die Basis-Wahrscheinlichkeiten.
 - **TA-AC-05**: Maximal 20 Level-Ups pro Saison pro Spieler.
 - **TA-AC-06**: Frische wird auf maximal 1.0 begrenzt.
-- **TA-AC-07**: Torwart darf nicht die Position wechseln und kein Spieler darf zum Torwart werden.
 
 ### API-Endpunkte
 

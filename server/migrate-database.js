@@ -1584,6 +1584,12 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE user ADD COLUMN avatar VARCHAR(255) NULL DEFAULT NULL')
   }
+}, {
+  name: 'Remove CHANGE_PLAYER_POSITION action cards',
+  async run () {
+    const result = await query("DELETE FROM action_card WHERE action='CHANGE_PLAYER_POSITION'")
+    console.log(`🗑️ Deleted ${result.affectedRows} CHANGE_PLAYER_POSITION action cards`)
+  }
 }]
 
 /**

@@ -30,6 +30,7 @@ export class GameLayout extends UIElement {
     ])
     this._nextGameDate = gameDate.date
     this._username = teamData.user?.username || ''
+    this._avatar = teamData.user?.avatar || ''
     this._isAdmin = teamData.isAdmin || false
     this._version = versionData.version
     this._gameDay = currentGameday.gameDay
@@ -70,8 +71,8 @@ export class GameLayout extends UIElement {
                 <i class="fa fa-cog" aria-hidden="true"></i> ${t('nav.settings')}
               </button>
             </div>
-            <button id="settings-button" class="btn btn-link nav-settings-btn d-none d-lg-block" type="button" aria-label="${t('nav.settings')}">
-              <i class="fa fa-cog fa-lg" aria-hidden="true"></i>
+            <button id="settings-button" class="btn btn-link nav-settings-btn nav-avatar-btn d-none d-lg-block" type="button" aria-label="${t('nav.settings')}">
+              ${this._avatarImg()}
             </button>
           </div>
         </nav>
@@ -174,6 +175,7 @@ export class GameLayout extends UIElement {
   _navItemEventIds = []
   _isAdmin = false
   _username = ''
+  _avatar = ''
   _version = ''
   _gameDay = 0
   _season = 0
@@ -245,6 +247,17 @@ export class GameLayout extends UIElement {
   _cleanupNavItemEvents () {
     this._navItemEventIds.forEach(id => off(id))
     this._navItemEventIds = []
+  }
+
+  /**
+   * @returns {string}
+   */
+  _avatarImg () {
+    if (this._avatar) {
+      const baseUrl = window.__NATIVE_SERVER_URL || ''
+      return `<img class="nav-avatar" src="${baseUrl}/uploads/avatars/${this._avatar}" alt="${this._username}">`
+    }
+    return `<img class="nav-avatar nav-avatar--default" src="/assets/avatar-placeholder.svg" alt="${this._username}">`
   }
 
   /**

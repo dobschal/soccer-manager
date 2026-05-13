@@ -798,61 +798,6 @@ async function _checkActionCards (botTeam, players, _isStrongTeam, actionCards) 
         }
         continue
       }
-
-      // CHANGE_PLAYER_POSITION - convert excess position players to positions we need
-      if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
-        const positionsNeeded = getPositionsOfFormation(botTeam.formation)
-        const uniquePositions = [...new Set(positionsNeeded)]
-
-        // Find positions with excess players
-        let bestCandidate = null
-        let bestTargetPosition = null
-
-        for (const position of uniquePositions) {
-          const required = positionsNeeded.filter(p => p === position).length
-          const targetSquadSize = required * 2
-          const playersInPosition = players.filter(p => p.position === position)
-          if (playersInPosition.length >= targetSquadSize) continue
-          // This position needs more players - it's a target
-          // Find an excess player from another position to convert
-          if (!bestTargetPosition) {
-            bestTargetPosition = position
-          }
-        }
-
-        if (bestTargetPosition) {
-          // Find the best excess player to convert (not GK)
-          for (const position of uniquePositions) {
-            const required = positionsNeeded.filter(p => p === position).length
-            const maxWanted = required * 2
-            const playersInPosition = players.filter(p => p.position === position && p.position !== 'GK')
-            if (playersInPosition.length > maxWanted) {
-              const sortedByLevel = [...playersInPosition].sort((a, b) => b.level - a.level)
-              // Pick the weakest excess player
-              bestCandidate = sortedByLevel[sortedByLevel.length - 1]
-              break
-            }
-          }
-          // Also check players in positions not in formation at all
-          if (!bestCandidate) {
-            const nonFormationPlayers = players.filter(p => p.position !== 'GK' && !positionsNeeded.includes(p.position))
-            if (nonFormationPlayers.length > 0) {
-              bestCandidate = nonFormationPlayers.sort((a, b) => b.level - a.level)[0]
-            }
-          }
-        }
-
-        if (bestCandidate && bestTargetPosition && bestTargetPosition !== 'GK') {
-          await playActionCard({
-            actionCard,
-            player: bestCandidate,
-            position: bestTargetPosition
-          }, botTeam)
-          bestCandidate.position = bestTargetPosition
-          console.log(`${botTeam.name} changed ${bestCandidate.name} position to ${bestTargetPosition}`)
-        }
-        continue
-      }
     } catch (e) {
       console.warn('Playing action card failed: ', e.message)
     }
