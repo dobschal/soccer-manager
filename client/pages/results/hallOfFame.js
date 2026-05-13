@@ -115,6 +115,15 @@ export class HallOfFamePage extends UIElement {
     return 90
   }
 
+  _renderUserAvatar (avatar, username) {
+    const altText = username || ''
+    if (avatar) {
+      const baseUrl = window.__NATIVE_SERVER_URL || ''
+      return `<img class="hof-user-avatar" src="${baseUrl}/uploads/avatars/${avatar}" alt="${altText}">`
+    }
+    return `<img class="hof-user-avatar hof-user-avatar--default" src="./assets/avatar-placeholder.svg" alt="${altText}">`
+  }
+
   _getLeagueLabel (champion) {
     const displayLevel = champion.level + 1
     const leagueLetter = String.fromCharCode(65 + champion.league)
@@ -143,7 +152,7 @@ export class HallOfFamePage extends UIElement {
         <div class="hof-emblem">${renderEmblem(teamData, this._getEmblemSize(level))}</div>
         <div class="hof-winner-info">
           <div class="hof-team-name">${champion.teamName}</div>
-          ${champion.username ? `<div class="hof-username"><i class="fa fa-user"></i> ${champion.username}</div>` : ''}
+          ${champion.username ? `<div class="hof-username">${this._renderUserAvatar(champion.avatar, champion.username)} ${champion.username}</div>` : ''}
         </div>
       </div>
     </div>`
@@ -187,7 +196,7 @@ export class HallOfFamePage extends UIElement {
         <div class="hof-emblem">${renderEmblem(teamData, 160)}</div>
         <div class="hof-winner-info">
           <div class="hof-team-name">${this.cupWinner.teamName}</div>
-          ${this.cupWinner.username ? `<div class="hof-username"><i class="fa fa-user"></i> ${this.cupWinner.username}</div>` : ''}
+          ${this.cupWinner.username ? `<div class="hof-username">${this._renderUserAvatar(this.cupWinner.avatar, this.cupWinner.username)} ${this.cupWinner.username}</div>` : ''}
         </div>
       </div>
     </div>`

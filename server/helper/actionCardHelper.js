@@ -14,7 +14,6 @@ import { createYouthPlayer } from './youthPlayerHelper.js'
 //
 // - LEVEL_UP_PLAYER_40: ~40/season → 1.2/day (can merge into ~20 LEVEL_UP_70)
 // - FRESHNESS_10: ~30/season → 0.88/day
-// - CHANGE_PLAYER_POSITION: ~4/season → 0.12/day
 // - NEW_YOUTH_PLAYER: ~2/season → 0.059/day
 // - BONUS_100K: ~2/season → 0.06/day
 // - LEVEL_UP_PLAYER_70: ~10/season → 0.3/day (+ ~20 from merge, medium amount reach level 70)
@@ -24,7 +23,6 @@ export const actionCardChances = {
   FRESHNESS_10: 0.88,
   FRESHNESS_20: 0,
   LEVEL_UP_PLAYER_40: 1.2,
-  CHANGE_PLAYER_POSITION: 0.03,
   NEW_YOUTH_PLAYER: 0.05,
   BONUS_100K: 0.06,
   LEVEL_UP_PLAYER_70: 0.3,
@@ -90,7 +88,6 @@ async function levelUpsCurrentSeason (player) {
 
 /**
  * @param {PlayerType} p
- * @param {string} position
  * @param {ActionCardType} actionCard
  * @param {TeamType} team
  * @param {string} [locale]
@@ -98,7 +95,6 @@ async function levelUpsCurrentSeason (player) {
  */
 export async function playActionCard ({
   player: p,
-  position,
   actionCard
 }, team, locale) {
   // Get locale if not provided
@@ -153,19 +149,6 @@ export async function playActionCard ({
       level: player.level
     }, locale), team, null, null, 'level-up')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
-    return { success: true }
-  }
-  if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
-    const player = await getPlayerById(p.id)
-    if (player.position === 'GK') {
-      throw new BadRequestError(t('error.goalkeeperCannotChange', {}, locale))
-    }
-    if (position === 'GK') {
-      throw new BadRequestError(t('error.cannotBecomeGoalkeeper', {}, locale))
-    }
-    await query('UPDATE player SET position=? WHERE id=?', [position, p.id])
-    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
-    await addPlayerHistory(p.id, 'CHANGE_PLAYER_POSITION', position)
     return { success: true }
   }
   if (actionCard.action === 'NEW_YOUTH_PLAYER') {

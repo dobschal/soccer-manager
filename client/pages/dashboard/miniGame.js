@@ -51,7 +51,6 @@ const ACTION_CARD_LABELS = {
   FRESHNESS_5: 'actionCards.type.quickRecovery',
   FRESHNESS_10: 'actionCards.type.energyBoost',
   FRESHNESS_20: 'actionCards.type.fullRecovery',
-  CHANGE_PLAYER_POSITION: 'actionCards.type.tacticalShift',
   NEW_YOUTH_PLAYER: 'actionCards.type.youthProspect',
   BONUS_100K: 'actionCards.type.cashBonus',
   STAR_PLAYER: 'actionCards.type.starPlayer',
@@ -149,6 +148,7 @@ export class MiniGame extends UIElement {
     this._ctx = this._canvas.getContext('2d')
     this._renderScene()
     this._keyDown = (e) => {
+      if (MiniGame._isEditableTarget(e.target)) return
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') this._keyLeft = true
       else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') this._keyRight = true
       else if (e.key === ' ' || e.key === 'Spacebar') {
@@ -159,6 +159,7 @@ export class MiniGame extends UIElement {
       }
     }
     this._keyUp = (e) => {
+      if (MiniGame._isEditableTarget(e.target)) return
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') this._keyLeft = false
       else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') this._keyRight = false
     }
@@ -170,6 +171,17 @@ export class MiniGame extends UIElement {
     if (this._rafId) cancelAnimationFrame(this._rafId)
     if (this._keyDown) window.removeEventListener('keydown', this._keyDown)
     if (this._keyUp) window.removeEventListener('keyup', this._keyUp)
+  }
+
+  // The keydown listener lives on `window` and the router keeps old pages in
+  // the DOM (hidden), so this instance can survive into other pages like the
+  // forum. Skip the handler when the user is typing into an input/textarea
+  // anywhere, otherwise `preventDefault()` on space would swallow real input.
+  static _isEditableTarget (target) {
+    if (!target) return false
+    const tag = target.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
+    return target.isContentEditable === true
   }
 
   topAllTime = []

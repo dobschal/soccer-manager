@@ -293,7 +293,8 @@ export class TeamPage extends UIElement {
               <tr><td class="text-muted ps-3">${t('myTeam.totalStrength')}</td><td class="text-end pe-3">${totalStrength}</td></tr>
               <tr><td class="text-muted ps-3">${t('myTeam.lineupStrength')}</td><td class="text-end pe-3">${this._teamStrength}</td></tr>
               <tr><td class="text-muted ps-3">${t('team.avgFreshness')}</td><td class="text-end pe-3">${Math.floor(this._teamFreshness * 100)}%</td></tr>
-              <tr><td class="text-muted ps-3">${t('stadium.stadiumLabel')}</td><td class="text-end pe-3"><a href="#" class="stadium-link text-info">${this._stadiumName} (${t('team.seats', { seats: this._stadiumSize })})</a></td></tr>
+              <tr><td class="text-muted ps-3">${t('stadium.stadiumLabel')}</td><td class="text-end pe-3"><a href="#" class="stadium-link text-info">${this._stadiumName}</a></td></tr>
+              <tr><td class="text-muted ps-3">${t('team.stadiumSize')}</td><td class="text-end pe-3"><a href="#" class="stadium-link text-info">${t('team.seats', { seats: this._stadiumSize })}</a></td></tr>
             </tbody>
           </table>
         </div>
@@ -314,7 +315,7 @@ export class TeamPage extends UIElement {
     const avatarFilename = this.user?.avatar
     const avatarImg = avatarFilename
       ? `<img class="coach-avatar__img" src="${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatarFilename}" alt="${altText}">`
-      : `<img class="coach-avatar__img coach-avatar__img--default" src="/assets/avatar-placeholder.svg" alt="${altText}">`
+      : `<img class="coach-avatar__img coach-avatar__img--default" src="./assets/avatar-placeholder.svg" alt="${altText}">`
 
     return `
       <div class="card h-100 border-0">

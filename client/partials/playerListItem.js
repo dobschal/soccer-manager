@@ -61,14 +61,25 @@ export class PlayerListItem {
     const value = calculateMarketValue(player.level, age)
     const retiring = willRetireNextSeason(player, this.season)
 
-    const nameCell = `${player.name}${isCaptain ? ' (C)' : ''}${player.is_star_player ? ' ⭐' : ''}${hasSellOffer ? ' 💰' : ''}${isSuspended ? ' 🚫' : ''}${isInjured ? ` <i class="fa fa-medkit text-danger" title="${player.injury_type || ''} (${player.injury_days_left || 0})"></i>` : ''}${retiring ? ` <span class="retirement-icon" title="${t('player.retiringNextSeason')}"><i class="fa fa-hourglass-end"></i></span>` : ''} ${this._renderCards(yellowCards, redCards)}`
+    const injuryDays = player.injury_days_left || 0
+    const cardsHtml = this._renderCards(yellowCards, redCards)
+    const nameParts = [
+      `<span class="player-name-cell__name">${player.name}${isCaptain ? ' (C)' : ''}</span>`,
+      player.is_star_player ? '<span class="player-name-cell__icon">⭐</span>' : '',
+      hasSellOffer ? '<span class="player-name-cell__icon">💰</span>' : '',
+      isSuspended ? '<span class="player-name-cell__icon">🚫</span>' : '',
+      isInjured ? `<span class="player-name-cell__icon injury-badge" title="${player.injury_type || ''}"><i class="fa fa-medkit text-danger"></i><span class="injury-badge__days">${injuryDays}</span></span>` : '',
+      retiring ? `<span class="retirement-icon" title="${t('player.retiringNextSeason')}"><i class="fa fa-hourglass-end"></i></span>` : '',
+      cardsHtml ? `<span class="player-name-cell__icon">${cardsHtml}</span>` : ''
+    ].filter(Boolean).join('')
+    const nameCell = `<span class="player-name-cell">${nameParts}</span>`
 
     return [
       nameCell,
       renderPositionBadge(player.position),
-      `${age}`,
       `${new ProgressBar(player.freshness)}`,
       renderLevelBadge(player.level),
+      `${age}`,
       euroFormat.format(salary),
       euroFormat.format(value),
       `${player.season_goals ?? 0}`,

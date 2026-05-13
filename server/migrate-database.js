@@ -1584,6 +1584,91 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE user ADD COLUMN avatar VARCHAR(255) NULL DEFAULT NULL')
   }
+}, {
+  name: 'Remove CHANGE_PLAYER_POSITION action cards',
+  async run () {
+    const result = await query("DELETE FROM action_card WHERE action='CHANGE_PLAYER_POSITION'")
+    console.log(`🗑️ Deleted ${result.affectedRows} CHANGE_PLAYER_POSITION action cards`)
+  }
+}, {
+  name: 'Create season_title table and backfill historical titles',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS season_title
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        season INT NOT NULL,
+        title_type VARCHAR(20) NOT NULL,
+        level INT NOT NULL DEFAULT -1,
+        league INT NOT NULL DEFAULT -1,
+        team_id BIGINT NOT NULL,
+        user_id BIGINT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_season_title (season, title_type, level, league),
+        INDEX idx_season_title_season (season)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+
+    // Backfill league champions: read frozen user_id from standing_cache JSON.
+    const completedSeasons = await query(`
+      SELECT DISTINCT season FROM (
+        SELECT season FROM game
+        WHERE (game_type='league' OR game_type IS NULL) AND level=1
+        GROUP BY season
+        HAVING COUNT(*) = SUM(played)
+      ) s
+    `)
+    for (const { season } of completedSeasons) {
+      const levelLeagues = await query(
+        'SELECT DISTINCT level, league FROM standing_cache WHERE season=?',
+        [season]
+      )
+      for (const { level, league } of levelLeagues) {
+        const [lastGameDay] = await query(
+          'SELECT MAX(game_day) AS maxDay FROM standing_cache WHERE season=? AND level=? AND league=?',
+          [season, level, league]
+        )
+        if (lastGameDay?.maxDay == null) continue
+        const [cached] = await query(
+          'SELECT data FROM standing_cache WHERE season=? AND game_day=? AND level=? AND league=?',
+          [season, lastGameDay.maxDay, level, league]
+        )
+        if (!cached?.data) continue
+        let standing
+        try { standing = JSON.parse(cached.data) } catch { continue }
+        const topTeam = standing[0]
+        if (!topTeam?.team?.id) continue
+        await query(
+          `INSERT IGNORE INTO season_title (season, title_type, level, league, team_id, user_id)
+           VALUES (?, 'champion', ?, ?, ?, ?)`,
+          [season, level, league, topTeam.team.id, topTeam.team.user_id ?? null]
+        )
+      }
+    }
+
+    // Backfill cup winners: best-effort, using current team.user_id since no
+    // historical snapshot exists. Sentinel level=-1, league=-1.
+    const cupFinals = await query(`
+      SELECT g.season, g.goals_team_1, g.goals_team_2,
+             t1.id AS t1Id, t1.user_id AS t1UserId,
+             t2.id AS t2Id, t2.user_id AS t2UserId
+      FROM game g
+      JOIN team t1 ON t1.id = g.team_1_id
+      JOIN team t2 ON t2.id = g.team_2_id
+      WHERE g.game_type='cup' AND g.cup_round=1 AND g.played=1
+    `)
+    for (const f of cupFinals) {
+      const team1Won = f.goals_team_1 > f.goals_team_2
+      const winnerId = team1Won ? f.t1Id : f.t2Id
+      const winnerUserId = team1Won ? f.t1UserId : f.t2UserId
+      await query(
+        `INSERT IGNORE INTO season_title (season, title_type, level, league, team_id, user_id)
+         VALUES (?, 'cup_winner', -1, -1, ?, ?)`,
+        [f.season, winnerId, winnerUserId ?? null]
+      )
+    }
+
+    console.log(`🏆 Backfilled season_title for ${completedSeasons.length} season(s), ${cupFinals.length} cup final(s)`)
+  }
 }]
 
 /**

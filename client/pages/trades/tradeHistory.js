@@ -179,7 +179,8 @@ export class TradeHistoryPage extends UIElement {
     }, {
       name: t('trades.price'),
       sortKey: 'price',
-      align: 'right'
+      align: 'right',
+      class: 'table-nums'
     }]
   }
 

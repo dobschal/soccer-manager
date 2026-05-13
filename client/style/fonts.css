@@ -13,3 +13,11 @@
   font-display: swap;
   src: url(fonts/neucha-400.ttf) format('truetype');
 }
+
+@font-face {
+  font-family: 'Shantell Sans';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url(fonts/shantell-sans-variable.woff2) format('woff2-variations');
+}

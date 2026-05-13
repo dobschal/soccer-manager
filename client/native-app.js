@@ -3,6 +3,7 @@ import { DefaultLayout } from './layouts/defaultLayout.js'
 import { NativeAppLayout } from './layouts/nativeAppLayout.js'
 import { initRouter, refreshCurrentPage } from './lib/router.js'
 import { server } from './lib/gateway.js'
+import { redirectIfPendingActionCards } from './lib/pendingCardsRedirect.js'
 import { DashboardPage } from './pages/dashboard.js'
 import { NativeLandingPage } from './pages/native-landing.js'
 import { MyTeamPage } from './pages/my-team.js'
@@ -44,10 +45,6 @@ window.__onNativeDeviceToken = async function (token, platform) {
   }
 }
 
-// Track the last known game day so we can detect new ones on resume
-let _lastKnownGameDay = null
-let _lastKnownSeason = null
-
 // Shared resume handler – debounced so that native bridge + visibilitychange
 // firing in quick succession only trigger one refresh.
 let _lastResumeTs = 0
@@ -55,27 +52,11 @@ async function _onResume () {
   const now = Date.now()
   if (now - _lastResumeTs < 1000) return
   _lastResumeTs = now
-  if (window.localStorage.getItem('auth-token')) {
-    server.clearBadge().catch(() => {})
-    try {
-      const currentGameday = await server.getCurrentGameday()
-      if (_lastKnownGameDay !== null &&
-        (currentGameday.gameDay !== _lastKnownGameDay || currentGameday.season !== _lastKnownSeason)) {
-        _lastKnownGameDay = currentGameday.gameDay
-        _lastKnownSeason = currentGameday.season
-        // New game day detected – do a full reload so the app starts in a
-        // clean state (clears gateway cache, in-memory component state, etc.)
-        window.location.hash = '#dashboard'
-        window.location.reload()
-        return
-      }
-      _lastKnownGameDay = currentGameday.gameDay
-      _lastKnownSeason = currentGameday.season
-    } catch {
-      // Fall through to refresh
-    }
-    refreshCurrentPage()
-  }
+  if (!window.localStorage.getItem('auth-token')) return
+  server.clearBadge().catch(() => {})
+  const redirected = await redirectIfPendingActionCards()
+  if (redirected) return
+  refreshCurrentPage()
 }
 
 // Called from native side when app returns from background
@@ -86,6 +67,18 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') _onResume()
 })
 
+// On every navigation, also check for pending cards so the overlay shows even
+// when the user crosses a game-day boundary while the app was already open.
+let _lastNavCheckTs = 0
+window.addEventListener('hashchange', () => {
+  const currentPath = (window.location.hash || '').substring(1).split('?')[0]
+  if (currentPath === 'dashboard' || currentPath === '') return
+  const now = Date.now()
+  if (now - _lastNavCheckTs < 10000) return
+  _lastNavCheckTs = now
+  void redirectIfPendingActionCards()
+})
+
 // Initialize locale from localStorage or browser settings
 initLocale()
 
@@ -93,10 +86,10 @@ initLocale()
 if (window.localStorage.getItem('auth-token')) {
   connectWebSocket()
   server.clearBadge().catch(() => {})
-  // Capture initial game day so we can detect changes on resume
-  server.getCurrentGameday()
-    .then(gd => { _lastKnownGameDay = gd.gameDay; _lastKnownSeason = gd.season })
-    .catch(() => {})
+  // On cold start (e.g. iOS recycled the WebView while suspended), the page
+  // may not be the dashboard. Detect unclaimed cards here so the user is
+  // funneled to the claim overlay instead of getting stuck on the last page.
+  void redirectIfPendingActionCards()
 }
 
 // If device token was already injected before JS loaded, register it now

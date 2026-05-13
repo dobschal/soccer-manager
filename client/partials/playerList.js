@@ -126,15 +126,6 @@ export class PlayerList extends UIElement {
           sortFn: (a, b, asc) => asc ? a.position.localeCompare(b.position) : b.position.localeCompare(a.position)
         },
         {
-          name: 'Age',
-          align: 'right',
-          sortFn: (a, b, asc) => {
-            const ageA = calculatePlayerAge(a, season)
-            const ageB = calculatePlayerAge(b, season)
-            return asc ? ageA - ageB : ageB - ageA
-          }
-        },
-        {
           name: 'Fit',
           align: 'right',
           sortKey: 'freshness'
@@ -145,8 +136,19 @@ export class PlayerList extends UIElement {
           sortKey: 'level'
         },
         {
+          name: 'Age',
+          align: 'right',
+          class: 'table-nums',
+          sortFn: (a, b, asc) => {
+            const ageA = calculatePlayerAge(a, season)
+            const ageB = calculatePlayerAge(b, season)
+            return asc ? ageA - ageB : ageB - ageA
+          }
+        },
+        {
           name: t('player.salary'),
           align: 'right',
+          class: 'table-nums',
           sortFn: (a, b, asc) => {
             const sA = getSalary(a.level)
             const sB = getSalary(b.level)
@@ -156,6 +158,7 @@ export class PlayerList extends UIElement {
         {
           name: t('player.value'),
           align: 'right',
+          class: 'table-nums',
           sortFn: (a, b, asc) => {
             const vA = calculateMarketValue(a.level, calculatePlayerAge(a, season))
             const vB = calculateMarketValue(b.level, calculatePlayerAge(b, season))
@@ -165,6 +168,7 @@ export class PlayerList extends UIElement {
         {
           name: t('player.goals'),
           align: 'right',
+          class: 'table-nums',
           sortFn: (a, b, asc) => {
             const gA = a.season_goals ?? 0
             const gB = b.season_goals ?? 0
@@ -174,6 +178,7 @@ export class PlayerList extends UIElement {
         {
           name: t('player.games'),
           align: 'right',
+          class: 'table-nums',
           sortFn: (a, b, asc) => {
             const gA = a.season_games ?? 0
             const gB = b.season_games ?? 0

@@ -29,10 +29,6 @@ function getActionCardTexts () {
       title: t('actionCards.type.basicPromotion'),
       description: t('actionCards.type.basicPromotionDesc')
     },
-    CHANGE_PLAYER_POSITION: {
-      title: t('actionCards.type.tacticalShift'),
-      description: t('actionCards.type.tacticalShiftDesc')
-    },
     NEW_YOUTH_PLAYER: {
       title: t('actionCards.type.youthProspect'),
       description: t('actionCards.type.youthProspectDesc')
@@ -481,10 +477,6 @@ export class ActionCards extends UIElement {
       await this._handleLevelUpCard(actionCard, cardIndex)
       return
     }
-    if (actionCard.action === 'CHANGE_PLAYER_POSITION') {
-      await this._handleChangePositionCard(actionCard, cardIndex)
-      return
-    }
     if (actionCard.action === 'NEW_YOUTH_PLAYER') {
       try {
         await server.useActionCard(actionCard, null, null)
@@ -548,65 +540,6 @@ export class ActionCards extends UIElement {
       t('actionCards.whichPlayerFitness'),
       `${playerList}`
     )
-  }
-
-  /**
-   * @param {Object} actionCard
-   * @param {number} cardIndex
-   * @returns {Promise<void>}
-   */
-  async _handleChangePositionCard (actionCard, cardIndex) {
-    const data = await server.getMyTeam()
-    // Filter out goalkeepers - they cannot change position
-    const eligiblePlayers = data.players.filter(p => p.position !== 'GK')
-    const playerList = new PlayerList(eligiblePlayers, false, async player => {
-      this._overlay?.remove()
-      const positionList = this._renderPositionList(async (position) => {
-        try {
-          await server.useActionCard(actionCard, player, position)
-          this._overlay?.remove()
-          toast(t('actionCards.positionChanged', { playerName: player.name }), 'success')
-          await this._animateAndRemoveCard(cardIndex)
-        } catch (e) {
-          console.error(e)
-          toast(e.message ?? 'Something went wrong...', 'error')
-        }
-      })
-      this._overlay = showOverlay(
-        t('actionCards.selectPosition'),
-        t('actionCards.whichPosition'),
-        `${positionList}`
-      )
-    })
-    this._overlay = showOverlay(
-      t('actionCards.selectPlayer'),
-      t('actionCards.whichPlayerPosition'),
-      `${playerList}`
-    )
-  }
-
-  /**
-   * @param {Function} onClickHandler
-   * @returns {string}
-   */
-  _renderPositionList (onClickHandler) {
-    // GK is excluded - players cannot become goalkeepers
-    const positions = ['LD', 'CD', 'RD', 'LM', 'DM', 'CM', 'RM', 'OM', 'LA', 'CA', 'RA']
-
-    const items = positions.map((pos) => `
-      <li class="list-group-item list-group-item-action" data-position="${pos}">${t('actionCards.position.' + pos)}</li>
-    `).join('')
-
-    setTimeout(() => {
-      positions.forEach(pos => {
-        const item = document.querySelector(`[data-position="${pos}"]`)
-        if (item) {
-          item.addEventListener('click', () => onClickHandler(pos))
-        }
-      })
-    })
-
-    return `<ul class="list-group">${items}</ul>`
   }
 
   /**

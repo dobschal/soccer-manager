@@ -81,6 +81,7 @@ export class Lineup extends UIElement {
   onMounted () {
     this._applyPositionHacks()
     this._loadPlayerImages()
+    void this._autoCleanupIfNeeded()
   }
 
   onUpdate () {
@@ -89,15 +90,28 @@ export class Lineup extends UIElement {
   }
 
   _overlay = null
+  _needsAutoCleanup = false
 
   /**
+   * Match each lineup player to a slot in the current formation. A slot is
+   * only valid for a player when their natural position equals their
+   * in_game_position AND a matching unfilled slot still exists in the
+   * formation. Anything else (formation changed, duplicate, player playing
+   * out of natural position) gets cleared so the slot becomes a placeholder
+   * and _autoCleanupIfNeeded persists the cleaned state.
    * @returns {void}
    */
   _fillEmptyPositions () {
     const positions = getPositionsOfFormation(this.team.formation)
     this.players.filter(p => p.in_game_position).forEach(p => {
-      const index = positions.findIndex(po => p.position === po)
-      if (index === -1) return console.error('A player has a in game position that is not in formation!')
+      const index = p.position === p.in_game_position
+        ? positions.findIndex(po => po === p.in_game_position)
+        : -1
+      if (index === -1) {
+        p.in_game_position = ''
+        this._needsAutoCleanup = true
+        return
+      }
       positions.splice(index, 1)
     })
     positions.forEach(position => {
@@ -109,6 +123,18 @@ export class Lineup extends UIElement {
         name: '-'
       })
     })
+  }
+
+  /**
+   * If _fillEmptyPositions cleared invalid lineup assignments, persist the
+   * cleaned lineup and let the parent component re-sync its player list.
+   * @returns {Promise<void>}
+   */
+  async _autoCleanupIfNeeded () {
+    if (!this._needsAutoCleanup) return
+    this._needsAutoCleanup = false
+    fire('lineup-exchange', this.players)
+    await this._autoSaveIfComplete()
   }
 
   /**

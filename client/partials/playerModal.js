@@ -53,8 +53,6 @@ const _renderPlayerHistory = renderAsync(async function (item) {
     return `<div>${prefix} ${t('player.historyFired', { teamName: item.value })}</div>`
   } else if (item.type === 'HIRED') {
     return `<div>${prefix} ${t('player.historyHired', { teamName: item.value })}</div>`
-  } else if (item.type === 'CHANGE_PLAYER_POSITION') {
-    return `<div>${prefix} ${t('player.historyPositionChange', { position: item.value })}</div>`
   } else if (item.type === 'STAR_PLAYER') {
     return `<div>${prefix} ⭐ ${t('player.historyStarPlayer')}</div>`
   }

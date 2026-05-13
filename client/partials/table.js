@@ -9,6 +9,7 @@ import { getQueryParams, setQueryParams } from '../lib/router.js'
  * @property {(val1: object, val2: object, isAscending: boolean) => number} sortFn
  * @property {'right'|'left'|'center'} align
  * @property {string} [width] - CSS width for the column (e.g. '32px')
+ * @property {string} [class] - Extra CSS class applied to a span wrapping the cell content (not the th/td itself)
  * @property {(dataItem: object, rowIndex: number, colIndex: number) => void} [onClick]
  */
 
@@ -193,7 +194,8 @@ export class Table extends UIElement {
         ].filter(Boolean).join(' ')
 
         const style = col.width ? ` style="width:${col.width}"` : ''
-        return `<th scope="col" class="${classes}"${style}>${col.name}</th>`
+        const name = col.class ? `<span class="${col.class}">${col.name}</span>` : col.name
+        return `<th scope="col" class="${classes}"${style}>${name}</th>`
       })
       .join('')
   }
@@ -230,7 +232,8 @@ export class Table extends UIElement {
         hasClickFn ? 'hover-text' : ''
       ].filter(Boolean).join(' ')
 
-      return `<td class="${classes}">${cellContent}</td>`
+      const wrapped = col.class ? `<span class="${col.class}">${cellContent}</span>` : cellContent
+      return `<td class="${classes}">${wrapped}</td>`
     }).join('')
   }
 }

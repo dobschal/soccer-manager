@@ -12,7 +12,6 @@ function getActionCardTitles () {
     LEVEL_UP_PLAYER_100: t('actionCards.type.legendaryMastery'),
     LEVEL_UP_PLAYER_70: t('actionCards.type.epicAdvancement'),
     LEVEL_UP_PLAYER_40: t('actionCards.type.basicPromotion'),
-    CHANGE_PLAYER_POSITION: t('actionCards.type.tacticalShift'),
     NEW_YOUTH_PLAYER: t('actionCards.type.youthProspect'),
     FRESHNESS_5: t('actionCards.type.quickRecovery'),
     FRESHNESS_10: t('actionCards.type.energyBoost'),

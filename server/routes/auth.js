@@ -74,9 +74,8 @@ export default {
     // Regenerate players/stadium/buildings if team was emptied (e.g. after account deletion)
     await regenerateTeamData(team)
     await query('DELETE FROM action_card WHERE team_id=?', [team.id])
-    // Give new user 3 starter action cards
+    // Give new user 2 starter action cards
     const starterCards = [
-      new ActionCard({ team_id: team.id, action: 'CHANGE_PLAYER_POSITION', played: 0 }),
       new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER', played: 0 }),
       new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0 })
     ]

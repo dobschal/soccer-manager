@@ -83,3 +83,25 @@
     cursor: help;
     font-size: 0.85em;
 }
+
+/* Player list name cell — name + status icons with consistent spacing */
+.player-name-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.player-name-cell__icon {
+    display: inline-flex;
+    align-items: center;
+}
+
+.injury-badge {
+    gap: 0.15rem;
+}
+
+.injury-badge__days {
+    color: #dc3545;
+    font-weight: bold;
+    font-size: 0.85em;
+}

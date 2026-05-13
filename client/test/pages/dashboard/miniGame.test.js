@@ -105,6 +105,57 @@ describe('MiniGame collision hitbox', () => {
   })
 })
 
+describe('MiniGame keyboard handling', () => {
+  function installKeyHandlers (game) {
+    // Re-create the same handlers onMounted() would attach, without needing a
+    // canvas. Keep this in sync with miniGame.js onMounted().
+    game._keyDown = (e) => {
+      if (MiniGame._isEditableTarget(e.target)) return
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault()
+        game._tryShoot = game._tryShoot || vi.fn()
+        game._tryShoot()
+      }
+    }
+  }
+
+  it('does NOT preventDefault on space when the user is typing in a textarea', () => {
+    const game = new MiniGame()
+    installKeyHandlers(game)
+    const textarea = document.createElement('textarea')
+    document.body.appendChild(textarea)
+    const evt = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true })
+    Object.defineProperty(evt, 'target', { value: textarea })
+    game._keyDown(evt)
+    expect(evt.defaultPrevented).toBe(false)
+    textarea.remove()
+  })
+
+  it('does NOT preventDefault on space when the user is typing in an input', () => {
+    const game = new MiniGame()
+    installKeyHandlers(game)
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    const evt = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true })
+    Object.defineProperty(evt, 'target', { value: input })
+    game._keyDown(evt)
+    expect(evt.defaultPrevented).toBe(false)
+    input.remove()
+  })
+
+  it('DOES preventDefault on space when the focus is on a non-editable element', () => {
+    const game = new MiniGame()
+    installKeyHandlers(game)
+    const div = document.createElement('div')
+    document.body.appendChild(div)
+    const evt = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true })
+    Object.defineProperty(evt, 'target', { value: div })
+    game._keyDown(evt)
+    expect(evt.defaultPrevented).toBe(true)
+    div.remove()
+  })
+})
+
 describe('MiniGame leaderboard rendering', () => {
   it('renders the team name as a link to the team page and shows the manager username', () => {
     const game = new MiniGame()

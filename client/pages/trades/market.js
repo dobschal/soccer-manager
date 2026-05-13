@@ -292,6 +292,7 @@ export class MarketPage extends UIElement {
     }, {
       name: t('trades.price'),
       align: 'right',
+      class: 'table-nums',
       sortKey: 'offer_value'
     }, {
       name: '',

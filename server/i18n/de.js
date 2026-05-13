@@ -51,8 +51,6 @@ export default {
   'error.playerMaxLevel': 'Spieler hat bereits das maximale Level erreicht',
   'error.cardMaxLevel70': 'Aktionskarte erlaubt nur Level-Ups bis Level 70',
   'error.cardMaxLevel40': 'Aktionskarte erlaubt nur Level-Ups bis Level 40',
-  'error.goalkeeperCannotChange': 'Torhüter können ihre Position nicht wechseln',
-  'error.cannotBecomeGoalkeeper': 'Spieler können nicht zu Torhütern werden',
   'error.alreadyStarPlayer': 'Dieser Spieler ist bereits ein Starspieler.',
   'error.motivatingSpeechAlreadyActive': 'Motivationsrede ist bereits für diesen Spieltag aktiv.',
 

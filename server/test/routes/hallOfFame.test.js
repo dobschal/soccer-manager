@@ -28,29 +28,13 @@ describe('hallOfFame routes', () => {
     })
 
     it('returns champions from all levels and leagues', async () => {
-      const standingL0 = [
-        { team: { id: 1, name: 'Winner FC', emblem: '{}', color: '#FF0000', user_id: 5 }, points: 80 }
-      ]
-      const standingL1A = [
-        { team: { id: 2, name: 'Second Div A', emblem: '{}', color: '#00FF00', user_id: 6 }, points: 70 }
-      ]
-      const standingL1B = [
-        { team: { id: 3, name: 'Second Div B', emblem: '{}', color: '#0000FF', user_id: 7 }, points: 65 }
-      ]
-
       query
-        .mockResolvedValueOnce([{ season: 1 }, { season: 0 }]) // completed seasons
-        .mockResolvedValueOnce([{ level: 0, league: 0 }, { level: 1, league: 0 }, { level: 1, league: 1 }]) // distinct level+league
-        .mockResolvedValueOnce([{ maxDay: 33 }]) // last game day level 0
-        .mockResolvedValueOnce([{ data: JSON.stringify(standingL0) }]) // standing cache level 0
-        .mockResolvedValueOnce([{ username: 'champion_user' }]) // user lookup level 0
-        .mockResolvedValueOnce([{ maxDay: 33 }]) // last game day level 1 league 0
-        .mockResolvedValueOnce([{ data: JSON.stringify(standingL1A) }]) // standing cache level 1 league 0
-        .mockResolvedValueOnce([{ username: 'second_div_a_user' }]) // user lookup
-        .mockResolvedValueOnce([{ maxDay: 33 }]) // last game day level 1 league 1
-        .mockResolvedValueOnce([{ data: JSON.stringify(standingL1B) }]) // standing cache level 1 league 1
-        .mockResolvedValueOnce([{ username: 'second_div_b_user' }]) // user lookup
-        .mockResolvedValueOnce([]) // no cup final
+        .mockResolvedValueOnce([{ season: 1 }, { season: 0 }]) // completed seasons (DISTINCT season FROM season_title)
+        .mockResolvedValueOnce([
+          { title_type: 'champion', level: 0, league: 0, team_id: 1, user_id: 5, team_name: 'Winner FC', emblem: '{}', color: '#FF0000', username: 'champion_user', avatar: null },
+          { title_type: 'champion', level: 1, league: 0, team_id: 2, user_id: 6, team_name: 'Second Div A', emblem: '{}', color: '#00FF00', username: 'second_div_a_user', avatar: null },
+          { title_type: 'champion', level: 1, league: 1, team_id: 3, user_id: 7, team_name: 'Second Div B', emblem: '{}', color: '#0000FF', username: 'second_div_b_user', avatar: null }
+        ])
 
       const req = createMockRequest()
       const result = await handlers.getHallOfFame(1, req)
@@ -61,6 +45,7 @@ describe('hallOfFame routes', () => {
       expect(result.champions[0].level).toBe(0)
       expect(result.champions[0].league).toBe(0)
       expect(result.champions[0].teamName).toBe('Winner FC')
+      expect(result.champions[0].username).toBe('champion_user')
       expect(result.champions[1].level).toBe(1)
       expect(result.champions[1].league).toBe(0)
       expect(result.champions[1].teamName).toBe('Second Div A')
@@ -69,22 +54,32 @@ describe('hallOfFame routes', () => {
       expect(result.champions[2].teamName).toBe('Second Div B')
     })
 
-    it('returns cup winner from final game', async () => {
+    it('returns cup winner from season_title row', async () => {
       query
         .mockResolvedValueOnce([{ season: 0 }]) // completed seasons
-        .mockResolvedValueOnce([]) // no level+league in standing_cache
-        .mockResolvedValueOnce([{ // cup final
-          goals_team_1: 3, goals_team_2: 1,
-          t1Id: 10, t1Name: 'Cup Champs', t1Emblem: '{}', t1Color: '#00FF00', t1UserId: 7,
-          t2Id: 11, t2Name: 'Runner Up', t2Emblem: '{}', t2Color: '#0000FF', t2UserId: 8
-        }])
-        .mockResolvedValueOnce([{ username: 'cup_winner' }]) // user lookup
+        .mockResolvedValueOnce([
+          { title_type: 'cup_winner', level: -1, league: -1, team_id: 10, user_id: 7, team_name: 'Cup Champs', emblem: '{}', color: '#00FF00', username: 'cup_winner', avatar: null }
+        ])
 
       const req = createMockRequest()
       const result = await handlers.getHallOfFame(0, req)
 
       expect(result.cupWinner.teamName).toBe('Cup Champs')
       expect(result.cupWinner.username).toBe('cup_winner')
+    })
+
+    it('returns null username for cup winner when team was a bot at time of victory', async () => {
+      query
+        .mockResolvedValueOnce([{ season: 0 }])
+        .mockResolvedValueOnce([
+          { title_type: 'cup_winner', level: -1, league: -1, team_id: 10, user_id: null, team_name: 'Bot FC', emblem: '{}', color: '#00FF00', username: null, avatar: null }
+        ])
+
+      const req = createMockRequest()
+      const result = await handlers.getHallOfFame(0, req)
+
+      expect(result.cupWinner.teamName).toBe('Bot FC')
+      expect(result.cupWinner.username).toBeNull()
     })
   })
 

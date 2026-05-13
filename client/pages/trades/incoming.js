@@ -38,7 +38,7 @@ export class IncomingOffersPage extends UIElement {
       { name: t('results.team') },
       { name: t('player.position') },
       { name: t('player.level'), align: 'right' },
-      { name: t('trades.price'), align: 'right' },
+      { name: t('trades.price'), align: 'right', class: 'table-nums' },
       { name: '' }
     ],
     renderRow: (offer, index) => this._renderOfferRow(offer, index),
