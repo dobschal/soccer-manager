@@ -1,4 +1,5 @@
 import { t } from '../i18n/index.js'
+import { fetchText } from './fetchText.js'
 
 const SVG_PATHS = {
   LEVEL_UP_PLAYER_100: 'assets/action-cards/level-up-player-10.svg',
@@ -38,12 +39,20 @@ export async function loadActionCardSvg (actionType) {
   if (pendingFetches.has(actionType)) return pendingFetches.get(actionType)
 
   const path = SVG_PATHS[actionType] || SVG_PATHS.LEVEL_UP_PLAYER_40
-  const promise = fetch(path)
-    .then(response => response.text())
+  const promise = fetchText(path)
     .then(text => {
       svgCache.set(actionType, text)
       pendingFetches.delete(actionType)
       return text
+    })
+    .catch(err => {
+      // Drop the rejected entry so a later call can retry instead of
+      // forever returning the cached failure. Awaiters get an empty SVG
+      // string back so page loads keep working on Android WebView when
+      // the asset can't be loaded for any reason.
+      pendingFetches.delete(actionType)
+      console.warn(`[actionCardSvg] failed to load ${path}:`, err)
+      return ''
     })
   pendingFetches.set(actionType, promise)
   return promise

@@ -4,6 +4,7 @@ import { t } from '../i18n/index.js'
 import { showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
 import { showAccountOverlay } from './accountOverlay.js'
+import { fetchText } from '../lib/fetchText.js'
 
 /**
  * Shows the settings overlay with menu items
@@ -94,8 +95,8 @@ export function showSettingsOverlay ({ isAdmin, version }) {
     if (window.__NATIVE_SERVER_URL) {
       const clientVersionEl = el('#settings-client-version')
       if (clientVersionEl) {
-        fetch('./native-version.json')
-          .then(r => r.json())
+        fetchText('./native-version.json')
+          .then(text => JSON.parse(text))
           .then(data => {
             clientVersionEl.textContent = `Client: v${data.version} (${data.commitHash})`
           })
