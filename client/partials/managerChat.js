@@ -1,5 +1,6 @@
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { generateId } from '../lib/html.js'
+import { fetchText } from '../lib/fetchText.js'
 
 const STORAGE_KEY_PREFIX = 'managerChatShown_'
 
@@ -25,8 +26,14 @@ export function renderManagerChatInline (svgContainerId, text) {
  * @returns {Promise<void>}
  */
 export async function loadManagerChatSvg (elementId, teamColor) {
-  const response = await fetch('assets/manager.svg')
-  let svgContent = await response.text()
+  let svgContent
+  try {
+    svgContent = await fetchText('assets/manager.svg')
+  } catch {
+    // Android WebView Fetch API can't load file:// — fetchText falls back
+    // to XHR, but if even that fails we just skip rendering the SVG.
+    return
+  }
   svgContent = svgContent.replace(/#ff0000/gi, `${teamColor}`)
   const el = document.getElementById(elementId)
   if (el) {
@@ -68,8 +75,12 @@ export async function showManagerChat (teamColor, text, gameDay, season) {
   const chatId = generateId()
 
   // Fetch and modify the SVG
-  const response = await fetch('assets/manager.svg')
-  let svgContent = await response.text()
+  let svgContent
+  try {
+    svgContent = await fetchText('assets/manager.svg')
+  } catch {
+    svgContent = ''
+  }
 
   // Replace the red color with team color (case insensitive)
   svgContent = svgContent.replace(/#ff0000/gi, `${teamColor}`)
