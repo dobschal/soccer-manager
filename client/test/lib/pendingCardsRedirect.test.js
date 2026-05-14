@@ -107,4 +107,22 @@ describe('redirectIfPendingActionCards', () => {
     expect(result).toBe(false)
     expect(reloadSpy).not.toHaveBeenCalled()
   })
+
+  it('with reload:false sets the dashboard hash but does not reload (cold-start path)', async () => {
+    server.getPendingActionCards.mockResolvedValue({ pendingCards: [{ id: 1 }] })
+    setHash('#team?id=85')
+    const result = await redirectIfPendingActionCards({ reload: false })
+    expect(result).toBe(true)
+    expect(window.location.hash).toBe('#dashboard')
+    expect(reloadSpy).not.toHaveBeenCalled()
+  })
+
+  it('with reload:false on the dashboard returns true without touching hash or reload', async () => {
+    server.getPendingActionCards.mockResolvedValue({ pendingCards: [{ id: 1 }] })
+    setHash('#dashboard')
+    const result = await redirectIfPendingActionCards({ reload: false })
+    expect(result).toBe(true)
+    expect(window.location.hash).toBe('#dashboard')
+    expect(reloadSpy).not.toHaveBeenCalled()
+  })
 })

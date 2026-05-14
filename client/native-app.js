@@ -89,7 +89,11 @@ if (window.localStorage.getItem('auth-token')) {
   // On cold start (e.g. iOS recycled the WebView while suspended), the page
   // may not be the dashboard. Detect unclaimed cards here so the user is
   // funneled to the claim overlay instead of getting stuck on the last page.
-  void redirectIfPendingActionCards()
+  // `reload: false` is critical — the page hasn't rendered yet, so reloading
+  // would loop: the pending cards stay until dashboard's claim overlay runs,
+  // and reloading before render means it never gets a chance to. Setting the
+  // hash is enough; the router picks up #dashboard during initial resolve.
+  void redirectIfPendingActionCards({ reload: false })
 }
 
 // If device token was already injected before JS loaded, register it now
