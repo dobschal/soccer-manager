@@ -199,6 +199,16 @@ export default {
       if (nextRow) current.userNextMatchDay = nextRow.match_day
     }
 
+    // Season end: no unplayed games left at all. getGameDayAndSeason falls back
+    // to the last played game in that case, so the gameDay would be the final
+    // day of the season (one beyond the user-facing last match_day after the
+    // +1 the label adds). The info bar should show "Saisonende" instead of
+    // an out-of-range "Spieltag N+1".
+    const [{ unplayedCount }] = await query(
+      'SELECT COUNT(*) AS unplayedCount FROM game WHERE played=0'
+    )
+    current.isSeasonEnd = unplayedCount === 0
+
     return current
   },
 

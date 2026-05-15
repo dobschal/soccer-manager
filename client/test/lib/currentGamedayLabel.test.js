@@ -8,7 +8,8 @@ vi.mock('../../i18n/index.js', () => ({
       'cup.quarterFinal': 'Quarter-Final',
       'cup.roundOf16': 'Round of 16',
       'cup.roundNumber': `Round ${params?.number}`,
-      'nav.day': `Spieltag ${params?.gameDay} (${params?.season})`
+      'nav.day': `Spieltag ${params?.gameDay} (${params?.season})`,
+      'nav.seasonEnd': 'Saisonende'
     }
     return dict[key] ?? key
   }
@@ -82,6 +83,30 @@ describe('currentGamedayLabel', () => {
       userNextMatchDay: null
     })
     expect(label).toBe('Spieltag 8 (2)')
+  })
+
+  it('shows "Saisonende" when no unplayed games remain', () => {
+    const label = currentGamedayLabel({
+      gameDay: 42,
+      season: 4,
+      cupRoundToday: null,
+      userMatchDayToday: null,
+      userNextMatchDay: null,
+      isSeasonEnd: true
+    })
+    expect(label).toBe('Saisonende')
+  })
+
+  it('prefers an upcoming user match day over the season-end label', () => {
+    const label = currentGamedayLabel({
+      gameDay: 33,
+      season: 4,
+      cupRoundToday: null,
+      userMatchDayToday: null,
+      userNextMatchDay: 34,
+      isSeasonEnd: false
+    })
+    expect(label).toBe('Spieltag 34 (5)')
   })
 
   it('prefers cup over user match day', () => {

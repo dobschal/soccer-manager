@@ -7,6 +7,7 @@ export default {
   'nav.transfers': 'Transfers',
   'nav.logout': 'Abmelden',
   'nav.day': 'Spieltag {gameDay} ({season})',
+  'nav.seasonEnd': 'Saisonende',
   'nav.run': 'Start',
   'nav.running': 'Läuft...',
   'nav.settings': 'Einstellungen',

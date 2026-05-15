@@ -268,6 +268,7 @@ describe('results routes', () => {
       query
         .mockResolvedValueOnce([])  // last played
         .mockResolvedValueOnce([])  // cup today
+        .mockResolvedValueOnce([{ unplayedCount: 12 }])  // unplayed count
 
       const result = await handlers.getCurrentGameday()
 
@@ -276,8 +277,21 @@ describe('results routes', () => {
         season: 1,
         cupRoundToday: null,
         userMatchDayToday: null,
-        userNextMatchDay: null
+        userNextMatchDay: null,
+        isSeasonEnd: false
       })
+    })
+
+    it('flags isSeasonEnd when no unplayed games remain', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 42, season: 4 })
+      query
+        .mockResolvedValueOnce([])  // last played
+        .mockResolvedValueOnce([])  // cup today
+        .mockResolvedValueOnce([{ unplayedCount: 0 }])
+
+      const result = await handlers.getCurrentGameday()
+
+      expect(result.isSeasonEnd).toBe(true)
     })
 
     it('includes lastPlayedLeagueMatchDay when a league game has been played', async () => {
@@ -285,6 +299,7 @@ describe('results routes', () => {
       query
         .mockResolvedValueOnce([{ game_day: 5, match_day: 4, season: 1 }])  // last played
         .mockResolvedValueOnce([])  // cup today
+        .mockResolvedValueOnce([{ unplayedCount: 12 }])
 
       const result = await handlers.getCurrentGameday()
 
@@ -297,6 +312,7 @@ describe('results routes', () => {
       query
         .mockResolvedValueOnce([])                       // last played
         .mockResolvedValueOnce([{ cup_round: 8 }])       // cup today
+        .mockResolvedValueOnce([{ unplayedCount: 12 }])
       getTotalRoundsForSeason.mockResolvedValue(7)
 
       const result = await handlers.getCurrentGameday()
@@ -313,6 +329,7 @@ describe('results routes', () => {
         .mockResolvedValueOnce([])                       // cup today
         .mockResolvedValueOnce([{ match_day: 4 }])       // today's match day for user league
         .mockResolvedValueOnce([{ match_day: 4 }])       // next upcoming match day
+        .mockResolvedValueOnce([{ unplayedCount: 12 }])
 
       const req = createMockRequest()
       const result = await handlers.getCurrentGameday(req)
@@ -329,6 +346,7 @@ describe('results routes', () => {
         .mockResolvedValueOnce([])                       // cup today
         .mockResolvedValueOnce([])                       // no league game today for user league
         .mockResolvedValueOnce([{ match_day: 29 }])      // next upcoming match day
+        .mockResolvedValueOnce([{ unplayedCount: 12 }])
 
       const req = createMockRequest()
       const result = await handlers.getCurrentGameday(req)
@@ -349,6 +367,7 @@ describe('results routes', () => {
         .mockResolvedValueOnce([])  // cup today
         .mockResolvedValueOnce([])  // user today
         .mockResolvedValueOnce([])  // user next
+        .mockResolvedValueOnce([{ unplayedCount: 12 }])
 
       const req = createMockRequest()
       const result = await handlers.getCurrentGameday(req)

@@ -7,14 +7,16 @@ import { t } from '../i18n/index.js'
  *  1. Cup round scheduled today → cup round name
  *  2. League match day for the user's league is happening today → "Spieltag X"
  *  3. User has an upcoming league match day → "Spieltag X" (next)
- *  4. Fallback to internal counter
+ *  4. Season has ended (no unplayed games anywhere) → "Saisonende"
+ *  5. Fallback to internal counter
  *
  * @param {{
  *   gameDay: number,
  *   season: number,
  *   cupRoundToday?: {cupRound: number, totalRounds: number}|null,
  *   userMatchDayToday?: number|null,
- *   userNextMatchDay?: number|null
+ *   userNextMatchDay?: number|null,
+ *   isSeasonEnd?: boolean
  * }} data
  * @returns {string}
  */
@@ -31,6 +33,9 @@ export function currentGamedayLabel (data) {
   const matchDay = data.userMatchDayToday ?? data.userNextMatchDay
   if (matchDay) {
     return t('nav.day', { gameDay: matchDay, season: (data.season ?? 0) + 1 })
+  }
+  if (data.isSeasonEnd) {
+    return t('nav.seasonEnd')
   }
   return t('nav.day', { gameDay: (data.gameDay ?? 0) + 1, season: (data.season ?? 0) + 1 })
 }
