@@ -366,7 +366,7 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
  * @returns {Promise<object>}
  */
 async function _getFriendlyStadiumEarnings (teamA, teamB, strengthTeamA, strengthTeamB, gameDay, season) {
-  const strengthFactor = (strengthTeamA || 0) * (strengthTeamB || 0)
+  const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 80
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [teamA.id])
 
   if (!stadium) {

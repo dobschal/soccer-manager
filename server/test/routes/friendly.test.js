@@ -147,6 +147,75 @@ describe('friendly routes', () => {
       expect(typeof result.game.goalsTeam1).toBe('number')
       expect(typeof result.game.goalsTeam2).toBe('number')
     })
+
+    it('does not sell out the stadium at high ticket prices', async () => {
+      const req = createMockRequest()
+      const myTeam = testData.team({ id: 1, user_id: 1, name: 'My FC' })
+      const opponentTeam = testData.team({ id: 2, user_id: null, name: 'Opponent FC' })
+      const standSize = 200
+      const price = 30
+      const stadium = testData.stadium({
+        team_id: 1,
+        north_stand_size: standSize,
+        south_stand_size: standSize,
+        east_stand_size: standSize,
+        west_stand_size: standSize,
+        north_stand_price: price,
+        south_stand_price: price,
+        east_stand_price: price,
+        west_stand_price: price
+      })
+
+      const myPlayers = Array.from({ length: 11 }, (_, i) =>
+        testData.player({
+          id: i + 1,
+          team_id: 1,
+          position: i === 0 ? 'GK' : 'CM',
+          in_game_position: i === 0 ? 'GK' : 'CM',
+          freshness: 1,
+          level: 5
+        })
+      )
+      const opponentPlayers = Array.from({ length: 11 }, (_, i) =>
+        testData.player({
+          id: i + 100,
+          team_id: 2,
+          position: i === 0 ? 'GK' : 'CM',
+          in_game_position: i === 0 ? 'GK' : 'CM',
+          freshness: 1,
+          level: 5
+        })
+      )
+
+      getTeam.mockResolvedValue(myTeam)
+      getTeamById.mockResolvedValue(opponentTeam)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+
+      query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(myPlayers)
+        .mockResolvedValueOnce(opponentPlayers)
+        .mockResolvedValueOnce([stadium])
+      for (let i = 0; i < 11; i++) query.mockResolvedValueOnce()
+      query.mockResolvedValueOnce({ insertId: 999 })
+
+      updateTeamBalance.mockResolvedValue()
+
+      const result = await handlers.playFriendlyMatch(2, req)
+      const stadiumDetails = result.game.details.stadiumDetails
+
+      // With strength 55 vs 55 and price=30 the stands must not fill up. If the
+      // strength factor is not normalized, attendance caps at stand size and
+      // every stand sells out regardless of price.
+      for (const stand of ['north', 'south', 'east', 'west']) {
+        expect(stadiumDetails[`${stand}Guests`]).toBeLessThan(standSize)
+      }
+
+      // Total earnings paid out must reflect the actual (non-sold-out) attendance.
+      const soldOutEarnings = 4 * standSize * price
+      const earnings = updateTeamBalance.mock.calls[0][1]
+      expect(earnings).toBeLessThan(soldOutEarnings)
+    })
   })
 
   describe('canPlayFriendlyToday', () => {
