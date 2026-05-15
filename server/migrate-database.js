@@ -1669,6 +1669,93 @@ const migrations = [{
 
     console.log(`🏆 Backfilled season_title for ${completedSeasons.length} season(s), ${cupFinals.length} cup final(s)`)
   }
+}, {
+  // Before this migration, calculateConstructionEndDate hardcoded
+  // GAMEDAYS_PER_SEASON=34 and wrapped builds into the next season once
+  // start_day + duration > 34. Cup-day interleaving made the actual season
+  // 42 game days, so the wrap was premature and the affected stadium/building
+  // builds stayed stuck on "wird heute fertiggestellt" — completeXConstructions
+  // checks end_season < current_season, which was never true while still in
+  // the same real season. Recompute the correct end with the actual season
+  // length so they finish on schedule (some immediately on the next cron tick).
+  name: 'Fix stuck stadium and building constructions caused by hardcoded 34-day season wrap',
+  async run () {
+    const { calculateConstructionEndDate } = await import('./helper/stadiumHelper.js')
+    const { BUILDING_UPGRADES } = await import('./helper/buildingHelper.js')
+    const { getGameDayAndSeason } = await import('./helper/gameDayHelper.js')
+    const { season: currentSeason } = await getGameDayAndSeason()
+
+    let fixedStadiums = 0
+    const stands = ['north', 'south', 'east', 'west']
+    for (const stand of stands) {
+      const stuck = await query(`
+        SELECT s.id AS stadium_id,
+               s.${stand}_construction_end_game_day AS end_day,
+               s.${stand}_construction_end_season AS end_season,
+               h.started_game_day, h.started_season, h.old_size, h.new_size, h.added_roof
+        FROM stadium s
+        JOIN stadium_construction_history h
+          ON h.stadium_id = s.id AND h.stand = ? AND h.completed_game_day IS NULL
+        WHERE s.${stand}_construction_end_game_day IS NOT NULL
+      `, [stand])
+
+      for (const r of stuck) {
+        const seatsDiff = r.new_size - r.old_size
+        // Use the OLD formula here: users paid the OLD price for that duration.
+        const baseTime = Math.max(3, Math.ceil(seatsDiff / 1000))
+        const roofTime = r.added_roof ? 3 : 0
+        const duration = baseTime + roofTime
+        const { endGameDay, endSeason } = await calculateConstructionEndDate(
+          r.started_game_day, r.started_season, duration
+        )
+        if (endGameDay !== r.end_day || endSeason !== r.end_season) {
+          await query(
+            `UPDATE stadium SET ${stand}_construction_end_game_day=?, ${stand}_construction_end_season=? WHERE id=?`,
+            [endGameDay, endSeason, r.stadium_id]
+          )
+          fixedStadiums++
+        }
+      }
+    }
+
+    // Buildings: no started_* columns, so reverse-engineer the start from the
+    // buggy wrap. Max upgrade duration is 17 days < 34, so at most one wrap.
+    let fixedBuildings = 0
+    const stuckBuildings = await query(`
+      SELECT id, type, construction_target_level, construction_end_game_day, construction_end_season
+      FROM building
+      WHERE construction_end_game_day IS NOT NULL
+    `)
+    for (const b of stuckBuildings) {
+      const upgrade = BUILDING_UPGRADES[`${b.type}_${b.construction_target_level}`]
+      if (!upgrade) continue
+      const duration = upgrade.constructionDays
+      // Buggy total day count is preserved across the wrap: total = season*34 + day.
+      // start_total_buggy = end_total_buggy - duration. Pick the (season, day)
+      // representation that has the highest season ≤ currentSeason (builds can
+      // only be placed in the current season or earlier). startDay may exceed
+      // 34 — that's fine, the buggy wrap is undone here so the new logic can
+      // re-wrap using the actual season length.
+      const endTotalBuggy = b.construction_end_season * 34 + b.construction_end_game_day
+      const startTotalBuggy = endTotalBuggy - duration
+      let startSeason = currentSeason
+      let startDay = startTotalBuggy - startSeason * 34
+      while (startDay < 0 && startSeason > 0) {
+        startSeason--
+        startDay += 34
+      }
+      const { endGameDay, endSeason } = await calculateConstructionEndDate(startDay, startSeason, duration)
+      if (endGameDay !== b.construction_end_game_day || endSeason !== b.construction_end_season) {
+        await query(
+          'UPDATE building SET construction_end_game_day=?, construction_end_season=? WHERE id=?',
+          [endGameDay, endSeason, b.id]
+        )
+        fixedBuildings++
+      }
+    }
+
+    console.log(`🛠️ Fixed ${fixedStadiums} stuck stadium stand(s) and ${fixedBuildings} stuck building(s)`)
+  }
 }]
 
 /**

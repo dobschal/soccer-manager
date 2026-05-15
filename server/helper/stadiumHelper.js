@@ -1,13 +1,12 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getGameDayAndSeason } from './gameDayHelper.js'
+import { getGameDayAndSeason, getSeasonGameDayCount } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { getTeam } from './teamHelper.js'
 import { addLogMessage } from './logMessageHelper.js'
 import { getUserLocale, t } from '../i18n/index.js'
 import { cityNames } from '../lib/name-library.js'
 
-const GAMEDAYS_PER_SEASON = 34
 const _cityNameSet = new Set(cityNames)
 
 /**
@@ -50,32 +49,39 @@ export async function getStadiumOfCurrentUser (req) {
  */
 export function calculateConstructionTime (currentSize, targetSize, currentRoof, targetRoof) {
   const seatsDiff = targetSize - currentSize
-  const baseTime = Math.max(3, Math.ceil(seatsDiff / 1000))
+  const baseTime = Math.max(4, Math.ceil(seatsDiff / 600))
   const addingRoof = !currentRoof && targetRoof
   const roofTime = addingRoof ? 3 : 0
   return baseTime + roofTime
 }
 
 /**
- * Calculates the end gameday and season for construction
+ * Calculates the end gameday and season for construction. Wraps into the
+ * next season(s) when needed, using the actual length of each season
+ * (cup rounds make seasons longer than the league-only 34 days).
+ *
  * @param {number} gameDay - Current gameday
  * @param {number} season - Current season
  * @param {number} constructionDays - Number of gamedays for construction
- * @returns {{endGameDay: number, endSeason: number}}
+ * @returns {Promise<{endGameDay: number, endSeason: number}>}
  */
-export function calculateConstructionEndDate (gameDay, season, constructionDays) {
-  let endGameDay = gameDay + constructionDays
-  let endSeason = season
+export async function calculateConstructionEndDate (gameDay, season, constructionDays) {
+  let curDay = gameDay
+  let curSeason = season
+  let remaining = constructionDays
 
-  while (endGameDay > GAMEDAYS_PER_SEASON) {
-    endGameDay -= GAMEDAYS_PER_SEASON
-    endSeason++
+  while (remaining > 0) {
+    const seasonMaxDay = await getSeasonGameDayCount(curSeason)
+    const daysLeftInSeason = seasonMaxDay - curDay
+    if (remaining <= daysLeftInSeason) {
+      return { endGameDay: curDay + remaining, endSeason: curSeason }
+    }
+    remaining -= daysLeftInSeason
+    curSeason++
+    curDay = 0
   }
 
-  return {
-    endGameDay,
-    endSeason
-  }
+  return { endGameDay: curDay, endSeason: curSeason }
 }
 
 /**
@@ -90,13 +96,39 @@ export function isStandUnderConstruction (stadium, standName) {
 }
 
 /**
+ * Compute remaining game days between (currentSeason, currentGameDay) and
+ * (endSeason, endGameDay), accounting for actual season lengths.
+ *
+ * @param {number} currentGameDay
+ * @param {number} currentSeason
+ * @param {number} endGameDay
+ * @param {number} endSeason
+ * @returns {Promise<number>}
+ */
+async function _remainingGameDays (currentGameDay, currentSeason, endGameDay, endSeason) {
+  if (endSeason < currentSeason) return 0
+  if (endSeason === currentSeason) return Math.max(0, endGameDay - currentGameDay)
+  let total = 0
+  let curDay = currentGameDay
+  let curSeason = currentSeason
+  while (curSeason < endSeason) {
+    const seasonMaxDay = await getSeasonGameDayCount(curSeason)
+    total += Math.max(0, seasonMaxDay - curDay)
+    curSeason++
+    curDay = 0
+  }
+  total += endGameDay
+  return total
+}
+
+/**
  * Gets construction info for all stands
  * @param {StadiumType} stadium
  * @param {number} currentGameDay
  * @param {number} currentSeason
- * @returns {Object} Construction info per stand
+ * @returns {Promise<Object>} Construction info per stand
  */
-export function getConstructionInfo (stadium, currentGameDay, currentSeason) {
+export async function getConstructionInfo (stadium, currentGameDay, currentSeason) {
   const stands = ['north', 'south', 'east', 'west']
   const info = {}
 
@@ -107,11 +139,7 @@ export function getConstructionInfo (stadium, currentGameDay, currentSeason) {
     if (endGameDay === null || endGameDay === undefined) {
       info[stand] = { underConstruction: false }
     } else {
-      // Construction fields are still set, so completion hasn't run yet.
-      // Show as under construction until completeStadiumConstructions clears the fields.
-      const currentTotal = currentSeason * GAMEDAYS_PER_SEASON + currentGameDay
-      const endTotal = endSeason * GAMEDAYS_PER_SEASON + endGameDay
-      const remaining = Math.max(0, endTotal - currentTotal)
+      const remaining = await _remainingGameDays(currentGameDay, currentSeason, endGameDay, endSeason)
 
       info[stand] = {
         underConstruction: true,
@@ -273,7 +301,7 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
     const {
       endGameDay,
       endSeason
-    } = calculateConstructionEndDate(gameDay, season, constructionDays)
+    } = await calculateConstructionEndDate(gameDay, season, constructionDays)
 
     updateFields[`${stand}_construction_end_game_day`] = endGameDay
     updateFields[`${stand}_construction_end_season`] = endSeason
@@ -317,5 +345,5 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
 
   // Return updated construction info
   const updatedStadium = { ...currentStadium, ...updateFields }
-  return { constructionInfo: getConstructionInfo(updatedStadium, gameDay, season) }
+  return { constructionInfo: await getConstructionInfo(updatedStadium, gameDay, season) }
 }

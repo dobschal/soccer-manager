@@ -29,7 +29,7 @@ export default {
   async getStadium (req) {
     const stadium = await getStadiumOfCurrentUser(req)
     const { gameDay, season } = await getGameDayAndSeason()
-    const constructionInfo = getConstructionInfo(stadium, gameDay, season)
+    const constructionInfo = await getConstructionInfo(stadium, gameDay, season)
     return { stadium, constructionInfo }
   },
 

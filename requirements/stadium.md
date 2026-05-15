@@ -45,9 +45,9 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 
 ### Bauzeit
 
-- **TA-STD-13**: Bauzeit: `max(3, ceil(sitzDifferenz / 1000))` Spieltage.
+- **TA-STD-13**: Bauzeit: `max(4, ceil(sitzDifferenz / 600))` Spieltage.
 - **TA-STD-14**: Dach-Aufschlag: +3 Spieltage.
-- **TA-STD-15**: Bauarbeiten koennen Saisongrenzen ueberschreiten.
+- **TA-STD-15**: Bauarbeiten koennen Saisongrenzen ueberschreiten. Die tatsaechliche Saisonlaenge (Liga- plus Pokal-Spieltage) wird beim Berechnen des End-Spieltags beruecksichtigt, sodass Bauten mit gleicher Dauer unabhaengig vom Startzeitpunkt gleich lange dauern.
 - **TA-STD-16**: `completeStadiumConstructions()` prueft bei jedem Spieltag auf fertige Bauten.
 
 ### Datenbank

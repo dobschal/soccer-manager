@@ -6,7 +6,10 @@ vi.mock('../../lib/database.js', () => ({
 }))
 
 vi.mock('../../helper/gameDayHelper.js', () => ({
-  getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 5, season: 1 })
+  getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 5, season: 1 }),
+  // Default season length used by getBuildingConstructionInfo's cross-season
+  // remaining calculation. Tests can override via mockResolvedValueOnce.
+  getSeasonGameDayCount: vi.fn().mockResolvedValue(34)
 }))
 
 vi.mock('../../helper/financeHelper.js', () => ({
@@ -23,7 +26,7 @@ vi.mock('../../i18n/index.js', () => ({
 }))
 
 vi.mock('../../helper/stadiumHelper.js', () => ({
-  calculateConstructionEndDate: vi.fn().mockReturnValue({ endGameDay: 10, endSeason: 1 })
+  calculateConstructionEndDate: vi.fn().mockResolvedValue({ endGameDay: 10, endSeason: 1 })
 }))
 
 import { query } from '../../lib/database.js'
@@ -128,15 +131,15 @@ describe('buildingHelper', () => {
   })
 
   describe('getBuildingConstructionInfo', () => {
-    it('returns underConstruction: false when no construction data', () => {
+    it('returns underConstruction: false when no construction data', async () => {
       const building = testData.building()
 
-      const info = getBuildingConstructionInfo(building, 5, 1)
+      const info = await getBuildingConstructionInfo(building, 5, 1)
 
       expect(info.underConstruction).toBe(false)
     })
 
-    it('returns underConstruction: true with remaining days', () => {
+    it('returns underConstruction: true with remaining days', async () => {
       const building = testData.building({
         construction_end_game_day: 15,
         construction_end_season: 1,
@@ -144,38 +147,36 @@ describe('buildingHelper', () => {
       })
 
       // Current: day 10, season 1. End: day 15, season 1. Remaining: 5
-      const info = getBuildingConstructionInfo(building, 10, 1)
+      const info = await getBuildingConstructionInfo(building, 10, 1)
 
       expect(info.underConstruction).toBe(true)
       expect(info.remainingGameDays).toBe(5)
       expect(info.targetLevel).toBe(2)
     })
 
-    it('returns 0 remaining when end day reached', () => {
+    it('returns 0 remaining when end day reached', async () => {
       const building = testData.building({
         construction_end_game_day: 10,
         construction_end_season: 1,
         construction_target_level: 2
       })
 
-      const info = getBuildingConstructionInfo(building, 10, 1)
+      const info = await getBuildingConstructionInfo(building, 10, 1)
 
       expect(info.underConstruction).toBe(true)
       expect(info.remainingGameDays).toBe(0)
     })
 
-    it('handles cross-season construction', () => {
+    it('handles cross-season construction using actual season length', async () => {
       const building = testData.building({
         construction_end_game_day: 5,
         construction_end_season: 2,
         construction_target_level: 3
       })
 
-      // Current: day 30, season 1. End: day 5, season 2.
-      // Current total: 1*34 + 30 = 64
-      // End total: 2*34 + 5 = 73
-      // Remaining: 9
-      const info = getBuildingConstructionInfo(building, 30, 1)
+      // Current: (1, 30). End: (2, 5). Default mock returns season length = 34.
+      // Days left in season 1: 34 - 30 = 4. Plus 5 days in season 2 = 9.
+      const info = await getBuildingConstructionInfo(building, 30, 1)
 
       expect(info.underConstruction).toBe(true)
       expect(info.remainingGameDays).toBe(9)

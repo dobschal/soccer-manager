@@ -1,12 +1,10 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
-import { getGameDayAndSeason } from './gameDayHelper.js'
+import { getGameDayAndSeason, getSeasonGameDayCount } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { addLogMessage } from './logMessageHelper.js'
 import { getUserLocale, t } from '../i18n/index.js'
 import { calculateConstructionEndDate } from './stadiumHelper.js'
-
-const GAMEDAYS_PER_SEASON = 34
 
 /**
  * Upgrade costs and construction times per building type and target level.
@@ -116,22 +114,39 @@ export async function getAllFitnessStudioLevels () {
  * @param {BuildingType} building
  * @param {number} currentGameDay
  * @param {number} currentSeason
- * @returns {{underConstruction: boolean, remainingGameDays?: number, endGameDay?: number, endSeason?: number, targetLevel?: number}}
+ * @returns {Promise<{underConstruction: boolean, remainingGameDays?: number, endGameDay?: number, endSeason?: number, targetLevel?: number}>}
  */
-export function getBuildingConstructionInfo (building, currentGameDay, currentSeason) {
+export async function getBuildingConstructionInfo (building, currentGameDay, currentSeason) {
   if (building.construction_end_game_day === null || building.construction_end_game_day === undefined) {
     return { underConstruction: false }
   }
 
-  const currentTotal = currentSeason * GAMEDAYS_PER_SEASON + currentGameDay
-  const endTotal = building.construction_end_season * GAMEDAYS_PER_SEASON + building.construction_end_game_day
-  const remaining = Math.max(0, endTotal - currentTotal)
+  const endGameDay = building.construction_end_game_day
+  const endSeason = building.construction_end_season
+
+  let remaining
+  if (endSeason < currentSeason) {
+    remaining = 0
+  } else if (endSeason === currentSeason) {
+    remaining = Math.max(0, endGameDay - currentGameDay)
+  } else {
+    let total = 0
+    let curDay = currentGameDay
+    let curSeason = currentSeason
+    while (curSeason < endSeason) {
+      const seasonMaxDay = await getSeasonGameDayCount(curSeason)
+      total += Math.max(0, seasonMaxDay - curDay)
+      curSeason++
+      curDay = 0
+    }
+    remaining = total + endGameDay
+  }
 
   return {
     underConstruction: true,
     remainingGameDays: remaining,
-    endGameDay: building.construction_end_game_day,
-    endSeason: building.construction_end_season,
+    endGameDay,
+    endSeason,
     targetLevel: building.construction_target_level
   }
 }
@@ -171,7 +186,7 @@ export async function upgradeBuilding (team, buildingType, locale) {
     throw new BadRequestError(t('error.notEnoughMoney', {}, locale))
   }
 
-  const { endGameDay, endSeason } = calculateConstructionEndDate(gameDay, season, upgrade.constructionDays)
+  const { endGameDay, endSeason } = await calculateConstructionEndDate(gameDay, season, upgrade.constructionDays)
 
   const reason = t('finance.buildingUpgrade', {}, locale)
   await updateTeamBalance(team, upgrade.cost * -1, reason, gameDay, season)

@@ -15,10 +15,10 @@ export default {
     const { gameDay, season } = await getGameDayAndSeason()
     const buildings = await getBuildingsForTeam(team.id)
 
-    const buildingsWithInfo = buildings.map(b => ({
+    const buildingsWithInfo = await Promise.all(buildings.map(async b => ({
       ...b,
-      constructionInfo: getBuildingConstructionInfo(b, gameDay, season)
-    }))
+      constructionInfo: await getBuildingConstructionInfo(b, gameDay, season)
+    })))
 
     return {
       buildings: buildingsWithInfo,
