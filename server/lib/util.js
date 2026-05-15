@@ -71,10 +71,16 @@ export function calculateStanding (games, teams) {
     }
   }
   for (const game of games) {
-    if (game.is_forfeit) continue
     const s1 = standing[game.team_1_id]
     const s2 = standing[game.team_2_id]
     if (!s1 || !s2) continue
+    // Forfeit games (mid-season league backfill or no-player walkovers) count
+    // toward games played but award no points/goals/wins/draws/losses.
+    if (game.is_forfeit) {
+      s1.games++
+      s2.games++
+      continue
+    }
     if (game.goals_team_1 > game.goals_team_2) {
       s1.points += 3
       s1.wins++

@@ -56,7 +56,26 @@ describe('results routes', () => {
       const req = createMockRequest()
       const result = await handlers.getResults(5, 1, 1, 1, req)
 
-      expect(result).toEqual({ results, isCupGameDay: false, cupRound: null })
+      expect(result).toEqual({
+        results: [{ ...results[0], isForfeit: false }],
+        isCupGameDay: false,
+        cupRound: null
+      })
+    })
+
+    it('flags forfeit games as isForfeit=true', async () => {
+      const team = testData.team({ level: 1, league: 1 })
+      const results = [
+        { id: 9, goalsTeam1: 0, goalsTeam2: 0, team1: 'Team A', team2: 'Team B', isForfeit: 1 }
+      ]
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValueOnce([{ game_day: 4 }]).mockResolvedValueOnce(results).mockResolvedValueOnce([])
+
+      const req = createMockRequest()
+      const result = await handlers.getResults(5, 1, 1, 1, req)
+
+      expect(result.results[0].isForfeit).toBe(true)
     })
 
     it('uses team level and league when not specified', async () => {

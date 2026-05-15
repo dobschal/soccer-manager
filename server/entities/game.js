@@ -12,7 +12,7 @@
  * @property {number} goals_team_1
  * @property {number} goals_team_2
  * @property {string} created_at
- * @property {number} [is_forfeit] - 1 if the game was awarded as a forfeit (no points awarded)
+ * @property {number} [is_forfeit] - 1 if the game was awarded as a forfeit (counts toward games played in the standing but awards no points/goals)
  */
 
 import { checkType, OptionalNumber, OptionalObject, RequiredNumber, RequiredString } from '../lib/type-checker.js'

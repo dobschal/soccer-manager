@@ -153,12 +153,12 @@ describe('calculateStanding', () => {
     expect(standing.find(s => s.team.id === 1).games).toBe(1)
   })
 
-  it('skips forfeit games entirely (no points, no goals, no game count)', () => {
+  it('counts forfeit games toward games played but awards no points or goals', () => {
     const teams = [makeTeam(1), makeTeam(2), makeTeam(3)]
     const games = [
       makeGame(1, 2, 2, 1), // normal: team 1 wins
-      makeGame(2, 3, 0, 0, { is_forfeit: 1 }), // forfeit: ignored
-      makeGame(1, 3, 0, 0, { is_forfeit: 1 }) // forfeit: ignored
+      makeGame(2, 3, 0, 0, { is_forfeit: 1 }), // forfeit: counted as a game only
+      makeGame(1, 3, 0, 0, { is_forfeit: 1 }) // forfeit: counted as a game only
     ]
 
     const standing = calculateStanding(games, teams)
@@ -167,17 +167,19 @@ describe('calculateStanding', () => {
     const team3 = standing.find(s => s.team.id === 3)
 
     expect(team1.points).toBe(3)
-    expect(team1.games).toBe(1)
+    expect(team1.games).toBe(2) // win vs team 2 + forfeit vs team 3
     expect(team1.goals).toBe(2)
     expect(team1.against).toBe(1)
 
     expect(team2.points).toBe(0)
-    expect(team2.games).toBe(1) // only the loss vs team 1
+    expect(team2.games).toBe(2) // loss vs team 1 + forfeit vs team 3
     expect(team3.points).toBe(0)
-    expect(team3.games).toBe(0) // only forfeit games — not counted
+    expect(team3.games).toBe(2) // two forfeits
+    expect(team3.goals).toBe(0)
+    expect(team3.against).toBe(0)
   })
 
-  it('every team has 0 points when all games are forfeits', () => {
+  it('every team has 0 points but full games count when all games are forfeits', () => {
     const teams = Array.from({ length: 18 }, (_, i) => makeTeam(i + 1))
     const games = []
     for (let i = 0; i < teams.length; i++) {
@@ -189,7 +191,7 @@ describe('calculateStanding', () => {
     const standing = calculateStanding(games, teams)
     for (const entry of standing) {
       expect(entry.points).toBe(0)
-      expect(entry.games).toBe(0)
+      expect(entry.games).toBe(2 * (teams.length - 1))
       expect(entry.goals).toBe(0)
       expect(entry.against).toBe(0)
     }

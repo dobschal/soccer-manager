@@ -1756,6 +1756,28 @@ const migrations = [{
 
     console.log(`🛠️ Fixed ${fixedStadiums} stuck stadium stand(s) and ${fixedBuildings} stuck building(s)`)
   }
+}, {
+  // Standings now count forfeit games as games played (with no points/goals)
+  // and the results UI labels them "abges.". Cached standings were computed
+  // when forfeits were skipped entirely, so drop them for any league that has
+  // forfeit games and let getStanding recompute on next request.
+  name: 'Drop standing_cache for leagues with forfeit games',
+  async run () {
+    const leagues = await query(
+      'SELECT DISTINCT season, level, league FROM game WHERE is_forfeit=1'
+    )
+    let droppedRows = 0
+    for (const { season, level, league } of leagues) {
+      const dr = await query(
+        'DELETE FROM standing_cache WHERE season=? AND level=? AND league=?',
+        [season, level, league]
+      )
+      droppedRows += dr.affectedRows
+    }
+    if (droppedRows > 0) {
+      console.log(`🗑️ Dropped ${droppedRows} stale standing_cache row(s) for ${leagues.length} affected league(s)`)
+    }
+  }
 }]
 
 /**

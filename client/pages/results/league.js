@@ -567,8 +567,8 @@ export class LeagueResultsPage extends UIElement {
     const team1HasUser = Boolean(team1Data?.user_id)
     const team2HasUser = Boolean(team2Data?.user_id)
     const hasResult = typeof result.goalsTeam1 === 'number' && typeof result.goalsTeam2 === 'number'
-    const team1Won = hasResult && result.goalsTeam1 > result.goalsTeam2
-    const team2Won = hasResult && result.goalsTeam2 > result.goalsTeam1
+    const team1Won = !result.isForfeit && hasResult && result.goalsTeam1 > result.goalsTeam2
+    const team2Won = !result.isForfeit && hasResult && result.goalsTeam2 > result.goalsTeam1
 
     const userIcon = '<i class="fa fa-user fa-sm ms-1" aria-hidden="true"></i>'
 
@@ -578,9 +578,13 @@ export class LeagueResultsPage extends UIElement {
     const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team1)} ${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
     const team2Name = `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team2)} ${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
 
+    const score = result.isForfeit
+      ? `<span class="text-muted">${t('results.cancelled')}</span>`
+      : `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}`
+
     return [
       `${team1Name}${emblem1}`,
-      `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}`,
+      score,
       `${emblem2}${team2Name}`
     ]
   }

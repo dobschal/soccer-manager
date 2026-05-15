@@ -473,6 +473,7 @@ export default {
   'results.games': 'Spiele',
   'results.gamesPlayedAt': 'Hier sind die Ergebnisse vom {date}:',
   'results.diff': 'Diff',
+  'results.cancelled': 'abges.',
   'results.gameDay': 'Spieltag {day}',
   'results.gameDayLabel': 'Spieltag',
   'results.season': 'Saison',

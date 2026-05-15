@@ -401,6 +401,7 @@ export default {
                t2.name        as team2,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
+               g.is_forfeit   as isForfeit,
                g.details      as details,
                g.created_at   as created_at
         FROM game g
@@ -425,6 +426,7 @@ export default {
         const details = r.details ? JSON.parse(r.details) : {}
         return {
           ...r,
+          isForfeit: Boolean(r.isForfeit),
           strengthTeamA: details.strengthTeamA,
           strengthTeamB: details.strengthTeamB,
           details: undefined
