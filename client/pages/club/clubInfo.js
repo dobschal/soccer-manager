@@ -518,29 +518,11 @@ export class ClubInfoPage extends UIElement {
     } = nameLibrary
 
     const currentName = this.team.name
-    const nameParts = currentName.trim().split(' ')
+    const { prefix1, prefix2, city } = splitTeamName(currentName)
 
-    let selectedPrefix1 = ''
-    let selectedPrefix2 = ''
-    let selectedCity = ''
-
-    if (nameParts.length >= 3) {
-      const lastPart = nameParts[nameParts.length - 1]
-      const middlePart = nameParts[nameParts.length - 2]
-      const firstParts = nameParts.slice(0, -2).join(' ')
-
-      if (cityNames.includes(lastPart)) selectedCity = lastPart
-      if (clubPrefixes2.includes(middlePart)) selectedPrefix2 = middlePart
-      if (clubPrefixes1.includes(firstParts)) selectedPrefix1 = firstParts
-    } else if (nameParts.length === 2) {
-      const lastPart = nameParts[1]
-      const firstPart = nameParts[0]
-
-      if (cityNames.includes(lastPart)) selectedCity = lastPart
-      if (clubPrefixes2.includes(firstPart)) selectedPrefix2 = firstPart
-    } else if (nameParts.length === 1) {
-      if (cityNames.includes(nameParts[0])) selectedCity = nameParts[0]
-    }
+    const selectedPrefix1 = clubPrefixes1.includes(prefix1) ? prefix1 : ''
+    const selectedPrefix2 = clubPrefixes2.includes(prefix2) ? prefix2 : ''
+    const selectedCity = cityNames.includes(city) ? city : ''
 
     const prefix1SelectId = generateId()
     const prefix2SelectId = generateId()
@@ -555,14 +537,17 @@ export class ClubInfoPage extends UIElement {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;')
 
-    const updatePreview = () => {
+    const composeName = () => {
       const prefix1 = el(prefix1SelectId)?.value || ''
       const prefix2 = el(prefix2SelectId)?.value || ''
       const city = el(citySelectId)?.value || ''
-      const newName = `${prefix1} ${prefix2} ${city}`.trim()
+      return `${prefix1} ${prefix2} ${city}`.replace(/\s+/g, ' ').trim()
+    }
+
+    const updatePreview = () => {
       const previewEl = el(previewId)
       if (previewEl) {
-        previewEl.textContent = newName
+        previewEl.textContent = composeName()
       }
     }
 
@@ -598,10 +583,7 @@ export class ClubInfoPage extends UIElement {
 
     onClick(saveButtonId, async () => {
       try {
-        const prefix1 = el(prefix1SelectId)?.value || ''
-        const prefix2 = el(prefix2SelectId)?.value || ''
-        const city = el(citySelectId)?.value || ''
-        const newName = `${prefix1} ${prefix2} ${city}`.trim()
+        const newName = composeName()
 
         if (!newName) {
           toast(t('myTeam.selectNamePart'), 'error')

@@ -158,6 +158,11 @@ export function adjustBrightness (hex, percent) {
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)
 }
 
+// Leading prefixes from the name library that are spelled with an internal
+// space (e.g. "1. FC Berlin"). Without recognising them explicitly, the
+// generic split misreads "1. FC <city>" as prefix1="1.", prefix2="FC".
+export const COMPOUND_LEADING_PREFIXES = ['1. FC', '2. FC']
+
 /**
  * Split a generated team name (`prefix1 prefix2 city`) into its parts.
  * Falls back gracefully when one or both prefixes are missing.
@@ -168,8 +173,25 @@ export function adjustBrightness (hex, percent) {
  */
 export function splitTeamName (teamName) {
   if (!teamName) return { prefix1: '', prefix2: '', city: '' }
-  const parts = teamName.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return { prefix1: '', prefix2: '', city: '' }
+  const cleaned = teamName.trim().replace(/\s+/g, ' ')
+  if (!cleaned) return { prefix1: '', prefix2: '', city: '' }
+
+  const leading = COMPOUND_LEADING_PREFIXES.find(p =>
+    cleaned === p || cleaned.startsWith(p + ' ')
+  )
+  if (leading) {
+    const rest = cleaned.slice(leading.length).trim()
+    const restParts = rest ? rest.split(' ') : []
+    if (restParts.length === 0) return { prefix1: leading, prefix2: '', city: '' }
+    if (restParts.length === 1) return { prefix1: leading, prefix2: '', city: restParts[0] }
+    return {
+      prefix1: leading,
+      prefix2: restParts.slice(0, -1).join(' '),
+      city: restParts[restParts.length - 1]
+    }
+  }
+
+  const parts = cleaned.split(' ')
   if (parts.length === 1) return { prefix1: '', prefix2: '', city: parts[0] }
   if (parts.length === 2) return { prefix1: '', prefix2: parts[0], city: parts[1] }
   return {

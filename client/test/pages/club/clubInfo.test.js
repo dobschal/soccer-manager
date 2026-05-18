@@ -149,4 +149,52 @@ describe('ClubInfoPage', () => {
     expect(html).toContain('coach-avatar__img--default')
     expect(html).not.toContain('myTeam.removeAvatar')
   })
+
+  describe('team name editor', () => {
+    it('preselects the compound prefix "1. FC" when name is "1. FC <city>"', async () => {
+      const { showOverlay } = await import('../../../partials/overlay.js')
+      const team = testData.team({ name: '1. FC Berlin' })
+      const players = [testData.player({ fake: false })]
+      const user = testData.user()
+      server.getMyTeam.mockResolvedValue({ team, players, user })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+      server.getNameLibrary.mockResolvedValue({
+        clubPrefixes1: ['', '1. FC', '2. FC', 'FC', 'SV'],
+        clubPrefixes2: ['', 'United', 'Real', 'Power'],
+        cityNames: ['Berlin', 'Hamburg']
+      })
+
+      const page = new ClubInfoPage()
+      await page.load()
+      await page._showTeamNameEditor()
+
+      const overlayHtml = showOverlay.mock.calls.at(-1)[2]
+      expect(overlayHtml).toMatch(/value="1\. FC"\s+selected/)
+      expect(overlayHtml).toMatch(/value="Berlin"\s+selected/)
+      expect(overlayHtml).not.toMatch(/value="FC"\s+selected/)
+    })
+
+    it('preselects all three slots for 4-token names with a compound prefix', async () => {
+      const { showOverlay } = await import('../../../partials/overlay.js')
+      const team = testData.team({ name: '1. FC Power Berlin' })
+      const players = [testData.player({ fake: false })]
+      const user = testData.user()
+      server.getMyTeam.mockResolvedValue({ team, players, user })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+      server.getNameLibrary.mockResolvedValue({
+        clubPrefixes1: ['', '1. FC', '2. FC', 'FC', 'SV'],
+        clubPrefixes2: ['', 'United', 'Real', 'Power'],
+        cityNames: ['Berlin', 'Hamburg']
+      })
+
+      const page = new ClubInfoPage()
+      await page.load()
+      await page._showTeamNameEditor()
+
+      const overlayHtml = showOverlay.mock.calls.at(-1)[2]
+      expect(overlayHtml).toMatch(/value="1\. FC"\s+selected/)
+      expect(overlayHtml).toMatch(/value="Power"\s+selected/)
+      expect(overlayHtml).toMatch(/value="Berlin"\s+selected/)
+    })
+  })
 })
