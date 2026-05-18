@@ -147,7 +147,7 @@ export async function playActionCard ({
     await addLogMessage(t('log.cardLevelUp', {
       playerName: player.name,
       level: player.level
-    }, locale), team, null, null, 'level-up')
+    }, locale), team, null, null, 'level-up', undefined, 'success')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
@@ -155,7 +155,7 @@ export async function playActionCard ({
     const { season } = await getGameDayAndSeason()
     const youthPlayer = await createYouthPlayer(team.id, season)
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
-    await addLogMessage(t('log.cardYouth', { playerName: youthPlayer.name }, locale), team, null, null, 'child')
+    await addLogMessage(t('log.cardYouth', { playerName: youthPlayer.name }, locale), team, null, null, 'child', undefined, 'success')
     return { success: true }
   }
   if (actionCard.action === 'STAR_PLAYER') {
@@ -168,7 +168,7 @@ export async function playActionCard ({
     }
     await query('UPDATE player SET is_star_player=1 WHERE id=?', [player.id])
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
-    await addLogMessage(t('log.cardStarPlayer', { playerName: player.name }, locale), team, null, null, 'star')
+    await addLogMessage(t('log.cardStarPlayer', { playerName: player.name }, locale), team, null, null, 'star', undefined, 'success')
     await addPlayerHistory(player.id, 'STAR_PLAYER', '1')
     return { success: true }
   }
@@ -179,7 +179,7 @@ export async function playActionCard ({
     } = await getGameDayAndSeason()
     await updateTeamBalance(team, 100000, t('finance.actionCardBonus', {}, locale), gameDay, season)
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
-    await addLogMessage(t('log.cardMoney', { amount: '100,000€' }, locale), team, null, null, 'money')
+    await addLogMessage(t('log.cardMoney', { amount: '100,000€' }, locale), team, null, null, 'money', undefined, 'success')
     return { success: true }
   }
   if (actionCard.action === 'MOTIVATING_SPEECH') {
@@ -189,7 +189,7 @@ export async function playActionCard ({
     }
     await query('UPDATE team SET motivating_speech_active=1 WHERE id=?', [team.id])
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
-    await addLogMessage(t('log.cardMotivatingSpeech', {}, locale), team, null, null, 'bullhorn')
+    await addLogMessage(t('log.cardMotivatingSpeech', {}, locale), team, null, null, 'bullhorn', undefined, 'info')
     return { success: true }
   }
   throw new BadRequestError(t('error.invalidCardAction', {}, locale))

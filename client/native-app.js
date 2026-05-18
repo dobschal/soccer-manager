@@ -17,6 +17,8 @@ import { ForumPage } from './pages/forum.js'
 import { initLocale, t } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 import { toast } from './partials/toast.js'
+import { initSwipeBackNavigation } from './lib/swipeBackNavigation.js'
+import { initPullToRefresh } from './lib/pullToRefresh.js'
 
 installGlobalErrorHandler()
 
@@ -81,6 +83,16 @@ window.addEventListener('hashchange', () => {
 
 // Initialize locale from localStorage or browser settings
 initLocale()
+
+// Enable native-feeling edge swipe-back: swiping right from the left edge of
+// the screen calls history.back() so users can return through the navigation
+// chain (e.g. league → match → team → swipe → match → swipe → league).
+initSwipeBackNavigation()
+
+// Native-feeling pull-to-refresh: when scrolled to the top, swiping further
+// down reveals a bouncing-ball indicator; releasing past the arm threshold
+// reloads the webapp and lands on the same page.
+initPullToRefresh()
 
 // Connect WebSocket if user is authenticated
 if (window.localStorage.getItem('auth-token')) {

@@ -29,6 +29,7 @@ export class ForumPage extends UIElement {
           <a class="nav-link" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
           <a class="nav-link" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}</a>
           <a class="nav-link active" href="#forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
+          <a class="nav-link" href="#browse"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>
 
         <div class="forum-notice alert alert-info">

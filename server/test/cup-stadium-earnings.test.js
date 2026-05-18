@@ -17,9 +17,13 @@ vi.mock('../helper/sponsorHelper.js', () => ({
   getSponsor: vi.fn().mockResolvedValue({ sponsor: null })
 }))
 
-vi.mock('../helper/stadiumHelper.js', () => ({
-  completeStadiumConstructions: vi.fn()
-}))
+vi.mock('../helper/stadiumHelper.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    completeStadiumConstructions: vi.fn()
+  }
+})
 
 vi.mock('../helper/buildingHelper.js', () => ({
   completeBuildingConstructions: vi.fn(),

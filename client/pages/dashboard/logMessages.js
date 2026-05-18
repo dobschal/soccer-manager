@@ -7,6 +7,15 @@ import { t } from '../../i18n/index.js'
 import { renderPageNumbers } from '../../partials/pagination.js'
 
 const PAGE_SIZE = 10
+const VALID_TYPES = ['info', 'success', 'warning', 'danger']
+const HANDLED_ACTIONS = new Set([
+  'OPEN_PLAYER',
+  'OPEN_MY_TEAM_PAGE',
+  'OPEN_TEAM_PAGE',
+  'OPEN_INCOMING_OFFERS',
+  'OPEN_MARKET',
+  'OPEN_GAME'
+])
 
 export class LogMessages extends UIElement {
   /**
@@ -100,23 +109,25 @@ export class LogMessages extends UIElement {
    * @returns {string}
    */
   _renderMessage (message) {
-    const isToday = formatDate('WORDY hh:mm', message.created_at).toLowerCase().includes('today')
-    const hasAction = message.action
-    const actionAttrs = hasAction
+    const hasWorkingAction = message.action && HANDLED_ACTIONS.has(message.action)
+    const actionAttrs = hasWorkingAction
       ? `data-message-action="${message.action}" data-message-action-value="${message.action_value || ''}"`
       : ''
     const icon = message.icon || 'envelope'
+    const type = VALID_TYPES.includes(message.type) ? message.type : 'info'
 
     return `
-      <li class="list-group-item d-flex justify-content-between align-items-center ${isToday ? 'text-primary' : 'text-muted'}">
+      <li class="list-group-item list-group-item-${type} d-flex justify-content-between align-items-center">
         <div>
           <small>${formatDate('WORDY hh:mm', message.created_at)}</small><br>
           <i class="fa fa-${icon}" aria-hidden="true"></i> ${message.message}
         </div>
         <div class="d-flex">
-          <button class="btn btn-sm btn-outline-info ms-2${hasAction ? '' : ' disabled'}" ${actionAttrs} title="${t('log.viewMore')}">
+          ${hasWorkingAction
+    ? `<button class="btn btn-sm btn-outline-dark ms-2" ${actionAttrs} title="${t('log.viewMore')}">
             <i class="fa fa-external-link" aria-hidden="true"></i>
-          </button>
+          </button>`
+    : ''}
           <button class="btn btn-sm btn-outline-dark ms-2" data-delete-message="${message.id}" title="${t('log.delete')}">
             <i class="fa fa-trash" aria-hidden="true"></i>
           </button>
@@ -227,6 +238,14 @@ export class LogMessages extends UIElement {
         break
       case 'OPEN_INCOMING_OFFERS':
         goTo('trades?sub_page=incoming')
+        break
+      case 'OPEN_MARKET':
+        goTo('trades')
+        break
+      case 'OPEN_GAME':
+        if (actionValue) {
+          goTo(`results?game_id=${actionValue}`)
+        }
         break
       default:
         console.log('Unknown action:', action, actionValue)

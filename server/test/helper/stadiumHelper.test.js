@@ -6,7 +6,8 @@ import { query } from '../../lib/database.js'
 import {
   getConstructionInfo,
   calculateConstructionTime,
-  calculateConstructionEndDate
+  calculateConstructionEndDate,
+  calculateHomeAttendanceBonus
 } from '../../helper/stadiumHelper.js'
 
 /**
@@ -135,32 +136,32 @@ describe('stadiumHelper', () => {
   })
 
   describe('calculateConstructionTime', () => {
-    it('returns minimum 4 days for small expansions', () => {
+    it('returns minimum 8 days for small expansions', () => {
       const time = calculateConstructionTime(1000, 1500, false, false)
-      expect(time).toBe(4)
+      expect(time).toBe(8)
     })
 
-    it('returns 5 days for 3000 seats (per new formula)', () => {
-      // 3000 / 600 = 5 → max(4, 5) = 5
+    it('returns 10 days for 3000 seats (per new formula)', () => {
+      // 3000 / 300 = 10 → max(8, 10) = 10
       const time = calculateConstructionTime(1000, 4000, false, false)
-      expect(time).toBe(5)
-    })
-
-    it('scales linearly with seat difference above the minimum', () => {
-      // 6000 / 600 = 10
-      const time = calculateConstructionTime(0, 6000, false, false)
       expect(time).toBe(10)
     })
 
-    it('adds 3 days when adding roof', () => {
+    it('scales linearly with seat difference above the minimum', () => {
+      // 6000 / 300 = 20
+      const time = calculateConstructionTime(0, 6000, false, false)
+      expect(time).toBe(20)
+    })
+
+    it('adds 6 days when adding roof', () => {
       const timeWithoutRoof = calculateConstructionTime(1000, 2000, false, false)
       const timeWithRoof = calculateConstructionTime(1000, 2000, false, true)
-      expect(timeWithRoof).toBe(timeWithoutRoof + 3)
+      expect(timeWithRoof).toBe(timeWithoutRoof + 6)
     })
 
     it('does not add roof time when roof already exists', () => {
       const time = calculateConstructionTime(1000, 2000, true, true)
-      expect(time).toBe(4) // Base time only (min)
+      expect(time).toBe(8) // Base time only (min)
     })
   })
 
@@ -198,6 +199,60 @@ describe('stadiumHelper', () => {
       // season 3: ends at day 32.
       expect(endSeason).toBe(3)
       expect(endGameDay).toBe(32)
+    })
+  })
+
+  describe('calculateHomeAttendanceBonus', () => {
+    it('returns no modifier for an empty (capacity 0) input', () => {
+      const { bonusPct, multiplier } = calculateHomeAttendanceBonus(0, 0)
+      expect(bonusPct).toBe(0)
+      expect(multiplier).toBe(1)
+    })
+
+    it('gives +1% bonus for 6000 spectators in a fully-filled small stadium', () => {
+      const { bonusPct, multiplier } = calculateHomeAttendanceBonus(6000, 6000)
+      expect(bonusPct).toBeCloseTo(1, 6)
+      expect(multiplier).toBeCloseTo(1.01, 6)
+    })
+
+    it('gives +5% bonus for 30000 spectators in a fully-filled stadium', () => {
+      const { bonusPct } = calculateHomeAttendanceBonus(30000, 30000)
+      expect(bonusPct).toBeCloseTo(5, 6)
+    })
+
+    it('caps the positive bonus at +10% even when attendance exceeds 60000', () => {
+      const { bonusPct } = calculateHomeAttendanceBonus(120000, 120000)
+      expect(bonusPct).toBeCloseTo(10, 6)
+    })
+
+    it('applies a -10% malus when the stadium has capacity but is empty', () => {
+      const { bonusPct, multiplier } = calculateHomeAttendanceBonus(0, 50000)
+      expect(bonusPct).toBeCloseTo(-10, 6)
+      expect(multiplier).toBeCloseTo(0.9, 6)
+    })
+
+    it('applies a -5% malus at exactly 25% fill rate', () => {
+      const { bonusPct } = calculateHomeAttendanceBonus(2500, 10000)
+      // attendance bonus: 2500/6000 ≈ 0.4167%, malus: ((50-25)/50)*10 = 5%, net ≈ -4.58%
+      expect(bonusPct).toBeCloseTo(2500 / 6000 - 5, 6)
+    })
+
+    it('has no malus at exactly 50% fill rate', () => {
+      // 5000/10000 = 50% fill; small +0.83% from absolute attendance, no malus.
+      const { bonusPct, malusPct } = calculateHomeAttendanceBonus(5000, 10000)
+      expect(malusPct).toBe(0)
+      expect(bonusPct).toBeCloseTo(5000 / 6000, 6)
+    })
+
+    it('combines absolute bonus and fill-rate malus additively for big half-empty stadiums', () => {
+      // 60k capacity, 15k attendance: bonus 15000/6000 = 2.5%, fill 25% → malus 5%, net -2.5%
+      const { bonusPct } = calculateHomeAttendanceBonus(15000, 60000)
+      expect(bonusPct).toBeCloseTo(-2.5, 6)
+    })
+
+    it('handles undefined / negative inputs as zero', () => {
+      expect(calculateHomeAttendanceBonus(undefined, undefined).bonusPct).toBe(0)
+      expect(calculateHomeAttendanceBonus(-100, -100).bonusPct).toBe(0)
     })
   })
 })

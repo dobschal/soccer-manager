@@ -9,13 +9,25 @@ import { TabbedPage } from '../lib/TabbedPage.js'
 export class BrowsePage extends TabbedPage {
   get template () {
     const searchQuery = getQueryParams().search_query || ''
+    const subPageValue = this.subPage || ''
     return `
       <div>
         <nav class="nav nav-pills mb-4">
-          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#browse"><i class="fa fa-user"></i> ${t('search.players')}</a>
-          <a class="nav-link ${this.subPage === 'teams' ? 'active' : ''}" href="#browse?sub_page=teams"><i class="fa fa-users"></i> ${t('search.teams')}</a>
-          <a class="nav-link ${this.subPage === 'users' ? 'active' : ''}" href="#browse?sub_page=users"><i class="fa fa-id-card"></i> ${t('search.users')}</a>
+          <a class="nav-link" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
+          <a class="nav-link" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}</a>
+          <a class="nav-link" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
+          <a class="nav-link" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}</a>
+          <a class="nav-link" href="#forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
+          <a class="nav-link active" href="#browse"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>
+
+        <div class="mb-3">
+          <select id="browse-subpage-select" class="form-select">
+            <option value="" ${subPageValue === '' ? 'selected' : ''}>${t('search.players')}</option>
+            <option value="teams" ${subPageValue === 'teams' ? 'selected' : ''}>${t('search.teams')}</option>
+            <option value="users" ${subPageValue === 'users' ? 'selected' : ''}>${t('search.users')}</option>
+          </select>
+        </div>
 
         <div class="mb-3">
           <input
@@ -40,6 +52,11 @@ export class BrowsePage extends TabbedPage {
             setQueryParams({ search_query: e.target.value.trim() || null, page: null })
           }, 300)
         }
+      },
+      '#browse-subpage-select': {
+        change: (e) => {
+          setQueryParams({ sub_page: e.target.value || null, page: null })
+        }
       }
     }
   }
@@ -59,6 +76,11 @@ export class BrowsePage extends TabbedPage {
       await cached.update(true)
     }
   }
+  _updateNav () {
+    const select = document.querySelector(`${this._elementQuery} #browse-subpage-select`)
+    if (select) select.value = this.subPage || ''
+  }
+  
   get routeName () { return 'browse' }
   
   get defaultSubPageKey () { return 'players' }

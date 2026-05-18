@@ -46,7 +46,7 @@ export default {
     if (teamPlayers.length <= MIN_TEAM_SIZE) throw new BadRequestError(t('error.teamTooSmall', {}, locale))
     await query('UPDATE player SET team_id=NULL WHERE id=?', [player.id])
     await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
-    await addLogMessage(t('log.playerFired', { playerName: playerFromDb.name }, locale), team, null, null, 'user-times')
+    await addLogMessage(t('log.playerFired', { playerName: playerFromDb.name }, locale), team, null, null, 'user-times', undefined, 'info')
     await addPlayerHistory(player.id, 'FIRED', team.name)
     return { success: true }
   },
@@ -70,7 +70,7 @@ export default {
     const player = await getPlayerById(playerId)
     if (player.team_id) throw new BadRequestError(t('error.playerNotFound', {}, locale))
     await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
-    await addLogMessage(t('log.playerSigned', { playerName: player.name }, locale), team, null, null, 'pencil')
+    await addLogMessage(t('log.playerSigned', { playerName: player.name }, locale), team, null, null, 'pencil', undefined, 'success')
     await addPlayerHistory(playerId, 'HIRED', team.name)
   },
 

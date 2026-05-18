@@ -86,7 +86,9 @@ export default {
       team,
       null,
       null,
-      'arrow-up'
+      'arrow-up',
+      undefined,
+      'success'
     )
 
     return { success: true, player }
@@ -117,7 +119,9 @@ export default {
       team,
       null,
       null,
-      'user-times'
+      'user-times',
+      undefined,
+      'info'
     )
 
     return { success: true }

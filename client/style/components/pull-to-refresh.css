@@ -1,0 +1,39 @@
+.pull-to-refresh-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 50;
+    transform: translateY(-100%);
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.pull-to-refresh-indicator.active {
+    opacity: 1;
+}
+
+.pull-to-refresh-indicator.armed .ui-element-loading-ball {
+    animation-duration: 0.5s;
+}
+
+.pull-to-refresh-indicator .ui-element-loading-ball-wrapper {
+    width: 40px;
+    height: 56px;
+}
+
+.pull-to-refresh-indicator .ui-element-loading-ball {
+    width: 28px;
+    height: 28px;
+}
+
+.pull-to-refresh-indicator .ui-element-loading-shadow {
+    width: 24px;
+    height: 5px;
+    margin-left: -12px;
+}

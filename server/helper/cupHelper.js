@@ -480,7 +480,9 @@ export async function awardCupWinner (season, winnerTeamId) {
       team,
       null,
       null,
-      'trophy'
+      'trophy',
+      undefined,
+      'success'
     )
   }
 
@@ -805,7 +807,9 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
         team,
         'OPEN_GAME',
         game.id,
-        'trophy'
+        'trophy',
+        undefined,
+        'info'
       )
     } else if (won) {
       await addLogMessage(
@@ -818,7 +822,9 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
         team,
         'OPEN_GAME',
         game.id,
-        'trophy'
+        'trophy',
+        undefined,
+        'success'
       )
     } else {
       await addLogMessage(
@@ -830,7 +836,9 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
         team,
         'OPEN_GAME',
         game.id,
-        'trophy'
+        'trophy',
+        undefined,
+        'danger'
       )
     }
   }

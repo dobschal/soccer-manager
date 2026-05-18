@@ -18,6 +18,8 @@ import { connectWebSocket } from './lib/websocket.js'
 import { applyNoIndexOnSandbox, showSandboxBanner } from './partials/sandboxBanner.js'
 import { on } from './lib/event.js'
 import { initTabBarAnimations } from './lib/tabBarAnimation.js'
+import { initSwipeBackNavigation } from './lib/swipeBackNavigation.js'
+import { initPullToRefresh } from './lib/pullToRefresh.js'
 
 installGlobalErrorHandler()
 
@@ -35,6 +37,16 @@ on('page-changed', showSandboxBanner)
 // Animate sub-page tab bars on every page open: slide in from the left, then
 // peek-scroll right if there is hidden overflow, to hint that more tabs exist.
 initTabBarAnimations()
+
+// Enable native-feeling edge swipe-back: on touch devices, swiping right from
+// the left edge of the screen calls history.back() so users can return through
+// the navigation chain (e.g. league → match → team → swipe → match → swipe → league).
+initSwipeBackNavigation()
+
+// Native-feeling pull-to-refresh: when scrolled to the top, swiping further
+// down reveals a bouncing-ball indicator; releasing past the arm threshold
+// reloads the webapp and lands on the same page.
+initPullToRefresh()
 
 // Connect WebSocket if user is authenticated
 if (window.localStorage.getItem('auth-token')) {

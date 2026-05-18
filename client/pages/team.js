@@ -675,7 +675,7 @@ export class TeamPage extends UIElement {
     }
     const title = titleParts.join(' • ')
 
-    const emblemMarkup = `<div class="team-timeline__emblem-wrapper">${renderEmblem(opp, 44)}</div>`
+    const emblemMarkup = `<div class="team-timeline__emblem-wrapper">${renderEmblem(opp, 66)}</div>`
     const inner = `${emblemMarkup}${badgeHtml}`
 
     const dataAttr = !game.played && !this._timelineCurrentMarked ? 'data-timeline-current="1"' : ''

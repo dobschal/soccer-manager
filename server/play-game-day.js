@@ -7,7 +7,7 @@ import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances, deleteExpiredPendingCards } from './helper/actionCardHelper.js'
 import { generateNewsForGameDay } from './helper/newsHelper.js'
-import { completeStadiumConstructions } from './helper/stadiumHelper.js'
+import { completeStadiumConstructions, calculateHomeAttendanceBonus } from './helper/stadiumHelper.js'
 import {
   completeBuildingConstructions,
   FITNESS_STUDIO_CARD_CHANCES,
@@ -24,10 +24,10 @@ import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { CACHE_NAMESPACES, clearCacheByPrefix } from './lib/cache.js'
 import { progressCupRound, sendCupMatchLogMessages, validateAndProgressCupRounds } from './helper/cupHelper.js'
 import { recordCupWinnerForSeason, recordLeagueChampionsForSeason } from './helper/seasonTitleHelper.js'
-import { getPositionsOfFormation } from '../client/util/formation.js'
 import { kickoff, playGameStep } from './play-game.js'
 import { sendGameDayPushNotifications } from './helper/pushNotificationHelper.js'
 import { getCaptainStrengthMultiplier } from './helper/captainHelper.js'
+import { autoFillLineup, trimExcessLineup } from './helper/lineupHelper.js'
 
 /**
  * @param {object} [options]
@@ -139,10 +139,10 @@ async function _playCupGame (game) {
   let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured)
 
   // Trim excess players and auto-fill incomplete lineups before the game
-  playerTeamA = await _trimExcessLineup(teamA, playerTeamA)
-  playerTeamB = await _trimExcessLineup(teamB, playerTeamB)
-  playerTeamA = await _autoFillLineup(teamA, playerTeamA)
-  playerTeamB = await _autoFillLineup(teamB, playerTeamB)
+  playerTeamA = await trimExcessLineup(teamA, playerTeamA)
+  playerTeamB = await trimExcessLineup(teamB, playerTeamB)
+  playerTeamA = await autoFillLineup(teamA, playerTeamA)
+  playerTeamB = await autoFillLineup(teamB, playerTeamB)
 
   // If either side can't field anyone (e.g. inherited bot team emptied via
   // transfers before a user took over), forfeit instead of crashing later
@@ -248,6 +248,13 @@ async function _playCupGame (game) {
   if (!teamB.user_id) {
     for (const player of playerTeamB) {
       player.level *= 0.9
+    }
+  }
+  // Apply home-team attendance bonus / empty-stadium malus to teamA (the home side)
+  const cupHomeBonusMultiplier = stadiumDetails?.homeBonusMultiplier ?? 1
+  if (cupHomeBonusMultiplier !== 1) {
+    for (const player of playerTeamA) {
+      player.level *= cupHomeBonusMultiplier
     }
   }
   // Store effective strength after all modifiers for display
@@ -452,7 +459,9 @@ async function _recoverInjuredPlayers () {
             team,
             'OPEN_PLAYER',
             player.id,
-            'heartbeat'
+            'heartbeat',
+            undefined,
+            'success'
           )
         }
       }
@@ -579,6 +588,8 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
   const details = {}
   let totalEarnings = 0
   let totalCapacity = 0
+  let operationalCapacity = 0
+  let totalAttendance = 0
   for (const stand of stands) {
     const size = stadium[stand + '_stand_size'] || 0
     totalCapacity += size
@@ -591,6 +602,9 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
       details[stand + 'UnderConstruction'] = true
       continue
     }
+
+    // Only operational stands contribute to the fill-rate used for the home bonus
+    operationalCapacity += size
 
     const price = stadium[stand + '_stand_price'] || 0
 
@@ -605,13 +619,19 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
     const priceFactor = (15 / price) ** 2
     const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor))
     details[stand + 'Guests'] = amountOfGuests
+    totalAttendance += amountOfGuests
     const earnings = amountOfGuests * price
     details[stand + 'Earnings'] = earnings
     totalEarnings += earnings
   }
 
   details.totalCapacity = totalCapacity
+  details.totalAttendance = totalAttendance
   details.totalEarnings = totalEarnings
+
+  const homeBonus = calculateHomeAttendanceBonus(totalAttendance, operationalCapacity)
+  details.homeBonusPct = homeBonus.bonusPct
+  details.homeBonusMultiplier = homeBonus.multiplier
 
   // Final safety check - never pass NaN to balance update
   if (isNaN(totalEarnings)) {
@@ -623,116 +643,6 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
   const reason = t('finance.stadiumTicketEarnings', {}, locale)
   await updateTeamBalance(teamA, totalEarnings, reason, gameDay, season)
   return details
-}
-
-/**
- * Auto-fill incomplete lineup for a team before a game.
- * Finds missing positions and assigns random matching bench players.
- * @param {TeamType} team
- * @param {PlayerType[]} lineupPlayers - players currently in the lineup (non-suspended)
- * @returns {Promise<PlayerType[]>} updated lineup players
- */
-async function _autoFillLineup (team, lineupPlayers) {
-  const requiredPositions = getPositionsOfFormation(team.formation)
-  if (!requiredPositions) return lineupPlayers
-
-  // Count filled positions
-  const filledPositions = lineupPlayers.map(p => p.in_game_position)
-
-  // Find missing positions: for each required position, remove one matching filled position
-  const remainingFilled = [...filledPositions]
-  const missingPositions = []
-  for (const pos of requiredPositions) {
-    const idx = remainingFilled.indexOf(pos)
-    if (idx !== -1) {
-      remainingFilled.splice(idx, 1)
-    } else {
-      missingPositions.push(pos)
-    }
-  }
-
-  if (missingPositions.length === 0) return lineupPlayers
-
-  // Get all bench players (not in lineup, not suspended, not injured)
-  const benchPlayers = await query(
-    'SELECT * FROM player WHERE team_id=? AND (in_game_position=\'\' OR in_game_position IS NULL) AND is_suspended=0 AND is_injured=0',
-    [team.id]
-  )
-
-  const locale = team.user_id ? await getUserLocale(team.user_id) : 'en'
-  const addedPlayers = []
-
-  for (const position of missingPositions) {
-    // Try to find a bench player whose natural position matches
-    let candidates = benchPlayers.filter(p =>
-      p.position === position && !addedPlayers.includes(p.id)
-    )
-
-    // If no exact match, try any remaining bench player not yet assigned
-    if (candidates.length === 0) {
-      candidates = benchPlayers.filter(p => !addedPlayers.includes(p.id))
-    }
-
-    if (candidates.length === 0) break
-
-    const chosen = candidates[Math.floor(Math.random() * candidates.length)]
-    chosen.in_game_position = position
-    addedPlayers.push(chosen.id)
-
-    await query('UPDATE player SET in_game_position=? WHERE id=?', [position, chosen.id])
-
-    if (team.user_id) {
-      await addLogMessage(
-        t('log.lineupAutoFilled', { playerName: chosen.name, position }, locale),
-        team,
-        'OPEN_MY_TEAM_PAGE',
-        null,
-        'users'
-      )
-    }
-
-    lineupPlayers.push(chosen)
-  }
-
-  return lineupPlayers
-}
-
-/**
- * Trim lineup to match the formation's required positions. Any player whose
- * in_game_position does not match an available slot (e.g. position is no
- * longer in the formation, or the slot is already taken by another player)
- * is removed from the lineup.
- * @param {TeamType} team
- * @param {PlayerType[]} lineupPlayers
- * @returns {Promise<PlayerType[]>}
- */
-async function _trimExcessLineup (team, lineupPlayers) {
-  const requiredPositions = getPositionsOfFormation(team.formation)
-  if (!requiredPositions) return lineupPlayers
-
-  const kept = []
-  const remainingSlots = [...requiredPositions]
-
-  for (const player of lineupPlayers) {
-    const idx = remainingSlots.indexOf(player.in_game_position)
-    if (idx !== -1) {
-      kept.push(player)
-      remainingSlots.splice(idx, 1)
-    }
-  }
-
-  if (kept.length === lineupPlayers.length) return lineupPlayers
-
-  console.log(`Team ${team.name} had ${lineupPlayers.length - kept.length} mismatched lineup player(s) for formation ${team.formation} - trimming`)
-
-  const keptIds = new Set(kept.map(p => p.id))
-  for (const player of lineupPlayers) {
-    if (!keptIds.has(player.id)) {
-      await query('UPDATE player SET in_game_position=\'\' WHERE id=?', [player.id])
-    }
-  }
-
-  return kept
 }
 
 /**
@@ -776,10 +686,10 @@ async function _playGame (game) {
   let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured)
 
   // Trim excess players and auto-fill incomplete lineups before the game
-  playerTeamA = await _trimExcessLineup(teamA, playerTeamA)
-  playerTeamB = await _trimExcessLineup(teamB, playerTeamB)
-  playerTeamA = await _autoFillLineup(teamA, playerTeamA)
-  playerTeamB = await _autoFillLineup(teamB, playerTeamB)
+  playerTeamA = await trimExcessLineup(teamA, playerTeamA)
+  playerTeamB = await trimExcessLineup(teamB, playerTeamB)
+  playerTeamA = await autoFillLineup(teamA, playerTeamA)
+  playerTeamB = await autoFillLineup(teamB, playerTeamB)
 
   // If either side can't field anyone (e.g. inherited bot team emptied via
   // transfers before a user took over), forfeit 3:0 to the present team
@@ -880,6 +790,13 @@ async function _playGame (game) {
   if (!teamB.user_id) {
     for (const player of playerTeamB) {
       player.level *= 0.9
+    }
+  }
+  // Apply home-team attendance bonus / empty-stadium malus to teamA (the home side)
+  const homeBonusMultiplier = stadiumDetails?.homeBonusMultiplier ?? 1
+  if (homeBonusMultiplier !== 1) {
+    for (const player of playerTeamA) {
+      player.level *= homeBonusMultiplier
     }
   }
   // Store effective strength after all modifiers for display
@@ -993,7 +910,9 @@ async function _notifySuspension (player, team, cause) {
     team,
     'OPEN_PLAYER',
     player.id,
-    'ban'
+    'ban',
+    undefined,
+    'danger'
   )
 }
 
@@ -1063,7 +982,9 @@ async function _persistInjuries (gameDetails, teamA, teamB) {
         team,
         'OPEN_PLAYER',
         injury.playerId,
-        'medkit'
+        'medkit',
+        undefined,
+        'danger'
       )
     }
   }
@@ -1083,7 +1004,9 @@ async function _persistInjuries (gameDetails, teamA, teamB) {
           team,
           'OPEN_MY_TEAM_PAGE',
           null,
-          'exchange'
+          'exchange',
+          undefined,
+          'info'
         )
       }
     }

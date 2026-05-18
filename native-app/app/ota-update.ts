@@ -1,11 +1,20 @@
 import {ApplicationSettings, File, Folder, Http, knownFolders, path} from '@nativescript/core'
 
+// Injected by webpack (DefinePlugin in native-app/webpack.config.js).
+// true in `ns build --release`, false in `ns run ios|android` so local builds
+// aren't immediately overwritten by the prod webapp on launch.
+declare const __OTA_ENABLED__: boolean
+
 const SERVER_URL = 'https://footballmanager.io'
 const OTA_DIR_NAME = 'ota-web'
 const STAGING_DIR_NAME = 'ota-web-staging'
 const UPDATE_INSTALLED_KEY = 'ota_update_installed'
 const LOCAL_VERSION_KEY = 'ota_commit_hash'
 const BUNDLED_HASH_KEY = 'ota_bundled_hash'
+
+function isOtaEnabled(): boolean {
+    return typeof __OTA_ENABLED__ !== 'undefined' ? __OTA_ENABLED__ : true
+}
 
 function getOtaDir(): Folder {
     return knownFolders.documents().getFolder(OTA_DIR_NAME)
@@ -19,6 +28,7 @@ function getStagingDir(): Folder {
  * Returns true if a staged update is ready to be promoted.
  */
 export function hasStagedUpdate(): boolean {
+    if (!isOtaEnabled()) return false
     const stagingIndex = path.join(getStagingDir().path, 'index.html')
     return File.exists(stagingIndex)
 }
@@ -53,6 +63,7 @@ function copyFolderContents(src: Folder, dest: Folder): void {
  * content actually being updated.
  */
 export function promoteStagingIfReady(): boolean {
+    if (!isOtaEnabled()) return false
     const stagingDir = getStagingDir()
     const stagingIndex = path.join(stagingDir.path, 'index.html')
 
@@ -127,6 +138,23 @@ function clearOtaIfAppUpdated(): void {
  * Falls back to the bundled web assets.
  */
 export function getWebContentPath(): string {
+    const bundledPath = path.join(knownFolders.currentApp().path, 'web')
+
+    // Dev builds: ignore OTA entirely and clear any stale OTA/staging dirs
+    // from a previous release install, so the developer sees only the
+    // bundled assets.
+    if (!isOtaEnabled()) {
+        const otaDir = getOtaDir()
+        const stagingDir = getStagingDir()
+        if (Folder.exists(otaDir.path)) otaDir.removeSync()
+        if (Folder.exists(stagingDir.path)) stagingDir.removeSync()
+        // Reset the stored commit hash so a future release build doesn't
+        // think it's still on whatever OTA payload was previously cached.
+        ApplicationSettings.remove(LOCAL_VERSION_KEY)
+        console.log('[OTA] Disabled in dev build, using bundled web content from:', bundledPath)
+        return bundledPath
+    }
+
     // Clear OTA if native app binary was updated
     clearOtaIfAppUpdated()
 
@@ -141,7 +169,6 @@ export function getWebContentPath(): string {
         return otaDir.path
     }
 
-    const bundledPath = path.join(knownFolders.currentApp().path, 'web')
     console.log('[OTA] Using bundled web content from:', bundledPath)
     return bundledPath
 }
@@ -163,6 +190,10 @@ export function wasUpdateInstalled(): boolean {
  * downloads and extracts zip to a staging directory (never touching the active OTA dir).
  */
 export async function checkForUpdate(): Promise<void> {
+    if (!isOtaEnabled()) {
+        console.log('[OTA] Disabled in dev build, skipping update check')
+        return
+    }
     try {
         const versionUrl = `${SERVER_URL}/assets/native-version.json`
         console.log('[OTA] Checking for update at:', versionUrl)

@@ -1778,6 +1778,22 @@ const migrations = [{
       console.log(`🗑️ Dropped ${droppedRows} stale standing_cache row(s) for ${leagues.length} affected league(s)`)
     }
   }
+}, {
+  name: 'Add type column to log_message table',
+  async run () {
+    await query("ALTER TABLE log_message ADD COLUMN type VARCHAR(20) NOT NULL DEFAULT 'info';")
+  }
+}, {
+  name: 'Backfill log_message type column based on icon and content',
+  async run () {
+    // Warnings: explicit "Warning:"/"Warnung:" prefix or the warning icon.
+    await query("UPDATE log_message SET type='warning' WHERE type='info' AND (message LIKE 'Warning:%' OR message LIKE 'Warnung:%' OR icon='exclamation-triangle')")
+    // Danger: negative outcomes — relegations, injuries, suspensions, rejected offers, cup eliminations.
+    // Cup losses share the trophy icon with cup wins, so detect them by text first.
+    await query("UPDATE log_message SET type='danger' WHERE type='info' AND (icon IN ('arrow-down', 'medkit', 'ban', 'times-circle') OR message LIKE 'Pokal-Aus%' OR message LIKE 'Cup elimination%')")
+    // Success: positive outcomes — promotions, trophies, recoveries, signings, level-ups, money, star/youth/level cards.
+    await query("UPDATE log_message SET type='success' WHERE type='info' AND icon IN ('trophy', 'arrow-up', 'star', 'heartbeat', 'money', 'level-up', 'child', 'pencil')")
+  }
 }]
 
 /**

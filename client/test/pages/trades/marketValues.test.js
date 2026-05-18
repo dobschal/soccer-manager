@@ -223,8 +223,8 @@ describe('MarketValuesPage', () => {
       expect(calculateMarketValue(50, 22)).toBe(1_250_000)
     })
 
-    it('level 100, age 30 = floor(40M * 0.75^8)', () => {
-      const expected = Math.floor(40_000_000 * Math.pow(0.75, 8))
+    it('level 100, age 30 = floor(40M * 0.85^8)', () => {
+      const expected = Math.floor(40_000_000 * Math.pow(0.85, 8))
       expect(calculateMarketValue(100, 30)).toBe(expected)
     })
 

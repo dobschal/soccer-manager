@@ -148,6 +148,48 @@ describe('logMessageHelper', () => {
       const insertCall = query.mock.calls[0]
       expect(insertCall[1]).not.toHaveProperty('action_value')
     })
+
+    it('defaults type to "info" when not provided', async () => {
+      const team = testData.team()
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      query.mockResolvedValue({ insertId: 1 })
+
+      await addLogMessage('Simple message', team)
+
+      expect(query).toHaveBeenCalledWith(
+        'INSERT INTO log_message SET ?',
+        expect.objectContaining({ type: 'info' })
+      )
+    })
+
+    it('persists the provided type', async () => {
+      const team = testData.team()
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      query.mockResolvedValue({ insertId: 1 })
+
+      await addLogMessage('Promoted!', team, null, null, 'arrow-up', undefined, 'success')
+
+      expect(query).toHaveBeenCalledWith(
+        'INSERT INTO log_message SET ?',
+        expect.objectContaining({ type: 'success' })
+      )
+    })
+
+    it('falls back to "info" for an unknown type', async () => {
+      const team = testData.team()
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      query.mockResolvedValue({ insertId: 1 })
+
+      await addLogMessage('Weird type', team, null, null, undefined, undefined, 'not-a-type')
+
+      expect(query).toHaveBeenCalledWith(
+        'INSERT INTO log_message SET ?',
+        expect.objectContaining({ type: 'info' })
+      )
+    })
   })
 
   describe('getLogMessageCount', () => {

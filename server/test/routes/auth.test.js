@@ -175,7 +175,9 @@ describe('auth routes', () => {
         expect.objectContaining({ id: 50 }),
         null,
         null,
-        'hand-peace-o'
+        'hand-peace-o',
+        undefined,
+        'info'
       )
     })
 

@@ -93,8 +93,8 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
   })
   await query('INSERT INTO trade_history SET ?', historyItem)
 
-  await addLogMessage(t('log.playerSold', { playerName: player.name, buyerTeam: buyingTeam.name, price: offer.offer_value.toLocaleString() }, sellerLocale), sellingTeam, 'OPEN_TEAM_PAGE', buyingTeam.id, 'exchange')
-  await addLogMessage(t('log.playerBought', { playerName: player.name, sellerTeam: sellingTeam.name, price: offer.offer_value.toLocaleString() }, buyerLocale), buyingTeam, 'OPEN_PLAYER', player.id, 'exchange')
+  await addLogMessage(t('log.playerSold', { playerName: player.name, buyerTeam: buyingTeam.name, price: offer.offer_value.toLocaleString() }, sellerLocale), sellingTeam, 'OPEN_TEAM_PAGE', buyingTeam.id, 'exchange', undefined, 'success')
+  await addLogMessage(t('log.playerBought', { playerName: player.name, sellerTeam: sellingTeam.name, price: offer.offer_value.toLocaleString() }, buyerLocale), buyingTeam, 'OPEN_PLAYER', player.id, 'exchange', undefined, 'success')
   await addPlayerHistory(player.id, 'TRANSFER', buyingTeam.id)
 
   // Notify buying team via websocket
@@ -128,7 +128,7 @@ export async function declineOffer (offer) {
   const buyingTeam = await getTeamById(offer.from_team_id)
   const sellerTeam = await getTeamById(player.team_id)
   const locale = buyingTeam.user_id ? await getUserLocale(buyingTeam.user_id) : 'en'
-  await addLogMessage(t('log.offerRejected', { playerName: player.name }, locale), buyingTeam, 'OPEN_PLAYER', player.id, 'times-circle')
+  await addLogMessage(t('log.offerRejected', { playerName: player.name }, locale), buyingTeam, 'OPEN_PLAYER', player.id, 'times-circle', undefined, 'danger')
 
   // Notify the buying team via websocket
   await sendToTeam(buyingTeam.id, 'BUY_OFFER_REJECTED', {

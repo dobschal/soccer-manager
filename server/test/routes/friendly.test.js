@@ -24,6 +24,10 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key) => key)
 }))
 
+vi.mock('../../helper/logMessageHelper.js', () => ({
+  addLogMessage: vi.fn()
+}))
+
 vi.mock('../../lib/errors.js', () => ({
   BadRequestError: class BadRequestError {
     constructor (message) {
@@ -43,6 +47,7 @@ import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
+import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/friendly.js'
 
 describe('friendly routes', () => {
@@ -215,6 +220,82 @@ describe('friendly routes', () => {
       const soldOutEarnings = 4 * standSize * price
       const earnings = updateTeamBalance.mock.calls[0][1]
       expect(earnings).toBeLessThan(soldOutEarnings)
+    })
+
+    it('auto-fills an empty starting lineup so the stadium still earns ticket income', async () => {
+      const req = createMockRequest()
+      const myTeam = testData.team({ id: 1, user_id: 1, name: 'My FC', formation: '442a' })
+      const opponentTeam = testData.team({ id: 2, user_id: null, name: 'Opponent FC', formation: '442a' })
+      const stadium = testData.stadium({ team_id: 1 })
+
+      const formationPositions = ['GK', 'LD', 'CD', 'CD', 'RD', 'LM', 'DM', 'RM', 'OM', 'LA', 'RA']
+      const benchPlayers = formationPositions.map((pos, i) =>
+        testData.player({
+          id: i + 1,
+          team_id: 1,
+          position: pos,
+          in_game_position: '',
+          freshness: 1,
+          level: 5,
+          is_suspended: 0,
+          is_injured: 0
+        })
+      )
+      const opponentPlayers = formationPositions.map((pos, i) =>
+        testData.player({
+          id: i + 100,
+          team_id: 2,
+          position: pos,
+          in_game_position: pos,
+          freshness: 1,
+          level: 5
+        })
+      )
+
+      getTeam.mockResolvedValue(myTeam)
+      getTeamById.mockResolvedValue(opponentTeam)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+
+      query.mockImplementation(async (sql, params) => {
+        // Existing friendly check
+        if (sql.includes('SELECT * FROM game') && sql.includes("game_type = 'friendly'")) return []
+        // Initial lineup query for either team (no players with in_game_position set on my team)
+        if (sql.includes('SELECT * FROM player WHERE team_id=?') && sql.includes('in_game_position<>')) {
+          if (params[0] === 1) return []
+          if (params[0] === 2) return opponentPlayers.map(p => ({ ...p }))
+        }
+        // Bench query used by autoFillLineup
+        if (sql.includes('SELECT * FROM player WHERE team_id=?') && sql.includes("in_game_position=''")) {
+          if (params[0] === 1) return benchPlayers.map(p => ({ ...p }))
+          return []
+        }
+        if (sql.includes('SELECT * FROM stadium')) return [stadium]
+        if (sql.startsWith('UPDATE player')) return { affectedRows: 1 }
+        if (sql.startsWith('INSERT INTO game')) return { insertId: 999 }
+        return []
+      })
+
+      updateTeamBalance.mockResolvedValue()
+
+      const result = await handlers.playFriendlyMatch(2, req)
+
+      // Auto-fill must have promoted all 11 bench players into the lineup
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE player SET in_game_position=? WHERE id=?',
+        expect.arrayContaining([expect.any(String), expect.any(Number)])
+      )
+
+      // Each missing position must produce a log message for the user
+      expect(addLogMessage).toHaveBeenCalled()
+
+      // After auto-fill the home team's strength must be > 0, so stadium earnings are paid out.
+      expect(updateTeamBalance).toHaveBeenCalledTimes(1)
+      const earningsArg = updateTeamBalance.mock.calls[0][1]
+      expect(earningsArg).toBeGreaterThan(0)
+
+      // The game must still be recorded as a played friendly with usable details.
+      expect(result.game.isFriendly).toBe(true)
+      expect(result.game.details.strengthTeamA).toBeGreaterThan(0)
     })
   })
 

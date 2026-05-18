@@ -101,7 +101,7 @@ async function _archiveTooOldPlayers () {
   const result = await query('UPDATE player SET team_id=NULL WHERE carrier_end_season<=? AND team_id IS NOT NULL', [season])
   for (const player of players) {
     const team = await getTeamById(player.team_id)
-    await addLogMessage(`Your player ${player.name} is saying goodbye and ends his carrier today.`, team, null, null, 'heart')
+    await addLogMessage(`Your player ${player.name} is saying goodbye and ends his carrier today.`, team, null, null, 'heart', undefined, 'info')
   }
   console.log(`👴🏽 ${result.affectedRows} players ended their carrier...`, result)
 }
@@ -135,7 +135,9 @@ async function _warnYouthPlayersAt18 () {
       team,
       null,
       null,
-      'exclamation-triangle'
+      'exclamation-triangle',
+      undefined,
+      'warning'
     )
   }
 }
@@ -193,7 +195,7 @@ async function _promotionRelegation () {
           ].filter(t => t.level > 0) // teams on first level cannot get promoted...
           console.log('Promotion for: ', teamsForPromotion)
           teamsForPromotion.forEach(t => {
-            promises.push(addLogMessage('Congratulations! Your team got promoted to the next higher league!', t, null, null, 'arrow-up'))
+            promises.push(addLogMessage('Congratulations! Your team got promoted to the next higher league!', t, null, null, 'arrow-up', undefined, 'success'))
             promises.push(query('UPDATE team SET level=? WHERE id=?', [t.level - 1, t.id]))
           })
           const teamsForRelegation = [
@@ -204,7 +206,7 @@ async function _promotionRelegation () {
           ].filter(t => t.level < hightestLevel) // teams in last level cannot go for relegation...
           console.log('Relegation for ', teamsForRelegation)
           teamsForRelegation.forEach(t => {
-            promises.push(addLogMessage('Very sad... Your team needs to got to the next lower league.', t, null, null, 'arrow-down'))
+            promises.push(addLogMessage('Very sad... Your team needs to got to the next lower league.', t, null, null, 'arrow-down', undefined, 'danger'))
             promises.push(query('UPDATE team SET level=? WHERE id=?', [t.level + 1, t.id]))
           })
         }

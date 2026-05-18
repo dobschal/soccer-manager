@@ -90,3 +90,22 @@
   font-weight: 700;
   background: rgba(255, 235, 59, 0.12);
 }
+
+@media (max-width: 768px) {
+  /* The dashboard .container has 2rem of horizontal padding. On small screens
+     we want the stage to span edge to edge, so we pull it out with negative
+     margins and widen it by the same amount. */
+  .mini-game-stage {
+    margin-left: -2rem;
+    margin-right: -2rem;
+    width: calc(100% + 4rem);
+    max-width: none;
+    border-radius: 0;
+  }
+
+  .mini-game-controls .btn {
+    min-width: 88px;
+    font-size: 1.85rem;
+    padding: 0.6rem 1rem;
+  }
+}

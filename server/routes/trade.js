@@ -140,7 +140,9 @@ export default {
           receivingTeam,
           'OPEN_INCOMING_OFFERS',
           null,
-          'shopping-cart'
+          'shopping-cart',
+          undefined,
+          'info'
         )
       }
     }
@@ -154,7 +156,8 @@ export default {
         'OPEN_MARKET',
         null,
         'tag',
-        'NEW_SELL_TRADE_OFFER'
+        'NEW_SELL_TRADE_OFFER',
+        'info'
       )
     }
 

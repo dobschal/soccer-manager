@@ -8,6 +8,7 @@
  * @property {string} [action]
  * @property {number} [action_value]
  * @property {string} [icon]
+ * @property {string} [type] - 'info' (default), 'success', 'warning', 'danger'
  * @property {Date} created_at
  */
 
@@ -27,6 +28,7 @@ export function LogMessage (raw) {
     action: OptionalString,
     action_value: OptionalNumber,
     icon: OptionalString,
+    type: OptionalString,
     created_at: OptionalObject
   })
   for (const key in raw) {

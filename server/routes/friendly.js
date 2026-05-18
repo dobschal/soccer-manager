@@ -6,6 +6,8 @@ import { getUserLocale, t } from '../i18n/index.js'
 import { updateTeamBalance } from '../helper/financeHelper.js'
 import { kickoff, playGameStep } from '../play-game.js'
 import { getCaptainStrengthMultiplier } from '../helper/captainHelper.js'
+import { autoFillLineup, trimExcessLineup } from '../helper/lineupHelper.js'
+import { calculateHomeAttendanceBonus } from '../helper/stadiumHelper.js'
 
 export default {
   /**
@@ -282,8 +284,14 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
   ])
 
   // Filter out suspended players (but don't clear suspensions in friendly)
-  const activePlayerTeamA = playerTeamA.filter(p => !p.is_suspended)
-  const activePlayerTeamB = playerTeamB.filter(p => !p.is_suspended)
+  let activePlayerTeamA = playerTeamA.filter(p => !p.is_suspended)
+  let activePlayerTeamB = playerTeamB.filter(p => !p.is_suspended)
+
+  // Trim excess players and auto-fill incomplete lineups (same behavior as league/cup)
+  activePlayerTeamA = await trimExcessLineup(teamA, activePlayerTeamA)
+  activePlayerTeamB = await trimExcessLineup(teamB, activePlayerTeamB)
+  activePlayerTeamA = await autoFillLineup(teamA, activePlayerTeamA)
+  activePlayerTeamB = await autoFillLineup(teamB, activePlayerTeamB)
 
   const strengthTeamA = activePlayerTeamA.reduce((total, p) => total + p.level, 0)
   const strengthTeamB = activePlayerTeamB.reduce((total, p) => total + p.level, 0)
@@ -327,6 +335,13 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
   }
   for (const player of activePlayerTeamB) {
     player.level *= friendlyCaptainMultB
+  }
+  // Apply home-team attendance bonus / empty-stadium malus to teamA (the home side)
+  const friendlyHomeBonusMultiplier = stadiumDetails?.homeBonusMultiplier ?? 1
+  if (friendlyHomeBonusMultiplier !== 1) {
+    for (const player of activePlayerTeamA) {
+      player.level *= friendlyHomeBonusMultiplier
+    }
   }
   // Store effective strength after all modifiers for display
   gameDetails.effectiveStrengthTeamA = Math.round(activePlayerTeamA.reduce((sum, p) => sum + p.level, 0))
@@ -377,8 +392,14 @@ async function _getFriendlyStadiumEarnings (teamA, teamB, strengthTeamA, strengt
   const stands = ['north', 'south', 'west', 'east']
   const details = {}
   let totalEarnings = 0
+  let totalCapacity = 0
+  let operationalCapacity = 0
+  let totalAttendance = 0
 
   for (const stand of stands) {
+    const size = stadium[stand + '_stand_size'] || 0
+    totalCapacity += size
+
     const constructionEndDay = stadium[`${stand}_construction_end_game_day`]
     if (constructionEndDay != null) {
       details[stand + 'Guests'] = 0
@@ -387,8 +408,9 @@ async function _getFriendlyStadiumEarnings (teamA, teamB, strengthTeamA, strengt
       continue
     }
 
+    operationalCapacity += size
+
     const price = stadium[stand + '_stand_price'] || 0
-    const size = stadium[stand + '_stand_size'] || 0
 
     if (price <= 0 || size <= 0) {
       details[stand + 'Guests'] = 0
@@ -401,10 +423,19 @@ async function _getFriendlyStadiumEarnings (teamA, teamB, strengthTeamA, strengt
     // Friendly matches have HALF the normal attendance
     const amountOfGuests = Math.floor(Math.min(size, strengthFactor * priceFactor * roofFactor * 0.5))
     details[stand + 'Guests'] = amountOfGuests
+    totalAttendance += amountOfGuests
     const earnings = amountOfGuests * price
     details[stand + 'Earnings'] = earnings
     totalEarnings += earnings
   }
+
+  details.totalCapacity = totalCapacity
+  details.totalAttendance = totalAttendance
+  details.totalEarnings = totalEarnings
+
+  const homeBonus = calculateHomeAttendanceBonus(totalAttendance, operationalCapacity)
+  details.homeBonusPct = homeBonus.bonusPct
+  details.homeBonusMultiplier = homeBonus.multiplier
 
   if (isNaN(totalEarnings)) {
     console.error(`NaN earnings detected for team ${teamA.id}`)

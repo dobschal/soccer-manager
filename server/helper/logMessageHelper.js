@@ -5,6 +5,8 @@ import { LogMessage } from '../entities/logMessage.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { sendToUser } from '../lib/websocket.js'
 
+const VALID_TYPES = ['info', 'success', 'warning', 'danger']
+
 /**
  * @param {string} message
  * @param {TeamType} team
@@ -12,15 +14,17 @@ import { sendToUser } from '../lib/websocket.js'
  * @param {number} [actionValue]
  * @param {string} [icon] - Font Awesome icon name (e.g., 'trophy', 'money', 'user')
  * @param {string} [event] - WebSocket event to send to the user (e.g., 'NEW_LOG_MESSAGE')
+ * @param {string} [type] - 'info' (default), 'success', 'warning', 'danger'
  * @returns {Promise<void>}
  */
-export async function addLogMessage (message, team, action, actionValue, icon, event) {
+export async function addLogMessage (message, team, action, actionValue, icon, event, type = 'info') {
   const { gameDay, season } = await getGameDayAndSeason()
   const data = {
     message,
     team_id: team.id,
     game_day: gameDay,
-    season
+    season,
+    type: VALID_TYPES.includes(type) ? type : 'info'
   }
   if (action) {
     data.action = action
@@ -36,7 +40,7 @@ export async function addLogMessage (message, team, action, actionValue, icon, e
 
   // Send WebSocket event if specified and team has a user
   if (event && team.user_id) {
-    sendToUser(team.user_id, event, { message, action, actionValue, icon })
+    sendToUser(team.user_id, event, { message, action, actionValue, icon, type: data.type })
   }
 }
 
@@ -103,7 +107,9 @@ export async function checkTeamAndNotify (team) {
       team,
       'OPEN_MY_TEAM_PAGE',
       null,
-      'exclamation-triangle'
+      'exclamation-triangle',
+      undefined,
+      'warning'
     )
   }
 
@@ -115,7 +121,9 @@ export async function checkTeamAndNotify (team) {
       team,
       'OPEN_PLAYER',
       player.id,
-      'exclamation-triangle'
+      'exclamation-triangle',
+      undefined,
+      'warning'
     )
   }
 

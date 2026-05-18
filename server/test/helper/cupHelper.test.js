@@ -365,7 +365,9 @@ describe('cupHelper', () => {
         team,
         null,
         null,
-        'trophy'
+        'trophy',
+        undefined,
+        'success'
       )
     })
 

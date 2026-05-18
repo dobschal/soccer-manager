@@ -35,6 +35,13 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 - **TA-STD-06**: Freundschaftsspiele: 50% reduzierte Zuschauer.
 - **TA-STD-07**: Tribuene im Bau: 0 Zuschauer und 0 Einnahmen.
 
+### Heim-Bonus (Zuschauer-Effekt auf Team-Staerke)
+
+- **TA-STD-29**: Zuschauer-Bonus: linear `+1%` pro 6.000 Zuschauer, gedeckelt bei `+10%` ab 60.000 Zuschauern.
+- **TA-STD-30**: Auslastungs-Malus: wenn das Stadion unter 50% gefuellt ist, linear bis `-10%` bei 0% Auslastung (z.B. 25% Auslastung = `-5%`, 50% Auslastung = `0%`). Stehende Tribuenen im Bau zaehlen nicht zur operativen Kapazitaet.
+- **TA-STD-31**: Bonus und Malus werden addiert und als Multiplikator auf die Spieler-Stufen der Heimmannschaft angewendet, *nach* allen sonstigen Modifikatoren (Frische, Star, Position, Motivationsrede, Kapitaen, Bot-Malus).
+- **TA-STD-32**: Der Bonus gilt fuer Liga-, Pokal- und Freundschaftsspiele und wird in `stadiumDetails.homeBonusPct` / `stadiumDetails.homeBonusMultiplier` mitgeliefert.
+
 ### Ausbau-Kosten
 
 - **TA-STD-08**: Preis pro Sitz: 1.000 Euro.
@@ -45,8 +52,8 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 
 ### Bauzeit
 
-- **TA-STD-13**: Bauzeit: `max(4, ceil(sitzDifferenz / 600))` Spieltage.
-- **TA-STD-14**: Dach-Aufschlag: +3 Spieltage.
+- **TA-STD-13**: Bauzeit: `max(8, ceil(sitzDifferenz / 300))` Spieltage.
+- **TA-STD-14**: Dach-Aufschlag: +6 Spieltage.
 - **TA-STD-15**: Bauarbeiten koennen Saisongrenzen ueberschreiten. Die tatsaechliche Saisonlaenge (Liga- plus Pokal-Spieltage) wird beim Berechnen des End-Spieltags beruecksichtigt, sodass Bauten mit gleicher Dauer unabhaengig vom Startzeitpunkt gleich lange dauern.
 - **TA-STD-16**: `completeStadiumConstructions()` prueft bei jedem Spieltag auf fertige Bauten.
 

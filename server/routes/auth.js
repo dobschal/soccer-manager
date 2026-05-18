@@ -62,7 +62,7 @@ export default {
     await addLogMessage(t('log.welcome', {
       username,
       teamName: team.name
-    }, locale), team, null, null, 'hand-peace-o')
+    }, locale), team, null, null, 'hand-peace-o', undefined, 'info')
     await query(`UPDATE team
                  SET user_id=${userId},
                      balance=500000

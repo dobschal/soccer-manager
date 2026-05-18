@@ -212,7 +212,9 @@ describe('tradeHelper', () => {
         sellingTeam,
         'OPEN_TEAM_PAGE',
         2,
-        'exchange'
+        'exchange',
+        undefined,
+        'success'
       )
     })
 
@@ -240,7 +242,9 @@ describe('tradeHelper', () => {
         buyingTeam,
         'OPEN_PLAYER',
         10,
-        'exchange'
+        'exchange',
+        undefined,
+        'success'
       )
     })
 
@@ -470,7 +474,9 @@ describe('tradeHelper', () => {
         buyingTeam,
         'OPEN_PLAYER',
         10,
-        'times-circle'
+        'times-circle',
+        undefined,
+        'danger'
       )
     })
 

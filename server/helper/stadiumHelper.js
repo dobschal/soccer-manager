@@ -40,6 +40,38 @@ export async function getStadiumOfCurrentUser (req) {
 }
 
 /**
+ * Compute the home-team strength modifier based on the actual stadium attendance.
+ *
+ * Two additive components:
+ * - Attendance bonus: linear by absolute attendance, +1% per 6.000 fans, capped at +10% (60.000+ fans).
+ * - Fill-rate malus: only when the stadium is below 50% filled, scales linearly from 0 (50% fill)
+ *   to -10% (0% fill). Skipped entirely when total capacity is 0 (e.g. no stadium yet).
+ *
+ * @param {number} totalAttendance - Sum of guests across all stands.
+ * @param {number} totalCapacity - Sum of stand sizes (excluding stands under construction).
+ * @returns {{ bonusPct: number, multiplier: number, attendanceBonusPct: number, malusPct: number }}
+ */
+export function calculateHomeAttendanceBonus (totalAttendance, totalCapacity) {
+  const attendance = Math.max(0, totalAttendance || 0)
+  const capacity = Math.max(0, totalCapacity || 0)
+  const attendanceBonusPct = Math.min(10, attendance / 6000)
+  let malusPct = 0
+  if (capacity > 0) {
+    const fillRatePct = (attendance / capacity) * 100
+    if (fillRatePct < 50) {
+      malusPct = ((50 - fillRatePct) / 50) * 10
+    }
+  }
+  const bonusPct = attendanceBonusPct - malusPct
+  return {
+    bonusPct,
+    multiplier: 1 + (bonusPct / 100),
+    attendanceBonusPct,
+    malusPct
+  }
+}
+
+/**
  * Calculates construction time in gamedays for a stand expansion
  * @param {number} currentSize - Current stand size
  * @param {number} targetSize - Target stand size
@@ -49,9 +81,9 @@ export async function getStadiumOfCurrentUser (req) {
  */
 export function calculateConstructionTime (currentSize, targetSize, currentRoof, targetRoof) {
   const seatsDiff = targetSize - currentSize
-  const baseTime = Math.max(4, Math.ceil(seatsDiff / 600))
+  const baseTime = Math.max(8, Math.ceil(seatsDiff / 300))
   const addingRoof = !currentRoof && targetRoof
-  const roofTime = addingRoof ? 3 : 0
+  const roofTime = addingRoof ? 6 : 0
   return baseTime + roofTime
 }
 
@@ -195,7 +227,7 @@ export async function completeStadiumConstructions (gameDay, season) {
 
       const [team] = await query('SELECT * FROM team WHERE id=?', [stadium.team_id])
       if (team) {
-        await addLogMessage(`Your ${stand} stand construction is complete!`, team, null, null, 'building')
+        await addLogMessage(`Your ${stand} stand construction is complete!`, team, null, null, 'building', undefined, 'success')
       }
     }
   }
@@ -341,7 +373,7 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
     })
   }
 
-  await addLogMessage('Construction has started on your stadium!', team, null, null, 'building')
+  await addLogMessage('Construction has started on your stadium!', team, null, null, 'building', undefined, 'info')
 
   // Return updated construction info
   const updatedStadium = { ...currentStadium, ...updateFields }

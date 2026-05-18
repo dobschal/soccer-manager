@@ -202,7 +202,9 @@ export async function upgradeBuilding (team, buildingType, locale) {
     team,
     null,
     null,
-    'building'
+    'building',
+    undefined,
+    'info'
   )
 
   return { success: true }
@@ -239,7 +241,9 @@ export async function completeBuildingConstructions (gameDay, season) {
         team,
         null,
         null,
-        'building'
+        'building',
+        undefined,
+        'success'
       )
     }
   }
