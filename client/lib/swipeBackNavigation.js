@@ -1,10 +1,11 @@
 import { el } from './html.js'
 
-const EDGE_THRESHOLD_PX = 40
+const EDGE_THRESHOLD_PX = 80
 const COMMIT_THRESHOLD_PX = 80
 const HORIZONTAL_LOCK_PX = 8
 const VERTICAL_CANCEL_PX = 10
 const SNAP_BACK_MS = 200
+const SLIDE_OUT_MS = 240
 
 let _touchStartX = 0
 let _touchStartY = 0
@@ -130,16 +131,46 @@ function _onTouchEnd () {
 
   if (committed && dx > COMMIT_THRESHOLD_PX) {
     _log('commit → history.back()', { dx })
-    // Hand off to the router: history.back() fires hashchange. Reset the
-    // transform on the next frame so the incoming page renders cleanly —
-    // _animateTransition overrides this, but cached-page transitions that
-    // hit the same wrapper would otherwise inherit our translateX.
+    // Move the visible-page translation from #page onto the outgoing wrapper
+    // itself so we can animate it off-screen independently while the router
+    // fades in the new page in place. Without this hand-off the whole
+    // container would slide back on history.back() and the new page would
+    // fly in from the left.
+    const outgoing = Array.from(container.children).find(c => c.style.display !== 'none')
+    container.style.transition = ''
+    container.style.transform = ''
+    container.style.willChange = ''
+
+    if (outgoing) {
+      // Pin the outgoing wrapper absolutely so the incoming one can occupy
+      // the same flex slot without being pushed below it.
+      outgoing.style.position = 'absolute'
+      outgoing.style.top = '0'
+      outgoing.style.left = '0'
+      outgoing.style.right = '0'
+      outgoing.style.zIndex = '10'
+      outgoing.style.transition = 'none'
+      outgoing.style.transform = `translateX(${dx}px)`
+      outgoing.style.opacity = '1'
+      outgoing.classList.add('swipe-back-outgoing')
+
+      // Two RAFs so the starting transform/opacity actually paint before the
+      // transition kicks in (single RAF coalesces with the style write).
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          outgoing.style.transition = `transform ${SLIDE_OUT_MS}ms ease-out, opacity ${SLIDE_OUT_MS}ms ease-out`
+          outgoing.style.transform = 'translateX(100vw)'
+          outgoing.style.opacity = '0'
+        })
+      })
+    }
+
+    window.__swipeBackInProgress = true
     window.history.back()
-    requestAnimationFrame(() => {
-      container.style.transition = ''
-      container.style.transform = ''
-      container.style.willChange = ''
-    })
+    // Safety: if the router never consumes the flag (e.g. history.back is a
+    // no-op for some reason), clear it so future navigations don't inherit
+    // the fade-in branch.
+    setTimeout(() => { window.__swipeBackInProgress = false }, 500)
     return
   }
 

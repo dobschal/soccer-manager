@@ -44,6 +44,7 @@ describe('swipeBackNavigation', () => {
     })
     initHistoryTracking()
     backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+    window.__swipeBackInProgress = false
   })
 
   afterEach(() => {
@@ -55,12 +56,26 @@ describe('swipeBackNavigation', () => {
     pushHashEntry('#team?id=1')
     const page = setupPage()
 
-    onTouchStart(touchEvent([[100, 200]]))
+    onTouchStart(touchEvent([[120, 200]]))
     onTouchMove(touchEvent([[300, 200]]))
     onTouchEnd()
 
     expect(page.style.transform).toBe('')
     expect(backSpy).not.toHaveBeenCalled()
+  })
+
+  it('accepts touches inside the widened (80px) left edge', () => {
+    pushHashEntry('#team?id=1')
+    const page = setupPage()
+
+    onTouchStart(touchEvent([[70, 200]]))
+    onTouchMove(touchEvent([[200, 200]]))
+
+    // The container should follow the finger (committed), proving the start
+    // point at 70px is treated as inside the edge zone.
+    expect(page.style.transform).toBe('translateX(130px)')
+    onTouchEnd()
+    expect(backSpy).toHaveBeenCalledTimes(1)
   })
 
   it('does not trigger history.back() when there is no intra-app history', () => {
@@ -94,6 +109,35 @@ describe('swipeBackNavigation', () => {
     onTouchMove(touchEvent([[200, 200]]))
     onTouchEnd()
 
+    expect(backSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('pins the outgoing wrapper absolutely and animates it off-screen when the swipe commits', () => {
+    pushHashEntry('#team?id=1')
+    const page = setupPage()
+    const outgoing = document.createElement('div')
+    outgoing.setAttribute('data-page', 'team?id=1')
+    page.appendChild(outgoing)
+
+    onTouchStart(touchEvent([[5, 200]]))
+    onTouchMove(touchEvent([[200, 200]]))
+    onTouchEnd()
+
+    expect(outgoing.style.position).toBe('absolute')
+    expect(outgoing.style.zIndex).toBe('10')
+    expect(outgoing.classList.contains('swipe-back-outgoing')).toBe(true)
+    // Container transform is reset; the wrapper now owns the translation.
+    expect(page.style.transform).toBe('')
+    expect(window.__swipeBackInProgress).toBe(true)
+  })
+
+  it('skips the outgoing-wrapper animation when no visible page child exists', () => {
+    pushHashEntry('#team?id=1')
+    setupPage()
+
+    onTouchStart(touchEvent([[5, 200]]))
+    onTouchMove(touchEvent([[200, 200]]))
+    expect(() => onTouchEnd()).not.toThrow()
     expect(backSpy).toHaveBeenCalledTimes(1)
   })
 

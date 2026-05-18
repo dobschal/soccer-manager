@@ -139,6 +139,42 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
     return
   }
 
+  // Swipe-back: the outgoing wrapper is already animating off-screen (pinned
+  // absolutely by swipeBackNavigation). Just fade the incoming page in here
+  // and clean up the outgoing wrapper once its slide completes.
+  if (window.__swipeBackInProgress) {
+    window.__swipeBackInProgress = false
+    container.style.transition = ''
+    container.style.transform = ''
+
+    newWrapper.style.display = ''
+    newWrapper.style.transition = 'none'
+    newWrapper.style.opacity = '0'
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        newWrapper.style.transition = 'opacity 220ms ease-out'
+        newWrapper.style.opacity = '1'
+      })
+    })
+
+    setTimeout(() => {
+      oldWrapper.style.display = 'none'
+      oldWrapper.style.position = ''
+      oldWrapper.style.top = ''
+      oldWrapper.style.left = ''
+      oldWrapper.style.right = ''
+      oldWrapper.style.zIndex = ''
+      oldWrapper.style.transition = ''
+      oldWrapper.style.transform = ''
+      oldWrapper.style.opacity = ''
+      oldWrapper.classList.remove('swipe-back-outgoing')
+      newWrapper.style.transition = ''
+      newWrapper.style.opacity = ''
+    }, 260)
+    return
+  }
+
   const cleanup = () => {
     oldWrapper.style.display = 'none'
     newWrapper.style.display = ''
