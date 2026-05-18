@@ -68,8 +68,8 @@ const MAX_FREE_PER_POSITION = 10
 export async function cleanupOldFreePlayers () {
   const { season } = await getGameDayAndSeason()
 
-  // Find all free players (no team)
-  const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL')
+  // Find all free players (no team), excluding retired players (kept in DB for history)
+  const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season > ?', [season])
 
   // Group free players by position
   const byPosition = {}

@@ -3,6 +3,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById, getPlayersByTeamId, MIN_TEAM_SIZE } from '../helper/playerHelper.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getPastTrades } from '../helper/tradeHelper.js'
 import { addPlayerHistory } from '../helper/playerHistoryHelper.js'
 import { t } from '../i18n/index.js'
@@ -54,7 +55,8 @@ export default {
    * @returns {Promise<Array<PlayerType>>}
    */
   async getPlayersWithoutTeam () {
-    return await query('SELECT * FROM player WHERE team_id IS NULL')
+    const { season } = await getGameDayAndSeason()
+    return await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season > ?', [season])
   },
 
   /**

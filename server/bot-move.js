@@ -354,9 +354,10 @@ async function _signFreePlayers (botTeam, players) {
     return b.deficit - a.deficit
   })
 
-  // Get available free players
+  // Get available free players (exclude retired players still kept for history)
+  const { season } = await getGameDayAndSeason()
   /** @type {PlayerType[]} */
-  const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL')
+  const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season > ?', [season])
   if (freePlayers.length === 0) return
 
   let signed = 0

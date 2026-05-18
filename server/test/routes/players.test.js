@@ -17,6 +17,10 @@ vi.mock('../../helper/playerHelper.js', () => ({
   MIN_TEAM_SIZE: 14
 }))
 
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn()
+}))
+
 vi.mock('../../helper/tradeHelper.js', () => ({
   getPastTrades: vi.fn()
 }))
@@ -32,6 +36,7 @@ vi.mock('../../helper/playerHistoryHelper.js', () => ({
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getPlayerById, getPlayerAge, getAveragePlanPriceOfPlayer, getPlayersByTeamId } from '../../helper/playerHelper.js'
+import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPastTrades } from '../../helper/tradeHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/players.js'
@@ -140,14 +145,18 @@ describe('players routes', () => {
   })
 
   describe('getPlayersWithoutTeam', () => {
-    it('returns players without team', async () => {
-      const players = [testData.player({ team_id: null })]
+    it('returns players without team, excluding retired ones', async () => {
+      const players = [testData.player({ team_id: null, carrier_end_season: 10 })]
+      getGameDayAndSeason.mockResolvedValue({ season: 5, gameDay: 3 })
       query.mockResolvedValue(players)
 
       const result = await handlers.getPlayersWithoutTeam()
 
       expect(result).toEqual(players)
-      expect(query).toHaveBeenCalledWith('SELECT * FROM player WHERE team_id IS NULL')
+      expect(query).toHaveBeenCalledWith(
+        'SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season > ?',
+        [5]
+      )
     })
   })
 
