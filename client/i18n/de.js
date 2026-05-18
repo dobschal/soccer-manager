@@ -530,6 +530,13 @@ export default {
   'team.historyCup': 'Pokal',
   'team.historyFired': 'Entlassen',
   'team.cannotView': 'Verein kann nicht eingesehen werden.',
+  'team.timeline': 'Spielverlauf',
+  'team.timelineNoGames': 'Keine Spiele vorhanden.',
+  'team.resultWin': 'S',
+  'team.resultLoss': 'N',
+  'team.resultDraw': 'U',
+  'team.timelineHome': 'Heim',
+  'team.timelineAway': 'Auswärts',
 
   // Friendly matches
   'friendly.title': 'Friendlies',

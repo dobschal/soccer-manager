@@ -455,4 +455,142 @@ describe('team routes', () => {
       expect(result.seasons[0].cupResult.gamesPlayed).toBe(2)
     })
   })
+
+  describe('getTeamTimelineGames', () => {
+    function makeGameRow (overrides = {}) {
+      return {
+        id: 1,
+        season: 0,
+        game_day: 1,
+        game_type: 'league',
+        cup_round: null,
+        played: 1,
+        goals_team_1: 2,
+        goals_team_2: 1,
+        team_1_id: 5,
+        team_2_id: 6,
+        level: 1,
+        league: 0,
+        team_1_name: 'Home FC',
+        team_1_color: '#fff',
+        team_1_emblem: '',
+        team_1_is_system_team: 0,
+        team_2_name: 'Away FC',
+        team_2_color: '#000',
+        team_2_emblem: '',
+        team_2_is_system_team: 0,
+        ...overrides
+      }
+    }
+
+    it('rejects invalid teamId', async () => {
+      await expect(handlers.getTeamTimelineGames(0, 'initial', null, null, 10))
+        .rejects.toMatchObject({ message: 'Invalid teamId' })
+    })
+
+    it('initial mode merges past (DESC then reversed) and future (ASC) games', async () => {
+      const teamId = 5
+      // Past: 2 played games, returned DESC then reversed to ASC
+      const pastDesc = [
+        makeGameRow({ id: 20, season: 1, game_day: 4, played: 1, goals_team_1: 3, goals_team_2: 0 }),
+        makeGameRow({ id: 10, season: 1, game_day: 2, played: 1, goals_team_1: 1, goals_team_2: 1 })
+      ]
+      // Future: 1 unplayed game, ASC
+      const futureAsc = [
+        makeGameRow({ id: 30, season: 1, game_day: 6, played: 0, goals_team_1: 0, goals_team_2: 0 })
+      ]
+
+      query
+        .mockResolvedValueOnce(pastDesc) // past query
+        .mockResolvedValueOnce(futureAsc) // future query
+
+      const result = await handlers.getTeamTimelineGames(teamId, 'initial', null, null, 4)
+
+      expect(result.games).toHaveLength(3)
+      expect(result.games.map(g => g.id)).toEqual([10, 20, 30])
+      expect(result.games[0].result).toBe('draw')
+      expect(result.games[1].result).toBe('win')
+      expect(result.games[2].played).toBe(false)
+      expect(result.games[2].result).toBeNull()
+    })
+
+    it('past mode requires cursor and orders DESC then reverses to ASC', async () => {
+      const teamId = 5
+      await expect(handlers.getTeamTimelineGames(teamId, 'past', null, null, 10))
+        .rejects.toMatchObject({ message: 'Cursor required' })
+
+      const rowsDesc = [
+        makeGameRow({ id: 9, season: 1, game_day: 3 }),
+        makeGameRow({ id: 8, season: 1, game_day: 2 })
+      ]
+      query.mockResolvedValueOnce(rowsDesc)
+
+      const result = await handlers.getTeamTimelineGames(teamId, 'past', 1, 5, 10)
+      expect(result.games.map(g => g.id)).toEqual([8, 9])
+    })
+
+    it('future mode requires cursor and orders ASC', async () => {
+      const teamId = 5
+      await expect(handlers.getTeamTimelineGames(teamId, 'future', null, null, 10))
+        .rejects.toMatchObject({ message: 'Cursor required' })
+
+      const rowsAsc = [
+        makeGameRow({ id: 11, season: 1, game_day: 6, played: 0 }),
+        makeGameRow({ id: 12, season: 1, game_day: 7, played: 0 })
+      ]
+      query.mockResolvedValueOnce(rowsAsc)
+
+      const result = await handlers.getTeamTimelineGames(teamId, 'future', 1, 5, 10)
+      expect(result.games.map(g => g.id)).toEqual([11, 12])
+      expect(result.games.every(g => g.played === false)).toBe(true)
+    })
+
+    it('includes cup games with totalRounds derived from the season', async () => {
+      const teamId = 5
+      const rowsDesc = [
+        makeGameRow({ id: 50, game_type: 'cup', cup_round: 4, season: 1, game_day: 5, played: 1, goals_team_1: 2, goals_team_2: 0 })
+      ]
+      query
+        .mockResolvedValueOnce(rowsDesc) // past
+        .mockResolvedValueOnce([]) // future
+        .mockResolvedValueOnce([{ season: 1, maxRound: 8 }]) // max cup_round per season
+      getTotalRounds.mockReturnValue(4)
+
+      const result = await handlers.getTeamTimelineGames(teamId, 'initial', null, null, 4)
+      expect(result.games).toHaveLength(1)
+      expect(result.games[0].gameType).toBe('cup')
+      expect(result.games[0].cupRound).toBe(4)
+      expect(result.games[0].totalRounds).toBe(4)
+    })
+
+    it('marks opponent and isHome flag correctly', async () => {
+      const teamId = 5
+      const homeRow = makeGameRow({ id: 1, team_1_id: 5, team_2_id: 6, played: 1, goals_team_1: 1, goals_team_2: 2 })
+      const awayRow = makeGameRow({ id: 2, team_1_id: 7, team_2_id: 5, played: 1, goals_team_1: 0, goals_team_2: 3 })
+
+      query
+        .mockResolvedValueOnce([homeRow, awayRow].reverse()) // past DESC
+        .mockResolvedValueOnce([]) // future
+
+      const result = await handlers.getTeamTimelineGames(teamId, 'initial', null, null, 4)
+      const game1 = result.games.find(g => g.id === 1)
+      const game2 = result.games.find(g => g.id === 2)
+      expect(game1.isHome).toBe(true)
+      expect(game1.opponent.id).toBe(6)
+      expect(game1.result).toBe('loss')
+      expect(game2.isHome).toBe(false)
+      expect(game2.opponent.id).toBe(7)
+      expect(game2.result).toBe('win')
+    })
+
+    it('clamps limit to a safe range', async () => {
+      const teamId = 5
+      query.mockResolvedValueOnce([]).mockResolvedValueOnce([])
+
+      await handlers.getTeamTimelineGames(teamId, 'initial', null, null, 9999)
+      // The past and future queries each receive halfLimit (capped at 25)
+      const lastParam = query.mock.calls[0][1].at(-1)
+      expect(lastParam).toBeLessThanOrEqual(50)
+    })
+  })
 })

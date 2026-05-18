@@ -567,6 +567,132 @@ export default {
     }
 
     return { seasons }
+  },
+
+  /**
+   * Returns a chronological window of league + cup games for a team
+   * (friendlies excluded). Supports cursor-based pagination for endless
+   * scroll on the team timeline.
+   *
+   * @param {number} teamId
+   * @param {string} mode - 'initial' | 'past' | 'future'
+   * @param {number|null} cursorSeason - required for 'past'/'future'
+   * @param {number|null} cursorGameDay - required for 'past'/'future'
+   * @param {number} limit
+   * @returns {Promise<{games: Array}>}
+   */
+  async getTeamTimelineGames (teamId, mode, cursorSeason, cursorGameDay, limit) {
+    const numericTeamId = Number(teamId)
+    if (!numericTeamId) throw new BadRequestError('Invalid teamId')
+    const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50)
+    const baseFields = `
+      g.id, g.season, g.game_day, g.game_type, g.cup_round, g.played,
+      g.goals_team_1, g.goals_team_2, g.team_1_id, g.team_2_id, g.level, g.league,
+      t1.name AS team_1_name, t1.color AS team_1_color, t1.emblem AS team_1_emblem,
+      t1.is_system_team AS team_1_is_system_team,
+      t2.name AS team_2_name, t2.color AS team_2_color, t2.emblem AS team_2_emblem,
+      t2.is_system_team AS team_2_is_system_team
+    `
+
+    let rows
+    if (mode === 'past') {
+      if (cursorSeason == null || cursorGameDay == null) throw new BadRequestError('Cursor required')
+      rows = await query(`
+        SELECT ${baseFields}
+        FROM game g
+        JOIN team t1 ON t1.id = g.team_1_id
+        JOIN team t2 ON t2.id = g.team_2_id
+        WHERE (g.team_1_id = ? OR g.team_2_id = ?)
+          AND (g.game_type IN ('league', 'cup') OR g.game_type IS NULL)
+          AND (g.season < ? OR (g.season = ? AND g.game_day < ?))
+        ORDER BY g.season DESC, g.game_day DESC
+        LIMIT ?
+      `, [numericTeamId, numericTeamId, cursorSeason, cursorSeason, cursorGameDay, safeLimit])
+      rows.reverse()
+    } else if (mode === 'future') {
+      if (cursorSeason == null || cursorGameDay == null) throw new BadRequestError('Cursor required')
+      rows = await query(`
+        SELECT ${baseFields}
+        FROM game g
+        JOIN team t1 ON t1.id = g.team_1_id
+        JOIN team t2 ON t2.id = g.team_2_id
+        WHERE (g.team_1_id = ? OR g.team_2_id = ?)
+          AND (g.game_type IN ('league', 'cup') OR g.game_type IS NULL)
+          AND (g.season > ? OR (g.season = ? AND g.game_day > ?))
+        ORDER BY g.season ASC, g.game_day ASC
+        LIMIT ?
+      `, [numericTeamId, numericTeamId, cursorSeason, cursorSeason, cursorGameDay, safeLimit])
+    } else {
+      const halfLimit = Math.max(Math.floor(safeLimit / 2), 1)
+      const [pastRows, futureRows] = await Promise.all([
+        query(`
+          SELECT ${baseFields}
+          FROM game g
+          JOIN team t1 ON t1.id = g.team_1_id
+          JOIN team t2 ON t2.id = g.team_2_id
+          WHERE (g.team_1_id = ? OR g.team_2_id = ?)
+            AND g.played = 1
+            AND (g.game_type IN ('league', 'cup') OR g.game_type IS NULL)
+          ORDER BY g.season DESC, g.game_day DESC
+          LIMIT ?
+        `, [numericTeamId, numericTeamId, halfLimit]),
+        query(`
+          SELECT ${baseFields}
+          FROM game g
+          JOIN team t1 ON t1.id = g.team_1_id
+          JOIN team t2 ON t2.id = g.team_2_id
+          WHERE (g.team_1_id = ? OR g.team_2_id = ?)
+            AND g.played = 0
+            AND (g.game_type IN ('league', 'cup') OR g.game_type IS NULL)
+          ORDER BY g.season ASC, g.game_day ASC
+          LIMIT ?
+        `, [numericTeamId, numericTeamId, halfLimit])
+      ])
+      pastRows.reverse()
+      rows = [...pastRows, ...futureRows]
+    }
+
+    const cupSeasons = [...new Set(rows.filter(r => r.game_type === 'cup').map(r => r.season))]
+    const totalRoundsBySeason = new Map()
+    if (cupSeasons.length > 0) {
+      const placeholders = cupSeasons.map(() => '?').join(',')
+      const maxRows = await query(
+        `SELECT season, MAX(cup_round) AS maxRound FROM game WHERE game_type='cup' AND season IN (${placeholders}) GROUP BY season`,
+        cupSeasons
+      )
+      for (const r of maxRows) totalRoundsBySeason.set(r.season, getTotalRounds(r.maxRound))
+    }
+
+    const games = rows.map(r => {
+      const isHome = r.team_1_id === numericTeamId
+      const opponentRaw = isHome
+        ? { id: r.team_2_id, name: r.team_2_name, color: r.team_2_color, emblem: r.team_2_emblem, isSystemTeam: !!r.team_2_is_system_team }
+        : { id: r.team_1_id, name: r.team_1_name, color: r.team_1_color, emblem: r.team_1_emblem, isSystemTeam: !!r.team_1_is_system_team }
+      let result = null
+      if (r.played === 1) {
+        const own = isHome ? r.goals_team_1 : r.goals_team_2
+        const opp = isHome ? r.goals_team_2 : r.goals_team_1
+        result = own > opp ? 'win' : own < opp ? 'loss' : 'draw'
+      }
+      return {
+        id: r.id,
+        season: r.season,
+        gameDay: r.game_day,
+        gameType: r.game_type || 'league',
+        cupRound: r.cup_round,
+        totalRounds: r.game_type === 'cup' ? (totalRoundsBySeason.get(r.season) || 0) : null,
+        played: r.played === 1,
+        isHome,
+        goalsTeam1: r.goals_team_1,
+        goalsTeam2: r.goals_team_2,
+        level: r.level,
+        league: r.league,
+        opponent: opponentRaw,
+        result
+      }
+    })
+
+    return { games }
   }
 }
 

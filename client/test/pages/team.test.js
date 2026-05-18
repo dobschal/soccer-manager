@@ -11,7 +11,8 @@ vi.mock('../../lib/gateway.js', () => ({
     playFriendlyMatch: vi.fn(),
     getTeamTransferHistory: vi.fn(),
     getTeamSeasonHistory: vi.fn(),
-    getCurrentGameday: vi.fn()
+    getCurrentGameday: vi.fn(),
+    getTeamTimelineGames: vi.fn()
   }
 }))
 
@@ -82,6 +83,7 @@ describe('TeamPage', () => {
     server.getTeamTransferHistory.mockResolvedValue({ transfers: [] })
     server.getTeamSeasonHistory.mockResolvedValue({ seasons: [] })
     server.getCurrentGameday.mockResolvedValue({ season: 0 })
+    server.getTeamTimelineGames.mockResolvedValue({ games: [] })
   })
 
   describe('TeamPage class', () => {

@@ -19,6 +19,8 @@ import { formatDate } from '../lib/date.js'
 import { calculateMarketValue, calculatePlayerAge, getSalary } from '../util/player.js'
 
 const TRANSFER_PAGE_SIZE = 10
+const TIMELINE_PAGE_SIZE = 12
+const TIMELINE_SCROLL_THRESHOLD_PX = 120
 
 /**
  * Information to render:
@@ -69,13 +71,14 @@ export class TeamPage extends UIElement {
     this.team = team
     this.players = players
 
-    const [stadium, myTeam, friendlyStatus, transferHistory, seasonHistory, gameday] = await Promise.all([
+    const [stadium, myTeam, friendlyStatus, transferHistory, seasonHistory, gameday, timeline] = await Promise.all([
       server.getStadiumByTeamId(this.team.id),
       server.getMyTeam(),
       server.canPlayFriendlyToday(),
       server.getTeamTransferHistory(this.team.id),
       server.getTeamSeasonHistory(this.team.id),
-      server.getCurrentGameday()
+      server.getCurrentGameday(),
+      server.getTeamTimelineGames(this.team.id, 'initial', null, null, TIMELINE_PAGE_SIZE * 2)
     ])
     this.stadium = stadium
     this._isOwnTeam = myTeam.team.id === this.team.id
@@ -83,6 +86,10 @@ export class TeamPage extends UIElement {
     this._transferHistory = transferHistory.transfers || []
     this._seasonHistory = seasonHistory.seasons || []
     this._season = gameday.season
+    this._timelineGames = timeline.games || []
+    this._timelineHasMorePast = this._timelineGames.length > 0
+    this._timelineHasMoreFuture = this._timelineGames.length > 0
+    this._timelineLoading = false
   }
   /**
    * @returns {string}
@@ -113,6 +120,10 @@ export class TeamPage extends UIElement {
           </div>
         </div>
         ${this._renderFriendlyMatchButton()}
+        <div class="mb-4">
+            <h4>${t('team.timeline')}</h4>
+            ${this._renderTimeline()}
+        </div>
         <div class="mb-4">
             <h4>${t('team.seasonHistory')}</h4>
             <div class="horizontal-scrollable-table">
@@ -164,6 +175,9 @@ export class TeamPage extends UIElement {
           }
         }
       },
+      '(optional) .team-timeline': {
+        scroll: (event) => this._handleTimelineScroll(event)
+      },
       '(optional) .transfer-history-pagination': {
         click: (event) => {
           const totalPages = Math.ceil(this._transferHistory.length / TRANSFER_PAGE_SIZE)
@@ -184,6 +198,7 @@ export class TeamPage extends UIElement {
     window.addEventListener('player-hired', this._onPlayerChanged)
     window.addEventListener('player-fired', this._onPlayerChanged)
     void showTutorialIfNeeded('team', this)
+    this._centerTimelineOnCurrent()
   }
   /**
    * @param {Object} params
@@ -228,6 +243,14 @@ export class TeamPage extends UIElement {
   _transferPage = 0
   /** @type {Array} */
   _seasonHistory = []
+  /** @type {Array} */
+  _timelineGames = []
+  /** @type {boolean} */
+  _timelineHasMorePast = true
+  /** @type {boolean} */
+  _timelineHasMoreFuture = true
+  /** @type {boolean} */
+  _timelineLoading = false
 
   /**
    * @returns {number}
@@ -599,5 +622,156 @@ export class TeamPage extends UIElement {
    */
   _renderSmallEmblem (team) {
     return renderEmblem(team, 20)
+  }
+
+  /**
+   * @returns {string}
+   * @private
+   */
+  _renderTimeline () {
+    if (!this._timelineGames || this._timelineGames.length === 0) {
+      return `<div class="team-timeline"><div class="team-timeline__empty">${t('team.timelineNoGames')}</div></div>`
+    }
+    this._timelineCurrentMarked = false
+    return `
+      <div class="team-timeline">
+        <div class="team-timeline__track">
+          ${this._timelineHasMorePast ? `<div class="team-timeline__loader team-timeline__loader--past"><i class="fa fa-spinner fa-spin"></i></div>` : ''}
+          ${this._timelineGames.map(game => this._renderTimelineItem(game)).join('')}
+          ${this._timelineHasMoreFuture ? `<div class="team-timeline__loader team-timeline__loader--future"><i class="fa fa-spinner fa-spin"></i></div>` : ''}
+        </div>
+      </div>
+    `
+  }
+
+  /**
+   * @param {Object} game
+   * @returns {string}
+   * @private
+   */
+  _renderTimelineItem (game) {
+    const opp = game.opponent
+    const classes = ['team-timeline__item']
+    if (!game.played) classes.push('team-timeline__item--future')
+    if (game.gameType === 'cup') classes.push('team-timeline__item--cup')
+
+    let badgeHtml
+    if (game.played) {
+      const resultClass = `team-timeline__badge--${game.result === 'win' ? 'win' : game.result === 'loss' ? 'loss' : 'draw'}`
+      const resultText = game.result === 'win' ? t('team.resultWin') : game.result === 'loss' ? t('team.resultLoss') : t('team.resultDraw')
+      badgeHtml = `<div class="team-timeline__badge ${resultClass}">${resultText}</div>`
+    } else {
+      badgeHtml = `<div class="team-timeline__badge team-timeline__badge--upcoming">·</div>`
+    }
+
+    const titleParts = []
+    titleParts.push(opp.name)
+    titleParts.push(game.isHome ? t('team.timelineHome') : t('team.timelineAway'))
+    titleParts.push(`${t('finances.season', { season: game.season + 1 })}, ${t('results.gameDay', { day: game.gameDay + 1 })}`)
+    if (game.played) {
+      const own = game.isHome ? game.goalsTeam1 : game.goalsTeam2
+      const opps = game.isHome ? game.goalsTeam2 : game.goalsTeam1
+      titleParts.push(`${own}:${opps}`)
+    }
+    const title = titleParts.join(' • ')
+
+    const emblemMarkup = `<div class="team-timeline__emblem-wrapper">${renderEmblem(opp, 44)}</div>`
+    const inner = `${emblemMarkup}${badgeHtml}`
+
+    const dataAttr = !game.played && !this._timelineCurrentMarked ? 'data-timeline-current="1"' : ''
+    if (!game.played) this._timelineCurrentMarked = true
+    if (opp.isSystemTeam) {
+      return `<span class="${classes.join(' ')}" title="${title}" ${dataAttr}>${inner}</span>`
+    }
+    return `<a href="#team?id=${opp.id}" class="${classes.join(' ')}" title="${title}" ${dataAttr}>${inner}</a>`
+  }
+
+  /**
+   * Scroll the timeline so the first upcoming game (or the rightmost past game)
+   * is centered on initial render.
+   * @private
+   */
+  _centerTimelineOnCurrent () {
+    const scrollEl = document.querySelector(`${this._elementQuery} .team-timeline`)
+    if (!scrollEl) return
+    const currentEl = scrollEl.querySelector('[data-timeline-current="1"]')
+    if (currentEl) {
+      const offset = currentEl.offsetLeft - (scrollEl.clientWidth / 2) + (currentEl.offsetWidth / 2)
+      scrollEl.scrollLeft = Math.max(0, offset)
+    } else {
+      // No future games — scroll to end (latest past)
+      scrollEl.scrollLeft = scrollEl.scrollWidth
+    }
+  }
+
+  /**
+   * Handle timeline scroll — load older games when scrolled near left, newer when near right.
+   * @param {Event} event
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _handleTimelineScroll (event) {
+    if (this._timelineLoading) return
+    const el = event.currentTarget
+    if (!el) return
+    const nearLeft = el.scrollLeft <= TIMELINE_SCROLL_THRESHOLD_PX
+    const nearRight = (el.scrollWidth - el.clientWidth - el.scrollLeft) <= TIMELINE_SCROLL_THRESHOLD_PX
+    if (nearLeft && this._timelineHasMorePast) {
+      await this._loadMoreTimelineGames('past')
+    } else if (nearRight && this._timelineHasMoreFuture) {
+      await this._loadMoreTimelineGames('future')
+    }
+  }
+
+  /**
+   * @param {'past'|'future'} direction
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _loadMoreTimelineGames (direction) {
+    if (this._timelineLoading) return
+    if (this._timelineGames.length === 0) return
+    this._timelineLoading = true
+    try {
+      const cursor = direction === 'past' ? this._timelineGames[0] : this._timelineGames[this._timelineGames.length - 1]
+      const scrollEl = document.querySelector(`${this._elementQuery} .team-timeline`)
+      const prevScrollWidth = scrollEl?.scrollWidth ?? 0
+      const prevScrollLeft = scrollEl?.scrollLeft ?? 0
+      const response = await server.getTeamTimelineGames(
+        this.team.id,
+        direction,
+        cursor.season,
+        cursor.gameDay,
+        TIMELINE_PAGE_SIZE
+      )
+      const newGames = response.games || []
+      if (newGames.length === 0) {
+        if (direction === 'past') this._timelineHasMorePast = false
+        else this._timelineHasMoreFuture = false
+      } else {
+        if (newGames.length < TIMELINE_PAGE_SIZE) {
+          if (direction === 'past') this._timelineHasMorePast = false
+          else this._timelineHasMoreFuture = false
+        }
+        if (direction === 'past') {
+          this._timelineGames = [...newGames, ...this._timelineGames]
+        } else {
+          this._timelineGames = [...this._timelineGames, ...newGames]
+        }
+      }
+      await this.update()
+      const newScrollEl = document.querySelector(`${this._elementQuery} .team-timeline`)
+      if (newScrollEl) {
+        if (direction === 'past') {
+          newScrollEl.scrollLeft = prevScrollLeft + (newScrollEl.scrollWidth - prevScrollWidth)
+        } else {
+          newScrollEl.scrollLeft = prevScrollLeft
+        }
+      }
+    } catch (e) {
+      console.error('Error loading timeline games:', e)
+    } finally {
+      this._timelineLoading = false
+    }
   }
 }

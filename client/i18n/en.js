@@ -530,6 +530,13 @@ export default {
   'team.historyCup': 'Cup',
   'team.historyFired': 'Fired',
   'team.cannotView': 'This team cannot be viewed.',
+  'team.timeline': 'Match Timeline',
+  'team.timelineNoGames': 'No matches available.',
+  'team.resultWin': 'W',
+  'team.resultLoss': 'L',
+  'team.resultDraw': 'D',
+  'team.timelineHome': 'Home',
+  'team.timelineAway': 'Away',
 
   // Friendly matches
   'friendly.title': 'Friendly Matches',
