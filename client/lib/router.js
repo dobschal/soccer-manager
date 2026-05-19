@@ -121,6 +121,32 @@ function _getDirection (fromPath, toPath) {
 }
 
 /**
+ * Undo the inline styles that swipeBackNavigation applied to pin the outgoing
+ * wrapper absolutely. Used when the back-navigation lands on the same cache
+ * key, so the same wrapper must stay visible (e.g. sub_page swap).
+ *
+ * @param {HTMLElement|undefined} wrapper
+ */
+function _restoreSwipeBackWrapper (wrapper) {
+  window.__swipeBackInProgress = false
+  if (!wrapper) return
+  wrapper.style.transition = 'transform 220ms ease-out, opacity 220ms ease-out'
+  wrapper.style.transform = 'translateX(0)'
+  wrapper.style.opacity = '1'
+  setTimeout(() => {
+    wrapper.style.position = ''
+    wrapper.style.top = ''
+    wrapper.style.left = ''
+    wrapper.style.right = ''
+    wrapper.style.zIndex = ''
+    wrapper.style.transition = ''
+    wrapper.style.transform = ''
+    wrapper.style.opacity = ''
+    wrapper.classList.remove('swipe-back-outgoing')
+  }, 240)
+}
+
+/**
  * Animate the whole #page container: slide it out, swap content, slide it back in.
  * direction 'right' = navigating forward  (container exits left, enters from right).
  * direction 'left'  = navigating backward (container exits right, enters from left).
@@ -223,6 +249,13 @@ async function _resolvePage () {
   const queryParams = getQueryParams()
   const currentKey = _getCacheKey(currentPath, queryParams, pageRenderFn)
   if (currentKey === lastKey) {
+    // Same wrapper stays mounted (e.g. sub_page swap on a TabbedPage). If
+    // this hashchange came from a swipe-back gesture, the wrapper has been
+    // pinned absolutely and is mid-animation off-screen — restore it so the
+    // sub-page content remains visible instead of a blank page.
+    if (window.__swipeBackInProgress) {
+      _restoreSwipeBackWrapper(_pageCache[currentKey]?.wrapper)
+    }
     fire('query-changed', queryParams)
     return
   }

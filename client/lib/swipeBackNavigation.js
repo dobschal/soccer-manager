@@ -156,8 +156,14 @@ function _onTouchEnd () {
 
       // Two RAFs so the starting transform/opacity actually paint before the
       // transition kicks in (single RAF coalesces with the style write).
+      // The flag check inside lets the router cancel the slide-off when the
+      // back-navigation lands on the same cache key (e.g. sub_page swap) —
+      // in that case the wrapper is not replaced, so sliding it off would
+      // leave the page blank.
       requestAnimationFrame(() => {
+        if (!window.__swipeBackInProgress) return
         requestAnimationFrame(() => {
+          if (!window.__swipeBackInProgress) return
           outgoing.style.transition = `transform ${SLIDE_OUT_MS}ms ease-out, opacity ${SLIDE_OUT_MS}ms ease-out`
           outgoing.style.transform = 'translateX(100vw)'
           outgoing.style.opacity = '0'

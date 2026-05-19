@@ -131,6 +131,33 @@ describe('swipeBackNavigation', () => {
     expect(window.__swipeBackInProgress).toBe(true)
   })
 
+  it('does not slide the outgoing wrapper off-screen when __swipeBackInProgress is cleared (e.g. router same-key back nav like sub_page swap)', async () => {
+    // Repro for the sub_page swipe-back bug: when history.back() lands on the
+    // same cache key (e.g. #dashboard?sub_page=log → #dashboard), the router
+    // does not swap wrappers, so the active wrapper must not be slid off-screen
+    // or the page goes blank. The router signals this by clearing the flag.
+    pushHashEntry('#dashboard?sub_page=log')
+    const page = setupPage()
+    const outgoing = document.createElement('div')
+    outgoing.setAttribute('data-page', 'dashboard')
+    page.appendChild(outgoing)
+
+    onTouchStart(touchEvent([[5, 200]]))
+    onTouchMove(touchEvent([[200, 200]]))
+    onTouchEnd()
+
+    expect(window.__swipeBackInProgress).toBe(true)
+    // Simulate the router clearing the flag from its hashchange handler
+    // before the nested RAFs paint the slide-off transition.
+    window.__swipeBackInProgress = false
+
+    // Let the two nested RAFs fire. jsdom polyfills RAF via setTimeout(0).
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    expect(outgoing.style.transform).not.toContain('100vw')
+    expect(outgoing.style.opacity).not.toBe('0')
+  })
+
   it('skips the outgoing-wrapper animation when no visible page child exists', () => {
     pushHashEntry('#team?id=1')
     setupPage()
