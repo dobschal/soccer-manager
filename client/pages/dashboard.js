@@ -31,12 +31,13 @@ export class DashboardPage extends TabbedPage {
     this.gameDay = gamedayResponse.gameDay
     this.lastPlayedLeagueMatchDay = gamedayResponse.lastPlayedLeagueMatchDay ?? 0
 
-    // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, and tutorial progress
-    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse] = await Promise.all([
+    // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, friends games, and tutorial progress
+    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, friendsResponse] = await Promise.all([
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
       server.getMyCupGames(5),
       server.canPlayFriendlyToday(),
+      server.getFriendsLastGameDayGames(),
       this._tutorialProgress.load()
     ])
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
@@ -74,6 +75,14 @@ export class DashboardPage extends TabbedPage {
       isPlayed: g.played === 1,
       isCup: true,
       totalRounds: cupResponse.totalRounds,
+      team1Data: this._extractTeamData(g, 1),
+      team2Data: this._extractTeamData(g, 2)
+    }))
+
+    // Process friends games for display
+    this._friendsGames = (friendsResponse.games || []).map(g => ({
+      ...g,
+      isPlayed: true,
       team1Data: this._extractTeamData(g, 1),
       team2Data: this._extractTeamData(g, 2)
     }))
@@ -193,6 +202,7 @@ export class DashboardPage extends TabbedPage {
   _sliderGames = []
   _friendlyGames = []
   _cupGames = []
+  _friendsGames = []
   _urgencies = []
   _initialSlideIndex = 0
   _tutorialProgress = new TutorialProgress()
@@ -223,11 +233,12 @@ export class DashboardPage extends TabbedPage {
     this.gameDay = gamedayResponse.gameDay
     this.lastPlayedLeagueMatchDay = gamedayResponse.lastPlayedLeagueMatchDay ?? 0
 
-    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, standing, urgencyResponse] = await Promise.all([
+    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, friendsResponse, standing, urgencyResponse] = await Promise.all([
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
       server.getMyCupGames(5),
       server.canPlayFriendlyToday(),
+      server.getFriendsLastGameDayGames(),
       server.getStanding(this.lastPlayedLeagueMatchDay, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(window.__nativePlatform || 'web')
     ])
@@ -238,6 +249,7 @@ export class DashboardPage extends TabbedPage {
     ]
     this._friendlyGames = friendlyResponse.games.map(g => ({ ...g, isPlayed: true, isFriendly: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._cupGames = cupResponse.games.map(g => ({ ...g, isPlayed: g.played === 1, isCup: true, totalRounds: cupResponse.totalRounds, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
+    this._friendsGames = (friendsResponse.games || []).map(g => ({ ...g, isPlayed: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
 
@@ -260,6 +272,7 @@ export class DashboardPage extends TabbedPage {
       team: this.team,
       cupGames: this._cupGames,
       friendlyGames: this._friendlyGames,
+      friendsGames: this._friendsGames,
       canPlayFriendly: this._canPlayFriendly,
       standing: this.standing,
       teamPosition: this.teamPosition,

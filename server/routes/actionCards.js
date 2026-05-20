@@ -3,6 +3,7 @@ import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { getActionCards, playActionCard, getPendingActionCards, claimActionCard } from '../helper/actionCardHelper.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { t } from '../i18n/index.js'
 
 export default {
@@ -56,13 +57,15 @@ export default {
     const team = await getTeam(req)
     if (actionCard2.action !== actionCard1.action) throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
     if (actionCard2.action === 'LEVEL_UP_PLAYER_40' || actionCard2.action === 'LEVEL_UP_PLAYER_70') {
+      const { season } = await getGameDayAndSeason()
       await query('DELETE FROM action_card WHERE id=?', [actionCard1.id])
       await query('DELETE FROM action_card WHERE id=?', [actionCard2.id])
       const actionCard = new ActionCard({
         team_id: team.id,
         action: actionCard1.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100',
         played: 0,
-        state: 'received'
+        state: 'received',
+        season
       })
       const result = await query('INSERT INTO action_card SET ?', actionCard)
       return { success: true, actionCard: { id: result.insertId, action: actionCard.action } }

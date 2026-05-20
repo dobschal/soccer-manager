@@ -4,7 +4,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { addLogMessage, checkTeamAndNotify } from './logMessageHelper.js'
 import { getTeamById } from './teamHelper.js'
-import { getPlayerAge, getPlayerById, getPlayersByTeamId, MIN_TEAM_SIZE } from './playerHelper.js'
+import { getPlayerAge, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE, MIN_TEAM_SIZE } from './playerHelper.js'
 import { TradeHistory } from '../entities/tradeHistory.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
@@ -68,6 +68,13 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
     if (sellingTeamPlayers.length <= MIN_TEAM_SIZE) throw new BadRequestError(t('error.teamTooSmall', {}, locale))
   }
 
+  // Enforce maximum team size for user-owned buying teams
+  const buyingTeam = await getTeamById(offer.from_team_id)
+  if (buyingTeam.user_id) {
+    const buyingTeamPlayers = await getPlayersByTeamId(buyingTeam.id)
+    if (buyingTeamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
+  }
+
   // Update player and trade offer
   player.team_id = offer.from_team_id
   await query('UPDATE player SET team_id=?, in_game_position=NULL WHERE id=?', [player.team_id, player.id])
@@ -75,7 +82,6 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
   await query('DELETE FROM trade_offer WHERE player_id=? AND id != ?', [player.id, offer.id])
 
   // Move balance - use user's language for log messages
-  const buyingTeam = await getTeamById(offer.from_team_id)
   const sellerLocale = sellingTeam.user_id ? await getUserLocale(sellingTeam.user_id) : 'en'
   const buyerLocale = buyingTeam.user_id ? await getUserLocale(buyingTeam.user_id) : 'en'
 

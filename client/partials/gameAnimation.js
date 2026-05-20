@@ -19,6 +19,13 @@ export class GameAnimation extends UIElement {
     this.playerTeamA = this.details.playerTeamA
     /** @type {PlayerType[]} */
     this.playerTeamB = this.details.playerTeamB
+    // Only starters are shown in the formation. Substitutes are pushed into
+    // playerTeamA/B during the match with enterMinute > 0; starters have
+    // enterMinute === 0 (set in play-game-day.js before kickoff).
+    /** @type {PlayerType[]} */
+    this.startersTeamA = this.playerTeamA.filter(p => !p.enterMinute)
+    /** @type {PlayerType[]} */
+    this.startersTeamB = this.playerTeamB.filter(p => !p.enterMinute)
   }
   /**
    * @returns {string}
@@ -29,8 +36,8 @@ export class GameAnimation extends UIElement {
         <div class="play-button">
           <i class="fa fa-play text-white" aria-hidden="true"></i>
         </div>
-        ${this.playerTeamA.map(p => this._renderTeamPlayer(p, this.team1, 'home')).join('')}
-        ${this.playerTeamB.map(p => this._renderTeamPlayer(p, this.team2, 'away')).join('')}
+        ${this.startersTeamA.map(p => this._renderTeamPlayer(p, this.team1, 'home')).join('')}
+        ${this.startersTeamB.map(p => this._renderTeamPlayer(p, this.team2, 'away')).join('')}
       </div>
     `
   }
@@ -95,8 +102,8 @@ export class GameAnimation extends UIElement {
       })
     }
 
-    loadImages(this.playerTeamA, this.team1, 'home')
-    loadImages(this.playerTeamB, this.team2, 'away')
+    loadImages(this.startersTeamA, this.team1, 'home')
+    loadImages(this.startersTeamB, this.team2, 'away')
   }
 
   /**

@@ -14,7 +14,8 @@ vi.mock('../../helper/playerHelper.js', () => ({
   getPlayerAge: vi.fn(),
   getAveragePlanPriceOfPlayer: vi.fn(),
   getPlayersByTeamId: vi.fn(),
-  MIN_TEAM_SIZE: 14
+  MIN_TEAM_SIZE: 14,
+  MAX_TEAM_SIZE: 42
 }))
 
 vi.mock('../../helper/gameDayHelper.js', () => ({
@@ -167,6 +168,7 @@ describe('players routes', () => {
 
       getTeam.mockResolvedValue(team)
       getPlayerById.mockResolvedValue(player)
+      getPlayersByTeamId.mockResolvedValue(Array(20).fill(testData.player()))
       query.mockResolvedValue({})
 
       const req = createMockRequest()
@@ -187,6 +189,20 @@ describe('players routes', () => {
 
       await expect(handlers.givePlayerContract(1, req))
         .rejects.toMatchObject({ message: 'Player not found' })
+    })
+
+    it('throws error when team is already at maximum squad size', async () => {
+      const team = testData.team()
+      const player = testData.player({ team_id: null, name: 'Free Player' })
+
+      getTeam.mockResolvedValue(team)
+      getPlayerById.mockResolvedValue(player)
+      getPlayersByTeamId.mockResolvedValue(Array(42).fill(testData.player()))
+
+      const req = createMockRequest()
+
+      await expect(handlers.givePlayerContract(1, req))
+        .rejects.toMatchObject({ message: 'Your team cannot have more than 42 players.' })
     })
   })
 

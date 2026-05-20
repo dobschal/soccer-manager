@@ -19,72 +19,60 @@ function makeNav ({ scrollWidth, clientWidth, parent = document.body } = {}) {
   Object.defineProperty(nav, 'scrollWidth', { value: scrollWidth, configurable: true })
   Object.defineProperty(nav, 'clientWidth', { value: clientWidth, configurable: true })
 
-  nav.scrollTo = vi.fn()
   return nav
 }
 
 describe('animateTabBar', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
     document.body.innerHTML = ''
   })
 
   afterEach(() => {
-    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
-  it('applies the slide-in CSS class so the @keyframes animation runs', () => {
-    const nav = makeNav({ scrollWidth: 300, clientWidth: 300 })
-    animateTabBar(nav)
-    expect(nav.classList.contains('tab-bar-enter')).toBe(true)
-  })
-
-  it('peek-scrolls to the right edge then back when the tabs overflow horizontally', () => {
+  it('snaps the scroll to the right edge immediately when the tabs overflow', () => {
     const nav = makeNav({ scrollWidth: 800, clientWidth: 300 })
 
     animateTabBar(nav)
-    // Slide-in: peek does not start yet.
-    expect(nav.scrollTo).not.toHaveBeenCalled()
 
-    // After the slide-in window, peek to the right edge.
-    vi.advanceTimersByTime(1000)
-    expect(nav.scrollTo).toHaveBeenCalledWith({ left: 500, behavior: 'smooth' })
-
-    // After the peek hold, scroll back to the start.
-    vi.advanceTimersByTime(500)
-    expect(nav.scrollTo).toHaveBeenLastCalledWith({ left: 0, behavior: 'smooth' })
-    expect(nav.scrollTo).toHaveBeenCalledTimes(2)
+    // Synchronously snapped to the right edge — no smooth scroll, no delay.
+    expect(nav.scrollLeft).toBe(500)
   })
 
-  it('does not peek-scroll when the tabs already fit without overflow', () => {
+  it('animates the scroll back to the start via requestAnimationFrame', async () => {
+    const nav = makeNav({ scrollWidth: 800, clientWidth: 300 })
+
+    // Drive rAF manually so we can simulate the easing landing at 0.
+    const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame')
+      .mockImplementation(cb => { cb(performance.now() + 5000); return 1 })
+
+    animateTabBar(nav)
+
+    // animateTabBar pauses briefly between the snap and the back-scroll;
+    // wait for that pause to elapse before asserting the final position.
+    await new Promise(resolve => setTimeout(resolve, 600))
+
+    expect(nav.scrollLeft).toBe(0)
+
+    rafSpy.mockRestore()
+  })
+
+  it('does nothing when the tabs already fit without overflow', () => {
     const nav = makeNav({ scrollWidth: 300, clientWidth: 300 })
 
     animateTabBar(nav)
-    vi.advanceTimersByTime(2000)
 
-    expect(nav.scrollTo).not.toHaveBeenCalled()
+    expect(nav.scrollLeft).toBe(0)
   })
 
-  it('skips the peek-scroll when the nav has been removed from the DOM mid-animation', () => {
+  it('does nothing when the nav has been removed from the DOM', () => {
     const nav = makeNav({ scrollWidth: 800, clientWidth: 300 })
-
-    animateTabBar(nav)
     nav.remove()
-    vi.advanceTimersByTime(2000)
-
-    expect(nav.scrollTo).not.toHaveBeenCalled()
-  })
-
-  it('restarts the entrance animation on subsequent calls (class is re-added)', () => {
-    const nav = makeNav({ scrollWidth: 300, clientWidth: 300 })
 
     animateTabBar(nav)
-    expect(nav.classList.contains('tab-bar-enter')).toBe(true)
 
-    // Second call removes the class, forces reflow, then re-adds it.
-    animateTabBar(nav)
-    expect(nav.classList.contains('tab-bar-enter')).toBe(true)
+    expect(nav.scrollLeft).toBe(0)
   })
 })
 
@@ -98,12 +86,12 @@ describe('initTabBarAnimations', () => {
     vi.restoreAllMocks()
   })
 
-  it('animates a tab bar already in the DOM when page-changed fires (cached or sync render)', () => {
-    const nav = makeNav({ scrollWidth: 300, clientWidth: 300 })
+  it('snaps an overflowing tab bar to the right edge when page-changed fires', () => {
+    const nav = makeNav({ scrollWidth: 800, clientWidth: 300 })
 
     fire('page-changed')
 
-    expect(nav.classList.contains('tab-bar-enter')).toBe(true)
+    expect(nav.scrollLeft).toBe(500)
   })
 
   it('animates a tab bar inserted AFTER page-changed fires (async render or update() race)', async () => {
@@ -111,12 +99,12 @@ describe('initTabBarAnimations', () => {
 
     // Simulate a page like my-team that re-renders shortly after page-changed:
     // its onQueryChanged → load() → update() inserts the nav a tick later.
-    const nav = makeNav({ scrollWidth: 300, clientWidth: 300 })
+    const nav = makeNav({ scrollWidth: 800, clientWidth: 300 })
 
     // MutationObserver delivers via microtask in jsdom.
     await new Promise(resolve => setTimeout(resolve, 0))
 
-    expect(nav.classList.contains('tab-bar-enter')).toBe(true)
+    expect(nav.scrollLeft).toBe(500)
   })
 
   it('animates a tab bar inserted nested inside a wrapper after page-changed', async () => {
@@ -128,12 +116,49 @@ describe('initTabBarAnimations', () => {
     vi.spyOn(nav, 'getBoundingClientRect').mockReturnValue({
       width: 300, height: 40, top: 0, left: 0, right: 300, bottom: 40
     })
+    Object.defineProperty(nav, 'scrollWidth', { value: 800, configurable: true })
+    Object.defineProperty(nav, 'clientWidth', { value: 300, configurable: true })
     wrapper.appendChild(nav)
     // Append the wrapper containing the nav — observer sees the wrapper insertion.
     document.body.appendChild(wrapper)
 
     await new Promise(resolve => setTimeout(resolve, 0))
 
-    expect(nav.classList.contains('tab-bar-enter')).toBe(true)
+    expect(nav.scrollLeft).toBe(500)
+  })
+
+  it('animates a cached nav once its wrapper becomes visible after the slide transition', async () => {
+    // Simulates a cached page revisit: the nav exists already, but the router
+    // keeps the wrapper display:none for the first ~310ms of the slide. Our
+    // retry timers must still catch it once it becomes visible.
+    const nav = document.createElement('nav')
+    nav.className = 'nav nav-pills'
+    let visible = false
+    vi.spyOn(nav, 'getBoundingClientRect').mockImplementation(() => ({
+      width: visible ? 300 : 0,
+      height: visible ? 40 : 0,
+      top: 0,
+      left: 0,
+      right: visible ? 300 : 0,
+      bottom: visible ? 40 : 0
+    }))
+    Object.defineProperty(nav, 'scrollWidth', { value: 800, configurable: true })
+    Object.defineProperty(nav, 'clientWidth', { value: 300, configurable: true })
+    document.body.appendChild(nav)
+
+    // Suppress the rAF-driven back-scroll so we can assert the snap value
+    // without the easing moving scrollLeft before we read it.
+    const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1)
+
+    fire('page-changed')
+    // At this instant the wrapper is "display:none" — nav has zero box.
+    expect(nav.scrollLeft).toBe(0)
+
+    // Wrapper becomes visible after the slide finishes; a retry tick fires.
+    visible = true
+    await new Promise(resolve => setTimeout(resolve, 400))
+
+    expect(nav.scrollLeft).toBe(500)
+    rafSpy.mockRestore()
   })
 })

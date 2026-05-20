@@ -76,10 +76,9 @@
     margin-right: 1rem;
 }
 
-/* Smooth horizontal scrolling for the peek-hint animation */
-.nav.nav-pills {
-    scroll-behavior: smooth;
-}
+/* Tab bar entrance scroll is driven from JS via requestAnimationFrame so it
+ * works in iOS WKWebView too. Leave `scroll-behavior` at the default so the
+ * initial snap-to-right-edge is instant and does not fight the JS animation. */
 
 /* Settings Overlay Content */
 .settings-overlay-content {

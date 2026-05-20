@@ -15,6 +15,7 @@ import { clearUserCache } from '../lib/userCache.js'
 import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 const AVATAR_UPLOAD_DIR = 'uploads/avatars'
 const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -75,9 +76,10 @@ export default {
     await regenerateTeamData(team)
     await query('DELETE FROM action_card WHERE team_id=?', [team.id])
     // Give new user 2 starter action cards
+    const { season } = await getGameDayAndSeason()
     const starterCards = [
-      new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER', played: 0 }),
-      new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0 })
+      new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER', played: 0, season }),
+      new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0, season })
     ]
     for (const card of starterCards) {
       await query('INSERT INTO action_card SET ?', card)

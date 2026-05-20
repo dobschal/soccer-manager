@@ -16,6 +16,10 @@ vi.mock('../../helper/actionCardHelper.js', () => ({
   claimActionCard: vi.fn()
 }))
 
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 1, season: 1 })
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getActionCards, playActionCard, getPendingActionCards, claimActionCard } from '../../helper/actionCardHelper.js'

@@ -18,6 +18,7 @@ export class StartPage {
    * @param {object} options.team
    * @param {Array} options.cupGames
    * @param {Array} options.friendlyGames
+   * @param {Array} [options.friendsGames]
    * @param {boolean} options.canPlayFriendly
    * @param {Array} options.standing
    * @param {number} options.teamPosition
@@ -29,6 +30,7 @@ export class StartPage {
     team,
     cupGames,
     friendlyGames,
+    friendsGames,
     canPlayFriendly,
     standing,
     teamPosition,
@@ -39,6 +41,7 @@ export class StartPage {
     this.team = team
     this._cupGames = cupGames
     this._friendlyGames = friendlyGames
+    this._friendsGames = friendsGames || []
     this._canPlayFriendly = canPlayFriendly
     this.standing = standing
     this.teamPosition = teamPosition
@@ -53,6 +56,7 @@ export class StartPage {
     const leagueCardId = generateId()
     const cupCardId = generateId()
     const friendlyCardId = generateId()
+    const friendsCardId = generateId()
     const gameSliderArgs = {
       games: this._sliderGames,
       teamId: this.team.id,
@@ -78,6 +82,7 @@ export class StartPage {
             <h5 class="mb-2 text-center text-white"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
             ${this._renderFriendlyGames(friendlyCardId)}
           </div>
+          ${this._renderFriendsGamesCard(friendsCardId)}
         </div>
         <div class="u-w-lg-33 u-w-100 flex-shrink-0 text-center order-1 order-lg-2 mb-3 mb-lg-0">
           <a href="#team?id=${this.team.id}" class="text-decoration-none">
@@ -262,6 +267,30 @@ export class StartPage {
     }
 
     return `${new GameSlider(friendlySliderArgs)}${playButton}`
+  }
+
+  /**
+   * Render the "Friends' last gameday matches" card. Hidden entirely when the
+   * user has no friends with played games.
+   * @param {string} cardId
+   * @returns {string}
+   */
+  _renderFriendsGamesCard (cardId) {
+    if (!this._friendsGames || this._friendsGames.length === 0) return ''
+
+    const friendsSliderArgs = {
+      games: this._friendsGames,
+      teamId: this.team.id,
+      initialIndex: this._friendsGames.length - 1,
+      cardId
+    }
+
+    return `
+      <div id="${cardId}" class="card card-body mb-2 bg-dark">
+        <h5 class="mb-2 text-center text-white"><i class="fa fa-users"></i> ${t('dashboard.friendsTitle')}</h5>
+        ${new GameSlider(friendsSliderArgs)}
+      </div>
+    `
   }
 
   /**

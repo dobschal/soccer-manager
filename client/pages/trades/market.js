@@ -1,6 +1,7 @@
 import { UIElement } from '../../lib/UIElement.js'
 import { server } from '../../lib/gateway.js'
 import { showDialog } from '../../partials/dialog.js'
+import { showOverlay } from '../../partials/overlay.js'
 import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { Table } from '../../partials/table.js'
@@ -11,6 +12,8 @@ import { renderLevelBadge } from '../../partials/levelBadge.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { Position } from '../../util/formation.js'
 import { renderPageNumbers } from '../../partials/pagination.js'
+import { renderCurrencyInput, setupCurrencyInput } from '../../partials/currencyInput.js'
+import { generateId, el } from '../../lib/html.js'
 
 const PAGE_SIZE = 20
 
@@ -367,29 +370,104 @@ export class MarketPage extends UIElement {
    * @returns {Promise<void>}
    */
   async _showBuyDialog (player) {
-    const {
-      ok,
-      value
-    } = await showDialog({
-      title: t('trades.buyPlayer', { playerName: player.name }),
-      text: t('trades.enterOfferValue'),
-      hasInput: true,
-      inputType: 'currency',
-      inputLabel: t('trades.price'),
-      buttonText: t('trades.submitOffer')
-    })
+    const sellOffer = this.offers.find(o => o.player_id === player.id && o.type === 'sell')
+    const sellOfferPrice = sellOffer ? sellOffer.offer_value : null
+    const allowInstantBuy = sellOffer ? sellOffer.allow_instant_buy !== 0 : false
 
-    if (!ok) return
+    const inputId = generateId()
+    const instantBuyBtnId = generateId()
+    const submitBtnId = generateId()
+    const cancelBtnId = generateId()
 
-    const price = Number(value)
-    if (price <= 0) {
-      toast(t('trades.validPrice'), 'error')
-      return
+    const formattedPrice = sellOfferPrice != null ? euroFormat.format(sellOfferPrice) : null
+
+    let instantBuySection
+    if (sellOfferPrice != null && allowInstantBuy) {
+      instantBuySection = `
+        <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+          <span>${t('trades.askingPrice')}: <b>${formattedPrice}</b></span>
+          <button id="${instantBuyBtnId}" type="button" class="btn btn-success btn-sm">${t('trades.instantBuyFor', { price: formattedPrice })}</button>
+        </div>
+        <p>${t('trades.orMakeOffer')}</p>
+      `
+    } else if (sellOfferPrice != null) {
+      instantBuySection = `
+        <div class="alert alert-info mb-3">
+          ${t('trades.askingPrice')}: <b>${formattedPrice}</b>
+        </div>
+        <p>${t('trades.enterOfferValue')}</p>
+      `
+    } else {
+      instantBuySection = `<p>${t('trades.enterOfferValue')}</p>`
     }
 
+    const content = `
+      ${instantBuySection}
+      <p>${renderCurrencyInput(inputId, t('trades.price'))}</p>
+      <button id="${cancelBtnId}" type="button" class="btn btn-secondary">${t('dialog.cancel')}</button>
+      <button id="${submitBtnId}" type="button" class="btn btn-primary">${t('trades.submitOffer')}</button>
+    `
+
+    const overlay = showOverlay(t('trades.buyPlayer', { playerName: player.name }), '', content)
+    setupCurrencyInput(inputId)
+
+    setTimeout(() => {
+      const cancelBtn = el('#' + cancelBtnId)
+      const submitBtn = el('#' + submitBtnId)
+      const instantBtn = el('#' + instantBuyBtnId)
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => overlay.remove())
+      }
+
+      if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+          const input = el('#' + inputId)
+          const price = Number(input?.dataset.rawValue || 0)
+          if (price <= 0) {
+            toast(t('trades.validPrice'), 'error')
+            return
+          }
+          try {
+            await server.addTradeOffer(player, price, 'buy')
+            toast(t('trades.sentBuyOffer'))
+            overlay.remove()
+            await this.load()
+            await this.update()
+          } catch (e) {
+            console.error(e)
+            toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+          }
+        })
+      }
+
+      if (instantBtn) {
+        instantBtn.addEventListener('click', async () => {
+          overlay.remove()
+          await this._confirmAndInstantBuy(player, sellOfferPrice)
+        })
+      }
+    })
+  }
+
+  /**
+   * @param {Object} player
+   * @param {number} sellOfferPrice
+   * @returns {Promise<void>}
+   */
+  async _confirmAndInstantBuy (player, sellOfferPrice) {
+    const formattedPrice = euroFormat.format(sellOfferPrice)
+    const { ok } = await showDialog({
+      title: t('trades.instantBuyConfirmTitle', { playerName: player.name }),
+      text: t('trades.instantBuyConfirmText', { playerName: player.name, price: formattedPrice }),
+      hasInput: false,
+      buttonText: t('trades.instantBuyYes'),
+      buttonType: 'success'
+    })
+    if (!ok) return
     try {
-      await server.addTradeOffer(player, price, 'buy')
-      toast(t('trades.sentBuyOffer'))
+      await server.instantBuyPlayer(player.id)
+      toast(t('trades.instantBuyDone', { playerName: player.name, price: formattedPrice }), 'success')
       await this.load()
       await this.update()
     } catch (e) {

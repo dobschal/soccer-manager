@@ -3,6 +3,7 @@ import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
+import { getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import {
   getYouthPlayersByTeam,
   getYouthPlayerById,
@@ -77,6 +78,11 @@ export default {
     const age = getYouthPlayerAge(youthPlayer, season)
     if (age < 16) {
       throw new BadRequestError(t('error.youthPlayerTooYoung', {}, locale))
+    }
+
+    const teamPlayers = await getPlayersByTeamId(team.id)
+    if (teamPlayers.length >= MAX_TEAM_SIZE) {
+      throw new BadRequestError(t('error.teamTooLarge', {}, locale))
     }
 
     const player = await promoteYouthPlayer(youthPlayer, season)

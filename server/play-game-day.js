@@ -514,14 +514,25 @@ async function _letTeamsPaySallaries (gameDay, season) {
 }
 
 /**
+ * Exported for tests.
  * @returns {Promise<void>}
  */
-async function _giveUsersActionCards () {
+export async function _giveUsersActionCards () {
   const t1 = Date.now()
+  const { season } = await getGameDayAndSeason()
   /** @type {TeamType[]} */
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   const trainingAreaLevels = await getAllTrainingAreaLevels()
   const fitnessStudioLevels = await getAllFitnessStudioLevels()
+  const teamIdsWithYouth = new Set(
+    (await query('SELECT DISTINCT team_id FROM youth_player')).map(r => r.team_id)
+  )
+  const teamIdsWithSeasonYouthCard = new Set(
+    (await query(
+      "SELECT DISTINCT team_id FROM action_card WHERE action='NEW_YOUTH_PLAYER' AND season=?",
+      [season]
+    )).map(r => r.team_id)
+  )
   const promises = []
   for (const team of teams) {
     const trainingLevel = trainingAreaLevels.get(team.id) ?? 1
@@ -529,6 +540,20 @@ async function _giveUsersActionCards () {
     const fitnessLevel = fitnessStudioLevels.get(team.id) ?? 0
     const fitnessOverrides = FITNESS_STUDIO_CARD_CHANCES[fitnessLevel] || FITNESS_STUDIO_CARD_CHANCES[0]
     const actionCards = []
+    // Guarantee a youth player card if the team currently has no youth player
+    // and has not received a NEW_YOUTH_PLAYER card this season yet.
+    const guaranteeYouthCard =
+      !teamIdsWithYouth.has(team.id) && !teamIdsWithSeasonYouthCard.has(team.id)
+    if (guaranteeYouthCard) {
+      actionCards.push(new ActionCard({
+        team_id: team.id,
+        action: 'NEW_YOUTH_PLAYER',
+        played: 0,
+        state: 'pending',
+        season
+      }))
+      teamIdsWithSeasonYouthCard.add(team.id)
+    }
     while (actionCards.length === 0) {
       for (const [action, defaultChance] of Object.entries(actionCardChances)) {
         // Override LEVEL_UP card chances based on training area level
@@ -544,7 +569,8 @@ async function _giveUsersActionCards () {
             team_id: team.id,
             action,
             played: 0,
-            state: 'pending'
+            state: 'pending',
+            season
           }))
         }
         if (Math.random() < remainder) {
@@ -552,7 +578,8 @@ async function _giveUsersActionCards () {
             team_id: team.id,
             action,
             played: 0,
-            state: 'pending'
+            state: 'pending',
+            season
           }))
         }
       }

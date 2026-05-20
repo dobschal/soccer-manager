@@ -24,17 +24,23 @@ vi.mock('../../lib/passwordHash.js', () => ({
   verifyPassword: vi.fn((p, h) => Promise.resolve(h === `hashed:${p}`))
 }))
 
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 1, season: 1 })
+}))
+
 // Import after mocking
 import { query } from '../../lib/database.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getSponsor } from '../../helper/sponsorHelper.js'
 import { prepareSeason } from '../../prepare-season.js'
 import { hashPassword } from '../../lib/passwordHash.js'
+import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 1 })
   })
 
   describe('login', () => {

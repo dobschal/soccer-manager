@@ -7,6 +7,7 @@
  * @property {number} from_team_id
  * @property {number} [game_day]
  * @property {number} [season]
+ * @property {number} [allow_instant_buy] - 1 if other users may instant-buy the listed player, 0 if disabled
  * @property {Date} created_at
  */
 
@@ -25,6 +26,7 @@ export function TradeOffer (raw) {
     from_team_id: RequiredNumber,
     game_day: OptionalNullableNumber,
     season: OptionalNullableNumber,
+    allow_instant_buy: OptionalNullableNumber,
     created_at: OptionalObject
   })
   for (const key in raw) {

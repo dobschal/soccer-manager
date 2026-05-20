@@ -6,7 +6,8 @@ vi.mock('../../lib/database.js', () => ({
 }))
 
 vi.mock('../../helper/teamHelper.js', () => ({
-  getTeam: vi.fn()
+  getTeam: vi.fn(),
+  getTeamById: vi.fn()
 }))
 
 vi.mock('../../helper/gameDayHelper.js', () => ({
@@ -19,7 +20,10 @@ vi.mock('../../helper/tradeHelper.js', () => ({
 }))
 
 vi.mock('../../helper/playerHelper.js', () => ({
-  getPlayerById: vi.fn()
+  getPlayerById: vi.fn(),
+  getPlayersByTeamId: vi.fn().mockResolvedValue([]),
+  getAveragePlanPriceOfPlayer: vi.fn(),
+  MAX_TEAM_SIZE: 42
 }))
 
 vi.mock('../../helper/logMessageHelper.js', () => ({
@@ -27,10 +31,10 @@ vi.mock('../../helper/logMessageHelper.js', () => ({
 }))
 
 import { query } from '../../lib/database.js'
-import { getTeam } from '../../helper/teamHelper.js'
+import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../../helper/tradeHelper.js'
-import { getPlayerById } from '../../helper/playerHelper.js'
+import { getPlayerById, getPlayersByTeamId } from '../../helper/playerHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/trade.js'
 
@@ -66,6 +70,10 @@ describe('trade routes', () => {
   })
 
   describe('addTradeOffer', () => {
+    beforeEach(() => {
+      getPlayersByTeamId.mockResolvedValue([])
+    })
+
     it('creates trade offer', async () => {
       const team = testData.team({ balance: 100000 })
       const player = testData.player()
@@ -78,7 +86,7 @@ describe('trade routes', () => {
         .mockResolvedValueOnce({})  // insert
 
       const req = createMockRequest()
-      const result = await handlers.addTradeOffer(player, 50000, 'sell', req)
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
 
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith(
@@ -89,10 +97,35 @@ describe('trade routes', () => {
           player_id: player.id,
           from_team_id: team.id,
           game_day: 5,
-          season: 1
+          season: 1,
+          allow_instant_buy: 1
         })
       )
       expect(addLogMessage).toHaveBeenCalled()
+    })
+
+    it('stores allow_instant_buy=0 when seller disables instant buy', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce({})
+
+      const req = createMockRequest()
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', false, req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith(
+        'INSERT INTO trade_offer SET ?',
+        expect.objectContaining({
+          type: 'sell',
+          allow_instant_buy: 0
+        })
+      )
     })
 
     it('throws error for buy offer when not enough money', async () => {
@@ -103,7 +136,7 @@ describe('trade routes', () => {
 
       const req = createMockRequest()
 
-      await expect(handlers.addTradeOffer(player, 50000, 'buy', req))
+      await expect(handlers.addTradeOffer(player, 50000, 'buy', true, req))
         .rejects.toMatchObject({ message: 'Not enough money' })
     })
 
@@ -115,10 +148,10 @@ describe('trade routes', () => {
 
       const req = createMockRequest()
 
-      await expect(handlers.addTradeOffer(player, 0, 'sell', req))
+      await expect(handlers.addTradeOffer(player, 0, 'sell', true, req))
         .rejects.toMatchObject({ message: 'Invalid offer value' })
 
-      await expect(handlers.addTradeOffer(player, -100, 'sell', req))
+      await expect(handlers.addTradeOffer(player, -100, 'sell', true, req))
         .rejects.toMatchObject({ message: 'Invalid offer value' })
     })
 
@@ -133,8 +166,22 @@ describe('trade routes', () => {
 
       const req = createMockRequest()
 
-      await expect(handlers.addTradeOffer(player, 50000, 'sell', req))
+      await expect(handlers.addTradeOffer(player, 50000, 'sell', true, req))
         .rejects.toMatchObject({ message: 'Player is already listed' })
+    })
+
+    it('throws error when buying team is already at maximum squad size', async () => {
+      const team = testData.team({ balance: 1000000 })
+      const player = testData.player({ team_id: 99 })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayersByTeamId.mockResolvedValue(new Array(42).fill({}))
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 50000, 'buy', true, req))
+        .rejects.toMatchObject({ message: 'Your team cannot have more than 42 players.' })
     })
 
     it('throws error when buy offer limit of 3 per player per game day is reached', async () => {
@@ -149,7 +196,7 @@ describe('trade routes', () => {
 
       const req = createMockRequest()
 
-      await expect(handlers.addTradeOffer(player, 50000, 'buy', req))
+      await expect(handlers.addTradeOffer(player, 50000, 'buy', true, req))
         .rejects.toMatchObject({ message: 'You can only make 3 offers per player per game day' })
     })
 
@@ -165,7 +212,7 @@ describe('trade routes', () => {
         .mockResolvedValueOnce({})  // insert
 
       const req = createMockRequest()
-      const result = await handlers.addTradeOffer(player, 50000, 'sell', req)
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
 
       expect(result).toEqual({ success: true })
     })
@@ -177,7 +224,7 @@ describe('trade routes', () => {
 
       const req = createMockRequest()
 
-      await expect(handlers.addTradeOffer(null, 50000, 'sell', req))
+      await expect(handlers.addTradeOffer(null, 50000, 'sell', true, req))
         .rejects.toMatchObject({ message: 'Player not found' })
     })
   })
@@ -351,16 +398,24 @@ describe('trade routes', () => {
   })
 
   describe('hasPlayerSellOffer', () => {
-    it('returns true when player has a sell offer', async () => {
-      query.mockResolvedValue([{ id: 1, offer_value: 500000 }])
+    it('returns true when player has a sell offer with instant buy allowed', async () => {
+      query.mockResolvedValue([{ id: 1, offer_value: 500000, allow_instant_buy: 1 }])
 
       const result = await handlers.hasPlayerSellOffer(123)
 
-      expect(result).toEqual({ hasSellOffer: true, sellOfferPrice: 500000 })
+      expect(result).toEqual({ hasSellOffer: true, sellOfferPrice: 500000, allowInstantBuy: true })
       expect(query).toHaveBeenCalledWith(
-        'SELECT id, offer_value FROM trade_offer WHERE player_id=? AND type=? AND status=\'open\' LIMIT 1',
+        'SELECT id, offer_value, allow_instant_buy FROM trade_offer WHERE player_id=? AND type=? AND status=\'open\' LIMIT 1',
         [123, 'sell']
       )
+    })
+
+    it('returns allowInstantBuy=false when seller disabled instant buy', async () => {
+      query.mockResolvedValue([{ id: 1, offer_value: 500000, allow_instant_buy: 0 }])
+
+      const result = await handlers.hasPlayerSellOffer(123)
+
+      expect(result).toEqual({ hasSellOffer: true, sellOfferPrice: 500000, allowInstantBuy: false })
     })
 
     it('returns false when player has no sell offer', async () => {
@@ -368,11 +423,141 @@ describe('trade routes', () => {
 
       const result = await handlers.hasPlayerSellOffer(456)
 
-      expect(result).toEqual({ hasSellOffer: false, sellOfferPrice: null })
+      expect(result).toEqual({ hasSellOffer: false, sellOfferPrice: null, allowInstantBuy: false })
+    })
+  })
+
+  describe('instantBuyPlayer', () => {
+    it('buys a listed player at the asking price', async () => {
+      const buyingTeam = testData.team({ id: 2, balance: 1000000 })
+      const sellingTeam = testData.team({ id: 5, balance: 0 })
+      const player = testData.player({ id: 42, team_id: 5 })
+      const sellOffer = testData.tradeOffer({ id: 99, player_id: 42, from_team_id: 5, type: 'sell', offer_value: 250000 })
+      const insertedOffer = testData.tradeOffer({ id: 100, player_id: 42, from_team_id: 2, type: 'buy', offer_value: 250000 })
+
+      getTeam.mockResolvedValue(buyingTeam)
+      getTeamById.mockResolvedValue(sellingTeam)
+      getPlayerById.mockResolvedValue(player)
+      getPlayersByTeamId.mockResolvedValue([player])
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+
+      query
+        .mockResolvedValueOnce([sellOffer])      // find sell offer
+        .mockResolvedValueOnce({})               // delete prior open buy offer
+        .mockResolvedValueOnce({ insertId: 100 }) // insert new buy offer
+        .mockResolvedValueOnce([insertedOffer])  // select inserted offer
+
+      acceptOffer.mockResolvedValue()
+
+      const req = createMockRequest()
+      const result = await handlers.instantBuyPlayer(42, req)
+
+      expect(result).toEqual({ success: true, price: 250000 })
       expect(query).toHaveBeenCalledWith(
-        'SELECT id, offer_value FROM trade_offer WHERE player_id=? AND type=? AND status=\'open\' LIMIT 1',
-        [456, 'sell']
+        'INSERT INTO trade_offer SET ?',
+        expect.objectContaining({
+          offer_value: 250000,
+          type: 'buy',
+          player_id: 42,
+          from_team_id: buyingTeam.id,
+          game_day: 5,
+          season: 1
+        })
       )
+      expect(acceptOffer).toHaveBeenCalledWith(insertedOffer, sellingTeam, 5, 1, 'en')
+    })
+
+    it('throws when player has no open sell offer', async () => {
+      const buyingTeam = testData.team({ id: 2, balance: 1000000 })
+      const player = testData.player({ id: 42, team_id: 5 })
+
+      getTeam.mockResolvedValue(buyingTeam)
+      getPlayerById.mockResolvedValue(player)
+      query.mockResolvedValueOnce([]) // no sell offer
+
+      const req = createMockRequest()
+      await expect(handlers.instantBuyPlayer(42, req))
+        .rejects.toMatchObject({ message: 'Player is not on the market' })
+      expect(acceptOffer).not.toHaveBeenCalled()
+    })
+
+    it('throws when buyer cannot afford the asking price', async () => {
+      const buyingTeam = testData.team({ id: 2, balance: 100000 })
+      const player = testData.player({ id: 42, team_id: 5 })
+      const sellOffer = testData.tradeOffer({ id: 99, player_id: 42, from_team_id: 5, type: 'sell', offer_value: 250000 })
+
+      getTeam.mockResolvedValue(buyingTeam)
+      getPlayerById.mockResolvedValue(player)
+      query.mockResolvedValueOnce([sellOffer])
+
+      const req = createMockRequest()
+      await expect(handlers.instantBuyPlayer(42, req))
+        .rejects.toMatchObject({ message: 'Not enough money' })
+      expect(acceptOffer).not.toHaveBeenCalled()
+    })
+
+    it('throws when trying to buy own player', async () => {
+      const buyingTeam = testData.team({ id: 2, balance: 1000000 })
+      const player = testData.player({ id: 42, team_id: 2 })
+
+      getTeam.mockResolvedValue(buyingTeam)
+      getPlayerById.mockResolvedValue(player)
+
+      const req = createMockRequest()
+      await expect(handlers.instantBuyPlayer(42, req))
+        .rejects.toMatchObject({ message: 'You cannot buy your own player' })
+      expect(acceptOffer).not.toHaveBeenCalled()
+    })
+
+    it('throws when buying team is already at max size', async () => {
+      const buyingTeam = testData.team({ id: 2, balance: 1000000 })
+      const player = testData.player({ id: 42, team_id: 5 })
+      const sellOffer = testData.tradeOffer({ id: 99, player_id: 42, from_team_id: 5, type: 'sell', offer_value: 100000 })
+
+      getTeam.mockResolvedValue(buyingTeam)
+      getPlayerById.mockResolvedValue(player)
+      query.mockResolvedValueOnce([sellOffer])
+      getPlayersByTeamId.mockResolvedValue(new Array(42).fill(testData.player()))
+
+      const req = createMockRequest()
+      await expect(handlers.instantBuyPlayer(42, req))
+        .rejects.toMatchObject({ message: 'Your team cannot have more than 42 players.' })
+      expect(acceptOffer).not.toHaveBeenCalled()
+    })
+
+    it('throws when player not found', async () => {
+      const buyingTeam = testData.team({ id: 2, balance: 1000000 })
+
+      getTeam.mockResolvedValue(buyingTeam)
+      getPlayerById.mockResolvedValue(null)
+
+      const req = createMockRequest()
+      await expect(handlers.instantBuyPlayer(42, req))
+        .rejects.toMatchObject({ message: 'Player not found' })
+    })
+
+    it('throws when playerId is not a number', async () => {
+      const buyingTeam = testData.team({ id: 2, balance: 1000000 })
+      getTeam.mockResolvedValue(buyingTeam)
+
+      const req = createMockRequest()
+      await expect(handlers.instantBuyPlayer('42', req))
+        .rejects.toMatchObject({ message: 'Player not found' })
+    })
+
+    it('throws when seller disabled instant buy', async () => {
+      const buyingTeam = testData.team({ id: 2, balance: 1000000 })
+      const player = testData.player({ id: 42, team_id: 5 })
+      const sellOffer = testData.tradeOffer({ id: 99, player_id: 42, from_team_id: 5, type: 'sell', offer_value: 100000, allow_instant_buy: 0 })
+
+      getTeam.mockResolvedValue(buyingTeam)
+      getPlayerById.mockResolvedValue(player)
+      query.mockResolvedValueOnce([sellOffer])
+
+      const req = createMockRequest()
+      await expect(handlers.instantBuyPlayer(42, req))
+        .rejects.toMatchObject({ message: 'The seller disabled instant buy for this player' })
+      expect(acceptOffer).not.toHaveBeenCalled()
     })
   })
 })

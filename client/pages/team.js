@@ -90,6 +90,14 @@ export class TeamPage extends UIElement {
     this._timelineHasMorePast = this._timelineGames.length > 0
     this._timelineHasMoreFuture = this._timelineGames.length > 0
     this._timelineLoading = false
+
+    // Friend status (only for foreign teams that have a user)
+    this._isFriend = false
+    this._canBeFriend = !this._isOwnTeam && Boolean(this.user?.id)
+    if (this._canBeFriend) {
+      const friendStatus = await server.isFriend(this.user.id)
+      this._isFriend = Boolean(friendStatus.isFriend)
+    }
   }
   /**
    * @returns {string}
@@ -166,6 +174,12 @@ export class TeamPage extends UIElement {
           this._handleFriendlyMatchClick()
         }
       },
+      '(optional) .friend-toggle-btn': {
+        click: (event) => {
+          event.preventDefault()
+          this._handleFriendToggleClick()
+        }
+      },
       '(optional) .player-link': {
         click: (event) => {
           event.preventDefault()
@@ -237,6 +251,12 @@ export class TeamPage extends UIElement {
   _isPlayingFriendly = false
   /** @type {boolean} */
   _notViewable = false
+  /** @type {boolean} */
+  _isFriend = false
+  /** @type {boolean} */
+  _canBeFriend = false
+  /** @type {boolean} */
+  _isUpdatingFriend = false
   /** @type {Array} */
   _transferHistory = []
   /** @type {number} */
@@ -369,18 +389,40 @@ export class TeamPage extends UIElement {
     // Don't show for own team
     if (this._isOwnTeam) return ''
 
-    const buttonDisabled = !this._canPlayFriendly || this._isPlayingFriendly
-    const buttonText = this._isPlayingFriendly
+    const friendlyDisabled = !this._canPlayFriendly || this._isPlayingFriendly
+    const friendlyText = this._isPlayingFriendly
       ? '<i class="fa fa-spinner fa-spin"></i>'
       : `<i class="fa fa-futbol-o"></i> ${t('team.playFriendly')}`
-    const buttonTitle = !this._canPlayFriendly ? t('team.friendlyPlayed') : ''
+    const friendlyTitle = !this._canPlayFriendly ? t('team.friendlyPlayed') : ''
 
     return `
-      <div class="mb-4 text-center">
-        <button class="btn btn-outline-info friendly-match-btn" ${buttonDisabled ? 'disabled' : ''} title="${buttonTitle}">
-          ${buttonText}
+      <div class="mb-4 text-center d-flex flex-wrap justify-content-center u-gap-sm">
+        <button class="btn btn-outline-info friendly-match-btn" ${friendlyDisabled ? 'disabled' : ''} title="${friendlyTitle}">
+          ${friendlyText}
         </button>
+        ${this._renderFriendToggleButton()}
       </div>
+    `
+  }
+
+  /**
+   * Render the "add/remove friend" button if applicable
+   * @returns {string}
+   * @private
+   */
+  _renderFriendToggleButton () {
+    if (!this._canBeFriend) return ''
+    const disabled = this._isUpdatingFriend
+    const inner = this._isUpdatingFriend
+      ? '<i class="fa fa-spinner fa-spin"></i>'
+      : this._isFriend
+        ? `<i class="fa fa-user-times"></i> ${t('team.removeFriend')}`
+        : `<i class="fa fa-user-plus"></i> ${t('team.addFriend')}`
+    const cls = this._isFriend ? 'btn-outline-secondary' : 'btn-outline-info'
+    return `
+      <button class="btn ${cls} friend-toggle-btn" ${disabled ? 'disabled' : ''}>
+        ${inner}
+      </button>
     `
   }
 
@@ -425,6 +467,34 @@ export class TeamPage extends UIElement {
       console.error('Error playing friendly match:', e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
       this._isPlayingFriendly = false
+      await this.update()
+    }
+  }
+
+  /**
+   * Handle click on the friend toggle button (add/remove friend)
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _handleFriendToggleClick () {
+    if (this._isUpdatingFriend || !this._canBeFriend || !this.user?.id) return
+    try {
+      this._isUpdatingFriend = true
+      await this.update()
+      if (this._isFriend) {
+        await server.removeFriend(this.user.id)
+        this._isFriend = false
+        toast(t('team.friendRemoved'), 'success')
+      } else {
+        await server.addFriend(this.user.id)
+        this._isFriend = true
+        toast(t('team.friendAdded'), 'success')
+      }
+    } catch (e) {
+      console.error('Error updating friend status:', e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    } finally {
+      this._isUpdatingFriend = false
       await this.update()
     }
   }

@@ -26,6 +26,11 @@ vi.mock('../../helper/youthPlayerHelper.js', () => ({
   setYouthTrainingMode: vi.fn()
 }))
 
+vi.mock('../../helper/playerHelper.js', () => ({
+  getPlayersByTeamId: vi.fn().mockResolvedValue([]),
+  MAX_TEAM_SIZE: 42
+}))
+
 vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key) => key),
   getUserLocale: vi.fn(() => 'en')
@@ -42,6 +47,7 @@ import {
   fireYouthPlayer,
   setYouthTrainingMode
 } from '../../helper/youthPlayerHelper.js'
+import { getPlayersByTeamId } from '../../helper/playerHelper.js'
 import handlers from '../../routes/youth.js'
 
 describe('youth routes', () => {
@@ -133,6 +139,10 @@ describe('youth routes', () => {
   })
 
   describe('promoteYouthPlayer', () => {
+    beforeEach(() => {
+      getPlayersByTeamId.mockResolvedValue([])
+    })
+
     it('promotes youth player aged 16 or older', async () => {
       const team = testData.team()
       const youthPlayer = { id: 1, name: 'Youth Star', team_id: team.id, birth_season: 0, level: 25 }
@@ -150,6 +160,23 @@ describe('youth routes', () => {
       expect(result.success).toBe(true)
       expect(result.player).toEqual(promotedPlayer)
       expect(addLogMessage).toHaveBeenCalled()
+    })
+
+    it('throws error when A team is already at maximum squad size', async () => {
+      const team = testData.team()
+      const youthPlayer = { id: 1, name: 'Youth Star', team_id: team.id, birth_season: 0, level: 25 }
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 2 })
+      getYouthPlayerById.mockResolvedValue(youthPlayer)
+      getYouthPlayerAge.mockReturnValue(16)
+      getPlayersByTeamId.mockResolvedValue(new Array(42).fill({}))
+
+      const req = createMockRequest()
+
+      await expect(handlers.promoteYouthPlayer(1, req))
+        .rejects.toMatchObject({ message: 'error.teamTooLarge' })
+      expect(promoteYouthPlayer).not.toHaveBeenCalled()
     })
 
     it('throws error for youth player too young', async () => {

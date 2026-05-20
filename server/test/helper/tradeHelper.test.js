@@ -21,7 +21,8 @@ vi.mock('../../helper/teamHelper.js', () => ({
 vi.mock('../../helper/playerHelper.js', () => ({
   getPlayerById: vi.fn(),
   getPlayersByTeamId: vi.fn(),
-  MIN_TEAM_SIZE: 14
+  MIN_TEAM_SIZE: 14,
+  MAX_TEAM_SIZE: 42
 }))
 
 vi.mock('../../helper/playerHistoryHelper.js', () => ({
@@ -38,6 +39,7 @@ vi.mock('../../i18n/index.js', () => ({
       'error.offerNotFound': 'Offer not found',
       'error.playerNotFound': 'Player not found',
       'error.teamTooSmall': 'Your team must have at least 14 players.',
+      'error.teamTooLarge': 'Your team cannot have more than 42 players.',
       'finance.playerSold': `Selling player ${params.playerName} to ${params.buyerTeam}`,
       'finance.playerBought': `Buying player ${params.playerName} from ${params.sellerTeam}`,
       'log.playerSold': `You sold your player ${params.playerName} to the team ${params.buyerTeam}.`,
@@ -413,6 +415,53 @@ describe('tradeHelper', () => {
 
       await expect(acceptOffer(offer, sellingTeam, gameDay, season))
         .rejects.toMatchObject({ message: 'Your team must have at least 14 players.' })
+    })
+
+    it('throws error when buying team is user-owned and would exceed maximum team size', async () => {
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC', user_id: 1 })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC', user_id: 2 })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({
+        id: 1,
+        type: 'buy',
+        player_id: 10,
+        from_team_id: 2,
+        offer_value: 50000
+      })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      // First call: selling team (18 players — ok), second call: buying team (42 players — at cap)
+      getPlayersByTeamId
+        .mockResolvedValueOnce(Array(18).fill(testData.player()))
+        .mockResolvedValueOnce(Array(42).fill(testData.player()))
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season))
+        .rejects.toMatchObject({ message: 'Your team cannot have more than 42 players.' })
+    })
+
+    it('allows trade when buying team is a bot regardless of squad size', async () => {
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC', user_id: 1 })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC', user_id: null })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({
+        id: 1,
+        type: 'buy',
+        player_id: 10,
+        from_team_id: 2,
+        offer_value: 50000
+      })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      // Selling team OK
+      getPlayersByTeamId.mockResolvedValueOnce(Array(18).fill(testData.player()))
+      query.mockResolvedValue({})
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season))
+        .resolves.toBeUndefined()
     })
 
     it('allows trade for bot teams even with few players', async () => {

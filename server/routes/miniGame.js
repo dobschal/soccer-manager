@@ -62,7 +62,7 @@ export default {
       if (action) {
         const cardResult = await query(
           'INSERT INTO action_card SET ?',
-          { team_id: team.id, action, played: 0, state: 'pending' }
+          { team_id: team.id, action, played: 0, state: 'pending', season }
         )
         const cardId = cardResult.insertId
         await query('UPDATE mini_game_score SET rewarded_card_id=? WHERE id=?', [cardId, scoreId])

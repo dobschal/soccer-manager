@@ -5,7 +5,7 @@ import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer, getOpenSellOffersByTeamId } from '../helper/tradeHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
-import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId } from '../helper/playerHelper.js'
+import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { getPositionsOfFormation } from '../../client/util/formation.js'
 
@@ -39,10 +39,11 @@ export default {
    * @param {PlayerType} player
    * @param {number} price
    * @param {string} type
+   * @param {boolean} allowInstantBuy - sell offers only: whether to allow other users to instantly buy at this price
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
    */
-  async addTradeOffer (player, price, type, req) {
+  async addTradeOffer (player, price, type, allowInstantBuy, req) {
     const locale = req.locale || 'en'
     const team = await getTeam(req)
     if (type === 'buy' && team.balance < price) throw new BadRequestError(t('error.notEnoughMoney', {}, locale))
@@ -50,6 +51,10 @@ export default {
     if (typeof price !== 'number') throw new BadRequestError(t('error.invalidOfferValue', {}, locale))
     if (typeof type !== 'string') throw new BadRequestError(t('error.invalidRequest', {}, locale))
     if (price <= 0) throw new BadRequestError(t('error.invalidOfferValue', {}, locale))
+    if (type === 'buy') {
+      const teamPlayers = await getPlayersByTeamId(team.id)
+      if (teamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
+    }
     const { gameDay, season } = await getGameDayAndSeason()
     const tradeOffer = new TradeOffer({
       offer_value: price,
@@ -57,7 +62,8 @@ export default {
       player_id: player.id,
       from_team_id: team.id,
       game_day: gameDay,
-      season: season
+      season: season,
+      allow_instant_buy: type === 'sell' && allowInstantBuy === false ? 0 : 1
     })
     const results = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'', [tradeOffer.from_team_id, tradeOffer.player_id])
     if (results.length > 0) throw new BadRequestError(t('error.playerAlreadyListed', {}, locale))
@@ -165,6 +171,61 @@ export default {
   },
 
   /**
+   * Buy a listed player immediately at the seller's asking price, without seller confirmation.
+   * @param {number} playerId
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, price: number}>}
+   */
+  async instantBuyPlayer (playerId, req) {
+    const locale = req.locale || 'en'
+    const team = await getTeam(req)
+    if (typeof playerId !== 'number') throw new BadRequestError(t('error.playerNotFound', {}, locale))
+
+    const player = await getPlayerById(playerId)
+    if (!player) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+    if (player.team_id === team.id) throw new BadRequestError(t('error.cannotBuyOwnPlayer', {}, locale))
+
+    const [sellOffer] = await query(
+      'SELECT * FROM trade_offer WHERE player_id=? AND type=\'sell\' AND status=\'open\' LIMIT 1',
+      [player.id]
+    )
+    if (!sellOffer) throw new BadRequestError(t('error.playerNotOnMarket', {}, locale))
+    if (sellOffer.from_team_id !== player.team_id) throw new BadRequestError(t('error.playerNotOnMarket', {}, locale))
+    if (sellOffer.allow_instant_buy === 0) throw new BadRequestError(t('error.instantBuyDisabled', {}, locale))
+
+    const price = sellOffer.offer_value
+    if (team.balance < price) throw new BadRequestError(t('error.notEnoughMoney', {}, locale))
+
+    const teamPlayers = await getPlayersByTeamId(team.id)
+    if (teamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
+
+    const sellingTeam = await getTeamById(sellOffer.from_team_id)
+    if (!sellingTeam) throw new BadRequestError(t('error.playerNotOnMarket', {}, locale))
+
+    const { gameDay, season } = await getGameDayAndSeason()
+
+    // Remove any open buy offer this team already made for the player to avoid conflicts during accept.
+    await query(
+      'DELETE FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\' AND status=\'open\'',
+      [team.id, player.id]
+    )
+
+    const tradeOffer = new TradeOffer({
+      offer_value: price,
+      type: 'buy',
+      player_id: player.id,
+      from_team_id: team.id,
+      game_day: gameDay,
+      season: season
+    })
+    const insertResult = await query('INSERT INTO trade_offer SET ?', tradeOffer)
+    const [insertedOffer] = await query('SELECT * FROM trade_offer WHERE id=?', [insertResult.insertId])
+    await acceptOffer(insertedOffer, sellingTeam, gameDay, season, locale)
+
+    return { success: true, price }
+  },
+
+  /**
    * @param {TradeOfferType} offer
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
@@ -231,14 +292,18 @@ export default {
   /**
    * Check if a player has a sell offer
    * @param {number} playerId
-   * @returns {Promise<{hasSellOffer: boolean}>}
+   * @returns {Promise<{hasSellOffer: boolean, sellOfferPrice: (number|null), allowInstantBuy: boolean}>}
    */
   async hasPlayerSellOffer (playerId) {
     const [offer] = await query(
-      'SELECT id, offer_value FROM trade_offer WHERE player_id=? AND type=? AND status=\'open\' LIMIT 1',
+      'SELECT id, offer_value, allow_instant_buy FROM trade_offer WHERE player_id=? AND type=? AND status=\'open\' LIMIT 1',
       [playerId, 'sell']
     )
-    return { hasSellOffer: !!offer, sellOfferPrice: offer?.offer_value ?? null }
+    return {
+      hasSellOffer: !!offer,
+      sellOfferPrice: offer?.offer_value ?? null,
+      allowInstantBuy: offer ? offer.allow_instant_buy !== 0 : false
+    }
   },
 
   /**

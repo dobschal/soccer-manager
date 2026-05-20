@@ -1794,6 +1794,38 @@ const migrations = [{
     // Success: positive outcomes — promotions, trophies, recoveries, signings, level-ups, money, star/youth/level cards.
     await query("UPDATE log_message SET type='success' WHERE type='info' AND icon IN ('trophy', 'arrow-up', 'star', 'heartbeat', 'money', 'level-up', 'child', 'pencil')")
   }
+}, {
+  name: 'Add season column to action_card table',
+  async run () {
+    await query('ALTER TABLE action_card ADD COLUMN season INT DEFAULT NULL')
+    // Backfill existing NEW_YOUTH_PLAYER cards with the current season so the
+    // "guarantee a youth card per season" rule doesn't double-grant right
+    // after migration.
+    const [current] = await query('SELECT MAX(season) AS season FROM game WHERE played=1')
+    const currentSeason = current?.season ?? null
+    if (currentSeason !== null) {
+      await query("UPDATE action_card SET season=? WHERE action='NEW_YOUTH_PLAYER' AND season IS NULL", [currentSeason])
+    }
+  }
+}, {
+  name: 'Create user_friend Table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS user_friend (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT(20) NOT NULL,
+      friend_user_id BIGINT(20) NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_user_friend (user_id, friend_user_id),
+      INDEX idx_user_friend_user (user_id),
+      INDEX idx_user_friend_friend (friend_user_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Add allow_instant_buy column to trade_offer table',
+  async run () {
+    await query('ALTER TABLE trade_offer ADD COLUMN allow_instant_buy TINYINT(1) NOT NULL DEFAULT 1')
+  }
 }]
 
 /**

@@ -2,7 +2,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
-import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById, getPlayersByTeamId, MIN_TEAM_SIZE } from '../helper/playerHelper.js'
+import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE, MIN_TEAM_SIZE } from '../helper/playerHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getPastTrades } from '../helper/tradeHelper.js'
 import { addPlayerHistory } from '../helper/playerHistoryHelper.js'
@@ -69,6 +69,8 @@ export default {
     const team = await getTeam(req)
     const player = await getPlayerById(playerId)
     if (player.team_id) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+    const teamPlayers = await getPlayersByTeamId(team.id)
+    if (teamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
     await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
     await addLogMessage(t('log.playerSigned', { playerName: player.name }, locale), team, null, null, 'pencil', undefined, 'success')
     await addPlayerHistory(playerId, 'HIRED', team.name)

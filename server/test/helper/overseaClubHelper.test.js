@@ -98,15 +98,15 @@ describe('overseaClubHelper', () => {
       globalThis._query.mockResolvedValueOnce([])
 
       // For each created player: INSERT player, getAveragePlanPriceOfPlayer (uses getPlayerAge internally), INSERT trade_offer
-      // 12 positions x (8 bronze + 5 silver + 2 gold) = 180 players
+      // 12 positions x (8 bronze + 10 silver + 2 gold) = 240 players
       globalThis._getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
 
       // Mock all subsequent INSERT queries
       globalThis._query.mockResolvedValue({ insertId: 1 })
 
       const created = await fillMarketGaps()
-      // 12 positions * (8 + 5 + 2) = 180
-      expect(created).toBe(180)
+      // 12 positions * (8 + 10 + 2) = 240
+      expect(created).toBe(240)
     })
 
     it('does nothing when market is full', async () => {
@@ -114,12 +114,12 @@ describe('overseaClubHelper', () => {
       globalThis._query.mockResolvedValueOnce([{ id: 999 }])
 
       // Build existing offers that satisfy all position/tier combos
-      // bronze: 8, silver: 5, gold: 2
+      // bronze: 8, silver: 10, gold: 2
       const existingOffers = []
       const positions = ['GK', 'LD', 'CD', 'RD', 'LM', 'DM', 'CM', 'RM', 'OM', 'LA', 'CA', 'RA']
       const tierLevels = [
         { level: 20, cnt: 8 }, // bronze
-        { level: 50, cnt: 5 }, // silver
+        { level: 50, cnt: 10 }, // silver
         { level: 80, cnt: 2 } // gold
       ]
       for (const pos of positions) {
@@ -418,9 +418,9 @@ describe('overseaClubHelper', () => {
         { position: 'GK', level: 20, cnt: 7 },
         // Fill all other slots to their minimums
         ...['LD', 'CD', 'RD', 'LM', 'DM', 'CM', 'RM', 'OM', 'LA', 'CA', 'RA'].flatMap(pos =>
-          [{ position: pos, level: 20, cnt: 8 }, { position: pos, level: 50, cnt: 5 }, { position: pos, level: 80, cnt: 2 }]
+          [{ position: pos, level: 20, cnt: 8 }, { position: pos, level: 50, cnt: 10 }, { position: pos, level: 80, cnt: 2 }]
         ),
-        { position: 'GK', level: 50, cnt: 5 },
+        { position: 'GK', level: 50, cnt: 10 },
         { position: 'GK', level: 80, cnt: 2 }
       ])
 

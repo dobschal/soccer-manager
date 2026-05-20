@@ -21,6 +21,7 @@ export default {
   'error.invalidOfferValue': 'Invalid offer value',
   'error.offerTooLow': 'Offer is too low',
   'error.offerLimitReached': 'You can only make 3 offers per player per game day',
+  'error.instantBuyDisabled': 'The seller disabled instant buy for this player',
 
   // Stadium errors
   'error.standNotFound': 'Stand not found',
@@ -32,6 +33,7 @@ export default {
 
   // Player errors
   'error.teamTooSmall': 'Your team must have at least 14 players.',
+  'error.teamTooLarge': 'Your team cannot have more than 42 players.',
   'error.invalidPosition': 'Invalid position',
   'error.positionAlreadyTaken': 'Position is already taken',
   'error.playerNotInTeam': 'Player is not in your team',

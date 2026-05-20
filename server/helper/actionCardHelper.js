@@ -211,13 +211,15 @@ export async function mergeActionCards (actionCard1, actionCard2, team, locale =
     throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
   }
   const newCardType = actionCard1.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100'
+  const { season } = await getGameDayAndSeason()
   await query('DELETE FROM action_card WHERE id=?', [actionCard1.id])
   await query('DELETE FROM action_card WHERE id=?', [actionCard2.id])
   await query('INSERT INTO action_card SET ?', {
     team_id: team.id,
     action: newCardType,
     played: 0,
-    state: 'received'
+    state: 'received',
+    season
   })
   return {
     success: true,

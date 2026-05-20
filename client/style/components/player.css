@@ -54,6 +54,8 @@
     border-radius: 50%;
     padding: 6px 4px 2px 4px;
     aspect-ratio: 1;
+    width: 32px;
+    height: 32px;
 }
 
 .captain-badge__star {

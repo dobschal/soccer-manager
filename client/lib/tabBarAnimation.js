@@ -1,13 +1,17 @@
 import { on } from './event.js'
+import { delay } from './delay.js'
 
-const ENTER_CLASS = 'tab-bar-enter'
-const SLIDE_IN_MS = 1000
-const PEEK_HOLD_MS = 500
+const SCROLL_BACK_MS = 1000
 const OVERFLOW_THRESHOLD_PX = 16
 const PAGE_CHANGE_WINDOW_MS = 1500
+// The router slides cached page wrappers in over ~620ms, during which the
+// wrapper is `display: none` and the nav inside it has a zero-sized box. We
+// re-check at these offsets so we still catch the nav once it becomes visible.
+const VISIBILITY_RETRY_DELAYS_MS = [0, 350, 700, 1100]
 const NAV_SELECTOR = '.nav.nav-pills'
 
 let _pageChangeWindowEnd = 0
+let _animatedNavs = new WeakSet()
 
 /**
  * Whether a node is actually visible (connected and has a non-zero box).
@@ -21,30 +25,57 @@ function isVisible (node) {
 }
 
 /**
+ * Cubic ease-in so the back-scroll starts slow and accelerates into the start.
+ * @param {number} t in [0,1]
+ */
+function easeInCubic (t) {
+  return t * t * t
+}
+
+/**
+ * Manual rAF-based scroll so the animation also runs reliably in iOS WKWebView,
+ * where `scrollTo({ behavior: 'smooth' })` is unreliable.
+ * @param {HTMLElement} nav
+ * @param {number} from
+ * @param {number} to
+ * @param {number} duration
+ */
+function animateScroll (nav, from, to, duration) {
+  if (typeof requestAnimationFrame === 'undefined') {
+    nav.scrollLeft = to
+    return
+  }
+  const start = (typeof performance !== 'undefined' ? performance.now() : Date.now())
+
+  function step (now) {
+    if (!isVisible(nav)) return
+    const elapsed = now - start
+    const progress = Math.min(elapsed / duration, 1)
+    nav.scrollLeft = from + (to - from) * easeInCubic(progress)
+    if (progress < 1) requestAnimationFrame(step)
+  }
+
+  requestAnimationFrame(step)
+}
+
+/**
  * Run the entrance animation for a single tab bar:
- *   1. Slide it in from the left via the CSS @keyframes animation.
- *   2. If there is horizontal overflow, briefly scroll right to peek at the
- *      hidden tabs, then scroll back to the start.
+ *   1. Snap-scroll instantly to the right edge so the hidden tabs are revealed.
+ *   2. Slowly scroll back to the start so the user sees the first tabs land.
  * @param {HTMLElement} nav
  */
-export function animateTabBar (nav) {
-  // Restart the CSS animation by toggling the class.
-  nav.classList.remove(ENTER_CLASS)
-  // Force reflow so the re-added class restarts the animation.
-  void nav.offsetWidth
-  nav.classList.add(ENTER_CLASS)
+export async function animateTabBar (nav) {
+  if (!isVisible(nav)) return
+  const maxScroll = nav.scrollWidth - nav.clientWidth
+  if (maxScroll < OVERFLOW_THRESHOLD_PX) return
 
-  // After the slide-in finishes, do the peek-scroll if the bar overflows.
-  setTimeout(() => {
-    if (!isVisible(nav)) return
-    const maxScroll = nav.scrollWidth - nav.clientWidth
-    if (maxScroll < OVERFLOW_THRESHOLD_PX) return
-    nav.scrollTo({ left: maxScroll, behavior: 'smooth' })
-    setTimeout(() => {
-      if (!isVisible(nav)) return
-      nav.scrollTo({ left: 0, behavior: 'smooth' })
-    }, PEEK_HOLD_MS)
-  }, SLIDE_IN_MS)
+  // Snap to the right edge with no animation so the bar appears already scrolled.
+  nav.scrollLeft = maxScroll
+
+  await delay(300)
+
+  // Then slowly scroll back to the start.
+  animateScroll(nav, maxScroll, 0, SCROLL_BACK_MS)
 }
 
 /**
@@ -60,6 +91,19 @@ function isWithinPageChangeWindow () {
 }
 
 /**
+ * Animate the nav unless we already animated it for this page-change. The
+ * dedupe avoids re-snapping the same nav when both the retry timers and the
+ * MutationObserver path see the same element.
+ * @param {HTMLElement} nav
+ */
+function animateOnce (nav) {
+  if (_animatedNavs.has(nav)) return
+  if (!isVisible(nav)) return
+  _animatedNavs.add(nav)
+  animateTabBar(nav)
+}
+
+/**
  * @param {Node} node
  */
 function animateMatchingNavs (node) {
@@ -67,7 +111,7 @@ function animateMatchingNavs (node) {
   const navs = node.matches?.(NAV_SELECTOR)
     ? [node]
     : Array.from(node.querySelectorAll?.(NAV_SELECTOR) || [])
-  navs.filter(isVisible).forEach(animateTabBar)
+  navs.forEach(animateOnce)
 }
 
 /**
@@ -77,9 +121,7 @@ function animateMatchingNavs (node) {
  * fires.
  */
 function animateCurrentlyVisibleNavs () {
-  Array.from(document.querySelectorAll(NAV_SELECTOR))
-    .filter(isVisible)
-    .forEach(animateTabBar)
+  Array.from(document.querySelectorAll(NAV_SELECTOR)).forEach(animateOnce)
 }
 
 let _observer = null
@@ -92,7 +134,10 @@ function startObserving () {
       mutation.addedNodes.forEach(animateMatchingNavs)
     }
   })
-  _observer.observe(document.body, { childList: true, subtree: true })
+  _observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  })
 }
 
 /**
@@ -107,6 +152,15 @@ export function initTabBarAnimations () {
   startObserving()
   on('page-changed', () => {
     _pageChangeWindowEnd = Date.now() + PAGE_CHANGE_WINDOW_MS
-    animateCurrentlyVisibleNavs()
+    // Reset the dedupe set so cached pages re-animate on every revisit. The
+    // retry schedule catches the nav once its wrapper finishes sliding in.
+    _animatedNavs = new WeakSet()
+    VISIBILITY_RETRY_DELAYS_MS.forEach(delay => {
+      if (delay === 0) {
+        animateCurrentlyVisibleNavs()
+      } else {
+        setTimeout(animateCurrentlyVisibleNavs, delay)
+      }
+    })
   })
 }

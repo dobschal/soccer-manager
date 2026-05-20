@@ -9,7 +9,7 @@ import { getTeamById } from './teamHelper.js'
 const POSITIONS = Object.values(Position)
 const TIERS = [
   { name: 'bronze', minLevel: 1, maxLevel: 40, minOffers: 8 },
-  { name: 'silver', minLevel: 41, maxLevel: 70, minOffers: 5 },
+  { name: 'silver', minLevel: 41, maxLevel: 70, minOffers: 10 },
   { name: 'gold', minLevel: 71, maxLevel: 100, minOffers: 2 }
 ]
 const MAX_IOC_BUYS_PER_RUN = 10

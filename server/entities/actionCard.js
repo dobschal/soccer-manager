@@ -5,6 +5,7 @@
  * @property {string} action
  * @property {number} played
  * @property {string} [state]
+ * @property {number} [season]
  * @property {Date} created_at
  */
 
@@ -21,6 +22,7 @@ export function ActionCard (raw) {
     action: RequiredString,
     played: RequiredNumber,
     state: OptionalString,
+    season: OptionalNumber,
     created_at: OptionalObject
   })
   for (const key in raw) {

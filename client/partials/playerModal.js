@@ -87,9 +87,10 @@ export default class PlayerModal extends UIElement {
     this.history = await server.getPlayerHistory(this.player.id)
     const { offer } = await server.myOfferForPlayer(this.player)
     this.offer = offer
-    const { hasSellOffer, sellOfferPrice } = await server.hasPlayerSellOffer(this.player.id)
+    const { hasSellOffer, sellOfferPrice, allowInstantBuy } = await server.hasPlayerSellOffer(this.player.id)
     this.hasSellOffer = hasSellOffer
     this.sellOfferPrice = sellOfferPrice
+    this.allowInstantBuy = !!allowInstantBuy
   }
 
   get template () {
@@ -150,11 +151,24 @@ export default class PlayerModal extends UIElement {
         ` : ''}
         <div class="player-modal__section ${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4">
           <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
-          ${!this.isMyPlayer && this.sellOfferPrice ? `<p>${t('player.askingPrice')}: <b>${euroFormat.format(this.sellOfferPrice)}</b></p>` : `<p>${t('player.enterPrice')}</p>`}
+          ${!this.isMyPlayer && this.sellOfferPrice ? `
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <span>${t('player.askingPrice')}: <b>${euroFormat.format(this.sellOfferPrice)}</b></span>
+              ${this.allowInstantBuy ? `<button class="instant-buy-btn btn btn-success btn-sm" type="button">${t('trades.instantBuy')}</button>` : ''}
+            </div>
+          ` : `<p>${t('player.enterPrice')}</p>`}
           ${renderCurrencyInput('trade-price-input', t('player.pricePlaceholder'))}
-          <button class="trade-offer-btn btn btn-primary mt-2" type="button">
-            ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}
-          </button>
+          <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+            <button class="trade-offer-btn btn btn-primary" type="button">
+              ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}
+            </button>
+            ${this.isMyPlayer ? `
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="allow-instant-buy" checked>
+                <label class="form-check-label" for="allow-instant-buy">${t('player.allowInstantBuy')}</label>
+              </div>
+            ` : ''}
+          </div>
         </div>
         <div class="player-modal__section ${this.isFreeAgent ? '' : 'hidden'} mb-4">
           <b>🤝 ${t('player.hirePlayer')}</b>
@@ -191,6 +205,7 @@ export default class PlayerModal extends UIElement {
   get events () {
     return {
       '(optional).trade-offer-btn': { click: this._onTradeOffer },
+      '(optional).instant-buy-btn': { click: this._onInstantBuy },
       '(optional).hire-btn': { click: this._onHire },
       '(optional)#trade-price-input': {
         keydown: (e) => {
@@ -272,9 +287,33 @@ export default class PlayerModal extends UIElement {
       const root = el(this._elementQuery)
       const input = root?.querySelector('#trade-price-input')
       const price = Number(input?.dataset.rawValue || 0)
-      await server.addTradeOffer(this.player, price, this.isMyPlayer ? 'sell' : 'buy')
+      const allowInstantBuyEl = root?.querySelector('#allow-instant-buy')
+      const allowInstantBuy = allowInstantBuyEl ? allowInstantBuyEl.checked : true
+      await server.addTradeOffer(this.player, price, this.isMyPlayer ? 'sell' : 'buy', allowInstantBuy)
       toast(t('player.offerAdded', { playerName: this.player.name }), 'success')
       this.overlay.remove()
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    }
+  }
+
+  async _onInstantBuy () {
+    if (!this.sellOfferPrice) return
+    try {
+      const formattedPrice = euroFormat.format(this.sellOfferPrice)
+      const { ok } = await showDialog({
+        title: t('trades.instantBuyConfirmTitle', { playerName: this.player.name }),
+        text: t('trades.instantBuyConfirmText', { playerName: this.player.name, price: formattedPrice }),
+        hasInput: false,
+        buttonText: t('trades.instantBuyYes'),
+        buttonType: 'success'
+      })
+      if (!ok) return
+      await server.instantBuyPlayer(this.player.id)
+      toast(t('trades.instantBuyDone', { playerName: this.player.name, price: formattedPrice }), 'success')
+      this.overlay.remove()
+      window.dispatchEvent(new CustomEvent('player-bought', { detail: { playerId: this.player.id } }))
     } catch (e) {
       console.error(e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')

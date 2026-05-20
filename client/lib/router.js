@@ -166,8 +166,9 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
   }
 
   // Swipe-back: the outgoing wrapper is already animating off-screen (pinned
-  // absolutely by swipeBackNavigation). Just fade the incoming page in here
-  // and clean up the outgoing wrapper once its slide completes.
+  // absolutely by swipeBackNavigation). Hold the incoming page at opacity 0
+  // until the slide-out has finished, then add a brief pause before fading
+  // it in so the two animations don't overlap visually.
   if (window.__swipeBackInProgress) {
     window.__swipeBackInProgress = false
     container.style.transition = ''
@@ -177,27 +178,32 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
     newWrapper.style.transition = 'none'
     newWrapper.style.opacity = '0'
 
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        newWrapper.style.transition = 'opacity 220ms ease-out'
-        newWrapper.style.opacity = '1'
-      })
-    })
+    oldWrapper.style.display = 'none'
+    oldWrapper.style.position = ''
+    oldWrapper.style.top = ''
+    oldWrapper.style.left = ''
+    oldWrapper.style.right = ''
+    oldWrapper.style.zIndex = ''
+    oldWrapper.style.transition = ''
+    oldWrapper.style.transform = ''
+    oldWrapper.style.opacity = ''
+    oldWrapper.classList.remove('swipe-back-outgoing')
+
+    // Slide-out in swipeBackNavigation is 240ms (kicks in ~2 RAFs after
+    // release). _animateTransition runs shortly after release too, so a
+    // ~320ms delay leaves a small "nothing visible" gap after the slide.
+    const FADE_IN_DELAY_MS = 100
+    const FADE_IN_MS = 500
 
     setTimeout(() => {
-      oldWrapper.style.display = 'none'
-      oldWrapper.style.position = ''
-      oldWrapper.style.top = ''
-      oldWrapper.style.left = ''
-      oldWrapper.style.right = ''
-      oldWrapper.style.zIndex = ''
-      oldWrapper.style.transition = ''
-      oldWrapper.style.transform = ''
-      oldWrapper.style.opacity = ''
-      oldWrapper.classList.remove('swipe-back-outgoing')
+      newWrapper.style.transition = `opacity ${FADE_IN_MS}ms ease-out`
+      newWrapper.style.opacity = '1'
+    }, FADE_IN_DELAY_MS)
+
+    setTimeout(() => {
       newWrapper.style.transition = ''
       newWrapper.style.opacity = ''
-    }, 260)
+    }, FADE_IN_DELAY_MS + FADE_IN_MS + 40)
     return
   }
 
