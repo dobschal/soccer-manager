@@ -22,6 +22,8 @@ describe('statisticsHelper', () => {
       getGameDayAndSeason.mockResolvedValueOnce({ season: 12, gameDay: 5 })
       // daily active users
       query.mockResolvedValueOnce([{ daily_active_users: 7 }])
+      // weekly active users
+      query.mockResolvedValueOnce([{ weekly_active_users: 15 }])
       // monthly active users
       query.mockResolvedValueOnce([{ monthly_active_users: 25 }])
       // total user count
@@ -40,6 +42,7 @@ describe('statisticsHelper', () => {
       expect(row).toEqual({
         id: 17,
         daily_active_users: 7,
+        weekly_active_users: 15,
         monthly_active_users: 25,
         total_user_count: 100,
         in_game_money: 2500000,
@@ -49,10 +52,11 @@ describe('statisticsHelper', () => {
         action_card_count: 9
       })
 
-      const insertCall = query.mock.calls[6]
+      const insertCall = query.mock.calls[7]
       expect(insertCall[0]).toBe('INSERT INTO statistics SET ?')
       expect(insertCall[1]).toEqual({
         daily_active_users: 7,
+        weekly_active_users: 15,
         monthly_active_users: 25,
         total_user_count: 100,
         in_game_money: 2500000,
@@ -63,13 +67,14 @@ describe('statisticsHelper', () => {
       })
 
       // Player aggregate query must use the current season for age computation
-      const playerQuery = query.mock.calls[4]
+      const playerQuery = query.mock.calls[5]
       expect(playerQuery[1]).toEqual([12])
     })
 
     it('handles empty database with zero rows', async () => {
       getGameDayAndSeason.mockResolvedValueOnce({ season: 0, gameDay: 0 })
       query.mockResolvedValueOnce([{ daily_active_users: 0 }])
+      query.mockResolvedValueOnce([{ weekly_active_users: 0 }])
       query.mockResolvedValueOnce([{ monthly_active_users: 0 }])
       query.mockResolvedValueOnce([{ total_user_count: 0 }])
       query.mockResolvedValueOnce([{ in_game_money: 0 }])
@@ -82,6 +87,7 @@ describe('statisticsHelper', () => {
       expect(row).toEqual({
         id: 1,
         daily_active_users: 0,
+        weekly_active_users: 0,
         monthly_active_users: 0,
         total_user_count: 0,
         in_game_money: 0,

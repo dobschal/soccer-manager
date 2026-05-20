@@ -21,13 +21,17 @@ vi.mock('../../helper/overseaClubHelper.js', () => ({
   iocBuyUndervaluedPlayers: vi.fn()
 }))
 vi.mock('../../lib/pushNotification.js', () => ({
-  sendTestPushNotification: vi.fn(),
   sendBroadcastNotification: vi.fn()
 }))
 vi.mock('../../lib/userCache.js', () => ({ clearUserCache: vi.fn() }))
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn()
+}))
 
 import handlers from '../../routes/dev.js'
 import { collectStatistics, getStatistics } from '../../helper/statisticsHelper.js'
+import { query } from '../../lib/database.js'
+import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 
 describe('dev routes - statistics', () => {
   beforeEach(() => {
@@ -90,6 +94,53 @@ describe('dev routes - statistics', () => {
 
       expect(collectStatistics).toHaveBeenCalled()
       expect(result).toEqual({ success: true, row: { id: 5, daily_active_users: 1 } })
+    })
+  })
+
+  describe('giftActionCardToAll', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.giftActionCardToAll('BONUS_100K', { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('rejects unknown card types', async () => {
+      await expect(handlers.giftActionCardToAll('NOT_A_CARD', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Invalid action card type' })
+    })
+
+    it('rejects missing card type', async () => {
+      await expect(handlers.giftActionCardToAll(undefined, { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Invalid action card type' })
+    })
+
+    it('inserts a pending card per team with a user', async () => {
+      query.mockResolvedValueOnce([{ id: 1 }, { id: 2 }, { id: 3 }])
+      getGameDayAndSeason.mockResolvedValueOnce({ gameDay: 5, season: 7 })
+      query.mockResolvedValueOnce({ affectedRows: 3 })
+
+      const result = await handlers.giftActionCardToAll('BONUS_100K', { user: { is_admin: 1 } })
+
+      expect(query).toHaveBeenNthCalledWith(1, 'SELECT id FROM team WHERE user_id IS NOT NULL')
+      expect(query).toHaveBeenNthCalledWith(
+        2,
+        'INSERT INTO action_card (team_id, action, played, state, season) VALUES ?',
+        [[
+          [1, 'BONUS_100K', 0, 'pending', 7],
+          [2, 'BONUS_100K', 0, 'pending', 7],
+          [3, 'BONUS_100K', 0, 'pending', 7]
+        ]]
+      )
+      expect(result).toEqual({ success: true, count: 3 })
+    })
+
+    it('does nothing when no teams have a user', async () => {
+      query.mockResolvedValueOnce([])
+
+      const result = await handlers.giftActionCardToAll('BONUS_100K', { user: { is_admin: 1 } })
+
+      expect(query).toHaveBeenCalledTimes(1)
+      expect(getGameDayAndSeason).not.toHaveBeenCalled()
+      expect(result).toEqual({ success: true, count: 0 })
     })
   })
 })

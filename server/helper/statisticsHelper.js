@@ -15,6 +15,10 @@ export async function collectStatistics () {
     'SELECT COUNT(*) AS daily_active_users FROM user WHERE last_login > NOW() - INTERVAL 1 DAY'
   )
 
+  const [{ weekly_active_users: weeklyActiveUsers }] = await query(
+    'SELECT COUNT(*) AS weekly_active_users FROM user WHERE last_login > NOW() - INTERVAL 7 DAY'
+  )
+
   const [{ monthly_active_users: monthlyActiveUsers }] = await query(
     'SELECT COUNT(*) AS monthly_active_users FROM user WHERE last_login > NOW() - INTERVAL 30 DAY'
   )
@@ -46,6 +50,7 @@ export async function collectStatistics () {
 
   const row = {
     daily_active_users: Number(dailyActiveUsers) || 0,
+    weekly_active_users: Number(weeklyActiveUsers) || 0,
     monthly_active_users: Number(monthlyActiveUsers) || 0,
     total_user_count: Number(totalUserCount) || 0,
     in_game_money: Number(inGameMoney) || 0,
@@ -72,7 +77,7 @@ export async function getStatistics ({ limit = 30, offset = 0 } = {}) {
   const safeOffset = Math.max(0, Math.floor(Number(offset) || 0))
 
   const rows = await query(
-    `SELECT id, daily_active_users, monthly_active_users, total_user_count,
+    `SELECT id, daily_active_users, weekly_active_users, monthly_active_users, total_user_count,
             in_game_money, player_count, avg_player_level, avg_player_age,
             action_card_count, created_at
      FROM statistics

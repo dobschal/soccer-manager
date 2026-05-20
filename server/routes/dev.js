@@ -4,12 +4,26 @@ import { makeBotMoves } from '../bot-move.js'
 import { BadRequestError } from '../lib/errors.js'
 import { cleanupOldFreePlayers } from '../helper/playerHelper.js'
 import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyUndervaluedPlayers } from '../helper/overseaClubHelper.js'
-import { sendTestPushNotification, sendBroadcastNotification } from '../lib/pushNotification.js'
+import { sendBroadcastNotification } from '../lib/pushNotification.js'
 import { query, transaction } from '../lib/database.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { collectStatistics, getStatistics } from '../helper/statisticsHelper.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 const PERMANENT_ADMIN = 'Emmo'
+
+export const GIFTABLE_ACTION_CARD_TYPES = [
+  'LEVEL_UP_PLAYER_40',
+  'LEVEL_UP_PLAYER_70',
+  'LEVEL_UP_PLAYER_100',
+  'FRESHNESS_5',
+  'FRESHNESS_10',
+  'FRESHNESS_20',
+  'NEW_YOUTH_PLAYER',
+  'BONUS_100K',
+  'STAR_PLAYER',
+  'MOTIVATING_SPEECH'
+]
 
 export default {
   /**
@@ -39,28 +53,6 @@ export default {
   },
 
   /**
-   * Send a test push notification to a specific device token
-   * @param {string} deviceToken
-   * @param {string} message
-   * @param {string} [platform] - 'ios' or 'android' (defaults to 'ios')
-   * @param {Request} req
-   * @returns {Promise<{sent: number, failed: number, failureReason: string|null}>}
-   */
-  async testPushNotification (deviceToken, message, platform, req) {
-    if (!req.user?.is_admin) {
-      throw new BadRequestError('This action is only available for admins')
-    }
-    if (typeof deviceToken !== 'string' || !deviceToken) {
-      throw new BadRequestError('deviceToken is required')
-    }
-    if (typeof message !== 'string' || !message) {
-      throw new BadRequestError('message is required')
-    }
-    const resolvedPlatform = platform === 'android' ? 'android' : 'ios'
-    return sendTestPushNotification(deviceToken, message, resolvedPlatform)
-  },
-
-  /**
    * Send a broadcast push notification to all users (admin only)
    * @param {string} messageEn - English message
    * @param {string} messageDe - German message
@@ -78,6 +70,32 @@ export default {
       throw new BadRequestError('German message is required')
     }
     return sendBroadcastNotification(messageEn.trim(), messageDe.trim())
+  },
+
+  /**
+   * Gift one pending action card of the given type to every team that has a
+   * user assigned (admin only). The card appears as the claim overlay the
+   * next time the user opens the app.
+   * @param {string} action - One of {@link GIFTABLE_ACTION_CARD_TYPES}
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, count: number}>}
+   */
+  async giftActionCardToAll (action, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    if (typeof action !== 'string' || !GIFTABLE_ACTION_CARD_TYPES.includes(action)) {
+      throw new BadRequestError('Invalid action card type')
+    }
+    const teams = await query('SELECT id FROM team WHERE user_id IS NOT NULL')
+    if (teams.length === 0) return { success: true, count: 0 }
+    const { season } = await getGameDayAndSeason()
+    const values = teams.map(t => [t.id, action, 0, 'pending', season])
+    await query(
+      'INSERT INTO action_card (team_id, action, played, state, season) VALUES ?',
+      [values]
+    )
+    return { success: true, count: teams.length }
   },
 
   /**

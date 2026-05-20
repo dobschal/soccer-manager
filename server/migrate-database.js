@@ -1826,6 +1826,11 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE trade_offer ADD COLUMN allow_instant_buy TINYINT(1) NOT NULL DEFAULT 1')
   }
+}, {
+  name: 'Add weekly_active_users column to statistics',
+  async run () {
+    await query('ALTER TABLE statistics ADD COLUMN weekly_active_users INT NOT NULL DEFAULT 0')
+  }
 }]
 
 /**

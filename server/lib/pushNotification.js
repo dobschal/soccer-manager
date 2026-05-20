@@ -237,16 +237,3 @@ export async function sendBroadcastNotification (messageEn, messageDe) {
   return { sent: totalSent, failed: totalFailed }
 }
 
-/**
- * Send a push notification directly to a device token (for testing).
- * @param {string} deviceToken
- * @param {string} message
- * @param {string} [platform='ios'] - 'ios' or 'android'
- * @returns {Promise<{sent: number, failed: number, failureReason: string|null}>}
- */
-export async function sendTestPushNotification (deviceToken, message, platform = 'ios') {
-  if (platform === 'android') {
-    return sendFcmToTokens([deviceToken], 'Test Notification', message)
-  }
-  return sendApnsToTokens([deviceToken], 'Test Notification', message)
-}

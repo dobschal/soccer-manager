@@ -3,6 +3,7 @@ import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { generateId } from '../lib/html.js'
 import { t } from '../i18n/index.js'
+import { ActiveUsersChart } from '../partials/activeUsersChart.js'
 
 const STATISTICS_PAGE_SIZE = 20
 
@@ -38,6 +39,7 @@ export class AdminPage extends UIElement {
       <tr>
         <td>${new Date(s.created_at).toLocaleString()}</td>
         <td>${s.daily_active_users}</td>
+        <td>${s.weekly_active_users ?? 0}</td>
         <td>${s.monthly_active_users ?? 0}</td>
         <td>${s.total_user_count ?? 0}</td>
         <td>${this._formatMoney(s.in_game_money)}</td>
@@ -60,25 +62,18 @@ export class AdminPage extends UIElement {
         </div>
 
         <div class="mb-4">
-          <h4>${t('admin.pushNotification')}</h4>
-          <div class="mb-3">
-            <label for="${this._tokenInputId}" class="form-label">${t('admin.deviceToken')}</label>
-            <input type="text" id="${this._tokenInputId}" class="form-control" placeholder="${t('admin.deviceToken')}">
-          </div>
-          <div class="mb-3">
-            <label for="${this._messageInputId}" class="form-label">${t('admin.message')}</label>
-            <input type="text" id="${this._messageInputId}" class="form-control" placeholder="${t('admin.message')}">
-          </div>
-          <div class="mb-3">
-            <label for="${this._platformSelectId}" class="form-label">Platform</label>
-            <select id="${this._platformSelectId}" class="form-control">
-              <option value="ios">iOS</option>
-              <option value="android">Android</option>
+          <h4>${t('admin.giftActionCardTitle')}</h4>
+          <p class="text-muted">${t('admin.giftActionCardDescription')}</p>
+          <div class="input-group">
+            <select id="${this._giftCardSelectId}" class="form-control">
+              ${this._giftableCardTypes.map(type => `
+                <option value="${type.value}">${type.label}</option>
+              `).join('')}
             </select>
+            <button id="${this._giftCardBtnId}" class="btn btn-warning">
+              <i class="fa fa-gift" aria-hidden="true"></i> ${t('admin.giftActionCardButton')}
+            </button>
           </div>
-          <button id="${this._sendBtnId}" class="btn btn-primary">
-            <i class="fa fa-bell" aria-hidden="true"></i> ${t('admin.sendNotification')}
-          </button>
         </div>
 
         <div class="mb-4">
@@ -128,12 +123,15 @@ export class AdminPage extends UIElement {
             </button>
           </div>
           ${this._statistics.length > 0 ? `
+          <h5 class="mb-2">${t('admin.statisticsActiveUsersChartTitle')}</h5>
+          ${new ActiveUsersChart(this._statistics)}
           <div class="horizontal-scrollable-table">
             <table class="table table-sm table-hover mb-0">
               <thead>
                 <tr>
                   <th>${t('admin.statisticsCreatedAt')}</th>
                   <th>${t('admin.statisticsDailyActiveUsers')}</th>
+                  <th>${t('admin.statisticsWeeklyActiveUsers')}</th>
                   <th>${t('admin.statisticsMonthlyActiveUsers')}</th>
                   <th>${t('admin.statisticsTotalUserCount')}</th>
                   <th>${t('admin.statisticsInGameMoney')}</th>
@@ -166,11 +164,11 @@ export class AdminPage extends UIElement {
       [`#${this._triggerBtnId}`]: {
         click: () => this._triggerGameDay()
       },
-      [`#${this._sendBtnId}`]: {
-        click: () => this._sendNotification()
-      },
       [`#${this._broadcastBtnId}`]: {
         click: () => this._sendBroadcast()
+      },
+      [`#${this._giftCardBtnId}`]: {
+        click: () => this._giftActionCard()
       },
       [`#${this._deleteUserBtnId}`]: {
         click: () => this._deleteUser()
@@ -194,15 +192,13 @@ export class AdminPage extends UIElement {
   }
 
   _triggerBtnId = generateId()
-  _sendBtnId = generateId()
-  _tokenInputId = generateId()
-  _messageInputId = generateId()
-  _platformSelectId = generateId()
   _deleteUsernameId = generateId()
   _deleteUserBtnId = generateId()
   _broadcastEnId = generateId()
   _broadcastDeId = generateId()
   _broadcastBtnId = generateId()
+  _giftCardSelectId = generateId()
+  _giftCardBtnId = generateId()
   _addAdminInputId = generateId()
   _addAdminBtnId = generateId()
   _collectBtnId = generateId()
@@ -213,6 +209,21 @@ export class AdminPage extends UIElement {
   _statisticsTotal = 0
   _statisticsPage = 1
   _statisticsPageSize = STATISTICS_PAGE_SIZE
+
+  get _giftableCardTypes () {
+    return [
+      { value: 'LEVEL_UP_PLAYER_40', label: t('actionCards.type.basicPromotion') },
+      { value: 'LEVEL_UP_PLAYER_70', label: t('actionCards.type.epicAdvancement') },
+      { value: 'LEVEL_UP_PLAYER_100', label: t('actionCards.type.legendaryMastery') },
+      { value: 'FRESHNESS_5', label: t('actionCards.type.quickRecovery') },
+      { value: 'FRESHNESS_10', label: t('actionCards.type.energyBoost') },
+      { value: 'FRESHNESS_20', label: t('actionCards.type.fullRecovery') },
+      { value: 'NEW_YOUTH_PLAYER', label: t('actionCards.type.youthProspect') },
+      { value: 'BONUS_100K', label: t('actionCards.type.cashBonus') },
+      { value: 'STAR_PLAYER', label: t('actionCards.type.starPlayer') },
+      { value: 'MOTIVATING_SPEECH', label: t('actionCards.type.motivatingSpeech') }
+    ]
+  }
 
   _formatMoney (value) {
     const number = Number(value) || 0
@@ -248,6 +259,7 @@ export class AdminPage extends UIElement {
   }
 
   async _triggerGameDay () {
+    if (!confirm(t('admin.triggerGameDayConfirm'))) return
     const btn = document.getElementById(this._triggerBtnId)
     try {
       btn.disabled = true
@@ -262,19 +274,16 @@ export class AdminPage extends UIElement {
     }
   }
 
-  async _sendNotification () {
-    const token = document.getElementById(this._tokenInputId).value.trim()
-    const message = document.getElementById(this._messageInputId).value.trim()
-    const platform = document.getElementById(this._platformSelectId).value
-    if (!token || !message) {
-      toast('Device token and message are required', 'error')
-      return
-    }
-    const btn = document.getElementById(this._sendBtnId)
+  async _giftActionCard () {
+    const select = document.getElementById(this._giftCardSelectId)
+    const action = select.value
+    const label = select.options[select.selectedIndex]?.textContent || action
+    if (!confirm(t('admin.giftActionCardConfirm', { card: label }))) return
+    const btn = document.getElementById(this._giftCardBtnId)
     try {
       btn.disabled = true
-      const result = await server.testPushNotification(token, message, platform)
-      toast(`Sent: ${result.sent}, Failed: ${result.failed}${result.failureReason ? ' - ' + result.failureReason : ''}`, result.failed ? 'error' : 'success')
+      const result = await server.giftActionCardToAll(action)
+      toast(t('admin.giftActionCardSent', { count: result.count }), 'success')
     } catch (e) {
       toast(e.message || 'Something went wrong', 'error')
     } finally {
