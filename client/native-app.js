@@ -19,6 +19,7 @@ import { connectWebSocket } from './lib/websocket.js'
 import { toast } from './partials/toast.js'
 import { initSwipeBackNavigation } from './lib/swipeBackNavigation.js'
 import { initPullToRefresh } from './lib/pullToRefresh.js'
+import { initTabBarAnimations } from './lib/tabBarAnimation.js'
 
 installGlobalErrorHandler()
 
@@ -83,6 +84,11 @@ window.addEventListener('hashchange', () => {
 
 // Initialize locale from localStorage or browser settings
 initLocale()
+
+// Animate sub-page tab bars on every page open: peek-scroll to hint that more
+// tabs exist. Was missing from the native entry point so the animation never
+// ran inside iOS WKWebView / Android WebView even though it works in browser.
+initTabBarAnimations()
 
 // Enable native-feeling edge swipe-back: swiping right from the left edge of
 // the screen calls history.back() so users can return through the navigation
