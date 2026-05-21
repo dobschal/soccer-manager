@@ -133,8 +133,25 @@ Key directories:
 ### Adding New Features
 
 - **New API endpoint**: Create/edit file in `server/routes/` with exported function
-- **New page**: Create component in `client/pages/` extending `UIElement`, register in `app.js` router
+- **New page**: Create component in `client/pages/` extending `UIElement`, register in **both** `client/app.js` and `client/native-app.js` routers
 - **New tests**: Mirror file path with `.test.js` in respective `test/` folder
+
+### Dual client entry points
+
+The web bundle boots from `client/app.js`. The native build (iOS WKWebView /
+Android WebView) is produced by `scripts/lib/native-build-utils.mjs#transformIndexHtml`,
+which swaps the `<script src="app.js">` tag for `<script src="native-app.js">`.
+
+`client/native-app.js` is a **separate, hand-maintained entry point** with its
+own page registrations and its own list of global inits (locale, swipe-back,
+pull-to-refresh, tab-bar animation, websocket, …).
+
+**Rule:** whenever you add or remove a top-level init / global listener /
+page registration in `app.js`, mirror the change in `native-app.js`.
+
+**Debugging rule:** when a bug reproduces only on iOS / Android WebView but
+works in the browser, first verify the relevant module is actually loaded by
+`native-app.js` before investigating platform quirks.
 
 ### Styling Rules
 
