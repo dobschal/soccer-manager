@@ -5,12 +5,57 @@ import {ApplicationSettings, File, Folder, Http, knownFolders, path} from '@nati
 // aren't immediately overwritten by the prod webapp on launch.
 declare const __OTA_ENABLED__: boolean
 
-const SERVER_URL = 'https://footballmanager.io'
+export type Environment = 'production' | 'sandbox'
+
+export const PRODUCTION_URL = 'https://footballmanager.io'
+export const SANDBOX_URL = 'https://sandbox.footballmanager.io'
+
 const OTA_DIR_NAME = 'ota-web'
 const STAGING_DIR_NAME = 'ota-web-staging'
 const UPDATE_INSTALLED_KEY = 'ota_update_installed'
 const LOCAL_VERSION_KEY = 'ota_commit_hash'
 const BUNDLED_HASH_KEY = 'ota_bundled_hash'
+const ENVIRONMENT_KEY = 'ota_environment'
+
+export function getEnvironment(): Environment {
+    const stored = ApplicationSettings.getString(ENVIRONMENT_KEY, 'production')
+    return stored === 'sandbox' ? 'sandbox' : 'production'
+}
+
+export function getServerUrl(env: Environment = getEnvironment()): string {
+    return env === 'sandbox' ? SANDBOX_URL : PRODUCTION_URL
+}
+
+/**
+ * Persists the new environment and clears OTA + staging dirs so the next
+ * launch redownloads the web bundle from the chosen environment.
+ * Returns true when the environment actually changed.
+ */
+export function setEnvironment(env: Environment): boolean {
+    const current = getEnvironment()
+    if (current === env) return false
+
+    ApplicationSettings.setString(ENVIRONMENT_KEY, env)
+
+    // Wipe cached OTA content from the previous env so we don't keep showing
+    // its UI/API config after the switch.
+    const otaDir = getOtaDir()
+    if (Folder.exists(otaDir.path)) {
+        otaDir.removeSync()
+    }
+    const stagingDir = getStagingDir()
+    if (Folder.exists(stagingDir.path)) {
+        stagingDir.removeSync()
+    }
+
+    // Reset stored commit hash so the next checkForUpdate compares against
+    // the bundled hash (not whatever hash was downloaded from the other env).
+    ApplicationSettings.remove(LOCAL_VERSION_KEY)
+    ApplicationSettings.remove(UPDATE_INSTALLED_KEY)
+
+    console.log(`[OTA] Environment switched to ${env}, cleared OTA cache.`)
+    return true
+}
 
 function isOtaEnabled(): boolean {
     return typeof __OTA_ENABLED__ !== 'undefined' ? __OTA_ENABLED__ : true
@@ -195,7 +240,8 @@ export async function checkForUpdate(): Promise<void> {
         return
     }
     try {
-        const versionUrl = `${SERVER_URL}/assets/native-version.json`
+        const serverUrl = getServerUrl()
+        const versionUrl = `${serverUrl}/assets/native-version.json`
         console.log('[OTA] Checking for update at:', versionUrl)
 
         const response = await Http.getJSON<{ version: string; commitHash: string }>(versionUrl)
@@ -210,7 +256,7 @@ export async function checkForUpdate(): Promise<void> {
         }
 
         console.log('[OTA] New version available, downloading...')
-        const zipUrl = `${SERVER_URL}/assets/native-client.zip`
+        const zipUrl = `${serverUrl}/assets/native-client.zip`
         const tempZip = path.join(knownFolders.temp().path, 'native-client.zip')
 
         const zipFile = await Http.getFile(zipUrl, tempZip)

@@ -58,10 +58,12 @@ export function transformIndexHtml(clientDir, outputDir) {
     '<link rel="stylesheet" href="style/landing.css">\n    <link rel="stylesheet" href="style/native-app.css">'
   )
 
-  // Inject __NATIVE_SERVER_URL before the module script, and change app.js to native-app.js
+  // Inject __NATIVE_SERVER_URL before the module script, and change app.js to native-app.js.
+  // The assignment is a fallback so the native shell can pre-set the URL via
+  // WKUserScript (env switcher between prod and sandbox) before this inline script runs.
   html = html.replace(
     '<script src="app.js" defer type="module"></script>',
-    `<script>window.__NATIVE_SERVER_URL = 'https://footballmanager.io';</script>
+    `<script>window.__NATIVE_SERVER_URL = window.__NATIVE_SERVER_URL || 'https://footballmanager.io';</script>
     <script src="native-app.js" defer type="module"></script>`
   )
 

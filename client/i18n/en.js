@@ -1118,6 +1118,13 @@ export default {
   'admin.giftActionCardButton': 'Gift to all users',
   'admin.giftActionCardConfirm': 'Gift "{card}" to every user?',
   'admin.giftActionCardSent': 'Gifted action card to {count} users.',
+  'admin.iosEnvironmentTitle': 'iOS App Environment',
+  'admin.iosEnvironmentDescription': 'Switch the iOS native app between the production and sandbox web client. The app clears its OTA cache, reloads, and the next update is pulled from the chosen environment.',
+  'admin.iosEnvironmentProduction': 'Production (footballmanager.io)',
+  'admin.iosEnvironmentSandbox': 'Sandbox (sandbox.footballmanager.io)',
+  'admin.iosEnvironmentSwitch': 'Switch environment',
+  'admin.iosEnvironmentConfirm': 'Switch the iOS app to "{env}"? The WebView reloads and any unsaved input is lost.',
+  'admin.iosEnvironmentBridgeMissing': 'Environment bridge not available. Rebuild the iOS app to enable the switch.',
   'results.cupGameDayNotice': 'This game day featured cup matches.',
   'results.goToCupResults': 'Go to cup results',
 

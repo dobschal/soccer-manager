@@ -61,6 +61,22 @@ export class AdminPage extends UIElement {
           </button>
         </div>
 
+        ${this._isIosNative ? `
+        <div class="mb-4">
+          <h4>${t('admin.iosEnvironmentTitle')}</h4>
+          <p class="text-muted">${t('admin.iosEnvironmentDescription')}</p>
+          <div class="input-group">
+            <select id="${this._iosEnvSelectId}" class="form-control">
+              <option value="production"${this._currentIosEnv === 'production' ? ' selected' : ''}>${t('admin.iosEnvironmentProduction')}</option>
+              <option value="sandbox"${this._currentIosEnv === 'sandbox' ? ' selected' : ''}>${t('admin.iosEnvironmentSandbox')}</option>
+            </select>
+            <button id="${this._iosEnvBtnId}" class="btn btn-warning">
+              <i class="fa fa-exchange" aria-hidden="true"></i> ${t('admin.iosEnvironmentSwitch')}
+            </button>
+          </div>
+        </div>
+        ` : ''}
+
         <div class="mb-4">
           <h4>${t('admin.giftActionCardTitle')}</h4>
           <p class="text-muted">${t('admin.giftActionCardDescription')}</p>
@@ -187,6 +203,9 @@ export class AdminPage extends UIElement {
       },
       [`(optional)#${this._nextBtnId}`]: {
         click: () => this._goToPage(this._statisticsPage + 1)
+      },
+      [`(optional)#${this._iosEnvBtnId}`]: {
+        click: () => this._switchIosEnvironment()
       }
     }
   }
@@ -204,11 +223,22 @@ export class AdminPage extends UIElement {
   _collectBtnId = generateId()
   _prevBtnId = generateId()
   _nextBtnId = generateId()
+  _iosEnvSelectId = generateId()
+  _iosEnvBtnId = generateId()
   _admins = []
   _statistics = []
   _statisticsTotal = 0
   _statisticsPage = 1
   _statisticsPageSize = STATISTICS_PAGE_SIZE
+
+  get _isIosNative () {
+    return typeof window !== 'undefined' && window.__nativePlatform === 'ios'
+  }
+
+  get _currentIosEnv () {
+    if (typeof window === 'undefined') return 'production'
+    return window.__nativeEnvironment === 'sandbox' ? 'sandbox' : 'production'
+  }
 
   get _giftableCardTypes () {
     return [
@@ -340,6 +370,30 @@ export class AdminPage extends UIElement {
     } catch (e) {
       toast(e.message || 'Something went wrong', 'error')
     }
+  }
+
+  _switchIosEnvironment () {
+    const select = document.getElementById(this._iosEnvSelectId)
+    if (!select) return
+    const target = select.value === 'sandbox' ? 'sandbox' : 'production'
+    if (target === this._currentIosEnv) return
+
+    const label = target === 'sandbox'
+      ? t('admin.iosEnvironmentSandbox')
+      : t('admin.iosEnvironmentProduction')
+    if (!confirm(t('admin.iosEnvironmentConfirm', { env: label }))) {
+      select.value = this._currentIosEnv
+      return
+    }
+
+    const bridge = window.webkit?.messageHandlers?.fmioBridge
+    if (!bridge || typeof bridge.postMessage !== 'function') {
+      toast(t('admin.iosEnvironmentBridgeMissing'), 'error')
+      select.value = this._currentIosEnv
+      return
+    }
+
+    bridge.postMessage({ type: 'setEnvironment', env: target })
   }
 
   async _removeAdmin (username) {

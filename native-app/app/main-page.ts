@@ -1,5 +1,15 @@
 import {Application, EventData, isAndroid, isIOS, knownFolders, Page, path, Utils, WebView} from '@nativescript/core'
-import {getWebContentPath, wasUpdateInstalled, checkForUpdate, hasStagedUpdate, promoteStagingIfReady} from './ota-update'
+import {
+    Environment,
+    checkForUpdate,
+    getEnvironment,
+    getServerUrl,
+    getWebContentPath,
+    hasStagedUpdate,
+    promoteStagingIfReady,
+    setEnvironment,
+    wasUpdateInstalled
+} from './ota-update'
 import {deviceToken, devicePlatform, registrationError, onDeviceToken, onTokenAvailable} from './pushNotifications'
 
 declare const NSURL: any
@@ -18,6 +28,10 @@ declare const UNAuthorizationOptionSound: number
 declare const UIApplication: any
 declare const NSObject: any
 declare const WKUIDelegate: any
+declare const WKUserScript: any
+declare const WKUserScriptInjectionTimeAtDocumentStart: number
+declare const WKScriptMessageHandler: any
+declare const NSString: any
 
 let webViewRef: WebView | null = null
 let resumeHandler: (() => void) | null = null
@@ -256,6 +270,10 @@ function loadWebViewIOS(webView: WebView, webPath: string) {
     wkWebView.configuration.preferences.setValueForKey(true, 'allowFileAccessFromFileURLs')
     wkWebView.configuration.setValueForKey(true, 'allowUniversalAccessFromFileURLs')
 
+    // Inject the active environment into the WebView before any page script runs,
+    // and register the JS→native bridge used by the admin env switcher.
+    setupIOSEnvironmentBridge(webView)
+
     // Open target="_blank" links in the system browser (Safari)
     const uiDelegate = setupIOSUIDelegate()
     wkWebView.UIDelegate = uiDelegate
@@ -266,6 +284,94 @@ function loadWebViewIOS(webView: WebView, webPath: string) {
     const dirUrl = NSURL.fileURLWithPath(webPath)
 
     wkWebView.loadFileURLAllowingReadAccessToURL(fileUrl, dirUrl)
+}
+
+/**
+ * On iOS, ensures every page load knows which environment it is talking to
+ * (production vs sandbox) and provides a `window.webkit.messageHandlers.fmioBridge`
+ * channel so the admin page can request an environment switch.
+ *
+ * The WKUserScript runs at documentStart, so it sets `window.__NATIVE_SERVER_URL`
+ * and `window.__nativeEnvironment` before the inline fallback in index.html
+ * (which now reads `window.__NATIVE_SERVER_URL || 'https://footballmanager.io'`).
+ *
+ * Safe to call multiple times — the user content controller is reset before we
+ * re-install the script so a re-load after env switch reflects the new env.
+ */
+function setupIOSEnvironmentBridge(webView: WebView): void {
+    const wkWebView = webView.ios as any
+    const controller = wkWebView.configuration.userContentController
+    if (!controller) return
+
+    const env = getEnvironment()
+    const serverUrl = getServerUrl(env)
+    const bootstrapSource =
+        `window.__nativePlatform = 'ios';` +
+        ` window.__nativeEnvironment = '${env}';` +
+        ` window.__NATIVE_SERVER_URL = '${serverUrl}';`
+
+    controller.removeAllUserScripts()
+    const userScript = WKUserScript.alloc().initWithSourceInjectionTimeForMainFrameOnly(
+        bootstrapSource,
+        WKUserScriptInjectionTimeAtDocumentStart,
+        true
+    )
+    controller.addUserScript(userScript)
+
+    // Only install the message handler once per WebView, otherwise WKWebKit
+    // throws because the name is already registered.
+    if (!(webView as any).__fmioBridgeInstalled) {
+        const handler = createIOSBridgeHandler(webView)
+        try {
+            controller.addScriptMessageHandlerName(handler, 'fmioBridge')
+            ;(webView as any).__fmioBridgeHandler = handler
+            ;(webView as any).__fmioBridgeInstalled = true
+        } catch (e) {
+            console.error('[Bridge] Failed to register fmioBridge handler:', e)
+        }
+    }
+}
+
+function createIOSBridgeHandler(webView: WebView): any {
+    const HandlerImpl = (NSObject as any).extend({
+        userContentControllerDidReceiveScriptMessage(_userContentController: any, message: any): void {
+            try {
+                const body = message.body
+                const type = body && body.type
+                if (type === 'setEnvironment') {
+                    const env = body.env === 'sandbox' ? 'sandbox' : 'production'
+                    handleEnvironmentSwitch(webView, env)
+                }
+            } catch (e) {
+                console.error('[Bridge] Failed to handle script message:', e)
+            }
+        }
+    }, {
+        protocols: [WKScriptMessageHandler]
+    })
+    return HandlerImpl.new()
+}
+
+function handleEnvironmentSwitch(webView: WebView, env: Environment): void {
+    const changed = setEnvironment(env)
+    if (!changed) {
+        console.log(`[Env] Already on ${env}, nothing to do.`)
+        return
+    }
+    console.log(`[Env] Switching to ${env} and reloading WebView...`)
+
+    // Re-init the bridge so the next page load picks up the new env URL,
+    // then clear the WebView cache and reload from the (now-empty) OTA path.
+    setupIOSEnvironmentBridge(webView)
+    webViewInitialized = false
+
+    clearWebViewCache(webView).then(() => {
+        const webPath = getWebContentPath()
+        loadWebViewIOS(webView, webPath)
+        webViewInitialized = true
+        // Kick off a fresh OTA check so the new env's bundle is fetched.
+        checkForUpdate().catch(err => console.error('[OTA] Post-switch check failed:', err))
+    })
 }
 
 /**

@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
 
   html = html.replace(
     '<script src="app.js" defer type="module"></script>',
-    `<script>window.__NATIVE_SERVER_URL = '${SERVER_URL}';</script>\n    <script src="native-app.js" defer type="module"></script>`
+    `<script>window.__NATIVE_SERVER_URL = window.__NATIVE_SERVER_URL || '${SERVER_URL}';</script>\n    <script src="native-app.js" defer type="module"></script>`
   )
 
   res.setHeader('Content-Type', 'text/html')

@@ -1118,6 +1118,13 @@ export default {
   'admin.giftActionCardButton': 'An alle Nutzer verschenken',
   'admin.giftActionCardConfirm': 'Karte "{card}" an alle Nutzer verschenken?',
   'admin.giftActionCardSent': 'Aktionskarte an {count} Nutzer verschenkt.',
+  'admin.iosEnvironmentTitle': 'iOS-App-Umgebung',
+  'admin.iosEnvironmentDescription': 'Wechselt die iOS-App zwischen dem Produktions- und dem Sandbox-Web-Client. Die App leert ihren OTA-Cache, lädt neu und zieht das nächste Update aus der gewählten Umgebung.',
+  'admin.iosEnvironmentProduction': 'Produktion (footballmanager.io)',
+  'admin.iosEnvironmentSandbox': 'Sandbox (sandbox.footballmanager.io)',
+  'admin.iosEnvironmentSwitch': 'Umgebung wechseln',
+  'admin.iosEnvironmentConfirm': 'iOS-App auf "{env}" umstellen? Die WebView wird neu geladen, nicht gespeicherte Eingaben gehen verloren.',
+  'admin.iosEnvironmentBridgeMissing': 'Umgebungs-Bridge nicht verfügbar. Bitte die iOS-App neu bauen, damit der Switch funktioniert.',
   'results.cupGameDayNotice': 'An diesem Spieltag fanden Pokalspiele statt.',
   'results.goToCupResults': 'Zu den Pokal-Ergebnissen',
 
