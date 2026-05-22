@@ -319,7 +319,7 @@ export default {
     if (answeredOffers.length === 0) return { answeredOffers, players: [], teams: [] }
     const playerIds = answeredOffers.map(o => o.player_id)
     const players = await query(`SELECT * FROM player WHERE id IN (${playerIds.join(', ')})`)
-    const teamIds = [...new Set(players.map(p => p.team_id))]
+    const teamIds = [...new Set(players.map(p => p.team_id).filter(id => id != null))]
     const teams = teamIds.length > 0
       ? await query(`SELECT * FROM team WHERE id IN (${teamIds.join(', ')})`)
       : []
