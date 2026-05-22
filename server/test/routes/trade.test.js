@@ -362,6 +362,64 @@ describe('trade routes', () => {
     })
   })
 
+  describe('getAnsweredOffers', () => {
+    it('returns answered offers, players, and teams', async () => {
+      const team = testData.team({ id: 3 })
+      const answeredOffers = [testData.tradeOffer({ id: 10, status: 'accepted', player_id: 7, from_team_id: 3 })]
+      const players = [testData.player({ id: 7, team_id: 5 })]
+      const teams = [testData.team({ id: 5 })]
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce(answeredOffers)
+        .mockResolvedValueOnce(players)
+        .mockResolvedValueOnce(teams)
+
+      const req = createMockRequest()
+      const result = await handlers.getAnsweredOffers(req)
+
+      expect(result.answeredOffers).toEqual(answeredOffers)
+      expect(result.players).toEqual(players)
+      expect(result.teams).toEqual(teams)
+    })
+
+    it('returns empty arrays when no answered offers', async () => {
+      const team = testData.team({ id: 3 })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValueOnce([])
+
+      const req = createMockRequest()
+      const result = await handlers.getAnsweredOffers(req)
+
+      expect(result).toEqual({ answeredOffers: [], players: [], teams: [] })
+    })
+
+    it('does not produce invalid SQL when players have null team_id', async () => {
+      // Regression test: players released from teams have team_id=null.
+      // [null].join(', ') produces '' which causes ER_PARSE_ERROR: "WHERE id IN ()"
+      const team = testData.team({ id: 3 })
+      const answeredOffers = [testData.tradeOffer({ id: 10, status: 'accepted', player_id: 7, from_team_id: 3 })]
+      const players = [testData.player({ id: 7, team_id: null })]
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce(answeredOffers)
+        .mockResolvedValueOnce(players)
+
+      const req = createMockRequest()
+      const result = await handlers.getAnsweredOffers(req)
+
+      // Should return empty teams array without making a second query (no valid team IDs)
+      expect(result.teams).toEqual([])
+      // The team query must NOT have been called with an empty IN clause
+      const teamQueryCall = query.mock.calls.find(
+        call => typeof call[0] === 'string' && call[0].includes('FROM team WHERE id IN')
+      )
+      expect(teamQueryCall).toBeUndefined()
+    })
+  })
+
   describe('getMySellOfferPlayerIds', () => {
     it('returns player IDs of sell offers from user team', async () => {
       const team = testData.team({ id: 1 })

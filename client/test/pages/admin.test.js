@@ -25,8 +25,13 @@ vi.mock('../../lib/html.js', () => ({
   el: vi.fn()
 }))
 
+vi.mock('../../partials/dialog.js', () => ({
+  showDialog: vi.fn().mockResolvedValue({ ok: true, value: undefined })
+}))
+
 const { AdminPage } = await import('../../pages/admin.js')
 const { toast } = await import('../../partials/toast.js')
+const { showDialog } = await import('../../partials/dialog.js')
 
 async function makeAdminPage () {
   const page = new AdminPage()
@@ -39,7 +44,7 @@ describe('AdminPage iOS environment switcher', () => {
     delete window.__nativePlatform
     delete window.__nativeEnvironment
     delete window.webkit
-    window.confirm = vi.fn(() => true)
+    showDialog.mockResolvedValue({ ok: true, value: undefined })
   })
 
   afterEach(() => {
@@ -83,7 +88,7 @@ describe('AdminPage iOS environment switcher', () => {
       </select>
     `
 
-    page._switchIosEnvironment()
+    await page._switchIosEnvironment()
     expect(toast).toHaveBeenCalledWith(expect.stringContaining('admin.iosEnvironmentBridgeMissing'), 'error')
   })
 
@@ -100,7 +105,7 @@ describe('AdminPage iOS environment switcher', () => {
       </select>
     `
 
-    page._switchIosEnvironment()
+    await page._switchIosEnvironment()
     expect(postMessage).toHaveBeenCalledWith({ type: 'setEnvironment', env: 'sandbox' })
   })
 
@@ -118,7 +123,26 @@ describe('AdminPage iOS environment switcher', () => {
       </select>
     `
 
-    page._switchIosEnvironment()
+    await page._switchIosEnvironment()
     expect(postMessage).not.toHaveBeenCalled()
+  })
+
+  it('reverts the select value when the user cancels the confirm dialog', async () => {
+    window.__nativePlatform = 'ios'
+    const postMessage = vi.fn()
+    window.webkit = { messageHandlers: { fmioBridge: { postMessage } } }
+    showDialog.mockResolvedValueOnce({ ok: false, value: undefined })
+    const page = await makeAdminPage()
+
+    document.body.innerHTML = `
+      <select id="${page._iosEnvSelectId}">
+        <option value="production"></option>
+        <option value="sandbox" selected></option>
+      </select>
+    `
+
+    await page._switchIosEnvironment()
+    expect(postMessage).not.toHaveBeenCalled()
+    expect(document.getElementById(page._iosEnvSelectId).value).toBe('production')
   })
 })
