@@ -4,6 +4,7 @@ import { toast } from '../partials/toast.js'
 import { generateId } from '../lib/html.js'
 import { t } from '../i18n/index.js'
 import { ActiveUsersChart } from '../partials/activeUsersChart.js'
+import { showDialog } from '../partials/dialog.js'
 
 const STATISTICS_PAGE_SIZE = 20
 
@@ -372,7 +373,7 @@ export class AdminPage extends UIElement {
     }
   }
 
-  _switchIosEnvironment () {
+  async _switchIosEnvironment () {
     const select = document.getElementById(this._iosEnvSelectId)
     if (!select) return
     const target = select.value === 'sandbox' ? 'sandbox' : 'production'
@@ -381,7 +382,14 @@ export class AdminPage extends UIElement {
     const label = target === 'sandbox'
       ? t('admin.iosEnvironmentSandbox')
       : t('admin.iosEnvironmentProduction')
-    if (!confirm(t('admin.iosEnvironmentConfirm', { env: label }))) {
+
+    const { ok } = await showDialog({
+      title: t('admin.iosEnvironmentTitle'),
+      text: t('admin.iosEnvironmentConfirm', { env: label }),
+      buttonText: t('admin.iosEnvironmentSwitch'),
+      buttonType: 'warning'
+    })
+    if (!ok) {
       select.value = this._currentIosEnv
       return
     }
