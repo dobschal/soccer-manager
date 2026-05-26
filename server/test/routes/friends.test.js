@@ -5,7 +5,12 @@ vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
+vi.mock('../../helper/cupHelper.js', () => ({
+  getTotalRoundsForSeason: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
+import { getTotalRoundsForSeason } from '../../helper/cupHelper.js'
 import handlers from '../../routes/friends.js'
 
 describe('friends routes', () => {
@@ -107,24 +112,24 @@ describe('friends routes', () => {
   })
 
   describe('getFriendsLastGameDayGames', () => {
-    it('returns empty array when user has no friends', async () => {
+    it('returns empty result when user has no friends', async () => {
       query.mockResolvedValueOnce([])
 
       const req = createMockRequest({ user: { id: 1, username: 'me' } })
       const result = await handlers.getFriendsLastGameDayGames(req)
 
-      expect(result).toEqual({ games: [] })
+      expect(result).toEqual({ games: [], totalRounds: 0 })
     })
 
-    it('returns games from the friends most recent league game day', async () => {
+    it('returns league games from the friends most recent game day', async () => {
       const friendTeams = [
         { id: 10, user_id: 2, level: 1, league: 1 },
         { id: 11, user_id: 3, level: 1, league: 1 }
       ]
       const lastDay = { season: 4, game_day: 17 }
       const games = [
-        { id: 100, gameDay: 17, season: 4, goalsTeam1: 2, goalsTeam2: 1, team1: 'A', team2: 'B', team1Id: 10, team2Id: 50 },
-        { id: 101, gameDay: 17, season: 4, goalsTeam1: 0, goalsTeam2: 0, team1: 'C', team2: 'D', team1Id: 60, team2Id: 11 }
+        { id: 100, gameDay: 17, season: 4, goalsTeam1: 2, goalsTeam2: 1, gameType: 'league', cupRound: null, team1: 'A', team2: 'B', team1Id: 10, team2Id: 50 },
+        { id: 101, gameDay: 17, season: 4, goalsTeam1: 0, goalsTeam2: 0, gameType: 'league', cupRound: null, team1: 'C', team2: 'D', team1Id: 60, team2Id: 11 }
       ]
 
       query
@@ -135,10 +140,42 @@ describe('friends routes', () => {
       const req = createMockRequest({ user: { id: 1, username: 'me' } })
       const result = await handlers.getFriendsLastGameDayGames(req)
 
-      expect(result).toEqual({ games })
+      expect(result).toEqual({ games, totalRounds: 0 })
+      expect(getTotalRoundsForSeason).not.toHaveBeenCalled()
     })
 
-    it('returns empty array when friends have no played league games yet', async () => {
+    it('includes cup games alongside league games for the last game day', async () => {
+      const friendTeams = [
+        { id: 10, user_id: 2, level: 1, league: 1 },
+        { id: 11, user_id: 3, level: 1, league: 1 }
+      ]
+      const lastDay = { season: 4, game_day: 17 }
+      const games = [
+        { id: 100, gameDay: 17, season: 4, goalsTeam1: 2, goalsTeam2: 1, gameType: 'league', cupRound: null, team1: 'A', team2: 'B', team1Id: 10, team2Id: 50 },
+        { id: 200, gameDay: 17, season: 4, goalsTeam1: 3, goalsTeam2: 0, gameType: 'cup', cupRound: 2, team1: 'X', team2: 'Y', team1Id: 11, team2Id: 70 }
+      ]
+
+      query
+        .mockResolvedValueOnce(friendTeams)
+        .mockResolvedValueOnce([lastDay])
+        .mockResolvedValueOnce(games)
+      getTotalRoundsForSeason.mockResolvedValueOnce(5)
+
+      const req = createMockRequest({ user: { id: 1, username: 'me' } })
+      const result = await handlers.getFriendsLastGameDayGames(req)
+
+      expect(result).toEqual({ games, totalRounds: 5 })
+      expect(getTotalRoundsForSeason).toHaveBeenCalledWith(4)
+
+      const lastDaySql = query.mock.calls[1][0]
+      expect(lastDaySql).toMatch(/game_type = 'cup'/)
+      const gamesSql = query.mock.calls[2][0]
+      expect(gamesSql).toMatch(/game_type = 'cup'/)
+      expect(gamesSql).toMatch(/g\.game_type\s+as gameType/)
+      expect(gamesSql).toMatch(/g\.cup_round\s+as cupRound/)
+    })
+
+    it('returns empty result when friends have no played league or cup games yet', async () => {
       query
         .mockResolvedValueOnce([{ id: 10, user_id: 2, level: 1, league: 1 }])
         .mockResolvedValueOnce([])
@@ -146,7 +183,7 @@ describe('friends routes', () => {
       const req = createMockRequest({ user: { id: 1, username: 'me' } })
       const result = await handlers.getFriendsLastGameDayGames(req)
 
-      expect(result).toEqual({ games: [] })
+      expect(result).toEqual({ games: [], totalRounds: 0 })
     })
 
     it('rejects unauthenticated calls', async () => {

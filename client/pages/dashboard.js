@@ -83,6 +83,8 @@ export class DashboardPage extends TabbedPage {
     this._friendsGames = (friendsResponse.games || []).map(g => ({
       ...g,
       isPlayed: true,
+      isCup: g.gameType === 'cup',
+      totalRounds: friendsResponse.totalRounds || 0,
       team1Data: this._extractTeamData(g, 1),
       team2Data: this._extractTeamData(g, 2)
     }))
@@ -249,7 +251,7 @@ export class DashboardPage extends TabbedPage {
     ]
     this._friendlyGames = friendlyResponse.games.map(g => ({ ...g, isPlayed: true, isFriendly: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._cupGames = cupResponse.games.map(g => ({ ...g, isPlayed: g.played === 1, isCup: true, totalRounds: cupResponse.totalRounds, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
-    this._friendsGames = (friendsResponse.games || []).map(g => ({ ...g, isPlayed: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
+    this._friendsGames = (friendsResponse.games || []).map(g => ({ ...g, isPlayed: true, isCup: g.gameType === 'cup', totalRounds: friendsResponse.totalRounds || 0, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
 
