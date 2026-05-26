@@ -1,5 +1,6 @@
 import { query } from '../lib/database.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
+import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
 
 export default {
   /**
@@ -67,11 +68,38 @@ export default {
   },
 
   /**
-   * Friends' league games from the most recently played league game day across
-   * the user's friends. Used by the dashboard "Friends" slider.
+   * Return the list of friends for the current user. Each entry includes
+   * basic user data and the friend's team (if they have one).
    *
    * @param {Request} req
-   * @returns {Promise<{games: Array}>}
+   * @returns {Promise<{friends: Array<{id: number, username: string, avatar: string|null, teamId: number|null, teamName: string|null, teamLevel: number|null}>}>}
+   */
+  async getFriends (req) {
+    if (!req.user) throw new UnauthorizedError('Not authorized')
+    const friends = await query(
+      `SELECT u.id        AS id,
+              u.username  AS username,
+              u.avatar    AS avatar,
+              t.id        AS teamId,
+              t.name      AS teamName,
+              t.level     AS teamLevel
+       FROM user_friend uf
+       JOIN user u ON u.id = uf.friend_user_id
+       LEFT JOIN team t ON t.user_id = u.id
+       WHERE uf.user_id = ?
+       ORDER BY u.username ASC`,
+      [req.user.id]
+    )
+    return { friends }
+  },
+
+  /**
+   * Friends' league and cup games from the most recently played game day
+   * (league or cup) across the user's friends. Used by the dashboard
+   * "Friends" slider.
+   *
+   * @param {Request} req
+   * @returns {Promise<{games: Array, totalRounds: number}>}
    */
   async getFriendsLastGameDayGames (req) {
     if (!req.user) throw new UnauthorizedError('Not authorized')
@@ -85,18 +113,18 @@ export default {
     )
 
     if (friendTeams.length === 0) {
-      return { games: [] }
+      return { games: [], totalRounds: 0 }
     }
 
     const friendTeamIds = friendTeams.map(t => t.id)
     const placeholders = friendTeamIds.map(() => '?').join(',')
 
-    // Find the most recent (season, game_day) where any friend played a league game.
+    // Find the most recent (season, game_day) where any friend played a league or cup game.
     const [lastDay] = await query(
       `SELECT season, game_day
        FROM game
        WHERE played = 1
-         AND (game_type = 'league' OR game_type IS NULL)
+         AND (game_type = 'league' OR game_type = 'cup' OR game_type IS NULL)
          AND (team_1_id IN (${placeholders}) OR team_2_id IN (${placeholders}))
        ORDER BY season DESC, game_day DESC
        LIMIT 1`,
@@ -104,7 +132,7 @@ export default {
     )
 
     if (!lastDay) {
-      return { games: [] }
+      return { games: [], totalRounds: 0 }
     }
 
     const games = await query(
@@ -114,6 +142,8 @@ export default {
               g.season       as season,
               g.goals_team_1 as goalsTeam1,
               g.goals_team_2 as goalsTeam2,
+              g.game_type    as gameType,
+              g.cup_round    as cupRound,
               t1.name        as team1,
               t2.name        as team2,
               g.team_1_id    as team1Id,
@@ -127,9 +157,9 @@ export default {
               g.created_at   as playedAt
        FROM game g
        JOIN team t1 ON t1.id = g.team_1_id
-       JOIN team t2 ON t2.id = g.team_2_id
+       LEFT JOIN team t2 ON t2.id = g.team_2_id
        WHERE g.played = 1
-         AND (g.game_type = 'league' OR g.game_type IS NULL)
+         AND (g.game_type = 'league' OR g.game_type = 'cup' OR g.game_type IS NULL)
          AND g.season = ?
          AND g.game_day = ?
          AND (g.team_1_id IN (${placeholders}) OR g.team_2_id IN (${placeholders}))
@@ -137,6 +167,9 @@ export default {
       [lastDay.season, lastDay.game_day, ...friendTeamIds, ...friendTeamIds]
     )
 
-    return { games }
+    const hasCupGames = games.some(g => g.gameType === 'cup')
+    const totalRounds = hasCupGames ? await getTotalRoundsForSeason(lastDay.season) : 0
+
+    return { games, totalRounds }
   }
 }

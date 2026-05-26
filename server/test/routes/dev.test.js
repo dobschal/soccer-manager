@@ -97,6 +97,41 @@ describe('dev routes - statistics', () => {
     })
   })
 
+  describe('getTopCountries', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.getTopCountries({ user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('returns rows with numeric counts for an admin', async () => {
+      query.mockResolvedValueOnce([
+        { country: 'DE', count: '12' },
+        { country: 'US', count: 5 }
+      ])
+
+      const result = await handlers.getTopCountries({ user: { is_admin: 1 } })
+
+      expect(query).toHaveBeenCalledTimes(1)
+      const [sql] = query.mock.calls[0]
+      expect(sql).toMatch(/COALESCE\(last_country_web, last_country_ios, last_country_android\)/)
+      expect(sql).toMatch(/LIMIT 10/)
+      expect(result).toEqual({
+        rows: [
+          { country: 'DE', count: 12 },
+          { country: 'US', count: 5 }
+        ]
+      })
+    })
+
+    it('returns an empty list when no countries are recorded', async () => {
+      query.mockResolvedValueOnce([])
+
+      const result = await handlers.getTopCountries({ user: { is_admin: 1 } })
+
+      expect(result).toEqual({ rows: [] })
+    })
+  })
+
   describe('giftActionCardToAll', () => {
     it('rejects non-admin users', async () => {
       await expect(handlers.giftActionCardToAll('BONUS_100K', { user: { is_admin: 0 } }))

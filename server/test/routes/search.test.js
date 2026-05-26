@@ -102,4 +102,81 @@ describe('search routes', () => {
       expect(result).toEqual({ teams: [] })
     })
   })
+
+  describe('searchUsers', () => {
+    it('returns empty array if not authenticated', async () => {
+      const req = createMockRequest()
+      req.user = null
+
+      await expect(handlers.searchUsers('test', req))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+
+    it('returns empty array for short queries', async () => {
+      const req = createMockRequest()
+
+      const result = await handlers.searchUsers('ab', req)
+
+      expect(result).toEqual({ users: [] })
+      expect(query).not.toHaveBeenCalled()
+    })
+
+    it('selects last_login and orders by it DESC', async () => {
+      const lastLogin = '2026-05-26 12:00:00'
+      query.mockResolvedValueOnce([
+        { id: 1, username: 'alice', team_id: 7, team_name: 'FC Alice', last_login: lastLogin }
+      ])
+
+      const req = createMockRequest()
+      const result = await handlers.searchUsers('alice', req)
+
+      expect(result.users).toHaveLength(1)
+      expect(result.users[0].last_login).toBe(lastLogin)
+      expect(query).toHaveBeenCalledWith(
+        'SELECT u.id, u.username, u.last_login, t.id AS team_id, t.name AS team_name FROM user u LEFT JOIN team t ON t.user_id = u.id WHERE u.username LIKE ? ORDER BY u.last_login DESC LIMIT 10',
+        ['%alice%']
+      )
+    })
+  })
+
+  describe('browseAllUsers', () => {
+    it('joins user_friend and selects league/is_friend fields', async () => {
+      query
+        .mockResolvedValueOnce([{ total: 1 }])
+        .mockResolvedValueOnce([
+          { id: 2, username: 'bob', team_id: 5, team_name: 'FC Bob', team_level: 1, team_league: 0, last_login: null, is_friend: 1 }
+        ])
+
+      const req = createMockRequest()
+      req.user = { id: 42 }
+      const result = await handlers.browseAllUsers('', 0, 20, '', '', req)
+
+      expect(result.users).toHaveLength(1)
+      expect(result.users[0].is_friend).toBe(1)
+      expect(result.users[0].team_level).toBe(1)
+
+      const dataCall = query.mock.calls[1]
+      expect(dataCall[0]).toContain('LEFT JOIN user_friend uf')
+      expect(dataCall[0]).toContain('t.level AS team_level')
+      expect(dataCall[0]).toContain('t.league AS team_league')
+      expect(dataCall[0]).toContain('(uf.user_id IS NOT NULL) AS is_friend')
+      expect(dataCall[1][0]).toBe(42)
+    })
+
+    it('orders by league level then sub-league when sortColumn=league', async () => {
+      query.mockResolvedValueOnce([{ total: 0 }]).mockResolvedValueOnce([])
+      const req = createMockRequest()
+      req.user = { id: 42 }
+      await handlers.browseAllUsers('', 0, 20, 'league', 'ASC', req)
+      expect(query.mock.calls[1][0]).toContain('ORDER BY t.level IS NULL, t.level ASC, t.league ASC')
+    })
+
+    it('orders by is_friend alias when sortColumn=is_friend', async () => {
+      query.mockResolvedValueOnce([{ total: 0 }]).mockResolvedValueOnce([])
+      const req = createMockRequest()
+      req.user = { id: 42 }
+      await handlers.browseAllUsers('', 0, 20, 'is_friend', 'DESC', req)
+      expect(query.mock.calls[1][0]).toContain('ORDER BY is_friend DESC, u.username ASC')
+    })
+  })
 })

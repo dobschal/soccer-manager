@@ -5,6 +5,7 @@ import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showConfirmDialog, showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
+import { fetchText } from '../lib/fetchText.js'
 
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024
@@ -79,14 +80,23 @@ function updateNavbarAvatar (avatar) {
  */
 export async function showAccountOverlay () {
   let teamData
+  let versionData
+  let friendsData
   try {
-    teamData = await server.getMyTeam()
+    [teamData, versionData, friendsData] = await Promise.all([
+      server.getMyTeam(),
+      server.getVersion(),
+      server.getFriends()
+    ])
   } catch (e) {
     showServerError(e)
     return
   }
   let currentAvatar = teamData.user?.avatar || ''
   const username = teamData.user?.username || ''
+  const isAdmin = teamData.isAdmin || false
+  const version = versionData.version
+  const friends = friendsData.friends || []
   const currentLocale = getLocale()
 
   const renderAvatar = () => `
@@ -115,16 +125,56 @@ export async function showAccountOverlay () {
       </div>
       <hr>
       <div class="mb-3">
+        <label class="form-label mt-2">${t('account.friends')}</label>
+        ${friends.length === 0
+    ? `<div class="text-muted small">${t('account.noFriends')}</div>`
+    : `<div class="list-group account-friends-list">
+            ${friends.map(f => `
+              <a href="${f.teamId ? '#team?id=' + f.teamId : '#dashboard'}" data-account-friend-link class="list-group-item list-group-item-action d-flex align-items-center gap-2">
+                <img class="account-friend-avatar${f.avatar ? '' : ' account-friend-avatar--default'}"
+                     src="${avatarSrc(f.avatar)}" alt="${f.username}">
+                <div class="flex-grow-1 text-truncate">
+                  <div class="text-truncate">${f.username}</div>
+                  ${f.teamName ? `<div class="text-muted small text-truncate">${f.teamName}</div>` : ''}
+                </div>
+              </a>
+            `).join('')}
+          </div>`
+}
+      </div>
+      <hr>
+      <div class="mb-3">
         <label class="form-label mt-2">${t('nav.language')}</label>
         <div class="btn-group w-100" role="group">
-          <button id="account-lang-en" class="btn ${currentLocale === 'en' ? 'btn-primary' : 'btn-outline-info'}">English</button>
-          <button id="account-lang-de" class="btn ${currentLocale === 'de' ? 'btn-primary' : 'btn-outline-info'}">Deutsch</button>
+          <button id="account-lang-en" class="btn ${currentLocale === 'en' ? 'btn-info' : 'btn-outline-info'}">English</button>
+          <button id="account-lang-de" class="btn ${currentLocale === 'de' ? 'btn-info' : 'btn-outline-info'}">Deutsch</button>
         </div>
       </div>
       <hr>
-      <button id="account-delete" class="btn btn-outline-danger w-100">
-        <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
-      </button>
+      <div class="d-grid gap-2">
+        ${isAdmin
+    ? `<a href="#admin" id="account-admin" class="btn btn-secondary text-white">
+            <i class="fa fa-shield" aria-hidden="true"></i> ${t('admin.title')}
+          </a>`
+    : ''}
+        <button id="account-logout" class="btn btn-secondary">
+          <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
+        </button>
+        <button id="account-delete" class="btn btn-danger">
+          <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
+        </button>
+      </div>
+      <hr>
+      <div class="text-muted small text-center">
+        FootballManager.IO v${version}
+      </div>
+      ${window.__NATIVE_SERVER_URL
+    ? '<div class="text-muted small text-center" id="account-client-version">' + t('common.loading') + '</div>'
+    : ''}
+      <div class="text-center mt-2">
+        <a href="support.html" class="text-muted small me-3">${t('nav.support')}</a>
+        <a href="imprint.html" class="text-muted small">${t('nav.privacyPolicy')}</a>
+      </div>
     </div>
   `
 
@@ -189,6 +239,12 @@ export async function showAccountOverlay () {
   setTimeout(() => {
     bindAvatarHandlers()
 
+    document.querySelectorAll('[data-account-friend-link]').forEach(link => {
+      link.addEventListener('click', () => {
+        overlay.remove()
+      })
+    })
+
     const langEnBtn = el('#account-lang-en')
     const langDeBtn = el('#account-lang-de')
 
@@ -220,6 +276,23 @@ export async function showAccountOverlay () {
       })
     }
 
+    const adminLink = el('#account-admin')
+    if (adminLink) {
+      adminLink.addEventListener('click', () => {
+        overlay.remove()
+      })
+    }
+
+    const logoutBtn = el('#account-logout')
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        overlay.remove()
+        disconnectWebSocket()
+        window.localStorage.removeItem('auth-token')
+        goTo('login')
+      })
+    }
+
     const deleteAccountBtn = el('#account-delete')
     if (deleteAccountBtn) {
       deleteAccountBtn.addEventListener('click', async () => {
@@ -235,6 +308,20 @@ export async function showAccountOverlay () {
           toast(err.message ?? t('toast.somethingWentWrong'), 'error')
         }
       })
+    }
+
+    if (window.__NATIVE_SERVER_URL) {
+      const clientVersionEl = el('#account-client-version')
+      if (clientVersionEl) {
+        fetchText('./native-version.json')
+          .then(text => JSON.parse(text))
+          .then(data => {
+            clientVersionEl.textContent = `Client: v${data.version} (${data.commitHash})`
+          })
+          .catch(() => {
+            clientVersionEl.textContent = 'Client: unknown'
+          })
+      }
     }
   }, 0)
 }

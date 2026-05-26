@@ -18,6 +18,8 @@ export default {
   'nav.support': 'Support',
   'nav.deleteAccount': 'Delete Account',
   'nav.deleteAccountConfirm': 'Are you sure? This will permanently delete your account and all your data. This cannot be undone.',
+  'account.friends': 'Friends',
+  'account.noFriends': 'No friends yet. Visit a team page to add the manager as a friend.',
 
   // Search
   'search.title': 'Search',
@@ -30,6 +32,13 @@ export default {
   'search.level': 'Level',
   'search.noTeam': 'No team',
   'search.showAll': 'Show all',
+  'search.lastLogin': 'Last Login',
+  'search.lastLoginToday': 'Active today',
+  'search.lastLoginYesterday': 'Yesterday',
+  'search.never': 'Never',
+  'search.team': 'Team',
+  'search.friend': 'Friend',
+  'search.league': 'League',
 
   // Landing page
   'landing.freeToPlay': 'Free to Play',
@@ -1125,6 +1134,10 @@ export default {
   'admin.iosEnvironmentSwitch': 'Switch environment',
   'admin.iosEnvironmentConfirm': 'Switch the iOS app to "{env}"? The WebView reloads and any unsaved input is lost.',
   'admin.iosEnvironmentBridgeMissing': 'Environment bridge not available. Rebuild the iOS app to enable the switch.',
+  'admin.topCountriesTitle': 'Top 10 Countries',
+  'admin.topCountriesCountry': 'Country',
+  'admin.topCountriesCount': 'Players',
+  'admin.topCountriesEmpty': 'No country data collected yet.',
   'results.cupGameDayNotice': 'This game day featured cup matches.',
   'results.goToCupResults': 'Go to cup results',
 

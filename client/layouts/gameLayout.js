@@ -5,7 +5,7 @@ import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
-import { showSettingsOverlay } from '../partials/settingsOverlay.js'
+import { showAccountOverlay } from '../partials/accountOverlay.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 
 /**
@@ -31,7 +31,6 @@ export class GameLayout extends UIElement {
     this._nextGameDate = gameDate.date
     this._username = teamData.user?.username || ''
     this._avatar = teamData.user?.avatar || ''
-    this._isAdmin = teamData.isAdmin || false
     this._version = versionData.version
     this._gameDay = currentGameday.gameDay
     this._season = currentGameday.season
@@ -107,13 +106,13 @@ export class GameLayout extends UIElement {
       '#settings-button': {
         click: () => {
           hideNavigation()
-          showSettingsOverlay({ isAdmin: this._isAdmin, version: this._version })
+          showAccountOverlay()
         }
       },
       '(optional)#settings-button-mobile': {
         click: () => {
           hideNavigation()
-          showSettingsOverlay({ isAdmin: this._isAdmin, version: this._version })
+          showAccountOverlay()
         }
       },
       '.navbar-toggler': {
@@ -173,7 +172,6 @@ export class GameLayout extends UIElement {
   _nextGameDate = null
   _newMessageCount = 0
   _navItemEventIds = []
-  _isAdmin = false
   _username = ''
   _avatar = ''
   _version = ''

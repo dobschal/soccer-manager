@@ -5,15 +5,14 @@ import { Balance } from '../partials/balance.js'
 import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
-import { showSettingsOverlay } from '../partials/settingsOverlay.js'
+import { showAccountOverlay } from '../partials/accountOverlay.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 
 export class NativeAppLayout extends UIElement {
   async load () {
     const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
-    const [gameDate, versionData, currentGameday, teamData, newMessageResponse] = await Promise.all([
+    const [gameDate, currentGameday, teamData, newMessageResponse] = await Promise.all([
       server.getNextGameDate(),
-      server.getVersion(),
       server.getCurrentGameday(),
       server.getMyTeam(),
       server.getNewLogMessageCount(lastSeenMessageId)
@@ -21,8 +20,6 @@ export class NativeAppLayout extends UIElement {
     this._nextGameDate = gameDate.date
     this._username = teamData.user?.username || ''
     this._avatar = teamData.user?.avatar || ''
-    this._isAdmin = teamData.isAdmin || false
-    this._version = versionData.version
     this._gameDay = currentGameday.gameDay
     this._season = currentGameday.season
     this._currentGameday = currentGameday
@@ -110,10 +107,8 @@ export class NativeAppLayout extends UIElement {
   _nextGameDate = null
   _newMessageCount = 0
   _navItemEventIds = []
-  _isAdmin = false
   _username = ''
   _avatar = ''
-  _version = ''
   _gameDay = 0
   _season = 0
   _scrollHandler = null
@@ -122,10 +117,7 @@ export class NativeAppLayout extends UIElement {
     const settingsBtn = document.querySelector(`${this._elementQuery} #settings-button`)
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => {
-        showSettingsOverlay({
-          isAdmin: this._isAdmin,
-          version: this._version
-        })
+        showAccountOverlay()
       })
     }
     const logoBtn = document.querySelector(`${this._elementQuery} #info-bar-logo`)

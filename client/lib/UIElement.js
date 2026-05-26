@@ -151,12 +151,25 @@ export class UIElement {
   async update (reloadData = false) {
     if (!this.isRendered) return
     const node = document.querySelector(this._elementQuery)
+    const parent = node?.parentElement
+    const lockedHeight = parent?.getBoundingClientRect().height
+    const previousMinHeight = parent?.style.minHeight ?? ''
+    if (parent && lockedHeight) {
+      parent.style.minHeight = `${lockedHeight}px`
+    }
     const templateEl = document.createElement('template')
     if (reloadData) await this._load()
     await this._renderIntoTemplateEl(templateEl)
     this._renderIntoDOM(node, templateEl)
     this._applyEventHandlers()
     this.onUpdate()
+    if (parent && lockedHeight) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          parent.style.minHeight = previousMinHeight
+        })
+      })
+    }
   }
 
   /**

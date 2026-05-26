@@ -8,6 +8,7 @@ import { LeagueResultsPage } from './results/league.js'
 import { CupResultsPage } from './results/cup.js'
 import { FriendlyResultsPage } from './results/friendly.js'
 import { HallOfFamePage } from './results/hallOfFame.js'
+import { SearchPanel } from '../partials/searchPanel.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 
 export class ResultsPage extends TabbedPage {
@@ -23,6 +24,7 @@ export class ResultsPage extends TabbedPage {
           <a class="nav-link ${this.subPage === 'cup' ? 'active' : ''}" href="#results?sub_page=cup"><i class="fa fa-trophy"></i> ${t('results.cupResults')}</a>
           <a class="nav-link ${this.subPage === 'friendly' ? 'active' : ''}" href="#results?sub_page=friendly"><i class="fa fa-handshake-o"></i> ${t('results.friendlyResults')}</a>
           <a class="nav-link ${this.subPage === 'hallOfFame' ? 'active' : ''}" href="#results?sub_page=hallOfFame"><i class="fa fa-star"></i> ${t('results.hallOfFame')}</a>
+          <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#results?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>
         ${this.renderSubPageContainer()}
       </div>
@@ -65,6 +67,7 @@ export class ResultsPage extends TabbedPage {
       case 'cup': return new CupResultsPage(this)
       case 'friendly': return new FriendlyResultsPage(this)
       case 'hallOfFame': return new HallOfFamePage(this)
+      case 'search': return new SearchPanel()
       default: return new LeagueResultsPage(this)
     }
   }

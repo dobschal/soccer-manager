@@ -95,7 +95,7 @@
 
 .manager-chat-inline .manager-chat-image svg {
     width: 150px;
-    transform: translateY(-36px);
+    transform: translateY(6px);
 }
 
 /* Responsive */

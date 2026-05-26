@@ -3,6 +3,7 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
 import { goTo } from '../lib/router.js'
 import { t } from '../i18n/index.js'
+import { formatLastActive } from '../lib/date.js'
 import { renderEmblem } from './emblem.js'
 import { renderPositionBadge } from './positionBadge.js'
 
@@ -20,9 +21,11 @@ export function showSearchOverlay () {
   const resultsContainerId = generateId()
   const showAllButtonId = generateId()
 
-  let currentTab = 'players'
+  let currentTab = 'users'
   let searchTimeout = null
   let currentQuery = ''
+  let usersSortDir = 'DESC'
+  let lastUsersResult = []
 
   const remove = () => {
     const overlayEl = el('#' + overlayId)
@@ -75,9 +78,9 @@ export function showSearchOverlay () {
     e.stopPropagation()
     remove()
     setTimeout(() => {
-      const subPage = currentTab === 'players' ? null : currentTab
+      const searchTab = currentTab === 'users' ? null : currentTab
       const params = new URLSearchParams()
-      if (subPage) params.set('sub_page', subPage)
+      if (searchTab) params.set('search_tab', searchTab)
       if (currentQuery.length >= 3) params.set('search_query', currentQuery)
       const qs = params.toString()
       goTo('browse' + (qs ? '?' + qs : ''))
@@ -118,6 +121,7 @@ export function showSearchOverlay () {
         renderTeamResults(resultsContainer, teams)
       } else {
         const { users } = await server.searchUsers(currentQuery)
+        lastUsersResult = users
         renderUserResults(resultsContainer, users)
       }
     } catch (e) {
@@ -187,22 +191,45 @@ export function showSearchOverlay () {
       return
     }
 
+    const sortedUsers = [...users].sort((a, b) => {
+      const aTime = a.last_login ? new Date(a.last_login).getTime() : 0
+      const bTime = b.last_login ? new Date(b.last_login).getTime() : 0
+      return usersSortDir === 'ASC' ? aTime - bTime : bTime - aTime
+    })
+
+    const sortClass = usersSortDir === 'ASC' ? 'asc' : 'desc'
+
     const html = `
-      <div class="list-group">
-        ${users.map(user => `
-            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center search-result-item ${user.team_id ? 'u-cursor-pointer' : ''}"
-                 ${user.team_id ? `data-team-id="${user.team_id}"` : ''}>
-              <div>
-                <strong><i class="fa fa-user"></i> ${user.username}</strong>
-              </div>
-              <div class="text-end">
-                <small class="text-muted">${user.team_name || t('search.noTeam')}</small>
-              </div>
-            </div>
+      <table class="table table-hover mb-0 search-user-table">
+        <thead>
+          <tr>
+            <th>${t('search.users')}</th>
+            <th>${t('search.team')}</th>
+            <th class="sort-header ${sortClass}" data-sort="last_login">${t('search.lastLogin')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sortedUsers.map(user => `
+            <tr class="search-result-item ${user.team_id ? 'u-cursor-pointer' : ''}"
+                ${user.team_id ? `data-team-id="${user.team_id}"` : ''}>
+              <td><strong><i class="fa fa-user"></i> ${user.username}</strong></td>
+              <td><small class="text-muted">${user.team_name || t('search.noTeam')}</small></td>
+              <td><small class="text-muted">${formatLastActive(user.last_login)}</small></td>
+            </tr>
           `).join('')}
-      </div>
+        </tbody>
+      </table>
     `
     container.innerHTML = html
+
+    const sortHeader = container.querySelector('th[data-sort="last_login"]')
+    if (sortHeader) {
+      sortHeader.addEventListener('click', (e) => {
+        e.stopPropagation()
+        usersSortDir = usersSortDir === 'ASC' ? 'DESC' : 'ASC'
+        renderUserResults(container, lastUsersResult)
+      })
+    }
   }
 
   const html = `
@@ -224,18 +251,18 @@ export function showSearchOverlay () {
 
           <ul class="nav nav-tabs mb-3">
             <li class="nav-item">
-              <a id="${tabPlayersId}" class="nav-link active" href="#">
+              <a id="${tabUsersId}" class="nav-link active" href="#">
+                <i class="fa fa-id-card"></i> ${t('search.users')}
+              </a>
+            </li>
+            <li class="nav-item">
+              <a id="${tabPlayersId}" class="nav-link" href="#">
                 <i class="fa fa-user"></i> ${t('search.players')}
               </a>
             </li>
             <li class="nav-item">
               <a id="${tabTeamsId}" class="nav-link" href="#">
                 <i class="fa fa-users"></i> ${t('search.teams')}
-              </a>
-            </li>
-            <li class="nav-item">
-              <a id="${tabUsersId}" class="nav-link" href="#">
-                <i class="fa fa-id-card"></i> ${t('search.users')}
               </a>
             </li>
           </ul>
