@@ -9,7 +9,7 @@ import { TabbedPage } from '../lib/TabbedPage.js'
 export class BrowsePage extends TabbedPage {
   get template () {
     const searchQuery = getQueryParams().search_query || ''
-    const subPageValue = this.subPage || ''
+    const subPageValue = (this.subPage && this.subPage !== 'users') ? this.subPage : ''
     return `
       <div>
         <nav class="nav nav-pills mb-4">
@@ -23,9 +23,9 @@ export class BrowsePage extends TabbedPage {
 
         <div class="mb-3">
           <select id="browse-subpage-select" class="form-select form-select-sm">
-            <option value="" ${subPageValue === '' ? 'selected' : ''}>${t('search.players')}</option>
+            <option value="" ${subPageValue === '' ? 'selected' : ''}>${t('search.users')}</option>
+            <option value="players" ${subPageValue === 'players' ? 'selected' : ''}>${t('search.players')}</option>
             <option value="teams" ${subPageValue === 'teams' ? 'selected' : ''}>${t('search.teams')}</option>
-            <option value="users" ${subPageValue === 'users' ? 'selected' : ''}>${t('search.users')}</option>
           </select>
         </div>
 
@@ -78,18 +78,18 @@ export class BrowsePage extends TabbedPage {
   }
   _updateNav () {
     const select = document.querySelector(`${this._elementQuery} #browse-subpage-select`)
-    if (select) select.value = this.subPage || ''
+    if (select) select.value = (this.subPage && this.subPage !== 'users') ? this.subPage : ''
   }
   
   get routeName () { return 'browse' }
   
-  get defaultSubPageKey () { return 'players' }
-  
+  get defaultSubPageKey () { return 'users' }
+
   createSubPage (key) {
     switch (key) {
+      case 'players': return new BrowsePlayersPage(this)
       case 'teams': return new BrowseTeamsPage(this)
-      case 'users': return new BrowseUsersPage(this)
-      default: return new BrowsePlayersPage(this)
+      default: return new BrowseUsersPage(this)
     }
   }
 

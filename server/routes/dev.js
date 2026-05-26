@@ -243,5 +243,30 @@ export default {
     }
     const row = await collectStatistics()
     return { success: true, row }
+  },
+
+  /**
+   * Get the top 10 countries the users (players of the game) come from based
+   * on their last known login geolocation (admin only). A user counts once;
+   * if they have logged in via multiple platforms, the web country wins, then
+   * iOS, then Android.
+   * @param {Request} req
+   * @returns {Promise<{rows: Array<{country: string, count: number}>}>}
+   */
+  async getTopCountries (req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    const rows = await query(`
+      SELECT country, COUNT(*) AS count FROM (
+        SELECT COALESCE(last_country_web, last_country_ios, last_country_android) AS country
+        FROM user
+      ) AS u
+      WHERE country IS NOT NULL AND country <> ''
+      GROUP BY country
+      ORDER BY count DESC, country ASC
+      LIMIT 10
+    `)
+    return { rows: rows.map(r => ({ country: r.country, count: Number(r.count) })) }
   }
 }

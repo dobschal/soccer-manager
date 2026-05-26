@@ -111,6 +111,40 @@ describe('friends routes', () => {
     })
   })
 
+  describe('getFriends', () => {
+    it('returns the list of friends with their team info', async () => {
+      const friends = [
+        { id: 2, username: 'alice', avatar: 'a.jpg', teamId: 10, teamName: 'FC Alice', teamLevel: 5 },
+        { id: 3, username: 'bob', avatar: null, teamId: 11, teamName: 'Bob United', teamLevel: 3 }
+      ]
+      query.mockResolvedValueOnce(friends)
+
+      const req = createMockRequest({ user: { id: 1, username: 'me' } })
+      const result = await handlers.getFriends(req)
+
+      expect(result).toEqual({ friends })
+      const sql = query.mock.calls[0][0]
+      expect(sql).toMatch(/FROM user_friend uf/)
+      expect(sql).toMatch(/JOIN user u ON u\.id = uf\.friend_user_id/)
+      expect(sql).toMatch(/LEFT JOIN team t ON t\.user_id = u\.id/)
+      expect(query.mock.calls[0][1]).toEqual([1])
+    })
+
+    it('returns an empty list when the user has no friends', async () => {
+      query.mockResolvedValueOnce([])
+
+      const req = createMockRequest({ user: { id: 1, username: 'me' } })
+      const result = await handlers.getFriends(req)
+
+      expect(result).toEqual({ friends: [] })
+    })
+
+    it('rejects unauthenticated calls', async () => {
+      const req = { user: null }
+      await expect(handlers.getFriends(req)).rejects.toMatchObject({ message: 'Not authorized' })
+    })
+  })
+
   describe('getFriendsLastGameDayGames', () => {
     it('returns empty result when user has no friends', async () => {
       query.mockResolvedValueOnce([])

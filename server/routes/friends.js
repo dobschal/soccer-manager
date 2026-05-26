@@ -68,6 +68,32 @@ export default {
   },
 
   /**
+   * Return the list of friends for the current user. Each entry includes
+   * basic user data and the friend's team (if they have one).
+   *
+   * @param {Request} req
+   * @returns {Promise<{friends: Array<{id: number, username: string, avatar: string|null, teamId: number|null, teamName: string|null, teamLevel: number|null}>}>}
+   */
+  async getFriends (req) {
+    if (!req.user) throw new UnauthorizedError('Not authorized')
+    const friends = await query(
+      `SELECT u.id        AS id,
+              u.username  AS username,
+              u.avatar    AS avatar,
+              t.id        AS teamId,
+              t.name      AS teamName,
+              t.level     AS teamLevel
+       FROM user_friend uf
+       JOIN user u ON u.id = uf.friend_user_id
+       LEFT JOIN team t ON t.user_id = u.id
+       WHERE uf.user_id = ?
+       ORDER BY u.username ASC`,
+      [req.user.id]
+    )
+    return { friends }
+  },
+
+  /**
    * Friends' league and cup games from the most recently played game day
    * (league or cup) across the user's friends. Used by the dashboard
    * "Friends" slider.

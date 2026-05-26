@@ -85,6 +85,34 @@
     min-width: 250px;
 }
 
+/* Account overlay friends list */
+.account-friends-list {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.account-friend-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.account-friend-avatar--default {
+    opacity: 0.7;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
 @media screen and (max-width: 768px) {
     .nav.nav-pills {
         margin: -2rem -2rem 0 -2rem;
@@ -93,6 +121,7 @@
         width: calc(100% + 4rem);
         overflow-x: auto;
         padding: 1rem 2rem 0 2rem;
+        animation: fade-in 0.1s ease-out;
     }
 
     .nav-pills .nav-link {

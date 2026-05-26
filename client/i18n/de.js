@@ -18,6 +18,8 @@ export default {
   'nav.support': 'Support',
   'nav.deleteAccount': 'Konto löschen',
   'nav.deleteAccountConfirm': 'Bist du sicher? Dein Konto und alle deine Daten werden unwiderruflich gelöscht. Dies kann nicht rückgängig gemacht werden.',
+  'account.friends': 'Freunde',
+  'account.noFriends': 'Noch keine Freunde. Besuche die Team-Seite eines Managers, um ihn als Freund hinzuzufügen.',
 
   // Search
   'search.title': 'Suche',
@@ -30,6 +32,13 @@ export default {
   'search.level': 'Level',
   'search.noTeam': 'Kein Team',
   'search.showAll': 'Alle anzeigen',
+  'search.lastLogin': 'Letzter Login',
+  'search.lastLoginToday': 'Heute aktiv',
+  'search.lastLoginYesterday': 'Gestern',
+  'search.never': 'Nie',
+  'search.team': 'Team',
+  'search.friend': 'Befreundet',
+  'search.league': 'Liga',
 
   // Landing page
   'landing.freeToPlay': 'Kostenlos spielen',
@@ -1125,6 +1134,10 @@ export default {
   'admin.iosEnvironmentSwitch': 'Umgebung wechseln',
   'admin.iosEnvironmentConfirm': 'iOS-App auf "{env}" umstellen? Die WebView wird neu geladen, nicht gespeicherte Eingaben gehen verloren.',
   'admin.iosEnvironmentBridgeMissing': 'Umgebungs-Bridge nicht verfügbar. Bitte die iOS-App neu bauen, damit der Switch funktioniert.',
+  'admin.topCountriesTitle': 'Top 10 Länder',
+  'admin.topCountriesCountry': 'Land',
+  'admin.topCountriesCount': 'Spieler',
+  'admin.topCountriesEmpty': 'Es liegen noch keine Länderdaten vor.',
   'results.cupGameDayNotice': 'An diesem Spieltag fanden Pokalspiele statt.',
   'results.goToCupResults': 'Zu den Pokal-Ergebnissen',
 

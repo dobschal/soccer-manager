@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../../lib/gateway.js', () => ({
   server: {
     getAdmins: vi.fn().mockResolvedValue({ admins: [] }),
-    getStatistics: vi.fn().mockResolvedValue({ rows: [], total: 0, pageSize: 20 })
+    getStatistics: vi.fn().mockResolvedValue({ rows: [], total: 0, pageSize: 20 }),
+    getTopCountries: vi.fn().mockResolvedValue({ rows: [] })
   }
 }))
 

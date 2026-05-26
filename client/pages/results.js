@@ -23,6 +23,7 @@ export class ResultsPage extends TabbedPage {
           <a class="nav-link ${this.subPage === 'cup' ? 'active' : ''}" href="#results?sub_page=cup"><i class="fa fa-trophy"></i> ${t('results.cupResults')}</a>
           <a class="nav-link ${this.subPage === 'friendly' ? 'active' : ''}" href="#results?sub_page=friendly"><i class="fa fa-handshake-o"></i> ${t('results.friendlyResults')}</a>
           <a class="nav-link ${this.subPage === 'hallOfFame' ? 'active' : ''}" href="#results?sub_page=hallOfFame"><i class="fa fa-star"></i> ${t('results.hallOfFame')}</a>
+          <a class="nav-link" href="#browse"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>
         ${this.renderSubPageContainer()}
       </div>

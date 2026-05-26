@@ -5,6 +5,7 @@ import { formatDate } from '../lib/date.js'
 import { t } from '../i18n/index.js'
 import { el } from '../lib/html.js'
 import { toast } from '../partials/toast.js'
+import { showConfirmDialog } from '../partials/overlay.js'
 
 function escapeHtml (text) {
   const div = document.createElement('div')
@@ -507,7 +508,7 @@ export class ForumPage extends UIElement {
       btn.onclick = async (e) => {
         e.preventDefault()
         e.stopPropagation()
-        if (!confirm(t('forum.confirmDelete'))) return
+        if (!(await showConfirmDialog(t('forum.confirmDelete'), t('forum.delete'), t('forum.cancel')))) return
         await server.deleteForumCategory(Number(btn.dataset.id))
         this._params = getQueryParams()
         await this._loadView()
@@ -519,7 +520,7 @@ export class ForumPage extends UIElement {
       btn.onclick = async (e) => {
         e.preventDefault()
         e.stopPropagation()
-        if (!confirm(t('forum.confirmDelete'))) return
+        if (!(await showConfirmDialog(t('forum.confirmDelete'), t('forum.delete'), t('forum.cancel')))) return
         await server.deleteForumPost(Number(btn.dataset.id))
         const categoryId = this._post?.category_id || this._params.category
         if (categoryId) {
@@ -581,7 +582,7 @@ export class ForumPage extends UIElement {
       btn.onclick = async (e) => {
         e.preventDefault()
         e.stopPropagation()
-        if (!confirm(t('forum.confirmDelete'))) return
+        if (!(await showConfirmDialog(t('forum.confirmDelete'), t('forum.delete'), t('forum.cancel')))) return
         await server.deleteForumComment(Number(btn.dataset.id))
         this._params = getQueryParams()
         await this._loadView()

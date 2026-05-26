@@ -1,7 +1,7 @@
 import { on } from './event.js'
 import { delay } from './delay.js'
 
-const SCROLL_BACK_MS = 1000
+const SCROLL_BACK_MS = 600
 const OVERFLOW_THRESHOLD_PX = 16
 const PAGE_CHANGE_WINDOW_MS = 1500
 // The router slides cached page wrappers in over ~620ms, during which the

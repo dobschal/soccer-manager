@@ -72,7 +72,7 @@ export default {
    * Search for users by username
    * @param {string} searchQuery
    * @param {Request} req
-   * @returns {Promise<{users: Array<{id: number, username: string, team_id: number, team_name: string}>}>}
+   * @returns {Promise<{users: Array<{id: number, username: string, team_id: number, team_name: string, last_login: string|null}>}>}
    */
   async searchUsers (searchQuery, req) {
     const locale = req.locale || 'en'
@@ -87,7 +87,7 @@ export default {
     const searchPattern = `%${searchQuery}%`
 
     const users = await query(
-      'SELECT u.id, u.username, t.id AS team_id, t.name AS team_name FROM user u LEFT JOIN team t ON t.user_id = u.id WHERE u.username LIKE ? LIMIT 10',
+      'SELECT u.id, u.username, u.last_login, t.id AS team_id, t.name AS team_name FROM user u LEFT JOIN team t ON t.user_id = u.id WHERE u.username LIKE ? ORDER BY u.last_login DESC LIMIT 10',
       [searchPattern]
     )
 
@@ -219,28 +219,50 @@ export default {
     pageSize = Math.min(50, Math.max(1, parseInt(pageSize) || 20))
     const offset = pageIndex * pageSize
 
-    const allowedSortColumns = { username: 'u.username', team_name: 't.name' }
+    const allowedSortColumns = {
+      username: 'u.username',
+      team_name: 't.name',
+      last_login: 'u.last_login',
+      league: 't.level, t.league',
+      is_friend: 'is_friend'
+    }
     const dir = sortDirection === 'ASC' ? 'ASC' : 'DESC'
-    let orderBy = 'u.username ASC'
+    let orderBy = 'u.last_login IS NULL, u.last_login DESC'
     if (sortColumn && allowedSortColumns[sortColumn]) {
-      orderBy = `${allowedSortColumns[sortColumn]} ${dir}`
+      const expr = allowedSortColumns[sortColumn]
+      if (sortColumn === 'league') {
+        orderBy = `t.level IS NULL, t.level ${dir}, t.league ${dir}`
+      } else if (sortColumn === 'is_friend') {
+        orderBy = `is_friend ${dir}, u.username ASC`
+      } else {
+        orderBy = `${expr} IS NULL, ${expr} ${dir}`
+      }
     }
 
     let whereClause = ''
-    const params = []
+    const params = [req.user.id]
 
     if (searchQuery && typeof searchQuery === 'string' && searchQuery.length >= 3) {
       whereClause = 'WHERE u.username LIKE ?'
       params.push(`%${searchQuery}%`)
     }
 
+    const countParams = params.slice(1)
     const [countResult] = await query(
       `SELECT COUNT(*) AS total FROM user u ${whereClause}`,
-      params
+      countParams
     )
 
     const users = await query(
-      `SELECT u.id, u.username, t.id AS team_id, t.name AS team_name FROM user u LEFT JOIN team t ON t.user_id = u.id ${whereClause} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
+      `SELECT u.id, u.username, u.last_login,
+              t.id AS team_id, t.name AS team_name, t.level AS team_level, t.league AS team_league,
+              (uf.user_id IS NOT NULL) AS is_friend
+       FROM user u
+       LEFT JOIN team t ON t.user_id = u.id
+       LEFT JOIN user_friend uf ON uf.user_id = ? AND uf.friend_user_id = u.id
+       ${whereClause}
+       ORDER BY ${orderBy}
+       LIMIT ? OFFSET ?`,
       [...params, pageSize, offset]
     )
 

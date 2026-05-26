@@ -5,20 +5,23 @@ import { generateId } from '../lib/html.js'
 import { t } from '../i18n/index.js'
 import { ActiveUsersChart } from '../partials/activeUsersChart.js'
 import { showDialog } from '../partials/dialog.js'
+import { showConfirmDialog } from '../partials/overlay.js'
 import { sendLog } from '../lib/clientLogger.js'
 
 const STATISTICS_PAGE_SIZE = 20
 
 export class AdminPage extends UIElement {
   async load () {
-    const [adminsRes, statisticsRes] = await Promise.all([
+    const [adminsRes, statisticsRes, topCountriesRes] = await Promise.all([
       server.getAdmins(),
-      server.getStatistics(this._statisticsPage, STATISTICS_PAGE_SIZE)
+      server.getStatistics(this._statisticsPage, STATISTICS_PAGE_SIZE),
+      server.getTopCountries()
     ])
     this._admins = adminsRes.admins
     this._statistics = statisticsRes.rows
     this._statisticsTotal = statisticsRes.total
     this._statisticsPageSize = statisticsRes.pageSize
+    this._topCountries = topCountriesRes.rows
   }
   get template () {
     const adminRows = this._admins.map(a => `
@@ -173,6 +176,28 @@ export class AdminPage extends UIElement {
           </div>
           ` : `<p class="text-muted">${t('admin.statisticsEmpty')}</p>`}
         </div>
+
+        <div class="mb-4">
+          <h4>${t('admin.topCountriesTitle')}</h4>
+          ${this._topCountries.length > 0 ? `
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>${t('admin.topCountriesCountry')}</th>
+                  <th>${t('admin.topCountriesCount')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${this._topCountries.map(c => `
+                  <tr>
+                    <td>${this._countryName(c.country)}</td>
+                    <td>${c.count}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `<p class="text-muted">${t('admin.topCountriesEmpty')}</p>`}
+        </div>
       </div>
     `
   }
@@ -232,6 +257,7 @@ export class AdminPage extends UIElement {
   _statisticsTotal = 0
   _statisticsPage = 1
   _statisticsPageSize = STATISTICS_PAGE_SIZE
+  _topCountries = []
 
   get _isIosNative () {
     return typeof window !== 'undefined' && window.__nativePlatform === 'ios'
@@ -255,6 +281,18 @@ export class AdminPage extends UIElement {
       { value: 'STAR_PLAYER', label: t('actionCards.type.starPlayer') },
       { value: 'MOTIVATING_SPEECH', label: t('actionCards.type.motivatingSpeech') }
     ]
+  }
+
+  _countryName (code) {
+    if (!code) return '—'
+    const upper = String(code).toUpperCase()
+    try {
+      const locale = (typeof navigator !== 'undefined' && navigator.language) || 'en'
+      const name = new Intl.DisplayNames([locale], { type: 'region' }).of(upper)
+      return name || upper
+    } catch {
+      return upper
+    }
   }
 
   _formatMoney (value) {
@@ -291,7 +329,7 @@ export class AdminPage extends UIElement {
   }
 
   async _triggerGameDay () {
-    if (!confirm(t('admin.triggerGameDayConfirm'))) return
+    if (!(await showConfirmDialog(t('admin.triggerGameDayConfirm'), t('admin.triggerGameDay'), t('dialog.cancel')))) return
     const btn = document.getElementById(this._triggerBtnId)
     try {
       btn.disabled = true
@@ -310,7 +348,7 @@ export class AdminPage extends UIElement {
     const select = document.getElementById(this._giftCardSelectId)
     const action = select.value
     const label = select.options[select.selectedIndex]?.textContent || action
-    if (!confirm(t('admin.giftActionCardConfirm', { card: label }))) return
+    if (!(await showConfirmDialog(t('admin.giftActionCardConfirm', { card: label }), t('admin.giftActionCardButton'), t('dialog.cancel')))) return
     const btn = document.getElementById(this._giftCardBtnId)
     try {
       btn.disabled = true
@@ -330,7 +368,7 @@ export class AdminPage extends UIElement {
       toast(t('admin.broadcastBothRequired'), 'error')
       return
     }
-    if (!confirm(t('admin.broadcastConfirm'))) return
+    if (!(await showConfirmDialog(t('admin.broadcastConfirm'), t('admin.sendBroadcast'), t('dialog.cancel')))) return
     const btn = document.getElementById(this._broadcastBtnId)
     try {
       btn.disabled = true
@@ -349,7 +387,7 @@ export class AdminPage extends UIElement {
     const input = document.getElementById(this._deleteUsernameId)
     const username = input.value.trim()
     if (!username) return
-    if (!confirm(t('admin.deleteUserConfirm', { username }))) return
+    if (!(await showConfirmDialog(t('admin.deleteUserConfirm', { username }), t('admin.deleteUser'), t('dialog.cancel')))) return
     try {
       await server.adminDeleteUser(username)
       toast(t('admin.userDeleted', { username }), 'success')
@@ -363,7 +401,7 @@ export class AdminPage extends UIElement {
     const input = document.getElementById(this._addAdminInputId)
     const username = input.value.trim()
     if (!username) return
-    if (!confirm(t('admin.addAdminConfirm', { username }))) return
+    if (!(await showConfirmDialog(t('admin.addAdminConfirm', { username }), t('admin.addAdmin'), t('dialog.cancel')))) return
     try {
       await server.addAdmin(username)
       toast(t('admin.adminAdded', { username }), 'success')
@@ -413,7 +451,7 @@ export class AdminPage extends UIElement {
   }
 
   async _removeAdmin (username) {
-    if (!confirm(t('admin.removeAdminConfirm', { username }))) return
+    if (!(await showConfirmDialog(t('admin.removeAdminConfirm', { username }), t('admin.removeAdmin'), t('dialog.cancel')))) return
     try {
       await server.removeAdmin(username)
       toast(t('admin.adminRemoved', { username }), 'success')

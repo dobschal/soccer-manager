@@ -1,3 +1,24 @@
+import { t } from '../i18n/index.js'
+
+/**
+ * Format a last-active timestamp as a day-granular string with i18n.
+ * Same day → "Heute aktiv", previous day → "Gestern", else "DD.MM.YYYY".
+ * @param {string|Date|null|undefined} lastLogin
+ * @returns {string}
+ */
+export function formatLastActive (lastLogin) {
+  if (!lastLogin) return t('search.never')
+  const date = lastLogin instanceof Date ? lastLogin : new Date(lastLogin)
+  if (Number.isNaN(date.getTime())) return t('search.never')
+  const now = new Date()
+  const isSameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  if (isSameDay(date, now)) return t('search.lastLoginToday')
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (isSameDay(date, yesterday)) return t('search.lastLoginYesterday')
+  return `${twoDigitString(date.getDate())}.${twoDigitString(date.getMonth() + 1)}.${date.getFullYear()}`
+}
+
 /**
  * Format a Date or Datestring into a wanted string format
  *
