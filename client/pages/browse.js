@@ -22,7 +22,7 @@ export class BrowsePage extends TabbedPage {
         </nav>
 
         <div class="mb-3">
-          <select id="browse-subpage-select" class="form-select">
+          <select id="browse-subpage-select" class="form-select form-select-sm">
             <option value="" ${subPageValue === '' ? 'selected' : ''}>${t('search.players')}</option>
             <option value="teams" ${subPageValue === 'teams' ? 'selected' : ''}>${t('search.teams')}</option>
             <option value="users" ${subPageValue === 'users' ? 'selected' : ''}>${t('search.users')}</option>

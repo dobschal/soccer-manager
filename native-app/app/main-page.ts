@@ -301,7 +301,10 @@ function loadWebViewIOS(webView: WebView, webPath: string) {
 function setupIOSEnvironmentBridge(webView: WebView): void {
     const wkWebView = webView.ios as any
     const controller = wkWebView.configuration.userContentController
-    if (!controller) return
+    if (!controller) {
+        nativeLog(webView, '[Bridge] setupIOSEnvironmentBridge: no userContentController', 'error')
+        return
+    }
 
     const env = getEnvironment()
     const serverUrl = getServerUrl(env)
@@ -317,6 +320,7 @@ function setupIOSEnvironmentBridge(webView: WebView): void {
         true
     )
     controller.addUserScript(userScript)
+    nativeLog(webView, `[Bridge] User script installed (env=${env}, alreadyInstalled=${!!(webView as any).__fmioBridgeInstalled})`)
 
     // Only install the message handler once per WebView, otherwise WKWebKit
     // throws because the name is already registered.
@@ -326,8 +330,9 @@ function setupIOSEnvironmentBridge(webView: WebView): void {
             controller.addScriptMessageHandlerName(handler, 'fmioBridge')
             ;(webView as any).__fmioBridgeHandler = handler
             ;(webView as any).__fmioBridgeInstalled = true
-        } catch (e) {
-            console.error('[Bridge] Failed to register fmioBridge handler:', e)
+            nativeLog(webView, '[Bridge] fmioBridge handler registered')
+        } catch (e: any) {
+            nativeLog(webView, `[Bridge] Failed to register fmioBridge handler: ${e?.message ?? e}`, 'error')
         }
     }
 }
@@ -337,28 +342,50 @@ function createIOSBridgeHandler(webView: WebView): any {
         userContentControllerDidReceiveScriptMessage(_userContentController: any, message: any): void {
             try {
                 const body = message.body
-                const type = body && body.type
-                if (type === 'setEnvironment') {
-                    const env = body.env === 'sandbox' ? 'sandbox' : 'production'
-                    handleEnvironmentSwitch(webView, env)
+                nativeLog(webView, `[Bridge] Message received (body type=${typeof body}, raw=${tryStringify(body)})`)
+                let type: string | undefined
+                let env: string | undefined
+                if (typeof body === 'string') {
+                    const parsed = JSON.parse(body)
+                    type = parsed?.type
+                    env = parsed?.env
+                } else if (body) {
+                    type = body.type ?? (body.objectForKey && body.objectForKey('type'))
+                    env = body.env ?? (body.objectForKey && body.objectForKey('env'))
                 }
-            } catch (e) {
-                console.error('[Bridge] Failed to handle script message:', e)
+                if (type === 'setEnvironment') {
+                    const target: Environment = env === 'sandbox' ? 'sandbox' : 'production'
+                    nativeLog(webView, `[Bridge] setEnvironment requested: ${target}`)
+                    handleEnvironmentSwitch(webView, target)
+                } else {
+                    nativeLog(webView, `[Bridge] Ignoring unknown message type: ${type}`, 'warn')
+                }
+            } catch (e: any) {
+                nativeLog(webView, `[Bridge] Failed to handle script message: ${e?.message ?? e}`, 'error')
             }
         }
     }, {
+        name: 'FmioBridgeHandler',
         protocols: [WKScriptMessageHandler]
     })
     return HandlerImpl.new()
 }
 
+function tryStringify(v: any): string {
+    try {
+        return JSON.stringify(v)
+    } catch {
+        return String(v)
+    }
+}
+
 function handleEnvironmentSwitch(webView: WebView, env: Environment): void {
     const changed = setEnvironment(env)
     if (!changed) {
-        console.log(`[Env] Already on ${env}, nothing to do.`)
+        nativeLog(webView, `[Env] Already on ${env}, nothing to do.`, 'warn')
         return
     }
-    console.log(`[Env] Switching to ${env} and reloading WebView...`)
+    nativeLog(webView, `[Env] Switching to ${env} and reloading WebView...`)
 
     // Re-init the bridge so the next page load picks up the new env URL,
     // then clear the WebView cache and reload from the (now-empty) OTA path.
@@ -366,11 +393,16 @@ function handleEnvironmentSwitch(webView: WebView, env: Environment): void {
     webViewInitialized = false
 
     clearWebViewCache(webView).then(() => {
-        const webPath = getWebContentPath()
-        loadWebViewIOS(webView, webPath)
-        webViewInitialized = true
-        // Kick off a fresh OTA check so the new env's bundle is fetched.
-        checkForUpdate().catch(err => console.error('[OTA] Post-switch check failed:', err))
+        // WKWebsiteDataStore's completion handler runs on a background queue,
+        // but WKWebView UI updates (loadFileURL, etc.) must be on main thread.
+        Utils.executeOnMainThread(() => {
+            const webPath = getWebContentPath()
+            nativeLog(webView, `[Env] Cache cleared, reloading from ${webPath}`)
+            loadWebViewIOS(webView, webPath)
+            webViewInitialized = true
+            // Kick off a fresh OTA check so the new env's bundle is fetched.
+            checkForUpdate().catch(err => nativeLog(webView, `[OTA] Post-switch check failed: ${err?.message ?? err}`, 'error'))
+        })
     })
 }
 

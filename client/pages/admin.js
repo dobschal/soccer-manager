@@ -5,6 +5,7 @@ import { generateId } from '../lib/html.js'
 import { t } from '../i18n/index.js'
 import { ActiveUsersChart } from '../partials/activeUsersChart.js'
 import { showDialog } from '../partials/dialog.js'
+import { sendLog } from '../lib/clientLogger.js'
 
 const STATISTICS_PAGE_SIZE = 20
 
@@ -396,12 +397,19 @@ export class AdminPage extends UIElement {
 
     const bridge = window.webkit?.messageHandlers?.fmioBridge
     if (!bridge || typeof bridge.postMessage !== 'function') {
+      sendLog(`[EnvSwitch] Bridge missing — webkit=${!!window.webkit}, messageHandlers=${!!window.webkit?.messageHandlers}`, 'error')
       toast(t('admin.iosEnvironmentBridgeMissing'), 'error')
       select.value = this._currentIosEnv
       return
     }
 
-    bridge.postMessage({ type: 'setEnvironment', env: target })
+    sendLog(`[EnvSwitch] Posting setEnvironment to bridge: ${target}`)
+    try {
+      bridge.postMessage(JSON.stringify({ type: 'setEnvironment', env: target }))
+    } catch (e) {
+      sendLog(`[EnvSwitch] bridge.postMessage threw: ${e?.message ?? e}`, 'error')
+      toast(t('admin.iosEnvironmentBridgeMissing'), 'error')
+    }
   }
 
   async _removeAdmin (username) {

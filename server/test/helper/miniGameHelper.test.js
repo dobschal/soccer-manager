@@ -12,6 +12,7 @@ import {
   MINI_GAME_REWARD_POOL,
   MINI_GAME_LIMITS
 } from '../../helper/miniGameHelper.js'
+import { actionCardChances } from '../../helper/actionCardHelper.js'
 
 describe('miniGameHelper.rollMiniGameReward', () => {
   it('returns null with 0 goals (no chance)', () => {
@@ -58,9 +59,20 @@ describe('miniGameHelper.rollMiniGameReward', () => {
     expect(rate).toBeLessThan(0.4)
   })
 
-  it('selects evenly across the reward pool', () => {
+  it('exposes every non-zero action card chance as a reward', () => {
+    const expectedActions = Object.entries(actionCardChances)
+      .filter(([, chance]) => chance > 0)
+      .map(([action]) => action)
+    expect(new Set(MINI_GAME_REWARD_POOL)).toEqual(new Set(expectedActions))
+    // Zero-chance cards must stay out of the pool.
+    for (const [action, chance] of Object.entries(actionCardChances)) {
+      if (chance === 0) expect(MINI_GAME_REWARD_POOL).not.toContain(action)
+    }
+  })
+
+  it('weights cards by their normal per-game-day chances', () => {
     const counts = Object.fromEntries(MINI_GAME_REWARD_POOL.map(a => [a, 0]))
-    const N = 6000
+    const N = 50000
     let wins = 0
     for (let i = 0; i < N; i++) {
       const r = rollMiniGameReward(10) // always wins
@@ -70,10 +82,12 @@ describe('miniGameHelper.rollMiniGameReward', () => {
       }
     }
     expect(wins).toBe(N)
-    const expected = N / MINI_GAME_REWARD_POOL.length
+    const totalWeight = MINI_GAME_REWARD_POOL.reduce((s, a) => s + actionCardChances[a], 0)
     for (const action of MINI_GAME_REWARD_POOL) {
-      expect(counts[action]).toBeGreaterThan(expected * 0.7)
-      expect(counts[action]).toBeLessThan(expected * 1.3)
+      const expectedRate = actionCardChances[action] / totalWeight
+      const observedRate = counts[action] / N
+      expect(observedRate).toBeGreaterThan(expectedRate * 0.7)
+      expect(observedRate).toBeLessThan(expectedRate * 1.3)
     }
   })
 })

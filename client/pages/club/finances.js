@@ -91,13 +91,13 @@ export class FinancesPage extends UIElement {
           <div class="row mb-3">
             <div class="col-6 col-md-3">
               <label for="filter-from" class="form-label">${t('finances.from')}</label>
-              <select class="form-select" id="filter-from">
+              <select class="form-select form-select-sm" id="filter-from">
                 ${this._renderGameDayOptions(this.fromSeason, this.fromGameDay)}
               </select>
             </div>
             <div class="col-6 col-md-3">
               <label for="filter-to" class="form-label">${t('finances.to')}</label>
-              <select class="form-select" id="filter-to">
+              <select class="form-select form-select-sm" id="filter-to">
                 ${this._renderGameDayOptions(this.toSeason, this.toGameDay)}
               </select>
             </div>

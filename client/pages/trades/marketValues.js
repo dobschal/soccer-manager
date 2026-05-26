@@ -29,31 +29,31 @@ export class MarketValuesPage extends UIElement {
         <div class="d-flex flex-wrap gap-3 mb-3">
           <div>
             <label class="form-label" for="position-select">${t('trades.marketValuesPosition')}</label>
-            <select class="form-select" id="position-select" class="u-max-w-200">
+            <select class="form-select form-select-sm u-max-w-200" id="position-select">
               ${positions.map(pos => `<option value="${pos}" ${pos === this._selectedPosition ? 'selected' : ''}>${t('actionCards.position.' + pos)}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label" for="from-level-select">${t('trades.marketValuesFromLevel')}</label>
-            <select class="form-select" id="from-level-select" class="u-max-w-200">
+            <select class="form-select form-select-sm u-max-w-200" id="from-level-select">
               ${allLevels.map(l => `<option value="${l}" ${l === this._fromLevel ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label" for="to-level-select">${t('trades.marketValuesToLevel')}</label>
-            <select class="form-select" id="to-level-select" class="u-max-w-200">
+            <select class="form-select form-select-sm u-max-w-200" id="to-level-select">
               ${allLevels.map(l => `<option value="${l}" ${l === this._toLevel ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label" for="from-age-select">${t('trades.marketValuesFromAge')}</label>
-            <select class="form-select" id="from-age-select" class="u-max-w-200">
+            <select class="form-select form-select-sm u-max-w-200" id="from-age-select">
               ${allAges.map(a => `<option value="${a}" ${a === this._fromAge ? 'selected' : ''}>${a}</option>`).join('')}
             </select>
           </div>
           <div>
             <label class="form-label" for="to-age-select">${t('trades.marketValuesToAge')}</label>
-            <select class="form-select" id="to-age-select" class="u-max-w-200">
+            <select class="form-select form-select-sm u-max-w-200" id="to-age-select">
               ${allAges.map(a => `<option value="${a}" ${a === this._toAge ? 'selected' : ''}>${a}</option>`).join('')}
             </select>
           </div>
