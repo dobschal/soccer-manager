@@ -297,6 +297,26 @@ describe('DashboardPage', () => {
       await page.onQueryChanged({})
       expect(server.getDashboardUrgencies).toHaveBeenCalledTimes(callsAfterLoad + 1)
     })
+
+    it('refreshes team (name + emblem) when returning to start so an edit on another page is reflected', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      expect(page.team.name).toBe('Test FC')
+
+      // User navigates to club info, renames the team, and returns to dashboard.
+      server.getMyTeam.mockResolvedValue({
+        team: { id: 1, name: 'Renamed FC', level: 1, league: 1, emblem: 'new-emblem' },
+        user: { username: 'testuser' }
+      })
+
+      // First onQueryChanged is the post-load no-op
+      await page.onQueryChanged({})
+      // Second onQueryChanged simulates returning from another page
+      await page.onQueryChanged({})
+
+      expect(page.team.name).toBe('Renamed FC')
+      expect(page.team.emblem).toBe('new-emblem')
+    })
   })
 
   describe('urgency refresh on navigation back to start', () => {

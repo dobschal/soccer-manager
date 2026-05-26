@@ -235,7 +235,8 @@ export class DashboardPage extends TabbedPage {
     this.gameDay = gamedayResponse.gameDay
     this.lastPlayedLeagueMatchDay = gamedayResponse.lastPlayedLeagueMatchDay ?? 0
 
-    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, friendsResponse, standing, urgencyResponse] = await Promise.all([
+    const [teamResponse, sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, friendsResponse, standing, urgencyResponse] = await Promise.all([
+      server.getMyTeam(),
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
       server.getMyCupGames(5),
@@ -244,6 +245,8 @@ export class DashboardPage extends TabbedPage {
       server.getStanding(this.lastPlayedLeagueMatchDay, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(window.__nativePlatform || 'web')
     ])
+    this.team = teamResponse.team
+    this.user = teamResponse.user
 
     this._sliderGames = [
       ...sliderResponse.pastGames.map(g => ({ ...g, isPlayed: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) })),

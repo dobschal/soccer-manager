@@ -10,10 +10,10 @@ export class ClubPage extends TabbedPage {
     return `
       <div>
         <nav class="nav nav-pills mb-2">
-          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#club">${t('stadium.tabStadium')}</a>
-          <a class="nav-link ${this.subPage === 'info' ? 'active' : ''}" href="#club?sub_page=info">${t('stadium.tabClubInfo')}</a>
-          <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#club?sub_page=buildings">${t('stadium.tabBuildings')}</a>
-          <a class="nav-link ${this.subPage === 'finances' ? 'active' : ''}" href="#club?sub_page=finances">${t('stadium.tabFinances')}</a>
+          <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#club"><i class="fa fa-flag"></i> ${t('stadium.tabStadium')}</a>
+          <a class="nav-link ${this.subPage === 'info' ? 'active' : ''}" href="#club?sub_page=info"><i class="fa fa-info-circle"></i> ${t('stadium.tabClubInfo')}</a>
+          <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#club?sub_page=buildings"><i class="fa fa-building"></i> ${t('stadium.tabBuildings')}</a>
+          <a class="nav-link ${this.subPage === 'finances' ? 'active' : ''}" href="#club?sub_page=finances"><i class="fa fa-money"></i> ${t('stadium.tabFinances')}</a>
         </nav>
         ${this.renderSubPageContainer()}
       </div>
