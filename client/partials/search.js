@@ -78,9 +78,9 @@ export function showSearchOverlay () {
     e.stopPropagation()
     remove()
     setTimeout(() => {
-      const subPage = currentTab === 'players' ? null : currentTab
+      const searchTab = currentTab === 'users' ? null : currentTab
       const params = new URLSearchParams()
-      if (subPage) params.set('sub_page', subPage)
+      if (searchTab) params.set('search_tab', searchTab)
       if (currentQuery.length >= 3) params.set('search_query', currentQuery)
       const qs = params.toString()
       goTo('browse' + (qs ? '?' + qs : ''))
