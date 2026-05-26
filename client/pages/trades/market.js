@@ -13,7 +13,7 @@ import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { Position } from '../../util/formation.js'
 import { renderPageNumbers } from '../../partials/pagination.js'
 import { renderCurrencyInput, setupCurrencyInput } from '../../partials/currencyInput.js'
-import { generateId, el } from '../../lib/html.js'
+import { el, generateId } from '../../lib/html.js'
 
 const PAGE_SIZE = 20
 
@@ -34,6 +34,7 @@ export class MarketPage extends UIElement {
     this.teams = offersResponse.teams
 
   }
+
   /**
    * @returns {string}
    */
@@ -121,6 +122,7 @@ export class MarketPage extends UIElement {
       </div>
     `
   }
+
   /**
    * @returns {UIElementEvents}
    */
@@ -196,6 +198,7 @@ export class MarketPage extends UIElement {
       }
     }
   }
+
   /**
    * @param {Object} params
    * @param {string} params.sort_dir
@@ -230,6 +233,7 @@ export class MarketPage extends UIElement {
       setTimeout(() => this._restoreScrollLeft(scrollLeft, attempts + 1), 10)
     }
   }
+
   team = {}
 
   offers = []
@@ -273,6 +277,7 @@ export class MarketPage extends UIElement {
       }
     }, {
       name: t('player.age'),
+      class: 'table-nums',
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
         const playerB = this.players.find(p => p.id === offerB.player_id)
@@ -459,7 +464,10 @@ export class MarketPage extends UIElement {
     const formattedPrice = euroFormat.format(sellOfferPrice)
     const { ok } = await showDialog({
       title: t('trades.instantBuyConfirmTitle', { playerName: player.name }),
-      text: t('trades.instantBuyConfirmText', { playerName: player.name, price: formattedPrice }),
+      text: t('trades.instantBuyConfirmText', {
+        playerName: player.name,
+        price: formattedPrice
+      }),
       hasInput: false,
       buttonText: t('trades.instantBuyYes'),
       buttonType: 'success'
@@ -467,7 +475,10 @@ export class MarketPage extends UIElement {
     if (!ok) return
     try {
       await server.instantBuyPlayer(player.id)
-      toast(t('trades.instantBuyDone', { playerName: player.name, price: formattedPrice }), 'success')
+      toast(t('trades.instantBuyDone', {
+        playerName: player.name,
+        price: formattedPrice
+      }), 'success')
       await this.load()
       await this.update()
     } catch (e) {

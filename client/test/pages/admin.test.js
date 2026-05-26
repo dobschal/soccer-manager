@@ -29,6 +29,10 @@ vi.mock('../../partials/dialog.js', () => ({
   showDialog: vi.fn().mockResolvedValue({ ok: true, value: undefined })
 }))
 
+vi.mock('../../lib/clientLogger.js', () => ({
+  sendLog: vi.fn()
+}))
+
 const { AdminPage } = await import('../../pages/admin.js')
 const { toast } = await import('../../partials/toast.js')
 const { showDialog } = await import('../../partials/dialog.js')
@@ -106,7 +110,7 @@ describe('AdminPage iOS environment switcher', () => {
     `
 
     await page._switchIosEnvironment()
-    expect(postMessage).toHaveBeenCalledWith({ type: 'setEnvironment', env: 'sandbox' })
+    expect(postMessage).toHaveBeenCalledWith(JSON.stringify({ type: 'setEnvironment', env: 'sandbox' }))
   })
 
   it('no-ops when the selected env matches the current env', async () => {

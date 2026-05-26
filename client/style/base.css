@@ -21,7 +21,9 @@ html {
 
 /* Body */
 body {
-    font-variant-numeric: tabular-nums !important;
+    letter-spacing: 0.5px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     width: 100%;
     min-height: 100vh;
     overflow-x: hidden;
@@ -37,6 +39,14 @@ body {
     body {
         background-image: url("../assets/football-field-vertical.jpg");
     }
+}
+
+/* Use Cuprum for all form fields */
+input,
+textarea,
+select {
+    font-family: 'Cuprum', sans-serif;
+    letter-spacing: 0.75px;
 }
 
 /* Select arrow for form-control selects (form-select gets this from Bootstrap) */
@@ -137,8 +147,12 @@ select.form-control {
 }
 
 @keyframes ui-element-loading-ball-spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 img, svg {

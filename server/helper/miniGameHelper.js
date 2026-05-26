@@ -1,12 +1,11 @@
 import { query } from '../lib/database.js'
+import { actionCardChances } from './actionCardHelper.js'
 
-export const MINI_GAME_REWARD_POOL = [
-  'LEVEL_UP_PLAYER_40',
-  'FRESHNESS_5',
-  'FRESHNESS_10',
-  'MOTIVATING_SPEECH',
-  'BONUS_100K'
-]
+// Mini-game rewards mirror the normal per-game-day action card distribution:
+// every card type with a non-zero chance is reachable, weighted by that chance.
+export const MINI_GAME_REWARD_POOL = Object.entries(actionCardChances)
+  .filter(([, chance]) => chance > 0)
+  .map(([action]) => action)
 
 export const MINI_GAME_LIMITS = {
   MAX_POINTS_PER_SECOND: 15,
@@ -24,8 +23,13 @@ export function rollMiniGameReward (goalsScored, random = Math.random) {
   if (!Number.isFinite(goalsScored) || goalsScored <= 0) return null
   const chance = Math.min(goalsScored / 3, 1)
   if (random() >= chance) return null
-  const idx = Math.floor(random() * MINI_GAME_REWARD_POOL.length)
-  return MINI_GAME_REWARD_POOL[Math.min(idx, MINI_GAME_REWARD_POOL.length - 1)]
+  const totalWeight = MINI_GAME_REWARD_POOL.reduce((sum, action) => sum + actionCardChances[action], 0)
+  let r = random() * totalWeight
+  for (const action of MINI_GAME_REWARD_POOL) {
+    r -= actionCardChances[action]
+    if (r < 0) return action
+  }
+  return MINI_GAME_REWARD_POOL[MINI_GAME_REWARD_POOL.length - 1]
 }
 
 /**
