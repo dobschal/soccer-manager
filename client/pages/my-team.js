@@ -56,7 +56,9 @@ export class MyTeamPage extends TabbedPage {
     if (params.player_id) {
       await showPlayerModal(Number(params.player_id))
     }
-    this.subPage = params.sub_page || null
+    const newSubPage = params.sub_page || null
+    if (newSubPage === this.subPage) return
+    this.subPage = newSubPage
     await this.load()
     this._subPageCache = {}
     await this.update()
