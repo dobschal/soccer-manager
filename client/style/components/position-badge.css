@@ -11,28 +11,46 @@
     min-width: 2.3em;
 }
 
-.position-badge.GK { background-color: rgb(var(--bs-danger-rgb)); }
+.position-badge.GK {
+    background-color: rgb(var(--bs-danger-rgb));
+}
+
 .position-badge.LD,
 .position-badge.CD,
-.position-badge.RD { background-color: #b8860b; }
+.position-badge.RD {
+    background-color: #b8860b;
+}
+
 .position-badge.LM,
 .position-badge.DM,
 .position-badge.CM,
 .position-badge.RM,
-.position-badge.OM { background-color: rgb(var(--bs-info-rgb)); }
+.position-badge.OM {
+    background-color: rgb(var(--bs-info-rgb));
+}
+
 .position-badge.LA,
 .position-badge.CA,
-.position-badge.RA { background-color: rgb(var(--bs-success-rgb)); }
+.position-badge.RA {
+    background-color: rgb(var(--bs-success-rgb));
+}
 
 /* Flag a player whose natural position doesn't match the slot — they play with reduced
  * effectiveness. Used in the player list and anywhere else the badge is shown standalone. */
 .position-badge.is-wrong-position {
-    box-shadow: 0 0 0 2px rgb(var(--bs-danger-rgb));
+    box-shadow: 0 0 0 3px rgb(var(--bs-danger-rgb));
 }
 
 /* Inside the lineup the badge also has a drop shadow (set in squad.css). Combine both
  * so the red ring sits on top of the shadow. Same specificity as squad.css's rule but
  * defined later (this file loads after) so it wins for the wrong-position case. */
 .player .position-badge.is-wrong-position {
-    box-shadow: 0 0 0 2px rgb(var(--bs-danger-rgb)), 3px 3px 3px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 3px rgb(var(--bs-danger-rgb)), 3px 3px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Secondary hint badge — sits next to the primary one to show a player's natural
+ * position when they're fielded out of position. No red ring, half opacity. */
+.position-badge.is-dimmed {
+    opacity: 0.5;
+    margin-left: 4px;
 }

@@ -30,7 +30,8 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
 
 vi.mock('../../lib/email.js', () => ({
   isValidEmail: (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s),
-  sendVerificationEmail: vi.fn().mockResolvedValue({ sent: true, url: 'https://example.com/verify' })
+  sendVerificationEmail: vi.fn().mockResolvedValue({ sent: true, url: 'https://example.com/verify' }),
+  sendPasswordResetEmail: vi.fn().mockResolvedValue({ sent: true, url: 'https://example.com/reset' })
 }))
 
 vi.mock('../../lib/userCache.js', () => ({
@@ -44,7 +45,7 @@ import { getSponsor } from '../../helper/sponsorHelper.js'
 import { prepareSeason } from '../../prepare-season.js'
 import { hashPassword } from '../../lib/passwordHash.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
-import { sendVerificationEmail } from '../../lib/email.js'
+import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
@@ -258,6 +259,49 @@ describe('auth routes', () => {
     })
   })
 
+  describe('setPassword', () => {
+    it('updates the password when the old one matches', async () => {
+      query
+        .mockResolvedValueOnce([{ password: 'hashed:oldpass!!' }]) // SELECT password
+        .mockResolvedValueOnce({}) // UPDATE user
+
+      const req = { locale: 'en', user: { id: 42 } }
+      const result = await handlers.setPassword('oldpass!!', 'newpass123', req)
+
+      expect(result).toEqual({ success: true })
+      expect(hashPassword).toHaveBeenCalledWith('newpass123')
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET password=? WHERE id=?',
+        ['hashed:newpass123', 42]
+      )
+    })
+
+    it('rejects when not authenticated', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.setPassword('oldpass!!', 'newpass123', req))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+
+    it('rejects when new password is too short', async () => {
+      const req = { locale: 'en', user: { id: 1 } }
+      await expect(handlers.setPassword('oldpass!!', 'short', req))
+        .rejects.toMatchObject({ message: 'Password needs to be string longer than 8 characters' })
+    })
+
+    it('rejects when old password does not match', async () => {
+      query.mockResolvedValueOnce([{ password: 'hashed:differentpass' }])
+      const req = { locale: 'en', user: { id: 1 } }
+      await expect(handlers.setPassword('oldpass!!', 'newpass123', req))
+        .rejects.toMatchObject({ message: 'The current password is incorrect' })
+    })
+
+    it('rejects when either argument is not a string', async () => {
+      const req = { locale: 'en', user: { id: 1 } }
+      await expect(handlers.setPassword(123, 'newpass123', req))
+        .rejects.toMatchObject({ message: 'Password needs to be string' })
+    })
+  })
+
   describe('setEmail', () => {
     it('stores a new email as pending and sends a verification mail', async () => {
       query
@@ -344,6 +388,94 @@ describe('auth routes', () => {
       const req = { locale: 'en' }
       await expect(handlers.verifyEmail('short', req))
         .rejects.toMatchObject({ message: 'This verification link is invalid or has expired' })
+    })
+  })
+
+  describe('requestPasswordReset', () => {
+    it('generates a token and sends an email when the email matches a user', async () => {
+      query
+        .mockResolvedValueOnce([{ id: 7, username: 'someone', email: 'me@example.com', language: 'de' }])
+        .mockResolvedValueOnce({}) // UPDATE user
+      sendPasswordResetEmail.mockResolvedValue({ sent: true, url: 'x' })
+
+      const req = { locale: 'en' }
+      const result = await handlers.requestPasswordReset('Me@Example.com', req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith(
+        'SELECT id, username, email, language FROM user WHERE email=? LIMIT 1',
+        ['me@example.com']
+      )
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET password_reset_token=?, password_reset_expires_at=? WHERE id=?',
+        [expect.any(String), expect.any(Date), 7]
+      )
+      expect(sendPasswordResetEmail).toHaveBeenCalledWith(expect.objectContaining({
+        toEmail: 'me@example.com',
+        username: 'someone',
+        locale: 'de',
+        token: expect.any(String)
+      }))
+    })
+
+    it('returns success without sending email when no user matches', async () => {
+      query.mockResolvedValueOnce([])
+      const req = { locale: 'en' }
+      const result = await handlers.requestPasswordReset('unknown@example.com', req)
+      expect(result).toEqual({ success: true })
+      expect(sendPasswordResetEmail).not.toHaveBeenCalled()
+    })
+
+    it('rejects an invalid email', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.requestPasswordReset('not-an-email', req))
+        .rejects.toMatchObject({ message: 'Please enter a valid email address' })
+    })
+  })
+
+  describe('resetPassword', () => {
+    it('updates the password and clears the token on success', async () => {
+      const expires = new Date(Date.now() + 60 * 60 * 1000)
+      query
+        .mockResolvedValueOnce([{ id: 9, password_reset_expires_at: expires }])
+        .mockResolvedValueOnce({}) // UPDATE user
+
+      const req = { locale: 'en' }
+      const result = await handlers.resetPassword('a'.repeat(64), 'newpassword123', req)
+
+      expect(result).toEqual({ success: true })
+      expect(hashPassword).toHaveBeenCalledWith('newpassword123')
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET password=?, password_reset_token=NULL, password_reset_expires_at=NULL WHERE id=?',
+        ['hashed:newpassword123', 9]
+      )
+    })
+
+    it('rejects a malformed token', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.resetPassword('short', 'newpassword123', req))
+        .rejects.toMatchObject({ message: 'This password reset link is invalid or has expired' })
+    })
+
+    it('rejects a short new password', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.resetPassword('a'.repeat(64), 'short', req))
+        .rejects.toMatchObject({ message: 'Password needs to be string longer than 8 characters' })
+    })
+
+    it('rejects an unknown token', async () => {
+      query.mockResolvedValueOnce([])
+      const req = { locale: 'en' }
+      await expect(handlers.resetPassword('a'.repeat(64), 'newpassword123', req))
+        .rejects.toMatchObject({ message: 'This password reset link is invalid or has expired' })
+    })
+
+    it('rejects an expired token', async () => {
+      const expires = new Date(Date.now() - 60 * 1000)
+      query.mockResolvedValueOnce([{ id: 9, password_reset_expires_at: expires }])
+      const req = { locale: 'en' }
+      await expect(handlers.resetPassword('a'.repeat(64), 'newpassword123', req))
+        .rejects.toMatchObject({ message: 'This password reset link is invalid or has expired' })
     })
   })
 })

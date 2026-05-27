@@ -85,6 +85,11 @@
     min-width: 250px;
 }
 
+.settings-overlay-content .form-label {
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
 /* Account overlay friends list */
 .account-friends-list {
     display: flex;
@@ -111,6 +116,21 @@
 
 .account-friend-avatar--default {
     opacity: 0.7;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.browse-user-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+    border: 1.5px solid rgba(0, 0, 0, 0.1);
+}
+
+.browse-user-avatar--default {
+    opacity: 0.6;
     background-color: rgba(0, 0, 0, 0.05);
 }
 

@@ -8,6 +8,15 @@ import { formatLeague } from '../../util/league.js'
 
 const SORT_COL_MAP = ['username', 'team_name', 'league', 'last_login', 'is_friend']
 
+function renderUserAvatar (avatar, username) {
+  const alt = username || ''
+  if (avatar) {
+    const baseUrl = window.__NATIVE_SERVER_URL || ''
+    return `<img class="browse-user-avatar" src="${baseUrl}/uploads/avatars/${avatar}" alt="${alt}">`
+  }
+  return '<img class="browse-user-avatar browse-user-avatar--default" src="./assets/avatar-placeholder.svg" alt="">'
+}
+
 export class BrowseUsersPage extends UIElement {
   /**
    * @param {UIElement} parentPage
@@ -59,7 +68,7 @@ export class BrowseUsersPage extends UIElement {
       ],
       data: this.users,
       renderRow: (user) => [
-        `<strong><i class="fa fa-user"></i> ${user.username}</strong>`,
+        `<strong>${renderUserAvatar(user.avatar, user.username)} ${user.username}</strong>`,
         user.team_name || `<span class="text-muted">${t('search.noTeam')}</span>`,
         user.team_level !== null && user.team_level !== undefined
           ? formatLeague(user.team_level, user.team_league)

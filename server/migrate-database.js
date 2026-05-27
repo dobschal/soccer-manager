@@ -1842,6 +1842,13 @@ const migrations = [{
     await query('CREATE UNIQUE INDEX uq_user_email ON user (email)')
     await query('CREATE INDEX idx_user_email_verification_token ON user (email_verification_token)')
   }
+}, {
+  name: 'Add password reset columns to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN password_reset_token VARCHAR(128) DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN password_reset_expires_at TIMESTAMP NULL DEFAULT NULL')
+    await query('CREATE INDEX idx_user_password_reset_token ON user (password_reset_token)')
+  }
 }]
 
 /**

@@ -6,12 +6,14 @@ export default {
   'error.usernameTaken': 'Username already taken',
   'error.noTeamAvailable': 'No team available.',
   'error.wrongCredentials': 'Wrong credentials',
+  'error.wrongOldPassword': 'The current password is incorrect',
   'error.notAuthorized': 'Not authorized',
   'error.invalidLanguage': 'Invalid language',
   'error.emailInvalid': 'Please enter a valid email address',
   'error.emailTaken': 'This email address is already in use',
   'error.emailRequired': 'Email is required',
   'error.verificationTokenInvalid': 'This verification link is invalid or has expired',
+  'error.passwordResetTokenInvalid': 'This password reset link is invalid or has expired',
 
   // Verification email content
   'email.verify.subject': 'Confirm your email address',
@@ -19,6 +21,15 @@ export default {
   'email.verify.body': 'Welcome to FootballManager.IO! Please confirm your email address so we can use it for password recovery and important account notifications. Your email will not be shared with third parties.',
   'email.verify.button': 'Confirm email',
   'email.verify.fallbackLink': 'If the button does not work, copy and paste this URL into your browser:',
+
+  // Password reset email content
+  'email.passwordReset.subject': 'Reset your password',
+  'email.passwordReset.greeting': 'Hi {username},',
+  'email.passwordReset.body': 'We received a request to reset the password for your FootballManager.IO account. Click the button below to choose a new password. This link is valid for 2 hours.',
+  'email.passwordReset.button': 'Reset password',
+  'email.passwordReset.fallbackLink': 'If the button does not work, copy and paste this URL into your browser:',
+  'email.passwordReset.ignoreHint': 'If you did not request a password reset, you can safely ignore this email — your password will remain unchanged.',
+
   'email.footer.privacy': 'Privacy',
   'email.footer.support': 'Support',
   'email.footer.app': 'Open app',

@@ -164,6 +164,22 @@ describe('PlayerListItem', () => {
       expect(cells[1]).toContain('>OM<')
       expect(cells[1]).toContain('is-wrong-position')
     })
+
+    it('also shows the natural position as a dimmed hint when fielded out of position', () => {
+      const player = testData.player({ position: 'CD', in_game_position: 'OM' })
+      const cells = new PlayerListItem(player, 1).cells
+      expect(cells[1]).toContain('>CD<')
+      expect(cells[1]).toContain('is-dimmed')
+      // The dimmed hint must NOT carry the red-ring class.
+      const dimmedBadge = cells[1].slice(cells[1].indexOf('is-dimmed'))
+      expect(dimmedBadge).not.toContain('is-wrong-position')
+    })
+
+    it('does not render the dimmed hint when player is in their natural slot', () => {
+      const player = testData.player({ position: 'CM', in_game_position: 'CM' })
+      const cells = new PlayerListItem(player, 1).cells
+      expect(cells[1]).not.toContain('is-dimmed')
+    })
   })
 
   describe('cards display', () => {

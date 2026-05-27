@@ -33,32 +33,7 @@ export class NativeLandingPage extends UIElement {
         <div class="native-landing-card">
           <img src="assets/logo.svg" alt="FootballManager.IO" class="native-landing-logo">
           <h1 class="native-landing-title">${t('landing.title')}</h1>
-          <h2>${this.isLogin ? t('landing.welcomeBack') : t('landing.createAccount')}</h2>
-          <form>
-            <div class="form-group mb-3">
-              <label for="username-input">${t('landing.username')}</label>
-              <input autofocus class="form-control" id="username-input" type="text" placeholder="${t('landing.enterUsername')}">
-            </div>
-            <div class="form-group mb-3 ${this.isLogin ? 'hidden' : ''}" id="email-area">
-              <label for="email-input">${t('landing.email')}</label>
-              <input class="form-control" id="email-input" type="email" placeholder="${t('landing.enterEmail')}" autocomplete="email">
-              <small class="form-text text-muted">${t('landing.emailHint')}</small>
-            </div>
-            <div class="form-group mb-3">
-              <label for="password-input">${t('landing.password')}</label>
-              <input class="form-control" id="password-input" type="password" placeholder="${t('landing.enterPassword')}">
-            </div>
-            <div class="form-group mb-3 ${this.isLogin ? 'hidden' : ''}" id="password-repeat-area">
-              <label for="password-repeat-input">${t('landing.repeatPassword')}</label>
-              <input class="form-control" id="password-repeat-input" type="password" placeholder="${t('landing.repeatPasswordPlaceholder')}">
-            </div>
-            <button class="btn btn-primary w-100 mb-2" type="submit">
-              ${this.isLogin ? t('landing.loginBtn') : t('landing.createAccountBtn')}
-            </button>
-            <button data-toggle class="btn btn-link text-white w-100 p-0" type="button">
-              ${this.isLogin ? t('landing.newHere') : t('landing.alreadyHaveAccount')}
-            </button>
-          </form>
+          ${this.isForgotPassword ? this._forgotPasswordTemplate() : this._loginTemplate()}
         </div>
       </div>
     `
@@ -68,31 +43,97 @@ export class NativeLandingPage extends UIElement {
       form: {
         submit: this._onSubmit
       },
-      'button.btn-link': {
+      'button[data-toggle]': {
         click: () => setQueryParams({ type: this.isLogin ? 'registration' : 'login' })
+      },
+      'button[data-forgot-password]': {
+        click: () => setQueryParams({ type: 'forgot-password' })
+      },
+      'button[data-back-to-login]': {
+        click: () => setQueryParams({ type: 'login' })
       }
     }
   }
   async onQueryChanged ({ type }) {
+    this.isForgotPassword = type === 'forgot-password'
     this.isLogin = type === 'login'
     await this.update()
+  }
+  _loginTemplate () {
+    return `
+      <h2>${this.isLogin ? t('landing.welcomeBack') : t('landing.createAccount')}</h2>
+      <form name="${this.isLogin ? 'login' : 'register'}" autocomplete="on">
+        <div class="form-group mb-3">
+          <label for="username-input">${t('landing.username')}</label>
+          <input autofocus class="form-control" id="username-input" name="username" type="text" placeholder="${t('landing.enterUsername')}" autocomplete="username">
+        </div>
+        <div class="form-group mb-3 ${this.isLogin ? 'hidden' : ''}" id="email-area">
+          <label for="email-input">${t('landing.email')}</label>
+          <input class="form-control" id="email-input" name="email" type="email" placeholder="${t('landing.enterEmail')}" autocomplete="email">
+          <small class="form-text text-muted">${t('landing.emailHint')}</small>
+        </div>
+        <div class="form-group mb-3">
+          <label for="password-input">${t('landing.password')}</label>
+          <input class="form-control" id="password-input" name="password" type="password" placeholder="${t('landing.enterPassword')}" autocomplete="${this.isLogin ? 'current-password' : 'new-password'}">
+        </div>
+        <button class="btn btn-primary w-100 mb-2" type="submit">
+          ${this.isLogin ? t('landing.loginBtn') : t('landing.createAccountBtn')}
+        </button>
+        <button data-toggle class="btn btn-link text-white w-100 p-0" type="button">
+          ${this.isLogin ? t('landing.newHere') : t('landing.alreadyHaveAccount')}
+        </button>
+        ${this.isLogin
+    ? `<button data-forgot-password class="btn btn-link text-white w-100 p-0" type="button">${t('landing.forgotPassword')}</button>`
+    : ''}
+      </form>
+    `
+  }
+  
+  _forgotPasswordTemplate () {
+    return `
+      <h2>${t('landing.forgotPasswordTitle')}</h2>
+      <form name="forgot-password" autocomplete="on">
+        <p class="text-muted mb-3">${t('landing.forgotPasswordHint')}</p>
+        <div class="form-group mb-3">
+          <label for="forgot-email-input">${t('landing.email')}</label>
+          <input autofocus class="form-control" id="forgot-email-input" name="email" type="email" placeholder="${t('landing.enterEmail')}" autocomplete="email">
+        </div>
+        <button class="btn btn-primary w-100 mb-2" type="submit">
+          ${t('landing.forgotPasswordSubmit')}
+        </button>
+        <button data-back-to-login class="btn btn-link text-white w-100 p-0" type="button">
+          ${t('landing.backToLogin')}
+        </button>
+      </form>
+    `
   }
 
   async _onSubmit (event) {
     event.preventDefault()
     if (this.isSubmitting) return
     this.isSubmitting = true
+    if (this.isForgotPassword) {
+      try {
+        const forgotEmail = value('#forgot-email-input')
+        if (!isValidEmail(forgotEmail)) {
+          this.isSubmitting = false
+          return toast(t('landing.emailInvalid'), 'error')
+        }
+        await server.requestPasswordReset(forgotEmail.trim())
+        toast(t('landing.forgotPasswordSent'), 'success')
+        setQueryParams({ type: 'login' })
+      } catch (e) {
+        toast(e.message ?? t('landing.somethingWentWrong'), 'error')
+      }
+      this.isSubmitting = false
+      return
+    }
     const username = value('#username-input')
     const password = value('#password-input')
-    const repeatedPassword = value('#password-repeat-input')
     const email = value('#email-input')
     try {
       const platform = window.__nativePlatform || 'web'
       if (!this.isLogin) {
-        if (repeatedPassword !== password) {
-          this.isSubmitting = false
-          return toast(t('landing.passwordsNotEqual'), 'error')
-        }
         if (!isValidEmail(email)) {
           this.isSubmitting = false
           return toast(t('landing.emailInvalid'), 'error')

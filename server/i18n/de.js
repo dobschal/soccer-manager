@@ -6,12 +6,14 @@ export default {
   'error.usernameTaken': 'Benutzername bereits vergeben',
   'error.noTeamAvailable': 'Kein Team verfügbar.',
   'error.wrongCredentials': 'Falsche Anmeldedaten',
+  'error.wrongOldPassword': 'Das aktuelle Passwort ist falsch',
   'error.notAuthorized': 'Nicht autorisiert',
   'error.invalidLanguage': 'Ungültige Sprache',
   'error.emailInvalid': 'Bitte gib eine gültige E-Mail-Adresse ein',
   'error.emailTaken': 'Diese E-Mail-Adresse wird bereits verwendet',
   'error.emailRequired': 'E-Mail-Adresse ist erforderlich',
   'error.verificationTokenInvalid': 'Dieser Bestätigungslink ist ungültig oder abgelaufen',
+  'error.passwordResetTokenInvalid': 'Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen',
 
   // Verification email content
   'email.verify.subject': 'Bestätige deine E-Mail-Adresse',
@@ -19,6 +21,15 @@ export default {
   'email.verify.body': 'Willkommen bei FootballManager.IO! Bitte bestätige deine E-Mail-Adresse, damit wir sie für das Zurücksetzen deines Passworts und wichtige Account-Benachrichtigungen verwenden können. Deine E-Mail wird nicht an Dritte weitergegeben.',
   'email.verify.button': 'E-Mail bestätigen',
   'email.verify.fallbackLink': 'Falls der Button nicht funktioniert, kopiere diese URL in deinen Browser:',
+
+  // Password reset email content
+  'email.passwordReset.subject': 'Setze dein Passwort zurück',
+  'email.passwordReset.greeting': 'Hi {username},',
+  'email.passwordReset.body': 'Wir haben eine Anfrage erhalten, das Passwort für deinen FootballManager.IO-Account zurückzusetzen. Klicke auf den Button unten, um ein neues Passwort zu wählen. Dieser Link ist 2 Stunden gültig.',
+  'email.passwordReset.button': 'Passwort zurücksetzen',
+  'email.passwordReset.fallbackLink': 'Falls der Button nicht funktioniert, kopiere diese URL in deinen Browser:',
+  'email.passwordReset.ignoreHint': 'Falls du keinen Passwort-Reset angefordert hast, kannst du diese E-Mail ignorieren — dein Passwort bleibt unverändert.',
+
   'email.footer.privacy': 'Datenschutz',
   'email.footer.support': 'Support',
   'email.footer.app': 'App öffnen',

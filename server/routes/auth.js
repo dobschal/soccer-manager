@@ -16,9 +16,10 @@ import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { isValidEmail, sendVerificationEmail } from '../lib/email.js'
+import { isValidEmail, sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js'
 
 const EMAIL_VERIFICATION_TTL_DAYS = 7
+const PASSWORD_RESET_TTL_HOURS = 2
 
 /**
  * Look up other users that already claim this email either as their verified
@@ -218,6 +219,74 @@ export default {
   },
 
   /**
+   * Request a password reset link. Always returns success to avoid leaking
+   * whether an email is registered. If a verified user with this email exists,
+   * a reset token is generated and an email is sent.
+   * @param {string} email
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async requestPasswordReset (email, req) {
+    const locale = req.locale || 'en'
+    if (typeof email !== 'string' || !isValidEmail(email.trim())) {
+      throw new BadRequestError(t('error.emailInvalid', {}, locale))
+    }
+    const normalizedEmail = email.trim().toLowerCase()
+    const [user] = await query(
+      'SELECT id, username, email, language FROM user WHERE email=? LIMIT 1',
+      [normalizedEmail]
+    )
+    if (!user) {
+      return { success: true }
+    }
+    const token = crypto.randomBytes(32).toString('hex')
+    const expires = new Date(Date.now() + PASSWORD_RESET_TTL_HOURS * 60 * 60 * 1000)
+    await query(
+      'UPDATE user SET password_reset_token=?, password_reset_expires_at=? WHERE id=?',
+      [token, expires, user.id]
+    )
+    const emailLocale = user.language || locale
+    sendPasswordResetEmail({ toEmail: user.email, token, locale: emailLocale, username: user.username })
+      .catch(e => console.error('[Auth] sendPasswordResetEmail failed:', e))
+    return { success: true }
+  },
+
+  /**
+   * Complete a password reset using the token sent by email.
+   * Public — does not require auth so a user can click the link on any device.
+   * @param {string} token
+   * @param {string} newPassword
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async resetPassword (token, newPassword, req) {
+    const locale = req.locale || 'en'
+    if (typeof token !== 'string' || token.length < 16) {
+      throw new BadRequestError(t('error.passwordResetTokenInvalid', {}, locale))
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      throw new BadRequestError(t('error.passwordLength', {}, locale))
+    }
+    const [user] = await query(
+      'SELECT id, password_reset_expires_at FROM user WHERE password_reset_token=? LIMIT 1',
+      [token]
+    )
+    if (!user) {
+      throw new BadRequestError(t('error.passwordResetTokenInvalid', {}, locale))
+    }
+    if (user.password_reset_expires_at && new Date(user.password_reset_expires_at).getTime() < Date.now()) {
+      throw new BadRequestError(t('error.passwordResetTokenInvalid', {}, locale))
+    }
+    const hashed = await hashPassword(newPassword)
+    await query(
+      'UPDATE user SET password=?, password_reset_token=NULL, password_reset_expires_at=NULL WHERE id=?',
+      [hashed, user.id]
+    )
+    clearUserCache(user.id)
+    return { success: true }
+  },
+
+  /**
    * @param {string} username
    * @param {string} password
    * @param {string|Request} platformOrReq - platform string ('web'|'ios'|'android') or req if old client
@@ -300,6 +369,34 @@ export default {
       throw new UnauthorizedError(t('error.notAuthorized', {}, req.locale || 'en'))
     }
     await clearPushBadge(req.user.id)
+    return { success: true }
+  },
+
+  /**
+   * Change the current user's password. Requires the old password for
+   * verification before storing the new password hash.
+   * @param {string} oldPassword
+   * @param {string} newPassword
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async setPassword (oldPassword, newPassword, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    if (typeof oldPassword !== 'string' || typeof newPassword !== 'string') {
+      throw new BadRequestError(t('error.passwordString', {}, locale))
+    }
+    if (newPassword.length < 8) {
+      throw new BadRequestError(t('error.passwordLength', {}, locale))
+    }
+    const [user] = await query('SELECT password FROM user WHERE id=?', [req.user.id])
+    if (!user || !(await verifyPassword(oldPassword, user.password))) {
+      throw new UnauthorizedError(t('error.wrongOldPassword', {}, locale))
+    }
+    await query('UPDATE user SET password=? WHERE id=?', [await hashPassword(newPassword), req.user.id])
+    clearUserCache(req.user.id)
     return { success: true }
   },
 

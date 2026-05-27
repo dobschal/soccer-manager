@@ -254,7 +254,7 @@ export default {
     )
 
     const users = await query(
-      `SELECT u.id, u.username, u.last_login,
+      `SELECT u.id, u.username, u.avatar, u.last_login,
               t.id AS team_id, t.name AS team_name, t.level AS team_level, t.league AS team_league,
               (uf.user_id IS NOT NULL) AS is_friend
        FROM user u

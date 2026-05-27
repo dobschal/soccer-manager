@@ -217,6 +217,7 @@ parametrized via env vars. The compose file uses `APP_PORT`, `DB_PORT`, `NETWORK
 
 Sandbox specifics:
 - Push notifications are **disabled** (`APN_*` / `FCM_*` are intentionally empty in the sandbox `.env`).
+- Email verification **is enabled** on sandbox and uses the same IONOS SMTP credentials as prod (`SMTP_*` mirrored in the sandbox `.env`). `EMAIL_FROM` is set to `FootballManager.IO Sandbox <…>` and `PUBLIC_URL=https://sandbox.footballmanager.io` so the verification link points back to sandbox.
 - The sandbox database starts empty; run schema migration / season prep against the sandbox DB the same way as locally.
 - Sandbox container names are prefixed `soccer-manager-sandbox-*` (e.g. `soccer-manager-sandbox-database-1`).
 

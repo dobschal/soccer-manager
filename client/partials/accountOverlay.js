@@ -199,15 +199,24 @@ export async function showAccountOverlay () {
         ${renderAvatar()}
       </div>
       
-      <div id="account-email-section" class="mb-4">
-        ${renderEmail()}
-      </div>
-      
       <div id="account-friends-section" class="mb-4">
         <label class="form-label mt-2">${t('account.friends')}</label>
         ${renderFriends()}
       </div>
-      
+
+      <div id="account-email-section" class="mb-4">
+        ${renderEmail()}
+      </div>
+
+      <div id="account-password-section" class="mb-4">
+        <label class="form-label mt-2">${t('account.password')}</label>
+        <input type="password" id="account-password-old" class="form-control border-info mb-2" autocomplete="current-password" placeholder="${t('account.passwordOld')}">
+        <div class="input-group">
+          <input type="password" id="account-password-new" class="form-control border-info" autocomplete="new-password" placeholder="${t('account.passwordNew')}">
+          <button type="button" id="account-password-save" class="btn btn-info">${t('account.passwordSave')}</button>
+        </div>
+      </div>
+
       <div class="mb-4">
         <label class="form-label mt-2">${t('nav.language')}</label>
         <div class="btn-group w-100" role="group">
@@ -342,6 +351,39 @@ export async function showAccountOverlay () {
     }
   }
 
+  const bindPasswordHandlers = () => {
+    const saveBtn = el('#account-password-save')
+    const oldInput = el('#account-password-old')
+    const newInput = el('#account-password-new')
+    if (!saveBtn || !oldInput || !newInput) return
+    const submit = async () => {
+      const oldPassword = oldInput.value
+      const newPassword = newInput.value
+      if (!oldPassword || !newPassword) {
+        toast(t('account.passwordMissing'), 'error')
+        return
+      }
+      saveBtn.disabled = true
+      try {
+        await server.setPassword(oldPassword, newPassword)
+        oldInput.value = ''
+        newInput.value = ''
+        toast(t('account.passwordUpdated'), 'success')
+      } catch (err) {
+        showServerError(err)
+      } finally {
+        saveBtn.disabled = false
+      }
+    }
+    saveBtn.addEventListener('click', submit)
+    newInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        submit()
+      }
+    })
+  }
+
   const bindFriendsHandlers = () => {
     document.querySelectorAll('[data-account-friend-link]').forEach(link => {
       link.addEventListener('click', () => {
@@ -381,6 +423,7 @@ export async function showAccountOverlay () {
   setTimeout(() => {
     bindAvatarHandlers()
     bindEmailHandlers()
+    bindPasswordHandlers()
     bindFriendsHandlers()
 
     const langEnBtn = el('#account-lang-en')
