@@ -14,7 +14,7 @@ vi.mock('../helper/teamHelper.js', () => ({
 }))
 
 // Import after mocking
-import { prepareSeason, _buildGame, _nextLevelToFill, _existingLeagueDayMap } from '../prepare-season.js'
+import { prepareSeason, _buildGame, _nextLevelToFill, _existingLeagueDayMap, _computeTopUpPositions, regenerateTeamData } from '../prepare-season.js'
 import { query } from '../lib/database.js'
 
 describe('prepare-season', () => {
@@ -174,6 +174,96 @@ describe('prepare-season', () => {
       const teams = Array(200).fill(null).map(() => ({ level: 0 }))
       // 200 teams >= 126, so no new level needs to open
       expect(_nextLevelToFill(teams, minTeams)).toBe(-1)
+    })
+  })
+
+  describe('_computeTopUpPositions', () => {
+    it('fills every formation slot when the team is empty', () => {
+      const result = _computeTopUpPositions([], '433', 18)
+      const starters = result.filter(r => r.isStarter)
+      expect(starters).toHaveLength(11)
+      // 433 formation: GK, LD, CD, CD, RD, LM, CM, RM, LA, CA, RA
+      const starterPositions = starters.map(s => s.position).sort()
+      expect(starterPositions).toEqual(['CA', 'CD', 'CD', 'CM', 'GK', 'LA', 'LD', 'LM', 'RA', 'RD', 'RM'])
+      const bench = result.filter(r => !r.isStarter)
+      expect(bench).toHaveLength(7)
+      bench.forEach(b => expect(b.position).toBeNull())
+    })
+
+    it('only fills the missing formation positions when the team is partial', () => {
+      // Existing players cover OM (not in 433), CD (1 of 2 needed), DM (not in 433)
+      const existing = [{ position: 'OM' }, { position: 'CD' }, { position: 'DM' }]
+      const result = _computeTopUpPositions(existing, '433', 15)
+      const starters = result.filter(r => r.isStarter)
+      // 11 formation slots minus 1 CD already covered = 10 starter slots to fill
+      expect(starters).toHaveLength(10)
+      const positions = starters.map(s => s.position).sort()
+      expect(positions).toEqual(['CA', 'CD', 'CM', 'GK', 'LA', 'LD', 'LM', 'RA', 'RD', 'RM'])
+      const bench = result.filter(r => !r.isStarter)
+      expect(bench).toHaveLength(5)
+    })
+
+    it('does not double-count when existing players exceed formation requirement', () => {
+      // Three CDs but formation only needs two
+      const existing = [{ position: 'CD' }, { position: 'CD' }, { position: 'CD' }]
+      const result = _computeTopUpPositions(existing, '433', 15)
+      const positions = result.filter(r => r.isStarter).map(s => s.position)
+      expect(positions.filter(p => p === 'CD')).toHaveLength(0)
+    })
+
+    it('caps starter slots when missing < formation deficit', () => {
+      const result = _computeTopUpPositions([], '433', 3)
+      expect(result).toHaveLength(3)
+      expect(result.every(r => r.isStarter)).toBe(true)
+    })
+  })
+
+  describe('regenerateTeamData', () => {
+    function mockRegenerateQueries (existingPlayers) {
+      query.mockImplementation((sql) => {
+        if (/SELECT MAX\(season\)/i.test(sql)) return Promise.resolve([{ season: 5 }])
+        if (/SELECT position FROM player/i.test(sql)) return Promise.resolve(existingPlayers)
+        if (/SELECT id FROM stadium/i.test(sql)) return Promise.resolve([{ id: 1 }]) // pretend stadium exists
+        if (/SELECT COUNT\(\*\) AS count FROM building/i.test(sql)) return Promise.resolve([{ count: 2 }]) // pretend buildings exist
+        if (/SELECT \* FROM player WHERE name/i.test(sql)) return Promise.resolve([]) // generateRandomPlayerName uniqueness check
+        return Promise.resolve([])
+      })
+    }
+
+    it('tops up a partially populated team to 18 players, prioritising formation gaps', async () => {
+      // Existing: 3 players matching the prod issue (OM/CD/DM)
+      mockRegenerateQueries([
+        { position: 'OM' },
+        { position: 'CD' },
+        { position: 'DM' }
+      ])
+      const team = { id: 193, formation: '433', level: 3, name: 'Fortuna Genoa' }
+      await regenerateTeamData(team)
+      const insertCalls = query.mock.calls.filter(c => /INSERT INTO player/.test(c[0]))
+      expect(insertCalls).toHaveLength(15)
+      const insertedPlayers = insertCalls.map(c => c[1])
+      const starters = insertedPlayers.filter(p => p.in_game_position)
+      // 11 formation slots minus 1 CD already covered = 10 starters
+      expect(starters).toHaveLength(10)
+    })
+
+    it('does not create players if team already has 18+', async () => {
+      mockRegenerateQueries(Array(18).fill({ position: 'CM' }))
+      const team = { id: 1, formation: '433', level: 0, name: 'Test' }
+      await regenerateTeamData(team)
+      const insertCalls = query.mock.calls.filter(c => /INSERT INTO player/.test(c[0]))
+      expect(insertCalls).toHaveLength(0)
+    })
+
+    it('creates a full 18-player squad when team is empty', async () => {
+      mockRegenerateQueries([])
+      const team = { id: 1, formation: '433', level: 0, name: 'Test' }
+      await regenerateTeamData(team)
+      const insertCalls = query.mock.calls.filter(c => /INSERT INTO player/.test(c[0]))
+      expect(insertCalls).toHaveLength(18)
+      const insertedPlayers = insertCalls.map(c => c[1])
+      const starters = insertedPlayers.filter(p => p.in_game_position)
+      expect(starters).toHaveLength(11)
     })
   })
 })

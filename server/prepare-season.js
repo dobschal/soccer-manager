@@ -583,9 +583,14 @@ async function _createRandomTeam (level) {
  */
 export async function regenerateTeamData (team) {
   const season = await _latestSeason() ?? 0
-  const [{ count: playerCount }] = await query('SELECT COUNT(*) AS count FROM player WHERE team_id=?', [team.id])
-  if (playerCount === 0) {
-    await Promise.all([...Array(18)].map((_, i) => _createRandomPlayer(team, i, season)))
+  const existingPlayers = await query('SELECT position FROM player WHERE team_id=?', [team.id])
+  const targetSquadSize = 18
+  const missing = targetSquadSize - existingPlayers.length
+  if (missing > 0) {
+    const positionsToCreate = _computeTopUpPositions(existingPlayers, team.formation, missing)
+    await Promise.all(positionsToCreate.map(({ position, isStarter }) =>
+      _createRandomPlayerForPosition(team, position, isStarter, season)
+    ))
   }
   const [existingStadium] = await query('SELECT id FROM stadium WHERE team_id=?', [team.id])
   if (!existingStadium) {
@@ -617,6 +622,10 @@ export async function regenerateTeamData (team) {
 
 async function _createRandomPlayer (team, i, season) {
   const fixPosition = getPositionsOfFormation(team.formation)[i]
+  await _createRandomPlayerForPosition(team, fixPosition ?? null, fixPosition !== undefined, season)
+}
+
+async function _createRandomPlayerForPosition (team, fixPosition, isStarter, season) {
   const age = Math.floor(Math.random() * 16) // have new players a bit younger, 16 means max 32 years old
   const carrierLength = 20 + Math.floor(Math.random() * 4)
   const levelRange = _getBotPlayerLevelRange(team.level ?? 0)
@@ -629,11 +638,44 @@ async function _createRandomPlayer (team, i, season) {
     carrier_start_season: season - age,
     carrier_end_season: season - age + carrierLength,
     level,
-    in_game_position: fixPosition ?? '',
+    in_game_position: isStarter && fixPosition ? fixPosition : '',
     position: fixPosition ?? _generateRandomPosition(),
     freshness: 1.0
   })
   await query('INSERT INTO player SET ?', player)
+}
+
+/**
+ * Decide which positions to create when topping up a team to 18 players.
+ * Prioritises filling missing formation slots so the user receives a playable lineup,
+ * then fills the bench with random positions.
+ * @param {{position: string}[]} existingPlayers
+ * @param {string} formation
+ * @param {number} missing
+ * @returns {{position: string|null, isStarter: boolean}[]}
+ */
+export function _computeTopUpPositions (existingPlayers, formation, missing) {
+  const formationPositions = getPositionsOfFormation(formation)
+  const positionDeficit = {}
+  for (const pos of formationPositions) {
+    positionDeficit[pos] = (positionDeficit[pos] ?? 0) + 1
+  }
+  for (const p of existingPlayers) {
+    if (positionDeficit[p.position] > 0) {
+      positionDeficit[p.position] -= 1
+    }
+  }
+  const starters = []
+  for (const [pos, deficit] of Object.entries(positionDeficit)) {
+    for (let i = 0; i < deficit; i++) {
+      starters.push({ position: pos, isStarter: true })
+    }
+  }
+  const result = starters.slice(0, missing)
+  while (result.length < missing) {
+    result.push({ position: null, isStarter: false })
+  }
+  return result
 }
 
 /**
