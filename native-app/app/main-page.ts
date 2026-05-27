@@ -41,14 +41,14 @@ export function onPageLoaded(args: EventData) {
     const page = args.object as Page
     page.backgroundColor = '#222222'
 
-    // On Android, push the content below the system status bar
+    // On Android, push the content below the system status bar and above the navigation bar
     if (isAndroid) {
         const resources = Utils.android.getApplicationContext().getResources()
-        const resourceId = resources.getIdentifier('status_bar_height', 'dimen', 'android')
-        if (resourceId > 0) {
-            const statusBarHeightPx = resources.getDimensionPixelSize(resourceId)
-            page.nativeViewProtected.setPadding(0, statusBarHeightPx, 0, 0)
-        }
+        const statusBarId = resources.getIdentifier('status_bar_height', 'dimen', 'android')
+        const navBarId = resources.getIdentifier('navigation_bar_height', 'dimen', 'android')
+        const statusBarHeightPx = statusBarId > 0 ? resources.getDimensionPixelSize(statusBarId) : 0
+        const navBarHeightPx = navBarId > 0 ? resources.getDimensionPixelSize(navBarId) : 0
+        page.nativeViewProtected.setPadding(0, statusBarHeightPx, 0, navBarHeightPx)
     }
 
     // Start OTA check in background

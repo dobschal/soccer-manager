@@ -78,6 +78,7 @@ export class SelectPlayerOverlay extends UIElement {
     )
     return `
       <div class="select-player-overlay">
+        <p>${t('selectPlayer.subtitle')}</p>
         ${playerList}
         ${this._renderShowAllToggle()}
         ${this._renderActionCardsSection()}
@@ -108,6 +109,7 @@ export class SelectPlayerOverlay extends UIElement {
       }
     }
   }
+
   /**
    * @returns {string}
    */
@@ -161,7 +163,10 @@ export class SelectPlayerOverlay extends UIElement {
     const grouped = {}
     this.cards.forEach((card, idx) => {
       if (!grouped[card.action]) grouped[card.action] = []
-      grouped[card.action].push({ card, idx })
+      grouped[card.action].push({
+        card,
+        idx
+      })
     })
     const titles = getActionCardTitles()
     return Object.keys(grouped).sort().map(actionType => {

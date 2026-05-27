@@ -274,6 +274,9 @@ export default {
   'finances.offerValue': 'Sie senden dir {value} pro Spieltag.',
   'finances.signContract': 'Vertrag unterschreiben',
   'finances.days': '{duration} Tage',
+  'finances.tvMoney': 'TV-Gelder',
+  'finances.tvMoneyEstimate': 'Geschätzte TV-Gelder bei Saison-Ende: {value}',
+  'finances.tvMoneyInfo': 'Die TV-Gelder werden am Saison-Ende anhand der Platzierung in der Liga ausgezahlt.',
 
   // My Team
   'myTeam.title': 'Mein Team',
@@ -1032,6 +1035,17 @@ export default {
   'results.stadiumSize': 'Stadion',
   'results.squadValue': 'Kaderwert',
   'friendly.noResults': 'Keine Freundschaftsspiele in dieser Saison.',
+
+  // Schedule sub-page
+  'schedule.tab': 'Spielplan',
+  'schedule.title': 'Spielplan',
+  'schedule.subtitle': '{team} – Saison {season}',
+  'schedule.what': 'Wettbewerb',
+  'schedule.leagueDay': 'Spieltag {day}',
+  'schedule.noGames': 'Keine Spiele in dieser Saison.',
+  'schedule.notParticipating': 'Nicht mehr dabei',
+  'schedule.maybeParticipating': 'Teilnahme offen',
+  'schedule.inHoursMinutes': 'in {hours}h {minutes}min',
 
   // Hall of Fame
   'hallOfFame.title': 'Ruhmeshalle',

@@ -274,6 +274,9 @@ export default {
   'finances.offerValue': 'They will send you {value} per game day.',
   'finances.signContract': 'Sign Contract',
   'finances.days': '{duration} Days',
+  'finances.tvMoney': 'TV Money',
+  'finances.tvMoneyEstimate': 'Estimated TV money at season end: {value}',
+  'finances.tvMoneyInfo': 'The TV money is paid out at the end of the season based on your final position in the league.',
 
   // My Team
   'myTeam.title': 'My Team',
@@ -1032,6 +1035,17 @@ export default {
   'results.stadiumSize': 'Stadium',
   'results.squadValue': 'Squad Value',
   'friendly.noResults': 'No friendly matches this season.',
+
+  // Schedule sub-page
+  'schedule.tab': 'Schedule',
+  'schedule.title': 'Schedule',
+  'schedule.subtitle': '{team} – Season {season}',
+  'schedule.what': 'Competition',
+  'schedule.leagueDay': 'Match day {day}',
+  'schedule.noGames': 'No games scheduled this season.',
+  'schedule.notParticipating': 'Out of the cup',
+  'schedule.maybeParticipating': 'Participation TBD',
+  'schedule.inHoursMinutes': 'in {hours}h {minutes}min',
 
   // Hall of Fame
   'hallOfFame.title': 'Hall of Fame',

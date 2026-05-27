@@ -36,6 +36,8 @@ export class FinancesPage extends UIElement {
     const offersResponse = await server.getSponsorOffers()
     this.offers = offersResponse.sponsors
 
+    this.tvMoney = await server.getEstimatedTvMoney()
+
     // Load bounds for the filter
     const bounds = await server.getFinanceLogBounds()
     this.minSeason = bounds.minSeason
@@ -86,6 +88,7 @@ export class FinancesPage extends UIElement {
             ${this.offers.map((offer, idx) => this._renderSponsorOfferCard(offer, idx)).join('')}
           </div>
         </div>
+        ${this._renderTvMoneySection()}
         <div>
           <h3>${t('finances.transactions')}</h3>
           <div class="row mb-3">
@@ -179,6 +182,9 @@ export class FinancesPage extends UIElement {
   /** @type {FinanceLogEntry[]} */
   financeLog = []
 
+  /** @type {{base: number, level: number, rank: number | null, totalTeams: number, estimatedValue: number} | null} */
+  tvMoney = null
+
   /** @type {typeof import('../../partials/balanceChart.js').BalanceChart | null} */
   _BalanceChart = null
 
@@ -241,6 +247,24 @@ export class FinancesPage extends UIElement {
     if (logB.game_day !== logA.game_day) return logB.game_day - logA.game_day
     // Use id as tiebreaker for entries on the same game day (newer entries have higher ids)
     return logB.id - logA.id
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderTvMoneySection () {
+    if (!this.tvMoney) return ''
+    const value = euroFormat.format(this.tvMoney.estimatedValue ?? 0)
+    return `
+      <div class="tv-money-card">
+        <i class="fa fa-television tv-money-card__icon" aria-hidden="true"></i>
+        <div class="tv-money-card__body">
+          <h5 class="card-title">${t('finances.tvMoney')}</h5>
+          <p class="tv-money-card__value">${t('finances.tvMoneyEstimate', { value })}</p>
+          <p class="tv-money-card__info">${t('finances.tvMoneyInfo')}</p>
+        </div>
+      </div>
+    `
   }
 
   /**

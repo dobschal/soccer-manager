@@ -8,7 +8,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getFinanceLogBounds: vi.fn(),
     getSponsorNames: vi.fn(),
     chooseSponsor: vi.fn(),
-    getMyBalance: vi.fn()
+    getMyBalance: vi.fn(),
+    getEstimatedTvMoney: vi.fn()
   }
 }))
 
@@ -75,6 +76,13 @@ describe('FinancesPage', () => {
     server.getSponsorNames.mockResolvedValue({
       sponsorNames: ['Sponsor A', 'Sponsor B', 'Sponsor C']
     })
+    server.getEstimatedTvMoney.mockResolvedValue({
+      base: 100000,
+      level: 1,
+      rank: 5,
+      totalTeams: 18,
+      estimatedValue: 1400000
+    })
   })
 
   describe('FinancesPage class', () => {
@@ -122,6 +130,14 @@ describe('FinancesPage', () => {
       const page = new FinancesPage()
       await page.load()
       expect(page.template).toContain('Ticket sales')
+    })
+
+    it('renders TV money section with estimate from the server', async () => {
+      const page = new FinancesPage()
+      await page.load()
+      expect(server.getEstimatedTvMoney).toHaveBeenCalled()
+      expect(page.template).toContain('tv-money-card')
+      expect(page.template).toContain('1,400,000 EUR')
     })
 
     it('extends UIElement', () => {

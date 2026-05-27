@@ -632,7 +632,7 @@ async function _createRandomPlayerForPosition (team, fixPosition, isStarter, sea
   const level = Math.floor(Math.random() * (levelRange.max - levelRange.min + 1)) + levelRange.min
   const player = new Player({
     hair_color: Math.floor(Math.random() * 7),
-    skin_color: Math.floor(Math.random() * 3),
+    skin_color: Math.floor(Math.random() * 4),
     team_id: team.id,
     name: (await generateRandomPlayerName()),
     carrier_start_season: season - age,

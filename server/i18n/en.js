@@ -164,6 +164,7 @@ export default {
   'finance.leagueBonus': 'League bonus',
   'finance.promotionBonus': 'Promotion bonus',
   'finance.startingBalance': 'Starting balance',
+  'finance.tvMoney': 'TV money (rank {rank}, league level {level})',
 
   // News headlines
   'news.topScorer': 'Top Scorer: {playerName} ({goals} goals)',

@@ -1849,6 +1849,37 @@ const migrations = [{
     await query('ALTER TABLE user ADD COLUMN password_reset_expires_at TIMESTAMP NULL DEFAULT NULL')
     await query('CREATE INDEX idx_user_password_reset_token ON user (password_reset_token)')
   }
+}, {
+  name: 'Create tv_money_payout table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS tv_money_payout (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      season INT NOT NULL,
+      team_id BIGINT(20) UNSIGNED NOT NULL,
+      level INT NOT NULL,
+      league INT NOT NULL,
+      rank_in_league INT NOT NULL,
+      value INT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_tv_money_season_team (season, team_id),
+      INDEX idx_tv_money_season (season)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Randomly assign new skin_color 3 to bot team players',
+  async run () {
+    await query(`UPDATE player p
+                 JOIN team t ON t.id = p.team_id
+                 SET p.skin_color = 3
+                 WHERE t.user_id IS NULL
+                   AND RAND() < 0.25`)
+    await query(`UPDATE youth_player yp
+                 JOIN team t ON t.id = yp.team_id
+                 SET yp.skin_color = 3
+                 WHERE t.user_id IS NULL
+                   AND RAND() < 0.25`)
+  }
 }]
 
 /**

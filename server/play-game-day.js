@@ -24,6 +24,7 @@ import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { CACHE_NAMESPACES, clearCacheByPrefix } from './lib/cache.js'
 import { progressCupRound, sendCupMatchLogMessages, validateAndProgressCupRounds } from './helper/cupHelper.js'
 import { recordCupWinnerForSeason, recordLeagueChampionsForSeason } from './helper/seasonTitleHelper.js'
+import { payOutTvMoneyForSeason } from './helper/tvMoneyHelper.js'
 import { kickoff, playGameStep } from './play-game.js'
 import { sendGameDayPushNotifications } from './helper/pushNotificationHelper.js'
 import { getCaptainStrengthMultiplier } from './helper/captainHelper.js'
@@ -68,6 +69,11 @@ export async function calculateGames ({ skipPushNotifications = false } = {}) {
   await cacheStandingsForGameDay(gameDay, season)
   await recordLeagueChampionsForSeason(season)
   await recordCupWinnerForSeason(season)
+  await payOutTvMoneyForSeason(gameDay, season, {
+    updateTeamBalance,
+    getUserLocale,
+    t
+  })
   await cachePlayerStatsForGameDay(gameDay, season)
   await cacheTeamStatsForGameDay(gameDay, season)
   await deleteExpiredPendingCards()

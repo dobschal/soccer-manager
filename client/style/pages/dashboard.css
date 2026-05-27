@@ -55,6 +55,43 @@
     justify-content: space-between;
 }
 
+/* TV Money Section */
+.tv-money-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+    padding: 20px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #004855 0%, #47d9f3 100%);
+    color: #fff;
+    margin-bottom: 24px;
+}
+
+.tv-money-card__icon {
+    font-size: 3.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+    color: #ffd86b;
+}
+
+.tv-money-card__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.tv-money-card__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+
+.tv-money-card__info {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    margin: 0;
+}
+
 /* Balance Chart Containers */
 .balance-chart-container {
     position: relative;

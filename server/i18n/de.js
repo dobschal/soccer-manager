@@ -164,6 +164,7 @@ export default {
   'finance.leagueBonus': 'Liga-Bonus',
   'finance.promotionBonus': 'Aufstiegsbonus',
   'finance.startingBalance': 'Startguthaben',
+  'finance.tvMoney': 'TV-Gelder (Platz {rank}, Liga-Level {level})',
 
   // News headlines
   'news.topScorer': 'Torschützenkönig: {playerName} ({goals} Tore)',
