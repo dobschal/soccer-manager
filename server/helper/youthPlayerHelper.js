@@ -72,7 +72,7 @@ export async function createYouthPlayer (teamId, season) {
     moral: 0.7,
     fitness: 0.7,
     hair_color: Math.floor(Math.random() * 7),
-    skin_color: Math.floor(Math.random() * 3),
+    skin_color: Math.floor(Math.random() * 4),
     birth_season: season // They are 15 years old at current season
   })
 

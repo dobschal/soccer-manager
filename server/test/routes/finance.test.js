@@ -5,6 +5,10 @@ vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 10, season: 1 })
+}))
+
 import { query } from '../../lib/database.js'
 import handlers from '../../routes/finance.js'
 
@@ -168,6 +172,24 @@ describe('finance routes', () => {
 
       expect(result).toEqual({ log: financeLog })
       expect(query).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('getEstimatedTvMoney', () => {
+    it('returns an estimate based on the team level and current standing', async () => {
+      const team = testData.team({ id: 5, level: 0, league: 0 })
+      query.mockResolvedValueOnce([team]) // team lookup
+      query.mockResolvedValueOnce([]) // games (no games played yet)
+      query.mockResolvedValueOnce([{ id: 5 }]) // teams list (just our team)
+
+      const req = createMockRequest()
+      const result = await handlers.getEstimatedTvMoney(req)
+
+      expect(result.base).toBe(100000)
+      expect(result.level).toBe(0)
+      expect(result.totalTeams).toBe(1)
+      expect(result.rank).toBe(1)
+      expect(result.estimatedValue).toBe(100000)
     })
   })
 })

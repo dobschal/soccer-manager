@@ -76,7 +76,7 @@ export class Lineup extends UIElement {
             const positionTitle = t(`position.full.${player.in_game_position}`)
             this._overlay = showOverlay(
               positionTitle,
-              t('selectPlayer.subtitle'),
+              '',
               `${new SelectPlayerOverlay(
                 player,
                 availablePlayers,
@@ -175,7 +175,10 @@ export class Lineup extends UIElement {
       // Also save bench to persist any bench_position changes
       const benchData = playersToSave
         .filter(p => p.bench_position)
-        .map(p => ({ playerId: p.id, benchPosition: p.bench_position }))
+        .map(p => ({
+          playerId: p.id,
+          benchPosition: p.bench_position
+        }))
       await server.saveBench(benchData)
       toast('Lineup saved.', 'success')
       lineUpData.squadDataChanged = false

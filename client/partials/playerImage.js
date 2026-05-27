@@ -5,11 +5,12 @@ import { renderEmblem } from './emblem.js'
 const skinColors = [
   ['#FCD1C8', '#F9A8A1'],
   ['#DD8C79', '#BC6D69'],
-  ['#E2AD94', '#CB8A79']
+  ['#E2AD94', '#CB8A79'],
+  ['#9c5535', '#57270c']
 ]
 
 const hairColors = [
-  '#6D526F',
+  '#373444',
   '#BC6D68',
   '#DE8C79',
   '#E09976',

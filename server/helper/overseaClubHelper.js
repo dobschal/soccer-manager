@@ -109,7 +109,7 @@ async function _createIOCPlayerWithOffer (iocTeamId, position, tier, season) {
 
   const player = {
     hair_color: Math.floor(Math.random() * 7),
-    skin_color: Math.floor(Math.random() * 3),
+    skin_color: Math.floor(Math.random() * 4),
     team_id: iocTeamId,
     name: await generateRandomPlayerName(),
     carrier_start_season: carrierStartSeason,

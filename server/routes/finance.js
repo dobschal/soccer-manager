@@ -1,5 +1,6 @@
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { getEstimatedTvMoney } from '../helper/tvMoneyHelper.js'
 
 /**
  * @typedef {Object} FinanceLogEntry
@@ -66,5 +67,17 @@ export default {
       maxSeason: currentSeason,
       maxGameDay: currentGameDay
     }
+  },
+
+  /**
+   * Estimated TV money payout for the user's team at the end of the current
+   * season, based on the team's current standing in its league.
+   * @param {Request} req
+   * @returns {Promise<{base: number, level: number, rank: number | null, totalTeams: number, estimatedValue: number}>}
+   */
+  async getEstimatedTvMoney (req) {
+    const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+    const { season } = await getGameDayAndSeason()
+    return getEstimatedTvMoney(team, season)
   }
 }

@@ -3,6 +3,7 @@ import { toast } from './toast.js'
 import { showOverlay } from './overlay.js'
 import { setQueryParams } from '../lib/router.js'
 import { GameDetails } from './gameDetails.js'
+import { t } from '../i18n/index.js'
 
 /**
  * @param {number} resultId
@@ -13,6 +14,10 @@ export async function showGameModal (resultId) {
   const response = await server.getResult(resultId)
   /** @type {GameResultType} */
   const game = response.result
+  if (game.isForfeit) {
+    _showForfeitOverlay(game)
+    return
+  }
   if (game.details === '{}') {
     toast('Game not played yet.')
     setQueryParams({ game_id: null })
@@ -60,6 +65,34 @@ export async function showGameModal (resultId) {
     `${game.team1} - ${game.team2}`,
     '',
     `${gameDetails}`
+  )
+  overlay.onClose(() => {
+    setQueryParams({ game_id: null })
+  })
+}
+
+/**
+ * Render a lightweight overlay for forfeited games where no game details
+ * exist (game.details === '{}'). Explains why the game was cancelled and
+ * shows the awarded 3:0 result.
+ * @param {GameResultType} game
+ */
+function _showForfeitOverlay (game) {
+  const bothMissing = game.goalsTeam1 === 0 && game.goalsTeam2 === 0
+  const description = bothMissing
+    ? t('results.forfeitBothTeams')
+    : t('results.forfeitDescription')
+  const content = `
+    <div class="text-center my-4">
+      <div class="display-4 mb-3">${game.goalsTeam1} : ${game.goalsTeam2}</div>
+      <h5 class="mb-3">${t('results.forfeitTitle')}</h5>
+      <p class="text-muted mb-0">${description}</p>
+    </div>
+  `
+  const overlay = showOverlay(
+    `${game.team1} - ${game.team2}`,
+    '',
+    content
   )
   overlay.onClose(() => {
     setQueryParams({ game_id: null })

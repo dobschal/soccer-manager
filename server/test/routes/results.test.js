@@ -105,6 +105,85 @@ describe('results routes', () => {
     })
   })
 
+  describe('getMySchedule', () => {
+    it('combines league and cup games and adds placeholders for cup rounds without team games', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 2, gameDay: 3 })
+
+      const leagueGames = [
+        { id: 100, gameDay: 1, matchDay: 1, season: 2, goalsTeam1: 2, goalsTeam2: 1, isForfeit: 0, played: 1, team1Id: 7, team1: 'Mine', team1Color: '#fff', team1Emblem: 0, team1UserId: 1, team2Id: 8, team2: 'Other', team2Color: '#000', team2Emblem: 1, team2UserId: null },
+        { id: 101, gameDay: 5, matchDay: 2, season: 2, goalsTeam1: null, goalsTeam2: null, isForfeit: 0, played: 0, team1Id: 8, team1: 'Other', team1Color: '#000', team1Emblem: 1, team1UserId: null, team2Id: 7, team2: 'Mine', team2Color: '#fff', team2Emblem: 0, team2UserId: 1 }
+      ]
+      const cupGames = [
+        { id: 200, gameDay: 2, season: 2, cupRound: 4, goalsTeam1: 3, goalsTeam2: 0, played: 1, team1Id: 7, team1: 'Mine', team1Color: '#fff', team1Emblem: 0, team1UserId: 1, team2Id: 9, team2: 'Cup Opponent', team2Color: '#abc', team2Emblem: 2, team2UserId: null }
+      ]
+      const cupRounds = [
+        { cupRound: 4, gameDay: 2, allPlayed: 1 },
+        { cupRound: 2, gameDay: 6, allPlayed: 0 }
+      ]
+      const unplayedDays = [{ game_day: 5 }, { game_day: 6 }]
+      const totalRounds = [{ maxRound: 4 }]
+
+      query
+        .mockResolvedValueOnce(leagueGames)
+        .mockResolvedValueOnce(cupGames)
+        .mockResolvedValueOnce(cupRounds)
+        .mockResolvedValueOnce(unplayedDays)
+        .mockResolvedValueOnce(totalRounds)
+
+      const req = createMockRequest()
+      const result = await handlers.getMySchedule(undefined, req)
+
+      expect(result.season).toBe(2)
+      expect(result.currentGameDay).toBe(3)
+      expect(result.totalCupRounds).toBe(3)
+      expect(result.schedule).toHaveLength(4)
+
+      // Sorted by gameDay
+      expect(result.schedule.map(e => ({ type: e.type, gameDay: e.gameDay }))).toEqual([
+        { type: 'league', gameDay: 1 },
+        { type: 'cup', gameDay: 2 },
+        { type: 'league', gameDay: 5 },
+        { type: 'cup_round', gameDay: 6 }
+      ])
+
+      // Played league game has played=true, no gameDate
+      expect(result.schedule[0].played).toBe(true)
+      expect(result.schedule[0].gameDate).toBeNull()
+
+      // Upcoming league has a gameDate at index 0 of unplayedDays => nextTick + 0
+      expect(result.schedule[2].played).toBe(false)
+      expect(result.schedule[2].gameDate).toBe(result.nextGameDate)
+
+      // Cup-round placeholder is unplayed (team not in this round) and has gameDate from index 1
+      const placeholder = result.schedule[3]
+      expect(placeholder.type).toBe('cup_round')
+      expect(placeholder.cupRound).toBe(2)
+      expect(placeholder.played).toBe(false)
+      expect(placeholder.gameDate).not.toBeNull()
+    })
+
+    it('returns empty schedule when team has no games', async () => {
+      const team = testData.team({ id: 1 })
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 0 })
+
+      query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ maxRound: null }])
+
+      const req = createMockRequest()
+      const result = await handlers.getMySchedule(undefined, req)
+
+      expect(result.schedule).toEqual([])
+      expect(result.totalCupRounds).toBe(0)
+    })
+  })
+
   describe('getResult', () => {
     it('returns single game result by id', async () => {
       const gameResult = {
@@ -112,14 +191,31 @@ describe('results routes', () => {
         goalsTeam1: 2,
         goalsTeam2: 1,
         team1: 'Team A',
-        team2: 'Team B'
+        team2: 'Team B',
+        isForfeit: 0
       }
 
       query.mockResolvedValue([gameResult])
 
       const result = await handlers.getResult(1)
 
-      expect(result).toEqual({ result: gameResult })
+      expect(result.result.isForfeit).toBe(false)
+      expect(result.result.goalsTeam1).toBe(2)
+    })
+
+    it('returns isForfeit=true for forfeited games', async () => {
+      query.mockResolvedValue([{
+        id: 2,
+        goalsTeam1: 3,
+        goalsTeam2: 0,
+        team1: 'Team A',
+        team2: 'Empty FC',
+        isForfeit: 1
+      }])
+
+      const result = await handlers.getResult(2)
+
+      expect(result.result.isForfeit).toBe(true)
     })
 
     it('throws error when game not found', async () => {

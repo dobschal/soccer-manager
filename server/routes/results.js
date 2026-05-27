@@ -458,6 +458,7 @@ export default {
                g.goals_team_2 as goalsTeam2,
                g.game_day     as gameDay,
                g.season       as season,
+               g.is_forfeit   as isForfeit,
                t1.name        as team1,
                t2.name        as team2,
                g.team_1_id    as team1Id,
@@ -470,7 +471,9 @@ export default {
         WHERE g.id = ?
     `, [gameId])
     if (results.length === 0) throw new BadRequestError('Game not found')
-    return { result: results[0] }
+    const result = results[0]
+    result.isForfeit = Boolean(result.isForfeit)
+    return { result }
   },
 
   /**
@@ -673,6 +676,189 @@ export default {
           emblem: p.team_emblem
         }
       }))
+    }
+  },
+
+  /**
+   * Full season schedule (league + cup) for the user's team.
+   * Includes every cup round in the season as a placeholder row when the team
+   * does not (or no longer) has a game in that round, so the user can still see
+   * upcoming/past cup rounds where their participation is unknown.
+   *
+   * @param {Request} req
+   * @returns {Promise<{
+   *   season: number,
+   *   currentGameDay: number,
+   *   nextGameDate: string,
+   *   tickMs: number,
+   *   totalCupRounds: number,
+   *   schedule: Array<object>
+   * }>}
+   */
+  async getMySchedule (req) {
+    const team = await getTeam(req)
+    const current = await getGameDayAndSeason()
+    const actualSeason = current.season
+
+    const [leagueGames, cupGames, cupRoundsRows, unplayedDayRows, totalRoundsRow] = await Promise.all([
+      query(`
+        SELECT g.id           as id,
+               g.game_day     as gameDay,
+               g.match_day    as matchDay,
+               g.season       as season,
+               g.goals_team_1 as goalsTeam1,
+               g.goals_team_2 as goalsTeam2,
+               g.is_forfeit   as isForfeit,
+               g.played       as played,
+               t1.id          as team1Id,
+               t1.name        as team1,
+               t1.color       as team1Color,
+               t1.emblem      as team1Emblem,
+               t1.user_id     as team1UserId,
+               t2.id          as team2Id,
+               t2.name        as team2,
+               t2.color       as team2Color,
+               t2.emblem      as team2Emblem,
+               t2.user_id     as team2UserId
+        FROM game g
+                 JOIN team t1 ON t1.id = g.team_1_id
+                 JOIN team t2 ON t2.id = g.team_2_id
+        WHERE g.season = ?
+          AND (g.team_1_id = ? OR g.team_2_id = ?)
+          AND (g.game_type = 'league' OR g.game_type IS NULL)
+        ORDER BY g.game_day ASC
+      `, [actualSeason, team.id, team.id]),
+      query(`
+        SELECT g.id           as id,
+               g.game_day     as gameDay,
+               g.season       as season,
+               g.cup_round    as cupRound,
+               g.goals_team_1 as goalsTeam1,
+               g.goals_team_2 as goalsTeam2,
+               g.played       as played,
+               t1.id          as team1Id,
+               t1.name        as team1,
+               t1.color       as team1Color,
+               t1.emblem      as team1Emblem,
+               t1.user_id     as team1UserId,
+               t2.id          as team2Id,
+               t2.name        as team2,
+               t2.color       as team2Color,
+               t2.emblem      as team2Emblem,
+               t2.user_id     as team2UserId
+        FROM game g
+                 JOIN team t1 ON t1.id = g.team_1_id
+                 LEFT JOIN team t2 ON t2.id = g.team_2_id
+        WHERE g.season = ?
+          AND g.game_type = 'cup'
+          AND (g.team_1_id = ? OR g.team_2_id = ?)
+        ORDER BY g.game_day ASC
+      `, [actualSeason, team.id, team.id]),
+      query(`
+        SELECT cup_round    as cupRound,
+               MIN(game_day) as gameDay,
+               MIN(played) = 1 AND MAX(played) = 1 as allPlayed
+        FROM game
+        WHERE game_type = 'cup' AND season = ?
+        GROUP BY cup_round
+        ORDER BY MIN(game_day) ASC
+      `, [actualSeason]),
+      query(
+        'SELECT DISTINCT game_day FROM game WHERE played=0 AND season=? ORDER BY game_day ASC',
+        [actualSeason]
+      ),
+      query(
+        "SELECT MAX(cup_round) as maxRound FROM game WHERE game_type='cup' AND season=?",
+        [actualSeason]
+      )
+    ])
+
+    const totalCupRounds = totalRoundsRow[0]?.maxRound
+      ? Math.log2(totalRoundsRow[0].maxRound) + 1
+      : 0
+
+    const unplayedDays = unplayedDayRows.map(r => r.game_day)
+    const tickMs = 12 * 60 * 60 * 1000
+    const nextTick = new Date()
+    nextTick.setHours(12)
+    nextTick.setMinutes(0)
+    nextTick.setSeconds(0)
+    nextTick.setMilliseconds(0)
+    if (Date.now() > nextTick.getTime()) {
+      nextTick.setHours(23)
+      nextTick.setMinutes(59)
+      nextTick.setSeconds(59)
+    }
+
+    const computeGameDate = (gameDay) => {
+      const idx = unplayedDays.indexOf(gameDay)
+      if (idx < 0) return null
+      const d = new Date(nextTick.getTime() + idx * tickMs)
+      return d.toISOString()
+    }
+
+    const cupRoundsByGameDay = new Map()
+    for (const r of cupRoundsRows) {
+      cupRoundsByGameDay.set(r.gameDay, { cupRound: r.cupRound, allPlayed: r.allPlayed === 1 })
+    }
+
+    const cupGameDaysWithMyGame = new Set(cupGames.map(g => g.gameDay))
+
+    const entries = []
+
+    for (const g of leagueGames) {
+      entries.push({
+        type: 'league',
+        gameDay: g.gameDay,
+        matchDay: g.matchDay,
+        played: g.played === 1,
+        gameDate: g.played === 1 ? null : computeGameDate(g.gameDay),
+        game: {
+          ...g,
+          isForfeit: Boolean(g.isForfeit),
+          played: g.played === 1
+        }
+      })
+    }
+
+    for (const g of cupGames) {
+      const isBye = g.team2Id == null
+      entries.push({
+        type: 'cup',
+        gameDay: g.gameDay,
+        cupRound: g.cupRound,
+        played: g.played === 1,
+        isBye,
+        gameDate: g.played === 1 ? null : computeGameDate(g.gameDay),
+        game: {
+          ...g,
+          played: g.played === 1
+        }
+      })
+    }
+
+    // Add placeholder rows for cup rounds where the team has no game (eliminated
+    // or future round where the bracket hasn't reached us yet).
+    for (const [gameDay, info] of cupRoundsByGameDay.entries()) {
+      if (cupGameDaysWithMyGame.has(gameDay)) continue
+      entries.push({
+        type: 'cup_round',
+        gameDay,
+        cupRound: info.cupRound,
+        played: info.allPlayed,
+        gameDate: info.allPlayed ? null : computeGameDate(gameDay)
+      })
+    }
+
+    entries.sort((a, b) => a.gameDay - b.gameDay)
+
+    return {
+      season: actualSeason,
+      currentGameDay: current.gameDay,
+      nextGameDate: nextTick.toISOString(),
+      tickMs,
+      totalCupRounds,
+      schedule: entries
     }
   },
 
