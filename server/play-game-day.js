@@ -29,6 +29,9 @@ import { sendGameDayPushNotifications } from './helper/pushNotificationHelper.js
 import { getCaptainStrengthMultiplier } from './helper/captainHelper.js'
 import { autoFillLineup, trimExcessLineup } from './helper/lineupHelper.js'
 
+// Real football: a match cannot continue with fewer than 7 players on a side.
+export const MIN_PLAYERS_TO_PLAY = 7
+
 /**
  * @param {object} [options]
  * @param {boolean} [options.skipPushNotifications] - Skip sending push notifications (e.g. when triggered locally)
@@ -144,10 +147,11 @@ async function _playCupGame (game) {
   playerTeamA = await autoFillLineup(teamA, playerTeamA)
   playerTeamB = await autoFillLineup(teamB, playerTeamB)
 
-  // If either side can't field anyone (e.g. inherited bot team emptied via
-  // transfers before a user took over), forfeit instead of crashing later
-  // in playGameStep. Cup needs a winner, so award 3:0 to the present team.
-  if (playerTeamA.length === 0 || playerTeamB.length === 0) {
+  // If either side can't field at least MIN_PLAYERS_TO_PLAY (real-football
+  // abandonment rule, also catches inherited bot teams emptied via transfers
+  // before a user took over), forfeit instead of crashing later in
+  // playGameStep. Cup needs a winner, so award 3:0 to the present team.
+  if (playerTeamA.length < MIN_PLAYERS_TO_PLAY || playerTeamB.length < MIN_PLAYERS_TO_PLAY) {
     return _forfeitGame(game, teamA, teamB, playerTeamA.length, playerTeamB.length, 'cup')
   }
 
@@ -673,9 +677,9 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
 }
 
 /**
- * Persist a forfeit result: the side with no fielded players loses 0:3.
- * If both sides are empty the game is recorded as 0:0 — cup logic will
- * still pick a winner via the home-team fallback when needed.
+ * Persist a forfeit result: the side that cannot field MIN_PLAYERS_TO_PLAY
+ * loses 0:3. If both sides are under the minimum the game is recorded as 0:0
+ * — cup logic will still pick a winner via the home-team fallback when needed.
  * @param {GameType} game
  * @param {TeamType} teamA
  * @param {TeamType} teamB
@@ -685,8 +689,8 @@ async function _giveStadiumTicketEarnings (teamA, teamB, strengthTeamA, strength
  * @returns {Promise<void>}
  */
 async function _forfeitGame (game, teamA, teamB, fieldedA, fieldedB, gameType) {
-  const aMissing = fieldedA === 0
-  const bMissing = fieldedB === 0
+  const aMissing = fieldedA < MIN_PLAYERS_TO_PLAY
+  const bMissing = fieldedB < MIN_PLAYERS_TO_PLAY
   const goalsTeamA = !aMissing && bMissing ? 3 : 0
   const goalsTeamB = aMissing && !bMissing ? 3 : 0
   console.warn(`[FORFEIT] ${gameType} game ${game.id}: ${teamA?.name} (${fieldedA}) vs ${teamB?.name} (${fieldedB}) → ${goalsTeamA}:${goalsTeamB}`)
@@ -718,11 +722,12 @@ async function _playGame (game) {
   playerTeamA = await autoFillLineup(teamA, playerTeamA)
   playerTeamB = await autoFillLineup(teamB, playerTeamB)
 
-  // If either side can't field anyone (e.g. inherited bot team emptied via
-  // transfers before a user took over), forfeit 3:0 to the present team
-  // instead of crashing later in playGameStep. A stuck game blocks the cron
-  // because getGameDayAndSeason() keeps returning the same game_day.
-  if (playerTeamA.length === 0 || playerTeamB.length === 0) {
+  // If either side can't field at least MIN_PLAYERS_TO_PLAY (real-football
+  // abandonment rule, also catches inherited bot teams emptied via transfers
+  // before a user took over), forfeit 3:0 to the present team instead of
+  // crashing later in playGameStep. A stuck game would block the cron because
+  // getGameDayAndSeason() keeps returning the same game_day.
+  if (playerTeamA.length < MIN_PLAYERS_TO_PLAY || playerTeamB.length < MIN_PLAYERS_TO_PLAY) {
     return _forfeitGame(game, teamA, teamB, playerTeamA.length, playerTeamB.length, 'league')
   }
 

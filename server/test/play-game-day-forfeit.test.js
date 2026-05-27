@@ -181,4 +181,86 @@ describe('play-game-day forfeit when a team has no fielded players', () => {
     expect(goals1).toBe(3)
     expect(goals2).toBe(0)
   })
+
+  it('forfeits a league game 3:0 when the away team can only field 6 players', async () => {
+    const leagueGame = {
+      id: 7777,
+      season: 4,
+      game_day: 35,
+      team_1_id: 1,
+      team_2_id: 2,
+      played: 0,
+      game_type: 'league'
+    }
+    // 6 players assigned to lineup, no bench to fill the rest → final lineup = 6
+    setupMocks({
+      leagueGames: [leagueGame],
+      teamBPlayers: createPlayers(2, 6),
+      teamBBench: []
+    })
+
+    await calculateGames()
+
+    expect(lastGameUpdate).not.toBeNull()
+    expect(lastGameUpdate.sql).toMatch(/UPDATE game SET played=1, is_forfeit=1/)
+    const [goals1, goals2, , , id] = lastGameUpdate.params
+    expect(goals1).toBe(3)
+    expect(goals2).toBe(0)
+    expect(id).toBe(7777)
+  })
+
+  it('plays a league game normally when the away team has exactly 7 players', async () => {
+    const leagueGame = {
+      id: 7778,
+      season: 4,
+      game_day: 35,
+      team_1_id: 1,
+      team_2_id: 2,
+      played: 0,
+      game_type: 'league'
+    }
+    setupMocks({
+      leagueGames: [leagueGame],
+      teamBPlayers: createPlayers(2, 7),
+      teamBBench: []
+    })
+
+    await calculateGames()
+
+    // Game should NOT be forfeited — no is_forfeit=1 UPDATE captured
+    expect(lastGameUpdate?.sql ?? '').not.toMatch(/is_forfeit=1/)
+  })
+
+  it('records 0:0 when both teams are below the minimum', async () => {
+    const leagueGame = {
+      id: 7779,
+      season: 4,
+      game_day: 35,
+      team_1_id: 2,
+      team_2_id: 2, // both refer to the empty team to simplify lineup mocking
+      played: 0,
+      game_type: 'league'
+    }
+    // Override team 1 lookup for this test to also return the empty team
+    query.mockImplementation(async (sql, params) => {
+      if (sql.includes('game_type=\'league\'') && sql.includes('played=0')) return [leagueGame]
+      if (sql.includes('game_type=\'cup\'') && sql.includes('played=0')) return []
+      if (sql.includes('SELECT * FROM team WHERE id=?')) return [teamB]
+      if (sql.includes('SELECT * FROM player WHERE team_id=?') && sql.includes('in_game_position<>')) return []
+      if (sql.includes('SELECT * FROM player WHERE team_id=?') && sql.includes('is_suspended=0')) return []
+      if (sql.includes('UPDATE player')) return { affectedRows: 0 }
+      if (sql.startsWith('UPDATE game SET played=1, is_forfeit=1')) {
+        lastGameUpdate = { sql, params }
+        return { affectedRows: 1 }
+      }
+      return []
+    })
+
+    await calculateGames()
+
+    expect(lastGameUpdate).not.toBeNull()
+    const [goals1, goals2] = lastGameUpdate.params
+    expect(goals1).toBe(0)
+    expect(goals2).toBe(0)
+  })
 })
