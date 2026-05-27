@@ -179,6 +179,27 @@ describe('calculateStanding', () => {
     expect(team3.against).toBe(0)
   })
 
+  it('awards 3 points to the winning team on a 3:0 forfeit (opponent short of players)', () => {
+    const teams = [makeTeam(1), makeTeam(2)]
+    const games = [
+      // Team 1 wins by forfeit because team 2 could not field enough players
+      makeGame(1, 2, 3, 0, { is_forfeit: 1 })
+    ]
+
+    const standing = calculateStanding(games, teams)
+    const team1 = standing.find(s => s.team.id === 1)
+    const team2 = standing.find(s => s.team.id === 2)
+
+    expect(team1.points).toBe(3)
+    expect(team1.wins).toBe(1)
+    expect(team1.goals).toBe(3)
+    expect(team1.against).toBe(0)
+    expect(team2.points).toBe(0)
+    expect(team2.losses).toBe(1)
+    expect(team2.goals).toBe(0)
+    expect(team2.against).toBe(3)
+  })
+
   it('every team has 0 points but full games count when all games are forfeits', () => {
     const teams = Array.from({ length: 18 }, (_, i) => makeTeam(i + 1))
     const games = []
