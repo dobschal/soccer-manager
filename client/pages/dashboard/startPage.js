@@ -357,9 +357,9 @@ export class StartPage {
         if (actualIndex > 13) return 'table-warning'
         return ''
       },
-      rowAttrs: (item) => {
+      rowAttrs: () => {
         const id = generateId()
-        onClick('#' + id, () => goTo(`team?id=${item.team.id}`))
+        onClick('#' + id, () => goTo(`results?level=${this.team.level}&league=${this.team.league}`))
         return `id="${id}"`
       },
       renderRow: (item, rowIndex) => {

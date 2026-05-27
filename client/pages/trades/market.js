@@ -434,7 +434,7 @@ export class MarketPage extends UIElement {
             return
           }
           try {
-            await server.addTradeOffer(player, price, 'buy')
+            await server.addTradeOffer(player, price, 'buy', true)
             toast(t('trades.sentBuyOffer'))
             overlay.remove()
             await this.load()

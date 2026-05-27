@@ -16,6 +16,28 @@ import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { isValidEmail, sendVerificationEmail } from '../lib/email.js'
+
+const EMAIL_VERIFICATION_TTL_DAYS = 7
+
+/**
+ * Look up other users that already claim this email either as their verified
+ * address or as a pending change. Excludes the current user when provided.
+ * @param {string} email
+ * @param {number|null} excludeUserId
+ * @returns {Promise<boolean>}
+ */
+async function emailIsTakenByAnotherUser (email, excludeUserId = null) {
+  const params = [email, email]
+  let sql = 'SELECT id FROM user WHERE (email=? OR pending_email=?)'
+  if (excludeUserId) {
+    sql += ' AND id<>?'
+    params.push(excludeUserId)
+  }
+  sql += ' LIMIT 1'
+  const [row] = await query(sql, params)
+  return !!row
+}
 
 const AVATAR_UPLOAD_DIR = 'uploads/avatars'
 const AVATAR_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -27,16 +49,33 @@ export default {
   /**
    * @param {string} username
    * @param {string} password
+   * @param {string|null} email - optional, when provided is stored as pending and verification email is sent
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
    */
-  async createAccount (username, password, req) {
+  async createAccount (username, password, email, req) {
+    // Backwards-compat: pre-email clients send (username, password, req) so the
+    // third positional arg is the Request object.
+    if (req === undefined && email !== null && typeof email === 'object') {
+      req = email
+      email = null
+    }
     const locale = req.locale || 'en'
     if (typeof username !== 'string') {
       throw new BadRequestError(t('error.usernameString', {}, locale))
     }
     if (typeof password !== 'string' || password.length < 8) {
       throw new BadRequestError(t('error.passwordLength', {}, locale))
+    }
+    let normalizedEmail = null
+    if (email !== undefined && email !== null && email !== '') {
+      if (typeof email !== 'string' || !isValidEmail(email.trim())) {
+        throw new BadRequestError(t('error.emailInvalid', {}, locale))
+      }
+      normalizedEmail = email.trim().toLowerCase()
+      if (await emailIsTakenByAnotherUser(normalizedEmail)) {
+        throw new BadRequestError(t('error.emailTaken', {}, locale))
+      }
     }
     const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM user WHERE username=?', username)
     if (amount > 0) {
@@ -51,10 +90,19 @@ export default {
         throw new BadRequestError(t('error.noTeamAvailable', {}, locale))
       }
     }
+    let verificationToken = null
+    let verificationExpires = null
+    if (normalizedEmail) {
+      verificationToken = crypto.randomBytes(32).toString('hex')
+      verificationExpires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_DAYS * 24 * 60 * 60 * 1000)
+    }
     const { insertId: userId } = await query('INSERT INTO user SET ?', {
       username,
       password: await hashPassword(password),
-      language: locale
+      language: locale,
+      pending_email: normalizedEmail,
+      email_verification_token: verificationToken,
+      email_verification_expires_at: verificationExpires
     })
     // Clean up old bot data before assigning team to user
     await query('DELETE FROM log_message WHERE team_id=?', [team.id])
@@ -84,7 +132,89 @@ export default {
     for (const card of starterCards) {
       await query('INSERT INTO action_card SET ?', card)
     }
+    if (normalizedEmail && verificationToken) {
+      sendVerificationEmail({ toEmail: normalizedEmail, token: verificationToken, locale, username })
+        .catch(e => console.error('[Auth] sendVerificationEmail failed:', e))
+    }
     return { success: true }
+  },
+
+  /**
+   * Add or change the user's email. The new address is stored as a pending
+   * change until the user clicks the verification link sent by email.
+   * @param {string} email
+   * @param {Request} req
+   * @returns {Promise<{ pendingEmail: string }>}
+   */
+  async setEmail (email, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    if (typeof email !== 'string' || !isValidEmail(email.trim())) {
+      throw new BadRequestError(t('error.emailInvalid', {}, locale))
+    }
+    const normalizedEmail = email.trim().toLowerCase()
+    // No-op if it matches the user's already-verified address.
+    if (req.user.email && req.user.email.toLowerCase() === normalizedEmail) {
+      await query(
+        'UPDATE user SET pending_email=NULL, email_verification_token=NULL, email_verification_expires_at=NULL WHERE id=?',
+        [req.user.id]
+      )
+      clearUserCache(req.user.id)
+      return { pendingEmail: null }
+    }
+    if (await emailIsTakenByAnotherUser(normalizedEmail, req.user.id)) {
+      throw new BadRequestError(t('error.emailTaken', {}, locale))
+    }
+    const token = crypto.randomBytes(32).toString('hex')
+    const expires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_DAYS * 24 * 60 * 60 * 1000)
+    await query(
+      'UPDATE user SET pending_email=?, email_verification_token=?, email_verification_expires_at=? WHERE id=?',
+      [normalizedEmail, token, expires, req.user.id]
+    )
+    clearUserCache(req.user.id)
+    sendVerificationEmail({ toEmail: normalizedEmail, token, locale, username: req.user.username })
+      .catch(e => console.error('[Auth] sendVerificationEmail failed:', e))
+    return { pendingEmail: normalizedEmail }
+  },
+
+  /**
+   * Verify an email change using the token sent by email.
+   * Public — does not require auth so a user can click the link on any device.
+   * @param {string} token
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean, email: string }>}
+   */
+  async verifyEmail (token, req) {
+    const locale = req.locale || 'en'
+    if (typeof token !== 'string' || token.length < 16) {
+      throw new BadRequestError(t('error.verificationTokenInvalid', {}, locale))
+    }
+    const [user] = await query(
+      'SELECT id, username, pending_email, email_verification_expires_at FROM user WHERE email_verification_token=? LIMIT 1',
+      [token]
+    )
+    if (!user || !user.pending_email) {
+      throw new BadRequestError(t('error.verificationTokenInvalid', {}, locale))
+    }
+    if (user.email_verification_expires_at && new Date(user.email_verification_expires_at).getTime() < Date.now()) {
+      throw new BadRequestError(t('error.verificationTokenInvalid', {}, locale))
+    }
+    // Final uniqueness check in case someone else verified the same address in the meantime
+    const [conflict] = await query(
+      'SELECT id FROM user WHERE email=? AND id<>? LIMIT 1',
+      [user.pending_email, user.id]
+    )
+    if (conflict) {
+      throw new BadRequestError(t('error.emailTaken', {}, locale))
+    }
+    await query(
+      'UPDATE user SET email=?, pending_email=NULL, email_verification_token=NULL, email_verification_expires_at=NULL WHERE id=?',
+      [user.pending_email, user.id]
+    )
+    clearUserCache(user.id)
+    return { success: true, email: user.pending_email }
   },
 
   /**

@@ -74,9 +74,15 @@ export class PlayerListItem {
     ].filter(Boolean).join('')
     const nameCell = `<span class="player-name-cell">${nameParts}</span>`
 
+    // When a player is fielded out of their natural position, show the slot
+    // they're actually playing in (with a red-ringed badge) so the list
+    // matches the lineup. Otherwise show the natural position as before.
+    const displayPosition = player.in_game_position || player.position
+    const isOutOfPosition = Boolean(player.in_game_position) && player.in_game_position !== player.position
+
     return [
       nameCell,
-      renderPositionBadge(player.position),
+      renderPositionBadge(displayPosition, { outOfPosition: isOutOfPosition }),
       `${new ProgressBar(player.freshness)}`,
       renderLevelBadge(player.level),
       `${age}`,

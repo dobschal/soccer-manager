@@ -23,3 +23,16 @@
 .position-badge.LA,
 .position-badge.CA,
 .position-badge.RA { background-color: rgb(var(--bs-success-rgb)); }
+
+/* Flag a player whose natural position doesn't match the slot — they play with reduced
+ * effectiveness. Used in the player list and anywhere else the badge is shown standalone. */
+.position-badge.is-wrong-position {
+    box-shadow: 0 0 0 2px rgb(var(--bs-danger-rgb));
+}
+
+/* Inside the lineup the badge also has a drop shadow (set in squad.css). Combine both
+ * so the red ring sits on top of the shadow. Same specificity as squad.css's rule but
+ * defined later (this file loads after) so it wins for the wrong-position case. */
+.player .position-badge.is-wrong-position {
+    box-shadow: 0 0 0 2px rgb(var(--bs-danger-rgb)), 3px 3px 3px rgba(0, 0, 0, 0.5);
+}

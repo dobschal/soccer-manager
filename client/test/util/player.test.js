@@ -1,0 +1,59 @@
+import { describe, it, expect } from 'vitest'
+import { sortByPosition } from '../../util/player.js'
+
+const p = (overrides = {}) => ({
+  position: 'CM',
+  in_game_position: '',
+  bench_position: null,
+  sort_index: 0,
+  ...overrides
+})
+
+describe('sortByPosition', () => {
+  it('places lineup players before bench players, and bench before reserves', () => {
+    const players = [
+      p({ position: 'CM', bench_position: 'BENCH_MID' }),
+      p({ position: 'CM' }),
+      p({ position: 'CM', in_game_position: 'CM' })
+    ]
+    players.sort(sortByPosition)
+    expect(players[0].in_game_position).toBe('CM')
+    expect(players[1].bench_position).toBe('BENCH_MID')
+    expect(players[2].bench_position).toBeNull()
+  })
+
+  it('orders the lineup tier by where the player is actually playing', () => {
+    // GK, CD (defender), OM (midfielder), CA (attacker) — typical lineup order
+    // is GK > defenders > midfielders > attackers.
+    const players = [
+      p({ position: 'CA', in_game_position: 'CA' }),
+      p({ position: 'CD', in_game_position: 'CD' }),
+      p({ position: 'GK', in_game_position: 'GK' }),
+      p({ position: 'OM', in_game_position: 'OM' })
+    ]
+    players.sort(sortByPosition)
+    expect(players.map(x => x.in_game_position)).toEqual(['GK', 'CD', 'OM', 'CA'])
+  })
+
+  it('sorts a CD fielded as OM with the midfielders, not the defenders', () => {
+    const players = [
+      p({ position: 'CD', in_game_position: 'CD', id: 1 }),
+      p({ position: 'CD', in_game_position: 'OM', id: 2 }), // out-of-position
+      p({ position: 'OM', in_game_position: 'OM', id: 3 }),
+      p({ position: 'CA', in_game_position: 'CA', id: 4 })
+    ]
+    players.sort(sortByPosition)
+    // Expected ordering: defenders (CD) → midfielders (OM, OM) → attackers (CA)
+    expect(players.map(x => x.id)).toEqual([1, 2, 3, 4])
+  })
+
+  it('keeps natural-position sorting for players not in the lineup', () => {
+    const players = [
+      p({ position: 'CA' }),
+      p({ position: 'GK' }),
+      p({ position: 'CM' })
+    ]
+    players.sort(sortByPosition)
+    expect(players.map(x => x.position)).toEqual(['GK', 'CM', 'CA'])
+  })
+})

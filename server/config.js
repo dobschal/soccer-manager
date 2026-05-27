@@ -7,5 +7,12 @@ export const config = {
   APN_BUNDLE_ID: process.env.APN_BUNDLE_ID || 'io.soccermanager.app',
   APN_PRODUCTION: process.env.APN_PRODUCTION === 'true',
   FCM_SERVICE_ACCOUNT_PATH: process.env.FCM_SERVICE_ACCOUNT_PATH || '',
-  INACTIVE_USER_DAYS: 21
+  INACTIVE_USER_DAYS: 21,
+  SMTP_HOST: process.env.SMTP_HOST || '',
+  SMTP_PORT: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  EMAIL_FROM: process.env.EMAIL_FROM || 'no-reply@footballmanager.io',
+  PUBLIC_URL: process.env.PUBLIC_URL || 'https://footballmanager.io'
 }

@@ -7,6 +7,7 @@ import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
 import { showAccountOverlay } from '../partials/accountOverlay.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
+import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
 
 export class NativeAppLayout extends UIElement {
   async load () {
@@ -24,6 +25,7 @@ export class NativeAppLayout extends UIElement {
     this._season = currentGameday.season
     this._currentGameday = currentGameday
     this._newMessageCount = newMessageResponse.count || 0
+    maybeShowEmailPrompt(teamData.user)
   }
 
   get template () {

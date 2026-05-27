@@ -102,12 +102,11 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     expect(fire).toHaveBeenCalledWith('lineup-exchange', expect.any(Array))
   })
 
-  it('clears in_game_position when player is in a slot that does not match their natural position', async () => {
+  it('keeps a player in a slot that does not match their natural position', async () => {
+    // Out-of-position assignments are allowed (with an in-game level penalty).
+    // The lineup cleanup must NOT eject such players — only invalid slot
+    // references (slot not in formation, duplicates) get cleared.
     const team = testData.team({ formation: '433' })
-    // Both players have natural position LD; only one LD slot exists. The second
-    // somehow ended up at a CD slot (in_game_position 'CD'). Visually both render
-    // at LD coords because the CSS class is derived from the natural position,
-    // so the user sees "two LDs". The misplaced one must be cleared.
     const offPosition = testData.player({ id: 99, position: 'LD', in_game_position: 'CD' })
     const players = [
       testData.player({ id: 1, position: 'GK', in_game_position: 'GK' }),
@@ -126,12 +125,136 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     const lineup = new Lineup(players, team)
     await lineup._autoCleanupIfNeeded()
 
-    const cleaned = lineup.players.find(p => p.id === 99)
-    expect(cleaned.in_game_position).toBe('')
-    expect(server.saveLineup).toHaveBeenCalledTimes(1)
-    // The freed CD slot is filled by a fake placeholder so the user can fix it
+    const kept = lineup.players.find(p => p.id === 99)
+    expect(kept.in_game_position).toBe('CD')
+    // Nothing was cleaned, so no autosave was triggered
+    expect(server.saveLineup).not.toHaveBeenCalled()
+    // No fake placeholder for CD — both CD slots are filled
     const fakes = lineup.players.filter(p => p.fake)
-    expect(fakes.some(f => f.in_game_position === 'CD')).toBe(true)
+    expect(fakes.some(f => f.in_game_position === 'CD')).toBe(false)
+  })
+
+  it('a leftover fake at slot X does not steal slot X from a real player on re-render', async () => {
+    // This is the actual mechanism behind the bug the user hit: a Lineup adds
+    // a fake placeholder for an unfilled slot, fires 'lineup-exchange' with
+    // its own array (including that fake), and the next Lineup re-render
+    // gets the fake back in its input. If we left the fake in, depending on
+    // array order it could win the slot and silently push a real player out
+    // of the lineup. The constructor must strip fakes from input.
+    const team = testData.team({ formation: '442a' })
+    const inputWithLeftoverFake = [
+      // Leftover fake at OM appears BEFORE the real OM player in the array.
+      { fake: true, in_game_position: 'OM', position: 'OM', level: 0, name: '-' },
+      testData.player({ id: 1, position: 'GK', in_game_position: 'GK' }),
+      testData.player({ id: 2, position: 'LD', in_game_position: 'LD' }),
+      testData.player({ id: 3, position: 'CD', in_game_position: 'CD' }),
+      testData.player({ id: 4, position: 'CD', in_game_position: 'CD' }),
+      testData.player({ id: 5, position: 'RD', in_game_position: 'RD' }),
+      testData.player({ id: 6, position: 'LM', in_game_position: 'LM' }),
+      testData.player({ id: 7, position: 'DM', in_game_position: 'DM' }),
+      testData.player({ id: 8, position: 'RM', in_game_position: 'RM' }),
+      testData.player({ id: 9, position: 'LA', in_game_position: 'LA' }),
+      testData.player({ id: 10, position: 'RA', in_game_position: 'RA' }),
+      // Real player at OM — must keep his slot even though a leftover fake
+      // claimed OM earlier in the array.
+      testData.player({ id: 11, position: 'CD', in_game_position: 'OM', name: 'B' })
+    ]
+
+    const lineup = new Lineup(inputWithLeftoverFake, team)
+
+    const B = lineup.players.find(p => p.id === 11)
+    expect(B.in_game_position).toBe('OM')
+    // And the leftover fake should be gone — no fake should be claiming OM.
+    expect(lineup.players.some(p => p.fake && p.in_game_position === 'OM')).toBe(false)
+  })
+
+  it('re-rendering a Lineup after a swap does not drop the displaced real player', async () => {
+    // Reproduces a bug: A (CD natural) is fielded as OM. User swaps him into
+    // a CD slot held by B. After the swap the *parent* re-creates the Lineup
+    // with the array that the Lineup just emitted (which still contains the
+    // fake placeholders the old Lineup added for empty slots). The new
+    // Lineup's _fillEmptyPositions used to also consume slots for those
+    // re-fed fake placeholders, which could push real players (like the
+    // newly-displaced B) out of the lineup or out of the array entirely.
+    const team = testData.team({ formation: '442a' })
+    const initial = [
+      testData.player({ id: 1, position: 'GK', in_game_position: 'GK' }),
+      testData.player({ id: 2, position: 'LD', in_game_position: 'LD' }),
+      testData.player({ id: 3, position: 'CD', in_game_position: 'CD', name: 'B' }),
+      testData.player({ id: 4, position: 'CD', in_game_position: 'CD' }),
+      testData.player({ id: 5, position: 'RD', in_game_position: 'RD' }),
+      testData.player({ id: 6, position: 'LM', in_game_position: 'LM' }),
+      testData.player({ id: 7, position: 'DM', in_game_position: 'DM' }),
+      testData.player({ id: 8, position: 'RM', in_game_position: 'RM' }),
+      testData.player({ id: 9, position: 'LA', in_game_position: 'LA' }),
+      testData.player({ id: 10, position: 'RA', in_game_position: 'RA' }),
+      testData.player({ id: 11, position: 'CD', in_game_position: 'OM', name: 'A' }),
+      // A reserve player not in the lineup (no in_game_position). This will
+      // cause the original Lineup to add at least one fake when slots are
+      // tight, exercising the "fakes survive into the next Lineup" path.
+      testData.player({ id: 12, position: 'CA', in_game_position: '' })
+    ]
+
+    const firstLineup = new Lineup(initial, team)
+    const A = firstLineup.players.find(p => p.id === 11)
+    const B = firstLineup.players.find(p => p.id === 3)
+    await firstLineup._exchangePlayer(B, A)
+
+    // Simulate what aTeam.js does on 'lineup-exchange': set parent.data.players
+    // to the emitted array (which includes fakes) and then re-render Lineup.
+    const emitted = fire.mock.calls.find(([event]) => event === 'lineup-exchange')[1]
+    const secondLineup = new Lineup(emitted, team)
+    const reals = secondLineup.players.filter(p => !p.fake)
+
+    // Every original real player must still be present.
+    expect(reals.map(p => p.id).sort((x, y) => x - y))
+      .toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    // B (id 3) ended up at OM, A (id 11) ended up at CD, both still in the squad.
+    expect(secondLineup.players.find(p => p.id === 3).in_game_position).toBe('OM')
+    expect(secondLineup.players.find(p => p.id === 11).in_game_position).toBe('CD')
+  })
+
+  it('keeps all eleven players after swapping an out-of-position player into a slot already held by another', async () => {
+    // Reproduces a bug: A (natural CD) is fielded out of position as OM.
+    // The user then swaps A into a CD slot held by B (natural CD). Expected:
+    // A ends up at CD, B at OM, all 11 players still present in the lineup
+    // data that gets emitted via lineup-exchange.
+    // Use 442a — it has 2 CD slots and 1 OM slot, so the swap stays in-formation.
+    const team = testData.team({ formation: '442a' })
+    const players = [
+      testData.player({ id: 1, position: 'GK', in_game_position: 'GK' }),
+      testData.player({ id: 2, position: 'LD', in_game_position: 'LD' }),
+      // B — natural CD, in CD slot
+      testData.player({ id: 3, position: 'CD', in_game_position: 'CD', name: 'B' }),
+      testData.player({ id: 4, position: 'CD', in_game_position: 'CD' }),
+      testData.player({ id: 5, position: 'RD', in_game_position: 'RD' }),
+      testData.player({ id: 6, position: 'LM', in_game_position: 'LM' }),
+      testData.player({ id: 7, position: 'DM', in_game_position: 'DM' }),
+      testData.player({ id: 8, position: 'RM', in_game_position: 'RM' }),
+      testData.player({ id: 9, position: 'LA', in_game_position: 'LA' }),
+      testData.player({ id: 10, position: 'RA', in_game_position: 'RA' }),
+      // A — natural CD but fielded as OM (out of position)
+      testData.player({ id: 11, position: 'CD', in_game_position: 'OM', name: 'A' })
+    ]
+
+    const lineup = new Lineup(players, team)
+    // No cleanup expected at construction — A is happily out-of-position.
+    expect(lineup._needsAutoCleanup).toBe(false)
+
+    const playerB = lineup.players.find(p => p.id === 3)
+    const playerA = lineup.players.find(p => p.id === 11)
+    await lineup._exchangePlayer(playerB, playerA)
+
+    // After the swap: A at CD (his natural slot), B at OM (A's previous slot).
+    expect(lineup.players.find(p => p.id === 11).in_game_position).toBe('CD')
+    expect(lineup.players.find(p => p.id === 3).in_game_position).toBe('OM')
+
+    // Most importantly: the array emitted via lineup-exchange must contain
+    // every real player (no one disappeared) — that's what the PlayerList
+    // outside the lineup is rendered from.
+    const emitted = fire.mock.calls.find(([event]) => event === 'lineup-exchange')[1]
+    const emittedRealPlayerIds = emitted.filter(p => !p.fake).map(p => p.id).sort((x, y) => x - y)
+    expect(emittedRealPlayerIds).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
   })
 
   it('clears duplicates when two players occupy a slot that only exists once', async () => {

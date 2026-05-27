@@ -1,8 +1,11 @@
 import { generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
+import { fire } from '../lib/event.js'
 import { t } from '../i18n/index.js'
 import { preloadActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
+
+const ACTION_CARDS_CHANGED_EVENT = 'ACTION_CARDS_CHANGED'
 
 /**
  * @returns {Object.<string, string>}
@@ -28,11 +31,18 @@ function getActionCardTitles () {
  */
 export async function showCardClaimOverlay (pendingCards) {
   await preloadActionCardSvgs(pendingCards.map(c => c.action))
-  const state = { skipped: false }
+  const state = { skipped: false, claimPromises: [] }
   for (let i = 0; i < pendingCards.length; i++) {
     if (state.skipped) break
     const remainingCards = pendingCards.slice(i)
     await _showSingleCardClaim(pendingCards[i], remainingCards, state, { autoReveal: i > 0 })
+  }
+  if (state.claimPromises.length > 0) {
+    // Wait for the server to flip the cards from pending → received before
+    // notifying listeners. Otherwise a refetch right now would still miss the
+    // newly-claimed cards because `getActionCards` only returns received ones.
+    await Promise.allSettled(state.claimPromises)
+    fire(ACTION_CARDS_CHANGED_EVENT, null)
   }
 }
 
@@ -90,7 +100,9 @@ function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false
       if (title) title.classList.remove('card-claim-title--hidden')
       if (hint) hint.textContent = t('actionCards.claim.tapToContinue')
 
-      server.claimActionCard(card.id).catch(e => console.error('Failed to claim card:', e))
+      state.claimPromises.push(
+        server.claimActionCard(card.id).catch(e => console.error('Failed to claim card:', e))
+      )
     }
 
     const dismiss = () => {
@@ -116,9 +128,11 @@ function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false
       state.skipped = true
       document.removeEventListener('keydown', onKeyDown)
 
-      await Promise.all(remainingCards.map(c =>
+      const skipClaims = remainingCards.map(c =>
         server.claimActionCard(c.id).catch(e => console.error('Failed to claim card:', e))
-      ))
+      )
+      state.claimPromises.push(...skipClaims)
+      await Promise.all(skipClaims)
 
       const overlay = document.getElementById(overlayId)
       if (overlay) overlay.remove()

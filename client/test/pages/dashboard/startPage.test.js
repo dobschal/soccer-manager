@@ -8,8 +8,15 @@ vi.mock('../../../partials/gameSlider.js', () => ({
   GameSlider: class { toString () { return '' } }
 }))
 
+const tableInstances = []
 vi.mock('../../../partials/table.js', () => ({
-  Table: class { toString () { return '' } }
+  Table: class {
+    constructor (args) {
+      this.args = args
+      tableInstances.push(this)
+    }
+    toString () { return '' }
+  }
 }))
 
 vi.mock('../../../partials/emblem.js', () => ({
@@ -128,5 +135,44 @@ describe('StartPage._findCupInitialSlideIndex', () => {
 
     expect(page._findCupInitialSlideIndex()).toBe(2)
     expect(store.cupSliderSeen_13).toBe('1')
+  })
+})
+
+describe('StartPage._renderMiniStanding row click', () => {
+  it('navigates to the league results page (not the team page) when a row is clicked', async () => {
+    const { goTo } = await import('../../../lib/router.js')
+    const { onClick } = await import('../../../lib/htmlEventHandlers.js')
+    goTo.mockClear()
+    onClick.mockClear()
+    tableInstances.length = 0
+
+    const page = new StartPage({
+      sliderGames: [],
+      initialSlideIndex: 0,
+      team: { id: 1, level: 3, league: 5 },
+      cupGames: [],
+      friendlyGames: [],
+      canPlayFriendly: false,
+      standing: [
+        { team: { id: 1, name: 'Mine', user_id: 1 }, points: 30 },
+        { team: { id: 2, name: 'Other' }, points: 28 }
+      ],
+      teamPosition: 1,
+      urgencies: []
+    })
+
+    page._renderMiniStanding()
+
+    const table = tableInstances[tableInstances.length - 1]
+    expect(table).toBeDefined()
+
+    // Trigger rowAttrs for the (non-user) row — this should register a click
+    // handler that goes to the league results page, not the team page.
+    table.args.rowAttrs(page.standing[1], 1)
+    const [, handler] = onClick.mock.calls[onClick.mock.calls.length - 1]
+    handler()
+
+    expect(goTo).toHaveBeenCalledWith('results?level=3&league=5')
+    expect(goTo).not.toHaveBeenCalledWith(expect.stringContaining('team?id='))
   })
 })

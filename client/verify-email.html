@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm your email – FootballManager.IO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            color: #222;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 40px auto;
+            padding: 32px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 22px;
+            color: #111;
+            margin: 0 0 16px 0;
+        }
+
+        .status {
+            margin: 24px 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .status.success {
+            color: #156c2c;
+        }
+
+        .status.error {
+            color: #8a1f1f;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #17a2b8;
+            color: #ffffff;
+            padding: 10px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer-links {
+            margin-top: 32px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .footer-links a {
+            color: #666;
+            text-decoration: underline;
+            margin: 0 8px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #ddd;
+            border-top-color: #17a2b8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">
+        <img src="assets/logo.svg" alt="FootballManager.IO" height="48">
+        <div style="font-weight:bold;font-size:18px;margin-top:8px;">FootballManager.IO</div>
+    </div>
+    <h1 id="title"></h1>
+    <div id="status" class="status">
+        <span class="spinner"></span>
+    </div>
+    <a id="cta" class="btn" href="./" style="display:none;"></a>
+
+    <div class="footer-links">
+        <a id="link-privacy" href="imprint.html"></a>
+        <a id="link-support" href="support.html"></a>
+        <a id="link-app" href="./"></a>
+    </div>
+</div>
+
+<script>
+    (async function () {
+        const params = new URLSearchParams(window.location.search)
+        const token = params.get('token') || ''
+        const lang = (params.get('lang') || navigator.language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en'
+
+        const tr = {
+            en: {
+                confirming: 'Confirming your email…',
+                success: 'Email confirmed',
+                successBody: (e) => e ? 'Thanks! Your email ' + e + ' is now confirmed.' : 'Thanks! Your email is now confirmed.',
+                error: 'Could not confirm email',
+                errorBody: 'This verification link is invalid or has expired.',
+                network: 'Network error. Please try again later.',
+                missing: 'Missing token in the link.',
+                openApp: 'Open app',
+                privacy: 'Privacy',
+                support: 'Support'
+            },
+            de: {
+                confirming: 'E-Mail wird bestätigt…',
+                success: 'E-Mail bestätigt',
+                successBody: (e) => e ? 'Danke! Deine E-Mail ' + e + ' ist jetzt bestätigt.' : 'Danke! Deine E-Mail ist jetzt bestätigt.',
+                error: 'Bestätigung fehlgeschlagen',
+                errorBody: 'Dieser Bestätigungslink ist ungültig oder abgelaufen.',
+                network: 'Netzwerkfehler. Bitte versuche es später erneut.',
+                missing: 'Im Link fehlt der Token.',
+                openApp: 'App öffnen',
+                privacy: 'Datenschutz',
+                support: 'Support'
+            }
+        }[lang]
+
+        const statusEl = document.getElementById('status')
+        const titleEl = document.getElementById('title')
+        const ctaEl = document.getElementById('cta')
+
+        titleEl.textContent = tr.confirming
+        ctaEl.textContent = tr.openApp
+        document.getElementById('link-privacy').textContent = tr.privacy
+        document.getElementById('link-support').textContent = tr.support
+        document.getElementById('link-app').textContent = tr.openApp
+
+        const setSuccess = (email) => {
+            titleEl.textContent = tr.success
+            statusEl.className = 'status success'
+            statusEl.textContent = tr.successBody(email)
+            ctaEl.style.display = 'inline-block'
+        }
+
+        const setError = (msg) => {
+            titleEl.textContent = tr.error
+            statusEl.className = 'status error'
+            statusEl.textContent = msg || tr.errorBody
+            ctaEl.style.display = 'inline-block'
+        }
+
+        if (!token) {
+            setError(tr.missing)
+            return
+        }
+
+        try {
+            const res = await fetch('/api/verifyEmail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept-Language': lang },
+                body: JSON.stringify({ params: [token] })
+            })
+            const data = await res.json()
+            if (!res.ok) {
+                setError(data && data.message)
+                return
+            }
+            setSuccess(data && data.response && data.response.email)
+        } catch (e) {
+            setError(tr.network)
+        }
+    })()
+</script>
+
+</body>
+</html>

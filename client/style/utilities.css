@@ -76,7 +76,6 @@ a:visited,
 a:hover, a:active,
 .hover-text:not(td):hover {
     cursor: pointer;
-    transform: scale(1.05);
 }
 
 td.hover-text {

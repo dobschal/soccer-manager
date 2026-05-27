@@ -30,7 +30,16 @@ vi.mock('../../util/player.js', () => ({
   getSalary: vi.fn((level) => level * 100),
   calculateMarketValue: vi.fn((level, age) => level * 1000 + age),
   willRetireNextSeason: vi.fn(() => false),
-  sortByPosition: vi.fn(() => 0)
+  sortByPosition: vi.fn(() => 0),
+  // Minimal stub: GK > defender > midfielder > attacker. Sufficient for the
+  // column-sort test ("CD before OM").
+  positionRank: vi.fn((pos) => {
+    if (!pos) return 0
+    if (pos.endsWith('K')) return 30
+    if (pos.endsWith('D')) return 20
+    if (pos.endsWith('M')) return 10
+    return 0
+  })
 }))
 
 import { PlayerList } from '../../partials/playerList.js'
@@ -110,9 +119,11 @@ describe('PlayerList', () => {
       expect(ascGames[0].id).toBe(young.id)
     })
 
-    it('sorts alphabetically by name and position', async () => {
-      const a = testData.player({ id: 1, name: 'Anna', position: 'CD' })
-      const b = testData.player({ id: 2, name: 'Zebra', position: 'OM' })
+    it('sorts alphabetically by name and by natural football position order', async () => {
+      // Clear in_game_position so the column sort falls back to the natural
+      // position (testData.player defaults in_game_position to 'CM').
+      const a = testData.player({ id: 1, name: 'Anna', position: 'CD', in_game_position: '' })
+      const b = testData.player({ id: 2, name: 'Zebra', position: 'OM', in_game_position: '' })
       const table = await buildTable([a, b])
 
       const name = table.config.cols.find(c => c.name === 'Name')
@@ -122,8 +133,24 @@ describe('PlayerList', () => {
       expect(sortedDesc[0].id).toBe(b.id)
 
       const pos = table.config.cols.find(c => c.name === 'Pos')
+      // Ascending position = natural football order, so defenders before midfielders.
       const posAsc = [b, a].slice().sort((x, y) => pos.sortFn(x, y, true))
       expect(posAsc[0].id).toBe(a.id) // CD before OM
+      const posDesc = [a, b].slice().sort((x, y) => pos.sortFn(x, y, false))
+      expect(posDesc[0].id).toBe(b.id) // OM before CD when descending
+    })
+
+    it('sorts the position column by in_game_position when the player is fielded out of position', async () => {
+      // Player a is a CD fielded as OM — should sort with midfielders, not defenders.
+      const a = testData.player({ id: 1, name: 'Anna', position: 'CD', in_game_position: 'OM' })
+      const b = testData.player({ id: 2, name: 'Zebra', position: 'CD', in_game_position: 'CD' })
+      const table = await buildTable([a, b])
+
+      const pos = table.config.cols.find(c => c.name === 'Pos')
+      const posAsc = [a, b].slice().sort((x, y) => pos.sortFn(x, y, true))
+      // Ascending = football order: defender (b: CD) before midfielder (a: CD-as-OM)
+      expect(posAsc[0].id).toBe(b.id)
+      expect(posAsc[1].id).toBe(a.id)
     })
   })
 

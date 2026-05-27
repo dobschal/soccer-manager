@@ -22,9 +22,14 @@ export class ATeamPage extends UIElement {
     this.parent = parent
     this._playerList = null
     this._exchangeEventId = on('lineup-exchange', (updatedPlayers) => {
-      this.parent.data.players = updatedPlayers
+      // Strip fake placeholders before storing — only the Lineup component
+      // cares about them, and keeping them in parent.data.players would let
+      // them sneak back into a freshly-rendered Lineup and fight real players
+      // for slots on the next re-render.
+      const realPlayers = updatedPlayers.filter(p => !p.fake)
+      this.parent.data.players = realPlayers
       if (this._playerList) {
-        this._playerList.players = updatedPlayers.filter(p => !p.fake).sort(sortByPosition)
+        this._playerList.players = realPlayers.slice().sort(sortByPosition)
         this._playerList.update()
       }
       this.update()

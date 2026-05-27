@@ -1,5 +1,5 @@
 import { server } from '../lib/gateway.js'
-import { calculateMarketValue, calculatePlayerAge, getSalary, sortByPosition } from '../util/player.js'
+import { calculateMarketValue, calculatePlayerAge, getSalary, positionRank, sortByPosition } from '../util/player.js'
 import { UIElement } from '../lib/UIElement.js'
 import { PlayerListItem } from './playerListItem.js'
 import { Table } from './table.js'
@@ -16,8 +16,12 @@ export class PlayerList extends UIElement {
    * @param {boolean} extended
    * @param {() => void} onToggleExtended
    * @param {number|null} captainId
+   * @param {{ useUrlSort?: boolean }} [options] - When `useUrlSort: false`, the
+   *   table's header-click sort stays local to this instance instead of being
+   *   synced through the URL query string. Use for secondary lists (e.g. the
+   *   select-player overlay) that must not inherit the main list's sort.
    */
-  constructor (players, showTitle = true, onClickHandler, enableDragDrop = false, extended = false, onToggleExtended = null, captainId = null) {
+  constructor (players, showTitle = true, onClickHandler, enableDragDrop = false, extended = false, onToggleExtended = null, captainId = null, options = {}) {
     super()
     this.players = players
     this.showTitle = showTitle
@@ -26,6 +30,7 @@ export class PlayerList extends UIElement {
     this.extended = extended
     this.onToggleExtended = onToggleExtended
     this.captainId = captainId
+    this.useUrlSort = options.useUrlSort !== false
   }
 
   /**
@@ -48,10 +53,13 @@ export class PlayerList extends UIElement {
       ? `<button class="btn btn-sm btn-outline-info player-list-toggle-btn float-end d-none d-md-inline-block" title="${this.extended ? 'Collapse' : 'Expand'}"><i class="fa fa-${this.extended ? 'compress' : 'expand'}"></i></button>`
       : ''
 
+    // In local-sort mode the URL-based "is sort active" check would react to the
+    // outer list's sort, so we always hide the reset toolbar.
+    const showResetToolbar = this.useUrlSort && PlayerList._isSortActive()
     return `
       <div>
         <h3 class="${this.showTitle ? '' : 'hidden'}" style="clear: both;">Players (${this.players.length}) ${toggleBtn}</h3>
-        <div class="player-list-toolbar mb-2 ${PlayerList._isSortActive() ? '' : 'hidden'}">
+        <div class="player-list-toolbar mb-2 ${showResetToolbar ? '' : 'hidden'}">
           <button class="btn btn-sm btn-outline-secondary player-list-reset-sort" title="${t('common.resetSort')}">
             <i class="fa fa-times"></i> ${t('common.resetSort')}
           </button>
@@ -123,7 +131,13 @@ export class PlayerList extends UIElement {
         },
         {
           name: 'Pos',
-          sortFn: (a, b, asc) => asc ? a.position.localeCompare(b.position) : b.position.localeCompare(a.position)
+          // Use natural football order (GK → defenders → midfielders → attackers),
+          // and honor in_game_position so out-of-position players sort with their slot.
+          sortFn: (a, b, asc) => {
+            const rA = positionRank(a.in_game_position || a.position)
+            const rB = positionRank(b.in_game_position || b.position)
+            return asc ? rB - rA : rA - rB
+          }
         },
         {
           name: 'Fit',
@@ -194,7 +208,8 @@ export class PlayerList extends UIElement {
         if (typeof this.onClickHandler === 'function') {
           this.onClickHandler(player)
         }
-      }
+      },
+      useUrlSort: this.useUrlSort
     })
   }
 

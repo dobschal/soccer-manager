@@ -8,6 +8,20 @@ export default {
   'error.wrongCredentials': 'Wrong credentials',
   'error.notAuthorized': 'Not authorized',
   'error.invalidLanguage': 'Invalid language',
+  'error.emailInvalid': 'Please enter a valid email address',
+  'error.emailTaken': 'This email address is already in use',
+  'error.emailRequired': 'Email is required',
+  'error.verificationTokenInvalid': 'This verification link is invalid or has expired',
+
+  // Verification email content
+  'email.verify.subject': 'Confirm your email address',
+  'email.verify.greeting': 'Hi {username},',
+  'email.verify.body': 'Welcome to FootballManager.IO! Please confirm your email address so we can use it for password recovery and important account notifications. Your email will not be shared with third parties.',
+  'email.verify.button': 'Confirm email',
+  'email.verify.fallbackLink': 'If the button does not work, copy and paste this URL into your browser:',
+  'email.footer.privacy': 'Privacy',
+  'email.footer.support': 'Support',
+  'email.footer.app': 'Open app',
 
   // Trade errors
   'error.playerNotFound': 'Player not found',

@@ -143,6 +143,29 @@ describe('PlayerListItem', () => {
     })
   })
 
+  describe('position cell', () => {
+    it('shows the natural position when the player is not in the lineup', () => {
+      const player = testData.player({ position: 'CD', in_game_position: '' })
+      const cells = new PlayerListItem(player, 1).cells
+      expect(cells[1]).toContain('>CD<')
+      expect(cells[1]).not.toContain('is-wrong-position')
+    })
+
+    it('shows the natural position when the player is in their matching slot', () => {
+      const player = testData.player({ position: 'CD', in_game_position: 'CD' })
+      const cells = new PlayerListItem(player, 1).cells
+      expect(cells[1]).toContain('>CD<')
+      expect(cells[1]).not.toContain('is-wrong-position')
+    })
+
+    it('shows the in_game_position with a wrong-position ring when fielded out of position', () => {
+      const player = testData.player({ position: 'CD', in_game_position: 'OM' })
+      const cells = new PlayerListItem(player, 1).cells
+      expect(cells[1]).toContain('>OM<')
+      expect(cells[1]).toContain('is-wrong-position')
+    })
+  })
+
   describe('cards display', () => {
     it('shows yellow cards count', () => {
       const player = testData.player({ yellow_cards: 3, red_cards: 0 })

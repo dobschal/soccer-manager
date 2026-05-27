@@ -28,6 +28,15 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 1, season: 1 })
 }))
 
+vi.mock('../../lib/email.js', () => ({
+  isValidEmail: (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s),
+  sendVerificationEmail: vi.fn().mockResolvedValue({ sent: true, url: 'https://example.com/verify' })
+}))
+
+vi.mock('../../lib/userCache.js', () => ({
+  clearUserCache: vi.fn()
+}))
+
 // Import after mocking
 import { query } from '../../lib/database.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
@@ -35,6 +44,7 @@ import { getSponsor } from '../../helper/sponsorHelper.js'
 import { prepareSeason } from '../../prepare-season.js'
 import { hashPassword } from '../../lib/passwordHash.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { sendVerificationEmail } from '../../lib/email.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
@@ -200,6 +210,140 @@ describe('auth routes', () => {
         .rejects.toMatchObject({ message: 'No team available.' })
 
       expect(prepareSeason).toHaveBeenCalledTimes(1)
+    })
+
+    it('accepts a valid email and sends a verification mail', async () => {
+      const team = testData.team({ user_id: null })
+      query
+        .mockResolvedValueOnce([]) // emailIsTakenByAnotherUser check
+        .mockResolvedValueOnce([{ amount: 0 }]) // username check
+        .mockResolvedValueOnce([team]) // get available team
+        .mockResolvedValueOnce({ insertId: 1 }) // insert user
+
+      addLogMessage.mockResolvedValue()
+      getSponsor.mockResolvedValue({ sponsor: null })
+      sendVerificationEmail.mockResolvedValue({ sent: true, url: 'x' })
+
+      const req = { locale: 'en' }
+      const result = await handlers.createAccount('newuser', 'password123', 'New@Example.com', req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith(
+        'INSERT INTO user SET ?',
+        expect.objectContaining({
+          username: 'newuser',
+          pending_email: 'new@example.com',
+          email_verification_token: expect.any(String)
+        })
+      )
+      expect(sendVerificationEmail).toHaveBeenCalledWith(expect.objectContaining({
+        toEmail: 'new@example.com',
+        token: expect.any(String),
+        locale: 'en',
+        username: 'newuser'
+      }))
+    })
+
+    it('rejects an invalid email', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.createAccount('user', 'password123', 'not-an-email', req))
+        .rejects.toMatchObject({ message: 'Please enter a valid email address' })
+    })
+
+    it('rejects an email already taken by another user', async () => {
+      query.mockResolvedValueOnce([{ id: 99 }]) // emailIsTakenByAnotherUser returns existing
+      const req = { locale: 'en' }
+      await expect(handlers.createAccount('user', 'password123', 'taken@example.com', req))
+        .rejects.toMatchObject({ message: 'This email address is already in use' })
+    })
+  })
+
+  describe('setEmail', () => {
+    it('stores a new email as pending and sends a verification mail', async () => {
+      query
+        .mockResolvedValueOnce([]) // emailIsTakenByAnotherUser check
+        .mockResolvedValueOnce({}) // UPDATE user
+      sendVerificationEmail.mockResolvedValue({ sent: true, url: 'x' })
+
+      const req = { locale: 'en', user: { id: 42, username: 'me', email: null } }
+      const result = await handlers.setEmail('Me@Example.com', req)
+
+      expect(result).toEqual({ pendingEmail: 'me@example.com' })
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET pending_email=?, email_verification_token=?, email_verification_expires_at=? WHERE id=?',
+        expect.arrayContaining(['me@example.com', expect.any(String), expect.any(Date), 42])
+      )
+      expect(sendVerificationEmail).toHaveBeenCalledWith(expect.objectContaining({
+        toEmail: 'me@example.com',
+        username: 'me'
+      }))
+    })
+
+    it('rejects an invalid email', async () => {
+      const req = { locale: 'en', user: { id: 1, username: 'me' } }
+      await expect(handlers.setEmail('bad', req))
+        .rejects.toMatchObject({ message: 'Please enter a valid email address' })
+    })
+
+    it('rejects an email already used by another user', async () => {
+      query.mockResolvedValueOnce([{ id: 99 }])
+      const req = { locale: 'en', user: { id: 1, username: 'me' } }
+      await expect(handlers.setEmail('taken@example.com', req))
+        .rejects.toMatchObject({ message: 'This email address is already in use' })
+    })
+
+    it('clears pending change when setting to already-verified email', async () => {
+      query.mockResolvedValueOnce({}) // UPDATE user
+      const req = { locale: 'en', user: { id: 1, username: 'me', email: 'me@example.com' } }
+      const result = await handlers.setEmail('me@example.com', req)
+      expect(result).toEqual({ pendingEmail: null })
+      expect(sendVerificationEmail).not.toHaveBeenCalled()
+    })
+
+    it('rejects when not authenticated', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.setEmail('a@b.com', req))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+  })
+
+  describe('verifyEmail', () => {
+    it('promotes the pending email to verified on success', async () => {
+      const expires = new Date(Date.now() + 60 * 1000)
+      query
+        .mockResolvedValueOnce([{ id: 5, username: 'me', pending_email: 'new@example.com', email_verification_expires_at: expires }])
+        .mockResolvedValueOnce([]) // conflict check
+        .mockResolvedValueOnce({}) // UPDATE user
+
+      const req = { locale: 'en' }
+      const result = await handlers.verifyEmail('a'.repeat(64), req)
+
+      expect(result).toEqual({ success: true, email: 'new@example.com' })
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET email=?, pending_email=NULL, email_verification_token=NULL, email_verification_expires_at=NULL WHERE id=?',
+        ['new@example.com', 5]
+      )
+    })
+
+    it('rejects an unknown token', async () => {
+      query.mockResolvedValueOnce([])
+      const req = { locale: 'en' }
+      await expect(handlers.verifyEmail('a'.repeat(64), req))
+        .rejects.toMatchObject({ message: 'This verification link is invalid or has expired' })
+    })
+
+    it('rejects an expired token', async () => {
+      const expires = new Date(Date.now() - 60 * 1000)
+      query.mockResolvedValueOnce([{ id: 5, username: 'me', pending_email: 'new@example.com', email_verification_expires_at: expires }])
+      const req = { locale: 'en' }
+      await expect(handlers.verifyEmail('a'.repeat(64), req))
+        .rejects.toMatchObject({ message: 'This verification link is invalid or has expired' })
+    })
+
+    it('rejects a malformed token', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.verifyEmail('short', req))
+        .rejects.toMatchObject({ message: 'This verification link is invalid or has expired' })
     })
   })
 })

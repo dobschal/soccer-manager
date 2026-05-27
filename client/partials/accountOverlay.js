@@ -6,9 +6,12 @@ import { getLocale, setLocale, t } from '../i18n/index.js'
 import { showConfirmDialog, showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
 import { fetchText } from '../lib/fetchText.js'
+import { isValidEmail } from '../lib/emailRegex.js'
+import { renderPageNumbers } from '../partials/pagination.js'
 
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024
+const FRIENDS_PAGE_SIZE = 5
 
 /**
  * @param {string} avatar
@@ -93,25 +96,97 @@ export async function showAccountOverlay () {
     return
   }
   let currentAvatar = teamData.user?.avatar || ''
+  let currentEmail = teamData.user?.email || ''
+  let currentPendingEmail = teamData.user?.pending_email || ''
   const username = teamData.user?.username || ''
   const isAdmin = teamData.isAdmin || false
   const version = versionData.version
   const friends = friendsData.friends || []
   const currentLocale = getLocale()
+  let friendsPageIndex = 0
+
+  const renderEmail = () => {
+    const verifiedRow = currentEmail
+      ? `<div class="d-flex align-items-center gap-2 mb-2">
+           <span class="text-truncate">${currentEmail}</span>
+           <span class="badge bg-success">${t('account.emailVerified')}</span>
+         </div>`
+      : `<div class="text-muted small mb-2">${t('account.emailNone')}</div>`
+    const pendingRow = currentPendingEmail
+      ? `<div class="alert alert-warning py-2 px-3 mb-2 small">
+           <div class="d-flex align-items-center gap-2 mb-1">
+             <span class="text-truncate">${currentPendingEmail}</span>
+             <span class="badge bg-warning text-dark">${t('account.emailPending')}</span>
+           </div>
+           <div class="text-muted">${t('account.emailPendingHint', { email: currentPendingEmail })}</div>
+         </div>`
+      : ''
+    return `
+      <label class="form-label mt-2">${t('account.email')}</label>
+      ${verifiedRow}
+      ${pendingRow}
+      <div class="input-group">
+        <input type="email" id="account-email-input" class="form-control border-info" autocomplete="email" placeholder="${t('account.emailPlaceholder')}">
+        <button type="button" id="account-email-save" class="btn btn-info">${t('account.emailSave')}</button>
+      </div>
+      <small class="form-text text-muted">${t('account.emailHint')}</small>
+    `
+  }
+
+  const renderFriends = () => {
+    if (friends.length === 0) {
+      return `<div class="text-muted small">${t('account.noFriends')}</div>`
+    }
+    const totalPages = Math.ceil(friends.length / FRIENDS_PAGE_SIZE)
+    const start = friendsPageIndex * FRIENDS_PAGE_SIZE
+    const pageFriends = friends.slice(start, start + FRIENDS_PAGE_SIZE)
+    const list = `
+      <div class="account-friends-list">
+        ${pageFriends.map(f => `
+          <a href="${f.teamId ? '#team?id=' + f.teamId : '#dashboard'}" data-account-friend-link class="account-friend-row d-flex align-items-center gap-2">
+            <img class="account-friend-avatar${f.avatar ? '' : ' account-friend-avatar--default'}"
+                 src="${avatarSrc(f.avatar)}" alt="${f.username}">
+            <div class="flex-grow-1 text-truncate">
+              <div class="text-truncate">${f.username}</div>
+              ${f.teamName ? `<div class="text-muted small text-truncate">${f.teamName}</div>` : ''}
+            </div>
+          </a>
+        `).join('')}
+      </div>
+    `
+    if (totalPages <= 1) return list
+    const hasPrev = friendsPageIndex > 0
+    const hasNext = friendsPageIndex < totalPages - 1
+    const pageNumbers = renderPageNumbers(totalPages, friendsPageIndex)
+    return `
+      ${list}
+      <nav class="mt-2 account-friends-pagination">
+        <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
+          <li class="page-item ${hasPrev ? '' : 'disabled'}">
+            <span class="page-link u-cursor-pointer" data-account-friends-prev>${t('common.prev')}</span>
+          </li>
+          ${pageNumbers}
+          <li class="page-item ${hasNext ? '' : 'disabled'}">
+            <span class="page-link u-cursor-pointer" data-account-friends-next>${t('common.next')}</span>
+          </li>
+        </ul>
+      </nav>
+    `
+  }
 
   const renderAvatar = () => `
-    <div class="coach-avatar mb-3">
+    <div class="coach-avatar mb-4">
       <img class="coach-avatar__img${currentAvatar ? '' : ' coach-avatar__img--default'}"
            src="${avatarSrc(currentAvatar)}" alt="${username}">
     </div>
     <input type="file" class="d-none" id="account-avatar-input" accept="image/jpeg,image/png,image/webp">
     <div class="d-flex gap-2 flex-wrap justify-content-center">
-      <button type="button" class="btn btn-sm btn-outline-primary" id="account-avatar-upload">
+      <button type="button" class="btn btn-sm btn-outline-info" id="account-avatar-upload">
         <i class="fa fa-upload" aria-hidden="true"></i>
         ${currentAvatar ? t('myTeam.changeAvatar') : t('myTeam.uploadAvatar')}
       </button>
       ${currentAvatar
-    ? `<button type="button" class="btn btn-sm btn-outline-secondary" id="account-avatar-remove">
+    ? `<button type="button" class="btn btn-sm btn-outline-info" id="account-avatar-remove">
             <i class="fa fa-trash" aria-hidden="true"></i> ${t('myTeam.removeAvatar')}
           </button>`
     : ''}
@@ -120,51 +195,44 @@ export async function showAccountOverlay () {
 
   const content = `
     <div class="settings-overlay-content">
-      <div id="account-avatar-section" class="text-center mb-3">
+      <div id="account-avatar-section" class="text-center mb-4">
         ${renderAvatar()}
       </div>
-      <hr>
-      <div class="mb-3">
-        <label class="form-label mt-2">${t('account.friends')}</label>
-        ${friends.length === 0
-    ? `<div class="text-muted small">${t('account.noFriends')}</div>`
-    : `<div class="list-group account-friends-list">
-            ${friends.map(f => `
-              <a href="${f.teamId ? '#team?id=' + f.teamId : '#dashboard'}" data-account-friend-link class="list-group-item list-group-item-action d-flex align-items-center gap-2">
-                <img class="account-friend-avatar${f.avatar ? '' : ' account-friend-avatar--default'}"
-                     src="${avatarSrc(f.avatar)}" alt="${f.username}">
-                <div class="flex-grow-1 text-truncate">
-                  <div class="text-truncate">${f.username}</div>
-                  ${f.teamName ? `<div class="text-muted small text-truncate">${f.teamName}</div>` : ''}
-                </div>
-              </a>
-            `).join('')}
-          </div>`
-}
+      
+      <div id="account-email-section" class="mb-4">
+        ${renderEmail()}
       </div>
-      <hr>
-      <div class="mb-3">
+      
+      <div id="account-friends-section" class="mb-4">
+        <label class="form-label mt-2">${t('account.friends')}</label>
+        ${renderFriends()}
+      </div>
+      
+      <div class="mb-4">
         <label class="form-label mt-2">${t('nav.language')}</label>
         <div class="btn-group w-100" role="group">
           <button id="account-lang-en" class="btn ${currentLocale === 'en' ? 'btn-info' : 'btn-outline-info'}">English</button>
           <button id="account-lang-de" class="btn ${currentLocale === 'de' ? 'btn-info' : 'btn-outline-info'}">Deutsch</button>
         </div>
       </div>
-      <hr>
-      <div class="d-grid gap-2">
-        ${isAdmin
-    ? `<a href="#admin" id="account-admin" class="btn btn-secondary text-white">
-            <i class="fa fa-shield" aria-hidden="true"></i> ${t('admin.title')}
-          </a>`
+      
+      <div class="mb-4">
+        <label class="form-label mt-2">${t('account.dangerZone')}</label>
+        <div class="d-grid gap-2">
+          ${isAdmin
+    ? `<a href="#admin" id="account-admin" class="btn btn-info text-white">
+              <i class="fa fa-shield" aria-hidden="true"></i> ${t('admin.title')}
+            </a>`
     : ''}
-        <button id="account-logout" class="btn btn-secondary">
-          <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
-        </button>
-        <button id="account-delete" class="btn btn-danger">
-          <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
-        </button>
+          <button id="account-logout" class="btn btn-info">
+            <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
+          </button>
+          <button id="account-delete" class="btn btn-danger">
+            <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
+          </button>
+        </div>
       </div>
-      <hr>
+      
       <div class="text-muted small text-center">
         FootballManager.IO v${version}
       </div>
@@ -236,14 +304,84 @@ export async function showAccountOverlay () {
     }
   }
 
-  setTimeout(() => {
-    bindAvatarHandlers()
+  const bindEmailHandlers = () => {
+    const saveBtn = el('#account-email-save')
+    const input = el('#account-email-input')
+    if (!saveBtn || !input) return
+    const submit = async () => {
+      const email = input.value.trim()
+      if (!isValidEmail(email)) {
+        toast(t('landing.emailInvalid'), 'error')
+        return
+      }
+      saveBtn.disabled = true
+      try {
+        const { pendingEmail } = await server.setEmail(email)
+        currentPendingEmail = pendingEmail || ''
+        toast(t('account.emailUpdated'), 'success')
+        rerenderEmailSection()
+      } catch (err) {
+        showServerError(err)
+        saveBtn.disabled = false
+      }
+    }
+    saveBtn.addEventListener('click', submit)
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        submit()
+      }
+    })
+  }
 
+  const rerenderEmailSection = () => {
+    const section = el('#account-email-section')
+    if (section) {
+      section.innerHTML = renderEmail()
+      bindEmailHandlers()
+    }
+  }
+
+  const bindFriendsHandlers = () => {
     document.querySelectorAll('[data-account-friend-link]').forEach(link => {
       link.addEventListener('click', () => {
         overlay.remove()
       })
     })
+
+    const totalPages = Math.ceil(friends.length / FRIENDS_PAGE_SIZE)
+    const goToPage = (next) => {
+      if (next < 0 || next >= totalPages || next === friendsPageIndex) return
+      friendsPageIndex = next
+      rerenderFriendsSection()
+    }
+
+    document.querySelectorAll('[data-account-friends-prev]').forEach(btn => {
+      btn.addEventListener('click', () => goToPage(friendsPageIndex - 1))
+    })
+    document.querySelectorAll('[data-account-friends-next]').forEach(btn => {
+      btn.addEventListener('click', () => goToPage(friendsPageIndex + 1))
+    })
+    document.querySelectorAll('.account-friends-pagination [data-page-index]').forEach(btn => {
+      btn.addEventListener('click', () => goToPage(parseInt(btn.dataset.pageIndex, 10)))
+    })
+  }
+
+  const rerenderFriendsSection = () => {
+    const section = el('#account-friends-section')
+    if (section) {
+      section.innerHTML = `
+        <label class="form-label mt-2">${t('account.friends')}</label>
+        ${renderFriends()}
+      `
+      bindFriendsHandlers()
+    }
+  }
+
+  setTimeout(() => {
+    bindAvatarHandlers()
+    bindEmailHandlers()
+    bindFriendsHandlers()
 
     const langEnBtn = el('#account-lang-en')
     const langDeBtn = el('#account-lang-de')

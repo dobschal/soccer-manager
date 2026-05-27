@@ -16,6 +16,8 @@ export default {
     const team = await getTeam(req)
     const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
     delete req.user.password
+    delete req.user.email_verification_token
+    delete req.user.email_verification_expires_at
 
     const { season } = await getGameDayAndSeason()
     const stats = await query(
@@ -128,6 +130,10 @@ export default {
       user = users[0]
       if (user) {
         delete user.password
+        delete user.email
+        delete user.pending_email
+        delete user.email_verification_token
+        delete user.email_verification_expires_at
       }
     }
     return {

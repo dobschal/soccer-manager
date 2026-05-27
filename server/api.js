@@ -1,3 +1,6 @@
+// Side-effect import: load `.env` (when present) before any other module reads
+// `process.env`. ES module imports execute in order, so this must come first.
+import './lib/loadDotEnv.js'
 import express from 'express'
 import bodyParser from 'body-parser'
 import fs from 'fs'

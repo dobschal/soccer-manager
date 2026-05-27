@@ -27,6 +27,15 @@ vi.mock('../../../partials/dialog.js', () => ({
   showDialog: vi.fn()
 }))
 
+vi.mock('../../../partials/overlay.js', () => ({
+  showOverlay: vi.fn(() => ({ remove: vi.fn() }))
+}))
+
+vi.mock('../../../partials/currencyInput.js', () => ({
+  renderCurrencyInput: vi.fn(() => ''),
+  setupCurrencyInput: vi.fn()
+}))
+
 vi.mock('../../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
@@ -259,6 +268,41 @@ describe('MarketPage', () => {
   describe('renderMarket (backwards compatibility)', () => {
     it('is exported as a function', () => {
       expect(typeof renderMarket).toBe('function')
+    })
+  })
+
+  describe('buy dialog', () => {
+    it('sends a buy offer with allowInstantBuy so server-side req is not shifted', async () => {
+      const page = new MarketPage()
+      await page.load()
+
+      const submitBtn = document.createElement('button')
+      const cancelBtn = document.createElement('button')
+      const input = document.createElement('input')
+      input.dataset.rawValue = '5000'
+
+      // generateId always returns 'test-id'; _showBuyDialog looks up cancel, submit, instant
+      // buttons in that order, then queries the input on click.
+      const lookups = [cancelBtn, submitBtn, null]
+      let i = 0
+      el.mockImplementation(() => {
+        if (i < lookups.length) return lookups[i++]
+        return input
+      })
+
+      page._showBuyDialog({ id: 42, name: 'Test Player' })
+
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      submitBtn.click()
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      expect(server.addTradeOffer).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 42 }),
+        5000,
+        'buy',
+        true
+      )
     })
   })
 })

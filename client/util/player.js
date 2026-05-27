@@ -64,21 +64,34 @@ export function sortByPosition (playerA, playerB) {
 }
 
 /**
+ * Natural football position rank for a single position code: higher = listed
+ * first when sorting ascending. GK > defenders > midfielders > attackers, with
+ * L/C/R sub-ordering inside each group.
+ * @param {string} position
+ * @returns {number}
+ */
+export function positionRank (position) {
+  if (!position) return 0
+  let rank = 0
+  if (position.endsWith('K')) rank += 30
+  else if (position.endsWith('D')) rank += 20
+  else if (position.endsWith('M')) rank += 10
+  if (position.startsWith('L')) rank += 3
+  else if (position.startsWith('R')) rank += 1
+  else rank += 2
+  return rank
+}
+
+/**
  * @param {PlayerType} player
  * @returns {number}
  */
 function _positionValue (player) {
+  // Sort by where the player is actually playing: out-of-position assignments
+  // (e.g. a CD fielded as OM) should land with the midfielders, not the defenders.
+  const sortPosition = player.in_game_position || player.position
   let playingValue = player.in_game_position ? 10000 : (player.bench_position ? 5000 : 0)
-  if (player.position.startsWith('L')) {
-    playingValue += 3
-  } else if (player.position.startsWith('R')) {
-    playingValue += 1
-  } else {
-    playingValue += 2
-  }
-  if (player.position.endsWith('K')) playingValue += 30
-  else if (player.position.endsWith('D')) playingValue += 20
-  else if (player.position.endsWith('M')) playingValue += 10
+  playingValue += positionRank(sortPosition)
   // For bench players, use sort_index to allow custom ordering (lower sort_index = higher priority)
   const sortIndex = player.sort_index || 0
   playingValue += (9999 - sortIndex) / 10000

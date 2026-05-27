@@ -5,6 +5,7 @@ import { toast } from '../partials/toast.js'
 import { UIElement } from '../lib/UIElement.js'
 import { t } from '../i18n/index.js'
 import { connectWebSocket } from '../lib/websocket.js'
+import { isValidEmail } from '../lib/emailRegex.js'
 
 export class LandingPage extends UIElement {
   /**
@@ -42,6 +43,11 @@ export class LandingPage extends UIElement {
                     <div class="form-group mb-3">
                       <label for="username-input">${t('landing.username')}</label>
                       <input autofocus class="form-control" id="username-input" type="text" placeholder="${t('landing.enterUsername')}">
+                    </div>
+                    <div class="form-group mb-3 ${this.isLogin ? 'hidden' : ''}" id="email-area">
+                      <label for="email-input">${t('landing.email')}</label>
+                      <input class="form-control" id="email-input" type="email" placeholder="${t('landing.enterEmail')}" autocomplete="email">
+                      <small class="form-text text-white-50">${t('landing.emailHint')}</small>
                     </div>
                     <div class="form-group mb-3">
                       <label for="password-input">${t('landing.password')}</label>
@@ -208,13 +214,18 @@ export class LandingPage extends UIElement {
     const username = value('#username-input')
     const password = value('#password-input')
     const repeatedPassword = value('#password-repeat-input')
+    const email = value('#email-input')
     try {
       if (!this.isLogin) {
         if (repeatedPassword !== password) {
           this.isSubmitting = false
           return toast(t('landing.passwordsNotEqual'), 'error')
         }
-        await server.createAccount(username, password)
+        if (!isValidEmail(email)) {
+          this.isSubmitting = false
+          return toast(t('landing.emailInvalid'), 'error')
+        }
+        await server.createAccount(username, password, email.trim())
         toast(t('landing.registrationSuccess'), 'success')
         // Auto-login after successful registration
         const { token } = await server.login(username, password, 'web')

@@ -2,12 +2,13 @@ import { UIElement } from '../lib/UIElement.js'
 import { toast } from './toast.js'
 import { server } from '../lib/gateway.js'
 import { showOverlay } from './overlay.js'
-import { PlayerList } from './playerList.js'
+import { SelectPlayerOverlay } from './selectPlayerOverlay.js'
 import { renderPlayerImage } from './playerImage.js'
 import { getPositionsOfFormation } from '../util/formation.js'
 import { deepCopy } from '../lib/deepCopy.js'
 import { renderLevelBadge } from './levelBadge.js'
 import { fire } from '../lib/event.js'
+import { t } from '../i18n/index.js'
 
 export const lineUpData = {
   squadDataChanged: false
@@ -21,7 +22,13 @@ export class Lineup extends UIElement {
    */
   constructor (players, team) {
     super()
-    this.players = deepCopy(players)
+    // Drop any fake placeholders that came in with the input. Lineup is often
+    // re-rendered after firing 'lineup-exchange' with `this.players`, which
+    // includes the fakes added by the previous _fillEmptyPositions run. If we
+    // kept them, the new _fillEmptyPositions would race them against the real
+    // players for slots — and depending on array order, a leftover fake could
+    // claim a slot first and silently kick the real player into the reserves.
+    this.players = deepCopy(players).filter(p => !p.fake)
     this.team = team
     this._fillEmptyPositions()
   }
@@ -61,15 +68,21 @@ export class Lineup extends UIElement {
             : this.players.find(p => p.id === Number(playerId))
 
           if (player) {
-            // Filter out suspended players from selection
-            const availablePlayers = this.players.filter(p => p.position === player.position && !p.fake && !p.is_suspended && !p.is_injured)
+            // Matching-position players excluding suspended/injured/fake
+            const availablePlayers = this.players.filter(p => p.position === player.in_game_position && !p.fake && !p.is_suspended && !p.is_injured)
+            // All players (any position) the user could field for this slot.
+            // Excludes the player already in the slot, fake placeholders, and unavailable players.
+            const allPlayers = this.players.filter(p => !p.fake && !p.is_suspended && !p.is_injured && p.id !== player.id)
+            const positionTitle = t(`position.full.${player.in_game_position}`)
             this._overlay = showOverlay(
-              'Select player',
-              '',
-              `${new PlayerList(
+              positionTitle,
+              t('selectPlayer.subtitle'),
+              `${new SelectPlayerOverlay(
+                player,
                 availablePlayers,
-                false,
-                newPlayer => this._exchangePlayer(player, newPlayer)
+                newPlayer => this._exchangePlayer(player, newPlayer),
+                () => this._refreshAfterActionCard(),
+                allPlayers
               )}`
             )
           }
@@ -93,20 +106,20 @@ export class Lineup extends UIElement {
   _needsAutoCleanup = false
 
   /**
-   * Match each lineup player to a slot in the current formation. A slot is
-   * only valid for a player when their natural position equals their
-   * in_game_position AND a matching unfilled slot still exists in the
-   * formation. Anything else (formation changed, duplicate, player playing
-   * out of natural position) gets cleared so the slot becomes a placeholder
-   * and _autoCleanupIfNeeded persists the cleaned state.
+   * Match each lineup player to a slot in the current formation. The slot only
+   * needs to exist in the formation — playing out of natural position is
+   * allowed (with the in-game level penalty), so we no longer require
+   * `p.position === p.in_game_position`. Anything that can't be matched
+   * (formation changed away from the slot, duplicate slot) gets cleared and
+   * `_autoCleanupIfNeeded` persists the cleaned state.
    * @returns {void}
    */
   _fillEmptyPositions () {
     const positions = getPositionsOfFormation(this.team.formation)
-    this.players.filter(p => p.in_game_position).forEach(p => {
-      const index = p.position === p.in_game_position
-        ? positions.findIndex(po => po === p.in_game_position)
-        : -1
+    // Skip fakes — only real players claim slots. Constructor already strips
+    // incoming fakes, this is a belt-and-suspenders guard.
+    this.players.filter(p => p.in_game_position && !p.fake).forEach(p => {
+      const index = positions.findIndex(po => po === p.in_game_position)
       if (index === -1) {
         p.in_game_position = ''
         this._needsAutoCleanup = true
@@ -207,6 +220,25 @@ export class Lineup extends UIElement {
   }
 
   /**
+   * After an action card has been applied to a player from inside the overlay,
+   * refetch the team so updated player stats (freshness/level) flow back into
+   * the parent component and the lineup re-renders.
+   * @returns {Promise<void>}
+   */
+  async _refreshAfterActionCard () {
+    try {
+      const refreshedData = await server.getMyTeam()
+      fire('lineup-exchange', refreshedData.players)
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? 'Something went wrong...', 'error')
+    }
+    setTimeout(() => {
+      this._overlay?.remove()
+    }, 150)
+  }
+
+  /**
    * @param {PlayerType} player
    * @param {PlayerType} newPlayer
    * @returns {void}
@@ -252,9 +284,12 @@ export class Lineup extends UIElement {
     const isInjured = player.is_injured
     const unavailableStyle = (isSuspended || isInjured) ? 'opacity: 0.5; filter: grayscale(100%);' : ''
 
+    const isOutOfPosition = !player.fake && player.position !== player.in_game_position
+    const badgeClass = `position-badge ${player.in_game_position}${isOutOfPosition ? ' is-wrong-position' : ''}`
+
     return `
-      <div class="player ${player.position}" data-player-id="${playerId}" style="${unavailableStyle}">
-        <span class="position-badge ${player.position}">${player.position}</span>
+      <div class="player ${player.in_game_position}" data-player-id="${playerId}" style="${unavailableStyle}">
+        <span class="${badgeClass}">${player.in_game_position}</span>
         <span class="freshness-badge ${freshnessClass}">
             ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
         </span>

@@ -22,6 +22,10 @@ import { getQueryParams, setQueryParams } from '../lib/router.js'
  * @property {(dataItem: object, rowIndex: number) => string} [rowClass]
  * @property {(dataItem: object, rowIndex: number) => string} [rowAttrs]
  * @property {string} [classes] - Extra CSS classes for the table element
+ * @property {boolean} [useUrlSort] - When false, header-click sort is kept local
+ *   to this instance instead of being written to the URL query. Useful when
+ *   multiple tables are on screen at once (e.g. one inside an overlay) and
+ *   should not share sort state. Defaults to true (legacy behavior).
  */
 
 export class Table extends UIElement {
@@ -43,7 +47,7 @@ export class Table extends UIElement {
     const extraClasses = this.config.classes || ''
     return `
       <div class="horizontal-scrollable-table">
-        <table class="table${hasHover ? ' table-hover' : ''} mb-4 wide-on-mobile ${extraClasses}">
+        <table class="table${hasHover ? ' table-hover' : ''} wide-on-mobile ${extraClasses}">
           <thead>
             <tr>
               ${this._renderHeaderCells()}
@@ -56,6 +60,7 @@ export class Table extends UIElement {
       </div>
     `
   }
+
   /**
    * @returns {UIElementEvents}
    */
@@ -69,9 +74,23 @@ export class Table extends UIElement {
           const colIndex = headers.indexOf(th)
           const col = this.config.cols[colIndex]
           if (!col || (!col.sortKey && !col.sortFn)) return
-          const { sort_dir: currentDir, col: currentCol } = getQueryParams()
+          if (this.config.useUrlSort === false) {
+            // Local-only sort: flip direction on repeat click, otherwise ASC.
+            const newDir = (this._localSortCol === colIndex && this._localSortDir === 'ASC') ? 'DESC' : 'ASC'
+            this._localSortCol = colIndex
+            this._localSortDir = newDir
+            this._sortTable(colIndex, newDir)
+            return
+          }
+          const {
+            sort_dir: currentDir,
+            col: currentCol
+          } = getQueryParams()
           const newDir = (currentCol === colIndex.toString() && currentDir === 'ASC') ? 'DESC' : 'ASC'
-          setQueryParams({ sort_dir: newDir, col: colIndex.toString() })
+          setQueryParams({
+            sort_dir: newDir,
+            col: colIndex.toString()
+          })
         }
       },
       'tbody': {
@@ -101,6 +120,7 @@ export class Table extends UIElement {
       }
     }
   }
+
   /**
    * @returns {void}
    */
@@ -118,6 +138,7 @@ export class Table extends UIElement {
     sort_dir: sortDirection,
     col: colIndex
   }) {
+    if (this.config.useUrlSort === false) return
     if (sortDirection && colIndex !== undefined) {
       const col = this.config.cols[Number(colIndex)]
       if (col && (col.sortKey || col.sortFn)) {
@@ -125,11 +146,12 @@ export class Table extends UIElement {
       }
     }
   }
-  
+
   /**
    * @returns {void}
    */
   _applyInitialSort () {
+    if (this.config.useUrlSort === false) return
     const {
       sort_dir: sortDirection,
       col: colIndex

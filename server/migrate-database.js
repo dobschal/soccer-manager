@@ -1831,6 +1831,17 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE statistics ADD COLUMN weekly_active_users INT NOT NULL DEFAULT 0')
   }
+}, {
+  name: 'Add email columns to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN email VARCHAR(255) DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN pending_email VARCHAR(255) DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN email_verification_token VARCHAR(128) DEFAULT NULL')
+    await query('ALTER TABLE user ADD COLUMN email_verification_expires_at TIMESTAMP NULL DEFAULT NULL')
+    // Unique index on email (NULLs are allowed multiple times in MySQL UNIQUE indexes)
+    await query('CREATE UNIQUE INDEX uq_user_email ON user (email)')
+    await query('CREATE INDEX idx_user_email_verification_token ON user (email_verification_token)')
+  }
 }]
 
 /**
