@@ -112,14 +112,31 @@ describe('results routes', () => {
         goalsTeam1: 2,
         goalsTeam2: 1,
         team1: 'Team A',
-        team2: 'Team B'
+        team2: 'Team B',
+        isForfeit: 0
       }
 
       query.mockResolvedValue([gameResult])
 
       const result = await handlers.getResult(1)
 
-      expect(result).toEqual({ result: gameResult })
+      expect(result.result.isForfeit).toBe(false)
+      expect(result.result.goalsTeam1).toBe(2)
+    })
+
+    it('returns isForfeit=true for forfeited games', async () => {
+      query.mockResolvedValue([{
+        id: 2,
+        goalsTeam1: 3,
+        goalsTeam2: 0,
+        team1: 'Team A',
+        team2: 'Empty FC',
+        isForfeit: 1
+      }])
+
+      const result = await handlers.getResult(2)
+
+      expect(result.result.isForfeit).toBe(true)
     })
 
     it('throws error when game not found', async () => {

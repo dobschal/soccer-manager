@@ -458,6 +458,7 @@ export default {
                g.goals_team_2 as goalsTeam2,
                g.game_day     as gameDay,
                g.season       as season,
+               g.is_forfeit   as isForfeit,
                t1.name        as team1,
                t2.name        as team2,
                g.team_1_id    as team1Id,
@@ -470,7 +471,9 @@ export default {
         WHERE g.id = ?
     `, [gameId])
     if (results.length === 0) throw new BadRequestError('Game not found')
-    return { result: results[0] }
+    const result = results[0]
+    result.isForfeit = Boolean(result.isForfeit)
+    return { result }
   },
 
   /**
