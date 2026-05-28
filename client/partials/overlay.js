@@ -138,14 +138,14 @@ export function showConfirmDialog (message, confirmLabel = 'OK', cancelLabel = '
     const cancelBtnId = generateId()
 
     const content = `
-      <p>${message}</p>
+      <p class="confirm-dialog-message">${message}</p>
       <div class="d-flex gap-2 mt-3">
         <button id="${cancelBtnId}" class="btn btn-outline-secondary flex-fill">${cancelLabel}</button>
-        <button id="${confirmBtnId}" class="btn btn-danger flex-fill">${confirmLabel}</button>
+        <button id="${confirmBtnId}" class="btn btn-info flex-fill">${confirmLabel}</button>
       </div>
     `
 
-    const overlay = showOverlay('', '', content)
+    const overlay = showOverlay('', '', content, { hideHeader: true })
     let resolved = false
 
     overlay.onClose(() => {
@@ -182,9 +182,10 @@ export function showConfirmDialog (message, confirmLabel = 'OK', cancelLabel = '
  * @param {string} title
  * @param {string} subttitle
  * @param {string} text
+ * @param {{ hideHeader?: boolean }} [options]
  * @returns {{onClose: (callback: () => void) => void, remove: () => void}}
  */
-export function showOverlay (title, subttitle, text) {
+export function showOverlay (title, subttitle, text, options = {}) {
   const closeButtonId = generateId()
   const overlayId = generateId()
   const overlayInnerId = generateId()
@@ -209,9 +210,9 @@ export function showOverlay (title, subttitle, text) {
     event.stopPropagation()
   })
 
-  const html = `
-    <div id="${overlayId}" class="overlay-backdrop">
-      <div id="${overlayInnerId}" class="card overlay">
+  const headerHtml = options.hideHeader
+    ? ''
+    : `
         <div class="card-header overlay-header border-0">
             <div>
               <h5 class="card-title mb-0">${title}</h5>
@@ -219,6 +220,12 @@ export function showOverlay (title, subttitle, text) {
             </div>
             <span id="${closeButtonId}" class="fa fa-close overlay-close-btn"></span>
         </div>
+      `
+
+  const html = `
+    <div id="${overlayId}" class="overlay-backdrop">
+      <div id="${overlayInnerId}" class="card overlay">
+        ${headerHtml}
         <div class="card-body">
             ${text}
         </div>

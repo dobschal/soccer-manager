@@ -234,6 +234,39 @@ export async function completeStadiumConstructions (gameDay, season) {
 }
 
 /**
+ * Instantly finalizes any active stand construction for the given team.
+ * Used when a user takes over a free team — they shouldn't inherit an
+ * in-progress expansion. Silent (no log message).
+ * @param {number} teamId
+ * @param {number} gameDay - used as completed_game_day in history
+ * @param {number} season - used as completed_season in history
+ * @returns {Promise<void>}
+ */
+export async function completeAllStadiumConstructionsForTeam (teamId, gameDay, season) {
+  const [stadium] = await query('SELECT * FROM stadium WHERE team_id=? LIMIT 1', [teamId])
+  if (!stadium) return
+  const stands = ['north', 'south', 'east', 'west']
+  for (const stand of stands) {
+    if (stadium[`${stand}_construction_end_game_day`] == null) continue
+    await query(`
+        UPDATE stadium
+        SET ${stand}_stand_size                = ${stand}_construction_target_size,
+            ${stand}_stand_roof                = ${stand}_construction_target_roof,
+            ${stand}_construction_end_game_day = NULL,
+            ${stand}_construction_end_season   = NULL,
+            ${stand}_construction_target_size  = NULL,
+            ${stand}_construction_target_roof  = NULL
+        WHERE id = ?
+    `, [stadium.id])
+    await query(`
+        UPDATE stadium_construction_history
+        SET completed_game_day = ?, completed_season = ?
+        WHERE stadium_id = ? AND stand = ? AND completed_game_day IS NULL
+    `, [gameDay, season, stadium.id, stand])
+  }
+}
+
+/**
  * @param {StadiumType} currentStadium
  * @param {StadiumType} plannedStadium
  * @returns {number}

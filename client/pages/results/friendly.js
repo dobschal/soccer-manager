@@ -113,8 +113,8 @@ export class FriendlyResultsPage extends UIElement {
     const emblem1 = `<span class="emblem-thumb">${renderEmblem(team1Data, 24)}</span>`
     const emblem2 = `<span class="emblem-thumb">${renderEmblem(team2Data, 24)}</span>`
 
-    const nameLabel1 = shortenTeamName(result.team1)
-    const nameLabel2 = shortenTeamName(result.team2)
+    const nameLabel1 = shortenTeamName(result.team1, result.team1Short)
+    const nameLabel2 = shortenTeamName(result.team2, result.team2Short)
 
     const team1IsMyTeam = this.myTeamId === result.team1Id
     const team2IsMyTeam = this.myTeamId === result.team2Id

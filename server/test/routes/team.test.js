@@ -111,6 +111,98 @@ describe('team routes', () => {
     })
   })
 
+  describe('updateTeamName', () => {
+    it('trims whitespace and updates the team name', async () => {
+      const team = testData.team({ id: 7, level: 2, league: 1 })
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 4, gameDay: 1 })
+      query
+        .mockResolvedValueOnce([]) // uniqueness check returns no row
+        .mockResolvedValueOnce({}) // UPDATE
+        .mockResolvedValueOnce({}) // DELETE standing_cache
+
+      const req = createMockRequest()
+      const result = await handlers.updateTeamName('  FC   Berlin  ', '', req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenNthCalledWith(
+        2,
+        'UPDATE team SET name=?, short_name=? WHERE id=?',
+        ['FC Berlin', null, team.id]
+      )
+    })
+
+    it('stores a user-provided short name when given', async () => {
+      const team = testData.team({ id: 7, level: 2, league: 1 })
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 4, gameDay: 1 })
+      query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({})
+
+      const req = createMockRequest()
+      await handlers.updateTeamName('FC Berlin', '  BSC  ', req)
+
+      expect(query).toHaveBeenNthCalledWith(
+        2,
+        'UPDATE team SET name=?, short_name=? WHERE id=?',
+        ['FC Berlin', 'BSC', team.id]
+      )
+    })
+
+    it('rejects an empty name', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.updateTeamName('   ', '', req))
+        .rejects.toMatchObject({ message: 'Team name is required' })
+    })
+
+    it('rejects a word longer than 12 characters', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.updateTeamName('FC Wolverhampton', '', req))
+        .rejects.toMatchObject({ message: 'Each word can be at most 12 characters' })
+    })
+
+    it('rejects a name longer than 32 characters', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.updateTeamName('AAA BBB CCC DDD EEE FFF GGG HHHHH', '', req))
+        .rejects.toMatchObject({ message: 'Team name can be at most 32 characters' })
+    })
+
+    it('rejects a short name longer than 12 characters', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+
+      const req = createMockRequest()
+
+      await expect(handlers.updateTeamName('FC Berlin', 'AAAAAAAAAAAAA', req))
+        .rejects.toMatchObject({ message: 'Short name can be at most 12 characters' })
+    })
+
+    it('rejects a duplicate name', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValueOnce([{ id: 42 }]) // duplicate found
+
+      const req = createMockRequest()
+
+      await expect(handlers.updateTeamName('FC Berlin', '', req))
+        .rejects.toMatchObject({ message: 'A team with this name already exists' })
+    })
+  })
+
   describe('updatePassStyle', () => {
     it('updates team pass style', async () => {
       const team = testData.team()

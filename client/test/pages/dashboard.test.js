@@ -123,6 +123,25 @@ vi.mock('../../pages/dashboard/logMessages.js', () => ({
   }
 }))
 
+vi.mock('../../pages/forum.js', () => ({
+  ForumPage: class {
+    async load () {}
+    toString () {
+      return '<div>Forum Component</div>'
+    }
+  }
+}))
+
+vi.mock('../../partials/searchPanel.js', () => ({
+  SearchPanel: class {
+    async load () {}
+    async applyQueryParams () {}
+    toString () {
+      return '<div>Search Panel Component</div>'
+    }
+  }
+}))
+
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -237,8 +256,38 @@ describe('DashboardPage', () => {
       await page.load()
       expect(page.template).toContain('nav-pills')
       expect(page.template).toContain('#dashboard?sub_page=cards')
+      expect(page.template).toContain('#dashboard?sub_page=forum')
+      expect(page.template).toContain('#dashboard?sub_page=search')
       expect(page.template).toContain('#dashboard?sub_page=news')
       expect(page.template).toContain('#dashboard?sub_page=messages')
+    })
+
+    it('orders News and Messages tabs after Forum and Search', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const html = page.template
+      const forumIdx = html.indexOf('#dashboard?sub_page=forum')
+      const searchIdx = html.indexOf('#dashboard?sub_page=search')
+      const newsIdx = html.indexOf('#dashboard?sub_page=news')
+      const messagesIdx = html.indexOf('#dashboard?sub_page=messages')
+      expect(forumIdx).toBeGreaterThan(0)
+      expect(searchIdx).toBeGreaterThan(forumIdx)
+      expect(newsIdx).toBeGreaterThan(searchIdx)
+      expect(messagesIdx).toBeGreaterThan(newsIdx)
+    })
+
+    it('template renders forum sub-page when sub_page=forum', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      page.subPage = 'forum'
+      expect(page.template).toContain('Forum Component')
+    })
+
+    it('template renders search sub-page when sub_page=search', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      page.subPage = 'search'
+      expect(page.template).toContain('Search Panel Component')
     })
 
     it('default sub-page does not contain action cards or log messages', async () => {
@@ -258,7 +307,7 @@ describe('DashboardPage', () => {
       await page.load()
       const html = page.template
       expect(html).toContain('Community-Driven')
-      expect(html).toContain('#forum?category=3')
+      expect(html).toContain('#dashboard?sub_page=forum&category=3')
     })
   })
 

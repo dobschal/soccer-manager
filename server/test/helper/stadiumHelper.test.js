@@ -7,7 +7,8 @@ import {
   getConstructionInfo,
   calculateConstructionTime,
   calculateConstructionEndDate,
-  calculateHomeAttendanceBonus
+  calculateHomeAttendanceBonus,
+  completeAllStadiumConstructionsForTeam
 } from '../../helper/stadiumHelper.js'
 
 /**
@@ -253,6 +254,51 @@ describe('stadiumHelper', () => {
     it('handles undefined / negative inputs as zero', () => {
       expect(calculateHomeAttendanceBonus(undefined, undefined).bonusPct).toBe(0)
       expect(calculateHomeAttendanceBonus(-100, -100).bonusPct).toBe(0)
+    })
+  })
+
+  describe('completeAllStadiumConstructionsForTeam', () => {
+    it('does nothing when the team has no stadium', async () => {
+      query.mockResolvedValueOnce([])
+      await completeAllStadiumConstructionsForTeam(42, 5, 3)
+      expect(query).toHaveBeenCalledTimes(1)
+    })
+
+    it('skips stands without active construction', async () => {
+      query.mockResolvedValueOnce([{
+        id: 7,
+        north_construction_end_game_day: null,
+        south_construction_end_game_day: null,
+        east_construction_end_game_day: null,
+        west_construction_end_game_day: null
+      }])
+      await completeAllStadiumConstructionsForTeam(42, 5, 3)
+      expect(query).toHaveBeenCalledTimes(1)
+    })
+
+    it('finalizes every active stand and marks its history complete', async () => {
+      query.mockResolvedValueOnce([{
+        id: 7,
+        north_construction_end_game_day: 20,
+        north_construction_end_season: 3,
+        south_construction_end_game_day: null,
+        east_construction_end_game_day: 12,
+        east_construction_end_season: 4,
+        west_construction_end_game_day: null
+      }])
+      query.mockResolvedValue({})
+
+      await completeAllStadiumConstructionsForTeam(42, 5, 3)
+
+      const updates = query.mock.calls.filter(([sql]) => /UPDATE stadium\s+SET/.test(sql))
+      expect(updates).toHaveLength(2)
+      expect(updates[0][0]).toMatch(/north_stand_size\s+=\s+north_construction_target_size/)
+      expect(updates[1][0]).toMatch(/east_stand_size\s+=\s+east_construction_target_size/)
+
+      const historyUpdates = query.mock.calls.filter(([sql]) => /UPDATE stadium_construction_history/.test(sql))
+      expect(historyUpdates).toHaveLength(2)
+      expect(historyUpdates[0][1]).toEqual([5, 3, 7, 'north'])
+      expect(historyUpdates[1][1]).toEqual([5, 3, 7, 'east'])
     })
   })
 })

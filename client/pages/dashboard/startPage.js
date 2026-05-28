@@ -90,7 +90,7 @@ export class StartPage {
             <h2 class="mb-4">${this.team.name}</h2>
           </a>
           ${this._renderMiniStanding()}
-          <h5 class="mb-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')}</h5>
+          <h5 class="mb-2 mt-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')}</h5>
           ${this._renderUrgencyChecklist()}
         </div>
       </div>
@@ -109,7 +109,7 @@ export class StartPage {
         <h5 class="mb-2 text-center text-white"><i class="fa fa-users"></i> ${t('dashboard.communityTitle')}</h5>
         <p class="text-center text-white-50 mb-3">${t('dashboard.communityText')}</p>
         <div class="text-center">
-          <a href="#forum?category=3" class="btn btn-info btn-sm">
+          <a href="#dashboard?sub_page=forum&category=3" class="btn btn-info btn-sm">
             <i class="fa fa-lightbulb-o"></i> ${t('dashboard.communityCta')}
           </a>
         </div>
@@ -348,7 +348,7 @@ export class StartPage {
         { name: t('results.points') }
       ],
       data: teamsToShow,
-      classes: 'table-sm',
+      classes: 'table-sm mb-4',
       rowClass: (item, rowIndex) => {
         const actualIndex = startIndex + rowIndex
         const isMyTeam = this.team.id === item.team.id

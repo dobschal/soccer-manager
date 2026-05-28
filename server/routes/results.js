@@ -7,7 +7,7 @@ import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper
 import { CACHE_NAMESPACES, cacheKey, getCached } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
 import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
-import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
+import { getTotalRoundsForSeason, calculateInterleavedSchedule } from '../helper/cupHelper.js'
 
 export default {
 
@@ -88,6 +88,8 @@ export default {
                  g.goals_team_2 as goalsTeam2,
                  t1.name        as team1,
                  t2.name        as team2,
+                 t1.short_name  as team1Short,
+                 t2.short_name  as team2Short,
                  g.team_1_id    as team1Id,
                  g.team_2_id    as team2Id,
                  g.details      as details,
@@ -233,6 +235,8 @@ export default {
                g.goals_team_2 as goalsTeam2,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
                t1.color       as team1Color,
@@ -261,6 +265,8 @@ export default {
                g.goals_team_2 as goalsTeam2,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
                t1.color       as team1Color,
@@ -335,6 +341,8 @@ export default {
                g.goals_team_2 as goalsTeam2,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id
         FROM game g
@@ -409,6 +417,8 @@ export default {
                g.season       as season,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
                g.is_forfeit   as isForfeit,
@@ -461,6 +471,8 @@ export default {
                g.is_forfeit   as isForfeit,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
                g.details      as details,
@@ -519,7 +531,7 @@ export default {
         // Refresh team display data (name, emblem, color) from database
         const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
         if (teamIds.length > 0) {
-          const freshTeams = await query(`SELECT id, name, emblem, color
+          const freshTeams = await query(`SELECT id, name, short_name, emblem, color
                                           FROM team
                                           WHERE id IN (${teamIds.join(', ')})`)
           const teamMap = Object.fromEntries(freshTeams.map(t => [t.id, t]))
@@ -527,6 +539,7 @@ export default {
             const fresh = entry.team?.id ? teamMap[entry.team.id] : null
             if (fresh) {
               entry.team.name = fresh.name
+              entry.team.short_name = fresh.short_name
               entry.team.emblem = fresh.emblem
               entry.team.color = fresh.color
             }
@@ -712,11 +725,13 @@ export default {
                g.played       as played,
                t1.id          as team1Id,
                t1.name        as team1,
+               t1.short_name  as team1Short,
                t1.color       as team1Color,
                t1.emblem      as team1Emblem,
                t1.user_id     as team1UserId,
                t2.id          as team2Id,
                t2.name        as team2,
+               t2.short_name  as team2Short,
                t2.color       as team2Color,
                t2.emblem      as team2Emblem,
                t2.user_id     as team2UserId
@@ -738,11 +753,13 @@ export default {
                g.played       as played,
                t1.id          as team1Id,
                t1.name        as team1,
+               t1.short_name  as team1Short,
                t1.color       as team1Color,
                t1.emblem      as team1Emblem,
                t1.user_id     as team1UserId,
                t2.id          as team2Id,
                t2.name        as team2,
+               t2.short_name  as team2Short,
                t2.color       as team2Color,
                t2.emblem      as team2Emblem,
                t2.user_id     as team2UserId
@@ -773,8 +790,9 @@ export default {
       )
     ])
 
-    const totalCupRounds = totalRoundsRow[0]?.maxRound
-      ? Math.log2(totalRoundsRow[0].maxRound) + 1
+    const maxRound = totalRoundsRow[0]?.maxRound ?? 0
+    const totalCupRounds = maxRound
+      ? Math.log2(maxRound) + 1
       : 0
 
     const unplayedDays = unplayedDayRows.map(r => r.game_day)
@@ -790,16 +808,39 @@ export default {
       nextTick.setSeconds(59)
     }
 
+    const cupRoundsByGameDay = new Map()
+    const cupRoundsByRound = new Map()
+    for (const r of cupRoundsRows) {
+      cupRoundsByGameDay.set(r.gameDay, { cupRound: r.cupRound, allPlayed: r.allPlayed === 1 })
+      cupRoundsByRound.set(r.cupRound, { gameDay: r.gameDay, allPlayed: r.allPlayed === 1 })
+    }
+
+    // Cup rounds that haven't been drawn yet (e.g. quarter-final while we're still
+    // in round 1) have no game row. Predict their game_day from the original
+    // interleaved schedule so the user can see all upcoming rounds. teamCount only
+    // affects the schedule via log2(teamCount) rounded up — any value in
+    // (maxRound, maxRound*2] gives the same rounds, so maxRound+1 is safe.
+    const futureCupRounds = []
+    if (maxRound > 0) {
+      const leagueGameDays = 34
+      const { cupGameDays: predictedCupGameDays } = calculateInterleavedSchedule(maxRound + 1, leagueGameDays)
+      for (let round = maxRound; round >= 1; round = round / 2) {
+        if (cupRoundsByRound.has(round)) continue
+        const predictedGameDay = predictedCupGameDays.get(round)
+        if (predictedGameDay == null) continue
+        futureCupRounds.push({ round, gameDay: predictedGameDay })
+        if (!unplayedDays.includes(predictedGameDay)) {
+          unplayedDays.push(predictedGameDay)
+        }
+      }
+      unplayedDays.sort((a, b) => a - b)
+    }
+
     const computeGameDate = (gameDay) => {
       const idx = unplayedDays.indexOf(gameDay)
       if (idx < 0) return null
       const d = new Date(nextTick.getTime() + idx * tickMs)
       return d.toISOString()
-    }
-
-    const cupRoundsByGameDay = new Map()
-    for (const r of cupRoundsRows) {
-      cupRoundsByGameDay.set(r.gameDay, { cupRound: r.cupRound, allPlayed: r.allPlayed === 1 })
     }
 
     const cupGameDaysWithMyGame = new Set(cupGames.map(g => g.gameDay))
@@ -847,6 +888,18 @@ export default {
         cupRound: info.cupRound,
         played: info.allPlayed,
         gameDate: info.allPlayed ? null : computeGameDate(gameDay)
+      })
+    }
+
+    // Add placeholders for cup rounds that haven't been drawn yet so the user
+    // sees the full bracket on the schedule, regardless of participation.
+    for (const { round, gameDay } of futureCupRounds) {
+      entries.push({
+        type: 'cup_round',
+        gameDay,
+        cupRound: round,
+        played: false,
+        gameDate: computeGameDate(gameDay)
       })
     }
 

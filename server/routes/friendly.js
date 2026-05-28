@@ -78,6 +78,8 @@ export default {
         team2Id: opponentTeam.id,
         team1: myTeam.name,
         team2: opponentTeam.name,
+        team1Short: myTeam.short_name,
+        team2Short: opponentTeam.short_name,
         details: gameDetails,
         isFriendly: true
       }
@@ -156,6 +158,8 @@ export default {
         team2Id: opponent.id,
         team1: myTeam.name,
         team2: opponent.name,
+        team1Short: myTeam.short_name,
+        team2Short: opponent.short_name,
         details: gameDetails,
         isFriendly: true
       }
@@ -203,6 +207,8 @@ export default {
               g.goals_team_2 as goalsTeam2,
               t1.name        as team1,
               t2.name        as team2,
+              t1.short_name  as team1Short,
+              t2.short_name  as team2Short,
               g.team_1_id    as team1Id,
               g.team_2_id    as team2Id,
               t1.color       as team1Color,
@@ -246,6 +252,8 @@ export default {
               g.goals_team_2 as goalsTeam2,
               t1.name as team1,
               t2.name as team2,
+              t1.short_name as team1Short,
+              t2.short_name as team2Short,
               g.team_1_id as team1Id,
               g.team_2_id as team2Id,
               t1.color as team1Color,

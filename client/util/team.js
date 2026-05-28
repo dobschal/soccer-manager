@@ -1,27 +1,17 @@
 /**
- * Shorten a team name for mobile display by hiding the middle part (prefix2).
- * E.g. "SSC Dynamic Gütersloh" → "SSC <hidden>Dynamic </hidden>Gütersloh"
- * E.g. "Olympic Ironhold" → "<hidden>Olympic </hidden>Ironhold"
- * Abbreviation-like words (FC, SSC, 1., etc.) and the city (last word) always stay visible.
+ * Shorten a team name for compact displays (tables, schedules, cup brackets, …).
+ * If a user-defined short name is provided and non-empty, it wins. Otherwise
+ * the function falls back to the last word of the full name.
+ * E.g. "1. FC Dynamic Gütersloh" → "Gütersloh".
  * @param {string} name
- * @returns {string} HTML string with d-none d-lg-inline spans
+ * @param {string|null|undefined} [shortName] - optional user-defined override
+ * @returns {string}
  */
-export function shortenTeamName (name) {
-  if (!name) return ''
-  const words = name.split(' ')
-  if (words.length <= 1) return name
-
-  const isAbbrev = (w) => /^[A-Z.0-9]+\.?$/.test(w) || /^\d/.test(w)
-
-  let result = ''
-  for (let i = 0; i < words.length; i++) {
-    const isLast = i === words.length - 1
-    if (isLast || isAbbrev(words[i])) {
-      result += words[i]
-      if (!isLast) result += ' '
-    } else {
-      result += `<span class="d-none d-lg-inline">${words[i]} </span>`
-    }
+export function shortenTeamName (name, shortName) {
+  if (typeof shortName === 'string' && shortName.trim()) {
+    return shortName.trim()
   }
-  return result
+  if (!name) return ''
+  const words = String(name).trim().split(/\s+/)
+  return words[words.length - 1] || ''
 }

@@ -14,6 +14,11 @@ export default {
   'error.emailRequired': 'Email is required',
   'error.verificationTokenInvalid': 'This verification link is invalid or has expired',
   'error.passwordResetTokenInvalid': 'This password reset link is invalid or has expired',
+  'error.invalidParam': 'Invalid parameter',
+
+  // Team choice
+  'chooseTeam.alreadyHasTeam': 'You already manage a team.',
+  'chooseTeam.teamUnavailable': 'This team is not available anymore.',
 
   // Verification email content
   'email.verify.subject': 'Confirm your email address',

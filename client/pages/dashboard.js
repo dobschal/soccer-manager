@@ -5,6 +5,8 @@ import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from './dashboard/actionCards.js'
 import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
+import { ForumPage } from './forum.js'
+import { SearchPanel } from '../partials/searchPanel.js'
 import { t } from '../i18n/index.js'
 import { el } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
@@ -125,10 +127,10 @@ export class DashboardPage extends TabbedPage {
         <nav class="nav nav-pills mb-4">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
           <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''} position-relative" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this._renderCardBadge()}</a>
+          <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
+          <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#dashboard?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
           <a class="nav-link ${this.subPage === 'news' ? 'active' : ''}" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
           <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''} position-relative" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}${this._renderMessageBadge()}</a>
-          <a class="nav-link" href="#forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
-          <a class="nav-link" href="#browse"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>
 
         ${this.renderSubPageContainer()}
@@ -178,6 +180,16 @@ export class DashboardPage extends TabbedPage {
       }
       this._switchSubPage()
       this._updateNav()
+      // A cached forum sub-page that's becoming visible again needs the
+      // latest URL params pushed in — its own query-changed listener bailed
+      // while it was hidden. (Freshly created instances pick up params in
+      // load() themselves.)
+      if (newSubPage === 'forum') {
+        const forum = this._subPageCache.forum
+        if (forum?._isMounted && typeof forum.onQueryChanged === 'function') {
+          forum.onQueryChanged(params)
+        }
+      }
     } else if (!newSubPage && this._initialQueryChangeHandled) {
       // Returning to the start tab from another page — refresh data.
       // Skip on the very first onQueryChanged after mount: the page just
@@ -185,6 +197,16 @@ export class DashboardPage extends TabbedPage {
       // start sub-page in the DOM and trigger a visible fade-in flicker.
       await this._refreshStartPageData()
       this._switchSubPage()
+    }
+    // SearchPanel doesn't listen for query-changed itself, so push params on
+    // every change while it is the active sub-page (covers both activation
+    // and same-tab pagination/search-query updates).
+    if ((newSubPage || this.subPage) === 'search') {
+      const search = this._subPageCache.search
+      if (search && typeof search.applyQueryParams === 'function') {
+        await search.applyQueryParams(params)
+        if (typeof search.update === 'function') await search.update(true)
+      }
     }
     this._initialQueryChangeHandled = true
   }
@@ -197,6 +219,8 @@ export class DashboardPage extends TabbedPage {
       case 'cards': return new ActionCards()
       case 'news': return new News()
       case 'messages': return new LogMessages()
+      case 'forum': return new ForumPage()
+      case 'search': return new SearchPanel()
       default: return this._createStartPage()
     }
   }

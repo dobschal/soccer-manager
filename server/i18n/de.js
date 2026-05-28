@@ -14,6 +14,11 @@ export default {
   'error.emailRequired': 'E-Mail-Adresse ist erforderlich',
   'error.verificationTokenInvalid': 'Dieser Bestätigungslink ist ungültig oder abgelaufen',
   'error.passwordResetTokenInvalid': 'Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen',
+  'error.invalidParam': 'Ungültiger Parameter',
+
+  // Vereinswahl
+  'chooseTeam.alreadyHasTeam': 'Du betreust bereits ein Team.',
+  'chooseTeam.teamUnavailable': 'Dieses Team ist nicht mehr verfügbar.',
 
   // Verification email content
   'email.verify.subject': 'Bestätige deine E-Mail-Adresse',

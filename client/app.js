@@ -10,9 +10,8 @@ import { ClubPage } from './pages/club.js'
 import { TeamPage } from './pages/team.js'
 import { TradesPage } from './pages/trades.js'
 import { ResultsPage } from './pages/results.js'
-import { BrowsePage } from './pages/browse.js'
 import { AdminPage } from './pages/admin.js'
-import { ForumPage } from './pages/forum.js'
+import { ChooseTeamPage } from './pages/choose-team.js'
 import { initLocale } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 import { applyNoIndexOnSandbox, showSandboxBanner } from './partials/sandboxBanner.js'
@@ -64,9 +63,8 @@ const pages = {
   results: [GameLayout, ResultsPage],
   login: [DefaultLayout, LandingPage],
   'my-team': [GameLayout, MyTeamPage],
-  browse: [GameLayout, BrowsePage],
   admin: [GameLayout, AdminPage],
-  forum: [GameLayout, ForumPage],
+  'choose-team': [DefaultLayout, ChooseTeamPage],
   '*': [GameLayout, DashboardPage]
 }
 

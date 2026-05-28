@@ -105,6 +105,20 @@ describe('ResultsPage', () => {
       expect(html).toContain('results.friendlyResults')
     })
 
+    it('does not render a Search tab', async () => {
+      const team = testData.team()
+
+      server.getMyTeam.mockResolvedValue({ team, players: [] })
+
+      const page = new ResultsPage()
+      await page.load()
+      page.subPage = null
+
+      const html = page.template
+      expect(html).not.toContain('#results?sub_page=search')
+      expect(html).not.toContain('search.title')
+    })
+
     it('shows tutorial on mount', async () => {
       const team = testData.team()
 

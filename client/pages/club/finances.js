@@ -60,6 +60,7 @@ export class FinancesPage extends UIElement {
 
     await this._loadFinanceLog()
   }
+
   /**
    * @returns {string}
    */
@@ -70,7 +71,7 @@ export class FinancesPage extends UIElement {
         <h2>${t('finances.title')}</h2>
         <h3>${new Balance()}</h3>
         </div>
-        <div class="row">
+        <div class="row mb-4">
           <div class="col-12 ${this.sponsor ? 'col-lg-8' : ''}">
             <h5>${t('finances.accountBalance')}</h5>
             ${new this._BalanceChart(this.financeLog)}
@@ -123,6 +124,7 @@ export class FinancesPage extends UIElement {
       </div>
     `
   }
+
   /**
    * @returns {UIElementEvents}
    */
@@ -170,12 +172,14 @@ export class FinancesPage extends UIElement {
       }
     }
   }
+
   /**
    * @returns {void}
    */
   onMounted () {
     void showTutorialIfNeeded('finances', this)
   }
+
   sponsor = null
 
   offers = []

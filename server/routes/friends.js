@@ -146,6 +146,8 @@ export default {
               g.cup_round    as cupRound,
               t1.name        as team1,
               t2.name        as team2,
+              t1.short_name  as team1Short,
+              t2.short_name  as team2Short,
               g.team_1_id    as team1Id,
               g.team_2_id    as team2Id,
               t1.color       as team1Color,

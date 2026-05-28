@@ -49,11 +49,37 @@
             font-size: 0.9em;
             color: #666;
         }
-    </style>
+
+        .back-to-app {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #17a2b8;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .back-to-app:hover {
+            background-color: #138496;
+        }
+
+        .back-to-app-bar {
+            margin-bottom: 20px;
+        }
+
+        .back-to-app-bar-bottom {
+            margin-top: 30px;
+        }
+</style>
 </head>
 <body>
 
 <div class="container">
+
+    <div class="back-to-app-bar">
+        <a href="index.html" class="back-to-app">Back to App</a>
+    </div>
 
     <h1>Imprint & Privacy Policy</h1>
     <p><strong>App:</strong> FootballManager.IO</p>
@@ -223,7 +249,23 @@
         <p>Last updated: April 2026</p>
     </footer>
 
+    <div class="back-to-app-bar-bottom">
+        <a href="index.html" class="back-to-app">Back to App</a>
+    </div>
+
 </div>
+
+<script>
+    (function () {
+        var stored = null
+        try { stored = localStorage.getItem('locale') } catch (e) { /* WKWebView file:// can throw */ }
+        var browser = (navigator.language || '').split('-')[0]
+        var locale = stored === 'de' || stored === 'en' ? stored : (browser === 'de' ? 'de' : 'en')
+        var label = locale === 'de' ? 'Zurück zur App' : 'Back to App'
+        var nodes = document.querySelectorAll('.back-to-app')
+        for (var i = 0; i < nodes.length; i++) nodes[i].textContent = label
+    })()
+</script>
 
 </body>
 </html>

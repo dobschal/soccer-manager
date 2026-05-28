@@ -1,88 +1,97 @@
 import { describe, it, expect } from 'vitest'
-import { splitTeamName, generateEmblem } from '../../util/emblemGenerator.js'
+import {
+  generateEmblem,
+  resolveWordsOnBanner,
+  splitTeamNameWords
+} from '../../util/emblemGenerator.js'
 
-describe('splitTeamName', () => {
-  it('returns empty parts for empty input', () => {
-    expect(splitTeamName('')).toEqual({ prefix1: '', prefix2: '', city: '' })
-    expect(splitTeamName(null)).toEqual({ prefix1: '', prefix2: '', city: '' })
-    expect(splitTeamName(undefined)).toEqual({ prefix1: '', prefix2: '', city: '' })
+describe('splitTeamNameWords', () => {
+  it('returns an empty array for falsy input', () => {
+    expect(splitTeamNameWords('')).toEqual([])
+    expect(splitTeamNameWords(null)).toEqual([])
+    expect(splitTeamNameWords(undefined)).toEqual([])
   })
 
-  it('treats a single token as the city', () => {
-    expect(splitTeamName('Berlin')).toEqual({ prefix1: '', prefix2: '', city: 'Berlin' })
+  it('returns each whitespace-separated word as its own entry', () => {
+    expect(splitTeamNameWords('Berlin')).toEqual(['Berlin'])
+    expect(splitTeamNameWords('FC Berlin')).toEqual(['FC', 'Berlin'])
+    expect(splitTeamNameWords('1. FC Berlin')).toEqual(['1.', 'FC', 'Berlin'])
   })
 
-  it('treats two tokens as prefix2 + city', () => {
-    expect(splitTeamName('FC Berlin')).toEqual({ prefix1: '', prefix2: 'FC', city: 'Berlin' })
-  })
-
-  it('splits three single-token parts as prefix1 + prefix2 + city', () => {
-    expect(splitTeamName('FC Real Berlin')).toEqual({ prefix1: 'FC', prefix2: 'Real', city: 'Berlin' })
-  })
-
-  it('keeps the compound leading prefix "1. FC" together when followed directly by the city', () => {
-    expect(splitTeamName('1. FC Berlin')).toEqual({ prefix1: '1. FC', prefix2: '', city: 'Berlin' })
-  })
-
-  it('keeps the compound leading prefix "2. FC" together when followed directly by the city', () => {
-    expect(splitTeamName('2. FC Valleverde')).toEqual({ prefix1: '2. FC', prefix2: '', city: 'Valleverde' })
-  })
-
-  it('keeps the compound leading prefix together for 4-token names', () => {
-    expect(splitTeamName('1. FC Power Doradal')).toEqual({
-      prefix1: '1. FC',
-      prefix2: 'Power',
-      city: 'Doradal'
-    })
-    expect(splitTeamName('2. FC United Pescara')).toEqual({
-      prefix1: '2. FC',
-      prefix2: 'United',
-      city: 'Pescara'
-    })
-  })
-
-  it('falls back to the generic split for 4-token names without a known compound prefix', () => {
-    expect(splitTeamName('FC Carl Zeiss Jena')).toEqual({
-      prefix1: 'FC Carl',
-      prefix2: 'Zeiss',
-      city: 'Jena'
-    })
-  })
-
-  it('collapses repeated whitespace before splitting', () => {
-    expect(splitTeamName('1. FC  Kaiserslautern')).toEqual({
-      prefix1: '1. FC',
-      prefix2: '',
-      city: 'Kaiserslautern'
-    })
+  it('collapses repeated whitespace', () => {
+    expect(splitTeamNameWords('  1.   FC   Berlin  ')).toEqual(['1.', 'FC', 'Berlin'])
   })
 })
 
-describe('generateEmblem with compound-prefix team names', () => {
-  it('renders the full compound prefix on the emblem instead of just the leading token', () => {
-    const svg = generateEmblem({
-      shape: 'shield',
-      pattern: 'solid',
-      color: '#ea3636',
-      color2: '#0a3b88',
-      teamName: '1. FC Berlin',
-      prefixOnEmblem: true,
-      size: 200
-    })
-    expect(svg).toContain('>1. FC<')
-    expect(svg).not.toMatch(/>1\.<\/text>/)
+describe('resolveWordsOnBanner', () => {
+  it('defaults to all words visible when nothing is stored', () => {
+    expect(resolveWordsOnBanner(['FC', 'Berlin'], {})).toEqual([true, true])
   })
 
-  it('puts the full compound prefix on the banner when prefix1OnBanner is enabled', () => {
+  it('uses the explicit wordsOnBanner array when present', () => {
+    const result = resolveWordsOnBanner(['FC', 'Real', 'Berlin'], { wordsOnBanner: [false, true, true] })
+    expect(result).toEqual([false, true, true])
+  })
+
+  it('extends the wordsOnBanner array with true if it is shorter than the word list', () => {
+    const result = resolveWordsOnBanner(['FC', 'Real', 'Berlin'], { wordsOnBanner: [false, true] })
+    expect(result).toEqual([false, true, true])
+  })
+
+  it('falls back to the legacy prefix flags (last word always on)', () => {
+    expect(resolveWordsOnBanner(['FC', 'Berlin'], { prefix1OnBanner: true })).toEqual([true, true])
+    expect(resolveWordsOnBanner(['FC', 'Berlin'], { prefix1OnBanner: false })).toEqual([false, true])
+    expect(resolveWordsOnBanner(['1.', 'FC', 'Berlin'], { prefix1OnBanner: true, prefix2OnBanner: true })).toEqual([true, true, true])
+    expect(resolveWordsOnBanner(['1.', 'FC', 'Berlin'], { prefix1OnBanner: false, prefix2OnBanner: true })).toEqual([false, true, true])
+  })
+})
+
+describe('generateEmblem banner rendering', () => {
+  it('renders every word on the banner by default', () => {
     const svg = generateEmblem({
       shape: 'shield',
       pattern: 'solid',
       color: '#ea3636',
-      color2: '#0a3b88',
       teamName: '1. FC Berlin',
-      prefix1OnBanner: true,
       size: 200
     })
     expect(svg).toContain('>1. FC BERLIN<')
+  })
+
+  it('honours the wordsOnBanner array', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      teamName: '1. FC Berlin',
+      wordsOnBanner: [false, true, true],
+      size: 200
+    })
+    expect(svg).toContain('>FC BERLIN<')
+    expect(svg).not.toContain('1.')
+  })
+
+  it('falls back to legacy prefix flags when wordsOnBanner is missing', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      teamName: '1. FC Berlin',
+      prefix1OnBanner: true,
+      prefix2OnBanner: false,
+      size: 200
+    })
+    expect(svg).toContain('>1. BERLIN<')
+  })
+
+  it('does not render the large prefix-on-emblem text any more', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      teamName: '1. FC Berlin',
+      size: 200
+    })
+    expect(svg).not.toContain('Prefix inside emblem')
   })
 })

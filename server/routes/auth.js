@@ -6,16 +6,11 @@ import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import sharp from 'sharp'
-import { addLogMessage } from '../helper/logMessageHelper.js'
-import { getSponsor } from '../helper/sponsorHelper.js'
-import { prepareSeason, regenerateTeamData } from '../prepare-season.js'
 import { getSupportedLocales, t } from '../i18n/index.js'
-import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
-import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { isValidEmail, sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js'
 
 const EMAIL_VERIFICATION_TTL_DAYS = 7
@@ -82,22 +77,13 @@ export default {
     if (amount > 0) {
       throw new BadRequestError(t('error.usernameTaken', {}, locale))
     }
-    let [team] = await query('SELECT * FROM team WHERE user_id IS NULL AND is_system_team = 0 ORDER BY level DESC LIMIT 1')
-    if (!team) {
-      // No team available - create new league(s) with prepareSeason and retry
-      await prepareSeason();
-      [team] = await query('SELECT * FROM team WHERE user_id IS NULL AND is_system_team = 0 ORDER BY level DESC LIMIT 1')
-      if (!team) {
-        throw new BadRequestError(t('error.noTeamAvailable', {}, locale))
-      }
-    }
     let verificationToken = null
     let verificationExpires = null
     if (normalizedEmail) {
       verificationToken = crypto.randomBytes(32).toString('hex')
       verificationExpires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_DAYS * 24 * 60 * 60 * 1000)
     }
-    const { insertId: userId } = await query('INSERT INTO user SET ?', {
+    await query('INSERT INTO user SET ?', {
       username,
       password: await hashPassword(password),
       language: locale,
@@ -105,34 +91,6 @@ export default {
       email_verification_token: verificationToken,
       email_verification_expires_at: verificationExpires
     })
-    // Clean up old bot data before assigning team to user
-    await query('DELETE FROM log_message WHERE team_id=?', [team.id])
-    await query('DELETE FROM trade_offer WHERE from_team_id=?', [team.id])
-    await query('DELETE FROM trade_offer WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
-    await addLogMessage(t('log.welcome', {
-      username,
-      teamName: team.name
-    }, locale), team, null, null, 'hand-peace-o', undefined, 'info')
-    await query(`UPDATE team
-                 SET user_id=${userId},
-                     balance=500000
-                 WHERE id = ${team.id}`)
-    const { sponsor } = await getSponsor(team)
-    if (sponsor) {
-      await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
-    }
-    // Regenerate players/stadium/buildings if team was emptied (e.g. after account deletion)
-    await regenerateTeamData(team)
-    await query('DELETE FROM action_card WHERE team_id=?', [team.id])
-    // Give new user 2 starter action cards
-    const { season } = await getGameDayAndSeason()
-    const starterCards = [
-      new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER', played: 0, season }),
-      new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0, season })
-    ]
-    for (const card of starterCards) {
-      await query('INSERT INTO action_card SET ?', card)
-    }
     if (normalizedEmail && verificationToken) {
       sendVerificationEmail({ toEmail: normalizedEmail, token: verificationToken, locale, username })
         .catch(e => console.error('[Auth] sendVerificationEmail failed:', e))

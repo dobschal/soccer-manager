@@ -67,7 +67,7 @@ a:link,
 a:visited,
 .hover-text:not(td) {
     text-decoration: none;
-    color: initial;
+    color: inherit;
     border-bottom: dotted 1px #C0C0C0;
     display: inline-block;
     transition: transform 0.3s ease-in-out;
