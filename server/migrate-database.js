@@ -1890,6 +1890,33 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE statistics ADD COLUMN new_user_count INT NOT NULL DEFAULT 0')
   }
+}, {
+  name: 'Create match_day_recap table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS match_day_recap
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        game_day INT NOT NULL,
+        season INT NOT NULL,
+        level INT NOT NULL,
+        league INT NOT NULL,
+        locale VARCHAR(5) NOT NULL DEFAULT 'en',
+        title VARCHAR(255) NOT NULL,
+        text TEXT NOT NULL,
+        image_player_id BIGINT(20) UNSIGNED DEFAULT NULL,
+        image_team_id BIGINT(20) UNSIGNED DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_recap_lookup (season, game_day, level, league, locale)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`)
+  }
+}, {
+  name: 'Drop news, news_like and news_comment tables',
+  async run () {
+    await query('DROP TABLE IF EXISTS news_comment')
+    await query('DROP TABLE IF EXISTS news_like')
+    await query('DROP TABLE IF EXISTS news')
+  }
 }]
 
 /**

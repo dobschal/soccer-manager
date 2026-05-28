@@ -6,7 +6,7 @@ import { getSalary } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances, deleteExpiredPendingCards } from './helper/actionCardHelper.js'
-import { generateNewsForGameDay } from './helper/newsHelper.js'
+import { generateMatchDayRecapsForGameDay } from './helper/matchDayRecapHelper.js'
 import { completeStadiumConstructions, calculateHomeAttendanceBonus } from './helper/stadiumHelper.js'
 import {
   completeBuildingConstructions,
@@ -83,7 +83,7 @@ export async function calculateGames ({ skipPushNotifications = false } = {}) {
   await _recoverInjuredPlayers()
   await _giveAllPlayersFreshness(season)
   await _processYouthTeams()
-  await generateNewsForGameDay(gameDay, season)
+  await generateMatchDayRecapsForGameDay(gameDay, season)
   await _checkUserTeamsForIssues()
   if (!skipPushNotifications) {
     await sendGameDayPushNotifications(gameDay, season)

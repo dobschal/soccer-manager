@@ -8,6 +8,8 @@ import { CACHE_NAMESPACES, cacheKey, getCached } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
 import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
 import { getTotalRoundsForSeason, calculateInterleavedSchedule } from '../helper/cupHelper.js'
+import { getMatchDayRecap } from '../helper/matchDayRecapHelper.js'
+import { getLocaleFromRequest } from '../i18n/index.js'
 
 export default {
 
@@ -455,6 +457,50 @@ export default {
       isCupGameDay: cupCheck.length > 0,
       cupRound: cupCheck.length > 0 ? cupCheck[0].cup_round : null
     }
+  },
+
+  /**
+   * Returns the auto-generated recap article for a league/match day, plus the
+   * player and team referenced by its featured image (if any).
+   *
+   * @param {number} matchDay - League match day (1..N)
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
+   * @returns {Promise<{recap: object | null, featuredPlayer: object | null, featuredTeam: object | null}>}
+   */
+  async getMatchDayRecap (matchDay, season, level, league, req) {
+    const team = await getTeam(req)
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+    const locale = getLocaleFromRequest(req)
+
+    const [matchRow] = await query(
+      "SELECT game_day FROM game WHERE match_day=? AND season=? AND level=? AND league=? AND (game_type='league' OR game_type IS NULL) LIMIT 1",
+      [matchDay, season, actualLevel, actualLeague]
+    )
+    if (!matchRow) return { recap: null, featuredPlayer: null, featuredTeam: null }
+
+    const recap = await getMatchDayRecap(matchRow.game_day, season, actualLevel, actualLeague, locale)
+    if (!recap) return { recap: null, featuredPlayer: null, featuredTeam: null }
+
+    let featuredPlayer = null
+    let featuredTeam = null
+    if (recap.image_player_id) {
+      const [player] = await query('SELECT * FROM player WHERE id=?', [recap.image_player_id])
+      if (player) {
+        featuredPlayer = player
+        const [playerTeam] = await query('SELECT * FROM team WHERE id=?', [player.team_id])
+        if (playerTeam) featuredTeam = playerTeam
+      }
+    }
+    if (!featuredTeam && recap.image_team_id) {
+      const [t] = await query('SELECT * FROM team WHERE id=?', [recap.image_team_id])
+      if (t) featuredTeam = t
+    }
+
+    return { recap, featuredPlayer, featuredTeam }
   },
 
   /**

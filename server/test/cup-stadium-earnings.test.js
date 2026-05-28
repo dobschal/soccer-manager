@@ -60,8 +60,8 @@ vi.mock('../helper/actionCardHelper.js', () => ({
   deleteExpiredPendingCards: vi.fn()
 }))
 
-vi.mock('../helper/newsHelper.js', () => ({
-  generateNewsForGameDay: vi.fn()
+vi.mock('../helper/matchDayRecapHelper.js', () => ({
+  generateMatchDayRecapsForGameDay: vi.fn()
 }))
 
 vi.mock('../lib/cache.js', () => ({

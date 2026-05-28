@@ -62,9 +62,10 @@ export class LeagueResultsPage extends UIElement {
       isUpcomingGameDay && isMyLeague ? server.getSuspendedPlayers(this.level, this.league) : Promise.resolve({ suspendedPlayers: [] }),
       server.getTeamStats(this.matchDay, this.season, this.level, this.league),
       isUpcomingGameDay && isMyLeague ? server.getInjuredPlayers(this.level, this.league) : Promise.resolve({ injuredPlayers: [] }),
-      server.getLeagueStadiums(this.level, this.league)
+      server.getLeagueStadiums(this.level, this.league),
+      server.getMatchDayRecap(this.matchDay, this.season, this.level, this.league)
     ]
-    const [{ results, isCupGameDay, cupRound }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }, { stadiums }] = await Promise.all(promises)
+    const [{ results, isCupGameDay, cupRound }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }, { stadiums }, recapResponse] = await Promise.all(promises)
     this.results = results
     this.isCupGameDay = isCupGameDay
     this.cupRound = cupRound
@@ -77,6 +78,10 @@ export class LeagueResultsPage extends UIElement {
     this.injuredPlayers = injuredPlayers
     this.teamStats = teamStats || []
     this.stadiums = stadiums || []
+    this.recap = recapResponse?.recap ?? null
+    this.recapFeaturedPlayer = recapResponse?.featuredPlayer ?? null
+    this.recapFeaturedTeam = recapResponse?.featuredTeam ?? null
+    this._recapImage = ''
 
     this._buildManagerChat()
   }
@@ -167,6 +172,7 @@ export class LeagueResultsPage extends UIElement {
       ].join(' ')
     }
   })}
+        ${this._renderRecap()}
         <h3>${t('results.topScorer')}</h3>
         ${new Table({
     cols: [
@@ -279,6 +285,7 @@ export class LeagueResultsPage extends UIElement {
 
   onMounted () {
     this._loadTopScorerImages()
+    this._loadRecapImage()
     this._attachTeamStatsHeaderHandler()
     if (this._managerSvgId && this._teamColor) {
       void loadManagerChatSvg(this._managerSvgId, this._teamColor)
@@ -294,6 +301,10 @@ export class LeagueResultsPage extends UIElement {
   availableLeagues = []
   availableSeasons = []
   availableMatchDays = []
+
+  recap = null
+  recapFeaturedPlayer = null
+  recapFeaturedTeam = null
 
   _teamStatsSortCol = 'squad_value'
   _teamStatsSortDir = -1
@@ -368,6 +379,7 @@ export class LeagueResultsPage extends UIElement {
   async update (reloadData = false) {
     await super.update(reloadData)
     this._loadTopScorerImages()
+    this._loadRecapImage()
     this._attachTeamStatsHeaderHandler()
     if (this._managerSvgId && this._teamColor) {
       void loadManagerChatSvg(this._managerSvgId, this._teamColor)
@@ -508,6 +520,45 @@ export class LeagueResultsPage extends UIElement {
     return {
       level,
       league
+    }
+  }
+
+  _renderRecap () {
+    if (!this.recap) return ''
+    const player = this.recapFeaturedPlayer
+    const team = this.recapFeaturedTeam
+    const linkAttrs = player
+      ? `data-recap-player-id="${player.id}"`
+      : (team ? `data-recap-team-id="${team.id}"` : '')
+    return `
+      <div class="match-day-recap card mb-4 mt-3">
+        <div class="card-body d-flex flex-column flex-md-row gap-3 align-items-start">
+          <div class="match-day-recap-image" ${linkAttrs}></div>
+          <div class="flex-grow-1">
+            <h4 class="card-title mb-2">${this.recap.title}</h4>
+            <p class="mb-0 text-body">${this.recap.text}</p>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  _loadRecapImage () {
+    if (!this.recap) return
+    const container = document.querySelector(`${this._elementQuery} .match-day-recap-image`)
+    if (!container) return
+    const player = this.recapFeaturedPlayer
+    const team = this.recapFeaturedTeam
+    if (player && team) {
+      renderPlayerImage(player, team, 120).then(html => {
+        container.innerHTML = html
+        container.classList.add('u-cursor-pointer')
+        container.addEventListener('click', () => setQueryParams({ player_id: player.id }))
+      })
+    } else if (team) {
+      container.innerHTML = renderEmblem(team, 96)
+      container.classList.add('u-cursor-pointer')
+      container.addEventListener('click', () => goTo(`team?id=${team.id}`))
     }
   }
 

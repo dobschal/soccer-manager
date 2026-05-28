@@ -1,40 +1,36 @@
 /**
- * @typedef {object} NewsType
+ * @typedef {object} MatchDayRecapType
  * @property {number} id
  * @property {number} game_day
  * @property {number} season
  * @property {number} level
  * @property {number} league
- * @property {string} type
+ * @property {string} locale
  * @property {string} title
  * @property {string} text
- * @property {string} locale
- * @property {number} [player_id]
- * @property {number} [team_id]
- * @property {string} [metadata]
+ * @property {number} [image_player_id]
+ * @property {number} [image_team_id]
  * @property {Date} created_at
  */
 
-import { OptionalNumber, OptionalObject, OptionalString, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
+import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
- * @param {NewsType} raw
- * @returns {NewsType}
+ * @param {MatchDayRecapType} raw
+ * @returns {MatchDayRecapType}
  */
-export function News (raw) {
+export function MatchDayRecap (raw) {
   checkType(raw, {
     id: OptionalNumber,
     game_day: RequiredNumber,
     season: RequiredNumber,
     level: RequiredNumber,
     league: RequiredNumber,
-    type: RequiredString,
+    locale: RequiredString,
     title: RequiredString,
     text: RequiredString,
-    locale: RequiredString,
-    player_id: OptionalNumber,
-    team_id: OptionalNumber,
-    metadata: OptionalString,
+    image_player_id: OptionalNumber,
+    image_team_id: OptionalNumber,
     created_at: OptionalObject
   })
   for (const key in raw) {

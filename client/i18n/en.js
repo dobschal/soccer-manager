@@ -163,7 +163,6 @@ export default {
   'dashboard.urgencyOk.sponsor': 'Sponsor deal is active.',
   'dashboard.tabStart': 'Start',
   'dashboard.tabCards': 'Actions',
-  'dashboard.tabNews': 'News',
   'dashboard.tabMessages': 'Messages',
   'dashboard.communityTitle': 'Community-Driven',
   'dashboard.communityText': 'This game is shaped together with you. Submit new feature requests, comment on existing ones, and vote on what should be added next.',
@@ -854,7 +853,7 @@ export default {
   'tutorial.welcome': 'Welcome to FootballManager.IO!',
   'tutorial.welcomeDesc': 'Let\'s take a quick tour of the game. You can skip this tutorial at any time.',
   'tutorial.dashboard': 'Dashboard',
-  'tutorial.dashboardDesc': 'This is your dashboard. Here you can see your latest results, upcoming matches, news, and action cards.',
+  'tutorial.dashboardDesc': 'This is your dashboard. Here you can see your latest results, upcoming matches, messages, and action cards.',
   'tutorial.team': 'Your Team',
   'tutorial.teamDesc': 'Manage your team lineup and formation. Drag players to position them on the field.',
   'tutorial.stadium': 'Stadium',
@@ -897,7 +896,7 @@ export default {
   'tutorial.dashboardPage.item2': 'Use action cards to boost players or earn bonuses',
   'tutorial.dashboardPage.item3': 'Merge two identical cards into a better one',
   'tutorial.dashboardPage.item4': 'Read important messages about your team',
-  'tutorial.dashboardPage.item5': 'See latest news from your league and top transfers',
+  'tutorial.dashboardPage.item5': 'Chat with other managers in the forum',
   'tutorial.stadiumPage.title': 'Stadium Management',
   'tutorial.stadiumPage.subtitle': 'Expand and earn revenue',
   'tutorial.stadiumPage.item1': 'Set ticket prices for each stand',
@@ -931,17 +930,6 @@ export default {
   'log.delete': 'Delete',
   'log.viewMore': 'View More',
   'log.loadMore': 'Load More',
-
-  // News
-  'news.title': 'News',
-  'news.noNews': 'No news available...',
-  'news.viewPlayer': 'View player',
-  'news.viewTeam': 'View team',
-  'news.like': 'Like',
-  'news.likedTitle': 'Your Liked News',
-  'news.comments': 'Comments',
-  'news.noComments': 'No comments yet. Be the first!',
-  'news.commentPlaceholder': 'Write a comment...',
 
   // Toast messages
   'toast.success': 'Success!',

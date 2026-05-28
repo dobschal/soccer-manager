@@ -25,7 +25,7 @@ vi.mock('../helper/actionCardHelper.js', () => ({
   actionCardChances: {},
   deleteExpiredPendingCards: vi.fn()
 }))
-vi.mock('../helper/newsHelper.js', () => ({ generateNewsForGameDay: vi.fn() }))
+vi.mock('../helper/matchDayRecapHelper.js', () => ({ generateMatchDayRecapsForGameDay: vi.fn() }))
 vi.mock('../helper/seasonTitleHelper.js', () => ({
   recordCupWinnerForSeason: vi.fn(),
   recordLeagueChampionsForSeason: vi.fn()
