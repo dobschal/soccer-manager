@@ -23,9 +23,13 @@ vi.mock('../../helper/standingHelper.js', () => ({
   saveStandingToCache: vi.fn()
 }))
 
-vi.mock('../../helper/cupHelper.js', () => ({
-  getTotalRoundsForSeason: vi.fn()
-}))
+vi.mock('../../helper/cupHelper.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    getTotalRoundsForSeason: vi.fn()
+  }
+})
 
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
@@ -138,14 +142,17 @@ describe('results routes', () => {
       expect(result.season).toBe(2)
       expect(result.currentGameDay).toBe(3)
       expect(result.totalCupRounds).toBe(3)
-      expect(result.schedule).toHaveLength(4)
+      // 4 actual entries + 1 placeholder for the undrawn final (cupRound=1)
+      expect(result.schedule).toHaveLength(5)
 
-      // Sorted by gameDay
-      expect(result.schedule.map(e => ({ type: e.type, gameDay: e.gameDay }))).toEqual([
-        { type: 'league', gameDay: 1 },
-        { type: 'cup', gameDay: 2 },
-        { type: 'league', gameDay: 5 },
-        { type: 'cup_round', gameDay: 6 }
+      // Sorted by gameDay; the undrawn final gets its predicted game_day from
+      // the interleaved cup schedule.
+      expect(result.schedule.map(e => ({ type: e.type, gameDay: e.gameDay, cupRound: e.cupRound }))).toEqual([
+        { type: 'league', gameDay: 1, cupRound: undefined },
+        { type: 'cup', gameDay: 2, cupRound: 4 },
+        { type: 'league', gameDay: 5, cupRound: undefined },
+        { type: 'cup_round', gameDay: 6, cupRound: 2 },
+        { type: 'cup_round', gameDay: 35, cupRound: 1 }
       ])
 
       // Played league game has played=true, no gameDate
@@ -156,12 +163,44 @@ describe('results routes', () => {
       expect(result.schedule[2].played).toBe(false)
       expect(result.schedule[2].gameDate).toBe(result.nextGameDate)
 
-      // Cup-round placeholder is unplayed (team not in this round) and has gameDate from index 1
+      // Cup-round placeholder for an existing-but-not-our round (team not in this round)
       const placeholder = result.schedule[3]
       expect(placeholder.type).toBe('cup_round')
       expect(placeholder.cupRound).toBe(2)
       expect(placeholder.played).toBe(false)
       expect(placeholder.gameDate).not.toBeNull()
+
+      // Future-round placeholder for the not-yet-drawn final
+      const future = result.schedule[4]
+      expect(future.type).toBe('cup_round')
+      expect(future.cupRound).toBe(1)
+      expect(future.played).toBe(false)
+      expect(future.gameDate).not.toBeNull()
+    })
+
+    it('adds future cup round placeholders for rounds not yet drawn', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 1 })
+
+      // Only the first round has been drawn so far (cupRound=4 of a 3-round
+      // tournament). The semi-final (2) and final (1) should appear as
+      // placeholders even though no game rows exist for them yet.
+      query
+        .mockResolvedValueOnce([]) // leagueGames
+        .mockResolvedValueOnce([]) // cupGames (user not in cup or no games yet)
+        .mockResolvedValueOnce([{ cupRound: 4, gameDay: 4, allPlayed: 0 }]) // cupRoundsRows
+        .mockResolvedValueOnce([{ game_day: 4 }]) // unplayedDayRows
+        .mockResolvedValueOnce([{ maxRound: 4 }]) // totalRoundsRow
+
+      const req = createMockRequest()
+      const result = await handlers.getMySchedule(undefined, req)
+
+      const cupRoundEntries = result.schedule.filter(e => e.type === 'cup_round')
+      const rounds = cupRoundEntries.map(e => e.cupRound).sort((a, b) => b - a)
+      expect(rounds).toEqual([4, 2, 1])
+      expect(cupRoundEntries.every(e => e.played === false)).toBe(true)
+      expect(cupRoundEntries.every(e => e.gameDate != null)).toBe(true)
     })
 
     it('returns empty schedule when team has no games', async () => {

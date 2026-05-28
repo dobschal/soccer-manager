@@ -7,7 +7,7 @@ import { getCachedStanding, saveStandingToCache } from '../helper/standingHelper
 import { CACHE_NAMESPACES, cacheKey, getCached } from '../lib/cache.js'
 import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHelper.js'
 import { getTeamStatsFromCache } from '../helper/teamStatsHelper.js'
-import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
+import { getTotalRoundsForSeason, calculateInterleavedSchedule } from '../helper/cupHelper.js'
 
 export default {
 
@@ -773,8 +773,9 @@ export default {
       )
     ])
 
-    const totalCupRounds = totalRoundsRow[0]?.maxRound
-      ? Math.log2(totalRoundsRow[0].maxRound) + 1
+    const maxRound = totalRoundsRow[0]?.maxRound ?? 0
+    const totalCupRounds = maxRound
+      ? Math.log2(maxRound) + 1
       : 0
 
     const unplayedDays = unplayedDayRows.map(r => r.game_day)
@@ -790,16 +791,39 @@ export default {
       nextTick.setSeconds(59)
     }
 
+    const cupRoundsByGameDay = new Map()
+    const cupRoundsByRound = new Map()
+    for (const r of cupRoundsRows) {
+      cupRoundsByGameDay.set(r.gameDay, { cupRound: r.cupRound, allPlayed: r.allPlayed === 1 })
+      cupRoundsByRound.set(r.cupRound, { gameDay: r.gameDay, allPlayed: r.allPlayed === 1 })
+    }
+
+    // Cup rounds that haven't been drawn yet (e.g. quarter-final while we're still
+    // in round 1) have no game row. Predict their game_day from the original
+    // interleaved schedule so the user can see all upcoming rounds. teamCount only
+    // affects the schedule via log2(teamCount) rounded up — any value in
+    // (maxRound, maxRound*2] gives the same rounds, so maxRound+1 is safe.
+    const futureCupRounds = []
+    if (maxRound > 0) {
+      const leagueGameDays = 34
+      const { cupGameDays: predictedCupGameDays } = calculateInterleavedSchedule(maxRound + 1, leagueGameDays)
+      for (let round = maxRound; round >= 1; round = round / 2) {
+        if (cupRoundsByRound.has(round)) continue
+        const predictedGameDay = predictedCupGameDays.get(round)
+        if (predictedGameDay == null) continue
+        futureCupRounds.push({ round, gameDay: predictedGameDay })
+        if (!unplayedDays.includes(predictedGameDay)) {
+          unplayedDays.push(predictedGameDay)
+        }
+      }
+      unplayedDays.sort((a, b) => a - b)
+    }
+
     const computeGameDate = (gameDay) => {
       const idx = unplayedDays.indexOf(gameDay)
       if (idx < 0) return null
       const d = new Date(nextTick.getTime() + idx * tickMs)
       return d.toISOString()
-    }
-
-    const cupRoundsByGameDay = new Map()
-    for (const r of cupRoundsRows) {
-      cupRoundsByGameDay.set(r.gameDay, { cupRound: r.cupRound, allPlayed: r.allPlayed === 1 })
     }
 
     const cupGameDaysWithMyGame = new Set(cupGames.map(g => g.gameDay))
@@ -847,6 +871,18 @@ export default {
         cupRound: info.cupRound,
         played: info.allPlayed,
         gameDate: info.allPlayed ? null : computeGameDate(gameDay)
+      })
+    }
+
+    // Add placeholders for cup rounds that haven't been drawn yet so the user
+    // sees the full bracket on the schedule, regardless of participation.
+    for (const { round, gameDay } of futureCupRounds) {
+      entries.push({
+        type: 'cup_round',
+        gameDay,
+        cupRound: round,
+        played: false,
+        gameDate: computeGameDate(gameDay)
       })
     }
 
