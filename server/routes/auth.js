@@ -470,10 +470,6 @@ export default {
 
     await transaction(async (txQuery) => {
       if (team) {
-        // Delete news interactions
-        await txQuery('DELETE FROM news_comment WHERE user_id=?', [userId])
-        await txQuery('DELETE FROM news_like WHERE user_id=?', [userId])
-
         // Delete player-related data
         await txQuery('DELETE FROM player_history WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
         await txQuery('DELETE FROM player_season_stats WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])

@@ -163,7 +163,6 @@ export default {
   'dashboard.urgencyOk.sponsor': 'Sponsorvertrag ist aktiv.',
   'dashboard.tabStart': 'Start',
   'dashboard.tabCards': 'Aktionen',
-  'dashboard.tabNews': 'News',
   'dashboard.tabMessages': 'Nachrichten',
   'dashboard.communityTitle': 'Community-Driven',
   'dashboard.communityText': 'Dieses Spiel wird gemeinsam mit dir entwickelt. Reiche neue Feature-Wünsche ein, kommentiere bestehende Vorschläge und stimme darüber ab, was als Nächstes ins Spiel kommt.',
@@ -854,7 +853,7 @@ export default {
   'tutorial.welcome': 'Willkommen bei FootballManager.IO!',
   'tutorial.welcomeDesc': 'Lass uns eine kurze Tour durch das Spiel machen. Du kannst dieses Tutorial jederzeit überspringen.',
   'tutorial.dashboard': 'Dashboard',
-  'tutorial.dashboardDesc': 'Das ist dein Dashboard. Hier siehst du deine letzten Ergebnisse, kommende Spiele, Nachrichten und Aktionskarten.',
+  'tutorial.dashboardDesc': 'Das ist dein Dashboard. Hier siehst du deine letzten Ergebnisse, kommende Spiele, Mitteilungen und Aktionskarten.',
   'tutorial.team': 'Dein Team',
   'tutorial.teamDesc': 'Verwalte deine Aufstellung und Formation. Ziehe Spieler, um sie auf dem Feld zu positionieren.',
   'tutorial.stadium': 'Stadion',
@@ -897,7 +896,7 @@ export default {
   'tutorial.dashboardPage.item2': 'Nutze Aktionskarten, um Spieler zu verbessern oder Boni zu erhalten',
   'tutorial.dashboardPage.item3': 'Verschmelze zwei identische Karten zu einer besseren',
   'tutorial.dashboardPage.item4': 'Lies wichtige Nachrichten über dein Team',
-  'tutorial.dashboardPage.item5': 'Sieh die neuesten News aus deiner Liga und Top-Transfers',
+  'tutorial.dashboardPage.item5': 'Chatte im Forum mit anderen Managern',
   'tutorial.stadiumPage.title': 'Stadionverwaltung',
   'tutorial.stadiumPage.subtitle': 'Erweitern und Einnahmen erzielen',
   'tutorial.stadiumPage.item1': 'Lege Ticketpreise für jede Tribüne fest',
@@ -931,17 +930,6 @@ export default {
   'log.delete': 'Löschen',
   'log.viewMore': 'Mehr anzeigen',
   'log.loadMore': 'Mehr laden',
-
-  // News
-  'news.title': 'Neuigkeiten',
-  'news.noNews': 'Keine Neuigkeiten verfügbar...',
-  'news.viewPlayer': 'Spieler ansehen',
-  'news.viewTeam': 'Team ansehen',
-  'news.like': 'Gefällt mir',
-  'news.likedTitle': 'Deine Favoriten',
-  'news.comments': 'Kommentare',
-  'news.noComments': 'Noch keine Kommentare. Sei der Erste!',
-  'news.commentPlaceholder': 'Kommentar schreiben...',
 
   // Toast messages
   'toast.success': 'Erfolg!',

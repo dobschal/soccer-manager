@@ -90,14 +90,6 @@ vi.mock('../../lib/htmlEventHandlers.js', () => ({
   onClick: vi.fn()
 }))
 
-vi.mock('../../pages/dashboard/news.js', () => ({
-  News: class {
-    toString () {
-      return '<div>News</div>'
-    }
-  }
-}))
-
 vi.mock('../../pages/dashboard/actionCards.js', () => ({
   ActionCards: class {
     async load () {
@@ -258,22 +250,19 @@ describe('DashboardPage', () => {
       expect(page.template).toContain('#dashboard?sub_page=cards')
       expect(page.template).toContain('#dashboard?sub_page=forum')
       expect(page.template).toContain('#dashboard?sub_page=search')
-      expect(page.template).toContain('#dashboard?sub_page=news')
       expect(page.template).toContain('#dashboard?sub_page=messages')
     })
 
-    it('orders News and Messages tabs after Forum and Search', async () => {
+    it('orders Messages tab after Forum and Search', async () => {
       const page = new DashboardPage()
       await page.load()
       const html = page.template
       const forumIdx = html.indexOf('#dashboard?sub_page=forum')
       const searchIdx = html.indexOf('#dashboard?sub_page=search')
-      const newsIdx = html.indexOf('#dashboard?sub_page=news')
       const messagesIdx = html.indexOf('#dashboard?sub_page=messages')
       expect(forumIdx).toBeGreaterThan(0)
       expect(searchIdx).toBeGreaterThan(forumIdx)
-      expect(newsIdx).toBeGreaterThan(searchIdx)
-      expect(messagesIdx).toBeGreaterThan(newsIdx)
+      expect(messagesIdx).toBeGreaterThan(searchIdx)
     })
 
     it('template renders forum sub-page when sub_page=forum', async () => {

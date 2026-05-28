@@ -1,5 +1,4 @@
 import { server } from '../lib/gateway.js'
-import { News } from './dashboard/news.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from './dashboard/actionCards.js'
@@ -129,7 +128,6 @@ export class DashboardPage extends TabbedPage {
           <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''} position-relative" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this._renderCardBadge()}</a>
           <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
           <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#dashboard?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
-          <a class="nav-link ${this.subPage === 'news' ? 'active' : ''}" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
           <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''} position-relative" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}${this._renderMessageBadge()}</a>
         </nav>
 
@@ -217,7 +215,6 @@ export class DashboardPage extends TabbedPage {
   createSubPage (key) {
     switch (key) {
       case 'cards': return new ActionCards()
-      case 'news': return new News()
       case 'messages': return new LogMessages()
       case 'forum': return new ForumPage()
       case 'search': return new SearchPanel()

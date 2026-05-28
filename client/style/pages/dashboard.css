@@ -37,16 +37,6 @@
     border-radius: 0;
 }
 
-/* News Item */
-.news-image-col {
-    background: linear-gradient(135deg, #dedede 0%, #f3f3f3 100%);
-    border-radius: 8px;
-}
-
-.news-text {
-    font-size: 0.9em;
-}
-
 /* Finances Header */
 .finances-header {
     display: flex;

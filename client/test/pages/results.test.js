@@ -13,6 +13,7 @@ vi.mock('../../lib/gateway.js', () => ({
     getInjuredPlayers: vi.fn(),
     getTeamStats: vi.fn(),
     getLeagueStadiums: vi.fn(),
+    getMatchDayRecap: vi.fn(),
     getResultsFilters: vi.fn(),
     getAvailableCupSeasons: vi.fn(),
     getCupRounds: vi.fn(),
@@ -71,6 +72,7 @@ describe('ResultsPage', () => {
     server.getInjuredPlayers.mockResolvedValue({ injuredPlayers: [] })
     server.getTeamStats.mockResolvedValue({ teamStats: [] })
     server.getLeagueStadiums.mockResolvedValue({ stadiums: [] })
+    server.getMatchDayRecap.mockResolvedValue({ recap: null, featuredPlayer: null, featuredTeam: null })
     server.getResultsFilters.mockResolvedValue({
       leagues: [{ level: 0, league: 0 }, { level: 1, league: 0 }, { level: 1, league: 1 }, { level: 2, league: 0 }],
       seasons: [0, 1, 2],

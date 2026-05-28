@@ -122,8 +122,6 @@ export default {
 
     await transaction(async (txQuery) => {
       if (team) {
-        await txQuery('DELETE FROM news_comment WHERE user_id=?', [user.id])
-        await txQuery('DELETE FROM news_like WHERE user_id=?', [user.id])
         await txQuery('DELETE FROM player_history WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
         await txQuery('DELETE FROM player_season_stats WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
         await txQuery('DELETE FROM trade_history WHERE from_team_id=? OR to_team_id=?', [team.id, team.id])

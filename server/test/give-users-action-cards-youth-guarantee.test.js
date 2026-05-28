@@ -25,7 +25,7 @@ vi.mock('../helper/youthPlayerHelper.js', () => ({ processYouthTraining: vi.fn()
 vi.mock('../helper/standingHelper.js', () => ({ cacheStandingsForGameDay: vi.fn() }))
 vi.mock('../helper/teamStatsHelper.js', () => ({ cacheTeamStatsForGameDay: vi.fn() }))
 vi.mock('../helper/playerStatsHelper.js', () => ({ cachePlayerStatsForGameDay: vi.fn() }))
-vi.mock('../helper/newsHelper.js', () => ({ generateNewsForGameDay: vi.fn() }))
+vi.mock('../helper/matchDayRecapHelper.js', () => ({ generateMatchDayRecapsForGameDay: vi.fn() }))
 vi.mock('../helper/seasonTitleHelper.js', () => ({
   recordCupWinnerForSeason: vi.fn(),
   recordLeagueChampionsForSeason: vi.fn()

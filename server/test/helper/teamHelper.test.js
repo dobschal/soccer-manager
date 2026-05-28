@@ -17,24 +17,18 @@ describe('cleanupInactiveUsers', () => {
     query.mockResolvedValueOnce([
       { user_id: 42, team_id: 7 }
     ])
-    // UPDATE team, DELETE news_comment, DELETE news_like, DELETE user
-    query.mockResolvedValueOnce({})
-    query.mockResolvedValueOnce({})
+    // UPDATE team, DELETE user
     query.mockResolvedValueOnce({})
     query.mockResolvedValueOnce({})
 
     await cleanupInactiveUsers()
 
     // First call: the SELECT for inactive users
-    expect(query).toHaveBeenCalledTimes(5)
+    expect(query).toHaveBeenCalledTimes(3)
     expect(query.mock.calls[1][0]).toContain('UPDATE team SET user_id = NULL')
     expect(query.mock.calls[1][1]).toEqual([7])
-    expect(query.mock.calls[2][0]).toContain('DELETE FROM news_comment')
+    expect(query.mock.calls[2][0]).toContain('DELETE FROM user')
     expect(query.mock.calls[2][1]).toEqual([42])
-    expect(query.mock.calls[3][0]).toContain('DELETE FROM news_like')
-    expect(query.mock.calls[3][1]).toEqual([42])
-    expect(query.mock.calls[4][0]).toContain('DELETE FROM user')
-    expect(query.mock.calls[4][1]).toEqual([42])
     expect(clearUserCache).toHaveBeenCalledWith(42)
   })
 
@@ -43,21 +37,21 @@ describe('cleanupInactiveUsers', () => {
       { user_id: 1, team_id: 10 },
       { user_id: 2, team_id: 20 }
     ])
-    // 4 queries per user
-    for (let i = 0; i < 8; i++) {
+    // 2 queries per user
+    for (let i = 0; i < 4; i++) {
       query.mockResolvedValueOnce({})
     }
 
     await cleanupInactiveUsers()
 
-    // 1 SELECT + 4 per user = 9
-    expect(query).toHaveBeenCalledTimes(9)
+    // 1 SELECT + 2 per user = 5
+    expect(query).toHaveBeenCalledTimes(5)
     expect(clearUserCache).toHaveBeenCalledWith(1)
     expect(clearUserCache).toHaveBeenCalledWith(2)
 
     // Verify both teams were set to bot
     expect(query.mock.calls[1][1]).toEqual([10])
-    expect(query.mock.calls[5][1]).toEqual([20])
+    expect(query.mock.calls[3][1]).toEqual([20])
   })
 
   it('should not delete any users when none are inactive', async () => {
@@ -86,8 +80,6 @@ describe('cleanupInactiveUsers', () => {
     query.mockResolvedValueOnce([
       { user_id: 5, team_id: 99 }
     ])
-    query.mockResolvedValueOnce({})
-    query.mockResolvedValueOnce({})
     query.mockResolvedValueOnce({})
     query.mockResolvedValueOnce({})
 

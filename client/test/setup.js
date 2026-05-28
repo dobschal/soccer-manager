@@ -177,14 +177,6 @@ export const testData = {
     season: 0,
     details: '{}',
     ...overrides
-  }),
-
-  newsArticle: (overrides = {}) => ({
-    id: 1,
-    title: 'Test News',
-    text: 'This is test news content',
-    playerId: null,
-    ...overrides
   })
 }
 
