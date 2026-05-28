@@ -118,6 +118,9 @@ export default {
   'chooseTeam.confirmYes': 'Übernehmen',
   'chooseTeam.confirmNo': 'Abbrechen',
   'chooseTeam.value': 'Geschätzter Wert',
+  'chooseTeam.filterLeague': 'Liga filtern',
+  'chooseTeam.filterAll': 'Alle Ligen',
+  'chooseTeam.noTeamsInLeague': 'In dieser Liga sind aktuell keine Teams verfügbar.',
 
   // Dashboard
   'dashboard.hey': 'Hey',
@@ -1179,6 +1182,7 @@ export default {
   'admin.statisticsMonthlyActiveUsers': 'MAU',
   'admin.statisticsActiveUsersChartTitle': 'Aktive Nutzer',
   'admin.statisticsTotalUserCount': 'Nutzer gesamt',
+  'admin.statisticsNewUsers': 'new',
   'admin.statisticsInGameMoney': 'Spielgeld',
   'admin.statisticsPlayerCount': 'Spieler',
   'admin.statisticsAvgPlayerLevel': 'Ø Level',
