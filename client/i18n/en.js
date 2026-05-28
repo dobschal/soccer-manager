@@ -1182,6 +1182,7 @@ export default {
   'admin.statisticsMonthlyActiveUsers': 'MAU',
   'admin.statisticsActiveUsersChartTitle': 'Active Users',
   'admin.statisticsTotalUserCount': 'Total Users',
+  'admin.statisticsNewUsers': 'new',
   'admin.statisticsInGameMoney': 'In-Game Money',
   'admin.statisticsPlayerCount': 'Players',
   'admin.statisticsAvgPlayerLevel': 'Avg. Level',

@@ -1885,6 +1885,11 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE team ADD COLUMN short_name VARCHAR(32) DEFAULT NULL')
   }
+}, {
+  name: 'Add new_user_count column to statistics',
+  async run () {
+    await query('ALTER TABLE statistics ADD COLUMN new_user_count INT NOT NULL DEFAULT 0')
+  }
 }]
 
 /**

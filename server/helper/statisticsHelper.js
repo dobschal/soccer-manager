@@ -27,6 +27,10 @@ export async function collectStatistics () {
     'SELECT COUNT(*) AS total_user_count FROM user'
   )
 
+  const [{ new_user_count: newUserCount }] = await query(
+    'SELECT COUNT(*) AS new_user_count FROM user WHERE created_at > NOW() - INTERVAL 1 DAY'
+  )
+
   const [{ in_game_money: inGameMoney }] = await query(
     'SELECT COALESCE(SUM(balance), 0) AS in_game_money FROM team WHERE user_id IS NOT NULL'
   )
@@ -53,6 +57,7 @@ export async function collectStatistics () {
     weekly_active_users: Number(weeklyActiveUsers) || 0,
     monthly_active_users: Number(monthlyActiveUsers) || 0,
     total_user_count: Number(totalUserCount) || 0,
+    new_user_count: Number(newUserCount) || 0,
     in_game_money: Number(inGameMoney) || 0,
     player_count: Number(playerCount) || 0,
     avg_player_level: Number(Number(avgPlayerLevel).toFixed(2)) || 0,
@@ -78,7 +83,7 @@ export async function getStatistics ({ limit = 30, offset = 0 } = {}) {
 
   const rows = await query(
     `SELECT id, daily_active_users, weekly_active_users, monthly_active_users, total_user_count,
-            in_game_money, player_count, avg_player_level, avg_player_age,
+            new_user_count, in_game_money, player_count, avg_player_level, avg_player_age,
             action_card_count, created_at
      FROM statistics
      ORDER BY created_at DESC, id DESC

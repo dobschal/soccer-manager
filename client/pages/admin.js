@@ -47,6 +47,7 @@ export class AdminPage extends UIElement {
         <td>${s.weekly_active_users ?? 0}</td>
         <td>${s.monthly_active_users ?? 0}</td>
         <td>${s.total_user_count ?? 0}</td>
+        <td>${s.new_user_count ?? 0}</td>
         <td>${this._formatMoney(s.in_game_money)}</td>
         <td>${s.player_count}</td>
         <td>${Number(s.avg_player_level).toFixed(2)}</td>
@@ -155,6 +156,7 @@ export class AdminPage extends UIElement {
                   <th>${t('admin.statisticsWeeklyActiveUsers')}</th>
                   <th>${t('admin.statisticsMonthlyActiveUsers')}</th>
                   <th>${t('admin.statisticsTotalUserCount')}</th>
+                  <th>${t('admin.statisticsNewUsers')}</th>
                   <th>${t('admin.statisticsInGameMoney')}</th>
                   <th>${t('admin.statisticsPlayerCount')}</th>
                   <th>${t('admin.statisticsAvgPlayerLevel')}</th>
