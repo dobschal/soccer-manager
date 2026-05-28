@@ -1,6 +1,6 @@
 import { server } from '../lib/gateway.js'
 import { value } from '../lib/html.js'
-import { goTo, setQueryParams } from '../lib/router.js'
+import { clearHasTeamCache, goTo, setQueryParams } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
 import { UIElement } from '../lib/UIElement.js'
 import { t } from '../i18n/index.js'
@@ -198,12 +198,14 @@ export class LandingPage extends UIElement {
         <div class="form-group mb-3 ${this.isLogin ? 'hidden' : ''}" id="email-area">
           <label for="email-input">${t('landing.email')}</label>
           <input class="form-control" id="email-input" name="email" type="email" placeholder="${t('landing.enterEmail')}" autocomplete="email">
-          <small class="form-text text-white-50">${t('landing.emailHint')}</small>
         </div>
         <div class="form-group mb-3">
           <label for="password-input">${t('landing.password')}</label>
           <input class="form-control" id="password-input" name="password" type="password" placeholder="${t('landing.enterPassword')}" autocomplete="${this.isLogin ? 'current-password' : 'new-password'}">
         </div>
+        ${this.isLogin
+    ? ''
+    : `<p class="small text-white-50 mb-2">${t('landing.privacyConsent')}</p>`}
         <button class="btn btn-success w-100 mb-2" type="submit">
           ${this.isLogin ? t('landing.loginBtn') : t('landing.createAccountBtn')}
         </button>
@@ -277,11 +279,13 @@ export class LandingPage extends UIElement {
         // Auto-login after successful registration
         const { token } = await server.login(username, password, 'web')
         window.localStorage.setItem('auth-token', token)
+        clearHasTeamCache()
         connectWebSocket()
         goTo('')
       } else {
         const { token } = await server.login(username, password, 'web')
         window.localStorage.setItem('auth-token', token)
+        clearHasTeamCache()
         connectWebSocket()
         goTo('')
         toast(t('landing.loginSuccess'), 'success')

@@ -11,13 +11,19 @@ import {
   EMBLEM_SHAPES,
   generateEmblem,
   parseEmblemParams,
-  splitTeamName
+  resolveWordsOnBanner,
+  splitTeamNameWords
 } from '../../util/emblemGenerator.js'
 import { t } from '../../i18n/index.js'
 import { calculateMarketValue, calculatePlayerAge, getSalary } from '../../util/player.js'
 import { euroFormat } from '../../lib/currency.js'
 import { formatLeague } from '../../util/league.js'
+import { shortenTeamName } from '../../util/team.js'
 import { formatDate } from '../../lib/date.js'
+
+const MAX_WORD_LENGTH = 12
+const MAX_NAME_LENGTH = 32
+const MAX_SHORT_NAME_LENGTH = 12
 
 export class ClubInfoPage extends UIElement {
   /**
@@ -267,20 +273,12 @@ export class ClubInfoPage extends UIElement {
     let selectedPattern = currentParams.pattern
     let selectedColor = currentParams.color
     let selectedColor2 = currentParams.color2 || EMBLEM_COLORS[1]
-    const { prefix1, prefix2 } = splitTeamName(this.team.name)
-    const hasPrefix1 = !!prefix1
-    const hasPrefix2 = !!prefix2
-    const emblemPrefixLabel = prefix1 || prefix2
-    const hasEmblemPrefix = !!emblemPrefixLabel
-    let selectedPrefixOnEmblem = hasEmblemPrefix && !!currentParams.prefixOnEmblem
-    let selectedPrefix1OnBanner = hasPrefix1 && !!currentParams.prefix1OnBanner
-    let selectedPrefix2OnBanner = hasPrefix2 && !!currentParams.prefix2OnBanner
+    const nameWords = splitTeamNameWords(this.team.name)
+    const wordsOnBanner = resolveWordsOnBanner(nameWords, currentParams)
 
     const previewId = generateId()
     const saveButtonId = generateId()
-    const prefixOnEmblemId = generateId()
-    const prefix1OnBannerId = generateId()
-    const prefix2OnBannerId = generateId()
+    const wordCheckboxIds = nameWords.map(() => generateId())
 
     const updatePreview = () => {
       const previewEl = el(previewId)
@@ -290,9 +288,7 @@ export class ClubInfoPage extends UIElement {
           pattern: selectedPattern,
           color: selectedColor,
           color2: selectedColor2,
-          prefixOnEmblem: selectedPrefixOnEmblem,
-          prefix1OnBanner: selectedPrefix1OnBanner,
-          prefix2OnBanner: selectedPrefix2OnBanner,
+          wordsOnBanner,
           teamName: this.team.name,
           size: 150
         })
@@ -401,9 +397,7 @@ export class ClubInfoPage extends UIElement {
           pattern: selectedPattern,
           color: selectedColor,
           color2: selectedColor2,
-          prefixOnEmblem: selectedPrefixOnEmblem,
-          prefix1OnBanner: selectedPrefix1OnBanner,
-          prefix2OnBanner: selectedPrefix2OnBanner
+          wordsOnBanner
         })
         await server.updateEmblem(emblemParams, selectedColor)
         toast(t('myTeam.emblemUpdated'), 'success')
@@ -416,49 +410,35 @@ export class ClubInfoPage extends UIElement {
       }
     })
 
-    const bindCheckbox = (id, setter) => {
+    wordCheckboxIds.forEach((id, index) => {
       setTimeout(() => {
         const element = el(id)
         if (element) {
           element.addEventListener('change', (e) => {
-            setter(e.target.checked)
+            wordsOnBanner[index] = e.target.checked
             updatePreview()
           })
         }
       }, 100)
-    }
-    if (hasEmblemPrefix) {
-      bindCheckbox(prefixOnEmblemId, (v) => { selectedPrefixOnEmblem = v })
-    }
-    if (hasPrefix1) {
-      bindCheckbox(prefix1OnBannerId, (v) => { selectedPrefix1OnBanner = v })
-    }
-    if (hasPrefix2) {
-      bindCheckbox(prefix2OnBannerId, (v) => { selectedPrefix2OnBanner = v })
-    }
+    })
 
-    const nameDisplaySection = (hasEmblemPrefix || hasPrefix1 || hasPrefix2)
+    const escapeHtml = (str) => String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+
+    const nameDisplaySection = nameWords.length > 0
       ? `
       <h6>${t('myTeam.nameDisplay')}</h6>
       <div class="emblem-editor__section emblem-editor__section--toggles mb-4">
-        ${hasEmblemPrefix
-    ? `<div class="form-check">
-          <input class="form-check-input" type="checkbox" id="${prefixOnEmblemId}" ${selectedPrefixOnEmblem ? 'checked' : ''}>
-          <label class="form-check-label" for="${prefixOnEmblemId}">${t('myTeam.prefixOnEmblem', { prefix: emblemPrefixLabel })}</label>
-        </div>`
-    : ''}
-        ${hasPrefix1
-    ? `<div class="form-check">
-          <input class="form-check-input" type="checkbox" id="${prefix1OnBannerId}" ${selectedPrefix1OnBanner ? 'checked' : ''}>
-          <label class="form-check-label" for="${prefix1OnBannerId}">${t('myTeam.prefix1OnBanner', { prefix: prefix1 })}</label>
-        </div>`
-    : ''}
-        ${hasPrefix2
-    ? `<div class="form-check">
-          <input class="form-check-input" type="checkbox" id="${prefix2OnBannerId}" ${selectedPrefix2OnBanner ? 'checked' : ''}>
-          <label class="form-check-label" for="${prefix2OnBannerId}">${t('myTeam.prefix2OnBanner', { prefix: prefix2 })}</label>
-        </div>`
-    : ''}
+        ${nameWords.map((word, i) => `
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="${wordCheckboxIds[i]}" ${wordsOnBanner[i] ? 'checked' : ''}>
+            <label class="form-check-label" for="${wordCheckboxIds[i]}">${t('myTeam.wordOnBanner', { word: escapeHtml(word) })}</label>
+          </div>
+        `).join('')}
       </div>`
       : ''
 
@@ -472,9 +452,7 @@ export class ClubInfoPage extends UIElement {
   pattern: selectedPattern,
   color: selectedColor,
   color2: selectedColor2,
-  prefixOnEmblem: selectedPrefixOnEmblem,
-  prefix1OnBanner: selectedPrefix1OnBanner,
-  prefix2OnBanner: selectedPrefix2OnBanner,
+  wordsOnBanner,
   teamName: this.team.name,
   size: 150
 })}</div>
@@ -510,25 +488,14 @@ export class ClubInfoPage extends UIElement {
    * @returns {Promise<void>}
    */
   async _showTeamNameEditor () {
-    const nameLibrary = await server.getNameLibrary()
-    const {
-      clubPrefixes1,
-      clubPrefixes2,
-      cityNames
-    } = nameLibrary
-
     const currentName = this.team.name
-    const { prefix1, prefix2, city } = splitTeamName(currentName)
-
-    const selectedPrefix1 = clubPrefixes1.includes(prefix1) ? prefix1 : ''
-    const selectedPrefix2 = clubPrefixes2.includes(prefix2) ? prefix2 : ''
-    const selectedCity = cityNames.includes(city) ? city : ''
-
-    const prefix1SelectId = generateId()
-    const prefix2SelectId = generateId()
-    const citySelectId = generateId()
+    const currentShortName = this.team.short_name ?? ''
+    const inputId = generateId()
+    const shortInputId = generateId()
     const saveButtonId = generateId()
     const previewId = generateId()
+    const errorId = generateId()
+    const shortErrorId = generateId()
 
     const escapeHtml = (str) => String(str)
       .replace(/&/g, '&amp;')
@@ -537,62 +504,63 @@ export class ClubInfoPage extends UIElement {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;')
 
-    const composeName = () => {
-      const prefix1 = el(prefix1SelectId)?.value || ''
-      const prefix2 = el(prefix2SelectId)?.value || ''
-      const city = el(citySelectId)?.value || ''
-      return `${prefix1} ${prefix2} ${city}`.replace(/\s+/g, ' ').trim()
+    const readInput = () => (el(inputId)?.value || '').replace(/\s+/g, ' ').trim()
+    const readShortInput = () => (el(shortInputId)?.value || '').replace(/\s+/g, ' ').trim()
+
+    const validate = (name) => {
+      if (!name) return t('myTeam.nameRequired')
+      if (name.length > MAX_NAME_LENGTH) {
+        return t('myTeam.nameTooLong', { max: MAX_NAME_LENGTH })
+      }
+      const words = name.split(' ')
+      if (words.some(w => w.length > MAX_WORD_LENGTH)) {
+        return t('myTeam.wordTooLong', { max: MAX_WORD_LENGTH })
+      }
+      return ''
+    }
+
+    const validateShort = (shortName) => {
+      if (shortName && shortName.length > MAX_SHORT_NAME_LENGTH) {
+        return t('myTeam.shortNameTooLong', { max: MAX_SHORT_NAME_LENGTH })
+      }
+      return ''
     }
 
     const updatePreview = () => {
+      const name = readInput()
       const previewEl = el(previewId)
-      if (previewEl) {
-        previewEl.textContent = composeName()
-      }
+      if (previewEl) previewEl.textContent = name
+      const errorEl = el(errorId)
+      if (errorEl) errorEl.textContent = name ? validate(name) : ''
+      const shortErrorEl = el(shortErrorId)
+      if (shortErrorEl) shortErrorEl.textContent = validateShort(readShortInput())
     }
 
-    const prefix1Options = clubPrefixes1.map(p =>
-      `<option value="${escapeHtml(p)}" ${p === selectedPrefix1 ? 'selected' : ''}>${escapeHtml(p) || '(none)'}</option>`
-    ).join('')
-
-    const prefix2Options = clubPrefixes2.map(p =>
-      `<option value="${escapeHtml(p)}" ${p === selectedPrefix2 ? 'selected' : ''}>${escapeHtml(p) || '(none)'}</option>`
-    ).join('')
-
-    const sortedCityNames = [...cityNames].sort((a, b) => a.localeCompare(b))
-    let currentLetter = ''
-    const cityOptions = sortedCityNames.map(c => {
-      const firstLetter = c.charAt(0).toUpperCase()
-      let divider = ''
-      if (firstLetter !== currentLetter) {
-        currentLetter = firstLetter
-        divider = `<option disabled>── ${firstLetter} ──</option>`
+    setTimeout(() => {
+      const input = el(inputId)
+      if (input) {
+        input.addEventListener('input', updatePreview)
       }
-      return `${divider}<option value="${escapeHtml(c)}" ${c === selectedCity ? 'selected' : ''}>${escapeHtml(c)}</option>`
-    }).join('')
-
-    const onChangeEl = (query, handler) => {
-      setTimeout(() => {
-        const element = el(query)
-        if (element) element.addEventListener('change', handler)
-      })
-    }
-    onChangeEl(prefix1SelectId, updatePreview)
-    onChangeEl(prefix2SelectId, updatePreview)
-    onChangeEl(citySelectId, updatePreview)
+      const shortInput = el(shortInputId)
+      if (shortInput) {
+        shortInput.addEventListener('input', updatePreview)
+      }
+    }, 100)
 
     onClick(saveButtonId, async () => {
       try {
-        const newName = composeName()
-
-        if (!newName) {
-          toast(t('myTeam.selectNamePart'), 'error')
+        const newName = readInput()
+        const newShortName = readShortInput()
+        const errorMessage = validate(newName) || validateShort(newShortName)
+        if (errorMessage) {
+          toast(errorMessage, 'error')
           return
         }
 
-        await server.updateTeamName(newName)
+        await server.updateTeamName(newName, newShortName)
         toast(t('myTeam.nameUpdated'), 'success')
         this.team.name = newName
+        this.team.short_name = newShortName || null
         await this.update(true)
         overlay.remove()
       } catch (e) {
@@ -612,24 +580,20 @@ export class ClubInfoPage extends UIElement {
       </div>
 
       <div class="form-group mb-3">
-        <label for="${prefix1SelectId}"><h6>${t('myTeam.clubPrefix1')}</h6></label>
-        <select id="${prefix1SelectId}" class="form-control">
-          ${prefix1Options}
-        </select>
+        <label for="${inputId}"><h6>${t('myTeam.teamName')}</h6></label>
+        <input id="${inputId}" type="text" class="form-control" value="${escapeHtml(currentName)}" autocomplete="off" maxlength="${MAX_NAME_LENGTH}">
+        <small class="text-muted">${t('myTeam.teamNameHint', {
+    maxName: MAX_NAME_LENGTH,
+    maxWord: MAX_WORD_LENGTH
+  })}</small>
+        <div id="${errorId}" class="text-danger small mt-1"></div>
       </div>
 
       <div class="form-group mb-3">
-        <label for="${prefix2SelectId}"><h6>${t('myTeam.clubPrefix2')}</h6></label>
-        <select id="${prefix2SelectId}" class="form-control">
-          ${prefix2Options}
-        </select>
-      </div>
-
-      <div class="form-group mb-3">
-        <label for="${citySelectId}"><h6>${t('myTeam.cityName')}</h6></label>
-        <select id="${citySelectId}" class="form-control">
-          ${cityOptions}
-        </select>
+        <label for="${shortInputId}"><h6>${t('myTeam.shortName')}</h6></label>
+        <input id="${shortInputId}" type="text" class="form-control" value="${escapeHtml(currentShortName)}" autocomplete="off" maxlength="${MAX_SHORT_NAME_LENGTH}" placeholder="${escapeHtml(shortenTeamName(currentName))}">
+        <small class="text-muted">${t('myTeam.shortNameHint', { max: MAX_SHORT_NAME_LENGTH })}</small>
+        <div id="${shortErrorId}" class="text-danger small mt-1"></div>
       </div>
 
       <button id="${saveButtonId}" class="btn btn-primary w-100">${t('myTeam.saveTeamName')}</button>

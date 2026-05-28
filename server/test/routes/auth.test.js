@@ -6,26 +6,9 @@ vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-vi.mock('../../helper/logMessageHelper.js', () => ({
-  addLogMessage: vi.fn()
-}))
-
-vi.mock('../../helper/sponsorHelper.js', () => ({
-  getSponsor: vi.fn()
-}))
-
-vi.mock('../../prepare-season.js', () => ({
-  prepareSeason: vi.fn(),
-  regenerateTeamData: vi.fn()
-}))
-
 vi.mock('../../lib/passwordHash.js', () => ({
   hashPassword: vi.fn(p => Promise.resolve(`hashed:${p}`)),
   verifyPassword: vi.fn((p, h) => Promise.resolve(h === `hashed:${p}`))
-}))
-
-vi.mock('../../helper/gameDayHelper.js', () => ({
-  getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 1, season: 1 })
 }))
 
 vi.mock('../../lib/email.js', () => ({
@@ -40,18 +23,13 @@ vi.mock('../../lib/userCache.js', () => ({
 
 // Import after mocking
 import { query } from '../../lib/database.js'
-import { addLogMessage } from '../../helper/logMessageHelper.js'
-import { getSponsor } from '../../helper/sponsorHelper.js'
-import { prepareSeason } from '../../prepare-season.js'
 import { hashPassword } from '../../lib/passwordHash.js'
-import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 1 })
   })
 
   describe('login', () => {
@@ -98,30 +76,25 @@ describe('auth routes', () => {
   })
 
   describe('createAccount', () => {
-    it('creates account successfully when team available', async () => {
-      const team = testData.team({ user_id: null })
+    it('creates the user without assigning a team', async () => {
       query
         .mockResolvedValueOnce([{ amount: 0 }]) // username check
-        .mockResolvedValueOnce([team]) // get available team
         .mockResolvedValueOnce({ insertId: 1 }) // insert user
-        .mockResolvedValueOnce({}) // update team
-        .mockResolvedValueOnce({}) // delete sponsor
-        .mockResolvedValueOnce({}) // delete action cards
-
-      addLogMessage.mockResolvedValue()
-      getSponsor.mockResolvedValue({ sponsor: { id: 1 } })
 
       const req = { locale: 'en' }
       const result = await handlers.createAccount('newuser', 'password123', req)
 
       expect(result).toEqual({ success: true })
-      expect(prepareSeason).not.toHaveBeenCalled()
       expect(query).toHaveBeenCalledWith('SELECT COUNT(*) AS amount FROM user WHERE username=?', 'newuser')
       expect(hashPassword).toHaveBeenCalledWith('password123')
       expect(query).toHaveBeenCalledWith('INSERT INTO user SET ?', expect.objectContaining({
         username: 'newuser',
         password: 'hashed:password123'
       }))
+      // No team-related queries fire during createAccount anymore.
+      const calls = query.mock.calls.map(args => args[0])
+      expect(calls.some(sql => /FROM team/.test(sql))).toBe(false)
+      expect(calls.some(sql => /UPDATE team/.test(sql))).toBe(false)
     })
 
     it('throws BadRequestError for non-string username', async () => {
@@ -144,85 +117,12 @@ describe('auth routes', () => {
         .rejects.toMatchObject({ message: 'Username already taken' })
     })
 
-    it('calls prepareSeason when no team available', async () => {
-      const newTeam = testData.team({ id: 99, user_id: null, name: 'New Team' })
-
-      query
-        .mockResolvedValueOnce([{ amount: 0 }]) // username check
-        .mockResolvedValueOnce([]) // no team available initially
-        .mockResolvedValueOnce([newTeam]) // team available after prepareSeason
-        .mockResolvedValueOnce({ insertId: 1 }) // insert user
-        .mockResolvedValueOnce({}) // update team
-        .mockResolvedValueOnce({}) // delete sponsor
-        .mockResolvedValueOnce({}) // delete action cards
-
-      prepareSeason.mockResolvedValue()
-      addLogMessage.mockResolvedValue()
-      getSponsor.mockResolvedValue({ sponsor: null })
-
-      const req = { locale: 'en' }
-      const result = await handlers.createAccount('newuser', 'password123', req)
-
-      expect(result).toEqual({ success: true })
-      expect(prepareSeason).toHaveBeenCalledTimes(1)
-    })
-
-    it('creates account with team from new league after prepareSeason', async () => {
-      const newTeam = testData.team({ id: 50, user_id: null, name: 'Fresh Team' })
-
-      query
-        .mockResolvedValueOnce([{ amount: 0 }]) // username check
-        .mockResolvedValueOnce([]) // no team available initially
-        .mockResolvedValueOnce([newTeam]) // team available after prepareSeason
-        .mockResolvedValueOnce({ insertId: 5 }) // insert user
-        .mockResolvedValueOnce({}) // update team
-        .mockResolvedValueOnce({}) // delete sponsor
-        .mockResolvedValueOnce({}) // delete action cards
-
-      prepareSeason.mockResolvedValue()
-      addLogMessage.mockResolvedValue()
-      getSponsor.mockResolvedValue({ sponsor: null })
-
-      const req = { locale: 'en' }
-      await handlers.createAccount('newuser', 'password123', req)
-
-      // Verify the team from prepareSeason is used
-      expect(addLogMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Fresh Team'),
-        expect.objectContaining({ id: 50 }),
-        null,
-        null,
-        'hand-peace-o',
-        undefined,
-        'info'
-      )
-    })
-
-    it('throws error if still no team after prepareSeason', async () => {
-      query
-        .mockResolvedValueOnce([{ amount: 0 }]) // username check
-        .mockResolvedValueOnce([]) // no team available initially
-        .mockResolvedValueOnce([]) // still no team after prepareSeason
-
-      prepareSeason.mockResolvedValue()
-
-      const req = { locale: 'en' }
-      await expect(handlers.createAccount('newuser', 'password123', req))
-        .rejects.toMatchObject({ message: 'No team available.' })
-
-      expect(prepareSeason).toHaveBeenCalledTimes(1)
-    })
-
     it('accepts a valid email and sends a verification mail', async () => {
-      const team = testData.team({ user_id: null })
       query
         .mockResolvedValueOnce([]) // emailIsTakenByAnotherUser check
         .mockResolvedValueOnce([{ amount: 0 }]) // username check
-        .mockResolvedValueOnce([team]) // get available team
         .mockResolvedValueOnce({ insertId: 1 }) // insert user
 
-      addLogMessage.mockResolvedValue()
-      getSponsor.mockResolvedValue({ sponsor: null })
       sendVerificationEmail.mockResolvedValue({ sent: true, url: 'x' })
 
       const req = { locale: 'en' }

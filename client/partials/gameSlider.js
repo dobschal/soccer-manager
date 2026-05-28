@@ -4,6 +4,7 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { t } from '../i18n/index.js'
 import { renderGameResult } from './gameResult.js'
 import { showGameModal } from './gameModal.js'
+import { shortenTeamName } from '../util/team.js'
 
 /**
  * Game slider component for displaying past and upcoming games
@@ -74,8 +75,8 @@ export class GameSlider extends UIElement {
       const slideContent = renderGameResult({
         team1: game.team1Data,
         team2: isBye ? null : game.team2Data,
-        team1Name: game.team1 ?? '',
-        team2Name: isBye ? t('cup.bye') : (game.team2 ?? ''),
+        team1Name: shortenTeamName(game.team1 ?? '', game.team1Short),
+        team2Name: isBye ? t('cup.bye') : shortenTeamName(game.team2 ?? '', game.team2Short),
         isTeam1Highlighted: isHomeGame,
         centerContent,
         href,

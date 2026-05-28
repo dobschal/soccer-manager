@@ -88,6 +88,8 @@ export default {
                  g.goals_team_2 as goalsTeam2,
                  t1.name        as team1,
                  t2.name        as team2,
+                 t1.short_name  as team1Short,
+                 t2.short_name  as team2Short,
                  g.team_1_id    as team1Id,
                  g.team_2_id    as team2Id,
                  g.details      as details,
@@ -233,6 +235,8 @@ export default {
                g.goals_team_2 as goalsTeam2,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
                t1.color       as team1Color,
@@ -261,6 +265,8 @@ export default {
                g.goals_team_2 as goalsTeam2,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
                t1.color       as team1Color,
@@ -335,6 +341,8 @@ export default {
                g.goals_team_2 as goalsTeam2,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id
         FROM game g
@@ -409,6 +417,8 @@ export default {
                g.season       as season,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
                g.is_forfeit   as isForfeit,
@@ -461,6 +471,8 @@ export default {
                g.is_forfeit   as isForfeit,
                t1.name        as team1,
                t2.name        as team2,
+               t1.short_name  as team1Short,
+               t2.short_name  as team2Short,
                g.team_1_id    as team1Id,
                g.team_2_id    as team2Id,
                g.details      as details,
@@ -519,7 +531,7 @@ export default {
         // Refresh team display data (name, emblem, color) from database
         const teamIds = cached.filter(s => s.team?.id).map(s => s.team.id)
         if (teamIds.length > 0) {
-          const freshTeams = await query(`SELECT id, name, emblem, color
+          const freshTeams = await query(`SELECT id, name, short_name, emblem, color
                                           FROM team
                                           WHERE id IN (${teamIds.join(', ')})`)
           const teamMap = Object.fromEntries(freshTeams.map(t => [t.id, t]))
@@ -527,6 +539,7 @@ export default {
             const fresh = entry.team?.id ? teamMap[entry.team.id] : null
             if (fresh) {
               entry.team.name = fresh.name
+              entry.team.short_name = fresh.short_name
               entry.team.emblem = fresh.emblem
               entry.team.color = fresh.color
             }
@@ -712,11 +725,13 @@ export default {
                g.played       as played,
                t1.id          as team1Id,
                t1.name        as team1,
+               t1.short_name  as team1Short,
                t1.color       as team1Color,
                t1.emblem      as team1Emblem,
                t1.user_id     as team1UserId,
                t2.id          as team2Id,
                t2.name        as team2,
+               t2.short_name  as team2Short,
                t2.color       as team2Color,
                t2.emblem      as team2Emblem,
                t2.user_id     as team2UserId
@@ -738,11 +753,13 @@ export default {
                g.played       as played,
                t1.id          as team1Id,
                t1.name        as team1,
+               t1.short_name  as team1Short,
                t1.color       as team1Color,
                t1.emblem      as team1Emblem,
                t1.user_id     as team1UserId,
                t2.id          as team2Id,
                t2.name        as team2,
+               t2.short_name  as team2Short,
                t2.color       as team2Color,
                t2.emblem      as team2Emblem,
                t2.user_id     as team2UserId

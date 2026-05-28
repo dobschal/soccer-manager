@@ -1,6 +1,6 @@
 import { server } from '../lib/gateway.js'
 import { value } from '../lib/html.js'
-import { goTo, setQueryParams } from '../lib/router.js'
+import { clearHasTeamCache, goTo, setQueryParams } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
 import { UIElement } from '../lib/UIElement.js'
 import { t } from '../i18n/index.js'
@@ -70,12 +70,14 @@ export class NativeLandingPage extends UIElement {
         <div class="form-group mb-3 ${this.isLogin ? 'hidden' : ''}" id="email-area">
           <label for="email-input">${t('landing.email')}</label>
           <input class="form-control" id="email-input" name="email" type="email" placeholder="${t('landing.enterEmail')}" autocomplete="email">
-          <small class="form-text text-muted">${t('landing.emailHint')}</small>
         </div>
         <div class="form-group mb-3">
           <label for="password-input">${t('landing.password')}</label>
           <input class="form-control" id="password-input" name="password" type="password" placeholder="${t('landing.enterPassword')}" autocomplete="${this.isLogin ? 'current-password' : 'new-password'}">
         </div>
+        ${this.isLogin
+    ? ''
+    : `<p class="small text-muted mb-2">${t('landing.privacyConsent')}</p>`}
         <button class="btn btn-primary w-100 mb-2" type="submit">
           ${this.isLogin ? t('landing.loginBtn') : t('landing.createAccountBtn')}
         </button>
@@ -142,12 +144,14 @@ export class NativeLandingPage extends UIElement {
         toast(t('landing.registrationSuccess'), 'success')
         const { token } = await server.login(username, password, platform)
         window.localStorage.setItem('auth-token', token)
+        clearHasTeamCache()
         connectWebSocket()
         await _registerDeviceToken()
         goTo('')
       } else {
         const { token } = await server.login(username, password, platform)
         window.localStorage.setItem('auth-token', token)
+        clearHasTeamCache()
         connectWebSocket()
         await _registerDeviceToken()
         goTo('')

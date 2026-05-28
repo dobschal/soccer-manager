@@ -1880,6 +1880,11 @@ const migrations = [{
                  WHERE t.user_id IS NULL
                    AND RAND() < 0.25`)
   }
+}, {
+  name: 'Add short_name column to team table',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN short_name VARCHAR(32) DEFAULT NULL')
+  }
 }]
 
 /**

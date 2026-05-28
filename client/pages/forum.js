@@ -24,15 +24,6 @@ export class ForumPage extends UIElement {
   get template () {
     return `
       <div class="forum-page">
-        <nav class="nav nav-pills mb-4">
-          <a class="nav-link" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
-          <a class="nav-link" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}</a>
-          <a class="nav-link" href="#dashboard?sub_page=news"><i class="fa fa-newspaper-o"></i> ${t('dashboard.tabNews')}</a>
-          <a class="nav-link" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}</a>
-          <a class="nav-link active" href="#forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
-          <a class="nav-link" href="#browse"><i class="fa fa-search"></i> ${t('search.title')}</a>
-        </nav>
-
         <div class="forum-notice alert alert-info">
           <i class="fa fa-info-circle"></i>
           The forum language is <strong>English</strong>. Please be respectful and friendly.
@@ -164,14 +155,15 @@ export class ForumPage extends UIElement {
       const data = await server.getForumCategories()
       this._categories = data.categories
       this._latestComments = data.latestComments || []
+      this._latestPosts = data.latestPosts || []
       this._view = 'categories'
     }
   }
 
   _renderBreadcrumb () {
-    let crumbs = `<a href="#forum">${t('forum.title')}</a>`
+    let crumbs = `<a href="#dashboard?sub_page=forum">${t('forum.title')}</a>`
     if (this._view === 'posts' || this._view === 'post') {
-      crumbs += ` <i class="fa fa-chevron-right forum-breadcrumb-sep"></i> <a href="#forum?category=${this._params.category}">${escapeHtml(this._view === 'post' ? (this._post?.category_name || '') : this._category?.name || '')}</a>`
+      crumbs += ` <i class="fa fa-chevron-right forum-breadcrumb-sep"></i> <a href="#dashboard?sub_page=forum&category=${this._params.category}">${escapeHtml(this._view === 'post' ? (this._post?.category_name || '') : this._category?.name || '')}</a>`
     }
     if (this._view === 'post') {
       crumbs += ` <i class="fa fa-chevron-right forum-breadcrumb-sep"></i> <span>${escapeHtml(this._post?.title || '')}</span>`
@@ -199,11 +191,12 @@ export class ForumPage extends UIElement {
     if (!this._categories || this._categories.length === 0) {
       html += `<p class="text-muted">${t('forum.noCategories')}</p>`
     } else {
+      html += `<h6 class="forum-latest-comments-title mb-2">${t('forum.categories')}</h6>`
       html += '<div class="list-group">'
       for (const cat of this._categories) {
         const lastActivity = cat.last_activity ? formatDate('DD.MM.YYYY hh:mm', cat.last_activity) : '-'
         html += `
-          <a href="#forum?category=${cat.id}" class="list-group-item list-group-item-action forum-category-item">
+          <a href="#dashboard?sub_page=forum&category=${cat.id}" class="list-group-item list-group-item-action forum-category-item">
             <div class="d-flex justify-content-between align-items-start">
               <div>
                 <h6 class="mb-1">${escapeHtml(cat.name)}</h6>
@@ -225,7 +218,27 @@ export class ForumPage extends UIElement {
       }
       html += '</div>'
     }
+    html += this._renderLatestPosts()
     html += this._renderLatestComments()
+    return html
+  }
+
+  _renderLatestPosts () {
+    if (!this._latestPosts || this._latestPosts.length === 0) return ''
+    let html = `<h6 class="forum-latest-comments-title mt-4 mb-2">${t('forum.latestPosts')}</h6>`
+    html += '<div class="list-group">'
+    for (const p of this._latestPosts) {
+      const date = formatDate('DD.MM.YYYY hh:mm', p.created_at)
+      const preview = p.text.length > 120 ? p.text.slice(0, 120) + '…' : p.text
+      html += `
+        <a href="#dashboard?sub_page=forum&category=${p.category_id}&post=${p.id}" class="list-group-item list-group-item-action forum-latest-comment-item">
+          <div class="forum-latest-comment-title">${escapeHtml(p.title)}</div>
+          <p class="mb-1 text-muted forum-post-preview">${escapeHtml(preview)}</p>
+          <small class="text-muted">${escapeHtml(p.username)} - ${date}</small>
+        </a>
+      `
+    }
+    html += '</div>'
     return html
   }
 
@@ -237,7 +250,7 @@ export class ForumPage extends UIElement {
       const date = formatDate('DD.MM.YYYY hh:mm', c.created_at)
       const preview = c.text.length > 120 ? c.text.slice(0, 120) + '…' : c.text
       html += `
-        <a href="#forum?category=${c.category_id}&post=${c.post_id}" class="list-group-item list-group-item-action forum-latest-comment-item">
+        <a href="#dashboard?sub_page=forum&category=${c.category_id}&post=${c.post_id}" class="list-group-item list-group-item-action forum-latest-comment-item">
           <div class="forum-latest-comment-title">${escapeHtml(c.post_title)}</div>
           <p class="mb-1 text-muted forum-post-preview">${escapeHtml(preview)}</p>
           <small class="text-muted">${escapeHtml(c.username)} - ${date}</small>
@@ -281,7 +294,7 @@ export class ForumPage extends UIElement {
         const date = formatDate('DD.MM.YYYY hh:mm', post.last_activity || post.created_at)
         const teamName = post.team_id ? `${escapeHtml(post.team_name || '')}` : ''
         html += `
-          <a href="#forum?category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item">
+          <a href="#dashboard?sub_page=forum&category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item">
             <h6 class="mb-1">${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}</h6>
             <p class="mb-1 text-muted forum-post-preview">${escapeHtml(post.text)}</p>
             <p class="forum-meta">

@@ -158,47 +158,42 @@ export function adjustBrightness (hex, percent) {
   return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)
 }
 
-// Leading prefixes from the name library that are spelled with an internal
-// space (e.g. "1. FC Berlin"). Without recognising them explicitly, the
-// generic split misreads "1. FC <city>" as prefix1="1.", prefix2="FC".
-export const COMPOUND_LEADING_PREFIXES = ['1. FC', '2. FC']
+/**
+ * Split a team name into its individual words.
+ * @param {string} teamName
+ * @returns {Array<string>}
+ */
+export function splitTeamNameWords (teamName) {
+  if (!teamName) return []
+  const cleaned = String(teamName).trim().replace(/\s+/g, ' ')
+  if (!cleaned) return []
+  return cleaned.split(' ')
+}
 
 /**
- * Split a generated team name (`prefix1 prefix2 city`) into its parts.
- * Falls back gracefully when one or both prefixes are missing.
- * The last token is always the city, the second-to-last is prefix2, and
- * anything before is prefix1 (which may itself contain spaces, e.g. "1. FC").
- * @param {string} teamName
- * @returns {{prefix1: string, prefix2: string, city: string}}
+ * Resolve which words of a team name should appear on the emblem banner.
+ * - `wordsOnBanner` (new format): array of booleans, one per word.
+ * - Legacy fallback: `prefix1OnBanner` / `prefix2OnBanner` toggled the first
+ *   two words, with the last word (city) always visible.
+ * - Default when nothing is stored: every word visible.
+ * @param {Array<string>} words
+ * @param {Object} [params]
+ * @returns {Array<boolean>}
  */
-export function splitTeamName (teamName) {
-  if (!teamName) return { prefix1: '', prefix2: '', city: '' }
-  const cleaned = teamName.trim().replace(/\s+/g, ' ')
-  if (!cleaned) return { prefix1: '', prefix2: '', city: '' }
-
-  const leading = COMPOUND_LEADING_PREFIXES.find(p =>
-    cleaned === p || cleaned.startsWith(p + ' ')
-  )
-  if (leading) {
-    const rest = cleaned.slice(leading.length).trim()
-    const restParts = rest ? rest.split(' ') : []
-    if (restParts.length === 0) return { prefix1: leading, prefix2: '', city: '' }
-    if (restParts.length === 1) return { prefix1: leading, prefix2: '', city: restParts[0] }
-    return {
-      prefix1: leading,
-      prefix2: restParts.slice(0, -1).join(' '),
-      city: restParts[restParts.length - 1]
-    }
+export function resolveWordsOnBanner (words, params = {}) {
+  if (Array.isArray(params.wordsOnBanner)) {
+    return words.map((_, i) => params.wordsOnBanner[i] !== false)
   }
-
-  const parts = cleaned.split(' ')
-  if (parts.length === 1) return { prefix1: '', prefix2: '', city: parts[0] }
-  if (parts.length === 2) return { prefix1: '', prefix2: parts[0], city: parts[1] }
-  return {
-    prefix1: parts.slice(0, -2).join(' '),
-    prefix2: parts[parts.length - 2],
-    city: parts[parts.length - 1]
+  const hasLegacyFlags = params.prefix1OnBanner !== undefined || params.prefix2OnBanner !== undefined
+  if (hasLegacyFlags) {
+    return words.map((_, i) => {
+      if (i === words.length - 1) return true
+      if (i === 0) return !!params.prefix1OnBanner
+      if (i === words.length - 2) return !!params.prefix2OnBanner
+      return false
+    })
   }
+  return words.map(() => true)
 }
 
 /**
@@ -209,9 +204,9 @@ export function splitTeamName (teamName) {
  * @param {string} options.color - Primary hex color
  * @param {string} [options.color2] - Secondary hex color for pattern
  * @param {string} options.teamName - Team name to display
- * @param {boolean} [options.prefixOnEmblem] - Render the leading prefix (prefix1, falling back to prefix2 for 2-part names) large inside the emblem
- * @param {boolean} [options.prefix1OnBanner] - Include prefix1 on the banner
- * @param {boolean} [options.prefix2OnBanner] - Include prefix2 on the banner
+ * @param {Array<boolean>} [options.wordsOnBanner] - Per-word visibility on the banner (one entry per word in teamName). When absent, every word is shown.
+ * @param {boolean} [options.prefix1OnBanner] - Legacy: include the first word on the banner (last word stays on).
+ * @param {boolean} [options.prefix2OnBanner] - Legacy: include the second-to-last word on the banner.
  * @param {number} [options.size=200] - Size of the emblem
  * @returns {string} SVG string
  */
@@ -221,35 +216,21 @@ export function generateEmblem ({
   color,
   color2,
   teamName,
-  prefixOnEmblem = false,
-  prefix1OnBanner = false,
-  prefix2OnBanner = false,
+  wordsOnBanner,
+  prefix1OnBanner,
+  prefix2OnBanner,
   size = 200
 }) {
   const shapeData = EMBLEM_SHAPES[shape] || EMBLEM_SHAPES.shield
   const patternData = EMBLEM_PATTERNS[pattern] || EMBLEM_PATTERNS.stripes
 
-  const { prefix1, prefix2, city } = splitTeamName(teamName)
-
-  // Banner text: city is always shown; prefixes are opt-in.
-  const bannerParts = []
-  if (prefix1OnBanner && prefix1) bannerParts.push(prefix1)
-  if (prefix2OnBanner && prefix2) bannerParts.push(prefix2)
-  bannerParts.push(city)
-  const bannerText = bannerParts.join(' ').toUpperCase()
+  const words = splitTeamNameWords(teamName)
+  const visibility = resolveWordsOnBanner(words, { wordsOnBanner, prefix1OnBanner, prefix2OnBanner })
+  const bannerText = words.filter((_, i) => visibility[i]).join(' ').toUpperCase()
   // Banner body is ~149px wide; shrink font when the text gets long.
   const bannerFontSize = bannerText.length > 14
     ? Math.max(9, Math.floor((16 * 14) / bannerText.length))
     : 16
-
-  // Large prefix rendered inside the emblem (above the banner).
-  // For 2-part names there's no prefix1, so fall back to prefix2 so the user can still
-  // display their leading prefix (e.g. "FC" in "FC Berlin") large on the crest.
-  const emblemPrefix = prefix1 || prefix2
-  const emblemPrefixText = prefixOnEmblem && emblemPrefix ? emblemPrefix.toUpperCase() : ''
-  const emblemPrefixFontSize = emblemPrefixText
-    ? Math.min(56, Math.floor(112 / emblemPrefixText.length))
-    : 0
 
   // Create unique IDs for this emblem
   const clipId = `clip-${Math.random().toString(36).substr(2, 9)}`
@@ -268,11 +249,6 @@ export function generateEmblem ({
 
   <!-- Shape border -->
   <path d="${shapeData.path}" fill="none" stroke="white" stroke-width="4"/>
-
-  ${emblemPrefixText
-    ? `<!-- Prefix inside emblem -->
-  <text x="100" y="95" font-family="Arial, sans-serif" font-size="${emblemPrefixFontSize}" font-weight="bold" fill="white" stroke="${adjustBrightness(color, -40)}" stroke-width="2" paint-order="stroke" text-anchor="middle" dominant-baseline="central">${emblemPrefixText}</text>`
-    : ''}
 
   <!-- Banner -->
   <g>

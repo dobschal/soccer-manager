@@ -36,10 +36,11 @@ export async function getPlayerAge (player, season) {
  * for every age above you take the amount times 0.85
  * for every level below 100, multiply by 0.9330329915368074 (halves every 10 levels)
  * @param {PlayerType} player
+ * @param {number} [season] - pass to avoid an extra DB roundtrip when looping over many players
  * @returns {Promise<number>} - price in EUR
  */
-export async function getAveragePlanPriceOfPlayer (player) {
-  const age = await getPlayerAge(player)
+export async function getAveragePlanPriceOfPlayer (player, season) {
+  const age = await getPlayerAge(player, season)
   let price = 40_000_000
   for (let a = 22; a < age; a++) {
     price *= 0.85

@@ -2,10 +2,13 @@ import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
-import { cityNames, clubPrefixes1, clubPrefixes2 } from '../lib/name-library.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getTotalRounds } from '../helper/cupHelper.js'
+
+const MAX_TEAM_NAME_WORD_LENGTH = 12
+const MAX_TEAM_NAME_LENGTH = 32
+const MAX_TEAM_SHORT_NAME_LENGTH = 12
 export default {
 
   /**
@@ -73,33 +76,46 @@ export default {
 
   /**
    * @param {string} name - New team name
+   * @param {string|null} [shortName] - Optional user-defined short version of the team name.
+   *   Empty string or null falls back to the auto-derived short name (last word).
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
    */
-  async updateTeamName (name, req) {
+  async updateTeamName (name, shortName, req) {
     const team = await getTeam(req)
-    const [existing] = await query('SELECT id FROM team WHERE name=? AND id<>?', [name, team.id])
+    const cleanedName = typeof name === 'string'
+      ? name.replace(/\s+/g, ' ').trim()
+      : ''
+    if (!cleanedName) {
+      throw new BadRequestError('Team name is required')
+    }
+    if (cleanedName.length > MAX_TEAM_NAME_LENGTH) {
+      throw new BadRequestError(`Team name can be at most ${MAX_TEAM_NAME_LENGTH} characters`)
+    }
+    const words = cleanedName.split(' ')
+    if (words.some(w => w.length > MAX_TEAM_NAME_WORD_LENGTH)) {
+      throw new BadRequestError(`Each word can be at most ${MAX_TEAM_NAME_WORD_LENGTH} characters`)
+    }
+    const cleanedShortName = typeof shortName === 'string'
+      ? shortName.replace(/\s+/g, ' ').trim()
+      : ''
+    if (cleanedShortName.length > MAX_TEAM_SHORT_NAME_LENGTH) {
+      throw new BadRequestError(`Short name can be at most ${MAX_TEAM_SHORT_NAME_LENGTH} characters`)
+    }
+    const [existing] = await query('SELECT id FROM team WHERE name=? AND id<>?', [cleanedName, team.id])
     if (existing) {
       throw new BadRequestError('A team with this name already exists')
     }
-    await query('UPDATE team SET name=? WHERE id=?', [name, team.id])
+    await query(
+      'UPDATE team SET name=?, short_name=? WHERE id=?',
+      [cleanedName, cleanedShortName || null, team.id]
+    )
     // Clear season results cache since team name appears in results
     clearCacheByPrefix(CACHE_NAMESPACES.SEASON_RESULTS)
     // Clear standing cache in database since it stores serialized team names
     const { season } = await getGameDayAndSeason()
     await query('DELETE FROM standing_cache WHERE season=? AND level=? AND league=?', [season, team.level, team.league])
     return { success: true }
-  },
-
-  /**
-   * @returns {Promise<{clubPrefixes1: Array<string>, clubPrefixes2: Array<string>, cityNames: Array<string>}>}
-   */
-  async getNameLibrary () {
-    return {
-      clubPrefixes1: [...new Set(clubPrefixes1)], // Remove duplicates
-      clubPrefixes2: [...new Set(clubPrefixes2)], // Remove duplicates
-      cityNames: [...new Set(cityNames)] // Remove duplicates
-    }
   },
 
   /**

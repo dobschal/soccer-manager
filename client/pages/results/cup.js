@@ -269,6 +269,7 @@ export class CupResultsPage extends UIElement {
 
     const team1Row = this._renderBracketTeamRow({
       name: game.team1,
+      shortName: game.team1Short,
       color: game.team1Color,
       emblem: game.team1Emblem,
       teamId: game.team1Id,
@@ -282,6 +283,7 @@ export class CupResultsPage extends UIElement {
       ? `<div class="cup-bracket-team cup-bracket-team--bye"><span class="cup-bracket-bye">${t('cup.bye')}</span></div>`
       : this._renderBracketTeamRow({
         name: game.team2,
+        shortName: game.team2Short,
         color: game.team2Color,
         emblem: game.team2Emblem,
         teamId: game.team2Id,
@@ -300,7 +302,7 @@ export class CupResultsPage extends UIElement {
     `
   }
 
-  _renderBracketTeamRow ({ name, color, emblem, teamId, isMyTeam, goals, won, isPlayed }) {
+  _renderBracketTeamRow ({ name, shortName, color, emblem, teamId, isMyTeam, goals, won, isPlayed }) {
     const emblemHtml = `<span class="emblem-thumb cup-bracket-emblem">${renderEmblem({ name, color, emblem }, 20)}</span>`
     const nameClasses = ['cup-bracket-team-name']
     if (won) nameClasses.push('cup-bracket-team-name--won')
@@ -312,7 +314,7 @@ export class CupResultsPage extends UIElement {
     return `
       <div class="cup-bracket-team" ${teamIdAttr}>
         ${emblemHtml}
-        <span class="${nameClasses.join(' ')}">${shortenTeamName(name) || ''}</span>
+        <span class="${nameClasses.join(' ')}">${shortenTeamName(name, shortName) || ''}</span>
         ${goalsHtml}
       </div>
     `
@@ -406,8 +408,8 @@ export class CupResultsPage extends UIElement {
     const team1IsMyTeam = this.myTeamId === result.team1Id
     const team2IsMyTeam = this.myTeamId === result.team2Id
 
-    const nameLabel1 = shortenTeamName(result.team1)
-    const nameLabel2 = isBye ? '' : shortenTeamName(result.team2)
+    const nameLabel1 = shortenTeamName(result.team1, result.team1Short)
+    const nameLabel2 = isBye ? '' : shortenTeamName(result.team2, result.team2Short)
 
     const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${nameLabel1}${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
 

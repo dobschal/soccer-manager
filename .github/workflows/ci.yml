@@ -148,6 +148,7 @@ jobs:
           APN_KEY_PATH: ${{ secrets.APN_KEY_PATH }}
           APN_KEY_ID: ${{ secrets.APN_KEY_ID }}
           APN_TEAM_ID: ${{ secrets.APN_TEAM_ID }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: |
           COMMIT_HASH=$(git rev-parse --short HEAD)
           # Write secrets to .env on the server (read by docker compose automatically)
@@ -157,6 +158,13 @@ jobs:
             echo "APN_KEY_ID=$APN_KEY_ID"
             echo "APN_TEAM_ID=$APN_TEAM_ID"
             echo "FCM_SERVICE_ACCOUNT_PATH=/root/fcm-service-account.json"
+            echo "SMTP_HOST=smtp.ionos.de"
+            echo "SMTP_PORT=587"
+            echo "SMTP_SECURE=false"
+            echo "SMTP_USER=info@soccermanager.io"
+            echo "SMTP_PASS=$SMTP_PASS"
+            echo "EMAIL_FROM=FootballManager.IO <info@soccermanager.io>"
+            echo "PUBLIC_URL=https://footballmanager.io"
           } | ssh hetzner "cat > /root/deployments/soccer-manager/.env && chmod 600 /root/deployments/soccer-manager/.env"
           ssh hetzner << EOF
             set -e
@@ -198,6 +206,7 @@ jobs:
       - name: Deploy
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET_SANDBOX }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: |
           COMMIT_HASH=$(git rev-parse --short HEAD)
           # Sandbox runs without push notifications: APN_* / FCM_* are intentionally empty
@@ -209,6 +218,13 @@ jobs:
             echo "NETWORK_NAME=soccer-manager-sandbox"
             echo "COMPOSE_PROJECT_NAME=soccer-manager-sandbox"
             echo "APN_PRODUCTION=false"
+            echo "SMTP_HOST=smtp.ionos.de"
+            echo "SMTP_PORT=587"
+            echo "SMTP_SECURE=false"
+            echo "SMTP_USER=info@soccermanager.io"
+            echo "SMTP_PASS=$SMTP_PASS"
+            echo "EMAIL_FROM=FootballManager.IO Sandbox <info@soccermanager.io>"
+            echo "PUBLIC_URL=https://sandbox.footballmanager.io"
           } | ssh hetzner "cat > /root/deployments/soccer-manager-sandbox/.env && chmod 600 /root/deployments/soccer-manager-sandbox/.env"
           ssh hetzner << EOF
             set -e

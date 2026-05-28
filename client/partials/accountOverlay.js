@@ -1,5 +1,5 @@
 import { el } from '../lib/html.js'
-import { goTo } from '../lib/router.js'
+import { clearHasTeamCache, goTo } from '../lib/router.js'
 import { server, showServerError } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { getLocale, setLocale, t } from '../i18n/index.js'
@@ -470,6 +470,7 @@ export async function showAccountOverlay () {
         overlay.remove()
         disconnectWebSocket()
         window.localStorage.removeItem('auth-token')
+        clearHasTeamCache()
         goTo('login')
       })
     }
@@ -484,6 +485,7 @@ export async function showAccountOverlay () {
           overlay.remove()
           disconnectWebSocket()
           window.localStorage.removeItem('auth-token')
+          clearHasTeamCache()
           goTo('login')
         } catch (err) {
           toast(err.message ?? t('toast.somethingWentWrong'), 'error')

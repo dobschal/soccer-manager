@@ -85,6 +85,12 @@
     max-width: 480px;
 }
 
+.confirm-dialog-message {
+    font-size: 1.25rem;
+    line-height: 1.4;
+    margin-bottom: 0;
+}
+
 .overlay-header {
     position: sticky;
     top: 0;

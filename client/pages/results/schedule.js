@@ -112,21 +112,21 @@ export class SchedulePage extends UIElement {
     const team2HasUser = Boolean(g.team2UserId)
     const userIcon = '<i class="fa fa-user fa-sm ms-1" aria-hidden="true"></i>'
 
-    const nameLabel1 = shortenTeamName(g.team1)
-    const nameLabel2 = isBye ? '' : shortenTeamName(g.team2)
+    const nameLabel1 = shortenTeamName(g.team1, g.team1Short)
+    const nameLabel2 = isBye ? '' : shortenTeamName(g.team2, g.team2Short)
 
     const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${nameLabel1}${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
     const team2Name = isBye
       ? `<span class="text-muted">${t('cup.bye')}</span>`
       : `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${nameLabel2}${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
 
-    const center = isBye
-      ? `<span class="text-muted">${t('cup.bye')}</span>`
-      : (entry.played
-        ? (g.isForfeit
+    const center = entry.played
+      ? (isBye
+        ? `<span class="text-muted">-</span>`
+        : (g.isForfeit
           ? `<span class="text-muted">${t('results.cancelled')}</span>`
-          : `${g.goalsTeam1 ?? '-'} : ${g.goalsTeam2 ?? '-'}`)
-        : this._renderCountdown(entry))
+          : `${g.goalsTeam1 ?? '-'} : ${g.goalsTeam2 ?? '-'}`))
+      : this._renderCountdown(entry)
 
     return [
       labelHtml,

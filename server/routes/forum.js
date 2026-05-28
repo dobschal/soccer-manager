@@ -43,7 +43,15 @@ export default {
       ORDER BY c.created_at DESC
       LIMIT 5
     `)
-    return { categories, latestComments }
+    const latestPosts = await query(`
+      SELECT p.id, p.title, p.text, p.created_at, p.category_id,
+        u.username
+      FROM forum_post p
+      JOIN user u ON u.id = p.user_id
+      ORDER BY p.created_at DESC
+      LIMIT 3
+    `)
+    return { categories, latestComments, latestPosts }
   },
 
   async createForumCategory (name, description, req) {

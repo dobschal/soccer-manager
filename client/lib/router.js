@@ -2,10 +2,54 @@ import { isAuthenticated } from './auth.js'
 import { fire } from './event.js'
 import { el } from './html.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
+import { server } from './gateway.js'
 
 let pages, lastKey
 /** @type {Object<string, {page: Object, wrapper: HTMLElement}>} */
 let _pageCache = {}
+
+/**
+ * Cache the "user has team" check so we only hit the server once per session.
+ * `null` means we haven't asked yet, `true`/`false` is the resolved answer.
+ * @type {boolean|null}
+ */
+let _hasTeam = null
+let _hasTeamPromise = null
+
+/**
+ * Update the cached "user has team" flag — call this after the user picks a
+ * team in the choose-team flow so the router stops sending them back there.
+ * @param {boolean} value
+ */
+export function setHasTeam (value) {
+  _hasTeam = value
+  _hasTeamPromise = null
+}
+
+/**
+ * Reset the cached "user has team" flag — used when the user logs out so the
+ * next session asks the server again.
+ */
+export function clearHasTeamCache () {
+  _hasTeam = null
+  _hasTeamPromise = null
+}
+
+async function _ensureHasTeamChecked () {
+  if (_hasTeam !== null) return _hasTeam
+  if (!_hasTeamPromise) {
+    _hasTeamPromise = server.hasTeam()
+      .then(res => {
+        _hasTeam = !!res?.hasTeam
+        return _hasTeam
+      })
+      .catch(() => {
+        _hasTeamPromise = null
+        return true
+      })
+  }
+  return await _hasTeamPromise
+}
 
 /**
  * Build the cache key for a page. Pages can declare a static `cacheKeyParams`
@@ -250,6 +294,12 @@ async function _resolvePage () {
   const currentPath = window.location.hash.substring(1).split('?')[0] || 'dashboard'
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
+  }
+  if (isAuthenticated() && currentPath !== 'login' && currentPath !== 'choose-team') {
+    const hasTeam = await _ensureHasTeamChecked()
+    if (!hasTeam) {
+      return goTo('choose-team')
+    }
   }
   const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
   const queryParams = getQueryParams()
