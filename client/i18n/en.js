@@ -118,6 +118,9 @@ export default {
   'chooseTeam.confirmYes': 'Take over',
   'chooseTeam.confirmNo': 'Cancel',
   'chooseTeam.value': 'Estimated value',
+  'chooseTeam.filterLeague': 'Filter league',
+  'chooseTeam.filterAll': 'All leagues',
+  'chooseTeam.noTeamsInLeague': 'No teams are currently available in this league.',
 
   // Dashboard
   'dashboard.hey': 'Hey',

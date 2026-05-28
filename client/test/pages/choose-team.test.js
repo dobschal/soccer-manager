@@ -128,6 +128,62 @@ describe('ChooseTeamPage', () => {
     expect(goTo).not.toHaveBeenCalled()
   })
 
+  it('renders a league filter when multiple leagues are available', async () => {
+    const team1 = buildTeam({ id: 1, name: 'Alpha FC', level: 2, league: 0 })
+    const team2 = buildTeam({ id: 2, name: 'Beta FC', level: 2, league: 1 })
+    const team3 = buildTeam({ id: 3, name: 'Gamma FC', level: 3, league: 0 })
+    server.getAvailableTeams.mockResolvedValue({ teams: [team1, team2, team3] })
+
+    const page = new ChooseTeamPage()
+    await page.load()
+    const html = page.template
+
+    expect(html).toContain('choose-team-filter-select')
+    expect(html).toContain('chooseTeam.filterLeague')
+    expect(html).toContain('chooseTeam.filterAll')
+    expect(html).toContain('Liga 3/0')
+    expect(html).toContain('Liga 3/1')
+    expect(html).toContain('Liga 4/0')
+  })
+
+  it('does not render the league filter when all teams share one league', async () => {
+    const team1 = buildTeam({ id: 1, name: 'Alpha FC', level: 2, league: 0 })
+    const team2 = buildTeam({ id: 2, name: 'Beta FC', level: 2, league: 0 })
+    server.getAvailableTeams.mockResolvedValue({ teams: [team1, team2] })
+
+    const page = new ChooseTeamPage()
+    await page.load()
+
+    expect(page.template).not.toContain('choose-team-filter-select')
+  })
+
+  it('filters the rendered team list by the selected league', async () => {
+    const team1 = buildTeam({ id: 1, name: 'Alpha FC', level: 2, league: 0 })
+    const team2 = buildTeam({ id: 2, name: 'Beta FC', level: 2, league: 1 })
+    const team3 = buildTeam({ id: 3, name: 'Gamma FC', level: 3, league: 0 })
+    server.getAvailableTeams.mockResolvedValue({ teams: [team1, team2, team3] })
+
+    const page = new ChooseTeamPage()
+    await page.load()
+    page._selectedLeagueKey = '2-1'
+
+    const html = page.template
+    expect(html).not.toContain('Alpha FC')
+    expect(html).toContain('Beta FC')
+    expect(html).not.toContain('Gamma FC')
+  })
+
+  it('shows an empty state when no teams match the selected league', async () => {
+    const team1 = buildTeam({ id: 1, name: 'Alpha FC', level: 2, league: 0 })
+    server.getAvailableTeams.mockResolvedValue({ teams: [team1] })
+
+    const page = new ChooseTeamPage()
+    await page.load()
+    page._selectedLeagueKey = '9-9'
+
+    expect(page.template).toContain('chooseTeam.noTeamsInLeague')
+  })
+
   it('shows a toast when the server rejects chooseTeam', async () => {
     const team = buildTeam({ id: 8 })
     server.getAvailableTeams.mockResolvedValue({ teams: [team] })

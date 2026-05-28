@@ -118,6 +118,9 @@ export default {
   'chooseTeam.confirmYes': 'Übernehmen',
   'chooseTeam.confirmNo': 'Abbrechen',
   'chooseTeam.value': 'Geschätzter Wert',
+  'chooseTeam.filterLeague': 'Liga filtern',
+  'chooseTeam.filterAll': 'Alle Ligen',
+  'chooseTeam.noTeamsInLeague': 'In dieser Liga sind aktuell keine Teams verfügbar.',
 
   // Dashboard
   'dashboard.hey': 'Hey',
