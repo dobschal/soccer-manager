@@ -3,6 +3,7 @@ import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
+import { completeAllStadiumConstructionsForTeam } from '../helper/stadiumHelper.js'
 import { prepareSeason, regenerateTeamData } from '../prepare-season.js'
 import { t } from '../i18n/index.js'
 import { ActionCard } from '../entities/actionCard.js'
@@ -133,8 +134,9 @@ export default {
       await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
     }
     await regenerateTeamData(team)
+    const { gameDay, season } = await getGameDayAndSeason()
+    await completeAllStadiumConstructionsForTeam(team.id, gameDay, season)
     await query('DELETE FROM action_card WHERE team_id=?', [team.id])
-    const { season } = await getGameDayAndSeason()
     const starterCards = [
       new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER', played: 0, season }),
       new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0, season })

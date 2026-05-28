@@ -348,7 +348,7 @@ export class StartPage {
         { name: t('results.points') }
       ],
       data: teamsToShow,
-      classes: 'table-sm',
+      classes: 'table-sm mb-4',
       rowClass: (item, rowIndex) => {
         const actualIndex = startIndex + rowIndex
         const isMyTeam = this.team.id === item.team.id

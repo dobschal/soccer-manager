@@ -212,6 +212,15 @@ html, body {
     display: block;
 }
 
+.native-landing-card .text-muted {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.native-landing-card .text-muted a {
+    color: #fff;
+    text-decoration: underline;
+}
+
 /* Let overlay scroll past the fixed tab bar */
 .native-app-layout ~ .overlay-backdrop .overlay {
     padding-bottom: 10rem;

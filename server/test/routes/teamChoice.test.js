@@ -17,6 +17,10 @@ vi.mock('../../helper/sponsorHelper.js', () => ({
   getSponsor: vi.fn()
 }))
 
+vi.mock('../../helper/stadiumHelper.js', () => ({
+  completeAllStadiumConstructionsForTeam: vi.fn()
+}))
+
 vi.mock('../../prepare-season.js', () => ({
   prepareSeason: vi.fn(),
   regenerateTeamData: vi.fn()
@@ -34,6 +38,7 @@ import { query } from '../../lib/database.js'
 import { getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getSponsor } from '../../helper/sponsorHelper.js'
+import { completeAllStadiumConstructionsForTeam } from '../../helper/stadiumHelper.js'
 import { prepareSeason, regenerateTeamData } from '../../prepare-season.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { clearUserCache } from '../../lib/userCache.js'
@@ -185,6 +190,7 @@ describe('teamChoice routes', () => {
       )
       expect(query).toHaveBeenCalledWith('DELETE FROM sponsor WHERE id=?', [17])
       expect(regenerateTeamData).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }))
+      expect(completeAllStadiumConstructionsForTeam).toHaveBeenCalledWith(5, 1, 5)
       expect(clearUserCache).toHaveBeenCalledWith(1)
     })
 

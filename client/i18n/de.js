@@ -101,7 +101,7 @@ export default {
   'landing.email': 'E-Mail',
   'landing.enterEmail': 'Deine E-Mail-Adresse',
   'landing.emailInvalid': 'Bitte gib eine gültige E-Mail-Adresse ein',
-  'landing.privacyConsent': 'Mit dem Erstellen eines Kontos bestätigst du, unsere <a href="imprint.html" target="_blank" rel="noopener">Datenschutzerklärung</a> gelesen zu haben und ihr zuzustimmen.',
+  'landing.privacyConsent': 'Mit dem Erstellen eines Kontos bestätigst du, unsere <a href="imprint.html">Datenschutzerklärung</a> gelesen zu haben und ihr zuzustimmen.',
   'landing.verifyEmailHint': 'Wir haben dir einen Bestätigungslink gesendet — bitte bestätige deine E-Mail-Adresse, um die Passwort-Wiederherstellung zu aktivieren.',
   'landing.forgotPassword': 'Passwort vergessen?',
   'landing.forgotPasswordTitle': 'Passwort zurücksetzen',

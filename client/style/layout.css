@@ -175,11 +175,11 @@ a:visited.row {
     width: 100%;
     z-index: 200;
     background: repeating-linear-gradient(
-        135deg,
-        #ffc107 0,
-        #ffc107 16px,
-        #ffd24a 16px,
-        #ffd24a 32px
+            135deg,
+            #ffc107 0,
+            #ffc107 16px,
+            #ffd24a 16px,
+            #ffd24a 32px
     );
     color: #222;
     font-size: 0.85rem;
@@ -288,6 +288,7 @@ body:has(> #sandbox-banner) .game-layout {
     }
 
     #page {
+        border: none !important;
         border-radius: 0;
         padding-bottom: 0;
     }

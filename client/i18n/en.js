@@ -101,7 +101,7 @@ export default {
   'landing.email': 'Email',
   'landing.enterEmail': 'Enter your email',
   'landing.emailInvalid': 'Please enter a valid email address',
-  'landing.privacyConsent': 'By creating an account, you confirm that you have read and agree to our <a href="imprint.html" target="_blank" rel="noopener">Privacy Policy</a>.',
+  'landing.privacyConsent': 'By creating an account, you confirm that you have read and agree to our <a href="imprint.html">Privacy Policy</a>.',
   'landing.verifyEmailHint': 'We sent a confirmation link to your email — please confirm it to enable password recovery.',
   'landing.forgotPassword': 'Forgot password?',
   'landing.forgotPasswordTitle': 'Reset your password',
