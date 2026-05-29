@@ -185,6 +185,7 @@ Detailed feature specifications are in the `requirements/` directory:
 - [Team Tactics](requirements/team-tactics.md) - Angriffsmodus, Spielstil, Passstil
 - [User Registration](requirements/user-registration.md) - Registrierung und Authentifizierung
 - [Youth Players](requirements/youth-players.md) - Jugendspieler-System und Training
+- [Youth Academy](requirements/youth-academy.md) - Jugendakademie-Gebaeude und Jugendspieler-Karten
 
 ## Production Database Access
 

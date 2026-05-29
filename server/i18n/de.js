@@ -211,6 +211,7 @@ export default {
   // Building names
   'building.trainingArea': 'Trainingsgelände',
   'building.fitnessStudio': 'Fitnessstudio',
+  'building.youthAcademy': 'Jugendakademie',
 
   // Building finance
   'finance.buildingUpgrade': 'Gebäude-Ausbau'

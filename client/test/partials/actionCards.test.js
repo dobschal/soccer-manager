@@ -212,22 +212,6 @@ describe('ActionCards', () => {
       expect(toast).toHaveBeenCalledWith('actionCards.bonusReceived', 'success')
     })
 
-    it('handles NEW_YOUTH_PLAYER card', async () => {
-      server.getActionCards.mockResolvedValue({
-        actionCards: [{ id: 1, action: 'NEW_YOUTH_PLAYER' }]
-      })
-      server.useActionCard.mockResolvedValue({})
-
-      const cards = new ActionCards()
-      await cards.load()
-      cards._animateAndRemoveCard = vi.fn()
-
-      await cards._useActionCard(cards.cards[0], 0)
-
-      expect(server.useActionCard).toHaveBeenCalledWith(cards.cards[0], null, null)
-      expect(toast).toHaveBeenCalledWith('actionCards.newPlayer', 'success')
-    })
-
     it('shows error toast on failure', async () => {
       server.getActionCards.mockResolvedValue({
         actionCards: [{ id: 1, action: 'BONUS_100K' }]
@@ -398,9 +382,9 @@ describe('ActionCards', () => {
 
     it('does not send an already-used card id to the server', async () => {
       const mockCards = [
-        { id: 40, action: 'NEW_YOUTH_PLAYER' },
-        { id: 41, action: 'NEW_YOUTH_PLAYER' },
-        { id: 42, action: 'NEW_YOUTH_PLAYER' }
+        { id: 40, action: 'BONUS_100K' },
+        { id: 41, action: 'BONUS_100K' },
+        { id: 42, action: 'BONUS_100K' }
       ]
       server.getActionCards.mockResolvedValue({ actionCards: mockCards })
       server.useActionCard.mockResolvedValue({})

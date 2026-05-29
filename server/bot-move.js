@@ -1,5 +1,5 @@
 import { query } from './lib/database.js'
-import { getActionCards, mergeActionCards, playActionCard } from './helper/actionCardHelper.js'
+import { getActionCards, mergeActionCards, playActionCard, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from './helper/actionCardHelper.js'
 import { randomItem } from './lib/util.js'
 import { getSponsor, getSponsorOffers } from './helper/sponsorHelper.js'
 import { Sponsor } from './entities/sponsor.js'
@@ -754,10 +754,11 @@ async function _checkActionCards (botTeam, players, _isStrongTeam, actionCards) 
 
   for (const actionCard of remainingCards) {
     try {
-      // NEW_YOUTH_PLAYER - creates a new young player
-      if (actionCard.action === 'NEW_YOUTH_PLAYER') {
-        await playActionCard({ actionCard }, botTeam)
-        console.log(`${botTeam.name} used NEW_YOUTH_PLAYER card`)
+      // NEW_YOUTH_PLAYER_X - bot picks the first of the 3 generated options
+      if (actionCard.action in YOUTH_PLAYER_CARD_RANGES) {
+        const options = await generateYouthPlayerOptions(actionCard.action)
+        await playActionCard({ actionCard, player: options[0] }, botTeam)
+        console.log(`${botTeam.name} used ${actionCard.action} card`)
         continue
       }
 

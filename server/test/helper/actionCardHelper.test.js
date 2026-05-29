@@ -54,7 +54,7 @@ import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { createYouthPlayer } from '../../helper/youthPlayerHelper.js'
-import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, deleteExpiredPendingCards } from '../../helper/actionCardHelper.js'
+import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, deleteExpiredPendingCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../../helper/actionCardHelper.js'
 
 describe('actionCardHelper', () => {
   beforeEach(() => {
@@ -426,55 +426,86 @@ describe('actionCardHelper', () => {
     })
   })
 
-  describe('playActionCard - NEW_YOUTH_PLAYER', () => {
-    it('creates a new youth player', async () => {
-      const team = testData.team({ id: 5 })
-      const actionCard = testData.actionCard({ action: 'NEW_YOUTH_PLAYER' })
-
-      const mockYouthPlayer = {
-        id: 1,
-        team_id: 5,
-        name: 'Young Talent',
+  describe('playActionCard - NEW_YOUTH_PLAYER_X cards', () => {
+    it('creates a youth player from a NEW_YOUTH_PLAYER_1 option within the allowed level/talent range', async () => {
+      const team = testData.team({ id: 11 })
+      const actionCard = testData.actionCard({ action: 'NEW_YOUTH_PLAYER_1' })
+      const selectedOption = {
+        name: 'Lukas Müller',
         position: 'CM',
-        level: 5,
-        talent: 0.8,
-        moral: 0.7,
-        fitness: 0.7,
-        birth_season: 2
+        level: 3.4,
+        talent: 0.2,
+        hair_color: 2,
+        skin_color: 1
       }
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 4, season: 3 })
+      createYouthPlayer.mockResolvedValue({ id: 99, name: 'Lukas Müller' })
 
-      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 2 })
-      createYouthPlayer.mockResolvedValue(mockYouthPlayer)
-
-      const result = await playActionCard({ actionCard }, team)
+      const result = await playActionCard({ actionCard, player: selectedOption }, team)
 
       expect(result).toEqual({ success: true })
-      expect(createYouthPlayer).toHaveBeenCalledWith(5, 2)
-      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [actionCard.id])
+      expect(createYouthPlayer).toHaveBeenCalledWith(11, 3, expect.objectContaining({
+        name: 'Lukas Müller',
+        position: 'CM',
+        level: 3.4,
+        talent: 0.2,
+        hair_color: 2,
+        skin_color: 1
+      }))
     })
 
-    it('creates youth player with team and season from context', async () => {
-      const team = testData.team({ id: 7 })
-      const actionCard = testData.actionCard({ action: 'NEW_YOUTH_PLAYER' })
-
-      const mockYouthPlayer = {
-        id: 2,
-        team_id: 7,
-        name: 'New Talent',
+    it('clamps level/talent to the card range for NEW_YOUTH_PLAYER_2 (anti-cheat)', async () => {
+      const team = testData.team({ id: 12 })
+      const actionCard = testData.actionCard({ action: 'NEW_YOUTH_PLAYER_2' })
+      const selectedOption = {
+        name: 'Cheat Attempt',
         position: 'GK',
-        level: 3,
-        talent: 0.5,
-        moral: 0.7,
-        fitness: 0.7,
-        birth_season: 5
+        level: 99,
+        talent: 1.0,
+        hair_color: 0,
+        skin_color: 0
       }
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 0 })
+      createYouthPlayer.mockResolvedValue({ id: 100, name: 'Cheat Attempt' })
 
-      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 5 })
-      createYouthPlayer.mockResolvedValue(mockYouthPlayer)
+      await playActionCard({ actionCard, player: selectedOption }, team)
 
-      await playActionCard({ actionCard }, team)
+      const passedOverrides = createYouthPlayer.mock.calls[0][2]
+      expect(passedOverrides.level).toBe(YOUTH_PLAYER_CARD_RANGES.NEW_YOUTH_PLAYER_2.levelMax)
+      expect(passedOverrides.talent).toBe(YOUTH_PLAYER_CARD_RANGES.NEW_YOUTH_PLAYER_2.talentMax)
+    })
 
-      expect(createYouthPlayer).toHaveBeenCalledWith(7, 5)
+    it('rejects missing option name', async () => {
+      const team = testData.team({ id: 13 })
+      const actionCard = testData.actionCard({ action: 'NEW_YOUTH_PLAYER_3' })
+      await expect(playActionCard({ actionCard, player: {
+        name: '',
+        position: 'CA',
+        level: 12,
+        talent: 0.9,
+        hair_color: 0,
+        skin_color: 0
+      } }, team)).rejects.toThrow()
+    })
+  })
+
+  describe('generateYouthPlayerOptions', () => {
+    it('returns 3 options with level/talent inside the card range', async () => {
+      query.mockResolvedValue([])
+      const options = await generateYouthPlayerOptions('NEW_YOUTH_PLAYER_3')
+      expect(options).toHaveLength(3)
+      for (const opt of options) {
+        expect(opt.level).toBeGreaterThanOrEqual(YOUTH_PLAYER_CARD_RANGES.NEW_YOUTH_PLAYER_3.levelMin)
+        expect(opt.level).toBeLessThanOrEqual(YOUTH_PLAYER_CARD_RANGES.NEW_YOUTH_PLAYER_3.levelMax)
+        expect(opt.talent).toBeGreaterThanOrEqual(YOUTH_PLAYER_CARD_RANGES.NEW_YOUTH_PLAYER_3.talentMin)
+        expect(opt.talent).toBeLessThanOrEqual(YOUTH_PLAYER_CARD_RANGES.NEW_YOUTH_PLAYER_3.talentMax)
+        expect(typeof opt.name).toBe('string')
+        expect(typeof opt.position).toBe('string')
+      }
+    })
+
+    it('throws for unknown action', async () => {
+      await expect(generateYouthPlayerOptions('UNKNOWN_ACTION')).rejects.toThrow()
     })
   })
 

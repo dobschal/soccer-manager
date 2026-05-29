@@ -138,7 +138,7 @@ export default {
     await completeAllStadiumConstructionsForTeam(team.id, gameDay, season)
     await query('DELETE FROM action_card WHERE team_id=?', [team.id])
     const starterCards = [
-      new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER', played: 0, season }),
+      new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER_1', played: 0, season }),
       new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0, season })
     ]
     for (const card of starterCards) {

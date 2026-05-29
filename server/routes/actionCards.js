@@ -2,7 +2,7 @@ import { query } from '../lib/database.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { ActionCard } from '../entities/actionCard.js'
-import { getActionCards, playActionCard, getPendingActionCards, claimActionCard } from '../helper/actionCardHelper.js'
+import { getActionCards, playActionCard, getPendingActionCards, claimActionCard, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../helper/actionCardHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { t } from '../i18n/index.js'
 
@@ -71,6 +71,25 @@ export default {
       return { success: true, actionCard: { id: result.insertId, action: actionCard.action } }
     }
     throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
+  },
+
+  /**
+   * Generate 3 youth player options for a NEW_YOUTH_PLAYER_X card so the user can pick one.
+   * @param {number} cardId
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, options: Array}>}
+   */
+  async getYouthPlayerOptions (cardId, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    const team = await getTeam(req)
+    const [card] = await query("SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0 AND state='received'", [cardId, team.id])
+    if (!card) throw new BadRequestError(t('error.cardNotFound', {}, locale))
+    if (!(card.action in YOUTH_PLAYER_CARD_RANGES)) {
+      throw new BadRequestError(t('error.invalidCardAction', {}, locale))
+    }
+    const options = await generateYouthPlayerOptions(card.action)
+    return { success: true, options }
   },
 
   /**

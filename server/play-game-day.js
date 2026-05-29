@@ -13,7 +13,9 @@ import {
   FITNESS_STUDIO_CARD_CHANCES,
   getAllFitnessStudioLevels,
   getAllTrainingAreaLevels,
-  TRAINING_AREA_CARD_CHANCES
+  getAllYouthAcademyLevels,
+  TRAINING_AREA_CARD_CHANCES,
+  YOUTH_ACADEMY_CARD_CHANCES
 } from './helper/buildingHelper.js'
 import { addLogMessage, checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
@@ -534,12 +536,13 @@ export async function _giveUsersActionCards () {
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   const trainingAreaLevels = await getAllTrainingAreaLevels()
   const fitnessStudioLevels = await getAllFitnessStudioLevels()
+  const youthAcademyLevels = await getAllYouthAcademyLevels()
   const teamIdsWithYouth = new Set(
     (await query('SELECT DISTINCT team_id FROM youth_player')).map(r => r.team_id)
   )
   const teamIdsWithSeasonYouthCard = new Set(
     (await query(
-      "SELECT DISTINCT team_id FROM action_card WHERE action='NEW_YOUTH_PLAYER' AND season=?",
+      "SELECT DISTINCT team_id FROM action_card WHERE action IN ('NEW_YOUTH_PLAYER_1','NEW_YOUTH_PLAYER_2','NEW_YOUTH_PLAYER_3') AND season=?",
       [season]
     )).map(r => r.team_id)
   )
@@ -549,15 +552,17 @@ export async function _giveUsersActionCards () {
     const cardOverrides = TRAINING_AREA_CARD_CHANCES[trainingLevel] || TRAINING_AREA_CARD_CHANCES[1]
     const fitnessLevel = fitnessStudioLevels.get(team.id) ?? 0
     const fitnessOverrides = FITNESS_STUDIO_CARD_CHANCES[fitnessLevel] || FITNESS_STUDIO_CARD_CHANCES[0]
+    const academyLevel = youthAcademyLevels.get(team.id) ?? 0
+    const youthOverrides = YOUTH_ACADEMY_CARD_CHANCES[academyLevel] || YOUTH_ACADEMY_CARD_CHANCES[0]
     const actionCards = []
-    // Guarantee a youth player card if the team currently has no youth player
-    // and has not received a NEW_YOUTH_PLAYER card this season yet.
+    // Guarantee a basic youth player card if the team currently has no youth player
+    // and has not received any youth card this season yet.
     const guaranteeYouthCard =
       !teamIdsWithYouth.has(team.id) && !teamIdsWithSeasonYouthCard.has(team.id)
     if (guaranteeYouthCard) {
       actionCards.push(new ActionCard({
         team_id: team.id,
-        action: 'NEW_YOUTH_PLAYER',
+        action: 'NEW_YOUTH_PLAYER_1',
         played: 0,
         state: 'pending',
         season
@@ -568,9 +573,11 @@ export async function _giveUsersActionCards () {
       for (const [action, defaultChance] of Object.entries(actionCardChances)) {
         // Override LEVEL_UP card chances based on training area level
         // Override FRESHNESS card chances based on fitness studio level
+        // Override NEW_YOUTH_PLAYER_X card chances based on youth academy level
         let chance = defaultChance
         if (cardOverrides[action] !== undefined) chance = cardOverrides[action]
         if (fitnessOverrides[action] !== undefined) chance = fitnessOverrides[action]
+        if (youthOverrides[action] !== undefined) chance = youthOverrides[action]
         // For probabilities > 1, give floor(chance) guaranteed cards + remainder chance for one more
         const guaranteed = Math.floor(chance)
         const remainder = chance - guaranteed

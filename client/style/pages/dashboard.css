@@ -132,3 +132,50 @@
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
     pointer-events: none;
 }
+
+
+/* Youth Player Options Overlay */
+.youth-options-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 575px) {
+    .youth-options-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.youth-option-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.youth-option-card__image {
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.youth-option-card__name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    word-break: break-word;
+}
+
+.youth-option-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 0.5rem;
+}

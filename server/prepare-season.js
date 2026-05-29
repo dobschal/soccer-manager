@@ -567,6 +567,11 @@ async function _createRandomTeam (level) {
     type: 'fitness_studio',
     level: 1
   })
+  await query('INSERT INTO building SET ?', {
+    team_id: team.id,
+    type: 'youth_academy',
+    level: 0
+  })
   return team
 }
 
@@ -617,6 +622,7 @@ export async function regenerateTeamData (team) {
   if (buildingCount === 0) {
     await query('INSERT INTO building SET ?', { team_id: team.id, type: 'training_area', level: 1 })
     await query('INSERT INTO building SET ?', { team_id: team.id, type: 'fitness_studio', level: 1 })
+    await query('INSERT INTO building SET ?', { team_id: team.id, type: 'youth_academy', level: 0 })
   }
 }
 

@@ -131,10 +131,10 @@ describe('actionCards routes', () => {
         .rejects.toMatchObject({ message: 'Cannot merge these cards' })
     })
 
-    it('throws error when trying to merge NEW_YOUTH_PLAYER cards', async () => {
+    it('throws error when trying to merge NEW_YOUTH_PLAYER_1 cards', async () => {
       const team = testData.team()
-      const card1 = testData.actionCard({ id: 1, action: 'NEW_YOUTH_PLAYER' })
-      const card2 = testData.actionCard({ id: 2, action: 'NEW_YOUTH_PLAYER' })
+      const card1 = testData.actionCard({ id: 1, action: 'NEW_YOUTH_PLAYER_1' })
+      const card2 = testData.actionCard({ id: 2, action: 'NEW_YOUTH_PLAYER_1' })
 
       getTeam.mockResolvedValue(team)
 

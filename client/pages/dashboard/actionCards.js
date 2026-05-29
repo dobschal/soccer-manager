@@ -9,6 +9,9 @@ import { t } from '../../i18n/index.js'
 import { fire, off, on } from '../../lib/event.js'
 import { MiniGame } from './miniGame.js'
 import { preloadAllActionCardSvgs, renderActionCardSvg } from '../../lib/actionCardSvg.js'
+import { renderPlayerImage } from '../../partials/playerImage.js'
+import { generateId } from '../../lib/html.js'
+import { onClick } from '../../lib/htmlEventHandlers.js'
 
 const ACTION_CARDS_CHANGED_EVENT = 'ACTION_CARDS_CHANGED'
 
@@ -29,9 +32,17 @@ function getActionCardTexts () {
       title: t('actionCards.type.basicPromotion'),
       description: t('actionCards.type.basicPromotionDesc')
     },
-    NEW_YOUTH_PLAYER: {
-      title: t('actionCards.type.youthProspect'),
-      description: t('actionCards.type.youthProspectDesc')
+    NEW_YOUTH_PLAYER_1: {
+      title: t('actionCards.type.youthProspect1'),
+      description: t('actionCards.type.youthProspect1Desc')
+    },
+    NEW_YOUTH_PLAYER_2: {
+      title: t('actionCards.type.youthProspect2'),
+      description: t('actionCards.type.youthProspect2Desc')
+    },
+    NEW_YOUTH_PLAYER_3: {
+      title: t('actionCards.type.youthProspect3'),
+      description: t('actionCards.type.youthProspect3Desc')
     },
     FRESHNESS_5: {
       title: t('actionCards.type.quickRecovery'),
@@ -477,15 +488,8 @@ export class ActionCards extends UIElement {
       await this._handleLevelUpCard(actionCard, cardIndex)
       return
     }
-    if (actionCard.action === 'NEW_YOUTH_PLAYER') {
-      try {
-        await server.useActionCard(actionCard, null, null)
-        toast(t('actionCards.newPlayer'), 'success')
-        await this._animateAndRemoveCard(cardIndex)
-      } catch (e) {
-        console.error(e)
-        toast(e.message ?? 'Something went wrong...', 'error')
-      }
+    if (actionCard.action === 'NEW_YOUTH_PLAYER_1' || actionCard.action === 'NEW_YOUTH_PLAYER_2' || actionCard.action === 'NEW_YOUTH_PLAYER_3') {
+      await this._handleYouthPlayerCard(actionCard, cardIndex)
       return
     }
     if (actionCard.action === 'STAR_PLAYER') {
@@ -590,6 +594,60 @@ export class ActionCards extends UIElement {
       t('actionCards.selectPlayer'),
       t('actionCards.whichPlayerStar'),
       `${playerList}`
+    )
+  }
+
+  /**
+   * Show 3 youth player options and let the user pick one.
+   * @param {Object} actionCard
+   * @param {number} cardIndex
+   * @returns {Promise<void>}
+   */
+  async _handleYouthPlayerCard (actionCard, cardIndex) {
+    let response
+    try {
+      response = await server.getYouthPlayerOptions(actionCard.id)
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? 'Something went wrong...', 'error')
+      return
+    }
+    const options = response.options || []
+    const renderedImages = await Promise.all(options.map((opt, idx) =>
+      renderPlayerImage({ id: idx + 1, hair_color: opt.hair_color, skin_color: opt.skin_color }, null, 140)
+    ))
+    const buttonIds = options.map(() => generateId())
+    options.forEach((option, idx) => {
+      onClick(buttonIds[idx], async () => {
+        try {
+          await server.useActionCard(actionCard, option, null)
+          this._overlay?.remove()
+          toast(t('actionCards.youthSignedSuccess', { playerName: option.name }), 'success')
+          await this._animateAndRemoveCard(cardIndex)
+        } catch (e) {
+          console.error(e)
+          toast(e.message ?? 'Something went wrong...', 'error')
+        }
+      })
+    })
+
+    const cards = options.map((option, idx) => `
+      <div class="youth-option-card">
+        <div class="youth-option-card__image">${renderedImages[idx]}</div>
+        <div class="youth-option-card__name">${option.name}</div>
+        <div class="youth-option-card__meta">
+          <span>${t('actionCards.position.' + option.position)}</span>
+          <span>${t('actionCards.youthOptionAge', { age: 15 })}</span>
+          <span>${t('actionCards.youthOptionLevel', { level: option.level.toFixed(1) })}</span>
+        </div>
+        <button id="${buttonIds[idx]}" class="btn btn-primary btn-sm mt-2">${t('actionCards.youthOptionSelect')}</button>
+      </div>
+    `).join('')
+
+    this._overlay = showOverlay(
+      t('actionCards.youthOptionsTitle'),
+      t('actionCards.youthOptionsText'),
+      `<div class="youth-options-grid">${cards}</div>`
     )
   }
 }

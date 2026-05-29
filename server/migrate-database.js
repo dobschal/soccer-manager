@@ -1917,6 +1917,28 @@ const migrations = [{
     await query('DROP TABLE IF EXISTS news_like')
     await query('DROP TABLE IF EXISTS news')
   }
+}, {
+  name: 'Seed youth_academy building for all teams',
+  async run () {
+    const teams = await query('SELECT id FROM team')
+    for (const team of teams) {
+      const existing = await query("SELECT id FROM building WHERE team_id=? AND type='youth_academy' LIMIT 1", [team.id])
+      if (existing.length === 0) {
+        await query('INSERT INTO building SET ?', {
+          team_id: team.id,
+          type: 'youth_academy',
+          level: 0
+        })
+      }
+    }
+    console.log(`✅ Seeded ${teams.length} teams with youth_academy level 0`)
+  }
+}, {
+  name: 'Convert legacy NEW_YOUTH_PLAYER action cards to NEW_YOUTH_PLAYER_1',
+  async run () {
+    const result = await query("UPDATE action_card SET action='NEW_YOUTH_PLAYER_1' WHERE action='NEW_YOUTH_PLAYER'")
+    console.log(`✅ Converted ${result.affectedRows || 0} legacy NEW_YOUTH_PLAYER cards to NEW_YOUTH_PLAYER_1`)
+  }
 }]
 
 /**

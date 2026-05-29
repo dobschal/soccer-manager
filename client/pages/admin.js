@@ -278,7 +278,9 @@ export class AdminPage extends UIElement {
       { value: 'FRESHNESS_5', label: t('actionCards.type.quickRecovery') },
       { value: 'FRESHNESS_10', label: t('actionCards.type.energyBoost') },
       { value: 'FRESHNESS_20', label: t('actionCards.type.fullRecovery') },
-      { value: 'NEW_YOUTH_PLAYER', label: t('actionCards.type.youthProspect') },
+      { value: 'NEW_YOUTH_PLAYER_1', label: t('actionCards.type.youthProspect1') },
+      { value: 'NEW_YOUTH_PLAYER_2', label: t('actionCards.type.youthProspect2') },
+      { value: 'NEW_YOUTH_PLAYER_3', label: t('actionCards.type.youthProspect3') },
       { value: 'BONUS_100K', label: t('actionCards.type.cashBonus') },
       { value: 'STAR_PLAYER', label: t('actionCards.type.starPlayer') },
       { value: 'MOTIVATING_SPEECH', label: t('actionCards.type.motivatingSpeech') }

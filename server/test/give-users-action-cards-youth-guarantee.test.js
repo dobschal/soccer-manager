@@ -7,13 +7,15 @@ vi.mock('../helper/buildingHelper.js', () => ({
   completeBuildingConstructions: vi.fn(),
   getAllTrainingAreaLevels: vi.fn(),
   getAllFitnessStudioLevels: vi.fn(),
+  getAllYouthAcademyLevels: vi.fn(),
   TRAINING_AREA_CARD_CHANCES: { 0: {}, 1: {} },
-  FITNESS_STUDIO_CARD_CHANCES: { 0: {}, 1: {} }
+  FITNESS_STUDIO_CARD_CHANCES: { 0: {}, 1: {} },
+  YOUTH_ACADEMY_CARD_CHANCES: { 0: {}, 1: {} }
 }))
-// NEW_YOUTH_PLAYER chance is 0 so the guarantee rule is the sole driver for youth cards.
+// All youth chances 0 so the guarantee rule is the sole driver for youth cards.
 // FILLER = 1 guarantees the while-loop exits each day (mirrors prod where LEVEL_UP_PLAYER_40 is 1.2).
 vi.mock('../helper/actionCardHelper.js', () => ({
-  actionCardChances: { FILLER: 1, NEW_YOUTH_PLAYER: 0 },
+  actionCardChances: { FILLER: 1, NEW_YOUTH_PLAYER_1: 0, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0 },
   deleteExpiredPendingCards: vi.fn()
 }))
 vi.mock('../helper/financeHelper.js', () => ({ updateTeamBalance: vi.fn() }))
@@ -48,7 +50,7 @@ vi.mock('../helper/lineupHelper.js', () => ({ autoFillLineup: vi.fn(), trimExces
 
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { getAllTrainingAreaLevels, getAllFitnessStudioLevels } from '../helper/buildingHelper.js'
+import { getAllTrainingAreaLevels, getAllFitnessStudioLevels, getAllYouthAcademyLevels } from '../helper/buildingHelper.js'
 import { _giveUsersActionCards } from '../play-game-day.js'
 
 describe('_giveUsersActionCards - guaranteed youth player card', () => {
@@ -71,7 +73,7 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
       if (sql.startsWith('SELECT DISTINCT team_id FROM youth_player')) {
         return teamIdsWithYouth.map(team_id => ({ team_id }))
       }
-      if (sql.startsWith("SELECT DISTINCT team_id FROM action_card WHERE action='NEW_YOUTH_PLAYER'")) {
+      if (sql.startsWith('SELECT DISTINCT team_id FROM action_card WHERE action IN')) {
         return teamIdsWithYouthCardThisSeason.map(team_id => ({ team_id }))
       }
       if (sql.startsWith('INSERT INTO action_card')) {
@@ -83,14 +85,17 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
     return inserts
   }
 
+  const YOUTH_ACTIONS = new Set(['NEW_YOUTH_PLAYER_1', 'NEW_YOUTH_PLAYER_2', 'NEW_YOUTH_PLAYER_3'])
+
   beforeEach(() => {
     vi.clearAllMocks()
     getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: SEASON })
     getAllTrainingAreaLevels.mockResolvedValue(new Map())
     getAllFitnessStudioLevels.mockResolvedValue(new Map())
+    getAllYouthAcademyLevels.mockResolvedValue(new Map())
   })
 
-  it('guarantees a NEW_YOUTH_PLAYER card for a team with no youth player and no youth card this season', async () => {
+  it('guarantees a NEW_YOUTH_PLAYER_1 card for a team with no youth player and no youth card this season', async () => {
     const inserts = setupMocks({
       teams: [{ id: 42 }],
       teamIdsWithYouth: [],
@@ -99,18 +104,18 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
 
     await _giveUsersActionCards()
 
-    const youthInserts = inserts.filter(i => i.value.action === 'NEW_YOUTH_PLAYER')
+    const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
     expect(youthInserts).toHaveLength(1)
     expect(youthInserts[0].value).toMatchObject({
       team_id: 42,
-      action: 'NEW_YOUTH_PLAYER',
+      action: 'NEW_YOUTH_PLAYER_1',
       played: 0,
       state: 'pending',
       season: SEASON
     })
   })
 
-  it('does not give a NEW_YOUTH_PLAYER card when the team already owns a youth player', async () => {
+  it('does not give a youth card when the team already owns a youth player', async () => {
     const inserts = setupMocks({
       teams: [{ id: 1 }],
       teamIdsWithYouth: [1],
@@ -119,11 +124,11 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
 
     await _giveUsersActionCards()
 
-    const youthInserts = inserts.filter(i => i.value.action === 'NEW_YOUTH_PLAYER')
+    const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
     expect(youthInserts).toHaveLength(0)
   })
 
-  it('does not give a NEW_YOUTH_PLAYER card when the team already received one this season', async () => {
+  it('does not give a youth card when the team already received one this season', async () => {
     const inserts = setupMocks({
       teams: [{ id: 1 }],
       teamIdsWithYouth: [],
@@ -132,7 +137,7 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
 
     await _giveUsersActionCards()
 
-    const youthInserts = inserts.filter(i => i.value.action === 'NEW_YOUTH_PLAYER')
+    const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
     expect(youthInserts).toHaveLength(0)
   })
 
@@ -145,7 +150,7 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
 
     await _giveUsersActionCards()
 
-    const youthInserts = inserts.filter(i => i.value.action === 'NEW_YOUTH_PLAYER')
+    const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
     const guaranteedTeamIds = youthInserts.map(i => i.value.team_id).sort()
     expect(guaranteedTeamIds).toEqual([1, 4])
   })

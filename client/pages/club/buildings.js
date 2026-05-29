@@ -20,6 +20,12 @@ const FITNESS_STUDIO_IMAGES = {
   3: 'assets/fitness/fitness-3.png'
 }
 
+const YOUTH_ACADEMY_IMAGES = {
+  1: 'assets/youth-academy/youth-academy-level-1.png',
+  2: 'assets/youth-academy/youth-academy-level-2.png',
+  3: 'assets/youth-academy/youth-academy-level-3.png'
+}
+
 export class BuildingsPage extends UIElement {
   /**
    * @param {UIElement} parent
@@ -38,6 +44,7 @@ export class BuildingsPage extends UIElement {
     this.upgrades = data.upgrades || {}
     this.cardChances = data.cardChances || {}
     this.fitnessCardChances = data.fitnessCardChances || {}
+    this.youthAcademyCardChances = data.youthAcademyCardChances || {}
   }
 
   /**
@@ -51,6 +58,8 @@ export class BuildingsPage extends UIElement {
         ${this._renderTrainingArea()}
         <p class="text-muted mt-4">${t('buildings.fitnessStudioDesc')}</p>
         ${this._renderFitnessStudio()}
+        <p class="text-muted mt-4">${t('buildings.youthAcademyDesc')}</p>
+        ${this._renderYouthAcademy()}
       </div>
     `
   }
@@ -127,6 +136,106 @@ export class BuildingsPage extends UIElement {
         </div>
       </div>
     `
+  }
+
+  /**
+   * @returns {string}
+   */
+  _renderYouthAcademy () {
+    const building = this.buildings.find(b => b.type === 'youth_academy')
+    if (!building) {
+      return `<p class="text-muted">${t('buildings.noBuilding')}</p>`
+    }
+
+    const level = building.level
+    const constructionInfo = building.constructionInfo || {}
+    const isMaxLevel = level >= 3 && !constructionInfo.underConstruction
+    const nextLevel = constructionInfo.underConstruction ? constructionInfo.targetLevel : level + 1
+    const upgradeKey = `youth_academy_${nextLevel}`
+    const upgrade = this.upgrades[upgradeKey]
+    const imageUrl = level === 0 ? null : YOUTH_ACADEMY_IMAGES[Math.max(1, Math.min(level, 3))]
+
+    return `
+      <div class="building-card mb-4">
+        ${imageUrl
+    ? `<div class="building-card__image"><img src="${imageUrl}" alt="${t('buildings.youthAcademy')}"></div>`
+    : ''}
+        <div class="building-card__content bg-dark">
+          <h4 class="building-card__title mb-2">
+            ${t('buildings.youthAcademy')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
+          </h4>
+          <p class="building-card__desc mb-4">${t(`buildings.youthLevel${level}Desc`)}</p>
+          ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
+          ${!constructionInfo.underConstruction && upgrade ? this._renderYouthAcademyUpgradeButton(building, upgrade, nextLevel, level) : ''}
+          ${isMaxLevel ? '<p class="building-card__max-level mb-0"><i class="fa fa-check-circle"></i> ' + t('buildings.maxLevel') + '</p>' : ''}
+        </div>
+      </div>
+    `
+  }
+
+  /**
+   * @param {Object} building
+   * @param {Object} upgrade
+   * @param {number} nextLevel
+   * @param {number} currentLevel
+   * @returns {string}
+   */
+  _renderYouthAcademyUpgradeButton (building, upgrade, nextLevel, currentLevel) {
+    const btnId = generateId()
+
+    onClick(btnId, () => {
+      this._showYouthAcademyUpgradeConfirmation(building, upgrade, nextLevel)
+    })
+
+    const buttonLabel = currentLevel === 0
+      ? t('buildings.youthAcademyBuild')
+      : t('buildings.upgrade', { level: nextLevel })
+
+    return `
+      <div class="building-card__upgrade mt-2 p-2">
+        <h6 class="building-card__upgrade-title">${t('buildings.nextLevelEffects')}</h6>
+        <p class="building-card__desc mb-2">${t(`buildings.youthLevel${nextLevel}Desc`)}</p>
+        <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', { cost: euroFormat.format(upgrade.cost) })}</p>
+        <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', { days: upgrade.constructionDays })}</p>
+        <button id="${btnId}" class="btn btn-outline-light">${buttonLabel}</button>
+      </div>
+    `
+  }
+
+  /**
+   * @param {Object} building
+   * @param {Object} upgrade
+   * @param {number} nextLevel
+   */
+  _showYouthAcademyUpgradeConfirmation (building, upgrade, nextLevel) {
+    const confirmId = generateId()
+    const imageUrl = YOUTH_ACADEMY_IMAGES[Math.min(nextLevel, 3)]
+
+    onClick(confirmId, async () => {
+      try {
+        await server.upgradeBuilding(building.type)
+        toast(t('buildings.upgradeStarted'), 'success')
+        overlay.remove()
+        void this.parent.update(true)
+      } catch (e) {
+        showServerError(e)
+      }
+    })
+
+    const overlay = showOverlay(
+      t('buildings.upgradeConfirmTitle', { buildingName: t('buildings.youthAcademy') }),
+      t('buildings.upgradeConfirmText', {
+        cost: euroFormat.format(upgrade.cost),
+        days: upgrade.constructionDays
+      }),
+      `
+      <div class="text-center mb-3">
+        <img src="${imageUrl}" alt="${t('buildings.youthAcademy')}" class="building-card__confirm-img">
+      </div>
+      <button id="${confirmId}" class="btn btn-primary w-100">
+        ${t('buildings.upgrade', { level: nextLevel })}
+      </button>
+    `)
   }
 
   /**

@@ -29,8 +29,10 @@ vi.mock('../helper/buildingHelper.js', () => ({
   completeBuildingConstructions: vi.fn(),
   getAllTrainingAreaLevels: vi.fn().mockResolvedValue(new Map()),
   getAllFitnessStudioLevels: vi.fn().mockResolvedValue(new Map()),
+  getAllYouthAcademyLevels: vi.fn().mockResolvedValue(new Map()),
   TRAINING_AREA_CARD_CHANCES: { 1: {} },
-  FITNESS_STUDIO_CARD_CHANCES: { 0: {} }
+  FITNESS_STUDIO_CARD_CHANCES: { 0: {} },
+  YOUTH_ACADEMY_CARD_CHANCES: { 0: {} }
 }))
 
 vi.mock('../helper/logMessageHelper.js', () => ({

@@ -51,7 +51,9 @@ const ACTION_CARD_LABELS = {
   FRESHNESS_5: 'actionCards.type.quickRecovery',
   FRESHNESS_10: 'actionCards.type.energyBoost',
   FRESHNESS_20: 'actionCards.type.fullRecovery',
-  NEW_YOUTH_PLAYER: 'actionCards.type.youthProspect',
+  NEW_YOUTH_PLAYER_1: 'actionCards.type.youthProspect1',
+  NEW_YOUTH_PLAYER_2: 'actionCards.type.youthProspect2',
+  NEW_YOUTH_PLAYER_3: 'actionCards.type.youthProspect3',
   BONUS_100K: 'actionCards.type.cashBonus',
   STAR_PLAYER: 'actionCards.type.starPlayer',
   MOTIVATING_SPEECH: 'actionCards.type.motivatingSpeech'

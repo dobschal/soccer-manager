@@ -7,6 +7,9 @@ import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { getUserLocale, t } from '../i18n/index.js'
 import { createYouthPlayer } from './youthPlayerHelper.js'
+import { randomItem } from '../lib/util.js'
+import { Position } from '../../client/util/formation.js'
+import { generateRandomPlayerName } from '../prepare-season.js'
 
 // Probabilities per game day (34 game days per season)
 // Note: 2x LEVEL_UP_40 can merge into 1x LEVEL_UP_70, and 2x LEVEL_UP_70 into 1x LEVEL_UP_100
@@ -14,7 +17,7 @@ import { createYouthPlayer } from './youthPlayerHelper.js'
 //
 // - LEVEL_UP_PLAYER_40: ~40/season → 1.2/day (can merge into ~20 LEVEL_UP_70)
 // - FRESHNESS_10: ~30/season → 0.88/day
-// - NEW_YOUTH_PLAYER: ~2/season → 0.059/day
+// - NEW_YOUTH_PLAYER_1/_2/_3: chances overridden per youth academy level (see buildingHelper)
 // - BONUS_100K: ~2/season → 0.06/day
 // - LEVEL_UP_PLAYER_70: ~10/season → 0.3/day (+ ~20 from merge, medium amount reach level 70)
 // - LEVEL_UP_PLAYER_100: ~2/season → 0.06/day (+ ~10 from merge, rare to reach level 100)
@@ -23,12 +26,88 @@ export const actionCardChances = {
   FRESHNESS_10: 0.88,
   FRESHNESS_20: 0,
   LEVEL_UP_PLAYER_40: 1.2,
-  NEW_YOUTH_PLAYER: 0.05,
+  NEW_YOUTH_PLAYER_1: 0,
+  NEW_YOUTH_PLAYER_2: 0,
+  NEW_YOUTH_PLAYER_3: 0,
   BONUS_100K: 0.06,
   LEVEL_UP_PLAYER_70: 0.3,
   LEVEL_UP_PLAYER_100: 0.06,
   STAR_PLAYER: 0.01,
   MOTIVATING_SPEECH: 0.05
+}
+
+/**
+ * Level and talent ranges for youth player action cards.
+ * The card type determines the strength of the recruited youth player.
+ */
+export const YOUTH_PLAYER_CARD_RANGES = {
+  NEW_YOUTH_PLAYER_1: { levelMin: 1, levelMax: 5, talentMin: 0.1, talentMax: 0.5 },
+  NEW_YOUTH_PLAYER_2: { levelMin: 5, levelMax: 10, talentMin: 0.3, talentMax: 0.75 },
+  NEW_YOUTH_PLAYER_3: { levelMin: 10, levelMax: 15, talentMin: 0.5, talentMax: 1.0 }
+}
+
+/**
+ * The set of action types that recruit a new youth player.
+ */
+export const NEW_YOUTH_PLAYER_ACTIONS = new Set([
+  'NEW_YOUTH_PLAYER_1',
+  'NEW_YOUTH_PLAYER_2',
+  'NEW_YOUTH_PLAYER_3'
+])
+
+/**
+ * Generate 3 random youth player options for an action card.
+ * @param {string} action - one of NEW_YOUTH_PLAYER_1/_2/_3
+ * @returns {Promise<Array<{name: string, position: string, level: number, talent: number, hair_color: number, skin_color: number}>>}
+ */
+export async function generateYouthPlayerOptions (action) {
+  const range = YOUTH_PLAYER_CARD_RANGES[action]
+  if (!range) throw new BadRequestError('Invalid youth player card action')
+  const options = []
+  for (let i = 0; i < 3; i++) {
+    options.push({
+      name: await generateRandomPlayerName(),
+      position: randomItem(Object.values(Position)),
+      level: range.levelMin + Math.random() * (range.levelMax - range.levelMin),
+      talent: range.talentMin + Math.random() * (range.talentMax - range.talentMin),
+      hair_color: Math.floor(Math.random() * 7),
+      skin_color: Math.floor(Math.random() * 4)
+    })
+  }
+  return options
+}
+
+/**
+ * Validate and sanitize a selected youth player option submitted by the client.
+ * @param {string} action
+ * @param {any} option
+ * @returns {{name: string, position: string, level: number, talent: number, hair_color: number, skin_color: number}}
+ */
+function _validateYouthPlayerOption (action, option) {
+  const range = YOUTH_PLAYER_CARD_RANGES[action]
+  if (!range) throw new BadRequestError('Invalid youth player card action')
+  if (!option || typeof option !== 'object') {
+    throw new BadRequestError('Invalid youth player option')
+  }
+  const validPositions = Object.values(Position)
+  const name = typeof option.name === 'string' ? option.name.slice(0, 64) : ''
+  const position = validPositions.includes(option.position) ? option.position : randomItem(validPositions)
+  const level = Math.min(range.levelMax, Math.max(range.levelMin, Number(option.level)))
+  const talent = Math.min(range.talentMax, Math.max(range.talentMin, Number(option.talent)))
+  const hairColor = Math.min(6, Math.max(0, Math.floor(Number(option.hair_color) || 0)))
+  const skinColor = Math.min(3, Math.max(0, Math.floor(Number(option.skin_color) || 0)))
+  if (!name) throw new BadRequestError('Invalid youth player option name')
+  if (!Number.isFinite(level) || !Number.isFinite(talent)) {
+    throw new BadRequestError('Invalid youth player option values')
+  }
+  return {
+    name,
+    position,
+    level,
+    talent,
+    hair_color: hairColor,
+    skin_color: skinColor
+  }
 }
 
 /**
@@ -151,9 +230,10 @@ export async function playActionCard ({
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
     return { success: true }
   }
-  if (actionCard.action === 'NEW_YOUTH_PLAYER') {
+  if (actionCard.action in YOUTH_PLAYER_CARD_RANGES) {
+    const overrides = _validateYouthPlayerOption(actionCard.action, p)
     const { season } = await getGameDayAndSeason()
-    const youthPlayer = await createYouthPlayer(team.id, season)
+    const youthPlayer = await createYouthPlayer(team.id, season, overrides)
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardYouth', { playerName: youthPlayer.name }, locale), team, null, null, 'child', undefined, 'success')
     return { success: true }

@@ -36,6 +36,7 @@ import {
   getBuildingConstructionInfo,
   TRAINING_AREA_CARD_CHANCES,
   FITNESS_STUDIO_CARD_CHANCES,
+  YOUTH_ACADEMY_CARD_CHANCES,
   BUILDING_UPGRADES,
   upgradeBuilding,
   completeBuildingConstructions,
@@ -43,6 +44,8 @@ import {
   getAllTrainingAreaLevels,
   getFitnessStudioLevel,
   getAllFitnessStudioLevels,
+  getYouthAcademyLevel,
+  getAllYouthAcademyLevels,
   getBuildingsForTeam
 } from '../../helper/buildingHelper.js'
 
@@ -111,6 +114,41 @@ describe('buildingHelper', () => {
     })
   })
 
+  describe('YOUTH_ACADEMY_CARD_CHANCES', () => {
+    it('level 0 only has the basic youth player card with low chance', () => {
+      const chances = YOUTH_ACADEMY_CARD_CHANCES[0]
+      expect(chances.NEW_YOUTH_PLAYER_1).toBeGreaterThan(0)
+      expect(chances.NEW_YOUTH_PLAYER_2).toBe(0)
+      expect(chances.NEW_YOUTH_PLAYER_3).toBe(0)
+    })
+
+    it('higher levels yield strictly more total youth cards per game day', () => {
+      const totalForLevel = (lvl) => Object.values(YOUTH_ACADEMY_CARD_CHANCES[lvl]).reduce((a, b) => a + b, 0)
+      expect(totalForLevel(1)).toBeGreaterThan(totalForLevel(0))
+      expect(totalForLevel(2)).toBeGreaterThan(totalForLevel(1))
+      expect(totalForLevel(3)).toBeGreaterThan(totalForLevel(2))
+    })
+
+    it('level 2 unlocks NEW_YOUTH_PLAYER_2; level 3 also unlocks NEW_YOUTH_PLAYER_3', () => {
+      expect(YOUTH_ACADEMY_CARD_CHANCES[2].NEW_YOUTH_PLAYER_2).toBeGreaterThan(0)
+      expect(YOUTH_ACADEMY_CARD_CHANCES[2].NEW_YOUTH_PLAYER_3).toBe(0)
+      expect(YOUTH_ACADEMY_CARD_CHANCES[3].NEW_YOUTH_PLAYER_3).toBeGreaterThan(0)
+    })
+
+    it('targets roughly 1/2/3/4 cards per 34-game-day season for levels 0/1/2/3', () => {
+      const SEASON_DAYS = 34
+      const total = (lvl) => Object.values(YOUTH_ACADEMY_CARD_CHANCES[lvl]).reduce((a, b) => a + b, 0) * SEASON_DAYS
+      expect(total(0)).toBeGreaterThanOrEqual(0.8)
+      expect(total(0)).toBeLessThanOrEqual(1.5)
+      expect(total(1)).toBeGreaterThanOrEqual(1.7)
+      expect(total(1)).toBeLessThanOrEqual(2.5)
+      expect(total(2)).toBeGreaterThanOrEqual(2.7)
+      expect(total(2)).toBeLessThanOrEqual(3.5)
+      expect(total(3)).toBeGreaterThanOrEqual(3.7)
+      expect(total(3)).toBeLessThanOrEqual(4.5)
+    })
+  })
+
   describe('BUILDING_UPGRADES', () => {
     it('has correct costs and construction times for training area', () => {
       expect(BUILDING_UPGRADES.training_area_1).toEqual({ cost: 375_000, constructionDays: 5 })
@@ -124,9 +162,16 @@ describe('buildingHelper', () => {
       expect(BUILDING_UPGRADES.fitness_studio_3).toEqual({ cost: 2_625_000, constructionDays: 15 })
     })
 
+    it('has correct costs and construction times for youth academy', () => {
+      expect(BUILDING_UPGRADES.youth_academy_1).toEqual({ cost: 1_000_000, constructionDays: 5 })
+      expect(BUILDING_UPGRADES.youth_academy_2).toEqual({ cost: 3_000_000, constructionDays: 10 })
+      expect(BUILDING_UPGRADES.youth_academy_3).toEqual({ cost: 9_000_000, constructionDays: 17 })
+    })
+
     it('does not have upgrade for level 4', () => {
       expect(BUILDING_UPGRADES.training_area_4).toBeUndefined()
       expect(BUILDING_UPGRADES.fitness_studio_4).toBeUndefined()
+      expect(BUILDING_UPGRADES.youth_academy_4).toBeUndefined()
     })
   })
 
@@ -214,6 +259,32 @@ describe('buildingHelper', () => {
       expect(map.get(1)).toBe(2)
       expect(map.get(2)).toBe(0)
       expect(map.get(3)).toBe(3)
+    })
+  })
+
+  describe('getYouthAcademyLevel', () => {
+    it('returns building level when found', async () => {
+      query.mockResolvedValue([{ level: 2 }])
+      const level = await getYouthAcademyLevel(1)
+      expect(level).toBe(2)
+    })
+
+    it('returns 0 as default when no building found', async () => {
+      query.mockResolvedValue([])
+      const level = await getYouthAcademyLevel(1)
+      expect(level).toBe(0)
+    })
+  })
+
+  describe('getAllYouthAcademyLevels', () => {
+    it('returns map of team_id to level', async () => {
+      query.mockResolvedValue([
+        { team_id: 1, level: 0 },
+        { team_id: 2, level: 3 }
+      ])
+      const map = await getAllYouthAcademyLevels()
+      expect(map.get(1)).toBe(0)
+      expect(map.get(2)).toBe(3)
     })
   })
 

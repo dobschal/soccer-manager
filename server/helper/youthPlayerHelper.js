@@ -56,23 +56,27 @@ export async function getYouthPlayerById (id) {
  * Create a new youth player for a team
  * @param {number} teamId
  * @param {number} season - current season (player will be 15)
+ * @param {Partial<YouthPlayerType>} [overrides] - optional overrides for name, position, level, talent, hair_color, skin_color
  * @returns {Promise<YouthPlayerType>}
  */
-export async function createYouthPlayer (teamId, season) {
-  const name = await generateRandomPlayerName()
-  const talent = 0.1 + Math.random() * 0.9 // 0.1 to 1.0
-  const level = 1 + Math.random() * 9 // 1 to 10
+export async function createYouthPlayer (teamId, season, overrides = {}) {
+  const name = overrides.name ?? await generateRandomPlayerName()
+  const talent = overrides.talent ?? (0.1 + Math.random() * 0.9) // 0.1 to 1.0
+  const level = overrides.level ?? (1 + Math.random() * 9) // 1 to 10
+  const position = overrides.position ?? randomItem(Object.values(Position))
+  const hairColor = overrides.hair_color ?? Math.floor(Math.random() * 7)
+  const skinColor = overrides.skin_color ?? Math.floor(Math.random() * 4)
 
   const youthPlayer = new YouthPlayer({
     team_id: teamId,
     name,
-    position: randomItem(Object.values(Position)),
+    position,
     level,
     talent,
     moral: 0.7,
     fitness: 0.7,
-    hair_color: Math.floor(Math.random() * 7),
-    skin_color: Math.floor(Math.random() * 4),
+    hair_color: hairColor,
+    skin_color: skinColor,
     birth_season: season // They are 15 years old at current season
   })
 
