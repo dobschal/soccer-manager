@@ -43,7 +43,7 @@ export class SearchPanel extends UIElement {
           >
         </div>
 
-        <div id="${this._containerId}">
+        <div id="${this._containerId}" class="mb-3">
           <div data-search-tab="${this.searchTab}">${innerPage}</div>
         </div>
       </div>
@@ -56,13 +56,19 @@ export class SearchPanel extends UIElement {
         input: (e) => {
           clearTimeout(this._debounce)
           this._debounce = setTimeout(() => {
-            setQueryParams({ search_query: e.target.value.trim() || null, page: null })
+            setQueryParams({
+              search_query: e.target.value.trim() || null,
+              page: null
+            })
           }, 300)
         }
       },
       '#search-panel-select': {
         change: (e) => {
-          setQueryParams({ search_tab: e.target.value || null, page: null })
+          setQueryParams({
+            search_tab: e.target.value || null,
+            page: null
+          })
         }
       }
     }

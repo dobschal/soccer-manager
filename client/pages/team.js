@@ -337,7 +337,7 @@ export class TeamPage extends UIElement {
               <tr><td class="text-muted ps-3">${t('myTeam.lineupStrength')}</td><td class="text-end pe-3">${this._teamStrength}</td></tr>
               <tr><td class="text-muted ps-3">${t('team.avgFreshness')}</td><td class="text-end pe-3">${Math.floor(this._teamFreshness * 100)}%</td></tr>
               <tr><td class="text-muted ps-3">${t('stadium.stadiumLabel')}</td><td class="text-end pe-3"><a href="#" class="stadium-link text-info">${this._stadiumName}</a></td></tr>
-              <tr><td class="text-muted ps-3">${t('team.stadiumSize')}</td><td class="text-end pe-3"><a href="#" class="stadium-link text-info">${t('team.seats', { seats: this._stadiumSize })}</a></td></tr>
+              <tr><td class="text-muted ps-3">${t('team.stadiumSize')}</td><td class="text-end pe-3">${t('team.seats', { seats: this._stadiumSize })}</td></tr>
             </tbody>
           </table>
         </div>

@@ -19,6 +19,7 @@ import { toast } from './partials/toast.js'
 import { initSwipeBackNavigation } from './lib/swipeBackNavigation.js'
 import { initPullToRefresh } from './lib/pullToRefresh.js'
 import { initTabBarAnimations } from './lib/tabBarAnimation.js'
+import { isApiReachable, showOfflineScreen } from './lib/offlineScreen.js'
 
 installGlobalErrorHandler()
 
@@ -124,10 +125,6 @@ if (window.__nativeDeviceToken && window.__nativePlatform && window.localStorage
   sendLog('[Push] Startup fallback: conditions not met, skipping')
 }
 
-server.getVersion().then(({ version }) => {
-  console.log(`FootballManager.IO running version ${version}`)
-})
-
 const pages = {
   trades: [NativeAppLayout, TradesPage],
   club: [NativeAppLayout, ClubPage],
@@ -140,4 +137,23 @@ const pages = {
   '*': [NativeAppLayout, DashboardPage]
 }
 
-initRouter(pages)
+// On native (WKWebView/Android WebView), index.html is loaded from the local
+// bundle and renders even without internet — but every layout's load() then
+// fires parallel server calls that all reject. The first template render
+// crashes on undefined data and <body> stays empty (dark grey WKWebView bg).
+// Probe the API once before initialising the router; if the user is logged in
+// and the server is unreachable, show a dedicated offline screen so they get
+// a retry button instead of a blank page.
+const hasAuthToken = !!window.localStorage.getItem('auth-token')
+isApiReachable().then(reachable => {
+  if (!reachable && hasAuthToken) {
+    showOfflineScreen()
+    return
+  }
+  initRouter(pages)
+  if (reachable) {
+    server.getVersion().then(({ version }) => {
+      console.log(`FootballManager.IO running version ${version}`)
+    })
+  }
+})

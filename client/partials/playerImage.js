@@ -16,7 +16,7 @@ const hairColors = [
   '#E09976',
   '#7F5562',
   '#4C466A',
-  '#3E3155'
+  '#373444'
 ]
 
 // Grey color for free agents without a team

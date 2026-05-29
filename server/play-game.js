@@ -787,7 +787,8 @@ export function checkForInjury (player, playStyle, gameDetails, team, isTeamA) {
 
 /**
  * Check for user-scheduled substitutions based on each bench player's
- * configured substitution mode. Runs from minute 46 onwards.
+ * configured substitution mode. Runs from minute 45 onwards; injuries
+ * can still trigger substitutions earlier via checkForInjury.
  * Modes:
  *   - 'always': substitute as soon as possible
  *   - 'injury_only': skip — only triggered by checkForInjury
@@ -798,7 +799,7 @@ export function checkForInjury (player, playStyle, gameDetails, team, isTeamA) {
  * @param {GameDetails} gameDetails
  */
 export function checkScheduledSubstitutions (playerTeamA, playerTeamB, gameDetails) {
-  if ((gameDetails.currentMinute ?? 0) < 46) return
+  if ((gameDetails.currentMinute ?? 0) < 45) return
 
   gameDetails.substitutions = gameDetails.substitutions ?? []
   gameDetails.substitutionCountA = gameDetails.substitutionCountA ?? 0

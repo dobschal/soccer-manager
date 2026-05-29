@@ -388,6 +388,7 @@ export default {
   'myTeam.benchSubMode.leading': 'Sub in when leading',
   'myTeam.benchSubMode.trailing': 'Sub in when trailing',
   'myTeam.benchSubModeUpdated': 'Substitution rule updated!',
+  'myTeam.benchSubInfo': 'Bench players are substituted in no earlier than the 45th minute. The only exception is an injury — an injured player is replaced straight away if a matching bench player is available.',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A Team',
@@ -1028,6 +1029,7 @@ export default {
   'results.friendlyResults': 'Friendlies',
   'results.hallOfFame': 'Hall of Fame',
   'results.teamStats': 'Team Statistics',
+  'results.standingHistory': 'History',
   'results.playerCount': 'Player',
   'results.avgStrength': 'Avg. Strength',
   'results.totalStrength': 'Total Strength',
@@ -1095,6 +1097,12 @@ export default {
 
   // OTA
   'ota.updateInstalled': 'App updated in the background!',
+
+  // Offline
+  'offline.title': 'No internet connection',
+  'offline.text': 'FootballManager.IO needs an internet connection to load your team and games. Please check your connection and try again.',
+  'offline.retry': 'Try again',
+  'offline.retrying': 'Connecting…',
 
   // Fitness Studio
   'buildings.fitnessStudio': 'Fitness Studio',

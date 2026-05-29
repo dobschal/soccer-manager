@@ -1,3 +1,4 @@
+import { Chart } from 'chart.js/auto'
 import { server } from '../../lib/gateway.js'
 import { generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
@@ -7,7 +8,7 @@ import { UIElement } from '../../lib/UIElement.js'
 import { calculatePlayerAge } from '../../util/player.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
-import { loadManagerChatSvg, renderManagerChatInline } from '../../partials/managerChat.js'
+import { showOverlay } from '../../partials/overlay.js'
 import { t } from '../../i18n/index.js'
 import { Table } from '../../partials/table.js'
 import { shortenTeamName } from '../../util/team.js'
@@ -65,7 +66,11 @@ export class LeagueResultsPage extends UIElement {
       server.getLeagueStadiums(this.level, this.league),
       server.getMatchDayRecap(this.matchDay, this.season, this.level, this.league)
     ]
-    const [{ results, isCupGameDay, cupRound }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }, { stadiums }, recapResponse] = await Promise.all(promises)
+    const [{
+      results,
+      isCupGameDay,
+      cupRound
+    }, standing, yesterday, { topScorers }, { suspendedPlayers }, { teamStats }, { injuredPlayers }, { stadiums }, recapResponse] = await Promise.all(promises)
     this.results = results
     this.isCupGameDay = isCupGameDay
     this.cupRound = cupRound
@@ -82,43 +87,43 @@ export class LeagueResultsPage extends UIElement {
     this.recapFeaturedPlayer = recapResponse?.featuredPlayer ?? null
     this.recapFeaturedTeam = recapResponse?.featuredTeam ?? null
     this._recapImage = ''
-
-    this._buildManagerChat()
   }
 
   get template () {
     return `
       <div>
-        <div class="d-flex flex-column flex-lg-row align-items-start gap-3 mb-4">
-          <div class="flex-grow-1 u-w-lg-50">
-            <h2>${t('results.resultsTitle')}</h2>
-            <div class="results-filters d-flex flex-wrap gap-3">
-              <div>
-                <label for="results-league-select" class="form-label mb-1">${t('results.league')}</label>
-                <select id="results-league-select" class="form-select form-select-sm u-w-auto">
-                  ${this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')}
-                </select>
-              </div>
-              <div>
-                <label for="results-season-select" class="form-label mb-1">${t('results.season')}</label>
-                <select id="results-season-select" class="form-select form-select-sm u-w-auto">
-                  ${this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')}
-                </select>
-              </div>
-              <div>
-                <label for="results-game-day-select" class="form-label mb-1">${t('results.gameDayLabel')}</label>
-                <select id="results-game-day-select" class="form-select form-select-sm u-w-auto">
-                  ${this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')}
-                </select>
-              </div>
+        <div class="mb-4">
+          <h2>${t('results.resultsTitle')}</h2>
+          <div class="results-filters d-flex flex-wrap gap-3">
+            <div>
+              <label for="results-league-select" class="form-label mb-1">${t('results.league')}</label>
+              <select id="results-league-select" class="form-select form-select-sm u-w-auto">
+                ${this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label for="results-season-select" class="form-label mb-1">${t('results.season')}</label>
+              <select id="results-season-select" class="form-select form-select-sm u-w-auto">
+                ${this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label for="results-game-day-select" class="form-label mb-1">${t('results.gameDayLabel')}</label>
+              <select id="results-game-day-select" class="form-select form-select-sm u-w-auto">
+                ${this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')}
+              </select>
             </div>
           </div>
-          <div class="d-none d-lg-block">${this._managerChatHtml || ''}</div>
         </div>
 
         <h3>${t('results.games')}</h3>
         ${this.results.length > 0 && this.results[0].created_at && typeof this.results[0].goalsTeam1 === 'number' && typeof this.results[0].goalsTeam2 === 'number'
-    ? `<p class="text-muted">${t('results.gamesPlayedAt', { date: new Date(this.results[0].created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) })}</p>`
+    ? `<p class="text-muted">${t('results.gamesPlayedAt', {
+      date: new Date(this.results[0].created_at).toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      })
+    })}</p>`
     : ''}
         ${this.results.length === 0 && this.isCupGameDay
     ? `<div class="alert alert-info">
@@ -142,6 +147,7 @@ export class LeagueResultsPage extends UIElement {
     renderRow: (result) => this._renderResultListItem(result),
     onClick: (result) => setQueryParams({ game_id: result.id })
   })}
+        ${this._renderRecap()}
         ${this._renderStandingHeading()}
         ${new Table({
     cols: [
@@ -171,22 +177,6 @@ export class LeagueResultsPage extends UIElement {
         !isMyTeam && index > 13 ? 'table-warning' : ''
       ].join(' ')
     }
-  })}
-        ${this._renderRecap()}
-        <h3>${t('results.topScorer')}</h3>
-        ${new Table({
-    cols: [
-      { name: '#' },
-      { name: t('results.name') },
-      { name: t('results.goals') },
-      { name: t('results.team') },
-      { name: 'Pos' },
-      { name: 'Lvl' },
-      { name: 'Age' }
-    ],
-    data: this.topScorer,
-    renderRow: (scorer, index) => this._renderTopScorer(scorer, index),
-    rowClass: (scorer) => scorer && scorer.team && this.myTeamId === scorer.team.id ? 'table-info' : ''
   })}
 
         ${this.suspendedPlayers.length > 0 ? `
@@ -220,44 +210,20 @@ export class LeagueResultsPage extends UIElement {
   })}
         ` : ''}
 
-        ${this.teamStats.length > 0 ? `
-          <h3>${t('results.teamStats')}</h3>
-          <div class="horizontal-scrollable-table">
-            <table class="table table-hover wide-on-mobile mb-4">
-              <thead class="team-stats-thead">
-                <tr>
-                  <th scope="col"></th>
-                  <th scope="col" class="u-cursor-pointer text-nowrap" data-col="name">
-                    ${t('results.team')} <span class="ts-sort-icon" data-sort-col="name">${this._sortIcon('name')}</span>
-                  </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_size">
-                    ${t('results.playerCount')} <span class="ts-sort-icon" data-sort-col="squad_size">${this._sortIcon('squad_size')}</span>
-                  </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="avg_strength">
-                    ${t('results.avgStrength')} <span class="ts-sort-icon" data-sort-col="avg_strength">${this._sortIcon('avg_strength')}</span>
-                  </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="total_strength">
-                    ${t('results.totalStrength')} <span class="ts-sort-icon" data-sort-col="total_strength">${this._sortIcon('total_strength')}</span>
-                  </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_size">
-                    ${t('results.squadSize')} <span class="ts-sort-icon" data-sort-col="squad_size">${this._sortIcon('squad_size')}</span>
-                  </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="avg_freshness">
-                    ${t('results.avgFreshness')} <span class="ts-sort-icon" data-sort-col="avg_freshness">${this._sortIcon('avg_freshness')}</span>
-                  </th>
-                  <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_value">
-                    ${t('results.squadValue')} <span class="ts-sort-icon" data-sort-col="squad_value">${this._sortIcon('squad_value')}</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody id="team-stats-tbody">
-                ${this._getSortedTeamStats().map(this._renderTeamStatsRow.bind(this)).join('')}
-              </tbody>
-            </table>
-          </div>
-        ` : ''}
-
-        ${this._renderStadiumsTable()}
+        <div class="d-flex flex-column flex-md-row gap-2 mt-4 mb-4">
+          <button id="results-open-top-scorers-btn" class="btn btn-outline-primary flex-fill" type="button">
+            <i class="fa fa-soccer-ball-o me-1"></i> ${t('results.topScorer')}
+          </button>
+          <button id="results-open-team-stats-btn" class="btn btn-outline-primary flex-fill" type="button" ${this.teamStats.length === 0 ? 'disabled' : ''}>
+            <i class="fa fa-line-chart me-1"></i> ${t('results.teamStats')}
+          </button>
+          <button id="results-open-stadiums-btn" class="btn btn-outline-primary flex-fill" type="button" ${this.stadiums.length === 0 ? 'disabled' : ''}>
+            <i class="fa fa-building me-1"></i> ${t('stadium.stadiumsTitle')}
+          </button>
+          <button id="results-open-standing-history-btn" class="btn btn-outline-primary flex-fill" type="button">
+            <i class="fa fa-area-chart me-1"></i> ${t('results.standingHistory')}
+          </button>
+        </div>
       </div>
     `
   }
@@ -267,29 +233,48 @@ export class LeagueResultsPage extends UIElement {
       '#results-league-select': {
         change: (event) => {
           const [level, league] = event.target.value.split('_').map(Number)
-          setQueryParams({ level, league, season: this.season, match_day: this.matchDay })
+          setQueryParams({
+            level,
+            league,
+            season: this.season,
+            match_day: this.matchDay
+          })
         }
       },
       '#results-season-select': {
         change: (event) => {
-          setQueryParams({ season: Number(event.target.value), match_day: this.matchDay })
+          setQueryParams({
+            season: Number(event.target.value),
+            match_day: this.matchDay
+          })
         }
       },
       '#results-game-day-select': {
         change: (event) => {
-          setQueryParams({ season: this.season, match_day: Number(event.target.value) })
+          setQueryParams({
+            season: this.season,
+            match_day: Number(event.target.value)
+          })
         }
+      },
+      '#results-open-top-scorers-btn': {
+        click: () => this._showTopScorersOverlay()
+      },
+      '#results-open-team-stats-btn': {
+        click: () => this._showTeamStatsOverlay()
+      },
+      '#results-open-stadiums-btn': {
+        click: () => this._showStadiumsOverlay()
+      },
+      '#results-open-standing-history-btn': {
+        click: () => this._showStandingHistoryOverlay()
       }
     }
   }
 
   onMounted () {
-    this._loadTopScorerImages()
+    this._loadPlayerImages()
     this._loadRecapImage()
-    this._attachTeamStatsHeaderHandler()
-    if (this._managerSvgId && this._teamColor) {
-      void loadManagerChatSvg(this._managerSvgId, this._teamColor)
-    }
   }
 
   suspendedPlayers = []
@@ -313,81 +298,14 @@ export class LeagueResultsPage extends UIElement {
     return this.parentPage.myTeamId
   }
 
-  /**
-   * Builds manager chat HTML from results data
-   */
-  _buildManagerChat () {
-    this._managerSvgId = generateId()
-    this._teamColor = this.parentPage.info.team.color
-    this._managerChatHtml = ''
-
-    const team = this.parentPage.info.team
-    const user = this.parentPage.info.user
-    if (!user) return
-
-    // Find the user's game in the current results
-    const myGame = this.results.find(
-      r => r.team1Id === this.myTeamId || r.team2Id === this.myTeamId
-    )
-    if (!myGame) return
-
-    const isHomeGame = myGame.team1Id === this.myTeamId
-    const myGoals = isHomeGame ? myGame.goalsTeam1 : myGame.goalsTeam2
-    const opponentGoals = isHomeGame ? myGame.goalsTeam2 : myGame.goalsTeam1
-    const hasResult = typeof myGoals === 'number' && typeof opponentGoals === 'number'
-    const isWin = hasResult && myGoals > opponentGoals
-    const isDraw = hasResult && myGoals === opponentGoals
-    const resultMessage = !hasResult
-      ? t('dashboard.resultNotAvailable')
-      : isWin
-        ? t('dashboard.congratsWin')
-        : isDraw
-          ? t('dashboard.drawMessage')
-          : t('dashboard.lossMessage')
-
-    const teamPosition = this.standing.findIndex(s => s.team.id === this.myTeamId) + 1
-    const positionText = this._getPositionText(teamPosition)
-
-    const chatText = `
-      <p class="mb-1">${t('dashboard.hey')} <b>${user.username}</b>!</p>
-      <p class="mb-1">${t('dashboard.teamPosition', {
-    position: positionText,
-    league: team.level + 1
-  })}</p>
-      <p class="mb-0">${t('dashboard.gameDayInfo', {
-    gameDay: Math.max(1, this.matchDay),
-    season: this.season + 1,
-    opponent: isHomeGame ? myGame.team2 : myGame.team1
-  })} ${resultMessage}</p>
-    `
-    this._managerChatHtml = renderManagerChatInline(this._managerSvgId, chatText)
-  }
-
-  /**
-   * @param {number} teamPosition
-   * @returns {string}
-   */
-  _getPositionText (teamPosition) {
-    if (teamPosition === 0) return t('dashboard.notRankedYet')
-    const pos = teamPosition
-    if (pos === 1) return t('dashboard.positionSt', { pos })
-    if (pos === 2) return t('dashboard.positionNd', { pos })
-    if (pos === 3) return t('dashboard.positionRd', { pos })
-    return t('dashboard.positionTh', { pos })
-  }
-
   async update (reloadData = false) {
     await super.update(reloadData)
-    this._loadTopScorerImages()
+    this._loadPlayerImages()
     this._loadRecapImage()
-    this._attachTeamStatsHeaderHandler()
-    if (this._managerSvgId && this._teamColor) {
-      void loadManagerChatSvg(this._managerSvgId, this._teamColor)
-    }
   }
 
   _attachTeamStatsHeaderHandler () {
-    const thead = document.querySelector(`${this._elementQuery} .team-stats-thead`)
+    const thead = document.querySelector('.team-stats-thead')
     if (!thead) return
     thead.addEventListener('click', (e) => {
       const th = e.target.closest('[data-col]')
@@ -404,29 +322,17 @@ export class LeagueResultsPage extends UIElement {
   }
 
   _updateTeamStatsTable () {
-    const tbody = document.querySelector(`${this._elementQuery} #team-stats-tbody`)
+    const tbody = document.getElementById('team-stats-tbody')
     if (tbody) {
       tbody.innerHTML = this._getSortedTeamStats().map(this._renderTeamStatsRow.bind(this)).join('')
     }
-    document.querySelectorAll(`${this._elementQuery} .ts-sort-icon`).forEach(el => {
+    document.querySelectorAll('.ts-sort-icon').forEach(el => {
       const col = el.dataset.sortCol
       if (col) el.innerHTML = this._sortIcon(col)
     })
   }
 
-  _loadTopScorerImages () {
-    if (this.topScorer) {
-      this.topScorer.forEach((scorer) => {
-        if (!scorer || !scorer.team) return
-        renderPlayerImage(scorer, scorer.team, 48).then(image => {
-          const imageEl = document.querySelector(`${this._elementQuery} .scorer-image[data-scorer-id="${scorer.id}"]`)
-          if (imageEl) {
-            imageEl.innerHTML = image
-          }
-        })
-      })
-    }
-
+  _loadPlayerImages () {
     if (this.suspendedPlayers) {
       this.suspendedPlayers.forEach((player) => {
         if (!player || !player.team) return
@@ -658,32 +564,243 @@ export class LeagueResultsPage extends UIElement {
     })
   }
 
-  _renderStadiumsTable () {
-    if (!this.stadiums || this.stadiums.length === 0) return ''
-    return `
-      <h3>${t('stadium.stadiumsTitle')}</h3>
-      ${new Table({
-    cols: [
-      { name: '', width: '32px' },
-      { name: t('results.team') },
-      { name: t('stadium.stadiumName') },
-      { name: t('stadium.size'), align: 'right' }
-    ],
-    data: this.stadiums,
-    renderRow: (s) => {
-      const team = { id: s.team_id, name: s.team_name, emblem: s.emblem, color: s.color, user_id: s.user_id }
-      const hasUser = Boolean(s.user_id)
-      return [
-        `<span class="emblem-thumb">${renderEmblem(team, 24)}</span>`,
-        `${s.team_name}${hasUser ? ' <i class="fa fa-user fa-sm" aria-hidden="true"></i>' : ''}`,
-        s.stadium_name || '-',
-        Number(s.stadium_size || 0).toLocaleString()
-      ]
-    },
-    onClick: (s) => goTo(`team?id=${s.team_id}`),
-    rowClass: (s) => this.myTeamId === s.team_id ? 'table-info' : ''
-  })}
+  _showTopScorersOverlay () {
+    if (!this.topScorer || this.topScorer.length === 0) {
+      showOverlay(t('results.topScorer'), '', `<p class="text-muted mb-0">${t('results.noGamesYet')}</p>`)
+      return
+    }
+    const content = `${new Table({
+      cols: [
+        { name: '#' },
+        { name: t('results.name') },
+        { name: t('results.goals') },
+        { name: t('results.team') },
+        { name: 'Pos' },
+        { name: 'Lvl' },
+        { name: 'Age' }
+      ],
+      data: this.topScorer,
+      renderRow: (scorer, index) => this._renderTopScorer(scorer, index),
+      rowClass: (scorer) => scorer && scorer.team && this.myTeamId === scorer.team.id ? 'table-info' : ''
+    })}`
+    const overlay = showOverlay(t('results.topScorer'), '', content)
+    this._loadTopScorerImagesGlobal()
+    this._closeOverlayOnNavigation(overlay)
+  }
+
+  _showTeamStatsOverlay () {
+    if (!this.teamStats || this.teamStats.length === 0) return
+    const content = `
+      <div class="horizontal-scrollable-table">
+        <table class="table table-hover wide-on-mobile mb-0">
+          <thead class="team-stats-thead">
+            <tr>
+              <th scope="col"></th>
+              <th scope="col" class="u-cursor-pointer text-nowrap" data-col="name">
+                ${t('results.team')} <span class="ts-sort-icon" data-sort-col="name">${this._sortIcon('name')}</span>
+              </th>
+              <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_size">
+                ${t('results.playerCount')} <span class="ts-sort-icon" data-sort-col="squad_size">${this._sortIcon('squad_size')}</span>
+              </th>
+              <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="avg_strength">
+                ${t('results.avgStrength')} <span class="ts-sort-icon" data-sort-col="avg_strength">${this._sortIcon('avg_strength')}</span>
+              </th>
+              <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="total_strength">
+                ${t('results.totalStrength')} <span class="ts-sort-icon" data-sort-col="total_strength">${this._sortIcon('total_strength')}</span>
+              </th>
+              <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_size">
+                ${t('results.squadSize')} <span class="ts-sort-icon" data-sort-col="squad_size">${this._sortIcon('squad_size')}</span>
+              </th>
+              <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="avg_freshness">
+                ${t('results.avgFreshness')} <span class="ts-sort-icon" data-sort-col="avg_freshness">${this._sortIcon('avg_freshness')}</span>
+              </th>
+              <th scope="col" class="u-cursor-pointer text-end text-nowrap" data-col="squad_value">
+                ${t('results.squadValue')} <span class="ts-sort-icon" data-sort-col="squad_value">${this._sortIcon('squad_value')}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="team-stats-tbody">
+            ${this._getSortedTeamStats().map(this._renderTeamStatsRow.bind(this)).join('')}
+          </tbody>
+        </table>
+      </div>
     `
+    const overlay = showOverlay(t('results.teamStats'), '', content)
+    this._attachTeamStatsHeaderHandler()
+    this._closeOverlayOnNavigation(overlay)
+  }
+
+  _showStadiumsOverlay () {
+    if (!this.stadiums || this.stadiums.length === 0) return
+    const content = `${new Table({
+      cols: [
+        {
+          name: '',
+          width: '32px'
+        },
+        { name: t('results.team') },
+        { name: t('stadium.stadiumName') },
+        {
+          name: t('stadium.size'),
+          align: 'right'
+        }
+      ],
+      data: this.stadiums,
+      renderRow: (s) => {
+        const team = {
+          id: s.team_id,
+          name: s.team_name,
+          emblem: s.emblem,
+          color: s.color,
+          user_id: s.user_id
+        }
+        const hasUser = Boolean(s.user_id)
+        return [
+          `<span class="emblem-thumb">${renderEmblem(team, 24)}</span>`,
+          `${s.team_name}${hasUser ? ' <i class="fa fa-user fa-sm" aria-hidden="true"></i>' : ''}`,
+          s.stadium_name || '-',
+          Number(s.stadium_size || 0).toLocaleString()
+        ]
+      },
+      onClick: (s) => goTo(`team?id=${s.team_id}`),
+      rowClass: (s) => this.myTeamId === s.team_id ? 'table-info' : ''
+    })}`
+    const overlay = showOverlay(t('stadium.stadiumsTitle'), '', content)
+    this._closeOverlayOnNavigation(overlay)
+  }
+
+  async _showStandingHistoryOverlay () {
+    const canvasId = generateId()
+    const content = `
+      <div class="standing-history-chart-scroll">
+        <div class="standing-history-chart-container">
+          <canvas id="${canvasId}"></canvas>
+        </div>
+      </div>
+      <p id="standing-history-empty" class="text-muted mb-0 d-none">${t('results.noGamesYet')}</p>
+    `
+    const overlay = showOverlay(t('results.standingHistory'), '', content)
+    this._closeOverlayOnNavigation(overlay)
+
+    let chart = null
+    overlay.onClose(() => {
+      if (chart) {
+        chart.destroy()
+        chart = null
+      }
+    })
+
+    const history = await server.getLeagueStandingHistory(this.season, this.level, this.league)
+    const canvas = document.getElementById(canvasId)
+    if (!canvas) return
+    if (!history.matchDays || history.matchDays.length === 0) {
+      canvas.classList.add('d-none')
+      const emptyEl = document.getElementById('standing-history-empty')
+      if (emptyEl) emptyEl.classList.remove('d-none')
+      return
+    }
+
+    const teamCount = history.teams.length
+    const datasets = history.teams.map(team => {
+      const color = team.color || '#1a5f7a'
+      const isMyTeam = this.myTeamId === team.id
+      return {
+        label: team.name,
+        data: team.positions,
+        borderColor: color,
+        backgroundColor: color,
+        borderWidth: isMyTeam ? 4 : 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        tension: 0.1,
+        spanGaps: true
+      }
+    })
+
+    chart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: history.matchDays.map(d => `${d}`),
+        datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 14,
+              boxHeight: 14
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title: (items) => `${t('results.gameDayLabel')} ${items[0].label}`,
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}.`
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: t('results.gameDayLabel')
+            }
+          },
+          y: {
+            reverse: true,
+            min: 1,
+            max: Math.max(teamCount, 1),
+            ticks: {
+              stepSize: 1,
+              precision: 0
+            },
+            title: {
+              display: true,
+              text: t('results.position')
+            }
+          }
+        }
+      }
+    })
+  }
+
+  /**
+   * Loads top scorer images using unscoped selectors so they target the open overlay.
+   */
+  _loadTopScorerImagesGlobal () {
+    if (!this.topScorer) return
+    this.topScorer.forEach((scorer) => {
+      if (!scorer || !scorer.team) return
+      renderPlayerImage(scorer, scorer.team, 48).then(image => {
+        const imageEl = document.querySelector(`.scorer-image[data-scorer-id="${scorer.id}"]`)
+        if (imageEl) {
+          imageEl.innerHTML = image
+        }
+      })
+    })
+  }
+
+  /**
+   * Closes the overlay when the user navigates to a different page (e.g. clicks a
+   * team row that calls goTo). Query-param-only changes — like opening a stacked
+   * player modal — are ignored so the underlying overlay stays available.
+   * @param {{onClose: (cb: () => void) => void, remove: () => void}} overlay
+   */
+  _closeOverlayOnNavigation (overlay) {
+    const startPath = window.location.hash.split('?')[0]
+    const handler = () => {
+      if (window.location.hash.split('?')[0] !== startPath) {
+        overlay.remove()
+      }
+    }
+    window.addEventListener('hashchange', handler)
+    overlay.onClose(() => window.removeEventListener('hashchange', handler))
   }
 
   _renderTeamStatsRow (stat) {

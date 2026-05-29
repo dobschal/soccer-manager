@@ -367,4 +367,35 @@ describe('MyTeamPage', () => {
       expect(page.data.players[1].name).toBe('Promoted Youth')
     })
   })
+
+  describe('PLAYER_SOLD server event', () => {
+    it('exposes PLAYER_SOLD handler via serverEvents getter', () => {
+      const page = new MyTeamPage()
+      expect(typeof page.serverEvents.PLAYER_SOLD).toBe('function')
+    })
+
+    it('reloads and updates when PLAYER_SOLD fires', async () => {
+      const team = testData.team()
+      const initialPlayers = [
+        testData.player({ id: 1, name: 'Kept Player' }),
+        testData.player({ id: 2, name: 'Sold Player' })
+      ]
+      const updatedPlayers = [testData.player({ id: 1, name: 'Kept Player' })]
+
+      server.getMyTeam
+        .mockResolvedValueOnce({ team, players: initialPlayers })
+        .mockResolvedValueOnce({ team, players: updatedPlayers })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+      const page = new MyTeamPage()
+      await page.load()
+      page._subPageCache = { ateam: { stale: true } }
+
+      await page.serverEvents.PLAYER_SOLD.call(page)
+
+      expect(server.getMyTeam).toHaveBeenCalledTimes(2)
+      expect(page.data.players).toHaveLength(1)
+      expect(page._subPageCache).toEqual({})
+    })
+  })
 })

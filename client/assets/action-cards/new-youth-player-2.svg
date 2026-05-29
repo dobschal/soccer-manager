@@ -1,0 +1,67 @@
+<svg width="250" height="350" viewBox="0 0 250 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g clip-path="url(#clip0_237_39)">
+        <path d="M235 0H15C6.71573 0 0 6.71573 0 15V335C0 343.284 6.71573 350 15 350H235C243.284 350 250 343.284 250 335V15C250 6.71573 243.284 0 235 0Z"
+              fill="#28A745"/>
+        <path d="M230 8H20C13.3726 8 8 13.3726 8 20V330C8 336.627 13.3726 342 20 342H230C236.627 342 242 336.627 242 330V20C242 13.3726 236.627 8 230 8Z"
+              fill="#0F0F1A"/>
+        <path opacity="0.9"
+              d="M230 15H20C17.2386 15 15 17.2386 15 20V38C15 40.7614 17.2386 43 20 43H230C232.761 43 235 40.7614 235 38V20C235 17.2386 232.761 15 230 15Z"
+              fill="#28A745"/>
+        <text fill="#0F0F1A" style="white-space: pre" xml:space="preserve" font-family="Neucha" font-size="16"
+              letter-spacing="0em"><tspan x="125" y="34.8672" text-anchor="middle">ACTION CARD </tspan></text>
+        <text fill="#F1F1F1" style="white-space: pre" xml:space="preserve" font-family="Neucha" font-size="17"
+              letter-spacing="0em"><tspan x="125" y="64.6089" text-anchor="middle">{{TITLE}}</tspan></text>
+        <path d="M222 75H28C23.5817 75 20 78.5817 20 83V207C20 211.418 23.5817 215 28 215H222C226.418 215 230 211.418 230 207V83C230 78.5817 226.418 75 222 75Z"
+              fill="#0F0F1A" stroke="#28A745" stroke-width="2"/>
+        <path opacity="0.5"
+              d="M125 183C151.51 183 173 161.51 173 135C173 108.49 151.51 87 125 87C98.4903 87 77 108.49 77 135C77 161.51 98.4903 183 125 183Z"
+              stroke="#28A745" stroke-width="2"/>
+        <path d="M125 180C149.853 180 170 159.853 170 135C170 110.147 149.853 90 125 90C100.147 90 80 110.147 80 135C80 159.853 100.147 180 125 180Z"
+              fill="#F1F1F1"/>
+        <path d="M125 149C134.941 149 143 140.941 143 131C143 121.059 134.941 113 125 113C115.059 113 107 121.059 107 131C107 140.941 115.059 149 125 149Z"
+              fill="#0F0F1A"/>
+        <mask id="mask0_237_39" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="80" y="90" width="90"
+              height="90">
+            <path d="M125 180C149.853 180 170 159.853 170 135C170 110.147 149.853 90 125 90C100.147 90 80 110.147 80 135C80 159.853 100.147 180 125 180Z"
+                  fill="white"/>
+        </mask>
+        <g mask="url(#mask0_237_39)">
+            <path d="M125 190C142.673 190 157 181.046 157 170C157 158.954 142.673 150 125 150C107.327 150 93 158.954 93 170C93 181.046 107.327 190 125 190Z"
+                  fill="#0F0F1A"/>
+        </g>
+        <text fill="white" style="white-space: pre" xml:space="preserve" font-family="Neucha" font-size="67"
+              letter-spacing="0em"><tspan x="165.372" y="127.194">? </tspan></text>
+        <path d="M60 102C61.1046 102 62 101.105 62 100C62 98.8954 61.1046 98 60 98C58.8954 98 58 98.8954 58 100C58 101.105 58.8954 102 60 102Z"
+              fill="#F1F1F1"/>
+        <path d="M190 110C191.105 110 192 109.105 192 108C192 106.895 191.105 106 190 106C188.895 106 188 106.895 188 108C188 109.105 188.895 110 190 110Z"
+              fill="#F1F1F1"/>
+        <path d="M180 182C181.105 182 182 181.105 182 180C182 178.895 181.105 178 180 178C178.895 178 178 178.895 178 180C178 181.105 178.895 182 180 182Z"
+              fill="#F1F1F1"/>
+        <path d="M70 176.5C70.8284 176.5 71.5 175.828 71.5 175C71.5 174.172 70.8284 173.5 70 173.5C69.1716 173.5 68.5 174.172 68.5 175C68.5 175.828 69.1716 176.5 70 176.5Z"
+              fill="#F1F1F1"/>
+        <path opacity="0.7" d="M55 130L58 135L55 140L52 135L55 130Z" fill="#28A745"/>
+        <path opacity="0.6" d="M195 140L198 145L195 150L192 145L195 140Z" fill="#28A745"/>
+        <path d="M45 95L47 100H52L48 103L50 108L45 105L40 108L42 103L38 100H43L45 95Z" fill="#F1F1F1"/>
+        <path d="M205 95L207 100H212L208 103L210 108L205 105L200 108L202 103L198 100H203L205 95Z" fill="#F1F1F1"/>
+        <path d="M212 155L214 160H219L215 163L217 168L212 165L207 168L209 163L205 160H210L212 155Z" fill="#F1F1F1"/>
+        <path d="M51.5 175L54.5 183.077H62L56 187.923L59 196L51.5 191.154L44 196L47 187.923L41 183.077H48.5L51.5 175Z"
+              fill="#F1F1F1"/>
+        <path d="M87.5 76L90.5 84.0769H98L92 88.9231L95 97L87.5 92.1538L80 97L83 88.9231L77 84.0769H84.5L87.5 76Z"
+              fill="#F1F1F1"/>
+        <path d="M222 225H28C23.5817 225 20 228.582 20 233V297C20 301.418 23.5817 305 28 305H222C226.418 305 230 301.418 230 297V233C230 228.582 226.418 225 222 225Z"
+              fill="#0F0F1A" stroke="#28A745"/>
+        <text fill="white" style="white-space: pre" xml:space="preserve" font-family="Neucha" font-size="15"
+              letter-spacing="0em"><tspan x="125" y="248.125" text-anchor="middle">{{BODY1}}</tspan></text>
+        <text fill="#F1F1F1" style="white-space: pre" xml:space="preserve" font-family="Neucha" font-size="22"
+              letter-spacing="0em"><tspan x="125" y="292.317" text-anchor="middle">{{FOOTER}}</tspan></text>
+        <path d="M109.6 312L112.8 321.6H123.2L115.2 328L118.4 337.6L109.6 331.2L100.8 337.6L104 328L96 321.6H106.4L109.6 312Z"
+              fill="#F1F1F1"/>
+        <path d="M139.6 312L142.8 321.6H153.2L145.2 328L148.4 337.6L139.6 331.2L130.8 337.6L134 328L126 321.6H136.4L139.6 312Z"
+              fill="#F1F1F1"/>
+    </g>
+    <defs>
+        <clipPath id="clip0_237_39">
+            <rect width="250" height="350" fill="white"/>
+        </clipPath>
+    </defs>
+</svg>

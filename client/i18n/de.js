@@ -388,6 +388,7 @@ export default {
   'myTeam.benchSubMode.leading': 'Einwechseln bei Führung',
   'myTeam.benchSubMode.trailing': 'Einwechseln bei Rückstand',
   'myTeam.benchSubModeUpdated': 'Einwechselregel aktualisiert!',
+  'myTeam.benchSubInfo': 'Bankspieler werden frühestens zur 45. Minute eingewechselt. Einzige Ausnahme ist eine Verletzung – ein verletzter Spieler wird sofort ersetzt, sofern ein passender Bankspieler verfügbar ist.',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A-Mannschaft',
@@ -1028,6 +1029,7 @@ export default {
   'results.friendlyResults': 'Friendlies',
   'results.hallOfFame': 'Ruhmeshalle',
   'results.teamStats': 'Mannschaftsstatistiken',
+  'results.standingHistory': 'Verlauf',
   'results.playerCount': 'Spieler',
   'results.avgStrength': 'Ø Stärke',
   'results.totalStrength': 'Gesamtstärke',
@@ -1095,6 +1097,12 @@ export default {
 
   // OTA
   'ota.updateInstalled': 'App im Hintergrund aktualisiert!',
+
+  // Offline
+  'offline.title': 'Keine Internetverbindung',
+  'offline.text': 'FootballManager.IO braucht eine Internetverbindung, um dein Team und deine Spiele zu laden. Bitte prüfe deine Verbindung und versuche es erneut.',
+  'offline.retry': 'Erneut versuchen',
+  'offline.retrying': 'Verbinde…',
 
   // Fitness Studio
   'buildings.fitnessStudio': 'Fitnessstudio',

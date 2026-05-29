@@ -43,6 +43,7 @@ export class StadiumSubPage extends UIElement {
     this.attendanceData = attendanceResponse.attendance || []
     this.constructionHistory = historyResponse.history || []
   }
+
   /**
    * @returns {string}
    */
@@ -77,6 +78,7 @@ export class StadiumSubPage extends UIElement {
       </div>
     `
   }
+
   /**
    * @returns {UIElementEvents}
    */
@@ -130,6 +132,7 @@ export class StadiumSubPage extends UIElement {
       }
     }
   }
+
   /**
    * Called after component is mounted - initializes Three.js scene
    */
@@ -139,6 +142,7 @@ export class StadiumSubPage extends UIElement {
     }
     void showTutorialIfNeeded('stadium', this)
   }
+
   /**
    * Called when component is unmounted - cleanup Three.js resources
    */
@@ -149,6 +153,7 @@ export class StadiumSubPage extends UIElement {
       this._stadiumCanvas = null
     }
   }
+
   stadium = {}
 
   team = {}
@@ -461,7 +466,10 @@ export class StadiumSubPage extends UIElement {
         ...stands.map(s => ({ name: t('stadium.' + s) }))
       ],
       renderRow: (row) => [
-        t('stadium.seasonDay', { season: row.season + 1, day: row.gameDay + 1 }),
+        t('stadium.seasonDay', {
+          season: row.season + 1,
+          day: row.gameDay + 1
+        }),
         ...stands.map(s => {
           const data = row.stands[s]
           return `<span class="d-none d-sm-inline">${data.guests.toLocaleString()} / ${data.size.toLocaleString()} </span>${data.percentage}%`
@@ -494,14 +502,20 @@ export class StadiumSubPage extends UIElement {
         h.old_size.toLocaleString(),
         h.new_size.toLocaleString(),
         h.added_roof ? '✓' : '—',
-        t('stadium.seasonDay', { season: h.started_season + 1, day: h.started_game_day + 1 }),
+        t('stadium.seasonDay', {
+          season: h.started_season + 1,
+          day: h.started_game_day + 1
+        }),
         h.completed_game_day != null
-          ? t('stadium.seasonDay', { season: h.completed_season + 1, day: h.completed_game_day + 1 })
+          ? t('stadium.seasonDay', {
+            season: h.completed_season + 1,
+            day: h.completed_game_day + 1
+          })
           : `<span class="badge badge-warning">${t('stadium.inProgress')}</span>`
       ],
       data: this.constructionHistory,
       classes: 'table-sm table-striped'
     }).template
   }
-  
+
 }

@@ -895,7 +895,7 @@ describe('play-game simulation', () => {
       expect(injuryOccurred).toBe(true)
     })
 
-    it('scheduled substitutions should only happen after minute 46', () => {
+    it('scheduled substitutions should only happen from minute 45 onwards', () => {
       const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
       const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
 
@@ -911,7 +911,11 @@ describe('play-game simulation', () => {
       checkScheduledSubstitutions(teamA, teamB, gameDetails)
       expect(gameDetails.substitutions || []).toHaveLength(0)
 
-      gameDetails.currentMinute = 46
+      gameDetails.currentMinute = 44
+      checkScheduledSubstitutions(teamA, teamB, gameDetails)
+      expect(gameDetails.substitutions || []).toHaveLength(0)
+
+      gameDetails.currentMinute = 45
       checkScheduledSubstitutions(teamA, teamB, gameDetails)
       expect(gameDetails.substitutions?.length ?? 0).toBeGreaterThanOrEqual(1)
     })

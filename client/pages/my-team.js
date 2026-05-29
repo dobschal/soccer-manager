@@ -38,6 +38,15 @@ export class MyTeamPage extends TabbedPage {
       </div>
     `
   }
+  get serverEvents () {
+    return {
+      PLAYER_SOLD: async () => {
+        await this.load()
+        this._subPageCache = {}
+        await this.update()
+      }
+    }
+  }
   onMounted () {
     void showTutorialIfNeeded('team', this)
     this._youthPlayerPromotedEventId = on('YOUTH_PLAYER_PROMOTED', async () => {

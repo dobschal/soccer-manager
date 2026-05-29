@@ -364,6 +364,33 @@ describe('tradeHelper', () => {
       })
     })
 
+    it('sends PLAYER_SOLD websocket event to selling team', async () => {
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC' })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({
+        id: 1,
+        type: 'buy',
+        player_id: 10,
+        from_team_id: 2,
+        offer_value: 50000
+      })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      query.mockResolvedValue({})
+
+      await acceptOffer(offer, sellingTeam, gameDay, season)
+
+      expect(sendToTeam).toHaveBeenCalledWith(1, 'PLAYER_SOLD', {
+        playerId: 10,
+        playerName: 'Star Player',
+        buyerTeamName: 'Buying FC',
+        price: 50000
+      })
+    })
+
     it('allows transfer even if buying team would go negative (no balance validation)', async () => {
       // Note: This documents current behavior - balance validation happens
       // only when creating buy offers, not when accepting them.

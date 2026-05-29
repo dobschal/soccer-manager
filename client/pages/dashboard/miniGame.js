@@ -644,34 +644,36 @@ export class MiniGame extends UIElement {
       return `<p class="text-muted small">${t('miniGame.leaderboardEmpty')}</p>`
     }
     return `
-      <table class="table table-sm mini-game-leaderboard">
-        <thead>
-          <tr>
-            <th class="mini-game-rank">#</th>
-            <th>${t('miniGame.team')}</th>
-            <th>${t('miniGame.manager')}</th>
-            <th class="text-end">${t('miniGame.score')}</th>
-            <th class="text-end">${t('miniGame.goals')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map((r, i) => {
+      <div class="table-responsive">
+        <table class="table table-sm mini-game-leaderboard">
+          <thead>
+            <tr>
+              <th class="mini-game-rank">#</th>
+              <th>${t('miniGame.team')}</th>
+              <th>${t('miniGame.manager')}</th>
+              <th class="text-end">${t('miniGame.score')}</th>
+              <th class="text-end">${t('miniGame.goals')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r, i) => {
     const teamName = escapeHtml(r.teamName ?? '')
     const teamCell = r.teamId
       ? `<a href="#team?id=${r.teamId}" class="text-info">${teamName}</a>`
       : teamName
     return `
-            <tr class="${r.isMyTeam ? 'mini-game-row-mine' : ''}">
-              <td>${i + 1}</td>
-              <td>${teamCell}</td>
-              <td>${escapeHtml(r.username ?? '')}</td>
-              <td class="text-end">${r.score}</td>
-              <td class="text-end">${r.goalsScored}</td>
-            </tr>
-          `
+              <tr class="${r.isMyTeam ? 'mini-game-row-mine' : ''}">
+                <td>${i + 1}</td>
+                <td>${teamCell}</td>
+                <td>${escapeHtml(r.username ?? '')}</td>
+                <td class="text-end">${r.score}</td>
+                <td class="text-end">${r.goalsScored}</td>
+              </tr>
+            `
   }).join('')}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     `
   }
 }

@@ -110,6 +110,14 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
     price: offer.offer_value
   })
 
+  // Notify selling team so their open My-Team / A-Team page refreshes immediately
+  await sendToTeam(sellingTeam.id, 'PLAYER_SOLD', {
+    playerId: player.id,
+    playerName: player.name,
+    buyerTeamName: buyingTeam.name,
+    price: offer.offer_value
+  })
+
   // If the buying team is the IOC (system team), delete the player from the game
   if (buyingTeam.is_system_team) {
     await query('DELETE FROM player_history WHERE player_id = ?', [player.id])

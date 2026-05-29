@@ -51,11 +51,11 @@
 
 /* Overlay Container */
 .overlay {
-    max-width: 640px;
+    max-width: min(100%, 1100px);
     max-height: calc(100vh - 1rem);
     overflow-y: auto;
     overflow-x: hidden;
-    width: 100%;
+    width: fit-content;
     margin: auto;
     animation-name: overlay-fade-in-2;
     animation-duration: 0.5s;
@@ -144,4 +144,25 @@
 .comment-scroll {
     max-height: 300px;
     overflow-y: auto;
+}
+
+/* League standing history chart container */
+.standing-history-chart-scroll {
+    width: calc(100% + 1rem);
+    overflow-x: auto;
+    margin: 0 -0.5rem;
+}
+
+@media (max-width: 576px) {
+    .standing-history-chart-scroll {
+        width: calc(100% + 4rem);
+        margin: 0 -2rem;
+    }
+}
+
+
+.standing-history-chart-container {
+    position: relative;
+    min-width: 500px;
+    height: min(65vh, 520px);
 }

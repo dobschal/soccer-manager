@@ -137,12 +137,7 @@ function showTutorialOverlay (tutorialKey) {
 
   const itemsHtml = tutorial.items.map(item => `<li>${item}</li>`).join('')
 
-  const cardBodyStyle = `
-    background-image: url('/assets/manager.svg');
-    background-size: 25% auto;
-    background-repeat: no-repeat;
-    background-position: right -10% bottom 0;
-  `
+  const cardBodyStyle = ``
 
   const html = `
     <div id="${overlayId}" class="overlay-backdrop clear-background">
@@ -162,7 +157,7 @@ function showTutorialOverlay (tutorialKey) {
               ${t('tutorial.doNotShowAgain')}
             </label>
           </div>
-          <button id="${gotItButtonId}" class="btn btn-primary w-100">${t('tutorial.gotIt')}</button>
+          <button id="${gotItButtonId}" class="btn btn-info w-100">${t('tutorial.gotIt')}</button>
         </div>
       </div>
     </div>

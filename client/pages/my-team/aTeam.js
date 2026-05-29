@@ -55,6 +55,9 @@ export class ATeamPage extends UIElement {
           <div class="bench-slots d-flex gap-3 flex-wrap" id="bench">
             ${this._renderBenchSlots()}
           </div>
+          <div class="alert alert-info mt-3 mb-0">
+            <i class="fa fa-info-circle me-1"></i> ${t('myTeam.benchSubInfo')}
+          </div>
         </div>
         <div class="mb-4">
           <h3>${t('myTeam.tactic')}</h3>

@@ -635,6 +635,83 @@ export default {
   },
 
   /**
+   * Returns the position (1..N) of each team in the league after every played
+   * match day of the given season. Used by the league results page to render a
+   * season-progression chart.
+   *
+   * @param {number} season
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} [req]
+   * @returns {Promise<{matchDays: number[], teams: Array<{id: number, name: string, color: string, positions: number[]}>}>}
+   */
+  async getLeagueStandingHistory (season, level, league, req) {
+    const team = await getTeam(req)
+    const actualLevel = level ?? team.level
+    const actualLeague = league ?? team.league
+
+    const games = await query(
+      `
+          SELECT g.team_1_id, g.team_2_id, g.goals_team_1, g.goals_team_2, g.is_forfeit, g.match_day
+          FROM game g
+          WHERE g.season = ?
+            AND g.level = ?
+            AND g.league = ?
+            AND g.played = 1
+            AND (g.game_type = 'league' OR g.game_type IS NULL)
+          ORDER BY g.match_day ASC
+      `,
+      [season, actualLevel, actualLeague]
+    )
+
+    const teamIds = new Set()
+    games.forEach(g => {
+      teamIds.add(g.team_1_id)
+      teamIds.add(g.team_2_id)
+    })
+    let teams = []
+    if (teamIds.size > 0) {
+      teams = await query(
+        `SELECT id, name, short_name, color, emblem FROM team WHERE id IN (${[...teamIds].join(', ')})`
+      )
+    } else {
+      teams = await query(
+        'SELECT id, name, short_name, color, emblem FROM team WHERE level=? AND league=?',
+        [actualLevel, actualLeague]
+      )
+    }
+
+    if (games.length === 0) {
+      return { matchDays: [], teams: teams.map(t => ({ id: t.id, name: t.name, color: t.color, positions: [] })) }
+    }
+
+    const lastMatchDay = games[games.length - 1].match_day
+    const matchDays = []
+    const positionsByTeam = new Map()
+    teams.forEach(t => positionsByTeam.set(t.id, []))
+
+    for (let md = 1; md <= lastMatchDay; md++) {
+      const gamesUpToMd = games.filter(g => g.match_day <= md)
+      const standing = calculateStanding(gamesUpToMd, teams)
+      matchDays.push(md)
+      standing.forEach((entry, index) => {
+        const positions = positionsByTeam.get(entry.team.id)
+        if (positions) positions.push(index + 1)
+      })
+    }
+
+    return {
+      matchDays,
+      teams: teams.map(t => ({
+        id: t.id,
+        name: t.name,
+        color: t.color,
+        positions: positionsByTeam.get(t.id) || []
+      }))
+    }
+  },
+
+  /**
    * Get top scorers for a league from cached stats
    * @param {number} season
    * @param {number} level

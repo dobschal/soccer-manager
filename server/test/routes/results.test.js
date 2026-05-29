@@ -397,6 +397,77 @@ describe('results routes', () => {
     })
   })
 
+  describe('getLeagueStandingHistory', () => {
+    it('returns empty matchDays and team list with empty positions when no games played', async () => {
+      const team = testData.team({ level: 1, league: 1 })
+      const teams = [
+        { id: 10, name: 'Team A', short_name: 'A', color: '#111111', emblem: null },
+        { id: 11, name: 'Team B', short_name: 'B', color: '#222222', emblem: null }
+      ]
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([])      // no games
+        .mockResolvedValueOnce(teams)   // teams by level/league fallback
+
+      const req = createMockRequest()
+      const result = await handlers.getLeagueStandingHistory(1, 1, 1, req)
+
+      expect(result.matchDays).toEqual([])
+      expect(result.teams).toEqual([
+        { id: 10, name: 'Team A', color: '#111111', positions: [] },
+        { id: 11, name: 'Team B', color: '#222222', positions: [] }
+      ])
+      expect(calculateStanding).not.toHaveBeenCalled()
+    })
+
+    it('computes positions for each match day from cumulative standings', async () => {
+      const team = testData.team({ level: 1, league: 1 })
+      const games = [
+        { team_1_id: 10, team_2_id: 11, goals_team_1: 1, goals_team_2: 0, is_forfeit: 0, match_day: 1 },
+        { team_1_id: 10, team_2_id: 11, goals_team_1: 0, goals_team_2: 2, is_forfeit: 0, match_day: 2 }
+      ]
+      const teams = [
+        { id: 10, name: 'Team A', short_name: 'A', color: '#111111', emblem: null },
+        { id: 11, name: 'Team B', short_name: 'B', color: '#222222', emblem: null }
+      ]
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce(games)
+        .mockResolvedValueOnce(teams)
+
+      // After md=1: A leads → 10 first, 11 second
+      // After md=2: B leads → 11 first, 10 second
+      calculateStanding
+        .mockReturnValueOnce([{ team: teams[0] }, { team: teams[1] }])
+        .mockReturnValueOnce([{ team: teams[1] }, { team: teams[0] }])
+
+      const req = createMockRequest()
+      const result = await handlers.getLeagueStandingHistory(1, 1, 1, req)
+
+      expect(result.matchDays).toEqual([1, 2])
+      const teamA = result.teams.find(t => t.id === 10)
+      const teamB = result.teams.find(t => t.id === 11)
+      expect(teamA.positions).toEqual([1, 2])
+      expect(teamB.positions).toEqual([2, 1])
+    })
+
+    it('uses team level and league when not specified', async () => {
+      const team = testData.team({ level: 2, league: 3 })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+
+      const req = createMockRequest()
+      await handlers.getLeagueStandingHistory(1, null, null, req)
+
+      expect(query.mock.calls[0][1]).toEqual([1, 2, 3])
+    })
+  })
+
   describe('getCurrentGameday', () => {
     it('returns current game day and season with null label fields when no user', async () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })

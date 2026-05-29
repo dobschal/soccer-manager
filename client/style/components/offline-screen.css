@@ -1,0 +1,41 @@
+.offline-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background-color: #222222;
+    color: #ffffff;
+    box-sizing: border-box;
+}
+
+.offline-screen-logo {
+    width: 120px;
+    height: auto;
+    margin-bottom: 1.5rem;
+    opacity: 0.85;
+}
+
+.offline-screen-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem 0;
+}
+
+.offline-screen-text {
+    font-size: 1rem;
+    line-height: 1.4;
+    max-width: 28rem;
+    margin: 0 0 2rem 0;
+    color: #cccccc;
+}
+
+.offline-screen-retry {
+    min-width: 12rem;
+}
