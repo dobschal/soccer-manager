@@ -243,6 +243,127 @@ function renderPasswordResetEmailText ({ url, locale, username }) {
 }
 
 /**
+ * Render the admin message email HTML. The greeting, footer and action
+ * button are fixed by template; only the body text comes from the admin.
+ * @param {object} args
+ * @param {string} args.locale
+ * @param {string} args.username
+ * @param {string} args.bodyText - free text entered by the admin
+ * @returns {string}
+ */
+function renderAdminMessageEmailHtml ({ locale, username, bodyText }) {
+  const logoUrl = `${config.PUBLIC_URL}/assets/logo.svg`
+  const supportUrl = `${config.PUBLIC_URL}/support.html`
+  const privacyUrl = `${config.PUBLIC_URL}/imprint.html`
+  const appUrl = config.PUBLIC_URL
+  const escapedBody = bodyText
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n/g, '<br>')
+  return `<!DOCTYPE html>
+<html lang="${locale}">
+  <head>
+    <meta charset="UTF-8">
+    <title>${t('email.adminMessage.subject', {}, locale)}</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#222;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+            <tr>
+              <td style="padding:32px 32px 16px 32px;text-align:center;border-bottom:1px solid #eee;">
+                <img src="${logoUrl}" alt="FootballManager.IO" height="48" style="display:inline-block;vertical-align:middle;">
+                <div style="font-size:20px;font-weight:bold;margin-top:8px;color:#111;">FootballManager.IO</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px;">
+                <p style="margin:0 0 16px 0;font-size:16px;">${t('email.adminMessage.greeting', { username }, locale)}</p>
+                <p style="margin:0 0 24px 0;font-size:14px;line-height:1.6;color:#444;">
+                  ${escapedBody}
+                </p>
+                <p style="margin:0 0 24px 0;text-align:center;">
+                  <a href="${appUrl}" style="display:inline-block;background-color:#17a2b8;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 28px;border-radius:8px;font-size:16px;">
+                    ${t('email.adminMessage.button', {}, locale)}
+                  </a>
+                </p>
+                <p style="margin:0;font-size:14px;line-height:1.6;color:#444;">
+                  ${t('email.adminMessage.signature', {}, locale)}
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px;border-top:1px solid #eee;font-size:12px;color:#666;text-align:center;">
+                <a href="${privacyUrl}" style="color:#666;text-decoration:underline;margin:0 8px;">${t('email.footer.privacy', {}, locale)}</a>
+                <a href="${supportUrl}" style="color:#666;text-decoration:underline;margin:0 8px;">${t('email.footer.support', {}, locale)}</a>
+                <a href="${appUrl}" style="color:#666;text-decoration:underline;margin:0 8px;">${t('email.footer.app', {}, locale)}</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`
+}
+
+/**
+ * Render plain-text fallback for the admin message email.
+ * @param {object} args
+ * @returns {string}
+ */
+function renderAdminMessageEmailText ({ locale, username, bodyText }) {
+  return [
+    t('email.adminMessage.greeting', { username }, locale),
+    '',
+    bodyText,
+    '',
+    `${t('email.adminMessage.button', {}, locale)}: ${config.PUBLIC_URL}`,
+    '',
+    t('email.adminMessage.signature', {}, locale)
+  ].join('\n')
+}
+
+/**
+ * Send a free-form admin message email to a user. The greeting, action
+ * button (link to the app) and footer are part of the fixed template;
+ * `bodyText` is rendered into the body as the admin entered it.
+ * @param {object} args
+ * @param {string} args.toEmail
+ * @param {string} args.locale
+ * @param {string} args.username
+ * @param {string} args.bodyText
+ * @returns {Promise<{ sent: boolean }>}
+ */
+export async function sendAdminMessageEmail ({ toEmail, locale, username, bodyText }) {
+  const html = renderAdminMessageEmailHtml({ locale, username, bodyText })
+  const text = renderAdminMessageEmailText({ locale, username, bodyText })
+  const subject = t('email.adminMessage.subject', {}, locale)
+
+  const transporter = await getTransporter()
+  if (!transporter) {
+    console.log(`[Email] SMTP not configured, would send admin message to ${toEmail}`)
+    return { sent: false }
+  }
+  try {
+    await transporter.sendMail({
+      from: config.EMAIL_FROM,
+      to: toEmail,
+      subject,
+      html,
+      text
+    })
+    return { sent: true }
+  } catch (e) {
+    console.error('[Email] Failed to send admin message email:', e?.message ?? e)
+    return { sent: false }
+  }
+}
+
+/**
  * Send the password reset email to a user.
  * Returns the reset URL so callers can log it in dev.
  * @param {object} args

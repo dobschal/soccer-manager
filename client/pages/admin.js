@@ -124,6 +124,20 @@ export class AdminPage extends UIElement {
         </div>
 
         <div class="mb-4">
+          <h4>${t('admin.sendUserEmailTitle')}</h4>
+          <p class="text-muted">${t('admin.sendUserEmailDescription')}</p>
+          <div class="mb-2">
+            <input type="text" id="${this._sendEmailUsernameId}" class="form-control" placeholder="${t('admin.usernamePlaceholder')}">
+          </div>
+          <div class="mb-2">
+            <textarea id="${this._sendEmailMessageId}" class="form-control" rows="5" placeholder="${t('admin.sendUserEmailMessagePlaceholder')}"></textarea>
+          </div>
+          <button id="${this._sendEmailBtnId}" class="btn btn-warning">
+            <i class="fa fa-envelope" aria-hidden="true"></i> ${t('admin.sendUserEmailButton')}
+          </button>
+        </div>
+
+        <div class="mb-4">
           <h4>${t('admin.adminManagement')}</h4>
           <table class="table table-sm mb-3">
             <thead><tr><th>${t('admin.username')}</th><th></th></tr></thead>
@@ -218,6 +232,9 @@ export class AdminPage extends UIElement {
       [`#${this._deleteUserBtnId}`]: {
         click: () => this._deleteUser()
       },
+      [`#${this._sendEmailBtnId}`]: {
+        click: () => this._sendUserEmail()
+      },
       [`#${this._addAdminBtnId}`]: {
         click: () => this._addAdmin()
       },
@@ -249,6 +266,9 @@ export class AdminPage extends UIElement {
   _giftCardBtnId = generateId()
   _addAdminInputId = generateId()
   _addAdminBtnId = generateId()
+  _sendEmailUsernameId = generateId()
+  _sendEmailMessageId = generateId()
+  _sendEmailBtnId = generateId()
   _collectBtnId = generateId()
   _prevBtnId = generateId()
   _nextBtnId = generateId()
@@ -396,6 +416,35 @@ export class AdminPage extends UIElement {
       input.value = ''
     } catch (e) {
       toast(e.message || 'Something went wrong', 'error')
+    }
+  }
+
+  async _sendUserEmail () {
+    const usernameInput = document.getElementById(this._sendEmailUsernameId)
+    const messageInput = document.getElementById(this._sendEmailMessageId)
+    const username = usernameInput.value.trim()
+    const message = messageInput.value.trim()
+    if (!username || !message) {
+      toast(t('admin.sendUserEmailMissing'), 'error')
+      return
+    }
+    if (!(await showConfirmDialog(t('admin.sendUserEmailConfirm', { username }), t('admin.sendUserEmailButton'), t('dialog.cancel')))) return
+    const btn = document.getElementById(this._sendEmailBtnId)
+    try {
+      btn.disabled = true
+      const result = await server.sendUserEmail(username, message)
+      if (result.sent) {
+        toast(t('admin.sendUserEmailSent', { username }), 'success')
+      } else {
+        toast(t('admin.sendUserEmailLogged'), 'warning')
+      }
+      usernameInput.value = ''
+      messageInput.value = ''
+    } catch (e) {
+      toast(e.message || 'Something went wrong', 'error')
+    } finally {
+      const refreshed = document.getElementById(this._sendEmailBtnId)
+      if (refreshed) refreshed.disabled = false
     }
   }
 

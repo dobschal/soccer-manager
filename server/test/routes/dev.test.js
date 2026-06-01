@@ -23,6 +23,9 @@ vi.mock('../../helper/overseaClubHelper.js', () => ({
 vi.mock('../../lib/pushNotification.js', () => ({
   sendBroadcastNotification: vi.fn()
 }))
+vi.mock('../../lib/email.js', () => ({
+  sendAdminMessageEmail: vi.fn()
+}))
 vi.mock('../../lib/userCache.js', () => ({ clearUserCache: vi.fn() }))
 vi.mock('../../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: vi.fn()
@@ -32,6 +35,7 @@ import handlers from '../../routes/dev.js'
 import { collectStatistics, getStatistics } from '../../helper/statisticsHelper.js'
 import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { sendAdminMessageEmail } from '../../lib/email.js'
 
 describe('dev routes - statistics', () => {
   beforeEach(() => {
@@ -176,6 +180,82 @@ describe('dev routes - statistics', () => {
       expect(query).toHaveBeenCalledTimes(1)
       expect(getGameDayAndSeason).not.toHaveBeenCalled()
       expect(result).toEqual({ success: true, count: 0 })
+    })
+  })
+
+  describe('sendUserEmail', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.sendUserEmail('foo', 'msg', { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('requires a username', async () => {
+      await expect(handlers.sendUserEmail('   ', 'msg', { user: { is_admin: 1, username: 'a' } }))
+        .rejects.toMatchObject({ message: 'Username is required' })
+    })
+
+    it('requires a message body', async () => {
+      await expect(handlers.sendUserEmail('foo', '   ', { user: { is_admin: 1, username: 'a' } }))
+        .rejects.toMatchObject({ message: 'Message text is required' })
+    })
+
+    it('throws when the user does not exist', async () => {
+      query.mockResolvedValueOnce([])
+
+      await expect(handlers.sendUserEmail('ghost', 'hi', { user: { is_admin: 1, username: 'a' } }))
+        .rejects.toMatchObject({ message: 'User "ghost" not found' })
+      expect(sendAdminMessageEmail).not.toHaveBeenCalled()
+    })
+
+    it('throws when the user has no email address', async () => {
+      query.mockResolvedValueOnce([{ id: 1, username: 'foo', email: null, pending_email: null, language: 'en' }])
+
+      await expect(handlers.sendUserEmail('foo', 'hi', { user: { is_admin: 1, username: 'a' } }))
+        .rejects.toMatchObject({ message: 'User "foo" has no email address' })
+      expect(sendAdminMessageEmail).not.toHaveBeenCalled()
+    })
+
+    it('uses pending_email when email is not yet verified', async () => {
+      query.mockResolvedValueOnce([{ id: 1, username: 'foo', email: null, pending_email: 'foo@example.com', language: 'de' }])
+      sendAdminMessageEmail.mockResolvedValueOnce({ sent: true })
+
+      const result = await handlers.sendUserEmail('foo', 'hello there', { user: { is_admin: 1, username: 'admin' } })
+
+      expect(sendAdminMessageEmail).toHaveBeenCalledWith({
+        toEmail: 'foo@example.com',
+        locale: 'de',
+        username: 'foo',
+        bodyText: 'hello there'
+      })
+      expect(result).toEqual({ success: true, sent: true })
+    })
+
+    it('prefers verified email over pending_email and trims input', async () => {
+      query.mockResolvedValueOnce([{ id: 1, username: 'foo', email: 'verified@example.com', pending_email: 'pending@example.com', language: 'en' }])
+      sendAdminMessageEmail.mockResolvedValueOnce({ sent: false })
+
+      const result = await handlers.sendUserEmail('  foo  ', '  hi  ', { user: { is_admin: 1, username: 'admin' } })
+
+      expect(query).toHaveBeenCalledWith(
+        'SELECT id, username, email, pending_email, language FROM user WHERE username = ? LIMIT 1',
+        ['foo']
+      )
+      expect(sendAdminMessageEmail).toHaveBeenCalledWith({
+        toEmail: 'verified@example.com',
+        locale: 'en',
+        username: 'foo',
+        bodyText: 'hi'
+      })
+      expect(result).toEqual({ success: true, sent: false })
+    })
+
+    it('falls back to English when user has no language set', async () => {
+      query.mockResolvedValueOnce([{ id: 1, username: 'foo', email: 'foo@example.com', pending_email: null, language: null }])
+      sendAdminMessageEmail.mockResolvedValueOnce({ sent: true })
+
+      await handlers.sendUserEmail('foo', 'hi', { user: { is_admin: 1, username: 'admin' } })
+
+      expect(sendAdminMessageEmail).toHaveBeenCalledWith(expect.objectContaining({ locale: 'en' }))
     })
   })
 })

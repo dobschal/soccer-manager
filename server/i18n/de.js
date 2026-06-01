@@ -39,6 +39,12 @@ export default {
   'email.footer.support': 'Support',
   'email.footer.app': 'App öffnen',
 
+  // Admin message email content
+  'email.adminMessage.subject': 'Eine Nachricht von FootballManager.IO',
+  'email.adminMessage.greeting': 'Hey {username},',
+  'email.adminMessage.button': 'FootballManager.IO öffnen',
+  'email.adminMessage.signature': 'Dein FootballManager.IO Team',
+
   // Trade errors
   'error.playerNotFound': 'Spieler nicht gefunden',
   'error.playerNotOnMarket': 'Spieler ist nicht auf dem Markt',
