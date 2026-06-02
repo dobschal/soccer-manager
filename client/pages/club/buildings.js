@@ -153,20 +153,20 @@ export class BuildingsPage extends UIElement {
     const nextLevel = constructionInfo.underConstruction ? constructionInfo.targetLevel : level + 1
     const upgradeKey = `youth_academy_${nextLevel}`
     const upgrade = this.upgrades[upgradeKey]
-    const imageUrl = level === 0 ? null : YOUTH_ACADEMY_IMAGES[Math.max(1, Math.min(level, 3))]
+    const imageUrl = YOUTH_ACADEMY_IMAGES[Math.max(1, Math.min(level, 3))]
 
     return `
       <div class="building-card mb-4">
-        ${imageUrl
-    ? `<div class="building-card__image"><img src="${imageUrl}" alt="${t('buildings.youthAcademy')}"></div>`
-    : ''}
+        <div class="building-card__image">
+          <img src="${imageUrl || YOUTH_ACADEMY_IMAGES[1]}" alt="${t('buildings.youthAcademy')}">
+        </div>
         <div class="building-card__content bg-dark">
           <h4 class="building-card__title mb-2">
             ${t('buildings.youthAcademy')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
           </h4>
           <p class="building-card__desc mb-4">${t(`buildings.youthLevel${level}Desc`)}</p>
           ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
-          ${!constructionInfo.underConstruction && upgrade ? this._renderYouthAcademyUpgradeButton(building, upgrade, nextLevel, level) : ''}
+          ${!constructionInfo.underConstruction && upgrade ? this._renderYouthAcademyUpgradeButton(building, upgrade, nextLevel) : ''}
           ${isMaxLevel ? '<p class="building-card__max-level mb-0"><i class="fa fa-check-circle"></i> ' + t('buildings.maxLevel') + '</p>' : ''}
         </div>
       </div>
@@ -177,19 +177,14 @@ export class BuildingsPage extends UIElement {
    * @param {Object} building
    * @param {Object} upgrade
    * @param {number} nextLevel
-   * @param {number} currentLevel
    * @returns {string}
    */
-  _renderYouthAcademyUpgradeButton (building, upgrade, nextLevel, currentLevel) {
+  _renderYouthAcademyUpgradeButton (building, upgrade, nextLevel) {
     const btnId = generateId()
 
     onClick(btnId, () => {
       this._showYouthAcademyUpgradeConfirmation(building, upgrade, nextLevel)
     })
-
-    const buttonLabel = currentLevel === 0
-      ? t('buildings.youthAcademyBuild')
-      : t('buildings.upgrade', { level: nextLevel })
 
     return `
       <div class="building-card__upgrade mt-2 p-2">
@@ -197,7 +192,7 @@ export class BuildingsPage extends UIElement {
         <p class="building-card__desc mb-2">${t(`buildings.youthLevel${nextLevel}Desc`)}</p>
         <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', { cost: euroFormat.format(upgrade.cost) })}</p>
         <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', { days: upgrade.constructionDays })}</p>
-        <button id="${btnId}" class="btn btn-outline-light">${buttonLabel}</button>
+        <button id="${btnId}" class="btn btn-outline-light">${t('buildings.upgrade', { level: nextLevel })}</button>
       </div>
     `
   }

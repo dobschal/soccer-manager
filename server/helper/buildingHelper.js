@@ -17,7 +17,6 @@ export const BUILDING_UPGRADES = {
   fitness_studio_1: { cost: 300_000, constructionDays: 4 },
   fitness_studio_2: { cost: 900_000, constructionDays: 8 },
   fitness_studio_3: { cost: 2_625_000, constructionDays: 15 },
-  youth_academy_1: { cost: 1_000_000, constructionDays: 5 },
   youth_academy_2: { cost: 3_000_000, constructionDays: 10 },
   youth_academy_3: { cost: 9_000_000, constructionDays: 17 }
 }
@@ -47,10 +46,10 @@ export const FITNESS_STUDIO_CARD_CHANCES = {
 /**
  * Action card chances per game day, keyed by youth academy level.
  * Only NEW_YOUTH_PLAYER_X cards are affected; other cards use global defaults.
- * Target ~1/2/3/4 cards per season (34 game days) for levels 0/1/2/3.
+ * Target ~2/3/4 cards per season (34 game days) for levels 1/2/3.
+ * All teams start at level 1 (the academy is always built).
  */
 export const YOUTH_ACADEMY_CARD_CHANCES = {
-  0: { NEW_YOUTH_PLAYER_1: 0.03, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0 },
   1: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0 },
   2: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0.03, NEW_YOUTH_PLAYER_3: 0 },
   3: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0.03, NEW_YOUTH_PLAYER_3: 0.03 }
@@ -134,7 +133,7 @@ export async function getYouthAcademyLevel (teamId) {
     "SELECT * FROM building WHERE team_id=? AND type='youth_academy' LIMIT 1",
     [teamId]
   )
-  return building?.level ?? 0
+  return building?.level ?? 1
 }
 
 /**

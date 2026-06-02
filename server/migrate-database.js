@@ -1927,11 +1927,11 @@ const migrations = [{
         await query('INSERT INTO building SET ?', {
           team_id: team.id,
           type: 'youth_academy',
-          level: 0
+          level: 1
         })
       }
     }
-    console.log(`✅ Seeded ${teams.length} teams with youth_academy level 0`)
+    console.log(`✅ Seeded ${teams.length} teams with youth_academy level 1`)
   }
 }, {
   name: 'Convert legacy NEW_YOUTH_PLAYER action cards to NEW_YOUTH_PLAYER_1',
@@ -1943,6 +1943,12 @@ const migrations = [{
   name: 'Add youth_options column to action_card',
   async run () {
     await query('ALTER TABLE action_card ADD COLUMN youth_options TEXT DEFAULT NULL')
+  }
+}, {
+  name: 'Bump youth_academy buildings from level 0 to level 1',
+  async run () {
+    const result = await query("UPDATE building SET level=1 WHERE type='youth_academy' AND level=0")
+    console.log(`✅ Bumped ${result.affectedRows || 0} youth_academy buildings from level 0 to level 1`)
   }
 }]
 

@@ -552,8 +552,8 @@ export async function _giveUsersActionCards () {
     const cardOverrides = TRAINING_AREA_CARD_CHANCES[trainingLevel] || TRAINING_AREA_CARD_CHANCES[1]
     const fitnessLevel = fitnessStudioLevels.get(team.id) ?? 0
     const fitnessOverrides = FITNESS_STUDIO_CARD_CHANCES[fitnessLevel] || FITNESS_STUDIO_CARD_CHANCES[0]
-    const academyLevel = youthAcademyLevels.get(team.id) ?? 0
-    const youthOverrides = YOUTH_ACADEMY_CARD_CHANCES[academyLevel] || YOUTH_ACADEMY_CARD_CHANCES[0]
+    const academyLevel = youthAcademyLevels.get(team.id) ?? 1
+    const youthOverrides = YOUTH_ACADEMY_CARD_CHANCES[academyLevel] || YOUTH_ACADEMY_CARD_CHANCES[1]
     const actionCards = []
     // Guarantee a basic youth player card if the team currently has no youth player
     // and has not received any youth card this season yet.

@@ -12,7 +12,7 @@ vi.mock('../helper/buildingHelper.js', () => ({
   getAllYouthAcademyLevels: vi.fn().mockResolvedValue(new Map()),
   TRAINING_AREA_CARD_CHANCES: { 1: {} },
   FITNESS_STUDIO_CARD_CHANCES: { 0: {} },
-  YOUTH_ACADEMY_CARD_CHANCES: { 0: {} }
+  YOUTH_ACADEMY_CARD_CHANCES: { 1: {} }
 }))
 vi.mock('../helper/logMessageHelper.js', () => ({ addLogMessage: vi.fn(), checkTeamAndNotify: vi.fn() }))
 vi.mock('../i18n/index.js', () => ({
