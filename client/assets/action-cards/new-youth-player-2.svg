@@ -51,7 +51,7 @@
         <path d="M222 225H28C23.5817 225 20 228.582 20 233V297C20 301.418 23.5817 305 28 305H222C226.418 305 230 301.418 230 297V233C230 228.582 226.418 225 222 225Z"
               fill="#0F0F1A" stroke="#28A745"/>
         <text fill="white" style="white-space: pre" xml:space="preserve" font-family="Neucha" font-size="15"
-              letter-spacing="0em"><tspan x="125" y="248.125" text-anchor="middle">{{BODY1}}</tspan></text>
+              letter-spacing="0em"><tspan x="125" y="248.125" text-anchor="middle">{{BODY1}}</tspan><tspan x="125" y="265.125" text-anchor="middle">{{BODY2}}</tspan></text>
         <text fill="#F1F1F1" style="white-space: pre" xml:space="preserve" font-family="Neucha" font-size="22"
               letter-spacing="0em"><tspan x="125" y="292.317" text-anchor="middle">{{FOOTER}}</tspan></text>
         <path d="M109.6 312L112.8 321.6H123.2L115.2 328L118.4 337.6L109.6 331.2L100.8 337.6L104 328L96 321.6H106.4L109.6 312Z"

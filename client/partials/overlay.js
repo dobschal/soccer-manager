@@ -215,8 +215,8 @@ export function showOverlay (title, subttitle, text, options = {}) {
     : `
         <div class="card-header overlay-header border-0">
             <div>
-              <h5 class="card-title mb-0">${title}</h5>
-              <h6 class="card-subtitle text-muted mb-0">${subttitle}</h6>
+              <h3 class="card-title mb-0">${title}</h3>
+              <span class="card-subtitle text-muted mb-0">${subttitle}</span>
             </div>
             <span id="${closeButtonId}" class="fa fa-close overlay-close-btn"></span>
         </div>
