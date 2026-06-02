@@ -5,6 +5,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { cleanupOldFreePlayers } from '../helper/playerHelper.js'
 import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyUndervaluedPlayers } from '../helper/overseaClubHelper.js'
 import { sendBroadcastNotification } from '../lib/pushNotification.js'
+import { sendAdminMessageEmail } from '../lib/email.js'
 import { query, transaction } from '../lib/database.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { collectStatistics, getStatistics } from '../helper/statisticsHelper.js'
@@ -152,6 +153,48 @@ export default {
     clearUserCache(user.id)
     console.log(`Admin "${req.user.username}" deleted user "${username}"`)
     return { success: true }
+  },
+
+  /**
+   * Send a free-form email to a user (admin only). Looks the user up by
+   * username and uses either their verified email or pending (unverified)
+   * email. The greeting, action button (linking to the app) and footer are
+   * fixed by the template; `bodyText` is rendered as the body.
+   * @param {string} username
+   * @param {string} bodyText
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, sent: boolean}>}
+   */
+  async sendUserEmail (username, bodyText, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    if (typeof username !== 'string' || !username.trim()) {
+      throw new BadRequestError('Username is required')
+    }
+    if (typeof bodyText !== 'string' || !bodyText.trim()) {
+      throw new BadRequestError('Message text is required')
+    }
+    const [user] = await query(
+      'SELECT id, username, email, pending_email, language FROM user WHERE username = ? LIMIT 1',
+      [username.trim()]
+    )
+    if (!user) {
+      throw new BadRequestError(`User "${username}" not found`)
+    }
+    const toEmail = user.email || user.pending_email
+    if (!toEmail) {
+      throw new BadRequestError(`User "${username}" has no email address`)
+    }
+    const locale = user.language === 'de' ? 'de' : 'en'
+    const result = await sendAdminMessageEmail({
+      toEmail,
+      locale,
+      username: user.username,
+      bodyText: bodyText.trim()
+    })
+    console.log(`Admin "${req.user.username}" sent email to "${user.username}" <${toEmail}> (sent=${result.sent})`)
+    return { success: true, sent: result.sent }
   },
 
   /**
