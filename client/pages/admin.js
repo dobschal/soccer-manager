@@ -23,6 +23,7 @@ export class AdminPage extends UIElement {
     this._statisticsPageSize = statisticsRes.pageSize
     this._topCountries = topCountriesRes.rows
   }
+
   get template () {
     const adminRows = this._admins.map(a => `
       <tr>
@@ -60,13 +61,6 @@ export class AdminPage extends UIElement {
       <div>
         <h3>${t('admin.title')}</h3>
 
-        <div class="mb-4">
-          <h4>${t('admin.gameDay')}</h4>
-          <button id="${this._triggerBtnId}" class="btn btn-primary">
-            <i class="fa fa-play" aria-hidden="true"></i> ${t('admin.triggerGameDay')}
-          </button>
-        </div>
-
         ${this._isIosNative ? `
         <div class="mb-4">
           <h4>${t('admin.iosEnvironmentTitle')}</h4>
@@ -76,7 +70,7 @@ export class AdminPage extends UIElement {
               <option value="production"${this._currentIosEnv === 'production' ? ' selected' : ''}>${t('admin.iosEnvironmentProduction')}</option>
               <option value="sandbox"${this._currentIosEnv === 'sandbox' ? ' selected' : ''}>${t('admin.iosEnvironmentSandbox')}</option>
             </select>
-            <button id="${this._iosEnvBtnId}" class="btn btn-warning">
+            <button id="${this._iosEnvBtnId}" class="btn btn-info">
               <i class="fa fa-exchange" aria-hidden="true"></i> ${t('admin.iosEnvironmentSwitch')}
             </button>
           </div>
@@ -92,7 +86,7 @@ export class AdminPage extends UIElement {
                 <option value="${type.value}">${type.label}</option>
               `).join('')}
             </select>
-            <button id="${this._giftCardBtnId}" class="btn btn-warning">
+            <button id="${this._giftCardBtnId}" class="btn btn-info">
               <i class="fa fa-gift" aria-hidden="true"></i> ${t('admin.giftActionCardButton')}
             </button>
           </div>
@@ -108,7 +102,7 @@ export class AdminPage extends UIElement {
             <label for="${this._broadcastDeId}" class="form-label">${t('admin.messageDe')}</label>
             <input type="text" id="${this._broadcastDeId}" class="form-control" placeholder="${t('admin.messageDePlaceholder')}">
           </div>
-          <button id="${this._broadcastBtnId}" class="btn btn-warning">
+          <button id="${this._broadcastBtnId}" class="btn btn-info">
             <i class="fa fa-bullhorn" aria-hidden="true"></i> ${t('admin.sendBroadcast')}
           </button>
         </div>
@@ -132,7 +126,7 @@ export class AdminPage extends UIElement {
           <div class="mb-2">
             <textarea id="${this._sendEmailMessageId}" class="form-control" rows="5" placeholder="${t('admin.sendUserEmailMessagePlaceholder')}"></textarea>
           </div>
-          <button id="${this._sendEmailBtnId}" class="btn btn-warning">
+          <button id="${this._sendEmailBtnId}" class="btn btn-info">
             <i class="fa fa-envelope" aria-hidden="true"></i> ${t('admin.sendUserEmailButton')}
           </button>
         </div>
@@ -145,7 +139,7 @@ export class AdminPage extends UIElement {
           </table>
           <div class="input-group">
             <input type="text" id="${this._addAdminInputId}" class="form-control" placeholder="${t('admin.usernamePlaceholder')}">
-            <button id="${this._addAdminBtnId}" class="btn btn-warning">
+            <button id="${this._addAdminBtnId}" class="btn btn-info">
               <i class="fa fa-shield" aria-hidden="true"></i> ${t('admin.addAdmin')}
             </button>
           </div>
@@ -185,7 +179,10 @@ export class AdminPage extends UIElement {
             <button id="${this._prevBtnId}" class="btn btn-sm btn-outline-secondary" ${isFirstPage ? 'disabled' : ''}>
               <i class="fa fa-chevron-left" aria-hidden="true"></i> ${t('admin.paginationPrev')}
             </button>
-            <span class="text-muted">${t('admin.paginationPage', { page: currentPage, total: totalPages })}</span>
+            <span class="text-muted">${t('admin.paginationPage', {
+    page: currentPage,
+    total: totalPages
+  })}</span>
             <button id="${this._nextBtnId}" class="btn btn-sm btn-outline-secondary" ${isLastPage ? 'disabled' : ''}>
               ${t('admin.paginationNext')} <i class="fa fa-chevron-right" aria-hidden="true"></i>
             </button>
@@ -213,6 +210,14 @@ export class AdminPage extends UIElement {
               </tbody>
             </table>
           ` : `<p class="text-muted">${t('admin.topCountriesEmpty')}</p>`}
+        </div>
+
+        <div class="mb-4">
+          <h4>${t('admin.gameDay')}</h4>
+          <p class="text-muted">${t('admin.gameDayDescription')}</p>
+          <button id="${this._triggerBtnId}" class="btn btn-danger">
+            <i class="fa fa-play" aria-hidden="true"></i> ${t('admin.triggerGameDay')}
+          </button>
         </div>
       </div>
     `
@@ -292,18 +297,54 @@ export class AdminPage extends UIElement {
 
   get _giftableCardTypes () {
     return [
-      { value: 'LEVEL_UP_PLAYER_40', label: t('actionCards.type.basicPromotion') },
-      { value: 'LEVEL_UP_PLAYER_70', label: t('actionCards.type.epicAdvancement') },
-      { value: 'LEVEL_UP_PLAYER_100', label: t('actionCards.type.legendaryMastery') },
-      { value: 'FRESHNESS_5', label: t('actionCards.type.quickRecovery') },
-      { value: 'FRESHNESS_10', label: t('actionCards.type.energyBoost') },
-      { value: 'FRESHNESS_20', label: t('actionCards.type.fullRecovery') },
-      { value: 'NEW_YOUTH_PLAYER_1', label: t('actionCards.type.youthProspect1') },
-      { value: 'NEW_YOUTH_PLAYER_2', label: t('actionCards.type.youthProspect2') },
-      { value: 'NEW_YOUTH_PLAYER_3', label: t('actionCards.type.youthProspect3') },
-      { value: 'BONUS_100K', label: t('actionCards.type.cashBonus') },
-      { value: 'STAR_PLAYER', label: t('actionCards.type.starPlayer') },
-      { value: 'MOTIVATING_SPEECH', label: t('actionCards.type.motivatingSpeech') }
+      {
+        value: 'LEVEL_UP_PLAYER_40',
+        label: t('actionCards.type.basicPromotion')
+      },
+      {
+        value: 'LEVEL_UP_PLAYER_70',
+        label: t('actionCards.type.epicAdvancement')
+      },
+      {
+        value: 'LEVEL_UP_PLAYER_100',
+        label: t('actionCards.type.legendaryMastery')
+      },
+      {
+        value: 'FRESHNESS_5',
+        label: t('actionCards.type.quickRecovery')
+      },
+      {
+        value: 'FRESHNESS_10',
+        label: t('actionCards.type.energyBoost')
+      },
+      {
+        value: 'FRESHNESS_20',
+        label: t('actionCards.type.fullRecovery')
+      },
+      {
+        value: 'NEW_YOUTH_PLAYER_1',
+        label: t('actionCards.type.youthProspect1')
+      },
+      {
+        value: 'NEW_YOUTH_PLAYER_2',
+        label: t('actionCards.type.youthProspect2')
+      },
+      {
+        value: 'NEW_YOUTH_PLAYER_3',
+        label: t('actionCards.type.youthProspect3')
+      },
+      {
+        value: 'BONUS_100K',
+        label: t('actionCards.type.cashBonus')
+      },
+      {
+        value: 'STAR_PLAYER',
+        label: t('actionCards.type.starPlayer')
+      },
+      {
+        value: 'MOTIVATING_SPEECH',
+        label: t('actionCards.type.motivatingSpeech')
+      }
     ]
   }
 
@@ -322,7 +363,11 @@ export class AdminPage extends UIElement {
   _formatMoney (value) {
     const number = Number(value) || 0
     try {
-      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(number)
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: 'EUR',
+        maximumFractionDigits: 0
+      }).format(number)
     } catch {
       return `${number} €`
     }
@@ -496,7 +541,10 @@ export class AdminPage extends UIElement {
 
     sendLog(`[EnvSwitch] Posting setEnvironment to bridge: ${target}`)
     try {
-      bridge.postMessage(JSON.stringify({ type: 'setEnvironment', env: target }))
+      bridge.postMessage(JSON.stringify({
+        type: 'setEnvironment',
+        env: target
+      }))
     } catch (e) {
       sendLog(`[EnvSwitch] bridge.postMessage threw: ${e?.message ?? e}`, 'error')
       toast(t('admin.iosEnvironmentBridgeMissing'), 'error')

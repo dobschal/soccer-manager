@@ -185,7 +185,7 @@ describe('teamChoice routes', () => {
         'info'
       )
       expect(query).toHaveBeenCalledWith(
-        'UPDATE team SET user_id=?, balance=500000 WHERE id=?',
+        'UPDATE team SET user_id=?, balance=500000, coach_since=CURRENT_TIMESTAMP WHERE id=?',
         [1, 5]
       )
       expect(query).toHaveBeenCalledWith('DELETE FROM sponsor WHERE id=?', [17])

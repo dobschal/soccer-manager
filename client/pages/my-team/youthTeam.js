@@ -46,9 +46,11 @@ export class YouthTeamPage extends UIElement {
 
         ${this._renderYouthPlayerTable()}
 
-        <div class="alert alert-warning mt-3">
+        ${this._hasPlayerAtAge(18)
+    ? `<div class="alert alert-warning mt-3">
           <i class="fa fa-exclamation-triangle"></i> ${t('youthTeam.retirementWarning')}
-        </div>
+        </div>`
+    : ''}
       </div>
     `
   }
@@ -238,6 +240,14 @@ export class YouthTeamPage extends UIElement {
     } catch (e) {
       showServerError(e)
     }
+  }
+
+  /**
+   * @param {number} age
+   * @returns {boolean}
+   */
+  _hasPlayerAtAge (age) {
+    return Array.isArray(this.youthPlayers) && this.youthPlayers.some(p => p.age === age)
   }
 
   /**

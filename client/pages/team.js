@@ -354,7 +354,7 @@ export class TeamPage extends UIElement {
     const username = this.user?.username
     const coachName = username ?? `N/A <i class="fa fa-user-secret" aria-hidden="true"></i>`
     const altText = username ?? 'N/A'
-    const coachSince = this.team.created_at ? formatDate('DD.MM.YYYY', this.team.created_at) : '-'
+    const coachSince = this.team.coach_since ? formatDate('DD.MM.YYYY', this.team.coach_since) : '-'
     const avatarFilename = this.user?.avatar
     const avatarImg = avatarFilename
       ? `<img class="coach-avatar__img" src="${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatarFilename}" alt="${altText}">`

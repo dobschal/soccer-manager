@@ -1174,6 +1174,7 @@ export default {
   // Admin
   'admin.title': 'Admin',
   'admin.gameDay': 'Spieltag',
+  'admin.gameDayDescription': 'Nur in seltenen Fällen verwenden, wenn die Spielberechnung manuell ausgelöst werden muss (z. B. wenn der CRON-Job nicht gelaufen ist).',
   'admin.triggerGameDay': 'Spieltag auslösen',
   'admin.triggerGameDayConfirm': 'Den nächsten Spieltag jetzt auslösen? Die komplette Simulation läuft und kann nicht rückgängig gemacht werden.',
   'admin.deleteUser': 'Benutzer löschen',

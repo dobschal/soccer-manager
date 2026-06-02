@@ -97,12 +97,17 @@
     gap: 0.5rem;
 }
 
-.account-friend-row {
+a.account-friend-row {
     color: inherit;
     text-decoration: none;
+    border-bottom: 2px solid #333;
 }
 
-.account-friend-row:hover {
+a.account-friend-row:last-child {
+    margin-bottom: 0.5rem;
+}
+
+a.account-friend-row:hover {
     text-decoration: underline;
 }
 

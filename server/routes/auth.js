@@ -495,7 +495,7 @@ export default {
         await txQuery('DELETE FROM stadium WHERE team_id=?', [team.id])
 
         // Keep team as bot for league integrity
-        await txQuery('UPDATE team SET user_id=NULL, description=NULL WHERE id=?', [team.id])
+        await txQuery('UPDATE team SET user_id=NULL, description=NULL, coach_since=NULL WHERE id=?', [team.id])
       }
 
       // Delete device tokens

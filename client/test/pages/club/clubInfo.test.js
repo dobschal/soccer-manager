@@ -70,7 +70,7 @@ describe('ClubInfoPage', () => {
   })
 
   it('renders three cards: team info, emblem, coach', async () => {
-    const team = testData.team({ name: 'FC Test City', created_at: '2025-01-15T10:00:00.000Z' })
+    const team = testData.team({ name: 'FC Test City', coach_since: '2025-01-15T10:00:00.000Z' })
     const players = [
       testData.player({ level: 10, fake: false, carrier_start_season: 0 }),
       testData.player({ level: 20, fake: false, carrier_start_season: 0 })

@@ -9,6 +9,7 @@
  * @property {number} balance
  * @property {number} user_id
  * @property {Date} created_at
+ * @property {Date} coach_since
  */
 
 import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'

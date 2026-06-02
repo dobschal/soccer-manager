@@ -236,7 +236,7 @@ export async function showAccountOverlay () {
           <button id="account-logout" class="btn btn-info">
             <i class="fa fa-sign-out" aria-hidden="true"></i> ${t('nav.logout')}
           </button>
-          <button id="account-delete" class="btn btn-danger">
+          <button id="account-delete" class="btn btn-outline-danger mt-3">
             <i class="fa fa-trash" aria-hidden="true"></i> ${t('nav.deleteAccount')}
           </button>
         </div>
@@ -255,7 +255,7 @@ export async function showAccountOverlay () {
     </div>
   `
 
-  const overlay = showOverlay(t('nav.account'), '', content)
+  const overlay = showOverlay(t('nav.account'), username, content)
 
   const bindAvatarHandlers = () => {
     const uploadBtn = el('#account-avatar-upload')

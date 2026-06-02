@@ -162,6 +162,59 @@ describe('YouthTeamPage', () => {
     })
   })
 
+  describe('retirement warning visibility', () => {
+    it('shows retirement warning when a player is 18 years old', async () => {
+      const youthPlayers = [
+        { id: 1, name: 'Veteran Youth', position: 'CM', age: 18, level: 15, moral: 0.8, fitness: 0.7 }
+      ]
+
+      server.getYouthTeam.mockResolvedValue({
+        youthPlayers,
+        trainingMode: 'rest',
+        season: 1
+      })
+
+      const mockParent = { load: vi.fn(), update: vi.fn() }
+      const page = new YouthTeamPage(mockParent)
+      await page.load()
+
+      expect(page.template).toContain('youthTeam.retirementWarning')
+    })
+
+    it('hides retirement warning when no player is 18 years old', async () => {
+      const youthPlayers = [
+        { id: 1, name: 'Young Player', position: 'CM', age: 16, level: 15, moral: 0.8, fitness: 0.7 },
+        { id: 2, name: 'Older Player', position: 'CM', age: 19, level: 15, moral: 0.8, fitness: 0.7 }
+      ]
+
+      server.getYouthTeam.mockResolvedValue({
+        youthPlayers,
+        trainingMode: 'rest',
+        season: 1
+      })
+
+      const mockParent = { load: vi.fn(), update: vi.fn() }
+      const page = new YouthTeamPage(mockParent)
+      await page.load()
+
+      expect(page.template).not.toContain('youthTeam.retirementWarning')
+    })
+
+    it('hides retirement warning when youth team is empty', async () => {
+      server.getYouthTeam.mockResolvedValue({
+        youthPlayers: [],
+        trainingMode: 'rest',
+        season: 1
+      })
+
+      const mockParent = { load: vi.fn(), update: vi.fn() }
+      const page = new YouthTeamPage(mockParent)
+      await page.load()
+
+      expect(page.template).not.toContain('youthTeam.retirementWarning')
+    })
+  })
+
   describe('promote button disabled states', () => {
     it('disables promote button when player age < 16', async () => {
       const youthPlayers = [

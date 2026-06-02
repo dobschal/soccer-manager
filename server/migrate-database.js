@@ -1950,6 +1950,12 @@ const migrations = [{
     const result = await query("UPDATE building SET level=1 WHERE type='youth_academy' AND level=0")
     console.log(`✅ Bumped ${result.affectedRows || 0} youth_academy buildings from level 0 to level 1`)
   }
+}, {
+  name: 'Add coach_since column to team table',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN coach_since TIMESTAMP NULL DEFAULT NULL')
+    await query('UPDATE team SET coach_since = created_at WHERE user_id IS NOT NULL AND coach_since IS NULL')
+  }
 }]
 
 /**

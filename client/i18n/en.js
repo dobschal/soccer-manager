@@ -1174,6 +1174,7 @@ export default {
   // Admin
   'admin.title': 'Admin',
   'admin.gameDay': 'Game Day',
+  'admin.gameDayDescription': 'Only use this in rare cases when the game calculation needs to be run manually (e.g. when the scheduled CRON job did not run).',
   'admin.triggerGameDay': 'Trigger Game Day',
   'admin.triggerGameDayConfirm': 'Trigger the next game day now? This will run the full simulation and cannot be undone.',
   'admin.deleteUser': 'Delete User',

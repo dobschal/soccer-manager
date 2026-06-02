@@ -128,7 +128,7 @@ export default {
       username: req.user.username,
       teamName: team.name
     }, locale), team, null, null, 'hand-peace-o', undefined, 'info')
-    await query('UPDATE team SET user_id=?, balance=500000 WHERE id=?', [req.user.id, team.id])
+    await query('UPDATE team SET user_id=?, balance=500000, coach_since=CURRENT_TIMESTAMP WHERE id=?', [req.user.id, team.id])
     const { sponsor } = await getSponsor(team)
     if (sponsor) {
       await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])

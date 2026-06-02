@@ -230,6 +230,44 @@ describe('TeamPage', () => {
       }
     })
 
+    it('renders coach since from coach_since (takeover date), not created_at', async () => {
+      const team = testData.team({
+        created_at: '2024-01-15T10:00:00Z',
+        coach_since: '2025-06-20T10:00:00Z'
+      })
+      const players = [testData.player()]
+      const user = testData.user({ username: 'manager123' })
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+
+      const page = new TeamPage()
+      page.teamId = 1
+      await page.load()
+
+      const html = page._renderCoachCard()
+      expect(html).toContain('20.06.2025')
+      expect(html).not.toContain('15.01.2024')
+    })
+
+    it('shows dash when coach_since is missing (bot team)', async () => {
+      const team = testData.team({ created_at: '2024-01-15T10:00:00Z' })
+      const players = [testData.player()]
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user: null })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+
+      const page = new TeamPage()
+      page.teamId = 1
+      await page.load()
+
+      const html = page._renderCoachCard()
+      expect(html).toContain('pe-3">-</td>')
+      expect(html).not.toContain('15.01.2024')
+    })
+
     it('template contains team info', async () => {
       const team = testData.team({ name: 'Super FC' })
       const players = [testData.player()]
