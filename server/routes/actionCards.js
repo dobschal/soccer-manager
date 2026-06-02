@@ -88,7 +88,18 @@ export default {
     if (!(card.action in YOUTH_PLAYER_CARD_RANGES)) {
       throw new BadRequestError(t('error.invalidCardAction', {}, locale))
     }
+    if (card.youth_options) {
+      try {
+        const cached = JSON.parse(card.youth_options)
+        if (Array.isArray(cached) && cached.length > 0) {
+          return { success: true, options: cached }
+        }
+      } catch {
+        // fall through and regenerate on parse error
+      }
+    }
     const options = await generateYouthPlayerOptions(card.action)
+    await query('UPDATE action_card SET youth_options=? WHERE id=?', [JSON.stringify(options), card.id])
     return { success: true, options }
   },
 

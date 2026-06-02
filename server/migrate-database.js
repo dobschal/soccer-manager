@@ -1939,6 +1939,11 @@ const migrations = [{
     const result = await query("UPDATE action_card SET action='NEW_YOUTH_PLAYER_1' WHERE action='NEW_YOUTH_PLAYER'")
     console.log(`✅ Converted ${result.affectedRows || 0} legacy NEW_YOUTH_PLAYER cards to NEW_YOUTH_PLAYER_1`)
   }
+}, {
+  name: 'Add youth_options column to action_card',
+  async run () {
+    await query('ALTER TABLE action_card ADD COLUMN youth_options TEXT DEFAULT NULL')
+  }
 }]
 
 /**

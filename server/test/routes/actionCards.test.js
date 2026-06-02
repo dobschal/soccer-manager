@@ -13,7 +13,13 @@ vi.mock('../../helper/actionCardHelper.js', () => ({
   getActionCards: vi.fn(),
   playActionCard: vi.fn(),
   getPendingActionCards: vi.fn(),
-  claimActionCard: vi.fn()
+  claimActionCard: vi.fn(),
+  generateYouthPlayerOptions: vi.fn(),
+  YOUTH_PLAYER_CARD_RANGES: {
+    NEW_YOUTH_PLAYER_1: { levelMin: 1, levelMax: 5, talentMin: 0.1, talentMax: 0.5 },
+    NEW_YOUTH_PLAYER_2: { levelMin: 5, levelMax: 10, talentMin: 0.3, talentMax: 0.75 },
+    NEW_YOUTH_PLAYER_3: { levelMin: 10, levelMax: 15, talentMin: 0.5, talentMax: 1.0 }
+  }
 }))
 
 vi.mock('../../helper/gameDayHelper.js', () => ({
@@ -22,7 +28,7 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
 
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
-import { getActionCards, playActionCard, getPendingActionCards, claimActionCard } from '../../helper/actionCardHelper.js'
+import { getActionCards, playActionCard, getPendingActionCards, claimActionCard, generateYouthPlayerOptions } from '../../helper/actionCardHelper.js'
 import handlers from '../../routes/actionCards.js'
 
 describe('actionCards routes', () => {
@@ -312,6 +318,81 @@ describe('actionCards routes', () => {
 
       await expect(handlers.claimActionCard(999, req))
         .rejects.toMatchObject({ message: 'Card not found or already claimed' })
+    })
+  })
+
+  describe('getYouthPlayerOptions', () => {
+    it('generates and persists options on first call, returns cached on subsequent calls', async () => {
+      const team = testData.team()
+      const generated = [
+        { name: 'A', position: 'CF', level: 3, talent: 0.3, hair_color: 1, skin_color: 1 },
+        { name: 'B', position: 'CD', level: 4, talent: 0.4, hair_color: 2, skin_color: 2 },
+        { name: 'C', position: 'GK', level: 2, talent: 0.2, hair_color: 0, skin_color: 0 }
+      ]
+
+      getTeam.mockResolvedValue(team)
+      generateYouthPlayerOptions.mockResolvedValue(generated)
+
+      // First call: card has no cached options
+      query.mockResolvedValueOnce([{ id: 7, team_id: team.id, action: 'NEW_YOUTH_PLAYER_1', played: 0, state: 'received', youth_options: null }])
+      query.mockResolvedValueOnce({ affectedRows: 1 })
+
+      const req = createMockRequest()
+      const first = await handlers.getYouthPlayerOptions(7, req)
+      expect(first).toEqual({ success: true, options: generated })
+      expect(generateYouthPlayerOptions).toHaveBeenCalledTimes(1)
+      expect(query).toHaveBeenCalledWith('UPDATE action_card SET youth_options=? WHERE id=?', [JSON.stringify(generated), 7])
+
+      // Second call: card returns cached options
+      query.mockResolvedValueOnce([{ id: 7, team_id: team.id, action: 'NEW_YOUTH_PLAYER_1', played: 0, state: 'received', youth_options: JSON.stringify(generated) }])
+
+      const second = await handlers.getYouthPlayerOptions(7, req)
+      expect(second).toEqual({ success: true, options: generated })
+      expect(generateYouthPlayerOptions).toHaveBeenCalledTimes(1)
+    })
+
+    it('regenerates options when cached JSON is corrupt', async () => {
+      const team = testData.team()
+      const generated = [
+        { name: 'A', position: 'CF', level: 3, talent: 0.3, hair_color: 1, skin_color: 1 },
+        { name: 'B', position: 'CD', level: 4, talent: 0.4, hair_color: 2, skin_color: 2 },
+        { name: 'C', position: 'GK', level: 2, talent: 0.2, hair_color: 0, skin_color: 0 }
+      ]
+
+      getTeam.mockResolvedValue(team)
+      generateYouthPlayerOptions.mockResolvedValue(generated)
+      query.mockResolvedValueOnce([{ id: 8, team_id: team.id, action: 'NEW_YOUTH_PLAYER_2', played: 0, state: 'received', youth_options: 'not json{{' }])
+      query.mockResolvedValueOnce({ affectedRows: 1 })
+
+      const req = createMockRequest()
+      const result = await handlers.getYouthPlayerOptions(8, req)
+      expect(result).toEqual({ success: true, options: generated })
+    })
+
+    it('throws when card is not a youth card', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValueOnce([{ id: 9, team_id: team.id, action: 'BONUS_100K', played: 0, state: 'received', youth_options: null }])
+
+      const req = createMockRequest()
+      await expect(handlers.getYouthPlayerOptions(9, req))
+        .rejects.toMatchObject({ message: 'Invalid card action' })
+    })
+
+    it('throws when card not found', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValueOnce([])
+
+      const req = createMockRequest()
+      await expect(handlers.getYouthPlayerOptions(123, req))
+        .rejects.toMatchObject({ message: 'Action card not found' })
+    })
+
+    it('throws when not authenticated', async () => {
+      const req = { user: null, body: {}, headers: {}, locale: 'en' }
+      await expect(handlers.getYouthPlayerOptions(1, req))
+        .rejects.toMatchObject({ message: 'Not authorized' })
     })
   })
 })

@@ -10,6 +10,7 @@ import { fire, off, on } from '../../lib/event.js'
 import { MiniGame } from './miniGame.js'
 import { preloadAllActionCardSvgs, renderActionCardSvg } from '../../lib/actionCardSvg.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
+import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
 
@@ -636,7 +637,7 @@ export class ActionCards extends UIElement {
         <div class="youth-option-card__image">${renderedImages[idx]}</div>
         <div class="youth-option-card__name">${option.name}</div>
         <div class="youth-option-card__meta">
-          <span>${t('actionCards.position.' + option.position)}</span>
+          <span>${renderPositionBadge(option.position)}</span>
           <span>${t('actionCards.youthOptionAge', { age: 15 })}</span>
           <span>${t('actionCards.youthOptionLevel', { level: option.level.toFixed(1) })}</span>
         </div>
