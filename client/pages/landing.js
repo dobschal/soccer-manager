@@ -184,10 +184,10 @@ export class LandingPage extends UIElement {
       'button[data-toggle]': {
         click: () => setQueryParams({ type: this.isLogin ? 'registration' : 'login' })
       },
-      'button[data-forgot-password]': {
+      '(optional) button[data-forgot-password]': {
         click: () => setQueryParams({ type: 'forgot-password' })
       },
-      'button[data-back-to-login]': {
+      '(optional) button[data-back-to-login]': {
         click: () => setQueryParams({ type: 'login' })
       },
       '#play-now-btn': {
@@ -197,7 +197,7 @@ export class LandingPage extends UIElement {
           setTimeout(() => document.getElementById('username-input')?.focus(), 500)
         }
       },
-      '[data-close-app-banner]': {
+      '(optional) [data-close-app-banner]': {
         click: () => {
           window.localStorage.setItem(APP_BANNER_DISMISSED_KEY, '1')
           document.querySelector('.mobile-app-banner')?.remove()
