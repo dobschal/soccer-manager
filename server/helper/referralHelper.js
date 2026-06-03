@@ -29,29 +29,55 @@ export async function setReferralBenefit (action) {
 }
 
 /**
- * Award the configured referral benefit to the inviter's team and mark the
- * invitation as used. No-op when there is no pending invitation for `email`
- * or when the inviter has no team. The action card is inserted as `pending`
- * so the inviter sees the claim overlay on their next dashboard visit.
+ * Link a pending invitation to the freshly signed-up user, but do NOT award
+ * the bonus yet — the inviter's action card is granted only after the new
+ * user verifies their email (see {@link awardReferralForVerifiedUser}).
+ * No-op when there is no pending invitation for `email`.
  * @param {object} args
- * @param {string} args.email - the new user's normalized email address
+ * @param {string} args.email - the new user's normalized pending email
  * @param {number} args.newUserId - the freshly inserted user id
- * @returns {Promise<{ awarded: boolean, inviterUserId?: number, action?: string }>}
+ * @returns {Promise<{ linked: boolean, inviterUserId?: number, action?: string }>}
  */
 export async function claimReferralForNewUser ({ email, newUserId }) {
-  if (!email || !newUserId) return { awarded: false }
+  if (!email || !newUserId) return { linked: false }
   const [invitation] = await query(
     `SELECT id, inviter_user_id FROM referral_invitation
      WHERE email=? AND used_by_user_id IS NULL
      ORDER BY created_at ASC LIMIT 1`,
     [email]
   )
+  if (!invitation) return { linked: false }
+  const action = await getReferralBenefit()
+  await query(
+    'UPDATE referral_invitation SET used_by_user_id=?, used_at=NOW(), reward_action=? WHERE id=?',
+    [newUserId, action, invitation.id]
+  )
+  return { linked: true, inviterUserId: invitation.inviter_user_id, action }
+}
+
+/**
+ * Award the configured referral benefit to the inviter once the invited user
+ * has verified their email. Looks up invitations that were linked at signup
+ * but not yet rewarded. The action card is inserted as `pending` so the
+ * inviter sees the claim overlay on their next dashboard visit.
+ * @param {object} args
+ * @param {number} args.userId - the verified user's id
+ * @returns {Promise<{ awarded: boolean, inviterUserId?: number, action?: string }>}
+ */
+export async function awardReferralForVerifiedUser ({ userId }) {
+  if (!userId) return { awarded: false }
+  const [invitation] = await query(
+    `SELECT id, inviter_user_id, reward_action FROM referral_invitation
+     WHERE used_by_user_id=? AND rewarded_at IS NULL
+     ORDER BY used_at ASC LIMIT 1`,
+    [userId]
+  )
   if (!invitation) return { awarded: false }
+  const action = invitation.reward_action || await getReferralBenefit()
   const [team] = await query(
     'SELECT id FROM team WHERE user_id=? LIMIT 1',
     [invitation.inviter_user_id]
   )
-  const action = await getReferralBenefit()
   if (team) {
     const { season } = await getGameDayAndSeason()
     await query(
@@ -60,8 +86,8 @@ export async function claimReferralForNewUser ({ email, newUserId }) {
     )
   }
   await query(
-    'UPDATE referral_invitation SET used_by_user_id=?, used_at=NOW(), reward_action=? WHERE id=?',
-    [newUserId, action, invitation.id]
+    'UPDATE referral_invitation SET rewarded_at=NOW() WHERE id=?',
+    [invitation.id]
   )
   return { awarded: Boolean(team), inviterUserId: invitation.inviter_user_id, action }
 }

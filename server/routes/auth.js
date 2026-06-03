@@ -12,7 +12,7 @@ import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
 import { isValidEmail, sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js'
-import { claimReferralForNewUser } from '../helper/referralHelper.js'
+import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../helper/referralHelper.js'
 
 const EMAIL_VERIFICATION_TTL_DAYS = 7
 const PASSWORD_RESET_TTL_HOURS = 2
@@ -181,6 +181,11 @@ export default {
       [user.pending_email, user.id]
     )
     clearUserCache(user.id)
+    try {
+      await awardReferralForVerifiedUser({ userId: user.id })
+    } catch (e) {
+      console.error('[Auth] awardReferralForVerifiedUser failed:', e)
+    }
     return { success: true, email: user.pending_email }
   },
 

@@ -9,6 +9,7 @@ import { showAccountOverlay } from '../partials/accountOverlay.js'
 import { showSearchOverlay } from '../partials/search.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
+import { maybeShowUnverifiedEmailToast } from '../partials/unverifiedEmailToast.js'
 
 /**
  * @returns {void}
@@ -39,6 +40,7 @@ export class GameLayout extends UIElement {
     this._currentGameday = currentGameday
     this._newMessageCount = newMessageResponse.count || 0
     maybeShowEmailPrompt(teamData.user)
+    maybeShowUnverifiedEmailToast(teamData.user)
   }
   /**
    * @returns {string}

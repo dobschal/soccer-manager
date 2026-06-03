@@ -2016,6 +2016,14 @@ const migrations = [{
       INDEX idx_notification_email_created (created_at)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
   }
+}, {
+  name: 'Add rewarded_at to referral_invitation for deferred bonus',
+  async run () {
+    await query('ALTER TABLE referral_invitation ADD COLUMN rewarded_at TIMESTAMP NULL DEFAULT NULL')
+    // Backfill: any invitations that were already used by an existing user are
+    // treated as already-rewarded so the new flow doesn't double-grant cards.
+    await query('UPDATE referral_invitation SET rewarded_at=used_at WHERE used_by_user_id IS NOT NULL AND rewarded_at IS NULL')
+  }
 }]
 
 /**

@@ -18,7 +18,8 @@ vi.mock('../../lib/email.js', () => ({
 }))
 
 vi.mock('../../helper/referralHelper.js', () => ({
-  claimReferralForNewUser: vi.fn().mockResolvedValue({ awarded: false })
+  claimReferralForNewUser: vi.fn().mockResolvedValue({ linked: false }),
+  awardReferralForVerifiedUser: vi.fn().mockResolvedValue({ awarded: false })
 }))
 
 vi.mock('../../lib/userCache.js', () => ({
@@ -29,7 +30,7 @@ vi.mock('../../lib/userCache.js', () => ({
 import { query } from '../../lib/database.js'
 import { hashPassword } from '../../lib/passwordHash.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.js'
-import { claimReferralForNewUser } from '../../helper/referralHelper.js'
+import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../../helper/referralHelper.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
@@ -170,7 +171,7 @@ describe('auth routes', () => {
         .mockResolvedValueOnce({ insertId: 123 }) // insert user
 
       sendVerificationEmail.mockResolvedValue({ sent: true, url: 'x' })
-      claimReferralForNewUser.mockResolvedValueOnce({ awarded: true, inviterUserId: 7, action: 'BONUS_100K' })
+      claimReferralForNewUser.mockResolvedValueOnce({ linked: true, inviterUserId: 7, action: 'BONUS_100K' })
 
       const req = { locale: 'en' }
       await handlers.createAccount('newuser', 'password123', 'new@example.com', req)
@@ -301,6 +302,14 @@ describe('auth routes', () => {
         'UPDATE user SET email=?, pending_email=NULL, email_verification_token=NULL, email_verification_expires_at=NULL WHERE id=?',
         ['new@example.com', 5]
       )
+      expect(awardReferralForVerifiedUser).toHaveBeenCalledWith({ userId: 5 })
+    })
+
+    it('does not call awardReferralForVerifiedUser when the token is invalid', async () => {
+      query.mockResolvedValueOnce([])
+      const req = { locale: 'en' }
+      await expect(handlers.verifyEmail('a'.repeat(64), req)).rejects.toBeTruthy()
+      expect(awardReferralForVerifiedUser).not.toHaveBeenCalled()
     })
 
     it('rejects an unknown token', async () => {
