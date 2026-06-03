@@ -109,6 +109,12 @@ export default {
   'landing.forgotPasswordSubmit': 'Send reset link',
   'landing.forgotPasswordSent': 'If an account exists for this email, we sent a reset link. Please check your inbox.',
   'landing.backToLogin': 'Back to login',
+  'landing.getOnAppStore': 'Download on the App Store',
+  'landing.getOnGooglePlay': 'Get it on Google Play',
+  'landing.alsoAvailableOn': 'Also available on:',
+  'landing.appBannerTitle': 'FootballManager.IO',
+  'landing.appBannerSubtitle': 'Get the free app',
+  'landing.appBannerCta': 'OPEN',
 
   // Choose team
   'chooseTeam.title': 'Welcome to FootballManager.IO',

@@ -7,6 +7,19 @@ import { t } from '../i18n/index.js'
 import { connectWebSocket } from '../lib/websocket.js'
 import { isValidEmail } from '../lib/emailRegex.js'
 
+export const APP_STORE_URL = 'https://apps.apple.com/de/app/footballmanager-io/id6759547142'
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=io.soccermanager.app'
+const APP_BANNER_DISMISSED_KEY = 'mobile-app-banner-dismissed'
+
+/**
+ * @returns {'ios' | 'android' | null} The detected mobile platform, or null if not a mobile browser.
+ */
+export function detectMobilePlatform (userAgent = navigator.userAgent || '') {
+  if (/android/i.test(userAgent)) return 'android'
+  if (/iphone|ipad|ipod/i.test(userAgent)) return 'ios'
+  return null
+}
+
 export class LandingPage extends UIElement {
   /**
    * @returns {Promise<void>}
@@ -19,6 +32,7 @@ export class LandingPage extends UIElement {
   get template () {
     return `
       <div class="landing-page">
+        ${this._mobileAppBannerTemplate()}
         <!-- Hero Section -->
         <section class="hero-section">
           <div class="container bg-transparent">
@@ -51,6 +65,21 @@ export class LandingPage extends UIElement {
           </div>
           <div class="scroll-indicator d-none d-lg-block">
             <i class="fa fa-chevron-down fa-2x text-white"></i>
+          </div>
+        </section>
+
+        <!-- App Store Badges -->
+        <section class="app-badges-section">
+          <div class="container bg-transparent text-center">
+            <p class="app-badges-label text-white">${t('landing.alsoAvailableOn')}</p>
+            <div class="app-badges">
+              <a href="${APP_STORE_URL}" target="_blank" rel="noopener" class="app-badge-link" aria-label="${t('landing.getOnAppStore')}">
+                <img src="assets/landing-page/app-store-badge.svg" alt="${t('landing.getOnAppStore')}" class="app-badge">
+              </a>
+              <a href="${PLAY_STORE_URL}" target="_blank" rel="noopener" class="app-badge-link" aria-label="${t('landing.getOnGooglePlay')}">
+                <img src="assets/landing-page/google-play-badge.svg" alt="${t('landing.getOnGooglePlay')}" class="app-badge">
+              </a>
+            </div>
           </div>
         </section>
 
@@ -171,6 +200,12 @@ export class LandingPage extends UIElement {
           document.querySelector('.login-card')?.scrollIntoView({ behavior: 'smooth' })
           setTimeout(() => document.getElementById('username-input')?.focus(), 500)
         }
+      },
+      '[data-close-app-banner]': {
+        click: () => {
+          window.localStorage.setItem(APP_BANNER_DISMISSED_KEY, '1')
+          document.querySelector('.mobile-app-banner')?.remove()
+        }
       }
     }
   }
@@ -184,6 +219,32 @@ export class LandingPage extends UIElement {
     this.isLogin = type === 'login'
     await this.update()
   }
+  /**
+   * @returns {string}
+   */
+  _mobileAppBannerTemplate () {
+    if (typeof window === 'undefined') return ''
+    if (window.localStorage?.getItem(APP_BANNER_DISMISSED_KEY) === '1') return ''
+    const platform = detectMobilePlatform()
+    if (!platform) return ''
+    const storeUrl = platform === 'ios' ? APP_STORE_URL : PLAY_STORE_URL
+    return `
+      <div class="mobile-app-banner" data-platform="${platform}">
+        <button type="button" class="mobile-app-banner__close" data-close-app-banner aria-label="Close">
+          <i class="fa fa-times"></i>
+        </button>
+        <img src="assets/logo.svg" alt="" class="mobile-app-banner__icon">
+        <div class="mobile-app-banner__text">
+          <div class="mobile-app-banner__title">${t('landing.appBannerTitle')}</div>
+          <div class="mobile-app-banner__subtitle">${t('landing.appBannerSubtitle')}</div>
+        </div>
+        <a href="${storeUrl}" target="_blank" rel="noopener" class="mobile-app-banner__cta">
+          ${t('landing.appBannerCta')}
+        </a>
+      </div>
+    `
+  }
+
   /**
    * @returns {string}
    */

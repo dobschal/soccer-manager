@@ -59,6 +59,10 @@ describe('SEO – index.html meta tags', () => {
   it('allows search engines to index the site', () => {
     expect(html).toMatch(/<meta\s+name="robots"\s+content="index,\s*follow"\s*>/)
   })
+
+  it('exposes the iOS Safari smart app banner meta tag', () => {
+    expect(html).toMatch(/<meta\s+name="apple-itunes-app"\s+content="app-id=6759547142"\s*>/)
+  })
 })
 
 describe('SEO – robots.txt', () => {
@@ -109,5 +113,14 @@ describe('SEO – site.webmanifest', () => {
   it('declares standalone display and a start URL', () => {
     expect(manifest.display).toBe('standalone')
     expect(manifest.start_url).toBe('/')
+  })
+
+  it('declares the native Play Store and App Store apps as related applications', () => {
+    expect(Array.isArray(manifest.related_applications)).toBe(true)
+    const play = manifest.related_applications.find(a => a.platform === 'play')
+    const itunes = manifest.related_applications.find(a => a.platform === 'itunes')
+    expect(play?.url).toBe('https://play.google.com/store/apps/details?id=io.soccermanager.app')
+    expect(play?.id).toBe('io.soccermanager.app')
+    expect(itunes?.url).toBe('https://apps.apple.com/de/app/footballmanager-io/id6759547142')
   })
 })

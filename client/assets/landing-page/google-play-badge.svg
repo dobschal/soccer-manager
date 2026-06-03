@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" role="img" aria-label="Get it on Google Play">
+  <rect width="200" height="60" rx="10" ry="10" fill="#000"/>
+  <rect x="0.5" y="0.5" width="199" height="59" rx="9.5" ry="9.5" fill="none" stroke="#A6A6A6" stroke-width="0.75"/>
+  <g transform="translate(16 14)">
+    <defs>
+      <linearGradient id="gpBlue" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#00A0FF"/>
+        <stop offset="1" stop-color="#00E1FF"/>
+      </linearGradient>
+      <linearGradient id="gpGreen" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#00DE7A"/>
+        <stop offset="1" stop-color="#00F076"/>
+      </linearGradient>
+      <linearGradient id="gpRed" x1="1" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FF3A44"/>
+        <stop offset="1" stop-color="#C31162"/>
+      </linearGradient>
+      <linearGradient id="gpYellow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFE000"/>
+        <stop offset="1" stop-color="#FFBD00"/>
+      </linearGradient>
+    </defs>
+    <path d="M0 0 L0 32 L17 16 Z" fill="url(#gpBlue)"/>
+    <path d="M0 0 L17 16 L21 12 L4 -1.7 Z" fill="url(#gpGreen)" transform="translate(0 1.7)"/>
+    <path d="M0 32 L17 16 L21 20 L4 33.7 Z" fill="url(#gpRed)" transform="translate(0 -1.7)"/>
+    <path d="M17 16 L21 12 L26 16 L21 20 Z" fill="url(#gpYellow)"/>
+  </g>
+  <g transform="translate(56 18)" fill="#fff">
+    <text x="0" y="11" font-family="'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="9.5" font-weight="400" letter-spacing="0.6">GET IT ON</text>
+    <text x="0" y="32" font-family="'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" font-weight="500">Google Play</text>
+  </g>
+</svg>
