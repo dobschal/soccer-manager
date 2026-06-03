@@ -95,8 +95,10 @@ export class StartPage {
           ${this._renderUrgencyChecklist()}
         </div>
       </div>
-      ${this._renderCommunityCard()}
-      ${this._renderInviteCard()}
+      <div class="d-flex flex-column flex-md-row u-gap-md mt-3 dashboard-promo-row">
+        ${this._renderCommunityCard()}
+        ${this._renderInviteCard()}
+      </div>
       ${this._renderVideoCard()}
       <p class="text-center text-muted mt-3 mb-0 pb-4">
         <i class="fa fa-coffee"></i> Support me and buy me a coffee:
@@ -107,11 +109,12 @@ export class StartPage {
 
   _renderCommunityCard () {
     return `
-      <div class="card card-body mb-2 bg-dark mt-3 community-card">
-        <h5 class="mb-2 text-center text-white"><i class="fa fa-users"></i> ${t('dashboard.communityTitle')}</h5>
-        <p class="text-center text-white-50 mb-3">${t('dashboard.communityText')}</p>
-        <div class="text-center">
-          <a href="#dashboard?sub_page=forum&category=3" class="btn btn-info btn-sm">
+      <div class="card card-body community-card flex-fill mb-0">
+        <img src="assets/dashboard/feature-request.png" alt="" class="dashboard-promo-img">
+        <h5 class="mb-2"><i class="fa fa-users"></i> ${t('dashboard.communityTitle')}</h5>
+        <p class="text-muted mb-3">${t('dashboard.communityText')}</p>
+        <div class="mt-auto">
+          <a href="#dashboard?sub_page=forum&category=3" class="btn btn-info btn-xl text-white">
             <i class="fa fa-lightbulb-o"></i> ${t('dashboard.communityCta')}
           </a>
         </div>
@@ -123,11 +126,12 @@ export class StartPage {
     const inviteId = generateId()
     onClick('#' + inviteId, () => showInviteFriendOverlay())
     return `
-      <div class="card card-body mb-2 bg-dark mt-3 invite-card">
-        <h5 class="mb-2 text-center text-white"><i class="fa fa-paper-plane"></i> ${t('referral.dashboardTitle')}</h5>
-        <p class="text-center text-white-50 mb-3">${t('referral.dashboardText')}</p>
-        <div class="text-center">
-          <button id="${inviteId}" type="button" class="btn btn-info btn-sm">
+      <div class="card card-body invite-card flex-fill mb-0">
+        <img src="assets/dashboard/user-invite.png" alt="" class="dashboard-promo-img">
+        <h5 class="mb-2"><i class="fa fa-paper-plane"></i> ${t('referral.dashboardTitle')}</h5>
+        <p class="text-muted mb-3">${t('referral.dashboardText')}</p>
+        <div class="mt-auto">
+          <button id="${inviteId}" type="button" class="btn btn-info btn-xl text-white">
             <i class="fa fa-envelope"></i> ${t('referral.inviteFriendShort')}
           </button>
         </div>
@@ -136,12 +140,6 @@ export class StartPage {
   }
 
   _renderVideoCard () {
-    if (localStorage.getItem('hideVideoCard') === '1') return ''
-    const closeId = generateId()
-    onClick(closeId, () => {
-      localStorage.setItem('hideVideoCard', '1')
-      document.getElementById(closeId)?.closest('.card')?.remove()
-    })
     const videoId = getLocale() === 'en' ? '5Szjg4fdVl0' : 'mqiA34LB3ko'
     const isNativeApp = Boolean(window.__nativePlatform)
     const videoContent = isNativeApp
@@ -153,9 +151,8 @@ export class StartPage {
           <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1" title="${t('dashboard.videoTitle')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen webkit-playsinline></iframe>
         </div>`
     return `
-      <div class="card card-body mb-2 bg-dark mt-3 position-relative">
-        <button id="${closeId}" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" type="button" aria-label="Close"></button>
-        <h5 class="mb-2 text-center text-white"><i class="fa fa-youtube-play"></i> ${t('dashboard.videoTitle')}</h5>
+      <div class="card card-body mb-2 mt-3">
+        <h5 class="mb-2 text-center"><i class="fa fa-youtube-play"></i> ${t('dashboard.videoTitle')}</h5>
         ${videoContent}
       </div>
     `

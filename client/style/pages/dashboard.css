@@ -110,6 +110,13 @@
     display: none;
 }
 
+/* Dashboard promo cards (feature-request / referral) */
+.dashboard-promo-img {
+    height: 200px;
+    object-fit: contain;
+    margin: 0 1rem 0.5rem 0;
+}
+
 /* Video thumbnail link (native app fallback for YouTube embed) */
 .video-thumbnail-link {
     position: relative;
