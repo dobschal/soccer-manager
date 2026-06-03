@@ -7,7 +7,9 @@ vi.mock('../../lib/gateway.js', () => ({
     getTopCountries: vi.fn().mockResolvedValue({ rows: [] }),
     getSuspiciousActions: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 }),
     getReferralSettings: vi.fn().mockResolvedValue({ action: 'BONUS_100K', options: ['BONUS_100K', 'STAR_PLAYER'] }),
-    setReferralBenefit: vi.fn().mockResolvedValue({ success: true, action: 'BONUS_100K' })
+    setReferralBenefit: vi.fn().mockResolvedValue({ success: true, action: 'BONUS_100K' }),
+    getNotificationEmails: vi.fn().mockResolvedValue({ rows: [] }),
+    sendAdminNotificationEmail: vi.fn().mockResolvedValue({ sent: 0, recipients: 0 })
   }
 }))
 
@@ -75,6 +77,95 @@ describe('AdminPage sub-page navigation', () => {
     expect(page.createSubPage('user_management')).toBeInstanceOf(UserManagementAdminPage)
     expect(page.createSubPage('statistics')).toBeInstanceOf(StatisticsAdminPage)
     expect(page.createSubPage('general')).toBeInstanceOf(GeneralAdminPage)
+  })
+})
+
+describe('MarketingAdminPage notification email editor', () => {
+  beforeEach(() => {
+    server.getNotificationEmails.mockResolvedValue({ rows: [] })
+    server.sendAdminNotificationEmail.mockResolvedValue({ sent: 5, recipients: 5 })
+  })
+
+  it('renders the editor inputs and an empty-history message when no emails were sent', async () => {
+    const page = new MarketingAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('admin.notificationEmailTitle')
+    expect(html).toContain('admin.notificationEmailSubjectLabel')
+    expect(html).toContain('admin.notificationEmailBodyLabel')
+    expect(html).toContain('admin.notificationEmailImageLabel')
+    expect(html).toContain('admin.notificationEmailSendButton')
+    expect(html).toContain('admin.notificationEmailHistoryEmpty')
+  })
+
+  it('renders the history table with date, subject, recipient and open counts', async () => {
+    server.getNotificationEmails.mockResolvedValue({
+      rows: [{
+        id: 1,
+        title: 'Welcome back!',
+        recipient_count: 42,
+        open_count: 17,
+        created_at: '2026-06-03T10:00:00.000Z',
+        image_url: 'https://example.com/notification-image/abc'
+      }]
+    })
+    const page = new MarketingAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('Welcome back!')
+    expect(html).toContain('>42<')
+    expect(html).toContain('>17<')
+    expect(html).toContain('admin.notificationEmailHistoryDate')
+    expect(html).toContain('admin.notificationEmailHistorySubject')
+    expect(html).toContain('admin.notificationEmailHistoryRecipients')
+    expect(html).toContain('admin.notificationEmailHistoryOpens')
+    expect(html).not.toContain('admin.notificationEmailHistoryEmpty')
+  })
+
+  it('escapes HTML in stored subjects to prevent XSS in the history table', async () => {
+    server.getNotificationEmails.mockResolvedValue({
+      rows: [{
+        id: 1,
+        title: '<script>alert(1)</script>',
+        recipient_count: 0,
+        open_count: 0,
+        created_at: '2026-06-03T10:00:00.000Z',
+        image_url: 'https://example.com/notification-image/abc'
+      }]
+    })
+    const page = new MarketingAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).not.toContain('<script>alert(1)</script>')
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+  })
+
+  it('refuses to send when subject or body are missing', async () => {
+    const page = new MarketingAdminPage()
+    await page.load()
+    document.body.innerHTML = `
+      <input id="${page._notifTitleId}" value="">
+      <textarea id="${page._notifBodyId}"></textarea>
+      <button id="${page._notifSendBtnId}"></button>
+    `
+    page._pendingNotificationImage = { data: 'data:image/png;base64,AAA', type: 'image/png' }
+    await page._sendNotificationEmail()
+    expect(server.sendAdminNotificationEmail).not.toHaveBeenCalled()
+    expect(toast).toHaveBeenCalledWith('admin.notificationEmailMissingFields', 'error')
+  })
+
+  it('refuses to send when no image is selected', async () => {
+    const page = new MarketingAdminPage()
+    await page.load()
+    document.body.innerHTML = `
+      <input id="${page._notifTitleId}" value="Hello">
+      <textarea id="${page._notifBodyId}">Body</textarea>
+      <button id="${page._notifSendBtnId}"></button>
+    `
+    page._pendingNotificationImage = null
+    await page._sendNotificationEmail()
+    expect(server.sendAdminNotificationEmail).not.toHaveBeenCalled()
+    expect(toast).toHaveBeenCalledWith('admin.notificationEmailImageMissing', 'error')
   })
 })
 

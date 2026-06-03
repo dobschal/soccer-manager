@@ -22,6 +22,7 @@ import { collectStatistics } from './helper/statisticsHelper.js'
 import { initWebSocket } from './lib/websocket.js'
 import { getCachedUser } from './lib/userCache.js'
 import { isSandboxHost } from './lib/sandboxHost.js'
+import { serveNotificationEmailImage } from './helper/notificationEmailHelper.js'
 
 const app = express()
 const port = 3000
@@ -58,6 +59,11 @@ app.get('/sitemap.xml', (req, res, next) => {
 
 app.use('/', express.static('client', { index: 'index.html' }))
 app.use('/uploads', express.static('uploads', { maxAge: '30d' }))
+
+// Public tracking endpoint for admin notification emails — serves the image
+// by its public token and counts each load as an "open" of the email. Mounted
+// before the auth middleware so unauthenticated email clients can fetch it.
+app.get('/notification-image/:token', serveNotificationEmailImage)
 
 /**
  * Check if the authorization header is available, if so validate the JWT and
