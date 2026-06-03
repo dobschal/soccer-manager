@@ -1313,7 +1313,7 @@ export default {
   'admin.fraudDescSharedIp': 'Shared IP address ({ip})',
   'admin.fraudDescFrequentTrades': '{count} trades within {days} days',
   'admin.fraudDescUndervaluedTrade': 'Sold {percent}% under value (price {price}, value ~{value})',
-  'admin.fraudDescOvervaluedTrade': 'Sold {percent}% of value (price {price}, value ~{value})',
+  'admin.fraudDescOvervaluedTrade': 'Sold {percent}% over value (price {price}, value ~{value})',
   'results.cupGameDayNotice': 'This game day featured cup matches.',
   'results.goToCupResults': 'Go to cup results',
 

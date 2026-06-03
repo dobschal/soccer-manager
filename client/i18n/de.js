@@ -1313,7 +1313,7 @@ export default {
   'admin.fraudDescSharedIp': 'Gleiche IP-Adresse ({ip})',
   'admin.fraudDescFrequentTrades': '{count} Transfers innerhalb von {days} Tagen',
   'admin.fraudDescUndervaluedTrade': '{percent}% unter Wert verkauft (Preis {price}, Wert ~{value})',
-  'admin.fraudDescOvervaluedTrade': 'Für {percent}% des Wertes verkauft (Preis {price}, Wert ~{value})',
+  'admin.fraudDescOvervaluedTrade': '{percent}% über Wert verkauft (Preis {price}, Wert ~{value})',
   'results.cupGameDayNotice': 'An diesem Spieltag fanden Pokalspiele statt.',
   'results.goToCupResults': 'Zu den Pokal-Ergebnissen',
 

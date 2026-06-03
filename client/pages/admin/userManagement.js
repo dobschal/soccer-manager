@@ -177,9 +177,13 @@ export class UserManagementAdminPage extends UIElement {
   }
 
   _formatUser (user) {
-    if (!user || !user.username) return '—'
-    const club = user.team_name ? ` (${user.team_name})` : ''
-    return `${user.username}${club}`
+    if (!user) return '—'
+    if (user.username) {
+      const club = user.team_name ? ` (${user.team_name})` : ''
+      return `${user.username}${club}`
+    }
+    if (user.team_name) return user.team_name
+    return '—'
   }
 
   _formatDescriptionParams (params) {
