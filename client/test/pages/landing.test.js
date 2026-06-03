@@ -47,15 +47,17 @@ describe('LandingPage - app store links', () => {
     expect(html).toContain('assets/landing-page/google-play-badge.svg')
   })
 
-  it('places the badges section between the hero and the first feature section', () => {
+  it('places the badges inside the hero content, before the first feature section', () => {
     const page = new LandingPage()
     const html = page.template
+    const heroSubtitleIdx = html.indexOf('hero-subtitle')
+    const badgesIdx = html.indexOf('app-badges')
     const heroEnd = html.indexOf('</section>')
-    const badgesIdx = html.indexOf('app-badges-section')
     const firstFeatureIdx = html.indexOf('feature-section')
-    expect(heroEnd).toBeGreaterThan(-1)
-    expect(badgesIdx).toBeGreaterThan(heroEnd)
-    expect(firstFeatureIdx).toBeGreaterThan(badgesIdx)
+    expect(heroSubtitleIdx).toBeGreaterThan(-1)
+    expect(badgesIdx).toBeGreaterThan(heroSubtitleIdx)
+    expect(badgesIdx).toBeLessThan(heroEnd)
+    expect(firstFeatureIdx).toBeGreaterThan(heroEnd)
   })
 
   it('exports the App Store URL pointing at the published iOS app id', () => {
@@ -98,16 +100,14 @@ describe('LandingPage - mobile app banner', () => {
     expect(html).toContain(PLAY_STORE_URL)
   })
 
-  it('renders the iOS banner with the App Store URL on iOS UA', () => {
+  it('does not render the custom banner on iOS — Safari shows its native smart app banner via apple-itunes-app', () => {
     Object.defineProperty(window.navigator, 'userAgent', {
       value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605',
       configurable: true
     })
     const page = new LandingPage()
     const html = page.template
-    expect(html).toContain('mobile-app-banner')
-    expect(html).toContain('data-platform="ios"')
-    expect(html).toContain(APP_STORE_URL)
+    expect(html).not.toContain('mobile-app-banner')
   })
 
   it('does not render the mobile banner on a desktop UA', () => {
@@ -122,7 +122,7 @@ describe('LandingPage - mobile app banner', () => {
 
   it('does not render the banner when the user has dismissed it previously', () => {
     Object.defineProperty(window.navigator, 'userAgent', {
-      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605',
+      value: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537',
       configurable: true
     })
     window.localStorage.getItem.mockReturnValue('1')

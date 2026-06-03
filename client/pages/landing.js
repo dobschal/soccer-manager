@@ -26,6 +26,7 @@ export class LandingPage extends UIElement {
    */
   async load () {
   }
+
   /**
    * @returns {string}
    */
@@ -47,6 +48,15 @@ export class LandingPage extends UIElement {
                 <p class="hero-subtitle text-white">
                   ${t('landing.subtitle')}
                 </p>
+                <p class="app-badges-label text-white">${t('landing.alsoAvailableOn')}</p>
+                <div class="app-badges">
+                  <a href="${APP_STORE_URL}" target="_blank" rel="noopener" class="app-badge-link" aria-label="${t('landing.getOnAppStore')}">
+                    <img src="assets/landing-page/app-store-badge.svg" alt="${t('landing.getOnAppStore')}" class="app-badge">
+                  </a>
+                  <a href="${PLAY_STORE_URL}" target="_blank" rel="noopener" class="app-badge-link" aria-label="${t('landing.getOnGooglePlay')}">
+                    <img src="assets/landing-page/google-play-badge.svg" alt="${t('landing.getOnGooglePlay')}" class="app-badge">
+                  </a>
+                </div>
                 <img src="assets/landing-page/preview.png" alt="Game Preview" class="hero-preview-image mt-4">
               </div>
               <!-- Right side: Login form -->
@@ -65,21 +75,6 @@ export class LandingPage extends UIElement {
           </div>
           <div class="scroll-indicator d-none d-lg-block">
             <i class="fa fa-chevron-down fa-2x text-white"></i>
-          </div>
-        </section>
-
-        <!-- App Store Badges -->
-        <section class="app-badges-section">
-          <div class="container bg-transparent text-center">
-            <p class="app-badges-label text-white">${t('landing.alsoAvailableOn')}</p>
-            <div class="app-badges">
-              <a href="${APP_STORE_URL}" target="_blank" rel="noopener" class="app-badge-link" aria-label="${t('landing.getOnAppStore')}">
-                <img src="assets/landing-page/app-store-badge.svg" alt="${t('landing.getOnAppStore')}" class="app-badge">
-              </a>
-              <a href="${PLAY_STORE_URL}" target="_blank" rel="noopener" class="app-badge-link" aria-label="${t('landing.getOnGooglePlay')}">
-                <img src="assets/landing-page/google-play-badge.svg" alt="${t('landing.getOnGooglePlay')}" class="app-badge">
-              </a>
-            </div>
           </div>
         </section>
 
@@ -177,6 +172,7 @@ export class LandingPage extends UIElement {
       </div>
     `
   }
+
   /**
    * @returns {UIElementEvents}
    */
@@ -209,6 +205,7 @@ export class LandingPage extends UIElement {
       }
     }
   }
+
   /**
    * @param {Object} params
    * @param {string} params.type
@@ -219,6 +216,7 @@ export class LandingPage extends UIElement {
     this.isLogin = type === 'login'
     await this.update()
   }
+
   /**
    * @returns {string}
    */
@@ -226,8 +224,10 @@ export class LandingPage extends UIElement {
     if (typeof window === 'undefined') return ''
     if (window.localStorage?.getItem(APP_BANNER_DISMISSED_KEY) === '1') return ''
     const platform = detectMobilePlatform()
-    if (!platform) return ''
-    const storeUrl = platform === 'ios' ? APP_STORE_URL : PLAY_STORE_URL
+    // iOS Safari shows its own native smart app banner via the
+    // `apple-itunes-app` meta tag in index.html — don't double up.
+    if (platform !== 'android') return ''
+    const storeUrl = PLAY_STORE_URL
     return `
       <div class="mobile-app-banner" data-platform="${platform}">
         <button type="button" class="mobile-app-banner__close" data-close-app-banner aria-label="Close">
