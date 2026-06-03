@@ -40,6 +40,10 @@ vi.mock('../../partials/overlay.js', () => ({
   showOverlay: vi.fn().mockReturnValue({ remove: vi.fn() })
 }))
 
+vi.mock('../../partials/search.js', () => ({
+  showSearchOverlay: vi.fn()
+}))
+
 vi.mock('../../lib/websocket.js', () => ({
   disconnectWebSocket: vi.fn(),
   onServerEvent: vi.fn(),
@@ -55,6 +59,7 @@ vi.mock('../../i18n/index.js', () => ({
       'nav.club': 'Club',
       'nav.transfers': 'Transfers',
       'nav.settings': 'Settings',
+      'nav.search': 'Search',
       'nav.logout': 'Logout',
       'nav.language': 'Language',
       'nav.run': 'Run',
@@ -116,6 +121,22 @@ describe('GameLayout', () => {
       await layout.load()
       expect(layout.template).toContain('settings-button')
       expect(layout.template).toContain('Settings')
+    })
+
+    it('template contains desktop search button', async () => {
+      const layout = new GameLayout()
+      await layout.load()
+      expect(layout.template).toContain('id="search-button"')
+      expect(layout.template).toContain('fa-search')
+      expect(layout.template).toContain('aria-label="Search"')
+    })
+
+    it('search button click opens the search overlay', async () => {
+      const { showSearchOverlay } = await import('../../partials/search.js')
+      const layout = new GameLayout()
+      await layout.load()
+      layout.events['#search-button'].click()
+      expect(showSearchOverlay).toHaveBeenCalled()
     })
 
     it('template contains balance', async () => {

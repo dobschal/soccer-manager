@@ -6,6 +6,7 @@ import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
 import { showAccountOverlay } from '../partials/accountOverlay.js'
+import { showSearchOverlay } from '../partials/search.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
 
@@ -72,9 +73,14 @@ export class GameLayout extends UIElement {
                 <i class="fa fa-cog" aria-hidden="true"></i> ${t('nav.settings')}
               </button>
             </div>
-            <button id="settings-button" class="btn btn-link nav-settings-btn nav-avatar-btn d-none d-lg-block" type="button" aria-label="${t('nav.settings')}">
-              ${this._avatarImg()}
-            </button>
+            <div class="nav-right-actions d-none d-lg-flex">
+              <button id="search-button" class="btn btn-link nav-settings-btn nav-search-btn" type="button" aria-label="${t('nav.search')}">
+                <i class="fa fa-search" aria-hidden="true"></i>
+              </button>
+              <button id="settings-button" class="btn btn-link nav-settings-btn nav-avatar-btn" type="button" aria-label="${t('nav.settings')}">
+                ${this._avatarImg()}
+              </button>
+            </div>
           </div>
         </nav>
         <div class="info-bar">
@@ -115,6 +121,12 @@ export class GameLayout extends UIElement {
         click: () => {
           hideNavigation()
           showAccountOverlay()
+        }
+      },
+      '#search-button': {
+        click: () => {
+          hideNavigation()
+          showSearchOverlay()
         }
       },
       '.navbar-toggler': {

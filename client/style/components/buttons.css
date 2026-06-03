@@ -35,6 +35,20 @@
     line-height: 0;
 }
 
+.nav-right-actions {
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-search-btn {
+    font-size: 1.1rem;
+    transition: transform 0.2s ease;
+}
+
+.nav-search-btn:hover {
+    transform: scale(1.1);
+}
+
 .nav-avatar {
     width: 32px;
     height: 32px;
