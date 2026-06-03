@@ -268,6 +268,24 @@ describe('TeamPage', () => {
       expect(html).not.toContain('15.01.2024')
     })
 
+    it('falls back to user.created_at when coach_since is missing but user exists', async () => {
+      const team = testData.team({ created_at: '2024-01-15T10:00:00Z', coach_since: null })
+      const players = [testData.player()]
+      const user = testData.user({ username: 'manager123', created_at: '2025-03-08T10:00:00Z' })
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+
+      const page = new TeamPage()
+      page.teamId = 1
+      await page.load()
+
+      const html = page._renderCoachCard()
+      expect(html).toContain('08.03.2025')
+      expect(html).not.toContain('15.01.2024')
+    })
+
     it('template contains team info', async () => {
       const team = testData.team({ name: 'Super FC' })
       const players = [testData.player()]

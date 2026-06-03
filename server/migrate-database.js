@@ -1956,6 +1956,17 @@ const migrations = [{
     await query('ALTER TABLE team ADD COLUMN coach_since TIMESTAMP NULL DEFAULT NULL')
     await query('UPDATE team SET coach_since = created_at WHERE user_id IS NOT NULL AND coach_since IS NULL')
   }
+}, {
+  name: 'Re-backfill coach_since with user.created_at when before user registration',
+  async run () {
+    const result = await query(`
+      UPDATE team t
+      JOIN user u ON u.id = t.user_id
+      SET t.coach_since = u.created_at
+      WHERE t.coach_since IS NOT NULL AND t.coach_since < u.created_at
+    `)
+    console.log(`✅ Re-backfilled coach_since for ${result.affectedRows || 0} teams`)
+  }
 }]
 
 /**

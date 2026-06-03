@@ -57,8 +57,9 @@ export class ClubInfoPage extends UIElement {
       0
     )
     const coachName = this.user?.username ?? '-'
-    const coachSince = this.team.coach_since
-      ? formatDate('DD.MM.YYYY', this.team.coach_since)
+    const coachSinceDate = this.team.coach_since ?? this.user?.created_at
+    const coachSince = coachSinceDate
+      ? formatDate('DD.MM.YYYY', coachSinceDate)
       : '-'
     const avatarFilename = this.user?.avatar
 
