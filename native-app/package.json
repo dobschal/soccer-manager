@@ -11,7 +11,8 @@
     "build:ios": "npm run copy-client && ns build ios",
     "build:android": "npm run copy-client && ns build android",
     "run:ios": "npm run copy-client && ns run ios",
-    "run:android": "npm run copy-client && ns run android"
+    "run:android": "npm run copy-client && ns run android",
+    "release:ios": "npm run copy-client && ns prepare ios --release"
   },
   "dependencies": {
     "@nativescript/core": "~8.8.0",
