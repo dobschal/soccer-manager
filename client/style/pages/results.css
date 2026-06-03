@@ -64,19 +64,6 @@
     gap: 0.4rem;
 }
 
-.cup-bracket-hide-icon,
-.cup-bracket-show-all {
-    cursor: pointer;
-    color: var(--bs-secondary, #6c757d);
-    font-size: 0.85rem;
-    transition: color 0.15s ease-in-out;
-}
-
-.cup-bracket-hide-icon:hover,
-.cup-bracket-show-all:hover {
-    color: var(--bs-primary, #0d6efd);
-}
-
 .cup-bracket-matches {
     display: flex;
     flex-direction: column;

@@ -411,7 +411,7 @@ export default {
   // My Team - Tabs
   'myTeam.aTeam': 'A Team',
   'myTeam.youthTeam': 'Youth Team',
-  'myTeam.viewPublicPage': 'Public page',
+  'myTeam.viewPublicPage': 'Profile page',
 
   // Youth Team
   'youthTeam.title': 'Youth Team',
@@ -1055,8 +1055,8 @@ export default {
   'cup.infoFormat': 'The cup is a knockout tournament with {totalRounds} rounds. Each match is single elimination — the loser is out.',
   'cup.infoPrize': 'Prize money per round win starts at {basePrize} and doubles each round. The cup winner receives an additional {winnerPrize}.',
   'cup.bracketTitle': 'Cup Bracket',
-  'cup.bracketHideRound': 'Hide this round',
   'cup.bracketShowAll': 'Show all rounds',
+  'cup.bracketShowLess': 'Show fewer rounds',
 
   // Results page tabs
   'results.leagueResults': 'League',

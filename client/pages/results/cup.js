@@ -202,52 +202,61 @@ export class CupResultsPage extends UIElement {
 
     if (allBracketRounds.length === 0) return ''
 
-    const maxHide = Math.max(0, allBracketRounds.length - 1)
-    if (this.bracketHiddenLeftCount > maxHide) this.bracketHiddenLeftCount = maxHide
-    const visibleRounds = allBracketRounds.slice(this.bracketHiddenLeftCount)
+    const isRoundPlayed = (round) => {
+      const games = this.cupBracket[round]?.games || []
+      if (games.length === 0) return false
+      return games.every(g => g.played === 1 || (!g.team2 && !g.team2Id))
+    }
 
-    const hideButtonId = generateId()
-    onClick(hideButtonId, () => {
-      if (this.bracketHiddenLeftCount < maxHide) {
-        this.bracketHiddenLeftCount++
-        this.update()
+    const playedIndices = []
+    let nextUnplayedIndex = -1
+    for (let i = 0; i < allBracketRounds.length; i++) {
+      if (isRoundPlayed(allBracketRounds[i])) {
+        playedIndices.push(i)
+      } else if (nextUnplayedIndex === -1) {
+        nextUnplayedIndex = i
       }
+    }
+
+    const defaultVisibleSet = new Set(playedIndices.slice(-2))
+    if (nextUnplayedIndex !== -1) defaultVisibleSet.add(nextUnplayedIndex)
+    if (defaultVisibleSet.size === 0) defaultVisibleSet.add(0)
+
+    const canExpand = defaultVisibleSet.size < allBracketRounds.length
+    const showAll = this.bracketShowAll === true
+
+    const visibleRounds = showAll || !canExpand
+      ? allBracketRounds
+      : allBracketRounds.filter((_, i) => defaultVisibleSet.has(i))
+
+    const toggleButtonId = generateId()
+    onClick(toggleButtonId, () => {
+      this.bracketShowAll = !showAll
+      this.update()
     })
 
-    const showAllButtonId = generateId()
-    onClick(showAllButtonId, () => {
-      if (this.bracketHiddenLeftCount > 0) {
-        this.bracketHiddenLeftCount = 0
-        this.update()
-      }
-    })
-
-    const columns = visibleRounds.map((round, idx) => {
+    const columns = visibleRounds.map((round) => {
       const roundData = this.cupBracket[round]
       const games = roundData?.games || []
       const matches = games.map(g => this._renderBracketMatch(g)).join('')
-      const hideIcon = idx === 0
-        ? `<i id="${hideButtonId}" class="fa fa-eye-slash cup-bracket-hide-icon" title="${t('cup.bracketHideRound')}" aria-label="${t('cup.bracketHideRound')}"></i>`
-        : ''
       return `
         <div class="cup-bracket-round">
           <div class="cup-bracket-round-title">
             <span>${this._getCupRoundName(round)}</span>
-            ${hideIcon}
           </div>
           <div class="cup-bracket-matches">${matches}</div>
         </div>
       `
     }).join('')
 
-    const showAllButton = this.bracketHiddenLeftCount > 0
-      ? `<i id="${showAllButtonId}" class="fa fa-eye cup-bracket-show-all" title="${t('cup.bracketShowAll')}" aria-label="${t('cup.bracketShowAll')}"></i>`
+    const toggleButton = canExpand
+      ? `<button id="${toggleButtonId}" type="button" class="btn btn-sm btn-outline-secondary cup-bracket-toggle">${showAll ? t('cup.bracketShowLess') : t('cup.bracketShowAll')}</button>`
       : ''
 
     return `
-      <h3 class="mt-4 d-flex align-items-center gap-2">
+      <h3 class="mt-4 d-flex align-items-center gap-2 flex-wrap">
         <span>${t('cup.bracketTitle')}</span>
-        ${showAllButton}
+        ${toggleButton}
       </h3>
       <div class="cup-bracket-scroll">
         <div class="cup-bracket">${columns}</div>
@@ -330,7 +339,7 @@ export class CupResultsPage extends UIElement {
   suspendedPlayers = []
   injuredPlayers = []
   cupBracket = {}
-  bracketHiddenLeftCount = 0
+  bracketShowAll = false
 
   get myTeamId () {
     return this.parentPage.myTeamId

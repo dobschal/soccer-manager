@@ -409,9 +409,9 @@ export default {
   'myTeam.benchSubInfo': 'Bankspieler werden frühestens zur 45. Minute eingewechselt. Einzige Ausnahme ist eine Verletzung – ein verletzter Spieler wird sofort ersetzt, sofern ein passender Bankspieler verfügbar ist.',
 
   // My Team - Tabs
-  'myTeam.aTeam': 'A-Mannschaft',
-  'myTeam.youthTeam': 'Jugendmannschaft',
-  'myTeam.viewPublicPage': 'Öffentliche Seite',
+  'myTeam.aTeam': 'A-Team',
+  'myTeam.youthTeam': 'Jugend',
+  'myTeam.viewPublicPage': 'Profil-Seite',
 
   // Youth Team
   'youthTeam.title': 'Jugendmannschaft',
@@ -1055,8 +1055,8 @@ export default {
   'cup.infoFormat': 'Der Pokal ist ein K.O.-Turnier mit {totalRounds} Runden. Jedes Spiel ist ein Ausscheidungsspiel — der Verlierer scheidet aus.',
   'cup.infoPrize': 'Das Preisgeld pro Rundensieg beginnt bei {basePrize} und verdoppelt sich jede Runde. Der Pokalsieger erhält zusätzlich {winnerPrize}.',
   'cup.bracketTitle': 'Pokal-Baum',
-  'cup.bracketHideRound': 'Diese Runde ausblenden',
   'cup.bracketShowAll': 'Alle Runden anzeigen',
+  'cup.bracketShowLess': 'Weniger Runden anzeigen',
 
   // Results page tabs
   'results.leagueResults': 'Liga',
