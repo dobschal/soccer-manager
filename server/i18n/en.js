@@ -15,6 +15,9 @@ export default {
   'error.verificationTokenInvalid': 'This verification link is invalid or has expired',
   'error.passwordResetTokenInvalid': 'This password reset link is invalid or has expired',
   'error.invalidParam': 'Invalid parameter',
+  'error.referralSelfInvite': 'You cannot invite yourself',
+  'error.referralAlreadyMember': 'This email already belongs to a FootballManager.IO user',
+  'error.referralLimitReached': 'You have too many pending invitations — wait for some to be accepted',
 
   // Team choice
   'chooseTeam.alreadyHasTeam': 'You already manage a team.',
@@ -44,6 +47,13 @@ export default {
   'email.adminMessage.greeting': 'Hey {username},',
   'email.adminMessage.button': 'Open FootballManager.IO',
   'email.adminMessage.signature': 'Your FootballManager.IO team',
+
+  // Referral invitation email content
+  'email.referral.subject': '{inviter} has invited you to FootballManager.IO',
+  'email.referral.greeting': 'Hi there,',
+  'email.referral.body': '{inviter} has invited you to FootballManager.IO — a browser-based football manager game where you build your team, climb the leagues and outsmart other coaches. Create your free account and start playing now.',
+  'email.referral.button': 'Play now',
+  'email.referral.signature': 'See you on the pitch,\nThe FootballManager.IO team',
 
   // Trade errors
   'error.playerNotFound': 'Player not found',

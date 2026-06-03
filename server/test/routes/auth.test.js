@@ -17,6 +17,10 @@ vi.mock('../../lib/email.js', () => ({
   sendPasswordResetEmail: vi.fn().mockResolvedValue({ sent: true, url: 'https://example.com/reset' })
 }))
 
+vi.mock('../../helper/referralHelper.js', () => ({
+  claimReferralForNewUser: vi.fn().mockResolvedValue({ awarded: false })
+}))
+
 vi.mock('../../lib/userCache.js', () => ({
   clearUserCache: vi.fn()
 }))
@@ -25,6 +29,7 @@ vi.mock('../../lib/userCache.js', () => ({
 import { query } from '../../lib/database.js'
 import { hashPassword } from '../../lib/passwordHash.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.js'
+import { claimReferralForNewUser } from '../../helper/referralHelper.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
@@ -156,6 +161,35 @@ describe('auth routes', () => {
       const req = { locale: 'en' }
       await expect(handlers.createAccount('user', 'password123', 'taken@example.com', req))
         .rejects.toMatchObject({ message: 'This email address is already in use' })
+    })
+
+    it('claims a pending referral after the user is inserted', async () => {
+      query
+        .mockResolvedValueOnce([]) // emailIsTakenByAnotherUser check
+        .mockResolvedValueOnce([{ amount: 0 }]) // username check
+        .mockResolvedValueOnce({ insertId: 123 }) // insert user
+
+      sendVerificationEmail.mockResolvedValue({ sent: true, url: 'x' })
+      claimReferralForNewUser.mockResolvedValueOnce({ awarded: true, inviterUserId: 7, action: 'BONUS_100K' })
+
+      const req = { locale: 'en' }
+      await handlers.createAccount('newuser', 'password123', 'new@example.com', req)
+
+      expect(claimReferralForNewUser).toHaveBeenCalledWith({
+        email: 'new@example.com',
+        newUserId: 123
+      })
+    })
+
+    it('does not call claimReferralForNewUser when no email is provided', async () => {
+      query
+        .mockResolvedValueOnce([{ amount: 0 }])
+        .mockResolvedValueOnce({ insertId: 1 })
+
+      const req = { locale: 'en' }
+      await handlers.createAccount('newuser', 'password123', req)
+
+      expect(claimReferralForNewUser).not.toHaveBeenCalled()
     })
   })
 

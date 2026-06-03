@@ -298,6 +298,14 @@ describe('DashboardPage', () => {
       expect(html).toContain('Community-Driven')
       expect(html).toContain('#dashboard?sub_page=forum&category=3')
     })
+
+    it('renders the invite-a-friend card with a referral CTA', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const html = page.template
+      expect(html).toContain('Invite friends, earn rewards')
+      expect(html).toContain('Invite friends')
+    })
   })
 
   describe('renderDashboardPage (backwards compatibility)', () => {

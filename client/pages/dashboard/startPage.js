@@ -9,6 +9,7 @@ import { getLocale, t } from '../../i18n/index.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 import { showGameModal } from '../../partials/gameModal.js'
+import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
 
 export class StartPage {
   /**
@@ -95,6 +96,7 @@ export class StartPage {
         </div>
       </div>
       ${this._renderCommunityCard()}
+      ${this._renderInviteCard()}
       ${this._renderVideoCard()}
       <p class="text-center text-muted mt-3 mb-0 pb-4">
         <i class="fa fa-coffee"></i> Support me and buy me a coffee:
@@ -112,6 +114,22 @@ export class StartPage {
           <a href="#dashboard?sub_page=forum&category=3" class="btn btn-info btn-sm">
             <i class="fa fa-lightbulb-o"></i> ${t('dashboard.communityCta')}
           </a>
+        </div>
+      </div>
+    `
+  }
+
+  _renderInviteCard () {
+    const inviteId = generateId()
+    onClick('#' + inviteId, () => showInviteFriendOverlay())
+    return `
+      <div class="card card-body mb-2 bg-dark mt-3 invite-card">
+        <h5 class="mb-2 text-center text-white"><i class="fa fa-paper-plane"></i> ${t('referral.dashboardTitle')}</h5>
+        <p class="text-center text-white-50 mb-3">${t('referral.dashboardText')}</p>
+        <div class="text-center">
+          <button id="${inviteId}" type="button" class="btn btn-info btn-sm">
+            <i class="fa fa-envelope"></i> ${t('referral.inviteFriendShort')}
+          </button>
         </div>
       </div>
     `

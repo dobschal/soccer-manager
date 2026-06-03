@@ -12,6 +12,7 @@ import { hashPassword, verifyPassword } from '../lib/passwordHash.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
 import { isValidEmail, sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js'
+import { claimReferralForNewUser } from '../helper/referralHelper.js'
 
 const EMAIL_VERIFICATION_TTL_DAYS = 7
 const PASSWORD_RESET_TTL_HOURS = 2
@@ -83,7 +84,7 @@ export default {
       verificationToken = crypto.randomBytes(32).toString('hex')
       verificationExpires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_DAYS * 24 * 60 * 60 * 1000)
     }
-    await query('INSERT INTO user SET ?', {
+    const insertResult = await query('INSERT INTO user SET ?', {
       username,
       password: await hashPassword(password),
       language: locale,
@@ -94,6 +95,13 @@ export default {
     if (normalizedEmail && verificationToken) {
       sendVerificationEmail({ toEmail: normalizedEmail, token: verificationToken, locale, username })
         .catch(e => console.error('[Auth] sendVerificationEmail failed:', e))
+    }
+    if (normalizedEmail && insertResult?.insertId) {
+      try {
+        await claimReferralForNewUser({ email: normalizedEmail, newUserId: insertResult.insertId })
+      } catch (e) {
+        console.error('[Auth] claimReferralForNewUser failed:', e)
+      }
     }
     return { success: true }
   },

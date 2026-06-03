@@ -1967,6 +1967,55 @@ const migrations = [{
     `)
     console.log(`✅ Re-backfilled coach_since for ${result.affectedRows || 0} teams`)
   }
+}, {
+  name: 'Create app_setting table for admin-configurable values',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS app_setting (
+      setting_key VARCHAR(64) NOT NULL PRIMARY KEY,
+      setting_value VARCHAR(255) NOT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`)
+  }
+}, {
+  name: 'Create referral_invitation table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS referral_invitation (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      inviter_user_id BIGINT UNSIGNED NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      used_by_user_id BIGINT UNSIGNED DEFAULT NULL,
+      reward_action VARCHAR(64) DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      used_at TIMESTAMP NULL DEFAULT NULL,
+      INDEX idx_referral_email (email),
+      INDEX idx_referral_inviter (inviter_user_id)
+    )`)
+  }
+}, {
+  name: 'Seed default referral benefit setting',
+  async run () {
+    await query(
+      `INSERT INTO app_setting (setting_key, setting_value) VALUES ('referral_benefit', 'BONUS_100K')
+       ON DUPLICATE KEY UPDATE setting_value = setting_value`
+    )
+  }
+}, {
+  name: 'Create notification_email table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS notification_email (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      title VARCHAR(255) NOT NULL,
+      body_text TEXT NOT NULL,
+      image_filename VARCHAR(255) NOT NULL,
+      image_token VARCHAR(64) NOT NULL,
+      recipient_count INT NOT NULL DEFAULT 0,
+      open_count INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_notification_email_token (image_token),
+      INDEX idx_notification_email_created (created_at)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
+  }
 }]
 
 /**

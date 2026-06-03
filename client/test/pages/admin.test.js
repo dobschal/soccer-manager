@@ -5,7 +5,9 @@ vi.mock('../../lib/gateway.js', () => ({
     getAdmins: vi.fn().mockResolvedValue({ admins: [] }),
     getStatistics: vi.fn().mockResolvedValue({ rows: [], total: 0, pageSize: 20 }),
     getTopCountries: vi.fn().mockResolvedValue({ rows: [] }),
-    getSuspiciousActions: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 })
+    getSuspiciousActions: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 }),
+    getReferralSettings: vi.fn().mockResolvedValue({ action: 'BONUS_100K', options: ['BONUS_100K', 'STAR_PLAYER'] }),
+    setReferralBenefit: vi.fn().mockResolvedValue({ success: true, action: 'BONUS_100K' })
   }
 }))
 
@@ -80,6 +82,7 @@ describe('UserManagementAdminPage suspicious actions table', () => {
   beforeEach(() => {
     server.getAdmins.mockResolvedValue({ admins: [] })
     server.getSuspiciousActions.mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 })
+    server.getReferralSettings.mockResolvedValue({ action: 'BONUS_100K', options: ['BONUS_100K', 'STAR_PLAYER'] })
   })
 
   it('requests page 1 with size 10 on initial load', async () => {
@@ -162,6 +165,28 @@ describe('UserManagementAdminPage suspicious actions table', () => {
     expect(html).toContain('admin.paginationNext')
     expect(html).toContain('"page":1')
     expect(html).toContain('"total":3') // ceil(25 / 10)
+  })
+})
+
+describe('UserManagementAdminPage referral benefit', () => {
+  beforeEach(() => {
+    server.getAdmins.mockResolvedValue({ admins: [] })
+    server.getSuspiciousActions.mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 })
+    server.getReferralSettings.mockResolvedValue({
+      action: 'STAR_PLAYER',
+      options: ['BONUS_100K', 'STAR_PLAYER', 'MOTIVATING_SPEECH']
+    })
+  })
+
+  it('renders the referral benefit section with the configured option preselected', async () => {
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('admin.referralBenefitTitle')
+    expect(html).toContain('admin.referralBenefitDescription')
+    expect(html).toContain('admin.referralBenefitSave')
+    expect(html).toMatch(/<option value="STAR_PLAYER" selected>/)
+    expect(html).toMatch(/<option value="BONUS_100K">/)
   })
 })
 

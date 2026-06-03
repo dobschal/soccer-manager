@@ -8,6 +8,7 @@ import { disconnectWebSocket } from '../lib/websocket.js'
 import { fetchText } from '../lib/fetchText.js'
 import { isValidEmail } from '../lib/emailRegex.js'
 import { renderPageNumbers } from '../partials/pagination.js'
+import { showInviteFriendOverlay } from '../partials/inviteFriendOverlay.js'
 
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024
@@ -202,6 +203,9 @@ export async function showAccountOverlay () {
       <div id="account-friends-section" class="mb-4">
         <label class="form-label mt-2">${t('account.friends')}</label>
         ${renderFriends()}
+        <button type="button" id="account-invite-friend" class="btn btn-outline-info btn-sm mt-2 w-100">
+          <i class="fa fa-paper-plane" aria-hidden="true"></i> ${t('referral.inviteFriend')}
+        </button>
       </div>
 
       <div id="account-email-section" class="mb-4">
@@ -391,6 +395,11 @@ export async function showAccountOverlay () {
       })
     })
 
+    const inviteBtn = el('#account-invite-friend')
+    if (inviteBtn) {
+      inviteBtn.addEventListener('click', () => showInviteFriendOverlay())
+    }
+
     const totalPages = Math.ceil(friends.length / FRIENDS_PAGE_SIZE)
     const goToPage = (next) => {
       if (next < 0 || next >= totalPages || next === friendsPageIndex) return
@@ -415,6 +424,9 @@ export async function showAccountOverlay () {
       section.innerHTML = `
         <label class="form-label mt-2">${t('account.friends')}</label>
         ${renderFriends()}
+        <button type="button" id="account-invite-friend" class="btn btn-outline-info btn-sm mt-2 w-100">
+          <i class="fa fa-paper-plane" aria-hidden="true"></i> ${t('referral.inviteFriend')}
+        </button>
       `
       bindFriendsHandlers()
     }

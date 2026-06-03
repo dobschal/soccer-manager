@@ -4,6 +4,7 @@ import { toast } from '../../partials/toast.js'
 import { generateId } from '../../lib/html.js'
 import { t } from '../../i18n/index.js'
 import { showConfirmDialog } from '../../partials/overlay.js'
+import { actionCardLabel } from '../../lib/actionCardLabels.js'
 
 export class MarketingAdminPage extends UIElement {
   get template () {
@@ -61,19 +62,19 @@ export class MarketingAdminPage extends UIElement {
 
   get _giftableCardTypes () {
     return [
-      { value: 'LEVEL_UP_PLAYER_40', label: t('actionCards.type.basicPromotion') },
-      { value: 'LEVEL_UP_PLAYER_70', label: t('actionCards.type.epicAdvancement') },
-      { value: 'LEVEL_UP_PLAYER_100', label: t('actionCards.type.legendaryMastery') },
-      { value: 'FRESHNESS_5', label: t('actionCards.type.quickRecovery') },
-      { value: 'FRESHNESS_10', label: t('actionCards.type.energyBoost') },
-      { value: 'FRESHNESS_20', label: t('actionCards.type.fullRecovery') },
-      { value: 'NEW_YOUTH_PLAYER_1', label: t('actionCards.type.youthProspect1') },
-      { value: 'NEW_YOUTH_PLAYER_2', label: t('actionCards.type.youthProspect2') },
-      { value: 'NEW_YOUTH_PLAYER_3', label: t('actionCards.type.youthProspect3') },
-      { value: 'BONUS_100K', label: t('actionCards.type.cashBonus') },
-      { value: 'STAR_PLAYER', label: t('actionCards.type.starPlayer') },
-      { value: 'MOTIVATING_SPEECH', label: t('actionCards.type.motivatingSpeech') }
-    ]
+      'LEVEL_UP_PLAYER_40',
+      'LEVEL_UP_PLAYER_70',
+      'LEVEL_UP_PLAYER_100',
+      'FRESHNESS_5',
+      'FRESHNESS_10',
+      'FRESHNESS_20',
+      'NEW_YOUTH_PLAYER_1',
+      'NEW_YOUTH_PLAYER_2',
+      'NEW_YOUTH_PLAYER_3',
+      'BONUS_100K',
+      'STAR_PLAYER',
+      'MOTIVATING_SPEECH'
+    ].map(value => ({ value, label: actionCardLabel(value) }))
   }
 
   async _giftActionCard () {

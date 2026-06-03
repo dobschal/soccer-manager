@@ -4,19 +4,23 @@ import { toast } from '../../partials/toast.js'
 import { generateId } from '../../lib/html.js'
 import { t } from '../../i18n/index.js'
 import { showConfirmDialog } from '../../partials/overlay.js'
+import { actionCardLabel } from '../../lib/actionCardLabels.js'
 
 const SUSPICIOUS_PAGE_SIZE = 10
 
 export class UserManagementAdminPage extends UIElement {
   async load () {
-    const [adminsRes, suspiciousRes] = await Promise.all([
+    const [adminsRes, suspiciousRes, referralRes] = await Promise.all([
       server.getAdmins(),
-      server.getSuspiciousActions(this._suspiciousPage, SUSPICIOUS_PAGE_SIZE)
+      server.getSuspiciousActions(this._suspiciousPage, SUSPICIOUS_PAGE_SIZE),
+      server.getReferralSettings()
     ])
     this._admins = adminsRes.admins
     this._suspicious = suspiciousRes.rows
     this._suspiciousTotal = suspiciousRes.total
     this._suspiciousPageSize = suspiciousRes.pageSize
+    this._referralAction = referralRes.action
+    this._referralOptions = referralRes.options || []
   }
 
   get template () {
@@ -71,6 +75,8 @@ export class UserManagementAdminPage extends UIElement {
           </button>
         </div>
 
+        ${this._renderReferralBenefit()}
+
         ${this._renderSuspiciousActions()}
       </div>
     `
@@ -90,6 +96,9 @@ export class UserManagementAdminPage extends UIElement {
       [`#${this._sendEmailBtnId}`]: {
         click: () => this._sendUserEmail()
       },
+      [`#${this._referralBenefitBtnId}`]: {
+        click: () => this._saveReferralBenefit()
+      },
       [`(optional)#${this._suspiciousPrevBtnId}`]: {
         click: () => this._goToSuspiciousPage(this._suspiciousPage - 1)
       },
@@ -97,6 +106,28 @@ export class UserManagementAdminPage extends UIElement {
         click: () => this._goToSuspiciousPage(this._suspiciousPage + 1)
       }
     }
+  }
+
+  _renderReferralBenefit () {
+    const options = this._referralOptions.map(value => {
+      const label = actionCardLabel(value)
+      const selected = value === this._referralAction ? ' selected' : ''
+      return `<option value="${value}"${selected}>${label}</option>`
+    }).join('')
+    return `
+      <div class="mb-4">
+        <h4>${t('admin.referralBenefitTitle')}</h4>
+        <p class="text-muted">${t('admin.referralBenefitDescription')}</p>
+        <div class="input-group">
+          <select id="${this._referralBenefitSelectId}" class="form-control">
+            ${options}
+          </select>
+          <button id="${this._referralBenefitBtnId}" class="btn btn-info">
+            <i class="fa fa-save" aria-hidden="true"></i> ${t('admin.referralBenefitSave')}
+          </button>
+        </div>
+      </div>
+    `
   }
   _renderSuspiciousActions () {
     const totalPages = Math.max(1, Math.ceil(this._suspiciousTotal / this._suspiciousPageSize))
@@ -192,6 +223,8 @@ export class UserManagementAdminPage extends UIElement {
   _sendEmailUsernameId = generateId()
   _sendEmailMessageId = generateId()
   _sendEmailBtnId = generateId()
+  _referralBenefitSelectId = generateId()
+  _referralBenefitBtnId = generateId()
   _suspiciousPrevBtnId = generateId()
   _suspiciousNextBtnId = generateId()
   _admins = []
@@ -199,6 +232,27 @@ export class UserManagementAdminPage extends UIElement {
   _suspiciousTotal = 0
   _suspiciousPage = 1
   _suspiciousPageSize = SUSPICIOUS_PAGE_SIZE
+  _referralAction = ''
+  _referralOptions = []
+
+  async _saveReferralBenefit () {
+    const select = document.getElementById(this._referralBenefitSelectId)
+    const btn = document.getElementById(this._referralBenefitBtnId)
+    if (!select || !btn) return
+    const action = select.value
+    const label = select.options[select.selectedIndex]?.textContent || action
+    try {
+      btn.disabled = true
+      await server.setReferralBenefit(action)
+      this._referralAction = action
+      toast(t('admin.referralBenefitSaved', { card: label }), 'success')
+    } catch (e) {
+      toast(e.message || 'Something went wrong', 'error')
+    } finally {
+      const refreshed = document.getElementById(this._referralBenefitBtnId)
+      if (refreshed) refreshed.disabled = false
+    }
+  }
 
   async _deleteUser () {
     const input = document.getElementById(this._deleteUsernameId)
