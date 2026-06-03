@@ -13,11 +13,21 @@ function escapeHtml (text) {
   return div.innerHTML
 }
 
+const EDIT_WINDOW_MS = 4 * 60 * 60 * 1000 // 4 hours
+
+function isWithinEditWindow (createdAt) {
+  if (!createdAt) return false
+  const created = new Date(createdAt).getTime()
+  if (Number.isNaN(created)) return false
+  return Date.now() - created <= EDIT_WINDOW_MS
+}
+
 export class ForumPage extends UIElement {
 
   async load () {
     const teamResponse = await server.getMyTeam()
     this._isAdmin = !!teamResponse.isAdmin
+    this._currentUserId = teamResponse.user?.id ?? null
     this._params = getQueryParams()
     await this._loadView()
   }
@@ -328,13 +338,34 @@ export class ForumPage extends UIElement {
 
     const date = formatDate('DD.MM.YYYY hh:mm', post.created_at)
     const teamLink = post.team_id ? `<a href="#team?id=${post.team_id}" class="forum-team-link">${escapeHtml(post.team_name || '')}</a>` : ''
+    const isPostOwner = this._currentUserId && post.user_id === this._currentUserId
+    const canEditPost = isPostOwner && isWithinEditWindow(post.created_at)
+    const canDeletePost = isPostOwner || this._isAdmin
+    const isEditingPost = this._editingPostId === post.id
+
+    const postBody = isEditingPost
+      ? `
+        <div class="forum-edit-form mb-3">
+          <input type="text" id="forum-post-edit-title" class="form-control mb-2" maxlength="255" value="${escapeHtml(post.title)}">
+          <textarea id="forum-post-edit-text" class="form-control mb-2" rows="4" maxlength="5000">${escapeHtml(post.text)}</textarea>
+          <button id="forum-post-edit-save" class="btn btn-primary btn-sm">${t('forum.save')}</button>
+          <button id="forum-post-edit-cancel" class="btn btn-secondary btn-sm ms-1">${t('forum.cancel')}</button>
+        </div>
+      `
+      : `<div class="forum-post-text mb-3">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>`
 
     let html = `
       <div class="card mb-3">
         <div class="card-body">
           <h5>${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}</h5>
-          <div class="forum-meta mb-2">
+          <div class="forum-meta mb-2 d-flex justify-content-between align-items-start">
             <small class="text-muted">${escapeHtml(post.username)} ${teamLink ? '- ' + teamLink : ''} - ${date}</small>
+            ${!isEditingPost && (canEditPost || canDeletePost) ? `
+              <div class="forum-author-actions">
+                ${canEditPost ? `<button class="btn btn-link btn-sm forum-icon-btn forum-edit-post" data-id="${post.id}" title="${t('forum.editPost')}" aria-label="${t('forum.editPost')}"><i class="fa fa-pencil"></i></button>` : ''}
+                ${canDeletePost ? `<button class="btn btn-link btn-sm forum-icon-btn forum-icon-btn-danger forum-delete-post" data-id="${post.id}" title="${t('forum.deletePost')}" aria-label="${t('forum.deletePost')}"><i class="fa fa-trash"></i></button>` : ''}
+              </div>
+            ` : ''}
           </div>
           ${this._isAdmin ? `
             <div class="forum-badge-admin mb-2">
@@ -349,14 +380,13 @@ export class ForumPage extends UIElement {
               </div>
             </div>
           ` : ''}
-          <div class="forum-post-text mb-3">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>
-          ${(post.images && post.images.length > 0) ? `<div class="forum-comment-images mb-3">${post.images.map(img =>
+          ${postBody}
+          ${(!isEditingPost && post.images && post.images.length > 0) ? `<div class="forum-comment-images mb-3">${post.images.map(img =>
     `<img src="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}">`
   ).join('')}</div>` : ''}
           <button id="forum-like-btn" class="btn btn-sm ${post.liked ? 'btn-danger' : 'btn-outline-danger'}">
             <i class="fa fa-heart${post.liked ? '' : '-o'}"></i> ${post.like_count}
           </button>
-          ${this._isAdmin ? `<button class="btn btn-danger btn-sm ms-2 forum-delete-post" data-id="${post.id}">${t('forum.delete')}</button>` : ''}
         </div>
       </div>
     `
@@ -373,16 +403,38 @@ export class ForumPage extends UIElement {
         const commentImages = (comment.images || []).map(img =>
           `<img src="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}">`
         ).join('')
+        const isCommentOwner = this._currentUserId && comment.user_id === this._currentUserId
+        const canEditComment = isCommentOwner && isWithinEditWindow(comment.created_at)
+        const canDeleteComment = isCommentOwner || this._isAdmin
+        const isEditingComment = this._editingCommentId === comment.id
+
+        const commentBody = isEditingComment
+          ? `
+            <div class="forum-edit-form mt-1">
+              <textarea id="forum-comment-edit-text-${comment.id}" class="form-control mb-2 forum-comment-edit-text" data-id="${comment.id}" rows="3" maxlength="1000">${escapeHtml(comment.text)}</textarea>
+              <button class="btn btn-primary btn-sm forum-comment-edit-save" data-id="${comment.id}">${t('forum.save')}</button>
+              <button class="btn btn-secondary btn-sm ms-1 forum-comment-edit-cancel">${t('forum.cancel')}</button>
+            </div>
+          `
+          : `<div>${escapeHtml(comment.text).replace(/\n/g, '<br>')}</div>`
+
         html += `
           <div class="forum-comment mb-2 pb-2 border-bottom">
-            <div class="forum-meta mb-1">
-              <strong>${escapeHtml(comment.username)}</strong>
-              ${cTeamLink ? '- ' + cTeamLink : ''}
-              <small class="text-muted ms-2">${cDate}</small>
-              ${this._isAdmin ? `<button class="btn btn-danger btn-sm ms-2 forum-delete-comment" data-id="${comment.id}">${t('forum.delete')}</button>` : ''}
+            <div class="forum-meta mb-1 d-flex justify-content-between align-items-start">
+              <span>
+                <strong>${escapeHtml(comment.username)}</strong>
+                ${cTeamLink ? '- ' + cTeamLink : ''}
+                <small class="text-muted ms-2">${cDate}</small>
+              </span>
+              ${!isEditingComment && (canEditComment || canDeleteComment) ? `
+                <span class="forum-author-actions">
+                  ${canEditComment ? `<button class="btn btn-link btn-sm forum-icon-btn forum-edit-comment" data-id="${comment.id}" title="${t('forum.editComment')}" aria-label="${t('forum.editComment')}"><i class="fa fa-pencil"></i></button>` : ''}
+                  ${canDeleteComment ? `<button class="btn btn-link btn-sm forum-icon-btn forum-icon-btn-danger forum-delete-comment" data-id="${comment.id}" title="${t('forum.deleteComment')}" aria-label="${t('forum.deleteComment')}"><i class="fa fa-trash"></i></button>` : ''}
+                </span>
+              ` : ''}
             </div>
-            <div>${escapeHtml(comment.text).replace(/\n/g, '<br>')}</div>
-            ${commentImages ? `<div class="forum-comment-images">${commentImages}</div>` : ''}
+            ${commentBody}
+            ${(!isEditingComment && commentImages) ? `<div class="forum-comment-images">${commentImages}</div>` : ''}
           </div>
         `
       }
@@ -533,7 +585,7 @@ export class ForumPage extends UIElement {
       btn.onclick = async (e) => {
         e.preventDefault()
         e.stopPropagation()
-        if (!(await showConfirmDialog(t('forum.confirmDelete'), t('forum.delete'), t('forum.cancel')))) return
+        if (!(await showConfirmDialog(t('forum.confirmDeletePost'), t('forum.delete'), t('forum.cancel')))) return
         await server.deleteForumPost(Number(btn.dataset.id))
         const categoryId = this._post?.category_id || this._params.category
         if (categoryId) {
@@ -543,6 +595,67 @@ export class ForumPage extends UIElement {
           await this._loadView()
           this.update()
         }
+      }
+    })
+
+    root.querySelectorAll('.forum-edit-post').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        this._editingPostId = Number(btn.dataset.id)
+        this.update()
+      }
+    })
+
+    const postEditSave = root.querySelector('#forum-post-edit-save')
+    if (postEditSave) {
+      postEditSave.onclick = async () => {
+        const title = el(`${this._elementQuery} #forum-post-edit-title`)?.value
+        const text = el(`${this._elementQuery} #forum-post-edit-text`)?.value
+        if (!title?.trim() || !text?.trim()) return
+        await server.updateForumPost(this._editingPostId, title, text)
+        toast(t('forum.postUpdated'), 'success')
+        this._editingPostId = null
+        await this._loadView()
+        this.update()
+      }
+    }
+
+    const postEditCancel = root.querySelector('#forum-post-edit-cancel')
+    if (postEditCancel) {
+      postEditCancel.onclick = () => {
+        this._editingPostId = null
+        this.update()
+      }
+    }
+
+    root.querySelectorAll('.forum-edit-comment').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        this._editingCommentId = Number(btn.dataset.id)
+        this.update()
+      }
+    })
+
+    root.querySelectorAll('.forum-comment-edit-save').forEach(btn => {
+      btn.onclick = async () => {
+        const commentId = Number(btn.dataset.id)
+        const textarea = el(`${this._elementQuery} #forum-comment-edit-text-${commentId}`)
+        const text = textarea?.value
+        if (!text?.trim()) return
+        await server.updateForumComment(commentId, text)
+        toast(t('forum.commentUpdated'), 'success')
+        this._editingCommentId = null
+        await this._loadView()
+        this.update()
+      }
+    })
+
+    root.querySelectorAll('.forum-comment-edit-cancel').forEach(btn => {
+      btn.onclick = () => {
+        this._editingCommentId = null
+        this.update()
       }
     })
 
@@ -595,7 +708,7 @@ export class ForumPage extends UIElement {
       btn.onclick = async (e) => {
         e.preventDefault()
         e.stopPropagation()
-        if (!(await showConfirmDialog(t('forum.confirmDelete'), t('forum.delete'), t('forum.cancel')))) return
+        if (!(await showConfirmDialog(t('forum.confirmDeleteComment'), t('forum.delete'), t('forum.cancel')))) return
         await server.deleteForumComment(Number(btn.dataset.id))
         this._params = getQueryParams()
         await this._loadView()

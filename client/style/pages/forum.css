@@ -217,3 +217,29 @@
 .forum-latest-comment-item:hover .forum-latest-comment-title {
   text-decoration: underline;
 }
+
+.forum-author-actions {
+  display: inline-flex;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+.forum-icon-btn {
+  padding: 0.15rem 0.4rem;
+  color: var(--bs-secondary);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.forum-icon-btn:hover {
+  color: var(--bs-primary);
+}
+
+.forum-icon-btn-danger:hover {
+  color: var(--bs-danger);
+}
+
+.forum-edit-form textarea,
+.forum-edit-form input {
+  font-size: 0.95rem;
+}

@@ -10,11 +10,18 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024 // 2MB
 const MAX_IMAGES_PER_COMMENT = 5
 const MAX_IMAGES_PER_POST = 5
+const EDIT_WINDOW_MS = 4 * 60 * 60 * 1000 // 4 hours
 
 function assertAdmin (req) {
   if (!req.user?.is_admin) {
     throw new BadRequestError('This action is only available for the admin')
   }
+}
+
+function isWithinEditWindow (createdAt) {
+  const created = new Date(createdAt).getTime()
+  if (Number.isNaN(created)) return false
+  return Date.now() - created <= EDIT_WINDOW_MS
 }
 
 export default {
@@ -323,8 +330,52 @@ export default {
     return { comment }
   },
 
+  async updateForumPost (postId, title, text, req) {
+    if (!title || !title.trim()) throw new BadRequestError('Title cannot be empty')
+    if (!text || !text.trim()) throw new BadRequestError('Text cannot be empty')
+    if (title.length > 255) throw new BadRequestError('Title too long')
+    if (text.length > 5000) throw new BadRequestError('Text too long')
+
+    const [post] = await query('SELECT user_id, created_at FROM forum_post WHERE id = ?', [postId])
+    if (!post) throw new BadRequestError('Post not found')
+    if (post.user_id !== req.user.id) throw new BadRequestError('You can only edit your own posts')
+    if (!isWithinEditWindow(post.created_at)) {
+      throw new BadRequestError('Posts can only be edited within 4 hours of creation')
+    }
+
+    await query('UPDATE forum_post SET title = ?, text = ? WHERE id = ?', [
+      maskBadWords(title.trim()),
+      maskBadWords(text.trim()),
+      postId
+    ])
+    return { success: true }
+  },
+
+  async updateForumComment (commentId, text, req) {
+    if (!text || !text.trim()) throw new BadRequestError('Comment text cannot be empty')
+    if (text.length > 1000) throw new BadRequestError('Comment text too long')
+
+    const [comment] = await query('SELECT user_id, created_at FROM forum_comment WHERE id = ?', [commentId])
+    if (!comment) throw new BadRequestError('Comment not found')
+    if (comment.user_id !== req.user.id) throw new BadRequestError('You can only edit your own comments')
+    if (!isWithinEditWindow(comment.created_at)) {
+      throw new BadRequestError('Comments can only be edited within 4 hours of creation')
+    }
+
+    await query('UPDATE forum_comment SET text = ? WHERE id = ?', [
+      maskBadWords(text.trim()),
+      commentId
+    ])
+    return { success: true }
+  },
+
   async deleteForumPost (postId, req) {
-    assertAdmin(req)
+    const [post] = await query('SELECT user_id FROM forum_post WHERE id = ?', [postId])
+    if (!post) throw new BadRequestError('Post not found')
+    if (!req.user?.is_admin && post.user_id !== req.user.id) {
+      throw new BadRequestError('You can only delete your own posts')
+    }
+
     const comments = await query('SELECT id FROM forum_comment WHERE post_id = ?', [postId])
     if (comments.length > 0) {
       const commentIds = comments.map(c => c.id)
@@ -368,7 +419,12 @@ export default {
   },
 
   async deleteForumComment (commentId, req) {
-    assertAdmin(req)
+    const [comment] = await query('SELECT user_id FROM forum_comment WHERE id = ?', [commentId])
+    if (!comment) throw new BadRequestError('Comment not found')
+    if (!req.user?.is_admin && comment.user_id !== req.user.id) {
+      throw new BadRequestError('You can only delete your own comments')
+    }
+
     const images = await query('SELECT filename FROM forum_comment_image WHERE comment_id = ?', [commentId])
     for (const img of images) {
       const filePath = path.join(UPLOAD_DIR, img.filename)
