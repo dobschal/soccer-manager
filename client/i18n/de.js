@@ -78,7 +78,7 @@ export default {
   // Landing page
   'landing.freeToPlay': 'Kostenlos spielen',
   'landing.title': 'FootballManager.IO',
-  'landing.subtitle': 'Baue dein Traumteam von Grund auf auf, steige durch die Ligen auf und werde der ultimative Fußballmanager. Keine Downloads, keine Zahlungen - pure Fußballstrategie in deinem Browser.',
+  'landing.subtitle': 'Baue dein Traumteam von Grund auf auf, steige durch die Ligen auf und werde der ultimative Fußballmanager. Kostenlos spielen im Browser oder als iOS- und Android-App – pure Fußballstrategie, keine Zahlungen.',
   'landing.welcomeBack': 'Willkommen zurück',
   'landing.createAccount': 'Konto erstellen',
   'landing.username': 'Benutzername',

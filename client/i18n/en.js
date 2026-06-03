@@ -78,7 +78,7 @@ export default {
   // Landing page
   'landing.freeToPlay': 'Free to Play',
   'landing.title': 'FootballManager.IO',
-  'landing.subtitle': 'Build your dream team from scratch, rise through the leagues, and become the ultimate football manager. No downloads, no payments - just pure football strategy in your browser.',
+  'landing.subtitle': 'Build your dream team from scratch, rise through the leagues, and become the ultimate football manager. Free to play in your browser or on iOS and Android - pure football strategy, no payments.',
   'landing.welcomeBack': 'Welcome Back',
   'landing.createAccount': 'Create Account',
   'landing.username': 'Username',

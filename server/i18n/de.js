@@ -51,7 +51,7 @@ export default {
   // Referral invitation email content
   'email.referral.subject': '{inviter} hat dich zu FootballManager.IO eingeladen',
   'email.referral.greeting': 'Hallo!',
-  'email.referral.body': '{inviter} hat dich zu FootballManager.IO eingeladen — einem Browser-Fußballmanager, in dem du dein Team aufbaust, dich durch die Ligen spielst und andere Trainer austrickst. Erstelle deinen kostenlosen Account und spiele direkt mit.',
+  'email.referral.body': '{inviter} hat dich zu FootballManager.IO eingeladen — einem kostenlosen Fußballmanager, in dem du dein Team aufbaust, dich durch die Ligen spielst und andere Trainer austrickst. Spiele im Browser oder hol dir die iOS- und Android-App. Erstelle deinen kostenlosen Account und spiele direkt mit.',
   'email.referral.button': 'Jetzt mitspielen',
   'email.referral.signature': 'Wir sehen uns auf dem Platz,\ndein FootballManager.IO Team',
 
