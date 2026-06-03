@@ -1179,6 +1179,10 @@ export default {
 
   // Admin
   'admin.title': 'Admin',
+  'admin.tabMarketing': 'Marketing',
+  'admin.tabUserManagement': 'User Management',
+  'admin.tabStatistics': 'Statistics',
+  'admin.tabGeneral': 'General',
   'admin.gameDay': 'Game Day',
   'admin.gameDayDescription': 'Only use this in rare cases when the game calculation needs to be run manually (e.g. when the scheduled CRON job did not run).',
   'admin.triggerGameDay': 'Trigger Game Day',
@@ -1254,6 +1258,17 @@ export default {
   'admin.sendUserEmailMissing': 'Username and message text are required.',
   'admin.sendUserEmailSent': 'Email sent to "{username}".',
   'admin.sendUserEmailLogged': 'SMTP not configured — message was logged but not sent.',
+  'admin.suspiciousActionsTitle': 'Suspicious Actions',
+  'admin.suspiciousActionsDescription': 'Activities that may indicate cheating, e.g. users running multiple accounts or manipulating trade prices. Review and decide manually.',
+  'admin.suspiciousActionsEmpty': 'No suspicious actions detected.',
+  'admin.suspiciousActionsTime': 'Time',
+  'admin.suspiciousActionsDescriptionColumn': 'Description',
+  'admin.suspiciousActionsUser1': 'User & Club 1',
+  'admin.suspiciousActionsUser2': 'User & Club 2',
+  'admin.fraudDescSharedIp': 'Shared IP address ({ip})',
+  'admin.fraudDescFrequentTrades': '{count} trades within {days} days',
+  'admin.fraudDescUndervaluedTrade': 'Sold {percent}% under value (price {price}, value ~{value})',
+  'admin.fraudDescOvervaluedTrade': 'Sold {percent}% of value (price {price}, value ~{value})',
   'results.cupGameDayNotice': 'This game day featured cup matches.',
   'results.goToCupResults': 'Go to cup results',
 

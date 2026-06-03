@@ -1179,6 +1179,10 @@ export default {
 
   // Admin
   'admin.title': 'Admin',
+  'admin.tabMarketing': 'Marketing',
+  'admin.tabUserManagement': 'Nutzerverwaltung',
+  'admin.tabStatistics': 'Statistiken',
+  'admin.tabGeneral': 'Allgemein',
   'admin.gameDay': 'Spieltag',
   'admin.gameDayDescription': 'Nur in seltenen Fällen verwenden, wenn die Spielberechnung manuell ausgelöst werden muss (z. B. wenn der CRON-Job nicht gelaufen ist).',
   'admin.triggerGameDay': 'Spieltag auslösen',
@@ -1254,6 +1258,17 @@ export default {
   'admin.sendUserEmailMissing': 'Nutzername und E-Mail-Text sind erforderlich.',
   'admin.sendUserEmailSent': 'E-Mail an "{username}" gesendet.',
   'admin.sendUserEmailLogged': 'SMTP ist nicht konfiguriert — Nachricht wurde nur geloggt, nicht verschickt.',
+  'admin.suspiciousActionsTitle': 'Auffällige Aktivitäten',
+  'admin.suspiciousActionsDescription': 'Aktivitäten, die auf Cheating hindeuten können, z. B. mehrere Accounts oder manipulierte Transferpreise. Bitte manuell prüfen.',
+  'admin.suspiciousActionsEmpty': 'Keine auffälligen Aktivitäten gefunden.',
+  'admin.suspiciousActionsTime': 'Zeitpunkt',
+  'admin.suspiciousActionsDescriptionColumn': 'Beschreibung',
+  'admin.suspiciousActionsUser1': 'Nutzer & Verein 1',
+  'admin.suspiciousActionsUser2': 'Nutzer & Verein 2',
+  'admin.fraudDescSharedIp': 'Gleiche IP-Adresse ({ip})',
+  'admin.fraudDescFrequentTrades': '{count} Transfers innerhalb von {days} Tagen',
+  'admin.fraudDescUndervaluedTrade': '{percent}% unter Wert verkauft (Preis {price}, Wert ~{value})',
+  'admin.fraudDescOvervaluedTrade': 'Für {percent}% des Wertes verkauft (Preis {price}, Wert ~{value})',
   'results.cupGameDayNotice': 'An diesem Spieltag fanden Pokalspiele statt.',
   'results.goToCupResults': 'Zu den Pokal-Ergebnissen',
 
