@@ -20,7 +20,14 @@ import { calculateMarketValue, calculatePlayerAge, getSalary } from '../util/pla
 
 const TRANSFER_PAGE_SIZE = 10
 const TIMELINE_PAGE_SIZE = 12
-const TIMELINE_SCROLL_THRESHOLD_PX = 120
+// Width of one timeline item slot in px: matches the CSS rule
+// `.team-timeline__item { min-width: 78px }` + `.team-timeline__track { gap: 0.75rem }`.
+// Used to translate the track by N item-widths instead of scrolling.
+const TIMELINE_ITEM_WIDTH = 90
+// Items shifted per chevron click. Roughly half a typical viewport width.
+const TIMELINE_STEP = 3
+// Fallback visible-item count used before the viewport has been measured.
+const TIMELINE_VISIBLE_FALLBACK = 5
 
 /**
  * Information to render:
@@ -90,6 +97,7 @@ export class TeamPage extends UIElement {
     this._timelineHasMorePast = this._timelineGames.length > 0
     this._timelineHasMoreFuture = this._timelineGames.length > 0
     this._timelineLoading = false
+    this._timelineOffset = this._computeInitialTimelineOffset(TIMELINE_VISIBLE_FALLBACK)
 
     // Friend status (only for foreign teams that have a user)
     this._isFriend = false
@@ -189,8 +197,11 @@ export class TeamPage extends UIElement {
           }
         }
       },
-      '(optional) .team-timeline': {
-        scroll: (event) => this._handleTimelineScroll(event)
+      '(optional) .team-timeline__chevron--left': {
+        click: () => this._moveTimeline('left')
+      },
+      '(optional) .team-timeline__chevron--right': {
+        click: () => this._moveTimeline('right')
       },
       '(optional) .transfer-history-pagination': {
         click: (event) => {
@@ -212,7 +223,7 @@ export class TeamPage extends UIElement {
     window.addEventListener('player-hired', this._onPlayerChanged)
     window.addEventListener('player-fired', this._onPlayerChanged)
     void showTutorialIfNeeded('team', this)
-    this._centerTimelineOnCurrent()
+    this._refineTimelineOffsetForViewport()
   }
   /**
    * @param {Object} params
@@ -271,6 +282,8 @@ export class TeamPage extends UIElement {
   _timelineHasMoreFuture = true
   /** @type {boolean} */
   _timelineLoading = false
+  /** @type {number} index of the leftmost item visible in the chevron-paged view */
+  _timelineOffset = 0
 
   /**
    * @returns {number}
@@ -704,13 +717,24 @@ export class TeamPage extends UIElement {
       return `<div class="team-timeline"><div class="team-timeline__empty">${t('team.timelineNoGames')}</div></div>`
     }
     this._timelineCurrentMarked = false
+    const visibleCount = this._getTimelineVisibleCount()
+    const maxOffset = Math.max(0, this._timelineGames.length - visibleCount)
+    const canLeft = this._timelineOffset > 0 || this._timelineHasMorePast
+    const canRight = this._timelineOffset < maxOffset || this._timelineHasMoreFuture
+    const shiftPx = this._timelineOffset * TIMELINE_ITEM_WIDTH
     return `
       <div class="team-timeline">
-        <div class="team-timeline__track">
-          ${this._timelineHasMorePast ? `<div class="team-timeline__loader team-timeline__loader--past"><i class="fa fa-spinner fa-spin"></i></div>` : ''}
-          ${this._timelineGames.map(game => this._renderTimelineItem(game)).join('')}
-          ${this._timelineHasMoreFuture ? `<div class="team-timeline__loader team-timeline__loader--future"><i class="fa fa-spinner fa-spin"></i></div>` : ''}
+        <button type="button" class="team-timeline__chevron team-timeline__chevron--left" aria-label="${t('common.prev')}" ${canLeft ? '' : 'disabled'}>
+          <i class="fa fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <div class="team-timeline__viewport">
+          <div class="team-timeline__track" style="transform: translateX(-${shiftPx}px)">
+            ${this._timelineGames.map(game => this._renderTimelineItem(game)).join('')}
+          </div>
         </div>
+        <button type="button" class="team-timeline__chevron team-timeline__chevron--right" aria-label="${t('common.next')}" ${canRight ? '' : 'disabled'}>
+          <i class="fa fa-chevron-right" aria-hidden="true"></i>
+        </button>
       </div>
     `
   }
@@ -758,43 +782,88 @@ export class TeamPage extends UIElement {
   }
 
   /**
-   * Scroll the timeline so the first upcoming game (or the rightmost past game)
-   * is centered on initial render.
+   * Pick the initial offset so that the first upcoming game (or the latest
+   * past game when nothing is scheduled) sits inside the visible window.
+   * Called from `load()` with the fallback visible count, and re-run from
+   * `onMounted()` once the real viewport width is known.
+   * @param {number} visibleCount
+   * @returns {number}
    * @private
    */
-  _centerTimelineOnCurrent () {
-    const scrollEl = document.querySelector(`${this._elementQuery} .team-timeline`)
-    if (!scrollEl) return
-    const currentEl = scrollEl.querySelector('[data-timeline-current="1"]')
-    if (currentEl) {
-      const offset = currentEl.offsetLeft - (scrollEl.clientWidth / 2) + (currentEl.offsetWidth / 2)
-      scrollEl.scrollLeft = Math.max(0, offset)
-    } else {
-      // No future games — scroll to end (latest past)
-      scrollEl.scrollLeft = scrollEl.scrollWidth
-    }
+  _computeInitialTimelineOffset (visibleCount) {
+    if (this._timelineGames.length === 0) return 0
+    const currentIdx = this._timelineGames.findIndex(g => !g.played)
+    const target = currentIdx >= 0 ? currentIdx : this._timelineGames.length - 1
+    const desired = target - Math.floor(visibleCount / 2)
+    const maxOffset = Math.max(0, this._timelineGames.length - visibleCount)
+    return Math.max(0, Math.min(maxOffset, desired))
   }
 
   /**
-   * Handle timeline scroll — load older games when scrolled near left, newer when near right.
-   * @param {Event} event
+   * Number of timeline items that fit inside the viewport. Reads from the DOM
+   * so it returns the rendered layout; falls back to a sensible default before
+   * the first paint.
+   * @returns {number}
+   * @private
+   */
+  _getTimelineVisibleCount () {
+    const viewport = document.querySelector(`${this._elementQuery} .team-timeline__viewport`)
+    if (!viewport || !viewport.clientWidth) return TIMELINE_VISIBLE_FALLBACK
+    return Math.max(1, Math.floor(viewport.clientWidth / TIMELINE_ITEM_WIDTH))
+  }
+
+  /**
+   * After the first mount we know the real viewport width — recompute the
+   * offset so the current game ends up centered instead of stuck at the
+   * fallback position from `load()`.
+   * @private
+   */
+  _refineTimelineOffsetForViewport () {
+    if (this._timelineGames.length === 0) return
+    const offset = this._computeInitialTimelineOffset(this._getTimelineVisibleCount())
+    if (offset === this._timelineOffset) return
+    this._timelineOffset = offset
+    this.update()
+  }
+
+  /**
+   * Shift the visible window by one chevron step. Loads more games on demand
+   * when running off either end, then animates via the inline `translateX`
+   * applied in `_renderTimeline`.
+   * @param {'left'|'right'} direction
    * @returns {Promise<void>}
    * @private
    */
-  async _handleTimelineScroll (event) {
+  async _moveTimeline (direction) {
     if (this._timelineLoading) return
-    const el = event.currentTarget
-    if (!el) return
-    const nearLeft = el.scrollLeft <= TIMELINE_SCROLL_THRESHOLD_PX
-    const nearRight = (el.scrollWidth - el.clientWidth - el.scrollLeft) <= TIMELINE_SCROLL_THRESHOLD_PX
-    if (nearLeft && this._timelineHasMorePast) {
-      await this._loadMoreTimelineGames('past')
-    } else if (nearRight && this._timelineHasMoreFuture) {
-      await this._loadMoreTimelineGames('future')
+    const visibleCount = this._getTimelineVisibleCount()
+
+    if (direction === 'right') {
+      const maxOffset = Math.max(0, this._timelineGames.length - visibleCount)
+      if (this._timelineOffset >= maxOffset) {
+        if (!this._timelineHasMoreFuture) return
+        await this._loadMoreTimelineGames('future')
+      }
+      const newMaxOffset = Math.max(0, this._timelineGames.length - visibleCount)
+      this._timelineOffset = Math.min(newMaxOffset, this._timelineOffset + TIMELINE_STEP)
+    } else {
+      if (this._timelineOffset <= 0) {
+        if (!this._timelineHasMorePast) return
+        const before = this._timelineGames.length
+        await this._loadMoreTimelineGames('past')
+        // Newly prepended games push our current view to the right — adjust
+        // the offset so the items currently on screen stay put.
+        this._timelineOffset += this._timelineGames.length - before
+      }
+      this._timelineOffset = Math.max(0, this._timelineOffset - TIMELINE_STEP)
     }
+
+    await this.update()
   }
 
   /**
+   * Fetch one page of games at the given end of the timeline and append/prepend
+   * them to `_timelineGames`. Pure state mutation — the caller re-renders.
    * @param {'past'|'future'} direction
    * @returns {Promise<void>}
    * @private
@@ -805,9 +874,6 @@ export class TeamPage extends UIElement {
     this._timelineLoading = true
     try {
       const cursor = direction === 'past' ? this._timelineGames[0] : this._timelineGames[this._timelineGames.length - 1]
-      const scrollEl = document.querySelector(`${this._elementQuery} .team-timeline`)
-      const prevScrollWidth = scrollEl?.scrollWidth ?? 0
-      const prevScrollLeft = scrollEl?.scrollLeft ?? 0
       const response = await server.getTeamTimelineGames(
         this.team.id,
         direction,
@@ -819,25 +885,16 @@ export class TeamPage extends UIElement {
       if (newGames.length === 0) {
         if (direction === 'past') this._timelineHasMorePast = false
         else this._timelineHasMoreFuture = false
-      } else {
-        if (newGames.length < TIMELINE_PAGE_SIZE) {
-          if (direction === 'past') this._timelineHasMorePast = false
-          else this._timelineHasMoreFuture = false
-        }
-        if (direction === 'past') {
-          this._timelineGames = [...newGames, ...this._timelineGames]
-        } else {
-          this._timelineGames = [...this._timelineGames, ...newGames]
-        }
+        return
       }
-      await this.update()
-      const newScrollEl = document.querySelector(`${this._elementQuery} .team-timeline`)
-      if (newScrollEl) {
-        if (direction === 'past') {
-          newScrollEl.scrollLeft = prevScrollLeft + (newScrollEl.scrollWidth - prevScrollWidth)
-        } else {
-          newScrollEl.scrollLeft = prevScrollLeft
-        }
+      if (newGames.length < TIMELINE_PAGE_SIZE) {
+        if (direction === 'past') this._timelineHasMorePast = false
+        else this._timelineHasMoreFuture = false
+      }
+      if (direction === 'past') {
+        this._timelineGames = [...newGames, ...this._timelineGames]
+      } else {
+        this._timelineGames = [...this._timelineGames, ...newGames]
       }
     } catch (e) {
       console.error('Error loading timeline games:', e)
