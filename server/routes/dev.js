@@ -9,6 +9,7 @@ import { sendAdminMessageEmail } from '../lib/email.js'
 import { query, transaction } from '../lib/database.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { collectStatistics, getStatistics } from '../helper/statisticsHelper.js'
+import { getSuspiciousActions } from '../helper/fraudHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 
 const PERMANENT_ADMIN = 'Emmo'
@@ -286,6 +287,29 @@ export default {
     }
     const row = await collectStatistics()
     return { success: true, row }
+  },
+
+  /**
+   * Get a paginated list of suspicious actions detected across all users
+   * (admin only). Surfaces multi-account / price-manipulation patterns:
+   * shared IPs, frequent trades between the same pair, and trades priced
+   * significantly above or below the player's estimated market value.
+   * @param {number} [page] - 1-based page number
+   * @param {number} [pageSize]
+   * @param {Request} req
+   * @returns {Promise<{rows: Array, total: number, page: number, pageSize: number}>}
+   */
+  async getSuspiciousActions (page, pageSize, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    const safePageSize = Math.max(1, Math.min(50, Math.floor(Number(pageSize) || 10)))
+    const safePage = Math.max(1, Math.floor(Number(page) || 1))
+    const { rows, total } = await getSuspiciousActions({
+      limit: safePageSize,
+      offset: (safePage - 1) * safePageSize
+    })
+    return { rows, total, page: safePage, pageSize: safePageSize }
   },
 
   /**

@@ -10,6 +10,10 @@ vi.mock('../../helper/statisticsHelper.js', () => ({
   getStatistics: vi.fn()
 }))
 
+vi.mock('../../helper/fraudHelper.js', () => ({
+  getSuspiciousActions: vi.fn()
+}))
+
 vi.mock('../../prepare-season.js', () => ({ prepareSeason: vi.fn() }))
 vi.mock('../../play-game-day.js', () => ({ calculateGames: vi.fn() }))
 vi.mock('../../bot-move.js', () => ({ makeBotMoves: vi.fn() }))
@@ -33,6 +37,7 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
 
 import handlers from '../../routes/dev.js'
 import { collectStatistics, getStatistics } from '../../helper/statisticsHelper.js'
+import { getSuspiciousActions } from '../../helper/fraudHelper.js'
 import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { sendAdminMessageEmail } from '../../lib/email.js'
@@ -256,6 +261,49 @@ describe('dev routes - statistics', () => {
       await handlers.sendUserEmail('foo', 'hi', { user: { is_admin: 1, username: 'admin' } })
 
       expect(sendAdminMessageEmail).toHaveBeenCalledWith(expect.objectContaining({ locale: 'en' }))
+    })
+  })
+
+  describe('getSuspiciousActions', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.getSuspiciousActions(1, 10, { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('returns paginated rows for an admin', async () => {
+      getSuspiciousActions.mockResolvedValueOnce({
+        rows: [{ type: 'shared_ip', time: '2026-06-03T10:00:00.000Z' }],
+        total: 17
+      })
+
+      const result = await handlers.getSuspiciousActions(2, 5, { user: { is_admin: 1 } })
+
+      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 5, offset: 5 })
+      expect(result).toEqual({
+        rows: [{ type: 'shared_ip', time: '2026-06-03T10:00:00.000Z' }],
+        total: 17,
+        page: 2,
+        pageSize: 5
+      })
+    })
+
+    it('falls back to default page size of 10', async () => {
+      getSuspiciousActions.mockResolvedValueOnce({ rows: [], total: 0 })
+
+      const result = await handlers.getSuspiciousActions(undefined, undefined, { user: { is_admin: 1 } })
+
+      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 10, offset: 0 })
+      expect(result.page).toBe(1)
+      expect(result.pageSize).toBe(10)
+    })
+
+    it('clamps overly large pageSize to 50', async () => {
+      getSuspiciousActions.mockResolvedValueOnce({ rows: [], total: 0 })
+
+      const result = await handlers.getSuspiciousActions(1, 9999, { user: { is_admin: 1 } })
+
+      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 50, offset: 0 })
+      expect(result.pageSize).toBe(50)
     })
   })
 })

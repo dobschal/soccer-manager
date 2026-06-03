@@ -5,10 +5,18 @@ import { generateId } from '../../lib/html.js'
 import { t } from '../../i18n/index.js'
 import { showConfirmDialog } from '../../partials/overlay.js'
 
+const SUSPICIOUS_PAGE_SIZE = 10
+
 export class UserManagementAdminPage extends UIElement {
   async load () {
-    const adminsRes = await server.getAdmins()
+    const [adminsRes, suspiciousRes] = await Promise.all([
+      server.getAdmins(),
+      server.getSuspiciousActions(this._suspiciousPage, SUSPICIOUS_PAGE_SIZE)
+    ])
     this._admins = adminsRes.admins
+    this._suspicious = suspiciousRes.rows
+    this._suspiciousTotal = suspiciousRes.total
+    this._suspiciousPageSize = suspiciousRes.pageSize
   }
 
   get template () {
@@ -62,6 +70,8 @@ export class UserManagementAdminPage extends UIElement {
             <i class="fa fa-envelope" aria-hidden="true"></i> ${t('admin.sendUserEmailButton')}
           </button>
         </div>
+
+        ${this._renderSuspiciousActions()}
       </div>
     `
   }
@@ -79,8 +89,100 @@ export class UserManagementAdminPage extends UIElement {
       },
       [`#${this._sendEmailBtnId}`]: {
         click: () => this._sendUserEmail()
+      },
+      [`(optional)#${this._suspiciousPrevBtnId}`]: {
+        click: () => this._goToSuspiciousPage(this._suspiciousPage - 1)
+      },
+      [`(optional)#${this._suspiciousNextBtnId}`]: {
+        click: () => this._goToSuspiciousPage(this._suspiciousPage + 1)
       }
     }
+  }
+  _renderSuspiciousActions () {
+    const totalPages = Math.max(1, Math.ceil(this._suspiciousTotal / this._suspiciousPageSize))
+    const currentPage = Math.min(this._suspiciousPage, totalPages)
+    const isFirstPage = currentPage <= 1
+    const isLastPage = currentPage >= totalPages
+
+    const rows = this._suspicious.map(s => `
+      <tr>
+        <td>${new Date(s.time).toLocaleString()}</td>
+        <td>${t(s.description_key, this._formatDescriptionParams(s.description_params))}</td>
+        <td>${this._formatUser(s.user1)}</td>
+        <td>${this._formatUser(s.user2)}</td>
+      </tr>
+    `).join('')
+
+    return `
+      <div class="mb-4">
+        <h4>${t('admin.suspiciousActionsTitle')} (${this._suspiciousTotal})</h4>
+        <p class="text-muted">${t('admin.suspiciousActionsDescription')}</p>
+        ${this._suspicious.length > 0 ? `
+          <div class="horizontal-scrollable-table">
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>${t('admin.suspiciousActionsTime')}</th>
+                  <th>${t('admin.suspiciousActionsDescriptionColumn')}</th>
+                  <th>${t('admin.suspiciousActionsUser1')}</th>
+                  <th>${t('admin.suspiciousActionsUser2')}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mt-3">
+            <button id="${this._suspiciousPrevBtnId}" class="btn btn-sm btn-outline-secondary" ${isFirstPage ? 'disabled' : ''}>
+              <i class="fa fa-chevron-left" aria-hidden="true"></i> ${t('admin.paginationPrev')}
+            </button>
+            <span class="text-muted">${t('admin.paginationPage', { page: currentPage, total: totalPages })}</span>
+            <button id="${this._suspiciousNextBtnId}" class="btn btn-sm btn-outline-secondary" ${isLastPage ? 'disabled' : ''}>
+              ${t('admin.paginationNext')} <i class="fa fa-chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        ` : `<p class="text-muted">${t('admin.suspiciousActionsEmpty')}</p>`}
+      </div>
+    `
+  }
+
+  _formatUser (user) {
+    if (!user || !user.username) return '—'
+    const club = user.team_name ? ` (${user.team_name})` : ''
+    return `${user.username}${club}`
+  }
+
+  _formatDescriptionParams (params) {
+    if (!params) return {}
+    const formatted = {}
+    for (const [k, v] of Object.entries(params)) {
+      if ((k === 'price' || k === 'value') && typeof v === 'number') {
+        formatted[k] = this._formatMoney(v)
+      } else {
+        formatted[k] = v
+      }
+    }
+    return formatted
+  }
+
+  _formatMoney (value) {
+    const number = Number(value) || 0
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: 'EUR',
+        maximumFractionDigits: 0
+      }).format(number)
+    } catch {
+      return `${number} €`
+    }
+  }
+
+  async _goToSuspiciousPage (page) {
+    const totalPages = Math.max(1, Math.ceil(this._suspiciousTotal / this._suspiciousPageSize))
+    const next = Math.max(1, Math.min(totalPages, page))
+    if (next === this._suspiciousPage) return
+    this._suspiciousPage = next
+    await this.update(true)
   }
 
   _deleteUsernameId = generateId()
@@ -90,7 +192,13 @@ export class UserManagementAdminPage extends UIElement {
   _sendEmailUsernameId = generateId()
   _sendEmailMessageId = generateId()
   _sendEmailBtnId = generateId()
+  _suspiciousPrevBtnId = generateId()
+  _suspiciousNextBtnId = generateId()
   _admins = []
+  _suspicious = []
+  _suspiciousTotal = 0
+  _suspiciousPage = 1
+  _suspiciousPageSize = SUSPICIOUS_PAGE_SIZE
 
   async _deleteUser () {
     const input = document.getElementById(this._deleteUsernameId)

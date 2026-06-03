@@ -4,7 +4,8 @@ vi.mock('../../lib/gateway.js', () => ({
   server: {
     getAdmins: vi.fn().mockResolvedValue({ admins: [] }),
     getStatistics: vi.fn().mockResolvedValue({ rows: [], total: 0, pageSize: 20 }),
-    getTopCountries: vi.fn().mockResolvedValue({ rows: [] })
+    getTopCountries: vi.fn().mockResolvedValue({ rows: [] }),
+    getSuspiciousActions: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 })
   }
 }))
 
@@ -45,6 +46,7 @@ const { UserManagementAdminPage } = await import('../../pages/admin/userManageme
 const { StatisticsAdminPage } = await import('../../pages/admin/statistics.js')
 const { toast } = await import('../../partials/toast.js')
 const { showDialog } = await import('../../partials/dialog.js')
+const { server } = await import('../../lib/gateway.js')
 
 describe('AdminPage sub-page navigation', () => {
   it('renders nav links for the four sub-pages', () => {
@@ -71,6 +73,95 @@ describe('AdminPage sub-page navigation', () => {
     expect(page.createSubPage('user_management')).toBeInstanceOf(UserManagementAdminPage)
     expect(page.createSubPage('statistics')).toBeInstanceOf(StatisticsAdminPage)
     expect(page.createSubPage('general')).toBeInstanceOf(GeneralAdminPage)
+  })
+})
+
+describe('UserManagementAdminPage suspicious actions table', () => {
+  beforeEach(() => {
+    server.getAdmins.mockResolvedValue({ admins: [] })
+    server.getSuspiciousActions.mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 })
+  })
+
+  it('requests page 1 with size 10 on initial load', async () => {
+    const page = new UserManagementAdminPage()
+    await page.load()
+    expect(server.getSuspiciousActions).toHaveBeenCalledWith(1, 10)
+  })
+
+  it('renders the empty state when no actions are returned', async () => {
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('admin.suspiciousActionsTitle')
+    expect(html).toContain('admin.suspiciousActionsEmpty')
+    expect(html).not.toContain('admin.suspiciousActionsTime')
+  })
+
+  it('renders rows with description, time and user/team names', async () => {
+    server.getSuspiciousActions.mockResolvedValue({
+      rows: [{
+        type: 'shared_ip',
+        time: '2026-06-03T10:00:00.000Z',
+        description_key: 'admin.fraudDescSharedIp',
+        description_params: { ip: '1.2.3.4' },
+        user1: { username: 'alice', team_name: 'FC Alice' },
+        user2: { username: 'bob', team_name: 'FC Bob' }
+      }],
+      total: 1,
+      page: 1,
+      pageSize: 10
+    })
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('admin.fraudDescSharedIp')
+    expect(html).toContain('"ip":"1.2.3.4"')
+    expect(html).toContain('alice (FC Alice)')
+    expect(html).toContain('bob (FC Bob)')
+  })
+
+  it('shows an em dash for missing users in a pair', async () => {
+    server.getSuspiciousActions.mockResolvedValue({
+      rows: [{
+        type: 'overvalued_trade',
+        time: '2026-06-03T10:00:00.000Z',
+        description_key: 'admin.fraudDescOvervaluedTrade',
+        description_params: { percent: 250, price: 100_000_000, value: 40_000_000 },
+        user1: { username: 'seller', team_name: 'Seller FC' },
+        user2: { username: null, team_name: 'Bot Team' }
+      }],
+      total: 1,
+      page: 1,
+      pageSize: 10
+    })
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('seller (Seller FC)')
+    expect(html).toContain('<td>—</td>')
+  })
+
+  it('renders pagination controls when results exist', async () => {
+    server.getSuspiciousActions.mockResolvedValue({
+      rows: [{
+        type: 'shared_ip',
+        time: '2026-06-03T10:00:00.000Z',
+        description_key: 'admin.fraudDescSharedIp',
+        description_params: { ip: '1.1.1.1' },
+        user1: { username: 'a', team_name: 'A' },
+        user2: { username: 'b', team_name: 'B' }
+      }],
+      total: 25,
+      page: 1,
+      pageSize: 10
+    })
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('admin.paginationPrev')
+    expect(html).toContain('admin.paginationNext')
+    expect(html).toContain('"page":1')
+    expect(html).toContain('"total":3') // ceil(25 / 10)
   })
 })
 
