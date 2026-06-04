@@ -6,11 +6,29 @@ import { t } from '../i18n/index.js'
 import { el } from '../lib/html.js'
 import { toast } from '../partials/toast.js'
 import { showConfirmDialog } from '../partials/overlay.js'
+import { FORUM_BADGE_COLORS } from '../util/forumBadgeColors.js'
+import { attachMentionAutocomplete } from '../partials/mentionAutocomplete.js'
 
 function escapeHtml (text) {
   const div = document.createElement('div')
   div.textContent = text
   return div.innerHTML
+}
+
+const MENTION_PATTERN = /(^|[^\w@])@([A-Za-z0-9_.-]{2,30})/g
+
+/**
+ * Render the body of a forum post or comment, escaping HTML and turning
+ * @-mentions into highlighted spans.
+ * @param {string} text
+ * @returns {string}
+ */
+function renderForumBody (text) {
+  const escaped = escapeHtml(text || '')
+  const withMentions = escaped.replace(MENTION_PATTERN, (_match, prefix, username) =>
+    `${prefix}<span class="forum-mention-tag">@${username}</span>`
+  )
+  return withMentions.replace(/\n/g, '<br>')
 }
 
 const EDIT_WINDOW_MS = 4 * 60 * 60 * 1000 // 4 hours
@@ -132,6 +150,15 @@ export class ForumPage extends UIElement {
       },
       '(optional) #forum-next-page': {
         click: () => setQueryParams({ page: this._page + 1 })
+      },
+      '(optional) #forum-badge-filter-select': {
+        change: (e) => {
+          const value = e.target.value
+          setQueryParams({ badge: value ? encodeURIComponent(value) : undefined, page: undefined })
+        }
+      },
+      '(optional) #forum-toggle-archived': {
+        click: () => setQueryParams({ archived: this._includeArchived ? undefined : '1', page: undefined })
       }
     }
   }
@@ -155,19 +182,45 @@ export class ForumPage extends UIElement {
       this._view = 'post'
     } else if (this._params.category) {
       const page = Number(this._params.page) || 1
-      const data = await server.getForumPosts(Number(this._params.category), page)
+      const badgeFilter = this._params.badge ? decodeURIComponent(this._params.badge) : null
+      const includeArchived = this._params.archived === '1'
+      const data = await server.getForumPosts(Number(this._params.category), page, badgeFilter, includeArchived)
       this._category = data.category
       this._posts = data.posts
       this._totalPages = data.totalPages
       this._page = data.page
+      this._availableBadges = data.availableBadges || []
+      this._badgeFilter = data.badgeFilter
+      this._archivedCount = data.archivedCount || 0
+      this._includeArchived = data.includeArchived
       this._view = 'posts'
     } else {
       const data = await server.getForumCategories()
       this._categories = data.categories
       this._latestComments = data.latestComments || []
       this._latestPosts = data.latestPosts || []
+      this._mentions = data.mentions || []
       this._view = 'categories'
     }
+  }
+
+  _renderMentions () {
+    if (!this._mentions || this._mentions.length === 0) return ''
+    let html = `<h6 class="forum-latest-comments-title mt-4 mb-2"><i class="fa fa-at"></i> ${t('forum.mentionsTitle')}</h6>`
+    html += '<div class="list-group">'
+    for (const m of this._mentions) {
+      const date = formatDate('DD.MM.YYYY hh:mm', m.created_at)
+      const preview = (m.snippet || '').length > 120 ? m.snippet.slice(0, 120) + '…' : (m.snippet || '')
+      html += `
+        <a href="#dashboard?sub_page=forum&category=${m.category_id}&post=${m.post_id}" class="list-group-item list-group-item-action forum-latest-comment-item forum-mention-item">
+          <div class="forum-latest-comment-title">${escapeHtml(m.post_title || '')}</div>
+          <p class="mb-1 text-muted forum-post-preview">${escapeHtml(preview)}</p>
+          <small class="text-muted">${escapeHtml(m.author_username || '')} - ${date}</small>
+        </a>
+      `
+    }
+    html += '</div>'
+    return html
   }
 
   _renderBreadcrumb () {
@@ -228,6 +281,7 @@ export class ForumPage extends UIElement {
       }
       html += '</div>'
     }
+    html += this._renderMentions()
     html += this._renderLatestPosts()
     html += this._renderLatestComments()
     return html
@@ -296,6 +350,20 @@ export class ForumPage extends UIElement {
       `
     }
 
+    if (this._availableBadges && this._availableBadges.length > 0) {
+      html += `
+        <div class="forum-badge-filter mb-2 d-flex align-items-center gap-2">
+          <label for="forum-badge-filter-select" class="text-muted small mb-0">${t('forum.filterByBadge')}:</label>
+          <select id="forum-badge-filter-select" class="form-select form-select-sm forum-badge-filter-select">
+            <option value="">${t('forum.allPosts')}</option>
+            ${this._availableBadges.map(b => `
+              <option value="${escapeHtml(b.badge_text)}"${this._badgeFilter === b.badge_text ? ' selected' : ''}>${escapeHtml(b.badge_text)}</option>
+            `).join('')}
+          </select>
+        </div>
+      `
+    }
+
     if (!this._posts || this._posts.length === 0) {
       html += `<p class="text-muted">${t('forum.noPosts')}</p>`
     } else {
@@ -303,9 +371,10 @@ export class ForumPage extends UIElement {
       for (const post of this._posts) {
         const date = formatDate('DD.MM.YYYY hh:mm', post.last_activity || post.created_at)
         const teamName = post.team_id ? `${escapeHtml(post.team_name || '')}` : ''
+        const archivedBadge = post.is_archived ? ` <span class="forum-archived-indicator"><i class="fa fa-archive"></i> ${t('forum.archived')}</span>` : ''
         html += `
-          <a href="#dashboard?sub_page=forum&category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item">
-            <h6 class="mb-1">${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}</h6>
+          <a href="#dashboard?sub_page=forum&category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item${post.is_archived ? ' forum-post-item--archived' : ''}">
+            <h6 class="mb-1">${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}${archivedBadge}</h6>
             <p class="mb-1 text-muted forum-post-preview">${escapeHtml(post.text)}</p>
             <p class="forum-meta">
               <small class="text-muted">${escapeHtml(post.username)} ${teamName ? '- ' + teamName : ''} - ${date}</small>
@@ -329,6 +398,24 @@ export class ForumPage extends UIElement {
         html += '</div>'
       }
     }
+
+    if (this._archivedCount > 0) {
+      if (this._includeArchived) {
+        html += `
+          <div class="text-center mt-3">
+            <button id="forum-toggle-archived" class="btn btn-outline-secondary btn-sm">
+              <i class="fa fa-eye-slash"></i> ${t('forum.hideArchived')}
+            </button>
+          </div>`
+      } else {
+        html += `
+          <div class="text-center mt-3">
+            <button id="forum-toggle-archived" class="btn btn-outline-secondary btn-sm">
+              <i class="fa fa-archive"></i> ${t('forum.showArchived', { count: this._archivedCount })}
+            </button>
+          </div>`
+      }
+    }
     return html
   }
 
@@ -341,6 +428,7 @@ export class ForumPage extends UIElement {
     const isPostOwner = this._currentUserId && post.user_id === this._currentUserId
     const canEditPost = isPostOwner && isWithinEditWindow(post.created_at)
     const canDeletePost = isPostOwner || this._isAdmin
+    const canArchivePost = this._isAdmin
     const isEditingPost = this._editingPostId === post.id
 
     const postBody = isEditingPost
@@ -352,17 +440,19 @@ export class ForumPage extends UIElement {
           <button id="forum-post-edit-cancel" class="btn btn-secondary btn-sm ms-1">${t('forum.cancel')}</button>
         </div>
       `
-      : `<div class="forum-post-text mb-3">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>`
+      : `<div class="forum-post-text mb-3">${renderForumBody(post.text)}</div>`
 
     let html = `
-      <div class="card mb-3">
+      <div class="card mb-3${post.is_archived ? ' forum-post-card--archived' : ''}">
         <div class="card-body">
+          ${post.is_archived ? `<div class="alert alert-secondary py-2 mb-2"><i class="fa fa-archive me-1"></i> ${t('forum.archivedNotice')}</div>` : ''}
           <h5>${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}</h5>
           <div class="forum-meta mb-2 d-flex justify-content-between align-items-start">
             <small class="text-muted">${escapeHtml(post.username)} ${teamLink ? '- ' + teamLink : ''} - ${date}</small>
-            ${!isEditingPost && (canEditPost || canDeletePost) ? `
+            ${!isEditingPost && (canEditPost || canDeletePost || canArchivePost) ? `
               <div class="forum-author-actions">
                 ${canEditPost ? `<button class="btn btn-link btn-sm forum-icon-btn forum-edit-post" data-id="${post.id}" title="${t('forum.editPost')}" aria-label="${t('forum.editPost')}"><i class="fa fa-pencil"></i></button>` : ''}
+                ${canArchivePost ? `<button class="btn btn-link btn-sm forum-icon-btn forum-archive-post" data-id="${post.id}" data-archived="${post.is_archived ? '1' : '0'}" title="${post.is_archived ? t('forum.unarchivePost') : t('forum.archivePost')}" aria-label="${post.is_archived ? t('forum.unarchivePost') : t('forum.archivePost')}"><i class="fa fa-archive"></i></button>` : ''}
                 ${canDeletePost ? `<button class="btn btn-link btn-sm forum-icon-btn forum-icon-btn-danger forum-delete-post" data-id="${post.id}" title="${t('forum.deletePost')}" aria-label="${t('forum.deletePost')}"><i class="fa fa-trash"></i></button>` : ''}
               </div>
             ` : ''}
@@ -373,11 +463,23 @@ export class ForumPage extends UIElement {
     ? `<button class="btn btn-outline-secondary btn-sm forum-remove-badge" data-id="${post.id}"><i class="fa fa-times"></i> ${t('forum.removeBadge')}</button>`
     : `<button class="btn btn-outline-secondary btn-sm" id="forum-badge-toggle"><i class="fa fa-tag"></i> ${t('forum.addBadge')}</button>`
 }
+              ${(() => {
+    const allowedHexes = FORUM_BADGE_COLORS.map(c => c.hex.toLowerCase())
+    const currentColor = (post.badge_color || '').toLowerCase()
+    const selectedColor = allowedHexes.includes(currentColor) ? currentColor : FORUM_BADGE_COLORS[0].hex
+    return `
               <div id="forum-badge-form" class="forum-badge-form" ${post.badge_text ? '' : 'hidden'}>
                 <input type="text" id="forum-badge-text" class="form-control form-control-sm" placeholder="${t('forum.badgeText')}" maxlength="50" value="${post.badge_text ? escapeHtml(post.badge_text) : ''}">
-                <input type="color" id="forum-badge-color" class="form-control form-control-sm form-control-color" value="${post.badge_color || '#0d6efd'}">
+                <div class="forum-badge-color-swatches" role="radiogroup" aria-label="${t('forum.badgeColor')}">
+                  ${FORUM_BADGE_COLORS.map(c => {
+      const selected = selectedColor === c.hex.toLowerCase()
+      return `<button type="button" class="forum-badge-color-swatch${selected ? ' is-selected' : ''}" data-color="${c.hex}" style="background-color: ${c.hex}" title="${t(c.key)}" aria-label="${t(c.key)}" aria-pressed="${selected}"></button>`
+    }).join('')}
+                </div>
+                <input type="hidden" id="forum-badge-color" value="${selectedColor}">
                 <button id="forum-badge-save" class="btn btn-primary btn-sm">${t('forum.save')}</button>
-              </div>
+              </div>`
+  })()}
             </div>
           ` : ''}
           ${postBody}
@@ -416,7 +518,7 @@ export class ForumPage extends UIElement {
               <button class="btn btn-secondary btn-sm ms-1 forum-comment-edit-cancel">${t('forum.cancel')}</button>
             </div>
           `
-          : `<div>${escapeHtml(comment.text).replace(/\n/g, '<br>')}</div>`
+          : `<div>${renderForumBody(comment.text)}</div>`
 
         html += `
           <div class="forum-comment mb-2 pb-2 border-bottom">
@@ -556,6 +658,16 @@ export class ForumPage extends UIElement {
     const root = el(this._elementQuery)
     if (!root) return
 
+    // (Re)attach @-mention autocomplete on every render to whichever post / comment
+    // textareas are currently in the DOM.
+    if (this._mentionHandles) {
+      this._mentionHandles.forEach(h => h.destroy())
+    }
+    this._mentionHandles = []
+    root.querySelectorAll('#forum-post-text, #forum-comment-input, #forum-post-edit-text, .forum-comment-edit-text').forEach(input => {
+      this._mentionHandles.push(attachMentionAutocomplete(input))
+    })
+
     root.querySelectorAll('.forum-edit-category').forEach(btn => {
       btn.onclick = (e) => {
         e.preventDefault()
@@ -603,6 +715,20 @@ export class ForumPage extends UIElement {
         e.preventDefault()
         e.stopPropagation()
         this._editingPostId = Number(btn.dataset.id)
+        this.update()
+      }
+    })
+
+    root.querySelectorAll('.forum-archive-post').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const isArchived = btn.dataset.archived === '1'
+        const confirmMessage = isArchived ? t('forum.confirmUnarchivePost') : t('forum.confirmArchivePost')
+        if (!(await showConfirmDialog(confirmMessage, t('forum.ok'), t('forum.cancel')))) return
+        await server.setForumPostArchived(Number(btn.dataset.id), !isArchived)
+        toast(t(isArchived ? 'forum.postUnarchived' : 'forum.postArchived'), 'success')
+        await this._loadView()
         this.update()
       }
     })
@@ -677,6 +803,19 @@ export class ForumPage extends UIElement {
         if (form) form.hidden = !form.hidden
       }
     }
+
+    root.querySelectorAll('.forum-badge-color-swatch').forEach(swatch => {
+      swatch.onclick = (e) => {
+        e.preventDefault()
+        const hiddenInput = el(`${this._elementQuery} #forum-badge-color`)
+        if (hiddenInput) hiddenInput.value = swatch.dataset.color
+        root.querySelectorAll('.forum-badge-color-swatch').forEach(s => {
+          const isSelected = s === swatch
+          s.classList.toggle('is-selected', isSelected)
+          s.setAttribute('aria-pressed', String(isSelected))
+        })
+      }
+    })
 
     const badgeSave = root.querySelector('#forum-badge-save')
     if (badgeSave) {

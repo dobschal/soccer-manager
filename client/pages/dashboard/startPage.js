@@ -10,6 +10,7 @@ import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 import { showGameModal } from '../../partials/gameModal.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
+import { showFeatureRequestOverlay } from '../../partials/featureRequestOverlay.js'
 
 export class StartPage {
   /**
@@ -108,14 +109,19 @@ export class StartPage {
   }
 
   _renderCommunityCard () {
+    const requestBtnId = generateId()
+    onClick('#' + requestBtnId, () => showFeatureRequestOverlay())
     return `
       <div class="card card-body community-card flex-fill mb-0">
         <img src="assets/dashboard/feature-request.png" alt="" class="dashboard-promo-img">
         <h5 class="mb-2"><i class="fa fa-users"></i> ${t('dashboard.communityTitle')}</h5>
         <p class="text-muted mb-3">${t('dashboard.communityText')}</p>
-        <div class="mt-auto">
-          <a href="#dashboard?sub_page=forum&category=3" class="btn btn-info btn-xl text-white">
-            <i class="fa fa-lightbulb-o"></i> ${t('dashboard.communityCta')}
+        <div class="mt-auto d-flex flex-column gap-2">
+          <button id="${requestBtnId}" type="button" class="btn btn-info btn-xl text-white">
+            <i class="fa fa-lightbulb-o"></i> ${t('dashboard.communityRequestCta')}
+          </button>
+          <a href="#dashboard?sub_page=forum&category=3" class="btn btn-outline-secondary btn-xl">
+            <i class="fa fa-list"></i> ${t('dashboard.communityCta')}
           </a>
         </div>
       </div>
@@ -197,6 +203,13 @@ export class StartPage {
         text: 'dashboard.urgencySponsor',
         okText: 'dashboard.urgencyOk.sponsor',
         link: '#club?sub_page=finances'
+      },
+      {
+        type: 'FORUM_MENTIONS',
+        text: 'dashboard.urgencyMentions',
+        okText: 'dashboard.urgencyOk.mentions',
+        link: '#dashboard?sub_page=forum',
+        hideOk: true
       }
     ]
 
@@ -205,6 +218,7 @@ export class StartPage {
       const isOk = !urgencyTypes.includes(check.type)
 
       if (isOk) {
+        if (check.hideOk) return ''
         return `
           <li class="list-group-item d-flex align-items-center py-2 px-3 border-0">
             <i class="fa fa-check-circle text-success me-2"></i>

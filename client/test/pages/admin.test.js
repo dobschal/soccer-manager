@@ -214,13 +214,13 @@ describe('UserManagementAdminPage suspicious actions table', () => {
     expect(html).toContain('bob (FC Bob)')
   })
 
-  it('shows an em dash for missing users in a pair', async () => {
+  it('falls back to the team name when the user side has no username (bot team)', async () => {
     server.getSuspiciousActions.mockResolvedValue({
       rows: [{
         type: 'overvalued_trade',
         time: '2026-06-03T10:00:00.000Z',
         description_key: 'admin.fraudDescOvervaluedTrade',
-        description_params: { percent: 250, price: 100_000_000, value: 40_000_000 },
+        description_params: { percent: 150, price: 100_000_000, value: 40_000_000 },
         user1: { username: 'seller', team_name: 'Seller FC' },
         user2: { username: null, team_name: 'Bot Team' }
       }],
@@ -232,6 +232,26 @@ describe('UserManagementAdminPage suspicious actions table', () => {
     await page.load()
     const html = page.template
     expect(html).toContain('seller (Seller FC)')
+    expect(html).toContain('<td>Bot Team</td>')
+  })
+
+  it('shows an em dash when both username and team_name are missing', async () => {
+    server.getSuspiciousActions.mockResolvedValue({
+      rows: [{
+        type: 'overvalued_trade',
+        time: '2026-06-03T10:00:00.000Z',
+        description_key: 'admin.fraudDescOvervaluedTrade',
+        description_params: { percent: 150, price: 100_000_000, value: 40_000_000 },
+        user1: { username: 'seller', team_name: 'Seller FC' },
+        user2: { username: null, team_name: null }
+      }],
+      total: 1,
+      page: 1,
+      pageSize: 10
+    })
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
     expect(html).toContain('<td>—</td>')
   })
 

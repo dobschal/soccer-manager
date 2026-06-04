@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { _calculateFreshnessRecovery } from '../play-game-day.js'
+import {
+  _calculateFreshnessRecovery,
+  getFreshnessLossStrengthScale,
+  FRESHNESS_LOSS_REFERENCE_STRENGTH,
+  FRESHNESS_LOSS_MIN_SCALE,
+  FRESHNESS_LOSS_MAX_SCALE
+} from '../play-game-day.js'
 
 describe('Freshness System', () => {
   describe('Freshness Loss', () => {
@@ -46,6 +52,44 @@ describe('Freshness System', () => {
       }
       expect(freshnessLossByStyle.aggressive).toBeGreaterThan(freshnessLossByStyle.normal)
       expect(freshnessLossByStyle.normal).toBeGreaterThan(freshnessLossByStyle.friendly)
+    })
+  })
+
+  describe('getFreshnessLossStrengthScale (#355)', () => {
+    it('returns 1.0 at the historical reference strength of 1000', () => {
+      expect(getFreshnessLossStrengthScale(FRESHNESS_LOSS_REFERENCE_STRENGTH)).toBeCloseTo(1, 6)
+    })
+
+    it('scales loss up for stronger matchups', () => {
+      const scale = getFreshnessLossStrengthScale(1400)
+      expect(scale).toBeGreaterThan(1)
+      expect(scale).toBeCloseTo(1.4, 6)
+    })
+
+    it('scales loss down for weaker matchups (bots, low-level leagues)', () => {
+      const scale = getFreshnessLossStrengthScale(700)
+      expect(scale).toBeLessThan(1)
+      expect(scale).toBeCloseTo(0.7, 6)
+    })
+
+    it('clamps to the configured minimum scale to avoid trivial fitness loss', () => {
+      expect(getFreshnessLossStrengthScale(100)).toBe(FRESHNESS_LOSS_MIN_SCALE)
+      expect(getFreshnessLossStrengthScale(0)).toBe(1)
+    })
+
+    it('clamps to the configured maximum scale to avoid extreme fitness loss', () => {
+      expect(getFreshnessLossStrengthScale(5000)).toBe(FRESHNESS_LOSS_MAX_SCALE)
+    })
+
+    it('handles invalid inputs by falling back to 1.0', () => {
+      expect(getFreshnessLossStrengthScale(NaN)).toBe(1)
+      expect(getFreshnessLossStrengthScale(-100)).toBe(1)
+    })
+
+    it('keeps the change non-extreme — top vs bottom matchups stay within 3x of each other', () => {
+      const top = getFreshnessLossStrengthScale(1500)
+      const bottom = getFreshnessLossStrengthScale(500)
+      expect(top / bottom).toBeLessThanOrEqual(3)
     })
   })
 

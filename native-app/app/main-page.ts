@@ -41,13 +41,28 @@ export function onPageLoaded(args: EventData) {
     const page = args.object as Page
     page.backgroundColor = '#222222'
 
-    // On Android, push the content below the system status bar and above the navigation bar
+    // On Android, push the content below the system status bar and above the navigation bar.
+    // Old phones with hardware navigation keys still expose a `navigation_bar_height`
+    // resource, but the on-screen bar is never actually drawn — see #364. Skip the
+    // bottom padding in that case so the tab bar sits flush with the screen edge.
     if (isAndroid) {
-        const resources = Utils.android.getApplicationContext().getResources()
+        const context = Utils.android.getApplicationContext()
+        const resources = context.getResources()
         const statusBarId = resources.getIdentifier('status_bar_height', 'dimen', 'android')
         const navBarId = resources.getIdentifier('navigation_bar_height', 'dimen', 'android')
         const statusBarHeightPx = statusBarId > 0 ? resources.getDimensionPixelSize(statusBarId) : 0
-        const navBarHeightPx = navBarId > 0 ? resources.getDimensionPixelSize(navBarId) : 0
+        let navBarHeightPx = navBarId > 0 ? resources.getDimensionPixelSize(navBarId) : 0
+
+        try {
+            const hasPermanentMenuKey = android.view.ViewConfiguration.get(context).hasPermanentMenuKey()
+            const hasBackKey = android.view.KeyCharacterMap.deviceHasKey(android.view.KeyEvent.KEYCODE_BACK)
+            if (hasPermanentMenuKey && hasBackKey) {
+                navBarHeightPx = 0
+            }
+        } catch (e) {
+            console.warn('[layout] hardware key detection failed', e)
+        }
+
         page.nativeViewProtected.setPadding(0, statusBarHeightPx, 0, navBarHeightPx)
     }
 

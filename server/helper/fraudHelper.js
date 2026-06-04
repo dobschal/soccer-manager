@@ -158,13 +158,15 @@ async function _detectPriceDeviation () {
     const value = _approxMarketValueByLevel(r.player_level)
     if (!value || value < PRICE_DEVIATION_MIN_VALUE) continue
     const ratio = r.price / value
-    let type, key
+    let type, key, percent
     if (ratio < UNDERVALUED_RATIO) {
       type = 'undervalued_trade'
       key = 'admin.fraudDescUndervaluedTrade'
+      percent = Math.round((1 - ratio) * 100)
     } else if (ratio > OVERVALUED_RATIO) {
       type = 'overvalued_trade'
       key = 'admin.fraudDescOvervaluedTrade'
+      percent = Math.round((ratio - 1) * 100)
     } else {
       continue
     }
@@ -172,7 +174,7 @@ async function _detectPriceDeviation () {
       type,
       time: new Date(r.created_at),
       description_key: key,
-      description_params: { price: r.price, value, percent: Math.round(ratio * 100) },
+      description_params: { price: r.price, value, percent },
       user1: { username: r.from_username, team_name: r.from_team_name },
       user2: { username: r.to_username, team_name: r.to_team_name }
     })

@@ -1,6 +1,8 @@
 import { query } from '../lib/database.js'
 import { maskBadWords } from '../lib/badWordsFilter.js'
 import { BadRequestError } from '../lib/errors.js'
+import { isAllowedBadgeColor } from '../../client/util/forumBadgeColors.js'
+import { recordForumMentions, markMentionsSeenForPost, getUnseenMentions } from '../helper/forumMentionHelper.js'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
@@ -26,16 +28,39 @@ function isWithinEditWindow (createdAt) {
 
 export default {
 
-  async getForumCategories (_req) {
+  async getForumMentions (req) {
+    const mentions = await getUnseenMentions(req.user.id, 20)
+    return { mentions }
+  },
+
+  async searchUsersForMention (queryString, _req) {
+    if (typeof queryString !== 'string' || queryString.length < 1) {
+      return { users: [] }
+    }
+    const trimmed = queryString.trim()
+    if (!trimmed) return { users: [] }
+    const starts = `${trimmed}%`
+    const contains = `%${trimmed}%`
+    const users = await query(
+      `SELECT id, username FROM user
+       WHERE username LIKE ? OR username LIKE ?
+       ORDER BY (username LIKE ?) DESC, last_login DESC
+       LIMIT 8`,
+      [starts, contains, starts]
+    )
+    return { users }
+  },
+
+  async getForumCategories (req) {
     const categories = await query(`
       SELECT c.*,
-        (SELECT COUNT(*) FROM forum_post p WHERE p.category_id = c.id) AS post_count,
+        (SELECT COUNT(*) FROM forum_post p WHERE p.category_id = c.id AND p.is_archived = 0) AS post_count,
         (SELECT MAX(activity) FROM (
-          SELECT p.created_at AS activity FROM forum_post p WHERE p.category_id = c.id
+          SELECT p.created_at AS activity FROM forum_post p WHERE p.category_id = c.id AND p.is_archived = 0
           UNION ALL
           SELECT co.created_at FROM forum_comment co
             JOIN forum_post p ON co.post_id = p.id
-            WHERE p.category_id = c.id
+            WHERE p.category_id = c.id AND p.is_archived = 0
         ) AS combined) AS last_activity
       FROM forum_category c
       ORDER BY c.sort_order ASC, c.created_at ASC
@@ -47,6 +72,7 @@ export default {
       FROM forum_comment c
       JOIN forum_post p ON p.id = c.post_id
       JOIN user u ON u.id = c.user_id
+      WHERE p.is_archived = 0
       ORDER BY c.created_at DESC
       LIMIT 5
     `)
@@ -55,10 +81,12 @@ export default {
         u.username
       FROM forum_post p
       JOIN user u ON u.id = p.user_id
+      WHERE p.is_archived = 0
       ORDER BY p.created_at DESC
       LIMIT 3
     `)
-    return { categories, latestComments, latestPosts }
+    const mentions = req?.user?.id ? await getUnseenMentions(req.user.id, 10) : []
+    return { categories, latestComments, latestPosts, mentions }
   },
 
   async createForumCategory (name, description, req) {
@@ -120,7 +148,7 @@ export default {
     return { success: true }
   },
 
-  async getForumPosts (categoryId, page, req) {
+  async getForumPosts (categoryId, page, badgeFilter, includeArchived, req) {
     const perPage = 20
     const offset = ((page || 1) - 1) * perPage
     const userId = req.user.id
@@ -128,11 +156,31 @@ export default {
     const [category] = await query('SELECT * FROM forum_category WHERE id = ?', [categoryId])
     if (!category) throw new BadRequestError('Category not found')
 
-    const [{ total }] = await query('SELECT COUNT(*) as total FROM forum_post WHERE category_id = ?', [categoryId])
+    const trimmedBadge = typeof badgeFilter === 'string' ? badgeFilter.trim() : ''
+    const badgeFilterClause = trimmedBadge ? ' AND p.badge_text = ?' : ''
+    const archivedClause = includeArchived ? '' : ' AND p.is_archived = 0'
+    const baseParams = trimmedBadge ? [categoryId, trimmedBadge] : [categoryId]
+
+    const [{ total }] = await query(
+      `SELECT COUNT(*) as total FROM forum_post p WHERE p.category_id = ?${badgeFilterClause}${archivedClause}`,
+      baseParams
+    )
+
+    const [{ archived_total: archivedTotal }] = await query(
+      `SELECT COUNT(*) AS archived_total FROM forum_post WHERE category_id = ? AND is_archived = 1`,
+      [categoryId]
+    )
+
+    const availableBadges = await query(
+      `SELECT DISTINCT badge_text, badge_color FROM forum_post
+       WHERE category_id = ? AND badge_text IS NOT NULL AND badge_text <> ''${includeArchived ? '' : ' AND is_archived = 0'}
+       ORDER BY badge_text ASC`,
+      [categoryId]
+    )
 
     const posts = await query(`
       SELECT p.id, p.title, p.text, p.created_at, p.user_id, p.team_id,
-        p.badge_text, p.badge_color,
+        p.badge_text, p.badge_color, p.is_archived,
         u.username,
         t.name AS team_name,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id) AS like_count,
@@ -145,16 +193,26 @@ export default {
       FROM forum_post p
       JOIN user u ON u.id = p.user_id
       LEFT JOIN team t ON t.id = p.team_id
-      WHERE p.category_id = ?
+      WHERE p.category_id = ?${badgeFilterClause}${archivedClause}
       ORDER BY last_activity DESC
       LIMIT ? OFFSET ?
-    `, [userId, categoryId, perPage, offset])
+    `, [userId, ...baseParams, perPage, offset])
 
     for (const post of posts) {
       post.liked = post.liked > 0
     }
 
-    return { category, posts, total, page: page || 1, totalPages: Math.ceil(total / perPage) }
+    return {
+      category,
+      posts,
+      total,
+      page: page || 1,
+      totalPages: Math.ceil(total / perPage),
+      availableBadges,
+      badgeFilter: trimmedBadge || null,
+      archivedCount: archivedTotal,
+      includeArchived: !!includeArchived
+    }
   },
 
   async createForumPost (categoryId, title, text, images, req) {
@@ -176,15 +234,26 @@ export default {
 
     const [team] = await query('SELECT id, name FROM team WHERE user_id = ?', [req.user.id])
 
+    const cleanedTitle = maskBadWords(title.trim())
+    const cleanedText = maskBadWords(text.trim())
     const result = await query('INSERT INTO forum_post SET ?', {
       category_id: categoryId,
       user_id: req.user.id,
       team_id: team?.id || null,
-      title: maskBadWords(title.trim()),
-      text: maskBadWords(text.trim())
+      title: cleanedTitle,
+      text: cleanedText
     })
 
     const postId = result.insertId
+
+    await recordForumMentions({
+      text: cleanedText,
+      authorUserId: req.user.id,
+      authorUsername: req.user.username,
+      postId,
+      postTitle: cleanedTitle,
+      commentId: null
+    })
 
     if (images && images.length > 0) {
       fs.mkdirSync(UPLOAD_DIR, { recursive: true })
@@ -220,6 +289,9 @@ export default {
 
     if (!post) throw new BadRequestError('Post not found')
     post.liked = post.liked > 0
+
+    // Mark any unseen @-mentions of this user on this post as seen now.
+    await markMentionsSeenForPost(userId, postId)
 
     post.images = await query(
       'SELECT id, filename FROM forum_post_image WHERE post_id = ?',
@@ -291,15 +363,26 @@ export default {
 
     const [team] = await query('SELECT id, name FROM team WHERE user_id = ?', [req.user.id])
 
+    const cleanedText = maskBadWords(text.trim())
     const result = await query('INSERT INTO forum_comment SET ?', {
       post_id: postId,
       user_id: req.user.id,
       team_id: team?.id || null,
-      text: maskBadWords(text.trim())
+      text: cleanedText
     })
 
     const commentId = result.insertId
     const savedImages = []
+
+    const [postForMention] = await query('SELECT title FROM forum_post WHERE id = ?', [postId])
+    await recordForumMentions({
+      text: cleanedText,
+      authorUserId: req.user.id,
+      authorUsername: req.user.username,
+      postId,
+      postTitle: postForMention?.title || '',
+      commentId
+    })
 
     if (images && images.length > 0) {
       fs.mkdirSync(UPLOAD_DIR, { recursive: true })
@@ -403,7 +486,7 @@ export default {
     assertAdmin(req)
     if (!badgeText || !badgeText.trim()) throw new BadRequestError('Badge text cannot be empty')
     if (badgeText.length > 50) throw new BadRequestError('Badge text too long')
-    if (!badgeColor || !/^#[0-9a-fA-F]{6}$/.test(badgeColor)) throw new BadRequestError('Invalid badge color')
+    if (!badgeColor || !isAllowedBadgeColor(badgeColor)) throw new BadRequestError('Invalid badge color')
     await query('UPDATE forum_post SET badge_text = ?, badge_color = ? WHERE id = ?', [
       badgeText.trim(),
       badgeColor,
@@ -415,6 +498,14 @@ export default {
   async removeForumPostBadge (postId, req) {
     assertAdmin(req)
     await query('UPDATE forum_post SET badge_text = NULL, badge_color = NULL WHERE id = ?', [postId])
+    return { success: true }
+  },
+
+  async setForumPostArchived (postId, isArchived, req) {
+    assertAdmin(req)
+    const [post] = await query('SELECT id FROM forum_post WHERE id = ?', [postId])
+    if (!post) throw new BadRequestError('Post not found')
+    await query('UPDATE forum_post SET is_archived = ? WHERE id = ?', [isArchived ? 1 : 0, postId])
     return { success: true }
   },
 

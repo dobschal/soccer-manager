@@ -128,7 +128,7 @@
 }
 
 .action-card-wrapper.card-used {
-    animation: action-card-use 1s ease-out forwards;
+    animation: action-card-use 0.5s ease-out forwards;
     pointer-events: none;
 }
 

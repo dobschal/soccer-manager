@@ -2,6 +2,7 @@ import { getTeam } from '../helper/teamHelper.js'
 import { getIncomingBuyOffers } from '../helper/tradeHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
 import { getYouthPlayersByTeam } from '../helper/youthPlayerHelper.js'
+import { countUnseenMentions } from '../helper/forumMentionHelper.js'
 import { query } from '../lib/database.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 
@@ -57,6 +58,12 @@ export default {
     const { sponsor } = await getSponsor(team)
     if (!sponsor) {
       urgencies.push({ type: 'NO_SPONSOR' })
+    }
+
+    // 6. Unseen forum @-mentions
+    const mentionCount = await countUnseenMentions(req.user.id)
+    if (mentionCount > 0) {
+      urgencies.push({ type: 'FORUM_MENTIONS', count: mentionCount })
     }
 
     return { urgencies }
