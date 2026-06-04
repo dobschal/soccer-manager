@@ -2024,6 +2024,27 @@ const migrations = [{
     // treated as already-rewarded so the new flow doesn't double-grant cards.
     await query('UPDATE referral_invitation SET rewarded_at=used_at WHERE used_by_user_id IS NOT NULL AND rewarded_at IS NULL')
   }
+}, {
+  name: 'Add is_archived to forum_post',
+  async run () {
+    await query('ALTER TABLE forum_post ADD COLUMN is_archived TINYINT(1) NOT NULL DEFAULT 0')
+  }
+}, {
+  name: 'Create forum_mention table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS forum_mention (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      mentioned_user_id BIGINT(20) NOT NULL,
+      author_user_id BIGINT(20) NOT NULL,
+      post_id BIGINT(20) UNSIGNED NOT NULL,
+      comment_id BIGINT(20) UNSIGNED NULL DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      seen_at TIMESTAMP NULL DEFAULT NULL,
+      PRIMARY KEY (id),
+      INDEX idx_forum_mention_user_unseen (mentioned_user_id, seen_at),
+      INDEX idx_forum_mention_post (post_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
+  }
 }]
 
 /**

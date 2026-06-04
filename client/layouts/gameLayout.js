@@ -6,7 +6,7 @@ import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
 import { showAccountOverlay } from '../partials/accountOverlay.js'
-import { showSearchOverlay } from '../partials/search.js'
+import { goTo } from '../lib/router.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
 import { maybeShowUnverifiedEmailToast } from '../partials/unverifiedEmailToast.js'
@@ -128,7 +128,7 @@ export class GameLayout extends UIElement {
       '#search-button': {
         click: () => {
           hideNavigation()
-          showSearchOverlay()
+          goTo('dashboard?sub_page=search')
         }
       },
       '.navbar-toggler': {

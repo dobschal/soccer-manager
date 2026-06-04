@@ -131,12 +131,12 @@ describe('GameLayout', () => {
       expect(layout.template).toContain('aria-label="Search"')
     })
 
-    it('search button click opens the search overlay', async () => {
-      const { showSearchOverlay } = await import('../../partials/search.js')
+    it('search button click navigates to the search page', async () => {
+      const { goTo } = await import('../../lib/router.js')
       const layout = new GameLayout()
       await layout.load()
       layout.events['#search-button'].click()
-      expect(showSearchOverlay).toHaveBeenCalled()
+      expect(goTo).toHaveBeenCalledWith('dashboard?sub_page=search')
     })
 
     it('template contains balance', async () => {

@@ -316,12 +316,13 @@ async function _playCupGame (game) {
     game.id
   ])
 
+  const cupStrengthScale = getFreshnessLossStrengthScale(strengthTeamA + strengthTeamB)
   for (const player of playerTeamA) {
-    _applyFreshnessLoss(player, teamA, cupTotalMinutes)
+    _applyFreshnessLoss(player, teamA, cupTotalMinutes, cupStrengthScale)
     await _updatePlayerAfterGame(player, gameDetails, teamA)
   }
   for (const player of playerTeamB) {
-    _applyFreshnessLoss(player, teamB, cupTotalMinutes)
+    _applyFreshnessLoss(player, teamB, cupTotalMinutes, cupStrengthScale)
     await _updatePlayerAfterGame(player, gameDetails, teamB)
   }
 
@@ -329,16 +330,38 @@ async function _playCupGame (game) {
   await sendCupMatchLogMessages(game, gameDetails)
 }
 
+// Combined team strength at which the historical static freshness loss applies (1.0x).
+// Above this, players lose more freshness; below, they lose less.
+export const FRESHNESS_LOSS_REFERENCE_STRENGTH = 1000
+// Clamp the scaling factor so the effect is "not extreme" — see #355.
+export const FRESHNESS_LOSS_MIN_SCALE = 0.5
+export const FRESHNESS_LOSS_MAX_SCALE = 1.5
+
 /**
- * Apply freshness loss scaled by the share of the match a player was on the pitch.
+ * Scale factor for freshness loss based on the combined raw strength of both
+ * teams. The historical static loss matches a total strength of 1000. Stronger
+ * matchups burn more fitness; bot/low-level matchups burn less.
+ * @param {number} totalStrength
+ * @returns {number}
+ */
+export function getFreshnessLossStrengthScale (totalStrength) {
+  if (!Number.isFinite(totalStrength) || totalStrength <= 0) return 1
+  const raw = totalStrength / FRESHNESS_LOSS_REFERENCE_STRENGTH
+  return Math.max(FRESHNESS_LOSS_MIN_SCALE, Math.min(FRESHNESS_LOSS_MAX_SCALE, raw))
+}
+
+/**
+ * Apply freshness loss scaled by the share of the match a player was on the pitch
+ * and by the combined raw strength of both teams (see #355).
  * Substitutes who came on later, and players who left early (substituted out, sent off,
  * injured-and-replaced) lose proportionally less.
  *
  * @param {GamePlayer} player
  * @param {TeamType} team
  * @param {number} totalMinutes
+ * @param {number} strengthScale - multiplier from {@link getFreshnessLossStrengthScale}
  */
-function _applyFreshnessLoss (player, team, totalMinutes) {
+function _applyFreshnessLoss (player, team, totalMinutes, strengthScale = 1) {
   const freshnessLossByStyle = {
     aggressive: 0.12,
     normal: 0.1,
@@ -353,7 +376,7 @@ function _applyFreshnessLoss (player, team, totalMinutes) {
   const totalRef = Math.max(1, totalMinutes)
   const playedShare = Math.max(0, Math.min(1, minutesPlayed / totalRef))
 
-  const freshnessLoss = baseLoss * playedShare
+  const freshnessLoss = baseLoss * playedShare * strengthScale
   player.freshness = Math.max(0, player.freshness - freshnessLoss)
 }
 
@@ -871,12 +894,13 @@ async function _playGame (game) {
     game.id
   ])
 
+  const leagueStrengthScale = getFreshnessLossStrengthScale(strengthTeamA + strengthTeamB)
   for (const player of playerTeamA) {
-    _applyFreshnessLoss(player, teamA, leagueTotalMinutes)
+    _applyFreshnessLoss(player, teamA, leagueTotalMinutes, leagueStrengthScale)
     await _updatePlayerAfterGame(player, gameDetails, teamA)
   }
   for (const player of playerTeamB) {
-    _applyFreshnessLoss(player, teamB, leagueTotalMinutes)
+    _applyFreshnessLoss(player, teamB, leagueTotalMinutes, leagueStrengthScale)
     await _updatePlayerAfterGame(player, gameDetails, teamB)
   }
 }

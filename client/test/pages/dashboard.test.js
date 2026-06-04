@@ -299,6 +299,13 @@ describe('DashboardPage', () => {
       expect(html).toContain('#dashboard?sub_page=forum&category=3')
     })
 
+    it('renders a feature-request button on the community card', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const html = page.template
+      expect(html).toContain('Request feature')
+    })
+
     it('renders the invite-a-friend card with a referral CTA', async () => {
       const page = new DashboardPage()
       await page.load()
