@@ -250,7 +250,7 @@ export class ActionCards extends UIElement {
     const topCard = stackEl.querySelector('.action-card-wrapper')
     if (topCard) {
       topCard.classList.add('card-used')
-      await delay(1000)
+      await delay(500)
     }
 
     if (remainingOfType === 0) {
@@ -309,7 +309,7 @@ export class ActionCards extends UIElement {
     if (wrappers.length >= 2) {
       wrappers[0].classList.add('card-used')
       wrappers[1].classList.add('card-used')
-      await delay(1000)
+      await delay(500)
     }
 
     const actionType = this.cards[cardIndex1].action
