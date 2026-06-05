@@ -49,6 +49,7 @@ export class ForumPage extends UIElement {
     this._params = getQueryParams()
     await this._loadView()
   }
+
   get template () {
     return `
       <div class="forum-page">
@@ -67,6 +68,7 @@ export class ForumPage extends UIElement {
       </div>
     `
   }
+
   get events () {
     return {
       '(optional) #forum-cat-submit': {
@@ -154,24 +156,58 @@ export class ForumPage extends UIElement {
       '(optional) #forum-badge-filter-select': {
         change: (e) => {
           const value = e.target.value
-          setQueryParams({ badge: value ? encodeURIComponent(value) : undefined, page: undefined })
+          setQueryParams({
+            badge: value ? encodeURIComponent(value) : undefined,
+            page: undefined
+          })
         }
       },
       '(optional) #forum-toggle-archived': {
-        click: () => setQueryParams({ archived: this._includeArchived ? undefined : '1', page: undefined })
+        click: () => setQueryParams({
+          archived: this._includeArchived ? undefined : '1',
+          page: undefined
+        })
+      },
+      '(optional) #forum-latest-posts-prev': {
+        click: () => {
+          this._latestPostsPage = Math.max(1, (this._latestPostsPage || 1) - 1)
+          this.update()
+        }
+      },
+      '(optional) #forum-latest-posts-next': {
+        click: () => {
+          this._latestPostsPage = (this._latestPostsPage || 1) + 1
+          this.update()
+        }
+      },
+      '(optional) #forum-latest-comments-prev': {
+        click: () => {
+          this._latestCommentsPage = Math.max(1, (this._latestCommentsPage || 1) - 1)
+          this.update()
+        }
+      },
+      '(optional) #forum-latest-comments-next': {
+        click: () => {
+          this._latestCommentsPage = (this._latestCommentsPage || 1) + 1
+          this.update()
+        }
       }
     }
   }
+
   onMounted () {
     this._attachDelegatedEvents()
   }
+
   onUpdate () {
     this._attachDelegatedEvents()
   }
+
   onQueryChanged (params) {
     this._params = params
     this._loadView().then(() => this.update())
   }
+
   showLoadingIndicator = true
 
   async _loadView () {
@@ -206,7 +242,7 @@ export class ForumPage extends UIElement {
 
   _renderMentions () {
     if (!this._mentions || this._mentions.length === 0) return ''
-    let html = `<h6 class="forum-latest-comments-title mt-4 mb-2"><i class="fa fa-at"></i> ${t('forum.mentionsTitle')}</h6>`
+    let html = `<h3 class="forum-latest-comments-title mt-4 mb-2"><i class="fa fa-at"></i> ${t('forum.mentionsTitle')}</h3>`
     html += '<div class="list-group">'
     for (const m of this._mentions) {
       const date = formatDate('DD.MM.YYYY hh:mm', m.created_at)
@@ -236,25 +272,10 @@ export class ForumPage extends UIElement {
 
   _renderCategoryList () {
     let html = ''
-    if (this._isAdmin) {
-      const editing = this._editingCategory
-      html += `
-        <div class="card mb-3">
-          <div class="card-body">
-            <h6>${editing ? t('forum.editCategory') : t('forum.newCategory')}</h6>
-            <input type="text" id="forum-cat-name" class="form-control mb-2" placeholder="${t('forum.categoryName')}" maxlength="255" value="${editing ? escapeHtml(editing.name) : ''}">
-            <input type="text" id="forum-cat-desc" class="form-control mb-2" placeholder="${t('forum.categoryDescription')}" maxlength="500" value="${editing ? escapeHtml(editing.description || '') : ''}">
-            <button id="forum-cat-submit" class="btn btn-primary btn-sm">${editing ? t('forum.save') : t('forum.createCategory')}</button>
-            ${editing ? `<button id="forum-cat-cancel" class="btn btn-secondary btn-sm ms-1">${t('forum.cancel')}</button>` : ''}
-          </div>
-        </div>
-      `
-    }
-
     if (!this._categories || this._categories.length === 0) {
       html += `<p class="text-muted">${t('forum.noCategories')}</p>`
     } else {
-      html += `<h6 class="forum-latest-comments-title mb-2">${t('forum.categories')}</h6>`
+      html += `<h3 class="forum-latest-comments-title mb-2">${t('forum.categories')}</h3>`
       html += '<div class="list-group">'
       for (const cat of this._categories) {
         const lastActivity = cat.last_activity ? formatDate('DD.MM.YYYY hh:mm', cat.last_activity) : '-'
@@ -265,17 +286,19 @@ export class ForumPage extends UIElement {
                 <h6 class="mb-1">${escapeHtml(cat.name)}</h6>
                 ${cat.description ? `<small class="text-muted">${escapeHtml(cat.description)}</small>` : ''}
               </div>
-              <div class="text-end forum-category-meta">
-                <span class="badge bg-secondary">${cat.post_count} ${t('forum.posts')}</span>
-                <br><small class="text-muted">${t('forum.lastActivity')}: ${lastActivity}</small>
+              <div class="d-flex align-items-start gap-2">
+                <div class="text-end forum-category-meta">
+                  <span class="badge bg-secondary">${cat.post_count} ${t('forum.posts')}</span>
+                  <br><small class="text-muted">${t('forum.lastActivity')}: ${lastActivity}</small>
+                </div>
+                ${this._isAdmin ? `
+                  <div class="forum-author-actions">
+                    <button class="btn btn-link btn-sm forum-icon-btn forum-edit-category" data-id="${cat.id}" data-name="${escapeHtml(cat.name)}" data-desc="${escapeHtml(cat.description || '')}" title="${t('forum.edit')}" aria-label="${t('forum.edit')}"><i class="fa fa-pencil"></i></button>
+                    <button class="btn btn-link btn-sm forum-icon-btn forum-icon-btn-danger forum-delete-category" data-id="${cat.id}" title="${t('forum.delete')}" aria-label="${t('forum.delete')}"><i class="fa fa-trash"></i></button>
+                  </div>
+                ` : ''}
               </div>
             </div>
-            ${this._isAdmin ? `
-              <div class="mt-1">
-                <button class="btn btn-outline-primary btn-sm forum-edit-category" data-id="${cat.id}" data-name="${escapeHtml(cat.name)}" data-desc="${escapeHtml(cat.description || '')}">${t('forum.edit')}</button>
-                <button class="btn btn-danger btn-sm ms-1 forum-delete-category" data-id="${cat.id}">${t('forum.delete')}</button>
-              </div>
-            ` : ''}
           </a>
         `
       }
@@ -284,14 +307,34 @@ export class ForumPage extends UIElement {
     html += this._renderMentions()
     html += this._renderLatestPosts()
     html += this._renderLatestComments()
+    if (this._isAdmin) {
+      const editing = this._editingCategory
+      html += `
+        <div class="card mt-4 mb-3" id="forum-cat-form">
+          <div class="card-body">
+            <h6>${editing ? t('forum.editCategory') : t('forum.newCategory')}</h6>
+            <input type="text" id="forum-cat-name" class="form-control mb-2" placeholder="${t('forum.categoryName')}" maxlength="255" value="${editing ? escapeHtml(editing.name) : ''}">
+            <input type="text" id="forum-cat-desc" class="form-control mb-2" placeholder="${t('forum.categoryDescription')}" maxlength="500" value="${editing ? escapeHtml(editing.description || '') : ''}">
+            <button id="forum-cat-submit" class="btn btn-primary btn-sm">${editing ? t('forum.save') : t('forum.createCategory')}</button>
+            ${editing ? `<button id="forum-cat-cancel" class="btn btn-secondary btn-sm ms-1">${t('forum.cancel')}</button>` : ''}
+          </div>
+        </div>
+      `
+    }
     return html
   }
 
   _renderLatestPosts () {
     if (!this._latestPosts || this._latestPosts.length === 0) return ''
-    let html = `<h6 class="forum-latest-comments-title mt-4 mb-2">${t('forum.latestPosts')}</h6>`
+    const perPage = 3
+    const totalPages = Math.max(1, Math.ceil(this._latestPosts.length / perPage))
+    const page = Math.min(Math.max(1, this._latestPostsPage || 1), totalPages)
+    this._latestPostsPage = page
+    const start = (page - 1) * perPage
+    const slice = this._latestPosts.slice(start, start + perPage)
+    let html = `<h3 class="forum-latest-comments-title mt-4 mb-2">${t('forum.latestPosts')}</h3>`
     html += '<div class="list-group">'
-    for (const p of this._latestPosts) {
+    for (const p of slice) {
       const date = formatDate('DD.MM.YYYY hh:mm', p.created_at)
       const preview = p.text.length > 120 ? p.text.slice(0, 120) + '…' : p.text
       html += `
@@ -303,14 +346,31 @@ export class ForumPage extends UIElement {
       `
     }
     html += '</div>'
+    if (totalPages > 1) {
+      html += '<div class="d-flex justify-content-between align-items-center mt-2">'
+      html += page > 1
+        ? `<button id="forum-latest-posts-prev" class="btn btn-outline-secondary btn-sm">${t('common.prev')}</button>`
+        : '<span></span>'
+      html += `<span class="text-muted small">${t('common.page')} ${page} ${t('common.of')} ${totalPages}</span>`
+      html += page < totalPages
+        ? `<button id="forum-latest-posts-next" class="btn btn-outline-secondary btn-sm">${t('common.next')}</button>`
+        : '<span></span>'
+      html += '</div>'
+    }
     return html
   }
 
   _renderLatestComments () {
     if (!this._latestComments || this._latestComments.length === 0) return ''
-    let html = `<h6 class="forum-latest-comments-title mt-4 mb-2">${t('forum.latestComments')}</h6>`
+    const perPage = 3
+    const totalPages = Math.max(1, Math.ceil(this._latestComments.length / perPage))
+    const page = Math.min(Math.max(1, this._latestCommentsPage || 1), totalPages)
+    this._latestCommentsPage = page
+    const start = (page - 1) * perPage
+    const slice = this._latestComments.slice(start, start + perPage)
+    let html = `<h3 class="forum-latest-comments-title mt-4 mb-2">${t('forum.latestComments')}</h3>`
     html += '<div class="list-group">'
-    for (const c of this._latestComments) {
+    for (const c of slice) {
       const date = formatDate('DD.MM.YYYY hh:mm', c.created_at)
       const preview = c.text.length > 120 ? c.text.slice(0, 120) + '…' : c.text
       html += `
@@ -322,6 +382,17 @@ export class ForumPage extends UIElement {
       `
     }
     html += '</div>'
+    if (totalPages > 1) {
+      html += '<div class="d-flex justify-content-between align-items-center mt-2">'
+      html += page > 1
+        ? `<button id="forum-latest-comments-prev" class="btn btn-outline-secondary btn-sm">${t('common.prev')}</button>`
+        : '<span></span>'
+      html += `<span class="text-muted small">${t('common.page')} ${page} ${t('common.of')} ${totalPages}</span>`
+      html += page < totalPages
+        ? `<button id="forum-latest-comments-next" class="btn btn-outline-secondary btn-sm">${t('common.next')}</button>`
+        : '<span></span>'
+      html += '</div>'
+    }
     return html
   }
 
@@ -669,7 +740,7 @@ export class ForumPage extends UIElement {
     })
 
     root.querySelectorAll('.forum-edit-category').forEach(btn => {
-      btn.onclick = (e) => {
+      btn.onclick = async (e) => {
         e.preventDefault()
         e.stopPropagation()
         this._editingCategory = {
@@ -677,7 +748,8 @@ export class ForumPage extends UIElement {
           name: btn.dataset.name,
           description: btn.dataset.desc
         }
-        this.update()
+        await this.update()
+        el(`${this._elementQuery} #forum-cat-form`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
     })
 

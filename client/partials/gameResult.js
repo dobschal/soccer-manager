@@ -48,14 +48,14 @@ export function renderGameResult ({
   const label2 = `${team2Won ? '<b>' : ''}${team2Name}${team2HasUser ? userIcon : ''}${team2Won ? '</b>' : ''}`
 
   const content = `
-    <div class="col text-center ${isTeam1Highlighted ? 'font-weight-bold' : ''}">
+    <div class="col text-center game-result-team ${isTeam1Highlighted ? 'font-weight-bold' : ''}">
       <div class="mb-2">${renderResponsiveEmblem(team1)}</div>
       <h6 class="mb-0">${label1}</h6>
     </div>
-    <div class="col-auto text-center">
+    <div class="col-auto text-center game-result-center">
       ${centerContent}
     </div>
-    <div class="col text-center ${!isTeam1Highlighted ? 'font-weight-bold' : ''}">
+    <div class="col text-center game-result-team ${!isTeam1Highlighted ? 'font-weight-bold' : ''}">
       <div class="mb-2">${renderResponsiveEmblem(team2)}</div>
       <h6 class="mb-0">${label2}</h6>
     </div>

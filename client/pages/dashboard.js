@@ -4,6 +4,7 @@ import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from './dashboard/actionCards.js'
 import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
+import { FriendsPage } from './dashboard/friendsPage.js'
 import { ForumPage } from './forum.js'
 import { SearchPanel } from '../partials/searchPanel.js'
 import { t } from '../i18n/index.js'
@@ -32,13 +33,12 @@ export class DashboardPage extends TabbedPage {
     this.gameDay = gamedayResponse.gameDay
     this.lastPlayedLeagueMatchDay = gamedayResponse.lastPlayedLeagueMatchDay ?? 0
 
-    // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, friends games, and tutorial progress
-    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, friendsResponse] = await Promise.all([
+    // Fetch games for slider (past 3 and upcoming 3), friendly games, cup games, and tutorial progress
+    const [sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse] = await Promise.all([
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
       server.getMyCupGames(5),
       server.canPlayFriendlyToday(),
-      server.getFriendsLastGameDayGames(),
       this._tutorialProgress.load()
     ])
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
@@ -80,16 +80,6 @@ export class DashboardPage extends TabbedPage {
       team2Data: this._extractTeamData(g, 2)
     }))
 
-    // Process friends games for display
-    this._friendsGames = (friendsResponse.games || []).map(g => ({
-      ...g,
-      isPlayed: true,
-      isCup: g.gameType === 'cup',
-      totalRounds: friendsResponse.totalRounds || 0,
-      team1Data: this._extractTeamData(g, 1),
-      team2Data: this._extractTeamData(g, 2)
-    }))
-
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
 
     // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
@@ -127,8 +117,8 @@ export class DashboardPage extends TabbedPage {
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
           <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''} position-relative" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this._renderCardBadge()}</a>
           <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
+          <a class="nav-link ${this.subPage === 'friends' ? 'active' : ''}" href="#dashboard?sub_page=friends"><i class="fa fa-users"></i> ${t('dashboard.tabFriends')}</a>
           <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#dashboard?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
-          <a class="nav-link ${this.subPage === 'messages' ? 'active' : ''} position-relative" href="#dashboard?sub_page=messages"><i class="fa fa-envelope"></i> ${t('dashboard.tabMessages')}${this._renderMessageBadge()}</a>
         </nav>
 
         ${this.renderSubPageContainer()}
@@ -217,6 +207,7 @@ export class DashboardPage extends TabbedPage {
       case 'cards': return new ActionCards()
       case 'messages': return new LogMessages()
       case 'forum': return new ForumPage()
+      case 'friends': return new FriendsPage()
       case 'search': return new SearchPanel()
       default: return this._createStartPage()
     }
@@ -225,7 +216,6 @@ export class DashboardPage extends TabbedPage {
   _sliderGames = []
   _friendlyGames = []
   _cupGames = []
-  _friendsGames = []
   _urgencies = []
   _initialSlideIndex = 0
   _tutorialProgress = new TutorialProgress()
@@ -245,24 +235,18 @@ export class DashboardPage extends TabbedPage {
     return ` <span class="badge rounded-pill bg-danger action-card-badge">${this._actionCardCount}</span>`
   }
 
-  _renderMessageBadge () {
-    if (this._newMessageCount <= 0 || this.subPage === 'messages') return ''
-    return ` <span class="badge rounded-pill bg-danger action-card-badge message-badge">${this._newMessageCount}</span>`
-  }
-
   async _refreshStartPageData () {
     const gamedayResponse = await server.getCurrentGameday()
     this.season = gamedayResponse.season
     this.gameDay = gamedayResponse.gameDay
     this.lastPlayedLeagueMatchDay = gamedayResponse.lastPlayedLeagueMatchDay ?? 0
 
-    const [teamResponse, sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, friendsResponse, standing, urgencyResponse] = await Promise.all([
+    const [teamResponse, sliderResponse, friendlyResponse, cupResponse, canPlayFriendlyResponse, standing, urgencyResponse] = await Promise.all([
       server.getMyTeam(),
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
       server.getMyCupGames(5),
       server.canPlayFriendlyToday(),
-      server.getFriendsLastGameDayGames(),
       server.getStanding(this.lastPlayedLeagueMatchDay, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(window.__nativePlatform || 'web')
     ])
@@ -275,7 +259,6 @@ export class DashboardPage extends TabbedPage {
     ]
     this._friendlyGames = friendlyResponse.games.map(g => ({ ...g, isPlayed: true, isFriendly: true, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._cupGames = cupResponse.games.map(g => ({ ...g, isPlayed: g.played === 1, isCup: true, totalRounds: cupResponse.totalRounds, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
-    this._friendsGames = (friendsResponse.games || []).map(g => ({ ...g, isPlayed: true, isCup: g.gameType === 'cup', totalRounds: friendsResponse.totalRounds || 0, team1Data: this._extractTeamData(g, 1), team2Data: this._extractTeamData(g, 2) }))
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
     this._initialSlideIndex = this._findInitialSlideIndex(this._sliderGames)
 
@@ -298,11 +281,11 @@ export class DashboardPage extends TabbedPage {
       team: this.team,
       cupGames: this._cupGames,
       friendlyGames: this._friendlyGames,
-      friendsGames: this._friendsGames,
       canPlayFriendly: this._canPlayFriendly,
       standing: this.standing,
       teamPosition: this.teamPosition,
-      urgencies: this._urgencies
+      urgencies: this._urgencies,
+      newMessageCount: this._newMessageCount
     })
   }
 
@@ -314,20 +297,12 @@ export class DashboardPage extends TabbedPage {
     const root = el(this._elementQuery)
     if (!root) return
     // Update action card badge
-    const badge = root.querySelector('.action-card-badge:not(.message-badge)')
+    const badge = root.querySelector('.action-card-badge')
     if (this._actionCardCount <= 0 || this.subPage === 'cards') {
       if (badge) badge.remove()
     } else if (!badge) {
       const cardsLink = root.querySelector('a[href="#dashboard?sub_page=cards"]')
       if (cardsLink) cardsLink.insertAdjacentHTML('beforeend', ` <span class="badge rounded-pill bg-danger action-card-badge">${this._actionCardCount}</span>`)
-    }
-    // Update message badge
-    const msgBadge = root.querySelector('.message-badge')
-    if (this._newMessageCount <= 0 || this.subPage === 'messages') {
-      if (msgBadge) msgBadge.remove()
-    } else if (!msgBadge) {
-      const messagesLink = root.querySelector('a[href="#dashboard?sub_page=messages"]')
-      if (messagesLink) messagesLink.insertAdjacentHTML('beforeend', ` <span class="badge rounded-pill bg-danger action-card-badge message-badge">${this._newMessageCount}</span>`)
     }
   }
 

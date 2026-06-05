@@ -79,6 +79,40 @@ describe('auth routes', () => {
       await expect(handlers.login('nonexistent', 'password', req))
         .rejects.toMatchObject({ message: 'Wrong credentials' })
     })
+
+    it('persists the device UUID when one is supplied', async () => {
+      const user = testData.user({ id: 42, password: 'hashed:password123' })
+      query.mockResolvedValue([user])
+
+      const req = { locale: 'en', headers: {} }
+      await handlers.login('testuser', 'password123', 'web', 'abc-123-uuid', req)
+
+      const upsertCall = query.mock.calls.find(c => /INSERT INTO user_device/.test(c[0]))
+      expect(upsertCall).toBeDefined()
+      expect(upsertCall[1]).toEqual([42, 'abc-123-uuid'])
+    })
+
+    it('skips device UUID upsert when none is supplied (legacy client)', async () => {
+      const user = testData.user({ id: 42, password: 'hashed:password123' })
+      query.mockResolvedValue([user])
+
+      const req = { locale: 'en', headers: {} }
+      await handlers.login('testuser', 'password123', 'web', req)
+
+      const upsertCall = query.mock.calls.find(c => /INSERT INTO user_device/.test(c[0]))
+      expect(upsertCall).toBeUndefined()
+    })
+
+    it('rejects an invalid-shaped device UUID without writing', async () => {
+      const user = testData.user({ id: 42, password: 'hashed:password123' })
+      query.mockResolvedValue([user])
+
+      const req = { locale: 'en', headers: {} }
+      await handlers.login('testuser', 'password123', 'web', 'bad uuid with spaces', req)
+
+      const upsertCall = query.mock.calls.find(c => /INSERT INTO user_device/.test(c[0]))
+      expect(upsertCall).toBeUndefined()
+    })
   })
 
   describe('createAccount', () => {
@@ -282,6 +316,35 @@ describe('auth routes', () => {
     it('rejects when not authenticated', async () => {
       const req = { locale: 'en' }
       await expect(handlers.setEmail('a@b.com', req))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+  })
+
+  describe('setEmailOptOut', () => {
+    it('persists opt-out flag as 1 when true', async () => {
+      query.mockResolvedValueOnce({})
+      const req = { locale: 'en', user: { id: 42 } }
+      const result = await handlers.setEmailOptOut(true, req)
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET email_opt_out=? WHERE id=?',
+        [1, 42]
+      )
+    })
+
+    it('persists opt-out flag as 0 when false', async () => {
+      query.mockResolvedValueOnce({})
+      const req = { locale: 'en', user: { id: 42 } }
+      await handlers.setEmailOptOut(false, req)
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET email_opt_out=? WHERE id=?',
+        [0, 42]
+      )
+    })
+
+    it('rejects when not authenticated', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.setEmailOptOut(true, req))
         .rejects.toMatchObject({ message: 'Not authorized' })
     })
   })

@@ -2045,6 +2045,66 @@ const migrations = [{
       INDEX idx_forum_mention_post (post_id)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
   }
+}, {
+  name: 'Create user_device table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS user_device (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT(20) NOT NULL,
+      device_uuid VARCHAR(64) NOT NULL,
+      first_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_user_device (user_id, device_uuid),
+      INDEX idx_user_device_uuid (device_uuid)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
+  }
+}, {
+  name: 'Add email_opt_out column to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN email_opt_out TINYINT(1) NOT NULL DEFAULT 0')
+  }
+}, {
+  name: 'Create friend_post table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS friend_post (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT(20) UNSIGNED NOT NULL,
+      text TEXT NOT NULL,
+      image_filename VARCHAR(255) DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX idx_friend_post_user (user_id),
+      INDEX idx_friend_post_created (created_at)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  }
+}, {
+  name: 'Create friend_post_like table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS friend_post_like (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      post_id BIGINT(20) UNSIGNED NOT NULL,
+      user_id BIGINT(20) UNSIGNED NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_friend_post_like (post_id, user_id),
+      INDEX idx_friend_post_like_post (post_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  }
+}, {
+  name: 'Create friend_post_comment table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS friend_post_comment (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      post_id BIGINT(20) UNSIGNED NOT NULL,
+      user_id BIGINT(20) UNSIGNED NOT NULL,
+      text TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX idx_friend_post_comment_post (post_id),
+      INDEX idx_friend_post_comment_user (user_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  }
 }]
 
 /**

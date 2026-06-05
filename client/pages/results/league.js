@@ -24,12 +24,31 @@ export class LeagueResultsPage extends UIElement {
 
   // -1 = desc, 1 = asc
   async load () {
+    // Pick up level / league / season / match_day from the URL on the first
+    // load so a direct link like #results?level=3&league=3 actually shows
+    // that league. The parent's onQueryChanged also calls applyQueryParams,
+    // but on a freshly-rendered page the query-changed event fires while
+    // the wrapper is still display:none (mid slide-in), so UIElement's
+    // visibility guard drops it. Reading the params here closes that gap.
     if (typeof this.level === 'undefined' || typeof this.league === 'undefined') {
-      this.level = this.parentPage.info.team.level
-      this.league = this.parentPage.info.team.league
+      const fromUrl = this._getLeagueAndLevel()
+      if (typeof fromUrl.level !== 'undefined' && typeof fromUrl.league !== 'undefined') {
+        this.level = fromUrl.level
+        this.league = fromUrl.league
+      } else {
+        this.level = this.parentPage.info.team.level
+        this.league = this.parentPage.info.team.league
+      }
     }
     const currentGameday = await server.getCurrentGameday()
     this._upcomingSeason = currentGameday.season
+    if (typeof this.season === 'undefined' || typeof this.matchDay === 'undefined') {
+      const seasonFromUrl = await this._getSeasonAndMatchDay()
+      if (typeof seasonFromUrl.season !== 'undefined' && typeof seasonFromUrl.matchDay !== 'undefined') {
+        this.season = seasonFromUrl.season
+        this.matchDay = seasonFromUrl.matchDay
+      }
+    }
     if (typeof this.season === 'undefined') {
       this.season = currentGameday.lastPlayedLeagueSeason ?? currentGameday.season
     }

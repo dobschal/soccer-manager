@@ -65,6 +65,7 @@ describe('referralHelper', () => {
         .mockResolvedValueOnce([{ id: 11, inviter_user_id: 7 }]) // invitation lookup
         .mockResolvedValueOnce([{ setting_value: 'STAR_PLAYER' }]) // getReferralBenefit
         .mockResolvedValueOnce({ affectedRows: 1 }) // update invitation
+        .mockResolvedValueOnce({ affectedRows: 2 }) // user_friend bilateral insert
 
       const result = await claimReferralForNewUser({ email: 'friend@example.com', newUserId: 42 })
 
@@ -77,6 +78,33 @@ describe('referralHelper', () => {
         'UPDATE referral_invitation SET used_by_user_id=?, used_at=NOW(), reward_action=? WHERE id=?',
         [42, 'STAR_PLAYER', 11]
       )
+    })
+
+    it('creates a bilateral friendship between inviter and invitee', async () => {
+      query
+        .mockResolvedValueOnce([{ id: 11, inviter_user_id: 7 }]) // invitation lookup
+        .mockResolvedValueOnce([{ setting_value: 'STAR_PLAYER' }]) // getReferralBenefit
+        .mockResolvedValueOnce({ affectedRows: 1 }) // update invitation
+        .mockResolvedValueOnce({ affectedRows: 2 }) // user_friend bilateral insert
+
+      await claimReferralForNewUser({ email: 'friend@example.com', newUserId: 42 })
+
+      expect(query).toHaveBeenCalledWith(
+        'INSERT IGNORE INTO user_friend (user_id, friend_user_id) VALUES (?, ?), (?, ?)',
+        [7, 42, 42, 7]
+      )
+    })
+
+    it('skips bilateral friend insert when inviter is the same user', async () => {
+      query
+        .mockResolvedValueOnce([{ id: 11, inviter_user_id: 42 }]) // self-invitation edge case
+        .mockResolvedValueOnce([{ setting_value: 'STAR_PLAYER' }])
+        .mockResolvedValueOnce({ affectedRows: 1 })
+
+      await claimReferralForNewUser({ email: 'friend@example.com', newUserId: 42 })
+
+      const calls = query.mock.calls.map(c => c[0])
+      expect(calls.some(sql => /INSERT IGNORE INTO user_friend/.test(sql))).toBe(false)
     })
   })
 

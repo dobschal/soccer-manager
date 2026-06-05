@@ -17,7 +17,6 @@ import { connectWebSocket } from './lib/websocket.js'
 import { applyNoIndexOnSandbox, showSandboxBanner } from './partials/sandboxBanner.js'
 import { on } from './lib/event.js'
 import { initTabBarAnimations } from './lib/tabBarAnimation.js'
-import { initSwipeBackNavigation } from './lib/swipeBackNavigation.js'
 import { initPullToRefresh } from './lib/pullToRefresh.js'
 
 installGlobalErrorHandler()
@@ -37,10 +36,9 @@ on('page-changed', showSandboxBanner)
 // peek-scroll right if there is hidden overflow, to hint that more tabs exist.
 initTabBarAnimations()
 
-// Enable native-feeling edge swipe-back: on touch devices, swiping right from
-// the left edge of the screen calls history.back() so users can return through
-// the navigation chain (e.g. league → match → team → swipe → match → swipe → league).
-initSwipeBackNavigation()
+// Edge swipe-back is intentionally only wired up in native-app.js: mobile
+// browsers (iOS Safari, Chrome Android) already ship their own native swipe-
+// back gesture and the two gestures would visually fight each other.
 
 // Native-feeling pull-to-refresh: when scrolled to the top, swiping further
 // down reveals a bouncing-ball indicator; releasing past the arm threshold

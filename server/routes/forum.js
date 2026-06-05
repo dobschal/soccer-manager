@@ -74,7 +74,7 @@ export default {
       JOIN user u ON u.id = c.user_id
       WHERE p.is_archived = 0
       ORDER BY c.created_at DESC
-      LIMIT 5
+      LIMIT 30
     `)
     const latestPosts = await query(`
       SELECT p.id, p.title, p.text, p.created_at, p.category_id,
@@ -83,7 +83,7 @@ export default {
       JOIN user u ON u.id = p.user_id
       WHERE p.is_archived = 0
       ORDER BY p.created_at DESC
-      LIMIT 3
+      LIMIT 30
     `)
     const mentions = req?.user?.id ? await getUnseenMentions(req.user.id, 10) : []
     return { categories, latestComments, latestPosts, mentions }

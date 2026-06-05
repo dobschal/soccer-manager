@@ -4,7 +4,7 @@
 
 .game-slider {
     position: relative;
-    max-width: 760px;
+    max-width: 650px;
     color: white;
 }
 
@@ -13,17 +13,28 @@
     text-decoration: none;
 }
 
+/* Native horizontal scroll-snap: swiping moves content like a real scroll,
+ * not a step-transition. Slide stops are enforced with scroll-snap-align so
+ * each game ends up centered. Scrollbar hidden so the experience matches
+ * the previous "carousel" look. */
 .game-slider-track {
     position: relative;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.game-slider-track::-webkit-scrollbar {
+    display: none;
 }
 
 .game-slider-slide {
-    display: none;
-    animation: slide-fade-in 0.3s ease-out;
-}
-
-.game-slider-slide.active {
-    display: block;
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    min-width: 0;
 }
 
 /* Navigation Buttons */
@@ -141,4 +152,18 @@
 /* Countdown Badge */
 .countdown-badge {
     font-size: 1.2rem;
+}
+
+/* Game result layout: the two team columns must share equal width regardless
+ * of name length; the centre column (score / countdown) stays at a fixed
+ * 100px. flex-basis: 0 + min-width: 0 prevents long team names from pushing
+ * one side wider than the other. */
+.game-result-team {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.game-result-center {
+    flex: 0 0 100px;
+    width: 100px;
 }

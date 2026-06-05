@@ -11,11 +11,8 @@ const SHARED_IP_LOOKBACK_DAYS = 365
 /**
  * Approximate market value of a player from level alone, matching
  * {@link getAveragePlanPriceOfPlayer} for an age-22 player (40M at level 100,
- * halving roughly every 10 levels). trade_history only stores the player's
- * level at trade time, so we can't apply the age penalty here. This is a
- * conservative upper bound on value, which means the "under value" detector
- * may miss some fishy trades for older players, while the "over value"
- * detector won't fire spuriously on aged players.
+ * halving roughly every 10 levels). Used as a fallback when the trade row
+ * has no player age data.
  * @param {number|null} level
  * @returns {number|null}
  */
@@ -23,6 +20,28 @@ function _approxMarketValueByLevel (level) {
   if (level == null) return null
   let price = 40_000_000
   for (let l = 100; l > level; l--) price *= 0.9330329915368074
+  return Math.floor(price)
+}
+
+/**
+ * Market-value approximation that mirrors the real pricing curve used by the
+ * game ({@link getAveragePlanPriceOfPlayer}): 40M at level 100 age 22,
+ * × 0.9330... per level below 100, × 0.85 per year above 22. trade_history
+ * only stores `player_level`, so we look up the player's `carrier_start_season`
+ * and derive the age at trade time from the trade's own season.
+ * @param {number|null} level
+ * @param {number|null} tradeSeason
+ * @param {number|null} carrierStartSeason
+ * @returns {number|null}
+ */
+function _approxMarketValue (level, tradeSeason, carrierStartSeason) {
+  if (level == null) return null
+  let price = 40_000_000
+  for (let l = 100; l > level; l--) price *= 0.9330329915368074
+  const age = (tradeSeason != null && carrierStartSeason != null)
+    ? tradeSeason - carrierStartSeason + 16
+    : 22
+  for (let a = 22; a < age; a++) price *= 0.85
   return Math.floor(price)
 }
 
@@ -75,6 +94,58 @@ async function _detectSharedIp () {
           time,
           description_key: 'admin.fraudDescSharedIp',
           description_params: { ip },
+          user1: { username: a.username, team_name: a.team_name },
+          user2: { username: b.username, team_name: b.team_name }
+        })
+      }
+    }
+  }
+  return events
+}
+
+/**
+ * Detector: pairs of users that have logged in from the same physical device
+ * (same persisted device UUID). Stronger signal than shared IP because a
+ * device UUID is unique per browser profile / install.
+ * @returns {Promise<Array>}
+ */
+async function _detectSharedDevice () {
+  const rows = await query(
+    `SELECT ud.device_uuid, ud.user_id, ud.last_seen,
+            u.username, t.name AS team_name
+     FROM user_device ud
+     JOIN user u ON u.id = ud.user_id
+     LEFT JOIN team t ON t.user_id = u.id
+     WHERE ud.device_uuid IN (
+       SELECT device_uuid FROM user_device
+       GROUP BY device_uuid HAVING COUNT(DISTINCT user_id) > 1
+     )`
+  )
+  const byUuid = new Map()
+  for (const r of rows) {
+    if (!byUuid.has(r.device_uuid)) byUuid.set(r.device_uuid, [])
+    byUuid.get(r.device_uuid).push(r)
+  }
+  const events = []
+  const seenPair = new Set()
+  for (const [, users] of byUuid) {
+    for (let i = 0; i < users.length; i++) {
+      for (let j = i + 1; j < users.length; j++) {
+        const a = users[i]
+        const b = users[j]
+        if (a.user_id === b.user_id) continue
+        const pairKey = a.user_id < b.user_id ? `${a.user_id}-${b.user_id}` : `${b.user_id}-${a.user_id}`
+        if (seenPair.has(pairKey)) continue
+        seenPair.add(pairKey)
+        const time = new Date(Math.max(
+          new Date(a.last_seen).getTime(),
+          new Date(b.last_seen).getTime()
+        ))
+        events.push({
+          type: 'shared_device',
+          time,
+          description_key: 'admin.fraudDescSharedDevice',
+          description_params: {},
           user1: { username: a.username, team_name: a.team_name },
           user2: { username: b.username, team_name: b.team_name }
         })
@@ -140,12 +211,14 @@ async function _detectFrequentTrades () {
 async function _detectPriceDeviation () {
   const rows = await query(
     `SELECT
-        th.price, th.player_level, th.created_at,
+        th.price, th.player_level, th.created_at, th.season AS trade_season,
+        p.carrier_start_season AS carrier_start_season,
         t1.name AS from_team_name, t1.user_id AS from_user_id, u1.username AS from_username,
         t2.name AS to_team_name, t2.user_id AS to_user_id, u2.username AS to_username
      FROM trade_history th
      JOIN team t1 ON t1.id = th.from_team_id
      JOIN team t2 ON t2.id = th.to_team_id
+     LEFT JOIN player p ON p.id = th.player_id
      LEFT JOIN user u1 ON u1.id = t1.user_id
      LEFT JOIN user u2 ON u2.id = t2.user_id
      WHERE th.created_at > DATE_SUB(NOW(), INTERVAL ? DAY)
@@ -155,7 +228,7 @@ async function _detectPriceDeviation () {
   )
   const events = []
   for (const r of rows) {
-    const value = _approxMarketValueByLevel(r.player_level)
+    const value = _approxMarketValue(r.player_level, r.trade_season, r.carrier_start_season)
     if (!value || value < PRICE_DEVIATION_MIN_VALUE) continue
     const ratio = r.price / value
     let type, key, percent
@@ -190,12 +263,13 @@ async function _detectPriceDeviation () {
  * @returns {Promise<{rows: Array, total: number}>}
  */
 export async function getSuspiciousActions ({ limit = 10, offset = 0 } = {}) {
-  const [sharedIp, frequentTrades, priceDeviation] = await Promise.all([
+  const [sharedIp, sharedDevice, frequentTrades, priceDeviation] = await Promise.all([
     _detectSharedIp(),
+    _detectSharedDevice(),
     _detectFrequentTrades(),
     _detectPriceDeviation()
   ])
-  const all = [...sharedIp, ...frequentTrades, ...priceDeviation]
+  const all = [...sharedIp, ...sharedDevice, ...frequentTrades, ...priceDeviation]
   all.sort((a, b) => b.time.getTime() - a.time.getTime())
   const total = all.length
   const rows = all.slice(offset, offset + limit).map(e => ({
@@ -207,7 +281,9 @@ export async function getSuspiciousActions ({ limit = 10, offset = 0 } = {}) {
 
 export const __testing = {
   _approxMarketValueByLevel,
+  _approxMarketValue,
   _detectSharedIp,
+  _detectSharedDevice,
   _detectFrequentTrades,
   _detectPriceDeviation,
   FREQUENT_TRADES_WINDOW_DAYS,

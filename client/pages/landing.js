@@ -6,6 +6,7 @@ import { UIElement } from '../lib/UIElement.js'
 import { t } from '../i18n/index.js'
 import { connectWebSocket } from '../lib/websocket.js'
 import { isValidEmail } from '../lib/emailRegex.js'
+import { getDeviceUuid } from '../lib/deviceUuid.js'
 
 export const APP_STORE_URL = 'https://apps.apple.com/de/app/footballmanager-io/id6759547142'
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=io.soccermanager.app'
@@ -338,13 +339,13 @@ export class LandingPage extends UIElement {
         await server.createAccount(username, password, email.trim())
         toast(t('landing.registrationSuccess'), 'success')
         // Auto-login after successful registration
-        const { token } = await server.login(username, password, 'web')
+        const { token } = await server.login(username, password, 'web', getDeviceUuid())
         window.localStorage.setItem('auth-token', token)
         clearHasTeamCache()
         connectWebSocket()
         goTo('')
       } else {
-        const { token } = await server.login(username, password, 'web')
+        const { token } = await server.login(username, password, 'web', getDeviceUuid())
         window.localStorage.setItem('auth-token', token)
         clearHasTeamCache()
         connectWebSocket()

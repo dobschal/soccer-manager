@@ -52,6 +52,16 @@ export async function claimReferralForNewUser ({ email, newUserId }) {
     'UPDATE referral_invitation SET used_by_user_id=?, used_at=NOW(), reward_action=? WHERE id=?',
     [newUserId, action, invitation.id]
   )
+  // Auto-establish a mutual friendship between inviter and invitee so they
+  // can immediately see each other's matches and find each other on the
+  // Friends page. Either direction may already exist if the user manually
+  // added the other earlier, so INSERT IGNORE is safe.
+  if (invitation.inviter_user_id && invitation.inviter_user_id !== newUserId) {
+    await query(
+      'INSERT IGNORE INTO user_friend (user_id, friend_user_id) VALUES (?, ?), (?, ?)',
+      [invitation.inviter_user_id, newUserId, newUserId, invitation.inviter_user_id]
+    )
+  }
   return { linked: true, inviterUserId: invitation.inviter_user_id, action }
 }
 

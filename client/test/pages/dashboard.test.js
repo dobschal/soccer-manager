@@ -249,20 +249,38 @@ describe('DashboardPage', () => {
       expect(page.template).toContain('nav-pills')
       expect(page.template).toContain('#dashboard?sub_page=cards')
       expect(page.template).toContain('#dashboard?sub_page=forum')
+      expect(page.template).toContain('#dashboard?sub_page=friends')
       expect(page.template).toContain('#dashboard?sub_page=search')
-      expect(page.template).toContain('#dashboard?sub_page=messages')
     })
 
-    it('orders Messages tab after Forum and Search', async () => {
+    it('orders Friends tab between Forum and Search', async () => {
       const page = new DashboardPage()
       await page.load()
       const html = page.template
       const forumIdx = html.indexOf('#dashboard?sub_page=forum')
+      const friendsIdx = html.indexOf('#dashboard?sub_page=friends')
       const searchIdx = html.indexOf('#dashboard?sub_page=search')
-      const messagesIdx = html.indexOf('#dashboard?sub_page=messages')
       expect(forumIdx).toBeGreaterThan(0)
-      expect(searchIdx).toBeGreaterThan(forumIdx)
-      expect(messagesIdx).toBeGreaterThan(searchIdx)
+      expect(friendsIdx).toBeGreaterThan(forumIdx)
+      expect(searchIdx).toBeGreaterThan(friendsIdx)
+    })
+
+    it('does not render a Messages tab in the nav', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const html = page.template
+      const navEnd = html.indexOf('</nav>')
+      const navHtml = html.slice(0, navEnd)
+      expect(navHtml).not.toContain('#dashboard?sub_page=messages')
+    })
+
+    it('renders a "view messages" link below the urgency checklist', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const html = page.template
+      // Messages link lives in the start sub-page content, not in the nav
+      expect(html).toContain('#dashboard?sub_page=messages')
+      expect(html).toContain('View messages')
     })
 
     it('template renders forum sub-page when sub_page=forum', async () => {

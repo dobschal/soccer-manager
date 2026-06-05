@@ -9,7 +9,7 @@ export class AdminPage extends TabbedPage {
   get template () {
     return `
       <div>
-        <h3>${t('admin.title')}</h3>
+        <h3 class="mb-3">${t('admin.title')}</h3>
         <nav class="nav nav-pills mb-3">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#admin">${t('admin.tabMarketing')}</a>
           <a class="nav-link ${this.subPage === 'user_management' ? 'active' : ''}" href="#admin?sub_page=user_management">${t('admin.tabUserManagement')}</a>

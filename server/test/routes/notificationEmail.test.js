@@ -117,6 +117,26 @@ describe('notificationEmail routes', () => {
       expect(result).toEqual({ sent: 1, recipients: 2 })
     })
 
+    it('only selects users that have not opted out of emails', async () => {
+      query
+        .mockResolvedValueOnce({ insertId: 1 })
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce({ affectedRows: 1 })
+
+      await handlers.sendAdminNotificationEmail(
+        'Hello',
+        'Body',
+        TINY_PNG,
+        'image/png',
+        { user: { is_admin: 1, username: 'admin' } }
+      )
+
+      expect(query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('email_opt_out = 0')
+      )
+    })
+
     it('still updates recipient count when an individual email fails', async () => {
       query
         .mockResolvedValueOnce({ insertId: 11 })

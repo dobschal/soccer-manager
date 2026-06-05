@@ -685,4 +685,43 @@ describe('team routes', () => {
       expect(lastParam).toBeLessThanOrEqual(50)
     })
   })
+
+  describe('getHeadToHead', () => {
+    it('aggregates wins, draws, losses and goals for both teams', async () => {
+      getTeamById
+        .mockResolvedValueOnce({ id: 1, name: 'FC A', color: '#aaa', emblem: 'A' })
+        .mockResolvedValueOnce({ id: 2, name: 'FC B', color: '#bbb', emblem: 'B' })
+      query.mockResolvedValueOnce([
+        // A home wins 3:1
+        { id: 100, season: 5, game_day: 10, game_type: 'league', cup_round: null, played: 1, goals_team_1: 3, goals_team_2: 1, team_1_id: 1, team_2_id: 2, created_at: '2026-06-01T10:00:00Z', team_1_name: 'FC A', team_1_color: '#aaa', team_1_emblem: 'A', team_2_name: 'FC B', team_2_color: '#bbb', team_2_emblem: 'B' },
+        // B home wins 2:0 (A is team_2)
+        { id: 101, season: 5, game_day: 12, game_type: 'league', cup_round: null, played: 1, goals_team_1: 2, goals_team_2: 0, team_1_id: 2, team_2_id: 1, created_at: '2026-06-02T10:00:00Z', team_1_name: 'FC B', team_1_color: '#bbb', team_1_emblem: 'B', team_2_name: 'FC A', team_2_color: '#aaa', team_2_emblem: 'A' },
+        // Draw 1:1
+        { id: 102, season: 6, game_day: 1, game_type: 'cup', cup_round: 4, played: 1, goals_team_1: 1, goals_team_2: 1, team_1_id: 1, team_2_id: 2, created_at: '2026-06-03T10:00:00Z', team_1_name: 'FC A', team_1_color: '#aaa', team_1_emblem: 'A', team_2_name: 'FC B', team_2_color: '#bbb', team_2_emblem: 'B' }
+      ])
+
+      const result = await handlers.getHeadToHead(1, 2)
+
+      expect(result.stats).toEqual({ winsA: 1, winsB: 1, draws: 1, goalsA: 4, goalsB: 4, totalGames: 3 })
+      expect(result.teamA.name).toBe('FC A')
+      expect(result.teamB.name).toBe('FC B')
+      expect(result.games).toHaveLength(3)
+    })
+
+    it('returns empty stats when teams have never played', async () => {
+      getTeamById
+        .mockResolvedValueOnce({ id: 1, name: 'A' })
+        .mockResolvedValueOnce({ id: 2, name: 'B' })
+      query.mockResolvedValueOnce([])
+
+      const result = await handlers.getHeadToHead(1, 2)
+      expect(result.stats.totalGames).toBe(0)
+      expect(result.games).toEqual([])
+    })
+
+    it('rejects invalid team ids', async () => {
+      await expect(handlers.getHeadToHead(0, 5)).rejects.toMatchObject({ message: 'Invalid team ids' })
+      await expect(handlers.getHeadToHead(5, 5)).rejects.toMatchObject({ message: 'Invalid team ids' })
+    })
+  })
 })
