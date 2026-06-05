@@ -156,7 +156,7 @@
 }
 
 .head-to-head-team {
-    flex: 0 0 auto;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -174,8 +174,9 @@
 }
 
 .head-to-head-summary {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     text-align: center;
+    min-width: 0;
 }
 
 .head-to-head-record {

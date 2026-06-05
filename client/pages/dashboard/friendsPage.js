@@ -29,12 +29,13 @@ export class FriendsPage extends UIElement {
       <div>
         <h3 class="mb-3"><i class="fa fa-users"></i> ${t('friends.title')}</h3>
         ${this._renderTable()}
-        <div class="d-flex flex-column flex-md-row u-gap-md mt-4 dashboard-promo-row">
+        <div class="d-flex flex-column flex-md-row u-gap-md mt-4 dashboard-promo-row mb-4">
           ${this._renderInviteCard()}
         </div>
       </div>
     `
   }
+
   _entries = []
 
   _renderTable () {
@@ -58,7 +59,7 @@ export class FriendsPage extends UIElement {
               <th>${t('friends.colLeague')}</th>
               <th class="text-end">${t('friends.colPosition')}</th>
               <th>${t('friends.colLastGame')}</th>
-              <th class="text-end">${t('friends.colActions')}</th>
+              <th class="text-end"></th>
             </tr>
           </thead>
           <tbody>
@@ -130,8 +131,9 @@ export class FriendsPage extends UIElement {
     const opponentGoals = friendIsTeam1 ? game.goalsTeam2 : game.goalsTeam1
     const opponentName = friendIsTeam1 ? (game.team2ShortName || game.team2Name) : (game.team1ShortName || game.team1Name)
     let resultClass = 'text-muted'
-    if (friendGoals > opponentGoals) resultClass = 'text-success'
-    else if (friendGoals < opponentGoals) resultClass = 'text-danger'
+    if (friendGoals > opponentGoals) {
+      resultClass = 'text-success'
+    } else if (friendGoals < opponentGoals) resultClass = 'text-danger'
     const vs = opponentName ? ` ${t('friends.vsShort')} ${opponentName}` : ''
     return `
       <a href="${gameLink}" class="text-decoration-none ${resultClass}">

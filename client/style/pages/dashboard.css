@@ -142,8 +142,7 @@
 }
 
 .friends-avatar {
-    width: 40px;
-    height: 40px;
+    width: 32px;
     border-radius: 50%;
     object-fit: cover;
 }
@@ -169,6 +168,7 @@
     color: var(--bs-info);
     border-bottom: none;
     text-decoration: none;
+    vertical-align: middle;
 }
 
 .friends-table a:hover {

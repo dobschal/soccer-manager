@@ -4,7 +4,7 @@
 
 .game-slider {
     position: relative;
-    max-width: 760px;
+    max-width: 650px;
     color: white;
 }
 
@@ -152,4 +152,18 @@
 /* Countdown Badge */
 .countdown-badge {
     font-size: 1.2rem;
+}
+
+/* Game result layout: the two team columns must share equal width regardless
+ * of name length; the centre column (score / countdown) stays at a fixed
+ * 100px. flex-basis: 0 + min-width: 0 prevents long team names from pushing
+ * one side wider than the other. */
+.game-result-team {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.game-result-center {
+    flex: 0 0 100px;
+    width: 100px;
 }

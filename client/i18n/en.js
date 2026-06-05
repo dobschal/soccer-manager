@@ -1391,7 +1391,6 @@ export default {
   'friends.colLeague': 'League',
   'friends.colPosition': 'Pos.',
   'friends.colLastGame': 'Last Game',
-  'friends.colActions': '',
   'friends.incoming': 'Request',
   'friends.accept': 'Accept',
   'friends.decline': 'Decline',

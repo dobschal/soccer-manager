@@ -52,7 +52,7 @@ describe('gameResult', () => {
       })
 
       // Team 1 should have font-weight-bold
-      expect(result).toMatch(/col text-center font-weight-bold[\s\S]*My Team/)
+      expect(result).toMatch(/col text-center game-result-team font-weight-bold[\s\S]*My Team/)
     })
 
     it('highlights team 2 when isTeam1Highlighted is false', () => {
@@ -66,7 +66,7 @@ describe('gameResult', () => {
       })
 
       // Team 2 should have font-weight-bold (it's the second col element)
-      const matches = result.match(/col text-center font-weight-bold/g)
+      const matches = result.match(/col text-center game-result-team font-weight-bold/g)
       expect(matches).toHaveLength(1) // Only team 2 is bold
     })
 

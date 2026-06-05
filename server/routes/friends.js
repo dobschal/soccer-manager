@@ -31,7 +31,10 @@ export default {
   },
 
   /**
-   * Remove a friend.
+   * Remove a friend or decline an incoming request. user_friend stores
+   * directed edges, so we delete both directions: this covers declining an
+   * incoming-only request (where only the other→me edge exists) and removing
+   * a mutual friend (severing both sides so the relationship is fully gone).
    * @param {number} friendUserId
    * @param {Request} req
    * @returns {Promise<{success: boolean}>}
@@ -43,8 +46,10 @@ export default {
       throw new BadRequestError('Invalid friend user id')
     }
     await query(
-      'DELETE FROM user_friend WHERE user_id=? AND friend_user_id=?',
-      [req.user.id, id]
+      `DELETE FROM user_friend
+       WHERE (user_id=? AND friend_user_id=?)
+          OR (user_id=? AND friend_user_id=?)`,
+      [req.user.id, id, id, req.user.id]
     )
     return { success: true }
   },

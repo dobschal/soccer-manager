@@ -70,17 +70,19 @@ describe('friends routes', () => {
   })
 
   describe('removeFriend', () => {
-    it('deletes the friend row', async () => {
+    it('deletes both directed friend rows so decline of an incoming request and removal of a mutual friend both work', async () => {
       query.mockResolvedValueOnce({ affectedRows: 1 })
 
       const req = createMockRequest({ user: { id: 1, username: 'me' } })
       const result = await handlers.removeFriend(42, req)
 
       expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith(
-        'DELETE FROM user_friend WHERE user_id=? AND friend_user_id=?',
-        [1, 42]
-      )
+      expect(query).toHaveBeenCalledTimes(1)
+      const [sql, params] = query.mock.calls[0]
+      expect(sql).toMatch(/DELETE FROM user_friend/)
+      expect(sql).toMatch(/user_id=\? AND friend_user_id=\?/)
+      expect(sql).toMatch(/OR/)
+      expect(params).toEqual([1, 42, 42, 1])
     })
 
     it('rejects unauthenticated calls', async () => {
