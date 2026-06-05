@@ -140,13 +140,30 @@ describe('FriendsPage', () => {
     expect(html).toContain('friends.noTeam')
   })
 
-  it('renders an invite-card at the bottom of the page', async () => {
+  it('renders an invite-card below the posts section', async () => {
     server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
     const page = new FriendsPage()
     await page.load()
     const html = page.template
     expect(html).toContain('invite-card')
     expect(html).toContain('referral.inviteFriendShort')
+    // Invite card must appear AFTER the posts section
+    expect(html.indexOf('invite-card')).toBeGreaterThan(html.indexOf('friend-posts-section'))
+  })
+
+  it('renders the post editor below the post list', async () => {
+    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+    server.getFriendPosts.mockReset()
+    server.getFriendPosts.mockResolvedValueOnce({
+      posts: [buildPost()],
+      page: 1,
+      total: 1,
+      totalPages: 1
+    })
+    const page = new FriendsPage()
+    await page.load()
+    const html = page.template
+    expect(html.indexOf('friend-post-editor')).toBeGreaterThan(html.indexOf('friend-post-list'))
   })
 
   it('marks a defeat with the danger color', async () => {

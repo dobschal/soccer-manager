@@ -49,10 +49,10 @@ export class FriendsPage extends UIElement {
       <div>
         <h3 class="mb-3"><i class="fa fa-users"></i> ${t('friends.title')}</h3>
         ${this._renderTable()}
+        ${this._renderPostsSection()}
         <div class="d-flex flex-column flex-md-row u-gap-md mt-4 dashboard-promo-row mb-4">
           ${this._renderInviteCard()}
         </div>
-        ${this._renderPostsSection()}
       </div>
     `
   }
@@ -81,9 +81,9 @@ export class FriendsPage extends UIElement {
               <th></th>
               <th>${t('friends.colName')}</th>
               <th>${t('friends.colClub')}</th>
+              <th>${t('friends.colLastGame')}</th>
               <th>${t('friends.colLeague')}</th>
               <th class="text-end">${t('friends.colPosition')}</th>
-              <th>${t('friends.colLastGame')}</th>
               <th class="text-end"></th>
             </tr>
           </thead>
@@ -142,9 +142,9 @@ export class FriendsPage extends UIElement {
         <td class="friends-avatar-cell">${avatarCell}</td>
         <td>${nameCell}</td>
         <td>${clubCell}</td>
+        <td>${lastGameCell}</td>
         <td>${leagueCell}</td>
         <td class="text-end">${positionCell}</td>
-        <td>${lastGameCell}</td>
         <td class="text-end">${actionsCell}</td>
       </tr>
     `
@@ -197,7 +197,7 @@ export class FriendsPage extends UIElement {
     const inviteId = generateId()
     onClick('#' + inviteId, () => showInviteFriendOverlay())
     return `
-      <div class="card card-body invite-card flex-fill mb-0">
+      <div class="card card-body bg-success-subtle invite-card flex-fill mb-0">
         <img src="assets/dashboard/user-invite.png" alt="" class="dashboard-promo-img">
         <h5 class="mb-2"><i class="fa fa-paper-plane"></i> ${t('referral.dashboardTitle')}</h5>
         <p class="text-muted mb-3">${t('referral.dashboardText')}</p>
@@ -214,8 +214,8 @@ export class FriendsPage extends UIElement {
     return `
       <div class="friend-posts-section">
         <h4 class="mb-3"><i class="fa fa-comments"></i> ${t('friendPosts.title')}</h4>
-        ${this._renderPostEditor()}
         ${this._renderPostList()}
+        ${this._renderPostEditor()}
       </div>
     `
   }
@@ -240,7 +240,7 @@ export class FriendsPage extends UIElement {
     }, 0)
 
     return `
-      <div class="friend-post-editor card card-body mb-3">
+      <div class="friend-post-editor card card-body mb-3 mt-2 bg-info-subtle">
         <textarea id="${textareaId}" class="form-control"
           placeholder="${t('friendPosts.postPlaceholder')}"
           maxlength="5000" rows="3"></textarea>
@@ -365,7 +365,10 @@ export class FriendsPage extends UIElement {
     }
     const reader = new FileReader()
     reader.onload = () => {
-      this._pendingPostImage = { data: reader.result, type: file.type }
+      this._pendingPostImage = {
+        data: reader.result,
+        type: file.type
+      }
       this._updatePreview(previewId)
     }
     reader.readAsDataURL(file)
@@ -414,7 +417,10 @@ export class FriendsPage extends UIElement {
 
   async _toggleLike (postId) {
     try {
-      const { liked, likeCount } = await server.toggleFriendPostLike(postId)
+      const {
+        liked,
+        likeCount
+      } = await server.toggleFriendPostLike(postId)
       const post = this._posts.find(p => p.id === postId)
       if (post) {
         post.likedByMe = liked

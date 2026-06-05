@@ -124,7 +124,7 @@ export class StartPage {
     const requestBtnId = generateId()
     onClick('#' + requestBtnId, () => showFeatureRequestOverlay())
     return `
-      <div class="card card-body community-card flex-fill mb-0">
+      <div class="card card-body community-card bg-warning-subtle flex-fill mb-0">
         <img src="assets/dashboard/feature-request.png" alt="" class="dashboard-promo-img">
         <h5 class="mb-2"><i class="fa fa-users"></i> ${t('dashboard.communityTitle')}</h5>
         <p class="text-muted mb-3">${t('dashboard.communityText')}</p>
@@ -144,12 +144,12 @@ export class StartPage {
     const inviteId = generateId()
     onClick('#' + inviteId, () => showInviteFriendOverlay())
     return `
-      <div class="card card-body invite-card flex-fill mb-0">
+      <div class="card card-body invite-card bg-success-subtle flex-fill mb-0">
         <img src="assets/dashboard/user-invite.png" alt="" class="dashboard-promo-img">
         <h5 class="mb-2"><i class="fa fa-paper-plane"></i> ${t('referral.dashboardTitle')}</h5>
         <p class="text-muted mb-3">${t('referral.dashboardText')}</p>
         <div class="mt-auto">
-          <button id="${inviteId}" type="button" class="btn btn-info btn-xl text-white">
+          <button id="${inviteId}" type="button" class="btn btn-info btn-xl w-100 text-white">
             <i class="fa fa-envelope"></i> ${t('referral.inviteFriendShort')}
           </button>
         </div>
@@ -169,7 +169,8 @@ export class StartPage {
           <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1" title="${t('dashboard.videoTitle')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen webkit-playsinline></iframe>
         </div>`
     return `
-      <div class="card card-body video-card flex-fill mb-0">
+      <div class="card card-body video-card bg-info-subtle flex-fill mb-0">
+        <img src="assets/dashboard/tutorial.png" alt="" class="dashboard-promo-img">
         <h5 class="mb-2"><i class="fa fa-youtube-play"></i> ${t('dashboard.videoTitle')}</h5>
         <p class="text-muted mb-3">${t('dashboard.videoText')}</p>
         <div class="mt-auto">

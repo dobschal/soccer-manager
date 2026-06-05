@@ -101,7 +101,10 @@ export class CupResultsPage extends UIElement {
           <i class="fa fa-info-circle me-1"></i>
           <b>${t('cup.infoTitle')}</b><br>
           ${t('cup.infoFormat', { totalRounds: this.cupTotalRounds })}
-          ${t('cup.infoPrize', { basePrize: euroFormat.format(25000), winnerPrize: euroFormat.format(2000000) })}
+          ${t('cup.infoPrize', {
+    basePrize: euroFormat.format(25000),
+    winnerPrize: euroFormat.format(2000000)
+  })}
         </div>
 
         <h3>${t('results.games')}</h3>
@@ -119,6 +122,7 @@ export class CupResultsPage extends UIElement {
         },
         { name: t('results.team2') }
       ],
+      classes: 'mb-4',
       renderRow: (result) => this._renderCupResultItem(result),
       data: this.cupResults,
       rowAttrs: (result) => `id="${result._rowId}"`
@@ -134,6 +138,7 @@ export class CupResultsPage extends UIElement {
       { name: t('results.team') },
       { name: t('player.cards') }
     ],
+    classes: 'mb-4',
     data: this.suspendedPlayers,
     renderRow: (player) => this._renderSuspendedPlayer(player),
     rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
@@ -150,6 +155,7 @@ export class CupResultsPage extends UIElement {
       { name: t('results.injuryType') },
       { name: t('results.daysLeft') }
     ],
+    classes: 'mb-4',
     data: this.injuredPlayers,
     renderRow: (player) => this._renderInjuredPlayer(player),
     rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
@@ -185,6 +191,7 @@ export class CupResultsPage extends UIElement {
   onMounted () {
     this._loadSuspendedPlayerImages()
   }
+
   _handleBracketTeamHover (event, enter) {
     const teamEl = event.target.closest('.cup-bracket-team[data-team-id]')
     if (!teamEl) return
@@ -194,7 +201,7 @@ export class CupResultsPage extends UIElement {
     const matches = root.querySelectorAll(`.cup-bracket-team[data-team-id="${teamId}"]`)
     matches.forEach(el => el.classList.toggle('cup-bracket-team--highlight', enter))
   }
-  
+
   _renderCupBracket () {
     const allBracketRounds = Object.keys(this.cupBracket || {})
       .map(Number)
@@ -263,7 +270,7 @@ export class CupResultsPage extends UIElement {
       </div>
     `
   }
-  
+
   _renderBracketMatch (game) {
     const isPlayed = game.played === 1
     const isBye = !game.team2 && !game.team2Id
@@ -311,8 +318,22 @@ export class CupResultsPage extends UIElement {
     `
   }
 
-  _renderBracketTeamRow ({ name, shortName, color, emblem, teamId, isMyTeam, goals, won, isPlayed }) {
-    const emblemHtml = `<span class="emblem-thumb cup-bracket-emblem">${renderEmblem({ name, color, emblem }, 20)}</span>`
+  _renderBracketTeamRow ({
+    name,
+    shortName,
+    color,
+    emblem,
+    teamId,
+    isMyTeam,
+    goals,
+    won,
+    isPlayed
+  }) {
+    const emblemHtml = `<span class="emblem-thumb cup-bracket-emblem">${renderEmblem({
+      name,
+      color,
+      emblem
+    }, 20)}</span>`
     const nameClasses = ['cup-bracket-team-name']
     if (won) nameClasses.push('cup-bracket-team-name--won')
     if (isMyTeam) nameClasses.push('text-info')
@@ -328,7 +349,7 @@ export class CupResultsPage extends UIElement {
       </div>
     `
   }
-  
+
   cupSeason = null
 
   cupRound = null
