@@ -263,11 +263,15 @@ export default {
  * @returns {Promise<number|null>} 1-based position or null
  */
 async function resolveLeaguePosition (teamId, level, league) {
+  // Most recent played league game for this (level, league). Pulling the row
+  // directly with ORDER BY ... LIMIT 1 avoids mixing MAX(game_day) with a
+  // non-aggregated `season` column, which strict mysql sql_mode (only_full_group_by)
+  // rejects.
   const [meta] = await query(
-    `SELECT MAX(game_day) AS lastDay, season
+    `SELECT game_day AS lastDay, season
      FROM game
      WHERE level=? AND league=? AND played=1 AND (game_type='league' OR game_type IS NULL)
-     ORDER BY season DESC
+     ORDER BY season DESC, game_day DESC
      LIMIT 1`,
     [level, league]
   )

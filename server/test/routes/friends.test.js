@@ -257,6 +257,40 @@ describe('friends routes', () => {
         message: 'Not authorized'
       })
     })
+
+    it('does not mix MAX(game_day) with a non-aggregated season column', async () => {
+      // Regression: strict mysql (sql_mode=only_full_group_by) rejects
+      //   SELECT MAX(game_day), season FROM game ...
+      // because `season` is not aggregated and no GROUP BY is given. The
+      // position-resolving query must use ORDER BY + LIMIT 1 instead.
+      const rows = [{
+        userId: 2,
+        username: 'alice',
+        avatar: null,
+        teamId: 10,
+        teamName: 'FC Alice',
+        teamShortName: 'ALI',
+        teamEmblem: 'em',
+        teamColor: '#fff',
+        teamLevel: 1,
+        teamLeague: 0,
+        isOutgoing: 1,
+        isIncoming: 0
+      }]
+      query
+        .mockResolvedValueOnce(rows)
+        .mockResolvedValueOnce([{ lastDay: 5, season: 3 }])
+        .mockResolvedValueOnce([])
+
+      const req = createMockRequest({ user: { id: 1, username: 'me' } })
+      await handlers.getFriendsOverview(req)
+
+      const positionSql = query.mock.calls[1][0]
+      expect(positionSql).not.toMatch(/SELECT\s+MAX\s*\(\s*game_day\s*\)[^,]*,\s*season/i)
+      // Sanity: should use ORDER BY ... LIMIT 1 over season + game_day instead.
+      expect(positionSql).toMatch(/ORDER BY\s+season\s+DESC,\s+game_day\s+DESC/i)
+      expect(positionSql).toMatch(/LIMIT\s+1/i)
+    })
   })
 
   describe('getFriendsLastGameDayGames', () => {
