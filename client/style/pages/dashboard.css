@@ -148,15 +148,32 @@
     object-fit: cover;
 }
 
+/* Matches .account-friend-avatar--default so the placeholder looks the
+ * same as on the account overlay (no padding, just a faint tint). */
 .friends-avatar--default {
-    background-color: #2a2a2a;
-    padding: 4px;
+    opacity: 0.7;
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .friends-emblem {
     display: inline-flex;
     width: 24px;
     height: 24px;
+}
+
+/* Table links: drop the underline / bottom border and render in info blue
+ * so the table reads as a list of links without visual noise. Bootstrap's
+ * .text-success / .text-danger keep their !important colour for the
+ * win/loss result link. */
+.friends-table a {
+    color: var(--bs-info);
+    border-bottom: none;
+    text-decoration: none;
+}
+
+.friends-table a:hover {
+    color: var(--bs-info);
+    text-decoration: underline;
 }
 
 /* Video thumbnail link (native app fallback for YouTube embed) */
