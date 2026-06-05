@@ -210,6 +210,65 @@ describe('ResultsPage', () => {
       expect(leaguePage.standing).toEqual(standing)
     })
 
+    it('picks up level/league from URL on first load', async () => {
+      // Regression: when navigating to #results?level=3&league=3 from another
+      // page, the query-changed event fires while the wrapper is still
+      // display:none mid-animation, so UIElement's visibility guard drops
+      // the applyQueryParams call. load() must therefore read the URL itself
+      // so the user lands on the right league on first paint instead of
+      // their own.
+      const { getQueryParams } = await import('../../lib/router.js')
+      getQueryParams.mockReturnValue({ level: '3', league: '3' })
+
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
+
+      server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
+      server.getResultsFilters.mockResolvedValue({ leagues: [], seasons: [1], matchDays: [1] })
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+      server.getTeamStats.mockResolvedValue({ teamStats: [] })
+      server.getInjuredPlayers.mockResolvedValue({ injuredPlayers: [] })
+      server.getLeagueStadiums.mockResolvedValue({ stadiums: [] })
+      server.getMatchDayRecap.mockResolvedValue(null)
+
+      const leaguePage = new LeagueResultsPage(parentPage)
+      await leaguePage.load()
+
+      expect(leaguePage.level).toBe(3)
+      expect(leaguePage.league).toBe(3)
+      // The standing fetch must use the URL level/league, not the user's team.
+      const standingCallArgs = server.getStanding.mock.calls.find(args => args[2] === 3 && args[3] === 3)
+      expect(standingCallArgs).toBeDefined()
+    })
+
+    it('falls back to user team level/league when URL has none', async () => {
+      const { getQueryParams } = await import('../../lib/router.js')
+      getQueryParams.mockReturnValue({})
+
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
+
+      server.getCurrentGameday.mockResolvedValue({ season: 1, gameDay: 5 })
+      server.getResultsFilters.mockResolvedValue({ leagues: [], seasons: [1], matchDays: [1] })
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+      server.getTeamStats.mockResolvedValue({ teamStats: [] })
+      server.getInjuredPlayers.mockResolvedValue({ injuredPlayers: [] })
+      server.getLeagueStadiums.mockResolvedValue({ stadiums: [] })
+      server.getMatchDayRecap.mockResolvedValue(null)
+
+      const leaguePage = new LeagueResultsPage(parentPage)
+      await leaguePage.load()
+
+      expect(leaguePage.level).toBe(1)
+      expect(leaguePage.league).toBe(0)
+    })
+
     it('template contains results and standing sections', async () => {
       const team = testData.team()
       const results = [
