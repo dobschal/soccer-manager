@@ -99,6 +99,7 @@ export async function showAccountOverlay () {
   let currentAvatar = teamData.user?.avatar || ''
   let currentEmail = teamData.user?.email || ''
   let currentPendingEmail = teamData.user?.pending_email || ''
+  let emailOptOut = !!teamData.user?.email_opt_out
   const username = teamData.user?.username || ''
   const isAdmin = teamData.isAdmin || false
   const version = versionData.version
@@ -131,6 +132,13 @@ export async function showAccountOverlay () {
         <button type="button" id="account-email-save" class="btn btn-info">${t('account.emailSave')}</button>
       </div>
       <small class="form-text text-muted">${t('account.emailHint')}</small>
+      <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" id="account-email-opt-out"${emailOptOut ? ' checked' : ''}>
+        <label class="form-check-label" for="account-email-opt-out">
+          ${t('account.emailOptOut')}
+        </label>
+        <div class="form-text text-muted">${t('account.emailOptOutHint')}</div>
+      </div>
     `
   }
 
@@ -320,6 +328,7 @@ export async function showAccountOverlay () {
   const bindEmailHandlers = () => {
     const saveBtn = el('#account-email-save')
     const input = el('#account-email-input')
+    const optOutCheckbox = el('#account-email-opt-out')
     if (!saveBtn || !input) return
     const submit = async () => {
       const email = input.value.trim()
@@ -345,6 +354,22 @@ export async function showAccountOverlay () {
         submit()
       }
     })
+    if (optOutCheckbox) {
+      optOutCheckbox.addEventListener('change', async () => {
+        const next = optOutCheckbox.checked
+        optOutCheckbox.disabled = true
+        try {
+          await server.setEmailOptOut(next)
+          emailOptOut = next
+          toast(t('account.emailOptOutUpdated'), 'success')
+        } catch (err) {
+          optOutCheckbox.checked = emailOptOut
+          showServerError(err)
+        } finally {
+          optOutCheckbox.disabled = false
+        }
+      })
+    }
   }
 
   const rerenderEmailSection = () => {

@@ -410,6 +410,25 @@ export default {
   },
 
   /**
+   * Toggle whether the user wants to receive marketing / release-notes emails.
+   * Transactional emails (password reset, email verification) are always sent
+   * regardless of this flag.
+   * @param {boolean} optOut
+   * @param {Request} req
+   * @returns {Promise<{ success: boolean }>}
+   */
+  async setEmailOptOut (optOut, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    const value = optOut ? 1 : 0
+    await query('UPDATE user SET email_opt_out=? WHERE id=?', [value, req.user.id])
+    clearUserCache(req.user.id)
+    return { success: true }
+  },
+
+  /**
    * Upload a profile picture for the current user. The image is cropped
    * to a centered square and resized to AVATAR_SIZE_PX before being
    * persisted under uploads/avatars/.

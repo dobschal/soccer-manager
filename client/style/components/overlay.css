@@ -56,7 +56,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     width: fit-content;
-    min-width: min(460px, 100%);
+    min-width: min(500px, 100%);
     margin: auto;
     animation-name: overlay-fade-in-2;
     animation-duration: 0.5s;

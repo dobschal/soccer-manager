@@ -320,6 +320,35 @@ describe('auth routes', () => {
     })
   })
 
+  describe('setEmailOptOut', () => {
+    it('persists opt-out flag as 1 when true', async () => {
+      query.mockResolvedValueOnce({})
+      const req = { locale: 'en', user: { id: 42 } }
+      const result = await handlers.setEmailOptOut(true, req)
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET email_opt_out=? WHERE id=?',
+        [1, 42]
+      )
+    })
+
+    it('persists opt-out flag as 0 when false', async () => {
+      query.mockResolvedValueOnce({})
+      const req = { locale: 'en', user: { id: 42 } }
+      await handlers.setEmailOptOut(false, req)
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE user SET email_opt_out=? WHERE id=?',
+        [0, 42]
+      )
+    })
+
+    it('rejects when not authenticated', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.setEmailOptOut(true, req))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+  })
+
   describe('verifyEmail', () => {
     it('promotes the pending email to verified on success', async () => {
       const expires = new Date(Date.now() + 60 * 1000)

@@ -83,7 +83,7 @@ export default {
     const notificationId = insert.insertId
 
     const users = await query(
-      'SELECT id, username, email, language FROM user WHERE email IS NOT NULL AND email <> ""'
+      'SELECT id, username, email, language FROM user WHERE email IS NOT NULL AND email <> "" AND email_opt_out = 0'
     )
 
     const imageUrl = `${config.PUBLIC_URL}/notification-image/${imageToken}`

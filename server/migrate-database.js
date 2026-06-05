@@ -2059,6 +2059,11 @@ const migrations = [{
       INDEX idx_user_device_uuid (device_uuid)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
   }
+}, {
+  name: 'Add email_opt_out column to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN email_opt_out TINYINT(1) NOT NULL DEFAULT 0')
+  }
 }]
 
 /**
