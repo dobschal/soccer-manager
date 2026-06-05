@@ -185,6 +185,9 @@ export default {
   'dashboard.tabStart': 'Start',
   'dashboard.tabCards': 'Aktionen',
   'dashboard.tabMessages': 'Nachrichten',
+  'dashboard.tabFriends': 'Freunde',
+  'dashboard.viewMessages': 'Meldungen anzeigen',
+  'dashboard.videoText': 'Lerne die wichtigsten Spielmechaniken in wenigen Minuten kennen.',
   'dashboard.communityTitle': 'Community-Driven',
   'dashboard.communityText': 'Dieses Spiel wird gemeinsam mit dir entwickelt. Reiche neue Feature-Wünsche ein, kommentiere bestehende Vorschläge und stimme darüber ab, was als Nächstes ins Spiel kommt.',
   'dashboard.communityCta': 'Zu den Feature-Requests',
@@ -198,8 +201,6 @@ export default {
   'dashboard.featureRequestSubmit': 'Vorschlag absenden',
   'dashboard.featureRequestCreated': 'Vorschlag erstellt!',
   'dashboard.featureRequestMissingFields': 'Bitte gib Titel und Beschreibung an.',
-  'dashboard.friendsTitle': 'Spiele deiner Freunde',
-
   // Stadium
   'stadium.title': 'Stadion',
   'stadium.yourStadium': 'Dein Stadion',
@@ -1379,5 +1380,20 @@ export default {
   'miniGame.topAllTime': 'Top 10 Gesamt',
   'miniGame.team': 'Team',
   'miniGame.manager': 'Manager',
-  'miniGame.leaderboardEmpty': 'Noch keine Ergebnisse. Sei der Erste!'
+  'miniGame.leaderboardEmpty': 'Noch keine Ergebnisse. Sei der Erste!',
+
+  // Friends sub-page (dashboard)
+  'friends.title': 'Freunde',
+  'friends.empty': 'Noch keine Freunde. Lade jemanden ein, um loszulegen!',
+  'friends.colName': 'Name',
+  'friends.colClub': 'Verein',
+  'friends.colLeague': 'Liga',
+  'friends.colPosition': 'Pos.',
+  'friends.colLastGame': 'Letztes Spiel',
+  'friends.colActions': '',
+  'friends.incoming': 'Anfrage',
+  'friends.accept': 'Annehmen',
+  'friends.decline': 'Ablehnen',
+  'friends.noTeam': 'Kein Verein',
+  'friends.vsShort': 'gg.'
 }

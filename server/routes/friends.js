@@ -1,6 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { getTotalRoundsForSeason } from '../helper/cupHelper.js'
+import { getCachedStanding } from '../helper/standingHelper.js'
 
 export default {
   /**
@@ -94,6 +95,82 @@ export default {
   },
 
   /**
+   * Return a rich overview of the current user's friend relationships for the
+   * Friends page. Includes outgoing accepted friends (where the user has
+   * added someone else) plus incoming-only requests (someone added the user
+   * but the user has not added them back). For each entry the team's league
+   * position and last played league/cup result are resolved so the table on
+   * the Friends page can render everything in a single request.
+   *
+   * @param {Request} req
+   * @returns {Promise<{entries: Array<object>}>}
+   */
+  async getFriendsOverview (req) {
+    if (!req.user) throw new UnauthorizedError('Not authorized')
+
+    const rows = await query(
+      `SELECT u.id          AS userId,
+              u.username    AS username,
+              u.avatar      AS avatar,
+              t.id          AS teamId,
+              t.name        AS teamName,
+              t.short_name  AS teamShortName,
+              t.emblem      AS teamEmblem,
+              t.color       AS teamColor,
+              t.level       AS teamLevel,
+              t.league      AS teamLeague,
+              (uf_out.user_id IS NOT NULL) AS isOutgoing,
+              (uf_in.user_id  IS NOT NULL) AS isIncoming
+       FROM user u
+       LEFT JOIN team t ON t.user_id = u.id
+       LEFT JOIN user_friend uf_out ON uf_out.user_id = ? AND uf_out.friend_user_id = u.id
+       LEFT JOIN user_friend uf_in  ON uf_in.user_id  = u.id AND uf_in.friend_user_id  = ?
+       WHERE uf_out.user_id IS NOT NULL OR uf_in.user_id IS NOT NULL
+       ORDER BY u.username ASC`,
+      [req.user.id, req.user.id]
+    )
+
+    const entries = await Promise.all(rows.map(async row => {
+      const isOutgoing = Boolean(row.isOutgoing)
+      const isIncoming = Boolean(row.isIncoming)
+      const status = isOutgoing && isIncoming
+        ? 'mutual'
+        : isOutgoing
+          ? 'outgoing'
+          : 'incoming'
+
+      let position = null
+      let lastGame = null
+      if (row.teamId) {
+        position = await resolveLeaguePosition(row.teamId, row.teamLevel, row.teamLeague)
+        lastGame = await resolveLastGame(row.teamId)
+      }
+
+      return {
+        userId: row.userId,
+        username: row.username,
+        avatar: row.avatar,
+        team: row.teamId
+          ? {
+            id: row.teamId,
+            name: row.teamName,
+            shortName: row.teamShortName,
+            emblem: row.teamEmblem,
+            color: row.teamColor,
+            level: row.teamLevel,
+            league: row.teamLeague
+          }
+          : null,
+        position,
+        lastGame,
+        status
+      }
+    }))
+
+    return { entries }
+  },
+
+  /**
    * Friends' league and cup games from the most recently played game day
    * (league or cup) across the user's friends. Used by the dashboard
    * "Friends" slider.
@@ -174,4 +251,67 @@ export default {
 
     return { games, totalRounds }
   }
+}
+
+/**
+ * Resolve a team's current league position using the standing cache if
+ * available, falling back to a fresh standings calculation if the cache row
+ * is missing.
+ * @param {number} teamId
+ * @param {number} level
+ * @param {number} league
+ * @returns {Promise<number|null>} 1-based position or null
+ */
+async function resolveLeaguePosition (teamId, level, league) {
+  const [meta] = await query(
+    `SELECT MAX(game_day) AS lastDay, season
+     FROM game
+     WHERE level=? AND league=? AND played=1 AND (game_type='league' OR game_type IS NULL)
+     ORDER BY season DESC
+     LIMIT 1`,
+    [level, league]
+  )
+  if (!meta || meta.lastDay == null) return null
+
+  const cached = await getCachedStanding(meta.lastDay, meta.season, level, league)
+  if (!cached) return null
+  const idx = cached.findIndex(entry => entry?.team?.id === teamId)
+  return idx >= 0 ? idx + 1 : null
+}
+
+/**
+ * Resolve a team's most recently played league or cup game.
+ * @param {number} teamId
+ * @returns {Promise<object|null>}
+ */
+async function resolveLastGame (teamId) {
+  const [game] = await query(
+    `SELECT g.id           AS id,
+            g.game_day     AS gameDay,
+            g.season       AS season,
+            g.goals_team_1 AS goalsTeam1,
+            g.goals_team_2 AS goalsTeam2,
+            g.game_type    AS gameType,
+            g.team_1_id    AS team1Id,
+            g.team_2_id    AS team2Id,
+            t1.name        AS team1Name,
+            t1.short_name  AS team1ShortName,
+            t1.emblem      AS team1Emblem,
+            t1.color       AS team1Color,
+            t2.name        AS team2Name,
+            t2.short_name  AS team2ShortName,
+            t2.emblem      AS team2Emblem,
+            t2.color       AS team2Color
+     FROM game g
+     JOIN team t1 ON t1.id = g.team_1_id
+     LEFT JOIN team t2 ON t2.id = g.team_2_id
+     WHERE g.played = 1
+       AND (g.game_type = 'league' OR g.game_type = 'cup' OR g.game_type IS NULL)
+       AND (g.team_1_id = ? OR g.team_2_id = ?)
+     ORDER BY g.season DESC, g.game_day DESC, g.id DESC
+     LIMIT 1`,
+    [teamId, teamId]
+  )
+  if (!game) return null
+  return game
 }

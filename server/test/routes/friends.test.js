@@ -9,8 +9,13 @@ vi.mock('../../helper/cupHelper.js', () => ({
   getTotalRoundsForSeason: vi.fn()
 }))
 
+vi.mock('../../helper/standingHelper.js', () => ({
+  getCachedStanding: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTotalRoundsForSeason } from '../../helper/cupHelper.js'
+import { getCachedStanding } from '../../helper/standingHelper.js'
 import handlers from '../../routes/friends.js'
 
 describe('friends routes', () => {
@@ -142,6 +147,115 @@ describe('friends routes', () => {
     it('rejects unauthenticated calls', async () => {
       const req = { user: null }
       await expect(handlers.getFriends(req)).rejects.toMatchObject({ message: 'Not authorized' })
+    })
+  })
+
+  describe('getFriendsOverview', () => {
+    it('returns mutual friends with team, position and last game', async () => {
+      const rows = [{
+        userId: 2,
+        username: 'alice',
+        avatar: 'a.jpg',
+        teamId: 10,
+        teamName: 'FC Alice',
+        teamShortName: 'ALI',
+        teamEmblem: 'em',
+        teamColor: '#fff',
+        teamLevel: 1,
+        teamLeague: 0,
+        isOutgoing: 1,
+        isIncoming: 1
+      }]
+      const lastGame = {
+        id: 99, gameDay: 5, season: 3, goalsTeam1: 2, goalsTeam2: 1,
+        gameType: 'league', team1Id: 10, team2Id: 20,
+        team1Name: 'FC Alice', team1ShortName: 'ALI', team1Emblem: 'em', team1Color: '#fff',
+        team2Name: 'FC Bob', team2ShortName: 'BOB', team2Emblem: 'em2', team2Color: '#000'
+      }
+      query
+        .mockResolvedValueOnce(rows)
+        .mockResolvedValueOnce([{ lastDay: 5, season: 3 }])
+        .mockResolvedValueOnce([lastGame])
+      getCachedStanding.mockResolvedValueOnce([
+        { team: { id: 7 } }, { team: { id: 10 } }, { team: { id: 11 } }
+      ])
+
+      const req = createMockRequest({ user: { id: 1, username: 'me' } })
+      const result = await handlers.getFriendsOverview(req)
+
+      expect(result.entries).toHaveLength(1)
+      const entry = result.entries[0]
+      expect(entry.userId).toBe(2)
+      expect(entry.username).toBe('alice')
+      expect(entry.status).toBe('mutual')
+      expect(entry.team).toEqual({
+        id: 10, name: 'FC Alice', shortName: 'ALI', emblem: 'em',
+        color: '#fff', level: 1, league: 0
+      })
+      expect(entry.position).toBe(2)
+      expect(entry.lastGame).toEqual(lastGame)
+    })
+
+    it('marks incoming-only requests with status incoming', async () => {
+      const rows = [{
+        userId: 3,
+        username: 'bob',
+        avatar: null,
+        teamId: null,
+        teamName: null,
+        teamShortName: null,
+        teamEmblem: null,
+        teamColor: null,
+        teamLevel: null,
+        teamLeague: null,
+        isOutgoing: 0,
+        isIncoming: 1
+      }]
+      query.mockResolvedValueOnce(rows)
+
+      const req = createMockRequest({ user: { id: 1, username: 'me' } })
+      const result = await handlers.getFriendsOverview(req)
+
+      expect(result.entries).toHaveLength(1)
+      expect(result.entries[0].status).toBe('incoming')
+      expect(result.entries[0].team).toBeNull()
+      expect(result.entries[0].position).toBeNull()
+      expect(result.entries[0].lastGame).toBeNull()
+    })
+
+    it('returns position null when standing cache is missing', async () => {
+      const rows = [{
+        userId: 2,
+        username: 'alice',
+        avatar: null,
+        teamId: 10,
+        teamName: 'FC Alice',
+        teamShortName: 'ALI',
+        teamEmblem: 'em',
+        teamColor: '#fff',
+        teamLevel: 1,
+        teamLeague: 0,
+        isOutgoing: 1,
+        isIncoming: 0
+      }]
+      query
+        .mockResolvedValueOnce(rows)
+        .mockResolvedValueOnce([{ lastDay: 5, season: 3 }])
+        .mockResolvedValueOnce([])
+      getCachedStanding.mockResolvedValueOnce(null)
+
+      const req = createMockRequest({ user: { id: 1, username: 'me' } })
+      const result = await handlers.getFriendsOverview(req)
+
+      expect(result.entries[0].position).toBeNull()
+      expect(result.entries[0].status).toBe('outgoing')
+    })
+
+    it('rejects unauthenticated calls', async () => {
+      const req = { user: null }
+      await expect(handlers.getFriendsOverview(req)).rejects.toMatchObject({
+        message: 'Not authorized'
+      })
     })
   })
 

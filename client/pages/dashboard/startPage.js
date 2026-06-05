@@ -20,11 +20,11 @@ export class StartPage {
    * @param {object} options.team
    * @param {Array} options.cupGames
    * @param {Array} options.friendlyGames
-   * @param {Array} [options.friendsGames]
    * @param {boolean} options.canPlayFriendly
    * @param {Array} options.standing
    * @param {number} options.teamPosition
    * @param {Array} options.urgencies
+   * @param {number} [options.newMessageCount]
    */
   constructor ({
     sliderGames,
@@ -32,22 +32,22 @@ export class StartPage {
     team,
     cupGames,
     friendlyGames,
-    friendsGames,
     canPlayFriendly,
     standing,
     teamPosition,
-    urgencies
+    urgencies,
+    newMessageCount
   }) {
     this._sliderGames = sliderGames
     this._initialSlideIndex = initialSlideIndex
     this.team = team
     this._cupGames = cupGames
     this._friendlyGames = friendlyGames
-    this._friendsGames = friendsGames || []
     this._canPlayFriendly = canPlayFriendly
     this.standing = standing
     this.teamPosition = teamPosition
     this._urgencies = urgencies
+    this._newMessageCount = newMessageCount || 0
   }
 
   /**
@@ -58,7 +58,6 @@ export class StartPage {
     const leagueCardId = generateId()
     const cupCardId = generateId()
     const friendlyCardId = generateId()
-    const friendsCardId = generateId()
     const gameSliderArgs = {
       games: this._sliderGames,
       teamId: this.team.id,
@@ -84,7 +83,6 @@ export class StartPage {
             <h5 class="mb-2 text-center text-white"><i class="fa fa-handshake-o"></i> ${t('friendly.title')}</h5>
             ${this._renderFriendlyGames(friendlyCardId)}
           </div>
-          ${this._renderFriendsGamesCard(friendsCardId)}
         </div>
         <div class="u-w-lg-33 u-w-100 flex-shrink-0 text-center order-1 order-lg-2 mb-3 mb-lg-0">
           <a href="#team?id=${this.team.id}" class="text-decoration-none">
@@ -94,17 +92,31 @@ export class StartPage {
           ${this._renderMiniStanding()}
           <h5 class="mb-2 mt-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')}</h5>
           ${this._renderUrgencyChecklist()}
+          ${this._renderMessagesLink()}
         </div>
       </div>
       <div class="d-flex flex-column flex-md-row u-gap-md mt-3 dashboard-promo-row">
         ${this._renderCommunityCard()}
         ${this._renderInviteCard()}
+        ${this._renderVideoCard()}
       </div>
-      ${this._renderVideoCard()}
       <p class="text-center text-muted mt-3 mb-0 pb-4">
         <i class="fa fa-coffee"></i> Support me and buy me a coffee:
         <a id="${coffeeId}" href="https://buymeacoffee.com/dobschal" target="_blank" rel="noopener" class="buy-me-a-coffee-link">buymeacoffee.com/dobschal</a>
       </p>
+    `
+  }
+
+  _renderMessagesLink () {
+    const badge = this._newMessageCount > 0
+      ? ` <span class="badge rounded-pill bg-danger">${this._newMessageCount}</span>`
+      : ''
+    return `
+      <div class="mt-2 text-center text-lg-start">
+        <a href="#dashboard?sub_page=messages" class="text-decoration-none small">
+          <i class="fa fa-envelope me-1"></i>${t('dashboard.viewMessages')}${badge}
+        </a>
+      </div>
     `
   }
 
@@ -157,9 +169,12 @@ export class StartPage {
           <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1" title="${t('dashboard.videoTitle')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen webkit-playsinline></iframe>
         </div>`
     return `
-      <div class="card card-body mb-2 mt-3">
-        <h5 class="mb-2 text-center"><i class="fa fa-youtube-play"></i> ${t('dashboard.videoTitle')}</h5>
-        ${videoContent}
+      <div class="card card-body video-card flex-fill mb-0">
+        <h5 class="mb-2"><i class="fa fa-youtube-play"></i> ${t('dashboard.videoTitle')}</h5>
+        <p class="text-muted mb-3">${t('dashboard.videoText')}</p>
+        <div class="mt-auto">
+          ${videoContent}
+        </div>
       </div>
     `
   }
@@ -296,30 +311,6 @@ export class StartPage {
     }
 
     return `${new GameSlider(friendlySliderArgs)}${playButton}`
-  }
-
-  /**
-   * Render the "Friends' last gameday matches" card. Hidden entirely when the
-   * user has no friends with played games.
-   * @param {string} cardId
-   * @returns {string}
-   */
-  _renderFriendsGamesCard (cardId) {
-    if (!this._friendsGames || this._friendsGames.length === 0) return ''
-
-    const friendsSliderArgs = {
-      games: this._friendsGames,
-      teamId: this.team.id,
-      initialIndex: this._friendsGames.length - 1,
-      cardId
-    }
-
-    return `
-      <div id="${cardId}" class="card card-body mb-2 bg-dark">
-        <h5 class="mb-2 text-center text-white"><i class="fa fa-users"></i> ${t('dashboard.friendsTitle')}</h5>
-        ${new GameSlider(friendsSliderArgs)}
-      </div>
-    `
   }
 
   /**

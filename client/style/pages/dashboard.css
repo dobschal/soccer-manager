@@ -117,6 +117,48 @@
     margin: 0 1rem 0.5rem 0;
 }
 
+/* Equal-width three-card row at the bottom of the dashboard. Cards must size
+ * 1/3 each on desktop and stack on mobile. flex-basis: 0 prevents the wider
+ * cards (e.g. the one containing the video iframe) from claiming extra space. */
+.dashboard-promo-row > .card {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.dashboard-promo-row .dashboard-promo-img {
+    height: 140px;
+    margin: 0 auto 0.75rem;
+    display: block;
+}
+
+.video-card .ratio {
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Friends sub-page table */
+.friends-table .friends-avatar-cell {
+    width: 56px;
+}
+
+.friends-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.friends-avatar--default {
+    background-color: #2a2a2a;
+    padding: 4px;
+}
+
+.friends-emblem {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+}
+
 /* Video thumbnail link (native app fallback for YouTube embed) */
 .video-thumbnail-link {
     position: relative;
