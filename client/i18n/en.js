@@ -1400,6 +1400,23 @@ export default {
   'friends.noTeam': 'No club',
   'friends.vsShort': 'vs.',
 
+  // Friend posts on the Friends sub-page
+  'friendPosts.title': 'Posts',
+  'friendPosts.empty': 'No posts yet. Be the first to share something with your friends!',
+  'friendPosts.postPlaceholder': 'Share something with your friends…',
+  'friendPosts.commentPlaceholder': 'Write a comment…',
+  'friendPosts.addImage': 'Add image',
+  'friendPosts.send': 'Send',
+  'friendPosts.like': 'Like',
+  'friendPosts.comments': 'Comments',
+  'friendPosts.commentsTitle': 'Comments',
+  'friendPosts.noComments': 'No comments yet.',
+  'friendPosts.loadingComments': 'Loading comments…',
+  'friendPosts.emptyText': 'Please write something before sending.',
+  'friendPosts.invalidImage': 'Please choose a valid image file.',
+  'friendPosts.imageTooLarge': 'Image is too large (max 2MB).',
+  'friendPosts.page': 'Page',
+
   // Head-to-head overlay
   'headToHead.cta': 'Head-to-Head',
   'headToHead.title': 'Head-to-Head',

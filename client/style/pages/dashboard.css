@@ -247,3 +247,206 @@
     color: rgba(0, 0, 0, 0.75);
     margin-bottom: 0.5rem;
 }
+
+/* ==========================================================================
+   Friends sub-page: posts section
+   ========================================================================== */
+
+.friend-posts-section {
+    margin-top: 1.5rem;
+}
+
+.friend-post-editor textarea {
+    resize: vertical;
+}
+
+.friend-post-editor-preview {
+    margin-top: 0.5rem;
+}
+
+.friend-post-preview-item {
+    position: relative;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.friend-post-preview-item img {
+    max-width: 160px;
+    max-height: 160px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.friend-post-preview-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    cursor: pointer;
+}
+
+.friend-post-editor-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
+.friend-post-image-btn {
+    margin-bottom: 0;
+}
+
+.friend-post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.friend-post {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem;
+}
+
+.friend-post--no-image {
+    flex-direction: column;
+}
+
+.friend-post-image-wrap {
+    flex: 0 0 200px;
+    max-width: 200px;
+}
+
+.friend-post-image {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    object-fit: cover;
+    display: block;
+}
+
+.friend-post-content {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.friend-post-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.friend-post-author-link {
+    color: var(--bs-info);
+    text-decoration: none;
+}
+
+.friend-post-author-link:hover {
+    text-decoration: underline;
+}
+
+.friend-post-text {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    margin-bottom: 0.75rem;
+}
+
+.friend-post-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.friend-post-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.friend-post-pagination-label {
+    color: rgba(0, 0, 0, 0.7);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 575.98px) {
+    .friend-post {
+        flex-direction: column;
+    }
+    .friend-post-image-wrap {
+        flex: 0 0 auto;
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+/* Comments overlay */
+.friend-post-comments-list {
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 1rem;
+}
+
+.friend-post-comment {
+    display: flex;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.friend-post-comment:last-child {
+    border-bottom: none;
+}
+
+.friend-post-comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: 0 0 32px;
+}
+
+.friend-post-comment-avatar--default {
+    opacity: 0.7;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.friend-post-comment-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.friend-post-comment-meta {
+    font-size: 0.85rem;
+    margin-bottom: 0.15rem;
+}
+
+.friend-post-comment-team {
+    color: var(--bs-info);
+    text-decoration: none;
+}
+
+.friend-post-comment-team:hover {
+    text-decoration: underline;
+}
+
+.friend-post-comment-text {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.friend-post-comment-form {
+    display: flex;
+    flex-direction: column;
+}
