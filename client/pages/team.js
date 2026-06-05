@@ -6,6 +6,7 @@ import { renderEmblem } from '../partials/emblem.js'
 import { UIElement } from '../lib/UIElement.js'
 import { formatCupRound, formatLeague } from '../util/league.js'
 import { showStadiumModal } from '../partials/stadiumModal.js'
+import { showHeadToHeadOverlay } from '../partials/headToHeadOverlay.js'
 import { euroFormat } from '../lib/currency.js'
 import { t } from '../i18n/index.js'
 import { toast } from '../partials/toast.js'
@@ -180,6 +181,12 @@ export class TeamPage extends UIElement {
         click: (event) => {
           event.preventDefault()
           this._handleFriendlyMatchClick()
+        }
+      },
+      '(optional) .head-to-head-btn': {
+        click: (event) => {
+          event.preventDefault()
+          this._handleHeadToHeadClick()
         }
       },
       '(optional) .friend-toggle-btn': {
@@ -414,6 +421,9 @@ export class TeamPage extends UIElement {
         <button class="btn btn-outline-info friendly-match-btn" ${friendlyDisabled ? 'disabled' : ''} title="${friendlyTitle}">
           ${friendlyText}
         </button>
+        <button class="btn btn-outline-info head-to-head-btn">
+          <i class="fa fa-balance-scale"></i> ${t('headToHead.cta')}
+        </button>
         ${this._renderFriendToggleButton()}
       </div>
     `
@@ -482,6 +492,21 @@ export class TeamPage extends UIElement {
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
       this._isPlayingFriendly = false
       await this.update()
+    }
+  }
+
+  /**
+   * Open the head-to-head overlay comparing my team against this one.
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _handleHeadToHeadClick () {
+    try {
+      const my = await server.getMyTeam()
+      if (!my?.team?.id || my.team.id === this.team.id) return
+      await showHeadToHeadOverlay(my.team.id, this.team.id)
+    } catch (e) {
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
   }
 

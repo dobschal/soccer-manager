@@ -2045,6 +2045,20 @@ const migrations = [{
       INDEX idx_forum_mention_post (post_id)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
   }
+}, {
+  name: 'Create user_device table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS user_device (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT(20) NOT NULL,
+      device_uuid VARCHAR(64) NOT NULL,
+      first_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_user_device (user_id, device_uuid),
+      INDEX idx_user_device_uuid (device_uuid)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
+  }
 }]
 
 /**

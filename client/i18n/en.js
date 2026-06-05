@@ -1350,6 +1350,7 @@ export default {
   'admin.suspiciousActionsUser1': 'User & Club 1',
   'admin.suspiciousActionsUser2': 'User & Club 2',
   'admin.fraudDescSharedIp': 'Shared IP address ({ip})',
+  'admin.fraudDescSharedDevice': 'Login from the same device',
   'admin.fraudDescFrequentTrades': '{count} trades within {days} days',
   'admin.fraudDescUndervaluedTrade': 'Sold {percent}% under value (price {price}, value ~{value})',
   'admin.fraudDescOvervaluedTrade': 'Sold {percent}% over value (price {price}, value ~{value})',
@@ -1395,5 +1396,20 @@ export default {
   'friends.accept': 'Accept',
   'friends.decline': 'Decline',
   'friends.noTeam': 'No club',
-  'friends.vsShort': 'vs.'
+  'friends.vsShort': 'vs.',
+
+  // Head-to-head overlay
+  'headToHead.cta': 'Head-to-Head',
+  'headToHead.title': 'Head-to-Head',
+  'headToHead.wins': 'Wins',
+  'headToHead.draws': 'Draws',
+  'headToHead.losses': 'Losses',
+  'headToHead.goals': 'Goals',
+  'headToHead.noGames': 'No previous matches between these teams.',
+  'headToHead.totalGames': '{count} previous meetings',
+  'headToHead.colSeason': 'Season',
+  'headToHead.colType': 'Type',
+  'headToHead.colResult': 'Result',
+  'headToHead.league': 'League',
+  'headToHead.seasonShort': 'S.'
 }

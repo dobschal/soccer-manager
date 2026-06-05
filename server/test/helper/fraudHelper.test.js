@@ -28,6 +28,25 @@ describe('fraudHelper._approxMarketValueByLevel', () => {
   })
 })
 
+describe('fraudHelper._approxMarketValue (with age)', () => {
+  it('matches the level-only value when no age data is available', () => {
+    expect(__testing._approxMarketValue(100, null, null)).toBe(40_000_000)
+  })
+
+  it('depreciates by 15% per year above 22', () => {
+    // age = tradeSeason - carrierStartSeason + 16
+    const v22 = __testing._approxMarketValue(100, 6, 0)   // age 22
+    const v26 = __testing._approxMarketValue(100, 10, 0)  // age 26
+    expect(v22).toBe(40_000_000)
+    // four years of × 0.85
+    expect(v26 / v22).toBeCloseTo(0.85 ** 4, 2)
+  })
+
+  it('returns null for null level', () => {
+    expect(__testing._approxMarketValue(null, 10, 0)).toBe(null)
+  })
+})
+
 describe('fraudHelper.getSuspiciousActions', () => {
   it('returns an empty result when no detectors trigger', async () => {
     // 3 detectors → 3 query batches. Each returns an empty set.
@@ -46,6 +65,8 @@ describe('fraudHelper.getSuspiciousActions', () => {
         { user_id: 2, username: 'bob', last_login: '2026-06-02T10:00:00Z', team_name: 'FC Bob', ip_web: '1.2.3.4', ip_ios: null, ip_android: null },
         { user_id: 3, username: 'carol', last_login: '2026-06-01T10:00:00Z', team_name: 'FC Carol', ip_web: '9.9.9.9', ip_ios: null, ip_android: null }
       ])
+      // _detectSharedDevice
+      .mockResolvedValueOnce([])
       // _detectFrequentTrades
       .mockResolvedValueOnce([])
       // _detectPriceDeviation
@@ -64,6 +85,31 @@ describe('fraudHelper.getSuspiciousActions', () => {
     })
   })
 
+  it('flags pairs of users sharing the same device UUID', async () => {
+    query
+      // _detectSharedIp
+      .mockResolvedValueOnce([])
+      // _detectSharedDevice
+      .mockResolvedValueOnce([
+        { device_uuid: 'dev-aaa', user_id: 1, username: 'alice', team_name: 'FC Alice', last_seen: '2026-06-05T10:00:00Z' },
+        { device_uuid: 'dev-aaa', user_id: 2, username: 'bob', team_name: 'FC Bob', last_seen: '2026-06-04T10:00:00Z' }
+      ])
+      // _detectFrequentTrades
+      .mockResolvedValueOnce([])
+      // _detectPriceDeviation
+      .mockResolvedValueOnce([])
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(1)
+    expect(result.rows[0]).toMatchObject({
+      type: 'shared_device',
+      description_key: 'admin.fraudDescSharedDevice',
+      user1: { username: 'alice', team_name: 'FC Alice' },
+      user2: { username: 'bob', team_name: 'FC Bob' }
+    })
+  })
+
   it('emits one event per pair when more than two users share an IP', async () => {
     query
       .mockResolvedValueOnce([
@@ -71,6 +117,7 @@ describe('fraudHelper.getSuspiciousActions', () => {
         { user_id: 2, username: 'b', last_login: '2026-06-02T10:00:00Z', team_name: 'B', ip_web: '1.1.1.1', ip_ios: null, ip_android: null },
         { user_id: 3, username: 'c', last_login: '2026-06-01T10:00:00Z', team_name: 'C', ip_web: '1.1.1.1', ip_ios: null, ip_android: null }
       ])
+      .mockResolvedValueOnce([]) // _detectSharedDevice
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
 
@@ -87,6 +134,8 @@ describe('fraudHelper.getSuspiciousActions', () => {
     // last in the mock sequence.
     query
       // _detectSharedIp
+      .mockResolvedValueOnce([])
+      // _detectSharedDevice
       .mockResolvedValueOnce([])
       // _detectFrequentTrades aggregate
       .mockResolvedValueOnce([
@@ -114,8 +163,9 @@ describe('fraudHelper.getSuspiciousActions', () => {
 
   it('flags trades priced well below the player market value', async () => {
     query
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]) // _detectSharedIp
+      .mockResolvedValueOnce([]) // _detectSharedDevice
+      .mockResolvedValueOnce([]) // _detectFrequentTrades
       .mockResolvedValueOnce([
         {
           price: 100,
@@ -143,8 +193,38 @@ describe('fraudHelper.getSuspiciousActions', () => {
     expect(result.rows[0].description_params.value).toBe(40_000_000)
   })
 
+  it('does not flag aged players whose fair value is well below the level-only estimate', async () => {
+    // A level-100 age-30 player: level-only value is 40M, but real value
+    // after 8 years of × 0.85 is ~9.06M. Selling for 5M is 45% under the
+    // real value — within the 50% threshold — and must NOT trigger.
+    query
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          price: 5_500_000,
+          player_level: 100,
+          trade_season: 14,
+          carrier_start_season: 0, // age = 14 - 0 + 16 = 30
+          created_at: '2026-06-03T09:00:00Z',
+          from_team_name: 'Seller FC',
+          from_user_id: 1,
+          from_username: 'seller',
+          to_team_name: 'Buyer FC',
+          to_user_id: 2,
+          to_username: 'buyer'
+        }
+      ])
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(0)
+  })
+
   it('flags trades priced well above the player market value', async () => {
     query
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -171,6 +251,7 @@ describe('fraudHelper.getSuspiciousActions', () => {
     query
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           price: 30_000_000,
@@ -192,6 +273,7 @@ describe('fraudHelper.getSuspiciousActions', () => {
 
   it('skips price deviation on low-value players to avoid noise', async () => {
     query
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -222,6 +304,7 @@ describe('fraudHelper.getSuspiciousActions', () => {
         { user_id: 3, username: 'c', last_login: '2026-06-04T00:00:00Z', team_name: 'C', ip_web: '2.2.2.2', ip_ios: null, ip_android: null },
         { user_id: 4, username: 'd', last_login: '2026-06-05T00:00:00Z', team_name: 'D', ip_web: '2.2.2.2', ip_ios: null, ip_android: null }
       ])
+      .mockResolvedValueOnce([]) // _detectSharedDevice
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
 
@@ -243,6 +326,7 @@ describe('fraudHelper.getSuspiciousActions', () => {
         { user_id: 1, username: 'a', last_login: '2026-06-03T10:00:00Z', team_name: 'A', ip_web: '1.1.1.1', ip_ios: null, ip_android: null },
         { user_id: 2, username: 'b', last_login: '2026-06-02T10:00:00Z', team_name: 'B', ip_web: '1.1.1.1', ip_ios: null, ip_android: null }
       ])
+      .mockResolvedValueOnce([]) // _detectSharedDevice
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
 

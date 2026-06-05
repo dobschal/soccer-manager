@@ -261,16 +261,26 @@ export default {
    * @param {string} username
    * @param {string} password
    * @param {string|Request} platformOrReq - platform string ('web'|'ios'|'android') or req if old client
+   * @param {string|Request} [deviceUuidOrReq] - device UUID from localStorage, or req if old client
    * @param {Request} [maybeReq]
    * @returns {Promise<{ token: string }>}
    */
-  async login (username, password, platformOrReq, maybeReq) {
-    let platform, req
+  async login (username, password, platformOrReq, deviceUuidOrReq, maybeReq) {
+    let platform, deviceUuid, req
     if (typeof platformOrReq === 'string') {
       platform = platformOrReq
-      req = maybeReq
+      // Newer clients send (username, password, platform, deviceUuid, req).
+      // Older "platform-aware" clients only send (username, password, platform, req).
+      if (typeof deviceUuidOrReq === 'string') {
+        deviceUuid = deviceUuidOrReq
+        req = maybeReq
+      } else {
+        deviceUuid = null
+        req = deviceUuidOrReq
+      }
     } else {
       platform = 'web'
+      deviceUuid = null
       req = platformOrReq
     }
     const locale = req.locale || 'en'
@@ -296,6 +306,14 @@ export default {
       `UPDATE user SET last_login = ?, ${platformColumn} = ?, ${ipCol} = ?, ${countryCol} = ?, ${regionCol} = ? WHERE id = ?`,
       [now, now, geo.ip, geo.country, geo.region, user.id]
     )
+    if (typeof deviceUuid === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(deviceUuid)) {
+      await query(
+        `INSERT INTO user_device (user_id, device_uuid, first_seen, last_seen)
+         VALUES (?, ?, NOW(), NOW())
+         ON DUPLICATE KEY UPDATE last_seen = NOW()`,
+        [user.id, deviceUuid]
+      )
+    }
     const token = jwt.sign({ sub: user.id }, config.SECRET)
     return { token }
   },

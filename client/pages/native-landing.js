@@ -7,6 +7,7 @@ import { t } from '../i18n/index.js'
 import { connectWebSocket } from '../lib/websocket.js'
 import { sendLog } from '../lib/clientLogger.js'
 import { isValidEmail } from '../lib/emailRegex.js'
+import { getDeviceUuid } from '../lib/deviceUuid.js'
 
 async function _registerDeviceToken () {
   const token = window.__nativeDeviceToken
@@ -142,14 +143,14 @@ export class NativeLandingPage extends UIElement {
         }
         await server.createAccount(username, password, email.trim())
         toast(t('landing.registrationSuccess'), 'success')
-        const { token } = await server.login(username, password, platform)
+        const { token } = await server.login(username, password, platform, getDeviceUuid())
         window.localStorage.setItem('auth-token', token)
         clearHasTeamCache()
         connectWebSocket()
         await _registerDeviceToken()
         goTo('')
       } else {
-        const { token } = await server.login(username, password, platform)
+        const { token } = await server.login(username, password, platform, getDeviceUuid())
         window.localStorage.setItem('auth-token', token)
         clearHasTeamCache()
         connectWebSocket()

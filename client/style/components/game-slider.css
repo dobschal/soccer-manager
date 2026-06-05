@@ -13,17 +13,28 @@
     text-decoration: none;
 }
 
+/* Native horizontal scroll-snap: swiping moves content like a real scroll,
+ * not a step-transition. Slide stops are enforced with scroll-snap-align so
+ * each game ends up centered. Scrollbar hidden so the experience matches
+ * the previous "carousel" look. */
 .game-slider-track {
     position: relative;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.game-slider-track::-webkit-scrollbar {
+    display: none;
 }
 
 .game-slider-slide {
-    display: none;
-    animation: slide-fade-in 0.3s ease-out;
-}
-
-.game-slider-slide.active {
-    display: block;
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    min-width: 0;
 }
 
 /* Navigation Buttons */

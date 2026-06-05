@@ -87,7 +87,7 @@ export class GameSlider extends UIElement {
       })
 
       return `
-        <div id="${slideId}" class="game-slider-slide ${isActive ? 'active' : ''}" data-index="${index}">
+        <div id="${slideId}" class="game-slider-slide${isActive ? ' active' : ''}" data-index="${index}">
           ${slideContent}
         </div>
       `
@@ -119,12 +119,13 @@ export class GameSlider extends UIElement {
     `
   }
   onMounted () {
-    this._setupTouchSwipe()
+    this._setupScrollSnap()
     this._startCountdownTimer()
     this._updateCardGradient()
   }
   onDestroy () {
     this._stopCountdownTimer()
+    this._teardownScrollSnap()
   }
   _sliderId = generateId()
   
@@ -281,7 +282,7 @@ export class GameSlider extends UIElement {
   }
 
   /**
-   * Navigate the slider by a given offset
+   * Navigate the slider by a given offset by smoothly scrolling the track.
    * @param {number} offset - Direction to move (-1 for prev, 1 for next)
    */
   _navigate (offset) {
@@ -291,29 +292,42 @@ export class GameSlider extends UIElement {
   }
 
   /**
-   * Jump to a specific slide
+   * Jump to a specific slide. Uses the native scrolling track so the user
+   * sees a smooth horizontal scroll instead of a jump cut.
    * @param {number} index - Target slide index
    */
   _goToSlide (index) {
     if (index < 0 || index >= this._games.length) return
-    if (index === this._sliderIndex) return
+    const slider = el('#' + this._sliderId)
+    if (!slider) return
+    const track = slider.querySelector('.game-slider-track')
+    if (!track) return
+    const slides = track.querySelectorAll('.game-slider-slide')
+    const target = slides[index]
+    if (!target) return
+    track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' })
+    // _setActiveIndex will run from the scroll listener once the scroll
+    // settles, but pre-update indicator state right away so the click feels
+    // responsive on slow devices.
+    this._setActiveIndex(index)
+  }
 
+  /**
+   * Update internal index + indicator / active classes + card gradient.
+   * @param {number} index
+   */
+  _setActiveIndex (index) {
+    if (index === this._sliderIndex) return
     this._sliderIndex = index
 
     const slider = el('#' + this._sliderId)
     if (!slider) return
 
-    // Update slides
     const slides = slider.querySelectorAll('.game-slider-slide')
-    slides.forEach((slide, idx) => {
-      slide.classList.toggle('active', idx === index)
-    })
+    slides.forEach((slide, idx) => slide.classList.toggle('active', idx === index))
 
-    // Update indicators
     const indicators = slider.querySelectorAll('.game-slider-indicator')
-    indicators.forEach((indicator, idx) => {
-      indicator.classList.toggle('active', idx === index)
-    })
+    indicators.forEach((indicator, idx) => indicator.classList.toggle('active', idx === index))
 
     this._updateCardGradient()
   }
@@ -341,81 +355,53 @@ export class GameSlider extends UIElement {
   }
 
   /**
-   * Sets up touch swipe navigation for touch devices
+   * Wire up the native horizontal scroll-snap track:
+   * - Position to the initial slide without animation.
+   * - Listen for scroll events and recompute the active slide based on the
+   *   nearest slide centre, so the indicators / gradient stay in sync as the
+   *   user swipes.
    */
-  _setupTouchSwipe () {
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    if (!isTouchDevice) return
-
+  _setupScrollSnap () {
     const slider = el('#' + this._sliderId)
     if (!slider) return
+    const track = slider.querySelector('.game-slider-track')
+    if (!track) return
+    const slides = track.querySelectorAll('.game-slider-slide')
+    const initial = slides[this._initialIndex]
+    if (initial) {
+      // Jump (no smooth scroll) so the first paint already shows the right slide.
+      track.scrollLeft = initial.offsetLeft
+    }
+    let scrollTimer = null
+    this._onScroll = () => {
+      if (scrollTimer) clearTimeout(scrollTimer)
+      // Debounce until the snap finishes, then read the centred slide.
+      scrollTimer = setTimeout(() => {
+        const trackRect = track.getBoundingClientRect()
+        const trackCentre = trackRect.left + trackRect.width / 2
+        let closestIdx = 0
+        let closestDist = Infinity
+        slides.forEach((slide, idx) => {
+          const slideRect = slide.getBoundingClientRect()
+          const slideCentre = slideRect.left + slideRect.width / 2
+          const dist = Math.abs(slideCentre - trackCentre)
+          if (dist < closestDist) {
+            closestDist = dist
+            closestIdx = idx
+          }
+        })
+        this._setActiveIndex(closestIdx)
+      }, 80)
+    }
+    track.addEventListener('scroll', this._onScroll, { passive: true })
+    this._scrollTrackRef = track
+  }
 
-    let touchStartX = 0
-    let touchStartY = 0
-    let touchEndX = 0
-    let touchEndY = 0
-    let touchStartTime = 0
-    let touchTarget = null
-    const swipeThreshold = 50
-    const tapThreshold = 10 // Max movement for a tap
-    const tapMaxDuration = 300 // Max duration in ms for a tap
-
-    slider.addEventListener('touchstart', (e) => {
-      touchStartX = e.touches[0].clientX
-      touchStartY = e.touches[0].clientY
-      touchEndX = touchStartX
-      touchEndY = touchStartY
-      touchStartTime = Date.now()
-      touchTarget = e.target
-    }, { passive: true })
-
-    slider.addEventListener('touchmove', (e) => {
-      touchEndX = e.touches[0].clientX
-      touchEndY = e.touches[0].clientY
-    }, { passive: true })
-
-    slider.addEventListener('touchend', () => {
-      const deltaX = touchEndX - touchStartX
-      const deltaY = touchEndY - touchStartY
-      const touchDuration = Date.now() - touchStartTime
-
-      if (Math.abs(deltaX) > swipeThreshold) {
-        if (deltaX < 0) {
-          // Swipe left → next
-          this._navigate(1)
-        } else {
-          // Swipe right → previous
-          this._navigate(-1)
-        }
-      } else if (
-        touchTarget &&
-        Math.abs(deltaX) < tapThreshold &&
-        Math.abs(deltaY) < tapThreshold &&
-        touchDuration < tapMaxDuration
-      ) {
-        // It's a tap: small movement, short duration
-        const link = touchTarget.closest('a[href]')
-        if (link) {
-          link.click()
-          // Block the native click that browsers fire after a touch sequence,
-          // to prevent the handler from running a second time.
-          slider.addEventListener('click', (e) => {
-            e.stopPropagation()
-            e.preventDefault()
-          }, {
-            once: true,
-            capture: true
-          })
-        }
-      }
-      // Otherwise: scrolling or long press - do nothing
-
-      touchStartX = 0
-      touchStartY = 0
-      touchEndX = 0
-      touchEndY = 0
-      touchStartTime = 0
-      touchTarget = null
-    }, { passive: true })
+  _teardownScrollSnap () {
+    if (this._scrollTrackRef && this._onScroll) {
+      this._scrollTrackRef.removeEventListener('scroll', this._onScroll)
+    }
+    this._scrollTrackRef = null
+    this._onScroll = null
   }
 }

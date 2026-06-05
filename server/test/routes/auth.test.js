@@ -79,6 +79,40 @@ describe('auth routes', () => {
       await expect(handlers.login('nonexistent', 'password', req))
         .rejects.toMatchObject({ message: 'Wrong credentials' })
     })
+
+    it('persists the device UUID when one is supplied', async () => {
+      const user = testData.user({ id: 42, password: 'hashed:password123' })
+      query.mockResolvedValue([user])
+
+      const req = { locale: 'en', headers: {} }
+      await handlers.login('testuser', 'password123', 'web', 'abc-123-uuid', req)
+
+      const upsertCall = query.mock.calls.find(c => /INSERT INTO user_device/.test(c[0]))
+      expect(upsertCall).toBeDefined()
+      expect(upsertCall[1]).toEqual([42, 'abc-123-uuid'])
+    })
+
+    it('skips device UUID upsert when none is supplied (legacy client)', async () => {
+      const user = testData.user({ id: 42, password: 'hashed:password123' })
+      query.mockResolvedValue([user])
+
+      const req = { locale: 'en', headers: {} }
+      await handlers.login('testuser', 'password123', 'web', req)
+
+      const upsertCall = query.mock.calls.find(c => /INSERT INTO user_device/.test(c[0]))
+      expect(upsertCall).toBeUndefined()
+    })
+
+    it('rejects an invalid-shaped device UUID without writing', async () => {
+      const user = testData.user({ id: 42, password: 'hashed:password123' })
+      query.mockResolvedValue([user])
+
+      const req = { locale: 'en', headers: {} }
+      await handlers.login('testuser', 'password123', 'web', 'bad uuid with spaces', req)
+
+      const upsertCall = query.mock.calls.find(c => /INSERT INTO user_device/.test(c[0]))
+      expect(upsertCall).toBeUndefined()
+    })
   })
 
   describe('createAccount', () => {

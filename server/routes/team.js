@@ -715,6 +715,82 @@ export default {
     })
 
     return { games }
+  },
+
+  /**
+   * Head-to-head record between two teams: every played game between them
+   * plus aggregated win/draw/loss counts and goals. Used by the team-page
+   * "Direktvergleich" overlay.
+   * @param {number} teamAId
+   * @param {number} teamBId
+   * @returns {Promise<{teamA: object, teamB: object, games: Array, stats: object}>}
+   */
+  async getHeadToHead (teamAId, teamBId) {
+    const aId = Number(teamAId)
+    const bId = Number(teamBId)
+    if (!aId || !bId || aId === bId) throw new BadRequestError('Invalid team ids')
+
+    const [teamA, teamB] = await Promise.all([
+      getTeamById(aId),
+      getTeamById(bId)
+    ])
+    if (!teamA || !teamB) throw new BadRequestError('Team not found')
+
+    const rows = await query(
+      `SELECT g.id, g.season, g.game_day, g.game_type, g.cup_round, g.played,
+              g.goals_team_1, g.goals_team_2, g.team_1_id, g.team_2_id, g.created_at,
+              t1.name AS team_1_name, t1.color AS team_1_color, t1.emblem AS team_1_emblem,
+              t2.name AS team_2_name, t2.color AS team_2_color, t2.emblem AS team_2_emblem
+       FROM game g
+       JOIN team t1 ON t1.id = g.team_1_id
+       JOIN team t2 ON t2.id = g.team_2_id
+       WHERE g.played = 1
+         AND ((g.team_1_id = ? AND g.team_2_id = ?) OR (g.team_1_id = ? AND g.team_2_id = ?))
+         AND (g.game_type IN ('league', 'cup', 'friendly') OR g.game_type IS NULL)
+       ORDER BY g.season DESC, g.game_day DESC, g.id DESC`,
+      [aId, bId, bId, aId]
+    )
+
+    let winsA = 0
+    let winsB = 0
+    let draws = 0
+    let goalsA = 0
+    let goalsB = 0
+    const games = rows.map(r => {
+      const aIsTeam1 = r.team_1_id === aId
+      const ownGoals = aIsTeam1 ? r.goals_team_1 : r.goals_team_2
+      const oppGoals = aIsTeam1 ? r.goals_team_2 : r.goals_team_1
+      goalsA += ownGoals || 0
+      goalsB += oppGoals || 0
+      if (ownGoals > oppGoals) winsA++
+      else if (ownGoals < oppGoals) winsB++
+      else draws++
+      return {
+        id: r.id,
+        season: r.season,
+        gameDay: r.game_day,
+        gameType: r.game_type || 'league',
+        cupRound: r.cup_round,
+        team1Id: r.team_1_id,
+        team2Id: r.team_2_id,
+        team1Name: r.team_1_name,
+        team1Color: r.team_1_color,
+        team1Emblem: r.team_1_emblem,
+        team2Name: r.team_2_name,
+        team2Color: r.team_2_color,
+        team2Emblem: r.team_2_emblem,
+        goalsTeam1: r.goals_team_1,
+        goalsTeam2: r.goals_team_2,
+        playedAt: r.created_at
+      }
+    })
+
+    return {
+      teamA: { id: teamA.id, name: teamA.name, color: teamA.color, emblem: teamA.emblem },
+      teamB: { id: teamB.id, name: teamB.name, color: teamB.color, emblem: teamB.emblem },
+      games,
+      stats: { winsA, winsB, draws, goalsA, goalsB, totalGames: games.length }
+    }
   }
 }
 
