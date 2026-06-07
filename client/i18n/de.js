@@ -1430,5 +1430,38 @@ export default {
   'headToHead.colType': 'Typ',
   'headToHead.colResult': 'Ergebnis',
   'headToHead.league': 'Liga',
-  'headToHead.seasonShort': 'S.'
+  'headToHead.seasonShort': 'S.',
+
+  // Season review overlay (end-of-season summary on the dashboard, shown until
+  // the new season is created)
+  'seasonReview.title': 'Saison-Rückblick',
+  'seasonReview.subtitle': 'Saison {season}',
+  'seasonReview.position': '{position}. Platz',
+  'seasonReview.factsHeader': 'Saison-Fakten',
+  'seasonReview.leagueChampion': 'Meister',
+  'seasonReview.topScorer': 'Torschützenkönig',
+  'seasonReview.cupWinner': 'Pokalsieger',
+  'seasonReview.relegated': 'Absteiger',
+  'seasonReview.noCupWinner': 'Kein Pokalsieger gekürt.',
+  'seasonReview.noTopScorer': 'Kein Torschütze in dieser Liga.',
+  'seasonReview.goals': '{count} Tore',
+  'seasonReview.close': 'Schließen',
+  'seasonReview.waitingForNewSeason': 'Die neue Saison startet in Kürze – mach dich bereit!',
+  // Outcome headlines (one is picked at random)
+  'seasonReview.outcome.champion.1': 'Meisterschaft! Was für eine Saison – euer Name steht jetzt im Geschichtsbuch.',
+  'seasonReview.outcome.champion.2': 'Ungeschlagen an der Spitze: Das Team hat sich die Schale verdient!',
+  'seasonReview.outcome.champion.3': 'Meister! Die Fans tanzen schon auf den Straßen.',
+  'seasonReview.outcome.promoted.1': 'Aufstieg! Nächste Saison geht es eine Etage höher.',
+  'seasonReview.outcome.promoted.2': 'Glückwunsch zum Aufstieg – ihr habt euch belohnt für eine starke Saison.',
+  'seasonReview.outcome.promoted.3': 'Aufgestiegen! Höhere Liga, höhere Ziele – wir freuen uns drauf.',
+  'seasonReview.outcome.upperHalf.1': 'Eine solide Saison in der oberen Tabellenhälfte. Weiter so!',
+  'seasonReview.outcome.upperHalf.2': 'Souverän durchgespielt – Platz {position} ist absolut in Ordnung.',
+  'seasonReview.outcome.upperHalf.3': 'Nicht ganz oben, aber definitiv mit dabei. Das war eine ordentliche Spielzeit.',
+  'seasonReview.outcome.lowerHalf.1': 'Zähe Saison – nächstes Jahr wird besser, da sind wir uns sicher.',
+  'seasonReview.outcome.lowerHalf.2': 'Holpriges Jahr in der unteren Tabellenhälfte. Zeit, am Kader zu schrauben.',
+  'seasonReview.outcome.lowerHalf.3': 'Nicht wie geplant gelaufen – aber jetzt heißt es: neu aufstellen und angreifen.',
+  'seasonReview.outcome.relegated.1': 'Abstieg. Tut weh – aber wir kommen stärker zurück!',
+  'seasonReview.outcome.relegated.2': 'Eine harte Saison endet mit dem Gang in die niedrigere Liga.',
+  'seasonReview.outcome.relegated.3': 'Abgestiegen. Kopf hoch – die nächste Saison ist eine neue Chance.',
+  'seasonReview.cupWonExtra': 'Und obendrauf noch der Pokal! Was für ein Auftritt.'
 }

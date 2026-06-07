@@ -1,0 +1,212 @@
+/* ==========================================================================
+   Season Review Overlay
+   Shown on the dashboard after the final match day of a season, until the
+   next season has been created. Sits on top of the standard overlay system.
+   ========================================================================== */
+
+.season-review-backdrop {
+    align-items: center;
+    justify-content: center;
+}
+
+.season-review-card {
+    max-width: 560px;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #1f2530 0%, #131720 100%);
+    color: #f3f3f3;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.season-review-body {
+    text-align: center;
+    padding: 2.5rem 1.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.season-review-emoji {
+    font-size: 4.5rem;
+    line-height: 1;
+    animation: season-review-emoji-pop 0.6s ease-out;
+}
+
+.season-review-title {
+    font-size: 1.75rem;
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+
+.season-review-subtitle {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.season-review-position {
+    margin: 0.25rem 0 0;
+    font-size: 1.05rem;
+    color: #ffce4f;
+    font-weight: 600;
+}
+
+.season-review-headline {
+    font-size: 1.1rem;
+    line-height: 1.45;
+    margin: 0.5rem 0 0;
+    color: #f3f3f3;
+}
+
+.season-review-cup-extra {
+    margin: 0;
+    color: #ffce4f;
+    font-weight: 600;
+}
+
+.season-review-facts {
+    width: 100%;
+    margin-top: 1.25rem;
+    text-align: left;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 0.6rem;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.season-review-facts-header {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 0 0 0.25rem;
+}
+
+.season-review-fact-row {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.season-review-fact-label {
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 500;
+}
+
+.season-review-fact-team {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.season-review-fact-team--highlight {
+    color: #ffce4f;
+    font-weight: 600;
+}
+
+.season-review-fact-emblem {
+    display: inline-flex;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.season-review-fact-emblem svg {
+    width: 28px;
+    height: 28px;
+}
+
+.season-review-fact-team-name {
+    line-height: 1.2;
+}
+
+.season-review-fact-detail {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.85rem;
+}
+
+.season-review-fact-empty {
+    color: rgba(255, 255, 255, 0.55);
+    font-style: italic;
+}
+
+.season-review-fact-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.season-review-waiting {
+    margin: 1rem 0 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.season-review-close {
+    margin-top: 1.25rem;
+    align-self: stretch;
+}
+
+@keyframes season-review-emoji-pop {
+    0% { transform: scale(0.4); opacity: 0; }
+    65% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ----- Confetti -------------------------------------------------------- */
+
+.season-review-confetti {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.season-review-confetti-piece {
+    position: absolute;
+    top: -10px;
+    width: 8px;
+    height: 14px;
+    border-radius: 2px;
+    opacity: 0.9;
+    animation-name: season-review-confetti-fall;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+@keyframes season-review-confetti-fall {
+    0% { transform: translate3d(0, -20vh, 0) rotate(0deg); }
+    100% { transform: translate3d(0, 110vh, 0) rotate(720deg); }
+}
+
+@media screen and (max-width: 576px) {
+    .season-review-card {
+        max-width: 100%;
+    }
+
+    .season-review-body {
+        padding: 1.75rem 1rem 1.25rem;
+    }
+
+    .season-review-emoji {
+        font-size: 3.75rem;
+    }
+
+    .season-review-title {
+        font-size: 1.5rem;
+    }
+
+    .season-review-fact-row {
+        grid-template-columns: 5.5rem 1fr;
+        font-size: 0.9rem;
+    }
+}

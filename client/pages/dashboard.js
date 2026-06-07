@@ -11,6 +11,7 @@ import { t } from '../i18n/index.js'
 import { el } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
+import { showSeasonReviewOverlay, isSeasonReviewDismissed } from '../partials/seasonReviewOverlay.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 
 export class DashboardPage extends TabbedPage {
@@ -127,7 +128,7 @@ export class DashboardPage extends TabbedPage {
   }
   onMounted () {
     void showTutorialIfNeeded('dashboard', this)
-    this._showPendingCardsIfNeeded()
+    void this._showDashboardOverlays()
   }
   async onQueryChanged (params) {
     const playerId = params.player_id
@@ -331,19 +332,37 @@ export class DashboardPage extends TabbedPage {
     return lastPlayedIndex
   }
 
-  _showPendingCardsIfNeeded () {
+  async _showDashboardOverlays () {
+    await this._showPendingCardsIfNeeded()
+    await this._showSeasonReviewIfNeeded()
+  }
+
+  async _showPendingCardsIfNeeded () {
     if (this._pendingCards.length === 0) return
-    setTimeout(async () => {
-      if (!this._isMounted) return
-      await showCardClaimOverlay(this._pendingCards)
-      this._pendingCards = []
-      // Update badge count after claiming
-      const actionCardsResponse = await server.getActionCards()
-      const cardCount = actionCardsResponse.actionCards?.length || 0
-      const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
-      this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
-      this._updateNav()
-    }, 500)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    if (!this._isMounted) return
+    await showCardClaimOverlay(this._pendingCards)
+    this._pendingCards = []
+    // Update badge count after claiming
+    const actionCardsResponse = await server.getActionCards()
+    const cardCount = actionCardsResponse.actionCards?.length || 0
+    const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
+    this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
+    this._updateNav()
+  }
+
+  async _showSeasonReviewIfNeeded () {
+    if (!this._isMounted) return
+    let review
+    try {
+      review = await server.getSeasonReview()
+    } catch {
+      return
+    }
+    if (!review?.isSeasonEnd) return
+    if (isSeasonReviewDismissed(review.season)) return
+    if (!this._isMounted) return
+    await showSeasonReviewOverlay(review)
   }
 }
 

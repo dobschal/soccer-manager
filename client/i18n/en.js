@@ -1430,5 +1430,38 @@ export default {
   'headToHead.colType': 'Type',
   'headToHead.colResult': 'Result',
   'headToHead.league': 'League',
-  'headToHead.seasonShort': 'S.'
+  'headToHead.seasonShort': 'S.',
+
+  // Season review overlay (end-of-season summary on the dashboard, shown until
+  // the new season is created)
+  'seasonReview.title': 'Season Review',
+  'seasonReview.subtitle': 'Season {season}',
+  'seasonReview.position': 'Finished {position}.',
+  'seasonReview.factsHeader': 'Season facts',
+  'seasonReview.leagueChampion': 'Champion',
+  'seasonReview.topScorer': 'Top scorer',
+  'seasonReview.cupWinner': 'Cup winner',
+  'seasonReview.relegated': 'Relegated',
+  'seasonReview.noCupWinner': 'No cup winner crowned.',
+  'seasonReview.noTopScorer': 'No top scorer in this league.',
+  'seasonReview.goals': '{count} goals',
+  'seasonReview.close': 'Close',
+  'seasonReview.waitingForNewSeason': 'The new season starts soon – get ready!',
+  // Outcome headlines (one is picked at random)
+  'seasonReview.outcome.champion.1': 'Champions! What a season – your name is now in the history books.',
+  'seasonReview.outcome.champion.2': 'Top of the table: you earned that trophy fair and square.',
+  'seasonReview.outcome.champion.3': 'Champions! The fans are already dancing in the streets.',
+  'seasonReview.outcome.promoted.1': 'Promoted! Next season you play one league higher.',
+  'seasonReview.outcome.promoted.2': 'Congratulations on the promotion – well-deserved after a strong run.',
+  'seasonReview.outcome.promoted.3': 'You\'re going up! Higher league, higher goals – bring it on.',
+  'seasonReview.outcome.upperHalf.1': 'A solid season in the upper half of the table. Keep it going!',
+  'seasonReview.outcome.upperHalf.2': 'Comfortable mid-table finish at {position}. Nothing to complain about.',
+  'seasonReview.outcome.upperHalf.3': 'Not quite at the top, but definitely in the mix. A respectable season.',
+  'seasonReview.outcome.lowerHalf.1': 'A tough year – we\'re confident next season will be better.',
+  'seasonReview.outcome.lowerHalf.2': 'Bumpy ride in the bottom half. Time to tweak the squad.',
+  'seasonReview.outcome.lowerHalf.3': 'It didn\'t go to plan – time to regroup and attack the next campaign.',
+  'seasonReview.outcome.relegated.1': 'Relegated. It stings – but you\'ll come back stronger.',
+  'seasonReview.outcome.relegated.2': 'A hard season ends with a drop to the lower league.',
+  'seasonReview.outcome.relegated.3': 'Relegated. Chin up – next season is a fresh chance.',
+  'seasonReview.cupWonExtra': 'And the cup on top! What a finale.'
 }
