@@ -140,7 +140,7 @@ export class LeagueResultsPage extends UIElement {
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
             <h2 class="mb-0">${t('results.resultsTitle')}</h2>
             ${this._seasonCompleted
-    ? `<button id="results-open-season-review-btn" class="btn btn-outline-primary btn-sm" type="button">
+    ? `<button id="results-open-season-review-btn" class="btn btn-info btn-sm" type="button">
               <i class="fa fa-trophy me-1"></i> ${t('seasonReview.title')}
             </button>`
     : ''}
