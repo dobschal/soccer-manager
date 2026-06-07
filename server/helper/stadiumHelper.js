@@ -312,8 +312,7 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
     if (seatsDiff === 0) continue
 
-    const pricePerSeat = 1000
-    let standPrice = pricePerSeat * seatsDiff
+    let standPrice = calculateSeatExpansionPrice(currentStandSize, plannedStandSize)
     if (currentStadium[standName + '_stand_roof'] && !plannedStadium[standName + '_stand_roof']) {
       throw new BadRequestError('Roof cannot be removed')
     }
@@ -322,11 +321,43 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     if (!currentStadium[standName + '_stand_roof'] && plannedStadium[standName + '_stand_roof']) {
       standPrice = Math.max(300_000, standPrice * 1.2)
     }
-    
+
     totalPrice += standPrice
   }
-  if (totalPrice > 0) totalPrice += 200_000 // costs of architect
+  if (totalPrice > 0) totalPrice += 50_000 // costs of architect
   return totalPrice
+}
+
+/**
+ * Tiered marginal seat pricing — bigger stands cost more per added seat.
+ * Brackets are based on the stand's current size (in seats):
+ *   - 0 – 2,000:        500 €/seat
+ *   - 2,001 – 10,000: 1,000 €/seat
+ *   - 10,001 – 20,000: 1,500 €/seat
+ *   - 20,001 +:       2,000 €/seat
+ *
+ * @param {number} currentSize
+ * @param {number} plannedSize
+ * @returns {number}
+ */
+export function calculateSeatExpansionPrice (currentSize, plannedSize) {
+  const tiers = [
+    { upTo: 2_000, pricePerSeat: 500 },
+    { upTo: 10_000, pricePerSeat: 1_000 },
+    { upTo: 20_000, pricePerSeat: 1_500 },
+    { upTo: Infinity, pricePerSeat: 2_000 }
+  ]
+  let price = 0
+  let cursor = currentSize
+  for (const { upTo, pricePerSeat } of tiers) {
+    if (cursor >= plannedSize) break
+    const tierLimit = Math.min(plannedSize, upTo)
+    if (cursor < tierLimit) {
+      price += (tierLimit - cursor) * pricePerSeat
+      cursor = tierLimit
+    }
+  }
+  return price
 }
 
 /**

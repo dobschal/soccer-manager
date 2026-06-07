@@ -44,9 +44,15 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 
 ### Ausbau-Kosten
 
-- **TA-STD-08**: Preis pro Sitz: 1.000 Euro.
+- **TA-STD-08**: Progressive Sitzpreise pro Tribuene, basierend auf der aktuellen Tribuenen-Groesse zu Baubeginn:
+  - Sitze 0 bis 2.000: 500 Euro pro Sitz
+  - Sitze 2.001 bis 10.000: 1.000 Euro pro Sitz
+  - Sitze 10.001 bis 20.000: 1.500 Euro pro Sitz
+  - Sitze ab 20.001: 2.000 Euro pro Sitz
+
+  Die Staffel wird marginal angewendet: ein Ausbau, der eine Schwelle ueberschreitet, zahlt fuer den Teil unterhalb der Schwelle den niedrigeren Preis und fuer den Teil oberhalb den hoeheren Preis.
 - **TA-STD-09**: Dach-Aufpreis: max(300.000 Euro, Basiskosten * 1.2).
-- **TA-STD-10**: Architektengebuehr: 200.000 Euro pauschal.
+- **TA-STD-10**: Architektengebuehr: 50.000 Euro pauschal pro Bau-Aktion.
 - **TA-STD-11**: Tribuenen koennen nicht verkleinert werden.
 - **TA-STD-12**: Daecher koennen nicht entfernt werden.
 

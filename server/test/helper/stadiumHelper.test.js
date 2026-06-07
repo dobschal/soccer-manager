@@ -8,6 +8,8 @@ import {
   calculateConstructionTime,
   calculateConstructionEndDate,
   calculateHomeAttendanceBonus,
+  calculateSeatExpansionPrice,
+  calcuateStadiumBuild,
   completeAllStadiumConstructionsForTeam
 } from '../../helper/stadiumHelper.js'
 
@@ -299,6 +301,84 @@ describe('stadiumHelper', () => {
       expect(historyUpdates).toHaveLength(2)
       expect(historyUpdates[0][1]).toEqual([5, 3, 7, 'north'])
       expect(historyUpdates[1][1]).toEqual([5, 3, 7, 'east'])
+    })
+  })
+
+  describe('calculateSeatExpansionPrice', () => {
+    it('charges 500 €/seat inside the first tier (0–2,000)', () => {
+      expect(calculateSeatExpansionPrice(200, 1200)).toBe(500_000)
+    })
+
+    it('charges 1,000 €/seat inside the second tier (2,001–10,000)', () => {
+      expect(calculateSeatExpansionPrice(5_000, 6_000)).toBe(1_000_000)
+    })
+
+    it('charges 1,500 €/seat inside the third tier (10,001–20,000)', () => {
+      expect(calculateSeatExpansionPrice(15_000, 16_000)).toBe(1_500_000)
+    })
+
+    it('charges 2,000 €/seat inside the top tier (20,001+)', () => {
+      expect(calculateSeatExpansionPrice(25_000, 26_000)).toBe(2_000_000)
+    })
+
+    it('splits cost across tier boundaries', () => {
+      // 1,500 → 3,000: 500 seats @ 500 + 1,000 seats @ 1,000
+      expect(calculateSeatExpansionPrice(1_500, 3_000)).toBe(500 * 500 + 1_000 * 1_000)
+    })
+
+    it('spans multiple tiers correctly', () => {
+      // 0 → 12,000: 2,000@500 + 8,000@1,000 + 2,000@1,500
+      expect(calculateSeatExpansionPrice(0, 12_000)).toBe(2_000 * 500 + 8_000 * 1_000 + 2_000 * 1_500)
+    })
+
+    it('returns 0 when no seats are added', () => {
+      expect(calculateSeatExpansionPrice(5_000, 5_000)).toBe(0)
+    })
+  })
+
+  describe('calcuateStadiumBuild', () => {
+    const baseStadium = (overrides = {}) => ({
+      north_stand_size: 200,
+      south_stand_size: 200,
+      east_stand_size: 100,
+      west_stand_size: 100,
+      north_stand_roof: 0,
+      south_stand_roof: 0,
+      east_stand_roof: 0,
+      west_stand_roof: 0,
+      ...overrides
+    })
+
+    it('returns 0 when nothing changes', () => {
+      expect(calcuateStadiumBuild(baseStadium(), baseStadium())).toBe(0)
+    })
+
+    it('adds the 50,000 € architect fee on top of the seat price', () => {
+      // 200 → 1,200 north stand: 1,000 seats @ 500 = 500,000 + 50,000 architect
+      const current = baseStadium()
+      const planned = baseStadium({ north_stand_size: 1_200 })
+      expect(calcuateStadiumBuild(current, planned)).toBe(500_000 + 50_000)
+    })
+
+    it('applies tier pricing when expanding a large stand', () => {
+      // 20,000 → 21,000: 1,000 seats @ 2,000 = 2,000,000 + 50,000 architect
+      const current = baseStadium({ north_stand_size: 20_000 })
+      const planned = baseStadium({ north_stand_size: 21_000 })
+      expect(calcuateStadiumBuild(current, planned)).toBe(2_000_000 + 50_000)
+    })
+
+    it('sums multiple stand expansions and charges the architect fee once', () => {
+      // North 200→1,200 = 500,000; South 200→1,200 = 500,000; + 50,000
+      const current = baseStadium()
+      const planned = baseStadium({ north_stand_size: 1_200, south_stand_size: 1_200 })
+      expect(calcuateStadiumBuild(current, planned)).toBe(500_000 + 500_000 + 50_000)
+    })
+
+    it('applies the roof surcharge (20 % min 300k) on top of tier pricing', () => {
+      // 200 → 1,200 = 500,000; roof: max(300k, 500k * 1.2) = 600,000; + 50k
+      const current = baseStadium()
+      const planned = baseStadium({ north_stand_size: 1_200, north_stand_roof: 1 })
+      expect(calcuateStadiumBuild(current, planned)).toBe(600_000 + 50_000)
     })
   })
 })
