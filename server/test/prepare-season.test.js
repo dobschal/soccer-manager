@@ -107,73 +107,98 @@ describe('prepare-season', () => {
   })
 
   describe('_nextLevelToFill', () => {
-    const minTeams = 126
+    const bot = (level) => ({ level, user_id: null })
+    const user = (level) => ({ level, user_id: 1 })
 
-    it('returns 0 when no teams exist (and minimum requires it)', () => {
-      expect(_nextLevelToFill([], minTeams)).toBe(0)
+    it('returns 0 when no teams exist (below the floor)', () => {
+      expect(_nextLevelToFill([])).toBe(0)
     })
 
     it('returns the level that is opened but not yet full', () => {
       // 1 team at level 0 — needs 17 more to fill amountTeamsPerLevel[0]=18
-      const teams = [{ level: 0 }]
-      expect(_nextLevelToFill(teams, minTeams)).toBe(0)
+      expect(_nextLevelToFill([bot(0)])).toBe(0)
     })
 
-    it('opens the next level when current top level is full but minimum not met', () => {
-      const teams = [
-        ...Array(18).fill(null).map(() => ({ level: 0 }))
-      ]
-      // level 0 full (18/18), but minimum=126 not met — open level 1
-      expect(_nextLevelToFill(teams, minTeams)).toBe(1)
+    it('opens the next level when current top level is full but minimumTeams floor not met', () => {
+      const teams = Array(18).fill(null).map(() => bot(0))
+      expect(_nextLevelToFill(teams)).toBe(1)
     })
 
     it('returns highest opened-but-not-full level even when other levels are full', () => {
-      // level 0 full (18), level 1 full (36), level 2 has only 18 of 72 → fill level 2
       const teams = [
-        ...Array(18).fill(null).map(() => ({ level: 0 })),
-        ...Array(36).fill(null).map(() => ({ level: 1 })),
-        ...Array(18).fill(null).map(() => ({ level: 2 }))
+        ...Array(18).fill(null).map(() => bot(0)),
+        ...Array(36).fill(null).map(() => bot(1)),
+        ...Array(18).fill(null).map(() => bot(2))
       ]
-      expect(_nextLevelToFill(teams, minTeams)).toBe(2)
+      expect(_nextLevelToFill(teams)).toBe(2)
     })
 
-    it('returns -1 when all opened levels are full and minimum is satisfied', () => {
-      // level 0 full (18), level 1 full (36), level 2 full (72) = 126 total ≥ minimum
+    it('returns -1 when all opened levels are full, floor is met, and free-bot pool is large enough', () => {
+      // 126 teams total, all bots. bottom two levels (1+2) have 36+72=108 free bots ≥ 20 → no new level.
       const teams = [
-        ...Array(18).fill(null).map(() => ({ level: 0 })),
-        ...Array(36).fill(null).map(() => ({ level: 1 })),
-        ...Array(72).fill(null).map(() => ({ level: 2 }))
+        ...Array(18).fill(null).map(() => bot(0)),
+        ...Array(36).fill(null).map(() => bot(1)),
+        ...Array(72).fill(null).map(() => bot(2))
       ]
-      expect(_nextLevelToFill(teams, minTeams)).toBe(-1)
+      expect(_nextLevelToFill(teams)).toBe(-1)
     })
 
-    it('opens a fresh level when registrations push minimum above current capacity', () => {
-      // 200 users -> minimum = 400. levels 0..2 = 126 teams full -> open level 3
+    it('opens a new lower level when the bottom two levels have <20 free bots left', () => {
+      // levels 0..2 fully filled with user-teams except a couple of bots
+      // bottom two levels (1+2) free bots = 5 + 10 = 15 < 20 → open level 3
       const teams = [
-        ...Array(18).fill(null).map(() => ({ level: 0 })),
-        ...Array(36).fill(null).map(() => ({ level: 1 })),
-        ...Array(72).fill(null).map(() => ({ level: 2 }))
+        ...Array(18).fill(null).map(() => user(0)),
+        ...Array(31).fill(null).map(() => user(1)),
+        ...Array(5).fill(null).map(() => bot(1)),
+        ...Array(62).fill(null).map(() => user(2)),
+        ...Array(10).fill(null).map(() => bot(2))
       ]
-      expect(_nextLevelToFill(teams, 400)).toBe(3)
+      expect(_nextLevelToFill(teams)).toBe(3)
+    })
+
+    it('does NOT open a new level when the bottom two levels still have ≥20 free bots', () => {
+      // bottom two levels (1+2) free bots = 10 + 15 = 25 ≥ 20 → no new level
+      const teams = [
+        ...Array(18).fill(null).map(() => user(0)),
+        ...Array(26).fill(null).map(() => user(1)),
+        ...Array(10).fill(null).map(() => bot(1)),
+        ...Array(57).fill(null).map(() => user(2)),
+        ...Array(15).fill(null).map(() => bot(2))
+      ]
+      expect(_nextLevelToFill(teams)).toBe(-1)
     })
 
     it('keeps filling a partially-opened higher level rather than opening a new one', () => {
-      // level 3 has 18 of 144 (the bug scenario): one parallel league only.
-      // Expected: keep filling level 3 until full, do NOT skip to level 4.
+      // level 3 has 18 of 144 (one parallel league only). Fill it before opening level 4.
       const teams = [
-        ...Array(18).fill(null).map(() => ({ level: 0 })),
-        ...Array(36).fill(null).map(() => ({ level: 1 })),
-        ...Array(72).fill(null).map(() => ({ level: 2 })),
-        ...Array(18).fill(null).map(() => ({ level: 3 }))
+        ...Array(18).fill(null).map(() => bot(0)),
+        ...Array(36).fill(null).map(() => bot(1)),
+        ...Array(72).fill(null).map(() => bot(2)),
+        ...Array(18).fill(null).map(() => bot(3))
       ]
-      expect(_nextLevelToFill(teams, minTeams)).toBe(3)
+      expect(_nextLevelToFill(teams)).toBe(3)
     })
 
     it('treats overfilled levels as full (gracefully skips)', () => {
-      // 200 teams at level 0 but max=18: function should skip instead of throw
-      const teams = Array(200).fill(null).map(() => ({ level: 0 }))
-      // 200 teams >= 126, so no new level needs to open
-      expect(_nextLevelToFill(teams, minTeams)).toBe(-1)
+      const teams = Array(200).fill(null).map(() => bot(0))
+      expect(_nextLevelToFill(teams)).toBe(-1)
+    })
+
+    it('regression: does NOT open a new level just because the user count nudges past teams.length', () => {
+      // 270 teams total (135 users + 135 bots) on levels 0..3 fully filled.
+      // bottom two levels free bots = 27 + 60 = 87 ≥ 20 → must return -1.
+      // The old `minimumAmountOfTeams = users*2` rule would have opened level 4 here.
+      const teams = [
+        ...Array(2).fill(null).map(() => user(0)),
+        ...Array(16).fill(null).map(() => bot(0)),
+        ...Array(4).fill(null).map(() => user(1)),
+        ...Array(32).fill(null).map(() => bot(1)),
+        ...Array(45).fill(null).map(() => user(2)),
+        ...Array(27).fill(null).map(() => bot(2)),
+        ...Array(84).fill(null).map(() => user(3)),
+        ...Array(60).fill(null).map(() => bot(3))
+      ]
+      expect(_nextLevelToFill(teams)).toBe(-1)
     })
   })
 

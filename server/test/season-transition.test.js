@@ -453,13 +453,13 @@ describe('season transition (prepareSeason)', () => {
 
   /**
    * Smart mock that returns appropriate values based on query string.
-   * Used as fallback after specific mockResolvedValueOnce calls.
+   * `unplayedGames` lets a test pretend the season is still running.
    */
-  function setupSmartQueryMock (teams, leagueGames, season) {
+  function setupSmartQueryMock (teams, leagueGames, season, { unplayedGames = 0 } = {}) {
     query.mockImplementation((sql) => {
       if (typeof sql !== 'string') return Promise.resolve({ affectedRows: 1 })
       if (sql.includes('COUNT(*)') && sql.includes('played=0')) {
-        return Promise.resolve([{ amount: 0 }])
+        return Promise.resolve([{ amount: unplayedGames }])
       }
       if (sql.includes('ORDER BY') && sql.includes('season') && sql.includes('LIMIT 1')) {
         return Promise.resolve([{ season }])
@@ -469,6 +469,9 @@ describe('season transition (prepareSeason)', () => {
       }
       if (sql.includes('SELECT * FROM game WHERE season=')) {
         return Promise.resolve(leagueGames)
+      }
+      if (sql.includes('FROM app_setting')) {
+        return Promise.resolve([])
       }
       if (sql.includes('COUNT(*)')) {
         return Promise.resolve([{ amount: 0 }])
@@ -486,39 +489,6 @@ describe('season transition (prepareSeason)', () => {
 
     setupSmartQueryMock(teams, leagueGames, season)
 
-    // Override specific early calls in sequence
-    query
-      // _latestSeason for _archiveTooOldPlayers
-      .mockResolvedValueOnce([{ season }])
-      // _archiveTooOldPlayers: SELECT players
-      .mockResolvedValueOnce([])
-      // _archiveTooOldPlayers: UPDATE players
-      .mockResolvedValueOnce({ affectedRows: 0 })
-      // _archiveOverageYouth: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _warnYouthPlayersAt18: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _warnYouthPlayersAt18: SELECT teams with user_id
-      .mockResolvedValueOnce([])
-      // _resetPlayersForNewSeason: _newGamesNeeded
-      .mockResolvedValueOnce([{ amount: 0 }])
-      // _resetPlayersForNewSeason: UPDATE player
-      .mockResolvedValueOnce({ affectedRows: 0 })
-      // _ajustAmountOfTeams: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _ajustAmountOfTeams: count users
-      .mockResolvedValueOnce([{ amount: 1 }])
-      // _ajustAmountOfTeams: get teams (enough teams exist, 126 >= 126)
-      .mockResolvedValueOnce(teams)
-      // _promotionRelegation: _newGamesNeeded
-      .mockResolvedValueOnce([{ amount: 0 }])
-      // _promotionRelegation: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _promotionRelegation: SELECT league games (the fix: filtered by game_type)
-      .mockResolvedValueOnce(leagueGames)
-      // _promotionRelegation: SELECT teams
-      .mockResolvedValueOnce(teams)
-
     // Should NOT throw (before fix, cup bye games with team_2_id=null crashed here)
     await expect(prepareSeason()).resolves.not.toThrow()
 
@@ -534,37 +504,9 @@ describe('season transition (prepareSeason)', () => {
 
   it('_newGamesNeeded only checks league games', async () => {
     const season = 0
-    const { teams } = createTeamsAndGames(MIN_TEAMS, season)
+    const { teams, allGames: leagueGames } = createTeamsAndGames(MIN_TEAMS, season)
 
-    query
-      // _latestSeason for _archiveTooOldPlayers
-      .mockResolvedValueOnce([{ season }])
-      // _archiveTooOldPlayers: SELECT players
-      .mockResolvedValueOnce([])
-      // _archiveTooOldPlayers: UPDATE
-      .mockResolvedValueOnce({ affectedRows: 0 })
-      // _archiveOverageYouth: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _warnYouthPlayersAt18: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _warnYouthPlayersAt18: SELECT teams
-      .mockResolvedValueOnce([])
-      // _resetPlayersForNewSeason: _newGamesNeeded (5 games remain, skip reset)
-      .mockResolvedValueOnce([{ amount: 5 }])
-      // _ajustAmountOfTeams: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _ajustAmountOfTeams: count users
-      .mockResolvedValueOnce([{ amount: 1 }])
-      // _ajustAmountOfTeams: get teams
-      .mockResolvedValueOnce(teams)
-      // _newGamesNeeded: count unplayed league games (5 remain)
-      .mockResolvedValueOnce([{ amount: 5 }])
-      // _newGamesNeeded for _createGames (same result)
-      .mockResolvedValueOnce([{ amount: 5 }])
-      // _createCupDraw: SELECT first unplayed game
-      .mockResolvedValueOnce([{ season, game_day: 10 }])
-      // _createCupDraw: check existing cup games
-      .mockResolvedValueOnce([{ id: 1 }])
+    setupSmartQueryMock(teams, leagueGames, season, { unplayedGames: 5 })
 
     await prepareSeason()
 
@@ -621,38 +563,6 @@ describe('season transition (prepareSeason)', () => {
 
     setupSmartQueryMock(allTeams, allGames, season)
 
-    query
-      // _latestSeason for _archiveTooOldPlayers
-      .mockResolvedValueOnce([{ season }])
-      // _archiveTooOldPlayers: SELECT players
-      .mockResolvedValueOnce([])
-      // _archiveTooOldPlayers: UPDATE
-      .mockResolvedValueOnce({ affectedRows: 0 })
-      // _archiveOverageYouth: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _warnYouthPlayersAt18: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _warnYouthPlayersAt18: SELECT teams
-      .mockResolvedValueOnce([])
-      // _resetPlayersForNewSeason: _newGamesNeeded
-      .mockResolvedValueOnce([{ amount: 0 }])
-      // _resetPlayersForNewSeason: UPDATE player
-      .mockResolvedValueOnce({ affectedRows: 0 })
-      // _ajustAmountOfTeams: _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // _ajustAmountOfTeams: count users
-      .mockResolvedValueOnce([{ amount: 1 }])
-      // _ajustAmountOfTeams: get teams
-      .mockResolvedValueOnce(allTeams)
-      // _newGamesNeeded
-      .mockResolvedValueOnce([{ amount: 0 }])
-      // _latestSeason
-      .mockResolvedValueOnce([{ season }])
-      // SELECT league games
-      .mockResolvedValueOnce(allGames)
-      // SELECT teams
-      .mockResolvedValueOnce(allTeams)
-
     await expect(prepareSeason()).resolves.not.toThrow()
 
     // Check that UPDATE team SET level=? queries were made (promotion/relegation)
@@ -664,5 +574,104 @@ describe('season transition (prepareSeason)', () => {
     // Level 2 teams promoted to level 1 (top 2 per league = 8 teams)
     // Level 1 teams relegated to level 2 (bottom 4 per league = 8 teams)
     expect(levelUpdateCalls.length).toBeGreaterThan(0)
+  })
+
+  it('promotion/relegation runs BEFORE _ajustAmountOfTeams so fresh bots can have NULL league', async () => {
+    // Regression for the 2026-06-07 prod bug: previously _ajustAmountOfTeams
+    // ran first and could create bot teams with league=NULL, which then
+    // tripped a guard in _promotionRelegation that bailed with
+    // "Relegation and promotion for this season already ran" — skipping
+    // the entire season transition.
+    const season = 0
+    // 126 teams across levels 0..2 (full quotas) so the minimumTeams floor
+    // is met and _ajustAmountOfTeams' loop exits immediately. Multi-level
+    // setup ensures promotion/relegation actually shifts teams.
+    const level0 = Array.from({ length: 18 }, (_, i) => makeTeam(i + 1, 0, 0))
+    const level1 = []
+    for (let lg = 0; lg < 2; lg++) {
+      for (let i = 0; i < 18; i++) level1.push(makeTeam(19 + lg * 18 + i, 1, lg))
+    }
+    const level2 = []
+    for (let lg = 0; lg < 4; lg++) {
+      for (let i = 0; i < 18; i++) level2.push(makeTeam(55 + lg * 18 + i, 2, lg))
+    }
+    const allTeams = [...level0, ...level1, ...level2]
+    function gamesForLeague (leagueTeams, level, league) {
+      const games = []
+      for (let i = 0; i < leagueTeams.length; i++) {
+        for (let j = i + 1; j < leagueTeams.length; j++) {
+          games.push(makeLeagueGame(leagueTeams[i].id, leagueTeams[j].id, i % 3, j % 3, season, games.length % 34, level, league))
+          games.push(makeLeagueGame(leagueTeams[j].id, leagueTeams[i].id, j % 3, i % 3, season, games.length % 34, level, league))
+        }
+      }
+      return games
+    }
+    const allGames = [
+      ...gamesForLeague(level0, 0, 0),
+      ...gamesForLeague(level1.slice(0, 18), 1, 0),
+      ...gamesForLeague(level1.slice(18), 1, 1),
+      ...gamesForLeague(level2.slice(0, 18), 2, 0),
+      ...gamesForLeague(level2.slice(18, 36), 2, 1),
+      ...gamesForLeague(level2.slice(36, 54), 2, 2),
+      ...gamesForLeague(level2.slice(54), 2, 3)
+    ]
+
+    setupSmartQueryMock(allTeams, allGames, season)
+
+    await prepareSeason()
+
+    const promotionGamesQueryIndex = query.mock.calls.findIndex(call =>
+      typeof call[0] === 'string' &&
+      call[0].includes('SELECT * FROM game WHERE season=?') &&
+      call[0].includes('game_type')
+    )
+    // The team SELECT made by _ajustAmountOfTeams must come AFTER the
+    // promotion games query — otherwise we're back in the buggy ordering.
+    const ajustTeamQueryIndex = query.mock.calls.findIndex((call, idx) =>
+      typeof call[0] === 'string' &&
+      call[0] === 'SELECT * FROM team WHERE is_system_team = 0' &&
+      idx > promotionGamesQueryIndex
+    )
+    expect(promotionGamesQueryIndex).toBeGreaterThanOrEqual(0)
+    expect(ajustTeamQueryIndex).toBeGreaterThan(promotionGamesQueryIndex)
+    // And the promotion actually ran: at least one level update.
+    expect(query.mock.calls.filter(c =>
+      typeof c[0] === 'string' && c[0].includes('UPDATE team SET level=')
+    ).length).toBeGreaterThan(0)
+  })
+
+  it('skips promotion/relegation when last_promoted_season flag covers the current season', async () => {
+    const season = 3
+    const { teams, allGames } = createTeamsAndGames(MIN_TEAMS, season)
+
+    query.mockImplementation((sql) => {
+      if (typeof sql !== 'string') return Promise.resolve({ affectedRows: 1 })
+      if (sql.includes('COUNT(*)') && sql.includes('played=0')) {
+        return Promise.resolve([{ amount: 0 }])
+      }
+      if (sql.includes('ORDER BY') && sql.includes('season') && sql.includes('LIMIT 1')) {
+        return Promise.resolve([{ season }])
+      }
+      if (sql.includes('SELECT * FROM team WHERE is_system_team')) {
+        return Promise.resolve(teams)
+      }
+      if (sql.includes('SELECT * FROM game WHERE season=')) {
+        return Promise.resolve(allGames)
+      }
+      if (sql.includes('FROM app_setting')) {
+        return Promise.resolve([{ setting_value: String(season) }])
+      }
+      if (sql.includes('COUNT(*)')) return Promise.resolve([{ amount: 0 }])
+      if (sql.includes('SELECT')) return Promise.resolve([])
+      return Promise.resolve({ affectedRows: 1, insertId: 1 })
+    })
+
+    await prepareSeason()
+
+    // No level updates should happen — the flag short-circuits the function.
+    const levelUpdateCalls = query.mock.calls.filter(
+      call => typeof call[0] === 'string' && call[0].includes('UPDATE team SET level=')
+    )
+    expect(levelUpdateCalls).toHaveLength(0)
   })
 })

@@ -38,8 +38,8 @@ export async function prepareSeason () {
   await _archiveOverageYouth()
   await _warnYouthPlayersAt18()
   await _resetPlayersForNewSeason()
-  await _ajustAmountOfTeams()
   await _promotionRelegation()
+  await _ajustAmountOfTeams()
   const newSeasonCreated = await _createGames()
   await _createCupDraw()
   console.log('✅ Prepared Season')
@@ -167,12 +167,16 @@ async function _promotionRelegation () {
   if (typeof season === 'undefined') {
     return console.log('⏭️ No promotion, relegation needed because no season available.')
   }
+  // Idempotency: once the transition for season N has been applied, skip on
+  // subsequent CRON ticks even if game creation later failed and we get back
+  // into a "_newGamesNeeded" state. The flag is set at the end of this
+  // function once team levels have been shifted.
+  const [flag] = await query('SELECT setting_value FROM app_setting WHERE setting_key=?', ['last_promoted_season'])
+  if (flag && Number(flag.setting_value) >= season) {
+    return console.log(`⏭️ Promotion/relegation for season ${season} already ran.`)
+  }
   const games = await query('SELECT * FROM game WHERE season=? AND (game_type=\'league\' OR game_type IS NULL)', [season])
   const teams = await query('SELECT * FROM team WHERE is_system_team = 0')
-  if (teams.some(t => typeof t.league !== 'number')) {
-    return console.log('Relegation and promotion for this season already ran')
-  }
-  await query('UPDATE team SET league=NULL WHERE true')
   let hightestLevel = 0
   const gamesByLevelAndLeague = {}
   for (const game of games) {
@@ -215,6 +219,10 @@ async function _promotionRelegation () {
   }
   console.log('Teams to move: ', promises.length)
   await Promise.all(promises)
+  await query(
+    'INSERT INTO app_setting (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)',
+    ['last_promoted_season', String(season)]
+  )
   console.log('Relegation and promotion done.')
 }
 
@@ -473,19 +481,18 @@ function _calculateAmountPerLevel () {
 
 /**
  * Ensure every opened level is filled to its full quota of parallel leagues
- * (amountTeamsPerLevel[level] = 2^level * teamsPerLeague). Additionally open
- * new levels until the total team count reaches the minimum (= max(users*2,
- * minimumTeams)). This guarantees that whenever a new level is reached, all
- * its parallel leagues get bot-filled in one go.
+ * (amountTeamsPerLevel[level] = 2^level * teamsPerLeague). New lower-tier
+ * levels are only opened when the bottom two existing levels combined have
+ * fewer than 20 free bot teams left for new users to pick from (i.e. the
+ * choosable pool is running dry), or while the total team count is below
+ * the minimumTeams floor. See `_nextLevelToFill`.
  * @returns {Promise<void>}
  */
 async function _ajustAmountOfTeams () {
   const season = await _latestSeason() ?? 0
-  const [{ amount: amountOfUsers }] = await query('SELECT COUNT(*) AS amount FROM team WHERE user_id IS NOT NULL')
-  const minimumAmountOfTeams = Math.max((amountOfUsers ?? 0) * 2, minimumTeams)
   let teams = await query('SELECT * FROM team WHERE is_system_team = 0')
   while (true) {
-    const levelToFill = _nextLevelToFill(teams, minimumAmountOfTeams)
+    const levelToFill = _nextLevelToFill(teams)
     if (levelToFill === -1) break
     if (levelToFill >= maxLevels) {
       throw new Error(`Cannot open level ${levelToFill}: exceeds maxLevels=${maxLevels}`)
@@ -499,25 +506,38 @@ async function _ajustAmountOfTeams () {
 /**
  * Return the level for the next bot team to create:
  *  - the lowest opened level that is not yet full, OR
- *  - the next unopened level (if total teams < minimum), OR
- *  - -1 if every opened level is full and minimum is satisfied.
+ *  - the next unopened level (when below `minimumTeams` floor, OR when the
+ *    bottom two opened levels combined have fewer than `freeBotsThreshold`
+ *    free bot teams left for new users to pick from), OR
+ *  - -1 otherwise.
+ *
+ * The free-bot trigger replaces the previous `users*2` rule: new lower
+ * divisions only open when the existing bottom divisions are running out of
+ * choosable bot teams, not whenever the user count nudges past the threshold.
  * @param {TeamType[]} teams
- * @param {number} minimumAmountOfTeams
+ * @param {number} [freeBotsThreshold]
  * @returns {number}
  */
-export function _nextLevelToFill (teams, minimumAmountOfTeams) {
+export function _nextLevelToFill (teams, freeBotsThreshold = 20) {
   const counts = []
+  const freeBotsByLevel = []
   let highestOpenedLevel = -1
   for (const team of teams) {
     const lvl = team.level ?? 0
     counts[lvl] = (counts[lvl] ?? 0) + 1
     if (lvl > highestOpenedLevel) highestOpenedLevel = lvl
+    if (team.user_id == null) {
+      freeBotsByLevel[lvl] = (freeBotsByLevel[lvl] ?? 0) + 1
+    }
   }
   for (let level = 0; level <= highestOpenedLevel; level++) {
     const count = counts[level] ?? 0
     if (count > 0 && count < amountTeamsPerLevel[level]) return level
   }
-  if (teams.length < minimumAmountOfTeams) return highestOpenedLevel + 1
+  if (teams.length < minimumTeams) return highestOpenedLevel + 1
+  const bottomTwoFree = (freeBotsByLevel[highestOpenedLevel] ?? 0) +
+    (highestOpenedLevel > 0 ? (freeBotsByLevel[highestOpenedLevel - 1] ?? 0) : 0)
+  if (bottomTwoFree < freeBotsThreshold) return highestOpenedLevel + 1
   return -1
 }
 
