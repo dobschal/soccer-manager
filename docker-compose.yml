@@ -43,6 +43,7 @@ services:
       - ${FCM_SERVICE_ACCOUNT_PATH:-/dev/null}:${FCM_SERVICE_ACCOUNT_PATH:-/dev/null}:ro
       - forum-uploads:/usr/src/app/uploads/forum
       - avatar-uploads:/usr/src/app/uploads/avatars
+      - friend-posts-uploads:/usr/src/app/uploads/friend-posts
     depends_on:
       database:
         condition: service_healthy
@@ -52,6 +53,7 @@ services:
 volumes:
   forum-uploads:
   avatar-uploads:
+  friend-posts-uploads:
 
 networks:
   soccer-manager:
