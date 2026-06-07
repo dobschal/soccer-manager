@@ -10,3 +10,4 @@ node_modules
 /client/assets/native-version.json
 .env
 /uploads/
+/data/

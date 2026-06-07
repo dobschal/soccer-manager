@@ -12,6 +12,8 @@ services:
       test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
       timeout: 10s
       retries: 10
+    volumes:
+      - ${DATA_ROOT:-./data}/mysql:/var/lib/mysql
     networks:
       - soccer-manager
 
@@ -41,19 +43,14 @@ services:
     volumes:
       - ${APN_KEY_PATH:-/dev/null}:${APN_KEY_PATH:-/dev/null}:ro
       - ${FCM_SERVICE_ACCOUNT_PATH:-/dev/null}:${FCM_SERVICE_ACCOUNT_PATH:-/dev/null}:ro
-      - forum-uploads:/usr/src/app/uploads/forum
-      - avatar-uploads:/usr/src/app/uploads/avatars
-      - friend-posts-uploads:/usr/src/app/uploads/friend-posts
+      - ${DATA_ROOT:-./data}/uploads/forum:/usr/src/app/uploads/forum
+      - ${DATA_ROOT:-./data}/uploads/avatars:/usr/src/app/uploads/avatars
+      - ${DATA_ROOT:-./data}/uploads/friend-posts:/usr/src/app/uploads/friend-posts
     depends_on:
       database:
         condition: service_healthy
     networks:
       - soccer-manager
-
-volumes:
-  forum-uploads:
-  avatar-uploads:
-  friend-posts-uploads:
 
 networks:
   soccer-manager:
