@@ -49,11 +49,21 @@ export class LeagueResultsPage extends UIElement {
         this.matchDay = seasonFromUrl.matchDay
       }
     }
+    // After a season transition (new season scheduled, no league game of it
+    // played yet) lastPlayedLeagueSeason still points at the *previous* season's
+    // final match day. Showing that as the default would surface stale results,
+    // so snap to match day 1 of the upcoming season instead (#385).
+    const newSeasonNotStarted = typeof currentGameday.lastPlayedLeagueSeason === 'number' &&
+      currentGameday.lastPlayedLeagueSeason < currentGameday.season
     if (typeof this.season === 'undefined') {
-      this.season = currentGameday.lastPlayedLeagueSeason ?? currentGameday.season
+      this.season = newSeasonNotStarted
+        ? currentGameday.season
+        : (currentGameday.lastPlayedLeagueSeason ?? currentGameday.season)
     }
     if (typeof this.matchDay === 'undefined') {
-      this.matchDay = currentGameday.lastPlayedLeagueMatchDay ?? 1
+      this.matchDay = newSeasonNotStarted
+        ? 1
+        : (currentGameday.lastPlayedLeagueMatchDay ?? 1)
     }
 
     let filters = await server.getResultsFilters(this.level, this.league, this.season)
