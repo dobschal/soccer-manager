@@ -250,6 +250,30 @@ Inspect the sandbox DB the same way as prod:
 ssh hetzner "docker exec soccer-manager-sandbox-database-1 mysql -uroot -proot -D soccer -e 'SELECT COUNT(*) FROM game;'"
 ```
 
+### Persistent data layout
+
+Prod and sandbox MySQL data and user uploads (forum, avatars, friend-posts) live on a separate
+20 GB Hetzner volume mounted at `/mnt/HC_Volume_105947620`, **not** on the root disk. The
+`docker-compose.yml` references bind mounts via the `DATA_ROOT` env var, which is set per stack
+in `.env`:
+
+| Stack    | `DATA_ROOT`                            |
+|----------|----------------------------------------|
+| Prod     | `/mnt/HC_Volume_105947620/prod`        |
+| Sandbox  | `/mnt/HC_Volume_105947620/sandbox`     |
+| Local    | `./data` (default, gitignored)         |
+
+Each `DATA_ROOT` contains `mysql/` (mounted at `/var/lib/mysql`, owned by uid 999) and
+`uploads/{forum,avatars,friend-posts}/`. When adding a new persistent data directory, add a
+bind mount under `${DATA_ROOT}/...` in compose — do **not** use a named volume.
+
+### CI deploy rewrites `.env`
+
+The `deploy-prod` and `deploy-sandbox` jobs in `.github/workflows/ci.yml` rewrite the server's
+`.env` from scratch via a heredoc on every push. Anything appended to `.env` on the server
+manually will be wiped on the next deploy. When adding a new env var the running app needs,
+edit **both** heredoc blocks in `ci.yml` — not just the server `.env`.
+
 ## Tech Stack
 
 - **Backend**: Node.js 20, Express 4.18, MySQL 8.0, JWT auth
