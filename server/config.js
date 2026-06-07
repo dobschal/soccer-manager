@@ -8,6 +8,11 @@ export const config = {
   APN_PRODUCTION: process.env.APN_PRODUCTION === 'true',
   FCM_SERVICE_ACCOUNT_PATH: process.env.FCM_SERVICE_ACCOUNT_PATH || '',
   INACTIVE_USER_DAYS: 21,
+  // Lowest level a new user is allowed to take over a bot team from.
+  // Used both by team-choice (gating which teams appear) and by the
+  // season-prep level-opening rule (which counts the bot buffer in the
+  // bottom user-pickable levels).
+  MIN_CHOOSABLE_LEVEL: 2,
   SMTP_HOST: process.env.SMTP_HOST || '',
   SMTP_PORT: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
   SMTP_USER: process.env.SMTP_USER || '',

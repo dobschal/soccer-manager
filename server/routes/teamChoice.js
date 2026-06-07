@@ -9,8 +9,9 @@ import { t } from '../i18n/index.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { config } from '../config.js'
 
-const MIN_CHOOSABLE_LEVEL = 2
+const MIN_CHOOSABLE_LEVEL = config.MIN_CHOOSABLE_LEVEL
 
 /**
  * Free, non-system teams that the user is allowed to take over.
