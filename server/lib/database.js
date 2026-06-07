@@ -3,11 +3,22 @@ import mysql from 'mysql'
 const pool = mysql.createPool({
   connectionLimit: 25,
   host: process.env.DB_HOST ?? 'database', // switch to localhost if running locally
-  user: 'root',
-  password: 'root',
-  database: 'soccer',
+  user: process.env.DB_USER ?? 'root',
+  password: process.env.DB_PASS ?? 'root',
+  database: process.env.DB_NAME ?? 'soccer',
   charset: 'utf8mb4'
 })
+
+/**
+ * Close the underlying connection pool. Integration tests call this so the
+ * Vitest worker can exit cleanly after the test database has been dropped.
+ * @returns {Promise<void>}
+ */
+export function closePool () {
+  return new Promise((resolve, reject) => {
+    pool.end(err => err ? reject(err) : resolve())
+  })
+}
 
 /**
  * Wrapper of the existing database query method, but returns a promise.
