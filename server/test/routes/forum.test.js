@@ -365,4 +365,47 @@ describe('forum routes - edit and delete', () => {
       expect(countCall[0]).not.toMatch(/is_archived = 0/)
     })
   })
+
+  describe('getForumPosts orphan-author handling', () => {
+    it('uses LEFT JOIN on user so posts with deleted authors still appear', async () => {
+      query
+        .mockResolvedValueOnce([{ id: 3, name: 'General' }])
+        .mockResolvedValueOnce([{ total: 1 }])
+        .mockResolvedValueOnce([{ archived_total: 0 }])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 1, username: '[deleted]', liked: 0 }])
+
+      const req = createMockRequest({ user: { id: 1, is_admin: 0 } })
+      const result = await handlers.getForumPosts(3, 1, null, false, req)
+
+      const postsCall = query.mock.calls[4]
+      expect(postsCall[0]).toMatch(/LEFT JOIN user u/)
+      expect(postsCall[0]).toMatch(/COALESCE\(u\.username/)
+      expect(result.posts).toHaveLength(1)
+      expect(result.posts[0].username).toBe('[deleted]')
+    })
+  })
+
+  describe('getForumPost orphan-author handling', () => {
+    it('uses LEFT JOIN on user for post and comments so orphan rows still appear', async () => {
+      query
+        .mockResolvedValueOnce([{ id: 7, title: 't', text: 'b', username: '[deleted]', liked: 0 }]) // post
+        .mockResolvedValueOnce({}) // markMentionsSeenForPost UPDATE
+        .mockResolvedValueOnce([]) // post images
+        .mockResolvedValueOnce([{ id: 1, username: '[deleted]' }]) // comments
+        .mockResolvedValueOnce([]) // comment images
+
+      const req = createMockRequest({ user: { id: 1, is_admin: 0 } })
+      const result = await handlers.getForumPost(7, req)
+
+      const postCall = query.mock.calls[0][0]
+      expect(postCall).toMatch(/LEFT JOIN user u/)
+      expect(postCall).toMatch(/COALESCE\(u\.username/)
+      const commentsCall = query.mock.calls[3][0]
+      expect(commentsCall).toMatch(/LEFT JOIN user u/)
+      expect(commentsCall).toMatch(/COALESCE\(u\.username/)
+      expect(result.post.username).toBe('[deleted]')
+      expect(result.comments[0].username).toBe('[deleted]')
+    })
+  })
 })

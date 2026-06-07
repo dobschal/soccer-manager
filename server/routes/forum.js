@@ -68,19 +68,19 @@ export default {
     const latestComments = await query(`
       SELECT c.id, c.text, c.created_at,
         p.id AS post_id, p.title AS post_title, p.category_id,
-        u.username
+        COALESCE(u.username, '[deleted]') AS username
       FROM forum_comment c
       JOIN forum_post p ON p.id = c.post_id
-      JOIN user u ON u.id = c.user_id
+      LEFT JOIN user u ON u.id = c.user_id
       WHERE p.is_archived = 0
       ORDER BY c.created_at DESC
       LIMIT 30
     `)
     const latestPosts = await query(`
       SELECT p.id, p.title, p.text, p.created_at, p.category_id,
-        u.username
+        COALESCE(u.username, '[deleted]') AS username
       FROM forum_post p
-      JOIN user u ON u.id = p.user_id
+      LEFT JOIN user u ON u.id = p.user_id
       WHERE p.is_archived = 0
       ORDER BY p.created_at DESC
       LIMIT 30
@@ -181,7 +181,7 @@ export default {
     const posts = await query(`
       SELECT p.id, p.title, p.text, p.created_at, p.user_id, p.team_id,
         p.badge_text, p.badge_color, p.is_archived,
-        u.username,
+        COALESCE(u.username, '[deleted]') AS username,
         t.name AS team_name,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id) AS like_count,
         (SELECT COUNT(*) FROM forum_comment c WHERE c.post_id = p.id) AS comment_count,
@@ -191,7 +191,7 @@ export default {
           p.created_at
         ) AS last_activity
       FROM forum_post p
-      JOIN user u ON u.id = p.user_id
+      LEFT JOIN user u ON u.id = p.user_id
       LEFT JOIN team t ON t.id = p.team_id
       WHERE p.category_id = ?${badgeFilterClause}${archivedClause}
       ORDER BY last_activity DESC
@@ -277,11 +277,11 @@ export default {
     const userId = req.user.id
 
     const [post] = await query(`
-      SELECT p.*, u.username, t.name AS team_name, c.name AS category_name,
+      SELECT p.*, COALESCE(u.username, '[deleted]') AS username, t.name AS team_name, c.name AS category_name,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id) AS like_count,
         (SELECT COUNT(*) FROM forum_post_like l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
       FROM forum_post p
-      JOIN user u ON u.id = p.user_id
+      LEFT JOIN user u ON u.id = p.user_id
       JOIN forum_category c ON c.id = p.category_id
       LEFT JOIN team t ON t.id = p.team_id
       WHERE p.id = ?
@@ -300,9 +300,9 @@ export default {
 
     const comments = await query(`
       SELECT c.id, c.text, c.created_at, c.user_id, c.team_id,
-        u.username, t.name AS team_name
+        COALESCE(u.username, '[deleted]') AS username, t.name AS team_name
       FROM forum_comment c
-      JOIN user u ON u.id = c.user_id
+      LEFT JOIN user u ON u.id = c.user_id
       LEFT JOIN team t ON t.id = c.team_id
       WHERE c.post_id = ?
       ORDER BY c.created_at ASC
