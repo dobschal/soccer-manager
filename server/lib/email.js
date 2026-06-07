@@ -500,17 +500,31 @@ export async function sendNotificationEmail ({ toEmail, locale, username, title,
 }
 
 /**
+ * Build the landing-page URL that opens the registration form with the
+ * invitee's email prefilled. The router is hash-based, so `email` must
+ * live in the hash query — a top-level `?email=…` would be wiped by the
+ * unauthenticated → `#login` redirect.
+ * @param {string} toEmail
+ * @returns {string}
+ */
+export function buildReferralSignupUrl (toEmail) {
+  return `${config.PUBLIC_URL}/#login?type=registration&email=${encodeURIComponent(toEmail)}`
+}
+
+/**
  * Render the referral invitation email HTML.
  * @param {object} args
  * @param {string} args.locale
  * @param {string} args.inviterUsername
+ * @param {string} args.toEmail
  * @returns {string}
  */
-function renderReferralEmailHtml ({ locale, inviterUsername }) {
+function renderReferralEmailHtml ({ locale, inviterUsername, toEmail }) {
   const logoUrl = `${config.PUBLIC_URL}/assets/logo.svg`
   const supportUrl = `${config.PUBLIC_URL}/support.html`
   const privacyUrl = `${config.PUBLIC_URL}/imprint.html`
   const appUrl = config.PUBLIC_URL
+  const signupUrl = buildReferralSignupUrl(toEmail)
   const signature = t('email.referral.signature', {}, locale)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -540,7 +554,7 @@ function renderReferralEmailHtml ({ locale, inviterUsername }) {
                   ${t('email.referral.body', { inviter: inviterUsername }, locale)}
                 </p>
                 <p style="margin:0 0 24px 0;text-align:center;">
-                  <a href="${appUrl}" style="display:inline-block;background-color:#17a2b8;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 28px;border-radius:8px;font-size:16px;">
+                  <a href="${signupUrl}" style="display:inline-block;background-color:#17a2b8;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 28px;border-radius:8px;font-size:16px;">
                     ${t('email.referral.button', {}, locale)}
                   </a>
                 </p>
@@ -569,13 +583,13 @@ function renderReferralEmailHtml ({ locale, inviterUsername }) {
  * @param {object} args
  * @returns {string}
  */
-function renderReferralEmailText ({ locale, inviterUsername }) {
+function renderReferralEmailText ({ locale, inviterUsername, toEmail }) {
   return [
     t('email.referral.greeting', {}, locale),
     '',
     t('email.referral.body', { inviter: inviterUsername }, locale),
     '',
-    `${t('email.referral.button', {}, locale)}: ${config.PUBLIC_URL}`,
+    `${t('email.referral.button', {}, locale)}: ${buildReferralSignupUrl(toEmail)}`,
     '',
     t('email.referral.signature', {}, locale)
   ].join('\n')
@@ -590,8 +604,8 @@ function renderReferralEmailText ({ locale, inviterUsername }) {
  * @returns {Promise<{ sent: boolean }>}
  */
 export async function sendReferralEmail ({ toEmail, locale, inviterUsername }) {
-  const html = renderReferralEmailHtml({ locale, inviterUsername })
-  const text = renderReferralEmailText({ locale, inviterUsername })
+  const html = renderReferralEmailHtml({ locale, inviterUsername, toEmail })
+  const text = renderReferralEmailText({ locale, inviterUsername, toEmail })
   const subject = t('email.referral.subject', { inviter: inviterUsername }, locale)
 
   const transporter = await getTransporter()

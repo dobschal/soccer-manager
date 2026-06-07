@@ -131,3 +131,45 @@ describe('LandingPage - mobile app banner', () => {
     expect(html).not.toContain('mobile-app-banner')
   })
 })
+
+describe('LandingPage - registration email prefill from referral link', () => {
+  beforeEach(() => {
+    window.localStorage.getItem.mockReturnValue(null)
+  })
+
+  it('prefills the email input when the referral link passes a URL-encoded email', async () => {
+    const page = new LandingPage()
+    page.update = vi.fn().mockResolvedValue()
+    await page.onQueryChanged({ type: 'registration', email: 'friend%40example.com' })
+    expect(page.prefillEmail).toBe('friend@example.com')
+    const html = page.template
+    expect(html).toContain('id="email-input"')
+    expect(html).toContain('value="friend@example.com"')
+  })
+
+  it('leaves the email input empty when no email query param is provided', async () => {
+    const page = new LandingPage()
+    page.update = vi.fn().mockResolvedValue()
+    await page.onQueryChanged({ type: 'registration' })
+    expect(page.prefillEmail).toBe('')
+    expect(page.template).toContain('value=""')
+  })
+
+  it('escapes HTML-unsafe characters so a crafted referral URL cannot inject attributes', async () => {
+    const page = new LandingPage()
+    page.update = vi.fn().mockResolvedValue()
+    // Simulates `email=" onfocus="alert(1)` — the decoded value must not break out of value="…".
+    const malicious = encodeURIComponent('" onfocus="alert(1)')
+    await page.onQueryChanged({ type: 'registration', email: malicious })
+    const html = page.template
+    expect(html).not.toContain('onfocus="alert(1)')
+    expect(html).toContain('&quot;')
+  })
+
+  it('does not throw when the email param is malformed and produces no prefill', async () => {
+    const page = new LandingPage()
+    page.update = vi.fn().mockResolvedValue()
+    await page.onQueryChanged({ type: 'registration', email: '%E0%A4%A' })
+    expect(page.prefillEmail).toBe('')
+  })
+})

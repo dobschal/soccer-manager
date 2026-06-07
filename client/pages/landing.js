@@ -210,11 +210,26 @@ export class LandingPage extends UIElement {
   /**
    * @param {Object} params
    * @param {string} params.type
+   * @param {string} [params.email] - URL-encoded email to prefill the registration form (used by referral email links)
    * @returns {Promise<void>}
    */
-  async onQueryChanged ({ type }) {
+  async onQueryChanged ({ type, email }) {
     this.isForgotPassword = type === 'forgot-password'
     this.isLogin = type === 'login'
+    let decoded = ''
+    if (email) {
+      try {
+        decoded = decodeURIComponent(email)
+      } catch {
+        decoded = ''
+      }
+    }
+    // Escape so a crafted URL can't inject attributes (e.g. `email=" onfocus=...`).
+    this.prefillEmail = decoded
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
     await this.update()
   }
 
@@ -259,7 +274,7 @@ export class LandingPage extends UIElement {
         </div>
         <div class="form-group mb-3 ${this.isLogin ? 'hidden' : ''}" id="email-area">
           <label for="email-input">${t('landing.email')}</label>
-          <input class="form-control" id="email-input" name="email" type="email" placeholder="${t('landing.enterEmail')}" autocomplete="email">
+          <input class="form-control" id="email-input" name="email" type="email" placeholder="${t('landing.enterEmail')}" autocomplete="email" value="${this.prefillEmail ?? ''}">
         </div>
         <div class="form-group mb-3">
           <label for="password-input">${t('landing.password')}</label>
