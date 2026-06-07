@@ -603,7 +603,7 @@ export class ForumPage extends UIElement {
             ${commentBody}
             ${(!isEditingComment && commentImages) ? `<div class="forum-comment-images">${commentImages}</div>` : ''}
             ${!isEditingComment && (canEditComment || canDeleteComment) ? `
-              <div class="forum-post-footer forum-post-footer--end mt-2">
+              <div class="forum-post-footer forum-post-footer--end">
                 <div class="forum-post-actions">
                   ${canEditComment ? `<button class="btn btn-sm btn-outline-secondary forum-edit-comment" data-id="${comment.id}" title="${t('forum.editComment')}" aria-label="${t('forum.editComment')}"><i class="fa fa-pencil"></i></button>` : ''}
                   ${canDeleteComment ? `<button class="btn btn-sm btn-outline-danger forum-delete-comment" data-id="${comment.id}" title="${t('forum.deleteComment')}" aria-label="${t('forum.deleteComment')}"><i class="fa fa-trash"></i></button>` : ''}
@@ -751,7 +751,10 @@ export class ForumPage extends UIElement {
           description: btn.dataset.desc
         }
         await this.update()
-        el(`${this._elementQuery} #forum-cat-form`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el(`${this._elementQuery} #forum-cat-form`)?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        })
       }
     })
 

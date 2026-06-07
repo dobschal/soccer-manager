@@ -9,6 +9,7 @@ import { formatDate } from '../../lib/date.js'
 import { toast } from '../../partials/toast.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
 import { showFriendPostCommentsOverlay } from '../../partials/friendPostCommentsOverlay.js'
+import { showConfirmDialog } from '../../partials/overlay.js'
 
 function avatarSrc (avatar) {
   if (avatar) return `${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatar}`
@@ -34,14 +35,16 @@ function escapeHtml (text) {
  */
 export class FriendsPage extends UIElement {
   async load () {
-    const [{ entries }, postsData] = await Promise.all([
+    const [{ entries }, postsData, teamResponse] = await Promise.all([
       server.getFriendsOverview(),
-      server.getFriendPosts(1)
+      server.getFriendPosts(1),
+      server.getMyTeam()
     ])
     this._entries = entries || []
     this._posts = postsData.posts || []
     this._postsPage = postsData.page
     this._postsTotalPages = postsData.totalPages
+    this._currentUserId = teamResponse.user?.id ?? null
   }
 
   get template () {
@@ -62,6 +65,7 @@ export class FriendsPage extends UIElement {
   _postsPage = 1
   _postsTotalPages = 1
   _pendingPostImage = null
+  _currentUserId = null
 
   _renderTable () {
     if (this._entries.length === 0) {
@@ -296,6 +300,20 @@ export class FriendsPage extends UIElement {
     onClick('#' + likeBtnId, () => this._toggleLike(post.id))
     onClick('#' + commentBtnId, () => this._openComments(post.id))
 
+    const isOwnPost = this._currentUserId && Number(post.userId) === Number(this._currentUserId)
+    let deleteButton = ''
+    if (isOwnPost) {
+      const deleteBtnId = generateId()
+      onClick('#' + deleteBtnId, () => this._deletePost(post.id))
+      deleteButton = `
+        <button id="${deleteBtnId}" type="button"
+          class="btn btn-sm btn-outline-danger friend-post-actions__delete"
+          title="${t('friendPosts.delete')}" aria-label="${t('friendPosts.delete')}">
+          <i class="fa fa-trash"></i>
+        </button>
+      `
+    }
+
     return `
       <article class="friend-post card card-body${post.imageFilename ? '' : ' friend-post--no-image'}">
         ${imageMarkup}
@@ -317,6 +335,7 @@ export class FriendsPage extends UIElement {
               <i class="fa fa-comment-o"></i>
               <span class="ms-1">${post.commentCount}</span>
             </button>
+            ${deleteButton}
           </div>
         </div>
       </article>
@@ -434,6 +453,22 @@ export class FriendsPage extends UIElement {
 
   _openComments (postId) {
     showFriendPostCommentsOverlay(postId, () => this._reloadPosts(this._postsPage))
+  }
+
+  async _deletePost (postId) {
+    const confirmed = await showConfirmDialog(
+      t('friendPosts.confirmDelete'),
+      t('friendPosts.delete'),
+      t('forum.cancel')
+    )
+    if (!confirmed) return
+    try {
+      await server.deleteFriendPost(postId)
+      toast(t('friendPosts.deleted'), 'success')
+      await this._reloadPosts(this._postsPage)
+    } catch (err) {
+      showServerError(err)
+    }
   }
 
   async _goToPage (page) {

@@ -1419,6 +1419,9 @@ export default {
   'friendPosts.invalidImage': 'Please choose a valid image file.',
   'friendPosts.imageTooLarge': 'Image is too large (max 2MB).',
   'friendPosts.page': 'Page',
+  'friendPosts.delete': 'Delete post',
+  'friendPosts.confirmDelete': 'Are you sure you want to delete this post? All comments and likes will be removed.',
+  'friendPosts.deleted': 'Post deleted.',
 
   // Head-to-head overlay
   'headToHead.cta': 'Head-to-Head',

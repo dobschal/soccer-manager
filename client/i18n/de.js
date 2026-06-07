@@ -1419,6 +1419,9 @@ export default {
   'friendPosts.invalidImage': 'Bitte wähle eine gültige Bilddatei.',
   'friendPosts.imageTooLarge': 'Bild ist zu groß (max. 2MB).',
   'friendPosts.page': 'Seite',
+  'friendPosts.delete': 'Post löschen',
+  'friendPosts.confirmDelete': 'Möchtest du diesen Post wirklich löschen? Alle Kommentare und Likes werden ebenfalls entfernt.',
+  'friendPosts.deleted': 'Post gelöscht.',
 
   // Head-to-head overlay
   'headToHead.cta': 'Direktvergleich',

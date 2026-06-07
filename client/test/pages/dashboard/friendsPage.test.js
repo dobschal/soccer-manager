@@ -6,10 +6,16 @@ vi.mock('../../../lib/gateway.js', () => ({
     getFriendPosts: vi.fn(),
     createFriendPost: vi.fn(),
     toggleFriendPostLike: vi.fn(),
+    deleteFriendPost: vi.fn(),
     addFriend: vi.fn(),
-    removeFriend: vi.fn()
+    removeFriend: vi.fn(),
+    getMyTeam: vi.fn()
   },
   showServerError: vi.fn()
+}))
+
+vi.mock('../../../partials/overlay.js', () => ({
+  showConfirmDialog: vi.fn()
 }))
 
 vi.mock('../../../partials/emblem.js', () => ({
@@ -100,6 +106,7 @@ describe('FriendsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     server.getFriendPosts.mockResolvedValue(emptyPosts())
+    server.getMyTeam.mockResolvedValue({ user: { id: 1 } })
   })
 
   it('renders empty state when there are no entries', async () => {
@@ -233,6 +240,47 @@ describe('FriendsPage', () => {
 
     expect(html).toContain('/uploads/friend-posts/abc.png')
     expect(html).toContain('friend-post-image')
+  })
+
+  it('shows a delete button on the user\'s own posts', async () => {
+    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+    server.getMyTeam.mockReset()
+    server.getMyTeam.mockResolvedValueOnce({ user: { id: 42 } })
+    server.getFriendPosts.mockReset()
+    server.getFriendPosts.mockResolvedValueOnce({
+      posts: [buildPost({ userId: 42 })],
+      page: 1,
+      total: 1,
+      totalPages: 1
+    })
+
+    const page = new FriendsPage()
+    await page.load()
+    const html = page.template
+
+    expect(html).toContain('friend-post-actions__delete')
+    expect(html).toContain('friendPosts.delete')
+    expect(html).toContain('fa-trash')
+  })
+
+  it('does not render a delete button on someone else\'s post', async () => {
+    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+    server.getMyTeam.mockReset()
+    server.getMyTeam.mockResolvedValueOnce({ user: { id: 1 } })
+    server.getFriendPosts.mockReset()
+    server.getFriendPosts.mockResolvedValueOnce({
+      posts: [buildPost({ userId: 99 })],
+      page: 1,
+      total: 1,
+      totalPages: 1
+    })
+
+    const page = new FriendsPage()
+    await page.load()
+    const html = page.template
+
+    expect(html).not.toContain('friend-post-actions__delete')
+    expect(html).not.toContain('fa-trash')
   })
 
   it('renders pagination controls when more than one page is available', async () => {

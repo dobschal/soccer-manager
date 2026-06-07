@@ -363,6 +363,11 @@
 .friend-post-actions {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
+}
+
+.friend-post-actions__delete {
+    margin-left: auto;
 }
 
 .friend-post-pagination {
