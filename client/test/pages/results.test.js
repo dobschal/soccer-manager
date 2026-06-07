@@ -542,6 +542,39 @@ describe('ResultsPage', () => {
     })
   })
 
+  describe('default season/match day after new season transition', () => {
+    it('defaults to the new season and match day 1 when no league game of the new season has been played yet', async () => {
+      // Scenario (#385): a new season was created, the first match day has not
+      // been played yet. lastPlayedLeagueSeason points to the previous season
+      // (e.g. its final match day 34). The page must NOT default to that
+      // stale match day — it should open on match day 1 of the upcoming season.
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
+
+      server.getCurrentGameday.mockResolvedValue({
+        season: 3,
+        gameDay: 1,
+        lastPlayedLeagueSeason: 2,
+        lastPlayedLeagueMatchDay: 34
+      })
+      server.getResultsFilters.mockResolvedValue({
+        leagues: [{ level: 1, league: 0 }],
+        seasons: [0, 1, 2, 3],
+        matchDays: Array.from({ length: 34 }, (_, i) => i + 1)
+      })
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+
+      const leaguePage = new LeagueResultsPage(parentPage)
+      await leaguePage.load()
+
+      expect(leaguePage.season).toBe(3)
+      expect(leaguePage.matchDay).toBe(1)
+    })
+  })
+
   describe('applyQueryParams', () => {
     it('resets to last played match day when no season/match_day in query', async () => {
       const team = testData.team({ level: 1, league: 0 })
