@@ -518,15 +518,8 @@ export class ForumPage extends UIElement {
         <div class="card-body">
           ${post.is_archived ? `<div class="alert alert-secondary py-2 mb-2"><i class="fa fa-archive me-1"></i> ${t('forum.archivedNotice')}</div>` : ''}
           <h5>${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}</h5>
-          <div class="forum-meta mb-2 d-flex justify-content-between align-items-start">
+          <div class="forum-meta mb-2">
             <small class="text-muted">${escapeHtml(post.username)} ${teamLink ? '- ' + teamLink : ''} - ${date}</small>
-            ${!isEditingPost && (canEditPost || canDeletePost || canArchivePost) ? `
-              <div class="forum-author-actions">
-                ${canEditPost ? `<button class="btn btn-link btn-sm forum-icon-btn forum-edit-post" data-id="${post.id}" title="${t('forum.editPost')}" aria-label="${t('forum.editPost')}"><i class="fa fa-pencil"></i></button>` : ''}
-                ${canArchivePost ? `<button class="btn btn-link btn-sm forum-icon-btn forum-archive-post" data-id="${post.id}" data-archived="${post.is_archived ? '1' : '0'}" title="${post.is_archived ? t('forum.unarchivePost') : t('forum.archivePost')}" aria-label="${post.is_archived ? t('forum.unarchivePost') : t('forum.archivePost')}"><i class="fa fa-archive"></i></button>` : ''}
-                ${canDeletePost ? `<button class="btn btn-link btn-sm forum-icon-btn forum-icon-btn-danger forum-delete-post" data-id="${post.id}" title="${t('forum.deletePost')}" aria-label="${t('forum.deletePost')}"><i class="fa fa-trash"></i></button>` : ''}
-              </div>
-            ` : ''}
           </div>
           ${this._isAdmin ? `
             <div class="forum-badge-admin mb-2">
@@ -557,9 +550,18 @@ export class ForumPage extends UIElement {
           ${(!isEditingPost && post.images && post.images.length > 0) ? `<div class="forum-comment-images mb-3">${post.images.map(img =>
     `<img src="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}" class="forum-comment-thumb" data-full="${window.__NATIVE_SERVER_URL || ''}/uploads/forum/${escapeHtml(img.filename)}">`
   ).join('')}</div>` : ''}
-          <button id="forum-like-btn" class="btn btn-sm ${post.liked ? 'btn-danger' : 'btn-outline-danger'}">
-            <i class="fa fa-heart${post.liked ? '' : '-o'}"></i> ${post.like_count}
-          </button>
+          <div class="forum-post-footer">
+            <button id="forum-like-btn" class="btn btn-sm ${post.liked ? 'btn-danger' : 'btn-outline-danger'}">
+              <i class="fa fa-heart${post.liked ? '' : '-o'}"></i> ${post.like_count}
+            </button>
+            ${!isEditingPost && (canEditPost || canDeletePost || canArchivePost) ? `
+              <div class="forum-post-actions">
+                ${canEditPost ? `<button class="btn btn-sm btn-outline-secondary forum-edit-post" data-id="${post.id}" title="${t('forum.editPost')}" aria-label="${t('forum.editPost')}"><i class="fa fa-pencil"></i></button>` : ''}
+                ${canArchivePost ? `<button class="btn btn-sm btn-outline-secondary forum-archive-post" data-id="${post.id}" data-archived="${post.is_archived ? '1' : '0'}" title="${post.is_archived ? t('forum.unarchivePost') : t('forum.archivePost')}" aria-label="${post.is_archived ? t('forum.unarchivePost') : t('forum.archivePost')}"><i class="fa fa-archive"></i></button>` : ''}
+                ${canDeletePost ? `<button class="btn btn-sm btn-outline-danger forum-delete-post" data-id="${post.id}" title="${t('forum.deletePost')}" aria-label="${t('forum.deletePost')}"><i class="fa fa-trash"></i></button>` : ''}
+              </div>
+            ` : ''}
+          </div>
         </div>
       </div>
     `
@@ -593,21 +595,21 @@ export class ForumPage extends UIElement {
 
         html += `
           <div class="forum-comment mb-2 pb-2 border-bottom">
-            <div class="forum-meta mb-1 d-flex justify-content-between align-items-start">
-              <span>
-                <strong>${escapeHtml(comment.username)}</strong>
-                ${cTeamLink ? '- ' + cTeamLink : ''}
-                <small class="text-muted ms-2">${cDate}</small>
-              </span>
-              ${!isEditingComment && (canEditComment || canDeleteComment) ? `
-                <span class="forum-author-actions">
-                  ${canEditComment ? `<button class="btn btn-link btn-sm forum-icon-btn forum-edit-comment" data-id="${comment.id}" title="${t('forum.editComment')}" aria-label="${t('forum.editComment')}"><i class="fa fa-pencil"></i></button>` : ''}
-                  ${canDeleteComment ? `<button class="btn btn-link btn-sm forum-icon-btn forum-icon-btn-danger forum-delete-comment" data-id="${comment.id}" title="${t('forum.deleteComment')}" aria-label="${t('forum.deleteComment')}"><i class="fa fa-trash"></i></button>` : ''}
-                </span>
-              ` : ''}
+            <div class="forum-meta mb-1">
+              <strong>${escapeHtml(comment.username)}</strong>
+              ${cTeamLink ? '- ' + cTeamLink : ''}
+              <small class="text-muted ms-2">${cDate}</small>
             </div>
             ${commentBody}
             ${(!isEditingComment && commentImages) ? `<div class="forum-comment-images">${commentImages}</div>` : ''}
+            ${!isEditingComment && (canEditComment || canDeleteComment) ? `
+              <div class="forum-post-footer forum-post-footer--end mt-2">
+                <div class="forum-post-actions">
+                  ${canEditComment ? `<button class="btn btn-sm btn-outline-secondary forum-edit-comment" data-id="${comment.id}" title="${t('forum.editComment')}" aria-label="${t('forum.editComment')}"><i class="fa fa-pencil"></i></button>` : ''}
+                  ${canDeleteComment ? `<button class="btn btn-sm btn-outline-danger forum-delete-comment" data-id="${comment.id}" title="${t('forum.deleteComment')}" aria-label="${t('forum.deleteComment')}"><i class="fa fa-trash"></i></button>` : ''}
+                </div>
+              </div>
+            ` : ''}
           </div>
         `
       }

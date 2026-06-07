@@ -322,6 +322,24 @@
     flex-shrink: 0;
 }
 
+.forum-post-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.forum-post-footer--end {
+    justify-content: flex-end;
+}
+
+.forum-post-actions {
+    display: inline-flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 .forum-icon-btn {
     padding: 0.15rem 0.4rem;
     color: var(--bs-secondary);
