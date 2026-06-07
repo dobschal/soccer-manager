@@ -158,8 +158,11 @@ export class StartPage {
   }
 
   _renderVideoCard () {
-    const videoId = getLocale() === 'en' ? '5Szjg4fdVl0' : 'mqiA34LB3ko'
     const isNativeApp = Boolean(window.__nativePlatform)
+    const locale = getLocale()
+    const videoId = locale === 'en'
+      ? '5Szjg4fdVl0'
+      : isNativeApp ? 'D7v1Y2-HUlk' : 'mqiA34LB3ko'
     const videoContent = isNativeApp
       ? `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" class="d-block ratio ratio-16x9 video-thumbnail-link">
           <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="${t('dashboard.videoTitle')}" class="video-thumbnail-img">

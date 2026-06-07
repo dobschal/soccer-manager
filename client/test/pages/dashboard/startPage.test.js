@@ -138,6 +138,61 @@ describe('StartPage._findCupInitialSlideIndex', () => {
   })
 })
 
+describe('StartPage._renderVideoCard', () => {
+  let getLocaleMock
+
+  beforeEach(async () => {
+    const i18n = await import('../../../i18n/index.js')
+    getLocaleMock = vi.spyOn(i18n, 'getLocale').mockReturnValue('en')
+    delete window.__nativePlatform
+  })
+
+  function makePage () {
+    return new StartPage({
+      sliderGames: [],
+      initialSlideIndex: 0,
+      team: { id: 1 },
+      cupGames: [],
+      friendlyGames: [],
+      canPlayFriendly: false,
+      standing: [],
+      teamPosition: 0,
+      urgencies: []
+    })
+  }
+
+  it('uses the English tutorial video for the English locale (browser)', () => {
+    getLocaleMock.mockReturnValue('en')
+    const html = makePage()._renderVideoCard()
+    expect(html).toContain('5Szjg4fdVl0')
+    expect(html).not.toContain('D7v1Y2-HUlk')
+    expect(html).not.toContain('mqiA34LB3ko')
+  })
+
+  it('uses the English tutorial video for the English locale in the native app', () => {
+    getLocaleMock.mockReturnValue('en')
+    window.__nativePlatform = 'ios'
+    const html = makePage()._renderVideoCard()
+    expect(html).toContain('5Szjg4fdVl0')
+    expect(html).not.toContain('D7v1Y2-HUlk')
+  })
+
+  it('uses the original German tutorial video for the German locale in the browser', () => {
+    getLocaleMock.mockReturnValue('de')
+    const html = makePage()._renderVideoCard()
+    expect(html).toContain('mqiA34LB3ko')
+    expect(html).not.toContain('D7v1Y2-HUlk')
+  })
+
+  it('uses the new German tutorial video for the German locale in the native app', () => {
+    getLocaleMock.mockReturnValue('de')
+    window.__nativePlatform = 'ios'
+    const html = makePage()._renderVideoCard()
+    expect(html).toContain('D7v1Y2-HUlk')
+    expect(html).not.toContain('mqiA34LB3ko')
+  })
+})
+
 describe('StartPage._renderMiniStanding row click', () => {
   it('navigates to the league results page (not the team page) when a row is clicked', async () => {
     const { goTo } = await import('../../../lib/router.js')
