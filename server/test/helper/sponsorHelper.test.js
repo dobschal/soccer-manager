@@ -5,16 +5,18 @@ vi.mock('../../lib/database.js', () => ({
 }))
 
 vi.mock('../../helper/gameDayHelper.js', () => ({
-  getGameDayAndSeason: vi.fn()
+  getGameDayAndSeason: vi.fn(),
+  getSeasonGameDayCount: vi.fn().mockResolvedValue(34)
 }))
 
 import { query } from '../../lib/database.js'
-import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
+import { getGameDayAndSeason, getSeasonGameDayCount } from '../../helper/gameDayHelper.js'
 import { getSponsor } from '../../helper/sponsorHelper.js'
 
 describe('sponsorHelper', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    getSeasonGameDayCount.mockResolvedValue(34)
   })
 
   describe('getSponsor', () => {
@@ -119,6 +121,41 @@ describe('sponsorHelper', () => {
       const result = await getSponsor(team)
 
       expect(result.sponsor).toBeNull()
+    })
+
+    it('does not regenerate days across season transition when season has cup rounds (#384)', async () => {
+      // Season N has 43 game days total (34 league + 9 cup days interleaved).
+      // Sponsor signed at (N=1, game_day=33), duration=16. The contract should
+      // expire 16 ticks after signing — ticks advance through both league and
+      // cup days, then wrap to (season=2, game_day=1).
+      const sponsor = {
+        id: 1,
+        team_id: 1,
+        name: 'Test Sponsor',
+        value: 10000,
+        start_season: 1,
+        start_game_day: 33,
+        duration: 16
+      }
+
+      getSeasonGameDayCount.mockResolvedValue(43)
+
+      // Just before season transition: current pointer is the last unplayed of season 1.
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 43, season: 1 })
+      query.mockResolvedValueOnce([sponsor])
+      const before = await getSponsor(team)
+      expect(before.sponsor).not.toBeNull()
+      expect(before.sponsor.remaining_days).toBe(6) // 16 - (43 - 33) = 6
+
+      // Right after season transition: pointer wraps to (2, 1) — only one tick
+      // happened, so remaining must drop by 1, not jump up.
+      vi.clearAllMocks()
+      getSeasonGameDayCount.mockResolvedValue(43)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 2 })
+      query.mockResolvedValueOnce([sponsor])
+      const after = await getSponsor(team)
+      expect(after.sponsor).not.toBeNull()
+      expect(after.sponsor.remaining_days).toBe(5) // 16 - ((43 - 33) + 1) = 5
     })
 
     it('handles sponsors spanning across seasons correctly', async () => {

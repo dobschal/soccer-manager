@@ -1,10 +1,31 @@
 import { query } from '../lib/database.js'
-import { getGameDayAndSeason } from './gameDayHelper.js'
+import { getGameDayAndSeason, getSeasonGameDayCount } from './gameDayHelper.js'
 import { randomItem } from '../lib/util.js'
 import { sponsorNames } from '../lib/name-library.js'
 import { Sponsor } from '../entities/sponsor.js'
 
-const GAMEDAYS_PER_SEASON = 34
+/**
+ * Number of ticks elapsed from (startSeason, startGameDay) to (currentSeason, currentGameDay).
+ * Each tick advances the unplayed-game-day pointer by one within a season or wraps to game day 1
+ * of the next. Season lengths vary because cup rounds are interleaved between league days, so a
+ * fixed 34 would miscount across the season boundary.
+ *
+ * @param {number} startSeason
+ * @param {number} startGameDay
+ * @param {number} currentSeason
+ * @param {number} currentGameDay
+ * @returns {Promise<number>}
+ */
+async function _ticksElapsed (startSeason, startGameDay, currentSeason, currentGameDay) {
+  if (currentSeason === startSeason) {
+    return currentGameDay - startGameDay
+  }
+  let ticks = await getSeasonGameDayCount(startSeason) - startGameDay
+  for (let s = startSeason + 1; s < currentSeason; s++) {
+    ticks += await getSeasonGameDayCount(s)
+  }
+  return ticks + currentGameDay
+}
 
 /**
  * Get the active sponsor for a team
@@ -28,10 +49,10 @@ export async function getSponsor (team, options = {}) {
   `, [team.id])
 
   if (sponsor) {
-    // Calculate remaining days
-    const contractEndTotal = sponsor.start_season * GAMEDAYS_PER_SEASON + sponsor.start_game_day + sponsor.duration
-    const currentTotal = season * GAMEDAYS_PER_SEASON + gameDay
-    const remaining_days = contractEndTotal - currentTotal
+    const ticksElapsed = await _ticksElapsed(
+      sponsor.start_season, sponsor.start_game_day, season, gameDay
+    )
+    const remaining_days = sponsor.duration - ticksElapsed
 
     // If contract has expired (0 or negative days), return no sponsor
     if (remaining_days <= 0) {
