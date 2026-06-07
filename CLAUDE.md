@@ -18,6 +18,28 @@ npm run lint # No lint errors allowed
 
 If a test or lint check fails, fix the issue before moving on.
 
+### E2E integration tests (manual)
+
+There is a separate heavy suite under `server/test/integration/` that runs
+against a real MySQL container (per-file throwaway schema). It is **not**
+part of `npm test` and not part of CI — kick it off manually:
+
+```bash
+docker compose up database -d
+npm run test:integration       # ~4 min total (10 tests in 4 files)
+```
+
+Run it **occasionally** — at minimum:
+- whenever touching `prepare-season.js`, `play-game-day.js`,
+  `helper/cupHelper.js`, or anything else that affects season/cup
+  scheduling, promotion/relegation, or the user-registration → team-choice
+  flow,
+- before merging `develop` → `main` if any of the above were changed in
+  the diff.
+
+If the suite is failing on something unrelated to your change, treat it
+like any other failing test — don't merge over red.
+
 ### Branch model & deployment
 
 - `main` → deploys to **production** (https://footballmanager.io) on every push.
