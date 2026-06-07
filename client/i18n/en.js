@@ -1450,6 +1450,7 @@ export default {
   'seasonReview.goals': '{count} goals',
   'seasonReview.close': 'Close',
   'seasonReview.waitingForNewSeason': 'The new season starts soon – get ready!',
+  'seasonReview.notAvailable': 'No review available for this season yet.',
   // Outcome headlines (one is picked at random)
   'seasonReview.outcome.champion.1': 'Champions! What a season – your name is now in the history books.',
   'seasonReview.outcome.champion.2': 'Top of the table: you earned that trophy fair and square.',

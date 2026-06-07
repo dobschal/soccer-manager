@@ -6,7 +6,14 @@ import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHe
 
 /**
  * @typedef {object} SeasonReviewType
- * @property {boolean} isSeasonEnd
+ * @property {boolean} isSeasonEnd      true only when the live season just ended
+ *                                       and a new one has not been created yet.
+ *                                       The dashboard uses this to decide whether
+ *                                       to auto-show the overlay.
+ * @property {boolean} [available]      true when the response carries a populated
+ *                                       review for the requested season. Lets the
+ *                                       client tell "season ended now" apart from
+ *                                       "an older season the user has finished".
  * @property {number} [season]
  * @property {{id:number,name:string,color:string,emblem:string,level:number,league:number}} [team]
  * @property {number} [position]
@@ -19,49 +26,80 @@ import { getTopScorers as getTopScorersFromCache } from '../helper/playerStatsHe
  */
 
 /**
- * Returns a snapshot of the just-finished season for the user — used to drive
- * the season-review overlay on the dashboard. Only meaningful while the season
- * is over (no unplayed games yet) and before prepare-season has created the
- * next one; at any other time `isSeasonEnd:false` is returned so the client
- * can skip rendering the overlay.
+ * Returns a snapshot of the user's outcome for a finished season.
+ *
+ * Two modes:
+ *   - Without `season`: returns the just-finished live season's review and
+ *     marks `isSeasonEnd:true`. Used by the dashboard's auto-show. Returns
+ *     `{isSeasonEnd:false}` when there are unplayed games left or when the
+ *     user has no team yet.
+ *   - With `season`: looks up the review for that specific past season by
+ *     finding which level/league the user's team played in *that* season,
+ *     and computes outcome from the standing of that historical league.
+ *
+ * @param {number|null} [season] - Specific season to look up. null/undefined
+ *                                  triggers auto-detect of the just-finished
+ *                                  season.
  * @param {Request} req
  * @returns {Promise<SeasonReviewType>}
  */
-async function getSeasonReview (req) {
+async function getSeasonReview (season, req) {
   if (!req?.user) return { isSeasonEnd: false }
 
-  const [{ unplayedCount }] = await query(
-    'SELECT COUNT(*) AS unplayedCount FROM game WHERE played=0'
-  )
-  if (Number(unplayedCount) > 0) return { isSeasonEnd: false }
+  // Manual lookup ignores the unplayed-games gate: the user is explicitly
+  // asking for a past season's review (e.g. via the results page button).
+  const explicitSeason = typeof season === 'number'
+
+  let isSeasonEnd = false
+  if (!explicitSeason) {
+    const [{ unplayedCount }] = await query(
+      'SELECT COUNT(*) AS unplayedCount FROM game WHERE played=0'
+    )
+    if (Number(unplayedCount) > 0) return { isSeasonEnd: false }
+    isSeasonEnd = true
+  }
 
   const team = await getTeam(req)
-  if (!team) return { isSeasonEnd: false }
+  if (!team) return { isSeasonEnd }
 
-  // The just-finished league season for the user's current level/league. After
-  // the season ends but before prepare-season runs, team.level/team.league
-  // still reflect where the team played, so we can look up the right league.
-  const [lastSeasonRow] = await query(
-    "SELECT MAX(season) AS season, MAX(game_day) AS gameDay FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) AND level=? AND league=?",
-    [team.level, team.league]
-  )
-  if (lastSeasonRow?.season == null) return { isSeasonEnd: false }
-  const season = lastSeasonRow.season
+  // Figure out which (level, league) the user's team belonged to for this
+  // season. For the just-finished season this matches team.level/league (no
+  // promotion has been applied yet). For older seasons we look it up from
+  // any league game the team played that season.
+  let userLevel = team.level
+  let userLeague = team.league
+  let targetSeason = season
+  if (explicitSeason) {
+    const [row] = await query(
+      "SELECT level, league FROM game WHERE season=? AND (team_1_id=? OR team_2_id=?) AND (game_type='league' OR game_type IS NULL) AND played=1 LIMIT 1",
+      [season, team.id, team.id]
+    )
+    if (!row) return { isSeasonEnd, available: false }
+    userLevel = row.level
+    userLeague = row.league
+  } else {
+    const [lastSeasonRow] = await query(
+      "SELECT MAX(season) AS season FROM game WHERE played=1 AND (game_type='league' OR game_type IS NULL) AND level=? AND league=?",
+      [team.level, team.league]
+    )
+    if (lastSeasonRow?.season == null) return { isSeasonEnd, available: false }
+    targetSeason = lastSeasonRow.season
+  }
 
   // Get the final standing from the cache if available; otherwise compute it.
   const [lastGameDayRow] = await query(
     "SELECT MAX(game_day) AS gameDay FROM game WHERE season=? AND level=? AND league=? AND played=1 AND (game_type='league' OR game_type IS NULL)",
-    [season, team.level, team.league]
+    [targetSeason, userLevel, userLeague]
   )
   const finalGameDay = lastGameDayRow?.gameDay ?? 0
 
-  let standing = await getCachedStanding(finalGameDay, season, team.level, team.league)
+  let standing = await getCachedStanding(finalGameDay, targetSeason, userLevel, userLeague)
   if (!standing) {
     const games = await query(
       `SELECT * FROM game
        WHERE season=? AND level=? AND league=? AND played=1
        AND (game_type='league' OR game_type IS NULL)`,
-      [season, team.level, team.league]
+      [targetSeason, userLevel, userLeague]
     )
     if (games.length > 0) {
       const teamIds = new Set()
@@ -108,28 +146,23 @@ async function getSeasonReview (req) {
      LEFT JOIN team t ON t.id = st.team_id
      LEFT JOIN user u ON u.id = st.user_id
      WHERE st.season=? AND st.title_type='cup_winner' LIMIT 1`,
-    [season]
+    [targetSeason]
   )
 
-  // Top scorer of the user's league
-  const topScorers = await getTopScorersFromCache(season, team.level, team.league, 1)
+  const topScorers = await getTopScorersFromCache(targetSeason, userLevel, userLeague, 1)
 
-  // Max level (deepest league) — used to decide whether the team could relegate
   const [maxLevelRow] = await query('SELECT MAX(level) AS maxLevel FROM team')
-  const maxLevel = maxLevelRow?.maxLevel ?? team.level
+  const maxLevel = maxLevelRow?.maxLevel ?? userLevel
 
-  // Outcome classification. Promotion/relegation here is the *implied* outcome
-  // based on the final standing — prepare-season has not run yet, so the
-  // team's level/league are still pre-promotion/relegation.
   const totalTeams = standing.length || 18
   const promotionCutoff = 2
   const relegationCutoff = 4
   let outcome
-  if (position === 1 && team.level === 0) {
+  if (position === 1 && userLevel === 0) {
     outcome = 'champion'
-  } else if (position > 0 && position <= promotionCutoff && team.level > 0) {
+  } else if (position > 0 && position <= promotionCutoff && userLevel > 0) {
     outcome = 'promoted'
-  } else if (position > 0 && position > totalTeams - relegationCutoff && team.level < maxLevel) {
+  } else if (position > 0 && position > totalTeams - relegationCutoff && userLevel < maxLevel) {
     outcome = 'relegated'
   } else if (position > 0 && position <= Math.floor(totalTeams / 2)) {
     outcome = 'upperHalf'
@@ -148,7 +181,7 @@ async function getSeasonReview (req) {
     }
     : null
 
-  const relegatedTeams = team.level < maxLevel && standing.length >= relegationCutoff
+  const relegatedTeams = userLevel < maxLevel && standing.length >= relegationCutoff
     ? standing.slice(-relegationCutoff).map(s => ({
       teamId: s.team?.id,
       teamName: s.team?.name,
@@ -180,15 +213,16 @@ async function getSeasonReview (req) {
     : null
 
   return {
-    isSeasonEnd: true,
-    season,
+    isSeasonEnd,
+    available: true,
+    season: targetSeason,
     team: {
       id: team.id,
       name: team.name,
       color: team.color,
       emblem: team.emblem,
-      level: team.level,
-      league: team.league
+      level: userLevel,
+      league: userLeague
     },
     position,
     outcome,

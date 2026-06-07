@@ -1450,6 +1450,7 @@ export default {
   'seasonReview.goals': '{count} Tore',
   'seasonReview.close': 'Schließen',
   'seasonReview.waitingForNewSeason': 'Die neue Saison startet in Kürze – mach dich bereit!',
+  'seasonReview.notAvailable': 'Für diese Saison gibt es noch keinen Rückblick.',
   // Outcome headlines (one is picked at random)
   'seasonReview.outcome.champion.1': 'Meisterschaft! Was für eine Saison – euer Name steht jetzt im Geschichtsbuch.',
   'seasonReview.outcome.champion.2': 'Ungeschlagen an der Spitze: Das Team hat sich die Schale verdient!',

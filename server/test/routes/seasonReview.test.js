@@ -55,13 +55,13 @@ describe('seasonReview routes', () => {
 
   describe('getSeasonReview', () => {
     it('returns isSeasonEnd:false when unauthenticated', async () => {
-      const result = await handlers.getSeasonReview({ user: null })
+      const result = await handlers.getSeasonReview(null, { user: null })
       expect(result).toEqual({ isSeasonEnd: false })
     })
 
-    it('returns isSeasonEnd:false when there are still unplayed games', async () => {
+    it('returns isSeasonEnd:false when there are still unplayed games (auto-mode)', async () => {
       query.mockResolvedValueOnce([{ unplayedCount: 5 }])
-      const result = await handlers.getSeasonReview(createMockRequest())
+      const result = await handlers.getSeasonReview(null, createMockRequest())
       expect(result).toEqual({ isSeasonEnd: false })
       expect(getTeam).not.toHaveBeenCalled()
     })
@@ -69,12 +69,11 @@ describe('seasonReview routes', () => {
     it('builds review when season ended: champion at top league', async () => {
       const champTeam = { ...userTeam, level: 0, league: 0 }
       const standing = mockStanding(18, 1)
-      // Refresh team rows
       const freshTeams = standing.map(s => ({ ...s.team }))
 
       query
         .mockResolvedValueOnce([{ unplayedCount: 0 }]) // unplayed check
-        .mockResolvedValueOnce([{ season: 2, gameDay: 34 }]) // last played season for user's league
+        .mockResolvedValueOnce([{ season: 2 }]) // last played season for user's league
         .mockResolvedValueOnce([{ gameDay: 34 }]) // final game day
         .mockResolvedValueOnce(freshTeams) // refresh team display fields
         .mockResolvedValueOnce([null]) // cup winner row (none)
@@ -86,9 +85,10 @@ describe('seasonReview routes', () => {
         { id: 7, name: 'Striker McGoals', goals: 27, team: { id: 5, name: 'Team 5', color: '#fff', emblem: '{}' } }
       ])
 
-      const result = await handlers.getSeasonReview(createMockRequest())
+      const result = await handlers.getSeasonReview(null, createMockRequest())
 
       expect(result.isSeasonEnd).toBe(true)
+      expect(result.available).toBe(true)
       expect(result.season).toBe(2)
       expect(result.position).toBe(1)
       expect(result.outcome).toBe('champion')
@@ -106,7 +106,7 @@ describe('seasonReview routes', () => {
 
       query
         .mockResolvedValueOnce([{ unplayedCount: 0 }])
-        .mockResolvedValueOnce([{ season: 3, gameDay: 34 }])
+        .mockResolvedValueOnce([{ season: 3 }])
         .mockResolvedValueOnce([{ gameDay: 34 }])
         .mockResolvedValueOnce(freshTeams)
         .mockResolvedValueOnce([null])
@@ -116,7 +116,7 @@ describe('seasonReview routes', () => {
       getCachedStanding.mockResolvedValue(standing)
       getTopScorers.mockResolvedValue([])
 
-      const result = await handlers.getSeasonReview(createMockRequest())
+      const result = await handlers.getSeasonReview(null, createMockRequest())
       expect(result.outcome).toBe('promoted')
       expect(result.position).toBe(2)
     })
@@ -127,7 +127,7 @@ describe('seasonReview routes', () => {
 
       query
         .mockResolvedValueOnce([{ unplayedCount: 0 }])
-        .mockResolvedValueOnce([{ season: 4, gameDay: 34 }])
+        .mockResolvedValueOnce([{ season: 4 }])
         .mockResolvedValueOnce([{ gameDay: 34 }])
         .mockResolvedValueOnce(freshTeams)
         .mockResolvedValueOnce([null])
@@ -137,7 +137,7 @@ describe('seasonReview routes', () => {
       getCachedStanding.mockResolvedValue(standing)
       getTopScorers.mockResolvedValue([])
 
-      const result = await handlers.getSeasonReview(createMockRequest())
+      const result = await handlers.getSeasonReview(null, createMockRequest())
       expect(result.outcome).toBe('relegated')
       expect(result.position).toBe(17)
     })
@@ -148,7 +148,7 @@ describe('seasonReview routes', () => {
 
       query
         .mockResolvedValueOnce([{ unplayedCount: 0 }])
-        .mockResolvedValueOnce([{ season: 4, gameDay: 34 }])
+        .mockResolvedValueOnce([{ season: 4 }])
         .mockResolvedValueOnce([{ gameDay: 34 }])
         .mockResolvedValueOnce(freshTeams)
         .mockResolvedValueOnce([null])
@@ -159,7 +159,7 @@ describe('seasonReview routes', () => {
       getCachedStanding.mockResolvedValue(standing)
       getTopScorers.mockResolvedValue([])
 
-      const result = await handlers.getSeasonReview(createMockRequest())
+      const result = await handlers.getSeasonReview(null, createMockRequest())
       expect(result.outcome).toBe('lowerHalf')
       expect(result.relegatedTeams).toEqual([])
     })
@@ -170,7 +170,7 @@ describe('seasonReview routes', () => {
 
       query
         .mockResolvedValueOnce([{ unplayedCount: 0 }])
-        .mockResolvedValueOnce([{ season: 5, gameDay: 34 }])
+        .mockResolvedValueOnce([{ season: 5 }])
         .mockResolvedValueOnce([{ gameDay: 34 }])
         .mockResolvedValueOnce(freshTeams)
         .mockResolvedValueOnce([{
@@ -187,11 +187,50 @@ describe('seasonReview routes', () => {
       getCachedStanding.mockResolvedValue(standing)
       getTopScorers.mockResolvedValue([])
 
-      const result = await handlers.getSeasonReview(createMockRequest())
+      const result = await handlers.getSeasonReview(null, createMockRequest())
       expect(result.cupWinner).not.toBeNull()
       expect(result.cupWinner.teamId).toBe(userTeam.id)
       expect(result.cupWinner.isUser).toBe(true)
       expect(result.userWonCup).toBe(true)
+    })
+
+    it('builds review for an explicit past season using the team\'s historical league', async () => {
+      const standing = mockStanding(18, 3)
+      const freshTeams = standing.map(s => ({ ...s.team }))
+
+      query
+        // explicit-season mode skips the unplayed-games check; instead the
+        // first query looks up the historical league for that season.
+        .mockResolvedValueOnce([{ level: 2, league: 1 }])
+        .mockResolvedValueOnce([{ gameDay: 34 }]) // final game day
+        .mockResolvedValueOnce(freshTeams) // refresh team display fields
+        .mockResolvedValueOnce([null]) // cup winner row
+        .mockResolvedValueOnce([{ maxLevel: 3 }])
+
+      getTeam.mockResolvedValue({ ...userTeam, level: 0, league: 0 }) // current league differs
+      getCachedStanding.mockResolvedValue(standing)
+      getTopScorers.mockResolvedValue([])
+
+      const result = await handlers.getSeasonReview(2, createMockRequest())
+      expect(result.isSeasonEnd).toBe(false)
+      expect(result.available).toBe(true)
+      expect(result.season).toBe(2)
+      // Historical league level was 2 → not at top league → promotion was an option
+      expect(result.team.level).toBe(2)
+      expect(result.team.league).toBe(1)
+      expect(result.position).toBe(3)
+      // Standing.length=18, position 3, level 2 < maxLevel 3, not in top 2 → upperHalf
+      expect(result.outcome).toBe('upperHalf')
+    })
+
+    it('returns available:false when the user has no games in the requested season', async () => {
+      query.mockResolvedValueOnce([]) // historical-league lookup returns nothing
+
+      getTeam.mockResolvedValue(userTeam)
+
+      const result = await handlers.getSeasonReview(99, createMockRequest())
+      expect(result.isSeasonEnd).toBe(false)
+      expect(result.available).toBe(false)
     })
   })
 })

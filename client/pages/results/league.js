@@ -9,6 +9,8 @@ import { calculatePlayerAge } from '../../util/player.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
 import { showOverlay } from '../../partials/overlay.js'
+import { showSeasonReviewOverlay } from '../../partials/seasonReviewOverlay.js'
+import { toast } from '../../partials/toast.js'
 import { t } from '../../i18n/index.js'
 import { Table } from '../../partials/table.js'
 import { shortenTeamName } from '../../util/team.js'
@@ -122,7 +124,12 @@ export class LeagueResultsPage extends UIElement {
     return `
       <div>
         <div class="mb-4">
-          <h2>${t('results.resultsTitle')}</h2>
+          <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+            <h2 class="mb-0">${t('results.resultsTitle')}</h2>
+            <button id="results-open-season-review-btn" class="btn btn-outline-primary btn-sm" type="button">
+              <i class="fa fa-trophy me-1"></i> ${t('seasonReview.title')}
+            </button>
+          </div>
           <div class="results-filters d-flex flex-wrap gap-3">
             <div>
               <label for="results-league-select" class="form-label mb-1">${t('results.league')}</label>
@@ -297,6 +304,9 @@ export class LeagueResultsPage extends UIElement {
       },
       '#results-open-standing-history-btn': {
         click: () => this._showStandingHistoryOverlay()
+      },
+      '#results-open-season-review-btn': {
+        click: () => this._showSeasonReviewOverlay()
       }
     }
   }
@@ -304,6 +314,20 @@ export class LeagueResultsPage extends UIElement {
   onMounted () {
     this._loadPlayerImages()
     this._loadRecapImage()
+  }
+  async _showSeasonReviewOverlay () {
+    let review
+    try {
+      review = await server.getSeasonReview(this.season)
+    } catch {
+      toast(t('seasonReview.notAvailable'), 'warning')
+      return
+    }
+    if (!review?.outcome) {
+      toast(t('seasonReview.notAvailable'), 'warning')
+      return
+    }
+    await showSeasonReviewOverlay(review)
   }
 
   suspendedPlayers = []

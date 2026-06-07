@@ -125,7 +125,11 @@ function renderConfetti () {
  */
 export function showSeasonReviewOverlay (review) {
   return new Promise((resolve) => {
-    if (!review || !review.isSeasonEnd) {
+    // Gate on data presence (outcome is only populated when the server has
+    // built a real review). `isSeasonEnd` is a separate dashboard-trigger
+    // signal, not a render gate — the results page reopens the overlay for
+    // older seasons where isSeasonEnd is false.
+    if (!review || !review.outcome) {
       resolve()
       return
     }
@@ -191,7 +195,7 @@ export function showSeasonReviewOverlay (review) {
               ${cupRow}
               ${relegatedRow}
             </div>
-            <p class="season-review-waiting">${t('seasonReview.waitingForNewSeason')}</p>
+            ${review.isSeasonEnd ? `<p class="season-review-waiting">${t('seasonReview.waitingForNewSeason')}</p>` : ''}
             <button id="${closeBtnId}" class="btn btn-primary season-review-close">${t('seasonReview.close')}</button>
           </div>
         </div>

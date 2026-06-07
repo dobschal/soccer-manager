@@ -355,7 +355,10 @@ export class DashboardPage extends TabbedPage {
     if (!this._isMounted) return
     let review
     try {
-      review = await server.getSeasonReview()
+      // null = auto-detect the just-finished season (gateway serialises the
+      // single explicit arg, so the route receives (null, req) — passing no
+      // args at all would dispatch as (req) and shift the season slot).
+      review = await server.getSeasonReview(null)
     } catch {
       return
     }
