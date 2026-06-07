@@ -177,7 +177,8 @@ jobs:
             # Start new container - Compose will stop old one and start new one
             # Use --wait to ensure container is healthy before considering deploy complete
             COMMIT_HASH=$COMMIT_HASH docker compose up soccer-manager -d --wait --wait-timeout 60
-            docker system prune -a -f --filter "until=168h"
+            docker image prune -f
+            docker builder prune -f
           EOF
 
   deploy-sandbox:
@@ -235,5 +236,6 @@ jobs:
             git reset --hard origin/develop
             COMMIT_HASH=$COMMIT_HASH docker compose build soccer-manager --no-cache
             COMMIT_HASH=$COMMIT_HASH docker compose up soccer-manager -d --wait --wait-timeout 60
-            docker system prune -a -f --filter "until=168h"
+            docker image prune -f
+            docker builder prune -f
           EOF
