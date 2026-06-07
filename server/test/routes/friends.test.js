@@ -260,6 +260,38 @@ describe('friends routes', () => {
       })
     })
 
+    it('skips cup byes (team_2_id IS NULL) when picking the last game', async () => {
+      // Regression: cup byes are stored with played=1 and goals_team_1=0,
+      // goals_team_2=0 and team_2_id=NULL, so a naive LEFT JOIN on team_2
+      // would surface the bye as the "last game" with a fake 0:0 result.
+      // The query must inner-join team_2 to filter these out.
+      const rows = [{
+        userId: 2,
+        username: 'alice',
+        avatar: null,
+        teamId: 10,
+        teamName: 'FC Alice',
+        teamShortName: 'ALI',
+        teamEmblem: 'em',
+        teamColor: '#fff',
+        teamLevel: 1,
+        teamLeague: 0,
+        isOutgoing: 1,
+        isIncoming: 0
+      }]
+      query
+        .mockResolvedValueOnce(rows)
+        .mockResolvedValueOnce([{ lastDay: 5, season: 3 }])
+        .mockResolvedValueOnce([])
+
+      const req = createMockRequest({ user: { id: 1, username: 'me' } })
+      await handlers.getFriendsOverview(req)
+
+      const lastGameSql = query.mock.calls[2][0]
+      expect(lastGameSql).toMatch(/JOIN team t2 ON t2\.id = g\.team_2_id/)
+      expect(lastGameSql).not.toMatch(/LEFT JOIN team t2/)
+    })
+
     it('does not mix MAX(game_day) with a non-aggregated season column', async () => {
       // Regression: strict mysql (sql_mode=only_full_group_by) rejects
       //   SELECT MAX(game_day), season FROM game ...

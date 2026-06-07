@@ -289,7 +289,10 @@ async function resolveLeaguePosition (teamId, level, league) {
 }
 
 /**
- * Resolve a team's most recently played league or cup game.
+ * Resolve a team's most recently played league or cup game. Cup byes
+ * (rows with team_2_id IS NULL where the team auto-advances without
+ * actually playing) are skipped so the friends table doesn't show a
+ * fake 0:0 result for them.
  * @param {number} teamId
  * @returns {Promise<object|null>}
  */
@@ -313,7 +316,7 @@ async function resolveLastGame (teamId) {
             t2.color       AS team2Color
      FROM game g
      JOIN team t1 ON t1.id = g.team_1_id
-     LEFT JOIN team t2 ON t2.id = g.team_2_id
+     JOIN team t2 ON t2.id = g.team_2_id
      WHERE g.played = 1
        AND (g.game_type = 'league' OR g.game_type = 'cup' OR g.game_type IS NULL)
        AND (g.team_1_id = ? OR g.team_2_id = ?)
