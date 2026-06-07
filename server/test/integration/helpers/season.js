@@ -9,6 +9,8 @@ import { calculateStanding } from '../../../lib/util.js'
 import authRoute from '../../../routes/auth.js'
 import teamChoiceRoute from '../../../routes/teamChoice.js'
 
+const TEAMS_PER_LEAGUE = 18
+
 /** Minimal request object accepted by routes that read req.user / req.locale. */
 export function makeReq ({ userId = null, locale = 'en' } = {}) {
   const req = { locale }
@@ -127,3 +129,58 @@ export async function snapshotTeamLevels () {
   const teams = await query('SELECT id, level, league FROM team WHERE is_system_team = 0')
   return new Map(teams.map(t => [t.id, { level: t.level, league: t.league }]))
 }
+
+/**
+ * Wipe the per-season schedule + non-system teams + the idempotency flag,
+ * so a follow-up `prepareSeason` starts from a deterministic blank slate.
+ * Players, stadiums, buildings etc. are not seeded by the cup-schedule
+ * tests so we don't need to touch them.
+ * @returns {Promise<void>}
+ */
+export async function wipeSeasonState () {
+  await query('DELETE FROM game')
+  await query('DELETE FROM team WHERE is_system_team = 0')
+  await query('DELETE FROM app_setting')
+}
+
+/**
+ * Bulk-insert bot teams to fill the given level → count mapping. Skips the
+ * usual prepare-season seeding path because we just need rows in the team
+ * table for the schedule generator to see; players/stadiums/buildings are
+ * irrelevant for cup-vs-league scheduling.
+ * @param {Record<number, number>} levelToCount  e.g. `{ 0: 18, 1: 36, 2: 72 }`
+ * @returns {Promise<void>}
+ */
+export async function seedBotTeamsAtLevels (levelToCount) {
+  for (const [levelStr, count] of Object.entries(levelToCount)) {
+    const level = Number(levelStr)
+    for (let i = 0; i < count; i += 200) {
+      const batch = Math.min(200, count - i)
+      const values = []
+      const placeholders = []
+      for (let j = 0; j < batch; j++) {
+        placeholders.push('(?, ?, ?, ?, ?, ?)')
+        values.push(
+          `Bot L${level} #${i + j}`,
+          level,
+          100000,
+          '442a',
+          0,
+          '#cccccc'
+        )
+      }
+      await query(
+        `INSERT INTO team (name, level, balance, formation, is_system_team, color) VALUES ${placeholders.join(',')}`,
+        values
+      )
+    }
+  }
+}
+
+/** @returns {Promise<number|null>} the latest season referenced in the game table. */
+export async function getLatestSeason () {
+  const [row] = await query('SELECT MAX(season) AS s FROM game')
+  return row?.s ?? null
+}
+
+export { TEAMS_PER_LEAGUE }
