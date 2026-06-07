@@ -133,8 +133,8 @@ describe('prepare-season', () => {
       expect(_nextLevelToFill(teams)).toBe(2)
     })
 
-    it('returns -1 when all opened levels are full, floor is met, and free-bot pool is large enough', () => {
-      // 126 teams total, all bots. bottom two levels (1+2) have 36+72=108 free bots ≥ 20 → no new level.
+    it('returns -1 when minimumTeams floor met and the user-pickable bottom levels still have ≥20 free bots', () => {
+      // 126 teams (L0..L2 full), all bots. Only L2 is user-pickable. L2 free = 72 ≥ 20 → no new level.
       const teams = [
         ...Array(18).fill(null).map(() => bot(0)),
         ...Array(36).fill(null).map(() => bot(1)),
@@ -143,29 +143,56 @@ describe('prepare-season', () => {
       expect(_nextLevelToFill(teams)).toBe(-1)
     })
 
-    it('opens a new lower level when the bottom two levels have <20 free bots left', () => {
-      // levels 0..2 fully filled with user-teams except a couple of bots
-      // bottom two levels (1+2) free bots = 5 + 10 = 15 < 20 → open level 3
+    it('opens a new lower level when the bottom-most user-pickable level has <20 free bots', () => {
+      // L0..L2 fully filled, but L2 has only 15 bots left → open L3.
+      // L1 still has 36 bots free but those are NOT user-pickable (MIN_CHOOSABLE_LEVEL=2)
+      // so they don't count toward the buffer.
       const teams = [
         ...Array(18).fill(null).map(() => user(0)),
-        ...Array(31).fill(null).map(() => user(1)),
-        ...Array(5).fill(null).map(() => bot(1)),
-        ...Array(62).fill(null).map(() => user(2)),
-        ...Array(10).fill(null).map(() => bot(2))
+        ...Array(36).fill(null).map(() => bot(1)),
+        ...Array(57).fill(null).map(() => user(2)),
+        ...Array(15).fill(null).map(() => bot(2))
       ]
       expect(_nextLevelToFill(teams)).toBe(3)
     })
 
-    it('does NOT open a new level when the bottom two levels still have ≥20 free bots', () => {
-      // bottom two levels (1+2) free bots = 10 + 15 = 25 ≥ 20 → no new level
+    it('opens a new lower level when the bottom TWO user-pickable levels combined have <20 free bots', () => {
+      // L0..L3 fully filled. User-pickable = L2, L3. Free in L2+L3 = 5 + 10 = 15 < 20 → open L4.
       const teams = [
         ...Array(18).fill(null).map(() => user(0)),
-        ...Array(26).fill(null).map(() => user(1)),
-        ...Array(10).fill(null).map(() => bot(1)),
-        ...Array(57).fill(null).map(() => user(2)),
-        ...Array(15).fill(null).map(() => bot(2))
+        ...Array(36).fill(null).map(() => user(1)),
+        ...Array(67).fill(null).map(() => user(2)),
+        ...Array(5).fill(null).map(() => bot(2)),
+        ...Array(134).fill(null).map(() => user(3)),
+        ...Array(10).fill(null).map(() => bot(3))
+      ]
+      expect(_nextLevelToFill(teams)).toBe(4)
+    })
+
+    it('does NOT open a new level when the bottom two user-pickable levels still have ≥20 free bots', () => {
+      // Free bots in L2 (10) + L3 (15) = 25 ≥ 20 → keep -1.
+      const teams = [
+        ...Array(18).fill(null).map(() => user(0)),
+        ...Array(36).fill(null).map(() => user(1)),
+        ...Array(62).fill(null).map(() => user(2)),
+        ...Array(10).fill(null).map(() => bot(2)),
+        ...Array(129).fill(null).map(() => user(3)),
+        ...Array(15).fill(null).map(() => bot(3))
       ]
       expect(_nextLevelToFill(teams)).toBe(-1)
+    })
+
+    it('ignores L0/L1 bots in the buffer calculation (regression for the fresh-DB case)', () => {
+      // Same setup as the "fresh seed" integration scenario: L0..L2 open, all bots.
+      // L2 fills up with users until <20 bots remain — must open L3 even though
+      // L1 still has its full 36 bots (they would never be picked).
+      const teams = [
+        ...Array(18).fill(null).map(() => bot(0)),
+        ...Array(36).fill(null).map(() => bot(1)),
+        ...Array(53).fill(null).map(() => user(2)),
+        ...Array(19).fill(null).map(() => bot(2))
+      ]
+      expect(_nextLevelToFill(teams)).toBe(3)
     })
 
     it('keeps filling a partially-opened higher level rather than opening a new one', () => {
@@ -185,9 +212,8 @@ describe('prepare-season', () => {
     })
 
     it('regression: does NOT open a new level just because the user count nudges past teams.length', () => {
-      // 270 teams total (135 users + 135 bots) on levels 0..3 fully filled.
-      // bottom two levels free bots = 27 + 60 = 87 ≥ 20 → must return -1.
-      // The old `minimumAmountOfTeams = users*2` rule would have opened level 4 here.
+      // The 2026-06-07 prod state. L0..L3 fully filled. User-pickable bottom two
+      // = L2 (27 free) + L3 (60 free) = 87 free ≥ 20 → must return -1.
       const teams = [
         ...Array(2).fill(null).map(() => user(0)),
         ...Array(16).fill(null).map(() => bot(0)),

@@ -9,6 +9,7 @@
     "test": "npm run test:client && npm run test:server",
     "test:client": "vitest run --config client/vitest.config.js",
     "test:server": "vitest run --config server/vitest.config.js",
+    "test:integration": "vitest run --config server/vitest.integration.config.js",
     "postinstall": "./scripts/copy-vendor.sh",
     "ios": "./scripts/copy-native-client.sh && node ./scripts/build-native-bundle.mjs && cd native-app && ns run ios",
     "android": "./scripts/copy-native-client.sh && node ./scripts/build-native-bundle.mjs && cd native-app && ns run android",

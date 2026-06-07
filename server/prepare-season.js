@@ -14,6 +14,7 @@ import { archiveOverageYouthPlayers, getYouthPlayersAt18 } from './helper/youthP
 import { getUserLocale, t } from './i18n/index.js'
 import { createCupDraw, validateAndProgressCupRounds, calculateInterleavedSchedule } from './helper/cupHelper.js'
 import { saveStandingToCache } from './helper/standingHelper.js'
+import { config } from './config.js'
 
 /**
  * This script is checking for enough games, teams and players
@@ -192,7 +193,19 @@ async function _promotionRelegation () {
       for (const league in leagues) {
         if (Object.hasOwnProperty.call(leagues, league)) {
           const gamesOfLeague = leagues[league]
-          const standing = calculateStanding(gamesOfLeague, teams)
+          // calculateStanding produces one row per team it's given. If we hand
+          // it the full team list, teams from other leagues end up tied at
+          // zero points and pollute positions 14..17 of the result — so the
+          // "bottom 4" slice can pick the wrong teams to relegate. Restrict
+          // the input to the teams that actually appear in this league's
+          // games.
+          const leagueTeamIds = new Set()
+          for (const g of gamesOfLeague) {
+            if (g.team_1_id) leagueTeamIds.add(g.team_1_id)
+            if (g.team_2_id) leagueTeamIds.add(g.team_2_id)
+          }
+          const leagueTeams = teams.filter(t => leagueTeamIds.has(t.id))
+          const standing = calculateStanding(gamesOfLeague, leagueTeams)
           const teamsForPromotion = [
             standing[0].team,
             standing[1].team
@@ -507,13 +520,17 @@ async function _ajustAmountOfTeams () {
  * Return the level for the next bot team to create:
  *  - the lowest opened level that is not yet full, OR
  *  - the next unopened level (when below `minimumTeams` floor, OR when the
- *    bottom two opened levels combined have fewer than `freeBotsThreshold`
- *    free bot teams left for new users to pick from), OR
+ *    bottom two **user-pickable** opened levels combined have fewer than
+ *    `freeBotsThreshold` free bot teams left for new users to pick from),
+ *    OR
  *  - -1 otherwise.
  *
  * The free-bot trigger replaces the previous `users*2` rule: new lower
- * divisions only open when the existing bottom divisions are running out of
- * choosable bot teams, not whenever the user count nudges past the threshold.
+ * divisions only open when the existing bottom user-pickable divisions are
+ * running out of choosable bot teams, not whenever the user count nudges
+ * past the threshold. "User-pickable" = `level >= config.MIN_CHOOSABLE_LEVEL`
+ * — picks from L0/L1 never happen, so counting their (always-full) bot
+ * pool would mask a real shortage in the actual buffer levels.
  * @param {TeamType[]} teams
  * @param {number} [freeBotsThreshold]
  * @returns {number}
@@ -535,9 +552,15 @@ export function _nextLevelToFill (teams, freeBotsThreshold = 20) {
     if (count > 0 && count < amountTeamsPerLevel[level]) return level
   }
   if (teams.length < minimumTeams) return highestOpenedLevel + 1
-  const bottomTwoFree = (freeBotsByLevel[highestOpenedLevel] ?? 0) +
-    (highestOpenedLevel > 0 ? (freeBotsByLevel[highestOpenedLevel - 1] ?? 0) : 0)
-  if (bottomTwoFree < freeBotsThreshold) return highestOpenedLevel + 1
+  const pickableLevels = []
+  for (let l = config.MIN_CHOOSABLE_LEVEL; l <= highestOpenedLevel; l++) {
+    if ((counts[l] ?? 0) > 0) pickableLevels.push(l)
+  }
+  const bottomTwoFree = pickableLevels.slice(-2)
+    .reduce((acc, l) => acc + (freeBotsByLevel[l] ?? 0), 0)
+  if (pickableLevels.length > 0 && bottomTwoFree < freeBotsThreshold) {
+    return highestOpenedLevel + 1
+  }
   return -1
 }
 
