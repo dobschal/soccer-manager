@@ -16,6 +16,18 @@ import { t } from '../../i18n/index.js'
  * @property {number} team_id
  * @property {string} reason
  * @property {string} created_at - ISO date string
+ * @property {number | null} [match_day] - Displayed 1-based league match day
+ *   (or cup round when the game day was cup-only). The internal `game_day`
+ *   counter includes cup days, so it is *not* a user-facing number.
+ * @property {'league' | 'cup' | null} [match_day_kind]
+ */
+
+/**
+ * @typedef {Object} GameDayLabel
+ * @property {number} season
+ * @property {number} game_day
+ * @property {number | null} match_day
+ * @property {'league' | 'cup' | null} kind
  */
 
 const GAMEDAYS_PER_SEASON = 34
@@ -44,6 +56,10 @@ export class FinancesPage extends UIElement {
     this.minGameDay = bounds.minGameDay
     this.maxSeason = bounds.maxSeason
     this.maxGameDay = bounds.maxGameDay
+    this.gameDayLabels = bounds.gameDayLabels ?? []
+    this._gameDayLabelLookup = new Map(
+      this.gameDayLabels.map(label => [`${label.season}:${label.game_day}`, label])
+    )
 
     // Set default "to" to current gameday
     this.toSeason = this.maxSeason
@@ -198,6 +214,12 @@ export class FinancesPage extends UIElement {
   maxSeason = 0
   maxGameDay = 0
 
+  /** @type {GameDayLabel[]} */
+  gameDayLabels = []
+
+  /** @type {Map<string, GameDayLabel>} */
+  _gameDayLabelLookup = new Map()
+
   // Selected filter values
   fromSeason = 0
   fromGameDay = 0
@@ -218,7 +240,10 @@ export class FinancesPage extends UIElement {
   }
 
   /**
-   * Renders options for gameday select from min to max bounds
+   * Renders options for gameday select from min to max bounds. Uses the
+   * displayed `match_day` from the game table when available so the user
+   * sees "Spieltag 34" instead of the internal "Tag 43" counter.
+   *
    * @param {number} selectedSeason
    * @param {number} selectedGameDay
    * @returns {string}
@@ -233,9 +258,18 @@ export class FinancesPage extends UIElement {
       const season = Math.floor(total / GAMEDAYS_PER_SEASON)
       const gameDay = total % GAMEDAYS_PER_SEASON
       const selected = total === selectedTotal ? 'selected' : ''
-      options.push(`<option value="${total}" ${selected}>${t('finances.seasonDayOption', {
+      const label = this._gameDayLabelLookup.get(`${season}:${gameDay}`)
+      let optionKey = 'finances.seasonDayOption'
+      let day = gameDay + 1
+      if (label && label.match_day != null) {
+        day = label.match_day
+        optionKey = label.kind === 'cup'
+          ? 'finances.seasonCupRoundOption'
+          : 'finances.seasonMatchDayOption'
+      }
+      options.push(`<option value="${total}" ${selected}>${t(optionKey, {
         season: season + 1,
-        day: gameDay + 1
+        day
       })}</option>`)
     }
     return options.join('')
@@ -280,9 +314,16 @@ export class FinancesPage extends UIElement {
   _renderFinanceLog (logItem, index, array) {
     let dividerRow = ''
     if (array[index - 1]?.game_day !== logItem.game_day) {
+      // `match_day` is the user-facing 1-based number (1..34 for league or
+      // 1..N for cup rounds). Falls back to game_day + 1 only when the
+      // server couldn't resolve a played game for that day.
+      const day = logItem.match_day ?? (logItem.game_day + 1)
+      const labelKey = logItem.match_day_kind === 'cup'
+        ? 'finances.cupRoundLabel'
+        : 'finances.gameDayLabel'
       dividerRow = `
         <tr class="table-group-divider table-warning">
-          <td >${t('finances.gameDayLabel', { day: logItem.game_day + 1 })}</td>
+          <td >${t(labelKey, { day })}</td>
           <td></td>
           <td ></td>
         </tr>`

@@ -27,6 +27,7 @@ const baseGame = {
   team2_name: 'Beta FC',
   goals_team_1: 2,
   goals_team_2: 1,
+  match_day: 1,
   details: JSON.stringify({
     sentOffPlayerIds: [],
     injuries: [],
@@ -188,6 +189,35 @@ describe('matchDayRecapHelper', () => {
       await generateMatchDayRecapsForGameDay(0, 0)
 
       expect(query).toHaveBeenCalledTimes(1)
+    })
+
+    // Internal game_day counts cup days too, so the displayed match_day for
+    // league day 34 might be game_day 42. Using gameDay+1 in the recap text
+    // would render "Spieltag 43" instead of the user-facing "Spieltag 34".
+    it('uses the league match_day column from the game row, not game_day+1', async () => {
+      // 1. SELECT DISTINCT level, league
+      query.mockResolvedValueOnce([{ level: 0, league: 0 }])
+      // 2. _collectMatchDayStats SELECT games — game played on internal game_day 42
+      //    but it is league match day 34 (because of 8 cup days earlier).
+      query.mockResolvedValueOnce([{ ...baseGame, match_day: 34 }])
+      // 3. Scorer lookup
+      query.mockResolvedValueOnce([
+        { id: 10, name: 'Player Ten', team_id: 1 },
+        { id: 20, name: 'Player Twenty', team_id: 2 }
+      ])
+      // gameDay>=2 → upset detection runs: prev games + teams
+      query.mockResolvedValueOnce([])
+      // INSERT recap per locale (en, de)
+      query.mockResolvedValueOnce({ insertId: 1 })
+      query.mockResolvedValueOnce({ insertId: 2 })
+
+      await generateMatchDayRecapsForGameDay(42, 0)
+
+      const insertCalls = query.mock.calls.filter(c => /INSERT INTO match_day_recap/i.test(c[0]))
+      expect(insertCalls).toHaveLength(2)
+      const recap = insertCalls[0][1]
+      expect(recap.title).toContain('matchDay=34')
+      expect(recap.title).not.toContain('matchDay=43')
     })
   })
 

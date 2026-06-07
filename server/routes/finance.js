@@ -12,7 +12,40 @@ import { getEstimatedTvMoney } from '../helper/tvMoneyHelper.js'
  * @property {number} team_id
  * @property {string} reason
  * @property {string} created_at - ISO date string
+ * @property {number | null} match_day - Displayed 1-based match day; null on
+ *   days without a played league/cup game.
+ * @property {'league' | 'cup' | null} match_day_kind
  */
+
+/**
+ * SQL subqueries that resolve the user-facing match_day for a given
+ * (season, game_day). League is preferred over cup since both are
+ * exposed but the user-facing label "Spieltag" usually refers to the
+ * league round.
+ */
+const MATCH_DAY_SUBQUERY = `
+  COALESCE(
+    (SELECT g.match_day FROM game g
+       WHERE g.season=fl.season AND g.game_day=fl.game_day
+         AND (g.game_type='league' OR g.game_type IS NULL)
+         AND g.match_day IS NOT NULL
+       LIMIT 1),
+    (SELECT g.match_day FROM game g
+       WHERE g.season=fl.season AND g.game_day=fl.game_day
+         AND g.game_type='cup' AND g.match_day IS NOT NULL
+       LIMIT 1)
+  ) AS match_day,
+  CASE
+    WHEN EXISTS (SELECT 1 FROM game g
+                  WHERE g.season=fl.season AND g.game_day=fl.game_day
+                    AND (g.game_type='league' OR g.game_type IS NULL)
+                    AND g.match_day IS NOT NULL) THEN 'league'
+    WHEN EXISTS (SELECT 1 FROM game g
+                  WHERE g.season=fl.season AND g.game_day=fl.game_day
+                    AND g.game_type='cup' AND g.match_day IS NOT NULL) THEN 'cup'
+    ELSE NULL
+  END AS match_day_kind
+`
 
 export default {
   /**
@@ -27,18 +60,18 @@ export default {
   async getFinanceLog (fromSeason, fromGameDay, toSeason, toGameDay, req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
 
-    let sql = 'SELECT * FROM finance_log WHERE team_id=?'
+    let sql = `SELECT fl.*, ${MATCH_DAY_SUBQUERY} FROM finance_log fl WHERE fl.team_id=?`
     const params = [team.id]
 
     // Add from filter if provided
     if (typeof fromSeason === 'number' && typeof fromGameDay === 'number') {
-      sql += ' AND (season > ? OR (season = ? AND game_day >= ?))'
+      sql += ' AND (fl.season > ? OR (fl.season = ? AND fl.game_day >= ?))'
       params.push(fromSeason, fromSeason, fromGameDay)
     }
 
     // Add to filter if provided
     if (typeof toSeason === 'number' && typeof toGameDay === 'number') {
-      sql += ' AND (season < ? OR (season = ? AND game_day <= ?))'
+      sql += ' AND (fl.season < ? OR (fl.season = ? AND fl.game_day <= ?))'
       params.push(toSeason, toSeason, toGameDay)
     }
 
@@ -47,9 +80,19 @@ export default {
   },
 
   /**
-   * Get the bounds (min/max season and gameday) for the team's finance log
+   * Get the bounds (min/max season and gameday) for the team's finance log,
+   * plus a lookup of `match_day` for every (season, game_day) inside that
+   * range so the frontend can render the user-facing "Spieltag X" labels
+   * instead of the internal `game_day + 1` counter.
+   *
    * @param {Request} req
-   * @returns {Promise<{minSeason: number, minGameDay: number, maxSeason: number, maxGameDay: number}>}
+   * @returns {Promise<{
+   *   minSeason: number,
+   *   minGameDay: number,
+   *   maxSeason: number,
+   *   maxGameDay: number,
+   *   gameDayLabels: Array<{season: number, game_day: number, match_day: number | null, kind: 'league'|'cup'|null}>
+   * }>}
    */
   async getFinanceLogBounds (req) {
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
@@ -61,11 +104,37 @@ export default {
       [team.id]
     )
 
+    const minSeason = oldest?.season ?? currentSeason
+    const minGameDay = oldest?.game_day ?? currentGameDay
+    const maxSeason = currentSeason
+    const maxGameDay = currentGameDay
+
+    // Resolve match_day for every (season, game_day) in [min, max] so the
+    // filter dropdown can render user-facing labels.
+    const gameDayLabels = await query(
+      `SELECT season, game_day,
+              MAX(CASE WHEN game_type='league' OR game_type IS NULL THEN match_day END) AS league_match_day,
+              MAX(CASE WHEN game_type='cup' THEN match_day END) AS cup_match_day
+         FROM game
+        WHERE match_day IS NOT NULL
+          AND ((season > ? OR (season = ? AND game_day >= ?))
+               AND (season < ? OR (season = ? AND game_day <= ?)))
+        GROUP BY season, game_day
+        ORDER BY season ASC, game_day ASC`,
+      [minSeason, minSeason, minGameDay, maxSeason, maxSeason, maxGameDay]
+    )
+
     return {
-      minSeason: oldest?.season ?? currentSeason,
-      minGameDay: oldest?.game_day ?? currentGameDay,
-      maxSeason: currentSeason,
-      maxGameDay: currentGameDay
+      minSeason,
+      minGameDay,
+      maxSeason,
+      maxGameDay,
+      gameDayLabels: gameDayLabels.map(row => ({
+        season: row.season,
+        game_day: row.game_day,
+        match_day: row.league_match_day ?? row.cup_match_day ?? null,
+        kind: row.league_match_day != null ? 'league' : (row.cup_match_day != null ? 'cup' : null)
+      }))
     }
   },
 

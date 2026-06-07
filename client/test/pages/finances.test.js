@@ -71,7 +71,8 @@ describe('FinancesPage', () => {
       minSeason: 0,
       minGameDay: 0,
       maxSeason: 0,
-      maxGameDay: 5
+      maxGameDay: 5,
+      gameDayLabels: []
     })
     server.getSponsorNames.mockResolvedValue({
       sponsorNames: ['Sponsor A', 'Sponsor B', 'Sponsor C']
@@ -130,6 +131,52 @@ describe('FinancesPage', () => {
       const page = new FinancesPage()
       await page.load()
       expect(page.template).toContain('Ticket sales')
+    })
+
+    // Internal game_day counts cup days too, so the displayed match_day for
+    // league match day 34 might be game_day 42. The divider row label must
+    // use match_day from the server, not game_day + 1.
+    it('uses match_day for the league-day divider, not game_day + 1', async () => {
+      server.getFinanceLog.mockResolvedValue({
+        log: [
+          { id: 1, value: 5000, balance: 105000, reason: 'Ticket sales', game_day: 42, season: 4, match_day: 34, match_day_kind: 'league' }
+        ]
+      })
+
+      const page = new FinancesPage()
+      await page.load()
+      expect(page.template).toContain('Game Day: 34')
+      expect(page.template).not.toContain('Game Day: 43')
+    })
+
+    it('renders cup-round divider for cup-only days', async () => {
+      server.getFinanceLog.mockResolvedValue({
+        log: [
+          { id: 1, value: 5000, balance: 105000, reason: 'Cup prize', game_day: 20, season: 4, match_day: 3, match_day_kind: 'cup' }
+        ]
+      })
+
+      const page = new FinancesPage()
+      await page.load()
+      expect(page.template).toContain('Cup Round: 3')
+      expect(page.template).not.toContain('Game Day: 21')
+    })
+
+    it('uses match_day labels in the filter dropdown', async () => {
+      server.getFinanceLogBounds.mockResolvedValue({
+        minSeason: 0,
+        minGameDay: 5,
+        maxSeason: 0,
+        maxGameDay: 5,
+        gameDayLabels: [
+          { season: 0, game_day: 5, match_day: 4, kind: 'league' }
+        ]
+      })
+
+      const page = new FinancesPage()
+      await page.load()
+      expect(page.template).toContain('Game Day 4')
+      expect(page.template).not.toContain('Day 6')
     })
 
     it('renders TV money section with estimate from the server', async () => {

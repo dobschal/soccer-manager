@@ -32,6 +32,34 @@ describe('finance routes', () => {
       expect(query).toHaveBeenCalledWith('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
     })
 
+    // Internal game_day counts cup days too, so the user-facing label for
+    // league match day 34 can be game_day 42. The query must join the game
+    // table to surface the displayed match_day; the frontend uses that for
+    // the "Spieltag X" dividers and filter labels.
+    it('includes match_day and match_day_kind resolved from the game table', async () => {
+      const team = testData.team()
+      const financeLog = [
+        { ...testData.financeLog({ id: 1, game_day: 42, season: 4 }), match_day: 34, match_day_kind: 'league' },
+        { ...testData.financeLog({ id: 2, game_day: 20, season: 4 }), match_day: 3, match_day_kind: 'cup' }
+      ]
+
+      query.mockResolvedValueOnce([team])
+      query.mockResolvedValueOnce(financeLog)
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLog(undefined, undefined, undefined, undefined, req)
+
+      expect(result.log[0].match_day).toBe(34)
+      expect(result.log[0].match_day_kind).toBe('league')
+      expect(result.log[1].match_day).toBe(3)
+      expect(result.log[1].match_day_kind).toBe('cup')
+
+      // The SELECT must reach into the game table for the displayed match_day.
+      const sql = query.mock.calls[1][0]
+      expect(sql).toMatch(/match_day/)
+      expect(sql).toMatch(/FROM game/)
+    })
+
     it('returns empty log when no entries', async () => {
       const team = testData.team()
 
@@ -172,6 +200,31 @@ describe('finance routes', () => {
 
       expect(result).toEqual({ log: financeLog })
       expect(query).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('getFinanceLogBounds', () => {
+    it('returns gameDayLabels mapping game_day to displayed match_day', async () => {
+      const team = testData.team()
+      query.mockResolvedValueOnce([team])
+      // Oldest finance entry
+      query.mockResolvedValueOnce([{ season: 0, game_day: 0 }])
+      // Played game days with match_day
+      query.mockResolvedValueOnce([
+        { season: 1, game_day: 42, league_match_day: 34, cup_match_day: null },
+        { season: 1, game_day: 20, league_match_day: null, cup_match_day: 3 }
+      ])
+
+      const req = createMockRequest()
+      const result = await handlers.getFinanceLogBounds(req)
+
+      expect(result.minSeason).toBe(0)
+      expect(result.minGameDay).toBe(0)
+      expect(result.maxSeason).toBe(1)
+      expect(result.gameDayLabels).toEqual([
+        { season: 1, game_day: 42, match_day: 34, kind: 'league' },
+        { season: 1, game_day: 20, match_day: 3, kind: 'cup' }
+      ])
     })
   })
 

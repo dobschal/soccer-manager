@@ -41,7 +41,7 @@ async function _generateRecapForLeague (gameDay, season, level, league) {
 
   const locales = getSupportedLocales()
   for (const locale of locales) {
-    const { title, text } = _composeRecap(stats, locale, gameDay)
+    const { title, text } = _composeRecap(stats, locale)
     const raw = {
       game_day: gameDay,
       season,
@@ -166,6 +166,11 @@ export async function _collectMatchDayStats (gameDay, season, level, league) {
   // (Only meaningful from matchday 2 onwards.)
   const upset = await _findBiggestUpset(games, gameDay, season, level, league)
 
+  // User-facing 1-based league match day (1..N). game_day is the internal
+  // monotonic counter that also includes cup days, so we can't just compute
+  // it as gameDay + 1.
+  const matchDay = games[0].match_day ?? (gameDay + 1)
+
   // Decide which image to feature:
   // 1. Top scorer player if they scored 2+ goals
   // 2. Otherwise winning team of the biggest goal-diff game
@@ -189,7 +194,8 @@ export async function _collectMatchDayStats (gameDay, season, level, league) {
     topScorer,
     upset,
     imagePlayerId,
-    imageTeamId
+    imageTeamId,
+    matchDay
   }
 }
 
@@ -198,11 +204,10 @@ export async function _collectMatchDayStats (gameDay, season, level, league) {
  *
  * @param {MatchDayStats} stats
  * @param {string} locale
- * @param {number} gameDay
  * @returns {{title: string, text: string}}
  */
-function _composeRecap (stats, locale, gameDay) {
-  const matchDay = gameDay + 1
+function _composeRecap (stats, locale) {
+  const matchDay = stats.matchDay
   const goalsPerGame = stats.totalGoals / Math.max(1, stats.gameCount)
   const introKey = goalsPerGame >= 4
     ? 'recap.intro.highScoring'
@@ -360,6 +365,7 @@ function _parseDetails (raw) {
  * @property {{winnerName: string, loserName: string, winnerPlace: number, loserPlace: number} | null} upset
  * @property {number | null} imagePlayerId
  * @property {number | null} imageTeamId
+ * @property {number} matchDay
  */
 
 /**
