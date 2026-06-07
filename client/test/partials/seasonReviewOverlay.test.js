@@ -8,6 +8,10 @@ vi.mock('../../partials/emblem.js', () => ({
   renderEmblem: vi.fn(() => '<svg data-emblem="x"></svg>')
 }))
 
+vi.mock('../../util/league.js', () => ({
+  formatLeague: vi.fn((level, league) => `LEAGUE(${level}/${league})`)
+}))
+
 vi.mock('../../lib/html.js', () => {
   let i = 0
   return {
@@ -90,6 +94,32 @@ describe('showSeasonReviewOverlay', () => {
     expect(card.textContent).toContain('Top Scorer')
     expect(card.textContent).toContain('Bottom A')
     expect(card.textContent).toContain('Bottom B')
+  })
+
+  it('renders the user\'s historical league label in the header', async () => {
+    void showSeasonReviewOverlay(baseReview({ team: { id: 100, name: 'User FC', color: '#FF0000', emblem: '{}', level: 2, league: 1 } }))
+
+    const card = document.body.querySelector('.season-review-card')
+    expect(card.textContent).toContain('LEAGUE(2/1)')
+  })
+
+  it('uses the server-supplied headlineVariant so reopening shows the same text', async () => {
+    void showSeasonReviewOverlay(baseReview({ outcome: 'champion', position: 1, headlineVariant: 2 }))
+    let card = document.body.querySelector('.season-review-card')
+    expect(card.textContent).toContain('seasonReview.outcome.champion.2')
+    expect(card.textContent).not.toContain('seasonReview.outcome.champion.1')
+
+    // Clean DOM and render again with the same review — should pick variant 2 again.
+    document.body.innerHTML = ''
+    void showSeasonReviewOverlay(baseReview({ outcome: 'champion', position: 1, headlineVariant: 2 }))
+    card = document.body.querySelector('.season-review-card')
+    expect(card.textContent).toContain('seasonReview.outcome.champion.2')
+  })
+
+  it('falls back to variant 1 when the server omits headlineVariant', async () => {
+    void showSeasonReviewOverlay(baseReview({ outcome: 'lowerHalf', position: 12, headlineVariant: undefined }))
+    const card = document.body.querySelector('.season-review-card')
+    expect(card.textContent).toContain('seasonReview.outcome.lowerHalf.1')
   })
 
   it('shows the trophy emoji and confetti when the user is the cup winner', async () => {

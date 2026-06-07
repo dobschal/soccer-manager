@@ -47,6 +47,14 @@
     letter-spacing: 0.06em;
 }
 
+.season-review-league {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-top: -0.25rem;
+}
+
 .season-review-position {
     margin: 0.25rem 0 0;
     font-size: 1.05rem;
@@ -93,6 +101,7 @@
     align-items: center;
     gap: 0.75rem;
     font-size: 0.95rem;
+    margin-bottom: 1rem;
 }
 
 .season-review-fact-label {
@@ -156,9 +165,18 @@
 }
 
 @keyframes season-review-emoji-pop {
-    0% { transform: scale(0.4); opacity: 0; }
-    65% { transform: scale(1.15); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+        transform: scale(0.4);
+        opacity: 0;
+    }
+    65% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 /* ----- Confetti -------------------------------------------------------- */
@@ -184,8 +202,12 @@
 }
 
 @keyframes season-review-confetti-fall {
-    0% { transform: translate3d(0, -20vh, 0) rotate(0deg); }
-    100% { transform: translate3d(0, 110vh, 0) rotate(720deg); }
+    0% {
+        transform: translate3d(0, -20vh, 0) rotate(0deg);
+    }
+    100% {
+        transform: translate3d(0, 110vh, 0) rotate(720deg);
+    }
 }
 
 @media screen and (max-width: 576px) {

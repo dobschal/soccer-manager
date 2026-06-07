@@ -212,6 +212,12 @@ async function getSeasonReview (season, req) {
     }
     : null
 
+  // Pick a deterministic headline variant so the same (user, season) always
+  // surfaces the same narrative text. Reopening the overlay later — or
+  // viewing the same season again from the results page — shouldn't reshuffle
+  // it. Three variants per outcome (see `seasonReview.outcome.<outcome>.{1..3}`).
+  const headlineVariant = ((targetSeason * 7 + req.user.id * 13) % 3) + 1
+
   return {
     isSeasonEnd,
     available: true,
@@ -226,6 +232,7 @@ async function getSeasonReview (season, req) {
     },
     position,
     outcome,
+    headlineVariant,
     userWonCup: !!cupWinner?.isUser,
     leagueChampion,
     relegatedTeams,

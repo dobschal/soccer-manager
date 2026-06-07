@@ -232,5 +232,33 @@ describe('seasonReview routes', () => {
       expect(result.isSeasonEnd).toBe(false)
       expect(result.available).toBe(false)
     })
+
+    it('returns a deterministic headlineVariant based on season and userId so the headline is stable across reloads', async () => {
+      const standing = mockStanding(18, 1)
+      const freshTeams = standing.map(s => ({ ...s.team }))
+
+      const setupMocks = () => {
+        query
+          .mockResolvedValueOnce([{ unplayedCount: 0 }])
+          .mockResolvedValueOnce([{ season: 2 }])
+          .mockResolvedValueOnce([{ gameDay: 34 }])
+          .mockResolvedValueOnce(freshTeams)
+          .mockResolvedValueOnce([null])
+          .mockResolvedValueOnce([{ maxLevel: 3 }])
+        getTeam.mockResolvedValue({ ...userTeam, level: 0, league: 0 })
+        getCachedStanding.mockResolvedValue(standing)
+        getTopScorers.mockResolvedValue([])
+      }
+
+      setupMocks()
+      const first = await handlers.getSeasonReview(null, createMockRequest())
+      vi.clearAllMocks()
+      setupMocks()
+      const second = await handlers.getSeasonReview(null, createMockRequest())
+
+      expect(first.headlineVariant).toBeGreaterThanOrEqual(1)
+      expect(first.headlineVariant).toBeLessThanOrEqual(3)
+      expect(second.headlineVariant).toBe(first.headlineVariant)
+    })
   })
 })

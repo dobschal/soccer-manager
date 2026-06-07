@@ -2,6 +2,7 @@ import { generateId, el } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { t } from '../i18n/index.js'
 import { renderEmblem } from './emblem.js'
+import { formatLeague } from '../util/league.js'
 
 const STORAGE_KEY_PREFIX = 'seasonReviewSeen_'
 
@@ -34,13 +35,21 @@ function shouldShowConfetti (outcome, userWonCup) {
 }
 
 /**
- * Pick a random headline text key for the given outcome.
+ * Resolve the headline text key for the given outcome.
+ *
+ * The server returns a deterministic `headlineVariant` (1..3) computed from
+ * (season, userId), so the same review always shows the same narrative text —
+ * reopening the overlay never reshuffles it. Older responses may omit the
+ * variant (e.g. cached payload from a previous deploy); fall back to variant 1
+ * in that case.
+ *
  * @param {string} outcome
+ * @param {number|undefined} variant
  * @returns {string}
  */
-function pickHeadlineKey (outcome) {
-  const variant = 1 + Math.floor(Math.random() * 3)
-  return `seasonReview.outcome.${outcome}.${variant}`
+function getHeadlineKey (outcome, variant) {
+  const v = variant >= 1 && variant <= 3 ? variant : 1
+  return `seasonReview.outcome.${outcome}.${v}`
 }
 
 /**
@@ -139,8 +148,11 @@ export function showSeasonReviewOverlay (review) {
     const closeBtnId = generateId()
 
     const emoji = getOutcomeEmoji(review.outcome, review.userWonCup)
-    const headlineKey = pickHeadlineKey(review.outcome)
+    const headlineKey = getHeadlineKey(review.outcome, review.headlineVariant)
     const headline = t(headlineKey, { position: review.position })
+    const leagueLabel = review.team
+      ? formatLeague(review.team.level, review.team.league)
+      : ''
     const cupExtra = review.userWonCup && review.outcome !== 'champion'
       ? `<p class="season-review-cup-extra">${t('seasonReview.cupWonExtra')}</p>`
       : ''
@@ -185,6 +197,7 @@ export function showSeasonReviewOverlay (review) {
             <div class="season-review-emoji" aria-hidden="true">${emoji}</div>
             <h2 class="season-review-title">${t('seasonReview.title')}</h2>
             <div class="season-review-subtitle">${t('seasonReview.subtitle', { season: review.season + 1 })}</div>
+            ${leagueLabel ? `<div class="season-review-league">${leagueLabel}</div>` : ''}
             ${positionLine}
             <p class="season-review-headline">${headline}</p>
             ${cupExtra}

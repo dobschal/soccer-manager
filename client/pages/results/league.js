@@ -118,6 +118,19 @@ export class LeagueResultsPage extends UIElement {
     this.recapFeaturedPlayer = recapResponse?.featuredPlayer ?? null
     this.recapFeaturedTeam = recapResponse?.featuredTeam ?? null
     this._recapImage = ''
+
+    // The season review button is only meaningful for fully-completed seasons
+    // (all 34 match days played). Strict checks: any season earlier than the
+    // user's last played one is by definition done; the current ongoing one
+    // counts only when match day 34 has actually been played in the user's
+    // home league.
+    const lastSeason = currentGameday.lastPlayedLeagueSeason
+    if (typeof lastSeason === 'number') {
+      this._seasonCompleted = this.season < lastSeason ||
+        (this.season === lastSeason && lastPlayedLeagueMatchDay >= 34)
+    } else {
+      this._seasonCompleted = false
+    }
   }
 
   get template () {
@@ -126,9 +139,11 @@ export class LeagueResultsPage extends UIElement {
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
             <h2 class="mb-0">${t('results.resultsTitle')}</h2>
-            <button id="results-open-season-review-btn" class="btn btn-outline-primary btn-sm" type="button">
+            ${this._seasonCompleted
+    ? `<button id="results-open-season-review-btn" class="btn btn-outline-primary btn-sm" type="button">
               <i class="fa fa-trophy me-1"></i> ${t('seasonReview.title')}
-            </button>
+            </button>`
+    : ''}
           </div>
           <div class="results-filters d-flex flex-wrap gap-3">
             <div>
@@ -339,6 +354,7 @@ export class LeagueResultsPage extends UIElement {
   availableLeagues = []
   availableSeasons = []
   availableMatchDays = []
+  _seasonCompleted = false
 
   recap = null
   recapFeaturedPlayer = null

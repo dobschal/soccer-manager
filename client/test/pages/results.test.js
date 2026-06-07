@@ -542,6 +542,88 @@ describe('ResultsPage', () => {
     })
   })
 
+  describe('season review button', () => {
+    function setupBaseMocks () {
+      server.getResults.mockResolvedValue({ results: [] })
+      server.getStanding.mockResolvedValue([])
+      server.getTopScorers.mockResolvedValue({ topScorers: [] })
+      server.getSuspendedPlayers.mockResolvedValue({ suspendedPlayers: [] })
+      server.getResultsFilters.mockResolvedValue({
+        leagues: [{ level: 1, league: 0 }],
+        seasons: [0, 1, 2],
+        matchDays: Array.from({ length: 34 }, (_, i) => i + 1)
+      })
+    }
+
+    it('renders the season review button for a fully-played past season', async () => {
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
+
+      // Current season is 3, last played league match day in user's home league
+      // is match day 5 of season 3 — but the user is browsing the *past* season 1.
+      server.getCurrentGameday.mockResolvedValue({
+        season: 3,
+        gameDay: 5,
+        lastPlayedLeagueSeason: 3,
+        lastPlayedLeagueMatchDay: 5
+      })
+      setupBaseMocks()
+      getQueryParams.mockReturnValue({ season: '1', match_day: '34' })
+
+      const page = new LeagueResultsPage(parentPage)
+      await page.load()
+
+      expect(page._seasonCompleted).toBe(true)
+      const html = page.template
+      expect(html).toContain('results-open-season-review-btn')
+    })
+
+    it('hides the season review button for the current in-progress season', async () => {
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
+
+      // Current ongoing season is 2, only match day 10 played so far.
+      server.getCurrentGameday.mockResolvedValue({
+        season: 2,
+        gameDay: 10,
+        lastPlayedLeagueSeason: 2,
+        lastPlayedLeagueMatchDay: 10
+      })
+      setupBaseMocks()
+      getQueryParams.mockReturnValue({ season: '2', match_day: '10' })
+
+      const page = new LeagueResultsPage(parentPage)
+      await page.load()
+
+      expect(page._seasonCompleted).toBe(false)
+      const html = page.template
+      expect(html).not.toContain('results-open-season-review-btn')
+    })
+
+    it('renders the button when the currently-selected season has its 34th match day played', async () => {
+      const team = testData.team({ level: 1, league: 0 })
+      const parentPage = { myTeamId: team.id, info: { team } }
+
+      // Season 2 finished — match day 34 played; the new season has not been
+      // created yet.
+      server.getCurrentGameday.mockResolvedValue({
+        season: 2,
+        gameDay: 34,
+        lastPlayedLeagueSeason: 2,
+        lastPlayedLeagueMatchDay: 34
+      })
+      setupBaseMocks()
+      getQueryParams.mockReturnValue({ season: '2', match_day: '34' })
+
+      const page = new LeagueResultsPage(parentPage)
+      await page.load()
+
+      expect(page._seasonCompleted).toBe(true)
+      const html = page.template
+      expect(html).toContain('results-open-season-review-btn')
+    })
+  })
+
   describe('default season/match day after new season transition', () => {
     it('defaults to the new season and match day 1 when no league game of the new season has been played yet', async () => {
       // Scenario (#385): a new season was created, the first match day has not
