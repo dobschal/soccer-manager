@@ -12,7 +12,9 @@
 .season-review-card {
     max-width: 560px;
     width: 100%;
-    overflow: hidden;
+    max-height: calc(100vh - 1rem);
+    overflow-y: auto;
+    overflow-x: hidden;
     border-radius: 1rem;
     background: linear-gradient(180deg, #1f2530 0%, #131720 100%);
     color: #f3f3f3;
@@ -26,6 +28,36 @@
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
+}
+
+/* Floating close X — stays pinned to the top-right corner while the user
+   scrolls long content (e.g. relegated teams, cup info). */
+.season-review-close-x {
+    position: sticky;
+    top: 0.5rem;
+    align-self: flex-end;
+    margin-top: -1.75rem;
+    margin-right: -0.75rem;
+    margin-bottom: -1rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    z-index: 5;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.season-review-close-x:hover,
+.season-review-close-x:focus-visible {
+    background: rgba(0, 0, 0, 0.6);
+    outline: none;
 }
 
 .season-review-emoji {

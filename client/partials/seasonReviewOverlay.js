@@ -146,6 +146,7 @@ export function showSeasonReviewOverlay (review) {
     const overlayId = generateId()
     const innerId = generateId()
     const closeBtnId = generateId()
+    const closeXId = generateId()
 
     const emoji = getOutcomeEmoji(review.outcome, review.userWonCup)
     const headlineKey = getHeadlineKey(review.outcome, review.headlineVariant)
@@ -194,6 +195,9 @@ export function showSeasonReviewOverlay (review) {
         ${confetti}
         <div id="${innerId}" class="card overlay season-review-card">
           <div class="card-body season-review-body">
+            <button id="${closeXId}" class="season-review-close-x" type="button" aria-label="${t('seasonReview.close')}">
+              <i class="fa fa-close"></i>
+            </button>
             <div class="season-review-emoji" aria-hidden="true">${emoji}</div>
             <h2 class="season-review-title">${t('seasonReview.title')}</h2>
             <div class="season-review-subtitle">${t('seasonReview.subtitle', { season: review.season + 1 })}</div>
@@ -238,6 +242,7 @@ export function showSeasonReviewOverlay (review) {
     document.addEventListener('keydown', onKeyDown)
 
     onClick('#' + closeBtnId, () => dismiss())
+    onClick('#' + closeXId, () => dismiss())
     onClick('#' + overlayId, (event) => {
       if (event.target.id === overlayId) dismiss()
     })

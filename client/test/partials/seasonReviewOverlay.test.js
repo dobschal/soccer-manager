@@ -122,6 +122,16 @@ describe('showSeasonReviewOverlay', () => {
     expect(card.textContent).toContain('seasonReview.outcome.lowerHalf.1')
   })
 
+  it('renders a sticky close X button inside the card', async () => {
+    void showSeasonReviewOverlay(baseReview())
+    const closeX = document.body.querySelector('.season-review-close-x')
+    expect(closeX).not.toBeNull()
+    // The card is the scrolling container so the close X can stay pinned even
+    // when content overflows. overflow:hidden would prevent that — guard
+    // against accidentally reintroducing it via the inline element.
+    expect(closeX.querySelector('.fa-close')).not.toBeNull()
+  })
+
   it('shows the trophy emoji and confetti when the user is the cup winner', async () => {
     void showSeasonReviewOverlay(baseReview({
       outcome: 'lowerHalf',
