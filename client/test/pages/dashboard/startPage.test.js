@@ -161,35 +161,39 @@ describe('StartPage._renderVideoCard', () => {
     })
   }
 
-  it('uses the English tutorial video for the English locale (browser)', () => {
+  it('uses the desktop English tutorial video for the English locale in the browser', () => {
     getLocaleMock.mockReturnValue('en')
     const html = makePage()._renderVideoCard()
-    expect(html).toContain('5Szjg4fdVl0')
+    expect(html).toContain('kK_OHx9gypc')
+    expect(html).not.toContain('gcBC70_ElFQ')
+    expect(html).not.toContain('ogCKtnHt04s')
     expect(html).not.toContain('D7v1Y2-HUlk')
-    expect(html).not.toContain('mqiA34LB3ko')
   })
 
-  it('uses the English tutorial video for the English locale in the native app', () => {
+  it('uses the mobile English tutorial video for the English locale in the native app', () => {
     getLocaleMock.mockReturnValue('en')
     window.__nativePlatform = 'ios'
     const html = makePage()._renderVideoCard()
-    expect(html).toContain('5Szjg4fdVl0')
+    expect(html).toContain('gcBC70_ElFQ')
+    expect(html).not.toContain('kK_OHx9gypc')
     expect(html).not.toContain('D7v1Y2-HUlk')
   })
 
-  it('uses the original German tutorial video for the German locale in the browser', () => {
+  it('uses the desktop German tutorial video for the German locale in the browser', () => {
     getLocaleMock.mockReturnValue('de')
     const html = makePage()._renderVideoCard()
-    expect(html).toContain('mqiA34LB3ko')
+    expect(html).toContain('ogCKtnHt04s')
     expect(html).not.toContain('D7v1Y2-HUlk')
+    expect(html).not.toContain('kK_OHx9gypc')
   })
 
-  it('uses the new German tutorial video for the German locale in the native app', () => {
+  it('uses the mobile German tutorial video for the German locale in the native app', () => {
     getLocaleMock.mockReturnValue('de')
     window.__nativePlatform = 'ios'
     const html = makePage()._renderVideoCard()
     expect(html).toContain('D7v1Y2-HUlk')
-    expect(html).not.toContain('mqiA34LB3ko')
+    expect(html).not.toContain('ogCKtnHt04s')
+    expect(html).not.toContain('gcBC70_ElFQ')
   })
 })
 
