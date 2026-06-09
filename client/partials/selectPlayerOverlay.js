@@ -210,7 +210,12 @@ export class SelectPlayerOverlay extends UIElement {
         : t('actionCards.levelUpSuccess', { playerName: this.currentPlayer.name })
       toast(message, 'success')
       fire(ACTION_CARDS_CHANGED_EVENT, this._renderId)
+      // Drop the consumed card from the local list so the overlay's stack count
+      // updates without needing a server round-trip. The overlay intentionally
+      // stays open so the user can chain more cards onto the same player.
+      this.cards.splice(cardIndex, 1)
       this.onActionCardApplied?.()
+      await this.update()
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')

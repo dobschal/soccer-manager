@@ -7,8 +7,10 @@ import { toast } from '../../partials/toast.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import {
   EMBLEM_COLORS,
+  EMBLEM_ICONS,
   EMBLEM_PATTERNS,
   EMBLEM_SHAPES,
+  EMBLEM_TINT_OPTIONS,
   generateEmblem,
   parseEmblemParams,
   resolveWordsOnBanner,
@@ -274,6 +276,9 @@ export class ClubInfoPage extends UIElement {
     let selectedPattern = currentParams.pattern
     let selectedColor = currentParams.color
     let selectedColor2 = currentParams.color2 || EMBLEM_COLORS[1]
+    let selectedStrokeColor = EMBLEM_TINT_OPTIONS.includes(currentParams.strokeColor) ? currentParams.strokeColor : 'white'
+    let selectedIcon = currentParams.icon && EMBLEM_ICONS.includes(currentParams.icon) ? currentParams.icon : null
+    let selectedIconColor = EMBLEM_TINT_OPTIONS.includes(currentParams.iconColor) ? currentParams.iconColor : 'white'
     const nameWords = splitTeamNameWords(this.team.name)
     const wordsOnBanner = resolveWordsOnBanner(nameWords, currentParams)
 
@@ -290,6 +295,9 @@ export class ClubInfoPage extends UIElement {
           color: selectedColor,
           color2: selectedColor2,
           wordsOnBanner,
+          strokeColor: selectedStrokeColor,
+          icon: selectedIcon,
+          iconColor: selectedIconColor,
           teamName: this.team.name,
           size: 150
         })
@@ -398,7 +406,10 @@ export class ClubInfoPage extends UIElement {
           pattern: selectedPattern,
           color: selectedColor,
           color2: selectedColor2,
-          wordsOnBanner
+          wordsOnBanner,
+          strokeColor: selectedStrokeColor,
+          icon: selectedIcon,
+          iconColor: selectedIconColor
         })
         await server.updateEmblem(emblemParams, selectedColor)
         toast(t('myTeam.emblemUpdated'), 'success')
@@ -410,6 +421,87 @@ export class ClubInfoPage extends UIElement {
         showServerError(e)
       }
     })
+
+    /**
+     * Render a 3-option tint selector (white / color1 / color2) for either
+     * the shape outline or the icon. Returns the inline HTML.
+     */
+    const renderTintSelector = ({ groupClass, currentValue, onSelect }) => {
+      return EMBLEM_TINT_OPTIONS.map(role => {
+        const id = generateId()
+        setTimeout(() => {
+          const element = el(id)
+          if (element) {
+            element.addEventListener('click', () => {
+              onSelect(role)
+              document.querySelectorAll(`.${groupClass}`).forEach(item => {
+                item.classList.remove('emblem-editor__color--selected')
+              })
+              element.classList.add('emblem-editor__color--selected')
+              updatePreview()
+            })
+          }
+        }, 100)
+        const swatchColor = role === 'white'
+          ? '#ffffff'
+          : (role === 'color1' ? selectedColor : selectedColor2)
+        const isSelected = role === currentValue
+        const label = t(`myTeam.tint.${role}`)
+        return `
+          <div id="${id}" class="emblem-editor__color ${groupClass} ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${swatchColor};" title="${label}"></div>
+        `
+      }).join('')
+    }
+
+    const strokeColorOptions = renderTintSelector({
+      groupClass: 'emblem-editor__stroke',
+      currentValue: selectedStrokeColor,
+      onSelect: role => { selectedStrokeColor = role }
+    })
+
+    const iconColorOptions = renderTintSelector({
+      groupClass: 'emblem-editor__icon-color',
+      currentValue: selectedIconColor,
+      onSelect: role => { selectedIconColor = role }
+    })
+
+    const iconNoneId = generateId()
+    setTimeout(() => {
+      const element = el(iconNoneId)
+      if (element) {
+        element.addEventListener('click', () => {
+          selectedIcon = null
+          document.querySelectorAll('.emblem-editor__icon').forEach(item => {
+            item.classList.remove('emblem-editor__icon--selected')
+          })
+          element.classList.add('emblem-editor__icon--selected')
+          updatePreview()
+        })
+      }
+    }, 100)
+
+    const iconOptions = EMBLEM_ICONS.map(name => {
+      const id = generateId()
+      setTimeout(() => {
+        const element = el(id)
+        if (element) {
+          element.addEventListener('click', () => {
+            selectedIcon = name
+            document.querySelectorAll('.emblem-editor__icon').forEach(item => {
+              item.classList.remove('emblem-editor__icon--selected')
+            })
+            element.classList.add('emblem-editor__icon--selected')
+            updatePreview()
+          })
+        }
+      }, 100)
+      const isSelected = name === selectedIcon
+      return `
+        <div id="${id}" class="emblem-editor__option emblem-editor__icon ${isSelected ? 'emblem-editor__icon--selected emblem-editor__option--selected' : ''}" title="${name}">
+          <img src="./assets/emblem-icons/${name}.svg" alt="${name}" class="emblem-editor__icon-img">
+        </div>
+      `
+    }).join('')
 
     wordCheckboxIds.forEach((id, index) => {
       setTimeout(() => {
@@ -477,6 +569,24 @@ export class ClubInfoPage extends UIElement {
       <h6>${t('myTeam.color2')}</h6>
       <div class="emblem-editor__section mb-4">
         ${color2Options}
+      </div>
+
+      <h6>${t('myTeam.strokeColor')}</h6>
+      <div class="emblem-editor__section mb-4">
+        ${strokeColorOptions}
+      </div>
+
+      <h6>${t('myTeam.icon')}</h6>
+      <div class="emblem-editor__section emblem-editor__section--icons mb-2">
+        <div id="${iconNoneId}" class="emblem-editor__option emblem-editor__icon emblem-editor__icon--none ${selectedIcon === null ? 'emblem-editor__icon--selected emblem-editor__option--selected' : ''}" title="${t('myTeam.iconNone')}">
+          <span><i class="fa fa-ban" aria-hidden="true"></i></span>
+        </div>
+        ${iconOptions}
+      </div>
+
+      <h6>${t('myTeam.iconColor')}</h6>
+      <div class="emblem-editor__section mb-4">
+        ${iconColorOptions}
       </div>
 
       ${nameDisplaySection}

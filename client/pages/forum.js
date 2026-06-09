@@ -8,6 +8,7 @@ import { toast } from '../partials/toast.js'
 import { showConfirmDialog } from '../partials/overlay.js'
 import { FORUM_BADGE_COLORS } from '../util/forumBadgeColors.js'
 import { attachMentionAutocomplete } from '../partials/mentionAutocomplete.js'
+import { linkifyHtml } from '../lib/linkify.js'
 
 function escapeHtml (text) {
   const div = document.createElement('div')
@@ -18,17 +19,19 @@ function escapeHtml (text) {
 const MENTION_PATTERN = /(^|[^\w@])@([A-Za-z0-9_.-]{2,30})/g
 
 /**
- * Render the body of a forum post or comment, escaping HTML and turning
- * @-mentions into highlighted spans.
+ * Render the body of a forum post or comment: HTML-escape the text,
+ * turn http(s) URLs into external anchors, highlight @-mentions and
+ * convert newlines to <br>.
  * @param {string} text
  * @returns {string}
  */
 function renderForumBody (text) {
-  const escaped = escapeHtml(text || '')
-  const withMentions = escaped.replace(MENTION_PATTERN, (_match, prefix, username) =>
-    `${prefix}<span class="forum-mention-tag">@${username}</span>`
-  )
-  return withMentions.replace(/\n/g, '<br>')
+  return linkifyHtml(text || '', (escaped) => {
+    const withMentions = escaped.replace(MENTION_PATTERN, (_match, prefix, username) =>
+      `${prefix}<span class="forum-mention-tag">@${username}</span>`
+    )
+    return withMentions.replace(/\n/g, '<br>')
+  })
 }
 
 const EDIT_WINDOW_MS = 4 * 60 * 60 * 1000 // 4 hours

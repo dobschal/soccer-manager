@@ -3,11 +3,16 @@ import { server, showServerError } from '../lib/gateway.js'
 import { showOverlay } from './overlay.js'
 import { t } from '../i18n/index.js'
 import { formatDate } from '../lib/date.js'
+import { linkifyHtml } from '../lib/linkify.js'
 
 function escapeHtml (text) {
   const div = document.createElement('div')
   div.textContent = text == null ? '' : String(text)
   return div.innerHTML
+}
+
+function renderCommentBody (text) {
+  return linkifyHtml(text == null ? '' : String(text), (escaped) => escaped.replace(/\n/g, '<br>'))
 }
 
 function avatarSrc (avatar) {
@@ -30,7 +35,7 @@ function renderComment (comment) {
           ${teamLink ? '- ' + teamLink : ''}
           <small class="text-muted ms-2">${date}</small>
         </div>
-        <div class="friend-post-comment-text">${escapeHtml(comment.text).replace(/\n/g, '<br>')}</div>
+        <div class="friend-post-comment-text">${renderCommentBody(comment.text)}</div>
       </div>
     </div>
   `

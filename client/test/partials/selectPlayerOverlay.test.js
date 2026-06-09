@@ -87,12 +87,16 @@ describe('SelectPlayerOverlay', () => {
     const stackEl = document.createElement('div')
     stackEl.dataset.actionCardIdx = '0'
 
-    await overlay._useActionCard(overlay.cards[0], 0, stackEl)
+    const usedCard = overlay.cards[0]
+    await overlay._useActionCard(usedCard, 0, stackEl)
 
-    expect(server.useActionCard).toHaveBeenCalledWith(overlay.cards[0], player, null)
+    expect(server.useActionCard).toHaveBeenCalledWith(usedCard, player, null)
     expect(toast).toHaveBeenCalledWith(expect.stringContaining('Hans'), 'success')
     expect(fire).toHaveBeenCalledWith('ACTION_CARDS_CHANGED', overlay._renderId)
     expect(onApplied).toHaveBeenCalled()
+    // The consumed card must be removed from the local list so the next click
+    // sees a smaller stack — the overlay stays open and re-renders in place.
+    expect(overlay.cards).toHaveLength(0)
   })
 
   it('shows a placeholder line when the player has no eligible cards', async () => {

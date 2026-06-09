@@ -132,9 +132,13 @@ describe('buildingHelper', () => {
       expect(totalForLevel(3)).toBeGreaterThan(totalForLevel(2))
     })
 
-    it('level 2 unlocks NEW_YOUTH_PLAYER_2; level 3 also unlocks NEW_YOUTH_PLAYER_3', () => {
+    it('each academy level only emits its own card tier, matching the building description range', () => {
+      expect(YOUTH_ACADEMY_CARD_CHANCES[2].NEW_YOUTH_PLAYER_1).toBe(0)
       expect(YOUTH_ACADEMY_CARD_CHANCES[2].NEW_YOUTH_PLAYER_2).toBeGreaterThan(0)
       expect(YOUTH_ACADEMY_CARD_CHANCES[2].NEW_YOUTH_PLAYER_3).toBe(0)
+
+      expect(YOUTH_ACADEMY_CARD_CHANCES[3].NEW_YOUTH_PLAYER_1).toBe(0)
+      expect(YOUTH_ACADEMY_CARD_CHANCES[3].NEW_YOUTH_PLAYER_2).toBe(0)
       expect(YOUTH_ACADEMY_CARD_CHANCES[3].NEW_YOUTH_PLAYER_3).toBeGreaterThan(0)
     })
 

@@ -10,6 +10,17 @@ import { toast } from '../../partials/toast.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
 import { showFriendPostCommentsOverlay } from '../../partials/friendPostCommentsOverlay.js'
 import { showConfirmDialog } from '../../partials/overlay.js'
+import { linkifyHtml } from '../../lib/linkify.js'
+
+/**
+ * Render a friend post body: detect http(s) URLs and convert them to
+ * external anchors, escape the rest, and turn newlines into <br>.
+ * @param {string} text
+ * @returns {string}
+ */
+function renderFriendPostBody (text) {
+  return linkifyHtml(text == null ? '' : String(text), (escaped) => escaped.replace(/\n/g, '<br>'))
+}
 
 function avatarSrc (avatar) {
   if (avatar) return `${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatar}`
@@ -322,7 +333,7 @@ export class FriendsPage extends UIElement {
             ${authorLine}
             <small class="text-muted ms-2">${date}</small>
           </header>
-          <div class="friend-post-text">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>
+          <div class="friend-post-text">${renderFriendPostBody(post.text)}</div>
           <div class="friend-post-actions">
             <button id="${likeBtnId}" type="button"
               class="btn btn-sm ${post.likedByMe ? 'btn-danger' : 'btn-outline-danger'}"

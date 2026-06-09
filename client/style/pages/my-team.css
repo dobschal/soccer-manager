@@ -70,6 +70,44 @@
     border-color: white;
 }
 
+/* Icon picker */
+.emblem-editor__section--icons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.emblem-editor__icon {
+    width: 56px;
+    height: 56px;
+    padding: 6px;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.emblem-editor__icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.emblem-editor__icon--none {
+    background: rgba(0, 0, 0, 0.25);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 22px;
+}
+
+.emblem-editor__icon--selected {
+    border-color: #007bff;
+}
+
 /* ==========================================================================
    Team Name Editor
    ========================================================================== */

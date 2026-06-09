@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
+  EMBLEM_ICONS,
   generateEmblem,
+  resolveTint,
   resolveWordsOnBanner,
   splitTeamNameWords
 } from '../../util/emblemGenerator.js'
@@ -93,5 +95,125 @@ describe('generateEmblem banner rendering', () => {
       size: 200
     })
     expect(svg).not.toContain('Prefix inside emblem')
+  })
+})
+
+describe('resolveTint', () => {
+  it('returns white for unknown / nullish roles', () => {
+    expect(resolveTint(null, '#aaa', '#bbb')).toBe('#ffffff')
+    expect(resolveTint('white', '#aaa', '#bbb')).toBe('#ffffff')
+    expect(resolveTint('something-else', '#aaa', '#bbb')).toBe('#ffffff')
+  })
+
+  it('maps color1 / color2 to the respective hex values', () => {
+    expect(resolveTint('color1', '#aaa', '#bbb')).toBe('#aaa')
+    expect(resolveTint('color2', '#aaa', '#bbb')).toBe('#bbb')
+  })
+
+  it('falls back to color1 when color2 is missing', () => {
+    expect(resolveTint('color2', '#aaa', undefined)).toBe('#aaa')
+  })
+})
+
+describe('generateEmblem strokeColor + icon', () => {
+  it('defaults the shape outline to white when no strokeColor is given', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      color2: '#2c87e1',
+      teamName: 'Test',
+      size: 200
+    })
+    // The first stroke="..." in the SVG belongs to the shape border.
+    const firstStroke = svg.match(/stroke="([^"]+)"/)
+    expect(firstStroke).not.toBeNull()
+    expect(firstStroke[1]).toBe('#ffffff')
+  })
+
+  it('uses color1 / color2 for the shape outline when requested', () => {
+    const svg1 = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      color2: '#2c87e1',
+      strokeColor: 'color1',
+      teamName: 'Test',
+      size: 200
+    })
+    expect(svg1.match(/stroke="([^"]+)"/)[1]).toBe('#ea3636')
+
+    const svg2 = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      color2: '#2c87e1',
+      strokeColor: 'color2',
+      teamName: 'Test',
+      size: 200
+    })
+    expect(svg2.match(/stroke="([^"]+)"/)[1]).toBe('#2c87e1')
+  })
+
+  it('keeps the banner outline white regardless of strokeColor', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      color2: '#2c87e1',
+      strokeColor: 'color1',
+      teamName: 'Test',
+      size: 200
+    })
+    // The banner ribbons / body emit strokes too; with strokeColor=color1
+    // only the very first one (the shape) should pick up the color.
+    const strokes = [...svg.matchAll(/stroke="([^"]+)"/g)].map(m => m[1])
+    expect(strokes[0]).toBe('#ea3636')
+    // All remaining strokes are the banner pieces and stay white.
+    expect(strokes.slice(1).every(s => s === '#ffffff')).toBe(true)
+  })
+
+  it('omits the icon layer when no icon is selected', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      teamName: 'Test',
+      size: 200
+    })
+    expect(svg).not.toContain('<image href="./assets/emblem-icons/')
+    expect(svg).not.toContain('<feColorMatrix')
+  })
+
+  it('renders an image + tint filter when an icon is selected', () => {
+    const icon = EMBLEM_ICONS[0]
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      color2: '#2c87e1',
+      icon,
+      iconColor: 'color2',
+      teamName: 'Test',
+      size: 200
+    })
+    expect(svg).toContain(`<image href="./assets/emblem-icons/${icon}.svg"`)
+    expect(svg).toContain('<feColorMatrix')
+    // color2 = #2c87e1 → r=44/255, g=135/255, b=225/255. Just check the b channel
+    // ended up in the matrix's column-3 of the second row → "0 0 0 0 G".
+    expect(svg).toMatch(/feColorMatrix type="matrix" values="0 0 0 0 [\d.]+ 0 0 0 0 [\d.]+ 0 0 0 0 [\d.]+ 0 0 0 1 0"/)
+  })
+
+  it('ignores an unknown icon filename', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      icon: 'not-a-real-icon',
+      iconColor: 'color1',
+      teamName: 'Test',
+      size: 200
+    })
+    expect(svg).not.toContain('<image href="./assets/emblem-icons/')
   })
 })

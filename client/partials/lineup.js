@@ -225,7 +225,8 @@ export class Lineup extends UIElement {
   /**
    * After an action card has been applied to a player from inside the overlay,
    * refetch the team so updated player stats (freshness/level) flow back into
-   * the parent component and the lineup re-renders.
+   * the parent component and the lineup re-renders. The overlay stays open so
+   * the user can apply additional cards to the same player.
    * @returns {Promise<void>}
    */
   async _refreshAfterActionCard () {
@@ -236,9 +237,6 @@ export class Lineup extends UIElement {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
     }
-    setTimeout(() => {
-      this._overlay?.remove()
-    }, 150)
   }
 
   /**

@@ -42,6 +42,11 @@ export default {
   'email.footer.support': 'Support',
   'email.footer.app': 'Open app',
 
+  // Inactivity warning email content
+  'email.inactivityWarning.subject': 'Your FootballManager.IO account will be deleted in {daysRemaining} day(s)',
+  'email.inactivityWarning.body': 'Hi {username},\n\nyou have not logged into FootballManager.IO in a while. Your account is scheduled to be deleted automatically in {daysRemaining} day(s) so the team can be reassigned to another manager.\n\nIf you would like to keep playing, just log back in within the next {daysRemaining} day(s) and your account will stay active.',
+  'email.inactivityWarning.button': 'Log back in',
+
   // Admin message email content
   'email.adminMessage.subject': 'A message from FootballManager.IO',
   'email.adminMessage.greeting': 'Hey {username},',

@@ -208,14 +208,20 @@ export class MarketPage extends UIElement {
     sort_dir,
     col
   }) {
-    if (sort_dir && col !== undefined) {
-      const scrollContainer = document.querySelector(`${this._elementQuery} .horizontal-scrollable-table`)
-      const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0
-      this._page = 0
-      await this.update()
-      if (scrollLeft > 0) {
-        this._restoreScrollLeft(scrollLeft)
-      }
+    if (!sort_dir || col === undefined) return
+    // Other query params (e.g. player_id when the player detail modal opens)
+    // trigger this handler too; only reset pagination when the sort itself
+    // actually changed, so opening the modal does not throw the user back
+    // to page 1.
+    if (sort_dir === this._lastSortDir && col === this._lastSortCol) return
+    this._lastSortDir = sort_dir
+    this._lastSortCol = col
+    const scrollContainer = document.querySelector(`${this._elementQuery} .horizontal-scrollable-table`)
+    const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0
+    this._page = 0
+    await this.update()
+    if (scrollLeft > 0) {
+      this._restoreScrollLeft(scrollLeft)
     }
   }
 
@@ -245,6 +251,8 @@ export class MarketPage extends UIElement {
   _maxAge = '40'
   _minLevel = '1'
   _maxLevel = '100'
+  _lastSortDir = null
+  _lastSortCol = null
 
   /**
    * @returns {Array}

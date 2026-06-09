@@ -263,6 +263,21 @@ describe('MarketPage', () => {
 
       expect(page._page).toBe(0)
     })
+
+    it('keeps current page when the player detail modal opens while sort is unchanged', async () => {
+      // Repro for the bug where opening the player modal (which adds
+      // player_id to the URL) re-triggered onQueryChanged with the same
+      // existing sort_dir/col, and the handler reset _page to 0.
+      const page = await mountMarketPage()
+      await page.onQueryChanged({ sort_dir: 'ASC', col: '0' })
+      page._page = 3
+
+      // The modal open propagates the URL state — sort params come along
+      // unchanged. Pagination must stay where the user left it.
+      await page.onQueryChanged({ sort_dir: 'ASC', col: '0' })
+
+      expect(page._page).toBe(3)
+    })
   })
 
   describe('renderMarket (backwards compatibility)', () => {

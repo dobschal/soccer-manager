@@ -2105,6 +2105,14 @@ const migrations = [{
       INDEX idx_friend_post_comment_user (user_id)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`)
   }
+}, {
+  // Stages: 0 = no warning sent, 1 = 7-day notice sent, 2 = 1-day notice sent.
+  // Reset to 0 on each successful login so a returning user re-enters the
+  // funnel from scratch if they go quiet again later.
+  name: 'Add inactivity_warning_stage column to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN inactivity_warning_stage TINYINT NOT NULL DEFAULT 0')
+  }
 }]
 
 /**
