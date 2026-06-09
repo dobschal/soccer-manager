@@ -3,7 +3,7 @@ import { server } from '../lib/gateway.js'
 import { toast } from './toast.js'
 import { t } from '../i18n/index.js'
 import { generateId } from '../lib/html.js'
-import { flagUrl, stageLabel } from '../util/worldCup.js'
+import { flagUrl } from '../util/worldCup.js'
 import { ProgressBar } from './progressBar.js'
 
 const PAGE_SIZE = 6
@@ -34,8 +34,8 @@ export class WorldCupBetting extends UIElement {
     const isCollapsed = this._isCollapsed
     const totalPages = Math.max(1, Math.ceil(this._totalGames / PAGE_SIZE))
     return `
-      <div class="card card-body mb-2 bg-dark text-white wc-betting">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="card card-body mb-2 bg-dark text-white wc-betting ${isCollapsed ? 'wc-betting--collapsed' : ''}">
+        <div class="d-flex justify-content-between align-items-center ${isCollapsed ? '' : 'mb-2'}">
           <h5 class="mb-0">
             <i class="fa fa-globe"></i> ${t('worldCup.title')}
             ${this._leaderboard?.myPoints != null ? `<span class="badge bg-warning text-dark ms-2">${t('worldCup.myPoints', { count: this._leaderboard.myPoints })}</span>` : ''}
@@ -49,6 +49,7 @@ export class WorldCupBetting extends UIElement {
       </div>
     `
   }
+
   get events () {
     return {
       [`#${this._collapseBtnId}`]: { click: () => this._toggleCollapse() },
@@ -58,6 +59,7 @@ export class WorldCupBetting extends UIElement {
       '(optional).wc-bet-btn': { click: (e) => this._placeBet(e.currentTarget) }
     }
   }
+
   async _fetchTotalAndLeaderboard () {
     const [first, lb] = await Promise.all([
       server.getWorldCupGames(0, 1),
@@ -66,7 +68,7 @@ export class WorldCupBetting extends UIElement {
     this._leaderboard = lb
     return Number(first.total || 0)
   }
-  
+
   /**
    * Default to the page containing the next upcoming game so users don't have
    * to scroll past finished fixtures every time.
@@ -93,20 +95,20 @@ export class WorldCupBetting extends UIElement {
     this._games = res.games
     this._totalGames = Number(res.total || this._totalGames)
   }
-  
+
   _renderBody (totalPages) {
     if (this._totalGames === 0) {
-      return `<p class="text-muted mb-0">${t('worldCup.noGames')}</p>`
+      return `<p class="mb-0 text-white">${t('worldCup.noGames')}</p>`
     }
     return `
-      <p class="text-muted small mb-3">${t('worldCup.description')}</p>
+      <p class="text-white small mb-3">${t('worldCup.description')}</p>
       <div class="row g-3">
         <div class="col-lg-8">
           ${this._renderGameList()}
           ${this._renderPagination(totalPages)}
           <div class="text-center mt-2">
             <button id="${this._showAllBtnId}" type="button" class="btn btn-sm btn-outline-light">
-              <i class="fa fa-list"></i> ${t('worldCup.showAllGroupStage')}
+              <i class="fa fa-list"></i> ${t('worldCup.showAllGames')}
             </button>
           </div>
         </div>
@@ -142,9 +144,8 @@ export class WorldCupBetting extends UIElement {
     }
     return `
       <div class="wc-game card card-body bg-secondary text-white mb-2" data-game-id="${g.id}">
-        <div class="d-flex justify-content-between align-items-center mb-2 small">
+        <div class="d-flex align-items-center mb-2 small">
           <span><i class="fa fa-clock-o"></i> ${localKickoff}</span>
-          <span class="text-muted">${stageLabel(g.stage)}</span>
         </div>
         <div class="d-flex align-items-center justify-content-around mb-2">
           <div class="text-center wc-team">
@@ -152,7 +153,7 @@ export class WorldCupBetting extends UIElement {
             <div class="small fw-bold">${g.team1Name}</div>
           </div>
           <div class="text-center fw-bold">
-            ${g.isPlayed ? `<span class="fs-5">${result}</span>` : `<span class="text-muted">vs</span>`}
+            ${g.isPlayed ? `<span class="fs-5">${result}</span>` : `<span class="">vs</span>`}
             ${resultBadge}
           </div>
           <div class="text-center wc-team">
@@ -188,7 +189,7 @@ export class WorldCupBetting extends UIElement {
 
   _renderBetSummary (g) {
     if (!g.myPrediction) {
-      return `<div class="small text-muted">${t('worldCup.noBetPlaced')}</div>`
+      return `<div class="small ">${t('worldCup.noBetPlaced')}</div>`
     }
     const label = {
       team_1: t('worldCup.betWin1Short', { team: g.team1Name }),
@@ -207,7 +208,10 @@ export class WorldCupBetting extends UIElement {
         <button id="${this._prevBtnId}" type="button" class="btn btn-sm btn-outline-light" ${canPrev ? '' : 'disabled'}>
           <i class="fa fa-chevron-left"></i> ${t('worldCup.prev')}
         </button>
-        <span class="small text-muted">${t('worldCup.pageOf', { page: this._page + 1, total: totalPages })}</span>
+        <span class="small ">${t('worldCup.pageOf', {
+    page: this._page + 1,
+    total: totalPages
+  })}</span>
         <button id="${this._nextBtnId}" type="button" class="btn btn-sm btn-outline-light" ${canNext ? '' : 'disabled'}>
           ${t('worldCup.next')} <i class="fa fa-chevron-right"></i>
         </button>
@@ -217,7 +221,11 @@ export class WorldCupBetting extends UIElement {
 
   _renderProgress () {
     if (!this._leaderboard) return ''
-    const { myPoints, pointsPerReward, nextRewardAt } = this._leaderboard
+    const {
+      myPoints,
+      pointsPerReward,
+      nextRewardAt
+    } = this._leaderboard
     const fraction = (myPoints % pointsPerReward) / pointsPerReward
     const safeFraction = Math.max(0, Math.min(1, fraction))
     return `
@@ -225,19 +233,25 @@ export class WorldCupBetting extends UIElement {
         <h6 class="mb-2"><i class="fa fa-gift"></i> ${t('worldCup.nextReward')}</h6>
         <p class="small mb-2">${t('worldCup.rewardExplain', { perReward: pointsPerReward })}</p>
         ${new ProgressBar(safeFraction)}
-        <p class="small text-muted mb-0 mt-1">${t('worldCup.progressTo', { points: myPoints, nextRewardAt })}</p>
+        <p class="small  mb-0 mt-1">${t('worldCup.progressTo', {
+    points: myPoints,
+    nextRewardAt
+  })}</p>
       </div>
     `
   }
 
   _renderLeaderboard () {
     if (!this._leaderboard) return ''
-    const { top, me } = this._leaderboard
+    const {
+      top,
+      me
+    } = this._leaderboard
     if (top.length === 0) {
       return `
         <div class="card card-body bg-secondary">
           <h6 class="mb-2"><i class="fa fa-trophy"></i> ${t('worldCup.leaderboardTitle')}</h6>
-          <p class="text-muted small mb-0">${t('worldCup.leaderboardEmpty')}</p>
+          <p class=" small mb-0">${t('worldCup.leaderboardEmpty')}</p>
         </div>
       `
     }
@@ -281,7 +295,7 @@ export class WorldCupBetting extends UIElement {
   _leaderboard = null
 
   get _isCollapsed () {
-    return localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1'
+    return localStorage.getItem(COLLAPSE_STORAGE_KEY) !== '0'
   }
 
   async _toggleCollapse () {

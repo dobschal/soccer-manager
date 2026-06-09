@@ -2193,6 +2193,32 @@ const migrations = [{
       )
     }
   }
+}, {
+  // The original seed used invented fixtures; replace with the official FIFA
+  // draw. Safe to wipe bets here because the tournament has not kicked off yet.
+  name: 'Reseed WM 2026 with official FIFA group-stage fixtures',
+  async run () {
+    await query('DELETE FROM world_cup_bet')
+    await query('DELETE FROM world_cup_game')
+    const { WORLD_CUP_2026_SEED_GAMES, nationNameByCode } = await import('./helper/worldCupSeedData.js')
+    const names = nationNameByCode()
+    for (const fixture of WORLD_CUP_2026_SEED_GAMES) {
+      const utcDate = new Date(fixture.kickoffUtc)
+      const kickoff = utcDate.toISOString().slice(0, 19).replace('T', ' ')
+      await query(
+        `INSERT INTO world_cup_game (team_1_code, team_1_name, team_2_code, team_2_name, kickoff, stage)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          fixture.team1Code,
+          names[fixture.team1Code] || fixture.team1Code,
+          fixture.team2Code,
+          names[fixture.team2Code] || fixture.team2Code,
+          kickoff,
+          fixture.stage
+        ]
+      )
+    }
+  }
 }]
 
 /**

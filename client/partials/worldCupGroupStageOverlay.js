@@ -2,11 +2,11 @@ import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
 import { toast } from './toast.js'
 import { t } from '../i18n/index.js'
-import { flagUrl, stageLabel } from '../util/worldCup.js'
+import { flagUrl } from '../util/worldCup.js'
 import { el, generateId } from '../lib/html.js'
 
 /**
- * Open an overlay listing every group-stage game (Vorrunde) chronologically.
+ * Open an overlay listing every WM game (group + knockout) chronologically.
  * Includes inline bet buttons so the user can still tip from the expanded view.
  *
  * @returns {Promise<void>}
@@ -14,7 +14,7 @@ import { el, generateId } from '../lib/html.js'
 export async function showWorldCupGroupStageOverlay () {
   let games = []
   try {
-    const res = await server.getWorldCupGroupStage()
+    const res = await server.getWorldCupAllGames()
     games = res.games || []
   } catch (e) {
     toast(e.message || t('toast.somethingWentWrong'), 'error')
@@ -23,7 +23,7 @@ export async function showWorldCupGroupStageOverlay () {
 
   const listId = generateId()
   const content = `<div id="${listId}">${games.map(g => renderRow(g)).join('')}</div>`
-  const overlay = showOverlay(t('worldCup.groupStageOverlayTitle'), t('worldCup.groupStageOverlaySubtitle'), content)
+  const overlay = showOverlay(t('worldCup.allGamesOverlayTitle'), t('worldCup.allGamesOverlaySubtitle'), content)
 
   await new Promise(resolve => {
     overlay.onClose(resolve)
@@ -87,9 +87,8 @@ function renderRow (g) {
 
   return `
     <div class="wc-overlay-game border rounded p-2 mb-2">
-      <div class="d-flex justify-content-between small text-muted mb-1">
+      <div class="d-flex small text-muted mb-1">
         <span><i class="fa fa-clock-o"></i> ${localKickoff}</span>
-        <span>${stageLabel(g.stage)}</span>
       </div>
       <div class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">

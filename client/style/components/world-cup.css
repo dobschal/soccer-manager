@@ -1,5 +1,18 @@
 /* World Cup betting widget */
 
+.wc-betting--collapsed {
+  animation: wc-betting-pulse 2s ease-in-out infinite;
+}
+
+@keyframes wc-betting-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px rgba(255, 193, 7, 0.65);
+  }
+}
+
 .wc-betting .wc-game {
   border-radius: 8px;
 }

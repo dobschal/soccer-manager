@@ -122,16 +122,16 @@ export default {
   },
 
   /**
-   * Return all group-stage games (for the "show all" view).
+   * Return every WM game (group + knockout) for the "show all" view.
    *
    * @param {Request} req
    * @returns {Promise<{success: boolean, games: Array}>}
    */
-  async getWorldCupGroupStage (req) {
+  async getWorldCupAllGames (req) {
     const locale = req.locale || 'en'
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const rows = await query(
-      "SELECT * FROM world_cup_game WHERE stage = 'group' ORDER BY kickoff ASC, id ASC"
+      'SELECT * FROM world_cup_game ORDER BY kickoff ASC, id ASC'
     )
     const ids = rows.map(r => Number(r.id))
     const bets = await getBetsByGameId(req.user.id, ids)

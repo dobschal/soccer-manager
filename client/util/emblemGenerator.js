@@ -405,17 +405,17 @@ export function generateEmblem ({
   <!-- Banner -->
   <g>
     <!-- Left ribbon -->
-    <path d="M3 175L42 175L26 168V154H3L15 165L3 175Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <path d="M3 181L42 181L26 174V160H3L15 171L3 181Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
     <!-- Right ribbon -->
-    <path d="M197 175L159 175L175 168V153H197L186 165L197 175Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <path d="M197 181L159 181L175 174V159H197L186 171L197 181Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
     <!-- Left dark fold -->
-    <path d="M28 168H42V173L28 168Z" fill="${adjustBrightness(color, -40)}"/>
+    <path d="M28 174H42V179L28 174Z" fill="${adjustBrightness(color, -40)}"/>
     <!-- Right dark fold -->
-    <path d="M173 167H159V173L173 167Z" fill="${adjustBrightness(color, -40)}"/>
+    <path d="M173 173H159V179L173 173Z" fill="${adjustBrightness(color, -40)}"/>
     <!-- Main banner body -->
-    <path d="M173 144H26V167H175V144Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <path d="M173 150H26V173H175V150Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
     <!-- Team name on banner -->
-    <text x="100" y="161" font-family="Arial, sans-serif" font-size="${bannerFontSize}" font-weight="bold" fill="white" text-anchor="middle">${bannerText}</text>
+    <text x="100" y="167" font-family="Arial, sans-serif" font-size="${bannerFontSize}" font-weight="bold" fill="white" text-anchor="middle">${bannerText}</text>
   </g>
 `
 

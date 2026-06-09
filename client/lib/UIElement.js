@@ -250,24 +250,24 @@ export class UIElement {
       if (isOptional) {
         elementQuery = elementQuery.replace('(optional)', '').trim()
       }
-      // First try to find as a child element
-      let element = el(`${this._elementQuery} ${elementQuery}`)
-      // If not found, check if the root element itself matches the selector
-      if (!element) {
-        const rootEl = el(this._elementQuery)
-        if (rootEl?.matches(elementQuery)) {
-          element = rootEl
-        }
+      const rootEl = el(this._elementQuery)
+      // Match every child node (class selectors with multiple instances must all be wired)
+      const elements = rootEl ? Array.from(rootEl.querySelectorAll(elementQuery)) : []
+      // Also include the root element itself if it matches the selector
+      if (rootEl?.matches(elementQuery)) {
+        elements.push(rootEl)
       }
-      if (!element) {
+      if (elements.length === 0) {
         if (!isOptional) {
           throw new Error('Cannot apply event listener. No element: ' + `${this._elementQuery} ${elementQuery}`)
         } else {
           continue
         }
       }
-      for (const eventName in this.events[originalQuery]) {
-        element.addEventListener(eventName, this.events[originalQuery][eventName].bind(this), { signal })
+      for (const element of elements) {
+        for (const eventName in this.events[originalQuery]) {
+          element.addEventListener(eventName, this.events[originalQuery][eventName].bind(this), { signal })
+        }
       }
     }
   }
