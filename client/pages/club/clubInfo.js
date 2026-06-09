@@ -13,6 +13,7 @@ import {
   EMBLEM_TINT_OPTIONS,
   generateEmblem,
   parseEmblemParams,
+  resolveTint,
   resolveWordsOnBanner,
   splitTeamNameWords
 } from '../../util/emblemGenerator.js'
@@ -274,7 +275,11 @@ export class ClubInfoPage extends UIElement {
 
     let selectedShape = currentParams.shape
     let selectedPattern = currentParams.pattern
-    let selectedColor = currentParams.color
+    // White is intentionally excluded from Color 1: the banner darkens
+    // color1 by -20% / -40% for its background and folds, and a white
+    // banner would hide the team-name text on the white-ish surface.
+    const color1Palette = EMBLEM_COLORS.filter(c => c.toLowerCase() !== '#ffffff')
+    let selectedColor = color1Palette.includes(currentParams.color) ? currentParams.color : color1Palette[0]
     let selectedColor2 = currentParams.color2 || EMBLEM_COLORS[1]
     // Color 1 and Color 2 must always differ — if a legacy emblem has the
     // same value for both, force color2 to a different palette entry.
@@ -286,7 +291,7 @@ export class ClubInfoPage extends UIElement {
     let selectedIconColor = EMBLEM_TINT_OPTIONS.includes(currentParams.iconColor) ? currentParams.iconColor : 'white'
 
     /** Pick the first palette color that differs from the given one. */
-    const firstDifferentColor = (other) => EMBLEM_COLORS.find(c => c !== other) || EMBLEM_COLORS[0]
+    const firstDifferentColor = (other, palette = EMBLEM_COLORS) => palette.find(c => c !== other) || palette[0]
 
     /** Reset the selected-class on swatches in one group based on the new value. */
     const refreshColorSelection = (groupClass, value) => {
@@ -372,7 +377,7 @@ export class ClubInfoPage extends UIElement {
       `
     }).join('')
 
-    const colorOptions = EMBLEM_COLORS.map(c => {
+    const colorOptions = color1Palette.map(c => {
       const id = generateId()
       setTimeout(() => {
         const element = el(id)
@@ -387,6 +392,7 @@ export class ClubInfoPage extends UIElement {
             }
             selectedColor = c
             refreshColorSelection('emblem-editor__color1', selectedColor)
+            refreshTintSwatchColors()
             updatePreview()
           })
         }
@@ -404,11 +410,14 @@ export class ClubInfoPage extends UIElement {
         if (element) {
           element.addEventListener('click', () => {
             if (c === selectedColor) {
-              selectedColor = firstDifferentColor(c)
+              // Color 1 cannot become white when pushed aside, so pick
+              // from color1Palette.
+              selectedColor = firstDifferentColor(c, color1Palette)
               refreshColorSelection('emblem-editor__color1', selectedColor)
             }
             selectedColor2 = c
             refreshColorSelection('emblem-editor__color2', selectedColor2)
+            refreshTintSwatchColors()
             updatePreview()
           })
         }
@@ -447,8 +456,11 @@ export class ClubInfoPage extends UIElement {
     })
 
     /**
-     * Render a 3-option tint selector (white / color1 / color2) for either
-     * the shape outline or the icon. Returns the inline HTML.
+     * Render a tint selector (white + color1 light/normal/dark + color2
+     * light/normal/dark) for either the shape outline or the icon. Each
+     * swatch shows the resolved colour so the user can see exactly what
+     * they're picking. The swatches re-tint live via refreshTintSwatchColors
+     * when Color 1 or Color 2 changes.
      */
     const renderTintSelector = ({ groupClass, currentValue, onSelect }) => {
       return EMBLEM_TINT_OPTIONS.map(role => {
@@ -466,15 +478,21 @@ export class ClubInfoPage extends UIElement {
             })
           }
         }, 100)
-        const swatchColor = role === 'white'
-          ? '#ffffff'
-          : (role === 'color1' ? selectedColor : selectedColor2)
+        const swatchColor = resolveTint(role, selectedColor, selectedColor2)
         const isSelected = role === currentValue
         const label = t(`myTeam.tint.${role}`)
         return `
-          <div id="${id}" class="emblem-editor__color ${groupClass} ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${swatchColor};" title="${label}"></div>
+          <div id="${id}" class="emblem-editor__color ${groupClass} ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${swatchColor};" data-tint-role="${role}" title="${label}"></div>
         `
       }).join('')
+    }
+
+    /** Re-tint every Outline/Icon swatch after a Color 1 or Color 2 change. */
+    const refreshTintSwatchColors = () => {
+      document.querySelectorAll('.emblem-editor__stroke[data-tint-role], .emblem-editor__icon-color[data-tint-role]').forEach(swatch => {
+        const role = swatch.dataset.tintRole
+        swatch.style.backgroundColor = resolveTint(role, selectedColor, selectedColor2)
+      })
     }
 
     const strokeColorOptions = renderTintSelector({

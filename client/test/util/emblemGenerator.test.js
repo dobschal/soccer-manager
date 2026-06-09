@@ -96,22 +96,66 @@ describe('generateEmblem banner rendering', () => {
     })
     expect(svg).not.toContain('Prefix inside emblem')
   })
+
+  it('drops the banner entirely when every word is hidden', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      teamName: '1. FC Berlin',
+      wordsOnBanner: [false, false, false],
+      size: 200
+    })
+    expect(svg).not.toContain('<!-- Banner -->')
+    expect(svg).not.toContain('Left ribbon')
+    expect(svg).not.toContain('Main banner body')
+    expect(svg).not.toMatch(/<text [^>]*>BERLIN<\/text>/)
+  })
+
+  it('still renders the banner when at least one word is visible', () => {
+    const svg = generateEmblem({
+      shape: 'shield',
+      pattern: 'solid',
+      color: '#ea3636',
+      teamName: '1. FC Berlin',
+      wordsOnBanner: [false, false, true],
+      size: 200
+    })
+    expect(svg).toContain('<!-- Banner -->')
+    expect(svg).toContain('>BERLIN<')
+  })
 })
 
 describe('resolveTint', () => {
   it('returns white for unknown / nullish roles', () => {
-    expect(resolveTint(null, '#aaa', '#bbb')).toBe('#ffffff')
-    expect(resolveTint('white', '#aaa', '#bbb')).toBe('#ffffff')
-    expect(resolveTint('something-else', '#aaa', '#bbb')).toBe('#ffffff')
+    expect(resolveTint(null, '#aabbcc', '#112233')).toBe('#ffffff')
+    expect(resolveTint('white', '#aabbcc', '#112233')).toBe('#ffffff')
+    expect(resolveTint('something-else', '#aabbcc', '#112233')).toBe('#ffffff')
   })
 
   it('maps color1 / color2 to the respective hex values', () => {
-    expect(resolveTint('color1', '#aaa', '#bbb')).toBe('#aaa')
-    expect(resolveTint('color2', '#aaa', '#bbb')).toBe('#bbb')
+    expect(resolveTint('color1', '#aabbcc', '#112233')).toBe('#aabbcc')
+    expect(resolveTint('color2', '#aabbcc', '#112233')).toBe('#112233')
   })
 
   it('falls back to color1 when color2 is missing', () => {
-    expect(resolveTint('color2', '#aaa', undefined)).toBe('#aaa')
+    expect(resolveTint('color2', '#aabbcc', undefined)).toBe('#aabbcc')
+  })
+
+  it('returns brighter / darker variants for the Light / Dark roles', () => {
+    const c1 = '#808080'
+    // adjustBrightness uses ±2.55 * percent; ±20% ≈ ±51.
+    const light = resolveTint('color1Light', c1, '#000000')
+    const dark = resolveTint('color1Dark', c1, '#000000')
+    expect(parseInt(light.slice(1), 16)).toBeGreaterThan(parseInt(c1.slice(1), 16))
+    expect(parseInt(dark.slice(1), 16)).toBeLessThan(parseInt(c1.slice(1), 16))
+  })
+
+  it('uses color2 for the color2 variants', () => {
+    const c2 = '#808080'
+    expect(resolveTint('color2', '#000000', c2)).toBe('#808080')
+    expect(resolveTint('color2Light', '#000000', c2)).not.toBe('#808080')
+    expect(resolveTint('color2Dark', '#000000', c2)).not.toBe('#808080')
   })
 })
 

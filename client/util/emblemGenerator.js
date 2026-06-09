@@ -152,21 +152,52 @@ export const EMBLEM_ICONS = [
   'wolf-svgrepo-com'
 ]
 
-/** Roles that can be assigned to the shape stroke and the optional icon. */
-export const EMBLEM_TINT_OPTIONS = ['white', 'color1', 'color2']
+/**
+ * Roles that can be assigned to the shape stroke and the optional icon.
+ * The plain `color1` / `color2` entries are kept for backward compatibility
+ * with already-saved emblems; new emblems can additionally pick a lighter
+ * or darker variant of either team color so subtle edge-tint changes
+ * (e.g. the icon edges blending into the background) can be compensated.
+ */
+export const EMBLEM_TINT_OPTIONS = [
+  'white',
+  'color1Light',
+  'color1',
+  'color1Dark',
+  'color2Light',
+  'color2',
+  'color2Dark'
+]
+
+/** Brightness offset applied to the *Light / *Dark tint variants. */
+const TINT_BRIGHTNESS_STEP = 20
 
 /**
- * Resolve a saved tint role ('white' | 'color1' | 'color2') to an actual
- * color value, falling back to white for unknown values.
+ * Resolve a saved tint role to an actual hex color value, given the team's
+ * current color1 and color2. Falls back to white for unknown roles.
  * @param {string} role
  * @param {string} color1
  * @param {string} color2
  * @returns {string}
  */
 export function resolveTint (role, color1, color2) {
-  if (role === 'color1') return color1
-  if (role === 'color2') return color2 || color1
-  return '#ffffff'
+  const c2 = color2 || color1
+  switch (role) {
+    case 'color1':
+      return color1
+    case 'color1Light':
+      return adjustBrightness(color1, TINT_BRIGHTNESS_STEP)
+    case 'color1Dark':
+      return adjustBrightness(color1, -TINT_BRIGHTNESS_STEP)
+    case 'color2':
+      return c2
+    case 'color2Light':
+      return adjustBrightness(c2, TINT_BRIGHTNESS_STEP)
+    case 'color2Dark':
+      return adjustBrightness(c2, -TINT_BRIGHTNESS_STEP)
+    default:
+      return '#ffffff'
+  }
 }
 
 // Colors with good contrast - full spectrum from red to purple
@@ -212,9 +243,21 @@ export const EMBLEM_COLORS = [
  */
 function _hexToUnit (hex) {
   const value = (hex || '').replace('#', '')
-  if (value.length !== 6) return { r: 1, g: 1, b: 1 }
+  if (value.length !== 6) {
+    return {
+      r: 1,
+      g: 1,
+      b: 1
+    }
+  }
   const num = parseInt(value, 16)
-  if (Number.isNaN(num)) return { r: 1, g: 1, b: 1 }
+  if (Number.isNaN(num)) {
+    return {
+      r: 1,
+      g: 1,
+      b: 1
+    }
+  }
   return {
     r: ((num >> 16) & 0xff) / 255,
     g: ((num >> 8) & 0xff) / 255,
@@ -310,7 +353,11 @@ export function generateEmblem ({
   const patternData = EMBLEM_PATTERNS[pattern] || EMBLEM_PATTERNS.stripes
 
   const words = splitTeamNameWords(teamName)
-  const visibility = resolveWordsOnBanner(words, { wordsOnBanner, prefix1OnBanner, prefix2OnBanner })
+  const visibility = resolveWordsOnBanner(words, {
+    wordsOnBanner,
+    prefix1OnBanner,
+    prefix2OnBanner
+  })
   const bannerText = words.filter((_, i) => visibility[i]).join(' ').toUpperCase()
   // Banner body is ~149px wide; shrink font when the text gets long.
   const bannerFontSize = bannerText.length > 14
@@ -334,17 +381,43 @@ export function generateEmblem ({
 
   const iconLayer = iconHref
     ? (() => {
-      const { r, g, b } = _hexToUnit(iconFill)
+      const {
+        r,
+        g,
+        b
+      } = _hexToUnit(iconFill)
       return `
   <defs>
     <filter id="${iconFilterId}" x="0%" y="0%" width="100%" height="100%">
       <feColorMatrix type="matrix" values="0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${b} 0 0 0 1 0"/>
     </filter>
   </defs>
-  <image href="${iconHref}" x="60" y="55" width="80" height="80" preserveAspectRatio="xMidYMid meet" filter="url(#${iconFilterId})"/>
+  <image href="${iconHref}" x="60" y="60" width="80" height="80" preserveAspectRatio="xMidYMid meet" filter="url(#${iconFilterId})"/>
 `
     })()
     : ''
+
+  // When the user hides every word on the banner, drop the banner SVG
+  // entirely instead of rendering an empty ribbon.
+  const bannerLayer = bannerText.length === 0
+    ? ''
+    : `
+  <!-- Banner -->
+  <g>
+    <!-- Left ribbon -->
+    <path d="M3 175L42 175L26 168V154H3L15 165L3 175Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <!-- Right ribbon -->
+    <path d="M197 175L159 175L175 168V153H197L186 165L197 175Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <!-- Left dark fold -->
+    <path d="M28 168H42V173L28 168Z" fill="${adjustBrightness(color, -40)}"/>
+    <!-- Right dark fold -->
+    <path d="M173 167H159V173L173 167Z" fill="${adjustBrightness(color, -40)}"/>
+    <!-- Main banner body -->
+    <path d="M173 144H26V167H175V144Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <!-- Team name on banner -->
+    <text x="100" y="161" font-family="Arial, sans-serif" font-size="${bannerFontSize}" font-weight="bold" fill="white" text-anchor="middle">${bannerText}</text>
+  </g>
+`
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shapeData.viewBox}" width="${size}" height="${size}">
   <defs>
@@ -362,22 +435,7 @@ export function generateEmblem ({
 
   <!-- Shape border -->
   <path d="${shapeData.path}" fill="none" stroke="${shapeStroke}" stroke-width="4"/>
-
-  <!-- Banner -->
-  <g>
-    <!-- Left ribbon -->
-    <path d="M3 175L42 175L26 168V154H3L15 165L3 175Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
-    <!-- Right ribbon -->
-    <path d="M197 175L159 175L175 168V153H197L186 165L197 175Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
-    <!-- Left dark fold -->
-    <path d="M28 168H42V173L28 168Z" fill="${adjustBrightness(color, -40)}"/>
-    <!-- Right dark fold -->
-    <path d="M173 167H159V173L173 167Z" fill="${adjustBrightness(color, -40)}"/>
-    <!-- Main banner body -->
-    <path d="M173 144H26V167H175V144Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
-    <!-- Team name on banner -->
-    <text x="100" y="161" font-family="Arial, sans-serif" font-size="${bannerFontSize}" font-weight="bold" fill="white" text-anchor="middle">${bannerText}</text>
-  </g>
+  ${bannerLayer}
 </svg>`
 }
 
