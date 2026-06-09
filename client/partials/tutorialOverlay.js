@@ -97,49 +97,55 @@ function getTutorials () {
 }
 
 /**
- * Shows the tutorial overlay if not already completed
+ * Shows the tutorial overlay if not already completed.
+ * Resolves when the overlay is closed, or immediately if the tutorial was
+ * already completed / the component unmounted before the overlay opened.
  * @param {string} tutorialKey
  * @param {import('../lib/UIElement.js').UIElement} [component] - Optional component to check if still mounted
+ * @param {{delay?: number}} [options] - `delay` ms before showing the overlay (default 1500). Pass 0 when sequencing after another overlay so it appears immediately.
  * @returns {Promise<void>}
  */
-export async function showTutorialIfNeeded (tutorialKey, component = null) {
+export async function showTutorialIfNeeded (tutorialKey, component = null, { delay = 1500 } = {}) {
+  let tutorialCompleted
   try {
-    const { tutorialCompleted } = await server.getTutorialStatus()
-    if (tutorialCompleted[tutorialKey]) {
-      return
-    }
-    setTimeout(() => {
-      // Don't show tutorial if component was unmounted (user navigated away)
-      if (component && !component._isMounted) {
-        return
-      }
-      showTutorialOverlay(tutorialKey)
-    }, 1500)
+    const result = await server.getTutorialStatus()
+    tutorialCompleted = result.tutorialCompleted
   } catch (e) {
     console.error('Failed to check tutorial status:', e)
+    return
   }
+  if (tutorialCompleted[tutorialKey]) return
+
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+  if (component && !component._isMounted) return
+
+  await showTutorialOverlay(tutorialKey)
 }
 
 /**
  * Shows the tutorial overlay
  * @param {string} tutorialKey
+ * @returns {Promise<void>} resolves when the overlay is closed
  */
 function showTutorialOverlay (tutorialKey) {
-  const tutorials = getTutorials()
-  const tutorial = tutorials[tutorialKey]
-  if (!tutorial) return
+  return new Promise(resolve => {
+    const tutorials = getTutorials()
+    const tutorial = tutorials[tutorialKey]
+    if (!tutorial) { resolve(); return }
 
-  const overlayId = generateId()
-  const overlayInnerId = generateId()
-  const closeButtonId = generateId()
-  const checkboxId = generateId()
-  const gotItButtonId = generateId()
+    const overlayId = generateId()
+    const overlayInnerId = generateId()
+    const closeButtonId = generateId()
+    const checkboxId = generateId()
+    const gotItButtonId = generateId()
 
-  const itemsHtml = tutorial.items.map(item => `<li>${item}</li>`).join('')
+    const itemsHtml = tutorial.items.map(item => `<li>${item}</li>`).join('')
 
-  const cardBodyStyle = ``
+    const cardBodyStyle = ``
 
-  const html = `
+    const html = `
     <div id="${overlayId}" class="overlay-backdrop clear-background">
       <div id="${overlayInnerId}" class="card overlay small shadow-lg shadow">
         <div class="card-body" style="${cardBodyStyle}">
@@ -162,46 +168,49 @@ function showTutorialOverlay (tutorialKey) {
       </div>
     </div>
   `
-  document.body.insertAdjacentHTML('beforeend', html)
+    document.body.insertAdjacentHTML('beforeend', html)
 
-  const closeOverlay = async () => {
-    const checkbox = el('#' + checkboxId)
-    if (checkbox && checkbox.checked) {
-      try {
-        await server.completeTutorial(tutorialKey)
-      } catch (e) {
-        showServerError(e)
+    const closeOverlay = async () => {
+      const checkbox = el('#' + checkboxId)
+      if (checkbox && checkbox.checked) {
+        try {
+          await server.completeTutorial(tutorialKey)
+        } catch (e) {
+          showServerError(e)
+        }
+      }
+      fadeOutAndRemove(overlayId, resolve)
+    }
+
+    onClick('#' + closeButtonId, closeOverlay)
+    onClick('#' + gotItButtonId, closeOverlay)
+    onClick('#' + overlayId, closeOverlay)
+    onClick('#' + overlayInnerId, event => {
+      event.stopPropagation()
+    })
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        document.removeEventListener('keydown', onKeyDown)
+        closeOverlay()
       }
     }
-    fadeOutAndRemove(overlayId)
-  }
-
-  onClick('#' + closeButtonId, closeOverlay)
-  onClick('#' + gotItButtonId, closeOverlay)
-  onClick('#' + overlayId, closeOverlay)
-  onClick('#' + overlayInnerId, event => {
-    event.stopPropagation()
+    document.addEventListener('keydown', onKeyDown)
   })
-
-  const onKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      document.removeEventListener('keydown', onKeyDown)
-      closeOverlay()
-    }
-  }
-  document.addEventListener('keydown', onKeyDown)
 }
 
 /**
  * Applies fadeout animation and removes the overlay
  * @param {string} overlayId
+ * @param {() => void} [onRemoved] - called after the element is removed
  */
-function fadeOutAndRemove (overlayId) {
+function fadeOutAndRemove (overlayId, onRemoved) {
   const overlayEl = el('#' + overlayId)
-  if (!overlayEl) return
+  if (!overlayEl) { onRemoved?.(); return }
 
   overlayEl.classList.add('fade-out')
   overlayEl.addEventListener('animationend', () => {
     overlayEl.remove()
+    onRemoved?.()
   }, { once: true })
 }

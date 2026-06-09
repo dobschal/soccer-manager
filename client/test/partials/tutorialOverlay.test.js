@@ -34,6 +34,15 @@ describe('tutorialOverlay', () => {
   })
 
   describe('showTutorialIfNeeded', () => {
+    // Fire-and-forget helper: kick off the call, advance fake timers past
+    // the 1.5s delay, flush microtasks, then return. We never `await` the
+    // returned promise because it resolves only on overlay close (which never
+    // fires in unit tests — the close button is mocked).
+    async function triggerTutorial (key) {
+      showTutorialIfNeeded(key)
+      await vi.advanceTimersByTimeAsync(1500)
+    }
+
     it('does not show tutorial if already completed', async () => {
       server.getTutorialStatus.mockResolvedValue({
         tutorialCompleted: { dashboard: true }
@@ -50,13 +59,14 @@ describe('tutorialOverlay', () => {
         tutorialCompleted: {}
       })
 
-      await showTutorialIfNeeded('dashboard')
+      showTutorialIfNeeded('dashboard')
 
-      // Should not show immediately
+      // Should not show immediately — flush only the getTutorialStatus microtask
+      await Promise.resolve()
       expect(document.body.insertAdjacentHTML).not.toHaveBeenCalled()
 
       // After 1.5s delay, should show
-      vi.advanceTimersByTime(1500)
+      await vi.advanceTimersByTimeAsync(1500)
       expect(document.body.insertAdjacentHTML).toHaveBeenCalled()
     })
 
@@ -65,8 +75,7 @@ describe('tutorialOverlay', () => {
         tutorialCompleted: { dashboard: true, team: true }
       })
 
-      await showTutorialIfNeeded('stadium')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('stadium')
 
       expect(document.body.insertAdjacentHTML).toHaveBeenCalled()
     })
@@ -90,13 +99,9 @@ describe('tutorialOverlay', () => {
         tutorialCompleted: {}
       })
 
-      await showTutorialIfNeeded('unknown_key')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('unknown_key')
 
-      // The overlay should not contain any content for unknown key
       // The showTutorialOverlay function returns early if tutorial not found
-      // So insertAdjacentHTML might be called but with empty content
-      // Actually it checks if TUTORIALS[tutorialKey] exists and returns early if not
       expect(document.body.insertAdjacentHTML).not.toHaveBeenCalled()
     })
 
@@ -105,8 +110,7 @@ describe('tutorialOverlay', () => {
         tutorialCompleted: {}
       })
 
-      await showTutorialIfNeeded('dashboard')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('dashboard')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Welcome to FootballManager.IO!')
@@ -117,8 +121,7 @@ describe('tutorialOverlay', () => {
         tutorialCompleted: {}
       })
 
-      await showTutorialIfNeeded('stadium')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('stadium')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Set ticket prices')
@@ -130,8 +133,7 @@ describe('tutorialOverlay', () => {
         tutorialCompleted: {}
       })
 
-      await showTutorialIfNeeded('team')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('team')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Do not show this again')
@@ -143,15 +145,35 @@ describe('tutorialOverlay', () => {
         tutorialCompleted: {}
       })
 
-      await showTutorialIfNeeded('finances')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('finances')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Got it!')
     })
+
+    it('shows the overlay immediately when delay is 0', async () => {
+      server.getTutorialStatus.mockResolvedValue({
+        tutorialCompleted: {}
+      })
+
+      const promise = showTutorialIfNeeded('dashboard', null, { delay: 0 })
+      // Flush the getTutorialStatus microtask + the post-delay code path.
+      // No timer to advance because delay is 0.
+      await Promise.resolve()
+      await Promise.resolve()
+      expect(document.body.insertAdjacentHTML).toHaveBeenCalled()
+      // Avoid an unhandled promise warning (the promise never resolves in
+      // the test because the close button is mocked).
+      void promise
+    })
   })
 
   describe('tutorial content', () => {
+    async function triggerTutorial (key) {
+      showTutorialIfNeeded(key)
+      await vi.advanceTimersByTimeAsync(1500)
+    }
+
     beforeEach(async () => {
       server.getTutorialStatus.mockResolvedValue({
         tutorialCompleted: {}
@@ -159,8 +181,7 @@ describe('tutorialOverlay', () => {
     })
 
     it('has content for results page', async () => {
-      await showTutorialIfNeeded('results')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('results')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Game Results')
@@ -168,8 +189,7 @@ describe('tutorialOverlay', () => {
     })
 
     it('has content for team page', async () => {
-      await showTutorialIfNeeded('team')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('team')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Your Team')
@@ -177,8 +197,7 @@ describe('tutorialOverlay', () => {
     })
 
     it('has content for trades page', async () => {
-      await showTutorialIfNeeded('trades')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('trades')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Player Market')
@@ -186,8 +205,7 @@ describe('tutorialOverlay', () => {
     })
 
     it('has content for dashboard page', async () => {
-      await showTutorialIfNeeded('dashboard')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('dashboard')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Welcome')
@@ -195,8 +213,7 @@ describe('tutorialOverlay', () => {
     })
 
     it('has content for stadium page', async () => {
-      await showTutorialIfNeeded('stadium')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('stadium')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Stadium Management')
@@ -204,8 +221,7 @@ describe('tutorialOverlay', () => {
     })
 
     it('has content for finances page', async () => {
-      await showTutorialIfNeeded('finances')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('finances')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Finances')
@@ -213,8 +229,7 @@ describe('tutorialOverlay', () => {
     })
 
     it('has content for buildings page', async () => {
-      await showTutorialIfNeeded('buildings')
-      vi.advanceTimersByTime(1500)
+      await triggerTutorial('buildings')
 
       const htmlContent = document.body.insertAdjacentHTML.mock.calls[0][1]
       expect(htmlContent).toContain('Buildings')
