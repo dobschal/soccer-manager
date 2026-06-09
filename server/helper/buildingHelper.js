@@ -47,12 +47,14 @@ export const FITNESS_STUDIO_CARD_CHANCES = {
  * Action card chances per game day, keyed by youth academy level.
  * Only NEW_YOUTH_PLAYER_X cards are affected; other cards use global defaults.
  * Target ~2/3/4 cards per season (34 game days) for levels 1/2/3.
+ * Each academy level only emits its own tier of card, so the level range
+ * advertised in the building description is what you actually get.
  * All teams start at level 1 (the academy is always built).
  */
 export const YOUTH_ACADEMY_CARD_CHANCES = {
   1: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0 },
-  2: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0.03, NEW_YOUTH_PLAYER_3: 0 },
-  3: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0.03, NEW_YOUTH_PLAYER_3: 0.03 }
+  2: { NEW_YOUTH_PLAYER_1: 0, NEW_YOUTH_PLAYER_2: 0.09, NEW_YOUTH_PLAYER_3: 0 },
+  3: { NEW_YOUTH_PLAYER_1: 0, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0.12 }
 }
 
 /**

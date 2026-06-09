@@ -202,8 +202,11 @@ export function showOverlay (title, subttitle, text, options = {}) {
   })
 
   onClick('#' + overlayInnerId, event => {
-    // Close overlay when clicking a navigation link inside it
-    if (event.target.closest('a[href]')) {
+    // Close overlay when clicking an internal navigation link inside it.
+    // External links (target="_blank") leave the overlay open so the user
+    // can resume reading once they return from the new tab.
+    const anchor = event.target.closest('a[href]')
+    if (anchor && anchor.target !== '_blank') {
       fadeOutAndRemove(overlayId, listeners)
       return
     }

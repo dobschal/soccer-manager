@@ -225,20 +225,21 @@ export class Lineup extends UIElement {
   /**
    * After an action card has been applied to a player from inside the overlay,
    * refetch the team so updated player stats (freshness/level) flow back into
-   * the parent component and the lineup re-renders.
-   * @returns {Promise<void>}
+   * the parent component and the lineup re-renders. The overlay stays open so
+   * the user can apply additional cards to the same player; returning the
+   * refreshed roster lets the overlay re-point its own player references at
+   * the fresh objects before re-rendering.
+   * @returns {Promise<{ players: PlayerType[] } | undefined>}
    */
   async _refreshAfterActionCard () {
     try {
       const refreshedData = await server.getMyTeam()
       fire('lineup-exchange', refreshedData.players)
+      return { players: refreshedData.players }
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
     }
-    setTimeout(() => {
-      this._overlay?.remove()
-    }, 150)
   }
 
   /**

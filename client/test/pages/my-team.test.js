@@ -398,4 +398,31 @@ describe('MyTeamPage', () => {
       expect(page._subPageCache).toEqual({})
     })
   })
+
+  describe('BUY_OFFER_ACCEPTED server event', () => {
+    it('reloads team data after a buy so the new player shows up in the lineup', async () => {
+      const team = testData.team()
+      const initialPlayers = [testData.player({ id: 1, name: 'Existing' })]
+      const updatedPlayers = [
+        testData.player({ id: 1, name: 'Existing' }),
+        testData.player({ id: 2, name: 'Just Bought' })
+      ]
+
+      server.getMyTeam
+        .mockResolvedValueOnce({ team, players: initialPlayers })
+        .mockResolvedValueOnce({ team, players: updatedPlayers })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+      const page = new MyTeamPage()
+      await page.load()
+      page._subPageCache = { ateam: { stale: true } }
+
+      await page.serverEvents.BUY_OFFER_ACCEPTED.call(page)
+
+      expect(server.getMyTeam).toHaveBeenCalledTimes(2)
+      expect(page.data.players).toHaveLength(2)
+      expect(page.data.players[1].name).toBe('Just Bought')
+      expect(page._subPageCache).toEqual({})
+    })
+  })
 })

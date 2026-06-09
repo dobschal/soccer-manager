@@ -109,6 +109,97 @@ export const EMBLEM_PATTERNS = {
   }
 }
 
+/**
+ * Filenames (without `.svg`) of the icons in `client/assets/emblem-icons/`.
+ * Listed explicitly so the bundle stays in sync with the assets directory
+ * and so the editor can render a fixed picker — adding a new icon means
+ * appending to this list.
+ */
+export const EMBLEM_ICONS = [
+  'bear-svgrepo-com',
+  'buffalo-svgrepo-com',
+  'buffalo-2-svgrepo-com',
+  'cobra-1-svgrepo-com',
+  'coconut-tree-illustration-that-can-be-used-for-svgrepo-com',
+  'conch-2-svgrepo-com',
+  'couple-heart-like-svgrepo-com',
+  'deer-illustration-1-svgrepo-com',
+  'dragon-head-evil-legend-myth-svgrepo-com',
+  'eagle-svgrepo-com',
+  'flower-6-svgrepo-com',
+  'flying-dragon-fly-legend-myth-svgrepo-com',
+  'football-svgrepo-com',
+  'football-svgrepo-com-2',
+  'football-ball-soccer-svgrepo-com',
+  'football-gym-shoes-svgrepo-com',
+  'four-leaf-clover-illustration-svgrepo-com',
+  'fox-2-svgrepo-com',
+  'free-illustrations-of-monkeys-svgrepo-com',
+  'hawk-and-eagle-svgrepo-com',
+  'icon-of-a-dove-holding-an-olive-svgrepo-com',
+  'lantern-anglerfish-svgrepo-com',
+  'lion-2-svgrepo-com',
+  'lion-wild-animal-cat-svgrepo-com',
+  'merlion-3-svgrepo-com',
+  'octopus-animal-cephalopod-svgrepo-com',
+  'rampage-bull-svgrepo-com',
+  'swallow-svgrepo-com',
+  'tiger-svgrepo-com',
+  'walking-dragon-legend-myth-folklore-svgrepo-com',
+  'werewolf-2-svgrepo-com',
+  'werewolf-5-svgrepo-com',
+  'whale-tail-fin-svgrepo-com',
+  'wolf-svgrepo-com'
+]
+
+/**
+ * Roles that can be assigned to the shape stroke and the optional icon.
+ * The plain `color1` / `color2` entries are kept for backward compatibility
+ * with already-saved emblems; new emblems can additionally pick a lighter
+ * or darker variant of either team color so subtle edge-tint changes
+ * (e.g. the icon edges blending into the background) can be compensated.
+ */
+export const EMBLEM_TINT_OPTIONS = [
+  'white',
+  'color1Light',
+  'color1',
+  'color1Dark',
+  'color2Light',
+  'color2',
+  'color2Dark'
+]
+
+/** Brightness offset applied to the *Light / *Dark tint variants. */
+const TINT_BRIGHTNESS_STEP = 20
+
+/**
+ * Resolve a saved tint role to an actual hex color value, given the team's
+ * current color1 and color2. Falls back to white for unknown roles.
+ * @param {string} role
+ * @param {string} color1
+ * @param {string} color2
+ * @returns {string}
+ */
+export function resolveTint (role, color1, color2) {
+  const c2 = color2 || color1
+  switch (role) {
+    case 'color1':
+      return color1
+    case 'color1Light':
+      return adjustBrightness(color1, TINT_BRIGHTNESS_STEP)
+    case 'color1Dark':
+      return adjustBrightness(color1, -TINT_BRIGHTNESS_STEP)
+    case 'color2':
+      return c2
+    case 'color2Light':
+      return adjustBrightness(c2, TINT_BRIGHTNESS_STEP)
+    case 'color2Dark':
+      return adjustBrightness(c2, -TINT_BRIGHTNESS_STEP)
+    default:
+      return '#ffffff'
+  }
+}
+
 // Colors with good contrast - full spectrum from red to purple
 export const EMBLEM_COLORS = [
   // Reds
@@ -137,11 +228,42 @@ export const EMBLEM_COLORS = [
   '#902abb',
   '#512DA8',
   // Neutrals
+  '#ffffff',
   '#F5E6C8',
   '#BDBDBD',
   '#8ca1ab',
   '#424242'
 ]
+
+/**
+ * Convert a `#rrggbb` color to floats in 0..1, used by the icon tint filter.
+ * Falls back to white for unparseable input.
+ * @param {string} hex
+ * @returns {{r: number, g: number, b: number}}
+ */
+function _hexToUnit (hex) {
+  const value = (hex || '').replace('#', '')
+  if (value.length !== 6) {
+    return {
+      r: 1,
+      g: 1,
+      b: 1
+    }
+  }
+  const num = parseInt(value, 16)
+  if (Number.isNaN(num)) {
+    return {
+      r: 1,
+      g: 1,
+      b: 1
+    }
+  }
+  return {
+    r: ((num >> 16) & 0xff) / 255,
+    g: ((num >> 8) & 0xff) / 255,
+    b: (num & 0xff) / 255
+  }
+}
 
 /**
  * Adjust color brightness
@@ -207,6 +329,9 @@ export function resolveWordsOnBanner (words, params = {}) {
  * @param {Array<boolean>} [options.wordsOnBanner] - Per-word visibility on the banner (one entry per word in teamName). When absent, every word is shown.
  * @param {boolean} [options.prefix1OnBanner] - Legacy: include the first word on the banner (last word stays on).
  * @param {boolean} [options.prefix2OnBanner] - Legacy: include the second-to-last word on the banner.
+ * @param {string} [options.strokeColor] - Tint role for the shape outline ('white' | 'color1' | 'color2'). Default 'white'.
+ * @param {string} [options.icon] - Filename (without `.svg`) from EMBLEM_ICONS to overlay on the shape, or null/undefined for no icon.
+ * @param {string} [options.iconColor] - Tint role applied to the icon ('white' | 'color1' | 'color2'). Default 'white'.
  * @param {number} [options.size=200] - Size of the emblem
  * @returns {string} SVG string
  */
@@ -219,13 +344,20 @@ export function generateEmblem ({
   wordsOnBanner,
   prefix1OnBanner,
   prefix2OnBanner,
+  strokeColor,
+  icon,
+  iconColor,
   size = 200
 }) {
   const shapeData = EMBLEM_SHAPES[shape] || EMBLEM_SHAPES.shield
   const patternData = EMBLEM_PATTERNS[pattern] || EMBLEM_PATTERNS.stripes
 
   const words = splitTeamNameWords(teamName)
-  const visibility = resolveWordsOnBanner(words, { wordsOnBanner, prefix1OnBanner, prefix2OnBanner })
+  const visibility = resolveWordsOnBanner(words, {
+    wordsOnBanner,
+    prefix1OnBanner,
+    prefix2OnBanner
+  })
   const bannerText = words.filter((_, i) => visibility[i]).join(' ').toUpperCase()
   // Banner body is ~149px wide; shrink font when the text gets long.
   const bannerFontSize = bannerText.length > 14
@@ -233,7 +365,59 @@ export function generateEmblem ({
     : 16
 
   // Create unique IDs for this emblem
-  const clipId = `clip-${Math.random().toString(36).substr(2, 9)}`
+  const uniq = Math.random().toString(36).substr(2, 9)
+  const clipId = `clip-${uniq}`
+  const iconFilterId = `icon-tint-${uniq}`
+
+  const shapeStroke = resolveTint(strokeColor, color, color2 || color)
+  // Banner stroke stays white regardless of strokeColor — only the outer
+  // shape outline reacts to the new setting, per the editor design.
+  const bannerStroke = '#ffffff'
+
+  const iconFill = icon && EMBLEM_ICONS.includes(icon)
+    ? resolveTint(iconColor, color, color2 || color)
+    : null
+  const iconHref = iconFill ? `./assets/emblem-icons/${icon}.svg` : null
+
+  const iconLayer = iconHref
+    ? (() => {
+      const {
+        r,
+        g,
+        b
+      } = _hexToUnit(iconFill)
+      return `
+  <defs>
+    <filter id="${iconFilterId}" x="0%" y="0%" width="100%" height="100%">
+      <feColorMatrix type="matrix" values="0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${b} 0 0 0 1 0"/>
+    </filter>
+  </defs>
+  <image href="${iconHref}" x="60" y="60" width="80" height="80" preserveAspectRatio="xMidYMid meet" filter="url(#${iconFilterId})"/>
+`
+    })()
+    : ''
+
+  // When the user hides every word on the banner, drop the banner SVG
+  // entirely instead of rendering an empty ribbon.
+  const bannerLayer = bannerText.length === 0
+    ? ''
+    : `
+  <!-- Banner -->
+  <g>
+    <!-- Left ribbon -->
+    <path d="M3 175L42 175L26 168V154H3L15 165L3 175Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <!-- Right ribbon -->
+    <path d="M197 175L159 175L175 168V153H197L186 165L197 175Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <!-- Left dark fold -->
+    <path d="M28 168H42V173L28 168Z" fill="${adjustBrightness(color, -40)}"/>
+    <!-- Right dark fold -->
+    <path d="M173 167H159V173L173 167Z" fill="${adjustBrightness(color, -40)}"/>
+    <!-- Main banner body -->
+    <path d="M173 144H26V167H175V144Z" fill="${adjustBrightness(color, -20)}" stroke="${bannerStroke}" stroke-width="3"/>
+    <!-- Team name on banner -->
+    <text x="100" y="161" font-family="Arial, sans-serif" font-size="${bannerFontSize}" font-weight="bold" fill="white" text-anchor="middle">${bannerText}</text>
+  </g>
+`
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${shapeData.viewBox}" width="${size}" height="${size}">
   <defs>
@@ -247,24 +431,11 @@ export function generateEmblem ({
     ${patternData.render(color, color2 || color)}
   </g>
 
-  <!-- Shape border -->
-  <path d="${shapeData.path}" fill="none" stroke="white" stroke-width="4"/>
+  ${iconLayer}
 
-  <!-- Banner -->
-  <g>
-    <!-- Left ribbon -->
-    <path d="M3 175L42 175L26 168V154H3L15 165L3 175Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="3"/>
-    <!-- Right ribbon -->
-    <path d="M197 175L159 175L175 168V153H197L186 165L197 175Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="3"/>
-    <!-- Left dark fold -->
-    <path d="M28 168H42V173L28 168Z" fill="${adjustBrightness(color, -40)}"/>
-    <!-- Right dark fold -->
-    <path d="M173 167H159V173L173 167Z" fill="${adjustBrightness(color, -40)}"/>
-    <!-- Main banner body -->
-    <path d="M173 144H26V167H175V144Z" fill="${adjustBrightness(color, -20)}" stroke="white" stroke-width="3"/>
-    <!-- Team name on banner -->
-    <text x="100" y="161" font-family="Arial, sans-serif" font-size="${bannerFontSize}" font-weight="bold" fill="white" text-anchor="middle">${bannerText}</text>
-  </g>
+  <!-- Shape border -->
+  <path d="${shapeData.path}" fill="none" stroke="${shapeStroke}" stroke-width="4"/>
+  ${bannerLayer}
 </svg>`
 }
 

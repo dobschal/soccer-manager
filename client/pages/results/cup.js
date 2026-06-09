@@ -9,6 +9,9 @@ import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
 import { euroFormat } from '../../lib/currency.js'
+import { renderPageNumbers } from '../../partials/pagination.js'
+
+const CUP_PAGE_SIZE = 10
 
 export class CupResultsPage extends UIElement {
   /**
@@ -65,6 +68,9 @@ export class CupResultsPage extends UIElement {
     this.suspendedPlayers = suspendedPlayers
     this.injuredPlayers = injuredPlayers
     this.cupBracket = bracket || {}
+    // Reset pagination when the data set changes (different round/season).
+    this._cupResultsPage = 0
+    this._injuredPlayersPage = 0
   }
 
   get template () {
@@ -110,23 +116,26 @@ export class CupResultsPage extends UIElement {
         <h3>${t('results.games')}</h3>
         ${this.cupResults.length === 0
     ? `<p class="text-muted">${t('cup.noGames')}</p>`
-    : new Table({
-      cols: [
-        {
-          name: t('results.team1'),
-          align: 'right'
-        },
-        {
-          name: '',
-          align: 'center'
-        },
-        { name: t('results.team2') }
-      ],
-      classes: 'mb-4',
-      renderRow: (result) => this._renderCupResultItem(result),
-      data: this.cupResults,
-      rowAttrs: (result) => `id="${result._rowId}"`
-    })
+    : `
+      ${new Table({
+    cols: [
+      {
+        name: t('results.team1'),
+        align: 'right'
+      },
+      {
+        name: '',
+        align: 'center'
+      },
+      { name: t('results.team2') }
+    ],
+    classes: 'mb-2',
+    renderRow: (result) => this._renderCupResultItem(result),
+    data: this._getPagedCupResults(),
+    rowAttrs: (result) => `id="${result._rowId}"`
+  })}
+      <div class="cup-results-pagination mb-4">${this._renderPagination(this.cupResults.length, this._cupResultsPage, 'cup-results')}</div>
+    `
 }
 
         ${this.suspendedPlayers.length > 0 ? `
@@ -155,11 +164,12 @@ export class CupResultsPage extends UIElement {
       { name: t('results.injuryType') },
       { name: t('results.daysLeft') }
     ],
-    classes: 'mb-4',
-    data: this.injuredPlayers,
+    classes: 'mb-2',
+    data: this._getPagedInjuredPlayers(),
     renderRow: (player) => this._renderInjuredPlayer(player),
     rowClass: (player) => player && player.team && this.myTeamId === player.team.id ? 'table-info' : ''
   })}
+          <div class="cup-injured-pagination mb-4">${this._renderPagination(this.injuredPlayers.length, this._injuredPlayersPage, 'cup-injured')}</div>
         ` : ''}
 
         ${this._renderCupBracket()}
@@ -184,6 +194,12 @@ export class CupResultsPage extends UIElement {
       '(optional) .cup-bracket': {
         mouseover: (e) => this._handleBracketTeamHover(e, true),
         mouseout: (e) => this._handleBracketTeamHover(e, false)
+      },
+      '(optional).cup-results-pagination': {
+        click: (e) => this._handlePaginationClick(e, 'cupResults')
+      },
+      '(optional).cup-injured-pagination': {
+        click: (e) => this._handlePaginationClick(e, 'injuredPlayers')
       }
     }
   }
@@ -361,6 +377,8 @@ export class CupResultsPage extends UIElement {
   injuredPlayers = []
   cupBracket = {}
   bracketShowAll = false
+  _cupResultsPage = 0
+  _injuredPlayersPage = 0
 
   get myTeamId () {
     return this.parentPage.myTeamId
@@ -398,6 +416,68 @@ export class CupResultsPage extends UIElement {
         cup_season: this.cupSeasons[newIndex]
       })
     }
+  }
+
+  _getPagedCupResults () {
+    const start = this._cupResultsPage * CUP_PAGE_SIZE
+    return this.cupResults.slice(start, start + CUP_PAGE_SIZE)
+  }
+
+  _getPagedInjuredPlayers () {
+    const start = this._injuredPlayersPage * CUP_PAGE_SIZE
+    return this.injuredPlayers.slice(start, start + CUP_PAGE_SIZE)
+  }
+
+  /**
+   * @param {number} totalItems
+   * @param {number} currentPage
+   * @param {string} prevNextClassPrefix - e.g. 'cup-results' to namespace the prev/next CSS hooks
+   * @returns {string}
+   */
+  _renderPagination (totalItems, currentPage, prevNextClassPrefix) {
+    const totalPages = Math.ceil(totalItems / CUP_PAGE_SIZE)
+    if (totalPages <= 1) return ''
+    const hasPrev = currentPage > 0
+    const hasNext = currentPage < totalPages - 1
+    return `
+      <nav>
+        <ul class="pagination pagination-sm justify-content-center flex-wrap">
+          <li class="page-item ${hasPrev ? '' : 'disabled'}">
+            <span class="page-link ${prevNextClassPrefix}-prev u-cursor-pointer">${t('common.prev')}</span>
+          </li>
+          ${renderPageNumbers(totalPages, currentPage)}
+          <li class="page-item ${hasNext ? '' : 'disabled'}">
+            <span class="page-link ${prevNextClassPrefix}-next u-cursor-pointer">${t('common.next')}</span>
+          </li>
+        </ul>
+      </nav>
+    `
+  }
+
+  /**
+   * @param {Event} event
+   * @param {'cupResults'|'injuredPlayers'} list
+   */
+  _handlePaginationClick (event, list) {
+    const target = event.target
+    const totalItems = list === 'cupResults' ? this.cupResults.length : this.injuredPlayers.length
+    const totalPages = Math.ceil(totalItems / CUP_PAGE_SIZE)
+    const pageField = list === 'cupResults' ? '_cupResultsPage' : '_injuredPlayersPage'
+    const prevClass = list === 'cupResults' ? '.cup-results-prev' : '.cup-injured-prev'
+    const nextClass = list === 'cupResults' ? '.cup-results-next' : '.cup-injured-next'
+    let next = this[pageField]
+    if (target.closest(prevClass)) {
+      next = Math.max(0, next - 1)
+    } else if (target.closest(nextClass)) {
+      next = Math.min(totalPages - 1, next + 1)
+    } else {
+      const pageLink = target.closest('[data-page-index]')
+      if (!pageLink) return
+      next = parseInt(pageLink.dataset.pageIndex, 10)
+    }
+    if (next === this[pageField]) return
+    this[pageField] = next
+    void this.update()
   }
 
   _renderCupResultItem (result) {

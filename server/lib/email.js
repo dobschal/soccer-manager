@@ -663,3 +663,117 @@ export async function sendPasswordResetEmail ({ toEmail, token, locale, username
     return { sent: false, url }
   }
 }
+
+/**
+ * @param {object} args
+ * @param {string} args.locale
+ * @param {string} args.username
+ * @param {number} args.daysRemaining - 1 or 7
+ * @returns {string}
+ */
+function renderInactivityWarningEmailHtml ({ locale, username, daysRemaining }) {
+  const logoUrl = `${config.PUBLIC_URL}/assets/logo.svg`
+  const supportUrl = `${config.PUBLIC_URL}/support.html`
+  const privacyUrl = `${config.PUBLIC_URL}/imprint.html`
+  const appUrl = config.PUBLIC_URL
+  const subject = t('email.inactivityWarning.subject', { daysRemaining }, locale)
+  const body = t('email.inactivityWarning.body', { username, daysRemaining }, locale)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n/g, '<br>')
+  return `<!DOCTYPE html>
+<html lang="${locale}">
+  <head>
+    <meta charset="UTF-8">
+    <title>${subject}</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#222;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+            <tr>
+              <td style="padding:32px 32px 16px 32px;text-align:center;border-bottom:1px solid #eee;">
+                <img src="${logoUrl}" alt="FootballManager.IO" height="48" style="display:inline-block;vertical-align:middle;">
+                <div style="font-size:20px;font-weight:bold;margin-top:8px;color:#111;">FootballManager.IO</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px;">
+                <h1 style="margin:0 0 16px 0;font-size:22px;color:#111;">${subject}</h1>
+                <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#444;">
+                  ${body}
+                </p>
+                <p style="margin:0 0 24px 0;text-align:center;">
+                  <a href="${appUrl}" style="display:inline-block;background-color:#17a2b8;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 28px;border-radius:8px;font-size:16px;">
+                    ${t('email.inactivityWarning.button', {}, locale)}
+                  </a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 24px 32px;border-top:1px solid #eee;font-size:12px;color:#666;text-align:center;">
+                <a href="${privacyUrl}" style="color:#666;text-decoration:underline;margin:0 8px;">${t('email.footer.privacy', {}, locale)}</a>
+                <a href="${supportUrl}" style="color:#666;text-decoration:underline;margin:0 8px;">${t('email.footer.support', {}, locale)}</a>
+                <a href="${appUrl}" style="color:#666;text-decoration:underline;margin:0 8px;">${t('email.footer.app', {}, locale)}</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`
+}
+
+/**
+ * @param {object} args
+ * @returns {string}
+ */
+function renderInactivityWarningEmailText ({ locale, username, daysRemaining }) {
+  return [
+    t('email.inactivityWarning.subject', { daysRemaining }, locale),
+    '',
+    t('email.inactivityWarning.body', { username, daysRemaining }, locale),
+    '',
+    `${t('email.inactivityWarning.button', {}, locale)}: ${config.PUBLIC_URL}`
+  ].join('\n')
+}
+
+/**
+ * Send an account-deletion warning to a user who has been inactive long
+ * enough to be at risk of getting auto-deleted. Sends to whichever email
+ * is on file — verified `email` first, falling back to `pending_email`.
+ * @param {object} args
+ * @param {string} args.toEmail
+ * @param {string} args.locale
+ * @param {string} args.username
+ * @param {number} args.daysRemaining - typically 7 or 1
+ * @returns {Promise<{ sent: boolean }>}
+ */
+export async function sendInactivityWarningEmail ({ toEmail, locale, username, daysRemaining }) {
+  const html = renderInactivityWarningEmailHtml({ locale, username, daysRemaining })
+  const text = renderInactivityWarningEmailText({ locale, username, daysRemaining })
+  const subject = t('email.inactivityWarning.subject', { daysRemaining }, locale)
+
+  const transporter = await getTransporter()
+  if (!transporter) {
+    console.log(`[Email] SMTP not configured, would send inactivity warning (${daysRemaining}d left) to ${toEmail}`)
+    return { sent: false }
+  }
+  try {
+    await transporter.sendMail({
+      from: config.EMAIL_FROM,
+      to: toEmail,
+      subject,
+      html,
+      text
+    })
+    return { sent: true }
+  } catch (e) {
+    console.error('[Email] Failed to send inactivity warning email:', e?.message ?? e)
+    return { sent: false }
+  }
+}

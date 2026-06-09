@@ -39,12 +39,16 @@ export class MyTeamPage extends TabbedPage {
     `
   }
   get serverEvents () {
+    const refresh = async () => {
+      await this.load()
+      this._subPageCache = {}
+      await this.update()
+    }
     return {
-      PLAYER_SOLD: async () => {
-        await this.load()
-        this._subPageCache = {}
-        await this.update()
-      }
+      PLAYER_SOLD: refresh,
+      // Fires after the user buys a player (instant buy or accepted offer)
+      // so the lineup picks the new squad member up without a hard reload.
+      BUY_OFFER_ACCEPTED: refresh
     }
   }
   onMounted () {

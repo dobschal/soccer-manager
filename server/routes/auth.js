@@ -303,7 +303,7 @@ export default {
     const regionCol = `last_region_${platform === 'ios' ? 'ios' : platform === 'android' ? 'android' : 'web'}`
     const geo = getGeoFromRequest(req)
     await query(
-      `UPDATE user SET last_login = ?, ${platformColumn} = ?, ${ipCol} = ?, ${countryCol} = ?, ${regionCol} = ? WHERE id = ?`,
+      `UPDATE user SET last_login = ?, ${platformColumn} = ?, ${ipCol} = ?, ${countryCol} = ?, ${regionCol} = ?, inactivity_warning_stage = 0 WHERE id = ?`,
       [now, now, geo.ip, geo.country, geo.region, user.id]
     )
     if (typeof deviceUuid === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(deviceUuid)) {

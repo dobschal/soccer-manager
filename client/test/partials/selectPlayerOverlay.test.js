@@ -87,12 +87,41 @@ describe('SelectPlayerOverlay', () => {
     const stackEl = document.createElement('div')
     stackEl.dataset.actionCardIdx = '0'
 
-    await overlay._useActionCard(overlay.cards[0], 0, stackEl)
+    const usedCard = overlay.cards[0]
+    await overlay._useActionCard(usedCard, 0, stackEl)
 
-    expect(server.useActionCard).toHaveBeenCalledWith(overlay.cards[0], player, null)
+    expect(server.useActionCard).toHaveBeenCalledWith(usedCard, player, null)
     expect(toast).toHaveBeenCalledWith(expect.stringContaining('Hans'), 'success')
     expect(fire).toHaveBeenCalledWith('ACTION_CARDS_CHANGED', overlay._renderId)
     expect(onApplied).toHaveBeenCalled()
+    // The consumed card must be removed from the local list so the next click
+    // sees a smaller stack — the overlay stays open and re-renders in place.
+    expect(overlay.cards).toHaveLength(0)
+  })
+
+  it('refreshes its player references from onActionCardApplied so the list shows updated freshness/level', async () => {
+    const stalePlayer = testData.player({ id: 7, name: 'Hans', position: 'GK', freshness: 0.2, level: 5 })
+    const staleOther = testData.player({ id: 8, name: 'Otto', position: 'CD', freshness: 0.5, level: 4 })
+    const freshPlayer = { ...stalePlayer, freshness: 1.0 }
+    const freshOther = { ...staleOther, freshness: 0.6 }
+    const onApplied = vi.fn().mockResolvedValue({ players: [freshPlayer, freshOther] })
+
+    const overlay = new SelectPlayerOverlay(
+      stalePlayer,
+      [stalePlayer],
+      () => {},
+      onApplied,
+      [stalePlayer, staleOther]
+    )
+    overlay.cards = [{ id: 99, action: 'FRESHNESS_20' }]
+    const stackEl = document.createElement('div')
+
+    await overlay._useActionCard(overlay.cards[0], 0, stackEl)
+
+    expect(overlay.currentPlayer.freshness).toBe(1.0)
+    expect(overlay.availablePlayers[0].freshness).toBe(1.0)
+    expect(overlay.allPlayers.find(p => p.id === 7).freshness).toBe(1.0)
+    expect(overlay.allPlayers.find(p => p.id === 8).freshness).toBe(0.6)
   })
 
   it('shows a placeholder line when the player has no eligible cards', async () => {

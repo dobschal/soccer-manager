@@ -4,7 +4,8 @@ import { testData } from '../setup.js'
 vi.mock('../../lib/gateway.js', () => ({
   server: {
     saveLineup: vi.fn().mockResolvedValue({ success: true, captainCleared: false }),
-    saveBench: vi.fn().mockResolvedValue({ success: true })
+    saveBench: vi.fn().mockResolvedValue({ success: true }),
+    getMyTeam: vi.fn().mockResolvedValue({ players: [] })
   }
 }))
 
@@ -255,6 +256,22 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     const emitted = fire.mock.calls.find(([event]) => event === 'lineup-exchange')[1]
     const emittedRealPlayerIds = emitted.filter(p => !p.fake).map(p => p.id).sort((x, y) => x - y)
     expect(emittedRealPlayerIds).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+  })
+
+  it('keeps the player overlay open after an action card is applied', async () => {
+    // The user can chain multiple action cards onto the same lineup player.
+    // _refreshAfterActionCard must refetch + re-emit the lineup data without
+    // removing the SelectPlayerOverlay sitting on top.
+    const team = testData.team({ formation: '433' })
+    const lineup = new Lineup([], team)
+    const overlayRemove = vi.fn()
+    lineup._overlay = { remove: overlayRemove }
+
+    await lineup._refreshAfterActionCard()
+
+    expect(server.getMyTeam).toHaveBeenCalled()
+    expect(fire).toHaveBeenCalledWith('lineup-exchange', expect.any(Array))
+    expect(overlayRemove).not.toHaveBeenCalled()
   })
 
   it('clears duplicates when two players occupy a slot that only exists once', async () => {

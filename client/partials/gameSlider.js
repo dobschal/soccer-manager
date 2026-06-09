@@ -47,8 +47,9 @@ export class GameSlider extends UIElement {
     const slides = this._games.map((game, index) => {
       const isHomeGame = game.team1Id === this._teamId
       const isActive = index === this._initialIndex
+      const isBye = !game.team2Data?.name && !game.team2Id
 
-      const centerContent = this._generateCenterContent(game)
+      const centerContent = this._generateCenterContent(game, isBye)
 
       // Determine href based on game type
       let href
@@ -70,7 +71,6 @@ export class GameSlider extends UIElement {
         }
       }
 
-      const isBye = !game.team2Data?.name && !game.team2Id
       const hasResult = game.isPlayed && typeof game.goalsTeam1 === 'number' && typeof game.goalsTeam2 === 'number'
       const slideContent = renderGameResult({
         team1: game.team1Data,
@@ -137,19 +137,24 @@ export class GameSlider extends UIElement {
   /**
    * Generate the center content for a game slide based on its state
    * @param {Object} game
+   * @param {boolean} [isBye] - True when the team has a bye (no opponent)
    * @returns {string}
    */
-  _generateCenterContent (game) {
+  _generateCenterContent (game, isBye = false) {
     const label = this._getGameLabel(game)
 
     if (game.isPlayed) {
-      // Played game: show game day, result, and date/time
+      // Played game: show game day, result, and date/time. Byes show "-" since
+      // the auto-advance scoreline (0:0) would otherwise misrepresent the round.
       const playedAtHtml = game.playedAt
         ? `<small class="d-block mt-1">${new Date(game.playedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</small>`
         : ''
+      const scoreDisplay = isBye
+        ? '-'
+        : `${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}`
       return `
         <small class="d-block mb-1">${label}</small>
-        <h3 class="mb-0"><span class="badge bg-info">${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}</span></h3>
+        <h3 class="mb-0"><span class="badge bg-info">${scoreDisplay}</span></h3>
         ${playedAtHtml}
       `
     }

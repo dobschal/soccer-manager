@@ -341,5 +341,49 @@ describe('TeamPage', () => {
 
       expect(showPlayerModal).toHaveBeenCalledWith(10)
     })
+
+    it('refreshes when own team is updated elsewhere (e.g. emblem change in club page)', async () => {
+      const team = testData.team({ id: 7 })
+      const players = [testData.player()]
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user: null })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+      server.getMyTeam.mockResolvedValue({ team: testData.team({ id: 7 }) })
+
+      const page = new TeamPage()
+      page.teamId = 7
+      await page.load()
+      page.update = vi.fn()
+      page.onMounted()
+
+      window.dispatchEvent(new CustomEvent('my-team-updated'))
+
+      expect(page.update).toHaveBeenCalledWith(true)
+
+      page.onDestroy()
+    })
+
+    it('ignores my-team-updated for foreign teams', async () => {
+      const team = testData.team({ id: 7 })
+      const players = [testData.player()]
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user: null })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+      server.getMyTeam.mockResolvedValue({ team: testData.team({ id: 999 }) })
+
+      const page = new TeamPage()
+      page.teamId = 7
+      await page.load()
+      page.update = vi.fn()
+      page.onMounted()
+
+      window.dispatchEvent(new CustomEvent('my-team-updated'))
+
+      expect(page.update).not.toHaveBeenCalled()
+
+      page.onDestroy()
+    })
   })
 })
