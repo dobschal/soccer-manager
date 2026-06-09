@@ -11,6 +11,7 @@ import { toast } from '../../partials/toast.js'
 import { showGameModal } from '../../partials/gameModal.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
 import { showFeatureRequestOverlay } from '../../partials/featureRequestOverlay.js'
+import { WorldCupBetting } from '../../partials/worldCupBetting.js'
 
 export class StartPage {
   /**
@@ -69,6 +70,7 @@ export class StartPage {
       window.open('https://buymeacoffee.com/dobschal', '_blank')
     })
     return `
+      ${new WorldCupBetting()}
       <div class="d-flex flex-column flex-lg-row align-items-start u-gap-md">
         <div class="flex-grow-1 order-2 order-lg-1 w-100">
             <div id="${leagueCardId}" class="card card-body mb-2 bg-dark">

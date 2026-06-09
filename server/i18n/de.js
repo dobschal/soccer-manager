@@ -235,5 +235,8 @@ export default {
   'building.youthAcademy': 'Jugendakademie',
 
   // Building finance
-  'finance.buildingUpgrade': 'Gebäude-Ausbau'
+  'finance.buildingUpgrade': 'Gebäude-Ausbau',
+
+  // World Cup
+  'worldCup.bettingClosed': 'Tipps für dieses Spiel sind nicht mehr möglich.'
 }
