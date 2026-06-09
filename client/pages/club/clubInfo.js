@@ -436,6 +436,10 @@ export class ClubInfoPage extends UIElement {
         this.team.emblem = emblemParams
         this.team.color = selectedColor
         await this.update(true)
+        // Cached pages that already rendered the old emblem (e.g. TeamPage
+        // opened previously via the league) won't re-fetch on navigation when
+        // their cache key matches, so signal them to refresh in place.
+        window.dispatchEvent(new CustomEvent('my-team-updated'))
         overlay.remove()
       } catch (e) {
         showServerError(e)

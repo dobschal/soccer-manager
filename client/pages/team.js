@@ -229,6 +229,10 @@ export class TeamPage extends UIElement {
     this._onPlayerChanged = () => this.update(true)
     window.addEventListener('player-hired', this._onPlayerChanged)
     window.addEventListener('player-fired', this._onPlayerChanged)
+    this._onMyTeamUpdated = () => {
+      if (this._isOwnTeam) this.update(true)
+    }
+    window.addEventListener('my-team-updated', this._onMyTeamUpdated)
     void showTutorialIfNeeded('team', this)
     this._refineTimelineOffsetForViewport()
   }
@@ -253,6 +257,9 @@ export class TeamPage extends UIElement {
     if (this._onPlayerChanged) {
       window.removeEventListener('player-hired', this._onPlayerChanged)
       window.removeEventListener('player-fired', this._onPlayerChanged)
+    }
+    if (this._onMyTeamUpdated) {
+      window.removeEventListener('my-team-updated', this._onMyTeamUpdated)
     }
   }
   static cacheKeyParams = ['id']
