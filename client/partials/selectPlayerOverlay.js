@@ -214,13 +214,33 @@ export class SelectPlayerOverlay extends UIElement {
       // updates without needing a server round-trip. The overlay intentionally
       // stays open so the user can chain more cards onto the same player.
       this.cards.splice(cardIndex, 1)
-      this.onActionCardApplied?.()
+      const refreshed = await this.onActionCardApplied?.()
+      // The card mutated freshness/level on the server. Without re-pointing the
+      // overlay's player references at the freshly fetched objects, this.update()
+      // would re-render the embedded PlayerList from stale data.
+      if (refreshed?.players) {
+        this._applyRefreshedPlayers(refreshed.players)
+      }
       await this.update()
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
     } finally {
       this._processing = false
+    }
+  }
+
+  /**
+   * @param {PlayerType[]} freshPlayers - Full team roster returned by the server
+   */
+  _applyRefreshedPlayers (freshPlayers) {
+    const byId = new Map(freshPlayers.map(p => [p.id, p]))
+    if (this.currentPlayer?.id != null) {
+      this.currentPlayer = byId.get(this.currentPlayer.id) ?? this.currentPlayer
+    }
+    this.availablePlayers = this.availablePlayers.map(p => byId.get(p.id) ?? p)
+    if (this.allPlayers) {
+      this.allPlayers = this.allPlayers.map(p => byId.get(p.id) ?? p)
     }
   }
 }
