@@ -485,16 +485,20 @@ export class ClubInfoPage extends UIElement {
       onSelect: role => { selectedIconColor = role }
     })
 
+    const selectIconElement = (element) => {
+      document.querySelectorAll('.emblem-editor__icon').forEach(item => {
+        item.classList.remove('emblem-editor__icon--selected', 'emblem-editor__option--selected')
+      })
+      element.classList.add('emblem-editor__icon--selected', 'emblem-editor__option--selected')
+    }
+
     const iconNoneId = generateId()
     setTimeout(() => {
       const element = el(iconNoneId)
       if (element) {
         element.addEventListener('click', () => {
           selectedIcon = null
-          document.querySelectorAll('.emblem-editor__icon').forEach(item => {
-            item.classList.remove('emblem-editor__icon--selected')
-          })
-          element.classList.add('emblem-editor__icon--selected')
+          selectIconElement(element)
           updatePreview()
         })
       }
@@ -507,10 +511,7 @@ export class ClubInfoPage extends UIElement {
         if (element) {
           element.addEventListener('click', () => {
             selectedIcon = name
-            document.querySelectorAll('.emblem-editor__icon').forEach(item => {
-              item.classList.remove('emblem-editor__icon--selected')
-            })
-            element.classList.add('emblem-editor__icon--selected')
+            selectIconElement(element)
             updatePreview()
           })
         }
