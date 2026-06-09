@@ -58,16 +58,18 @@
     margin: 3px;
     border-radius: 4px;
     cursor: pointer;
-    border: 2px solid transparent;
+    /* Permanent neutral grey outline so light swatches (white, cream) stay
+       visible against the white modal background. */
+    border: 2px solid #9ca3af;
     transition: border-color 0.2s ease;
 }
 
 .emblem-editor__color:hover {
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: #4b5563;
 }
 
 .emblem-editor__color--selected {
-    border-color: white;
+    border-color: #000;
 }
 
 /* Icon picker */

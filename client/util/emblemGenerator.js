@@ -197,6 +197,7 @@ export const EMBLEM_COLORS = [
   '#902abb',
   '#512DA8',
   // Neutrals
+  '#ffffff',
   '#F5E6C8',
   '#BDBDBD',
   '#8ca1ab',
@@ -340,7 +341,7 @@ export function generateEmblem ({
       <feColorMatrix type="matrix" values="0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${b} 0 0 0 1 0"/>
     </filter>
   </defs>
-  <image href="${iconHref}" x="60" y="40" width="80" height="80" preserveAspectRatio="xMidYMid meet" filter="url(#${iconFilterId})"/>
+  <image href="${iconHref}" x="60" y="55" width="80" height="80" preserveAspectRatio="xMidYMid meet" filter="url(#${iconFilterId})"/>
 `
     })()
     : ''

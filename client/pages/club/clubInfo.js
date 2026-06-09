@@ -276,9 +276,24 @@ export class ClubInfoPage extends UIElement {
     let selectedPattern = currentParams.pattern
     let selectedColor = currentParams.color
     let selectedColor2 = currentParams.color2 || EMBLEM_COLORS[1]
+    // Color 1 and Color 2 must always differ — if a legacy emblem has the
+    // same value for both, force color2 to a different palette entry.
+    if (selectedColor === selectedColor2) {
+      selectedColor2 = EMBLEM_COLORS.find(c => c !== selectedColor) || EMBLEM_COLORS[1]
+    }
     let selectedStrokeColor = EMBLEM_TINT_OPTIONS.includes(currentParams.strokeColor) ? currentParams.strokeColor : 'white'
     let selectedIcon = currentParams.icon && EMBLEM_ICONS.includes(currentParams.icon) ? currentParams.icon : null
     let selectedIconColor = EMBLEM_TINT_OPTIONS.includes(currentParams.iconColor) ? currentParams.iconColor : 'white'
+
+    /** Pick the first palette color that differs from the given one. */
+    const firstDifferentColor = (other) => EMBLEM_COLORS.find(c => c !== other) || EMBLEM_COLORS[0]
+
+    /** Reset the selected-class on swatches in one group based on the new value. */
+    const refreshColorSelection = (groupClass, value) => {
+      document.querySelectorAll(`.${groupClass}`).forEach(item => {
+        item.classList.toggle('emblem-editor__color--selected', item.dataset.color === value)
+      })
+    }
     const nameWords = splitTeamNameWords(this.team.name)
     const wordsOnBanner = resolveWordsOnBanner(nameWords, currentParams)
 
@@ -363,18 +378,22 @@ export class ClubInfoPage extends UIElement {
         const element = el(id)
         if (element) {
           element.addEventListener('click', () => {
+            // If color 1 collides with color 2, bump color 2 so they
+            // always differ. Tints that reference color1/color2 then
+            // pick up the new value automatically.
+            if (c === selectedColor2) {
+              selectedColor2 = firstDifferentColor(c)
+              refreshColorSelection('emblem-editor__color2', selectedColor2)
+            }
             selectedColor = c
-            document.querySelectorAll('.emblem-editor__color').forEach(item => {
-              item.classList.remove('emblem-editor__color--selected')
-            })
-            element.classList.add('emblem-editor__color--selected')
+            refreshColorSelection('emblem-editor__color1', selectedColor)
             updatePreview()
           })
         }
       }, 100)
       const isSelected = c === selectedColor
       return `
-        <div id="${id}" class="emblem-editor__color ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${c};"></div>
+        <div id="${id}" class="emblem-editor__color emblem-editor__color1 ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${c};" data-color="${c}"></div>
       `
     }).join('')
 
@@ -384,18 +403,19 @@ export class ClubInfoPage extends UIElement {
         const element = el(id)
         if (element) {
           element.addEventListener('click', () => {
+            if (c === selectedColor) {
+              selectedColor = firstDifferentColor(c)
+              refreshColorSelection('emblem-editor__color1', selectedColor)
+            }
             selectedColor2 = c
-            document.querySelectorAll('.emblem-editor__color2').forEach(item => {
-              item.classList.remove('emblem-editor__color--selected')
-            })
-            element.classList.add('emblem-editor__color--selected')
+            refreshColorSelection('emblem-editor__color2', selectedColor2)
             updatePreview()
           })
         }
       }, 100)
       const isSelected = c === selectedColor2
       return `
-        <div id="${id}" class="emblem-editor__color2 emblem-editor__color ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${c};"></div>
+        <div id="${id}" class="emblem-editor__color2 emblem-editor__color ${isSelected ? 'emblem-editor__color--selected' : ''}" style="background-color: ${c};" data-color="${c}"></div>
       `
     }).join('')
 
