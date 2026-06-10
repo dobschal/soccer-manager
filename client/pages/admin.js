@@ -5,6 +5,7 @@ import { UserManagementAdminPage } from './admin/userManagement.js'
 import { StatisticsAdminPage } from './admin/statistics.js'
 import { GeneralAdminPage } from './admin/general.js'
 import { WorldCupAdminPage } from './admin/worldCup.js'
+import { ServerStatsAdminPage } from './admin/serverStats.js'
 
 export class AdminPage extends TabbedPage {
   get template () {
@@ -16,6 +17,7 @@ export class AdminPage extends TabbedPage {
           <a class="nav-link ${this.subPage === 'user_management' ? 'active' : ''}" href="#admin?sub_page=user_management">${t('admin.tabUserManagement')}</a>
           <a class="nav-link ${this.subPage === 'statistics' ? 'active' : ''}" href="#admin?sub_page=statistics">${t('admin.tabStatistics')}</a>
           <a class="nav-link ${this.subPage === 'world_cup' ? 'active' : ''}" href="#admin?sub_page=world_cup">${t('admin.tabWorldCup')}</a>
+          <a class="nav-link ${this.subPage === 'server_stats' ? 'active' : ''}" href="#admin?sub_page=server_stats">${t('admin.tabServerStats')}</a>
           <a class="nav-link ${this.subPage === 'general' ? 'active' : ''}" href="#admin?sub_page=general">${t('admin.tabGeneral')}</a>
         </nav>
         ${this.renderSubPageContainer()}
@@ -32,6 +34,7 @@ export class AdminPage extends TabbedPage {
       case 'user_management': return new UserManagementAdminPage()
       case 'statistics': return new StatisticsAdminPage()
       case 'world_cup': return new WorldCupAdminPage()
+      case 'server_stats': return new ServerStatsAdminPage()
       case 'general': return new GeneralAdminPage()
       default: return new MarketingAdminPage()
     }

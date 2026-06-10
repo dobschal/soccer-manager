@@ -34,6 +34,9 @@ vi.mock('../../lib/userCache.js', () => ({ clearUserCache: vi.fn() }))
 vi.mock('../../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: vi.fn()
 }))
+vi.mock('../../helper/serverStatsHelper.js', () => ({
+  getServerStats: vi.fn()
+}))
 
 import handlers from '../../routes/dev.js'
 import { collectStatistics, getStatistics } from '../../helper/statisticsHelper.js'
@@ -41,6 +44,7 @@ import { getSuspiciousActions } from '../../helper/fraudHelper.js'
 import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { sendAdminMessageEmail } from '../../lib/email.js'
+import { getServerStats } from '../../helper/serverStatsHelper.js'
 
 describe('dev routes - statistics', () => {
   beforeEach(() => {
@@ -304,6 +308,30 @@ describe('dev routes - statistics', () => {
 
       expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 50, offset: 0 })
       expect(result.pageSize).toBe(50)
+    })
+  })
+
+  describe('getServerStats', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.getServerStats({ user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+      expect(getServerStats).not.toHaveBeenCalled()
+    })
+
+    it('returns the helper payload for an admin', async () => {
+      const payload = {
+        cpu: [12.5, 8.0],
+        memory: { totalGb: 16, usedGb: 4, percent: 25 },
+        swap: { totalGb: 2, usedGb: 0.1, percent: 5 },
+        disks: [{ filesystem: '/dev/sda1', mount: '/', totalGb: 100, usedGb: 40, percent: 40 }],
+        platform: 'linux'
+      }
+      getServerStats.mockResolvedValueOnce(payload)
+
+      const result = await handlers.getServerStats({ user: { is_admin: 1 } })
+
+      expect(getServerStats).toHaveBeenCalledTimes(1)
+      expect(result).toEqual(payload)
     })
   })
 })

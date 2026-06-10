@@ -25,3 +25,8 @@
     border-radius: 6px;
     border: 1px solid #ddd;
 }
+
+.server-stats__bar {
+    height: 8px;
+    margin-top: 4px;
+}
