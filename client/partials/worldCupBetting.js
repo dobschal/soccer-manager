@@ -256,7 +256,7 @@ export class WorldCupBetting extends UIElement {
       `
     }
     const rows = top.map(row => `
-      <tr class="${row.isMe ? 'table-info' : ''}">
+      <tr class="${row.isMe ? 'wc-leaderboard-row--me' : ''}">
         <td class="small">${row.rank}.</td>
         <td class="small">${row.username}</td>
         <td class="small text-end">${row.points}</td>
@@ -265,7 +265,7 @@ export class WorldCupBetting extends UIElement {
     const isMeInTop = top.some(r => r.isMe)
     const meRow = me && !isMeInTop
       ? `
-        <tr class="table-info">
+        <tr class="wc-leaderboard-row--me">
           <td class="small">${me.rank}.</td>
           <td class="small">${t('worldCup.you')}</td>
           <td class="small text-end">${me.points}</td>
@@ -274,7 +274,7 @@ export class WorldCupBetting extends UIElement {
     return `
       <div class="card card-body bg-secondary">
         <h6 class="mb-2"><i class="fa fa-trophy"></i> ${t('worldCup.leaderboardTitle')}</h6>
-        <table class="table table-sm table-dark mb-0">
+        <table class="table table-sm table-dark wc-leaderboard mb-0">
           <tbody>
             ${rows}
             ${meRow}
