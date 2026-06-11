@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../partials/overlay.js', () => ({
-  showOverlay: vi.fn(() => ({ remove: vi.fn() }))
+  showOverlay: vi.fn(() => ({ remove: vi.fn(), onClose: vi.fn() }))
 }))
 
 vi.mock('../../lib/gateway.js', () => ({

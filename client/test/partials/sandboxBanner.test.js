@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { showSandboxBanner, applyNoIndexOnSandbox } from '../../partials/sandboxBanner.js'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { showSandboxBanner, applyNoIndexOnSandbox, __resetSandboxBannerForTests } from '../../partials/sandboxBanner.js'
 
 function setHostname (hostname) {
   Object.defineProperty(window, 'location', {
@@ -12,6 +12,7 @@ describe('showSandboxBanner', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
     document.head.innerHTML = ''
+    __resetSandboxBannerForTests()
   })
 
   it('does nothing on the production host', () => {
@@ -52,6 +53,28 @@ describe('showSandboxBanner', () => {
     expect(document.querySelector('#sandbox-banner')).toBeNull()
     showSandboxBanner()
     expect(document.querySelector('#sandbox-banner')).not.toBeNull()
+  })
+
+  describe('auto-dismiss after 3 seconds', () => {
+    beforeEach(() => { vi.useFakeTimers() })
+    afterEach(() => { vi.useRealTimers() })
+
+    it('removes the banner after 3 seconds and does not re-insert it on later renders', () => {
+      setHostname('sandbox.footballmanager.io')
+      showSandboxBanner()
+      expect(document.querySelector('#sandbox-banner')).not.toBeNull()
+
+      vi.advanceTimersByTime(2999)
+      expect(document.querySelector('#sandbox-banner')).not.toBeNull()
+
+      vi.advanceTimersByTime(1)
+      expect(document.querySelector('#sandbox-banner')).toBeNull()
+
+      // Subsequent page-changed re-renders must not bring it back.
+      document.body.innerHTML = '<div class="game-layout"></div>'
+      showSandboxBanner()
+      expect(document.querySelector('#sandbox-banner')).toBeNull()
+    })
   })
 })
 

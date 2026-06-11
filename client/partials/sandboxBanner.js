@@ -2,14 +2,22 @@ import { el } from '../lib/html.js'
 import { isSandboxHost, PRODUCTION_URL } from '../lib/environment.js'
 import { t } from '../i18n/index.js'
 
+const AUTO_DISMISS_MS = 3000
+
+let dismissTimer = null
+let bannerDismissed = false
+
 /**
- * Show a persistent banner informing the user that they are on the sandbox
- * (test) environment, with a link back to production.
+ * Show a sandbox banner informing the user that they are on the sandbox
+ * (test) environment, with a link back to production. Auto-dismisses after
+ * 3 seconds; once dismissed it will not be shown again for the rest of the
+ * session (even when the router re-renders the body).
  * Idempotent: safe to call more than once.
  * @returns {void}
  */
 export function showSandboxBanner () {
   if (!isSandboxHost()) return
+  if (bannerDismissed) return
   if (el('#sandbox-banner')) return
 
   document.body.insertAdjacentHTML('afterbegin', `
@@ -19,6 +27,23 @@ export function showSandboxBanner () {
       <a href="${PRODUCTION_URL}" class="sandbox-banner-link">${t('sandbox.goToProd')}</a>
     </div>
   `)
+
+  if (dismissTimer === null) {
+    dismissTimer = setTimeout(() => {
+      bannerDismissed = true
+      el('#sandbox-banner')?.remove()
+    }, AUTO_DISMISS_MS)
+  }
+}
+
+/**
+ * Test-only: reset module state between tests.
+ * @returns {void}
+ */
+export function __resetSandboxBannerForTests () {
+  if (dismissTimer !== null) clearTimeout(dismissTimer)
+  dismissTimer = null
+  bannerDismissed = false
 }
 
 /**

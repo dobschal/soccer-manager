@@ -5,6 +5,7 @@ import { toast } from './toast.js'
 import { t } from '../i18n/index.js'
 import { fire } from '../lib/event.js'
 import { delay } from '../lib/delay.js'
+import { el } from '../lib/html.js'
 import { preloadAllActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
 
 const ACTION_CARDS_CHANGED_EVENT = 'ACTION_CARDS_CHANGED'
@@ -63,23 +64,26 @@ export class SelectPlayerOverlay extends UIElement {
    * @returns {string}
    */
   get template () {
-    const players = this.showAll && this.allPlayers ? this.allPlayers : this.availablePlayers
-    // Local sort so the overlay's column sort does not inherit (or write to)
-    // the outer player list's URL-driven sort state.
-    const playerList = new PlayerList(
-      players,
-      false,
-      (player) => this.onPlayerSelected?.(player),
-      false,
-      false,
-      null,
-      null,
-      { useUrlSort: false }
-    )
+    // Cache the PlayerList instance: a fresh instance would render an async
+    // placeholder via renderSync(), which made the overlay briefly empty (and
+    // shrink on its `width: fit-content` card) when we called this.update()
+    // after an action card. Reusing the instance lets us update it in place.
+    if (!this._playerList) {
+      this._playerList = new PlayerList(
+        this._currentListPlayers(),
+        false,
+        (player) => this.onPlayerSelected?.(player),
+        false,
+        false,
+        null,
+        null,
+        { useUrlSort: false }
+      )
+    }
     return `
       <div class="select-player-overlay">
         <p>${t('selectPlayer.subtitle')}</p>
-        ${playerList}
+        ${this._playerList}
         ${this._renderShowAllToggle()}
         ${this._renderActionCardsSection()}
       </div>
@@ -104,10 +108,17 @@ export class SelectPlayerOverlay extends UIElement {
       '(optional)[data-toggle-show-all]': {
         click: async () => {
           this.showAll = !this.showAll
-          await this.update()
+          this._refreshShowAllToggleDOM()
+          await this._refreshPlayerListDOM()
         }
       }
     }
+  }
+  /**
+   * @returns {PlayerType[]}
+   */
+  _currentListPlayers () {
+    return this.showAll && this.allPlayers ? this.allPlayers : this.availablePlayers
   }
 
   /**
@@ -215,18 +226,76 @@ export class SelectPlayerOverlay extends UIElement {
       // stays open so the user can chain more cards onto the same player.
       this.cards.splice(cardIndex, 1)
       const refreshed = await this.onActionCardApplied?.()
-      // The card mutated freshness/level on the server. Without re-pointing the
-      // overlay's player references at the freshly fetched objects, this.update()
-      // would re-render the embedded PlayerList from stale data.
+      // The card mutated freshness/level on the server. Re-point the overlay's
+      // player references at the freshly fetched objects so the player list
+      // re-renders from current data.
       if (refreshed?.players) {
         this._applyRefreshedPlayers(refreshed.players)
       }
-      await this.update()
+      // Surgical DOM updates instead of this.update(): a full re-render would
+      // re-create the PlayerList via renderSync(), briefly replacing it with
+      // an empty <template> placeholder. That made the overlay's fit-content
+      // card collapse and re-expand, looking like a close/reopen flicker.
+      this._refreshActionCardsDOM()
+      await this._refreshPlayerListDOM()
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
     } finally {
       this._processing = false
+    }
+  }
+
+  /**
+   * Swap the action-cards section in-place without re-rendering the whole
+   * overlay. Keeps the container element (and its delegated click handler)
+   * intact unless the section needs to flip to the empty-state message.
+   * @returns {void}
+   */
+  _refreshActionCardsDOM () {
+    if (!this._canShowActionCards()) return
+    const cardsContainer = el(`${this._elementQuery} .select-player-action-cards`)
+    if (this.cards.length === 0) {
+      if (cardsContainer) {
+        cardsContainer.outerHTML = `<p class="text-muted">${t('selectPlayer.noActionCards')}</p>`
+      }
+      return
+    }
+    if (cardsContainer) {
+      cardsContainer.innerHTML = this._renderGroupedCards()
+    }
+  }
+
+  /**
+   * Update the cached PlayerList's data and trigger its own update(). Avoids
+   * the placeholder dance from `${new PlayerList(...)}` in this.template.
+   * @returns {Promise<void>}
+   */
+  async _refreshPlayerListDOM () {
+    if (!this._playerList) return
+    this._playerList.players = this._currentListPlayers()
+    if (this._playerList.isRendered) {
+      await this._playerList.update()
+    }
+  }
+
+  /**
+   * Mutate the existing toggle button (and its hint) instead of re-rendering
+   * the overlay. The button keeps its listener because the element itself is
+   * not replaced.
+   * @returns {void}
+   */
+  _refreshShowAllToggleDOM () {
+    const toggleBtn = el(`${this._elementQuery} [data-toggle-show-all]`)
+    if (!toggleBtn) return
+    const label = this.showAll ? t('selectPlayer.showMatchingOnly') : t('selectPlayer.showAllPlayers')
+    toggleBtn.innerHTML = `<i class="fa fa-${this.showAll ? 'filter' : 'users'}" aria-hidden="true"></i> ${label}`
+    const wrapper = el(`${this._elementQuery} .select-player-show-all`)
+    const existingHint = wrapper?.querySelector('small.text-muted')
+    if (this.showAll && !existingHint) {
+      toggleBtn.insertAdjacentHTML('afterend', `<small class="text-muted d-block mt-2">${t('selectPlayer.outOfPositionHint')}</small>`)
+    } else if (!this.showAll && existingHint) {
+      existingHint.remove()
     }
   }
 

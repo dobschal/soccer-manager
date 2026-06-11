@@ -11,6 +11,7 @@ import { clearUserCache } from '../lib/userCache.js'
 import { collectStatistics, getStatistics } from '../helper/statisticsHelper.js'
 import { getSuspiciousActions } from '../helper/fraudHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { getServerStats } from '../helper/serverStatsHelper.js'
 
 const PERMANENT_ADMIN = 'Emmo'
 
@@ -335,5 +336,18 @@ export default {
       LIMIT 10
     `)
     return { rows: rows.map(r => ({ country: r.country, count: Number(r.count) })) }
+  },
+
+  /**
+   * Get current host stats: CPU usage per core, memory, swap, disk usage
+   * (admin only). Values are sampled at request time.
+   * @param {Request} req
+   * @returns {Promise<object>}
+   */
+  async getServerStats (req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    return getServerStats()
   }
 }

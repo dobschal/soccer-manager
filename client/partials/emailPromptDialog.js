@@ -15,12 +15,12 @@ let shownThisSession = false
  * Calling site is responsible for passing the user object (typically the
  * `user` field from getMyTeam).
  * @param {{email?: string|null, pending_email?: string|null}|null|undefined} user
- * @returns {void}
+ * @returns {Promise<void>} resolves when the overlay closes, or immediately if skipped
  */
 export function maybeShowEmailPrompt (user) {
-  if (shownThisSession) return
-  if (!user) return
-  if (user.email || user.pending_email) return
+  if (shownThisSession) return Promise.resolve()
+  if (!user) return Promise.resolve()
+  if (user.email || user.pending_email) return Promise.resolve()
   shownThisSession = true
 
   const inputId = generateId()
@@ -41,40 +41,44 @@ export function maybeShowEmailPrompt (user) {
 
   const overlay = showOverlay(t('emailPrompt.title'), '', content)
 
-  setTimeout(() => {
-    const input = el('#' + inputId)
-    const saveBtn = el('#' + saveBtnId)
-    const laterBtn = el('#' + laterBtnId)
+  return new Promise(resolve => {
+    overlay.onClose(() => resolve())
 
-    input?.focus()
+    setTimeout(() => {
+      const input = el('#' + inputId)
+      const saveBtn = el('#' + saveBtnId)
+      const laterBtn = el('#' + laterBtnId)
 
-    if (laterBtn) {
-      laterBtn.addEventListener('click', () => overlay.remove())
-    }
+      input?.focus()
 
-    if (saveBtn && input) {
-      const submit = async () => {
-        const email = input.value.trim()
-        if (!isValidEmail(email)) {
-          toast(t('landing.emailInvalid'), 'error')
-          return
-        }
-        saveBtn.disabled = true
-        try {
-          await server.setEmail(email)
-          toast(t('emailPrompt.saved'), 'success')
-          overlay.remove()
-        } catch (err) {
-          showServerError(err)
-          saveBtn.disabled = false
-        }
+      if (laterBtn) {
+        laterBtn.addEventListener('click', () => overlay.remove())
       }
-      saveBtn.addEventListener('click', submit)
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') submit()
-      })
-    }
-  }, 0)
+
+      if (saveBtn && input) {
+        const submit = async () => {
+          const email = input.value.trim()
+          if (!isValidEmail(email)) {
+            toast(t('landing.emailInvalid'), 'error')
+            return
+          }
+          saveBtn.disabled = true
+          try {
+            await server.setEmail(email)
+            toast(t('emailPrompt.saved'), 'success')
+            overlay.remove()
+          } catch (err) {
+            showServerError(err)
+            saveBtn.disabled = false
+          }
+        }
+        saveBtn.addEventListener('click', submit)
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') submit()
+        })
+      }
+    }, 0)
+  })
 }
 
 /**

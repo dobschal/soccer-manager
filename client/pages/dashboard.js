@@ -12,6 +12,7 @@ import { el } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
 import { showSeasonReviewOverlay, isSeasonReviewDismissed } from '../partials/seasonReviewOverlay.js'
+import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 
 export class DashboardPage extends TabbedPage {
@@ -127,7 +128,6 @@ export class DashboardPage extends TabbedPage {
     `
   }
   onMounted () {
-    void showTutorialIfNeeded('dashboard', this)
     void this._showDashboardOverlays()
   }
   async onQueryChanged (params) {
@@ -333,13 +333,28 @@ export class DashboardPage extends TabbedPage {
   }
 
   async _showDashboardOverlays () {
-    await this._showPendingCardsIfNeeded()
+    // Fixed order — each overlay waits for the previous one to close so the
+    // user never sees two overlays at once.
+    await this._showEmailPromptIfNeeded()
     await this._showSeasonReviewIfNeeded()
+    await this._showTutorialIfNeeded()
+    await this._showPendingCardsIfNeeded()
+  }
+
+  async _showEmailPromptIfNeeded () {
+    if (!this._isMounted) return
+    await maybeShowEmailPrompt(this.user)
+  }
+
+  async _showTutorialIfNeeded () {
+    if (!this._isMounted) return
+    // No delay — previous overlay closing is already a natural "page settled"
+    // moment, and the dashboard is fully rendered by the time we get here.
+    await showTutorialIfNeeded('dashboard', this, { delay: 0 })
   }
 
   async _showPendingCardsIfNeeded () {
     if (this._pendingCards.length === 0) return
-    await new Promise(resolve => setTimeout(resolve, 500))
     if (!this._isMounted) return
     await showCardClaimOverlay(this._pendingCards)
     this._pendingCards = []

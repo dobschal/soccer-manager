@@ -1,0 +1,58 @@
+/* World Cup betting widget */
+
+.wc-betting--collapsed {
+  animation: wc-betting-pulse 2s ease-in-out infinite;
+}
+
+@keyframes wc-betting-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px rgba(255, 193, 7, 0.65);
+  }
+}
+
+.wc-betting .wc-game {
+  border-radius: 8px;
+}
+
+.wc-betting .wc-flag {
+  width: 56px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.wc-betting .wc-team {
+  min-width: 80px;
+}
+
+.wc-betting .wc-bet-btn {
+  font-size: 0.85rem;
+}
+
+.wc-flag-thumb {
+  width: 24px;
+  height: 16px;
+  object-fit: cover;
+  vertical-align: middle;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.wc-overlay-game {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.wc-overlay-game .wc-flag-thumb {
+  width: 32px;
+  height: 20px;
+}
+
+.wc-leaderboard .wc-leaderboard-row--me > td {
+  background-color: var(--bs-info);
+  color: #fff;
+}

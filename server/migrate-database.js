@@ -2113,6 +2113,112 @@ const migrations = [{
   async run () {
     await query('ALTER TABLE user ADD COLUMN inactivity_warning_stage TINYINT NOT NULL DEFAULT 0')
   }
+}, {
+  name: 'Create world_cup_game table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS world_cup_game (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      team_1_code VARCHAR(10) NOT NULL,
+      team_1_name VARCHAR(64) NOT NULL,
+      team_2_code VARCHAR(10) NOT NULL,
+      team_2_name VARCHAR(64) NOT NULL,
+      kickoff DATETIME NOT NULL,
+      goals_team_1 INT DEFAULT NULL,
+      goals_team_2 INT DEFAULT NULL,
+      stage VARCHAR(32) NOT NULL DEFAULT 'group',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX idx_world_cup_game_kickoff (kickoff),
+      INDEX idx_world_cup_game_stage (stage)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  }
+}, {
+  name: 'Create world_cup_bet table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS world_cup_bet (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT(20) UNSIGNED NOT NULL,
+      game_id BIGINT(20) UNSIGNED NOT NULL,
+      prediction VARCHAR(10) NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_world_cup_bet (user_id, game_id),
+      INDEX idx_world_cup_bet_game (game_id)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  }
+}, {
+  name: 'Create world_cup_reward_claim table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS world_cup_reward_claim (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT(20) UNSIGNED NOT NULL,
+      points_threshold INT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_world_cup_reward (user_id, points_threshold)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  }
+}, {
+  name: 'Create world_cup_state table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS world_cup_state (
+      id INT NOT NULL DEFAULT 1,
+      is_concluded TINYINT(1) NOT NULL DEFAULT 0,
+      star_players_awarded TINYINT(1) NOT NULL DEFAULT 0,
+      PRIMARY KEY (id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`)
+    await query('INSERT IGNORE INTO world_cup_state (id, is_concluded, star_players_awarded) VALUES (1, 0, 0)')
+  }
+}, {
+  name: 'Seed WM 2026 group-stage games',
+  async run () {
+    const { WORLD_CUP_2026_SEED_GAMES, nationNameByCode } = await import('./helper/worldCupSeedData.js')
+    const names = nationNameByCode()
+    for (const fixture of WORLD_CUP_2026_SEED_GAMES) {
+      // Convert ISO UTC string to MySQL DATETIME format. The kickoff column is
+      // DATETIME (not TIMESTAMP) so the server tz doesn't shift the stored value.
+      const utcDate = new Date(fixture.kickoffUtc)
+      const kickoff = utcDate.toISOString().slice(0, 19).replace('T', ' ')
+      await query(
+        `INSERT INTO world_cup_game (team_1_code, team_1_name, team_2_code, team_2_name, kickoff, stage)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          fixture.team1Code,
+          names[fixture.team1Code] || fixture.team1Code,
+          fixture.team2Code,
+          names[fixture.team2Code] || fixture.team2Code,
+          kickoff,
+          fixture.stage
+        ]
+      )
+    }
+  }
+}, {
+  // The original seed used invented fixtures; replace with the official FIFA
+  // draw. Safe to wipe bets here because the tournament has not kicked off yet.
+  name: 'Reseed WM 2026 with official FIFA group-stage fixtures',
+  async run () {
+    await query('DELETE FROM world_cup_bet')
+    await query('DELETE FROM world_cup_game')
+    const { WORLD_CUP_2026_SEED_GAMES, nationNameByCode } = await import('./helper/worldCupSeedData.js')
+    const names = nationNameByCode()
+    for (const fixture of WORLD_CUP_2026_SEED_GAMES) {
+      const utcDate = new Date(fixture.kickoffUtc)
+      const kickoff = utcDate.toISOString().slice(0, 19).replace('T', ' ')
+      await query(
+        `INSERT INTO world_cup_game (team_1_code, team_1_name, team_2_code, team_2_name, kickoff, stage)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          fixture.team1Code,
+          names[fixture.team1Code] || fixture.team1Code,
+          fixture.team2Code,
+          names[fixture.team2Code] || fixture.team2Code,
+          kickoff,
+          fixture.stage
+        ]
+      )
+    }
+  }
 }]
 
 /**
