@@ -182,6 +182,25 @@ works in the browser, first verify the relevant module is actually loaded by
   - Utility classes (e.g. `u-cursor-pointer`, `u-nowrap`, `u-max-w-620`) live in `client/style/utilities.css`.
   - Component-specific styles go in the matching CSS file (e.g. `components/player.css`, `pages/dashboard.css`).
 
+### Re-render scoping (smooth updates)
+
+- **Update the smallest UIElement that owns the changed state**, not its parent. When a parent's template contains nested UIElements via `${new Child(...)}`, calling `parent.update()` re-creates those children — each goes through `renderSync()` which renders an empty `<template>` placeholder first and fills it async in the next frame. The visible gap shrinks `width: fit-content` containers (e.g. overlays) and looks like a close/reopen flicker.
+  - Cache nested UIElement instances on the parent (lazy-init in `get template` or in `load()`).
+  - After a state change, mutate the child's `players`/`data`/etc. fields and call `child.update()` instead of `parent.update()`.
+  - For sibling DOM the parent itself owns (a card stack, a toggle button, a count badge), do surgical `innerHTML`/`outerHTML` updates instead of re-rendering the whole parent.
+  - Reference: `client/partials/selectPlayerOverlay.js` — `_useActionCard` caches `this._playerList` and refreshes the action-cards section in place.
+
+### Bootstrap first
+
+- **Prefer Bootstrap classes over custom CSS** for layout, spacing, typography, and standard components. The project ships Bootstrap; reach for `d-flex`, `gap-*`, `row`/`col-*`, `btn`, `card`, `alert`, `form-control`, `mt-*`/`mb-*`/`p-*` before writing new selectors.
+- Only add component-specific CSS for things Bootstrap doesn't cover (the lineup pitch, action card stacks, custom emblems, the 3D stadium view, etc.).
+
+### Theme colors
+
+- **Use the `info` theme for highlighted/important UI**: `btn-info`, `text-info`, `bg-info`, `alert-info`, `border-info`, `btn-outline-info`. This is the project's accent color.
+- Reserve `success` / `danger` / `warning` for their semantic meanings (positive outcomes, errors, caution).
+- `primary` / `secondary` aren't customarily used here — replace them with `info` / `outline-info` / `outline-secondary` when adapting external snippets.
+
 ## Requirements
 
 Detailed feature specifications are in the `requirements/` directory:
