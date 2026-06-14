@@ -7,12 +7,10 @@ import { showConfirmDialog, showOverlay } from '../partials/overlay.js'
 import { disconnectWebSocket } from '../lib/websocket.js'
 import { fetchText } from '../lib/fetchText.js'
 import { isValidEmail } from '../lib/emailRegex.js'
-import { renderPageNumbers } from '../partials/pagination.js'
 import { showInviteFriendOverlay } from '../partials/inviteFriendOverlay.js'
 
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024
-const FRIENDS_PAGE_SIZE = 5
 
 /**
  * @param {string} avatar
@@ -85,12 +83,10 @@ function updateNavbarAvatar (avatar) {
 export async function showAccountOverlay () {
   let teamData
   let versionData
-  let friendsData
   try {
-    [teamData, versionData, friendsData] = await Promise.all([
+    [teamData, versionData] = await Promise.all([
       server.getMyTeam(),
-      server.getVersion(),
-      server.getFriends()
+      server.getVersion()
     ])
   } catch (e) {
     showServerError(e)
@@ -101,11 +97,10 @@ export async function showAccountOverlay () {
   let currentPendingEmail = teamData.user?.pending_email || ''
   let emailOptOut = !!teamData.user?.email_opt_out
   const username = teamData.user?.username || ''
+  const userId = teamData.user?.id
   const isAdmin = teamData.isAdmin || false
   const version = versionData.version
-  const friends = friendsData.friends || []
   const currentLocale = getLocale()
-  let friendsPageIndex = 0
 
   const renderEmail = () => {
     const verifiedRow = currentEmail
@@ -142,47 +137,6 @@ export async function showAccountOverlay () {
     `
   }
 
-  const renderFriends = () => {
-    if (friends.length === 0) {
-      return `<div class="text-muted small">${t('account.noFriends')}</div>`
-    }
-    const totalPages = Math.ceil(friends.length / FRIENDS_PAGE_SIZE)
-    const start = friendsPageIndex * FRIENDS_PAGE_SIZE
-    const pageFriends = friends.slice(start, start + FRIENDS_PAGE_SIZE)
-    const list = `
-      <div class="account-friends-list">
-        ${pageFriends.map(f => `
-          <a href="${f.teamId ? '#team?id=' + f.teamId : '#dashboard'}" data-account-friend-link class="account-friend-row d-flex align-items-center gap-2">
-            <img class="account-friend-avatar${f.avatar ? '' : ' account-friend-avatar--default'}"
-                 src="${avatarSrc(f.avatar)}" alt="${f.username}">
-            <div class="flex-grow-1 text-truncate">
-              <div class="text-truncate">${f.username}</div>
-              ${f.teamName ? `<div class="text-muted small text-truncate">${f.teamName}</div>` : ''}
-            </div>
-          </a>
-        `).join('')}
-      </div>
-    `
-    if (totalPages <= 1) return list
-    const hasPrev = friendsPageIndex > 0
-    const hasNext = friendsPageIndex < totalPages - 1
-    const pageNumbers = renderPageNumbers(totalPages, friendsPageIndex)
-    return `
-      ${list}
-      <nav class="mt-2 account-friends-pagination">
-        <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
-          <li class="page-item ${hasPrev ? '' : 'disabled'}">
-            <span class="page-link u-cursor-pointer" data-account-friends-prev>${t('common.prev')}</span>
-          </li>
-          ${pageNumbers}
-          <li class="page-item ${hasNext ? '' : 'disabled'}">
-            <span class="page-link u-cursor-pointer" data-account-friends-next>${t('common.next')}</span>
-          </li>
-        </ul>
-      </nav>
-    `
-  }
-
   const renderAvatar = () => `
     <div class="coach-avatar mb-4">
       <img class="coach-avatar__img${currentAvatar ? '' : ' coach-avatar__img--default'}"
@@ -207,10 +161,11 @@ export async function showAccountOverlay () {
       <div id="account-avatar-section" class="text-center mb-4">
         ${renderAvatar()}
       </div>
-      
-      <div id="account-friends-section" class="mb-4">
-        <label class="form-label mt-2">${t('account.friends')}</label>
-        ${renderFriends()}
+
+      <div class="mb-4">
+        <a href="#user?id=${userId}" id="account-view-profile" class="btn btn-info text-white w-100">
+          <i class="fa fa-user" aria-hidden="true"></i> ${t('userProfile.viewProfile')}
+        </a>
         <button type="button" id="account-invite-friend" class="btn btn-outline-info btn-sm mt-2 w-100">
           <i class="fa fa-paper-plane" aria-hidden="true"></i> ${t('referral.inviteFriend')}
         </button>
@@ -413,47 +368,14 @@ export async function showAccountOverlay () {
     })
   }
 
-  const bindFriendsHandlers = () => {
-    document.querySelectorAll('[data-account-friend-link]').forEach(link => {
-      link.addEventListener('click', () => {
-        overlay.remove()
-      })
-    })
-
+  const bindProfileLinkHandlers = () => {
+    const profileBtn = el('#account-view-profile')
+    if (profileBtn) {
+      profileBtn.addEventListener('click', () => overlay.remove())
+    }
     const inviteBtn = el('#account-invite-friend')
     if (inviteBtn) {
       inviteBtn.addEventListener('click', () => showInviteFriendOverlay())
-    }
-
-    const totalPages = Math.ceil(friends.length / FRIENDS_PAGE_SIZE)
-    const goToPage = (next) => {
-      if (next < 0 || next >= totalPages || next === friendsPageIndex) return
-      friendsPageIndex = next
-      rerenderFriendsSection()
-    }
-
-    document.querySelectorAll('[data-account-friends-prev]').forEach(btn => {
-      btn.addEventListener('click', () => goToPage(friendsPageIndex - 1))
-    })
-    document.querySelectorAll('[data-account-friends-next]').forEach(btn => {
-      btn.addEventListener('click', () => goToPage(friendsPageIndex + 1))
-    })
-    document.querySelectorAll('.account-friends-pagination [data-page-index]').forEach(btn => {
-      btn.addEventListener('click', () => goToPage(parseInt(btn.dataset.pageIndex, 10)))
-    })
-  }
-
-  const rerenderFriendsSection = () => {
-    const section = el('#account-friends-section')
-    if (section) {
-      section.innerHTML = `
-        <label class="form-label mt-2">${t('account.friends')}</label>
-        ${renderFriends()}
-        <button type="button" id="account-invite-friend" class="btn btn-outline-info btn-sm mt-2 w-100">
-          <i class="fa fa-paper-plane" aria-hidden="true"></i> ${t('referral.inviteFriend')}
-        </button>
-      `
-      bindFriendsHandlers()
     }
   }
 
@@ -461,7 +383,7 @@ export async function showAccountOverlay () {
     bindAvatarHandlers()
     bindEmailHandlers()
     bindPasswordHandlers()
-    bindFriendsHandlers()
+    bindProfileLinkHandlers()
 
     const langEnBtn = el('#account-lang-en')
     const langDeBtn = el('#account-lang-de')

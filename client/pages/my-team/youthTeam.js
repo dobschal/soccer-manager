@@ -1,6 +1,6 @@
 import { server, showServerError } from '../../lib/gateway.js'
 import { el, generateId } from '../../lib/html.js'
-import { onClick } from '../../lib/htmlEventHandlers.js'
+import { onClick, onChange } from '../../lib/htmlEventHandlers.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
@@ -10,6 +10,12 @@ import { Table } from '../../partials/table.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { fire } from '../../lib/event.js'
+
+const TRAINING_MODES = [
+  { key: 'training', icon: 'fa-bolt', effects: { level: 2, fitness: 1, moral: -1 } },
+  { key: 'friendly_match', icon: 'fa-futbol-o', effects: { level: 1, fitness: -1, moral: 1 } },
+  { key: 'rest', icon: 'fa-bed', effects: { level: 0, fitness: 2, moral: 1 } }
+]
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -29,6 +35,8 @@ export class YouthTeamPage extends UIElement {
     const data = await server.getYouthTeam()
     this.youthPlayers = data.youthPlayers
     this.trainingMode = data.trainingMode
+    this.academyLevel = data.academyLevel || 1
+    this.slotsPerMode = data.slotsPerMode || 1
     this.season = data.season
   }
   /**
@@ -40,7 +48,11 @@ export class YouthTeamPage extends UIElement {
         <h3>${t('youthTeam.title')}</h3>
 
         <div class="mb-4">
-          <p class="text-muted">${t('youthTeam.trainingModeDesc')}</p>
+          <p class="text-muted mb-1">${t('youthTeam.trainingModeDescPerPlayer')}</p>
+          <p class="text-muted small mb-3">
+            <i class="fa fa-graduation-cap"></i>
+            ${t('youthTeam.academySlotsHint', { slotsPerMode: this.slotsPerMode, level: this.academyLevel })}
+          </p>
           ${this._renderTrainingModeSelector()}
         </div>
 
@@ -102,11 +114,7 @@ export class YouthTeamPage extends UIElement {
     if (!timerEl) return
 
     const timeRemaining = this._getTimeUntilNextGameDay()
-    const modeLabel = this._getTrainingModeLabel(this.trainingMode)
-    timerEl.textContent = t('youthTeam.nextTrainingIn', {
-      mode: modeLabel,
-      time: timeRemaining
-    })
+    timerEl.textContent = t('youthTeam.nextGameDayIn', { time: timeRemaining })
   }
 
   /**
@@ -144,62 +152,89 @@ export class YouthTeamPage extends UIElement {
    */
   _getTrainingModeLabel (mode) {
     if (mode === 'friendly_match') {
-      return t('youthTeam.friendlyMatch').toLowerCase()
+      return t('youthTeam.friendlyMatch')
     }
-    return t('youthTeam.' + mode).toLowerCase()
+    return t('youthTeam.' + mode)
   }
 
   /**
    * @returns {string}
    */
   _renderTrainingModeSelector () {
-    const modes = [
-      {
-        key: 'training',
-        icon: 'fa-bolt',
-        effects: { level: 2, fitness: 1, moral: -1 }
-      },
-      {
-        key: 'friendly_match',
-        icon: 'fa-futbol-o',
-        effects: { level: 1, fitness: -1, moral: 1 }
-      },
-      {
-        key: 'rest',
-        icon: 'fa-bed',
-        effects: { level: 0, fitness: 2, moral: 1 }
-      }
-    ]
-
-    // Generate timer ID for the active mode
     this.timerId = generateId()
 
     return `
-      <div class="d-flex flex-column flex-md-row gap-2 w-100" role="group">
-        ${modes.map(mode => {
-    const id = generateId()
-    const isActive = this.trainingMode === mode.key
-    onClick(id, () => this._setTrainingMode(mode.key))
-    const modeName = mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key
-    return `
-            <button
-              id="${id}"
-              class="btn ${isActive ? 'btn-primary' : 'btn-outline-secondary'} flex-fill youth-mode-btn"
-            >
-              <div class="youth-mode-header">
-                <i class="fa ${mode.icon}"></i>
-                <strong>${t('youthTeam.' + modeName)}</strong>
-              </div>
-              <div class="youth-mode-effects">
-                ${this._renderEffectRow(t('youthTeam.level'), mode.effects.level, isActive)}
-                ${this._renderEffectRow(t('youthTeam.fitness'), mode.effects.fitness, isActive)}
-                ${this._renderEffectRow(t('youthTeam.moral'), mode.effects.moral, isActive)}
-              </div>
-              ${isActive ? `<small id="${this.timerId}" class="text-light opacity-75"><i class="fa fa-clock-o"></i> ...</small>` : ''}
-            </button>
-          `
-  }).join('')}
+      <div class="d-flex flex-column flex-md-row gap-3 w-100">
+        ${TRAINING_MODES.map(mode => this._renderModeCard(mode)).join('')}
       </div>
+      <small id="${this.timerId}" class="text-muted d-block mt-2"><i class="fa fa-clock-o"></i> ...</small>
+    `
+  }
+
+  /**
+   * @param {{key: string, icon: string, effects: object}} mode
+   * @returns {string}
+   */
+  _renderModeCard (mode) {
+    const modeName = mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key
+    const assigned = (this.youthPlayers || []).filter(p => p.training_mode === mode.key)
+    const slots = []
+    for (let i = 0; i < this.slotsPerMode; i++) {
+      slots.push(assigned[i] || null)
+    }
+    const fillRatio = `${assigned.length}/${this.slotsPerMode}`
+
+    return `
+      <div class="card youth-mode-card flex-fill">
+        <div class="card-body">
+          <div class="youth-mode-header">
+            <i class="fa ${mode.icon}"></i>
+            <strong>${t('youthTeam.' + modeName)}</strong>
+            <span class="badge bg-info ms-auto">${fillRatio}</span>
+          </div>
+          <div class="youth-mode-effects">
+            ${this._renderEffectRow(t('youthTeam.level'), mode.effects.level, false)}
+            ${this._renderEffectRow(t('youthTeam.fitness'), mode.effects.fitness, false)}
+            ${this._renderEffectRow(t('youthTeam.moral'), mode.effects.moral, false)}
+          </div>
+          <div class="youth-slot-list">
+            ${slots.map((p, idx) => this._renderSlot(mode.key, idx, p)).join('')}
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  /**
+   * Render a single select slot for the mode card.
+   * @param {string} mode
+   * @param {number} idx
+   * @param {object|null} currentPlayer
+   * @returns {string}
+   */
+  _renderSlot (mode, idx, currentPlayer) {
+    const selectId = generateId()
+    onChange('#' + selectId, (ev) => {
+      const raw = ev.target.value
+      const newPlayerId = raw === '' ? null : Number(raw)
+      this._handleSlotChange(mode, currentPlayer, newPlayerId)
+    })
+
+    const options = (this.youthPlayers || []).map(p => {
+      const selected = currentPlayer && currentPlayer.id === p.id ? 'selected' : ''
+      let suffix = ''
+      if (p.training_mode && p.training_mode !== mode) {
+        suffix = ` · ${this._getTrainingModeLabel(p.training_mode)}`
+      }
+      const label = `${p.name} · Lv ${Number(p.level || 0).toFixed(1)} · ${p.age}y${suffix}`
+      return `<option value="${p.id}" ${selected}>${label}</option>`
+    }).join('')
+
+    return `
+      <select id="${selectId}" class="form-select form-select-sm youth-slot-select">
+        <option value="">${t('youthTeam.slotEmpty')}</option>
+        ${options}
+      </select>
     `
   }
 
@@ -228,18 +263,28 @@ export class YouthTeamPage extends UIElement {
   }
 
   /**
+   * Apply a slot change: unassign the previous occupant, then assign the new
+   * one. The server's per-player setter handles cross-mode moves naturally.
    * @param {string} mode
+   * @param {object|null} prevPlayer
+   * @param {number|null} newPlayerId
    * @returns {Promise<void>}
    */
-  async _setTrainingMode (mode) {
+  async _handleSlotChange (mode, prevPlayer, newPlayerId) {
+    if (prevPlayer && newPlayerId === prevPlayer.id) return
     try {
-      await server.setYouthTrainingMode(mode)
-      this.trainingMode = mode
+      if (prevPlayer && (newPlayerId === null || prevPlayer.id !== newPlayerId)) {
+        await server.setYouthPlayerTrainingMode(prevPlayer.id, null)
+      }
+      if (newPlayerId !== null) {
+        await server.setYouthPlayerTrainingMode(newPlayerId, mode)
+      }
       toast(t('youthTeam.trainingModeUpdated'), 'success')
-      await this.update()
     } catch (e) {
       showServerError(e)
     }
+    await this.load()
+    await this.update()
   }
 
   /**
@@ -270,6 +315,7 @@ export class YouthTeamPage extends UIElement {
         { name: t('youthTeam.level') },
         { name: t('youthTeam.moral') },
         { name: t('youthTeam.fitness') },
+        { name: t('youthTeam.trainingMode') },
         { name: t('youthTeam.actions') }
       ],
       data: this.youthPlayers,
@@ -296,6 +342,10 @@ export class YouthTeamPage extends UIElement {
       disabledReason = t('youthTeam.playerTooYoung')
     }
 
+    const modeBadge = player.training_mode
+      ? `<span class="badge bg-info">${this._getTrainingModeLabel(player.training_mode)}</span>`
+      : `<span class="badge bg-secondary">${t('youthTeam.unassigned')}</span>`
+
     return [
       `<span class="u-nowrap">${player.name}</span>`,
       renderPositionBadge(player.position),
@@ -303,6 +353,7 @@ export class YouthTeamPage extends UIElement {
       `${player.level.toFixed(2)}`,
       `${new ProgressBar(player.moral)}`,
       `${new ProgressBar(player.fitness)}`,
+      modeBadge,
       `<span class="u-nowrap"><button
             id="${promoteId}"
             class="btn btn-sm btn-primary me-1"

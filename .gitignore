@@ -5,6 +5,8 @@ node_modules
 /native-app/web/
 /native-app/platforms/
 /native-app/node_modules/
+/desktop-app/node_modules/
+/dist-desktop/
 .DS_Store
 /client/assets/native-client.zip
 /client/assets/native-version.json

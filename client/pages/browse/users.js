@@ -79,9 +79,7 @@ export class BrowseUsersPage extends UIElement {
           : '<span class="text-muted">—</span>'
       ],
       onClick: (user) => {
-        if (user.team_id) {
-          goTo(`team?id=${user.team_id}`)
-        }
+        goTo(`user?id=${user.id}`)
       }
     })
 

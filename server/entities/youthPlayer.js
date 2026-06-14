@@ -14,7 +14,7 @@
  * @property {Date} created_at
  */
 
-import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
+import { OptionalNumber, OptionalObject, OptionalString, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
  * @param {YouthPlayerType} raw
@@ -33,6 +33,7 @@ export function YouthPlayer (raw) {
     hair_color: RequiredNumber,
     skin_color: RequiredNumber,
     birth_season: RequiredNumber,
+    training_mode: OptionalString,
     created_at: OptionalObject
   })
   for (const key in raw) {
