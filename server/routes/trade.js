@@ -8,6 +8,7 @@ import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { getPositionsOfFormation } from '../../client/util/formation.js'
+import { advanceTutorialIfStep, TUTORIAL_STEPS } from '../helper/tutorialHelper.js'
 
 export default {
 
@@ -222,6 +223,7 @@ export default {
     const [insertedOffer] = await query('SELECT * FROM trade_offer WHERE id=?', [insertResult.insertId])
     await acceptOffer(insertedOffer, sellingTeam, gameDay, season, locale)
 
+    await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.BUY_PLAYER, TUTORIAL_STEPS.UPDATE_STADIUM_PRICES)
     return { success: true, price }
   },
 

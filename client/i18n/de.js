@@ -1569,5 +1569,48 @@ export default {
   'admin.worldCupConcludeButton': 'Abschließen & Starspieler vergeben',
   'admin.worldCupConcludeConfirm': 'WM jetzt beenden und Starspieler an die Top 3 vergeben?',
   'admin.worldCupConcluded': 'WM abgeschlossen. {count} Top-Tipper wurden belohnt.',
-  'admin.worldCupAlreadyConcluded': 'WM wurde bereits abgeschlossen – es werden keine neuen Belohnungen vergeben.'
+  'admin.worldCupAlreadyConcluded': 'WM wurde bereits abgeschlossen – es werden keine neuen Belohnungen vergeben.',
+
+  // User Profile
+  'userProfile.title': 'Profil',
+  'userProfile.you': 'Du',
+  'userProfile.viewProfile': 'Profil ansehen',
+  'userProfile.friends': 'Freunde',
+  'userProfile.history': 'Historie',
+  'userProfile.season': 'Saison',
+  'userProfile.team': 'Team',
+  'userProfile.league': 'Liga',
+  'userProfile.position': 'Position',
+  'userProfile.points': 'Punkte',
+  'userProfile.cup': 'Pokal',
+  'userProfile.cupWinner': 'Pokalsieger',
+  'userProfile.noTeam': 'Kein aktueller Verein',
+  'userProfile.noFriends': 'Noch keine Freunde.',
+  'userProfile.noHistory': 'Noch keine abgeschlossenen Saisons.',
+  'userProfile.notFound': 'Profil nicht gefunden.',
+
+  // Play without team
+  'nav.noTeamHint': 'Wähle zuerst einen Verein',
+  'team.takeOverHeadline': 'Diesen Verein übernehmen?',
+  'team.takeOverDesc': '{teamName} sucht einen neuen Trainer. Werde jetzt der Coach dieses Vereins.',
+  'team.takeOverButton': 'Verein übernehmen',
+  'team.takeOverSuccess': 'Willkommen als neuer Trainer!',
+  'clubInfo.resignTitle': 'Verein verlassen',
+  'clubInfo.resignDesc': 'Du kannst deinen Trainerposten aufgeben. Der Verein wird wieder als Bot-Team verfügbar und du kannst später einen anderen übernehmen.',
+  'clubInfo.resignButton': 'Trainerposten aufgeben',
+  'clubInfo.resignConfirm': 'Möchtest du deinen Trainerposten wirklich aufgeben? Du verlierst alle Karten, Spieler und das Budget dieses Vereins.',
+  'clubInfo.resignConfirmYes': 'Ja, kündigen',
+  'clubInfo.resignConfirmNo': 'Abbrechen',
+  'clubInfo.resignSuccess': 'Du hast deinen Trainerposten aufgegeben.',
+
+  // Guided tutorial
+  'tutorial.stepLabel': 'Schritt {step}/{total}',
+  'tutorial.step0.text': 'Wähle einen Verein aus, den du als Trainer übernehmen möchtest.',
+  'tutorial.step1.text': 'Geh in dein Team und stelle eine Formation auf. Tippe auf einen Spieler, um ihn auf das Feld zu setzen.',
+  'tutorial.step2.text': 'Spiele eine "Level Up" Action-Card auf einem Spieler.',
+  'tutorial.step3.text': 'Baue die Jugendakademie um eine Stufe aus – diesmal kostenlos!',
+  'tutorial.step4.text': 'Spiele eine "Neuer Jugendspieler" Action-Card.',
+  'tutorial.step5.text': 'Kaufe einen günstigen Spieler vom Transfermarkt.',
+  'tutorial.step6.text': 'Passe die Ticketpreise im Stadion an.',
+  'tutorial.step7.text': 'Wähle einen Sponsor aus.'
 }

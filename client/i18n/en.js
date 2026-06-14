@@ -1569,5 +1569,48 @@ export default {
   'admin.worldCupConcludeButton': 'Conclude & award star players',
   'admin.worldCupConcludeConfirm': 'Conclude the World Cup now and award star players to the top 3?',
   'admin.worldCupConcluded': 'World Cup concluded. {count} top bettors awarded.',
-  'admin.worldCupAlreadyConcluded': 'World Cup is already concluded — no further rewards issued.'
+  'admin.worldCupAlreadyConcluded': 'World Cup is already concluded — no further rewards issued.',
+
+  // User Profile
+  'userProfile.title': 'Profile',
+  'userProfile.you': 'You',
+  'userProfile.viewProfile': 'View profile',
+  'userProfile.friends': 'Friends',
+  'userProfile.history': 'History',
+  'userProfile.season': 'Season',
+  'userProfile.team': 'Team',
+  'userProfile.league': 'League',
+  'userProfile.position': 'Position',
+  'userProfile.points': 'Points',
+  'userProfile.cup': 'Cup',
+  'userProfile.cupWinner': 'Cup winner',
+  'userProfile.noTeam': 'No current club',
+  'userProfile.noFriends': 'No friends yet.',
+  'userProfile.noHistory': 'No completed seasons yet.',
+  'userProfile.notFound': 'Profile not found.',
+
+  // Play without team
+  'nav.noTeamHint': 'Choose a team first',
+  'team.takeOverHeadline': 'Take over this club?',
+  'team.takeOverDesc': '{teamName} is looking for a new coach. Become this club’s manager now.',
+  'team.takeOverButton': 'Take over club',
+  'team.takeOverSuccess': 'Welcome aboard, coach!',
+  'clubInfo.resignTitle': 'Resign from club',
+  'clubInfo.resignDesc': 'You can step down as coach. The club becomes a bot team again and you can take over another one later.',
+  'clubInfo.resignButton': 'Resign from coaching',
+  'clubInfo.resignConfirm': 'Are you sure you want to resign? You will lose this club’s cards, players, and budget.',
+  'clubInfo.resignConfirmYes': 'Yes, resign',
+  'clubInfo.resignConfirmNo': 'Cancel',
+  'clubInfo.resignSuccess': 'You have resigned from your coaching role.',
+
+  // Guided tutorial
+  'tutorial.stepLabel': 'Step {step}/{total}',
+  'tutorial.step0.text': 'Pick a club you want to manage as the new coach.',
+  'tutorial.step1.text': 'Open your team and set up a formation. Tap a player to place them on the pitch.',
+  'tutorial.step2.text': 'Use a "Level Up" action card on one of your players.',
+  'tutorial.step3.text': 'Upgrade your youth academy by one level — this one is free!',
+  'tutorial.step4.text': 'Use a "New Youth Player" action card.',
+  'tutorial.step5.text': 'Buy a cheap player from the transfer market.',
+  'tutorial.step6.text': 'Adjust your stadium ticket prices.',
+  'tutorial.step7.text': 'Pick a sponsor for your club.'
 }

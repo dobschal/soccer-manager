@@ -1,0 +1,71 @@
+/* ==========================================================================
+   User Profile Page
+   ========================================================================== */
+
+.user-profile-page h3 {
+    margin-bottom: 0;
+}
+
+.user-profile-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.user-profile-avatar--default {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.user-profile-emblem {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+}
+
+.user-profile-friends-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+}
+
+.user-profile-friend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    color: inherit;
+    text-decoration: none;
+}
+
+.user-profile-friend:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: inherit;
+}
+
+.user-profile-friend-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-profile-friend-avatar--default {
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.user-profile-friend-meta {
+    min-width: 0;
+    flex: 1;
+}
+
+.user-profile-friend-meta > div {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

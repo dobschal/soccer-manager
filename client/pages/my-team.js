@@ -9,6 +9,7 @@ import { ClubInfoPage } from './club/clubInfo.js'
 import { off, on } from '../lib/event.js'
 import { ActionCards } from './dashboard/actionCards.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
+import { goTo } from '../lib/router.js'
 
 export class MyTeamPage extends TabbedPage {
   async load () {
@@ -16,6 +17,13 @@ export class MyTeamPage extends TabbedPage {
       server.getMyTeam(),
       server.getCurrentGameday()
     ])
+    if (!teamData.team) {
+      // User has no team — the nav button should be disabled but in case the
+      // user navigates directly, send them back to the dashboard where the
+      // team-selection prompt lives.
+      goTo('dashboard')
+      return
+    }
     this.data = teamData
     this.season = gamedayData.season
     lineUpData.squadDataChanged = false

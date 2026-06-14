@@ -5,6 +5,7 @@ export default {
   'error.passwordLength': 'Passwort muss ein Text mit mehr als 8 Zeichen sein',
   'error.usernameTaken': 'Benutzername bereits vergeben',
   'error.noTeamAvailable': 'Kein Team verfügbar.',
+  'error.noTeam': 'Du verwaltest derzeit kein Team.',
   'error.wrongCredentials': 'Falsche Anmeldedaten',
   'error.wrongOldPassword': 'Das aktuelle Passwort ist falsch',
   'error.notAuthorized': 'Nicht autorisiert',
@@ -238,6 +239,7 @@ export default {
 
   // Building finance
   'finance.buildingUpgrade': 'Gebäude-Ausbau',
+  'finance.tutorialRefund': 'Tutorial-Rückerstattung',
 
   // World Cup
   'worldCup.bettingClosed': 'Tipps für dieses Spiel sind nicht mehr möglich.'

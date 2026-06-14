@@ -90,7 +90,11 @@ export default {
       language: locale,
       pending_email: normalizedEmail,
       email_verification_token: verificationToken,
-      email_verification_expires_at: verificationExpires
+      email_verification_expires_at: verificationExpires,
+      // New users start the guided tutorial flow. The default value on the
+      // column is 99 (done) so existing accounts keep their post-tutorial
+      // experience; here we explicitly set the fresh-account starting step.
+      tutorial_step: 0
     })
     if (normalizedEmail && verificationToken) {
       sendVerificationEmail({ toEmail: normalizedEmail, token: verificationToken, locale, username })

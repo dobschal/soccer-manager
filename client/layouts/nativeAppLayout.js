@@ -21,6 +21,7 @@ export class NativeAppLayout extends UIElement {
     this._nextGameDate = gameDate.date
     this._username = teamData.user?.username || ''
     this._avatar = teamData.user?.avatar || ''
+    this._hasTeam = !!teamData.team
     this._gameDay = currentGameday.gameDay
     this._season = currentGameday.season
     this._currentGameday = currentGameday
@@ -53,10 +54,10 @@ export class NativeAppLayout extends UIElement {
         <div id="page"></div>
         <nav class="native-tab-bar">
           ${this._tabItem('dashboard', 'fa-home', t('nav.home'))}
-          ${this._tabItem('my-team', 'fa-users', t('nav.team'))}
+          ${this._tabItem('my-team', 'fa-users', t('nav.team'), !this._hasTeam)}
           ${this._tabItem('results', 'fa-trophy', t('nav.league'))}
-          ${this._tabItem('club', 'fa-futbol-o', t('nav.club'))}
-          ${this._tabItem('trades', 'fa-handshake-o', t('nav.transfers'))}
+          ${this._tabItem('club', 'fa-futbol-o', t('nav.club'), !this._hasTeam)}
+          ${this._tabItem('trades', 'fa-handshake-o', t('nav.transfers'), !this._hasTeam)}
         </nav>
       </div>
     `
@@ -196,14 +197,25 @@ export class NativeAppLayout extends UIElement {
     return `<img class="nav-avatar nav-avatar--default" src="./assets/avatar-placeholder.svg" alt="${this._username}">`
   }
 
-  _tabItem (path, icon, label) {
+  _tabItem (path, icon, label, disabled = false) {
     const id = generateId()
-    const eventId = on('page-changed', () => {
-      const currentPath = window.location.hash.substring(1).split('?')[0]
-      const isCurrentPage = currentPath === path || (path === 'dashboard' && currentPath === '')
-      el('#' + id)?.classList[isCurrentPage ? 'add' : 'remove']('active')
-    })
-    this._navItemEventIds.push(eventId)
+    if (!disabled) {
+      const eventId = on('page-changed', () => {
+        const currentPath = window.location.hash.substring(1).split('?')[0]
+        const isCurrentPage = currentPath === path || (path === 'dashboard' && currentPath === '')
+        el('#' + id)?.classList[isCurrentPage ? 'add' : 'remove']('active')
+      })
+      this._navItemEventIds.push(eventId)
+    }
+
+    if (disabled) {
+      return `
+        <span id="${id}" class="native-tab-item native-tab-item--disabled" aria-disabled="true">
+          <i class="fa ${icon}" aria-hidden="true"></i>
+          <span>${label}</span>
+        </span>
+      `
+    }
 
     return `
       <a id="${id}" class="native-tab-item" href="#${path}">

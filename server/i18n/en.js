@@ -5,6 +5,7 @@ export default {
   'error.passwordLength': 'Password needs to be string longer than 8 characters',
   'error.usernameTaken': 'Username already taken',
   'error.noTeamAvailable': 'No team available.',
+  'error.noTeam': 'You do not currently manage a team.',
   'error.wrongCredentials': 'Wrong credentials',
   'error.wrongOldPassword': 'The current password is incorrect',
   'error.notAuthorized': 'Not authorized',
@@ -238,6 +239,7 @@ export default {
 
   // Building finance
   'finance.buildingUpgrade': 'Building upgrade',
+  'finance.tutorialRefund': 'Tutorial refund',
 
   // World Cup
   'worldCup.bettingClosed': 'Betting is closed for this game.'

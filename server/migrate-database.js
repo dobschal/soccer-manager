@@ -2224,6 +2224,40 @@ const migrations = [{
   async run () {
     await query("ALTER TABLE youth_player ADD COLUMN training_mode VARCHAR(20) DEFAULT NULL")
   }
+}, {
+  name: 'Create user_team_history table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS user_team_history (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT NOT NULL,
+      team_id BIGINT NOT NULL,
+      start_season INT NOT NULL DEFAULT 0,
+      end_season INT DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX idx_uth_user (user_id),
+      INDEX idx_uth_team (team_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4`)
+  }
+}, {
+  name: 'Backfill user_team_history from current team ownership',
+  async run () {
+    const [g] = await query('SELECT season FROM game ORDER BY season DESC LIMIT 1')
+    const season = g?.season ?? 0
+    await query(
+      `INSERT INTO user_team_history (user_id, team_id, start_season, end_season)
+       SELECT user_id, id, ?, NULL FROM team WHERE user_id IS NOT NULL`,
+      [season]
+    )
+  }
+}, {
+  name: 'Add tutorial_step column to user table',
+  async run () {
+    await query('ALTER TABLE user ADD COLUMN tutorial_step INT NOT NULL DEFAULT 99')
+    // Existing users are treated as having finished the tutorial (step 99 = done).
+    // New users start at step 0 (no team yet) and reach step 1 after registering.
+    await query('UPDATE user SET tutorial_step=99')
+  }
 }]
 
 /**
