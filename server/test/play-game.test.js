@@ -1169,4 +1169,66 @@ describe('play-game simulation', () => {
       expect(playerIn.in_game_position).toBe('CM')
     })
   })
+
+  describe('sent-off players (#428)', () => {
+    it('never scores a goal even if it somehow still holds the ball', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+      // Simulate the broken intermediate state: striker is sent off but still has the ball.
+      const sentOffStriker = teamA[9] // CA
+      sentOffStriker.sentOff = true
+      sentOffStriker.hasBall = true
+
+      const gameDetails = createGameDetails({ playerTeamA: teamA, playerTeamB: teamB })
+
+      for (let i = 0; i < 200; i++) {
+        gameDetails.currentMinute = 50 + Math.floor(i / 10)
+        playGameStep(teamA, teamB, gameDetails)
+      }
+
+      const goalsByOffender = gameDetails.log.filter(e => e.goal && e.player === sentOffStriker.id)
+      expect(goalsByOffender).toHaveLength(0)
+    })
+
+    it('cannot receive a pass from teammates', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+      const sentOff = teamA[6] // CM
+      sentOff.sentOff = true
+      // Give the ball to a healthy teammate
+      teamA[5].hasBall = true
+
+      const gameDetails = createGameDetails({ playerTeamA: teamA, playerTeamB: teamB })
+
+      for (let i = 0; i < 500; i++) {
+        gameDetails.currentMinute = 50 + Math.floor(i / 10)
+        playGameStep(teamA, teamB, gameDetails)
+      }
+
+      const passesToSentOff = gameDetails.log.filter(e => e.pass && e.newPlayer === sentOff.id)
+      expect(passesToSentOff).toHaveLength(0)
+      // And they must never end up holding the ball at any inspection point
+      expect(sentOff.hasBall).toBe(false)
+    })
+
+    it('substituted-out players are equally excluded from passes and goals', () => {
+      const teamA = createTeam({ level: 50, prefix: 'A', idStart: 1 })
+      const teamB = createTeam({ level: 50, prefix: 'B', idStart: 100 })
+      const subbedOut = teamA[8] // LA
+      subbedOut.substitutedOut = true
+      teamA[0].hasBall = true
+
+      const gameDetails = createGameDetails({ playerTeamA: teamA, playerTeamB: teamB })
+
+      for (let i = 0; i < 500; i++) {
+        gameDetails.currentMinute = 50 + Math.floor(i / 10)
+        playGameStep(teamA, teamB, gameDetails)
+      }
+
+      const passesToSubbed = gameDetails.log.filter(e => e.pass && e.newPlayer === subbedOut.id)
+      const goalsBySubbed = gameDetails.log.filter(e => e.goal && e.player === subbedOut.id)
+      expect(passesToSubbed).toHaveLength(0)
+      expect(goalsBySubbed).toHaveLength(0)
+    })
+  })
 })

@@ -326,8 +326,14 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
 
   // If player was sent off or substituted, pass ball to teammate
   if (!activePlayer) {
-    const teamWithBall = teamAHasBall ? playerTeamA : playerTeamB
-    const availablePlayers = teamWithBall.filter(p => !p.sentOff && !p.substitutedOut)
+    // Locate the team whose sent-off/substituted player is still holding the ball,
+    // then clear that stale `hasBall` so the ball reassignment is the single source of truth.
+    const teamWithStaleBall = playerTeamA.some(p => p.hasBall) ? playerTeamA : playerTeamB
+    for (const p of teamWithStaleBall) {
+      if (p.hasBall && (p.sentOff || p.substitutedOut)) p.hasBall = false
+    }
+    teamAHasBall = teamWithStaleBall === playerTeamA
+    const availablePlayers = teamWithStaleBall.filter(p => !p.sentOff && !p.substitutedOut)
     if (availablePlayers.length > 0) {
       activePlayer = randomItem(availablePlayers)
       activePlayer.hasBall = true
@@ -488,15 +494,16 @@ function _checkForCard (player, playStyle, gameDetails, team) {
  * @returns {boolean} false if lost ball
  */
 function _shootBall (playerTeamA, playerTeamB, gameDetails) {
-  let activePlayer = playerTeamA.find(p => p.hasBall)
+  let activePlayer = playerTeamA.find(p => p.hasBall && !p.sentOff && !p.substitutedOut)
   let goalKeeper = playerTeamB.find(p => p.position === 'GK')
   gameDetails.streak = gameDetails.streak ?? 0
   let teamAHasBall = true
   if (!activePlayer) {
-    activePlayer = playerTeamB.find(p => p.hasBall)
+    activePlayer = playerTeamB.find(p => p.hasBall && !p.sentOff && !p.substitutedOut)
     goalKeeper = playerTeamA.find(p => p.position === 'GK')
     teamAHasBall = false
   }
+  if (!activePlayer) return true
   // Base chance + streak bonus (allows shots even at streak 0)
   const cappedStreak = Math.min(gameDetails.streak, 6)
   const chanceForShoot = Math.min(0.95, _chanceToShoot(activePlayer, gameDetails) * (1 + cappedStreak * 0.15))
@@ -596,16 +603,17 @@ function _chanceToFight (player) {
  * @returns {void}
  */
 function _passBall (playerTeamA, playerTeamB, gameDetails) {
-  let activePlayer = playerTeamA.find(p => p.hasBall)
+  let activePlayer = playerTeamA.find(p => p.hasBall && !p.sentOff && !p.substitutedOut)
   let teamAHasBall = true
   if (!activePlayer) {
-    activePlayer = playerTeamB.find(p => p.hasBall)
+    activePlayer = playerTeamB.find(p => p.hasBall && !p.sentOff && !p.substitutedOut)
     teamAHasBall = false
   }
+  if (!activePlayer) return
 
   const teammates = teamAHasBall
-    ? playerTeamA.filter(p => p.id !== activePlayer.id)
-    : playerTeamB.filter(p => p.id !== activePlayer.id)
+    ? playerTeamA.filter(p => p.id !== activePlayer.id && !p.sentOff && !p.substitutedOut)
+    : playerTeamB.filter(p => p.id !== activePlayer.id && !p.sentOff && !p.substitutedOut)
 
   const team = teamAHasBall ? gameDetails.teamA : gameDetails.teamB
   const passStyle = team.pass_style || 'mixed'
