@@ -86,11 +86,27 @@ describe('youth routes', () => {
       expect(result.youthPlayers[0].age).toBeDefined()
       expect(result.trainingMode).toBe('training')
       expect(result.academyLevel).toBe(2)
-      expect(result.slotsPerMode).toBe(2)
+      // Level 2: training/friendly = 3 (academyLevel + 1), rest is always 4
+      expect(result.slotsByMode).toEqual({ training: 3, friendly_match: 3, rest: 4 })
       expect(result.season).toBe(2)
     })
 
-    it('caps slotsPerMode at 3 even for higher academy levels', async () => {
+    it('rest mode always has 4 slots regardless of academy level', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 1 })
+      getYouthPlayersByTeam.mockResolvedValue([])
+      getYouthAcademyLevel.mockResolvedValue(1)
+
+      const req = createMockRequest()
+      const result = await handlers.getYouthTeam(req)
+
+      expect(result.slotsByMode.rest).toBe(4)
+      expect(result.slotsByMode.training).toBe(2)
+      expect(result.slotsByMode.friendly_match).toBe(2)
+    })
+
+    it('caps training/friendly slots at 4 for higher academy levels', async () => {
       const team = testData.team()
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ season: 1 })
@@ -100,7 +116,7 @@ describe('youth routes', () => {
       const req = createMockRequest()
       const result = await handlers.getYouthTeam(req)
 
-      expect(result.slotsPerMode).toBe(3)
+      expect(result.slotsByMode).toEqual({ training: 4, friendly_match: 4, rest: 4 })
     })
 
     it('defaults training mode to rest when not set', async () => {
@@ -145,15 +161,41 @@ describe('youth routes', () => {
       expect(setYouthPlayerTrainingMode).toHaveBeenCalledWith(11, null)
     })
 
-    it('rejects mode when slots are full', async () => {
+    it('rejects training assignment when its 2 level-1 slots are full', async () => {
       const team = testData.team({ id: 7 })
       getTeam.mockResolvedValue(team)
       getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
       getYouthAcademyLevel.mockResolvedValue(1)
-      countYouthPlayersInMode.mockResolvedValue(1)
+      countYouthPlayersInMode.mockResolvedValue(2)
 
       const req = createMockRequest()
       await expect(handlers.setYouthPlayerTrainingMode(11, 'training', req))
+        .rejects.toMatchObject({ message: 'error.youthModeSlotsFull' })
+    })
+
+    it('allows assigning to rest even when training is capped', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
+      getYouthAcademyLevel.mockResolvedValue(1)
+      // 3 players already resting — still under the 4-slot rest cap.
+      countYouthPlayersInMode.mockResolvedValue(3)
+
+      const req = createMockRequest()
+      const result = await handlers.setYouthPlayerTrainingMode(11, 'rest', req)
+
+      expect(result.success).toBe(true)
+    })
+
+    it('rejects rest assignment only when all 4 rest slots are full', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
+      getYouthAcademyLevel.mockResolvedValue(1)
+      countYouthPlayersInMode.mockResolvedValue(4)
+
+      const req = createMockRequest()
+      await expect(handlers.setYouthPlayerTrainingMode(11, 'rest', req))
         .rejects.toMatchObject({ message: 'error.youthModeSlotsFull' })
     })
 

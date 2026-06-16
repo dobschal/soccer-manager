@@ -467,7 +467,7 @@ export default {
   'youthTeam.nextTrainingIn': 'Nächste {mode} in {time}',
   'youthTeam.nextGameDayIn': 'Nächster Trainings-Tag in {time}',
   'youthTeam.trainingModeDescPerPlayer': 'Weise jedem Jugendspieler einen Modus zu. Nicht zugewiesene Spieler ruhen.',
-  'youthTeam.academySlotsHint': '{slotsPerMode} Slot(s) pro Modus (Jugendakademie Stufe {level}).',
+  'youthTeam.academySlotsHint': 'Training & Freundschaftsspiel: je {trainingSlots} Slots · Pause: immer 4 Slots (Jugendakademie Stufe {level}).',
   'youthTeam.slotEmpty': '— Slot frei —',
   'youthTeam.slotLocked': 'Jugendakademie ausbauen',
   'youthTeam.unassigned': 'Nicht zugewiesen',
