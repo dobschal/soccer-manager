@@ -467,7 +467,7 @@ export default {
   'youthTeam.nextTrainingIn': 'Next {mode} in {time}',
   'youthTeam.nextGameDayIn': 'Next training day in {time}',
   'youthTeam.trainingModeDescPerPlayer': 'Assign each youth player a mode. Unassigned players rest by default.',
-  'youthTeam.academySlotsHint': '{slotsPerMode} slot(s) per mode (Youth Academy level {level}).',
+  'youthTeam.academySlotsHint': 'Training & Friendly Match: {trainingSlots} slots each · Rest: always 4 slots (Youth Academy level {level}).',
   'youthTeam.slotEmpty': '— Empty slot —',
   'youthTeam.slotLocked': 'Upgrade Youth Academy',
   'youthTeam.unassigned': 'Unassigned',

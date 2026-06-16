@@ -17,7 +17,32 @@ import {
 } from '../helper/youthPlayerHelper.js'
 
 const VALID_TRAINING_MODES = ['training', 'friendly_match', 'rest']
-const MAX_SLOTS_PER_MODE = 3
+const MAX_SLOTS_PER_MODE = 4
+
+/**
+ * Slot capacity per training mode. `rest` is always 4. `training` and
+ * `friendly_match` start at 2 (academy level 1) and gain one slot per
+ * additional academy level, capped at MAX_SLOTS_PER_MODE.
+ * @param {string} mode
+ * @param {number} academyLevel
+ * @returns {number}
+ */
+function slotsForMode (mode, academyLevel) {
+  if (mode === 'rest') return MAX_SLOTS_PER_MODE
+  return Math.max(2, Math.min(MAX_SLOTS_PER_MODE, academyLevel + 1))
+}
+
+/**
+ * @param {number} academyLevel
+ * @returns {{training: number, friendly_match: number, rest: number}}
+ */
+function slotsByModeFor (academyLevel) {
+  return {
+    training: slotsForMode('training', academyLevel),
+    friendly_match: slotsForMode('friendly_match', academyLevel),
+    rest: slotsForMode('rest', academyLevel)
+  }
+}
 
 export default {
 
@@ -26,14 +51,13 @@ export default {
    * and the youth academy level (which determines how many slots are
    * available per training mode).
    * @param {Request} req
-   * @returns {Promise<{youthPlayers: YouthPlayerType[], trainingMode: string, academyLevel: number, slotsPerMode: number, season: number}>}
+   * @returns {Promise<{youthPlayers: YouthPlayerType[], trainingMode: string, academyLevel: number, slotsByMode: {training: number, friendly_match: number, rest: number}, season: number}>}
    */
   async getYouthTeam (req) {
     const team = await getTeam(req)
     const { season } = await getGameDayAndSeason()
     const youthPlayers = await getYouthPlayersByTeam(team.id)
     const academyLevel = await getYouthAcademyLevel(team.id)
-    const slotsPerMode = Math.max(1, Math.min(MAX_SLOTS_PER_MODE, academyLevel))
 
     // Add age to each player (but not talent - that's hidden)
     const playersWithAge = youthPlayers.map(p => ({
@@ -46,7 +70,7 @@ export default {
       youthPlayers: playersWithAge,
       trainingMode: team.youth_training_mode || 'rest',
       academyLevel,
-      slotsPerMode,
+      slotsByMode: slotsByModeFor(academyLevel),
       season
     }
   },
@@ -94,9 +118,9 @@ export default {
 
     if (mode) {
       const academyLevel = await getYouthAcademyLevel(team.id)
-      const slotsPerMode = Math.max(1, Math.min(MAX_SLOTS_PER_MODE, academyLevel))
+      const limit = slotsForMode(mode, academyLevel)
       const used = await countYouthPlayersInMode(team.id, mode, youthPlayerId)
-      if (used >= slotsPerMode) {
+      if (used >= limit) {
         throw new BadRequestError(t('error.youthModeSlotsFull', {}, locale))
       }
     }

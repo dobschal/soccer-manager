@@ -17,7 +17,7 @@ const TRAINING_MODES = [
   { key: 'rest', icon: 'fa-bed', effects: { level: 0, fitness: 2, moral: 1 } }
 ]
 
-const MAX_SLOTS_PER_MODE = 3
+const MAX_SLOTS_PER_MODE = 4
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -38,7 +38,7 @@ export class YouthTeamPage extends UIElement {
     this.youthPlayers = data.youthPlayers
     this.trainingMode = data.trainingMode
     this.academyLevel = data.academyLevel || 1
-    this.slotsPerMode = data.slotsPerMode || 1
+    this.slotsByMode = data.slotsByMode || { training: 2, friendly_match: 2, rest: MAX_SLOTS_PER_MODE }
     this.season = data.season
   }
   /**
@@ -53,7 +53,7 @@ export class YouthTeamPage extends UIElement {
           <p class="text-muted mb-1">${t('youthTeam.trainingModeDescPerPlayer')}</p>
           <p class="text-muted small mb-3">
             <i class="fa fa-graduation-cap"></i>
-            ${t('youthTeam.academySlotsHint', { slotsPerMode: this.slotsPerMode, level: this.academyLevel })}
+            ${t('youthTeam.academySlotsHint', { trainingSlots: this.slotsByMode.training, level: this.academyLevel })}
           </p>
           ${this._renderTrainingModeSelector()}
         </div>
@@ -180,11 +180,12 @@ export class YouthTeamPage extends UIElement {
   _renderModeCard (mode) {
     const modeName = mode.key === 'friendly_match' ? 'friendlyMatch' : mode.key
     const assigned = (this.youthPlayers || []).filter(p => p.training_mode === mode.key)
+    const modeLimit = this.slotsByMode[mode.key] ?? MAX_SLOTS_PER_MODE
     const slots = []
     for (let i = 0; i < MAX_SLOTS_PER_MODE; i++) {
       slots.push(assigned[i] || null)
     }
-    const fillRatio = `${assigned.length}/${this.slotsPerMode}`
+    const fillRatio = `${assigned.length}/${modeLimit}`
 
     return `
       <div class="card youth-mode-card flex-fill">
@@ -200,7 +201,7 @@ export class YouthTeamPage extends UIElement {
             ${this._renderEffectRow(t('youthTeam.moral'), mode.effects.moral, false)}
           </div>
           <div class="youth-slot-list">
-            ${slots.map((p, idx) => this._renderSlot(mode.key, idx, p, idx < this.slotsPerMode)).join('')}
+            ${slots.map((p, idx) => this._renderSlot(mode.key, idx, p, idx < modeLimit)).join('')}
           </div>
         </div>
       </div>
