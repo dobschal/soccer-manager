@@ -32,14 +32,15 @@ export default {
 
     const { gameDay, season } = await getGameDayAndSeason()
 
-    // Check if user already played a friendly today
+    // Only the team that initiates a friendly is recorded as team_1_id; being
+    // someone else's opponent (team_2_id) doesn't use up your one-per-day slot.
     const existingFriendly = await query(
       `SELECT * FROM game
        WHERE game_type = 'friendly'
        AND season = ?
        AND game_day = ?
-       AND (team_1_id = ? OR team_2_id = ?)`,
-      [season, gameDay, myTeam.id, myTeam.id]
+       AND team_1_id = ?`,
+      [season, gameDay, myTeam.id]
     )
 
     if (existingFriendly.length > 0) {
@@ -102,14 +103,15 @@ export default {
     const myTeam = await getTeam(req)
     const { gameDay, season } = await getGameDayAndSeason()
 
-    // Check if user already played a friendly today
+    // Only the team that initiates a friendly is recorded as team_1_id; being
+    // someone else's opponent (team_2_id) doesn't use up your one-per-day slot.
     const existingFriendly = await query(
       `SELECT * FROM game
        WHERE game_type = 'friendly'
        AND season = ?
        AND game_day = ?
-       AND (team_1_id = ? OR team_2_id = ?)`,
-      [season, gameDay, myTeam.id, myTeam.id]
+       AND team_1_id = ?`,
+      [season, gameDay, myTeam.id]
     )
 
     if (existingFriendly.length > 0) {
@@ -177,8 +179,8 @@ export default {
        WHERE game_type = 'friendly'
        AND season = ?
        AND game_day = ?
-       AND (team_1_id = ? OR team_2_id = ?)`,
-      [season, gameDay, myTeam.id, myTeam.id]
+       AND team_1_id = ?`,
+      [season, gameDay, myTeam.id]
     )
 
     if (existingFriendly.length > 0) {

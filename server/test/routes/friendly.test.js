@@ -100,6 +100,28 @@ describe('friendly routes', () => {
         .rejects.toMatchObject({ message: 'You can only play one friendly match per game day' })
     })
 
+    it('only counts friendlies the user initiated, not those they were challenged into (#418)', async () => {
+      const req = createMockRequest()
+      const myTeam = testData.team({ id: 1, user_id: 1 })
+      const opponentTeam = testData.team({ id: 2, user_id: null, name: 'Opponent FC' })
+
+      getTeam.mockResolvedValue(myTeam)
+      getTeamById.mockResolvedValue(opponentTeam)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      query.mockResolvedValueOnce([]) // First call: existence check returns empty
+      // The rest of the handler keeps querying; we don't care for this test, so
+      // the second mockResolvedValueOnce below makes _playFriendlyGame bail with
+      // a SQL surprise we catch.
+      query.mockRejectedValueOnce(new Error('stop after existence check'))
+
+      await expect(handlers.playFriendlyMatch(2, req)).rejects.toThrow()
+
+      const [sql, params] = query.mock.calls[0]
+      expect(sql).not.toMatch(/team_2_id/)
+      expect(sql).toMatch(/team_1_id\s*=\s*\?/)
+      expect(params).toEqual([1, 5, 1])
+    })
+
     it('plays a friendly match successfully', async () => {
       const req = createMockRequest()
       const myTeam = testData.team({ id: 1, user_id: 1, name: 'My FC' })
@@ -332,6 +354,22 @@ describe('friendly routes', () => {
       const result = await handlers.canPlayFriendlyToday(req)
 
       expect(result).toEqual({ canPlay: false, reason: 'alreadyPlayed' })
+    })
+
+    it('only counts friendlies the user initiated, not those they were challenged into (#418)', async () => {
+      const req = createMockRequest()
+      const myTeam = testData.team({ id: 1, user_id: 1 })
+
+      getTeam.mockResolvedValue(myTeam)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      query.mockResolvedValueOnce([])
+
+      await handlers.canPlayFriendlyToday(req)
+
+      const [sql, params] = query.mock.calls[0]
+      expect(sql).not.toMatch(/team_2_id/)
+      expect(sql).toMatch(/team_1_id\s*=\s*\?/)
+      expect(params).toEqual([1, 5, 1])
     })
   })
 
