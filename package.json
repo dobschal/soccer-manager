@@ -1,6 +1,6 @@
 {
   "name": "soccer-simulation",
-  "version": "2026.6.16",
+  "version": "2026.6.17",
   "description": "",
   "main": "server/app.js",
   "scripts": {
