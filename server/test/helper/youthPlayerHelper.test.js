@@ -25,7 +25,9 @@ import {
   fireYouthPlayer,
   archiveOverageYouthPlayers,
   getYouthPlayersAt18,
-  setYouthTrainingMode
+  setYouthTrainingMode,
+  setYouthPlayerTrainingMode,
+  countYouthPlayersInMode
 } from '../../helper/youthPlayerHelper.js'
 
 describe('youthPlayerHelper', () => {
@@ -220,8 +222,8 @@ describe('youthPlayerHelper', () => {
     it('applies training to all youth players of a team', async () => {
       const team = { id: 1, youth_training_mode: 'training' }
       const mockPlayers = [
-        { id: 1, team_id: 1, level: 10.0, talent: 0.5, moral: 0.7, fitness: 0.7 },
-        { id: 2, team_id: 1, level: 15.0, talent: 0.8, moral: 0.6, fitness: 0.8 }
+        { id: 1, team_id: 1, level: 10.0, talent: 0.5, moral: 0.7, fitness: 0.7, training_mode: 'training' },
+        { id: 2, team_id: 1, level: 15.0, talent: 0.8, moral: 0.6, fitness: 0.8, training_mode: 'training' }
       ]
 
       query.mockResolvedValueOnce(mockPlayers) // getYouthPlayersByTeam
@@ -236,10 +238,32 @@ describe('youthPlayerHelper', () => {
       )
     })
 
-    it('uses rest mode by default', async () => {
+    it('uses per-player training_mode when set', async () => {
+      const team = { id: 1, youth_training_mode: 'rest' }
+      const mockPlayers = [
+        { id: 1, team_id: 1, level: 10.0, talent: 0.5, moral: 0.5, fitness: 0.5, training_mode: 'training' }
+      ]
+
+      query.mockResolvedValueOnce(mockPlayers)
+      query.mockResolvedValue({})
+
+      const originalRandom = Math.random
+      Math.random = () => 0.5
+      await processYouthTraining(team)
+      Math.random = originalRandom
+
+      const updateCall = query.mock.calls.find(call =>
+        call[0].includes('UPDATE youth_player')
+      )
+      expect(updateCall).toBeDefined()
+      // Training mode: fitness +0.02 ⇒ 0.5 → 0.52 (rest would give 0.56)
+      expect(updateCall[1][2]).toBeCloseTo(0.52, 2)
+    })
+
+    it('falls back to team mode when player has no training_mode', async () => {
       const team = { id: 1, youth_training_mode: null }
       const mockPlayers = [
-        { id: 1, team_id: 1, level: 10.0, talent: 0.5, moral: 0.5, fitness: 0.5 }
+        { id: 1, team_id: 1, level: 10.0, talent: 0.5, moral: 0.5, fitness: 0.5, training_mode: null }
       ]
 
       query.mockResolvedValueOnce(mockPlayers)
@@ -384,6 +408,67 @@ describe('youthPlayerHelper', () => {
         'UPDATE team SET youth_training_mode=? WHERE id=?',
         ['rest', 1]
       )
+    })
+  })
+
+  describe('setYouthPlayerTrainingMode', () => {
+    it('updates a single youth player to the given mode', async () => {
+      query.mockResolvedValueOnce({})
+
+      await setYouthPlayerTrainingMode(42, 'training')
+
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE youth_player SET training_mode=? WHERE id=?',
+        ['training', 42]
+      )
+    })
+
+    it('persists null to clear the assignment', async () => {
+      query.mockResolvedValueOnce({})
+
+      await setYouthPlayerTrainingMode(42, null)
+
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE youth_player SET training_mode=? WHERE id=?',
+        [null, 42]
+      )
+    })
+
+    it('normalizes invalid mode to null', async () => {
+      query.mockResolvedValueOnce({})
+
+      await setYouthPlayerTrainingMode(42, 'bogus')
+
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE youth_player SET training_mode=? WHERE id=?',
+        [null, 42]
+      )
+    })
+  })
+
+  describe('countYouthPlayersInMode', () => {
+    it('returns the count of players in the given mode', async () => {
+      query.mockResolvedValueOnce([{ cnt: 2 }])
+
+      const result = await countYouthPlayersInMode(7, 'training')
+
+      expect(query).toHaveBeenCalledWith(
+        'SELECT COUNT(*) AS cnt FROM youth_player WHERE team_id=? AND training_mode=?',
+        [7, 'training']
+      )
+      expect(result).toBe(2)
+    })
+
+    it('excludes a specific youth player when requested', async () => {
+      query.mockResolvedValueOnce([{ cnt: 1 }])
+
+      const result = await countYouthPlayersInMode(7, 'rest', 99)
+
+      expect(query).toHaveBeenCalledWith(
+        'SELECT COUNT(*) AS cnt FROM youth_player WHERE team_id=? AND training_mode=? AND id != ?',
+        [7, 'rest', 99]
+      )
+      expect(result).toBe(1)
     })
   })
 

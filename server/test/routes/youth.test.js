@@ -23,7 +23,13 @@ vi.mock('../../helper/youthPlayerHelper.js', () => ({
   getYouthPlayerAge: vi.fn(),
   promoteYouthPlayer: vi.fn(),
   fireYouthPlayer: vi.fn(),
-  setYouthTrainingMode: vi.fn()
+  setYouthTrainingMode: vi.fn(),
+  setYouthPlayerTrainingMode: vi.fn(),
+  countYouthPlayersInMode: vi.fn().mockResolvedValue(0)
+}))
+
+vi.mock('../../helper/buildingHelper.js', () => ({
+  getYouthAcademyLevel: vi.fn().mockResolvedValue(2)
 }))
 
 vi.mock('../../helper/playerHelper.js', () => ({
@@ -45,8 +51,11 @@ import {
   getYouthPlayerAge,
   promoteYouthPlayer,
   fireYouthPlayer,
-  setYouthTrainingMode
+  setYouthTrainingMode,
+  setYouthPlayerTrainingMode,
+  countYouthPlayersInMode
 } from '../../helper/youthPlayerHelper.js'
+import { getYouthAcademyLevel } from '../../helper/buildingHelper.js'
 import { getPlayersByTeamId } from '../../helper/playerHelper.js'
 import handlers from '../../routes/youth.js'
 
@@ -67,6 +76,7 @@ describe('youth routes', () => {
       getGameDayAndSeason.mockResolvedValue({ season: 2, gameDay: 5 })
       getYouthPlayersByTeam.mockResolvedValue(youthPlayers)
       getYouthPlayerAge.mockImplementation((p, season) => 15 + season - p.birth_season)
+      getYouthAcademyLevel.mockResolvedValue(2)
 
       const req = createMockRequest()
       const result = await handlers.getYouthTeam(req)
@@ -75,7 +85,22 @@ describe('youth routes', () => {
       expect(result.youthPlayers[0].talent).toBeUndefined()
       expect(result.youthPlayers[0].age).toBeDefined()
       expect(result.trainingMode).toBe('training')
+      expect(result.academyLevel).toBe(2)
+      expect(result.slotsPerMode).toBe(2)
       expect(result.season).toBe(2)
+    })
+
+    it('caps slotsPerMode at 3 even for higher academy levels', async () => {
+      const team = testData.team()
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 1 })
+      getYouthPlayersByTeam.mockResolvedValue([])
+      getYouthAcademyLevel.mockResolvedValue(7)
+
+      const req = createMockRequest()
+      const result = await handlers.getYouthTeam(req)
+
+      expect(result.slotsPerMode).toBe(3)
     })
 
     it('defaults training mode to rest when not set', async () => {
@@ -84,11 +109,72 @@ describe('youth routes', () => {
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ season: 1 })
       getYouthPlayersByTeam.mockResolvedValue([])
+      getYouthAcademyLevel.mockResolvedValue(1)
 
       const req = createMockRequest()
       const result = await handlers.getYouthTeam(req)
 
       expect(result.trainingMode).toBe('rest')
+    })
+  })
+
+  describe('setYouthPlayerTrainingMode', () => {
+    it('assigns a youth player to a training mode', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
+      getYouthAcademyLevel.mockResolvedValue(1)
+      countYouthPlayersInMode.mockResolvedValue(0)
+
+      const req = createMockRequest()
+      const result = await handlers.setYouthPlayerTrainingMode(11, 'training', req)
+
+      expect(result.success).toBe(true)
+      expect(setYouthPlayerTrainingMode).toHaveBeenCalledWith(11, 'training')
+    })
+
+    it('unassigns when mode is null', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
+
+      const req = createMockRequest()
+      const result = await handlers.setYouthPlayerTrainingMode(11, null, req)
+
+      expect(result.success).toBe(true)
+      expect(setYouthPlayerTrainingMode).toHaveBeenCalledWith(11, null)
+    })
+
+    it('rejects mode when slots are full', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
+      getYouthAcademyLevel.mockResolvedValue(1)
+      countYouthPlayersInMode.mockResolvedValue(1)
+
+      const req = createMockRequest()
+      await expect(handlers.setYouthPlayerTrainingMode(11, 'training', req))
+        .rejects.toMatchObject({ message: 'error.youthModeSlotsFull' })
+    })
+
+    it('rejects youth player not owned by team', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 99 })
+
+      const req = createMockRequest()
+      await expect(handlers.setYouthPlayerTrainingMode(11, 'training', req))
+        .rejects.toMatchObject({ message: 'error.notYourYouthPlayer' })
+    })
+
+    it('rejects invalid training mode', async () => {
+      const team = testData.team({ id: 7 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
+
+      const req = createMockRequest()
+      await expect(handlers.setYouthPlayerTrainingMode(11, 'bogus', req))
+        .rejects.toMatchObject({ message: 'error.youthInvalidTrainingMode' })
     })
   })
 

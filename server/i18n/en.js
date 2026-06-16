@@ -93,6 +93,8 @@ export default {
   'error.youthPlayerNotFound': 'Youth player not found',
   'error.notYourYouthPlayer': 'This is not your youth player',
   'error.youthPlayerTooYoung': 'Youth player must be at least 16 years old to be promoted',
+  'error.youthInvalidTrainingMode': 'Invalid training mode',
+  'error.youthModeSlotsFull': 'No free slots for this mode. Upgrade your youth academy or reassign another player.',
 
   // Action card errors
   'error.cardNotFound': 'Action card not found',

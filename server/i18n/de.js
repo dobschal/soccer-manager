@@ -93,6 +93,8 @@ export default {
   'error.youthPlayerNotFound': 'Jugendspieler nicht gefunden',
   'error.notYourYouthPlayer': 'Das ist nicht dein Jugendspieler',
   'error.youthPlayerTooYoung': 'Jugendspieler muss mindestens 16 Jahre alt sein, um befördert zu werden',
+  'error.youthInvalidTrainingMode': 'Ungültiger Trainingsmodus',
+  'error.youthModeSlotsFull': 'Keine freien Slots für diesen Modus. Bau deine Jugendakademie weiter aus oder weise einen anderen Spieler um.',
 
   // Action card errors
   'error.cardNotFound': 'Aktionskarte nicht gefunden',

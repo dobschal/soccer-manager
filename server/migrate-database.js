@@ -2219,6 +2219,11 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Add training_mode column to youth_player table',
+  async run () {
+    await query("ALTER TABLE youth_player ADD COLUMN training_mode VARCHAR(20) DEFAULT NULL")
+  }
 }]
 
 /**

@@ -6,7 +6,8 @@ vi.mock('../../../lib/gateway.js', () => ({
     getYouthTeam: vi.fn(),
     promoteYouthPlayer: vi.fn(),
     fireYouthPlayer: vi.fn(),
-    setYouthTrainingMode: vi.fn()
+    setYouthTrainingMode: vi.fn(),
+    setYouthPlayerTrainingMode: vi.fn()
   },
   showServerError: vi.fn()
 }))
@@ -17,7 +18,8 @@ vi.mock('../../../lib/html.js', () => ({
 }))
 
 vi.mock('../../../lib/htmlEventHandlers.js', () => ({
-  onClick: vi.fn()
+  onClick: vi.fn(),
+  onChange: vi.fn()
 }))
 
 vi.mock('../../../partials/toast.js', () => ({

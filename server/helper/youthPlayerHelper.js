@@ -113,16 +113,19 @@ export function applyTrainingEffects (youthPlayer, trainingMode) {
 }
 
 /**
- * Process training for all youth players of a team
+ * Process training for all youth players of a team.
+ * Each player trains according to their individual `training_mode`. Players
+ * with no assigned mode default to `rest` (so they recover without leveling).
  * @param {TeamType} team
  * @returns {Promise<void>}
  */
 export async function processYouthTraining (team) {
-  const trainingMode = team.youth_training_mode || 'rest'
+  const fallbackMode = team.youth_training_mode || 'rest'
   const youthPlayers = await getYouthPlayersByTeam(team.id)
 
   for (const youthPlayer of youthPlayers) {
-    applyTrainingEffects(youthPlayer, trainingMode)
+    const mode = youthPlayer.training_mode || fallbackMode
+    applyTrainingEffects(youthPlayer, mode)
     await query(
       'UPDATE youth_player SET level=?, moral=?, fitness=? WHERE id=?',
       [youthPlayer.level, youthPlayer.moral, youthPlayer.fitness, youthPlayer.id]
@@ -205,7 +208,8 @@ export async function getYouthPlayersAt18 (teamId, season) {
 }
 
 /**
- * Update the training mode for a team's youth team
+ * Update the training mode for a team's youth team (legacy team-level setting,
+ * still used as a fallback when a youth player has no individual mode).
  * @param {number} teamId
  * @param {string} mode - 'training', 'friendly_match', or 'rest'
  * @returns {Promise<void>}
@@ -216,4 +220,34 @@ export async function setYouthTrainingMode (teamId, mode) {
     mode = 'rest'
   }
   await query('UPDATE team SET youth_training_mode=? WHERE id=?', [mode, teamId])
+}
+
+/**
+ * Set the individual training mode for one youth player.
+ * @param {number} youthPlayerId
+ * @param {string|null} mode - 'training' | 'friendly_match' | 'rest' | null
+ * @returns {Promise<void>}
+ */
+export async function setYouthPlayerTrainingMode (youthPlayerId, mode) {
+  const validModes = ['training', 'friendly_match', 'rest']
+  const value = mode === null || mode === undefined ? null : (validModes.includes(mode) ? mode : null)
+  await query('UPDATE youth_player SET training_mode=? WHERE id=?', [value, youthPlayerId])
+}
+
+/**
+ * Count how many youth players are currently assigned to a training mode.
+ * @param {number} teamId
+ * @param {string} mode
+ * @param {number} [excludeYouthPlayerId]
+ * @returns {Promise<number>}
+ */
+export async function countYouthPlayersInMode (teamId, mode, excludeYouthPlayerId = null) {
+  const params = [teamId, mode]
+  let sql = 'SELECT COUNT(*) AS cnt FROM youth_player WHERE team_id=? AND training_mode=?'
+  if (excludeYouthPlayerId !== null && excludeYouthPlayerId !== undefined) {
+    sql += ' AND id != ?'
+    params.push(excludeYouthPlayerId)
+  }
+  const [row] = await query(sql, params)
+  return row?.cnt ?? 0
 }
