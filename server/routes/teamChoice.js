@@ -9,7 +9,7 @@ import { t } from '../i18n/index.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { recordTeamTakeover, recordTeamResign } from '../helper/userHistoryHelper.js'
+import { recordTeamTakeover } from '../helper/userHistoryHelper.js'
 import { advanceTutorialIfStep, TUTORIAL_STEPS } from '../helper/tutorialHelper.js'
 import { config } from '../config.js'
 
@@ -152,29 +152,6 @@ export default {
     // time (tutorial_step still at the initial value). Existing returning
     // users keep their previous state.
     await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.NOT_STARTED, TUTORIAL_STEPS.PICK_FORMATION)
-    clearUserCache(req.user.id)
-    return { success: true }
-  },
-
-  /**
-   * Resign from the user's current team. The team becomes a bot team again
-   * (user_id = NULL, description cleared). The user can subsequently take
-   * over a different team via chooseTeam.
-   * @param {Request} req
-   * @returns {Promise<{success: boolean}>}
-   */
-  async resignFromTeam (req) {
-    const locale = req.locale || 'en'
-    if (!req.user) {
-      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
-    }
-    const [team] = await query('SELECT id FROM team WHERE user_id=? LIMIT 1', [req.user.id])
-    if (!team) {
-      throw new BadRequestError(t('error.noTeam', {}, locale))
-    }
-    await query('UPDATE team SET user_id=NULL, description=NULL WHERE id=?', [team.id])
-    const { season } = await getGameDayAndSeason()
-    await recordTeamResign(req.user.id, season)
     clearUserCache(req.user.id)
     return { success: true }
   }

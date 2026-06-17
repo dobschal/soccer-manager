@@ -2,9 +2,8 @@ import { UIElement } from '../../lib/UIElement.js'
 import { server, showServerError } from '../../lib/gateway.js'
 import { el, generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
-import { showOverlay, showConfirmDialog } from '../../partials/overlay.js'
+import { showOverlay } from '../../partials/overlay.js'
 import { toast } from '../../partials/toast.js'
-import { setHasTeam } from '../../lib/router.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import {
   EMBLEM_COLORS,
@@ -138,18 +137,6 @@ export class ClubInfoPage extends UIElement {
             </div>
           </div>
         </div>
-
-        <div class="card border-danger mb-4">
-          <div class="card-body d-flex flex-column flex-md-row align-items-md-center gap-3">
-            <div class="flex-grow-1">
-              <h5 class="text-danger mb-1"><i class="fa fa-sign-out"></i> ${t('clubInfo.resignTitle')}</h5>
-              <p class="text-muted mb-0">${t('clubInfo.resignDesc')}</p>
-            </div>
-            <button type="button" class="resign-team-btn btn btn-outline-danger">
-              <i class="fa fa-sign-out"></i> ${t('clubInfo.resignButton')}
-            </button>
-          </div>
-        </div>
       </div>
     `
   }
@@ -179,34 +166,7 @@ export class ClubInfoPage extends UIElement {
       },
       '(optional).coach-avatar-remove': {
         click: () => this._removeAvatar()
-      },
-      '.resign-team-btn': {
-        click: () => this._showResignConfirm()
       }
-    }
-  }
-
-  /**
-   * Confirm and resign from the current team. Behaves like a logout from
-   * coaching: the team becomes available to other users again.
-   * @returns {Promise<void>}
-   */
-  async _showResignConfirm () {
-    const confirmed = await showConfirmDialog(
-      t('clubInfo.resignConfirm'),
-      t('clubInfo.resignConfirmYes'),
-      t('clubInfo.resignConfirmNo')
-    )
-    if (!confirmed) return
-    try {
-      await server.resignFromTeam()
-      setHasTeam(false)
-      window.__hasTeam = false
-      toast(t('clubInfo.resignSuccess'), 'success')
-      window.location.hash = 'dashboard'
-      window.location.reload()
-    } catch (e) {
-      showServerError(e)
     }
   }
 
