@@ -1595,13 +1595,6 @@ export default {
   'team.takeOverDesc': '{teamName} is looking for a new coach. Become this club’s manager now.',
   'team.takeOverButton': 'Take over club',
   'team.takeOverSuccess': 'Welcome aboard, coach!',
-  'clubInfo.resignTitle': 'Resign from club',
-  'clubInfo.resignDesc': 'You can step down as coach. The club becomes a bot team again and you can take over another one later.',
-  'clubInfo.resignButton': 'Resign from coaching',
-  'clubInfo.resignConfirm': 'Are you sure you want to resign? You will lose this club’s cards, players, and budget.',
-  'clubInfo.resignConfirmYes': 'Yes, resign',
-  'clubInfo.resignConfirmNo': 'Cancel',
-  'clubInfo.resignSuccess': 'You have resigned from your coaching role.',
 
   // Guided tutorial
   'tutorial.stepLabel': 'Step {step}/{total}',

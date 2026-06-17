@@ -21,19 +21,6 @@ export async function recordTeamTakeover (userId, teamId, season) {
 }
 
 /**
- * Close the currently-open tenure for a user (user resigned from their team).
- * @param {number} userId
- * @param {number} season
- * @returns {Promise<void>}
- */
-export async function recordTeamResign (userId, season) {
-  await query(
-    'UPDATE user_team_history SET end_season=? WHERE user_id=? AND end_season IS NULL',
-    [season, userId]
-  )
-}
-
-/**
  * Returns the user's tenure rows, newest first.
  * @param {number} userId
  * @returns {Promise<Array<{id: number, user_id: number, team_id: number, start_season: number, end_season: number|null}>>}

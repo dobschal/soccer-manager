@@ -1595,13 +1595,6 @@ export default {
   'team.takeOverDesc': '{teamName} sucht einen neuen Trainer. Werde jetzt der Coach dieses Vereins.',
   'team.takeOverButton': 'Verein übernehmen',
   'team.takeOverSuccess': 'Willkommen als neuer Trainer!',
-  'clubInfo.resignTitle': 'Verein verlassen',
-  'clubInfo.resignDesc': 'Du kannst deinen Trainerposten aufgeben. Der Verein wird wieder als Bot-Team verfügbar und du kannst später einen anderen übernehmen.',
-  'clubInfo.resignButton': 'Trainerposten aufgeben',
-  'clubInfo.resignConfirm': 'Möchtest du deinen Trainerposten wirklich aufgeben? Du verlierst alle Karten, Spieler und das Budget dieses Vereins.',
-  'clubInfo.resignConfirmYes': 'Ja, kündigen',
-  'clubInfo.resignConfirmNo': 'Abbrechen',
-  'clubInfo.resignSuccess': 'Du hast deinen Trainerposten aufgegeben.',
 
   // Guided tutorial
   'tutorial.stepLabel': 'Schritt {step}/{total}',

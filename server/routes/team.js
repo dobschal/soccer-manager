@@ -15,9 +15,9 @@ export default {
 
   /**
    * Returns the current user's identity plus their team if they manage one.
-   * When the user has no team (e.g. after resigning, or never picked one),
-   * `team` and `players` are returned as null/empty so the dashboard and
-   * navigation can render a "no team" mode without erroring.
+   * When the user has no team (e.g. never picked one, or their previous team
+   * is no longer linked), `team` and `players` are returned as null/empty so
+   * the dashboard and navigation can render a "no team" mode without erroring.
    * @param {Request} req
    * @returns {Promise<{user: Object, team: TeamType|null, players: Array<PlayerType>, isAdmin: boolean}>}
    */
