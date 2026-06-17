@@ -207,6 +207,8 @@ export async function completeStadiumConstructions (gameDay, season) {
     `, [season, season, gameDay])
 
     for (const stadium of stadiums) {
+      const newSize = stadium[`${stand}_construction_target_size`]
+
       await query(`
           UPDATE stadium
           SET ${stand}_stand_size                = ${stand}_construction_target_size,
@@ -227,7 +229,19 @@ export async function completeStadiumConstructions (gameDay, season) {
 
       const [team] = await query('SELECT * FROM team WHERE id=?', [stadium.team_id])
       if (team) {
-        await addLogMessage(`Your ${stand} stand construction is complete!`, team, null, null, 'building', undefined, 'success')
+        const locale = await getUserLocale(team.user_id)
+        await addLogMessage(
+          t('log.stadiumExpansionComplete', {
+            stand: t(`stand.${stand}`, {}, locale),
+            newSize
+          }, locale),
+          team,
+          null,
+          null,
+          'building',
+          undefined,
+          'success'
+        )
       }
     }
   }

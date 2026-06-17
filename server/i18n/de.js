@@ -143,6 +143,20 @@ export default {
   'log.stadiumExpansionComplete': 'Bau abgeschlossen: {stand} hat jetzt {newSize} Plätze!',
   'log.roofConstructionStarted': 'Bau begonnen: Dach für {stand}.',
   'log.roofConstructionComplete': 'Bau abgeschlossen: {stand} hat jetzt ein Dach!',
+  'stand.north': 'Nordtribüne',
+  'stand.south': 'Südtribüne',
+  'stand.east': 'Osttribüne',
+  'stand.west': 'Westtribüne',
+
+  // Injury types
+  'injury.bruise': 'Prellung',
+  'injury.muscle_strain': 'Muskelzerrung',
+  'injury.ligament_sprain': 'Bänderdehnung',
+  'injury.muscle_tear': 'Muskelfaserriss',
+  'injury.fracture': 'Knochenbruch',
+  'injury.meniscus_tear': 'Meniskusriss',
+  'injury.acl_tear': 'Kreuzbandriss',
+  'injury.achilles_rupture': 'Achillessehnenriss',
 
   // Log messages - Season
   'log.seasonEnd': 'Saison {season} ist beendet!',
