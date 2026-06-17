@@ -120,11 +120,12 @@ export class SchedulePage extends UIElement {
       ? `<span class="text-muted">${t('cup.bye')}</span>`
       : `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${nameLabel2}${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
 
+    const forfeitIcon = `<i class="fa fa-exclamation-circle text-warning ms-1" title="${t('results.forfeitIcon')}" aria-label="${t('results.forfeitIcon')}"></i>`
     const center = entry.played
       ? (isBye
         ? `<span class="text-muted">-</span>`
         : (g.isForfeit
-          ? `<span class="text-muted">${t('results.cancelled')}</span>`
+          ? `${g.goalsTeam1 ?? '-'} : ${g.goalsTeam2 ?? '-'}${forfeitIcon}`
           : `${g.goalsTeam1 ?? '-'} : ${g.goalsTeam2 ?? '-'}`))
       : this._renderCountdown(entry)
 

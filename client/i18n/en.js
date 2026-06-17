@@ -592,7 +592,7 @@ export default {
   'results.games': 'Games',
   'results.gamesPlayedAt': 'Here are the results from {date}:',
   'results.diff': 'Diff',
-  'results.cancelled': 'cancld.',
+  'results.forfeitIcon': 'Game cancelled — awarded 3:0',
   'results.forfeitTitle': 'Game cancelled',
   'results.forfeitDescription': 'The game was not played because one of the teams could not field at least 7 players. The opposing team wins 3:0.',
   'results.forfeitBothTeams': 'The game was not played because both teams could not field at least 7 players.',

@@ -183,6 +183,7 @@ export class LeagueResultsPage extends UIElement {
           </div>`
     : ''}
         ${new Table({
+    classes: 'results-games-table',
     cols: [
       {
         name: t('results.team1'),
@@ -190,7 +191,8 @@ export class LeagueResultsPage extends UIElement {
       },
       {
         name: '',
-        align: 'center'
+        align: 'center',
+        width: '90px'
       },
       { name: t('results.team2') }
     ],
@@ -604,8 +606,9 @@ export class LeagueResultsPage extends UIElement {
     const team1Name = `${team1Won ? '<b>' : ''}${team1IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team1, result.team1Short)} ${team1HasUser ? userIcon : ''}${team1IsMyTeam ? '</span>' : ''}${team1Won ? '</b>' : ''}`
     const team2Name = `${team2Won ? '<b>' : ''}${team2IsMyTeam ? '<span class="text-info">' : ''}${shortenTeamName(result.team2, result.team2Short)} ${team2HasUser ? userIcon : ''}${team2IsMyTeam ? '</span>' : ''}${team2Won ? '</b>' : ''}`
 
+    const forfeitIcon = `<i class="fa fa-exclamation-circle text-warning ms-1" title="${t('results.forfeitIcon')}" aria-label="${t('results.forfeitIcon')}"></i>`
     const score = result.isForfeit
-      ? `<span class="text-muted">${t('results.cancelled')}</span>`
+      ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}${forfeitIcon}`
       : `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}`
 
     return [

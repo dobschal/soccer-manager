@@ -7,6 +7,20 @@
     width: 30px;
 }
 
+/* Games table: keep team1 (left) and team2 (right) columns symmetric.
+   table-layout: fixed lets the explicit width on the centered score column
+   take effect, and the two team columns split the remaining width equally. */
+.results-games-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.results-games-table td,
+.results-games-table th {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Scorer/Suspended player image containers are now in components/player.css */
 
 /* Substitution indicators in squad lists */

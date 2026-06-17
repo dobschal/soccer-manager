@@ -592,7 +592,7 @@ export default {
   'results.games': 'Spiele',
   'results.gamesPlayedAt': 'Hier sind die Ergebnisse vom {date}:',
   'results.diff': 'Diff',
-  'results.cancelled': 'abges.',
+  'results.forfeitIcon': 'Spiel abgesagt — Ergebnis 3:0 gewertet',
   'results.forfeitTitle': 'Spiel abgesagt',
   'results.forfeitDescription': 'Das Spiel wurde nicht ausgetragen, weil eine der Mannschaften nicht mindestens 7 Spieler aufstellen konnte. Die gegnerische Mannschaft gewinnt 3:0.',
   'results.forfeitBothTeams': 'Das Spiel wurde nicht ausgetragen, weil beide Mannschaften nicht mindestens 7 Spieler aufstellen konnten.',
