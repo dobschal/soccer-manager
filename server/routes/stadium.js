@@ -8,7 +8,6 @@ import {
 } from '../helper/stadiumHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
-import { advanceTutorialIfStep, TUTORIAL_STEPS } from '../helper/tutorialHelper.js'
 import { query } from '../lib/database.js'
 import { t } from '../i18n/index.js'
 
@@ -181,9 +180,6 @@ export default {
         SET ${stands.map(n => n + '_stand_price=?').join(', ')}
         WHERE id=?`, stands.map(n => stadium[n + '_stand_price']).concat([stadium.id]))
     console.log('Updated stadium prices')
-    if (req.user?.id) {
-      await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.UPDATE_STADIUM_PRICES, TUTORIAL_STEPS.CHOOSE_SPONSOR)
-    }
     return { success: true }
   }
 }

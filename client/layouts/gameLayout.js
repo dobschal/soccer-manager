@@ -33,7 +33,6 @@ export class GameLayout extends UIElement {
     this._nextGameDate = gameDate.date
     this._username = teamData.user?.username || ''
     this._avatar = teamData.user?.avatar || ''
-    this._hasTeam = !!teamData.team
     this._version = versionData.version
     this._gameDay = currentGameday.gameDay
     this._season = currentGameday.season
@@ -65,10 +64,10 @@ export class GameLayout extends UIElement {
             <div class="collapse navbar-collapse" id="navbarNav">
               <ul class="navbar-nav navbar-nav-center gap-2">
                 ${this._navItem('dashboard', `<i class="fa fa-home" aria-hidden="true"></i> ${t('nav.home')}`)}
-                ${this._navItem('my-team', `<i class="fa fa-users" aria-hidden="true"></i> ${t('nav.team')}`, !this._hasTeam)}
+                ${this._navItem('my-team', `<i class="fa fa-users" aria-hidden="true"></i> ${t('nav.team')}`)}
                 ${this._navItem('results', `<i class="fa fa-trophy" aria-hidden="true"></i> ${t('nav.league')}`)}
-                ${this._navItem('club', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.club')}`, !this._hasTeam)}
-                ${this._navItem('trades', `<i class="fa fa-handshake-o" aria-hidden="true"></i> ${t('nav.transfers')}`, !this._hasTeam)}
+                ${this._navItem('club', `<i class="fa fa-futbol-o" aria-hidden="true"></i> ${t('nav.club')}`)}
+                ${this._navItem('trades', `<i class="fa fa-handshake-o" aria-hidden="true"></i> ${t('nav.transfers')}`)}
               </ul>
               <button id="settings-button-mobile" class="btn btn-link nav-settings-btn d-lg-none" type="button" aria-label="${t('nav.settings')}">
                 <i class="fa fa-cog" aria-hidden="true"></i> ${t('nav.settings')}
@@ -276,29 +275,16 @@ export class GameLayout extends UIElement {
   /**
    * @param {string} path
    * @param {string} text
-   * @param {boolean} [disabled]
    * @returns {string}
    */
-  _navItem (path, text, disabled = false) {
+  _navItem (path, text) {
     const id = generateId()
-    if (!disabled) {
-      const eventId = on('page-changed', () => {
-        const currentPath = window.location.hash.substring(1).split('?')[0]
-        const isCurrentPage = (currentPath === path) || (currentPath === '' && path === 'dashboard')
-        el('#' + id)?.classList[isCurrentPage ? 'add' : 'remove']('active')
-      })
-      this._navItemEventIds.push(eventId)
-    }
-
-    if (disabled) {
-      return `
-        <li class="nav-item">
-          <span id="${id}" class="nav-link w-100 text-center disabled u-cursor-not-allowed" aria-disabled="true" title="${t('nav.noTeamHint')}">
-            ${text}
-          </span>
-        </li>
-      `
-    }
+    const eventId = on('page-changed', () => {
+      const currentPath = window.location.hash.substring(1).split('?')[0]
+      const isCurrentPage = (currentPath === path) || (currentPath === '' && path === 'dashboard')
+      el('#' + id)?.classList[isCurrentPage ? 'add' : 'remove']('active')
+    })
+    this._navItemEventIds.push(eventId)
 
     return `
       <li class="nav-item">

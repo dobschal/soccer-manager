@@ -295,13 +295,11 @@ async function _resolvePage () {
   if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
   }
-  // Trigger the team check once per session so other UI (nav buttons, layouts)
-  // can rely on `__hasTeam` to gate team-required features. We no longer force
-  // the choose-team page on users without a team — the dashboard becomes the
-  // landing experience and surfaces the team selection inline.
-  if (isAuthenticated() && currentPath !== 'login') {
+  if (isAuthenticated() && currentPath !== 'login' && currentPath !== 'choose-team') {
     const hasTeam = await _ensureHasTeamChecked()
-    window.__hasTeam = hasTeam
+    if (!hasTeam) {
+      return goTo('choose-team')
+    }
   }
   const [layoutRenderFn, pageRenderFn] = pages[currentPath] ?? pages['*']
   const queryParams = getQueryParams()

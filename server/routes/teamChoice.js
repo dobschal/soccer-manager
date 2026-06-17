@@ -9,8 +9,6 @@ import { t } from '../i18n/index.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { recordTeamTakeover } from '../helper/userHistoryHelper.js'
-import { advanceTutorialIfStep, TUTORIAL_STEPS } from '../helper/tutorialHelper.js'
 import { config } from '../config.js'
 
 const MIN_CHOOSABLE_LEVEL = config.MIN_CHOOSABLE_LEVEL
@@ -138,7 +136,6 @@ export default {
     }
     await regenerateTeamData(team)
     const { gameDay, season } = await getGameDayAndSeason()
-    await recordTeamTakeover(req.user.id, team.id, season)
     await completeAllStadiumConstructionsForTeam(team.id, gameDay, season)
     await query('DELETE FROM action_card WHERE team_id=?', [team.id])
     const starterCards = [
@@ -148,10 +145,6 @@ export default {
     for (const card of starterCards) {
       await query('INSERT INTO action_card SET ?', card)
     }
-    // Trigger the guided tutorial for users who picked a team for the first
-    // time (tutorial_step still at the initial value). Existing returning
-    // users keep their previous state.
-    await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.NOT_STARTED, TUTORIAL_STEPS.PICK_FORMATION)
     clearUserCache(req.user.id)
     return { success: true }
   }
