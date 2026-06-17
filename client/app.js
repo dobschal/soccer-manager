@@ -19,7 +19,6 @@ import { applyNoIndexOnSandbox, showSandboxBanner } from './partials/sandboxBann
 import { on } from './lib/event.js'
 import { initTabBarAnimations } from './lib/tabBarAnimation.js'
 import { initPullToRefresh } from './lib/pullToRefresh.js'
-import { initTutorialGuide } from './partials/tutorialGuide.js'
 
 installGlobalErrorHandler()
 
@@ -46,11 +45,6 @@ initTabBarAnimations()
 // down reveals a bouncing-ball indicator; releasing past the arm threshold
 // reloads the webapp and lands on the same page.
 initPullToRefresh()
-
-// Guided tutorial: shows a bottom task bar + animated arrow pointing at the
-// next clickable element for new accounts. No-op for users who already
-// finished or skipped the flow.
-void initTutorialGuide()
 
 // Connect WebSocket if user is authenticated
 if (window.localStorage.getItem('auth-token')) {

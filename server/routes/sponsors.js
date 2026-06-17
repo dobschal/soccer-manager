@@ -3,7 +3,6 @@ import { getSponsor, getSponsorOffers } from '../helper/sponsorHelper.js'
 import { query } from '../lib/database.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { sponsorNames } from '../lib/name-library.js'
-import { advanceTutorialIfStep, TUTORIAL_STEPS } from '../helper/tutorialHelper.js'
 
 // Cache for sponsor offers: Map<teamId, { offers: Sponsor[], timestamp: number }>
 const sponsorOffersCache = new Map()
@@ -84,9 +83,6 @@ export default {
     await query('INSERT INTO sponsor SET ?', sponsorEntity)
     // Clear the cache so new offers are generated when current contract expires
     clearSponsorOffersCache(team.id)
-    if (req.user?.id) {
-      await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.CHOOSE_SPONSOR, TUTORIAL_STEPS.COMPLETED)
-    }
     return true
   }
 }

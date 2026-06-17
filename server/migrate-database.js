@@ -2250,14 +2250,6 @@ const migrations = [{
       [season]
     )
   }
-}, {
-  name: 'Add tutorial_step column to user table',
-  async run () {
-    await query('ALTER TABLE user ADD COLUMN tutorial_step INT NOT NULL DEFAULT 99')
-    // Existing users are treated as having finished the tutorial (step 99 = done).
-    // New users start at step 0 (no team yet) and reach step 1 after registering.
-    await query('UPDATE user SET tutorial_step=99')
-  }
 }]
 
 /**

@@ -6,7 +6,6 @@ import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getTotalRounds } from '../helper/cupHelper.js'
 import { calculateStandingForTeam } from '../helper/standingHelper.js'
-import { advanceTutorialIfStep, TUTORIAL_STEPS } from '../helper/tutorialHelper.js'
 
 const MAX_TEAM_NAME_WORD_LENGTH = 12
 const MAX_TEAM_NAME_LENGTH = 32
@@ -14,30 +13,15 @@ const MAX_TEAM_SHORT_NAME_LENGTH = 12
 export default {
 
   /**
-   * Returns the current user's identity plus their team if they manage one.
-   * When the user has no team (e.g. never picked one, or their previous team
-   * is no longer linked), `team` and `players` are returned as null/empty so
-   * the dashboard and navigation can render a "no team" mode without erroring.
    * @param {Request} req
-   * @returns {Promise<{user: Object, team: TeamType|null, players: Array<PlayerType>, isAdmin: boolean}>}
+   * @returns {Promise<{user: Object, team: TeamType, players: Array<PlayerType>}>}
    */
   async getMyTeam (req) {
-    if (!req.user) throw new BadRequestError('Not authorised.')
+    const team = await getTeam(req)
+    const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
     delete req.user.password
     delete req.user.email_verification_token
     delete req.user.email_verification_expires_at
-
-    const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
-    if (!team) {
-      return {
-        user: req.user,
-        team: null,
-        players: [],
-        isAdmin: !!req.user?.is_admin
-      }
-    }
-
-    const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
 
     const { season } = await getGameDayAndSeason()
     const stats = await query(
@@ -203,7 +187,6 @@ export default {
       await query('UPDATE player SET in_game_position=? WHERE id=?', [playerFromDb.in_game_position, playerFromDb.id])
     }
     await query('UPDATE team SET formation=? WHERE id=?', [formation, team.id])
-    await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.PICK_FORMATION, TUTORIAL_STEPS.PLAY_LEVEL_UP_CARD)
 
     // Clear captain if the captain was removed from the lineup
     let captainCleared = false
