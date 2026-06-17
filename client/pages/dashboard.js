@@ -7,6 +7,7 @@ import { StartPage } from './dashboard/startPage.js'
 import { FriendsPage } from './dashboard/friendsPage.js'
 import { ForumPage } from './forum.js'
 import { SearchPanel } from '../partials/searchPanel.js'
+import { TeamSelection } from './dashboard/teamSelection.js'
 import { t } from '../i18n/index.js'
 import { el } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
@@ -20,6 +21,7 @@ export class DashboardPage extends TabbedPage {
     const teamResponse = await server.getMyTeam()
     this.team = teamResponse.team
     this.user = teamResponse.user
+    this.hasTeam = !!teamResponse.team
 
     // Register device token for push notifications (fire-and-forget)
     if (window.__nativeDeviceToken && window.__nativePlatform) {
@@ -28,6 +30,13 @@ export class DashboardPage extends TabbedPage {
       server.registerDeviceToken(window.__nativeDeviceToken, window.__nativePlatform)
         .then(() => sendLog('[Push] Dashboard: device token registered successfully'))
         .catch(e => sendLog(`[Push] Dashboard: device token registration FAILED: ${e?.message || JSON.stringify(e)}`, 'error'))
+    }
+
+    if (!this.hasTeam) {
+      // No team yet — skip all team-scoped data loads and render the team
+      // selection inline. The rest of the dashboard state remains at its
+      // default zero values so the template can still safely render.
+      return
     }
 
     const gamedayResponse = await server.getCurrentGameday()
@@ -111,6 +120,13 @@ export class DashboardPage extends TabbedPage {
     this._newMessageCount = newMessageResponse.count || 0
   }
   get template () {
+    if (!this.hasTeam) {
+      return `
+        <div>
+          ${this.renderSubPageContainer()}
+        </div>
+      `
+    }
     return `
       <div>
         ${this._tutorialProgress}
@@ -204,6 +220,7 @@ export class DashboardPage extends TabbedPage {
   get defaultSubPageKey () { return 'start' }
   
   createSubPage (key) {
+    if (!this.hasTeam) return new TeamSelection()
     switch (key) {
       case 'cards': return new ActionCards()
       case 'messages': return new LogMessages()
@@ -333,6 +350,9 @@ export class DashboardPage extends TabbedPage {
   }
 
   async _showDashboardOverlays () {
+    // Without a team there are no scheduled overlays (no season review, no
+    // pending cards, no tutorial flow yet — the user has to pick a team first).
+    if (!this.hasTeam) return
     // Fixed order — each overlay waits for the previous one to close so the
     // user never sees two overlays at once.
     await this._showEmailPromptIfNeeded()

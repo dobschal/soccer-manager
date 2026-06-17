@@ -1,0 +1,79 @@
+/* ==========================================================================
+   Tutorial Guide — bottom task bar + animated arrow
+   ========================================================================== */
+
+.tutorial-guide-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    background: linear-gradient(135deg, #1a5f7a 0%, #198754 100%);
+    color: #fff;
+    box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.25);
+    padding: 10px 14px env(safe-area-inset-bottom, 10px) 14px;
+}
+
+.tutorial-guide-bar.hidden {
+    display: none;
+}
+
+.tutorial-guide-bar-inner {
+    max-width: 920px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tutorial-guide-step-label {
+    font-size: 0.75rem;
+    opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.tutorial-guide-step-text {
+    flex: 1;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.tutorial-guide-arrow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1100;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #20c997;
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: 48px;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(32, 201, 151, 0.55);
+    pointer-events: none;
+    animation: tutorial-guide-bounce 1.1s ease-in-out infinite;
+    will-change: transform;
+}
+
+.tutorial-guide-arrow.hidden {
+    display: none;
+}
+
+@keyframes tutorial-guide-bounce {
+    0%, 100% {
+        margin-top: 0;
+    }
+    50% {
+        margin-top: 10px;
+    }
+}
+
+/* Leave room above the bar so content isn't covered. The bar is fixed so we
+   pad the page container's bottom. */
+body:has(.tutorial-guide-bar:not(.hidden)) {
+    padding-bottom: 84px;
+}

@@ -48,6 +48,13 @@ export function showSearchOverlay () {
     }, 50)
   }
 
+  const navigateToUser = (userId) => {
+    remove()
+    setTimeout(() => {
+      goTo(`user?id=${userId}`)
+    }, 50)
+  }
+
   onClick('#' + closeButtonId, remove)
   onClick('#' + overlayId, remove)
   onClick('#' + overlayInnerId, event => event.stopPropagation())
@@ -210,8 +217,8 @@ export function showSearchOverlay () {
         </thead>
         <tbody>
           ${sortedUsers.map(user => `
-            <tr class="search-result-item ${user.team_id ? 'u-cursor-pointer' : ''}"
-                ${user.team_id ? `data-team-id="${user.team_id}"` : ''}>
+            <tr class="search-result-item u-cursor-pointer"
+                data-user-id="${user.id}">
               <td><strong><i class="fa fa-user"></i> ${user.username}</strong></td>
               <td><small class="text-muted">${user.team_name || t('search.noTeam')}</small></td>
               <td><small class="text-muted">${formatLastActive(user.last_login)}</small></td>
@@ -288,7 +295,15 @@ export function showSearchOverlay () {
   if (resultsContainer) {
     resultsContainer.addEventListener('click', (e) => {
       const resultItem = e.target.closest('.search-result-item')
-      if (resultItem && resultItem.dataset.teamId) {
+      if (!resultItem) return
+      if (resultItem.dataset.userId) {
+        e.preventDefault()
+        e.stopPropagation()
+        const userId = parseInt(resultItem.dataset.userId, 10)
+        navigateToUser(userId)
+        return
+      }
+      if (resultItem.dataset.teamId) {
         e.preventDefault()
         e.stopPropagation()
         const teamId = parseInt(resultItem.dataset.teamId, 10)

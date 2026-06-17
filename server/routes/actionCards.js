@@ -4,6 +4,7 @@ import { getTeam } from '../helper/teamHelper.js'
 import { ActionCard } from '../entities/actionCard.js'
 import { getActionCards, playActionCard, getPendingActionCards, claimActionCard, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../helper/actionCardHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { advanceTutorialIfStep, TUTORIAL_STEPS } from '../helper/tutorialHelper.js'
 import { t } from '../i18n/index.js'
 
 export default {
@@ -117,6 +118,12 @@ export default {
     const actionCards = await query("SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0 AND state='received'", [actionCard.id, team.id])
     if (actionCards.length !== 1) throw new BadRequestError(t('error.cardNotFound', {}, locale))
     await playActionCard({ actionCard, player, position }, team, locale)
+    const action = actionCards[0].action || actionCard.action || ''
+    if (action.startsWith('LEVEL_UP_PLAYER')) {
+      await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.PLAY_LEVEL_UP_CARD, TUTORIAL_STEPS.UPGRADE_YOUTH_ACADEMY)
+    } else if (action.startsWith('NEW_YOUTH_PLAYER')) {
+      await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.PLAY_NEW_YOUTH_CARD, TUTORIAL_STEPS.BUY_PLAYER)
+    }
     return { success: true }
   }
 

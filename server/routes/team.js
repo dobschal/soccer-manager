@@ -5,6 +5,8 @@ import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getTotalRounds } from '../helper/cupHelper.js'
+import { calculateStandingForTeam } from '../helper/standingHelper.js'
+import { advanceTutorialIfStep, TUTORIAL_STEPS } from '../helper/tutorialHelper.js'
 
 const MAX_TEAM_NAME_WORD_LENGTH = 12
 const MAX_TEAM_NAME_LENGTH = 32
@@ -12,15 +14,30 @@ const MAX_TEAM_SHORT_NAME_LENGTH = 12
 export default {
 
   /**
+   * Returns the current user's identity plus their team if they manage one.
+   * When the user has no team (e.g. after resigning, or never picked one),
+   * `team` and `players` are returned as null/empty so the dashboard and
+   * navigation can render a "no team" mode without erroring.
    * @param {Request} req
-   * @returns {Promise<{user: Object, team: TeamType, players: Array<PlayerType>}>}
+   * @returns {Promise<{user: Object, team: TeamType|null, players: Array<PlayerType>, isAdmin: boolean}>}
    */
   async getMyTeam (req) {
-    const team = await getTeam(req)
-    const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
+    if (!req.user) throw new BadRequestError('Not authorised.')
     delete req.user.password
     delete req.user.email_verification_token
     delete req.user.email_verification_expires_at
+
+    const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+    if (!team) {
+      return {
+        user: req.user,
+        team: null,
+        players: [],
+        isAdmin: !!req.user?.is_admin
+      }
+    }
+
+    const players = await query('SELECT * FROM player WHERE team_id=?', team.id)
 
     const { season } = await getGameDayAndSeason()
     const stats = await query(
@@ -186,6 +203,7 @@ export default {
       await query('UPDATE player SET in_game_position=? WHERE id=?', [playerFromDb.in_game_position, playerFromDb.id])
     }
     await query('UPDATE team SET formation=? WHERE id=?', [formation, team.id])
+    await advanceTutorialIfStep(req.user.id, TUTORIAL_STEPS.PICK_FORMATION, TUTORIAL_STEPS.PLAY_LEVEL_UP_CARD)
 
     // Clear captain if the captain was removed from the lineup
     let captainCleared = false
@@ -794,80 +812,3 @@ export default {
   }
 }
 
-/**
- * Calculate standing position for a specific team
- * @param {Array} games
- * @param {Array} teams
- * @param {number} teamId
- * @returns {Object}
- */
-function calculateStandingForTeam (games, teams, teamId) {
-  const standings = {}
-
-  // Initialize standings for all teams
-  for (const team of teams) {
-    standings[team.id] = {
-      teamId: team.id,
-      played: 0,
-      won: 0,
-      drawn: 0,
-      lost: 0,
-      goalsFor: 0,
-      goalsAgainst: 0,
-      points: 0
-    }
-  }
-
-  // Calculate standings from games
-  for (const game of games) {
-    if (!standings[game.team_1_id] || !standings[game.team_2_id]) continue
-
-    standings[game.team_1_id].played++
-    standings[game.team_2_id].played++
-    standings[game.team_1_id].goalsFor += game.goals_team_1
-    standings[game.team_1_id].goalsAgainst += game.goals_team_2
-    standings[game.team_2_id].goalsFor += game.goals_team_2
-    standings[game.team_2_id].goalsAgainst += game.goals_team_1
-
-    if (game.goals_team_1 > game.goals_team_2) {
-      standings[game.team_1_id].won++
-      standings[game.team_1_id].points += 3
-      standings[game.team_2_id].lost++
-    } else if (game.goals_team_2 > game.goals_team_1) {
-      standings[game.team_2_id].won++
-      standings[game.team_2_id].points += 3
-      standings[game.team_1_id].lost++
-    } else {
-      standings[game.team_1_id].drawn++
-      standings[game.team_2_id].drawn++
-      standings[game.team_1_id].points++
-      standings[game.team_2_id].points++
-    }
-  }
-
-  // Sort standings
-  const sorted = Object.values(standings).sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points
-    const gdA = a.goalsFor - a.goalsAgainst
-    const gdB = b.goalsFor - b.goalsAgainst
-    if (gdB !== gdA) return gdB - gdA
-    return b.goalsFor - a.goalsFor
-  })
-
-  // Find position of the team
-  const position = sorted.findIndex(s => s.teamId === teamId) + 1
-  const teamStanding = standings[teamId] || {
-    played: 0,
-    won: 0,
-    drawn: 0,
-    lost: 0,
-    goalsFor: 0,
-    goalsAgainst: 0,
-    points: 0
-  }
-
-  return {
-    position,
-    ...teamStanding
-  }
-}
