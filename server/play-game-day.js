@@ -1045,7 +1045,7 @@ async function _persistInjuries (gameDetails, teamA, teamB) {
       await addLogMessage(
         t('log.playerInjured', {
           playerName: injury.playerName,
-          injuryType: injury.injuryType,
+          injuryType: t(`injury.${injury.injuryType}`, {}, locale),
           days: injury.injuryDays
         }, locale),
         team,
