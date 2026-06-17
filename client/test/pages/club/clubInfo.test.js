@@ -188,5 +188,34 @@ describe('ClubInfoPage', () => {
       expect(matches.length).toBe(3)
       expect(overlayHtml).not.toContain('prefixOnEmblem')
     })
+
+    it('shows the saved icon in the initial preview without re-selection', async () => {
+      const { showOverlay } = await import('../../../partials/overlay.js')
+      const team = testData.team({
+        name: 'FC Test',
+        emblem: JSON.stringify({
+          shape: 'shield',
+          pattern: 'solid',
+          color: '#ea3636',
+          color2: '#ffffff',
+          icon: 'eagle-svgrepo-com',
+          iconColor: 'color2',
+          strokeColor: 'color2'
+        })
+      })
+      const players = [testData.player({ fake: false })]
+      const user = testData.user()
+      server.getMyTeam.mockResolvedValue({ team, players, user })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+      const page = new ClubInfoPage()
+      await page.load()
+      page._showEmblemEditor()
+
+      const overlayHtml = showOverlay.mock.calls.at(-1)[2]
+      const previewMatch = overlayHtml.match(/<div class="emblem-editor__preview">[\s\S]*?<\/div>\s*<\/div>/)
+      expect(previewMatch).not.toBeNull()
+      expect(previewMatch[0]).toContain('./assets/emblem-icons/eagle-svgrepo-com.svg')
+    })
   })
 })

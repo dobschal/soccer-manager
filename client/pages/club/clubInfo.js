@@ -589,6 +589,9 @@ export class ClubInfoPage extends UIElement {
   color: selectedColor,
   color2: selectedColor2,
   wordsOnBanner,
+  strokeColor: selectedStrokeColor,
+  icon: selectedIcon,
+  iconColor: selectedIconColor,
   teamName: this.team.name,
   size: 150
 })}</div>
