@@ -125,11 +125,14 @@ export async function showTutorialIfNeeded (tutorialKey, component = null, { del
 }
 
 /**
- * Shows the tutorial overlay
+ * Shows the tutorial overlay unconditionally (ignores completion status).
+ * Use this for an explicit user action (e.g. the "continue" button on the
+ * dashboard tutorial-progress card), so the overlay re-opens even when the
+ * user is already on the relevant page or already saw it this session.
  * @param {string} tutorialKey
  * @returns {Promise<void>} resolves when the overlay is closed
  */
-function showTutorialOverlay (tutorialKey) {
+export function showTutorialOverlay (tutorialKey) {
   return new Promise(resolve => {
     const tutorials = getTutorials()
     const tutorial = tutorials[tutorialKey]
