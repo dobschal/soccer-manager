@@ -74,6 +74,9 @@ export function onPageLoaded(args: EventData) {
     if (!resumeHandler) {
         resumeHandler = () => {
             if (!webViewRef) return
+            // Always clear the app icon badge the moment the app is foregrounded,
+            // independent of OTA promotion or the webapp refresh round-trip (#425).
+            clearAppBadge()
             if (!hasStagedUpdate()) {
                 // No OTA update — trigger a data refresh in the webapp
                 console.log('[Resume] No OTA update, triggering webapp refresh...')
@@ -151,6 +154,41 @@ function clearWebViewCache(webView: WebView): Promise<void> {
     })
 }
 
+/**
+ * Clear the app icon badge directly on the native side. This is far more
+ * reliable than the server round-trip silent push (`server.clearBadge()`),
+ * which depends on APNs actually delivering a `badge: 0` push — often
+ * throttled or dropped by iOS, leaving the red "1" stuck on the icon (#425).
+ *
+ * On iOS we reset `applicationIconBadgeNumber` and remove already-delivered
+ * notifications from the notification center. On Android the launcher badge
+ * dot is tied to active notifications, so cancelling them clears it.
+ */
+function clearAppBadge(): void {
+    try {
+        if (isIOS) {
+            const app = UIApplication.sharedApplication
+            // iOS 16+: prefer the UNUserNotificationCenter API; fall back to the
+            // (now-deprecated but still functional) applicationIconBadgeNumber.
+            const center = UNUserNotificationCenter.currentNotificationCenter()
+            if (center.setBadgeCountWithCompletionHandler) {
+                center.setBadgeCountWithCompletionHandler(0, null)
+            } else {
+                app.applicationIconBadgeNumber = 0
+            }
+            center.removeAllDeliveredNotifications()
+            console.log('[Badge] iOS app icon badge cleared')
+        } else if (isAndroid) {
+            const context = Utils.android.getApplicationContext()
+            const notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE)
+            notificationManager.cancelAll()
+            console.log('[Badge] Android notifications cleared')
+        }
+    } catch (e) {
+        console.warn('[Badge] Failed to clear app icon badge', e)
+    }
+}
+
 function triggerWebAppRefresh(webView: WebView) {
     const script = 'if (window.__onAppResume) window.__onAppResume();'
     if (isIOS) {
@@ -182,6 +220,10 @@ export function onWebViewLoaded(args: EventData) {
     const webView = args.object as WebView
     webViewRef = webView
     setWebViewBackgroundColor(webView)
+
+    // Clear the app icon badge on cold start too — opening the app from a
+    // killed state should also remove the red notification count (#425).
+    clearAppBadge()
 
     // Only load the web content on first initialization, not on resume from background
     if (webViewInitialized) {

@@ -20,6 +20,21 @@ export function formatLastActive (lastLogin) {
 }
 
 /**
+ * Returns true when the given date/timestamp falls on the current calendar day.
+ * @param {string|Date|null|undefined} value
+ * @returns {boolean}
+ */
+export function isToday (value) {
+  if (!value) return false
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return false
+  const now = new Date()
+  return date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+}
+
+/**
  * Format a Date or Datestring into a wanted string format
  *
  * @param {string} format - e.g. "DD.MM.YYYY"

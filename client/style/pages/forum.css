@@ -100,6 +100,14 @@
     font-size: 0.95rem;
 }
 
+/* Comments created today get a subtle highlight; add padding + rounding
+   so the background reads as an intentional card rather than a flush stripe. */
+.forum-comment.bg-warning-subtle {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    border-bottom: none;
+}
+
 .forum-comment-images {
     display: flex;
     gap: 0.5rem;

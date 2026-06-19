@@ -5,8 +5,13 @@
   "main": "main.cjs",
   "private": true,
   "scripts": {
+    "build:bundle": "cd .. && node scripts/build-native-bundle.mjs",
     "start": "electron .",
     "start:sandbox": "FOOTBALLMANAGER_URL=https://sandbox.footballmanager.io electron .",
+    "predist": "npm run build:bundle",
+    "predist:mac": "npm run build:bundle",
+    "predist:win": "npm run build:bundle",
+    "predist:linux": "npm run build:bundle",
     "dist": "electron-builder --mac --win --linux",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
@@ -20,18 +25,41 @@
     },
     "files": [
       "main.cjs",
+      "ota.cjs",
       "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../client/assets/native-client.zip",
+        "to": "native-client.zip"
+      }
     ],
     "mac": {
       "category": "public.app-category.sports-games",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Game"
     }
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.17"
+  },
+  "devDependencies": {
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3"
   }
 }

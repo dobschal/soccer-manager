@@ -1,6 +1,5 @@
 import { server } from '../lib/gateway.js'
-import { goTo, setHasTeam, setQueryParams } from '../lib/router.js'
-import { showConfirmDialog } from '../partials/overlay.js'
+import { goTo, setQueryParams } from '../lib/router.js'
 import { PlayerList } from '../partials/playerList.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { renderEmblem } from '../partials/emblem.js'
@@ -117,7 +116,6 @@ export class TeamPage extends UIElement {
     return `
       <div>
         <h2 class="mb-4 text-center text-lg-start">${this.team.name}</h2>
-        ${this._renderTakeOverBanner()}
         <div class="row">
           <div class="col-12 col-md-6 col-xl-4 mb-4">
             ${this._renderTeamInfoCard()}
@@ -183,12 +181,6 @@ export class TeamPage extends UIElement {
         click: (event) => {
           event.preventDefault()
           this._handleFriendlyMatchClick()
-        }
-      },
-      '(optional) .take-over-team-btn': {
-        click: (event) => {
-          event.preventDefault()
-          this._handleTakeOverTeamClick()
         }
       },
       '(optional) .head-to-head-btn': {
@@ -396,69 +388,29 @@ export class TeamPage extends UIElement {
       ? `<img class="coach-avatar__img" src="${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatarFilename}" alt="${altText}">`
       : `<img class="coach-avatar__img coach-avatar__img--default" src="./assets/avatar-placeholder.svg" alt="${altText}">`
 
+    const userId = this.user?.id
+    const body = `
+      <div class="coach-avatar mb-3">
+        ${avatarImg}
+      </div>
+      <div class="coach-info text-center">
+        <div class="coach-info__name fw-semibold">${coachName}</div>
+        <div class="coach-info__since text-muted small">${t('myTeam.coachSince')}: ${coachSince}</div>
+      </div>
+    `
+    // The whole card opens the manager's profile (when there is a real user).
+    const cardBody = userId
+      ? `<a href="#user?id=${userId}" class="card-body coach-card-link text-decoration-none">${body}</a>`
+      : `<div class="card-body">${body}</div>`
+
     return `
       <div class="card h-100 border-0">
         <div class="card-header text-white gradient-header">
           <h5 class="card-title mb-0">${t('myTeam.coach')}</h5>
         </div>
-        <div class="card-body">
-          <div class="coach-avatar mb-3">
-            ${avatarImg}
-          </div>
-          <table class="table table-sm mb-0 team-info-table">
-            <tbody>
-              <tr><td class="text-muted ps-3">${t('myTeam.coach')}</td><td class="text-end pe-3">${coachName}</td></tr>
-              <tr><td class="text-muted ps-3">${t('myTeam.coachSince')}</td><td class="text-end pe-3">${coachSince}</td></tr>
-            </tbody>
-          </table>
-        </div>
+        ${cardBody}
       </div>
     `
-  }
-
-  /**
-   * Render the "Take over this club" banner shown to logged-in users without
-   * a team when they browse a free bot team in the 3rd league or lower.
-   * @returns {string}
-   * @private
-   */
-  _renderTakeOverBanner () {
-    // The user is currently coaching a team — no take-over option.
-    if (window.__hasTeam) return ''
-    // The viewed team has an owner already, is a system team, or sits above
-    // the 3rd league cutoff — not available for takeover.
-    if (this.team?.user_id) return ''
-    if (this.team?.is_system_team) return ''
-    if ((this.team?.level ?? 0) < 2) return ''
-    return `
-      <div class="card card-body bg-info-subtle border-info mb-4 d-flex flex-column flex-md-row align-items-md-center gap-3">
-        <div class="flex-grow-1">
-          <h5 class="mb-1"><i class="fa fa-flag-checkered"></i> ${t('team.takeOverHeadline')}</h5>
-          <p class="text-muted mb-0">${t('team.takeOverDesc', { teamName: this.team.name })}</p>
-        </div>
-        <button type="button" class="take-over-team-btn btn btn-info text-white btn-lg">
-          <i class="fa fa-handshake-o"></i> ${t('team.takeOverButton')}
-        </button>
-      </div>
-    `
-  }
-
-  async _handleTakeOverTeamClick () {
-    const confirmed = await showConfirmDialog(
-      t('chooseTeam.confirm', { teamName: this.team.name }),
-      t('chooseTeam.confirmYes'),
-      t('chooseTeam.confirmNo')
-    )
-    if (!confirmed) return
-    try {
-      await server.chooseTeam(this.team.id)
-      setHasTeam(true)
-      window.__hasTeam = true
-      toast(t('team.takeOverSuccess'), 'success')
-      window.location.reload()
-    } catch (e) {
-      toast(e?.message ?? t('toast.somethingWentWrong'), 'error')
-    }
   }
 
   /**

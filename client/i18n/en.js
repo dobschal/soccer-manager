@@ -1587,23 +1587,5 @@ export default {
   'userProfile.noTeam': 'No current club',
   'userProfile.noFriends': 'No friends yet.',
   'userProfile.noHistory': 'No completed seasons yet.',
-  'userProfile.notFound': 'Profile not found.',
-
-  // Play without team
-  'nav.noTeamHint': 'Choose a team first',
-  'team.takeOverHeadline': 'Take over this club?',
-  'team.takeOverDesc': '{teamName} is looking for a new coach. Become this club’s manager now.',
-  'team.takeOverButton': 'Take over club',
-  'team.takeOverSuccess': 'Welcome aboard, coach!',
-
-  // Guided tutorial
-  'tutorial.stepLabel': 'Step {step}/{total}',
-  'tutorial.step0.text': 'Pick a club you want to manage as the new coach.',
-  'tutorial.step1.text': 'Open your team and set up a formation. Tap a player to place them on the pitch.',
-  'tutorial.step2.text': 'Use a "Level Up" action card on one of your players.',
-  'tutorial.step3.text': 'Upgrade your youth academy by one level — this one is free!',
-  'tutorial.step4.text': 'Use a "New Youth Player" action card.',
-  'tutorial.step5.text': 'Buy a cheap player from the transfer market.',
-  'tutorial.step6.text': 'Adjust your stadium ticket prices.',
-  'tutorial.step7.text': 'Pick a sponsor for your club.'
+  'userProfile.notFound': 'Profile not found.'
 }

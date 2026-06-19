@@ -51,16 +51,6 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key) => key)
 }))
 
-vi.mock('../../helper/tutorialHelper.js', () => ({
-  advanceTutorialIfStep: vi.fn().mockResolvedValue(false),
-  getTutorialStep: vi.fn().mockResolvedValue(99),
-  TUTORIAL_STEPS: { UPGRADE_YOUTH_ACADEMY: 3, PLAY_NEW_YOUTH_CARD: 4 }
-}))
-
-vi.mock('../../helper/financeHelper.js', () => ({
-  updateTeamBalance: vi.fn().mockResolvedValue()
-}))
-
 import { getTeam } from '../../helper/teamHelper.js'
 import { getBuildingsForTeam, getBuildingConstructionInfo, upgradeBuilding } from '../../helper/buildingHelper.js'
 import handlers from '../../routes/buildings.js'

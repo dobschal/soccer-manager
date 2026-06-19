@@ -6,7 +6,7 @@ import { toast } from '../../partials/toast.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
 import { setQueryParams } from '../../lib/router.js'
-import { sortByPosition } from '../../util/player.js'
+import { sortByPosition, calculatePlayerAge } from '../../util/player.js'
 import { Lineup, lineUpData } from '../../partials/lineup.js'
 import { fire, off, on } from '../../lib/event.js'
 import { t } from '../../i18n/index.js'
@@ -278,10 +278,11 @@ export class ATeamPage extends UIElement {
   _renderCaptainSelect () {
     const lineupPlayers = this.parent.data.players.filter(p => p.in_game_position && !p.fake)
     const currentCaptainId = this.parent.data.team.captain_id || null
+    const season = this.parent.season
     return `
       <select class="form-control captain-select">
         <option value="">${t('myTeam.captain.none')}</option>
-        ${lineupPlayers.map(p => `<option value="${p.id}" ${p.id === currentCaptainId ? 'selected' : ''}>${p.name} (${p.position}, Lvl ${p.level})</option>`).join('')}
+        ${lineupPlayers.map(p => `<option value="${p.id}" ${p.id === currentCaptainId ? 'selected' : ''}>${p.name} (${p.position}, Lvl ${p.level}, ${t('player.age')} ${calculatePlayerAge(p, season)})</option>`).join('')}
       </select>
     `
   }

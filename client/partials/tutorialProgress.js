@@ -1,6 +1,8 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
 import { t } from '../i18n/index.js'
+import { goTo } from '../lib/router.js'
+import { showTutorialOverlay } from './tutorialOverlay.js'
 
 /**
  * Tutorial definitions with page routes
@@ -85,15 +87,26 @@ export class TutorialProgress extends UIElement {
               </div>
             </div>
             ${nextTutorial ? `
-              <a href="${nextTutorial.route}" class="btn btn-info btn-sm flex-shrink-0 text-white">
+              <button type="button" class="btn btn-info btn-sm flex-shrink-0 text-white tutorial-progress-next" data-tutorial-key="${nextTutorial.key}" data-tutorial-route="${nextTutorial.route}">
                 <i class="fa fa-arrow-right me-1"></i>${t('tutorialProgress.nextTutorial', { page: t(`tutorialProgress.page.${nextTutorial.key}`) })}
-              </a>
+              </button>
             ` : ''}
           </div>
         </div>
       </div>
     `
   }
+  /**
+   * @returns {import('../lib/UIElement.js').UIElementEvents}
+   */
+  get events () {
+    return {
+      '.tutorial-progress-next': {
+        click: this._onNextTutorialClick
+      }
+    }
+  }
+
   /**
    * Server events to listen for
    * @returns {Record<string, (data: any) => void>}
@@ -106,6 +119,24 @@ export class TutorialProgress extends UIElement {
       }
     }
   }
+  /**
+   * Re-open the tutorial overlay for the next uncompleted tutorial. Unlike a
+   * plain link, this works even when the user is already on the target page
+   * (e.g. dashboard → dashboard), where a navigation would be a no-op.
+   * @param {MouseEvent} event
+   * @returns {void}
+   */
+  _onNextTutorialClick (event) {
+    const button = event.currentTarget
+    const key = button.dataset.tutorialKey
+    const route = button.dataset.tutorialRoute
+    const currentRoute = window.location.hash || '#dashboard'
+    if (route && route !== currentRoute) {
+      goTo(route.replace(/^#/, ''))
+    }
+    void showTutorialOverlay(key)
+  }
+  
   _tutorialCompleted = {}
 
   /**

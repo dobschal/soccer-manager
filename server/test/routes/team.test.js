@@ -35,9 +35,9 @@ describe('team routes', () => {
       const players = [testData.player(), testData.player({ id: 2, name: 'Player 2' })]
       const user = testData.user()
 
+      getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
       query
-        .mockResolvedValueOnce([team]) // SELECT team
         .mockResolvedValueOnce(players) // SELECT players
         .mockResolvedValueOnce([]) // SELECT player_season_stats
 
@@ -46,18 +46,6 @@ describe('team routes', () => {
 
       expect(result.team).toEqual(team)
       expect(result.players).toHaveLength(2)
-      expect(result.user).not.toHaveProperty('password')
-    })
-
-    it('returns null team when user has none', async () => {
-      const user = testData.user()
-      query.mockResolvedValueOnce([]) // no team for user
-
-      const req = createMockRequest({ user })
-      const result = await handlers.getMyTeam(req)
-
-      expect(result.team).toBeNull()
-      expect(result.players).toEqual([])
       expect(result.user).not.toHaveProperty('password')
     })
   })

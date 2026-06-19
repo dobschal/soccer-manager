@@ -1,7 +1,7 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
-import { formatDate } from '../lib/date.js'
+import { formatDate, isToday } from '../lib/date.js'
 import { t } from '../i18n/index.js'
 import { el } from '../lib/html.js'
 import { toast } from '../partials/toast.js'
@@ -340,8 +340,9 @@ export class ForumPage extends UIElement {
     for (const p of slice) {
       const date = formatDate('DD.MM.YYYY hh:mm', p.created_at)
       const preview = p.text.length > 120 ? p.text.slice(0, 120) + '…' : p.text
+      const todayClass = isToday(p.created_at) ? ' bg-warning-subtle' : ''
       html += `
-        <a href="#dashboard?sub_page=forum&category=${p.category_id}&post=${p.id}" class="list-group-item list-group-item-action forum-latest-comment-item">
+        <a href="#dashboard?sub_page=forum&category=${p.category_id}&post=${p.id}" class="list-group-item list-group-item-action forum-latest-comment-item${todayClass}">
           <div class="forum-latest-comment-title">${escapeHtml(p.title)}</div>
           <p class="mb-1 text-muted forum-post-preview">${escapeHtml(preview)}</p>
           <small class="text-muted">${escapeHtml(p.username)} - ${date}</small>
@@ -376,8 +377,9 @@ export class ForumPage extends UIElement {
     for (const c of slice) {
       const date = formatDate('DD.MM.YYYY hh:mm', c.created_at)
       const preview = c.text.length > 120 ? c.text.slice(0, 120) + '…' : c.text
+      const todayClass = isToday(c.created_at) ? ' bg-warning-subtle' : ''
       html += `
-        <a href="#dashboard?sub_page=forum&category=${c.category_id}&post=${c.post_id}" class="list-group-item list-group-item-action forum-latest-comment-item">
+        <a href="#dashboard?sub_page=forum&category=${c.category_id}&post=${c.post_id}" class="list-group-item list-group-item-action forum-latest-comment-item${todayClass}">
           <div class="forum-latest-comment-title">${escapeHtml(c.post_title)}</div>
           <p class="mb-1 text-muted forum-post-preview">${escapeHtml(preview)}</p>
           <small class="text-muted">${escapeHtml(c.username)} - ${date}</small>
@@ -446,8 +448,9 @@ export class ForumPage extends UIElement {
         const date = formatDate('DD.MM.YYYY hh:mm', post.last_activity || post.created_at)
         const teamName = post.team_id ? `${escapeHtml(post.team_name || '')}` : ''
         const archivedBadge = post.is_archived ? ` <span class="forum-archived-indicator"><i class="fa fa-archive"></i> ${t('forum.archived')}</span>` : ''
+        const todayClass = isToday(post.created_at) ? ' bg-warning-subtle' : ''
         html += `
-          <a href="#dashboard?sub_page=forum&category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item${post.is_archived ? ' forum-post-item--archived' : ''}">
+          <a href="#dashboard?sub_page=forum&category=${this._params.category}&post=${post.id}" class="list-group-item list-group-item-action forum-post-item${post.is_archived ? ' forum-post-item--archived' : ''}${todayClass}">
             <h6 class="mb-1">${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}${archivedBadge}</h6>
             <p class="mb-1 text-muted forum-post-preview">${escapeHtml(post.text)}</p>
             <p class="forum-meta">
@@ -517,7 +520,7 @@ export class ForumPage extends UIElement {
       : `<div class="forum-post-text mb-3">${renderForumBody(post.text)}</div>`
 
     let html = `
-      <div class="card mb-3${post.is_archived ? ' forum-post-card--archived' : ''}">
+      <div class="card mb-3${post.is_archived ? ' forum-post-card--archived' : ''}${isToday(post.created_at) ? ' bg-warning-subtle' : ''}">
         <div class="card-body">
           ${post.is_archived ? `<div class="alert alert-secondary py-2 mb-2"><i class="fa fa-archive me-1"></i> ${t('forum.archivedNotice')}</div>` : ''}
           <h5>${escapeHtml(post.title)}${post.badge_text ? ` <span class="forum-badge" data-color="${escapeHtml(post.badge_color)}">${escapeHtml(post.badge_text)}</span>` : ''}</h5>
@@ -597,7 +600,7 @@ export class ForumPage extends UIElement {
           : `<div>${renderForumBody(comment.text)}</div>`
 
         html += `
-          <div class="forum-comment mb-2 pb-2 border-bottom">
+          <div class="forum-comment mb-2 pb-2 border-bottom${isToday(comment.created_at) ? ' bg-warning-subtle' : ''}">
             <div class="forum-meta mb-1">
               <strong>${escapeHtml(comment.username)}</strong>
               ${cTeamLink ? '- ' + cTeamLink : ''}

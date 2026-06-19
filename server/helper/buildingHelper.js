@@ -58,6 +58,18 @@ export const YOUTH_ACADEMY_CARD_CHANCES = {
 }
 
 /**
+ * The youth player card tier guaranteed to a team that has no youth player yet,
+ * keyed by youth academy level. Must match the tier emitted by
+ * YOUTH_ACADEMY_CARD_CHANCES so the guaranteed card respects the academy's
+ * advertised level range (level 1 → Bronze, 2 → Silver, 3 → Gold).
+ */
+export const YOUTH_ACADEMY_GUARANTEED_CARD = {
+  1: 'NEW_YOUTH_PLAYER_1',
+  2: 'NEW_YOUTH_PLAYER_2',
+  3: 'NEW_YOUTH_PLAYER_3'
+}
+
+/**
  * Map building type to i18n key for log messages.
  */
 const BUILDING_NAME_KEYS = {

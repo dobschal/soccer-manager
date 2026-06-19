@@ -30,11 +30,13 @@ const port = 3000
 // Trust the first proxy (nginx) so req.ip uses X-Forwarded-For
 app.set('trust proxy', 1)
 
-// CORS: allow requests from native app (file:// or missing origin) and localhost dev servers
+// CORS: allow requests from native app (file:// or missing origin), the desktop
+// app (custom app:// scheme), and localhost dev servers
 app.use((req, res, next) => {
   const origin = req.headers.origin
   const isLocalhost = origin && /^https?:\/\/localhost(:\d+)?$/.test(origin)
-  if (!origin || origin === 'null' || origin === 'file://' || isLocalhost) {
+  const isDesktopApp = origin && origin.startsWith('app://')
+  if (!origin || origin === 'null' || origin === 'file://' || isLocalhost || isDesktopApp) {
     res.setHeader('Access-Control-Allow-Origin', origin || '*')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language')
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
