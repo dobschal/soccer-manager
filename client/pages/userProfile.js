@@ -32,6 +32,13 @@ export class UserProfilePage extends UIElement {
     try {
       const data = await server.getUserProfile(this.userId)
       this.profile = data
+      // Friend status (only for other users' profiles)
+      this._isFriend = false
+      this._canBeFriend = !data.isOwnProfile && Boolean(this.userId)
+      if (this._canBeFriend) {
+        const friendStatus = await server.isFriend(this.userId)
+        this._isFriend = Boolean(friendStatus.isFriend)
+      }
     } catch (e) {
       showServerError(e)
       goTo('dashboard')
@@ -52,12 +59,85 @@ export class UserProfilePage extends UIElement {
       </div>
     `
   }
-  async applyQueryParams (params) {
-    const newId = params.id ? Number(params.id) : null
-    if (newId && newId !== this.userId) {
-      this.userId = newId
+  /**
+   * @returns {import('../lib/UIElement.js').UIElementEvents}
+   */
+  get events () {
+    return {
+      '.friend-toggle-btn': {
+        click: (event) => {
+          event.preventDefault()
+          this._handleFriendToggleClick()
+        }
+      }
     }
   }
+
+  /**
+   * Called by the router when the cached page instance is reused with new
+   * query params. Reload the profile when the requested user id changes so we
+   * never show a stale (previously-viewed) user.
+   * @param {{id?: string|number}} params
+   * @returns {Promise<void>}
+   */
+  async onQueryChanged ({ id }) {
+    const newId = id ? Number(id) : null
+    if (newId && newId !== this.userId) {
+      this.userId = newId
+      this.profile = null
+      await this.update(true)
+    }
+  }
+  /**
+   * Render the add/remove friend button for other users' profiles.
+   * @returns {string}
+   * @private
+   */
+  _renderFriendToggleButton () {
+    if (!this._canBeFriend) return ''
+    const disabled = this._isUpdatingFriend
+    const inner = this._isUpdatingFriend
+      ? '<i class="fa fa-spinner fa-spin"></i>'
+      : this._isFriend
+        ? `<i class="fa fa-user-times"></i> ${t('team.removeFriend')}`
+        : `<i class="fa fa-user-plus"></i> ${t('team.addFriend')}`
+    const cls = this._isFriend ? 'btn-outline-secondary' : 'btn-outline-info'
+    return `
+      <button class="btn btn-sm ${cls} friend-toggle-btn mt-2" ${disabled ? 'disabled' : ''}>
+        ${inner}
+      </button>
+    `
+  }
+
+  /**
+   * Handle add/remove friend button clicks.
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _handleFriendToggleClick () {
+    if (this._isUpdatingFriend || !this._canBeFriend || !this.userId) return
+    try {
+      this._isUpdatingFriend = true
+      await this.update()
+      if (this._isFriend) {
+        await server.removeFriend(this.userId)
+        this._isFriend = false
+        toast(t('team.friendRemoved'), 'success')
+      } else {
+        await server.addFriend(this.userId)
+        this._isFriend = true
+        toast(t('team.friendAdded'), 'success')
+      }
+    } catch (e) {
+      console.error('Error updating friend status:', e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    } finally {
+      this._isUpdatingFriend = false
+      await this.update()
+    }
+  }
+
+  static cacheKeyParams = ['id']
 
   _renderHeader (user, currentTeam, isOwnProfile) {
     const teamLink = currentTeam ? `#team?id=${currentTeam.id}` : null
@@ -77,6 +157,7 @@ export class UserProfilePage extends UIElement {
           <h3 class="mb-0">${user.username}</h3>
           ${teamLabel}
           ${isOwnProfile ? `<span class="badge bg-info mt-2">${t('userProfile.you')}</span>` : ''}
+          ${this._renderFriendToggleButton()}
         </div>
       </div>
     `
