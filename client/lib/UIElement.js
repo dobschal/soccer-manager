@@ -21,6 +21,13 @@ export class UIElement {
       this._queryChangedEventId = on('query-changed', (params) => {
         const node = document.querySelector(this._elementQuery)
         if (!node || UIElement._isInsideHiddenContainer(node)) return
+        // The query-changed event is global, so cached pages from the route we
+        // just left are still mounted (and, during the slide-out animation,
+        // still visible) when it fires. If this element belongs to a page
+        // whose path differs from the current route, ignore the event —
+        // otherwise e.g. navigating #user?id=131 → #team?id=85 would feed the
+        // team id into the still-mounted UserProfilePage. See #441.
+        if (!UIElement._isOnCurrentPage(node)) return
         boundHandler(params)
       })
     }
@@ -319,6 +326,22 @@ export class UIElement {
       current = current.parentElement
     }
     return false
+  }
+
+  /**
+   * Is the given node part of the page that matches the current route?
+   * The router wraps every page in a `[data-page="<cacheKey>"]` element whose
+   * cache key starts with the route path. Elements not inside any page wrapper
+   * (e.g. layout chrome) are treated as always-current.
+   * @param {HTMLElement} node
+   * @returns {boolean}
+   */
+  static _isOnCurrentPage (node) {
+    const pageWrapper = node.closest('[data-page]')
+    if (!pageWrapper) return true
+    const pagePath = (pageWrapper.getAttribute('data-page') || '').split('?')[0]
+    const currentPath = window.location.hash.substring(1).split('?')[0] || 'dashboard'
+    return pagePath === currentPath
   }
 
   /**
