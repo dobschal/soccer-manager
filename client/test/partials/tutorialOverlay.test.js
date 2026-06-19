@@ -151,6 +151,48 @@ describe('tutorialOverlay', () => {
       expect(htmlContent).toContain('Got it!')
     })
 
+    it('does not show the overlay if the route changed during the delay', async () => {
+      server.getTutorialStatus.mockResolvedValue({
+        tutorialCompleted: {}
+      })
+      // Start on the dashboard route...
+      window.location.hash = '#dashboard'
+      showTutorialIfNeeded('dashboard')
+      await Promise.resolve()
+      // ...then navigate away before the delay elapses.
+      window.location.hash = '#trades'
+      await vi.advanceTimersByTimeAsync(1500)
+
+      expect(document.body.insertAdjacentHTML).not.toHaveBeenCalled()
+      window.location.hash = ''
+    })
+
+    it('does not show the overlay if the originating component unmounted', async () => {
+      server.getTutorialStatus.mockResolvedValue({
+        tutorialCompleted: {}
+      })
+      const component = { _isMounted: true }
+      showTutorialIfNeeded('dashboard', component)
+      await Promise.resolve()
+      component._isMounted = false
+      await vi.advanceTimersByTimeAsync(1500)
+
+      expect(document.body.insertAdjacentHTML).not.toHaveBeenCalled()
+    })
+
+    it('does not insert a second overlay while one is already open', async () => {
+      server.getTutorialStatus.mockResolvedValue({
+        tutorialCompleted: {}
+      })
+      // Pretend a tutorial overlay is already in the DOM.
+      const querySpy = vi.spyOn(document, 'querySelector').mockReturnValue({})
+
+      await triggerTutorial('dashboard')
+
+      expect(document.body.insertAdjacentHTML).not.toHaveBeenCalled()
+      querySpy.mockRestore()
+    })
+
     it('shows the overlay immediately when delay is 0', async () => {
       server.getTutorialStatus.mockResolvedValue({
         tutorialCompleted: {}

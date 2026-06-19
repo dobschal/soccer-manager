@@ -106,6 +106,7 @@ function getTutorials () {
  * @returns {Promise<void>}
  */
 export async function showTutorialIfNeeded (tutorialKey, component = null, { delay = 1500 } = {}) {
+  const startPath = currentRoutePath()
   let tutorialCompleted
   try {
     const result = await server.getTutorialStatus()
@@ -119,9 +120,22 @@ export async function showTutorialIfNeeded (tutorialKey, component = null, { del
   if (delay > 0) {
     await new Promise(resolve => setTimeout(resolve, delay))
   }
+  // The status check and the delay are async — by the time we get here the user
+  // may have navigated away (fast page switching). Bail if the originating
+  // component unmounted or the route changed, so the overlay never pops up on a
+  // page it doesn't belong to.
   if (component && !component._isMounted) return
+  if (currentRoutePath() !== startPath) return
 
   await showTutorialOverlay(tutorialKey)
+}
+
+/**
+ * Current route path (hash without query), defaulting to 'dashboard'.
+ * @returns {string}
+ */
+function currentRoutePath () {
+  return window.location.hash.substring(1).split('?')[0] || 'dashboard'
 }
 
 /**
@@ -138,6 +152,11 @@ export function showTutorialOverlay (tutorialKey) {
     const tutorial = tutorials[tutorialKey]
     if (!tutorial) { resolve(); return }
 
+    // Guard against stacking: if a tutorial overlay is already open, don't
+    // insert a second one (e.g. two pages' delayed tutorials resolving close
+    // together, or a re-render re-triggering the call).
+    if (document.querySelector('.tutorial-overlay')) { resolve(); return }
+
     const overlayId = generateId()
     const overlayInnerId = generateId()
     const closeButtonId = generateId()
@@ -149,7 +168,7 @@ export function showTutorialOverlay (tutorialKey) {
     const cardBodyStyle = ``
 
     const html = `
-    <div id="${overlayId}" class="overlay-backdrop clear-background">
+    <div id="${overlayId}" class="overlay-backdrop clear-background tutorial-overlay">
       <div id="${overlayInnerId}" class="card overlay small shadow-lg shadow">
         <div class="card-body" style="${cardBodyStyle}">
           <span id="${closeButtonId}" class="fa fa-close fa-button fa-lg float-end"></span>
