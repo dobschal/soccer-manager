@@ -297,6 +297,23 @@ describe('MyTeamPage', () => {
       expect(html).toContain('attack-mode-select')
       expect(html).toContain('captain-select')
     })
+
+    it('shows each lineup player\'s age in the captain select', async () => {
+      const team = testData.team()
+      // carrier_start_season 3, current season 8 → age = (8 - 3) + 16 = 21
+      const players = [testData.player({ id: 7, in_game_position: 'CM', carrier_start_season: 3 })]
+
+      server.getMyTeam.mockResolvedValue({ team, players })
+      server.getCurrentGameday.mockResolvedValue({ season: 8 })
+
+      const page = new MyTeamPage()
+      await page.load()
+      void page.template
+
+      const html = page._subPageCache.ateam._renderCaptainSelect()
+      expect(html).toContain('player.age')
+      expect(html).toContain('21')
+    })
   })
 
   describe('YOUTH_PLAYER_PROMOTED event', () => {
