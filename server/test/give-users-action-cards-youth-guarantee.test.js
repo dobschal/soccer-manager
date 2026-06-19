@@ -10,7 +10,12 @@ vi.mock('../helper/buildingHelper.js', () => ({
   getAllYouthAcademyLevels: vi.fn(),
   TRAINING_AREA_CARD_CHANCES: { 0: {}, 1: {} },
   FITNESS_STUDIO_CARD_CHANCES: { 0: {}, 1: {} },
-  YOUTH_ACADEMY_CARD_CHANCES: { 0: {}, 1: {} }
+  YOUTH_ACADEMY_CARD_CHANCES: { 0: {}, 1: {} },
+  YOUTH_ACADEMY_GUARANTEED_CARD: {
+    1: 'NEW_YOUTH_PLAYER_1',
+    2: 'NEW_YOUTH_PLAYER_2',
+    3: 'NEW_YOUTH_PLAYER_3'
+  }
 }))
 // All youth chances 0 so the guarantee rule is the sole driver for youth cards.
 // FILLER = 1 guarantees the while-loop exits each day (mirrors prod where LEVEL_UP_PLAYER_40 is 1.2).
@@ -113,6 +118,36 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
       state: 'pending',
       season: SEASON
     })
+  })
+
+  it('guarantees a Silver (NEW_YOUTH_PLAYER_2) card for a level-2 youth academy', async () => {
+    getAllYouthAcademyLevels.mockResolvedValue(new Map([[42, 2]]))
+    const inserts = setupMocks({
+      teams: [{ id: 42 }],
+      teamIdsWithYouth: [],
+      teamIdsWithYouthCardThisSeason: []
+    })
+
+    await _giveUsersActionCards()
+
+    const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
+    expect(youthInserts).toHaveLength(1)
+    expect(youthInserts[0].value.action).toBe('NEW_YOUTH_PLAYER_2')
+  })
+
+  it('guarantees a Gold (NEW_YOUTH_PLAYER_3) card for a level-3 youth academy', async () => {
+    getAllYouthAcademyLevels.mockResolvedValue(new Map([[42, 3]]))
+    const inserts = setupMocks({
+      teams: [{ id: 42 }],
+      teamIdsWithYouth: [],
+      teamIdsWithYouthCardThisSeason: []
+    })
+
+    await _giveUsersActionCards()
+
+    const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
+    expect(youthInserts).toHaveLength(1)
+    expect(youthInserts[0].value.action).toBe('NEW_YOUTH_PLAYER_3')
   })
 
   it('does not give a youth card when the team already owns a youth player', async () => {

@@ -15,7 +15,8 @@ import {
   getAllTrainingAreaLevels,
   getAllYouthAcademyLevels,
   TRAINING_AREA_CARD_CHANCES,
-  YOUTH_ACADEMY_CARD_CHANCES
+  YOUTH_ACADEMY_CARD_CHANCES,
+  YOUTH_ACADEMY_GUARANTEED_CARD
 } from './helper/buildingHelper.js'
 import { addLogMessage, checkTeamAndNotify } from './helper/logMessageHelper.js'
 import { getUserLocale, t } from './i18n/index.js'
@@ -583,9 +584,12 @@ export async function _giveUsersActionCards () {
     const guaranteeYouthCard =
       !teamIdsWithYouth.has(team.id) && !teamIdsWithSeasonYouthCard.has(team.id)
     if (guaranteeYouthCard) {
+      // The guaranteed card tier must match the academy level so the card
+      // respects the advertised level range (L1 → Bronze, L2 → Silver, L3 → Gold).
+      const guaranteedAction = YOUTH_ACADEMY_GUARANTEED_CARD[academyLevel] || 'NEW_YOUTH_PLAYER_1'
       actionCards.push(new ActionCard({
         team_id: team.id,
-        action: 'NEW_YOUTH_PLAYER_1',
+        action: guaranteedAction,
         played: 0,
         state: 'pending',
         season
