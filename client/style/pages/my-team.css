@@ -161,6 +161,25 @@
     opacity: 0.7;
 }
 
+/* Coach info shown centered below the avatar (no table). */
+.coach-info__name {
+    font-size: 1.15rem;
+}
+
+/* The coach card body links to the manager's profile. */
+.coach-card-link {
+    display: block;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.coach-card-link:hover,
+.coach-card-link:focus {
+    color: inherit;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
 /* Stadium Modal */
 .stadium-modal-container {
     min-height: 300px;

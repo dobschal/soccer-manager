@@ -388,22 +388,27 @@ export class TeamPage extends UIElement {
       ? `<img class="coach-avatar__img" src="${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatarFilename}" alt="${altText}">`
       : `<img class="coach-avatar__img coach-avatar__img--default" src="./assets/avatar-placeholder.svg" alt="${altText}">`
 
+    const userId = this.user?.id
+    const body = `
+      <div class="coach-avatar mb-3">
+        ${avatarImg}
+      </div>
+      <div class="coach-info text-center">
+        <div class="coach-info__name fw-semibold">${coachName}</div>
+        <div class="coach-info__since text-muted small">${t('myTeam.coachSince')}: ${coachSince}</div>
+      </div>
+    `
+    // The whole card opens the manager's profile (when there is a real user).
+    const cardBody = userId
+      ? `<a href="#user?id=${userId}" class="card-body coach-card-link text-decoration-none">${body}</a>`
+      : `<div class="card-body">${body}</div>`
+
     return `
       <div class="card h-100 border-0">
         <div class="card-header text-white gradient-header">
           <h5 class="card-title mb-0">${t('myTeam.coach')}</h5>
         </div>
-        <div class="card-body">
-          <div class="coach-avatar mb-3">
-            ${avatarImg}
-          </div>
-          <table class="table table-sm mb-0 team-info-table">
-            <tbody>
-              <tr><td class="text-muted ps-3">${t('myTeam.coach')}</td><td class="text-end pe-3">${coachName}</td></tr>
-              <tr><td class="text-muted ps-3">${t('myTeam.coachSince')}</td><td class="text-end pe-3">${coachSince}</td></tr>
-            </tbody>
-          </table>
-        </div>
+        ${cardBody}
       </div>
     `
   }

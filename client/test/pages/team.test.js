@@ -264,8 +264,62 @@ describe('TeamPage', () => {
       await page.load()
 
       const html = page._renderCoachCard()
-      expect(html).toContain('pe-3">-</td>')
+      expect(html).toContain('myTeam.coachSince: -')
       expect(html).not.toContain('15.01.2024')
+    })
+
+    it('renders the coach info centered without a table', async () => {
+      const team = testData.team()
+      const players = [testData.player()]
+      const user = testData.user({ id: 55, username: 'manager123' })
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+
+      const page = new TeamPage()
+      page.teamId = 1
+      await page.load()
+
+      const html = page._renderCoachCard()
+      expect(html).not.toContain('team-info-table')
+      expect(html).not.toContain('<table')
+      expect(html).toContain('coach-info text-center')
+    })
+
+    it('links the coach card to the manager profile for a human team', async () => {
+      const team = testData.team()
+      const players = [testData.player()]
+      const user = testData.user({ id: 55, username: 'manager123' })
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+
+      const page = new TeamPage()
+      page.teamId = 1
+      await page.load()
+
+      const html = page._renderCoachCard()
+      expect(html).toContain('href="#user?id=55"')
+      expect(html).toContain('coach-card-link')
+    })
+
+    it('does not make the coach card a link for a bot team (no user)', async () => {
+      const team = testData.team()
+      const players = [testData.player()]
+      const stadium = testData.stadium()
+
+      server.getTeam.mockResolvedValue({ team, players, user: null })
+      server.getStadiumByTeamId.mockResolvedValue(stadium)
+
+      const page = new TeamPage()
+      page.teamId = 1
+      await page.load()
+
+      const html = page._renderCoachCard()
+      expect(html).not.toContain('coach-card-link')
+      expect(html).not.toContain('#user?id=')
     })
 
     it('falls back to user.created_at when coach_since is missing but user exists', async () => {
