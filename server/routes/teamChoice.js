@@ -123,6 +123,7 @@ export default {
       throw new BadRequestError(t('chooseTeam.teamUnavailable', {}, locale))
     }
     await query('DELETE FROM log_message WHERE team_id=?', [team.id])
+    await query('DELETE FROM finance_log WHERE team_id=?', [team.id])
     await query('DELETE FROM trade_offer WHERE from_team_id=?', [team.id])
     await query('DELETE FROM trade_offer WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
     await addLogMessage(t('log.welcome', {

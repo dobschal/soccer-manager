@@ -162,6 +162,7 @@ describe('teamChoice routes', () => {
         .mockResolvedValueOnce([]) // no team for user yet
         .mockResolvedValueOnce([team]) // team available
         .mockResolvedValueOnce({}) // delete log_message
+        .mockResolvedValueOnce({}) // delete finance_log
         .mockResolvedValueOnce({}) // delete trade_offer from
         .mockResolvedValueOnce({}) // delete trade_offer player
         .mockResolvedValueOnce({}) // update team user_id/balance
@@ -188,6 +189,7 @@ describe('teamChoice routes', () => {
         'UPDATE team SET user_id=?, balance=500000, coach_since=CURRENT_TIMESTAMP WHERE id=?',
         [1, 5]
       )
+      expect(query).toHaveBeenCalledWith('DELETE FROM finance_log WHERE team_id=?', [5])
       expect(query).toHaveBeenCalledWith('DELETE FROM sponsor WHERE id=?', [17])
       expect(regenerateTeamData).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }))
       expect(completeAllStadiumConstructionsForTeam).toHaveBeenCalledWith(5, 1, 5)
@@ -200,6 +202,7 @@ describe('teamChoice routes', () => {
         .mockResolvedValueOnce([]) // no team for user yet
         .mockResolvedValueOnce([team]) // team available
         .mockResolvedValueOnce({}) // delete log_message
+        .mockResolvedValueOnce({}) // delete finance_log
         .mockResolvedValueOnce({}) // delete trade_offer from
         .mockResolvedValueOnce({}) // delete trade_offer player
         .mockResolvedValueOnce({}) // update team
