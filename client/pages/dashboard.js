@@ -6,6 +6,7 @@ import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
 import { FriendsPage } from './dashboard/friendsPage.js'
 import { ForumPage } from './forum.js'
+import { WikiPage } from './wiki.js'
 import { SearchPanel } from '../partials/searchPanel.js'
 import { t } from '../i18n/index.js'
 import { el } from '../lib/html.js'
@@ -120,7 +121,7 @@ export class DashboardPage extends TabbedPage {
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
           <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
           <a class="nav-link ${this.subPage === 'friends' ? 'active' : ''}" href="#dashboard?sub_page=friends"><i class="fa fa-users"></i> ${t('dashboard.tabFriends')}</a>
-          <a class="nav-link" href="#wiki"><i class="fa fa-book"></i> ${t('wiki.title')}</a>
+          <a class="nav-link ${this.subPage === 'wiki' ? 'active' : ''}" href="#dashboard?sub_page=wiki"><i class="fa fa-book"></i> ${t('wiki.title')}</a>
           <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#dashboard?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>
 
@@ -180,6 +181,14 @@ export class DashboardPage extends TabbedPage {
           forum.onQueryChanged(params)
         }
       }
+      // Same for the wiki sub-page: a cached instance becoming visible again
+      // needs the latest id param pushed in (#441).
+      if (newSubPage === 'wiki') {
+        const wiki = this._subPageCache.wiki
+        if (wiki?._isMounted && typeof wiki.onQueryChanged === 'function') {
+          wiki.onQueryChanged(params)
+        }
+      }
     } else if (!newSubPage && this._initialQueryChangeHandled) {
       // Returning to the start tab from another page — refresh data.
       // Skip on the very first onQueryChanged after mount: the page just
@@ -210,6 +219,7 @@ export class DashboardPage extends TabbedPage {
       case 'messages': return new LogMessages()
       case 'forum': return new ForumPage()
       case 'friends': return new FriendsPage()
+      case 'wiki': return new WikiPage()
       case 'search': return new SearchPanel()
       default: return this._createStartPage()
     }

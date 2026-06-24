@@ -252,18 +252,24 @@ describe('DashboardPage', () => {
       expect(page.template).toContain('#dashboard?sub_page=search')
     })
 
-    it('#441 replaces the Actions tab with a Wiki link before Search', async () => {
+    it('#441 replaces the Actions tab with a Wiki sub-page tab before Search', async () => {
       const page = new DashboardPage()
       await page.load()
       const html = page.template
       const navHtml = html.slice(0, html.indexOf('</nav>'))
       // Actions (cards) tab removed from the nav
       expect(navHtml).not.toContain('#dashboard?sub_page=cards')
-      // Wiki link added before Search
-      const wikiIdx = navHtml.indexOf('"#wiki"')
+      // Wiki sub-page tab added before Search
+      const wikiIdx = navHtml.indexOf('#dashboard?sub_page=wiki')
       const searchIdx = navHtml.indexOf('#dashboard?sub_page=search')
       expect(wikiIdx).toBeGreaterThan(0)
       expect(searchIdx).toBeGreaterThan(wikiIdx)
+    })
+
+    it('#441 renders the wiki sub-page via createSubPage', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      expect(page.createSubPage('wiki').constructor.name).toBe('WikiPage')
     })
 
     it('orders Friends tab between Forum and Search', async () => {

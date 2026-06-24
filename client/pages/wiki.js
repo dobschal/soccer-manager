@@ -11,6 +11,16 @@ function escapeHtml (text) {
 }
 
 /**
+ * Build the URL for a stored wiki image filename (#441). Uses the native
+ * server prefix so images load inside the iOS/Android WebView too.
+ * @param {string} filename
+ * @returns {string}
+ */
+export function wikiImageUrl (filename) {
+  return `${window.__NATIVE_SERVER_URL || ''}/uploads/wiki/${encodeURIComponent(filename)}`
+}
+
+/**
  * Public, multilingual wiki page (#441). A persistent sidebar lists every
  * entry (with a search filter); selecting one shows its detail on the right.
  * The selected entry is carried in the `id` query param so it is linkable.
@@ -98,7 +108,7 @@ export class WikiPage extends UIElement {
       return `<p class="text-muted small px-2">${t('wiki.empty')}</p>`
     }
     return filtered.map(e => `
-      <a href="#wiki?id=${e.id}" class="wiki-list-item ${e.id === this._selectedId ? 'active' : ''}">
+      <a href="#dashboard?sub_page=wiki&id=${e.id}" class="wiki-list-item ${e.id === this._selectedId ? 'active' : ''}">
         <span class="wiki-list-item__title">${escapeHtml(e.title)}</span>
         ${e.subtitle ? `<span class="wiki-list-item__subtitle">${escapeHtml(e.subtitle)}</span>` : ''}
       </a>
@@ -113,8 +123,8 @@ export class WikiPage extends UIElement {
     if (!entry) {
       return `<p class="text-muted">${t('wiki.selectEntry')}</p>`
     }
-    const images = (entry.images || []).map(src =>
-      `<img src="${escapeHtml(src)}" alt="${escapeHtml(entry.title)}" class="wiki-image" loading="lazy">`
+    const images = (entry.images || []).map(name =>
+      `<img src="${wikiImageUrl(name)}" alt="${escapeHtml(entry.title)}" class="wiki-image" loading="lazy">`
     ).join('')
     const body = linkifyHtml(entry.text || '', (escaped) => escaped.replace(/\n/g, '<br>'))
     return `

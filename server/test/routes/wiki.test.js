@@ -73,9 +73,9 @@ describe('wiki routes (#441)', () => {
         .rejects.toMatchObject({ message: 'Text is required' })
     })
 
-    it('stores normalised data and parses newline-separated images', async () => {
+    it('keeps existing image filenames and strips any path prefix', async () => {
       query.mockResolvedValueOnce({ insertId: 7 })
-      const result = await handlers.createWikiEntry('fr', 'Title', 'Sub', 'Body', 'a.png\n b.png \n', 3, admin)
+      const result = await handlers.createWikiEntry('fr', 'Title', 'Sub', 'Body', ['a.png', 'x/y/b.png'], 3, admin)
       expect(result).toEqual({ id: 7 })
       const inserted = query.mock.calls[0][1]
       expect(inserted.locale).toBe('en') // fr -> en
@@ -85,11 +85,15 @@ describe('wiki routes (#441)', () => {
   })
 
   describe('updateWikiEntry / deleteWikiEntry', () => {
-    it('updates an entry', async () => {
-      query.mockResolvedValueOnce({})
+    it('updates an entry and keeps existing image filenames', async () => {
+      query
+        .mockResolvedValueOnce([{ images: '["x.png"]' }]) // SELECT existing images
+        .mockResolvedValueOnce({}) // UPDATE
       const result = await handlers.updateWikiEntry(5, 'de', 'T', 'S', 'Body', ['x.png'], 1, admin)
       expect(result).toEqual({ success: true })
-      expect(query.mock.calls[0][0]).toContain('UPDATE wiki_entry')
+      const updateCall = query.mock.calls[1]
+      expect(updateCall[0]).toContain('UPDATE wiki_entry')
+      expect(updateCall[1][4]).toBe('["x.png"]') // images JSON
     })
 
     it('rejects deleting with an invalid id', async () => {
@@ -97,7 +101,9 @@ describe('wiki routes (#441)', () => {
     })
 
     it('deletes an entry', async () => {
-      query.mockResolvedValueOnce({})
+      query
+        .mockResolvedValueOnce([{ images: '[]' }]) // SELECT existing images
+        .mockResolvedValueOnce({}) // DELETE
       const result = await handlers.deleteWikiEntry(5, admin)
       expect(result).toEqual({ success: true })
       expect(query).toHaveBeenCalledWith('DELETE FROM wiki_entry WHERE id=?', [5])

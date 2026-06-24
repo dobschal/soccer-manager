@@ -292,13 +292,10 @@ async function _resolvePage () {
   if (pageEl) pageEl.classList.remove('page-settled')
 
   const currentPath = window.location.hash.substring(1).split('?')[0] || 'dashboard'
-  // Pages reachable without a login / before a team is chosen (e.g. the public
-  // wiki, #441).
-  const isPublicPath = currentPath === 'login' || currentPath === 'wiki'
-  if (!isAuthenticated() && !isPublicPath) {
+  if (!isAuthenticated() && currentPath !== 'login') {
     return goTo('login')
   }
-  if (isAuthenticated() && !isPublicPath && currentPath !== 'choose-team') {
+  if (isAuthenticated() && currentPath !== 'login' && currentPath !== 'choose-team') {
     const hasTeam = await _ensureHasTeamChecked()
     if (!hasTeam) {
       return goTo('choose-team')

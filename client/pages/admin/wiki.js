@@ -1,11 +1,13 @@
 import { UIElement } from '../../lib/UIElement.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
-import { generateId } from '../../lib/html.js'
+import { el, generateId } from '../../lib/html.js'
 import { t } from '../../i18n/index.js'
 import { showConfirmDialog } from '../../partials/overlay.js'
+import { wikiImageUrl } from '../wiki.js'
 
 const LOCALES = ['en', 'de']
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
 export class WikiAdminPage extends UIElement {
   async load () {
@@ -33,12 +35,31 @@ export class WikiAdminPage extends UIElement {
     }
   }
 
+  onMounted () {
+    // The file input + image previews are managed outside the declarative
+    // `events` map so surgical preview refreshes keep working (#441).
+    const fileInput = el(`#${this._fileInputId}`)
+    if (fileInput) fileInput.addEventListener('change', (e) => this._onFilesSelected(e))
+    const preview = el(`#${this._previewId}`)
+    if (preview) {
+      preview.addEventListener('click', (e) => {
+        const btn = e.target.closest('.wiki-img-remove')
+        if (!btn) return
+        if (btn.dataset.existing) {
+          this._currentImages = this._currentImages.filter(f => f !== btn.dataset.existing)
+        } else if (btn.dataset.pending != null) {
+          this._pendingImages.splice(Number(btn.dataset.pending), 1)
+        }
+        this._refreshImagePreviews()
+      })
+    }
+  }
+
   _renderForm () {
     const e = this._editing || {}
     const localeOptions = LOCALES.map(l =>
       `<option value="${l}" ${e.locale === l ? 'selected' : ''}>${l.toUpperCase()}</option>`
     ).join('')
-    const images = Array.isArray(e.images) ? e.images.join('\n') : ''
     return `
       <div class="card card-body mb-4">
         <h5>${this._editing ? t('admin.wikiEditEntry') : t('admin.wikiNewEntry')}</h5>
@@ -65,7 +86,8 @@ export class WikiAdminPage extends UIElement {
           </div>
           <div class="col-12">
             <label class="form-label">${t('admin.wikiImages')}</label>
-            <textarea id="${this._imagesId}" class="form-control" rows="3" placeholder="${t('admin.wikiImagesPlaceholder')}">${images}</textarea>
+            <input type="file" id="${this._fileInputId}" class="form-control" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
+            <div id="${this._previewId}" class="wiki-image-previews">${this._renderImagePreviews()}</div>
           </div>
         </div>
         <div class="mt-3">
@@ -76,6 +98,41 @@ export class WikiAdminPage extends UIElement {
         </div>
       </div>
     `
+  }
+
+  _renderImagePreviews () {
+    const existing = this._currentImages.map(f => `
+      <div class="wiki-image-preview">
+        <img src="${wikiImageUrl(f)}" alt="">
+        <button type="button" class="wiki-img-remove" data-existing="${this._escape(f)}" aria-label="remove">&times;</button>
+      </div>
+    `).join('')
+    const pending = this._pendingImages.map((img, i) => `
+      <div class="wiki-image-preview">
+        <img src="${img.data}" alt="">
+        <button type="button" class="wiki-img-remove" data-pending="${i}" aria-label="remove">&times;</button>
+      </div>
+    `).join('')
+    return existing + pending
+  }
+
+  _refreshImagePreviews () {
+    const preview = el(`#${this._previewId}`)
+    if (preview) preview.innerHTML = this._renderImagePreviews()
+  }
+
+  _onFilesSelected (event) {
+    const files = Array.from(event.target.files || [])
+    event.target.value = ''
+    for (const file of files) {
+      if (!ALLOWED_TYPES.includes(file.type)) continue
+      const reader = new FileReader()
+      reader.onload = () => {
+        this._pendingImages.push({ data: reader.result, type: file.type })
+        this._refreshImagePreviews()
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   _renderList () {
@@ -122,7 +179,6 @@ export class WikiAdminPage extends UIElement {
       title: document.getElementById(this._titleId).value,
       subtitle: document.getElementById(this._subtitleId).value,
       text: document.getElementById(this._textId).value,
-      images: document.getElementById(this._imagesId).value,
       sortOrder: Number(document.getElementById(this._sortId).value) || 0
     }
   }
@@ -133,15 +189,17 @@ export class WikiAdminPage extends UIElement {
       toast(t('admin.wikiMissingFields'), 'error')
       return
     }
+    // Existing filenames (kept) + newly uploaded base64 images.
+    const images = [...this._currentImages, ...this._pendingImages.map(p => ({ data: p.data, type: p.type }))]
     try {
       if (this._editing) {
-        await server.updateWikiEntry(this._editing.id, f.locale, f.title, f.subtitle, f.text, f.images, f.sortOrder)
+        await server.updateWikiEntry(this._editing.id, f.locale, f.title, f.subtitle, f.text, images, f.sortOrder)
         toast(t('admin.wikiUpdated'), 'success')
       } else {
-        await server.createWikiEntry(f.locale, f.title, f.subtitle, f.text, f.images, f.sortOrder)
+        await server.createWikiEntry(f.locale, f.title, f.subtitle, f.text, images, f.sortOrder)
         toast(t('admin.wikiCreated'), 'success')
       }
-      this._editing = null
+      this._resetForm()
       await this.update(true)
     } catch (e) {
       toast(e.message || 'Something went wrong', 'error')
@@ -150,12 +208,20 @@ export class WikiAdminPage extends UIElement {
 
   _edit (id) {
     this._editing = this._entries.find(e => e.id === id) || null
+    this._currentImages = Array.isArray(this._editing?.images) ? [...this._editing.images] : []
+    this._pendingImages = []
     this.update()
   }
 
   _cancelEdit () {
-    this._editing = null
+    this._resetForm()
     this.update()
+  }
+
+  _resetForm () {
+    this._editing = null
+    this._currentImages = []
+    this._pendingImages = []
   }
 
   async _delete (id) {
@@ -163,7 +229,7 @@ export class WikiAdminPage extends UIElement {
     try {
       await server.deleteWikiEntry(id)
       toast(t('admin.wikiDeleted'), 'success')
-      if (this._editing?.id === id) this._editing = null
+      if (this._editing?.id === id) this._resetForm()
       await this.update(true)
     } catch (e) {
       toast(e.message || 'Something went wrong', 'error')
@@ -172,11 +238,14 @@ export class WikiAdminPage extends UIElement {
 
   _entries = []
   _editing = null
+  _currentImages = []
+  _pendingImages = []
   _localeId = generateId()
   _titleId = generateId()
   _subtitleId = generateId()
   _textId = generateId()
-  _imagesId = generateId()
+  _fileInputId = generateId()
+  _previewId = generateId()
   _sortId = generateId()
   _saveBtnId = generateId()
   _cancelBtnId = generateId()

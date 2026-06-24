@@ -29,8 +29,8 @@ describe('WikiPage (#441)', () => {
     const page = new WikiPage()
     await page.load()
     const html = page.template
-    expect(html).toContain('#wiki?id=3')
-    expect(html).toContain('#wiki?id=4')
+    expect(html).toContain('#dashboard?sub_page=wiki&id=3')
+    expect(html).toContain('#dashboard?sub_page=wiki&id=4')
     expect(html).toContain('wiki-list-item active')
   })
 

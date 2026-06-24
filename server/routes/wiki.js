@@ -1,18 +1,68 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
+import fs from 'fs'
+import path from 'path'
+import crypto from 'crypto'
 
 const SUPPORTED_LOCALES = ['en', 'de']
+const UPLOAD_DIR = 'uploads/wiki'
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024 // 2MB
 
 function normaliseLocale (locale) {
   return SUPPORTED_LOCALES.includes(locale) ? locale : 'en'
 }
 
-function parseImages (value) {
-  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean)
-  if (typeof value === 'string') {
-    return value.split('\n').map(v => v.trim()).filter(Boolean)
+/**
+ * Normalise the incoming images list into stored filenames. Each item is
+ * either an existing filename string (kept as-is) or a `{data, type}` base64
+ * upload, which is written to the persisted uploads/wiki directory (#441).
+ * @param {Array} images
+ * @returns {string[]}
+ */
+function persistWikiImages (images) {
+  if (!Array.isArray(images)) return []
+  const filenames = []
+  let dirReady = false
+  for (const img of images) {
+    if (typeof img === 'string') {
+      // Keep an already-stored filename (strip any path/URL prefix).
+      const name = img.split('/').pop()
+      if (name) filenames.push(name)
+      continue
+    }
+    if (!img || !img.data || !img.type) continue
+    if (!ALLOWED_TYPES.includes(img.type)) continue
+    const base64Data = img.data.replace(/^data:[^;]+;base64,/, '')
+    const buffer = Buffer.from(base64Data, 'base64')
+    if (buffer.length > MAX_IMAGE_SIZE) continue
+    if (!dirReady) {
+      fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+      dirReady = true
+    }
+    const ext = img.type.split('/')[1].replace('jpeg', 'jpg')
+    const filename = `${crypto.randomUUID()}.${ext}`
+    fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer)
+    filenames.push(filename)
   }
-  return []
+  return filenames
+}
+
+/**
+ * Delete image files that are no longer referenced by an entry (#441).
+ * @param {string[]} oldFilenames
+ * @param {string[]} newFilenames
+ */
+function deleteRemovedImages (oldFilenames, newFilenames) {
+  const keep = new Set(newFilenames)
+  for (const name of oldFilenames) {
+    if (keep.has(name)) continue
+    try {
+      fs.unlinkSync(path.join(UPLOAD_DIR, name))
+    } catch {
+      // file may already be gone — ignore
+    }
+  }
 }
 
 function decodeImages (raw) {
@@ -96,7 +146,7 @@ export default {
       title: cleanTitle.slice(0, 255),
       subtitle: typeof subtitle === 'string' ? subtitle.trim().slice(0, 255) || null : null,
       text: cleanText,
-      images: JSON.stringify(parseImages(images)),
+      images: JSON.stringify(persistWikiImages(images)),
       sort_order: Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : 0
     })
     return { id: result.insertId }
@@ -114,6 +164,9 @@ export default {
     const cleanText = typeof text === 'string' ? text.trim() : ''
     if (!cleanTitle) throw new BadRequestError('Title is required')
     if (!cleanText) throw new BadRequestError('Text is required')
+    const [existing] = await query('SELECT images FROM wiki_entry WHERE id=? LIMIT 1', [entryId])
+    const newFilenames = persistWikiImages(images)
+    if (existing) deleteRemovedImages(decodeImages(existing.images), newFilenames)
     await query(
       'UPDATE wiki_entry SET locale=?, title=?, subtitle=?, text=?, images=?, sort_order=? WHERE id=?',
       [
@@ -121,7 +174,7 @@ export default {
         cleanTitle.slice(0, 255),
         typeof subtitle === 'string' ? subtitle.trim().slice(0, 255) || null : null,
         cleanText,
-        JSON.stringify(parseImages(images)),
+        JSON.stringify(newFilenames),
         Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : 0,
         entryId
       ]
@@ -137,6 +190,8 @@ export default {
     if (!req.user?.is_admin) throw new BadRequestError('This action is only available for admins')
     const entryId = Number(id)
     if (!Number.isFinite(entryId) || entryId <= 0) throw new BadRequestError('Invalid wiki entry id')
+    const [existing] = await query('SELECT images FROM wiki_entry WHERE id=? LIMIT 1', [entryId])
+    if (existing) deleteRemovedImages(decodeImages(existing.images), [])
     await query('DELETE FROM wiki_entry WHERE id=?', [entryId])
     return { success: true }
   }
