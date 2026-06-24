@@ -1,0 +1,101 @@
+/* Animated match ticker overlay (#402) */
+.spiel-ticker__scoreboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.spiel-ticker__team {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spiel-ticker__team--home {
+    text-align: right;
+}
+
+.spiel-ticker__team--away {
+    text-align: left;
+}
+
+.spiel-ticker__score {
+    font-size: 1.6rem;
+    font-variant-numeric: tabular-nums;
+    background: var(--bs-info);
+    color: #fff;
+    border-radius: 0.5rem;
+    padding: 0.1rem 0.7rem;
+    white-space: nowrap;
+}
+
+.spiel-ticker__feed {
+    max-height: 50vh;
+    min-height: 4rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: min(420px, 80vw);
+}
+
+.spiel-ticker__event {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.4rem;
+    background: rgba(127, 127, 127, 0.08);
+    animation: spiel-ticker-in 0.35s ease-out;
+}
+
+.spiel-ticker__event--away {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+.spiel-ticker__event--goal {
+    background: rgba(40, 167, 69, 0.15);
+    font-weight: 600;
+    animation: spiel-ticker-goal 0.6s ease-out;
+}
+
+.spiel-ticker__minute {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    min-width: 2.2rem;
+}
+
+.spiel-ticker__detail {
+    flex: 1;
+}
+
+.spiel-ticker__card {
+    display: inline-block;
+    width: 0.8rem;
+    height: 1.1rem;
+    border-radius: 2px;
+}
+
+.spiel-ticker__card--yellow {
+    background: var(--bs-warning);
+}
+
+.spiel-ticker__card--red {
+    background: var(--bs-danger);
+}
+
+@keyframes spiel-ticker-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spiel-ticker-goal {
+    0% { opacity: 0; transform: scale(0.85); }
+    50% { transform: scale(1.06); }
+    100% { opacity: 1; transform: scale(1); }
+}

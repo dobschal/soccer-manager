@@ -102,6 +102,28 @@ describe('UserProfilePage', () => {
     })
   })
 
+  describe('#421 report user button', () => {
+    it('renders a report button on other users profiles', () => {
+      const page = new UserProfilePage()
+      const html = page._renderHeader(
+        { id: 2, username: 'Other', avatar: null },
+        null,
+        false
+      )
+      expect(html).toContain('report-user-btn')
+    })
+
+    it('does not render a report button on the own profile', () => {
+      const page = new UserProfilePage()
+      const html = page._renderHeader(
+        { id: 1, username: 'Me', avatar: null },
+        null,
+        true
+      )
+      expect(html).not.toContain('report-user-btn')
+    })
+  })
+
   describe('#439 add friend button', () => {
     it('renders an "add friend" button for other users', () => {
       const page = new UserProfilePage()

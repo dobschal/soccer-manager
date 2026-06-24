@@ -207,9 +207,10 @@ export async function clearBadge (userId) {
  * Send a push notification to all users with device tokens, grouped by language.
  * @param {string} messageEn - English message text
  * @param {string} messageDe - German message text
+ * @param {string} [deepLink] - optional URL hash opened when the user taps the notification (#330)
  * @returns {Promise<{sent: number, failed: number}>}
  */
-export async function sendBroadcastNotification (messageEn, messageDe) {
+export async function sendBroadcastNotification (messageEn, messageDe, deepLink = '') {
   const users = await query(
     `SELECT DISTINCT dt.user_id, COALESCE(u.language, 'en') as language
      FROM device_token dt
@@ -226,11 +227,12 @@ export async function sendBroadcastNotification (messageEn, messageDe) {
     byLanguage[lang].push(user.user_id)
   }
 
+  const data = deepLink ? { deep_link: deepLink } : {}
   let totalSent = 0
   let totalFailed = 0
   for (const [lang, userIds] of Object.entries(byLanguage)) {
     const body = messages[lang] || messages.en
-    await sendPushNotifications(userIds, 'FootballManager.IO', body)
+    await sendPushNotifications(userIds, 'FootballManager.IO', body, data)
     totalSent += userIds.length
   }
 

@@ -6,6 +6,7 @@ vi.mock('../../lib/gateway.js', () => ({
     getStatistics: vi.fn().mockResolvedValue({ rows: [], total: 0, pageSize: 20 }),
     getTopCountries: vi.fn().mockResolvedValue({ rows: [] }),
     getSuspiciousActions: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 }),
+    getReportedUsers: vi.fn().mockResolvedValue({ reports: [] }),
     getReferralSettings: vi.fn().mockResolvedValue({ action: 'BONUS_100K', options: ['BONUS_100K', 'STAR_PLAYER'] }),
     setReferralBenefit: vi.fn().mockResolvedValue({ success: true, action: 'BONUS_100K' }),
     getNotificationEmails: vi.fn().mockResolvedValue({ rows: [] }),

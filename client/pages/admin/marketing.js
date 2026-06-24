@@ -47,6 +47,11 @@ export class MarketingAdminPage extends UIElement {
             <label for="${this._broadcastDeId}" class="form-label">${t('admin.messageDe')}</label>
             <input type="text" id="${this._broadcastDeId}" class="form-control" placeholder="${t('admin.messageDePlaceholder')}">
           </div>
+          <div class="mb-3">
+            <label for="${this._broadcastDeepLinkId}" class="form-label">${t('admin.broadcastDeepLink')}</label>
+            <input type="text" id="${this._broadcastDeepLinkId}" class="form-control" placeholder="${t('admin.broadcastDeepLinkPlaceholder')}">
+            <small class="text-muted">${t('admin.broadcastDeepLinkHint')}</small>
+          </div>
           <button id="${this._broadcastBtnId}" class="btn btn-info">
             <i class="fa fa-bullhorn" aria-hidden="true"></i> ${t('admin.sendBroadcast')}
           </button>
@@ -102,6 +107,7 @@ export class MarketingAdminPage extends UIElement {
   _giftCardBtnId = generateId()
   _broadcastEnId = generateId()
   _broadcastDeId = generateId()
+  _broadcastDeepLinkId = generateId()
   _broadcastBtnId = generateId()
   _notifTitleId = generateId()
   _notifBodyId = generateId()
@@ -186,6 +192,7 @@ export class MarketingAdminPage extends UIElement {
   async _sendBroadcast () {
     const messageEn = document.getElementById(this._broadcastEnId).value.trim()
     const messageDe = document.getElementById(this._broadcastDeId).value.trim()
+    const deepLink = document.getElementById(this._broadcastDeepLinkId).value.trim()
     if (!messageEn || !messageDe) {
       toast(t('admin.broadcastBothRequired'), 'error')
       return
@@ -194,10 +201,11 @@ export class MarketingAdminPage extends UIElement {
     const btn = document.getElementById(this._broadcastBtnId)
     try {
       btn.disabled = true
-      const result = await server.broadcastNotification(messageEn, messageDe)
+      const result = await server.broadcastNotification(messageEn, messageDe, deepLink)
       toast(t('admin.broadcastSent', { sent: result.sent }), 'success')
       document.getElementById(this._broadcastEnId).value = ''
       document.getElementById(this._broadcastDeId).value = ''
+      document.getElementById(this._broadcastDeepLinkId).value = ''
     } catch (e) {
       toast(e.message || 'Something went wrong', 'error')
     } finally {

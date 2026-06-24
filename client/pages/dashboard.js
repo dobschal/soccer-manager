@@ -12,6 +12,7 @@ import { el } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
 import { showSeasonReviewOverlay, isSeasonReviewDismissed } from '../partials/seasonReviewOverlay.js'
+import { maybeShowSpielTickerOverlay } from '../partials/spielTickerOverlay.js'
 import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 
@@ -338,7 +339,37 @@ export class DashboardPage extends TabbedPage {
     await this._showEmailPromptIfNeeded()
     await this._showSeasonReviewIfNeeded()
     await this._showTutorialIfNeeded()
+    await this._showSpielTickerIfNeeded()
     await this._showPendingCardsIfNeeded()
+  }
+
+  /**
+   * Show the animated match ticker for the user's most recent game, before the
+   * action-card claim overlay (#402).
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _showSpielTickerIfNeeded () {
+    if (!this._isMounted) return
+    const lastGame = this._findLastPlayedGame()
+    if (!lastGame) return
+    await maybeShowSpielTickerOverlay({
+      season: this.season,
+      gameDay: this.gameDay,
+      myTeamId: this.team.id,
+      lastGame
+    })
+  }
+
+  /**
+   * The most recent played game from the slider (past games are listed oldest
+   * to newest, so the last one is the latest).
+   * @returns {object|null}
+   * @private
+   */
+  _findLastPlayedGame () {
+    const played = (this._sliderGames || []).filter(g => g.isPlayed && g.id)
+    return played.length > 0 ? played[played.length - 1] : null
   }
 
   async _showEmailPromptIfNeeded () {

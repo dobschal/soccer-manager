@@ -45,6 +45,7 @@ import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { sendAdminMessageEmail } from '../../lib/email.js'
 import { getServerStats } from '../../helper/serverStatsHelper.js'
+import { sendBroadcastNotification } from '../../lib/pushNotification.js'
 
 describe('dev routes - statistics', () => {
   beforeEach(() => {
@@ -308,6 +309,60 @@ describe('dev routes - statistics', () => {
 
       expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 50, offset: 0 })
       expect(result.pageSize).toBe(50)
+    })
+  })
+
+  describe('broadcastNotification (#330)', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.broadcastNotification('en', 'de', '', { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('passes a trimmed deep link through to the push helper', async () => {
+      sendBroadcastNotification.mockResolvedValueOnce({ sent: 3, failed: 0 })
+      const result = await handlers.broadcastNotification('Hello', 'Hallo', '  #club?sub_page=buildings  ', { user: { is_admin: 1 } })
+      expect(result).toEqual({ sent: 3, failed: 0 })
+      expect(sendBroadcastNotification).toHaveBeenCalledWith('Hello', 'Hallo', '#club?sub_page=buildings')
+    })
+
+    it('passes an empty deep link when none is given', async () => {
+      sendBroadcastNotification.mockResolvedValueOnce({ sent: 1, failed: 0 })
+      await handlers.broadcastNotification('Hi', 'Hi', undefined, { user: { is_admin: 1 } })
+      expect(sendBroadcastNotification).toHaveBeenCalledWith('Hi', 'Hi', '')
+    })
+  })
+
+  describe('getReportedUsers (#421)', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.getReportedUsers({ user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('returns reports for an admin', async () => {
+      const rows = [{ id: 1, reason: 'spam', status: 'open' }]
+      query.mockResolvedValueOnce(rows)
+      const result = await handlers.getReportedUsers({ user: { is_admin: 1 } })
+      expect(result).toEqual({ reports: rows })
+      expect(query.mock.calls[0][0]).toContain('FROM user_report')
+    })
+  })
+
+  describe('resolveUserReport (#421)', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.resolveUserReport(1, { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('rejects an invalid report id', async () => {
+      await expect(handlers.resolveUserReport(0, { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Invalid report id' })
+    })
+
+    it('marks the report resolved for an admin', async () => {
+      query.mockResolvedValueOnce({})
+      const result = await handlers.resolveUserReport(5, { user: { is_admin: 1 } })
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith("UPDATE user_report SET status='resolved', resolved_at=NOW() WHERE id=?", [5])
     })
   })
 

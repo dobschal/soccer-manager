@@ -21,8 +21,22 @@ import { initSwipeBackNavigation } from './lib/swipeBackNavigation.js'
 import { initPullToRefresh } from './lib/pullToRefresh.js'
 import { initTabBarAnimations } from './lib/tabBarAnimation.js'
 import { isApiReachable, showOfflineScreen } from './lib/offlineScreen.js'
+import { handleDeepLink } from './lib/deepLink.js'
 
 installGlobalErrorHandler()
+
+// Called from native side when the user taps a push notification that carries a
+// deep link (URL hash), e.g. "#club?sub_page=buildings" (#330). If the router
+// isn't ready yet (cold start), remember it and replay once initialised.
+window.__pendingDeepLink = window.__pendingDeepLink || null
+window.__handleDeepLink = function (hash) {
+  if (!hash) return
+  if (window.__routerReady) {
+    handleDeepLink(hash)
+  } else {
+    window.__pendingDeepLink = hash
+  }
+}
 
 // OTA update toast - called from native side via evaluateJavascript
 window.__showOtaToast = function () {
@@ -153,6 +167,13 @@ isApiReachable().then(reachable => {
     return
   }
   initRouter(pages)
+  // Router is live now — replay a deep link that arrived during cold start (#330).
+  window.__routerReady = true
+  if (window.__pendingDeepLink) {
+    const pending = window.__pendingDeepLink
+    window.__pendingDeepLink = null
+    setTimeout(() => handleDeepLink(pending), 0)
+  }
   if (reachable) {
     server.getVersion().then(({ version }) => {
       console.log(`FootballManager.IO running version ${version}`)
