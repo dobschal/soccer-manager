@@ -172,6 +172,7 @@ export default {
   'spielTicker.yellowCard': 'Yellow card',
   'spielTicker.redCard': 'Red card',
   'spielTicker.chance': 'Chance',
+  'spielTicker.goalBanner': 'GOAL!!!',
   'spielTicker.unknownPlayer': 'Unknown',
   'dashboard.urgencySubtitle': 'There are some things that need your attention',
   'dashboard.urgencyLineup': 'Your lineup is incomplete ({count}/11 players set).',

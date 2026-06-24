@@ -1,4 +1,12 @@
 /* Animated match ticker overlay (#402) */
+.spiel-ticker {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 80vh;
+    width: 100%;
+}
+
 .spiel-ticker__scoreboard {
     display: flex;
     align-items: center;
@@ -34,13 +42,17 @@
 }
 
 .spiel-ticker__feed {
-    max-height: 50vh;
-    min-height: 4rem;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    width: min(420px, 80vw);
+    width: 100%;
+}
+
+.spiel-ticker__footer {
+    flex: 0 0 auto;
 }
 
 .spiel-ticker__event {
@@ -87,6 +99,35 @@
 
 .spiel-ticker__card--red {
     background: var(--bs-danger);
+}
+
+/* Big "GOAL!!!" banner that flies in and out on a goal (#402) */
+.spiel-ticker__goal-banner {
+    position: absolute;
+    top: 40%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: clamp(2.5rem, 12vw, 5rem);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: var(--bs-success);
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(-120%) rotate(-8deg);
+    z-index: 5;
+}
+
+.spiel-ticker__goal-banner.show {
+    animation: spiel-ticker-goal-banner 1.5s ease-in-out forwards;
+}
+
+@keyframes spiel-ticker-goal-banner {
+    0% { opacity: 0; transform: translateX(-120%) rotate(-8deg); }
+    20% { opacity: 1; transform: translateX(0) rotate(-4deg) scale(1.1); }
+    70% { opacity: 1; transform: translateX(0) rotate(-4deg) scale(1); }
+    100% { opacity: 0; transform: translateX(120%) rotate(8deg); }
 }
 
 @keyframes spiel-ticker-in {

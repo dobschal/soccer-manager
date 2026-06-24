@@ -4,7 +4,8 @@ import { el, generateId } from '../lib/html.js'
 import { t } from '../i18n/index.js'
 import { maybeRequestReviewAfterWin } from '../lib/nativeReview.js'
 
-const STEP_INTERVAL_MS = 1300
+const STEP_INTERVAL_MS = 2000
+const GOAL_BANNER_MS = 1500
 
 function seenKey (season, gameDay, gameId) {
   return `spielTickerSeen_${season}_${gameDay}_${gameId}`
@@ -92,6 +93,7 @@ export async function showSpielTickerOverlay (game, myTeamId) {
   const skipId = generateId()
   const feedId = generateId()
   const scoreId = generateId()
+  const bannerId = generateId()
 
   const content = `
     <div class="spiel-ticker">
@@ -101,11 +103,12 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         <span class="spiel-ticker__team spiel-ticker__team--away">${result.team2}</span>
       </div>
       <div id="${feedId}" class="spiel-ticker__feed" aria-live="polite"></div>
-      <div class="text-center mt-3">
+      <div class="text-center mt-3 spiel-ticker__footer">
         <button type="button" id="${skipId}" class="btn btn-sm btn-outline-info spiel-ticker__skip">
           <i class="fa fa-forward"></i> ${t('spielTicker.skip')}
         </button>
       </div>
+      <div id="${bannerId}" class="spiel-ticker__goal-banner">${t('spielTicker.goalBanner')}</div>
     </div>
   `
 
@@ -118,6 +121,18 @@ export async function showSpielTickerOverlay (game, myTeamId) {
     let timer = null
     let finished = false
 
+    let bannerTimer = null
+    const showGoalBanner = () => {
+      const banner = el('#' + bannerId)
+      if (!banner) return
+      banner.classList.remove('show')
+      // Force reflow so the animation restarts even on back-to-back goals.
+      void banner.offsetWidth
+      banner.classList.add('show')
+      if (bannerTimer) clearTimeout(bannerTimer)
+      bannerTimer = setTimeout(() => banner.classList.remove('show'), GOAL_BANNER_MS)
+    }
+
     const renderEvent = (event) => {
       const feed = el('#' + feedId)
       if (!feed) return
@@ -129,6 +144,7 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         else awayScore++
         const scoreEl = el('#' + scoreId)
         if (scoreEl) scoreEl.textContent = `${homeScore} : ${awayScore}`
+        showGoalBanner()
       }
       const icon = {
         goal: '<span class="badge bg-success"><i class="fa fa-futbol-o"></i></span>',
@@ -191,6 +207,7 @@ export async function showSpielTickerOverlay (game, myTeamId) {
 
     overlay.onClose(() => {
       if (timer) { clearTimeout(timer); timer = null }
+      if (bannerTimer) { clearTimeout(bannerTimer); bannerTimer = null }
       resolve()
     })
   })
