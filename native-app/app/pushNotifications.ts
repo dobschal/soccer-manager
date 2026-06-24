@@ -12,6 +12,39 @@ export let registrationError: string | null = null
 type TokenCallback = (token: string, platform: string) => void
 let _tokenCallback: TokenCallback | null = null
 
+type DeepLinkCallback = (hash: string) => void
+let _deepLinkCallback: DeepLinkCallback | null = null
+let _pendingDeepLink: string | null = null
+
+/**
+ * Called when the user taps a push notification that carries a deep link
+ * (the `deep_link` payload field, e.g. "#club?sub_page=buildings") (#330).
+ * If the WebView bridge isn't ready yet (cold start), the link is buffered and
+ * replayed once {@link onDeepLinkAvailable} registers a callback.
+ */
+export function onDeepLink (hash: string): void {
+  if (!hash) return
+  console.log('[Push] Deep link received:', hash)
+  if (_deepLinkCallback) {
+    _deepLinkCallback(hash)
+  } else {
+    _pendingDeepLink = hash
+  }
+}
+
+/**
+ * Register the WebView injector for deep links. Replays a buffered link
+ * immediately if one arrived before the WebView was ready.
+ */
+export function onDeepLinkAvailable (callback: DeepLinkCallback): void {
+  _deepLinkCallback = callback
+  if (_pendingDeepLink) {
+    const pending = _pendingDeepLink
+    _pendingDeepLink = null
+    callback(pending)
+  }
+}
+
 /**
  * Called when the OS provides a device token.
  * If the WebView injector is already registered, calls it immediately.

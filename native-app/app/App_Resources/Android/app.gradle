@@ -6,8 +6,8 @@ project.ext {
 android {
     defaultConfig {
         minSdkVersion 21
-        versionCode 9
-        versionName "1.0.6"
+        versionCode 10
+        versionName "1.7.0"
     }
     lint {
         abortOnError false
@@ -18,6 +18,8 @@ android {
 dependencies {
     implementation platform("com.google.firebase:firebase-bom:33.7.0")
     implementation "com.google.firebase:firebase-messaging"
+    // In-app review prompt (#371)
+    implementation "com.google.android.play:review:2.0.1"
 }
 
 apply plugin: "com.google.gms.google-services"
