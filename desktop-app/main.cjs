@@ -1,12 +1,15 @@
 /* eslint-disable no-undef */
 // Electron main process for the FootballManager.IO desktop app.
 //
-// Like the iOS/Android apps, the web client is bundled *inside* the app (the
-// same `native-client.zip` the mobile builds ship) and loaded from local disk
-// via a custom `app://` scheme. A background check downloads newer bundles from
-// the server and applies them on the next launch (see ota.cjs). The web app
-// itself still talks to the production (or sandbox) server for the API and
-// websocket, exactly like the mobile clients — only the static assets are local.
+// Like the iOS/Android apps, the web client is bundled *inside* the app and
+// loaded from local disk via a custom `app://` scheme. Unlike the mobile apps,
+// the desktop build ships the *desktop* bundle (`desktop-client.zip`) — the
+// standard web app (app.js / GameLayout), not the mobile bottom-tab-bar shell,
+// which looks out of place in a desktop window. A background check downloads
+// newer bundles from the server and applies them on the next launch (see
+// ota.cjs). The web app itself still talks to the production (or sandbox)
+// server for the API and websocket, exactly like the mobile clients — only the
+// static assets are local.
 //
 // A custom scheme (rather than file://) is required because the client uses ES
 // modules, which Chromium refuses to load over file:// for CORS reasons.

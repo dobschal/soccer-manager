@@ -1,11 +1,12 @@
 /* eslint-disable no-undef */
 // OTA (over-the-air) update logic for the FootballManager.IO desktop app.
 //
-// This mirrors the iOS/Android NativeScript flow in `native-app/app/ota-update.ts`:
-// the web app is shipped *inside* the binary as a zip (the same
-// `client/assets/native-client.zip` used by the mobile builds), extracted to a
+// This mirrors the iOS/Android NativeScript flow in `native-app/app/ota-update.ts`,
+// but ships the *desktop* bundle (`client/assets/desktop-client.zip`) — the
+// standard web app (app.js / GameLayout) rather than the mobile bottom-tab-bar
+// shell. The web app is shipped *inside* the binary as a zip, extracted to a
 // local directory and loaded from disk. On every launch we ask the server
-// (`/assets/native-version.json`) whether a newer bundle exists; if so the new
+// (`/assets/desktop-version.json`) whether a newer bundle exists; if so the new
 // zip is downloaded into a staging dir and promoted on the next launch — so the
 // running session is never swapped out underneath the user.
 //
@@ -46,16 +47,16 @@ function stateFile () {
 }
 
 /**
- * Locate the bundled `native-client.zip`. In a packaged build it is copied
+ * Locate the bundled `desktop-client.zip`. In a packaged build it is copied
  * next to the app via electron-builder `extraResources`; during local
  * development (`npm start`) it is read straight from the repo's
- * `client/assets/` output of `node scripts/build-native-bundle.mjs`.
+ * `client/assets/` output of `node scripts/build-desktop-bundle.mjs`.
  */
 function resolveBundleZipPath () {
   const candidates = [
-    path.join(process.resourcesPath || '', 'native-client.zip'),
-    path.join(__dirname, 'assets', 'native-client.zip'),
-    path.join(__dirname, '..', 'client', 'assets', 'native-client.zip')
+    path.join(process.resourcesPath || '', 'desktop-client.zip'),
+    path.join(__dirname, 'assets', 'desktop-client.zip'),
+    path.join(__dirname, '..', 'client', 'assets', 'desktop-client.zip')
   ]
   return candidates.find(p => p && fs.existsSync(p)) || null
 }
@@ -109,7 +110,7 @@ function isExtracted (dir) {
 
 function readZipVersion (zipPath) {
   try {
-    const entry = new AdmZip(zipPath).getEntry('native-version.json')
+    const entry = new AdmZip(zipPath).getEntry('desktop-version.json')
     if (!entry) return null
     return JSON.parse(entry.getData().toString('utf-8'))
   } catch (e) {
@@ -131,7 +132,7 @@ function readZipVersion (zipPath) {
 function ensureBundledExtracted () {
   const zipPath = resolveBundleZipPath()
   if (!zipPath) {
-    console.error('[OTA] No bundled native-client.zip found — run `node scripts/build-native-bundle.mjs` first.')
+    console.error('[OTA] No bundled desktop-client.zip found — run `node scripts/build-desktop-bundle.mjs` first.')
     return
   }
 
@@ -221,7 +222,7 @@ function getLocalCommitHash () {
 async function checkForUpdate () {
   try {
     const serverUrl = getServerUrl()
-    const versionUrl = `${serverUrl}/assets/native-version.json`
+    const versionUrl = `${serverUrl}/assets/desktop-version.json`
     console.log('[OTA] Checking for update at:', versionUrl)
 
     const res = await net.fetch(versionUrl, { cache: 'no-store' })
@@ -236,7 +237,7 @@ async function checkForUpdate () {
     }
 
     console.log('[OTA] New version available, downloading...')
-    const zipRes = await net.fetch(`${serverUrl}/assets/native-client.zip`, { cache: 'no-store' })
+    const zipRes = await net.fetch(`${serverUrl}/assets/desktop-client.zip`, { cache: 'no-store' })
     if (!zipRes.ok) throw new Error(`zip download HTTP ${zipRes.status}`)
     const buffer = Buffer.from(await zipRes.arrayBuffer())
 
