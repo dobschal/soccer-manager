@@ -13,7 +13,8 @@ vi.mock('../../partials/toast.js', () => ({
 }))
 
 vi.mock('../../i18n/index.js', () => ({
-  t: (key) => key
+  t: (key) => key,
+  getLocale: () => 'en'
 }))
 
 vi.mock('../../lib/websocket.js', () => ({
@@ -45,6 +46,14 @@ describe('LandingPage - app store links', () => {
     expect(html).toContain(PLAY_STORE_URL)
     expect(html).toContain('assets/landing-page/app-store-badge.svg')
     expect(html).toContain('assets/landing-page/google-play-badge.svg')
+  })
+
+  it('#445 shows the promo video in the hero instead of the static preview image', () => {
+    const page = new LandingPage()
+    const html = page.template
+    expect(html).toContain('hero-video')
+    expect(html).toContain('youtube-nocookie.com/embed/kK_OHx9gypc')
+    expect(html).not.toContain('assets/landing-page/preview.png')
   })
 
   it('places the badges inside the hero content, before the first feature section', () => {

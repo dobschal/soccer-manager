@@ -22,7 +22,7 @@ export default {
       throw new BadRequestError('Invalid user id')
     }
     const [user] = await query(
-      'SELECT id, username, avatar, last_login FROM user WHERE id=? LIMIT 1',
+      'SELECT id, username, avatar, last_login, created_at FROM user WHERE id=? LIMIT 1',
       [id]
     )
     if (!user) {
@@ -62,7 +62,8 @@ export default {
         id: user.id,
         username: user.username,
         avatar: user.avatar,
-        lastLogin: user.last_login
+        lastLogin: user.last_login,
+        joinedAt: user.created_at
       },
       currentTeam: currentTeam || null,
       friends,

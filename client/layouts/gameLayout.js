@@ -9,6 +9,7 @@ import { showAccountOverlay } from '../partials/accountOverlay.js'
 import { goTo } from '../lib/router.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 import { maybeShowUnverifiedEmailToast } from '../partials/unverifiedEmailToast.js'
+import { discordLinkHtml } from '../lib/discord.js'
 
 /**
  * @returns {void}
@@ -102,6 +103,8 @@ export class GameLayout extends UIElement {
           <a href="imprint.html" class="text-muted">${t('footer.imprintPrivacy')}</a>
           <span class="text-muted"> | </span>
           <a href="support.html" class="text-muted">${t('footer.support')}</a>
+          <br>
+          ${discordLinkHtml({ label: t('footer.discord') })}
         </footer>
       </div>
     `

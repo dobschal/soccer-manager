@@ -9,6 +9,26 @@ import { showConfirmDialog } from '../partials/overlay.js'
 import { FORUM_BADGE_COLORS } from '../util/forumBadgeColors.js'
 import { attachMentionAutocomplete } from '../partials/mentionAutocomplete.js'
 import { linkifyHtml } from '../lib/linkify.js'
+import { discordLinkHtml } from '../lib/discord.js'
+
+const FORUM_NOTICE_DISMISSED_KEY = 'forum_notice_dismissed'
+const FORUM_DISCORD_DISMISSED_KEY = 'forum_discord_dismissed'
+
+function isNoticeDismissed (key) {
+  try {
+    return window.localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+
+function dismissNotice (key) {
+  try {
+    window.localStorage.setItem(key, '1')
+  } catch {
+    // ignore storage failures (private mode etc.)
+  }
+}
 
 function escapeHtml (text) {
   const div = document.createElement('div')
@@ -56,11 +76,7 @@ export class ForumPage extends UIElement {
   get template () {
     return `
       <div class="forum-page">
-        <div class="forum-notice alert alert-info">
-          <i class="fa fa-info-circle"></i>
-          The forum language is <strong>English</strong>. Please be respectful and friendly.
-          Aggressive or discriminatory behavior will result in a ban.
-        </div>
+        ${this._renderNotices()}
         ${this._renderBreadcrumb()}
         ${this._view === 'post' ? this._renderPostDetail() : ''}
         ${this._view === 'posts' ? this._renderPostList() : ''}
@@ -74,6 +90,18 @@ export class ForumPage extends UIElement {
 
   get events () {
     return {
+      '(optional) .forum-notice-dismiss': {
+        click: () => {
+          dismissNotice(FORUM_NOTICE_DISMISSED_KEY)
+          this.update()
+        }
+      },
+      '(optional) .forum-discord-dismiss': {
+        click: () => {
+          dismissNotice(FORUM_DISCORD_DISMISSED_KEY)
+          this.update()
+        }
+      },
       '(optional) #forum-cat-submit': {
         click: async () => {
           const name = el(`${this._elementQuery} #forum-cat-name`)?.value
@@ -260,6 +288,34 @@ export class ForumPage extends UIElement {
     }
     html += '</div>'
     return html
+  }
+
+  /**
+   * Render the dismissible top notices: the forum-rules box and the Discord
+   * community box. Both can be permanently dismissed via their X (#419).
+   * @returns {string}
+   * @private
+   */
+  _renderNotices () {
+    const ruleNotice = isNoticeDismissed(FORUM_NOTICE_DISMISSED_KEY)
+      ? ''
+      : `
+        <div class="forum-notice alert alert-info alert-dismissible">
+          <i class="fa fa-info-circle"></i>
+          The forum language is <strong>English</strong>. Please be respectful and friendly.
+          Aggressive or discriminatory behavior will result in a ban.
+          <button type="button" class="btn-close forum-notice-dismiss" aria-label="${t('forum.dismiss')}"></button>
+        </div>
+      `
+    const discordNotice = isNoticeDismissed(FORUM_DISCORD_DISMISSED_KEY)
+      ? ''
+      : `
+        <div class="forum-notice alert alert-info alert-dismissible">
+          ${t('forum.discordNotice')} ${discordLinkHtml({ label: t('footer.discord') })}
+          <button type="button" class="btn-close forum-discord-dismiss" aria-label="${t('forum.dismiss')}"></button>
+        </div>
+      `
+    return ruleNotice + discordNotice
   }
 
   _renderBreadcrumb () {

@@ -125,17 +125,20 @@ export class YouthTeamPage extends UIElement {
    */
   _getTimeUntilNextGameDay () {
     const now = new Date()
-    const hours = now.getHours()
+    // Game days run on the server (CRON) at 00:00 and 12:00 UTC. We must
+    // compute the next boundary in UTC, otherwise the remaining time is wrong
+    // for every user outside the UTC timezone (#448). The resulting diff is an
+    // absolute duration, so it is correct in the user's local time.
+    const hours = now.getUTCHours()
 
-    // Next game day is at midnight (0:00) or noon (12:00)
-    let nextGameDay = new Date(now)
+    const nextGameDay = new Date(now)
     if (hours < 12) {
-      // Next is noon today
-      nextGameDay.setHours(12, 0, 0, 0)
+      // Next is noon (12:00 UTC) today
+      nextGameDay.setUTCHours(12, 0, 0, 0)
     } else {
-      // Next is midnight tomorrow
-      nextGameDay.setDate(nextGameDay.getDate() + 1)
-      nextGameDay.setHours(0, 0, 0, 0)
+      // Next is midnight (00:00 UTC) tomorrow
+      nextGameDay.setUTCDate(nextGameDay.getUTCDate() + 1)
+      nextGameDay.setUTCHours(0, 0, 0, 0)
     }
 
     const diffMs = nextGameDay - now

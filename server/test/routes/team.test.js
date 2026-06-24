@@ -84,7 +84,10 @@ describe('team routes', () => {
       const players = [testData.player()]
 
       getTeamById.mockResolvedValue(team)
-      query.mockResolvedValue(players)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
+      query
+        .mockResolvedValueOnce(players) // SELECT players
+        .mockResolvedValueOnce([]) // SELECT player_season_stats
 
       const result = await handlers.getTeam(1)
 
@@ -99,8 +102,10 @@ describe('team routes', () => {
       const user = testData.user()
 
       getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
       query
         .mockResolvedValueOnce(players)
+        .mockResolvedValueOnce([]) // SELECT player_season_stats
         .mockResolvedValueOnce([user])
 
       const result = await handlers.getTeam(1)
@@ -108,6 +113,28 @@ describe('team routes', () => {
       expect(result.team).toEqual(team)
       expect(result.players).toEqual(players)
       expect(result.user).not.toHaveProperty('password')
+    })
+
+    it('#430 attaches current-season goals/games to each player', async () => {
+      const team = testData.team({ user_id: null })
+      const players = [testData.player({ id: 1 }), testData.player({ id: 2, name: 'Player 2' })]
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 3, gameDay: 10 })
+      query
+        .mockResolvedValueOnce(players) // SELECT players
+        .mockResolvedValueOnce([{ player_id: 1, goals: 7, games_played: 12 }]) // stats
+
+      const result = await handlers.getTeam(1)
+
+      const statsCall = query.mock.calls[1]
+      expect(statsCall[0]).toContain('player_season_stats')
+      expect(statsCall[1][0]).toBe(3) // current season
+      expect(result.players[0].season_goals).toBe(7)
+      expect(result.players[0].season_games).toBe(12)
+      // player without stats falls back to 0/0
+      expect(result.players[1].season_goals).toBe(0)
+      expect(result.players[1].season_games).toBe(0)
     })
   })
 

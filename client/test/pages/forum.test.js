@@ -43,6 +43,32 @@ describe('ForumPage today highlight (#437)', () => {
     expect(html).not.toMatch(/card mb-3[^"]*bg-warning-subtle/)
   })
 
+  it('#419 renders both notices and a Discord link by default', () => {
+    const store = {}
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => store[k] ?? null,
+      setItem: (k, v) => { store[k] = v }
+    })
+    const html = page._renderNotices()
+    expect(html).toContain('forum-notice-dismiss')
+    expect(html).toContain('forum-discord-dismiss')
+    expect(html).toContain('discord.com/invite')
+    vi.unstubAllGlobals()
+  })
+
+  it('#419 hides a notice once its dismissed flag is stored', () => {
+    const store = { forum_notice_dismissed: '1' }
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => store[k] ?? null,
+      setItem: (k, v) => { store[k] = v }
+    })
+    const html = page._renderNotices()
+    expect(html).not.toContain('forum-notice-dismiss')
+    // discord box still visible
+    expect(html).toContain('forum-discord-dismiss')
+    vi.unstubAllGlobals()
+  })
+
   it('highlights today latest posts and comments on the start page', () => {
     page._latestPosts = [
       { id: 1, category_id: 2, title: 'Fresh', text: 'body', username: 'u', created_at: today },

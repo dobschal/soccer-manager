@@ -246,6 +246,30 @@ body:has(> #sandbox-banner) .game-layout {
     padding: 1rem;
 }
 
+/* Discord community link (#419) */
+.discord-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #5865F2;
+    text-decoration: none;
+}
+
+.discord-link:hover {
+    color: #4752c4;
+}
+
+.discord-link .discord-icon {
+    width: 1.1em;
+    height: 1.1em;
+    display: inline-block;
+    vertical-align: -0.15em;
+}
+
+.app-footer .discord-link {
+    margin-top: 0.5rem;
+}
+
 /* ==========================================================================
    Responsive Styles
    ========================================================================== */

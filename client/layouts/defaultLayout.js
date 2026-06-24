@@ -1,6 +1,7 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
 import { t } from '../i18n/index.js'
+import { discordLinkHtml } from '../lib/discord.js'
 
 export class DefaultLayout extends UIElement {
   /**
@@ -21,6 +22,8 @@ export class DefaultLayout extends UIElement {
           <span class="text-muted">FootballManager.IO v${this._version}</span>
           <br>
           <a href="imprint.html" class="text-muted">${t('footer.imprintPrivacy')}</a>
+          <br>
+          ${discordLinkHtml({ label: t('footer.discord') })}
         </footer>
       </div>
     `

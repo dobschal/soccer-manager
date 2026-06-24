@@ -56,6 +56,16 @@ export default {
       if (teamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
     }
     const { gameDay, season } = await getGameDayAndSeason()
+    // A player may not be listed below 50% of their market value (#446).
+    if (type === 'sell') {
+      const dbPlayer = await getPlayerById(player.id)
+      if (!dbPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+      const marketValue = await getAveragePlanPriceOfPlayer(dbPlayer, season)
+      const minPrice = Math.floor(marketValue * 0.5)
+      if (price < minPrice) {
+        throw new BadRequestError(t('error.sellPriceTooLow', { minPrice: minPrice.toLocaleString() }, locale))
+      }
+    }
     const tradeOffer = new TradeOffer({
       offer_value: price,
       type: type,

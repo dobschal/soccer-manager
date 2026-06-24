@@ -505,6 +505,7 @@ export default {
   'trades.acceptOffer': 'Annehmen',
   'trades.rejectOffer': 'Ablehnen',
   'trades.listPlayer': 'Auf Markt listen',
+  'trades.sellPriceTooLow': 'Der Verkaufspreis muss mindestens 50% des Marktwerts betragen ({minPrice}).',
   'trades.removeFromMarket': 'Vom Markt nehmen',
   'trades.askingPrice': 'Mindestpreis',
   'trades.offerPrice': 'Angebotspreis',
@@ -1062,6 +1063,9 @@ export default {
   // Footer
   'footer.imprintPrivacy': 'Impressum & Datenschutz',
   'footer.support': 'Support',
+  'footer.discord': 'Discord beitreten',
+  'forum.discordNotice': 'Es gibt eine Discord-Community für FootballManager.IO — komm vorbei und chatte mit uns!',
+  'forum.dismiss': 'Ausblenden',
 
   // Sandbox / test environment
   'sandbox.notice': 'Du befindest dich in der Sandbox (Testumgebung). Daten können hier jederzeit zurückgesetzt werden.',
@@ -1587,5 +1591,7 @@ export default {
   'userProfile.noTeam': 'Kein aktueller Verein',
   'userProfile.noFriends': 'Noch keine Freunde.',
   'userProfile.noHistory': 'Noch keine abgeschlossenen Saisons.',
-  'userProfile.notFound': 'Profil nicht gefunden.'
+  'userProfile.notFound': 'Profil nicht gefunden.',
+  'userProfile.joinedAt': 'Beigetreten',
+  'userProfile.lastLogin': 'Zuletzt aktiv'
 }

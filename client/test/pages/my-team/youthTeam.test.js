@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Mock dependencies
 vi.mock('../../../lib/gateway.js', () => ({
@@ -95,6 +95,28 @@ describe('YouthTeamPage', () => {
       expect(row.join('')).toContain('Test Youth')
       expect(row.join('')).toContain('youthTeam.promote')
       expect(row.join('')).toContain('youthTeam.fire')
+    })
+  })
+
+  describe('#448 next game day countdown (UTC based)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('counts down to the next 12:00 UTC boundary regardless of local timezone', () => {
+      // 08:00 UTC -> next game day is 12:00 UTC -> 04:00:00 remaining
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-06-24T08:00:00Z'))
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      expect(page._getTimeUntilNextGameDay()).toBe('04:00:00')
+    })
+
+    it('counts down to the next 00:00 UTC boundary in the afternoon', () => {
+      // 18:30 UTC -> next game day is 00:00 UTC next day -> 05:30:00 remaining
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-06-24T18:30:00Z'))
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      expect(page._getTimeUntilNextGameDay()).toBe('05:30:00')
     })
   })
 

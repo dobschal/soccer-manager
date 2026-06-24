@@ -77,6 +77,31 @@ describe('UserProfilePage', () => {
     })
   })
 
+  describe('#447 joined / last login dates', () => {
+    it('renders joined and last login in the header', () => {
+      const page = new UserProfilePage()
+      const html = page._renderHeader(
+        { id: 1, username: 'Tester', avatar: null, joinedAt: '2024-01-15T10:00:00Z', lastLogin: '2024-06-01T08:00:00Z' },
+        null,
+        false
+      )
+      expect(html).toContain('userProfile.joinedAt')
+      expect(html).toContain('15.01.2024')
+      expect(html).toContain('userProfile.lastLogin')
+    })
+
+    it('omits the joined line when joinedAt is missing', () => {
+      const page = new UserProfilePage()
+      const html = page._renderHeader(
+        { id: 1, username: 'Tester', avatar: null, joinedAt: null, lastLogin: null },
+        null,
+        false
+      )
+      expect(html).not.toContain('userProfile.joinedAt')
+      expect(html).toContain('userProfile.lastLogin')
+    })
+  })
+
   describe('#439 add friend button', () => {
     it('renders an "add friend" button for other users', () => {
       const page = new UserProfilePage()

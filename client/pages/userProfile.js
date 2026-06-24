@@ -6,6 +6,7 @@ import { renderEmblem } from '../partials/emblem.js'
 import { formatCupRound, formatLeague } from '../util/league.js'
 import { goTo } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
+import { formatDate, formatLastActive } from '../lib/date.js'
 
 function avatarSrc (avatar) {
   if (avatar) return `${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatar}`
@@ -156,6 +157,10 @@ export class UserProfilePage extends UIElement {
         <div>
           <h3 class="mb-0">${user.username}</h3>
           ${teamLabel}
+          <div class="text-muted small mt-2 d-flex flex-wrap gap-3">
+            ${user.joinedAt ? `<span><i class="fa fa-calendar-plus"></i> ${t('userProfile.joinedAt')}: ${formatDate('DD.MM.YYYY', user.joinedAt)}</span>` : ''}
+            <span><i class="fa fa-clock"></i> ${t('userProfile.lastLogin')}: ${formatLastActive(user.lastLogin)}</span>
+          </div>
           ${isOwnProfile ? `<span class="badge bg-info mt-2">${t('userProfile.you')}</span>` : ''}
           ${this._renderFriendToggleButton()}
         </div>
