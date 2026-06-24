@@ -1,0 +1,67 @@
+/* Public wiki page (#441) */
+.wiki-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+}
+
+.wiki-sidebar {
+    position: sticky;
+    top: 1rem;
+}
+
+.wiki-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.wiki-list-item {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.4rem;
+    text-decoration: none;
+    color: inherit;
+    border-left: 3px solid transparent;
+}
+
+.wiki-list-item:hover {
+    background: rgba(127, 127, 127, 0.1);
+}
+
+.wiki-list-item.active {
+    background: var(--bs-info-bg-subtle);
+    border-left-color: var(--bs-info);
+}
+
+.wiki-list-item__title {
+    display: block;
+    font-weight: 600;
+}
+
+.wiki-list-item__subtitle {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color, #888);
+}
+
+.wiki-article .wiki-text {
+    line-height: 1.6;
+    white-space: normal;
+}
+
+.wiki-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.wiki-image {
+    max-width: 100%;
+    width: 320px;
+    height: auto;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(127, 127, 127, 0.2);
+}

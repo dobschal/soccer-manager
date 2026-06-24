@@ -13,6 +13,7 @@ import { ResultsPage } from './pages/results.js'
 import { AdminPage } from './pages/admin.js'
 import { ChooseTeamPage } from './pages/choose-team.js'
 import { UserProfilePage } from './pages/userProfile.js'
+import { WikiPage } from './pages/wiki.js'
 import { initLocale } from './i18n/index.js'
 import { connectWebSocket } from './lib/websocket.js'
 import { applyNoIndexOnSandbox, showSandboxBanner } from './partials/sandboxBanner.js'
@@ -65,6 +66,7 @@ const pages = {
   admin: [GameLayout, AdminPage],
   'choose-team': [DefaultLayout, ChooseTeamPage],
   user: [GameLayout, UserProfilePage],
+  wiki: [DefaultLayout, WikiPage],
   '*': [GameLayout, DashboardPage]
 }
 
