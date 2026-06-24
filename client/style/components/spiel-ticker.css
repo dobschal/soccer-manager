@@ -18,16 +18,31 @@
 
 .spiel-ticker__team {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.spiel-ticker__team-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.spiel-ticker__emblem {
+    flex: 0 0 auto;
+    line-height: 0;
+}
+
 .spiel-ticker__team--home {
+    justify-content: flex-end;
+    flex-direction: row-reverse;
     text-align: right;
 }
 
 .spiel-ticker__team--away {
+    justify-content: flex-start;
     text-align: left;
 }
 
@@ -74,6 +89,15 @@
     background: rgba(40, 167, 69, 0.15);
     font-weight: 600;
     animation: spiel-ticker-goal 0.6s ease-out;
+}
+
+.spiel-ticker__event--final {
+    justify-content: center;
+    text-align: center;
+    background: var(--bs-info);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
 }
 
 .spiel-ticker__minute {

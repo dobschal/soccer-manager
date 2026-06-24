@@ -173,6 +173,7 @@ export default {
   'spielTicker.redCard': 'Rote Karte',
   'spielTicker.chance': 'Torchance',
   'spielTicker.goalBanner': 'TOOOR!!!',
+  'spielTicker.finalScore': 'Endstand {score}',
   'spielTicker.unknownPlayer': 'Unbekannt',
   'dashboard.urgencySubtitle': 'Es gibt einige Dinge, die deine Aufmerksamkeit erfordern',
   'dashboard.urgencyLineup': 'Deine Aufstellung ist unvollständig ({count}/11 Spieler aufgestellt).',

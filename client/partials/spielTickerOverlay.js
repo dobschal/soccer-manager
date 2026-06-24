@@ -3,6 +3,7 @@ import { showOverlay } from './overlay.js'
 import { el, generateId } from '../lib/html.js'
 import { t } from '../i18n/index.js'
 import { maybeRequestReviewAfterWin } from '../lib/nativeReview.js'
+import { renderEmblem } from './emblem.js'
 
 const STEP_INTERVAL_MS = 2000
 const GOAL_BANNER_MS = 1500
@@ -98,9 +99,15 @@ export async function showSpielTickerOverlay (game, myTeamId) {
   const content = `
     <div class="spiel-ticker">
       <div class="spiel-ticker__scoreboard">
-        <span class="spiel-ticker__team spiel-ticker__team--home">${result.team1}</span>
+        <span class="spiel-ticker__team spiel-ticker__team--home">
+          <span class="spiel-ticker__emblem">${team1Res.team ? renderEmblem(team1Res.team, 28) : ''}</span>
+          <span class="spiel-ticker__team-name">${result.team1}</span>
+        </span>
         <span id="${scoreId}" class="spiel-ticker__score">0 : 0</span>
-        <span class="spiel-ticker__team spiel-ticker__team--away">${result.team2}</span>
+        <span class="spiel-ticker__team spiel-ticker__team--away">
+          <span class="spiel-ticker__emblem">${team2Res.team ? renderEmblem(team2Res.team, 28) : ''}</span>
+          <span class="spiel-ticker__team-name">${result.team2}</span>
+        </span>
       </div>
       <div id="${feedId}" class="spiel-ticker__feed" aria-live="polite"></div>
       <div class="text-center mt-3 spiel-ticker__footer">
@@ -165,8 +172,9 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         ${icon}
         <span class="spiel-ticker__detail"><strong>${player?.name || t('spielTicker.unknownPlayer')}</strong> <small class="text-muted">${label}</small></span>
       `
-      feed.appendChild(row)
-      feed.scrollTop = feed.scrollHeight
+      // Newest entry on top — existing items slide down.
+      feed.insertBefore(row, feed.firstChild)
+      feed.scrollTop = 0
     }
 
     const finish = () => {
@@ -177,6 +185,17 @@ export async function showSpielTickerOverlay (game, myTeamId) {
       if (scoreEl) scoreEl.textContent = `${result.goalsTeam1} : ${result.goalsTeam2}`
       const skipBtn = el('#' + skipId)
       if (skipBtn) skipBtn.remove()
+      // Dedicated final-score entry at the very top.
+      const feed = el('#' + feedId)
+      if (feed) {
+        const finalRow = document.createElement('div')
+        finalRow.className = 'spiel-ticker__event spiel-ticker__event--final'
+        finalRow.innerHTML = `
+          <span class="spiel-ticker__detail"><strong>${t('spielTicker.finalScore', { score: `${result.goalsTeam1} : ${result.goalsTeam2}` })}</strong></span>
+        `
+        feed.insertBefore(finalRow, feed.firstChild)
+        feed.scrollTop = 0
+      }
       if (didWin) maybeRequestReviewAfterWin(true)
     }
 
