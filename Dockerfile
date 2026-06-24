@@ -13,6 +13,7 @@ COPY server ./server
 COPY client ./client
 
 RUN node scripts/build-native-bundle.mjs $COMMIT_HASH
+RUN node scripts/build-desktop-bundle.mjs $COMMIT_HASH
 
 EXPOSE 3000
 

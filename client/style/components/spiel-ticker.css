@@ -36,7 +36,7 @@
 }
 
 .spiel-ticker__team--home {
-    justify-content: flex-end;
+    justify-content: flex-start;
     flex-direction: row-reverse;
     text-align: right;
 }
@@ -148,19 +148,45 @@
 }
 
 @keyframes spiel-ticker-goal-banner {
-    0% { opacity: 0; transform: translateX(-120%) rotate(-8deg); }
-    20% { opacity: 1; transform: translateX(0) rotate(-4deg) scale(1.1); }
-    70% { opacity: 1; transform: translateX(0) rotate(-4deg) scale(1); }
-    100% { opacity: 0; transform: translateX(120%) rotate(8deg); }
+    0% {
+        opacity: 0;
+        transform: translateX(-120%) rotate(-8deg);
+    }
+    20% {
+        opacity: 1;
+        transform: translateX(0) rotate(-4deg) scale(1.1);
+    }
+    70% {
+        opacity: 1;
+        transform: translateX(0) rotate(-4deg) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(120%) rotate(8deg);
+    }
 }
 
 @keyframes spiel-ticker-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes spiel-ticker-goal {
-    0% { opacity: 0; transform: scale(0.85); }
-    50% { transform: scale(1.06); }
-    100% { opacity: 1; transform: scale(1); }
+    0% {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+    50% {
+        transform: scale(1.06);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
