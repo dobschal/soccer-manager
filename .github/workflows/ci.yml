@@ -133,8 +133,16 @@ jobs:
           cache: 'npm'
 
       - name: Install root dependencies
-        # Needed by scripts/build-desktop-bundle.mjs (archiver, native-build-utils)
-        run: npm ci
+        # Needed by scripts/build-desktop-bundle.mjs (archiver, native-build-utils).
+        # --ignore-scripts skips the postinstall (copy-vendor.sh), a bash script
+        # that cmd.exe can't run; we replicate it via Git Bash below.
+        run: npm ci --ignore-scripts
+
+      - name: Copy client vendor assets
+        # postinstall replacement: stages three.js/chart.js into client/vendor
+        # so the desktop bundle includes them. Git Bash ships on windows-latest.
+        shell: bash
+        run: bash scripts/copy-vendor.sh
 
       - name: Install desktop-app dependencies
         run: npm ci
