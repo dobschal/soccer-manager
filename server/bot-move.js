@@ -273,8 +273,11 @@ async function _checkSellOffers (botTeam, players) {
   for (let i = 0; i < maxNewOffers; i++) {
     const playerToSell = playersToSell[i]
     const price = await playersRoutes.estimateValue(playerToSell.id)
-    // Randomize price between 70% and 130% of estimated value
-    const randomFactor = 0.7 + Math.random() * 0.6
+    // Randomize price between 90% and 130% of estimated value. The lower bound is
+    // kept at 90% (not 70%) so bots never dump players well below market: cheap
+    // outliers used to feed back into estimateValue and drag the whole market
+    // average down, which active traders exploited to buy at ~half plan value.
+    const randomFactor = 0.9 + Math.random() * 0.4
     const offerValue = Math.floor(price * randomFactor)
 
     const tradeOffer = new TradeOffer({
