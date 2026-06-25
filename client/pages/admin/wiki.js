@@ -31,28 +31,25 @@ export class WikiAdminPage extends UIElement {
       [`#${this._saveBtnId}`]: { click: () => this._save() },
       [`(optional)#${this._cancelBtnId}`]: { click: () => this._cancelEdit() },
       '(optional).wiki-edit-btn': { click: (e) => this._edit(Number(e.currentTarget.dataset.id)) },
-      '(optional).wiki-delete-btn': { click: (e) => this._delete(Number(e.currentTarget.dataset.id)) }
+      '(optional).wiki-delete-btn': { click: (e) => this._delete(Number(e.currentTarget.dataset.id)) },
+      // Bound via the events map (re-applied on every update()) so the file
+      // input keeps working after the form re-renders when editing (#441).
+      [`#${this._fileInputId}`]: { change: (e) => this._onFilesSelected(e) },
+      // Delegated remove handler on the (stable) preview container, so it
+      // survives surgical innerHTML refreshes of the previews.
+      [`#${this._previewId}`]: { click: (e) => this._onPreviewClick(e) }
     }
   }
 
-  onMounted () {
-    // The file input + image previews are managed outside the declarative
-    // `events` map so surgical preview refreshes keep working (#441).
-    const fileInput = el(`#${this._fileInputId}`)
-    if (fileInput) fileInput.addEventListener('change', (e) => this._onFilesSelected(e))
-    const preview = el(`#${this._previewId}`)
-    if (preview) {
-      preview.addEventListener('click', (e) => {
-        const btn = e.target.closest('.wiki-img-remove')
-        if (!btn) return
-        if (btn.dataset.existing) {
-          this._currentImages = this._currentImages.filter(f => f !== btn.dataset.existing)
-        } else if (btn.dataset.pending != null) {
-          this._pendingImages.splice(Number(btn.dataset.pending), 1)
-        }
-        this._refreshImagePreviews()
-      })
+  _onPreviewClick (e) {
+    const btn = e.target.closest('.wiki-img-remove')
+    if (!btn) return
+    if (btn.dataset.existing) {
+      this._currentImages = this._currentImages.filter(f => f !== btn.dataset.existing)
+    } else if (btn.dataset.pending != null) {
+      this._pendingImages.splice(Number(btn.dataset.pending), 1)
     }
+    this._refreshImagePreviews()
   }
 
   _renderForm () {
