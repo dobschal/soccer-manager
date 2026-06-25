@@ -5,19 +5,22 @@ intended for Steam distribution on macOS, Windows and Linux.
 
 ## How it works
 
-The desktop app works **just like the iOS / Android apps**: the web client is
-bundled *inside* the binary and loaded from local disk, while API and websocket
-traffic still go to the live server. There is no separate desktop JS — it reuses
-the exact same `native-client.zip` the mobile builds ship.
+The desktop app loads the web client from local disk (like the iOS / Android
+apps) while API and websocket traffic still go to the live server. Unlike the
+mobile apps it ships the **desktop bundle** — the standard web app
+(`app.js` / `GameLayout`), *not* the mobile bottom-tab-bar shell, which looks
+out of place in a desktop window. The only difference from the plain browser
+build is that `__NATIVE_SERVER_URL` is injected so the gateway/websocket reach
+the live server instead of the local `app://` origin.
 
-- **Bundled web app** — `../client/assets/native-client.zip` (produced by
-  `node scripts/build-native-bundle.mjs`) is packaged as an Electron
+- **Bundled web app** — `../client/assets/desktop-client.zip` (produced by
+  `node scripts/build-desktop-bundle.mjs`) is packaged as an Electron
   `extraResource`. On first launch it is extracted into the user-data dir and
   served through a custom `app://` scheme. A custom scheme is required because
   the client uses ES modules, which Chromium refuses to load over `file://`.
 - **OTA self-update** (`ota.cjs`) — on every launch the app fetches
-  `<server>/assets/native-version.json`, compares the commit hash, and if a
-  newer bundle exists downloads `<server>/assets/native-client.zip` into a
+  `<server>/assets/desktop-version.json`, compares the commit hash, and if a
+  newer bundle exists downloads `<server>/assets/desktop-client.zip` into a
   staging dir. The update is promoted on the **next** launch, so the running
   session is never swapped out underneath the user. This mirrors
   `native-app/app/ota-update.ts`.
@@ -38,9 +41,9 @@ npm start                   # production server
 npm run start:sandbox       # sandbox server
 ```
 
-`npm start` reads the bundled zip from `../client/assets/native-client.zip`, so
-run `node scripts/build-native-bundle.mjs` from the repo root first if it's
-missing.
+`npm start` reads the bundled zip from `../client/assets/desktop-client.zip`, so
+run `node scripts/build-desktop-bundle.mjs` from the repo root first if it's
+missing (or `npm run build:bundle` from this directory).
 
 ## Building distributables
 

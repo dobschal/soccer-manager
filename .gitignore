@@ -10,6 +10,8 @@ node_modules
 .DS_Store
 /client/assets/native-client.zip
 /client/assets/native-version.json
+/client/assets/desktop-client.zip
+/client/assets/desktop-version.json
 .env
 /uploads/
 /data/

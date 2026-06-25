@@ -141,6 +141,23 @@ export default {
       }
     }
     const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
+
+    // Attach current-season goals/games so the player list on a foreign team's
+    // page shows real stats instead of 0/0 (#430).
+    const { season } = await getGameDayAndSeason()
+    if (players.length > 0) {
+      const stats = await query(
+        'SELECT player_id, SUM(goals) as goals, SUM(games_played) as games_played FROM player_season_stats WHERE season=? AND player_id IN (?) GROUP BY player_id',
+        [season, players.map(p => p.id)]
+      )
+      const statsMap = new Map(stats.map(s => [s.player_id, s]))
+      for (const player of players) {
+        const s = statsMap.get(player.id)
+        player.season_goals = s ? s.goals : 0
+        player.season_games = s ? s.games_played : 0
+      }
+    }
+
     let user
     if (team.user_id) {
       const users = await query('SELECT * FROM user WHERE id=? LIMIT 1', [team.user_id])

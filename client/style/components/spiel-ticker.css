@@ -1,0 +1,192 @@
+/* Animated match ticker overlay (#402) */
+.spiel-ticker {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 80vh;
+    width: 100%;
+}
+
+.spiel-ticker__scoreboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.spiel-ticker__team {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.spiel-ticker__team-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spiel-ticker__emblem {
+    flex: 0 0 auto;
+    line-height: 0;
+}
+
+.spiel-ticker__team--home {
+    justify-content: flex-start;
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+.spiel-ticker__team--away {
+    justify-content: flex-start;
+    text-align: left;
+}
+
+.spiel-ticker__score {
+    font-size: 1.6rem;
+    font-variant-numeric: tabular-nums;
+    background: var(--bs-info);
+    color: #fff;
+    border-radius: 0.5rem;
+    padding: 0.1rem 0.7rem;
+    white-space: nowrap;
+}
+
+.spiel-ticker__feed {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: 100%;
+}
+
+.spiel-ticker__footer {
+    flex: 0 0 auto;
+}
+
+.spiel-ticker__event {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.4rem;
+    background: rgba(127, 127, 127, 0.08);
+    animation: spiel-ticker-in 0.35s ease-out;
+}
+
+.spiel-ticker__event--away {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+.spiel-ticker__event--goal {
+    background: rgba(40, 167, 69, 0.15);
+    font-weight: 600;
+    animation: spiel-ticker-goal 0.6s ease-out;
+}
+
+.spiel-ticker__event--final {
+    justify-content: center;
+    text-align: center;
+    background: var(--bs-info);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.spiel-ticker__minute {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    min-width: 2.2rem;
+}
+
+.spiel-ticker__detail {
+    flex: 1;
+}
+
+.spiel-ticker__card {
+    display: inline-block;
+    width: 0.8rem;
+    height: 1.1rem;
+    border-radius: 2px;
+}
+
+.spiel-ticker__card--yellow {
+    background: var(--bs-warning);
+}
+
+.spiel-ticker__card--red {
+    background: var(--bs-danger);
+}
+
+/* Big "GOAL!!!" banner that flies in and out on a goal (#402) */
+.spiel-ticker__goal-banner {
+    position: absolute;
+    top: 40%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: clamp(2.5rem, 12vw, 5rem);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: var(--bs-success);
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(-120%) rotate(-8deg);
+    z-index: 5;
+}
+
+.spiel-ticker__goal-banner.show {
+    animation: spiel-ticker-goal-banner 1.5s ease-in-out forwards;
+}
+
+@keyframes spiel-ticker-goal-banner {
+    0% {
+        opacity: 0;
+        transform: translateX(-120%) rotate(-8deg);
+    }
+    20% {
+        opacity: 1;
+        transform: translateX(0) rotate(-4deg) scale(1.1);
+    }
+    70% {
+        opacity: 1;
+        transform: translateX(0) rotate(-4deg) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(120%) rotate(8deg);
+    }
+}
+
+@keyframes spiel-ticker-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spiel-ticker-goal {
+    0% {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+    50% {
+        transform: scale(1.06);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

@@ -246,6 +246,37 @@ body:has(> #sandbox-banner) .game-layout {
     padding: 1rem;
 }
 
+/* Discord community link (#419) */
+.discord-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #5865F2;
+    text-decoration: none;
+}
+
+.discord-link:hover {
+    color: #4752c4;
+}
+
+.discord-link .discord-icon {
+    width: 1.1em;
+    height: 1.1em;
+    display: inline-block;
+    vertical-align: -0.15em;
+    margin-right: 0.15rem;
+}
+
+.app-footer .discord-link {
+    margin-top: 0.5rem;
+    color: #fff;
+}
+
+.app-footer .discord-link:hover {
+    color: #fff;
+    opacity: 0.8;
+}
+
 /* ==========================================================================
    Responsive Styles
    ========================================================================== */

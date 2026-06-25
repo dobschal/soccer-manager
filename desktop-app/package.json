@@ -2,10 +2,11 @@
   "name": "footballmanager-io-desktop",
   "version": "0.1.0",
   "description": "Electron desktop wrapper for FootballManager.IO (loads the web app in a native window)",
+  "author": "FootballManager.IO",
   "main": "main.cjs",
   "private": true,
   "scripts": {
-    "build:bundle": "cd .. && node scripts/build-native-bundle.mjs",
+    "build:bundle": "cd .. && node scripts/build-desktop-bundle.mjs",
     "start": "electron .",
     "start:sandbox": "FOOTBALLMANAGER_URL=https://sandbox.footballmanager.io electron .",
     "predist": "npm run build:bundle",
@@ -30,24 +31,27 @@
     ],
     "extraResources": [
       {
-        "from": "../client/assets/native-client.zip",
-        "to": "native-client.zip"
+        "from": "../client/assets/desktop-client.zip",
+        "to": "desktop-client.zip"
       }
     ],
     "mac": {
       "category": "public.app-category.sports-games",
+      "icon": "assets/icon.png",
       "target": [
         "dmg",
         "zip"
       ]
     },
     "win": {
+      "icon": "assets/icon.png",
       "target": [
         "nsis",
         "portable"
       ]
     },
     "linux": {
+      "icon": "assets/icon.png",
       "target": [
         "AppImage",
         "deb"

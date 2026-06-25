@@ -10,7 +10,7 @@ import {
     setEnvironment,
     wasUpdateInstalled
 } from './ota-update'
-import {deviceToken, devicePlatform, registrationError, onDeviceToken, onTokenAvailable} from './pushNotifications'
+import {deviceToken, devicePlatform, registrationError, onDeviceToken, onTokenAvailable, onDeepLink, onDeepLinkAvailable} from './pushNotifications'
 
 declare const NSURL: any
 declare const UIColor: any
@@ -265,9 +265,43 @@ function nativeLog(webView: WebView, message: string, level: string = 'info'): v
     }
 }
 
+/**
+ * Inject a deep link (URL hash) carried by a tapped push notification into the
+ * WebView so the web app can navigate to it (#330).
+ */
+function injectDeepLink(webView: WebView, hash: string): void {
+    if (!hash) return
+    const escaped = hash.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+    const script = `if (typeof window.__handleDeepLink === 'function') { window.__handleDeepLink('${escaped}'); }`
+    try {
+        if (isIOS) {
+            const wkWebView = webView.ios as any
+            if (wkWebView) wkWebView.evaluateJavaScriptCompletionHandler(script, () => {})
+        } else if (isAndroid) {
+            const nativeWebView = webView.android as any
+            if (nativeWebView) nativeWebView.evaluateJavascript(script, null)
+        }
+    } catch (e) {
+        // navigation is best-effort; never crash the app over it
+    }
+}
+
 function setupIOSPushNotifications(webView: WebView): void {
     // Request push notification permissions
     const center = UNUserNotificationCenter.currentNotificationCenter()
+
+    // Listen for notification taps so we can deep-link into the web app (#330).
+    try {
+        const delegate = createIOSNotificationDelegate(webView)
+        center.delegate = delegate
+        ;(webView as any).__notificationDelegate = delegate // keep a strong ref
+    } catch (e: any) {
+        nativeLog(webView, `[Push][Native] Failed to set notification delegate: ${e?.message ?? e}`, 'error')
+    }
+
+    // Replay a deep link that was tapped before the WebView finished loading.
+    onDeepLinkAvailable((hash: string) => injectDeepLink(webView, hash))
+
     nativeLog(webView, '[Push][Native] Requesting push notification permissions...')
     center.requestAuthorizationWithOptionsCompletionHandler(
         UNAuthorizationOptionAlert | UNAuthorizationOptionBadge | UNAuthorizationOptionSound,
@@ -414,6 +448,9 @@ function createIOSBridgeHandler(webView: WebView): any {
                     const target: Environment = env === 'sandbox' ? 'sandbox' : 'production'
                     nativeLog(webView, `[Bridge] setEnvironment requested: ${target}`)
                     handleEnvironmentSwitch(webView, target)
+                } else if (type === 'requestReview') {
+                    nativeLog(webView, '[Bridge] requestReview requested')
+                    requestIOSReview(webView)
                 } else {
                     nativeLog(webView, `[Bridge] Ignoring unknown message type: ${type}`, 'warn')
                 }
@@ -426,6 +463,70 @@ function createIOSBridgeHandler(webView: WebView): any {
         protocols: [WKScriptMessageHandler]
     })
     return HandlerImpl.new()
+}
+
+/**
+ * Build a UNUserNotificationCenterDelegate that reads the `deep_link` field from
+ * a tapped notification's payload and forwards it to the web app (#330). Also
+ * lets notifications display while the app is in the foreground.
+ */
+function createIOSNotificationDelegate(webView: WebView): any {
+    const DelegateImpl = (NSObject as any).extend({
+        // Show banners/sounds even when the app is in the foreground.
+        userNotificationCenterWillPresentNotificationWithCompletionHandler(
+            _center: any, _notification: any, completionHandler: (options: number) => void
+        ): void {
+            try {
+                // UNNotificationPresentationOptionBanner(16) | Sound(2) | Badge(1)
+                completionHandler(16 | 2 | 1)
+            } catch (e) {
+                completionHandler(0)
+            }
+        },
+        userNotificationCenterDidReceiveNotificationResponseWithCompletionHandler(
+            _center: any, response: any, completionHandler: () => void
+        ): void {
+            try {
+                const userInfo = response?.notification?.request?.content?.userInfo
+                const deepLink = userInfo && userInfo.objectForKey ? userInfo.objectForKey('deep_link') : null
+                if (deepLink) {
+                    nativeLog(webView, `[Push][Native] Notification tapped, deep_link=${deepLink}`)
+                    onDeepLink(String(deepLink))
+                }
+            } catch (e: any) {
+                nativeLog(webView, `[Push][Native] Failed to read deep link: ${e?.message ?? e}`, 'error')
+            } finally {
+                completionHandler()
+            }
+        }
+    }, {
+        name: 'FmioNotificationDelegate',
+        protocols: [UNUserNotificationCenterDelegate]
+    })
+    return DelegateImpl.new()
+}
+
+/**
+ * Show the native iOS rating prompt via StoreKit. The OS rate-limits this to a
+ * few times per year, so it is safe to call after a win (#371).
+ */
+function requestIOSReview(webView: WebView): void {
+    try {
+        Utils.executeOnMainThread(() => {
+            try {
+                const scene = UIApplication.sharedApplication?.connectedScenes?.anyObject?.()
+                if (scene && typeof SKStoreReviewController?.requestReviewInScene === 'function') {
+                    SKStoreReviewController.requestReviewInScene(scene)
+                } else if (typeof SKStoreReviewController?.requestReview === 'function') {
+                    SKStoreReviewController.requestReview()
+                }
+            } catch (inner: any) {
+                nativeLog(webView, `[Review] iOS requestReview failed: ${inner?.message ?? inner}`, 'error')
+            }
+        })
+    } catch (e: any) {
+        nativeLog(webView, `[Review] iOS requestReview dispatch failed: ${e?.message ?? e}`, 'error')
+    }
 }
 
 function tryStringify(v: any): string {
@@ -489,9 +590,37 @@ function setupIOSUIDelegate(): any {
     return WKUIDelegateImpl.new()
 }
 
+/**
+ * Read the `deep_link` extra placed on the launch intent when the user taps a
+ * notification, and forward it to the web app. Clears the extra so it isn't
+ * replayed on the next resume (#330).
+ */
+function checkAndroidLaunchIntent(): void {
+    try {
+        const activity = Application.android.foregroundActivity || Application.android.startActivity
+        if (!activity) return
+        const intent = activity.getIntent()
+        if (!intent) return
+        const deepLink = intent.getStringExtra('deep_link')
+        if (deepLink) {
+            console.log('[Push][Android] Launch intent deep_link:', deepLink)
+            intent.removeExtra('deep_link')
+            onDeepLink(String(deepLink))
+        }
+    } catch (e: any) {
+        console.error('[Push][Android] Error reading launch intent:', e?.message ?? e)
+    }
+}
+
 function setupAndroidPushNotifications(webView: WebView): void {
     requestAndroidPostNotificationsPermission()
     requestAndroidFcmToken()
+
+    // Forward tapped-notification deep links into the WebView (#330).
+    onDeepLinkAvailable((hash: string) => injectDeepLink(webView, hash))
+    checkAndroidLaunchIntent()
+    // A tap while the app is backgrounded re-delivers the intent on resume.
+    Application.on(Application.resumeEvent, () => checkAndroidLaunchIntent())
 
     onTokenAvailable((token: string, platform: string) => {
         if (platform !== 'android') return
@@ -572,11 +701,53 @@ function loadWebViewAndroid(webView: WebView, webPath: string) {
     settings.setAllowFileAccessFromFileURLs(true)
     settings.setAllowUniversalAccessFromFileURLs(true)
 
+    // Expose window.AndroidBridge.requestReview() for the in-app review prompt (#371)
+    setupAndroidReviewBridge(nativeWebView)
+
     // Check if using OTA path (documents dir) or bundled path
     const bundledPath = path.join(knownFolders.currentApp().path, 'web')
     if (webPath === bundledPath) {
         nativeWebView.loadUrl('file:///android_asset/app/web/index.html')
     } else {
         nativeWebView.loadUrl('file://' + path.join(webPath, 'index.html'))
+    }
+}
+
+/**
+ * Register a JS interface so the web app can trigger the Google Play in-app
+ * review flow via `window.AndroidBridge.requestReview()` (#371).
+ */
+function setupAndroidReviewBridge(nativeWebView: any): void {
+    try {
+        const JavaScriptInterface = (java.lang.Object as any).extend({
+            requestReview(): void {
+                try {
+                    const activity = Application.android.foregroundActivity || Application.android.startActivity
+                    if (!activity) return
+                    const ReviewManagerFactory = com.google.android.play.core.review.ReviewManagerFactory
+                    const manager = ReviewManagerFactory.create(activity)
+                    const request = manager.requestReviewFlow()
+                    request.addOnCompleteListener(new com.google.android.gms.tasks.OnCompleteListener({
+                        onComplete(task: any): void {
+                            try {
+                                if (!task.isSuccessful()) {
+                                    console.error('[Review][Android] requestReviewFlow failed')
+                                    return
+                                }
+                                const reviewInfo = task.getResult()
+                                manager.launchReviewFlow(activity, reviewInfo)
+                            } catch (e: any) {
+                                console.error('[Review][Android] launchReviewFlow error:', e?.message ?? e)
+                            }
+                        }
+                    }))
+                } catch (e: any) {
+                    console.error('[Review][Android] requestReview error:', e?.message ?? e)
+                }
+            }
+        })
+        nativeWebView.addJavascriptInterface(new JavaScriptInterface(), 'AndroidBridge')
+    } catch (e: any) {
+        console.error('[Review][Android] Failed to register AndroidBridge:', e?.message ?? e)
     }
 }

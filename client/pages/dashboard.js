@@ -6,12 +6,14 @@ import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
 import { FriendsPage } from './dashboard/friendsPage.js'
 import { ForumPage } from './forum.js'
+import { WikiPage } from './wiki.js'
 import { SearchPanel } from '../partials/searchPanel.js'
 import { t } from '../i18n/index.js'
 import { el } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
 import { showSeasonReviewOverlay, isSeasonReviewDismissed } from '../partials/seasonReviewOverlay.js'
+import { maybeShowSpielTickerOverlay } from '../partials/spielTickerOverlay.js'
 import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 
@@ -117,9 +119,9 @@ export class DashboardPage extends TabbedPage {
 
         <nav class="nav nav-pills mb-4">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
-          <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''} position-relative" href="#dashboard?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this._renderCardBadge()}</a>
           <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
           <a class="nav-link ${this.subPage === 'friends' ? 'active' : ''}" href="#dashboard?sub_page=friends"><i class="fa fa-users"></i> ${t('dashboard.tabFriends')}</a>
+          <a class="nav-link ${this.subPage === 'wiki' ? 'active' : ''}" href="#dashboard?sub_page=wiki"><i class="fa fa-book"></i> ${t('wiki.title')}</a>
           <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#dashboard?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>
 
@@ -179,6 +181,14 @@ export class DashboardPage extends TabbedPage {
           forum.onQueryChanged(params)
         }
       }
+      // Same for the wiki sub-page: a cached instance becoming visible again
+      // needs the latest id param pushed in (#441).
+      if (newSubPage === 'wiki') {
+        const wiki = this._subPageCache.wiki
+        if (wiki?._isMounted && typeof wiki.onQueryChanged === 'function') {
+          wiki.onQueryChanged(params)
+        }
+      }
     } else if (!newSubPage && this._initialQueryChangeHandled) {
       // Returning to the start tab from another page — refresh data.
       // Skip on the very first onQueryChanged after mount: the page just
@@ -209,6 +219,7 @@ export class DashboardPage extends TabbedPage {
       case 'messages': return new LogMessages()
       case 'forum': return new ForumPage()
       case 'friends': return new FriendsPage()
+      case 'wiki': return new WikiPage()
       case 'search': return new SearchPanel()
       default: return this._createStartPage()
     }
@@ -338,7 +349,37 @@ export class DashboardPage extends TabbedPage {
     await this._showEmailPromptIfNeeded()
     await this._showSeasonReviewIfNeeded()
     await this._showTutorialIfNeeded()
+    await this._showSpielTickerIfNeeded()
     await this._showPendingCardsIfNeeded()
+  }
+
+  /**
+   * Show the animated match ticker for the user's most recent game, before the
+   * action-card claim overlay (#402).
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _showSpielTickerIfNeeded () {
+    if (!this._isMounted) return
+    const lastGame = this._findLastPlayedGame()
+    if (!lastGame) return
+    await maybeShowSpielTickerOverlay({
+      season: this.season,
+      gameDay: this.gameDay,
+      myTeamId: this.team.id,
+      lastGame
+    })
+  }
+
+  /**
+   * The most recent played game from the slider (past games are listed oldest
+   * to newest, so the last one is the latest).
+   * @returns {object|null}
+   * @private
+   */
+  _findLastPlayedGame () {
+    const played = (this._sliderGames || []).filter(g => g.isPlayed && g.id)
+    return played.length > 0 ? played[played.length - 1] : null
   }
 
   async _showEmailPromptIfNeeded () {

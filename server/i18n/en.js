@@ -70,6 +70,7 @@ export default {
   'error.notYourPlayer': 'This is not your player',
   'error.playerAlreadyListed': 'Player is already listed',
   'error.invalidOfferValue': 'Invalid offer value',
+  'error.sellPriceTooLow': 'The asking price must be at least 50% of the player\'s market value ({minPrice}).',
   'error.offerTooLow': 'Offer is too low',
   'error.offerLimitReached': 'You can only make 3 offers per player per game day',
   'error.instantBuyDisabled': 'The seller disabled instant buy for this player',

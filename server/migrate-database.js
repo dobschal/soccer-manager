@@ -2250,6 +2250,40 @@ const migrations = [{
       [season]
     )
   }
+}, {
+  name: 'Create user_report table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS user_report (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      reporter_user_id BIGINT(20) UNSIGNED NOT NULL,
+      reported_user_id BIGINT(20) UNSIGNED NOT NULL,
+      reason TEXT NOT NULL,
+      status VARCHAR(16) NOT NULL DEFAULT 'open',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      resolved_at TIMESTAMP NULL DEFAULT NULL,
+      PRIMARY KEY (id),
+      INDEX idx_user_report_reported (reported_user_id),
+      INDEX idx_user_report_status (status)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
+  }
+}, {
+  name: 'Create wiki_entry table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS wiki_entry (
+      id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+      locale VARCHAR(5) NOT NULL DEFAULT 'en',
+      title VARCHAR(255) NOT NULL,
+      subtitle VARCHAR(255) DEFAULT NULL,
+      text MEDIUMTEXT NOT NULL,
+      images TEXT DEFAULT NULL,
+      sort_order INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX idx_wiki_entry_locale (locale),
+      INDEX idx_wiki_entry_sort (sort_order)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
+  }
 }]
 
 /**

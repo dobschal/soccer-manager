@@ -108,6 +108,7 @@ export class TeamPage extends UIElement {
       this._isFriend = Boolean(friendStatus.isFriend)
     }
   }
+
   /**
    * @returns {string}
    */
@@ -121,7 +122,7 @@ export class TeamPage extends UIElement {
             ${this._renderTeamInfoCard()}
           </div>
           <div class="col-12 col-md-6 col-xl-4 mb-4">
-            <div class="card h-100 border-0">
+            <div class="card h-100">
               <div class="card-header text-white gradient-header">
                 <h5 class="card-title mb-0">${t('myTeam.emblem')}</h5>
               </div>
@@ -166,6 +167,7 @@ export class TeamPage extends UIElement {
       </div>
     `
   }
+
   /**
    * @returns {UIElementEvents}
    */
@@ -225,6 +227,7 @@ export class TeamPage extends UIElement {
       }
     }
   }
+
   onMounted () {
     this._onPlayerChanged = () => this.update(true)
     window.addEventListener('player-hired', this._onPlayerChanged)
@@ -236,6 +239,7 @@ export class TeamPage extends UIElement {
     void showTutorialIfNeeded('team', this)
     this._refineTimelineOffsetForViewport()
   }
+
   /**
    * @param {Object} params
    * @param {string} params.player_id
@@ -253,6 +257,7 @@ export class TeamPage extends UIElement {
       await this.update(true)
     }
   }
+
   onDestroy () {
     if (this._onPlayerChanged) {
       window.removeEventListener('player-hired', this._onPlayerChanged)
@@ -262,6 +267,7 @@ export class TeamPage extends UIElement {
       window.removeEventListener('my-team-updated', this._onMyTeamUpdated)
     }
   }
+
   static cacheKeyParams = ['id']
   showLoadingIndicator = true
 
@@ -348,7 +354,7 @@ export class TeamPage extends UIElement {
     )
 
     return `
-      <div class="card h-100 border-0">
+      <div class="card h-100">
         <div class="card-header text-white gradient-header">
           <h5 class="card-title mb-0">${t('myTeam.teamInfo')}</h5>
         </div>
@@ -404,7 +410,7 @@ export class TeamPage extends UIElement {
       : `<div class="card-body">${body}</div>`
 
     return `
-      <div class="card h-100 border-0">
+      <div class="card h-100">
         <div class="card-header text-white gradient-header">
           <h5 class="card-title mb-0">${t('myTeam.coach')}</h5>
         </div>
@@ -920,13 +926,19 @@ export class TeamPage extends UIElement {
       )
       const newGames = response.games || []
       if (newGames.length === 0) {
-        if (direction === 'past') this._timelineHasMorePast = false
-        else this._timelineHasMoreFuture = false
+        if (direction === 'past') {
+          this._timelineHasMorePast = false
+        } else {
+          this._timelineHasMoreFuture = false
+        }
         return
       }
       if (newGames.length < TIMELINE_PAGE_SIZE) {
-        if (direction === 'past') this._timelineHasMorePast = false
-        else this._timelineHasMoreFuture = false
+        if (direction === 'past') {
+          this._timelineHasMorePast = false
+        } else {
+          this._timelineHasMoreFuture = false
+        }
       }
       if (direction === 'past') {
         this._timelineGames = [...newGames, ...this._timelineGames]

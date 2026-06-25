@@ -207,7 +207,7 @@ describe('players routes', () => {
   })
 
   describe('estimateValue', () => {
-    it('returns value based on past trades when available', async () => {
+    it('blends the past-trade average 50/50 with the plan price', async () => {
       const player = testData.player({ position: 'CM', level: 5 })
       const trades = [
         { price: 100000 },
@@ -218,10 +218,33 @@ describe('players routes', () => {
       getPlayerById.mockResolvedValue(player)
       getPlayerAge.mockResolvedValue(25)
       getPastTrades.mockResolvedValue(trades)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(200000)
 
       const result = await handlers.estimateValue(1)
 
-      expect(result).toBeCloseTo(100000) // average of trades
+      // trade avg 100000 blended 50/50 with plan price 200000 → 150000
+      expect(result).toBe(150000)
+    })
+
+    it('anchors a deflated trade average back up towards the plan price', async () => {
+      // Cheap outlier trades (bot dumps) would pull a pure average far below
+      // fundamental value; the blend keeps the estimate anchored to plan price.
+      const player = testData.player({ position: 'CM', level: 5 })
+      const trades = [
+        { price: 20000 },
+        { price: 25000 },
+        { price: 15000 }
+      ]
+
+      getPlayerById.mockResolvedValue(player)
+      getPlayerAge.mockResolvedValue(25)
+      getPastTrades.mockResolvedValue(trades)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
+
+      const result = await handlers.estimateValue(1)
+
+      // trade avg 20000 blended 50/50 with plan price 100000 → 60000 (not 20000)
+      expect(result).toBe(60000)
     })
 
     it('returns average plan price when no past trades', async () => {

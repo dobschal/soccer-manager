@@ -41,10 +41,21 @@ export function copyVendorFiles(clientDir, outputDir) {
 }
 
 /**
- * Transform index.html for native builds: remove SEO tags, add native-app.css,
- * swap app.js → native-app.js, inject __NATIVE_SERVER_URL, shorten title.
+ * Transform index.html for bundled builds (loaded from local disk via a custom
+ * scheme, talking to the live server for API/websocket).
+ *
+ * Two variants:
+ * - `'native'` (iOS / Android WebView): swaps app.js → native-app.js and adds
+ *   native-app.css, so the mobile shell (bottom tab bar, swipe-back, …) loads.
+ * - `'desktop'` (Electron): keeps the standard web app (app.js / GameLayout, no
+ *   bottom tab bar) — the mobile tab bar looks out of place in a desktop window
+ *   — but still injects __NATIVE_SERVER_URL so the gateway/websocket reach the
+ *   live server instead of the local app:// origin.
+ *
+ * Both variants remove SEO tags, inject the __NATIVE_SERVER_URL fallback, and
+ * shorten the title.
  */
-export function transformIndexHtml(clientDir, outputDir) {
+export function transformIndexHtml(clientDir, outputDir, { variant = 'native' } = {}) {
   const originalHtml = readFileSync(resolve(clientDir, 'index.html'), 'utf-8')
 
   let html = originalHtml
@@ -52,36 +63,41 @@ export function transformIndexHtml(clientDir, outputDir) {
   // Remove SEO meta tags (lines 9-38 of index.html)
   html = html.replace(/\s*<!-- SEO Meta Tags -->[\s\S]*?<meta name="twitter:image:alt"[^>]*>\n/m, '\n')
 
-  // Add native-app.css link after the last CSS link
-  html = html.replace(
-    '<link rel="stylesheet" href="style/landing.css">',
-    '<link rel="stylesheet" href="style/landing.css">\n    <link rel="stylesheet" href="style/native-app.css">'
-  )
+  if (variant === 'native') {
+    // Add native-app.css link after the last CSS link
+    html = html.replace(
+      '<link rel="stylesheet" href="style/landing.css">',
+      '<link rel="stylesheet" href="style/landing.css">\n    <link rel="stylesheet" href="style/native-app.css">'
+    )
+  }
 
-  // Inject __NATIVE_SERVER_URL before the module script, and change app.js to native-app.js.
-  // The assignment is a fallback so the native shell can pre-set the URL via
-  // WKUserScript (env switcher between prod and sandbox) before this inline script runs.
+  // Inject __NATIVE_SERVER_URL before the module script. The assignment is a
+  // fallback so the native/desktop shell can pre-set the URL (env switcher
+  // between prod and sandbox) before this inline script runs. The native
+  // variant additionally swaps app.js → native-app.js; the desktop variant
+  // keeps the standard app.js entry point.
+  const entryScript = variant === 'native' ? 'native-app.js' : 'app.js'
   html = html.replace(
     '<script src="app.js" defer type="module"></script>',
     `<script>window.__NATIVE_SERVER_URL = window.__NATIVE_SERVER_URL || 'https://footballmanager.io';</script>
-    <script src="native-app.js" defer type="module"></script>`
+    <script src="${entryScript}" defer type="module"></script>`
   )
 
-  // Shorten title for native
+  // Shorten title for bundled builds
   html = html.replace(
     '<title>FootballManager.IO - Free Online Football Manager Game</title>',
     '<title>FootballManager.IO</title>'
   )
 
   writeFileSync(resolve(outputDir, 'index.html'), html)
-  console.log('Generated native index.html')
+  console.log(`Generated ${variant} index.html`)
 
 }
 
 /**
- * Write native-version.json. Returns { version, commitHash }.
+ * Write a version json (default native-version.json). Returns { version, commitHash }.
  */
-export function writeVersionJson(outputDir, rootDir, commitHash) {
+export function writeVersionJson(outputDir, rootDir, commitHash, fileName = 'native-version.json') {
   const pkg = JSON.parse(readFileSync(resolve(rootDir, 'package.json'), 'utf-8'))
 
   if (!commitHash) {
@@ -97,8 +113,8 @@ export function writeVersionJson(outputDir, rootDir, commitHash) {
   }
 
   const versionData = { version: pkg.version, commitHash }
-  writeFileSync(resolve(outputDir, 'native-version.json'), JSON.stringify(versionData, null, 2))
-  console.log('Wrote native-version.json')
+  writeFileSync(resolve(outputDir, fileName), JSON.stringify(versionData, null, 2))
+  console.log(`Wrote ${fileName}`)
   return versionData
 }
 
@@ -146,15 +162,15 @@ function collectPngs(dir) {
 
 /**
  * Orchestrator: clean, copy, transform, version, compress.
- * @param {{ clientDir: string, outputDir: string, rootDir: string, commitHash?: string }} opts
+ * @param {{ clientDir: string, outputDir: string, rootDir: string, commitHash?: string, variant?: 'native'|'desktop', versionFileName?: string }} opts
  * @returns {Promise<{ version: string, commitHash: string }>}
  */
-export async function prepareNativeWebDir({ clientDir, outputDir, rootDir, commitHash }) {
+export async function prepareNativeWebDir({ clientDir, outputDir, rootDir, commitHash, variant = 'native', versionFileName = 'native-version.json' }) {
   cleanOutputDir(outputDir)
   copyClientFiles(clientDir, outputDir)
   copyVendorFiles(clientDir, outputDir)
-  transformIndexHtml(clientDir, outputDir)
-  const versionData = writeVersionJson(outputDir, rootDir, commitHash)
+  transformIndexHtml(clientDir, outputDir, { variant })
+  const versionData = writeVersionJson(outputDir, rootDir, commitHash, versionFileName)
   await compressPngs(outputDir)
   return versionData
 }

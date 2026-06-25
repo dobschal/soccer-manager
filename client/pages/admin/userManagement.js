@@ -10,10 +10,11 @@ const SUSPICIOUS_PAGE_SIZE = 10
 
 export class UserManagementAdminPage extends UIElement {
   async load () {
-    const [adminsRes, suspiciousRes, referralRes] = await Promise.all([
+    const [adminsRes, suspiciousRes, referralRes, reportsRes] = await Promise.all([
       server.getAdmins(),
       server.getSuspiciousActions(this._suspiciousPage, SUSPICIOUS_PAGE_SIZE),
-      server.getReferralSettings()
+      server.getReferralSettings(),
+      server.getReportedUsers()
     ])
     this._admins = adminsRes.admins
     this._suspicious = suspiciousRes.rows
@@ -21,6 +22,7 @@ export class UserManagementAdminPage extends UIElement {
     this._suspiciousPageSize = suspiciousRes.pageSize
     this._referralAction = referralRes.action
     this._referralOptions = referralRes.options || []
+    this._reports = reportsRes.reports || []
   }
 
   get template () {
@@ -77,6 +79,8 @@ export class UserManagementAdminPage extends UIElement {
 
         ${this._renderReferralBenefit()}
 
+        ${this._renderReportedUsers()}
+
         ${this._renderSuspiciousActions()}
       </div>
     `
@@ -104,7 +108,62 @@ export class UserManagementAdminPage extends UIElement {
       },
       [`(optional)#${this._suspiciousNextBtnId}`]: {
         click: () => this._goToSuspiciousPage(this._suspiciousPage + 1)
+      },
+      '(optional).report-resolve-btn': {
+        click: (e) => this._resolveReport(e.currentTarget.dataset.reportId)
       }
+    }
+  }
+  _renderReportedUsers () {
+    const rows = this._reports.map(r => `
+      <tr class="${r.status === 'open' ? '' : 'text-muted'}">
+        <td>${new Date(r.created_at).toLocaleString()}</td>
+        <td><a href="#user?id=${r.reported_id}">${r.reported_username}</a></td>
+        <td><a href="#user?id=${r.reporter_id}">${r.reporter_username}</a></td>
+        <td>${this._escape(r.reason)}</td>
+        <td>
+          ${r.status === 'open'
+    ? `<button class="btn btn-sm btn-outline-success report-resolve-btn" data-report-id="${r.id}"><i class="fa fa-check"></i> ${t('admin.reportResolve')}</button>`
+    : `<span class="badge bg-secondary">${t('admin.reportResolved')}</span>`}
+        </td>
+      </tr>
+    `).join('')
+
+    return `
+      <div class="mb-4">
+        <h4>${t('admin.reportedUsersTitle')} (${this._reports.filter(r => r.status === 'open').length})</h4>
+        <p class="text-muted">${t('admin.reportedUsersDescription')}</p>
+        ${this._reports.length > 0
+    ? `<div class="horizontal-scrollable-table">
+              <table class="table table-sm table-hover mb-0">
+                <thead><tr>
+                  <th>${t('admin.suspiciousActionsTime')}</th>
+                  <th>${t('admin.reportedUser')}</th>
+                  <th>${t('admin.reportedBy')}</th>
+                  <th>${t('admin.reportReason')}</th>
+                  <th></th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>`
+    : `<p class="text-muted">${t('admin.reportedUsersEmpty')}</p>`}
+      </div>
+    `
+  }
+
+  _escape (text) {
+    const div = document.createElement('div')
+    div.textContent = text ?? ''
+    return div.innerHTML
+  }
+
+  async _resolveReport (reportId) {
+    try {
+      await server.resolveUserReport(Number(reportId))
+      toast(t('admin.reportResolvedToast'), 'success')
+      await this.update(true)
+    } catch (e) {
+      toast(e.message || 'Something went wrong', 'error')
     }
   }
 
@@ -238,6 +297,7 @@ export class UserManagementAdminPage extends UIElement {
   _suspiciousPageSize = SUSPICIOUS_PAGE_SIZE
   _referralAction = ''
   _referralOptions = []
+  _reports = []
 
   async _saveReferralBenefit () {
     const select = document.getElementById(this._referralBenefitSelectId)

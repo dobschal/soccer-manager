@@ -61,10 +61,11 @@ export default {
    * Send a broadcast push notification to all users (admin only)
    * @param {string} messageEn - English message
    * @param {string} messageDe - German message
+   * @param {string} [deepLink] - optional URL hash to open on tap, e.g. "#club?sub_page=buildings" (#330)
    * @param {Request} req
    * @returns {Promise<{sent: number, failed: number}>}
    */
-  async broadcastNotification (messageEn, messageDe, req) {
+  async broadcastNotification (messageEn, messageDe, deepLink, req) {
     if (!req.user?.is_admin) {
       throw new BadRequestError('This action is only available for admins')
     }
@@ -74,7 +75,8 @@ export default {
     if (typeof messageDe !== 'string' || !messageDe.trim()) {
       throw new BadRequestError('German message is required')
     }
-    return sendBroadcastNotification(messageEn.trim(), messageDe.trim())
+    const cleanDeepLink = typeof deepLink === 'string' ? deepLink.trim() : ''
+    return sendBroadcastNotification(messageEn.trim(), messageDe.trim(), cleanDeepLink)
   },
 
   /**
@@ -210,6 +212,47 @@ export default {
     }
     const admins = await query('SELECT id, username FROM user WHERE is_admin = 1 ORDER BY username')
     return { admins }
+  },
+
+  /**
+   * List reported users for admin review (admin only). Open reports first,
+   * newest first (#421).
+   * @param {Request} req
+   * @returns {Promise<{reports: Array}>}
+   */
+  async getReportedUsers (req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    const reports = await query(`
+      SELECT r.id, r.reason, r.status, r.created_at, r.resolved_at,
+             reporter.id AS reporter_id, reporter.username AS reporter_username,
+             reported.id AS reported_id, reported.username AS reported_username
+      FROM user_report r
+      JOIN user reporter ON reporter.id = r.reporter_user_id
+      JOIN user reported ON reported.id = r.reported_user_id
+      ORDER BY (r.status = 'open') DESC, r.created_at DESC
+      LIMIT 200
+    `)
+    return { reports }
+  },
+
+  /**
+   * Mark a user report as resolved (admin only) (#421).
+   * @param {number} reportId
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async resolveUserReport (reportId, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    const id = Number(reportId)
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new BadRequestError('Invalid report id')
+    }
+    await query("UPDATE user_report SET status='resolved', resolved_at=NOW() WHERE id=?", [id])
+    return { success: true }
   },
 
   /**

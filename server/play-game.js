@@ -78,6 +78,7 @@ export function selectInjuryType () {
  * @property {number} player
  * @property {true} keeperHolds
  * @property {number} goalKeeper
+ * @property {number} minute
  */
 
 /**
@@ -538,7 +539,8 @@ function _shootBall (playerTeamA, playerTeamB, gameDetails) {
     gameDetails.log.push({
       player: activePlayer.id,
       keeperHolds: true,
-      goalKeeper: goalKeeper.id
+      goalKeeper: goalKeeper.id,
+      minute: gameDetails.currentMinute
     })
     goalKeeper.hasBall = true
     activePlayer.hasBall = false

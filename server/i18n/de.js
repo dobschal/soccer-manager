@@ -70,6 +70,7 @@ export default {
   'error.notYourPlayer': 'Das ist nicht dein Spieler',
   'error.playerAlreadyListed': 'Spieler ist bereits gelistet',
   'error.invalidOfferValue': 'Ungültiger Angebotswert',
+  'error.sellPriceTooLow': 'Der Verkaufspreis muss mindestens 50% des Marktwerts des Spielers betragen ({minPrice}).',
   'error.offerTooLow': 'Angebot ist zu niedrig',
   'error.offerLimitReached': 'Du kannst nur 3 Angebote pro Spieler pro Spieltag abgeben',
   'error.instantBuyDisabled': 'Der Verkäufer hat den Sofortkauf für diesen Spieler deaktiviert',

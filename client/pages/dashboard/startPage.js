@@ -5,8 +5,9 @@ import { formatLeague } from '../../util/league.js'
 import { generateId } from '../../lib/html.js'
 import { goTo } from '../../lib/router.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
-import { getLocale, t } from '../../i18n/index.js'
+import { t } from '../../i18n/index.js'
 import { server } from '../../lib/gateway.js'
+import { getPromoVideoId, renderPromoVideoEmbed } from '../../lib/promoVideo.js'
 import { toast } from '../../partials/toast.js'
 import { showGameModal } from '../../partials/gameModal.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
@@ -161,24 +162,13 @@ export class StartPage {
 
   _renderVideoCard () {
     const isNativeApp = Boolean(window.__nativePlatform)
-    const locale = getLocale()
-    const videoIds = {
-      'mobile-de': 'D7v1Y2-HUlk',
-      'mobile-en': 'gcBC70_ElFQ',
-      'desktop-de': 'ogCKtnHt04s',
-      'desktop-en': 'kK_OHx9gypc'
-    }
-    const platformKey = isNativeApp ? 'mobile' : 'desktop'
-    const localeKey = locale === 'de' ? 'de' : 'en'
-    const videoId = videoIds[`${platformKey}-${localeKey}`]
+    const videoId = getPromoVideoId({ isNativeApp })
     const videoContent = isNativeApp
       ? `<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" class="d-block ratio ratio-16x9 video-thumbnail-link">
           <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="${t('dashboard.videoTitle')}" class="video-thumbnail-img">
           <span class="video-play-btn"><i class="fa fa-play-circle fa-4x"></i></span>
         </a>`
-      : `<div class="ratio ratio-16x9">
-          <iframe src="https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1" title="${t('dashboard.videoTitle')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen webkit-playsinline></iframe>
-        </div>`
+      : renderPromoVideoEmbed(videoId, t('dashboard.videoTitle'))
     return `
       <div class="card card-body video-card bg-info-subtle flex-fill mb-0">
         <img src="assets/dashboard/tutorial.png" alt="" class="dashboard-promo-img">

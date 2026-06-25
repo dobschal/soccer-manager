@@ -46,6 +46,7 @@ services:
       - ${DATA_ROOT:-./data}/uploads/forum:/usr/src/app/uploads/forum
       - ${DATA_ROOT:-./data}/uploads/avatars:/usr/src/app/uploads/avatars
       - ${DATA_ROOT:-./data}/uploads/friend-posts:/usr/src/app/uploads/friend-posts
+      - ${DATA_ROOT:-./data}/uploads/wiki:/usr/src/app/uploads/wiki
     depends_on:
       database:
         condition: service_healthy

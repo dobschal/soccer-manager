@@ -8,6 +8,7 @@ import { disconnectWebSocket } from '../lib/websocket.js'
 import { fetchText } from '../lib/fetchText.js'
 import { isValidEmail } from '../lib/emailRegex.js'
 import { showInviteFriendOverlay } from '../partials/inviteFriendOverlay.js'
+import { discordLinkHtml } from '../lib/discord.js'
 
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024
@@ -218,6 +219,9 @@ export async function showAccountOverlay () {
       <div class="text-center mt-2">
         <a href="support.html" class="text-muted small me-3">${t('nav.support')}</a>
         <a href="imprint.html" class="text-muted small">${t('nav.privacyPolicy')}</a>
+      </div>
+      <div class="text-center mt-2">
+        ${discordLinkHtml({ label: t('footer.discord') })}
       </div>
     </div>
   `

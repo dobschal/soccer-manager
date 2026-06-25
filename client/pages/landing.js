@@ -7,6 +7,7 @@ import { t } from '../i18n/index.js'
 import { connectWebSocket } from '../lib/websocket.js'
 import { isValidEmail } from '../lib/emailRegex.js'
 import { getDeviceUuid } from '../lib/deviceUuid.js'
+import { getPromoVideoId, renderPromoVideoEmbed } from '../lib/promoVideo.js'
 
 export const APP_STORE_URL = 'https://apps.apple.com/de/app/footballmanager-io/id6759547142'
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=io.soccermanager.app'
@@ -58,7 +59,9 @@ export class LandingPage extends UIElement {
                     <img src="assets/landing-page/google-play-badge.svg" alt="${t('landing.getOnGooglePlay')}" class="app-badge">
                   </a>
                 </div>
-                <img src="assets/landing-page/preview.png" alt="Game Preview" class="hero-preview-image mt-4">
+                <div class="hero-video mt-4">
+                  ${renderPromoVideoEmbed(getPromoVideoId({ isNativeApp: false }), t('landing.title'))}
+                </div>
               </div>
               <!-- Right side: Login form -->
               <div class="col-lg-4">

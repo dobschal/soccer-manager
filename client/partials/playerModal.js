@@ -289,6 +289,14 @@ export default class PlayerModal extends UIElement {
       const price = Number(input?.dataset.rawValue || 0)
       const allowInstantBuyEl = root?.querySelector('#allow-instant-buy')
       const allowInstantBuy = allowInstantBuyEl ? allowInstantBuyEl.checked : true
+      // A player may not be listed below 50% of their market value (#446).
+      if (this.isMyPlayer) {
+        const minPrice = Math.floor(this.price * 0.5)
+        if (price < minPrice) {
+          toast(t('trades.sellPriceTooLow', { minPrice: euroFormat.format(minPrice) }), 'error')
+          return
+        }
+      }
       await server.addTradeOffer(this.player, price, this.isMyPlayer ? 'sell' : 'buy', allowInstantBuy)
       toast(t('player.offerAdded', { playerName: this.player.name }), 'success')
       this.overlay.remove()

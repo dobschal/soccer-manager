@@ -6,6 +6,8 @@ import { renderEmblem } from '../partials/emblem.js'
 import { formatCupRound, formatLeague } from '../util/league.js'
 import { goTo } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
+import { formatDate, formatLastActive } from '../lib/date.js'
+import { showReportUserOverlay } from '../partials/reportUserOverlay.js'
 
 function avatarSrc (avatar) {
   if (avatar) return `${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatar}`
@@ -69,6 +71,12 @@ export class UserProfilePage extends UIElement {
           event.preventDefault()
           this._handleFriendToggleClick()
         }
+      },
+      '(optional) .report-user-btn': {
+        click: (event) => {
+          event.preventDefault()
+          showReportUserOverlay(this.userId, this.profile?.user?.username || '')
+        }
       }
     }
   }
@@ -103,7 +111,7 @@ export class UserProfilePage extends UIElement {
         : `<i class="fa fa-user-plus"></i> ${t('team.addFriend')}`
     const cls = this._isFriend ? 'btn-outline-secondary' : 'btn-outline-info'
     return `
-      <button class="btn btn-sm ${cls} friend-toggle-btn mt-2" ${disabled ? 'disabled' : ''}>
+      <button class="btn btn-sm ${cls} friend-toggle-btn" ${disabled ? 'disabled' : ''}>
         ${inner}
       </button>
     `
@@ -156,8 +164,15 @@ export class UserProfilePage extends UIElement {
         <div>
           <h3 class="mb-0">${user.username}</h3>
           ${teamLabel}
+          <div class="text-muted small mt-2 d-flex flex-wrap gap-3">
+            ${user.joinedAt ? `<span><i class="fa fa-calendar-plus"></i> ${t('userProfile.joinedAt')}: ${formatDate('DD.MM.YYYY', user.joinedAt)}</span>` : ''}
+            <span><i class="fa fa-clock"></i> ${t('userProfile.lastLogin')}: ${formatLastActive(user.lastLogin)}</span>
+          </div>
           ${isOwnProfile ? `<span class="badge bg-info mt-2">${t('userProfile.you')}</span>` : ''}
-          ${this._renderFriendToggleButton()}
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            ${this._renderFriendToggleButton()}
+            ${isOwnProfile ? '' : `<button class="btn btn-sm btn-outline-danger report-user-btn"><i class="fa fa-flag"></i> ${t('report.button')}</button>`}
+          </div>
         </div>
       </div>
     `

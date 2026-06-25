@@ -34,7 +34,7 @@ import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer } from '../../helper/tradeHelper.js'
-import { getPlayerById, getPlayersByTeamId } from '../../helper/playerHelper.js'
+import { getPlayerById, getPlayersByTeamId, getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/trade.js'
 
@@ -102,6 +102,39 @@ describe('trade routes', () => {
         })
       )
       expect(addLogMessage).toHaveBeenCalled()
+    })
+
+    it('#446 rejects a sell offer below 50% of the market value', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // market value -> min 50000
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 49999, 'sell', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining('50%') })
+    })
+
+    it('#446 allows a sell offer at exactly 50% of the market value', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // min 50000
+      query
+        .mockResolvedValueOnce([]) // no existing offers
+        .mockResolvedValueOnce({}) // insert
+
+      const req = createMockRequest()
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
+
+      expect(result).toEqual({ success: true })
     })
 
     it('stores allow_instant_buy=0 when seller disables instant buy', async () => {

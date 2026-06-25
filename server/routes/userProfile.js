@@ -22,7 +22,7 @@ export default {
       throw new BadRequestError('Invalid user id')
     }
     const [user] = await query(
-      'SELECT id, username, avatar, last_login FROM user WHERE id=? LIMIT 1',
+      'SELECT id, username, avatar, last_login, created_at FROM user WHERE id=? LIMIT 1',
       [id]
     )
     if (!user) {
@@ -62,7 +62,8 @@ export default {
         id: user.id,
         username: user.username,
         avatar: user.avatar,
-        lastLogin: user.last_login
+        lastLogin: user.last_login,
+        joinedAt: user.created_at
       },
       currentTeam: currentTeam || null,
       friends,
@@ -70,6 +71,37 @@ export default {
       isOwnProfile: id === req.user.id,
       isFriend
     }
+  },
+
+  /**
+   * Report another user. Stores a free-text reason for admin review (#421).
+   * @param {number} reportedUserId
+   * @param {string} reason
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async reportUser (reportedUserId, reason, req) {
+    if (!req.user) throw new UnauthorizedError('Not authorized')
+    const id = Number(reportedUserId)
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new BadRequestError('Invalid user id')
+    }
+    if (id === req.user.id) {
+      throw new BadRequestError('You cannot report yourself')
+    }
+    const cleanReason = typeof reason === 'string' ? reason.trim() : ''
+    if (cleanReason.length < 3) {
+      throw new BadRequestError('Please describe why you are reporting this user')
+    }
+    const [reported] = await query('SELECT id FROM user WHERE id=? LIMIT 1', [id])
+    if (!reported) {
+      throw new BadRequestError('User not found')
+    }
+    await query(
+      'INSERT INTO user_report SET ?',
+      { reporter_user_id: req.user.id, reported_user_id: id, reason: cleanReason.slice(0, 2000) }
+    )
+    return { success: true }
   }
 }
 

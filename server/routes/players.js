@@ -83,13 +83,22 @@ export default {
   async estimateValue (playerId) {
     const player = await getPlayerById(playerId)
     const age = await getPlayerAge(player)
+    const planPrice = await getAveragePlanPriceOfPlayer(player)
     const trades = await getPastTrades(player.position, age, player.level)
     if (trades.length >= 3) {
-      return trades.reduce(function (avg, tradeWithPlayer, _, { length }) {
+      const historicalAvg = trades.reduce(function (avg, tradeWithPlayer, _, { length }) {
         return avg + tradeWithPlayer.price / length
       }, 0)
+      // Blend the historical trade average with the fundamental plan price (50/50).
+      // The market value can still respond to supply/demand, but it can no longer
+      // spiral far below a player's fundamental value: bots price sell offers off
+      // estimateValue, those (randomly cheap) trades get recorded, and a pure
+      // historical average would feed them straight back in — a deflationary loop
+      // that lets active traders buy good players at a fraction of plan value.
+      // Anchoring to planPrice damps that loop while keeping price discovery.
+      return Math.floor(0.5 * historicalAvg + 0.5 * planPrice)
     }
-    return await getAveragePlanPriceOfPlayer(player)
+    return planPrice
   },
 
   /**

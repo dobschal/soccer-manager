@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Mock dependencies
 vi.mock('../../../lib/gateway.js', () => ({
@@ -95,6 +95,85 @@ describe('YouthTeamPage', () => {
       expect(row.join('')).toContain('Test Youth')
       expect(row.join('')).toContain('youthTeam.promote')
       expect(row.join('')).toContain('youthTeam.fire')
+    })
+  })
+
+  describe('#448 next game day countdown (UTC based)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('counts down to the next 12:00 UTC boundary regardless of local timezone', () => {
+      // 08:00 UTC -> next game day is 12:00 UTC -> 04:00:00 remaining
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-06-24T08:00:00Z'))
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      expect(page._getTimeUntilNextGameDay()).toBe('04:00:00')
+    })
+
+    it('counts down to the next 00:00 UTC boundary in the afternoon', () => {
+      // 18:30 UTC -> next game day is 00:00 UTC next day -> 05:30:00 remaining
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-06-24T18:30:00Z'))
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      expect(page._getTimeUntilNextGameDay()).toBe('05:30:00')
+    })
+  })
+
+  describe('#youth change training mode from the list', () => {
+    function makePage (youthPlayers, slotsByMode) {
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      page.youthPlayers = youthPlayers
+      page.slotsByMode = slotsByMode
+      page.load = vi.fn()
+      page.update = vi.fn()
+      return page
+    }
+
+    it('assigns the player to a mode that still has a free slot', async () => {
+      server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
+      const players = [{ id: 1, training_mode: 'rest' }]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+
+      await page._handlePlayerModeChange(players[0], 'training')
+
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledTimes(1)
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledWith(1, 'training')
+    })
+
+    it('frees the last slot first when the target mode is full', async () => {
+      server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
+      const players = [
+        { id: 1, training_mode: 'rest' },
+        { id: 2, training_mode: 'training' },
+        { id: 3, training_mode: 'training' }
+      ]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+
+      await page._handlePlayerModeChange(players[0], 'training')
+
+      // last occupant (id 3) freed, then the player assigned
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenNthCalledWith(1, 3, null)
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenNthCalledWith(2, 1, 'training')
+    })
+
+    it('unassigns the player when choosing the empty option', async () => {
+      server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
+      const players = [{ id: 1, training_mode: 'training' }]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+
+      await page._handlePlayerModeChange(players[0], '')
+
+      expect(server.setYouthPlayerTrainingMode).toHaveBeenCalledWith(1, null)
+    })
+
+    it('does nothing when the mode is unchanged', async () => {
+      const players = [{ id: 1, training_mode: 'training' }]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+
+      await page._handlePlayerModeChange(players[0], 'training')
+
+      expect(server.setYouthPlayerTrainingMode).not.toHaveBeenCalled()
     })
   })
 
