@@ -1628,6 +1628,7 @@ export default {
   'wiki.empty': 'Keine passenden Einträge.',
   'wiki.noEntries': 'Das Wiki ist noch leer.',
   'wiki.selectEntry': 'Wähle einen Eintrag zum Lesen aus.',
+  'wiki.back': 'Zurück zur Liste',
   'admin.tabWiki': 'Wiki',
   'admin.wikiTitle': 'Wiki-Verwaltung',
   'admin.wikiDescription': 'Öffentliche Wiki-Einträge erstellen und bearbeiten. Einträge werden je Sprache angezeigt.',

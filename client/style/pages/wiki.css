@@ -94,6 +94,37 @@
     border-radius: 4px;
 }
 
+/* Mobile detail overlay (#441) — on phones the list and the article don't fit
+   side by side, so tapping an entry slides its detail in over the list. The
+   overlay is desktop-hidden; the media query below switches it on. */
+.wiki-detail-overlay {
+    display: none;
+}
+
+.wiki-detail-overlay__header {
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 767.98px) {
+    /* The inline content column is redundant on mobile — the overlay owns it. */
+    .wiki-content-col {
+        display: none;
+    }
+
+    .wiki-detail-overlay.open {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1050;
+        overflow-y: auto;
+        background: var(--bs-body-bg, #fff);
+        padding: 1rem 1rem 3rem;
+    }
+}
+
 /* Admin image upload previews (#441) */
 .wiki-image-previews {
     display: flex;

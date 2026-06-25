@@ -37,6 +37,10 @@ export class WikiPage extends UIElement {
     }
     const params = new URLSearchParams(window.location.hash.split('?')[1] || '')
     const idParam = params.get('id')
+    // On desktop the first entry is pre-selected and shown next to the list.
+    // On mobile the detail lives in an overlay that only opens when an entry
+    // is explicitly requested (deep link or tap) — see _renderContent / CSS.
+    this._detailOpen = !!idParam
     this._selectedId = idParam ? Number(idParam) : (this._entries[0]?.id ?? null)
     await this._loadEntry(this._selectedId)
   }
@@ -52,9 +56,17 @@ export class WikiPage extends UIElement {
               <div class="wiki-list">${this._renderList()}</div>
             </div>
           </div>
-          <div class="col-12 col-md-8 col-lg-9">
+          <div class="col-12 col-md-8 col-lg-9 wiki-content-col">
             <div class="wiki-content">${this._renderContent()}</div>
           </div>
+        </div>
+        <div id="${this._detailOverlayId}" class="wiki-detail-overlay ${this._detailOpen ? 'open' : ''}">
+          <div class="wiki-detail-overlay__header">
+            <button type="button" id="${this._detailBackId}" class="btn btn-sm btn-outline-secondary wiki-detail-back">
+              &larr; ${t('wiki.back')}
+            </button>
+          </div>
+          <div class="wiki-detail-overlay__body">${this._renderContent()}</div>
         </div>
         <div id="${this._imageOverlayId}" class="wiki-image-overlay" hidden>
           <img id="${this._overlayImgId}" src="" alt="">
@@ -71,18 +83,21 @@ export class WikiPage extends UIElement {
           if (list) list.innerHTML = this._renderList()
         }
       },
-      // Delegated on the stable content container so it survives surgical
+      // Delegated on the stable content containers so they survive surgical
       // innerHTML refreshes — open the clicked image in a lightbox (#441).
+      // Both the desktop inline content and the mobile detail overlay can
+      // contain wiki images, so both delegate to the same handler.
       '.wiki-content': {
-        click: (e) => {
-          const img = e.target.closest('img.wiki-image')
-          if (!img) return
-          const overlay = el(`${this._elementQuery} #${this._imageOverlayId}`)
-          const overlayImg = el(`${this._elementQuery} #${this._overlayImgId}`)
-          if (overlay && overlayImg) {
-            overlayImg.src = img.src
-            overlay.hidden = false
-          }
+        click: (e) => this._openImageLightbox(e)
+      },
+      '.wiki-detail-overlay__body': {
+        click: (e) => this._openImageLightbox(e)
+      },
+      // Mobile back button — drop the id from the URL so the overlay closes
+      // and tapping the same entry again re-triggers onQueryChanged.
+      [`#${this._detailBackId}`]: {
+        click: () => {
+          window.location.hash = '#dashboard?sub_page=wiki'
         }
       },
       [`#${this._imageOverlayId}`]: {
@@ -101,14 +116,39 @@ export class WikiPage extends UIElement {
     const newId = id ? Number(id) : null
     if (newId === this._selectedId) return
     this._selectedId = newId
+    this._detailOpen = !!newId
     await this._loadEntry(newId)
     const content = el(`${this._elementQuery} .wiki-content`)
     if (content) content.innerHTML = this._renderContent()
     const list = el(`${this._elementQuery} .wiki-list`)
     if (list) list.innerHTML = this._renderList()
+    // Drive the mobile detail overlay (no-op visually on desktop, where the
+    // overlay is display:none — see wiki.css).
+    const overlay = el(`${this._elementQuery} #${this._detailOverlayId}`)
+    const overlayBody = el(`${this._elementQuery} .wiki-detail-overlay__body`)
+    if (overlayBody) overlayBody.innerHTML = this._renderContent()
+    if (overlay) {
+      overlay.classList.toggle('open', this._detailOpen)
+      overlay.scrollTop = 0
+    }
   }
   showLoadingIndicator = true
-  
+
+  /**
+   * Open the clicked wiki image in the full-screen lightbox (#441).
+   * @param {Event} e
+   */
+  _openImageLightbox (e) {
+    const img = e.target.closest('img.wiki-image')
+    if (!img) return
+    const overlay = el(`${this._elementQuery} #${this._imageOverlayId}`)
+    const overlayImg = el(`${this._elementQuery} #${this._overlayImgId}`)
+    if (overlay && overlayImg) {
+      overlayImg.src = img.src
+      overlay.hidden = false
+    }
+  }
+
   async _loadEntry (id) {
     this._entry = null
     if (!id) return
@@ -164,6 +204,9 @@ export class WikiPage extends UIElement {
   _entry = null
   _selectedId = null
   _filter = ''
+  _detailOpen = false
   _imageOverlayId = generateId()
   _overlayImgId = generateId()
+  _detailOverlayId = generateId()
+  _detailBackId = generateId()
 }

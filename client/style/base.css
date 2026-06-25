@@ -23,6 +23,10 @@ h1, h2, h3, h4, h5, h6 {
     text-shadow: 0 0 black;
 }
 
+h1.text-white, h2.text-white, h3.text-white, h4.text-white, h5.text-white, h6.text-white, .text-white h1, .text-white h2, .text-white h3, .text-white h4, .text-white h5, .text-white h6 {
+    text-shadow: 0 0 white;
+}
+
 /* Body */
 body {
     letter-spacing: 0.5px;

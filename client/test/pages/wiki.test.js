@@ -64,4 +64,46 @@ describe('WikiPage (#441)', () => {
     await page.load()
     expect(page.template).toContain('wiki-image-overlay')
   })
+
+  it('renders the mobile detail overlay markup in the template', async () => {
+    server.getWikiEntries.mockResolvedValue({ entries: [{ id: 3, title: 'First' }] })
+    server.getWikiEntry.mockResolvedValue({ entry: { id: 3, title: 'First', text: 'x' } })
+    const page = new WikiPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('wiki-detail-overlay')
+    expect(html).toContain('wiki-detail-overlay__body')
+    expect(html).toContain('wiki.back')
+  })
+
+  it('keeps the detail overlay closed by default when no entry is requested', async () => {
+    server.getWikiEntries.mockResolvedValue({ entries: [{ id: 3, title: 'First' }] })
+    server.getWikiEntry.mockResolvedValue({ entry: { id: 3, title: 'First', text: 'x' } })
+    const page = new WikiPage()
+    await page.load()
+    expect(page._detailOpen).toBe(false)
+    expect(page.template).not.toContain('wiki-detail-overlay open')
+  })
+
+  it('opens the detail overlay when an entry is selected via the query param', async () => {
+    server.getWikiEntries.mockResolvedValue({ entries: [{ id: 3, title: 'First' }, { id: 4, title: 'Second' }] })
+    server.getWikiEntry.mockResolvedValue({ entry: { id: 4, title: 'Second', text: 'x' } })
+    const page = new WikiPage()
+    await page.load()
+    await page.onQueryChanged({ id: '4' })
+    expect(page._selectedId).toBe(4)
+    expect(page._detailOpen).toBe(true)
+  })
+
+  it('closes the detail overlay when the query param is cleared (back button)', async () => {
+    server.getWikiEntries.mockResolvedValue({ entries: [{ id: 3, title: 'First' }, { id: 4, title: 'Second' }] })
+    server.getWikiEntry.mockResolvedValue({ entry: { id: 4, title: 'Second', text: 'x' } })
+    const page = new WikiPage()
+    await page.load()
+    await page.onQueryChanged({ id: '4' })
+    expect(page._detailOpen).toBe(true)
+    await page.onQueryChanged({ id: undefined })
+    expect(page._detailOpen).toBe(false)
+    expect(page._selectedId).toBe(null)
+  })
 })
