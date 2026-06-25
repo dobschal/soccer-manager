@@ -1,0 +1,873 @@
+/**
+ * Seed content for the public wiki (#441). Each topic provides an English and
+ * a German entry. The wiki renders the `text` as plain text (HTML-escaped, with
+ * newlines turned into <br>), so the bodies below use plain prose and "•"
+ * bullets — no Markdown. All entries use sort_order 0 so the list ends up
+ * alphabetically sorted by title within each locale.
+ *
+ * @typedef {object} WikiSeedLocale
+ * @property {string} title
+ * @property {string} [subtitle]
+ * @property {string} text
+ *
+ * @typedef {object} WikiSeedTopic
+ * @property {WikiSeedLocale} en
+ * @property {WikiSeedLocale} de
+ *
+ * @type {WikiSeedTopic[]}
+ */
+export const WIKI_SEED = [
+  // ─── Action Cards ────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Action Cards',
+      subtitle: 'Random reward cards you collect after every match day',
+      text: `After every match day each team receives a set of action cards. You reveal them with a flip animation and decide when and where to play them.
+
+Card types:
+• Level Up (40 / 70 / 100) – raises one player by one level. The number is the level cap the card can be used up to. Two Level-Up 40 cards merge into one Level-Up 70, and two 70 cards merge into one 100.
+• Freshness +5% / +10% / +20% – instantly restores fitness for one player (capped at 100%).
+• New Youth Player – recruits a fresh youth player for your academy.
+• Bonus 100K – adds 100,000 € to your account.
+• Star Player – permanently boosts a player's match strength by 10%.
+• Motivating Speech – gives your whole team a +10% strength bonus for the next match day.
+
+Good to know:
+• The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings.
+• A single player can gain at most 20 levels per season through cards.
+• Save your Motivating Speech and Freshness cards for important matches.`
+    },
+    de: {
+      title: 'Action Cards',
+      subtitle: 'Zufällige Belohnungskarten nach jedem Spieltag',
+      text: `Nach jedem Spieltag erhält jedes Team eine Reihe von Action Cards. Du deckst sie mit einer Flip-Animation auf und entscheidest selbst, wann und wo du sie einsetzt.
+
+Kartentypen:
+• Level Up (40 / 70 / 100) – hebt einen Spieler um ein Level. Die Zahl ist die Level-Obergrenze, bis zu der die Karte genutzt werden kann. Zwei Level-Up-40-Karten verschmelzen zu einer Level-Up-70, zwei 70er-Karten zu einer 100er.
+• Frische +5% / +10% / +20% – stellt sofort die Fitness eines Spielers wieder her (maximal 100%).
+• Neuer Jugendspieler – holt einen frischen Nachwuchsspieler in deine Akademie.
+• Bonus 100K – schreibt 100.000 € auf deinem Konto gut.
+• Starspieler – erhöht die Spielstärke eines Spielers dauerhaft um 10%.
+• Motivationsrede – gibt deinem ganzen Team am nächsten Spieltag +10% Stärke.
+
+Gut zu wissen:
+• Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust.
+• Ein Spieler kann pro Saison höchstens 20 Level durch Karten gewinnen.
+• Hebe dir Motivationsrede und Frische-Karten für wichtige Spiele auf.`
+    }
+  },
+
+  // ─── Lineup ──────────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Lineup',
+      subtitle: 'Pick your formation, place your players and choose a captain',
+      text: `Your lineup is the foundation of your team's strength. You choose one of 10 formations and fill all 11 positions with matching players on the pitch diagram.
+
+How it works:
+• Choose a formation (e.g. 4-4-2, 4-3-3, 3-5-2). Changing the formation clears all current positions.
+• Click a position to open the player picker. Only players whose natural position fits the slot can be placed there.
+• Set a captain from your starting eleven. If you remove the captain from the lineup, the captain is cleared automatically.
+• Suspended players are shown greyed out and cannot be fielded; they are removed from the lineup automatically.
+• Sort your bench order – substitutes are pulled from the bench when a player is injured or tired.
+
+Lineup strength:
+• The base strength is the sum of all your starters' levels.
+• It is then modified by fitness, your captain, a Star Player (+10%), a Motivating Speech (+10%) and your home advantage.
+
+Squad rules:
+• Your team must always have at least 14 players. You cannot sell or release a player if it would drop you below that.
+• Keep at least one goalkeeper, defender, midfielder and attacker on the bench so injured players can be substituted.`
+    },
+    de: {
+      title: 'Aufstellung',
+      subtitle: 'Formation wählen, Spieler platzieren und Kapitän bestimmen',
+      text: `Deine Aufstellung ist die Grundlage für die Stärke deines Teams. Du wählst eine von 10 Formationen und besetzt alle 11 Positionen mit passenden Spielern auf dem Spielfeld-Diagramm.
+
+So funktioniert es:
+• Wähle eine Formation (z. B. 4-4-2, 4-3-3, 3-5-2). Ein Formationswechsel löscht alle aktuellen Positionen.
+• Klicke auf eine Position, um die Spielerauswahl zu öffnen. Nur Spieler mit passender Position können dort eingesetzt werden.
+• Bestimme einen Kapitän aus deiner Startelf. Entfernst du den Kapitän aus der Aufstellung, wird er automatisch gelöscht.
+• Gesperrte Spieler sind ausgegraut und können nicht aufgestellt werden; sie werden automatisch aus der Aufstellung entfernt.
+• Sortiere deine Bank – Einwechselspieler werden bei Verletzung oder Müdigkeit von der Bank geholt.
+
+Aufstellungsstärke:
+• Die Basisstärke ist die Summe der Level aller Startspieler.
+• Sie wird dann durch Fitness, deinen Kapitän, einen Starspieler (+10%), eine Motivationsrede (+10%) und deinen Heimvorteil verändert.
+
+Kaderregeln:
+• Dein Team muss immer mindestens 14 Spieler haben. Du kannst keinen Spieler verkaufen oder entlassen, wenn du dadurch darunter fällst.
+• Halte mindestens einen Torwart, Verteidiger, Mittelfeldspieler und Stürmer auf der Bank, damit verletzte Spieler ersetzt werden können.`
+    }
+  },
+
+  // ─── Buildings ─────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Buildings',
+      subtitle: 'Upgrade your club infrastructure for better cards',
+      text: `Your club has three buildings you can upgrade. Each building improves the chance of receiving certain action cards after a match day. You can build only one upgrade at a time, and construction continues across season boundaries.
+
+Training Area – improves Level-Up card chances:
+• Level 1: 375,000 € (5 match days)
+• Level 2: 1,125,000 € (10 match days)
+• Level 3: 3,000,000 € (17 match days) – unlocks the rare Level-Up 100 cards.
+
+Fitness Studio – improves Freshness card chances:
+• Level 1: 300,000 € (4 match days)
+• Level 2: 900,000 € (8 match days)
+• Level 3: 2,625,000 € (15 match days) – unlocks the strong Freshness +20% cards.
+
+Youth Academy – generates new youth players:
+• Level 1: every team starts here.
+• Level 2: 3,000,000 € (10 match days) – better young talents.
+• Level 3: 9,000,000 € (17 match days) – the strongest talents (see Youth Players).
+
+Each building tops out at level 3. The cost is deducted immediately when you start the upgrade, and you get a log message when it is finished.`
+    },
+    de: {
+      title: 'Gebäude',
+      subtitle: 'Baue deine Vereins-Infrastruktur für bessere Karten aus',
+      text: `Dein Verein hat drei Gebäude, die du ausbauen kannst. Jedes Gebäude erhöht die Chance auf bestimmte Action Cards nach einem Spieltag. Du kannst immer nur einen Ausbau gleichzeitig durchführen, und Bauarbeiten laufen über Saisongrenzen hinweg weiter.
+
+Trainingsgelände – verbessert die Chance auf Level-Up-Karten:
+• Stufe 1: 375.000 € (5 Spieltage)
+• Stufe 2: 1.125.000 € (10 Spieltage)
+• Stufe 3: 3.000.000 € (17 Spieltage) – schaltet die seltenen Level-Up-100-Karten frei.
+
+Fitness-Studio – verbessert die Chance auf Frische-Karten:
+• Stufe 1: 300.000 € (4 Spieltage)
+• Stufe 2: 900.000 € (8 Spieltage)
+• Stufe 3: 2.625.000 € (15 Spieltage) – schaltet die starken Frische-+20%-Karten frei.
+
+Jugendakademie – erzeugt neue Jugendspieler:
+• Stufe 1: damit startet jedes Team.
+• Stufe 2: 3.000.000 € (10 Spieltage) – bessere junge Talente.
+• Stufe 3: 9.000.000 € (17 Spieltage) – die stärksten Talente (siehe Jugendspieler).
+
+Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbaus abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.`
+    }
+  },
+
+  // ─── Club Emblem ───────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Club Emblem',
+      subtitle: 'Design the crest that represents your club',
+      text: `Every club has its own emblem – an SVG crest made of a shape, a pattern and two colours, with your club name on a banner at the bottom.
+
+Customising your emblem:
+• Open the emblem editor to see a live preview while you design.
+• Choose from 9 shapes: circle, oval, triangle, several shield variants, crest and pentagon.
+• Choose from 6 patterns: solid, vertical stripes, horizontal stripes, quartered, diagonal and halved.
+• Pick two colours from a palette of 21. The first colour also becomes your team colour, which is used across the app (for example in tables and result views).
+
+New bot teams get a randomly generated emblem. Your changes are saved instantly with a confirmation.`
+    },
+    de: {
+      title: 'Vereinswappen',
+      subtitle: 'Gestalte das Wappen, das deinen Verein repräsentiert',
+      text: `Jeder Verein hat sein eigenes Wappen – eine SVG-Grafik aus Form, Muster und zwei Farben, mit deinem Vereinsnamen auf einem Banner am unteren Rand.
+
+Wappen anpassen:
+• Öffne den Wappen-Editor und sieh die Vorschau live, während du gestaltest.
+• Wähle aus 9 Formen: Kreis, Oval, Dreieck, mehrere Schild-Varianten, Wappen und Fünfeck.
+• Wähle aus 6 Mustern: einfarbig, vertikale Streifen, horizontale Streifen, geviertelt, diagonal und halbiert.
+• Wähle zwei Farben aus einer Palette von 21. Die erste Farbe wird auch deine Vereinsfarbe und taucht in der ganzen App auf (z. B. in Tabellen und Ergebnisansichten).
+
+Neue Bot-Teams erhalten ein zufällig erzeugtes Wappen. Deine Änderungen werden sofort mit einer Bestätigung gespeichert.`
+    }
+  },
+
+  // ─── Club Name ─────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Club Name',
+      subtitle: 'Choose the name your club plays under',
+      text: `Your club name is built from up to three parts: an optional prefix (e.g. 1. FC, AC, SV, RB), an optional middle word (e.g. Dynamo, United, Real, Phoenix) and a city. At least one of the two prefixes must be set.
+
+Changing the name:
+• Click your club name in the header to open the name editor.
+• Pick the parts from three dropdowns and watch the live preview.
+• City names range from real European cities to fictional places, with hundreds of options.
+
+Names must be unique within your game world – if another club already uses a name, you have to pick a different combination. On mobile devices a shortened version (abbreviation plus city) is shown to save space.`
+    },
+    de: {
+      title: 'Vereinsname',
+      subtitle: 'Wähle den Namen, unter dem dein Verein spielt',
+      text: `Dein Vereinsname besteht aus bis zu drei Teilen: einem optionalen Präfix (z. B. 1. FC, AC, SV, RB), einem optionalen Mittelwort (z. B. Dynamo, United, Real, Phoenix) und einer Stadt. Mindestens einer der beiden Präfix-Teile muss gesetzt sein.
+
+Namen ändern:
+• Klicke im Kopfbereich auf deinen Vereinsnamen, um den Namens-Editor zu öffnen.
+• Wähle die Teile aus drei Dropdowns und beobachte die Live-Vorschau.
+• Die Städtenamen reichen von echten europäischen Städten bis zu fiktiven Orten – mit Hunderten Optionen.
+
+Namen müssen in deiner Spielwelt eindeutig sein – nutzt ein anderer Verein bereits einen Namen, musst du eine andere Kombination wählen. Auf Mobilgeräten wird eine verkürzte Version (Abkürzung plus Stadt) angezeigt, um Platz zu sparen.`
+    }
+  },
+
+  // ─── Cup ───────────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Cup',
+      subtitle: 'The season-long knockout competition',
+      text: `Alongside the league, every team takes part in the cup – a single-elimination knockout tournament that runs through the season.
+
+Format:
+• All real teams qualify automatically.
+• Matches are seeded by league level: stronger clubs (higher divisions) may get a bye in the first round so the bracket fits a power of two.
+• The cup is played in rounds (round of 64, 32, 16, 8, quarter-final, semi-final, final). Cup match days are scheduled between league match days.
+
+No draws:
+• A cup match cannot end level. If the score is tied after 90 minutes, extra time is played until a goal decides the winner.
+
+Prize money:
+• You earn prize money for each round, and it doubles the further you advance.
+• Winning the cup pays a 2,000,000 € bonus on top.
+
+The next round is generated automatically once all matches of a round have been played.`
+    },
+    de: {
+      title: 'Pokal',
+      subtitle: 'Der saisonbegleitende K.-o.-Wettbewerb',
+      text: `Neben der Liga nimmt jedes Team am Pokal teil – einem K.-o.-Turnier, das sich durch die Saison zieht.
+
+Format:
+• Alle echten Teams qualifizieren sich automatisch.
+• Die Paarungen werden nach Liga-Level gesetzt: stärkere Vereine (höhere Ligen) können in der ersten Runde ein Freilos erhalten, damit das Tableau zu einer Zweierpotenz passt.
+• Der Pokal wird in Runden gespielt (Sechzehntel-, Achtel-, Viertel-, Halbfinale, Finale). Pokalspieltage liegen zwischen den Ligaspieltagen.
+
+Kein Unentschieden:
+• Ein Pokalspiel kann nicht unentschieden enden. Steht es nach 90 Minuten gleich, wird Verlängerung gespielt, bis ein Tor entscheidet.
+
+Preisgeld:
+• Für jede Runde gibt es Preisgeld, das sich mit jeder weiteren Runde verdoppelt.
+• Der Pokalsieg bringt zusätzlich einen Bonus von 2.000.000 €.
+
+Die nächste Runde wird automatisch erzeugt, sobald alle Spiele einer Runde gespielt wurden.`
+    }
+  },
+
+  // ─── Finances ──────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Finances',
+      subtitle: 'Where your money comes from and where it goes',
+      text: `Your account balance changes after almost every match day. The finance page shows your full transaction history with the reason, amount and running balance, filterable by season and match day.
+
+Income:
+• Ticket sales – your home games earn money from all four stands, depending on attendance and ticket prices (see Stadium).
+• Sponsor money – paid every match day while you have an active sponsor (see Sponsors).
+• TV money – a single payout at the end of the season based on your final league position (see TV Money).
+• Player sales – you receive the agreed fee when you sell a player.
+
+Expenses:
+• Player salaries – paid every match day for your whole squad. Salaries grow exponentially with player level (see Players).
+• Stadium expansion and building upgrades – deducted immediately when you order the work.
+• Player purchases – the agreed fee is paid when your offer is accepted.
+
+Tip: Salaries are a constant drain, so balance a strong squad against running costs.`
+    },
+    de: {
+      title: 'Finanzen',
+      subtitle: 'Woher dein Geld kommt und wohin es geht',
+      text: `Dein Kontostand ändert sich nach fast jedem Spieltag. Die Finanzseite zeigt deine komplette Transaktionshistorie mit Grund, Betrag und laufendem Kontostand – filterbar nach Saison und Spieltag.
+
+Einnahmen:
+• Ticketverkäufe – deine Heimspiele bringen Geld aus allen vier Tribünen, abhängig von Zuschauern und Ticketpreisen (siehe Stadion).
+• Sponsorengeld – wird an jedem Spieltag gezahlt, solange du einen aktiven Sponsor hast (siehe Sponsoren).
+• TV-Gelder – eine einmalige Auszahlung am Saisonende, abhängig von deiner Abschlussplatzierung (siehe TV-Gelder).
+• Spielerverkäufe – du erhältst die vereinbarte Ablöse, wenn du einen Spieler verkaufst.
+
+Ausgaben:
+• Spielergehälter – werden an jedem Spieltag für den gesamten Kader gezahlt. Die Gehälter steigen exponentiell mit dem Spielerlevel (siehe Spieler).
+• Stadionausbau und Gebäude-Upgrades – werden sofort beim Auftrag abgebucht.
+• Spielerkäufe – die vereinbarte Ablöse wird gezahlt, sobald dein Angebot angenommen wird.
+
+Tipp: Gehälter sind eine ständige Belastung – wäge einen starken Kader gegen die laufenden Kosten ab.`
+    }
+  },
+
+  // ─── Forum ─────────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Forum',
+      subtitle: 'The community board for discussion and news',
+      text: `The forum is the community space of the game. It is split into categories, each containing threads you can read and reply to.
+
+What you can do:
+• Create posts with a title, text (up to 5,000 characters) and up to 5 images per post.
+• Comment on posts (up to 1,000 characters, also with up to 5 images).
+• Like and unlike posts.
+• Click an image thumbnail to open it full size.
+
+Images:
+• Supported formats: JPEG, PNG, GIF and WebP, up to 2 MB each.
+• You see a preview before posting and can remove individual images.
+
+Moderation: Posts are automatically filtered for offensive language. Admins manage the categories and can remove posts or comments. The "News" category is reserved for official announcements.`
+    },
+    de: {
+      title: 'Forum',
+      subtitle: 'Das Community-Board für Austausch und News',
+      text: `Das Forum ist der Community-Bereich des Spiels. Es ist in Kategorien unterteilt, die jeweils Beiträge enthalten, die du lesen und beantworten kannst.
+
+Das kannst du tun:
+• Beiträge mit Titel, Text (bis 5.000 Zeichen) und bis zu 5 Bildern pro Beitrag erstellen.
+• Beiträge kommentieren (bis 1.000 Zeichen, ebenfalls mit bis zu 5 Bildern).
+• Beiträge liken und das Like wieder entfernen.
+• Auf ein Bild-Vorschaubild klicken, um es in voller Größe zu öffnen.
+
+Bilder:
+• Unterstützte Formate: JPEG, PNG, GIF und WebP, jeweils bis 2 MB.
+• Vor dem Posten siehst du eine Vorschau und kannst einzelne Bilder wieder entfernen.
+
+Moderation: Beiträge werden automatisch auf anstößige Sprache gefiltert. Admins verwalten die Kategorien und können Beiträge oder Kommentare entfernen. Die Kategorie „News“ ist offiziellen Ankündigungen vorbehalten.`
+    }
+  },
+
+  // ─── Friends ───────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Friends',
+      subtitle: 'Add other managers and follow their posts',
+      text: `You can add other managers as friends to keep up with them and share posts.
+
+Friendships:
+• Adding someone sends a one-way connection. If you both add each other, you become mutual friends.
+• Your friend list shows each friend's username, avatar, club name and team level.
+• Removing a friend clears the connection in both directions.
+
+Friend posts:
+• You see a feed of posts from yourself and everyone you have added.
+• A post can contain text (up to 5,000 characters) and one optional image (JPEG, PNG, GIF or WebP, up to 2 MB).
+• You can like and comment on posts (comments up to 1,000 characters).
+• Authors – and admins – can delete posts.
+
+The friends overview also shows each friend's league position and their last match result for a bit of context.`
+    },
+    de: {
+      title: 'Freunde',
+      subtitle: 'Füge andere Manager hinzu und folge ihren Beiträgen',
+      text: `Du kannst andere Manager als Freunde hinzufügen, um auf dem Laufenden zu bleiben und Beiträge zu teilen.
+
+Freundschaften:
+• Jemanden hinzuzufügen erzeugt eine einseitige Verbindung. Fügt ihr euch gegenseitig hinzu, werdet ihr beidseitige Freunde.
+• Deine Freundesliste zeigt zu jedem Freund Benutzername, Avatar, Vereinsname und Team-Level.
+• Entfernst du einen Freund, wird die Verbindung in beide Richtungen gelöscht.
+
+Freundes-Beiträge:
+• Du siehst einen Feed mit Beiträgen von dir selbst und allen, die du hinzugefügt hast.
+• Ein Beitrag kann Text (bis 5.000 Zeichen) und ein optionales Bild enthalten (JPEG, PNG, GIF oder WebP, bis 2 MB).
+• Du kannst Beiträge liken und kommentieren (Kommentare bis 1.000 Zeichen).
+• Autoren – und Admins – können Beiträge löschen.
+
+Die Freundesübersicht zeigt außerdem die Tabellenposition jedes Freundes und dessen letztes Spielergebnis als kleinen Kontext.`
+    }
+  },
+
+  // ─── Leagues ───────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Leagues',
+      subtitle: 'The division pyramid, promotion and relegation',
+      text: `The game world is organised as a league pyramid. Level 1 is the top division; below it the number of parallel leagues doubles at each level (2 at level 2, 4 at level 3, and so on), so there is room for everyone.
+
+Structure:
+• Every league has exactly 18 teams.
+• A season runs over 34 match days – each team plays every opponent home and away.
+• Points: 3 for a win, 1 for a draw, 0 for a loss. Ties are broken by goal difference, then goals scored.
+• The standings are updated after every match day.
+
+Promotion and relegation (at season end):
+• The top 2 teams of each league are promoted one level up.
+• The bottom 4 teams of each league are relegated one level down.
+• Teams in the top division cannot be promoted; teams in the lowest open level cannot be relegated further.
+
+Promotion and relegation run automatically when the last match day of the season has been played, and you receive a log message about the outcome.`
+    },
+    de: {
+      title: 'Ligen',
+      subtitle: 'Die Liga-Pyramide, Auf- und Abstieg',
+      text: `Die Spielwelt ist als Liga-Pyramide aufgebaut. Stufe 1 ist die höchste Spielklasse; darunter verdoppelt sich die Zahl der parallelen Ligen je Stufe (2 auf Stufe 2, 4 auf Stufe 3 usw.), sodass für alle Platz ist.
+
+Aufbau:
+• Jede Liga hat genau 18 Teams.
+• Eine Saison läuft über 34 Spieltage – jedes Team spielt gegen jeden Gegner zu Hause und auswärts.
+• Punkte: 3 für einen Sieg, 1 für ein Unentschieden, 0 für eine Niederlage. Bei Gleichstand entscheiden Tordifferenz, dann erzielte Tore.
+• Die Tabelle wird nach jedem Spieltag aktualisiert.
+
+Auf- und Abstieg (am Saisonende):
+• Die besten 2 Teams jeder Liga steigen eine Stufe auf.
+• Die letzten 4 Teams jeder Liga steigen eine Stufe ab.
+• Teams in der höchsten Liga können nicht aufsteigen; Teams in der untersten geöffneten Stufe können nicht weiter absteigen.
+
+Auf- und Abstieg laufen automatisch ab, sobald der letzte Spieltag der Saison gespielt wurde, und du erhältst eine Log-Nachricht über das Ergebnis.`
+    }
+  },
+
+  // ─── Match Day ─────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Match Day',
+      subtitle: 'When games are played and what happens around them',
+      text: `Matches are calculated automatically twice a day – at midnight and at noon. Each calculation is a match day, so the world moves forward in 12-hour steps.
+
+What happens on a match day:
+• League matches are played first, then cup matches.
+• Each match is simulated step by step (see Match Simulation), and the result is stored right away.
+• Afterwards the system settles everything around the games: standings are updated, suspensions are served, salaries are paid, sponsor money and ticket income are booked, injured players recover a little, fitness is restored, youth players train and action cards are handed out.
+
+A few details:
+• If a team cannot field at least 7 players, it forfeits 0:3.
+• At the end of a season, the match-day slot is used to prepare the next season (promotions, relegations, new fixtures) instead of playing games.
+• Push notifications keep you informed when your matches are done.`
+    },
+    de: {
+      title: 'Spieltag',
+      subtitle: 'Wann gespielt wird und was rundherum passiert',
+      text: `Spiele werden automatisch zweimal täglich berechnet – um Mitternacht und um die Mittagszeit. Jede Berechnung ist ein Spieltag, die Welt rückt also in 12-Stunden-Schritten voran.
+
+Was an einem Spieltag passiert:
+• Zuerst werden die Ligaspiele gespielt, danach die Pokalspiele.
+• Jedes Spiel wird Schritt für Schritt simuliert (siehe Spielberechnung), und das Ergebnis wird sofort gespeichert.
+• Danach wickelt das System alles rund um die Spiele ab: Tabellen werden aktualisiert, Sperren abgesessen, Gehälter gezahlt, Sponsorengeld und Ticketeinnahmen verbucht, verletzte Spieler erholen sich etwas, Fitness wird aufgefüllt, Jugendspieler trainieren und Action Cards werden verteilt.
+
+Ein paar Details:
+• Kann ein Team nicht mindestens 7 Spieler stellen, verliert es kampflos mit 0:3.
+• Am Saisonende wird der Spieltag-Slot genutzt, um die nächste Saison vorzubereiten (Auf- und Abstiege, neue Spielpläne), statt Spiele auszutragen.
+• Push-Benachrichtigungen halten dich auf dem Laufenden, wenn deine Spiele fertig sind.`
+    }
+  },
+
+  // ─── Match Simulation ──────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Match Simulation',
+      subtitle: 'How a match result is calculated step by step',
+      text: `Every match is simulated in about 900 steps (90 minutes, 10 steps per minute) plus a little stoppage time. In each step the engine decides whether the ball is passed, contested, or shot at goal. The results are tuned to resemble real Bundesliga statistics (around 3.2 goals per game).
+
+The key mechanics:
+• Ball contests – a player fights an opponent for the ball. The win chance is your level divided by the combined levels of both players. An aggressive play style adds a bonus, friendly subtracts one.
+• Shots – attackers shoot most often, midfielders less, defenders rarely. Winning several duels in a row builds a streak that raises the shot chance.
+• Goalkeeper saves – a higher keeper level makes a save more likely.
+• Passing – your attack mode controls how often you pass forward. Only forward passes can be intercepted, and stronger players are harder to intercept.
+• Cards – yellow and red cards depend on play style; an aggressive style means more cards (see Players and Tactics).
+
+What changes a player's effective strength: fitness, a Star Player bonus (+10%), a Motivating Speech (+10%), your captain, your home advantage, and a small penalty for bot teams. Cup matches never end in a draw – extra time is played until a goal falls.
+
+Each match stores full details: goals, shots, possession, cards and the lineups, which you can review afterwards.`
+    },
+    de: {
+      title: 'Spielberechnung',
+      subtitle: 'Wie ein Spielergebnis Schritt für Schritt entsteht',
+      text: `Jedes Spiel wird in rund 900 Schritten simuliert (90 Minuten, 10 Schritte pro Minute) plus etwas Nachspielzeit. In jedem Schritt entscheidet die Engine, ob der Ball gepasst, umkämpft oder aufs Tor geschossen wird. Die Ergebnisse sind so abgestimmt, dass sie echten Bundesliga-Statistiken ähneln (rund 3,2 Tore pro Spiel).
+
+Die wichtigsten Mechaniken:
+• Zweikämpfe – ein Spieler kämpft mit einem Gegner um den Ball. Die Gewinnchance ist dein Level geteilt durch die Summe der Level beider Spieler. Ein aggressiver Spielstil gibt einen Bonus, ein freundlicher einen Malus.
+• Schüsse – Stürmer schießen am häufigsten, Mittelfeldspieler seltener, Verteidiger kaum. Mehrere gewonnene Zweikämpfe in Folge bilden eine Serie, die die Schusschance erhöht.
+• Torwart-Paraden – ein höheres Torwart-Level macht eine Parade wahrscheinlicher.
+• Pässe – dein Angriffsmodus steuert, wie oft nach vorne gespielt wird. Nur Vorwärtspässe können abgefangen werden, und stärkere Spieler sind schwerer abzufangen.
+• Karten – Gelbe und Rote Karten hängen vom Spielstil ab; aggressiv bedeutet mehr Karten (siehe Spieler und Taktik).
+
+Was die effektive Stärke eines Spielers verändert: Fitness, der Starspieler-Bonus (+10%), eine Motivationsrede (+10%), dein Kapitän, dein Heimvorteil und ein kleiner Malus für Bot-Teams. Pokalspiele enden nie unentschieden – es wird verlängert, bis ein Tor fällt.
+
+Jedes Spiel speichert alle Details: Tore, Schüsse, Ballbesitz, Karten und die Aufstellungen, die du danach ansehen kannst.`
+    }
+  },
+
+  // ─── Players ───────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Players',
+      subtitle: 'Level, fitness, injuries, salary and suspensions',
+      text: `Your players are described by a level, a position and a fitness value, and several effects shape how useful they are.
+
+Level and position:
+• Level ranges from 1 to 100 and is the core of a player's strength.
+• Positions are goalkeeper, defenders, midfielders and attackers; a player can only be fielded in a matching slot.
+• A career lasts roughly 20 to 23 years.
+
+Fitness (freshness):
+• Shown as a percentage. Green is good (70%+), yellow is medium, red is low (below 40%).
+• A match lowers fitness (more with an aggressive play style); players recover each match day, and benched players recover faster. Younger players recover quicker than older ones.
+• Low fitness directly reduces a player's effective strength, so rotate your squad.
+
+Injuries:
+• Players can get injured during matches – the risk rises sharply when fitness is low and with an aggressive play style.
+• Injuries range from a 1-day bruise to a long-term cruciate ligament or Achilles rupture. Injured starters are substituted automatically (keep a balanced bench).
+
+Salary:
+• Salaries grow exponentially with level – from about 150 € per day at level 1 to about 10,308 € at level 100, roughly doubling every 10 levels. They are paid every match day.
+
+Suspensions:
+• A second yellow card in a match means a red card. Five yellow cards across the season also trigger a one-match ban. Bans always last exactly one match and are served automatically on the next match day.`
+    },
+    de: {
+      title: 'Spieler',
+      subtitle: 'Level, Fitness, Verletzungen, Gehalt und Sperren',
+      text: `Deine Spieler werden durch ein Level, eine Position und einen Fitnesswert beschrieben, und mehrere Effekte bestimmen, wie nützlich sie sind.
+
+Level und Position:
+• Das Level reicht von 1 bis 100 und ist der Kern der Spielerstärke.
+• Positionen sind Torwart, Verteidiger, Mittelfeldspieler und Stürmer; ein Spieler kann nur auf einer passenden Position eingesetzt werden.
+• Eine Karriere dauert etwa 20 bis 23 Jahre.
+
+Fitness (Frische):
+• Wird in Prozent angezeigt. Grün ist gut (ab 70%), Gelb mittel, Rot niedrig (unter 40%).
+• Ein Spiel senkt die Fitness (stärker bei aggressivem Spielstil); Spieler erholen sich an jedem Spieltag, Bankspieler schneller. Jüngere Spieler regenerieren schneller als ältere.
+• Niedrige Fitness senkt die effektive Stärke direkt – rotiere also deinen Kader.
+
+Verletzungen:
+• Spieler können sich im Spiel verletzen – das Risiko steigt stark bei niedriger Fitness und aggressivem Spielstil.
+• Verletzungen reichen von einer 1-tägigen Prellung bis zu langwierigem Kreuzband- oder Achillessehnenriss. Verletzte Startspieler werden automatisch ausgewechselt (halte eine ausgewogene Bank).
+
+Gehalt:
+• Gehälter steigen exponentiell mit dem Level – von etwa 150 € pro Tag auf Level 1 bis rund 10.308 € auf Level 100, etwa eine Verdopplung alle 10 Level. Sie werden an jedem Spieltag gezahlt.
+
+Sperren:
+• Eine zweite Gelbe Karte im Spiel bedeutet Rot. Fünf Gelbe Karten über die Saison lösen ebenfalls eine Sperre von einem Spiel aus. Sperren dauern immer genau ein Spiel und werden am nächsten Spieltag automatisch abgesessen.`
+    }
+  },
+
+  // ─── Profile Picture ───────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Profile Picture',
+      subtitle: 'Set the avatar shown next to your name',
+      text: `You can upload a profile picture (avatar) that appears next to your name across the game – on your profile, in friend lists, friend posts and search results.
+
+How it works:
+• Upload an image from your profile settings.
+• Supported formats: JPEG, PNG and WebP, up to 5 MB.
+• The image is automatically cropped to a centred square and resized to 256×256 pixels.
+• Uploading a new picture replaces the old one. You can also remove your avatar entirely.`
+    },
+    de: {
+      title: 'Profilbild',
+      subtitle: 'Lege den Avatar fest, der neben deinem Namen erscheint',
+      text: `Du kannst ein Profilbild (Avatar) hochladen, das im ganzen Spiel neben deinem Namen erscheint – auf deinem Profil, in Freundeslisten, Freundes-Beiträgen und Suchergebnissen.
+
+So funktioniert es:
+• Lade ein Bild in deinen Profileinstellungen hoch.
+• Unterstützte Formate: JPEG, PNG und WebP, bis 5 MB.
+• Das Bild wird automatisch mittig auf ein Quadrat zugeschnitten und auf 256×256 Pixel verkleinert.
+• Ein neues Bild ersetzt das alte. Du kannst deinen Avatar auch komplett entfernen.`
+    }
+  },
+
+  // ─── Search ────────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Search',
+      subtitle: 'Find players, teams and other managers',
+      text: `The search lets you look up players, teams and other managers from the main navigation.
+
+What you can search:
+• Players by name – shows the player and the team they belong to, sortable by name, position, level, age and more.
+• Teams by name – sortable by name and level.
+• Users by username – shows avatar, club, league position and last login.
+
+How to use it:
+• Type at least 3 characters; quick results appear as you type.
+• Switch between Users, Players and Teams with the dropdown.
+• Choose "Show all" for the full, paginated and sortable browse view. Your active tab and query are kept in the URL so you can share or bookmark a search.`
+    },
+    de: {
+      title: 'Suche',
+      subtitle: 'Finde Spieler, Teams und andere Manager',
+      text: `Über die Suche kannst du aus der Hauptnavigation Spieler, Teams und andere Manager nachschlagen.
+
+Was du suchen kannst:
+• Spieler nach Name – zeigt den Spieler und sein Team, sortierbar nach Name, Position, Level, Alter und mehr.
+• Teams nach Name – sortierbar nach Name und Level.
+• Benutzer nach Benutzername – zeigt Avatar, Verein, Tabellenposition und letzte Anmeldung.
+
+So nutzt du sie:
+• Gib mindestens 3 Zeichen ein; während des Tippens erscheinen Schnellergebnisse.
+• Wechsle mit dem Dropdown zwischen Benutzern, Spielern und Teams.
+• Wähle „Alle anzeigen“ für die vollständige, seitenweise und sortierbare Übersicht. Der aktive Tab und deine Suche bleiben in der URL erhalten, sodass du eine Suche teilen oder als Lesezeichen speichern kannst.`
+    }
+  },
+
+  // ─── Sponsors ──────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Sponsors',
+      subtitle: 'Sign a sponsor for steady match-day income',
+      text: `A sponsor pays your club money on every match day. You can have one active sponsor at a time, and contracts do not renew automatically.
+
+Choosing a sponsor:
+• You are offered deals over different durations: 3, 9, 16 and 34 match days (a full season).
+• The offer value rises with your recent win rate, so a winning streak earns you better deals.
+• Offers are refreshed periodically, so it pays to check back.
+
+How the payout works:
+• The base payout is reduced in lower leagues (each level below the top division pays less).
+• It scales with your win rate over the contract – winning more games pays more, with a guaranteed minimum of one third of the base.
+• A small random factor (about 90–110%) adds variation.
+
+The money is booked automatically after each match day.`
+    },
+    de: {
+      title: 'Sponsoren',
+      subtitle: 'Schließe einen Sponsor für stetige Spieltags-Einnahmen ab',
+      text: `Ein Sponsor zahlt deinem Verein an jedem Spieltag Geld. Du kannst immer einen aktiven Sponsor haben, und Verträge verlängern sich nicht automatisch.
+
+Sponsor wählen:
+• Du erhältst Angebote über verschiedene Laufzeiten: 3, 9, 16 und 34 Spieltage (eine ganze Saison).
+• Der Angebotswert steigt mit deiner jüngsten Siegquote – eine Siegesserie bringt dir also bessere Angebote.
+• Angebote werden regelmäßig erneuert, ein erneuter Blick lohnt sich.
+
+So funktioniert die Auszahlung:
+• Die Basisauszahlung ist in niedrigeren Ligen reduziert (jede Stufe unter der höchsten Liga zahlt weniger).
+• Sie skaliert mit deiner Siegquote über den Vertrag – mehr Siege zahlen mehr, mit einem garantierten Minimum von einem Drittel der Basis.
+• Ein kleiner Zufallsfaktor (etwa 90–110%) sorgt für Schwankung.
+
+Das Geld wird nach jedem Spieltag automatisch verbucht.`
+    }
+  },
+
+  // ─── Stadium ───────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Stadium',
+      subtitle: 'Expand your ground and set ticket prices',
+      text: `Your stadium earns ticket money at every home game and even gives a small boost to your team. It has four stands (north, south, east and west) that you can expand individually.
+
+Capacity and expansion:
+• North and south stands hold up to 30,000 seats each; east and west up to 15,000 each.
+• Seats get more expensive in tiers as you build bigger (from 500 € per seat up to 2,000 € for the largest stands), plus a one-time 50,000 € architect fee per build order.
+• You can add a roof to a stand, which raises attendance. Stands cannot be shrunk and roofs cannot be removed.
+• Construction takes several match days and continues across seasons.
+
+Attendance and income:
+• Attendance per stand depends on both teams' strength, your ticket price and whether the stand has a roof.
+• Ticket prices can be set per stand from 1 to 100 €. Around 15 € tends to be the sweet spot – too high and fans stay away.
+
+Home advantage:
+• A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.`
+    },
+    de: {
+      title: 'Stadion',
+      subtitle: 'Baue dein Stadion aus und lege Ticketpreise fest',
+      text: `Dein Stadion bringt bei jedem Heimspiel Ticketeinnahmen und gibt deinem Team sogar einen kleinen Schub. Es hat vier Tribünen (Nord, Süd, Ost und West), die du einzeln ausbauen kannst.
+
+Kapazität und Ausbau:
+• Nord- und Südtribüne fassen jeweils bis zu 30.000 Plätze; Ost und West jeweils bis zu 15.000.
+• Sitzplätze werden in Stufen teurer, je größer du baust (von 500 € pro Platz bis 2.000 € bei den größten Tribünen), plus eine einmalige Architektengebühr von 50.000 € pro Bauauftrag.
+• Du kannst eine Tribüne überdachen, was die Zuschauerzahl erhöht. Tribünen können nicht verkleinert und Dächer nicht entfernt werden.
+• Der Bau dauert mehrere Spieltage und läuft über Saisongrenzen hinweg weiter.
+
+Zuschauer und Einnahmen:
+• Die Zuschauerzahl pro Tribüne hängt von der Stärke beider Teams, deinem Ticketpreis und davon ab, ob die Tribüne ein Dach hat.
+• Ticketpreise lassen sich pro Tribüne von 1 bis 100 € festlegen. Rund 15 € ist meist optimal – zu hoch, und die Fans bleiben weg.
+
+Heimvorteil:
+• Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.`
+    }
+  },
+
+  // ─── Tactics ───────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Tactics',
+      subtitle: 'Attack mode, play style and pass style',
+      text: `Your team has three tactical settings that directly shape the match simulation. You change them on your team page and they apply to your next matches.
+
+Attack mode – controls how often you pass forward:
+• Offensive: more forward passes and shots, but more goals conceded too.
+• Balanced: an even mix.
+• Defensive: cautious build-up, fewer goals at both ends and more draws.
+
+Play style – controls aggression in duels:
+• Aggressive: +15% strength in ball contests, but more cards and more fatigue, plus a higher injury risk.
+• Normal: the neutral middle ground.
+• Friendly: −15% strength in duels, but fewer cards, less fatigue and a lower injury risk.
+
+Pass style – controls pass length:
+• Short: only passes to nearby team-mates.
+• Mixed: half short, half long.
+• Long: mostly long passes to distant players.
+
+There is no single best setting – match your tactics to your squad and your opponent.`
+    },
+    de: {
+      title: 'Taktik',
+      subtitle: 'Angriffsmodus, Spielstil und Passstil',
+      text: `Dein Team hat drei taktische Einstellungen, die die Spielsimulation direkt beeinflussen. Du änderst sie auf deiner Teamseite, und sie gelten für deine nächsten Spiele.
+
+Angriffsmodus – steuert, wie oft du nach vorne spielst:
+• Offensiv: mehr Vorwärtspässe und Schüsse, aber auch mehr Gegentore.
+• Balanciert: eine ausgewogene Mischung.
+• Defensiv: vorsichtiger Aufbau, weniger Tore auf beiden Seiten und mehr Unentschieden.
+
+Spielstil – steuert die Aggressivität in Zweikämpfen:
+• Aggressiv: +15% Stärke in Zweikämpfen, aber mehr Karten und mehr Ermüdung sowie ein höheres Verletzungsrisiko.
+• Normal: der neutrale Mittelweg.
+• Freundlich: −15% Stärke in Zweikämpfen, aber weniger Karten, weniger Ermüdung und ein geringeres Verletzungsrisiko.
+
+Passstil – steuert die Passlänge:
+• Kurz: nur Pässe an nahe Mitspieler.
+• Gemischt: halb kurz, halb lang.
+• Lang: überwiegend lange Pässe an weit entfernte Spieler.
+
+Es gibt keine generell beste Einstellung – passe deine Taktik an deinen Kader und deinen Gegner an.`
+    }
+  },
+
+  // ─── Transfers ─────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Transfers',
+      subtitle: 'Buy and sell players on the transfer market',
+      text: `The transfer market is where you build your squad. You can browse players, list your own for sale, make offers and follow your transfer history.
+
+Buying and selling:
+• Filter the market by position, age and level. Each player has a market value as a guide price.
+• List a player for sale with your asking price – you cannot list below 50% of the market value.
+• Make an offer on another player; the selling club accepts or rejects it. You can make at most 3 offers per player per match day.
+• Free agents (players without a club) can be signed for free, but they are weak.
+
+Market value:
+• A player's value is based mainly on level and age. Value grows steeply with level (roughly doubling every 10 levels) and drops for players over the age of 22.
+
+Remember your squad must always keep at least 14 players, so you cannot sell below that limit.`
+    },
+    de: {
+      title: 'Transfers',
+      subtitle: 'Kaufe und verkaufe Spieler auf dem Transfermarkt',
+      text: `Auf dem Transfermarkt baust du deinen Kader auf. Du kannst Spieler durchsuchen, eigene zum Verkauf anbieten, Angebote abgeben und deine Transferhistorie verfolgen.
+
+Kaufen und verkaufen:
+• Filtere den Markt nach Position, Alter und Level. Jeder Spieler hat einen Marktwert als Orientierungspreis.
+• Biete einen Spieler mit deinem Wunschpreis zum Verkauf an – unter 50% des Marktwerts geht nicht.
+• Gib ein Angebot für einen anderen Spieler ab; der verkaufende Verein nimmt es an oder lehnt ab. Du kannst pro Spieler und Spieltag höchstens 3 Angebote abgeben.
+• Vereinslose Spieler (ohne Verein) kannst du kostenlos verpflichten, sie sind aber schwach.
+
+Marktwert:
+• Der Wert eines Spielers richtet sich vor allem nach Level und Alter. Er steigt steil mit dem Level (etwa eine Verdopplung alle 10 Level) und sinkt bei Spielern über 22 Jahren.
+
+Denk daran: Dein Kader muss immer mindestens 14 Spieler haben – darunter kannst du nicht verkaufen.`
+    }
+  },
+
+  // ─── TV Money ──────────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'TV Money',
+      subtitle: 'The season-end payout based on your league position',
+      text: `At the end of every season each team receives a TV money payout based on where it finished in its league.
+
+How it is calculated:
+• Each league level has a base amount. The top division's base is 100,000 € and it halves every level below (50,000 € on level 2, 25,000 € on level 3, and so on).
+• Your payout is the base multiplied by how high you finished: the league winner earns the most, the bottom team the least.
+• So both a strong final position and playing in a higher league increase your TV money.
+
+When it is paid:
+• Once per season, after the final match day has been played.
+• Until then, the finance page shows an estimated payout based on your current standing, which updates as your position changes through the season.`
+    },
+    de: {
+      title: 'TV-Gelder',
+      subtitle: 'Die Auszahlung am Saisonende nach deiner Tabellenposition',
+      text: `Am Ende jeder Saison erhält jedes Team eine TV-Geld-Auszahlung, die sich nach seiner Abschlussplatzierung in der Liga richtet.
+
+So wird sie berechnet:
+• Jede Liga-Stufe hat einen Basisbetrag. Die höchste Liga hat eine Basis von 100.000 €, und sie halbiert sich mit jeder Stufe darunter (50.000 € auf Stufe 2, 25.000 € auf Stufe 3 usw.).
+• Deine Auszahlung ist die Basis multipliziert mit deiner Platzierung: der Meister erhält am meisten, das Tabellenletzte am wenigsten.
+• Sowohl eine gute Abschlussplatzierung als auch eine höhere Liga erhöhen also dein TV-Geld.
+
+Wann es gezahlt wird:
+• Einmal pro Saison, nachdem der letzte Spieltag gespielt wurde.
+• Bis dahin zeigt die Finanzseite eine geschätzte Auszahlung basierend auf deiner aktuellen Platzierung an, die sich im Saisonverlauf mit deiner Position aktualisiert.`
+    }
+  },
+
+  // ─── Urgency List ──────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Urgency List',
+      subtitle: 'Your dashboard checklist of things that need attention',
+      text: `The urgency list on your dashboard is a checklist of things that need your attention. Each open item links straight to the page where you can fix it, and it disappears once resolved.
+
+Typical items:
+• Incomplete lineup – fewer than 11 starters are set.
+• Incomplete bench – fewer than 4 substitutes are assigned.
+• Low fitness – one or more of your starters are below 50% fitness.
+• Youth player needs attention – a youth player's morale or fitness has dropped below 50%.
+• Incoming offers – you have pending transfer offers to review.
+• No sponsor – you currently have no active sponsorship deal.
+• Forum mentions – someone mentioned you in the forum.
+
+Check the list regularly so you never go into a match day with an empty bench or a tired lineup.`
+    },
+    de: {
+      title: 'Aufgabenliste',
+      subtitle: 'Deine Dashboard-Checkliste mit Dingen, die Aufmerksamkeit brauchen',
+      text: `Die Aufgabenliste auf deinem Dashboard ist eine Checkliste mit Dingen, die deine Aufmerksamkeit erfordern. Jeder offene Punkt verlinkt direkt auf die Seite, auf der du ihn beheben kannst, und verschwindet, sobald er erledigt ist.
+
+Typische Punkte:
+• Unvollständige Aufstellung – weniger als 11 Startspieler sind gesetzt.
+• Unvollständige Bank – weniger als 4 Einwechselspieler sind eingeteilt.
+• Niedrige Fitness – einer oder mehrere deiner Startspieler liegen unter 50% Fitness.
+• Jugendspieler braucht Aufmerksamkeit – Moral oder Fitness eines Jugendspielers ist unter 50% gefallen.
+• Eingehende Angebote – du hast offene Transferangebote zu prüfen.
+• Kein Sponsor – du hast aktuell keinen aktiven Sponsorvertrag.
+• Forum-Erwähnungen – jemand hat dich im Forum erwähnt.
+
+Sieh dir die Liste regelmäßig an, damit du nie mit leerer Bank oder müder Aufstellung in einen Spieltag gehst.`
+    }
+  },
+
+  // ─── Youth Players ─────────────────────────────────────────────────────
+  {
+    en: {
+      title: 'Youth Players',
+      subtitle: 'Develop young talents in your academy',
+      text: `Your Youth Academy produces young talents you can develop and later promote to your senior squad.
+
+Youth attributes:
+• Level – their current strength (shown as a decimal value).
+• Talent – their growth potential. This is hidden, so you have to judge a youngster by how fast they actually improve.
+• Morale and fitness – shown as bars; both feed into how much a player gains from training.
+
+Training modes (set per youngster):
+• Training: strong level growth, but morale drops a little.
+• Friendly match: standard growth and a morale boost, but costs fitness.
+• Rest: little growth, but recovers fitness and morale.
+• A good rhythm is roughly 2× training, 1× friendly, 1× rest.
+
+Age and promotion:
+• Youth players start at age 15. From age 16 you can promote them to your senior squad.
+• At 18 you get a warning; if not promoted, they leave at age 19.
+• On promotion the level is rounded down to a whole number and the player joins your main squad.
+
+The Youth Academy building (see Buildings) determines how many and how strong the new talents you receive are.`
+    },
+    de: {
+      title: 'Jugendspieler',
+      subtitle: 'Entwickle junge Talente in deiner Akademie',
+      text: `Deine Jugendakademie bringt junge Talente hervor, die du entwickeln und später in deinen Profikader holen kannst.
+
+Eigenschaften der Jugendspieler:
+• Level – die aktuelle Stärke (als Dezimalwert angezeigt).
+• Talent – das Entwicklungspotenzial. Es ist verborgen, du musst ein Talent also danach beurteilen, wie schnell es sich tatsächlich verbessert.
+• Moral und Fitness – als Balken dargestellt; beide bestimmen mit, wie viel ein Spieler durch Training gewinnt.
+
+Trainingsmodi (je Talent einstellbar):
+• Training: starkes Level-Wachstum, aber die Moral sinkt etwas.
+• Freundschaftsspiel: normales Wachstum und ein Moral-Schub, kostet aber Fitness.
+• Ruhe: kaum Wachstum, regeneriert aber Fitness und Moral.
+• Ein guter Rhythmus ist etwa 2× Training, 1× Freundschaftsspiel, 1× Ruhe.
+
+Alter und Beförderung:
+• Jugendspieler starten mit 15 Jahren. Ab 16 kannst du sie in deinen Profikader befördern.
+• Mit 18 erhältst du eine Warnung; werden sie nicht befördert, verlassen sie den Verein mit 19.
+• Bei der Beförderung wird das Level auf eine ganze Zahl abgerundet, und der Spieler wechselt in deinen Hauptkader.
+
+Das Gebäude Jugendakademie (siehe Gebäude) bestimmt, wie viele und wie starke neue Talente du erhältst.`
+    }
+  }
+]
