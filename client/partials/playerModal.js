@@ -14,6 +14,7 @@ import { t } from '../i18n/index.js'
 import { getLevelColor } from './levelBadge.js'
 import { UIElement } from '../lib/UIElement.js'
 import { getPositionColorClass } from '../util/formation.js'
+import { ActionCardGiver } from './actionCardGiver.js'
 
 /**
  * Get color for freshness (red/yellow/green)
@@ -91,6 +92,12 @@ export default class PlayerModal extends UIElement {
     this.hasSellOffer = hasSellOffer
     this.sellOfferPrice = sellOfferPrice
     this.allowInstantBuy = !!allowInstantBuy
+    // Only the user's own players can receive action cards. The giver loads its
+    // own cards and refreshes itself in place, so a card never re-renders the
+    // whole modal.
+    this._actionCardGiver = this.isMyPlayer
+      ? new ActionCardGiver(this.player, () => this._refreshPlayerStats())
+      : null
   }
 
   get template () {
@@ -114,11 +121,11 @@ export default class PlayerModal extends UIElement {
               </div>
               <div class="stat-card bg-dark">
                 <div class="stat-card-label">${t('player.level')}</div>
-                <div class="stat-card-value" style="color: ${levelColor};">${this.player.level}</div>
+                <div class="stat-card-value" data-stat="level" style="color: ${levelColor};">${this.player.level}</div>
               </div>
               <div class="stat-card bg-dark">
                 <div class="stat-card-label">${t('player.freshness')}</div>
-                <div class="stat-card-value" style="color: ${freshnessColor}">${Math.floor(this.player.freshness * 100)}%</div>
+                <div class="stat-card-value" data-stat="freshness" style="color: ${freshnessColor}">${Math.floor(this.player.freshness * 100)}%</div>
               </div>
               <div class="stat-card bg-dark">
                 <div class="stat-card-label">${t('player.salary')}</div>
@@ -149,6 +156,7 @@ export default class PlayerModal extends UIElement {
           ${t('player.retiringDesc')}
         </div>
         ` : ''}
+        ${this._actionCardGiver ? `<div class="mb-4">${this._actionCardGiver}</div>` : ''}
         <div class="player-modal__section ${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4">
           <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
           ${!this.isMyPlayer && this.sellOfferPrice ? `
@@ -193,6 +201,13 @@ export default class PlayerModal extends UIElement {
         </div>
         <div class="mb-4 ${this.hasSellOffer ? '' : 'hidden'}">
           💰 ${t('player.onMarket')} <a href="#trades">${t('trades.market')}</a>
+          ${this.isMyPlayer && this.offer?.type === 'sell' ? `
+            <div class="mt-2">
+              <button class="remove-offer-btn btn btn-outline-danger btn-sm" type="button">
+                ${t('trades.removeFromMarket')}
+              </button>
+            </div>
+          ` : ''}
         </div>
         <div class="${this.isMyPlayer ? '' : 'hidden'}">
           <b>${t('player.firePlayer')}</b>
@@ -206,6 +221,7 @@ export default class PlayerModal extends UIElement {
     return {
       '(optional).trade-offer-btn': { click: this._onTradeOffer },
       '(optional).instant-buy-btn': { click: this._onInstantBuy },
+      '(optional).remove-offer-btn': { click: this._onRemoveOffer },
       '(optional).hire-btn': { click: this._onHire },
       '(optional)#trade-price-input': {
         keydown: (e) => {
@@ -325,6 +341,48 @@ export default class PlayerModal extends UIElement {
     } catch (e) {
       console.error(e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    }
+  }
+
+  async _onRemoveOffer () {
+    if (!this.offer) return
+    try {
+      const { ok } = await showDialog({
+        title: t('player.removeOfferConfirmTitle'),
+        text: t('player.removeOfferConfirmText', { playerName: this.player.name }),
+        hasInput: false,
+        buttonText: t('trades.removeFromMarket'),
+        buttonType: 'danger'
+      })
+      if (!ok) return
+      await server.cancelOffer(this.offer)
+      toast(t('player.offerRemoved', { playerName: this.player.name }), 'success')
+      this.overlay.remove()
+      window.dispatchEvent(new CustomEvent('player-offer-cancelled', { detail: { playerId: this.player.id } }))
+    } catch (e) {
+      console.error(e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    }
+  }
+
+  /**
+   * Re-fetch the player and update the level/freshness stat cards in place
+   * after an action card was applied. Avoids re-rendering the whole modal.
+   * @returns {Promise<void>}
+   */
+  async _refreshPlayerStats () {
+    this.player = await server.getPlayerById(this.playerId)
+    const root = el(this._elementQuery)
+    if (!root) return
+    const levelEl = root.querySelector('[data-stat="level"]')
+    if (levelEl) {
+      levelEl.textContent = this.player.level
+      levelEl.style.color = getLevelColor(this.player.level)
+    }
+    const freshnessEl = root.querySelector('[data-stat="freshness"]')
+    if (freshnessEl) {
+      freshnessEl.textContent = `${Math.floor(this.player.freshness * 100)}%`
+      freshnessEl.style.color = getFreshnessColor(this.player.freshness)
     }
   }
 

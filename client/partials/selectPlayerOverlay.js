@@ -1,31 +1,8 @@
 import { UIElement } from '../lib/UIElement.js'
-import { server } from '../lib/gateway.js'
 import { PlayerList } from './playerList.js'
-import { toast } from './toast.js'
 import { t } from '../i18n/index.js'
-import { fire } from '../lib/event.js'
-import { delay } from '../lib/delay.js'
 import { el } from '../lib/html.js'
-import { preloadAllActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
-
-const ACTION_CARDS_CHANGED_EVENT = 'ACTION_CARDS_CHANGED'
-
-const ELIGIBLE_ACTION_PREFIXES = ['FRESHNESS_', 'LEVEL_UP_PLAYER_']
-
-/**
- * Returns the localized title for an action card type.
- * @returns {Object.<string, string>}
- */
-function getActionCardTitles () {
-  return {
-    LEVEL_UP_PLAYER_100: t('actionCards.type.legendaryMastery'),
-    LEVEL_UP_PLAYER_70: t('actionCards.type.epicAdvancement'),
-    LEVEL_UP_PLAYER_40: t('actionCards.type.basicPromotion'),
-    FRESHNESS_5: t('actionCards.type.quickRecovery'),
-    FRESHNESS_10: t('actionCards.type.energyBoost'),
-    FRESHNESS_20: t('actionCards.type.fullRecovery')
-  }
-}
+import { ActionCardGiver } from './actionCardGiver.js'
 
 export class SelectPlayerOverlay extends UIElement {
   /**
@@ -46,18 +23,9 @@ export class SelectPlayerOverlay extends UIElement {
     this.onActionCardApplied = onActionCardApplied
     this.allPlayers = allPlayers ?? null
     this.showAll = false
-    this.cards = []
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async load () {
-    if (!this._canShowActionCards()) return
-    const response = await server.getActionCards()
-    this.cards = (response.actionCards ?? [])
-      .filter(c => ELIGIBLE_ACTION_PREFIXES.some(prefix => c.action.startsWith(prefix)))
-    if (this.cards.length > 0) await preloadAllActionCardSvgs()
+    // The action-card section is its own UIElement so it can update in place
+    // without re-rendering the overlay (which would flicker the player list).
+    this._actionCardGiver = new ActionCardGiver(currentPlayer, () => this._refreshAfterActionCard())
   }
 
   /**
@@ -85,7 +53,7 @@ export class SelectPlayerOverlay extends UIElement {
         <p>${t('selectPlayer.subtitle')}</p>
         ${this._playerList}
         ${this._renderShowAllToggle()}
-        ${this._renderActionCardsSection()}
+        ${this._actionCardGiver}
       </div>
     `
   }
@@ -95,16 +63,6 @@ export class SelectPlayerOverlay extends UIElement {
    */
   get events () {
     return {
-      '(optional).select-player-action-cards': {
-        click: async (event) => {
-          const stackEl = event.target.closest('[data-action-card-idx]')
-          if (!stackEl || this._processing) return
-          const idx = Number(stackEl.dataset.actionCardIdx)
-          const card = this.cards[idx]
-          if (!card) return
-          await this._useActionCard(card, idx, stackEl)
-        }
-      },
       '(optional)[data-toggle-show-all]': {
         click: async () => {
           this.showAll = !this.showAll
@@ -114,6 +72,7 @@ export class SelectPlayerOverlay extends UIElement {
       }
     }
   }
+
   /**
    * @returns {PlayerType[]}
    */
@@ -141,129 +100,19 @@ export class SelectPlayerOverlay extends UIElement {
     `
   }
 
-  _processing = false
-
   /**
-   * @returns {boolean}
-   */
-  _canShowActionCards () {
-    return Boolean(this.currentPlayer && !this.currentPlayer.fake)
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderActionCardsSection () {
-    if (!this._canShowActionCards()) return ''
-    const heading = `<p class="select-player-action-card-prompt">${t('selectPlayer.giveActionCard', { playerName: this.currentPlayer.name })}</p>`
-    if (this.cards.length === 0) {
-      return `${heading}<p class="text-muted">${t('selectPlayer.noActionCards')}</p>`
-    }
-    return `
-      ${heading}
-      <div class="select-player-action-cards">
-        ${this._renderGroupedCards()}
-      </div>
-    `
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderGroupedCards () {
-    const grouped = {}
-    this.cards.forEach((card, idx) => {
-      if (!grouped[card.action]) grouped[card.action] = []
-      grouped[card.action].push({
-        card,
-        idx
-      })
-    })
-    const titles = getActionCardTitles()
-    return Object.keys(grouped).sort().map(actionType => {
-      const entries = grouped[actionType]
-      const firstIdx = entries[0].idx
-      const stackOffset = Math.min(entries.length - 1, 4)
-      const title = titles[actionType] || ''
-      return `
-        <div class="select-player-action-card-item">
-          <div class="action-card-stack" data-action-card-idx="${firstIdx}" data-action-type="${actionType}">
-            ${entries.slice(0, 5).map((_, i) => `
-              <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-                ${renderActionCardSvg(actionType)}
-              </div>
-            `).join('')}
-            ${entries.length > 1 ? `<span class="action-card-count">${entries.length}</span>` : ''}
-          </div>
-          <div class="text-center small mt-2">${title}</div>
-        </div>
-      `
-    }).join('')
-  }
-
-  /**
-   * @param {Object} card
-   * @param {number} cardIndex
-   * @param {HTMLElement} stackEl
+   * Called by the action-card section after a card was applied. Re-fetches the
+   * roster (via the parent's onActionCardApplied) and re-points the overlay's
+   * player references at the fresh objects so the list shows updated
+   * freshness/level, then refreshes the list DOM in place.
    * @returns {Promise<void>}
    */
-  async _useActionCard (card, cardIndex, stackEl) {
-    this._processing = true
-    try {
-      await server.useActionCard(card, this.currentPlayer, null)
-      const topCard = stackEl.querySelector('.action-card-wrapper')
-      if (topCard) {
-        topCard.classList.add('card-used')
-        await delay(1000)
-      }
-      const message = card.action.startsWith('FRESHNESS_')
-        ? t('actionCards.fitnessBoost', { playerName: this.currentPlayer.name })
-        : t('actionCards.levelUpSuccess', { playerName: this.currentPlayer.name })
-      toast(message, 'success')
-      fire(ACTION_CARDS_CHANGED_EVENT, this._renderId)
-      // Drop the consumed card from the local list so the overlay's stack count
-      // updates without needing a server round-trip. The overlay intentionally
-      // stays open so the user can chain more cards onto the same player.
-      this.cards.splice(cardIndex, 1)
-      const refreshed = await this.onActionCardApplied?.()
-      // The card mutated freshness/level on the server. Re-point the overlay's
-      // player references at the freshly fetched objects so the player list
-      // re-renders from current data.
-      if (refreshed?.players) {
-        this._applyRefreshedPlayers(refreshed.players)
-      }
-      // Surgical DOM updates instead of this.update(): a full re-render would
-      // re-create the PlayerList via renderSync(), briefly replacing it with
-      // an empty <template> placeholder. That made the overlay's fit-content
-      // card collapse and re-expand, looking like a close/reopen flicker.
-      this._refreshActionCardsDOM()
-      await this._refreshPlayerListDOM()
-    } catch (e) {
-      console.error(e)
-      toast(e.message ?? 'Something went wrong...', 'error')
-    } finally {
-      this._processing = false
+  async _refreshAfterActionCard () {
+    const refreshed = await this.onActionCardApplied?.()
+    if (refreshed?.players) {
+      this._applyRefreshedPlayers(refreshed.players)
     }
-  }
-
-  /**
-   * Swap the action-cards section in-place without re-rendering the whole
-   * overlay. Keeps the container element (and its delegated click handler)
-   * intact unless the section needs to flip to the empty-state message.
-   * @returns {void}
-   */
-  _refreshActionCardsDOM () {
-    if (!this._canShowActionCards()) return
-    const cardsContainer = el(`${this._elementQuery} .select-player-action-cards`)
-    if (this.cards.length === 0) {
-      if (cardsContainer) {
-        cardsContainer.outerHTML = `<p class="text-muted">${t('selectPlayer.noActionCards')}</p>`
-      }
-      return
-    }
-    if (cardsContainer) {
-      cardsContainer.innerHTML = this._renderGroupedCards()
-    }
+    await this._refreshPlayerListDOM()
   }
 
   /**
