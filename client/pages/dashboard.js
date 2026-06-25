@@ -372,14 +372,23 @@ export class DashboardPage extends TabbedPage {
   }
 
   /**
-   * The most recent played game from the slider (past games are listed oldest
-   * to newest, so the last one is the latest).
+   * The most recent played game across league and cup, so the match ticker
+   * also pops up after a cup game (#402). Each cron tick plays exactly one
+   * game day, so a higher game day is always the more recent game; the id is
+   * a deterministic tie-break.
    * @returns {object|null}
    * @private
    */
   _findLastPlayedGame () {
-    const played = (this._sliderGames || []).filter(g => g.isPlayed && g.id)
-    return played.length > 0 ? played[played.length - 1] : null
+    const played = [
+      ...(this._sliderGames || []),
+      ...(this._cupGames || [])
+    ].filter(g => g.isPlayed && g.id)
+    if (played.length === 0) return null
+    return played.reduce((latest, g) =>
+      (g.gameDay > latest.gameDay || (g.gameDay === latest.gameDay && g.id > latest.id))
+        ? g
+        : latest)
   }
 
   async _showEmailPromptIfNeeded () {

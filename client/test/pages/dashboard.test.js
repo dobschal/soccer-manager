@@ -358,6 +358,47 @@ describe('DashboardPage', () => {
     })
   })
 
+  describe('_findLastPlayedGame (#402 cup ticker)', () => {
+    it('returns null when no games were played', () => {
+      const page = new DashboardPage()
+      page._sliderGames = [{ id: 1, gameDay: 3, isPlayed: false }]
+      page._cupGames = []
+      expect(page._findLastPlayedGame()).toBeNull()
+    })
+
+    it('picks the most recent played league game from the slider', () => {
+      const page = new DashboardPage()
+      page._sliderGames = [
+        { id: 1, gameDay: 2, isPlayed: true },
+        { id: 2, gameDay: 4, isPlayed: true },
+        { id: 3, gameDay: 6, isPlayed: false }
+      ]
+      page._cupGames = []
+      expect(page._findLastPlayedGame().id).toBe(2)
+    })
+
+    it('considers played cup games, not only league games', () => {
+      const page = new DashboardPage()
+      page._sliderGames = [{ id: 1, gameDay: 2, isPlayed: true }]
+      page._cupGames = [{ id: 9, gameDay: 4, isPlayed: true, isCup: true }]
+      expect(page._findLastPlayedGame().id).toBe(9)
+    })
+
+    it('prefers the league game when it was played on a later game day', () => {
+      const page = new DashboardPage()
+      page._sliderGames = [{ id: 1, gameDay: 5, isPlayed: true }]
+      page._cupGames = [{ id: 9, gameDay: 3, isPlayed: true, isCup: true }]
+      expect(page._findLastPlayedGame().id).toBe(1)
+    })
+
+    it('ignores unplayed cup games (byes / future rounds)', () => {
+      const page = new DashboardPage()
+      page._sliderGames = [{ id: 1, gameDay: 2, isPlayed: true }]
+      page._cupGames = [{ id: 9, gameDay: 8, isPlayed: false, isCup: true }]
+      expect(page._findLastPlayedGame().id).toBe(1)
+    })
+  })
+
   describe('initial onQueryChanged after first render', () => {
     it('does not re-refresh start page data on the first onQueryChanged (would cause flicker)', async () => {
       const page = new DashboardPage()
