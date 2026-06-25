@@ -56,6 +56,9 @@ export class WikiPage extends UIElement {
             <div class="wiki-content">${this._renderContent()}</div>
           </div>
         </div>
+        <div id="${this._imageOverlayId}" class="wiki-image-overlay" hidden>
+          <img id="${this._overlayImgId}" src="" alt="">
+        </div>
       </div>
     `
   }
@@ -66,6 +69,26 @@ export class WikiPage extends UIElement {
           this._filter = e.target.value || ''
           const list = el(`${this._elementQuery} .wiki-list`)
           if (list) list.innerHTML = this._renderList()
+        }
+      },
+      // Delegated on the stable content container so it survives surgical
+      // innerHTML refreshes — open the clicked image in a lightbox (#441).
+      '.wiki-content': {
+        click: (e) => {
+          const img = e.target.closest('img.wiki-image')
+          if (!img) return
+          const overlay = el(`${this._elementQuery} #${this._imageOverlayId}`)
+          const overlayImg = el(`${this._elementQuery} #${this._overlayImgId}`)
+          if (overlay && overlayImg) {
+            overlayImg.src = img.src
+            overlay.hidden = false
+          }
+        }
+      },
+      [`#${this._imageOverlayId}`]: {
+        click: () => {
+          const overlay = el(`${this._elementQuery} #${this._imageOverlayId}`)
+          if (overlay) overlay.hidden = true
         }
       }
     }
@@ -141,4 +164,6 @@ export class WikiPage extends UIElement {
   _entry = null
   _selectedId = null
   _filter = ''
+  _imageOverlayId = generateId()
+  _overlayImgId = generateId()
 }

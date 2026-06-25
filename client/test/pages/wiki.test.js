@@ -52,7 +52,16 @@ describe('WikiPage (#441)', () => {
     await page.load()
     const content = page._renderContent()
     expect(content).toContain('pic.png')
+    expect(content).toContain('class="wiki-image"')
     expect(content).toContain('Hello<br>World')
     expect(content).toContain('Sub')
+  })
+
+  it('#441 includes an image lightbox overlay in the template', async () => {
+    server.getWikiEntries.mockResolvedValue({ entries: [{ id: 3, title: 'First' }] })
+    server.getWikiEntry.mockResolvedValue({ entry: { id: 3, title: 'First', text: 'x' } })
+    const page = new WikiPage()
+    await page.load()
+    expect(page.template).toContain('wiki-image-overlay')
   })
 })
