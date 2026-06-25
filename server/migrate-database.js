@@ -2,6 +2,7 @@ import { query } from './lib/database.js'
 import { randomItem } from '../client/lib/randomItem.js'
 import { EMBLEM_COLORS, EMBLEM_PATTERNS, EMBLEM_SHAPES, adjustBrightness } from '../client/util/emblemGenerator.js'
 import { _getBotPlayerLevelRange, _getBotStadiumConfig } from './prepare-season.js'
+import { WIKI_SEED } from './data/wikiSeed.js'
 
 /**
  * @typedef {object} Migration
@@ -2283,6 +2284,28 @@ const migrations = [{
       INDEX idx_wiki_entry_locale (locale),
       INDEX idx_wiki_entry_sort (sort_order)
     ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`)
+  }
+}, {
+  name: 'Seed initial wiki entries (EN/DE)',
+  async run () {
+    // Only seed when the wiki is still empty so we never duplicate entries an
+    // admin may already have created. All entries use sort_order 0 so the
+    // public list sorts alphabetically by title within each locale (#441).
+    const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM wiki_entry')
+    if (amount > 0) return
+    for (const topic of WIKI_SEED) {
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query('INSERT INTO wiki_entry SET ?', {
+          locale,
+          title: entry.title,
+          subtitle: entry.subtitle || null,
+          text: entry.text,
+          images: JSON.stringify([]),
+          sort_order: 0
+        })
+      }
+    }
   }
 }]
 
