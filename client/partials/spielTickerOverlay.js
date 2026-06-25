@@ -49,6 +49,21 @@ export function buildTickerEvents (log) {
     .sort((a, b) => a.minute - b.minute)
 }
 
+/**
+ * Whether a game's detail log carries per-event minutes. Games played before
+ * minute tracking was deployed have notable events without any `minute`, which
+ * would render the whole ticker at 0' in arbitrary order. Such games are
+ * skipped until they are replayed by the current engine (which stamps every
+ * event with a minute).
+ * @param {Array} log
+ * @returns {boolean}
+ */
+export function logHasMinutes (log) {
+  if (!Array.isArray(log)) return false
+  return log.some(l =>
+    (l.goal || l.yellowCard || l.redCard || l.keeperHolds) && typeof l.minute === 'number')
+}
+
 function eventType (event) {
   if (event.goal) return 'goal'
   if (event.redCard) return 'red'
@@ -75,6 +90,9 @@ export async function showSpielTickerOverlay (game, myTeamId) {
   } catch {
     return
   }
+  // Skip games whose log predates minute tracking — every event would show at
+  // 0' in arbitrary order. These self-heal from the next game day onwards.
+  if (!logHasMinutes(details?.log)) return
   const events = buildTickerEvents(details?.log)
   if (events.length === 0) return
 
