@@ -480,6 +480,7 @@ export default {
   'youthTeam.slotEmpty': '— Slot frei —',
   'youthTeam.slotLocked': 'Jugendakademie ausbauen',
   'youthTeam.unassigned': 'Nicht zugewiesen',
+  'youthTeam.changeTrainingMode': 'Klicken, um den Trainingsmodus zu ändern',
   'youthTeam.playerTooYoung': 'Spieler muss mindestens 16 Jahre alt sein, um befördert zu werden.',
   'youthTeam.age': 'Alter',
   'youthTeam.level': 'Level',

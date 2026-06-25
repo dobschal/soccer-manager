@@ -1,6 +1,6 @@
 import { server, showServerError } from '../../lib/gateway.js'
 import { el, generateId } from '../../lib/html.js'
-import { onClick, onChange } from '../../lib/htmlEventHandlers.js'
+import { onChange, onClick } from '../../lib/htmlEventHandlers.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
@@ -12,9 +12,33 @@ import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { fire } from '../../lib/event.js'
 
 const TRAINING_MODES = [
-  { key: 'training', icon: 'fa-bolt', effects: { level: 2, fitness: 1, moral: -1 } },
-  { key: 'friendly_match', icon: 'fa-futbol-o', effects: { level: 1, fitness: -1, moral: 1 } },
-  { key: 'rest', icon: 'fa-bed', effects: { level: 0, fitness: 2, moral: 1 } }
+  {
+    key: 'training',
+    icon: 'fa-bolt',
+    effects: {
+      level: 2,
+      fitness: 1,
+      moral: -1
+    }
+  },
+  {
+    key: 'friendly_match',
+    icon: 'fa-futbol-o',
+    effects: {
+      level: 1,
+      fitness: -1,
+      moral: 1
+    }
+  },
+  {
+    key: 'rest',
+    icon: 'fa-bed',
+    effects: {
+      level: 0,
+      fitness: 2,
+      moral: 1
+    }
+  }
 ]
 
 const MAX_SLOTS_PER_MODE = 4
@@ -38,9 +62,14 @@ export class YouthTeamPage extends UIElement {
     this.youthPlayers = data.youthPlayers
     this.trainingMode = data.trainingMode
     this.academyLevel = data.academyLevel || 1
-    this.slotsByMode = data.slotsByMode || { training: 2, friendly_match: 2, rest: MAX_SLOTS_PER_MODE }
+    this.slotsByMode = data.slotsByMode || {
+      training: 2,
+      friendly_match: 2,
+      rest: MAX_SLOTS_PER_MODE
+    }
     this.season = data.season
   }
+
   /**
    * @returns {string}
    */
@@ -53,7 +82,10 @@ export class YouthTeamPage extends UIElement {
           <p class="text-muted mb-1">${t('youthTeam.trainingModeDescPerPlayer')}</p>
           <p class="text-muted small mb-3">
             <i class="fa fa-graduation-cap"></i>
-            ${t('youthTeam.academySlotsHint', { trainingSlots: this.slotsByMode.training, level: this.academyLevel })}
+            ${t('youthTeam.academySlotsHint', {
+    trainingSlots: this.slotsByMode.training,
+    level: this.academyLevel
+  })}
           </p>
           ${this._renderTrainingModeSelector()}
         </div>
@@ -68,6 +100,7 @@ export class YouthTeamPage extends UIElement {
       </div>
     `
   }
+
   /**
    * Called when component is mounted to DOM
    * @returns {void}
@@ -191,7 +224,7 @@ export class YouthTeamPage extends UIElement {
     const fillRatio = `${assigned.length}/${modeLimit}`
 
     return `
-      <div class="card youth-mode-card flex-fill">
+      <div class="card youth-mode-card flex-fill bg-info-subtle">
         <div class="card-body">
           <div class="youth-mode-header">
             <i class="fa ${mode.icon}"></i>
@@ -357,9 +390,11 @@ export class YouthTeamPage extends UIElement {
       disabledReason = t('youthTeam.playerTooYoung')
     }
 
-    const modeBadge = player.training_mode
-      ? `<span class="badge bg-info">${this._getTrainingModeLabel(player.training_mode)}</span>`
-      : `<span class="badge bg-secondary">${t('youthTeam.unassigned')}</span>`
+    const modeBadgeId = generateId()
+    onClick(modeBadgeId, () => this._showModeSelect(modeBadgeId, player))
+    const modeBadgeClass = player.training_mode ? 'bg-info' : 'bg-secondary'
+    const modeLabel = player.training_mode ? this._getTrainingModeLabel(player.training_mode) : t('youthTeam.unassigned')
+    const modeBadge = `<span id="${modeBadgeId}" class="badge ${modeBadgeClass} youth-mode-badge u-cursor-pointer" title="${t('youthTeam.changeTrainingMode')}">${modeLabel} <i class="fa fa-caret-down"></i></span>`
 
     return [
       `<span class="u-nowrap">${player.name}</span>`,
@@ -376,6 +411,68 @@ export class YouthTeamPage extends UIElement {
             title="${disabledReason}"
           ><i class="fa fa-arrow-up"></i> ${t('youthTeam.promote')}</button><button id="${fireId}" class="btn btn-sm btn-danger"><i class="fa fa-times"></i> ${t('youthTeam.fire')}</button></span>`
     ]
+  }
+
+  /**
+   * Swap the clicked training-mode badge for an inline select so the user can
+   * change the player's mode straight from the list (#youth).
+   * @param {string} badgeId
+   * @param {Object} player
+   * @returns {void}
+   */
+  _showModeSelect (badgeId, player) {
+    const badge = el('#' + badgeId)
+    if (!badge) return
+    const selectId = generateId()
+    const current = player.training_mode || ''
+    const options = [
+      `<option value="" ${current === '' ? 'selected' : ''}>${t('youthTeam.unassigned')}</option>`,
+      ...TRAINING_MODES.map(m =>
+        `<option value="${m.key}" ${current === m.key ? 'selected' : ''}>${this._getTrainingModeLabel(m.key)}</option>`
+      )
+    ].join('')
+    badge.outerHTML = `<select id="${selectId}" class="form-select form-select-sm youth-mode-inline-select">${options}</select>`
+    onChange('#' + selectId, (ev) => this._handlePlayerModeChange(player, ev.target.value))
+    const sel = el('#' + selectId)
+    if (sel) {
+      sel.focus()
+      try { sel.showPicker?.() } catch { /* not supported everywhere */ }
+    }
+  }
+
+  /**
+   * Apply a training-mode change made from the player list. Assigns the player
+   * to the chosen mode, taking the last free slot — or, when the mode is full,
+   * freeing its last slot first (#youth). Reloads so the slot cards on top
+   * reflect the new assignment.
+   * @param {Object} player
+   * @param {string} newMode - '' for unassigned, otherwise a training mode key
+   * @returns {Promise<void>}
+   */
+  async _handlePlayerModeChange (player, newMode) {
+    const target = newMode || null
+    if ((player.training_mode || null) === target) {
+      await this.update() // revert the inline select back to the badge
+      return
+    }
+    try {
+      if (target === null) {
+        await server.setYouthPlayerTrainingMode(player.id, null)
+      } else {
+        const limit = this.slotsByMode?.[target] ?? MAX_SLOTS_PER_MODE
+        const inMode = (this.youthPlayers || []).filter(p => p.training_mode === target && p.id !== player.id)
+        if (inMode.length >= limit) {
+          // No free slot — free the last one so the player can take it.
+          await server.setYouthPlayerTrainingMode(inMode[inMode.length - 1].id, null)
+        }
+        await server.setYouthPlayerTrainingMode(player.id, target)
+      }
+      toast(t('youthTeam.trainingModeUpdated'), 'success')
+    } catch (e) {
+      showServerError(e)
+    }
+    await this.load()
+    await this.update()
   }
 
   /**

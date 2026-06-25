@@ -480,6 +480,7 @@ export default {
   'youthTeam.slotEmpty': '— Empty slot —',
   'youthTeam.slotLocked': 'Upgrade Youth Academy',
   'youthTeam.unassigned': 'Unassigned',
+  'youthTeam.changeTrainingMode': 'Click to change training mode',
   'youthTeam.playerTooYoung': 'Player must be at least 16 years old to be promoted.',
   'youthTeam.age': 'Age',
   'youthTeam.level': 'Level',
