@@ -73,7 +73,7 @@ export class ClubInfoPage extends UIElement {
         </h2>
         <div class="row">
           <div class="col-12 col-md-6 col-xl-4 mb-4">
-            <div class="card h-100 border-0">
+            <div class="card h-100">
               <div class="card-header text-white gradient-header">
                 <h5 class="card-title mb-0">${t('myTeam.teamInfo')}</h5>
               </div>
@@ -93,7 +93,7 @@ export class ClubInfoPage extends UIElement {
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-4 mb-4">
-            <div class="card h-100 border-0">
+            <div class="card h-100">
               <div class="card-header text-white gradient-header">
                 <h5 class="card-title mb-0 emblem-header u-cursor-pointer" title="${t('myTeam.clickToEditEmblem')}">${t('myTeam.emblem')} <i class="fa fa-pencil" aria-hidden="true"></i></h5>
               </div>
@@ -105,7 +105,7 @@ export class ClubInfoPage extends UIElement {
             </div>
           </div>
           <div class="col-12 col-md-6 col-xl-4 mb-4">
-            <div class="card h-100 border-0">
+            <div class="card h-100">
               <div class="card-header text-white gradient-header">
                 <h5 class="card-title mb-0">${t('myTeam.coach')}</h5>
               </div>
@@ -462,7 +462,11 @@ export class ClubInfoPage extends UIElement {
      * they're picking. The swatches re-tint live via refreshTintSwatchColors
      * when Color 1 or Color 2 changes.
      */
-    const renderTintSelector = ({ groupClass, currentValue, onSelect }) => {
+    const renderTintSelector = ({
+      groupClass,
+      currentValue,
+      onSelect
+    }) => {
       return EMBLEM_TINT_OPTIONS.map(role => {
         const id = generateId()
         setTimeout(() => {
@@ -498,13 +502,17 @@ export class ClubInfoPage extends UIElement {
     const strokeColorOptions = renderTintSelector({
       groupClass: 'emblem-editor__stroke',
       currentValue: selectedStrokeColor,
-      onSelect: role => { selectedStrokeColor = role }
+      onSelect: role => {
+        selectedStrokeColor = role
+      }
     })
 
     const iconColorOptions = renderTintSelector({
       groupClass: 'emblem-editor__icon-color',
       currentValue: selectedIconColor,
-      onSelect: role => { selectedIconColor = role }
+      onSelect: role => {
+        selectedIconColor = role
+      }
     })
 
     const selectIconElement = (element) => {

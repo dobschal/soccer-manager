@@ -454,8 +454,8 @@
 }
 
 .select-player-action-cards {
-    margin: 0 -2rem;
-    padding: 0 2rem;
+    margin: 0 -2rem -1rem -2rem;
+    padding: 1rem 2rem 0 2rem;
     display: flex;
     flex-wrap: nowrap;
     gap: 1rem;
@@ -463,9 +463,11 @@
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
+    background: linear-gradient(136deg, #222 0%, #333 100%) !important;
 }
 
 .select-player-action-card-item {
     flex: 0 0 auto;
     width: 140px;
+    color: white;
 }
