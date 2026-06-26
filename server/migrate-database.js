@@ -2307,6 +2307,22 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Create link_invite table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS link_invite (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      inviter_user_id BIGINT UNSIGNED NOT NULL,
+      invitee_ip VARCHAR(45) NOT NULL,
+      used_by_user_id BIGINT UNSIGNED DEFAULT NULL,
+      reward_action VARCHAR(64) DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      used_at TIMESTAMP NULL DEFAULT NULL,
+      rewarded_at TIMESTAMP NULL DEFAULT NULL,
+      INDEX idx_link_invite_ip (invitee_ip),
+      INDEX idx_link_invite_inviter (inviter_user_id)
+    )`)
+  }
 }]
 
 /**

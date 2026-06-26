@@ -8,9 +8,9 @@ import geoip from 'geoip-lite'
 export function getGeoFromRequest (req) {
   // Prefer the leftmost (original client) IP from X-Forwarded-For,
   // then X-Real-IP, then fall back to req.ip / remoteAddress
-  const forwarded = req.headers['x-forwarded-for']
+  const forwarded = req.headers?.['x-forwarded-for']
   const ip = (forwarded ? forwarded.split(',')[0].trim() : null) ||
-    req.headers['x-real-ip'] ||
+    req.headers?.['x-real-ip'] ||
     req.ip ||
     req.connection?.remoteAddress ||
     'unknown'

@@ -1,4 +1,5 @@
 import { query } from '../lib/database.js'
+import { config } from '../config.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { isValidEmail, sendReferralEmail } from '../lib/email.js'
 import { t } from '../i18n/index.js'
@@ -56,6 +57,22 @@ export default {
       inviterUsername: req.user.username
     })
     return { success: true, sent: result.sent }
+  },
+
+  /**
+   * Build the personal invite link for the current user. The inviter's username
+   * is base64-encoded into the `i` query parameter; sharing this link lets a
+   * new user be attributed to the inviter via their IP (see /invite landing).
+   * @param {Request} req
+   * @returns {Promise<{ url: string }>}
+   */
+  async getInviteLink (req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    const code = Buffer.from(req.user.username, 'utf8').toString('base64')
+    return { url: `${config.PUBLIC_URL}/invite?i=${encodeURIComponent(code)}` }
   },
 
   /**

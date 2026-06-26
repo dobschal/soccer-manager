@@ -144,3 +144,10 @@ td.hover-text:hover {
 .u-cuprum {
     font-family: 'Cuprum', sans-serif;
 }
+
+/* Off-screen helper for transient elements (e.g. execCommand copy fallback) */
+.u-offscreen {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+}

@@ -88,6 +88,21 @@ describe('referral routes', () => {
     })
   })
 
+  describe('getInviteLink', () => {
+    it('rejects unauthenticated callers', async () => {
+      await expect(handlers.getInviteLink({ locale: 'en' }))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+
+    it('returns a link with the base64-encoded username in the i query param', async () => {
+      const req = { locale: 'en', user: { id: 1, username: 'inviter' } }
+      const { url } = await handlers.getInviteLink(req)
+      const expectedCode = Buffer.from('inviter', 'utf8').toString('base64')
+      expect(url).toContain('/invite?i=')
+      expect(url).toContain(encodeURIComponent(expectedCode))
+    })
+  })
+
   describe('getReferralSettings', () => {
     it('rejects non-admin users', async () => {
       await expect(handlers.getReferralSettings({ user: { is_admin: 0 } }))

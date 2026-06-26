@@ -22,6 +22,11 @@ vi.mock('../../helper/referralHelper.js', () => ({
   awardReferralForVerifiedUser: vi.fn().mockResolvedValue({ awarded: false })
 }))
 
+vi.mock('../../helper/linkInviteHelper.js', () => ({
+  claimLinkInviteForNewUser: vi.fn().mockResolvedValue({ linked: false }),
+  awardLinkInviteForVerifiedUser: vi.fn().mockResolvedValue({ awarded: false })
+}))
+
 vi.mock('../../lib/userCache.js', () => ({
   clearUserCache: vi.fn()
 }))
@@ -31,6 +36,7 @@ import { query } from '../../lib/database.js'
 import { hashPassword } from '../../lib/passwordHash.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.js'
 import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../../helper/referralHelper.js'
+import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../../helper/linkInviteHelper.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
@@ -226,6 +232,17 @@ describe('auth routes', () => {
 
       expect(claimReferralForNewUser).not.toHaveBeenCalled()
     })
+
+    it('claims a link invite by IP even when no email is provided', async () => {
+      query
+        .mockResolvedValueOnce([{ amount: 0 }]) // username check
+        .mockResolvedValueOnce({ insertId: 55 }) // insert user
+
+      const req = { locale: 'en', headers: { 'x-forwarded-for': '9.9.9.9' } }
+      await handlers.createAccount('newuser', 'password123', req)
+
+      expect(claimLinkInviteForNewUser).toHaveBeenCalledWith({ ip: '9.9.9.9', newUserId: 55 })
+    })
   })
 
   describe('setPassword', () => {
@@ -366,6 +383,7 @@ describe('auth routes', () => {
         ['new@example.com', 5]
       )
       expect(awardReferralForVerifiedUser).toHaveBeenCalledWith({ userId: 5 })
+      expect(awardLinkInviteForVerifiedUser).toHaveBeenCalledWith({ userId: 5 })
     })
 
     it('does not call awardReferralForVerifiedUser when the token is invalid', async () => {
@@ -373,6 +391,7 @@ describe('auth routes', () => {
       const req = { locale: 'en' }
       await expect(handlers.verifyEmail('a'.repeat(64), req)).rejects.toBeTruthy()
       expect(awardReferralForVerifiedUser).not.toHaveBeenCalled()
+      expect(awardLinkInviteForVerifiedUser).not.toHaveBeenCalled()
     })
 
     it('rejects an unknown token', async () => {
