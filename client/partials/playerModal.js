@@ -384,6 +384,9 @@ export default class PlayerModal extends UIElement {
       freshnessEl.textContent = `${Math.floor(this.player.freshness * 100)}%`
       freshnessEl.style.color = getFreshnessColor(this.player.freshness)
     }
+    // Notify the page behind the modal (e.g. the my-team player list) so it can
+    // refresh the player's row with the new level/freshness without a reload.
+    window.dispatchEvent(new CustomEvent('player-updated', { detail: { player: this.player } }))
   }
 
   async _onHire () {

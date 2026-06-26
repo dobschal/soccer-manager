@@ -23,6 +23,7 @@ import { initWebSocket } from './lib/websocket.js'
 import { getCachedUser } from './lib/userCache.js'
 import { isSandboxHost } from './lib/sandboxHost.js'
 import { serveNotificationEmailImage } from './helper/notificationEmailHelper.js'
+import { serveInviteLanding } from './lib/inviteLanding.js'
 
 const app = express()
 const port = 3000
@@ -66,6 +67,11 @@ app.use('/uploads', express.static('uploads', { maxAge: '30d' }))
 // by its public token and counts each load as an "open" of the email. Mounted
 // before the auth middleware so unauthenticated email clients can fetch it.
 app.get('/notification-image/:token', serveNotificationEmailImage)
+
+// Public invite-link landing. Remembers the inviter (by IP) and routes the
+// visitor to the App Store / Play Store / web registration based on their OS.
+// Mounted before the auth middleware so anonymous visitors can be redirected.
+app.get('/invite', serveInviteLanding)
 
 /**
  * Check if the authorization header is available, if so validate the JWT and

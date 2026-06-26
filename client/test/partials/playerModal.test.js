@@ -102,6 +102,28 @@ describe('PlayerModal', () => {
       expect(root.querySelector('[data-stat="freshness"]').textContent).toBe('100%')
       root.remove()
     })
+
+    it('dispatches a player-updated event so the page behind the modal can refresh its list', async () => {
+      server.getPlayerById.mockResolvedValueOnce(testData.player({ id: 5, team_id: 1, level: 50, freshness: 0.2 }))
+      const modal = new PlayerModal(5)
+      await modal.load()
+      const root = document.createElement('div')
+      root.setAttribute('data-render_id', modal._renderId)
+      document.body.appendChild(root)
+
+      const handler = vi.fn()
+      window.addEventListener('player-updated', handler)
+      server.getPlayerById.mockResolvedValueOnce(testData.player({ id: 5, team_id: 1, level: 51, freshness: 1.0 }))
+      await modal._refreshPlayerStats()
+      window.removeEventListener('player-updated', handler)
+
+      expect(handler).toHaveBeenCalledTimes(1)
+      const player = handler.mock.calls[0][0].detail.player
+      expect(player.id).toBe(5)
+      expect(player.level).toBe(51)
+      expect(player.freshness).toBe(1.0)
+      root.remove()
+    })
   })
 
   describe('remove from transfer market', () => {

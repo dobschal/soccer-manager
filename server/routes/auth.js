@@ -13,6 +13,7 @@ import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
 import { isValidEmail, sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js'
 import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../helper/referralHelper.js'
+import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../helper/linkInviteHelper.js'
 
 const EMAIL_VERIFICATION_TTL_DAYS = 7
 const PASSWORD_RESET_TTL_HOURS = 2
@@ -103,6 +104,17 @@ export default {
         console.error('[Auth] claimReferralForNewUser failed:', e)
       }
     }
+    // Link-invite claim is IP-based, so it runs regardless of whether an email
+    // was provided. The mutual friendship is established immediately; the
+    // inviter's reward is deferred until the new user verifies their email.
+    if (insertResult?.insertId) {
+      try {
+        const { ip } = getGeoFromRequest(req)
+        await claimLinkInviteForNewUser({ ip, newUserId: insertResult.insertId })
+      } catch (e) {
+        console.error('[Auth] claimLinkInviteForNewUser failed:', e)
+      }
+    }
     return { success: true }
   },
 
@@ -185,6 +197,11 @@ export default {
       await awardReferralForVerifiedUser({ userId: user.id })
     } catch (e) {
       console.error('[Auth] awardReferralForVerifiedUser failed:', e)
+    }
+    try {
+      await awardLinkInviteForVerifiedUser({ userId: user.id })
+    } catch (e) {
+      console.error('[Auth] awardLinkInviteForVerifiedUser failed:', e)
     }
     return { success: true, email: user.pending_email }
   },
