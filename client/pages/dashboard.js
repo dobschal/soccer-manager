@@ -376,6 +376,12 @@ export class DashboardPage extends TabbedPage {
    * also pops up after a cup game (#402). Each cron tick plays exactly one
    * game day, so a higher game day is always the more recent game; the id is
    * a deterministic tie-break.
+   *
+   * Cup byes are excluded: at season prep the first cup round's byes are
+   * created already "played" with no opponent and an empty log, and they sit
+   * on a higher game_day than the first league day. Without this filter such a
+   * bye would be picked as the "most recent" game, the ticker would bail out on
+   * its empty details, and the real season-opener match would never show.
    * @returns {object|null}
    * @private
    */
@@ -383,7 +389,7 @@ export class DashboardPage extends TabbedPage {
     const played = [
       ...(this._sliderGames || []),
       ...(this._cupGames || [])
-    ].filter(g => g.isPlayed && g.id)
+    ].filter(g => g.isPlayed && g.id && !(g.isCup && !g.team2Id))
     if (played.length === 0) return null
     return played.reduce((latest, g) =>
       (g.gameDay > latest.gameDay || (g.gameDay === latest.gameDay && g.id > latest.id))

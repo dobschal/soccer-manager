@@ -380,8 +380,18 @@ describe('DashboardPage', () => {
     it('considers played cup games, not only league games', () => {
       const page = new DashboardPage()
       page._sliderGames = [{ id: 1, gameDay: 2, isPlayed: true }]
-      page._cupGames = [{ id: 9, gameDay: 4, isPlayed: true, isCup: true }]
+      page._cupGames = [{ id: 9, gameDay: 4, isPlayed: true, isCup: true, team2Id: 99 }]
       expect(page._findLastPlayedGame().id).toBe(9)
+    })
+
+    it('ignores cup byes (no opponent) so the season opener still wins', () => {
+      // Season start: the first cup round's byes are created already "played"
+      // on a higher game_day than the opening league day, but with no opponent
+      // and an empty log. They must not shadow the real league game (#402).
+      const page = new DashboardPage()
+      page._sliderGames = [{ id: 1, gameDay: 0, isPlayed: true, team2Id: 50 }]
+      page._cupGames = [{ id: 9, gameDay: 4, isPlayed: true, isCup: true, team2Id: null }]
+      expect(page._findLastPlayedGame().id).toBe(1)
     })
 
     it('prefers the league game when it was played on a later game day', () => {

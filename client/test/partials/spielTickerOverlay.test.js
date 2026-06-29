@@ -6,7 +6,8 @@ vi.mock('../../lib/html.js', () => ({ el: vi.fn(), generateId: () => 'id' }))
 vi.mock('../../i18n/index.js', () => ({ t: (k) => k }))
 vi.mock('../../lib/nativeReview.js', () => ({ maybeRequestReviewAfterWin: vi.fn() }))
 
-import { buildTickerEvents, isSpielTickerSeen, logHasMinutes } from '../../partials/spielTickerOverlay.js'
+import { server } from '../../lib/gateway.js'
+import { buildTickerEvents, isSpielTickerSeen, logHasMinutes, maybeShowSpielTickerOverlay } from '../../partials/spielTickerOverlay.js'
 
 describe('spielTickerOverlay helpers (#402)', () => {
   describe('buildTickerEvents', () => {
@@ -79,6 +80,37 @@ describe('spielTickerOverlay helpers (#402)', () => {
       expect(isSpielTickerSeen(1, 2, 3)).toBe(false)
       store.spielTickerSeen_1_2_3 = '1'
       expect(isSpielTickerSeen(1, 2, 3)).toBe(true)
+    })
+  })
+
+  describe('maybeShowSpielTickerOverlay', () => {
+    let store
+    beforeEach(() => {
+      store = {}
+      vi.stubGlobal('window', {
+        localStorage: {
+          getItem: (k) => store[k] ?? null,
+          setItem: (k, v) => { store[k] = v }
+        }
+      })
+    })
+    afterEach(() => {
+      vi.unstubAllGlobals()
+      delete server.getResult
+    })
+
+    it('does not mark the day seen when no ticker could be shown', async () => {
+      // A cup bye / forfeit has empty details, so showSpielTickerOverlay bails
+      // out. The per-day flag must stay unset so a renderable game can still
+      // trigger the ticker on a later visit (#402).
+      server.getResult = vi.fn().mockResolvedValue({ result: { details: '{}', isForfeit: false } })
+      const params = { season: 7, gameDay: 1, myTeamId: 1, lastGame: { id: 5 } }
+
+      expect(await maybeShowSpielTickerOverlay(params)).toBe(false)
+      expect(isSpielTickerSeen(7, 1, 5)).toBe(false)
+      // A second attempt is still allowed (not blocked by a burnt flag).
+      expect(await maybeShowSpielTickerOverlay(params)).toBe(false)
+      expect(server.getResult).toHaveBeenCalledTimes(2)
     })
   })
 })

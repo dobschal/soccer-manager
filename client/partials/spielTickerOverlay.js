@@ -78,23 +78,23 @@ function eventType (event) {
  *
  * @param {{id: number, season?: number, gameDay?: number}} game
  * @param {number} myTeamId
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} whether the overlay was actually shown
  */
 export async function showSpielTickerOverlay (game, myTeamId) {
   let result, details
   try {
     const response = await server.getResult(game.id)
     result = response.result
-    if (!result || result.isForfeit || !result.details || result.details === '{}') return
+    if (!result || result.isForfeit || !result.details || result.details === '{}') return false
     details = JSON.parse(result.details)
   } catch {
-    return
+    return false
   }
   // Skip games whose log predates minute tracking — every event would show at
   // 0' in arbitrary order. These self-heal from the next game day onwards.
-  if (!logHasMinutes(details?.log)) return
+  if (!logHasMinutes(details?.log)) return false
   const events = buildTickerEvents(details?.log)
-  if (events.length === 0) return
+  if (events.length === 0) return false
 
   const [team1Res, team2Res] = await Promise.all([
     server.getTeam(result.team1Id),
@@ -245,7 +245,7 @@ export async function showSpielTickerOverlay (game, myTeamId) {
     overlay.onClose(() => {
       if (timer) { clearTimeout(timer); timer = null }
       if (bannerTimer) { clearTimeout(bannerTimer); bannerTimer = null }
-      resolve()
+      resolve(true)
     })
   })
 }
@@ -259,7 +259,10 @@ export async function showSpielTickerOverlay (game, myTeamId) {
 export async function maybeShowSpielTickerOverlay ({ season, gameDay, myTeamId, lastGame }) {
   if (!lastGame || !lastGame.id) return false
   if (isSpielTickerSeen(season, gameDay, lastGame.id)) return false
-  markSpielTickerSeen(season, gameDay, lastGame.id)
-  await showSpielTickerOverlay(lastGame, myTeamId)
-  return true
+  // Mark seen only when the ticker was actually shown. Otherwise a game that
+  // can't render one (forfeit, empty log, pre-minute-tracking) would burn the
+  // per-day flag and suppress a retry once a renderable game is available.
+  const shown = await showSpielTickerOverlay(lastGame, myTeamId)
+  if (shown) markSpielTickerSeen(season, gameDay, lastGame.id)
+  return shown
 }
