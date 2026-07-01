@@ -68,6 +68,12 @@
 
 .spiel-ticker__footer {
     flex: 0 0 auto;
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    padding-top: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
 }
 
 .spiel-ticker__event {
