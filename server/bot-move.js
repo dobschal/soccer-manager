@@ -550,13 +550,18 @@ async function _checkBuyOffers (botTeam, players) {
       ORDER BY p.level DESC
   `, [botTeam.id, maxPrice])
 
-  if (sellOffers.length === 0) return
+  // Shared bidding budget/state used by both the listed-market pass below and
+  // the unsolicited pass at the end. Declared up front so the unsolicited pass
+  // still runs even when nobody has listed a player for sale (#451).
+  const maxNewOffers = Math.max(1, 5 - currentBuyOffers.length)
+  const positionsFilled = new Set()
+  let offersMade = 0
+  let remainingBudget = maxPrice
 
   // Filter out players we're already bidding on
   const availableOffers = sellOffers.filter(o => !playerIdsAlreadyBidding.has(o.player_id))
-  if (availableOffers.length === 0) return
 
-  // Rank all offers by score and make multiple buy offers
+  // Rank all listed offers by score and make multiple buy offers
   /** @type {{offer: typeof availableOffers[0], score: number, need: typeof teamNeeds[0]}[]} */
   const scoredOffers = []
   for (const offer of availableOffers) {
@@ -588,12 +593,7 @@ async function _checkBuyOffers (botTeam, players) {
 
   scoredOffers.sort((a, b) => b.score - a.score)
 
-  // Make up to maxNewOffers buy offers, one per position need
-  const maxNewOffers = Math.max(1, 5 - currentBuyOffers.length)
-  const positionsFilled = new Set()
-  let offersMade = 0
-  let remainingBudget = maxPrice
-
+  // Make up to maxNewOffers buy offers on listed players, one per position need
   for (const {
     offer: bestOffer,
     need
@@ -635,8 +635,86 @@ async function _checkBuyOffers (botTeam, players) {
     await query('INSERT INTO trade_offer SET ?', tradeOffer)
     remainingBudget -= offerValue
     positionsFilled.add(bestOffer.player_position)
+    playerIdsAlreadyBidding.add(bestOffer.player_id)
     offersMade++
     console.log(`💰 ${botTeam.name} made ${isEagerBuyer ? 'eager ' : ''}buy offer of ${offerValue} for ${bestOffer.player_name} (${need?.priority} need)`)
+  }
+
+  // Unsolicited offers (#451): the listed-market logic above only ever bids on
+  // players someone put up for sale. A manager who never lists a player would
+  // therefore never receive any offer. To keep the transfer scene alive — and
+  // to actively court human-managed squads — a bot occasionally makes an offer
+  // slightly above market value for a strong, unlisted player at a position of
+  // need. The probability gate keeps the whole bot population from flooding
+  // users every match day.
+  if (offersMade < maxNewOffers && remainingBudget > 0 && Math.random() < UNSOLICITED_OFFER_CHANCE) {
+    await _makeUnsolicitedBuyOffer(botTeam, teamNeeds, remainingBudget, playerIdsAlreadyBidding, positionsFilled)
+  }
+}
+
+// Probability that a bot with spare budget makes an unsolicited buy offer on a
+// given match day. Kept low so the (large) bot population does not flood
+// managers with offers, while still guaranteeing a steady trickle (#451).
+const UNSOLICITED_OFFER_CHANCE = 0.15
+
+/**
+ * Make a single unsolicited buy offer for a strong, unlisted player at a
+ * position of need. Human-managed squads are courted first so managers reliably
+ * receive offers even when they never list a player for sale (#451).
+ *
+ * @param {TeamType} botTeam
+ * @param {{position: string, priority: string, currentLevel: number}[]} teamNeeds
+ * @param {number} maxSpend - remaining budget the bot may spend
+ * @param {Set<number>} playerIdsAlreadyBidding
+ * @param {Set<string>} positionsFilled
+ * @returns {Promise<void>}
+ */
+async function _makeUnsolicitedBuyOffer (botTeam, teamNeeds, maxSpend, playerIdsAlreadyBidding, positionsFilled) {
+  const positions = teamNeeds.map(n => n.position).filter(p => !positionsFilled.has(p))
+  if (positions.length === 0) return
+
+  // Candidate players on other (non-system) teams, at a needed position, that
+  // this bot is not already bidding on. Human-managed teams rank first, then by
+  // level so the bot chases the best realistic upgrade.
+  const candidates = await query(`
+      SELECT p.*, t.user_id AS owner_user_id
+      FROM player p
+               JOIN team t ON p.team_id = t.id
+      WHERE p.team_id <> ?
+        AND t.is_system_team = 0
+        AND p.position IN ("${positions.join('", "')}")
+        AND NOT EXISTS (
+          SELECT 1 FROM trade_offer o
+          WHERE o.player_id = p.id AND o.from_team_id = ? AND o.type = 'buy' AND o.status = 'open'
+        )
+      ORDER BY (t.user_id IS NOT NULL) DESC, p.level DESC
+      LIMIT 25
+  `, [botTeam.id, botTeam.id])
+
+  for (const candidate of candidates) {
+    if (playerIdsAlreadyBidding.has(candidate.id)) continue
+    const need = teamNeeds.find(n => n.position === candidate.position)
+    if (!need) continue
+    // Only chase genuine upgrades (except when a slot is unfillable).
+    if (need.priority !== 'critical' && candidate.level <= need.currentLevel) continue
+
+    const marketValue = await getAveragePlanPriceOfPlayer(candidate)
+    // Offer slightly above market value so the deal is attractive to the seller.
+    const premiumFactor = 1.05 + Math.random() * 0.1
+    const offerValue = Math.floor(marketValue * premiumFactor)
+    if (offerValue > maxSpend) continue // can't afford this one, try the next
+
+    const tradeOffer = new TradeOffer({
+      offer_value: offerValue,
+      type: 'buy',
+      player_id: candidate.id,
+      from_team_id: botTeam.id
+    })
+    await query('INSERT INTO trade_offer SET ?', tradeOffer)
+    playerIdsAlreadyBidding.add(candidate.id)
+    positionsFilled.add(candidate.position)
+    console.log(`✉️ ${botTeam.name} made unsolicited buy offer of ${offerValue} for ${candidate.name} (${candidate.owner_user_id ? 'user' : 'bot'} team)`)
+    return // one unsolicited offer per match day
   }
 }
 

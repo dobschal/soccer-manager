@@ -693,6 +693,80 @@ describe('Bot Trading', () => {
     })
   })
 
+  describe('Unsolicited offers (#451)', () => {
+    it('makes an unsolicited buy offer for an unlisted user player above market value', async () => {
+      // Force the probability gate open.
+      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.05)
+      getPlayersByTeamId.mockResolvedValue([...botPlayers])
+      getOpenByOffersByTeamId.mockResolvedValue([])
+      // Keep the market value affordable (bot balance 500k -> maxPrice 400k).
+      getAveragePlanPriceOfPlayer.mockResolvedValue(200000)
+
+      const userPlayer = {
+        ...testData.player({ id: 500, name: 'Star GK', position: 'GK', level: 80, team_id: 20 }),
+        owner_user_id: 1
+      }
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return botPlayers
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        // No listed sell offers on the market.
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) return []
+        // Unsolicited-offer candidate query.
+        if (sql.includes('owner_user_id')) return [userPlayer]
+        if (sql.includes('INSERT INTO trade_offer')) return { insertId: 700 }
+        return []
+      })
+
+      await makeBotMoves()
+
+      const unsolicitedInsert = query.mock.calls.find(call =>
+        call[0].includes('INSERT INTO trade_offer') &&
+        call[1]?.type === 'buy' &&
+        call[1]?.player_id === 500
+      )
+      expect(unsolicitedInsert).toBeTruthy()
+      // Offer is above the 200k market value.
+      expect(unsolicitedInsert[1].offer_value).toBeGreaterThan(200000)
+
+      randomSpy.mockRestore()
+    })
+
+    it('does not make an unsolicited offer when the probability gate is closed', async () => {
+      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.99)
+      getPlayersByTeamId.mockResolvedValue([...botPlayers])
+      getOpenByOffersByTeamId.mockResolvedValue([])
+      getAveragePlanPriceOfPlayer.mockResolvedValue(200000)
+
+      const userPlayer = {
+        ...testData.player({ id: 501, name: 'Star GK', position: 'GK', level: 80, team_id: 20 }),
+        owner_user_id: 1
+      }
+
+      query.mockImplementation(async (sql, params) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return botPlayers
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return [testData.stadium({ team_id: params[0] })]
+        if (sql.includes('FROM trade_offer') && sql.includes('JOIN player')) return []
+        if (sql.includes('owner_user_id')) return [userPlayer]
+        if (sql.includes('INSERT INTO trade_offer')) return { insertId: 701 }
+        return []
+      })
+
+      await makeBotMoves()
+
+      const unsolicitedInsert = query.mock.calls.find(call =>
+        call[0].includes('INSERT INTO trade_offer') &&
+        call[1]?.type === 'buy' &&
+        call[1]?.player_id === 501
+      )
+      expect(unsolicitedInsert).toBeFalsy()
+
+      randomSpy.mockRestore()
+    })
+  })
+
   describe('Free player signing race conditions', () => {
     const freePlayer = testData.player({
       id: 999,
