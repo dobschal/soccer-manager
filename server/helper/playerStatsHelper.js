@@ -138,26 +138,30 @@ export async function cachePlayerStatsForGameDay (gameDay, season) {
     }
   }
 
-  // Upsert stats into database
-  const updatePromises = []
+  // Upsert stats into the database in a single batched multi-row INSERT
+  // instead of one query per player. The per-row version issued ~1.4k
+  // round-trips per game day, which made the #464 recompute migration block
+  // startup for ~15 min on a full dataset (#453 follow-up).
+  const rows = []
   for (const [key, stats] of statsMap) {
     const [playerId] = key.split('_')
-    updatePromises.push(
-      query(
-        `INSERT INTO player_season_stats
+    rows.push([playerId, season, stats.level, stats.league, stats.goals, stats.yellowCards, stats.redCards, stats.gamesPlayed, gameDay])
+  }
+
+  if (rows.length > 0) {
+    await query(
+      `INSERT INTO player_season_stats
          (player_id, season, level, league, goals, yellow_cards, red_cards, games_played, last_updated_game_day)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-           goals = goals + VALUES(goals),
-           yellow_cards = yellow_cards + VALUES(yellow_cards),
-           red_cards = red_cards + VALUES(red_cards),
-           games_played = games_played + VALUES(games_played),
-           last_updated_game_day = VALUES(last_updated_game_day)`,
-        [playerId, season, stats.level, stats.league, stats.goals, stats.yellowCards, stats.redCards, stats.gamesPlayed, gameDay]
-      )
+       VALUES ?
+       ON DUPLICATE KEY UPDATE
+         goals = goals + VALUES(goals),
+         yellow_cards = yellow_cards + VALUES(yellow_cards),
+         red_cards = red_cards + VALUES(red_cards),
+         games_played = games_played + VALUES(games_played),
+         last_updated_game_day = VALUES(last_updated_game_day)`,
+      [rows]
     )
   }
 
-  await Promise.all(updatePromises)
   console.log(`Cached player stats for ${statsMap.size} players in ${Date.now() - t1}ms`)
 }

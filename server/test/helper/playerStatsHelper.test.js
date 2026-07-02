@@ -112,8 +112,14 @@ describe('playerStatsHelper', () => {
 
       await cachePlayerStatsForGameDay(1, 0)
 
-      // Should have 4 upsert calls (4 players with stats)
-      expect(query).toHaveBeenCalledTimes(5) // 1 for games + 4 for players
+      // One query to read games + one batched multi-row upsert (not one per player).
+      expect(query).toHaveBeenCalledTimes(2)
+      const upsertCall = query.mock.calls.find(
+        call => typeof call[0] === 'string' && call[0].includes('INSERT INTO player_season_stats')
+      )
+      expect(upsertCall[0]).toContain('VALUES ?')
+      // Rows are passed as a single nested array — 4 players with stats.
+      expect(upsertCall[1][0]).toHaveLength(4)
     })
 
     it('handles games with no details gracefully', async () => {
@@ -194,11 +200,12 @@ describe('playerStatsHelper', () => {
 
       await cachePlayerStatsForGameDay(1, 0)
 
-      // Should insert stats for both players
+      // Single batched upsert carrying rows for both players.
       const upsertCalls = query.mock.calls.filter(
         call => typeof call[0] === 'string' && call[0].includes('INSERT INTO player_season_stats')
       )
-      expect(upsertCalls.length).toBe(2)
+      expect(upsertCalls.length).toBe(1)
+      expect(upsertCalls[0][1][0]).toHaveLength(2)
     })
 
     it('increments stats correctly with ON DUPLICATE KEY UPDATE', async () => {
