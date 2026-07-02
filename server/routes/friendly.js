@@ -6,6 +6,7 @@ import { getUserLocale, t } from '../i18n/index.js'
 import { updateTeamBalance } from '../helper/financeHelper.js'
 import { kickoff, playGameStep } from '../play-game.js'
 import { getCaptainStrengthMultiplier } from '../helper/captainHelper.js'
+import { getSquadAgeStrengthMultiplier } from '../helper/squadAgeHelper.js'
 import { autoFillLineup, trimExcessLineup } from '../helper/lineupHelper.js'
 import { calculateHomeAttendanceBonus } from '../helper/stadiumHelper.js'
 
@@ -345,6 +346,15 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
   }
   for (const player of activePlayerTeamB) {
     player.level *= friendlyCaptainMultB
+  }
+  // Apply squad-age strength modifier (ideal average age 27, ±5%)
+  const friendlyAgeMultA = getSquadAgeStrengthMultiplier(activePlayerTeamA, season)
+  const friendlyAgeMultB = getSquadAgeStrengthMultiplier(activePlayerTeamB, season)
+  for (const player of activePlayerTeamA) {
+    player.level *= friendlyAgeMultA
+  }
+  for (const player of activePlayerTeamB) {
+    player.level *= friendlyAgeMultB
   }
   // Apply home-team attendance bonus / empty-stadium malus to teamA (the home side)
   const friendlyHomeBonusMultiplier = stadiumDetails?.homeBonusMultiplier ?? 1

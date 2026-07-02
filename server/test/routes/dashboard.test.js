@@ -21,11 +21,16 @@ vi.mock('../../helper/youthPlayerHelper.js', () => ({
   getYouthPlayersByTeam: vi.fn()
 }))
 
+vi.mock('../../helper/gameDayHelper.js', () => ({
+  getGameDayAndSeason: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getIncomingBuyOffers } from '../../helper/tradeHelper.js'
 import { getSponsor } from '../../helper/sponsorHelper.js'
 import { getYouthPlayersByTeam } from '../../helper/youthPlayerHelper.js'
+import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import handlers from '../../routes/dashboard.js'
 
 describe('dashboard routes', () => {
@@ -39,6 +44,9 @@ describe('dashboard routes', () => {
     getYouthPlayersByTeam.mockResolvedValue([])
     getIncomingBuyOffers.mockResolvedValue([])
     getSponsor.mockResolvedValue({ sponsor: testData.sponsor() })
+    // Default players have birth_season 0; season 11 makes them age 16+11=27,
+    // i.e. a balanced squad age so SQUAD_AGE is not triggered by default.
+    getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 11 })
   })
 
   describe('getDashboardUrgencies', () => {
@@ -123,6 +131,73 @@ describe('dashboard routes', () => {
       expect(result.urgencies).toContainEqual({ type: 'INCOMPLETE_BENCH', count: 1 })
     })
 
+    it('returns NO_CAPTAIN when lineup is complete but no captain is set', async () => {
+      const players = Array.from({ length: 11 }, (_, i) =>
+        testData.player({ id: i + 1, in_game_position: 'CM', freshness: 0.9 })
+      )
+      query.mockResolvedValue(players)
+      team.captain_id = null
+
+      const req = createMockRequest()
+      const result = await handlers.getDashboardUrgencies(req)
+
+      expect(result.urgencies).toContainEqual({ type: 'NO_CAPTAIN' })
+    })
+
+    it('returns NO_CAPTAIN when captain is no longer in the lineup', async () => {
+      const players = Array.from({ length: 11 }, (_, i) =>
+        testData.player({ id: i + 1, in_game_position: 'CM', freshness: 0.9 })
+      )
+      query.mockResolvedValue(players)
+      team.captain_id = 999 // not among lineup players
+
+      const req = createMockRequest()
+      const result = await handlers.getDashboardUrgencies(req)
+
+      expect(result.urgencies).toContainEqual({ type: 'NO_CAPTAIN' })
+    })
+
+    it('does not return NO_CAPTAIN when lineup is incomplete', async () => {
+      const players = Array.from({ length: 8 }, (_, i) =>
+        testData.player({ id: i + 1, in_game_position: 'CM' })
+      )
+      query.mockResolvedValue(players)
+      team.captain_id = null
+
+      const req = createMockRequest()
+      const result = await handlers.getDashboardUrgencies(req)
+
+      expect(result.urgencies.map(u => u.type)).not.toContain('NO_CAPTAIN')
+    })
+
+    it('returns SQUAD_AGE (too young) when lineup average age is far below 27', async () => {
+      // season 11, birth_season 10 => age 16 + 1 = 17 (very young)
+      const players = Array.from({ length: 11 }, (_, i) =>
+        testData.player({ id: i + 1, in_game_position: 'CM', freshness: 0.9, birth_season: 10 })
+      )
+      query.mockResolvedValue(players)
+      team.captain_id = 1
+
+      const req = createMockRequest()
+      const result = await handlers.getDashboardUrgencies(req)
+
+      expect(result.urgencies).toContainEqual({ type: 'SQUAD_AGE', tooYoung: true })
+    })
+
+    it('does not return SQUAD_AGE for a balanced lineup age', async () => {
+      // season 11, birth_season 0 => age 27 (ideal)
+      const players = Array.from({ length: 11 }, (_, i) =>
+        testData.player({ id: i + 1, in_game_position: 'CM', freshness: 0.9 })
+      )
+      query.mockResolvedValue(players)
+      team.captain_id = 1
+
+      const req = createMockRequest()
+      const result = await handlers.getDashboardUrgencies(req)
+
+      expect(result.urgencies.map(u => u.type)).not.toContain('SQUAD_AGE')
+    })
+
     it('returns empty array when all checks pass', async () => {
       const benchPositions = ['BENCH_GK', 'BENCH_DEF', 'BENCH_MID', 'BENCH_ATT']
       const players = Array.from({ length: 11 }, (_, i) =>
@@ -133,6 +208,7 @@ describe('dashboard routes', () => {
         players.push(testData.player({ id: 20 + i, bench_position: pos }))
       })
       query.mockResolvedValue(players)
+      team.captain_id = 1 // a player in the lineup
       getYouthPlayersByTeam.mockResolvedValue([
         { id: 1, moral: 0.8, fitness: 0.8 }
       ])

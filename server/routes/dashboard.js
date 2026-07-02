@@ -3,6 +3,8 @@ import { getIncomingBuyOffers } from '../helper/tradeHelper.js'
 import { getSponsor } from '../helper/sponsorHelper.js'
 import { getYouthPlayersByTeam } from '../helper/youthPlayerHelper.js'
 import { countUnseenMentions } from '../helper/forumMentionHelper.js'
+import { getSquadAgeStatus } from '../helper/squadAgeHelper.js'
+import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { query } from '../lib/database.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
 
@@ -33,6 +35,26 @@ export default {
     const missingBench = requiredBench.filter(pos => !benchPositions.has(pos))
     if (missingBench.length > 0) {
       urgencies.push({ type: 'INCOMPLETE_BENCH', count: 4 - missingBench.length })
+    }
+
+    // 1c. No captain selected (or the captain is no longer in the lineup).
+    // Only surfaced once the lineup is complete — an empty lineup is already
+    // covered by INCOMPLETE_LINEUP and a captain must be a lineup player.
+    if (lineupPlayers.length >= 11) {
+      const hasCaptainInLineup = team.captain_id && lineupPlayers.some(p => p.id === team.captain_id)
+      if (!hasCaptainInLineup) {
+        urgencies.push({ type: 'NO_CAPTAIN' })
+      }
+    }
+
+    // 1d. Squad average age far from the ideal (27) — only once the lineup is
+    // complete, since the age balance is computed over the on-pitch players.
+    if (lineupPlayers.length >= 11) {
+      const { season } = await getGameDayAndSeason()
+      const ageStatus = getSquadAgeStatus(lineupPlayers, season)
+      if (ageStatus.suboptimal) {
+        urgencies.push({ type: 'SQUAD_AGE', tooYoung: ageStatus.tooYoung })
+      }
     }
 
     // 2. Low freshness in lineup

@@ -31,6 +31,7 @@ import { payOutTvMoneyForSeason } from './helper/tvMoneyHelper.js'
 import { kickoff, playGameStep } from './play-game.js'
 import { sendGameDayPushNotifications } from './helper/pushNotificationHelper.js'
 import { getCaptainStrengthMultiplier } from './helper/captainHelper.js'
+import { getSquadAgeStrengthMultiplier } from './helper/squadAgeHelper.js'
 import { autoFillLineup, trimExcessLineup } from './helper/lineupHelper.js'
 
 // Real football: a match cannot continue with fewer than 7 players on a side.
@@ -251,6 +252,15 @@ async function _playCupGame (game) {
   }
   for (const player of playerTeamB) {
     player.level *= cupCaptainMultiplierB
+  }
+  // Apply squad-age strength modifier (ideal average age 27, ±5%)
+  const cupAgeMultiplierA = getSquadAgeStrengthMultiplier(playerTeamA, game.season)
+  const cupAgeMultiplierB = getSquadAgeStrengthMultiplier(playerTeamB, game.season)
+  for (const player of playerTeamA) {
+    player.level *= cupAgeMultiplierA
+  }
+  for (const player of playerTeamB) {
+    player.level *= cupAgeMultiplierB
   }
   // Bot teams play 10% weaker to give human players an advantage
   if (!teamA.user_id) {
@@ -853,6 +863,15 @@ async function _playGame (game) {
   for (const player of playerTeamB) {
     player.level *= captainMultiplierB
   }
+  // Apply squad-age strength modifier (ideal average age 27, ±5%)
+  const ageMultiplierA = getSquadAgeStrengthMultiplier(playerTeamA, game.season)
+  const ageMultiplierB = getSquadAgeStrengthMultiplier(playerTeamB, game.season)
+  for (const player of playerTeamA) {
+    player.level *= ageMultiplierA
+  }
+  for (const player of playerTeamB) {
+    player.level *= ageMultiplierB
+  }
   // Bot teams play 10% weaker to give human players an advantage
   if (!teamA.user_id) {
     for (const player of playerTeamA) {
@@ -1017,6 +1036,7 @@ async function _loadBenchPlayers (teamId) {
 function _applyLevelModifiersToBench (bench, team, season, lineupPlayers) {
   if (!bench) return
   const captainMultiplier = getCaptainStrengthMultiplier(team, lineupPlayers, season)
+  const ageMultiplier = getSquadAgeStrengthMultiplier(lineupPlayers, season)
   for (const player of Object.values(bench)) {
     if (!player) continue
     player.originalFreshness = player.freshness
@@ -1024,6 +1044,7 @@ function _applyLevelModifiersToBench (bench, team, season, lineupPlayers) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
     if (team.motivating_speech_active) player.level *= 1.1
     player.level *= captainMultiplier
+    player.level *= ageMultiplier
     if (!team.user_id) player.level *= 0.9
   }
 }

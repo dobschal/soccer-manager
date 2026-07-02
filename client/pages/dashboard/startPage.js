@@ -13,6 +13,7 @@ import { showGameModal } from '../../partials/gameModal.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
 import { showFeatureRequestOverlay } from '../../partials/featureRequestOverlay.js'
 import { WorldCupBetting } from '../../partials/worldCupBetting.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 
 export class StartPage {
   /**
@@ -93,7 +94,7 @@ export class StartPage {
             <h2 class="mb-4">${this.team.name}</h2>
           </a>
           ${this._renderMiniStanding()}
-          <h5 class="mb-2 mt-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')}</h5>
+          <h5 class="mb-2 mt-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')} ${wikiInfoIcon('urgency-list')}</h5>
           ${this._renderUrgencyChecklist()}
           ${this._renderMessagesLink()}
         </div>
@@ -198,6 +199,18 @@ export class StartPage {
         link: '#my-team'
       },
       {
+        type: 'NO_CAPTAIN',
+        text: 'dashboard.urgencyCaptain',
+        okText: 'dashboard.urgencyOk.captain',
+        link: '#my-team'
+      },
+      {
+        type: 'SQUAD_AGE',
+        text: (urgency) => t(urgency?.tooYoung ? 'dashboard.urgencySquadTooYoung' : 'dashboard.urgencySquadTooOld'),
+        okText: 'dashboard.urgencyOk.squadAge',
+        link: '#my-team'
+      },
+      {
         type: 'LOW_FRESHNESS',
         text: 'dashboard.urgencyFreshness',
         okText: 'dashboard.urgencyOk.freshness',
@@ -244,7 +257,9 @@ export class StartPage {
         `
       }
 
-      const message = t(check.text, { count: urgency?.count || 0 })
+      const message = typeof check.text === 'function'
+        ? check.text(urgency)
+        : t(check.text, { count: urgency?.count || 0 })
       return `
         <li class="list-group-item d-flex align-items-center py-2 px-3 border-0 ">
           <a href="${check.link}" class="text-decoration-none text-start">
