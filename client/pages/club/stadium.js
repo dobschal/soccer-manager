@@ -54,9 +54,8 @@ export class StadiumSubPage extends UIElement {
     return `
       <div>
         <h2 class="stadium-name-header u-cursor-pointer" title="${t('stadium.clickToEditName')}">
-          ${stadiumName} <i class="fa fa-pencil" aria-hidden="true"></i>
+          ${stadiumName} <i class="fa fa-pencil" aria-hidden="true"></i> ${wikiInfoIcon('stadium')}
         </h2>
-        ${wikiInfoIcon('stadium')}
         <p>${t('stadium.stadiumDesc', { seats: this._stadiumCanvas.calculateTotalSeats() })}</p>
         <div class="mb-4" id="stadium-canvas-container">
           ${this._stadiumCanvas}
