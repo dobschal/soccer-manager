@@ -241,7 +241,7 @@
 }
 
 .feature-section:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(0, 0, 0, 0.33);
 }
 
 .feature-section h2 {
@@ -394,8 +394,8 @@
 
 .landing-stat-card {
     flex: 1 1 220px;
-    max-width: 300px;
-    background: rgba(0, 0, 0, 0.5);
+    max-width: 343px;
+    background: rgb(19 138 157);
     border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 1rem;
     padding: 1.75rem 1.25rem;
