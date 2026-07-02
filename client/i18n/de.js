@@ -156,6 +156,17 @@ export default {
   'chooseTeam.filterLeague': 'Liga filtern',
   'chooseTeam.filterAll': 'Alle Ligen',
   'chooseTeam.noTeamsInLeague': 'In dieser Liga sind aktuell keine Teams verfügbar.',
+  'chooseTeam.welcomeTitle': 'Willkommen bei FootballManager.IO',
+  'chooseTeam.welcomeText': 'In diesem Spiel übernimmst du die Rolle des Managers eines Fussball-Teams. Wähle zunächst eine Liga, in der du starten möchtest. Wenn du zunächst mehr zum Spiel erfahren möchtest, dann schaue dir dieses Video an.',
+  'chooseTeam.chooseLeagueTitle': 'Wähle deine Liga',
+  'chooseTeam.freeTeamsCount': '{count} freie Teams',
+  'chooseTeam.nameStepTitle': 'Benenne deinen Verein',
+  'chooseTeam.nameStepText': 'Dir wurde ein Team zugeteilt. Gib ihm einen langen und einen kurzen Namen – oder behalte den vorhandenen.',
+  'chooseTeam.emblemStepTitle': 'Gestalte dein Wappen',
+  'chooseTeam.emblemStepText': 'Zum Schluss kannst du das Wappen deines Vereins anpassen. Danach geht es aufs Dashboard.',
+  'chooseTeam.continue': 'Weiter',
+  'chooseTeam.customizeEmblem': 'Wappen anpassen',
+  'chooseTeam.toDashboard': 'Zum Dashboard',
 
   // Dashboard
   'dashboard.hey': 'Hey',

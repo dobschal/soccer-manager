@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../lib/gateway.js', () => ({
   server: {
-    getAvailableTeams: vi.fn(),
-    chooseTeam: vi.fn()
+    getAvailableLeagues: vi.fn(),
+    chooseRandomTeamInLeague: vi.fn(),
+    updateTeamName: vi.fn(),
+    updateEmblem: vi.fn()
   }
 }))
 
@@ -11,25 +13,36 @@ vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-vi.mock('../../partials/overlay.js', () => ({
-  showConfirmDialog: vi.fn()
-}))
-
 vi.mock('../../partials/emblem.js', () => ({
   renderEmblem: vi.fn(() => '<svg class="mock-emblem"></svg>')
+}))
+
+vi.mock('../../partials/emblemEditor.js', () => ({
+  openEmblemEditor: vi.fn()
 }))
 
 vi.mock('../../util/league.js', () => ({
   formatLeague: vi.fn((level, league) => `Liga ${level + 1}/${league}`)
 }))
 
-vi.mock('../../lib/currency.js', () => ({
-  euroFormat: { format: (v) => `${v} €` }
+vi.mock('../../util/team.js', () => ({
+  shortenTeamName: vi.fn((name) => name)
+}))
+
+vi.mock('../../lib/promoVideo.js', () => ({
+  getPromoVideoId: vi.fn(() => 'vid123'),
+  renderPromoVideoEmbed: vi.fn(() => '<iframe class="mock-video"></iframe>')
 }))
 
 vi.mock('../../lib/router.js', () => ({
   goTo: vi.fn(),
   setHasTeam: vi.fn()
+}))
+
+vi.mock('../../lib/html.js', () => ({
+  el: vi.fn(() => null),
+  generateId: vi.fn(() => 'gen-id'),
+  value: vi.fn(() => '')
 }))
 
 vi.mock('../../i18n/index.js', () => ({
@@ -38,56 +51,42 @@ vi.mock('../../i18n/index.js', () => ({
     : `${key}:${JSON.stringify(params)}`)
 }))
 
-vi.mock('../../lib/event.js', () => ({
-  on: vi.fn(),
-  off: vi.fn(),
-  fire: vi.fn()
-}))
-
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
-import { showConfirmDialog } from '../../partials/overlay.js'
-import { goTo, setHasTeam } from '../../lib/router.js'
+import { openEmblemEditor } from '../../partials/emblemEditor.js'
+import { setHasTeam } from '../../lib/router.js'
+import { value } from '../../lib/html.js'
 import { ChooseTeamPage } from '../../pages/choose-team.js'
 
-function buildTeam (overrides = {}) {
-  return {
-    id: 1,
-    name: 'Bot FC',
-    color: '#abcdef',
-    emblem: '{}',
-    level: 2,
-    league: 0,
-    value: 12345,
-    ...overrides
-  }
-}
-
-describe('ChooseTeamPage', () => {
+describe('ChooseTeamPage (post-registration wizard, #453)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    global.window = global.window || {}
   })
 
-  it('loads and renders the list of available teams', async () => {
-    const team1 = buildTeam({ id: 1, name: 'Alpha FC' })
-    const team2 = buildTeam({ id: 2, name: 'Beta FC', value: 99000 })
-    server.getAvailableTeams.mockResolvedValue({ teams: [team1, team2] })
+  it('loads leagues and renders the welcome + video + league list', async () => {
+    server.getAvailableLeagues.mockResolvedValue({
+      leagues: [
+        { level: 2, league: 0, freeTeams: 3 },
+        { level: 2, league: 1, freeTeams: 1 }
+      ]
+    })
 
     const page = new ChooseTeamPage()
     await page.load()
     const html = page.template
 
-    expect(server.getAvailableTeams).toHaveBeenCalled()
-    expect(html).toContain('Alpha FC')
-    expect(html).toContain('Beta FC')
-    expect(html).toContain('chooseTeam.title')
-    expect(html).toContain('chooseTeam.description')
-    expect(html).toContain('12345 €')
-    expect(html).toContain('99000 €')
+    expect(server.getAvailableLeagues).toHaveBeenCalled()
+    expect(html).toContain('chooseTeam.welcomeTitle')
+    expect(html).toContain('chooseTeam.welcomeText')
+    expect(html).toContain('mock-video')
+    expect(html).toContain('Liga 3/0')
+    expect(html).toContain('Liga 3/1')
+    expect(html).toContain('data-level="2"')
   })
 
-  it('renders the empty state when no teams are available', async () => {
-    server.getAvailableTeams.mockResolvedValue({ teams: [] })
+  it('renders the empty state when no leagues are available', async () => {
+    server.getAvailableLeagues.mockResolvedValue({ leagues: [] })
 
     const page = new ChooseTeamPage()
     await page.load()
@@ -95,108 +94,87 @@ describe('ChooseTeamPage', () => {
     expect(page.template).toContain('chooseTeam.noTeams')
   })
 
-  it('asks for confirmation, claims the team, and routes to the dashboard', async () => {
-    const team = buildTeam({ id: 5, name: 'My Choice FC' })
-    server.getAvailableTeams.mockResolvedValue({ teams: [team] })
-    server.chooseTeam.mockResolvedValue({ success: true })
-    showConfirmDialog.mockResolvedValue(true)
-
-    const page = new ChooseTeamPage()
-    await page.load()
-    await page._onSelect(5)
-
-    expect(showConfirmDialog).toHaveBeenCalledWith(
-      expect.stringContaining('My Choice FC'),
-      expect.anything(),
-      expect.anything()
-    )
-    expect(server.chooseTeam).toHaveBeenCalledWith(5)
-    expect(setHasTeam).toHaveBeenCalledWith(true)
-    expect(goTo).toHaveBeenCalledWith('')
-  })
-
-  it('does not call chooseTeam when the user cancels the confirmation', async () => {
-    const team = buildTeam({ id: 7 })
-    server.getAvailableTeams.mockResolvedValue({ teams: [team] })
-    showConfirmDialog.mockResolvedValue(false)
-
-    const page = new ChooseTeamPage()
-    await page.load()
-    await page._onSelect(7)
-
-    expect(server.chooseTeam).not.toHaveBeenCalled()
-    expect(goTo).not.toHaveBeenCalled()
-  })
-
-  it('renders a league filter when multiple leagues are available', async () => {
-    const team1 = buildTeam({ id: 1, name: 'Alpha FC', level: 2, league: 0 })
-    const team2 = buildTeam({ id: 2, name: 'Beta FC', level: 2, league: 1 })
-    const team3 = buildTeam({ id: 3, name: 'Gamma FC', level: 3, league: 0 })
-    server.getAvailableTeams.mockResolvedValue({ teams: [team1, team2, team3] })
-
-    const page = new ChooseTeamPage()
-    await page.load()
-    const html = page.template
-
-    expect(html).toContain('choose-team-filter-select')
-    expect(html).toContain('chooseTeam.filterLeague')
-    expect(html).toContain('chooseTeam.filterAll')
-    expect(html).toContain('Liga 3/0')
-    expect(html).toContain('Liga 3/1')
-    expect(html).toContain('Liga 4/0')
-  })
-
-  it('does not render the league filter when all teams share one league', async () => {
-    const team1 = buildTeam({ id: 1, name: 'Alpha FC', level: 2, league: 0 })
-    const team2 = buildTeam({ id: 2, name: 'Beta FC', level: 2, league: 0 })
-    server.getAvailableTeams.mockResolvedValue({ teams: [team1, team2] })
-
-    const page = new ChooseTeamPage()
-    await page.load()
-
-    expect(page.template).not.toContain('choose-team-filter-select')
-  })
-
-  it('filters the rendered team list by the selected league', async () => {
-    const team1 = buildTeam({ id: 1, name: 'Alpha FC', level: 2, league: 0 })
-    const team2 = buildTeam({ id: 2, name: 'Beta FC', level: 2, league: 1 })
-    const team3 = buildTeam({ id: 3, name: 'Gamma FC', level: 3, league: 0 })
-    server.getAvailableTeams.mockResolvedValue({ teams: [team1, team2, team3] })
-
-    const page = new ChooseTeamPage()
-    await page.load()
-    page._selectedLeagueKey = '2-1'
-
-    const html = page.template
-    expect(html).not.toContain('Alpha FC')
-    expect(html).toContain('Beta FC')
-    expect(html).not.toContain('Gamma FC')
-  })
-
-  it('shows an empty state when no teams match the selected league', async () => {
-    const team1 = buildTeam({ id: 1, name: 'Alpha FC', level: 2, league: 0 })
-    server.getAvailableTeams.mockResolvedValue({ teams: [team1] })
-
-    const page = new ChooseTeamPage()
-    await page.load()
-    page._selectedLeagueKey = '9-9'
-
-    expect(page.template).toContain('chooseTeam.noTeamsInLeague')
-  })
-
-  it('shows a toast when the server rejects chooseTeam', async () => {
-    const team = buildTeam({ id: 8 })
-    server.getAvailableTeams.mockResolvedValue({ teams: [team] })
-    showConfirmDialog.mockResolvedValue(true)
-    server.chooseTeam.mockRejectedValue({ message: 'Boom' })
+  it('assigns a random team, marks hasTeam and advances to the name step', async () => {
+    server.getAvailableLeagues.mockResolvedValue({ leagues: [{ level: 2, league: 0, freeTeams: 3 }] })
+    server.chooseRandomTeamInLeague.mockResolvedValue({
+      team: { id: 5, name: 'Random FC', short_name: 'RFC', emblem: '{}', color: '#fff', level: 2, league: 0 }
+    })
 
     const page = new ChooseTeamPage()
     page.update = vi.fn().mockResolvedValue()
     await page.load()
-    await page._onSelect(8)
+    await page._onSelectLeague(2, 0)
+
+    expect(server.chooseRandomTeamInLeague).toHaveBeenCalledWith(2, 0)
+    expect(setHasTeam).toHaveBeenCalledWith(true)
+    expect(page._step).toBe('name')
+    expect(page._team.name).toBe('Random FC')
+    // Name step shows the assigned name prefilled.
+    expect(page.template).toContain('Random FC')
+  })
+
+  it('saves the club name and advances to the emblem step, opening the editor', async () => {
+    server.updateTeamName.mockResolvedValue({ success: true })
+    value.mockReturnValueOnce('New Club Name').mockReturnValueOnce('NCN')
+
+    const page = new ChooseTeamPage()
+    page.update = vi.fn().mockResolvedValue()
+    page._team = { id: 5, name: 'Random FC', short_name: null, emblem: '{}', color: '#fff' }
+    page._step = 'name'
+    page._nameInputId = 'name'
+    page._shortInputId = 'short'
+
+    await page._onSaveName()
+
+    expect(server.updateTeamName).toHaveBeenCalledWith('New Club Name', 'NCN')
+    expect(page._step).toBe('emblem')
+    expect(openEmblemEditor).toHaveBeenCalledWith(page._team, expect.any(Function))
+  })
+
+  it('rejects an empty club name with a toast and does not advance', async () => {
+    value.mockReturnValue('')
+
+    const page = new ChooseTeamPage()
+    page.update = vi.fn().mockResolvedValue()
+    page._team = { id: 5, name: 'Random FC' }
+    page._step = 'name'
+    page._nameInputId = 'name'
+    page._shortInputId = 'short'
+
+    await page._onSaveName()
+
+    expect(toast).toHaveBeenCalledWith('myTeam.nameRequired', 'error')
+    expect(server.updateTeamName).not.toHaveBeenCalled()
+    expect(page._step).toBe('name')
+  })
+
+  it('shows a toast when assigning a random team fails', async () => {
+    server.getAvailableLeagues.mockResolvedValue({ leagues: [{ level: 2, league: 0, freeTeams: 1 }] })
+    server.chooseRandomTeamInLeague.mockRejectedValue({ message: 'Boom' })
+
+    const page = new ChooseTeamPage()
+    page.update = vi.fn().mockResolvedValue()
+    await page.load()
+    await page._onSelectLeague(2, 0)
 
     expect(toast).toHaveBeenCalledWith('Boom', 'error')
     expect(setHasTeam).not.toHaveBeenCalled()
-    expect(goTo).not.toHaveBeenCalled()
+    expect(page._step).toBe('league')
+  })
+
+  it('opens the emblem editor from the emblem step', async () => {
+    const page = new ChooseTeamPage()
+    page._team = { id: 5, name: 'Random FC', emblem: '{}', color: '#fff' }
+    page._openEmblemEditor()
+    expect(openEmblemEditor).toHaveBeenCalledWith(page._team, expect.any(Function))
+  })
+
+  it('renders the emblem step with a "to dashboard" action', async () => {
+    const page = new ChooseTeamPage()
+    page._team = { id: 5, name: 'Random FC', emblem: '{}', color: '#fff' }
+    page._step = 'emblem'
+    const html = page.template
+    expect(html).toContain('data-finish')
+    expect(html).toContain('chooseTeam.toDashboard')
   })
 })

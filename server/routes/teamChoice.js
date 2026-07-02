@@ -30,6 +30,43 @@ async function _loadChoosableTeams () {
   )
 }
 
+/**
+ * Take over a free team for the current user: reset balance, wipe old
+ * offers/logs/sponsor, regenerate players/stadium/buildings and grant starter
+ * action cards. Shared by chooseTeam and chooseRandomTeamInLeague (#453).
+ * @param {Object} team
+ * @param {Request} req
+ * @param {string} locale
+ * @returns {Promise<void>}
+ */
+async function _takeOverTeam (team, req, locale) {
+  await query('DELETE FROM log_message WHERE team_id=?', [team.id])
+  await query('DELETE FROM finance_log WHERE team_id=?', [team.id])
+  await query('DELETE FROM trade_offer WHERE from_team_id=?', [team.id])
+  await query('DELETE FROM trade_offer WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
+  await addLogMessage(t('log.welcome', {
+    username: req.user.username,
+    teamName: team.name
+  }, locale), team, null, null, 'hand-peace-o', undefined, 'info')
+  await query('UPDATE team SET user_id=?, balance=500000, coach_since=CURRENT_TIMESTAMP WHERE id=?', [req.user.id, team.id])
+  const { sponsor } = await getSponsor(team)
+  if (sponsor) {
+    await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
+  }
+  await regenerateTeamData(team)
+  const { gameDay, season } = await getGameDayAndSeason()
+  await completeAllStadiumConstructionsForTeam(team.id, gameDay, season)
+  await query('DELETE FROM action_card WHERE team_id=?', [team.id])
+  const starterCards = [
+    new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER_1', played: 0, season }),
+    new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0, season })
+  ]
+  for (const card of starterCards) {
+    await query('INSERT INTO action_card SET ?', card)
+  }
+  clearUserCache(req.user.id)
+}
+
 export default {
 
   /**
@@ -122,31 +159,79 @@ export default {
     if (!team) {
       throw new BadRequestError(t('chooseTeam.teamUnavailable', {}, locale))
     }
-    await query('DELETE FROM log_message WHERE team_id=?', [team.id])
-    await query('DELETE FROM finance_log WHERE team_id=?', [team.id])
-    await query('DELETE FROM trade_offer WHERE from_team_id=?', [team.id])
-    await query('DELETE FROM trade_offer WHERE player_id IN (SELECT id FROM player WHERE team_id=?)', [team.id])
-    await addLogMessage(t('log.welcome', {
-      username: req.user.username,
-      teamName: team.name
-    }, locale), team, null, null, 'hand-peace-o', undefined, 'info')
-    await query('UPDATE team SET user_id=?, balance=500000, coach_since=CURRENT_TIMESTAMP WHERE id=?', [req.user.id, team.id])
-    const { sponsor } = await getSponsor(team)
-    if (sponsor) {
-      await query('DELETE FROM sponsor WHERE id=?', [sponsor.id])
-    }
-    await regenerateTeamData(team)
-    const { gameDay, season } = await getGameDayAndSeason()
-    await completeAllStadiumConstructionsForTeam(team.id, gameDay, season)
-    await query('DELETE FROM action_card WHERE team_id=?', [team.id])
-    const starterCards = [
-      new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER_1', played: 0, season }),
-      new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0, season })
-    ]
-    for (const card of starterCards) {
-      await query('INSERT INTO action_card SET ?', card)
-    }
-    clearUserCache(req.user.id)
+    await _takeOverTeam(team, req, locale)
     return { success: true }
+  },
+
+  /**
+   * Leagues (from the 3rd league downward) that still have free teams, so the
+   * user picks a league rather than a specific team (#453). Each entry carries
+   * the level/league and how many free teams are available there.
+   * @param {Request} req
+   * @returns {Promise<{ leagues: Array<{level: number, league: number, freeTeams: number}> }>}
+   */
+  async getAvailableLeagues (req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    let teams = await _loadChoosableTeams()
+    if (teams.length === 0) {
+      await prepareSeason()
+      teams = await _loadChoosableTeams()
+    }
+    const counts = new Map()
+    for (const team of teams) {
+      const key = `${team.level}-${team.league}`
+      const entry = counts.get(key) || { level: team.level, league: team.league, freeTeams: 0 }
+      entry.freeTeams++
+      counts.set(key, entry)
+    }
+    const leagues = [...counts.values()].sort((a, b) => a.level - b.level || a.league - b.league)
+    return { leagues }
+  },
+
+  /**
+   * Assign a random free team from the chosen league to the user (#453). Used
+   * by the reworked post-registration flow, where the user picks a league and
+   * is handed a random club to rename and re-skin afterwards.
+   * @param {number} level
+   * @param {number} league
+   * @param {Request} req
+   * @returns {Promise<{ team: Object }>}
+   */
+  async chooseRandomTeamInLeague (level, league, req) {
+    const locale = req.locale || 'en'
+    if (!req.user) {
+      throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    }
+    if (typeof level !== 'number' || typeof league !== 'number') {
+      throw new BadRequestError(t('error.invalidParam', {}, locale))
+    }
+    const [existing] = await query('SELECT id FROM team WHERE user_id=? LIMIT 1', [req.user.id])
+    if (existing) {
+      throw new BadRequestError(t('chooseTeam.alreadyHasTeam', {}, locale))
+    }
+    const [team] = await query(
+      `SELECT * FROM team
+       WHERE user_id IS NULL AND is_system_team = 0 AND level >= ? AND level = ? AND league = ?
+       ORDER BY RAND() LIMIT 1`,
+      [MIN_CHOOSABLE_LEVEL, level, league]
+    )
+    if (!team) {
+      throw new BadRequestError(t('chooseTeam.teamUnavailable', {}, locale))
+    }
+    await _takeOverTeam(team, req, locale)
+    return {
+      team: {
+        id: team.id,
+        name: team.name,
+        short_name: team.short_name ?? null,
+        emblem: team.emblem,
+        color: team.color,
+        level: team.level,
+        league: team.league
+      }
+    }
   }
 }

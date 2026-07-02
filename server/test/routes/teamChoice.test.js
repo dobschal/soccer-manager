@@ -129,6 +129,94 @@ describe('teamChoice routes', () => {
     })
   })
 
+  describe('getAvailableLeagues', () => {
+    it('throws when the user is not authenticated', async () => {
+      await expect(handlers.getAvailableLeagues({ locale: 'en' }))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+
+    it('groups free teams into leagues with counts, sorted by level/league', async () => {
+      query.mockResolvedValueOnce([
+        testData.team({ id: 1, level: 2, league: 1, user_id: null }),
+        testData.team({ id: 2, level: 2, league: 1, user_id: null }),
+        testData.team({ id: 3, level: 2, league: 0, user_id: null }),
+        testData.team({ id: 4, level: 3, league: 0, user_id: null })
+      ])
+
+      const result = await handlers.getAvailableLeagues({ user: { id: 1 }, locale: 'en' })
+
+      expect(result.leagues).toEqual([
+        { level: 2, league: 0, freeTeams: 1 },
+        { level: 2, league: 1, freeTeams: 2 },
+        { level: 3, league: 0, freeTeams: 1 }
+      ])
+      expect(prepareSeason).not.toHaveBeenCalled()
+    })
+
+    it('calls prepareSeason when no free teams exist yet', async () => {
+      query
+        .mockResolvedValueOnce([]) // empty
+        .mockResolvedValueOnce([testData.team({ id: 9, level: 2, league: 0, user_id: null })])
+
+      const result = await handlers.getAvailableLeagues({ user: { id: 1 }, locale: 'en' })
+
+      expect(prepareSeason).toHaveBeenCalledTimes(1)
+      expect(result.leagues).toHaveLength(1)
+    })
+  })
+
+  describe('chooseRandomTeamInLeague', () => {
+    it('throws when the user is not authenticated', async () => {
+      await expect(handlers.chooseRandomTeamInLeague(2, 0, { locale: 'en' }))
+        .rejects.toMatchObject({ message: 'Not authorized' })
+    })
+
+    it('rejects non-number level/league', async () => {
+      await expect(handlers.chooseRandomTeamInLeague('x', 0, { user: { id: 1 }, locale: 'en' }))
+        .rejects.toMatchObject({ message: 'Invalid parameter' })
+    })
+
+    it('rejects when the user already has a team', async () => {
+      query.mockResolvedValueOnce([{ id: 7 }])
+      await expect(handlers.chooseRandomTeamInLeague(2, 0, { user: { id: 1 }, locale: 'en' }))
+        .rejects.toMatchObject({ message: 'You already manage a team.' })
+    })
+
+    it('rejects when no free team exists in the league', async () => {
+      query
+        .mockResolvedValueOnce([]) // user has no team
+        .mockResolvedValueOnce([]) // no random team
+      await expect(handlers.chooseRandomTeamInLeague(2, 0, { user: { id: 1 }, locale: 'en' }))
+        .rejects.toMatchObject({ message: 'This team is not available anymore.' })
+    })
+
+    it('assigns a random team and returns it', async () => {
+      const team = testData.team({ id: 5, level: 2, league: 0, user_id: null, name: 'Bot FC', emblem: '{}', color: '#abc', short_name: 'BFC' })
+      query
+        .mockResolvedValueOnce([]) // no team for user yet
+        .mockResolvedValueOnce([team]) // random team
+        .mockResolvedValueOnce({}) // delete log_message
+        .mockResolvedValueOnce({}) // delete finance_log
+        .mockResolvedValueOnce({}) // delete trade_offer from
+        .mockResolvedValueOnce({}) // delete trade_offer player
+        .mockResolvedValueOnce({}) // update team
+        .mockResolvedValueOnce({}) // delete action_card
+        .mockResolvedValueOnce({}) // insert action_card 1
+        .mockResolvedValueOnce({}) // insert action_card 2
+      getSponsor.mockResolvedValue({ sponsor: null })
+
+      const result = await handlers.chooseRandomTeamInLeague(2, 0, { user: { id: 1, username: 'sascha' }, locale: 'en' })
+
+      expect(result.team).toMatchObject({ id: 5, name: 'Bot FC', short_name: 'BFC', emblem: '{}', color: '#abc' })
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE team SET user_id=?, balance=500000, coach_since=CURRENT_TIMESTAMP WHERE id=?',
+        [1, 5]
+      )
+      expect(regenerateTeamData).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }))
+      expect(clearUserCache).toHaveBeenCalledWith(1)
+    })
+  })
+
   describe('chooseTeam', () => {
     it('throws when the user is not authenticated', async () => {
       await expect(handlers.chooseTeam(1, { locale: 'en' }))

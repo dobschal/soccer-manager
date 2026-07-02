@@ -156,6 +156,17 @@ export default {
   'chooseTeam.filterLeague': 'Filter league',
   'chooseTeam.filterAll': 'All leagues',
   'chooseTeam.noTeamsInLeague': 'No teams are currently available in this league.',
+  'chooseTeam.welcomeTitle': 'Welcome to FootballManager.IO',
+  'chooseTeam.welcomeText': 'In this game you take on the role of a football club manager. First choose a league to start in. If you would like to learn more about the game first, watch this video.',
+  'chooseTeam.chooseLeagueTitle': 'Choose your league',
+  'chooseTeam.freeTeamsCount': '{count} free teams',
+  'chooseTeam.nameStepTitle': 'Name your club',
+  'chooseTeam.nameStepText': 'A team has been assigned to you. Give it a long and a short name – or keep the existing one.',
+  'chooseTeam.emblemStepTitle': 'Design your emblem',
+  'chooseTeam.emblemStepText': 'Finally, customize your club emblem. After that you will head to the dashboard.',
+  'chooseTeam.continue': 'Continue',
+  'chooseTeam.customizeEmblem': 'Customize emblem',
+  'chooseTeam.toDashboard': 'To the dashboard',
 
   // Dashboard
   'dashboard.hey': 'Hey',

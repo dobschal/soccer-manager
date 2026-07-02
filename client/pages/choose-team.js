@@ -2,143 +2,196 @@ import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
 import { t } from '../i18n/index.js'
 import { toast } from '../partials/toast.js'
-import { showConfirmDialog } from '../partials/overlay.js'
 import { renderEmblem } from '../partials/emblem.js'
+import { openEmblemEditor } from '../partials/emblemEditor.js'
 import { formatLeague } from '../util/league.js'
-import { euroFormat } from '../lib/currency.js'
 import { goTo, setHasTeam } from '../lib/router.js'
+import { el, generateId, value } from '../lib/html.js'
+import { getPromoVideoId, renderPromoVideoEmbed } from '../lib/promoVideo.js'
+import { shortenTeamName } from '../util/team.js'
 
-const ALL_LEAGUES = 'all'
+const MAX_NAME_LENGTH = 32
+const MAX_SHORT_NAME_LENGTH = 12
+const MAX_WORD_LENGTH = 12
 
+/**
+ * Post-registration wizard (#453): the user picks a league (not a team), gets a
+ * random club assigned, then renames it and designs its emblem before landing
+ * on the dashboard.
+ */
 export class ChooseTeamPage extends UIElement {
-
   async load () {
-    const { teams } = await server.getAvailableTeams()
-    this._teams = teams
+    const { leagues } = await server.getAvailableLeagues()
+    this._leagues = leagues || []
   }
+
   get template () {
     return `
       <div class="choose-team-page">
         <div class="choose-team-inner">
-          <h1 class="choose-team-title">${t('chooseTeam.title')}</h1>
-          <p class="choose-team-description">${t('chooseTeam.description')}</p>
-          ${this._renderLeagueFilter()}
-          ${this._renderTeamList()}
+          ${this._step === 'league' ? this._renderLeagueStep() : ''}
+          ${this._step === 'name' ? this._renderNameStep() : ''}
+          ${this._step === 'emblem' ? this._renderEmblemStep() : ''}
         </div>
       </div>
     `
   }
+
   get events () {
     return {
-      '(optional) .choose-team-list': {
+      '(optional) .choose-league-list': {
         click: (event) => {
-          const row = event.target.closest('.choose-team-row')
+          const row = event.target.closest('.choose-league-row')
           if (!row) return
-          const teamId = Number(row.dataset.teamId)
-          this._onSelect(teamId)
+          this._onSelectLeague(Number(row.dataset.level), Number(row.dataset.league))
         }
       },
-      '(optional) .choose-team-filter-select': {
-        change: (event) => {
-          this._selectedLeagueKey = event.target.value
-          this.update(false)
+      '(optional) form[name="rename-team"]': {
+        submit: (event) => {
+          event.preventDefault()
+          this._onSaveName()
         }
+      },
+      '(optional) [data-open-emblem-editor]': {
+        click: () => this._openEmblemEditor()
+      },
+      '(optional) [data-finish]': {
+        click: () => goTo('')
       }
     }
   }
-  _selectedLeagueKey = ALL_LEAGUES
 
-  showLoadingIndicator = true
-
-  _renderLeagueFilter () {
-    if (!this._teams || this._teams.length === 0) return ''
-    const leagues = this._getUniqueLeagues()
-    if (leagues.length <= 1) return ''
+  // ── Step 1: choose a league ────────────────────────────────────────────
+  _renderLeagueStep () {
+    const isNativeApp = Boolean(window.__nativePlatform)
+    const videoId = getPromoVideoId({ isNativeApp })
     return `
-      <div class="choose-team-filter">
-        <label class="choose-team-filter-label" for="choose-team-filter-select">${t('chooseTeam.filterLeague')}</label>
-        <select id="choose-team-filter-select" class="choose-team-filter-select">
-          <option value="${ALL_LEAGUES}"${this._selectedLeagueKey === ALL_LEAGUES ? ' selected' : ''}>${t('chooseTeam.filterAll')}</option>
-          ${leagues.map(l => `
-            <option value="${l.key}"${this._selectedLeagueKey === l.key ? ' selected' : ''}>${l.label}</option>
-          `).join('')}
-        </select>
+      <h1 class="choose-team-title">${t('chooseTeam.welcomeTitle')}</h1>
+      <p class="choose-team-description">${t('chooseTeam.welcomeText')}</p>
+      <div class="choose-team-video mb-4">
+        ${renderPromoVideoEmbed(videoId, t('chooseTeam.welcomeTitle'))}
       </div>
+      <h2 class="choose-team-subtitle">${t('chooseTeam.chooseLeagueTitle')}</h2>
+      ${this._renderLeagueList()}
     `
   }
 
-  _getUniqueLeagues () {
-    const seen = new Set()
-    const result = []
-    for (const team of this._teams) {
-      const key = `${team.level}-${team.league}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      result.push({
-        key,
-        level: team.level,
-        league: team.league,
-        label: formatLeague(team.level, team.league)
-      })
-    }
-    return result.sort((a, b) => a.level - b.level || a.league - b.league)
-  }
-
-  _getFilteredTeams () {
-    if (!this._teams) return []
-    if (this._selectedLeagueKey === ALL_LEAGUES) return this._teams
-    return this._teams.filter(team => `${team.level}-${team.league}` === this._selectedLeagueKey)
-  }
-
-  _renderTeamList () {
-    if (!this._teams || this._teams.length === 0) {
+  _renderLeagueList () {
+    if (!this._leagues || this._leagues.length === 0) {
       return `<p class="choose-team-empty">${t('chooseTeam.noTeams')}</p>`
     }
-    const filtered = this._getFilteredTeams()
-    if (filtered.length === 0) {
-      return `<p class="choose-team-empty">${t('chooseTeam.noTeamsInLeague')}</p>`
-    }
     return `
-      <div class="choose-team-list">
-        ${filtered.map(team => this._renderTeamRow(team)).join('')}
+      <div class="choose-league-list">
+        ${this._leagues.map(l => `
+          <button type="button" class="choose-league-row" data-level="${l.level}" data-league="${l.league}">
+            <span class="choose-league-name">${formatLeague(l.level, l.league)}</span>
+            <span class="choose-league-count">${t('chooseTeam.freeTeamsCount', { count: l.freeTeams })}</span>
+          </button>
+        `).join('')}
       </div>
     `
   }
 
-  _renderTeamRow (team) {
+  async _onSelectLeague (level, league) {
+    if (this._isSubmitting) return
+    this._isSubmitting = true
+    try {
+      const { team } = await server.chooseRandomTeamInLeague(level, league)
+      this._team = team
+      setHasTeam(true)
+      this._step = 'name'
+      await this.update()
+    } catch (e) {
+      toast(e?.message ?? t('landing.somethingWentWrong'), 'error')
+    }
+    this._isSubmitting = false
+  }
+
+  // ── Step 2: rename the assigned club ───────────────────────────────────
+  _renderNameStep () {
+    const nameInputId = generateId()
+    const shortInputId = generateId()
+    this._nameInputId = nameInputId
+    this._shortInputId = shortInputId
+    const escapeHtml = (str) => String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+    const name = escapeHtml(this._team?.name ?? '')
+    const shortName = escapeHtml(this._team?.short_name ?? '')
     return `
-      <button type="button" class="choose-team-row" data-team-id="${team.id}">
-        <span class="choose-team-emblem">${renderEmblem({
-    name: team.name,
-    color: team.color,
-    emblem: team.emblem
-  }, 56)}</span>
-        <span class="choose-team-name">${team.name}</span>
-        <span class="choose-team-league">${formatLeague(team.level, team.league)}</span>
-        <span class="choose-team-value">${t('chooseTeam.value')}: <br>${euroFormat.format(team.value)}</span>
-      </button>
+      <h1 class="choose-team-title">${t('chooseTeam.nameStepTitle')}</h1>
+      <p class="choose-team-description">${t('chooseTeam.nameStepText')}</p>
+      <div class="choose-team-emblem-preview mb-4">${renderEmblem(this._team, 120)}</div>
+      <form name="rename-team" autocomplete="off" class="choose-team-form">
+        <div class="form-group mb-3 text-start">
+          <label for="${nameInputId}">${t('myTeam.teamName')}</label>
+          <input id="${nameInputId}" type="text" class="form-control" value="${name}" maxlength="${MAX_NAME_LENGTH}" autocomplete="off">
+        </div>
+        <div class="form-group mb-3 text-start">
+          <label for="${shortInputId}">${t('myTeam.shortName')}</label>
+          <input id="${shortInputId}" type="text" class="form-control" value="${shortName}" maxlength="${MAX_SHORT_NAME_LENGTH}" placeholder="${escapeHtml(shortenTeamName(this._team?.name ?? ''))}" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-info w-100 text-white">${t('chooseTeam.continue')}</button>
+      </form>
     `
   }
 
-  async _onSelect (teamId) {
+  _validateName (name) {
+    if (!name) return t('myTeam.nameRequired')
+    if (name.length > MAX_NAME_LENGTH) return t('myTeam.nameTooLong', { max: MAX_NAME_LENGTH })
+    if (name.split(' ').some(w => w.length > MAX_WORD_LENGTH)) {
+      return t('myTeam.wordTooLong', { max: MAX_WORD_LENGTH })
+    }
+    return ''
+  }
+
+  async _onSaveName () {
     if (this._isSubmitting) return
-    const team = this._teams.find(t => t.id === teamId)
-    if (!team) return
-    const confirmed = await showConfirmDialog(
-      t('chooseTeam.confirm', { teamName: team.name }),
-      t('chooseTeam.confirmYes'),
-      t('chooseTeam.confirmNo')
-    )
-    if (!confirmed) return
+    const name = (value('#' + this._nameInputId) || '').replace(/\s+/g, ' ').trim()
+    const shortName = (value('#' + this._shortInputId) || '').replace(/\s+/g, ' ').trim()
+    const error = this._validateName(name)
+    if (error) return toast(error, 'error')
     this._isSubmitting = true
     try {
-      await server.chooseTeam(teamId)
-      setHasTeam(true)
-      goTo('')
+      await server.updateTeamName(name, shortName)
+      this._team.name = name
+      this._team.short_name = shortName || null
+      this._step = 'emblem'
+      await this.update()
+      // Open the emblem editor right away — designing the crest is the final
+      // step of the flow (#453).
+      this._openEmblemEditor()
     } catch (e) {
       toast(e?.message ?? t('landing.somethingWentWrong'), 'error')
-      this._isSubmitting = false
-      await this.update(true)
     }
+    this._isSubmitting = false
   }
+
+  // ── Step 3: design the emblem, then head to the dashboard ──────────────
+  _renderEmblemStep () {
+    return `
+      <h1 class="choose-team-title">${t('chooseTeam.emblemStepTitle')}</h1>
+      <p class="choose-team-description">${t('chooseTeam.emblemStepText')}</p>
+      <div class="choose-team-emblem-preview mb-4" id="choose-team-emblem">${renderEmblem(this._team, 160)}</div>
+      <div class="d-flex flex-column gap-2">
+        <button type="button" class="btn btn-outline-info" data-open-emblem-editor>${t('chooseTeam.customizeEmblem')}</button>
+        <button type="button" class="btn btn-info text-white" data-finish>${t('chooseTeam.toDashboard')}</button>
+      </div>
+    `
+  }
+
+  _openEmblemEditor () {
+    openEmblemEditor(this._team, () => {
+      const preview = el('#choose-team-emblem')
+      if (preview) preview.innerHTML = renderEmblem(this._team, 160)
+    })
+  }
+
+  // Wizard step: 'league' | 'name' | 'emblem'
+  _step = 'league'
+  _team = null
+  showLoadingIndicator = true
 }
