@@ -22,6 +22,8 @@ declare const NSSet: any
 declare const WKWebsiteDataRecord: any
 declare const NSDate: any
 declare const UNUserNotificationCenter: any
+declare const UNUserNotificationCenterDelegate: any
+declare const SKStoreReviewController: any
 declare const UNAuthorizationOptionAlert: number
 declare const UNAuthorizationOptionBadge: number
 declare const UNAuthorizationOptionSound: number
