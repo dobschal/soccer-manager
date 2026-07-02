@@ -208,7 +208,8 @@ export class StartPage {
         type: 'SQUAD_AGE',
         text: (urgency) => t(urgency?.tooYoung ? 'dashboard.urgencySquadTooYoung' : 'dashboard.urgencySquadTooOld'),
         okText: 'dashboard.urgencyOk.squadAge',
-        link: '#my-team'
+        link: '#my-team',
+        hideOk: true
       },
       {
         type: 'LOW_FRESHNESS',
