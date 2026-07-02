@@ -8,6 +8,11 @@ import { connectWebSocket } from '../lib/websocket.js'
 import { isValidEmail } from '../lib/emailRegex.js'
 import { getDeviceUuid } from '../lib/deviceUuid.js'
 import { getPromoVideoId, renderPromoVideoEmbed } from '../lib/promoVideo.js'
+import { getLocale } from '../i18n/index.js'
+import { renderEmblem } from '../partials/emblem.js'
+import { openWikiEntryById } from '../partials/wikiInfoIcon.js'
+import { onClick } from '../lib/htmlEventHandlers.js'
+import { generateId } from '../lib/html.js'
 
 export const APP_STORE_URL = 'https://apps.apple.com/de/app/footballmanager-io/id6759547142'
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=io.soccermanager.app'
@@ -27,6 +32,19 @@ export class LandingPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
+    // Public landing stats + wiki entries (#455). Failures are non-fatal — the
+    // landing page still renders without these enrichment sections.
+    try {
+      this._stats = await server.getLandingStats()
+    } catch {
+      this._stats = null
+    }
+    try {
+      const { entries } = await server.getWikiEntries(getLocale())
+      this._wikiEntries = entries || []
+    } catch {
+      this._wikiEntries = []
+    }
   }
 
   /**
@@ -165,6 +183,10 @@ export class LandingPage extends UIElement {
           </div>
         </section>
 
+        ${this._statsSectionTemplate()}
+
+        ${this._wikiSectionTemplate()}
+
         <!-- CTA Section -->
         <section class="cta-section">
           <div class="container bg-transparent">
@@ -234,6 +256,72 @@ export class LandingPage extends UIElement {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
     await this.update()
+  }
+
+  /**
+   * Stats cards: registered users, new registrations (21 days) and a random
+   * real club (emblem + name) (#455).
+   * @returns {string}
+   */
+  _statsSectionTemplate () {
+    const stats = this._stats
+    if (!stats) return ''
+    const team = stats.team
+    const teamCard = team
+      ? `
+        <div class="landing-stat-card landing-stat-card--team">
+          <div class="landing-stat-emblem">${renderEmblem(team, 90)}</div>
+          <div class="landing-stat-team-name">${team.name}</div>
+          <div class="landing-stat-label">${t('landing.statsFeaturedClub')}</div>
+        </div>`
+      : ''
+    return `
+      <section class="feature-section landing-stats-section">
+        <div class="container bg-transparent">
+          <h2 class="text-white text-center mb-4">${t('landing.statsTitle')}</h2>
+          <div class="landing-stats-grid">
+            <div class="landing-stat-card">
+              <div class="landing-stat-value">${stats.totalUsers.toLocaleString(getLocale())}</div>
+              <div class="landing-stat-label">${t('landing.statsRegisteredUsers')}</div>
+            </div>
+            <div class="landing-stat-card">
+              <div class="landing-stat-value">${stats.newUsers.toLocaleString(getLocale())}</div>
+              <div class="landing-stat-label">${t('landing.statsNewUsers')}</div>
+            </div>
+            ${teamCard}
+          </div>
+        </div>
+      </section>
+    `
+  }
+
+  /**
+   * Wiki teaser: a grid of topic cards; clicking opens the article in an
+   * overlay so prospective users can explore the game before signing up (#455).
+   * @returns {string}
+   */
+  _wikiSectionTemplate () {
+    const entries = this._wikiEntries || []
+    if (entries.length === 0) return ''
+    const cards = entries.map(entry => {
+      const id = generateId()
+      onClick('#' + id, () => openWikiEntryById(entry.id))
+      return `
+        <button type="button" id="${id}" class="landing-wiki-card">
+          <span class="landing-wiki-card__title">${entry.title}</span>
+          ${entry.subtitle ? `<span class="landing-wiki-card__subtitle">${entry.subtitle}</span>` : ''}
+        </button>
+      `
+    }).join('')
+    return `
+      <section class="feature-section landing-wiki-section">
+        <div class="container bg-transparent">
+          <h2 class="text-white text-center mb-2">${t('landing.wikiTitle')}</h2>
+          <p class="text-white text-center mb-4">${t('landing.wikiSubtitle')}</p>
+          <div class="landing-wiki-grid">${cards}</div>
+        </div>
+      </section>
+    `
   }
 
   /**
