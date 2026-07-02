@@ -121,6 +121,14 @@
     margin-bottom: 1rem;
 }
 
+/* Bottom back button — a second exit affordance so the user doesn't have to
+   scroll all the way back up on long articles (#458). Hidden on desktop where
+   the overlay isn't used. */
+.wiki-detail-overlay__footer {
+    display: none;
+    margin-top: 2rem;
+}
+
 @media (max-width: 767.98px) {
     /* The inline content column is redundant on mobile — the overlay owns it. */
     .wiki-content-col {
@@ -137,7 +145,23 @@
         z-index: 1050;
         overflow-y: auto;
         background: var(--bs-body-bg, #fff);
-        padding: 1rem 1rem 3rem;
+        /* Clear the iOS status bar / notch so the top back button isn't hidden
+           behind the native navbar / safe area (#458). */
+        padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(3rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Keep the top back button pinned while scrolling long articles (#458). */
+    .wiki-detail-overlay.open .wiki-detail-overlay__header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        padding: 0.5rem 0;
+        margin-bottom: 0.5rem;
+        background: var(--bs-body-bg, #fff);
+    }
+
+    .wiki-detail-overlay.open .wiki-detail-overlay__footer {
+        display: block;
     }
 }
 

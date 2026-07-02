@@ -67,6 +67,11 @@ export class WikiPage extends UIElement {
             </button>
           </div>
           <div class="wiki-detail-overlay__body">${this._renderContent()}</div>
+          <div class="wiki-detail-overlay__footer">
+            <button type="button" id="${this._detailBackBottomId}" class="btn btn-outline-secondary w-100 wiki-detail-back">
+              &larr; ${t('wiki.back')}
+            </button>
+          </div>
         </div>
         <div id="${this._imageOverlayId}" class="wiki-image-overlay" hidden>
           <img id="${this._overlayImgId}" src="" alt="">
@@ -96,6 +101,11 @@ export class WikiPage extends UIElement {
       // Mobile back button — drop the id from the URL so the overlay closes
       // and tapping the same entry again re-triggers onQueryChanged.
       [`#${this._detailBackId}`]: {
+        click: () => {
+          window.location.hash = '#dashboard?sub_page=wiki'
+        }
+      },
+      [`#${this._detailBackBottomId}`]: {
         click: () => {
           window.location.hash = '#dashboard?sub_page=wiki'
         }
@@ -209,4 +219,5 @@ export class WikiPage extends UIElement {
   _overlayImgId = generateId()
   _detailOverlayId = generateId()
   _detailBackId = generateId()
+  _detailBackBottomId = generateId()
 }
