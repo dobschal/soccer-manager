@@ -7,6 +7,7 @@ import { renderEmblem } from '../../partials/emblem.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 
 export class FriendlyResultsPage extends UIElement {
   /**
@@ -30,7 +31,7 @@ export class FriendlyResultsPage extends UIElement {
     return `
       <div>
         <div class="mb-4">
-          <h2>${t('friendly.title')}</h2>
+          <h2>${t('friendly.title')} ${wikiInfoIcon('friendlies')}</h2>
           <table>
             <tr>
               <th>${t('results.season')}</th>

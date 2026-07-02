@@ -11,6 +11,7 @@ import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
 import { showFriendPostCommentsOverlay } from '../../partials/friendPostCommentsOverlay.js'
 import { showConfirmDialog } from '../../partials/overlay.js'
 import { linkifyHtml } from '../../lib/linkify.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 
 /**
  * Render a friend post body: detect http(s) URLs and convert them to
@@ -61,7 +62,7 @@ export class FriendsPage extends UIElement {
   get template () {
     return `
       <div>
-        <h3 class="mb-3"><i class="fa fa-users"></i> ${t('friends.title')}</h3>
+        <h3 class="mb-3"><i class="fa fa-users"></i> ${t('friends.title')} ${wikiInfoIcon('friends')}</h3>
         ${this._renderTable()}
         ${this._renderPostsSection()}
         <div class="d-flex flex-column flex-md-row u-gap-md mt-4 dashboard-promo-row mb-4">

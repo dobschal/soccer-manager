@@ -2365,6 +2365,34 @@ const migrations = [{
       INDEX idx_link_invite_inviter (inviter_user_id)
     )`)
   }
+}, {
+  name: 'Insert missing seed wiki entries by page_key (#456)',
+  async run () {
+    // The original seed only runs on an empty wiki, so wiki topics added to
+    // WIKI_SEED after prod was first seeded never get inserted. Backfill any
+    // seed topic whose page_key is not present yet, per locale. Idempotent:
+    // topics that already exist (by page_key) are skipped.
+    for (const topic of WIKI_SEED) {
+      if (!topic.key) continue
+      for (const locale of ['en', 'de']) {
+        const [existing] = await query(
+          'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+          [topic.key, locale]
+        )
+        if (existing) continue
+        const entry = topic[locale]
+        await query('INSERT INTO wiki_entry SET ?', {
+          locale,
+          page_key: topic.key,
+          title: entry.title,
+          subtitle: entry.subtitle || null,
+          text: entry.text,
+          images: JSON.stringify([]),
+          sort_order: 0
+        })
+      }
+    }
+  }
 }]
 
 /**

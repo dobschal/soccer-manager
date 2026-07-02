@@ -7,6 +7,7 @@ import { toast } from '../../partials/toast.js'
 import { delay } from '../../lib/delay.js'
 import { t } from '../../i18n/index.js'
 import { fire, off, on } from '../../lib/event.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { MiniGame } from './miniGame.js'
 import { preloadAllActionCardSvgs, renderActionCardSvg } from '../../lib/actionCardSvg.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
@@ -88,7 +89,7 @@ export class ActionCards extends UIElement {
   get template () {
     return `
       <div class="mb-5">
-        <h3>${t('actionCards.title')}</h3>
+        <h3>${t('actionCards.title')} ${wikiInfoIcon('action-cards')}</h3>
         <p class="u-max-w-620">${t('actionCards.subtitle')}</p>
         <div class="mb-4 action-cards-container">
           <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>

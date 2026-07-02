@@ -10,6 +10,7 @@ import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
 import { euroFormat } from '../../lib/currency.js'
 import { renderPageNumbers } from '../../partials/pagination.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 
 const CUP_PAGE_SIZE = 10
 
@@ -80,7 +81,7 @@ export class CupResultsPage extends UIElement {
       <div>
         <div class="mb-4 d-flex align-items-center gap-4">
           <div>
-            <h2>${t('cup.results')}</h2>
+            <h2>${t('cup.results')} ${wikiInfoIcon('cup')}</h2>
             <table>
               <tr>
                 <th>${t('results.season')}</th>

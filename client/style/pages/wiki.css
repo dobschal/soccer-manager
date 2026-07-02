@@ -75,9 +75,10 @@
 }
 
 .wiki-image {
-    width: 160px;
     height: 160px;
-    object-fit: cover;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
     border-radius: 0.5rem;
     border: 1px solid rgba(127, 127, 127, 0.2);
     cursor: pointer;

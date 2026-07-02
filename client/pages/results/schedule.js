@@ -7,6 +7,7 @@ import { renderEmblem } from '../../partials/emblem.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 
 export class SchedulePage extends UIElement {
   /**
@@ -28,7 +29,7 @@ export class SchedulePage extends UIElement {
     const myTeam = this.parentPage.info.team
     return `
       <div>
-        <h2>${t('schedule.title')}</h2>
+        <h2>${t('schedule.title')} ${wikiInfoIcon('schedule')}</h2>
         <p class="text-muted">${t('schedule.subtitle', {
     team: myTeam.name,
     season: (this.season ?? 0) + 1

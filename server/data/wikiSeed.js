@@ -308,6 +308,47 @@ Tipp: Gehälter sind eine ständige Belastung – wäge einen starken Kader gege
     }
   },
 
+  // ─── Friendlies ──────────────────────────────────────────────────────────
+  {
+    key: 'friendlies',
+    en: {
+      title: 'Friendly Matches',
+      subtitle: 'Test your squad against any team, any time',
+      text: `Friendly matches let you play an extra game whenever you like – to try out a lineup, a formation or new tactics without any league or cup consequences.
+
+How it works:
+• You can start one friendly per match day (the 12-hour slot between calculations). You can still be picked as someone else's opponent on top of that.
+• Choose a specific opponent from any team in the game, or let the game pick a random one for you.
+• The result is calculated instantly with the same match engine as league games (see Match Simulation), so it is a realistic test of your strength.
+
+What friendlies do and don't affect:
+• They do NOT change league standings, cup progress, points or suspensions.
+• Your players lose about half the fitness of a league game; your opponent loses none (they didn't choose to play).
+• Suspended players sit out, but their suspension is not used up.
+• As the home team you still earn ticket money – about half a normal match's attendance.
+
+Use friendlies to keep match practice up between fixtures and to experiment safely before it counts.`
+    },
+    de: {
+      title: 'Friendlies',
+      subtitle: 'Teste deinen Kader jederzeit gegen jedes Team',
+      text: `Freundschaftsspiele lassen dich jederzeit ein zusätzliches Spiel austragen – um eine Aufstellung, eine Formation oder neue Taktiken auszuprobieren, ganz ohne Folgen für Liga oder Pokal.
+
+So funktioniert es:
+• Du kannst ein Freundschaftsspiel pro Spieltag starten (der 12-Stunden-Slot zwischen den Berechnungen). Zusätzlich kannst du weiterhin als Gegner eines anderen Teams ausgewählt werden.
+• Wähle einen bestimmten Gegner aus allen Teams des Spiels aus oder lass das Spiel einen zufälligen Gegner bestimmen.
+• Das Ergebnis wird sofort mit derselben Spiel-Engine wie Ligaspiele berechnet (siehe Spielberechnung) – ein realistischer Test deiner Stärke.
+
+Was Freundschaftsspiele beeinflussen und was nicht:
+• Sie ändern NICHT Tabelle, Pokalverlauf, Punkte oder Sperren.
+• Deine Spieler verlieren etwa halb so viel Fitness wie in einem Ligaspiel; dein Gegner verliert keine (er hat das Spiel nicht gewählt).
+• Gesperrte Spieler pausieren, ihre Sperre wird aber nicht abgesessen.
+• Als Heimteam erhältst du weiterhin Ticketeinnahmen – etwa die Hälfte der Zuschauer eines normalen Spiels.
+
+Nutze Freundschaftsspiele, um zwischen den Spieltagen im Rhythmus zu bleiben und gefahrlos zu experimentieren, bevor es zählt.`
+    }
+  },
+
   // ─── Forum ─────────────────────────────────────────────────────────────
   {
     key: 'forum',
@@ -580,6 +621,45 @@ So funktioniert es:
 • Unterstützte Formate: JPEG, PNG und WebP, bis 5 MB.
 • Das Bild wird automatisch mittig auf ein Quadrat zugeschnitten und auf 256×256 Pixel verkleinert.
 • Ein neues Bild ersetzt das alte. Du kannst deinen Avatar auch komplett entfernen.`
+    }
+  },
+
+  // ─── Schedule ────────────────────────────────────────────────────────────
+  {
+    key: 'schedule',
+    en: {
+      title: 'Schedule',
+      subtitle: 'Your upcoming and past fixtures at a glance',
+      text: `The schedule shows all of your team's fixtures for the current season in the order they are played – league match days and cup rounds combined into one timeline.
+
+What you see:
+• A label for each entry marks whether it is a league match day or a cup round.
+• For played games you see the final score; click a result to open the full match report.
+• For upcoming games a countdown shows how long until kick-off (days, or hours and minutes when it's close).
+• Cup rounds you are not (yet) part of appear as placeholders, since qualification depends on earlier results.
+
+Good to know:
+• Games are calculated twice a day, at midnight and at noon (see Match Day), so the timeline moves forward in 12-hour steps.
+• League fixtures are fixed for the whole season; cup pairings are drawn round by round as the competition unfolds (see Cup).
+
+Use the schedule to plan your lineup, tactics and fitness ahead of important matches.`
+    },
+    de: {
+      title: 'Spielplan',
+      subtitle: 'Deine kommenden und vergangenen Spiele auf einen Blick',
+      text: `Der Spielplan zeigt alle Spiele deines Teams in der aktuellen Saison in der Reihenfolge, in der sie ausgetragen werden – Liga-Spieltage und Pokalrunden in einer gemeinsamen Zeitleiste.
+
+Was du siehst:
+• Eine Markierung zu jedem Eintrag zeigt, ob es sich um einen Liga-Spieltag oder eine Pokalrunde handelt.
+• Bei gespielten Partien siehst du das Endergebnis; klicke auf ein Ergebnis, um den vollständigen Spielbericht zu öffnen.
+• Bei kommenden Spielen zeigt ein Countdown die Zeit bis zum Anpfiff (Tage oder Stunden und Minuten, wenn es knapp wird).
+• Pokalrunden, an denen du (noch) nicht teilnimmst, erscheinen als Platzhalter, da die Qualifikation von früheren Ergebnissen abhängt.
+
+Gut zu wissen:
+• Spiele werden zweimal täglich berechnet, um Mitternacht und um die Mittagszeit (siehe Spieltag), die Zeitleiste rückt also in 12-Stunden-Schritten voran.
+• Der Ligaspielplan steht für die ganze Saison fest; Pokalpaarungen werden Runde für Runde ausgelost, während der Wettbewerb läuft (siehe Pokal).
+
+Nutze den Spielplan, um Aufstellung, Taktik und Fitness rechtzeitig vor wichtigen Spielen zu planen.`
     }
   },
 
