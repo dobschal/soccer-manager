@@ -142,6 +142,13 @@
     width: calc(100% + 2rem);
 }
 
+/* Long single-word values (e.g. a long stadium name) must wrap instead of
+   overflowing and breaking the table layout. */
+.team-info-table td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 /* Coach Avatar */
 .coach-avatar {
     display: flex;
