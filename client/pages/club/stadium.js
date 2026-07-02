@@ -6,6 +6,7 @@ import { euroFormat } from '../../lib/currency.js'
 import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { t } from '../../i18n/index.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { Table } from '../../partials/table.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
@@ -55,6 +56,7 @@ export class StadiumSubPage extends UIElement {
         <h2 class="stadium-name-header u-cursor-pointer" title="${t('stadium.clickToEditName')}">
           ${stadiumName} <i class="fa fa-pencil" aria-hidden="true"></i>
         </h2>
+        ${wikiInfoIcon('stadium')}
         <p>${t('stadium.stadiumDesc', { seats: this._stadiumCanvas.calculateTotalSeats() })}</p>
         <div class="mb-4" id="stadium-canvas-container">
           ${this._stadiumCanvas}

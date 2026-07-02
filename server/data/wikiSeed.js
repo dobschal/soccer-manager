@@ -11,6 +11,8 @@
  * @property {string} text
  *
  * @typedef {object} WikiSeedTopic
+ * @property {string} key - stable page key used to link in-game pages to their
+ *   wiki article (#456). Locale-independent; never shown to the user.
  * @property {WikiSeedLocale} en
  * @property {WikiSeedLocale} de
  *
@@ -19,6 +21,7 @@
 export const WIKI_SEED = [
   // ─── Action Cards ────────────────────────────────────────────────────────
   {
+    key: 'action-cards',
     en: {
       title: 'Action Cards',
       subtitle: 'Random reward cards you collect after every match day',
@@ -59,6 +62,7 @@ Gut zu wissen:
 
   // ─── Lineup ──────────────────────────────────────────────────────────────
   {
+    key: 'lineup',
     en: {
       title: 'Lineup',
       subtitle: 'Pick your formation, place your players and choose a captain',
@@ -73,7 +77,12 @@ How it works:
 
 Lineup strength:
 • The base strength is the sum of all your starters' levels.
-• It is then modified by fitness, your captain, a Star Player (+10%), a Motivating Speech (+10%) and your home advantage.
+• It is then modified by fitness, your captain, a Star Player (+10%), a Motivating Speech (+10%), your squad's average age and your home advantage.
+
+Squad age:
+• The ideal average age of your starting eleven is 27 years. A lineup right around 27 gets a small strength bonus (up to +5%).
+• The further your average age is from 27 – too young or too old – the smaller that bonus becomes, turning into a penalty of up to −5% for a very young or very old side.
+• Aim for a healthy mix of experienced and young players.
 
 Squad rules:
 • Your team must always have at least 14 players. You cannot sell or release a player if it would drop you below that.
@@ -93,7 +102,12 @@ So funktioniert es:
 
 Aufstellungsstärke:
 • Die Basisstärke ist die Summe der Level aller Startspieler.
-• Sie wird dann durch Fitness, deinen Kapitän, einen Starspieler (+10%), eine Motivationsrede (+10%) und deinen Heimvorteil verändert.
+• Sie wird dann durch Fitness, deinen Kapitän, einen Starspieler (+10%), eine Motivationsrede (+10%), das Durchschnittsalter deiner Mannschaft und deinen Heimvorteil verändert.
+
+Durchschnittsalter:
+• Das ideale Durchschnittsalter deiner Startelf liegt bei 27 Jahren. Eine Aufstellung nahe 27 erhält einen kleinen Stärke-Bonus (bis zu +5%).
+• Je weiter dein Durchschnittsalter von 27 entfernt ist – zu jung oder zu alt –, desto kleiner wird dieser Bonus und schlägt bei einer sehr jungen oder sehr alten Mannschaft in einen Malus von bis zu −5% um.
+• Strebe eine gesunde Mischung aus erfahrenen und jungen Spielern an.
 
 Kaderregeln:
 • Dein Team muss immer mindestens 14 Spieler haben. Du kannst keinen Spieler verkaufen oder entlassen, wenn du dadurch darunter fällst.
@@ -103,6 +117,7 @@ Kaderregeln:
 
   // ─── Buildings ─────────────────────────────────────────────────────────
   {
+    key: 'buildings',
     en: {
       title: 'Buildings',
       subtitle: 'Upgrade your club infrastructure for better cards',
@@ -151,6 +166,7 @@ Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbau
 
   // ─── Club Emblem ───────────────────────────────────────────────────────
   {
+    key: 'club-emblem',
     en: {
       title: 'Club Emblem',
       subtitle: 'Design the crest that represents your club',
@@ -181,6 +197,7 @@ Neue Bot-Teams erhalten ein zufällig erzeugtes Wappen. Deine Änderungen werden
 
   // ─── Club Name ─────────────────────────────────────────────────────────
   {
+    key: 'club-name',
     en: {
       title: 'Club Name',
       subtitle: 'Choose the name your club plays under',
@@ -209,6 +226,7 @@ Namen müssen in deiner Spielwelt eindeutig sein – nutzt ein anderer Verein be
 
   // ─── Cup ───────────────────────────────────────────────────────────────
   {
+    key: 'cup',
     en: {
       title: 'Cup',
       subtitle: 'The season-long knockout competition',
@@ -251,6 +269,7 @@ Die nächste Runde wird automatisch erzeugt, sobald alle Spiele einer Runde gesp
 
   // ─── Finances ──────────────────────────────────────────────────────────
   {
+    key: 'finances',
     en: {
       title: 'Finances',
       subtitle: 'Where your money comes from and where it goes',
@@ -291,6 +310,7 @@ Tipp: Gehälter sind eine ständige Belastung – wäge einen starken Kader gege
 
   // ─── Forum ─────────────────────────────────────────────────────────────
   {
+    key: 'forum',
     en: {
       title: 'Forum',
       subtitle: 'The community board for discussion and news',
@@ -329,6 +349,7 @@ Moderation: Beiträge werden automatisch auf anstößige Sprache gefiltert. Admi
 
   // ─── Friends ───────────────────────────────────────────────────────────
   {
+    key: 'friends',
     en: {
       title: 'Friends',
       subtitle: 'Add other managers and follow their posts',
@@ -369,6 +390,7 @@ Die Freundesübersicht zeigt außerdem die Tabellenposition jedes Freundes und d
 
   // ─── Leagues ───────────────────────────────────────────────────────────
   {
+    key: 'leagues',
     en: {
       title: 'Leagues',
       subtitle: 'The division pyramid, promotion and relegation',
@@ -409,6 +431,7 @@ Auf- und Abstieg laufen automatisch ab, sobald der letzte Spieltag der Saison ge
 
   // ─── Match Day ─────────────────────────────────────────────────────────
   {
+    key: 'match-day',
     en: {
       title: 'Match Day',
       subtitle: 'When games are played and what happens around them',
@@ -443,6 +466,7 @@ Ein paar Details:
 
   // ─── Match Simulation ──────────────────────────────────────────────────
   {
+    key: 'match-simulation',
     en: {
       title: 'Match Simulation',
       subtitle: 'How a match result is calculated step by step',
@@ -455,7 +479,7 @@ The key mechanics:
 • Passing – your attack mode controls how often you pass forward. Only forward passes can be intercepted, and stronger players are harder to intercept.
 • Cards – yellow and red cards depend on play style; an aggressive style means more cards (see Players and Tactics).
 
-What changes a player's effective strength: fitness, a Star Player bonus (+10%), a Motivating Speech (+10%), your captain, your home advantage, and a small penalty for bot teams. Cup matches never end in a draw – extra time is played until a goal falls.
+What changes a player's effective strength: fitness, a Star Player bonus (+10%), a Motivating Speech (+10%), your captain, your squad's average age (ideal 27, up to ±5%), your home advantage, and a small penalty for bot teams. Cup matches never end in a draw – extra time is played until a goal falls.
 
 Each match stores full details: goals, shots, possession, cards and the lineups, which you can review afterwards.`
     },
@@ -471,7 +495,7 @@ Die wichtigsten Mechaniken:
 • Pässe – dein Angriffsmodus steuert, wie oft nach vorne gespielt wird. Nur Vorwärtspässe können abgefangen werden, und stärkere Spieler sind schwerer abzufangen.
 • Karten – Gelbe und Rote Karten hängen vom Spielstil ab; aggressiv bedeutet mehr Karten (siehe Spieler und Taktik).
 
-Was die effektive Stärke eines Spielers verändert: Fitness, der Starspieler-Bonus (+10%), eine Motivationsrede (+10%), dein Kapitän, dein Heimvorteil und ein kleiner Malus für Bot-Teams. Pokalspiele enden nie unentschieden – es wird verlängert, bis ein Tor fällt.
+Was die effektive Stärke eines Spielers verändert: Fitness, der Starspieler-Bonus (+10%), eine Motivationsrede (+10%), dein Kapitän, das Durchschnittsalter deiner Mannschaft (ideal 27, bis zu ±5%), dein Heimvorteil und ein kleiner Malus für Bot-Teams. Pokalspiele enden nie unentschieden – es wird verlängert, bis ein Tor fällt.
 
 Jedes Spiel speichert alle Details: Tore, Schüsse, Ballbesitz, Karten und die Aufstellungen, die du danach ansehen kannst.`
     }
@@ -479,6 +503,7 @@ Jedes Spiel speichert alle Details: Tore, Schüsse, Ballbesitz, Karten und die A
 
   // ─── Players ───────────────────────────────────────────────────────────
   {
+    key: 'players',
     en: {
       title: 'Players',
       subtitle: 'Level, fitness, injuries, salary and suspensions',
@@ -533,6 +558,7 @@ Sperren:
 
   // ─── Profile Picture ───────────────────────────────────────────────────
   {
+    key: 'profile-picture',
     en: {
       title: 'Profile Picture',
       subtitle: 'Set the avatar shown next to your name',
@@ -559,6 +585,7 @@ So funktioniert es:
 
   // ─── Search ────────────────────────────────────────────────────────────
   {
+    key: 'search',
     en: {
       title: 'Search',
       subtitle: 'Find players, teams and other managers',
@@ -593,6 +620,7 @@ So nutzt du sie:
 
   // ─── Sponsors ──────────────────────────────────────────────────────────
   {
+    key: 'sponsors',
     en: {
       title: 'Sponsors',
       subtitle: 'Sign a sponsor for steady match-day income',
@@ -631,6 +659,7 @@ Das Geld wird nach jedem Spieltag automatisch verbucht.`
 
   // ─── Stadium ───────────────────────────────────────────────────────────
   {
+    key: 'stadium',
     en: {
       title: 'Stadium',
       subtitle: 'Expand your ground and set ticket prices',
@@ -671,6 +700,7 @@ Heimvorteil:
 
   // ─── Tactics ───────────────────────────────────────────────────────────
   {
+    key: 'tactics',
     en: {
       title: 'Tactics',
       subtitle: 'Attack mode, play style and pass style',
@@ -719,6 +749,7 @@ Es gibt keine generell beste Einstellung – passe deine Taktik an deinen Kader 
 
   // ─── Transfers ─────────────────────────────────────────────────────────
   {
+    key: 'transfers',
     en: {
       title: 'Transfers',
       subtitle: 'Buy and sell players on the transfer market',
@@ -755,6 +786,7 @@ Denk daran: Dein Kader muss immer mindestens 14 Spieler haben – darunter kanns
 
   // ─── TV Money ──────────────────────────────────────────────────────────
   {
+    key: 'tv-money',
     en: {
       title: 'TV Money',
       subtitle: 'The season-end payout based on your league position',
@@ -787,6 +819,7 @@ Wann es gezahlt wird:
 
   // ─── Urgency List ──────────────────────────────────────────────────────
   {
+    key: 'urgency-list',
     en: {
       title: 'Urgency List',
       subtitle: 'Your dashboard checklist of things that need attention',
@@ -795,6 +828,8 @@ Wann es gezahlt wird:
 Typical items:
 • Incomplete lineup – fewer than 11 starters are set.
 • Incomplete bench – fewer than 4 substitutes are assigned.
+• No captain – your lineup is complete but you have not picked a captain.
+• Squad age – your lineup's average age is far from the ideal 27 years (too young or too old).
 • Low fitness – one or more of your starters are below 50% fitness.
 • Youth player needs attention – a youth player's morale or fitness has dropped below 50%.
 • Incoming offers – you have pending transfer offers to review.
@@ -811,6 +846,8 @@ Check the list regularly so you never go into a match day with an empty bench or
 Typische Punkte:
 • Unvollständige Aufstellung – weniger als 11 Startspieler sind gesetzt.
 • Unvollständige Bank – weniger als 4 Einwechselspieler sind eingeteilt.
+• Kein Kapitän – deine Aufstellung ist vollständig, aber du hast keinen Kapitän bestimmt.
+• Durchschnittsalter – das Durchschnittsalter deiner Aufstellung ist weit vom idealen Wert von 27 Jahren entfernt (zu jung oder zu alt).
 • Niedrige Fitness – einer oder mehrere deiner Startspieler liegen unter 50% Fitness.
 • Jugendspieler braucht Aufmerksamkeit – Moral oder Fitness eines Jugendspielers ist unter 50% gefallen.
 • Eingehende Angebote – du hast offene Transferangebote zu prüfen.
@@ -823,6 +860,7 @@ Sieh dir die Liste regelmäßig an, damit du nie mit leerer Bank oder müder Auf
 
   // ─── Youth Players ─────────────────────────────────────────────────────
   {
+    key: 'youth-players',
     en: {
       title: 'Youth Players',
       subtitle: 'Develop young talents in your academy',

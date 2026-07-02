@@ -12,6 +12,7 @@ import { showOverlay } from '../../partials/overlay.js'
 import { showSeasonReviewOverlay } from '../../partials/seasonReviewOverlay.js'
 import { toast } from '../../partials/toast.js'
 import { t } from '../../i18n/index.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { Table } from '../../partials/table.js'
 import { shortenTeamName } from '../../util/team.js'
 
@@ -138,7 +139,7 @@ export class LeagueResultsPage extends UIElement {
       <div>
         <div class="mb-4">
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
-            <h2 class="mb-0">${t('results.resultsTitle')}</h2>
+            <h2 class="mb-0">${t('results.resultsTitle')} ${wikiInfoIcon('leagues')}</h2>
             ${this._seasonCompleted
     ? `<button id="results-open-season-review-btn" class="btn btn-info btn-sm" type="button">
               <i class="fa fa-trophy me-1"></i> ${t('seasonReview.title')}

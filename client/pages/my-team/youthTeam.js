@@ -5,6 +5,7 @@ import { UIElement } from '../../lib/UIElement.js'
 import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { t } from '../../i18n/index.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { ProgressBar } from '../../partials/progressBar.js'
 import { Table } from '../../partials/table.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
@@ -76,7 +77,7 @@ export class YouthTeamPage extends UIElement {
   get template () {
     return `
       <div>
-        <h3>${t('youthTeam.title')}</h3>
+        <h3>${t('youthTeam.title')} ${wikiInfoIcon('youth-players')}</h3>
 
         <div class="mb-4">
           <p class="text-muted mb-1">${t('youthTeam.trainingModeDescPerPlayer')}</p>

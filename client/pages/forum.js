@@ -3,6 +3,7 @@ import { server } from '../lib/gateway.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
 import { formatDate, isToday } from '../lib/date.js'
 import { t } from '../i18n/index.js'
+import { wikiInfoIcon } from '../partials/wikiInfoIcon.js'
 import { el } from '../lib/html.js'
 import { toast } from '../partials/toast.js'
 import { showConfirmDialog } from '../partials/overlay.js'
@@ -334,7 +335,7 @@ export class ForumPage extends UIElement {
     if (!this._categories || this._categories.length === 0) {
       html += `<p class="text-muted">${t('forum.noCategories')}</p>`
     } else {
-      html += `<h3 class="forum-latest-comments-title mb-2">${t('forum.categories')}</h3>`
+      html += `<h3 class="forum-latest-comments-title mb-2">${t('forum.categories')} ${wikiInfoIcon('forum')}</h3>`
       html += '<div class="list-group">'
       for (const cat of this._categories) {
         const lastActivity = cat.last_activity ? formatDate('DD.MM.YYYY hh:mm', cat.last_activity) : '-'

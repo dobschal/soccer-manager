@@ -5,6 +5,7 @@ import { Balance } from '../../partials/balance.js'
 import { euroFormat } from '../../lib/currency.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { t } from '../../i18n/index.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 
 /**
  * @typedef {Object} FinanceLogEntry
@@ -84,7 +85,7 @@ export class FinancesPage extends UIElement {
     return `
       <div>
       <div class="finances-header">
-        <h2>${t('finances.title')}</h2>
+        <h2>${t('finances.title')} ${wikiInfoIcon('finances')}</h2>
         <h3>${new Balance()}</h3>
         </div>
         <div class="row mb-4">

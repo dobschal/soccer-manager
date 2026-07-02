@@ -1,3 +1,19 @@
+/* Wiki info icon behind page headings (#456) */
+.wiki-info-icon {
+    margin-left: 0.4rem;
+    color: var(--bs-info);
+    font-size: 0.7em;
+    vertical-align: middle;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.15s ease;
+}
+
+.wiki-info-icon:hover,
+.wiki-info-icon:focus {
+    opacity: 1;
+}
+
 /* Public wiki page (#441) */
 .wiki-page {
     max-width: 1100px;

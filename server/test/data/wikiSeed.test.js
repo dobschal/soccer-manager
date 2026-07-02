@@ -10,6 +10,15 @@ describe('wiki seed content (#441)', () => {
     expect(WIKI_SEED).toHaveLength(22)
   })
 
+  it('every topic has a unique, kebab-case page key (#456)', () => {
+    const keys = WIKI_SEED.map(t => t.key)
+    for (const key of keys) {
+      expect(typeof key, 'missing key').toBe('string')
+      expect(key).toMatch(/^[a-z][a-z0-9-]*$/)
+    }
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
   for (const locale of LOCALES) {
     describe(`locale: ${locale}`, () => {
       it('every topic has a non-empty title and text', () => {

@@ -11,6 +11,7 @@ import { Lineup, lineUpData } from '../../partials/lineup.js'
 import { fire, off, on } from '../../lib/event.js'
 import { t } from '../../i18n/index.js'
 import { UIElement } from '../../lib/UIElement.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 
 export class ATeamPage extends UIElement {
 
@@ -46,7 +47,7 @@ export class ATeamPage extends UIElement {
   get template () {
     return `
       <div>
-        <h3>${t('myTeam.lineup')}</h3>
+        <h3>${t('myTeam.lineup')} ${wikiInfoIcon('lineup')}</h3>
         <div class="mb-4" id="squad">
           ${new Lineup(this.parent.data.players, this.parent.data.team)}
         </div>
@@ -60,7 +61,7 @@ export class ATeamPage extends UIElement {
           </div>
         </div>
         <div class="mb-4">
-          <h3>${t('myTeam.tactic')}</h3>
+          <h3>${t('myTeam.tactic')} ${wikiInfoIcon('tactics')}</h3>
           <div class="row">
             ${this._renderTacticSelects()}
           </div>

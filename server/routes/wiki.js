@@ -118,6 +118,33 @@ export default {
   },
 
   /**
+   * Public: full content of the wiki entry linked to an in-game page via its
+   * stable page key (#456). Falls back to English when the requested locale has
+   * no matching entry. Returns { entry: null } when nothing is linked.
+   * @param {string} pageKey
+   * @param {string} [locale]
+   * @returns {Promise<{entry: object|null}>}
+   */
+  async getWikiArticleByPageKey (pageKey, locale) {
+    const key = typeof pageKey === 'string' ? pageKey.trim() : ''
+    if (!key) return { entry: null }
+    const loc = normaliseLocale(locale)
+    let [entry] = await query(
+      'SELECT id, locale, title, subtitle, text, images, sort_order FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+      [key, loc]
+    )
+    if (!entry && loc !== 'en') {
+      [entry] = await query(
+        'SELECT id, locale, title, subtitle, text, images, sort_order FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+        [key, 'en']
+      )
+    }
+    if (!entry) return { entry: null }
+    entry.images = decodeImages(entry.images)
+    return { entry }
+  },
+
+  /**
    * Admin: list every wiki entry across all locales for management (#441).
    * @param {Request} req
    * @returns {Promise<{entries: Array}>}

@@ -6,6 +6,7 @@ import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { t } from '../../i18n/index.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { euroFormat } from '../../lib/currency.js'
 
 const TRAINING_AREA_IMAGES = {
@@ -53,7 +54,7 @@ export class BuildingsPage extends UIElement {
   get template () {
     return `
       <div>
-        <h3>${t('buildings.title')}</h3>
+        <h3>${t('buildings.title')} ${wikiInfoIcon('buildings')}</h3>
         <p class="text-muted">${t('buildings.trainingAreaDesc')}</p>
         ${this._renderTrainingArea()}
         <p class="text-muted mt-4">${t('buildings.fitnessStudioDesc')}</p>

@@ -36,6 +36,37 @@ describe('wiki routes (#441)', () => {
     })
   })
 
+  describe('getWikiArticleByPageKey (#456)', () => {
+    it('returns the entry for the given page key and locale', async () => {
+      query.mockResolvedValueOnce([{ id: 5, locale: 'de', title: 'Stadion', subtitle: null, text: 'x', images: '[]', sort_order: 0 }])
+      const result = await handlers.getWikiArticleByPageKey('stadium', 'de')
+      expect(result.entry.id).toBe(5)
+      expect(result.entry.images).toEqual([])
+      expect(query.mock.calls[0][1]).toEqual(['stadium', 'de'])
+    })
+
+    it('falls back to English when the locale has no matching entry', async () => {
+      query
+        .mockResolvedValueOnce([]) // de miss
+        .mockResolvedValueOnce([{ id: 6, locale: 'en', title: 'Stadium', subtitle: null, text: 'x', images: '[]', sort_order: 0 }])
+      const result = await handlers.getWikiArticleByPageKey('stadium', 'de')
+      expect(result.entry.id).toBe(6)
+      expect(query.mock.calls[1][1]).toEqual(['stadium', 'en'])
+    })
+
+    it('returns null entry for an empty key without querying', async () => {
+      const result = await handlers.getWikiArticleByPageKey('', 'en')
+      expect(result).toEqual({ entry: null })
+      expect(query).not.toHaveBeenCalled()
+    })
+
+    it('returns null entry when nothing is linked', async () => {
+      query.mockResolvedValueOnce([]) // en miss (locale en, no fallback)
+      const result = await handlers.getWikiArticleByPageKey('unknown', 'en')
+      expect(result).toEqual({ entry: null })
+    })
+  })
+
   describe('getWikiEntry', () => {
     it('decodes the images JSON column', async () => {
       query.mockResolvedValueOnce([{ id: 1, title: 'A', images: '["a.png","b.png"]' }])

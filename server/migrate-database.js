@@ -2304,6 +2304,31 @@ const migrations = [{
           images: JSON.stringify([]),
           sort_order: 0
         })
+        // page_key is added by a later migration; the fresh column defaults to
+        // NULL here and is backfilled from the seed keys right after.
+      }
+    }
+  }
+}, {
+  name: 'Add page_key to wiki_entry and backfill from seed (#456)',
+  async run () {
+    // page_key links in-game pages to their wiki article in a locale-independent
+    // way (the info icon behind page headings, #456).
+    const [existing] = await query("SHOW COLUMNS FROM wiki_entry LIKE 'page_key'")
+    if (!existing) {
+      await query('ALTER TABLE wiki_entry ADD COLUMN page_key VARCHAR(64) DEFAULT NULL')
+      await query('ALTER TABLE wiki_entry ADD INDEX idx_wiki_entry_page_key (page_key)')
+    }
+    // Backfill existing rows (prod was seeded before this column existed) by
+    // matching the seeded titles per locale. Admin-renamed entries simply keep
+    // a null page_key and won't be linked — that's acceptable.
+    for (const topic of WIKI_SEED) {
+      if (!topic.key) continue
+      for (const locale of ['en', 'de']) {
+        await query(
+          'UPDATE wiki_entry SET page_key=? WHERE locale=? AND title=? AND (page_key IS NULL OR page_key="")',
+          [topic.key, locale, topic[locale].title]
+        )
       }
     }
   }

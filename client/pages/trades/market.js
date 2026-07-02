@@ -8,6 +8,7 @@ import { Table } from '../../partials/table.js'
 import { getQueryParams, goTo, setQueryParams } from '../../lib/router.js'
 import { calculatePlayerAge, sortByPosition } from '../../util/player.js'
 import { t } from '../../i18n/index.js'
+import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { Position } from '../../util/formation.js'
@@ -88,7 +89,7 @@ export class MarketPage extends UIElement {
 
     return `
       <div class="market-page">
-        <h2>${t('trades.transferMarket')}</h2>
+        <h2>${t('trades.transferMarket')} ${wikiInfoIcon('transfers')}</h2>
         <p>${t('trades.transferMarketDesc')}</p>
         <div class="mb-3 d-flex flex-wrap align-items-end gap-3">
           <div>
