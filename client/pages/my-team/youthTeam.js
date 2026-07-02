@@ -391,11 +391,18 @@ export class YouthTeamPage extends UIElement {
       disabledReason = t('youthTeam.playerTooYoung')
     }
 
-    const modeBadgeId = generateId()
-    onClick(modeBadgeId, () => this._showModeSelect(modeBadgeId, player))
-    const modeBadgeClass = player.training_mode ? 'bg-info' : 'bg-secondary'
-    const modeLabel = player.training_mode ? this._getTrainingModeLabel(player.training_mode) : t('youthTeam.unassigned')
-    const modeBadge = `<span id="${modeBadgeId}" class="badge ${modeBadgeClass} youth-mode-badge u-cursor-pointer" title="${t('youthTeam.changeTrainingMode')}">${modeLabel} <i class="fa fa-caret-down"></i></span>`
+    // Render a native <select> directly (rather than a badge that swaps to a
+    // select on click) so the options open on the first click (#465).
+    const modeSelectId = generateId()
+    const current = player.training_mode || ''
+    const modeOptions = [
+      `<option value="" ${current === '' ? 'selected' : ''}>${t('youthTeam.unassigned')}</option>`,
+      ...TRAINING_MODES.map(m =>
+        `<option value="${m.key}" ${current === m.key ? 'selected' : ''}>${this._getTrainingModeLabel(m.key)}</option>`
+      )
+    ].join('')
+    onChange('#' + modeSelectId, (ev) => this._handlePlayerModeChange(player, ev.target.value))
+    const modeSelect = `<select id="${modeSelectId}" class="form-select form-select-sm youth-mode-inline-select" title="${t('youthTeam.changeTrainingMode')}">${modeOptions}</select>`
 
     return [
       `<span class="u-nowrap">${player.name}</span>`,
@@ -404,7 +411,7 @@ export class YouthTeamPage extends UIElement {
       `${player.level.toFixed(2)}`,
       `${new ProgressBar(player.moral)}`,
       `${new ProgressBar(player.fitness)}`,
-      modeBadge,
+      modeSelect,
       `<span class="u-nowrap"><button
             id="${promoteId}"
             class="btn btn-sm btn-primary me-1"
@@ -412,33 +419,6 @@ export class YouthTeamPage extends UIElement {
             title="${disabledReason}"
           ><i class="fa fa-arrow-up"></i> ${t('youthTeam.promote')}</button><button id="${fireId}" class="btn btn-sm btn-danger"><i class="fa fa-times"></i> ${t('youthTeam.fire')}</button></span>`
     ]
-  }
-
-  /**
-   * Swap the clicked training-mode badge for an inline select so the user can
-   * change the player's mode straight from the list (#youth).
-   * @param {string} badgeId
-   * @param {Object} player
-   * @returns {void}
-   */
-  _showModeSelect (badgeId, player) {
-    const badge = el('#' + badgeId)
-    if (!badge) return
-    const selectId = generateId()
-    const current = player.training_mode || ''
-    const options = [
-      `<option value="" ${current === '' ? 'selected' : ''}>${t('youthTeam.unassigned')}</option>`,
-      ...TRAINING_MODES.map(m =>
-        `<option value="${m.key}" ${current === m.key ? 'selected' : ''}>${this._getTrainingModeLabel(m.key)}</option>`
-      )
-    ].join('')
-    badge.outerHTML = `<select id="${selectId}" class="form-select form-select-sm youth-mode-inline-select">${options}</select>`
-    onChange('#' + selectId, (ev) => this._handlePlayerModeChange(player, ev.target.value))
-    const sel = el('#' + selectId)
-    if (sel) {
-      sel.focus()
-      try { sel.showPicker?.() } catch { /* not supported everywhere */ }
-    }
   }
 
   /**

@@ -96,6 +96,21 @@ describe('YouthTeamPage', () => {
       expect(row.join('')).toContain('youthTeam.promote')
       expect(row.join('')).toContain('youthTeam.fire')
     })
+
+    it('#465 renders the training mode as a native select (opens on first click)', async () => {
+      const youthPlayers = [
+        { id: 1, name: 'Test Youth', position: 'CM', age: 16, level: 15, moral: 0.8, fitness: 0.7, training_mode: 'rest' }
+      ]
+      server.getYouthTeam.mockResolvedValue({ youthPlayers, trainingMode: 'rest', season: 1 })
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      await page.load()
+
+      const html = page._renderYouthPlayerRow(youthPlayers[0]).join('')
+      expect(html).toContain('youth-mode-inline-select')
+      expect(html).toContain('<select')
+      // Current mode is preselected.
+      expect(html).toMatch(/<option value="rest"[^>]*selected/)
+    })
   })
 
   describe('#448 next game day countdown (UTC based)', () => {
