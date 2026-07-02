@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../lib/gateway.js', () => ({
   server: {
+    hasTeam: vi.fn(),
+    getMyTeam: vi.fn(),
     getAvailableLeagues: vi.fn(),
     chooseRandomTeamInLeague: vi.fn(),
     updateTeamName: vi.fn(),
@@ -54,7 +56,7 @@ vi.mock('../../i18n/index.js', () => ({
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 import { openEmblemEditor } from '../../partials/emblemEditor.js'
-import { setHasTeam } from '../../lib/router.js'
+import { setHasTeam, goTo } from '../../lib/router.js'
 import { value } from '../../lib/html.js'
 import { ChooseTeamPage } from '../../pages/choose-team.js'
 
@@ -62,6 +64,8 @@ describe('ChooseTeamPage (post-registration wizard, #453)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     global.window = global.window || {}
+    // Default: fresh user without a team → league selection is shown.
+    server.hasTeam.mockResolvedValue({ hasTeam: false })
   })
 
   it('loads leagues and renders the welcome + video + league list', async () => {
@@ -94,7 +98,25 @@ describe('ChooseTeamPage (post-registration wizard, #453)', () => {
     expect(page.template).toContain('chooseTeam.noTeams')
   })
 
-  it('assigns a random team, marks hasTeam and advances to the name step', async () => {
+  it('skips the league step and shows setup when the user already has a team (reload)', async () => {
+    server.hasTeam.mockResolvedValue({ hasTeam: true })
+    server.getMyTeam.mockResolvedValue({
+      team: { id: 5, name: 'Assigned FC', short_name: 'AFC', emblem: '{}', color: '#fff', level: 2, league: 0 }
+    })
+
+    const page = new ChooseTeamPage()
+    await page.load()
+
+    expect(server.getAvailableLeagues).not.toHaveBeenCalled()
+    expect(setHasTeam).toHaveBeenCalledWith(true)
+    expect(page._step).toBe('setup')
+    expect(page._team.name).toBe('Assigned FC')
+    const html = page.template
+    expect(html).toContain('Assigned FC')
+    expect(html).toContain('data-open-emblem-editor')
+  })
+
+  it('assigns a random team, marks hasTeam and advances to the setup step', async () => {
     server.getAvailableLeagues.mockResolvedValue({ leagues: [{ level: 2, league: 0, freeTeams: 3 }] })
     server.chooseRandomTeamInLeague.mockResolvedValue({
       team: { id: 5, name: 'Random FC', short_name: 'RFC', emblem: '{}', color: '#fff', level: 2, league: 0 }
@@ -107,37 +129,39 @@ describe('ChooseTeamPage (post-registration wizard, #453)', () => {
 
     expect(server.chooseRandomTeamInLeague).toHaveBeenCalledWith(2, 0)
     expect(setHasTeam).toHaveBeenCalledWith(true)
-    expect(page._step).toBe('name')
+    expect(page._step).toBe('setup')
     expect(page._team.name).toBe('Random FC')
-    // Name step shows the assigned name prefilled.
+    // Setup step shows the assigned name prefilled and the emblem customize action.
     expect(page.template).toContain('Random FC')
+    expect(page.template).toContain('data-open-emblem-editor')
   })
 
-  it('saves the club name and advances to the emblem step, opening the editor', async () => {
+  it('saves the club name and heads straight to the dashboard without opening the editor', async () => {
     server.updateTeamName.mockResolvedValue({ success: true })
     value.mockReturnValueOnce('New Club Name').mockReturnValueOnce('NCN')
 
     const page = new ChooseTeamPage()
     page.update = vi.fn().mockResolvedValue()
     page._team = { id: 5, name: 'Random FC', short_name: null, emblem: '{}', color: '#fff' }
-    page._step = 'name'
+    page._step = 'setup'
     page._nameInputId = 'name'
     page._shortInputId = 'short'
 
     await page._onSaveName()
 
     expect(server.updateTeamName).toHaveBeenCalledWith('New Club Name', 'NCN')
-    expect(page._step).toBe('emblem')
-    expect(openEmblemEditor).toHaveBeenCalledWith(page._team, expect.any(Function))
+    expect(goTo).toHaveBeenCalledWith('')
+    // The emblem editor must NOT auto-open — only via the "customize" button.
+    expect(openEmblemEditor).not.toHaveBeenCalled()
   })
 
-  it('rejects an empty club name with a toast and does not advance', async () => {
+  it('rejects an empty club name with a toast and does not finish', async () => {
     value.mockReturnValue('')
 
     const page = new ChooseTeamPage()
     page.update = vi.fn().mockResolvedValue()
     page._team = { id: 5, name: 'Random FC' }
-    page._step = 'name'
+    page._step = 'setup'
     page._nameInputId = 'name'
     page._shortInputId = 'short'
 
@@ -145,7 +169,7 @@ describe('ChooseTeamPage (post-registration wizard, #453)', () => {
 
     expect(toast).toHaveBeenCalledWith('myTeam.nameRequired', 'error')
     expect(server.updateTeamName).not.toHaveBeenCalled()
-    expect(page._step).toBe('name')
+    expect(goTo).not.toHaveBeenCalled()
   })
 
   it('shows a toast when assigning a random team fails', async () => {
@@ -162,19 +186,21 @@ describe('ChooseTeamPage (post-registration wizard, #453)', () => {
     expect(page._step).toBe('league')
   })
 
-  it('opens the emblem editor from the emblem step', async () => {
+  it('opens the emblem editor on demand', async () => {
     const page = new ChooseTeamPage()
     page._team = { id: 5, name: 'Random FC', emblem: '{}', color: '#fff' }
     page._openEmblemEditor()
     expect(openEmblemEditor).toHaveBeenCalledWith(page._team, expect.any(Function))
   })
 
-  it('renders the emblem step with a "to dashboard" action', async () => {
+  it('renders the setup step with name inputs, a customize-emblem button and a finish action', async () => {
     const page = new ChooseTeamPage()
     page._team = { id: 5, name: 'Random FC', emblem: '{}', color: '#fff' }
-    page._step = 'emblem'
+    page._step = 'setup'
     const html = page.template
-    expect(html).toContain('data-finish')
+    expect(html).toContain('name="rename-team"')
+    expect(html).toContain('data-open-emblem-editor')
+    expect(html).toContain('chooseTeam.customizeEmblem')
     expect(html).toContain('chooseTeam.toDashboard')
   })
 })

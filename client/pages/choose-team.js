@@ -16,11 +16,23 @@ const MAX_WORD_LENGTH = 12
 
 /**
  * Post-registration wizard (#453): the user picks a league (not a team), gets a
- * random club assigned, then renames it and designs its emblem before landing
- * on the dashboard.
+ * random club assigned, then renames it and designs its emblem — both on a
+ * single setup page — before landing on the dashboard.
  */
 export class ChooseTeamPage extends UIElement {
   async load () {
+    // On reload / direct navigation the user may already have a team assigned
+    // (e.g. they picked a league and then refreshed). Re-picking a league would
+    // fail with "you already manage a team", so skip the league step and let
+    // them finish naming + designing the emblem instead (#453).
+    const { hasTeam } = await server.hasTeam()
+    if (hasTeam) {
+      const { team } = await server.getMyTeam()
+      this._team = team
+      this._step = 'setup'
+      setHasTeam(true)
+      return
+    }
     const { leagues } = await server.getAvailableLeagues()
     this._leagues = leagues || []
   }
@@ -30,8 +42,7 @@ export class ChooseTeamPage extends UIElement {
       <div class="choose-team-page">
         <div class="choose-team-inner">
           ${this._step === 'league' ? this._renderLeagueStep() : ''}
-          ${this._step === 'name' ? this._renderNameStep() : ''}
-          ${this._step === 'emblem' ? this._renderEmblemStep() : ''}
+          ${this._step === 'setup' ? this._renderSetupStep() : ''}
         </div>
       </div>
     `
@@ -54,9 +65,6 @@ export class ChooseTeamPage extends UIElement {
       },
       '(optional) [data-open-emblem-editor]': {
         click: () => this._openEmblemEditor()
-      },
-      '(optional) [data-finish]': {
-        click: () => goTo('')
       }
     }
   }
@@ -99,7 +107,7 @@ export class ChooseTeamPage extends UIElement {
       const { team } = await server.chooseRandomTeamInLeague(level, league)
       this._team = team
       setHasTeam(true)
-      this._step = 'name'
+      this._step = 'setup'
       await this.update()
     } catch (e) {
       toast(e?.message ?? t('landing.somethingWentWrong'), 'error')
@@ -107,8 +115,8 @@ export class ChooseTeamPage extends UIElement {
     this._isSubmitting = false
   }
 
-  // ── Step 2: rename the assigned club ───────────────────────────────────
-  _renderNameStep () {
+  // ── Step 2: rename the assigned club and design its emblem ─────────────
+  _renderSetupStep () {
     const nameInputId = generateId()
     const shortInputId = generateId()
     this._nameInputId = nameInputId
@@ -122,9 +130,10 @@ export class ChooseTeamPage extends UIElement {
     const name = escapeHtml(this._team?.name ?? '')
     const shortName = escapeHtml(this._team?.short_name ?? '')
     return `
-      <h1 class="choose-team-title">${t('chooseTeam.nameStepTitle')}</h1>
-      <p class="choose-team-description">${t('chooseTeam.nameStepText')}</p>
-      <div class="choose-team-emblem-preview mb-4">${renderEmblem(this._team, 120)}</div>
+      <h1 class="choose-team-title">${t('chooseTeam.setupStepTitle')}</h1>
+      <p class="choose-team-description">${t('chooseTeam.setupStepText')}</p>
+      <div class="choose-team-emblem-preview mb-3" id="choose-team-emblem">${renderEmblem(this._team, 160)}</div>
+      <button type="button" style="display: block; margin: 0 auto" class="btn btn-outline-info mb-4" data-open-emblem-editor>${t('chooseTeam.customizeEmblem')}</button>
       <form name="rename-team" autocomplete="off" class="choose-team-form">
         <div class="form-group mb-3 text-start">
           <label for="${nameInputId}">${t('myTeam.teamName')}</label>
@@ -134,7 +143,7 @@ export class ChooseTeamPage extends UIElement {
           <label for="${shortInputId}">${t('myTeam.shortName')}</label>
           <input id="${shortInputId}" type="text" class="form-control" value="${shortName}" maxlength="${MAX_SHORT_NAME_LENGTH}" placeholder="${escapeHtml(shortenTeamName(this._team?.name ?? ''))}" autocomplete="off">
         </div>
-        <button type="submit" class="btn btn-info w-100 text-white">${t('chooseTeam.continue')}</button>
+        <button type="submit" class="btn btn-info w-100 text-white">${t('chooseTeam.toDashboard')}</button>
       </form>
     `
   }
@@ -159,28 +168,13 @@ export class ChooseTeamPage extends UIElement {
       await server.updateTeamName(name, shortName)
       this._team.name = name
       this._team.short_name = shortName || null
-      this._step = 'emblem'
-      await this.update()
-      // Open the emblem editor right away — designing the crest is the final
-      // step of the flow (#453).
-      this._openEmblemEditor()
+      // Name + emblem are done on one page — saving the name finishes the flow
+      // and heads straight to the dashboard (#453).
+      goTo('')
     } catch (e) {
       toast(e?.message ?? t('landing.somethingWentWrong'), 'error')
     }
     this._isSubmitting = false
-  }
-
-  // ── Step 3: design the emblem, then head to the dashboard ──────────────
-  _renderEmblemStep () {
-    return `
-      <h1 class="choose-team-title">${t('chooseTeam.emblemStepTitle')}</h1>
-      <p class="choose-team-description">${t('chooseTeam.emblemStepText')}</p>
-      <div class="choose-team-emblem-preview mb-4" id="choose-team-emblem">${renderEmblem(this._team, 160)}</div>
-      <div class="d-flex flex-column gap-2">
-        <button type="button" class="btn btn-outline-info" data-open-emblem-editor>${t('chooseTeam.customizeEmblem')}</button>
-        <button type="button" class="btn btn-info text-white" data-finish>${t('chooseTeam.toDashboard')}</button>
-      </div>
-    `
   }
 
   _openEmblemEditor () {
@@ -190,7 +184,7 @@ export class ChooseTeamPage extends UIElement {
     })
   }
 
-  // Wizard step: 'league' | 'name' | 'emblem'
+  // Wizard step: 'league' | 'setup'
   _step = 'league'
   _team = null
   showLoadingIndicator = true

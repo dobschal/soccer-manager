@@ -160,13 +160,10 @@ export default {
   'chooseTeam.welcomeText': 'In this game you take on the role of a football club manager. First choose a league to start in. If you would like to learn more about the game first, watch this video.',
   'chooseTeam.chooseLeagueTitle': 'Choose your league',
   'chooseTeam.freeTeamsCount': '{count} free teams',
-  'chooseTeam.nameStepTitle': 'Name your club',
-  'chooseTeam.nameStepText': 'A team has been assigned to you. Give it a long and a short name – or keep the existing one.',
-  'chooseTeam.emblemStepTitle': 'Design your emblem',
-  'chooseTeam.emblemStepText': 'Finally, customize your club emblem. After that you will head to the dashboard.',
-  'chooseTeam.continue': 'Continue',
+  'chooseTeam.setupStepTitle': 'Name your club',
+  'chooseTeam.setupStepText': 'A team has been assigned to you. Give it a long and a short name and design its emblem – or keep everything as it is.',
   'chooseTeam.customizeEmblem': 'Customize emblem',
-  'chooseTeam.toDashboard': 'To the dashboard',
+  'chooseTeam.toDashboard': 'Let\'s go!',
 
   // Dashboard
   'dashboard.hey': 'Hey',
