@@ -3,6 +3,7 @@ import { randomItem } from '../client/lib/randomItem.js'
 import { EMBLEM_COLORS, EMBLEM_PATTERNS, EMBLEM_SHAPES, adjustBrightness } from '../client/util/emblemGenerator.js'
 import { _getBotPlayerLevelRange, _getBotStadiumConfig } from './prepare-season.js'
 import { WIKI_SEED } from './data/wikiSeed.js'
+import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 
 /**
  * @typedef {object} Migration
@@ -2330,6 +2331,22 @@ const migrations = [{
           [topic.key, locale, topic[locale].title]
         )
       }
+    }
+  }
+}, {
+  name: 'Recompute player_season_stats from league games only (#464)',
+  async run () {
+    // Cup/friendly goals were previously cached into player_season_stats and
+    // polluted the per-league top-scorer lists with players from other leagues.
+    // Rebuild the table from league games only using the fixed cache logic.
+    await query('DELETE FROM player_season_stats')
+    const days = await query(
+      `SELECT DISTINCT season, game_day FROM game
+       WHERE played = 1 AND details IS NOT NULL AND (game_type = 'league' OR game_type IS NULL)
+       ORDER BY season ASC, game_day ASC`
+    )
+    for (const { season, game_day: gameDay } of days) {
+      await cachePlayerStatsForGameDay(gameDay, season)
     }
   }
 }, {

@@ -39,6 +39,9 @@ export class ResultsPage extends TabbedPage {
     if (queryParams.player_id) {
       void showPlayerModal(Number(queryParams.player_id))
     }
+    if (queryParams.top_scorers) {
+      this._openTopScorersOverlay()
+    }
   }
   async onQueryChanged (queryParams) {
     if (queryParams.game_id) {
@@ -47,6 +50,10 @@ export class ResultsPage extends TabbedPage {
     }
     if (queryParams.player_id) {
       void showPlayerModal(Number(queryParams.player_id))
+      return
+    }
+    if (queryParams.top_scorers) {
+      this._openTopScorersOverlay()
       return
     }
 
@@ -58,6 +65,17 @@ export class ResultsPage extends TabbedPage {
       await cached.update(true)
     }
   }
+  /**
+   * Open the top-scorers overlay on the league sub-page (#464). Only the league
+   * sub-page provides the list, so this is a no-op elsewhere.
+   */
+  _openTopScorersOverlay () {
+    const page = this._getOrCreateSubPage()
+    if (page && typeof page._showTopScorersOverlay === 'function') {
+      page._showTopScorersOverlay()
+    }
+  }
+
   get routeName () { return 'results' }
   
   get defaultSubPageKey () { return 'league' }

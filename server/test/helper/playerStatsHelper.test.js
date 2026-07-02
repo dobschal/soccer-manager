@@ -160,6 +160,16 @@ describe('playerStatsHelper', () => {
       expect(query).toHaveBeenCalledTimes(1)
     })
 
+    it('#464 only reads league games (excludes cup/friendly) so leagues are not polluted', async () => {
+      query.mockResolvedValueOnce([])
+
+      await cachePlayerStatsForGameDay(1, 0)
+
+      const gamesQuery = query.mock.calls[0][0]
+      expect(gamesQuery).toContain("game_type = 'league'")
+      expect(gamesQuery).toContain('game_type IS NULL')
+    })
+
     it('tracks yellow and red cards correctly', async () => {
       const games = [{
         id: 1,

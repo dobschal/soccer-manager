@@ -60,11 +60,15 @@ export async function getTopScorers (season, level, league, limit = 10) {
 export async function cachePlayerStatsForGameDay (gameDay, season) {
   const t1 = Date.now()
 
-  // Get all games played this game day with their details
+  // Only league games count toward the per-league season stats. Cup games are
+  // stored with level/league 0 and friendly games with the challenger's
+  // level/league, so including them would pollute a league's top-scorer list
+  // with players from other leagues (#464).
   const games = await query(
     `SELECT id, level, league, details, team_1_id, team_2_id
      FROM game
-     WHERE season = ? AND game_day = ? AND played = 1 AND details IS NOT NULL`,
+     WHERE season = ? AND game_day = ? AND played = 1 AND details IS NOT NULL
+       AND (game_type = 'league' OR game_type IS NULL)`,
     [season, gameDay]
   )
 

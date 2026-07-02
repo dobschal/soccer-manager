@@ -132,6 +132,11 @@ export class LeagueResultsPage extends UIElement {
     } else {
       this._seasonCompleted = false
     }
+
+    // Deep link: open the top-scorers overlay once data is ready (#464).
+    if (getQueryParams().top_scorers) {
+      this._showTopScorersOverlay()
+    }
   }
 
   get template () {
@@ -312,7 +317,7 @@ export class LeagueResultsPage extends UIElement {
         }
       },
       '#results-open-top-scorers-btn': {
-        click: () => this._showTopScorersOverlay()
+        click: () => setQueryParams({ top_scorers: '1' })
       },
       '#results-open-team-stats-btn': {
         click: () => this._showTeamStatsOverlay()
@@ -637,28 +642,39 @@ export class LeagueResultsPage extends UIElement {
     })
   }
 
+  /**
+   * Open the top-scorers overlay. Driven by the `top_scorers` URL query so the
+   * list is linkable and closes/reopens cleanly (incl. mobile back-swipe) (#464).
+   */
   _showTopScorersOverlay () {
+    if (this._topScorersOverlay) return // already open
+    let overlay
     if (!this.topScorer || this.topScorer.length === 0) {
-      showOverlay(t('results.topScorer'), '', `<p class="text-muted mb-0">${t('results.noGamesYet')}</p>`)
-      return
+      overlay = showOverlay(t('results.topScorer'), '', `<p class="text-muted mb-0">${t('results.noGamesYet')}</p>`)
+    } else {
+      const content = `${new Table({
+        cols: [
+          { name: '#' },
+          { name: t('results.name') },
+          { name: t('results.goals') },
+          { name: t('results.team') },
+          { name: 'Pos' },
+          { name: 'Lvl' },
+          { name: 'Age' }
+        ],
+        data: this.topScorer,
+        renderRow: (scorer, index) => this._renderTopScorer(scorer, index),
+        rowClass: (scorer) => scorer && scorer.team && this.myTeamId === scorer.team.id ? 'table-info' : ''
+      })}`
+      overlay = showOverlay(t('results.topScorer'), '', content)
+      this._loadTopScorerImagesGlobal()
     }
-    const content = `${new Table({
-      cols: [
-        { name: '#' },
-        { name: t('results.name') },
-        { name: t('results.goals') },
-        { name: t('results.team') },
-        { name: 'Pos' },
-        { name: 'Lvl' },
-        { name: 'Age' }
-      ],
-      data: this.topScorer,
-      renderRow: (scorer, index) => this._renderTopScorer(scorer, index),
-      rowClass: (scorer) => scorer && scorer.team && this.myTeamId === scorer.team.id ? 'table-info' : ''
-    })}`
-    const overlay = showOverlay(t('results.topScorer'), '', content)
-    this._loadTopScorerImagesGlobal()
+    this._topScorersOverlay = overlay
     this._closeOverlayOnNavigation(overlay)
+    overlay.onClose(() => {
+      this._topScorersOverlay = null
+      if (getQueryParams().top_scorers) setQueryParams({ top_scorers: null })
+    })
   }
 
   _showTeamStatsOverlay () {
