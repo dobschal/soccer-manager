@@ -74,6 +74,7 @@ export default {
   'error.offerTooLow': 'Offer is too low',
   'error.offerLimitReached': 'You can only make 3 offers per player per game day',
   'error.instantBuyDisabled': 'The seller disabled instant buy for this player',
+  'error.playerAlreadyTransferredThisSeason': 'This player has already changed clubs this season',
 
   // Stadium errors
   'error.standNotFound': 'Stand not found',
