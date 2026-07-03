@@ -4,7 +4,8 @@ import { testData } from '../setup.js'
 vi.mock('../../lib/gateway.js', () => ({
   server: {
     getCurrentGameday: vi.fn(),
-    getMySellOfferPlayerIds: vi.fn()
+    getMySellOfferPlayerIds: vi.fn(),
+    getTeamSellOfferPlayerIds: vi.fn()
   },
   showServerError: vi.fn()
 }))
@@ -50,6 +51,30 @@ describe('PlayerList', () => {
     vi.clearAllMocks()
     server.getCurrentGameday.mockResolvedValue({ season: 1 })
     server.getMySellOfferPlayerIds.mockResolvedValue({ playerIds: [] })
+    server.getTeamSellOfferPlayerIds.mockResolvedValue({ playerIds: [] })
+  })
+
+  describe('sell-offer source', () => {
+    it('uses the current user sell offers by default', async () => {
+      const list = new PlayerList([testData.player({ id: 1 })], true)
+      await list.load()
+
+      expect(server.getMySellOfferPlayerIds).toHaveBeenCalled()
+      expect(server.getTeamSellOfferPlayerIds).not.toHaveBeenCalled()
+    })
+
+    it('uses the given team sell offers when sellOfferTeamId is set (foreign team page)', async () => {
+      server.getTeamSellOfferPlayerIds.mockResolvedValue({ playerIds: [1] })
+      const list = new PlayerList(
+        [testData.player({ id: 1 })], true, vi.fn(), false, false, null, null,
+        { sellOfferTeamId: 85 }
+      )
+      await list.load()
+
+      expect(server.getTeamSellOfferPlayerIds).toHaveBeenCalledWith(85)
+      expect(server.getMySellOfferPlayerIds).not.toHaveBeenCalled()
+      expect(list.sellOfferPlayerIds.has(1)).toBe(true)
+    })
   })
 
   describe('sortable columns', () => {

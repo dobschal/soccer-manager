@@ -6,6 +6,7 @@ vi.mock('../../lib/gateway.js', () => ({
   server: {
     getMyTeam: vi.fn(),
     getCurrentGameday: vi.fn(),
+    getActionCards: vi.fn(),
     updatePassStyle: vi.fn(),
     updatePlayStyle: vi.fn(),
     saveLineup: vi.fn().mockResolvedValue({ success: true, captainCleared: false }),
@@ -69,6 +70,8 @@ import { on, off } from '../../lib/event.js'
 describe('MyTeamPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.localStorage.clear()
+    server.getActionCards.mockResolvedValue({ actionCards: [] })
   })
 
   describe('MyTeamPage class', () => {
@@ -440,6 +443,66 @@ describe('MyTeamPage', () => {
       expect(page.data.players).toHaveLength(2)
       expect(page.data.players[1].name).toBe('Just Bought')
       expect(page._subPageCache).toEqual({})
+    })
+  })
+
+  describe('action cards tab', () => {
+    // The global setup mocks localStorage with no-op stubs; back them with a
+    // real in-memory store so the "seen cards" persistence can be exercised.
+    beforeEach(() => {
+      const store = {}
+      window.localStorage.getItem.mockImplementation(k => (k in store ? store[k] : null))
+      window.localStorage.setItem.mockImplementation((k, v) => { store[k] = String(v) })
+      window.localStorage.removeItem.mockImplementation(k => { delete store[k] })
+      window.localStorage.clear.mockImplementation(() => { Object.keys(store).forEach(k => delete store[k]) })
+    })
+
+    async function loadPage ({ subPage, cards } = {}) {
+      const team = testData.team({ id: 42 })
+      server.getMyTeam.mockResolvedValue({ team, players: [testData.player()] })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+      server.getActionCards.mockResolvedValue({ actionCards: cards ?? [] })
+      const page = new MyTeamPage()
+      page.subPage = subPage ?? null
+      await page.load()
+      return page
+    }
+
+    it('renders the Aktionen tab before the Vereinsinfo tab', async () => {
+      const page = await loadPage()
+      const html = page.template
+      expect(html.indexOf('sub_page=cards')).toBeLessThan(html.indexOf('sub_page=info'))
+    })
+
+    it('shows a red badge with the count of unseen action cards', async () => {
+      const page = await loadPage({ cards: [{ id: 1 }, { id: 2 }, { id: 3 }] })
+      expect(page.newCardCount).toBe(3)
+      expect(page.template).toContain('badge bg-danger')
+      expect(page.template).toContain('>3</span>')
+    })
+
+    it('does not render the badge when there are no unseen cards', async () => {
+      const page = await loadPage({ cards: [] })
+      expect(page.newCardCount).toBe(0)
+      expect(page.template).not.toContain('badge bg-danger')
+    })
+
+    it('marks cards as seen when the cards tab is open, hiding the badge', async () => {
+      const page = await loadPage({ subPage: 'cards', cards: [{ id: 1 }, { id: 2 }] })
+      expect(page.newCardCount).toBe(0)
+      expect(page.template).not.toContain('badge bg-danger')
+
+      // A later visit to another tab with the same cards must not re-show the badge.
+      const page2 = await loadPage({ subPage: null, cards: [{ id: 1 }, { id: 2 }] })
+      expect(page2.newCardCount).toBe(0)
+    })
+
+    it('only counts cards the user has not seen before', async () => {
+      // First visit to the cards tab marks card 1 as seen.
+      await loadPage({ subPage: 'cards', cards: [{ id: 1 }] })
+      // A new card 2 arrives while the user is on another tab → badge shows 1.
+      const page = await loadPage({ subPage: null, cards: [{ id: 1 }, { id: 2 }] })
+      expect(page.newCardCount).toBe(1)
     })
   })
 })

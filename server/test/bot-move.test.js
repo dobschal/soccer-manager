@@ -826,4 +826,27 @@ describe('Bot Trading', () => {
       expect(historyInserts).toHaveLength(1)
     })
   })
+
+  describe('Stadium check resilience', () => {
+    it('does not throw when a bot team has a played game but no stadium row', async () => {
+      // Force _checkStadium past its `Math.random() > 0.1` early-return guard.
+      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.05)
+
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT * FROM team WHERE user_id IS NULL')) return [botTeam]
+        if (sql.includes('SELECT * FROM player WHERE team_id IN')) return botPlayers
+        // No stadium row for this team → stadium is undefined
+        if (sql.includes('SELECT * FROM stadium WHERE team_id')) return []
+        // A played league game with details exists (the branch that used to crash)
+        if (sql.includes('SELECT details FROM game')) {
+          return [{ details: JSON.stringify({ stadiumDetails: { northGuests: 100, southGuests: 100, eastGuests: 100, westGuests: 100 } }) }]
+        }
+        return []
+      })
+
+      await expect(makeBotMoves()).resolves.not.toThrow()
+
+      randomSpy.mockRestore()
+    })
+  })
 })

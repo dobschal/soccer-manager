@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
@@ -9,7 +9,8 @@ vi.mock('../../prepare-season.js', () => ({
 }))
 
 vi.mock('../../helper/playerHelper.js', () => ({
-  getAveragePlanPriceOfPlayer: vi.fn()
+  getAveragePlanPriceOfPlayer: vi.fn(),
+  getPlayersByTeamId: vi.fn()
 }))
 
 vi.mock('../../helper/gameDayHelper.js', () => ({
@@ -24,8 +25,12 @@ vi.mock('../../helper/teamHelper.js', () => ({
   getTeamById: vi.fn()
 }))
 
+vi.mock('../../lib/util.js', () => ({
+  randomItem: vi.fn((arr) => arr[0])
+}))
+
 // We need to reset the module cache to clear the cached IOC team ID between tests
-let fillMarketGaps, iocBuyUndervaluedPlayers, cleanupIOCPlayers, getIOCTeamId, iocEnsureMinimumTransfers, iocAutoAcceptBuyOffers
+let fillMarketGaps, iocBuyFromUsers, cleanupIOCPlayers, getIOCTeamId, iocAutoAcceptBuyOffers
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -40,7 +45,8 @@ beforeEach(async () => {
     generateRandomPlayerName: vi.fn().mockResolvedValue('Test Player')
   }))
   vi.doMock('../../helper/playerHelper.js', () => ({
-    getAveragePlanPriceOfPlayer: vi.fn()
+    getAveragePlanPriceOfPlayer: vi.fn(),
+    getPlayersByTeamId: vi.fn()
   }))
   vi.doMock('../../helper/gameDayHelper.js', () => ({
     getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 5, season: 10 })
@@ -51,13 +57,15 @@ beforeEach(async () => {
   vi.doMock('../../helper/teamHelper.js', () => ({
     getTeamById: vi.fn()
   }))
+  vi.doMock('../../lib/util.js', () => ({
+    randomItem: vi.fn((arr) => arr[0])
+  }))
 
   const mod = await import('../../helper/overseaClubHelper.js')
   fillMarketGaps = mod.fillMarketGaps
-  iocBuyUndervaluedPlayers = mod.iocBuyUndervaluedPlayers
+  iocBuyFromUsers = mod.iocBuyFromUsers
   cleanupIOCPlayers = mod.cleanupIOCPlayers
   getIOCTeamId = mod.getIOCTeamId
-  iocEnsureMinimumTransfers = mod.iocEnsureMinimumTransfers
   iocAutoAcceptBuyOffers = mod.iocAutoAcceptBuyOffers
 
   // Get fresh references to mocked modules
@@ -69,8 +77,13 @@ beforeEach(async () => {
   // Store fresh refs globally for test usage
   globalThis._query = dbMod.query
   globalThis._getAveragePlanPriceOfPlayer = playerHelperMod.getAveragePlanPriceOfPlayer
+  globalThis._getPlayersByTeamId = playerHelperMod.getPlayersByTeamId
   globalThis._acceptOffer = tradeHelperMod.acceptOffer
   globalThis._getTeamById = teamHelperMod.getTeamById
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('overseaClubHelper', () => {
@@ -134,170 +147,127 @@ describe('overseaClubHelper', () => {
     })
   })
 
-  describe('iocBuyUndervaluedPlayers', () => {
-    it('buys offers below 80% market value', async () => {
+  describe('iocBuyFromUsers', () => {
+    it('makes no offer when the per-team chance roll fails', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.9) // >= 0.4 → skip team
+
       // getIOCTeamId
       globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      // user teams
+      globalThis._query.mockResolvedValueOnce([{ id: 5, name: 'User FC', user_id: 42, is_system_team: 0 }])
 
-      // Sell offers not from IOC
-      globalThis._query.mockResolvedValueOnce([
-        {
-          id: 1,
-          player_id: 10,
-          from_team_id: 5,
-          offer_value: 50000,
-          type: 'sell',
-          level: 50,
-          position: 'CM',
-          carrier_start_season: 0,
-          carrier_end_season: 22,
-          player_team_id: 5
-        }
-      ])
+      const count = await iocBuyFromUsers()
+      expect(count).toBe(0)
+      expect(globalThis._acceptOffer).not.toHaveBeenCalled()
+    })
 
-      // Market value = 100000, offer = 50000 => 50% < 80% threshold => buy
-      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
+    it('case 1: buys directly when a player is listed at or below market value', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0) // < 0.4 → proceed
 
-      // getTeamById for selling team (bot team, no user_id)
-      globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'Bot Team', user_id: null })
-
-      // Check for existing IOC offer on this player (none)
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      // user teams
+      globalThis._query.mockResolvedValueOnce([{ id: 5, name: 'User FC', user_id: 42, is_system_team: 0 }])
+      // existing IOC offer check (none)
       globalThis._query.mockResolvedValueOnce([])
-
+      // team's own sell offers – one listed at 50000
+      globalThis._query.mockResolvedValueOnce([
+        { id: 1, player_id: 10, player_name: 'Star', offer_value: 50000, level: 50, carrier_start_season: 0, carrier_end_season: 22 }
+      ])
+      // market value 100000 → 50000 <= market → direct buy
+      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
       // INSERT buy offer
       globalThis._query.mockResolvedValueOnce({ insertId: 100 })
       // SELECT the inserted buy offer
       globalThis._query.mockResolvedValueOnce([{ id: 100, from_team_id: 999, player_id: 10, type: 'buy', offer_value: 50000 }])
-      // acceptOffer will be called
       globalThis._acceptOffer.mockResolvedValueOnce()
 
-      const bought = await iocBuyUndervaluedPlayers()
-      expect(bought).toBe(1)
+      const count = await iocBuyFromUsers()
+      expect(count).toBe(1)
       expect(globalThis._acceptOffer).toHaveBeenCalledTimes(1)
     })
 
-    it('skips player if IOC already has an open offer', async () => {
+    it('case 2: offers market value ±3% when the listing is above market value', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0) // chance passes; deviation factor = 0.97
+
       // getIOCTeamId
       globalThis._query.mockResolvedValueOnce([{ id: 999 }])
-
-      // One undervalued sell offer
+      // user teams
+      globalThis._query.mockResolvedValueOnce([{ id: 5, name: 'User FC', user_id: 42, is_system_team: 0 }])
+      // existing IOC offer check (none)
+      globalThis._query.mockResolvedValueOnce([])
+      // team's own sell offers – one listed at 200000 (above market)
       globalThis._query.mockResolvedValueOnce([
-        {
-          id: 1,
-          player_id: 10,
-          from_team_id: 5,
-          offer_value: 50000,
-          type: 'sell',
-          level: 50,
-          position: 'CM',
-          carrier_start_season: 0,
-          carrier_end_season: 22,
-          player_team_id: 5
-        }
+        { id: 1, player_id: 10, player_name: 'Overpriced', offer_value: 200000, level: 50, carrier_start_season: 0, carrier_end_season: 22 }
       ])
-
+      // market value 100000 → listing above market → offer at market ±3%
       globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
-      globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'User FC', user_id: 42 })
+      // INSERT buy offer
+      globalThis._query.mockResolvedValueOnce({ insertId: 300 })
 
-      // IOC already has an open offer for this player
+      const count = await iocBuyFromUsers()
+      expect(count).toBe(1)
+      expect(globalThis._acceptOffer).not.toHaveBeenCalled()
+
+      const insertCall = globalThis._query.mock.calls.find(
+        c => typeof c[0] === 'string' && c[0].includes('INSERT INTO trade_offer')
+      )
+      // factor = 1 - 0.03 + 0*0.06 = 0.97 → 97000
+      expect(insertCall[1].offer_value).toBe(97000)
+      expect(insertCall[1].type).toBe('buy')
+      expect(insertCall[1].from_team_id).toBe(999)
+      expect(insertCall[1].player_id).toBe(10)
+    })
+
+    it('case 3: offers for a random player when the team lists nobody', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      // user teams
+      globalThis._query.mockResolvedValueOnce([{ id: 5, name: 'User FC', user_id: 42, is_system_team: 0 }])
+      // existing IOC offer check (none)
+      globalThis._query.mockResolvedValueOnce([])
+      // team's own sell offers – none
+      globalThis._query.mockResolvedValueOnce([])
+      // players of the team (randomItem mock returns the first)
+      globalThis._getPlayersByTeamId.mockResolvedValueOnce([
+        { id: 20, name: 'Random Guy', level: 60, carrier_start_season: 0, carrier_end_season: 22 }
+      ])
+      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
+      // INSERT buy offer
+      globalThis._query.mockResolvedValueOnce({ insertId: 400 })
+
+      const count = await iocBuyFromUsers()
+      expect(count).toBe(1)
+      expect(globalThis._acceptOffer).not.toHaveBeenCalled()
+
+      const insertCall = globalThis._query.mock.calls.find(
+        c => typeof c[0] === 'string' && c[0].includes('INSERT INTO trade_offer')
+      )
+      expect(insertCall[1].player_id).toBe(20)
+      expect(insertCall[1].offer_value).toBe(97000)
+    })
+
+    it('skips a team that already has an open IOC buy offer', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      // user teams
+      globalThis._query.mockResolvedValueOnce([{ id: 5, name: 'User FC', user_id: 42, is_system_team: 0 }])
+      // existing IOC offer check → one exists
       globalThis._query.mockResolvedValueOnce([{ id: 77 }])
 
-      const bought = await iocBuyUndervaluedPlayers()
-      expect(bought).toBe(0)
+      const count = await iocBuyFromUsers()
+      expect(count).toBe(0)
+      expect(globalThis._acceptOffer).not.toHaveBeenCalled()
     })
 
-    it('skips player if IOC already has a rejected offer', async () => {
-      // getIOCTeamId
-      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
-
-      // One undervalued sell offer
-      globalThis._query.mockResolvedValueOnce([
-        {
-          id: 1,
-          player_id: 10,
-          from_team_id: 5,
-          offer_value: 50000,
-          type: 'sell',
-          level: 50,
-          position: 'CM',
-          carrier_start_season: 0,
-          carrier_end_season: 22,
-          player_team_id: 5
-        }
-      ])
-
-      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
-      globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'User FC', user_id: 42 })
-
-      // IOC already has a rejected offer for this player
-      globalThis._query.mockResolvedValueOnce([{ id: 77 }])
-
-      const bought = await iocBuyUndervaluedPlayers()
-      expect(bought).toBe(0)
-    })
-
-    it('skips offers at or above 80% market value', async () => {
-      // getIOCTeamId
-      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
-
-      // Sell offer at exactly 80% of market value
-      globalThis._query.mockResolvedValueOnce([
-        {
-          id: 1,
-          player_id: 10,
-          from_team_id: 5,
-          offer_value: 80000,
-          type: 'sell',
-          level: 50,
-          position: 'CM',
-          carrier_start_season: 0,
-          carrier_end_season: 22,
-          player_team_id: 5
-        }
-      ])
-
-      // Market value = 100000, offer = 80000 => 80% = threshold => skip
-      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
-
-      const bought = await iocBuyUndervaluedPlayers()
-      expect(bought).toBe(0)
-    })
-
-    it('respects max 10 buys per game day', async () => {
-      // getIOCTeamId
-      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
-
-      // Create 15 undervalued sell offers
-      const offers = []
-      for (let i = 0; i < 15; i++) {
-        offers.push({
-          id: i + 1,
-          player_id: 100 + i,
-          from_team_id: 5,
-          offer_value: 1000,
-          type: 'sell',
-          level: 50,
-          position: 'CM',
-          carrier_start_season: 0,
-          carrier_end_season: 22,
-          player_team_id: 5
-        })
-      }
-      globalThis._query.mockResolvedValueOnce(offers)
-
-      // All have market value much higher than offer (undervalued)
-      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
-      // All are bot teams
-      globalThis._getTeamById.mockResolvedValue({ id: 5, name: 'Bot Team', user_id: null })
-      // Handle queries: existing-offer check returns empty, others return buy offer
-      globalThis._query.mockImplementation((sql) => {
-        if (typeof sql === 'string' && sql.includes('SELECT id FROM trade_offer')) return Promise.resolve([])
-        return Promise.resolve([{ id: 200, from_team_id: 999, player_id: 100, type: 'buy', offer_value: 1000 }])
-      })
-      globalThis._acceptOffer.mockResolvedValue()
-
-      const bought = await iocBuyUndervaluedPlayers()
-      expect(bought).toBe(10)
+    it('returns 0 when no IOC team exists', async () => {
+      globalThis._query.mockResolvedValueOnce([])
+      const count = await iocBuyFromUsers()
+      expect(count).toBe(0)
     })
   })
 
@@ -328,83 +298,6 @@ describe('overseaClubHelper', () => {
 
       const cleaned = await cleanupIOCPlayers()
       expect(cleaned).toBe(0)
-    })
-  })
-
-  describe('iocEnsureMinimumTransfers', () => {
-    it('buys cheapest offers when transfers below minimum', async () => {
-      // getIOCTeamId
-      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
-
-      // COUNT teams (20 non-system teams → min 2 transfers)
-      globalThis._query.mockResolvedValueOnce([{ cnt: 20 }])
-
-      // COUNT current transfers this game day (0 so far)
-      globalThis._query.mockResolvedValueOnce([{ cnt: 0 }])
-
-      // Cheapest sell offers (need 2)
-      globalThis._query.mockResolvedValueOnce([
-        { id: 1, player_id: 10, from_team_id: 5, offer_value: 30000, level: 20, position: 'CM', player_team_id: 5 },
-        { id: 2, player_id: 11, from_team_id: 6, offer_value: 40000, level: 25, position: 'ST', player_team_id: 6 }
-      ])
-
-      // Both are bot sellers
-      globalThis._getTeamById.mockResolvedValue({ id: 5, name: 'Bot A', user_id: null })
-
-      // Handle queries: existing-offer check returns empty, others return buy offer
-      globalThis._query.mockImplementation((sql) => {
-        if (typeof sql === 'string' && sql.includes('SELECT id FROM trade_offer')) return Promise.resolve([])
-        return Promise.resolve([{ id: 200, from_team_id: 999, player_id: 10, type: 'buy', offer_value: 30000 }])
-      })
-      globalThis._acceptOffer.mockResolvedValue()
-
-      const bought = await iocEnsureMinimumTransfers()
-      expect(bought).toBe(2)
-      expect(globalThis._acceptOffer).toHaveBeenCalledTimes(2)
-    })
-
-    it('does nothing when enough transfers already happened', async () => {
-      // getIOCTeamId
-      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
-
-      // COUNT teams (10 → min 1 transfer)
-      globalThis._query.mockResolvedValueOnce([{ cnt: 10 }])
-
-      // COUNT current transfers (5 already happened, exceeds minimum of 1)
-      globalThis._query.mockResolvedValueOnce([{ cnt: 5 }])
-
-      const bought = await iocEnsureMinimumTransfers()
-      expect(bought).toBe(0)
-    })
-
-    it('places buy offer for user seller instead of auto-accepting', async () => {
-      // getIOCTeamId
-      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
-
-      // COUNT teams (10 → min 1)
-      globalThis._query.mockResolvedValueOnce([{ cnt: 10 }])
-
-      // 0 transfers so far
-      globalThis._query.mockResolvedValueOnce([{ cnt: 0 }])
-
-      // One sell offer from a user team
-      globalThis._query.mockResolvedValueOnce([
-        { id: 1, player_id: 10, from_team_id: 5, offer_value: 50000, level: 30, position: 'LM', player_team_id: 5 }
-      ])
-
-      // Selling team is a user team
-      globalThis._getTeamById.mockResolvedValueOnce({ id: 5, name: 'User FC', user_id: 42 })
-
-      // Check for existing IOC offer on this player (none)
-      globalThis._query.mockResolvedValueOnce([])
-
-      // INSERT buy offer
-      globalThis._query.mockResolvedValueOnce({ insertId: 300 })
-
-      const bought = await iocEnsureMinimumTransfers()
-      expect(bought).toBe(1)
-      // Should NOT auto-accept (user seller)
-      expect(globalThis._acceptOffer).not.toHaveBeenCalled()
     })
   })
 

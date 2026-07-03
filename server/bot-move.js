@@ -82,6 +82,8 @@ async function _checkStadium (botTeam) {
   if (Math.random() > 0.1) return
   /** @type {StadiumType} */
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=?', [botTeam.id])
+  // A bot team may not have a stadium row yet — nothing to adjust in that case.
+  if (!stadium) return
   /** @type {GameType[]} */
   const [game] = await query('SELECT details FROM game WHERE team_1_id=? AND played=1 AND game_type=\'league\' ORDER BY season DESC, game_day DESC LIMIT 1', [botTeam.id])
   if (game && game.details) {

@@ -16,10 +16,12 @@ export class PlayerList extends UIElement {
    * @param {boolean} extended
    * @param {() => void} onToggleExtended
    * @param {number|null} captainId
-   * @param {{ useUrlSort?: boolean }} [options] - When `useUrlSort: false`, the
-   *   table's header-click sort stays local to this instance instead of being
-   *   synced through the URL query string. Use for secondary lists (e.g. the
-   *   select-player overlay) that must not inherit the main list's sort.
+   * @param {{ useUrlSort?: boolean, sellOfferTeamId?: number|null }} [options] -
+   *   When `useUrlSort: false`, the table's header-click sort stays local to this
+   *   instance instead of being synced through the URL query string. Use for
+   *   secondary lists (e.g. the select-player overlay) that must not inherit the
+   *   main list's sort. When `sellOfferTeamId` is set, the "on transfer market"
+   *   icon reflects that team's open sell offers instead of the current user's.
    */
   constructor (players, showTitle = true, onClickHandler, enableDragDrop = false, extended = false, onToggleExtended = null, captainId = null, options = {}) {
     super()
@@ -31,6 +33,7 @@ export class PlayerList extends UIElement {
     this.onToggleExtended = onToggleExtended
     this.captainId = captainId
     this.useUrlSort = options.useUrlSort !== false
+    this.sellOfferTeamId = options.sellOfferTeamId ?? null
   }
 
   /**
@@ -39,7 +42,9 @@ export class PlayerList extends UIElement {
   async load () {
     const [{ season }, { playerIds }] = await Promise.all([
       server.getCurrentGameday(),
-      server.getMySellOfferPlayerIds()
+      this.sellOfferTeamId
+        ? server.getTeamSellOfferPlayerIds(this.sellOfferTeamId)
+        : server.getMySellOfferPlayerIds()
     ])
     this.season = season
     this.sellOfferPlayerIds = new Set(playerIds)

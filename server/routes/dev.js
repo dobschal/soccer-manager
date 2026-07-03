@@ -3,7 +3,7 @@ import { calculateGames } from '../play-game-day.js'
 import { makeBotMoves } from '../bot-move.js'
 import { BadRequestError } from '../lib/errors.js'
 import { cleanupOldFreePlayers } from '../helper/playerHelper.js'
-import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyUndervaluedPlayers } from '../helper/overseaClubHelper.js'
+import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyFromUsers } from '../helper/overseaClubHelper.js'
 import { sendBroadcastNotification } from '../lib/pushNotification.js'
 import { sendAdminMessageEmail } from '../lib/email.js'
 import { query, transaction } from '../lib/database.js'
@@ -41,18 +41,21 @@ export default {
       throw new BadRequestError('This action is only available for admins')
     }
     console.log('Manually triggered game day calculation...')
-    const newSeasonCreated = await prepareSeason()
+    // Isolate each step so one failing job doesn't abort the whole game day
+    // (mirrors the CRON handler in api.js).
+    let newSeasonCreated = false
+    try { newSeasonCreated = await prepareSeason() } catch (e) { console.error('prepareSeason failed:', e) }
     if (newSeasonCreated) {
       console.log('⏸️ New season created — skipping game calculation this tick.')
     } else {
-      await calculateGames({ skipPushNotifications: true })
+      try { await calculateGames({ skipPushNotifications: true }) } catch (e) { console.error('calculateGames failed:', e) }
     }
-    await makeBotMoves()
-    await cleanupOldFreePlayers()
-    await cleanupIOCPlayers()
-    await fillMarketGaps()
-    await iocBuyUndervaluedPlayers()
-    await iocAutoAcceptBuyOffers()
+    try { await makeBotMoves() } catch (e) { console.error('makeBotMoves failed:', e) }
+    try { await cleanupOldFreePlayers() } catch (e) { console.error('cleanupOldFreePlayers failed:', e) }
+    try { await cleanupIOCPlayers() } catch (e) { console.error('cleanupIOCPlayers failed:', e) }
+    try { await fillMarketGaps() } catch (e) { console.error('fillMarketGaps failed:', e) }
+    try { await iocBuyFromUsers() } catch (e) { console.error('iocBuyFromUsers failed:', e) }
+    try { await iocAutoAcceptBuyOffers() } catch (e) { console.error('iocAutoAcceptBuyOffers failed:', e) }
     console.log('Game day calculation completed.')
     return { success: true }
   },

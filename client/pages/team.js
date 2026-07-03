@@ -155,7 +155,8 @@ export class TeamPage extends UIElement {
     false,
     false,
     null,
-    this.team.captain_id || null
+    this.team.captain_id || null,
+    { sellOfferTeamId: this.team.id }
   )}
 
         <div class="mt-5">

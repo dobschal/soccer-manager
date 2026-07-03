@@ -300,6 +300,17 @@ export default {
   },
 
   /**
+   * Get player IDs that have open sell offers for a given team.
+   * Used to render the "on transfer market" icon on foreign team pages.
+   * @param {number} teamId
+   * @returns {Promise<{playerIds: number[]}>}
+   */
+  async getTeamSellOfferPlayerIds (teamId) {
+    const offers = await getOpenSellOffersByTeamId(teamId)
+    return { playerIds: offers.map(o => o.player_id) }
+  },
+
+  /**
    * Check if a player has a sell offer
    * @param {number} playerId
    * @returns {Promise<{hasSellOffer: boolean, sellOfferPrice: (number|null), allowInstantBuy: boolean}>}

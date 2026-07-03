@@ -22,7 +22,7 @@ vi.mock('../../helper/overseaClubHelper.js', () => ({
   cleanupIOCPlayers: vi.fn(),
   fillMarketGaps: vi.fn(),
   iocAutoAcceptBuyOffers: vi.fn(),
-  iocBuyUndervaluedPlayers: vi.fn()
+  iocBuyFromUsers: vi.fn()
 }))
 vi.mock('../../lib/pushNotification.js', () => ({
   sendBroadcastNotification: vi.fn()

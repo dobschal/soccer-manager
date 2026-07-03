@@ -16,7 +16,8 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
 
 vi.mock('../../helper/tradeHelper.js', () => ({
   acceptOffer: vi.fn(),
-  declineOffer: vi.fn()
+  declineOffer: vi.fn(),
+  getOpenSellOffersByTeamId: vi.fn()
 }))
 
 vi.mock('../../helper/playerHelper.js', () => ({
@@ -33,7 +34,7 @@ vi.mock('../../helper/logMessageHelper.js', () => ({
 import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
-import { acceptOffer, declineOffer } from '../../helper/tradeHelper.js'
+import { acceptOffer, declineOffer, getOpenSellOffersByTeamId } from '../../helper/tradeHelper.js'
 import { getPlayerById, getPlayersByTeamId, getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/trade.js'
@@ -483,6 +484,28 @@ describe('trade routes', () => {
 
       const req = createMockRequest()
       const result = await handlers.getMySellOfferPlayerIds(req)
+
+      expect(result).toEqual({ playerIds: [] })
+    })
+  })
+
+  describe('getTeamSellOfferPlayerIds', () => {
+    it('returns player IDs of open sell offers for the given team', async () => {
+      getOpenSellOffersByTeamId.mockResolvedValue([
+        { player_id: 10 },
+        { player_id: 20 }
+      ])
+
+      const result = await handlers.getTeamSellOfferPlayerIds(7)
+
+      expect(result).toEqual({ playerIds: [10, 20] })
+      expect(getOpenSellOffersByTeamId).toHaveBeenCalledWith(7)
+    })
+
+    it('returns empty array when the team has no sell offers', async () => {
+      getOpenSellOffersByTeamId.mockResolvedValue([])
+
+      const result = await handlers.getTeamSellOfferPlayerIds(7)
 
       expect(result).toEqual({ playerIds: [] })
     })
