@@ -75,10 +75,24 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
     if (buyingTeamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
   }
 
-  // Update player and trade offer
+  // A player may only change clubs once per season (anti wash-trading with bots).
+  const [{ count: transfersThisSeason }] = await query(
+    'SELECT COUNT(*) AS count FROM trade_history WHERE player_id=? AND season=?',
+    [player.id, season]
+  )
+  if (transfersThisSeason > 0) throw new BadRequestError(t('error.playerAlreadyTransferredThisSeason', {}, locale))
+
+  // Atomically claim the offer: only one concurrent request can flip open→accepted.
+  // This closes a race where two simultaneous accepts both credit the seller (double money).
+  const claim = await query(
+    'UPDATE trade_offer SET status=\'accepted\' WHERE id=? AND type=\'buy\' AND status=\'open\'',
+    [offer.id]
+  )
+  if (claim.affectedRows === 0) throw new BadRequestError(t('error.offerNotFound', {}, locale))
+
+  // Update player and clean up remaining offers for this player
   player.team_id = offer.from_team_id
   await query('UPDATE player SET team_id=?, in_game_position=NULL WHERE id=?', [player.team_id, player.id])
-  await query('UPDATE trade_offer SET status=\'accepted\' WHERE id=?', [offer.id])
   await query('DELETE FROM trade_offer WHERE player_id=? AND id != ?', [player.id, offer.id])
 
   // Move balance - use user's language for log messages

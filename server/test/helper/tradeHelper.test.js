@@ -110,7 +110,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({}) // For UPDATE and INSERT queries
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      }) // For UPDATE and INSERT queries
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -136,7 +140,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -174,13 +182,17 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
-      // Verify the accepted offer is marked as accepted
+      // Verify the accepted offer is claimed atomically (guarded on status='open')
       expect(query).toHaveBeenCalledWith(
-        'UPDATE trade_offer SET status=\'accepted\' WHERE id=?',
+        'UPDATE trade_offer SET status=\'accepted\' WHERE id=? AND type=\'buy\' AND status=\'open\'',
         [offer.id]
       )
       // Verify other offers for this player are deleted
@@ -205,7 +217,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -235,7 +251,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -265,7 +285,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -287,7 +311,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -327,7 +355,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -353,7 +385,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -379,7 +415,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await acceptOffer(offer, sellingTeam, gameDay, season)
 
@@ -409,7 +449,11 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       // Should not throw - current behavior allows negative balance
       await expect(acceptOffer(offer, sellingTeam, gameDay, season))
@@ -485,7 +529,11 @@ describe('tradeHelper', () => {
       getTeamById.mockResolvedValueOnce(buyingTeam)
       // Selling team OK
       getPlayersByTeamId.mockResolvedValueOnce(Array(18).fill(testData.player()))
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       await expect(acceptOffer(offer, sellingTeam, gameDay, season))
         .resolves.toBeUndefined()
@@ -506,11 +554,62 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
 
       // Should not throw - bot teams are not subject to minimum team size
       await expect(acceptOffer(offer, botTeam, gameDay, season))
         .resolves.toBeUndefined()
+    })
+
+    it('rejects a player that already changed clubs this season (anti wash-trading)', async () => {
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC' })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({ id: 1, type: 'buy', player_id: 10, from_team_id: 2, offer_value: 50000 })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }]) // validation SELECT
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      // trade_history already has a transfer for this player this season
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 1 }])
+        return Promise.resolve({})
+      })
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season))
+        .rejects.toMatchObject({ message: 'error.playerAlreadyTransferredThisSeason' })
+
+      // No money moved and no history written when the transfer is blocked
+      expect(updateTeamBalance).not.toHaveBeenCalled()
+      expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_history SET ?', expect.anything())
+    })
+
+    it('does not credit the seller twice on a concurrent double-accept (race guard)', async () => {
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC' })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({ id: 1, type: 'buy', player_id: 10, from_team_id: 2, offer_value: 50000 })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }]) // validation SELECT still sees it open
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      // The other concurrent request already flipped the offer: our atomic claim hits 0 rows
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 0 })
+        return Promise.resolve({})
+      })
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season))
+        .rejects.toMatchObject({ message: 'Offer not found' })
+
+      // The loser of the race must not move money or write a duplicate trade_history row
+      expect(updateTeamBalance).not.toHaveBeenCalled()
+      expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_history SET ?', expect.anything())
     })
   })
 
@@ -521,7 +620,11 @@ describe('tradeHelper', () => {
       const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 7, type: 'buy', player_id: 10, from_team_id: 2 })
 
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
       getPlayerById.mockResolvedValue(player)
       getTeamById.mockResolvedValueOnce(buyingTeam).mockResolvedValueOnce(sellerTeam)
 
@@ -539,7 +642,11 @@ describe('tradeHelper', () => {
       const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 7, type: 'buy', player_id: 10, from_team_id: 2 })
 
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
       getPlayerById.mockResolvedValue(player)
       getTeamById.mockResolvedValueOnce(buyingTeam).mockResolvedValueOnce(sellerTeam)
 
@@ -562,7 +669,11 @@ describe('tradeHelper', () => {
       const player = testData.player({ id: 20, name: 'Another Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 8, type: 'buy', player_id: 20, from_team_id: 5 })
 
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
       getPlayerById.mockResolvedValue(player)
       getTeamById.mockResolvedValueOnce(buyingTeam).mockResolvedValueOnce(sellerTeam)
 
@@ -578,7 +689,11 @@ describe('tradeHelper', () => {
       const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 7, type: 'buy', player_id: 10, from_team_id: 2 })
 
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
       getPlayerById.mockResolvedValue(player)
       getTeamById.mockResolvedValueOnce(buyingTeam).mockResolvedValueOnce(sellerTeam)
 
@@ -596,7 +711,11 @@ describe('tradeHelper', () => {
       const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
       const offer = testData.tradeOffer({ id: 9, type: 'buy', player_id: 10, from_team_id: 3 })
 
-      query.mockResolvedValue({})
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
       getPlayerById.mockResolvedValue(player)
       getTeamById.mockResolvedValueOnce(botTeam).mockResolvedValueOnce(sellerTeam)
 
