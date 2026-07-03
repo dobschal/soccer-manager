@@ -512,7 +512,7 @@ export class StadiumSubPage extends UIElement {
             season: h.completed_season + 1,
             day: h.completed_game_day + 1
           })
-          : `<span class="badge badge-warning">${t('stadium.inProgress')}</span>`
+          : `<span class="badge bg-warning text-dark">${t('stadium.inProgress')}</span>`
       ],
       data: this.constructionHistory,
       classes: 'table-sm table-striped'
