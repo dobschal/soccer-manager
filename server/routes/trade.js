@@ -64,6 +64,12 @@ export default {
       }
       const dbPlayer = await getPlayerById(player.id)
       if (!dbPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+      // A player may only change clubs once per season — no point listing one who can't be sold again.
+      const [{ count: transfersThisSeason }] = await query(
+        'SELECT COUNT(*) AS count FROM trade_history WHERE player_id=? AND season=?',
+        [player.id, season]
+      )
+      if (transfersThisSeason > 0) throw new BadRequestError(t('error.playerAlreadyTransferredThisSeason', {}, locale))
       const marketValue = await getAveragePlanPriceOfPlayer(dbPlayer, season)
       const minPrice = Math.floor(marketValue * 0.5)
       if (price < minPrice) {

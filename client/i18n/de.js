@@ -777,6 +777,7 @@ export default {
   'player.sellPlayer': 'Spieler verkaufen?',
   'player.buyPlayer': 'Spieler kaufen?',
   'player.enterPrice': 'Gib einfach einen gewünschten Preis ein:',
+  'player.alreadyTransferredThisSeason': 'Dieser Spieler hat in dieser Saison bereits den Verein gewechselt und kann daher nicht auf den Transfermarkt gesetzt werden.',
   'player.askingPrice': 'Angebotspreis',
   'player.pricePlaceholder': 'Preis',
   'player.sell': 'Verkaufen',

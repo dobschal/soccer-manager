@@ -85,6 +85,7 @@ describe('trade routes', () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       query
+        .mockResolvedValueOnce([{ count: 0 }])  // no transfer this season
         .mockResolvedValueOnce([])  // no existing offers
         .mockResolvedValueOnce({})  // insert
 
@@ -115,6 +116,7 @@ describe('trade routes', () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // market value -> min 50000
+      query.mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
 
       const req = createMockRequest()
 
@@ -131,6 +133,7 @@ describe('trade routes', () => {
       getPlayerById.mockResolvedValue(player)
       getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // min 50000
       query
+        .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
         .mockResolvedValueOnce([]) // no existing offers
         .mockResolvedValueOnce({}) // insert
 
@@ -138,6 +141,22 @@ describe('trade routes', () => {
       const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
 
       expect(result).toEqual({ success: true })
+    })
+
+    it('rejects a sell offer for a player who already changed clubs this season', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      query.mockResolvedValueOnce([{ count: 1 }]) // already transferred this season
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 50000, 'sell', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining('season') })
+      expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_offer SET ?', expect.anything())
     })
 
     it('rejects a sell offer when the team already lists the maximum number of players', async () => {
@@ -167,6 +186,7 @@ describe('trade routes', () => {
         new Array(MAX_SELL_OFFERS_PER_TEAM - 1).fill({}).map((_, i) => testData.tradeOffer({ id: i + 1 }))
       )
       query
+        .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
         .mockResolvedValueOnce([]) // no existing offer for this player
         .mockResolvedValueOnce({}) // insert
 
@@ -184,6 +204,7 @@ describe('trade routes', () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       query
+        .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce({})
 
@@ -280,6 +301,7 @@ describe('trade routes', () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       query
+        .mockResolvedValueOnce([{ count: 0 }])  // no transfer this season
         .mockResolvedValueOnce([])  // no open offers (duplicate check)
         .mockResolvedValueOnce({})  // insert
 
