@@ -3,7 +3,7 @@ import { TradeOffer } from '../entities/tradeOffer.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { acceptOffer, declineOffer, getOpenSellOffersByTeamId } from '../helper/tradeHelper.js'
+import { acceptOffer, declineOffer, getOpenSellOffersByTeamId, MAX_SELL_OFFERS_PER_TEAM } from '../helper/tradeHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
@@ -58,6 +58,10 @@ export default {
     const { gameDay, season } = await getGameDayAndSeason()
     // A player may not be listed below 50% of their market value (#446).
     if (type === 'sell') {
+      const openSellOffers = await getOpenSellOffersByTeamId(team.id)
+      if (openSellOffers.length >= MAX_SELL_OFFERS_PER_TEAM) {
+        throw new BadRequestError(t('error.sellOfferLimitReached', { max: MAX_SELL_OFFERS_PER_TEAM }, locale))
+      }
       const dbPlayer = await getPlayerById(player.id)
       if (!dbPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
       const marketValue = await getAveragePlanPriceOfPlayer(dbPlayer, season)

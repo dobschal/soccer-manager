@@ -73,6 +73,7 @@ export default {
   'error.sellPriceTooLow': 'The asking price must be at least 50% of the player\'s market value ({minPrice}).',
   'error.offerTooLow': 'Offer is too low',
   'error.offerLimitReached': 'You can only make 3 offers per player per game day',
+  'error.sellOfferLimitReached': 'You can list at most {max} players on the transfer market at the same time.',
   'error.instantBuyDisabled': 'The seller disabled instant buy for this player',
   'error.playerAlreadyTransferredThisSeason': 'This player has already changed clubs this season',
 
@@ -129,6 +130,7 @@ export default {
   'log.offerAccepted': 'Your offer for {playerName} has been accepted!',
   'log.offerRejected': 'Your offer for {playerName} has been rejected.',
   'log.sellOfferCreated': 'You added a sell offer for {playerName} at {price}.',
+  'log.sellOffersRemoved': '{count} of your sell offers were removed. You can list at most {max} players on the transfer market at the same time.',
 
   // Log messages - Action cards
   'log.cardLevelUp': '{playerName} has leveled up to level {level}!',

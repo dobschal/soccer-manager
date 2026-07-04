@@ -11,12 +11,48 @@ import { addPlayerHistory } from './playerHistoryHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { sendToTeam } from '../lib/websocket.js'
 
+// A team may list at most this many players on the transfer market at once.
+export const MAX_SELL_OFFERS_PER_TEAM = 5
+
 /**
  * @param {number} teamId
  * @returns {Promise<TradeOfferType[]>}
  */
 export async function getOpenSellOffersByTeamId (teamId) {
   return await query('SELECT * FROM trade_offer WHERE from_team_id=? AND type=\'sell\' AND status=\'open\'', [teamId])
+}
+
+/**
+ * Enforces the per-team sell-offer limit for user teams. Teams that already
+ * have more than MAX_SELL_OFFERS_PER_TEAM open sell offers get a random
+ * selection of the excess offers removed, and are notified via a log message.
+ * @returns {Promise<void>}
+ */
+export async function enforceSellOfferLimits () {
+  const rows = await query(
+    'SELECT from_team_id FROM trade_offer WHERE type=\'sell\' AND status=\'open\' GROUP BY from_team_id HAVING COUNT(*) > ?',
+    [MAX_SELL_OFFERS_PER_TEAM]
+  )
+  for (const { from_team_id: teamId } of rows) {
+    const team = await getTeamById(teamId)
+    if (!team || !team.user_id) continue // only enforce for user teams
+    const offers = await getOpenSellOffersByTeamId(teamId)
+    if (offers.length <= MAX_SELL_OFFERS_PER_TEAM) continue
+    // Randomly pick which offers to remove down to the limit.
+    const shuffled = [...offers].sort(() => Math.random() - 0.5)
+    const removeIds = shuffled.slice(MAX_SELL_OFFERS_PER_TEAM).map(o => o.id)
+    await query(`DELETE FROM trade_offer WHERE id IN (${removeIds.join(', ')})`)
+    const locale = await getUserLocale(team.user_id)
+    await addLogMessage(
+      t('log.sellOffersRemoved', { count: removeIds.length, max: MAX_SELL_OFFERS_PER_TEAM }, locale),
+      team,
+      'OPEN_MARKET',
+      null,
+      'tag',
+      'NEW_LOG_MESSAGE',
+      'warning'
+    )
+  }
 }
 
 /**

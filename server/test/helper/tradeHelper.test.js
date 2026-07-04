@@ -58,11 +58,50 @@ import { getTeamById } from '../../helper/teamHelper.js'
 import { getPlayerById, getPlayersByTeamId } from '../../helper/playerHelper.js'
 import { addPlayerHistory } from '../../helper/playerHistoryHelper.js'
 import { sendToTeam } from '../../lib/websocket.js'
-import { acceptOffer, declineOffer } from '../../helper/tradeHelper.js'
+import { acceptOffer, declineOffer, enforceSellOfferLimits, MAX_SELL_OFFERS_PER_TEAM } from '../../helper/tradeHelper.js'
 
 describe('tradeHelper', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  describe('enforceSellOfferLimits', () => {
+    it('removes the excess offers of a user team down to the limit and notifies the user', async () => {
+      const team = testData.team({ id: 7, user_id: 3 })
+      const offers = new Array(MAX_SELL_OFFERS_PER_TEAM + 2)
+        .fill(null)
+        .map((_, i) => testData.tradeOffer({ id: i + 1, from_team_id: team.id, type: 'sell', status: 'open' }))
+
+      query
+        .mockResolvedValueOnce([{ from_team_id: team.id }]) // teams over the limit
+        .mockResolvedValueOnce(offers) // getOpenSellOffersByTeamId
+        .mockResolvedValueOnce({}) // DELETE
+      getTeamById.mockResolvedValue(team)
+
+      await enforceSellOfferLimits()
+
+      const deleteCall = query.mock.calls.find(c => String(c[0]).startsWith('DELETE FROM trade_offer WHERE id IN'))
+      expect(deleteCall).toBeTruthy()
+      // Exactly the two excess offers get removed.
+      const idList = deleteCall[0].match(/\(([^)]+)\)/)[1].split(',').map(s => s.trim())
+      expect(idList).toHaveLength(2)
+      expect(addLogMessage).toHaveBeenCalledWith(
+        expect.any(String), team, 'OPEN_MARKET', null, 'tag', 'NEW_LOG_MESSAGE', 'warning'
+      )
+    })
+
+    it('skips bot teams (no user_id)', async () => {
+      const team = testData.team({ id: 8, user_id: null })
+
+      query.mockResolvedValueOnce([{ from_team_id: team.id }])
+      getTeamById.mockResolvedValue(team)
+
+      await enforceSellOfferLimits()
+
+      const deleteCall = query.mock.calls.find(c => String(c[0]).startsWith('DELETE'))
+      expect(deleteCall).toBeUndefined()
+      expect(addLogMessage).not.toHaveBeenCalled()
+    })
   })
 
   describe('acceptOffer', () => {

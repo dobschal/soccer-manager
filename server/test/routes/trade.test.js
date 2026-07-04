@@ -17,7 +17,8 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
 vi.mock('../../helper/tradeHelper.js', () => ({
   acceptOffer: vi.fn(),
   declineOffer: vi.fn(),
-  getOpenSellOffersByTeamId: vi.fn()
+  getOpenSellOffersByTeamId: vi.fn(),
+  MAX_SELL_OFFERS_PER_TEAM: 5
 }))
 
 vi.mock('../../helper/playerHelper.js', () => ({
@@ -34,7 +35,7 @@ vi.mock('../../helper/logMessageHelper.js', () => ({
 import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
-import { acceptOffer, declineOffer, getOpenSellOffersByTeamId } from '../../helper/tradeHelper.js'
+import { acceptOffer, declineOffer, getOpenSellOffersByTeamId, MAX_SELL_OFFERS_PER_TEAM } from '../../helper/tradeHelper.js'
 import { getPlayerById, getPlayersByTeamId, getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/trade.js'
@@ -73,6 +74,7 @@ describe('trade routes', () => {
   describe('addTradeOffer', () => {
     beforeEach(() => {
       getPlayersByTeamId.mockResolvedValue([])
+      getOpenSellOffersByTeamId.mockResolvedValue([])
     })
 
     it('creates trade offer', async () => {
@@ -130,6 +132,42 @@ describe('trade routes', () => {
       getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // min 50000
       query
         .mockResolvedValueOnce([]) // no existing offers
+        .mockResolvedValueOnce({}) // insert
+
+      const req = createMockRequest()
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
+
+      expect(result).toEqual({ success: true })
+    })
+
+    it('rejects a sell offer when the team already lists the maximum number of players', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getOpenSellOffersByTeamId.mockResolvedValue(
+        new Array(MAX_SELL_OFFERS_PER_TEAM).fill({}).map((_, i) => testData.tradeOffer({ id: i + 1 }))
+      )
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 50000, 'sell', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining(String(MAX_SELL_OFFERS_PER_TEAM)) })
+    })
+
+    it('allows a sell offer when the team is just below the limit', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      getOpenSellOffersByTeamId.mockResolvedValue(
+        new Array(MAX_SELL_OFFERS_PER_TEAM - 1).fill({}).map((_, i) => testData.tradeOffer({ id: i + 1 }))
+      )
+      query
+        .mockResolvedValueOnce([]) // no existing offer for this player
         .mockResolvedValueOnce({}) // insert
 
       const req = createMockRequest()
