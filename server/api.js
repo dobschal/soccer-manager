@@ -16,6 +16,7 @@ import { getLocaleFromRequest } from './i18n/index.js'
 import { cleanupOldFreePlayers } from './helper/playerHelper.js'
 import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyFromUsers } from './helper/overseaClubHelper.js'
 import { cleanupInactiveUsers } from './helper/teamHelper.js'
+import { enforceSellOfferLimits } from './helper/tradeHelper.js'
 import { cleanupOldClientLogs } from './helper/clientLogHelper.js'
 import { cleanupOldLogMessages } from './helper/logMessageHelper.js'
 import { collectStatistics } from './helper/statisticsHelper.js'
@@ -171,6 +172,7 @@ async function start () {
     try { await cleanupOldFreePlayers() } catch (e) { console.error('cleanupOldFreePlayers failed:', e) }
     try { await makeBotMoves() } catch (e) { console.error('makeBotMoves failed:', e) }
     try { await cleanupInactiveUsers() } catch (e) { console.error('cleanupInactiveUsers failed:', e) }
+    try { await enforceSellOfferLimits() } catch (e) { console.error('enforceSellOfferLimits failed:', e) }
     try { await cleanupIOCPlayers() } catch (e) { console.error('cleanupIOCPlayers failed:', e) }
     try { await fillMarketGaps() } catch (e) { console.error('fillMarketGaps failed:', e) }
     try { await iocBuyFromUsers() } catch (e) { console.error('iocBuyFromUsers failed:', e) }

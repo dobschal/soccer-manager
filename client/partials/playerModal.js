@@ -1,6 +1,6 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
-import { calculatePlayerAge, calculateMarketValue, getSalary, willRetireNextSeason } from '../util/player.js'
+import { calculatePlayerAge, calculateMarketValue, getSalary, willRetireNextSeason, MAX_TRANSFERS_PER_SEASON } from '../util/player.js'
 import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
 import { euroFormat } from '../lib/currency.js'
 import { el } from '../lib/html.js'
@@ -86,6 +86,10 @@ export default class PlayerModal extends UIElement {
     this.playerImage = await renderPlayerImage(this.player, this.playersTeam, 224, { isCaptain })
     this.price = calculateMarketValue(this.player.level, calculatePlayerAge(this.player, this.season))
     this.history = await server.getPlayerHistory(this.player.id)
+    // A player may change clubs at most MAX_TRANSFERS_PER_SEASON times — once they hit
+    // the limit, the owner can't list them on the transfer market anymore.
+    const transfersThisSeason = this.history.filter(h => h.type === 'TRANSFER' && h.season === this.season).length
+    this.transferredThisSeason = transfersThisSeason >= MAX_TRANSFERS_PER_SEASON
     const { offer } = await server.myOfferForPlayer(this.player)
     this.offer = offer
     const { hasSellOffer, sellOfferPrice, allowInstantBuy } = await server.hasPlayerSellOffer(this.player.id)
@@ -159,24 +163,30 @@ export default class PlayerModal extends UIElement {
         ${this._actionCardGiver ? `<div class="mb-4">${this._actionCardGiver}</div>` : ''}
         <div class="player-modal__section ${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4">
           <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
-          ${!this.isMyPlayer && this.sellOfferPrice ? `
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <span>${t('player.askingPrice')}: <b>${euroFormat.format(this.sellOfferPrice)}</b></span>
-              ${this.allowInstantBuy ? `<button class="instant-buy-btn btn btn-success btn-sm" type="button">${t('trades.instantBuy')}</button>` : ''}
+          ${this.isMyPlayer && this.transferredThisSeason ? `
+            <div class="alert alert-info mt-2 mb-0">
+              <i class="fa fa-info-circle" aria-hidden="true"></i> ${t('player.alreadyTransferredThisSeason')}
             </div>
-          ` : `<p>${t('player.enterPrice')}</p>`}
-          ${renderCurrencyInput('trade-price-input', t('player.pricePlaceholder'))}
-          <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
-            <button class="trade-offer-btn btn btn-primary" type="button">
-              ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}
-            </button>
-            ${this.isMyPlayer ? `
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="allow-instant-buy" checked>
-                <label class="form-check-label" for="allow-instant-buy">${t('player.allowInstantBuy')}</label>
+          ` : `
+            ${!this.isMyPlayer && this.sellOfferPrice ? `
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span>${t('player.askingPrice')}: <b>${euroFormat.format(this.sellOfferPrice)}</b></span>
+                ${this.allowInstantBuy ? `<button class="instant-buy-btn btn btn-success btn-sm" type="button">${t('trades.instantBuy')}</button>` : ''}
               </div>
-            ` : ''}
-          </div>
+            ` : `<p>${t('player.enterPrice')}</p>`}
+            ${renderCurrencyInput('trade-price-input', t('player.pricePlaceholder'))}
+            <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+              <button class="trade-offer-btn btn btn-primary" type="button">
+                ${this.isMyPlayer ? t('player.sell') : t('player.submitOffer')}
+              </button>
+              ${this.isMyPlayer ? `
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="allow-instant-buy" checked>
+                  <label class="form-check-label" for="allow-instant-buy">${t('player.allowInstantBuy')}</label>
+                </div>
+              ` : ''}
+            </div>
+          `}
         </div>
         <div class="player-modal__section ${this.isFreeAgent ? '' : 'hidden'} mb-4">
           <b>🤝 ${t('player.hirePlayer')}</b>

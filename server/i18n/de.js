@@ -73,8 +73,9 @@ export default {
   'error.sellPriceTooLow': 'Der Verkaufspreis muss mindestens 50% des Marktwerts des Spielers betragen ({minPrice}).',
   'error.offerTooLow': 'Angebot ist zu niedrig',
   'error.offerLimitReached': 'Du kannst nur 3 Angebote pro Spieler pro Spieltag abgeben',
+  'error.sellOfferLimitReached': 'Du kannst höchstens {max} Spieler gleichzeitig auf dem Transfermarkt anbieten.',
   'error.instantBuyDisabled': 'Der Verkäufer hat den Sofortkauf für diesen Spieler deaktiviert',
-  'error.playerAlreadyTransferredThisSeason': 'Dieser Spieler hat in dieser Saison bereits den Verein gewechselt',
+  'error.playerAlreadyTransferredThisSeason': 'Dieser Spieler hat in dieser Saison bereits zweimal den Verein gewechselt',
 
   // Stadium errors
   'error.standNotFound': 'Tribüne nicht gefunden',
@@ -129,6 +130,7 @@ export default {
   'log.offerAccepted': 'Dein Angebot für {playerName} wurde angenommen!',
   'log.offerRejected': 'Dein Angebot für {playerName} wurde abgelehnt.',
   'log.sellOfferCreated': 'Du hast ein Verkaufsangebot für {playerName} zu {price} erstellt.',
+  'log.sellOffersRemoved': '{count} deiner Verkaufsangebote wurden entfernt. Du kannst höchstens {max} Spieler gleichzeitig auf dem Transfermarkt anbieten.',
 
   // Log messages - Action cards
   'log.cardLevelUp': '{playerName} ist auf Level {level} aufgestiegen!',
