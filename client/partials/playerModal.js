@@ -1,6 +1,6 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
-import { calculatePlayerAge, calculateMarketValue, getSalary, willRetireNextSeason } from '../util/player.js'
+import { calculatePlayerAge, calculateMarketValue, getSalary, willRetireNextSeason, MAX_TRANSFERS_PER_SEASON } from '../util/player.js'
 import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
 import { euroFormat } from '../lib/currency.js'
 import { el } from '../lib/html.js'
@@ -86,9 +86,10 @@ export default class PlayerModal extends UIElement {
     this.playerImage = await renderPlayerImage(this.player, this.playersTeam, 224, { isCaptain })
     this.price = calculateMarketValue(this.player.level, calculatePlayerAge(this.player, this.season))
     this.history = await server.getPlayerHistory(this.player.id)
-    // A player may only change clubs once per season — if they already did,
-    // the owner can't list them on the transfer market anymore.
-    this.transferredThisSeason = this.history.some(h => h.type === 'TRANSFER' && h.season === this.season)
+    // A player may change clubs at most MAX_TRANSFERS_PER_SEASON times — once they hit
+    // the limit, the owner can't list them on the transfer market anymore.
+    const transfersThisSeason = this.history.filter(h => h.type === 'TRANSFER' && h.season === this.season).length
+    this.transferredThisSeason = transfersThisSeason >= MAX_TRANSFERS_PER_SEASON
     const { offer } = await server.myOfferForPlayer(this.player)
     this.offer = offer
     const { hasSellOffer, sellOfferPrice, allowInstantBuy } = await server.hasPlayerSellOffer(this.player.id)

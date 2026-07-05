@@ -75,7 +75,7 @@ export default {
   'error.offerLimitReached': 'You can only make 3 offers per player per game day',
   'error.sellOfferLimitReached': 'You can list at most {max} players on the transfer market at the same time.',
   'error.instantBuyDisabled': 'The seller disabled instant buy for this player',
-  'error.playerAlreadyTransferredThisSeason': 'This player has already changed clubs this season',
+  'error.playerAlreadyTransferredThisSeason': 'This player has already changed clubs twice this season',
 
   // Stadium errors
   'error.standNotFound': 'Stand not found',

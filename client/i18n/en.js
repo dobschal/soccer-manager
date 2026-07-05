@@ -777,7 +777,7 @@ export default {
   'player.sellPlayer': 'Sell Player?',
   'player.buyPlayer': 'Buy Player?',
   'player.enterPrice': 'Just enter a wanted price:',
-  'player.alreadyTransferredThisSeason': 'This player has already changed clubs this season and cannot be listed on the transfer market.',
+  'player.alreadyTransferredThisSeason': 'This player has already changed clubs twice this season and cannot be listed on the transfer market.',
   'player.askingPrice': 'Asking price',
   'player.pricePlaceholder': 'Price',
   'player.sell': 'Sell',

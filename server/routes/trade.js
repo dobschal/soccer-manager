@@ -3,7 +3,7 @@ import { TradeOffer } from '../entities/tradeOffer.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { acceptOffer, declineOffer, getOpenSellOffersByTeamId, MAX_SELL_OFFERS_PER_TEAM } from '../helper/tradeHelper.js'
+import { acceptOffer, declineOffer, getOpenSellOffersByTeamId, MAX_SELL_OFFERS_PER_TEAM, MAX_TRANSFERS_PER_SEASON } from '../helper/tradeHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
@@ -64,12 +64,12 @@ export default {
       }
       const dbPlayer = await getPlayerById(player.id)
       if (!dbPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
-      // A player may only change clubs once per season — no point listing one who can't be sold again.
+      // A player may change clubs at most MAX_TRANSFERS_PER_SEASON times — no point listing one who can't be sold again.
       const [{ count: transfersThisSeason }] = await query(
         'SELECT COUNT(*) AS count FROM trade_history WHERE player_id=? AND season=?',
         [player.id, season]
       )
-      if (transfersThisSeason > 0) throw new BadRequestError(t('error.playerAlreadyTransferredThisSeason', {}, locale))
+      if (transfersThisSeason >= MAX_TRANSFERS_PER_SEASON) throw new BadRequestError(t('error.playerAlreadyTransferredThisSeason', {}, locale))
       const marketValue = await getAveragePlanPriceOfPlayer(dbPlayer, season)
       const minPrice = Math.floor(marketValue * 0.5)
       if (price < minPrice) {

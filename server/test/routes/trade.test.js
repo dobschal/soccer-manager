@@ -18,7 +18,8 @@ vi.mock('../../helper/tradeHelper.js', () => ({
   acceptOffer: vi.fn(),
   declineOffer: vi.fn(),
   getOpenSellOffersByTeamId: vi.fn(),
-  MAX_SELL_OFFERS_PER_TEAM: 5
+  MAX_SELL_OFFERS_PER_TEAM: 5,
+  MAX_TRANSFERS_PER_SEASON: 2
 }))
 
 vi.mock('../../helper/playerHelper.js', () => ({
@@ -35,7 +36,7 @@ vi.mock('../../helper/logMessageHelper.js', () => ({
 import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
-import { acceptOffer, declineOffer, getOpenSellOffersByTeamId, MAX_SELL_OFFERS_PER_TEAM } from '../../helper/tradeHelper.js'
+import { acceptOffer, declineOffer, getOpenSellOffersByTeamId, MAX_SELL_OFFERS_PER_TEAM, MAX_TRANSFERS_PER_SEASON } from '../../helper/tradeHelper.js'
 import { getPlayerById, getPlayersByTeamId, getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/trade.js'
@@ -143,20 +144,39 @@ describe('trade routes', () => {
       expect(result).toEqual({ success: true })
     })
 
-    it('rejects a sell offer for a player who already changed clubs this season', async () => {
+    it('rejects a sell offer for a player who already changed clubs the maximum times this season', async () => {
       const team = testData.team({ balance: 100000 })
       const player = testData.player()
 
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
-      query.mockResolvedValueOnce([{ count: 1 }]) // already transferred this season
+      query.mockResolvedValueOnce([{ count: MAX_TRANSFERS_PER_SEASON }]) // already at the transfer limit this season
 
       const req = createMockRequest()
 
       await expect(handlers.addTradeOffer(player, 50000, 'sell', true, req))
         .rejects.toMatchObject({ message: expect.stringContaining('season') })
       expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_offer SET ?', expect.anything())
+    })
+
+    it('allows a sell offer for a player who has only changed clubs once this season', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
+      query
+        .mockResolvedValueOnce([{ count: 1 }]) // one prior transfer — still below the limit
+        .mockResolvedValueOnce([]) // no existing offer for this player
+        .mockResolvedValueOnce({}) // insert
+
+      const req = createMockRequest()
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
+
+      expect(result).toEqual({ success: true })
     })
 
     it('rejects a sell offer when the team already lists the maximum number of players', async () => {

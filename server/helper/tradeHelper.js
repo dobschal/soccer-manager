@@ -14,6 +14,9 @@ import { sendToTeam } from '../lib/websocket.js'
 // A team may list at most this many players on the transfer market at once.
 export const MAX_SELL_OFFERS_PER_TEAM = 5
 
+// A player may change clubs at most this many times per season (anti wash-trading with bots).
+export const MAX_TRANSFERS_PER_SEASON = 2
+
 /**
  * @param {number} teamId
  * @returns {Promise<TradeOfferType[]>}
@@ -111,12 +114,12 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
     if (buyingTeamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
   }
 
-  // A player may only change clubs once per season (anti wash-trading with bots).
+  // A player may change clubs at most MAX_TRANSFERS_PER_SEASON times per season (anti wash-trading with bots).
   const [{ count: transfersThisSeason }] = await query(
     'SELECT COUNT(*) AS count FROM trade_history WHERE player_id=? AND season=?',
     [player.id, season]
   )
-  if (transfersThisSeason > 0) throw new BadRequestError(t('error.playerAlreadyTransferredThisSeason', {}, locale))
+  if (transfersThisSeason >= MAX_TRANSFERS_PER_SEASON) throw new BadRequestError(t('error.playerAlreadyTransferredThisSeason', {}, locale))
 
   // Atomically claim the offer: only one concurrent request can flip open→accepted.
   // This closes a race where two simultaneous accepts both credit the seller (double money).

@@ -75,7 +75,7 @@ export default {
   'error.offerLimitReached': 'Du kannst nur 3 Angebote pro Spieler pro Spieltag abgeben',
   'error.sellOfferLimitReached': 'Du kannst höchstens {max} Spieler gleichzeitig auf dem Transfermarkt anbieten.',
   'error.instantBuyDisabled': 'Der Verkäufer hat den Sofortkauf für diesen Spieler deaktiviert',
-  'error.playerAlreadyTransferredThisSeason': 'Dieser Spieler hat in dieser Saison bereits den Verein gewechselt',
+  'error.playerAlreadyTransferredThisSeason': 'Dieser Spieler hat in dieser Saison bereits zweimal den Verein gewechselt',
 
   // Stadium errors
   'error.standNotFound': 'Tribüne nicht gefunden',

@@ -58,7 +58,7 @@ import { getTeamById } from '../../helper/teamHelper.js'
 import { getPlayerById, getPlayersByTeamId } from '../../helper/playerHelper.js'
 import { addPlayerHistory } from '../../helper/playerHistoryHelper.js'
 import { sendToTeam } from '../../lib/websocket.js'
-import { acceptOffer, declineOffer, enforceSellOfferLimits, MAX_SELL_OFFERS_PER_TEAM } from '../../helper/tradeHelper.js'
+import { acceptOffer, declineOffer, enforceSellOfferLimits, MAX_SELL_OFFERS_PER_TEAM, MAX_TRANSFERS_PER_SEASON } from '../../helper/tradeHelper.js'
 
 describe('tradeHelper', () => {
   beforeEach(() => {
@@ -604,7 +604,7 @@ describe('tradeHelper', () => {
         .resolves.toBeUndefined()
     })
 
-    it('rejects a player that already changed clubs this season (anti wash-trading)', async () => {
+    it('rejects a player that already changed clubs the maximum times this season (anti wash-trading)', async () => {
       const sellingTeam = testData.team({ id: 1, name: 'Selling FC' })
       const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })
       const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
@@ -613,9 +613,9 @@ describe('tradeHelper', () => {
       query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }]) // validation SELECT
       getPlayerById.mockResolvedValueOnce(player)
       getTeamById.mockResolvedValueOnce(buyingTeam)
-      // trade_history already has a transfer for this player this season
+      // trade_history already has MAX_TRANSFERS_PER_SEASON transfers for this player this season
       query.mockImplementation((sql) => {
-        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 1 }])
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: MAX_TRANSFERS_PER_SEASON }])
         return Promise.resolve({})
       })
 
@@ -625,6 +625,27 @@ describe('tradeHelper', () => {
       // No money moved and no history written when the transfer is blocked
       expect(updateTeamBalance).not.toHaveBeenCalled()
       expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_history SET ?', expect.anything())
+    })
+
+    it('allows a player that has only changed clubs once this season', async () => {
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC' })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })
+      const player = testData.player({ id: 10, name: 'Star Player', team_id: 1 })
+      const offer = testData.tradeOffer({ id: 1, type: 'buy', player_id: 10, from_team_id: 2, offer_value: 80000 })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      // One prior transfer this season — still below the limit of MAX_TRANSFERS_PER_SEASON
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 1 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
+
+      await acceptOffer(offer, sellingTeam, gameDay, season)
+
+      expect(query).toHaveBeenCalledWith('INSERT INTO trade_history SET ?', expect.anything())
     })
 
     it('does not credit the seller twice on a concurrent double-accept (race guard)', async () => {

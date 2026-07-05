@@ -1,3 +1,7 @@
+// A player may change clubs at most this many times per season.
+// Keep in sync with MAX_TRANSFERS_PER_SEASON in server/helper/tradeHelper.js.
+export const MAX_TRANSFERS_PER_SEASON = 2
+
 /**
  * Calculate salary for a given player level (1-100)
  * Exponential curve: Level 1 = 150, Level 100 = 10,308
