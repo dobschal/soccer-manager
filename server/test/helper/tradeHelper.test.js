@@ -30,7 +30,8 @@ vi.mock('../../helper/playerHistoryHelper.js', () => ({
 }))
 
 vi.mock('../../lib/websocket.js', () => ({
-  sendToTeam: vi.fn().mockResolvedValue(true)
+  sendToTeam: vi.fn().mockResolvedValue(true),
+  sendToUser: vi.fn().mockReturnValue(true)
 }))
 
 vi.mock('../../i18n/index.js', () => ({

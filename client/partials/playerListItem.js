@@ -67,6 +67,14 @@ export class PlayerListItem extends UIElement {
         if (!data || data.playerId !== this.player.id) return
         this.sellOfferPlayerIds.add(this.player.id)
         this.update()
+      },
+      // Fires when the user cancels a sell offer, or when the per-team limit
+      // sweep removes one. Same payload shape as NEW_SELL_TRADE_OFFER.
+      [SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name]: (data) => {
+        if (!data || data.playerId !== this.player.id) return
+        if (!this.sellOfferPlayerIds.has(this.player.id)) return
+        this.sellOfferPlayerIds.delete(this.player.id)
+        this.update()
       }
     }
   }

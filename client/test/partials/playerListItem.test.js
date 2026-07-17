@@ -253,4 +253,47 @@ describe('PlayerListItem', () => {
       expect(updateSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('REMOVE_SELL_TRADE_OFFER server event', () => {
+    it('drops the row\'s player from the shared set and re-renders on match', () => {
+      const player = testData.player({ id: 42 })
+      const sellOfferPlayerIds = new Set([42, 99])
+      const item = new PlayerListItem(player, 1, sellOfferPlayerIds)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name]
+
+      // Event for a different player — no-op.
+      handler({ playerId: 99 })
+      expect(updateSpy).not.toHaveBeenCalled()
+      expect(sellOfferPlayerIds.has(42)).toBe(true)
+
+      // Own-player event — icon must disappear.
+      handler({ playerId: 42 })
+      expect(sellOfferPlayerIds.has(42)).toBe(false)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not re-render when the player never had a sell offer', () => {
+      const player = testData.player({ id: 42 })
+      const sellOfferPlayerIds = new Set() // no offer currently tracked
+      const item = new PlayerListItem(player, 1, sellOfferPlayerIds)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name]
+      handler({ playerId: 42 })
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('ignores payloads without a playerId', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1, new Set([42]))
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name]
+      handler(null)
+      handler({})
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
 })

@@ -9,7 +9,8 @@ import { TradeHistory } from '../entities/tradeHistory.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
-import { sendToTeam } from '../lib/websocket.js'
+import { sendToTeam, sendToUser } from '../lib/websocket.js'
+import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 
 // A team may list at most this many players on the transfer market at once.
 export const MAX_SELL_OFFERS_PER_TEAM = 5
@@ -43,8 +44,14 @@ export async function enforceSellOfferLimits () {
     if (offers.length <= MAX_SELL_OFFERS_PER_TEAM) continue
     // Randomly pick which offers to remove down to the limit.
     const shuffled = [...offers].sort(() => Math.random() - 0.5)
-    const removeIds = shuffled.slice(MAX_SELL_OFFERS_PER_TEAM).map(o => o.id)
+    const removed = shuffled.slice(MAX_SELL_OFFERS_PER_TEAM)
+    const removeIds = removed.map(o => o.id)
     await query(`DELETE FROM trade_offer WHERE id IN (${removeIds.join(', ')})`)
+    // Notify the seller so each affected PlayerListItem drops its market icon
+    // without waiting for a page reload.
+    for (const offer of removed) {
+      sendToUser(team.user_id, SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name, { playerId: offer.player_id })
+    }
     const locale = await getUserLocale(team.user_id)
     await addLogMessage(
       t('log.sellOffersRemoved', { count: removeIds.length, max: MAX_SELL_OFFERS_PER_TEAM }, locale),

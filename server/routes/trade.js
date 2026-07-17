@@ -8,6 +8,8 @@ import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { getPositionsOfFormation } from '../../client/util/formation.js'
+import { sendToUser } from '../lib/websocket.js'
+import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 
 export default {
 
@@ -269,7 +271,15 @@ export default {
     const locale = req.locale || 'en'
     const team = await getTeam(req)
     if (!offer.id || !team.id) throw new BadRequestError(t('error.offerNotFound', {}, locale))
+    // Look the offer up before deleting so the websocket notification below
+    // has the player id + offer type even after the row is gone.
+    const [existing] = await query('SELECT player_id, type FROM trade_offer WHERE from_team_id=? AND id=? AND status=\'open\'', [team.id, offer.id])
     await query('DELETE FROM trade_offer WHERE from_team_id=? AND id=? AND status=\'open\'', [team.id, offer.id])
+    // Only sell-offer cancellations affect the seller's own player rows; buy
+    // offers don't render a marker on the buying team's PlayerList.
+    if (existing && existing.type === 'sell' && team.user_id) {
+      sendToUser(team.user_id, SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name, { playerId: existing.player_id })
+    }
     return { success: true }
   },
 
