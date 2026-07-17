@@ -95,15 +95,11 @@ export class PlayerList extends UIElement {
       }
     }
   }
-  /**
-   * Server events to listen for
-   * @returns {Record<string, (data: any) => void>}
-   */
-  get serverEvents () {
-    return {
-      NEW_SELL_TRADE_OFFER: () => this.update(true)
-    }
-  }
+  // Server events are handled by each PlayerListItem individually — e.g.
+  // NEW_SELL_TRADE_OFFER updates just the affected row's icon instead of
+  // rebuilding the whole table. List-shape changes (fire, hire, transfer
+  // completed) don't have dedicated websocket events yet; when they do, the
+  // corresponding handler belongs here so the list itself refreshes.
   /**
    * Toggle the reset-sort button visibility when the URL sort params change.
    * Avoids a full re-render so the underlying Table keeps managing its own state.
@@ -206,9 +202,10 @@ export class PlayerList extends UIElement {
         }
       ],
       data: this.players,
-      renderRow: (player) => this._buildItem(player).cells,
-      rowClass: (player) => this._buildItem(player).rowClass,
-      rowAttrs: (player) => `data-player-id="${player.id}"`,
+      // Each row is a full UIElement so it can subscribe to server events
+      // (NEW_SELL_TRADE_OFFER etc.) and refresh atomically without redrawing
+      // the whole table.
+      rowElement: (player) => this._buildItem(player),
       onClick: (player) => {
         if (typeof this.onClickHandler === 'function') {
           this.onClickHandler(player)

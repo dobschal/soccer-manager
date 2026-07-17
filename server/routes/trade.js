@@ -183,7 +183,8 @@ export default {
         null,
         'tag',
         'NEW_SELL_TRADE_OFFER',
-        'info'
+        'info',
+        { playerId: playerData.id }
       )
     }
 

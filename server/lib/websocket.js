@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { config } from '../config.js'
 import { query } from './database.js'
 import { getCachedUser } from './userCache.js'
+import { assertKnownServerEvent } from '../../client/lib/serverEvents.js'
 
 /** @type {Map<number, import('ws').WebSocket>} */
 const clients = new Map()
@@ -99,13 +100,16 @@ export function initWebSocket (server) {
 }
 
 /**
- * Send an event to a specific user
+ * Send an event to a specific user. The `event` name must be declared in the
+ * shared registry — throws otherwise so misconfigured senders fail loudly in
+ * dev / tests instead of silently dropping notifications in prod.
  * @param {number} userId
  * @param {string} event
  * @param {any} [data]
  * @returns {boolean} - true if message was sent
  */
 export function sendToUser (userId, event, data = null) {
+  assertKnownServerEvent(event, 'sendToUser')
   const ws = clients.get(userId)
   if (ws && ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify({

@@ -4,15 +4,26 @@ import { renderLevelBadge } from './levelBadge.js'
 import { ProgressBar } from './progressBar.js'
 import { renderPositionBadge } from './positionBadge.js'
 import { t } from '../i18n/index.js'
+import { UIElement } from '../lib/UIElement.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
+import { server } from '../lib/gateway.js'
 
-export class PlayerListItem {
+/**
+ * A single row of `PlayerList`. Now owns its own `<tr>` DOM node so it can
+ * subscribe to server events (e.g. NEW_SELL_TRADE_OFFER) and refresh itself
+ * atomically without re-rendering the whole list.
+ */
+export class PlayerListItem extends UIElement {
   /**
    * @param {PlayerType} player
    * @param {number} season
-   * @param {Set<number>} sellOfferPlayerIds
+   * @param {Set<number>} sellOfferPlayerIds - Shared with the parent PlayerList
+   *   so a local mutation here (e.g. after a NEW_SELL_TRADE_OFFER for this
+   *   player) is visible to the rest of the list too.
    * @param {number|null} captainId
    */
   constructor (player, season, sellOfferPlayerIds = new Set(), captainId = null) {
+    super()
     this.player = player
     this.season = season
     this.sellOfferPlayerIds = sellOfferPlayerIds
@@ -20,7 +31,19 @@ export class PlayerListItem {
   }
 
   /**
-   * Standalone <tr> rendering, kept for direct usage (e.g. tests).
+   * Initial load is a no-op: the constructor gets a `player` object from the
+   * parent PlayerList, which is authoritative at mount time. On update
+   * (triggered by a server event), refetch the player fresh so any changed
+   * fields (freshness, level, in_game_position, injuries, …) are picked up.
+   * @param {boolean} isUpdate
+   */
+  async load (isUpdate) {
+    if (!isUpdate) return
+    const fresh = await server.getPlayerById(this.player.id)
+    if (fresh) this.player = fresh
+  }
+  /**
+   * The `<tr>` template rendered into the parent table's tbody.
    * @returns {string}
    */
   get template () {
@@ -32,6 +55,27 @@ export class PlayerListItem {
     }).join('')
     return `<tr class="${this.rowClass}" data-player-id="${this.player.id}">${cellsHtml}</tr>`
   }
+  /**
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      // Fires for the selling team's user when they list a player. Payload
+      // includes { playerId } so each row can filter down to its own player
+      // and avoid a full-list refetch.
+      [SERVER_EVENTS.NEW_SELL_TRADE_OFFER.name]: (data) => {
+        if (!data || data.playerId !== this.player.id) return
+        this.sellOfferPlayerIds.add(this.player.id)
+        this.update()
+      }
+    }
+  }
+  /**
+   * The row shows a background-refresh pulse while `load(true)` is in flight
+   * — better than the full bouncing-ball loader for a single table row.
+   */
+  updateIndicator = true
+
   /**
    * Row class to highlight suspended/injured/lineup/bench players.
    * @returns {string}
@@ -45,7 +89,8 @@ export class PlayerListItem {
   }
 
   /**
-   * Cell content for use as Table renderRow output.
+   * Cell content — still exposed for tests and for any legacy caller that
+   * wants to render the cells inside its own `<tr>` wrapper.
    * @returns {Array<string>}
    */
   get cells () {

@@ -26,6 +26,7 @@ vi.mock('../../partials/levelBadge.js', () => ({
 }))
 
 import { PlayerListItem } from '../../partials/playerListItem.js'
+import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 
 describe('PlayerListItem', () => {
   beforeEach(() => {
@@ -217,6 +218,39 @@ describe('PlayerListItem', () => {
 
       const html = item._renderCards(0, 0)
       expect(html).toBe('')
+    })
+  })
+
+  describe('NEW_SELL_TRADE_OFFER server event', () => {
+    it('updates only when the event payload matches the row\'s player id', () => {
+      const player = testData.player({ id: 42 })
+      const sellOfferPlayerIds = new Set()
+      const item = new PlayerListItem(player, 1, sellOfferPlayerIds)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.NEW_SELL_TRADE_OFFER.name]
+
+      // A different player's event must be ignored — no update, no set mutation.
+      handler({ playerId: 999 })
+      expect(updateSpy).not.toHaveBeenCalled()
+      expect(sellOfferPlayerIds.has(42)).toBe(false)
+
+      // Own-player event: mutates the shared set and calls update() (non-reload,
+      // because we already know the row now has an offer).
+      handler({ playerId: 42 })
+      expect(sellOfferPlayerIds.has(42)).toBe(true)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores payloads without a playerId', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.NEW_SELL_TRADE_OFFER.name]
+      handler(null)
+      handler({})
+      expect(updateSpy).not.toHaveBeenCalled()
     })
   })
 })

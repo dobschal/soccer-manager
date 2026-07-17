@@ -25,6 +25,12 @@ vi.mock('ws', () => {
 
 import { query } from '../../lib/database.js'
 import { sendToUser, sendToTeam, initWebSocket } from '../../lib/websocket.js'
+import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
+
+// Every test picks a real event from the shared registry, because sendToUser
+// / sendToTeam now assert the name against it (unknown names throw so typos
+// fail loudly instead of silently dropping notifications in prod).
+const KNOWN_EVENT = SERVER_EVENTS.BALANCE_UPDATED.name
 
 describe('websocket', () => {
   beforeEach(() => {
@@ -40,27 +46,31 @@ describe('websocket', () => {
 
   describe('sendToUser', () => {
     it('returns false when user is not connected', () => {
-      const result = sendToUser(999, 'TEST_EVENT', { data: 'test' })
+      const result = sendToUser(999, KNOWN_EVENT, { data: 'test' })
       expect(result).toBe(false)
+    })
+
+    it('throws for an unregistered event name', () => {
+      expect(() => sendToUser(1, 'DEFINITELY_NOT_REGISTERED')).toThrow(/Unknown server event/)
     })
   })
 
   describe('sendToTeam', () => {
     it('returns false when team has no user', async () => {
       query.mockResolvedValue([{ user_id: null }])
-      const result = await sendToTeam(1, 'TEST_EVENT', { data: 'test' })
+      const result = await sendToTeam(1, KNOWN_EVENT, { data: 'test' })
       expect(result).toBe(false)
     })
 
     it('returns false when team not found', async () => {
       query.mockResolvedValue([])
-      const result = await sendToTeam(1, 'TEST_EVENT', { data: 'test' })
+      const result = await sendToTeam(1, KNOWN_EVENT, { data: 'test' })
       expect(result).toBe(false)
     })
 
     it('queries team by id', async () => {
       query.mockResolvedValue([{ user_id: 123 }])
-      await sendToTeam(5, 'TEST_EVENT')
+      await sendToTeam(5, KNOWN_EVENT)
       expect(query).toHaveBeenCalledWith('SELECT user_id FROM team WHERE id=? LIMIT 1', [5])
     })
   })

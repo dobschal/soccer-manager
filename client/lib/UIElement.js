@@ -3,6 +3,7 @@ import { el, generateId } from './html.js'
 import { off, on } from './event.js'
 import { onDOMNodeChanged } from './observeDOM.js'
 import { offServerEvent, onServerEvent } from './websocket.js'
+import { assertKnownServerEvent } from './serverEvents.js'
 
 /**
  * @typedef {Record<string, Record<string, (event: Event) => void>>} UIElementEvents
@@ -48,10 +49,19 @@ export class UIElement {
   }
 
   /**
+   * Called by `renderSync()` before initial render and by `update(true)`
+   * before a re-render that should refetch data.
+   *
+   * The `isUpdate` flag lets subclasses split their fetch logic: on the
+   * initial call some data may already be available via constructor arguments
+   * (e.g. `PlayerListItem` gets `player` passed in), while an update coming
+   * from a server event must fetch the full up-to-date state.
+   *
    * @abstract
+   * @param {boolean} _isUpdate - false on initial mount, true when triggered by update(true)
    * @returns {Promise<void>}
    */
-  async load () {
+  async load (_isUpdate) {
   }
 
   /**
@@ -71,13 +81,23 @@ export class UIElement {
   }
 
   /**
-   * Override this getter to define server event handlers
+   * Override this getter to define server event handlers. Event names must be
+   * declared in `client/lib/serverEvents.js` — an unknown name throws on mount
+   * so typos surface immediately.
+   *
    * Example:
-   * get serverEvents() {
-   *   return {
-   *     NEW_SELL_TRADE_OFFER: () => this.update(true)
+   *   import { SERVER_EVENTS } from '../lib/serverEvents.js'
+   *   get serverEvents () {
+   *     return {
+   *       [SERVER_EVENTS.NEW_SELL_TRADE_OFFER.name]: (data) => this.update(true)
+   *     }
    *   }
-   * }
+   *
+   * The registered handlers stay alive for the whole DOM-lifetime of the
+   * element: they fire regardless of whether the element is currently visible,
+   * as long as it is still mounted. When the element is removed from the DOM
+   * (e.g. router navigates away) they are unregistered automatically.
+   *
    * @returns {Record<string, (data: any) => void>}
    */
   get serverEvents () {
@@ -90,14 +110,12 @@ export class UIElement {
    */
   onMounted () {
   }
-
   /**
    * @abstract
    * @returns {void}
    */
   onUpdate () {
   }
-
   /**
    * @abstract
    * @param {Record<string, string>} _params
@@ -105,13 +123,22 @@ export class UIElement {
    */
   onQueryChanged (_params) {
   }
-
   /**
    * @abstract
    * @returns {void}
    */
   onDestroy () {
   }
+  /**
+   * When true, `update(true)` adds the `ui-element-updating` CSS class to the
+   * root node while `load(true)` is in flight, so the element visibly signals
+   * that a background refresh is happening (half-opacity + pulse) without
+   * flashing the full bouncing-ball loader the initial render uses. Subclasses
+   * that own a piece of UI which can be replaced without losing surrounding
+   * context should opt in.
+   * @type {boolean}
+   */
+  updateIndicator = false
 
   /**
    * Render the current UIElement --> call load and return the template string then
@@ -153,6 +180,13 @@ export class UIElement {
   /**
    * Find the currently rendered DOM nodes for this UIElement and replace those
    * with the current template rendered.
+   *
+   * The convention is that `update` is never called from the element's own
+   * click / user-input handlers — those should mutate server state and let the
+   * resulting server event trigger `update(true)` from `serverEvents`. This
+   * keeps every screen consistent with what the server actually knows: no
+   * optimistic redraw that later has to be reconciled.
+   *
    * @param {boolean} [reloadData] - default is false to not reload the data
    */
   async update (reloadData = false) {
@@ -164,8 +198,14 @@ export class UIElement {
     if (parent && lockedHeight) {
       parent.style.minHeight = `${lockedHeight}px`
     }
+    // Show the update indicator while data is being refetched. The old node
+    // gets swapped out further down, so we don't have to clean up the class —
+    // it disappears with the replaced node.
+    if (reloadData && this.updateIndicator && node) {
+      node.classList.add('ui-element-updating')
+    }
     const templateEl = document.createElement('template')
-    if (reloadData) await this._load()
+    if (reloadData) await this._load(true)
     await this._renderIntoTemplateEl(templateEl)
     this._renderIntoDOM(node, templateEl)
     this._applyEventHandlers()
@@ -217,9 +257,13 @@ export class UIElement {
     if (templateEl.content.children.length !== 1) throw new Error('UIElement needs to have exactly one element as root: ' + templateEl.content.children.length)
   }
 
-  async _load () {
+  /**
+   * @param {boolean} [isUpdate]
+   * @private
+   */
+  async _load (isUpdate = false) {
     try {
-      await this.load()
+      await this.load(isUpdate)
     } catch (e) {
       console.error('Error on load: ', e)
       toast(e.message ?? 'Something went wrong', 'error')
@@ -345,13 +389,17 @@ export class UIElement {
   }
 
   /**
-   * Register server event handlers defined in serverEvents getter
+   * Register server event handlers defined in the `serverEvents` getter.
+   * Each name is validated against the shared registry so a typo (or an event
+   * that was renamed / removed on the server) fails loudly during mount
+   * instead of silently subscribing to a channel nobody ever writes to.
    * @returns {void}
    * @private
    */
   _registerServerEventHandlers () {
     const serverEvents = this.serverEvents
     for (const eventName in serverEvents) {
+      assertKnownServerEvent(eventName, `${this.constructor.name}.serverEvents`)
       const handler = serverEvents[eventName].bind(this)
       this._serverEventHandlers.set(eventName, handler)
       onServerEvent(eventName, handler)

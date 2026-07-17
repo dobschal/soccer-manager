@@ -180,6 +180,24 @@ select.form-control {
     }
 }
 
+/* Applied to a UIElement's root node while `update(true)` is in flight and
+   `updateIndicator = true` is set on the subclass. Signals a background
+   refresh without swapping in the full bouncing-ball loader. */
+.ui-element-updating {
+    opacity: 0.5;
+    animation: ui-element-updating-pulse 1s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes ui-element-updating-pulse {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.85;
+    }
+}
+
 img, svg {
     animation: image-fade-in .5s ease-in-out;
 }
