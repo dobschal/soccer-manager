@@ -407,6 +407,35 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
 
       expect(updateSpy).not.toHaveBeenCalled()
     })
+
+    it('still labels the fake placeholder correctly even when the parent Lineup handler already cleared the shared player.in_game_position', () => {
+      // Regression: Lineup's handler mounts (and therefore fires) before the
+      // child SquadPlayer's, and it mutates the SAME player object the tile
+      // holds. If the tile then read `this.player.in_game_position` for the
+      // fake's slot label, it would get '' — rendering an unstyled ghost tile
+      // with no position badge. The tile MUST use `data.vacatedLineupPosition`
+      // from the event instead.
+      const team = testData.team()
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      // Simulate Lineup's handler firing first: it clears in_game_position on
+      // the same object the tile holds.
+      player.in_game_position = ''
+
+      tile.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42, in_game_position: '', bench_position: 'BENCH_MID' }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(tile.player.fake).toBe(true)
+      expect(tile.player.in_game_position).toBe('CM')
+      expect(tile.player.position).toBe('CM')
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('Lineup BENCH_CHANGED handling', () => {

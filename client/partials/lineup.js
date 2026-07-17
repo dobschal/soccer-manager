@@ -112,10 +112,17 @@ export class SquadPlayer extends UIElement {
         if (!data.vacatedLineupPosition) return
         // My player just got moved from the lineup to the bench — turn this
         // tile into a fake placeholder for the vacated slot.
+        //
+        // The slot label MUST come from `data.vacatedLineupPosition`, not
+        // from `this.player.in_game_position`: the Lineup handler fires
+        // before this one (parents mount before children, so their handlers
+        // register first) and clears in_game_position on the same shared
+        // player object we hold a reference to — reading it now would give
+        // us '' and render an unstyled, unlabeled ghost tile.
         this.player = {
           fake: true,
-          in_game_position: this.player.in_game_position,
-          position: this.player.in_game_position,
+          in_game_position: data.vacatedLineupPosition,
+          position: data.vacatedLineupPosition,
           level: 0,
           name: '-'
         }
