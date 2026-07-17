@@ -35,6 +35,10 @@ export const SERVER_EVENTS = {
     name: 'NEW_SELL_TRADE_OFFER',
     description: 'A sell offer was created for one of the recipient\'s players. Sent only to the selling team\'s user. Payload: { playerId }.'
   },
+  NEW_LOG_MESSAGE: {
+    name: 'NEW_LOG_MESSAGE',
+    description: 'A generic log entry was added for the team (excess sell-offer cleanup, etc.) — used by the layout to bump the "new messages" badge. Sent only to the affected team\'s user. Payload: { message, action, icon, type }.'
+  },
   BALANCE_UPDATED: {
     name: 'BALANCE_UPDATED',
     description: 'The team balance changed (income, expense, transfer). Sent only to the affected team\'s user. Payload: { balance }.'

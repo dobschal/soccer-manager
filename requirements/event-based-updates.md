@@ -56,6 +56,7 @@ for now; adding cross-user notifications is a separate, explicit change.
 |---------------------------------------|--------------------------------|-----------------------------------------------------------------------------|
 | `PlayerListItem`                      | `NEW_SELL_TRADE_OFFER`         | Filters by `data.playerId === this.player.id`, adds the sell-offer icon.    |
 | `PlayerList`                          | *(none — delegates to items)*  | List-shape changes (fire, hire, transfer completed) will use dedicated events once introduced. |
+| `GameLayout` / `NativeAppLayout`      | `NEW_LOG_MESSAGE`, `BUY_OFFER_ACCEPTED`, `BUY_OFFER_REJECTED` | Bumps the log-messages badge; toasts trade-offer outcomes. |
 | `Balance` (partial)                   | `BALANCE_UPDATED`              | Updates the header cash figure. Legacy consumer, not migrated in this PR.   |
 | `MyOffersPage`                        | `BUY_OFFER_ACCEPTED`, `BUY_OFFER_REJECTED` | Refreshes the answered-offers table. Legacy consumer.            |
 | `MyTeamPage`                          | `PLAYER_SOLD`                  | Refreshes squad after a sale. Legacy consumer.                              |

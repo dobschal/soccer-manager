@@ -34,11 +34,12 @@ describe('UIElement', () => {
     it('adds ui-element-updating class during reload when updateIndicator is set', async () => {
       let resolveLoad
       class Refreshing extends UIElement {
-        updateIndicator = true
-        get template () { return '<div class="target">hello</div>' }
         async load () {
           await new Promise(resolve => { resolveLoad = resolve })
         }
+        get template () { return '<div class="target">hello</div>' }
+        updateIndicator = true
+        
       }
       const el = new Refreshing()
       const host = document.createElement('div')
@@ -77,8 +78,9 @@ describe('UIElement', () => {
     it('passes false to load on initial mount and true on update(true)', async () => {
       const loadSpy = vi.fn(async () => {})
       class Recorder extends UIElement {
-        get template () { return '<div class="target">x</div>' }
         async load (isUpdate) { loadSpy(isUpdate) }
+        get template () { return '<div class="target">x</div>' }
+        
       }
       const el = new Recorder()
       const host = document.createElement('div')
