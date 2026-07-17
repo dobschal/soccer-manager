@@ -350,4 +350,54 @@ describe('PlayerListItem', () => {
       expect(updateSpy).toHaveBeenCalledTimes(1)
     })
   })
+
+  describe('BENCH_CHANGED server event', () => {
+    it('updates the incoming bench player row (bench_position + vacated lineup)', () => {
+      const player = testData.player({ id: 42, in_game_position: 'CM', bench_position: null })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42 }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(item.player.bench_position).toBe('BENCH_MID')
+      expect(item.player.in_game_position).toBe('')
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears bench_position on the displaced player row', () => {
+      const player = testData.player({ id: 55, bench_position: 'BENCH_MID' })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42 }),
+        displacedPlayerId: 55,
+        vacatedLineupPosition: null
+      })
+
+      expect(item.player.bench_position).toBeNull()
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for uninvolved rows', () => {
+      const player = testData.player({ id: 100 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42 }),
+        displacedPlayerId: 55,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
 })

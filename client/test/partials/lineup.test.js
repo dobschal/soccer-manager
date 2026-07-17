@@ -339,6 +339,123 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     })
   })
 
+  describe('SquadPlayer BENCH_CHANGED handling', () => {
+    it('turns a real tile into a fake placeholder when its player is moved to bench', () => {
+      const team = testData.team()
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42, bench_position: 'BENCH_MID', in_game_position: '' }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(tile.player.fake).toBe(true)
+      expect(tile.player.in_game_position).toBe('CM')
+      expect(tile._isCaptain).toBe(false)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op when a different player was moved to bench', () => {
+      const team = testData.team()
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 99 }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CD'
+      })
+
+      expect(tile.player.fake).toBeUndefined()
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('is a no-op when the picked player was already on the bench (no lineup vacancy)', () => {
+      const team = testData.team()
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42, bench_position: 'BENCH_MID' }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: null
+      })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('ignores BENCH_CHANGED on a fake tile', () => {
+      const team = testData.team()
+      const fake = { fake: true, in_game_position: 'CM', position: 'CM', level: 0, name: '-' }
+      const tile = new SquadPlayer(fake, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42 }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Lineup BENCH_CHANGED handling', () => {
+    it('moves the picked player from lineup to bench in this.players and adds a fake for the empty slot', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM' })
+      ]
+      const lineup = new Lineup(players, team)
+      const updateSpy = vi.spyOn(lineup, 'update').mockImplementation(() => {})
+
+      lineup.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 7, position: 'CM' }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CM'
+      })
+
+      // Lineup itself must NOT re-render — SquadPlayer handles the visual
+      // change; Lineup only tracks the shape so click routing stays correct.
+      expect(updateSpy).not.toHaveBeenCalled()
+
+      const moved = lineup.players.find(p => !p.fake && p.id === 7)
+      expect(moved.in_game_position).toBe('')
+      expect(moved.bench_position).toBe('BENCH_MID')
+
+      // A fresh fake placeholder should exist for the freshly-vacated CM slot
+      // so click routing still resolves.
+      const fakes = lineup.players.filter(p => p.fake && p.in_game_position === 'CM')
+      expect(fakes.length).toBeGreaterThan(0)
+    })
+
+    it('is a no-op when the BENCH_CHANGED did not vacate a lineup slot', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [testData.player({ id: 7, position: 'CM', in_game_position: 'CM' })]
+      const lineup = new Lineup(players, team)
+      const beforeCount = lineup.players.length
+
+      lineup.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 99 }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: null
+      })
+
+      expect(lineup.players.length).toBe(beforeCount)
+    })
+  })
+
   it('clears duplicates when two players occupy a slot that only exists once', async () => {
     const team = testData.team({ formation: '433' })
     // 433 has a single CM slot. Two players claim it - the second should be cleared.

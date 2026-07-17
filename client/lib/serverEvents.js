@@ -66,6 +66,10 @@ export const SERVER_EVENTS = {
   CAPTAIN_CHANGED: {
     name: 'CAPTAIN_CHANGED',
     description: 'The team captain was set / changed / cleared. Sent only to the affected team\'s user. Payload: { captainId: number|null } — null means "no captain".'
+  },
+  BENCH_CHANGED: {
+    name: 'BENCH_CHANGED',
+    description: 'A bench slot was assigned to a new player (user picked one from the roster). Sent only to the affected team\'s user. Payload: { benchPosition: string, player: PlayerType|null, displacedPlayerId: number|null, vacatedLineupPosition: string|null }. `player` is the full up-to-date object (or null if the slot was cleared). `displacedPlayerId` is whoever was on the slot before. `vacatedLineupPosition` is set when the picked player was moved out of the lineup, so the affected SquadPlayer tile can turn into a fake placeholder in place.'
   }
 }
 

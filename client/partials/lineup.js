@@ -90,6 +90,11 @@ export class SquadPlayer extends UIElement {
    * this tile has to fully re-render the tile (template + image reload). A
    * change that doesn't touch this tile (a different player became captain)
    * is a no-op — its own SquadPlayer handles the incoming badge separately.
+   *
+   * `BENCH_CHANGED` handles the case where the tile's player was moved to the
+   * bench — the tile turns into a fake placeholder in place, so the pitch
+   * still shows the slot but with the empty-slot layout.
+   *
    * @returns {Record<string, (data: any) => void>}
    */
   get serverEvents () {
@@ -99,6 +104,22 @@ export class SquadPlayer extends UIElement {
         const nowCaptain = (data?.captainId ?? null) === this.player.id
         if (this._isCaptain === nowCaptain) return
         this._isCaptain = nowCaptain
+        this.update()
+      },
+      [SERVER_EVENTS.BENCH_CHANGED.name]: (data) => {
+        if (this.player.fake) return
+        if (data?.player?.id !== this.player.id) return
+        if (!data.vacatedLineupPosition) return
+        // My player just got moved from the lineup to the bench — turn this
+        // tile into a fake placeholder for the vacated slot.
+        this.player = {
+          fake: true,
+          in_game_position: this.player.in_game_position,
+          position: this.player.in_game_position,
+          level: 0,
+          name: '-'
+        }
+        this._isCaptain = false
         this.update()
       }
     }
@@ -207,16 +228,36 @@ export class Lineup extends UIElement {
   }
 
   /**
-   * Keep `this.team.captain_id` in sync so a subsequent Lineup re-render
-   * (e.g. formation change) computes each SquadPlayer's initial captain state
-   * from the current value. The tiles handle their own visual update — Lineup
-   * itself never re-renders in response to this event.
+   * Keep local state in sync with server events without re-rendering the
+   * whole lineup. Each SquadPlayer handles the visible change atomically —
+   * Lineup only tracks the shared array so its click handler (which needs to
+   * know the current squad shape) stays correct.
    * @returns {Record<string, (data: any) => void>}
    */
   get serverEvents () {
     return {
       [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
         this.team.captain_id = data?.captainId ?? null
+      },
+      [SERVER_EVENTS.BENCH_CHANGED.name]: (data) => {
+        if (!data?.player || !data.vacatedLineupPosition) return
+        // Player moved lineup → bench. Update local players so the click
+        // handler builds the right swap-list next time. SquadPlayer tiles
+        // handle the visual re-render themselves.
+        const player = this.players.find(p => !p.fake && p.id === data.player.id)
+        if (!player) return
+        player.in_game_position = ''
+        player.bench_position = data.benchPosition
+        // Insert a fake placeholder for the freshly-vacated slot so a later
+        // click on that empty tile still resolves to something in the
+        // players array (the click handler looks up fakes by position).
+        this.players.push({
+          fake: true,
+          in_game_position: data.vacatedLineupPosition,
+          position: data.vacatedLineupPosition,
+          level: 0,
+          name: '-'
+        })
       }
     }
   }

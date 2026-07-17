@@ -1,7 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
-import { getAveragePlanPriceOfPlayer } from '../helper/playerHelper.js'
+import { getAveragePlanPriceOfPlayer, getPlayerById } from '../helper/playerHelper.js'
 import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getTotalRounds } from '../helper/cupHelper.js'
@@ -317,6 +317,68 @@ export default {
     }
 
     return { success: true }
+  },
+
+  /**
+   * Assign a single player to a bench slot in one atomic operation:
+   * clears whoever was on that slot before, removes the picked player from
+   * the lineup if they were in it, and clears the captain if the removed
+   * lineup player was the captain. Emits `BENCH_CHANGED` (and
+   * `CAPTAIN_CHANGED` when applicable) so every open tab / device updates
+   * atomically without the client stitching multiple saves together.
+   * @param {number} playerId
+   * @param {string} benchPosition - one of BENCH_GK / BENCH_DEF / BENCH_MID / BENCH_ATT
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, captainCleared: boolean}>}
+   */
+  async assignBenchPlayer (playerId, benchPosition, req) {
+    const team = await getTeam(req)
+    const validPositions = ['BENCH_GK', 'BENCH_DEF', 'BENCH_MID', 'BENCH_ATT']
+    if (!validPositions.includes(benchPosition)) throw new BadRequestError('Invalid bench position')
+    const [player] = await query('SELECT * FROM player WHERE id=? AND team_id=? LIMIT 1', [playerId, team.id])
+    if (!player) throw new BadRequestError('Player not found in your team')
+    if (player.is_suspended || player.is_injured) throw new BadRequestError('Player is unavailable')
+
+    // Look up whoever currently occupies this bench slot — they'll be kicked
+    // off (bench_position → NULL) so we can put the picked player there.
+    const [displacedRow] = await query(
+      'SELECT id FROM player WHERE team_id=? AND bench_position=? AND id != ? LIMIT 1',
+      [team.id, benchPosition, playerId]
+    )
+    const displacedPlayerId = displacedRow?.id ?? null
+    const vacatedLineupPosition = player.in_game_position || null
+
+    if (displacedPlayerId) {
+      await query('UPDATE player SET bench_position=NULL WHERE id=?', [displacedPlayerId])
+    }
+    // Setting bench_position also implies leaving the lineup — clear in_game_position.
+    await query(
+      'UPDATE player SET bench_position=?, in_game_position=\'\' WHERE id=?',
+      [benchPosition, playerId]
+    )
+
+    // If the captain was the picked player and they were in the lineup, the
+    // captain rule ("must be in lineup") is now broken — clear captain.
+    let captainCleared = false
+    if (vacatedLineupPosition && team.captain_id === playerId) {
+      await query('UPDATE team SET captain_id=NULL WHERE id=?', [team.id])
+      captainCleared = true
+    }
+
+    if (team.user_id) {
+      const freshPlayer = await getPlayerById(playerId)
+      sendToUser(team.user_id, SERVER_EVENTS.BENCH_CHANGED.name, {
+        benchPosition,
+        player: freshPlayer,
+        displacedPlayerId,
+        vacatedLineupPosition
+      })
+      if (captainCleared) {
+        sendToUser(team.user_id, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: null })
+      }
+    }
+
+    return { success: true, captainCleared }
   },
 
   /**

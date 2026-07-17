@@ -3,11 +3,12 @@ import { server, showServerError } from '../../lib/gateway.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { PlayerList } from '../../partials/playerList.js'
 import { toast } from '../../partials/toast.js'
-import { renderPlayerImage } from '../../partials/playerImage.js'
-import { renderLevelBadge } from '../../partials/levelBadge.js'
 import { setQueryParams } from '../../lib/router.js'
-import { sortByPosition, calculatePlayerAge } from '../../util/player.js'
+import { sortByPosition } from '../../util/player.js'
 import { Lineup, lineUpData } from '../../partials/lineup.js'
+import { BenchSlot } from '../../partials/benchSlot.js'
+import { CaptainSelect } from '../../partials/captainSelect.js'
+import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 import { fire, off, on } from '../../lib/event.js'
 import { t } from '../../i18n/index.js'
 import { UIElement } from '../../lib/UIElement.js'
@@ -72,7 +73,6 @@ export class ATeamPage extends UIElement {
       </div>
     `
   }
-
   /**
    * @returns {UIElementEvents}
    */
@@ -127,59 +127,48 @@ export class ATeamPage extends UIElement {
           }
         }
       },
-      '.captain-select': {
-        change: async (e) => {
-          const newCaptainId = e.target.value ? Number(e.target.value) : null
-          const currentCaptainId = this.parent.data.team.captain_id || null
-          if (newCaptainId !== currentCaptainId) {
-            try {
-              await server.setCaptain(newCaptainId)
-              this.parent.data.team.captain_id = newCaptainId
-              toast(t('myTeam.captainUpdated'), 'success')
-              // No manual this.update() — the server's CAPTAIN_CHANGED event
-              // reaches every subscriber (Lineup keeps team.captain_id in sync,
-              // each SquadPlayer and PlayerListItem redraws its own captain
-              // marker). Also fans out to other tabs the user has open.
-            } catch (err) {
-              showServerError(err)
-            }
-          }
-        }
-      },
       '.bench-slots': {
+        // Delegated click: opens the player picker for the clicked slot. The
+        // substitution-mode select lives inside the slot but has its own
+        // change handler on BenchSlot — stop the click from bubbling into
+        // the overlay open.
         click: (e) => {
-          // Don't open the player picker when interacting with the substitution-mode select
           if (e.target.closest('.bench-substitution-mode')) return
           const slot = e.target.closest('.bench-slot')
           if (!slot) return
           this._showBenchPlayerSelect(slot.dataset.benchPosition)
-        },
-        change: async (e) => {
-          const select = e.target.closest('.bench-substitution-mode')
-          if (!select) return
-          const playerId = Number(select.dataset.playerId)
-          const mode = select.value
-          if (!playerId) return
-          try {
-            await server.updateBenchSubstitutionMode(playerId, mode)
-            const player = this.parent.data.players.find(p => p.id === playerId)
-            if (player) player.bench_substitution_mode = mode
-            toast(t('myTeam.benchSubModeUpdated'), 'success')
-          } catch (err) {
-            showServerError(err)
-          }
+        }
+      }
+    }
+  }
+  /**
+   * Own the source-of-truth mutation for `parent.data.players` when a bench
+   * pick lands. Every child UIElement (Lineup, PlayerListItem, CaptainSelect,
+   * BenchSlot) also subscribes and handles its own visual update — this
+   * handler just keeps the shared data behind them consistent so a later
+   * full re-render (tab switch, formation change) reads correct state.
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.BENCH_CHANGED.name]: (data) => {
+        if (!data?.player) return
+        const players = this.parent.data.players
+        const picked = players.find(p => !p.fake && p.id === data.player.id)
+        if (picked) {
+          picked.bench_position = data.benchPosition
+          if (data.vacatedLineupPosition) picked.in_game_position = ''
+        }
+        if (data.displacedPlayerId) {
+          const displaced = players.find(p => !p.fake && p.id === data.displacedPlayerId)
+          if (displaced) displaced.bench_position = null
         }
       }
     }
   }
 
   onMounted () {
-    this._loadBenchPlayerImages()
     window.addEventListener('player-updated', this._onPlayerUpdated)
-  }
-
-  onUpdate () {
-    this._loadBenchPlayerImages()
   }
 
   onDestroy () {
@@ -233,7 +222,7 @@ export class ATeamPage extends UIElement {
       { label: t('myTeam.choosePassStyle'), select: this._renderPassStyleSelect() },
       { label: t('myTeam.choosePlayStyle'), select: this._renderPlayStyleSelect() },
       { label: t('myTeam.chooseAttackMode'), select: this._renderAttackModeSelect() },
-      { label: t('myTeam.chooseCaptain'), select: this._renderCaptainSelect() }
+      { label: t('myTeam.chooseCaptain'), select: `${new CaptainSelect(this.parent.data.players, this.parent.data.team, this.parent.season)}` }
     ]
     return items.map(({ label, select }) => `
       <div class="col-12 col-lg-6 mb-3">
@@ -295,21 +284,6 @@ export class ATeamPage extends UIElement {
   }
 
   /**
-   * @returns {string}
-   */
-  _renderCaptainSelect () {
-    const lineupPlayers = this.parent.data.players.filter(p => p.in_game_position && !p.fake)
-    const currentCaptainId = this.parent.data.team.captain_id || null
-    const season = this.parent.season
-    return `
-      <select class="form-control captain-select">
-        <option value="">${t('myTeam.captain.none')}</option>
-        ${lineupPlayers.map(p => `<option value="${p.id}" ${p.id === currentCaptainId ? 'selected' : ''}>${p.name} (${p.position}, Lvl ${p.level}, ${t('player.age')} ${calculatePlayerAge(p, season)})</option>`).join('')}
-      </select>
-    `
-  }
-
-  /**
    * Position group definitions for bench slots
    */
   _benchSlots = [
@@ -340,53 +314,9 @@ export class ATeamPage extends UIElement {
    */
   _renderBenchSlots () {
     return this._benchSlots.map(slot => {
-      const player = this.parent.data.players.find(p => !p.fake && p.bench_position === slot.benchPosition)
-      if (!player) {
-        return `
-          <div class="bench-slot bench-slot--empty u-cursor-pointer" data-bench-position="${slot.benchPosition}">
-            <div class="bench-slot__label">${t(slot.label)}</div>
-          </div>
-        `
-      }
-      const freshnessPercentage = Math.round(player.freshness * 100)
-      const freshnessClass = freshnessPercentage >= 80
-        ? 'freshness-success'
-        : freshnessPercentage >= 60
-          ? 'freshness-warning'
-          : freshnessPercentage >= 40
-            ? 'freshness-orange'
-            : 'freshness-danger'
-      const displayName = player.name.includes(' ')
-        ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
-        : player.name
-      return `
-        <div class="bench-slot ${player.position} u-cursor-pointer" data-bench-position="${slot.benchPosition}" data-player-id="${player.id}">
-          <div class="bench-slot__image"></div>
-          <div class="bench-slot__info">
-            <span class="bench-slot__name">${player.is_suspended ? '🚫 ' : ''}${player.is_injured ? '<i class="fa fa-medkit"></i> ' : ''}${displayName}</span>
-            <span class="position-badge ${player.position}">${player.position}</span>
-            ${renderLevelBadge(player.level)}
-            <span class="bench-slot__freshness ${freshnessClass}">${freshnessPercentage}%</span>
-          </div>
-          ${this._renderSubstitutionModeSelect(player)}
-        </div>
-      `
+      const player = this.parent.data.players.find(p => !p.fake && p.bench_position === slot.benchPosition) ?? null
+      return `${new BenchSlot(slot.benchPosition, t(slot.label), player, this.parent.data.team)}`
     }).join('')
-  }
-
-  /**
-   * Render the substitution-mode dropdown for a bench player.
-   * @param {object} player
-   * @returns {string}
-   */
-  _renderSubstitutionModeSelect (player) {
-    const modes = ['always', 'injury_only', 'leading', 'trailing']
-    const current = player.bench_substitution_mode || 'injury_only'
-    return `
-      <select class="form-select form-select-sm bench-substitution-mode" data-player-id="${player.id}" title="${t('myTeam.benchSubMode')}">
-        ${modes.map(mode => `<option value="${mode}" ${mode === current ? 'selected' : ''}>${t('myTeam.benchSubMode.' + mode)}</option>`).join('')}
-      </select>
-    `
   }
 
   /**
@@ -417,64 +347,21 @@ export class ATeamPage extends UIElement {
         availablePlayers,
         false,
         async (selectedPlayer) => {
-          // Clear old bench assignment for this slot
-          for (const p of this.parent.data.players) {
-            if (!p.fake && p.bench_position === benchPosition) {
-              p.bench_position = null
-            }
+          try {
+            // Single atomic call — server clears the old slot occupant,
+            // pulls the player out of the lineup if needed, clears captain
+            // when applicable, and emits BENCH_CHANGED / CAPTAIN_CHANGED.
+            // Every affected UIElement updates itself off those events;
+            // this handler doesn't need to touch local state or re-render.
+            await server.assignBenchPlayer(selectedPlayer.id, benchPosition)
+            toast(t('myTeam.benchSaved'), 'success')
+          } catch (err) {
+            showServerError(err)
           }
-          // Find the player in data and assign bench
-          const player = this.parent.data.players.find(p => p.id === selectedPlayer.id)
-          if (player) {
-            // Remove from lineup if currently in it
-            if (player.in_game_position) {
-              player.in_game_position = ''
-            }
-            player.bench_position = benchPosition
-          }
-          await this._saveBench()
-          // Also save lineup to persist the removal
-          const playersToSave = this.parent.data.players.filter(p => !p.fake)
-          await server.saveLineup(playersToSave, this.parent.data.team.formation)
-          await this.parent.load()
-          await this.parent.update()
           setTimeout(() => overlay.remove(), 150)
         }
       )}`
     )
-  }
-
-  /**
-   * Load player images for bench slots
-   */
-  _loadBenchPlayerImages () {
-    const team = this.parent.data.team
-    const benchPlayers = this.parent.data.players.filter(p => !p.fake && p.bench_position)
-    benchPlayers.forEach(player => {
-      renderPlayerImage(player, team, 100).then(image => {
-        const imgEl = document.querySelector(`${this._elementQuery} .bench-slot[data-player-id="${player.id}"] .bench-slot__image`)
-        if (imgEl) imgEl.innerHTML = image
-      })
-    })
-  }
-
-  /**
-   * Save current bench assignments to server
-   */
-  async _saveBench () {
-    try {
-      const benchData = this.parent.data.players
-        .filter(p => !p.fake && p.bench_position)
-        .map(p => ({
-          playerId: p.id,
-          benchPosition: p.bench_position,
-          substitutionMode: p.bench_substitution_mode || 'injury_only'
-        }))
-      await server.saveBench(benchData)
-      toast(t('myTeam.benchSaved'), 'success')
-    } catch (err) {
-      showServerError(err)
-    }
   }
 
   /**

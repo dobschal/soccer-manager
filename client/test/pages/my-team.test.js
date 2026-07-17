@@ -298,7 +298,10 @@ describe('MyTeamPage', () => {
       expect(html).toContain('pass-style-select')
       expect(html).toContain('play-style-select')
       expect(html).toContain('attack-mode-select')
-      expect(html).toContain('captain-select')
+      // captain-select is now its own UIElement (CaptainSelect); the template
+      // string only contains its placeholder + the label. The `.captain-select`
+      // CSS class shows up post-mount, tested via its own component tests.
+      expect(html).toContain('chooseCaptain')
     })
 
     it('shows each lineup player\'s age in the captain select', async () => {
@@ -313,7 +316,11 @@ describe('MyTeamPage', () => {
       await page.load()
       void page.template
 
-      const html = page._subPageCache.ateam._renderCaptainSelect()
+      // The captain-select is now its own UIElement — render its template
+      // directly against the same shared data ATeamPage handed it.
+      const { CaptainSelect } = await import('../../partials/captainSelect.js')
+      const ateam = page._subPageCache.ateam
+      const html = new CaptainSelect(ateam.parent.data.players, ateam.parent.data.team, ateam.parent.season).template
       expect(html).toContain('player.age')
       expect(html).toContain('21')
     })

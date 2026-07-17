@@ -86,6 +86,21 @@ export class PlayerListItem extends UIElement {
         this.captainId = newCaptainId
         if (wasCaptain === nowCaptain) return
         this.update()
+      },
+      // Fires when a bench slot got a new occupant. Two rows care: the
+      // incoming bench player (row highlight → warning; drops in_game_position
+      // if they were in the lineup) and the outgoing bench player (row
+      // highlight goes back to normal). Everyone else ignores the event.
+      [SERVER_EVENTS.BENCH_CHANGED.name]: (data) => {
+        if (!data) return
+        if (data.player?.id === this.player.id) {
+          this.player.bench_position = data.benchPosition
+          if (data.vacatedLineupPosition) this.player.in_game_position = ''
+          this.update()
+        } else if (data.displacedPlayerId === this.player.id) {
+          this.player.bench_position = null
+          this.update()
+        }
       }
     }
   }

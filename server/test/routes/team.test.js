@@ -505,6 +505,93 @@ describe('team routes', () => {
     })
   })
 
+  describe('assignBenchPlayer', () => {
+    it('emits BENCH_CHANGED with the fresh player + displaced + vacated-lineup metadata', async () => {
+      const team = testData.team({ id: 1, user_id: 77, captain_id: null })
+      const player = testData.player({ id: 5, team_id: 1, position: 'CM', in_game_position: 'CM', bench_position: null })
+      const displaced = { id: 9 }
+      const freshPlayer = { ...player, in_game_position: '', bench_position: 'BENCH_MID' }
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player])       // SELECT player
+        .mockResolvedValueOnce([displaced])    // SELECT current occupant of BENCH_MID
+        .mockResolvedValueOnce({})             // UPDATE displaced bench_position=NULL
+        .mockResolvedValueOnce({})             // UPDATE picked player bench_position=?
+        .mockResolvedValueOnce([freshPlayer])  // getPlayerById after the update
+
+      const req = createMockRequest()
+      const result = await handlers.assignBenchPlayer(5, 'BENCH_MID', req)
+
+      expect(result).toEqual({ success: true, captainCleared: false })
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.BENCH_CHANGED.name, {
+        benchPosition: 'BENCH_MID',
+        player: freshPlayer,
+        displacedPlayerId: 9,
+        vacatedLineupPosition: 'CM'
+      })
+    })
+
+    it('also fires CAPTAIN_CHANGED when the picked player was the captain and got moved out of the lineup', async () => {
+      const team = testData.team({ id: 1, user_id: 77, captain_id: 5 })
+      const player = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player])   // SELECT player
+        .mockResolvedValueOnce([])          // no displaced
+        .mockResolvedValueOnce({})          // UPDATE picked player
+        .mockResolvedValueOnce({})          // UPDATE team captain=NULL
+        .mockResolvedValueOnce([player])   // getPlayerById
+
+      const req = createMockRequest()
+      const result = await handlers.assignBenchPlayer(5, 'BENCH_MID', req)
+
+      expect(result.captainCleared).toBe(true)
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: null })
+    })
+
+    it('does not clear the captain when the picked player is a different one', async () => {
+      const team = testData.team({ id: 1, user_id: 77, captain_id: 99 })
+      const player = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce([player])
+
+      const req = createMockRequest()
+      const result = await handlers.assignBenchPlayer(5, 'BENCH_MID', req)
+
+      expect(result.captainCleared).toBe(false)
+    })
+
+    it('rejects an unknown bench position', async () => {
+      getTeam.mockResolvedValue(testData.team())
+      const req = createMockRequest()
+      await expect(handlers.assignBenchPlayer(5, 'NOT_A_BENCH', req))
+        .rejects.toMatchObject({ message: 'Invalid bench position' })
+    })
+
+    it('rejects players not on this team', async () => {
+      getTeam.mockResolvedValue(testData.team())
+      query.mockResolvedValueOnce([])
+      const req = createMockRequest()
+      await expect(handlers.assignBenchPlayer(99, 'BENCH_MID', req))
+        .rejects.toMatchObject({ message: 'Player not found in your team' })
+    })
+
+    it('rejects suspended / injured players', async () => {
+      getTeam.mockResolvedValue(testData.team())
+      query.mockResolvedValueOnce([testData.player({ id: 5, team_id: 1, is_injured: true })])
+      const req = createMockRequest()
+      await expect(handlers.assignBenchPlayer(5, 'BENCH_MID', req))
+        .rejects.toMatchObject({ message: 'Player is unavailable' })
+    })
+  })
+
   describe('getTeamSeasonHistory', () => {
     it('returns correct position and points for a completed season', async () => {
       const teamId = 5
