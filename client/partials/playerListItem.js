@@ -75,6 +75,17 @@ export class PlayerListItem extends UIElement {
         if (!this.sellOfferPlayerIds.has(this.player.id)) return
         this.sellOfferPlayerIds.delete(this.player.id)
         this.update()
+      },
+      // Fires when the team captain is set / changed / cleared. Only the
+      // outgoing captain and the incoming captain need a redraw; the rest of
+      // the list skips the event entirely.
+      [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
+        const newCaptainId = data?.captainId ?? null
+        const wasCaptain = this.captainId === this.player.id
+        const nowCaptain = newCaptainId === this.player.id
+        this.captainId = newCaptainId
+        if (wasCaptain === nowCaptain) return
+        this.update()
       }
     }
   }

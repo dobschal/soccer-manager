@@ -18,10 +18,16 @@ vi.mock('../../helper/cupHelper.js', () => ({
   getTotalRounds: vi.fn()
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  sendToUser: vi.fn().mockReturnValue(true)
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getTotalRounds } from '../../helper/cupHelper.js'
+import { sendToUser } from '../../lib/websocket.js'
+import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
 import handlers from '../../routes/team.js'
 
 describe('team routes', () => {
@@ -457,6 +463,45 @@ describe('team routes', () => {
       const req = createMockRequest()
       await expect(handlers.setCaptain(5, req))
         .rejects.toMatchObject({ message: 'Captain must be in the lineup' })
+    })
+
+    it('sends CAPTAIN_CHANGED to the team\'s user so the client updates atomically', async () => {
+      const team = testData.team({ user_id: 77 })
+      const player = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player])
+        .mockResolvedValueOnce({})
+
+      const req = createMockRequest()
+      await handlers.setCaptain(5, req)
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: 5 })
+    })
+
+    it('also fires CAPTAIN_CHANGED with null when the captain is cleared', async () => {
+      const team = testData.team({ user_id: 77 })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      await handlers.setCaptain(null, req)
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: null })
+    })
+
+    it('skips the websocket for teams without a user (bot teams)', async () => {
+      const team = testData.team({ user_id: null })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      await handlers.setCaptain(null, req)
+
+      expect(sendToUser).not.toHaveBeenCalled()
     })
   })
 

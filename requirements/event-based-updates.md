@@ -54,8 +54,10 @@ for now; adding cross-user notifications is a separate, explicit change.
 
 | UIElement                             | Server event(s)                | Behavior                                                                    |
 |---------------------------------------|--------------------------------|-----------------------------------------------------------------------------|
-| `PlayerListItem`                      | `NEW_SELL_TRADE_OFFER`, `REMOVE_SELL_TRADE_OFFER` | Filters by `data.playerId === this.player.id`, adds / removes the sell-offer icon. |
+| `PlayerListItem`                      | `NEW_SELL_TRADE_OFFER`, `REMOVE_SELL_TRADE_OFFER`, `CAPTAIN_CHANGED` | Filters by `data.playerId === this.player.id`, adds / removes the sell-offer icon; toggles the (C) marker when this row is the outgoing or incoming captain. |
 | `PlayerList`                          | *(none — delegates to items)*  | List-shape changes (fire, hire, transfer completed) will use dedicated events once introduced. |
+| `SquadPlayer` (lineup tile)           | `CAPTAIN_CHANGED`              | Only the outgoing and incoming captain tiles re-render — the other nine tiles stay untouched, so the pitch doesn't flicker. |
+| `Lineup`                              | `CAPTAIN_CHANGED`              | Keeps its shared `team.captain_id` ref in sync so a later re-render (formation change, etc.) starts each tile with the right initial state. Does *not* re-render itself. |
 | `GameLayout` / `NativeAppLayout`      | `NEW_LOG_MESSAGE`, `BUY_OFFER_ACCEPTED`, `BUY_OFFER_REJECTED` | Bumps the log-messages badge; toasts trade-offer outcomes. |
 | `Balance` (partial)                   | `BALANCE_UPDATED`              | Updates the header cash figure. Legacy consumer, not migrated in this PR.   |
 | `MyOffersPage`                        | `BUY_OFFER_ACCEPTED`, `BUY_OFFER_REJECTED` | Refreshes the answered-offers table. Legacy consumer.            |

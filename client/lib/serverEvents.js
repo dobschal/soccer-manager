@@ -62,6 +62,10 @@ export const SERVER_EVENTS = {
   TUTORIAL_COMPLETED: {
     name: 'TUTORIAL_COMPLETED',
     description: 'The user finished the tutorial. Sent only to that user. No payload.'
+  },
+  CAPTAIN_CHANGED: {
+    name: 'CAPTAIN_CHANGED',
+    description: 'The team captain was set / changed / cleared. Sent only to the affected team\'s user. Payload: { captainId: number|null } — null means "no captain".'
   }
 }
 

@@ -9,9 +9,121 @@ import { deepCopy } from '../lib/deepCopy.js'
 import { renderLevelBadge } from './levelBadge.js'
 import { fire } from '../lib/event.js'
 import { t } from '../i18n/index.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
 
 export const lineUpData = {
   squadDataChanged: false
+}
+
+// Same-position slot offsets that used to be applied post-mount via
+// _applyPositionHacks. Precomputing at render time lets each SquadPlayer own
+// its own `--lineup-offset` style and stay independent of when the others
+// mount, so an atomic re-render of a single tile doesn't disturb neighbors.
+const SIDE_BY_SIDE_OFFSETS = {
+  2: ['38%', '62%'],
+  3: ['32%', '50%', '68%']
+}
+const SIDE_BY_SIDE_POSITIONS = new Set(['CM', 'CD', 'DM'])
+
+/**
+ * One tile on the lineup pitch. Owns its own `<div class="player">` so it can
+ * subscribe to `CAPTAIN_CHANGED` and swap the captain badge in place, without
+ * forcing the whole Lineup to re-render (which would tear down every other
+ * tile's player image and click state).
+ */
+export class SquadPlayer extends UIElement {
+  /**
+   * @param {PlayerType & { fake?: boolean }} player
+   * @param {TeamType} team - Shared reference; the captain field is kept in sync by Lineup.
+   * @param {string} lineupOffset - Precomputed CSS value for `--lineup-offset`
+   *   when multiple players share the same in_game_position, or '' if none.
+   */
+  constructor (player, team, lineupOffset = '') {
+    super()
+    this.player = player
+    this.team = team
+    this.lineupOffset = lineupOffset
+    this._isCaptain = !player.fake && player.id === team.captain_id
+  }
+
+  /**
+   * @returns {string}
+   */
+  get template () {
+    const player = this.player
+    const freshnessPercentage = Math.round(player.freshness * 100)
+    const freshnessClass = freshnessPercentage >= 80
+      ? 'freshness-success'
+      : freshnessPercentage >= 60
+        ? 'freshness-warning'
+        : freshnessPercentage >= 40
+          ? 'freshness-orange'
+          : 'freshness-danger'
+    const displayName = player.name.includes(' ')
+      ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
+      : player.name
+    // Use player ID for real players, or 'fake-{position}' for empty slots
+    const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
+    const isSuspended = player.is_suspended
+    const isInjured = player.is_injured
+    const inlineStyles = [
+      (isSuspended || isInjured) ? 'opacity: 0.5; filter: grayscale(100%);' : '',
+      this.lineupOffset ? `--lineup-offset: ${this.lineupOffset};` : ''
+    ].filter(Boolean).join(' ')
+
+    const isOutOfPosition = !player.fake && player.position !== player.in_game_position
+    const badgeClass = `position-badge ${player.in_game_position}${isOutOfPosition ? ' is-wrong-position' : ''}`
+
+    return `
+      <div class="player ${player.in_game_position}" data-player-id="${playerId}" style="${inlineStyles}">
+        <span class="${badgeClass}">${player.in_game_position}</span>
+        <span class="freshness-badge ${freshnessClass}">
+            ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
+        </span>
+        <span class="name">${isSuspended ? '🚫 ' : ''}${isInjured ? '<i class="fa fa-medkit"></i> ' : ''}${displayName}</span>
+        ${renderLevelBadge(player.level, { size: 'lg' })}
+      </div>
+    `
+  }
+  /**
+   * The captain badge is baked into the player image, so a captain change on
+   * this tile has to fully re-render the tile (template + image reload). A
+   * change that doesn't touch this tile (a different player became captain)
+   * is a no-op — its own SquadPlayer handles the incoming badge separately.
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
+        if (this.player.fake) return
+        const nowCaptain = (data?.captainId ?? null) === this.player.id
+        if (this._isCaptain === nowCaptain) return
+        this._isCaptain = nowCaptain
+        this.update()
+      }
+    }
+  }
+
+  onMounted () {
+    this._loadImage()
+  }
+
+  onUpdate () {
+    this._loadImage()
+  }
+
+  /**
+   * @private
+   */
+  _loadImage () {
+    if (this.player.fake) return
+    renderPlayerImage(this.player, this.team, 100, { isCaptain: this._isCaptain }).then(image => {
+      const el = document.querySelector(this._elementQuery)
+      // The image is prepended to the tile div; onUpdate() replaces the div
+      // wholesale, so we don't have to strip a stale image first.
+      el?.insertAdjacentHTML('afterbegin', image)
+    })
+  }
 }
 
 export class Lineup extends UIElement {
@@ -40,12 +152,15 @@ export class Lineup extends UIElement {
     const lineupStrength = this.players
       .filter(p => p.in_game_position && !p.fake)
       .reduce((sum, p) => sum + p.level, 0)
+    const offsets = this._computeLineupOffsets()
     return `
       <div class="lineup-container">
         <div class="card bg-dark lineup-pitch">
           <div class="squad card-body">
             <span class="lineup-strength-overlay">${lineupStrength}</span>
-            ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
+            ${this.players.filter(p => p.in_game_position).map(p =>
+    `${new SquadPlayer(p, this.team, offsets.get(p) ?? '')}`
+  ).join('')}
           </div>
         </div>
       </div>
@@ -91,15 +206,23 @@ export class Lineup extends UIElement {
     }
   }
 
-  onMounted () {
-    this._applyPositionHacks()
-    this._loadPlayerImages()
-    void this._autoCleanupIfNeeded()
+  /**
+   * Keep `this.team.captain_id` in sync so a subsequent Lineup re-render
+   * (e.g. formation change) computes each SquadPlayer's initial captain state
+   * from the current value. The tiles handle their own visual update — Lineup
+   * itself never re-renders in response to this event.
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
+        this.team.captain_id = data?.captainId ?? null
+      }
+    }
   }
 
-  onUpdate () {
-    this._applyPositionHacks()
-    this._loadPlayerImages()
+  onMounted () {
+    void this._autoCleanupIfNeeded()
   }
 
   _overlay = null
@@ -189,37 +312,27 @@ export class Lineup extends UIElement {
   }
 
   /**
-   * @returns {void}
+   * Precompute `--lineup-offset` values for positions where the current
+   * formation puts multiple players side-by-side (CM/CD/DM). Handing the
+   * value to each SquadPlayer as a constructor arg lets each tile own its own
+   * inline style — no post-mount DOM sweep needed, so an atomic re-render of
+   * one tile can't disturb the offsets of its neighbors.
+   * @returns {Map<PlayerType, string>}
    */
-  _applyPositionHacks () {
-    // Sets --lineup-offset so CSS can map it to `left` in portrait or `top` in landscape.
-    ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
-      const elements = document.querySelectorAll(`${this._elementQuery} .squad ${positionClass}`)
-      if (elements.length === 2) {
-        elements.item(0).style.setProperty('--lineup-offset', '38%')
-        elements.item(1).style.setProperty('--lineup-offset', '62%')
-      }
-      if (elements.length === 3) {
-        elements.item(0).style.setProperty('--lineup-offset', '32%')
-        elements.item(1).style.setProperty('--lineup-offset', '50%')
-        elements.item(2).style.setProperty('--lineup-offset', '68%')
-      }
-    })
-  }
-
-  /**
-   * @returns {void}
-   */
-  _loadPlayerImages () {
-    const captainId = this.team.captain_id
-    this.players.filter(p => p.in_game_position).forEach((player) => {
-      const isCaptain = !player.fake && player.id === captainId
-      renderPlayerImage(player, this.team, 100, { isCaptain }).then(image => {
-        const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
-        const playerEl = document.querySelector(`${this._elementQuery} .squad .player[data-player-id="${playerId}"]`)
-        playerEl?.insertAdjacentHTML('afterbegin', image)
-      })
-    })
+  _computeLineupOffsets () {
+    const offsets = new Map()
+    const byPosition = new Map()
+    for (const player of this.players.filter(p => p.in_game_position)) {
+      if (!SIDE_BY_SIDE_POSITIONS.has(player.in_game_position)) continue
+      if (!byPosition.has(player.in_game_position)) byPosition.set(player.in_game_position, [])
+      byPosition.get(player.in_game_position).push(player)
+    }
+    for (const players of byPosition.values()) {
+      const layout = SIDE_BY_SIDE_OFFSETS[players.length]
+      if (!layout) continue
+      players.forEach((player, i) => offsets.set(player, layout[i]))
+    }
+    return offsets
   }
 
   /**
@@ -265,43 +378,4 @@ export class Lineup extends UIElement {
       this._overlay?.remove()
     }, 150)
   }
-
-  /**
-   * @param {PlayerType} player
-   * @returns {string}
-   */
-  _renderSquadPlayer (player) {
-    const freshnessPercentage = Math.round(player.freshness * 100)
-    const freshnessClass = freshnessPercentage >= 80
-      ? 'freshness-success'
-      : freshnessPercentage >= 60
-        ? 'freshness-warning'
-        : freshnessPercentage >= 40
-          ? 'freshness-orange'
-          : 'freshness-danger'
-    const displayName = player.name.includes(' ')
-      ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
-      : player.name
-    // Use player ID for real players, or 'fake-{position}' for empty slots
-    const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
-    const isSuspended = player.is_suspended
-    const isInjured = player.is_injured
-    const unavailableStyle = (isSuspended || isInjured) ? 'opacity: 0.5; filter: grayscale(100%);' : ''
-
-    const isOutOfPosition = !player.fake && player.position !== player.in_game_position
-    const badgeClass = `position-badge ${player.in_game_position}${isOutOfPosition ? ' is-wrong-position' : ''}`
-
-    return `
-      <div class="player ${player.in_game_position}" data-player-id="${playerId}" style="${unavailableStyle}">
-        <span class="${badgeClass}">${player.in_game_position}</span>
-        <span class="freshness-badge ${freshnessClass}">
-            ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
-        </span>
-        <span class="name">${isSuspended ? '🚫 ' : ''}${isInjured ? '<i class="fa fa-medkit"></i> ' : ''}${displayName}</span>
-        ${renderLevelBadge(player.level, { size: 'lg' })}
-      </div>
-    `
-  }
-
 }
-

@@ -296,4 +296,58 @@ describe('PlayerListItem', () => {
       expect(updateSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('CAPTAIN_CHANGED server event', () => {
+    it('re-renders the outgoing captain\'s row so the (C) marker disappears', () => {
+      const player = testData.player({ id: 42 })
+      // This row is the current captain.
+      const item = new PlayerListItem(player, 1, new Set(), 42)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]
+      handler({ captainId: 99 })
+
+      expect(item.captainId).toBe(99)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('re-renders the incoming captain\'s row so the (C) marker appears', () => {
+      const player = testData.player({ id: 42 })
+      // Row currently not captain — captainId is someone else.
+      const item = new PlayerListItem(player, 1, new Set(), 99)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]
+      handler({ captainId: 42 })
+
+      expect(item.captainId).toBe(42)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for uninvolved rows (captain swap between two other players)', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1, new Set(), 99)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]
+      handler({ captainId: 100 }) // neither the old nor new captain is me
+
+      // captainId still tracked so a subsequent template render is consistent,
+      // but no re-render for this row.
+      expect(item.captainId).toBe(100)
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('handles captain being cleared (captainId: null)', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1, new Set(), 42)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]
+      handler({ captainId: null })
+
+      expect(item.captainId).toBeNull()
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+  })
 })

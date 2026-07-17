@@ -35,9 +35,10 @@ vi.mock('../../lib/event.js', () => ({
   off: vi.fn()
 }))
 
-import { Lineup } from '../../partials/lineup.js'
+import { Lineup, SquadPlayer } from '../../partials/lineup.js'
 import { server } from '../../lib/gateway.js'
 import { fire } from '../../lib/event.js'
+import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 
 describe('Lineup _fillEmptyPositions cleanup', () => {
   beforeEach(() => {
@@ -272,6 +273,70 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     expect(server.getMyTeam).toHaveBeenCalled()
     expect(fire).toHaveBeenCalledWith('lineup-exchange', expect.any(Array))
     expect(overlayRemove).not.toHaveBeenCalled()
+  })
+
+  describe('SquadPlayer CAPTAIN_CHANGED handling', () => {
+    it('re-renders when this tile becomes the new captain', () => {
+      const team = testData.team({ captain_id: null })
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]({ captainId: 42 })
+
+      expect(tile._isCaptain).toBe(true)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('re-renders when this tile loses the captain badge', () => {
+      const team = testData.team({ captain_id: 42 })
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]({ captainId: 99 })
+
+      expect(tile._isCaptain).toBe(false)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for tiles not involved in the swap', () => {
+      const team = testData.team({ captain_id: 99 })
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]({ captainId: 100 })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('ignores CAPTAIN_CHANGED for fake placeholder tiles', () => {
+      const team = testData.team({ captain_id: null })
+      const fake = { fake: true, in_game_position: 'CM', position: 'CM', level: 0, name: '-' }
+      const tile = new SquadPlayer(fake, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]({ captainId: 42 })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Lineup CAPTAIN_CHANGED handling', () => {
+    it('keeps team.captain_id in sync so subsequent re-renders pick up the change', () => {
+      const team = testData.team({ formation: '433', captain_id: 42 })
+      const lineup = new Lineup([], team)
+      const updateSpy = vi.spyOn(lineup, 'update').mockImplementation(() => {})
+
+      lineup.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]({ captainId: 99 })
+
+      // Lineup itself must NOT re-render — SquadPlayer tiles handle their own
+      // visual updates atomically, and re-rendering Lineup would tear every
+      // tile down for nothing.
+      expect(updateSpy).not.toHaveBeenCalled()
+      expect(team.captain_id).toBe(99)
+    })
   })
 
   it('clears duplicates when two players occupy a slot that only exists once', async () => {

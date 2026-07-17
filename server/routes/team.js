@@ -6,6 +6,8 @@ import { clearCacheByPrefix, CACHE_NAMESPACES } from '../lib/cache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getTotalRounds } from '../helper/cupHelper.js'
 import { calculateStandingForTeam } from '../helper/standingHelper.js'
+import { sendToUser } from '../lib/websocket.js'
+import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 
 const MAX_TEAM_NAME_WORD_LENGTH = 12
 const MAX_TEAM_NAME_LENGTH = 32
@@ -235,6 +237,11 @@ export default {
       if (!player.in_game_position) throw new BadRequestError('Captain must be in the lineup')
     }
     await query('UPDATE team SET captain_id=? WHERE id=?', [playerId, team.id])
+    // Notify all this user's open tabs / devices so the (C) marker + captain
+    // badge on the pitch update atomically without a full page re-render.
+    if (team.user_id) {
+      sendToUser(team.user_id, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: playerId })
+    }
     return { success: true }
   },
 

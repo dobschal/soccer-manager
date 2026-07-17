@@ -136,7 +136,10 @@ export class ATeamPage extends UIElement {
               await server.setCaptain(newCaptainId)
               this.parent.data.team.captain_id = newCaptainId
               toast(t('myTeam.captainUpdated'), 'success')
-              await this.update()
+              // No manual this.update() — the server's CAPTAIN_CHANGED event
+              // reaches every subscriber (Lineup keeps team.captain_id in sync,
+              // each SquadPlayer and PlayerListItem redraws its own captain
+              // marker). Also fans out to other tabs the user has open.
             } catch (err) {
               showServerError(err)
             }
