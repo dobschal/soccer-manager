@@ -15,6 +15,7 @@ import { getLevelColor } from './levelBadge.js'
 import { UIElement } from '../lib/UIElement.js'
 import { getPositionColorClass } from '../util/formation.js'
 import { ActionCardGiver } from './actionCardGiver.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
 
 /**
  * Get color for freshness (red/yellow/green)
@@ -96,11 +97,11 @@ export default class PlayerModal extends UIElement {
     this.hasSellOffer = hasSellOffer
     this.sellOfferPrice = sellOfferPrice
     this.allowInstantBuy = !!allowInstantBuy
-    // Only the user's own players can receive action cards. The giver loads its
-    // own cards and refreshes itself in place, so a card never re-renders the
-    // whole modal.
+    // Only the user's own players can receive action cards. The giver loads
+    // its own cards and refreshes itself in place; the modal reacts to the
+    // subsequent PLAYER_UPDATED server event to patch its stat cards.
     this._actionCardGiver = this.isMyPlayer
-      ? new ActionCardGiver(this.player, () => this._refreshPlayerStats())
+      ? new ActionCardGiver(this.player)
       : null
   }
 
@@ -261,6 +262,34 @@ export default class PlayerModal extends UIElement {
       }
     }
   }
+  /**
+   * The modal listens for PLAYER_UPDATED (fires from the action-card helper
+   * whenever level / freshness / is_star_player changes on this player) and
+   * patches its two stat cards in place. Full `update()` isn't an option
+   * because the modal has other open state (currency input, history page,
+   * ActionCardGiver's own loading) that would be torn down.
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.PLAYER_UPDATED.name]: (data) => {
+        if (data?.player?.id !== this.playerId) return
+        Object.assign(this.player, data.player)
+        const root = el(this._elementQuery)
+        if (!root) return
+        const levelEl = root.querySelector('[data-stat="level"]')
+        if (levelEl) {
+          levelEl.textContent = this.player.level
+          levelEl.style.color = getLevelColor(this.player.level)
+        }
+        const freshnessEl = root.querySelector('[data-stat="freshness"]')
+        if (freshnessEl) {
+          freshnessEl.textContent = `${Math.floor(this.player.freshness * 100)}%`
+          freshnessEl.style.color = getFreshnessColor(this.player.freshness)
+        }
+      }
+    }
+  }
   onMounted () {
     const root = el(this._elementQuery)
     const overlayCard = root.closest('.overlay')
@@ -373,30 +402,6 @@ export default class PlayerModal extends UIElement {
       console.error(e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     }
-  }
-
-  /**
-   * Re-fetch the player and update the level/freshness stat cards in place
-   * after an action card was applied. Avoids re-rendering the whole modal.
-   * @returns {Promise<void>}
-   */
-  async _refreshPlayerStats () {
-    this.player = await server.getPlayerById(this.playerId)
-    const root = el(this._elementQuery)
-    if (!root) return
-    const levelEl = root.querySelector('[data-stat="level"]')
-    if (levelEl) {
-      levelEl.textContent = this.player.level
-      levelEl.style.color = getLevelColor(this.player.level)
-    }
-    const freshnessEl = root.querySelector('[data-stat="freshness"]')
-    if (freshnessEl) {
-      freshnessEl.textContent = `${Math.floor(this.player.freshness * 100)}%`
-      freshnessEl.style.color = getFreshnessColor(this.player.freshness)
-    }
-    // Notify the page behind the modal (e.g. the my-team player list) so it can
-    // refresh the player's row with the new level/freshness without a reload.
-    window.dispatchEvent(new CustomEvent('player-updated', { detail: { player: this.player } }))
   }
 
   async _onHire () {

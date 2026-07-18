@@ -42,7 +42,7 @@ describe('ActionCardGiver', () => {
 
   it('skips loading action cards when given a fake player', async () => {
     const fakePlayer = { fake: true, name: '-', level: 0 }
-    const giver = new ActionCardGiver(fakePlayer, () => {})
+    const giver = new ActionCardGiver(fakePlayer)
     await giver.load()
     expect(server.getActionCards).not.toHaveBeenCalled()
     expect(giver.template).not.toContain('selectPlayer.giveActionCard')
@@ -60,7 +60,7 @@ describe('ActionCardGiver', () => {
       ]
     })
     const player = testData.player({ id: 42, name: 'Erik Müller', position: 'CD' })
-    const giver = new ActionCardGiver(player, () => {})
+    const giver = new ActionCardGiver(player)
     await giver.load()
 
     expect(giver.cards).toHaveLength(3)
@@ -74,10 +74,13 @@ describe('ActionCardGiver', () => {
     expect(html).toContain('data-action-type="LEVEL_UP_PLAYER_40"')
   })
 
-  it('applies the action card to the player and notifies the parent', async () => {
+  it('applies the action card to the player and consumes the card locally', async () => {
+    // No parent callback anymore — downstream consumers (list rows, pitch
+    // tiles, open modal) react to the PLAYER_UPDATED server event that the
+    // helper emits after the DB update. The giver only needs to drop the
+    // consumed card from its own list so the stack count updates.
     const player = testData.player({ id: 7, name: 'Hans', position: 'GK' })
-    const onApplied = vi.fn()
-    const giver = new ActionCardGiver(player, onApplied)
+    const giver = new ActionCardGiver(player)
     giver.cards = [{ id: 99, action: 'FRESHNESS_20' }]
     const stackEl = document.createElement('div')
     stackEl.dataset.actionCardIdx = '0'
@@ -88,15 +91,12 @@ describe('ActionCardGiver', () => {
     expect(server.useActionCard).toHaveBeenCalledWith(usedCard, player, null)
     expect(toast).toHaveBeenCalledWith(expect.stringContaining('Hans'), 'success')
     expect(fire).toHaveBeenCalledWith('ACTION_CARDS_CHANGED', giver._renderId)
-    expect(onApplied).toHaveBeenCalled()
-    // The consumed card must be removed from the local list so the next click
-    // sees a smaller stack — the section stays open and re-renders in place.
     expect(giver.cards).toHaveLength(0)
   })
 
   it('shows a placeholder line when the player has no eligible cards', async () => {
     const player = testData.player({ id: 7, name: 'Hans' })
-    const giver = new ActionCardGiver(player, () => {})
+    const giver = new ActionCardGiver(player)
     giver.cards = []
     expect(giver.template).toContain('No matching action cards available.')
   })

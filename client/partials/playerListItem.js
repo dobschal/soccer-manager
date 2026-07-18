@@ -121,6 +121,16 @@ export class PlayerListItem extends UIElement {
           this.player.in_game_position = ''
           this.update()
         }
+      },
+      // Fires when a player's stats change (action-card level-up / freshness
+      // boost / star-player promotion). We mutate the shared player object
+      // in place (aTeam's roster holds the same reference) so a later full
+      // re-render also reads the fresh values, and redraw the row so the
+      // level badge / freshness bar / star icon update.
+      [SERVER_EVENTS.PLAYER_UPDATED.name]: (data) => {
+        if (!data?.player || data.player.id !== this.player.id) return
+        Object.assign(this.player, data.player)
+        this.update()
       }
     }
   }

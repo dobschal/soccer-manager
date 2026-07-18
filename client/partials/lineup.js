@@ -10,6 +10,7 @@ import { renderLevelBadge } from './levelBadge.js'
 import { fire } from '../lib/event.js'
 import { t } from '../i18n/index.js'
 import { SERVER_EVENTS } from '../lib/serverEvents.js'
+import { el } from '../lib/html.js'
 
 // Same-position slot offsets that used to be applied post-mount via
 // _applyPositionHacks. Precomputing at render time lets each SquadPlayer own
@@ -160,6 +161,15 @@ export class SquadPlayer extends UIElement {
         this.player = this._buildFakePlayer()
         this._isCaptain = false
         this.update()
+      },
+      // Action-card driven stat changes (freshness/level/star). Freshness
+      // colours the freshness badge, level drives the level badge — a plain
+      // update() picks it all up. Fakes have no id to match, so they skip.
+      [SERVER_EVENTS.PLAYER_UPDATED.name]: (data) => {
+        if (this.player.fake) return
+        if (data?.player?.id !== this.player.id) return
+        Object.assign(this.player, data.player)
+        this.update()
       }
     }
   }
@@ -282,7 +292,6 @@ export class Lineup extends UIElement {
                 player,
                 availablePlayers,
                 newPlayer => this._exchangePlayer(player, newPlayer, fakeSlotIndex),
-                () => this._refreshAfterActionCard(),
                 allPlayers
               )}`
             )
@@ -345,6 +354,21 @@ export class Lineup extends UIElement {
         // object already has its new slot set via the loop above, so we
         // just rebuild fakes to add a placeholder for the emptied slot.
         this._rebuildFakes()
+      },
+      // Action-card driven stat change. Each SquadPlayer refreshes its own
+      // freshness/level badges off the same event; Lineup only owns the
+      // strength-overlay, so it patches that in place. Doing this here
+      // (instead of a full update()) avoids re-creating every tile.
+      [SERVER_EVENTS.PLAYER_UPDATED.name]: (data) => {
+        if (!data?.player) return
+        const p = this.players.find(x => !x.fake && x.id === data.player.id)
+        if (!p) return
+        Object.assign(p, data.player)
+        const strengthEl = el(`${this._elementQuery} .lineup-strength-overlay`)
+        if (!strengthEl) return
+        strengthEl.textContent = this.players
+          .filter(x => x.in_game_position && !x.fake)
+          .reduce((sum, x) => sum + x.level, 0)
       }
     }
   }
@@ -478,26 +502,6 @@ export class Lineup extends UIElement {
       ordinals.set(player, idx)
     }
     return ordinals
-  }
-
-  /**
-   * After an action card has been applied to a player from inside the overlay,
-   * refetch the team so updated player stats (freshness/level) flow back into
-   * the parent component and the lineup re-renders. The overlay stays open so
-   * the user can apply additional cards to the same player; returning the
-   * refreshed roster lets the overlay re-point its own player references at
-   * the fresh objects before re-rendering.
-   * @returns {Promise<{ players: PlayerType[] } | undefined>}
-   */
-  async _refreshAfterActionCard () {
-    try {
-      const refreshedData = await server.getMyTeam()
-      fire('lineup-exchange', refreshedData.players)
-      return { players: refreshedData.players }
-    } catch (e) {
-      console.error(e)
-      toast(e.message ?? 'Something went wrong...', 'error')
-    }
   }
 
   /**

@@ -45,9 +45,8 @@ vi.mock('../../lib/router.js', () => ({
 // The action-card section is its own UIElement, tested in actionCardGiver.test.js.
 vi.mock('../../partials/actionCardGiver.js', () => ({
   ActionCardGiver: class {
-    constructor (player, onApplied) {
+    constructor (player) {
       this.player = player
-      this.onApplied = onApplied
     }
 
     toString () { return '<div class="action-card-giver-stub"></div>' }
@@ -59,6 +58,7 @@ const { ActionCardGiver } = await import('../../partials/actionCardGiver.js')
 const { server } = await import('../../lib/gateway.js')
 const { showDialog } = await import('../../partials/dialog.js')
 const { toast } = await import('../../partials/toast.js')
+const { SERVER_EVENTS } = await import('../../lib/serverEvents.js')
 
 describe('PlayerModal', () => {
   beforeEach(() => {
@@ -85,43 +85,42 @@ describe('PlayerModal', () => {
       expect(modal.template).not.toContain('action-card-giver-stub')
     })
 
-    it('refreshes the freshness/level stat cards in place after a card is applied', async () => {
+    it('patches the freshness/level stat cards in place when PLAYER_UPDATED fires for this player', async () => {
       server.getPlayerById.mockResolvedValueOnce(testData.player({ id: 5, team_id: 1, level: 50, freshness: 0.2 }))
       const modal = new PlayerModal(5)
       await modal.load()
-      // Build the DOM the refresh targets.
+      // Build the DOM the handler targets.
       const root = document.createElement('div')
       root.setAttribute('data-render_id', modal._renderId)
       root.innerHTML = '<div class="stat-card-value" data-stat="level"></div><div class="stat-card-value" data-stat="freshness"></div>'
       document.body.appendChild(root)
 
-      server.getPlayerById.mockResolvedValueOnce(testData.player({ id: 5, team_id: 1, level: 51, freshness: 1.0 }))
-      await modal._refreshPlayerStats()
+      modal.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 5, team_id: 1, level: 51, freshness: 1.0 })
+      })
 
       expect(root.querySelector('[data-stat="level"]').textContent).toBe('51')
       expect(root.querySelector('[data-stat="freshness"]').textContent).toBe('100%')
+      expect(modal.player.level).toBe(51)
+      expect(modal.player.freshness).toBe(1.0)
       root.remove()
     })
 
-    it('dispatches a player-updated event so the page behind the modal can refresh its list', async () => {
+    it('ignores PLAYER_UPDATED events for other players', async () => {
       server.getPlayerById.mockResolvedValueOnce(testData.player({ id: 5, team_id: 1, level: 50, freshness: 0.2 }))
       const modal = new PlayerModal(5)
       await modal.load()
       const root = document.createElement('div')
       root.setAttribute('data-render_id', modal._renderId)
+      root.innerHTML = '<div class="stat-card-value" data-stat="level">50</div>'
       document.body.appendChild(root)
 
-      const handler = vi.fn()
-      window.addEventListener('player-updated', handler)
-      server.getPlayerById.mockResolvedValueOnce(testData.player({ id: 5, team_id: 1, level: 51, freshness: 1.0 }))
-      await modal._refreshPlayerStats()
-      window.removeEventListener('player-updated', handler)
+      modal.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 99, team_id: 1, level: 80, freshness: 1.0 })
+      })
 
-      expect(handler).toHaveBeenCalledTimes(1)
-      const player = handler.mock.calls[0][0].detail.player
-      expect(player.id).toBe(5)
-      expect(player.level).toBe(51)
-      expect(player.freshness).toBe(1.0)
+      expect(root.querySelector('[data-stat="level"]').textContent).toBe('50')
+      expect(modal.player.level).toBe(50)
       root.remove()
     })
   })

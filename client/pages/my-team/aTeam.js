@@ -181,30 +181,9 @@ export class ATeamPage extends UIElement {
     }
   }
 
-  onMounted () {
-    window.addEventListener('player-updated', this._onPlayerUpdated)
-  }
-
   onDestroy () {
     off(this._exchangeEventId)
     off(this._captainClearedEventId)
-    window.removeEventListener('player-updated', this._onPlayerUpdated)
-  }
-  /**
-   * When an action card changes a player's level/freshness in the PlayerModal,
-   * patch the matching player in our squad data and re-render so the player
-   * list, lineup and bench reflect the new values.
-   * @param {CustomEvent} event
-   * @returns {void}
-   */
-  _onPlayerUpdated = (event) => {
-    const updated = event.detail?.player
-    if (!updated) return
-    const player = this.parent.data.players.find(p => !p.fake && p.id === updated.id)
-    if (!player) return
-    player.level = updated.level
-    player.freshness = updated.freshness
-    this.update()
   }
 
   /**

@@ -450,4 +450,33 @@ describe('PlayerListItem', () => {
       expect(updateSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('PLAYER_UPDATED server event (action-card stat changes)', () => {
+    it('patches level/freshness and re-renders the row when the event targets this player', () => {
+      const player = testData.player({ id: 42, level: 50, freshness: 0.2 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 42, level: 51, freshness: 1.0 })
+      })
+
+      expect(item.player.level).toBe(51)
+      expect(item.player.freshness).toBe(1.0)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for other rows', () => {
+      const player = testData.player({ id: 42, level: 50 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 99, level: 80 })
+      })
+
+      expect(item.player.level).toBe(50)
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
 })

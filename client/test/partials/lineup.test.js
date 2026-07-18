@@ -209,22 +209,6 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     expect(server.swapLineupPlayer).not.toHaveBeenCalled()
   })
 
-  it('keeps the player overlay open after an action card is applied', async () => {
-    // The user can chain multiple action cards onto the same lineup player.
-    // _refreshAfterActionCard must refetch + re-emit the lineup data without
-    // removing the SelectPlayerOverlay sitting on top.
-    const team = testData.team({ formation: '433' })
-    const lineup = new Lineup([], team)
-    const overlayRemove = vi.fn()
-    lineup._overlay = { remove: overlayRemove }
-
-    await lineup._refreshAfterActionCard()
-
-    expect(server.getMyTeam).toHaveBeenCalled()
-    expect(fire).toHaveBeenCalledWith('lineup-exchange', expect.any(Array))
-    expect(overlayRemove).not.toHaveBeenCalled()
-  })
-
   describe('SquadPlayer CAPTAIN_CHANGED handling', () => {
     it('re-renders when this tile becomes the new captain', () => {
       const team = testData.team({ captain_id: null })
@@ -676,6 +660,76 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       expect(ejected.in_game_position).toBe('')
       // Fake placeholder now exists for the freed CM slot.
       expect(lineup.players.some(p => p.fake && p.in_game_position === 'CM')).toBe(true)
+    })
+  })
+
+  describe('PLAYER_UPDATED handling (action-card driven stat changes)', () => {
+    it('SquadPlayer patches its player and re-renders when its tile is targeted', () => {
+      const team = testData.team({ captain_id: null })
+      const player = testData.player({ id: 42, in_game_position: 'CM', level: 50, freshness: 0.2 })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 42, level: 51, freshness: 1.0 })
+      })
+
+      expect(tile.player.level).toBe(51)
+      expect(tile.player.freshness).toBe(1.0)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('SquadPlayer is a no-op when the event targets a different player', () => {
+      const team = testData.team({ captain_id: null })
+      const player = testData.player({ id: 42, in_game_position: 'CM', level: 50 })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 99, level: 80 })
+      })
+
+      expect(tile.player.level).toBe(50)
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('SquadPlayer ignores PLAYER_UPDATED on a fake tile', () => {
+      const team = testData.team({ captain_id: null })
+      const fake = { fake: true, in_game_position: 'CM', position: 'CM', level: 0, name: '-' }
+      const tile = new SquadPlayer(fake, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 42, level: 80 })
+      })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('Lineup patches its shared player and updates the strength overlay in place', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM', level: 50 }),
+        testData.player({ id: 8, position: 'CD', in_game_position: 'CD', level: 40 })
+      ]
+      const lineup = new Lineup(players, team)
+      const updateSpy = vi.spyOn(lineup, 'update').mockImplementation(() => {})
+
+      const root = document.createElement('div')
+      root.setAttribute('data-render_id', lineup._renderId)
+      root.innerHTML = '<span class="lineup-strength-overlay">90</span>'
+      document.body.appendChild(root)
+
+      lineup.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 7, in_game_position: 'CM', level: 51 })
+      })
+
+      // No full re-render — SquadPlayer handles the tile visuals.
+      expect(updateSpy).not.toHaveBeenCalled()
+      expect(lineup.players.find(p => p.id === 7).level).toBe(51)
+      expect(root.querySelector('.lineup-strength-overlay').textContent).toBe('91')
+
+      root.remove()
     })
   })
 

@@ -34,13 +34,10 @@ function getActionCardTitles () {
 export class ActionCardGiver extends UIElement {
   /**
    * @param {PlayerType} player - Player the cards are applied to (may be fake/empty)
-   * @param {() => (void | Promise<void>)} [onApplied] - Called after a card has been applied,
-   *   so the parent can refresh whatever views it owns (player list, stat cards, …).
    */
-  constructor (player, onApplied) {
+  constructor (player) {
     super()
     this.player = player
-    this.onApplied = onApplied
     this.cards = []
     this._processing = false
   }
@@ -157,9 +154,11 @@ export class ActionCardGiver extends UIElement {
       fire(ACTION_CARDS_CHANGED_EVENT, this._renderId)
       // Drop the consumed card from the local list so the stack count updates
       // without a server round-trip. The section stays open so the user can
-      // chain more cards onto the same player.
+      // chain more cards onto the same player. The player's stat changes
+      // (freshness / level / star flag) reach every consumer (list rows,
+      // pitch tiles, modal, strength overlay) via the PLAYER_UPDATED server
+      // event — no callback needed.
       this.cards.splice(cardIndex, 1)
-      await this.onApplied?.()
       // Surgical DOM update instead of this.update(): a full re-render of an
       // embedding overlay re-creates nested UIElements via renderSync(), which
       // briefly shows an empty <template> placeholder and collapses fit-content
