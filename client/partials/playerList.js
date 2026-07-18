@@ -102,26 +102,19 @@ export class PlayerList extends UIElement {
    * off its own subscriptions. What this list owns is the *order* of the
    * rows: lineup players first, then bench players, then everyone else.
    * A lineup swap or bench pick can move a player between those buckets, so
-   * after such an event we re-sort the underlying array and let the Table
-   * re-render the tbody in the new order.
-   *
-   * Runs before the child PlayerListItem handlers (parents mount first), but
-   * `update()` is async — its synchronous prep completes here, then dispatch
-   * proceeds to the item handlers (which mutate the same shared player
-   * objects), and by the time the table's DOM swap happens, `this.players`
-   * already reflects everyone's new position / bench state.
+   * after such an event we re-sort the underlying array and shuffle the
+   * existing `<tr>` nodes in place — a full `update()` would tear down the
+   * table and briefly leave it empty (visible flicker).
    *
    * @returns {Record<string, (data: any) => void>}
    */
   get serverEvents () {
     return {
       [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: () => {
-        this.players.sort(sortByPosition)
-        this.update()
+        this._reorderByPosition()
       },
       [SERVER_EVENTS.BENCH_CHANGED.name]: () => {
-        this.players.sort(sortByPosition)
-        this.update()
+        this._reorderByPosition()
       },
       [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
         // Sort doesn't change with the captain, but the (C) marker used by
@@ -142,6 +135,29 @@ export class PlayerList extends UIElement {
     if (!toolbar) return
     toolbar.classList.toggle('hidden', !PlayerList._isSortActive())
   }
+  /**
+   * Re-sort `this.players` by position and reorder the existing `<tr>` nodes
+   * in the tbody to match — no re-render, no flicker. Skipped when a URL sort
+   * is active because the sortable columns (name/level/age/…) aren't affected
+   * by lineup or bench changes, so the DOM order is already correct; mutating
+   * `this.players` here would clobber the URL-sort order.
+   * @returns {void}
+   * @private
+   */
+  _reorderByPosition () {
+    if (this.useUrlSort && PlayerList._isSortActive()) return
+    this.players.sort(sortByPosition)
+    const root = el(this._elementQuery)
+    const tbody = root?.querySelector('tbody')
+    if (!tbody) return
+    const fragment = document.createDocumentFragment()
+    for (const player of this.players) {
+      const tr = tbody.querySelector(`tr[data-player-id="${player.id}"]`)
+      if (tr) fragment.appendChild(tr)
+    }
+    tbody.appendChild(fragment)
+  }
+  
   /**
    * @returns {boolean}
    * @private

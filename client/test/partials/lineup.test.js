@@ -187,9 +187,11 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
 
     await lineup._exchangePlayer(playerB, playerA)
 
-    // Called with the slot of the OLD occupant (the tile the user clicked)
-    // and the picked player's id.
-    expect(server.swapLineupPlayer).toHaveBeenCalledWith('CD', 11)
+    // Called with the slot of the OLD occupant (the tile the user clicked),
+    // the picked player's id, the outgoing player's id (so the server can
+    // pick the exact tile even when the slot is shared, e.g. two CDs), and
+    // the outgoing fake-slot ordinal (null for real tiles).
+    expect(server.swapLineupPlayer).toHaveBeenCalledWith('CD', 11, 3, null)
     // No local mutation, no `fire('lineup-exchange')` — those are gone now
     // because LINEUP_PLAYER_CHANGED handles the fan-out.
     expect(fire).not.toHaveBeenCalledWith('lineup-exchange', expect.anything())
@@ -443,8 +445,10 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       const newOccupant = testData.player({ id: 99, in_game_position: 'CM' })
       tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
         slots: { CM: newOccupant },
+        replacements: { CM: { previousPlayerId: 42, previousFakeSlotIndex: null } },
         ejectedPlayerId: 42,
         emptiedSlot: null,
+        emptiedTilePlayerId: null,
         freedBenchPosition: null
       })
 
@@ -461,8 +465,10 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       const newOccupant = testData.player({ id: 99, in_game_position: 'CM' })
       tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
         slots: { CM: newOccupant },
+        replacements: { CM: { previousPlayerId: 42, previousFakeSlotIndex: null } },
         ejectedPlayerId: 42,
         emptiedSlot: null,
+        emptiedTilePlayerId: null,
         freedBenchPosition: null
       })
 
@@ -476,11 +482,14 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
 
       // Rare swap-with-empty case: my player moved to a different lineup
-      // slot, no one filled my slot.
+      // slot, no one filled my slot. `emptiedTilePlayerId` pins the vacated
+      // tile to my player so a same-slot neighbor doesn't also turn fake.
       tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
         slots: { CD: testData.player({ id: 42, in_game_position: 'CD' }) },
+        replacements: { CD: { previousPlayerId: null, previousFakeSlotIndex: 0 } },
         ejectedPlayerId: null,
         emptiedSlot: 'CM',
+        emptiedTilePlayerId: 42,
         freedBenchPosition: null
       })
 
@@ -518,12 +527,77 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
 
       tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
         slots: { CD: testData.player({ id: 99, in_game_position: 'CD' }) },
+        replacements: { CD: { previousPlayerId: 88, previousFakeSlotIndex: null } },
         ejectedPlayerId: null,
         emptiedSlot: null,
+        emptiedTilePlayerId: null,
         freedBenchPosition: null
       })
 
       expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('does not duplicate the picked player onto the other same-slot tile (two CDs, one gets swapped)', () => {
+      // Regression: previously `data.slots.CD` was read blindly by every CD
+      // tile, so picking a bench player for CD#0 also rendered them on CD#1.
+      // Now each tile filters on `replacements[this.slot].previousPlayerId`
+      // (or previousFakeSlotIndex for fakes), so the other CD stays put.
+      const team = testData.team({ captain_id: null })
+      const playerA = testData.player({ id: 42, in_game_position: 'CD' })
+      const playerB = testData.player({ id: 88, in_game_position: 'CD' })
+      const tileA = new SquadPlayer(playerA, team, '', 0)
+      const tileB = new SquadPlayer(playerB, team, '', 1)
+      const updateA = vi.spyOn(tileA, 'update').mockImplementation(() => {})
+      const updateB = vi.spyOn(tileB, 'update').mockImplementation(() => {})
+
+      // User picked player X (from bench) into CD#0 (playerA's tile).
+      const newOccupant = testData.player({ id: 7, in_game_position: 'CD' })
+      const event = {
+        slots: { CD: newOccupant },
+        replacements: { CD: { previousPlayerId: 42, previousFakeSlotIndex: null } },
+        ejectedPlayerId: 42,
+        emptiedSlot: null,
+        emptiedTilePlayerId: null,
+        freedBenchPosition: 'BENCH_MID'
+      }
+      tileA.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name](event)
+      tileB.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name](event)
+
+      // Only CD#0 (playerA's tile) picks up newOccupant.
+      expect(tileA.player).toBe(newOccupant)
+      expect(updateA).toHaveBeenCalledTimes(1)
+      // CD#1 (playerB) is untouched — no duplicate on the pitch.
+      expect(tileB.player).toBe(playerB)
+      expect(updateB).not.toHaveBeenCalled()
+    })
+
+    it('fills only the clicked empty CD when two CDs are empty', () => {
+      // Two fake CD tiles, one at ordinal 0, one at ordinal 1. User clicks
+      // ordinal 1. Server echoes previousFakeSlotIndex=1; only tileB fills.
+      const team = testData.team({ captain_id: null })
+      const fakeA = { fake: true, in_game_position: 'CD', position: 'CD', level: 0, name: '-' }
+      const fakeB = { fake: true, in_game_position: 'CD', position: 'CD', level: 0, name: '-' }
+      const tileA = new SquadPlayer(fakeA, team, '', 0)
+      const tileB = new SquadPlayer(fakeB, team, '', 1)
+      const updateA = vi.spyOn(tileA, 'update').mockImplementation(() => {})
+      const updateB = vi.spyOn(tileB, 'update').mockImplementation(() => {})
+
+      const newOccupant = testData.player({ id: 7, in_game_position: 'CD' })
+      const event = {
+        slots: { CD: newOccupant },
+        replacements: { CD: { previousPlayerId: null, previousFakeSlotIndex: 1 } },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        emptiedTilePlayerId: null,
+        freedBenchPosition: null
+      }
+      tileA.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name](event)
+      tileB.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name](event)
+
+      expect(tileA.player).toBe(fakeA)
+      expect(updateA).not.toHaveBeenCalled()
+      expect(tileB.player).toBe(newOccupant)
+      expect(updateB).toHaveBeenCalledTimes(1)
     })
 
     it('keeps the tile\'s pitch slot stable even when the Lineup handler already mutated player.in_game_position', () => {
@@ -543,8 +617,10 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       const newOccupant = testData.player({ id: 99, in_game_position: 'CM' })
       tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
         slots: { CM: newOccupant },
+        replacements: { CM: { previousPlayerId: 42, previousFakeSlotIndex: null } },
         ejectedPlayerId: null,
         emptiedSlot: null,
+        emptiedTilePlayerId: null,
         freedBenchPosition: null
       })
 

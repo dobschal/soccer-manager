@@ -33,12 +33,17 @@ export class SquadPlayer extends UIElement {
    * @param {TeamType} team - Shared reference; the captain field is kept in sync by Lineup.
    * @param {string} lineupOffset - Precomputed CSS value for `--lineup-offset`
    *   when multiple players share the same in_game_position, or '' if none.
+   * @param {number} slotOrdinal - Ordinal (0..N-1) among same-slot tiles.
+   *   Used to disambiguate multi-tile slots (CD/CM/DM) so the click handler
+   *   and LINEUP_PLAYER_CHANGED filter can address a specific tile even when
+   *   the slot name is shared.
    */
-  constructor (player, team, lineupOffset = '') {
+  constructor (player, team, lineupOffset = '', slotOrdinal = 0) {
     super()
     this.player = player
     this.team = team
     this.lineupOffset = lineupOffset
+    this.slotOrdinal = slotOrdinal
     // Freeze the slot at construction time. Handlers on Lineup / other
     // sources may mutate `player.in_game_position` (same shared reference),
     // but the tile's physical slot on the pitch never moves — using a
@@ -63,8 +68,10 @@ export class SquadPlayer extends UIElement {
     const displayName = player.name.includes(' ')
       ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
       : player.name
-    // Use player ID for real players, or 'fake-{slot}' for empty slots.
-    const playerId = player.fake ? `fake-${this.slot}` : player.id
+    // Use player ID for real players, or 'fake-{slot}-{ordinal}' for empty
+    // slots. Including the ordinal keeps each fake tile distinguishable when
+    // the formation has more than one slot at the same position (e.g. 2 CDs).
+    const playerId = player.fake ? `fake-${this.slot}-${this.slotOrdinal}` : player.id
     const isSuspended = player.is_suspended
     const isInjured = player.is_injured
     const inlineStyles = [
@@ -121,24 +128,34 @@ export class SquadPlayer extends UIElement {
       },
       [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: (data) => {
         if (!data) return
-        // Look up who's at MY slot now. `this.slot` is frozen in the
-        // constructor, so it can't drift even if the Lineup handler (which
-        // fires before this one) already mutated the shared player object's
+        // Which tile at MY slot got replaced? The position key alone is
+        // ambiguous when the formation has more than one tile at the same
+        // slot (2 CDs / 3 CMs), so we filter on the outgoing tile identity
+        // the server echoed in `replacements[this.slot]`. `this.slot` is
+        // frozen in the constructor and can't drift even if Lineup's handler
+        // (which fires first) already mutated the shared player object's
         // in_game_position.
+        const replacement = data.replacements?.[this.slot]
         const newOccupant = data.slots?.[this.slot] ?? null
-        if (newOccupant) {
+        if (replacement && newOccupant) {
+          const isMe = this.player.fake
+            ? replacement.previousFakeSlotIndex === this.slotOrdinal
+            : replacement.previousPlayerId === this.player.id
+          if (!isMe) return
           if (!this.player.fake && this.player.id === newOccupant.id) return
           this.player = newOccupant
           this._isCaptain = !newOccupant.fake && newOccupant.id === this.team.captain_id
           this.update()
           return
         }
-        // No new occupant. Two remaining reasons to turn into a fake: my
-        // player was ejected from the lineup, or the swap emptied my slot
-        // (picked player came from here and no one replaced them).
+        // No new occupant for me. Two remaining reasons to turn into a fake:
+        // my player was ejected from the lineup, or the swap emptied my slot
+        // (the picked player used to sit on THIS specific tile and no one
+        // replaced them — matched by `emptiedTilePlayerId`, not just slot).
         if (this.player.fake) return
         const wasEjected = data.ejectedPlayerId === this.player.id
-        const wasEmptied = data.emptiedSlot === this.slot
+        const wasEmptied = data.emptiedSlot === this.slot &&
+          data.emptiedTilePlayerId === this.player.id
         if (!wasEjected && !wasEmptied) return
         this.player = this._buildFakePlayer()
         this._isCaptain = false
@@ -208,13 +225,14 @@ export class Lineup extends UIElement {
       .filter(p => p.in_game_position && !p.fake)
       .reduce((sum, p) => sum + p.level, 0)
     const offsets = this._computeLineupOffsets()
+    const ordinals = this._computeSlotOrdinals()
     return `
       <div class="lineup-container">
         <div class="card bg-dark lineup-pitch">
           <div class="squad card-body">
             <span class="lineup-strength-overlay">${lineupStrength}</span>
             ${this.players.filter(p => p.in_game_position).map(p =>
-    `${new SquadPlayer(p, this.team, offsets.get(p) ?? '')}`
+    `${new SquadPlayer(p, this.team, offsets.get(p) ?? '', ordinals.get(p) ?? 0)}`
   ).join('')}
           </div>
         </div>
@@ -233,9 +251,22 @@ export class Lineup extends UIElement {
           if (!playerEl) return
 
           const playerId = playerEl.dataset.playerId
-          const player = playerId.startsWith('fake-')
-            ? this.players.find(p => p.fake && p.in_game_position === playerId.replace('fake-', ''))
-            : this.players.find(p => p.id === Number(playerId))
+          // Fake tiles carry `fake-{slot}-{ordinal}` so we can tell same-slot
+          // fakes apart. Real players carry a numeric id.
+          let player
+          let fakeSlotIndex = null
+          if (playerId.startsWith('fake-')) {
+            const match = playerId.match(/^fake-(.+)-(\d+)$/)
+            if (!match) return
+            const slot = match[1]
+            fakeSlotIndex = Number(match[2])
+            // Any fake at that slot works for the overlay filter — they're
+            // placeholders. The specific tile identity is carried by
+            // fakeSlotIndex, which we send to the server.
+            player = this.players.find(p => p.fake && p.in_game_position === slot)
+          } else {
+            player = this.players.find(p => p.id === Number(playerId))
+          }
 
           if (player) {
             // Matching-position players excluding suspended/injured/fake
@@ -250,7 +281,7 @@ export class Lineup extends UIElement {
               `${new SelectPlayerOverlay(
                 player,
                 availablePlayers,
-                newPlayer => this._exchangePlayer(player, newPlayer),
+                newPlayer => this._exchangePlayer(player, newPlayer, fakeSlotIndex),
                 () => this._refreshAfterActionCard(),
                 allPlayers
               )}`
@@ -432,6 +463,24 @@ export class Lineup extends UIElement {
   }
 
   /**
+   * Assign each rendered tile an ordinal within its position (0..N-1). Used
+   * to give same-slot SquadPlayer instances a stable identity so click
+   * routing and LINEUP_PLAYER_CHANGED can address a specific tile even when
+   * the slot name (e.g. 'CD') is shared by multiple tiles.
+   * @returns {Map<PlayerType, number>}
+   */
+  _computeSlotOrdinals () {
+    const ordinals = new Map()
+    const counters = new Map()
+    for (const player of this.players.filter(p => p.in_game_position)) {
+      const idx = counters.get(player.in_game_position) ?? 0
+      counters.set(player.in_game_position, idx + 1)
+      ordinals.set(player, idx)
+    }
+    return ordinals
+  }
+
+  /**
    * After an action card has been applied to a player from inside the overlay,
    * refetch the team so updated player stats (freshness/level) flow back into
    * the parent component and the lineup re-renders. The overlay stays open so
@@ -485,20 +534,31 @@ export class Lineup extends UIElement {
    * local state or triggers a re-render.
    * @param {PlayerType} player - Current occupant of the clicked slot (may be a fake for empty slots).
    * @param {PlayerType} newPlayer - The picked player from the overlay.
+   * @param {number|null} fakeSlotIndex - When the clicked tile was a fake,
+   *   its ordinal (0..N-1) among same-slot tiles. Ignored for real players.
    * @returns {Promise<void>}
    */
-  async _exchangePlayer (player, newPlayer) {
+  async _exchangePlayer(player, newPlayer, fakeSlotIndex = null) {
+    this._overlay?.remove()
     // No-op safety net: user re-picked the current occupant.
     if (!player.fake && player.id === newPlayer.id) {
-      this._overlay?.remove()
       return
     }
     try {
-      await server.swapLineupPlayer(player.in_game_position, newPlayer.id)
+      // Tell the server exactly which tile the user clicked. Without this
+      // the server would grab an arbitrary same-slot player with
+      // `WHERE in_game_position=? LIMIT 1` and the tile filter downstream
+      // would render the picked player on every same-slot tile.
+      const currentPlayerId = player.fake ? null : player.id
+      await server.swapLineupPlayer(
+        player.in_game_position,
+        newPlayer.id,
+        currentPlayerId,
+        player.fake ? fakeSlotIndex : null
+      )
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
     }
-    this._overlay?.remove()
   }
 }

@@ -453,6 +453,10 @@
     font-weight: 500;
 }
 
+.action-card-giver {
+    height: 280px;
+}
+
 .select-player-action-cards {
     margin: 0 -2rem -1rem -2rem;
     padding: 1rem 2rem 0 2rem;
@@ -464,6 +468,7 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     background: linear-gradient(136deg, #222 0%, #333 100%) !important;
+    height: 260px;
 }
 
 .select-player-action-card-item {

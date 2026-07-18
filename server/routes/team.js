@@ -403,12 +403,24 @@ export default {
    * When the ejected player was the team captain, `CAPTAIN_CHANGED` follows
    * with `captainId: null`.
    *
+   * `currentPlayerId` / `currentFakeSlotIndex` identify which specific tile
+   * the user clicked when the same lineup slot appears more than once in the
+   * formation (e.g. two CDs). Without them the server would grab an
+   * arbitrary player at that slot with `WHERE in_game_position=? LIMIT 1`,
+   * and every same-slot SquadPlayer tile would blindly render `slots[slot]`,
+   * duplicating the picked player on the pitch.
+   *
    * @param {string} currentSlot - The `in_game_position` slot the user clicked.
    * @param {number} newPlayerId - The player id picked from the overlay.
+   * @param {number|null} currentPlayerId - Id of the player currently on the
+   *   clicked tile, or null when the tile is empty (fake).
+   * @param {number|null} currentFakeSlotIndex - When the clicked tile is a
+   *   fake placeholder, its ordinal (0..N-1) among same-slot tiles. Ignored
+   *   when `currentPlayerId` is set.
    * @param {Request} req
    * @returns {Promise<{success: boolean, captainCleared: boolean}>}
    */
-  async swapLineupPlayer (currentSlot, newPlayerId, req) {
+  async swapLineupPlayer (currentSlot, newPlayerId, currentPlayerId, currentFakeSlotIndex, req) {
     const team = await getTeam(req)
     const formationSlots = getPositionsOfFormation(team.formation) || []
     if (!formationSlots.includes(currentSlot)) throw new BadRequestError('Slot not in current formation')
@@ -417,12 +429,22 @@ export default {
     if (!newPlayer) throw new BadRequestError('Player not found in your team')
     if (newPlayer.is_suspended || newPlayer.is_injured) throw new BadRequestError('Player is unavailable')
 
-    // Find the current occupant of the clicked slot (may be undefined if the
-    // slot is empty / represented by a fake tile on the client).
-    const [currentOccupant] = await query(
-      'SELECT * FROM player WHERE team_id=? AND in_game_position=? AND id != ? LIMIT 1',
-      [team.id, currentSlot, newPlayerId]
-    )
+    // Look up the current occupant by explicit id when the client sent one
+    // (so we hit the exact tile the user clicked, not an arbitrary same-slot
+    // player). If no id was sent, the tile is empty on the client — skip the
+    // lookup entirely so a same-slot neighbor doesn't get ejected by mistake.
+    let currentOccupant
+    if (currentPlayerId && currentPlayerId !== newPlayerId) {
+      const [occupant] = await query(
+        'SELECT * FROM player WHERE id=? AND team_id=? LIMIT 1',
+        [currentPlayerId, team.id]
+      )
+      if (!occupant) throw new BadRequestError('Current occupant not found in your team')
+      if (occupant.in_game_position !== currentSlot) {
+        throw new BadRequestError('Current occupant is no longer in that slot')
+      }
+      currentOccupant = occupant
+    }
 
     const wasSwap = Boolean(newPlayer.in_game_position) // picked player was already in lineup
     const originalNewPlayerSlot = newPlayer.in_game_position || null
@@ -455,23 +477,42 @@ export default {
     if (team.user_id) {
       const freshNewPlayer = await getPlayerById(newPlayerId)
       const slots = { [currentSlot]: freshNewPlayer }
+      // `replacements` echoes the tile identity the client sent (real player
+      // id, or fake-tile ordinal) so each SquadPlayer can decide whether IT
+      // is the affected tile — the position key alone is ambiguous when the
+      // formation has two or more tiles for the same slot (CD, CM, DM).
+      const replacements = {
+        [currentSlot]: {
+          previousPlayerId: currentOccupant?.id ?? null,
+          previousFakeSlotIndex: currentOccupant ? null : (currentFakeSlotIndex ?? null)
+        }
+      }
       // In a lineup ↔ lineup swap, the second slot also has a new occupant
       // (the ejected side of the swap). If the clicked slot was empty, the
       // picked player just moves and their old lineup slot becomes empty —
-      // signalled via `emptiedSlot`.
+      // signalled via `emptiedSlot` + `emptiedTilePlayerId` so the specific
+      // same-slot tile the picked player used to sit on turns fake.
       let emptiedSlot = null
+      let emptiedTilePlayerId = null
       if (wasSwap) {
         if (currentOccupant) {
           const freshOccupant = await getPlayerById(currentOccupant.id)
           slots[originalNewPlayerSlot] = freshOccupant
+          replacements[originalNewPlayerSlot] = {
+            previousPlayerId: newPlayer.id,
+            previousFakeSlotIndex: null
+          }
         } else {
           emptiedSlot = originalNewPlayerSlot
+          emptiedTilePlayerId = newPlayer.id
         }
       }
       sendToUser(team.user_id, SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name, {
         slots,
+        replacements,
         ejectedPlayerId,
         emptiedSlot,
+        emptiedTilePlayerId,
         freedBenchPosition
       })
       if (freedBenchPosition) {

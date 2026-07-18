@@ -248,7 +248,47 @@ describe('PlayerList', () => {
   })
 
   describe('server-event driven sort refresh', () => {
-    it('re-sorts and re-renders on LINEUP_PLAYER_CHANGED so the list buckets (lineup / bench / reserve) stay right after a swap', async () => {
+    it('re-sorts and reorders `<tr>` nodes in place on LINEUP_PLAYER_CHANGED so the buckets (lineup / bench / reserve) stay right without a flicker-inducing full re-render', async () => {
+      const list = new PlayerList([testData.player({ id: 1 }), testData.player({ id: 2 })], true)
+      await list.load()
+      list.update = vi.fn()
+      const reorderSpy = vi.spyOn(list, '_reorderByPosition')
+      sortByPosition.mockClear()
+
+      list.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 1, in_game_position: 'CM' }) },
+        ejectedPlayerId: 2,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(reorderSpy).toHaveBeenCalledTimes(1)
+      expect(sortByPosition).toHaveBeenCalled()
+      // The whole point of the in-place reorder is to avoid the full re-render.
+      expect(list.update).not.toHaveBeenCalled()
+    })
+
+    it('re-sorts and reorders `<tr>` nodes in place on BENCH_CHANGED for the same reason', async () => {
+      const list = new PlayerList([testData.player({ id: 1 }), testData.player({ id: 2 })], true)
+      await list.load()
+      list.update = vi.fn()
+      const reorderSpy = vi.spyOn(list, '_reorderByPosition')
+      sortByPosition.mockClear()
+
+      list.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 1 }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(reorderSpy).toHaveBeenCalledTimes(1)
+      expect(sortByPosition).toHaveBeenCalled()
+      expect(list.update).not.toHaveBeenCalled()
+    })
+
+    it('skips the sort/reorder when a URL sort is active — the sortable columns are unaffected by a lineup swap, and mutating this.players would clobber the URL-sort order', async () => {
+      window.location.hash = '#my-team?sort_dir=ASC&col=4'
       const list = new PlayerList([testData.player({ id: 1 }), testData.player({ id: 2 })], true)
       await list.load()
       list.update = vi.fn()
@@ -261,25 +301,9 @@ describe('PlayerList', () => {
         freedBenchPosition: null
       })
 
-      expect(sortByPosition).toHaveBeenCalled()
-      expect(list.update).toHaveBeenCalledTimes(1)
-    })
-
-    it('re-sorts and re-renders on BENCH_CHANGED for the same reason', async () => {
-      const list = new PlayerList([testData.player({ id: 1 }), testData.player({ id: 2 })], true)
-      await list.load()
-      list.update = vi.fn()
-      sortByPosition.mockClear()
-
-      list.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
-        benchPosition: 'BENCH_MID',
-        player: testData.player({ id: 1 }),
-        displacedPlayerId: null,
-        vacatedLineupPosition: 'CM'
-      })
-
-      expect(sortByPosition).toHaveBeenCalled()
-      expect(list.update).toHaveBeenCalledTimes(1)
+      expect(sortByPosition).not.toHaveBeenCalled()
+      expect(list.update).not.toHaveBeenCalled()
+      window.location.hash = ''
     })
 
     it('keeps this.captainId in sync with CAPTAIN_CHANGED so a later full re-render draws the (C) marker correctly', async () => {
