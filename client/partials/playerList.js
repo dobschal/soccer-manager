@@ -6,6 +6,7 @@ import { Table } from './table.js'
 import { t } from '../i18n/index.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
 import { el } from '../lib/html.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
 
 export class PlayerList extends UIElement {
   /**
@@ -95,11 +96,42 @@ export class PlayerList extends UIElement {
       }
     }
   }
-  // Server events are handled by each PlayerListItem individually — e.g.
-  // NEW_SELL_TRADE_OFFER updates just the affected row's icon instead of
-  // rebuilding the whole table. List-shape changes (fire, hire, transfer
-  // completed) don't have dedicated websocket events yet; when they do, the
-  // corresponding handler belongs here so the list itself refreshes.
+  /**
+   * Individual per-row concerns (sell-offer icon, (C) captain marker, row
+   * highlight for bench / lineup / danger) are handled by each PlayerListItem
+   * off its own subscriptions. What this list owns is the *order* of the
+   * rows: lineup players first, then bench players, then everyone else.
+   * A lineup swap or bench pick can move a player between those buckets, so
+   * after such an event we re-sort the underlying array and let the Table
+   * re-render the tbody in the new order.
+   *
+   * Runs before the child PlayerListItem handlers (parents mount first), but
+   * `update()` is async — its synchronous prep completes here, then dispatch
+   * proceeds to the item handlers (which mutate the same shared player
+   * objects), and by the time the table's DOM swap happens, `this.players`
+   * already reflects everyone's new position / bench state.
+   *
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: () => {
+        this.players.sort(sortByPosition)
+        this.update()
+      },
+      [SERVER_EVENTS.BENCH_CHANGED.name]: () => {
+        this.players.sort(sortByPosition)
+        this.update()
+      },
+      [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
+        // Sort doesn't change with the captain, but the (C) marker used by
+        // freshly-mounted items after a subsequent re-render is read from
+        // `this.captainId` — keep it fresh so a later LINEUP_PLAYER_CHANGED
+        // that DOES trigger a re-render draws the badge correctly.
+        this.captainId = data?.captainId ?? null
+      }
+    }
+  }
   /**
    * Toggle the reset-sort button visibility when the URL sort params change.
    * Avoids a full re-render so the underlying Table keeps managing its own state.

@@ -11,10 +11,6 @@ import { fire } from '../lib/event.js'
 import { t } from '../i18n/index.js'
 import { SERVER_EVENTS } from '../lib/serverEvents.js'
 
-export const lineUpData = {
-  squadDataChanged: false
-}
-
 // Same-position slot offsets that used to be applied post-mount via
 // _applyPositionHacks. Precomputing at render time lets each SquadPlayer own
 // its own `--lineup-offset` style and stay independent of when the others
@@ -405,7 +401,6 @@ export class Lineup extends UIElement {
         }))
       await server.saveBench(benchData)
       toast('Lineup saved.', 'success')
-      lineUpData.squadDataChanged = false
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
@@ -495,16 +490,15 @@ export class Lineup extends UIElement {
   async _exchangePlayer (player, newPlayer) {
     // No-op safety net: user re-picked the current occupant.
     if (!player.fake && player.id === newPlayer.id) {
-      setTimeout(() => this._overlay?.remove(), 150)
+      this._overlay?.remove()
       return
     }
     try {
       await server.swapLineupPlayer(player.in_game_position, newPlayer.id)
-      lineUpData.squadDataChanged = false
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
     }
-    setTimeout(() => this._overlay?.remove(), 150)
+    this._overlay?.remove()
   }
 }

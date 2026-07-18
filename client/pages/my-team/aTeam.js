@@ -5,7 +5,7 @@ import { PlayerList } from '../../partials/playerList.js'
 import { toast } from '../../partials/toast.js'
 import { setQueryParams } from '../../lib/router.js'
 import { sortByPosition } from '../../util/player.js'
-import { Lineup, lineUpData } from '../../partials/lineup.js'
+import { Lineup } from '../../partials/lineup.js'
 import { BenchSlot } from '../../partials/benchSlot.js'
 import { CaptainSelect } from '../../partials/captainSelect.js'
 import { SERVER_EVENTS } from '../../lib/serverEvents.js'
@@ -411,7 +411,6 @@ export class ATeamPage extends UIElement {
         name: '-'
       })
     })
-    lineUpData.squadDataChanged = true
     await this.update()
     await this._saveLineupAfterFormationChange()
   }
@@ -468,7 +467,6 @@ export class ATeamPage extends UIElement {
         }))
       await server.saveBench(benchData)
       toast(t('myTeam.lineupAutoFilled'), 'success')
-      lineUpData.squadDataChanged = false
     } catch (err) {
       showServerError(err)
     }

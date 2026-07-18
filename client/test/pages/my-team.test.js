@@ -16,7 +16,6 @@ vi.mock('../../lib/gateway.js', () => ({
 }))
 
 vi.mock('../../partials/lineup.js', () => ({
-  lineUpData: { squadDataChanged: false },
   Lineup: class {
     constructor () {}
     toString () { return '<div class="lineup-mock"></div>' }
