@@ -101,6 +101,26 @@ export class PlayerListItem extends UIElement {
           this.player.bench_position = null
           this.update()
         }
+      },
+      // Fires when the user swaps two lineup players or brings a
+      // reserve / bench player onto the pitch. The row highlight for the
+      // affected players (lineup / bench / neutral) changes with their
+      // updated in_game_position and bench_position, so anyone whose id
+      // appears in the event has to redraw.
+      [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: (data) => {
+        if (!data) return
+        for (const [slot, playerData] of Object.entries(data.slots ?? {})) {
+          if (playerData?.id === this.player.id) {
+            this.player.in_game_position = slot
+            this.player.bench_position = null
+            this.update()
+            return
+          }
+        }
+        if (data.ejectedPlayerId === this.player.id) {
+          this.player.in_game_position = ''
+          this.update()
+        }
       }
     }
   }

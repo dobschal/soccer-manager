@@ -94,4 +94,20 @@ describe('CaptainSelect', () => {
       expect(updateSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('LINEUP_PLAYER_CHANGED server event', () => {
+    it('re-renders so the candidate option list stays in sync with the pitch', () => {
+      const select = new CaptainSelect([], testData.team(), 1)
+      const updateSpy = vi.spyOn(select, 'update').mockImplementation(() => {})
+
+      select.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 5 }) },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+  })
 })

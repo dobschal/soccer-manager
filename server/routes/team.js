@@ -8,6 +8,7 @@ import { getTotalRounds } from '../helper/cupHelper.js'
 import { calculateStandingForTeam } from '../helper/standingHelper.js'
 import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
+import { getPositionsOfFormation } from '../../client/util/formation.js'
 
 const MAX_TEAM_NAME_WORD_LENGTH = 12
 const MAX_TEAM_NAME_LENGTH = 32
@@ -373,6 +374,116 @@ export default {
         displacedPlayerId,
         vacatedLineupPosition
       })
+      if (captainCleared) {
+        sendToUser(team.user_id, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: null })
+      }
+    }
+
+    return { success: true, captainCleared }
+  },
+
+  /**
+   * Put a player into a lineup slot in one atomic operation. Handles all
+   * three scenarios the picker can produce:
+   *
+   *   1. **Swap** — the picked player was already in the lineup at another
+   *      slot. Their in_game_position is swapped with the current occupant's
+   *      (both stay on the pitch).
+   *   2. **Move-in** — the picked player was outside the lineup (reserve or
+   *      bench). They fill the slot; the old occupant (if any) is ejected
+   *      from the lineup entirely.
+   *   3. **Fill-empty** — the clicked slot was empty (no current occupant).
+   *      The picked player just moves in.
+   *
+   * The route emits `LINEUP_PLAYER_CHANGED` with enough info for each
+   * subscriber to update the slice of UI it owns (SquadPlayer tiles,
+   * PlayerListItem rows, CaptainSelect options, …) without a page re-render.
+   * When the picked player came from a bench slot, a `BENCH_CHANGED` event
+   * with `player: null` follows so the affected BenchSlot clears itself.
+   * When the ejected player was the team captain, `CAPTAIN_CHANGED` follows
+   * with `captainId: null`.
+   *
+   * @param {string} currentSlot - The `in_game_position` slot the user clicked.
+   * @param {number} newPlayerId - The player id picked from the overlay.
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, captainCleared: boolean}>}
+   */
+  async swapLineupPlayer (currentSlot, newPlayerId, req) {
+    const team = await getTeam(req)
+    const formationSlots = getPositionsOfFormation(team.formation) || []
+    if (!formationSlots.includes(currentSlot)) throw new BadRequestError('Slot not in current formation')
+
+    const [newPlayer] = await query('SELECT * FROM player WHERE id=? AND team_id=? LIMIT 1', [newPlayerId, team.id])
+    if (!newPlayer) throw new BadRequestError('Player not found in your team')
+    if (newPlayer.is_suspended || newPlayer.is_injured) throw new BadRequestError('Player is unavailable')
+
+    // Find the current occupant of the clicked slot (may be undefined if the
+    // slot is empty / represented by a fake tile on the client).
+    const [currentOccupant] = await query(
+      'SELECT * FROM player WHERE team_id=? AND in_game_position=? AND id != ? LIMIT 1',
+      [team.id, currentSlot, newPlayerId]
+    )
+
+    const wasSwap = Boolean(newPlayer.in_game_position) // picked player was already in lineup
+    const originalNewPlayerSlot = newPlayer.in_game_position || null
+    const freedBenchPosition = newPlayer.bench_position || null
+
+    if (wasSwap) {
+      // Lineup ↔ lineup swap. Both stay on the pitch; only in_game_position
+      // is exchanged. Bench_position is null on both sides already.
+      await query('UPDATE player SET in_game_position=? WHERE id=?', [currentSlot, newPlayerId])
+      if (currentOccupant) {
+        await query('UPDATE player SET in_game_position=? WHERE id=?', [originalNewPlayerSlot, currentOccupant.id])
+      }
+    } else {
+      // Move-in from bench / reserves. Old slot occupant (if any) is ejected.
+      if (currentOccupant) {
+        await query('UPDATE player SET in_game_position=\'\' WHERE id=?', [currentOccupant.id])
+      }
+      await query('UPDATE player SET in_game_position=?, bench_position=NULL WHERE id=?', [currentSlot, newPlayerId])
+    }
+
+    // Captain check: only relevant when the swap ejected a player from the
+    // lineup entirely (rule: captain must be in the lineup).
+    let captainCleared = false
+    const ejectedPlayerId = (!wasSwap && currentOccupant) ? currentOccupant.id : null
+    if (ejectedPlayerId && team.captain_id === ejectedPlayerId) {
+      await query('UPDATE team SET captain_id=NULL WHERE id=?', [team.id])
+      captainCleared = true
+    }
+
+    if (team.user_id) {
+      const freshNewPlayer = await getPlayerById(newPlayerId)
+      const slots = { [currentSlot]: freshNewPlayer }
+      // In a lineup ↔ lineup swap, the second slot also has a new occupant
+      // (the ejected side of the swap). If the clicked slot was empty, the
+      // picked player just moves and their old lineup slot becomes empty —
+      // signalled via `emptiedSlot`.
+      let emptiedSlot = null
+      if (wasSwap) {
+        if (currentOccupant) {
+          const freshOccupant = await getPlayerById(currentOccupant.id)
+          slots[originalNewPlayerSlot] = freshOccupant
+        } else {
+          emptiedSlot = originalNewPlayerSlot
+        }
+      }
+      sendToUser(team.user_id, SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name, {
+        slots,
+        ejectedPlayerId,
+        emptiedSlot,
+        freedBenchPosition
+      })
+      if (freedBenchPosition) {
+        // The bench slot is now empty — matching BENCH_CHANGED so BenchSlot
+        // clears itself and PlayerListItem drops its old bench highlight.
+        sendToUser(team.user_id, SERVER_EVENTS.BENCH_CHANGED.name, {
+          benchPosition: freedBenchPosition,
+          player: null,
+          displacedPlayerId: newPlayerId,
+          vacatedLineupPosition: null
+        })
+      }
       if (captainCleared) {
         sendToUser(team.user_id, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: null })
       }

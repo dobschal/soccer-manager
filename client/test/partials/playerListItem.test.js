@@ -400,4 +400,54 @@ describe('PlayerListItem', () => {
       expect(updateSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('LINEUP_PLAYER_CHANGED server event', () => {
+    it('sets in_game_position and clears bench_position when this player moved into the lineup', () => {
+      const player = testData.player({ id: 42, in_game_position: '', bench_position: 'BENCH_MID' })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 42 }) },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        freedBenchPosition: 'BENCH_MID'
+      })
+
+      expect(item.player.in_game_position).toBe('CM')
+      expect(item.player.bench_position).toBeNull()
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears in_game_position when this player was ejected from the lineup', () => {
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 99 }) },
+        ejectedPlayerId: 42,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(item.player.in_game_position).toBe('')
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for uninvolved rows', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 99 }) },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
 })

@@ -70,6 +70,10 @@ export const SERVER_EVENTS = {
   BENCH_CHANGED: {
     name: 'BENCH_CHANGED',
     description: 'A bench slot was assigned to a new player (user picked one from the roster). Sent only to the affected team\'s user. Payload: { benchPosition: string, player: PlayerType|null, displacedPlayerId: number|null, vacatedLineupPosition: string|null }. `player` is the full up-to-date object (or null if the slot was cleared). `displacedPlayerId` is whoever was on the slot before. `vacatedLineupPosition` is set when the picked player was moved out of the lineup, so the affected SquadPlayer tile can turn into a fake placeholder in place.'
+  },
+  LINEUP_PLAYER_CHANGED: {
+    name: 'LINEUP_PLAYER_CHANGED',
+    description: 'A lineup slot got a new occupant (user picked a replacement or swapped two lineup players). Sent only to the affected team\'s user. Payload: { slots: Record<string, PlayerType>, ejectedPlayerId: number|null, emptiedSlot: string|null, freedBenchPosition: string|null }. `slots` maps each affected in_game_position to its fresh occupant (1 entry for move-in / fill-empty, 2 entries for a lineup-lineup swap). `ejectedPlayerId` is set when the previous slot occupant was pushed out of the lineup entirely (their PlayerListItem should drop the lineup highlight). `emptiedSlot` covers the edge case where the picked player came from another lineup slot and no one fills that vacated slot (its SquadPlayer becomes a fake placeholder). `freedBenchPosition` is set when the picked player came from a bench slot — a matching BENCH_CHANGED event with `player: null` is emitted alongside so BenchSlot updates itself.'
   }
 }
 

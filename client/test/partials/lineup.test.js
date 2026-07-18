@@ -5,6 +5,7 @@ vi.mock('../../lib/gateway.js', () => ({
   server: {
     saveLineup: vi.fn().mockResolvedValue({ success: true, captainCleared: false }),
     saveBench: vi.fn().mockResolvedValue({ success: true }),
+    swapLineupPlayer: vi.fn().mockResolvedValue({ success: true, captainCleared: false }),
     getMyTeam: vi.fn().mockResolvedValue({ players: [] })
   }
 }))
@@ -170,93 +171,40 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     expect(lineup.players.some(p => p.fake && p.in_game_position === 'OM')).toBe(false)
   })
 
-  it('re-rendering a Lineup after a swap does not drop the displaced real player', async () => {
-    // Reproduces a bug: A (CD natural) is fielded as OM. User swaps him into
-    // a CD slot held by B. After the swap the *parent* re-creates the Lineup
-    // with the array that the Lineup just emitted (which still contains the
-    // fake placeholders the old Lineup added for empty slots). The new
-    // Lineup's _fillEmptyPositions used to also consume slots for those
-    // re-fed fake placeholders, which could push real players (like the
-    // newly-displaced B) out of the lineup or out of the array entirely.
+  it('_exchangePlayer delegates to server.swapLineupPlayer with the clicked slot and the picked player id', async () => {
+    // The pre-refactor version did the swap client-side (mutated
+    // in_game_position on both players, fired lineup-exchange, called
+    // saveLineup + saveBench). That whole dance is now server-side under
+    // one atomic route — _exchangePlayer's job is only to make the call
+    // and let LINEUP_PLAYER_CHANGED fan out the visual updates.
     const team = testData.team({ formation: '442a' })
-    const initial = [
-      testData.player({ id: 1, position: 'GK', in_game_position: 'GK' }),
-      testData.player({ id: 2, position: 'LD', in_game_position: 'LD' }),
-      testData.player({ id: 3, position: 'CD', in_game_position: 'CD', name: 'B' }),
-      testData.player({ id: 4, position: 'CD', in_game_position: 'CD' }),
-      testData.player({ id: 5, position: 'RD', in_game_position: 'RD' }),
-      testData.player({ id: 6, position: 'LM', in_game_position: 'LM' }),
-      testData.player({ id: 7, position: 'DM', in_game_position: 'DM' }),
-      testData.player({ id: 8, position: 'RM', in_game_position: 'RM' }),
-      testData.player({ id: 9, position: 'LA', in_game_position: 'LA' }),
-      testData.player({ id: 10, position: 'RA', in_game_position: 'RA' }),
-      testData.player({ id: 11, position: 'CD', in_game_position: 'OM', name: 'A' }),
-      // A reserve player not in the lineup (no in_game_position). This will
-      // cause the original Lineup to add at least one fake when slots are
-      // tight, exercising the "fakes survive into the next Lineup" path.
-      testData.player({ id: 12, position: 'CA', in_game_position: '' })
-    ]
+    const B = testData.player({ id: 3, position: 'CD', in_game_position: 'CD' })
+    const A = testData.player({ id: 11, position: 'CD', in_game_position: 'OM' })
 
-    const firstLineup = new Lineup(initial, team)
-    const A = firstLineup.players.find(p => p.id === 11)
-    const B = firstLineup.players.find(p => p.id === 3)
-    await firstLineup._exchangePlayer(B, A)
-
-    // Simulate what aTeam.js does on 'lineup-exchange': set parent.data.players
-    // to the emitted array (which includes fakes) and then re-render Lineup.
-    const emitted = fire.mock.calls.find(([event]) => event === 'lineup-exchange')[1]
-    const secondLineup = new Lineup(emitted, team)
-    const reals = secondLineup.players.filter(p => !p.fake)
-
-    // Every original real player must still be present.
-    expect(reals.map(p => p.id).sort((x, y) => x - y))
-      .toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-    // B (id 3) ended up at OM, A (id 11) ended up at CD, both still in the squad.
-    expect(secondLineup.players.find(p => p.id === 3).in_game_position).toBe('OM')
-    expect(secondLineup.players.find(p => p.id === 11).in_game_position).toBe('CD')
-  })
-
-  it('keeps all eleven players after swapping an out-of-position player into a slot already held by another', async () => {
-    // Reproduces a bug: A (natural CD) is fielded out of position as OM.
-    // The user then swaps A into a CD slot held by B (natural CD). Expected:
-    // A ends up at CD, B at OM, all 11 players still present in the lineup
-    // data that gets emitted via lineup-exchange.
-    // Use 442a — it has 2 CD slots and 1 OM slot, so the swap stays in-formation.
-    const team = testData.team({ formation: '442a' })
-    const players = [
-      testData.player({ id: 1, position: 'GK', in_game_position: 'GK' }),
-      testData.player({ id: 2, position: 'LD', in_game_position: 'LD' }),
-      // B — natural CD, in CD slot
-      testData.player({ id: 3, position: 'CD', in_game_position: 'CD', name: 'B' }),
-      testData.player({ id: 4, position: 'CD', in_game_position: 'CD' }),
-      testData.player({ id: 5, position: 'RD', in_game_position: 'RD' }),
-      testData.player({ id: 6, position: 'LM', in_game_position: 'LM' }),
-      testData.player({ id: 7, position: 'DM', in_game_position: 'DM' }),
-      testData.player({ id: 8, position: 'RM', in_game_position: 'RM' }),
-      testData.player({ id: 9, position: 'LA', in_game_position: 'LA' }),
-      testData.player({ id: 10, position: 'RA', in_game_position: 'RA' }),
-      // A — natural CD but fielded as OM (out of position)
-      testData.player({ id: 11, position: 'CD', in_game_position: 'OM', name: 'A' })
-    ]
-
-    const lineup = new Lineup(players, team)
-    // No cleanup expected at construction — A is happily out-of-position.
-    expect(lineup._needsAutoCleanup).toBe(false)
-
+    const lineup = new Lineup([B, A], team)
     const playerB = lineup.players.find(p => p.id === 3)
     const playerA = lineup.players.find(p => p.id === 11)
+
     await lineup._exchangePlayer(playerB, playerA)
 
-    // After the swap: A at CD (his natural slot), B at OM (A's previous slot).
-    expect(lineup.players.find(p => p.id === 11).in_game_position).toBe('CD')
-    expect(lineup.players.find(p => p.id === 3).in_game_position).toBe('OM')
+    // Called with the slot of the OLD occupant (the tile the user clicked)
+    // and the picked player's id.
+    expect(server.swapLineupPlayer).toHaveBeenCalledWith('CD', 11)
+    // No local mutation, no `fire('lineup-exchange')` — those are gone now
+    // because LINEUP_PLAYER_CHANGED handles the fan-out.
+    expect(fire).not.toHaveBeenCalledWith('lineup-exchange', expect.anything())
+  })
 
-    // Most importantly: the array emitted via lineup-exchange must contain
-    // every real player (no one disappeared) — that's what the PlayerList
-    // outside the lineup is rendered from.
-    const emitted = fire.mock.calls.find(([event]) => event === 'lineup-exchange')[1]
-    const emittedRealPlayerIds = emitted.filter(p => !p.fake).map(p => p.id).sort((x, y) => x - y)
-    expect(emittedRealPlayerIds).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+  it('_exchangePlayer short-circuits when the user re-picks the current occupant', async () => {
+    const team = testData.team({ formation: '442a' })
+    const B = testData.player({ id: 3, position: 'CD', in_game_position: 'CD' })
+
+    const lineup = new Lineup([B], team)
+    const playerB = lineup.players.find(p => p.id === 3)
+
+    await lineup._exchangePlayer(playerB, playerB)
+
+    expect(server.swapLineupPlayer).not.toHaveBeenCalled()
   })
 
   it('keeps the player overlay open after an action card is applied', async () => {
@@ -482,6 +430,176 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       })
 
       expect(lineup.players.length).toBe(beforeCount)
+    })
+  })
+
+  describe('SquadPlayer LINEUP_PLAYER_CHANGED handling', () => {
+    it('updates the tile to show the new occupant when the event assigns a player to my slot', () => {
+      const team = testData.team({ captain_id: null })
+      const oldPlayer = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(oldPlayer, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      const newOccupant = testData.player({ id: 99, in_game_position: 'CM' })
+      tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: newOccupant },
+        ejectedPlayerId: 42,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(tile.player).toBe(newOccupant)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('sets _isCaptain based on the current team.captain_id when swapping in a new occupant', () => {
+      const team = testData.team({ captain_id: 99 })
+      const oldPlayer = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(oldPlayer, team)
+      vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      const newOccupant = testData.player({ id: 99, in_game_position: 'CM' })
+      tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: newOccupant },
+        ejectedPlayerId: 42,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(tile._isCaptain).toBe(true)
+    })
+
+    it('turns into a fake placeholder when my slot was emptied by the swap', () => {
+      const team = testData.team({ captain_id: null })
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      // Rare swap-with-empty case: my player moved to a different lineup
+      // slot, no one filled my slot.
+      tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CD: testData.player({ id: 42, in_game_position: 'CD' }) },
+        ejectedPlayerId: null,
+        emptiedSlot: 'CM',
+        freedBenchPosition: null
+      })
+
+      expect(tile.player.fake).toBe(true)
+      expect(tile.player.in_game_position).toBe('CM')
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('turns into a fake placeholder when my player was ejected from the lineup', () => {
+      const team = testData.team({ captain_id: null })
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      // Bring-in-kick where my slot ends up empty is impossible in practice
+      // (a new player always fills the clicked slot), but if the event ever
+      // arrived that way, the tile should still go fake gracefully.
+      tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: {},
+        ejectedPlayerId: 42,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(tile.player.fake).toBe(true)
+      expect(tile.player.in_game_position).toBe('CM')
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for tiles not involved in the swap', () => {
+      const team = testData.team({ captain_id: null })
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      const updateSpy = vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CD: testData.player({ id: 99, in_game_position: 'CD' }) },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('keeps the tile\'s pitch slot stable even when the Lineup handler already mutated player.in_game_position', () => {
+      // Same ordering trap as the BENCH_CHANGED bug — the parent Lineup's
+      // handler runs first and can mutate the shared player object. The
+      // tile MUST anchor to `this.slot` (frozen in constructor), not to
+      // `this.player.in_game_position`, otherwise the tile drifts off its
+      // physical grid position.
+      const team = testData.team({ captain_id: null })
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const tile = new SquadPlayer(player, team)
+      vi.spyOn(tile, 'update').mockImplementation(() => {})
+
+      // Simulate the parent Lineup handler having already moved the player.
+      player.in_game_position = 'CD'
+
+      const newOccupant = testData.player({ id: 99, in_game_position: 'CM' })
+      tile.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: newOccupant },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      // Tile picked up the new occupant for its OWN slot, not the drifted one.
+      expect(tile.player).toBe(newOccupant)
+      expect(tile.slot).toBe('CM')
+    })
+  })
+
+  describe('Lineup LINEUP_PLAYER_CHANGED handling', () => {
+    it('applies slot assignments and rebuilds fakes without re-rendering', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM' }),
+        testData.player({ id: 8, position: 'CD', in_game_position: 'CD' })
+      ]
+      const lineup = new Lineup(players, team)
+      const updateSpy = vi.spyOn(lineup, 'update').mockImplementation(() => {})
+
+      // Swap CM ↔ CD.
+      lineup.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: {
+          CM: testData.player({ id: 8, in_game_position: 'CM' }),
+          CD: testData.player({ id: 7, in_game_position: 'CD' })
+        },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      // No re-render — SquadPlayer tiles handle the visual side.
+      expect(updateSpy).not.toHaveBeenCalled()
+      // Local players array reflects the new slot assignments.
+      expect(lineup.players.find(p => p.id === 7).in_game_position).toBe('CD')
+      expect(lineup.players.find(p => p.id === 8).in_game_position).toBe('CM')
+    })
+
+    it('ejects players marked as ejected and rebuilds fake placeholders', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM' })
+      ]
+      const lineup = new Lineup(players, team)
+
+      lineup.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: {}, // no one filled CM — atypical, but tests the ejection branch cleanly
+        ejectedPlayerId: 7,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      const ejected = lineup.players.find(p => !p.fake && p.id === 7)
+      expect(ejected.in_game_position).toBe('')
+      // Fake placeholder now exists for the freed CM slot.
+      expect(lineup.players.some(p => p.fake && p.in_game_position === 'CM')).toBe(true)
     })
   })
 

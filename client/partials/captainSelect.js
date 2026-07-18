@@ -79,6 +79,14 @@ export class CaptainSelect extends UIElement {
         // the option list didn't change.
         if (!data?.vacatedLineupPosition) return
         this.update()
+      },
+      [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: () => {
+        // Any lineup change may add / remove a candidate from the option
+        // list (players moved in from bench / reserves, ejected players
+        // dropped out). Just refresh — the template re-derives from the
+        // shared `players` array which the ATeamPage handler has already
+        // updated by this point.
+        this.update()
       }
     }
   }

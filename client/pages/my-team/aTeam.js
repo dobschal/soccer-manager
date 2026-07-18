@@ -163,6 +163,20 @@ export class ATeamPage extends UIElement {
           const displaced = players.find(p => !p.fake && p.id === data.displacedPlayerId)
           if (displaced) displaced.bench_position = null
         }
+      },
+      [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: (data) => {
+        if (!data) return
+        const players = this.parent.data.players
+        Object.entries(data.slots ?? {}).forEach(([slot, playerData]) => {
+          const p = players.find(x => !x.fake && x.id === playerData.id)
+          if (!p) return
+          p.in_game_position = slot
+          p.bench_position = null
+        })
+        if (data.ejectedPlayerId) {
+          const ejected = players.find(p => !p.fake && p.id === data.ejectedPlayerId)
+          if (ejected) ejected.in_game_position = ''
+        }
       }
     }
   }
