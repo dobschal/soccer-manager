@@ -162,7 +162,7 @@ export default class PlayerModal extends UIElement {
         </div>
         ` : ''}
         ${this._actionCardGiver ? `<div class="mb-4">${this._actionCardGiver}</div>` : ''}
-        <div class="player-modal__section ${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4">
+        <div class="player-modal__section ${this.isFreeAgent ? 'hidden' : ''} ${this.offer ? 'hidden' : ''} mb-4 pt-4">
           <b>💰 ${this.isMyPlayer ? t('player.sellPlayer') : t('player.buyPlayer')}</b>
           ${this.isMyPlayer && this.transferredThisSeason ? `
             <div class="alert alert-info mt-2 mb-0">

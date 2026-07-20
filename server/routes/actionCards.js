@@ -5,6 +5,8 @@ import { ActionCard } from '../entities/actionCard.js'
 import { getActionCards, playActionCard, getPendingActionCards, claimActionCard, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../helper/actionCardHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { t } from '../i18n/index.js'
+import { sendToUser } from '../lib/websocket.js'
+import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 
 export default {
 
@@ -42,6 +44,7 @@ export default {
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const team = await getTeam(req)
     const card = await claimActionCard(cardId, team.id)
+    if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
     return { success: true, card }
   },
 
@@ -68,6 +71,7 @@ export default {
         season
       })
       const result = await query('INSERT INTO action_card SET ?', actionCard)
+      if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
       return { success: true, actionCard: { id: result.insertId, action: actionCard.action } }
     }
     throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
@@ -117,6 +121,7 @@ export default {
     const actionCards = await query("SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0 AND state='received'", [actionCard.id, team.id])
     if (actionCards.length !== 1) throw new BadRequestError(t('error.cardNotFound', {}, locale))
     await playActionCard({ actionCard, player, position }, team, locale)
+    if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
     return { success: true }
   }
 

@@ -1,11 +1,8 @@
 import { generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
-import { fire } from '../lib/event.js'
 import { t } from '../i18n/index.js'
 import { preloadActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
-
-const ACTION_CARDS_CHANGED_EVENT = 'ACTION_CARDS_CHANGED'
 
 /**
  * @returns {Object.<string, string>}
@@ -41,10 +38,10 @@ export async function showCardClaimOverlay (pendingCards) {
   }
   if (state.claimPromises.length > 0) {
     // Wait for the server to flip the cards from pending → received before
-    // notifying listeners. Otherwise a refetch right now would still miss the
-    // newly-claimed cards because `getActionCards` only returns received ones.
+    // returning. Each `claimActionCard` call emits ACTION_CARDS_CHANGED itself,
+    // so the dashboard ActionCards view will already have refetched by the
+    // time this resolves — no client-side broadcast needed here.
     await Promise.allSettled(state.claimPromises)
-    fire(ACTION_CARDS_CHANGED_EVENT, null)
   }
 }
 

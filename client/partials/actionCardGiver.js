@@ -2,12 +2,9 @@ import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
 import { toast } from './toast.js'
 import { t } from '../i18n/index.js'
-import { fire } from '../lib/event.js'
 import { delay } from '../lib/delay.js'
 import { el } from '../lib/html.js'
 import { preloadAllActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
-
-export const ACTION_CARDS_CHANGED_EVENT = 'ACTION_CARDS_CHANGED'
 
 const ELIGIBLE_ACTION_PREFIXES = ['FRESHNESS_', 'LEVEL_UP_PLAYER_']
 
@@ -114,13 +111,15 @@ export class ActionCardGiver extends UIElement {
     return Object.keys(grouped).sort().map(actionType => {
       const entries = grouped[actionType]
       const firstIdx = entries[0].idx
-      const stackOffset = Math.min(entries.length - 1, 4)
       const title = titles[actionType] || ''
+      // Front-most card is at DOM index 0 (topmost = highest z-index). Each
+      // subsequent card sits one slot behind the previous, so the stack grows
+      // backwards without a cap — a 20-card stack renders all 20 wrappers.
       return `
         <div class="select-player-action-card-item">
           <div class="action-card-stack" data-action-card-idx="${firstIdx}" data-action-type="${actionType}">
-            ${entries.slice(0, 5).map((_, i) => `
-              <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
+            ${entries.map((_, i) => `
+              <div class="action-card-wrapper" style="--stack-index: ${i};">
                 ${renderActionCardSvg(actionType)}
               </div>
             `).join('')}
@@ -144,26 +143,36 @@ export class ActionCardGiver extends UIElement {
       await server.useActionCard(card, this.player, null)
       const topCard = stackEl.querySelector('.action-card-wrapper')
       if (topCard) {
+        topCard.style.setProperty('--stack-index', '-1')
         topCard.classList.add('card-used')
+        // Slide every remaining card in this stack one slot forward while the
+        // used card fades out — the CSS transition on top/left animates the
+        // shift, so no re-render (which would tear down peer stacks too).
+        this._slideRemainingWrappers(stackEl)
         await delay(1000)
       }
       const message = card.action.startsWith('FRESHNESS_')
         ? t('actionCards.fitnessBoost', { playerName: this.player.name })
         : t('actionCards.levelUpSuccess', { playerName: this.player.name })
       toast(message, 'success')
-      fire(ACTION_CARDS_CHANGED_EVENT, this._renderId)
-      // Drop the consumed card from the local list so the stack count updates
-      // without a server round-trip. The section stays open so the user can
-      // chain more cards onto the same player. The player's stat changes
-      // (freshness / level / star flag) reach every consumer (list rows,
-      // pitch tiles, modal, strength overlay) via the PLAYER_UPDATED server
-      // event — no callback needed.
+      // Drop the consumed card from the local list. Player stat changes reach
+      // every consumer via PLAYER_UPDATED; the dashboard ActionCards view
+      // refetches off the ACTION_CARDS_CHANGED server event — the section
+      // itself stays open so the user can chain more cards onto the player.
       this.cards.splice(cardIndex, 1)
-      // Surgical DOM update instead of this.update(): a full re-render of an
-      // embedding overlay re-creates nested UIElements via renderSync(), which
-      // briefly shows an empty <template> placeholder and collapses fit-content
-      // containers (close/reopen flicker).
-      this._refreshDOM()
+      const remainingOfType = this.cards.filter(c => c.action === card.action).length
+      if (remainingOfType === 0) {
+        // The whole stack item vanishes — a full refresh lets the remaining
+        // stacks reflow into the freed space.
+        this._refreshDOM()
+      } else {
+        // Drop the faded wrapper and patch just this stack: count badge for
+        // the new size, `data-action-card-idx` on every stack (the splice
+        // shifted positions in `this.cards`).
+        topCard?.remove()
+        this._patchCountBadge(stackEl, remainingOfType)
+        this._recomputeStackClickTargets()
+      }
     } catch (e) {
       console.error(e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
@@ -173,8 +182,60 @@ export class ActionCardGiver extends UIElement {
   }
 
   /**
-   * Swap this section's inner markup in place. The root `.action-card-giver`
-   * element (which carries the delegated click handler) is kept intact.
+   * Decrement `--stack-index` on every wrapper in this stack that isn't the
+   * one being consumed. The used wrapper's own top/left don't change (its
+   * `card-used` animation replaces them with a scale/translate transform), so
+   * skipping it avoids fighting that animation.
+   * @param {HTMLElement} stackEl
+   * @returns {void}
+   */
+  _slideRemainingWrappers (stackEl) {
+    stackEl.querySelectorAll('.action-card-wrapper:not(.card-used)').forEach(w => {
+      const current = Number(w.style.getPropertyValue('--stack-index')) || 0
+      w.style.setProperty('--stack-index', String(Math.max(0, current - 1)))
+    })
+  }
+
+  /**
+   * Keep the "N cards" badge in sync with the new stack size — remove it once
+   * only one card is left, or update / create it otherwise.
+   * @param {HTMLElement} stackEl
+   * @param {number} count
+   * @returns {void}
+   */
+  _patchCountBadge (stackEl, count) {
+    const badge = stackEl.querySelector('.action-card-count')
+    if (count > 1) {
+      if (badge) badge.textContent = count
+      else stackEl.insertAdjacentHTML('beforeend', `<span class="action-card-count">${count}</span>`)
+    } else {
+      badge?.remove()
+    }
+  }
+
+  /**
+   * `data-action-card-idx` on each stack has to point at the first card of
+   * that action type in `this.cards`. The splice above shifted every position
+   * after `cardIndex` down by 1, so we recompute from the (now-current)
+   * array instead of trying to reason about deltas.
+   * @returns {void}
+   */
+  _recomputeStackClickTargets () {
+    const root = el(this._elementQuery)
+    if (!root) return
+    root.querySelectorAll('.action-card-stack').forEach(s => {
+      const actionType = s.dataset.actionType
+      if (!actionType) return
+      const newIdx = this.cards.findIndex(c => c.action === actionType)
+      if (newIdx >= 0) s.dataset.actionCardIdx = String(newIdx)
+    })
+  }
+
+  /**
+   * Swap this section's inner markup in place. Used only when the whole stack
+   * item disappears (all cards of one type consumed) so the remaining stacks
+   * reflow. The root `.action-card-giver` element — which carries the
+   * delegated click handler — is kept intact.
    * @returns {void}
    */
   _refreshDOM () {

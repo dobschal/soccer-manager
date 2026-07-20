@@ -1,7 +1,7 @@
 import { calculateMarketValue, calculatePlayerAge, getSalary, willRetireNextSeason } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { renderLevelBadge } from './levelBadge.js'
-import { ProgressBar } from './progressBar.js'
+import { renderProgressBar } from './progressBar.js'
 import { renderPositionBadge } from './positionBadge.js'
 import { t } from '../i18n/index.js'
 import { UIElement } from '../lib/UIElement.js'
@@ -195,7 +195,11 @@ export class PlayerListItem extends UIElement {
     return [
       nameCell,
       positionBadge,
-      `${new ProgressBar(player.freshness)}`,
+      // Inline HTML (not `${new ProgressBar(...)}`) so a row re-render triggered
+      // by PLAYER_UPDATED doesn't briefly show an empty `<template>` placeholder
+      // in the Fit cell — that placeholder gap was the visible flicker inside
+      // the select-player overlay after using an action card.
+      renderProgressBar(player.freshness),
       renderLevelBadge(player.level),
       `${age}`,
       euroFormat.format(salary),

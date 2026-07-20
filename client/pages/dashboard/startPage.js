@@ -128,7 +128,7 @@ export class StartPage {
     const requestBtnId = generateId()
     onClick('#' + requestBtnId, () => showFeatureRequestOverlay())
     return `
-      <div class="card card-body community-card bg-warning-subtle flex-fill mb-0">
+      <div class="card card-body community-card border-warning bg-warning-subtle flex-fill mb-0">
         <img src="assets/dashboard/feature-request.png" alt="" class="dashboard-promo-img">
         <h5 class="mb-2"><i class="fa fa-users"></i> ${t('dashboard.communityTitle')}</h5>
         <p class="text-muted mb-3">${t('dashboard.communityText')}</p>
@@ -148,7 +148,7 @@ export class StartPage {
     const inviteId = generateId()
     onClick('#' + inviteId, () => showInviteFriendOverlay())
     return `
-      <div class="card card-body invite-card bg-success-subtle flex-fill mb-0">
+      <div class="card card-body invite-card border-success bg-success-subtle flex-fill mb-0">
         <img src="assets/dashboard/user-invite.png" alt="" class="dashboard-promo-img">
         <h5 class="mb-2"><i class="fa fa-paper-plane"></i> ${t('referral.dashboardTitle')}</h5>
         <p class="text-muted mb-3">${t('referral.dashboardText')}</p>
@@ -171,7 +171,7 @@ export class StartPage {
         </a>`
       : renderPromoVideoEmbed(videoId, t('dashboard.videoTitle'))
     return `
-      <div class="card card-body video-card bg-info-subtle flex-fill mb-0">
+      <div class="card card-body video-card border-info bg-info-subtle flex-fill mb-0">
         <img src="assets/dashboard/tutorial.png" alt="" class="dashboard-promo-img">
         <h5 class="mb-2"><i class="fa fa-youtube-play"></i> ${t('dashboard.videoTitle')}</h5>
         <p class="text-muted mb-3">${t('dashboard.videoText')}</p>

@@ -464,7 +464,7 @@
     flex-wrap: nowrap;
     gap: 1rem;
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     background: linear-gradient(136deg, #222 0%, #333 100%) !important;

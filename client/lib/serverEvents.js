@@ -78,6 +78,10 @@ export const SERVER_EVENTS = {
   PLAYER_UPDATED: {
     name: 'PLAYER_UPDATED',
     description: 'A player\'s stats changed (currently: action-card driven level-up / freshness boost / star-player promotion). Sent only to the owning team\'s user. Payload: { player: PlayerType } — the full up-to-date player object. Consumers (PlayerListItem, SquadPlayer, PlayerModal, Lineup) filter by `player.id` and patch themselves in place; no callback chain or full-team refetch needed.'
+  },
+  ACTION_CARDS_CHANGED: {
+    name: 'ACTION_CARDS_CHANGED',
+    description: 'The team\'s action-card inventory changed (card claimed, played, merged, or bot-cleaned). Sent only to the owning team\'s user. No payload. Consumers (dashboard ActionCards view) refetch their card list — every open ActionCardGiver drops the consumed card locally, so it doesn\'t need to react.'
   }
 }
 

@@ -118,12 +118,16 @@ describe('PlayerListItem', () => {
       expect(cells[1]).toContain('CM')
     })
 
-    it('includes ProgressBar placeholder for fitness cell', () => {
+    it('inlines the progress-bar HTML for the fitness cell so a row re-render does not briefly show an empty placeholder', () => {
       const player = testData.player({ freshness: 0.9 })
       const item = new PlayerListItem(player, 1)
 
-      // ProgressBar is a UIElement, rendered as a <template> placeholder
-      expect(item.cells[2]).toContain('<template id=')
+      // Rendered synchronously (no <template id=...> placeholder), because the
+      // PLAYER_UPDATED handler drives a full row re-render — a placeholder here
+      // would cause a one-frame flicker in the Fit cell.
+      expect(item.cells[2]).not.toContain('<template id=')
+      expect(item.cells[2]).toContain('class="progress progress--custom"')
+      expect(item.cells[2]).toContain('90%')
     })
   })
 

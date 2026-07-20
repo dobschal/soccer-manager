@@ -6,10 +6,6 @@ vi.mock('../../lib/gateway.js', () => ({
   }
 }))
 
-vi.mock('../../lib/event.js', () => ({
-  fire: vi.fn()
-}))
-
 vi.mock('../../lib/actionCardSvg.js', () => ({
   preloadActionCardSvgs: vi.fn(() => Promise.resolve()),
   renderActionCardSvg: vi.fn(() => '<svg></svg>')
@@ -33,7 +29,6 @@ vi.mock('../../lib/htmlEventHandlers.js', () => ({
 
 const { showCardClaimOverlay } = await import('../../partials/cardClaimOverlay.js')
 const { server } = await import('../../lib/gateway.js')
-const { fire } = await import('../../lib/event.js')
 
 function flushMicrotasks () {
   return new Promise(resolve => setTimeout(resolve, 0))
@@ -46,7 +41,7 @@ describe('showCardClaimOverlay', () => {
     document.body.innerHTML = ''
   })
 
-  it('fires ACTION_CARDS_CHANGED after the user reveals and dismisses a single card so the parent ActionCards view refetches', async () => {
+  it('claims the card server-side once the user reveals and dismisses it — the server-side claim emits ACTION_CARDS_CHANGED so the dashboard view refetches', async () => {
     const promise = showCardClaimOverlay([{ id: 7, action: 'BONUS_100K' }])
     await flushMicrotasks()
 
@@ -67,11 +62,10 @@ describe('showCardClaimOverlay', () => {
     await promise
 
     expect(server.claimActionCard).toHaveBeenCalledWith(7)
-    expect(fire).toHaveBeenCalledWith('ACTION_CARDS_CHANGED', null)
   })
 
-  it('does not fire ACTION_CARDS_CHANGED when no cards were ever claimed', async () => {
+  it('skips the server claim when no cards were shown', async () => {
     await showCardClaimOverlay([])
-    expect(fire).not.toHaveBeenCalled()
+    expect(server.claimActionCard).not.toHaveBeenCalled()
   })
 })

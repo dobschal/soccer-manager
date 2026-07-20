@@ -6,7 +6,6 @@ import { PlayerList } from '../../partials/playerList.js'
 import { toast } from '../../partials/toast.js'
 import { delay } from '../../lib/delay.js'
 import { t } from '../../i18n/index.js'
-import { fire, off, on } from '../../lib/event.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { MiniGame } from './miniGame.js'
 import { preloadAllActionCardSvgs, renderActionCardSvg } from '../../lib/actionCardSvg.js'
@@ -14,8 +13,7 @@ import { renderPlayerImage } from '../../partials/playerImage.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
-
-const ACTION_CARDS_CHANGED_EVENT = 'ACTION_CARDS_CHANGED'
+import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 
 /**
  * @returns {Object.<string, {title: string, description: string}>}
@@ -140,17 +138,21 @@ export class ActionCards extends UIElement {
       }
     }
   }
-  onMounted () {
-    this._actionCardsChangedEventId = on(ACTION_CARDS_CHANGED_EVENT, (senderId) => {
-      if (senderId === this._renderId) return
-      void this.update(true)
-    })
-  }
-
-  onDestroy () {
-    if (this._actionCardsChangedEventId !== undefined) {
-      off(this._actionCardsChangedEventId)
-      this._actionCardsChangedEventId = undefined
+  /**
+   * The dashboard card view is the only consumer that needs the full inventory
+   * up to date — every embedded ActionCardGiver drops its own consumed card
+   * locally, so a broadcast to peers is unnecessary. The server emits
+   * ACTION_CARDS_CHANGED after every claim / play / merge; on that we refetch.
+   * We deliberately skip the update while `_processing` is true so the card-use
+   * animation this view drives itself isn't clobbered by a mid-flight refetch.
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.ACTION_CARDS_CHANGED.name]: () => {
+        if (this._processing) return
+        void this.update(true)
+      }
     }
   }
 
@@ -159,7 +161,6 @@ export class ActionCards extends UIElement {
   _overlay = null
   _currentCardElement = null
   _processing = false
-  _actionCardsChangedEventId = undefined
   cards = []
 
   /**
@@ -291,7 +292,6 @@ export class ActionCards extends UIElement {
     }
 
     this._currentCardElement = null
-    fire(ACTION_CARDS_CHANGED_EVENT, this._renderId)
   }
 
   /**
@@ -364,7 +364,6 @@ export class ActionCards extends UIElement {
     this._updateAllStackIndices()
 
     this._currentCardElement = null
-    fire(ACTION_CARDS_CHANGED_EVENT, this._renderId)
   }
 
   /**
