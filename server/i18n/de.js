@@ -76,6 +76,7 @@ export default {
   'error.sellOfferLimitReached': 'Du kannst höchstens {max} Spieler gleichzeitig auf dem Transfermarkt anbieten.',
   'error.instantBuyDisabled': 'Der Verkäufer hat den Sofortkauf für diesen Spieler deaktiviert',
   'error.playerAlreadyTransferredThisSeason': 'Dieser Spieler hat in dieser Saison bereits zweimal den Verein gewechselt',
+  'error.freeAgentSellLock': 'Frisch vom freien Markt verpflichtete Spieler können in dieser Saison nicht verkauft werden.',
 
   // Stadium errors
   'error.standNotFound': 'Tribüne nicht gefunden',

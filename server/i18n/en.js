@@ -76,6 +76,7 @@ export default {
   'error.sellOfferLimitReached': 'You can list at most {max} players on the transfer market at the same time.',
   'error.instantBuyDisabled': 'The seller disabled instant buy for this player',
   'error.playerAlreadyTransferredThisSeason': 'This player has already changed clubs twice this season',
+  'error.freeAgentSellLock': 'Players just signed from the free market cannot be sold in the same season.',
 
   // Stadium errors
   'error.standNotFound': 'Stand not found',
