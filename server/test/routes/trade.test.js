@@ -49,9 +49,10 @@ describe('trade routes', () => {
   describe('getOffers', () => {
     it('returns offers, players, and teams', async () => {
       const offers = [testData.tradeOffer()]
-      const players = [testData.player()]
+      const players = [testData.player({ carrier_end_season: 10 })]
       const teams = [testData.team()]
 
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 2 })
       query
         .mockResolvedValueOnce(offers)
         .mockResolvedValueOnce(players)
@@ -64,11 +65,45 @@ describe('trade routes', () => {
     })
 
     it('returns empty arrays when no offers', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 2 })
       query.mockResolvedValue([])
 
       const result = await handlers.getOffers()
 
       expect(result).toEqual({ offers: [], players: [], teams: [] })
+    })
+
+    it('excludes offers whose player has already retired (carrier_end_season <= season)', async () => {
+      // Two offers open — one for an active player, one for a retired player.
+      const offers = [
+        testData.tradeOffer({ id: 1, player_id: 100 }),
+        testData.tradeOffer({ id: 2, player_id: 200 })
+      ]
+      // The player query filters by carrier_end_season > season, so only the
+      // active player comes back.
+      const activePlayers = [testData.player({ id: 100, carrier_end_season: 10 })]
+      const teams = [testData.team()]
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 8 })
+      query
+        .mockResolvedValueOnce(offers)
+        .mockResolvedValueOnce(activePlayers)
+        .mockResolvedValueOnce(teams)
+
+      const result = await handlers.getOffers()
+
+      // Retired player's offer must be filtered out — the transfer market
+      // should not surface players who can no longer be signed.
+      expect(result.offers).toHaveLength(1)
+      expect(result.offers[0].id).toBe(1)
+      expect(result.players).toHaveLength(1)
+      expect(result.players[0].id).toBe(100)
+
+      // Player fetch must pass carrier_end_season filter with the current season.
+      const playerCall = query.mock.calls.find(c => typeof c[0] === 'string' && c[0].includes('FROM player'))
+      expect(playerCall).toBeDefined()
+      expect(playerCall[0]).toContain('carrier_end_season > ?')
+      expect(playerCall[1]).toEqual([[100, 200], 8])
     })
   })
 

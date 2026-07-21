@@ -93,18 +93,30 @@ async function _createCupDraw () {
 }
 
 /**
+ * Retire players whose carrier ends this season. Only runs when the current
+ * season is over (no unplayed league games), so retirements land on the
+ * season transition — never mid-season. Without this gate, `_latestSeason()`
+ * jumps to N+1 as soon as `_createGamesForNewSeason` inserts the next
+ * season's schedule, and the next cron tick would retire the N+1 cohort
+ * before they play a single game.
  * @returns {Promise<void>}
  */
 async function _archiveTooOldPlayers () {
+  if (!(await _newGamesNeeded())) {
+    return console.log('⏭️ No player retirement needed because still games to play.')
+  }
   const season = await _latestSeason() ?? 0
   /** @type {PlayerType[]} */
   const players = await query('SELECT * FROM player WHERE carrier_end_season<=? AND team_id IS NOT NULL', [season])
-  const result = await query('UPDATE player SET team_id=NULL WHERE carrier_end_season<=? AND team_id IS NOT NULL', [season])
+  if (players.length === 0) return
+  const playerIds = players.map(p => p.id)
+  await query('UPDATE player SET team_id=NULL WHERE id IN (?)', [playerIds])
+  await query('DELETE FROM trade_offer WHERE player_id IN (?)', [playerIds])
   for (const player of players) {
     const team = await getTeamById(player.team_id)
     await addLogMessage(`Your player ${player.name} is saying goodbye and ends his carrier today.`, team, null, null, 'heart', undefined, 'info')
   }
-  console.log(`👴🏽 ${result.affectedRows} players ended their carrier...`, result)
+  console.log(`👴🏽 ${players.length} players ended their carrier...`)
 }
 
 /**
