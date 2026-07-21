@@ -674,4 +674,83 @@ describe('season transition (prepareSeason)', () => {
     )
     expect(levelUpdateCalls).toHaveLength(0)
   })
+
+  describe('_archiveTooOldPlayers gating', () => {
+    // Regression for mid-season retirement bug: on the cron tick right after
+    // _createGamesForNewSeason bumped _latestSeason() from N to N+1, the
+    // unguarded _archiveTooOldPlayers retired the entire carrier_end_season=N+1
+    // cohort before they ever played a season-N+1 game. Fix: only run when
+    // no unplayed league games exist (i.e. genuine season transition).
+
+    it('does NOT retire players mid-season (unplayed games remain)', async () => {
+      const season = 5
+      const { teams, allGames } = createTeamsAndGames(MIN_TEAMS, season)
+      // unplayedGames > 0 → still in the middle of a season; retirement must skip.
+      setupSmartQueryMock(teams, allGames, season, { unplayedGames: 100 })
+
+      await prepareSeason()
+
+      const retirementUpdates = query.mock.calls.filter(call =>
+        typeof call[0] === 'string' &&
+        call[0].includes('UPDATE player SET team_id=NULL') &&
+        call[0].includes('carrier_end_season')
+      )
+      const retirementSelects = query.mock.calls.filter(call =>
+        typeof call[0] === 'string' &&
+        call[0].includes('SELECT * FROM player WHERE carrier_end_season')
+      )
+      expect(retirementUpdates).toHaveLength(0)
+      expect(retirementSelects).toHaveLength(0)
+    })
+
+    it('retires players at the season transition (no unplayed games)', async () => {
+      const season = 5
+      const { teams, allGames } = createTeamsAndGames(MIN_TEAMS, season)
+      const retiringPlayers = [
+        { id: 101, name: 'Retiree A', team_id: 1, carrier_end_season: 5 },
+        { id: 102, name: 'Retiree B', team_id: 2, carrier_end_season: 4 }
+      ]
+
+      query.mockImplementation((sql) => {
+        if (typeof sql !== 'string') return Promise.resolve({ affectedRows: 1 })
+        if (sql.includes('COUNT(*)') && sql.includes('played=0')) {
+          return Promise.resolve([{ amount: 0 }])
+        }
+        if (sql.includes('ORDER BY') && sql.includes('season') && sql.includes('LIMIT 1')) {
+          return Promise.resolve([{ season }])
+        }
+        if (sql.includes('SELECT * FROM player WHERE carrier_end_season')) {
+          return Promise.resolve(retiringPlayers)
+        }
+        if (sql.includes('SELECT * FROM team WHERE is_system_team')) {
+          return Promise.resolve(teams)
+        }
+        if (sql.includes('SELECT * FROM game WHERE season=')) {
+          return Promise.resolve(allGames)
+        }
+        if (sql.includes('FROM app_setting')) return Promise.resolve([])
+        if (sql.includes('COUNT(*)')) return Promise.resolve([{ amount: 0 }])
+        if (sql.includes('SELECT')) return Promise.resolve([])
+        return Promise.resolve({ affectedRows: 1, insertId: 1 })
+      })
+
+      await prepareSeason()
+
+      const retirementUpdate = query.mock.calls.find(call =>
+        typeof call[0] === 'string' &&
+        call[0].startsWith('UPDATE player SET team_id=NULL WHERE id IN')
+      )
+      expect(retirementUpdate).toBeDefined()
+      expect(retirementUpdate[1]).toEqual([[101, 102]])
+
+      // Retired players' open trade_offers get wiped — otherwise they'd linger
+      // on the transfer market as unbuyable ghosts.
+      const offerDelete = query.mock.calls.find(call =>
+        typeof call[0] === 'string' &&
+        call[0].startsWith('DELETE FROM trade_offer WHERE player_id IN')
+      )
+      expect(offerDelete).toBeDefined()
+      expect(offerDelete[1]).toEqual([[101, 102]])
+    })
+  })
 })

@@ -15,12 +15,18 @@ export default {
    * @returns {Promise<{offers: TradeOfferType[], players: PlayerType[], teams: TeamType[]}>}
    */
   async getOffers () {
+    const { season } = await getGameDayAndSeason()
     /** @type {TradeOfferType[]} */
-    const offers = await query('SELECT * FROM trade_offer WHERE status=\'open\'')
-    if (offers.length === 0) return { offers, players: [], teams: [] }
-    const playerIds = offers.map(o => o.player_id).join(', ')
+    const allOffers = await query('SELECT * FROM trade_offer WHERE status=\'open\'')
+    if (allOffers.length === 0) return { offers: [], players: [], teams: [] }
+    const playerIds = allOffers.map(o => o.player_id)
     /** @type {PlayerType[]} */
-    const players = await query(`SELECT * FROM player WHERE id IN (${playerIds})`)
+    const players = await query(
+      'SELECT * FROM player WHERE id IN (?) AND carrier_end_season > ?',
+      [playerIds, season]
+    )
+    const activePlayerIds = new Set(players.map(p => p.id))
+    const offers = allOffers.filter(o => activePlayerIds.has(o.player_id))
     const teamIds = players.map(p => p.team_id).filter(id => id != null)
     for (const offer of offers) {
       if (offer.from_team_id != null && !teamIds.includes(offer.from_team_id)) {
@@ -29,7 +35,7 @@ export default {
     }
     /** @type {TeamType[]} */
     const teams = teamIds.length > 0
-      ? await query(`SELECT * FROM team WHERE id IN (${teamIds.join(', ')})`)
+      ? await query('SELECT * FROM team WHERE id IN (?)', [teamIds])
       : []
     players.forEach(p => p.in_game_position = null)
     return { offers, players, teams }
