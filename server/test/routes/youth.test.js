@@ -42,6 +42,12 @@ vi.mock('../../i18n/index.js', () => ({
   getUserLocale: vi.fn(() => 'en')
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  sendToUser: vi.fn().mockReturnValue(true)
+}))
+
+import { sendToUser } from '../../lib/websocket.js'
+import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
@@ -136,9 +142,9 @@ describe('youth routes', () => {
 
   describe('setYouthPlayerTrainingMode', () => {
     it('assigns a youth player to a training mode', async () => {
-      const team = testData.team({ id: 7 })
+      const team = testData.team({ id: 7, user_id: 77 })
       getTeam.mockResolvedValue(team)
-      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7, training_mode: 'rest' })
       getYouthAcademyLevel.mockResolvedValue(1)
       countYouthPlayersInMode.mockResolvedValue(0)
 
@@ -149,10 +155,68 @@ describe('youth routes', () => {
       expect(setYouthPlayerTrainingMode).toHaveBeenCalledWith(11, 'training')
     })
 
-    it('unassigns when mode is null', async () => {
-      const team = testData.team({ id: 7 })
+    it('emits YOUTH_PLAYER_TRAINING_MODE_CHANGED with previousMode + newMode on assign', async () => {
+      const team = testData.team({ id: 7, user_id: 77 })
       getTeam.mockResolvedValue(team)
-      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7 })
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7, training_mode: 'rest' })
+      getYouthAcademyLevel.mockResolvedValue(1)
+      countYouthPlayersInMode.mockResolvedValue(0)
+
+      const req = createMockRequest()
+      await handlers.setYouthPlayerTrainingMode(11, 'training', req)
+
+      expect(sendToUser).toHaveBeenCalledWith(
+        77,
+        SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name,
+        { youthPlayerId: 11, previousMode: 'rest', newMode: 'training' }
+      )
+    })
+
+    it('emits YOUTH_PLAYER_TRAINING_MODE_CHANGED with newMode=null when unassigning', async () => {
+      const team = testData.team({ id: 7, user_id: 77 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7, training_mode: 'training' })
+
+      const req = createMockRequest()
+      await handlers.setYouthPlayerTrainingMode(11, null, req)
+
+      expect(sendToUser).toHaveBeenCalledWith(
+        77,
+        SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name,
+        { youthPlayerId: 11, previousMode: 'training', newMode: null }
+      )
+    })
+
+    it('does not emit when the mode is unchanged (no-op call)', async () => {
+      const team = testData.team({ id: 7, user_id: 77 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7, training_mode: 'rest' })
+      getYouthAcademyLevel.mockResolvedValue(1)
+      countYouthPlayersInMode.mockResolvedValue(0)
+
+      const req = createMockRequest()
+      await handlers.setYouthPlayerTrainingMode(11, 'rest', req)
+
+      expect(sendToUser).not.toHaveBeenCalled()
+    })
+
+    it('does not emit for teams without a user (bot-owned team)', async () => {
+      const team = testData.team({ id: 7, user_id: null })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7, training_mode: 'rest' })
+      getYouthAcademyLevel.mockResolvedValue(1)
+      countYouthPlayersInMode.mockResolvedValue(0)
+
+      const req = createMockRequest()
+      await handlers.setYouthPlayerTrainingMode(11, 'training', req)
+
+      expect(sendToUser).not.toHaveBeenCalled()
+    })
+
+    it('unassigns when mode is null', async () => {
+      const team = testData.team({ id: 7, user_id: 77 })
+      getTeam.mockResolvedValue(team)
+      getYouthPlayerById.mockResolvedValue({ id: 11, team_id: 7, training_mode: 'training' })
 
       const req = createMockRequest()
       const result = await handlers.setYouthPlayerTrainingMode(11, null, req)

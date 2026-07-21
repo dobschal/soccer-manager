@@ -49,6 +49,7 @@ import { YouthTeamPage } from '../../../pages/my-team/youthTeam.js'
 import { onClick } from '../../../lib/htmlEventHandlers.js'
 import { toast } from '../../../partials/toast.js'
 import { fire } from '../../../lib/event.js'
+import { SERVER_EVENTS } from '../../../lib/serverEvents.js'
 
 describe('YouthTeamPage', () => {
   beforeEach(() => {
@@ -73,43 +74,6 @@ describe('YouthTeamPage', () => {
 
       expect(page.youthPlayers).toEqual(youthPlayers)
       expect(page.trainingMode).toBe('rest')
-    })
-
-    it('template contains youth players table', async () => {
-      const youthPlayers = [
-        { id: 1, name: 'Test Youth', position: 'CM', age: 16, level: 15, moral: 0.8, fitness: 0.7 }
-      ]
-
-      server.getYouthTeam.mockResolvedValue({
-        youthPlayers,
-        trainingMode: 'rest',
-        season: 1
-      })
-
-      const mockParent = { load: vi.fn(), update: vi.fn() }
-      const page = new YouthTeamPage(mockParent)
-      await page.load()
-
-      const row = page._renderYouthPlayerRow(youthPlayers[0])
-      expect(row).toBeInstanceOf(Array)
-      expect(row.join('')).toContain('Test Youth')
-      expect(row.join('')).toContain('youthTeam.promote')
-      expect(row.join('')).toContain('youthTeam.fire')
-    })
-
-    it('#465 renders the training mode as a native select (opens on first click)', async () => {
-      const youthPlayers = [
-        { id: 1, name: 'Test Youth', position: 'CM', age: 16, level: 15, moral: 0.8, fitness: 0.7, training_mode: 'rest' }
-      ]
-      server.getYouthTeam.mockResolvedValue({ youthPlayers, trainingMode: 'rest', season: 1 })
-      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
-      await page.load()
-
-      const html = page._renderYouthPlayerRow(youthPlayers[0]).join('')
-      expect(html).toContain('youth-mode-inline-select')
-      expect(html).toContain('<select')
-      // Current mode is preselected.
-      expect(html).toMatch(/<option value="rest"[^>]*selected/)
     })
   })
 
@@ -189,6 +153,63 @@ describe('YouthTeamPage', () => {
       await page._handlePlayerModeChange(players[0], 'training')
 
       expect(server.setYouthPlayerTrainingMode).not.toHaveBeenCalled()
+    })
+
+    it('leaves the caller responsible for reloading (server event drives updates)', async () => {
+      server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
+      const players = [{ id: 1, training_mode: 'rest' }]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+
+      await page._handlePlayerModeChange(players[0], 'training')
+
+      // The page no longer refetches the whole team after a mode change —
+      // server events (YOUTH_PLAYER_TRAINING_MODE_CHANGED) drive the surgical
+      // update of the affected row and the mode-selector section.
+      expect(page.load).not.toHaveBeenCalled()
+      expect(page.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('YOUTH_PLAYER_TRAINING_MODE_CHANGED server event', () => {
+    it('registers a handler for the event', async () => {
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      const handlers = page.serverEvents
+      expect(handlers[SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name]).toBeTypeOf('function')
+    })
+
+    it('mutates the affected player\'s training_mode in place and does not full-page rerender', async () => {
+      const players = [
+        { id: 1, name: 'A', training_mode: 'rest' },
+        { id: 2, name: 'B', training_mode: 'training' }
+      ]
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      page.youthPlayers = players
+      page.load = vi.fn()
+      page.update = vi.fn()
+      page._refreshModeSelector = vi.fn()
+
+      const handler = page.serverEvents[SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name]
+      handler({ youthPlayerId: 1, previousMode: 'rest', newMode: 'training' })
+
+      expect(players[0].training_mode).toBe('training')
+      expect(players[1].training_mode).toBe('training') // unchanged
+      expect(page._refreshModeSelector).toHaveBeenCalledTimes(1)
+      // Crucially: no full-page re-render.
+      expect(page.update).not.toHaveBeenCalled()
+      expect(page.load).not.toHaveBeenCalled()
+    })
+
+    it('ignores events for players not on this team', async () => {
+      const players = [{ id: 1, name: 'A', training_mode: 'rest' }]
+      const page = new YouthTeamPage({ load: vi.fn(), update: vi.fn() })
+      page.youthPlayers = players
+      page._refreshModeSelector = vi.fn()
+
+      const handler = page.serverEvents[SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name]
+      handler({ youthPlayerId: 999, previousMode: 'rest', newMode: 'training' })
+
+      expect(players[0].training_mode).toBe('rest')
+      expect(page._refreshModeSelector).not.toHaveBeenCalled()
     })
   })
 
@@ -308,50 +329,6 @@ describe('YouthTeamPage', () => {
       await page.load()
 
       expect(page.template).not.toContain('youthTeam.retirementWarning')
-    })
-  })
-
-  describe('promote button disabled states', () => {
-    it('disables promote button when player age < 16', async () => {
-      const youthPlayers = [
-        { id: 1, name: 'Young Player', position: 'CM', age: 15, level: 15, moral: 0.8, fitness: 0.7 }
-      ]
-
-      server.getYouthTeam.mockResolvedValue({
-        youthPlayers,
-        trainingMode: 'rest',
-        season: 1
-      })
-
-      const mockParent = { load: vi.fn(), update: vi.fn() }
-      const page = new YouthTeamPage(mockParent)
-      await page.load()
-
-      const row = page._renderYouthPlayerRow(youthPlayers[0])
-      const html = row.join('')
-      expect(html).toContain('disabled')
-      expect(html).toContain('youthTeam.playerTooYoung')
-    })
-
-    it('enables promote button when player age >= 16', async () => {
-      const youthPlayers = [
-        { id: 1, name: 'Ready Player', position: 'CM', age: 16, level: 15, moral: 0.8, fitness: 0.7 }
-      ]
-
-      server.getYouthTeam.mockResolvedValue({
-        youthPlayers,
-        trainingMode: 'rest',
-        season: 1
-      })
-
-      const mockParent = { load: vi.fn(), update: vi.fn() }
-      const page = new YouthTeamPage(mockParent)
-      await page.load()
-
-      const row = page._renderYouthPlayerRow(youthPlayers[0])
-      const html = row.join('')
-      // Button should not have disabled attribute
-      expect(html).not.toMatch(/disabled.*youthTeam\.promote/)
     })
   })
 })

@@ -6,43 +6,12 @@ import { toast } from '../../partials/toast.js'
 import { showOverlay } from '../../partials/overlay.js'
 import { t } from '../../i18n/index.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
-import { ProgressBar } from '../../partials/progressBar.js'
 import { Table } from '../../partials/table.js'
-import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { fire } from '../../lib/event.js'
-
-const TRAINING_MODES = [
-  {
-    key: 'training',
-    icon: 'fa-bolt',
-    effects: {
-      level: 2,
-      fitness: 1,
-      moral: -1
-    }
-  },
-  {
-    key: 'friendly_match',
-    icon: 'fa-futbol-o',
-    effects: {
-      level: 1,
-      fitness: -1,
-      moral: 1
-    }
-  },
-  {
-    key: 'rest',
-    icon: 'fa-bed',
-    effects: {
-      level: 0,
-      fitness: 2,
-      moral: 1
-    }
-  }
-]
-
-const MAX_SLOTS_PER_MODE = 4
+import { SERVER_EVENTS } from '../../lib/serverEvents.js'
+import { TRAINING_MODES, MAX_SLOTS_PER_MODE } from './youthTrainingModes.js'
+import { YouthPlayerRow } from './youthPlayerRow.js'
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -70,7 +39,6 @@ export class YouthTeamPage extends UIElement {
     }
     this.season = data.season
   }
-
   /**
    * @returns {string}
    */
@@ -79,16 +47,8 @@ export class YouthTeamPage extends UIElement {
       <div>
         <h3>${t('youthTeam.title')} ${wikiInfoIcon('youth-players')}</h3>
 
-        <div class="mb-4">
-          <p class="text-muted mb-1">${t('youthTeam.trainingModeDescPerPlayer')}</p>
-          <p class="text-muted small mb-3">
-            <i class="fa fa-graduation-cap"></i>
-            ${t('youthTeam.academySlotsHint', {
-    trainingSlots: this.slotsByMode.training,
-    level: this.academyLevel
-  })}
-          </p>
-          ${this._renderTrainingModeSelector()}
+        <div class="mb-4" id="${this._modeSelectorContainerId}">
+          ${this._renderModeSelectorContent()}
         </div>
 
         ${this._renderYouthPlayerTable()}
@@ -101,7 +61,32 @@ export class YouthTeamPage extends UIElement {
       </div>
     `
   }
-
+  /**
+   * Event-based updates for the youth-team page.
+   *
+   * A mode change on any youth player only affects two things: the row of
+   * the affected player (which subscribes on its own via `YouthPlayerRow`)
+   * and the training-mode selector cards at the top (whose slot dropdowns
+   * list every youth player with their current mode as a suffix). We mutate
+   * the local player state in place — `YouthPlayerRow` holds the same
+   * reference so its own subscribe callback is idempotent — and surgically
+   * replace the mode-selector wrapper's innerHTML. The surrounding page and
+   * the youth-player table are left alone, so no per-row UIElement is
+   * unmounted and no visible flicker.
+   *
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name]: (data) => {
+        if (!data || !Array.isArray(this.youthPlayers)) return
+        const player = this.youthPlayers.find(p => p.id === data.youthPlayerId)
+        if (!player) return
+        player.training_mode = data.newMode
+        this._refreshModeSelector()
+      }
+    }
+  }
   /**
    * Called when component is mounted to DOM
    * @returns {void}
@@ -110,7 +95,6 @@ export class YouthTeamPage extends UIElement {
     this._startTimer()
     void showTutorialIfNeeded('youth', this)
   }
-
   /**
    * Called when component is removed from DOM
    * @returns {void}
@@ -118,6 +102,13 @@ export class YouthTeamPage extends UIElement {
   onDestroy () {
     this._stopTimer()
   }
+  /**
+   * Stable id for the top mode-selector container. When
+   * `YOUTH_PLAYER_TRAINING_MODE_CHANGED` arrives we replace only this section's
+   * innerHTML — the surrounding page + the youth-player table stay mounted so
+   * per-row UIElements keep their server-event subscriptions.
+   */
+  _modeSelectorContainerId = generateId()
 
   /**
    * Start the countdown timer
@@ -197,6 +188,41 @@ export class YouthTeamPage extends UIElement {
   }
 
   /**
+   * Rebuild the top mode-selector section in place. Called from the
+   * `YOUTH_PLAYER_TRAINING_MODE_CHANGED` server-event handler so the slot
+   * cards + option suffixes reflect the fresh state without touching the
+   * youth-player table below.
+   * @returns {void}
+   * @private
+   */
+  _refreshModeSelector () {
+    const wrapper = document.getElementById(this._modeSelectorContainerId)
+    if (!wrapper) return
+    wrapper.innerHTML = this._renderModeSelectorContent()
+  }
+
+  /**
+   * Content of the mode-selector wrapper: intro copy, the three mode cards,
+   * and the countdown line. Kept separate from `template` so surgical
+   * refreshes can reuse it.
+   * @returns {string}
+   * @private
+   */
+  _renderModeSelectorContent () {
+    return `
+      <p class="text-muted mb-1">${t('youthTeam.trainingModeDescPerPlayer')}</p>
+      <p class="text-muted small mb-3">
+        <i class="fa fa-graduation-cap"></i>
+        ${t('youthTeam.academySlotsHint', {
+    trainingSlots: this.slotsByMode.training,
+    level: this.academyLevel
+  })}
+      </p>
+      ${this._renderTrainingModeSelector()}
+    `
+  }
+
+  /**
    * @returns {string}
    */
   _renderTrainingModeSelector () {
@@ -225,7 +251,7 @@ export class YouthTeamPage extends UIElement {
     const fillRatio = `${assigned.length}/${modeLimit}`
 
     return `
-      <div class="card youth-mode-card flex-fill bg-info-subtle">
+      <div class="card youth-mode-card flex-fill border-info bg-info-subtle">
         <div class="card-body">
           <div class="youth-mode-header">
             <i class="fa ${mode.icon}"></i>
@@ -313,7 +339,9 @@ export class YouthTeamPage extends UIElement {
 
   /**
    * Apply a slot change: unassign the previous occupant, then assign the new
-   * one. The server's per-player setter handles cross-mode moves naturally.
+   * one. The server's per-player setter handles cross-mode moves naturally
+   * and emits `YOUTH_PLAYER_TRAINING_MODE_CHANGED` for each affected player,
+   * which drives the surgical refresh of this section + the affected row.
    * @param {string} mode
    * @param {object|null} prevPlayer
    * @param {number|null} newPlayerId
@@ -332,8 +360,6 @@ export class YouthTeamPage extends UIElement {
     } catch (e) {
       showServerError(e)
     }
-    await this.load()
-    await this.update()
   }
 
   /**
@@ -369,73 +395,26 @@ export class YouthTeamPage extends UIElement {
       ],
       data: this.youthPlayers,
       classes: 'table-striped',
-      renderRow: (player) => this._renderYouthPlayerRow(player)
+      // Each row is a UIElement so it can subscribe to
+      // `YOUTH_PLAYER_TRAINING_MODE_CHANGED` and refresh its cells atomically
+      // without redrawing the whole table.
+      rowElement: (player) => new YouthPlayerRow(player, this)
     })
   }
 
   /**
-   * @param {Object} player
-   * @returns {string}
-   */
-  _renderYouthPlayerRow (player) {
-    const promoteId = generateId()
-    const fireId = generateId()
-    const isOldEnough = player.age >= 16
-    const canPromote = isOldEnough
-
-    onClick(promoteId, () => this._showPromoteConfirm(player))
-    onClick(fireId, () => this._showFireConfirm(player))
-
-    let disabledReason = ''
-    if (!isOldEnough) {
-      disabledReason = t('youthTeam.playerTooYoung')
-    }
-
-    // Render a native <select> directly (rather than a badge that swaps to a
-    // select on click) so the options open on the first click (#465).
-    const modeSelectId = generateId()
-    const current = player.training_mode || ''
-    const modeOptions = [
-      `<option value="" ${current === '' ? 'selected' : ''}>${t('youthTeam.unassigned')}</option>`,
-      ...TRAINING_MODES.map(m =>
-        `<option value="${m.key}" ${current === m.key ? 'selected' : ''}>${this._getTrainingModeLabel(m.key)}</option>`
-      )
-    ].join('')
-    onChange('#' + modeSelectId, (ev) => this._handlePlayerModeChange(player, ev.target.value))
-    const modeSelect = `<select id="${modeSelectId}" class="form-select form-select-sm youth-mode-inline-select" title="${t('youthTeam.changeTrainingMode')}">${modeOptions}</select>`
-
-    return [
-      `<span class="u-nowrap">${player.name}</span>`,
-      renderPositionBadge(player.position),
-      `${player.age}`,
-      `${player.level.toFixed(2)}`,
-      `${new ProgressBar(player.moral)}`,
-      `${new ProgressBar(player.fitness)}`,
-      modeSelect,
-      `<span class="u-nowrap"><button
-            id="${promoteId}"
-            class="btn btn-sm btn-primary me-1"
-            ${!canPromote ? 'disabled' : ''}
-            title="${disabledReason}"
-          ><i class="fa fa-arrow-up"></i> ${t('youthTeam.promote')}</button><button id="${fireId}" class="btn btn-sm btn-danger"><i class="fa fa-times"></i> ${t('youthTeam.fire')}</button></span>`
-    ]
-  }
-
-  /**
-   * Apply a training-mode change made from the player list. Assigns the player
-   * to the chosen mode, taking the last free slot — or, when the mode is full,
-   * freeing its last slot first (#youth). Reloads so the slot cards on top
-   * reflect the new assignment.
+   * Apply a training-mode change made from the player list. Assigns the
+   * player to the chosen mode, taking the last free slot — or, when the mode
+   * is full, freeing its last slot first. The affected rows + the mode
+   * selector above update themselves off the server events emitted by each
+   * `setYouthPlayerTrainingMode` call, so no full page re-render is needed.
    * @param {Object} player
    * @param {string} newMode - '' for unassigned, otherwise a training mode key
    * @returns {Promise<void>}
    */
   async _handlePlayerModeChange (player, newMode) {
     const target = newMode || null
-    if ((player.training_mode || null) === target) {
-      await this.update() // revert the inline select back to the badge
-      return
-    }
+    if ((player.training_mode || null) === target) return
     try {
       if (target === null) {
         await server.setYouthPlayerTrainingMode(player.id, null)
@@ -452,8 +431,6 @@ export class YouthTeamPage extends UIElement {
     } catch (e) {
       showServerError(e)
     }
-    await this.load()
-    await this.update()
   }
 
   /**
