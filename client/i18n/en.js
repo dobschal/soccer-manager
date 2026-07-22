@@ -1658,7 +1658,6 @@ export default {
   'wiki.empty': 'No matching entries.',
   'wiki.noEntries': 'The wiki is empty for now.',
   'wiki.selectEntry': 'Select an entry to read.',
-  'wiki.back': 'Back to list',
   'wiki.infoIconLabel': 'More info in the wiki',
   'admin.tabWiki': 'Wiki',
   'admin.wikiTitle': 'Wiki management',

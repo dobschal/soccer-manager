@@ -53,7 +53,9 @@ export class SelectPlayerOverlay extends UIElement {
         <p>${t('selectPlayer.subtitle')}</p>
         ${this._playerList}
         ${this._renderShowAllToggle()}
-        ${this._actionCardGiver}
+        <div style="height: 280px">
+            ${this._actionCardGiver}
+        </div>
       </div>
     `
   }

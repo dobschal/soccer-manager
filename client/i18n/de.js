@@ -1658,7 +1658,6 @@ export default {
   'wiki.empty': 'Keine passenden Einträge.',
   'wiki.noEntries': 'Das Wiki ist noch leer.',
   'wiki.selectEntry': 'Wähle einen Eintrag zum Lesen aus.',
-  'wiki.back': 'Zurück zur Liste',
   'wiki.infoIconLabel': 'Mehr Infos im Wiki',
   'admin.tabWiki': 'Wiki',
   'admin.wikiTitle': 'Wiki-Verwaltung',

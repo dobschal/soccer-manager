@@ -18,7 +18,6 @@
 .wiki-page {
     max-width: 1100px;
     margin: 0 auto;
-    padding: 1.5rem 1rem 3rem;
 }
 
 .wiki-sidebar {
@@ -36,7 +35,7 @@
 
 .wiki-list-item {
     display: block;
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0rem;
     border-radius: 0.4rem;
     text-decoration: none;
     color: inherit;
@@ -111,58 +110,11 @@
     border-radius: 4px;
 }
 
-/* Mobile detail overlay (#441) — on phones the list and the article don't fit
-   side by side, so tapping an entry slides its detail in over the list. The
-   overlay is desktop-hidden; the media query below switches it on. */
-.wiki-detail-overlay {
-    display: none;
-}
-
-.wiki-detail-overlay__header {
-    margin-bottom: 1rem;
-}
-
-/* Bottom back button — a second exit affordance so the user doesn't have to
-   scroll all the way back up on long articles (#458). Hidden on desktop where
-   the overlay isn't used. */
-.wiki-detail-overlay__footer {
-    display: none;
-    margin-top: 2rem;
-}
-
+/* Mobile: hide the inline right column — on tap the article opens in the
+   shared showOverlay modal instead (see wiki.js#_openDetailOverlay). */
 @media (max-width: 767.98px) {
-    /* The inline content column is redundant on mobile — the overlay owns it. */
     .wiki-content-col {
         display: none;
-    }
-
-    .wiki-detail-overlay.open {
-        display: block;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1050;
-        overflow-y: auto;
-        background: var(--bs-body-bg, #fff);
-        /* Clear the iOS status bar / notch so the top back button isn't hidden
-           behind the native navbar / safe area (#458). */
-        padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(3rem + env(safe-area-inset-bottom, 0px));
-    }
-
-    /* Keep the top back button pinned while scrolling long articles (#458). */
-    .wiki-detail-overlay.open .wiki-detail-overlay__header {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        padding: 0.5rem 0;
-        margin-bottom: 0.5rem;
-        background: var(--bs-body-bg, #fff);
-    }
-
-    .wiki-detail-overlay.open .wiki-detail-overlay__footer {
-        display: block;
     }
 }
 

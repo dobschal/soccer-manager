@@ -453,8 +453,18 @@
     font-weight: 500;
 }
 
+@keyframes action-card-fade-in {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
 .action-card-giver {
     height: 280px;
+    animation: action-card-fade-in 0.5s ease-in-out;
 }
 
 .select-player-action-cards {

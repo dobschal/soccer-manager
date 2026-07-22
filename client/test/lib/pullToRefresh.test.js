@@ -167,6 +167,20 @@ describe('pullToRefresh', () => {
     expect(reloadSpy).not.toHaveBeenCalled()
   })
 
+  it('bails out entirely when a shared overlay (.overlay-backdrop) is open — the overlay owns swipe-down-to-close', () => {
+    setupPage({ scrollTop: 0 })
+    const overlay = document.createElement('div')
+    overlay.className = 'overlay-backdrop'
+    document.body.appendChild(overlay)
+
+    onTouchStart(touchEvent([[100, 100]]))
+    onTouchMove(touchEvent([[100, 320]]))
+    onTouchEnd()
+
+    expect(getIndicator()).toBe(null)
+    expect(reloadSpy).not.toHaveBeenCalled()
+  })
+
   it('caps the visual pull at MAX_PULL_PX even with very long swipes', () => {
     setupPage({ scrollTop: 0 })
 

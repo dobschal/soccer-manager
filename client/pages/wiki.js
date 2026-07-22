@@ -3,11 +3,18 @@ import { UIElement } from '../lib/UIElement.js'
 import { getLocale, t } from '../i18n/index.js'
 import { el, generateId } from '../lib/html.js'
 import { linkifyHtml } from '../lib/linkify.js'
+import { showOverlay } from '../partials/overlay.js'
+import { getQueryParams, setQueryParams } from '../lib/router.js'
 
 function escapeHtml (text) {
   const div = document.createElement('div')
   div.textContent = text ?? ''
   return div.innerHTML
+}
+
+function isMobileViewport () {
+  return typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 767.98px)').matches
 }
 
 /**
@@ -22,8 +29,9 @@ export function wikiImageUrl (filename) {
 
 /**
  * Public, multilingual wiki page (#441). A persistent sidebar lists every
- * entry (with a search filter); selecting one shows its detail on the right.
- * The selected entry is carried in the `id` query param so it is linkable.
+ * entry (with a search filter); selecting one shows its detail on the right
+ * on desktop, or in the shared showOverlay modal on mobile. The selected
+ * entry is carried in the `id` query param so it is linkable.
  */
 export class WikiPage extends UIElement {
   async load () {
@@ -37,12 +45,15 @@ export class WikiPage extends UIElement {
     }
     const params = new URLSearchParams(window.location.hash.split('?')[1] || '')
     const idParam = params.get('id')
-    // On desktop the first entry is pre-selected and shown next to the list.
-    // On mobile the detail lives in an overlay that only opens when an entry
-    // is explicitly requested (deep link or tap) — see _renderContent / CSS.
-    this._detailOpen = !!idParam
-    this._selectedId = idParam ? Number(idParam) : (this._entries[0]?.id ?? null)
+    const mobile = isMobileViewport()
+    // Desktop pre-selects the first entry so the right column is populated.
+    // Mobile skips pre-selection: the first tap would otherwise be a no-op
+    // in onQueryChanged (newId === _selectedId) and never open the overlay.
+    this._selectedId = idParam
+      ? Number(idParam)
+      : (mobile ? null : (this._entries[0]?.id ?? null))
     await this._loadEntry(this._selectedId)
+    if (mobile && this._selectedId) this._openDetailOverlay()
   }
   get template () {
     return `
@@ -60,19 +71,6 @@ export class WikiPage extends UIElement {
             <div class="wiki-content">${this._renderContent()}</div>
           </div>
         </div>
-        <div id="${this._detailOverlayId}" class="wiki-detail-overlay ${this._detailOpen ? 'open' : ''}">
-          <div class="wiki-detail-overlay__header">
-            <button type="button" id="${this._detailBackId}" class="btn btn-sm btn-outline-secondary wiki-detail-back">
-              &larr; ${t('wiki.back')}
-            </button>
-          </div>
-          <div class="wiki-detail-overlay__body">${this._renderContent()}</div>
-          <div class="wiki-detail-overlay__footer">
-            <button type="button" id="${this._detailBackBottomId}" class="btn btn-outline-secondary w-100 wiki-detail-back">
-              &larr; ${t('wiki.back')}
-            </button>
-          </div>
-        </div>
         <div id="${this._imageOverlayId}" class="wiki-image-overlay" hidden>
           <img id="${this._overlayImgId}" src="" alt="">
         </div>
@@ -88,27 +86,8 @@ export class WikiPage extends UIElement {
           if (list) list.innerHTML = this._renderList()
         }
       },
-      // Delegated on the stable content containers so they survive surgical
-      // innerHTML refreshes — open the clicked image in a lightbox (#441).
-      // Both the desktop inline content and the mobile detail overlay can
-      // contain wiki images, so both delegate to the same handler.
       '.wiki-content': {
         click: (e) => this._openImageLightbox(e)
-      },
-      '.wiki-detail-overlay__body': {
-        click: (e) => this._openImageLightbox(e)
-      },
-      // Mobile back button — drop the id from the URL so the overlay closes
-      // and tapping the same entry again re-triggers onQueryChanged.
-      [`#${this._detailBackId}`]: {
-        click: () => {
-          window.location.hash = '#dashboard?sub_page=wiki'
-        }
-      },
-      [`#${this._detailBackBottomId}`]: {
-        click: () => {
-          window.location.hash = '#dashboard?sub_page=wiki'
-        }
       },
       [`#${this._imageOverlayId}`]: {
         click: () => {
@@ -126,23 +105,75 @@ export class WikiPage extends UIElement {
     const newId = id ? Number(id) : null
     if (newId === this._selectedId) return
     this._selectedId = newId
-    this._detailOpen = !!newId
     await this._loadEntry(newId)
     const content = el(`${this._elementQuery} .wiki-content`)
     if (content) content.innerHTML = this._renderContent()
     const list = el(`${this._elementQuery} .wiki-list`)
     if (list) list.innerHTML = this._renderList()
-    // Drive the mobile detail overlay (no-op visually on desktop, where the
-    // overlay is display:none — see wiki.css).
-    const overlay = el(`${this._elementQuery} #${this._detailOverlayId}`)
-    const overlayBody = el(`${this._elementQuery} .wiki-detail-overlay__body`)
-    if (overlayBody) overlayBody.innerHTML = this._renderContent()
-    if (overlay) {
-      overlay.classList.toggle('open', this._detailOpen)
-      overlay.scrollTop = 0
-    }
+    if (!isMobileViewport()) return
+    // showOverlay's header is baked in at create time — switching entries
+    // means close+reopen. Suppress the URL update on close so the removal
+    // doesn't wipe the id we just navigated to.
+    this._closeDetailOverlay({ suppressUrlUpdate: true })
+    if (newId) this._openDetailOverlay()
   }
   showLoadingIndicator = true
+
+  /**
+   * Open the loaded wiki entry in the shared showOverlay modal.
+   * @private
+   */
+  _openDetailOverlay () {
+    if (!this._entry) return
+    const bodyId = generateId()
+    const overlay = showOverlay(
+      escapeHtml(this._entry.title),
+      escapeHtml(this._entry.subtitle || ''),
+      `<div id="${bodyId}" class="wiki-content wiki-detail-body">${this._renderContent(false)}</div>`
+    )
+    this._detailOverlay = overlay
+    // The standard overlay mounts to document.body, outside _elementQuery,
+    // so the page's delegated '.wiki-content' click handler doesn't reach
+    // images inside it — bind a dedicated listener on the overlay body.
+    const bodyEl = document.getElementById(bodyId)
+    if (bodyEl) bodyEl.addEventListener('click', (e) => this._openImageLightbox(e))
+    this._closeOverlayOnNavigation(overlay)
+    overlay.onClose(() => {
+      // A programmatic close (entry switch) nulls _detailOverlay first, so
+      // the stale onClose from the old overlay skips the URL update.
+      if (this._detailOverlay !== overlay) return
+      this._detailOverlay = null
+      if (getQueryParams().id) setQueryParams({ id: null })
+    })
+  }
+
+  /**
+   * @param {{suppressUrlUpdate?: boolean}} [opts]
+   * @private
+   */
+  _closeDetailOverlay (opts = {}) {
+    const overlay = this._detailOverlay
+    if (!overlay) return
+    this._detailOverlay = null
+    overlay.remove()
+    if (!opts.suppressUrlUpdate && getQueryParams().id) setQueryParams({ id: null })
+  }
+
+  /**
+   * Remove the overlay when the user leaves the wiki page — a pure
+   * query-param change on this page keeps the overlay so entry switches
+   * animate in place.
+   * @param {{onClose: (cb: () => void) => void, remove: () => void}} overlay
+   * @private
+   */
+  _closeOverlayOnNavigation (overlay) {
+    const startPath = window.location.hash.split('?')[0]
+    const handler = () => {
+      if (window.location.hash.split('?')[0] !== startPath) overlay.remove()
+    }
+    window.addEventListener('hashchange', handler)
+    overlay.onClose(() => window.removeEventListener('hashchange', handler))
+  }
 
   /**
    * Open the clicked wiki image in the full-screen lightbox (#441).
@@ -188,7 +219,12 @@ export class WikiPage extends UIElement {
     `).join('')
   }
 
-  _renderContent () {
+  /**
+   * @param {boolean} [includeHeader] - render title/subtitle inside the article. The
+   *   overlay path passes false because showOverlay's own header already
+   *   shows them and duplicating looks wrong.
+   */
+  _renderContent (includeHeader = true) {
     if (!this._entries.length) {
       return `<p class="text-muted">${t('wiki.noEntries')}</p>`
     }
@@ -202,8 +238,8 @@ export class WikiPage extends UIElement {
     const body = linkifyHtml(entry.text || '', (escaped) => escaped.replace(/\n/g, '<br>'))
     return `
       <article class="wiki-article">
-        <h3 class="mb-1">${escapeHtml(entry.title)}</h3>
-        ${entry.subtitle ? `<p class="text-muted">${escapeHtml(entry.subtitle)}</p>` : ''}
+        ${includeHeader ? `<h3 class="mb-1">${escapeHtml(entry.title)}</h3>` : ''}
+        ${includeHeader && entry.subtitle ? `<p class="text-muted">${escapeHtml(entry.subtitle)}</p>` : ''}
         ${images ? `<div class="wiki-images mb-3">${images}</div>` : ''}
         <div class="wiki-text">${body}</div>
       </article>
@@ -214,10 +250,7 @@ export class WikiPage extends UIElement {
   _entry = null
   _selectedId = null
   _filter = ''
-  _detailOpen = false
+  _detailOverlay = null
   _imageOverlayId = generateId()
   _overlayImgId = generateId()
-  _detailOverlayId = generateId()
-  _detailBackId = generateId()
-  _detailBackBottomId = generateId()
 }

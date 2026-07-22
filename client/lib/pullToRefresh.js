@@ -34,6 +34,16 @@ function _isAtTop () {
 }
 
 /**
+ * True while the shared showOverlay modal is on top. Pull-to-refresh must
+ * step aside then — otherwise swiping down inside the overlay reloads the
+ * whole page. The overlay handles its own swipe-to-close.
+ * @returns {boolean}
+ */
+function _isOverlayOpen () {
+  return !!document.querySelector('.overlay-backdrop')
+}
+
+/**
  * Create (or reuse) the loading-ball indicator and append it to <body>. The
  * router wipes body.innerHTML on layout changes, so we lazily re-create the
  * element each time a gesture commits — cheaper than wiring into router
@@ -61,6 +71,7 @@ function _ensureIndicator () {
  */
 function _onTouchStart (e) {
   if (e.touches.length !== 1) return
+  if (_isOverlayOpen()) return
   if (!_isAtTop()) return
   const t = e.touches[0]
   _touchStartX = t.clientX
@@ -97,8 +108,8 @@ function _onTouchMove (e) {
   }
 
   // Lost the "at top" condition mid-gesture (e.g. scroll inertia from a
-  // previous flick). Abort.
-  if (!_isAtTop()) {
+  // previous flick), or an overlay opened on top of us. Abort.
+  if (!_isAtTop() || _isOverlayOpen()) {
     _reset()
     return
   }
