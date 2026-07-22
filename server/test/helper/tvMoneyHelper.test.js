@@ -23,13 +23,13 @@ describe('tvMoneyHelper', () => {
   })
 
   describe('getTvMoneyBaseForLevel', () => {
-    it('returns 100000 for level 0 (1. Liga)', () => {
-      expect(getTvMoneyBaseForLevel(0)).toBe(100000)
+    it('returns 150000 for level 0 (1. Liga)', () => {
+      expect(getTvMoneyBaseForLevel(0)).toBe(150000)
     })
-    it('halves per level', () => {
-      expect(getTvMoneyBaseForLevel(1)).toBe(50000)
-      expect(getTvMoneyBaseForLevel(2)).toBe(25000)
-      expect(getTvMoneyBaseForLevel(3)).toBe(12500)
+    it('drops to 75% of the higher league per level', () => {
+      expect(getTvMoneyBaseForLevel(1)).toBe(112500)
+      expect(getTvMoneyBaseForLevel(2)).toBe(84375)
+      expect(getTvMoneyBaseForLevel(3)).toBe(63281)
     })
     it('returns 0 for invalid levels', () => {
       expect(getTvMoneyBaseForLevel(-1)).toBe(0)
@@ -40,21 +40,21 @@ describe('tvMoneyHelper', () => {
 
   describe('calculateTvMoneyForRank', () => {
     it('pays last place the base amount', () => {
-      expect(calculateTvMoneyForRank(0, 18, 18)).toBe(100000)
+      expect(calculateTvMoneyForRank(0, 18, 18)).toBe(150000)
     })
     it('pays first place totalTeams * base', () => {
-      // Spec: first of league 1 (18 teams) gets 1,800,000 EUR
-      expect(calculateTvMoneyForRank(0, 1, 18)).toBe(1800000)
+      // Spec: first of league 1 (18 teams) gets 2,700,000 EUR
+      expect(calculateTvMoneyForRank(0, 1, 18)).toBe(2700000)
     })
     it('doubles for second-to-last (linear scale)', () => {
-      expect(calculateTvMoneyForRank(0, 17, 18)).toBe(200000)
-      expect(calculateTvMoneyForRank(0, 16, 18)).toBe(300000)
+      expect(calculateTvMoneyForRank(0, 17, 18)).toBe(300000)
+      expect(calculateTvMoneyForRank(0, 16, 18)).toBe(450000)
     })
     it('scales with level', () => {
-      // Level 1 (2. Liga): base 50000 → first of 18 teams = 900000
-      expect(calculateTvMoneyForRank(1, 1, 18)).toBe(900000)
-      // Level 2 (3. Liga): base 25000 → first of 18 teams = 450000
-      expect(calculateTvMoneyForRank(2, 1, 18)).toBe(450000)
+      // Level 1 (2. Liga): base 112500 → first of 18 teams = 2025000
+      expect(calculateTvMoneyForRank(1, 1, 18)).toBe(2025000)
+      // Level 2 (3. Liga): base 84375 → first of 18 teams = 1518750
+      expect(calculateTvMoneyForRank(2, 1, 18)).toBe(1518750)
     })
     it('returns 0 for invalid ranks', () => {
       expect(calculateTvMoneyForRank(0, 0, 18)).toBe(0)
@@ -78,12 +78,12 @@ describe('tvMoneyHelper', () => {
       ])
 
       const result = await getEstimatedTvMoney(team, 1)
-      expect(result.base).toBe(100000)
+      expect(result.base).toBe(150000)
       expect(result.level).toBe(0)
       expect(result.totalTeams).toBe(3)
       // Team 5 is first (6pts), so totalTeams * base
       expect(result.rank).toBe(1)
-      expect(result.estimatedValue).toBe(300000)
+      expect(result.estimatedValue).toBe(450000)
     })
 
     it('returns rank 1 when no games have been played yet', async () => {
@@ -94,7 +94,7 @@ describe('tvMoneyHelper', () => {
       const result = await getEstimatedTvMoney(team, 1)
       expect(result.totalTeams).toBe(1)
       expect(result.rank).toBe(1)
-      expect(result.estimatedValue).toBe(50000) // base * 1 team (level 1 = 2. Liga)
+      expect(result.estimatedValue).toBe(112500) // base * 1 team (level 1 = 2. Liga)
     })
   })
 
@@ -146,12 +146,12 @@ describe('tvMoneyHelper', () => {
       await payOutTvMoneyForSeason(34, 1, { updateTeamBalance, getUserLocale, t })
 
       expect(updateTeamBalance).toHaveBeenCalledTimes(2)
-      // Team 100: rank 1 of 3 → 3 * 100000 = 300000
+      // Team 100: rank 1 of 3 → 3 * 150000 = 450000
       expect(updateTeamBalance.mock.calls[0][0]).toMatchObject({ id: 100 })
-      expect(updateTeamBalance.mock.calls[0][1]).toBe(300000)
-      // Team 101: rank 2 of 3 → 2 * 100000 = 200000
+      expect(updateTeamBalance.mock.calls[0][1]).toBe(450000)
+      // Team 101: rank 2 of 3 → 2 * 150000 = 300000
       expect(updateTeamBalance.mock.calls[1][0]).toMatchObject({ id: 101 })
-      expect(updateTeamBalance.mock.calls[1][1]).toBe(200000)
+      expect(updateTeamBalance.mock.calls[1][1]).toBe(300000)
     })
 
     it('skips payout when the idempotency insert finds an existing row', async () => {

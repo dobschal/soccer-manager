@@ -238,11 +238,11 @@ describe('finance routes', () => {
       const req = createMockRequest()
       const result = await handlers.getEstimatedTvMoney(req)
 
-      expect(result.base).toBe(100000)
+      expect(result.base).toBe(150000)
       expect(result.level).toBe(0)
       expect(result.totalTeams).toBe(1)
       expect(result.rank).toBe(1)
-      expect(result.estimatedValue).toBe(100000)
+      expect(result.estimatedValue).toBe(150000)
     })
   })
 })
