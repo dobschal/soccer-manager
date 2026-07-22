@@ -72,6 +72,16 @@ export default {
       }
       const dbPlayer = await getPlayerById(player.id)
       if (!dbPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+      // A free-market signing costs nothing, so a player just signed from the free market must
+      // not be flipped for instant profit. Block the sell if the most recent ownership event
+      // for this player is a HIRED (free-market signing, not a paid transfer) in this season.
+      const [latestOwnership] = await query(
+        'SELECT type, season FROM player_history WHERE player_id=? AND type IN (\'HIRED\', \'TRANSFER\') ORDER BY id DESC LIMIT 1',
+        [player.id]
+      )
+      if (latestOwnership && latestOwnership.type === 'HIRED' && latestOwnership.season === season) {
+        throw new BadRequestError(t('error.freeAgentSellLock', {}, locale))
+      }
       // A player may change clubs at most MAX_TRANSFERS_PER_SEASON times — no point listing one who can't be sold again.
       const [{ count: transfersThisSeason }] = await query(
         'SELECT COUNT(*) AS count FROM trade_history WHERE player_id=? AND season=?',

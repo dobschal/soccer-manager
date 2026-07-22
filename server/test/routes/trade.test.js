@@ -121,6 +121,7 @@ describe('trade routes', () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       query
+        .mockResolvedValueOnce([])  // no recent free-market signing
         .mockResolvedValueOnce([{ count: 0 }])  // no transfer this season
         .mockResolvedValueOnce([])  // no existing offers
         .mockResolvedValueOnce({})  // insert
@@ -152,7 +153,9 @@ describe('trade routes', () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // market value -> min 50000
-      query.mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
+      query
+        .mockResolvedValueOnce([]) // no recent free-market signing
+        .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
 
       const req = createMockRequest()
 
@@ -169,6 +172,7 @@ describe('trade routes', () => {
       getPlayerById.mockResolvedValue(player)
       getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // min 50000
       query
+        .mockResolvedValueOnce([]) // no recent free-market signing
         .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
         .mockResolvedValueOnce([]) // no existing offers
         .mockResolvedValueOnce({}) // insert
@@ -186,7 +190,9 @@ describe('trade routes', () => {
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
-      query.mockResolvedValueOnce([{ count: MAX_TRANSFERS_PER_SEASON }]) // already at the transfer limit this season
+      query
+        .mockResolvedValueOnce([]) // no recent free-market signing
+        .mockResolvedValueOnce([{ count: MAX_TRANSFERS_PER_SEASON }]) // already at the transfer limit this season
 
       const req = createMockRequest()
 
@@ -204,9 +210,69 @@ describe('trade routes', () => {
       getPlayerById.mockResolvedValue(player)
       getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
       query
+        .mockResolvedValueOnce([]) // no recent free-market signing
         .mockResolvedValueOnce([{ count: 1 }]) // one prior transfer — still below the limit
         .mockResolvedValueOnce([]) // no existing offer for this player
         .mockResolvedValueOnce({}) // insert
+
+      const req = createMockRequest()
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
+
+      expect(result).toEqual({ success: true })
+    })
+
+    it('rejects a sell offer for a player just signed from the free market this season', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 3 })
+      getPlayerById.mockResolvedValue(player)
+      // Latest ownership event is a HIRED (free-market signing) in the current season.
+      query.mockResolvedValueOnce([{ type: 'HIRED', season: 3 }])
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 50000, 'sell', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining('free market') })
+      expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_offer SET ?', expect.anything())
+    })
+
+    it('allows a sell offer for a free-market signing after the season has ended', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 4 })
+      getPlayerById.mockResolvedValue(player)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
+      query
+        .mockResolvedValueOnce([{ type: 'HIRED', season: 3 }]) // signed in an earlier season — no longer locked
+        .mockResolvedValueOnce([{ count: 0 }])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce({})
+
+      const req = createMockRequest()
+      const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
+
+      expect(result).toEqual({ success: true })
+    })
+
+    it('allows a sell offer when the player was acquired via a paid transfer this season', async () => {
+      const team = testData.team({ balance: 100000 })
+      const player = testData.player()
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 3 })
+      getPlayerById.mockResolvedValue(player)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
+      // The most recent ownership event is a paid TRANSFER — even if the player was originally
+      // signed for free by a prior team, the current owner paid real money and can list them.
+      query
+        .mockResolvedValueOnce([{ type: 'TRANSFER', season: 3 }])
+        .mockResolvedValueOnce([{ count: 1 }])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce({})
 
       const req = createMockRequest()
       const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
@@ -241,6 +307,7 @@ describe('trade routes', () => {
         new Array(MAX_SELL_OFFERS_PER_TEAM - 1).fill({}).map((_, i) => testData.tradeOffer({ id: i + 1 }))
       )
       query
+        .mockResolvedValueOnce([]) // no recent free-market signing
         .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
         .mockResolvedValueOnce([]) // no existing offer for this player
         .mockResolvedValueOnce({}) // insert
@@ -259,6 +326,7 @@ describe('trade routes', () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       query
+        .mockResolvedValueOnce([]) // no recent free-market signing
         .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce({})
@@ -356,6 +424,7 @@ describe('trade routes', () => {
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
       query
+        .mockResolvedValueOnce([])  // no recent free-market signing
         .mockResolvedValueOnce([{ count: 0 }])  // no transfer this season
         .mockResolvedValueOnce([])  // no open offers (duplicate check)
         .mockResolvedValueOnce({})  // insert
