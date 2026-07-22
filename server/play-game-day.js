@@ -293,23 +293,20 @@ async function _playCupGame (game) {
     playGameStep(playerTeamA, playerTeamB, gameDetails)
   }
 
-  // Cup games cannot end in a draw — play extra time until someone scores
+  // Cup games cannot end in a draw — play 30 min extra time, then penalty shootout
   if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
     gameDetails.extraTime = true
     console.log(`Cup match is a draw after regular time (${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}), playing extra time...`)
-    const maxExtraSteps = 9000 // Safety limit (~15 hours of match time)
-    let extraStep = 0
-    while (gameDetails.goalsTeamA === gameDetails.goalsTeamB && extraStep < maxExtraSteps) {
-      gameDetails.currentMinute = 91 + Math.floor(extraStep / 10)
+    const extraTimeSteps = 300 // 30 minutes at 10 steps/minute
+    for (let step = 0; step < extraTimeSteps; step++) {
+      gameDetails.currentMinute = 91 + Math.floor(step / 10)
       playGameStep(playerTeamA, playerTeamB, gameDetails)
-      extraStep++
     }
-    // If still tied after max extra steps, award to home team
+
     if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
-      gameDetails.goalsTeamA++
-      console.log('Cup extra time: no goal scored, awarding to home team')
+      _playPenaltyShootout(playerTeamA, playerTeamB, gameDetails)
     } else {
-      console.log(`Cup extra time decided after ${Math.floor(extraStep / 10)} extra minutes: ${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}`)
+      console.log(`Cup extra time decided: ${gameDetails.goalsTeamA}-${gameDetails.goalsTeamB}`)
     }
   }
   const cupTotalMinutes = (gameDetails.currentMinute ?? 89) + 1
@@ -339,6 +336,87 @@ async function _playCupGame (game) {
 
   // Send log messages to team owners about the cup match result
   await sendCupMatchLogMessages(game, gameDetails)
+}
+
+// Number of shooters per team in the initial (non-sudden-death) rounds of a penalty shootout.
+export const PENALTY_SHOOTOUT_INITIAL_ROUNDS = 5
+// Hard cap on sudden-death rounds to prevent an infinite loop if the coin flip keeps tying.
+const PENALTY_SHOOTOUT_MAX_SUDDEN_DEATH = 100
+
+/**
+ * Simulate a penalty shootout between the two starting lineups.
+ * Each shot is a 50/50 coin flip. Top 5 shooters (by originalLevel) shoot first;
+ * if still tied after 5 rounds each, we go to sudden death and reuse the same ranked list.
+ * Mutates gameDetails: adds `penaltyShootout` details and increments the winning team's goal count by 1.
+ */
+export function _playPenaltyShootout (playerTeamA, playerTeamB, gameDetails) {
+  const rank = p => p.originalLevel ?? p.level
+  const shootersA = [...playerTeamA].sort((a, b) => rank(b) - rank(a))
+  const shootersB = [...playerTeamB].sort((a, b) => rank(b) - rank(a))
+
+  const shots = []
+  let scoreA = 0
+  let scoreB = 0
+
+  const shoot = (team, shooter) => {
+    const scored = Math.random() < 0.5
+    if (scored) {
+      if (team === 'A') scoreA++
+      else scoreB++
+    }
+    shots.push({
+      team,
+      playerId: shooter.id,
+      playerName: shooter.name,
+      scored,
+      scoreA,
+      scoreB
+    })
+  }
+
+  const isDecided = () => {
+    const shotsA = shots.filter(s => s.team === 'A').length
+    const shotsB = shots.filter(s => s.team === 'B').length
+    const remainingA = Math.max(0, PENALTY_SHOOTOUT_INITIAL_ROUNDS - shotsA)
+    const remainingB = Math.max(0, PENALTY_SHOOTOUT_INITIAL_ROUNDS - shotsB)
+    if (scoreA > scoreB + remainingB) return true
+    if (scoreB > scoreA + remainingA) return true
+    return false
+  }
+
+  for (let i = 0; i < PENALTY_SHOOTOUT_INITIAL_ROUNDS; i++) {
+    shoot('A', shootersA[i % shootersA.length])
+    if (isDecided()) break
+    shoot('B', shootersB[i % shootersB.length])
+    if (isDecided()) break
+  }
+
+  let suddenDeathRound = 0
+  while (scoreA === scoreB && suddenDeathRound < PENALTY_SHOOTOUT_MAX_SUDDEN_DEATH) {
+    const idx = PENALTY_SHOOTOUT_INITIAL_ROUNDS + suddenDeathRound
+    shoot('A', shootersA[idx % shootersA.length])
+    shoot('B', shootersB[idx % shootersB.length])
+    suddenDeathRound++
+  }
+
+  // Safety fallback: award home team if shootout somehow stayed tied (extreme edge case).
+  if (scoreA === scoreB) {
+    console.warn(`Penalty shootout hit safety cap at ${scoreA}-${scoreB} — awarding home team`)
+    scoreA++
+  }
+
+  if (scoreA > scoreB) {
+    gameDetails.goalsTeamA++
+  } else {
+    gameDetails.goalsTeamB++
+  }
+
+  gameDetails.penaltyShootout = {
+    goalsTeamA: scoreA,
+    goalsTeamB: scoreB,
+    shots
+  }
+  console.log(`Cup penalty shootout decided: ${scoreA}-${scoreB}`)
 }
 
 // Combined team strength at which the historical static freshness loss applies (1.0x).

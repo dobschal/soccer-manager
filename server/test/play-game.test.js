@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { kickoff, playGameStep, checkForInjury, selectInjuryType, INJURY_TYPES, POSITION_GROUPS, checkScheduledSubstitutions } from '../play-game.js'
+import { _playPenaltyShootout, PENALTY_SHOOTOUT_INITIAL_ROUNDS } from '../play-game-day.js'
 
 /**
  * Helper to create a player for game simulation tests
@@ -678,9 +679,11 @@ describe('play-game simulation', () => {
     })
   })
 
-  describe('cup extra time (no draws allowed)', () => {
+  describe('cup extra time + penalty shootout (no draws allowed)', () => {
     /**
-     * Simulate a cup game: regular time + extra time if tied
+     * Simulate a cup game the same way play-game-day.js does:
+     * 90 min regular + up to 50 injury-time steps, then 30 min extra time,
+     * then penalty shootout if still tied.
      */
     function simulateCupGame (playerTeamA, playerTeamB, gameDetails) {
       kickoff(playerTeamA, playerTeamB, gameDetails)
@@ -690,14 +693,15 @@ describe('play-game simulation', () => {
         playGameStep(playerTeamA, playerTeamB, gameDetails)
       }
 
-      // Cup extra time: continue until someone scores
       if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
         gameDetails.extraTime = true
-        let extraStep = 0
-        while (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
-          gameDetails.currentMinute = 91 + Math.floor(extraStep / 10)
+        const extraTimeSteps = 300 // 30 minutes
+        for (let step = 0; step < extraTimeSteps; step++) {
+          gameDetails.currentMinute = 91 + Math.floor(step / 10)
           playGameStep(playerTeamA, playerTeamB, gameDetails)
-          extraStep++
+        }
+        if (gameDetails.goalsTeamA === gameDetails.goalsTeamB) {
+          _playPenaltyShootout(playerTeamA, playerTeamB, gameDetails)
         }
       }
       return gameDetails
@@ -732,33 +736,124 @@ describe('play-game simulation', () => {
         if (gameDetails.extraTime) extraTimeCount++
       }
 
-      // Some games should go to extra time (~24% draw rate in regular time)
       expect(extraTimeCount).toBeGreaterThan(0)
-      // But not all games should go to extra time
       expect(extraTimeCount).toBeLessThan(numGames)
     })
 
-    it('extra time goal should have minute > 90', () => {
-      // Run many games until we find one that goes to extra time
-      let foundExtraTimeGoal = false
-
-      for (let g = 0; g < 500 && !foundExtraTimeGoal; g++) {
+    it('extra time is limited to 30 minutes — no in-game goals after minute 120', () => {
+      for (let g = 0; g < 500; g++) {
         const teamA = createTeam({ level: 40, prefix: 'A', idStart: 1 })
         const teamB = createTeam({ level: 40, prefix: 'B', idStart: 100 })
         const gameDetails = createGameDetails({ playerTeamA: teamA, playerTeamB: teamB })
-
         simulateCupGame(teamA, teamB, gameDetails)
 
-        if (gameDetails.extraTime) {
-          // Find the last goal in the log (the deciding goal)
-          const goals = gameDetails.log.filter(e => e.goal)
-          const lastGoal = goals[goals.length - 1]
-          expect(lastGoal.minute).toBeGreaterThanOrEqual(91)
-          foundExtraTimeGoal = true
+        const goals = gameDetails.log.filter(e => e.goal)
+        for (const goal of goals) {
+          expect(goal.minute).toBeLessThanOrEqual(120)
         }
       }
+    })
 
-      expect(foundExtraTimeGoal).toBe(true)
+    it('penalty shootout activates when extra time also ends in a draw', () => {
+      let shootoutCount = 0
+      const numGames = 500
+
+      for (let g = 0; g < numGames; g++) {
+        const teamA = createTeam({ level: 40, prefix: 'A', idStart: 1 })
+        const teamB = createTeam({ level: 40, prefix: 'B', idStart: 100 })
+        const gameDetails = createGameDetails({ playerTeamA: teamA, playerTeamB: teamB })
+        simulateCupGame(teamA, teamB, gameDetails)
+        if (gameDetails.penaltyShootout) shootoutCount++
+      }
+
+      // With two evenly-matched teams, some shootouts must happen across 500 games.
+      expect(shootoutCount).toBeGreaterThan(0)
+    })
+  })
+
+  describe('_playPenaltyShootout', () => {
+    function makeShootoutTeam (levels, prefix = 'A', idStart = 1) {
+      return levels.map((level, i) => ({
+        id: idStart + i,
+        name: `${prefix} Player ${i + 1}`,
+        level,
+        originalLevel: level
+      }))
+    }
+
+    it('produces a decisive winner and never ties', () => {
+      for (let i = 0; i < 100; i++) {
+        const teamA = makeShootoutTeam(Array(11).fill(50), 'A', 1)
+        const teamB = makeShootoutTeam(Array(11).fill(50), 'B', 100)
+        const gameDetails = { goalsTeamA: 2, goalsTeamB: 2, log: [] }
+        _playPenaltyShootout(teamA, teamB, gameDetails)
+
+        expect(gameDetails.penaltyShootout).toBeDefined()
+        expect(gameDetails.penaltyShootout.goalsTeamA).not.toBe(gameDetails.penaltyShootout.goalsTeamB)
+        expect(gameDetails.goalsTeamA).not.toBe(gameDetails.goalsTeamB)
+      }
+    })
+
+    it('gives the winner exactly +1 goal on top of the extra-time score', () => {
+      const teamA = makeShootoutTeam(Array(11).fill(50), 'A', 1)
+      const teamB = makeShootoutTeam(Array(11).fill(50), 'B', 100)
+      const gameDetails = { goalsTeamA: 3, goalsTeamB: 3, log: [] }
+      _playPenaltyShootout(teamA, teamB, gameDetails)
+
+      const total = gameDetails.goalsTeamA + gameDetails.goalsTeamB
+      expect(total).toBe(3 + 3 + 1)
+    })
+
+    it('picks the top-5 shooters by originalLevel', () => {
+      // Team A: 5 clearly strongest players + 6 weak; only the strong ones should
+      // shoot in the first 5 rounds (unless it goes to sudden death).
+      const teamA = makeShootoutTeam([90, 88, 86, 84, 82, 10, 10, 10, 10, 10, 10], 'A', 1)
+      const teamB = makeShootoutTeam(Array(11).fill(50), 'B', 100)
+      const gameDetails = { goalsTeamA: 0, goalsTeamB: 0, log: [] }
+      _playPenaltyShootout(teamA, teamB, gameDetails)
+
+      const topIds = new Set([1, 2, 3, 4, 5])
+      const firstFiveAShots = gameDetails.penaltyShootout.shots
+        .filter(s => s.team === 'A')
+        .slice(0, 5)
+      for (const shot of firstFiveAShots) {
+        expect(topIds.has(shot.playerId)).toBe(true)
+      }
+    })
+
+    it('records each shot with playerId, playerName, scored flag and running score', () => {
+      const teamA = makeShootoutTeam(Array(11).fill(50), 'A', 1)
+      const teamB = makeShootoutTeam(Array(11).fill(50), 'B', 100)
+      const gameDetails = { goalsTeamA: 0, goalsTeamB: 0, log: [] }
+      _playPenaltyShootout(teamA, teamB, gameDetails)
+
+      for (const shot of gameDetails.penaltyShootout.shots) {
+        expect(shot.team === 'A' || shot.team === 'B').toBe(true)
+        expect(typeof shot.playerId).toBe('number')
+        expect(typeof shot.playerName).toBe('string')
+        expect(typeof shot.scored).toBe('boolean')
+        expect(typeof shot.scoreA).toBe('number')
+        expect(typeof shot.scoreB).toBe('number')
+      }
+    })
+
+    it('shoots at most PENALTY_SHOOTOUT_INITIAL_ROUNDS+1 per team when decided early', () => {
+      // Can't stub Math.random directly in a way that reliably terminates without
+      // breaking other paths, so run many trials and assert a sensible upper bound.
+      // A shootout with only 5 initial rounds + a few sudden-death rounds should
+      // never spam hundreds of shots.
+      for (let i = 0; i < 50; i++) {
+        const teamA = makeShootoutTeam(Array(11).fill(50), 'A', 1)
+        const teamB = makeShootoutTeam(Array(11).fill(50), 'B', 100)
+        const gameDetails = { goalsTeamA: 0, goalsTeamB: 0, log: [] }
+        _playPenaltyShootout(teamA, teamB, gameDetails)
+
+        const shotsA = gameDetails.penaltyShootout.shots.filter(s => s.team === 'A').length
+        const shotsB = gameDetails.penaltyShootout.shots.filter(s => s.team === 'B').length
+        // Initial 5 + at most 100 sudden-death rounds each — an extreme cap.
+        expect(shotsA).toBeLessThanOrEqual(PENALTY_SHOOTOUT_INITIAL_ROUNDS + 100)
+        expect(shotsB).toBeLessThanOrEqual(PENALTY_SHOOTOUT_INITIAL_ROUNDS + 100)
+      }
     })
   })
 

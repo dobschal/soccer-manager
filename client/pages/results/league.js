@@ -328,7 +328,7 @@ export class LeagueResultsPage extends UIElement {
       '#results-open-standing-history-btn': {
         click: () => this._showStandingHistoryOverlay()
       },
-      '#results-open-season-review-btn': {
+      '(optional) #results-open-season-review-btn': {
         click: () => this._showSeasonReviewOverlay()
       }
     }

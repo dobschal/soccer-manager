@@ -234,7 +234,11 @@ export default {
   // Cup log messages
   'log.cupMatchWin': 'Pokalsieg! Du hast {opponent} mit {goalsFor}:{goalsAgainst} geschlagen! Prämie: {prize}',
   'log.cupMatchLoss': 'Pokal-Aus. Verloren mit {goalsFor}:{goalsAgainst} gegen {opponent}.',
-  'log.cupMatchDraw': 'Pokal-Unentschieden gegen {opponent} {goalsFor}:{goalsAgainst}. Im Elfmeterschießen entschieden.',
+  'log.cupMatchWinExtraTime': 'Pokalsieg nach Verlängerung! Du hast {opponent} mit {goalsFor}:{goalsAgainst} (n.V.) geschlagen! Prämie: {prize}',
+  'log.cupMatchLossExtraTime': 'Pokal-Aus nach Verlängerung. Verloren mit {goalsFor}:{goalsAgainst} (n.V.) gegen {opponent}.',
+  'log.cupMatchWinPenalties': 'Pokalsieg im Elfmeterschießen! Du hast {opponent} mit {penaltiesFor}:{penaltiesAgainst} i.E. bezwungen (Stand nach Verlängerung: {goalsFor}:{goalsAgainst}). Prämie: {prize}',
+  'log.cupMatchLossPenalties': 'Pokal-Aus im Elfmeterschießen. Verloren mit {penaltiesFor}:{penaltiesAgainst} i.E. gegen {opponent} (Stand nach Verlängerung: {goalsFor}:{goalsAgainst}).',
+  'log.cupMatchDraw': 'Pokal-Unentschieden gegen {opponent} {goalsFor}:{goalsAgainst}.',
   'log.cupWinner': 'Herzlichen Glückwunsch! Du hast den Pokal gewonnen! Preis: {prize}',
 
   // Cup finance

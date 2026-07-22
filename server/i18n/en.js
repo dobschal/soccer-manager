@@ -234,7 +234,11 @@ export default {
   // Cup log messages
   'log.cupMatchWin': 'Cup victory! You beat {opponent} {goalsFor}-{goalsAgainst}! Prize: {prize}',
   'log.cupMatchLoss': 'Cup elimination. Lost {goalsFor}-{goalsAgainst} to {opponent}.',
-  'log.cupMatchDraw': 'Cup draw against {opponent} {goalsFor}-{goalsAgainst}. Decided on penalties.',
+  'log.cupMatchWinExtraTime': 'Cup victory after extra time! You beat {opponent} {goalsFor}-{goalsAgainst} (a.e.t.)! Prize: {prize}',
+  'log.cupMatchLossExtraTime': 'Cup elimination after extra time. Lost {goalsFor}-{goalsAgainst} (a.e.t.) to {opponent}.',
+  'log.cupMatchWinPenalties': 'Cup victory on penalties! You beat {opponent} {penaltiesFor}-{penaltiesAgainst} on pens (after extra time: {goalsFor}-{goalsAgainst}). Prize: {prize}',
+  'log.cupMatchLossPenalties': 'Cup elimination on penalties. Lost {penaltiesFor}-{penaltiesAgainst} on pens to {opponent} (after extra time: {goalsFor}-{goalsAgainst}).',
+  'log.cupMatchDraw': 'Cup draw against {opponent} {goalsFor}-{goalsAgainst}.',
   'log.cupWinner': 'Congratulations! You won the Cup! Prize: {prize}',
 
   // Cup finance
