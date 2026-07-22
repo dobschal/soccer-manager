@@ -15,7 +15,16 @@
     color: white;
 }
 
+.stat-card.bg-dark {
+    background: linear-gradient(136deg, #1a2c2f 50%, #081719 50%) !important;
+}
 
+@media (max-width: 443px) {
+    .stat-card {
+        width: 90px;
+        height: 90px;
+    }
+}
 
 .stat-card-label {
     font-size: 14px;

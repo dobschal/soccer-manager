@@ -30,7 +30,9 @@ export const WIKI_SEED = [
 Card types:
 • Level Up (40 / 70 / 100) – raises one player by one level. The number is the level cap the card can be used up to. Two Level-Up 40 cards merge into one Level-Up 70, and two 70 cards merge into one 100.
 • Freshness +5% / +10% / +20% – instantly restores fitness for one player (capped at 100%).
-• New Youth Player – recruits a fresh youth player for your academy.
+• New Youth Player 1 – recruits a young talent (level 1–5, talent 10–50%). The default youth card without a Youth Academy.
+• New Youth Player 2 – recruits a stronger talent (level 5–10, talent 30–75%). Requires Youth Academy level 2.
+• New Youth Player 3 – recruits a top talent (level 10–15, talent 50–100%). Requires Youth Academy level 3.
 • Bonus 100K – adds 100,000 € to your account.
 • Star Player – permanently boosts a player's match strength by 10%.
 • Motivating Speech – gives your whole team a +10% strength bonus for the next match day.
@@ -48,7 +50,9 @@ Good to know:
 Kartentypen:
 • Level Up (40 / 70 / 100) – hebt einen Spieler um ein Level. Die Zahl ist die Level-Obergrenze, bis zu der die Karte genutzt werden kann. Zwei Level-Up-40-Karten verschmelzen zu einer Level-Up-70, zwei 70er-Karten zu einer 100er.
 • Frische +5% / +10% / +20% – stellt sofort die Fitness eines Spielers wieder her (maximal 100%).
-• Neuer Jugendspieler – holt einen frischen Nachwuchsspieler in deine Akademie.
+• Neuer Jugendspieler 1 – holt ein junges Talent (Level 1–5, Talent 10–50%). Die Standard-Jugendkarte ohne Jugendakademie.
+• Neuer Jugendspieler 2 – holt ein stärkeres Talent (Level 5–10, Talent 30–75%). Braucht Jugendakademie-Stufe 2.
+• Neuer Jugendspieler 3 – holt ein Top-Talent (Level 10–15, Talent 50–100%). Braucht Jugendakademie-Stufe 3.
 • Bonus 100K – schreibt 100.000 € auf deinem Konto gut.
 • Starspieler – erhöht die Spielstärke eines Spielers dauerhaft um 10%.
 • Motivationsrede – gibt deinem ganzen Team am nächsten Spieltag +10% Stärke.
@@ -238,7 +242,8 @@ Format:
 • The cup is played in rounds (round of 64, 32, 16, 8, quarter-final, semi-final, final). Cup match days are scheduled between league match days.
 
 No draws:
-• A cup match cannot end level. If the score is tied after 90 minutes, extra time is played until a goal decides the winner.
+• A cup match cannot end level. If the score is tied after 90 minutes, a fixed 30-minute extra time is played.
+• If it is still tied after extra time, a penalty shootout decides the winner: five shooters per side (best players first), then sudden death.
 
 Prize money:
 • You earn prize money for each round, and it doubles the further you advance.
@@ -257,7 +262,8 @@ Format:
 • Der Pokal wird in Runden gespielt (Sechzehntel-, Achtel-, Viertel-, Halbfinale, Finale). Pokalspieltage liegen zwischen den Ligaspieltagen.
 
 Kein Unentschieden:
-• Ein Pokalspiel kann nicht unentschieden enden. Steht es nach 90 Minuten gleich, wird Verlängerung gespielt, bis ein Tor entscheidet.
+• Ein Pokalspiel kann nicht unentschieden enden. Steht es nach 90 Minuten gleich, wird eine feste 30-minütige Verlängerung gespielt.
+• Steht es danach immer noch remis, entscheidet ein Elfmeterschießen: fünf Schützen pro Team (beste Spieler zuerst), danach Sudden Death.
 
 Preisgeld:
 • Für jede Runde gibt es Preisgeld, das sich mit jeder weiteren Runde verdoppelt.
@@ -520,7 +526,7 @@ The key mechanics:
 • Passing – your attack mode controls how often you pass forward. Only forward passes can be intercepted, and stronger players are harder to intercept.
 • Cards – yellow and red cards depend on play style; an aggressive style means more cards (see Players and Tactics).
 
-What changes a player's effective strength: fitness, a Star Player bonus (+10%), a Motivating Speech (+10%), your captain, your squad's average age (ideal 27, up to ±5%), your home advantage, and a small penalty for bot teams. Cup matches never end in a draw – extra time is played until a goal falls.
+What changes a player's effective strength: fitness, a Star Player bonus (+10%), a Motivating Speech (+10%), your captain, your squad's average age (ideal 27, up to ±5%), your home advantage, and a small penalty for bot teams (see In-Game Level for the full picture). Cup matches never end in a draw – if it stays level after 90 minutes, 30 minutes of extra time are played, followed by a penalty shootout if still tied.
 
 Each match stores full details: goals, shots, possession, cards and the lineups, which you can review afterwards.`
     },
@@ -536,9 +542,52 @@ Die wichtigsten Mechaniken:
 • Pässe – dein Angriffsmodus steuert, wie oft nach vorne gespielt wird. Nur Vorwärtspässe können abgefangen werden, und stärkere Spieler sind schwerer abzufangen.
 • Karten – Gelbe und Rote Karten hängen vom Spielstil ab; aggressiv bedeutet mehr Karten (siehe Spieler und Taktik).
 
-Was die effektive Stärke eines Spielers verändert: Fitness, der Starspieler-Bonus (+10%), eine Motivationsrede (+10%), dein Kapitän, das Durchschnittsalter deiner Mannschaft (ideal 27, bis zu ±5%), dein Heimvorteil und ein kleiner Malus für Bot-Teams. Pokalspiele enden nie unentschieden – es wird verlängert, bis ein Tor fällt.
+Was die effektive Stärke eines Spielers verändert: Fitness, der Starspieler-Bonus (+10%), eine Motivationsrede (+10%), dein Kapitän, das Durchschnittsalter deiner Mannschaft (ideal 27, bis zu ±5%), dein Heimvorteil und ein kleiner Malus für Bot-Teams (siehe In-Game-Level für die vollständige Übersicht). Pokalspiele enden nie unentschieden – ist es nach 90 Minuten remis, folgt eine 30-minütige Verlängerung und, wenn immer noch gleich, ein Elfmeterschießen.
 
 Jedes Spiel speichert alle Details: Tore, Schüsse, Ballbesitz, Karten und die Aufstellungen, die du danach ansehen kannst.`
+    }
+  },
+
+  // ─── In-Game Level ──────────────────────────────────────────────────────
+  {
+    key: 'in-game-level',
+    en: {
+      title: 'In-Game Level',
+      subtitle: 'The player level actually used inside a match',
+      text: `Your players have a base level from 1 to 100. The level that actually enters the match simulation – the "in-game level" (shown as IG in the squad list of a match report) – is different: it is the base level multiplied by every strength modifier that applies to that match.
+
+Modifiers that raise or lower the in-game level:
+• Fitness (freshness): a player at 60% freshness plays at 60% of their level. Low fitness hurts a lot.
+• Star Player: permanent +10% for a player promoted with a Star Player card.
+• Motivating Speech: +10% for the whole team on the next match day only.
+• Captain: your captain's leadership adjusts the whole squad's strength (see Lineup).
+• Squad age: an average age near 27 gives up to +5%; too young or too old costs up to −5%.
+• Home advantage: a well-filled home stadium boosts the home side; an empty stadium is a small penalty.
+• Bot penalty: bot teams play at 90% of their nominal level.
+• Out-of-position substitute: a bench player forced into a slot outside their role group plays at 50% level.
+
+Where to see it:
+• After a match, the squad list shows each starter's base level ("Lvl") and their in-game level ("IG"). Green means the modifiers raised the level, red means they lowered it.
+• The lineup preview shows the effective strength you will bring to the pitch, based on the same modifiers (except Motivating Speech, which only applies the next match day).`
+    },
+    de: {
+      title: 'In-Game-Level',
+      subtitle: 'Das Spieler-Level, das wirklich ins Spiel geht',
+      text: `Deine Spieler haben ein Basis-Level von 1 bis 100. Das Level, das tatsächlich in die Spielberechnung geht – das "In-Game-Level" (in der Kaderliste des Spielberichts als "IG" angezeigt) – ist aber ein anderes: Es ist das Basis-Level multipliziert mit allen Modifikatoren, die auf dieses Spiel wirken.
+
+Was das In-Game-Level verändert:
+• Fitness (Frische): Ein Spieler mit 60% Frische spielt mit 60% seines Levels. Niedrige Fitness kostet richtig viel.
+• Starspieler: Dauerhafte +10% für einen mit einer Starspieler-Karte veredelten Spieler.
+• Motivationsrede: +10% für das ganze Team, aber nur am nächsten Spieltag.
+• Kapitän: Die Führungsstärke deines Kapitäns beeinflusst die gesamte Mannschaftsstärke (siehe Aufstellung).
+• Durchschnittsalter: Ein Schnitt um 27 gibt bis zu +5%; zu jung oder zu alt kostet bis zu −5%.
+• Heimvorteil: Ein gut gefülltes Heimstadion stärkt die Heimmannschaft; ein leeres Stadion ist ein kleiner Malus.
+• Bot-Malus: Bot-Teams spielen mit 90% ihres nominalen Levels.
+• Falsche Position: Ein Bank-Spieler, der in eine Position außerhalb seiner Rollen-Gruppe muss, spielt nur mit 50% Level.
+
+Wo du es siehst:
+• Nach jedem Spiel zeigt die Kaderliste für jeden Starter das Basis-Level ("Lvl") und das In-Game-Level ("IG"). Grün bedeutet, die Modifikatoren haben das Level angehoben, Rot bedeutet, sie haben es gesenkt.
+• Die Aufstellungs-Vorschau zeigt die effektive Stärke, mit der du aufs Feld gehst – basierend auf denselben Modifikatoren (außer der Motivationsrede, die erst am nächsten Spieltag greift).`
     }
   },
 
@@ -873,8 +922,8 @@ Denk daran: Dein Kader muss immer mindestens 14 Spieler haben – darunter kanns
       text: `At the end of every season each team receives a TV money payout based on where it finished in its league.
 
 How it is calculated:
-• Each league level has a base amount. The top division's base is 100,000 € and it halves every level below (50,000 € on level 2, 25,000 € on level 3, and so on).
-• Your payout is the base multiplied by how high you finished: the league winner earns the most, the bottom team the least.
+• Each league level has a base amount. The top division's base is 150,000 € and drops to 75% each level below (112,500 € on level 2, 84,375 € on level 3, and so on).
+• Your payout is base × (total teams − rank + 1): the league winner earns base × number of teams, the bottom team earns just the base once.
 • So both a strong final position and playing in a higher league increase your TV money.
 
 When it is paid:
@@ -887,8 +936,8 @@ When it is paid:
       text: `Am Ende jeder Saison erhält jedes Team eine TV-Geld-Auszahlung, die sich nach seiner Abschlussplatzierung in der Liga richtet.
 
 So wird sie berechnet:
-• Jede Liga-Stufe hat einen Basisbetrag. Die höchste Liga hat eine Basis von 100.000 €, und sie halbiert sich mit jeder Stufe darunter (50.000 € auf Stufe 2, 25.000 € auf Stufe 3 usw.).
-• Deine Auszahlung ist die Basis multipliziert mit deiner Platzierung: der Meister erhält am meisten, das Tabellenletzte am wenigsten.
+• Jede Liga-Stufe hat einen Basisbetrag. Die höchste Liga hat eine Basis von 150.000 €, jede Stufe darunter erhält 75% davon (112.500 € auf Stufe 2, 84.375 € auf Stufe 3 usw.).
+• Deine Auszahlung ist Basis × (Anzahl Teams − Platz + 1): Der Meister erhält Basis × Anzahl Teams, das Tabellenschlusslicht bekommt genau einmal die Basis.
 • Sowohl eine gute Abschlussplatzierung als auch eine höhere Liga erhöhen also dein TV-Geld.
 
 Wann es gezahlt wird:
