@@ -26,6 +26,7 @@ vi.mock('../../partials/levelBadge.js', () => ({
 }))
 
 import { PlayerListItem } from '../../partials/playerListItem.js'
+import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 
 describe('PlayerListItem', () => {
   beforeEach(() => {
@@ -117,12 +118,16 @@ describe('PlayerListItem', () => {
       expect(cells[1]).toContain('CM')
     })
 
-    it('includes ProgressBar placeholder for fitness cell', () => {
+    it('inlines the progress-bar HTML for the fitness cell so a row re-render does not briefly show an empty placeholder', () => {
       const player = testData.player({ freshness: 0.9 })
       const item = new PlayerListItem(player, 1)
 
-      // ProgressBar is a UIElement, rendered as a <template> placeholder
-      expect(item.cells[2]).toContain('<template id=')
+      // Rendered synchronously (no <template id=...> placeholder), because the
+      // PLAYER_UPDATED handler drives a full row re-render — a placeholder here
+      // would cause a one-frame flicker in the Fit cell.
+      expect(item.cells[2]).not.toContain('<template id=')
+      expect(item.cells[2]).toContain('class="progress progress--custom"')
+      expect(item.cells[2]).toContain('90%')
     })
   })
 
@@ -217,6 +222,265 @@ describe('PlayerListItem', () => {
 
       const html = item._renderCards(0, 0)
       expect(html).toBe('')
+    })
+  })
+
+  describe('NEW_SELL_TRADE_OFFER server event', () => {
+    it('updates only when the event payload matches the row\'s player id', () => {
+      const player = testData.player({ id: 42 })
+      const sellOfferPlayerIds = new Set()
+      const item = new PlayerListItem(player, 1, sellOfferPlayerIds)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.NEW_SELL_TRADE_OFFER.name]
+
+      // A different player's event must be ignored — no update, no set mutation.
+      handler({ playerId: 999 })
+      expect(updateSpy).not.toHaveBeenCalled()
+      expect(sellOfferPlayerIds.has(42)).toBe(false)
+
+      // Own-player event: mutates the shared set and calls update() (non-reload,
+      // because we already know the row now has an offer).
+      handler({ playerId: 42 })
+      expect(sellOfferPlayerIds.has(42)).toBe(true)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores payloads without a playerId', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.NEW_SELL_TRADE_OFFER.name]
+      handler(null)
+      handler({})
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('REMOVE_SELL_TRADE_OFFER server event', () => {
+    it('drops the row\'s player from the shared set and re-renders on match', () => {
+      const player = testData.player({ id: 42 })
+      const sellOfferPlayerIds = new Set([42, 99])
+      const item = new PlayerListItem(player, 1, sellOfferPlayerIds)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name]
+
+      // Event for a different player — no-op.
+      handler({ playerId: 99 })
+      expect(updateSpy).not.toHaveBeenCalled()
+      expect(sellOfferPlayerIds.has(42)).toBe(true)
+
+      // Own-player event — icon must disappear.
+      handler({ playerId: 42 })
+      expect(sellOfferPlayerIds.has(42)).toBe(false)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not re-render when the player never had a sell offer', () => {
+      const player = testData.player({ id: 42 })
+      const sellOfferPlayerIds = new Set() // no offer currently tracked
+      const item = new PlayerListItem(player, 1, sellOfferPlayerIds)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name]
+      handler({ playerId: 42 })
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('ignores payloads without a playerId', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1, new Set([42]))
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name]
+      handler(null)
+      handler({})
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('CAPTAIN_CHANGED server event', () => {
+    it('re-renders the outgoing captain\'s row so the (C) marker disappears', () => {
+      const player = testData.player({ id: 42 })
+      // This row is the current captain.
+      const item = new PlayerListItem(player, 1, new Set(), 42)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]
+      handler({ captainId: 99 })
+
+      expect(item.captainId).toBe(99)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('re-renders the incoming captain\'s row so the (C) marker appears', () => {
+      const player = testData.player({ id: 42 })
+      // Row currently not captain — captainId is someone else.
+      const item = new PlayerListItem(player, 1, new Set(), 99)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]
+      handler({ captainId: 42 })
+
+      expect(item.captainId).toBe(42)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for uninvolved rows (captain swap between two other players)', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1, new Set(), 99)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]
+      handler({ captainId: 100 }) // neither the old nor new captain is me
+
+      // captainId still tracked so a subsequent template render is consistent,
+      // but no re-render for this row.
+      expect(item.captainId).toBe(100)
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+
+    it('handles captain being cleared (captainId: null)', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1, new Set(), 42)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      const handler = item.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]
+      handler({ captainId: null })
+
+      expect(item.captainId).toBeNull()
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('BENCH_CHANGED server event', () => {
+    it('updates the incoming bench player row (bench_position + vacated lineup)', () => {
+      const player = testData.player({ id: 42, in_game_position: 'CM', bench_position: null })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42 }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(item.player.bench_position).toBe('BENCH_MID')
+      expect(item.player.in_game_position).toBe('')
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears bench_position on the displaced player row', () => {
+      const player = testData.player({ id: 55, bench_position: 'BENCH_MID' })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42 }),
+        displacedPlayerId: 55,
+        vacatedLineupPosition: null
+      })
+
+      expect(item.player.bench_position).toBeNull()
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for uninvolved rows', () => {
+      const player = testData.player({ id: 100 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 42 }),
+        displacedPlayerId: 55,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('LINEUP_PLAYER_CHANGED server event', () => {
+    it('sets in_game_position and clears bench_position when this player moved into the lineup', () => {
+      const player = testData.player({ id: 42, in_game_position: '', bench_position: 'BENCH_MID' })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 42 }) },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        freedBenchPosition: 'BENCH_MID'
+      })
+
+      expect(item.player.in_game_position).toBe('CM')
+      expect(item.player.bench_position).toBeNull()
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears in_game_position when this player was ejected from the lineup', () => {
+      const player = testData.player({ id: 42, in_game_position: 'CM' })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 99 }) },
+        ejectedPlayerId: 42,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(item.player.in_game_position).toBe('')
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for uninvolved rows', () => {
+      const player = testData.player({ id: 42 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 99 }) },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(updateSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('PLAYER_UPDATED server event (action-card stat changes)', () => {
+    it('patches level/freshness and re-renders the row when the event targets this player', () => {
+      const player = testData.player({ id: 42, level: 50, freshness: 0.2 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 42, level: 51, freshness: 1.0 })
+      })
+
+      expect(item.player.level).toBe(51)
+      expect(item.player.freshness).toBe(1.0)
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('is a no-op for other rows', () => {
+      const player = testData.player({ id: 42, level: 50 })
+      const item = new PlayerListItem(player, 1)
+      const updateSpy = vi.spyOn(item, 'update').mockImplementation(() => {})
+
+      item.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
+        player: testData.player({ id: 99, level: 80 })
+      })
+
+      expect(item.player.level).toBe(50)
+      expect(updateSpy).not.toHaveBeenCalled()
     })
   })
 })

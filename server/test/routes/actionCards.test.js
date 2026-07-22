@@ -26,9 +26,15 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: vi.fn().mockResolvedValue({ gameDay: 1, season: 1 })
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  sendToUser: vi.fn().mockReturnValue(true)
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getActionCards, playActionCard, getPendingActionCards, claimActionCard, generateYouthPlayerOptions } from '../../helper/actionCardHelper.js'
+import { sendToUser } from '../../lib/websocket.js'
+import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
 import handlers from '../../routes/actionCards.js'
 
 describe('actionCards routes', () => {
@@ -79,6 +85,19 @@ describe('actionCards routes', () => {
         played: 0,
         state: 'received'
       }))
+    })
+
+    it('emits ACTION_CARDS_CHANGED after a successful merge', async () => {
+      const team = testData.team({ user_id: 77 })
+      const card1 = testData.actionCard({ id: 1, action: 'LEVEL_UP_PLAYER_40' })
+      const card2 = testData.actionCard({ id: 2, action: 'LEVEL_UP_PLAYER_40' })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({ insertId: 99 })
+
+      await handlers.mergeCards(card1, card2, createMockRequest())
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
     })
 
     it('merges two LEVEL_UP_PLAYER_70 cards into LEVEL_UP_PLAYER_100', async () => {
@@ -216,6 +235,32 @@ describe('actionCards routes', () => {
       )
     })
 
+    it('emits ACTION_CARDS_CHANGED to the team owner so the dashboard view refetches', async () => {
+      const team = testData.team({ user_id: 77 })
+      const actionCard = testData.actionCard()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue([actionCard])
+      playActionCard.mockResolvedValue()
+
+      await handlers.useActionCard(actionCard, testData.player(), null, createMockRequest())
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
+    })
+
+    it('skips the websocket for teams without a user (bot teams)', async () => {
+      const team = testData.team({ user_id: null })
+      const actionCard = testData.actionCard()
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue([actionCard])
+      playActionCard.mockResolvedValue()
+
+      await handlers.useActionCard(actionCard, testData.player(), null, createMockRequest())
+
+      expect(sendToUser).not.toHaveBeenCalled()
+    })
+
     it('queries with state=received filter', async () => {
       const team = testData.team()
       const actionCard = testData.actionCard({ id: 5 })
@@ -299,6 +344,17 @@ describe('actionCards routes', () => {
 
       expect(result).toEqual({ success: true, card: claimedCard })
       expect(claimActionCard).toHaveBeenCalledWith(10, team.id)
+    })
+
+    it('emits ACTION_CARDS_CHANGED so the dashboard view refetches after the pending → received flip', async () => {
+      const team = testData.team({ user_id: 77 })
+
+      getTeam.mockResolvedValue(team)
+      claimActionCard.mockResolvedValue(testData.actionCard({ id: 10, state: 'received' }))
+
+      await handlers.claimActionCard(10, createMockRequest())
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
     })
 
     it('throws error when not authenticated', async () => {

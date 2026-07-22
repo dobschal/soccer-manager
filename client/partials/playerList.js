@@ -6,6 +6,7 @@ import { Table } from './table.js'
 import { t } from '../i18n/index.js'
 import { getQueryParams, setQueryParams } from '../lib/router.js'
 import { el } from '../lib/html.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
 
 export class PlayerList extends UIElement {
   /**
@@ -96,12 +97,32 @@ export class PlayerList extends UIElement {
     }
   }
   /**
-   * Server events to listen for
+   * Individual per-row concerns (sell-offer icon, (C) captain marker, row
+   * highlight for bench / lineup / danger) are handled by each PlayerListItem
+   * off its own subscriptions. What this list owns is the *order* of the
+   * rows: lineup players first, then bench players, then everyone else.
+   * A lineup swap or bench pick can move a player between those buckets, so
+   * after such an event we re-sort the underlying array and shuffle the
+   * existing `<tr>` nodes in place — a full `update()` would tear down the
+   * table and briefly leave it empty (visible flicker).
+   *
    * @returns {Record<string, (data: any) => void>}
    */
   get serverEvents () {
     return {
-      NEW_SELL_TRADE_OFFER: () => this.update(true)
+      [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: () => {
+        this._reorderByPosition()
+      },
+      [SERVER_EVENTS.BENCH_CHANGED.name]: () => {
+        this._reorderByPosition()
+      },
+      [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
+        // Sort doesn't change with the captain, but the (C) marker used by
+        // freshly-mounted items after a subsequent re-render is read from
+        // `this.captainId` — keep it fresh so a later LINEUP_PLAYER_CHANGED
+        // that DOES trigger a re-render draws the badge correctly.
+        this.captainId = data?.captainId ?? null
+      }
     }
   }
   /**
@@ -114,6 +135,29 @@ export class PlayerList extends UIElement {
     if (!toolbar) return
     toolbar.classList.toggle('hidden', !PlayerList._isSortActive())
   }
+  /**
+   * Re-sort `this.players` by position and reorder the existing `<tr>` nodes
+   * in the tbody to match — no re-render, no flicker. Skipped when a URL sort
+   * is active because the sortable columns (name/level/age/…) aren't affected
+   * by lineup or bench changes, so the DOM order is already correct; mutating
+   * `this.players` here would clobber the URL-sort order.
+   * @returns {void}
+   * @private
+   */
+  _reorderByPosition () {
+    if (this.useUrlSort && PlayerList._isSortActive()) return
+    this.players.sort(sortByPosition)
+    const root = el(this._elementQuery)
+    const tbody = root?.querySelector('tbody')
+    if (!tbody) return
+    const fragment = document.createDocumentFragment()
+    for (const player of this.players) {
+      const tr = tbody.querySelector(`tr[data-player-id="${player.id}"]`)
+      if (tr) fragment.appendChild(tr)
+    }
+    tbody.appendChild(fragment)
+  }
+  
   /**
    * @returns {boolean}
    * @private
@@ -206,9 +250,10 @@ export class PlayerList extends UIElement {
         }
       ],
       data: this.players,
-      renderRow: (player) => this._buildItem(player).cells,
-      rowClass: (player) => this._buildItem(player).rowClass,
-      rowAttrs: (player) => `data-player-id="${player.id}"`,
+      // Each row is a full UIElement so it can subscribe to server events
+      // (NEW_SELL_TRADE_OFFER etc.) and refresh atomically without redrawing
+      // the whole table.
+      rowElement: (player) => this._buildItem(player),
       onClick: (player) => {
         if (typeof this.onClickHandler === 'function') {
           this.onClickHandler(player)

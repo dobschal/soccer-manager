@@ -22,7 +22,7 @@ export class GameLayout extends UIElement {
   /**
    * @returns {Promise<void>}
    */
-  async load () {
+  async load() {
     const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
     const [gameDate, versionData, currentGameday, teamData, newMessageResponse] = await Promise.all([
       server.getNextGameDate(),

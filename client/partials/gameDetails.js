@@ -227,14 +227,24 @@ export class GameDetails extends UIElement {
     const team1Emblem = renderEmblem(team1, 20)
     const team2Emblem = renderEmblem(team2, 20)
 
-    const extraTimeLabel = details.extraTime ? ' <small class="text-warning">(E.T.)</small>' : ''
+    const penaltyShootout = details.penaltyShootout
+    const decidedByLabel = penaltyShootout
+      ? ' <small class="text-warning">(i.E.)</small>'
+      : (details.extraTime ? ' <small class="text-warning">(n.V.)</small>' : '')
 
     const statsRows = [
       {
-        label: `Goals${extraTimeLabel}`,
+        label: `Goals${decidedByLabel}`,
         valA: game.goalsTeam1,
         valB: game.goalsTeam2
       },
+      ...(penaltyShootout
+        ? [{
+          label: 'Penalties',
+          valA: penaltyShootout.goalsTeamA,
+          valB: penaltyShootout.goalsTeamB
+        }]
+        : []),
       {
         label: 'Control',
         valA: `${Math.floor(ballControllA / total * 100)}%`,

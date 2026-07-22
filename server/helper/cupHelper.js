@@ -791,6 +791,13 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
     }
   }
 
+  // Pick the right message key based on how the match was decided:
+  // penalty shootout > extra time > regular.
+  const penalties = gameDetails.penaltyShootout
+  const extraTime = gameDetails.extraTime
+  const winKey = penalties ? 'log.cupMatchWinPenalties' : extraTime ? 'log.cupMatchWinExtraTime' : 'log.cupMatchWin'
+  const lossKey = penalties ? 'log.cupMatchLossPenalties' : extraTime ? 'log.cupMatchLossExtraTime' : 'log.cupMatchLoss'
+
   // Send messages to team owners
   for (const [team, isTeam1] of [[team1, true], [team2, false]]) {
     if (!team.user_id) continue
@@ -801,13 +808,21 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
     const opponent = isTeam1 ? team2.name : team1.name
     const won = isTeam1 ? team1Won : !team1Won
 
+    const params = {
+      opponent,
+      goalsFor: myGoals,
+      goalsAgainst: theirGoals
+    }
+    if (penalties) {
+      params.penaltiesFor = isTeam1 ? penalties.goalsTeamA : penalties.goalsTeamB
+      params.penaltiesAgainst = isTeam1 ? penalties.goalsTeamB : penalties.goalsTeamA
+    }
+
     if (isDraw) {
+      // Should not happen — extra time + penalties always produce a winner.
+      // Keep this as a safety fallback so a malformed game still surfaces something.
       await addLogMessage(
-        t('log.cupMatchDraw', {
-          opponent,
-          goalsFor: myGoals,
-          goalsAgainst: theirGoals
-        }, locale),
+        t('log.cupMatchDraw', params, locale),
         team,
         'OPEN_GAME',
         game.id,
@@ -817,12 +832,7 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
       )
     } else if (won) {
       await addLogMessage(
-        t('log.cupMatchWin', {
-          opponent,
-          goalsFor: myGoals,
-          goalsAgainst: theirGoals,
-          prize: roundPrize.toLocaleString() + '€'
-        }, locale),
+        t(winKey, { ...params, prize: roundPrize.toLocaleString() + '€' }, locale),
         team,
         'OPEN_GAME',
         game.id,
@@ -832,11 +842,7 @@ export async function sendCupMatchLogMessages (game, gameDetails) {
       )
     } else {
       await addLogMessage(
-        t('log.cupMatchLoss', {
-          opponent,
-          goalsFor: myGoals,
-          goalsAgainst: theirGoals
-        }, locale),
+        t(lossKey, params, locale),
         team,
         'OPEN_GAME',
         game.id,

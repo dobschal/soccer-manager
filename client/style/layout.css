@@ -46,6 +46,10 @@
     color: white;
 }
 
+.navbar .navbar-brand {
+    font-family: 'Carter One', sans-serif;
+}
+
 .navbar.navbar-dark .nav-link:hover {
     color: rgba(255, 255, 255, 0.8);
 }

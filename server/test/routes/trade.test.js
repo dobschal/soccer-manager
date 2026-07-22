@@ -476,6 +476,9 @@ describe('trade routes', () => {
       const offer = testData.tradeOffer({ from_team_id: team.id })
 
       getTeam.mockResolvedValue(team)
+      // cancelOffer now first SELECTs the offer to grab player_id + type for
+      // the follow-up websocket notification, then DELETEs it.
+      query.mockResolvedValueOnce([{ player_id: offer.player_id, type: 'buy' }])
       query.mockResolvedValue({})
 
       const req = createMockRequest()

@@ -150,6 +150,7 @@ export function getQueryParams () {
 
 let currentLayoutRenderFn
 let _pageSettledTimer
+let _initialLoaderRemoved = false
 
 /**
  * @param {string|undefined} fromPath
@@ -322,6 +323,10 @@ async function _resolvePage () {
   })
   const previousKey = lastKey
   lastKey = currentKey
+  if (!_initialLoaderRemoved) {
+    _initialLoaderRemoved = true
+    document.getElementById('initial-loading-ball')?.remove()
+  }
   const layoutChanged = await _renderLayout(layoutRenderFn)
 
   if (layoutChanged) {

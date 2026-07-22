@@ -16,7 +16,14 @@ import { getQueryParams, setQueryParams } from '../lib/router.js'
 /**
  * @typedef {object} TableConfig
  * @property {Array<TableHeadCellConfig>} cols
- * @property {(data: object, rowIndex: number) => Array<string>} renderRow
+ * @property {(data: object, rowIndex: number) => Array<string>} [renderRow] -
+ *   Cell-array renderer (legacy mode). Ignored when `rowElement` is set.
+ * @property {(data: object, rowIndex: number) => import('../lib/UIElement.js').UIElement} [rowElement] -
+ *   Alternative to `renderRow`. Return a UIElement whose template is a `<tr>`;
+ *   the table embeds the element's renderSync placeholder into `<tbody>` so
+ *   each row owns its own DOM subtree and can subscribe to server events for
+ *   atomic per-row updates. When set, `renderRow`, `rowClass` and `rowAttrs`
+ *   are ignored (the row element renders its own `<tr>` attributes).
  * @property {Array<object>} data
  * @property {(dataItem: object, rowIndex: number) => void} [onClick]
  * @property {(dataItem: object, rowIndex: number) => string} [rowClass]
@@ -226,6 +233,15 @@ export class Table extends UIElement {
    * @returns {string}
    */
   _renderTableRows () {
+    // rowElement mode: each row is its own UIElement owning a <tr>. The
+    // element's renderSync placeholder gets embedded into <tbody>; the element
+    // then swaps itself in asynchronously and can subscribe to server events
+    // for atomic per-row updates without disturbing the surrounding table.
+    if (typeof this.config.rowElement === 'function') {
+      return this.config.data
+        .map((item, rowIndex) => this.config.rowElement(item, rowIndex).renderSync())
+        .join('')
+    }
     return this.config.data
       .map((item, rowIndex) => {
         const rowContent = this.config.renderRow(item, rowIndex)

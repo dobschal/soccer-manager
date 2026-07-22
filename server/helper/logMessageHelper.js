@@ -15,9 +15,13 @@ const VALID_TYPES = ['info', 'success', 'warning', 'danger']
  * @param {string} [icon] - Font Awesome icon name (e.g., 'trophy', 'money', 'user')
  * @param {string} [event] - WebSocket event to send to the user (e.g., 'NEW_LOG_MESSAGE')
  * @param {string} [type] - 'info' (default), 'success', 'warning', 'danger'
+ * @param {Object} [eventData] - Extra fields merged into the websocket payload
+ *   on top of the default `{ message, action, actionValue, icon, type }`. Use
+ *   for event-specific keys like `playerId` that let a UIElement subscriber
+ *   filter to just the entity it renders.
  * @returns {Promise<void>}
  */
-export async function addLogMessage (message, team, action, actionValue, icon, event, type = 'info') {
+export async function addLogMessage (message, team, action, actionValue, icon, event, type = 'info', eventData = {}) {
   const { gameDay, season } = await getGameDayAndSeason()
   const data = {
     message,
@@ -40,7 +44,7 @@ export async function addLogMessage (message, team, action, actionValue, icon, e
 
   // Send WebSocket event if specified and team has a user
   if (event && team.user_id) {
-    sendToUser(team.user_id, event, { message, action, actionValue, icon, type: data.type })
+    sendToUser(team.user_id, event, { message, action, actionValue, icon, type: data.type, ...eventData })
   }
 }
 

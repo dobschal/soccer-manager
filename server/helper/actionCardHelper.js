@@ -10,6 +10,8 @@ import { createYouthPlayer } from './youthPlayerHelper.js'
 import { randomItem } from '../lib/util.js'
 import { Position } from '../../client/util/formation.js'
 import { generateRandomPlayerName } from '../prepare-season.js'
+import { sendToUser } from '../lib/websocket.js'
+import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 
 // Probabilities per game day (34 game days per season)
 // Note: 2x LEVEL_UP_40 can merge into 1x LEVEL_UP_70, and 2x LEVEL_UP_70 into 1x LEVEL_UP_100
@@ -192,6 +194,7 @@ export async function playActionCard ({
     player.freshness = Math.min(1.0, player.freshness + freshnessValues[actionCard.action])
     await query('UPDATE player SET freshness=? WHERE id=?', [player.freshness, player.id])
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
+    await _emitPlayerUpdated(team, player.id)
     return { success: true }
   }
   const levelUpCaps = {
@@ -228,6 +231,7 @@ export async function playActionCard ({
       level: player.level
     }, locale), team, null, null, 'level-up', undefined, 'success')
     await addPlayerHistory(player.id, 'LEVEL_UP', player.level)
+    await _emitPlayerUpdated(team, player.id)
     return { success: true }
   }
   if (actionCard.action in YOUTH_PLAYER_CARD_RANGES) {
@@ -250,6 +254,7 @@ export async function playActionCard ({
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardStarPlayer', { playerName: player.name }, locale), team, null, null, 'star', undefined, 'success')
     await addPlayerHistory(player.id, 'STAR_PLAYER', '1')
+    await _emitPlayerUpdated(team, player.id)
     return { success: true }
   }
   if (actionCard.action === 'BONUS_100K') {
@@ -273,6 +278,23 @@ export async function playActionCard ({
     return { success: true }
   }
   throw new BadRequestError(t('error.invalidCardAction', {}, locale))
+}
+
+/**
+ * Push a fresh copy of the player to the owning user so every UI that shows
+ * the player (list rows, lineup tiles, open modal, strength overlay) can
+ * update itself off the event — no callback chain, no full-team refetch.
+ * No-op when the team has no user (bot teams).
+ * @param {TeamType} team
+ * @param {number} playerId
+ * @returns {Promise<void>}
+ * @private
+ */
+async function _emitPlayerUpdated (team, playerId) {
+  if (!team.user_id) return
+  const fresh = await getPlayerById(playerId)
+  if (!fresh) return
+  sendToUser(team.user_id, SERVER_EVENTS.PLAYER_UPDATED.name, { player: fresh })
 }
 
 /**

@@ -29,3 +29,11 @@
   font-display: swap;
   src: url(fonts/shantell-sans-variable.woff2) format('woff2-variations');
 }
+
+@font-face {
+  font-family: 'Carter One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/carter-one-400.woff2) format('woff2');
+}

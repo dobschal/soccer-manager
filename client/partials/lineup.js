@@ -9,9 +9,203 @@ import { deepCopy } from '../lib/deepCopy.js'
 import { renderLevelBadge } from './levelBadge.js'
 import { fire } from '../lib/event.js'
 import { t } from '../i18n/index.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
+import { el } from '../lib/html.js'
 
-export const lineUpData = {
-  squadDataChanged: false
+// Same-position slot offsets that used to be applied post-mount via
+// _applyPositionHacks. Precomputing at render time lets each SquadPlayer own
+// its own `--lineup-offset` style and stay independent of when the others
+// mount, so an atomic re-render of a single tile doesn't disturb neighbors.
+const SIDE_BY_SIDE_OFFSETS = {
+  2: ['38%', '62%'],
+  3: ['32%', '50%', '68%']
+}
+const SIDE_BY_SIDE_POSITIONS = new Set(['CM', 'CD', 'DM'])
+
+/**
+ * One tile on the lineup pitch. Owns its own `<div class="player">` so it can
+ * subscribe to `CAPTAIN_CHANGED` and swap the captain badge in place, without
+ * forcing the whole Lineup to re-render (which would tear down every other
+ * tile's player image and click state).
+ */
+export class SquadPlayer extends UIElement {
+  /**
+   * @param {PlayerType & { fake?: boolean }} player
+   * @param {TeamType} team - Shared reference; the captain field is kept in sync by Lineup.
+   * @param {string} lineupOffset - Precomputed CSS value for `--lineup-offset`
+   *   when multiple players share the same in_game_position, or '' if none.
+   * @param {number} slotOrdinal - Ordinal (0..N-1) among same-slot tiles.
+   *   Used to disambiguate multi-tile slots (CD/CM/DM) so the click handler
+   *   and LINEUP_PLAYER_CHANGED filter can address a specific tile even when
+   *   the slot name is shared.
+   */
+  constructor (player, team, lineupOffset = '', slotOrdinal = 0) {
+    super()
+    this.player = player
+    this.team = team
+    this.lineupOffset = lineupOffset
+    this.slotOrdinal = slotOrdinal
+    // Freeze the slot at construction time. Handlers on Lineup / other
+    // sources may mutate `player.in_game_position` (same shared reference),
+    // but the tile's physical slot on the pitch never moves — using a
+    // separate field keeps rendering and event filtering consistent.
+    this.slot = player.in_game_position
+    this._isCaptain = !player.fake && player.id === team.captain_id
+  }
+
+  /**
+   * @returns {string}
+   */
+  get template () {
+    const player = this.player
+    const freshnessPercentage = Math.round(player.freshness * 100)
+    const freshnessClass = freshnessPercentage >= 80
+      ? 'freshness-success'
+      : freshnessPercentage >= 60
+        ? 'freshness-warning'
+        : freshnessPercentage >= 40
+          ? 'freshness-orange'
+          : 'freshness-danger'
+    const displayName = player.name.includes(' ')
+      ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
+      : player.name
+    // Use player ID for real players, or 'fake-{slot}-{ordinal}' for empty
+    // slots. Including the ordinal keeps each fake tile distinguishable when
+    // the formation has more than one slot at the same position (e.g. 2 CDs).
+    const playerId = player.fake ? `fake-${this.slot}-${this.slotOrdinal}` : player.id
+    const isSuspended = player.is_suspended
+    const isInjured = player.is_injured
+    const inlineStyles = [
+      (isSuspended || isInjured) ? 'opacity: 0.5; filter: grayscale(100%);' : '',
+      this.lineupOffset ? `--lineup-offset: ${this.lineupOffset};` : ''
+    ].filter(Boolean).join(' ')
+
+    // `player.position` is the natural position; `this.slot` is where they're
+    // fielded. Compare the two for the out-of-position red ring.
+    const isOutOfPosition = !player.fake && player.position !== this.slot
+    const badgeClass = `position-badge ${this.slot}${isOutOfPosition ? ' is-wrong-position' : ''}`
+
+    return `
+      <div class="player ${this.slot}" data-player-id="${playerId}" style="${inlineStyles}">
+        <span class="${badgeClass}">${this.slot}</span>
+        <span class="freshness-badge ${freshnessClass}">
+            ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
+        </span>
+        <span class="name">${isSuspended ? '🚫 ' : ''}${isInjured ? '<i class="fa fa-medkit"></i> ' : ''}${displayName}</span>
+        ${renderLevelBadge(player.level, { size: 'lg' })}
+      </div>
+    `
+  }
+  /**
+   * The captain badge is baked into the player image, so a captain change on
+   * this tile has to fully re-render the tile (template + image reload). A
+   * change that doesn't touch this tile (a different player became captain)
+   * is a no-op — its own SquadPlayer handles the incoming badge separately.
+   *
+   * `BENCH_CHANGED` handles the case where the tile's player was moved to the
+   * bench — the tile turns into a fake placeholder in place, so the pitch
+   * still shows the slot but with the empty-slot layout.
+   *
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
+        if (this.player.fake) return
+        const nowCaptain = (data?.captainId ?? null) === this.player.id
+        if (this._isCaptain === nowCaptain) return
+        this._isCaptain = nowCaptain
+        this.update()
+      },
+      [SERVER_EVENTS.BENCH_CHANGED.name]: (data) => {
+        if (this.player.fake) return
+        if (data?.player?.id !== this.player.id) return
+        if (!data.vacatedLineupPosition) return
+        // My player just got moved from the lineup to the bench — turn this
+        // tile into a fake placeholder for the slot we own.
+        this.player = this._buildFakePlayer()
+        this._isCaptain = false
+        this.update()
+      },
+      [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: (data) => {
+        if (!data) return
+        // Which tile at MY slot got replaced? The position key alone is
+        // ambiguous when the formation has more than one tile at the same
+        // slot (2 CDs / 3 CMs), so we filter on the outgoing tile identity
+        // the server echoed in `replacements[this.slot]`. `this.slot` is
+        // frozen in the constructor and can't drift even if Lineup's handler
+        // (which fires first) already mutated the shared player object's
+        // in_game_position.
+        const replacement = data.replacements?.[this.slot]
+        const newOccupant = data.slots?.[this.slot] ?? null
+        if (replacement && newOccupant) {
+          const isMe = this.player.fake
+            ? replacement.previousFakeSlotIndex === this.slotOrdinal
+            : replacement.previousPlayerId === this.player.id
+          if (!isMe) return
+          if (!this.player.fake && this.player.id === newOccupant.id) return
+          this.player = newOccupant
+          this._isCaptain = !newOccupant.fake && newOccupant.id === this.team.captain_id
+          this.update()
+          return
+        }
+        // No new occupant for me. Two remaining reasons to turn into a fake:
+        // my player was ejected from the lineup, or the swap emptied my slot
+        // (the picked player used to sit on THIS specific tile and no one
+        // replaced them — matched by `emptiedTilePlayerId`, not just slot).
+        if (this.player.fake) return
+        const wasEjected = data.ejectedPlayerId === this.player.id
+        const wasEmptied = data.emptiedSlot === this.slot &&
+          data.emptiedTilePlayerId === this.player.id
+        if (!wasEjected && !wasEmptied) return
+        this.player = this._buildFakePlayer()
+        this._isCaptain = false
+        this.update()
+      },
+      // Action-card driven stat changes (freshness/level/star). Freshness
+      // colours the freshness badge, level drives the level badge — a plain
+      // update() picks it all up. Fakes have no id to match, so they skip.
+      [SERVER_EVENTS.PLAYER_UPDATED.name]: (data) => {
+        if (this.player.fake) return
+        if (data?.player?.id !== this.player.id) return
+        Object.assign(this.player, data.player)
+        this.update()
+      }
+    }
+  }
+
+  onMounted () {
+    this._loadImage()
+  }
+  onUpdate () {
+    this._loadImage()
+  }
+  /**
+   * @returns {object}
+   * @private
+   */
+  _buildFakePlayer () {
+    return {
+      fake: true,
+      in_game_position: this.slot,
+      position: this.slot,
+      level: 0,
+      name: '-'
+    }
+  }
+
+  /**
+   * @private
+   */
+  _loadImage () {
+    if (this.player.fake) return
+    renderPlayerImage(this.player, this.team, 100, { isCaptain: this._isCaptain }).then(image => {
+      const el = document.querySelector(this._elementQuery)
+      // The image is prepended to the tile div; onUpdate() replaces the div
+      // wholesale, so we don't have to strip a stale image first.
+      el?.insertAdjacentHTML('afterbegin', image)
+    })
+  }
 }
 
 export class Lineup extends UIElement {
@@ -40,12 +234,16 @@ export class Lineup extends UIElement {
     const lineupStrength = this.players
       .filter(p => p.in_game_position && !p.fake)
       .reduce((sum, p) => sum + p.level, 0)
+    const offsets = this._computeLineupOffsets()
+    const ordinals = this._computeSlotOrdinals()
     return `
       <div class="lineup-container">
         <div class="card bg-dark lineup-pitch">
           <div class="squad card-body">
             <span class="lineup-strength-overlay">${lineupStrength}</span>
-            ${this.players.filter(p => p.in_game_position).map(p => this._renderSquadPlayer(p)).join('')}
+            ${this.players.filter(p => p.in_game_position).map(p =>
+    `${new SquadPlayer(p, this.team, offsets.get(p) ?? '', ordinals.get(p) ?? 0)}`
+  ).join('')}
           </div>
         </div>
       </div>
@@ -63,9 +261,22 @@ export class Lineup extends UIElement {
           if (!playerEl) return
 
           const playerId = playerEl.dataset.playerId
-          const player = playerId.startsWith('fake-')
-            ? this.players.find(p => p.fake && p.in_game_position === playerId.replace('fake-', ''))
-            : this.players.find(p => p.id === Number(playerId))
+          // Fake tiles carry `fake-{slot}-{ordinal}` so we can tell same-slot
+          // fakes apart. Real players carry a numeric id.
+          let player
+          let fakeSlotIndex = null
+          if (playerId.startsWith('fake-')) {
+            const match = playerId.match(/^fake-(.+)-(\d+)$/)
+            if (!match) return
+            const slot = match[1]
+            fakeSlotIndex = Number(match[2])
+            // Any fake at that slot works for the overlay filter — they're
+            // placeholders. The specific tile identity is carried by
+            // fakeSlotIndex, which we send to the server.
+            player = this.players.find(p => p.fake && p.in_game_position === slot)
+          } else {
+            player = this.players.find(p => p.id === Number(playerId))
+          }
 
           if (player) {
             // Matching-position players excluding suspended/injured/fake
@@ -80,8 +291,7 @@ export class Lineup extends UIElement {
               `${new SelectPlayerOverlay(
                 player,
                 availablePlayers,
-                newPlayer => this._exchangePlayer(player, newPlayer),
-                () => this._refreshAfterActionCard(),
+                newPlayer => this._exchangePlayer(player, newPlayer, fakeSlotIndex),
                 allPlayers
               )}`
             )
@@ -91,15 +301,80 @@ export class Lineup extends UIElement {
     }
   }
 
-  onMounted () {
-    this._applyPositionHacks()
-    this._loadPlayerImages()
-    void this._autoCleanupIfNeeded()
+  /**
+   * Keep local state in sync with server events without re-rendering the
+   * whole lineup. Each SquadPlayer handles the visible change atomically —
+   * Lineup only tracks the shared array so its click handler (which needs to
+   * know the current squad shape) stays correct.
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
+        this.team.captain_id = data?.captainId ?? null
+      },
+      [SERVER_EVENTS.BENCH_CHANGED.name]: (data) => {
+        if (!data?.player || !data.vacatedLineupPosition) return
+        // Player moved lineup → bench. Update local players so the click
+        // handler builds the right swap-list next time. SquadPlayer tiles
+        // handle the visual re-render themselves.
+        const player = this.players.find(p => !p.fake && p.id === data.player.id)
+        if (!player) return
+        player.in_game_position = ''
+        player.bench_position = data.benchPosition
+        // Insert a fake placeholder for the freshly-vacated slot so a later
+        // click on that empty tile still resolves to something in the
+        // players array (the click handler looks up fakes by position).
+        this.players.push({
+          fake: true,
+          in_game_position: data.vacatedLineupPosition,
+          position: data.vacatedLineupPosition,
+          level: 0,
+          name: '-'
+        })
+      },
+      [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: (data) => {
+        if (!data) return
+        // Apply new slot assignments to the real player objects. Each
+        // SquadPlayer replaces its own `this.player` ref off the event too,
+        // so this mutation stays isolated to Lineup's `this.players` array
+        // — no shared-ref races with tiles.
+        Object.entries(data.slots ?? {}).forEach(([slot, playerData]) => {
+          const p = this.players.find(x => !x.fake && x.id === playerData.id)
+          if (!p) return
+          p.in_game_position = slot
+          p.bench_position = null
+        })
+        if (data.ejectedPlayerId) {
+          const ejected = this.players.find(p => !p.fake && p.id === data.ejectedPlayerId)
+          if (ejected) ejected.in_game_position = ''
+        }
+        // `emptiedSlot` is a swap-with-empty case: the picked player was in
+        // the lineup and their old slot has no new occupant. The player
+        // object already has its new slot set via the loop above, so we
+        // just rebuild fakes to add a placeholder for the emptied slot.
+        this._rebuildFakes()
+      },
+      // Action-card driven stat change. Each SquadPlayer refreshes its own
+      // freshness/level badges off the same event; Lineup only owns the
+      // strength-overlay, so it patches that in place. Doing this here
+      // (instead of a full update()) avoids re-creating every tile.
+      [SERVER_EVENTS.PLAYER_UPDATED.name]: (data) => {
+        if (!data?.player) return
+        const p = this.players.find(x => !x.fake && x.id === data.player.id)
+        if (!p) return
+        Object.assign(p, data.player)
+        const strengthEl = el(`${this._elementQuery} .lineup-strength-overlay`)
+        if (!strengthEl) return
+        strengthEl.textContent = this.players
+          .filter(x => x.in_game_position && !x.fake)
+          .reduce((sum, x) => sum + x.level, 0)
+      }
+    }
   }
 
-  onUpdate () {
-    this._applyPositionHacks()
-    this._loadPlayerImages()
+  onMounted () {
+    void this._autoCleanupIfNeeded()
   }
 
   _overlay = null
@@ -181,7 +456,6 @@ export class Lineup extends UIElement {
         }))
       await server.saveBench(benchData)
       toast('Lineup saved.', 'success')
-      lineUpData.squadDataChanged = false
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
@@ -189,119 +463,106 @@ export class Lineup extends UIElement {
   }
 
   /**
-   * @returns {void}
+   * Precompute `--lineup-offset` values for positions where the current
+   * formation puts multiple players side-by-side (CM/CD/DM). Handing the
+   * value to each SquadPlayer as a constructor arg lets each tile own its own
+   * inline style — no post-mount DOM sweep needed, so an atomic re-render of
+   * one tile can't disturb the offsets of its neighbors.
+   * @returns {Map<PlayerType, string>}
    */
-  _applyPositionHacks () {
-    // Sets --lineup-offset so CSS can map it to `left` in portrait or `top` in landscape.
-    ['.player.CM', '.player.CD', '.player.DM'].forEach(positionClass => {
-      const elements = document.querySelectorAll(`${this._elementQuery} .squad ${positionClass}`)
-      if (elements.length === 2) {
-        elements.item(0).style.setProperty('--lineup-offset', '38%')
-        elements.item(1).style.setProperty('--lineup-offset', '62%')
-      }
-      if (elements.length === 3) {
-        elements.item(0).style.setProperty('--lineup-offset', '32%')
-        elements.item(1).style.setProperty('--lineup-offset', '50%')
-        elements.item(2).style.setProperty('--lineup-offset', '68%')
-      }
-    })
+  _computeLineupOffsets () {
+    const offsets = new Map()
+    const byPosition = new Map()
+    for (const player of this.players.filter(p => p.in_game_position)) {
+      if (!SIDE_BY_SIDE_POSITIONS.has(player.in_game_position)) continue
+      if (!byPosition.has(player.in_game_position)) byPosition.set(player.in_game_position, [])
+      byPosition.get(player.in_game_position).push(player)
+    }
+    for (const players of byPosition.values()) {
+      const layout = SIDE_BY_SIDE_OFFSETS[players.length]
+      if (!layout) continue
+      players.forEach((player, i) => offsets.set(player, layout[i]))
+    }
+    return offsets
   }
 
   /**
-   * @returns {void}
+   * Assign each rendered tile an ordinal within its position (0..N-1). Used
+   * to give same-slot SquadPlayer instances a stable identity so click
+   * routing and LINEUP_PLAYER_CHANGED can address a specific tile even when
+   * the slot name (e.g. 'CD') is shared by multiple tiles.
+   * @returns {Map<PlayerType, number>}
    */
-  _loadPlayerImages () {
-    const captainId = this.team.captain_id
-    this.players.filter(p => p.in_game_position).forEach((player) => {
-      const isCaptain = !player.fake && player.id === captainId
-      renderPlayerImage(player, this.team, 100, { isCaptain }).then(image => {
-        const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
-        const playerEl = document.querySelector(`${this._elementQuery} .squad .player[data-player-id="${playerId}"]`)
-        playerEl?.insertAdjacentHTML('afterbegin', image)
+  _computeSlotOrdinals () {
+    const ordinals = new Map()
+    const counters = new Map()
+    for (const player of this.players.filter(p => p.in_game_position)) {
+      const idx = counters.get(player.in_game_position) ?? 0
+      counters.set(player.in_game_position, idx + 1)
+      ordinals.set(player, idx)
+    }
+    return ordinals
+  }
+
+  /**
+   * Drop all fake placeholders and add a fresh set for whatever formation
+   * slots are still unfilled. Called by handlers that reshape `this.players`
+   * without re-rendering the whole Lineup (BENCH_CHANGED, LINEUP_PLAYER_CHANGED)
+   * so the click router still finds a valid entry for every empty tile.
+   * @private
+   */
+  _rebuildFakes () {
+    this.players = this.players.filter(p => !p.fake)
+    const slots = getPositionsOfFormation(this.team.formation)
+    this.players.filter(p => p.in_game_position).forEach(p => {
+      const index = slots.findIndex(po => po === p.in_game_position)
+      if (index !== -1) slots.splice(index, 1)
+    })
+    slots.forEach(position => {
+      this.players.push({
+        fake: true,
+        in_game_position: position,
+        position,
+        level: 0,
+        name: '-'
       })
     })
   }
 
   /**
-   * After an action card has been applied to a player from inside the overlay,
-   * refetch the team so updated player stats (freshness/level) flow back into
-   * the parent component and the lineup re-renders. The overlay stays open so
-   * the user can apply additional cards to the same player; returning the
-   * refreshed roster lets the overlay re-point its own player references at
-   * the fresh objects before re-rendering.
-   * @returns {Promise<{ players: PlayerType[] } | undefined>}
+   * Ask the server to put `newPlayer` into `player`'s slot. The server does
+   * the full atomic swap (lineup ↔ lineup swap, bring-in-and-kick from
+   * bench / reserves, or fill-empty) and fans out LINEUP_PLAYER_CHANGED
+   * (+ BENCH_CHANGED / CAPTAIN_CHANGED when applicable). Each affected
+   * UIElement updates itself off those events — this method never touches
+   * local state or triggers a re-render.
+   * @param {PlayerType} player - Current occupant of the clicked slot (may be a fake for empty slots).
+   * @param {PlayerType} newPlayer - The picked player from the overlay.
+   * @param {number|null} fakeSlotIndex - When the clicked tile was a fake,
+   *   its ordinal (0..N-1) among same-slot tiles. Ignored for real players.
+   * @returns {Promise<void>}
    */
-  async _refreshAfterActionCard () {
+  async _exchangePlayer(player, newPlayer, fakeSlotIndex = null) {
+    this._overlay?.remove()
+    // No-op safety net: user re-picked the current occupant.
+    if (!player.fake && player.id === newPlayer.id) {
+      return
+    }
     try {
-      const refreshedData = await server.getMyTeam()
-      fire('lineup-exchange', refreshedData.players)
-      return { players: refreshedData.players }
+      // Tell the server exactly which tile the user clicked. Without this
+      // the server would grab an arbitrary same-slot player with
+      // `WHERE in_game_position=? LIMIT 1` and the tile filter downstream
+      // would render the picked player on every same-slot tile.
+      const currentPlayerId = player.fake ? null : player.id
+      await server.swapLineupPlayer(
+        player.in_game_position,
+        newPlayer.id,
+        currentPlayerId,
+        player.fake ? fakeSlotIndex : null
+      )
     } catch (e) {
       console.error(e)
       toast(e.message ?? 'Something went wrong...', 'error')
     }
   }
-
-  /**
-   * @param {PlayerType} player
-   * @param {PlayerType} newPlayer
-   * @returns {void}
-   */
-  async _exchangePlayer (player, newPlayer) {
-    const oldPosition = player.in_game_position
-    player.in_game_position = newPlayer.in_game_position
-    newPlayer.in_game_position = oldPosition
-    // Remove from bench if the new player was on the bench
-    if (newPlayer.bench_position) {
-      newPlayer.bench_position = null
-    }
-    if (player.id !== newPlayer.id) {
-      lineUpData.squadDataChanged = true
-    }
-    await this.update()
-    fire('lineup-exchange', this.players)
-    await this._autoSaveIfComplete()
-    setTimeout(() => {
-      this._overlay?.remove()
-    }, 150)
-  }
-
-  /**
-   * @param {PlayerType} player
-   * @returns {string}
-   */
-  _renderSquadPlayer (player) {
-    const freshnessPercentage = Math.round(player.freshness * 100)
-    const freshnessClass = freshnessPercentage >= 80
-      ? 'freshness-success'
-      : freshnessPercentage >= 60
-        ? 'freshness-warning'
-        : freshnessPercentage >= 40
-          ? 'freshness-orange'
-          : 'freshness-danger'
-    const displayName = player.name.includes(' ')
-      ? player.name.split(' ')[0][0] + ' ' + (player.name.split(' ')[1] ?? '')
-      : player.name
-    // Use player ID for real players, or 'fake-{position}' for empty slots
-    const playerId = player.fake ? `fake-${player.in_game_position}` : player.id
-    const isSuspended = player.is_suspended
-    const isInjured = player.is_injured
-    const unavailableStyle = (isSuspended || isInjured) ? 'opacity: 0.5; filter: grayscale(100%);' : ''
-
-    const isOutOfPosition = !player.fake && player.position !== player.in_game_position
-    const badgeClass = `position-badge ${player.in_game_position}${isOutOfPosition ? ' is-wrong-position' : ''}`
-
-    return `
-      <div class="player ${player.in_game_position}" data-player-id="${playerId}" style="${unavailableStyle}">
-        <span class="${badgeClass}">${player.in_game_position}</span>
-        <span class="freshness-badge ${freshnessClass}">
-            ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
-        </span>
-        <span class="name">${isSuspended ? '🚫 ' : ''}${isInjured ? '<i class="fa fa-medkit"></i> ' : ''}${displayName}</span>
-        ${renderLevelBadge(player.level, { size: 'lg' })}
-      </div>
-    `
-  }
-
 }
-

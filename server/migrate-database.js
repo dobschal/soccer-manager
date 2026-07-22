@@ -2393,6 +2393,48 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Refresh stale wiki entries and add in-game-level topic',
+  async run () {
+    // Overwrite entries whose content has drifted from the game:
+    // - tv-money: base is 150k (not 100k), factor 0.75 (not 0.5), payout is (N − rank + 1) × base.
+    // - cup / match-simulation: cup ties now go to 30 min extra time and then a penalty shootout.
+    // - action-cards: NEW_YOUTH_PLAYER has three tiers tied to Youth Academy level.
+    // Also insert the in-game-level topic (added after the earlier "Insert missing seed" migration
+    // was already recorded as done on prod, so that migration won't pick it up).
+    const KEYS_TO_REFRESH = ['action-cards', 'cup', 'match-simulation', 'tv-money']
+    const KEYS_TO_ADD = ['in-game-level']
+    for (const topic of WIKI_SEED) {
+      if (KEYS_TO_REFRESH.includes(topic.key)) {
+        for (const locale of ['en', 'de']) {
+          const entry = topic[locale]
+          await query(
+            'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+            [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+          )
+        }
+      }
+      if (KEYS_TO_ADD.includes(topic.key)) {
+        for (const locale of ['en', 'de']) {
+          const [existing] = await query(
+            'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+            [topic.key, locale]
+          )
+          if (existing) continue
+          const entry = topic[locale]
+          await query('INSERT INTO wiki_entry SET ?', {
+            locale,
+            page_key: topic.key,
+            title: entry.title,
+            subtitle: entry.subtitle || null,
+            text: entry.text,
+            images: JSON.stringify([]),
+            sort_order: 0
+          })
+        }
+      }
+    }
+  }
 }]
 
 /**

@@ -45,6 +45,8 @@ vi.mock('../../util/player.js', () => ({
 
 import { PlayerList } from '../../partials/playerList.js'
 import { server } from '../../lib/gateway.js'
+import { SERVER_EVENTS } from '../../lib/serverEvents.js'
+import { sortByPosition } from '../../util/player.js'
 
 describe('PlayerList', () => {
   beforeEach(() => {
@@ -242,6 +244,77 @@ describe('PlayerList', () => {
       // Default position sorter was reapplied and a re-render was scheduled.
       expect(sortByPosition).toHaveBeenCalled()
       expect(list.update).toHaveBeenCalled()
+    })
+  })
+
+  describe('server-event driven sort refresh', () => {
+    it('re-sorts and reorders `<tr>` nodes in place on LINEUP_PLAYER_CHANGED so the buckets (lineup / bench / reserve) stay right without a flicker-inducing full re-render', async () => {
+      const list = new PlayerList([testData.player({ id: 1 }), testData.player({ id: 2 })], true)
+      await list.load()
+      list.update = vi.fn()
+      const reorderSpy = vi.spyOn(list, '_reorderByPosition')
+      sortByPosition.mockClear()
+
+      list.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 1, in_game_position: 'CM' }) },
+        ejectedPlayerId: 2,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(reorderSpy).toHaveBeenCalledTimes(1)
+      expect(sortByPosition).toHaveBeenCalled()
+      // The whole point of the in-place reorder is to avoid the full re-render.
+      expect(list.update).not.toHaveBeenCalled()
+    })
+
+    it('re-sorts and reorders `<tr>` nodes in place on BENCH_CHANGED for the same reason', async () => {
+      const list = new PlayerList([testData.player({ id: 1 }), testData.player({ id: 2 })], true)
+      await list.load()
+      list.update = vi.fn()
+      const reorderSpy = vi.spyOn(list, '_reorderByPosition')
+      sortByPosition.mockClear()
+
+      list.serverEvents[SERVER_EVENTS.BENCH_CHANGED.name]({
+        benchPosition: 'BENCH_MID',
+        player: testData.player({ id: 1 }),
+        displacedPlayerId: null,
+        vacatedLineupPosition: 'CM'
+      })
+
+      expect(reorderSpy).toHaveBeenCalledTimes(1)
+      expect(sortByPosition).toHaveBeenCalled()
+      expect(list.update).not.toHaveBeenCalled()
+    })
+
+    it('skips the sort/reorder when a URL sort is active — the sortable columns are unaffected by a lineup swap, and mutating this.players would clobber the URL-sort order', async () => {
+      window.location.hash = '#my-team?sort_dir=ASC&col=4'
+      const list = new PlayerList([testData.player({ id: 1 }), testData.player({ id: 2 })], true)
+      await list.load()
+      list.update = vi.fn()
+      sortByPosition.mockClear()
+
+      list.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CM: testData.player({ id: 1, in_game_position: 'CM' }) },
+        ejectedPlayerId: 2,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      expect(sortByPosition).not.toHaveBeenCalled()
+      expect(list.update).not.toHaveBeenCalled()
+      window.location.hash = ''
+    })
+
+    it('keeps this.captainId in sync with CAPTAIN_CHANGED so a later full re-render draws the (C) marker correctly', async () => {
+      const list = new PlayerList([testData.player({ id: 1 })], true, vi.fn(), false, false, null, null)
+      await list.load()
+
+      list.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]({ captainId: 42 })
+      expect(list.captainId).toBe(42)
+
+      list.serverEvents[SERVER_EVENTS.CAPTAIN_CHANGED.name]({ captainId: null })
+      expect(list.captainId).toBeNull()
     })
   })
 })

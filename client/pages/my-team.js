@@ -1,6 +1,5 @@
 import { server } from '../lib/gateway.js'
 import { showPlayerModal } from '../partials/playerModal.js'
-import { lineUpData } from '../partials/lineup.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 import { YouthTeamPage } from './my-team/youthTeam.js'
@@ -20,7 +19,6 @@ export class MyTeamPage extends TabbedPage {
     ])
     this.data = teamData
     this.season = gamedayData.season
-    lineUpData.squadDataChanged = false
     const cards = cardsData.actionCards || []
     if (this.subPage === 'cards') {
       // The user is looking at the tab right now — treat everything as seen.

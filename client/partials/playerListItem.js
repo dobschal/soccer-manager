@@ -1,18 +1,29 @@
 import { calculateMarketValue, calculatePlayerAge, getSalary, willRetireNextSeason } from '../util/player.js'
 import { euroFormat } from '../lib/currency.js'
 import { renderLevelBadge } from './levelBadge.js'
-import { ProgressBar } from './progressBar.js'
+import { renderProgressBar } from './progressBar.js'
 import { renderPositionBadge } from './positionBadge.js'
 import { t } from '../i18n/index.js'
+import { UIElement } from '../lib/UIElement.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
+import { server } from '../lib/gateway.js'
 
-export class PlayerListItem {
+/**
+ * A single row of `PlayerList`. Now owns its own `<tr>` DOM node so it can
+ * subscribe to server events (e.g. NEW_SELL_TRADE_OFFER) and refresh itself
+ * atomically without re-rendering the whole list.
+ */
+export class PlayerListItem extends UIElement {
   /**
    * @param {PlayerType} player
    * @param {number} season
-   * @param {Set<number>} sellOfferPlayerIds
+   * @param {Set<number>} sellOfferPlayerIds - Shared with the parent PlayerList
+   *   so a local mutation here (e.g. after a NEW_SELL_TRADE_OFFER for this
+   *   player) is visible to the rest of the list too.
    * @param {number|null} captainId
    */
   constructor (player, season, sellOfferPlayerIds = new Set(), captainId = null) {
+    super()
     this.player = player
     this.season = season
     this.sellOfferPlayerIds = sellOfferPlayerIds
@@ -20,7 +31,19 @@ export class PlayerListItem {
   }
 
   /**
-   * Standalone <tr> rendering, kept for direct usage (e.g. tests).
+   * Initial load is a no-op: the constructor gets a `player` object from the
+   * parent PlayerList, which is authoritative at mount time. On update
+   * (triggered by a server event), refetch the player fresh so any changed
+   * fields (freshness, level, in_game_position, injuries, …) are picked up.
+   * @param {boolean} isUpdate
+   */
+  async load (isUpdate) {
+    if (!isUpdate) return
+    const fresh = await server.getPlayerById(this.player.id)
+    if (fresh) this.player = fresh
+  }
+  /**
+   * The `<tr>` template rendered into the parent table's tbody.
    * @returns {string}
    */
   get template () {
@@ -32,6 +55,91 @@ export class PlayerListItem {
     }).join('')
     return `<tr class="${this.rowClass}" data-player-id="${this.player.id}">${cellsHtml}</tr>`
   }
+  /**
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      // Fires for the selling team's user when they list a player. Payload
+      // includes { playerId } so each row can filter down to its own player
+      // and avoid a full-list refetch.
+      [SERVER_EVENTS.NEW_SELL_TRADE_OFFER.name]: (data) => {
+        if (!data || data.playerId !== this.player.id) return
+        this.sellOfferPlayerIds.add(this.player.id)
+        this.update()
+      },
+      // Fires when the user cancels a sell offer, or when the per-team limit
+      // sweep removes one. Same payload shape as NEW_SELL_TRADE_OFFER.
+      [SERVER_EVENTS.REMOVE_SELL_TRADE_OFFER.name]: (data) => {
+        if (!data || data.playerId !== this.player.id) return
+        if (!this.sellOfferPlayerIds.has(this.player.id)) return
+        this.sellOfferPlayerIds.delete(this.player.id)
+        this.update()
+      },
+      // Fires when the team captain is set / changed / cleared. Only the
+      // outgoing captain and the incoming captain need a redraw; the rest of
+      // the list skips the event entirely.
+      [SERVER_EVENTS.CAPTAIN_CHANGED.name]: (data) => {
+        const newCaptainId = data?.captainId ?? null
+        const wasCaptain = this.captainId === this.player.id
+        const nowCaptain = newCaptainId === this.player.id
+        this.captainId = newCaptainId
+        if (wasCaptain === nowCaptain) return
+        this.update()
+      },
+      // Fires when a bench slot got a new occupant. Two rows care: the
+      // incoming bench player (row highlight → warning; drops in_game_position
+      // if they were in the lineup) and the outgoing bench player (row
+      // highlight goes back to normal). Everyone else ignores the event.
+      [SERVER_EVENTS.BENCH_CHANGED.name]: (data) => {
+        if (!data) return
+        if (data.player?.id === this.player.id) {
+          this.player.bench_position = data.benchPosition
+          if (data.vacatedLineupPosition) this.player.in_game_position = ''
+          this.update()
+        } else if (data.displacedPlayerId === this.player.id) {
+          this.player.bench_position = null
+          this.update()
+        }
+      },
+      // Fires when the user swaps two lineup players or brings a
+      // reserve / bench player onto the pitch. The row highlight for the
+      // affected players (lineup / bench / neutral) changes with their
+      // updated in_game_position and bench_position, so anyone whose id
+      // appears in the event has to redraw.
+      [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: (data) => {
+        if (!data) return
+        for (const [slot, playerData] of Object.entries(data.slots ?? {})) {
+          if (playerData?.id === this.player.id) {
+            this.player.in_game_position = slot
+            this.player.bench_position = null
+            this.update()
+            return
+          }
+        }
+        if (data.ejectedPlayerId === this.player.id) {
+          this.player.in_game_position = ''
+          this.update()
+        }
+      },
+      // Fires when a player's stats change (action-card level-up / freshness
+      // boost / star-player promotion). We mutate the shared player object
+      // in place (aTeam's roster holds the same reference) so a later full
+      // re-render also reads the fresh values, and redraw the row so the
+      // level badge / freshness bar / star icon update.
+      [SERVER_EVENTS.PLAYER_UPDATED.name]: (data) => {
+        if (!data?.player || data.player.id !== this.player.id) return
+        Object.assign(this.player, data.player)
+        this.update()
+      }
+    }
+  }
+  /**
+   * The row shows a background-refresh pulse while `load(true)` is in flight
+   * — better than the full bouncing-ball loader for a single table row.
+   */
+  updateIndicator = true
+
   /**
    * Row class to highlight suspended/injured/lineup/bench players.
    * @returns {string}
@@ -45,7 +153,8 @@ export class PlayerListItem {
   }
 
   /**
-   * Cell content for use as Table renderRow output.
+   * Cell content — still exposed for tests and for any legacy caller that
+   * wants to render the cells inside its own `<tr>` wrapper.
    * @returns {Array<string>}
    */
   get cells () {
@@ -86,7 +195,11 @@ export class PlayerListItem {
     return [
       nameCell,
       positionBadge,
-      `${new ProgressBar(player.freshness)}`,
+      // Inline HTML (not `${new ProgressBar(...)}`) so a row re-render triggered
+      // by PLAYER_UPDATED doesn't briefly show an empty `<template>` placeholder
+      // in the Fit cell — that placeholder gap was the visible flicker inside
+      // the select-player overlay after using an action card.
+      renderProgressBar(player.freshness),
       renderLevelBadge(player.level),
       `${age}`,
       euroFormat.format(salary),

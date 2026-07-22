@@ -5,6 +5,8 @@ import { addLogMessage } from '../helper/logMessageHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { getYouthAcademyLevel } from '../helper/buildingHelper.js'
+import { sendToUser } from '../lib/websocket.js'
+import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import {
   getYouthPlayersByTeam,
   getYouthPlayerById,
@@ -125,7 +127,18 @@ export default {
       }
     }
 
-    await setYouthPlayerTrainingMode(youthPlayerId, mode ?? null)
+    const newMode = mode ?? null
+    const previousMode = youthPlayer.training_mode ?? null
+    await setYouthPlayerTrainingMode(youthPlayerId, newMode)
+
+    if (team.user_id && previousMode !== newMode) {
+      sendToUser(team.user_id, SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name, {
+        youthPlayerId,
+        previousMode,
+        newMode
+      })
+    }
+
     return { success: true }
   },
 

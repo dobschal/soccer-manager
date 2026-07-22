@@ -18,10 +18,16 @@ vi.mock('../../helper/cupHelper.js', () => ({
   getTotalRounds: vi.fn()
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  sendToUser: vi.fn().mockReturnValue(true)
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getTotalRounds } from '../../helper/cupHelper.js'
+import { sendToUser } from '../../lib/websocket.js'
+import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
 import handlers from '../../routes/team.js'
 
 describe('team routes', () => {
@@ -457,6 +463,342 @@ describe('team routes', () => {
       const req = createMockRequest()
       await expect(handlers.setCaptain(5, req))
         .rejects.toMatchObject({ message: 'Captain must be in the lineup' })
+    })
+
+    it('sends CAPTAIN_CHANGED to the team\'s user so the client updates atomically', async () => {
+      const team = testData.team({ user_id: 77 })
+      const player = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player])
+        .mockResolvedValueOnce({})
+
+      const req = createMockRequest()
+      await handlers.setCaptain(5, req)
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: 5 })
+    })
+
+    it('also fires CAPTAIN_CHANGED with null when the captain is cleared', async () => {
+      const team = testData.team({ user_id: 77 })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      await handlers.setCaptain(null, req)
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: null })
+    })
+
+    it('skips the websocket for teams without a user (bot teams)', async () => {
+      const team = testData.team({ user_id: null })
+
+      getTeam.mockResolvedValue(team)
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      await handlers.setCaptain(null, req)
+
+      expect(sendToUser).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('assignBenchPlayer', () => {
+    it('emits BENCH_CHANGED with the fresh player + displaced + vacated-lineup metadata', async () => {
+      const team = testData.team({ id: 1, user_id: 77, captain_id: null })
+      const player = testData.player({ id: 5, team_id: 1, position: 'CM', in_game_position: 'CM', bench_position: null })
+      const displaced = { id: 9 }
+      const freshPlayer = { ...player, in_game_position: '', bench_position: 'BENCH_MID' }
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player])       // SELECT player
+        .mockResolvedValueOnce([displaced])    // SELECT current occupant of BENCH_MID
+        .mockResolvedValueOnce({})             // UPDATE displaced bench_position=NULL
+        .mockResolvedValueOnce({})             // UPDATE picked player bench_position=?
+        .mockResolvedValueOnce([freshPlayer])  // getPlayerById after the update
+
+      const req = createMockRequest()
+      const result = await handlers.assignBenchPlayer(5, 'BENCH_MID', req)
+
+      expect(result).toEqual({ success: true, captainCleared: false })
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.BENCH_CHANGED.name, {
+        benchPosition: 'BENCH_MID',
+        player: freshPlayer,
+        displacedPlayerId: 9,
+        vacatedLineupPosition: 'CM'
+      })
+    })
+
+    it('also fires CAPTAIN_CHANGED when the picked player was the captain and got moved out of the lineup', async () => {
+      const team = testData.team({ id: 1, user_id: 77, captain_id: 5 })
+      const player = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player])   // SELECT player
+        .mockResolvedValueOnce([])          // no displaced
+        .mockResolvedValueOnce({})          // UPDATE picked player
+        .mockResolvedValueOnce({})          // UPDATE team captain=NULL
+        .mockResolvedValueOnce([player])   // getPlayerById
+
+      const req = createMockRequest()
+      const result = await handlers.assignBenchPlayer(5, 'BENCH_MID', req)
+
+      expect(result.captainCleared).toBe(true)
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: null })
+    })
+
+    it('does not clear the captain when the picked player is a different one', async () => {
+      const team = testData.team({ id: 1, user_id: 77, captain_id: 99 })
+      const player = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([player])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce([player])
+
+      const req = createMockRequest()
+      const result = await handlers.assignBenchPlayer(5, 'BENCH_MID', req)
+
+      expect(result.captainCleared).toBe(false)
+    })
+
+    it('rejects an unknown bench position', async () => {
+      getTeam.mockResolvedValue(testData.team())
+      const req = createMockRequest()
+      await expect(handlers.assignBenchPlayer(5, 'NOT_A_BENCH', req))
+        .rejects.toMatchObject({ message: 'Invalid bench position' })
+    })
+
+    it('rejects players not on this team', async () => {
+      getTeam.mockResolvedValue(testData.team())
+      query.mockResolvedValueOnce([])
+      const req = createMockRequest()
+      await expect(handlers.assignBenchPlayer(99, 'BENCH_MID', req))
+        .rejects.toMatchObject({ message: 'Player not found in your team' })
+    })
+
+    it('rejects suspended / injured players', async () => {
+      getTeam.mockResolvedValue(testData.team())
+      query.mockResolvedValueOnce([testData.player({ id: 5, team_id: 1, is_injured: true })])
+      const req = createMockRequest()
+      await expect(handlers.assignBenchPlayer(5, 'BENCH_MID', req))
+        .rejects.toMatchObject({ message: 'Player is unavailable' })
+    })
+  })
+
+  describe('swapLineupPlayer', () => {
+    it('emits LINEUP_PLAYER_CHANGED with both slots filled on a lineup ↔ lineup swap', async () => {
+      const team = testData.team({ id: 1, user_id: 77, formation: '442b', captain_id: null })
+      // Picked player B was already in lineup at CD; user clicked CM (where A is).
+      const B = testData.player({ id: 8, team_id: 1, in_game_position: 'CD' })
+      const A = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+      const freshB = { ...B, in_game_position: 'CM' }
+      const freshA = { ...A, in_game_position: 'CD' }
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([B])         // SELECT picked player
+        .mockResolvedValueOnce([A])         // SELECT current occupant of CM (by id)
+        .mockResolvedValueOnce({})           // UPDATE picked player in_game_position
+        .mockResolvedValueOnce({})           // UPDATE displaced (A) in_game_position
+        .mockResolvedValueOnce([freshB])    // getPlayerById picked
+        .mockResolvedValueOnce([freshA])    // getPlayerById displaced
+
+      const req = createMockRequest()
+      const result = await handlers.swapLineupPlayer('CM', 8, 5, null, req)
+
+      expect(result).toEqual({ success: true, captainCleared: false })
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name, {
+        slots: { CM: freshB, CD: freshA },
+        replacements: {
+          CM: { previousPlayerId: 5, previousFakeSlotIndex: null },
+          CD: { previousPlayerId: 8, previousFakeSlotIndex: null }
+        },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        emptiedTilePlayerId: null,
+        freedBenchPosition: null
+      })
+    })
+
+    it('emits BENCH_CHANGED + LINEUP_PLAYER_CHANGED when the picked player came from the bench', async () => {
+      const team = testData.team({ id: 1, user_id: 77, formation: '442b', captain_id: null })
+      const B = testData.player({ id: 8, team_id: 1, in_game_position: '', bench_position: 'BENCH_MID' })
+      const A = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+      const freshB = { ...B, in_game_position: 'CM', bench_position: null }
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([B])         // SELECT picked player
+        .mockResolvedValueOnce([A])         // SELECT current occupant (by id)
+        .mockResolvedValueOnce({})           // UPDATE eject A
+        .mockResolvedValueOnce({})           // UPDATE picked (bench cleared, in_game_position set)
+        .mockResolvedValueOnce([freshB])    // getPlayerById picked
+
+      const req = createMockRequest()
+      const result = await handlers.swapLineupPlayer('CM', 8, 5, null, req)
+
+      expect(result.captainCleared).toBe(false)
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name, {
+        slots: { CM: freshB },
+        replacements: { CM: { previousPlayerId: 5, previousFakeSlotIndex: null } },
+        ejectedPlayerId: 5,
+        emptiedSlot: null,
+        emptiedTilePlayerId: null,
+        freedBenchPosition: 'BENCH_MID'
+      })
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.BENCH_CHANGED.name, {
+        benchPosition: 'BENCH_MID',
+        player: null,
+        displacedPlayerId: 8,
+        vacatedLineupPosition: null
+      })
+    })
+
+    it('clears the captain when the ejected player was the team captain', async () => {
+      const team = testData.team({ id: 1, user_id: 77, formation: '442b', captain_id: 5 })
+      const B = testData.player({ id: 8, team_id: 1, in_game_position: '' })
+      const A = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+      const freshB = { ...B, in_game_position: 'CM' }
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([B])
+        .mockResolvedValueOnce([A])
+        .mockResolvedValueOnce({})   // UPDATE eject A
+        .mockResolvedValueOnce({})   // UPDATE picked
+        .mockResolvedValueOnce({})   // UPDATE captain=null
+        .mockResolvedValueOnce([freshB])
+
+      const req = createMockRequest()
+      const result = await handlers.swapLineupPlayer('CM', 8, 5, null, req)
+
+      expect(result.captainCleared).toBe(true)
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: null })
+    })
+
+    it('does not clear the captain in a lineup ↔ lineup swap (captain stays on the pitch)', async () => {
+      const team = testData.team({ id: 1, user_id: 77, formation: '442b', captain_id: 5 })
+      const B = testData.player({ id: 8, team_id: 1, in_game_position: 'CD' })
+      const A = testData.player({ id: 5, team_id: 1, in_game_position: 'CM' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([B])
+        .mockResolvedValueOnce([A])
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce([{ ...B, in_game_position: 'CM' }])
+        .mockResolvedValueOnce([{ ...A, in_game_position: 'CD' }])
+
+      const req = createMockRequest()
+      const result = await handlers.swapLineupPlayer('CM', 8, 5, null, req)
+
+      expect(result.captainCleared).toBe(false)
+    })
+
+    it('signals emptiedSlot when the picked player came from another lineup slot that ends up empty', async () => {
+      const team = testData.team({ id: 1, user_id: 77, formation: '442b', captain_id: null })
+      // User clicked an empty CD tile (no real player at CD). Picked player B was at CM.
+      const B = testData.player({ id: 8, team_id: 1, in_game_position: 'CM' })
+      const freshB = { ...B, in_game_position: 'CD' }
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([B])         // SELECT picked
+        .mockResolvedValueOnce({})           // UPDATE picked in_game_position (no eject — clicked tile was empty)
+        .mockResolvedValueOnce([freshB])    // getPlayerById
+
+      const req = createMockRequest()
+      // Clicked a fake CD tile (currentPlayerId=null, fakeSlotIndex=0).
+      const result = await handlers.swapLineupPlayer('CD', 8, null, 0, req)
+
+      expect(result).toEqual({ success: true, captainCleared: false })
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name, {
+        slots: { CD: freshB },
+        replacements: { CD: { previousPlayerId: null, previousFakeSlotIndex: 0 } },
+        ejectedPlayerId: null,
+        emptiedSlot: 'CM',
+        emptiedTilePlayerId: 8,
+        freedBenchPosition: null
+      })
+    })
+
+    it('does not eject a same-slot neighbor when the clicked tile was empty (two CDs, one filled)', async () => {
+      // Regression: without `currentPlayerId`, the old code ran
+      // `WHERE in_game_position='CD' LIMIT 1` and would eject the real CD
+      // when the user clicked the empty CD tile. Passing null skips the
+      // occupant lookup entirely → clean fill-empty.
+      const team = testData.team({ id: 1, user_id: 77, formation: '433', captain_id: null })
+      const B = testData.player({ id: 8, team_id: 1, in_game_position: '', bench_position: 'BENCH_MID' })
+      const freshB = { ...B, in_game_position: 'CD', bench_position: null }
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([B])         // SELECT picked
+        .mockResolvedValueOnce({})           // UPDATE picked (no eject query — no lookup)
+        .mockResolvedValueOnce([freshB])    // getPlayerById
+
+      const req = createMockRequest()
+      const result = await handlers.swapLineupPlayer('CD', 8, null, 1, req)
+
+      expect(result.captainCleared).toBe(false)
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name, {
+        slots: { CD: freshB },
+        replacements: { CD: { previousPlayerId: null, previousFakeSlotIndex: 1 } },
+        ejectedPlayerId: null,
+        emptiedSlot: null,
+        emptiedTilePlayerId: null,
+        freedBenchPosition: 'BENCH_MID'
+      })
+    })
+
+    it('rejects a slot that is not in the current formation', async () => {
+      getTeam.mockResolvedValue(testData.team({ formation: '442b' }))
+      const req = createMockRequest()
+      await expect(handlers.swapLineupPlayer('NOT_A_SLOT', 8, null, null, req))
+        .rejects.toMatchObject({ message: 'Slot not in current formation' })
+    })
+
+    it('rejects players not on this team', async () => {
+      getTeam.mockResolvedValue(testData.team({ formation: '442b' }))
+      query.mockResolvedValueOnce([])
+      const req = createMockRequest()
+      await expect(handlers.swapLineupPlayer('CM', 99, null, null, req))
+        .rejects.toMatchObject({ message: 'Player not found in your team' })
+    })
+
+    it('rejects suspended / injured players', async () => {
+      getTeam.mockResolvedValue(testData.team({ formation: '442b' }))
+      query.mockResolvedValueOnce([testData.player({ id: 8, team_id: 1, is_suspended: true })])
+      const req = createMockRequest()
+      await expect(handlers.swapLineupPlayer('CM', 8, null, null, req))
+        .rejects.toMatchObject({ message: 'Player is unavailable' })
+    })
+
+    it('rejects a swap when the current occupant is no longer at that slot', async () => {
+      // Client sent the id of a player who's already been moved elsewhere
+      // (server-side race). Server refuses instead of picking an arbitrary
+      // same-slot player.
+      const team = testData.team({ id: 1, user_id: 77, formation: '442b', captain_id: null })
+      const B = testData.player({ id: 8, team_id: 1, in_game_position: '', bench_position: 'BENCH_MID' })
+      // Stale currentPlayerId=5 — server finds the player but they're at a different slot.
+      const staleA = testData.player({ id: 5, team_id: 1, in_game_position: 'CD' })
+
+      getTeam.mockResolvedValue(team)
+      query
+        .mockResolvedValueOnce([B])
+        .mockResolvedValueOnce([staleA])
+
+      const req = createMockRequest()
+      await expect(handlers.swapLineupPlayer('CM', 8, 5, null, req))
+        .rejects.toMatchObject({ message: 'Current occupant is no longer in that slot' })
     })
   })
 

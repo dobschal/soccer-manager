@@ -2,18 +2,20 @@ import { query } from '../lib/database.js'
 import { calculateStanding } from '../lib/util.js'
 import { getCachedStanding } from './standingHelper.js'
 
-const BASE_TV_MONEY_LEVEL_1 = 100000
+const BASE_TV_MONEY_LEVEL_1 = 150000
+const TV_MONEY_LEVEL_FACTOR = 0.75
 export const LEAGUE_GAME_DAYS_PER_SEASON = 34
 
 /**
  * Base TV money for a given league level. Levels are 0-indexed in the
- * database: level 0 = 1. Liga (100000), level 1 = 2. Liga (50000), and so on.
+ * database: level 0 = 1. Liga (150000), and each lower league gets 75% of
+ * the level above it (level 1 = 112500, level 2 = 84375, ...).
  * @param {number} level - 0-based league level
  * @returns {number}
  */
 export function getTvMoneyBaseForLevel (level) {
   if (level == null || level < 0) return 0
-  return Math.round(BASE_TV_MONEY_LEVEL_1 / Math.pow(2, level))
+  return Math.round(BASE_TV_MONEY_LEVEL_1 * Math.pow(TV_MONEY_LEVEL_FACTOR, level))
 }
 
 /**

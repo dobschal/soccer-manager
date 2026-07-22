@@ -49,17 +49,71 @@ vi.mock('../../i18n/index.js', () => ({
   getUserLocale: vi.fn().mockResolvedValue('en')
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  sendToUser: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { createYouthPlayer } from '../../helper/youthPlayerHelper.js'
+import { sendToUser } from '../../lib/websocket.js'
+import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
 import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, deleteExpiredPendingCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../../helper/actionCardHelper.js'
 
 describe('actionCardHelper', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 0 })
+  })
+
+  describe('playActionCard - PLAYER_UPDATED emission', () => {
+    it('sends PLAYER_UPDATED with the fresh player after a level-up card', async () => {
+      const team = testData.team({ id: 1, user_id: 77 })
+      const player = testData.player({ id: 42, level: 10, freshness: 0.5 })
+      const freshPlayer = { ...player, level: 11 }
+      const actionCard = testData.actionCard({ action: 'LEVEL_UP_PLAYER_40' })
+
+      // First getPlayerById inside the branch, second inside _emitPlayerUpdated.
+      getPlayerById
+        .mockResolvedValueOnce(player)
+        .mockResolvedValueOnce(freshPlayer)
+      query.mockImplementation(async (sql) => sql.includes('SELECT * FROM player_history') ? [] : {})
+
+      await playActionCard({ player, actionCard }, team)
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.PLAYER_UPDATED.name, { player: freshPlayer })
+    })
+
+    it('sends PLAYER_UPDATED after a freshness card', async () => {
+      const team = testData.team({ id: 1, user_id: 77 })
+      const player = testData.player({ id: 42, freshness: 0.5 })
+      const freshPlayer = { ...player, freshness: 0.6 }
+      const actionCard = testData.actionCard({ action: 'FRESHNESS_10' })
+
+      getPlayerById
+        .mockResolvedValueOnce(player)
+        .mockResolvedValueOnce(freshPlayer)
+      query.mockResolvedValue({})
+
+      await playActionCard({ player, actionCard }, team)
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.PLAYER_UPDATED.name, { player: freshPlayer })
+    })
+
+    it('does not emit PLAYER_UPDATED for bot teams (no user_id)', async () => {
+      const team = testData.team({ id: 1, user_id: null })
+      const player = testData.player({ id: 42, freshness: 0.5 })
+      const actionCard = testData.actionCard({ action: 'FRESHNESS_10' })
+
+      getPlayerById.mockResolvedValue(player)
+      query.mockResolvedValue({})
+
+      await playActionCard({ player, actionCard }, team)
+
+      expect(sendToUser).not.toHaveBeenCalled()
+    })
   })
 
   describe('playActionCard - LEVEL_UP_PLAYER_40', () => {

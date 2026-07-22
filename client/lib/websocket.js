@@ -2,6 +2,8 @@
  * WebSocket client for real-time server events
  */
 
+import { assertKnownServerEvent } from './serverEvents.js'
+
 /** @type {WebSocket|null} */
 let ws = null
 
@@ -125,12 +127,15 @@ export function disconnectWebSocket () {
 }
 
 /**
- * Register a handler for a server event
+ * Register a handler for a server event. Fails loudly if `eventName` is not
+ * declared in the shared registry — a typo here would otherwise silently miss
+ * every event the server sends.
  * @param {string} eventName
  * @param {Function} handler
  * @returns {Function} - Unsubscribe function
  */
 export function onServerEvent (eventName, handler) {
+  assertKnownServerEvent(eventName, 'onServerEvent')
   if (!eventHandlers.has(eventName)) {
     eventHandlers.set(eventName, new Set())
   }
