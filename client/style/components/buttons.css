@@ -173,8 +173,14 @@ a.account-friend-row:hover {
         flex-wrap: nowrap;
         width: calc(100% + 4rem);
         overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
         padding: 1rem 2rem 0 2rem;
         animation: fade-in 0.1s ease-out;
+    }
+
+    .nav.nav-pills::-webkit-scrollbar {
+        display: none;
     }
 
     .nav-pills .nav-link {
