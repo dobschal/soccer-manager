@@ -89,6 +89,7 @@
 .nav-pills .nav-link {
     white-space: nowrap;
     background: #efefef;
+    text-align: center;
     margin-bottom: 1rem;
     margin-right: 1rem;
     letter-spacing: -0px;
