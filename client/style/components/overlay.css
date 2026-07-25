@@ -3,7 +3,7 @@
    ========================================================================== */
 
 .overlay-backdrop {
-    background-color: rgba(51, 51, 51, 0.5);
+    background-color: rgba(34, 34, 34, 0.5);
     backdrop-filter: blur(3px);
     position: fixed;
     left: 0;
