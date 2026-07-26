@@ -14,6 +14,7 @@ import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
 import { isValidEmail, sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js'
 import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../helper/referralHelper.js'
 import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../helper/linkInviteHelper.js'
+import { regenerateTeamData } from '../prepare-season.js'
 
 const EMAIL_VERIFICATION_TTL_DAYS = 7
 const PASSWORD_RESET_TTL_HOURS = 2
@@ -571,6 +572,14 @@ export default {
       // Delete user
       await txQuery('DELETE FROM user WHERE id=?', [userId])
     })
+
+    // Rebuild bot defaults (stadium, buildings, squad) so the abandoned team is
+    // still a valid bot after we stripped its user-owned data above. Without
+    // this the team is left with no stadium row and any visitor to its page
+    // crashes on `this.stadium.south_stand_size`.
+    if (team) {
+      await regenerateTeamData(team)
+    }
 
     clearUserCache(userId)
     return { success: true }

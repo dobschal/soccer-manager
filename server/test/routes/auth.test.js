@@ -3,7 +3,12 @@ import { testData } from '../setup.js'
 
 // Mock dependencies
 vi.mock('../../lib/database.js', () => ({
-  query: vi.fn()
+  query: vi.fn(),
+  transaction: vi.fn(async (cb) => cb(vi.fn()))
+}))
+
+vi.mock('../../prepare-season.js', () => ({
+  regenerateTeamData: vi.fn().mockResolvedValue(undefined)
 }))
 
 vi.mock('../../lib/passwordHash.js', () => ({
@@ -32,11 +37,12 @@ vi.mock('../../lib/userCache.js', () => ({
 }))
 
 // Import after mocking
-import { query } from '../../lib/database.js'
+import { query, transaction } from '../../lib/database.js'
 import { hashPassword } from '../../lib/passwordHash.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.js'
 import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../../helper/referralHelper.js'
 import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../../helper/linkInviteHelper.js'
+import { regenerateTeamData } from '../../prepare-season.js'
 import handlers from '../../routes/auth.js'
 
 describe('auth routes', () => {
@@ -501,6 +507,40 @@ describe('auth routes', () => {
       const req = { locale: 'en' }
       await expect(handlers.resetPassword('a'.repeat(64), 'newpassword123', req))
         .rejects.toMatchObject({ message: 'This password reset link is invalid or has expired' })
+    })
+  })
+
+  describe('deleteAccount', () => {
+    beforeEach(() => {
+      transaction.mockImplementation(async (cb) => cb(vi.fn().mockResolvedValue([])))
+    })
+
+    it('regenerates bot defaults after stripping the team so the team keeps a stadium', async () => {
+      const team = { id: 42, name: 'Bot FC', level: 3, formation: '442' }
+      query.mockResolvedValueOnce([team]) // SELECT * FROM team WHERE user_id=?
+
+      const req = { locale: 'en', user: { id: 7 } }
+      const result = await handlers.deleteAccount(req)
+
+      expect(result).toEqual({ success: true })
+      expect(regenerateTeamData).toHaveBeenCalledWith(team)
+      expect(transaction).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not call regenerateTeamData when the user has no team', async () => {
+      query.mockResolvedValueOnce([]) // SELECT * FROM team returns nothing
+
+      const req = { locale: 'en', user: { id: 7 } }
+      const result = await handlers.deleteAccount(req)
+
+      expect(result).toEqual({ success: true })
+      expect(regenerateTeamData).not.toHaveBeenCalled()
+    })
+
+    it('throws when no user is on the request', async () => {
+      const req = { locale: 'en' }
+      await expect(handlers.deleteAccount(req)).rejects.toMatchObject({ message: expect.any(String) })
+      expect(regenerateTeamData).not.toHaveBeenCalled()
     })
   })
 })
