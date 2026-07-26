@@ -42,32 +42,20 @@
     display: inline-block;
 }
 
-/* Captain Badge */
+/* Captain Badge — yellow armband with black "C" */
 .captain-badge {
     position: absolute;
-    top: 2%;
-    right: 0;
-    text-align: right;
-    line-height: 1;
+    top: 6%;
+    right: 4%;
     pointer-events: none;
-    background: #0000007d;
-    border-radius: 50%;
-    padding: 6px 4px 2px 4px;
-    aspect-ratio: 1;
-    width: 32px;
-    height: 32px;
-}
-
-.captain-badge__star {
-    color: gold;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-    text-align: center;
-}
-
-.captain-badge__label {
-    color: white;
-    font-weight: bold;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    background: #ffd21f;
+    color: #000;
+    font-weight: 900;
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 
 /* Player Modal */
