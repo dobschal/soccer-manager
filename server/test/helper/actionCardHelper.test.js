@@ -558,6 +558,16 @@ describe('actionCardHelper', () => {
       }
     })
 
+    it('returns 3 distinct positions', async () => {
+      query.mockResolvedValue([])
+      // Run many times so a chance-based duplicate would be caught reliably.
+      for (let i = 0; i < 50; i++) {
+        const options = await generateYouthPlayerOptions('NEW_YOUTH_PLAYER_1')
+        const positions = options.map(opt => opt.position)
+        expect(new Set(positions).size).toBe(3)
+      }
+    })
+
     it('throws for unknown action', async () => {
       await expect(generateYouthPlayerOptions('UNKNOWN_ACTION')).rejects.toThrow()
     })
