@@ -197,6 +197,34 @@ describe('StartPage._renderVideoCard', () => {
   })
 })
 
+describe('StartPage urgency section placement', () => {
+  it('renders the urgency section twice: hidden on mobile inside the sidebar, and shown only on mobile below the sliders', () => {
+    const page = new StartPage({
+      sliderGames: [],
+      initialSlideIndex: 0,
+      team: { id: 1, level: 1, league: 1, name: 'Test' },
+      cupGames: [],
+      friendlyGames: [],
+      canPlayFriendly: false,
+      standing: [],
+      teamPosition: 0,
+      urgencies: []
+    })
+
+    const html = page.toString()
+
+    expect(html).toContain('d-none d-lg-block')
+    expect(html).toContain('d-lg-none order-3 w-100 text-center')
+
+    const urgencyTitleMatches = html.match(/dashboard\.urgencyTitle/g) || []
+    expect(urgencyTitleMatches.length).toBe(2)
+
+    const mobileBlockStart = html.indexOf('d-lg-none order-3 w-100 text-center')
+    const sliderColumnStart = html.indexOf('order-2 order-lg-1')
+    expect(mobileBlockStart).toBeGreaterThan(sliderColumnStart)
+  })
+})
+
 describe('StartPage._renderMiniStanding row click', () => {
   it('navigates to the league results page (not the team page) when a row is clicked', async () => {
     const { goTo } = await import('../../../lib/router.js')

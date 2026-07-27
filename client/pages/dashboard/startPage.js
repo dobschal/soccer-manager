@@ -86,15 +86,18 @@ export class StartPage {
             ${this._renderFriendlyGames(friendlyCardId)}
           </div>
         </div>
-        <div class="u-w-lg-33 u-w-100 flex-shrink-0 text-center order-1 order-lg-2 mb-3 mb-lg-0">
+        <div class="u-w-lg-33 u-w-100 flex-shrink-0 text-center order-1 order-lg-2">
           <a href="#team?id=${this.team.id}" class="text-decoration-none">
             ${renderEmblem(this.team, 160)}
             <h2 class="mb-4">${this.team.name}</h2>
           </a>
           ${this._renderMiniStanding()}
-          <h5 class="mb-2 mt-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')} ${wikiInfoIcon('urgency-list')}</h5>
-          ${this._renderUrgencyChecklist()}
-          ${this._renderMessagesLink()}
+          <div class="d-none d-lg-block">
+            ${this._renderUrgencySection()}
+          </div>
+        </div>
+        <div class="d-lg-none order-3 w-100 text-center">
+          ${this._renderUrgencySection()}
         </div>
       </div>
       <div class="d-flex flex-column flex-md-row u-gap-md mt-3 dashboard-promo-row">
@@ -106,6 +109,14 @@ export class StartPage {
         <i class="fa fa-coffee"></i> Support me and buy me a coffee:
         <a id="${coffeeId}" href="https://buymeacoffee.com/dobschal" target="_blank" rel="noopener" class="buy-me-a-coffee-link">buymeacoffee.com/dobschal</a>
       </p>
+    `
+  }
+
+  _renderUrgencySection () {
+    return `
+      <h5 class="mb-2 mt-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')} ${wikiInfoIcon('urgency-list')}</h5>
+      ${this._renderUrgencyChecklist()}
+      ${this._renderMessagesLink()}
     `
   }
 
@@ -384,7 +395,7 @@ export class StartPage {
         { name: t('results.points') }
       ],
       data: teamsToShow,
-      classes: 'table-sm mb-4',
+      classes: 'table-sm',
       rowClass: (item, rowIndex) => {
         const actualIndex = startIndex + rowIndex
         const isMyTeam = this.team.id === item.team.id

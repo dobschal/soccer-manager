@@ -18,9 +18,12 @@ vi.mock('../../partials/dialog.js', () => ({
   showDialog: vi.fn(() => Promise.resolve({ ok: false, value: undefined }))
 }))
 
+let lastPlayerListCallback = null
 vi.mock('../../partials/playerList.js', () => ({
   PlayerList: class {
-    constructor () {}
+    constructor (_players, _multi, onPick) {
+      lastPlayerListCallback = onPick
+    }
     toString () { return '<div class="player-list"></div>' }
   }
 }))
@@ -266,7 +269,7 @@ describe('ActionCards', () => {
         stackEl.dataset.actionType = actionType
         stackEl.dataset.canMerge = 'false'
 
-        for (let i = 0; i < Math.min(cards.length, 5); i++) {
+        for (let i = 0; i < cards.length; i++) {
           const wrapper = document.createElement('div')
           wrapper.classList.add('action-card-wrapper')
           const img = document.createElement('img')
@@ -528,7 +531,7 @@ describe('ActionCards', () => {
       expect(remainingFreshness.map(c => c.id)).toEqual([61, 63])
     })
 
-    it('handles stacks with more than 5 cards by rebuilding wrappers', async () => {
+    it('renders every card in a large stack and drains them one by one', async () => {
       const mockCards = []
       for (let i = 0; i < 10; i++) {
         mockCards.push({ id: 100 + i, action: 'BONUS_100K' })
@@ -540,9 +543,9 @@ describe('ActionCards', () => {
       await actionCards.load()
       setupDOM(actionCards)
 
-      // Stack should start with 5 visual wrappers (slice(0,5))
+      // The stack renders every card in the group (matches ActionCardGiver).
       let stackEl = document.querySelector('.action-card-stack')
-      expect(stackEl.querySelectorAll('.action-card-wrapper')).toHaveLength(5)
+      expect(stackEl.querySelectorAll('.action-card-wrapper')).toHaveLength(10)
 
       const usedIds = []
       for (let i = 0; i < 10; i++) {
@@ -602,6 +605,39 @@ describe('ActionCards', () => {
       cards.serverEvents[SERVER_EVENTS.ACTION_CARDS_CHANGED.name]()
 
       expect(cards.update).not.toHaveBeenCalled()
+    })
+
+    it('keeps _processing true across the fitness-card overlay callback so the server event skips the full re-render', async () => {
+      // Repro for the "whole view still re-renders on fitness card use" bug:
+      // the top-level `_useActionCard` sets `_processing = true`, but
+      // `_handleFitnessCard` opens an overlay and returns synchronously, so
+      // `_useActionCard`'s finally released the flag long before the user
+      // picked a player. When useActionCard fired ACTION_CARDS_CHANGED, the
+      // handler saw `_processing = false` and tore the whole stack view down.
+      server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1, action: 'FRESHNESS_10' }] })
+      server.getMyTeam.mockResolvedValue({ players: [{ id: 42, name: 'Erik' }] })
+      let processingWhenCalled = null
+      server.useActionCard.mockImplementation(async function () {
+        processingWhenCalled = actionCards._processing
+      })
+
+      const actionCards = new ActionCards()
+      await actionCards.load()
+      actionCards._animateAndRemoveCard = vi.fn()
+      lastPlayerListCallback = null
+
+      await actionCards._useActionCard(actionCards.cards[0], 0)
+      // After _useActionCard returns, the overlay is up and _processing is
+      // released — same as the real flow.
+      expect(actionCards._processing).toBe(false)
+      expect(lastPlayerListCallback).toBeInstanceOf(Function)
+
+      // Simulate the user picking a player: the callback must re-arm the flag.
+      await lastPlayerListCallback({ id: 42, name: 'Erik' })
+
+      expect(processingWhenCalled).toBe(true)
+      // And it should release again afterwards so future clicks aren't wedged.
+      expect(actionCards._processing).toBe(false)
     })
   })
 })

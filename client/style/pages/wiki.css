@@ -35,7 +35,7 @@
 
 .wiki-list-item {
     display: block;
-    padding: 0.5rem 0rem;
+    padding: 0.5rem 0.5rem 0.5rem 0rem;
     border-radius: 0.4rem;
     text-decoration: none;
     color: inherit;
@@ -49,6 +49,7 @@
 .wiki-list-item.active {
     background: var(--bs-info-bg-subtle);
     border-left-color: var(--bs-info);
+    padding-left: 0.5rem;
 }
 
 .wiki-list-item__title {

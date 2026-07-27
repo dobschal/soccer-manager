@@ -11,9 +11,11 @@ import { MiniGame } from './miniGame.js'
 import { preloadAllActionCardSvgs, renderActionCardSvg } from '../../lib/actionCardSvg.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
-import { generateId } from '../../lib/html.js'
+import { generateId, el } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
 import { SERVER_EVENTS } from '../../lib/serverEvents.js'
+
+const MERGEABLE_ACTIONS = new Set(['LEVEL_UP_PLAYER_40', 'LEVEL_UP_PLAYER_70'])
 
 /**
  * @returns {Object.<string, {title: string, description: string}>}
@@ -138,6 +140,7 @@ export class ActionCards extends UIElement {
       }
     }
   }
+
   /**
    * The dashboard card view is the only consumer that needs the full inventory
    * up to date — every embedded ActionCardGiver drops its own consumed card
@@ -164,6 +167,10 @@ export class ActionCards extends UIElement {
   cards = []
 
   /**
+   * Renders one `.action-card-stack` per action type. Every card in the group
+   * gets its own `.action-card-wrapper` — the stack grows backwards without a
+   * cap, matching `ActionCardGiver`. Only `--stack-index` is used (the CSS
+   * spaces wrappers by 4px per slot); there is no `--stack-total`.
    * @returns {string}
    */
   _renderGroupedCards () {
@@ -182,15 +189,14 @@ export class ActionCards extends UIElement {
 
     return sortedTypes.map(actionType => {
       const cards = grouped[actionType]
-      const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && cards.length > 1
+      const canMerge = MERGEABLE_ACTIONS.has(actionType) && cards.length > 1
       const firstCardIdx = cards[0].idx
-      const stackOffset = Math.min(cards.length - 1, 4)
 
       return `
         <div class="col-6 col-md-4 col-lg-3 col-xl-2">
           <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
-            ${cards.slice(0, 5).map((_, i) => `
-              <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
+            ${cards.map((_, i) => `
+              <div class="action-card-wrapper" style="--stack-index: ${i};">
                 ${renderActionCardSvg(actionType)}
               </div>
             `).join('')}
@@ -239,56 +245,40 @@ export class ActionCards extends UIElement {
     const stackEl = this._currentCardElement
     if (!stackEl) return
 
-    // Get the action type and update array BEFORE animation
-    // so that clicking the stack again during animation picks the next card
     const usedCard = this.cards[usedCardIndex]
     const actionType = usedCard.action
-    this.cards.splice(usedCardIndex, 1)
-    const remainingOfType = this.cards.filter(c => c.action === actionType).length
-
-    // Update all data-action-card indices immediately
-    this._updateAllStackIndices()
 
     const topCard = stackEl.querySelector('.action-card-wrapper')
     if (topCard) {
+      topCard.style.setProperty('--stack-index', '-1')
       topCard.classList.add('card-used')
+      // Slide every remaining card in this stack one slot forward while the
+      // used card fades out — the CSS transition on top/left animates the
+      // shift, so no full re-render (which would tear peer stacks down too).
+      this._slideRemainingWrappers(stackEl)
       await delay(500)
     }
 
+    // Drop the consumed card from the local list. Player stat changes reach
+    // every consumer via PLAYER_UPDATED; ACTION_CARDS_CHANGED from the server
+    // refetches the inventory when the animation-blocking `_processing` flag
+    // drops — surgical updates below keep peer stacks stable in the meantime.
+    this.cards.splice(usedCardIndex, 1)
+    const remainingOfType = this.cards.filter(c => c.action === actionType).length
+
     if (remainingOfType === 0) {
-      const colWrapper = stackEl.closest('.col-6')
-      if (colWrapper) {
-        colWrapper.remove()
-      } else {
-        stackEl.remove()
-      }
+      // Bootstrap's grid handles reflow on its own once the column is gone.
+      const colWrapper = stackEl.closest('.col-6, .col-sm-4, .col-md-4, .col-lg-3, .col-xl-2')
+      if (colWrapper) colWrapper.remove()
+      else stackEl.remove()
     } else {
-      // Remove the top card wrapper from visual stack
+      // Drop the faded wrapper and patch just this stack: count badge, merge
+      // badge, and `data-action-card` on every stack (the splice shifted
+      // positions in `this.cards`).
       topCard?.remove()
-
-      // If all visual wrappers are gone but cards remain, rebuild the stack
-      const remainingWrappers = stackEl.querySelectorAll('.action-card-wrapper')
-      if (remainingWrappers.length === 0) {
-        this._rebuildStackVisuals(stackEl, actionType, remainingOfType)
-      } else {
-        // Update count badge
-        const countBadge = stackEl.querySelector('.action-card-count')
-        if (remainingOfType > 1) {
-          if (countBadge) {
-            countBadge.textContent = remainingOfType
-          }
-        } else {
-          countBadge?.remove()
-        }
-
-        // Update merge badge
-        const canStillMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && remainingOfType > 1
-        if (!canStillMerge) {
-          const mergeBadge = stackEl.querySelector('.action-card-merge-badge')
-          mergeBadge?.remove()
-          stackEl.dataset.canMerge = 'false'
-        }
-      }
+      this._patchCountBadge(stackEl, remainingOfType)
+      this._patchMergeBadge(stackEl, actionType, remainingOfType)
+      this._recomputeStackClickTargets()
     }
 
     this._currentCardElement = null
@@ -305,70 +295,59 @@ export class ActionCards extends UIElement {
     const stackEl = this._currentCardElement
     if (!stackEl) return
 
-    // Animate two cards fading out
+    const actionType = this.cards[cardIndex1].action
+
+    // Animate the top two wrappers fading out and slide every survivor two
+    // slots forward. Same shape as the single-use path above.
     const wrappers = stackEl.querySelectorAll('.action-card-wrapper')
-    if (wrappers.length >= 2) {
-      wrappers[0].classList.add('card-used')
-      wrappers[1].classList.add('card-used')
+    const wrapperA = wrappers[0]
+    const wrapperB = wrappers[1]
+    if (wrapperA && wrapperB) {
+      wrapperA.style.setProperty('--stack-index', '-1')
+      wrapperB.style.setProperty('--stack-index', '-1')
+      wrapperA.classList.add('card-used')
+      wrapperB.classList.add('card-used')
+      this._slideRemainingWrappers(stackEl, 2)
       await delay(500)
     }
 
-    const actionType = this.cards[cardIndex1].action
-
-    // Remove both cards from array (remove higher index first to preserve lower index)
+    // Remove both cards from array (higher index first so the lower stays put).
     const [lower, higher] = cardIndex1 < cardIndex2 ? [cardIndex1, cardIndex2] : [cardIndex2, cardIndex1]
     this.cards.splice(higher, 1)
     this.cards.splice(lower, 1)
 
-    // Add the new merged card to our array using the server-provided card
+    // Add the new merged card to our array using the server-provided card.
     this.cards.push(serverCard)
 
-    // Count remaining cards of the OLD type
     const remainingOfType = this.cards.filter(c => c.action === actionType).length
 
     if (remainingOfType === 0) {
-      const colWrapper = stackEl.closest('.col-6')
-      if (colWrapper) {
-        colWrapper.remove()
-      } else {
-        stackEl.remove()
-      }
+      const colWrapper = stackEl.closest('.col-6, .col-sm-4, .col-md-4, .col-lg-3, .col-xl-2')
+      if (colWrapper) colWrapper.remove()
+      else stackEl.remove()
     } else {
-      // Remove two card wrappers
-      wrappers[0]?.remove()
-      wrappers[1]?.remove()
-
-      // Update count badge
-      const countBadge = stackEl.querySelector('.action-card-count')
-      if (remainingOfType > 1) {
-        if (countBadge) {
-          countBadge.textContent = remainingOfType
-        }
-      } else {
-        countBadge?.remove()
-      }
-
-      // Update merge badge
-      const canStillMerge = remainingOfType > 1
-      if (!canStillMerge) {
-        const mergeBadge = stackEl.querySelector('.action-card-merge-badge')
-        mergeBadge?.remove()
-        stackEl.dataset.canMerge = 'false'
-      }
+      wrapperA?.remove()
+      wrapperB?.remove()
+      this._patchCountBadge(stackEl, remainingOfType)
+      this._patchMergeBadge(stackEl, actionType, remainingOfType)
     }
 
-    // Update or create stack for the NEW card type
+    // Update or create stack for the NEW card type.
     this._updateOrCreateStack(newCardType)
 
-    // Update all data-action-card indices
-    this._updateAllStackIndices()
+    // The splice(s) shifted every position after the removed cards; retarget
+    // every stack's click index against the (now-current) array.
+    this._recomputeStackClickTargets()
 
     this._currentCardElement = null
   }
 
   /**
-   * Updates or creates a stack for a given card type
+   * Updates or creates a stack for a given card type. Called after a merge
+   * lands a new card of `actionType`. Renders every card in the group — same
+   * shape as `_renderGroupedCards`.
    * @param {string} actionType
+   * @returns {void}
    */
   _updateOrCreateStack (actionType) {
     const root = document.querySelector(this._elementQuery)
@@ -379,39 +358,26 @@ export class ActionCards extends UIElement {
     if (cardsOfType.length === 0) return
 
     const existingStack = container.querySelector(`.action-card-stack[data-action-type="${actionType}"]`)
-
-    const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && cardsOfType.length > 1
+    const canMerge = MERGEABLE_ACTIONS.has(actionType) && cardsOfType.length > 1
     const firstCardIdx = this.cards.findIndex(c => c.action === actionType)
-    const stackOffset = Math.min(cardsOfType.length - 1, 4)
+
+    const wrappersHtml = cardsOfType.map((_, i) => `
+      <div class="action-card-wrapper" style="--stack-index: ${i};">
+        ${renderActionCardSvg(actionType)}
+      </div>
+    `).join('')
+    const mergeBadge = canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''
+    const countBadge = cardsOfType.length > 1 ? `<span class="action-card-count">${cardsOfType.length}</span>` : ''
 
     if (existingStack) {
-      // Update existing stack
       existingStack.dataset.canMerge = canMerge
       existingStack.dataset.actionCard = firstCardIdx
-
-      // Rebuild card wrappers
-      const wrappersHtml = cardsOfType.slice(0, 5).map((_, i) => `
-        <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-          ${renderActionCardSvg(actionType)}
-        </div>
-      `).join('')
-
-      const mergeBadge = canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''
-      const countBadge = cardsOfType.length > 1 ? `<span class="action-card-count">${cardsOfType.length}</span>` : ''
-
       existingStack.innerHTML = wrappersHtml + mergeBadge + countBadge
     } else {
-      // Create new stack wrapped in Bootstrap col
       const newStackHtml = `
         <div class="col-6 col-sm-4 col-lg-3 col-xl-2">
           <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
-            ${cardsOfType.slice(0, 5).map((_, i) => `
-              <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-                ${renderActionCardSvg(actionType)}
-              </div>
-            `).join('')}
-            ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
-            ${cardsOfType.length > 1 ? `<span class="action-card-count">${cardsOfType.length}</span>` : ''}
+            ${wrappersHtml}${mergeBadge}${countBadge}
           </div>
         </div>
       `
@@ -420,44 +386,72 @@ export class ActionCards extends UIElement {
   }
 
   /**
-   * Rebuilds the visual wrappers and badges for a stack element
-   * @param {Element} stackEl
-   * @param {string} actionType
-   * @param {number} count
+   * Decrement `--stack-index` on every wrapper in this stack that isn't being
+   * consumed. The used wrappers' own top/left don't matter (their `card-used`
+   * animation replaces them with a scale/translate transform), so skipping
+   * them avoids fighting that animation.
+   * @param {HTMLElement} stackEl
+   * @param {number} [step=1] - How many slots to shift forward (2 for a merge).
+   * @returns {void}
    */
-  _rebuildStackVisuals (stackEl, actionType, count) {
-    const stackOffset = Math.min(count - 1, 4)
-    const canMerge = (actionType === 'LEVEL_UP_PLAYER_40' || actionType === 'LEVEL_UP_PLAYER_70') && count > 1
-
-    const wrappersHtml = Array.from({ length: Math.min(count, 5) }, (_, i) => `
-      <div class="action-card-wrapper" style="--stack-index: ${i}; --stack-total: ${stackOffset};">
-        ${renderActionCardSvg(actionType)}
-      </div>
-    `).join('')
-
-    const mergeBadge = canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''
-    const countBadge = count > 1 ? `<span class="action-card-count">${count}</span>` : ''
-
-    stackEl.innerHTML = wrappersHtml + mergeBadge + countBadge
-    stackEl.dataset.canMerge = canMerge
+  _slideRemainingWrappers (stackEl, step = 1) {
+    stackEl.querySelectorAll('.action-card-wrapper:not(.card-used)').forEach(w => {
+      const current = Number(w.style.getPropertyValue('--stack-index')) || 0
+      w.style.setProperty('--stack-index', String(Math.max(0, current - step)))
+    })
   }
 
   /**
-   * Updates all data-action-card indices after array modifications
+   * Keep the "N cards" badge in sync with the new stack size — remove it once
+   * only one card is left, or update / create it otherwise.
+   * @param {HTMLElement} stackEl
+   * @param {number} count
+   * @returns {void}
    */
-  _updateAllStackIndices () {
-    const root = document.querySelector(this._elementQuery)
-    const container = root?.querySelector('.action-cards-scroll')
-    if (!container) return
+  _patchCountBadge (stackEl, count) {
+    const badge = stackEl.querySelector('.action-card-count')
+    if (count > 1) {
+      if (badge) badge.textContent = count
+      else stackEl.insertAdjacentHTML('beforeend', `<span class="action-card-count">${count}</span>`)
+    } else {
+      badge?.remove()
+    }
+  }
 
-    container.querySelectorAll('.action-card-stack').forEach(stack => {
-      const actionType = stack.dataset.actionType
+  /**
+   * Merge badge only shows for `LEVEL_UP_PLAYER_40/70` stacks with 2+ cards.
+   * When the stack shrinks below that, drop the badge and flip the dataset
+   * so a future click doesn't trigger the merge dialog.
+   * @param {HTMLElement} stackEl
+   * @param {string} actionType
+   * @param {number} count
+   * @returns {void}
+   */
+  _patchMergeBadge (stackEl, actionType, count) {
+    const canMerge = MERGEABLE_ACTIONS.has(actionType) && count > 1
+    stackEl.dataset.canMerge = String(canMerge)
+    const badge = stackEl.querySelector('.action-card-merge-badge')
+    if (canMerge) {
+      if (!badge) stackEl.insertAdjacentHTML('beforeend', `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>`)
+    } else {
+      badge?.remove()
+    }
+  }
+
+  /**
+   * Every `data-action-card` on a live stack has to point at the first card
+   * of that action type in `this.cards`. Splicing above shifted positions,
+   * so recompute from the (now-current) array instead of tracking deltas.
+   * @returns {void}
+   */
+  _recomputeStackClickTargets () {
+    const root = el(this._elementQuery)
+    if (!root) return
+    root.querySelectorAll('.action-card-stack').forEach(s => {
+      const actionType = s.dataset.actionType
       if (!actionType) return
-
       const newIdx = this.cards.findIndex(c => c.action === actionType)
-      if (newIdx >= 0) {
-        stack.dataset.actionCard = newIdx
-      }
+      if (newIdx >= 0) s.dataset.actionCard = String(newIdx)
     })
   }
 
@@ -530,6 +524,11 @@ export class ActionCards extends UIElement {
   async _handleFitnessCard (actionCard, cardIndex) {
     const data = await server.getMyTeam()
     const playerList = new PlayerList(data.players, false, async player => {
+      // Re-arm `_processing` here — `_useActionCard` released it as soon as
+      // this handler opened the overlay and returned. Without the re-arm the
+      // ACTION_CARDS_CHANGED server event emitted by `useActionCard` below
+      // would trigger a full `update(true)` and wipe the surgical stack diff.
+      this._processing = true
       try {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
@@ -538,6 +537,8 @@ export class ActionCards extends UIElement {
       } catch (e) {
         console.error(e)
         toast(e.message ?? 'Something went wrong...', 'error')
+      } finally {
+        this._processing = false
       }
     })
     this._overlay = showOverlay(
@@ -555,6 +556,7 @@ export class ActionCards extends UIElement {
   async _handleLevelUpCard (actionCard, cardIndex) {
     const data = await server.getMyTeam()
     const playerList = new PlayerList(data.players, false, async player => {
+      this._processing = true
       try {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
@@ -563,6 +565,8 @@ export class ActionCards extends UIElement {
       } catch (e) {
         console.error(e)
         toast(e.message ?? 'Something went wrong...', 'error')
+      } finally {
+        this._processing = false
       }
     })
     this._overlay = showOverlay(
@@ -581,6 +585,7 @@ export class ActionCards extends UIElement {
     const data = await server.getMyTeam()
     const eligiblePlayers = data.players.filter(p => !p.is_star_player)
     const playerList = new PlayerList(eligiblePlayers, false, async player => {
+      this._processing = true
       try {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
@@ -589,6 +594,8 @@ export class ActionCards extends UIElement {
       } catch (e) {
         console.error(e)
         toast(e.message ?? 'Something went wrong...', 'error')
+      } finally {
+        this._processing = false
       }
     })
     this._overlay = showOverlay(
@@ -620,6 +627,7 @@ export class ActionCards extends UIElement {
     const buttonIds = options.map(() => generateId())
     options.forEach((option, idx) => {
       onClick(buttonIds[idx], async () => {
+        this._processing = true
         try {
           await server.useActionCard(actionCard, option, null)
           this._overlay?.remove()
@@ -628,6 +636,8 @@ export class ActionCards extends UIElement {
         } catch (e) {
           console.error(e)
           toast(e.message ?? 'Something went wrong...', 'error')
+        } finally {
+          this._processing = false
         }
       })
     })

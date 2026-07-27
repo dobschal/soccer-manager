@@ -51,23 +51,32 @@ export class GameSlider extends UIElement {
 
       const centerContent = this._generateCenterContent(game, isBye)
 
-      // Determine href based on game type
+      // Determine href based on game type. Played games open the game modal
+      // via game_id; upcoming games just navigate to the matching sub-page.
       let href
       const slideId = generateId()
+      const isFriendly = game.game_type === 'friendly' || game.isFriendly
+      const isCupGame = game.isCup || game.game_type === 'cup'
       if (game.isPlayed) {
-        if (game.game_type === 'friendly' || game.isFriendly) {
+        if (isFriendly) {
           // Friendly games: show modal on click (href set to '#' to make it clickable)
           href = '#'
           onClick('#' + slideId + ' a', (e) => {
             e.preventDefault()
             void showGameModal(game.id)
           })
-        } else if (game.isCup || game.game_type === 'cup') {
-          // Cup games: navigate to cup results
+        } else if (isCupGame) {
           href = `#results?game_id=${game.id}&sub_page=cup`
         } else {
-          // League games: navigate to league results
           href = `#results?game_id=${game.id}`
+        }
+      } else {
+        if (isFriendly) {
+          href = '#results?sub_page=friendly'
+        } else if (isCupGame) {
+          href = '#results?sub_page=cup'
+        } else {
+          href = '#results'
         }
       }
 

@@ -117,7 +117,7 @@ export class DashboardPage extends TabbedPage {
       <div>
         ${this._tutorialProgress}
 
-        <nav class="nav nav-pills mb-4">
+        <nav class="nav nav-pills">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
           <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
           <a class="nav-link ${this.subPage === 'friends' ? 'active' : ''}" href="#dashboard?sub_page=friends"><i class="fa fa-users"></i> ${t('dashboard.tabFriends')}</a>
@@ -210,9 +210,9 @@ export class DashboardPage extends TabbedPage {
     this._initialQueryChangeHandled = true
   }
   get routeName () { return 'dashboard' }
-  
+
   get defaultSubPageKey () { return 'start' }
-  
+
   createSubPage (key) {
     switch (key) {
       case 'cards': return new ActionCards()

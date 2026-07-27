@@ -68,12 +68,13 @@ a:visited,
 .hover-text:not(td) {
     text-decoration: none;
     color: inherit;
-    border-bottom: dotted 1px #C0C0C0;
+    border-bottom: dotted 1px #c0c0c0;
     display: inline-block;
     transition: transform 0.3s ease-in-out;
 }
 
-a:hover, a:active,
+a:hover,
+a:active,
 .hover-text:not(td):hover {
     cursor: pointer;
 }
@@ -84,7 +85,7 @@ td.hover-text {
 }
 
 td.hover-text:hover {
-    background-color: #EFEFEF;
+    background-color: #efefef;
 }
 
 /* Override Bootstrap's .text-warning to be darker/more orange for better readability on white */
@@ -142,7 +143,7 @@ td.hover-text:hover {
 }
 
 .u-cuprum {
-    font-family: 'Cuprum', sans-serif;
+    font-family: "Cuprum", sans-serif;
 }
 
 /* Off-screen helper for transient elements (e.g. execCommand copy fallback) */
