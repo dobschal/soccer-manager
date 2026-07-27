@@ -65,11 +65,17 @@ export const NEW_YOUTH_PLAYER_ACTIONS = new Set([
 export async function generateYouthPlayerOptions (action) {
   const range = YOUTH_PLAYER_CARD_RANGES[action]
   if (!range) throw new BadRequestError('Invalid youth player card action')
+  // Pick 3 distinct positions so the offered players don't all share the same one.
+  const positions = Object.values(Position)
+    .map(position => ({ position, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .slice(0, 3)
+    .map(({ position }) => position)
   const options = []
   for (let i = 0; i < 3; i++) {
     options.push({
       name: await generateRandomPlayerName(),
-      position: randomItem(Object.values(Position)),
+      position: positions[i],
       level: range.levelMin + Math.random() * (range.levelMax - range.levelMin),
       talent: range.talentMin + Math.random() * (range.talentMax - range.talentMin),
       hair_color: Math.floor(Math.random() * 7),
