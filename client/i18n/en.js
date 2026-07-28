@@ -859,6 +859,9 @@ export default {
   'actionCards.claim.tapToReveal': 'Tap the card to reveal it!',
   'actionCards.claim.tapToContinue': 'Tap to continue!',
   'actionCards.claim.skip': 'Skip',
+  'actionCards.claim.failed': 'Could not claim the card.',
+  'actionCards.limitHint': 'You can hold up to {max} cards per type.',
+  'actionCards.stackFull': 'Full',
   // Action Card Types
   'actionCards.type.legendaryMastery': 'Master Training',
   'actionCards.type.legendaryMasteryDesc': 'Level up a player to reach level 100.',

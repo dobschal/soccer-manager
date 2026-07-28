@@ -343,7 +343,7 @@ describe('actionCards routes', () => {
       const result = await handlers.claimActionCard(10, req)
 
       expect(result).toEqual({ success: true, card: claimedCard })
-      expect(claimActionCard).toHaveBeenCalledWith(10, team.id)
+      expect(claimActionCard).toHaveBeenCalledWith(10, team.id, 'en')
     })
 
     it('emits ACTION_CARDS_CHANGED so the dashboard view refetches after the pending → received flip', async () => {

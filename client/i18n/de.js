@@ -859,6 +859,9 @@ export default {
   'actionCards.claim.tapToReveal': 'Tippe auf die Karte, um sie aufzudecken!',
   'actionCards.claim.tapToContinue': 'Tippe, um fortzufahren!',
   'actionCards.claim.skip': 'Überspringen',
+  'actionCards.claim.failed': 'Karte konnte nicht eingesammelt werden.',
+  'actionCards.limitHint': 'Du kannst bis zu {max} Karten pro Typ besitzen.',
+  'actionCards.stackFull': 'Voll',
   // Action Card Types
   'actionCards.type.legendaryMastery': 'Meister-Training',
   'actionCards.type.legendaryMasteryDesc': 'Verbessere einen Spieler auf Level 100.',

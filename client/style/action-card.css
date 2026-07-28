@@ -111,6 +111,18 @@
     z-index: 20;
 }
 
+/* At the per-type hold limit: the badge shows "count/max" and turns red, so
+   the cap is clearly visible. Widen it to a pill since "10/10" won't fit the
+   28px circle. */
+.action-card-count--full {
+    background: var(--bs-danger, #dc3545);
+    width: auto;
+    min-width: 28px;
+    padding: 0 8px;
+    border-radius: 14px;
+    font-size: 12px;
+}
+
 /* Adjust merge badge position for stacks */
 .action-card-stack .action-card-merge-badge {
     top: -5px;

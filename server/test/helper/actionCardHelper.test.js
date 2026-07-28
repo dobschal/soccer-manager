@@ -716,6 +716,41 @@ describe('actionCardHelper', () => {
       await expect(claimActionCard(10, 999))
         .rejects.toMatchObject({ message: 'Card not found or already claimed' })
     })
+
+    it('allows claiming when the team is below the per-type hold limit', async () => {
+      const card = testData.actionCard({ id: 10, team_id: 5, action: 'FRESHNESS_10', state: 'pending' })
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('COUNT(*)')) return [{ heldCount: 9 }]
+        if (sql.includes("state='pending'")) return [card]
+        return {}
+      })
+
+      const result = await claimActionCard(10, 5)
+
+      expect(result.state).toBe('received')
+      expect(query).toHaveBeenCalledWith(
+        "UPDATE action_card SET state='received' WHERE id=?",
+        [10]
+      )
+    })
+
+    it('rejects claiming when the per-type hold limit is reached', async () => {
+      const card = testData.actionCard({ id: 10, team_id: 5, action: 'FRESHNESS_10', state: 'pending' })
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('COUNT(*)')) return [{ heldCount: 10 }]
+        if (sql.includes("state='pending'")) return [card]
+        return {}
+      })
+
+      await expect(claimActionCard(10, 5, 'en'))
+        .rejects.toMatchObject({ message: 'error.actionCardLimitReached' })
+
+      // The card must not be flipped to received when the limit is hit.
+      expect(query).not.toHaveBeenCalledWith(
+        "UPDATE action_card SET state='received' WHERE id=?",
+        [10]
+      )
+    })
   })
 
   describe('deleteExpiredPendingCards', () => {

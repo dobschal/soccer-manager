@@ -2,6 +2,7 @@ import { generateId } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
 import { t } from '../i18n/index.js'
+import { toast } from './toast.js'
 import { preloadActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
 
 /**
@@ -100,7 +101,12 @@ function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false
       if (hint) hint.textContent = t('actionCards.claim.tapToContinue')
 
       state.claimPromises.push(
-        server.claimActionCard(card.id).catch(e => console.error('Failed to claim card:', e))
+        server.claimActionCard(card.id).catch(e => {
+          // A rejected claim is usually the per-type hold limit being reached;
+          // surface the server message so the user knows the card wasn't added.
+          console.error('Failed to claim card:', e)
+          toast(e.message ?? t('actionCards.claim.failed'), 'error')
+        })
       )
     }
 
@@ -127,11 +133,18 @@ function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false
       state.skipped = true
       document.removeEventListener('keydown', onKeyDown)
 
+      const skipErrors = new Set()
       const skipClaims = remainingCards.map(c =>
-        server.claimActionCard(c.id).catch(e => console.error('Failed to claim card:', e))
+        server.claimActionCard(c.id).catch(e => {
+          console.error('Failed to claim card:', e)
+          skipErrors.add(e.message ?? t('actionCards.claim.failed'))
+        })
       )
       state.claimPromises.push(...skipClaims)
       await Promise.all(skipClaims)
+      // Show each distinct failure once (e.g. the per-type limit message)
+      // rather than one toast per rejected card.
+      skipErrors.forEach(message => toast(message, 'error'))
 
       const overlay = document.getElementById(overlayId)
       if (overlay) overlay.remove()

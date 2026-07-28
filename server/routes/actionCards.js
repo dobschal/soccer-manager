@@ -43,7 +43,7 @@ export default {
     const locale = req.locale || 'en'
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const team = await getTeam(req)
-    const card = await claimActionCard(cardId, team.id)
+    const card = await claimActionCard(cardId, team.id, locale)
     if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
     return { success: true, card }
   },

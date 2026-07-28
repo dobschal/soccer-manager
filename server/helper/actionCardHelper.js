@@ -135,13 +135,31 @@ export async function getPendingActionCards (team) {
 }
 
 /**
+ * Maximum number of *received* (claimed, unplayed) action cards a team may
+ * hold per action type. Claiming a card of a type already at this limit is
+ * rejected with an error the client surfaces as a toast. Existing stacks that
+ * are already above the limit (from before it was introduced) are left
+ * untouched — they simply can't grow any further until played down.
+ * Keep in sync with the client copy in client/pages/dashboard/actionCards.js.
+ */
+export const MAX_ACTION_CARDS_PER_TYPE = 10
+
+/**
  * @param {number} cardId
  * @param {number} teamId
+ * @param {string} [locale]
  * @returns {Promise<ActionCardType>}
  */
-export async function claimActionCard (cardId, teamId) {
+export async function claimActionCard (cardId, teamId, locale = 'en') {
   const [card] = await query('SELECT * FROM action_card WHERE id=? AND team_id=? AND state=\'pending\'', [cardId, teamId])
   if (!card) throw new BadRequestError('Card not found or already claimed')
+  const [{ heldCount }] = await query(
+    'SELECT COUNT(*) AS heldCount FROM action_card WHERE team_id=? AND action=? AND played=0 AND state=\'received\'',
+    [teamId, card.action]
+  )
+  if (heldCount >= MAX_ACTION_CARDS_PER_TYPE) {
+    throw new BadRequestError(t('error.actionCardLimitReached', { max: MAX_ACTION_CARDS_PER_TYPE }, locale))
+  }
   await query('UPDATE action_card SET state=\'received\' WHERE id=?', [cardId])
   return {
     ...card,

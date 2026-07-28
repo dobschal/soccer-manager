@@ -18,6 +18,28 @@ import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 const MERGEABLE_ACTIONS = new Set(['LEVEL_UP_PLAYER_40', 'LEVEL_UP_PLAYER_70'])
 
 /**
+ * Maximum number of cards a team may hold per action type. Kept in sync with
+ * the server constant in server/helper/actionCardHelper.js — the server
+ * enforces it on claim; this copy only drives the visible hint / "full" badge.
+ * @type {number}
+ */
+const MAX_ACTION_CARDS_PER_TYPE = 10
+
+/**
+ * Render the per-stack count badge. Hidden for single cards; shows the count,
+ * and once the per-type limit is reached switches to a "count/max" badge with
+ * a "full" style so the limit is visible.
+ * @param {number} count
+ * @returns {string}
+ */
+function countBadgeHtml (count) {
+  if (count <= 1) return ''
+  const isFull = count >= MAX_ACTION_CARDS_PER_TYPE
+  const label = isFull ? `${count}/${MAX_ACTION_CARDS_PER_TYPE}` : String(count)
+  return `<span class="action-card-count${isFull ? ' action-card-count--full' : ''}" title="${isFull ? t('actionCards.stackFull') : ''}">${label}</span>`
+}
+
+/**
  * @returns {Object.<string, {title: string, description: string}>}
  */
 function getActionCardTexts () {
@@ -90,7 +112,7 @@ export class ActionCards extends UIElement {
     return `
       <div class="mb-5">
         <h3>${t('actionCards.title')} ${wikiInfoIcon('action-cards')}</h3>
-        <p class="u-max-w-620">${t('actionCards.subtitle')}</p>
+        <p class="u-max-w-620">${t('actionCards.subtitle')} <span class="text-muted">${t('actionCards.limitHint', { max: MAX_ACTION_CARDS_PER_TYPE })}</span></p>
         <div class="mb-4 action-cards-container">
           <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>
         </div>
@@ -201,7 +223,7 @@ export class ActionCards extends UIElement {
               </div>
             `).join('')}
             ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
-            ${cards.length > 1 ? `<span class="action-card-count">${cards.length}</span>` : ''}
+            ${countBadgeHtml(cards.length)}
           </div>
         </div>
       `
@@ -367,7 +389,7 @@ export class ActionCards extends UIElement {
       </div>
     `).join('')
     const mergeBadge = canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''
-    const countBadge = cardsOfType.length > 1 ? `<span class="action-card-count">${cardsOfType.length}</span>` : ''
+    const countBadge = countBadgeHtml(cardsOfType.length)
 
     if (existingStack) {
       existingStack.dataset.canMerge = canMerge
@@ -409,13 +431,11 @@ export class ActionCards extends UIElement {
    * @returns {void}
    */
   _patchCountBadge (stackEl, count) {
-    const badge = stackEl.querySelector('.action-card-count')
-    if (count > 1) {
-      if (badge) badge.textContent = count
-      else stackEl.insertAdjacentHTML('beforeend', `<span class="action-card-count">${count}</span>`)
-    } else {
-      badge?.remove()
-    }
+    // Rebuild the badge via the shared helper so the "full" style / "count/max"
+    // label stays consistent with the initial render.
+    stackEl.querySelector('.action-card-count')?.remove()
+    const html = countBadgeHtml(count)
+    if (html) stackEl.insertAdjacentHTML('beforeend', html)
   }
 
   /**
