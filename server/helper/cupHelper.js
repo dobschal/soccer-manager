@@ -9,6 +9,32 @@ const CUP_PRIZE = 2000000 // 2 million euros
 const CUP_ROUND_BASE_PRIZE = 25000 // 25k for first round, doubles each round
 
 /**
+ * Is team `a` weaker than team `b`? Strength is ranked by team level first,
+ * then by league (lower value = stronger). Teams from lower leagues therefore
+ * count as weaker.
+ * @param {{level?: number, league?: number}} a
+ * @param {{level?: number, league?: number}} b
+ * @returns {boolean}
+ */
+function isWeakerTeam (a, b) {
+  if ((a.level ?? 0) !== (b.level ?? 0)) return (a.level ?? 0) > (b.level ?? 0)
+  return (a.league ?? 0) > (b.league ?? 0)
+}
+
+/**
+ * Decide home/away for a cup pairing. The weaker team (from a lower league)
+ * always plays at home against a stronger opponent — team_1 is the home side
+ * in the game model. Equal-strength pairings keep the given order.
+ * @param {{id: number, level?: number, league?: number}} teamA
+ * @param {{id: number, level?: number, league?: number}} teamB
+ * @returns {{home: {id: number}, away: {id: number}}}
+ */
+function assignCupHomeAway (teamA, teamB) {
+  if (isWeakerTeam(teamB, teamA)) return { home: teamB, away: teamA }
+  return { home: teamA, away: teamB }
+}
+
+/**
  * Compute the total number of rounds from the first round's cup_round value.
  * cup_round uses powers of 2: first round has highest value (e.g., 64), final = 1.
  * @param {number} maxCupRound - The highest cup_round value (first round)
@@ -288,9 +314,12 @@ export async function createCupDraw (season, currentGameDay = 0, cupGameDays = n
 
     if (!teamA || !teamB) break
 
+    // The weaker team (lower league) gets home advantage against a stronger opponent.
+    const { home, away } = assignCupHomeAway(teamA, teamB)
+
     const game = new Game({
-      team_1_id: teamA.id,
-      team_2_id: teamB.id,
+      team_1_id: home.id,
+      team_2_id: away.id,
       season,
       game_day: firstRound.gameDay,
       match_day: firstRoundMatchDay,
@@ -418,6 +447,17 @@ export async function progressCupRound (season, completedRound) {
   // Shuffle next round teams for random matchups
   const shuffledTeams = [...nextRoundTeams].sort(() => Math.random() - 0.5)
 
+  // Look up level/league of the advancing teams so we can grant the weaker
+  // team home advantage in each pairing (team_1 is the home side).
+  const teamStrength = new Map()
+  if (shuffledTeams.length > 0) {
+    const rows = await query(
+      `SELECT id, level, league FROM team WHERE id IN (${shuffledTeams.map(() => '?').join(',')})`,
+      shuffledTeams
+    )
+    if (Array.isArray(rows)) rows.forEach(r => teamStrength.set(r.id, r))
+  }
+
   // Create next round matches
   for (let i = 0; i < shuffledTeams.length; i += 2) {
     const teamAId = shuffledTeams[i]
@@ -425,9 +465,13 @@ export async function progressCupRound (season, completedRound) {
 
     if (!teamAId || !teamBId) break
 
+    const teamA = teamStrength.get(teamAId) ?? { id: teamAId }
+    const teamB = teamStrength.get(teamBId) ?? { id: teamBId }
+    const { home, away } = assignCupHomeAway(teamA, teamB)
+
     const game = new Game({
-      team_1_id: teamAId,
-      team_2_id: teamBId,
+      team_1_id: home.id,
+      team_2_id: away.id,
       season,
       game_day: nextGameDay,
       match_day: nextMatchDay,

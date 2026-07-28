@@ -249,6 +249,32 @@ describe('cupHelper', () => {
       // First round of 4-team cup = round 2, sequential round 1
       expect(insertCalls[0][1]).toHaveProperty('match_day', 1)
     })
+
+    it('grants the weaker team (lower league) home advantage in first-round pairings', async () => {
+      // level/league = id, so a higher id means a weaker team. team_1 is the
+      // home side, so in every pairing the higher-id team must be team_1.
+      const teams = Array.from({ length: 4 }, (_, i) => ({
+        id: i + 1,
+        name: `Team ${i + 1}`,
+        level: i + 1,
+        league: i + 1
+      }))
+
+      query.mockResolvedValueOnce(teams)
+      query.mockResolvedValue({ insertId: 1 })
+
+      await createCupDraw(1)
+
+      const nonByeGames = query.mock.calls
+        .filter(call => call[0].includes('INSERT INTO game'))
+        .map(call => call[1])
+        .filter(game => game.team_2_id != null)
+
+      expect(nonByeGames.length).toBeGreaterThan(0)
+      for (const game of nonByeGames) {
+        expect(game.team_1_id).toBeGreaterThan(game.team_2_id)
+      }
+    })
   })
 
   describe('findNextCupGameDay', () => {
