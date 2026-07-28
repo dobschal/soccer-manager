@@ -14,7 +14,7 @@ vi.mock('../helper/teamHelper.js', () => ({
 }))
 
 // Import after mocking
-import { prepareSeason, _buildGame, _nextLevelToFill, _existingLeagueDayMap, _computeTopUpPositions, regenerateTeamData } from '../prepare-season.js'
+import { prepareSeason, _buildGame, _nextLevelToFill, _existingLeagueDayMap, _computeTopUpPositions, regenerateTeamData, _assignTeamsToParallelLeagues } from '../prepare-season.js'
 import { query } from '../lib/database.js'
 
 describe('prepare-season', () => {
@@ -25,6 +25,52 @@ describe('prepare-season', () => {
   describe('prepareSeason', () => {
     it('is exported and callable', () => {
       expect(typeof prepareSeason).toBe('function')
+    })
+  })
+
+  describe('_assignTeamsToParallelLeagues', () => {
+    const makeTeams = (managerCount, botCount) => {
+      const teams = []
+      for (let i = 0; i < managerCount; i++) teams.push({ id: 100 + i, user_id: 500 + i })
+      for (let i = 0; i < botCount; i++) teams.push({ id: 200 + i, user_id: null })
+      return teams
+    }
+
+    it('spreads human-managed teams evenly across parallel leagues', () => {
+      // 36 teams → 2 leagues of 18. 10 managers should split ~5/5.
+      const teams = makeTeams(10, 26)
+
+      const leagues = _assignTeamsToParallelLeagues(teams)
+
+      expect(leagues).toHaveLength(2)
+      leagues.forEach(l => expect(l).toHaveLength(18))
+
+      const managersPerLeague = leagues.map(l => l.filter(t => t.user_id != null).length)
+      // Even distribution: no league differs from another by more than 1.
+      expect(Math.max(...managersPerLeague) - Math.min(...managersPerLeague)).toBeLessThanOrEqual(1)
+      expect(managersPerLeague.reduce((a, b) => a + b, 0)).toBe(10)
+    })
+
+    it('assigns every team to exactly one league and sets team.league', () => {
+      const teams = makeTeams(4, 32)
+
+      const leagues = _assignTeamsToParallelLeagues(teams)
+
+      const assigned = leagues.flat()
+      expect(assigned).toHaveLength(36)
+      // Unique team ids, and each team.league matches its bucket index.
+      const ids = new Set(assigned.map(t => t.id))
+      expect(ids.size).toBe(36)
+      leagues.forEach((l, idx) => l.forEach(t => expect(t.league).toBe(idx)))
+    })
+
+    it('handles a single partial league', () => {
+      const teams = makeTeams(2, 8) // 10 teams → 1 league
+
+      const leagues = _assignTeamsToParallelLeagues(teams)
+
+      expect(leagues).toHaveLength(1)
+      expect(leagues[0]).toHaveLength(10)
     })
   })
 

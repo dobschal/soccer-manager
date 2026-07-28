@@ -393,21 +393,60 @@ async function _primeStandingCacheForNewLeague (season, level, league, teams) {
 }
 
 /**
- * Assign teams to parallel leagues at the same level (league = floor(i/teamsPerLeague))
- * and persist the league number on the team row.
+ * Assign teams to parallel leagues at the same level and persist the league
+ * number on each team row.
+ *
+ * Human-managed teams (with a `user_id`) are spread out evenly across the
+ * parallel leagues via a round-robin so we don't end up with one league full
+ * of managers and the others populated only by bots. Bots then fill the
+ * remaining slots. Both groups are shuffled first so the mix changes every
+ * season instead of following a stale, deterministic order.
+ *
  * @param {TeamType[]} teamsOfLevel
  * @returns {TeamType[][]}
  */
-function _assignTeamsToParallelLeagues (teamsOfLevel) {
-  const leagues = []
-  for (let i = 0; i < teamsOfLevel.length; i++) {
-    const league = Math.floor(i / teamsPerLeague)
-    if (!leagues[league]) leagues[league] = []
-    query(`UPDATE team
-           SET league=${league}
-           WHERE id = ${teamsOfLevel[i].id}`)
-    leagues[league].push(teamsOfLevel[i])
+export function _assignTeamsToParallelLeagues (teamsOfLevel) {
+  const total = teamsOfLevel.length
+  const numLeagues = Math.max(1, Math.ceil(total / teamsPerLeague))
+
+  // Capacity per league: every league holds teamsPerLeague, except a final
+  // partial league that takes the remainder.
+  const capacity = Array.from({ length: numLeagues }, (_, l) =>
+    Math.min(teamsPerLeague, total - l * teamsPerLeague))
+
+  const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5)
+  const managers = shuffle(teamsOfLevel.filter(t => t.user_id != null))
+  const bots = shuffle(teamsOfLevel.filter(t => t.user_id == null))
+
+  const leagues = Array.from({ length: numLeagues }, () => [])
+
+  // Round-robin placement that skips leagues which are already at capacity.
+  let cursor = 0
+  const place = (team) => {
+    let guard = 0
+    while (leagues[cursor].length >= capacity[cursor]) {
+      cursor = (cursor + 1) % numLeagues
+      if (++guard > numLeagues) return // all full — should never happen
+    }
+    leagues[cursor].push(team)
+    cursor = (cursor + 1) % numLeagues
   }
+
+  // Managers first so they are distributed as evenly as capacity allows, then
+  // bots fill whatever is left.
+  managers.forEach(place)
+  bots.forEach(place)
+
+  // Persist the league assignment (and keep the in-memory objects in sync).
+  leagues.forEach((teamsOfLeague, league) => {
+    teamsOfLeague.forEach(team => {
+      team.league = league
+      query(`UPDATE team
+             SET league=${league}
+             WHERE id = ${team.id}`)
+    })
+  })
+
   return leagues
 }
 
