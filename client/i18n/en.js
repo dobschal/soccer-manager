@@ -1522,6 +1522,7 @@ export default {
   'headToHead.colResult': 'Result',
   'headToHead.league': 'League',
   'headToHead.seasonShort': 'S.',
+  'headToHead.showFriendlies': 'Show friendlies',
 
   // Season review overlay (end-of-season summary on the dashboard, shown until
   // the new season is created)
@@ -1596,7 +1597,6 @@ export default {
   'worldCup.stageThirdPlace': 'Third place',
   'worldCup.stageFinal': 'Final',
 
-  'admin.tabWorldCup': 'World Cup',
   'admin.worldCupTitle': 'World Cup tip game',
   'admin.worldCupDescription': 'Create, edit and resolve World Cup games. Adding a result triggers reward distribution for everyone who tipped correctly.',
   'admin.worldCupExistingGames': 'Existing games',

@@ -1522,6 +1522,7 @@ export default {
   'headToHead.colResult': 'Ergebnis',
   'headToHead.league': 'Liga',
   'headToHead.seasonShort': 'S.',
+  'headToHead.showFriendlies': 'Friendlies anzeigen',
 
   // Season review overlay (end-of-season summary on the dashboard, shown until
   // the new season is created)
@@ -1596,7 +1597,6 @@ export default {
   'worldCup.stageThirdPlace': 'Spiel um Platz 3',
   'worldCup.stageFinal': 'Finale',
 
-  'admin.tabWorldCup': 'WM Tippspiel',
   'admin.worldCupTitle': 'WM Tippspiel',
   'admin.worldCupDescription': 'Spiele anlegen, bearbeiten und Ergebnisse eintragen. Beim Speichern eines Ergebnisses werden automatisch Belohnungen für korrekte Tipps verteilt.',
   'admin.worldCupExistingGames': 'Vorhandene Spiele',

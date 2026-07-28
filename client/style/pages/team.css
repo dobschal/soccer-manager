@@ -221,6 +221,25 @@
     color: #555;
 }
 
+.head-to-head-toggle {
+    margin: 0.75rem 0 0.25rem;
+}
+
+.head-to-head-toggle .form-check-input {
+    cursor: pointer;
+}
+
+.head-to-head-toggle .form-check-input:checked {
+    background-color: var(--bs-info);
+    border-color: var(--bs-info);
+}
+
+.head-to-head-toggle .form-check-label {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #555;
+}
+
 .head-to-head-table th,
 .head-to-head-table td {
     font-size: 0.9rem;
