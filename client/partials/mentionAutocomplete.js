@@ -127,20 +127,32 @@ export function attachMentionAutocomplete (input) {
     debounceTimer = setTimeout(() => queryServer(currentQuery), SEARCH_DEBOUNCE_MS)
   }
 
+  // Registered on `document` in the capture phase (see below) so it runs before
+  // the surrounding form's own submit-on-Enter keydown handler, which is bound
+  // directly on the textarea and fires first at the target otherwise. When the
+  // dropdown is open we swallow the key (stopImmediatePropagation) so Enter/Tab
+  // pick the highlighted user instead of submitting the post/comment. When the
+  // dropdown is closed we bail out early and let the key propagate as usual.
   const onKeyDown = (e) => {
+    if (e.target !== input) return
     if (dropdown.hidden || currentSuggestions.length === 0) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
+      e.stopImmediatePropagation()
       activeIndex = (activeIndex + 1) % currentSuggestions.length
       render()
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
+      e.stopImmediatePropagation()
       activeIndex = (activeIndex - 1 + currentSuggestions.length) % currentSuggestions.length
       render()
     } else if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault()
+      e.stopImmediatePropagation()
       commitSelection()
     } else if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopImmediatePropagation()
       hide()
     }
   }
@@ -151,13 +163,15 @@ export function attachMentionAutocomplete (input) {
   }
 
   input.addEventListener('input', onInput)
-  input.addEventListener('keydown', onKeyDown)
+  // Capture phase on `document` so this beats the form's own bubble-phase
+  // submit-on-Enter handler bound on the textarea (see onKeyDown comment).
+  document.addEventListener('keydown', onKeyDown, true)
   input.addEventListener('blur', onBlur)
 
   return {
     destroy () {
       input.removeEventListener('input', onInput)
-      input.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('keydown', onKeyDown, true)
       input.removeEventListener('blur', onBlur)
       if (debounceTimer) clearTimeout(debounceTimer)
       dropdown.remove()
