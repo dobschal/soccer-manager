@@ -30,6 +30,7 @@ npm run test:integration       # ~4 min total (10 tests in 4 files)
 ```
 
 Run it **occasionally** — at minimum:
+
 - whenever touching `prepare-season.js`, `play-game-day.js`,
   `helper/cupHelper.js`, or anything else that affects season/cup
   scheduling, promotion/relegation, or the user-registration → team-choice
@@ -155,7 +156,8 @@ Key directories:
 ### Adding New Features
 
 - **New API endpoint**: Create/edit file in `server/routes/` with exported function
-- **New page**: Create component in `client/pages/` extending `UIElement`, register in **both** `client/app.js` and `client/native-app.js` routers
+- **New page**: Create component in `client/pages/` extending `UIElement`, register in **both** `client/app.js` and
+  `client/native-app.js` routers
 - **New tests**: Mirror file path with `.test.js` in respective `test/` folder
 
 ### Dual client entry points
@@ -177,29 +179,42 @@ works in the browser, first verify the relevant module is actually loaded by
 
 ### Styling Rules
 
-- **Never use inline styles** in JavaScript template literals. All styles must be defined in CSS files under `client/style/`.
-  - The only exception is when the style value is truly dynamic (computed from a JS variable at render time, e.g. `width: ${size}px`). Static properties must always use CSS classes.
-  - Utility classes (e.g. `u-cursor-pointer`, `u-nowrap`, `u-max-w-620`) live in `client/style/utilities.css`.
-  - Component-specific styles go in the matching CSS file (e.g. `components/player.css`, `pages/dashboard.css`).
+- **Never use inline styles** in JavaScript template literals. All styles must be defined in CSS files under
+  `client/style/`.
+    - The only exception is when the style value is truly dynamic (computed from a JS variable at render time, e.g.
+      `width: ${size}px`). Static properties must always use CSS classes.
+    - Utility classes (e.g. `u-cursor-pointer`, `u-nowrap`, `u-max-w-620`) live in `client/style/utilities.css`.
+    - Component-specific styles go in the matching CSS file (e.g. `components/player.css`, `pages/dashboard.css`).
 
 ### Re-render scoping (smooth updates)
 
-- **Update the smallest UIElement that owns the changed state**, not its parent. When a parent's template contains nested UIElements via `${new Child(...)}`, calling `parent.update()` re-creates those children — each goes through `renderSync()` which renders an empty `<template>` placeholder first and fills it async in the next frame. The visible gap shrinks `width: fit-content` containers (e.g. overlays) and looks like a close/reopen flicker.
-  - Cache nested UIElement instances on the parent (lazy-init in `get template` or in `load()`).
-  - After a state change, mutate the child's `players`/`data`/etc. fields and call `child.update()` instead of `parent.update()`.
-  - For sibling DOM the parent itself owns (a card stack, a toggle button, a count badge), do surgical `innerHTML`/`outerHTML` updates instead of re-rendering the whole parent.
-  - Reference: `client/partials/selectPlayerOverlay.js` — `_useActionCard` caches `this._playerList` and refreshes the action-cards section in place.
+- **Update the smallest UIElement that owns the changed state**, not its parent. When a parent's template contains
+  nested UIElements via `${new Child(...)}`, calling `parent.update()` re-creates those children — each goes through
+  `renderSync()` which renders an empty `<template>` placeholder first and fills it async in the next frame. The visible
+  gap shrinks `width: fit-content` containers (e.g. overlays) and looks like a close/reopen flicker.
+    - Cache nested UIElement instances on the parent (lazy-init in `get template` or in `load()`).
+    - After a state change, mutate the child's `players`/`data`/etc. fields and call `child.update()` instead of
+      `parent.update()`.
+    - For sibling DOM the parent itself owns (a card stack, a toggle button, a count badge), do surgical `innerHTML`/
+      `outerHTML` updates instead of re-rendering the whole parent.
+    - Reference: `client/partials/selectPlayerOverlay.js` — `_useActionCard` caches `this._playerList` and refreshes the
+      action-cards section in place.
 
 ### Bootstrap first
 
-- **Prefer Bootstrap classes over custom CSS** for layout, spacing, typography, and standard components. The project ships Bootstrap; reach for `d-flex`, `gap-*`, `row`/`col-*`, `btn`, `card`, `alert`, `form-control`, `mt-*`/`mb-*`/`p-*` before writing new selectors.
-- Only add component-specific CSS for things Bootstrap doesn't cover (the lineup pitch, action card stacks, custom emblems, the 3D stadium view, etc.).
+- **Prefer Bootstrap classes over custom CSS** for layout, spacing, typography, and standard components. The project
+  ships Bootstrap; reach for `d-flex`, `gap-*`, `row`/`col-*`, `btn`, `card`, `alert`, `form-control`, `mt-*`/`mb-*`/
+  `p-*` before writing new selectors.
+- Only add component-specific CSS for things Bootstrap doesn't cover (the lineup pitch, action card stacks, custom
+  emblems, the 3D stadium view, etc.).
 
 ### Theme colors
 
-- **Use the `info` theme for highlighted/important UI**: `btn-info`, `text-info`, `bg-info`, `alert-info`, `border-info`, `btn-outline-info`. This is the project's accent color.
+- **Use the `info` theme for highlighted/important UI**: `btn-info`, `text-info`, `bg-info`, `alert-info`,
+  `border-info`, `btn-outline-info`. This is the project's accent color.
 - Reserve `success` / `danger` / `warning` for their semantic meanings (positive outcomes, errors, caution).
-- `primary` / `secondary` aren't customarily used here — replace them with `info` / `outline-info` / `outline-secondary` when adapting external snippets.
+- `primary` / `secondary` aren't customarily used here — replace them with `info` / `outline-info` / `outline-secondary`
+  when adapting external snippets.
 
 ## Requirements
 
@@ -252,14 +267,17 @@ Both production and sandbox run on the same Hetzner host using the same `docker-
 parametrized via env vars. The compose file uses `APP_PORT`, `DB_PORT`, `NETWORK_NAME`, and
 `COMPOSE_PROJECT_NAME` so prod defaults stay unchanged.
 
-| Environment | Branch    | URL                              | Path                                          | App port | DB port | Docker network            | Project name              |
-|-------------|-----------|----------------------------------|-----------------------------------------------|----------|---------|---------------------------|---------------------------|
-| Production  | `main`    | https://footballmanager.io       | `/root/deployments/soccer-manager`            | `3013`   | `3306`  | `soccer-manager`          | `soccer-manager`          |
-| Sandbox     | `develop` | https://sandbox.footballmanager.io | `/root/deployments/soccer-manager-sandbox`  | `3014`   | `3307`  | `soccer-manager-sandbox`  | `soccer-manager-sandbox`  |
+| Environment | Branch    | URL                                | Path                                       | App port | DB port | Docker network           | Project name             |
+|-------------|-----------|------------------------------------|--------------------------------------------|----------|---------|--------------------------|--------------------------|
+| Production  | `main`    | https://footballmanager.io         | `/root/deployments/soccer-manager`         | `3013`   | `3306`  | `soccer-manager`         | `soccer-manager`         |
+| Sandbox     | `develop` | https://sandbox.footballmanager.io | `/root/deployments/soccer-manager-sandbox` | `3014`   | `3307`  | `soccer-manager-sandbox` | `soccer-manager-sandbox` |
 
 Sandbox specifics:
+
 - Push notifications are **disabled** (`APN_*` / `FCM_*` are intentionally empty in the sandbox `.env`).
-- Email verification **is enabled** on sandbox and uses the same IONOS SMTP credentials as prod (`SMTP_*` mirrored in the sandbox `.env`). `EMAIL_FROM` is set to `FootballManager.IO Sandbox <…>` and `PUBLIC_URL=https://sandbox.footballmanager.io` so the verification link points back to sandbox.
+- Email verification **is enabled** on sandbox and uses the same IONOS SMTP credentials as prod (`SMTP_*` mirrored in
+  the sandbox `.env`). `EMAIL_FROM` is set to `FootballManager.IO Sandbox <…>` and
+  `PUBLIC_URL=https://sandbox.footballmanager.io` so the verification link points back to sandbox.
 - The sandbox database starts empty; run schema migration / season prep against the sandbox DB the same way as locally.
 - Sandbox container names are prefixed `soccer-manager-sandbox-*` (e.g. `soccer-manager-sandbox-database-1`).
 
@@ -276,11 +294,11 @@ Prod and sandbox MySQL data and user uploads (forum, avatars, friend-posts) live
 `docker-compose.yml` references bind mounts via the `DATA_ROOT` env var, which is set per stack
 in `.env`:
 
-| Stack    | `DATA_ROOT`                            |
-|----------|----------------------------------------|
-| Prod     | `/mnt/HC_Volume_105947620/prod`        |
-| Sandbox  | `/mnt/HC_Volume_105947620/sandbox`     |
-| Local    | `./data` (default, gitignored)         |
+| Stack   | `DATA_ROOT`                        |
+|---------|------------------------------------|
+| Prod    | `/mnt/HC_Volume_105947620/prod`    |
+| Sandbox | `/mnt/HC_Volume_105947620/sandbox` |
+| Local   | `./data` (default, gitignored)     |
 
 Each `DATA_ROOT` contains `mysql/` (mounted at `/var/lib/mysql`, owned by uid 999) and
 `uploads/{forum,avatars,friend-posts}/`. When adding a new persistent data directory, add a
