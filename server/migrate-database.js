@@ -2451,6 +2451,46 @@ const migrations = [{
         INDEX idx_page_view_client (client_id)
     ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Create action-card marketplace tables (#476)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS action_card_offer
+    (
+        id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        action_card_id BIGINT NOT NULL,
+        action        VARCHAR(255) NOT NULL,
+        from_team_id  BIGINT NOT NULL,
+        comment       VARCHAR(255) NULL,
+        status        VARCHAR(20) NOT NULL DEFAULT 'open',
+        created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_aco_status (status),
+        INDEX idx_aco_from_team (from_team_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+    await query(`CREATE TABLE IF NOT EXISTS action_card_bid
+    (
+        id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        offer_id       BIGINT NOT NULL,
+        bidder_team_id BIGINT NOT NULL,
+        money          INT NOT NULL DEFAULT 0,
+        comment        VARCHAR(255) NULL,
+        status         VARCHAR(20) NOT NULL DEFAULT 'open',
+        created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_acb_offer (offer_id),
+        INDEX idx_acb_bidder (bidder_team_id),
+        INDEX idx_acb_status (status)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+    await query(`CREATE TABLE IF NOT EXISTS action_card_bid_card
+    (
+        id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        bid_id         BIGINT NOT NULL,
+        action_card_id BIGINT NOT NULL,
+        action         VARCHAR(255) NOT NULL,
+        PRIMARY KEY (id),
+        INDEX idx_acbc_bid (bid_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

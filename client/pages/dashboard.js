@@ -2,6 +2,7 @@ import { server } from '../lib/gateway.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from './dashboard/actionCards.js'
+import { ActionCardMarketPage } from './dashboard/actionCardMarket.js'
 import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
 import { FriendsPage } from './dashboard/friendsPage.js'
@@ -216,6 +217,7 @@ export class DashboardPage extends TabbedPage {
   createSubPage (key) {
     switch (key) {
       case 'cards': return new ActionCards()
+      case 'card_market': return new ActionCardMarketPage()
       case 'messages': return new LogMessages()
       case 'forum': return new ForumPage()
       case 'friends': return new FriendsPage()

@@ -116,7 +116,12 @@ export class ActionCards extends UIElement {
   get template () {
     return `
       <div class="mb-5">
-        <h3>${t('actionCards.title')} ${wikiInfoIcon('action-cards')}</h3>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <h3 class="mb-0">${t('actionCards.title')} ${wikiInfoIcon('action-cards')}</h3>
+          <a class="btn btn-outline-info btn-sm" href="#dashboard?sub_page=card_market">
+            <i class="fa fa-exchange me-1"></i> ${t('cardMarket.title')}
+          </a>
+        </div>
         <p class="u-max-w-620">${t('actionCards.subtitle')} <span class="text-muted">${t('actionCards.limitHint', { max: MAX_ACTION_CARDS_PER_TYPE })}</span></p>
         <div class="mb-4 action-cards-container">
           <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>

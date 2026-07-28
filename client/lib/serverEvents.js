@@ -86,6 +86,10 @@ export const SERVER_EVENTS = {
   YOUTH_PLAYER_TRAINING_MODE_CHANGED: {
     name: 'YOUTH_PLAYER_TRAINING_MODE_CHANGED',
     description: 'A youth player was assigned to (or removed from) a training mode. Sent only to the owning team\'s user. Payload: { youthPlayerId: number, previousMode: string|null, newMode: string|null }. Consumers (YouthTeamPage, YouthPlayerRow) mutate the affected player\'s `training_mode` in place and update themselves — the whole youth-team page no longer re-renders.'
+  },
+  ACTION_CARD_MARKET_CHANGED: {
+    name: 'ACTION_CARD_MARKET_CHANGED',
+    description: 'The action-card marketplace state relevant to this user changed (a bid was placed on their offer, or one of their bids was accepted/rejected, or a trade settled). Sent to the affected team\'s user. No payload — consumers refetch the marketplace.'
   }
 }
 

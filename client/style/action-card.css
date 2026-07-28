@@ -389,3 +389,51 @@
 .spy-lineup {
     pointer-events: none;
 }
+
+/* ===== Action-card marketplace (#476) ===== */
+
+.card-market-thumb {
+    display: inline-block;
+    width: 56px;
+    flex-shrink: 0;
+}
+
+.card-market-thumb .action-card-image {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.card-market-pick-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.card-market-pick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 84px;
+    padding: 6px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    cursor: pointer;
+    text-align: center;
+}
+
+.card-market-pick:hover {
+    background-color: rgba(13, 202, 240, 0.08);
+}
+
+.card-market-pick--selected {
+    border-color: var(--bs-info, #0dcaf0);
+    background-color: rgba(13, 202, 240, 0.12);
+}
+
+.card-market-pick .card-market-thumb {
+    width: 64px;
+}
