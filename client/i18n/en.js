@@ -276,6 +276,7 @@ export default {
   'stadium.underConstruction': 'Under Construction',
   'stadium.constructionRemaining': 'Under construction - {days} gameday(s) remaining',
   'stadium.constructionCompletesToday': 'Completes today.',
+  'stadium.constructionTargetSize': 'Expanding to {seats} seats',
   'stadium.finishesOnDay': 'Finishes on Day {gameDay} (Season {season})',
   'stadium.expandStand': 'Expand {stand}',
   'stadium.currentSize': 'Current Size',

@@ -18,6 +18,7 @@ vi.mock('../../i18n/index.js', () => ({
       'stadium.startConstruction': 'Start Construction',
       'stadium.constructionRemaining': `Under construction - ${params.days ?? ''} gameday(s) remaining`,
       'stadium.constructionCompletesToday': 'Completes today.',
+      'stadium.constructionTargetSize': `Expanding to ${params.seats ?? ''} seats`,
       'stadium.north': 'north',
       'stadium.south': 'south',
       'stadium.east': 'east',
@@ -429,6 +430,12 @@ describe('StadiumSubPage', () => {
         await page.load()
         expect(page.template).toContain('Under construction')
         expect(page.template).toContain('3 gameday(s) remaining')
+      })
+
+      it('shows the target seat count on the stand under construction', async () => {
+        const page = new StadiumSubPage()
+        await page.load()
+        expect(page.template).toContain('Expanding to 8,000 seats')
       })
 
       it('disables size input for the stand under construction', async () => {

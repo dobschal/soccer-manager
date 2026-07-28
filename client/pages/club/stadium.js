@@ -403,10 +403,15 @@ export class StadiumSubPage extends UIElement {
       const standInfo = this.constructionInfo?.[name]
       const underConstruction = standInfo?.underConstruction
       const remaining = standInfo?.remainingGameDays
+      const targetSize = standInfo?.targetSize
+
+      const targetLine = targetSize != null
+        ? `<br><small>${t('stadium.constructionTargetSize', { seats: targetSize.toLocaleString() })}</small>`
+        : ''
 
       const constructionBadge = underConstruction
         ? `<div class="alert alert-warning mt-2 py-2">
-             <small>${remaining > 0 ? t('stadium.constructionRemaining', { days: remaining }) : t('stadium.constructionCompletesToday')}</small>
+             <small>${remaining > 0 ? t('stadium.constructionRemaining', { days: remaining }) : t('stadium.constructionCompletesToday')}</small>${targetLine}
            </div>`
         : ''
 
