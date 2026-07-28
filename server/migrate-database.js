@@ -2491,6 +2491,25 @@ const migrations = [{
         INDEX idx_acbc_bid (bid_id)
     ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Create chat_message table (#490)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS chat_message
+    (
+        id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        from_user_id BIGINT NOT NULL,
+        to_user_id   BIGINT NOT NULL,
+        text         TEXT NULL,
+        image        VARCHAR(255) NULL,
+        read_at      TIMESTAMP NULL DEFAULT NULL,
+        created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_chat_from (from_user_id),
+        INDEX idx_chat_to (to_user_id),
+        INDEX idx_chat_pair (from_user_id, to_user_id),
+        INDEX idx_chat_unread (to_user_id, read_at)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

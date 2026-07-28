@@ -90,6 +90,10 @@ export const SERVER_EVENTS = {
   ACTION_CARD_MARKET_CHANGED: {
     name: 'ACTION_CARD_MARKET_CHANGED',
     description: 'The action-card marketplace state relevant to this user changed (a bid was placed on their offer, or one of their bids was accepted/rejected, or a trade settled). Sent to the affected team\'s user. No payload — consumers refetch the marketplace.'
+  },
+  NEW_CHAT_MESSAGE: {
+    name: 'NEW_CHAT_MESSAGE',
+    description: 'A new 1:1 chat message arrived. Sent only to the recipient user. Payload: { fromUserId, message } — `message` is the full chat message row. Consumers (chat overlay, unread badge) update in place or refetch.'
   }
 }
 

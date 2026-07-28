@@ -19,6 +19,7 @@ import { applyNoIndexOnSandbox, showSandboxBanner } from './partials/sandboxBann
 import { on } from './lib/event.js'
 import { initTabBarAnimations } from './lib/tabBarAnimation.js'
 import { initPullToRefresh } from './lib/pullToRefresh.js'
+import { initChatDeepLink } from './lib/chatDeepLink.js'
 
 installGlobalErrorHandler()
 
@@ -69,3 +70,7 @@ const pages = {
 }
 
 initRouter(pages)
+
+// Open the chat overlay whenever a `chat_user` query param is present (chat
+// buttons + push-notification deep links).
+initChatDeepLink()

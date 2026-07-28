@@ -4,7 +4,7 @@ import { t } from '../i18n/index.js'
 import { Table } from '../partials/table.js'
 import { renderEmblem } from '../partials/emblem.js'
 import { formatCupRound, formatLeague } from '../util/league.js'
-import { goTo } from '../lib/router.js'
+import { goTo, setQueryParams } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
 import { formatDate, formatLastActive } from '../lib/date.js'
 import { showReportUserOverlay } from '../partials/reportUserOverlay.js'
@@ -76,6 +76,12 @@ export class UserProfilePage extends UIElement {
         click: (event) => {
           event.preventDefault()
           showReportUserOverlay(this.userId, this.profile?.user?.username || '')
+        }
+      },
+      '(optional) .chat-user-btn': {
+        click: (event) => {
+          event.preventDefault()
+          setQueryParams({ chat_user: this.userId })
         }
       }
     }
@@ -171,6 +177,7 @@ export class UserProfilePage extends UIElement {
           ${isOwnProfile ? `<span class="badge bg-info mt-2">${t('userProfile.you')}</span>` : ''}
           <div class="d-flex flex-wrap gap-2 mt-2">
             ${this._renderFriendToggleButton()}
+            ${isOwnProfile ? '' : `<button class="btn btn-sm btn-outline-info chat-user-btn"><i class="fa fa-comment"></i> ${t('chat.openChat')}</button>`}
             ${isOwnProfile ? '' : `<button class="btn btn-sm btn-outline-danger report-user-btn"><i class="fa fa-flag"></i> ${t('report.button')}</button>`}
           </div>
         </div>

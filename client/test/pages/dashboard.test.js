@@ -25,6 +25,7 @@ vi.mock('../../lib/gateway.js', () => ({
     getDashboardUrgencies: vi.fn(),
     getPendingActionCards: vi.fn(),
     getNewLogMessageCount: vi.fn(),
+    getUnreadChatCount: vi.fn(),
     getTutorialStatus: vi.fn()
   }
 }))
@@ -199,6 +200,10 @@ describe('DashboardPage', () => {
     })
     server.getNewLogMessageCount.mockResolvedValue({
       count: 0
+    })
+    server.getUnreadChatCount.mockResolvedValue({
+      count: 0,
+      latestUserId: null
     })
     server.getTutorialStatus.mockResolvedValue({
       tutorialCompleted: {}

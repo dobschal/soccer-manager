@@ -89,12 +89,13 @@ export class DashboardPage extends TabbedPage {
 
     // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
     const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
-    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse, newMessageResponse] = await Promise.all([
+    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse, newMessageResponse, unreadChatResponse] = await Promise.all([
       server.getStanding(this.lastPlayedLeagueMatchDay, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(window.__nativePlatform || 'web'),
       server.getActionCards(),
       server.getPendingActionCards(),
-      server.getNewLogMessageCount(lastSeenMessageId)
+      server.getNewLogMessageCount(lastSeenMessageId),
+      server.getUnreadChatCount()
     ])
 
     this.standing = standing
@@ -112,6 +113,10 @@ export class DashboardPage extends TabbedPage {
 
     // Set new message count
     this._newMessageCount = newMessageResponse.count || 0
+
+    // Unread chat messages (shown under "Action Required")
+    this._unreadChatCount = unreadChatResponse.count || 0
+    this._unreadChatUserId = unreadChatResponse.latestUserId || null
   }
   get template () {
     return `
@@ -241,6 +246,8 @@ export class DashboardPage extends TabbedPage {
   teamPosition = 0
   _actionCardCount = 0
   _newMessageCount = 0
+  _unreadChatCount = 0
+  _unreadChatUserId = null
   _pendingCards = []
   _initialQueryChangeHandled = false
 
@@ -299,7 +306,9 @@ export class DashboardPage extends TabbedPage {
       standing: this.standing,
       teamPosition: this.teamPosition,
       urgencies: this._urgencies,
-      newMessageCount: this._newMessageCount
+      newMessageCount: this._newMessageCount,
+      unreadChatCount: this._unreadChatCount,
+      unreadChatUserId: this._unreadChatUserId
     })
   }
 

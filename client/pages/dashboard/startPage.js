@@ -38,7 +38,9 @@ export class StartPage {
     standing,
     teamPosition,
     urgencies,
-    newMessageCount
+    newMessageCount,
+    unreadChatCount,
+    unreadChatUserId
   }) {
     this._sliderGames = sliderGames
     this._initialSlideIndex = initialSlideIndex
@@ -50,6 +52,8 @@ export class StartPage {
     this.teamPosition = teamPosition
     this._urgencies = urgencies
     this._newMessageCount = newMessageCount || 0
+    this._unreadChatCount = unreadChatCount || 0
+    this._unreadChatUserId = unreadChatUserId || null
   }
 
   /**
@@ -117,6 +121,26 @@ export class StartPage {
       <h5 class="mb-2 mt-2 text-center text-lg-start"><i class="fa fa-clipboard"></i> ${t('dashboard.urgencyTitle')} ${wikiInfoIcon('urgency-list')}</h5>
       ${this._renderUrgencyChecklist()}
       ${this._renderMessagesLink()}
+      ${this._renderUnreadChatLink()}
+    `
+  }
+
+  /**
+   * "Unread chat messages" link shown under Action Required. Opens the chat
+   * (deep-linking to the most recent sender) via the `chat_user` query param.
+   * @returns {string}
+   */
+  _renderUnreadChatLink () {
+    if (!this._unreadChatCount || this._unreadChatCount <= 0) return ''
+    const target = this._unreadChatUserId
+      ? `#dashboard?chat_user=${this._unreadChatUserId}`
+      : '#dashboard?sub_page=friends'
+    return `
+      <div class="mt-2 text-center text-lg-start">
+        <a href="${target}" class="text-decoration-none small">
+          <i class="fa fa-comment me-1"></i>${t('chat.unreadMessages')} <span class="badge rounded-pill bg-danger">${this._unreadChatCount}</span>
+        </a>
+      </div>
     `
   }
 

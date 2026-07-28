@@ -3,6 +3,7 @@ import { server, showServerError } from '../../lib/gateway.js'
 import { t } from '../../i18n/index.js'
 import { el, generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
+import { setQueryParams } from '../../lib/router.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { formatLeague } from '../../util/league.js'
 import { formatDate } from '../../lib/date.js'
@@ -202,11 +203,18 @@ export class FriendsPage extends UIElement {
       `
     }
     const removeId = generateId()
+    const chatId = generateId()
     onClick('#' + removeId, () => this._removeFriend(entry.userId))
+    onClick('#' + chatId, () => setQueryParams({ chat_user: entry.userId }))
     return `
-      <button id="${removeId}" type="button" class="btn btn-sm btn-outline-secondary" title="${t('team.removeFriend')}">
-        <i class="fa fa-user-times"></i>
-      </button>
+      <div class="d-inline-flex gap-1">
+        <button id="${chatId}" type="button" class="btn btn-sm btn-outline-info" title="${t('chat.openChat')}">
+          <i class="fa fa-comment"></i>
+        </button>
+        <button id="${removeId}" type="button" class="btn btn-sm btn-outline-secondary" title="${t('team.removeFriend')}">
+          <i class="fa fa-user-times"></i>
+        </button>
+      </div>
     `
   }
 

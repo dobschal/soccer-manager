@@ -20,6 +20,7 @@ import { toast } from './partials/toast.js'
 import { initSwipeBackNavigation } from './lib/swipeBackNavigation.js'
 import { initPullToRefresh } from './lib/pullToRefresh.js'
 import { initTabBarAnimations } from './lib/tabBarAnimation.js'
+import { initChatDeepLink } from './lib/chatDeepLink.js'
 import { isApiReachable, showOfflineScreen } from './lib/offlineScreen.js'
 import { handleDeepLink } from './lib/deepLink.js'
 
@@ -167,6 +168,9 @@ isApiReachable().then(reachable => {
     return
   }
   initRouter(pages)
+  // Open the chat overlay whenever a `chat_user` query param is present (chat
+  // buttons + push-notification deep links).
+  initChatDeepLink()
   // Router is live now — replay a deep link that arrived during cold start (#330).
   window.__routerReady = true
   if (window.__pendingDeepLink) {
