@@ -35,7 +35,9 @@ export const actionCardChances = {
   LEVEL_UP_PLAYER_70: 0.3,
   LEVEL_UP_PLAYER_100: 0.06,
   STAR_PLAYER: 0.01,
-  MOTIVATING_SPEECH: 0.05
+  MOTIVATING_SPEECH: 0.05,
+  // ~5 per season (34 game days): 5 / 34 ≈ 0.15 expected cards per game day.
+  SPY: 0.15
 }
 
 /**
@@ -299,6 +301,12 @@ export async function playActionCard ({
     await query('UPDATE team SET motivating_speech_active=1 WHERE id=?', [team.id])
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardMotivatingSpeech', {}, locale), team, null, null, 'bullhorn', undefined, 'info')
+    return { success: true }
+  }
+  if (actionCard.action === 'SPY') {
+    // The reveal happens client-side (it fetches the target team's public
+    // tactics/lineup); using the card just consumes it.
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     return { success: true }
   }
   throw new BadRequestError(t('error.invalidCardAction', {}, locale))

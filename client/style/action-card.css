@@ -292,3 +292,100 @@
         transform: translateY(0);
     }
 }
+
+/* ===== Spy ("Spion") action-card overlay ===== */
+
+.spy-team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.spy-team-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+}
+
+.spy-team-row:hover {
+    background-color: rgba(13, 202, 240, 0.08);
+}
+
+.spy-team-row--selected {
+    border-color: var(--bs-info, #0dcaf0);
+    background-color: rgba(13, 202, 240, 0.12);
+}
+
+.spy-team-row__name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Fake analysis loader: a rotating magnifier */
+.spy-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 0;
+}
+
+.spy-loader__glass {
+    font-size: 64px;
+    color: var(--bs-info, #0dcaf0);
+    animation: spy-magnifier-spin 1.4s linear infinite;
+    transform-origin: 50% 50%;
+}
+
+@keyframes spy-magnifier-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spy-reveal__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.spy-tactics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.spy-tactic {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(13, 202, 240, 0.08);
+}
+
+.spy-tactic__label {
+    font-size: 12px;
+    color: var(--bs-secondary, #6c757d);
+}
+
+.spy-tactic__value {
+    font-weight: 700;
+}
+
+/* The revealed lineup is read-only — ignore the pitch's swap-player clicks. */
+.spy-lineup {
+    pointer-events: none;
+}

@@ -631,6 +631,22 @@ describe('actionCardHelper', () => {
     })
   })
 
+  describe('playActionCard - SPY', () => {
+    it('just consumes the card (reveal happens client-side)', async () => {
+      const team = testData.team({ id: 5 })
+      const actionCard = testData.actionCard({ id: 77, action: 'SPY' })
+
+      query.mockResolvedValue({})
+
+      const result = await playActionCard({ actionCard, player: null }, team)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [77])
+      // A spy card has no side effect on players or balance.
+      expect(updateTeamBalance).not.toHaveBeenCalled()
+    })
+  })
+
   describe('playActionCard - unknown action', () => {
     it('throws error for unknown action type', async () => {
       const team = testData.team()

@@ -14,6 +14,7 @@ import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { generateId, el } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
 import { SERVER_EVENTS } from '../../lib/serverEvents.js'
+import { showSpyOverlay } from '../../partials/spyOverlay.js'
 
 const MERGEABLE_ACTIONS = new Set(['LEVEL_UP_PLAYER_40', 'LEVEL_UP_PLAYER_70'])
 
@@ -91,6 +92,10 @@ function getActionCardTexts () {
     MOTIVATING_SPEECH: {
       title: t('actionCards.type.motivatingSpeech'),
       description: t('actionCards.type.motivatingSpeechDesc')
+    },
+    SPY: {
+      title: t('actionCards.type.spy'),
+      description: t('actionCards.type.spyDesc')
     }
   }
 }
@@ -511,6 +516,10 @@ export class ActionCards extends UIElement {
       await this._handleStarPlayerCard(actionCard, cardIndex)
       return
     }
+    if (actionCard.action === 'SPY') {
+      await this._handleSpyCard(actionCard, cardIndex)
+      return
+    }
     if (actionCard.action === 'BONUS_100K') {
       try {
         await server.useActionCard(actionCard, null, null)
@@ -623,6 +632,28 @@ export class ActionCards extends UIElement {
       t('actionCards.whichPlayerStar'),
       `${playerList}`
     )
+  }
+
+  /**
+   * Spy card: open the target-team picker overlay, which consumes the card and
+   * reveals the opponent's tactics + lineup. Only remove the card locally once
+   * the overlay confirms it was actually spent.
+   * @param {Object} actionCard
+   * @param {number} cardIndex
+   * @returns {Promise<void>}
+   */
+  async _handleSpyCard (actionCard, cardIndex) {
+    const consumed = await showSpyOverlay({
+      onConfirm: async () => {
+        // Block the ACTION_CARDS_CHANGED refetch until the local animation runs.
+        this._processing = true
+        await server.useActionCard(actionCard, null, null)
+      }
+    })
+    if (consumed) {
+      await this._animateAndRemoveCard(cardIndex)
+    }
+    this._processing = false
   }
 
   /**

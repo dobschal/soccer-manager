@@ -1,0 +1,34 @@
+<svg width="250" height="350" viewBox="0 0 250 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_spy)">
+<path d="M235 0H15C6.71573 0 0 6.71573 0 15V335C0 343.284 6.71573 350 15 350H235C243.284 350 250 343.284 250 335V15C250 6.71573 243.284 0 235 0Z" fill="url(#paint0_linear_spy)"/>
+<path d="M230 8H20C13.3726 8 8 13.3726 8 20V330C8 336.627 13.3726 342 20 342H230C236.627 342 242 336.627 242 330V20C242 13.3726 236.627 8 230 8Z" fill="#0F0F1A"/>
+<path opacity="0.9" d="M230 15H20C17.2386 15 15 17.2386 15 20V38C15 40.7614 17.2386 43 20 43H230C232.761 43 235 40.7614 235 38V20C235 17.2386 232.761 15 230 15Z" fill="#7C3AED"/>
+<text fill="white" text-anchor="middle" font-family="Neucha" font-size="16" letter-spacing="0em"><tspan x="125" y="35.8672">{{HEADER}}</tspan></text>
+<text fill="#C4B5FD" text-anchor="middle" font-family="Neucha" font-size="17" letter-spacing="0em"><tspan x="125" y="65.6089">{{TITLE}}</tspan></text>
+<path d="M222 75H28C23.5817 75 20 78.5817 20 83V207C20 211.418 23.5817 215 28 215H222C226.418 215 230 211.418 230 207V83C230 78.5817 226.418 75 222 75Z" fill="#0F0F1A" stroke="#7C3AED" stroke-width="2"/>
+<path d="M210 95L213 100L210 105L207 100L210 95Z" fill="#C4B5FD"/>
+<path d="M45 190L48 195L45 200L42 195L45 190Z" fill="#C4B5FD"/>
+<line x1="150" y1="170" x2="185" y2="200" stroke="#C4B5FD" stroke-width="13" stroke-linecap="round"/>
+<circle cx="112" cy="135" r="42" fill="#0F0F1A" stroke="#C4B5FD" stroke-width="8"/>
+<circle cx="112" cy="135" r="42" fill="#7C3AED" fill-opacity="0.18"/>
+<path d="M83 135C83 135 95 120 112 120C129 120 141 135 141 135C141 135 129 150 112 150C95 150 83 135 83 135Z" fill="#0F0F1A" stroke="#C4B5FD" stroke-width="4"/>
+<circle cx="112" cy="135" r="10" fill="#C4B5FD"/>
+<circle cx="112" cy="135" r="4" fill="#0F0F1A"/>
+<path d="M222 225H28C23.5817 225 20 228.582 20 233V297C20 301.418 23.5817 305 28 305H222C226.418 305 230 301.418 230 297V233C230 228.582 226.418 225 222 225Z" fill="#0F0F1A" stroke="#7C3AED"/>
+<text fill="white" text-anchor="middle" font-family="Neucha" font-size="15" letter-spacing="0em"><tspan x="125" y="250.125">{{BODY1}}</tspan><tspan x="125" y="267.125">{{BODY2}}</tspan></text>
+<text fill="#C4B5FD" text-anchor="middle" font-family="Neucha" font-size="22" letter-spacing="0em"><tspan x="125" y="295.317">{{FOOTER}}</tspan></text>
+<path d="M98.2114 312.359L101.085 320.979H110.423L103.24 326.725L106.113 335.345L98.2114 329.599L90.3099 335.345L93.1831 326.725L86 320.979H95.3381L98.2114 312.359Z" fill="#C4B5FD"/>
+<path d="M124.788 312L127.662 320.62H137L129.817 326.366L132.69 334.986L124.788 329.24L116.887 334.986L119.76 326.366L112.577 320.62H121.915L124.788 312Z" fill="#C4B5FD"/>
+<path d="M151.211 312L154.085 320.62H163.423L156.24 326.366L159.113 334.986L151.211 329.24L143.31 334.986L146.183 326.366L139 320.62H148.338L151.211 312Z" fill="#C4B5FD"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_spy" x1="0" y1="0" x2="33108.1" y2="23648.6" gradientUnits="userSpaceOnUse">
+<stop stop-color="#7C3AED"/>
+<stop offset="0.5" stop-color="#6D28D9"/>
+<stop offset="1" stop-color="#4C1D95"/>
+</linearGradient>
+<clipPath id="clip0_spy">
+<rect width="250" height="350" fill="white"/>
+</clipPath>
+</defs>
+</svg>
