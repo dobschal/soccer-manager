@@ -5,7 +5,7 @@ import { updateTeamBalance } from './helper/financeHelper.js'
 import { getSalary } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
-import { actionCardChances, deleteExpiredPendingCards } from './helper/actionCardHelper.js'
+import { actionCardChances, deleteExpiredPendingCards, NEW_YOUTH_PLAYER_ACTIONS, MAX_YOUTH_CARDS_PER_SEASON } from './helper/actionCardHelper.js'
 import { generateMatchDayRecapsForGameDay } from './helper/matchDayRecapHelper.js'
 import { completeStadiumConstructions, calculateHomeAttendanceBonus } from './helper/stadiumHelper.js'
 import {
@@ -652,11 +652,13 @@ export async function _giveUsersActionCards () {
   const teamIdsWithYouth = new Set(
     (await query('SELECT DISTINCT team_id FROM youth_player')).map(r => r.team_id)
   )
-  const teamIdsWithSeasonYouthCard = new Set(
+  // How many youth cards each team has already received this season, so we can
+  // cap the season total at MAX_YOUTH_CARDS_PER_SEASON.
+  const youthCardCountBySeason = new Map(
     (await query(
-      "SELECT DISTINCT team_id FROM action_card WHERE action IN ('NEW_YOUTH_PLAYER_1','NEW_YOUTH_PLAYER_2','NEW_YOUTH_PLAYER_3') AND season=?",
+      "SELECT team_id, COUNT(*) AS cnt FROM action_card WHERE action IN ('NEW_YOUTH_PLAYER_1','NEW_YOUTH_PLAYER_2','NEW_YOUTH_PLAYER_3') AND season=? GROUP BY team_id",
       [season]
-    )).map(r => r.team_id)
+    )).map(r => [r.team_id, Number(r.cnt)])
   )
   const promises = []
   for (const team of teams) {
@@ -667,10 +669,13 @@ export async function _giveUsersActionCards () {
     const academyLevel = youthAcademyLevels.get(team.id) ?? 1
     const youthOverrides = YOUTH_ACADEMY_CARD_CHANCES[academyLevel] || YOUTH_ACADEMY_CARD_CHANCES[1]
     const actionCards = []
+    // Track how many youth cards this team has this season (already received +
+    // newly dealt below) so we never exceed MAX_YOUTH_CARDS_PER_SEASON.
+    let youthCardsThisSeason = youthCardCountBySeason.get(team.id) ?? 0
     // Guarantee a basic youth player card if the team currently has no youth player
     // and has not received any youth card this season yet.
     const guaranteeYouthCard =
-      !teamIdsWithYouth.has(team.id) && !teamIdsWithSeasonYouthCard.has(team.id)
+      !teamIdsWithYouth.has(team.id) && youthCardsThisSeason === 0
     if (guaranteeYouthCard) {
       // The guaranteed card tier must match the academy level so the card
       // respects the advertised level range (L1 → Bronze, L2 → Silver, L3 → Gold).
@@ -682,7 +687,7 @@ export async function _giveUsersActionCards () {
         state: 'pending',
         season
       }))
-      teamIdsWithSeasonYouthCard.add(team.id)
+      youthCardsThisSeason++
     }
     while (actionCards.length === 0) {
       for (const [action, defaultChance] of Object.entries(actionCardChances)) {
@@ -693,10 +698,15 @@ export async function _giveUsersActionCards () {
         if (cardOverrides[action] !== undefined) chance = cardOverrides[action]
         if (fitnessOverrides[action] !== undefined) chance = fitnessOverrides[action]
         if (youthOverrides[action] !== undefined) chance = youthOverrides[action]
+        const isYouthCard = NEW_YOUTH_PLAYER_ACTIONS.has(action)
+        // Youth cards are capped per season: once the limit is reached, stop
+        // dealing them for the rest of the season.
+        if (isYouthCard && youthCardsThisSeason >= MAX_YOUTH_CARDS_PER_SEASON) continue
         // For probabilities > 1, give floor(chance) guaranteed cards + remainder chance for one more
         const guaranteed = Math.floor(chance)
         const remainder = chance - guaranteed
         for (let i = 0; i < guaranteed; i++) {
+          if (isYouthCard && youthCardsThisSeason >= MAX_YOUTH_CARDS_PER_SEASON) break
           actionCards.push(new ActionCard({
             team_id: team.id,
             action,
@@ -704,8 +714,9 @@ export async function _giveUsersActionCards () {
             state: 'pending',
             season
           }))
+          if (isYouthCard) youthCardsThisSeason++
         }
-        if (Math.random() < remainder) {
+        if ((!isYouthCard || youthCardsThisSeason < MAX_YOUTH_CARDS_PER_SEASON) && Math.random() < remainder) {
           actionCards.push(new ActionCard({
             team_id: team.id,
             action,
@@ -713,6 +724,7 @@ export async function _giveUsersActionCards () {
             state: 'pending',
             season
           }))
+          if (isYouthCard) youthCardsThisSeason++
         }
       }
     }

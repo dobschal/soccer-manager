@@ -60,6 +60,14 @@ export const NEW_YOUTH_PLAYER_ACTIONS = new Set([
 ])
 
 /**
+ * Maximum number of youth player action cards a team may receive per season.
+ * Once a team has been handed this many youth cards in a season, no further
+ * youth cards are dealt for the rest of that season. The guaranteed youth
+ * card (given to teams with no youth player yet) counts toward this limit.
+ */
+export const MAX_YOUTH_CARDS_PER_SEASON = 3
+
+/**
  * Generate 3 random youth player options for an action card.
  * @param {string} action - one of NEW_YOUTH_PLAYER_1/_2/_3
  * @returns {Promise<Array<{name: string, position: string, level: number, talent: number, hair_color: number, skin_color: number}>>}

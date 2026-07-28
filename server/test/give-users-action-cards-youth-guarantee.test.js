@@ -19,9 +19,12 @@ vi.mock('../helper/buildingHelper.js', () => ({
 }))
 // All youth chances 0 so the guarantee rule is the sole driver for youth cards.
 // FILLER = 1 guarantees the while-loop exits each day (mirrors prod where LEVEL_UP_PLAYER_40 is 1.2).
+// Individual tests mutate actionCardChances.NEW_YOUTH_PLAYER_* to exercise the per-season cap.
 vi.mock('../helper/actionCardHelper.js', () => ({
   actionCardChances: { FILLER: 1, NEW_YOUTH_PLAYER_1: 0, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0 },
-  deleteExpiredPendingCards: vi.fn()
+  deleteExpiredPendingCards: vi.fn(),
+  NEW_YOUTH_PLAYER_ACTIONS: new Set(['NEW_YOUTH_PLAYER_1', 'NEW_YOUTH_PLAYER_2', 'NEW_YOUTH_PLAYER_3']),
+  MAX_YOUTH_CARDS_PER_SEASON: 3
 }))
 vi.mock('../helper/financeHelper.js', () => ({ updateTeamBalance: vi.fn() }))
 vi.mock('../helper/sponsorHelper.js', () => ({ getSponsor: vi.fn() }))
@@ -56,6 +59,7 @@ vi.mock('../helper/lineupHelper.js', () => ({ autoFillLineup: vi.fn(), trimExces
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getAllTrainingAreaLevels, getAllFitnessStudioLevels, getAllYouthAcademyLevels } from '../helper/buildingHelper.js'
+import { actionCardChances } from '../helper/actionCardHelper.js'
 import { _giveUsersActionCards } from '../play-game-day.js'
 
 describe('_giveUsersActionCards - guaranteed youth player card', () => {
@@ -68,9 +72,14 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
    * @param {object} opts
    * @param {Array<{id:number}>} opts.teams
    * @param {number[]} opts.teamIdsWithYouth team ids that currently own a youth_player
-   * @param {number[]} opts.teamIdsWithYouthCardThisSeason team ids that already received a NEW_YOUTH_PLAYER card this season
+   * @param {number[]} [opts.teamIdsWithYouthCardThisSeason] team ids that already received exactly one NEW_YOUTH_PLAYER card this season
+   * @param {Object<number, number>} [opts.youthCardCounts] explicit per-team count of youth cards already received this season (overrides the array form)
    */
-  function setupMocks ({ teams, teamIdsWithYouth, teamIdsWithYouthCardThisSeason }) {
+  function setupMocks ({ teams, teamIdsWithYouth, teamIdsWithYouthCardThisSeason = [], youthCardCounts }) {
+    // Normalise both input shapes into a single teamId -> count map.
+    const counts = youthCardCounts
+      ? new Map(Object.entries(youthCardCounts).map(([id, cnt]) => [Number(id), cnt]))
+      : new Map(teamIdsWithYouthCardThisSeason.map(id => [id, 1]))
     /** @type {Array<{sql:string, params:any, value:any}>} */
     const inserts = []
     query.mockImplementation(async (sql, params) => {
@@ -78,8 +87,8 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
       if (sql.startsWith('SELECT DISTINCT team_id FROM youth_player')) {
         return teamIdsWithYouth.map(team_id => ({ team_id }))
       }
-      if (sql.startsWith('SELECT DISTINCT team_id FROM action_card WHERE action IN')) {
-        return teamIdsWithYouthCardThisSeason.map(team_id => ({ team_id }))
+      if (sql.startsWith('SELECT team_id, COUNT(*) AS cnt FROM action_card WHERE action IN')) {
+        return [...counts.entries()].map(([team_id, cnt]) => ({ team_id, cnt }))
       }
       if (sql.startsWith('INSERT INTO action_card')) {
         inserts.push({ sql, params, value: params })
@@ -98,6 +107,10 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
     getAllTrainingAreaLevels.mockResolvedValue(new Map())
     getAllFitnessStudioLevels.mockResolvedValue(new Map())
     getAllYouthAcademyLevels.mockResolvedValue(new Map())
+    // Reset the youth chances mutated by the per-season cap tests.
+    actionCardChances.NEW_YOUTH_PLAYER_1 = 0
+    actionCardChances.NEW_YOUTH_PLAYER_2 = 0
+    actionCardChances.NEW_YOUTH_PLAYER_3 = 0
   })
 
   it('guarantees a NEW_YOUTH_PLAYER_1 card for a team with no youth player and no youth card this season', async () => {
@@ -188,5 +201,86 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
     const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
     const guaranteedTeamIds = youthInserts.map(i => i.value.team_id).sort()
     expect(guaranteedTeamIds).toEqual([1, 4])
+  })
+
+  describe('per-season youth card cap (MAX_YOUTH_CARDS_PER_SEASON = 3)', () => {
+    it('caps a single game day so the season total never exceeds 3', async () => {
+      // Team owns a youth player (no guarantee) and would otherwise get 5 youth
+      // cards this day. With 0 received so far, only 3 may be dealt.
+      actionCardChances.NEW_YOUTH_PLAYER_1 = 5
+      const inserts = setupMocks({
+        teams: [{ id: 1 }],
+        teamIdsWithYouth: [1],
+        youthCardCounts: { 1: 0 }
+      })
+
+      await _giveUsersActionCards()
+
+      const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
+      expect(youthInserts).toHaveLength(3)
+    })
+
+    it('only deals the remaining allowance when some youth cards were already received', async () => {
+      // 2 cards already received this season → only 1 more may be dealt.
+      actionCardChances.NEW_YOUTH_PLAYER_1 = 5
+      const inserts = setupMocks({
+        teams: [{ id: 1 }],
+        teamIdsWithYouth: [1],
+        youthCardCounts: { 1: 2 }
+      })
+
+      await _giveUsersActionCards()
+
+      const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
+      expect(youthInserts).toHaveLength(1)
+    })
+
+    it('deals no youth cards once the season limit is reached', async () => {
+      actionCardChances.NEW_YOUTH_PLAYER_1 = 5
+      const inserts = setupMocks({
+        teams: [{ id: 1 }],
+        teamIdsWithYouth: [1],
+        youthCardCounts: { 1: 3 }
+      })
+
+      await _giveUsersActionCards()
+
+      const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
+      expect(youthInserts).toHaveLength(0)
+    })
+
+    it('does not deal a guaranteed card when the season limit is already reached', async () => {
+      // No youth player would normally trigger a guarantee, but 3 cards were
+      // already received this season, so nothing more is dealt.
+      const inserts = setupMocks({
+        teams: [{ id: 1 }],
+        teamIdsWithYouth: [],
+        youthCardCounts: { 1: 3 }
+      })
+
+      await _giveUsersActionCards()
+
+      const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
+      expect(youthInserts).toHaveLength(0)
+    })
+
+    it('deals only the single guaranteed card on the day it fires (random path skipped), which the DB count then caps on later days', async () => {
+      // No youth player and none received yet → guarantee fires. The guarantee
+      // short-circuits the random path, so exactly 1 card is dealt this day; it
+      // is persisted with season set, so on subsequent days the COUNT(*) lookup
+      // reports 1 and the cap allows at most 2 further youth cards.
+      actionCardChances.NEW_YOUTH_PLAYER_1 = 5
+      const inserts = setupMocks({
+        teams: [{ id: 1 }],
+        teamIdsWithYouth: [],
+        youthCardCounts: { 1: 0 }
+      })
+
+      await _giveUsersActionCards()
+
+      const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
+      expect(youthInserts).toHaveLength(1)
+      expect(youthInserts[0].value.season).toBe(SEASON)
+    })
   })
 })
