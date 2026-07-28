@@ -113,20 +113,21 @@ export class FriendsPage extends UIElement {
 
   _renderRow (entry) {
     const teamLink = entry.team ? `#team?id=${entry.team.id}` : '#dashboard'
+    const userLink = `#user?id=${entry.userId}`
     const leagueLink = entry.team
       ? `#results?level=${entry.team.level}&league=${entry.team.league}`
       : null
     const gameLink = entry.lastGame ? `#results?game_id=${entry.lastGame.id}` : null
 
     const avatarCell = `
-      <a href="${teamLink}" class="d-inline-block">
+      <a href="${userLink}" class="d-inline-block">
         <img class="friends-avatar${entry.avatar ? '' : ' friends-avatar--default'}"
              src="${avatarSrc(entry.avatar)}" alt="${entry.username}">
       </a>
     `
 
     const nameCell = `
-      <a href="${teamLink}" class="text-decoration-none">
+      <a href="${userLink}" class="text-decoration-none">
         ${entry.username}
         ${entry.status === 'incoming' ? `<span class="badge bg-info ms-1">${t('friends.incoming')}</span>` : ''}
       </a>
