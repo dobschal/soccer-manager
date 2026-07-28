@@ -4,7 +4,6 @@ import { MarketingAdminPage } from './admin/marketing.js'
 import { UserManagementAdminPage } from './admin/userManagement.js'
 import { StatisticsAdminPage } from './admin/statistics.js'
 import { GeneralAdminPage } from './admin/general.js'
-import { WorldCupAdminPage } from './admin/worldCup.js'
 import { ServerStatsAdminPage } from './admin/serverStats.js'
 import { WikiAdminPage } from './admin/wiki.js'
 
@@ -17,7 +16,6 @@ export class AdminPage extends TabbedPage {
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#admin">${t('admin.tabMarketing')}</a>
           <a class="nav-link ${this.subPage === 'user_management' ? 'active' : ''}" href="#admin?sub_page=user_management">${t('admin.tabUserManagement')}</a>
           <a class="nav-link ${this.subPage === 'statistics' ? 'active' : ''}" href="#admin?sub_page=statistics">${t('admin.tabStatistics')}</a>
-          <a class="nav-link ${this.subPage === 'world_cup' ? 'active' : ''}" href="#admin?sub_page=world_cup">${t('admin.tabWorldCup')}</a>
           <a class="nav-link ${this.subPage === 'server_stats' ? 'active' : ''}" href="#admin?sub_page=server_stats">${t('admin.tabServerStats')}</a>
           <a class="nav-link ${this.subPage === 'wiki' ? 'active' : ''}" href="#admin?sub_page=wiki">${t('admin.tabWiki')}</a>
           <a class="nav-link ${this.subPage === 'general' ? 'active' : ''}" href="#admin?sub_page=general">${t('admin.tabGeneral')}</a>
@@ -35,7 +33,6 @@ export class AdminPage extends TabbedPage {
     switch (key) {
       case 'user_management': return new UserManagementAdminPage()
       case 'statistics': return new StatisticsAdminPage()
-      case 'world_cup': return new WorldCupAdminPage()
       case 'server_stats': return new ServerStatsAdminPage()
       case 'wiki': return new WikiAdminPage()
       case 'general': return new GeneralAdminPage()
