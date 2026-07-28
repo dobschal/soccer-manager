@@ -15,6 +15,7 @@ import { t } from '../../i18n/index.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { Table } from '../../partials/table.js'
 import { shortenTeamName } from '../../util/team.js'
+import { goToTeamPage } from '../../util/gameNavigation.js'
 
 export class LeagueResultsPage extends UIElement {
   /**
@@ -189,18 +190,22 @@ export class LeagueResultsPage extends UIElement {
           </div>`
     : ''}
         ${new Table({
-    classes: 'results-games-table',
+    classes: 'results-games-table game-teams-table',
     cols: [
       {
         name: t('results.team1'),
-        align: 'right'
+        align: 'right',
+        onClick: (result) => goToTeamPage(result.team1Id)
       },
       {
         name: '',
         align: 'center',
         width: '90px'
       },
-      { name: t('results.team2') }
+      {
+        name: t('results.team2'),
+        onClick: (result) => goToTeamPage(result.team2Id)
+      }
     ],
     data: this.results,
     renderRow: (result) => this._renderResultListItem(result),

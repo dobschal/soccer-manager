@@ -4,6 +4,7 @@ import { onClick } from '../lib/htmlEventHandlers.js'
 import { t } from '../i18n/index.js'
 import { renderGameResult } from './gameResult.js'
 import { showGameModal } from './gameModal.js'
+import { showHeadToHeadOverlay } from './headToHeadOverlay.js'
 import { shortenTeamName } from '../util/team.js'
 
 /**
@@ -51,34 +52,16 @@ export class GameSlider extends UIElement {
 
       const centerContent = this._generateCenterContent(game, isBye)
 
-      // Determine href based on game type. Played games open the game modal
-      // via game_id; upcoming games just navigate to the matching sub-page.
-      let href
       const slideId = generateId()
-      const isFriendly = game.game_type === 'friendly' || game.isFriendly
-      const isCupGame = game.isCup || game.game_type === 'cup'
-      if (game.isPlayed) {
-        if (isFriendly) {
-          // Friendly games: show modal on click (href set to '#' to make it clickable)
-          href = '#'
-          onClick('#' + slideId + ' a', (e) => {
-            e.preventDefault()
-            void showGameModal(game.id)
-          })
-        } else if (isCupGame) {
-          href = `#results?game_id=${game.id}&sub_page=cup`
-        } else {
-          href = `#results?game_id=${game.id}`
-        }
-      } else {
-        if (isFriendly) {
-          href = '#results?sub_page=friendly'
-        } else if (isCupGame) {
-          href = '#results?sub_page=cup'
-        } else {
-          href = '#results'
-        }
-      }
+
+      // Clicking a team column opens that team's page; clicking the center
+      // opens the game-details modal (played) or the head-to-head overlay
+      // (not yet played). Byes have no opponent, so no team-2 link.
+      const team1Href = game.team1Id ? `#team?id=${game.team1Id}` : undefined
+      const team2Href = !isBye && game.team2Id ? `#team?id=${game.team2Id}` : undefined
+
+      const centerId = generateId()
+      onClick('#' + centerId, () => this._handleCenterClick(game, isBye))
 
       const hasResult = game.isPlayed && typeof game.goalsTeam1 === 'number' && typeof game.goalsTeam2 === 'number'
       const slideContent = renderGameResult({
@@ -88,7 +71,9 @@ export class GameSlider extends UIElement {
         team2Name: isBye ? t('cup.bye') : shortenTeamName(game.team2 ?? '', game.team2Short),
         isTeam1Highlighted: isHomeGame,
         centerContent,
-        href,
+        team1Href,
+        team2Href,
+        centerId,
         team1HasUser: Boolean(game.team1UserId),
         team2HasUser: Boolean(game.team2UserId),
         team1Won: hasResult && game.goalsTeam1 > game.goalsTeam2,
@@ -132,10 +117,27 @@ export class GameSlider extends UIElement {
     this._startCountdownTimer()
     this._updateCardGradient()
   }
+
   onDestroy () {
     this._stopCountdownTimer()
     this._teardownScrollSnap()
   }
+  /**
+   * Handle a click on the center column of a slide: open the game-details
+   * modal for played games, or the head-to-head overlay for games that
+   * haven't been played yet. Byes have no interaction.
+   * @param {Object} game
+   * @param {boolean} isBye
+   */
+  _handleCenterClick (game, isBye) {
+    if (isBye) return
+    if (game.isPlayed) {
+      void showGameModal(game.id)
+    } else if (game.team1Id && game.team2Id) {
+      void showHeadToHeadOverlay(game.team1Id, game.team2Id)
+    }
+  }
+  
   _sliderId = generateId()
   
   _sliderIndex = 0

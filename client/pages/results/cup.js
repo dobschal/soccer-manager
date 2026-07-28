@@ -8,6 +8,8 @@ import { renderPlayerImage } from '../../partials/playerImage.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
+import { goToTeamPage } from '../../util/gameNavigation.js'
+import { showHeadToHeadOverlay } from '../../partials/headToHeadOverlay.js'
 import { euroFormat } from '../../lib/currency.js'
 import { renderPageNumbers } from '../../partials/pagination.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
@@ -122,18 +124,22 @@ export class CupResultsPage extends UIElement {
     cols: [
       {
         name: t('results.team1'),
-        align: 'right'
+        align: 'right',
+        onClick: (result) => goToTeamPage(result.team1Id)
       },
       {
         name: '',
         align: 'center'
       },
-      { name: t('results.team2') }
+      {
+        name: t('results.team2'),
+        onClick: (result) => goToTeamPage(result.team2Id)
+      }
     ],
-    classes: 'mb-2',
+    classes: 'mb-2 game-teams-table',
     renderRow: (result) => this._renderCupResultItem(result),
     data: this._getPagedCupResults(),
-    rowAttrs: (result) => `id="${result._rowId}"`
+    onClick: (result) => this._handleCupResultClick(result)
   })}
       <div class="cup-results-pagination mb-4">${this._renderPagination(this.cupResults.length, this._cupResultsPage, 'cup-results')}</div>
     `
@@ -296,9 +302,7 @@ export class CupResultsPage extends UIElement {
     const team2Won = hasResult && game.goalsTeam2 > game.goalsTeam1
 
     const matchId = generateId()
-    onClick(matchId, () => {
-      if (!isBye && isPlayed) setQueryParams({ game_id: game.id })
-    })
+    onClick(matchId, (e) => this._handleBracketMatchClick(e, game, isBye))
 
     const team1Row = this._renderBracketTeamRow({
       name: game.team1,
@@ -326,13 +330,31 @@ export class CupResultsPage extends UIElement {
         isPlayed
       })
 
-    const clickableClass = !isBye && isPlayed ? 'u-cursor-pointer' : ''
+    const clickableClass = !isBye ? 'u-cursor-pointer' : ''
     return `
       <div id="${matchId}" class="cup-bracket-match ${clickableClass}">
         ${team1Row}
         ${team2Row}
       </div>
     `
+  }
+
+  /**
+   * Click on a bracket match. Clicks on a team link navigate to that team
+   * (handled natively by the anchor), so bail out here. Otherwise open the
+   * game-details modal (played) or the head-to-head overlay (upcoming).
+   * @param {Event} e
+   * @param {Object} game
+   * @param {boolean} isBye
+   */
+  _handleBracketMatchClick (e, game, isBye) {
+    if (e.target.closest('a.cup-bracket-team-link')) return
+    if (isBye) return
+    if (game.played === 1) {
+      setQueryParams({ game_id: game.id })
+    } else if (game.team1Id && game.team2Id) {
+      void showHeadToHeadOverlay(game.team1Id, game.team2Id)
+    }
   }
 
   _renderBracketTeamRow ({
@@ -357,12 +379,24 @@ export class CupResultsPage extends UIElement {
     const goalsHtml = goals !== null
       ? `<span class="cup-bracket-team-score">${goals}</span>`
       : (isPlayed ? '' : `<span class="cup-bracket-team-score cup-bracket-team-score--upcoming">-</span>`)
-    const teamIdAttr = teamId != null ? `data-team-id="${teamId}"` : ''
+    const inner = `
+      ${emblemHtml}
+      <span class="${nameClasses.join(' ')}">${shortenTeamName(name, shortName) || ''}</span>
+      ${goalsHtml}
+    `
+    // When the team is known, render the row as a link to its team page.
+    // The hover-highlight and match-click handlers key off the
+    // `.cup-bracket-team[data-team-id]` selector, which matches the anchor too.
+    if (teamId != null) {
+      return `
+        <a class="cup-bracket-team cup-bracket-team-link" data-team-id="${teamId}" href="#team?id=${teamId}">
+          ${inner}
+        </a>
+      `
+    }
     return `
-      <div class="cup-bracket-team" ${teamIdAttr}>
-        ${emblemHtml}
-        <span class="${nameClasses.join(' ')}">${shortenTeamName(name, shortName) || ''}</span>
-        ${goalsHtml}
+      <div class="cup-bracket-team">
+        ${inner}
       </div>
     `
   }
@@ -482,13 +516,6 @@ export class CupResultsPage extends UIElement {
   }
 
   _renderCupResultItem (result) {
-    if (!result._rowId) {
-      result._rowId = generateId()
-      onClick(result._rowId, () => {
-        setQueryParams({ game_id: result.id })
-      })
-    }
-
     const isPlayed = result.played === 1
     const isBye = !result.team2 && !result.team2Id
 
@@ -533,6 +560,21 @@ export class CupResultsPage extends UIElement {
       `${isBye ? t('cup.bye') : (isPlayed ? `${result.goalsTeam1 ?? '-'} : ${result.goalsTeam2 ?? '-'}` : t('cup.upcoming'))}`,
       `${emblem2}${team2Name}`
     ]
+  }
+
+  /**
+   * Center/row click on a cup result: open the game-details modal for played
+   * games, the head-to-head overlay for upcoming games. Byes have no action.
+   * @param {Object} result
+   */
+  _handleCupResultClick (result) {
+    const isBye = !result.team2 && !result.team2Id
+    if (isBye) return
+    if (result.played === 1) {
+      setQueryParams({ game_id: result.id })
+    } else if (result.team1Id && result.team2Id) {
+      void showHeadToHeadOverlay(result.team1Id, result.team2Id)
+    }
   }
 
   _loadSuspendedPlayerImages () {

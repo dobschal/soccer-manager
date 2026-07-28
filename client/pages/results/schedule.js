@@ -1,12 +1,12 @@
 import { server } from '../../lib/gateway.js'
-import { generateId } from '../../lib/html.js'
-import { onClick } from '../../lib/htmlEventHandlers.js'
 import { setQueryParams } from '../../lib/router.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { Table } from '../../partials/table.js'
 import { t } from '../../i18n/index.js'
 import { shortenTeamName } from '../../util/team.js'
+import { goToTeamPage } from '../../util/gameNavigation.js'
+import { showHeadToHeadOverlay } from '../../partials/headToHeadOverlay.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 
 export class SchedulePage extends UIElement {
@@ -38,14 +38,15 @@ export class SchedulePage extends UIElement {
         ${this.schedule.length === 0
     ? `<p class="text-muted">${t('schedule.noGames')}</p>`
     : new Table({
+      classes: 'game-teams-table',
       cols: [
         { name: t('schedule.what'), width: '120px' },
-        { name: t('results.team1'), align: 'right' },
+        { name: t('results.team1'), align: 'right', onClick: (entry) => goToTeamPage(entry.game?.team1Id) },
         { name: '', align: 'center' },
-        { name: t('results.team2') }
+        { name: t('results.team2'), onClick: (entry) => this._handleScheduleTeam2Click(entry) }
       ],
       renderRow: (entry) => this._renderRow(entry),
-      rowAttrs: (entry) => entry._rowId ? `id="${entry._rowId}"` : '',
+      onClick: (entry) => this._handleScheduleRowClick(entry),
       data: this.schedule
     })}
       </div>
@@ -73,17 +74,37 @@ export class SchedulePage extends UIElement {
     return this._renderGameRow(entry)
   }
 
+  /**
+   * Row/center click on a schedule entry: game-details modal for played games,
+   * head-to-head overlay for upcoming games. Byes and cup-round placeholders
+   * have no action.
+   * @param {Object} entry
+   */
+  _handleScheduleRowClick (entry) {
+    if (entry.type === 'cup_round') return
+    const g = entry.game
+    if (!g) return
+    const isBye = entry.type === 'cup' && entry.isBye
+    if (isBye) return
+    if (entry.played) {
+      setQueryParams({ game_id: g.id })
+    } else if (g.team1Id && g.team2Id) {
+      void showHeadToHeadOverlay(g.team1Id, g.team2Id)
+    }
+  }
+
+  /**
+   * Team-2 column click: open that team's page unless the entry is a bye.
+   * @param {Object} entry
+   */
+  _handleScheduleTeam2Click (entry) {
+    const isBye = entry.type === 'cup' && entry.isBye
+    if (isBye) return
+    goToTeamPage(entry.game?.team2Id)
+  }
+
   _renderGameRow (entry) {
     const g = entry.game
-    if (!entry._rowId && g) {
-      entry._rowId = generateId()
-      onClick(entry._rowId, () => {
-        if (entry.played) {
-          setQueryParams({ game_id: g.id })
-        }
-      })
-    }
-
     const isBye = entry.type === 'cup' && entry.isBye
     const labelHtml = this._renderLabel(entry)
 

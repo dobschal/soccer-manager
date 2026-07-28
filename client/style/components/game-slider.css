@@ -167,3 +167,19 @@
     flex: 0 0 100px;
     width: 100px;
 }
+
+/* Clickable zones: team columns link to the team page, the center opens the
+ * game-details / head-to-head modal. Keep the inherited text colour so the
+ * links don't look like default anchors. */
+.game-result-team-link,
+.game-result-center-link {
+    cursor: pointer;
+    color: inherit;
+    text-decoration: none;
+}
+
+.game-result-team-link:hover .h6,
+.game-result-team-link:hover h6,
+.game-result-center-link:hover {
+    opacity: 0.85;
+}

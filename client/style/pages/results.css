@@ -21,6 +21,13 @@
     text-overflow: ellipsis;
 }
 
+/* Clickable team columns open the team page. Keep the normal text colour
+   (team names carry their own winner/my-team styling) instead of the default
+   info tint that td.hover-text applies, but keep the pointer + hover bg. */
+.game-teams-table td.hover-text {
+    color: inherit;
+}
+
 /* Scorer/Suspended player image containers are now in components/player.css */
 
 /* Substitution indicators in squad lists */
@@ -111,8 +118,14 @@
 }
 
 .cup-bracket-team[data-team-id] {
-    cursor: default;
+    cursor: pointer;
     transition: background-color 0.1s ease-in-out;
+}
+
+/* Team rows are anchors to the team page; keep the surrounding text styling. */
+a.cup-bracket-team-link {
+    color: inherit;
+    text-decoration: none;
 }
 
 .cup-bracket-team--highlight {
