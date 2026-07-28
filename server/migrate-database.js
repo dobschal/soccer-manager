@@ -2435,6 +2435,22 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Create page_view table (#498)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS page_view
+    (
+        id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id    BIGINT NULL,
+        client_id  VARCHAR(64) NULL,
+        page       VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_page_view_page (page),
+        INDEX idx_page_view_created (created_at),
+        INDEX idx_page_view_client (client_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+  }
 }]
 
 /**

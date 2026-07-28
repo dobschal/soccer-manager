@@ -9,14 +9,16 @@ const STATISTICS_PAGE_SIZE = 20
 
 export class StatisticsAdminPage extends UIElement {
   async load () {
-    const [statisticsRes, topCountriesRes] = await Promise.all([
+    const [statisticsRes, topCountriesRes, pageViewsRes] = await Promise.all([
       server.getStatistics(this._statisticsPage, STATISTICS_PAGE_SIZE),
-      server.getTopCountries()
+      server.getTopCountries(),
+      server.getPageViewStats(this._pageViewDays)
     ])
     this._statistics = statisticsRes.rows
     this._statisticsTotal = statisticsRes.total
     this._statisticsPageSize = statisticsRes.pageSize
     this._topCountries = topCountriesRes.rows
+    this._pageViews = pageViewsRes
   }
 
   get template () {
@@ -88,6 +90,8 @@ export class StatisticsAdminPage extends UIElement {
           ` : `<p class="text-muted">${t('admin.statisticsEmpty')}</p>`}
         </div>
 
+        ${this._renderPageViews()}
+
         <div class="mb-4">
           <h4>${t('admin.topCountriesTitle')}</h4>
           ${this._topCountries.length > 0 ? `
@@ -135,6 +139,86 @@ export class StatisticsAdminPage extends UIElement {
   _statisticsPage = 1
   _statisticsPageSize = STATISTICS_PAGE_SIZE
   _topCountries = []
+  _pageViews = { pages: [], funnel: [], days: 30 }
+  _pageViewDays = 30
+
+  /**
+   * Registration/engagement funnel + per-page view counts for the tracked
+   * period. The funnel shows distinct clients per key step with drop-off from
+   * the first (widest) step.
+   * @returns {string}
+   */
+  _renderPageViews () {
+    const { pages = [], funnel = [], days = 30 } = this._pageViews || {}
+    if (pages.length === 0) {
+      return `
+        <div class="mb-4">
+          <h4>${t('admin.pageViewsTitle')}</h4>
+          <p class="text-muted">${t('admin.pageViewsEmpty')}</p>
+        </div>
+      `
+    }
+
+    const funnelStart = funnel.find(f => f.clients > 0)?.clients ?? 0
+    const funnelRows = funnel.map(step => {
+      const pct = funnelStart > 0 ? Math.round((step.clients / funnelStart) * 100) : 0
+      return `
+        <tr>
+          <td>${step.page}</td>
+          <td>${step.clients}</td>
+          <td>
+            <div class="progress" style="min-width: 120px;">
+              <div class="progress-bar bg-info" role="progressbar" style="width: ${pct}%;">${pct}%</div>
+            </div>
+          </td>
+        </tr>
+      `
+    }).join('')
+
+    const pageRows = pages.map(p => `
+      <tr>
+        <td>${p.page}</td>
+        <td>${p.views}</td>
+        <td>${p.clients}</td>
+        <td>${p.users}</td>
+      </tr>
+    `).join('')
+
+    return `
+      <div class="mb-4">
+        <h4>${t('admin.pageViewsTitle')} <small class="text-muted">${t('admin.pageViewsPeriod', { days })}</small></h4>
+
+        <h5 class="mb-2">${t('admin.pageViewsFunnelTitle')}</h5>
+        <div class="horizontal-scrollable-table mb-3">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>${t('admin.pageViewsPage')}</th>
+                <th>${t('admin.pageViewsClients')}</th>
+                <th>${t('admin.pageViewsShare')}</th>
+              </tr>
+            </thead>
+            <tbody>${funnelRows}</tbody>
+          </table>
+        </div>
+
+        <h5 class="mb-2">${t('admin.pageViewsAllTitle')}</h5>
+        <div class="horizontal-scrollable-table">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>${t('admin.pageViewsPage')}</th>
+                <th>${t('admin.pageViewsViews')}</th>
+                <th>${t('admin.pageViewsClients')}</th>
+                <th>${t('admin.pageViewsUsers')}</th>
+              </tr>
+            </thead>
+            <tbody>${pageRows}</tbody>
+          </table>
+        </div>
+      </div>
+    `
+  }
 
   _countryName (code) {
     if (!code) return '—'

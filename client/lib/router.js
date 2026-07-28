@@ -3,6 +3,7 @@ import { fire } from './event.js'
 import { el } from './html.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
 import { server } from './gateway.js'
+import { trackPageView } from './tracking.js'
 
 let pages, lastKey
 /** @type {Object<string, {page: Object, wrapper: HTMLElement}>} */
@@ -323,6 +324,9 @@ async function _resolvePage () {
   })
   const previousKey = lastKey
   lastKey = currentKey
+  // Track the page view once per actual page change (query-only changes hit
+  // the same-key early return above and are skipped).
+  trackPageView(currentPath)
   if (!_initialLoaderRemoved) {
     _initialLoaderRemoved = true
     document.getElementById('initial-loading-ball')?.remove()
