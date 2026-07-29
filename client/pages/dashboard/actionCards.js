@@ -25,7 +25,7 @@ const MERGEABLE_ACTIONS = new Set(['LEVEL_UP_PLAYER_40', 'LEVEL_UP_PLAYER_70'])
  * enforces it on claim; this copy only drives the visible hint / "full" badge.
  * @type {number}
  */
-const MAX_ACTION_CARDS_PER_TYPE = 10
+const MAX_ACTION_CARDS_PER_TYPE = 20
 
 /**
  * Render the per-stack count badge. Hidden for single cards; shows the count,
