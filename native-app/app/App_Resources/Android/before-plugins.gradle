@@ -1,0 +1,12 @@
+// Applied by platforms/android/app/build.gradle via `applyBeforePluginGradleConfiguration()`
+// EARLY — before the android {} block computes compileSdk / targetSdkVersion
+// (see computeCompileSdkVersion / computeTargetSdkVersion, which read these project
+// properties and otherwise fall back to NS_DEFAULT_COMPILE_SDK_VERSION = 35).
+//
+// Setting compileSdk / targetSdk in App_Resources/Android/app.gradle does NOT work:
+// app.gradle is applied AFTER the android {} block has already resolved the SDK levels,
+// so it silently falls back to the NativeScript default. Keep these here.
+//
+// Google Play requires apps to target Android 16 (API level 36) from Aug 31, 2026.
+project.ext.compileSdk = 36
+project.ext.targetSdk = 36

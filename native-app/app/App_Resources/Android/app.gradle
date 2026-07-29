@@ -1,13 +1,12 @@
-project.ext {
-    compileSdk = 35
-    targetSdk = 35
-}
+// NOTE: compileSdk / targetSdk are set in before-plugins.gradle, NOT here.
+// app.gradle is applied too late (after the android {} block already resolved the
+// SDK levels), so values set here have no effect. See before-plugins.gradle.
 
 android {
     defaultConfig {
         minSdkVersion 21
-        versionCode 11
-        versionName "1.8.0"
+        versionCode 12
+        versionName "1.9.0"
     }
     lint {
         abortOnError false
