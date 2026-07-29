@@ -478,8 +478,8 @@ export class Lineup extends UIElement {
       ? null
       : avgAge.toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
     return `
-      <span class="lineup-strength-overlay">💪 ${lineupStrength}</span>
-      ${avgAgeLabel === null ? '' : `<span class="lineup-age-overlay">⏳ ${avgAgeLabel}</span>`}
+      <span class="lineup-strength-overlay">💪${lineupStrength}</span>
+      ${avgAgeLabel === null ? '' : `<span class="lineup-age-overlay">⏳${avgAgeLabel}</span>`}
     `
   }
 

@@ -680,7 +680,7 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       root.setAttribute('data-render_id', lineup._renderId)
       root.innerHTML = `<div class="lineup-stats-overlay">${lineup._statsOverlayInner()}</div>`
       document.body.appendChild(root)
-      expect(root.querySelector('.lineup-age-overlay').textContent).toBe('⏳ 20.0')
+      expect(root.querySelector('.lineup-age-overlay').textContent).toBe('⏳20.0')
 
       // Swap: reserve 9 into CD, player 8 ejected from the lineup.
       lineup.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
@@ -692,8 +692,8 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
 
       // No full re-render — the overlay is patched in place.
       expect(updateSpy).not.toHaveBeenCalled()
-      expect(root.querySelector('.lineup-strength-overlay').textContent).toBe('💪 110')
-      expect(root.querySelector('.lineup-age-overlay').textContent).toBe('⏳ 19.0')
+      expect(root.querySelector('.lineup-strength-overlay').textContent).toBe('💪110')
+      expect(root.querySelector('.lineup-age-overlay').textContent).toBe('⏳19.0')
 
       root.remove()
     })
@@ -753,7 +753,7 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
 
       const root = document.createElement('div')
       root.setAttribute('data-render_id', lineup._renderId)
-      root.innerHTML = '<div class="lineup-stats-overlay"><span class="lineup-strength-overlay">💪 90</span></div>'
+      root.innerHTML = '<div class="lineup-stats-overlay"><span class="lineup-strength-overlay">💪90</span></div>'
       document.body.appendChild(root)
 
       lineup.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
@@ -763,7 +763,7 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       // No full re-render — SquadPlayer handles the tile visuals.
       expect(updateSpy).not.toHaveBeenCalled()
       expect(lineup.players.find(p => p.id === 7).level).toBe(51)
-      expect(root.querySelector('.lineup-strength-overlay').textContent).toBe('💪 91')
+      expect(root.querySelector('.lineup-strength-overlay').textContent).toBe('💪91')
 
       root.remove()
     })
@@ -777,9 +777,9 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       ]
       const lineup = new Lineup(players, team, 8)
       const html = lineup.template
-      expect(html).toContain('💪 90')
+      expect(html).toContain('💪90')
       // Average age is always rendered with one decimal place.
-      expect(html).toContain('⏳ 20.0')
+      expect(html).toContain('⏳20.0')
     })
 
     it('renders the average age with a comma separator when the locale is German', () => {
@@ -791,7 +791,7 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       const lineup = new Lineup(players, team, 8)
       setLocale('de')
       try {
-        expect(lineup.template).toContain('⏳ 20,0')
+        expect(lineup.template).toContain('⏳20,0')
       } finally {
         setLocale('en')
       }
@@ -808,7 +808,7 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       // Gateway returns season 8 → age = (8 - 3) + 16 = 21
       expect(server.getCurrentGameday).toHaveBeenCalled()
       expect(lineup.season).toBe(8)
-      expect(lineup.template).toContain('⏳ 21.0')
+      expect(lineup.template).toContain('⏳21.0')
     })
 
     it('skips the season fetch when the parent already provided one', async () => {
@@ -831,7 +831,7 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       const lineup = new Lineup(players, team, 0)
       const html = lineup.template
       // avg of 21 and 19 = 20 — must not be hidden just because season === 0
-      expect(html).toContain('⏳ 20.0')
+      expect(html).toContain('⏳20.0')
     })
 
     it('keeps a parent-provided season 0 instead of refetching in load()', async () => {
