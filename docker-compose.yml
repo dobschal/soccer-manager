@@ -47,6 +47,8 @@ services:
       - ${DATA_ROOT:-./data}/uploads/avatars:/usr/src/app/uploads/avatars
       - ${DATA_ROOT:-./data}/uploads/friend-posts:/usr/src/app/uploads/friend-posts
       - ${DATA_ROOT:-./data}/uploads/wiki:/usr/src/app/uploads/wiki
+      - ${DATA_ROOT:-./data}/uploads/chat:/usr/src/app/uploads/chat
+      - ${DATA_ROOT:-./data}/uploads/notification:/usr/src/app/uploads/notification
     depends_on:
       database:
         condition: service_healthy
