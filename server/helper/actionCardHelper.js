@@ -152,7 +152,7 @@ export async function getPendingActionCards (team) {
  * untouched — they simply can't grow any further until played down.
  * Keep in sync with the client copy in client/pages/dashboard/actionCards.js.
  */
-export const MAX_ACTION_CARDS_PER_TYPE = 10
+export const MAX_ACTION_CARDS_PER_TYPE = 20
 
 /**
  * Whether a team may still be handed another action card of `action`.

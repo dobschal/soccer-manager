@@ -200,7 +200,7 @@ describe('ActionCards', () => {
     })
 
     it('marks a stack at the per-type limit as full', async () => {
-      const mockCards = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, action: 'FRESHNESS_10' }))
+      const mockCards = Array.from({ length: 20 }, (_, i) => ({ id: i + 1, action: 'FRESHNESS_10' }))
       server.getActionCards.mockResolvedValue({ actionCards: mockCards })
 
       const cards = new ActionCards()
@@ -208,7 +208,7 @@ describe('ActionCards', () => {
 
       const html = cards._renderGroupedCards()
       expect(html).toContain('action-card-count--full')
-      expect(html).toContain('>10/10<')
+      expect(html).toContain('>20/20<')
     })
   })
 

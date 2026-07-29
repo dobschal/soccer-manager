@@ -25,7 +25,7 @@ vi.mock('../helper/actionCardHelper.js', () => ({
   deleteExpiredPendingCards: vi.fn(),
   NEW_YOUTH_PLAYER_ACTIONS: new Set(['NEW_YOUTH_PLAYER_1', 'NEW_YOUTH_PLAYER_2', 'NEW_YOUTH_PLAYER_3']),
   MAX_YOUTH_CARDS_PER_SEASON: 3,
-  MAX_ACTION_CARDS_PER_TYPE: 10
+  MAX_ACTION_CARDS_PER_TYPE: 20
 }))
 vi.mock('../helper/financeHelper.js', () => ({ updateTeamBalance: vi.fn() }))
 vi.mock('../helper/sponsorHelper.js', () => ({ getSponsor: vi.fn() }))
@@ -291,7 +291,7 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
     })
   })
 
-  describe('per-type hold limit (MAX_ACTION_CARDS_PER_TYPE = 10)', () => {
+  describe('per-type hold limit (MAX_ACTION_CARDS_PER_TYPE = 20)', () => {
     it('does not deal a card of a type the team already holds the max of', async () => {
       // Team owns a youth player → no guarantee, so the FILLER card (chance 1)
       // is the day's card. It is already at the hold limit, so nothing is dealt
@@ -299,7 +299,7 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
       const inserts = setupMocks({
         teams: [{ id: 1 }],
         teamIdsWithYouth: [1],
-        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 10 }]
+        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 20 }]
       })
 
       await _giveUsersActionCards()
@@ -311,7 +311,7 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
       const inserts = setupMocks({
         teams: [{ id: 1 }],
         teamIdsWithYouth: [1],
-        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 9 }]
+        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 19 }]
       })
 
       await _giveUsersActionCards()
@@ -320,12 +320,12 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
     })
 
     it('counts cards dealt earlier in the same run so a single day cannot exceed the limit', async () => {
-      // 9 already held + FILLER chance 3 this day would be 12; only 1 may be dealt.
+      // 19 already held + FILLER chance 3 this day would be 22; only 1 may be dealt.
       actionCardChances.FILLER = 3
       const inserts = setupMocks({
         teams: [{ id: 1 }],
         teamIdsWithYouth: [1],
-        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 9 }]
+        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 19 }]
       })
 
       await _giveUsersActionCards()

@@ -782,7 +782,7 @@ describe('actionCardHelper', () => {
     it('rejects claiming when the per-type hold limit is reached', async () => {
       const card = testData.actionCard({ id: 10, team_id: 5, action: 'FRESHNESS_10', state: 'pending' })
       query.mockImplementation(async (sql) => {
-        if (sql.includes('COUNT(*)')) return [{ heldCount: 10 }]
+        if (sql.includes('COUNT(*)')) return [{ heldCount: 20 }]
         if (sql.includes("state='pending'")) return [card]
         return {}
       })
@@ -812,7 +812,7 @@ describe('actionCardHelper', () => {
     })
 
     it('returns false when the team is already at the per-type limit', async () => {
-      query.mockResolvedValue([{ heldCount: 10 }])
+      query.mockResolvedValue([{ heldCount: 20 }])
 
       const result = await canReceiveActionCard(5, 'LEVEL_UP_PLAYER_40')
 
@@ -820,8 +820,8 @@ describe('actionCardHelper', () => {
     })
 
     it('counts pending cards toward the limit so a backlog stops further dealing', async () => {
-      // 6 received + 4 pending = 10 held → at the limit.
-      query.mockResolvedValue([{ heldCount: 10 }])
+      // 12 received + 8 pending = 20 held → at the limit.
+      query.mockResolvedValue([{ heldCount: 20 }])
 
       expect(await canReceiveActionCard(5, 'FRESHNESS_10')).toBe(false)
     })
