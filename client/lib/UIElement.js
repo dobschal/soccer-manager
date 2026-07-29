@@ -163,7 +163,10 @@ export class UIElement {
       await this._load()
       const templateEl = document.createElement('template')
       await this._renderIntoTemplateEl(templateEl)
-      this._renderIntoDOM(placeholderEl, templateEl)
+      // Re-resolve the placeholder: awaiting load()/render above yields control,
+      // during which a parent re-render (or, in tests, environment teardown) may
+      // have swapped it out. _renderIntoDOM bails safely if it is no longer a node.
+      this._renderIntoDOM(el(this._renderId), templateEl)
     }
     requestAnimationFrame(waitAndRender)
     if (this.showLoadingIndicator) {
@@ -279,6 +282,12 @@ export class UIElement {
    * @private
    */
   _renderIntoDOM (target, templateEl) {
+    // The target can be gone by the time we get here: a parent re-render may
+    // have detached the placeholder while we awaited load()/render, or (in
+    // tests) the jsdom environment was torn down while a rAF-scheduled render
+    // was still pending — `document.querySelector` then hands back a non-Element
+    // stub. In either case there is nothing to render into, so bail quietly.
+    if (typeof target?.replaceWith !== 'function') return
     templateEl.content.children[0].setAttribute('data-render_id', this._renderId)
     target.replaceWith(templateEl.content.children[0])
   }
