@@ -89,13 +89,17 @@ export class DashboardPage extends TabbedPage {
 
     // Fetch current standing, urgencies, action card count, pending cards, and new message count in parallel
     const lastSeenMessageId = Number(localStorage.getItem('lastSeenMessageId')) || 0
-    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse, newMessageResponse, unreadChatResponse] = await Promise.all([
+    const [standing, urgencyResponse, actionCardsResponse, pendingCardsResponse, newMessageResponse, unreadChatResponse, seasonReview] = await Promise.all([
       server.getStanding(this.lastPlayedLeagueMatchDay, this.season, this.team.level, this.team.league),
       server.getDashboardUrgencies(window.__nativePlatform || 'web'),
       server.getActionCards(),
       server.getPendingActionCards(),
       server.getNewLogMessageCount(lastSeenMessageId),
-      server.getUnreadChatCount()
+      server.getUnreadChatCount(),
+      // Prefetch the season review here (null = auto-detect the just-finished
+      // season) so the overlay can open immediately in onMounted instead of
+      // flashing the dashboard while a post-render request is in flight.
+      server.getSeasonReview(null).catch(() => null)
     ])
 
     this.standing = standing
@@ -117,6 +121,9 @@ export class DashboardPage extends TabbedPage {
     // Unread chat messages (shown under "Action Required")
     this._unreadChatCount = unreadChatResponse.count || 0
     this._unreadChatUserId = unreadChatResponse.latestUserId || null
+
+    // Prefetched season review (shown as an overlay in onMounted).
+    this._seasonReview = seasonReview
   }
   get template () {
     return `
@@ -248,6 +255,7 @@ export class DashboardPage extends TabbedPage {
   _newMessageCount = 0
   _unreadChatCount = 0
   _unreadChatUserId = null
+  _seasonReview = null
   _pendingCards = []
   _initialQueryChangeHandled = false
 
@@ -435,15 +443,9 @@ export class DashboardPage extends TabbedPage {
 
   async _showSeasonReviewIfNeeded () {
     if (!this._isMounted) return
-    let review
-    try {
-      // null = auto-detect the just-finished season (gateway serialises the
-      // single explicit arg, so the route receives (null, req) — passing no
-      // args at all would dispatch as (req) and shift the season slot).
-      review = await server.getSeasonReview(null)
-    } catch {
-      return
-    }
+    // Uses the review prefetched in load() so the overlay opens immediately
+    // instead of flashing the dashboard while a request is in flight.
+    const review = this._seasonReview
     if (!review?.isSeasonEnd) return
     if (isSeasonReviewDismissed(review.season)) return
     if (!this._isMounted) return
