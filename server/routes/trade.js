@@ -23,8 +23,13 @@ export default {
     if (allOffers.length === 0) return { offers: [], players: [], teams: [] }
     const playerIds = allOffers.map(o => o.player_id)
     /** @type {PlayerType[]} */
+    // carrier_end_season >= season keeps players who are still active this
+    // season (including their final season) so their open offers stay visible
+    // and acceptable. Only genuinely retired players (carrier_end_season <
+    // season) are dropped. This matches the urgencies count in
+    // getIncomingBuyOffers, which otherwise flags offers the list hid.
     const players = await query(
-      'SELECT * FROM player WHERE id IN (?) AND carrier_end_season > ?',
+      'SELECT * FROM player WHERE id IN (?) AND carrier_end_season >= ?',
       [playerIds, season]
     )
     const activePlayerIds = new Set(players.map(p => p.id))

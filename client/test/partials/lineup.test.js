@@ -557,6 +557,42 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       expect(updateB).not.toHaveBeenCalled()
     })
 
+    it('empties the source tile when a player is moved between two same-slot tiles', () => {
+      // Regression: two CM tiles, playerA on ordinal 0, ordinal 1 empty. User
+      // picks playerA (already in the lineup) for the empty CM#1. The server
+      // keeps A at 'CM' and echoes replacements.CM (target = fake ordinal 1)
+      // AND emptiedSlot='CM'/emptiedTilePlayerId=A (source = A's old tile).
+      // Both tiles share slot 'CM', so both see `replacement && newOccupant`;
+      // the source tile must fall through to the emptied check and turn fake
+      // instead of keeping A painted (which showed A twice on the pitch).
+      const team = testData.team({ captain_id: null })
+      const playerA = testData.player({ id: 42, in_game_position: 'CM' })
+      const fakeB = { fake: true, in_game_position: 'CM', position: 'CM', level: 0, name: '-' }
+      const tileA = new SquadPlayer(playerA, team, '', 0)
+      const tileB = new SquadPlayer(fakeB, team, '', 1)
+      const updateA = vi.spyOn(tileA, 'update').mockImplementation(() => {})
+      const updateB = vi.spyOn(tileB, 'update').mockImplementation(() => {})
+
+      const freshA = testData.player({ id: 42, in_game_position: 'CM' })
+      const event = {
+        slots: { CM: freshA },
+        replacements: { CM: { previousPlayerId: null, previousFakeSlotIndex: 1 } },
+        ejectedPlayerId: null,
+        emptiedSlot: 'CM',
+        emptiedTilePlayerId: 42,
+        freedBenchPosition: null
+      }
+      tileA.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name](event)
+      tileB.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name](event)
+
+      // CM#1 (the clicked empty tile) receives A.
+      expect(tileB.player).toBe(freshA)
+      expect(updateB).toHaveBeenCalledTimes(1)
+      // CM#0 (A's old tile) turns into a fake placeholder — no duplicate A.
+      expect(tileA.player.fake).toBe(true)
+      expect(updateA).toHaveBeenCalledTimes(1)
+    })
+
     it('fills only the clicked empty CD when two CDs are empty', () => {
       // Two fake CD tiles, one at ordinal 0, one at ordinal 1. User clicks
       // ordinal 1. Server echoes previousFakeSlotIndex=1; only tileB fills.
