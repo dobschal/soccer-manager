@@ -280,6 +280,60 @@ describe('MarketPage', () => {
     })
   })
 
+  describe('_renderRow', () => {
+    async function pageWithOffer (teamOverrides = {}) {
+      server.getOffers.mockResolvedValue({
+        offers: [
+          { id: 1, player_id: 10, from_team_id: 2, type: 'sell', offer_value: 75000 }
+        ],
+        players: [
+          { id: 10, name: 'Star Player', position: 'ST', level: 8, team_id: 2 }
+        ],
+        teams: [
+          { id: 2, name: '1. FC Dynamic Gütersloh', short_name: null, ...teamOverrides }
+        ]
+      })
+      const page = new MarketPage()
+      await page.load()
+      return page
+    }
+
+    it('shows the short team name (last word) between level and price', async () => {
+      const page = await pageWithOffer()
+      const cells = page._renderRow(page.offers[0])
+      // Column order: image, name, position, age, level, team, price, buy
+      expect(cells[5]).toBe('Gütersloh')
+      expect(cells[6]).toContain('75')
+    })
+
+    it('prefers the user-defined short name when present', async () => {
+      const page = await pageWithOffer({ short_name: 'DYN' })
+      const cells = page._renderRow(page.offers[0])
+      expect(cells[5]).toBe('DYN')
+    })
+
+    it('renders the player image placeholder as the first column', async () => {
+      const page = await pageWithOffer()
+      const cells = page._renderRow(page.offers[0])
+      expect(cells[0]).toContain('market-player-image')
+      expect(cells[0]).toContain('data-player-id="10"')
+      expect(cells[1]).toBe('Star Player')
+    })
+
+    it('has the image column first and the team column between level and price', async () => {
+      const page = await pageWithOffer()
+      const cols = page._prepareTableCols()
+      // 0 image, 1 name, 2 position, 3 age, 4 level, 5 team, 6 price, 7 buy
+      expect(cols[0].name).toBe('')
+      expect(cols[0].sortKey).toBeUndefined()
+      expect(cols[0].sortFn).toBeUndefined()
+      expect(cols[1].name).toBe('Name')
+      expect(cols[4].name).toBe('Level')
+      expect(cols[5].name).toBe('Team')
+      expect(cols[6].name).toBe('Price')
+    })
+  })
+
   describe('renderMarket (backwards compatibility)', () => {
     it('is exported as a function', () => {
       expect(typeof renderMarket).toBe('function')

@@ -33,9 +33,10 @@
     display: inline-block;
 }
 
-/* Scorer/Suspended Image Container */
+/* Scorer/Suspended/Market Image Container */
 .scorer-image,
-.suspended-image {
+.suspended-image,
+.market-player-image {
     width: 48px;
     height: 20px;
     margin-top: -32px;

@@ -869,6 +869,8 @@ export default {
   'cardMarket.myOffers': 'My offers',
   'cardMarket.myBids': 'My bids',
   'cardMarket.allOffers': 'All offers',
+  'cardMarket.allTypes': 'All card types',
+  'cardMarket.showingCount': 'Showing {shown} of {total} offers.',
   'cardMarket.empty': 'No offers on the marketplace right now.',
   'cardMarket.noMyOffers': "You don't have any offers right now.",
   'cardMarket.noMyBids': "You haven't placed any bids right now.",

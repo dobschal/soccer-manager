@@ -869,6 +869,8 @@ export default {
   'cardMarket.myOffers': 'Meine Angebote',
   'cardMarket.myBids': 'Meine Gebote',
   'cardMarket.allOffers': 'Alle Angebote',
+  'cardMarket.allTypes': 'Alle Kartentypen',
+  'cardMarket.showingCount': 'Zeige {shown} von {total} Angeboten.',
   'cardMarket.empty': 'Aktuell gibt es keine Angebote auf dem Markt.',
   'cardMarket.noMyOffers': 'Du hast aktuell keine Angebote.',
   'cardMarket.noMyBids': 'Du hast aktuell keine Gebote abgegeben.',

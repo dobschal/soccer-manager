@@ -466,6 +466,13 @@
     width: 40px;
 }
 
+/* On mobile the "My offers" cancel button wraps to its own right-aligned row. */
+@media (max-width: 576px) {
+    .card-market-offer-main {
+        min-width: 100%;
+    }
+}
+
 /* Completed-trade rows in the "My trades" history overlay. */
 .card-market-trade-cards {
     display: flex;

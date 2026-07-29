@@ -79,6 +79,71 @@ describe('ActionCardMarket bid overlay', () => {
   })
 })
 
+describe('ActionCardMarket all-offers tab', () => {
+  function countOfferRows (html) {
+    return (html.match(/card-market-offer/g) ?? []).length
+  }
+
+  function makeOffers (n, action = 'SPY') {
+    return Array.from({ length: n }, (_, i) => ({
+      id: i + 1,
+      cards: [{ action }],
+      team_name: 'FC ' + i
+    }))
+  }
+
+  it('shows at most 6 offers and notes how many are hidden', () => {
+    const market = makeMarket([])
+    market._offers = makeOffers(10)
+    const html = market._renderOffers()
+    expect(countOfferRows(html)).toBe(6)
+    expect(html).toContain('Showing 6 of 10 offers')
+  })
+
+  it('does not show the count hint when 6 or fewer offers match', () => {
+    const market = makeMarket([])
+    market._offers = makeOffers(4)
+    const html = market._renderOffers()
+    expect(countOfferRows(html)).toBe(4)
+    expect(html).not.toContain('Showing')
+  })
+
+  it('renders a card-type filter select with one option per distinct type', () => {
+    const market = makeMarket([])
+    market._offers = [
+      { id: 1, cards: [{ action: 'SPY' }], team_name: 'A' },
+      { id: 2, cards: [{ action: 'FRESHNESS_5' }], team_name: 'B' },
+      { id: 3, cards: [{ action: 'SPY' }], team_name: 'C' }
+    ]
+    const html = market._renderOffers()
+    expect(html).toContain(`id="${market._offerFilterId}"`)
+    expect(html).toContain('All card types')
+    // Two distinct types + the "all" option.
+    expect((html.match(/<option/g) ?? []).length).toBe(3)
+  })
+
+  it('filters offers by the selected card type', () => {
+    const market = makeMarket([])
+    market._offers = [
+      { id: 1, cards: [{ action: 'SPY' }], team_name: 'A' },
+      { id: 2, cards: [{ action: 'FRESHNESS_5' }], team_name: 'B' },
+      { id: 3, cards: [{ action: 'SPY' }], team_name: 'C' }
+    ]
+    market._offerTypeFilter = 'SPY'
+    const html = market._renderOffers()
+    expect(countOfferRows(html)).toBe(2)
+  })
+
+  it('shows the empty state (but keeps the filter) when no offer matches', () => {
+    const market = makeMarket([])
+    market._offers = makeOffers(3, 'SPY')
+    market._offerTypeFilter = 'FRESHNESS_5'
+    const html = market._renderOffers()
+    expect(countOfferRows(html)).toBe(0)
+    expect(html).toContain(`id="${market._offerFilterId}"`)
+  })
+})
+
 describe('ActionCardMarket trades tab', () => {
   const trade = {
     role: 'bought',

@@ -101,7 +101,7 @@ export class TutorialProgress extends UIElement {
    */
   get events () {
     return {
-      '.tutorial-progress-next': {
+      '(optional) .tutorial-progress-next': {
         click: this._onNextTutorialClick
       }
     }

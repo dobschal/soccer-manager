@@ -7,6 +7,8 @@ import { euroFormat } from '../../lib/currency.js'
 import { Table } from '../../partials/table.js'
 import { getQueryParams, goTo, setQueryParams } from '../../lib/router.js'
 import { calculatePlayerAge, sortByPosition } from '../../util/player.js'
+import { shortenTeamName } from '../../util/team.js'
+import { renderPlayerImage } from '../../partials/playerImage.js'
 import { t } from '../../i18n/index.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
@@ -72,19 +74,7 @@ export class MarketPage extends UIElement {
     const table = new Table({
       data: pageData,
       cols: this._prepareTableCols(),
-      renderRow: offer => {
-        const player = this.players.find(p => p.id === offer.player_id)
-        const offerTeam = this.teams.find(t => t.id === offer.from_team_id)
-        return [
-          player.name,
-          offerTeam.name,
-          renderPositionBadge(player.position),
-          calculatePlayerAge(player, this.season),
-          renderLevelBadge(player.level),
-          euroFormat.format(offer.offer_value),
-          `<button class="btn btn-primary" data-buy-player="${player.id}">${t('trades.buy')}</button>`
-        ]
-      }
+      renderRow: offer => this._renderRow(offer)
     })
 
     return `
@@ -123,7 +113,6 @@ export class MarketPage extends UIElement {
       </div>
     `
   }
-
   /**
    * @returns {UIElementEvents}
    */
@@ -199,6 +188,19 @@ export class MarketPage extends UIElement {
       }
     }
   }
+  /**
+   * @returns {void}
+   */
+  onMounted () {
+    this._loadPlayerImages()
+  }
+
+  /**
+   * @returns {void}
+   */
+  onUpdate () {
+    this._loadPlayerImages()
+  }
 
   /**
    * @param {Object} params
@@ -256,23 +258,62 @@ export class MarketPage extends UIElement {
   _lastSortCol = null
 
   /**
+   * @param {TradeOfferType} offer
+   * @returns {Array<string>}
+   */
+  _renderRow (offer) {
+    const player = this.players.find(p => p.id === offer.player_id)
+    const offerTeam = this.teams.find(t => t.id === offer.from_team_id)
+    return [
+      `<span class="market-player-image" data-player-id="${player.id}"></span>`,
+      player.name,
+      renderPositionBadge(player.position),
+      calculatePlayerAge(player, this.season),
+      renderLevelBadge(player.level),
+      shortenTeamName(offerTeam.name, offerTeam.short_name),
+      euroFormat.format(offer.offer_value),
+      `<button class="btn btn-primary" data-buy-player="${player.id}">${t('trades.buy')}</button>`
+    ]
+  }
+
+  /**
+   * Fills the async player-image placeholders in the current table page.
+   * The table renders as a child UIElement, so the placeholders may only
+   * appear a frame later — poll briefly until they exist.
+   * @param {number} [attempts]
+   */
+  _loadPlayerImages (attempts = 0) {
+    const placeholders = document.querySelectorAll(`${this._elementQuery} .market-player-image[data-player-id]`)
+    if (placeholders.length === 0 && attempts < 50) {
+      setTimeout(() => this._loadPlayerImages(attempts + 1), 10)
+      return
+    }
+    placeholders.forEach(placeholder => {
+      if (placeholder.dataset.loaded) return
+      placeholder.dataset.loaded = '1'
+      const playerId = Number(placeholder.dataset.playerId)
+      const player = this.players.find(p => p.id === playerId)
+      if (!player) return
+      const team = this.teams.find(t => t.id === player.team_id) ?? null
+      renderPlayerImage(player, team, 48).then(image => {
+        const target = document.querySelector(`${this._elementQuery} .market-player-image[data-player-id="${playerId}"]`)
+        if (target) target.innerHTML = image
+      })
+    })
+  }
+
+  /**
    * @returns {Array}
    */
   _prepareTableCols () {
     return [{
+      name: '',
+      width: '48px',
+      align: 'center'
+    }, {
       name: t('results.name'),
       onClick: (offer) => {
         setQueryParams({ player_id: offer.player_id })
-      }
-    }, {
-      name: t('results.team'),
-      onClick: (offer) => {
-        const team = this.teams.find(t => t.id === offer.from_team_id)
-        if (team?.is_system_team) {
-          toast(t('trades.noTeamInfo'))
-          return
-        }
-        goTo(`team?id=${offer.from_team_id}`)
       }
     }, {
       name: t('player.position'),
@@ -306,6 +347,16 @@ export class MarketPage extends UIElement {
         return playerB.level - playerA.level
       },
       align: 'right'
+    }, {
+      name: t('results.team'),
+      onClick: (offer) => {
+        const team = this.teams.find(t => t.id === offer.from_team_id)
+        if (team?.is_system_team) {
+          toast(t('trades.noTeamInfo'))
+          return
+        }
+        goTo(`team?id=${offer.from_team_id}`)
+      }
     }, {
       name: t('trades.price'),
       align: 'right',

@@ -56,4 +56,11 @@ describe('TutorialProgress', () => {
     }
     expect(progress.template).toBe('<div></div>')
   })
+
+  it('marks the next-tutorial button selector optional so mounting the empty card does not throw', () => {
+    // When all tutorials are completed the template renders no button, so the
+    // event selector must be optional to avoid "Cannot apply event listener".
+    const progress = new TutorialProgress()
+    expect(Object.keys(progress.events)).toContain('(optional) .tutorial-progress-next')
+  })
 })

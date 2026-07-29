@@ -60,7 +60,8 @@ export class ActionCardMarket extends UIElement {
   get events () {
     return {
       [`(optional)#${this._newOfferBtnId}`]: {click: () => this._showNewOfferOverlay()},
-      '.card-market-tabs': {click: (event) => this._onTabClick(event)}
+      '.card-market-tabs': {click: (event) => this._onTabClick(event)},
+      [`(optional)#${this._offerFilterId}`]: {change: (event) => this._onOfferFilterChange(event)}
     }
   }
 
@@ -80,7 +81,11 @@ export class ActionCardMarket extends UIElement {
   /** Active marketplace tab: 'offers' | 'all' | 'bids' | 'trades'. */
   _activeTab = 'all'
 
+  /** Selected card-type filter for the "All offers" tab ('' = all types). */
+  _offerTypeFilter = ''
+
   _newOfferBtnId = generateId()
+  _offerFilterId = generateId()
 
   /**
    * Render one marketplace tab pill, with a count badge when non-empty.
@@ -163,13 +168,15 @@ export class ActionCardMarket extends UIElement {
       return `
         <div class="card-market-offer card mb-2">
           <div class="card-body">
-            <div class="d-flex align-items-center gap-3 mb-2">
-              ${this._cardThumbs(offer.cards)}
-              <div class="flex-grow-1">
-                <div class="fw-bold">${this._cardNames(offer.cards)}</div>
-                ${offer.comment ? `<div class="text-muted small">${offer.comment}</div>` : ''}
+            <div class="d-flex align-items-center flex-wrap gap-3 mb-2">
+              <div class="d-flex align-items-center gap-3 flex-grow-1 card-market-offer-main">
+                ${this._cardThumbs(offer.cards)}
+                <div class="flex-grow-1">
+                  <div class="fw-bold">${this._cardNames(offer.cards)}</div>
+                  ${offer.comment ? `<div class="text-muted small">${offer.comment}</div>` : ''}
+                </div>
               </div>
-              <button id="${cancelId}" class="btn btn-sm btn-outline-danger">${t('cardMarket.cancel')}</button>
+              <button id="${cancelId}" class="btn btn-sm btn-outline-danger ms-auto">${t('cardMarket.cancel')}</button>
             </div>
             <div class="card-market-bids">${bidsHtml}</div>
           </div>
@@ -223,14 +230,16 @@ export class ActionCardMarket extends UIElement {
       const withdrawId = generateId()
       onClick('#' + withdrawId, () => this._cancelBid(bid.id))
       return `
-        <div class="card-market-mybid d-flex align-items-center gap-3 py-2 border-top">
-          ${this._cardThumbs(bid.offerCards)}
-          <div class="flex-grow-1">
-            <div class="fw-bold">${this._cardNames(bid.offerCards)}</div>
-            <div class="text-muted small">${t('cardMarket.offeredBy', {team: bid.offer_team_name})}</div>
-            ${this._renderBidValue(bid)}
+        <div class="card-market-mybid card mb-2">
+          <div class="card-body d-flex align-items-center gap-3">
+            ${this._cardThumbs(bid.offerCards)}
+            <div class="flex-grow-1">
+              <div class="fw-bold">${this._cardNames(bid.offerCards)}</div>
+              <div class="text-muted small">${t('cardMarket.offeredBy', {team: bid.offer_team_name})}</div>
+              ${this._renderBidValue(bid)}
+            </div>
+            <button id="${withdrawId}" class="btn btn-sm btn-outline-secondary">${t('cardMarket.withdraw')}</button>
           </div>
-          <button id="${withdrawId}" class="btn btn-sm btn-outline-secondary">${t('cardMarket.withdraw')}</button>
         </div>
       `
     }).join('')
@@ -241,7 +250,19 @@ export class ActionCardMarket extends UIElement {
     if (this._offers.length === 0) {
       return `<p class="text-muted mb-0">${t('cardMarket.empty')}</p>`
     }
-    const rows = this._offers.map(offer => {
+
+    const select = this._renderOfferFilter()
+    const filter = this._offerTypeFilter
+    const filtered = filter
+      ? this._offers.filter(offer => (offer.cards ?? []).some(c => c.action === filter))
+      : this._offers
+
+    if (filtered.length === 0) {
+      return `${select}<p class="text-muted mb-0">${t('cardMarket.empty')}</p>`
+    }
+
+    const visible = filtered.slice(0, ALL_OFFERS_LIMIT)
+    const rows = visible.map(offer => {
       const bidId = generateId()
       onClick('#' + bidId, () => this._showBidOverlay(offer))
       return `
@@ -261,7 +282,44 @@ export class ActionCardMarket extends UIElement {
         </div>
       `
     }).join('')
-    return rows
+
+    const more = filtered.length > visible.length
+      ? `<p class="text-muted small mb-0">${t('cardMarket.showingCount', {
+        shown: visible.length,
+        total: filtered.length
+      })}</p>`
+      : ''
+
+    return `${select}${rows}${more}`
+  }
+
+  /**
+   * Card-type filter dropdown for the "All offers" tab. Options are the
+   * distinct card types present across all open offers, plus an "all" option.
+   * @returns {string}
+   */
+  _renderOfferFilter () {
+    const types = [...new Set(this._offers.flatMap(offer => (offer.cards ?? []).map(c => c.action)))]
+    const options = types.map(action =>
+      `<option value="${action}" ${this._offerTypeFilter === action ? 'selected' : ''}>${t('actionCards.type.' + this._typeKey(action))}</option>`
+    ).join('')
+    return `
+      <div class="mb-3">
+        <select id="${this._offerFilterId}" class="form-select form-select-sm u-w-auto">
+          <option value="" ${!this._offerTypeFilter ? 'selected' : ''}>${t('cardMarket.allTypes')}</option>
+          ${options}
+        </select>
+      </div>
+    `
+  }
+
+  /**
+   * Apply the selected card-type filter and re-render the offers list.
+   * @param {Event} event
+   */
+  _onOfferFilterChange (event) {
+    this._offerTypeFilter = event.target.value
+    this.update()
   }
 
   // ---- Actions -----------------------------------------------------------
@@ -505,6 +563,9 @@ export class ActionCardMarket extends UIElement {
     return TYPE_KEYS[action] ?? action
   }
 }
+
+/** Max number of offers shown at once in the "All offers" tab. */
+const ALL_OFFERS_LIMIT = 6
 
 /**
  * Action string → `actionCards.type.<key>` i18n sub-key. Mirrors the map in
