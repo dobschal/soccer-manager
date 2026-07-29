@@ -19,17 +19,24 @@
     aspect-ratio: 1 / 1.1;
 }
 
-/* Lineup strength overlay in top-left corner of pitch */
-.lineup-strength-overlay {
+/* Lineup stats overlay (strength + average age) in top-left corner of pitch */
+.lineup-stats-overlay {
     position: absolute;
     top: 2cqi;
     left: 2cqi;
     z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    pointer-events: none;
+}
+
+.lineup-strength-overlay,
+.lineup-age-overlay {
     font-size: 5cqi;
     font-weight: bold;
     color: rgba(255, 255, 255, 0.85);
     text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
-    pointer-events: none;
 }
 
 /* Player pill — all dimensions relative to container width */
@@ -117,6 +124,102 @@
 .squad .player:hover {
     cursor: pointer;
     background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   Player appearance "boom" — flash + rays radiating in all directions,
+   inserted as the tile's first child so it renders behind the player.
+   ========================================================================== */
+.player-burst {
+    position: absolute;
+    top: -2cqi;
+    left: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Rays are individual thin spokes (built in lineup.js) so each can get a
+   random length. The container is a zero-size anchor at the burst centre. */
+.player-burst__rays {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+}
+
+/* One radiating spoke. `--angle` and `--len` are set inline per ray. Its base
+   sits at the burst centre (transform-origin bottom-centre) and it grows
+   outward via scaleY while fading — bright at the base, transparent at the tip. */
+.player-burst__ray {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0.5cqi;
+    height: var(--len, 8cqi);
+    border-radius: 0.5cqi;
+    background: linear-gradient(
+            to top,
+            rgba(255, 226, 150, 0.5) 0%,
+            rgba(255, 226, 150, 0) 100%
+    );
+    transform-origin: 50% 100%;
+    transform: translate(-50%, -100%) rotate(var(--angle, 0deg)) scaleY(0);
+    animation: player-burst-ray 0.5s ease-out forwards;
+}
+
+/* Central flash of light. */
+.player-burst__core {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 12cqi;
+    height: 12cqi;
+    transform: translate(-50%, -50%) scale(0);
+    border-radius: 50%;
+    background: radial-gradient(
+            circle,
+            rgba(255, 255, 255, 0.95) 0%,
+            rgba(255, 214, 64, 0.85) 40%,
+            rgba(255, 120, 0, 0) 72%
+    );
+    animation: player-burst-core 0.45s ease-out forwards;
+}
+
+@keyframes player-burst-ray {
+    0% {
+        transform: translate(-50%, -100%) rotate(var(--angle, 0deg)) scaleY(0);
+        opacity: 0;
+    }
+    30% {
+        opacity: 0.7;
+    }
+    100% {
+        transform: translate(-50%, -100%) rotate(var(--angle, 0deg)) scaleY(1);
+        opacity: 0;
+    }
+}
+
+@keyframes player-burst-core {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+    60% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.7);
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .player-burst {
+        display: none;
+    }
 }
 
 /* Position-group border colors — match bootstrap text color groups */

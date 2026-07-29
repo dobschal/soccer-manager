@@ -10,7 +10,6 @@ import { WikiPage } from './wiki.js'
 import { SearchPanel } from '../partials/searchPanel.js'
 import { t } from '../i18n/index.js'
 import { el, generateId } from '../lib/html.js'
-import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
 import { showSeasonReviewOverlay, isSeasonReviewDismissed } from '../partials/seasonReviewOverlay.js'
 import { maybeShowSpielTickerOverlay } from '../partials/spielTickerOverlay.js'
@@ -43,8 +42,7 @@ export class DashboardPage extends TabbedPage {
       server.getGamesForSlider(3, 3),
       server.getFriendlyGames(5),
       server.getMyCupGames(5),
-      server.canPlayFriendlyToday(),
-      this._tutorialProgress.load()
+      server.canPlayFriendlyToday()
     ])
     this._canPlayFriendly = canPlayFriendlyResponse.canPlay
 
@@ -128,8 +126,6 @@ export class DashboardPage extends TabbedPage {
   get template () {
     return `
       <div>
-        ${this._tutorialProgress}
-
         <nav class="nav nav-pills">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
           <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
@@ -279,7 +275,6 @@ export class DashboardPage extends TabbedPage {
   _cupGames = []
   _urgencies = []
   _initialSlideIndex = 0
-  _tutorialProgress = new TutorialProgress()
   team = {}
   user = {}
   season = 0
@@ -308,7 +303,7 @@ export class DashboardPage extends TabbedPage {
       ? `#dashboard?chat_user=${this._unreadChatUserId}`
       : '#dashboard?sub_page=friends'
     return `
-      <a href="${target}" class="alert alert-info d-flex align-items-center gap-2 text-decoration-none mt-2 mb-0">
+      <a href="${target}" class="alert alert-info d-flex align-items-center gap-2 text-decoration-none mt-2 mb-0 mb-md-2">
         <i class="fa fa-comment"></i>
         <span>${t('chat.unreadMessages')}</span>
         <span class="badge rounded-pill bg-danger ms-auto">${this._unreadChatCount}</span>

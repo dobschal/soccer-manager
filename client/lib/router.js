@@ -206,6 +206,10 @@ function _animateTransition (container, oldWrapper, newWrapper, direction) {
   // No animation on first load or same wrapper
   if (!oldWrapper || oldWrapper === newWrapper) {
     for (const child of [...container.children]) {
+      // Only toggle page wrappers (each carries a data-page attribute). Layout
+      // chrome injected into #page — e.g. the persistent tutorial progress card
+      // — has no data-page and must stay visible across every page.
+      if (!child.hasAttribute('data-page')) continue
       child.style.display = child === newWrapper ? '' : 'none'
     }
     return

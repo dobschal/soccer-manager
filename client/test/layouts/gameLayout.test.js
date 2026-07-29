@@ -80,6 +80,14 @@ vi.mock('../../partials/balance.js', () => ({
   }
 }))
 
+vi.mock('../../partials/tutorialProgress.js', () => ({
+  TutorialProgress: class {
+    toString () {
+      return '<div data-testid="tutorial-progress"></div>'
+    }
+  }
+}))
+
 describe('GameLayout', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -114,6 +122,12 @@ describe('GameLayout', () => {
       const layout = new GameLayout()
       await layout.load()
       expect(layout.template).toContain('id="page"')
+    })
+
+    it('renders the tutorial progress card inside the page container so it shows on every page', async () => {
+      const layout = new GameLayout()
+      await layout.load()
+      expect(layout.template).toContain('data-testid="tutorial-progress"')
     })
 
     it('template contains settings button', async () => {

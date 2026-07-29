@@ -1,16 +1,17 @@
-import { UIElement } from '../lib/UIElement.js'
-import { toast } from './toast.js'
-import { server } from '../lib/gateway.js'
-import { showOverlay } from './overlay.js'
-import { SelectPlayerOverlay } from './selectPlayerOverlay.js'
-import { renderPlayerImage } from './playerImage.js'
-import { getPositionsOfFormation } from '../util/formation.js'
-import { deepCopy } from '../lib/deepCopy.js'
-import { renderLevelBadge } from './levelBadge.js'
-import { fire } from '../lib/event.js'
-import { t } from '../i18n/index.js'
-import { SERVER_EVENTS } from '../lib/serverEvents.js'
-import { el } from '../lib/html.js'
+import {UIElement} from '../lib/UIElement.js'
+import {toast} from './toast.js'
+import {server} from '../lib/gateway.js'
+import {showOverlay} from './overlay.js'
+import {SelectPlayerOverlay} from './selectPlayerOverlay.js'
+import {renderPlayerImage} from './playerImage.js'
+import {getPositionsOfFormation} from '../util/formation.js'
+import {deepCopy} from '../lib/deepCopy.js'
+import {renderLevelBadge} from './levelBadge.js'
+import {fire} from '../lib/event.js'
+import {t, getLocale} from '../i18n/index.js'
+import {SERVER_EVENTS} from '../lib/serverEvents.js'
+import {el} from '../lib/html.js'
+import {calculatePlayerAge} from '../util/player.js'
 
 // Same-position slot offsets that used to be applied post-mount via
 // _applyPositionHacks. Precomputing at render time lets each SquadPlayer own
@@ -92,10 +93,11 @@ export class SquadPlayer extends UIElement {
             ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
         </span>
         <span class="name">${isSuspended ? '🚫 ' : ''}${isInjured ? '<i class="fa fa-medkit"></i> ' : ''}${displayName}</span>
-        ${renderLevelBadge(player.level, { size: 'lg' })}
+        ${renderLevelBadge(player.level, {size: 'lg'})}
       </div>
     `
   }
+
   /**
    * The captain badge is baked into the player image, so a captain change on
    * this tile has to fully re-render the tile (template + image reload). A
@@ -175,11 +177,15 @@ export class SquadPlayer extends UIElement {
   }
 
   onMounted () {
-    this._loadImage()
+    // Stagger the first reveal so the eleven tiles pop in at slightly
+    // different times instead of all landing on the same frame.
+    this._loadImage(true)
   }
+
   onUpdate () {
-    this._loadImage()
+    this._loadImage(false)
   }
+
   /**
    * @returns {object}
    * @private
@@ -194,17 +200,65 @@ export class SquadPlayer extends UIElement {
     }
   }
 
+  // Tracks which real player id was last painted on this tile, so we only fire
+  // the appearance "boom" when the occupant actually changes — not on in-place
+  // stat refreshes (captain/freshness/level) that re-render the same player.
+  _lastRenderedPlayerId = null
+
   /**
+   * @param {boolean} [stagger] - When true, delay the reveal by a random
+   *   0 / 200 / 400ms so a full lineup doesn't pop in all at once.
    * @private
    */
-  _loadImage () {
+  _loadImage (stagger = false) {
     if (this.player.fake) return
-    renderPlayerImage(this.player, this.team, 100, { isCaptain: this._isCaptain }).then(image => {
-      const el = document.querySelector(this._elementQuery)
-      // The image is prepended to the tile div; onUpdate() replaces the div
-      // wholesale, so we don't have to strip a stale image first.
-      el?.insertAdjacentHTML('afterbegin', image)
+    const appearingPlayerId = this.player.id
+    const isNewAppearance = this._lastRenderedPlayerId !== appearingPlayerId
+    this._lastRenderedPlayerId = appearingPlayerId
+    const delay = stagger ? [0, 200, 400][Math.floor(Math.random() * 3)] : 0
+    renderPlayerImage(this.player, this.team, 100, {isCaptain: this._isCaptain}).then(image => {
+      const reveal = () => {
+        const el = document.querySelector(this._elementQuery)
+        if (!el) return
+        // The image is prepended to the tile div; onUpdate() replaces the div
+        // wholesale, so we don't have to strip a stale image first.
+        el.insertAdjacentHTML('afterbegin', image)
+        if (isNewAppearance) this._playAppearanceBurst(el)
+      }
+      if (delay) {
+        setTimeout(reveal, delay)
+      } else {
+        reveal()
+      }
     })
+  }
+
+  /**
+   * "Boom" — a flash of light plus rays shooting out in all directions behind
+   * a player the first time they land on this tile. The burst is inserted as
+   * the tile's first child so it paints behind the player image and badges,
+   * and removed once the CSS animation has finished to keep the DOM clean.
+   * @param {HTMLElement} el - The tile's `.player` element.
+   * @private
+   */
+  _playAppearanceBurst (el) {
+    const burst = document.createElement('div')
+    burst.className = 'player-burst'
+    // Build the rays individually so each one can get a random length — the
+    // per-ray `--len` is a genuinely dynamic value, the only case where an
+    // inline style is allowed (everything static lives in squad.css).
+    const rayCount = 12
+    const step = 360 / rayCount
+    let rays = ''
+    for (let i = 0; i < rayCount; i++) {
+      // Even spacing with a little jitter, and a random length per ray.
+      const angle = (i * step + (Math.random() * step * 0.5 - step * 0.25)).toFixed(1)
+      const len = (5 + Math.random() * 6).toFixed(1)
+      rays += `<i class="player-burst__ray" style="--angle: ${angle}deg; --len: ${len}cqi;"></i>`
+    }
+    burst.innerHTML = `<span class="player-burst__rays">${rays}</span><span class="player-burst__core"></span>`
+    el.insertBefore(burst, el.firstChild)
+    setTimeout(() => burst.remove(), 700)
   }
 }
 
@@ -212,9 +266,9 @@ export class Lineup extends UIElement {
   /**
    * @param {PlayerType[]} players
    * @param {TeamType} team
-   * @param {UIElement} parentInstance
+   * @param {number} [season] current season, used to compute the average age
    */
-  constructor (players, team) {
+  constructor (players, team, season) {
     super()
     // Drop any fake placeholders that came in with the input. Lineup is often
     // re-rendered after firing 'lineup-exchange' with `this.players`, which
@@ -224,23 +278,38 @@ export class Lineup extends UIElement {
     // claim a slot first and silently kick the real player into the reserves.
     this.players = deepCopy(players).filter(p => !p.fake)
     this.team = team
+    this.season = season
     this._fillEmptyPositions()
+  }
+
+  /**
+   * The season is needed to compute the average-age overlay. A parent may hand
+   * it to the constructor, but that value isn't always ready when the Lineup is
+   * built (the parent's own load() may not have populated it yet). Fetch it here
+   * as a fallback — `getCurrentGameday` is cached by the gateway, so this is
+   * effectively free when the parent already fetched it.
+   * @returns {Promise<void>}
+   */
+  async load () {
+    // `!= null`, not a truthiness check: season 0 is a valid season (a freshly
+    // prepared database starts at season 0), so `if (this.season)` would wrongly
+    // treat it as "not provided" and refetch.
+    if (this.season != null) return
+    const {season} = await server.getCurrentGameday()
+    this.season = season
   }
 
   /**
    * @returns {string}
    */
   get template () {
-    const lineupStrength = this.players
-      .filter(p => p.in_game_position && !p.fake)
-      .reduce((sum, p) => sum + p.level, 0)
     const offsets = this._computeLineupOffsets()
     const ordinals = this._computeSlotOrdinals()
     return `
       <div class="lineup-container">
         <div class="card bg-dark lineup-pitch">
           <div class="squad card-body">
-            <span class="lineup-strength-overlay">${lineupStrength}</span>
+            <div class="lineup-stats-overlay">${this._statsOverlayInner()}</div>
             ${this.players.filter(p => p.in_game_position).map(p =>
     `${new SquadPlayer(p, this.team, offsets.get(p) ?? '', ordinals.get(p) ?? 0)}`
   ).join('')}
@@ -332,6 +401,8 @@ export class Lineup extends UIElement {
           level: 0,
           name: '-'
         })
+        // A player left the lineup — recompute the strength / average-age overlay.
+        this._refreshStatsOverlay()
       },
       [SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]: (data) => {
         if (!data) return
@@ -354,6 +425,9 @@ export class Lineup extends UIElement {
         // object already has its new slot set via the loop above, so we
         // just rebuild fakes to add a placeholder for the emptied slot.
         this._rebuildFakes()
+        // A swap can bring in a player of a different level/age, so the
+        // strength and average-age overlay must be recomputed.
+        this._refreshStatsOverlay()
       },
       // Action-card driven stat change. Each SquadPlayer refreshes its own
       // freshness/level badges off the same event; Lineup only owns the
@@ -364,17 +438,64 @@ export class Lineup extends UIElement {
         const p = this.players.find(x => !x.fake && x.id === data.player.id)
         if (!p) return
         Object.assign(p, data.player)
-        const strengthEl = el(`${this._elementQuery} .lineup-strength-overlay`)
-        if (!strengthEl) return
-        strengthEl.textContent = this.players
-          .filter(x => x.in_game_position && !x.fake)
-          .reduce((sum, x) => sum + x.level, 0)
+        this._refreshStatsOverlay()
       }
     }
   }
 
   onMounted () {
     void this._autoCleanupIfNeeded()
+  }
+
+  /**
+   * Average age of the given starting players (unrounded — the caller formats
+   * it to one decimal place). Returns null when the age can't be computed (no
+   * starters or no season), so the caller can skip the age overlay entirely.
+   * @param {PlayerType[]} starters
+   * @returns {number|null}
+   */
+  _averageAge (starters) {
+    // `this.season == null`, not `!this.season`: season 0 is valid (a freshly
+    // prepared database starts at season 0). A truthiness check would suppress
+    // the age overlay for the whole first season.
+    if (this.season == null || starters.length === 0) return null
+    const total = starters.reduce((sum, p) => sum + calculatePlayerAge(p, this.season), 0)
+    return total / starters.length
+  }
+
+  /**
+   * Inner markup of the stats overlay (lineup strength + average age). Shared
+   * by `template` and `_refreshStatsOverlay` so a swap/bench move can patch the
+   * overlay in place with exactly the same markup the full render produces.
+   * @returns {string}
+   */
+  _statsOverlayInner () {
+    const starters = this.players.filter(p => p.in_game_position && !p.fake)
+    const lineupStrength = starters.reduce((sum, p) => sum + p.level, 0)
+    const avgAge = this._averageAge(starters)
+    // One decimal place, localised separator: "20.0" (en) vs "20,0" (de).
+    const avgAgeLabel = avgAge === null
+      ? null
+      : avgAge.toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    return `
+      <span class="lineup-strength-overlay">💪 ${lineupStrength}</span>
+      ${avgAgeLabel === null ? '' : `<span class="lineup-age-overlay">⏳ ${avgAgeLabel}</span>`}
+    `
+  }
+
+  /**
+   * Recompute strength + average age and patch the stats overlay in place.
+   * Called by the swap / bench / stat-change handlers which reshape the lineup
+   * without a full re-render — otherwise the overlay would keep showing stale
+   * numbers. Bails quietly when the element isn't mounted (event fired while
+   * detached). Rewriting the whole container (rather than each span) also
+   * handles the age overlay appearing/disappearing as starters cross zero.
+   * @returns {void}
+   */
+  _refreshStatsOverlay () {
+    const overlayEl = el(`${this._elementQuery} .lineup-stats-overlay`)
+    if (!overlayEl) return
+    overlayEl.innerHTML = this._statsOverlayInner()
   }
 
   _overlay = null
@@ -542,7 +663,7 @@ export class Lineup extends UIElement {
    *   its ordinal (0..N-1) among same-slot tiles. Ignored for real players.
    * @returns {Promise<void>}
    */
-  async _exchangePlayer(player, newPlayer, fakeSlotIndex = null) {
+  async _exchangePlayer (player, newPlayer, fakeSlotIndex = null) {
     this._overlay?.remove()
     // No-op safety net: user re-picked the current occupant.
     if (!player.fake && player.id === newPlayer.id) {

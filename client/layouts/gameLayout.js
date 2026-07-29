@@ -10,6 +10,7 @@ import { goTo } from '../lib/router.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 import { maybeShowUnverifiedEmailToast } from '../partials/unverifiedEmailToast.js'
 import { discordLinkHtml } from '../lib/discord.js'
+import { TutorialProgress } from '../partials/tutorialProgress.js'
 
 /**
  * @returns {void}
@@ -96,7 +97,7 @@ export class GameLayout extends UIElement {
             </a>
           </div>
         </div>
-        <div class="container mb-sm-5" id="page"></div>
+        <div class="container mb-sm-5" id="page">${this._tutorialProgress}</div>
         <footer class="app-footer">
           <span class="text-muted">FootballManager.IO v${this._version}</span>
           <br>
@@ -182,6 +183,12 @@ export class GameLayout extends UIElement {
   }
 
   _interval = null
+
+  // Tutorial progress card, shown on every game page until the tutorial is
+  // finished (the card renders an empty <div> once all steps are complete).
+  // Lives in the layout — which persists across page navigations — so it stays
+  // visible everywhere, not just on the dashboard.
+  _tutorialProgress = new TutorialProgress()
 
   _nextGameInElementId = generateId()
 

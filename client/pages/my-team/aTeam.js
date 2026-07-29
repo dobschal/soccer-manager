@@ -52,7 +52,7 @@ export class ATeamPage extends UIElement {
       <div>
         <h3>${t('myTeam.lineup')} ${wikiInfoIcon('lineup')}</h3>
         <div class="mb-4" id="squad">
-          ${new Lineup(this.parent.data.players, this.parent.data.team)}
+          ${new Lineup(this.parent.data.players, this.parent.data.team, this.parent.season)}
         </div>
         <div class="mb-4">
           <h3>${t('myTeam.bench')}</h3>

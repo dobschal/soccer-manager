@@ -42,8 +42,10 @@ export class SpyReportCard extends UIElement {
   }
 
   get events () {
+    // Optional: the null-report placeholder (`<div class="d-none">`) has no
+    // collapse button, so the selector legitimately matches nothing then.
     return {
-      [`#${this._collapseBtnId}`]: { click: () => this._toggleCollapse() }
+      [`(optional)#${this._collapseBtnId}`]: { click: () => this._toggleCollapse() }
     }
   }
 

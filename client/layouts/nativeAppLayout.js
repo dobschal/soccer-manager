@@ -8,6 +8,7 @@ import { t } from '../i18n/index.js'
 import { showAccountOverlay } from '../partials/accountOverlay.js'
 import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
 import { maybeShowUnverifiedEmailToast } from '../partials/unverifiedEmailToast.js'
+import { TutorialProgress } from '../partials/tutorialProgress.js'
 
 export class NativeAppLayout extends UIElement {
   async load () {
@@ -50,7 +51,7 @@ export class NativeAppLayout extends UIElement {
             </button>
           </div>
         </div>
-        <div id="page"></div>
+        <div id="page">${this._tutorialProgress}</div>
         <nav class="native-tab-bar">
           ${this._tabItem('dashboard', 'fa-home', t('nav.home'))}
           ${this._tabItem('my-team', 'fa-users', t('nav.team'))}
@@ -102,6 +103,12 @@ export class NativeAppLayout extends UIElement {
   }
 
   _interval = null
+
+  // Tutorial progress card, shown on every game page until the tutorial is
+  // finished (the card renders an empty <div> once all steps are complete).
+  // Lives in the layout — which persists across page navigations — so it stays
+  // visible everywhere, not just on the dashboard.
+  _tutorialProgress = new TutorialProgress()
 
   _nextGameInElementId = generateId()
 

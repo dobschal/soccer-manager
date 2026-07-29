@@ -6,7 +6,8 @@ vi.mock('../../lib/gateway.js', () => ({
     saveLineup: vi.fn().mockResolvedValue({ success: true, captainCleared: false }),
     saveBench: vi.fn().mockResolvedValue({ success: true }),
     swapLineupPlayer: vi.fn().mockResolvedValue({ success: true, captainCleared: false }),
-    getMyTeam: vi.fn().mockResolvedValue({ players: [] })
+    getMyTeam: vi.fn().mockResolvedValue({ players: [] }),
+    getCurrentGameday: vi.fn().mockResolvedValue({ season: 8 })
   }
 }))
 
@@ -40,6 +41,7 @@ import { Lineup, SquadPlayer } from '../../partials/lineup.js'
 import { server } from '../../lib/gateway.js'
 import { fire } from '../../lib/event.js'
 import { SERVER_EVENTS } from '../../lib/serverEvents.js'
+import { setLocale } from '../../i18n/index.js'
 
 describe('Lineup _fillEmptyPositions cleanup', () => {
   beforeEach(() => {
@@ -661,6 +663,40 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       // Fake placeholder now exists for the freed CM slot.
       expect(lineup.players.some(p => p.fake && p.in_game_position === 'CM')).toBe(true)
     })
+
+    it('refreshes the strength + average-age overlay in place after a swap', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      // season 8. Starters 7 (age 21, lvl 50) + 8 (age 19, lvl 40) → avg 20.0, strength 90.
+      // Reserve 9 (age 17, lvl 60) will replace 8 → starters 7 + 9 → avg 19.0, strength 110.
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM', level: 50, carrier_start_season: 3 }),
+        testData.player({ id: 8, position: 'CD', in_game_position: 'CD', level: 40, carrier_start_season: 5 }),
+        testData.player({ id: 9, position: 'CD', in_game_position: '', level: 60, carrier_start_season: 7 })
+      ]
+      const lineup = new Lineup(players, team, 8)
+      const updateSpy = vi.spyOn(lineup, 'update').mockImplementation(() => {})
+
+      const root = document.createElement('div')
+      root.setAttribute('data-render_id', lineup._renderId)
+      root.innerHTML = `<div class="lineup-stats-overlay">${lineup._statsOverlayInner()}</div>`
+      document.body.appendChild(root)
+      expect(root.querySelector('.lineup-age-overlay').textContent).toBe('⏳ 20.0')
+
+      // Swap: reserve 9 into CD, player 8 ejected from the lineup.
+      lineup.serverEvents[SERVER_EVENTS.LINEUP_PLAYER_CHANGED.name]({
+        slots: { CD: testData.player({ id: 9, in_game_position: 'CD' }) },
+        ejectedPlayerId: 8,
+        emptiedSlot: null,
+        freedBenchPosition: null
+      })
+
+      // No full re-render — the overlay is patched in place.
+      expect(updateSpy).not.toHaveBeenCalled()
+      expect(root.querySelector('.lineup-strength-overlay').textContent).toBe('💪 110')
+      expect(root.querySelector('.lineup-age-overlay').textContent).toBe('⏳ 19.0')
+
+      root.remove()
+    })
   })
 
   describe('PLAYER_UPDATED handling (action-card driven stat changes)', () => {
@@ -717,7 +753,7 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
 
       const root = document.createElement('div')
       root.setAttribute('data-render_id', lineup._renderId)
-      root.innerHTML = '<span class="lineup-strength-overlay">90</span>'
+      root.innerHTML = '<div class="lineup-stats-overlay"><span class="lineup-strength-overlay">💪 90</span></div>'
       document.body.appendChild(root)
 
       lineup.serverEvents[SERVER_EVENTS.PLAYER_UPDATED.name]({
@@ -727,9 +763,86 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       // No full re-render — SquadPlayer handles the tile visuals.
       expect(updateSpy).not.toHaveBeenCalled()
       expect(lineup.players.find(p => p.id === 7).level).toBe(51)
-      expect(root.querySelector('.lineup-strength-overlay').textContent).toBe('91')
+      expect(root.querySelector('.lineup-strength-overlay').textContent).toBe('💪 91')
 
       root.remove()
+    })
+
+    it('renders strength and average age overlays with emoji prefixes', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      // season 8: carrier_start_season 3 → age 21, carrier_start_season 5 → age 19, avg 20
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM', level: 50, carrier_start_season: 3 }),
+        testData.player({ id: 8, position: 'CD', in_game_position: 'CD', level: 40, carrier_start_season: 5 })
+      ]
+      const lineup = new Lineup(players, team, 8)
+      const html = lineup.template
+      expect(html).toContain('💪 90')
+      // Average age is always rendered with one decimal place.
+      expect(html).toContain('⏳ 20.0')
+    })
+
+    it('renders the average age with a comma separator when the locale is German', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM', level: 50, carrier_start_season: 3 }),
+        testData.player({ id: 8, position: 'CD', in_game_position: 'CD', level: 40, carrier_start_season: 5 })
+      ]
+      const lineup = new Lineup(players, team, 8)
+      setLocale('de')
+      try {
+        expect(lineup.template).toContain('⏳ 20,0')
+      } finally {
+        setLocale('en')
+      }
+    })
+
+    it('fetches the current season via load() when the parent did not provide one', async () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM', level: 50, carrier_start_season: 3 })
+      ]
+      const lineup = new Lineup(players, team)
+      expect(lineup.season).toBeUndefined()
+      await lineup.load()
+      // Gateway returns season 8 → age = (8 - 3) + 16 = 21
+      expect(server.getCurrentGameday).toHaveBeenCalled()
+      expect(lineup.season).toBe(8)
+      expect(lineup.template).toContain('⏳ 21.0')
+    })
+
+    it('skips the season fetch when the parent already provided one', async () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM', level: 50, carrier_start_season: 3 })
+      ]
+      const lineup = new Lineup(players, team, 8)
+      await lineup.load()
+      expect(server.getCurrentGameday).not.toHaveBeenCalled()
+    })
+
+    it('shows the average age in season 0 (a fresh database starts at season 0)', () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      // season 0: carrier_start_season -5 → age (0 - -5) + 16 = 21
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM', level: 50, carrier_start_season: -5 }),
+        testData.player({ id: 8, position: 'CD', in_game_position: 'CD', level: 40, carrier_start_season: -3 })
+      ]
+      const lineup = new Lineup(players, team, 0)
+      const html = lineup.template
+      // avg of 21 and 19 = 20 — must not be hidden just because season === 0
+      expect(html).toContain('⏳ 20.0')
+    })
+
+    it('keeps a parent-provided season 0 instead of refetching in load()', async () => {
+      const team = testData.team({ formation: '433', captain_id: null })
+      const players = [
+        testData.player({ id: 7, position: 'CM', in_game_position: 'CM', level: 50, carrier_start_season: -5 })
+      ]
+      const lineup = new Lineup(players, team, 0)
+      await lineup.load()
+      expect(server.getCurrentGameday).not.toHaveBeenCalled()
+      expect(lineup.season).toBe(0)
     })
   })
 

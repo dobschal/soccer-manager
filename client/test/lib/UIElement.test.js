@@ -96,6 +96,51 @@ describe('UIElement', () => {
     })
   })
 
+  describe('_applyEventHandlers', () => {
+    afterEach(() => {
+      document.body.innerHTML = ''
+    })
+
+    it('bails quietly when the root element has been detached mid-update', () => {
+      // The node the render_id points to is gone (navigation / parent
+      // re-render). Wiring required selectors must not throw.
+      class Detached extends UIElement {
+        get template () { return '<div class="root"><button class="btn">x</button></div>' }
+        get events () { return { '.btn': { click: () => {} } } }
+      }
+      const el = new Detached()
+      // No node with el._renderId exists in the DOM.
+      expect(() => el._applyEventHandlers()).not.toThrow()
+    })
+
+    it('still throws when a required child selector is missing under an existing root', () => {
+      class Mismatch extends UIElement {
+        get template () { return '<div class="root"></div>' }
+        get events () { return { '.missing': { click: () => {} } } }
+      }
+      const el = new Mismatch()
+      // Skip the mount observer so only our direct call exercises the throw
+      // (otherwise the async _onMounted would rethrow unhandled).
+      el._isMounted = true
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      host.innerHTML = `<div class="root" data-render_id="${el._renderId}"></div>`
+      expect(() => el._applyEventHandlers()).toThrow(/Cannot apply event listener/)
+    })
+
+    it('does not throw for a missing (optional) child selector', () => {
+      class Opt extends UIElement {
+        get template () { return '<div class="root"></div>' }
+        get events () { return { '(optional).missing': { click: () => {} } } }
+      }
+      const el = new Opt()
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      host.innerHTML = `<div class="root" data-render_id="${el._renderId}"></div>`
+      expect(() => el._applyEventHandlers()).not.toThrow()
+    })
+  })
+
   describe('#441 cross-page query-changed', () => {
     afterEach(() => {
       window.location.hash = ''

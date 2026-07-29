@@ -47,6 +47,15 @@ describe('SpyReportCard', () => {
     })
   })
 
+  describe('events', () => {
+    it('marks the collapse button handler optional so the null-report placeholder does not require it', () => {
+      const card = new SpyReportCard()
+      const keys = Object.keys(card.events)
+      expect(keys).toHaveLength(1)
+      expect(keys[0]).toMatch(/^\(optional\)/)
+    })
+  })
+
   describe('load', () => {
     it('stores the report returned by the server', async () => {
       const report = { team: testData.team(), players: [] }

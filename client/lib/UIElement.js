@@ -297,6 +297,13 @@ export class UIElement {
    * @private
    */
   _applyEventHandlers () {
+    // The element can be detached by the time we get here: a parent re-render
+    // or a navigation may have removed our node while update() awaited load(),
+    // and _renderIntoDOM then bailed without inserting new content. With no
+    // root there is nothing to wire up, so bail quietly — matching
+    // _renderIntoDOM. A missing *child* selector under an existing root is a
+    // real template/events mismatch and still throws below.
+    if (!el(this._elementQuery)) return
     // Abort previous event handlers to prevent duplicates
     if (this._eventAbortController) {
       this._eventAbortController.abort()
