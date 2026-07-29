@@ -1,5 +1,6 @@
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
+import { canReceiveActionCard } from './actionCardHelper.js'
 
 const DEFAULT_REFERRAL_BENEFIT = 'BONUS_100K'
 
@@ -88,7 +89,7 @@ export async function awardReferralForVerifiedUser ({ userId }) {
     'SELECT id FROM team WHERE user_id=? LIMIT 1',
     [invitation.inviter_user_id]
   )
-  if (team) {
+  if (team && await canReceiveActionCard(team.id, action)) {
     const { season } = await getGameDayAndSeason()
     await query(
       'INSERT INTO action_card (team_id, action, played, state, season) VALUES (?, ?, 0, ?, ?)',

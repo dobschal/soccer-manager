@@ -130,6 +130,7 @@ describe('linkInviteHelper', () => {
       query
         .mockResolvedValueOnce([{ id: 11, inviter_user_id: 7, reward_action: 'STAR_PLAYER' }])
         .mockResolvedValueOnce([{ id: 99 }]) // inviter team
+        .mockResolvedValueOnce([{ heldCount: 0 }]) // canReceiveActionCard — below limit
         .mockResolvedValueOnce({ insertId: 1 }) // action_card insert
         .mockResolvedValueOnce({ affectedRows: 1 }) // update rewarded_at
 
@@ -146,6 +147,7 @@ describe('linkInviteHelper', () => {
       query
         .mockResolvedValueOnce([{ id: 11, inviter_user_id: 7, reward_action: null }])
         .mockResolvedValueOnce([{ id: 99 }]) // inviter team
+        .mockResolvedValueOnce([{ heldCount: 0 }]) // canReceiveActionCard — below limit
         .mockResolvedValueOnce({ insertId: 1 }) // action_card insert
         .mockResolvedValueOnce({ affectedRows: 1 }) // update rewarded_at
       getReferralBenefit.mockResolvedValueOnce('STAR_PLAYER')

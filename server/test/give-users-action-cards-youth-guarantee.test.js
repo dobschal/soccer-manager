@@ -24,7 +24,8 @@ vi.mock('../helper/actionCardHelper.js', () => ({
   actionCardChances: { FILLER: 1, NEW_YOUTH_PLAYER_1: 0, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0 },
   deleteExpiredPendingCards: vi.fn(),
   NEW_YOUTH_PLAYER_ACTIONS: new Set(['NEW_YOUTH_PLAYER_1', 'NEW_YOUTH_PLAYER_2', 'NEW_YOUTH_PLAYER_3']),
-  MAX_YOUTH_CARDS_PER_SEASON: 3
+  MAX_YOUTH_CARDS_PER_SEASON: 3,
+  MAX_ACTION_CARDS_PER_TYPE: 10
 }))
 vi.mock('../helper/financeHelper.js', () => ({ updateTeamBalance: vi.fn() }))
 vi.mock('../helper/sponsorHelper.js', () => ({ getSponsor: vi.fn() }))
@@ -75,7 +76,7 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
    * @param {number[]} [opts.teamIdsWithYouthCardThisSeason] team ids that already received exactly one NEW_YOUTH_PLAYER card this season
    * @param {Object<number, number>} [opts.youthCardCounts] explicit per-team count of youth cards already received this season (overrides the array form)
    */
-  function setupMocks ({ teams, teamIdsWithYouth, teamIdsWithYouthCardThisSeason = [], youthCardCounts }) {
+  function setupMocks ({ teams, teamIdsWithYouth, teamIdsWithYouthCardThisSeason = [], youthCardCounts, heldCounts = [] }) {
     // Normalise both input shapes into a single teamId -> count map.
     const counts = youthCardCounts
       ? new Map(Object.entries(youthCardCounts).map(([id, cnt]) => [Number(id), cnt]))
@@ -89,6 +90,11 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
       }
       if (sql.startsWith('SELECT team_id, COUNT(*) AS cnt FROM action_card WHERE action IN')) {
         return [...counts.entries()].map(([team_id, cnt]) => ({ team_id, cnt }))
+      }
+      // Held-or-pending counts per (team, action) used to skip cards that would
+      // exceed MAX_ACTION_CARDS_PER_TYPE. Tests pass rows explicitly.
+      if (sql.startsWith('SELECT team_id, action, COUNT(*) AS cnt FROM action_card WHERE played=0')) {
+        return heldCounts
       }
       if (sql.startsWith('INSERT INTO action_card')) {
         inserts.push({ sql, params, value: params })
@@ -107,10 +113,11 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
     getAllTrainingAreaLevels.mockResolvedValue(new Map())
     getAllFitnessStudioLevels.mockResolvedValue(new Map())
     getAllYouthAcademyLevels.mockResolvedValue(new Map())
-    // Reset the youth chances mutated by the per-season cap tests.
+    // Reset the chances mutated by the per-season cap / hold-limit tests.
     actionCardChances.NEW_YOUTH_PLAYER_1 = 0
     actionCardChances.NEW_YOUTH_PLAYER_2 = 0
     actionCardChances.NEW_YOUTH_PLAYER_3 = 0
+    actionCardChances.FILLER = 1
   })
 
   it('guarantees a NEW_YOUTH_PLAYER_1 card for a team with no youth player and no youth card this season', async () => {
@@ -281,6 +288,50 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
       const youthInserts = inserts.filter(i => YOUTH_ACTIONS.has(i.value.action))
       expect(youthInserts).toHaveLength(1)
       expect(youthInserts[0].value.season).toBe(SEASON)
+    })
+  })
+
+  describe('per-type hold limit (MAX_ACTION_CARDS_PER_TYPE = 10)', () => {
+    it('does not deal a card of a type the team already holds the max of', async () => {
+      // Team owns a youth player → no guarantee, so the FILLER card (chance 1)
+      // is the day's card. It is already at the hold limit, so nothing is dealt
+      // (rather than creating a card that would hang on `pending`).
+      const inserts = setupMocks({
+        teams: [{ id: 1 }],
+        teamIdsWithYouth: [1],
+        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 10 }]
+      })
+
+      await _giveUsersActionCards()
+
+      expect(inserts.filter(i => i.value.action === 'FILLER')).toHaveLength(0)
+    })
+
+    it('still deals a card when the team is below the per-type limit', async () => {
+      const inserts = setupMocks({
+        teams: [{ id: 1 }],
+        teamIdsWithYouth: [1],
+        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 9 }]
+      })
+
+      await _giveUsersActionCards()
+
+      expect(inserts.filter(i => i.value.action === 'FILLER')).toHaveLength(1)
+    })
+
+    it('counts cards dealt earlier in the same run so a single day cannot exceed the limit', async () => {
+      // 9 already held + FILLER chance 3 this day would be 12; only 1 may be dealt.
+      actionCardChances.FILLER = 3
+      const inserts = setupMocks({
+        teams: [{ id: 1 }],
+        teamIdsWithYouth: [1],
+        heldCounts: [{ team_id: 1, action: 'FILLER', cnt: 9 }]
+      })
+
+      await _giveUsersActionCards()
+
+      expect(inserts.filter(i => i.value.action === 'FILLER')).toHaveLength(1)
+      actionCardChances.FILLER = 1
     })
   })
 })

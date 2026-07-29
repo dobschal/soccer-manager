@@ -1,6 +1,7 @@
 import { query } from '../lib/database.js'
 import { getReferralBenefit } from './referralHelper.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
+import { canReceiveActionCard } from './actionCardHelper.js'
 
 // How long a recorded link click stays valid for matching against a later
 // registration from the same IP. Keeps stale invites from latching onto an
@@ -89,7 +90,7 @@ export async function awardLinkInviteForVerifiedUser ({ userId }) {
     'SELECT id FROM team WHERE user_id=? LIMIT 1',
     [invite.inviter_user_id]
   )
-  if (team) {
+  if (team && await canReceiveActionCard(team.id, action)) {
     const { season } = await getGameDayAndSeason()
     await query(
       'INSERT INTO action_card (team_id, action, played, state, season) VALUES (?, ?, 0, ?, ?)',

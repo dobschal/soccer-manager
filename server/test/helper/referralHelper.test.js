@@ -142,6 +142,7 @@ describe('referralHelper', () => {
       query
         .mockResolvedValueOnce([{ id: 11, inviter_user_id: 7, reward_action: 'STAR_PLAYER' }])
         .mockResolvedValueOnce([{ id: 99 }]) // inviter team
+        .mockResolvedValueOnce([{ heldCount: 0 }]) // canReceiveActionCard — below limit
         .mockResolvedValueOnce({ insertId: 1 }) // action_card insert
         .mockResolvedValueOnce({ affectedRows: 1 }) // update invitation rewarded_at
 
@@ -163,6 +164,7 @@ describe('referralHelper', () => {
         .mockResolvedValueOnce([{ id: 11, inviter_user_id: 7, reward_action: null }])
         .mockResolvedValueOnce([{ setting_value: 'STAR_PLAYER' }]) // getReferralBenefit
         .mockResolvedValueOnce([{ id: 99 }]) // inviter team
+        .mockResolvedValueOnce([{ heldCount: 0 }]) // canReceiveActionCard — below limit
         .mockResolvedValueOnce({ insertId: 1 }) // action_card insert
         .mockResolvedValueOnce({ affectedRows: 1 }) // update invitation rewarded_at
 

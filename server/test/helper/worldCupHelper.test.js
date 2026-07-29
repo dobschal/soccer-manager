@@ -96,6 +96,7 @@ describe('worldCupHelper', () => {
         .mockResolvedValueOnce([{ points: 3 }])
         .mockResolvedValueOnce([{ amount: 0 }])
         .mockResolvedValueOnce({})                  // INSERT IGNORE INTO reward_claim
+        .mockResolvedValueOnce([{ heldCount: 0 }])  // canReceiveActionCard — below limit
         .mockResolvedValueOnce({})                  // INSERT action_card
       const result = await awardWorldCupRewards(1, 99)
       expect(result.newCards).toBe(1)

@@ -51,8 +51,9 @@ describe('miniGame routes', () => {
       hasReceivedMiniGameRewardThisGameDay.mockResolvedValue(false)
       rollMiniGameReward.mockReturnValue('FRESHNESS_5')
 
-      // INSERT score, INSERT card, UPDATE score with card id, rank query, best query
+      // INSERT score, held-count check, INSERT card, UPDATE score with card id, rank query, best query
       query.mockResolvedValueOnce({ insertId: 11 })       // insert score
+      query.mockResolvedValueOnce([{ heldCount: 0 }])     // canReceiveActionCard — below limit
       query.mockResolvedValueOnce({ insertId: 77 })       // insert action_card
       query.mockResolvedValueOnce({ affectedRows: 1 })    // update mini_game_score with card id
       query.mockResolvedValueOnce([{ leaderboard_rank: 3 }]) // rank

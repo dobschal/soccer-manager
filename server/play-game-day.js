@@ -5,7 +5,7 @@ import { updateTeamBalance } from './helper/financeHelper.js'
 import { getSalary } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
-import { actionCardChances, deleteExpiredPendingCards, NEW_YOUTH_PLAYER_ACTIONS, MAX_YOUTH_CARDS_PER_SEASON } from './helper/actionCardHelper.js'
+import { actionCardChances, deleteExpiredPendingCards, NEW_YOUTH_PLAYER_ACTIONS, MAX_YOUTH_CARDS_PER_SEASON, MAX_ACTION_CARDS_PER_TYPE } from './helper/actionCardHelper.js'
 import { generateMatchDayRecapsForGameDay } from './helper/matchDayRecapHelper.js'
 import { completeStadiumConstructions, calculateHomeAttendanceBonus } from './helper/stadiumHelper.js'
 import {
@@ -660,6 +660,15 @@ export async function _giveUsersActionCards () {
       [season]
     )).map(r => [r.team_id, Number(r.cnt)])
   )
+  // How many held-or-pending (played=0) cards each team already has per action
+  // type. A type can only be claimed up to MAX_ACTION_CARDS_PER_TYPE, so dealing
+  // a card past that limit would leave it stuck as `pending` forever and trap
+  // the user on the dashboard claim overlay — we skip such cards below instead.
+  // Keyed `${team_id}:${action}` and incremented as we deal within this run.
+  const heldCountByTeamAction = new Map()
+  ;(await query(
+    "SELECT team_id, action, COUNT(*) AS cnt FROM action_card WHERE played=0 AND state IN ('received','pending') GROUP BY team_id, action"
+  )).forEach(r => heldCountByTeamAction.set(`${r.team_id}:${r.action}`, Number(r.cnt)))
   const promises = []
   for (const team of teams) {
     const trainingLevel = trainingAreaLevels.get(team.id) ?? 1
@@ -729,6 +738,11 @@ export async function _giveUsersActionCards () {
       }
     }
     for (const actionCard of actionCards) {
+      const key = `${team.id}:${actionCard.action}`
+      const held = heldCountByTeamAction.get(key) ?? 0
+      // Skip cards that couldn't be claimed anyway — they'd hang on `pending`.
+      if (held >= MAX_ACTION_CARDS_PER_TYPE) continue
+      heldCountByTeamAction.set(key, held + 1)
       promises.push(query('INSERT INTO action_card SET ?', actionCard))
     }
   }

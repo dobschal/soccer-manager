@@ -60,7 +60,7 @@ import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { createYouthPlayer } from '../../helper/youthPlayerHelper.js'
 import { sendToUser } from '../../lib/websocket.js'
 import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
-import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, deleteExpiredPendingCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../../helper/actionCardHelper.js'
+import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, canReceiveActionCard, deleteExpiredPendingCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../../helper/actionCardHelper.js'
 
 describe('actionCardHelper', () => {
   beforeEach(() => {
@@ -795,6 +795,35 @@ describe('actionCardHelper', () => {
         "UPDATE action_card SET state='received' WHERE id=?",
         [10]
       )
+    })
+  })
+
+  describe('canReceiveActionCard', () => {
+    it('returns true when the team holds fewer than the per-type limit', async () => {
+      query.mockResolvedValue([{ heldCount: 9 }])
+
+      const result = await canReceiveActionCard(5, 'FRESHNESS_10')
+
+      expect(result).toBe(true)
+      expect(query).toHaveBeenCalledWith(
+        "SELECT COUNT(*) AS heldCount FROM action_card WHERE team_id=? AND action=? AND played=0 AND state IN ('received','pending')",
+        [5, 'FRESHNESS_10']
+      )
+    })
+
+    it('returns false when the team is already at the per-type limit', async () => {
+      query.mockResolvedValue([{ heldCount: 10 }])
+
+      const result = await canReceiveActionCard(5, 'LEVEL_UP_PLAYER_40')
+
+      expect(result).toBe(false)
+    })
+
+    it('counts pending cards toward the limit so a backlog stops further dealing', async () => {
+      // 6 received + 4 pending = 10 held → at the limit.
+      query.mockResolvedValue([{ heldCount: 10 }])
+
+      expect(await canReceiveActionCard(5, 'FRESHNESS_10')).toBe(false)
     })
   })
 

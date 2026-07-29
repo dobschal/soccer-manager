@@ -7,6 +7,7 @@ import {
   hasReceivedMiniGameRewardThisGameDay
 } from '../helper/miniGameHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { canReceiveActionCard } from '../helper/actionCardHelper.js'
 import { t } from '../i18n/index.js'
 
 function leaderboardSql (todayOnly) {
@@ -59,7 +60,9 @@ export default {
       gameDayRewardUsed = true
     } else {
       const action = rollMiniGameReward(goalsScored)
-      if (action) {
+      // Don't hand out a card the team already holds the max of — it could
+      // never be claimed and would hang on `pending` on the dashboard.
+      if (action && await canReceiveActionCard(team.id, action)) {
         const cardResult = await query(
           'INSERT INTO action_card SET ?',
           { team_id: team.id, action, played: 0, state: 'pending', season }

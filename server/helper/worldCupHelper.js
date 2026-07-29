@@ -1,5 +1,5 @@
 import { query } from '../lib/database.js'
-import { actionCardChances } from './actionCardHelper.js'
+import { actionCardChances, canReceiveActionCard } from './actionCardHelper.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 
 /**
@@ -114,10 +114,14 @@ export async function awardWorldCupRewards (userId, teamId) {
       [userId, threshold]
     )
     const action = rollWorldCupReward()
-    await query(
-      'INSERT INTO action_card SET ?',
-      { team_id: teamId, action, played: 0, state: 'pending', season }
-    )
+    // Skip a card the team already holds the max of — it could never be
+    // claimed and would hang on `pending` on the dashboard.
+    if (await canReceiveActionCard(teamId, action)) {
+      await query(
+        'INSERT INTO action_card SET ?',
+        { team_id: teamId, action, played: 0, state: 'pending', season }
+      )
+    }
   }
   return { newCards: newCardCount, totalPoints: points, claimed: claimed + newCardCount }
 }
@@ -193,10 +197,12 @@ export async function awardStarPlayersToTopThree () {
   const recipients = []
   for (let i = 0; i < top.length; i++) {
     const row = top[i]
-    await query(
-      'INSERT INTO action_card SET ?',
-      { team_id: row.team_id, action: 'STAR_PLAYER', played: 0, state: 'pending', season }
-    )
+    if (await canReceiveActionCard(row.team_id, 'STAR_PLAYER')) {
+      await query(
+        'INSERT INTO action_card SET ?',
+        { team_id: row.team_id, action: 'STAR_PLAYER', played: 0, state: 'pending', season }
+      )
+    }
     recipients.push({ userId: Number(row.user_id), teamId: Number(row.team_id), rank: i + 1 })
   }
   return { recipients }

@@ -155,6 +155,32 @@ export async function getPendingActionCards (team) {
 export const MAX_ACTION_CARDS_PER_TYPE = 10
 
 /**
+ * Whether a team may still be handed another action card of `action`.
+ *
+ * A card can only be *claimed* while the team holds fewer than
+ * MAX_ACTION_CARDS_PER_TYPE received cards of that type (see claimActionCard).
+ * Handing out a card that would push the held-or-pending total past that limit
+ * produces a card that can never be claimed — it stays `pending` forever and
+ * traps the user on the dashboard claim overlay. Distribution sites must check
+ * this first and simply not deal the card when it returns false.
+ *
+ * Counts both `received` (claimed, unplayed) and `pending` (dealt, unclaimed)
+ * cards so a backlog of unclaimed pending cards of a type also stops further
+ * dealing of that type.
+ *
+ * @param {number} teamId
+ * @param {string} action
+ * @returns {Promise<boolean>}
+ */
+export async function canReceiveActionCard (teamId, action) {
+  const [{ heldCount }] = await query(
+    "SELECT COUNT(*) AS heldCount FROM action_card WHERE team_id=? AND action=? AND played=0 AND state IN ('received','pending')",
+    [teamId, action]
+  )
+  return heldCount < MAX_ACTION_CARDS_PER_TYPE
+}
+
+/**
  * @param {number} cardId
  * @param {number} teamId
  * @param {string} [locale]
