@@ -144,12 +144,20 @@ export class SquadPlayer extends UIElement {
           const isMe = this.player.fake
             ? replacement.previousFakeSlotIndex === this.slotOrdinal
             : replacement.previousPlayerId === this.player.id
-          if (!isMe) return
-          if (!this.player.fake && this.player.id === newOccupant.id) return
-          this.player = newOccupant
-          this._isCaptain = !newOccupant.fake && newOccupant.id === this.team.captain_id
-          this.update()
-          return
+          if (isMe) {
+            if (!this.player.fake && this.player.id === newOccupant.id) return
+            this.player = newOccupant
+            this._isCaptain = !newOccupant.fake && newOccupant.id === this.team.captain_id
+            this.update()
+            return
+          }
+          // Not the tile that received the picked player — but I might be the
+          // source tile they vacated. When both source and destination share
+          // the same slot (e.g. moving a player between two CM tiles), the
+          // event carries `replacements[slot]` AND `emptiedSlot === slot`, so
+          // we must NOT bail here: fall through to the emptied/ejected check
+          // below, otherwise the moved player stays painted on my tile too
+          // (duplicate on the pitch).
         }
         // No new occupant for me. Two remaining reasons to turn into a fake:
         // my player was ejected from the lineup, or the swap emptied my slot
