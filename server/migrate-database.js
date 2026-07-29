@@ -2583,6 +2583,14 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'chat_message: convert to utf8mb4 (emoji support)',
+  async run () {
+    // The table was created with 3-byte utf8mb3, so 4-byte characters (most
+    // emoji) can't be stored — inserting one throws "Incorrect string value"
+    // and the whole message fails to send. Convert to utf8mb4 so emoji work.
+    await query('ALTER TABLE chat_message CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')
+  }
 }]
 
 /**

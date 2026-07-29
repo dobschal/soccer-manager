@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createMockRequest } from '../setup.js'
 
+vi.mock('fs', () => ({
+  default: { mkdirSync: vi.fn(), writeFileSync: vi.fn() },
+  mkdirSync: vi.fn(),
+  writeFileSync: vi.fn()
+}))
 vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
@@ -59,6 +64,38 @@ describe('chat route', () => {
     it('rejects messaging yourself', async () => {
       const req = createMockRequest({ user: { id: 1, username: 'Alice' } })
       await expect(chat.sendChatMessage(1, 'hi', null, req)).rejects.toThrow()
+    })
+
+    it('rejects an image larger than the 8MB limit', async () => {
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT id, username FROM user')) return [{ id: 2, username: 'Bob' }]
+        return {}
+      })
+      const req = createMockRequest({ user: { id: 1, username: 'Alice' } })
+      // 9MB of raw bytes → base64 data URL, over the 8MB cap.
+      const bigBase64 = Buffer.alloc(9 * 1024 * 1024).toString('base64')
+      const image = { type: 'image/png', data: `data:image/png;base64,${bigBase64}` }
+
+      await expect(chat.sendChatMessage(2, '', image, req)).rejects.toThrow('Image too large')
+      expect(sendToUser).not.toHaveBeenCalled()
+    })
+
+    it('accepts an image up to the 8MB limit', async () => {
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT id, username FROM user')) return [{ id: 2, username: 'Bob' }]
+        if (sql.includes('INSERT INTO chat_message')) return { insertId: 501 }
+        if (sql.includes('SELECT * FROM chat_message WHERE id=?')) return [{ id: 501, from_user_id: 1, to_user_id: 2, image: 'x.png' }]
+        return {}
+      })
+      const req = createMockRequest({ user: { id: 1, username: 'Alice' } })
+      // 5MB of raw bytes — previously over the old 2MB cap, now allowed.
+      const base64 = Buffer.alloc(5 * 1024 * 1024).toString('base64')
+      const image = { type: 'image/png', data: `data:image/png;base64,${base64}` }
+
+      const result = await chat.sendChatMessage(2, '', image, req)
+
+      expect(result.success).toBe(true)
+      expect(sendToUser).toHaveBeenCalled()
     })
   })
 

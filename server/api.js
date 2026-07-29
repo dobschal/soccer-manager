@@ -47,7 +47,8 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use(bodyParser.json({ limit: '10mb' }))
+// 20mb accommodates chat image uploads (up to 8MB raw ≈ 11MB base64-encoded).
+app.use(bodyParser.json({ limit: '20mb' }))
 
 // Hide the sandbox/test deployment from search engines: replace the static
 // robots.txt with a "disallow everything" body and 404 the sitemap so Google

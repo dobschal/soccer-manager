@@ -10,7 +10,7 @@ import { sendPushNotifications } from '../lib/pushNotification.js'
 
 const UPLOAD_DIR = 'uploads/chat'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-const MAX_IMAGE_SIZE = 2 * 1024 * 1024 // 2MB
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024 // 8MB
 const MAX_TEXT = 2000
 
 /**

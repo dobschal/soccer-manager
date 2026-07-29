@@ -50,6 +50,29 @@
     max-height: 220px;
     border-radius: 8px;
     display: block;
+    cursor: pointer;
+}
+
+/* Full-screen lightbox for tapping a chat image (mirrors the forum/wiki overlay). */
+.chat-image-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    cursor: pointer;
+}
+
+.chat-image-overlay img {
+    max-width: 92vw;
+    max-height: 88vh;
+    object-fit: contain;
+    border-radius: 6px;
 }
 
 .chat-message-text + .chat-message-image,

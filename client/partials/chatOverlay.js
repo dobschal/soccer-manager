@@ -80,8 +80,29 @@ class ChatController {
 
   _teardown () {
     offServerEvent(SERVER_EVENTS.NEW_CHAT_MESSAGE.name, this._onNewMessage)
+    this._closeImageLightbox()
     setQueryParams({ chat_user: null })
     _openOverlay = null
+  }
+
+  /**
+   * Open a chat image full-screen in a lightbox overlay. Click anywhere (or the
+   * close button) to dismiss. Mirrors the forum/wiki image overlay pattern.
+   * @param {string} src
+   */
+  _openImageLightbox (src) {
+    this._closeImageLightbox()
+    const overlay = document.createElement('div')
+    overlay.className = 'chat-image-overlay'
+    overlay.innerHTML = `<img src="${src}" alt="">`
+    overlay.addEventListener('click', () => this._closeImageLightbox())
+    document.body.appendChild(overlay)
+    this._imageLightbox = overlay
+  }
+
+  _closeImageLightbox () {
+    this._imageLightbox?.remove()
+    this._imageLightbox = null
   }
 
   /**
@@ -161,6 +182,13 @@ class ChatController {
     const messagesEl = el('#' + messagesId)
     if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight
 
+    // Open chat images in a full-screen lightbox instead of a hard link.
+    // Delegated so it also covers messages appended live after this render.
+    messagesEl?.addEventListener('click', (e) => {
+      const img = e.target.closest?.('.chat-message-image')
+      if (img) this._openImageLightbox(img.src)
+    })
+
     el('#' + selectId)?.addEventListener('change', (e) => {
       void this.switchTo(Number(e.target.value))
     })
@@ -186,7 +214,7 @@ class ChatController {
     return this._messages.map(m => {
       const mine = m.from_user_id !== partnerId
       const imageHtml = m.image
-        ? `<a href="${chatImageSrc(m.image)}" target="_blank"><img class="chat-message-image" src="${chatImageSrc(m.image)}" alt=""></a>`
+        ? `<img class="chat-message-image" src="${chatImageSrc(m.image)}" alt="">`
         : ''
       const textHtml = m.text ? `<div class="chat-message-text">${_escape(m.text)}</div>` : ''
       return `
@@ -247,7 +275,7 @@ class ChatController {
     const partnerId = this._partner?.id
     const mine = message.from_user_id !== partnerId
     const imageHtml = message.image
-      ? `<a href="${chatImageSrc(message.image)}" target="_blank"><img class="chat-message-image" src="${chatImageSrc(message.image)}" alt=""></a>`
+      ? `<img class="chat-message-image" src="${chatImageSrc(message.image)}" alt="">`
       : ''
     const textHtml = message.text ? `<div class="chat-message-text">${_escape(message.text)}</div>` : ''
     messagesEl.insertAdjacentHTML('beforeend', `
