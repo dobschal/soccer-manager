@@ -181,6 +181,29 @@ export default {
   },
 
   /**
+   * The most recent team the requesting user spied on with a SPY action card,
+   * together with its current tactics and lineup. Powers the collapsable
+   * "last scout report" card on #my-team. Returns `{ report: null }` when the
+   * user has never spied on anyone (or the spied team no longer exists).
+   * @param {Request} req
+   * @returns {Promise<{report: {team: TeamType, players: Array<PlayerType>, spiedAt: string}|null}>}
+   */
+  async getLastSpyReport (req) {
+    const myTeam = await getTeam(req)
+    if (!myTeam?.last_spied_team_id) return { report: null }
+    const team = await getTeamById(myTeam.last_spied_team_id)
+    if (!team) return { report: null }
+    const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
+    return {
+      report: {
+        team,
+        players,
+        spiedAt: myTeam.last_spied_at
+      }
+    }
+  },
+
+  /**
    * @param {number} teamId
    * @returns {Promise<{value: number}>}
    */

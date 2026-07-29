@@ -6,8 +6,8 @@ const MAX_TITLE = 255
 const MAX_SUBTITLE = 255
 
 describe('wiki seed content (#441)', () => {
-  it('covers all 25 requested topics in both locales', () => {
-    expect(WIKI_SEED).toHaveLength(25)
+  it('covers all requested topics in both locales', () => {
+    expect(WIKI_SEED).toHaveLength(27)
   })
 
   it('every topic has a unique, kebab-case page key (#456)', () => {

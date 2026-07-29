@@ -6,7 +6,9 @@ vi.mock('../../lib/gateway.js', () => ({
     getActionCards: vi.fn(),
     getMyTeam: vi.fn(),
     useActionCard: vi.fn(),
-    mergeCards: vi.fn()
+    mergeCards: vi.fn(),
+    getActionCardMarket: vi.fn(() => Promise.resolve({ offers: [], myOffers: [], myBids: [], myCards: [] })),
+    getActionCardTradeHistory: vi.fn(() => Promise.resolve({ trades: [] }))
   }
 }))
 

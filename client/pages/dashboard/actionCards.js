@@ -1,20 +1,21 @@
-import { UIElement } from '../../lib/UIElement.js'
-import { server } from '../../lib/gateway.js'
-import { showOverlay } from '../../partials/overlay.js'
-import { showDialog } from '../../partials/dialog.js'
-import { PlayerList } from '../../partials/playerList.js'
-import { toast } from '../../partials/toast.js'
-import { delay } from '../../lib/delay.js'
-import { t } from '../../i18n/index.js'
-import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
-import { MiniGame } from './miniGame.js'
-import { preloadAllActionCardSvgs, renderActionCardSvg } from '../../lib/actionCardSvg.js'
-import { renderPlayerImage } from '../../partials/playerImage.js'
-import { renderPositionBadge } from '../../partials/positionBadge.js'
-import { generateId, el } from '../../lib/html.js'
-import { onClick } from '../../lib/htmlEventHandlers.js'
-import { SERVER_EVENTS } from '../../lib/serverEvents.js'
-import { showSpyOverlay } from '../../partials/spyOverlay.js'
+import {UIElement} from '../../lib/UIElement.js'
+import {server} from '../../lib/gateway.js'
+import {showOverlay} from '../../partials/overlay.js'
+import {showDialog} from '../../partials/dialog.js'
+import {PlayerList} from '../../partials/playerList.js'
+import {toast} from '../../partials/toast.js'
+import {delay} from '../../lib/delay.js'
+import {t} from '../../i18n/index.js'
+import {wikiInfoIcon} from '../../partials/wikiInfoIcon.js'
+import {MiniGame} from './miniGame.js'
+import {ActionCardMarket} from '../../partials/actionCardMarket.js'
+import {preloadAllActionCardSvgs, renderActionCardSvg} from '../../lib/actionCardSvg.js'
+import {renderPlayerImage} from '../../partials/playerImage.js'
+import {renderPositionBadge} from '../../partials/positionBadge.js'
+import {el, generateId} from '../../lib/html.js'
+import {onClick} from '../../lib/htmlEventHandlers.js'
+import {SERVER_EVENTS} from '../../lib/serverEvents.js'
+import {showSpyOverlay} from '../../partials/spyOverlay.js'
 
 const MERGEABLE_ACTIONS = new Set(['LEVEL_UP_PLAYER_40', 'LEVEL_UP_PLAYER_70'])
 
@@ -116,16 +117,12 @@ export class ActionCards extends UIElement {
   get template () {
     return `
       <div class="mb-5">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <h3 class="mb-0">${t('actionCards.title')} ${wikiInfoIcon('action-cards')}</h3>
-          <a class="btn btn-outline-info btn-sm" href="#dashboard?sub_page=card_market">
-            <i class="fa fa-exchange me-1"></i> ${t('cardMarket.title')}
-          </a>
-        </div>
-        <p class="u-max-w-620">${t('actionCards.subtitle')} <span class="text-muted">${t('actionCards.limitHint', { max: MAX_ACTION_CARDS_PER_TYPE })}</span></p>
+        <h3 class="mb-0">${t('actionCards.title')} ${wikiInfoIcon('action-cards')}</h3>
+        <p class="u-max-w-620">${t('actionCards.subtitle')} <span class="text-dark" style="text-shadow: 0px 0px 1px black;">${t('actionCards.limitHint', {max: MAX_ACTION_CARDS_PER_TYPE})}</span></p>
         <div class="mb-4 action-cards-container">
-          <div class="row g-4 action-cards-scroll">${this._renderGroupedCards()}</div>
+          <div class="action-cards-scroll">${this._renderGroupedCards()}</div>
         </div>
+        ${this._cardMarket}
         ${this._miniGame}
       </div>
     `
@@ -191,6 +188,7 @@ export class ActionCards extends UIElement {
     }
   }
 
+  _cardMarket = new ActionCardMarket()
   _miniGame = new MiniGame()
 
   _overlay = null
@@ -219,13 +217,16 @@ export class ActionCards extends UIElement {
 
     const sortedTypes = Object.keys(grouped).sort()
 
+    const texts = getActionCardTexts()
+
     return sortedTypes.map(actionType => {
       const cards = grouped[actionType]
       const canMerge = MERGEABLE_ACTIONS.has(actionType) && cards.length > 1
       const firstCardIdx = cards[0].idx
+      const title = texts[actionType]?.title ?? ''
 
       return `
-        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+        <div class="action-card-item">
           <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
             ${cards.map((_, i) => `
               <div class="action-card-wrapper" style="--stack-index: ${i};">
@@ -235,6 +236,7 @@ export class ActionCards extends UIElement {
             ${canMerge ? `<span class="action-card-merge-badge">${t('actionCards.mergeable')}</span>` : ''}
             ${countBadgeHtml(cards.length)}
           </div>
+          <div class="text-center small mt-2">${title}</div>
         </div>
       `
     }).join('')
@@ -299,10 +301,13 @@ export class ActionCards extends UIElement {
     const remainingOfType = this.cards.filter(c => c.action === actionType).length
 
     if (remainingOfType === 0) {
-      // Bootstrap's grid handles reflow on its own once the column is gone.
-      const colWrapper = stackEl.closest('.col-6, .col-sm-4, .col-md-4, .col-lg-3, .col-xl-2')
-      if (colWrapper) colWrapper.remove()
-      else stackEl.remove()
+      // Remove the whole scroll item so the flex row reflows on its own.
+      const itemWrapper = stackEl.closest('.action-card-item')
+      if (itemWrapper) {
+        itemWrapper.remove()
+      } else {
+        stackEl.remove()
+      }
     } else {
       // Drop the faded wrapper and patch just this stack: count badge, merge
       // badge, and `data-action-card` on every stack (the splice shifted
@@ -354,9 +359,12 @@ export class ActionCards extends UIElement {
     const remainingOfType = this.cards.filter(c => c.action === actionType).length
 
     if (remainingOfType === 0) {
-      const colWrapper = stackEl.closest('.col-6, .col-sm-4, .col-md-4, .col-lg-3, .col-xl-2')
-      if (colWrapper) colWrapper.remove()
-      else stackEl.remove()
+      const itemWrapper = stackEl.closest('.action-card-item')
+      if (itemWrapper) {
+        itemWrapper.remove()
+      } else {
+        stackEl.remove()
+      }
     } else {
       wrapperA?.remove()
       wrapperB?.remove()
@@ -406,11 +414,13 @@ export class ActionCards extends UIElement {
       existingStack.dataset.actionCard = firstCardIdx
       existingStack.innerHTML = wrappersHtml + mergeBadge + countBadge
     } else {
+      const title = getActionCardTexts()[actionType]?.title ?? ''
       const newStackHtml = `
-        <div class="col-6 col-sm-4 col-lg-3 col-xl-2">
+        <div class="action-card-item">
           <div class="action-card-stack" data-action-card="${firstCardIdx}" data-action-type="${actionType}" data-can-merge="${canMerge}">
             ${wrappersHtml}${mergeBadge}${countBadge}
           </div>
+          <div class="text-center small mt-2">${title}</div>
         </div>
       `
       container.insertAdjacentHTML('beforeend', newStackHtml)
@@ -566,7 +576,7 @@ export class ActionCards extends UIElement {
       try {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
-        toast(t('actionCards.fitnessBoost', { playerName: player.name }), 'success')
+        toast(t('actionCards.fitnessBoost', {playerName: player.name}), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)
@@ -594,7 +604,7 @@ export class ActionCards extends UIElement {
       try {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
-        toast(t('actionCards.levelUpSuccess', { playerName: player.name }), 'success')
+        toast(t('actionCards.levelUpSuccess', {playerName: player.name}), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)
@@ -623,7 +633,7 @@ export class ActionCards extends UIElement {
       try {
         await server.useActionCard(actionCard, player, null)
         this._overlay?.remove()
-        toast(t('actionCards.starPlayerSuccess', { playerName: player.name }), 'success')
+        toast(t('actionCards.starPlayerSuccess', {playerName: player.name}), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)
@@ -649,10 +659,12 @@ export class ActionCards extends UIElement {
    */
   async _handleSpyCard (actionCard, cardIndex) {
     const consumed = await showSpyOverlay({
-      onConfirm: async () => {
+      onConfirm: async (teamId) => {
         // Block the ACTION_CARDS_CHANGED refetch until the local animation runs.
         this._processing = true
-        await server.useActionCard(actionCard, null, null)
+        // Pass the spied team id through the `position` slot so the server can
+        // remember it and show the report again on #my-team.
+        await server.useActionCard(actionCard, null, teamId)
       }
     })
     if (consumed) {
@@ -678,7 +690,7 @@ export class ActionCards extends UIElement {
     }
     const options = response.options || []
     const renderedImages = await Promise.all(options.map((opt, idx) =>
-      renderPlayerImage({ id: idx + 1, hair_color: opt.hair_color, skin_color: opt.skin_color }, null, 140)
+      renderPlayerImage({id: idx + 1, hair_color: opt.hair_color, skin_color: opt.skin_color}, null, 140)
     ))
     const buttonIds = options.map(() => generateId())
     options.forEach((option, idx) => {
@@ -687,7 +699,7 @@ export class ActionCards extends UIElement {
         try {
           await server.useActionCard(actionCard, option, null)
           this._overlay?.remove()
-          toast(t('actionCards.youthSignedSuccess', { playerName: option.name }), 'success')
+          toast(t('actionCards.youthSignedSuccess', {playerName: option.name}), 'success')
           await this._animateAndRemoveCard(cardIndex)
         } catch (e) {
           console.error(e)
@@ -704,8 +716,8 @@ export class ActionCards extends UIElement {
         <div class="youth-option-card__name">${option.name}</div>
         <div class="youth-option-card__meta">
           <span>${renderPositionBadge(option.position)}</span>
-          <span>${t('actionCards.youthOptionAge', { age: 15 })}</span>
-          <span>${t('actionCards.youthOptionLevel', { level: option.level.toFixed(1) })}</span>
+          <span>${t('actionCards.youthOptionAge', {age: 15})}</span>
+          <span>${t('actionCards.youthOptionLevel', {level: option.level.toFixed(1)})}</span>
         </div>
         <button id="${buttonIds[idx]}" class="btn btn-primary btn-sm mt-2">${t('actionCards.youthOptionSelect')}</button>
       </div>

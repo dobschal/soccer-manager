@@ -9,7 +9,8 @@ import {
   acceptBid,
   rejectBid,
   cancelBid,
-  getMarket
+  getMarket,
+  getTradeHistory
 } from '../helper/actionCardMarketHelper.js'
 
 export default {
@@ -27,15 +28,27 @@ export default {
   },
 
   /**
-   * @param {number} actionCardId
+   * @param {number|number[]} actionCardIds - one card id or a bundle of them
    * @param {string} comment
    * @param {Request} req
    */
-  async createActionCardOffer (actionCardId, comment, req) {
+  async createActionCardOffer (actionCardIds, comment, req) {
     const locale = req.locale || 'en'
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const team = await getTeam(req)
-    return await createOffer(actionCardId, comment, team, locale)
+    return await createOffer(actionCardIds, comment, team, locale)
+  },
+
+  /**
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, trades: Array}>}
+   */
+  async getActionCardTradeHistory (req) {
+    const locale = req.locale || 'en'
+    if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
+    const team = await getTeam(req)
+    const trades = await getTradeHistory(team)
+    return { success: true, trades }
   },
 
   /**
@@ -53,13 +66,14 @@ export default {
    * @param {number} offerId
    * @param {number} money
    * @param {number[]} cardIds
+   * @param {string} comment
    * @param {Request} req
    */
-  async bidOnActionCardOffer (offerId, money, cardIds, req) {
+  async bidOnActionCardOffer (offerId, money, cardIds, comment, req) {
     const locale = req.locale || 'en'
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const team = await getTeam(req)
-    return await placeBid(offerId, money, cardIds, team, locale)
+    return await placeBid(offerId, money, cardIds, comment, team, locale)
   },
 
   /**

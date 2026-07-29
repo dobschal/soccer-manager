@@ -210,7 +210,8 @@ async function levelUpsCurrentSeason (player) {
  */
 export async function playActionCard ({
   player: p,
-  actionCard
+  actionCard,
+  position
 }, team, locale) {
   // Get locale if not provided
   if (!locale && team.user_id) {
@@ -313,8 +314,14 @@ export async function playActionCard ({
   }
   if (actionCard.action === 'SPY') {
     // The reveal happens client-side (it fetches the target team's public
-    // tactics/lineup); using the card just consumes it.
+    // tactics/lineup); using the card just consumes it. The spied team id is
+    // passed through the `position` slot (SPY has no lineup position) so we can
+    // remember the latest scouting target and show it again on #my-team.
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
+    const spiedTeamId = Number(position)
+    if (spiedTeamId) {
+      await query('UPDATE team SET last_spied_team_id=?, last_spied_at=NOW() WHERE id=?', [spiedTeamId, team.id])
+    }
     return { success: true }
   }
   throw new BadRequestError(t('error.invalidCardAction', {}, locale))

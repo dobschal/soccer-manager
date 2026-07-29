@@ -2510,6 +2510,79 @@ const migrations = [{
         INDEX idx_chat_unread (to_user_id, read_at)
     ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
   }
+}, {
+  name: 'Add last-spied-team columns to team (spy report)',
+  async run () {
+    await query('ALTER TABLE team ADD COLUMN last_spied_team_id BIGINT NULL DEFAULT NULL')
+    await query('ALTER TABLE team ADD COLUMN last_spied_at TIMESTAMP NULL DEFAULT NULL')
+  }
+}, {
+  name: 'Card offers: multi-card bundles + trade history',
+  async run () {
+    // A single offer can now bundle several cards — mirror the many-cards join
+    // table that already exists for bids (action_card_bid_card).
+    await query(`CREATE TABLE IF NOT EXISTS action_card_offer_card
+    (
+        id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        offer_id       BIGINT NOT NULL,
+        action_card_id BIGINT NOT NULL,
+        action         VARCHAR(255) NOT NULL,
+        PRIMARY KEY (id),
+        INDEX idx_acoc_offer (offer_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+    // Backfill existing single-card offers into the join table so old offers
+    // keep working under the new multi-card code path. Runs exactly once.
+    await query(`INSERT INTO action_card_offer_card (offer_id, action_card_id, action)
+                 SELECT id, action_card_id, action FROM action_card_offer
+                 WHERE action_card_id IS NOT NULL`)
+    // The scalar card columns on the offer row are now legacy — the join table
+    // is the source of truth, so they no longer have to be populated.
+    await query('ALTER TABLE action_card_offer MODIFY COLUMN action_card_id BIGINT NULL')
+    await query('ALTER TABLE action_card_offer MODIFY COLUMN action VARCHAR(255) NULL')
+    // Record when an offer settled so the trade-history view can order/show it.
+    await query('ALTER TABLE action_card_offer ADD COLUMN settled_at TIMESTAMP NULL DEFAULT NULL')
+    await query("UPDATE action_card_offer SET settled_at = created_at WHERE status='accepted' AND settled_at IS NULL")
+  }
+}, {
+  name: 'Wiki: refresh action-cards, add marketplace + chat topics',
+  async run () {
+    // The initial seed only runs on an empty wiki, so new/changed topics must be
+    // applied to already-seeded prod/sandbox DBs here. Idempotent:
+    // - action-cards: refreshed to add the Spy card and the per-type / youth caps.
+    // - action-card-market, chat: inserted only when not already present (by page_key).
+    const KEYS_TO_REFRESH = ['action-cards']
+    const KEYS_TO_ADD = ['action-card-market', 'chat']
+    for (const topic of WIKI_SEED) {
+      if (KEYS_TO_REFRESH.includes(topic.key)) {
+        for (const locale of ['en', 'de']) {
+          const entry = topic[locale]
+          await query(
+            'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+            [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+          )
+        }
+      }
+      if (KEYS_TO_ADD.includes(topic.key)) {
+        for (const locale of ['en', 'de']) {
+          const [existing] = await query(
+            'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+            [topic.key, locale]
+          )
+          if (existing) continue
+          const entry = topic[locale]
+          await query('INSERT INTO wiki_entry SET ?', {
+            locale,
+            page_key: topic.key,
+            title: entry.title,
+            subtitle: entry.subtitle || null,
+            text: entry.text,
+            images: JSON.stringify([]),
+            sort_order: 0
+          })
+        }
+      }
+    }
+  }
 }]
 
 /**

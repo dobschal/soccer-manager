@@ -36,10 +36,14 @@ Card types:
 • Bonus 100K – adds 100,000 € to your account.
 • Star Player – permanently boosts a player's match strength by 10%.
 • Motivating Speech – gives your whole team a +10% strength bonus for the next match day.
+• Spy – reveals another team's tactics and lineup. Your next opponent is preselected, but you can scout any team you search for. The card is used up the moment the report is revealed; the latest report stays visible on your team page.
 
 Good to know:
 • The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings.
 • A single player can gain at most 20 levels per season through cards.
+• You can hold at most 10 unplayed cards of the same type – play or trade some away before you can claim more of that type.
+• At most 3 New Youth Player cards are handed out per season, so young talents stay scarce.
+• Cards you don't need can be traded with other managers on the Action Card Marketplace.
 • Save your Motivating Speech and Freshness cards for important matches.`
     },
     de: {
@@ -56,11 +60,85 @@ Kartentypen:
 • Bonus 100K – schreibt 100.000 € auf deinem Konto gut.
 • Starspieler – erhöht die Spielstärke eines Spielers dauerhaft um 10%.
 • Motivationsrede – gibt deinem ganzen Team am nächsten Spieltag +10% Stärke.
+• Spion – deckt Taktik und Aufstellung eines anderen Teams auf. Dein nächster Gegner ist vorausgewählt, du kannst aber jedes gesuchte Team ausspähen. Die Karte wird verbraucht, sobald der Bericht aufgedeckt ist; der letzte Bericht bleibt auf deiner Team-Seite sichtbar.
 
 Gut zu wissen:
 • Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust.
 • Ein Spieler kann pro Saison höchstens 20 Level durch Karten gewinnen.
+• Du kannst höchstens 10 ungenutzte Karten desselben Typs halten – setze oder tausche welche ein, bevor du weitere dieses Typs annehmen kannst.
+• Pro Saison werden höchstens 3 „Neuer Jugendspieler“-Karten vergeben, damit Talente knapp bleiben.
+• Karten, die du nicht brauchst, kannst du auf dem Action-Card-Marktplatz mit anderen Managern tauschen.
 • Hebe dir Motivationsrede und Frische-Karten für wichtige Spiele auf.`
+    }
+  },
+
+  // ─── Action Card Marketplace ───────────────────────────────────────────────
+  {
+    key: 'action-card-market',
+    en: {
+      title: 'Action Card Marketplace',
+      subtitle: 'Trade action cards with other managers',
+      text: `The marketplace lets you swap action cards you don't need for cards (and cash) from other managers. Every trade is a negotiation: one side offers cards, the other bids for them.
+
+Creating an offer:
+• Bundle one or more of your action cards into an offer and add an optional comment describing what you are looking for.
+• The cards in an open offer are locked (escrowed) – you can't play or offer them elsewhere until the offer is settled or cancelled.
+• You may have at most 10 open offers at once. Cancel an offer to get its cards back instantly.
+
+Bidding and accepting:
+• On someone else's offer you can place a bid made of money, cards, or both.
+• Any cards you put into a bid are locked until the bid is accepted, rejected or cancelled; the money is only checked now and moved when the bid is accepted.
+• The offering manager picks one bid to accept. The cards and money change hands, and all competing bids are automatically rejected and returned.
+
+Good to know:
+• Both sides can see a trade history of completed deals, including which cards were exchanged and the money delta.
+• You'll be notified live when the offers or bids relevant to you change.`
+    },
+    de: {
+      title: 'Action-Card-Marktplatz',
+      subtitle: 'Action Cards mit anderen Managern tauschen',
+      text: `Auf dem Marktplatz tauschst du nicht benötigte Action Cards gegen Karten (und Geld) anderer Manager. Jeder Handel ist eine Verhandlung: Eine Seite bietet Karten an, die andere bietet darauf.
+
+Angebot erstellen:
+• Bündle eine oder mehrere deiner Action Cards zu einem Angebot und füge optional einen Kommentar hinzu, was du suchst.
+• Die Karten in einem offenen Angebot sind gesperrt (hinterlegt) – du kannst sie nicht spielen oder anderweitig anbieten, bis das Angebot abgeschlossen oder abgebrochen ist.
+• Du kannst höchstens 10 offene Angebote gleichzeitig haben. Beim Abbrechen bekommst du die Karten sofort zurück.
+
+Bieten und annehmen:
+• Auf ein fremdes Angebot kannst du ein Gebot aus Geld, Karten oder beidem abgeben.
+• Karten in einem Gebot sind gesperrt, bis es angenommen, abgelehnt oder zurückgezogen wird; das Geld wird jetzt nur geprüft und erst beim Annehmen überwiesen.
+• Der anbietende Manager wählt ein Gebot zum Annehmen aus. Karten und Geld wechseln den Besitzer, alle konkurrierenden Gebote werden automatisch abgelehnt und zurückgegeben.
+
+Gut zu wissen:
+• Beide Seiten sehen eine Handelshistorie abgeschlossener Deals, inklusive der getauschten Karten und der Geld-Differenz.
+• Du wirst live benachrichtigt, wenn sich für dich relevante Angebote oder Gebote ändern.`
+    }
+  },
+
+  // ─── Direct Messages ───────────────────────────────────────────────────────
+  {
+    key: 'chat',
+    en: {
+      title: 'Direct Messages',
+      subtitle: 'Chat one-on-one with other managers',
+      text: `You can send private one-on-one messages to any other manager – for arranging trades, friendlies or just talking football.
+
+How it works:
+• Open a chat from a manager's profile or from your conversations list on the dashboard. Each conversation groups all messages with that one person.
+• A message can contain text (up to 2,000 characters) and/or an image (JPG, PNG, GIF or WebP, up to 2 MB).
+• Messages arrive live while you're online. When you're away you get a push notification that links straight into the chat.
+• Messages you haven't read yet are counted in the "Action Required" badge on your dashboard, and are marked as read as soon as you open the conversation.`
+    },
+    de: {
+      title: 'Direktnachrichten',
+      subtitle: 'Eins-zu-eins mit anderen Managern chatten',
+      text: `Du kannst jedem anderen Manager private Eins-zu-eins-Nachrichten schicken – um Tauschgeschäfte oder Freundschaftsspiele zu vereinbaren oder einfach über Fußball zu reden.
+
+So funktioniert es:
+• Öffne einen Chat über das Profil eines Managers oder über deine Unterhaltungsliste auf dem Dashboard. Jede Unterhaltung bündelt alle Nachrichten mit dieser einen Person.
+• Eine Nachricht kann Text (bis zu 2.000 Zeichen) und/oder ein Bild (JPG, PNG, GIF oder WebP, bis zu 2 MB) enthalten.
+• Nachrichten kommen live an, während du online bist. Bist du abwesend, erhältst du eine Push-Benachrichtigung, die direkt in den Chat führt.
+• Noch ungelesene Nachrichten zählen im „Aktion erforderlich“-Badge auf deinem Dashboard und werden als gelesen markiert, sobald du die Unterhaltung öffnest.`
     }
   },
 

@@ -17,6 +17,14 @@ function chatImageSrc (filename) {
   return `${window.__NATIVE_SERVER_URL || ''}/uploads/chat/${filename}`
 }
 
+/**
+ * Window event dispatched whenever the chat overlay loads a conversation, which
+ * marks its incoming messages read server-side. Listeners (e.g. the dashboard
+ * unread-chat banner) refresh their unread count so stale badges disappear once
+ * everything has been read.
+ */
+export const CHAT_MESSAGES_READ_EVENT = 'chat-messages-read'
+
 /** Only one chat overlay may be open at a time. */
 let _openOverlay = null
 
@@ -96,6 +104,12 @@ class ChatController {
     const res = await server.getChatMessages(userId)
     this._partner = res.partner
     this._messages = res.messages ?? []
+    // Loading a conversation marks its incoming messages read server-side —
+    // let the dashboard banner refresh its unread count so it disappears once
+    // everything has been read.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(CHAT_MESSAGES_READ_EVENT))
+    }
     // Ensure the partner appears in the conversation list even for a brand-new chat.
     if (this._partner && !this._conversations.some(c => c.userId === this._partner.id)) {
       this._conversations.unshift({

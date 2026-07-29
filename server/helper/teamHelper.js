@@ -1,8 +1,9 @@
-import { query } from '../lib/database.js'
+import { query, transaction } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { config } from '../config.js'
 import { sendInactivityWarningEmail } from '../lib/email.js'
+import { collectUserUploadFiles, deleteUserContentRows, deleteUserUploadFiles } from './accountDeletionHelper.js'
 
 /**
  * @param {Request} req
@@ -83,8 +84,17 @@ export async function cleanupInactiveUsers () {
   )
   for (const { user_id: userId, team_id: teamId } of inactiveUsers) {
     console.log(`Removing inactive user ${userId} from team ${teamId}`)
-    await query('UPDATE team SET user_id = NULL, description = NULL WHERE id = ?', [teamId])
-    await query('DELETE FROM user WHERE id = ?', [userId])
+    // Collect uploaded-image filenames before the rows are deleted so the
+    // files can be removed from disk afterwards (not transactional).
+    const uploadFiles = await collectUserUploadFiles(userId)
+    await transaction(async (txQuery) => {
+      // Keep the team (players/stadium intact) but detach it into a bot.
+      await txQuery('UPDATE team SET user_id = NULL, description = NULL WHERE id = ?', [teamId])
+      // Remove all user-scoped personal data (UGC, social graph, tokens, …).
+      await deleteUserContentRows(txQuery, userId)
+      await txQuery('DELETE FROM user WHERE id = ?', [userId])
+    })
+    deleteUserUploadFiles(uploadFiles)
     clearUserCache(userId)
   }
   if (inactiveUsers.length > 0) {

@@ -13,6 +13,7 @@ import { getGeoFromRequest } from '../lib/geoip.js'
 import { clearBadge as clearPushBadge } from '../lib/pushNotification.js'
 import { isValidEmail, sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js'
 import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../helper/referralHelper.js'
+import { collectUserUploadFiles, deleteUserContentRows, deleteUserUploadFiles } from '../helper/accountDeletionHelper.js'
 import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../helper/linkInviteHelper.js'
 import { regenerateTeamData } from '../prepare-season.js'
 
@@ -536,6 +537,10 @@ export default {
     const userId = req.user.id
     const [team] = await query('SELECT * FROM team WHERE user_id=?', [userId])
 
+    // Collect uploaded-image filenames up front so we can remove the files from
+    // disk after the DB rows are gone (file deletion is not transactional).
+    const uploadFiles = await collectUserUploadFiles(userId)
+
     await transaction(async (txQuery) => {
       if (team) {
         // Delete player-related data
@@ -566,12 +571,16 @@ export default {
         await txQuery('UPDATE team SET user_id=NULL, description=NULL, coach_since=NULL WHERE id=?', [team.id])
       }
 
-      // Delete device tokens
-      await txQuery('DELETE FROM device_token WHERE user_id=?', [userId])
+      // Delete all user-scoped content (chat, forum, friends feed, news
+      // comments/likes, social graph, referrals, analytics, device tokens).
+      await deleteUserContentRows(txQuery, userId)
 
       // Delete user
       await txQuery('DELETE FROM user WHERE id=?', [userId])
     })
+
+    // Remove uploaded image files now that their DB rows are gone.
+    deleteUserUploadFiles(uploadFiles)
 
     // Rebuild bot defaults (stadium, buildings, squad) so the abandoned team is
     // still a valid bot after we stripped its user-owned data above. Without

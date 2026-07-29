@@ -2,7 +2,6 @@ import { server } from '../lib/gateway.js'
 import { showPlayerModal } from '../partials/playerModal.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { ActionCards } from './dashboard/actionCards.js'
-import { ActionCardMarketPage } from './dashboard/actionCardMarket.js'
 import { LogMessages } from './dashboard/logMessages.js'
 import { StartPage } from './dashboard/startPage.js'
 import { FriendsPage } from './dashboard/friendsPage.js'
@@ -10,12 +9,13 @@ import { ForumPage } from './forum.js'
 import { WikiPage } from './wiki.js'
 import { SearchPanel } from '../partials/searchPanel.js'
 import { t } from '../i18n/index.js'
-import { el } from '../lib/html.js'
+import { el, generateId } from '../lib/html.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
 import { showCardClaimOverlay } from '../partials/cardClaimOverlay.js'
 import { showSeasonReviewOverlay, isSeasonReviewDismissed } from '../partials/seasonReviewOverlay.js'
 import { maybeShowSpielTickerOverlay } from '../partials/spielTickerOverlay.js'
 import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
+import { CHAT_MESSAGES_READ_EVENT } from '../partials/chatOverlay.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 
 export class DashboardPage extends TabbedPage {
@@ -138,12 +138,32 @@ export class DashboardPage extends TabbedPage {
           <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#dashboard?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>
 
+        <div id="${this._chatBannerId}">${this._renderUnreadChatBanner()}</div>
+
         ${this.renderSubPageContainer()}
       </div>
     `
   }
+  /**
+   * Live-update the unread-chat banner when a new 1:1 message arrives, so it
+   * appears without a page reload (the count is otherwise only fetched in
+   * `load()`).
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      NEW_CHAT_MESSAGE: (data) => {
+        this._unreadChatCount++
+        if (data?.fromUserId) this._unreadChatUserId = data.fromUserId
+        this._updateUnreadChatBanner()
+      }
+    }
+  }
   onMounted () {
     void this._showDashboardOverlays()
+    // Refresh the unread-chat banner whenever the chat overlay reads a
+    // conversation, so it disappears once all messages have been read.
+    window.addEventListener(CHAT_MESSAGES_READ_EVENT, this._onChatMessagesRead)
   }
   async onQueryChanged (params) {
     const playerId = params.player_id
@@ -222,6 +242,22 @@ export class DashboardPage extends TabbedPage {
     }
     this._initialQueryChangeHandled = true
   }
+  onDestroy () {
+    window.removeEventListener(CHAT_MESSAGES_READ_EVENT, this._onChatMessagesRead)
+  }
+  /**
+   * Re-fetch the unread 1:1 chat count and patch the banner in place. Bound as
+   * a field so it can be added/removed as a window listener. Triggered by the
+   * chat overlay after it marks a conversation read.
+   * @returns {Promise<void>}
+   */
+  _onChatMessagesRead = async () => {
+    const res = await server.getUnreadChatCount()
+    this._unreadChatCount = res.count || 0
+    this._unreadChatUserId = res.latestUserId || null
+    this._updateUnreadChatBanner()
+  }
+  
   get routeName () { return 'dashboard' }
 
   get defaultSubPageKey () { return 'start' }
@@ -229,7 +265,6 @@ export class DashboardPage extends TabbedPage {
   createSubPage (key) {
     switch (key) {
       case 'cards': return new ActionCards()
-      case 'card_market': return new ActionCardMarketPage()
       case 'messages': return new LogMessages()
       case 'forum': return new ForumPage()
       case 'friends': return new FriendsPage()
@@ -255,9 +290,42 @@ export class DashboardPage extends TabbedPage {
   _newMessageCount = 0
   _unreadChatCount = 0
   _unreadChatUserId = null
+  _chatBannerId = generateId()
   _seasonReview = null
   _pendingCards = []
   _initialQueryChangeHandled = false
+
+  /**
+   * Banner shown at the top of the dashboard (below the tabs) when the user has
+   * unread 1:1 chat messages. Links to the most recent sender's chat (or the
+   * friends sub-page as a fallback). Returns an empty string when there is
+   * nothing unread.
+   * @returns {string}
+   */
+  _renderUnreadChatBanner () {
+    if (!this._unreadChatCount || this._unreadChatCount <= 0) return ''
+    const target = this._unreadChatUserId
+      ? `#dashboard?chat_user=${this._unreadChatUserId}`
+      : '#dashboard?sub_page=friends'
+    return `
+      <a href="${target}" class="alert alert-info d-flex align-items-center gap-2 text-decoration-none mt-2 mb-0">
+        <i class="fa fa-comment"></i>
+        <span>${t('chat.unreadMessages')}</span>
+        <span class="badge rounded-pill bg-danger ms-auto">${this._unreadChatCount}</span>
+      </a>
+    `
+  }
+
+  /**
+   * Patch the unread-chat banner in place (used by the NEW_CHAT_MESSAGE server
+   * event) without re-rendering the whole dashboard.
+   * @returns {void}
+   */
+  _updateUnreadChatBanner () {
+    const bannerEl = el('#' + this._chatBannerId)
+    if (!bannerEl) return
+    bannerEl.innerHTML = this._renderUnreadChatBanner()
+  }
 
   _renderCardBadge () {
     if (this._actionCardCount <= 0 || this.subPage === 'cards') return ''
@@ -314,9 +382,7 @@ export class DashboardPage extends TabbedPage {
       standing: this.standing,
       teamPosition: this.teamPosition,
       urgencies: this._urgencies,
-      newMessageCount: this._newMessageCount,
-      unreadChatCount: this._unreadChatCount,
-      unreadChatUserId: this._unreadChatUserId
+      newMessageCount: this._newMessageCount
     })
   }
 

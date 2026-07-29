@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DashboardPage, renderDashboardPage } from '../../pages/dashboard.js'
 import { server } from '../../lib/gateway.js'
+import { el } from '../../lib/html.js'
 
 // Mock all dependencies before importing
 vi.mock('../../lib/gateway.js', () => ({
@@ -599,6 +600,100 @@ describe('DashboardPage', () => {
       await page.load()
 
       expect(page._initialSlideIndex).toBe(0)
+    })
+  })
+
+  describe('unread chat banner (below the tabs)', () => {
+    it('does not render the banner when there are no unread messages', async () => {
+      server.getUnreadChatCount.mockResolvedValue({ count: 0, latestUserId: null })
+      const page = new DashboardPage()
+      await page.load()
+      expect(page.template).not.toContain('Unread chat messages')
+    })
+
+    it('renders the banner below the tabs when there are unread messages', async () => {
+      server.getUnreadChatCount.mockResolvedValue({ count: 3, latestUserId: 42 })
+      const page = new DashboardPage()
+      await page.load()
+      const html = page.template
+      // Banner text + count are present
+      expect(html).toContain('Unread chat messages')
+      expect(html).toContain('>3<')
+      // It deep-links to the most recent sender's chat
+      expect(html).toContain('#dashboard?chat_user=42')
+      // It sits below the tabs (after </nav>) and above the sub-page container
+      const navEnd = html.indexOf('</nav>')
+      const bannerIdx = html.indexOf('Unread chat messages')
+      expect(bannerIdx).toBeGreaterThan(navEnd)
+    })
+
+    it('falls back to the friends sub-page link when no latest sender is known', async () => {
+      server.getUnreadChatCount.mockResolvedValue({ count: 1, latestUserId: null })
+      const page = new DashboardPage()
+      await page.load()
+      expect(page.template).toContain('#dashboard?sub_page=friends')
+    })
+
+    it('bumps the count and patches the banner in place on a NEW_CHAT_MESSAGE server event', async () => {
+      server.getUnreadChatCount.mockResolvedValue({ count: 0, latestUserId: null })
+      const page = new DashboardPage()
+      await page.load()
+
+      const fakeBanner = { innerHTML: '' }
+      el.mockReturnValue(fakeBanner)
+
+      page.serverEvents.NEW_CHAT_MESSAGE({ fromUserId: 77 })
+
+      expect(page._unreadChatCount).toBe(1)
+      expect(page._unreadChatUserId).toBe(77)
+      // Banner DOM was patched in place (no full re-render)
+      expect(fakeBanner.innerHTML).toContain('Unread chat messages')
+      expect(fakeBanner.innerHTML).toContain('#dashboard?chat_user=77')
+    })
+
+    it('does not throw when the banner element is not mounted yet', async () => {
+      server.getUnreadChatCount.mockResolvedValue({ count: 0, latestUserId: null })
+      const page = new DashboardPage()
+      await page.load()
+
+      el.mockReturnValue(undefined)
+      expect(() => page.serverEvents.NEW_CHAT_MESSAGE({ fromUserId: 5 })).not.toThrow()
+      expect(page._unreadChatCount).toBe(1)
+    })
+
+    it('clears the banner after the chat overlay reads the last unread messages', async () => {
+      server.getUnreadChatCount.mockResolvedValue({ count: 3, latestUserId: 42 })
+      const page = new DashboardPage()
+      await page.load()
+      expect(page._unreadChatCount).toBe(3)
+
+      const fakeBanner = { innerHTML: 'old' }
+      el.mockReturnValue(fakeBanner)
+
+      // Everything read now — the overlay's read event triggers a re-fetch.
+      server.getUnreadChatCount.mockResolvedValue({ count: 0, latestUserId: null })
+      await page._onChatMessagesRead()
+
+      expect(page._unreadChatCount).toBe(0)
+      expect(page._unreadChatUserId).toBeNull()
+      expect(fakeBanner.innerHTML).toBe('')
+    })
+
+    it('keeps the banner (with the new count) when other conversations are still unread', async () => {
+      server.getUnreadChatCount.mockResolvedValue({ count: 3, latestUserId: 42 })
+      const page = new DashboardPage()
+      await page.load()
+
+      const fakeBanner = { innerHTML: 'old' }
+      el.mockReturnValue(fakeBanner)
+
+      server.getUnreadChatCount.mockResolvedValue({ count: 1, latestUserId: 7 })
+      await page._onChatMessagesRead()
+
+      expect(page._unreadChatCount).toBe(1)
+      expect(page._unreadChatUserId).toBe(7)
+      expect(fakeBanner.innerHTML).toContain('Unread chat messages')
+      expect(fakeBanner.innerHTML).toContain('#dashboard?chat_user=7')
     })
   })
 

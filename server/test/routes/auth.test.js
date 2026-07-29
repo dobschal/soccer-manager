@@ -511,8 +511,11 @@ describe('auth routes', () => {
   })
 
   describe('deleteAccount', () => {
+    let txQuery
     beforeEach(() => {
-      transaction.mockImplementation(async (cb) => cb(vi.fn().mockResolvedValue([])))
+      txQuery = vi.fn().mockResolvedValue([])
+      transaction.mockImplementation(async (cb) => cb(txQuery))
+      query.mockResolvedValue([]) // default for image-collection selects
     })
 
     it('regenerates bot defaults after stripping the team so the team keeps a stadium', async () => {
@@ -535,6 +538,37 @@ describe('auth routes', () => {
 
       expect(result).toEqual({ success: true })
       expect(regenerateTeamData).not.toHaveBeenCalled()
+    })
+
+    it('deletes the user-generated content tied to the account', async () => {
+      query.mockResolvedValueOnce([]) // no team
+
+      const req = { locale: 'en', user: { id: 7 } }
+      await handlers.deleteAccount(req)
+
+      const deletions = txQuery.mock.calls.map(c => c[0])
+      const deletesFrom = (table) => deletions.some(sql => new RegExp(`DELETE FROM ${table}\\b`).test(sql))
+
+      expect(deletesFrom('chat_message')).toBe(true)
+      expect(deletesFrom('forum_comment_image')).toBe(true)
+      expect(deletesFrom('forum_comment')).toBe(true)
+      expect(deletesFrom('forum_post_image')).toBe(true)
+      expect(deletesFrom('forum_post_like')).toBe(true)
+      expect(deletesFrom('forum_post')).toBe(true)
+      expect(deletesFrom('friend_post_like')).toBe(true)
+      expect(deletesFrom('friend_post_comment')).toBe(true)
+      expect(deletesFrom('friend_post')).toBe(true)
+      expect(deletesFrom('news_like')).toBe(true)
+      expect(deletesFrom('news_comment')).toBe(true)
+      expect(deletesFrom('hall_of_fame_comment_like')).toBe(true)
+      expect(deletesFrom('hall_of_fame_comment')).toBe(true)
+      expect(deletesFrom('user_friend')).toBe(true)
+      expect(deletesFrom('referral_invitation')).toBe(true)
+      expect(deletesFrom('page_view')).toBe(true)
+      expect(deletesFrom('client_log')).toBe(true)
+      expect(deletesFrom('device_token')).toBe(true)
+      // The user row is always deleted last.
+      expect(deletions[deletions.length - 1]).toMatch(/DELETE FROM user WHERE id=\?/)
     })
 
     it('throws when no user is on the request', async () => {

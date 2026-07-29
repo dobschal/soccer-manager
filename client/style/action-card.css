@@ -16,28 +16,24 @@
     height: auto;
     border-radius: 15px;
     /*transform: rotateX(-5deg) rotateY(-3deg);*/
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.2),
-        0 5px 15px rgba(0, 0, 0, 0.15),
-        -5px 10px 20px rgba(0, 0, 0, 0.1);
-    transition:
-        transform 0.3s ease,
-        box-shadow 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2),
+    0 5px 15px rgba(0, 0, 0, 0.15),
+    -5px 10px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .action-card-wrapper:hover .action-card-image {
     transform: rotateX(0deg) rotateY(0deg) scale(1.05);
-    box-shadow:
-        0 20px 40px rgba(0, 0, 0, 0.5),
-        0 10px 20px rgba(0, 0, 0, 0.4),
-        0 0 30px rgba(255, 215, 0, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5),
+    0 10px 20px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(255, 215, 0, 0.2);
 }
 
 .action-card-wrapper:active .action-card-image {
     transform: rotateX(2deg) rotateY(-1deg) scale(0.98);
-    box-shadow:
-        0 5px 15px rgba(0, 0, 0, 0.3),
-        0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Merge badge */
@@ -56,9 +52,26 @@
     transform: rotate(45deg);
 }
 
-/* Wrapping card container */
+/* Horizontal, scrollable card row — matches the ActionCardGiver so the stacks
+   never wrap onto a second line. */
 .action-cards-scroll {
-    padding: 16px 0 24px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding: 16px 30px 24px;
+}
+
+.action-cards-container {
+    margin: 0 -2rem;
+}
+
+.action-card-item {
+    flex: 0 0 auto;
+    width: 130px;
 }
 
 /* Card stack container */
@@ -75,10 +88,9 @@
     left: calc(var(--stack-index, 0) * 4px);
     width: 100%;
     z-index: calc(10 - var(--stack-index, 0));
-    transition:
-        transform 0.2s ease,
-        top 0.2s ease,
-        left 0.2s ease;
+    transition: transform 0.2s ease,
+    top 0.2s ease,
+    left 0.2s ease;
 }
 
 .action-card-stack:hover .action-card-wrapper {
@@ -216,9 +228,8 @@
     height: 100%;
     backface-visibility: hidden;
     border-radius: 15px;
-    box-shadow:
-        0 10px 40px rgba(0, 0, 0, 0.4),
-        0 0 20px rgba(201, 168, 76, 0.3);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(201, 168, 76, 0.3);
 }
 
 .card-claim-front img,
@@ -350,8 +361,12 @@
 }
 
 @keyframes spy-magnifier-spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .spy-reveal__header {
@@ -436,4 +451,30 @@
 
 .card-market-pick .card-market-thumb {
     width: 64px;
+}
+
+/* A bundle of card thumbnails shown side by side (offers, bids, trades). */
+.card-market-thumbs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.card-market-thumbs .card-market-thumb {
+    width: 40px;
+}
+
+/* Completed-trade rows in the "My trades" history overlay. */
+.card-market-trade-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.card-market-trade-side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }

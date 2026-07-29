@@ -8,6 +8,7 @@ import { sortByPosition } from '../../util/player.js'
 import { Lineup } from '../../partials/lineup.js'
 import { BenchSlot } from '../../partials/benchSlot.js'
 import { CaptainSelect } from '../../partials/captainSelect.js'
+import { SpyReportCard } from '../../partials/spyReportCard.js'
 import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 import { fire, off, on } from '../../lib/event.js'
 import { t } from '../../i18n/index.js'
@@ -23,6 +24,7 @@ export class ATeamPage extends UIElement {
     super()
     this.parent = parent
     this._playerList = null
+    this._spyReportCard = null
     this._exchangeEventId = on('lineup-exchange', (updatedPlayers) => {
       // Strip fake placeholders before storing — only the Lineup component
       // cares about them, and keeping them in parent.data.players would let
@@ -66,6 +68,7 @@ export class ATeamPage extends UIElement {
           <div class="row">
             ${this._renderTacticSelects()}
           </div>
+          ${this._getSpyReportCard()}
         </div>
         <div id="player-list-container">
           ${this._createPlayerList()}
@@ -204,6 +207,17 @@ export class ATeamPage extends UIElement {
       this.parent.data.team.captain_id || null
     )
     return this._playerList
+  }
+
+  /**
+   * Lazy-init and cache the spy-report card so a parent re-render (formation
+   * change, lineup exchange) reuses the same instance instead of re-fetching
+   * and flickering.
+   * @returns {SpyReportCard}
+   */
+  _getSpyReportCard () {
+    if (!this._spyReportCard) this._spyReportCard = new SpyReportCard()
+    return this._spyReportCard
   }
 
   /**

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../lib/database.js', () => ({
-  query: vi.fn()
+  query: vi.fn(),
+  transaction: vi.fn()
 }))
 
 vi.mock('../../lib/userCache.js', () => ({
@@ -13,7 +14,7 @@ vi.mock('../../lib/email.js', () => ({
 }))
 
 import { cleanupInactiveUsers } from '../../helper/teamHelper.js'
-import { query } from '../../lib/database.js'
+import { query, transaction } from '../../lib/database.js'
 import { clearUserCache } from '../../lib/userCache.js'
 import { sendInactivityWarningEmail } from '../../lib/email.js'
 
@@ -24,7 +25,8 @@ import { sendInactivityWarningEmail } from '../../lib/email.js'
  *  3) SELECT stage-2 warning candidates
  *  4) For each → UPDATE inactivity_warning_stage
  *  5) SELECT users past the 21-day cutoff
- *  6) For each → UPDATE team + DELETE user
+ *  6) For each → collect upload filenames (5 selects), then a transaction that
+ *     dissociates the team, deletes user content, and deletes the user row.
  */
 function setupCleanupQueries ({ stage1 = [], stage2 = [], inactive = [] } = {}) {
   query.mockReset()
@@ -33,15 +35,19 @@ function setupCleanupQueries ({ stage1 = [], stage2 = [], inactive = [] } = {}) 
   query.mockResolvedValueOnce(stage2)
   for (let i = 0; i < stage2.length; i++) query.mockResolvedValueOnce({})
   query.mockResolvedValueOnce(inactive)
+  // collectUserUploadFiles() issues 5 SELECTs per inactive user; the team
+  // dissociation and deletions run through the transaction's txQuery instead.
   for (let i = 0; i < inactive.length; i++) {
-    query.mockResolvedValueOnce({}) // UPDATE team
-    query.mockResolvedValueOnce({}) // DELETE user
+    for (let j = 0; j < 5; j++) query.mockResolvedValueOnce([])
   }
 }
 
 describe('cleanupInactiveUsers', () => {
+  let txQuery
   beforeEach(() => {
     vi.clearAllMocks()
+    txQuery = vi.fn().mockResolvedValue([])
+    transaction.mockImplementation(async (cb) => cb(txQuery))
   })
 
   it('removes a user inactive past the cutoff', async () => {
@@ -49,9 +55,14 @@ describe('cleanupInactiveUsers', () => {
 
     await cleanupInactiveUsers()
 
-    const sqls = query.mock.calls.map(c => c[0])
-    expect(sqls.some(s => s.includes('UPDATE team SET user_id = NULL'))).toBe(true)
-    expect(sqls.some(s => s.includes('DELETE FROM user'))).toBe(true)
+    const txSqls = txQuery.mock.calls.map(c => c[0])
+    expect(txSqls.some(s => s.includes('UPDATE team SET user_id = NULL'))).toBe(true)
+    expect(txSqls.some(s => s.includes('DELETE FROM user'))).toBe(true)
+    // User-generated content is removed too (data-protection promise).
+    expect(txSqls.some(s => s.includes('DELETE FROM chat_message'))).toBe(true)
+    expect(txSqls.some(s => s.includes('DELETE FROM forum_post'))).toBe(true)
+    expect(txSqls.some(s => s.includes('DELETE FROM friend_post'))).toBe(true)
+    expect(txSqls.some(s => s.includes('DELETE FROM device_token'))).toBe(true)
     expect(clearUserCache).toHaveBeenCalledWith(42)
   })
 
@@ -95,7 +106,7 @@ describe('cleanupInactiveUsers', () => {
 
     await cleanupInactiveUsers()
 
-    const allSql = query.mock.calls.map(c => c[0])
+    const allSql = [...query.mock.calls, ...txQuery.mock.calls].map(c => c[0])
     expect(allSql.every(sql => !sql.includes('DELETE FROM player'))).toBe(true)
     expect(allSql.every(sql => !sql.includes('DELETE FROM stadium'))).toBe(true)
     expect(allSql.every(sql => !sql.includes('DELETE FROM building'))).toBe(true)

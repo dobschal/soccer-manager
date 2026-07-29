@@ -156,35 +156,48 @@ export function showSpyOverlay ({ onConfirm }) {
     }
 
     const showReveal = (team, players) => {
-      const tacticRow = (label, value) => `
-        <div class="spy-tactic">
-          <span class="spy-tactic__label">${label}</span>
-          <span class="spy-tactic__value">${value}</span>
-        </div>
-      `
-
-      const formation = team.formation || '—'
-      const attackMode = t('myTeam.attackMode.' + (team.attack_mode || 'balanced'))
-      const playStyle = t('myTeam.playStyle.' + (team.play_style || 'normal'))
-      const passStyle = t('myTeam.passStyle.' + (team.pass_style || 'mixed'))
-
-      setBody(`
-        <div class="spy-reveal">
-          <div class="spy-reveal__header">
-            ${renderEmblem(team, 48)}
-            <h4 class="mb-0">${team.name}</h4>
-          </div>
-          <div class="spy-tactics">
-            ${tacticRow(t('myTeam.formation'), formation)}
-            ${tacticRow(t('spy.attackMode'), attackMode)}
-            ${tacticRow(t('spy.playStyle'), playStyle)}
-            ${tacticRow(t('spy.passStyle'), passStyle)}
-          </div>
-          <div class="spy-lineup">${new Lineup(players, team)}</div>
-        </div>
-      `)
+      setBody(spyReportBodyHtml(team, players))
     }
 
     void showPicker()
   })
+}
+
+/**
+ * Render a spy report body: the target team's emblem/name, its four tactics
+ * rows and its lineup. Shared by the spy overlay's reveal phase and the
+ * "last scout report" card on #my-team.
+ *
+ * @param {Object} team
+ * @param {Array} [players]
+ * @returns {string}
+ */
+export function spyReportBodyHtml (team, players = []) {
+  const tacticRow = (label, value) => `
+    <div class="spy-tactic">
+      <span class="spy-tactic__label">${label}</span>
+      <span class="spy-tactic__value">${value}</span>
+    </div>
+  `
+
+  const formation = team.formation || '—'
+  const attackMode = t('myTeam.attackMode.' + (team.attack_mode || 'balanced'))
+  const playStyle = t('myTeam.playStyle.' + (team.play_style || 'normal'))
+  const passStyle = t('myTeam.passStyle.' + (team.pass_style || 'mixed'))
+
+  return `
+    <div class="spy-reveal">
+      <div class="spy-reveal__header">
+        ${renderEmblem(team, 48)}
+        <h4 class="mb-0">${team.name}</h4>
+      </div>
+      <div class="spy-tactics">
+        ${tacticRow(t('myTeam.formation'), formation)}
+        ${tacticRow(t('spy.attackMode'), attackMode)}
+        ${tacticRow(t('spy.playStyle'), playStyle)}
+        ${tacticRow(t('spy.passStyle'), passStyle)}
+      </div>
+      <div class="spy-lineup">${new Lineup(players, team)}</div>
+    </div>
+  `
 }

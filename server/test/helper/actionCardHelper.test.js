@@ -645,6 +645,35 @@ describe('actionCardHelper', () => {
       // A spy card has no side effect on players or balance.
       expect(updateTeamBalance).not.toHaveBeenCalled()
     })
+
+    it('remembers the spied team id passed through the position slot', async () => {
+      const team = testData.team({ id: 5 })
+      const actionCard = testData.actionCard({ id: 77, action: 'SPY' })
+
+      query.mockResolvedValue({})
+
+      const result = await playActionCard({ actionCard, player: null, position: '42' }, team)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE team SET last_spied_team_id=?, last_spied_at=NOW() WHERE id=?',
+        [42, 5]
+      )
+    })
+
+    it('does not persist a scout target when no team id is given', async () => {
+      const team = testData.team({ id: 5 })
+      const actionCard = testData.actionCard({ id: 77, action: 'SPY' })
+
+      query.mockResolvedValue({})
+
+      await playActionCard({ actionCard, player: null }, team)
+
+      expect(query).not.toHaveBeenCalledWith(
+        expect.stringContaining('last_spied_team_id'),
+        expect.anything()
+      )
+    })
   })
 
   describe('playActionCard - unknown action', () => {
