@@ -12,7 +12,9 @@ import { UIElement } from '../lib/UIElement.js'
  */
 const CONFIG = Object.freeze({
   field: { width: 50, depth: 30 },
-  standGap: 2,
+  // Gap between the field and every stand. At >= 4 the wide north/south stands
+  // just clear the east/west stands at the corners (they overlap below that).
+  standGap: 4,
   groundSize: 250,
   // Stand seating tiers. Large stands split into a lower and an upper tier with
   // a cantilevered overhang between them.
@@ -880,6 +882,58 @@ export class StadiumCanvas extends UIElement {
     crossbar.rotation.x = Math.PI / 2
     crossbar.position.set(x, goalHeight, 0)
     scene.add(crossbar)
+
+    // Net: a line grid enclosing the back of the goal (away from the field).
+    const sign = Math.sign(x) || 1 // direction pointing away from the pitch
+    const netDepth = 1.3
+    const backHeight = goalHeight * 0.45
+    const xBack = x + sign * netDepth
+    const zL = -goalWidth / 2
+    const zR = goalWidth / 2
+
+    const ft = z => [x, goalHeight, z] // front-top (at the crossbar)
+    const fb = z => [x, 0, z] // front-bottom (at the posts)
+    const bt = z => [xBack, backHeight, z] // back-top
+    const bb = z => [xBack, 0, z] // back-bottom
+
+    const positions = []
+    const cell = 0.28 // net mesh size
+    this._addNetPanel(positions, ft(zL), ft(zR), bt(zR), bt(zL), cell) // top
+    this._addNetPanel(positions, bt(zL), bt(zR), bb(zR), bb(zL), cell) // back
+    this._addNetPanel(positions, fb(zL), bb(zL), bt(zL), ft(zL), cell) // left side
+    this._addNetPanel(positions, fb(zR), bb(zR), bt(zR), ft(zR), cell) // right side
+
+    const netGeo = new this._THREE.BufferGeometry()
+    netGeo.setAttribute('position', new this._THREE.Float32BufferAttribute(positions, 3))
+    const netMat = new this._THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 })
+    scene.add(new this._THREE.LineSegments(netGeo, netMat))
+  }
+
+  /**
+   * Append a net-like line grid spanning a flat quad to a shared positions
+   * array. Corners are given in loop order (a→b→c→d); the grid density follows
+   * the quad's side lengths so cells stay roughly `cell` units square.
+   * @param {number[]} positions flat [x,y,z,...] sink for LineSegments
+   * @param {number[]} a corner [x,y,z] (grid origin)
+   * @param {number[]} b corner adjacent to a (one grid axis)
+   * @param {number[]} c corner opposite a
+   * @param {number[]} d corner adjacent to a (other grid axis)
+   * @param {number} cell target cell size
+   */
+  _addNetPanel (positions, a, b, c, d, cell) {
+    const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])
+    const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t]
+    const nu = Math.max(1, Math.round(dist(a, b) / cell))
+    const nv = Math.max(1, Math.round(dist(a, d) / cell))
+
+    for (let i = 0; i <= nu; i++) {
+      const t = i / nu
+      positions.push(...lerp(a, b, t), ...lerp(d, c, t)) // line across the a→d axis
+    }
+    for (let j = 0; j <= nv; j++) {
+      const s = j / nv
+      positions.push(...lerp(a, d, s), ...lerp(b, c, s)) // line across the a→b axis
+    }
   }
 
   /**
