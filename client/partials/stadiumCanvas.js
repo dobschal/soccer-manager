@@ -394,18 +394,24 @@ export class StadiumCanvas extends UIElement {
   /**
    * Number of seating rows for a stand. Drives both the stand depth and the
    * ring-road distance, so it lives in one place.
+   *
+   * The raw row count (seats spread over the fixed stand width) is compressed
+   * with a square-root curve: it keeps growing visibly across the whole seat
+   * range while a mega-stand still stays a sane depth. A wider stand fits more
+   * seats per row, so for the same seat count it ends up shallower — which is
+   * physically what you'd expect.
+   *
+   * (An earlier divider-based formula saturated in the upper range, so a 15k
+   * and a 30k stand came out nearly the same size.)
    * @param {number} seats
    * @param {number} width
-   * @param {string} position
    * @returns {number}
    */
-  _standRowCount (seats, width, position) {
+  _standRowCount (seats, width) {
     const seatWidth = 0.5
     const seatsPerRow = Math.floor(width / seatWidth)
-    const minSize = 200
-    const maxSize = (position === 'east' || position === 'west') ? 15000 : 30000
-    const divider = 1 + Math.min(1, (seats - minSize) / (maxSize - minSize)) * 4
-    return Math.max(3, Math.ceil(seats / seatsPerRow) / divider)
+    const rawRows = Math.ceil(seats / seatsPerRow)
+    return Math.max(3, Math.round(3.6 * Math.sqrt(rawRows)))
   }
 
   /**
@@ -423,13 +429,13 @@ export class StadiumCanvas extends UIElement {
     // Outer extent of each stand (row depth is 1 unit/row; +2 covers back
     // wall & roof). The square grid uses the deepest of the four.
     const stands = [
-      { seats: this.stadium.north_stand_size || 0, width: fieldW + 6, position: 'north', base: fieldD / 2 + gap },
-      { seats: this.stadium.south_stand_size || 0, width: fieldW + 6, position: 'south', base: fieldD / 2 + gap },
-      { seats: this.stadium.west_stand_size || 0, width: fieldD + 6, position: 'west', base: fieldW / 2 + gap },
-      { seats: this.stadium.east_stand_size || 0, width: fieldD + 6, position: 'east', base: fieldW / 2 + gap }
+      { seats: this.stadium.north_stand_size || 0, width: fieldW + 6, base: fieldD / 2 + gap },
+      { seats: this.stadium.south_stand_size || 0, width: fieldW + 6, base: fieldD / 2 + gap },
+      { seats: this.stadium.west_stand_size || 0, width: fieldD + 6, base: fieldW / 2 + gap },
+      { seats: this.stadium.east_stand_size || 0, width: fieldD + 6, base: fieldW / 2 + gap }
     ]
     const deepest = Math.max(
-      ...stands.map(s => s.base + this._standRowCount(s.seats, s.width, s.position) + 2)
+      ...stands.map(s => s.base + this._standRowCount(s.seats, s.width) + 2)
     )
     return Math.max(minDistance, deepest + margin)
   }
@@ -843,16 +849,57 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
+   * Geometry for a single stadium seat: two flat surfaces — a horizontal seat
+   * pan and a slightly reclined vertical backrest at the back edge. Built as one
+   * merged buffer geometry so a whole colour group still renders as a single
+   * InstancedMesh. Origin sits on the step surface, front facing -z (the field).
+   * @param {number} seatWidth
+   * @param {number} rowDepth
+   * @returns {THREE.BufferGeometry}
+   */
+  _createSeatGeometry (seatWidth, rowDepth) {
+    const sw = seatWidth * 0.4 // half seat width
+    const sd = rowDepth * 0.25 // half seat depth
+    const panY = 0.22 // seat pan height above the step
+    const backHeight = 0.5
+    const recline = 0.12 // how far the backrest top leans back (+z)
+
+    const vertices = new Float32Array([
+      // seat pan (horizontal)
+      -sw, panY, -sd,
+      sw, panY, -sd,
+      sw, panY, sd,
+      -sw, panY, sd,
+      // backrest (vertical, at the back edge, leaning back at the top)
+      -sw, panY, sd,
+      sw, panY, sd,
+      sw, panY + backHeight, sd + recline,
+      -sw, panY + backHeight, sd + recline
+    ])
+
+    const indices = [
+      0, 1, 2, 0, 2, 3, // pan
+      4, 5, 6, 4, 6, 7 // backrest
+    ]
+
+    const geo = new this._THREE.BufferGeometry()
+    geo.setAttribute('position', new this._THREE.BufferAttribute(vertices, 3))
+    geo.setIndex(indices)
+    geo.computeVertexNormals()
+    return geo
+  }
+
+  /**
    * @param {THREE.Scene} scene
    * @param {Object} config
    */
   _createStand (scene, config) {
-    const { width, seats, x, z, rotation, hasRoof, position } = config
+    const { width, seats, x, z, rotation, hasRoof } = config
     const group = new this._THREE.Group()
 
     const seatWidth = 0.5
     const seatsPerRow = Math.floor(width / seatWidth)
-    const numRows = this._standRowCount(seats, width, position)
+    const numRows = this._standRowCount(seats, width)
 
     const rowDepth = 1.0
     const rowHeight = 0.5
@@ -911,19 +958,19 @@ export class StadiumCanvas extends UIElement {
 
         seatsByColor.get(seatColor).push({
           x: -width / 2 + seatWidth / 2 + s * seatWidth,
-          y: rowY + rowHeight + 0.2,
+          y: rowY + rowHeight, // step surface; seat geometry sits on top of it
           z: rowZ + rowDepth * 0.35
         })
       }
     }
 
-    const seatGeo = new this._THREE.BoxGeometry(seatWidth * 0.8, 0.4, rowDepth * 0.6)
+    const seatGeo = this._createSeatGeometry(seatWidth, rowDepth)
     const seatMatrix = new this._THREE.Matrix4()
 
     for (const [color, positions] of seatsByColor) {
       if (positions.length === 0) continue
 
-      const seatMat = new this._THREE.MeshLambertMaterial({ color })
+      const seatMat = new this._THREE.MeshLambertMaterial({ color, side: this._THREE.DoubleSide })
       const instancedSeats = new this._THREE.InstancedMesh(seatGeo, seatMat, positions.length)
 
       for (let i = 0; i < positions.length; i++) {
