@@ -418,16 +418,28 @@ export class YouthTeamPage extends UIElement {
     try {
       if (target === null) {
         await server.setYouthPlayerTrainingMode(player.id, null)
-      } else {
-        const limit = this.slotsByMode?.[target] ?? MAX_SLOTS_PER_MODE
-        const inMode = (this.youthPlayers || []).filter(p => p.training_mode === target && p.id !== player.id)
-        if (inMode.length >= limit) {
-          // No free slot — free the last one so the player can take it.
-          await server.setYouthPlayerTrainingMode(inMode[inMode.length - 1].id, null)
-        }
-        await server.setYouthPlayerTrainingMode(player.id, target)
+        toast(t('youthTeam.trainingModeUpdated'), 'success')
+        return
       }
-      toast(t('youthTeam.trainingModeUpdated'), 'success')
+      const limit = this.slotsByMode?.[target] ?? MAX_SLOTS_PER_MODE
+      const inMode = (this.youthPlayers || []).filter(p => p.training_mode === target && p.id !== player.id)
+      let removed = null
+      if (inMode.length >= limit) {
+        // The mode is already full — free its last occupant so the new player
+        // can take the slot, and warn the user which player was pushed out
+        // instead of silently swapping (#517).
+        removed = inMode[inMode.length - 1]
+        await server.setYouthPlayerTrainingMode(removed.id, null)
+      }
+      await server.setYouthPlayerTrainingMode(player.id, target)
+      if (removed) {
+        toast(t('youthTeam.modeFullPlayerReplaced', {
+          removed: removed.name,
+          mode: this._getTrainingModeLabel(target)
+        }), 'warning')
+      } else {
+        toast(t('youthTeam.trainingModeUpdated'), 'success')
+      }
     } catch (e) {
       showServerError(e)
     }
