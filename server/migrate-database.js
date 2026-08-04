@@ -2591,6 +2591,25 @@ const migrations = [{
     // and the whole message fails to send. Convert to utf8mb4 so emoji work.
     await query('ALTER TABLE chat_message CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')
   }
+}, {
+  name: 'Add corner stands to stadium table',
+  async run () {
+    // Four corner stands (NE/NW/SE/SW). Existing stadiums start with corner
+    // size 0 (no corners yet), default price 13, no roof. Construction columns
+    // mirror the main stands' tracking columns and default to NULL.
+    const corners = ['corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
+    for (const corner of corners) {
+      await query(`ALTER TABLE stadium
+        ADD COLUMN ${corner}_stand_size INT DEFAULT 0,
+        ADD COLUMN ${corner}_stand_price INT DEFAULT 13,
+        ADD COLUMN ${corner}_stand_roof TINYINT(1) DEFAULT 0,
+        ADD COLUMN ${corner}_construction_end_game_day INT DEFAULT NULL,
+        ADD COLUMN ${corner}_construction_end_season INT DEFAULT NULL,
+        ADD COLUMN ${corner}_construction_target_size INT DEFAULT NULL,
+        ADD COLUMN ${corner}_construction_target_roof TINYINT(1) DEFAULT NULL
+      `)
+    }
+  }
 }]
 
 /**

@@ -356,7 +356,7 @@ describe('stadium ticket earnings', () => {
    */
   function calculateStadiumDetails (stadium, strengthTeamA, strengthTeamB) {
     const strengthFactor = ((strengthTeamA || 0) * (strengthTeamB || 0)) / 80
-    const stands = ['north', 'south', 'west', 'east']
+    const stands = ['north', 'south', 'west', 'east', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
     const details = {}
     let totalEarnings = 0
     let totalCapacity = 0
@@ -440,6 +440,60 @@ describe('stadium ticket earnings', () => {
       const details = calculateStadiumDetails(stadium, 100, 100)
 
       expect(details.totalCapacity).toBe(0)
+    })
+
+    it('should include corner stands in total capacity', () => {
+      const stadium = {
+        north_stand_size: 1000,
+        north_stand_price: 10,
+        south_stand_size: 1000,
+        south_stand_price: 10,
+        west_stand_size: 0,
+        east_stand_size: 0,
+        corner_ne_stand_size: 500,
+        corner_ne_stand_price: 10,
+        corner_sw_stand_size: 300,
+        corner_sw_stand_price: 10
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      // 1000 + 1000 + 500 + 300 = 2800
+      expect(details.totalCapacity).toBe(2800)
+    })
+
+    it('should not earn anything from an unbuilt (size 0) corner stand', () => {
+      const stadium = {
+        north_stand_size: 0,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0,
+        corner_ne_stand_size: 0,
+        corner_ne_stand_price: 13
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.corner_neGuests).toBe(0)
+      expect(details.corner_neEarnings).toBe(0)
+      expect(details.totalEarnings).toBe(0)
+    })
+
+    it('should earn from a built corner stand', () => {
+      const stadium = {
+        north_stand_size: 0,
+        south_stand_size: 0,
+        west_stand_size: 0,
+        east_stand_size: 0,
+        corner_ne_stand_size: 500,
+        corner_ne_stand_price: 15
+      }
+
+      const details = calculateStadiumDetails(stadium, 100, 100)
+
+      expect(details.corner_neGuests).toBeGreaterThan(0)
+      expect(details.corner_neEarnings).toBe(details.corner_neGuests * 15)
+      expect(details.totalEarnings).toBe(details.corner_neEarnings)
     })
   })
 

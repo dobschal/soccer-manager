@@ -85,6 +85,69 @@ describe('stadium routes', () => {
       await expect(handlers.calculateStadiumPrice(plannedStadium, req))
         .rejects.toMatchObject({ message: 'Not authorized' })
     })
+
+    it('reports construction time for an expanded corner stand', async () => {
+      const currentStadium = testData.stadium()
+      const plannedStadium = testData.stadium({ corner_ne_stand_size: 500 })
+
+      getStadiumOfCurrentUser.mockResolvedValue(currentStadium)
+      calcuateStadiumBuild.mockReturnValue(300000)
+
+      const req = createMockRequest()
+      const result = await handlers.calculateStadiumPrice(plannedStadium, req)
+
+      expect(result.totalPrice).toEqual(300000)
+      expect(result.constructionTimes.corner_ne).toBeDefined()
+      expect(result.constructionTimes.corner_ne.seatsDiff).toBe(500)
+    })
+
+    it('flags a stand that gets a brand new roof', async () => {
+      getStadiumOfCurrentUser.mockResolvedValue(testData.stadium())
+      calcuateStadiumBuild.mockReturnValue(600000)
+
+      const result = await handlers.calculateStadiumPrice(
+        testData.stadium({ north_stand_size: 6000, north_stand_roof: 1 }),
+        createMockRequest()
+      )
+
+      expect(result.constructionTimes.north).toMatchObject({
+        addingRoof: true,
+        extendingRoof: false,
+        removingRoof: false
+      })
+    })
+
+    it('flags a roofed stand that grows and keeps its roof as a roof extension', async () => {
+      getStadiumOfCurrentUser.mockResolvedValue(testData.stadium({ north_stand_roof: 1 }))
+      calcuateStadiumBuild.mockReturnValue(600000)
+
+      const result = await handlers.calculateStadiumPrice(
+        testData.stadium({ north_stand_size: 6000, north_stand_roof: 1 }),
+        createMockRequest()
+      )
+
+      expect(result.constructionTimes.north).toMatchObject({
+        addingRoof: false,
+        extendingRoof: true,
+        removingRoof: false
+      })
+    })
+
+    it('flags a stand whose roof gets torn down', async () => {
+      getStadiumOfCurrentUser.mockResolvedValue(testData.stadium({ north_stand_roof: 1 }))
+      calcuateStadiumBuild.mockReturnValue(500000)
+
+      const result = await handlers.calculateStadiumPrice(
+        testData.stadium({ north_stand_size: 6000, north_stand_roof: 0 }),
+        createMockRequest()
+      )
+
+      expect(result.constructionTimes.north).toMatchObject({
+        addingRoof: false,
+        extendingRoof: false,
+        removingRoof: true
+      })
+    })
   })
 
   describe('buildStadium', () => {

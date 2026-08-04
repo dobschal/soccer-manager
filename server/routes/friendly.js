@@ -409,7 +409,7 @@ async function _getFriendlyStadiumEarnings (teamA, teamB, strengthTeamA, strengt
     return {}
   }
 
-  const stands = ['north', 'south', 'west', 'east']
+  const stands = ['north', 'south', 'west', 'east', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
   const details = {}
   let totalEarnings = 0
   let totalCapacity = 0

@@ -1,18 +1,61 @@
 .stadium-wrapper {
+  position: relative;
   overflow: hidden;
   background: linear-gradient(180deg, #1a365d 0%, #2d3748 100%);
   border-radius: 8px;
   padding: 0;
 }
 
-#stadium-canvas {
+/* On mobile, let the stadium canvas bleed past the page padding to be bigger. */
+@media screen and (max-width: 768px) {
+  .stadium-wrapper {
+    margin: 0 -2rem;
+    border-radius: 0;
+  }
+}
+
+.stadium-wrapper canvas {
   width: 100%;
   height: auto;
   display: block;
   border-radius: 8px;
+}
+
+/* Only a canvas whose OrbitControls are enabled invites dragging. */
+.stadium-wrapper-interactive canvas {
   cursor: grab;
 }
 
-#stadium-canvas:active {
+.stadium-wrapper-interactive canvas:active {
   cursor: grabbing;
+}
+
+.stadium-controls-toggle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  background: rgba(10, 10, 26, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.stadium-controls-toggle:hover,
+.stadium-controls-toggle[aria-pressed="true"] {
+  background: rgba(10, 10, 26, 0.85);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Keep the button clear of the mobile bleed-out edge. */
+@media screen and (max-width: 768px) {
+  .stadium-controls-toggle {
+    top: 0.75rem;
+    right: 2.5rem;
+  }
 }

@@ -162,6 +162,10 @@ export default {
   'stand.south': 'south stand',
   'stand.east': 'east stand',
   'stand.west': 'west stand',
+  'stand.corner_ne': 'NE corner stand',
+  'stand.corner_nw': 'NW corner stand',
+  'stand.corner_se': 'SE corner stand',
+  'stand.corner_sw': 'SW corner stand',
 
   // Injury types
   'injury.bruise': 'Bruise',

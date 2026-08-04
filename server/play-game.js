@@ -114,6 +114,14 @@ export function selectInjuryType () {
  * @property {number} westEarnings
  * @property {number} eastGuests
  * @property {number} eastEarnings
+ * @property {number} [corner_neGuests]
+ * @property {number} [corner_neEarnings]
+ * @property {number} [corner_nwGuests]
+ * @property {number} [corner_nwEarnings]
+ * @property {number} [corner_seGuests]
+ * @property {number} [corner_seEarnings]
+ * @property {number} [corner_swGuests]
+ * @property {number} [corner_swEarnings]
  */
 
 /**

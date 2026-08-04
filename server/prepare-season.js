@@ -648,7 +648,19 @@ async function _createRandomTeam (level) {
     north_stand_price: 13,
     south_stand_price: 13,
     east_stand_price: 13,
-    west_stand_price: 13
+    west_stand_price: 13,
+    corner_ne_stand_size: 0,
+    corner_nw_stand_size: 0,
+    corner_se_stand_size: 0,
+    corner_sw_stand_size: 0,
+    corner_ne_stand_price: 13,
+    corner_nw_stand_price: 13,
+    corner_se_stand_price: 13,
+    corner_sw_stand_price: 13,
+    corner_ne_stand_roof: 0,
+    corner_nw_stand_roof: 0,
+    corner_se_stand_roof: 0,
+    corner_sw_stand_roof: 0
   })
   await query('INSERT INTO stadium SET ?', stadium)
   await query('INSERT INTO building SET ?', {

@@ -319,6 +319,51 @@ describe('friendly routes', () => {
       expect(result.game.isFriendly).toBe(true)
       expect(result.game.details.strengthTeamA).toBeGreaterThan(0)
     })
+
+    it('earns friendly ticket income from a built corner stand', async () => {
+      const req = createMockRequest()
+      const myTeam = testData.team({ id: 1, user_id: 1, name: 'My FC' })
+      const opponentTeam = testData.team({ id: 2, user_id: null, name: 'Opponent FC' })
+      // Only a corner stand is built; all main stands are empty.
+      const stadium = testData.stadium({
+        team_id: 1,
+        north_stand_size: 0,
+        south_stand_size: 0,
+        east_stand_size: 0,
+        west_stand_size: 0,
+        corner_ne_stand_size: 500,
+        corner_ne_stand_price: 15
+      })
+
+      const myPlayers = Array.from({ length: 11 }, (_, i) =>
+        testData.player({ id: i + 1, team_id: 1, position: i === 0 ? 'GK' : 'CM', in_game_position: i === 0 ? 'GK' : 'CM', freshness: 1, level: 5 })
+      )
+      const opponentPlayers = Array.from({ length: 11 }, (_, i) =>
+        testData.player({ id: i + 100, team_id: 2, position: i === 0 ? 'GK' : 'CM', in_game_position: i === 0 ? 'GK' : 'CM', freshness: 1, level: 5 })
+      )
+
+      getTeam.mockResolvedValue(myTeam)
+      getTeamById.mockResolvedValue(opponentTeam)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+
+      query
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(myPlayers)
+        .mockResolvedValueOnce(opponentPlayers)
+        .mockResolvedValueOnce([stadium])
+      for (let i = 0; i < 11; i++) query.mockResolvedValueOnce()
+      query.mockResolvedValueOnce({ insertId: 999 })
+
+      updateTeamBalance.mockResolvedValue()
+
+      const result = await handlers.playFriendlyMatch(2, req)
+      const stadiumDetails = result.game.details.stadiumDetails
+
+      // The built corner attracts guests and the empty main stands do not.
+      expect(stadiumDetails.corner_neGuests).toBeGreaterThan(0)
+      expect(stadiumDetails.northGuests).toBe(0)
+      expect(stadiumDetails.corner_neEarnings).toBe(stadiumDetails.corner_neGuests * 15)
+    })
   })
 
   describe('canPlayFriendlyToday', () => {

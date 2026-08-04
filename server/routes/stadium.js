@@ -43,7 +43,7 @@ export default {
     const currentStadium = await getStadiumOfCurrentUser(req)
     if (currentStadium.id !== stadium.id) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
 
-    const stands = ['north', 'south', 'east', 'west']
+    const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
     const constructionTimes = {}
 
     for (const stand of stands) {
@@ -62,7 +62,10 @@ export default {
           constructionTimes[stand] = {
             days: calculateConstructionTime(currentSize, targetSize, currentRoof, targetRoof),
             seatsDiff: targetSize - currentSize,
-            addingRoof: !currentRoof && targetRoof
+            addingRoof: Boolean(!currentRoof && targetRoof),
+            // The stand grows and keeps its roof: the cover gets extended.
+            extendingRoof: Boolean(currentRoof && targetRoof && targetSize > currentSize),
+            removingRoof: Boolean(currentRoof && !targetRoof)
           }
         }
       }
@@ -85,7 +88,7 @@ export default {
     if (currentStadium.id !== stadium.id) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
 
     // Validate no stands being expanded are under construction
-    const stands = ['north', 'south', 'east', 'west']
+    const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
     for (const stand of stands) {
       const hasChanges = currentStadium[`${stand}_stand_size`] !== stadium[`${stand}_stand_size`] ||
                          currentStadium[`${stand}_stand_roof`] !== stadium[`${stand}_stand_roof`]
@@ -114,7 +117,7 @@ export default {
       [team.id]
     )
 
-    const stands = ['north', 'south', 'east', 'west']
+    const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
     const attendance = games.map(game => {
       const details = JSON.parse(game.details || '{}')
       const sd = details.stadiumDetails || {}
@@ -171,7 +174,7 @@ export default {
     const locale = req.locale || 'en'
     const currentStadium = await getStadiumOfCurrentUser(req)
     if (currentStadium.id !== stadium.id) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
-    const stands = ['north', 'south', 'east', 'west']
+    const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
     for (const stand of stands) {
       const val = stadium[stand + '_stand_price']
       if (!Number.isInteger(val) || val <= 0 || val > 100) throw new BadRequestError(t('error.invalidTicketPrice', {}, locale))

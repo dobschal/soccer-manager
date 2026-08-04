@@ -326,7 +326,9 @@ export class TeamPage extends UIElement {
    * @returns {number}
    */
   get _stadiumSize () {
-    return this.stadium.south_stand_size + this.stadium.north_stand_size + this.stadium.east_stand_size + this.stadium.west_stand_size
+    return this.stadium.south_stand_size + this.stadium.north_stand_size + this.stadium.east_stand_size + this.stadium.west_stand_size +
+      (this.stadium.corner_ne_stand_size || 0) + (this.stadium.corner_nw_stand_size || 0) +
+      (this.stadium.corner_se_stand_size || 0) + (this.stadium.corner_sw_stand_size || 0)
   }
 
   /**

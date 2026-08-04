@@ -10,6 +10,17 @@ import { cityNames } from '../lib/name-library.js'
 const _cityNameSet = new Set(cityNames)
 
 /**
+ * Roof pricing. A new roof covers the whole stand and therefore lifts the
+ * stand's build cost by `ROOF_PRICE_FACTOR` (at least `ROOF_PRICE_MIN`).
+ * Keeping the roof while a stand grows only needs the cover extended over the
+ * newly added seats, which is charged on top of those seats' price.
+ */
+const ROOF_PRICE_MIN = 300_000
+const ROOF_PRICE_FACTOR = 1.2
+const ROOF_EXTENSION_PRICE_MIN = 100_000
+const ROOF_EXTENSION_PRICE_FACTOR = 0.2
+
+/**
  * Generate a default stadium name from a team name. The team name follows
  * the pattern "[prefix1] [prefix2] cityName" — we look for a known city in the
  * name and fall back to the last whitespace-separated token.
@@ -161,7 +172,7 @@ async function _remainingGameDays (currentGameDay, currentSeason, endGameDay, en
  * @returns {Promise<Object>} Construction info per stand
  */
 export async function getConstructionInfo (stadium, currentGameDay, currentSeason) {
-  const stands = ['north', 'south', 'east', 'west']
+  const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
   const info = {}
 
   for (const stand of stands) {
@@ -194,7 +205,7 @@ export async function getConstructionInfo (stadium, currentGameDay, currentSeaso
  * @returns {Promise<void>}
  */
 export async function completeStadiumConstructions (gameDay, season) {
-  const stands = ['north', 'south', 'east', 'west']
+  const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
 
   for (const stand of stands) {
     const stadiums = await query(`
@@ -259,7 +270,7 @@ export async function completeStadiumConstructions (gameDay, season) {
 export async function completeAllStadiumConstructionsForTeam (teamId, gameDay, season) {
   const [stadium] = await query('SELECT * FROM stadium WHERE team_id=? LIMIT 1', [teamId])
   if (!stadium) return
-  const stands = ['north', 'south', 'east', 'west']
+  const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
   for (const stand of stands) {
     if (stadium[`${stand}_construction_end_game_day`] == null) continue
     await query(`
@@ -303,38 +314,66 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     west: {
       min: 100,
       max: 15_000
+    },
+    corner_ne: {
+      min: 200,
+      max: 4_000
+    },
+    corner_nw: {
+      min: 200,
+      max: 4_000
+    },
+    corner_se: {
+      min: 200,
+      max: 4_000
+    },
+    corner_sw: {
+      min: 200,
+      max: 4_000
     }
   }
 
   let totalPrice = 0
   for (const standName of Object.keys(standLimits)) {
-    const currentStandSize = currentStadium[standName + '_stand_size']
-    const plannedStandSize = plannedStadium[standName + '_stand_size']
+    const currentStandSize = currentStadium[standName + '_stand_size'] ?? 0
+    const plannedStandSize = plannedStadium[standName + '_stand_size'] ?? 0
+    const currentRoof = Boolean(currentStadium[standName + '_stand_roof'])
+    const plannedRoof = Boolean(plannedStadium[standName + '_stand_roof'])
     const {
       min,
       max
     } = standLimits[standName]
 
-    if (plannedStandSize < min) {
-      throw new BadRequestError(`Minimum size for ${standName} stand is ${min.toLocaleString()} seats.`)
-    }
-    if (plannedStandSize > max) {
-      throw new BadRequestError(`Maximum size for ${standName} stand is ${max.toLocaleString()} seats.`)
+    const seatsDiff = Math.floor(plannedStandSize - currentStandSize)
+    // Skip untouched stands entirely.
+    if (seatsDiff === 0 && currentRoof === plannedRoof) continue
+
+    // Validate the size of every stand that gets seats added — or a roof put on
+    // top. Corners start at size 0 (below their minimum), so a stadium that
+    // keeps a corner unbuilt and unroofed must not trip the check below.
+    if (seatsDiff !== 0 || plannedRoof) {
+      if (plannedStandSize < min) {
+        throw new BadRequestError(`Minimum size for ${standName} stand is ${min.toLocaleString()} seats.`)
+      }
+      if (plannedStandSize > max) {
+        throw new BadRequestError(`Maximum size for ${standName} stand is ${max.toLocaleString()} seats.`)
+      }
     }
 
-    const seatsDiff = Math.floor(plannedStandSize - currentStandSize)
     if (seatsDiff < 0) throw new BadRequestError('You cannot deconstruct the stand...')
-    if (seatsDiff === 0) continue
 
     let standPrice = calculateSeatExpansionPrice(currentStandSize, plannedStandSize)
-    if (currentStadium[standName + '_stand_roof'] && !plannedStadium[standName + '_stand_roof']) {
-      throw new BadRequestError('Roof cannot be removed')
-    }
 
-    // roof price is 20% of stand price with minimum of 300_000 €
-    if (!currentStadium[standName + '_stand_roof'] && plannedStadium[standName + '_stand_roof']) {
-      standPrice = Math.max(300_000, standPrice * 1.2)
+    if (!currentRoof && plannedRoof) {
+      // A brand new roof spans the whole stand: 20 % on top of the seat price,
+      // but never less than ROOF_PRICE_MIN.
+      standPrice = Math.max(ROOF_PRICE_MIN, standPrice * ROOF_PRICE_FACTOR)
+    } else if (currentRoof && plannedRoof && seatsDiff > 0) {
+      // The stand keeps its roof while growing, so the existing roof has to be
+      // extended over the added seats — charged on top of those seats.
+      standPrice += Math.max(ROOF_EXTENSION_PRICE_MIN, standPrice * ROOF_EXTENSION_PRICE_FACTOR)
     }
+    // Tearing a roof down costs nothing — the stand just loses its cover.
 
     totalPrice += standPrice
   }
@@ -390,7 +429,7 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
   const reason = t('finance.stadiumConstruction', {}, locale)
   await updateTeamBalance(team, price * -1, reason, gameDay, season)
 
-  const stands = ['north', 'south', 'east', 'west']
+  const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
   const updateFields = {}
 
   for (const stand of stands) {
@@ -431,7 +470,7 @@ export async function buildStadium (team, currentStadium, plannedStadium, price)
                SET ${setClauses}
                WHERE id = ?`, values)
 
-  // Record construction history for each changed stand
+  // Record construction history for each changed stand (reuses `stands` above)
   for (const stand of stands) {
     const currentSize = currentStadium[`${stand}_stand_size`]
     const targetSize = plannedStadium[`${stand}_stand_size`]
