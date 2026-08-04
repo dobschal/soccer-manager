@@ -24,6 +24,18 @@ const CONFIG = Object.freeze({
     overhangClearance: 3, // vertical gap: lower-tier top → upper deck underside
     overhangCoverFraction: 0.4 // how far the deck cantilevers over the lower tier
   },
+  // Players' tunnel cut into the front-centre of the north stand.
+  tunnel: {
+    width: 3, // clear width of the passage
+    height: 2, // clear height (to the ceiling underside)
+    protrude: 1, // how far the mouth sticks forward (stays within the field-side gap)
+    depth: 2, // reach into the stand — kept shallow so the flat ceiling clears the rising steps
+    wallThickness: 0.3,
+    wallColor: 0x3a3a3a,
+    lightColor: 0xfff2cc,
+    lightIntensity: 10,
+    lightRange: 12
+  },
   // Floodlight towers sit at the four outer corners, offset from the centre.
   floodlightOffset: { x: 33, z: 23 },
   // Roads around the stadium: a grid of four roads (behind each stand) that
@@ -355,7 +367,8 @@ export class StadiumCanvas extends UIElement {
       x: 0,
       z: -fieldDepth / 2 - standGap,
       rotation: Math.PI,
-      hasRoof: this.stadium.north_stand_roof
+      hasRoof: this.stadium.north_stand_roof,
+      hasTunnel: true // players' entrance in front of the north stand
     })
 
     this._createStand(scene, {
@@ -954,7 +967,7 @@ export class StadiumCanvas extends UIElement {
    * @param {Object} config
    */
   _createStand (scene, config) {
-    const { width, seats, x, z, rotation, hasRoof } = config
+    const { width, seats, x, z, rotation, hasRoof, hasTunnel } = config
     const { lowerRowHeight, upperRowHeight, overhangClearance, overhangCoverFraction } = CONFIG.stand
 
     const group = new this._THREE.Group()
@@ -963,6 +976,11 @@ export class StadiumCanvas extends UIElement {
     const seatsPerRow = Math.floor(width / seatWidth)
     const numRows = this._standRowCount(seats, width)
     const rowDepth = 1.0
+
+    // Seats to leave out for the players' tunnel: a central channel through the
+    // front rows of the lower tier (+1 row of clearance beyond the ceiling).
+    const tunnelHalfW = hasTunnel ? CONFIG.tunnel.width / 2 + 0.3 : 0
+    const tunnelRows = hasTunnel ? Math.ceil(CONFIG.tunnel.depth) + 1 : 0
 
     // Large stands split into two tiers: the lower ~2/3 of the rows sit under a
     // cantilevered overhang, the upper ~1/3 (steeper) sit above it.
@@ -1026,8 +1044,9 @@ export class StadiumCanvas extends UIElement {
     const stepPos = new this._THREE.Vector3()
 
     let stepIndex = 0
-    for (const tier of tiers) {
+    for (const [tierIndex, tier] of tiers.entries()) {
       const yScale = tier.rowHeight / lowerRowHeight
+      const tunnelRow = hasTunnel && tierIndex === 0
       for (let row = 0; row < tier.rows; row++) {
         const rowBottomY = tier.baseY + row * tier.rowHeight
         const rowZ = tier.baseZ + row * rowDepth
@@ -1037,9 +1056,13 @@ export class StadiumCanvas extends UIElement {
         stepMatrix.compose(stepPos, stepQuat, stepScale)
         stepInstancedMesh.setMatrixAt(stepIndex++, stepMatrix)
 
+        const inTunnelRow = tunnelRow && row < tunnelRows
         const seatY = rowBottomY + tier.rowHeight // step surface
         const seatZ = rowZ + rowDepth * 0.35
         for (let s = 0; s < seatsPerRow; s++) {
+          const seatX = -width / 2 + seatWidth / 2 + s * seatWidth
+          if (inTunnelRow && Math.abs(seatX) < tunnelHalfW) continue // tunnel channel
+
           const colorChoice = Math.random()
           let seatColor = seatColors[seatColors.length - 1].color
           for (const { color, threshold } of seatColors) {
@@ -1048,11 +1071,7 @@ export class StadiumCanvas extends UIElement {
               break
             }
           }
-          seatsByColor.get(seatColor).push({
-            x: -width / 2 + seatWidth / 2 + s * seatWidth,
-            y: seatY,
-            z: seatZ
-          })
+          seatsByColor.get(seatColor).push({ x: seatX, y: seatY, z: seatZ })
         }
       }
     }
@@ -1192,8 +1211,73 @@ export class StadiumCanvas extends UIElement {
       })
     }
 
+    if (hasTunnel) this._createTunnel(group)
+
     group.position.set(x, 0, z)
     group.rotation.y = rotation
     scene.add(group)
+  }
+
+  /**
+   * Players' tunnel at the front-centre of a stand: two side walls, a ceiling
+   * and a lit fixture underneath. The mouth protrudes forward onto the pitch and
+   * the passage runs back into the stand (through the seat channel left open by
+   * `_createStand`). Built in the stand's local space (front at z=0, +z into the
+   * stand), so it inherits the stand's placement/rotation.
+   * @param {THREE.Group} group
+   */
+  _createTunnel (group) {
+    const T = CONFIG.tunnel
+    const zFront = -T.protrude // mouth, forward onto the pitch
+    const zBack = T.depth // reaches back into the stand
+    const length = zBack - zFront
+    const midZ = (zFront + zBack) / 2
+    const halfW = T.width / 2
+    const th = T.wallThickness
+
+    const wallMat = new this._THREE.MeshLambertMaterial({ color: T.wallColor })
+
+    // Side walls.
+    for (const sign of [1, -1]) {
+      const wall = new this._THREE.Mesh(
+        new this._THREE.BoxGeometry(th, T.height, length), wallMat
+      )
+      wall.position.set(sign * (halfW + th / 2), T.height / 2, midZ)
+      wall.castShadow = true
+      wall.receiveShadow = true
+      group.add(wall)
+    }
+
+    // Ceiling.
+    const ceiling = new this._THREE.Mesh(
+      new this._THREE.BoxGeometry(T.width + 2 * th, th, length), wallMat
+    )
+    ceiling.position.set(0, T.height + th / 2, midZ)
+    ceiling.castShadow = true
+    group.add(ceiling)
+
+    // Flat floor over the protruding mouth (the part standing on the pitch).
+    const floorLen = -zFront
+    if (floorLen > 0) {
+      const floor = new this._THREE.Mesh(
+        new this._THREE.BoxGeometry(T.width, 0.1, floorLen), wallMat
+      )
+      floor.position.set(0, 0.05, zFront + floorLen / 2)
+      floor.receiveShadow = true
+      group.add(floor)
+    }
+
+    // Ceiling light: an always-lit fixture panel plus a point light that spills
+    // onto the tunnel walls.
+    const lamp = new this._THREE.Mesh(
+      new this._THREE.BoxGeometry(1.4, 0.06, 1.4),
+      new this._THREE.MeshBasicMaterial({ color: T.lightColor })
+    )
+    lamp.position.set(0, T.height - 0.06, midZ)
+    group.add(lamp)
+
+    const light = new this._THREE.PointLight(T.lightColor, T.lightIntensity, T.lightRange, 2)
+    light.position.set(0, T.height - 0.5, midZ)
+    group.add(light)
   }
 }

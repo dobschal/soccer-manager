@@ -79,10 +79,16 @@ export async function getSponsorOffers (team) {
     gameDay,
     season
   } = await getGameDayAndSeason()
+  // Only competitive games count towards the offer. Friendlies are self-scheduled
+  // (one per game day, plus unlimited appearances as someone else's opponent), so
+  // counting them would let a team farm its win rate and crowd real league/cup
+  // results out of the 34-game window. A NULL game_type is a legacy league game
+  // from before the game_type column existed.
+  const gameTypeFilter = '(game_type IN (\'league\', \'cup\') OR game_type IS NULL)'
   const games = await query(`
-    (SELECT * FROM game WHERE team_1_id=? AND played=1 ORDER BY season DESC, game_day DESC LIMIT 34)
+    (SELECT * FROM game WHERE team_1_id=? AND played=1 AND ${gameTypeFilter} ORDER BY season DESC, game_day DESC LIMIT 34)
     UNION ALL
-    (SELECT * FROM game WHERE team_2_id=? AND played=1 ORDER BY season DESC, game_day DESC LIMIT 34)
+    (SELECT * FROM game WHERE team_2_id=? AND played=1 AND ${gameTypeFilter} ORDER BY season DESC, game_day DESC LIMIT 34)
     ORDER BY season DESC, game_day DESC LIMIT 34
   `, [team.id, team.id])
   const contractLengths = [

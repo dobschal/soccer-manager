@@ -39,6 +39,10 @@ Zufallsfaktor: 90-110% Varianz
 - **TA-SPO-03**: Cache wird beim Vertragsabschluss geloescht.
 - **TA-SPO-04**: Sponsornamen werden zufaellig aus 37 verfuegbaren Namen gewaehlt.
 - **TA-SPO-05**: Angebotswert steigt mit Siegquote der letzten 34 Spiele.
+- **TA-SPO-05a**: Nur Liga- und Pokalspiele zaehlen fuer die Siegquote. Freundschaftsspiele
+  (`game_type='friendly'`) werden ausgeschlossen, da sie selbst angesetzt werden und die
+  Siegquote sonst manipulierbar waere. Alt-Datensaetze mit `game_type IS NULL` zaehlen als
+  Ligaspiele.
 
 ### Vertragsverwaltung
 
