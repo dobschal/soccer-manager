@@ -1,6 +1,75 @@
 import { UIElement } from '../lib/UIElement.js'
 
 /**
+ * Central layout & scene configuration for the 3D stadium.
+ *
+ * Everything that positions objects relative to the pitch lives here so new
+ * decoration/detail can be aligned to a single source of truth instead of
+ * scattered magic numbers. Purely local detail constants (goal post radius,
+ * flag size, …) stay grouped at the top of their respective builder methods.
+ *
+ * @type {Readonly<Object>}
+ */
+const CONFIG = Object.freeze({
+  field: { width: 50, depth: 30 },
+  standGap: 2,
+  groundSize: 250,
+  // Floodlight towers sit at the four outer corners, offset from the centre.
+  floodlightOffset: { x: 33, z: 23 },
+  // Roads around the stadium: a grid of four roads (behind each stand) that
+  // cross at four intersections and continue outward to `vanishDistance`,
+  // fading into the distance. Dashed white centre markings on each road.
+  road: {
+    width: 7,
+    // Extra clearance kept beyond the deepest stand; the grid is square, so it
+    // always uses the deepest stand on any side. `minDistance` keeps it clear
+    // of the floodlight towers for very small stadiums.
+    margin: 10,
+    minDistance: 42,
+    // How far the roads run past the intersections (well beyond the 250-wide
+    // ground plane) so they vanish into the dark background.
+    vanishDistance: 200,
+    color: 0x2c2c2e,
+    markingColor: 0xffffff,
+    dashLength: 3,
+    dashGap: 3,
+    markingWidth: 0.35
+  },
+  // Decorative trees planted on the ground around the stadium. Placed on a
+  // fixed jittered grid (deterministic, so the layout never flickers) and
+  // kept clear of the stadium footprint and the roads.
+  trees: {
+    areaHalf: 118, // trees stay within this half-extent (ground is 250 wide)
+    spacing: 14, // grid cell size
+    jitter: 5, // max per-axis random offset within a cell
+    roadClearance: 4, // keep this far from the road edges
+    minScale: 0.7,
+    maxScale: 1.7,
+    coneChance: 0.5, // share of cone-shaped (vs. round) foliage
+    trunkColor: 0x6b4a2f,
+    greens: [0x2e6b2e, 0x357a35, 0x40923f, 0x4fa74f, 0x2f5d33, 0x5bb35b, 0x3c7d3c]
+  },
+  camera: { fov: 45, near: 0.1, far: 1000, position: [80, 100, 80] },
+  controls: {
+    dampingFactor: 0.05,
+    maxPolarAngle: Math.PI / 2.2,
+    minDistance: 50,
+    maxDistance: 150
+  },
+  colors: {
+    sceneBackground: 0x0a0a1a,
+    ground: 0x3d5c3d,
+    ambientLight: 0x404060,
+    moonLight: 0x6688cc
+  },
+  // Canvas height is derived from width, capped so it never gets too tall.
+  maxCanvasHeight: 600,
+  canvasAspectFactor: 0.9,
+  // Radians added to _animationTime per frame.
+  animationSpeed: 0.05
+})
+
+/**
  * Reusable stadium 3D canvas component
  */
 export class StadiumCanvas extends UIElement {
@@ -84,15 +153,20 @@ export class StadiumCanvas extends UIElement {
     }
 
     this._camera = null
-    this._flags = []
+    this._updaters = []
     this._animationTime = 0
   }
-  _flags = []
-
+  // --- component state ---
   _animationTime = 0
+
+  // Per-frame update callbacks: (time: number) => void.
+
+  // Register animated objects here instead of editing the render loop.
+  _updaters = []
 
   // Three.js resources for cleanup
   _scene = null
+
   _renderer = null
   _camera = null
   _controls = null
@@ -110,7 +184,29 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
-   * Initialize Three.js scene
+   * Register a per-frame update callback. The callback receives the current
+   * animation time (in radians) and is invoked once per rendered frame.
+   * @param {(time: number) => void} fn
+   */
+  _addUpdater (fn) {
+    this._updaters.push(fn)
+  }
+
+  /**
+   * Compute the canvas dimensions from its container width.
+   * @param {HTMLElement} container
+   * @returns {{ width: number, height: number }}
+   */
+  _canvasSize (container) {
+    const width = container.clientWidth
+    const height = Math.min(CONFIG.maxCanvasHeight, width * CONFIG.canvasAspectFactor)
+    return { width, height }
+  }
+
+  /**
+   * Initialize Three.js scene: bootstrap the library, build the scene graph
+   * and start the render loop. The individual concerns are delegated to the
+   * `_setup*` / `_build*` helpers below.
    */
   async _initThreeJS () {
     const [THREE, { OrbitControls }] = await Promise.all([
@@ -124,78 +220,95 @@ export class StadiumCanvas extends UIElement {
     if (!canvas) return
 
     const container = canvas.parentElement
-    const width = container.clientWidth
-    const height = Math.min(600, width * 0.9)
 
-    this._scene = new this._THREE.Scene()
-    this._scene.background = new this._THREE.Color(0x0a0a1a)
+    this._setupScene(canvas, container)
+    this._setupLights()
 
-    this._camera = new this._THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-    this._camera.position.set(80, 100, 80)
+    this._buildStadium(this._scene)
+    this._buildFloodlights(this._scene)
+    this._buildRoads(this._scene)
+    this._buildTrees(this._scene)
+
+    this._startRenderLoop()
+    this._observeResize(container)
+  }
+
+  /**
+   * Create the scene, camera, renderer and orbit controls.
+   * @param {HTMLCanvasElement} canvas
+   * @param {HTMLElement} container
+   */
+  _setupScene (canvas, container) {
+    const THREE = this._THREE
+    const { width, height } = this._canvasSize(container)
+
+    this._scene = new THREE.Scene()
+    this._scene.background = new THREE.Color(CONFIG.colors.sceneBackground)
+
+    this._camera = new THREE.PerspectiveCamera(
+      CONFIG.camera.fov, width / height, CONFIG.camera.near, CONFIG.camera.far
+    )
+    this._camera.position.set(...CONFIG.camera.position)
     this._camera.lookAt(0, 0, 0)
 
-    this._renderer = new this._THREE.WebGLRenderer({ canvas, antialias: true })
+    this._renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
     this._renderer.setSize(width, height)
     this._renderer.setPixelRatio(window.devicePixelRatio)
     this._renderer.shadowMap.enabled = true
-    this._renderer.shadowMap.type = this._THREE.PCFSoftShadowMap
+    this._renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
     this._controls = new this._OrbitControls(this._camera, this._renderer.domElement)
     this._controls.enableDamping = true
-    this._controls.dampingFactor = 0.05
-    this._controls.maxPolarAngle = Math.PI / 2.2
-    this._controls.minDistance = 50
-    this._controls.maxDistance = 150
+    this._controls.dampingFactor = CONFIG.controls.dampingFactor
+    this._controls.maxPolarAngle = CONFIG.controls.maxPolarAngle
+    this._controls.minDistance = CONFIG.controls.minDistance
+    this._controls.maxDistance = CONFIG.controls.maxDistance
+  }
 
-    const ambientLight = new this._THREE.AmbientLight(0x404060, 0.5)
+  /**
+   * Add the ambient / directional "moonlight" fill lighting. Floodlight
+   * spotlights are added per-tower in `_createFloodlightTower`.
+   */
+  _setupLights () {
+    const THREE = this._THREE
+
+    const ambientLight = new THREE.AmbientLight(CONFIG.colors.ambientLight, 0.5)
     this._scene.add(ambientLight)
 
-    const moonLight = new this._THREE.DirectionalLight(0x6688cc, 0.5)
+    const moonLight = new THREE.DirectionalLight(CONFIG.colors.moonLight, 0.5)
     moonLight.position.set(30, 100, 30)
     this._scene.add(moonLight)
+  }
 
-    this._buildStadium(this._scene)
-
-    this._createFloodlightTower(this._scene, -33, -23)
-    this._createFloodlightTower(this._scene, 33, -23)
-    this._createFloodlightTower(this._scene, -33, 23)
-    this._createFloodlightTower(this._scene, 33, 23)
-
+  /**
+   * Start the requestAnimationFrame render loop. Every registered updater is
+   * invoked once per frame with the current animation time.
+   */
+  _startRenderLoop () {
     const animate = () => {
       if (!this._controls || !this._renderer) return
       this._animationFrameId = requestAnimationFrame(animate)
       this._controls.update()
 
-      this._animationTime += 0.05
-      this._flags.forEach(flag => {
-        const positionAttr = flag.geometry.getAttribute('position')
-        const originalPositions = flag.userData.originalPositions
-
-        for (let i = 0; i < positionAttr.count; i++) {
-          const x = originalPositions[i * 3]
-          const y = originalPositions[i * 3 + 1]
-          const z = originalPositions[i * 3 + 2]
-
-          const waveAmount = x * 0.3
-          const wave = Math.sin(this._animationTime * 3 + x * 2) * waveAmount
-
-          positionAttr.setZ(i, z + wave)
-          positionAttr.setY(i, y + Math.sin(this._animationTime * 2 + x * 3) * waveAmount * 0.3)
-        }
-        positionAttr.needsUpdate = true
-      })
+      this._animationTime += CONFIG.animationSpeed
+      this._updaters.forEach(update => update(this._animationTime))
 
       this._renderer.render(this._scene, this._camera)
     }
     animate()
+  }
 
+  /**
+   * Keep camera aspect and renderer size in sync with the container width.
+   * @param {HTMLElement} container
+   */
+  _observeResize (container) {
     this._resizeObserver = new ResizeObserver(() => {
       if (!this._camera || !this._renderer) return
-      const newWidth = container.clientWidth
-      const newHeight = Math.min(600, newWidth * 0.9)
-      this._camera.aspect = newWidth / newHeight
+      const { width, height } = this._canvasSize(container)
+      this._camera.aspect = width / height
       this._camera.updateProjectionMatrix()
-      this._renderer.setSize(newWidth, newHeight)
+      this._renderer.setSize(width, height)
     })
     this._resizeObserver.observe(container)
   }
@@ -204,17 +317,17 @@ export class StadiumCanvas extends UIElement {
    * @param {THREE.Scene} scene
    */
   _buildStadium (scene) {
-    const fieldWidth = 50
-    const fieldDepth = 30
-    const standGap = 2
+    const fieldWidth = CONFIG.field.width
+    const fieldDepth = CONFIG.field.depth
+    const standGap = CONFIG.standGap
 
     const northSeats = this.stadium.north_stand_size || 0
     const southSeats = this.stadium.south_stand_size || 0
     const eastSeats = this.stadium.east_stand_size || 0
     const westSeats = this.stadium.west_stand_size || 0
 
-    const groundGeo = new this._THREE.PlaneGeometry(250, 250)
-    const groundMat = new this._THREE.MeshLambertMaterial({ color: 0x3d5c3d })
+    const groundGeo = new this._THREE.PlaneGeometry(CONFIG.groundSize, CONFIG.groundSize)
+    const groundMat = new this._THREE.MeshLambertMaterial({ color: CONFIG.colors.ground })
     const ground = new this._THREE.Mesh(groundGeo, groundMat)
     ground.rotation.x = -Math.PI / 2
     ground.position.y = -0.1
@@ -264,6 +377,248 @@ export class StadiumCanvas extends UIElement {
       rotation: Math.PI / 2,
       hasRoof: this.stadium.east_stand_roof
     })
+  }
+
+  /**
+   * Place the four floodlight towers at the outer corners.
+   * @param {THREE.Scene} scene
+   */
+  _buildFloodlights (scene) {
+    const { x, z } = CONFIG.floodlightOffset
+    this._createFloodlightTower(scene, -x, -z)
+    this._createFloodlightTower(scene, x, -z)
+    this._createFloodlightTower(scene, -x, z)
+    this._createFloodlightTower(scene, x, z)
+  }
+
+  /**
+   * Number of seating rows for a stand. Drives both the stand depth and the
+   * ring-road distance, so it lives in one place.
+   * @param {number} seats
+   * @param {number} width
+   * @param {string} position
+   * @returns {number}
+   */
+  _standRowCount (seats, width, position) {
+    const seatWidth = 0.5
+    const seatsPerRow = Math.floor(width / seatWidth)
+    const minSize = 200
+    const maxSize = (position === 'east' || position === 'west') ? 15000 : 30000
+    const divider = 1 + Math.min(1, (seats - minSize) / (maxSize - minSize)) * 4
+    return Math.max(3, Math.ceil(seats / seatsPerRow) / divider)
+  }
+
+  /**
+   * Half-extent of the square road grid: a fixed margin beyond the deepest of
+   * the four stands, clamped to a minimum so it always clears the floodlight
+   * towers. Shared by the roads and the tree placement.
+   * @returns {number}
+   */
+  _roadDistance () {
+    const { margin, minDistance } = CONFIG.road
+    const fieldW = CONFIG.field.width
+    const fieldD = CONFIG.field.depth
+    const gap = CONFIG.standGap
+
+    // Outer extent of each stand (row depth is 1 unit/row; +2 covers back
+    // wall & roof). The square grid uses the deepest of the four.
+    const stands = [
+      { seats: this.stadium.north_stand_size || 0, width: fieldW + 6, position: 'north', base: fieldD / 2 + gap },
+      { seats: this.stadium.south_stand_size || 0, width: fieldW + 6, position: 'south', base: fieldD / 2 + gap },
+      { seats: this.stadium.west_stand_size || 0, width: fieldD + 6, position: 'west', base: fieldW / 2 + gap },
+      { seats: this.stadium.east_stand_size || 0, width: fieldD + 6, position: 'east', base: fieldW / 2 + gap }
+    ]
+    const deepest = Math.max(
+      ...stands.map(s => s.base + this._standRowCount(s.seats, s.width, s.position) + 2)
+    )
+    return Math.max(minDistance, deepest + margin)
+  }
+
+  /**
+   * A deterministic pseudo-random generator (mulberry32) seeded with a fixed
+   * value. Produces the same sequence on every render so decorative layouts
+   * (e.g. trees) look random but never flicker between frames/reloads.
+   * @param {number} seed
+   * @returns {() => number} function returning a float in [0, 1)
+   */
+  _seededRandom (seed) {
+    let s = seed >>> 0
+    return () => {
+      s = (s + 0x6d2b79f5) | 0
+      let t = Math.imul(s ^ (s >>> 15), 1 | s)
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+  }
+
+  /**
+   * Plant decorative trees around the stadium. Candidate positions come from a
+   * jittered grid (deterministic → looks random, stays stable) covering the
+   * ground plane, minus the stadium footprint and the road grid. Each tree is a
+   * brown cylinder trunk topped by a green sphere or cone, with varied size and
+   * green tone. Rendered via InstancedMesh (3 draw calls total).
+   * @param {THREE.Scene} scene
+   */
+  _buildTrees (scene) {
+    const THREE = this._THREE
+    const {
+      areaHalf, spacing, jitter, roadClearance,
+      minScale, maxScale, coneChance, trunkColor, greens
+    } = CONFIG.trees
+
+    const distance = this._roadDistance()
+    const roadEdge = CONFIG.road.width / 2 + roadClearance
+    const rand = this._seededRandom(0x9e3779b9)
+
+    // Base (scale 1) tree dimensions.
+    const trunkHeight = 3
+    const sphereRadius = 2.4
+    const coneRadius = 2.6
+    const coneHeight = 5.5
+    const sphereCenterY = trunkHeight + sphereRadius * 0.6
+    const coneCenterY = trunkHeight + coneHeight / 2
+
+    // Reject a candidate that would sit on the stadium footprint (inside the
+    // road grid) or on/near any road.
+    const isBlocked = (x, z) =>
+      (Math.abs(x) < distance && Math.abs(z) < distance) ||
+      Math.abs(Math.abs(x) - distance) < roadEdge ||
+      Math.abs(Math.abs(z) - distance) < roadEdge
+
+    const trees = []
+    const steps = Math.floor(areaHalf / spacing)
+    for (let gx = -steps; gx <= steps; gx++) {
+      for (let gz = -steps; gz <= steps; gz++) {
+        const x = gx * spacing + (rand() - 0.5) * 2 * jitter
+        const z = gz * spacing + (rand() - 0.5) * 2 * jitter
+        if (Math.abs(x) > areaHalf || Math.abs(z) > areaHalf) continue
+        if (isBlocked(x, z)) continue
+        trees.push({
+          x,
+          z,
+          scale: minScale + rand() * (maxScale - minScale),
+          isCone: rand() < coneChance,
+          green: greens[Math.floor(rand() * greens.length)]
+        })
+      }
+    }
+
+    const sphereTrees = trees.filter(t => !t.isCone)
+    const coneTrees = trees.filter(t => t.isCone)
+
+    const trunkMat = new THREE.MeshLambertMaterial({ color: trunkColor })
+    // Foliage colour comes from per-instance colours; base material is white
+    // so the instance colour shows unmodified.
+    const foliageMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+
+    const trunks = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.3, 0.45, trunkHeight, 6), trunkMat, trees.length
+    )
+    const sphereFoliage = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(sphereRadius, 8, 6), foliageMat, sphereTrees.length
+    )
+    const coneFoliage = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(coneRadius, coneHeight, 7), foliageMat, coneTrees.length
+    )
+
+    const matrix = new THREE.Matrix4()
+    const quat = new THREE.Quaternion()
+    const scaleVec = new THREE.Vector3()
+    const pos = new THREE.Vector3()
+    const color = new THREE.Color()
+
+    const setInstance = (mesh, i, x, z, y, scale, green) => {
+      scaleVec.set(scale, scale, scale)
+      pos.set(x, y * scale, z)
+      matrix.compose(pos, quat, scaleVec)
+      mesh.setMatrixAt(i, matrix)
+      if (green !== undefined) mesh.setColorAt(i, color.set(green))
+    }
+
+    trees.forEach((t, i) => setInstance(trunks, i, t.x, t.z, trunkHeight / 2, t.scale))
+    sphereTrees.forEach((t, i) => setInstance(sphereFoliage, i, t.x, t.z, sphereCenterY, t.scale, t.green))
+    coneTrees.forEach((t, i) => setInstance(coneFoliage, i, t.x, t.z, coneCenterY, t.scale, t.green))
+
+    for (const mesh of [trunks, sphereFoliage, coneFoliage]) {
+      mesh.instanceMatrix.needsUpdate = true
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+      mesh.castShadow = true
+      mesh.receiveShadow = true
+      scene.add(mesh)
+    }
+  }
+
+  /**
+   * Build the roads around the stadium as a grid (#-shape): the two north/south
+   * roads run continuously, the two west/east roads cross them at four
+   * intersections, and every road continues outward past its corner all the way
+   * to `vanishDistance` — far beyond the ground plane — so it fades into the
+   * distance. Dashed white centre markings run the full length and skip the
+   * intersections. The grid sits a fixed margin beyond the deepest stand so it
+   * always clears the stadium regardless of its size.
+   * @param {THREE.Scene} scene
+   */
+  _buildRoads (scene) {
+    const THREE = this._THREE
+    const {
+      width: rw, vanishDistance: far, color,
+      markingColor, dashLength, dashGap, markingWidth
+    } = CONFIG.road
+
+    const distance = this._roadDistance()
+
+    const roadY = 0
+    const markingY = 0.02
+    const roadMat = new THREE.MeshLambertMaterial({ color })
+    const markingMat = new THREE.MeshBasicMaterial({ color: markingColor })
+
+    // A flat tile lying on the ground (rotated from the XY into the XZ plane).
+    // Geometries are shared across tiles of the same shape.
+    const addTile = (geo, mat, x, z, y) => {
+      const mesh = new THREE.Mesh(geo, mat)
+      mesh.rotation.x = -Math.PI / 2
+      mesh.position.set(x, y, z)
+      mesh.receiveShadow = true
+      scene.add(mesh)
+    }
+
+    // North/south roads run continuously through the crossings...
+    const hRoadGeo = new THREE.PlaneGeometry(2 * far, rw)
+    addTile(hRoadGeo, roadMat, 0, -distance, roadY) // north
+    addTile(hRoadGeo, roadMat, 0, distance, roadY) // south
+
+    // ...west/east roads yield at the crossings (split into a middle piece plus
+    // two outward pieces) so nothing overlaps.
+    const vMiddleGeo = new THREE.PlaneGeometry(rw, 2 * distance - rw)
+    const vOuterLen = far - distance - rw / 2
+    const vOuterGeo = new THREE.PlaneGeometry(rw, vOuterLen)
+    const vOuterCenter = distance + rw / 2 + vOuterLen / 2
+    for (const vx of [-distance, distance]) {
+      addTile(vMiddleGeo, roadMat, vx, 0, roadY) // between the two crossings
+      addTile(vOuterGeo, roadMat, vx, -vOuterCenter, roadY) // outward toward -z
+      addTile(vOuterGeo, roadMat, vx, vOuterCenter, roadY) // outward toward +z
+    }
+
+    // Dashed centre markings, running the full length and skipping the
+    // crossings (just like real road markings).
+    const dashGeoX = new THREE.PlaneGeometry(dashLength, markingWidth)
+    const dashGeoZ = new THREE.PlaneGeometry(markingWidth, dashLength)
+    const period = dashLength + dashGap
+    const dashCount = Math.floor((2 * far) / period)
+    const dashSpan = dashCount * period - dashGap
+    const dashStart = -dashSpan / 2 + dashLength / 2
+    const nearCrossing = p =>
+      Math.abs(p - distance) < rw / 2 + dashLength / 2 ||
+      Math.abs(p + distance) < rw / 2 + dashLength / 2
+
+    for (let i = 0; i < dashCount; i++) {
+      const p = dashStart + i * period
+      if (nearCrossing(p)) continue
+      addTile(dashGeoX, markingMat, p, -distance, markingY) // north
+      addTile(dashGeoX, markingMat, p, distance, markingY) // south
+      addTile(dashGeoZ, markingMat, -distance, p, markingY) // west
+      addTile(dashGeoZ, markingMat, distance, p, markingY) // east
+    }
   }
 
   /**
@@ -367,7 +722,30 @@ export class StadiumCanvas extends UIElement {
     flag.userData.originalPositions = originalPositions
 
     scene.add(flag)
-    this._flags.push(flag)
+    this._addUpdater(time => this._animateFlag(flag, time))
+  }
+
+  /**
+   * Wave a corner flag by displacing its vertices along a sine wave.
+   * @param {THREE.Mesh} flag
+   * @param {number} time
+   */
+  _animateFlag (flag, time) {
+    const positionAttr = flag.geometry.getAttribute('position')
+    const originalPositions = flag.userData.originalPositions
+
+    for (let i = 0; i < positionAttr.count; i++) {
+      const x = originalPositions[i * 3]
+      const y = originalPositions[i * 3 + 1]
+      const z = originalPositions[i * 3 + 2]
+
+      const waveAmount = x * 0.3
+      const wave = Math.sin(time * 3 + x * 2) * waveAmount
+
+      positionAttr.setZ(i, z + wave)
+      positionAttr.setY(i, y + Math.sin(time * 2 + x * 3) * waveAmount * 0.3)
+    }
+    positionAttr.needsUpdate = true
   }
 
   /**
@@ -474,11 +852,7 @@ export class StadiumCanvas extends UIElement {
 
     const seatWidth = 0.5
     const seatsPerRow = Math.floor(width / seatWidth)
-
-    const minSize = 200
-    const maxSize = (position === 'east' || position === 'west') ? 15000 : 30000
-    const divider = 1 + Math.min(1, (seats - minSize) / (maxSize - minSize)) * 4
-    const numRows = Math.max(3, Math.ceil(seats / seatsPerRow) / divider)
+    const numRows = this._standRowCount(seats, width, position)
 
     const rowDepth = 1.0
     const rowHeight = 0.5
