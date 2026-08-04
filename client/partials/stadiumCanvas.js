@@ -36,6 +36,17 @@ const CONFIG = Object.freeze({
     lightIntensity: 10,
     lightRange: 12
   },
+  // Substitute benches (dugouts) flanking the tunnel in front of the north
+  // stand: light-grey seats (same geometry as the stands) on a grey base.
+  bench: {
+    seatCount: 7, // seats per bench
+    gap: 1.2, // gap between the tunnel wall and a bench
+    z: -1, // z of the benches (field-side perimeter gap)
+    baseHeight: 0.5,
+    baseDepth: 1.0,
+    baseColor: 0x808080,
+    seatColor: 0xcccccc
+  },
   // Floodlight towers sit at the four outer corners, offset from the centre.
   floodlightOffset: { x: 33, z: 23 },
   // Roads around the stadium: a grid of four roads (behind each stand) that
@@ -1211,7 +1222,10 @@ export class StadiumCanvas extends UIElement {
       })
     }
 
-    if (hasTunnel) this._createTunnel(group)
+    if (hasTunnel) {
+      this._createTunnel(group)
+      this._createBenches(group)
+    }
 
     group.position.set(x, 0, z)
     group.rotation.y = rotation
@@ -1279,5 +1293,61 @@ export class StadiumCanvas extends UIElement {
     const light = new this._THREE.PointLight(T.lightColor, T.lightIntensity, T.lightRange, 2)
     light.position.set(0, T.height - 0.5, midZ)
     group.add(light)
+  }
+
+  /**
+   * Substitute benches (dugouts) flanking the players' tunnel, in the field-side
+   * gap in front of the stand. Each is a grey base carrying a row of light-grey
+   * seats (the same seat geometry as the stands), facing the field. Built in the
+   * stand's local space so it inherits the stand's placement/rotation.
+   * @param {THREE.Group} group
+   */
+  _createBenches (group) {
+    const B = CONFIG.bench
+    const seatWidth = 0.5
+    const benchLength = B.seatCount * seatWidth
+    const tunnelOuterHalf = CONFIG.tunnel.width / 2 + CONFIG.tunnel.wallThickness
+    const centerXMag = tunnelOuterHalf + B.gap + benchLength / 2
+
+    const baseMat = new this._THREE.MeshLambertMaterial({ color: B.baseColor })
+    const seatMat = new this._THREE.MeshLambertMaterial({ color: B.seatColor, side: this._THREE.DoubleSide })
+    const seatDepth = 1.0
+    const seatGeo = this._createSeatGeometry(seatWidth, seatDepth)
+
+    // The base front (field side) must sit flush with the seat front, not stick
+    // out past it: the seat pan reaches seatDepth * 0.25 in front of B.z.
+    const seatFrontOffset = seatDepth * 0.25
+    const baseZ = B.z - seatFrontOffset + B.baseDepth / 2
+
+    // Collect seat positions for both benches into one instanced mesh.
+    const seatPositions = []
+    for (const sign of [-1, 1]) {
+      const centerX = sign * centerXMag
+
+      const base = new this._THREE.Mesh(
+        new this._THREE.BoxGeometry(benchLength + 0.4, B.baseHeight, B.baseDepth), baseMat
+      )
+      base.position.set(centerX, B.baseHeight / 2, baseZ)
+      base.castShadow = true
+      base.receiveShadow = true
+      group.add(base)
+
+      for (let i = 0; i < B.seatCount; i++) {
+        seatPositions.push({
+          x: centerX - benchLength / 2 + seatWidth / 2 + i * seatWidth,
+          y: B.baseHeight, // top of the base; seat sits on it
+          z: B.z
+        })
+      }
+    }
+
+    const seats = new this._THREE.InstancedMesh(seatGeo, seatMat, seatPositions.length)
+    const seatMatrix = new this._THREE.Matrix4()
+    seatPositions.forEach((p, i) => {
+      seatMatrix.setPosition(p.x, p.y, p.z)
+      seats.setMatrixAt(i, seatMatrix)
+    })
+    seats.instanceMatrix.needsUpdate = true
+    group.add(seats)
   }
 }
