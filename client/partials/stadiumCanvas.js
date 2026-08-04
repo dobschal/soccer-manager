@@ -1130,6 +1130,19 @@ export class StadiumCanvas extends UIElement {
         frontY: deckY + 1.5,
         backY: upperTopY + 1.5
       })
+      // Close the sides of the section behind the lower tier's rear wall (from
+      // there to the back wall, up to the deck) — a flat rectangular fill.
+      const rearFillDepth = totalDepth - lowerDepth
+      if (rearFillDepth > 0) {
+        this._addSideWalls(group, backWallMat, {
+          width,
+          depth: rearFillDepth,
+          baseZ: lowerDepth,
+          baseY: 0,
+          frontY: deckY,
+          backY: deckY
+        })
+      }
     }
 
     if (hasRoof) {
