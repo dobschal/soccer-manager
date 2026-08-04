@@ -1621,6 +1621,10 @@ export default {
   'headToHead.league': 'Liga',
   'headToHead.seasonShort': 'S.',
   'headToHead.showFriendlies': 'Friendlies anzeigen',
+  'headToHead.home': 'Heim',
+  'headToHead.away': 'Auswärts',
+  'headToHead.homeShort': 'H',
+  'headToHead.awayShort': 'A',
 
   // Season review overlay (end-of-season summary on the dashboard, shown until
   // the new season is created)
