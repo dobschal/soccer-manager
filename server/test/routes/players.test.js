@@ -178,6 +178,21 @@ describe('players routes', () => {
       expect(addLogMessage).toHaveBeenCalled()
     })
 
+    it('#512 clears any stale trade offers when signing a free agent', async () => {
+      const team = testData.team()
+      const player = testData.player({ team_id: null, name: 'Free Player' })
+
+      getTeam.mockResolvedValue(team)
+      getPlayerById.mockResolvedValue(player)
+      getPlayersByTeamId.mockResolvedValue(Array(20).fill(testData.player()))
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      await handlers.givePlayerContract(1, req)
+
+      expect(query).toHaveBeenCalledWith('DELETE FROM trade_offer WHERE player_id=?', [player.id])
+    })
+
     it('throws error when player has team', async () => {
       const team = testData.team()
       const player = testData.player({ team_id: 5 })

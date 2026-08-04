@@ -72,6 +72,10 @@ export default {
     const teamPlayers = await getPlayersByTeamId(team.id)
     if (teamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
     await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
+    // A free agent must never carry stale trade offers into their new club.
+    // firePlayer already clears offers when a player leaves a team; mirror that
+    // here so signing a free agent can't leave them listed on the market (#512).
+    await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
     await addLogMessage(t('log.playerSigned', { playerName: player.name }, locale), team, null, null, 'pencil', undefined, 'success')
     await addPlayerHistory(playerId, 'HIRED', team.name)
   },
