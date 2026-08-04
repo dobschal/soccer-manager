@@ -389,11 +389,19 @@ export class StadiumCanvas extends UIElement {
    * Push the current interactive/auto-rotate state onto the controls.
    * `enabled: false` only detaches the pointer/wheel handlers — `update()` keeps
    * applying the auto-rotation, so a locked camera can still orbit on its own.
+   *
+   * OrbitControls forces `touch-action: none` (inline) on the canvas so its own
+   * gestures work; that also blocks page scrolling. When the controls are off we
+   * restore `touch-action: pan-y` so a vertical swipe on the canvas scrolls the
+   * page again.
    */
   _applyInteractiveState () {
     if (!this._controls) return
     this._controls.enabled = this._interactive
     this._controls.autoRotate = !this._interactive && this.options.autoRotate === true
+
+    const dom = this._controls.domElement
+    if (dom && dom.style) dom.style.touchAction = this._interactive ? 'none' : 'pan-y'
   }
 
   /**
@@ -1804,8 +1812,31 @@ export class StadiumCanvas extends UIElement {
     // terracing lines up where they meet.
     const rowHeight = CONFIG.stand.lowerRowHeight * Math.SQRT1_2 * (fanSlope + 1)
 
-    const rowWidth = r => (2 * r + 1) * rowDepth * fanSlope // triangular growth
+    // Width of the fan at distance `d` (in rows) from the apex — it fills the
+    // 90° wedge, so width = 2·distance.
+    const fanWidth = d => (2 * d + 1) * rowDepth * fanSlope
     const rowSurfaceY = r => 0.5 + (r + 1) * rowHeight // seating height of row r
+
+    // Corners get the same overhang as the main stands. Because the fan rows are
+    // steeper, the two-tier row threshold is lower — chosen so the overhang
+    // appears at the same physical height as on the main stands.
+    const { lowerTierFraction, overhangClearance, overhangCoverFraction, twoTierRowThreshold, lowerRowHeight } = CONFIG.stand
+    const cornerTwoTierRows = Math.round(twoTierRowThreshold * lowerRowHeight / rowHeight)
+    const twoTier = rows >= cornerTwoTierRows
+    const lowerRows = twoTier ? Math.round(rows * lowerTierFraction) : rows
+    const upperRows = rows - lowerRows
+    // The upper tier is pulled toward the field (over the lower tier's rear) by
+    // the overhang, like the main stands. Its rows keep filling the wedge at
+    // their pulled-forward distance from the apex.
+    const overhang = twoTier ? lowerRows * overhangCoverFraction : 0
+    const lowerTopY = 0.5 + lowerRows * rowHeight // top of the lower tier
+    const deckY = lowerTopY + overhangClearance // upper-tier floor / overhang top
+    const overallTop = twoTier ? deckY + upperRows * rowHeight : rowSurfaceY(rows - 1)
+
+    // Distance from the apex for a given row (upper rows are pulled forward).
+    const rowDist = r => (twoTier && r >= lowerRows) ? r - overhang : r
+    const backDist = Math.max(lowerRows - 1, rowDist(rows - 1)) // deepest occupied row
+    const totalDepth = (backDist + 1) * rowDepth
 
     const seatColors = [
       {color: 0xe74c3c, threshold: 0.35},
@@ -1834,12 +1865,18 @@ export class StadiumCanvas extends UIElement {
     const pos = new this._THREE.Vector3()
 
     for (let r = 0; r < rows; r++) {
-      const w = rowWidth(r)
-      const surfaceY = rowSurfaceY(r)
-      const rowZ = r * rowDepth
+      const dist = rowDist(r)
+      const w = fanWidth(dist)
+      const rowZ = dist * rowDepth
+      // Lower rows are solid blocks from the ground; upper rows sit on the deck.
+      const isUpper = twoTier && r >= lowerRows
+      const blockBottom = isUpper ? deckY : 0
+      const blockTop = isUpper
+        ? deckY + (r - lowerRows + 1) * rowHeight
+        : 0.5 + (r + 1) * rowHeight
 
-      scale.set(w, surfaceY, rowDepth)
-      pos.set(0, surfaceY / 2, rowZ + rowDepth / 2)
+      scale.set(w, blockTop - blockBottom, rowDepth)
+      pos.set(0, (blockBottom + blockTop) / 2, rowZ + rowDepth / 2)
       matrix.compose(pos, quat, scale)
       stepMesh.setMatrixAt(r, matrix)
 
@@ -1856,7 +1893,7 @@ export class StadiumCanvas extends UIElement {
         }
         seatsByColor.get(seatColor).push({
           x: -w / 2 + seatWidth / 2 + s * seatWidth,
-          y: surfaceY,
+          y: blockTop,
           z: seatZ
         })
       }
@@ -1878,23 +1915,45 @@ export class StadiumCanvas extends UIElement {
       group.add(instancedSeats)
     }
 
+    // --- overhang: rear wall of the lower tier + cantilevered deck ---
+    if (twoTier) {
+      const lowerBackWidth = fanWidth(lowerRows - 1)
+      const wallHeight = deckY - lowerTopY
+      const wall = new this._THREE.Mesh(
+        new this._THREE.BoxGeometry(lowerBackWidth, wallHeight, 0.5),
+        new this._THREE.MeshLambertMaterial({ color: 0x606060 })
+      )
+      wall.position.set(0, lowerTopY + wallHeight / 2, lowerRows * rowDepth)
+      wall.castShadow = true
+      group.add(wall)
+
+      const deck = new this._THREE.Mesh(
+        new this._THREE.BoxGeometry(lowerBackWidth, 0.4, overhang),
+        new this._THREE.MeshLambertMaterial({ color: 0x777777 })
+      )
+      deck.position.set(0, deckY - 0.2, lowerRows * rowDepth - overhang / 2)
+      deck.castShadow = true
+      deck.receiveShadow = true
+      group.add(deck)
+    }
+
     // Back wall closing the wide, tall rear of the wedge.
-    const backWidth = rowWidth(rows - 1) + 1
-    const backHeight = rowSurfaceY(rows - 1) + 0.5
+    const backWidth = fanWidth(backDist) + 1
+    const backHeight = overallTop + 0.5
     const backWall = new this._THREE.Mesh(
       new this._THREE.BoxGeometry(backWidth, backHeight, 0.5),
       new this._THREE.MeshLambertMaterial({color: 0x606060})
     )
-    backWall.position.set(0, backHeight / 2, rows * rowDepth + 0.25)
+    backWall.position.set(0, backHeight / 2, totalDepth + 0.25)
     backWall.castShadow = true
     group.add(backWall)
 
     if (roof) {
       // A triangular roof over the fan, held by a mast at the back with a cable
       // to the front — like the main stands' cantilever roof.
-      const backZ = rows * rowDepth
-      const halfBack = rowWidth(rows - 1) / 2 + 2 // roof overhangs the sides a bit
-      const roofY = rowSurfaceY(rows - 1) + 3 // clear above the top seats
+      const backZ = totalDepth
+      const halfBack = fanWidth(backDist) / 2 + 2 // roof overhangs the sides a bit
+      const roofY = overallTop + 3 // clear above the top seats
 
       // Triangular prism with the same look as the other roofs: a solid slab of
       // thickness `t`, gently raked (front lower, back higher) at the same slope.

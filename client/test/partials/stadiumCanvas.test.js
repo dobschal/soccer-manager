@@ -206,7 +206,7 @@ describe('StadiumCanvas camera controls', () => {
     },
     WebGLRenderer: class {
       shadowMap = {}
-      domElement = {}
+      domElement = { style: {} }
       setSize = vi.fn()
       setPixelRatio = vi.fn()
     },
@@ -234,5 +234,15 @@ describe('StadiumCanvas camera controls', () => {
     // Slow orbit: clearly below the OrbitControls default of 2.0 deg/s
     expect(controls.autoRotateSpeed).toBeGreaterThan(0)
     expect(controls.autoRotateSpeed).toBeLessThan(2)
+  })
+
+  it('blocks touch gestures while interactive so OrbitControls can pan/zoom', () => {
+    const controls = setupWith(undefined)
+    expect(controls.domElement.style.touchAction).toBe('none')
+  })
+
+  it('allows vertical page scrolling on the canvas when controls are off', () => {
+    const controls = setupWith({ interactive: false })
+    expect(controls.domElement.style.touchAction).toBe('pan-y')
   })
 })
