@@ -3,6 +3,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { addLogMessage } from './logMessageHelper.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
 import { getPlayerById } from './playerHelper.js'
+import { getTeamById } from './teamHelper.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { getUserLocale, t } from '../i18n/index.js'
@@ -339,16 +340,30 @@ export async function playActionCard ({
     return { success: true }
   }
   if (actionCard.action === 'SPY') {
-    // The reveal happens client-side (it fetches the target team's public
-    // tactics/lineup); using the card just consumes it. The spied team id is
-    // passed through the `position` slot (SPY has no lineup position) so we can
-    // remember the latest scouting target and show it again on #my-team.
+    // The spy report is a point-in-time SNAPSHOT: we freeze the opponent's
+    // tactics, lineup and active motivating-speech buff at the moment the card
+    // is played, so later tactic changes by the opponent don't alter the
+    // report (#513). The spied team id is passed through the `position` slot
+    // (SPY has no lineup position).
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     const spiedTeamId = Number(position)
+    let report = null
     if (spiedTeamId) {
-      await query('UPDATE team SET last_spied_team_id=?, last_spied_at=NOW() WHERE id=?', [spiedTeamId, team.id])
+      const spiedTeam = await getTeamById(spiedTeamId)
+      if (spiedTeam) {
+        const players = await query('SELECT * FROM player WHERE team_id=?', [spiedTeamId])
+        report = {
+          team: spiedTeam,
+          players,
+          motivatingSpeechActive: !!spiedTeam.motivating_speech_active
+        }
+        await query(
+          'UPDATE team SET last_spied_team_id=?, last_spied_at=NOW(), last_spied_snapshot=? WHERE id=?',
+          [spiedTeamId, JSON.stringify(report), team.id]
+        )
+      }
     }
-    return { success: true }
+    return { success: true, report }
   }
   throw new BadRequestError(t('error.invalidCardAction', {}, locale))
 }

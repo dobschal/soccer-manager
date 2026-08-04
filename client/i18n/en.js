@@ -484,6 +484,7 @@ export default {
   'myTeam.benchSubMode.trailing': 'Sub in when trailing',
   'myTeam.benchSubModeUpdated': 'Substitution rule updated!',
   'myTeam.benchSubInfo': 'Bench players are substituted in no earlier than the 45th minute. The only exception is an injury — an injured player is replaced straight away if a matching bench player is available.',
+  'myTeam.motivatingSpeechActive': 'Motivating speech active — your team is boosted for the next match day.',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A Team',
@@ -1001,6 +1002,7 @@ export default {
   'spy.playStyle': 'Play style',
   'spy.passStyle': 'Pass style',
   'spy.lastReportTitle': 'Last scout report',
+  'spy.motivatingSpeechActive': 'Motivating speech active — the team is boosted for the next match day.',
   'actionCards.svg.newYouthPlayer1.title': 'YOUTH RECRUIT',
   'actionCards.svg.newYouthPlayer1.body1': 'You receive a new',
   'actionCards.svg.newYouthPlayer1.body2': 'youth player.',

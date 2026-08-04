@@ -21,6 +21,10 @@ vi.mock('../../helper/playerHelper.js', () => ({
   getPlayerById: vi.fn()
 }))
 
+vi.mock('../../helper/teamHelper.js', () => ({
+  getTeamById: vi.fn()
+}))
+
 vi.mock('../../helper/financeHelper.js', () => ({
   updateTeamBalance: vi.fn()
 }))
@@ -56,6 +60,7 @@ vi.mock('../../lib/websocket.js', () => ({
 import { query } from '../../lib/database.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
+import { getTeamById } from '../../helper/teamHelper.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { createYouthPlayer } from '../../helper/youthPlayerHelper.js'
 import { sendToUser } from '../../lib/websocket.js'
@@ -640,25 +645,40 @@ describe('actionCardHelper', () => {
 
       const result = await playActionCard({ actionCard, player: null }, team)
 
-      expect(result).toEqual({ success: true })
+      expect(result).toEqual({ success: true, report: null })
       expect(query).toHaveBeenCalledWith("UPDATE action_card SET played=1, state='played' WHERE id=?", [77])
       // A spy card has no side effect on players or balance.
       expect(updateTeamBalance).not.toHaveBeenCalled()
     })
 
-    it('remembers the spied team id passed through the position slot', async () => {
+    it('#513 stores a frozen snapshot of the spied team and returns it as the report', async () => {
       const team = testData.team({ id: 5 })
+      const spiedTeam = testData.team({ id: 42, formation: '4-3-3', motivating_speech_active: 1 })
+      const spiedPlayers = [testData.player({ id: 1, team_id: 42 }), testData.player({ id: 2, team_id: 42 })]
       const actionCard = testData.actionCard({ id: 77, action: 'SPY' })
 
-      query.mockResolvedValue({})
+      getTeamById.mockResolvedValue(spiedTeam)
+      query.mockImplementation((sql) => {
+        if (sql.startsWith('SELECT * FROM player')) return Promise.resolve(spiedPlayers)
+        return Promise.resolve({})
+      })
 
       const result = await playActionCard({ actionCard, player: null, position: '42' }, team)
 
-      expect(result).toEqual({ success: true })
-      expect(query).toHaveBeenCalledWith(
-        'UPDATE team SET last_spied_team_id=?, last_spied_at=NOW() WHERE id=?',
-        [42, 5]
-      )
+      // The report reveals the snapshot to the client.
+      expect(result.success).toBe(true)
+      expect(result.report.team.id).toBe(42)
+      expect(result.report.players).toHaveLength(2)
+      expect(result.report.motivatingSpeechActive).toBe(true)
+
+      // The snapshot is persisted on the spying team so the report is stable.
+      const updateCall = query.mock.calls.find(c => typeof c[0] === 'string' && c[0].includes('last_spied_snapshot'))
+      expect(updateCall).toBeDefined()
+      expect(updateCall[1][0]).toBe(42) // spied team id
+      const storedSnapshot = JSON.parse(updateCall[1][1])
+      expect(storedSnapshot.team.id).toBe(42)
+      expect(storedSnapshot.motivatingSpeechActive).toBe(true)
+      expect(updateCall[1][2]).toBe(5) // spying team id
     })
 
     it('does not persist a scout target when no team id is given', async () => {
@@ -667,10 +687,12 @@ describe('actionCardHelper', () => {
 
       query.mockResolvedValue({})
 
-      await playActionCard({ actionCard, player: null }, team)
+      const result = await playActionCard({ actionCard, player: null }, team)
 
+      expect(result.report).toBeNull()
+      expect(getTeamById).not.toHaveBeenCalled()
       expect(query).not.toHaveBeenCalledWith(
-        expect.stringContaining('last_spied_team_id'),
+        expect.stringContaining('last_spied_snapshot'),
         expect.anything()
       )
     })

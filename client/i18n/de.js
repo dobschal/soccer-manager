@@ -484,6 +484,7 @@ export default {
   'myTeam.benchSubMode.trailing': 'Einwechseln bei Rückstand',
   'myTeam.benchSubModeUpdated': 'Einwechselregel aktualisiert!',
   'myTeam.benchSubInfo': 'Bankspieler werden frühestens zur 45. Minute eingewechselt. Einzige Ausnahme ist eine Verletzung – ein verletzter Spieler wird sofort ersetzt, sofern ein passender Bankspieler verfügbar ist.',
+  'myTeam.motivatingSpeechActive': 'Motivationsrede aktiv – dein Team ist für den nächsten Spieltag gestärkt.',
 
   // My Team - Tabs
   'myTeam.aTeam': 'A-Team',
@@ -1001,6 +1002,7 @@ export default {
   'spy.playStyle': 'Spielstil',
   'spy.passStyle': 'Passstil',
   'spy.lastReportTitle': 'Letzter Spionage-Bericht',
+  'spy.motivatingSpeechActive': 'Motivationsrede aktiv — das Team ist für den nächsten Spieltag gestärkt.',
   'actionCards.svg.newYouthPlayer1.title': 'NACHWUCHSSPIELER',
   'actionCards.svg.newYouthPlayer1.body1': 'Du erhältst einen neuen',
   'actionCards.svg.newYouthPlayer1.body2': 'Jugendspieler.',

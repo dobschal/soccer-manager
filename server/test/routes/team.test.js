@@ -56,6 +56,54 @@ describe('team routes', () => {
     })
   })
 
+  describe('getLastSpyReport', () => {
+    it('#513 returns the frozen snapshot including the motivating-speech flag', async () => {
+      const snapshot = {
+        team: { id: 42, name: 'Spied FC', formation: '4-3-3' },
+        players: [testData.player({ id: 1 }), testData.player({ id: 2 })],
+        motivatingSpeechActive: true
+      }
+      getTeam.mockResolvedValue(testData.team({
+        last_spied_team_id: 42,
+        last_spied_at: '2026-01-01 12:00:00',
+        last_spied_snapshot: JSON.stringify(snapshot)
+      }))
+
+      const result = await handlers.getLastSpyReport(createMockRequest())
+
+      expect(result.report.team.id).toBe(42)
+      expect(result.report.players).toHaveLength(2)
+      expect(result.report.motivatingSpeechActive).toBe(true)
+      expect(result.report.spiedAt).toBe('2026-01-01 12:00:00')
+      // Must NOT re-read the opponent live — the snapshot is authoritative.
+      expect(getTeamById).not.toHaveBeenCalled()
+    })
+
+    it('#513 falls back to a live read for legacy reports without a snapshot', async () => {
+      getTeam.mockResolvedValue(testData.team({
+        last_spied_team_id: 42,
+        last_spied_at: '2026-01-01 12:00:00',
+        last_spied_snapshot: null
+      }))
+      getTeamById.mockResolvedValue(testData.team({ id: 42, motivating_speech_active: 0 }))
+      query.mockResolvedValue([testData.player({ id: 1, team_id: 42 })])
+
+      const result = await handlers.getLastSpyReport(createMockRequest())
+
+      expect(getTeamById).toHaveBeenCalledWith(42)
+      expect(result.report.team.id).toBe(42)
+      expect(result.report.motivatingSpeechActive).toBe(false)
+    })
+
+    it('returns null report when the user never spied on anyone', async () => {
+      getTeam.mockResolvedValue(testData.team({ last_spied_team_id: null }))
+
+      const result = await handlers.getLastSpyReport(createMockRequest())
+
+      expect(result).toEqual({ report: null })
+    })
+  })
+
   describe('getMyBalance', () => {
     it('returns balance for authenticated user', async () => {
       const team = testData.team({ balance: 123456 })

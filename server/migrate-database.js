@@ -2610,6 +2610,14 @@ const migrations = [{
       `)
     }
   }
+}, {
+  name: 'Add last-spied snapshot column to team (spy report is a snapshot)',
+  async run () {
+    // The spy report is a point-in-time snapshot taken when the SPY card is
+    // played: the opponent's tactics, lineup and active motivating-speech
+    // buff are frozen here so later tactic changes don't alter the report.
+    await query('ALTER TABLE team ADD COLUMN last_spied_snapshot LONGTEXT NULL DEFAULT NULL')
+  }
 }]
 
 /**

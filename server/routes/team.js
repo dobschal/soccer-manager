@@ -182,15 +182,31 @@ export default {
 
   /**
    * The most recent team the requesting user spied on with a SPY action card,
-   * together with its current tactics and lineup. Powers the collapsable
-   * "last scout report" card on #my-team. Returns `{ report: null }` when the
-   * user has never spied on anyone (or the spied team no longer exists).
+   * as a point-in-time SNAPSHOT of its tactics, lineup and active
+   * motivating-speech buff taken when the card was played (#513). Powers the
+   * collapsable "last scout report" card on #my-team. Returns `{ report: null }`
+   * when the user has never spied on anyone (or the spied team no longer exists).
    * @param {Request} req
-   * @returns {Promise<{report: {team: TeamType, players: Array<PlayerType>, spiedAt: string}|null}>}
+   * @returns {Promise<{report: {team: TeamType, players: Array<PlayerType>, spiedAt: string, motivatingSpeechActive: boolean}|null}>}
    */
   async getLastSpyReport (req) {
     const myTeam = await getTeam(req)
     if (!myTeam?.last_spied_team_id) return { report: null }
+    // Preferred path: the frozen snapshot captured when the card was played.
+    if (myTeam.last_spied_snapshot) {
+      try {
+        const snapshot = JSON.parse(myTeam.last_spied_snapshot)
+        return {
+          report: {
+            team: snapshot.team,
+            players: snapshot.players ?? [],
+            spiedAt: myTeam.last_spied_at,
+            motivatingSpeechActive: !!snapshot.motivatingSpeechActive
+          }
+        }
+      } catch { /* corrupt snapshot — fall back to a live read below */ }
+    }
+    // Fallback for reports created before snapshots existed: live read.
     const team = await getTeamById(myTeam.last_spied_team_id)
     if (!team) return { report: null }
     const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
@@ -198,7 +214,8 @@ export default {
       report: {
         team,
         players,
-        spiedAt: myTeam.last_spied_at
+        spiedAt: myTeam.last_spied_at,
+        motivatingSpeechActive: !!team.motivating_speech_active
       }
     }
   },
