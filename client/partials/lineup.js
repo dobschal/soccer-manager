@@ -85,9 +85,12 @@ export class SquadPlayer extends UIElement {
     // fielded. Compare the two for the out-of-position red ring.
     const isOutOfPosition = !player.fake && player.position !== this.slot
     const badgeClass = `position-badge ${this.slot}${isOutOfPosition ? ' is-wrong-position' : ''}`
+    // Star players get a golden glow behind their tile so they stand out in the
+    // lineup (#516).
+    const isStar = !player.fake && player.is_star_player
 
     return `
-      <div class="player ${this.slot}" data-player-id="${playerId}" style="${inlineStyles}">
+      <div class="player ${this.slot}${isStar ? ' is-star' : ''}" data-player-id="${playerId}" style="${inlineStyles}">
         <span class="${badgeClass}">${this.slot}</span>
         <span class="freshness-badge ${freshnessClass}">
             ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}

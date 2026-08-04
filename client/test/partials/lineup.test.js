@@ -211,6 +211,29 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     expect(server.swapLineupPlayer).not.toHaveBeenCalled()
   })
 
+  describe('SquadPlayer star player glow (#516)', () => {
+    it('adds the is-star class for a star player', () => {
+      const team = testData.team()
+      const player = testData.player({ id: 42, in_game_position: 'CM', is_star_player: 1 })
+      const tile = new SquadPlayer(player, team)
+      expect(tile.template).toContain('is-star')
+    })
+
+    it('does not add the is-star class for a non-star player', () => {
+      const team = testData.team()
+      const player = testData.player({ id: 42, in_game_position: 'CM', is_star_player: 0 })
+      const tile = new SquadPlayer(player, team)
+      expect(tile.template).not.toContain('is-star')
+    })
+
+    it('does not add the is-star class for a fake placeholder tile', () => {
+      const team = testData.team()
+      const fake = { fake: true, in_game_position: 'CM', position: 'CM', level: 0, name: '-', freshness: 0, is_star_player: 1 }
+      const tile = new SquadPlayer(fake, team)
+      expect(tile.template).not.toContain('is-star')
+    })
+  })
+
   describe('SquadPlayer CAPTAIN_CHANGED handling', () => {
     it('re-renders when this tile becomes the new captain', () => {
       const team = testData.team({ captain_id: null })
