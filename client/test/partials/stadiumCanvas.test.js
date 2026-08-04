@@ -47,3 +47,32 @@ describe('StadiumCanvas._standRowCount', () => {
     expect(canvas._standRowCount(30000, NS_WIDTH)).toBeLessThan(100)
   })
 })
+
+describe('StadiumCanvas._standTierRows', () => {
+  const canvas = new StadiumCanvas({}, {})
+
+  it('stays single-tier below 10000 seats', () => {
+    const result = canvas._standTierRows(9999, 60)
+    expect(result.twoTier).toBe(false)
+    expect(result.lowerRows).toBe(60)
+    expect(result.upperRows).toBe(0)
+  })
+
+  it('becomes two-tier at 10000 seats', () => {
+    expect(canvas._standTierRows(10000, 60).twoTier).toBe(true)
+  })
+
+  it('puts ~2/3 of the rows in the lower tier and ~1/3 in the upper', () => {
+    const { lowerRows, upperRows } = canvas._standTierRows(15000, 60)
+    expect(lowerRows).toBe(40)
+    expect(upperRows).toBe(20)
+  })
+
+  it('always accounts for every row across both tiers', () => {
+    for (const rows of [30, 42, 59, 73]) {
+      const { lowerRows, upperRows } = canvas._standTierRows(20000, rows)
+      expect(lowerRows + upperRows).toBe(rows)
+      expect(lowerRows).toBeGreaterThan(upperRows)
+    }
+  })
+})

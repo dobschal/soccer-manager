@@ -14,6 +14,16 @@ const CONFIG = Object.freeze({
   field: { width: 50, depth: 30 },
   standGap: 2,
   groundSize: 250,
+  // Stand seating tiers. Large stands split into a lower and an upper tier with
+  // a cantilevered overhang between them.
+  stand: {
+    twoTierThreshold: 10000, // seats at/above which a stand gets an upper tier
+    lowerTierFraction: 2 / 3, // share of rows (≈ seats) in the lower tier
+    lowerRowHeight: 0.5, // vertical rise per row, lower tier
+    upperRowHeight: 0.7, // steeper rise per row, upper tier
+    overhangClearance: 3, // vertical gap: lower-tier top → upper deck underside
+    overhangCoverFraction: 0.4 // how far the deck cantilevers over the lower tier
+  },
   // Floodlight towers sit at the four outer corners, offset from the centre.
   floodlightOffset: { x: 33, z: 23 },
   // Roads around the stadium: a grid of four roads (behind each stand) that
@@ -890,46 +900,115 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
+   * Add a mirrored pair of trapezoidal side walls (thin slabs) enclosing one
+   * seating tier. The 2D profile runs bottom-flat, up the back, then down the
+   * sloped top to the (lower) front — matching the tier's rake.
+   * @param {THREE.Group} group
+   * @param {THREE.Material} mat
+   * @param {Object} opts
+   * @param {number} opts.width stand width (walls sit just outside it)
+   * @param {number} opts.depth tier depth along z
+   * @param {number} opts.baseZ z of the tier's front edge
+   * @param {number} opts.frontY absolute top height at the front
+   * @param {number} opts.backY absolute top height at the back
+   * @param {number} opts.baseY absolute bottom height of the wall
+   */
+  _addSideWalls (group, mat, { width, depth, baseZ, frontY, backY, baseY }) {
+    const shape = new this._THREE.Shape()
+    shape.moveTo(0, baseY)
+    shape.lineTo(depth, baseY)
+    shape.lineTo(depth, backY)
+    shape.lineTo(0, frontY)
+    shape.closePath()
+
+    const geo = new this._THREE.ExtrudeGeometry(shape, { depth: 0.5, bevelEnabled: false })
+    for (const sign of [1, -1]) {
+      const wall = new this._THREE.Mesh(geo, mat)
+      wall.rotation.y = Math.PI * 1.5
+      wall.position.set(sign * (width / 2 + 1), 0, baseZ)
+      wall.castShadow = true
+      group.add(wall)
+    }
+  }
+
+  /**
+   * Split a stand's rows into a lower and (for large stands) an upper tier.
+   * Below the two-tier threshold the whole stand is one tier; at or above it,
+   * the lower tier gets ~2/3 of the rows (≈ seats, since rows are equally wide)
+   * and the upper tier the rest.
+   * @param {number} seats
+   * @param {number} numRows total row count
+   * @returns {{ twoTier: boolean, lowerRows: number, upperRows: number }}
+   */
+  _standTierRows (seats, numRows) {
+    const { twoTierThreshold, lowerTierFraction } = CONFIG.stand
+    if (seats < twoTierThreshold) {
+      return { twoTier: false, lowerRows: numRows, upperRows: 0 }
+    }
+    const lowerRows = Math.round(numRows * lowerTierFraction)
+    return { twoTier: true, lowerRows, upperRows: numRows - lowerRows }
+  }
+
+  /**
    * @param {THREE.Scene} scene
    * @param {Object} config
    */
   _createStand (scene, config) {
     const { width, seats, x, z, rotation, hasRoof } = config
+    const { lowerRowHeight, upperRowHeight, overhangClearance, overhangCoverFraction } = CONFIG.stand
+
     const group = new this._THREE.Group()
 
     const seatWidth = 0.5
     const seatsPerRow = Math.floor(width / seatWidth)
     const numRows = this._standRowCount(seats, width)
-
     const rowDepth = 1.0
-    const rowHeight = 0.5
-    const actualDepth = numRows * rowDepth
-    const actualHeight = numRows * rowHeight
 
-    const baseGeo = new this._THREE.BoxGeometry(width + 2, 0.5, actualDepth + 1)
+    // Large stands split into two tiers: the lower ~2/3 of the rows sit under a
+    // cantilevered overhang, the upper ~1/3 (steeper) sit above it.
+    const { twoTier, lowerRows, upperRows } = this._standTierRows(seats, numRows)
+
+    const lowerDepth = lowerRows * rowDepth
+    const lowerTopY = 0.5 + lowerRows * lowerRowHeight // top of the lower tier
+    const deckY = lowerTopY + overhangClearance // upper-tier floor / overhang top
+    const upperDepth = upperRows * rowDepth
+    const upperTopY = deckY + upperRows * upperRowHeight
+
+    // The overhang deck cantilevers forward over the rear of the lower tier, and
+    // the upper tier sits on it: its front edge is the deck lip, so the whole
+    // upper tier is pulled toward the field rather than stacked behind.
+    const overhang = twoTier ? lowerDepth * overhangCoverFraction : 0
+    const upperFrontZ = lowerDepth - overhang
+
+    const totalDepth = twoTier ? Math.max(lowerDepth, upperFrontZ + upperDepth) : lowerDepth
+    const envTop = twoTier ? upperTopY : lowerTopY // envelope top height
+
+    // baseY 0.5 = top of the foundation slab (row 0 sits on it).
+    const tiers = [{ rows: lowerRows, rowHeight: lowerRowHeight, baseY: 0.5, baseZ: 0 }]
+    if (twoTier) {
+      tiers.push({ rows: upperRows, rowHeight: upperRowHeight, baseY: deckY, baseZ: upperFrontZ })
+    }
+
+    // --- foundation slab ---
     const baseMat = new this._THREE.MeshLambertMaterial({ color: 0x505050 })
-    const base = new this._THREE.Mesh(baseGeo, baseMat)
+    const base = new this._THREE.Mesh(
+      new this._THREE.BoxGeometry(width + 2, 0.5, totalDepth + 1), baseMat
+    )
     base.position.y = 0.25
-    base.position.z = actualDepth / 2
+    base.position.z = totalDepth / 2
     base.castShadow = true
     base.receiveShadow = true
     group.add(base)
 
-    const stepGeo = new this._THREE.BoxGeometry(width, rowHeight, rowDepth)
+    // --- steps + seats (both tiers) ---
+    // One instanced mesh holds every step; a per-instance y-scale gives the
+    // upper tier its steeper rise from a single base geometry.
     const stepMat = new this._THREE.MeshLambertMaterial({ color: 0x909090 })
-    const stepInstancedMesh = new this._THREE.InstancedMesh(stepGeo, stepMat, numRows)
+    const stepInstancedMesh = new this._THREE.InstancedMesh(
+      new this._THREE.BoxGeometry(width, lowerRowHeight, rowDepth), stepMat, numRows
+    )
     stepInstancedMesh.castShadow = true
     stepInstancedMesh.receiveShadow = true
-
-    const stepMatrix = new this._THREE.Matrix4()
-    for (let row = 0; row < numRows; row++) {
-      const rowY = 0.5 + row * rowHeight
-      const rowZ = row * rowDepth
-      stepMatrix.setPosition(0, rowY + rowHeight / 2, rowZ + rowDepth / 2)
-      stepInstancedMesh.setMatrixAt(row, stepMatrix)
-    }
-    stepInstancedMesh.instanceMatrix.needsUpdate = true
-    group.add(stepInstancedMesh)
 
     const seatColors = [
       { color: 0xe74c3c, threshold: 0.35 },
@@ -938,31 +1017,47 @@ export class StadiumCanvas extends UIElement {
       { color: 0x27ae60, threshold: 0.95 },
       { color: 0xf1c40f, threshold: 1.0 }
     ]
-
     const seatsByColor = new Map()
     seatColors.forEach(c => seatsByColor.set(c.color, []))
 
-    for (let row = 0; row < numRows; row++) {
-      const rowY = 0.5 + row * rowHeight
-      const rowZ = row * rowDepth
+    const stepMatrix = new this._THREE.Matrix4()
+    const stepQuat = new this._THREE.Quaternion()
+    const stepScale = new this._THREE.Vector3()
+    const stepPos = new this._THREE.Vector3()
 
-      for (let s = 0; s < seatsPerRow; s++) {
-        const colorChoice = Math.random()
-        let seatColor = seatColors[seatColors.length - 1].color
-        for (const { color, threshold } of seatColors) {
-          if (colorChoice < threshold) {
-            seatColor = color
-            break
+    let stepIndex = 0
+    for (const tier of tiers) {
+      const yScale = tier.rowHeight / lowerRowHeight
+      for (let row = 0; row < tier.rows; row++) {
+        const rowBottomY = tier.baseY + row * tier.rowHeight
+        const rowZ = tier.baseZ + row * rowDepth
+
+        stepPos.set(0, rowBottomY + tier.rowHeight / 2, rowZ + rowDepth / 2)
+        stepScale.set(1, yScale, 1)
+        stepMatrix.compose(stepPos, stepQuat, stepScale)
+        stepInstancedMesh.setMatrixAt(stepIndex++, stepMatrix)
+
+        const seatY = rowBottomY + tier.rowHeight // step surface
+        const seatZ = rowZ + rowDepth * 0.35
+        for (let s = 0; s < seatsPerRow; s++) {
+          const colorChoice = Math.random()
+          let seatColor = seatColors[seatColors.length - 1].color
+          for (const { color, threshold } of seatColors) {
+            if (colorChoice < threshold) {
+              seatColor = color
+              break
+            }
           }
+          seatsByColor.get(seatColor).push({
+            x: -width / 2 + seatWidth / 2 + s * seatWidth,
+            y: seatY,
+            z: seatZ
+          })
         }
-
-        seatsByColor.get(seatColor).push({
-          x: -width / 2 + seatWidth / 2 + s * seatWidth,
-          y: rowY + rowHeight, // step surface; seat geometry sits on top of it
-          z: rowZ + rowDepth * 0.35
-        })
       }
     }
+    stepInstancedMesh.instanceMatrix.needsUpdate = true
+    group.add(stepInstancedMesh)
 
     const seatGeo = this._createSeatGeometry(seatWidth, rowDepth)
     const seatMatrix = new this._THREE.Matrix4()
@@ -982,67 +1077,68 @@ export class StadiumCanvas extends UIElement {
       group.add(instancedSeats)
     }
 
-    const backWallHeight = actualHeight + 2
-    const backWallGeo = new this._THREE.BoxGeometry(width + 2, backWallHeight, 0.5)
     const backWallMat = new this._THREE.MeshLambertMaterial({ color: 0x606060 })
-    const backWall = new this._THREE.Mesh(backWallGeo, backWallMat)
+
+    // --- overhang: rear wall of the lower tier + cantilevered deck ---
+    if (twoTier) {
+      const wallHeight = deckY - lowerTopY
+      const wall = new this._THREE.Mesh(
+        new this._THREE.BoxGeometry(width, wallHeight, 0.5), backWallMat
+      )
+      wall.position.set(0, lowerTopY + wallHeight / 2, lowerDepth)
+      wall.castShadow = true
+      wall.receiveShadow = true
+      group.add(wall)
+
+      const deckMat = new this._THREE.MeshLambertMaterial({ color: 0x777777 })
+      const deck = new this._THREE.Mesh(
+        new this._THREE.BoxGeometry(width, 0.4, overhang), deckMat
+      )
+      // Top surface flush with the upper-tier floor; hangs forward from the
+      // rear wall over the rear rows of the lower tier (up to the deck lip).
+      deck.position.set(0, deckY - 0.2, lowerDepth - overhang / 2)
+      deck.castShadow = true
+      deck.receiveShadow = true
+      group.add(deck)
+    }
+
+    // --- back wall (full height, at the very rear) ---
+    const backWallHeight = envTop + 2
+    const backWall = new this._THREE.Mesh(
+      new this._THREE.BoxGeometry(width + 2, backWallHeight, 0.5), backWallMat
+    )
     backWall.position.y = backWallHeight / 2
-    backWall.position.z = actualDepth + 0.25
+    backWall.position.z = totalDepth + 0.25
     backWall.castShadow = true
     group.add(backWall)
 
-    const extrudeSettings = { depth: 0.5, bevelEnabled: false }
-
-    const rightWallShape = new this._THREE.Shape()
-    rightWallShape.moveTo(0, 0)
-    rightWallShape.lineTo(actualDepth, 0)
-    rightWallShape.lineTo(actualDepth, actualHeight + 2)
-    rightWallShape.lineTo(0, 1.5)
-    rightWallShape.closePath()
-
-    const rightWallGeo = new this._THREE.ExtrudeGeometry(rightWallShape, extrudeSettings)
-    const rightWall = new this._THREE.Mesh(rightWallGeo, backWallMat)
-    rightWall.rotation.y = Math.PI * 1.5
-    rightWall.position.set(width / 2 + 1, 0, 0)
-    group.add(rightWall)
-
-    const leftWallVertices = new Float32Array([
-      0, 0, 0,
-      0, 0, 0.5,
-      0, 1.5, 0,
-      0, 1.5, 0.5,
-      actualDepth, 0, 0,
-      actualDepth, 0, 0.5,
-      actualDepth, actualHeight + 2, 0,
-      actualDepth, actualHeight + 2, 0.5
-    ])
-
-    const leftWallIndices = [
-      0, 4, 2, 2, 4, 6,
-      1, 3, 5, 3, 7, 5,
-      2, 6, 3, 3, 6, 7,
-      0, 1, 4, 1, 5, 4,
-      0, 2, 1, 1, 2, 3,
-      4, 5, 6, 5, 7, 6
-    ]
-
-    const leftWallGeo = new this._THREE.BufferGeometry()
-    leftWallGeo.setAttribute('position', new this._THREE.BufferAttribute(leftWallVertices, 3))
-    leftWallGeo.setIndex(leftWallIndices)
-    leftWallGeo.computeVertexNormals()
-
-    const leftWall = new this._THREE.Mesh(leftWallGeo, backWallMat)
-    leftWall.rotation.y = Math.PI * 1.5
-    leftWall.position.set(-width / 2 - 1, 0, 0)
-    group.add(leftWall)
+    // --- side walls (one pair per tier, so the overhang void stays open) ---
+    this._addSideWalls(group, backWallMat, {
+      width,
+      depth: lowerDepth,
+      baseZ: 0,
+      baseY: 0,
+      frontY: 1.5,
+      backY: twoTier ? deckY : lowerTopY + 1.5
+    })
+    if (twoTier) {
+      this._addSideWalls(group, backWallMat, {
+        width,
+        depth: upperDepth,
+        baseZ: upperFrontZ,
+        baseY: deckY,
+        frontY: deckY + 1.5,
+        backY: upperTopY + 1.5
+      })
+    }
 
     if (hasRoof) {
-      const roofY = actualHeight + 3
-      const pillarZ = actualDepth - 1
+      const roofY = envTop + 3
+      const pillarZ = totalDepth - 1
       const pillarTopY = roofY + 4
       const pillarHeight = pillarTopY + 0.5
 
-      const roofGeo = new this._THREE.BoxGeometry(width + 4, 0.3, actualDepth + 3)
+      const roofGeo = new this._THREE.BoxGeometry(width + 4, 0.3, totalDepth + 3)
       const roofMat = new this._THREE.MeshLambertMaterial({
         color: 0xe6e6e6,
         transparent: true,
@@ -1050,7 +1146,7 @@ export class StadiumCanvas extends UIElement {
       })
       const roof = new this._THREE.Mesh(roofGeo, roofMat)
       roof.position.y = roofY
-      roof.position.z = actualDepth / 2
+      roof.position.z = totalDepth / 2
       roof.rotation.x = -0.05
       roof.castShadow = true
       group.add(roof)
