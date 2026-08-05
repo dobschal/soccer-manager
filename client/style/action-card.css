@@ -14,7 +14,7 @@
 .action-card-image {
     width: 100%;
     height: auto;
-    border-radius: 15px;
+    border-radius: 8px;
     /*transform: rotateX(-5deg) rotateY(-3deg);*/
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2),
     0 5px 15px rgba(0, 0, 0, 0.15),
@@ -86,22 +86,18 @@
     opacity: calc(1 - var(--stack-index, 0) * 0.18);
     top: calc(var(--stack-index, 0) * 4px);
     left: calc(var(--stack-index, 0) * 4px);
-    width: 100%;
+    width: calc(100% + 3rem);
+    padding: 1.5rem;
+    margin: -1.5rem;
     z-index: calc(10 - var(--stack-index, 0));
     transition: transform 0.2s ease,
     top 0.2s ease,
     left 0.2s ease;
 }
 
-.action-card-stack:hover .action-card-wrapper {
-    top: calc(var(--stack-index, 0) * 8px);
-    left: calc(var(--stack-index, 0) * 8px);
-}
-
 .action-card-stack .action-card-image {
     width: 100%;
     height: auto;
-    border-radius: 15px;
 }
 
 /* Card count badge */
