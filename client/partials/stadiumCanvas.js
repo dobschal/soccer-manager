@@ -370,7 +370,17 @@ export class StadiumCanvas extends UIElement {
 
     const container = canvas.parentElement
 
-    this._setupScene(canvas, container)
+    try {
+      this._setupScene(canvas, container)
+    } catch (error) {
+      // Creating the WebGL context can fail outright (hardware acceleration
+      // disabled, a sandboxed/headless GPU, an ancient browser). Three.js
+      // throws from the WebGLRenderer constructor — swallow it, swap the canvas
+      // for a short note and bail so the rest of the page keeps working.
+      console.warn('Stadium 3D view unavailable — WebGL context could not be created:', error)
+      this._showWebGLFallback(canvas)
+      return
+    }
     this._setupLights()
 
     this._buildStadium(this._scene)
@@ -416,6 +426,20 @@ export class StadiumCanvas extends UIElement {
     this._controls.maxDistance = CONFIG.controls.maxDistance
     this._controls.autoRotateSpeed = CONFIG.controls.autoRotateSpeed
     this._applyInteractiveState()
+  }
+
+  /**
+   * Replace the unusable canvas with a short note when a WebGL context can't be
+   * created. Keeps the surrounding page intact instead of letting the thrown
+   * renderer error bubble up and break the whole route.
+   * @param {HTMLCanvasElement} canvas
+   */
+  _showWebGLFallback (canvas) {
+    if (!canvas || !canvas.parentElement) return
+    const fallback = document.createElement('div')
+    fallback.className = 'stadium-webgl-fallback'
+    fallback.textContent = t('stadium.webglUnavailable')
+    canvas.replaceWith(fallback)
   }
 
   /**

@@ -241,6 +241,7 @@ export default {
   'dashboard.featureRequestMissingFields': 'Bitte gib Titel und Beschreibung an.',
   // Stadium
   'stadium.title': 'Stadion',
+  'stadium.webglUnavailable': 'Die 3D-Stadionansicht konnte nicht geladen werden. Dein Browser oder Gerät unterstützt möglicherweise keine 3D-Grafik (WebGL). Aktiviere die Hardwarebeschleunigung oder aktualisiere deinen Browser.',
   'stadium.yourStadium': 'Dein Stadion',
   'stadium.stadiumDesc': 'Hier ist dein wunderschönes Stadion mit {seats} Plätzen:',
   'stadium.overview': 'Übersicht',

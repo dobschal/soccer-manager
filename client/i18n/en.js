@@ -241,6 +241,7 @@ export default {
   'dashboard.featureRequestMissingFields': 'Please enter both a title and a description.',
   // Stadium
   'stadium.title': 'Stadium',
+  'stadium.webglUnavailable': 'The 3D stadium view could not be loaded. Your browser or device may not support 3D graphics (WebGL). Try enabling hardware acceleration or updating your browser.',
   'stadium.yourStadium': 'Your Stadium',
   'stadium.stadiumDesc': 'Here is your beautiful stadium with {seats} seats:',
   'stadium.overview': 'Overview',

@@ -21,6 +21,19 @@
   border-radius: 8px;
 }
 
+/* Shown in place of the canvas when a WebGL context can't be created. */
+.stadium-webgl-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 180px;
+  padding: 2rem;
+  color: #cbd5e0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 /* Only a canvas whose OrbitControls are enabled invites dragging. */
 .stadium-wrapper-interactive canvas {
   cursor: grab;

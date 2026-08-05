@@ -371,6 +371,31 @@ describe('StadiumCanvas stand geometry under construction', () => {
   })
 })
 
+/**
+ * When a WebGL context can't be created (hardware acceleration off, headless
+ * GPU, ancient browser), Three.js throws from the WebGLRenderer constructor.
+ * That must not break the page — the canvas is swapped for a short note instead.
+ */
+describe('StadiumCanvas WebGL fallback', () => {
+  it('replaces the canvas with a note element', () => {
+    const wrapper = document.createElement('div')
+    const canvas = document.createElement('canvas')
+    wrapper.appendChild(canvas)
+
+    new StadiumCanvas({}, {})._showWebGLFallback(canvas)
+
+    expect(wrapper.querySelector('canvas')).toBeNull()
+    const fallback = wrapper.querySelector('.stadium-webgl-fallback')
+    expect(fallback).not.toBeNull()
+    expect(fallback.textContent.trim().length).toBeGreaterThan(0)
+  })
+
+  it('is a no-op for a detached canvas (nothing to replace)', () => {
+    const canvas = document.createElement('canvas')
+    expect(() => new StadiumCanvas({}, {})._showWebGLFallback(canvas)).not.toThrow()
+  })
+})
+
 describe('StadiumCanvas._cornerHasBothRoofs', () => {
   it('is true only when both adjacent main stands are roofed', () => {
     const canvas = new StadiumCanvas({ north_stand_roof: 1, east_stand_roof: 1 }, {})
