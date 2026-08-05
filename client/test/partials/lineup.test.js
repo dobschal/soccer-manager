@@ -211,6 +211,29 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     expect(server.swapLineupPlayer).not.toHaveBeenCalled()
   })
 
+  describe('SquadPlayer star player glow (#516)', () => {
+    it('adds the is-star class for a star player', () => {
+      const team = testData.team()
+      const player = testData.player({ id: 42, in_game_position: 'CM', is_star_player: 1 })
+      const tile = new SquadPlayer(player, team)
+      expect(tile.template).toContain('is-star')
+    })
+
+    it('does not add the is-star class for a non-star player', () => {
+      const team = testData.team()
+      const player = testData.player({ id: 42, in_game_position: 'CM', is_star_player: 0 })
+      const tile = new SquadPlayer(player, team)
+      expect(tile.template).not.toContain('is-star')
+    })
+
+    it('does not add the is-star class for a fake placeholder tile', () => {
+      const team = testData.team()
+      const fake = { fake: true, in_game_position: 'CM', position: 'CM', level: 0, name: '-', freshness: 0, is_star_player: 1 }
+      const tile = new SquadPlayer(fake, team)
+      expect(tile.template).not.toContain('is-star')
+    })
+  })
+
   describe('SquadPlayer CAPTAIN_CHANGED handling', () => {
     it('re-renders when this tile becomes the new captain', () => {
       const team = testData.team({ captain_id: null })
@@ -879,6 +902,60 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
       await lineup.load()
       expect(server.getCurrentGameday).not.toHaveBeenCalled()
       expect(lineup.season).toBe(0)
+    })
+  })
+
+  describe('read-only snapshot (spy report)', () => {
+    it('does not auto-save or fire lineup-exchange when a spied team has more players than slots', async () => {
+      // Reproduces the sandbox bug (team 39 → spied team 87): the spied team's
+      // snapshot had 12 players with an in_game_position but formation 343a has
+      // only 11 slots (two players on 'LA'). Without readOnly, _fillEmptyPositions
+      // clears the overflow player, marks _needsAutoCleanup, and onMounted calls
+      // saveLineup with the SPIED team's foreign player ids — the server rejects
+      // them with "Unknown player..." and #my-team breaks.
+      const team = testData.team({ formation: '343a' })
+      // 343a: GK, LD, CD, RD, LM, DM, RM, OM, LA, CA, RA
+      const players = [
+        testData.player({ id: 101, position: 'GK', in_game_position: 'GK' }),
+        testData.player({ id: 102, position: 'LD', in_game_position: 'LD' }),
+        testData.player({ id: 103, position: 'CD', in_game_position: 'CD' }),
+        testData.player({ id: 104, position: 'RD', in_game_position: 'RD' }),
+        testData.player({ id: 105, position: 'LM', in_game_position: 'LM' }),
+        testData.player({ id: 106, position: 'DM', in_game_position: 'DM' }),
+        testData.player({ id: 107, position: 'RM', in_game_position: 'RM' }),
+        testData.player({ id: 108, position: 'OM', in_game_position: 'OM' }),
+        testData.player({ id: 109, position: 'LA', in_game_position: 'LA' }),
+        testData.player({ id: 110, position: 'CA', in_game_position: 'CA' }),
+        testData.player({ id: 111, position: 'RA', in_game_position: 'RA' }),
+        // Overflow: a second 'LA' that 343a can't seat.
+        testData.player({ id: 112, position: 'LA', in_game_position: 'LA' })
+      ]
+
+      const lineup = new Lineup(players, team, undefined, { readOnly: true })
+      await lineup._autoCleanupIfNeeded()
+
+      // The read-only snapshot must never persist the foreign lineup.
+      expect(server.saveLineup).not.toHaveBeenCalled()
+      expect(fire).not.toHaveBeenCalled()
+    })
+
+    it('does not open the swap overlay when a read-only tile is clicked', () => {
+      const team = testData.team({ formation: '433' })
+      const players = [testData.player({ id: 7, position: 'CM', in_game_position: 'CM' })]
+      const lineup = new Lineup(players, team, undefined, { readOnly: true })
+
+      // Simulate a click on a rendered tile.
+      const playerEl = document.createElement('div')
+      playerEl.className = 'player CM'
+      playerEl.dataset.playerId = '7'
+      const squad = document.createElement('div')
+      squad.className = 'squad'
+      squad.appendChild(playerEl)
+
+      lineup.events['.squad'].click({ target: playerEl })
+
+      // No overlay was opened and no state was touched.
+      expect(lineup._overlay).toBeNull()
     })
   })
 

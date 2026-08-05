@@ -642,7 +642,7 @@ Modifiers that raise or lower the in-game level:
 • Squad age: an average age near 27 gives up to +5%; too young or too old costs up to −5%.
 • Home advantage: a well-filled home stadium boosts the home side; an empty stadium is a small penalty.
 • Bot penalty: bot teams play at 90% of their nominal level.
-• Out-of-position substitute: a bench player forced into a slot outside their role group plays at 50% level.
+• Out of position: a starter fielded away from their natural position plays at 50% level. Substitutes are the exception – a player brought on from the bench keeps their full level even in a foreign slot, so an emergency swap is never punished.
 
 Where to see it:
 • After a match, the squad list shows each starter's base level ("Lvl") and their in-game level ("IG"). Green means the modifiers raised the level, red means they lowered it.
@@ -661,7 +661,7 @@ Was das In-Game-Level verändert:
 • Durchschnittsalter: Ein Schnitt um 27 gibt bis zu +5%; zu jung oder zu alt kostet bis zu −5%.
 • Heimvorteil: Ein gut gefülltes Heimstadion stärkt die Heimmannschaft; ein leeres Stadion ist ein kleiner Malus.
 • Bot-Malus: Bot-Teams spielen mit 90% ihres nominalen Levels.
-• Falsche Position: Ein Bank-Spieler, der in eine Position außerhalb seiner Rollen-Gruppe muss, spielt nur mit 50% Level.
+• Falsche Position: Ein Starter, der abseits seiner natürlichen Position aufläuft, spielt nur mit 50% Level. Einwechselspieler sind die Ausnahme – ein von der Bank gebrachter Spieler behält sein volles Level auch auf einer fremden Position, ein Not-Wechsel wird also nie bestraft.
 
 Wo du es siehst:
 • Nach jedem Spiel zeigt die Kaderliste für jeden Starter das Basis-Level ("Lvl") und das In-Game-Level ("IG"). Grün bedeutet, die Modifikatoren haben das Level angehoben, Rot bedeutet, sie haben es gesenkt.
@@ -870,12 +870,14 @@ Das Geld wird nach jedem Spieltag automatisch verbucht.`
     en: {
       title: 'Stadium',
       subtitle: 'Expand your ground and set ticket prices',
-      text: `Your stadium earns ticket money at every home game and even gives a small boost to your team. It has four stands (north, south, east and west) that you can expand individually.
+      text: `Your stadium earns ticket money at every home game and even gives a small boost to your team. It has four main stands (north, south, east and west) plus four corner stands (NE, NW, SE and SW) that you can expand individually.
 
 Capacity and expansion:
-• North and south stands hold up to 30,000 seats each; east and west up to 15,000 each.
+• North and south stands hold up to 30,000 seats each; east and west up to 15,000 each; each corner stand holds up to 4,000.
 • Seats get more expensive in tiers as you build bigger (from 500 € per seat up to 2,000 € for the largest stands), plus a one-time 50,000 € architect fee per build order.
-• You can add a roof to a stand, which raises attendance. Stands cannot be shrunk and roofs cannot be removed.
+• You can add a roof to a stand, which raises attendance. A new roof costs 20 % on top of the stand's build price (at least 300,000 €).
+• Expanding a roofed stand means the roof has to be extended over the new seats — that costs 20 % of the added seats' price (at least 100,000 €). You can also tear an existing roof down instead, which is free.
+• Stands cannot be shrunk.
 • Construction takes several match days and continues across seasons.
 
 Attendance and income:
@@ -888,12 +890,14 @@ Home advantage:
     de: {
       title: 'Stadion',
       subtitle: 'Baue dein Stadion aus und lege Ticketpreise fest',
-      text: `Dein Stadion bringt bei jedem Heimspiel Ticketeinnahmen und gibt deinem Team sogar einen kleinen Schub. Es hat vier Tribünen (Nord, Süd, Ost und West), die du einzeln ausbauen kannst.
+      text: `Dein Stadion bringt bei jedem Heimspiel Ticketeinnahmen und gibt deinem Team sogar einen kleinen Schub. Es hat vier Haupttribünen (Nord, Süd, Ost und West) sowie vier Ecktribünen (NO, NW, SO und SW), die du einzeln ausbauen kannst.
 
 Kapazität und Ausbau:
-• Nord- und Südtribüne fassen jeweils bis zu 30.000 Plätze; Ost und West jeweils bis zu 15.000.
+• Nord- und Südtribüne fassen jeweils bis zu 30.000 Plätze; Ost und West jeweils bis zu 15.000; jede Ecktribüne bis zu 4.000.
 • Sitzplätze werden in Stufen teurer, je größer du baust (von 500 € pro Platz bis 2.000 € bei den größten Tribünen), plus eine einmalige Architektengebühr von 50.000 € pro Bauauftrag.
-• Du kannst eine Tribüne überdachen, was die Zuschauerzahl erhöht. Tribünen können nicht verkleinert und Dächer nicht entfernt werden.
+• Du kannst eine Tribüne überdachen, was die Zuschauerzahl erhöht. Ein neues Dach kostet 20 % Aufschlag auf den Baupreis der Tribüne (mindestens 300.000 €).
+• Wird eine überdachte Tribüne vergrößert, muss das Dach über die neuen Plätze verlängert werden – das kostet 20 % des Preises der neuen Plätze (mindestens 100.000 €). Du kannst ein bestehendes Dach stattdessen auch abreißen, das ist kostenlos.
+• Tribünen können nicht verkleinert werden.
 • Der Bau dauert mehrere Spieltage und läuft über Saisongrenzen hinweg weiter.
 
 Zuschauer und Einnahmen:

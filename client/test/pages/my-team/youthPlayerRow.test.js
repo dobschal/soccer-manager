@@ -125,5 +125,26 @@ describe('YouthPlayerRow', () => {
       handler({ youthPlayerId: 5, previousMode: 'training', newMode: 'training' })
       expect(row.update).not.toHaveBeenCalled()
     })
+
+    it('re-renders the select even when a sibling handler already mutated the shared player object (freed-slot select stayed stale)', () => {
+      // Reproduces the bug: assigning a player to a full mode from the list
+      // frees the last occupant. The page-level handler for the same server
+      // event shares this player object and mounts first, so it flips
+      // `training_mode` to the new value BEFORE the row's own handler runs. An
+      // object-based guard would then see "nothing changed" and skip the
+      // re-render, leaving the freed player's `<select>` showing the old mode.
+      const player = { id: 7, name: 'Bravo', position: 'CM', age: 17, level: 15, moral: 0.5, fitness: 0.5, training_mode: 'training' }
+      const row = new YouthPlayerRow(player, makePage())
+      row.update = vi.fn()
+
+      const handler = row.serverEvents[SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name]
+
+      // Page-level handler runs first on the shared object and empties the slot.
+      player.training_mode = null
+
+      handler({ youthPlayerId: 7, previousMode: 'training', newMode: null })
+
+      expect(row.update).toHaveBeenCalledTimes(1)
+    })
   })
 })

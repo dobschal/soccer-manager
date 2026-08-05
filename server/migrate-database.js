@@ -2591,6 +2591,48 @@ const migrations = [{
     // and the whole message fails to send. Convert to utf8mb4 so emoji work.
     await query('ALTER TABLE chat_message CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')
   }
+}, {
+  name: 'Add corner stands to stadium table',
+  async run () {
+    // Four corner stands (NE/NW/SE/SW). Existing stadiums start with corner
+    // size 0 (no corners yet), default price 13, no roof. Construction columns
+    // mirror the main stands' tracking columns and default to NULL.
+    const corners = ['corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
+    for (const corner of corners) {
+      await query(`ALTER TABLE stadium
+        ADD COLUMN ${corner}_stand_size INT DEFAULT 0,
+        ADD COLUMN ${corner}_stand_price INT DEFAULT 13,
+        ADD COLUMN ${corner}_stand_roof TINYINT(1) DEFAULT 0,
+        ADD COLUMN ${corner}_construction_end_game_day INT DEFAULT NULL,
+        ADD COLUMN ${corner}_construction_end_season INT DEFAULT NULL,
+        ADD COLUMN ${corner}_construction_target_size INT DEFAULT NULL,
+        ADD COLUMN ${corner}_construction_target_roof TINYINT(1) DEFAULT NULL
+      `)
+    }
+  }
+}, {
+  name: 'Add last-spied snapshot column to team (spy report is a snapshot)',
+  async run () {
+    // The spy report is a point-in-time snapshot taken when the SPY card is
+    // played: the opponent's tactics, lineup and active motivating-speech
+    // buff are frozen here so later tactic changes don't alter the report.
+    await query('ALTER TABLE team ADD COLUMN last_spied_snapshot LONGTEXT NULL DEFAULT NULL')
+  }
+}, {
+  name: 'Wiki: refresh in-game-level (subs no longer get out-of-position penalty)',
+  async run () {
+    // The initial seed only runs on an empty wiki, so the reworded
+    // out-of-position rule must be pushed to already-seeded prod/sandbox DBs.
+    const topic = WIKI_SEED.find(t => t.key === 'in-game-level')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

@@ -1,15 +1,17 @@
-import { UIElement } from '../../lib/UIElement.js'
-import { server } from '../../lib/gateway.js'
-import { el, generateId } from '../../lib/html.js'
-import { toast } from '../../partials/toast.js'
-import { euroFormat } from '../../lib/currency.js'
-import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
-import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
-import { t } from '../../i18n/index.js'
-import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
-import { Table } from '../../partials/table.js'
-import { showOverlay } from '../../partials/overlay.js'
-import { onClick } from '../../lib/htmlEventHandlers.js'
+import {UIElement} from '../../lib/UIElement.js'
+import {server} from '../../lib/gateway.js'
+import {el, generateId} from '../../lib/html.js'
+import {toast} from '../../partials/toast.js'
+import {StadiumCanvas} from '../../partials/stadiumCanvas.js'
+import {showStadiumExpandModal} from '../../partials/stadiumExpandModal.js'
+import {showTutorialIfNeeded} from '../../partials/tutorialOverlay.js'
+import {t} from '../../i18n/index.js'
+import {wikiInfoIcon} from '../../partials/wikiInfoIcon.js'
+import {Table} from '../../partials/table.js'
+import {showOverlay} from '../../partials/overlay.js'
+import {onClick} from '../../lib/htmlEventHandlers.js'
+
+const STANDS = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
 
 export class StadiumSubPage extends UIElement {
   /**
@@ -23,22 +25,7 @@ export class StadiumSubPage extends UIElement {
       server.getConstructionHistory()
     ])
     this.stadium = stadiumResponse.stadium
-    this._originalPrices = {
-      north: this.stadium.north_stand_price,
-      south: this.stadium.south_stand_price,
-      east: this.stadium.east_stand_price,
-      west: this.stadium.west_stand_price
-    }
-    this._originalExpand = {
-      north_size: this.stadium.north_stand_size,
-      south_size: this.stadium.south_stand_size,
-      east_size: this.stadium.east_stand_size,
-      west_size: this.stadium.west_stand_size,
-      north_roof: this.stadium.north_stand_roof,
-      south_roof: this.stadium.south_stand_roof,
-      east_roof: this.stadium.east_stand_roof,
-      west_roof: this.stadium.west_stand_roof
-    }
+    this._originalPrices = this._snapshotPrices()
     this.constructionInfo = stadiumResponse.constructionInfo || {}
     this.team = teamResponse.team
     this.attendanceData = attendanceResponse.attendance || []
@@ -49,14 +36,20 @@ export class StadiumSubPage extends UIElement {
    * @returns {string}
    */
   get template () {
-    this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas')
+    // Starts as a showcase: camera orbits on its own, the toggle in the canvas
+    // corner hands the controls over to the user.
+    this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas', {
+      interactive: false,
+      autoRotate: true,
+      controlsToggle: true
+    })
     const stadiumName = this.stadium.name || t('stadium.yourStadium')
     return `
       <div>
         <h2 class="stadium-name-header u-cursor-pointer" title="${t('stadium.clickToEditName')}">
           ${stadiumName} <i class="fa fa-pencil" aria-hidden="true"></i> ${wikiInfoIcon('stadium')}
         </h2>
-        <p>${t('stadium.stadiumDesc', { seats: this._stadiumCanvas.calculateTotalSeats() })}</p>
+        <p>${t('stadium.stadiumDesc', {seats: this._stadiumCanvas.calculateTotalSeats()})}</p>
         <div class="mb-4" id="stadium-canvas-container">
           ${this._stadiumCanvas}
         </div>
@@ -65,16 +58,14 @@ export class StadiumSubPage extends UIElement {
         <form class="pb-4 mb-4" id="price-form">
           ${this._renderPriceForm()}
         </form>
-        <h3>${t('stadium.expandStadium')}</h3>
-        <p>${t('stadium.expandDesc')}</p>
-        <form class="pb-4 mb-4" id="stadium-form">
-          ${this._renderExpandForm()}
-        </form>
         <h3>${t('stadium.attendance')}</h3>
         <p>${t('stadium.attendanceDesc')}</p>
         ${this._renderAttendanceSection()}
-        <h3>${t('stadium.constructionHistory')}</h3>
+        <h3 class="mt-4">${t('stadium.constructionHistory')}</h3>
         <p>${t('stadium.constructionHistoryDesc')}</p>
+        <button type="button" class="btn btn-info mb-4" id="open-expand-modal-btn">
+          ${t('stadium.expandStadiumAction')}
+        </button>
         ${this._renderConstructionHistory()}
       </div>
     `
@@ -105,31 +96,8 @@ export class StadiumSubPage extends UIElement {
           }
         }
       },
-      '#stadium-form': {
-        submit: this._onStadiumFormSubmit.bind(this),
-        input: (event) => {
-          const sizeInput = event.target.closest('[data-size-input]')
-          const roofInput = event.target.closest('[data-roof-input]')
-
-          if (sizeInput) {
-            const name = sizeInput.dataset.sizeInput
-            this.stadium[name + '_stand_size'] = Number(sizeInput.value)
-          } else if (roofInput) {
-            const name = roofInput.dataset.roofInput
-            this.stadium[name + '_stand_roof'] = roofInput.checked ? 1 : 0
-          } else {
-            return
-          }
-
-          clearTimeout(this._updatePriceTimeout)
-          this._updatePriceTimeout = setTimeout(() => this._updatePrice(), 500)
-        },
-        click: (event) => {
-          if (event.target.closest('#cancel-expand-btn')) {
-            event.preventDefault()
-            this._resetExpand()
-          }
-        }
+      '#open-expand-modal-btn': {
+        click: () => this._showExpandModal()
       }
     }
   }
@@ -148,7 +116,6 @@ export class StadiumSubPage extends UIElement {
    * Called when component is unmounted - cleanup Three.js resources
    */
   onDestroy () {
-    clearTimeout(this._updatePriceTimeout)
     if (this._stadiumCanvas) {
       this._stadiumCanvas.onDestroy()
       this._stadiumCanvas = null
@@ -164,10 +131,19 @@ export class StadiumSubPage extends UIElement {
   constructionHistory = []
   /** @type {StadiumCanvas|null} */
   _stadiumCanvas = null
-  /** @type {boolean} */
-  _hasValidConstruction = false
-  /** @type {ReturnType<typeof setTimeout>|null} */
-  _updatePriceTimeout = null
+
+  /**
+   * Opens the expand-stadium overlay. The overlay owns the whole plan → price
+   * → build flow; the page only has to refresh once a build was commissioned.
+   */
+  _showExpandModal () {
+    showStadiumExpandModal(
+      this.stadium,
+      this.team,
+      this.constructionInfo,
+      () => void this.update(true)
+    )
+  }
 
   _showStadiumNameEditor () {
     const inputId = generateId()
@@ -220,12 +196,7 @@ export class StadiumSubPage extends UIElement {
     event.preventDefault()
     try {
       await server.updatePrices(this.stadium)
-      this._originalPrices = {
-        north: this.stadium.north_stand_price,
-        south: this.stadium.south_stand_price,
-        east: this.stadium.east_stand_price,
-        west: this.stadium.west_stand_price
-      }
+      this._originalPrices = this._snapshotPrices()
       this._updatePriceButton()
       toast(t('stadium.pricesUpdated'), 'success')
     } catch (e) {
@@ -233,11 +204,22 @@ export class StadiumSubPage extends UIElement {
     }
   }
 
+  /**
+   * @returns {Object<string, number>}
+   */
+  _snapshotPrices () {
+    const prices = {}
+    for (const name of STANDS) {
+      prices[name] = this.stadium[name + '_stand_price']
+    }
+    return prices
+  }
+
   _updatePriceButton () {
     const btn = el(`${this._elementQuery} #save-prices-btn`)
     const cancelBtn = el(`${this._elementQuery} #cancel-prices-btn`)
     if (!btn) return
-    const hasChange = ['north', 'south', 'east', 'west'].some(
+    const hasChange = STANDS.some(
       name => this.stadium[name + '_stand_price'] !== this._originalPrices[name]
     )
     btn.disabled = !hasChange
@@ -246,7 +228,7 @@ export class StadiumSubPage extends UIElement {
   }
 
   _resetPrices () {
-    for (const name of ['north', 'south', 'east', 'west']) {
+    for (const name of STANDS) {
       this.stadium[name + '_stand_price'] = this._originalPrices[name]
       const input = el(`${this._elementQuery} [data-price-input="${name}"]`)
       if (input) input.value = this._originalPrices[name]
@@ -254,124 +236,15 @@ export class StadiumSubPage extends UIElement {
     this._updatePriceButton()
   }
 
-  _resetExpand () {
-    for (const name of ['north', 'south', 'east', 'west']) {
-      this.stadium[name + '_stand_size'] = this._originalExpand[name + '_size']
-      this.stadium[name + '_stand_roof'] = this._originalExpand[name + '_roof']
-      const sizeInput = el(`${this._elementQuery} [data-size-input="${name}"]`)
-      if (sizeInput) sizeInput.value = this._originalExpand[name + '_size']
-      const roofInput = el(`${this._elementQuery} [data-roof-input="${name}"]`)
-      if (roofInput) roofInput.checked = !!this._originalExpand[name + '_roof']
-    }
-    this._hasValidConstruction = false
-    const submitBtn = el(`${this._elementQuery} #start-construction-btn`)
-    const cancelBtn = el(`${this._elementQuery} #cancel-expand-btn`)
-    if (submitBtn) {
-      submitBtn.disabled = true
-      submitBtn.className = 'btn btn-primary'
-    }
-    if (cancelBtn) cancelBtn.className = 'btn btn-secondary ml-2 d-none'
-    const priceEl = el(`${this._elementQuery} #total-price`)
-    if (priceEl) priceEl.innerText = '0 €'
-    const previewEl = el(`${this._elementQuery} #construction-time-preview`)
-    if (previewEl) previewEl.innerHTML = ''
-  }
-
-  /**
-   * @param {Event} event
-   * @returns {Promise<void>}
-   */
-  async _onStadiumFormSubmit (event) {
-    event.preventDefault()
-
-    // Safety check - don't submit if no valid construction
-    if (!this._hasValidConstruction) {
-      toast(t('stadium.makeChangesFirst'), 'error')
-      return
-    }
-
-    try {
-      const result = await server.buildStadium(this.stadium)
-      this.constructionInfo = result.constructionInfo || {}
-      toast(t('stadium.constructionStarted'), 'success')
-      // Reload and re-render to show construction status
-      void this.update(true)
-    } catch (e) {
-      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-    }
-  }
-
-  /**
-   * @returns {Promise<void>}
-   */
-  async _updatePrice () {
-    const submitBtn = el(`${this._elementQuery} #start-construction-btn`)
-    const cancelBtn = el(`${this._elementQuery} #cancel-expand-btn`)
-
-    try {
-      const {
-        totalPrice,
-        constructionTimes
-      } = await server.calculateStadiumPrice(this.stadium)
-      const priceEl = el(`${this._elementQuery} #total-price`)
-      if (priceEl) {
-        priceEl.innerText = euroFormat.format(totalPrice)
-      }
-
-      // Display construction time preview
-      const previewEl = el(`${this._elementQuery} #construction-time-preview`)
-      let hasValidChanges = false
-
-      if (previewEl && constructionTimes) {
-        const previews = Object.entries(constructionTimes)
-          .filter(([, info]) => info && !info.blocked)
-          .map(([stand, info]) => {
-            let details = info.days === 1 ? t('stadium.gameDaysSingle', { days: info.days }) : t('stadium.gameDaysPlural', { days: info.days })
-            if (info.addingRoof) details += ' ' + t('stadium.includesRoof')
-            return `<li><strong>${stand}</strong>: ${details}</li>`
-          })
-
-        if (previews.length > 0 && totalPrice > 0) {
-          previewEl.innerHTML = `
-            <div class="alert alert-info">
-              <strong>${t('stadium.constructionTimeEstimate')}</strong>
-              <ul class="mb-0">${previews.join('')}</ul>
-            </div>
-          `
-          hasValidChanges = true
-        } else {
-          previewEl.innerHTML = ''
-        }
-      }
-
-      // Enable/disable submit button based on valid changes
-      this._hasValidConstruction = hasValidChanges
-      if (submitBtn) {
-        submitBtn.disabled = !hasValidChanges
-        submitBtn.className = hasValidChanges ? 'btn btn-primary' : 'btn btn-primary'
-      }
-      if (cancelBtn) cancelBtn.className = hasValidChanges ? 'btn btn-secondary ml-2' : 'btn btn-secondary ml-2 d-none'
-    } catch (e) {
-      // Disable button on error
-      this._hasValidConstruction = false
-      if (submitBtn) {
-        submitBtn.disabled = true
-        submitBtn.className = 'btn btn-primary'
-      }
-      if (cancelBtn) cancelBtn.className = 'btn btn-secondary ml-2 d-none'
-      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-    }
-  }
-
   /**
    * @returns {string}
    */
   _renderPriceForm () {
-    const formGroups = ['north', 'south', 'east', 'west'].map(name => `
+    const formGroups = STANDS.map(name => `
       <div class="col-6 col-sm-3 mb-2">
         <div class="form-group">
           <label>
-            ${t('stadium.priceFor', { stand: t('stadium.' + name) })}
+            ${t('stadium.priceFor', {stand: t('stadium.' + name)})}
           </label>
           <div class="input-group">
             <input data-price-input="${name}"
@@ -398,78 +271,17 @@ export class StadiumSubPage extends UIElement {
   /**
    * @returns {string}
    */
-  _renderExpandForm () {
-    const formGroups = ['north', 'south', 'east', 'west'].map(name => {
-      const standInfo = this.constructionInfo?.[name]
-      const underConstruction = standInfo?.underConstruction
-      const remaining = standInfo?.remainingGameDays
-      const targetSize = standInfo?.targetSize
-
-      const targetLine = targetSize != null
-        ? `<br><small>${t('stadium.constructionTargetSize', { seats: targetSize.toLocaleString() })}</small>`
-        : ''
-
-      const constructionBadge = underConstruction
-        ? `<div class="alert alert-warning mt-2 py-2">
-             <small>${remaining > 0 ? t('stadium.constructionRemaining', { days: remaining }) : t('stadium.constructionCompletesToday')}</small>${targetLine}
-           </div>`
-        : ''
-
-      const disabledAttr = underConstruction ? 'disabled' : ''
-
-      return `
-        <div class="col-6 col-sm-3 mb-4">
-          <div class="form-group">
-            <label>${t('stadium.seatsOnStand', { stand: t('stadium.' + name) })}</label>
-            <input data-size-input="${name}"
-                   class="form-control"
-                   type="number"
-                   value="${this.stadium[name + '_stand_size']}"
-                   ${disabledAttr}>
-            <small class="form-text text-muted">${t('stadium.changeSeatsHint')}</small>
-          </div>
-          <div class="form-check">
-            <label class="form-check-label">
-              <input class="form-check-input"
-                     data-roof-input="${name}"
-                     type="checkbox"
-                     ${this.stadium[name + '_stand_roof'] ? 'checked' : ''}
-                     ${disabledAttr}>
-                  ${t('stadium.roofOnStand', { stand: t('stadium.' + name) })}
-            </label>
-          </div>
-          ${constructionBadge}
-        </div>
-      `
-    }).join('')
-
-    return `
-      <div class="row">
-        ${formGroups}
-      </div>
-      <p>
-        ${t('stadium.totalPrice')} <span id="total-price">0 €</span>
-      </p>
-      <div id="construction-time-preview" class="mb-3"></div>
-      <button type="submit" class="btn btn-primary" id="start-construction-btn" disabled>${t('stadium.startConstruction')}</button>
-      <button type="button" class="btn btn-secondary ml-2 d-none" id="cancel-expand-btn">${t('stadium.cancel')}</button>
-    `
-  }
-
-  /**
-   * @returns {string}
-   */
   _renderAttendanceSection () {
     if (!this.attendanceData || this.attendanceData.length === 0) {
       return `<p class="text-muted mb-4">${t('stadium.noAttendanceData')}</p>`
     }
 
-    const stands = ['north', 'south', 'east', 'west']
+    const stands = STANDS
 
     return new Table({
       cols: [
-        { name: '' },
-        ...stands.map(s => ({ name: t('stadium.' + s) }))
+        {name: ''},
+        ...stands.map(s => ({name: t('stadium.' + s)}))
       ],
       renderRow: (row) => [
         t('stadium.seasonDay', {
@@ -477,7 +289,7 @@ export class StadiumSubPage extends UIElement {
           day: row.gameDay + 1
         }),
         ...stands.map(s => {
-          const data = row.stands[s]
+          const data = row.stands[s] || {guests: 0, size: 0, percentage: 0}
           return `<span class="d-none d-sm-inline">${data.guests.toLocaleString()} / ${data.size.toLocaleString()} </span>${data.percentage}%`
         })
       ],
@@ -496,12 +308,12 @@ export class StadiumSubPage extends UIElement {
 
     return new Table({
       cols: [
-        { name: t('stadium.stand') },
-        { name: t('stadium.oldSize') },
-        { name: t('stadium.newSize2') },
-        { name: t('stadium.roofAdded') },
-        { name: t('stadium.started') },
-        { name: t('stadium.completed') }
+        {name: t('stadium.stand')},
+        {name: t('stadium.oldSize')},
+        {name: t('stadium.newSize2')},
+        {name: t('stadium.roofAdded')},
+        {name: t('stadium.started')},
+        {name: t('stadium.completed')}
       ],
       renderRow: (h) => [
         t('stadium.' + h.stand),

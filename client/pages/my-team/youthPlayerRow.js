@@ -24,6 +24,15 @@ export class YouthPlayerRow extends UIElement {
     super()
     this.player = player
     this.page = page
+    // The training_mode this row currently *shows* on screen. Tracked
+    // separately from `player.training_mode` because the page-level handler for
+    // `YOUTH_PLAYER_TRAINING_MODE_CHANGED` shares this exact player object and
+    // mutates that field before our own handler runs (it mounts first, so it is
+    // dispatched first). Using the shared field to decide "did anything change?"
+    // would make our guard short-circuit against a value that was already
+    // updated for us — leaving a freed slot's `<select>` stale. See the
+    // server-event handler below.
+    this._renderedMode = player.training_mode || null
   }
 
   /**
@@ -87,11 +96,32 @@ export class YouthPlayerRow extends UIElement {
     return {
       [SERVER_EVENTS.YOUTH_PLAYER_TRAINING_MODE_CHANGED.name]: (data) => {
         if (!data || data.youthPlayerId !== this.player.id) return
-        if (this.player.training_mode === data.newMode) return
-        this.player.training_mode = data.newMode
+        const newMode = data.newMode || null
+        this.player.training_mode = newMode
+        // Re-render only when the row does not already display this mode. We
+        // compare against `_renderedMode` (what we last drew), NOT
+        // `this.player.training_mode`: the page-level handler for the same event
+        // shares this player object and may have overwritten that field before
+        // we run, which would make an object-based guard skip a still-needed
+        // re-render (freed slot's select stayed stale).
+        if (this._renderedMode === newMode) return
         this.update()
       }
     }
+  }
+  /**
+   * Keep `_renderedMode` in sync with what the template just drew, on both the
+   * initial mount and every subsequent surgical update.
+   * @returns {void}
+   */
+  onMounted () {
+    this._renderedMode = this.player.training_mode || null
+  }
+  /**
+   * @returns {void}
+   */
+  onUpdate () {
+    this._renderedMode = this.player.training_mode || null
   }
   updateIndicator = true
 

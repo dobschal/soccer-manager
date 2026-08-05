@@ -663,8 +663,9 @@ export class ActionCards extends UIElement {
         // Block the ACTION_CARDS_CHANGED refetch until the local animation runs.
         this._processing = true
         // Pass the spied team id through the `position` slot so the server can
-        // remember it and show the report again on #my-team.
-        await server.useActionCard(actionCard, null, teamId)
+        // remember it and show the report again on #my-team. The server returns
+        // the frozen snapshot the overlay reveals (#513).
+        return await server.useActionCard(actionCard, null, teamId)
       }
     })
     if (consumed) {

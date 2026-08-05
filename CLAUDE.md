@@ -311,6 +311,16 @@ The `deploy-prod` and `deploy-sandbox` jobs in `.github/workflows/ci.yml` rewrit
 manually will be wiped on the next deploy. When adding a new env var the running app needs,
 edit **both** heredoc blocks in `ci.yml` — not just the server `.env`.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs live as GitHub issues in `dobschal/soccer-manager` (use the `gh` CLI); work is also tracked on the project board at <https://github.com/users/dobschal/projects/1>. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root (created lazily by `/domain-modeling`). See `docs/agents/domain.md`.
+
 ## Tech Stack
 
 - **Backend**: Node.js 20, Express 4.18, MySQL 8.0, JWT auth

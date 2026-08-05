@@ -12,6 +12,11 @@ import { collectStatistics, getStatistics } from '../helper/statisticsHelper.js'
 import { getSuspiciousActions } from '../helper/fraudHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getServerStats } from '../helper/serverStatsHelper.js'
+import { getTeamById } from '../helper/teamHelper.js'
+import { updateTeamBalance } from '../helper/financeHelper.js'
+import { getUserLocale, t } from '../i18n/index.js'
+import { sendToUser } from '../lib/websocket.js'
+import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 
 const PERMANENT_ADMIN = 'Emmo'
 
@@ -29,6 +34,13 @@ export const GIFTABLE_ACTION_CARD_TYPES = [
   'STAR_PLAYER',
   'MOTIVATING_SPEECH'
 ]
+
+/**
+ * Card types an admin may add to / remove from a single team via the team
+ * page. Superset of {@link GIFTABLE_ACTION_CARD_TYPES} — SPY is not part of
+ * the mass-gift / referral dropdowns but can be handed out individually.
+ */
+export const ADMIN_MANAGEABLE_ACTION_CARD_TYPES = [...GIFTABLE_ACTION_CARD_TYPES, 'SPY']
 
 export default {
   /**
@@ -395,5 +407,114 @@ export default {
       throw new BadRequestError('This action is only available for admins')
     }
     return getServerStats()
+  },
+
+  /**
+   * Unplayed action cards of a single team (admin only). Powers the admin
+   * section on the team page. Cards are grouped by action + state so pending
+   * (unclaimed) gifts stay distinguishable from the cards the user already
+   * holds.
+   * @param {number} teamId
+   * @param {Request} req
+   * @returns {Promise<{actionCards: Array<{action: string, state: string, count: number}>, types: Array<string>}>}
+   */
+  async adminGetTeamActionCards (teamId, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    const team = await getTeamById(Number(teamId))
+    if (!team) throw new BadRequestError('Team not found')
+    const rows = await query(
+      "SELECT action, state, COUNT(*) AS count FROM action_card WHERE team_id=? AND played=0 AND state IN ('received','pending') GROUP BY action, state ORDER BY action ASC",
+      [team.id]
+    )
+    return {
+      actionCards: rows.map(r => ({ action: r.action, state: r.state, count: Number(r.count) })),
+      types: ADMIN_MANAGEABLE_ACTION_CARD_TYPES
+    }
+  },
+
+  /**
+   * Give one action card of the given type to a single team (admin only).
+   * The card lands directly in the user's hand (state 'received').
+   * @param {number} teamId
+   * @param {string} action
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async adminAddActionCard (teamId, action, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    if (typeof action !== 'string' || !ADMIN_MANAGEABLE_ACTION_CARD_TYPES.includes(action)) {
+      throw new BadRequestError('Invalid action card type')
+    }
+    const team = await getTeamById(Number(teamId))
+    if (!team) throw new BadRequestError('Team not found')
+    const { season } = await getGameDayAndSeason()
+    await query('INSERT INTO action_card (team_id, action, played, state, season) VALUES (?, ?, 0, ?, ?)', [
+      team.id,
+      action,
+      'received',
+      season
+    ])
+    if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
+    return { success: true }
+  },
+
+  /**
+   * Remove one unplayed action card of the given type/state from a team
+   * (admin only). Deletes the oldest matching card.
+   * @param {number} teamId
+   * @param {string} action
+   * @param {string} state - 'received' or 'pending'
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async adminRemoveActionCard (teamId, action, state, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    if (typeof action !== 'string' || !action) {
+      throw new BadRequestError('Invalid action card type')
+    }
+    const cardState = state === 'pending' ? 'pending' : 'received'
+    const team = await getTeamById(Number(teamId))
+    if (!team) throw new BadRequestError('Team not found')
+    const [card] = await query(
+      'SELECT id FROM action_card WHERE team_id=? AND action=? AND played=0 AND state=? ORDER BY id ASC LIMIT 1',
+      [team.id, action, cardState]
+    )
+    if (!card) throw new BadRequestError('No such action card on this team')
+    await query('DELETE FROM action_card WHERE id=?', [card.id])
+    if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
+    return { success: true }
+  },
+
+  /**
+   * Set a team's balance to an absolute value (admin only). The difference is
+   * booked through the regular finance log so the change stays traceable in
+   * the user's finances page.
+   * @param {number} teamId
+   * @param {number} balance
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, balance: number}>}
+   */
+  async adminSetTeamBalance (teamId, balance, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    const newBalance = Math.round(Number(balance))
+    if (!Number.isFinite(newBalance)) {
+      throw new BadRequestError('Invalid balance')
+    }
+    const team = await getTeamById(Number(teamId))
+    if (!team) throw new BadRequestError('Team not found')
+    const diff = newBalance - team.balance
+    if (diff === 0) return { success: true, balance: newBalance }
+    const { gameDay, season } = await getGameDayAndSeason()
+    const locale = await getUserLocale(team.user_id)
+    await updateTeamBalance(team, diff, t('finance.adminAdjustment', {}, locale), gameDay, season)
+    return { success: true, balance: team.balance }
   }
 }

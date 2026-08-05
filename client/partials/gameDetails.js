@@ -192,10 +192,13 @@ export class GameDetails extends UIElement {
     } = this
 
     const sd = details.stadiumDetails || {}
-    const guests = (sd.northGuests || 0) + (sd.southGuests || 0) + (sd.eastGuests || 0) + (sd.westGuests || 0)
-    const totalEarnings = sd.totalEarnings ?? ((sd.northEarnings || 0) + (sd.southEarnings || 0) + (sd.eastEarnings || 0) + (sd.westEarnings || 0))
+    const guests = (sd.northGuests || 0) + (sd.southGuests || 0) + (sd.eastGuests || 0) + (sd.westGuests || 0) +
+      (sd.corner_neGuests || 0) + (sd.corner_nwGuests || 0) + (sd.corner_seGuests || 0) + (sd.corner_swGuests || 0)
+    const totalEarnings = sd.totalEarnings ?? ((sd.northEarnings || 0) + (sd.southEarnings || 0) + (sd.eastEarnings || 0) + (sd.westEarnings || 0) +
+      (sd.corner_neEarnings || 0) + (sd.corner_nwEarnings || 0) + (sd.corner_seEarnings || 0) + (sd.corner_swEarnings || 0))
     const totalCapacity = sd.totalCapacity || (stadium
-      ? (stadium.north_stand_size || 0) + (stadium.south_stand_size || 0) + (stadium.east_stand_size || 0) + (stadium.west_stand_size || 0)
+      ? (stadium.north_stand_size || 0) + (stadium.south_stand_size || 0) + (stadium.east_stand_size || 0) + (stadium.west_stand_size || 0) +
+        (stadium.corner_ne_stand_size || 0) + (stadium.corner_nw_stand_size || 0) + (stadium.corner_se_stand_size || 0) + (stadium.corner_sw_stand_size || 0)
       : 0)
 
     let ballControllA = 0

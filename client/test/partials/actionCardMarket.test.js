@@ -92,20 +92,41 @@ describe('ActionCardMarket all-offers tab', () => {
     }))
   }
 
-  it('shows at most 6 offers and notes how many are hidden', () => {
+  it('#519 shows 6 offers per page and paginates the rest', () => {
     const market = makeMarket([])
     market._offers = makeOffers(10)
     const html = market._renderOffers()
     expect(countOfferRows(html)).toBe(6)
-    expect(html).toContain('Showing 6 of 10 offers')
+    // Pagination controls appear with a "Page 1 of 2" indicator.
+    expect(html).toContain('Page 1 of 2')
+    expect(html).toContain('Next')
   })
 
-  it('does not show the count hint when 6 or fewer offers match', () => {
+  it('#519 shows the remaining offers on the next page', () => {
+    const market = makeMarket([])
+    market._offers = makeOffers(10)
+    market._offersPage = 1
+    const html = market._renderOffers()
+    // 10 offers, 6 per page → 4 on the second page.
+    expect(countOfferRows(html)).toBe(4)
+    expect(html).toContain('Page 2 of 2')
+  })
+
+  it('#519 clamps an out-of-range page back to the last valid page', () => {
+    const market = makeMarket([])
+    market._offers = makeOffers(10)
+    market._offersPage = 99
+    const html = market._renderOffers()
+    expect(countOfferRows(html)).toBe(4)
+    expect(market._offersPage).toBe(1)
+  })
+
+  it('#519 does not show pagination controls when 6 or fewer offers match', () => {
     const market = makeMarket([])
     market._offers = makeOffers(4)
     const html = market._renderOffers()
     expect(countOfferRows(html)).toBe(4)
-    expect(html).not.toContain('Showing')
+    expect(html).not.toContain('Page 1 of')
   })
 
   it('renders a card-type filter select with one option per distinct type', () => {

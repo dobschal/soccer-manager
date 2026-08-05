@@ -33,7 +33,18 @@ export default {
       [playerIds, season]
     )
     const activePlayerIds = new Set(players.map(p => p.id))
-    const offers = allOffers.filter(o => activePlayerIds.has(o.player_id))
+    const playersById = new Map(players.map(p => [p.id, p]))
+    const offers = allOffers.filter(o => {
+      if (!activePlayerIds.has(o.player_id)) return false
+      // Never surface a stale sell offer whose player no longer belongs to the
+      // listing team (e.g. the player became a free agent or was signed
+      // elsewhere without the offer being cleaned up) — see #512.
+      if (o.type === 'sell') {
+        const player = playersById.get(o.player_id)
+        if (!player || player.team_id !== o.from_team_id) return false
+      }
+      return true
+    })
     const teamIds = players.map(p => p.team_id).filter(id => id != null)
     for (const offer of offers) {
       if (offer.from_team_id != null && !teamIds.includes(offer.from_team_id)) {
@@ -77,6 +88,11 @@ export default {
       }
       const dbPlayer = await getPlayerById(player.id)
       if (!dbPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+      // Only the team that actually owns the player may list them for sale.
+      // Without this guard a team could list a free agent (team_id NULL) or a
+      // player owned by someone else, leaving them on the market while still a
+      // free agent or belonging to another club (#512).
+      if (dbPlayer.team_id !== team.id) throw new BadRequestError(t('error.notYourPlayer', {}, locale))
       // A free-market signing costs nothing, so a player just signed from the free market must
       // not be flipped for instant profit. Block the sell if the most recent ownership event
       // for this player is a HIRED (free-market signing, not a paid transfer) in this season.

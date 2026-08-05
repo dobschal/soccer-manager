@@ -106,6 +106,49 @@ describe('trade routes', () => {
       expect(playerCall[1]).toEqual([[100, 200], 8])
     })
 
+    it('#512 excludes a stale sell offer whose player no longer belongs to the listing team', async () => {
+      // A sell offer from team 5, but the player is now a free agent (team_id
+      // null) or was signed elsewhere. Such stale offers must not surface.
+      const offers = [
+        testData.tradeOffer({ id: 1, type: 'sell', player_id: 100, from_team_id: 5 }),
+        testData.tradeOffer({ id: 2, type: 'sell', player_id: 200, from_team_id: 5 })
+      ]
+      const players = [
+        testData.player({ id: 100, team_id: 5, carrier_end_season: 10 }), // still owned by lister
+        testData.player({ id: 200, team_id: null, carrier_end_season: 10 }) // stale: now free agent
+      ]
+      const teams = [testData.team({ id: 5 })]
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 2 })
+      query
+        .mockResolvedValueOnce(offers)
+        .mockResolvedValueOnce(players)
+        .mockResolvedValueOnce(teams)
+
+      const result = await handlers.getOffers()
+
+      expect(result.offers).toHaveLength(1)
+      expect(result.offers[0].id).toBe(1)
+    })
+
+    it('#512 keeps a buy offer even though from_team_id differs from the player owner', async () => {
+      // Buy offers legitimately have from_team_id = buyer, not the player owner.
+      const offers = [testData.tradeOffer({ id: 3, type: 'buy', player_id: 100, from_team_id: 9 })]
+      const players = [testData.player({ id: 100, team_id: 5, carrier_end_season: 10 })]
+      const teams = [testData.team({ id: 5 })]
+
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 2 })
+      query
+        .mockResolvedValueOnce(offers)
+        .mockResolvedValueOnce(players)
+        .mockResolvedValueOnce(teams)
+
+      const result = await handlers.getOffers()
+
+      expect(result.offers).toHaveLength(1)
+      expect(result.offers[0].id).toBe(3)
+    })
+
     it('keeps offers for a player in their final season (carrier_end_season === season)', async () => {
       // Regression: a player in their last active season is still on the team,
       // still playing, and their buy offers are still acceptable. They must
@@ -166,6 +209,37 @@ describe('trade routes', () => {
         })
       )
       expect(addLogMessage).toHaveBeenCalled()
+    })
+
+    it('#512 rejects a sell offer for a player the team does not own (free agent)', async () => {
+      const team = testData.team({ id: 1, balance: 100000 })
+      const player = testData.player({ id: 7, team_id: null })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      // dbPlayer is a free agent (team_id null), not owned by team 1
+      getPlayerById.mockResolvedValue(testData.player({ id: 7, team_id: null }))
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 50000, 'sell', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining('not your player') })
+      expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_offer SET ?', expect.anything())
+    })
+
+    it('#512 rejects a sell offer for a player owned by another team', async () => {
+      const team = testData.team({ id: 1, balance: 100000 })
+      const player = testData.player({ id: 7, team_id: 99 })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(testData.player({ id: 7, team_id: 99 }))
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 50000, 'sell', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining('not your player') })
+      expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_offer SET ?', expect.anything())
     })
 
     it('#446 rejects a sell offer below 50% of the market value', async () => {

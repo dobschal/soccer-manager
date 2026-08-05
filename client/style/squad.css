@@ -126,6 +126,25 @@
     background-color: rgba(0, 0, 0, 0.5);
 }
 
+/* Star player (#516): golden border + halo on the pill and a soft radial glow
+   behind the player figure so star players stand out on the pitch. */
+.squad .player.is-star {
+    border-color: gold;
+    box-shadow: 0 0 2cqi 0.4cqi rgba(255, 215, 0, 0.75), 3px 3px 3px rgba(0, 0, 0, 0.5);
+}
+
+.squad .player.is-star::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    width: 20cqi;
+    height: 20cqi;
+    transform: translate(-50%, 35%);
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.55) 0%, rgba(255, 215, 0, 0.25) 40%, rgba(255, 215, 0, 0) 70%);
+    pointer-events: none;
+}
+
 /* ==========================================================================
    Player appearance "boom" — flash + rays radiating in all directions,
    inserted as the tile's first child so it renders behind the player.

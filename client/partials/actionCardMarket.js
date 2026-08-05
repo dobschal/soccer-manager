@@ -84,6 +84,9 @@ export class ActionCardMarket extends UIElement {
   /** Selected card-type filter for the "All offers" tab ('' = all types). */
   _offerTypeFilter = ''
 
+  /** Current zero-based page for the paginated "All offers" tab (#519). */
+  _offersPage = 0
+
   _newOfferBtnId = generateId()
   _offerFilterId = generateId()
 
@@ -261,7 +264,15 @@ export class ActionCardMarket extends UIElement {
       return `${select}<p class="text-muted mb-0">${t('cardMarket.empty')}</p>`
     }
 
-    const visible = filtered.slice(0, ALL_OFFERS_LIMIT)
+    // Paginate instead of hard-capping the list (#519). Clamp the current page
+    // in case the offer count shrank (filter change, offer taken via a server
+    // event) so we never render an empty page past the end.
+    const pageCount = Math.max(1, Math.ceil(filtered.length / OFFERS_PER_PAGE))
+    if (this._offersPage > pageCount - 1) this._offersPage = pageCount - 1
+    if (this._offersPage < 0) this._offersPage = 0
+    const start = this._offersPage * OFFERS_PER_PAGE
+    const visible = filtered.slice(start, start + OFFERS_PER_PAGE)
+
     const rows = visible.map(offer => {
       const bidId = generateId()
       onClick('#' + bidId, () => this._showBidOverlay(offer))
@@ -283,14 +294,43 @@ export class ActionCardMarket extends UIElement {
       `
     }).join('')
 
-    const more = filtered.length > visible.length
-      ? `<p class="text-muted small mb-0">${t('cardMarket.showingCount', {
-        shown: visible.length,
-        total: filtered.length
-      })}</p>`
-      : ''
+    return `${select}${rows}${this._renderOffersPagination(pageCount)}`
+  }
 
-    return `${select}${rows}${more}`
+  /**
+   * Prev / next pagination controls for the "All offers" tab. Rendered only
+   * when there is more than one page (#519).
+   * @param {number} pageCount
+   * @returns {string}
+   */
+  _renderOffersPagination (pageCount) {
+    if (pageCount <= 1) return ''
+    const prevId = generateId()
+    const nextId = generateId()
+    const atStart = this._offersPage <= 0
+    const atEnd = this._offersPage >= pageCount - 1
+    if (!atStart) onClick('#' + prevId, () => this._changeOffersPage(-1))
+    if (!atEnd) onClick('#' + nextId, () => this._changeOffersPage(1))
+    return `
+      <nav class="d-flex align-items-center justify-content-between mt-3" aria-label="${t('cardMarket.pagination')}">
+        <button id="${prevId}" class="btn btn-sm btn-outline-secondary"${atStart ? ' disabled' : ''}>
+          <i class="fa fa-chevron-left me-1"></i>${t('cardMarket.prevPage')}
+        </button>
+        <span class="text-muted small">${t('cardMarket.pageOf', {page: this._offersPage + 1, pages: pageCount})}</span>
+        <button id="${nextId}" class="btn btn-sm btn-outline-secondary"${atEnd ? ' disabled' : ''}>
+          ${t('cardMarket.nextPage')}<i class="fa fa-chevron-right ms-1"></i>
+        </button>
+      </nav>
+    `
+  }
+
+  /**
+   * Step the "All offers" page by `delta` and re-render.
+   * @param {number} delta
+   */
+  _changeOffersPage (delta) {
+    this._offersPage += delta
+    this.update()
   }
 
   /**
@@ -319,6 +359,8 @@ export class ActionCardMarket extends UIElement {
    */
   _onOfferFilterChange (event) {
     this._offerTypeFilter = event.target.value
+    // A new filter changes the result set — restart from the first page (#519).
+    this._offersPage = 0
     this.update()
   }
 
@@ -564,8 +606,8 @@ export class ActionCardMarket extends UIElement {
   }
 }
 
-/** Max number of offers shown at once in the "All offers" tab. */
-const ALL_OFFERS_LIMIT = 6
+/** Number of offers shown per page in the paginated "All offers" tab (#519). */
+const OFFERS_PER_PAGE = 6
 
 /**
  * Action string → `actionCards.type.<key>` i18n sub-key. Mirrors the map in

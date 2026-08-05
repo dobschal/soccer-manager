@@ -56,6 +56,54 @@ describe('team routes', () => {
     })
   })
 
+  describe('getLastSpyReport', () => {
+    it('#513 returns the frozen snapshot including the motivating-speech flag', async () => {
+      const snapshot = {
+        team: { id: 42, name: 'Spied FC', formation: '4-3-3' },
+        players: [testData.player({ id: 1 }), testData.player({ id: 2 })],
+        motivatingSpeechActive: true
+      }
+      getTeam.mockResolvedValue(testData.team({
+        last_spied_team_id: 42,
+        last_spied_at: '2026-01-01 12:00:00',
+        last_spied_snapshot: JSON.stringify(snapshot)
+      }))
+
+      const result = await handlers.getLastSpyReport(createMockRequest())
+
+      expect(result.report.team.id).toBe(42)
+      expect(result.report.players).toHaveLength(2)
+      expect(result.report.motivatingSpeechActive).toBe(true)
+      expect(result.report.spiedAt).toBe('2026-01-01 12:00:00')
+      // Must NOT re-read the opponent live — the snapshot is authoritative.
+      expect(getTeamById).not.toHaveBeenCalled()
+    })
+
+    it('#513 falls back to a live read for legacy reports without a snapshot', async () => {
+      getTeam.mockResolvedValue(testData.team({
+        last_spied_team_id: 42,
+        last_spied_at: '2026-01-01 12:00:00',
+        last_spied_snapshot: null
+      }))
+      getTeamById.mockResolvedValue(testData.team({ id: 42, motivating_speech_active: 0 }))
+      query.mockResolvedValue([testData.player({ id: 1, team_id: 42 })])
+
+      const result = await handlers.getLastSpyReport(createMockRequest())
+
+      expect(getTeamById).toHaveBeenCalledWith(42)
+      expect(result.report.team.id).toBe(42)
+      expect(result.report.motivatingSpeechActive).toBe(false)
+    })
+
+    it('returns null report when the user never spied on anyone', async () => {
+      getTeam.mockResolvedValue(testData.team({ last_spied_team_id: null }))
+
+      const result = await handlers.getLastSpyReport(createMockRequest())
+
+      expect(result).toEqual({ report: null })
+    })
+  })
+
   describe('getMyBalance', () => {
     it('returns balance for authenticated user', async () => {
       const team = testData.team({ balance: 123456 })
@@ -141,6 +189,32 @@ describe('team routes', () => {
       // player without stats falls back to 0/0
       expect(result.players[1].season_goals).toBe(0)
       expect(result.players[1].season_games).toBe(0)
+    })
+
+    it('hides the balance from non-admins', async () => {
+      const team = testData.team({ user_id: null, balance: 500000 })
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
+      query.mockResolvedValueOnce([]) // SELECT players (no stats query without players)
+
+      const result = await handlers.getTeam(1, { user: { id: 2, is_admin: 0 } })
+
+      expect(result.isAdmin).toBe(false)
+      expect(result.team).not.toHaveProperty('balance')
+    })
+
+    it('exposes the balance to admins', async () => {
+      const team = testData.team({ user_id: null, balance: 500000 })
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
+      query.mockResolvedValueOnce([]) // SELECT players (no stats query without players)
+
+      const result = await handlers.getTeam(1, { user: { id: 2, is_admin: 1 } })
+
+      expect(result.isAdmin).toBe(true)
+      expect(result.team.balance).toBe(500000)
     })
   })
 

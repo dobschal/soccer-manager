@@ -9,20 +9,15 @@ vi.mock('../../i18n/index.js', () => ({
       'stadium.adjustPrices': 'Adjust the prices of your stadium tickets.',
       'stadium.priceFor': `Price for tickets on ${params.stand || ''} stand`,
       'stadium.savePrices': 'Save Prices',
-      'stadium.expandStadium': 'Expand Stadium',
-      'stadium.expandDesc': 'Add more seats to your stadium to get more fans excited.',
-      'stadium.seatsOnStand': `Seats on ${params.stand || ''} stand`,
-      'stadium.changeSeatsHint': 'Change the amount of seats here to expand your stadium.',
-      'stadium.roofOnStand': `Roof on ${params.stand || ''} stand?`,
-      'stadium.totalPrice': 'Total Price for construction:',
-      'stadium.startConstruction': 'Start Construction',
-      'stadium.constructionRemaining': `Under construction - ${params.days ?? ''} gameday(s) remaining`,
-      'stadium.constructionCompletesToday': 'Completes today.',
-      'stadium.constructionTargetSize': `Expanding to ${params.seats ?? ''} seats`,
+      'stadium.expandStadiumAction': 'Expand Stadium',
       'stadium.north': 'north',
       'stadium.south': 'south',
       'stadium.east': 'east',
       'stadium.west': 'west',
+      'stadium.corner_ne': 'NE Corner',
+      'stadium.corner_nw': 'NW Corner',
+      'stadium.corner_se': 'SE Corner',
+      'stadium.corner_sw': 'SW Corner',
       'stadium.attendance': 'Attendance',
       'stadium.attendanceDesc': 'Attendance per stand for your last 5 home games.',
       'stadium.noAttendanceData': 'No attendance data available yet.',
@@ -47,9 +42,7 @@ vi.mock('../../lib/gateway.js', () => ({
   server: {
     getStadium: vi.fn(),
     getMyTeam: vi.fn(),
-    buildStadium: vi.fn(),
     updatePrices: vi.fn(),
-    calculateStadiumPrice: vi.fn(),
     getStadiumAttendance: vi.fn(),
     getConstructionHistory: vi.fn()
   }
@@ -73,14 +66,13 @@ vi.mock('../../partials/toast.js', () => ({
   toast: vi.fn()
 }))
 
-vi.mock('../../lib/currency.js', () => ({
-  euroFormat: {
-    format: vi.fn((val) => `${val.toLocaleString()} EUR`)
-  }
+vi.mock('../../partials/stadiumExpandModal.js', () => ({
+  showStadiumExpandModal: vi.fn()
 }))
 
 import { StadiumSubPage } from '../../pages/club/stadium.js'
 import { server } from '../../lib/gateway.js'
+import { showStadiumExpandModal } from '../../partials/stadiumExpandModal.js'
 
 describe('StadiumSubPage', () => {
   beforeEach(() => {
@@ -99,13 +91,29 @@ describe('StadiumSubPage', () => {
         north_stand_roof: 0,
         south_stand_roof: 0,
         east_stand_roof: 0,
-        west_stand_roof: 0
+        west_stand_roof: 0,
+        corner_ne_stand_size: 0,
+        corner_nw_stand_size: 0,
+        corner_se_stand_size: 0,
+        corner_sw_stand_size: 0,
+        corner_ne_stand_price: 13,
+        corner_nw_stand_price: 13,
+        corner_se_stand_price: 13,
+        corner_sw_stand_price: 13,
+        corner_ne_stand_roof: 0,
+        corner_nw_stand_roof: 0,
+        corner_se_stand_roof: 0,
+        corner_sw_stand_roof: 0
       },
       constructionInfo: {
         north: { underConstruction: false },
         south: { underConstruction: false },
         east: { underConstruction: false },
-        west: { underConstruction: false }
+        west: { underConstruction: false },
+        corner_ne: { underConstruction: false },
+        corner_nw: { underConstruction: false },
+        corner_se: { underConstruction: false },
+        corner_sw: { underConstruction: false }
       }
     })
     server.getMyTeam.mockResolvedValue({
@@ -144,26 +152,13 @@ describe('StadiumSubPage', () => {
       expect(page.template).toContain('Ticket Prices')
     })
 
-    it('template contains expand stadium section', async () => {
+    it('template contains price inputs for all stands', async () => {
       const page = new StadiumSubPage()
       await page.load()
-      expect(page.template).toContain('Expand Stadium')
-    })
-
-    it('template contains stand inputs', async () => {
-      const page = new StadiumSubPage()
-      await page.load()
-      expect(page.template).toContain('north stand')
-      expect(page.template).toContain('south stand')
-      expect(page.template).toContain('east stand')
-      expect(page.template).toContain('west stand')
-    })
-
-    it('template contains roof checkboxes', async () => {
-      const page = new StadiumSubPage()
-      await page.load()
-      expect(page.template).toContain('Roof on')
-      expect(page.template).toContain('type="checkbox"')
+      const tpl = page.template
+      for (const stand of ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']) {
+        expect(tpl).toContain(`data-price-input="${stand}"`)
+      }
     })
 
     it('template contains save prices button', async () => {
@@ -172,72 +167,13 @@ describe('StadiumSubPage', () => {
       expect(page.template).toContain('Save Prices')
     })
 
-    it('template contains disabled start construction button', async () => {
+    it('does not render the expand form inline anymore', async () => {
       const page = new StadiumSubPage()
       await page.load()
-      expect(page.template).toContain('Start Construction')
-      // Button should be disabled by default until construction is validated
-      expect(page.template).toContain('disabled')
-    })
-
-    it('shows construction status when stand is under construction', async () => {
-      server.getStadium.mockResolvedValue({
-        stadium: {
-          id: 1,
-          north_stand_size: 5000,
-          south_stand_size: 5000,
-          east_stand_size: 5000,
-          west_stand_size: 5000,
-          north_stand_price: 20,
-          south_stand_price: 20,
-          east_stand_price: 20,
-          west_stand_price: 20,
-          north_stand_roof: 0,
-          south_stand_roof: 0,
-          east_stand_roof: 0,
-          west_stand_roof: 0
-        },
-        constructionInfo: {
-          north: { underConstruction: true, remainingGameDays: 5 },
-          south: { underConstruction: false },
-          east: { underConstruction: false },
-          west: { underConstruction: false }
-        }
-      })
-      const page = new StadiumSubPage()
-      await page.load()
-      expect(page.template).toContain('Under construction')
-      expect(page.template).toContain('5 gameday(s) remaining')
-    })
-
-    it('disables inputs for stands under construction', async () => {
-      server.getStadium.mockResolvedValue({
-        stadium: {
-          id: 1,
-          north_stand_size: 5000,
-          south_stand_size: 5000,
-          east_stand_size: 5000,
-          west_stand_size: 5000,
-          north_stand_price: 20,
-          south_stand_price: 20,
-          east_stand_price: 20,
-          west_stand_price: 20,
-          north_stand_roof: 0,
-          south_stand_roof: 0,
-          east_stand_roof: 0,
-          west_stand_roof: 0
-        },
-        constructionInfo: {
-          north: { underConstruction: true, remainingGameDays: 5 },
-          south: { underConstruction: false },
-          east: { underConstruction: false },
-          west: { underConstruction: false }
-        }
-      })
-      const page = new StadiumSubPage()
-      await page.load()
-      // The north stand inputs should be disabled
-      expect(page.template).toContain('disabled')
+      const tpl = page.template
+      expect(tpl).not.toContain('data-size-input')
+      expect(tpl).not.toContain('data-roof-input')
+      expect(tpl).not.toContain('id="total-price"')
     })
 
     it('template contains stadium canvas container', async () => {
@@ -248,15 +184,49 @@ describe('StadiumSubPage', () => {
       expect(page.template).toContain('template')
     })
 
-    it('has events for form submission', () => {
+    it('has events for the price form and the expand button', () => {
       const page = new StadiumSubPage()
       expect(page.events).toHaveProperty('#price-form')
-      expect(page.events).toHaveProperty('#stadium-form')
+      expect(page.events).toHaveProperty('#open-expand-modal-btn')
     })
 
     it('extends UIElement', () => {
       const page = new StadiumSubPage()
       expect(page.isUIElement).toBe(true)
+    })
+  })
+
+  describe('Expand stadium button', () => {
+    it('renders the expand button below the construction section heading', async () => {
+      const page = new StadiumSubPage()
+      await page.load()
+      const tpl = page.template
+      expect(tpl).toContain('id="open-expand-modal-btn"')
+      expect(tpl).toContain('Expand Stadium')
+      // The button sits underneath the "construction" heading
+      expect(tpl.indexOf('Construction History')).toBeLessThan(tpl.indexOf('open-expand-modal-btn'))
+    })
+
+    it('opens the expand modal with the current stadium state on click', async () => {
+      const page = new StadiumSubPage()
+      await page.load()
+      page.events['#open-expand-modal-btn'].click()
+      expect(showStadiumExpandModal).toHaveBeenCalledWith(
+        page.stadium,
+        page.team,
+        page.constructionInfo,
+        expect.any(Function)
+      )
+    })
+
+    it('refreshes the page when a construction was commissioned', async () => {
+      const page = new StadiumSubPage()
+      await page.load()
+      const updateSpy = vi.spyOn(page, 'update').mockResolvedValue(undefined)
+      page.events['#open-expand-modal-btn'].click()
+      const onConstructionStarted = showStadiumExpandModal.mock.calls[0][3]
+      onConstructionStarted()
+      expect(updateSpy).toHaveBeenCalledWith(true)
     })
   })
 
@@ -359,48 +329,7 @@ describe('StadiumSubPage', () => {
       west_stand_roof: 0
     }
 
-    describe('Phase 1: Before construction', () => {
-      it('shows current sizes in expand form inputs', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        const tpl = page.template
-        expect(tpl).toContain('value="5000"')
-      })
-
-      it('all stand inputs are enabled', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        const tpl = page.template
-        const sizeInputs = tpl.match(/data-size-input="(north|south|east|west)"/g)
-        expect(sizeInputs).toHaveLength(4)
-        // None of the size inputs should have disabled in the same <input> tag
-        for (const stand of ['north', 'south', 'east', 'west']) {
-          expect(tpl).not.toMatch(new RegExp(`data-size-input="${stand}"[^>]*disabled`))
-        }
-      })
-
-      it('shows no construction badges', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).not.toContain('Under construction')
-        expect(page.template).not.toContain('gameday(s) remaining')
-      })
-
-      it('shows empty construction history', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toContain('No construction history yet.')
-      })
-
-      it('shows total seat count for all 4 stands', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        // 4 x 5000 = 20000
-        expect(page.template).toContain('20000')
-      })
-    })
-
-    describe('Phase 2: During construction (remaining > 0)', () => {
+    describe('During construction', () => {
       beforeEach(() => {
         server.getStadium.mockResolvedValue({
           stadium: { ...baseStadium },
@@ -425,110 +354,27 @@ describe('StadiumSubPage', () => {
         })
       })
 
-      it('shows construction badge with remaining days on the stand under construction', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toContain('Under construction')
-        expect(page.template).toContain('3 gameday(s) remaining')
-      })
-
-      it('shows the target seat count on the stand under construction', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toContain('Expanding to 8,000 seats')
-      })
-
-      it('disables size input for the stand under construction', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toMatch(/data-size-input="north"[^>]*disabled/)
-      })
-
-      it('disables roof checkbox for the stand under construction', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toMatch(/data-roof-input="north"[^>]*disabled/)
-      })
-
-      it('keeps other stands enabled', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        const tpl = page.template
-        for (const stand of ['south', 'east', 'west']) {
-          expect(tpl).not.toMatch(new RegExp(`data-size-input="${stand}"[^>]*disabled`))
-        }
-      })
-
-      it('still shows old size in input (not the target size)', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        // The stadium still has 5000 for north_stand_size (construction hasn't completed)
-        const northMatch = page.template.match(/data-size-input="north"[\s\S]*?value="(\d+)"/)
-        expect(northMatch).toBeTruthy()
-        expect(northMatch[1]).toBe('5000')
-      })
-
       it('shows in-progress badge in construction history', async () => {
         const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toContain('In Progress')
         expect(page.template).toContain('badge')
       })
-    })
 
-    describe('Phase 3: Construction due but not yet completed (remaining = 0)', () => {
-      beforeEach(() => {
-        server.getStadium.mockResolvedValue({
-          stadium: { ...baseStadium },
-          constructionInfo: {
-            north: { underConstruction: true, remainingGameDays: 0, targetSize: 8000, targetRoof: 1 },
-            south: { underConstruction: false },
-            east: { underConstruction: false },
-            west: { underConstruction: false }
-          }
+      it('hands the construction info over to the expand modal', async () => {
+        const page = new StadiumSubPage()
+        await page.load()
+        page.events['#open-expand-modal-btn'].click()
+        expect(showStadiumExpandModal.mock.calls[0][2].north).toEqual({
+          underConstruction: true,
+          remainingGameDays: 3,
+          targetSize: 8000,
+          targetRoof: 1
         })
-        server.getConstructionHistory.mockResolvedValue({
-          history: [{
-            stand: 'north',
-            old_size: 5000,
-            new_size: 8000,
-            added_roof: 1,
-            started_game_day: 5,
-            started_season: 0,
-            completed_game_day: null,
-            completed_season: null
-          }]
-        })
-      })
-
-      it('still shows as under construction with completes-today message', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toContain('Completes today.')
-        expect(page.template).not.toContain('0 gameday(s) remaining')
-      })
-
-      it('still disables the stand input', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toMatch(/data-size-input="north"[^>]*disabled/)
-      })
-
-      it('still shows old size (construction not finalized)', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        const northMatch = page.template.match(/data-size-input="north"[\s\S]*?value="(\d+)"/)
-        expect(northMatch[1]).toBe('5000')
-      })
-
-      it('history still shows in-progress badge', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toContain('In Progress')
       })
     })
 
-    describe('Phase 4: After construction completed', () => {
+    describe('After construction completed', () => {
       beforeEach(() => {
         server.getStadium.mockResolvedValue({
           stadium: {
@@ -557,36 +403,11 @@ describe('StadiumSubPage', () => {
         })
       })
 
-      it('shows updated size in expand form input', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        const northMatch = page.template.match(/data-size-input="north"[\s\S]*?value="(\d+)"/)
-        expect(northMatch[1]).toBe('8000')
-      })
-
       it('shows updated total seat count', async () => {
         const page = new StadiumSubPage()
         await page.load()
         // 8000 + 5000 + 5000 + 5000 = 23000
         expect(page.template).toContain('23000')
-      })
-
-      it('roof checkbox is now checked', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toMatch(/data-roof-input="north"[\s\S]*?checked/)
-      })
-
-      it('no construction badges shown', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).not.toContain('gameday(s) remaining')
-      })
-
-      it('stand input is enabled again', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).not.toMatch(/data-size-input="north"[^>]*disabled/)
       })
 
       it('construction history shows completed entry with dates', async () => {
@@ -599,69 +420,6 @@ describe('StadiumSubPage', () => {
         expect(page.template).toContain('S1 Day 11')
         expect(page.template).toContain('5,000')
         expect(page.template).toContain('8,000')
-      })
-    })
-
-    describe('Multiple stands in different phases', () => {
-      beforeEach(() => {
-        server.getStadium.mockResolvedValue({
-          stadium: {
-            ...baseStadium,
-            north_stand_size: 8000,
-            north_stand_roof: 1
-          },
-          constructionInfo: {
-            north: { underConstruction: false },
-            south: { underConstruction: true, remainingGameDays: 5 },
-            east: { underConstruction: true, remainingGameDays: 0 },
-            west: { underConstruction: false }
-          }
-        })
-        server.getConstructionHistory.mockResolvedValue({
-          history: [
-            { stand: 'east', old_size: 5000, new_size: 7000, added_roof: 0, started_game_day: 2, started_season: 0, completed_game_day: null, completed_season: null },
-            { stand: 'south', old_size: 5000, new_size: 10000, added_roof: 1, started_game_day: 1, started_season: 0, completed_game_day: null, completed_season: null },
-            { stand: 'north', old_size: 5000, new_size: 8000, added_roof: 1, started_game_day: 0, started_season: 0, completed_game_day: 5, completed_season: 0 }
-          ]
-        })
-      })
-
-      it('north (completed) is enabled with new size', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).not.toMatch(/data-size-input="north"[^>]*disabled/)
-        const northMatch = page.template.match(/data-size-input="north"[\s\S]*?value="(\d+)"/)
-        expect(northMatch[1]).toBe('8000')
-      })
-
-      it('south (active, 5 days remaining) is disabled with badge', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toMatch(/data-size-input="south"[^>]*disabled/)
-        expect(page.template).toContain('5 gameday(s) remaining')
-      })
-
-      it('east (due, 0 days remaining) is disabled with completes-today badge', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).toMatch(/data-size-input="east"[^>]*disabled/)
-        expect(page.template).toContain('Completes today.')
-      })
-
-      it('west (no construction) is enabled', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        expect(page.template).not.toMatch(/data-size-input="west"[^>]*disabled/)
-      })
-
-      it('construction history shows 2 in-progress and 1 completed entry', async () => {
-        const page = new StadiumSubPage()
-        await page.load()
-        const tpl = page.template
-        const inProgressMatches = tpl.match(/In Progress/g)
-        expect(inProgressMatches).toHaveLength(2)
-        // The north entry has a completed date
-        expect(tpl).toContain('S1 Day 6')
       })
     })
   })

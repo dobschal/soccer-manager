@@ -82,7 +82,9 @@ export async function cacheTeamStatsForGameDay (gameDay, season) {
 
     const stadiumSize = stadium
       ? (stadium.north_stand_size || 0) + (stadium.south_stand_size || 0) +
-        (stadium.east_stand_size || 0) + (stadium.west_stand_size || 0)
+        (stadium.east_stand_size || 0) + (stadium.west_stand_size || 0) +
+        (stadium.corner_ne_stand_size || 0) + (stadium.corner_nw_stand_size || 0) +
+        (stadium.corner_se_stand_size || 0) + (stadium.corner_sw_stand_size || 0)
       : 0
 
     const squadValue = teamPlayers.reduce((sum, p) => sum + _getPlayerValue(p, season), 0)

@@ -35,8 +35,8 @@ describe('i18n injury translation', () => {
 })
 
 describe('i18n stand translation', () => {
-  it('translates all four stands in en and de', () => {
-    for (const stand of ['north', 'south', 'east', 'west']) {
+  it('translates all four main stands and four corner stands in en and de', () => {
+    for (const stand of ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']) {
       expect(t(`stand.${stand}`, {}, 'en')).not.toBe(`stand.${stand}`)
       expect(t(`stand.${stand}`, {}, 'de')).not.toBe(`stand.${stand}`)
     }

@@ -11,7 +11,7 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
 
 import { query } from '../../lib/database.js'
 import { getGameDayAndSeason, getSeasonGameDayCount } from '../../helper/gameDayHelper.js'
-import { getSponsor } from '../../helper/sponsorHelper.js'
+import { getSponsor, getSponsorOffers } from '../../helper/sponsorHelper.js'
 
 describe('sponsorHelper', () => {
   beforeEach(() => {
@@ -339,6 +339,115 @@ describe('sponsorHelper', () => {
 
       // Team should be paid exactly 5 times (duration = 5)
       expect(paymentCount).toBe(5)
+    })
+  })
+
+  describe('getSponsorOffers', () => {
+    const team = { id: 7, name: 'Test FC', level: 1, league: 1 }
+
+    /** @returns {string} the SQL of the games lookup */
+    function gamesSql () {
+      return query.mock.calls[0][0]
+    }
+
+    /**
+     * @param {number} count how many won home games to fabricate
+     * @param {string} gameType
+     * @returns {object[]}
+     */
+    function wonGames (count, gameType = 'league') {
+      return Array.from({ length: count }, (_, i) => ({
+        team_1_id: team.id,
+        team_2_id: 99,
+        goals_team_1: 2,
+        goals_team_2: 0,
+        played: 1,
+        game_type: gameType,
+        season: 1,
+        game_day: 34 - i
+      }))
+    }
+
+    it('only counts league and cup games, never friendlies', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+      query.mockResolvedValueOnce([])
+
+      await getSponsorOffers(team)
+
+      const sql = gamesSql()
+      expect(sql).toContain("game_type IN ('league', 'cup')")
+      // Legacy league rows predate the game_type column and must still count.
+      expect(sql).toContain('game_type IS NULL')
+      expect(sql).not.toContain('friendly')
+    })
+
+    it('applies the game type filter to both the home and away subquery', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+      query.mockResolvedValueOnce([])
+
+      await getSponsorOffers(team)
+
+      const sql = gamesSql()
+      expect(sql.match(/game_type IN \('league', 'cup'\)/g)).toHaveLength(2)
+      expect(sql).toContain('team_1_id=?')
+      expect(sql).toContain('team_2_id=?')
+    })
+
+    it('returns one offer per contract length', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+      query.mockResolvedValueOnce([])
+
+      const offers = await getSponsorOffers(team)
+
+      expect(offers.map(o => o.duration)).toEqual([3, 9, 16, 34])
+      offers.forEach(offer => {
+        expect(offer.team_id).toBe(team.id)
+        expect(offer.start_season).toBe(1)
+        expect(offer.start_game_day).toBe(10)
+        expect(typeof offer.name).toBe('string')
+      })
+    })
+
+    it('pays more for a higher win rate', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+
+      query.mockResolvedValueOnce([])
+      const [noWins] = await getSponsorOffers(team)
+
+      vi.clearAllMocks()
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+      query.mockResolvedValueOnce(wonGames(3))
+      const [allWins] = await getSponsorOffers(team)
+
+      // 3/3 wins vs. the 1/3 floor, so even with the 0.9-1.1 random factor
+      // the winning team's offer must come out ahead.
+      expect(allWins.value).toBeGreaterThan(noWins.value)
+    })
+
+    it('never drops below the one third floor without any wins', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+      query.mockResolvedValueOnce([])
+
+      const offers = await getSponsorOffers(team)
+
+      // 76124 * 0.8^level(1) * 1/3 * 0.9 (worst random roll)
+      const minimum = Math.floor(76124 * 0.8 * (1 / 3) * 0.9)
+      offers.forEach(offer => {
+        expect(offer.value).toBeGreaterThanOrEqual(minimum)
+      })
+    })
+
+    it('scales the base amount down per league level', async () => {
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+      query.mockResolvedValueOnce([])
+      const [topLeague] = await getSponsorOffers(team)
+
+      vi.clearAllMocks()
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 10, season: 1 })
+      query.mockResolvedValueOnce([])
+      const [lowLeague] = await getSponsorOffers({ ...team, level: 5 })
+
+      expect(lowLeague.value).toBeLessThan(topLeague.value)
     })
   })
 })

@@ -120,9 +120,11 @@ export default {
     const team = await getTeam(req)
     const actionCards = await query("SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0 AND state='received'", [actionCard.id, team.id])
     if (actionCards.length !== 1) throw new BadRequestError(t('error.cardNotFound', {}, locale))
-    await playActionCard({ actionCard, player, position }, team, locale)
+    const result = await playActionCard({ actionCard, player, position }, team, locale)
     if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
-    return { success: true }
+    // Bubble up any extra payload a card produced (e.g. the SPY snapshot report)
+    // while keeping the { success: true } contract for cards that return nothing.
+    return { success: true, ...(result || {}) }
   }
 
 }

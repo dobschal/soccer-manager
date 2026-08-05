@@ -15,6 +15,18 @@
  * @property {number} south_stand_roof
  * @property {number} east_stand_roof
  * @property {number} west_stand_roof
+ * @property {number} [corner_ne_stand_size]
+ * @property {number} [corner_nw_stand_size]
+ * @property {number} [corner_se_stand_size]
+ * @property {number} [corner_sw_stand_size]
+ * @property {number} [corner_ne_stand_price]
+ * @property {number} [corner_nw_stand_price]
+ * @property {number} [corner_se_stand_price]
+ * @property {number} [corner_sw_stand_price]
+ * @property {number} [corner_ne_stand_roof]
+ * @property {number} [corner_nw_stand_roof]
+ * @property {number} [corner_se_stand_roof]
+ * @property {number} [corner_sw_stand_roof]
  * @property {Date} created_at
  */
 
@@ -41,6 +53,18 @@ export function Stadium (raw) {
     south_stand_roof: RequiredNumber,
     east_stand_roof: RequiredNumber,
     west_stand_roof: RequiredNumber,
+    corner_ne_stand_size: OptionalNumber,
+    corner_nw_stand_size: OptionalNumber,
+    corner_se_stand_size: OptionalNumber,
+    corner_sw_stand_size: OptionalNumber,
+    corner_ne_stand_price: OptionalNumber,
+    corner_nw_stand_price: OptionalNumber,
+    corner_se_stand_price: OptionalNumber,
+    corner_sw_stand_price: OptionalNumber,
+    corner_ne_stand_roof: OptionalNumber,
+    corner_nw_stand_roof: OptionalNumber,
+    corner_se_stand_roof: OptionalNumber,
+    corner_sw_stand_roof: OptionalNumber,
     created_at: OptionalObject
   })
   for (const key in raw) {

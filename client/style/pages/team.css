@@ -244,3 +244,9 @@
 .head-to-head-table td {
     font-size: 0.9rem;
 }
+
+/* Admin-only balance editor inside the team info table */
+.admin-balance-group {
+    max-width: 200px;
+    margin-left: auto;
+}

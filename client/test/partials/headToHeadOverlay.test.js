@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../lib/gateway.js', () => ({
   server: {
-    getHeadToHead: vi.fn()
+    getHeadToHead: vi.fn(),
+    getMyTeam: vi.fn()
   }
 }))
 
@@ -46,6 +47,46 @@ describe('showHeadToHeadOverlay', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     document.body.innerHTML = ''
+  })
+
+  it('#515 reorients so the viewing user\'s team is always teamA (left column)', async () => {
+    // The clicked fixture passed the HOME team (id 1) as teamA, but the viewing
+    // user is team 2 (the away side). The overlay must swap so getHeadToHead is
+    // queried with the user's team first — otherwise their record shows inverted.
+    server.getMyTeam.mockResolvedValueOnce({ team: { id: 2 } })
+    server.getHeadToHead.mockResolvedValueOnce(buildData())
+
+    await showHeadToHeadOverlay(1, 2)
+
+    expect(server.getHeadToHead).toHaveBeenCalledWith(2, 1)
+  })
+
+  it('#515 keeps the order when the user\'s team is already teamA', async () => {
+    server.getMyTeam.mockResolvedValueOnce({ team: { id: 1 } })
+    server.getHeadToHead.mockResolvedValueOnce(buildData())
+
+    await showHeadToHeadOverlay(1, 2)
+
+    expect(server.getHeadToHead).toHaveBeenCalledWith(1, 2)
+  })
+
+  it('#515 keeps the caller order when the user is neither participant', async () => {
+    server.getMyTeam.mockResolvedValueOnce({ team: { id: 99 } })
+    server.getHeadToHead.mockResolvedValueOnce(buildData())
+
+    await showHeadToHeadOverlay(1, 2)
+
+    expect(server.getHeadToHead).toHaveBeenCalledWith(1, 2)
+  })
+
+  it('#515 marks each game as home or away from teamA\'s perspective', async () => {
+    server.getHeadToHead.mockResolvedValueOnce(buildData())
+    await showHeadToHeadOverlay(1, 2)
+
+    const rows = document.querySelectorAll('.head-to-head-table tbody tr')
+    // Row 1: game 11, team1Id=1=teamA → home. Row 2: game 12, team1Id=2 → away.
+    expect(rows[0].querySelector('.badge').textContent).toContain('headToHead.homeShort')
+    expect(rows[1].querySelector('.badge').textContent).toContain('headToHead.awayShort')
   })
 
   it('hides friendlies by default and computes the record from non-friendly games only', async () => {

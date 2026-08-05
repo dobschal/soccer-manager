@@ -227,6 +227,12 @@ export class MarketPage extends UIElement {
       this._restoreScrollLeft(scrollLeft)
     }
   }
+  /**
+   * @returns {void}
+   */
+  onDestroy () {
+    clearTimeout(this._loadImagesTimer)
+  }
 
   /**
    * Poll for the scroll container (which renders asynchronously via child UIElement)
@@ -283,9 +289,10 @@ export class MarketPage extends UIElement {
    * @param {number} [attempts]
    */
   _loadPlayerImages (attempts = 0) {
+    if (!this._isMounted) return
     const placeholders = document.querySelectorAll(`${this._elementQuery} .market-player-image[data-player-id]`)
     if (placeholders.length === 0 && attempts < 50) {
-      setTimeout(() => this._loadPlayerImages(attempts + 1), 10)
+      this._loadImagesTimer = setTimeout(() => this._loadPlayerImages(attempts + 1), 10)
       return
     }
     placeholders.forEach(placeholder => {

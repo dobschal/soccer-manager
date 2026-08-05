@@ -778,7 +778,9 @@ export default {
       SELECT t.id AS team_id, t.name AS team_name, t.emblem, t.color, t.user_id,
              s.name AS stadium_name,
              COALESCE(s.north_stand_size, 0) + COALESCE(s.south_stand_size, 0)
-               + COALESCE(s.east_stand_size, 0) + COALESCE(s.west_stand_size, 0) AS stadium_size
+               + COALESCE(s.east_stand_size, 0) + COALESCE(s.west_stand_size, 0)
+               + COALESCE(s.corner_ne_stand_size, 0) + COALESCE(s.corner_nw_stand_size, 0)
+               + COALESCE(s.corner_se_stand_size, 0) + COALESCE(s.corner_sw_stand_size, 0) AS stadium_size
       FROM team t
       LEFT JOIN stadium s ON s.team_id = t.id
       WHERE t.level = ? AND t.league = ?

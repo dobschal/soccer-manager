@@ -16,11 +16,13 @@ const REVEAL_DELAY_MS = 2000
  * then reveals the target team's tactics and lineup.
  *
  * `onConfirm(teamId)` is invoked once the user commits to a team; it should
- * consume the action card server-side (and may throw to abort). The returned
- * promise resolves with `true` when a team was successfully spied (the card
- * was consumed), or `false` if the user closed the overlay beforehand.
+ * consume the action card server-side (and may throw to abort). It must resolve
+ * with the frozen spy snapshot `{ report: { team, players } }` captured server-
+ * side when the card is played (#513). The returned promise resolves with `true`
+ * when a team was successfully spied (the card was consumed), or `false` if the
+ * user closed the overlay beforehand.
  *
- * @param {{ onConfirm: (teamId: number) => Promise<void> }} options
+ * @param {{ onConfirm: (teamId: number) => Promise<{report: {team: Object, players: Array}}> }} options
  * @returns {Promise<boolean>}
  */
 export function showSpyOverlay ({ onConfirm }) {
@@ -123,10 +125,14 @@ export function showSpyOverlay ({ onConfirm }) {
 
     // --- Phase 2 + 3: loader then reveal ----------------------------------
     const startReveal = async (teamId) => {
-      // Consume the card first so the reveal can never be seen for free.
+      // Consume the card first so the reveal can never be seen for free. The
+      // server returns the frozen snapshot taken at this instant, so the reveal
+      // shows exactly what is stored for the "last scout report" card (#513).
+      let report
       try {
-        await onConfirm(teamId)
+        const result = await onConfirm(teamId)
         consumed = true
+        report = result?.report ?? null
       } catch (e) {
         console.error(e)
         toast(e.message ?? t('spy.failed'), 'error')
@@ -141,18 +147,16 @@ export function showSpyOverlay ({ onConfirm }) {
         </div>
       `)
 
-      // Fake a minimum analysis time while fetching the target's data.
-      let data
-      try {
-        [, data] = await Promise.all([delay(REVEAL_DELAY_MS), server.getTeam(teamId)])
-      } catch (e) {
-        console.error(e)
-        toast(e.message ?? t('spy.failed'), 'error')
+      // Fake a minimum analysis time for the reveal animation.
+      await delay(REVEAL_DELAY_MS)
+
+      if (!report?.team) {
+        toast(t('spy.failed'), 'error')
         overlay.remove()
         return
       }
 
-      showReveal(data.team, data.players ?? [])
+      showReveal(report.team, report.players ?? [])
     }
 
     const showReveal = (team, players) => {
@@ -184,6 +188,9 @@ export function spyReportBodyHtml (team, players = []) {
   const attackMode = t('myTeam.attackMode.' + (team.attack_mode || 'balanced'))
   const playStyle = t('myTeam.playStyle.' + (team.play_style || 'normal'))
   const passStyle = t('myTeam.passStyle.' + (team.pass_style || 'mixed'))
+  // The report is a snapshot, so this reflects whether the opponent had a
+  // motivating-speech buff active at the moment they were spied (#513).
+  const motivatingSpeechActive = !!team.motivating_speech_active
 
   return `
     <div class="spy-reveal">
@@ -197,7 +204,13 @@ export function spyReportBodyHtml (team, players = []) {
         ${tacticRow(t('spy.playStyle'), playStyle)}
         ${tacticRow(t('spy.passStyle'), passStyle)}
       </div>
-      <div class="spy-lineup">${new Lineup(players, team)}</div>
+      ${motivatingSpeechActive
+    ? `<div class="alert alert-info d-flex align-items-center gap-2 mt-2 mb-0">
+            <i class="fa fa-bullhorn" aria-hidden="true"></i>
+            <span>${t('spy.motivatingSpeechActive')}</span>
+          </div>`
+    : ''}
+      <div class="spy-lineup">${new Lineup(players, team, undefined, {readOnly: true})}</div>
     </div>
   `
 }

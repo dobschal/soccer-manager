@@ -136,6 +136,33 @@ describe('YouthTeamPage', () => {
       expect(server.setYouthPlayerTrainingMode).toHaveBeenNthCalledWith(2, 1, 'training')
     })
 
+    it('#517 shows a warning toast when a full mode kicks another player out', async () => {
+      server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
+      const players = [
+        { id: 1, name: 'Newcomer', training_mode: 'rest' },
+        { id: 2, name: 'Alpha', training_mode: 'training' },
+        { id: 3, name: 'Bravo', training_mode: 'training' }
+      ]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+
+      await page._handlePlayerModeChange(players[0], 'training')
+
+      expect(toast).toHaveBeenCalledWith('youthTeam.modeFullPlayerReplaced', 'warning')
+    })
+
+    it('#517 shows a plain success toast when the mode still has a free slot', async () => {
+      server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
+      const players = [
+        { id: 1, name: 'Newcomer', training_mode: 'rest' },
+        { id: 2, name: 'Alpha', training_mode: 'training' }
+      ]
+      const page = makePage(players, { training: 2, friendly_match: 2, rest: 4 })
+
+      await page._handlePlayerModeChange(players[0], 'training')
+
+      expect(toast).toHaveBeenCalledWith('youthTeam.trainingModeUpdated', 'success')
+    })
+
     it('unassigns the player when choosing the empty option', async () => {
       server.setYouthPlayerTrainingMode.mockResolvedValue({ success: true })
       const players = [{ id: 1, training_mode: 'training' }]

@@ -51,6 +51,7 @@ export class ATeamPage extends UIElement {
     return `
       <div>
         <h3>${t('myTeam.lineup')} ${wikiInfoIcon('lineup')}</h3>
+        ${this._renderMotivatingSpeechBanner()}
         <div class="mb-4" id="squad">
           ${new Lineup(this.parent.data.players, this.parent.data.team, this.parent.season)}
         </div>
@@ -218,6 +219,22 @@ export class ATeamPage extends UIElement {
   _getSpyReportCard () {
     if (!this._spyReportCard) this._spyReportCard = new SpyReportCard()
     return this._spyReportCard
+  }
+
+  /**
+   * Banner above the lineup showing that a Motivating Speech action card is
+   * active for the next match day, so the user can see the buff without
+   * opening the action-cards page (#514).
+   * @returns {string}
+   */
+  _renderMotivatingSpeechBanner () {
+    if (!this.parent.data.team?.motivating_speech_active) return ''
+    return `
+      <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+        <i class="fa fa-bullhorn" aria-hidden="true"></i>
+        <span>${t('myTeam.motivatingSpeechActive')}</span>
+      </div>
+    `
   }
 
   /**

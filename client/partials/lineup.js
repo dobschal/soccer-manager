@@ -85,9 +85,12 @@ export class SquadPlayer extends UIElement {
     // fielded. Compare the two for the out-of-position red ring.
     const isOutOfPosition = !player.fake && player.position !== this.slot
     const badgeClass = `position-badge ${this.slot}${isOutOfPosition ? ' is-wrong-position' : ''}`
+    // Star players get a golden glow behind their tile so they stand out in the
+    // lineup (#516).
+    const isStar = !player.fake && player.is_star_player
 
     return `
-      <div class="player ${this.slot}" data-player-id="${playerId}" style="${inlineStyles}">
+      <div class="player ${this.slot}${isStar ? ' is-star' : ''}" data-player-id="${playerId}" style="${inlineStyles}">
         <span class="${badgeClass}">${this.slot}</span>
         <span class="freshness-badge ${freshnessClass}">
             ${player.fake ? '-' : Math.floor(player.freshness * 100) + '%'}
@@ -275,9 +278,16 @@ export class Lineup extends UIElement {
    * @param {PlayerType[]} players
    * @param {TeamType} team
    * @param {number} [season] current season, used to compute the average age
+   * @param {{readOnly?: boolean}} [options] - `readOnly: true` renders another
+   *   team's lineup as a passive snapshot (spy report): no click-to-swap, no
+   *   auto-cleanup persistence, and no `lineup-exchange` / `saveLineup` calls.
+   *   Without it, filling empty slots for a spied team would try to save that
+   *   team's foreign players as the viewer's own lineup — the server rejects
+   *   the unknown ids with "Unknown player..." and the page breaks.
    */
-  constructor (players, team, season) {
+  constructor (players, team, season, options = {}) {
     super()
+    this.readOnly = options.readOnly ?? false
     // Drop any fake placeholders that came in with the input. Lineup is often
     // re-rendered after firing 'lineup-exchange' with `this.players`, which
     // includes the fakes added by the previous _fillEmptyPositions run. If we
@@ -334,6 +344,9 @@ export class Lineup extends UIElement {
     return {
       '.squad': {
         click: (event) => {
+          // A read-only snapshot (spy report) shows another team's lineup —
+          // clicking a tile must not open the swap overlay.
+          if (this.readOnly) return
           const playerEl = event.target.closest('.player')
           if (!playerEl) return
 
@@ -548,6 +561,10 @@ export class Lineup extends UIElement {
    * @returns {Promise<void>}
    */
   async _autoCleanupIfNeeded () {
+    // A read-only snapshot never persists: the players belong to the spied
+    // team, so firing 'lineup-exchange' / saveLineup would corrupt (or, since
+    // the ids aren't in the viewer's team, hard-fail on) the viewer's lineup.
+    if (this.readOnly) return
     if (!this._needsAutoCleanup) return
     this._needsAutoCleanup = false
     fire('lineup-exchange', this.players)

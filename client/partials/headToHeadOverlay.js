@@ -16,6 +16,20 @@ import { el, generateId } from '../lib/html.js'
  * @returns {Promise<void>}
  */
 export async function showHeadToHeadOverlay (teamAId, teamBId) {
+  // Always render the viewing user's own team as teamA (left column, green
+  // "wins" count). Fixture-based callers pass the fixture's HOME team as teamA
+  // regardless of who is viewing, which inverted the whole record whenever the
+  // user was the away side of the clicked game — their wins showed up as red
+  // losses (#515). Reorient here so the record is stable no matter which
+  // fixture the overlay was opened from.
+  try {
+    const my = await server.getMyTeam()
+    const myId = my?.team?.id
+    if (myId != null && Number(myId) === Number(teamBId)) {
+      [teamAId, teamBId] = [teamBId, teamAId]
+    }
+  } catch { /* not logged in / no team — keep the caller's order */ }
+
   const data = await server.getHeadToHead(teamAId, teamBId)
   const { teamA, teamB, games } = data
 
@@ -152,10 +166,14 @@ function _renderGamesList (games, teamAId) {
 }
 
 function _renderGameRow (game, teamAId) {
+  // teamA was team_1 → teamA played at home in that game (#515). Show an H/A
+  // marker so the venue is explicit even though the score is always rendered
+  // from teamA's perspective (our goals : their goals).
   const aIsTeam1 = game.team1Id === teamAId
   const goalsA = aIsTeam1 ? game.goalsTeam1 : game.goalsTeam2
   const goalsB = aIsTeam1 ? game.goalsTeam2 : game.goalsTeam1
   const typeLabel = _gameTypeLabel(game.gameType)
+  const venueBadge = `<span class="badge ${aIsTeam1 ? 'bg-secondary' : 'bg-dark'}" title="${t(aIsTeam1 ? 'headToHead.home' : 'headToHead.away')}">${t(aIsTeam1 ? 'headToHead.homeShort' : 'headToHead.awayShort')}</span>`
   let resultClass = 'text-muted'
   if (goalsA > goalsB) resultClass = 'text-success'
   else if (goalsA < goalsB) resultClass = 'text-danger'
@@ -169,6 +187,7 @@ function _renderGameRow (game, teamAId) {
       <td>${t('headToHead.seasonShort')} ${game.season}</td>
       <td>${typeLabel}</td>
       <td class="text-end ${resultClass}">
+        ${venueBadge}
         <a href="${href}" class="text-decoration-none ${resultClass}">${goalsA}:${goalsB}</a>
       </td>
     </tr>

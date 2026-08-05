@@ -162,6 +162,10 @@ export default {
   'stand.south': 'Südtribüne',
   'stand.east': 'Osttribüne',
   'stand.west': 'Westtribüne',
+  'stand.corner_ne': 'Ecktribüne NO',
+  'stand.corner_nw': 'Ecktribüne NW',
+  'stand.corner_se': 'Ecktribüne SO',
+  'stand.corner_sw': 'Ecktribüne SW',
 
   // Injury types
   'injury.bruise': 'Prellung',
@@ -224,6 +228,7 @@ export default {
   'finance.leagueBonus': 'Liga-Bonus',
   'finance.promotionBonus': 'Aufstiegsbonus',
   'finance.startingBalance': 'Startguthaben',
+  'finance.adminAdjustment': 'Kontostand von einem Admin angepasst',
   'finance.tvMoney': 'TV-Gelder (Platz {rank}, Liga-Level {level})',
 
   // Match day recap

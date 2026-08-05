@@ -334,6 +334,29 @@ describe('MarketPage', () => {
     })
   })
 
+  describe('player image loading', () => {
+    it('stops the placeholder poll once the page is destroyed', async () => {
+      vi.useFakeTimers()
+      try {
+        const page = await mountMarketPage()
+        // No offers => no placeholders => _loadPlayerImages schedules a retry timer.
+        page._isMounted = true
+        page._loadPlayerImages()
+        expect(page._loadImagesTimer).toBeDefined()
+
+        // Simulate the page being torn down (navigation / re-render swap).
+        page._onDestroy()
+
+        // Advancing timers must not touch the (now gone) DOM environment.
+        const querySpy = vi.spyOn(document, 'querySelectorAll')
+        expect(() => vi.advanceTimersByTime(500)).not.toThrow()
+        expect(querySpy).not.toHaveBeenCalled()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
+
   describe('renderMarket (backwards compatibility)', () => {
     it('is exported as a function', () => {
       expect(typeof renderMarket).toBe('function')

@@ -8,7 +8,7 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 
 - **US-STD-01**: Als Spieler sehe ich mein Stadion als interaktive 3D-Visualisierung, die ich drehen und zoomen kann.
 - **US-STD-02**: Als Spieler kann ich Ticketpreise fuer jede Tribuene einzeln festlegen (1-100 Euro).
-- **US-STD-03**: Als Spieler kann ich Tribuenen ausbauen (Kapazitaet erhoehen, Dach hinzufuegen).
+- **US-STD-03**: Als Spieler kann ich Tribuenen ausbauen (Kapazitaet erhoehen, Dach hinzufuegen oder abreissen).
 - **US-STD-04**: Als Spieler sehe ich die Baukosten und Bauzeit vor dem Start einer Erweiterung.
 - **US-STD-05**: Als Spieler sehe ich den Baufortschritt mit verbleibenden Spieltagen.
 - **US-STD-06**: Als Spieler sehe ich die Zuschauerzahlen der letzten 5 Heimspiele pro Tribuene.
@@ -22,6 +22,7 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 | Sued | 200 | 30.000 |
 | Ost | 100 | 15.000 |
 | West | 100 | 15.000 |
+| Ecke (NO, NW, SO, SW) | 50 | 4.000 |
 
 ## Technische Anforderungen
 
@@ -51,10 +52,11 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
   - Sitze ab 20.001: 2.000 Euro pro Sitz
 
   Die Staffel wird marginal angewendet: ein Ausbau, der eine Schwelle ueberschreitet, zahlt fuer den Teil unterhalb der Schwelle den niedrigeren Preis und fuer den Teil oberhalb den hoeheren Preis.
-- **TA-STD-09**: Dach-Aufpreis: max(300.000 Euro, Basiskosten * 1.2).
+- **TA-STD-09**: Dach-Aufpreis fuer ein neues Dach: max(300.000 Euro, Basiskosten * 1.2).
+- **TA-STD-09a**: Dach-Verlaengerung: Wird eine bereits ueberdachte Tribuene vergroessert und behaelt ihr Dach, kostet die Verlaengerung zusaetzlich max(100.000 Euro, Kosten der neuen Plaetze * 0.2).
 - **TA-STD-10**: Architektengebuehr: 50.000 Euro pauschal pro Bau-Aktion.
 - **TA-STD-11**: Tribuenen koennen nicht verkleinert werden.
-- **TA-STD-12**: Daecher koennen nicht entfernt werden.
+- **TA-STD-12**: Daecher koennen abgerissen werden (Haekchen entfernen); der Abriss ist kostenlos.
 
 ### Bauzeit
 
@@ -92,7 +94,7 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 ### Frontend
 
 - **TA-STD-25**: Ticketpreise: 4 Nummernfelder (1-100) mit Speichern/Abbrechen.
-- **TA-STD-26**: Erweiterungs-Formular: 4 Groessenfelder + 4 Dach-Checkboxen, Echtzeit-Kostenberechnung (debounced 500ms).
+- **TA-STD-26**: Ausbau-Overlay (Button "Stadion Ausbauen" unter den Baumassnahmen): 8 Groessenfelder + 8 Dach-Checkboxen. Preis und Vorschau erscheinen erst nach Klick auf "Stadion berechnen"; bei ungueltiger Eingabe wird weder Preis noch Vorschau gezeigt. Die Vorschau ist eine 3D-Ansicht des geplanten Stadions mit langsam rotierender Kamera ohne Steuerung, darunter "Bau beauftragen".
 - **TA-STD-27**: Zuschauer-Tabelle: Letzte 5 Heimspiele mit Auslastung pro Tribuene.
 - **TA-STD-28**: Bau-Historie-Tabelle mit "In Progress"-Badge fuer laufende Bauten.
 

@@ -136,6 +136,25 @@ describe('stadiumHelper', () => {
       expect(info.north.underConstruction).toBe(true)
       expect(info.north.remainingGameDays).toBe(3)
     })
+
+    it('reports construction on a corner stand', async () => {
+      mockSeasonLengths({ 1: 34 })
+      const stadium = {
+        corner_ne_construction_end_game_day: 15,
+        corner_ne_construction_end_season: 1,
+        corner_ne_construction_target_size: 500,
+        corner_ne_construction_target_roof: 0
+      }
+
+      const info = await getConstructionInfo(stadium, 10, 1)
+
+      expect(info.corner_ne.underConstruction).toBe(true)
+      expect(info.corner_ne.remainingGameDays).toBe(5)
+      expect(info.corner_ne.targetSize).toBe(500)
+      // Untouched corners report no construction
+      expect(info.corner_nw.underConstruction).toBe(false)
+      expect(info.north.underConstruction).toBe(false)
+    })
   })
 
   describe('calculateConstructionTime', () => {
@@ -379,6 +398,100 @@ describe('stadiumHelper', () => {
       const current = baseStadium()
       const planned = baseStadium({ north_stand_size: 1_200, north_stand_roof: 1 })
       expect(calcuateStadiumBuild(current, planned)).toBe(600_000 + 50_000)
+    })
+
+    it('does not charge for corner stands that stay unbuilt (size 0)', () => {
+      // Corner stands start at size 0, which is below their 50 minimum. Keeping
+      // them unbuilt must not trip the minimum-size validation.
+      const current = baseStadium({ corner_ne_stand_size: 0, corner_nw_stand_size: 0, corner_se_stand_size: 0, corner_sw_stand_size: 0 })
+      const planned = baseStadium({ corner_ne_stand_size: 0, corner_nw_stand_size: 0, corner_se_stand_size: 0, corner_sw_stand_size: 0 })
+      expect(calcuateStadiumBuild(current, planned)).toBe(0)
+    })
+
+    it('prices a corner stand expansion from 0 to 500 seats', () => {
+      // 0 → 500 corner: 500 seats @ 500 = 250,000 + 50,000 architect
+      const current = baseStadium({ corner_ne_stand_size: 0 })
+      const planned = baseStadium({ corner_ne_stand_size: 500 })
+      expect(calcuateStadiumBuild(current, planned)).toBe(250_000 + 50_000)
+    })
+
+    it('rejects a corner stand below its 50-seat minimum', () => {
+      const current = baseStadium({ corner_ne_stand_size: 0 })
+      const planned = baseStadium({ corner_ne_stand_size: 40 })
+      expect(() => calcuateStadiumBuild(current, planned)).toThrow(/Minimum size/)
+    })
+
+    it('allows a corner stand right at its 50-seat minimum', () => {
+      // 50 seats @ 500 = 25,000 + 50,000 architect
+      const current = baseStadium({ corner_ne_stand_size: 0 })
+      const planned = baseStadium({ corner_ne_stand_size: 50 })
+      expect(calcuateStadiumBuild(current, planned)).toBe(25_000 + 50_000)
+    })
+
+    it('rejects a corner stand above its 4,000-seat maximum', () => {
+      const current = baseStadium({ corner_ne_stand_size: 0 })
+      const planned = baseStadium({ corner_ne_stand_size: 5_000 })
+      expect(() => calcuateStadiumBuild(current, planned)).toThrow(/Maximum size/)
+    })
+
+    describe('roofs', () => {
+      it('charges the roof extension when a roofed stand grows and keeps its roof', () => {
+        // 200 → 1,200 = 500,000 seats; roof extension: max(100k, 500k * 0.2) = 100,000
+        const current = baseStadium({ north_stand_roof: 1 })
+        const planned = baseStadium({ north_stand_size: 1_200, north_stand_roof: 1 })
+        expect(calcuateStadiumBuild(current, planned)).toBe(500_000 + 100_000 + 50_000)
+      })
+
+      it('scales the roof extension with the price of the added seats', () => {
+        // 10,000 → 11,000 = 1,500,000 seats; extension: max(100k, 1.5M * 0.2) = 300,000
+        const current = baseStadium({ north_stand_size: 10_000, north_stand_roof: 1 })
+        const planned = baseStadium({ north_stand_size: 11_000, north_stand_roof: 1 })
+        expect(calcuateStadiumBuild(current, planned)).toBe(1_500_000 + 300_000 + 50_000)
+      })
+
+      it('keeps the roof extension at its 100,000 € minimum for a small expansion', () => {
+        // 200 → 400 = 100,000 seats; extension: max(100k, 100k * 0.2) = 100,000
+        const current = baseStadium({ north_stand_roof: 1 })
+        const planned = baseStadium({ north_stand_size: 400, north_stand_roof: 1 })
+        expect(calcuateStadiumBuild(current, planned)).toBe(100_000 + 100_000 + 50_000)
+      })
+
+      it('charges less for extending a roof than for putting up a new one', () => {
+        // Same expansion, once with an existing roof (extension, 100k minimum)
+        // and once without (new roof, 300k minimum).
+        const planned = { north_stand_size: 400, north_stand_roof: 1 }
+        const extension = calcuateStadiumBuild(
+          baseStadium({ north_stand_roof: 1 }),
+          baseStadium(planned)
+        )
+        const newRoof = calcuateStadiumBuild(baseStadium(), baseStadium(planned))
+        expect(extension).toBeLessThan(newRoof)
+      })
+
+      it('lets an existing roof be torn down while the stand is expanded', () => {
+        // Only the seats are charged - tearing the roof down is free
+        const current = baseStadium({ north_stand_roof: 1 })
+        const planned = baseStadium({ north_stand_size: 1_200, north_stand_roof: 0 })
+        expect(calcuateStadiumBuild(current, planned)).toBe(500_000 + 50_000)
+      })
+
+      it('tears a roof down for free without any other change', () => {
+        const current = baseStadium({ north_stand_roof: 1 })
+        const planned = baseStadium({ north_stand_roof: 0 })
+        expect(calcuateStadiumBuild(current, planned)).toBe(0)
+      })
+
+      it('charges the roof minimum when only a roof is added', () => {
+        const current = baseStadium()
+        const planned = baseStadium({ north_stand_roof: 1 })
+        expect(calcuateStadiumBuild(current, planned)).toBe(300_000 + 50_000)
+      })
+
+      it('rejects a roof on a corner stand that was never built', () => {
+        const current = baseStadium({ corner_ne_stand_size: 0 })
+        const planned = baseStadium({ corner_ne_stand_size: 0, corner_ne_stand_roof: 1 })
+        expect(() => calcuateStadiumBuild(current, planned)).toThrow(/Minimum size/)
+      })
     })
   })
 })

@@ -25,7 +25,7 @@ export async function showStadiumModal (teamId) {
   }
 
   // Calculate total seats
-  const totalSeats = ['north', 'south', 'east', 'west'].reduce(
+  const totalSeats = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw'].reduce(
     (total, name) => total + (stadium[name + '_stand_size'] || 0),
     0
   )
@@ -43,6 +43,10 @@ export async function showStadiumModal (teamId) {
           <div class="col-6 col-sm-3"><b>South:</b> ${(stadium.south_stand_size || 0).toLocaleString()}</div>
           <div class="col-6 col-sm-3"><b>East:</b> ${(stadium.east_stand_size || 0).toLocaleString()}</div>
           <div class="col-6 col-sm-3"><b>West:</b> ${(stadium.west_stand_size || 0).toLocaleString()}</div>
+          <div class="col-6 col-sm-3"><b>NE Corner:</b> ${(stadium.corner_ne_stand_size || 0).toLocaleString()}</div>
+          <div class="col-6 col-sm-3"><b>NW Corner:</b> ${(stadium.corner_nw_stand_size || 0).toLocaleString()}</div>
+          <div class="col-6 col-sm-3"><b>SE Corner:</b> ${(stadium.corner_se_stand_size || 0).toLocaleString()}</div>
+          <div class="col-6 col-sm-3"><b>SW Corner:</b> ${(stadium.corner_sw_stand_size || 0).toLocaleString()}</div>
         </div>
       </div>
     `
