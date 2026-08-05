@@ -1129,9 +1129,10 @@ export default {
   'tutorial.youthPage.subtitle': 'Entwickle zukünftige Stars für dein Team',
   'tutorial.youthPage.item1': 'Jugendspieler erscheinen mit 15 und können mit 16 befördert werden',
   'tutorial.youthPage.item2': 'Wähle Trainingsmodi: Training, Freundschaftsspiel oder Ruhe',
-  'tutorial.youthPage.item3': 'Idealer Rhythmus: 2x Training, 1x Freundschaftsspiel, 1x Ruhe',
+  'tutorial.youthPage.item3': 'Jeder Modus hat begrenzte Slots – weist du einen Spieler einem vollen Modus zu, verdrängt er den zuletzt zugewiesenen',
   'tutorial.youthPage.item4': 'Befördere talentierte Spieler ins A-Team bevor sie 19 werden',
   'tutorial.youthPage.item5': 'Balance Moral und Fitness für optimale Entwicklung',
+  'tutorial.youthPage.item6': 'Baue die Jugendakademie aus, um mehr Trainings-Slots und bessere Nachwuchsspieler freizuschalten',
   'tutorial.buildingsPage.title': 'Gebäude',
   'tutorial.buildingsPage.subtitle': 'Baue Gebäude aus, um bessere Aktionskarten freizuschalten',
   'tutorial.buildingsPage.item1': 'Der Trainingsplatz erhöht die Chance auf Level-Up-Karten',
@@ -1139,6 +1140,7 @@ export default {
   'tutorial.buildingsPage.item3': 'Höhere Gebäudestufen schalten seltenere und stärkere Karten frei',
   'tutorial.buildingsPage.item4': 'Ausbauten kosten Geld und dauern mehrere Spieltage',
   'tutorial.buildingsPage.item5': 'Jedes Gebäude kann bis auf Stufe 3 ausgebaut werden',
+  'tutorial.buildingsPage.item6': 'Die Jugendakademie liefert bessere Jugendspieler-Karten und mehr Trainings-Slots',
 
   // Log Messages
   'log.title': 'Nachrichten',

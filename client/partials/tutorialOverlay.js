@@ -79,7 +79,8 @@ function getTutorials () {
         t('tutorial.youthPage.item2'),
         t('tutorial.youthPage.item3'),
         t('tutorial.youthPage.item4'),
-        t('tutorial.youthPage.item5')
+        t('tutorial.youthPage.item5'),
+        t('tutorial.youthPage.item6')
       ]
     },
     buildings: {
@@ -90,7 +91,8 @@ function getTutorials () {
         t('tutorial.buildingsPage.item2'),
         t('tutorial.buildingsPage.item3'),
         t('tutorial.buildingsPage.item4'),
-        t('tutorial.buildingsPage.item5')
+        t('tutorial.buildingsPage.item5'),
+        t('tutorial.buildingsPage.item6')
       ]
     }
   }
