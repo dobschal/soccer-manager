@@ -190,6 +190,32 @@ describe('team routes', () => {
       expect(result.players[1].season_goals).toBe(0)
       expect(result.players[1].season_games).toBe(0)
     })
+
+    it('hides the balance from non-admins', async () => {
+      const team = testData.team({ user_id: null, balance: 500000 })
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
+      query.mockResolvedValueOnce([]) // SELECT players (no stats query without players)
+
+      const result = await handlers.getTeam(1, { user: { id: 2, is_admin: 0 } })
+
+      expect(result.isAdmin).toBe(false)
+      expect(result.team).not.toHaveProperty('balance')
+    })
+
+    it('exposes the balance to admins', async () => {
+      const team = testData.team({ user_id: null, balance: 500000 })
+
+      getTeamById.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 0, gameDay: 5 })
+      query.mockResolvedValueOnce([]) // SELECT players (no stats query without players)
+
+      const result = await handlers.getTeam(1, { user: { id: 2, is_admin: 1 } })
+
+      expect(result.isAdmin).toBe(true)
+      expect(result.team.balance).toBe(500000)
+    })
   })
 
   describe('updateTeamName', () => {

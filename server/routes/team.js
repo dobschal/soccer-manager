@@ -132,15 +132,18 @@ export default {
 
   /**
    * @param {number} teamId
-   * @returns {Promise<{team: TeamType, players: Array<PlayerType>, user: Object|undefined}>}
+   * @param {Request} [req]
+   * @returns {Promise<{team: TeamType, players: Array<PlayerType>, user: Object|undefined, isAdmin: boolean}>}
    */
-  async getTeam (teamId) {
+  async getTeam (teamId, req) {
+    const isAdmin = Boolean(req?.user?.is_admin)
     const team = await getTeamById(teamId)
     if (!team) {
       return {
         team: null,
         players: [],
-        user: undefined
+        user: undefined,
+        isAdmin
       }
     }
     const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
@@ -173,10 +176,15 @@ export default {
         delete user.email_verification_expires_at
       }
     }
+    // A foreign team's balance is admin-only information — the team page shows
+    // (and lets admins edit) it, everyone else must not see it.
+    if (!isAdmin) delete team.balance
+
     return {
       team,
       players,
-      user
+      user,
+      isAdmin
     }
   },
 

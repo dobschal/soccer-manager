@@ -22,6 +22,7 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 | Sued | 200 | 30.000 |
 | Ost | 100 | 15.000 |
 | West | 100 | 15.000 |
+| Ecke (NO, NW, SO, SW) | 50 | 4.000 |
 
 ## Technische Anforderungen
 

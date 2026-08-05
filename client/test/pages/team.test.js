@@ -14,6 +14,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getCurrentGameday: vi.fn(),
     getTeamTimelineGames: vi.fn(),
     isFriend: vi.fn(),
+    adminGetTeamActionCards: vi.fn(),
+    adminSetTeamBalance: vi.fn(),
     addFriend: vi.fn(),
     removeFriend: vi.fn()
   }
@@ -171,6 +173,61 @@ describe('TeamPage', () => {
       await page.load()
 
       expect(page._stadiumSize).toBe(10000)
+    })
+
+    it('hides the admin balance row for regular users', async () => {
+      const team = testData.team({ id: 5 })
+      server.getTeam.mockResolvedValue({ team, players: [testData.player()], user: null, isAdmin: false })
+      server.getStadiumByTeamId.mockResolvedValue(testData.stadium())
+
+      const page = new TeamPage()
+      page.teamId = 5
+      await page.load()
+
+      expect(page._isAdmin).toBe(false)
+      expect(page._renderBalanceRow()).toBe('')
+      expect(page._renderAdminActionCards()).toBe('')
+    })
+
+    it('renders the editable balance row and the action card panel for admins', async () => {
+      const team = testData.team({ id: 5, balance: 250000 })
+      server.getTeam.mockResolvedValue({ team, players: [testData.player()], user: null, isAdmin: true })
+      server.getStadiumByTeamId.mockResolvedValue(testData.stadium())
+
+      const page = new TeamPage()
+      page.teamId = 5
+      await page.load()
+
+      expect(page._isAdmin).toBe(true)
+      const row = page._renderBalanceRow()
+      expect(row).toContain('team.adminBalance')
+      expect(row).toContain('value="250000"')
+      expect(row).toContain('admin-balance-save')
+      expect(page._adminCards.teamId).toBe(5)
+    })
+
+    it('writes the edited balance back to the server', async () => {
+      const team = testData.team({ id: 5, balance: 250000 })
+      server.getTeam.mockResolvedValue({ team, players: [testData.player()], user: null, isAdmin: true })
+      server.getStadiumByTeamId.mockResolvedValue(testData.stadium())
+      server.adminSetTeamBalance.mockResolvedValue({ success: true, balance: 999 })
+
+      const page = new TeamPage()
+      page.teamId = 5
+      await page.load()
+
+      const input = document.createElement('input')
+      input.className = 'admin-balance-input'
+      input.value = '999'
+      vi.spyOn(document, 'querySelector').mockImplementation((selector) => (
+        selector.includes('admin-balance-input') ? input : null
+      ))
+
+      await page._handleBalanceSave()
+
+      expect(server.adminSetTeamBalance).toHaveBeenCalledWith(5, 999)
+      expect(page.team.balance).toBe(999)
+      vi.restoreAllMocks()
     })
 
     it('renders coach card with N/A for bot team', async () => {

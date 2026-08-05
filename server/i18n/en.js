@@ -228,6 +228,7 @@ export default {
   'finance.leagueBonus': 'League bonus',
   'finance.promotionBonus': 'Promotion bonus',
   'finance.startingBalance': 'Starting balance',
+  'finance.adminAdjustment': 'Balance adjusted by an admin',
   'finance.tvMoney': 'TV money (rank {rank}, league level {level})',
 
   // Match day recap

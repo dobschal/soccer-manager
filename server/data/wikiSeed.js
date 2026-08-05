@@ -642,7 +642,7 @@ Modifiers that raise or lower the in-game level:
 • Squad age: an average age near 27 gives up to +5%; too young or too old costs up to −5%.
 • Home advantage: a well-filled home stadium boosts the home side; an empty stadium is a small penalty.
 • Bot penalty: bot teams play at 90% of their nominal level.
-• Out-of-position substitute: a bench player forced into a slot outside their role group plays at 50% level.
+• Out of position: a starter fielded away from their natural position plays at 50% level. Substitutes are the exception – a player brought on from the bench keeps their full level even in a foreign slot, so an emergency swap is never punished.
 
 Where to see it:
 • After a match, the squad list shows each starter's base level ("Lvl") and their in-game level ("IG"). Green means the modifiers raised the level, red means they lowered it.
@@ -661,7 +661,7 @@ Was das In-Game-Level verändert:
 • Durchschnittsalter: Ein Schnitt um 27 gibt bis zu +5%; zu jung oder zu alt kostet bis zu −5%.
 • Heimvorteil: Ein gut gefülltes Heimstadion stärkt die Heimmannschaft; ein leeres Stadion ist ein kleiner Malus.
 • Bot-Malus: Bot-Teams spielen mit 90% ihres nominalen Levels.
-• Falsche Position: Ein Bank-Spieler, der in eine Position außerhalb seiner Rollen-Gruppe muss, spielt nur mit 50% Level.
+• Falsche Position: Ein Starter, der abseits seiner natürlichen Position aufläuft, spielt nur mit 50% Level. Einwechselspieler sind die Ausnahme – ein von der Bank gebrachter Spieler behält sein volles Level auch auf einer fremden Position, ein Not-Wechsel wird also nie bestraft.
 
 Wo du es siehst:
 • Nach jedem Spiel zeigt die Kaderliste für jeden Starter das Basis-Level ("Lvl") und das In-Game-Level ("IG"). Grün bedeutet, die Modifikatoren haben das Level angehoben, Rot bedeutet, sie haben es gesenkt.

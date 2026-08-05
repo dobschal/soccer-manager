@@ -18,6 +18,7 @@ import { renderPositionBadge } from '../partials/positionBadge.js'
 import { renderPageNumbers } from '../partials/pagination.js'
 import { formatDate } from '../lib/date.js'
 import { calculateMarketValue, calculatePlayerAge, getSalary } from '../util/player.js'
+import { AdminTeamCards } from '../partials/adminTeamCards.js'
 
 const TRANSFER_PAGE_SIZE = 10
 const TIMELINE_PAGE_SIZE = 12
@@ -62,7 +63,8 @@ export class TeamPage extends UIElement {
     const {
       team,
       players,
-      user
+      user,
+      isAdmin
     } = await server.getTeam(this.teamId)
     if (!team || team.is_system_team) {
       toast(t('team.cannotView'), 'error')
@@ -78,6 +80,12 @@ export class TeamPage extends UIElement {
     this.user = user
     this.team = team
     this.players = players
+    this._isAdmin = Boolean(isAdmin)
+    // Cache the admin panel so a page re-render (e.g. after a friendly match)
+    // doesn't tear it down and re-fetch its data.
+    if (this._isAdmin && (!this._adminCards || this._adminCards.teamId !== this.team.id)) {
+      this._adminCards = new AdminTeamCards({ teamId: this.team.id })
+    }
 
     const [stadium, myTeam, friendlyStatus, transferHistory, seasonHistory, gameday, timeline] = await Promise.all([
       server.getStadiumByTeamId(this.team.id),
@@ -137,6 +145,7 @@ export class TeamPage extends UIElement {
             ${this._renderCoachCard()}
           </div>
         </div>
+        ${this._renderAdminActionCards()}
         ${this._renderFriendlyMatchButton()}
         <div class="mb-4">
             <h4>${t('team.timeline')}</h4>
@@ -190,6 +199,12 @@ export class TeamPage extends UIElement {
         click: (event) => {
           event.preventDefault()
           this._handleHeadToHeadClick()
+        }
+      },
+      '(optional) .admin-balance-save': {
+        click: (event) => {
+          event.preventDefault()
+          this._handleBalanceSave()
         }
       },
       '(optional) .friend-toggle-btn': {
@@ -289,6 +304,10 @@ export class TeamPage extends UIElement {
   _canBeFriend = false
   /** @type {boolean} */
   _isUpdatingFriend = false
+  /** @type {boolean} */
+  _isAdmin = false
+  /** @type {AdminTeamCards|null} */
+  _adminCards = null
   /** @type {Array} */
   _transferHistory = []
   /** @type {number} */
@@ -374,11 +393,73 @@ export class TeamPage extends UIElement {
               <tr><td class="text-muted ps-3">${t('team.avgFreshness')}</td><td class="text-end pe-3">${Math.floor(this._teamFreshness * 100)}%</td></tr>
               <tr><td class="text-muted ps-3">${t('stadium.stadiumLabel')}</td><td class="text-end pe-3"><a href="#" class="stadium-link text-info">${this._stadiumName}</a></td></tr>
               <tr><td class="text-muted ps-3">${t('team.stadiumSize')}</td><td class="text-end pe-3">${t('team.seats', { seats: this._stadiumSize })}</td></tr>
+              ${this._renderBalanceRow()}
             </tbody>
           </table>
         </div>
       </div>
     `
+  }
+
+  /**
+   * Admin-only row in the team info card: the team's balance with an inline
+   * editor. Non-admins never receive the balance from the server.
+   * @returns {string}
+   * @private
+   */
+  _renderBalanceRow () {
+    if (!this._isAdmin) return ''
+    return `
+      <tr>
+        <td class="text-muted ps-3">${t('team.adminBalance')}</td>
+        <td class="text-end pe-3">
+          <div class="input-group input-group-sm admin-balance-group">
+            <input type="number" step="1" class="form-control text-end admin-balance-input" value="${this.team.balance ?? 0}">
+            <button class="btn btn-outline-info admin-balance-save" title="${t('team.adminBalanceSave')}">
+              <i class="fa fa-check" aria-hidden="true"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `
+  }
+
+  /**
+   * Admin-only action card panel (add / remove single cards of this team).
+   * @returns {string}
+   * @private
+   */
+  _renderAdminActionCards () {
+    if (!this._isAdmin || !this._adminCards) return ''
+    return `${this._adminCards}`
+  }
+
+  /**
+   * Write the edited balance back to the server (admin only).
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _handleBalanceSave () {
+    const input = document.querySelector(`${this._elementQuery} .admin-balance-input`)
+    const button = document.querySelector(`${this._elementQuery} .admin-balance-save`)
+    if (!input) return
+    const newBalance = Number(input.value)
+    if (!Number.isFinite(newBalance)) {
+      toast(t('team.adminBalanceInvalid'), 'error')
+      return
+    }
+    try {
+      if (button) button.disabled = true
+      const { balance } = await server.adminSetTeamBalance(this.team.id, newBalance)
+      this.team.balance = balance
+      input.value = balance
+      toast(t('team.adminBalanceUpdated'), 'success')
+    } catch (e) {
+      console.error('Error updating team balance:', e)
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+    } finally {
+      if (button) button.disabled = false
+    }
   }
 
   /**

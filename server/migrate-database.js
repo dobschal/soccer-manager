@@ -2618,6 +2618,21 @@ const migrations = [{
     // buff are frozen here so later tactic changes don't alter the report.
     await query('ALTER TABLE team ADD COLUMN last_spied_snapshot LONGTEXT NULL DEFAULT NULL')
   }
+}, {
+  name: 'Wiki: refresh in-game-level (subs no longer get out-of-position penalty)',
+  async run () {
+    // The initial seed only runs on an empty wiki, so the reworded
+    // out-of-position rule must be pushed to already-seeded prod/sandbox DBs.
+    const topic = WIKI_SEED.find(t => t.key === 'in-game-level')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

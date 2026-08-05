@@ -213,7 +213,7 @@ describe('showStadiumExpandModal', () => {
     expect(document.body.textContent).toContain('19000')
   })
 
-  it('shows the preview without controls and lets the camera orbit', async () => {
+  it('shows the preview without controls, orbiting and free of building sites', async () => {
     server.calculateStadiumPrice.mockResolvedValue({
       totalPrice: 500_000,
       constructionTimes: { north: { days: 2, seatsDiff: 3000, addingRoof: false } }
@@ -223,7 +223,13 @@ describe('showStadiumExpandModal', () => {
     calculateButton().click()
     await flush()
 
-    expect(canvasInstances[0].options).toEqual({ interactive: false, autoRotate: true })
+    // `showConstruction: false`: the preview shows the finished plan, so a stand
+    // that happens to be under construction right now is still drawn complete.
+    expect(canvasInstances[0].options).toEqual({
+      interactive: false,
+      autoRotate: true,
+      showConstruction: false
+    })
   })
 
   it('shows no price and no preview when the plan is invalid', async () => {

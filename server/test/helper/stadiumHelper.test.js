@@ -401,7 +401,7 @@ describe('stadiumHelper', () => {
     })
 
     it('does not charge for corner stands that stay unbuilt (size 0)', () => {
-      // Corner stands start at size 0, which is below their 200 minimum. Keeping
+      // Corner stands start at size 0, which is below their 50 minimum. Keeping
       // them unbuilt must not trip the minimum-size validation.
       const current = baseStadium({ corner_ne_stand_size: 0, corner_nw_stand_size: 0, corner_se_stand_size: 0, corner_sw_stand_size: 0 })
       const planned = baseStadium({ corner_ne_stand_size: 0, corner_nw_stand_size: 0, corner_se_stand_size: 0, corner_sw_stand_size: 0 })
@@ -415,10 +415,17 @@ describe('stadiumHelper', () => {
       expect(calcuateStadiumBuild(current, planned)).toBe(250_000 + 50_000)
     })
 
-    it('rejects a corner stand below its 200-seat minimum', () => {
+    it('rejects a corner stand below its 50-seat minimum', () => {
       const current = baseStadium({ corner_ne_stand_size: 0 })
-      const planned = baseStadium({ corner_ne_stand_size: 100 })
+      const planned = baseStadium({ corner_ne_stand_size: 40 })
       expect(() => calcuateStadiumBuild(current, planned)).toThrow(/Minimum size/)
+    })
+
+    it('allows a corner stand right at its 50-seat minimum', () => {
+      // 50 seats @ 500 = 25,000 + 50,000 architect
+      const current = baseStadium({ corner_ne_stand_size: 0 })
+      const planned = baseStadium({ corner_ne_stand_size: 50 })
+      expect(calcuateStadiumBuild(current, planned)).toBe(25_000 + 50_000)
     })
 
     it('rejects a corner stand above its 4,000-seat maximum', () => {

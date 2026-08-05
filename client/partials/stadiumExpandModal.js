@@ -93,10 +93,13 @@ export function showStadiumExpandModal (stadium, team, constructionInfo = {}, on
         return
       }
       // The preview is a showcase, not a toy: no user controls, the camera
-      // orbits the planned stadium on its own.
+      // orbits the planned stadium on its own. It shows the *finished* plan, so
+      // no building sites — the plan carries the current stadium's construction
+      // fields, which say nothing about the planned stands.
       previewCanvas = new StadiumCanvas(plan, team, 'stadium-expand-canvas', {
         interactive: false,
-        autoRotate: true
+        autoRotate: true,
+        showConstruction: false
       })
       previewEl.innerHTML = `
         <div class="stadium-expand-preview">

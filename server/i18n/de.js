@@ -228,6 +228,7 @@ export default {
   'finance.leagueBonus': 'Liga-Bonus',
   'finance.promotionBonus': 'Aufstiegsbonus',
   'finance.startingBalance': 'Startguthaben',
+  'finance.adminAdjustment': 'Kontostand von einem Admin angepasst',
   'finance.tvMoney': 'TV-Gelder (Platz {rank}, Liga-Level {level})',
 
   // Match day recap

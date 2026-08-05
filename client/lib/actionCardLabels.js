@@ -12,7 +12,8 @@ const LABEL_KEYS = {
   NEW_YOUTH_PLAYER_3: 'actionCards.type.youthProspect3',
   BONUS_100K: 'actionCards.type.cashBonus',
   STAR_PLAYER: 'actionCards.type.starPlayer',
-  MOTIVATING_SPEECH: 'actionCards.type.motivatingSpeech'
+  MOTIVATING_SPEECH: 'actionCards.type.motivatingSpeech',
+  SPY: 'actionCards.type.spy'
 }
 
 /**

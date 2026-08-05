@@ -142,6 +142,235 @@ describe('StadiumCanvas corner stands', () => {
   })
 })
 
+/**
+ * A corner stand must look like it belongs to the stands it sits between: a
+ * corner holding a quarter of a side stand's seats has to come out the same size
+ * as that side stand — same depth (measured along the neighbour's own axis) and
+ * the same top height. Its rows sit on the 45° diagonal, so the comparison goes
+ * through `_cornerSeamDepth`.
+ */
+describe('StadiumCanvas corner-to-side-stand scale', () => {
+  const canvas = new StadiumCanvas({}, {})
+  // east/west depth is sized against half the north/south width
+  const SIDE_DEPTH_WIDTH = 28
+
+  const sideStand = (seats) => {
+    const rows = canvas._standRowCount(seats, SIDE_DEPTH_WIDTH)
+    return { rows, depth: canvas._standDepth(seats, SIDE_DEPTH_WIDTH), top: canvas._standTopY(rows) }
+  }
+  const cornerStand = (seats) => {
+    const rows = canvas._cornerRowCount(seats)
+    return { rows, depth: canvas._cornerSeamDepth(rows), top: canvas._cornerTierLayout(rows).overallTop }
+  }
+
+  // 3.500 in a corner next to a 14.000 side stand is the case that looked wrong:
+  // the corner came out clearly smaller than its neighbours.
+  const SIDE_SEATS = [200, 400, 2_000, 4_000, 8_000, 12_000, 14_000, 15_000]
+
+  it('matches the side stand in depth at a quarter of its seats', () => {
+    for (const seats of SIDE_SEATS) {
+      const side = sideStand(seats)
+      const corner = cornerStand(seats / 4)
+      // within 10 % — both row counts are rounded to whole rows
+      expect(Math.abs(corner.depth - side.depth) / side.depth).toBeLessThan(0.1)
+    }
+  })
+
+  it('matches the side stand in height at a quarter of its seats', () => {
+    for (const seats of SIDE_SEATS) {
+      const side = sideStand(seats)
+      const corner = cornerStand(seats / 4)
+      expect(Math.abs(corner.top - side.top) / side.top).toBeLessThan(0.1)
+    }
+  })
+
+  it('splits into two tiers alongside its neighbours, not before or after', () => {
+    for (const seats of SIDE_SEATS) {
+      const sideTwoTier = canvas._standTierRows(sideStand(seats).rows).twoTier
+      const cornerTwoTier = canvas._cornerTierLayout(cornerStand(seats / 4).rows).twoTier
+      expect(cornerTwoTier).toBe(sideTwoTier)
+    }
+  })
+
+  it('never truncates a corner inside the buildable range (max 4,000 seats)', () => {
+    // The row cap is a backstop only; hitting it would silently shrink the
+    // biggest corners — which is what made a 3,500-seat corner look too small.
+    expect(canvas._cornerRowCount(3_500)).toBeLessThan(50)
+    expect(canvas._cornerRowCount(4_000)).toBeLessThan(50)
+  })
+
+  it('grows monotonically with seat count and keeps unbuilt corners at zero', () => {
+    expect(canvas._cornerRowCount(0)).toBe(0)
+    expect(canvas._cornerRowCount(undefined)).toBe(0)
+    const rows = [50, 250, 1_000, 2_000, 3_500, 4_000].map(s => canvas._cornerRowCount(s))
+    for (let i = 1; i < rows.length; i++) {
+      expect(rows[i]).toBeGreaterThan(rows[i - 1])
+    }
+  })
+})
+
+describe('StadiumCanvas construction state', () => {
+  const underConstruction = (extra = {}) => new StadiumCanvas({
+    north_stand_size: 8000,
+    north_stand_roof: 1,
+    north_construction_end_game_day: 4,
+    north_construction_end_season: 2,
+    corner_ne_stand_size: 3000,
+    corner_ne_stand_roof: 1,
+    corner_ne_construction_end_game_day: 4,
+    ...extra
+  }, {})
+
+  it('marks a stand with a pending construction end as under construction', () => {
+    const canvas = underConstruction()
+    expect(canvas._isStandUnderConstruction('north')).toBe(true)
+    expect(canvas._isStandUnderConstruction('corner_ne')).toBe(true)
+    expect(canvas._isStandUnderConstruction('south')).toBe(false)
+  })
+
+  it('treats game day 0 as under construction (not as a missing value)', () => {
+    const canvas = new StadiumCanvas({ south_construction_end_game_day: 0 }, {})
+    expect(canvas._isStandUnderConstruction('south')).toBe(true)
+  })
+
+  it('takes the roof off a stand that is being rebuilt', () => {
+    const canvas = underConstruction()
+    expect(canvas._standHasRoof('north')).toBe(false)
+    expect(canvas._standHasRoof('corner_ne')).toBe(false)
+  })
+
+  it('keeps the roof on stands that are not being rebuilt', () => {
+    const canvas = underConstruction({ east_stand_roof: 1 })
+    expect(canvas._standHasRoof('east')).toBe(true)
+  })
+
+  it('reports no roof on a corner stand under construction in the layout', () => {
+    const ne = underConstruction()._cornerLayout().find(c => c.pos === 'ne')
+    expect(ne.roof).toBe(false)
+    expect(ne.underConstruction).toBe(true)
+  })
+
+  it('brings the corner floodlight mast back while a roofed neighbour is rebuilt', () => {
+    const canvas = underConstruction({ east_stand_roof: 1 })
+    // Both north and east are roofed, but north's roof is off for the build.
+    expect(canvas._cornerHasBothRoofs('ne')).toBe(false)
+  })
+
+  it('ignores the construction fields when the caller opts out (expand preview)', () => {
+    const canvas = new StadiumCanvas({
+      north_stand_roof: 1,
+      north_construction_end_game_day: 4,
+      corner_ne_stand_size: 3000,
+      corner_ne_stand_roof: 1,
+      corner_ne_construction_end_game_day: 4
+    }, {}, 'c', { showConstruction: false })
+    expect(canvas._isStandUnderConstruction('north')).toBe(false)
+    expect(canvas._standHasRoof('north')).toBe(true)
+    expect(canvas._cornerLayout().find(c => c.pos === 'ne').roof).toBe(true)
+  })
+})
+
+/**
+ * The stands are built straight into a Three.js scene, so these tests run the
+ * builders against a stub library and count the instanced meshes that come out:
+ * every stand always emits one mesh for its steps, plus one per seat colour.
+ * A stand under construction must emit the steps only.
+ */
+describe('StadiumCanvas stand geometry under construction', () => {
+  /**
+   * A stand-in for the `three` module: every accessed export becomes a class
+   * that records its constructor arguments and answers the handful of methods
+   * the builders call on it.
+   * @returns {Object}
+   */
+  const stubThree = () => {
+    const created = []
+    const stubClass = (type) => class {
+      constructor (...args) {
+        this.type = type
+        this.args = args
+        this.children = []
+        this.position = { set: () => {}, add: () => {} }
+        this.rotation = { x: 0, y: 0, z: 0 }
+        this.target = { position: { set: () => {} } }
+        this.instanceMatrix = {}
+        this.instanceColor = null
+        this.shadow = { mapSize: {}, camera: {} }
+        created.push(this)
+      }
+
+      add (child) { this.children.push(child) }
+      set () { return this }
+      setMatrixAt () {}
+      setColorAt () {}
+      setPosition () {}
+      compose () {}
+      lookAt () {}
+      moveTo () {}
+      lineTo () {}
+      closePath () {}
+      setAttribute () {}
+      setIndex () {}
+      computeVertexNormals () {}
+      setFromPoints () { return this }
+      clone () { return this }
+      normalize () { return this }
+      multiplyScalar () { return this }
+    }
+
+    const classes = {}
+    return new Proxy({ created }, {
+      get (target, prop) {
+        if (prop in target) return target[prop]
+        if (typeof prop !== 'string') return undefined
+        if (prop === 'DoubleSide') return 2
+        classes[prop] = classes[prop] ?? stubClass(prop)
+        return classes[prop]
+      }
+    })
+  }
+
+  /**
+   * @param {Object} config extra `_createStand` config
+   * @returns {number} number of InstancedMesh instances created
+   */
+  const buildStand = (config) => {
+    const canvas = new StadiumCanvas({}, {})
+    canvas._THREE = stubThree()
+    canvas._createStand({ add: () => {} }, {
+      position: 'south', width: 56, seats: 12000, x: 0, z: 19, rotation: 0, ...config
+    })
+    return canvas._THREE.created.filter(o => o.type === 'InstancedMesh').length
+  }
+
+  /**
+   * @param {Object} config extra `_createCornerStand` config
+   * @returns {number} number of InstancedMesh instances created
+   */
+  const buildCornerStand = (config) => {
+    const canvas = new StadiumCanvas({}, {})
+    canvas._THREE = stubThree()
+    canvas._createCornerStand({ add: () => {} }, {
+      x: 30, z: 20, rotation: 0, rows: 20, roof: false, ...config
+    })
+    return canvas._THREE.created.filter(o => o.type === 'InstancedMesh').length
+  }
+
+  it('builds seats on a finished stand', () => {
+    // steps + at least one seat-colour mesh
+    expect(buildStand({})).toBeGreaterThan(1)
+  })
+
+  it('leaves a stand under construction without any seats', () => {
+    expect(buildStand({ underConstruction: true })).toBe(1) // steps only
+  })
+
+  it('leaves a corner stand under construction without any seats', () => {
+    expect(buildCornerStand({})).toBeGreaterThan(1)
+    expect(buildCornerStand({ underConstruction: true })).toBe(1)
+  })
+})
+
 describe('StadiumCanvas._cornerHasBothRoofs', () => {
   it('is true only when both adjacent main stands are roofed', () => {
     const canvas = new StadiumCanvas({ north_stand_roof: 1, east_stand_roof: 1 }, {})

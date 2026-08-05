@@ -142,9 +142,12 @@
     width: calc(100% + 2rem);
 }
 
-/* Long single-word values (e.g. a long stadium name) must wrap instead of
-   overflowing and breaking the table layout. */
-.team-info-table td {
+/* Long values (e.g. a long stadium name) must wrap instead of overflowing and
+   breaking the table layout (#459, #511). The selector has to out-specify
+   `table.table td { white-space: nowrap }` from components/table.css — without
+   resetting that, no amount of overflow-wrap makes the text break. */
+table.table.team-info-table td {
+    white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
 }

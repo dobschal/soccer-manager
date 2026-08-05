@@ -315,20 +315,22 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
       min: 100,
       max: 15_000
     },
+    // Corners are the smallest stands, so they get the lowest entry size — a
+    // first corner should be affordable long before a full stand is.
     corner_ne: {
-      min: 200,
+      min: 50,
       max: 4_000
     },
     corner_nw: {
-      min: 200,
+      min: 50,
       max: 4_000
     },
     corner_se: {
-      min: 200,
+      min: 50,
       max: 4_000
     },
     corner_sw: {
-      min: 200,
+      min: 50,
       max: 4_000
     }
   }

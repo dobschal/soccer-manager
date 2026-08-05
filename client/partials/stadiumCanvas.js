@@ -59,7 +59,9 @@ const CONFIG = Object.freeze({
   // than the one below so it fills the wedge. Depth scales with the neighbours.
   cornerStand: {
     gap: -0.5, // apex offset from the perimeter corner; negative pulls it toward the field
-    maxRows: 40, // cap so a very large corner stand stays a sane size
+    // Backstop against an absurd fan; sized so it never bites inside the
+    // buildable corner range (max 4,000 seats ≈ 43 rows, see `_cornerRowCount`).
+    maxRows: 50,
     // Row width = (2r+1) * fanSlope. 1.0 exactly fills a 90° corner (width grows
     // at twice the depth); lower values make a narrower fan. The per-row rise is
     // derived from this so the rake matches the neighbours at the seams.
@@ -150,11 +152,14 @@ export class StadiumCanvas extends UIElement {
    * @param {StadiumType} stadium
    * @param {TeamType} team
    * @param {string} [canvasId]
-   * @param {{interactive?: boolean, autoRotate?: boolean, controlsToggle?: boolean}} [options] -
+   * @param {{interactive?: boolean, autoRotate?: boolean, controlsToggle?: boolean, showConstruction?: boolean}} [options] -
    *   `interactive: false` locks the camera against user input, `autoRotate: true`
    *   slowly orbits it around the stadium, `controlsToggle: true` adds a button
    *   in the canvas corner that switches between the two. The defaults give a
    *   hand-controlled, static camera without a button.
+   *   `showConstruction: false` renders every stand as finished — for the expand
+   *   preview, which shows a *planned* stadium where the construction fields
+   *   carried over from the current stadium row are meaningless.
    */
   constructor (stadium, team, canvasId = 'stadium-canvas', options = {}) {
     super()
@@ -292,6 +297,34 @@ export class StadiumCanvas extends UIElement {
       (total, name) => total + (this.stadium[name + '_stand_size'] || 0),
       0
     )
+  }
+
+  /**
+   * Whether a stand is currently being rebuilt. The stadium row carries
+   * `<stand>_construction_end_game_day` for as long as the build runs (the size
+   * and roof columns still hold the *old* values until it completes), so a
+   * building site can be rendered straight off the stadium data.
+   *
+   * A stand under construction is shown as a bare shell: steps, walls and
+   * foundation only — no seats and no roof (see `_createStand`).
+   * @param {string} name stand key, e.g. 'north' or 'corner_ne'
+   * @returns {boolean}
+   */
+  _isStandUnderConstruction (name) {
+    if (this.options.showConstruction === false) return false
+    return this.stadium[`${name}_construction_end_game_day`] != null
+  }
+
+  /**
+   * The roof a stand actually shows: the stored flag, minus any stand that is
+   * currently being rebuilt (its roof comes off for the duration). Used for the
+   * stand itself and for everything derived from the roofs — the roof-mounted
+   * floodlights and the corner masts that replace them.
+   * @param {string} name stand key, e.g. 'north' or 'corner_ne'
+   * @returns {boolean}
+   */
+  _standHasRoof (name) {
+    return !!this.stadium[`${name}_stand_roof`] && !this._isStandUnderConstruction(name)
   }
 
   /**
@@ -522,7 +555,8 @@ export class StadiumCanvas extends UIElement {
       x: 0,
       z: -fieldDepth / 2 - standGap,
       rotation: Math.PI,
-      hasRoof: this.stadium.north_stand_roof,
+      hasRoof: this._standHasRoof('north'),
+      underConstruction: this._isStandUnderConstruction('north'),
       hasTunnel: true // players' entrance in front of the north stand
     })
 
@@ -533,7 +567,8 @@ export class StadiumCanvas extends UIElement {
       x: 0,
       z: fieldDepth / 2 + standGap,
       rotation: 0,
-      hasRoof: this.stadium.south_stand_roof
+      hasRoof: this._standHasRoof('south'),
+      underConstruction: this._isStandUnderConstruction('south')
     })
 
     // East/west stands are physically narrower than north/south, but their depth
@@ -550,7 +585,8 @@ export class StadiumCanvas extends UIElement {
       x: -fieldWidth / 2 - standGap,
       z: 0,
       rotation: -Math.PI / 2,
-      hasRoof: this.stadium.west_stand_roof
+      hasRoof: this._standHasRoof('west'),
+      underConstruction: this._isStandUnderConstruction('west')
     })
 
     this._createStand(scene, {
@@ -561,25 +597,117 @@ export class StadiumCanvas extends UIElement {
       x: fieldWidth / 2 + standGap,
       z: 0,
       rotation: Math.PI / 2,
-      hasRoof: this.stadium.east_stand_roof
+      hasRoof: this._standHasRoof('east'),
+      underConstruction: this._isStandUnderConstruction('east')
     })
 
     for (const c of this._cornerLayout()) {
       if (c.depth <= 0) continue // no corner stand built here yet
       this._createCornerStand(scene, {
-        x: c.x, z: c.z, rotation: c.rotation, rows: c.depth, roof: c.roof
+        x: c.x,
+        z: c.z,
+        rotation: c.rotation,
+        rows: c.depth,
+        roof: c.roof,
+        underConstruction: c.underConstruction
       })
     }
   }
 
   /**
+   * Row count of a corner stand, tied to the side stands so the two always look
+   * like they belong to the same stadium: a corner holding **a quarter** of a
+   * side stand's seats comes out exactly as big as that side stand.
+   *
+   * A corner row sits on the 45° diagonal, so its outer edge advances √2 per row
+   * along the seam with the neighbouring stand (and rises √2 as steeply). It
+   * therefore needs `1/√2` of the neighbour's rows to reach the same depth and
+   * the same top height — hence the side-stand row count for four times the
+   * seats, scaled by `1/√2`.
+   * @param {number} seats
+   * @returns {number} 0 for an unbuilt corner
+   */
+  _cornerRowCount (seats) {
+    if (!seats || seats <= 0) return 0
+    const sideDepthWidth = (CONFIG.field.width + 6) / 2
+    const sideRows = this._standRowCount(seats * 4, sideDepthWidth)
+    return Math.min(
+      CONFIG.cornerStand.maxRows,
+      Math.max(3, Math.round(sideRows * Math.SQRT1_2))
+    )
+  }
+
+  /**
+   * Vertical/depth layout of a corner stand's terracing — the counterpart of
+   * `_standTierRows` / `_standDepth` for the diagonal fan.
+   *
+   * A 45°-rotated fan row advances `(fanSlope + 1)/√2` per row along the seam
+   * with the neighbouring stand (it widens as it deepens), so the per-row rise is
+   * picked to make the rake at that seam equal the main stands' rake and the
+   * terracing line up where they meet. Corners get the same two-tier overhang as
+   * the main stands; because their rows are steeper, both the tier threshold and
+   * the upper tier's extra steepness are scaled off the main-stand values, so a
+   * two-tier corner ends up as tall as the two-tier stands beside it.
+   * @param {number} rows total row count
+   * @returns {{rowHeight:number,upperTierRowHeight:number,twoTier:boolean,lowerRows:number,upperRows:number,overhang:number,lowerTopY:number,deckY:number,overallTop:number,backDist:number}}
+   */
+  _cornerTierLayout (rows) {
+    const {
+      lowerTierFraction, overhangClearance, overhangCoverFraction,
+      twoTierRowThreshold, lowerRowHeight, upperRowHeight
+    } = CONFIG.stand
+
+    const rowHeight = lowerRowHeight * Math.SQRT1_2 * (CONFIG.cornerStand.fanSlope + 1)
+    const upperTierRowHeight = rowHeight * (upperRowHeight / lowerRowHeight)
+
+    const twoTier = rows >= Math.round(twoTierRowThreshold * lowerRowHeight / rowHeight)
+    const lowerRows = twoTier ? Math.round(rows * lowerTierFraction) : rows
+    const upperRows = rows - lowerRows
+
+    // The upper tier is pulled toward the field (over the lower tier's rear) by
+    // the overhang, like the main stands. Its rows keep filling the wedge at
+    // their pulled-forward distance from the apex.
+    const overhang = twoTier ? lowerRows * overhangCoverFraction : 0
+    const lowerTopY = 0.5 + lowerRows * rowHeight // top of the lower tier
+    const deckY = lowerTopY + overhangClearance // upper-tier floor / overhang top
+    const overallTop = twoTier
+      ? deckY + upperRows * upperTierRowHeight
+      : 0.5 + rows * rowHeight
+
+    return {
+      rowHeight,
+      upperTierRowHeight,
+      twoTier,
+      lowerRows,
+      upperRows,
+      overhang,
+      lowerTopY,
+      deckY,
+      overallTop,
+      // Deepest occupied row measured from the apex.
+      backDist: Math.max(lowerRows - 1, twoTier ? rows - 1 - overhang : rows - 1)
+    }
+  }
+
+  /**
+   * Depth a corner stand reaches along a neighbouring stand's own depth axis:
+   * the fan's outer edge advances √2 per diagonal row, so this is directly
+   * comparable to `_standDepth`.
+   * @param {number} rows total row count
+   * @returns {number}
+   */
+  _cornerSeamDepth (rows) {
+    return (this._cornerTierLayout(rows).backDist + 1) * Math.SQRT2
+  }
+
+  /**
    * Layout of the four corner stands. Each sits diagonally in a corner between
-   * two main stands, rotated 45° to face the field. Its depth (row count) is
-   * derived from the stored `corner_<pos>_stand_size` — the triangular fan holds
-   * about `2 * fanSlope * rows²` seats, so we invert that. A corner with size 0
-   * yields depth 0 (nothing built there). Shared by stand creation, floodlight
-   * placement and the road distance.
-   * @returns {Array<{pos:string,x:number,z:number,rotation:number,depth:number,roof:boolean,sx:number,sz:number}>}
+   * two main stands, rotated 45° to face the field. Its depth (row count) comes
+   * from the stored `corner_<pos>_stand_size` via `_cornerRowCount`, which keeps
+   * it in scale with the side stands. A corner with size 0 yields depth 0
+   * (nothing built there). Shared by stand creation, floodlight placement and
+   * the road distance.
+   * @returns {Array<{pos:string,x:number,z:number,rotation:number,depth:number,roof:boolean,underConstruction:boolean,sx:number,sz:number}>}
    */
   _cornerLayout () {
     const cs = CONFIG.cornerStand
@@ -596,17 +724,15 @@ export class StadiumCanvas extends UIElement {
     ]
 
     return defs.map(({pos, sx, sz}) => {
-      const size = s[`corner_${pos}_stand_size`] || 0
-      const rows = size > 0
-        ? Math.min(cs.maxRows, Math.max(3, Math.round(Math.sqrt(size / (2 * cs.fanSlope)))))
-        : 0
+      const rows = this._cornerRowCount(s[`corner_${pos}_stand_size`])
       return {
         pos,
         x: sx * (px + cs.gap * inv),
         z: sz * (pz + cs.gap * inv),
         rotation: Math.atan2(sx, sz), // local -z (front) points to the field centre
         depth: rows,
-        roof: !!s[`corner_${pos}_stand_roof`],
+        roof: this._standHasRoof(`corner_${pos}`),
+        underConstruction: this._isStandUnderConstruction(`corner_${pos}`),
         sx,
         sz
       }
@@ -630,19 +756,19 @@ export class StadiumCanvas extends UIElement {
   /**
    * The two main stands meeting at a corner both have a roof — in which case
    * that corner's floodlight mast is dropped and the roofs light the pitch
-   * instead (see `_addRoofFloodlights`).
+   * instead (see `_addRoofFloodlights`). A stand under construction has no roof,
+   * so the mast comes back for as long as the build runs.
    * @param {string} pos corner id ('ne' | 'nw' | 'se' | 'sw')
    * @returns {boolean}
    */
   _cornerHasBothRoofs (pos) {
-    const s = this.stadium
     const neighbours = {
       ne: ['north', 'east'],
       nw: ['north', 'west'],
       se: ['south', 'east'],
       sw: ['south', 'west']
     }[pos]
-    return neighbours.every(name => !!s[`${name}_stand_roof`])
+    return neighbours.every(name => this._standHasRoof(name))
   }
 
   /**
@@ -1483,11 +1609,26 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
+   * Height of the top of a main stand's terracing (its envelope top) — the
+   * counterpart of `_standDepth`. On a two-tier stand that is the top of the
+   * steeper upper tier, above the overhang clearance.
+   * @param {number} numRows total row count
+   * @returns {number}
+   */
+  _standTopY (numRows) {
+    const {lowerRowHeight, upperRowHeight, overhangClearance} = CONFIG.stand
+    const {twoTier, lowerRows, upperRows} = this._standTierRows(numRows)
+    const lowerTopY = 0.5 + lowerRows * lowerRowHeight
+    if (!twoTier) return lowerTopY
+    return lowerTopY + overhangClearance + upperRows * upperRowHeight
+  }
+
+  /**
    * @param {THREE.Scene} scene
    * @param {Object} config
    */
   _createStand (scene, config) {
-    const {width, depthWidth, seats, x, z, rotation, hasRoof, hasTunnel} = config
+    const {width, depthWidth, seats, x, z, rotation, hasRoof, hasTunnel, underConstruction} = config
     const {lowerRowHeight, upperRowHeight, overhangClearance, overhangCoverFraction} = CONFIG.stand
 
     const group = new this._THREE.Group()
@@ -1521,7 +1662,7 @@ export class StadiumCanvas extends UIElement {
     const upperFrontZ = lowerDepth - overhang
 
     const totalDepth = twoTier ? Math.max(lowerDepth, upperFrontZ + upperDepth) : lowerDepth
-    const envTop = twoTier ? upperTopY : lowerTopY // envelope top height
+    const envTop = this._standTopY(numRows) // envelope top height
 
     // baseY 0.5 = top of the foundation slab (row 0 sits on it).
     const tiers = [{rows: lowerRows, rowHeight: lowerRowHeight, baseY: 0.5, baseZ: 0}]
@@ -1577,6 +1718,9 @@ export class StadiumCanvas extends UIElement {
         stepScale.set(1, yScale, 1)
         stepMatrix.compose(stepPos, stepQuat, stepScale)
         stepInstancedMesh.setMatrixAt(stepIndex++, stepMatrix)
+
+        // A stand being rebuilt shows its bare terracing: the seats are out.
+        if (underConstruction) continue
 
         const inTunnelRow = tunnelRow && row < tunnelRows
         const seatY = rowBottomY + tier.rowHeight // step surface
@@ -1797,45 +1941,26 @@ export class StadiumCanvas extends UIElement {
    * local space (apex/front at z=0, rows rising in +z) so it inherits the
    * group's diagonal placement/rotation.
    * @param {THREE.Scene} scene
-   * @param {{x:number,z:number,rotation:number,rows:number,roof:boolean}} config
+   * @param {{x:number,z:number,rotation:number,rows:number,roof:boolean,underConstruction?:boolean}} config
    */
   _createCornerStand (scene, config) {
-    const {x, z, rotation, rows, roof} = config
+    const {x, z, rotation, rows, roof, underConstruction} = config
     const {fanSlope} = CONFIG.cornerStand
     const rowDepth = 1.0
     const seatWidth = 0.5
     const group = new this._THREE.Group()
 
-    // A 45°-rotated fan row advances (fanSlope+1)/√2 per row in world-Z along the
-    // seam with the neighbouring stand (it widens as it deepens). Pick a per-row
-    // rise that makes the rake at that seam equal the main stands' rake, so the
-    // terracing lines up where they meet.
-    const rowHeight = CONFIG.stand.lowerRowHeight * Math.SQRT1_2 * (fanSlope + 1)
+    const {
+      rowHeight, upperTierRowHeight, twoTier, lowerRows,
+      overhang, lowerTopY, deckY, overallTop, backDist
+    } = this._cornerTierLayout(rows)
 
     // Width of the fan at distance `d` (in rows) from the apex — it fills the
     // 90° wedge, so width = 2·distance.
     const fanWidth = d => (2 * d + 1) * rowDepth * fanSlope
-    const rowSurfaceY = r => 0.5 + (r + 1) * rowHeight // seating height of row r
-
-    // Corners get the same overhang as the main stands. Because the fan rows are
-    // steeper, the two-tier row threshold is lower — chosen so the overhang
-    // appears at the same physical height as on the main stands.
-    const { lowerTierFraction, overhangClearance, overhangCoverFraction, twoTierRowThreshold, lowerRowHeight } = CONFIG.stand
-    const cornerTwoTierRows = Math.round(twoTierRowThreshold * lowerRowHeight / rowHeight)
-    const twoTier = rows >= cornerTwoTierRows
-    const lowerRows = twoTier ? Math.round(rows * lowerTierFraction) : rows
-    const upperRows = rows - lowerRows
-    // The upper tier is pulled toward the field (over the lower tier's rear) by
-    // the overhang, like the main stands. Its rows keep filling the wedge at
-    // their pulled-forward distance from the apex.
-    const overhang = twoTier ? lowerRows * overhangCoverFraction : 0
-    const lowerTopY = 0.5 + lowerRows * rowHeight // top of the lower tier
-    const deckY = lowerTopY + overhangClearance // upper-tier floor / overhang top
-    const overallTop = twoTier ? deckY + upperRows * rowHeight : rowSurfaceY(rows - 1)
 
     // Distance from the apex for a given row (upper rows are pulled forward).
     const rowDist = r => (twoTier && r >= lowerRows) ? r - overhang : r
-    const backDist = Math.max(lowerRows - 1, rowDist(rows - 1)) // deepest occupied row
     const totalDepth = (backDist + 1) * rowDepth
 
     const seatColors = [
@@ -1872,13 +1997,16 @@ export class StadiumCanvas extends UIElement {
       const isUpper = twoTier && r >= lowerRows
       const blockBottom = isUpper ? deckY : 0
       const blockTop = isUpper
-        ? deckY + (r - lowerRows + 1) * rowHeight
+        ? deckY + (r - lowerRows + 1) * upperTierRowHeight
         : 0.5 + (r + 1) * rowHeight
 
       scale.set(w, blockTop - blockBottom, rowDepth)
       pos.set(0, (blockBottom + blockTop) / 2, rowZ + rowDepth / 2)
       matrix.compose(pos, quat, scale)
       stepMesh.setMatrixAt(r, matrix)
+
+      // A stand being rebuilt shows its bare terracing: the seats are out.
+      if (underConstruction) continue
 
       const seatsPerRow = Math.max(1, Math.floor(w / seatWidth))
       const seatZ = rowZ + rowDepth * 0.35

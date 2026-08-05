@@ -906,14 +906,13 @@ function _performSubstitution (playerOut, playerIn, team, gameDetails, teamIndex
   playerOut.substitutedOut = true
   playerOut.exitMinute = gameDetails.currentMinute ?? 0
 
-  // Sub takes the position in the game
+  // Sub takes the position in the game. Substitutes are NEVER hit by the
+  // out-of-position penalty: coming off the bench into an emergency slot (an
+  // injury or a forced late reshuffle) shouldn't punish the player. The 50%
+  // out-of-position penalty stays for starters only (see play-game-day.js).
   playerIn.in_game_position = playerOut.in_game_position
   playerIn.substitutedOut = false
   playerIn.enterMinute = gameDetails.currentMinute ?? 0
-  // Substitutes only get the out-of-position penalty when their role group differs from the slot's role group
-  if (POSITION_GROUPS[playerIn.position] !== POSITION_GROUPS[playerIn.in_game_position]) {
-    playerIn.level *= 0.5
-  }
 
   // Mark bench slot as used
   const benchPosition = POSITION_GROUPS[playerOut.position]

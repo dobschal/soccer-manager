@@ -37,6 +37,19 @@ vi.mock('../../helper/gameDayHelper.js', () => ({
 vi.mock('../../helper/serverStatsHelper.js', () => ({
   getServerStats: vi.fn()
 }))
+vi.mock('../../helper/teamHelper.js', () => ({
+  getTeamById: vi.fn()
+}))
+vi.mock('../../helper/financeHelper.js', () => ({
+  updateTeamBalance: vi.fn()
+}))
+vi.mock('../../lib/websocket.js', () => ({
+  sendToUser: vi.fn()
+}))
+vi.mock('../../i18n/index.js', () => ({
+  getUserLocale: vi.fn(async () => 'en'),
+  t: vi.fn((key) => key)
+}))
 
 import handlers from '../../routes/dev.js'
 import { collectStatistics, getStatistics } from '../../helper/statisticsHelper.js'
@@ -46,6 +59,9 @@ import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { sendAdminMessageEmail } from '../../lib/email.js'
 import { getServerStats } from '../../helper/serverStatsHelper.js'
 import { sendBroadcastNotification } from '../../lib/pushNotification.js'
+import { getTeamById } from '../../helper/teamHelper.js'
+import { updateTeamBalance } from '../../helper/financeHelper.js'
+import { sendToUser } from '../../lib/websocket.js'
 
 describe('dev routes - statistics', () => {
   beforeEach(() => {
@@ -387,6 +403,174 @@ describe('dev routes - statistics', () => {
 
       expect(getServerStats).toHaveBeenCalledTimes(1)
       expect(result).toEqual(payload)
+    })
+  })
+  describe('adminGetTeamActionCards', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.adminGetTeamActionCards(1, { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('rejects an unknown team', async () => {
+      getTeamById.mockResolvedValueOnce(undefined)
+      await expect(handlers.adminGetTeamActionCards(42, { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Team not found' })
+    })
+
+    it('returns unplayed cards grouped by action and state', async () => {
+      getTeamById.mockResolvedValueOnce({ id: 7, user_id: 3 })
+      query.mockResolvedValueOnce([
+        { action: 'BONUS_100K', state: 'received', count: 2 },
+        { action: 'SPY', state: 'pending', count: 1 }
+      ])
+
+      const result = await handlers.adminGetTeamActionCards(7, { user: { is_admin: 1 } })
+
+      expect(query).toHaveBeenCalledWith(
+        "SELECT action, state, COUNT(*) AS count FROM action_card WHERE team_id=? AND played=0 AND state IN ('received','pending') GROUP BY action, state ORDER BY action ASC",
+        [7]
+      )
+      expect(result.actionCards).toEqual([
+        { action: 'BONUS_100K', state: 'received', count: 2 },
+        { action: 'SPY', state: 'pending', count: 1 }
+      ])
+      expect(result.types).toContain('SPY')
+      expect(result.types).toContain('BONUS_100K')
+    })
+  })
+
+  describe('adminAddActionCard', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.adminAddActionCard(1, 'BONUS_100K', { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('rejects unknown card types', async () => {
+      await expect(handlers.adminAddActionCard(1, 'NOT_A_CARD', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Invalid action card type' })
+    })
+
+    it('rejects an unknown team', async () => {
+      getTeamById.mockResolvedValueOnce(undefined)
+      await expect(handlers.adminAddActionCard(9, 'BONUS_100K', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Team not found' })
+    })
+
+    it('inserts a received card and notifies the owning user', async () => {
+      getTeamById.mockResolvedValueOnce({ id: 7, user_id: 3 })
+      getGameDayAndSeason.mockResolvedValueOnce({ gameDay: 4, season: 2 })
+      query.mockResolvedValueOnce({ insertId: 11 })
+
+      const result = await handlers.adminAddActionCard(7, 'STAR_PLAYER', { user: { is_admin: 1 } })
+
+      expect(query).toHaveBeenCalledWith(
+        'INSERT INTO action_card (team_id, action, played, state, season) VALUES (?, ?, 0, ?, ?)',
+        [7, 'STAR_PLAYER', 'received', 2]
+      )
+      expect(sendToUser).toHaveBeenCalledWith(3, 'ACTION_CARDS_CHANGED')
+      expect(result).toEqual({ success: true })
+    })
+
+    it('does not notify a bot team without a user', async () => {
+      getTeamById.mockResolvedValueOnce({ id: 8, user_id: null })
+      getGameDayAndSeason.mockResolvedValueOnce({ gameDay: 4, season: 2 })
+      query.mockResolvedValueOnce({ insertId: 12 })
+
+      await handlers.adminAddActionCard(8, 'SPY', { user: { is_admin: 1 } })
+
+      expect(sendToUser).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('adminRemoveActionCard', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.adminRemoveActionCard(1, 'BONUS_100K', 'received', { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('rejects a missing action', async () => {
+      await expect(handlers.adminRemoveActionCard(1, '', 'received', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Invalid action card type' })
+    })
+
+    it('rejects when the team holds no such card', async () => {
+      getTeamById.mockResolvedValueOnce({ id: 7, user_id: 3 })
+      query.mockResolvedValueOnce([])
+
+      await expect(handlers.adminRemoveActionCard(7, 'BONUS_100K', 'received', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'No such action card on this team' })
+    })
+
+    it('deletes the oldest matching card and notifies the user', async () => {
+      getTeamById.mockResolvedValueOnce({ id: 7, user_id: 3 })
+      query.mockResolvedValueOnce([{ id: 55 }])
+      query.mockResolvedValueOnce({})
+
+      const result = await handlers.adminRemoveActionCard(7, 'BONUS_100K', 'pending', { user: { is_admin: 1 } })
+
+      expect(query).toHaveBeenNthCalledWith(
+        1,
+        'SELECT id FROM action_card WHERE team_id=? AND action=? AND played=0 AND state=? ORDER BY id ASC LIMIT 1',
+        [7, 'BONUS_100K', 'pending']
+      )
+      expect(query).toHaveBeenNthCalledWith(2, 'DELETE FROM action_card WHERE id=?', [55])
+      expect(sendToUser).toHaveBeenCalledWith(3, 'ACTION_CARDS_CHANGED')
+      expect(result).toEqual({ success: true })
+    })
+
+    it('falls back to the received state for an unknown state', async () => {
+      getTeamById.mockResolvedValueOnce({ id: 7, user_id: null })
+      query.mockResolvedValueOnce([{ id: 56 }])
+      query.mockResolvedValueOnce({})
+
+      await handlers.adminRemoveActionCard(7, 'SPY', 'whatever', { user: { is_admin: 1 } })
+
+      expect(query).toHaveBeenNthCalledWith(
+        1,
+        'SELECT id FROM action_card WHERE team_id=? AND action=? AND played=0 AND state=? ORDER BY id ASC LIMIT 1',
+        [7, 'SPY', 'received']
+      )
+    })
+  })
+
+  describe('adminSetTeamBalance', () => {
+    it('rejects non-admin users', async () => {
+      await expect(handlers.adminSetTeamBalance(1, 100, { user: { is_admin: 0 } }))
+        .rejects.toMatchObject({ message: 'This action is only available for admins' })
+    })
+
+    it('rejects a non-numeric balance', async () => {
+      await expect(handlers.adminSetTeamBalance(1, 'abc', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Invalid balance' })
+    })
+
+    it('rejects an unknown team', async () => {
+      getTeamById.mockResolvedValueOnce(undefined)
+      await expect(handlers.adminSetTeamBalance(1, 100, { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'Team not found' })
+    })
+
+    it('books the difference through the finance log', async () => {
+      const team = { id: 7, user_id: 3, balance: 1000 }
+      getTeamById.mockResolvedValueOnce(team)
+      getGameDayAndSeason.mockResolvedValueOnce({ gameDay: 4, season: 2 })
+      updateTeamBalance.mockImplementationOnce(async (t, diff) => {
+        t.balance += diff
+      })
+
+      const result = await handlers.adminSetTeamBalance(7, 2500, { user: { is_admin: 1 } })
+
+      expect(updateTeamBalance).toHaveBeenCalledWith(team, 1500, 'finance.adminAdjustment', 4, 2)
+      expect(result).toEqual({ success: true, balance: 2500 })
+    })
+
+    it('does nothing when the balance is unchanged', async () => {
+      getTeamById.mockResolvedValueOnce({ id: 7, user_id: 3, balance: 1000 })
+
+      const result = await handlers.adminSetTeamBalance(7, 1000, { user: { is_admin: 1 } })
+
+      expect(updateTeamBalance).not.toHaveBeenCalled()
+      expect(result).toEqual({ success: true, balance: 1000 })
     })
   })
 })

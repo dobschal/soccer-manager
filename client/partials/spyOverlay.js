@@ -210,7 +210,7 @@ export function spyReportBodyHtml (team, players = []) {
             <span>${t('spy.motivatingSpeechActive')}</span>
           </div>`
     : ''}
-      <div class="spy-lineup">${new Lineup(players, team)}</div>
+      <div class="spy-lineup">${new Lineup(players, team, undefined, {readOnly: true})}</div>
     </div>
   `
 }
