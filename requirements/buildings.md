@@ -2,7 +2,9 @@
 
 ## Beschreibung
 
-Gebaeude sind ausbaubare Infrastruktur-Elemente, die dem Team Boni verschaffen. Aktuell gibt es zwei Gebaeudetypen: Trainingsgelaende und Fitness-Studio. Beide beeinflussen die Wahrscheinlichkeit, bestimmte Aktionskarten zu erhalten.
+Gebaeude sind ausbaubare Infrastruktur-Elemente, die dem Team Boni verschaffen. Aktuell gibt es drei Gebaeudetypen: Trainingsgelaende, Fitness-Studio und Jugendakademie. Alle drei beeinflussen die Wahrscheinlichkeit, bestimmte Aktionskarten zu erhalten.
+
+Die Jugendakademie ist in einem eigenen Dokument beschrieben: [Youth Academy](youth-academy.md).
 
 ## User Stories
 
@@ -36,20 +38,34 @@ Verbessert die Wahrscheinlichkeit, Fitness-Karten zu erhalten.
 | 2 (Fortgeschritten) | 900.000 Euro | 8 Spieltage | 0.6 | 0.88 | 0.15 |
 | 3 (Professionell) | 2.625.000 Euro | 15 Spieltage | 0.6 | 0.88 | 0.3 |
 
+### Jugendakademie (Youth Academy)
+
+Erhoeht Stufe und Anzahl der Jugendspieler-Karten und schaltet Trainings-Slots frei.
+Jedes Team startet auf Level 1, ein Level 0 existiert nicht.
+
+| Level | Kosten | Bauzeit | Karte |
+|---|---|---|---|
+| 1 (Basis, Startlevel) | – | – | NEW_YOUTH_PLAYER_1 (0.06) |
+| 2 (Fortgeschritten) | 3.000.000 Euro | 10 Spieltage | NEW_YOUTH_PLAYER_2 (0.09) |
+| 3 (Elite) | 9.000.000 Euro | 17 Spieltage | NEW_YOUTH_PLAYER_3 (0.12) |
+
+Details siehe [Youth Academy](youth-academy.md).
+
 ## Technische Anforderungen
 
 ### Datenbank
 
 - **TA-BLD-01**: Tabelle `building` mit Feldern: `id`, `team_id`, `type`, `level`, `construction_end_game_day`, `construction_end_season`, `construction_target_level`, `created_at`.
 - **TA-BLD-02**: Unique Key auf `(team_id, type)` - nur ein Gebaeude pro Typ pro Team.
-- **TA-BLD-03**: Neue Teams starten mit Trainingsgelaende (Level 1) und Fitness-Studio (Level 1).
+- **TA-BLD-03**: Neue Teams starten mit Trainingsgelaende (Level 1), Fitness-Studio (Level 1) und Jugendakademie (Level 1).
+- **TA-BLD-10**: `BUILDING_UPGRADES` enthaelt fuer die Jugendakademie nur `youth_academy_2` und `youth_academy_3` — es gibt keinen `_1`-Eintrag, weil Level 1 der Startzustand ist.
 
 ### API-Endpunkte
 
 | Endpunkt | Beschreibung |
 |---|---|
-| `getBuildings` | Gibt alle Gebaeude mit Bau-Status und Karten-Wahrscheinlichkeiten zurueck |
-| `upgradeBuilding(buildingType)` | Startet ein Upgrade (validiert Balance, Bau-Status, Max-Level) |
+| `getBuildings` | Gibt alle Gebaeude mit Bau-Status und Karten-Wahrscheinlichkeiten zurueck (inkl. `youthAcademyCardChances`) |
+| `upgradeBuilding(buildingType)` | Startet ein Upgrade (validiert Balance, Bau-Status, Max-Level); `buildingType` ist `training_area`, `fitness_studio` oder `youth_academy` |
 
 ### Bau-Logik
 
@@ -59,7 +75,7 @@ Verbessert die Wahrscheinlichkeit, Fitness-Karten zu erhalten.
 
 ### Frontend
 
-- **TA-BLD-07**: Gebaeudekarten mit Bild (verschiedene Level-Varianten), Beschreibung und Upgrade-Button.
+- **TA-BLD-07**: Drei Gebaeudekarten mit Bild (verschiedene Level-Varianten), Beschreibung und Upgrade-Button.
 - **TA-BLD-08**: Bau-Badge mit verbleibenden Spieltagen waehrend der Konstruktion.
 - **TA-BLD-09**: Deaktivierte Eingabefelder fuer Gebaeude im Bau.
 

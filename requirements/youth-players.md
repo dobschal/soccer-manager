@@ -7,12 +7,14 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 ## User Stories
 
 - **US-YTH-01**: Als Spieler sehe ich meinen Jugendkader im "Youth Team"-Tab der My-Team-Seite.
-- **US-YTH-02**: Als Spieler kann ich zwischen drei Trainingsmodi waehlen: Training, Freundschaftsspiel, Ruhe.
+- **US-YTH-02**: Als Spieler kann ich **jedem Jugendspieler einzeln** einen von drei Trainingsmodi zuweisen: Training, Freundschaftsspiel, Ruhe — oder ihn ohne Modus lassen.
+- **US-YTH-09**: Als Spieler sehe ich pro Modus, wie viele Slots belegt sind, und erhalte eine Warnung, wenn ein Modus voll ist.
+- **US-YTH-10**: Als Spieler schalte ich durch den Ausbau der Jugendakademie mehr Trainings- und Freundschaftsspiel-Slots frei.
 - **US-YTH-03**: Als Spieler sehe ich pro Jugendspieler: Name, Position, Alter, Level, Moral und Fitness.
 - **US-YTH-04**: Als Spieler kann ich einen Jugendspieler ab Alter 16 ins A-Team befoerdern.
 - **US-YTH-05**: Als Spieler kann ich einen Jugendspieler jederzeit entlassen.
 - **US-YTH-06**: Als Spieler erhalte ich eine Warnung, wenn ein Jugendspieler 18 wird (automatische Entlassung naechste Saison).
-- **US-YTH-07**: Als Spieler erhalte ich neue Jugendspieler ueber die NEW_YOUTH_PLAYER Aktionskarte (~2-3 pro Saison).
+- **US-YTH-07**: Als Spieler erhalte ich neue Jugendspieler ueber die NEW_YOUTH_PLAYER_1/_2/_3 Aktionskarten (max. 3 pro Saison, Stufe abhaengig vom Akademie-Level).
 - **US-YTH-08**: Als Spieler sehe ich einen Countdown-Timer bis zum naechsten Spieltag auf dem Youth-Tab.
 
 ## Jugendspieler-Eigenschaften
@@ -26,6 +28,10 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 
 ## Trainingsmodi und Auswirkungen (pro Spieltag)
 
+Der Modus wird **pro Jugendspieler** gesetzt (`youth_player.training_mode`). Spieler ohne
+eigenen Modus fallen auf die Team-Einstellung `team.youth_training_mode` zurueck (Legacy,
+Standard `rest`).
+
 | Modus | Fitness | Moral | Level-Bonus |
 |---|---|---|---|
 | Training | +2% | -5% | 1.2x (20% mehr) |
@@ -33,6 +39,21 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 | Ruhe | +6% | +4% | 0.3x (70% weniger) |
 
 Alle Werte mit +-10% Zufallsfaktor.
+
+### Slot-Kapazitaet pro Modus
+
+Wie viele Jugendspieler gleichzeitig in einem Modus stehen duerfen, haengt vom Level der
+Jugendakademie ab (`slotsForMode` in `server/routes/youth.js`, `MAX_SLOTS_PER_MODE = 4`):
+
+| Modus | Akademie L1 | L2 | L3 |
+|---|---|---|---|
+| Training | 2 | 3 | 4 |
+| Freundschaftsspiel | 2 | 3 | 4 |
+| Ruhe | 4 | 4 | 4 |
+
+`rest` hat immer die volle Kapazitaet; `training` und `friendly_match` berechnen sich als
+`max(2, min(4, akademieLevel + 1))`. Ist ein Modus voll, wird die Zuweisung mit
+`error.youthModeSlotsFull` abgelehnt.
 
 ### Idealer Trainingsrhythmus
 
@@ -57,8 +78,8 @@ randomFactor = 0.9 bis 1.1
 
 ### Datenbank
 
-- **TA-YTH-01**: Tabelle `youth_player`: `id`, `team_id`, `name`, `position`, `level` (DECIMAL(4,3)), `talent` (DECIMAL(4,3)), `moral` (DECIMAL(4,3)), `fitness` (DECIMAL(4,3)), `hair_color`, `skin_color`, `birth_season`, `created_at`.
-- **TA-YTH-02**: `team.youth_training_mode` (VARCHAR(20), Standard: 'rest').
+- **TA-YTH-01**: Tabelle `youth_player`: `id`, `team_id`, `name`, `position`, `level` (DECIMAL(4,3)), `talent` (DECIMAL(4,3)), `moral` (DECIMAL(4,3)), `fitness` (DECIMAL(4,3)), `hair_color`, `skin_color`, `birth_season`, `training_mode` (VARCHAR(20), nullable), `created_at`.
+- **TA-YTH-02**: `youth_player.training_mode` haelt den individuellen Modus (`training` / `friendly_match` / `rest` / `NULL`). `team.youth_training_mode` (VARCHAR(20), Standard `'rest'`) existiert weiter als **Fallback** fuer Spieler ohne eigenen Modus.
 - **TA-YTH-03**: Jedes neue Team erhaelt 3 zufaellige Jugendspieler.
 
 ### Altersberechnung
@@ -81,23 +102,27 @@ randomFactor = 0.9 bis 1.1
 
 ### Training
 
-- **TA-YTH-13**: `processYouthTraining()` wird bei jedem Spieltag aufgerufen.
+- **TA-YTH-13**: `processYouthTraining()` wird bei jedem Spieltag aufgerufen und trainiert jeden Spieler nach seinem individuellen `training_mode`.
 - **TA-YTH-14**: Fitness und Moral werden auf [0, 1] begrenzt.
 - **TA-YTH-15**: Talent-Wert wird nie an den Client zurueckgegeben (versteckt).
+- **TA-YTH-23**: `setYouthPlayerTrainingMode` prueft Team-Eigentum, gueltigen Modus und freie Slots (`countYouthPlayersInMode` gegen `slotsForMode`). Der eigene Spieler wird bei der Zaehlung ausgeschlossen, damit ein Wechsel innerhalb desselben Modus nicht am Limit scheitert.
+- **TA-YTH-24**: Bei tatsaechlicher Aenderung wird `YOUTH_PLAYER_TRAINING_MODE_CHANGED` an den Team-Nutzer gesendet (Payload: `{ youthPlayerId, previousMode, newMode }`). Die betroffene Zeile aktualisiert sich in place, die Seite rendert nicht komplett neu.
+- **TA-YTH-25**: `mode = null` entfernt die Zuweisung wieder (Spieler faellt auf den Team-Fallback zurueck).
 
 ### API-Endpunkte
 
 | Endpunkt | Beschreibung |
 |---|---|
-| `getYouthTeam` | Jugendspieler (ohne Talent), Trainingsmodus, Saison |
-| `setYouthTrainingMode(mode)` | Trainingsmodus setzen (training/friendly_match/rest) |
+| `getYouthTeam` | Jugendspieler (ohne Talent), individuelle Modi, Akademie-Level, Slots pro Modus, Saison |
+| `setYouthPlayerTrainingMode(youthPlayerId, mode)` | Modus eines einzelnen Jugendspielers setzen (`training`/`friendly_match`/`rest`/`null`) |
+| `setYouthTrainingMode(mode)` | Team-weiter Fallback-Modus (Legacy) |
 | `promoteYouthPlayer(youthPlayerId)` | Jugendspieler ins A-Team befoerdern |
 | `fireYouthPlayer(youthPlayerId)` | Jugendspieler entlassen |
 
 ### Frontend
 
 - **TA-YTH-16**: Youth-Team als Tab auf der My-Team-Seite (`?sub_page=youth`).
-- **TA-YTH-17**: Trainingsmodus-Auswahl mit 3 Buttons (Icons: Blitz, Fussball, Bett).
+- **TA-YTH-17**: Trainingsmodus-Auswahl **pro Spielerzeile** (Icons: Blitz, Fussball, Bett), mit Slot-Zaehler pro Modus und Toast-Warnung, wenn ein Modus voll ist.
 - **TA-YTH-18**: Countdown-Timer bis zum naechsten Spieltag (HH:MM:SS).
 - **TA-YTH-19**: Spielertabelle: Name, Position, Alter, Level (2 Dezimalen), Moral (Fortschrittsbalken), Fitness (Fortschrittsbalken), Aktionen.
 - **TA-YTH-20**: Befoerdern-Button nur aktiv ab Alter 16.
@@ -107,7 +132,11 @@ randomFactor = 0.9 bis 1.1
 ### Tests
 
 - Training-Effekte auf Level, Moral und Fitness
+- Individueller `training_mode` schlaegt den Team-Fallback; Spieler ohne Modus nutzen den Fallback
+- Slot-Kapazitaet pro Modus je Akademie-Level; volle Modi werden abgelehnt
+- Wechsel innerhalb desselben Modus scheitert nicht am Limit (eigener Spieler ausgeschlossen)
+- `mode = null` entfernt die Zuweisung
 - Befoerderungs-Altersbeschraenkung (>= 16)
-- Team-Eigentuemerpruefung bei Befoerderung/Entlassung
+- Team-Eigentuemerpruefung bei Befoerderung/Entlassung/Modus-Zuweisung
 - Automatische Entlassung ab 19
 - Talent ist nicht im API-Response enthalten

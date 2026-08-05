@@ -6,7 +6,7 @@ Bot-Teams sind KI-gesteuerte Mannschaften, die die Liga fuellen und als Gegner f
 
 ## User Stories
 
-- **US-BOT-01**: Als neuer Spieler werde ich einem bestehenden Bot-Team zugewiesen, damit ich sofort mit einer vollstaendigen Mannschaft starten kann.
+- **US-BOT-01**: Als neuer Spieler kann ich mir ein bestehendes Bot-Team aussuchen und uebernehmen, damit ich sofort mit einer vollstaendigen Mannschaft starte (siehe [User Registration](user-registration.md)).
 - **US-BOT-02**: Als Spieler spiele ich gegen Bot-Teams in der Liga, die realistische Entscheidungen treffen und als Gegner eine Herausforderung darstellen.
 - **US-BOT-03**: Als Spieler kann ich Spieler von Bot-Teams kaufen und an Bot-Teams verkaufen, wobei Bots Angebote automatisch bewerten.
 
@@ -18,7 +18,7 @@ Bot-Teams sind KI-gesteuerte Mannschaften, die die Liga fuellen und als Gegner f
 - **TA-BOT-02**: Bot-Teams haben `user_id = NULL` und `is_system_team = 0`.
 - **TA-BOT-03**: Jedes Bot-Team erhaelt einen zufaellig generierten Namen aus `clubPrefixes1` + `clubPrefixes2` + `cityNames`.
 - **TA-BOT-04**: Bot-Teams starten mit 100.000 Euro Balance (Spieler starten mit 500.000 Euro).
-- **TA-BOT-05**: Jedes Bot-Team erhaelt 18 Spieler (einen pro Formation-Position), ein zufaelliges Emblem und 2 Gebaeude (Trainingsgelaende + Fitness-Studio, jeweils Level 1).
+- **TA-BOT-05**: Jedes Bot-Team erhaelt 18 Spieler (einen pro Formation-Position), ein zufaelliges Emblem und 3 Gebaeude (Trainingsgelaende, Fitness-Studio und Jugendakademie, jeweils Level 1).
 
 ### Spieler-Level-Skalierung nach Liga-Level
 

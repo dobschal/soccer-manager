@@ -2,7 +2,7 @@
 
 ## Beschreibung
 
-Spieler koennen sich waehrend eines Spiels verletzen. Die Verletzungswahrscheinlichkeit steigt bei niedriger Fitness. Verletzte Spieler fallen fuer eine bestimmte Anzahl an Spieltagen aus und werden automatisch aus der Aufstellung entfernt. Waehrend des Spiels werden verletzte Spieler durch Bankspieler ersetzt. Zusaetzlich werden Spieler ausgewechselt, wenn ihre Frische deutlich unter der eines passenden Bankspielers liegt.
+Spieler koennen sich waehrend eines Spiels verletzen. Die Verletzungswahrscheinlichkeit steigt bei niedriger Fitness. Verletzte Spieler fallen fuer eine bestimmte Anzahl an Spieltagen aus und werden automatisch aus der Aufstellung entfernt. Waehrend des Spiels werden verletzte Spieler durch Bankspieler ersetzt. Zusaetzlich kann der Nutzer pro Bankspieler festlegen, unter welcher Bedingung dieser eingewechselt werden soll (Einwechsel-Modus).
 
 ## User Stories
 
@@ -11,6 +11,7 @@ Spieler koennen sich waehrend eines Spiels verletzen. Die Verletzungswahrscheinl
 - **US-INJ-03**: Als Spieler werden verletzte Spieler automatisch aus der Aufstellung entfernt und koennen nicht aufgestellt werden.
 - **US-INJ-04**: Als Spieler erhalte ich Log-Nachrichten bei Verletzungen und Einwechselungen.
 - **US-INJ-05**: Als Spieler muss ich eine Ersatzbank mit mindestens je einem Torwart, Verteidiger, Mittelfeldspieler und Angreifer besetzen.
+- **US-INJ-09**: Als Spieler kann ich pro Bankspieler einen Einwechsel-Modus waehlen (nur bei Verletzung, immer, bei Fuehrung, bei Rueckstand), damit Auswechselungen zu meiner Taktik passen.
 - **US-INJ-06**: Als Spieler sehe ich verletzte Spieler in der Spielerliste visuell markiert (aehnlich wie gesperrte Spieler).
 - **US-INJ-07**: Als Spieler sehe ich Verletzungen und Einwechselungen in den Spieldetails.
 - **US-INJ-08**: Als Spieler sehe ich auf der Liga- und Pokal-Ergebnisseite eine Liste der verletzten Spieler (analog zu gesperrten Spielern).
@@ -29,6 +30,7 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
 | Angreifer (LA, CA, RA) | 1 |
 
 - **TA-BEN-01**: Die Ersatzbank wird ueber neue Felder in der `player`-Tabelle abgebildet: `bench_position` (VARCHAR, nullable). Moegliche Werte: `BENCH_GK`, `BENCH_DEF`, `BENCH_MID`, `BENCH_ATT`.
+- **TA-BEN-07**: Zusaetzlich haelt jeder Spieler einen `bench_substitution_mode` (VARCHAR(20), NOT NULL, Standard `'injury_only'`) mit den erlaubten Werten `always`, `injury_only`, `leading`, `trailing`.
 - **TA-BEN-02**: Pro Team kann maximal ein Spieler je `bench_position` zugewiesen werden.
 - **TA-BEN-03**: Die Ersatzbank wird auf der Aufstellungsseite (My Team) unterhalb des Spielfelds angezeigt, mit vier Slots fuer die vier Positionen.
 - **TA-BEN-04**: Nur Spieler mit passender `position` koennen auf den jeweiligen Bank-Slot gesetzt werden (z.B. nur Torwaerte auf `BENCH_GK`).
@@ -39,7 +41,8 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
 
 | Endpunkt | Beschreibung |
 |---|---|
-| `saveBench(benchData)` | Ersatzbank speichern (`[{playerId, benchPosition}]`) |
+| `saveBench(benchData)` | Ersatzbank speichern (`[{playerId, benchPosition, substitutionMode?}]`); `substitutionMode` faellt auf `injury_only` zurueck |
+| `updateBenchSubstitutionMode(playerId, substitutionMode)` | Nur den Einwechsel-Modus eines Bankspielers aendern |
 | `getBench()` | Aktuelle Ersatzbank-Besetzung abrufen |
 
 ## Verletzungsliste
@@ -92,14 +95,28 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
   - `BENCH_ATT` ersetzt LA, CA, RA (z.B. ein LA kann einen CA ersetzen)
 - **TA-INJ-11**: Wurde der passende Bankspieler bereits eingewechselt, wird kein Ersatz gestellt (wie bei Platzverweis - numerische Unterzahl).
 - **TA-INJ-12**: Der eingewechselte Spieler uebernimmt die exakte Position (`in_game_position`) des verletzten/ausgewechselten Spielers fuer die restliche Spielberechnung, unabhaengig von seiner eigentlichen Position.
+- **TA-INJ-46**: Eingewechselte Spieler werden **nie** vom 50%-Malus fuer positionsfremden Einsatz getroffen — der gilt nur fuer Startelf-Spieler. Eine Notloesung von der Bank soll nicht zusaetzlich bestraft werden.
+- **TA-INJ-47**: Bei jeder Auswechselung werden `enterMinute` (Einwechselnder) und `exitMinute` (Ausgewechselter) gesetzt. Daraus ergibt sich der Frische-Verlust-Anteil (siehe [Player Fitness](player-fitness.md)).
 
-### Frische-basierte Auswechselung
+### Geplante Auswechselung (Einwechsel-Modus)
 
-- **TA-INJ-13**: Vor jedem Spielschritt wird geprueft, ob ein Feldspieler mindestens 5 Prozentpunkte weniger Frische hat als ein passender Bankspieler (gleiche Positionsgruppe).
-- **TA-INJ-14**: Falls ja, wird der Spieler ausgewechselt und der Bankspieler eingewechselt.
+Statt einer automatischen Frische-Regel entscheidet der Nutzer pro Bankspieler, wann dieser
+eingewechselt wird. Umgesetzt in `checkScheduledSubstitutions()` (`server/play-game.js`).
+
+| Modus | Bedeutung |
+|---|---|
+| `injury_only` (Standard) | Kommt nur bei einer Verletzung — wird von `checkScheduledSubstitutions` uebersprungen |
+| `always` | Wird eingewechselt, sobald moeglich |
+| `leading` | Wird nur eingewechselt, wenn das eigene Team in Fuehrung liegt |
+| `trailing` | Wird nur eingewechselt, wenn das eigene Team zurueckliegt |
+
+- **TA-INJ-13**: Der Einwechsel-Modus liegt pro Spieler in `player.bench_substitution_mode`; fehlt der Wert, gilt `injury_only`.
+- **TA-INJ-14**: Geplante Auswechselungen greifen erst **ab Minute 45**. Verletzungsbedingte Einwechselungen sind davon unabhaengig und koennen jederzeit passieren.
 - **TA-INJ-15**: Jeder Bank-Slot kann nur einmal pro Spiel genutzt werden (eingewechselter Spieler steht nicht erneut zur Verfuegung).
-- **TA-INJ-16**: Frische-Auswechselungen finden erst ab der 46. Spielminute (Schritt 460) statt.
-- **TA-INJ-17**: Pro Spiel und Team sind maximal 3 Auswechselungen moeglich (Verletzungs-Einwechselungen zaehlen nicht dazu).
+- **TA-INJ-16**: Auswahl des ausgewechselten Spielers (`_findSubstitutionTarget`): Kandidaten sind alle Feldspieler, deren `in_game_position` derselben Positionsgruppe wie der Bank-Slot angehoert; davon wird der mit der **niedrigsten Frische** gezogen.
+- **TA-INJ-17**: Pro Spiel und Team sind maximal 3 geplante Auswechselungen moeglich (`substitutionCountA` / `substitutionCountB`). Verletzungs-Einwechselungen zaehlen nicht dazu.
+- **TA-INJ-44**: Die Slots werden in fester Reihenfolge geprueft: `BENCH_GK`, `BENCH_DEF`, `BENCH_MID`, `BENCH_ATT`.
+- **TA-INJ-45**: `reason` in `gameDetails.substitutions` ist bei geplanten Auswechselungen der verwendete Modus (`always` / `leading` / `trailing`), bei Verletzungen `"injury"`.
 
 ## Datenbank
 
@@ -108,13 +125,15 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
   - `injury_type` (VARCHAR(50), nullable)
   - `injury_days_left` (INT, Standard 0) - Verbleibende Spieltage bis zur Genesung
   - `bench_position` (VARCHAR(20), nullable) - Ersatzbank-Position
+  - `bench_substitution_mode` (VARCHAR(20), NOT NULL, Standard `'injury_only'`) - Einwechsel-Modus
 - **TA-INJ-19**: Verletzungserholung: Am Anfang jedes Spieltags wird `injury_days_left` um 1 reduziert. Bei 0 wird `is_injured = 0`, `injury_type = NULL` gesetzt.
 - **TA-INJ-20**: Saisonwechsel: Verletzungen werden NICHT zurueckgesetzt (laufen ueber Saisonende hinaus weiter).
+- **TA-INJ-48**: Verletzte Spieler regenerieren **nicht**, sondern verlieren pro Spieltag 5% Frische (`_giveAllPlayersFreshness` in `server/play-game-day.js`, untere Grenze 0).
 
 ## Spieldetails (gameDetails)
 
 - **TA-INJ-21**: Neues Feld `gameDetails.injuries`: Array von `{ playerId, playerName, teamIndex, injuryType, minute }`.
-- **TA-INJ-22**: Neues Feld `gameDetails.substitutions`: Array von `{ playerInId, playerInName, playerOutId, playerOutName, teamIndex, reason, minute }`. `reason` ist `"injury"` oder `"freshness"`.
+- **TA-INJ-22**: Neues Feld `gameDetails.substitutions`: Array von `{ playerInId, playerInName, playerOutId, playerOutName, teamIndex, reason, minute }`. `reason` ist `"injury"` oder der ausloesende Einwechsel-Modus (`"always"` / `"leading"` / `"trailing"`).
 - **TA-INJ-23**: Verletzungen und Auswechselungen werden im Spiel-Log als Events gespeichert (analog zu Karten-Events).
 
 ## Frontend-Anzeige
@@ -150,7 +169,7 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
 
 - **TA-INJ-36**: `log.playerInjured`: "{playerName} hat sich verletzt: {injuryType}! Ausfall fuer {days} Spieltag(e)."
 - **TA-INJ-37**: `log.playerSubstitutedInjury`: "{playerOutName} wird verletzungsbedingt durch {playerInName} ersetzt."
-- **TA-INJ-38**: `log.playerSubstitutedFreshness`: "{playerOutName} wird wegen niedriger Fitness durch {playerInName} ersetzt."
+- **TA-INJ-38**: `log.playerSubstitutedFreshness`: "{playerOutName} wird wegen niedriger Fitness durch {playerInName} ersetzt." — wird fuer geplante Auswechselungen verwendet, da dabei stets der Spieler mit der niedrigsten Frische weicht.
 - **TA-INJ-39**: `log.playerRecovered`: "{playerName} ist wieder fit und steht zur Verfuegung."
 - **TA-INJ-40**: Log-Nachrichten werden nur fuer Teams mit menschlichen Spielern generiert (nicht fuer Bots).
 
@@ -165,8 +184,11 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
 | Metrik | Zielwert |
 |---|---|
 | Verletzungen pro Spiel (beide Teams) | 0,15 - 0,25 |
-| Frische-Auswechselungen pro Spiel (beide Teams) | 1,5 - 3,0 |
 | Durchschnittliche Ausfalldauer | 3 - 4 Spieltage |
+
+Fuer geplante Auswechselungen gibt es keinen statistischen Zielwert: die Anzahl haengt
+ausschliesslich davon ab, welche Modi der Nutzer setzt. Mit dem Standard `injury_only`
+finden ueberhaupt keine geplanten Auswechselungen statt.
 
 ## Tests
 
@@ -174,9 +196,11 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
 - Verletzungswahrscheinlichkeit bei verschiedenen Spielstilen
 - Maximal eine Verletzung pro Team pro Spiel
 - Einwechselung bei Verletzung mit korrektem Positionsmatching
-- Frische-basierte Auswechselung (5% Schwelle)
-- Frische-Auswechselungen erst ab Minute 46
-- Maximum 3 Frische-Auswechselungen pro Spiel
+- Einwechsel-Modi: `injury_only` wechselt nie geplant ein, `always` sobald moeglich, `leading` / `trailing` nur beim passenden Spielstand
+- Geplante Auswechselungen erst ab Minute 45
+- Maximum 3 geplante Auswechselungen pro Spiel; Verletzungs-Einwechselungen zaehlen nicht mit
+- `_findSubstitutionTarget` waehlt den Feldspieler mit der niedrigsten Frische aus der passenden Positionsgruppe
+- Validierung von `substitutionMode` in `saveBench` und `updateBenchSubstitutionMode`
 - Ersatzbank-Besetzung und -Validierung
 - Verletzungserholung ueber Spieltage
 - Verletzte Spieler werden aus Aufstellung gefiltert

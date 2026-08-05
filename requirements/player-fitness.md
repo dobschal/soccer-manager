@@ -16,10 +16,19 @@ Fitness (im Code "Freshness") ist ein Wert zwischen 0.0 und 1.0, der die aktuell
 
 ### Fitness-Auswirkung auf Spielstaerke
 
-- **TA-FIT-01**: Effektives Spieler-Level: `frische * basisLevel * (istStarspieler ? 1.1 : 1)`.
+- **TA-FIT-01**: Effektives Spieler-Level in Liga- und Pokalspielen: `frische * basisLevel * (istStarspieler ? 1.1 : 1)`.
+  - ⚠️ **Abweichung**: In Freundschaftsspielen rechnet `routes/friendly.js` nur `frische * basisLevel` — der Starspieler-Bonus wird dort **nicht** angewendet. Ob das Absicht ist, ist ungeklaert; bis zur Entscheidung beschreibt dieser Punkt das tatsaechliche Verhalten.
 - **TA-FIT-02**: Datenbank: `player.freshness` als DECIMAL(6,2), Standard 1.0.
 
 ### Fitness-Verlust (pro Spiel)
+
+Der Verlust ergibt sich aus drei Faktoren:
+
+```
+fitnessVerlust = basisVerlust * spielanteil * staerkeSkalierung
+```
+
+**Basisverlust** nach Spielstil (`_applyFreshnessLoss` in `server/play-game-day.js`):
 
 | Spielstil | Feldspieler | Torwart |
 |---|---|---|
@@ -27,7 +36,9 @@ Fitness (im Code "Freshness") ist ein Wert zwischen 0.0 und 1.0, der die aktuell
 | Normal | 10% (0.10) | 8% (0.08) |
 | Freundlich | 8% (0.08) | 8% (0.08) |
 
-- **TA-FIT-03**: Freundschaftsspiele: Halber Fitness-Verlust (4-6,5%).
+- **TA-FIT-13**: **Spielanteil** (`playedShare`): `(exitMinute - enterMinute) / gesamtMinuten`, geklemmt auf [0, 1]. Spieler, die spaeter eingewechselt wurden oder das Feld frueher verlassen haben (ausgewechselt, Platzverweis, verletzt und ersetzt), verlieren proportional weniger. Eine komplette Spielzeit ergibt Faktor 1,0.
+- **TA-FIT-14**: **Staerke-Skalierung** (`getFreshnessLossStrengthScale`): `kombinierteRohstaerke / 1000`, geklemmt auf **[0.5, 1.5]**. Bei einer kombinierten Staerke von 1000 (`FRESHNESS_LOSS_REFERENCE_STRENGTH`) entspricht das dem historischen statischen Verlust (Faktor 1,0). Starke Duelle kosten mehr Fitness, Bot-/Unterliga-Spiele weniger (siehe #355).
+- **TA-FIT-03**: Freundschaftsspiele: Halber Fitness-Verlust (Aggressiv 6,5%, Normal 5%, Freundlich 4%, Torwart 4%) — hier **ohne** Spielanteil- und Staerke-Skalierung, da `routes/friendly.js` einen eigenen, einfacheren Pfad nutzt.
 - **TA-FIT-04**: Fitness kann nicht unter 0.0 fallen.
 
 ### Fitness-Erholung (pro Spieltag)
@@ -43,6 +54,7 @@ Fitness (im Code "Freshness") ist ein Wert zwischen 0.0 und 1.0, der die aktuell
 - **TA-FIT-05**: Bank-Bonus: Spieler ohne `in_game_position` erhalten zusaetzlich 8% Erholung.
 - **TA-FIT-06**: Zufallsfaktor: +-20% auf die Erholung.
 - **TA-FIT-07**: Fitness kann nicht ueber 1.0 steigen.
+- **TA-FIT-15**: **Verletzte Spieler regenerieren nicht** — sie verlieren stattdessen 5% Frische pro Spieltag (untere Grenze 0). Die Erholungsabfrage filtert `is_injured = 0` heraus.
 
 ### Fitness-Aktionskarten
 
@@ -65,7 +77,11 @@ Fitness (im Code "Freshness") ist ein Wert zwischen 0.0 und 1.0, der die aktuell
 
 ### Tests
 
-- Fitness-Verlust pro Spielstil
+- Fitness-Verlust pro Spielstil (Basiswerte)
+- Spielanteil-Skalierung: Einwechselspieler und frueh ausgewechselte Spieler verlieren weniger
+- Staerke-Skalierung inkl. Klemmung auf [0.5, 1.5] und Referenzstaerke 1000
+- Freundschaftsspiel: halber Verlust ohne Spielanteil-/Staerke-Skalierung
 - Altersbasierte Erholung mit Bank-Bonus
 - Zufallsfaktor-Validierung
+- Verletzte Spieler verlieren 5% pro Spieltag statt zu regenerieren
 - Kaderrotations-Rentabilitaet (Erholung > Verlust)

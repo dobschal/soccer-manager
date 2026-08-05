@@ -223,11 +223,11 @@ Detailed feature specifications are in the `requirements/` directory:
 - [Action Cards](requirements/action-cards.md) - Kartensystem fuer Spieler-Upgrades und Events
 - [Bot-Teams](requirements/bots.md) - KI-gesteuerte Teams, Balancing nach Liga-Level
 - [Buildings](requirements/buildings.md) - Gebaeude und Infrastruktur
+- [Event Based UI Updates](requirements/event-based-updates.md) - WebSocket-Events und UIElement-Selbstaktualisierung
 - [Forum](requirements/forum.md) - Community-Forum
 - [Game Calculation](requirements/game-calculation.md) - Spielsimulation, Bundesliga-Statistiken, Taktik-Auswirkungen
 - [Game Modes](requirements/game-modes.md) - Spielmodi
 - [Landing Page](requirements/landing-page.md) - Startseite
-- [News](requirements/news.md) - News & Log-Nachrichten
 - [Player Fitness](requirements/player-fitness.md) - Spieler-Frische und Ermuedung
 - [Player Injuries](requirements/player-injuries.md) - Spieler-Verletzungen
 - [Player Salary](requirements/player-sallary.md) - Gehaltsberechnung (exponentiell, Level 1-100)
