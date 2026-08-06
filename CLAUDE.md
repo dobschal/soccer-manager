@@ -18,6 +18,18 @@ npm run lint # No lint errors allowed
 
 If a test or lint check fails, fix the issue before moving on.
 
+### Documentation is part of the change
+
+Whenever a change alters what the player sees, can do, or how a game mechanic
+works, **invoke the `docs-sync` skill before committing** and work through its
+checklist: `requirements/*.md`, the in-game wiki (`server/data/wikiSeed.js`
+*plus* a migration), tutorial overlays, and the `en`/`de` i18n files.
+
+This is not optional and not "nice to have later" — a feature is only done when
+its documentation matches it. Report per surface what you updated, or why it
+did not apply. Pure refactorings, build/CI changes and internal-only fixes are
+exempt.
+
 ### E2E integration tests (manual)
 
 There is a separate heavy suite under `server/test/integration/` that runs
@@ -66,10 +78,11 @@ When the user provides a ticket number (e.g. "implement #251"), follow these ste
 2. **Move to `In Progress`** on the project board *before* starting work (see snippet below).
 3. **Implement on `develop`**: switch to `develop`, pull, then make the change.
 4. **Extend tests**: add or extend tests under the matching `test/` folder so the new behavior is covered.
-5. **Verify locally**: run `npm test` and `npm run lint`. Fix anything that fails before continuing.
-6. **Commit & push** to `develop`. Reference the ticket in the commit message (e.g. `fix: SEO meta tags (#251)`)
+5. **Sync the docs**: invoke the `docs-sync` skill (requirements, wiki seed + migration, tutorial, i18n).
+6. **Verify locally**: run `npm test` and `npm run lint`. Fix anything that fails before continuing.
+7. **Commit & push** to `develop`. Reference the ticket in the commit message (e.g. `fix: SEO meta tags (#251)`)
    so GitHub auto-links the issue. Pushing triggers CI which redeploys sandbox.
-7. **Wait for CI green & sandbox deploy**, then **move the ticket to `Review`**. Do not merge into `main`.
+8. **Wait for CI green & sandbox deploy**, then **move the ticket to `Review`**. Do not merge into `main`.
 
 Project board IDs (for `gh project item-edit`):
 
