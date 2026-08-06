@@ -13,6 +13,8 @@ Die Jugendakademie ist in einem eigenen Dokument beschrieben: [Youth Academy](yo
 - **US-BLD-03**: Als Spieler sehe ich den Baufortschritt mit verbleibenden Spieltagen waehrend der Bauphase.
 - **US-BLD-04**: Als Spieler sehe ich eine "Max Level"-Markierung, wenn ein Gebaeude das hoechste Level erreicht hat.
 - **US-BLD-05**: Als Spieler erhalte ich nach Fertigstellung eines Upgrades eine Log-Nachricht.
+- **US-BLD-06**: Als Spieler sehe ich oben auf der Gebaeude-Seite dieselbe 3D-Szene wie beim Stadion, hier aber zentriert auf die Strassenkreuzung noerdoestlich des Stadions, um die herum meine Gebaeude stehen.
+- **US-BLD-07**: Als Spieler sehe ich mein Trainingsgelaende in 3D und erkenne an seinem Aussehen, welche Stufe es hat.
 
 ## Gebaeudetypen
 
@@ -78,6 +80,20 @@ Details siehe [Youth Academy](youth-academy.md).
 - **TA-BLD-07**: Drei Gebaeudekarten mit Bild (verschiedene Level-Varianten), Beschreibung und Upgrade-Button.
 - **TA-BLD-08**: Bau-Badge mit verbleibenden Spieltagen waehrend der Konstruktion.
 - **TA-BLD-09**: Deaktivierte Eingabefelder fuer Gebaeude im Bau.
+
+### 3D-Ansicht (Three.js)
+
+Die Gebaeude-Seite zeigt oberhalb der Gebaeudekarten dieselbe Szene wie die
+Stadion-Seite (`StadiumCanvas`), nur mit einem anderen Kamera-Ziel. Die Geometrie
+der Gebaeude liegt in `client/partials/clubBuildingsScene.js`.
+
+- **TA-BLD-10**: Gemeinsame Szene fuer beide Seiten. Die Stadion-Seite fokussiert den Mittelpunkt des Spielfelds, die Gebaeude-Seite die Strassenkreuzung noerdoestlich des Stadions (`focus: 'buildings'`), inklusive Auto-Rotation um diesen Punkt und Kamera-Umschalter.
+- **TA-BLD-11**: Grundstuecke: Die Kreuzung hat vier Quadranten, einer davon ist das Stadion. Trainingsgelaende (aeusseres Eck), Fitness-Studio (Streifen noerdlich des Stadions) und Jugendakademie (Streifen oestlich davon) belegen die drei freien Quadranten mit 8 Einheiten Abstand zur Kreuzung. Baeume werden auf Grundstuecken ausgespart, die Bodenflaeche waechst mit, damit kein Grundstueck ueber ihren Rand hinausragt.
+- **TA-BLD-12**: Jedes Grundstueck ist ueber einen beleuchteten Fussweg an die naechste Strasse angebunden.
+- **TA-BLD-13**: Trainingsgelaende Stufe 1: Fussballplatz mit Streifenmuster, Markierungen und zwei Toren, ringsherum ein Maschendrahtzaun mit Tor zur Strasse, dazu ein Paar niedriger, schwacher Flutlichtmasten.
+- **TA-BLD-14**: Trainingsgelaende Stufe 2: zusaetzlich Baelle, Slalomstangen und Huetchen auf dem Platz sowie ein zweites, hoeheres und deutlich helleres Mastpaar.
+- **TA-BLD-15**: Trainingsgelaende Stufe 3: hohe, sehr helle Masten plus Trainingszentrum — Vereinsgebaeude mit beleuchteten Fenstern, ueberdachte Trainerbank am Spielfeldrand und ein separater Torwartplatz mit zwei Minitoren, eigenem Mast und Hofleuchten.
+- **TA-BLD-16**: Fitness-Studio und Jugendakademie haben ihr Grundstueck reserviert, aber noch keine 3D-Geometrie.
 
 ### Tests
 

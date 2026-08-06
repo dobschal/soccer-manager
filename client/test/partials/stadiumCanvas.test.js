@@ -500,3 +500,65 @@ describe('StadiumCanvas camera controls', () => {
     expect(controls.domElement.style.touchAction).toBe('pan-y')
   })
 })
+
+/**
+ * The same scene serves the stadium page and the buildings page; only the point
+ * the camera orbits (and the club buildings around it) differ.
+ */
+describe('StadiumCanvas club buildings', () => {
+  const BUILDINGS = [
+    { type: 'training_area', level: 2 },
+    { type: 'fitness_studio', level: 1 },
+    { type: 'youth_academy', level: 1 }
+  ]
+  const canvasWith = (options) => new StadiumCanvas(
+    { north_stand_size: 8000, south_stand_size: 8000 }, {}, 'c', options
+  )
+
+  it('orbits the pitch centre by default', () => {
+    expect(canvasWith({})._focusPoint()).toEqual({ x: 0, z: 0 })
+  })
+
+  it('orbits the north-east road intersection on the buildings view', () => {
+    const canvas = canvasWith({ focus: 'buildings' })
+    const distance = canvas._roadDistance()
+    expect(canvas._focusPoint()).toEqual({ x: distance, z: -distance })
+  })
+
+  it('pulls the camera closer in on the buildings view', () => {
+    expect(canvasWith({ focus: 'buildings' })._view().minDistance)
+      .toBeLessThan(canvasWith({})._view().minDistance)
+  })
+
+  it('places the plots outside the road grid, in the north-east quadrant', () => {
+    const canvas = canvasWith({ buildings: BUILDINGS })
+    const distance = canvas._roadDistance()
+    expect(canvas._buildingPlots()).toHaveLength(3)
+    for (const plot of canvas._buildingPlots()) {
+      // Never on the stadium footprint (which fills the road grid).
+      expect(Math.abs(plot.cx) < distance && Math.abs(plot.cz) < distance).toBe(false)
+      expect(plot.cx).toBeGreaterThan(0)
+      expect(plot.cz).toBeLessThan(0)
+    }
+  })
+
+  it('has no plots when the team owns no buildings', () => {
+    expect(canvasWith({})._buildingPlots()).toEqual([])
+  })
+
+  it('grows the ground plane so no plot hangs over the edge', () => {
+    const bigStadium = new StadiumCanvas(
+      { north_stand_size: 30000, south_stand_size: 30000, east_stand_size: 15000, west_stand_size: 15000 },
+      {}, 'c', { buildings: BUILDINGS }
+    )
+    const half = bigStadium._groundHalf()
+    for (const plot of bigStadium._buildingPlots()) {
+      expect(Math.abs(plot.cx) + plot.halfX).toBeLessThan(half)
+      expect(Math.abs(plot.cz) + plot.halfZ).toBeLessThan(half)
+    }
+  })
+
+  it('keeps the default ground size for a stadium without buildings', () => {
+    expect(canvasWith({})._groundHalf()).toBe(125)
+  })
+})

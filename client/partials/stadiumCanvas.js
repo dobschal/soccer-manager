@@ -1,6 +1,7 @@
 import {UIElement} from '../lib/UIElement.js'
 import {el} from '../lib/html.js'
 import {t} from '../i18n/index.js'
+import {buildTrainingArea, clubBuildingPlots, PLOT_CLEARANCE} from './clubBuildingsScene.js'
 
 /**
  * Central layout & scene configuration for the 3D stadium.
@@ -111,7 +112,7 @@ const CONFIG = Object.freeze({
   // fixed jittered grid (deterministic, so the layout never flickers) and
   // kept clear of the stadium footprint and the roads.
   trees: {
-    areaHalf: 118, // trees stay within this half-extent (ground is 250 wide)
+    areaMargin: 7, // trees keep this far inside the ground plane's edge
     spacing: 14, // grid cell size
     jitter: 5, // max per-axis random offset within a cell
     roadClearance: 4, // keep this far from the road edges
@@ -131,6 +132,16 @@ const CONFIG = Object.freeze({
     // roughly a minute for a full turn around the stadium.
     autoRotateSpeed: 0.7
   },
+  // The same scene serves both the stadium page and the buildings page — only
+  // the point the camera orbits differs: the pitch centre vs. the road
+  // intersection north-east of the stadium the club buildings sit around.
+  views: {
+    stadium: {cameraOffset: [80, 100, 80], minDistance: 50, maxDistance: 150},
+    // Far enough out that all three plots around the crossing fit in frame.
+    buildings: {cameraOffset: [88, 92, 88], minDistance: 40, maxDistance: 240}
+  },
+  // Paved path joining a building plot's gate to the nearest road.
+  buildingPath: {width: 3, lampSpacing: 12},
   colors: {
     sceneBackground: 0x0a0a1a,
     ground: 0x3d5c3d,
@@ -152,7 +163,7 @@ export class StadiumCanvas extends UIElement {
    * @param {StadiumType} stadium
    * @param {TeamType} team
    * @param {string} [canvasId]
-   * @param {{interactive?: boolean, autoRotate?: boolean, controlsToggle?: boolean, showConstruction?: boolean}} [options] -
+   * @param {{interactive?: boolean, autoRotate?: boolean, controlsToggle?: boolean, showConstruction?: boolean, buildings?: Array<{type: string, level: number}>, focus?: 'stadium'|'buildings'}} [options] -
    *   `interactive: false` locks the camera against user input, `autoRotate: true`
    *   slowly orbits it around the stadium, `controlsToggle: true` adds a button
    *   in the canvas corner that switches between the two. The defaults give a
@@ -160,6 +171,9 @@ export class StadiumCanvas extends UIElement {
    *   `showConstruction: false` renders every stand as finished — for the expand
    *   preview, which shows a *planned* stadium where the construction fields
    *   carried over from the current stadium row are meaningless.
+   *   `buildings` are the team's club buildings; they are rendered around the
+   *   road intersection north-east of the stadium. `focus: 'buildings'` points
+   *   the camera at that intersection instead of at the pitch.
    */
   constructor (stadium, team, canvasId = 'stadium-canvas', options = {}) {
     super()
@@ -388,6 +402,7 @@ export class StadiumCanvas extends UIElement {
     this._buildRoads(this._scene)
     this._buildSidewalks(this._scene)
     this._buildEntrances(this._scene)
+    this._buildClubBuildings(this._scene)
     this._buildTrees(this._scene)
 
     this._startRenderLoop()
@@ -402,6 +417,8 @@ export class StadiumCanvas extends UIElement {
   _setupScene (canvas, container) {
     const THREE = this._THREE
     const {width, height} = this._canvasSize(container)
+    const view = this._view()
+    const focus = this._focusPoint()
 
     this._scene = new THREE.Scene()
     this._scene.background = new THREE.Color(CONFIG.colors.sceneBackground)
@@ -409,8 +426,12 @@ export class StadiumCanvas extends UIElement {
     this._camera = new THREE.PerspectiveCamera(
       CONFIG.camera.fov, width / height, CONFIG.camera.near, CONFIG.camera.far
     )
-    this._camera.position.set(...CONFIG.camera.position)
-    this._camera.lookAt(0, 0, 0)
+    this._camera.position.set(
+      focus.x + view.cameraOffset[0],
+      view.cameraOffset[1],
+      focus.z + view.cameraOffset[2]
+    )
+    this._camera.lookAt(focus.x, 0, focus.z)
 
     this._renderer = new THREE.WebGLRenderer({canvas, antialias: true})
     this._renderer.setSize(width, height)
@@ -422,10 +443,112 @@ export class StadiumCanvas extends UIElement {
     this._controls.enableDamping = true
     this._controls.dampingFactor = CONFIG.controls.dampingFactor
     this._controls.maxPolarAngle = CONFIG.controls.maxPolarAngle
-    this._controls.minDistance = CONFIG.controls.minDistance
-    this._controls.maxDistance = CONFIG.controls.maxDistance
+    this._controls.minDistance = view.minDistance
+    this._controls.maxDistance = view.maxDistance
     this._controls.autoRotateSpeed = CONFIG.controls.autoRotateSpeed
+    // Both the manual orbit and the auto-rotation revolve around this point.
+    this._controls.target?.set?.(focus.x, 0, focus.z)
     this._applyInteractiveState()
+  }
+
+  /**
+   * Camera/controls preset for the requested view ('stadium' by default).
+   * @returns {{cameraOffset: number[], minDistance: number, maxDistance: number}}
+   */
+  _view () {
+    return CONFIG.views[this.options.focus] || CONFIG.views.stadium
+  }
+
+  /**
+   * World position of the road intersection north-east of the stadium (+x / -z).
+   * The club buildings are laid out around it.
+   * @returns {{x: number, z: number}}
+   */
+  _intersection () {
+    const distance = this._roadDistance()
+    return {x: distance, z: -distance}
+  }
+
+  /**
+   * The point the camera orbits: the pitch centre on the stadium view, the
+   * buildings' intersection on the buildings view.
+   * @returns {{x: number, z: number}}
+   */
+  _focusPoint () {
+    return this.options.focus === 'buildings' ? this._intersection() : {x: 0, z: 0}
+  }
+
+  /**
+   * Plots of the club buildings this team owns, around the NE intersection.
+   * @returns {Array<{type: string, level: number, cx: number, cz: number, halfX: number, halfZ: number}>}
+   */
+  _buildingPlots () {
+    return clubBuildingPlots(this.options.buildings, this._intersection())
+  }
+
+  /**
+   * Half-extent of the ground plane. It normally uses the fixed
+   * `CONFIG.groundSize`, but grows when a building plot (which sits outside the
+   * road grid, and moves further out the bigger the stadium is) would otherwise
+   * hang over the edge into the void.
+   * @returns {number}
+   */
+  _groundHalf () {
+    const reach = this._buildingPlots().reduce(
+      (max, p) => Math.max(max, Math.abs(p.cx) + p.halfX, Math.abs(p.cz) + p.halfZ),
+      0
+    )
+    return Math.max(CONFIG.groundSize / 2, reach + 25)
+  }
+
+  /**
+   * Render every club building the team owns onto its plot, each joined to the
+   * road by a lamp-lined footpath. Only the training ground has 3D geometry so
+   * far; the other plots stay empty until they get theirs.
+   * @param {THREE.Scene} scene
+   */
+  _buildClubBuildings (scene) {
+    const rand = this._seededRandom(0x5bf03635)
+    for (const plot of this._buildingPlots()) {
+      if (plot.type !== 'training_area') continue
+      const {gate} = buildTrainingArea(this._THREE, scene, {
+        level: plot.level,
+        rand,
+        x: plot.cx,
+        z: plot.cz
+      })
+      this._addBuildingPath(scene, plot, gate)
+    }
+  }
+
+  /**
+   * Footpath from a plot's gate straight out to the road it faces, lined with
+   * street lamps — the same paving as the stadium's own footpaths.
+   * @param {THREE.Scene} scene
+   * @param {{cx: number, cz: number, halfZ: number}} plot
+   * @param {{x: number, z: number}} gate gate position in plot-local coordinates
+   */
+  _addBuildingPath (scene, plot, gate) {
+    const gateX = plot.cx + gate.x
+    const gateZ = plot.cz + gate.z
+    // The gate faces the road on the plot's stadium-facing (+z) side.
+    const roadEdgeZ = plot.cz + plot.halfZ + PLOT_CLEARANCE - CONFIG.road.width / 2
+    const length = roadEdgeZ - gateZ
+    if (length <= 0) return
+
+    const mat = new this._THREE.MeshLambertMaterial({color: CONFIG.footpath.color})
+    this._addPavement(
+      scene, CONFIG.buildingPath.width, length, gateX, gateZ + length / 2, mat, CONFIG.footpath.y
+    )
+
+    const lamps = Math.max(1, Math.round(length / CONFIG.buildingPath.lampSpacing))
+    for (let i = 1; i <= lamps; i++) {
+      this._createStreetLamp(
+        scene,
+        gateX + CONFIG.buildingPath.width / 2 + 0.6,
+        gateZ + (i / (lamps + 1)) * length
+      )
+    }
   }
 
   /**
@@ -560,7 +683,8 @@ export class StadiumCanvas extends UIElement {
     const eastSeats = this.stadium.east_stand_size || 0
     const westSeats = this.stadium.west_stand_size || 0
 
-    const groundGeo = new this._THREE.PlaneGeometry(CONFIG.groundSize, CONFIG.groundSize)
+    const groundSize = this._groundHalf() * 2
+    const groundGeo = new this._THREE.PlaneGeometry(groundSize, groundSize)
     const groundMat = new this._THREE.MeshLambertMaterial({color: CONFIG.colors.ground})
     const ground = new this._THREE.Mesh(groundGeo, groundMat)
     ground.rotation.x = -Math.PI / 2
@@ -1103,12 +1227,14 @@ export class StadiumCanvas extends UIElement {
   _buildTrees (scene) {
     const THREE = this._THREE
     const {
-      areaHalf, spacing, jitter, roadClearance,
+      areaMargin, spacing, jitter, roadClearance,
       minScale, maxScale, coneChance, trunkColor, greens
     } = CONFIG.trees
 
+    const areaHalf = this._groundHalf() - areaMargin
     const distance = this._roadDistance()
     const roadEdge = CONFIG.road.width / 2 + roadClearance
+    const plots = this._buildingPlots()
     const rand = this._seededRandom(0x9e3779b9)
 
     // Base (scale 1) tree dimensions.
@@ -1120,11 +1246,12 @@ export class StadiumCanvas extends UIElement {
     const coneCenterY = trunkHeight + coneHeight / 2
 
     // Reject a candidate that would sit on the stadium footprint (inside the
-    // road grid) or on/near any road.
+    // road grid), on/near any road, or on a club building's plot.
     const isBlocked = (x, z) =>
       (Math.abs(x) < distance && Math.abs(z) < distance) ||
       Math.abs(Math.abs(x) - distance) < roadEdge ||
-      Math.abs(Math.abs(z) - distance) < roadEdge
+      Math.abs(Math.abs(z) - distance) < roadEdge ||
+      plots.some(p => Math.abs(x - p.cx) < p.halfX && Math.abs(z - p.cz) < p.halfZ)
 
     const trees = []
     const steps = Math.floor(areaHalf / spacing)

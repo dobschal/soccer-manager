@@ -220,7 +220,14 @@ Youth Academy – generates new youth players:
 • Level 2: 3,000,000 € (10 match days) – better young talents.
 • Level 3: 9,000,000 € (17 match days) – the strongest talents (see Youth Players).
 
-Each building tops out at level 3. The cost is deducted immediately when you start the upgrade, and you get a log message when it is finished.`
+Each building tops out at level 3. The cost is deducted immediately when you start the upgrade, and you get a log message when it is finished.
+
+The 3D view at the top of the page shows your club grounds: it is the same scene as on the stadium page, but centred on the road crossing north-east of the stadium that your buildings are grouped around. Drag to look around, or hand the camera back to the slow auto-orbit with the button in the corner.
+
+Your training area is built there for real, and its level shows:
+• Level 1: a fenced training pitch with two goals and a pair of small, weak floodlights.
+• Level 2: balls, slalom poles and marker cones on the pitch, plus a second, taller and much brighter pair of masts.
+• Level 3: a full training complex – tall bright floodlights, a clubhouse with lit windows, a covered coaching shelter at the touchline and a separate goalkeeper pitch with mini goals.`
     },
     de: {
       title: 'Gebäude',
@@ -242,7 +249,14 @@ Jugendakademie – erzeugt neue Jugendspieler:
 • Stufe 2: 3.000.000 € (10 Spieltage) – bessere junge Talente.
 • Stufe 3: 9.000.000 € (17 Spieltage) – die stärksten Talente (siehe Jugendspieler).
 
-Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbaus abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.`
+Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbaus abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.
+
+Die 3D-Ansicht oben auf der Seite zeigt dein Vereinsgelände: dieselbe Szene wie auf der Stadion-Seite, nur zentriert auf die Straßenkreuzung nordöstlich des Stadions, um die herum deine Gebäude stehen. Zieh mit der Maus, um dich umzusehen, oder gib die Kamera mit dem Knopf in der Ecke wieder an die langsame Drehung ab.
+
+Dein Trainingsgelände steht dort wirklich – und man sieht ihm seine Stufe an:
+• Stufe 1: ein eingezäunter Trainingsplatz mit zwei Toren und einem kleinen, schwachen Flutlicht.
+• Stufe 2: zusätzlich Bälle, Slalomstangen und Hütchen auf dem Platz sowie ein zweites, höheres und deutlich helleres Mastpaar.
+• Stufe 3: ein komplettes Trainingszentrum – hohes, helles Flutlicht, ein Vereinsgebäude mit beleuchteten Fenstern, eine überdachte Trainerbank am Spielfeldrand und ein eigener Torwartplatz mit Minitoren.`
     }
   },
 

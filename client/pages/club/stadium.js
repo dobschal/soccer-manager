@@ -18,11 +18,12 @@ export class StadiumSubPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const [stadiumResponse, teamResponse, attendanceResponse, historyResponse] = await Promise.all([
+    const [stadiumResponse, teamResponse, attendanceResponse, historyResponse, buildingsResponse] = await Promise.all([
       server.getStadium(),
       server.getMyTeam(),
       server.getStadiumAttendance(),
-      server.getConstructionHistory()
+      server.getConstructionHistory(),
+      server.getBuildings()
     ])
     this.stadium = stadiumResponse.stadium
     this._originalPrices = this._snapshotPrices()
@@ -30,6 +31,7 @@ export class StadiumSubPage extends UIElement {
     this.team = teamResponse.team
     this.attendanceData = attendanceResponse.attendance || []
     this.constructionHistory = historyResponse.history || []
+    this.buildings = buildingsResponse.buildings || []
   }
 
   /**
@@ -41,7 +43,8 @@ export class StadiumSubPage extends UIElement {
     this._stadiumCanvas = new StadiumCanvas(this.stadium, this.team, 'stadium-canvas', {
       interactive: false,
       autoRotate: true,
-      controlsToggle: true
+      controlsToggle: true,
+      buildings: this.buildings
     })
     const stadiumName = this.stadium.name || t('stadium.yourStadium')
     return `
@@ -129,6 +132,7 @@ export class StadiumSubPage extends UIElement {
   constructionInfo = {}
   attendanceData = []
   constructionHistory = []
+  buildings = []
   /** @type {StadiumCanvas|null} */
   _stadiumCanvas = null
 

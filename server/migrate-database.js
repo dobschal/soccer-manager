@@ -2633,6 +2633,22 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Wiki: refresh buildings (3D club grounds + training area levels)',
+  async run () {
+    // The buildings page now opens with the 3D scene and the training ground is
+    // actually built in it, so the wiki text describes what each level looks
+    // like. Push it to already-seeded prod/sandbox DBs.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

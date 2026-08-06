@@ -8,6 +8,7 @@ import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
 import { t } from '../../i18n/index.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { euroFormat } from '../../lib/currency.js'
+import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
 
 const TRAINING_AREA_IMAGES = {
   1: 'assets/training-area/training-area-1.png',
@@ -40,20 +41,38 @@ export class BuildingsPage extends UIElement {
    * @returns {Promise<void>}
    */
   async load () {
-    const data = await server.getBuildings()
+    const [data, stadiumResponse, teamResponse] = await Promise.all([
+      server.getBuildings(),
+      server.getStadium(),
+      server.getMyTeam()
+    ])
     this.buildings = data.buildings || []
     this.upgrades = data.upgrades || {}
     this.cardChances = data.cardChances || {}
     this.fitnessCardChances = data.fitnessCardChances || {}
     this.youthAcademyCardChances = data.youthAcademyCardChances || {}
+    this.stadium = stadiumResponse?.stadium || {}
+    this.team = teamResponse?.team || {}
   }
 
   /**
    * @returns {string}
    */
   get template () {
+    // Same 3D scene as the stadium page, but orbiting the road intersection the
+    // club buildings are laid out around instead of the pitch.
+    this._canvas = new StadiumCanvas(this.stadium, this.team, 'buildings-canvas', {
+      interactive: false,
+      autoRotate: true,
+      controlsToggle: true,
+      focus: 'buildings',
+      buildings: this.buildings
+    })
     return `
       <div>
+        <div class="mb-4" id="buildings-canvas-container">
+          ${this._canvas}
+        </div>
         <h3>${t('buildings.title')} ${wikiInfoIcon('buildings')}</h3>
         <p class="text-muted">${t('buildings.trainingAreaDesc')}</p>
         ${this._renderTrainingArea()}
@@ -66,8 +85,25 @@ export class BuildingsPage extends UIElement {
   }
 
   onMounted () {
+    this._canvas?.onMounted()
     void showTutorialIfNeeded('buildings', this)
   }
+
+  /**
+   * Free the WebGL context when the page goes away — the canvas cannot be
+   * reused, so the tab switch recreates it (see `ClubPage`).
+   */
+  onDestroy () {
+    this._canvas?.onDestroy()
+    this._canvas = null
+  }
+
+  /** @type {StadiumCanvas|null} */
+  _canvas = null
+
+  stadium = {}
+
+  team = {}
 
   /**
    * @returns {string}

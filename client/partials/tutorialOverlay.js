@@ -92,7 +92,8 @@ function getTutorials () {
         t('tutorial.buildingsPage.item3'),
         t('tutorial.buildingsPage.item4'),
         t('tutorial.buildingsPage.item5'),
-        t('tutorial.buildingsPage.item6')
+        t('tutorial.buildingsPage.item6'),
+        t('tutorial.buildingsPage.item7')
       ]
     }
   }

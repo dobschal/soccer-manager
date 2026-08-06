@@ -44,7 +44,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getMyTeam: vi.fn(),
     updatePrices: vi.fn(),
     getStadiumAttendance: vi.fn(),
-    getConstructionHistory: vi.fn()
+    getConstructionHistory: vi.fn(),
+    getBuildings: vi.fn()
   }
 }))
 
@@ -125,6 +126,7 @@ describe('StadiumSubPage', () => {
     })
     server.getStadiumAttendance.mockResolvedValue({ attendance: [] })
     server.getConstructionHistory.mockResolvedValue({ history: [] })
+    server.getBuildings.mockResolvedValue({ buildings: [{ type: 'training_area', level: 1 }] })
   })
 
   describe('StadiumSubPage class', () => {

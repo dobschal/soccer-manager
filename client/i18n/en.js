@@ -1142,6 +1142,7 @@ export default {
   'tutorial.buildingsPage.item4': 'Upgrades cost money and take several game days to complete',
   'tutorial.buildingsPage.item5': 'Each building can be upgraded up to level 3',
   'tutorial.buildingsPage.item6': 'The Youth Academy provides better youth-player cards and more training slots',
+  'tutorial.buildingsPage.item7': 'The 3D view at the top shows your club grounds — your training area visibly grows with every level',
 
   // Log Messages
   'log.title': 'Messages',

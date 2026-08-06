@@ -1142,6 +1142,7 @@ export default {
   'tutorial.buildingsPage.item4': 'Ausbauten kosten Geld und dauern mehrere Spieltage',
   'tutorial.buildingsPage.item5': 'Jedes Gebäude kann bis auf Stufe 3 ausgebaut werden',
   'tutorial.buildingsPage.item6': 'Die Jugendakademie liefert bessere Jugendspieler-Karten und mehr Trainings-Slots',
+  'tutorial.buildingsPage.item7': 'Die 3D-Ansicht oben zeigt dein Vereinsgelände – dein Trainingsgelände wächst dort mit jeder Stufe sichtbar mit',
 
   // Log Messages
   'log.title': 'Nachrichten',

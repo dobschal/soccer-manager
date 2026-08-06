@@ -88,8 +88,9 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 - **TA-STD-20**: Tribuenen mit instanziierten Sitzen (5 Farben, dynamische Hoehe).
 - **TA-STD-21**: Optionales Dach-System pro Tribuene mit Stuetzen und Kabeln.
 - **TA-STD-22**: 4 Flutlichtmasten (je 6 Spots, Schatten bei 1024x1024 Aufloesung).
-- **TA-STD-23**: OrbitControls: Pan, Zoom, Rotation (Min: 50, Max: 150 Einheiten).
+- **TA-STD-23**: OrbitControls: Pan, Zoom, Rotation (Stadion-Ansicht Min: 50, Max: 150 Einheiten; Gebaeude-Ansicht Min: 40, Max: 240).
 - **TA-STD-24**: Responsive ueber ResizeObserver.
+- **TA-STD-29**: Dieselbe Szene wird auch auf der Gebaeude-Seite verwendet. Sie enthaelt neben dem Stadion die Gebaeude des Vereins rund um die Strassenkreuzung noerdoestlich davon; das Kamera-Ziel entscheidet, was im Mittelpunkt steht (Spielfeldmitte vs. Kreuzung). Details siehe [Buildings](buildings.md).
 
 ### Frontend
 

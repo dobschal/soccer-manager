@@ -21,6 +21,7 @@ export class ClubPage extends TabbedPage {
   }
   onDestroy () {
     this._subPageCache.stadium?.onDestroy()
+    this._subPageCache.buildings?.onDestroy()
   }
   get routeName () { return 'club' }
 
@@ -35,13 +36,15 @@ export class ClubPage extends TabbedPage {
     }
   }
 
+  // Both sub-pages own a WebGL canvas, which can't be reused once its DOM node
+  // was detached — so they are rebuilt from scratch on every tab switch.
   _shouldRecreateSubPage (key) {
-    return key === 'stadium'
+    return key === 'stadium' || key === 'buildings'
   }
 
   _onBeforeSubPageLeave (fromKey) {
-    if (fromKey === 'stadium') {
-      this._subPageCache.stadium?.onDestroy()
+    if (fromKey === 'stadium' || fromKey === 'buildings') {
+      this._subPageCache[fromKey]?.onDestroy()
     }
   }
 }
