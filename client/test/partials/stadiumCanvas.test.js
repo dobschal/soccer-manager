@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
+import { CONFIG, StadiumCanvas } from '../../partials/stadiumCanvas.js'
 
 /**
  * These tests target the pure stand-sizing math (`_standRowCount`), which drives
@@ -454,6 +454,7 @@ describe('StadiumCanvas camera controls', () => {
   const fakeThree = () => ({
     Scene: class {},
     Color: class {},
+    Fog: class {},
     PerspectiveCamera: class {
       position = { set: vi.fn() }
       lookAt = vi.fn()
@@ -559,6 +560,20 @@ describe('StadiumCanvas club buildings', () => {
   })
 
   it('keeps the default ground size for a stadium without buildings', () => {
-    expect(canvasWith({})._groundHalf()).toBe(125)
+    expect(canvasWith({})._groundHalf()).toBe(375)
+  })
+
+  it('runs the roads out past the ground plane so they vanish into the fog', () => {
+    // A road stopping short of the ground edge would end in mid-air.
+    expect(CONFIG.road.vanishDistance).toBeGreaterThan(canvasWith({})._groundHalf())
+  })
+
+  it('fogs the distance out before the ground plane ends', () => {
+    // Anything further than fogFar is fully background colour, so the ground's
+    // edge and the last trees are never visible as a hard line.
+    expect(CONFIG.colors.fogFar).toBeLessThanOrEqual(canvasWith({})._groundHalf() * 2.1)
+    expect(CONFIG.colors.fogFar).toBeGreaterThan(canvasWith({})._groundHalf())
+    // …but the stadium itself always stays clear of it.
+    expect(CONFIG.colors.fogNear).toBeGreaterThan(CONFIG.views.stadium.maxDistance)
   })
 })

@@ -90,6 +90,7 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 - **TA-STD-22**: 4 Flutlichtmasten (je 6 Spots, Schatten bei 1024x1024 Aufloesung).
 - **TA-STD-23**: OrbitControls: Pan, Zoom, Rotation (Stadion-Ansicht Min: 50, Max: 150 Einheiten; Gebaeude-Ansicht Min: 40, Max: 240).
 - **TA-STD-24**: Responsive ueber ResizeObserver.
+- **TA-STD-30**: Die Umgebung reicht bis zum Horizont: Bodenflaeche 750x750 Einheiten, Baumbestand bis kurz vor deren Rand, Strassen laufen bis 700 Einheiten hinaus. Entfernungsnebel (300 bis 640 Einheiten, in Hintergrundfarbe) loest alles Weitentfernte auf, sodass weder Bodenkante noch Strassenende sichtbar wird. Nur Baeume innerhalb von 200 Einheiten nehmen an den Schattenpaessen teil.
 - **TA-STD-29**: Dieselbe Szene wird auch auf der Gebaeude-Seite verwendet. Sie enthaelt neben dem Stadion die Gebaeude des Vereins rund um die Strassenkreuzung noerdoestlich davon; das Kamera-Ziel entscheidet, was im Mittelpunkt steht (Spielfeldmitte vs. Kreuzung). Details siehe [Buildings](buildings.md).
 
 ### Frontend

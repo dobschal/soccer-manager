@@ -13,12 +13,15 @@ import {buildTrainingArea, clubBuildingPlots, PLOT_CLEARANCE} from './clubBuildi
  *
  * @type {Readonly<Object>}
  */
-const CONFIG = Object.freeze({
+export const CONFIG = Object.freeze({
   field: {width: 50, depth: 30},
   // Gap between the field and every stand. At >= 4 the wide north/south stands
   // just clear the east/west stands at the corners (they overlap below that).
   standGap: 4,
-  groundSize: 250,
+  // The ground plane reaches far past the stadium so the surroundings run all
+  // the way out to the horizon. Its edge never shows: distance fog (see
+  // `colors.fog*`) blends it into the night sky well before it.
+  groundSize: 750,
   // Stand seating tiers. Large stands split into a lower and an upper tier with
   // a cantilevered overhang between them.
   stand: {
@@ -99,9 +102,9 @@ const CONFIG = Object.freeze({
     // of the floodlight towers for very small stadiums.
     margin: 10,
     minDistance: 42,
-    // How far the roads run past the intersections (well beyond the 250-wide
-    // ground plane) so they vanish into the dark background.
-    vanishDistance: 200,
+    // How far the roads run past the intersections (well beyond the ground
+    // plane) so they vanish into the dark background rather than stopping.
+    vanishDistance: 700,
     color: 0x2c2c2e,
     markingColor: 0xffffff,
     dashLength: 3,
@@ -116,13 +119,18 @@ const CONFIG = Object.freeze({
     spacing: 14, // grid cell size
     jitter: 5, // max per-axis random offset within a cell
     roadClearance: 4, // keep this far from the road edges
+    // Only trees this close to the stadium take part in the shadow passes. The
+    // floodlight shadow cameras reach 150 units, so nothing beyond could cast
+    // into them anyway — but an InstancedMesh is culled as a whole, so without
+    // the split every distant tree would still be re-rendered per shadow map.
+    shadowRadius: 200,
     minScale: 0.7,
     maxScale: 1.7,
     coneChance: 0.5, // share of cone-shaped (vs. round) foliage
     trunkColor: 0x6b4a2f,
     greens: [0x2e6b2e, 0x357a35, 0x40923f, 0x4fa74f, 0x2f5d33, 0x5bb35b, 0x3c7d3c]
   },
-  camera: {fov: 45, near: 0.1, far: 1000, position: [80, 100, 80]},
+  camera: {fov: 45, near: 0.1, far: 2500, position: [80, 100, 80]},
   controls: {
     dampingFactor: 0.05,
     maxPolarAngle: Math.PI / 2.2,
@@ -146,7 +154,13 @@ const CONFIG = Object.freeze({
     sceneBackground: 0x0a0a1a,
     ground: 0x3d5c3d,
     ambientLight: 0x404060,
-    moonLight: 0x6688cc
+    moonLight: 0x6688cc,
+    // Distance fog in the background colour: everything far out (the ground's
+    // edge, the last trees, the roads running off) dissolves into the night
+    // instead of ending on a hard line. `fogNear` stays clear of the stadium
+    // itself, which the camera never orbits further than ~250 units from.
+    fogNear: 300,
+    fogFar: 640
   },
   // Canvas height is derived from width, capped so it never gets too tall.
   maxCanvasHeight: 600,
@@ -422,6 +436,9 @@ export class StadiumCanvas extends UIElement {
 
     this._scene = new THREE.Scene()
     this._scene.background = new THREE.Color(CONFIG.colors.sceneBackground)
+    this._scene.fog = new THREE.Fog(
+      CONFIG.colors.sceneBackground, CONFIG.colors.fogNear, CONFIG.colors.fogFar
+    )
 
     this._camera = new THREE.PerspectiveCamera(
       CONFIG.camera.fov, width / height, CONFIG.camera.near, CONFIG.camera.far
@@ -1271,23 +1288,10 @@ export class StadiumCanvas extends UIElement {
       }
     }
 
-    const sphereTrees = trees.filter(t => !t.isCone)
-    const coneTrees = trees.filter(t => t.isCone)
-
     const trunkMat = new THREE.MeshLambertMaterial({color: trunkColor})
     // Foliage colour comes from per-instance colours; base material is white
     // so the instance colour shows unmodified.
     const foliageMat = new THREE.MeshLambertMaterial({color: 0xffffff})
-
-    const trunks = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(0.3, 0.45, trunkHeight, 6), trunkMat, trees.length
-    )
-    const sphereFoliage = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(sphereRadius, 8, 6), foliageMat, sphereTrees.length
-    )
-    const coneFoliage = new THREE.InstancedMesh(
-      new THREE.ConeGeometry(coneRadius, coneHeight, 7), foliageMat, coneTrees.length
-    )
 
     const matrix = new THREE.Matrix4()
     const quat = new THREE.Quaternion()
@@ -1303,17 +1307,42 @@ export class StadiumCanvas extends UIElement {
       if (green !== undefined) mesh.setColorAt(i, color.set(green))
     }
 
-    trees.forEach((t, i) => setInstance(trunks, i, t.x, t.z, trunkHeight / 2, t.scale))
-    sphereTrees.forEach((t, i) => setInstance(sphereFoliage, i, t.x, t.z, sphereCenterY, t.scale, t.green))
-    coneTrees.forEach((t, i) => setInstance(coneFoliage, i, t.x, t.z, coneCenterY, t.scale, t.green))
+    // The forest is split into a near and a far half so only the near one takes
+    // part in the shadow passes (see `trees.shadowRadius`). Each half is three
+    // instanced meshes — trunks, round foliage, cone foliage.
+    const addGroup = (group, castShadow) => {
+      if (group.length === 0) return
+      const cones = group.filter(t => t.isCone)
+      const spheres = group.filter(t => !t.isCone)
 
-    for (const mesh of [trunks, sphereFoliage, coneFoliage]) {
-      mesh.instanceMatrix.needsUpdate = true
-      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-      mesh.castShadow = true
-      mesh.receiveShadow = true
-      scene.add(mesh)
+      const trunks = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.3, 0.45, trunkHeight, 6), trunkMat, group.length
+      )
+      const sphereFoliage = new THREE.InstancedMesh(
+        new THREE.SphereGeometry(sphereRadius, 8, 6), foliageMat, spheres.length
+      )
+      const coneFoliage = new THREE.InstancedMesh(
+        new THREE.ConeGeometry(coneRadius, coneHeight, 7), foliageMat, cones.length
+      )
+
+      group.forEach((t, i) => setInstance(trunks, i, t.x, t.z, trunkHeight / 2, t.scale))
+      spheres.forEach((t, i) => setInstance(sphereFoliage, i, t.x, t.z, sphereCenterY, t.scale, t.green))
+      cones.forEach((t, i) => setInstance(coneFoliage, i, t.x, t.z, coneCenterY, t.scale, t.green))
+
+      for (const mesh of [trunks, sphereFoliage, coneFoliage]) {
+        if (mesh.count === 0) continue
+        mesh.instanceMatrix.needsUpdate = true
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+        mesh.castShadow = castShadow
+        mesh.receiveShadow = castShadow
+        scene.add(mesh)
+      }
     }
+
+    const shadowRadius = CONFIG.trees.shadowRadius
+    const isNear = t => Math.hypot(t.x, t.z) <= shadowRadius
+    addGroup(trees.filter(isNear), true)
+    addGroup(trees.filter(t => !isNear(t)), false)
   }
 
   /**
@@ -1368,9 +1397,9 @@ export class StadiumCanvas extends UIElement {
     }
 
     // Dashed centre markings, running the full length and skipping the
-    // crossings (just like real road markings).
-    const dashGeoX = new THREE.PlaneGeometry(dashLength, markingWidth)
-    const dashGeoZ = new THREE.PlaneGeometry(markingWidth, dashLength)
+    // crossings (just like real road markings). The roads reach out to the
+    // horizon, so these are instanced — one draw call per orientation instead
+    // of one per dash.
     const period = dashLength + dashGap
     const dashCount = Math.floor((2 * far) / period)
     const dashSpan = dashCount * period - dashGap
@@ -1379,14 +1408,35 @@ export class StadiumCanvas extends UIElement {
       Math.abs(p - distance) < rw / 2 + dashLength / 2 ||
       Math.abs(p + distance) < rw / 2 + dashLength / 2
 
+    const alongX = [] // dashes on the north/south roads
+    const alongZ = [] // dashes on the west/east roads
     for (let i = 0; i < dashCount; i++) {
       const p = dashStart + i * period
       if (nearCrossing(p)) continue
-      addTile(dashGeoX, markingMat, p, -distance, markingY) // north
-      addTile(dashGeoX, markingMat, p, distance, markingY) // south
-      addTile(dashGeoZ, markingMat, -distance, p, markingY) // west
-      addTile(dashGeoZ, markingMat, distance, p, markingY) // east
+      alongX.push({x: p, z: -distance}, {x: p, z: distance})
+      alongZ.push({x: -distance, z: p}, {x: distance, z: p})
     }
+
+    // Instances carry the flat-on-the-ground rotation themselves, so their
+    // positions stay plain world coordinates.
+    const flat = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0))
+    const unitScale = new THREE.Vector3(1, 1, 1)
+    const matrix = new THREE.Matrix4()
+    const pos = new THREE.Vector3()
+
+    const addDashes = (geo, dashes) => {
+      if (dashes.length === 0) return
+      const mesh = new THREE.InstancedMesh(geo, markingMat, dashes.length)
+      dashes.forEach((d, i) => {
+        pos.set(d.x, markingY, d.z)
+        matrix.compose(pos, flat, unitScale)
+        mesh.setMatrixAt(i, matrix)
+      })
+      mesh.instanceMatrix.needsUpdate = true
+      scene.add(mesh)
+    }
+    addDashes(new THREE.PlaneGeometry(dashLength, markingWidth), alongX)
+    addDashes(new THREE.PlaneGeometry(markingWidth, dashLength), alongZ)
   }
 
   /**
