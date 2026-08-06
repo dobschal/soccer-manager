@@ -23,15 +23,16 @@ const TRAINING = Object.freeze({
   // Floodlight masts per level: level 1 is a pair of short, weak lamps, level 2
   // adds a second pair and more light, level 3 gets proper tall masts.
   masts: {
-    1: {height: 7, intensity: 400, distance: 95, lamps: 1, pairs: 1},
-    2: {height: 11, intensity: 600, distance: 120, lamps: 2, pairs: 2},
-    3: {height: 17, intensity: 1400, distance: 160, lamps: 3, pairs: 2}
+    1: {height: 7, intensity: 260, distance: 95, lamps: 1, pairs: 1},
+    2: {height: 11, intensity: 420, distance: 120, lamps: 2, pairs: 2},
+    3: {height: 17, intensity: 950, distance: 160, lamps: 3, pairs: 2}
   },
-  // Mast pairs stand inside the fence, behind either touchline: the first pair
-  // behind the north one, the second behind the south one.
+  // Masts stand in the corners of the fenced area, diagonally out from the
+  // pitch corners. A pair is the two corners at one end, so level 1's single
+  // pair lights the pitch from one end only.
   mastPairs: [
-    {z: -17, x: 18},
-    {z: 17, x: 18}
+    {z: -17.5, x: 27.5},
+    {z: 17.5, x: 27.5}
   ],
   // Level 2+ training kit scattered over the pitch.
   equipment: {balls: 16, cones: 18, poles: 8},

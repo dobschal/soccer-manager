@@ -225,9 +225,9 @@ Each building tops out at level 3. The cost is deducted immediately when you sta
 The 3D view at the top of the page shows your club grounds: it is the same scene as on the stadium page, but centred on the road crossing north-east of the stadium that your buildings are grouped around. Drag to look around, or hand the camera back to the slow auto-orbit with the button in the corner.
 
 Your training area is built there for real – a full-size pitch, as big as the one in your stadium, fenced right up to the kerb. Its level shows:
-• Level 1: the fenced pitch with two goals and a pair of small, weak floodlights on one side, so the far half stays in the dark.
-• Level 2: balls, slalom poles and marker cones on the pitch, plus a second, taller and much brighter pair of masts.
-• Level 3: full-height masts that light the pitch like a match, and a covered coaching shelter at the touchline.`
+• Level 1: the fenced pitch with two goals and a pair of small, weak floodlights in two corners, so the far half stays in the dark.
+• Level 2: balls, slalom poles and marker cones on the pitch, plus a second, taller and much brighter pair of masts in the other two corners.
+• Level 3: full-height masts in all four corners that light the pitch like a match, and a covered coaching shelter at the touchline.`
     },
     de: {
       title: 'Gebäude',
@@ -254,9 +254,9 @@ Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbau
 Die 3D-Ansicht oben auf der Seite zeigt dein Vereinsgelände: dieselbe Szene wie auf der Stadion-Seite, nur zentriert auf die Straßenkreuzung nordöstlich des Stadions, um die herum deine Gebäude stehen. Zieh mit der Maus, um dich umzusehen, oder gib die Kamera mit dem Knopf in der Ecke wieder an die langsame Drehung ab.
 
 Dein Trainingsgelände steht dort wirklich – ein Platz in voller Größe, genauso groß wie der in deinem Stadion, eingezäunt bis direkt an den Bordstein. Und man sieht ihm seine Stufe an:
-• Stufe 1: der eingezäunte Platz mit zwei Toren und einem kleinen, schwachen Flutlicht auf einer Seite – die andere Hälfte bleibt im Dunkeln.
-• Stufe 2: zusätzlich Bälle, Slalomstangen und Hütchen auf dem Platz sowie ein zweites, höheres und deutlich helleres Mastpaar.
-• Stufe 3: hohe Masten, die den Platz spielfeldhell ausleuchten, und eine überdachte Trainerbank am Spielfeldrand.`
+• Stufe 1: der eingezäunte Platz mit zwei Toren und einem kleinen, schwachen Flutlicht in zwei Ecken – die andere Hälfte bleibt im Dunkeln.
+• Stufe 2: zusätzlich Bälle, Slalomstangen und Hütchen auf dem Platz sowie ein zweites, höheres und deutlich helleres Mastpaar in den beiden anderen Ecken.
+• Stufe 3: hohe Masten in allen vier Ecken, die den Platz spielfeldhell ausleuchten, und eine überdachte Trainerbank am Spielfeldrand.`
     }
   },
 
