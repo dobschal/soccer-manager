@@ -10,49 +10,55 @@
  * space (origin = plot centre) and is placed by the caller.
  */
 
-/** Gap kept between the roads at the intersection and a building plot. */
-export const PLOT_CLEARANCE = 8
+/**
+ * Layout of the training ground inside its plot (local coordinates, origin =
+ * plot centre). The pitch is exactly as big as the stadium pitch
+ * (`CONFIG.field` in `stadiumCanvas.js`), and the fence around it **is** the
+ * plot boundary — so on the two road-facing sides it runs right along the
+ * sidewalk's kerb.
+ */
+const TRAINING = Object.freeze({
+  pitch: {width: 50, depth: 30},
+  fence: {margin: 5, height: 2.4, postSpacing: 4.5, gateWidth: 5, postColor: 0x4a4a4a, meshColor: 0x8fa0a8},
+  // Floodlight masts per level: level 1 is a pair of short, weak lamps, level 2
+  // adds a second pair and more light, level 3 gets proper tall masts.
+  masts: {
+    1: {height: 7, intensity: 400, distance: 95, lamps: 1, pairs: 1},
+    2: {height: 11, intensity: 600, distance: 120, lamps: 2, pairs: 2},
+    3: {height: 17, intensity: 1400, distance: 160, lamps: 3, pairs: 2}
+  },
+  // Mast pairs stand inside the fence, behind either touchline: the first pair
+  // behind the north one, the second behind the south one.
+  mastPairs: [
+    {z: -17, x: 18},
+    {z: 17, x: 18}
+  ],
+  // Level 2+ training kit scattered over the pitch.
+  equipment: {balls: 16, cones: 18, poles: 8},
+  // Level 3 coaching shelter, beside the gate on the south touchline.
+  shelter: {x: -10, z: 17, width: 7, depth: 2, height: 2.3}
+})
 
 /**
  * Plot size and quadrant per building type. The quadrant signs are relative to
  * the intersection: `{x: 1, z: -1}` is the free corner further out (north-east
  * of the crossing), `{x: -1, z: -1}` the strip north of the stadium and
  * `{x: 1, z: 1}` the strip east of it. The fourth quadrant is the stadium.
+ *
+ * The training area's plot is its fenced area, so the fence lands exactly on
+ * the plot boundary.
  * @type {Readonly<Object<string, {size: {x: number, z: number}, quadrant: {x: number, z: number}}>>}
  */
 export const BUILDING_PLOTS = Object.freeze({
-  training_area: {size: {x: 52, z: 48}, quadrant: {x: 1, z: -1}},
+  training_area: {
+    size: {
+      x: TRAINING.pitch.width + 2 * TRAINING.fence.margin,
+      z: TRAINING.pitch.depth + 2 * TRAINING.fence.margin
+    },
+    quadrant: {x: 1, z: -1}
+  },
   fitness_studio: {size: {x: 40, z: 30}, quadrant: {x: -1, z: -1}},
   youth_academy: {size: {x: 30, z: 40}, quadrant: {x: 1, z: 1}}
-})
-
-/**
- * Layout of the training ground inside its plot (local coordinates, origin =
- * plot centre, which is also the point the buildings camera looks at via the
- * intersection). The plot is 52 × 48, so local x ∈ [-26, 26], z ∈ [-24, 24].
- */
-const TRAINING = Object.freeze({
-  pitch: {width: 30, depth: 20, centerZ: -6},
-  fence: {margin: 3, height: 2.4, postSpacing: 4.5, gateWidth: 5, postColor: 0x4a4a4a, meshColor: 0x8fa0a8},
-  // Floodlight masts per level: level 1 is a pair of short, weak lamps, level 2
-  // adds a second pair and more light, level 3 gets proper tall masts.
-  masts: {
-    1: {height: 7, intensity: 45, distance: 45, lamps: 1, pairs: 1},
-    2: {height: 9.5, intensity: 110, distance: 60, lamps: 2, pairs: 2},
-    3: {height: 15, intensity: 260, distance: 90, lamps: 3, pairs: 2}
-  },
-  // Mast pairs: the first pair stands behind the north touchline, the second
-  // behind the south one (just outside the fence).
-  mastPairs: [
-    {z: -20.5, x: 11},
-    {z: 8.5, x: 11}
-  ],
-  // Level 2+ training kit scattered over the pitch.
-  equipment: {balls: 12, cones: 14, poles: 6},
-  // Level 3 extras beside the pitch.
-  clubhouse: {x: -12, z: 16, width: 14, depth: 8, height: 5},
-  keeperPitch: {x: 10, z: 16, width: 16, depth: 10},
-  shelter: {z: 5.6, width: 7, depth: 2, height: 2.3}
 })
 
 const COLORS = Object.freeze({
@@ -67,9 +73,11 @@ const COLORS = Object.freeze({
  * Pure geometry — safe to call without Three.js.
  * @param {Array<{type: string, level: number}>} buildings
  * @param {{x: number, z: number}} intersection world position of the crossing
- * @returns {Array<{type: string, level: number, cx: number, cz: number, halfX: number, halfZ: number}>}
+ * @param {number} clearance gap from each road's centre line to the plot edge —
+ *   half a road plus the sidewalk, so a plot's boundary lands on the kerb.
+ * @returns {Array<{type: string, level: number, cx: number, cz: number, halfX: number, halfZ: number, qx: number, qz: number}>}
  */
-export function clubBuildingPlots (buildings, intersection) {
+export function clubBuildingPlots (buildings, intersection, clearance) {
   return (buildings || [])
     .filter(b => BUILDING_PLOTS[b?.type] && (b.level || 0) >= 1)
     .map(b => {
@@ -81,8 +89,10 @@ export function clubBuildingPlots (buildings, intersection) {
         level: Math.max(1, Math.min(3, b.level)),
         halfX,
         halfZ,
-        cx: intersection.x + quadrant.x * (PLOT_CLEARANCE + halfX),
-        cz: intersection.z + quadrant.z * (PLOT_CLEARANCE + halfZ)
+        qx: quadrant.x,
+        qz: quadrant.z,
+        cx: intersection.x + quadrant.x * (clearance + halfX),
+        cz: intersection.z + quadrant.z * (clearance + halfZ)
       }
     })
 }
@@ -93,15 +103,15 @@ export function clubBuildingPlots (buildings, intersection) {
  * - **Level 1** – a fenced pitch with a pair of short, weak floodlights.
  * - **Level 2** – balls, slalom poles and cones on the pitch, a second pair of
  *   taller masts and clearly more light.
- * - **Level 3** – a full training complex: tall bright masts, a clubhouse with
- *   lit windows, a covered coaching shelter at the touchline and a separate
- *   goalkeeper pitch with mini goals.
+ * - **Level 3** – full-height masts lighting the pitch like a match, plus a
+ *   covered coaching shelter at the touchline.
  *
  * @param {Object} THREE the Three.js module
  * @param {Object} scene object with `.add()`
  * @param {{level: number, rand: () => number, x: number, z: number}} options
- * @returns {{group: Object, gate: {x: number, z: number}}} the built group and
- *   the fence gate in local coordinates (the caller joins it to the road).
+ * @returns {{group: Object, gate: {x: number, z: number, width: number}}} the
+ *   built group and its fence gate in local coordinates (the caller keeps the
+ *   sidewalk's street lamps clear of it).
  */
 export function buildTrainingArea (THREE, scene, {level, rand, x, z}) {
   const lvl = Math.max(1, Math.min(3, level || 1))
@@ -111,38 +121,38 @@ export function buildTrainingArea (THREE, scene, {level, rand, x, z}) {
   addPitch(THREE, group, {
     width: pitch.width,
     depth: pitch.depth,
-    centerZ: pitch.centerZ,
+    centerZ: 0,
     stripes: true,
     circle: true
   })
-  addGoal(THREE, group, {x: -pitch.width / 2, z: pitch.centerZ, scale: 1, facing: 1})
-  addGoal(THREE, group, {x: pitch.width / 2, z: pitch.centerZ, scale: 1, facing: -1})
+  addGoal(THREE, group, {x: -pitch.width / 2, z: 0, scale: 1, facing: 1})
+  addGoal(THREE, group, {x: pitch.width / 2, z: 0, scale: 1, facing: -1})
   addFence(THREE, group, {
     halfWidth: pitch.width / 2 + fence.margin,
     halfDepth: pitch.depth / 2 + fence.margin,
-    centerZ: pitch.centerZ
+    centerZ: 0
   })
   addFloodlights(THREE, group, lvl)
 
   if (lvl >= 2) addEquipment(THREE, group, rand)
-  if (lvl >= 3) {
-    addClubhouse(THREE, group)
-    addShelter(THREE, group)
-    addKeeperPitch(THREE, group)
-  }
+  if (lvl >= 3) addShelter(THREE, group)
 
   group.position.set(x, 0, z)
   scene.add(group)
 
   return {
     group,
-    gate: {x: 0, z: TRAINING.pitch.centerZ + TRAINING.pitch.depth / 2 + TRAINING.fence.margin}
+    gate: {
+      x: 0,
+      z: TRAINING.pitch.depth / 2 + TRAINING.fence.margin,
+      width: TRAINING.fence.gateWidth
+    }
   }
 }
 
 /**
- * A football pitch: striped grass with white markings. Same look as the stadium
- * pitch, only smaller.
+ * A football pitch: striped grass with white markings, built to match the
+ * stadium pitch (`_createField` in stadiumCanvas.js).
  * @param {Object} THREE
  * @param {Object} parent
  * @param {{width: number, depth: number, centerZ: number, stripes?: boolean, circle?: boolean}} config
@@ -158,7 +168,7 @@ function addPitch (THREE, parent, {width, depth, centerZ, stripes, circle}) {
   parent.add(grass)
 
   if (stripes) {
-    const stripeCount = 6
+    const stripeCount = 8
     const stripeWidth = depth / stripeCount
     const stripeMat = new THREE.MeshLambertMaterial({color: COLORS.grassStripe})
     const stripeGeo = new THREE.PlaneGeometry(width, stripeWidth)
@@ -192,7 +202,7 @@ function addPitch (THREE, parent, {width, depth, centerZ, stripes, circle}) {
   ))
 
   if (circle) {
-    const radius = depth * 0.16
+    const radius = depth / 6 // same ratio as the stadium's centre circle
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(radius - 0.1, radius, 28),
       new THREE.MeshBasicMaterial({color: COLORS.line, side: THREE.DoubleSide})
@@ -212,10 +222,11 @@ function addPitch (THREE, parent, {width, depth, centerZ, stripes, circle}) {
  *   points from the goal toward the pitch centre (-1 or 1 along x).
  */
 function addGoal (THREE, parent, {x, z, scale, facing}) {
-  const postRadius = 0.12 * scale
-  const goalWidth = 5 * scale
-  const goalHeight = 1.8 * scale
-  const netDepth = 1.4 * scale
+  // Same proportions as the stadium goals (`_createGoal` in stadiumCanvas.js).
+  const postRadius = 0.15 * scale
+  const goalWidth = 4 * scale
+  const goalHeight = 1.5 * scale
+  const netDepth = 1.3 * scale
   const mat = new THREE.MeshLambertMaterial({color: COLORS.line})
 
   const postGeo = new THREE.CylinderGeometry(postRadius, postRadius, goalHeight, 8)
@@ -366,7 +377,7 @@ function addFence (THREE, parent, {halfWidth, halfDepth, centerZ}) {
  */
 function addFloodlights (THREE, parent, level) {
   const spec = TRAINING.masts[level]
-  const aim = {x: 0, z: TRAINING.pitch.centerZ}
+  const aim = {x: 0, z: 0} // the pitch centre
 
   for (const pair of TRAINING.mastPairs.slice(0, spec.pairs)) {
     for (const side of [-1, 1]) {
@@ -425,34 +436,6 @@ function addMast (THREE, parent, {x, z, aim, spec}) {
 }
 
 /**
- * A yard lamp: a short pole with a glowing head and a soft warm point light —
- * used to keep the level 3 buildings out of the dark.
- * @param {Object} THREE
- * @param {Object} parent
- * @param {{x: number, z: number, height?: number}} config
- */
-function addYardLamp (THREE, parent, {x, z, height = 5}) {
-  const pole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.1, 0.14, height, 6),
-    new THREE.MeshLambertMaterial({color: 0x2a2a2a})
-  )
-  pole.position.set(x, height / 2, z)
-  pole.castShadow = true
-  parent.add(pole)
-
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.3, 8, 8),
-    new THREE.MeshBasicMaterial({color: 0xffdd88})
-  )
-  head.position.set(x, height + 0.15, z)
-  parent.add(head)
-
-  const light = new THREE.PointLight(0xffdca8, 40, 26, 2)
-  light.position.set(x, height, z)
-  parent.add(light)
-}
-
-/**
  * Level 2+ training kit lying on the pitch: balls, a slalom line of poles and a
  * scatter of marker cones. Positions come from the caller's seeded generator so
  * they stay identical across renders.
@@ -475,7 +458,7 @@ function addEquipment (THREE, parent, rand) {
     matrix.setPosition(
       (rand() * 2 - 1) * hw,
       0.3,
-      pitch.centerZ + (rand() * 2 - 1) * hd
+      (rand() * 2 - 1) * hd
     )
     balls.setMatrixAt(i, matrix)
   }
@@ -492,7 +475,7 @@ function addEquipment (THREE, parent, rand) {
     // Half the cones form a neat drill grid, the rest lie about.
     const drill = i < equipment.cones / 2
     const px = drill ? -hw + 1 + i * 1.6 : (rand() * 2 - 1) * hw
-    const pz = drill ? pitch.centerZ + hd - 2 : pitch.centerZ + (rand() * 2 - 1) * hd
+    const pz = drill ? hd - 2 : (rand() * 2 - 1) * hd
     matrix.setPosition(px, 0.28, pz)
     cones.setMatrixAt(i, matrix)
   }
@@ -508,64 +491,10 @@ function addEquipment (THREE, parent, rand) {
   ]
   for (let i = 0; i < equipment.poles; i++) {
     const pole = new THREE.Mesh(poleGeo, poleMats[i % 2])
-    pole.position.set(-6 + i * 2.4, 0.9, pitch.centerZ - hd + 2)
+    pole.position.set(-9 + i * 2.4, 0.9, -hd + 2)
     pole.castShadow = true
     parent.add(pole)
   }
-}
-
-/**
- * Level 3 clubhouse: a flat-roofed block with a lit window band facing the
- * pitch and a warm glow spilling out of the entrance.
- * @param {Object} THREE
- * @param {Object} parent
- */
-function addClubhouse (THREE, parent) {
-  const C = TRAINING.clubhouse
-  const walls = new THREE.Mesh(
-    new THREE.BoxGeometry(C.width, C.height, C.depth),
-    new THREE.MeshLambertMaterial({color: 0x8b939c})
-  )
-  walls.position.set(C.x, C.height / 2, C.z)
-  walls.castShadow = true
-  walls.receiveShadow = true
-  parent.add(walls)
-
-  const roof = new THREE.Mesh(
-    new THREE.BoxGeometry(C.width + 1, 0.4, C.depth + 1),
-    new THREE.MeshLambertMaterial({color: 0x4f555c})
-  )
-  roof.position.set(C.x, C.height + 0.2, C.z)
-  roof.castShadow = true
-  parent.add(roof)
-
-  // Window bands on both long walls — the camera orbits the whole plot, so the
-  // clubhouse has to look inhabited from every side.
-  const windowMat = new THREE.MeshBasicMaterial({color: 0xffe9b0})
-  const windowGeo = new THREE.PlaneGeometry(2, 1.2)
-  for (const side of [-1, 1]) {
-    const wallZ = C.z + side * (C.depth / 2 + 0.02)
-    for (let i = 0; i < 4; i++) {
-      const win = new THREE.Mesh(windowGeo, windowMat)
-      win.position.set(C.x - C.width / 2 + 2.5 + i * 3, 3, wallZ)
-      win.rotation.y = side < 0 ? Math.PI : 0
-      parent.add(win)
-    }
-  }
-
-  // Entrance on the pitch-facing (north, -z) side, with light spilling out.
-  const doorZ = C.z - C.depth / 2 - 0.02
-  const door = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.4, 2.2),
-    new THREE.MeshBasicMaterial({color: 0xffd98a})
-  )
-  door.position.set(C.x + C.width / 2 - 2, 1.1, doorZ)
-  door.rotation.y = Math.PI
-  parent.add(door)
-
-  const glow = new THREE.PointLight(0xffdca8, 60, 30, 2)
-  glow.position.set(C.x + C.width / 2 - 2, 2.5, doorZ - 2)
-  parent.add(glow)
 }
 
 /**
@@ -578,19 +507,19 @@ function addShelter (THREE, parent) {
   const mat = new THREE.MeshLambertMaterial({color: 0x4a4f55})
 
   const back = new THREE.Mesh(new THREE.BoxGeometry(S.width, S.height, 0.2), mat)
-  back.position.set(0, S.height / 2, S.z + S.depth / 2)
+  back.position.set(S.x, S.height / 2, S.z + S.depth / 2)
   back.castShadow = true
   parent.add(back)
 
   for (const side of [-1, 1]) {
     const wall = new THREE.Mesh(new THREE.BoxGeometry(0.2, S.height, S.depth), mat)
-    wall.position.set(side * S.width / 2, S.height / 2, S.z)
+    wall.position.set(S.x + side * S.width / 2, S.height / 2, S.z)
     wall.castShadow = true
     parent.add(wall)
   }
 
   const roof = new THREE.Mesh(new THREE.BoxGeometry(S.width + 0.4, 0.2, S.depth + 0.4), mat)
-  roof.position.set(0, S.height, S.z)
+  roof.position.set(S.x, S.height, S.z)
   roof.castShadow = true
   parent.add(roof)
 
@@ -598,39 +527,6 @@ function addShelter (THREE, parent) {
     new THREE.BoxGeometry(S.width - 1, 0.5, 0.6),
     new THREE.MeshLambertMaterial({color: 0xb9bec4})
   )
-  bench.position.set(0, 0.4, S.z + S.depth / 2 - 0.6)
+  bench.position.set(S.x, 0.4, S.z + S.depth / 2 - 0.6)
   parent.add(bench)
-}
-
-/**
- * Level 3 goalkeeper pitch: a small separate grass area with two mini goals.
- * @param {Object} THREE
- * @param {Object} parent
- */
-function addKeeperPitch (THREE, parent) {
-  const K = TRAINING.keeperPitch
-  const group = new THREE.Group()
-
-  addPitch(THREE, group, {
-    width: K.width,
-    depth: K.depth,
-    centerZ: 0,
-    stripes: false,
-    circle: false
-  })
-  addGoal(THREE, group, {x: -K.width / 2, z: 0, scale: 0.55, facing: 1})
-  addGoal(THREE, group, {x: K.width / 2, z: 0, scale: 0.55, facing: -1})
-
-  group.position.set(K.x, 0, K.z)
-  parent.add(group)
-
-  // Its own small mast, plus yard lamps so the whole complex stays visible.
-  addMast(THREE, parent, {
-    x: K.x,
-    z: K.z + K.depth / 2 + 3,
-    aim: {x: K.x, z: K.z},
-    spec: {height: 8, intensity: 70, distance: 40, lamps: 2}
-  })
-  addYardLamp(THREE, parent, {x: K.x + K.width / 2 + 3, z: K.z - K.depth / 2 - 2})
-  addYardLamp(THREE, parent, {x: TRAINING.clubhouse.x, z: TRAINING.clubhouse.z + TRAINING.clubhouse.depth / 2 + 3})
 }

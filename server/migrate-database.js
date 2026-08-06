@@ -2634,7 +2634,7 @@ const migrations = [{
     }
   }
 }, {
-  name: 'Wiki: refresh buildings (3D club grounds + training area levels)',
+  name: 'Wiki: refresh buildings (3D club grounds + training area levels) v2',
   async run () {
     // The buildings page now opens with the 3D scene and the training ground is
     // actually built in it, so the wiki text describes what each level looks

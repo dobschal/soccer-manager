@@ -88,11 +88,12 @@ Stadion-Seite (`StadiumCanvas`), nur mit einem anderen Kamera-Ziel. Die Geometri
 der Gebaeude liegt in `client/partials/clubBuildingsScene.js`.
 
 - **TA-BLD-10**: Gemeinsame Szene fuer beide Seiten. Die Stadion-Seite fokussiert den Mittelpunkt des Spielfelds, die Gebaeude-Seite die Strassenkreuzung noerdoestlich des Stadions (`focus: 'buildings'`), inklusive Auto-Rotation um diesen Punkt und Kamera-Umschalter.
-- **TA-BLD-11**: Grundstuecke: Die Kreuzung hat vier Quadranten, einer davon ist das Stadion. Trainingsgelaende (aeusseres Eck), Fitness-Studio (Streifen noerdlich des Stadions) und Jugendakademie (Streifen oestlich davon) belegen die drei freien Quadranten mit 8 Einheiten Abstand zur Kreuzung. Baeume werden auf Grundstuecken ausgespart, die Bodenflaeche waechst mit, damit kein Grundstueck ueber ihren Rand hinausragt.
-- **TA-BLD-12**: Jedes Grundstueck ist ueber einen beleuchteten Fussweg an die naechste Strasse angebunden.
-- **TA-BLD-13**: Trainingsgelaende Stufe 1: Fussballplatz mit Streifenmuster, Markierungen und zwei Toren, ringsherum ein Maschendrahtzaun mit Tor zur Strasse, dazu ein Paar niedriger, schwacher Flutlichtmasten.
+- **TA-BLD-11**: Grundstuecke: Die Kreuzung hat vier Quadranten, einer davon ist das Stadion. Trainingsgelaende (aeusseres Eck), Fitness-Studio (Streifen noerdlich des Stadions) und Jugendakademie (Streifen oestlich davon) belegen die drei freien Quadranten. Der Abstand zu den Strassenachsen ist genau halbe Strassenbreite plus Fusswegbreite, sodass die Grundstuecksgrenze exakt auf dem Bordstein liegt. Baeume werden auf Grundstueck und Fussweg ausgespart, die Bodenflaeche waechst mit, damit kein Grundstueck ueber ihren Rand hinausragt.
+- **TA-BLD-12**: Entlang der beiden Strassen, an die ein bebautes Grundstueck grenzt, laeuft ein Fussweg mit Strassenlaternen (dieselben wie am Stadion). Er bildet ein L um die kreuzungsseitige Ecke; Laternen werden vor dem Tor im Zaun ausgelassen.
+- **TA-BLD-13**: Trainingsgelaende Stufe 1: Fussballplatz in Stadion-Groesse (50x30 Einheiten) mit Streifenmuster, Markierungen und zwei Toren, ringsherum ein Maschendrahtzaun mit Tor zur Strasse. Der Zaun ist die Grundstuecksgrenze und steht damit direkt am Bordstein. Beleuchtung: ein Paar niedriger, schwacher Masten hinter einer Laengsseite - die gegenueberliegende Haelfte bleibt bewusst im Dunkeln.
 - **TA-BLD-14**: Trainingsgelaende Stufe 2: zusaetzlich Baelle, Slalomstangen und Huetchen auf dem Platz sowie ein zweites, hoeheres und deutlich helleres Mastpaar.
-- **TA-BLD-15**: Trainingsgelaende Stufe 3: hohe, sehr helle Masten plus Trainingszentrum — Vereinsgebaeude mit beleuchteten Fenstern, ueberdachte Trainerbank am Spielfeldrand und ein separater Torwartplatz mit zwei Minitoren, eigenem Mast und Hofleuchten.
+- **TA-BLD-15**: Trainingsgelaende Stufe 3: hohe Masten, die den Platz spielfeldhell ausleuchten, plus eine ueberdachte Trainerbank am Spielfeldrand.
+- **TA-BLD-15a**: Das Trainingsgelaende hat auf keiner Stufe Gebaeude oder Nebenplaetze - beides folgt spaeter.
 - **TA-BLD-16**: Fitness-Studio und Jugendakademie haben ihr Grundstueck reserviert, aber noch keine 3D-Geometrie.
 
 ### Tests

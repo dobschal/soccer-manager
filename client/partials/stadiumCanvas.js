@@ -1,7 +1,7 @@
 import {UIElement} from '../lib/UIElement.js'
 import {el} from '../lib/html.js'
 import {t} from '../i18n/index.js'
-import {buildTrainingArea, clubBuildingPlots, PLOT_CLEARANCE} from './clubBuildingsScene.js'
+import {buildTrainingArea, clubBuildingPlots} from './clubBuildingsScene.js'
 
 /**
  * Central layout & scene configuration for the 3D stadium.
@@ -148,8 +148,6 @@ export const CONFIG = Object.freeze({
     // Far enough out that all three plots around the crossing fit in frame.
     buildings: {cameraOffset: [88, 92, 88], minDistance: 40, maxDistance: 240}
   },
-  // Paved path joining a building plot's gate to the nearest road.
-  buildingPath: {width: 3, lampSpacing: 12},
   colors: {
     sceneBackground: 0x0a0a1a,
     ground: 0x3d5c3d,
@@ -497,10 +495,16 @@ export class StadiumCanvas extends UIElement {
 
   /**
    * Plots of the club buildings this team owns, around the NE intersection.
-   * @returns {Array<{type: string, level: number, cx: number, cz: number, halfX: number, halfZ: number}>}
+   * Each sits half a road plus a sidewalk away from the crossing's centre
+   * lines, so its boundary lands exactly on the sidewalk's kerb.
+   * @returns {Array<{type: string, level: number, cx: number, cz: number, halfX: number, halfZ: number, qx: number, qz: number}>}
    */
   _buildingPlots () {
-    return clubBuildingPlots(this.options.buildings, this._intersection())
+    return clubBuildingPlots(
+      this.options.buildings,
+      this._intersection(),
+      CONFIG.road.width / 2 + CONFIG.sidewalk.width
+    )
   }
 
   /**
@@ -519,9 +523,10 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
-   * Render every club building the team owns onto its plot, each joined to the
-   * road by a lamp-lined footpath. Only the training ground has 3D geometry so
-   * far; the other plots stay empty until they get theirs.
+   * Render every club building the team owns onto its plot, each with a
+   * lamp-lined sidewalk along the two roads it borders. Only the training
+   * ground has 3D geometry so far; the other plots stay empty until they get
+   * theirs (and get no sidewalk in the meantime).
    * @param {THREE.Scene} scene
    */
   _buildClubBuildings (scene) {
@@ -534,37 +539,48 @@ export class StadiumCanvas extends UIElement {
         x: plot.cx,
         z: plot.cz
       })
-      this._addBuildingPath(scene, plot, gate)
+      this._addBuildingSidewalks(scene, plot, gate)
     }
   }
 
   /**
-   * Footpath from a plot's gate straight out to the road it faces, lined with
-   * street lamps — the same paving as the stadium's own footpaths.
+   * The sidewalk along the two sides of a plot that face a road — an L running
+   * around the crossing-facing corner, lined with the same street lamps as the
+   * stadium's own sidewalk. The plot boundary (for the training ground: its
+   * fence) sits directly on the kerb, so no connecting path is needed.
    * @param {THREE.Scene} scene
-   * @param {{cx: number, cz: number, halfZ: number}} plot
-   * @param {{x: number, z: number}} gate gate position in plot-local coordinates
+   * @param {{cx: number, cz: number, halfX: number, halfZ: number, qx: number, qz: number}} plot
+   * @param {{x: number, z: number, width: number}} [gate] plot-local gate to keep lamps clear of
    */
-  _addBuildingPath (scene, plot, gate) {
-    const gateX = plot.cx + gate.x
-    const gateZ = plot.cz + gate.z
-    // The gate faces the road on the plot's stadium-facing (+z) side.
-    const roadEdgeZ = plot.cz + plot.halfZ + PLOT_CLEARANCE - CONFIG.road.width / 2
-    const length = roadEdgeZ - gateZ
-    if (length <= 0) return
+  _addBuildingSidewalks (scene, plot, gate) {
+    const sw = CONFIG.sidewalk.width
+    const mat = new this._THREE.MeshLambertMaterial({color: CONFIG.sidewalk.color})
+    // Centre lines of the two strips, just outside the plot's road-facing sides.
+    const stripX = plot.cx - plot.qx * (plot.halfX + sw / 2)
+    const stripZ = plot.cz - plot.qz * (plot.halfZ + sw / 2)
 
-    const mat = new this._THREE.MeshLambertMaterial({color: CONFIG.footpath.color})
-    this._addPavement(
-      scene, CONFIG.buildingPath.width, length, gateX, gateZ + length / 2, mat, CONFIG.footpath.y
-    )
+    // The x-running strip is extended by the sidewalk width so the two meet in
+    // a filled corner instead of leaving a notch.
+    this._addPavement(scene, 2 * plot.halfX + sw, sw, plot.cx - plot.qx * sw / 2, stripZ, mat, CONFIG.sidewalk.y)
+    this._addPavement(scene, sw, 2 * plot.halfZ, stripX, plot.cz, mat, CONFIG.sidewalk.y)
 
-    const lamps = Math.max(1, Math.round(length / CONFIG.buildingPath.lampSpacing))
-    for (let i = 1; i <= lamps; i++) {
-      this._createStreetLamp(
-        scene,
-        gateX + CONFIG.buildingPath.width / 2 + 0.6,
-        gateZ + (i / (lamps + 1)) * length
-      )
+    const placed = []
+    const addLamp = (x, z) => {
+      // Never in front of the gate, and never twice in the shared corner.
+      if (gate && Math.hypot(x - (plot.cx + gate.x), z - (plot.cz + gate.z)) < gate.width) return
+      if (placed.some(p => Math.hypot(p.x - x, p.z - z) < CONFIG.sidewalk.width * 2)) return
+      placed.push({x, z})
+      this._createStreetLamp(scene, x, z)
+    }
+
+    const spacing = CONFIG.sidewalk.lampSpacing
+    const alongX = Math.max(1, Math.round(2 * plot.halfX / spacing))
+    for (let i = 0; i <= alongX; i++) {
+      addLamp(plot.cx - plot.halfX + (i / alongX) * 2 * plot.halfX, stripZ)
+    }
+    const alongZ = Math.max(1, Math.round(2 * plot.halfZ / spacing))
+    for (let i = 0; i <= alongZ; i++) {
+      addLamp(stripX, plot.cz - plot.halfZ + (i / alongZ) * 2 * plot.halfZ)
     }
   }
 
@@ -1263,12 +1279,16 @@ export class StadiumCanvas extends UIElement {
     const coneCenterY = trunkHeight + coneHeight / 2
 
     // Reject a candidate that would sit on the stadium footprint (inside the
-    // road grid), on/near any road, or on a club building's plot.
+    // road grid), on/near any road, or on a club building's plot (plus the
+    // sidewalk that runs around it).
+    const plotPad = CONFIG.sidewalk.width + 1
     const isBlocked = (x, z) =>
       (Math.abs(x) < distance && Math.abs(z) < distance) ||
       Math.abs(Math.abs(x) - distance) < roadEdge ||
       Math.abs(Math.abs(z) - distance) < roadEdge ||
-      plots.some(p => Math.abs(x - p.cx) < p.halfX && Math.abs(z - p.cz) < p.halfZ)
+      plots.some(p =>
+        Math.abs(x - p.cx) < p.halfX + plotPad && Math.abs(z - p.cz) < p.halfZ + plotPad
+      )
 
     const trees = []
     const steps = Math.floor(areaHalf / spacing)

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   BUILDING_PLOTS,
-  PLOT_CLEARANCE,
   buildTrainingArea,
   clubBuildingPlots
 } from '../../partials/clubBuildingsScene.js'
@@ -54,36 +53,35 @@ const stubThree = () => {
 }
 
 const INTERSECTION = { x: 50, z: -50 }
+const CLEARANCE = 6.5 // half a road (3.5) plus the sidewalk (3)
+const plotsFor = (buildings, at = INTERSECTION) => clubBuildingPlots(buildings, at, CLEARANCE)
 
 describe('clubBuildingPlots', () => {
   it('gives every owned building a plot around the intersection', () => {
-    const plots = clubBuildingPlots([
+    const plots = plotsFor([
       { type: 'training_area', level: 1 },
       { type: 'fitness_studio', level: 2 },
       { type: 'youth_academy', level: 3 }
-    ], INTERSECTION)
+    ])
     expect(plots.map(p => p.type).sort())
       .toEqual(['fitness_studio', 'training_area', 'youth_academy'])
   })
 
   it('skips unknown types and buildings the team does not have yet', () => {
-    expect(clubBuildingPlots([
+    expect(plotsFor([
       { type: 'spaceport', level: 3 },
       { type: 'training_area', level: 0 }
-    ], INTERSECTION)).toEqual([])
-    expect(clubBuildingPlots(undefined, INTERSECTION)).toEqual([])
+    ])).toEqual([])
+    expect(plotsFor(undefined)).toEqual([])
   })
 
-  it('keeps every plot clear of the crossing by at least the clearance', () => {
-    const plots = clubBuildingPlots(
-      Object.keys(BUILDING_PLOTS).map(type => ({ type, level: 1 })),
-      INTERSECTION
-    )
+  it('lands every plot boundary exactly on the sidewalk kerb', () => {
+    // Half a road plus the sidewalk — so the training ground's fence, which is
+    // its plot boundary, runs right along the kerb on both road-facing sides.
+    const plots = plotsFor(Object.keys(BUILDING_PLOTS).map(type => ({ type, level: 1 })))
     for (const p of plots) {
-      const gapX = Math.abs(p.cx - INTERSECTION.x) - p.halfX
-      const gapZ = Math.abs(p.cz - INTERSECTION.z) - p.halfZ
-      expect(gapX).toBeGreaterThanOrEqual(PLOT_CLEARANCE)
-      expect(gapZ).toBeGreaterThanOrEqual(PLOT_CLEARANCE)
+      expect(Math.abs(p.cx - INTERSECTION.x) - p.halfX).toBeCloseTo(CLEARANCE)
+      expect(Math.abs(p.cz - INTERSECTION.z) - p.halfZ).toBeCloseTo(CLEARANCE)
     }
   })
 
@@ -99,13 +97,13 @@ describe('clubBuildingPlots', () => {
   })
 
   it('clamps the level to the buildable 1-3 range', () => {
-    const [plot] = clubBuildingPlots([{ type: 'training_area', level: 9 }], INTERSECTION)
+    const [plot] = plotsFor([{ type: 'training_area', level: 9 }])
     expect(plot.level).toBe(3)
   })
 
   it('moves with the intersection (a bigger stadium pushes the roads out)', () => {
-    const near = clubBuildingPlots([{ type: 'training_area', level: 1 }], { x: 45, z: -45 })[0]
-    const far = clubBuildingPlots([{ type: 'training_area', level: 1 }], { x: 80, z: -80 })[0]
+    const near = plotsFor([{ type: 'training_area', level: 1 }], { x: 45, z: -45 })[0]
+    const far = plotsFor([{ type: 'training_area', level: 1 }], { x: 80, z: -80 })[0]
     expect(far.cx - near.cx).toBe(35)
     expect(far.cz - near.cz).toBe(-35)
   })
@@ -148,15 +146,26 @@ describe('buildTrainingArea', () => {
     expect(countOf(level2.THREE, 'InstancedMesh')).toBe(2)
   })
 
-  it('adds the clubhouse, shelter and keeper pitch at level 3', () => {
+  it('adds the coaching shelter at level 3', () => {
     const level2 = build(2)
     const level3 = build(3)
     expect(countOf(level3.THREE, 'Mesh')).toBeGreaterThan(countOf(level2.THREE, 'Mesh'))
-    // clubhouse entrance glow + two yard lamps light the level 3 extras
-    expect(countOf(level3.THREE, 'PointLight')).toBe(3)
-    expect(countOf(level2.THREE, 'PointLight')).toBe(0)
-    // …and the keeper pitch gets its own small mast on top of the four big ones
-    expect(countOf(level3.THREE, 'SpotLight')).toBe(5)
+  })
+
+  it('has no buildings on the training ground yet (they come later)', () => {
+    // Only the open-air pitch, its fence, masts and kit — nothing walled in.
+    for (const level of [1, 2, 3]) {
+      const { THREE } = build(level)
+      expect(countOf(THREE, 'PointLight')).toBe(0)
+    }
+  })
+
+  it('keeps the fence flush with the plot boundary', () => {
+    // The fence is the plot edge, so on the road-facing sides it lands on the
+    // kerb — nothing may stick out past it.
+    const def = BUILDING_PLOTS.training_area
+    const { result } = build(3)
+    expect(result.gate.z).toBe(def.size.z / 2)
   })
 
   it('gets brighter with every level', () => {
