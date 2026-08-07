@@ -10,11 +10,12 @@ const SUSPICIOUS_PAGE_SIZE = 10
 
 export class UserManagementAdminPage extends UIElement {
   async load () {
-    const [adminsRes, suspiciousRes, referralRes, reportsRes] = await Promise.all([
+    const [adminsRes, suspiciousRes, referralRes, reportsRes, blockedRes] = await Promise.all([
       server.getAdmins(),
       server.getSuspiciousActions(this._suspiciousPage, SUSPICIOUS_PAGE_SIZE),
       server.getReferralSettings(),
-      server.getReportedUsers()
+      server.getReportedUsers(),
+      server.getBlockedEmails()
     ])
     this._admins = adminsRes.admins
     this._suspicious = suspiciousRes.rows
@@ -23,6 +24,7 @@ export class UserManagementAdminPage extends UIElement {
     this._referralAction = referralRes.action
     this._referralOptions = referralRes.options || []
     this._reports = reportsRes.reports || []
+    this._blockedEmails = blockedRes.blocked || []
   }
 
   get template () {
@@ -79,6 +81,8 @@ export class UserManagementAdminPage extends UIElement {
 
         ${this._renderReferralBenefit()}
 
+        ${this._renderBlockedEmails()}
+
         ${this._renderReportedUsers()}
 
         ${this._renderSuspiciousActions()}
@@ -111,7 +115,92 @@ export class UserManagementAdminPage extends UIElement {
       },
       '(optional).report-resolve-btn': {
         click: (e) => this._resolveReport(e.currentTarget.dataset.reportId)
+      },
+      [`#${this._blockEmailBtnId}`]: {
+        click: () => this._blockEmail()
+      },
+      '(optional).email-unblock-btn': {
+        click: (e) => this._unblockEmail(e.currentTarget.dataset.email)
       }
+    }
+  }
+
+  _renderBlockedEmails () {
+    const rows = this._blockedEmails.map(b => `
+      <tr>
+        <td>${this._escape(b.email)}</td>
+        <td>${b.username ? `<a href="#user?id=${b.user_id}">${this._escape(b.username)}</a>` : '—'}</td>
+        <td>${this._escape(b.reason) || '—'}</td>
+        <td>${new Date(b.created_at).toLocaleString()}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-secondary email-unblock-btn" data-email="${this._escapeAttr(b.email)}">
+            <i class="fa fa-unlock" aria-hidden="true"></i> ${t('admin.blockedEmailsUnblock')}
+          </button>
+        </td>
+      </tr>
+    `).join('')
+
+    return `
+      <div class="mb-4">
+        <h4>${t('admin.blockedEmailsTitle')} (${this._blockedEmails.length})</h4>
+        <p class="text-muted">${t('admin.blockedEmailsDescription')}</p>
+        ${this._blockedEmails.length > 0
+    ? `<div class="horizontal-scrollable-table mb-3">
+              <table class="table table-sm table-hover mb-0">
+                <thead><tr>
+                  <th>${t('admin.blockedEmailsEmail')}</th>
+                  <th>${t('admin.blockedEmailsAccount')}</th>
+                  <th>${t('admin.blockedEmailsReason')}</th>
+                  <th>${t('admin.suspiciousActionsTime')}</th>
+                  <th></th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>`
+    : `<p class="text-muted">${t('admin.blockedEmailsEmpty')}</p>`}
+        <div class="mb-2">
+          <input type="email" id="${this._blockEmailInputId}" class="form-control" placeholder="${t('admin.blockedEmailsEmailPlaceholder')}">
+        </div>
+        <div class="input-group">
+          <input type="text" id="${this._blockEmailReasonId}" class="form-control" placeholder="${t('admin.blockedEmailsReasonPlaceholder')}">
+          <button id="${this._blockEmailBtnId}" class="btn btn-danger">
+            <i class="fa fa-ban" aria-hidden="true"></i> ${t('admin.blockedEmailsBlock')}
+          </button>
+        </div>
+      </div>
+    `
+  }
+
+  async _blockEmail () {
+    const emailInput = document.getElementById(this._blockEmailInputId)
+    const reasonInput = document.getElementById(this._blockEmailReasonId)
+    const email = emailInput.value.trim()
+    if (!email) return
+    if (!(await showConfirmDialog(t('admin.blockedEmailsConfirm', { email }), t('admin.blockedEmailsBlock'), t('dialog.cancel')))) return
+    const btn = document.getElementById(this._blockEmailBtnId)
+    try {
+      btn.disabled = true
+      const result = await server.blockEmailAddress(email, reasonInput.value.trim())
+      toast(t('admin.blockedEmailsBlocked', { email, count: result.affectedUsers.length }), 'success')
+      emailInput.value = ''
+      reasonInput.value = ''
+      await this.update(true)
+    } catch (e) {
+      toast(e.message || 'Something went wrong', 'error')
+    } finally {
+      const refreshed = document.getElementById(this._blockEmailBtnId)
+      if (refreshed) refreshed.disabled = false
+    }
+  }
+
+  async _unblockEmail (email) {
+    if (!(await showConfirmDialog(t('admin.blockedEmailsUnblockConfirm', { email }), t('admin.blockedEmailsUnblock'), t('dialog.cancel')))) return
+    try {
+      await server.unblockEmailAddress(email)
+      toast(t('admin.blockedEmailsUnblocked', { email }), 'success')
+      await this.update(true)
+    } catch (e) {
+      toast(e.message || 'Something went wrong', 'error')
     }
   }
   _renderReportedUsers () {
@@ -155,6 +244,15 @@ export class UserManagementAdminPage extends UIElement {
     const div = document.createElement('div')
     div.textContent = text ?? ''
     return div.innerHTML
+  }
+
+  /**
+   * Escape for use inside a double-quoted HTML attribute. `_escape` goes
+   * through textContent, which leaves quotes untouched — fine for element
+   * content, not for `data-*` values that come from admin free text.
+   */
+  _escapeAttr (text) {
+    return this._escape(text).replaceAll('"', '&quot;')
   }
 
   async _resolveReport (reportId) {
@@ -249,7 +347,7 @@ export class UserManagementAdminPage extends UIElement {
     if (!params) return {}
     const formatted = {}
     for (const [k, v] of Object.entries(params)) {
-      if ((k === 'price' || k === 'value') && typeof v === 'number') {
+      if ((k === 'price' || k === 'value' || k === 'total') && typeof v === 'number') {
         formatted[k] = this._formatMoney(v)
       } else {
         formatted[k] = v
@@ -290,6 +388,10 @@ export class UserManagementAdminPage extends UIElement {
   _referralBenefitBtnId = generateId()
   _suspiciousPrevBtnId = generateId()
   _suspiciousNextBtnId = generateId()
+  _blockEmailInputId = generateId()
+  _blockEmailReasonId = generateId()
+  _blockEmailBtnId = generateId()
+  _blockedEmails = []
   _admins = []
   _suspicious = []
   _suspiciousTotal = 0

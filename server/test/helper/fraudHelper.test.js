@@ -9,6 +9,12 @@ import { query } from '../../lib/database.js'
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Detectors run in parallel and each dispatches its first query in
+  // declaration order, so tests below queue `mockResolvedValueOnce` per
+  // detector. The default keeps every *additional* query (later detectors,
+  // follow-up lookups) at an empty result instead of undefined.
+  query.mockReset()
+  query.mockResolvedValue([])
 })
 
 describe('fraudHelper._approxMarketValueByLevel', () => {
@@ -128,26 +134,21 @@ describe('fraudHelper.getSuspiciousActions', () => {
   })
 
   it('flags frequent-trade pairs with team and user names', async () => {
-    // The three detectors run in parallel, so their first queries are dispatched
-    // in declaration order before any of them resolve. detectFrequentTrades' team
-    // lookup is dispatched only after its aggregate query resolves, so it lands
-    // last in the mock sequence.
-    query
-      // _detectSharedIp
-      .mockResolvedValueOnce([])
-      // _detectSharedDevice
-      .mockResolvedValueOnce([])
-      // _detectFrequentTrades aggregate
-      .mockResolvedValueOnce([
-        { team_a_id: 10, team_b_id: 20, trade_count: 5, last_trade: '2026-06-03T08:00:00Z' }
-      ])
-      // _detectPriceDeviation
-      .mockResolvedValueOnce([])
-      // _detectFrequentTrades team lookup
-      .mockResolvedValueOnce([
-        { id: 10, name: 'FC Alpha', username: 'alpha' },
-        { id: 20, name: 'FC Beta', username: 'beta' }
-      ])
+    // detectFrequentTrades' team lookup is dispatched only after its aggregate
+    // query resolves, so its position in the global call sequence depends on how
+    // many other detectors exist. Match on the SQL instead of on call order.
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('GROUP BY LEAST(th.from_team_id')) {
+        return [{ team_a_id: 10, team_b_id: 20, trade_count: 5, last_trade: '2026-06-03T08:00:00Z' }]
+      }
+      if (sql.includes('FROM team t LEFT JOIN user u')) {
+        return [
+          { id: 10, name: 'FC Alpha', username: 'alpha' },
+          { id: 20, name: 'FC Beta', username: 'beta' }
+        ]
+      }
+      return []
+    })
 
     const result = await getSuspiciousActions({ limit: 10, offset: 0 })
 
@@ -318,6 +319,191 @@ describe('fraudHelper.getSuspiciousActions', () => {
     expect(page1.rows[0].user1.username === 'c' || page1.rows[0].user2.username === 'c').toBe(true)
 
     expect(page2.rows).toHaveLength(0) // because we exhausted the mocks
+  })
+
+  it('flags pairs of users sharing the same push token', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM device_token dt')) {
+        return [
+          { token: 'tok-a', user_id: 1, platform: 'android', updated_at: '2026-06-05T10:00:00Z', username: 'alice', team_name: 'FC Alice' },
+          { token: 'tok-a', user_id: 2, platform: 'android', updated_at: '2026-06-04T10:00:00Z', username: 'bob', team_name: 'FC Bob' }
+        ]
+      }
+      return []
+    })
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(1)
+    expect(result.rows[0]).toMatchObject({
+      type: 'shared_push_token',
+      description_key: 'admin.fraudDescSharedPushToken',
+      description_params: { platform: 'android' },
+      user1: { username: 'alice', team_name: 'FC Alice' },
+      user2: { username: 'bob', team_name: 'FC Bob' }
+    })
+  })
+
+  it('emits one event per pair when three accounts share a push token', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM device_token dt')) {
+        return [
+          { token: 't', user_id: 1, platform: 'ios', updated_at: '2026-06-05T10:00:00Z', username: 'a', team_name: 'A' },
+          { token: 't', user_id: 2, platform: 'ios', updated_at: '2026-06-04T10:00:00Z', username: 'b', team_name: 'B' },
+          { token: 't', user_id: 3, platform: 'ios', updated_at: '2026-06-03T10:00:00Z', username: 'c', team_name: 'C' }
+        ]
+      }
+      return []
+    })
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(3)
+  })
+
+  it('flags an invite link that was opened from the inviter own IP', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM link_invite li')) {
+        return [{
+          invitee_ip: '91.19.204.147',
+          used_at: '2026-07-23T22:03:31Z',
+          created_at: '2026-07-23T22:02:05Z',
+          inviter_username: 'cheater',
+          inviter_team: 'FC Cheater',
+          invitee_username: 'alt',
+          invitee_team: 'FC Alt'
+        }]
+      }
+      return []
+    })
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(1)
+    expect(result.rows[0]).toMatchObject({
+      type: 'self_invite_link',
+      description_key: 'admin.fraudDescSelfInviteLink',
+      description_params: { ip: '91.19.204.147' },
+      user1: { username: 'cheater', team_name: 'FC Cheater' },
+      user2: { username: 'alt', team_name: 'FC Alt' }
+    })
+  })
+
+  it('flags an email referral whose invitee shares a device with the inviter', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM referral_invitation ri')) {
+        return [{
+          used_at: '2026-06-03T20:38:24Z',
+          created_at: '2026-06-03T20:04:00Z',
+          inviter_username: 'one',
+          inviter_team: 'FC One',
+          invitee_username: 'two',
+          invitee_team: 'FC Two',
+          same_device: 1,
+          same_ip_web: 0,
+          same_ip_ios: 0,
+          same_ip_android: 0
+        }]
+      }
+      return []
+    })
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(1)
+    expect(result.rows[0]).toMatchObject({
+      type: 'self_referral',
+      description_key: 'admin.fraudDescSelfReferralDevice'
+    })
+  })
+
+  it('reports a shared-IP referral with the IP-specific description', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM referral_invitation ri')) {
+        return [{
+          used_at: '2026-07-11T04:22:59Z',
+          created_at: '2026-07-11T04:21:36Z',
+          inviter_username: 'one',
+          inviter_team: 'FC One',
+          invitee_username: 'two',
+          invitee_team: 'FC Two',
+          same_device: 0,
+          same_ip_web: 0,
+          same_ip_ios: 0,
+          same_ip_android: 1
+        }]
+      }
+      return []
+    })
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.rows[0].description_key).toBe('admin.fraudDescSelfReferralIp')
+  })
+
+  it('ignores referrals where inviter and invitee share neither IP nor device', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM referral_invitation ri')) {
+        return [{
+          used_at: '2026-07-11T04:22:59Z',
+          created_at: '2026-07-11T04:21:36Z',
+          inviter_username: 'one',
+          inviter_team: 'FC One',
+          invitee_username: 'two',
+          invitee_team: 'FC Two',
+          same_device: 0,
+          same_ip_web: 0,
+          same_ip_ios: 0,
+          same_ip_android: 0
+        }]
+      }
+      return []
+    })
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(0)
+  })
+
+  it('flags action-card auctions won seconds after being listed', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM action_card_bid b')) {
+        return [{
+          seller_team: 'TSV Weeze',
+          seller_username: 'newAccount',
+          buyer_team: 'FC Red Dragons',
+          buyer_username: 'mainAccount',
+          pickup_count: 16,
+          total_money: 95000,
+          avg_seconds: 50,
+          last_pickup: '2026-08-06T17:31:58Z'
+        }]
+      }
+      return []
+    })
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(1)
+    expect(result.rows[0]).toMatchObject({
+      type: 'instant_card_pickup',
+      description_key: 'admin.fraudDescInstantCardPickup',
+      description_params: { count: 16, seconds: 50, total: 95000 },
+      user1: { username: 'newAccount', team_name: 'TSV Weeze' },
+      user2: { username: 'mainAccount', team_name: 'FC Red Dragons' }
+    })
+  })
+
+  it('passes the instant-pickup thresholds to the query', async () => {
+    await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    const call = query.mock.calls.find(([sql]) => sql.includes('FROM action_card_bid b'))
+    expect(call).toBeDefined()
+    expect(call[1]).toEqual([
+      60,
+      __testing.INSTANT_PICKUP_MIN_COUNT,
+      __testing.INSTANT_PICKUP_MAX_SECONDS
+    ])
   })
 
   it('returns ISO time strings on the page', async () => {

@@ -12,6 +12,8 @@ export default {
   'error.emailInvalid': 'Please enter a valid email address',
   'error.emailTaken': 'This email address is already in use',
   'error.emailRequired': 'Email is required',
+  'error.emailBlocked': 'This email address cannot be used',
+  'error.accountBlocked': 'This account has been blocked. Please contact support.',
   'error.verificationTokenInvalid': 'This verification link is invalid or has expired',
   'error.passwordResetTokenInvalid': 'This password reset link is invalid or has expired',
   'error.invalidParam': 'Invalid parameter',

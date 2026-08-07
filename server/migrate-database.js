@@ -2690,6 +2690,42 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Create blocked_email table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS blocked_email
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        email VARCHAR(255) NOT NULL,
+        reason VARCHAR(255) DEFAULT NULL,
+        blocked_by_user_id BIGINT(20) UNSIGNED DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_blocked_email (email)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Add sessions_invalid_before to user',
+  async run () {
+    // JWTs are stateless, so revoking a login means recording a cut-off and
+    // rejecting any token whose `iat` predates it (see the auth middleware).
+    await query('ALTER TABLE user ADD COLUMN sessions_invalid_before TIMESTAMP NULL DEFAULT NULL')
+  }
+}, {
+  name: 'Wiki: refresh fair-play (new detectors + email block)',
+  async run () {
+    // Detection now also covers action-card auctions and self-claimed invite
+    // rewards, and a confirmed cheat can be blocked instead of only deleted.
+    const topic = WIKI_SEED.find(t => t.key === 'fair-play')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

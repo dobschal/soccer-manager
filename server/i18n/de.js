@@ -12,6 +12,8 @@ export default {
   'error.emailInvalid': 'Bitte gib eine gültige E-Mail-Adresse ein',
   'error.emailTaken': 'Diese E-Mail-Adresse wird bereits verwendet',
   'error.emailRequired': 'E-Mail-Adresse ist erforderlich',
+  'error.emailBlocked': 'Diese E-Mail-Adresse kann nicht verwendet werden',
+  'error.accountBlocked': 'Dieser Account wurde gesperrt. Bitte wende dich an den Support.',
   'error.verificationTokenInvalid': 'Dieser Bestätigungslink ist ungültig oder abgelaufen',
   'error.passwordResetTokenInvalid': 'Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen',
   'error.invalidParam': 'Ungültiger Parameter',

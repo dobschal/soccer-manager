@@ -384,9 +384,9 @@ No arranged transfers:
 • Clubs that keep trading players back and forth with each other are flagged for review.
 
 How this is checked:
-• Suspicious patterns are detected automatically: accounts used from the same device or network, transfer prices far off the market value, and pairs of clubs trading unusually often.
+• Suspicious patterns are detected automatically: accounts used from the same device or network, transfer prices far off the market value, pairs of clubs trading unusually often, action cards that are always won by the same club seconds after being listed, and invitation rewards claimed by the inviter themselves.
 • Every flag is reviewed by a human admin. Being flagged is not a verdict – normal situations like two friends in the same flat show up too.
-• Confirmed cheating can cost you your club: an admin can delete the account.
+• Confirmed cheating can cost you your club: an admin can block your email address or delete the account. A blocked address can no longer log in or register, and any open session ends immediately.
 
 If you are unsure whether something is allowed – for example because you and a friend share a WiFi connection – say so in the forum before it looks suspicious.`
     },
@@ -406,9 +406,9 @@ Keine abgesprochenen Transfers:
 • Vereine, die Spieler immer wieder untereinander hin- und herschieben, werden zur Prüfung markiert.
 
 Wie das geprüft wird:
-• Verdächtige Muster werden automatisch erkannt: Accounts vom selben Gerät oder Netzwerk, Transferpreise weit abseits des Marktwerts und Vereinspaare mit auffällig vielen Transfers.
+• Verdächtige Muster werden automatisch erkannt: Accounts vom selben Gerät oder Netzwerk, Transferpreise weit abseits des Marktwerts, Vereinspaare mit auffällig vielen Transfers, Action Cards, die immer wieder Sekunden nach dem Einstellen vom selben Verein gekauft werden, und Einladungs-Belohnungen, die sich jemand selbst gutschreibt.
 • Jede Markierung wird von einem Admin persönlich geprüft. Markiert zu sein ist kein Urteil – auch normale Fälle wie zwei Freunde in einer WG tauchen dort auf.
-• Bestätigtes Cheating kann dich deinen Verein kosten: Ein Admin kann den Account löschen.
+• Bestätigtes Cheating kann dich deinen Verein kosten: Ein Admin kann deine E-Mail-Adresse sperren oder den Account löschen. Mit einer gesperrten Adresse sind Login und Registrierung nicht mehr möglich, eine offene Sitzung endet sofort.
 
 Wenn du unsicher bist, ob etwas erlaubt ist – zum Beispiel weil du dir mit einem Freund das WLAN teilst – sag es im Forum, bevor es verdächtig aussieht.`
     }

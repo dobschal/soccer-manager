@@ -7,6 +7,9 @@ vi.mock('../../lib/gateway.js', () => ({
     getTopCountries: vi.fn().mockResolvedValue({ rows: [] }),
     getSuspiciousActions: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 }),
     getReportedUsers: vi.fn().mockResolvedValue({ reports: [] }),
+    getBlockedEmails: vi.fn().mockResolvedValue({ blocked: [] }),
+    blockEmailAddress: vi.fn().mockResolvedValue({ success: true, email: 'x@y.z', affectedUsers: [] }),
+    unblockEmailAddress: vi.fn().mockResolvedValue({ success: true, removed: true }),
     getReferralSettings: vi.fn().mockResolvedValue({ action: 'BONUS_100K', options: ['BONUS_100K', 'STAR_PLAYER'] }),
     setReferralBenefit: vi.fn().mockResolvedValue({ success: true, action: 'BONUS_100K' }),
     getNotificationEmails: vi.fn().mockResolvedValue({ rows: [] }),
@@ -299,6 +302,64 @@ describe('UserManagementAdminPage referral benefit', () => {
     expect(html).toContain('admin.referralBenefitSave')
     expect(html).toMatch(/<option value="STAR_PLAYER" selected>/)
     expect(html).toMatch(/<option value="BONUS_100K">/)
+  })
+})
+
+describe('UserManagementAdminPage blocked emails', () => {
+  beforeEach(() => {
+    server.getAdmins.mockResolvedValue({ admins: [] })
+    server.getSuspiciousActions.mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 10 })
+    server.getReportedUsers.mockResolvedValue({ reports: [] })
+    server.getBlockedEmails.mockResolvedValue({ blocked: [] })
+  })
+
+  it('renders the empty state when nothing is blocked', async () => {
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('admin.blockedEmailsTitle')
+    expect(html).toContain('admin.blockedEmailsEmpty')
+    expect(html).toContain('admin.blockedEmailsBlock')
+  })
+
+  it('lists blocked addresses with the account still using them', async () => {
+    server.getBlockedEmails.mockResolvedValue({
+      blocked: [{
+        id: 1,
+        email: 'cheater@example.com',
+        reason: 'Second account',
+        created_at: '2026-08-07T10:00:00.000Z',
+        blocked_by: 'Emmo',
+        user_id: 42,
+        username: 'Cheater'
+      }]
+    })
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('cheater@example.com')
+    expect(html).toContain('Second account')
+    expect(html).toContain('#user?id=42')
+    expect(html).toContain('admin.blockedEmailsUnblock')
+  })
+
+  it('escapes the email so a crafted address cannot inject markup', async () => {
+    server.getBlockedEmails.mockResolvedValue({
+      blocked: [{
+        id: 1,
+        email: '<img src=x onerror=alert(1)>@example.com',
+        reason: null,
+        created_at: '2026-08-07T10:00:00.000Z',
+        blocked_by: 'Emmo',
+        user_id: null,
+        username: null
+      }]
+    })
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).not.toContain('<img src=x')
+    expect(html).toContain('&lt;img src=x')
   })
 })
 
