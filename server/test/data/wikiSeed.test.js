@@ -7,7 +7,18 @@ const MAX_SUBTITLE = 255
 
 describe('wiki seed content (#441)', () => {
   it('covers all requested topics in both locales', () => {
-    expect(WIKI_SEED).toHaveLength(27)
+    expect(WIKI_SEED).toHaveLength(28)
+  })
+
+  it('documents the fair-play rules so sanctions are not a surprise', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'fair-play')
+    expect(topic).toBeTruthy()
+    // Second accounts and arranged transfers are the two patterns the fraud
+    // detectors flag — both must be spelled out for players in both locales.
+    expect(topic.en.text).toMatch(/second account/i)
+    expect(topic.en.text).toMatch(/75%/)
+    expect(topic.de.text).toMatch(/Zweit-Account/i)
+    expect(topic.de.text).toMatch(/75%/)
   })
 
   it('every topic has a unique, kebab-case page key (#456)', () => {

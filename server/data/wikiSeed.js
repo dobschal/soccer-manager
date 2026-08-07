@@ -365,6 +365,55 @@ Die nächste Runde wird automatisch erzeugt, sobald alle Spiele einer Runde gesp
     }
   },
 
+  // ─── Fair Play ─────────────────────────────────────────────────────────
+  {
+    key: 'fair-play',
+    en: {
+      title: 'Fair Play',
+      subtitle: 'The rules every manager plays by',
+      text: `FootballManager.IO is a competition between managers. It only works when everyone runs exactly one club and earns their money in the game. These rules apply to every account.
+
+One account per person:
+• A second account is not allowed. Every manager controls exactly one club.
+• Sharing your account, taking over someone else's club or handing yours over is not allowed either.
+• Playing from the same home or network is fine – a family member or flatmate with their own club is welcome. What is not fine is one person running two clubs.
+
+No arranged transfers:
+• A transfer must reflect what a player is worth. Selling far below or buying far above the market value to move money between clubs is not allowed.
+• Offers below 75% of a player's market value are blocked automatically – on the selling side and on the buying side.
+• Clubs that keep trading players back and forth with each other are flagged for review.
+
+How this is checked:
+• Suspicious patterns are detected automatically: accounts used from the same device or network, transfer prices far off the market value, and pairs of clubs trading unusually often.
+• Every flag is reviewed by a human admin. Being flagged is not a verdict – normal situations like two friends in the same flat show up too.
+• Confirmed cheating can cost you your club: an admin can delete the account.
+
+If you are unsure whether something is allowed – for example because you and a friend share a WiFi connection – say so in the forum before it looks suspicious.`
+    },
+    de: {
+      title: 'Fair Play',
+      subtitle: 'Die Regeln, nach denen alle Manager spielen',
+      text: `FootballManager.IO ist ein Wettbewerb zwischen Managern. Das funktioniert nur, wenn jeder genau einen Verein führt und sein Geld im Spiel verdient. Diese Regeln gelten für jeden Account.
+
+Ein Account pro Person:
+• Ein Zweit-Account ist nicht erlaubt. Jeder Manager führt genau einen Verein.
+• Auch das Teilen deines Accounts, die Übernahme eines fremden Vereins oder die Weitergabe deines eigenen ist nicht erlaubt.
+• Aus demselben Haushalt oder Netzwerk zu spielen ist in Ordnung – ein Familienmitglied oder Mitbewohner mit eigenem Verein ist willkommen. Nicht in Ordnung ist es, wenn eine Person zwei Vereine führt.
+
+Keine abgesprochenen Transfers:
+• Ein Transfer muss dem Wert eines Spielers entsprechen. Weit unter Wert zu verkaufen oder weit über Wert zu kaufen, um Geld zwischen Vereinen zu verschieben, ist nicht erlaubt.
+• Angebote unter 75% des Marktwerts werden automatisch blockiert – auf der Verkäufer- wie auf der Käuferseite.
+• Vereine, die Spieler immer wieder untereinander hin- und herschieben, werden zur Prüfung markiert.
+
+Wie das geprüft wird:
+• Verdächtige Muster werden automatisch erkannt: Accounts vom selben Gerät oder Netzwerk, Transferpreise weit abseits des Marktwerts und Vereinspaare mit auffällig vielen Transfers.
+• Jede Markierung wird von einem Admin persönlich geprüft. Markiert zu sein ist kein Urteil – auch normale Fälle wie zwei Freunde in einer WG tauchen dort auf.
+• Bestätigtes Cheating kann dich deinen Verein kosten: Ein Admin kann den Account löschen.
+
+Wenn du unsicher bist, ob etwas erlaubt ist – zum Beispiel weil du dir mit einem Freund das WLAN teilst – sag es im Forum, bevor es verdächtig aussieht.`
+    }
+  },
+
   // ─── Finances ──────────────────────────────────────────────────────────
   {
     key: 'finances',

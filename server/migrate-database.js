@@ -2650,6 +2650,32 @@ const migrations = [{
     }
   }
 }, {
+  name: 'Wiki: add fair-play rules topic',
+  async run () {
+    // Multi-accounting and arranged transfers were detected but nowhere written
+    // down for players. The rules now live in their own wiki topic — insert it
+    // into already-seeded prod/sandbox DBs, skipping locales that have it.
+    const topic = WIKI_SEED.find(t => t.key === 'fair-play')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const [existing] = await query(
+        'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+        [topic.key, locale]
+      )
+      if (existing) continue
+      const entry = topic[locale]
+      await query('INSERT INTO wiki_entry SET ?', {
+        locale,
+        page_key: topic.key,
+        title: entry.title,
+        subtitle: entry.subtitle || null,
+        text: entry.text,
+        images: JSON.stringify([]),
+        sort_order: 0
+      })
+    }
+  }
+}, {
   name: 'Wiki: refresh transfers (75% minimum offer price)',
   async run () {
     // Sell and buy offers now both have a 75% market-value floor (#446), so the

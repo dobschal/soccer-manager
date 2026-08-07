@@ -237,6 +237,7 @@ Detailed feature specifications are in the `requirements/` directory:
 - [Bot-Teams](requirements/bots.md) - KI-gesteuerte Teams, Balancing nach Liga-Level
 - [Buildings](requirements/buildings.md) - Gebaeude und Infrastruktur
 - [Event Based UI Updates](requirements/event-based-updates.md) - WebSocket-Events und UIElement-Selbstaktualisierung
+- [Fair Play](requirements/fair-play.md) - Regeln zu Accounts/Transfers und Betrugserkennung
 - [Forum](requirements/forum.md) - Community-Forum
 - [Game Calculation](requirements/game-calculation.md) - Spielsimulation, Bundesliga-Statistiken, Taktik-Auswirkungen
 - [Game Modes](requirements/game-modes.md) - Spielmodi
