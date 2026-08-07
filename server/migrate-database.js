@@ -2726,6 +2726,37 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Wiki: refresh buildings (dugout benches and car park per level) v4',
+  async run () {
+    // The training ground now shows its level through the benches (none / open /
+    // roofed and glazed) and the car park beside it (none / one / two rows), and
+    // there is traffic on the roads around the club grounds.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: refresh buildings (fitness studio in 3D) v5',
+  async run () {
+    // The fitness studio now has its own geometry: a glass hall with a neon
+    // "Gym", a lit room whose equipment fills up per level, and a car park.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

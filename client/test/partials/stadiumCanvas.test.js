@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CONFIG, StadiumCanvas } from '../../partials/stadiumCanvas.js'
+import { CONFIG, StadiumCanvas, skyColor } from '../../partials/stadiumCanvas.js'
 
 /**
  * These tests target the pure stand-sizing math (`_standRowCount`), which drives
@@ -452,8 +452,8 @@ describe('StadiumCanvas camera controls', () => {
   }
 
   const fakeThree = () => ({
-    Scene: class {},
-    Color: class {},
+    Scene: class { add = vi.fn() },
+    Color: class { r = 0.1; g = 0.1; b = 0.2 },
     Fog: class {},
     PerspectiveCamera: class {
       position = { set: vi.fn() }
@@ -465,7 +465,17 @@ describe('StadiumCanvas camera controls', () => {
       setSize = vi.fn()
       setPixelRatio = vi.fn()
     },
-    PCFSoftShadowMap: 1
+    PCFSoftShadowMap: 1,
+    // Just enough for the sky dome `_setupScene` builds.
+    SphereGeometry: class {
+      attributes = { position: { count: 0 } }
+      setAttribute = vi.fn()
+    },
+    BufferAttribute: class {},
+    MeshBasicMaterial: class {},
+    Mesh: class {},
+    Vector3: class {},
+    BackSide: 1
   })
 
   const setupWith = (options) => {
@@ -499,6 +509,233 @@ describe('StadiumCanvas camera controls', () => {
   it('allows vertical page scrolling on the canvas when controls are off', () => {
     const controls = setupWith({ interactive: false })
     expect(controls.domElement.style.touchAction).toBe('pan-y')
+  })
+})
+
+/**
+ * The sunset sky gradient. `skyColor` is pure, so it is checked directly on
+ * plain rgb triples; `_createSky` only has to hang the result on a dome.
+ */
+describe('skyColor', () => {
+  const PALETTE = {
+    zenith: [0.1, 0.08, 0.2],
+    horizonWarm: [0.6, 0.32, 0.2],
+    horizonCool: [0.16, 0.14, 0.31],
+    bandExponent: 0.55,
+    sunFocus: 1.5
+  }
+  // The sun sits in the west (-x), like CONFIG.sun.
+  const SUN = { x: -1, z: 0 }
+  const at = (x, y, z) => {
+    const length = Math.hypot(x, y, z)
+    return skyColor({ x: x / length, y: y / length, z: z / length }, SUN, PALETTE)
+  }
+
+  it('paints the zenith in the dusk colour, straight overhead', () => {
+    expect(at(0, 1, 0)).toEqual(PALETTE.zenith)
+  })
+
+  it('warms the horizon towards the sun and cools it away from it', () => {
+    const west = at(-1, 0.02, 0) // into the sunset
+    const east = at(1, 0.02, 0) // opposite it
+    expect(west[0]).toBeGreaterThan(east[0]) // more red
+    expect(west[2]).toBeLessThan(east[2]) // less blue
+    expect(west[0]).toBeGreaterThan(west[2]) // and warm overall
+  })
+
+  it('fades the warm band out as the direction climbs', () => {
+    const redAt = y => at(-1, y, 0)[0]
+    expect(redAt(0.05)).toBeGreaterThan(redAt(0.4))
+    expect(redAt(0.4)).toBeGreaterThan(redAt(0.9))
+  })
+
+  it('never leaves the palette range, in any direction', () => {
+    // Every result is a blend of the three stops, so it has to stay between the
+    // darkest and the brightest channel among them.
+    const stops = [PALETTE.zenith, PALETTE.horizonWarm, PALETTE.horizonCool].flat()
+    const low = Math.min(...stops)
+    const high = Math.max(...stops)
+    for (const y of [-1, -0.3, 0, 0.3, 1]) {
+      for (const angle of [0, 1, 2, 3, 4, 5]) {
+        for (const channel of at(Math.cos(angle), y, Math.sin(angle))) {
+          expect(channel).toBeGreaterThanOrEqual(low)
+          expect(channel).toBeLessThanOrEqual(high)
+        }
+      }
+    }
+  })
+
+  it('keeps the scene background and the fog inside the sky palette', () => {
+    // The background only shows if the dome ever fails, so it has to match its
+    // darkest part; the fog is the haze the horizon dissolves into.
+    expect(CONFIG.colors.sceneBackground).toBe(CONFIG.sky.zenith)
+    const blue = hex => hex & 0xff
+    const red = hex => (hex >> 16) & 0xff
+    expect(red(CONFIG.colors.fog)).toBeGreaterThan(red(CONFIG.sky.horizonCool))
+    expect(blue(CONFIG.colors.fog)).toBeLessThan(blue(CONFIG.sky.horizonCool))
+  })
+})
+
+/**
+ * Coplanar decals on ground that runs out to the horizon (the roads' centre
+ * markings) need a depth bias, not just a height offset.
+ */
+describe('StadiumCanvas depth precision', () => {
+  it('keeps the near plane far enough out for the distant roads', () => {
+    // At near 0.1 the depth buffer could not separate the markings from the
+    // asphalt out towards `vanishDistance`, and they flickered.
+    expect(CONFIG.camera.near).toBeGreaterThanOrEqual(1)
+    // …but never so far that it clips what the camera can actually get close to.
+    for (const view of Object.values(CONFIG.views)) {
+      expect(CONFIG.camera.near).toBeLessThan(view.minDistance)
+    }
+    expect(CONFIG.camera.far).toBeGreaterThan(CONFIG.road.vanishDistance)
+  })
+
+  it('biases the road markings towards the camera', () => {
+    const created = []
+    const canvas = new StadiumCanvas({}, {})
+    canvas._THREE = new Proxy({}, {
+      get: (_, prop) => {
+        if (prop === 'Quaternion') {
+          return class { setFromEuler () { return this } }
+        }
+        return class {
+          constructor (...args) {
+            this.type = prop
+            this.args = args
+            this.position = { set: () => {} }
+            this.rotation = {}
+            this.instanceMatrix = {}
+            created.push(this)
+          }
+
+          set () { return this }
+          compose () {}
+          setMatrixAt () {}
+        }
+      }
+    })
+    canvas._buildRoads({ add: () => {} })
+
+    const marking = created.find(o =>
+      o.type === 'MeshBasicMaterial' && o.args[0]?.color === CONFIG.road.markingColor)
+    expect(marking.args[0].polygonOffset).toBe(true)
+    // Negative pulls the dashes towards the camera, in depth-buffer units, so
+    // the correction holds at any distance.
+    expect(marking.args[0].polygonOffsetFactor).toBeLessThan(0)
+    expect(marking.args[0].polygonOffsetUnits).toBeLessThan(0)
+  })
+})
+
+/**
+ * The scene's fill lighting: ambient, a cool moon from above and a warm low
+ * evening sun from the west.
+ */
+describe('StadiumCanvas._setupLights', () => {
+  const setupLights = (options) => {
+    const added = []
+    const canvas = new StadiumCanvas({}, {}, 'c', options)
+    canvas._scene = { add: (o) => added.push(o) }
+    canvas._THREE = {
+      AmbientLight: class {
+        constructor (color, intensity) { Object.assign(this, { kind: 'ambient', color, intensity }) }
+      },
+      DirectionalLight: class {
+        constructor (color, intensity) {
+          Object.assign(this, { kind: 'directional', color, intensity })
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+          this.target = { position: { set: (x, y, z) => { this.aimedAt = { x, y, z } } } }
+          this.shadow = { mapSize: {}, camera: {} }
+        }
+      }
+    }
+    canvas._setupLights()
+    return { added, canvas }
+  }
+  const lightsOf = (options) => setupLights(options).added
+  const sunOf = (options) => lightsOf(options).find(l => l.color === CONFIG.sun.color)
+
+  it('lights the scene with a low evening sun on top of the moon fill', () => {
+    const lights = lightsOf()
+    const sun = lights.find(l => l.color === CONFIG.sun.color)
+    expect(sun).toBeDefined()
+    expect(sun.kind).toBe('directional')
+    expect(sun.intensity).toBe(CONFIG.sun.intensity)
+  })
+
+  it('hangs the sun low in the west, not overhead like the moon', () => {
+    const lights = lightsOf()
+    const sun = lights.find(l => l.color === CONFIG.sun.color)
+    const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
+    // The stadium view orbits the origin, so on it the sun's position is also the
+    // direction it comes from: far out west (-x), only just above the horizon.
+    expect(sun.at.x).toBeLessThan(0)
+    expect(sun.at.y).toBeGreaterThan(0)
+    const elevation = Math.atan2(sun.at.y, Math.hypot(sun.at.x, sun.at.z)) * 180 / Math.PI
+    expect(elevation).toBeGreaterThan(5)
+    expect(elevation).toBeLessThan(25)
+    // The moon stays the steep one.
+    expect(Math.atan2(moon.at.y, Math.hypot(moon.at.x, moon.at.z)))
+      .toBeGreaterThan(Math.atan2(sun.at.y, Math.hypot(sun.at.x, sun.at.z)))
+  })
+
+  it('keeps the warm sun weak enough not to outshine the floodlights', () => {
+    const lights = lightsOf()
+    const sun = lights.find(l => l.color === CONFIG.sun.color)
+    // A warm colour (more red than blue) and a fill-level intensity.
+    expect((CONFIG.sun.color >> 16) & 0xff).toBeGreaterThan(CONFIG.sun.color & 0xff)
+    expect(sun.intensity).toBeLessThanOrEqual(2)
+    expect(lights.filter(l => l.kind === 'ambient')).toHaveLength(1)
+  })
+
+  it('takes the fill intensities from the config, bright enough to read by', () => {
+    const lights = lightsOf()
+    const ambient = lights.find(l => l.kind === 'ambient')
+    const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
+    expect(ambient.intensity).toBe(CONFIG.fill.ambient)
+    expect(moon.intensity).toBe(CONFIG.fill.moon)
+    // The fill has to lift the shadowed sides and the far corners out of black
+    // without washing the floodlights out.
+    expect(CONFIG.fill.ambient).toBeGreaterThan(0.6)
+    expect(CONFIG.fill.ambient).toBeLessThan(1.5)
+  })
+
+  it('casts the long shadows of the low sun, and only from the sun', () => {
+    const lights = lightsOf()
+    const sun = lights.find(l => l.color === CONFIG.sun.color)
+    const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
+    expect(sun.castShadow).toBe(true)
+    expect(sun.shadow.mapSize.width).toBe(CONFIG.sun.shadow.mapSize)
+    expect(sun.shadow.mapSize.height).toBe(CONFIG.sun.shadow.mapSize)
+    // One extra pass is the whole budget: the moon stays shadowless.
+    expect(moon.castShadow).toBeFalsy()
+  })
+
+  it('sizes the sun shadow camera around the focus, deep enough for its shadows', () => {
+    const sun = sunOf()
+    const {radius} = CONFIG.sun.shadow
+    const camera = sun.shadow.camera
+    expect([camera.left, camera.bottom]).toEqual([-radius, -radius])
+    expect([camera.right, camera.top]).toEqual([radius, radius])
+    // The light sits far out; its depth range has to bracket that distance so
+    // neither the casters nor their long shadows fall outside the frustum.
+    const distance = Math.hypot(...CONFIG.sun.position)
+    expect(camera.near).toBeGreaterThan(0)
+    expect(camera.near).toBeLessThan(distance)
+    expect(camera.far).toBeGreaterThan(distance)
+  })
+
+  it('aims the sun at whatever the camera orbits, keeping its direction', () => {
+    const {canvas} = setupLights({focus: 'buildings'})
+    const sun = sunOf({focus: 'buildings'})
+    const focus = canvas._focusPoint()
+    expect(focus.x).toBeGreaterThan(0) // the crossing north-east of the stadium
+    expect(sun.aimedAt).toEqual({x: focus.x, y: 0, z: focus.z})
+    // Same light direction as on the stadium view — only the shadowed area moved.
+    expect(sun.at.x - focus.x).toBe(CONFIG.sun.position[0])
+    expect(sun.at.z - focus.z).toBe(CONFIG.sun.position[2])
+    expect(sun.at.y).toBe(CONFIG.sun.position[1])
   })
 })
 

@@ -1143,7 +1143,7 @@ export default {
   'tutorial.buildingsPage.item4': 'Upgrades cost money and take several game days to complete',
   'tutorial.buildingsPage.item5': 'Each building can be upgraded up to level 3',
   'tutorial.buildingsPage.item6': 'The Youth Academy provides better youth-player cards and more training slots',
-  'tutorial.buildingsPage.item7': 'The 3D view at the top shows your club grounds — your training area visibly grows with every level',
+  'tutorial.buildingsPage.item7': 'The 3D view at the top shows your club grounds — training area and fitness studio visibly grow with every level',
 
   // Log Messages
   'log.title': 'Messages',
@@ -1297,8 +1297,8 @@ export default {
 
   // Buildings
   'buildings.title': 'Buildings',
+  'buildings.pageDesc': 'Upgrade your training area, fitness studio and youth academy to unlock better action cards for developing, recovering and recruiting players.',
   'buildings.trainingArea': 'Training Area',
-  'buildings.trainingAreaDesc': 'Upgrade your training area to unlock better action cards for player development.',
   'buildings.level': 'Level {level}',
   'buildings.maxLevel': 'Max Level',
   'buildings.currentEffects': 'Current Effects',
@@ -1329,7 +1329,6 @@ export default {
 
   // Fitness Studio
   'buildings.fitnessStudio': 'Fitness Studio',
-  'buildings.fitnessStudioDesc': 'Upgrade your fitness studio to unlock better fitness action cards for player recovery.',
   'buildings.fitnessLevel0Desc': 'No fitness studio. You receive a reduced chance of "Energy Boost" fitness cards.',
   'buildings.fitnessLevel1Desc': 'Basic fitness studio. Increases your chance of "Energy Boost" cards and unlocks "Quick Recovery" cards.',
   'buildings.fitnessLevel2Desc': 'Intermediate fitness studio. Unlocks "Full Recovery" cards alongside existing fitness cards.',
@@ -1337,7 +1336,6 @@ export default {
 
   // Youth Academy
   'buildings.youthAcademy': 'Youth Academy',
-  'buildings.youthAcademyDesc': 'Upgrade your youth academy to recruit more (and stronger) young players each season.',
   'buildings.youthLevel1Desc': 'Basic youth academy. Around 2 youth recruit cards per season (level 1-5).',
   'buildings.youthLevel2Desc': 'Intermediate youth academy. Around 3 youth cards per season — unlocks "Youth Talent" cards (level 5-10).',
   'buildings.youthLevel3Desc': 'Elite youth academy. Around 4 youth cards per season — unlocks "Youth Star" cards (level 10-15).',

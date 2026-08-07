@@ -84,14 +84,16 @@ describe('BuildingsPage', () => {
     expect(page.team.color).toBe('#ff0000')
   })
 
-  it('renders the 3D canvas focused on the buildings, above the building cards', async () => {
+  it('renders the 3D canvas focused on the buildings, below the heading and intro text', async () => {
     const page = new BuildingsPage({})
     await page.load()
     const html = page.template
     expect(html).toContain('buildings-canvas-container')
     expect(page._canvas.options.focus).toBe('buildings')
     expect(page._canvas.options.buildings).toBe(page.buildings)
-    expect(html.indexOf('buildings-canvas-container')).toBeLessThan(html.indexOf('buildings.title'))
+    expect(html.indexOf('buildings.title')).toBeLessThan(html.indexOf('buildings.pageDesc'))
+    expect(html.indexOf('buildings.pageDesc')).toBeLessThan(html.indexOf('buildings-canvas-container'))
+    expect(html.indexOf('buildings-canvas-container')).toBeLessThan(html.indexOf('building-card'))
   })
 
   it('shows tutorial on mount', async () => {

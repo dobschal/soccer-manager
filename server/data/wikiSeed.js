@@ -222,12 +222,17 @@ Youth Academy – generates new youth players:
 
 Each building tops out at level 3. The cost is deducted immediately when you start the upgrade, and you get a log message when it is finished.
 
-The 3D view at the top of the page shows your club grounds: it is the same scene as on the stadium page, but centred on the road crossing north-east of the stadium that your buildings are grouped around. Drag to look around, or hand the camera back to the slow auto-orbit with the button in the corner.
+The 3D view at the top of the page shows your club grounds: it is the same scene as on the stadium page, but centred on the road crossing north-east of the stadium that your buildings are grouped around. Drag to look around, or hand the camera back to the slow auto-orbit with the button in the corner. Cars drive along the roads around it, headlights on.
 
-Your training area is built there for real – a full-size pitch, as big as the one in your stadium, fenced right up to the kerb. Its level shows:
-• Level 1: the fenced pitch with two goals and a pair of small, weak floodlights in two corners, so the far half stays in the dark.
-• Level 2: balls, slalom poles and marker cones on the pitch, plus a second, taller and much brighter pair of masts in the other two corners.
-• Level 3: full-height masts in all four corners that light the pitch like a match, and a covered coaching shelter at the touchline.`
+Your training area is built there for real – a full-size pitch, as big as the one in your stadium, fenced right up to the kerb, with room for a car park beside it. Its level shows:
+• Level 1: the fenced pitch with two goals and a pair of small, weak floodlights in two corners, so the far half stays in the dark. No benches and no car park yet.
+• Level 2: balls, slalom poles and marker cones on the pitch, a second, taller and much brighter pair of masts in the other two corners, two open dugout benches at the touchline (the same seats as in your stands) and a car park with one row of bays, joined to the road by a driveway.
+• Level 3: full-height masts in all four corners that light the pitch like a match, both benches roofed and glazed with strutted panes, and a second row of parking bays.
+
+Your fitness studio stands right across the road, west of the training ground: a modern hall with a strutted glass facade and a flat roof, its entrance under a canopy with a big neon "Gym" above it. Behind the glass is one big brightly lit room with mats, treadmills, weight plates, dumbbells and weight benches; tilted solar panels sit on the roof and a car park beside the hall. The hall itself grows with its level – and so does everything in and on it:
+• Level 1: a small hall with a basic kit – two treadmills, two mats, one bench – under two ceiling lights, three solar panels on the roof and a short row of parking bays.
+• Level 2: a bigger hall, twice the kit, a second row of ceiling lights, a brighter sign, six solar panels, more bays and a lamp mast over the car park.
+• Level 3: the full-size hall, a packed floor under six ceiling lights, the sign at its brightest, ten solar panels, a second row of parking bays and a second mast.`
     },
     de: {
       title: 'Gebäude',
@@ -251,12 +256,17 @@ Jugendakademie – erzeugt neue Jugendspieler:
 
 Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbaus abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.
 
-Die 3D-Ansicht oben auf der Seite zeigt dein Vereinsgelände: dieselbe Szene wie auf der Stadion-Seite, nur zentriert auf die Straßenkreuzung nordöstlich des Stadions, um die herum deine Gebäude stehen. Zieh mit der Maus, um dich umzusehen, oder gib die Kamera mit dem Knopf in der Ecke wieder an die langsame Drehung ab.
+Die 3D-Ansicht oben auf der Seite zeigt dein Vereinsgelände: dieselbe Szene wie auf der Stadion-Seite, nur zentriert auf die Straßenkreuzung nordöstlich des Stadions, um die herum deine Gebäude stehen. Zieh mit der Maus, um dich umzusehen, oder gib die Kamera mit dem Knopf in der Ecke wieder an die langsame Drehung ab. Auf den Straßen ringsum fahren Autos mit eingeschalteten Scheinwerfern.
 
-Dein Trainingsgelände steht dort wirklich – ein Platz in voller Größe, genauso groß wie der in deinem Stadion, eingezäunt bis direkt an den Bordstein. Und man sieht ihm seine Stufe an:
-• Stufe 1: der eingezäunte Platz mit zwei Toren und einem kleinen, schwachen Flutlicht in zwei Ecken – die andere Hälfte bleibt im Dunkeln.
-• Stufe 2: zusätzlich Bälle, Slalomstangen und Hütchen auf dem Platz sowie ein zweites, höheres und deutlich helleres Mastpaar in den beiden anderen Ecken.
-• Stufe 3: hohe Masten in allen vier Ecken, die den Platz spielfeldhell ausleuchten, und eine überdachte Trainerbank am Spielfeldrand.`
+Dein Trainingsgelände steht dort wirklich – ein Platz in voller Größe, genauso groß wie der in deinem Stadion, eingezäunt bis direkt an den Bordstein, mit Platz für einen Parkplatz daneben. Und man sieht ihm seine Stufe an:
+• Stufe 1: der eingezäunte Platz mit zwei Toren und einem kleinen, schwachen Flutlicht in zwei Ecken – die andere Hälfte bleibt im Dunkeln. Noch ohne Trainerbänke und ohne Parkplatz.
+• Stufe 2: zusätzlich Bälle, Slalomstangen und Hütchen auf dem Platz, ein zweites, höheres und deutlich helleres Mastpaar in den beiden anderen Ecken, zwei offene Trainerbänke am Spielfeldrand (dieselben Sitze wie auf deinen Tribünen) und ein Parkplatz mit einer Reihe Parkbuchten, der über eine Einfahrt an der Straße hängt.
+• Stufe 3: hohe Masten in allen vier Ecken, die den Platz spielfeldhell ausleuchten, beide Trainerbänke überdacht und mit verstrebten Glaswänden verglast, und eine zweite Reihe Parkbuchten.
+
+Dein Fitnessstudio steht gleich gegenüber, westlich des Trainingsgeländes auf der anderen Straßenseite: eine moderne Halle mit verstrebter Glasfassade und Flachdach, der Eingang unter einem Vordach mit einem großen "Gym" in Leuchtschrift darüber. Hinter dem Glas liegt ein einziger großer, hell beleuchteter Raum mit Matten, Laufbändern, Gewichten, Hanteln und Hantelbänken, auf dem Dach stehen angeschrägte Solarmodule, daneben liegt ein Parkplatz. Die Halle selbst wächst mit ihrer Stufe – und alles darin und darauf mit:
+• Stufe 1: eine kleine Halle mit Grundausstattung – zwei Laufbänder, zwei Matten, eine Hantelbank – unter zwei Deckenleuchten, drei Solarmodule auf dem Dach und eine kurze Reihe Parkbuchten.
+• Stufe 2: eine größere Halle, doppelt so viele Geräte, eine zweite Reihe Deckenleuchten, hellere Leuchtschrift, sechs Solarmodule, mehr Parkbuchten und ein Lichtmast über dem Parkplatz.
+• Stufe 3: die Halle in voller Größe, ein voller Trainingsraum unter sechs Deckenleuchten, die Leuchtschrift am hellsten, zehn Solarmodule, eine zweite Reihe Parkbuchten und ein zweiter Mast.`
     }
   },
 

@@ -1143,7 +1143,7 @@ export default {
   'tutorial.buildingsPage.item4': 'Ausbauten kosten Geld und dauern mehrere Spieltage',
   'tutorial.buildingsPage.item5': 'Jedes Gebäude kann bis auf Stufe 3 ausgebaut werden',
   'tutorial.buildingsPage.item6': 'Die Jugendakademie liefert bessere Jugendspieler-Karten und mehr Trainings-Slots',
-  'tutorial.buildingsPage.item7': 'Die 3D-Ansicht oben zeigt dein Vereinsgelände – dein Trainingsgelände wächst dort mit jeder Stufe sichtbar mit',
+  'tutorial.buildingsPage.item7': 'Die 3D-Ansicht oben zeigt dein Vereinsgelände – Trainingsgelände und Fitnessstudio wachsen dort mit jeder Stufe sichtbar mit',
 
   // Log Messages
   'log.title': 'Nachrichten',
@@ -1297,8 +1297,8 @@ export default {
 
   // Buildings
   'buildings.title': 'Gebäude',
+  'buildings.pageDesc': 'Baue Trainingsgelände, Fitnessstudio und Jugendakademie aus, um bessere Aktionskarten für Entwicklung, Erholung und Rekrutierung deiner Spieler freizuschalten.',
   'buildings.trainingArea': 'Trainingsgelände',
-  'buildings.trainingAreaDesc': 'Baue dein Trainingsgelände aus, um bessere Aktionskarten für die Spielerentwicklung freizuschalten.',
   'buildings.level': 'Stufe {level}',
   'buildings.maxLevel': 'Maximale Stufe',
   'buildings.currentEffects': 'Aktuelle Effekte',
@@ -1329,7 +1329,6 @@ export default {
 
   // Fitness Studio
   'buildings.fitnessStudio': 'Fitnessstudio',
-  'buildings.fitnessStudioDesc': 'Baue dein Fitnessstudio aus, um bessere Fitness-Aktionskarten für die Spielererholung freizuschalten.',
   'buildings.fitnessLevel0Desc': 'Kein Fitnessstudio. Du erhältst eine reduzierte Chance auf "Energie-Boost" Fitness-Karten.',
   'buildings.fitnessLevel1Desc': 'Einfaches Fitnessstudio. Erhöht die Chance auf "Energie-Boost" Karten und schaltet "Schnelle Erholung" Karten frei.',
   'buildings.fitnessLevel2Desc': 'Mittelmäßiges Fitnessstudio. Schaltet "Volle Erholung" Karten neben bestehenden Fitness-Karten frei.',
@@ -1337,7 +1336,6 @@ export default {
 
   // Jugendakademie
   'buildings.youthAcademy': 'Jugendakademie',
-  'buildings.youthAcademyDesc': 'Baue deine Jugendakademie aus, um pro Saison mehr (und stärkere) Jugendspieler zu rekrutieren.',
   'buildings.youthLevel1Desc': 'Einfache Jugendakademie. Ca. 2 Nachwuchsspieler-Karten pro Saison (Level 1-5).',
   'buildings.youthLevel2Desc': 'Mittelmäßige Jugendakademie. Ca. 3 Karten pro Saison – schaltet "Nachwuchstalent" frei (Level 5-10).',
   'buildings.youthLevel3Desc': 'Elite-Jugendakademie. Ca. 4 Karten pro Saison – schaltet "Nachwuchsstar" frei (Level 10-15).',

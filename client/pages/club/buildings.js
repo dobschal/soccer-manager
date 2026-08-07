@@ -1,14 +1,14 @@
-import { server, showServerError } from '../../lib/gateway.js'
-import { generateId } from '../../lib/html.js'
-import { onClick } from '../../lib/htmlEventHandlers.js'
-import { UIElement } from '../../lib/UIElement.js'
-import { toast } from '../../partials/toast.js'
-import { showOverlay } from '../../partials/overlay.js'
-import { showTutorialIfNeeded } from '../../partials/tutorialOverlay.js'
-import { t } from '../../i18n/index.js'
-import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
-import { euroFormat } from '../../lib/currency.js'
-import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
+import {server, showServerError} from '../../lib/gateway.js'
+import {generateId} from '../../lib/html.js'
+import {onClick} from '../../lib/htmlEventHandlers.js'
+import {UIElement} from '../../lib/UIElement.js'
+import {toast} from '../../partials/toast.js'
+import {showOverlay} from '../../partials/overlay.js'
+import {showTutorialIfNeeded} from '../../partials/tutorialOverlay.js'
+import {t} from '../../i18n/index.js'
+import {wikiInfoIcon} from '../../partials/wikiInfoIcon.js'
+import {euroFormat} from '../../lib/currency.js'
+import {StadiumCanvas} from '../../partials/stadiumCanvas.js'
 
 const TRAINING_AREA_IMAGES = {
   1: 'assets/training-area/training-area-1.png',
@@ -70,15 +70,15 @@ export class BuildingsPage extends UIElement {
     })
     return `
       <div>
+        <h3>${t('buildings.title')} ${wikiInfoIcon('buildings')}</h3>
+        <div class="alert alert-info">
+          <i class="fa fa-info-circle me-1"></i> ${t('buildings.pageDesc')}
+        </div>
         <div class="mb-4" id="buildings-canvas-container">
           ${this._canvas}
         </div>
-        <h3>${t('buildings.title')} ${wikiInfoIcon('buildings')}</h3>
-        <p class="text-muted">${t('buildings.trainingAreaDesc')}</p>
         ${this._renderTrainingArea()}
-        <p class="text-muted mt-4">${t('buildings.fitnessStudioDesc')}</p>
         ${this._renderFitnessStudio()}
-        <p class="text-muted mt-4">${t('buildings.youthAcademyDesc')}</p>
         ${this._renderYouthAcademy()}
       </div>
     `
@@ -129,7 +129,7 @@ export class BuildingsPage extends UIElement {
         </div>
         <div class="building-card__content bg-dark">
           <h4 class="building-card__title mb-2">
-            ${t('buildings.trainingArea')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
+            ${t('buildings.trainingArea')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', {level})}
           </h4>
           ${this._renderEffects(level)}
           ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
@@ -164,7 +164,7 @@ export class BuildingsPage extends UIElement {
         </div>
         <div class="building-card__content bg-dark">
           <h4 class="building-card__title mb-2">
-            ${t('buildings.fitnessStudio')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
+            ${t('buildings.fitnessStudio')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', {level})}
           </h4>
           ${this._renderFitnessEffects(level)}
           ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
@@ -199,7 +199,7 @@ export class BuildingsPage extends UIElement {
         </div>
         <div class="building-card__content bg-dark">
           <h4 class="building-card__title mb-2">
-            ${t('buildings.youthAcademy')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', { level })}
+            ${t('buildings.youthAcademy')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', {level})}
           </h4>
           <p class="building-card__desc mb-4">${t(`buildings.youthLevel${level}Desc`)}</p>
           ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
@@ -227,9 +227,9 @@ export class BuildingsPage extends UIElement {
       <div class="building-card__upgrade mt-2 p-2">
         <h6 class="building-card__upgrade-title">${t('buildings.nextLevelEffects')}</h6>
         <p class="building-card__desc mb-2">${t(`buildings.youthLevel${nextLevel}Desc`)}</p>
-        <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', { cost: euroFormat.format(upgrade.cost) })}</p>
-        <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', { days: upgrade.constructionDays })}</p>
-        <button id="${btnId}" class="btn btn-outline-light">${t('buildings.upgrade', { level: nextLevel })}</button>
+        <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', {cost: euroFormat.format(upgrade.cost)})}</p>
+        <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', {days: upgrade.constructionDays})}</p>
+        <button id="${btnId}" class="btn btn-outline-light">${t('buildings.upgrade', {level: nextLevel})}</button>
       </div>
     `
   }
@@ -255,7 +255,7 @@ export class BuildingsPage extends UIElement {
     })
 
     const overlay = showOverlay(
-      t('buildings.upgradeConfirmTitle', { buildingName: t('buildings.youthAcademy') }),
+      t('buildings.upgradeConfirmTitle', {buildingName: t('buildings.youthAcademy')}),
       t('buildings.upgradeConfirmText', {
         cost: euroFormat.format(upgrade.cost),
         days: upgrade.constructionDays
@@ -265,7 +265,7 @@ export class BuildingsPage extends UIElement {
         <img src="${imageUrl}" alt="${t('buildings.youthAcademy')}" class="building-card__confirm-img">
       </div>
       <button id="${confirmId}" class="btn btn-primary w-100">
-        ${t('buildings.upgrade', { level: nextLevel })}
+        ${t('buildings.upgrade', {level: nextLevel})}
       </button>
     `)
   }
@@ -300,7 +300,7 @@ export class BuildingsPage extends UIElement {
       <div class="building-card__construction mt-2 p-2">
         <i class="fa fa-wrench"></i>
         <strong>${t('buildings.underConstruction')}</strong><br>
-        <small>${remaining > 0 ? t('buildings.constructionRemaining', { days: remaining }) : t('buildings.constructionCompletesToday')}</small>
+        <small>${remaining > 0 ? t('buildings.constructionRemaining', {days: remaining}) : t('buildings.constructionCompletesToday')}</small>
       </div>
     `
   }
@@ -322,10 +322,10 @@ export class BuildingsPage extends UIElement {
       <div class="building-card__upgrade mt-2 p-2">
         <h6 class="building-card__upgrade-title">${t('buildings.nextLevelEffects')}</h6>
         ${this._renderNextLevelPreview(nextLevel)}
-        <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', { cost: euroFormat.format(upgrade.cost) })}</p>
-        <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', { days: upgrade.constructionDays })}</p>
+        <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', {cost: euroFormat.format(upgrade.cost)})}</p>
+        <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', {days: upgrade.constructionDays})}</p>
         <button id="${btnId}" class="btn btn-outline-light">
-          ${t('buildings.upgrade', { level: nextLevel })}
+          ${t('buildings.upgrade', {level: nextLevel})}
         </button>
       </div>
     `
@@ -348,10 +348,10 @@ export class BuildingsPage extends UIElement {
       <div class="building-card__upgrade mt-2 p-2">
         <h6 class="building-card__upgrade-title">${t('buildings.nextLevelEffects')}</h6>
         <p class="building-card__desc mb-2">${t(`buildings.fitnessLevel${nextLevel}Desc`)}</p>
-        <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', { cost: euroFormat.format(upgrade.cost) })}</p>
-        <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', { days: upgrade.constructionDays })}</p>
+        <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', {cost: euroFormat.format(upgrade.cost)})}</p>
+        <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', {days: upgrade.constructionDays})}</p>
         <button id="${btnId}" class="btn btn-outline-light">
-          ${t('buildings.upgrade', { level: nextLevel })}
+          ${t('buildings.upgrade', {level: nextLevel})}
         </button>
       </div>
     `
@@ -388,7 +388,7 @@ export class BuildingsPage extends UIElement {
     })
 
     const overlay = showOverlay(
-      t('buildings.upgradeConfirmTitle', { buildingName: t('buildings.trainingArea') }),
+      t('buildings.upgradeConfirmTitle', {buildingName: t('buildings.trainingArea')}),
       t('buildings.upgradeConfirmText', {
         cost: euroFormat.format(upgrade.cost),
         days: upgrade.constructionDays
@@ -398,7 +398,7 @@ export class BuildingsPage extends UIElement {
         <img src="${imageUrl}" alt="${t('buildings.trainingArea')}" class="building-card__confirm-img">
       </div>
       <button id="${confirmId}" class="btn btn-primary w-100">
-        ${t('buildings.upgrade', { level: nextLevel })}
+        ${t('buildings.upgrade', {level: nextLevel})}
       </button>
     `)
   }
@@ -424,7 +424,7 @@ export class BuildingsPage extends UIElement {
     })
 
     const overlay = showOverlay(
-      t('buildings.upgradeConfirmTitle', { buildingName: t('buildings.fitnessStudio') }),
+      t('buildings.upgradeConfirmTitle', {buildingName: t('buildings.fitnessStudio')}),
       t('buildings.upgradeConfirmText', {
         cost: euroFormat.format(upgrade.cost),
         days: upgrade.constructionDays
@@ -434,7 +434,7 @@ export class BuildingsPage extends UIElement {
         <img src="${imageUrl}" alt="${t('buildings.fitnessStudio')}" class="building-card__confirm-img">
       </div>
       <button id="${confirmId}" class="btn btn-primary w-100">
-        ${t('buildings.upgrade', { level: nextLevel })}
+        ${t('buildings.upgrade', {level: nextLevel})}
       </button>
     `)
   }
