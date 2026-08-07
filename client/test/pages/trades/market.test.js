@@ -62,12 +62,16 @@ vi.mock('../../../lib/router.js', () => ({
 
 vi.mock('../../../util/player.js', () => ({
   calculatePlayerAge: vi.fn((player, season) => (season - player.carrier_start_season) + 16),
+  calculateMarketValue: vi.fn(() => 4000),
+  getMinOfferPrice: vi.fn(marketValue => Math.floor(marketValue * 0.75)),
   sortByPosition: vi.fn()
 }))
 
 import { MarketPage, renderMarket } from '../../../pages/trades/market.js'
 import { server } from '../../../lib/gateway.js'
 import { el } from '../../../lib/html.js'
+import { toast } from '../../../partials/toast.js'
+import { calculateMarketValue } from '../../../util/player.js'
 
 /**
  * Mount a MarketPage into the DOM so update() can find and replace it.
@@ -395,6 +399,36 @@ describe('MarketPage', () => {
         'buy',
         true
       )
+    })
+
+    it('#446 blocks a buy offer below 75% of the market value', async () => {
+      const page = new MarketPage()
+      await page.load()
+
+      const submitBtn = document.createElement('button')
+      const cancelBtn = document.createElement('button')
+      const input = document.createElement('input')
+      input.dataset.rawValue = '5000'
+
+      const lookups = [cancelBtn, submitBtn, null]
+      let i = 0
+      el.mockImplementation(() => {
+        if (i < lookups.length) return lookups[i++]
+        return input
+      })
+
+      // Market value 10,000 -> minimum offer 7,500, above the 5,000 entered.
+      calculateMarketValue.mockReturnValueOnce(10000)
+
+      page._showBuyDialog({ id: 42, name: 'Test Player' })
+
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      submitBtn.click()
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      expect(server.addTradeOffer).not.toHaveBeenCalled()
+      expect(toast).toHaveBeenCalledWith(expect.any(String), 'error')
     })
   })
 })

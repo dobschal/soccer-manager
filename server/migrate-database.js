@@ -2649,6 +2649,21 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Wiki: refresh transfers (75% minimum offer price)',
+  async run () {
+    // Sell and buy offers now both have a 75% market-value floor (#446), so the
+    // transfers topic must be pushed to already-seeded prod/sandbox DBs.
+    const topic = WIKI_SEED.find(t => t.key === 'transfers')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

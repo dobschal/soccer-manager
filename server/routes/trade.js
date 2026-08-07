@@ -8,6 +8,7 @@ import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { getPositionsOfFormation } from '../../client/util/formation.js'
+import { getMinOfferPrice } from '../../client/util/player.js'
 import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 
@@ -80,7 +81,18 @@ export default {
       if (teamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
     }
     const { gameDay, season } = await getGameDayAndSeason()
-    // A player may not be listed below 50% of their market value (#446).
+    // Neither side of a transfer may be priced below 75% of the player's market
+    // value (#446) — this keeps players from being pushed between accounts for
+    // a symbolic price.
+    if (type === 'buy') {
+      const dbPlayer = await getPlayerById(player.id)
+      if (!dbPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+      const marketValue = await getAveragePlanPriceOfPlayer(dbPlayer, season)
+      const minPrice = getMinOfferPrice(marketValue)
+      if (price < minPrice) {
+        throw new BadRequestError(t('error.buyPriceTooLow', { minPrice: minPrice.toLocaleString() }, locale))
+      }
+    }
     if (type === 'sell') {
       const openSellOffers = await getOpenSellOffersByTeamId(team.id)
       if (openSellOffers.length >= MAX_SELL_OFFERS_PER_TEAM) {
@@ -110,7 +122,7 @@ export default {
       )
       if (transfersThisSeason >= MAX_TRANSFERS_PER_SEASON) throw new BadRequestError(t('error.playerAlreadyTransferredThisSeason', {}, locale))
       const marketValue = await getAveragePlanPriceOfPlayer(dbPlayer, season)
-      const minPrice = Math.floor(marketValue * 0.5)
+      const minPrice = getMinOfferPrice(marketValue)
       if (price < minPrice) {
         throw new BadRequestError(t('error.sellPriceTooLow', { minPrice: minPrice.toLocaleString() }, locale))
       }

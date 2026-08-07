@@ -12,7 +12,8 @@ vi.mock('../../lib/gateway.js', () => ({
     getPlayerHistory: vi.fn(() => Promise.resolve([])),
     myOfferForPlayer: vi.fn(() => Promise.resolve({ offer: undefined })),
     hasPlayerSellOffer: vi.fn(() => Promise.resolve({ hasSellOffer: false, sellOfferPrice: null, allowInstantBuy: false })),
-    cancelOffer: vi.fn(() => Promise.resolve({ success: true }))
+    cancelOffer: vi.fn(() => Promise.resolve({ success: true })),
+    addTradeOffer: vi.fn(() => Promise.resolve({ success: true }))
   }
 }))
 
@@ -60,9 +61,30 @@ const { showDialog } = await import('../../partials/dialog.js')
 const { toast } = await import('../../partials/toast.js')
 const { SERVER_EVENTS } = await import('../../lib/serverEvents.js')
 
+/**
+ * Mount a loaded PlayerModal into the DOM with a filled price input, so
+ * _onTradeOffer() can read the entered price like it does in the browser.
+ * The market value is pinned to 100,000 -> the 75% floor sits at 75,000.
+ * @param {{teamId: number, rawValue: string}} options
+ * @returns {Promise<PlayerModal>}
+ */
+async function _mountModalWithPriceInput ({ teamId, rawValue }) {
+  server.getPlayerById.mockResolvedValue(testData.player({ id: 5, team_id: teamId }))
+  const modal = new PlayerModal(5)
+  modal.overlay = { remove: vi.fn(), onClose: vi.fn() }
+  await modal.load()
+  modal.price = 100000
+  document.body.innerHTML = `
+    <div data-render_id="${modal._renderId}">
+      <input id="trade-price-input" data-raw-value="${rawValue}">
+    </div>`
+  return modal
+}
+
 describe('PlayerModal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    document.body.innerHTML = ''
   })
 
   describe('action cards', () => {
@@ -173,6 +195,34 @@ describe('PlayerModal', () => {
 
       expect(server.cancelOffer).not.toHaveBeenCalled()
       expect(modal.overlay.remove).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('#446 minimum offer price', () => {
+    it('blocks a sell offer below 75% of the market value', async () => {
+      const modal = await _mountModalWithPriceInput({ teamId: 1, rawValue: '74999' })
+
+      await modal._onTradeOffer()
+
+      expect(server.addTradeOffer).not.toHaveBeenCalled()
+      expect(toast).toHaveBeenCalledWith(expect.stringContaining('75%'), 'error')
+    })
+
+    it('blocks a buy offer below 75% of the market value', async () => {
+      const modal = await _mountModalWithPriceInput({ teamId: 2, rawValue: '74999' })
+
+      await modal._onTradeOffer()
+
+      expect(server.addTradeOffer).not.toHaveBeenCalled()
+      expect(toast).toHaveBeenCalledWith(expect.stringContaining('75%'), 'error')
+    })
+
+    it('sends an offer at exactly 75% of the market value', async () => {
+      const modal = await _mountModalWithPriceInput({ teamId: 2, rawValue: '75000' })
+
+      await modal._onTradeOffer()
+
+      expect(server.addTradeOffer).toHaveBeenCalledWith(modal.player, 75000, 'buy', true)
     })
   })
 })
