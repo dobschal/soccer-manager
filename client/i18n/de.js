@@ -242,6 +242,11 @@ export default {
   // Stadium
   'stadium.title': 'Stadion',
   'stadium.webglUnavailable': 'Die 3D-Stadionansicht konnte nicht geladen werden. Dein Browser oder Gerät unterstützt möglicherweise keine 3D-Grafik (WebGL). Aktiviere die Hardwarebeschleunigung oder aktualisiere deinen Browser.',
+  'stadium.daylight': 'Tageszeit',
+  'stadium.daylight.dawn': 'Morgendämmerung',
+  'stadium.daylight.day': 'Tag',
+  'stadium.daylight.dusk': 'Abenddämmerung',
+  'stadium.daylight.night': 'Nacht',
   'stadium.yourStadium': 'Dein Stadion',
   'stadium.stadiumDesc': 'Hier ist dein wunderschönes Stadion mit {seats} Plätzen:',
   'stadium.overview': 'Übersicht',
@@ -1121,6 +1126,7 @@ export default {
   'tutorial.stadiumPage.item2': 'Erweitere Tribünen, um die Kapazität zu erhöhen',
   'tutorial.stadiumPage.item3': 'Füge Dächer hinzu, um das Fan-Erlebnis zu verbessern',
   'tutorial.stadiumPage.item4': 'Der Bau braucht Zeit - plane voraus!',
+  'tutorial.stadiumPage.item5': 'Mit dem Regler unter der 3D-Ansicht stellst du die Tageszeit ein',
   'tutorial.financesPage.title': 'Finanzen',
   'tutorial.financesPage.subtitle': 'Verwalte die Finanzen deines Clubs',
   'tutorial.financesPage.item1': 'Sieh deinen aktuellen Kontostand und die Transaktionshistorie',
@@ -1143,7 +1149,7 @@ export default {
   'tutorial.buildingsPage.item4': 'Ausbauten kosten Geld und dauern mehrere Spieltage',
   'tutorial.buildingsPage.item5': 'Jedes Gebäude kann bis auf Stufe 3 ausgebaut werden',
   'tutorial.buildingsPage.item6': 'Die Jugendakademie liefert bessere Jugendspieler-Karten und mehr Trainings-Slots',
-  'tutorial.buildingsPage.item7': 'Die 3D-Ansicht oben zeigt dein Vereinsgelände – Trainingsgelände und Fitnessstudio wachsen dort mit jeder Stufe sichtbar mit',
+  'tutorial.buildingsPage.item7': 'Die 3D-Ansicht oben zeigt dein Vereinsgelände – alle drei Gebäude wachsen dort mit jeder Stufe sichtbar mit',
 
   // Log Messages
   'log.title': 'Nachrichten',

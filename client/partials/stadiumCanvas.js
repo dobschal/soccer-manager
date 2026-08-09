@@ -1,8 +1,14 @@
 import {UIElement} from '../lib/UIElement.js'
 import {el} from '../lib/html.js'
 import {t} from '../i18n/index.js'
-import {buildFitnessStudio, buildTrainingArea, clubBuildingPlots} from './clubBuildingsScene.js'
+import {
+  buildFitnessStudio,
+  buildTrainingArea,
+  buildYouthAcademy,
+  clubBuildingPlots
+} from './clubBuildingsScene.js'
 import {buildTraffic} from './trafficScene.js'
+import {renderEmblem} from './emblem.js'
 
 /**
  * Central layout & scene configuration for the 3D stadium.
@@ -137,6 +143,56 @@ export const CONFIG = Object.freeze({
   // `position` is where the light comes *from* (it always aims at the origin);
   // its height above the horizon works out at roughly 15°. `intensity` is the
   // knob for how much the whole scene brightens up.
+  // Four times of day the scene can be lit in. The scene is built once and then
+  // repainted: sun (colour, strength, where it stands), fill lighting, sky dome
+  // stops, fog, and whether the floodlights and street lamps burn. `hours` is the
+  // half-open range of the local clock the phase covers, used to pick the one
+  // that matches the player's own time when the canvas opens.
+  //
+  // The sun always comes *from* `position` and aims at the camera's focus, so its
+  // x sign is what puts dusk in the west and dawn in the east.
+  daylight: {
+    order: ['dawn', 'day', 'dusk', 'night'],
+    phases: {
+      dawn: {
+        hours: [5, 9],
+        sun: {color: 0xffb37a, intensity: 1.1, position: [380, 120, 150]},
+        fill: {ambient: 0.85, moon: 0.5},
+        sky: {zenith: 0x2b2a5c, horizonWarm: 0xc4714f, horizonCool: 0x35406e},
+        fog: 0x4a3a52,
+        background: 0x2b2a5c,
+        floodlights: true
+      },
+      day: {
+        hours: [9, 18],
+        sun: {color: 0xfff4e2, intensity: 2.4, position: [-210, 430, -160]},
+        fill: {ambient: 1, moon: 0.2},
+        sky: {zenith: 0x2f6fc4, horizonWarm: 0xcfe2f5, horizonCool: 0xa9c8ea},
+        fog: 0xb8cfe6,
+        background: 0x2f6fc4,
+        floodlights: false
+      },
+      dusk: {
+        hours: [18, 22],
+        sun: {color: 0xff9a4d, intensity: 1, position: [-380, 110, -140]},
+        fill: {ambient: 0.8, moon: 0.65},
+        sky: {zenith: 0x171334, horizonWarm: 0x9c5233, horizonCool: 0x2a2350},
+        fog: 0x3a2b45,
+        background: 0x171334,
+        floodlights: true
+      },
+      night: {
+        // Wraps past midnight, so its range is read as "everything else".
+        hours: [22, 5],
+        sun: {color: 0x6f7cb8, intensity: 0.12, position: [-300, 260, -220]},
+        fill: {ambient: 0.5, moon: 0.75},
+        sky: {zenith: 0x080a1c, horizonWarm: 0x1b2144, horizonCool: 0x11142e},
+        fog: 0x11142c,
+        background: 0x080a1c,
+        floodlights: true
+      }
+    }
+  },
   sun: {
     color: 0xff9a4d,
     intensity: 1,
@@ -230,6 +286,27 @@ export const CONFIG = Object.freeze({
 })
 
 /**
+ * The daylight phase a given local time falls into.
+ *
+ * Pure lookup over `CONFIG.daylight.phases[*].hours`, so the choice can be
+ * checked without a scene. A range whose end wraps past midnight (night) is read
+ * as "from `start` until `end` the next morning".
+ * @param {Date} [date] defaults to now
+ * @returns {string} phase name, one of `CONFIG.daylight.order`
+ */
+export function daylightPhaseFor (date = new Date()) {
+  const hour = date.getHours()
+  for (const [name, phase] of Object.entries(CONFIG.daylight.phases)) {
+    const [from, to] = phase.hours
+    const inRange = from < to
+      ? hour >= from && hour < to
+      : hour >= from || hour < to
+    if (inRange) return name
+  }
+  return 'dusk'
+}
+
+/**
  * Colour of the sunset sky in one direction.
  *
  * Two blends: horizontally between the warm band the sun leaves behind and the
@@ -285,6 +362,11 @@ export class StadiumCanvas extends UIElement {
     this.canvasId = canvasId
     this.options = options
     this._interactive = options.interactive !== false
+    // Whatever it is where the player is right now — the slider only moves it
+    // from there.
+    this._phase = CONFIG.daylight.phases[options.daylight]
+      ? options.daylight
+      : daylightPhaseFor()
   }
 
   /**
@@ -292,9 +374,12 @@ export class StadiumCanvas extends UIElement {
    */
   get template () {
     return `
-      <div class="stadium-wrapper ${this._interactive ? 'stadium-wrapper-interactive' : ''}">
-        <canvas id="${this.canvasId}"></canvas>
-        ${this.options.controlsToggle ? this._renderControlsToggle() : ''}
+      <div>
+        <div class="stadium-wrapper ${this._interactive ? 'stadium-wrapper-interactive' : ''}">
+          <canvas id="${this.canvasId}"></canvas>
+          ${this.options.controlsToggle ? this._renderControlsToggle() : ''}
+        </div>
+        ${this.options.daylightControl ? this._renderDaylightControl() : ''}
       </div>
     `
   }
@@ -306,6 +391,9 @@ export class StadiumCanvas extends UIElement {
     return {
       '(optional) .stadium-controls-toggle': {
         click: () => this._toggleInteractive()
+      },
+      '(optional) .stadium-daylight__slider': {
+        input: (event) => this._setPhase(CONFIG.daylight.order[Number(event.target.value)])
       }
     }
   }
@@ -508,6 +596,8 @@ export class StadiumCanvas extends UIElement {
     this._buildEntrances(this._scene)
     this._buildClubBuildings(this._scene)
     this._buildTrees(this._scene)
+    // Everything is in place — now light it for the time of day.
+    this._applyPhase()
 
     this._startRenderLoop()
     this._observeResize(container)
@@ -525,10 +615,9 @@ export class StadiumCanvas extends UIElement {
     const focus = this._focusPoint()
 
     this._scene = new THREE.Scene()
-    this._scene.background = new THREE.Color(CONFIG.colors.sceneBackground)
-    this._scene.fog = new THREE.Fog(
-      CONFIG.colors.fog, CONFIG.colors.fogNear, CONFIG.colors.fogFar
-    )
+    const palette = this._palette()
+    this._scene.background = new THREE.Color(palette.background)
+    this._scene.fog = new THREE.Fog(palette.fog, CONFIG.colors.fogNear, CONFIG.colors.fogFar)
     this._createSky(this._scene)
 
     this._camera = new THREE.PerspectiveCamera(
@@ -617,16 +706,16 @@ export class StadiumCanvas extends UIElement {
 
   /**
    * Render every club building the team owns onto its plot, each with a
-   * lamp-lined sidewalk along the two roads it borders. The training ground and
-   * the fitness studio have 3D geometry; the youth academy's plot stays empty
-   * until it gets its own (and gets no sidewalk in the meantime).
+   * lamp-lined sidewalk along the two roads it borders. All three have 3D
+   * geometry; a type without a builder simply gets no geometry and no sidewalk.
    * @param {THREE.Scene} scene
    */
   _buildClubBuildings (scene) {
     const rand = this._seededRandom(0x5bf03635)
     const builders = {
       training_area: buildTrainingArea,
-      fitness_studio: buildFitnessStudio
+      fitness_studio: buildFitnessStudio,
+      youth_academy: buildYouthAcademy
     }
     for (const plot of this._buildingPlots()) {
       const build = builders[plot.type]
@@ -636,7 +725,11 @@ export class StadiumCanvas extends UIElement {
         rand,
         x: plot.cx,
         z: plot.cz,
-        sidewalkWidth: CONFIG.sidewalk.width
+        sidewalkWidth: CONFIG.sidewalk.width,
+        // For the academy's facade: the club's own emblem, with the team colour
+        // behind it for the generic crest that stands in while it rasterises.
+        teamColor: this.team.color,
+        emblemSvg: this.team.name ? renderEmblem(this.team, 512) : undefined
       })
       this._addBuildingSidewalks(scene, plot, openings)
     }
@@ -735,6 +828,96 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
+   * The daylight slider under the canvas: four steps from dawn to night, starting
+   * on whatever matches the player's own clock.
+   * @returns {string}
+   */
+  _renderDaylightControl () {
+    const {order} = CONFIG.daylight
+    return `
+      <div class="stadium-daylight">
+        <label class="stadium-daylight__label" for="${this.canvasId}-daylight">
+          <span class="stadium-daylight__caption">${t('stadium.daylight')}</span>
+          <span class="stadium-daylight__value">${t('stadium.daylight.' + this._phase)}</span>
+        </label>
+        <input type="range" class="form-range stadium-daylight__slider"
+               id="${this.canvasId}-daylight"
+               min="0" max="${order.length - 1}" step="1"
+               value="${order.indexOf(this._phase)}"
+               aria-label="${t('stadium.daylight')}">
+      </div>
+    `
+  }
+
+  /**
+   * Light the scene for a phase: sun, fill, sky, fog and whether the floodlights
+   * burn. Everything is repainted in place — rebuilding the stadium for a slider
+   * nudge would be absurd — and the label under the slider follows along without
+   * re-rendering the component (which would drop the WebGL context).
+   * @param {string} phase one of `CONFIG.daylight.order`
+   */
+  _setPhase (phase) {
+    if (!CONFIG.daylight.phases[phase]) return
+    this._phase = phase
+    this._applyPhase()
+
+    const label = el(`#${this.canvasId}-daylight`)?.closest('.stadium-daylight')
+      ?.querySelector('.stadium-daylight__value')
+    if (label) label.textContent = t('stadium.daylight.' + phase)
+  }
+
+  /**
+   * @returns {Object} the current phase's palette
+   */
+  _palette () {
+    return CONFIG.daylight.phases[this._phase] || CONFIG.daylight.phases.dusk
+  }
+
+  /**
+   * Push the current phase onto the scene. Safe to call before the scene exists.
+   */
+  _applyPhase () {
+    if (!this._scene) return
+    const palette = this._palette()
+
+    this._ambientLight.intensity = palette.fill.ambient
+    this._moonLight.intensity = palette.fill.moon
+    this._sunLight.color.set(palette.sun.color)
+    this._sunLight.intensity = palette.sun.intensity
+    this._aimSun()
+
+    this._scene.background.set(palette.background)
+    this._scene.fog.color.set(palette.fog)
+    this._paintSky()
+    this._setNightLightsOn(palette.floodlights)
+  }
+
+  /**
+   * Stand the sun where the phase wants it, relative to what the camera orbits,
+   * and re-fit its shadow camera to that distance.
+   */
+  _aimSun () {
+    const [sx, sy, sz] = this._palette().sun.position
+    const focus = this._focusPoint()
+    this._sunLight.position.set(focus.x + sx, sy, focus.z + sz)
+    this._sunLight.target.position.set(focus.x, 0, focus.z)
+    if (this._sunLight.castShadow) this._fitSunShadow(Math.hypot(sx, sy, sz))
+  }
+
+  /**
+   * Floodlights, street lamps and every lamp lens that only makes sense after
+   * dark. Switching the spotlights off by day also drops their shadow passes.
+   * @param {boolean} on
+   */
+  _setNightLightsOn (on) {
+    this._scene.traverse(object => {
+      if (object.type === 'SpotLight' || object.userData?.nightOnly) {
+        object.visible = on
+      }
+    })
+  }
+
+  /**
    * @returns {string}
    */
   _renderControlsToggle () {
@@ -784,6 +967,35 @@ export class StadiumCanvas extends UIElement {
     const THREE = this._THREE
     const S = CONFIG.sky
 
+    const geometry = new THREE.SphereGeometry(S.radius, S.segments, S.segments / 2)
+    // Kept as fields rather than read back off the mesh: the colours are
+    // rewritten on every phase change, and this is the whole state that needs.
+    this._skyPositions = geometry.attributes.position
+    this._skyColors = new THREE.BufferAttribute(
+      new Float32Array(this._skyPositions.count * 3), 3
+    )
+    geometry.setAttribute('color', this._skyColors)
+
+    this._sky = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      side: THREE.BackSide,
+      fog: false,
+      depthWrite: false
+    }))
+    this._sky.frustumCulled = false
+    scene.add(this._sky)
+    this._paintSky()
+  }
+
+  /**
+   * Colour the dome's vertices for the current phase. Re-run whenever the phase
+   * changes: it is a few thousand vertices, far cheaper than rebuilding the mesh.
+   */
+  _paintSky () {
+    if (!this._skyColors) return
+    const THREE = this._THREE
+    const palette = this._palette()
+
     // Hex stops go through THREE.Color so they land in the renderer's working
     // colour space — a raw colour attribute is taken as-is, unlike a material's
     // `color`, and would come out washed out.
@@ -791,35 +1003,25 @@ export class StadiumCanvas extends UIElement {
       const c = new THREE.Color(hex)
       return [c.r, c.g, c.b]
     }
-    const palette = {
-      ...S,
-      zenith: stop(S.zenith),
-      horizonWarm: stop(S.horizonWarm),
-      horizonCool: stop(S.horizonCool)
+    const stops = {
+      ...CONFIG.sky,
+      zenith: stop(palette.sky.zenith),
+      horizonWarm: stop(palette.sky.horizonWarm),
+      horizonCool: stop(palette.sky.horizonCool)
     }
-    const [sx, , sz] = CONFIG.sun.position
-    const sunLength = Math.hypot(sx, sz)
+    const [sx, , sz] = palette.sun.position
+    const sunLength = Math.hypot(sx, sz) || 1
     const sunAzimuth = {x: sx / sunLength, z: sz / sunLength}
 
-    const geometry = new THREE.SphereGeometry(S.radius, S.segments, S.segments / 2)
-    const position = geometry.attributes.position
-    const colors = new Float32Array(position.count * 3)
+    const position = this._skyPositions
+    const colors = this._skyColors
     const direction = new THREE.Vector3()
     for (let i = 0; i < position.count; i++) {
       direction.fromBufferAttribute(position, i).normalize()
-      const rgb = skyColor(direction, sunAzimuth, palette)
-      colors.set(rgb, i * 3)
+      const [r, g, b] = skyColor(direction, sunAzimuth, stops)
+      colors.setXYZ(i, r, g, b)
     }
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-
-    const sky = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
-      vertexColors: true,
-      side: THREE.BackSide,
-      fog: false,
-      depthWrite: false
-    }))
-    sky.frustumCulled = false
-    scene.add(sky)
+    colors.needsUpdate = true
   }
 
   /**
@@ -829,37 +1031,32 @@ export class StadiumCanvas extends UIElement {
    */
   _setupLights () {
     const THREE = this._THREE
+    const palette = this._palette()
 
-    const ambientLight = new THREE.AmbientLight(CONFIG.colors.ambientLight, CONFIG.fill.ambient)
-    this._scene.add(ambientLight)
+    this._ambientLight = new THREE.AmbientLight(CONFIG.colors.ambientLight, palette.fill.ambient)
+    this._scene.add(this._ambientLight)
 
-    const moonLight = new THREE.DirectionalLight(CONFIG.colors.moonLight, CONFIG.fill.moon)
-    moonLight.position.set(30, 100, 30)
-    this._scene.add(moonLight)
+    this._moonLight = new THREE.DirectionalLight(CONFIG.colors.moonLight, palette.fill.moon)
+    this._moonLight.position.set(30, 100, 30)
+    this._scene.add(this._moonLight)
 
-    const sunLight = new THREE.DirectionalLight(CONFIG.sun.color, CONFIG.sun.intensity)
-    // The sun aims at whatever the camera orbits, keeping its light direction but
-    // moving its (limited) shadow area along with the view.
-    const focus = this._focusPoint()
-    sunLight.position.set(
-      focus.x + CONFIG.sun.position[0], CONFIG.sun.position[1], focus.z + CONFIG.sun.position[2]
-    )
-    sunLight.target.position.set(focus.x, 0, focus.z)
-    this._scene.add(sunLight.target)
-    if (CONFIG.sun.castShadow) this._setupSunShadow(sunLight)
-    this._scene.add(sunLight)
+    this._sunLight = new THREE.DirectionalLight(palette.sun.color, palette.sun.intensity)
+    if (CONFIG.sun.castShadow) this._setupSunShadow(this._sunLight)
+    // The sun aims at whatever the camera orbits, keeping its (limited) shadow
+    // area on what is actually in view.
+    this._scene.add(this._sunLight.target)
+    this._scene.add(this._sunLight)
+    this._aimSun()
   }
 
   /**
-   * Let the low sun cast shadows. A directional light shadows through an
-   * orthographic camera, so its box has to cover both the shadowed area and the
-   * long shadows a 15°-high sun throws across it — the light sits ~420 units out,
-   * hence the generous near/far range.
+   * Let the sun cast shadows. A directional light shadows through an orthographic
+   * camera, so its box has to cover both the shadowed area and the long shadows a
+   * low sun throws across it.
    * @param {THREE.DirectionalLight} sunLight
    */
   _setupSunShadow (sunLight) {
     const S = CONFIG.sun.shadow
-    const distance = Math.hypot(...CONFIG.sun.position)
 
     sunLight.castShadow = true
     sunLight.shadow.mapSize.width = S.mapSize
@@ -868,10 +1065,22 @@ export class StadiumCanvas extends UIElement {
     sunLight.shadow.camera.right = S.radius
     sunLight.shadow.camera.top = S.radius
     sunLight.shadow.camera.bottom = -S.radius
-    sunLight.shadow.camera.near = Math.max(1, distance - S.radius * 2)
-    sunLight.shadow.camera.far = distance + S.radius * 2
     sunLight.shadow.bias = S.bias
     sunLight.shadow.normalBias = S.normalBias
+    this._fitSunShadow(Math.hypot(...CONFIG.sun.position))
+  }
+
+  /**
+   * Bracket the shadow camera's depth range around however far out the sun
+   * currently stands — each phase puts it somewhere else.
+   * @param {number} distance
+   */
+  _fitSunShadow (distance) {
+    const S = CONFIG.sun.shadow
+    const camera = this._sunLight.shadow.camera
+    camera.near = Math.max(1, distance - S.radius * 2)
+    camera.far = distance + S.radius * 2
+    camera.updateProjectionMatrix?.()
   }
 
   /**
@@ -1350,6 +1559,7 @@ export class StadiumCanvas extends UIElement {
       new this._THREE.MeshBasicMaterial({color: L.lightColor})
     )
     head.position.set(x, L.height + 0.15, z)
+    head.userData.nightOnly = true
     scene.add(head)
   }
 
@@ -1894,6 +2104,7 @@ export class StadiumCanvas extends UIElement {
         lens.position.set(x + offsetX, offsetY, z)
         lens.lookAt(0, 0, 0)
         lens.position.add(dirToCenter.clone().multiplyScalar(0.65))
+        lens.userData.nightOnly = true
         scene.add(lens)
       }
     }

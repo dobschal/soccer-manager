@@ -222,7 +222,7 @@ Youth Academy – generates new youth players:
 
 Each building tops out at level 3. The cost is deducted immediately when you start the upgrade, and you get a log message when it is finished.
 
-The 3D view at the top of the page shows your club grounds: it is the same scene as on the stadium page, but centred on the road crossing north-east of the stadium that your buildings are grouped around. Drag to look around, or hand the camera back to the slow auto-orbit with the button in the corner. Cars drive along the roads around it, headlights on.
+The 3D view at the top of the page shows your club grounds: it is the same scene as on the stadium page, but centred on the road crossing north-east of the stadium that your buildings are grouped around. Drag to look around, or hand the camera back to the slow auto-orbit with the button in the corner. Cars drive along the roads around it. The slider below the view sets the time of day – dawn, day, dusk or night. It starts on whatever matches your own clock, and by day the floodlights and street lamps are off.
 
 Your training area is built there for real – a full-size pitch, as big as the one in your stadium, fenced right up to the kerb, with room for a car park beside it. Its level shows:
 • Level 1: the fenced pitch with two goals and a pair of small, weak floodlights in two corners, so the far half stays in the dark. No benches and no car park yet.
@@ -232,7 +232,12 @@ Your training area is built there for real – a full-size pitch, as big as the 
 Your fitness studio stands right across the road, west of the training ground: a modern hall with a strutted glass facade and a flat roof, its entrance under a canopy with a big neon "Gym" above it. Behind the glass is one big brightly lit room with mats, treadmills, weight plates, dumbbells and weight benches; tilted solar panels sit on the roof and a car park beside the hall. The hall itself grows with its level – and so does everything in and on it:
 • Level 1: a small hall with a basic kit – two treadmills, two mats, one bench – under two ceiling lights, three solar panels on the roof and a short row of parking bays.
 • Level 2: a bigger hall, twice the kit, a second row of ceiling lights, a brighter sign, six solar panels, more bays and a lamp mast over the car park.
-• Level 3: the full-size hall, a packed floor under six ceiling lights, the sign at its brightest, ten solar panels, a second row of parking bays and a second mast.`
+• Level 3: the full-size hall, a packed floor under six ceiling lights, the sign at its brightest, ten solar panels, a second row of parking bays and a second mast.
+
+Your youth academy sits south of the training ground, on the other side of that road: a light grey block with blue window bands, fronted by a tall blue entrance bay that carries your club's own emblem and "Youth Academy" high up and the glazed door at its foot – the lobby behind it lit, a small canopy with a light strip above it. Its roof is a terrace behind a strutted glass balustrade, with solar panels on the flat roof above. Its entrance looks out over the car park, with a short lamp-lined footpath in between; the pitch lies crosswise behind the building – half the size of your stadium's, fenced, floodlit, with youth-size goals and covered in training kit:
+• Level 1: two storeys under a terrace roof, two solar panels, cones, a slalom line, two hurdles and a short row of parking bays.
+• Level 2: a recessed top floor is added on the roof, so the terrace now runs around it; four solar panels, more cones, poles and hurdles, the first free-kick dummies, more bays and a lamp mast over the car park.
+• Level 3: a third storey below it, eight solar panels, a fully equipped pitch with four dummies, a second row of parking bays and a second mast.`
     },
     de: {
       title: 'Gebäude',
@@ -256,7 +261,7 @@ Jugendakademie – erzeugt neue Jugendspieler:
 
 Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbaus abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.
 
-Die 3D-Ansicht oben auf der Seite zeigt dein Vereinsgelände: dieselbe Szene wie auf der Stadion-Seite, nur zentriert auf die Straßenkreuzung nordöstlich des Stadions, um die herum deine Gebäude stehen. Zieh mit der Maus, um dich umzusehen, oder gib die Kamera mit dem Knopf in der Ecke wieder an die langsame Drehung ab. Auf den Straßen ringsum fahren Autos mit eingeschalteten Scheinwerfern.
+Die 3D-Ansicht oben auf der Seite zeigt dein Vereinsgelände: dieselbe Szene wie auf der Stadion-Seite, nur zentriert auf die Straßenkreuzung nordöstlich des Stadions, um die herum deine Gebäude stehen. Zieh mit der Maus, um dich umzusehen, oder gib die Kamera mit dem Knopf in der Ecke wieder an die langsame Drehung ab. Auf den Straßen ringsum fahren Autos. Mit dem Regler unter der Ansicht stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht. Beim Öffnen passt sie zu deiner eigenen Uhrzeit; tagsüber sind Flutlicht und Straßenlaternen aus.
 
 Dein Trainingsgelände steht dort wirklich – ein Platz in voller Größe, genauso groß wie der in deinem Stadion, eingezäunt bis direkt an den Bordstein, mit Platz für einen Parkplatz daneben. Und man sieht ihm seine Stufe an:
 • Stufe 1: der eingezäunte Platz mit zwei Toren und einem kleinen, schwachen Flutlicht in zwei Ecken – die andere Hälfte bleibt im Dunkeln. Noch ohne Trainerbänke und ohne Parkplatz.
@@ -266,7 +271,12 @@ Dein Trainingsgelände steht dort wirklich – ein Platz in voller Größe, gena
 Dein Fitnessstudio steht gleich gegenüber, westlich des Trainingsgeländes auf der anderen Straßenseite: eine moderne Halle mit verstrebter Glasfassade und Flachdach, der Eingang unter einem Vordach mit einem großen "Gym" in Leuchtschrift darüber. Hinter dem Glas liegt ein einziger großer, hell beleuchteter Raum mit Matten, Laufbändern, Gewichten, Hanteln und Hantelbänken, auf dem Dach stehen angeschrägte Solarmodule, daneben liegt ein Parkplatz. Die Halle selbst wächst mit ihrer Stufe – und alles darin und darauf mit:
 • Stufe 1: eine kleine Halle mit Grundausstattung – zwei Laufbänder, zwei Matten, eine Hantelbank – unter zwei Deckenleuchten, drei Solarmodule auf dem Dach und eine kurze Reihe Parkbuchten.
 • Stufe 2: eine größere Halle, doppelt so viele Geräte, eine zweite Reihe Deckenleuchten, hellere Leuchtschrift, sechs Solarmodule, mehr Parkbuchten und ein Lichtmast über dem Parkplatz.
-• Stufe 3: die Halle in voller Größe, ein voller Trainingsraum unter sechs Deckenleuchten, die Leuchtschrift am hellsten, zehn Solarmodule, eine zweite Reihe Parkbuchten und ein zweiter Mast.`
+• Stufe 3: die Halle in voller Größe, ein voller Trainingsraum unter sechs Deckenleuchten, die Leuchtschrift am hellsten, zehn Solarmodule, eine zweite Reihe Parkbuchten und ein zweiter Mast.
+
+Deine Jugendakademie liegt südlich des Trainingsgeländes, auf der anderen Seite jener Straße: ein hellgrauer Block mit blauen Fensterbändern, davor ein hoher blauer Eingangsbereich – oben dein echtes Vereinswappen und „Youth Academy", unten die Glastür mit beleuchteter Lobby dahinter und einem kleinen Vordach mit Lichtleiste darüber. Das Dach ist eine Terrasse hinter einem verstrebten Glasgeländer, oben auf dem Flachdach stehen Solarmodule. Der Eingang schaut auf den Parkplatz, dazwischen ein kurzer Fußweg mit Laternen; hinter dem Gebäude liegt quer der Kleinfeldplatz – halb so groß wie der im Stadion, eingezäunt, mit Flutlicht, Jugendtoren und voller Trainingselemente:
+• Stufe 1: zwei Stockwerke unter dem Terrassendach, zwei Solarmodule, Hütchen, eine Slalomlinie, zwei Hürden und eine kurze Reihe Parkbuchten.
+• Stufe 2: oben kommt ein eingerücktes Dachgeschoss dazu, die Terrasse läuft nun um es herum; vier Solarmodule, mehr Hütchen, Stangen und Hürden, die ersten Freistoß-Dummies, mehr Parkbuchten und ein Lichtmast über dem Parkplatz.
+• Stufe 3: darunter ein drittes Stockwerk, acht Solarmodule, ein voll ausgestatteter Platz mit vier Dummies, eine zweite Reihe Parkbuchten und ein zweiter Mast.`
     }
   },
 
@@ -958,7 +968,9 @@ Attendance and income:
 • Ticket prices can be set per stand from 1 to 100 €. Around 15 € tends to be the sweet spot – too high and fans stay away.
 
 Home advantage:
-• A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.`
+• A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.
+
+The 3D view at the top shows your ground as you have built it. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off.`
     },
     de: {
       title: 'Stadion',
@@ -978,7 +990,9 @@ Zuschauer und Einnahmen:
 • Ticketpreise lassen sich pro Tribüne von 1 bis 100 € festlegen. Rund 15 € ist meist optimal – zu hoch, und die Fans bleiben weg.
 
 Heimvorteil:
-• Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.`
+• Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.
+
+Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus.`
     }
   },
 

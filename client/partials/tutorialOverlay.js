@@ -58,7 +58,8 @@ function getTutorials () {
         t('tutorial.stadiumPage.item1'),
         t('tutorial.stadiumPage.item2'),
         t('tutorial.stadiumPage.item3'),
-        t('tutorial.stadiumPage.item4')
+        t('tutorial.stadiumPage.item4'),
+        t('tutorial.stadiumPage.item5')
       ]
     },
     finances: {

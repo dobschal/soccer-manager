@@ -1,3 +1,5 @@
+import {loadEmblemImage} from '../util/emblemRaster.js'
+
 /**
  * Club buildings rendered into the shared 3D scene (see `stadiumCanvas.js`).
  *
@@ -209,6 +211,158 @@ const GYM_PLOT_X = HALL[3].width + 2 * FITNESS.building.margin + FITNESS.parking
 const GYM_PLOT_Z = HALL[3].depth + 2 * FITNESS.building.margin
 const GYM_BUILDING_X = -GYM_PLOT_X / 2 + FITNESS.building.margin + HALL[3].width / 2
 const GYM_PARKING_X = GYM_PLOT_X / 2 - FITNESS.parking.strip / 2
+/**
+ * The youth academy: a multi-storey block with a light grey facade and blue
+ * window bands, the club crest and a "Youth Academy" sign on a blue accent
+ * column, a fenced half-size pitch with training kit beside it and a car park in
+ * the strip on its far side. Modelled on the building in the level images
+ * (`client/assets/youth-academy/`).
+ *
+ * The footprint stays the same at every level and only the storeys stack up, so
+ * the plot, the pitch and the car park never move on an upgrade.
+ */
+const ACADEMY = Object.freeze({
+  building: {
+    width: 24,
+    depth: 14,
+    // Two storeys make the main block; a third, recessed one sits on its roof and
+    // is what an upgrade adds first, a fourth main storey what it adds next. The
+    // block's own roof is the terrace around the recessed floor.
+    storeys: {1: 2, 2: 2, 3: 3},
+    penthouse: {1: false, 2: true, 3: true},
+    storeyHeight: 3.4,
+    base: 0.3, // top of the plinth
+    plinthColor: 0x55595e,
+    facadeColor: 0xd8d5cc, // light grey, like the render's rendered concrete
+    trimColor: 0xb9b6ad, // roof slabs and copings
+    accentColor: 0x1e4bb8, // the blue entrance bay
+    roofColor: 0x4a4f55,
+    // Window bands: one per storey on all four sides, blue glass with dark
+    // mullions. `proud` keeps them clear of the facade behind them — far more
+    // than the depth buffer needs, since the facade is a solid block.
+    window: {
+      height: 1.7,
+      sill: 0.9, // above each storey's floor
+      proud: 0.12,
+      spacing: 2.6,
+      glassColor: 0x3f7ad6,
+      strutColor: 0x24303f
+    }
+  },
+  // The recessed top floor: set back from the main block all round, and further
+  // back from the street so the terrace in front of it is the widest.
+  penthouse: {inset: 3, streetInset: 1.6, height: 3},
+  // The roof terrace's balustrade: glass panels with struts, just inside the roof
+  // edge, around the whole slab.
+  railing: {height: 1.1, inset: 0.25, glassOpacity: 0.2},
+  // The blue entrance bay: a tall volume standing proud of the street facade over
+  // the full height of the block, with the emblem sign high up and the entrance
+  // at its foot.
+  bay: {width: 8.4, proud: 1.8, riseAboveRoof: 1, offsetX: -5.5},
+  // Tilted modules on the topmost flat roof, growing per level.
+  solar: {
+    1: {cols: 2, rows: 1},
+    2: {cols: 4, rows: 1},
+    3: {cols: 4, rows: 2},
+    panel: {width: 2.4, depth: 1.4, tilt: 25, gapX: 0.4, gapZ: 1.2, lift: 0.5},
+    color: 0x16233f,
+    frameColor: 0x8f959c,
+    legColor: 0x6b7076
+  },
+  sign: {
+    width: 8.6,
+    height: 3.2,
+    // Canvas pixels the sign is drawn at (enough for the emblem's banner text to
+    // stay legible), and the two lines of lettering.
+    texture: {width: 1024, height: 380},
+    lines: ['YOUTH', 'ACADEMY'],
+    textColor: '#ffffff',
+    fallbackCrestColor: '#1e4bb8',
+    // The square the club emblem (or the fallback crest) occupies and where the
+    // lettering starts, both as a share of the sign's height.
+    crest: {x: 0.08, y: 0.08, size: 0.84},
+    textX: 0.98
+  },
+  entrance: {
+    width: 6,
+    height: 3.2,
+    // A small canopy over the door with a lit strip under it.
+    canopyDepth: 1.6,
+    canopyColor: 0x143a91,
+    doorColor: 0x1b1e22,
+    glassColor: 0x9fd6e8,
+    // The lobby behind the glass: an emissive panel plus a light, so the doorway
+    // glows from inside at dusk.
+    lobbyColor: 0xffeec9,
+    lobbyLight: {intensity: 30, range: 18},
+    pathWidth: 4,
+    pathColor: 0x9a9a9a
+  },
+  // Half the stadium pitch (`CONFIG.field` in stadiumCanvas.js), fenced with a
+  // gate on the street side.
+  pitch: {width: 25, depth: 15, fenceMargin: 3, goalScale: 0.7},
+  // Two masts at the pitch's street-side corners, aimed at their own half the way
+  // the training ground's are.
+  masts: {
+    1: {height: 9, intensity: 170, distance: 70, lamps: 1, pairs: 1},
+    2: {height: 11, intensity: 260, distance: 85, lamps: 2, pairs: 1},
+    3: {height: 13, intensity: 420, distance: 100, lamps: 2, pairs: 1}
+  },
+  // Training kit on the pitch, growing with the level: marker cones, a slalom
+  // line, hurdles to jump and free-kick dummies to shoot over.
+  kit: {
+    1: {cones: 10, poles: 5, hurdles: 2, dummies: 0, balls: 6},
+    2: {cones: 16, poles: 7, hurdles: 3, dummies: 2, balls: 10},
+    3: {cones: 22, poles: 9, hurdles: 5, dummies: 4, balls: 14}
+  },
+  hurdle: {width: 1.2, height: 0.5, color: 0xff7a1a},
+  dummy: {height: 1.8, radius: 0.22, color: 0xf2c200},
+  // Car park in the strip beyond the pitch, built by the shared `addParking`.
+  parking: {
+    strip: 17,
+    aisle: 6,
+    bay: {depth: 5, width: 2.5},
+    rows: {1: 1, 2: 1, 3: 2},
+    bays: {1: 5, 2: 7, 3: 8},
+    band: {north: -9},
+    driveway: {width: 6},
+    asphaltColor: 0x3a3a3c,
+    markingColor: 0xf2f2f2,
+    masts: {1: 0, 2: 1, 3: 2},
+    mast: {height: 8, intensity: 180, distance: 60, lamps: 2}
+  },
+  // Pedestrian lamps along the path from the entrance to the car park, built like
+  // the stadium's street lamps (`_createStreetLamp`): emissive head, no light of
+  // its own.
+  lamp: {height: 4, poleColor: 0x2a2a2a, lightColor: 0xffdd88},
+  margin: 4, // gap from the building and the pitch fence to the plot edge
+  gap: 4, // between the pitch fence and the building's back
+  pathGap: 8 // between the building's entrance and the car park
+})
+
+const ACADEMY_FENCE_X = ACADEMY.pitch.width + 2 * ACADEMY.pitch.fenceMargin
+const ACADEMY_FENCE_Z = ACADEMY.pitch.depth + 2 * ACADEMY.pitch.fenceMargin
+// Building and pitch are both built facing the street and then turned a quarter
+// turn, so along the plot's x axis the building takes up its *depth* and the
+// pitch its fence's *short* side. Order across the plot: pitch, building, path,
+// car park. The whole plot is mirrored into the world by the 180° turn in the
+// builder, so its far end is the one at the crossing.
+const ACADEMY_PLOT_X = ACADEMY.margin + ACADEMY_FENCE_Z + ACADEMY.gap +
+  ACADEMY.building.depth + ACADEMY.pathGap + ACADEMY.parking.strip
+const ACADEMY_PLOT_Z = ACADEMY_FENCE_X + 2 * 4.5
+const ACADEMY_PITCH_X = -ACADEMY_PLOT_X / 2 + ACADEMY.margin + ACADEMY_FENCE_Z / 2
+const ACADEMY_BUILDING_X = -ACADEMY_PLOT_X / 2 + ACADEMY.margin + ACADEMY_FENCE_Z +
+  ACADEMY.gap + ACADEMY.building.depth / 2
+const ACADEMY_PARKING_X = ACADEMY_PLOT_X / 2 - ACADEMY.parking.strip / 2
+// Front of the entrance bay, and the west edge of the car park's asphalt — the
+// two ends of the footpath between them. The bay sits off-centre on its facade,
+// and the quarter turn puts that offset on the plot's z axis, so the path has to
+// follow it to actually meet the door.
+const ACADEMY_ENTRANCE_X = ACADEMY_BUILDING_X + ACADEMY.building.depth / 2 + ACADEMY.bay.proud
+const ACADEMY_ENTRANCE_Z = -ACADEMY.bay.offsetX
+const ACADEMY_LOT_EDGE_X = ACADEMY_PARKING_X - ACADEMY.parking.aisle / 2 -
+  ACADEMY.parking.bay.depth - 0.5
+
 // The south facade sits here on every level, so the entrance, its path and the
 // plinth in front of it never move when the hall grows.
 const GYM_SOUTH_FACE = HALL[3].depth / 2
@@ -279,7 +433,10 @@ export const BUILDING_PLOTS = Object.freeze({
     size: {x: GYM_PLOT_X, z: GYM_PLOT_Z},
     quadrant: {x: -1, z: -1}
   },
-  youth_academy: {size: {x: 30, z: 40}, quadrant: {x: 1, z: 1}}
+  youth_academy: {
+    size: {x: ACADEMY_PLOT_X, z: ACADEMY_PLOT_Z},
+    quadrant: {x: 1, z: 1}
+  }
 })
 
 const COLORS = Object.freeze({
@@ -448,7 +605,10 @@ function addPitch (THREE, parent, {width, depth, centerZ, stripes, circle}) {
   ))
 
   if (circle) {
-    const radius = depth / 6 // same ratio as the stadium's centre circle
+    // Same ratio as the stadium's centre circle, off the short side — so a pitch
+    // built the other way round (the academy's) gets the same circle, not a
+    // stretched one.
+    const radius = Math.min(width, depth) / 6
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(radius - 0.1, radius, 28),
       new THREE.MeshBasicMaterial({color: COLORS.line, side: THREE.DoubleSide})
@@ -681,6 +841,8 @@ function addMast (THREE, parent, {x, z, aim, spec}) {
     const lens = new THREE.Mesh(lensGeo, lensMat)
     // Offsets run across the aim direction, so the bank always faces the target.
     lens.position.set(x - nz * offset + nx * 0.32, spec.height + 0.3, z + nx * offset + nz * 0.32)
+    // Off with the floodlights by day (`_setNightLightsOn` in stadiumCanvas.js).
+    lens.userData.nightOnly = true
     parent.add(lens)
   }
 
@@ -1440,9 +1602,24 @@ function addGymEquipment (THREE, parent, {size, level, rand}) {
  */
 function addSolarPanels (THREE, parent, {size, level}) {
   const S = FITNESS.solar
-  const P = S.panel
-  const spec = S[level]
-  const roofTop = FITNESS.building.base + size.height + 0.28
+  addSolarArray(THREE, parent, {
+    spec: S[level],
+    panel: S.panel,
+    colors: S,
+    roofTop: FITNESS.building.base + size.height + 0.28
+  })
+}
+
+/**
+ * A grid of tilted solar modules standing on a flat roof, each on a short front
+ * and a taller back leg so its face turns south towards the low evening sun.
+ * Shared by the fitness studio and the youth academy.
+ * @param {Object} THREE
+ * @param {Object} parent the group the roof belongs to
+ * @param {{spec: {cols: number, rows: number}, panel: Object, colors: {color: number, frameColor: number, legColor: number}, roofTop: number}} config
+ */
+function addSolarArray (THREE, parent, {spec, panel: P, colors, roofTop}) {
+  if (!spec) return
   const tilt = P.tilt * Math.PI / 180
   // What a tilted module takes up on the roof, and how far its edges rise/fall.
   const footprint = P.depth * Math.cos(tilt)
@@ -1450,9 +1627,9 @@ function addSolarPanels (THREE, parent, {size, level}) {
 
   const panelGeo = new THREE.BoxGeometry(P.width, 0.06, P.depth)
   const frameGeo = new THREE.BoxGeometry(P.width + 0.12, 0.05, P.depth + 0.12)
-  const panelMat = new THREE.MeshLambertMaterial({color: S.color})
-  const frameMat = new THREE.MeshLambertMaterial({color: S.frameColor})
-  const legMat = new THREE.MeshLambertMaterial({color: S.legColor})
+  const panelMat = new THREE.MeshLambertMaterial({color: colors.color})
+  const frameMat = new THREE.MeshLambertMaterial({color: colors.frameColor})
+  const legMat = new THREE.MeshLambertMaterial({color: colors.legColor})
   const frontLegGeo = new THREE.BoxGeometry(0.08, P.lift - rise, 0.08)
   const backLegGeo = new THREE.BoxGeometry(0.08, P.lift + rise, 0.08)
 
@@ -1667,6 +1844,728 @@ function addParkingLights (THREE, parent, level) {
   const aim = {x: GYM_PARKING_X, z: (P.band.north + GYM_PLOT_Z / 2) / 2}
 
   for (const pos of P.mastPositions.slice(0, P.masts[level])) {
+    addMast(THREE, parent, {x: pos.x, z: pos.z, aim, spec: P.mast})
+  }
+}
+
+/**
+ * Build the youth academy of a given level.
+ *
+ * A multi-storey block with a light grey facade and blue window bands stands at
+ * one end of the plot, the club crest and a "Youth Academy" sign on the blue
+ * accent column beside its entrance. Next to it lies a fenced half-size pitch
+ * with training kit on it, and beyond that the car park.
+ *
+ * - **Level 1** – two storeys, a light kit (cones, a slalom line, two hurdles)
+ *   and a short row of parking bays.
+ * - **Level 2** – three storeys, more kit plus free-kick dummies, more bays and a
+ *   lamp mast over the car park.
+ * - **Level 3** – four storeys, a fully equipped pitch, a second row of bays and
+ *   a second mast.
+ *
+ * @param {Object} THREE the Three.js module
+ * @param {Object} scene object with `.add()`
+ * @param {{level: number, rand: () => number, x: number, z: number, sidewalkWidth?: number, teamColor?: string}} options
+ *   `emblemSvg` is the club's own emblem (from `renderEmblem`) for the facade,
+ *   with `teamColor` colouring the generic crest that stands in until it has been
+ *   rasterised; `sidewalkWidth` is how far the entrance path and the driveway
+ *   reach past the plot boundary to meet the road.
+ * @returns {{group: Object, entrance: {x: number, z: number, width: number}, openings: Array<{x: number, z: number, width: number}>}}
+ *   the built group, its entrance and every opening in the plot's road-facing
+ *   sides, in plot-local coordinates.
+ */
+export function buildYouthAcademy (THREE, scene, {level, rand, x, z, sidewalkWidth = 3, teamColor, emblemSvg}) {
+  const lvl = Math.max(1, Math.min(3, level || 1))
+  const group = new THREE.Group()
+  const A = ACADEMY
+  const storeys = A.building.storeys[lvl]
+
+  // Both volumes are built facing the street and turned a quarter turn: the
+  // building's entrance then looks at the car park, the pitch lies crosswise
+  // behind it, and the solar modules end up facing the low western sun.
+  const building = new THREE.Group()
+  building.position.set(ACADEMY_BUILDING_X, 0, 0)
+  building.rotation.y = Math.PI / 2
+  group.add(building)
+  addAcademyBlock(THREE, building, {
+    storeys,
+    penthouse: A.building.penthouse[lvl],
+    level: lvl
+  })
+  addAcademySign(THREE, building, {storeys, teamColor, emblemSvg})
+
+  // Turned the same way, so its gate and floodlights face the building.
+  const pitch = new THREE.Group()
+  pitch.position.set(ACADEMY_PITCH_X, 0, 0)
+  pitch.rotation.y = Math.PI / 2
+  group.add(pitch)
+  addAcademyPitch(THREE, pitch, {level: lvl, rand})
+
+  const southEdge = ACADEMY_PLOT_Z / 2
+  addAcademyPath(THREE, group)
+  const driveway = addParking(THREE, group, {
+    spec: A.parking,
+    rows: A.parking.rows[lvl],
+    bayCount: A.parking.bays[lvl],
+    centerX: ACADEMY_PARKING_X,
+    southEdge,
+    sidewalkWidth,
+    firstSide: -1 // the first row goes next to the pitch fence
+  })
+  addAcademyParkingLights(THREE, group, lvl)
+
+  // Built with its street side toward +z (like the fitness studio), but this plot
+  // borders its roads on the opposite sides — so the whole plot is turned around.
+  // The openings go back out in the plot's own frame, hence the negated axes.
+  group.rotation.y = Math.PI
+  group.position.set(x, 0, z)
+  scene.add(group)
+
+  const turned = o => o && {x: -o.x, z: -o.z, width: o.width}
+
+  return {
+    group,
+    // The entrance faces the car park, not a road, so it is no opening in the
+    // plot's boundary — only the driveway is.
+    entrance: turned({x: ACADEMY_ENTRANCE_X, z: ACADEMY_ENTRANCE_Z, width: A.entrance.width}),
+    openings: [turned(driveway)].filter(Boolean)
+  }
+}
+
+/**
+ * The building itself: a plinth carrying a solid light-grey block with a blue
+ * window band per storey, the tall blue entrance bay on the street facade, a roof
+ * terrace behind a glass balustrade and — from level 2 — a recessed top floor
+ * standing in the middle of that terrace, with the solar array on its roof.
+ * @param {Object} THREE
+ * @param {Object} parent the building's group, centred on its footprint
+ * @param {{storeys: number, penthouse: boolean, level: number}} config
+ */
+function addAcademyBlock (THREE, parent, {storeys, penthouse, level}) {
+  const B = ACADEMY.building
+  const P = ACADEMY.penthouse
+  const height = storeys * B.storeyHeight
+  const hw = B.width / 2
+  const hd = B.depth / 2
+  const facadeMat = new THREE.MeshLambertMaterial({color: B.facadeColor})
+  const slabMat = new THREE.MeshLambertMaterial({color: B.trimColor})
+
+  const plinth = new THREE.Mesh(
+    new THREE.BoxGeometry(B.width + 1.2, B.base, B.depth + 1.2),
+    new THREE.MeshLambertMaterial({color: B.plinthColor})
+  )
+  plinth.position.set(0, B.base / 2, 0)
+  plinth.receiveShadow = true
+  parent.add(plinth)
+
+  const shell = new THREE.Mesh(new THREE.BoxGeometry(B.width, height, B.depth), facadeMat)
+  shell.position.set(0, B.base + height / 2, 0)
+  shell.castShadow = true
+  shell.receiveShadow = true
+  parent.add(shell)
+
+  addAcademyWindows(THREE, parent, {
+    storeys,
+    width: B.width,
+    depth: B.depth,
+    fromY: B.base,
+    splitAroundBay: true
+  })
+
+  // The main roof doubles as the terrace floor, so it is a walkable slab rather
+  // than a parapet-ringed lid.
+  const terraceY = B.base + height
+  const slab = new THREE.Mesh(
+    new THREE.BoxGeometry(B.width + 0.8, 0.26, B.depth + 0.8), slabMat
+  )
+  slab.position.set(0, terraceY + 0.13, 0)
+  slab.castShadow = true
+  slab.receiveShadow = true
+  parent.add(slab)
+
+  const terraceTop = terraceY + 0.26
+  addAcademyRailing(THREE, parent, {y: terraceTop, halfWidth: hw + 0.4, halfDepth: hd + 0.4})
+
+  let topRoof = terraceTop
+  if (penthouse) {
+    const width = B.width - 2 * P.inset
+    const depth = B.depth - 2 * P.inset - P.streetInset
+    // Pushed away from the street, so the terrace is deepest where it is seen.
+    const centerZ = -P.streetInset / 2
+    const top = terraceTop + P.height
+
+    const box = new THREE.Mesh(new THREE.BoxGeometry(width, P.height, depth), facadeMat)
+    box.position.set(0, terraceTop + P.height / 2, centerZ)
+    box.castShadow = true
+    parent.add(box)
+
+    addAcademyWindows(THREE, parent, {
+      storeys: 1,
+      width,
+      depth,
+      centerZ,
+      fromY: terraceTop,
+      splitAroundBay: false
+    })
+
+    const cap = new THREE.Mesh(
+      new THREE.BoxGeometry(width + 0.7, 0.24, depth + 0.7), slabMat
+    )
+    cap.position.set(0, top + 0.12, centerZ)
+    cap.castShadow = true
+    parent.add(cap)
+    topRoof = top + 0.24
+  }
+
+  addAcademySolar(THREE, parent, {level, roofTop: topRoof})
+  addAcademyBay(THREE, parent, {height, hd})
+}
+
+/**
+ * The glass balustrade around the roof terrace: strutted panels just inside the
+ * slab's edge, on all four sides.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{y: number, halfWidth: number, halfDepth: number}} config
+ */
+function addAcademyRailing (THREE, parent, {y, halfWidth, halfDepth}) {
+  const R = ACADEMY.railing
+  const W = ACADEMY.building.window
+  const glassMat = new THREE.MeshLambertMaterial({
+    color: W.glassColor,
+    transparent: true,
+    opacity: R.glassOpacity,
+    side: THREE.DoubleSide
+  })
+  const strutMat = new THREE.MeshLambertMaterial({color: W.strutColor})
+  const x = halfWidth - R.inset
+  const z = halfDepth - R.inset
+  const centerY = y + R.height / 2
+
+  // The street side is interrupted by the entrance bay, which rises past the roof
+  // line — the balustrade runs either side of it instead of through it.
+  const A = ACADEMY.bay
+  const bayLeft = A.offsetX - A.width / 2
+  const bayRight = A.offsetX + A.width / 2
+
+  addGlassPane(THREE, parent, {
+    glassMat, strutMat, width: 2 * x, height: R.height, x: 0, y: centerY, z: -z, axis: 'x'
+  })
+  for (const [from, to] of [[-x, bayLeft], [bayRight, x]]) {
+    if (to - from < 0.5) continue
+    addGlassPane(THREE, parent, {
+      glassMat,
+      strutMat,
+      width: to - from,
+      height: R.height,
+      x: (from + to) / 2,
+      y: centerY,
+      z,
+      axis: 'x'
+    })
+  }
+  for (const sx of [-1, 1]) {
+    addGlassPane(THREE, parent, {
+      glassMat, strutMat, width: 2 * z, height: R.height, x: sx * x, y: centerY, z: 0, axis: 'z'
+    })
+  }
+}
+
+/**
+ * Tilted solar modules on the topmost flat roof — the penthouse's once it is
+ * there, the main block's before that.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{level: number, roofTop: number}} config
+ */
+function addAcademySolar (THREE, parent, {level, roofTop}) {
+  const S = ACADEMY.solar
+  addSolarArray(THREE, parent, {spec: S[level], panel: S.panel, colors: S, roofTop})
+}
+
+/**
+ * The blue entrance bay: a tall volume proud of the street facade over the full
+ * height of the block, carrying the emblem sign high up (added separately) and
+ * the entrance at its foot.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{height: number, hd: number}} config the block's storey height and its
+ *   street facade's z
+ */
+function addAcademyBay (THREE, parent, {height, hd}) {
+  const B = ACADEMY.building
+  const A = ACADEMY.bay
+
+  const bay = new THREE.Mesh(
+    new THREE.BoxGeometry(A.width, height + A.riseAboveRoof, A.proud),
+    new THREE.MeshLambertMaterial({color: B.accentColor})
+  )
+  bay.position.set(A.offsetX, B.base + (height + A.riseAboveRoof) / 2, hd + A.proud / 2)
+  bay.castShadow = true
+  parent.add(bay)
+
+  addAcademyEntrance(THREE, parent, {face: hd + A.proud})
+}
+
+/**
+ * One blue, mullioned window band per storey, on all four facades of a volume.
+ * The bands sit proud of the solid facade instead of being cut into it — cheaper
+ * than a glass shell and, unlike a flush decal, impossible to z-fight with. On
+ * the main block the street-side band runs in two pieces, because the entrance
+ * bay stands in the middle of that facade.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{storeys: number, width: number, depth: number, fromY: number, centerZ?: number, splitAroundBay?: boolean}} config
+ */
+function addAcademyWindows (THREE, parent, {
+  storeys, width, depth, fromY, centerZ = 0, splitAroundBay = false
+}) {
+  const B = ACADEMY.building
+  const W = B.window
+  const A = ACADEMY.bay
+  const glassMat = new THREE.MeshBasicMaterial({color: W.glassColor})
+  const strutMat = new THREE.MeshLambertMaterial({color: W.strutColor})
+  const hw = width / 2
+  const hd = depth / 2
+
+  // Street-side pieces: the whole facade, or the strips either side of the bay.
+  const streetBands = splitAroundBay
+    ? [
+      [A.offsetX - A.width / 2 + hw, -hw],
+      [hw - (A.offsetX + A.width / 2), hw]
+    ].map(([bandWidth, edge]) => ({
+      width: bandWidth - 0.8,
+      x: edge + Math.sign(-edge) * bandWidth / 2
+    }))
+    : [{width: width - 1, x: 0}]
+
+  for (let i = 0; i < storeys; i++) {
+    const y = fromY + i * B.storeyHeight + W.sill + W.height / 2
+    const band = (config) => addGlassPane(THREE, parent, {
+      glassMat,
+      strutMat,
+      height: W.height,
+      y,
+      spacing: W.spacing,
+      ...config
+    })
+
+    band({width: width - 1, x: 0, z: centerZ - (hd + W.proud), axis: 'x'})
+    for (const sx of [-1, 1]) {
+      band({width: depth - 1, x: sx * (hw + W.proud), z: centerZ, axis: 'z'})
+    }
+    for (const piece of streetBands) {
+      if (piece.width < 1.5) continue
+      band({...piece, z: centerZ + hd + W.proud, axis: 'x'})
+    }
+  }
+}
+
+/**
+ * The entrance at the foot of the blue bay: a glazed double door with the lit
+ * lobby glowing behind it, and a small canopy over it with a light strip
+ * underneath.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{face: number}} config `face` is the z of the bay's front face
+ */
+function addAcademyEntrance (THREE, parent, {face}) {
+  const B = ACADEMY.building
+  const E = ACADEMY.entrance
+  const x = ACADEMY.bay.offsetX
+  const frameMat = new THREE.MeshLambertMaterial({color: E.doorColor})
+  const glassMat = new THREE.MeshLambertMaterial({
+    color: E.glassColor,
+    transparent: true,
+    opacity: 0.4,
+    side: THREE.DoubleSide
+  })
+
+  // The lobby: an emissive panel a little way behind the glass plus a light, so
+  // the doorway reads as lit from inside rather than as a dark hole.
+  const lobby = new THREE.Mesh(
+    new THREE.PlaneGeometry(E.width - 0.3, E.height - 0.3),
+    new THREE.MeshBasicMaterial({color: E.lobbyColor})
+  )
+  lobby.position.set(x, B.base + (E.height - 0.3) / 2, face - 0.5)
+  parent.add(lobby)
+
+  const inside = new THREE.PointLight(E.lobbyColor, E.lobbyLight.intensity, E.lobbyLight.range, 2)
+  inside.position.set(x, B.base + E.height / 2, face - 0.9)
+  parent.add(inside)
+
+  const leafWidth = E.width / 2 - 0.15
+  for (const side of [-1, 1]) {
+    const leaf = new THREE.Mesh(
+      new THREE.BoxGeometry(leafWidth, E.height - 0.2, 0.1), glassMat
+    )
+    leaf.position.set(x + side * E.width / 4, B.base + (E.height - 0.2) / 2, face)
+    parent.add(leaf)
+
+    const jamb = new THREE.Mesh(new THREE.BoxGeometry(0.16, E.height, 0.18), frameMat)
+    jamb.position.set(x + side * E.width / 2, B.base + E.height / 2, face)
+    parent.add(jamb)
+
+    const stile = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, E.height - 0.2, 0.14), frameMat
+    )
+    stile.position.set(x + side * 0.06, B.base + (E.height - 0.2) / 2, face)
+    parent.add(stile)
+  }
+
+  const header = new THREE.Mesh(new THREE.BoxGeometry(E.width + 0.4, 0.2, 0.24), frameMat)
+  header.position.set(x, B.base + E.height, face)
+  parent.add(header)
+
+  const canopyY = B.base + E.height + 0.5
+  const canopy = new THREE.Mesh(
+    new THREE.BoxGeometry(E.width + 1.4, 0.2, E.canopyDepth),
+    new THREE.MeshLambertMaterial({color: E.canopyColor})
+  )
+  canopy.position.set(x, canopyY, face + E.canopyDepth / 2 - 0.1)
+  canopy.castShadow = true
+  parent.add(canopy)
+
+  const strip = new THREE.Mesh(
+    new THREE.PlaneGeometry(E.width + 0.8, E.canopyDepth - 0.4),
+    new THREE.MeshBasicMaterial({color: COLORS.lampGlow})
+  )
+  strip.rotation.x = Math.PI / 2
+  strip.position.set(x, canopyY - 0.11, face + E.canopyDepth / 2 - 0.1)
+  parent.add(strip)
+
+  const light = new THREE.PointLight(COLORS.lampGlow, 22, 14, 2)
+  light.position.set(x, canopyY - 0.4, face + E.canopyDepth)
+  parent.add(light)
+}
+
+/**
+ * The sign high up on the entrance bay: the club emblem next to "YOUTH ACADEMY"
+ * in two lines, drawn into a canvas and mapped onto a plane. Without a 2D context
+ * (in tests, for instance) the panel is skipped rather than faked.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{storeys: number, teamColor?: string, emblemSvg?: string}} config
+ * @returns {Object|null} the sign mesh, or `null` when it could not be drawn
+ */
+function addAcademySign (THREE, parent, {storeys, teamColor, emblemSvg}) {
+  const B = ACADEMY.building
+  const A = ACADEMY.bay
+  const S = ACADEMY.sign
+  const texture = academySignTexture(THREE, {teamColor, emblemSvg})
+  if (!texture) return null
+
+  const sign = new THREE.Mesh(
+    new THREE.PlaneGeometry(S.width, S.height),
+    new THREE.MeshBasicMaterial({map: texture})
+  )
+  // Near the top of the bay, on its street-facing face — well above the entrance.
+  const bayTop = B.base + storeys * B.storeyHeight + A.riseAboveRoof
+  sign.position.set(A.offsetX, bayTop - S.height / 2 - 0.8, B.depth / 2 + A.proud + 0.06)
+  parent.add(sign)
+  return sign
+}
+
+/**
+ * Draw the facade sign onto a canvas: the club emblem and the two lines of
+ * lettering on the accent blue. The emblem is an SVG that has to be rasterised
+ * asynchronously, so the panel starts out with a generic crest in the team's
+ * colour and is repainted once the real one is ready.
+ * @param {Object} THREE
+ * @param {{teamColor?: string, emblemSvg?: string}} config
+ * @returns {Object|null} a CanvasTexture, or `null` without a 2D context
+ */
+function academySignTexture (THREE, {teamColor, emblemSvg}) {
+  const S = ACADEMY.sign
+  const canvas = document.createElement('canvas')
+  canvas.width = S.texture.width
+  canvas.height = S.texture.height
+  const ctx = canvas.getContext?.('2d')
+  if (!ctx) return null
+
+  const {width: w, height: h} = canvas
+  const accent = '#' + ACADEMY.building.accentColor.toString(16).padStart(6, '0')
+  const box = {x: h * S.crest.x, y: h * S.crest.y, size: h * S.crest.size}
+  ctx.fillStyle = accent
+  ctx.fillRect(0, 0, w, h)
+
+  // A generic crest goes on straight away: the club's own emblem has to be
+  // rasterised first, and the sign must never show an empty patch in between (or
+  // at all, if that fails).
+  drawCrest(ctx, {
+    x: box.x,
+    y: box.y,
+    width: box.size * 0.8,
+    height: box.size,
+    color: teamColor || S.fallbackCrestColor
+  })
+
+  ctx.fillStyle = S.textColor
+  ctx.textBaseline = 'middle'
+  ctx.font = `bold ${Math.round(h * 0.34)}px system-ui, sans-serif`
+  const textX = h * S.textX
+  S.lines.forEach((line, i) => {
+    ctx.fillText(line, textX, h * (0.32 + i * 0.38))
+  })
+
+  const texture = new THREE.CanvasTexture(canvas)
+
+  if (emblemSvg) {
+    // The real emblem lands on the facade a frame or two later — the render loop
+    // is running anyway, so flagging the texture is all it takes.
+    loadEmblemImage(emblemSvg).then(image => {
+      ctx.fillStyle = accent
+      ctx.fillRect(0, 0, box.x * 2 + box.size, h)
+      ctx.drawImage(image, box.x, box.y, box.size, box.size)
+      texture.needsUpdate = true
+    }).catch(() => {
+      // Keep the generic crest — better than a blank blue square.
+    })
+  }
+
+  return texture
+}
+
+/**
+ * A generic club crest: a shield in the team's colour with a white outline and a
+ * football on it. Stands in for the club's own emblem while that loads.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{x: number, y: number, width: number, height: number, color: string}} config
+ */
+function drawCrest (ctx, {x, y, width, height, color}) {
+  const cx = x + width / 2
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+  ctx.lineTo(x + width, y)
+  ctx.lineTo(x + width, y + height * 0.58)
+  ctx.quadraticCurveTo(x + width, y + height * 0.9, cx, y + height)
+  ctx.quadraticCurveTo(x, y + height * 0.9, x, y + height * 0.58)
+  ctx.closePath()
+  ctx.fillStyle = color
+  ctx.fill()
+  ctx.lineWidth = Math.max(2, width * 0.06)
+  ctx.strokeStyle = '#ffffff'
+  ctx.stroke()
+
+  // The football: a white ball with a few dark panels.
+  const r = width * 0.28
+  const by = y + height * 0.46
+  ctx.beginPath()
+  ctx.arc(cx, by, r, 0, Math.PI * 2)
+  ctx.fillStyle = '#ffffff'
+  ctx.fill()
+  ctx.fillStyle = '#1a1a1a'
+  ctx.beginPath()
+  ctx.arc(cx, by, r * 0.34, 0, Math.PI * 2)
+  ctx.fill()
+  for (let i = 0; i < 5; i++) {
+    const angle = -Math.PI / 2 + i * (Math.PI * 2 / 5)
+    ctx.beginPath()
+    ctx.arc(cx + Math.cos(angle) * r * 0.72, by + Math.sin(angle) * r * 0.72, r * 0.17, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+/**
+ * The academy's own pitch: half the size of the stadium's, striped and marked,
+ * with two small goals, a fence with a gate to the street, two floodlight masts
+ * and the training kit of this level.
+ * @param {Object} THREE
+ * @param {Object} parent the pitch group, centred on the pitch
+ * @param {{level: number, rand: () => number}} config
+ */
+function addAcademyPitch (THREE, parent, {level, rand}) {
+  const A = ACADEMY
+  const P = A.pitch
+
+  addPitch(THREE, parent, {
+    width: P.width,
+    depth: P.depth,
+    centerZ: 0,
+    stripes: true,
+    circle: true
+  })
+  // Youth goals: smaller than the full-size ones, but a good deal bigger than
+  // half the pitch's scale would suggest.
+  addGoal(THREE, parent, {x: -P.width / 2, z: 0, scale: P.goalScale, facing: 1})
+  addGoal(THREE, parent, {x: P.width / 2, z: 0, scale: P.goalScale, facing: -1})
+  addFence(THREE, parent, {
+    halfWidth: ACADEMY_FENCE_X / 2,
+    halfDepth: ACADEMY_FENCE_Z / 2,
+    centerZ: 0
+  })
+
+  // Masts in the two street-side fence corners, each aimed at its own half so the
+  // corners get light too (see `addFloodlights`).
+  const spec = A.masts[level]
+  for (const side of [-1, 1]) {
+    const x = side * ACADEMY_FENCE_X / 2
+    const z = ACADEMY_FENCE_Z / 2
+    addMast(THREE, parent, {
+      x,
+      z,
+      aim: {x: x * TRAINING.aimFactor, z: z * TRAINING.aimFactor},
+      spec
+    })
+  }
+
+  addAcademyKit(THREE, parent, {level, rand})
+}
+
+/**
+ * The training kit on the academy pitch: a slalom line of poles, marker cones, a
+ * row of hurdles, free-kick dummies and loose balls. Cones and balls come in as
+ * instanced meshes; positions come from the caller's seeded generator so they
+ * stay put across renders.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{level: number, rand: () => number}} config
+ */
+function addAcademyKit (THREE, parent, {level, rand}) {
+  const A = ACADEMY
+  const kit = A.kit[level]
+  const hw = A.pitch.width / 2 - 1.5
+  const hd = A.pitch.depth / 2 - 1.5
+  const matrix = new THREE.Matrix4()
+
+  const cones = new THREE.InstancedMesh(
+    new THREE.ConeGeometry(0.3, 0.5, 8),
+    new THREE.MeshLambertMaterial({color: 0xff7a1a}),
+    kit.cones
+  )
+  for (let i = 0; i < kit.cones; i++) {
+    // Half the cones mark out a drill grid, the rest lie about.
+    const drill = i < kit.cones / 2
+    const px = drill ? -hw + 1 + i * 1.3 : (rand() * 2 - 1) * hw
+    const pz = drill ? -hd + 1.5 : (rand() * 2 - 1) * hd
+    matrix.setPosition(px, 0.25, pz)
+    cones.setMatrixAt(i, matrix)
+  }
+  cones.instanceMatrix.needsUpdate = true
+  cones.castShadow = true
+  parent.add(cones)
+
+  const balls = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(0.25, 8, 6),
+    new THREE.MeshLambertMaterial({color: 0xf2f2f2}),
+    kit.balls
+  )
+  for (let i = 0; i < kit.balls; i++) {
+    matrix.setPosition((rand() * 2 - 1) * hw, 0.25, (rand() * 2 - 1) * hd)
+    balls.setMatrixAt(i, matrix)
+  }
+  balls.instanceMatrix.needsUpdate = true
+  balls.castShadow = true
+  parent.add(balls)
+
+  // Slalom poles: a straight line, alternating yellow and blue like in the render.
+  const poleGeo = new THREE.CylinderGeometry(0.055, 0.055, 1.6, 6)
+  const poleMats = [
+    new THREE.MeshLambertMaterial({color: 0xf2c200}),
+    new THREE.MeshLambertMaterial({color: 0x2f5fd0})
+  ]
+  for (let i = 0; i < kit.poles; i++) {
+    const pole = new THREE.Mesh(poleGeo, poleMats[i % 2])
+    pole.position.set(-hw + 2 + i * 1.6, 0.8, hd - 2)
+    pole.castShadow = true
+    parent.add(pole)
+  }
+
+  const H = A.hurdle
+  const hurdleMat = new THREE.MeshLambertMaterial({color: H.color})
+  const legGeo = new THREE.CylinderGeometry(0.05, 0.05, H.height, 6)
+  const barGeo = new THREE.BoxGeometry(H.width, 0.09, 0.09)
+  for (let i = 0; i < kit.hurdles; i++) {
+    const px = -2 + i * 1.8
+    const pz = hd - 5.5
+    for (const side of [-1, 1]) {
+      const leg = new THREE.Mesh(legGeo, hurdleMat)
+      leg.position.set(px + side * H.width / 2, H.height / 2, pz)
+      parent.add(leg)
+    }
+    const bar = new THREE.Mesh(barGeo, hurdleMat)
+    bar.position.set(px, H.height, pz)
+    bar.castShadow = true
+    parent.add(bar)
+  }
+
+  // Free-kick dummies: a body on a weighted base, standing in a defensive wall.
+  const D = A.dummy
+  const dummyMat = new THREE.MeshLambertMaterial({color: D.color})
+  const bodyGeo = new THREE.CylinderGeometry(D.radius, D.radius * 1.15, D.height, 8)
+  const baseGeo = new THREE.CylinderGeometry(D.radius * 1.8, D.radius * 1.8, 0.12, 10)
+  for (let i = 0; i < kit.dummies; i++) {
+    const px = 4 + i * 0.75
+    const pz = -hd + 4
+    const body = new THREE.Mesh(bodyGeo, dummyMat)
+    body.position.set(px, 0.12 + D.height / 2, pz)
+    body.castShadow = true
+    parent.add(body)
+
+    const base = new THREE.Mesh(baseGeo, dummyMat)
+    base.position.set(px, 0.06, pz)
+    parent.add(base)
+  }
+}
+
+/**
+ * The short footpath between the entrance and the car park, with a lamp on either
+ * side of it.
+ * @param {Object} THREE
+ * @param {Object} parent the plot's group
+ */
+function addAcademyPath (THREE, parent) {
+  const E = ACADEMY.entrance
+  const L = ACADEMY.lamp
+  const from = ACADEMY_ENTRANCE_X
+  const length = ACADEMY_LOT_EDGE_X - from
+
+  const path = new THREE.Mesh(
+    new THREE.PlaneGeometry(length, E.pathWidth),
+    new THREE.MeshLambertMaterial({color: E.pathColor})
+  )
+  path.rotation.x = -Math.PI / 2
+  path.position.set(from + length / 2, 0.045, ACADEMY_ENTRANCE_Z)
+  parent.add(path)
+
+  // Staggered along the path, one on each side, clear of the walking surface.
+  const poleGeo = new THREE.CylinderGeometry(0.1, 0.13, L.height, 6)
+  const poleMat = new THREE.MeshLambertMaterial({color: L.poleColor})
+  const headGeo = new THREE.SphereGeometry(0.28, 8, 8)
+  const headMat = new THREE.MeshBasicMaterial({color: L.lightColor})
+  const offset = E.pathWidth / 2 + 0.6
+
+  for (const [t, side] of [[0.3, 1], [0.75, -1]]) {
+    const x = from + length * t
+    const z = ACADEMY_ENTRANCE_Z + side * offset
+    const pole = new THREE.Mesh(poleGeo, poleMat)
+    pole.position.set(x, L.height / 2, z)
+    pole.castShadow = true
+    parent.add(pole)
+
+    const head = new THREE.Mesh(headGeo, headMat)
+    head.position.set(x, L.height + 0.15, z)
+    head.userData.nightOnly = true
+    parent.add(head)
+  }
+}
+
+/**
+ * Lamp masts over the academy's car park, aimed at the bays. Level 1 makes do
+ * with the street lamps; level 2 gets one mast, level 3 two.
+ * @param {Object} THREE
+ * @param {Object} parent the plot's group
+ * @param {number} level
+ */
+function addAcademyParkingLights (THREE, parent, level) {
+  const P = ACADEMY.parking
+  const aim = {x: ACADEMY_PARKING_X, z: (P.band.north + ACADEMY_PLOT_Z / 2) / 2}
+  const positions = [
+    {x: ACADEMY_LOT_EDGE_X + 0.8, z: -6},
+    {x: ACADEMY_LOT_EDGE_X + 0.8, z: 6}
+  ]
+
+  for (const pos of positions.slice(0, P.masts[level])) {
     addMast(THREE, parent, {x: pos.x, z: pos.z, aim, spec: P.mast})
   }
 }

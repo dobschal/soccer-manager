@@ -242,6 +242,11 @@ export default {
   // Stadium
   'stadium.title': 'Stadium',
   'stadium.webglUnavailable': 'The 3D stadium view could not be loaded. Your browser or device may not support 3D graphics (WebGL). Try enabling hardware acceleration or updating your browser.',
+  'stadium.daylight': 'Time of day',
+  'stadium.daylight.dawn': 'Dawn',
+  'stadium.daylight.day': 'Day',
+  'stadium.daylight.dusk': 'Dusk',
+  'stadium.daylight.night': 'Night',
   'stadium.yourStadium': 'Your Stadium',
   'stadium.stadiumDesc': 'Here is your beautiful stadium with {seats} seats:',
   'stadium.overview': 'Overview',
@@ -1121,6 +1126,7 @@ export default {
   'tutorial.stadiumPage.item2': 'Expand stands to increase capacity',
   'tutorial.stadiumPage.item3': 'Add roofs to improve fan experience',
   'tutorial.stadiumPage.item4': 'Construction takes time - plan ahead!',
+  'tutorial.stadiumPage.item5': 'The slider under the 3D view sets the time of day',
   'tutorial.financesPage.title': 'Finances',
   'tutorial.financesPage.subtitle': 'Manage your club finances',
   'tutorial.financesPage.item1': 'View your current balance and transaction history',
@@ -1143,7 +1149,7 @@ export default {
   'tutorial.buildingsPage.item4': 'Upgrades cost money and take several game days to complete',
   'tutorial.buildingsPage.item5': 'Each building can be upgraded up to level 3',
   'tutorial.buildingsPage.item6': 'The Youth Academy provides better youth-player cards and more training slots',
-  'tutorial.buildingsPage.item7': 'The 3D view at the top shows your club grounds — training area and fitness studio visibly grow with every level',
+  'tutorial.buildingsPage.item7': 'The 3D view at the top shows your club grounds — all three buildings visibly grow with every level',
 
   // Log Messages
   'log.title': 'Messages',

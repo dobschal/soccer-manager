@@ -65,6 +65,7 @@ export class BuildingsPage extends UIElement {
       interactive: false,
       autoRotate: true,
       controlsToggle: true,
+      daylightControl: true,
       focus: 'buildings',
       buildings: this.buildings
     })

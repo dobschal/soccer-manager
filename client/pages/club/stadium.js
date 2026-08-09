@@ -44,6 +44,7 @@ export class StadiumSubPage extends UIElement {
       interactive: false,
       autoRotate: true,
       controlsToggle: true,
+      daylightControl: true,
       buildings: this.buildings
     })
     const stadiumName = this.stadium.name || t('stadium.yourStadium')

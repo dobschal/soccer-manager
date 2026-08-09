@@ -2757,6 +2757,39 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Wiki: refresh buildings (youth academy in 3D) v6',
+  async run () {
+    // The youth academy now has its own geometry too: a block with a tall
+    // entrance bay carrying the club's own emblem, a roof terrace and a recessed
+    // top floor, its own half-size pitch and a car park.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: refresh buildings + stadium (time-of-day slider) v7',
+  async run () {
+    // The 3D view now follows the player's own clock and has a slider for dawn /
+    // day / dusk / night under it — it appears on both pages that show the scene.
+    for (const key of ['buildings', 'stadium']) {
+      const topic = WIKI_SEED.find(t => t.key === key)
+      if (!topic) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**

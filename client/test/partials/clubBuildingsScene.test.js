@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   BUILDING_PLOTS,
   buildFitnessStudio,
   buildTrainingArea,
+  buildYouthAcademy,
   clubBuildingPlots
 } from '../../partials/clubBuildingsScene.js'
 
@@ -31,6 +32,7 @@ const stubThree = () => {
         position: { x: 0, y: 0, z: 0, set (x, y, z) { this.x = x; this.y = y; this.z = z } }
       }
       this.attributes = {}
+      this.userData = {}
       this.instanceMatrix = {}
       this.instanceColor = null
       this.shadow = { mapSize: {}, camera: {} }
@@ -604,6 +606,401 @@ describe('buildFitnessStudio', () => {
     expect(gym.quadrant.x).toBe(-1)
     expect(training.quadrant.x).toBe(1)
     expect(gym.quadrant.z).toBe(training.quadrant.z) // same side of the crossing
+  })
+
+  it('falls back to level 1 for a missing or out-of-range level', () => {
+    for (const level of [undefined, 0, 99]) {
+      expect(() => build(level)).not.toThrow()
+    }
+  })
+})
+
+/**
+ * The youth academy: a multi-storey block with the club crest and a "Youth
+ * Academy" sign on its facade, its own half-size pitch with training kit, and a
+ * car park. The facade sign is drawn into a 2D canvas, which jsdom does not
+ * implement — the tests install a recording stub for it, both to keep the sign in
+ * the scene and to check what it says.
+ */
+describe('buildYouthAcademy', () => {
+  const fakeContext = () => {
+    const calls = { fillText: [], fillStyle: [], drawImage: [], arcs: 0, fillRect: 0 }
+    return {
+      calls,
+      set fillStyle (value) { calls.fillStyle.push(value) },
+      get fillStyle () { return calls.fillStyle[calls.fillStyle.length - 1] },
+      textBaseline: '',
+      font: '',
+      lineWidth: 0,
+      strokeStyle: '',
+      fillRect () { calls.fillRect++ },
+      fillText (text) { calls.fillText.push(text) },
+      drawImage (image, x, y, w, h) { calls.drawImage.push({ image, x, y, w, h }) },
+      beginPath () {},
+      moveTo () {},
+      lineTo () {},
+      quadraticCurveTo () {},
+      closePath () {},
+      arc () { calls.arcs++ },
+      fill () {},
+      stroke () {}
+    }
+  }
+
+  const build = (level, options = {}) => {
+    const THREE = stubThree()
+    const scene = { add: () => {} }
+    let seed = 11
+    const rand = () => {
+      seed = (seed * 16807) % 2147483647
+      return seed / 2147483647
+    }
+    const ctx = options.noCanvas ? null : fakeContext()
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = () => ctx
+    try {
+      const result = buildYouthAcademy(THREE, scene, {
+        level, rand, x: 100, z: 100, teamColor: '#ff0000', ...options
+      })
+      return { THREE, result, ctx }
+    } finally {
+      HTMLCanvasElement.prototype.getContext = original
+    }
+  }
+
+  const countOf = (THREE, type) => THREE.created.filter(o => o.type === type).length
+  const boxesOf = (THREE, w, h, d) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' &&
+    o.args[0].args[0] === w && o.args[0].args[1] === h && o.args[0].args[2] === d)
+  // The shell is the only box as wide and as deep as the whole footprint.
+  const shellOf = (THREE) => THREE.created.find(o =>
+    o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' &&
+    o.args[0].args[0] === 24 && o.args[0].args[2] === 14)
+  // Window glass is flatly lit and opaque; the terrace railing shares its colour
+  // but is transparent, so the two are told apart by that.
+  const windowsOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0x3f7ad6 &&
+    o.args[1].args[0].opacity === undefined)
+  const railingOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0x3f7ad6 &&
+    o.args[1].args[0].opacity === 0.2)
+  // The recessed top floor: a facade-coloured box that is not the main shell.
+  const penthouseOf = (THREE) => THREE.created.find(o =>
+    o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' &&
+    o.args[1]?.args[0]?.color === 0xd8d5cc && o.args[0].args[0] < 24)
+  const solarOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' &&
+    o.args[0].args[0] === 2.4 && o.args[0].args[1] === 0.06)
+  const signOf = (THREE) => THREE.created.find(o =>
+    o.type === 'Mesh' && o.args[1]?.args[0]?.map)
+
+  it('puts the plot south of the training ground, across the road', () => {
+    const training = BUILDING_PLOTS.training_area
+    const academy = BUILDING_PLOTS.youth_academy
+    expect(academy.quadrant).toEqual({ x: 1, z: 1 })
+    expect(training.quadrant).toEqual({ x: 1, z: -1 })
+    // Same side of the crossing along x, opposite sides along z — the road runs
+    // between them.
+    expect(academy.quadrant.x).toBe(training.quadrant.x)
+    // Big enough for the pitch (turned crosswise), the building and the car park.
+    expect(academy.size.x).toBeGreaterThan(60)
+    expect(academy.size.z).toBeGreaterThanOrEqual(40)
+  })
+
+  const groupsOf = (result) => {
+    const groups = result.group.children.filter(c => c.type === 'Group')
+    // Ordered across the plot: the pitch sits behind the building.
+    return groups.sort((a, b) => a.position.x - b.position.x)
+  }
+
+  it('turns building and pitch a quarter turn, the pitch crosswise behind the block', () => {
+    const { result } = build(2)
+    const [pitch, building] = groupsOf(result)
+    expect(building.rotation.y).toBeCloseTo(Math.PI / 2)
+    expect(pitch.rotation.y).toBeCloseTo(Math.PI / 2)
+    // The pitch is built long-side along x and then turned, so its long side ends
+    // up along the plot's z — crosswise behind the building.
+    expect(pitch.position.x).toBeLessThan(building.position.x)
+    // The reported entrance is mirrored out of the builder's frame (see the 180°
+    // turn), so compare it there: it is on the car park side of the building.
+    expect(-result.entrance.x).toBeGreaterThan(building.position.x)
+  })
+
+  it('lays a lamp-lined footpath from the entrance to the car park', () => {
+    const { THREE, result } = build(1)
+    const path = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0x9a9a9a)
+    expect(path).toBeDefined()
+    // It runs along the plot's x axis, between the entrance and the lot…
+    const [length, width] = path.args[0].args
+    expect(length).toBeGreaterThan(width)
+    // …and lines up with the door, which sits off-centre on the facade.
+    expect(path.position.z).toBe(-result.entrance.z)
+
+    const lamps = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0xffdd88)
+    expect(lamps).toHaveLength(2)
+    for (const lamp of lamps) {
+      expect(Math.abs(lamp.position.z - path.position.z)).toBeGreaterThan(width / 2)
+      expect(lamp.position.y).toBeGreaterThan(3) // on top of its pole
+    }
+  })
+
+  it('gives the block two storeys and a third only at level 3', () => {
+    const heights = [1, 2, 3].map(level => shellOf(build(level).THREE).args[0].args[1])
+    expect(heights).toEqual([2 * 3.4, 2 * 3.4, 3 * 3.4])
+    // The footprint never changes, so nothing on the plot has to move.
+    for (const level of [1, 2, 3]) {
+      const shell = shellOf(build(level).THREE)
+      expect([shell.args[0].args[0], shell.args[0].args[2]]).toEqual([24, 14])
+    }
+  })
+
+  it('sets a recessed top floor onto the roof from level 2', () => {
+    expect(penthouseOf(build(1).THREE)).toBeUndefined()
+
+    for (const level of [2, 3]) {
+      const { THREE } = build(level)
+      const shell = shellOf(THREE)
+      const top = penthouseOf(THREE)
+      expect(top).toBeDefined()
+      // Recessed on every side, so a terrace runs around it…
+      expect(top.args[0].args[0]).toBeLessThan(shell.args[0].args[0])
+      expect(top.args[0].args[2]).toBeLessThan(shell.args[0].args[2])
+      // …set further back from the street than from the other sides…
+      expect(top.position.z).toBeLessThan(0)
+      // …and standing on the main block's roof.
+      expect(top.position.y - top.args[0].args[1] / 2)
+        .toBeCloseTo(shell.position.y + shell.args[0].args[1] / 2 + 0.26)
+    }
+  })
+
+  it('rings the roof terrace with a strutted glass balustrade', () => {
+    const { THREE } = build(2)
+    const railing = railingOf(THREE)
+    // One pane per roof edge, the street side split either side of the bay.
+    expect(railing).toHaveLength(5)
+    expect(new Set(railing.map(r => r.position.y)).size).toBe(1)
+    // Nothing crosses the bay: no pane spans the bay's own x range.
+    const bay = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0x1e4bb8)
+    const street = railing.filter(r => r.position.z > 0)
+    expect(street).toHaveLength(2)
+    for (const pane of street) {
+      const half = pane.args[0].args[0] / 2
+      const gap = Math.abs(pane.position.x - bay.position.x) - half - bay.args[0].args[0] / 2
+      expect(gap).toBeGreaterThanOrEqual(0)
+    }
+    const shell = shellOf(THREE)
+    expect(railing[0].position.y).toBeGreaterThan(shell.position.y + shell.args[0].args[1] / 2)
+    // Struts frame every pane (rails top and bottom plus mullions).
+    const struts = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0x24303f)
+    expect(struts.length).toBeGreaterThan(railing.length * 3)
+  })
+
+  it('puts the solar array on the topmost roof and grows it per level', () => {
+    const counts = [1, 2, 3].map(level => solarOf(build(level).THREE).length)
+    expect(counts).toEqual([2, 4, 8])
+    // From level 2 the modules sit on the recessed floor's roof, not the terrace.
+    // Their upright legs stand on that roof, so they give its height away.
+    const { THREE } = build(2)
+    const top = penthouseOf(THREE)
+    const legs = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' &&
+      o.args[0].args[0] === 0.08 && o.args[0].args[2] === 0.08)
+    expect(legs.length).toBe(2 * solarOf(THREE).length)
+    for (const leg of legs) {
+      expect(leg.position.y - leg.args[0].args[1] / 2)
+        .toBeGreaterThanOrEqual(top.position.y + top.args[0].args[1] / 2)
+    }
+  })
+
+  it('gives every storey a blue window band on all four sides', () => {
+    // Per storey of the main block: three closed sides plus the street facade in
+    // two pieces either side of the entrance bay.
+    const perStorey = windowsOf(build(1).THREE).length / 2
+    expect(perStorey).toBe(5)
+    // The recessed floor's street facade is not split, so it has one band fewer.
+    expect(windowsOf(build(2).THREE)).toHaveLength(2 * perStorey + 4)
+    expect(windowsOf(build(3).THREE)).toHaveLength(3 * perStorey + 4)
+  })
+
+  it('lights the entrance: a glowing lobby behind the door and a lit canopy', () => {
+    const { THREE } = build(1)
+    const lights = THREE.created.filter(o => o.type === 'PointLight')
+    expect(lights).toHaveLength(2) // one inside the lobby, one under the canopy
+    // The lobby panel glows and sits behind the glass door, the canopy strip in
+    // front of the facade above it.
+    const emissive = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'PlaneGeometry' &&
+      [0xffeec9, 0xfff2cc].includes(o.args[1]?.args[0]?.color))
+    expect(emissive).toHaveLength(2)
+    const [lobby, strip] = emissive
+    expect(lobby.position.z).toBeLessThan(strip.position.z)
+    expect(strip.position.y).toBeGreaterThan(lobby.position.y)
+  })
+
+  it('stands the blue entrance bay proud of the facade, full height', () => {
+    const { THREE } = build(1)
+    const shell = shellOf(THREE)
+    const bay = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0x1e4bb8)
+    expect(bay).toBeDefined()
+    // Taller than the block it fronts, and in front of its street facade.
+    expect(bay.args[0].args[1]).toBeGreaterThan(shell.args[0].args[1])
+    expect(bay.position.z).toBeGreaterThan(shell.args[0].args[2] / 2)
+    // The sign hangs on it, high above the door.
+    const sign = signOf(THREE)
+    expect(sign.position.x).toBe(bay.position.x)
+    expect(sign.position.y).toBeGreaterThan(shell.args[0].args[1] / 2)
+  })
+
+  it('writes the club crest and "YOUTH ACADEMY" onto the facade', () => {
+    const { THREE, ctx } = build(2)
+    expect(ctx.calls.fillText).toEqual(['YOUTH', 'ACADEMY'])
+    // The crest is drawn in the team's colour, with a ball on it.
+    expect(ctx.calls.fillStyle).toContain('#ff0000')
+    expect(ctx.calls.arcs).toBeGreaterThan(1)
+    // …and ends up on a textured panel in the scene.
+    expect(signOf(THREE)).toBeDefined()
+  })
+
+  it('paints the club\'s own emblem onto the facade once it has rasterised', async () => {
+    vi.stubGlobal('Image', class {
+      get src () { return this._src }
+      set src (value) {
+        this._src = value
+        setTimeout(() => this.onload(), 0)
+      }
+      
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => '<svg/>' }))
+
+    const { THREE, ctx } = build(2, {
+      emblemSvg: '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"/>'
+    })
+    const sign = signOf(THREE)
+    // The generic crest carries the sign until the emblem is there…
+    expect(ctx.calls.drawImage).toHaveLength(0)
+    expect(sign.args[1].args[0].map.needsUpdate).toBeFalsy()
+
+    await vi.waitFor(() => expect(ctx.calls.drawImage).toHaveLength(1))
+    // …then the emblem is drawn as a square and the texture flagged for upload.
+    const drawn = ctx.calls.drawImage[0]
+    expect(drawn.w).toBe(drawn.h)
+    expect(sign.args[1].args[0].map.needsUpdate).toBe(true)
+    vi.unstubAllGlobals()
+  })
+
+  it('keeps the generic crest when the emblem cannot be rasterised', async () => {
+    vi.stubGlobal('Image', class {
+      set src (value) { setTimeout(() => this.onerror(new Error('bad svg')), 0) }
+    })
+    const { ctx } = build(1, { emblemSvg: '<broken' })
+    await new Promise(resolve => setTimeout(resolve, 5))
+    expect(ctx.calls.drawImage).toHaveLength(0)
+    expect(ctx.calls.arcs).toBeGreaterThan(1) // the drawn-by-hand crest and its ball
+    vi.unstubAllGlobals()
+  })
+
+  it('falls back to the accent colour for a team without one', () => {
+    const { ctx } = build(1, { teamColor: undefined })
+    expect(ctx.calls.fillStyle).toContain('#1e4bb8')
+  })
+
+  it('builds the rest of the academy even without a 2D canvas', () => {
+    const { THREE, result } = build(1, { noCanvas: true })
+    expect(signOf(THREE)).toBeUndefined()
+    expect(shellOf(THREE)).toBeDefined()
+    expect(result.openings).toHaveLength(1)
+  })
+
+  it('lays out a fenced half-size pitch with goals bigger than its scale', () => {
+    const { THREE } = build(1)
+    // Half the stadium pitch (50 x 30): eight stripes summing to 15 deep.
+    const grass = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'PlaneGeometry' &&
+      [0x2e8b2e, 0x35a535].includes(o.args[1]?.args[0]?.color))
+    expect(grass).toHaveLength(8)
+    expect(grass.reduce((sum, g) => sum + g.args[0].args[1], 0)).toBeCloseTo(15)
+    expect(grass[0].args[0].args[0]).toBe(25)
+    // The goals are deliberately larger than the pitch's own half scale: a 0.7
+    // goal post is 0.105 across, not the 0.075 that 0.5 would give.
+    const goalPosts = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'CylinderGeometry' &&
+      o.args[0].args[0] === 0.15 * 0.7)
+    expect(goalPosts.length).toBeGreaterThanOrEqual(4)
+    // Two masts, each aimed at its own half rather than at the centre.
+    const masts = THREE.created.filter(o => o.type === 'SpotLight')
+    expect(masts).toHaveLength(2)
+    for (const mast of masts) {
+      expect(Math.abs(mast.target.position.x)).toBeGreaterThan(0)
+      expect(Math.sign(mast.target.position.x)).toBe(Math.sign(mast.position.x))
+    }
+  })
+
+  it('adds more training kit with every level', () => {
+    const kitSize = (level) => {
+      const { THREE } = build(level)
+      const cones = THREE.created.find(o =>
+        o.type === 'InstancedMesh' && o.args[0]?.type === 'ConeGeometry')
+      const poles = THREE.created.filter(o =>
+        o.type === 'Mesh' && o.args[0]?.type === 'CylinderGeometry' &&
+        o.args[0].args[2] === 1.6)
+      const hurdleBars = boxesOf(THREE, 1.2, 0.09, 0.09)
+      // The dummy body is the only 1.8-high cylinder; the slalom poles are the
+      // same yellow but 1.6 high.
+      const dummies = THREE.created.filter(o =>
+        o.type === 'Mesh' && o.args[0]?.type === 'CylinderGeometry' &&
+        o.args[0].args[2] === 1.8)
+      return {
+        cones: cones.args[2],
+        poles: poles.length,
+        hurdles: hurdleBars.length,
+        dummies: dummies.length
+      }
+    }
+    const [one, two, three] = [1, 2, 3].map(kitSize)
+    expect(one.dummies).toBe(0) // level 1 has no free-kick dummies yet
+    for (const key of ['cones', 'poles', 'hurdles']) {
+      expect(two[key]).toBeGreaterThan(one[key])
+      expect(three[key]).toBeGreaterThan(two[key])
+    }
+    expect(three.dummies).toBeGreaterThan(two.dummies)
+  })
+
+  it('parks beside the pitch and grows the lot per level', () => {
+    const bays = (level) => {
+      const { THREE } = build(level)
+      const markings = THREE.created.find(o =>
+        o.type === 'LineSegments' && o.args[1]?.args[0]?.color === 0xf2f2f2)
+      return markings.args[0].attributes.position.args[0].length / 6
+    }
+    expect(bays(2)).toBeGreaterThan(bays(1))
+    expect(bays(3)).toBeGreaterThan(bays(2))
+  })
+
+  it('lights the car park with a mast from level 2, a second one at level 3', () => {
+    // Two pitch masts at every level, plus the car park's.
+    expect(countOf(build(1).THREE, 'SpotLight')).toBe(2)
+    expect(countOf(build(2).THREE, 'SpotLight')).toBe(3)
+    expect(countOf(build(3).THREE, 'SpotLight')).toBe(4)
+  })
+
+  it('turns the plot around so the driveway faces its road', () => {
+    const { result } = build(1)
+    const def = BUILDING_PLOTS.youth_academy
+    expect(result.group.rotation.y).toBeCloseTo(Math.PI)
+    // This plot borders its roads on the -x / -z sides, so the driveway — the only
+    // opening in the boundary — sits on the negative z edge, mirrored out of the
+    // builder's own frame.
+    expect(result.openings).toHaveLength(1)
+    const [driveway] = result.openings
+    expect(driveway.z).toBe(-def.size.z / 2)
+    expect(Math.abs(driveway.x)).toBeLessThan(def.size.x / 2)
+    // The entrance faces the car park instead, so it stays inside the plot.
+    expect(Math.abs(result.entrance.z)).toBeLessThan(def.size.z / 2)
   })
 
   it('falls back to level 1 for a missing or out-of-range level', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CONFIG, StadiumCanvas, skyColor } from '../../partials/stadiumCanvas.js'
+import { CONFIG, StadiumCanvas, daylightPhaseFor, skyColor } from '../../partials/stadiumCanvas.js'
 
 /**
  * These tests target the pure stand-sizing math (`_standRowCount`), which drives
@@ -296,6 +296,7 @@ describe('StadiumCanvas stand geometry under construction', () => {
         this.instanceMatrix = {}
         this.instanceColor = null
         this.shadow = { mapSize: {}, camera: {} }
+        this.userData = {}
         created.push(this)
       }
 
@@ -633,9 +634,12 @@ describe('StadiumCanvas depth precision', () => {
  * evening sun from the west.
  */
 describe('StadiumCanvas._setupLights', () => {
-  const setupLights = (options) => {
+  const DUSK = CONFIG.daylight.phases.dusk
+
+  const setupLights = (options = {}) => {
     const added = []
-    const canvas = new StadiumCanvas({}, {}, 'c', options)
+    // Pinned to dusk: the phase otherwise follows the clock the tests run on.
+    const canvas = new StadiumCanvas({}, {}, 'c', { daylight: 'dusk', ...options })
     canvas._scene = { add: (o) => added.push(o) }
     canvas._THREE = {
       AmbientLight: class {
@@ -654,19 +658,18 @@ describe('StadiumCanvas._setupLights', () => {
     return { added, canvas }
   }
   const lightsOf = (options) => setupLights(options).added
-  const sunOf = (options) => lightsOf(options).find(l => l.color === CONFIG.sun.color)
+  const sunOf = (options) => lightsOf(options).find(l => l.kind === 'directional' && l.color !== CONFIG.colors.moonLight)
 
-  it('lights the scene with a low evening sun on top of the moon fill', () => {
-    const lights = lightsOf()
-    const sun = lights.find(l => l.color === CONFIG.sun.color)
+  it('lights the scene with the phase\'s sun on top of the moon fill', () => {
+    const sun = sunOf()
     expect(sun).toBeDefined()
-    expect(sun.kind).toBe('directional')
-    expect(sun.intensity).toBe(CONFIG.sun.intensity)
+    expect(sun.color).toBe(DUSK.sun.color)
+    expect(sun.intensity).toBe(DUSK.sun.intensity)
   })
 
-  it('hangs the sun low in the west, not overhead like the moon', () => {
+  it('hangs the dusk sun low in the west, not overhead like the moon', () => {
     const lights = lightsOf()
-    const sun = lights.find(l => l.color === CONFIG.sun.color)
+    const sun = lights.find(l => l.color === DUSK.sun.color)
     const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
     // The stadium view orbits the origin, so on it the sun's position is also the
     // direction it comes from: far out west (-x), only just above the horizon.
@@ -682,28 +685,28 @@ describe('StadiumCanvas._setupLights', () => {
 
   it('keeps the warm sun weak enough not to outshine the floodlights', () => {
     const lights = lightsOf()
-    const sun = lights.find(l => l.color === CONFIG.sun.color)
+    const sun = lights.find(l => l.color === DUSK.sun.color)
     // A warm colour (more red than blue) and a fill-level intensity.
-    expect((CONFIG.sun.color >> 16) & 0xff).toBeGreaterThan(CONFIG.sun.color & 0xff)
+    expect((DUSK.sun.color >> 16) & 0xff).toBeGreaterThan(DUSK.sun.color & 0xff)
     expect(sun.intensity).toBeLessThanOrEqual(2)
     expect(lights.filter(l => l.kind === 'ambient')).toHaveLength(1)
   })
 
-  it('takes the fill intensities from the config, bright enough to read by', () => {
+  it('takes the fill intensities from the phase, bright enough to read by', () => {
     const lights = lightsOf()
     const ambient = lights.find(l => l.kind === 'ambient')
     const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
-    expect(ambient.intensity).toBe(CONFIG.fill.ambient)
-    expect(moon.intensity).toBe(CONFIG.fill.moon)
+    expect(ambient.intensity).toBe(DUSK.fill.ambient)
+    expect(moon.intensity).toBe(DUSK.fill.moon)
     // The fill has to lift the shadowed sides and the far corners out of black
     // without washing the floodlights out.
-    expect(CONFIG.fill.ambient).toBeGreaterThan(0.6)
-    expect(CONFIG.fill.ambient).toBeLessThan(1.5)
+    expect(DUSK.fill.ambient).toBeGreaterThan(0.6)
+    expect(DUSK.fill.ambient).toBeLessThan(1.5)
   })
 
   it('casts the long shadows of the low sun, and only from the sun', () => {
     const lights = lightsOf()
-    const sun = lights.find(l => l.color === CONFIG.sun.color)
+    const sun = lights.find(l => l.color === DUSK.sun.color)
     const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
     expect(sun.castShadow).toBe(true)
     expect(sun.shadow.mapSize.width).toBe(CONFIG.sun.shadow.mapSize)
@@ -720,7 +723,7 @@ describe('StadiumCanvas._setupLights', () => {
     expect([camera.right, camera.top]).toEqual([radius, radius])
     // The light sits far out; its depth range has to bracket that distance so
     // neither the casters nor their long shadows fall outside the frustum.
-    const distance = Math.hypot(...CONFIG.sun.position)
+    const distance = Math.hypot(...DUSK.sun.position)
     expect(camera.near).toBeGreaterThan(0)
     expect(camera.near).toBeLessThan(distance)
     expect(camera.far).toBeGreaterThan(distance)
@@ -733,9 +736,102 @@ describe('StadiumCanvas._setupLights', () => {
     expect(focus.x).toBeGreaterThan(0) // the crossing north-east of the stadium
     expect(sun.aimedAt).toEqual({x: focus.x, y: 0, z: focus.z})
     // Same light direction as on the stadium view — only the shadowed area moved.
-    expect(sun.at.x - focus.x).toBe(CONFIG.sun.position[0])
-    expect(sun.at.z - focus.z).toBe(CONFIG.sun.position[2])
-    expect(sun.at.y).toBe(CONFIG.sun.position[1])
+    expect(sun.at.x - focus.x).toBe(DUSK.sun.position[0])
+    expect(sun.at.z - focus.z).toBe(DUSK.sun.position[2])
+    expect(sun.at.y).toBe(DUSK.sun.position[1])
+  })
+
+  it('lights each phase from its own side, and only the day without floodlights', () => {
+    const {phases} = CONFIG.daylight
+    // Dusk in the west, dawn in the east — that is what makes them tell apart.
+    expect(phases.dusk.sun.position[0]).toBeLessThan(0)
+    expect(phases.dawn.sun.position[0]).toBeGreaterThan(0)
+    // Day is the bright one, night the dark one, and only by day are the
+    // floodlights out.
+    expect(phases.day.sun.intensity).toBeGreaterThan(phases.dusk.sun.intensity)
+    expect(phases.night.sun.intensity).toBeLessThan(phases.dusk.sun.intensity)
+    expect(phases.day.floodlights).toBe(false)
+    for (const name of ['dawn', 'dusk', 'night']) {
+      expect(phases[name].floodlights).toBe(true)
+    }
+    // Every phase brings a full palette, so nothing falls back mid-switch.
+    for (const name of CONFIG.daylight.order) {
+      const phase = phases[name]
+      expect(Object.keys(phase.sky)).toEqual(['zenith', 'horizonWarm', 'horizonCool'])
+      expect(typeof phase.fog).toBe('number')
+      expect(typeof phase.background).toBe('number')
+      expect(phase.fill.ambient).toBeGreaterThan(0)
+    }
+  })
+
+  it('takes the sun straight from the picked phase when it changes', () => {
+    const {canvas} = setupLights()
+    canvas._phase = 'day'
+    expect(canvas._palette()).toBe(CONFIG.daylight.phases.day)
+    // The sun is repositioned for the new phase without rebuilding anything.
+    canvas._aimSun()
+    expect(canvas._sunLight.at.x).toBe(CONFIG.daylight.phases.day.sun.position[0])
+  })
+})
+
+/**
+ * Which of the four phases the player's own clock lands in, and how the slider
+ * under the canvas moves between them.
+ */
+describe('daylightPhaseFor', () => {
+  const at = (hour) => daylightPhaseFor(new Date(2026, 0, 15, hour, 30))
+
+  it('picks the phase whose hours contain the local time', () => {
+    expect(at(6)).toBe('dawn')
+    expect(at(12)).toBe('day')
+    expect(at(19)).toBe('dusk')
+    expect(at(23)).toBe('night')
+  })
+
+  it('carries night across midnight', () => {
+    expect(at(0)).toBe('night')
+    expect(at(3)).toBe('night')
+    expect(at(4)).toBe('night')
+    expect(at(5)).toBe('dawn')
+  })
+
+  it('covers every hour of the day exactly once', () => {
+    const seen = Array.from({length: 24}, (_, hour) => at(hour))
+    expect(seen.every(phase => CONFIG.daylight.order.includes(phase))).toBe(true)
+    expect(new Set(seen).size).toBe(4)
+  })
+
+  it('defaults to the current time and can be overridden by the caller', () => {
+    expect(CONFIG.daylight.order).toContain(daylightPhaseFor())
+    expect(new StadiumCanvas({}, {}, 'c', {daylight: 'night'})._phase).toBe('night')
+    // An unknown name falls back to the clock rather than breaking the scene.
+    expect(CONFIG.daylight.order)
+      .toContain(new StadiumCanvas({}, {}, 'c', {daylight: 'teatime'})._phase)
+  })
+
+  it('offers the slider one step per phase, in the order of a day', () => {
+    expect(CONFIG.daylight.order).toEqual(['dawn', 'day', 'dusk', 'night'])
+    const canvas = new StadiumCanvas({}, {}, 'c', {daylight: 'day', daylightControl: true})
+    const html = canvas._renderDaylightControl()
+    expect(html).toContain('type="range"')
+    expect(html).toContain('max="3"')
+    expect(html).toContain('value="1"') // 'day' is the second step
+  })
+
+  it('renders the slider only where it is asked for', () => {
+    const withControl = new StadiumCanvas({}, {}, 'c', {daylightControl: true})
+    const without = new StadiumCanvas({}, {}, 'c', {})
+    expect(withControl.template).toContain('stadium-daylight__slider')
+    expect(without.template).not.toContain('stadium-daylight__slider')
+  })
+
+  it('switches phase without touching the scene it has not built yet', () => {
+    const canvas = new StadiumCanvas({}, {}, 'c', {daylight: 'day'})
+    expect(() => canvas._setPhase('night')).not.toThrow()
+    expect(canvas._phase).toBe('night')
+    // An unknown phase is ignored instead of blanking the scene.
+    canvas._setPhase('teatime')
+    expect(canvas._phase).toBe('night')
   })
 })
 

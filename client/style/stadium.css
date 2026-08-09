@@ -72,3 +72,33 @@
     right: 2.5rem;
   }
 }
+
+/* Time-of-day slider under the 3D view: dawn → day → dusk → night. */
+.stadium-daylight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.stadium-daylight__label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  margin: 0;
+  min-width: 8.5rem;
+}
+
+.stadium-daylight__caption {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.stadium-daylight__value {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stadium-daylight__slider {
+  flex: 1;
+}
