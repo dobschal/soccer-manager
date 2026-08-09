@@ -229,6 +229,8 @@ Your training area is built there for real – a full-size pitch, as big as the 
 • Level 2: balls, slalom poles and marker cones on the pitch, a second, taller and much brighter pair of masts in the other two corners, two open dugout benches at the touchline (the same seats as in your stands) and a car park with one row of bays, joined to the road by a driveway.
 • Level 3: full-height masts in all four corners that light the pitch like a match, both benches roofed and glazed with strutted panes, and a second row of parking bays.
 
+North of the pitch stands your clubhouse: two solid wings with light facades and big lit windows around a taller glass hall, your emblem above its entrance, solar panels on all three flat roofs. Paths lead from it to a second gate in the pitch fence and round to the car park. It grows with the training area – one, two or three storeys.
+
 Your fitness studio stands right across the road, west of the training ground: a modern hall with a strutted glass facade and a flat roof, its entrance under a canopy with a big neon "Gym" above it. Behind the glass is one big brightly lit room with mats, treadmills, weight plates, dumbbells and weight benches; tilted solar panels sit on the roof and a car park beside the hall. The hall itself grows with its level – and so does everything in and on it:
 • Level 1: a small hall with a basic kit – two treadmills, two mats, one bench – under two ceiling lights, three solar panels on the roof and a short row of parking bays.
 • Level 2: a bigger hall, twice the kit, a second row of ceiling lights, a brighter sign, six solar panels, more bays and a lamp mast over the car park.
@@ -267,6 +269,8 @@ Dein Trainingsgelände steht dort wirklich – ein Platz in voller Größe, gena
 • Stufe 1: der eingezäunte Platz mit zwei Toren und einem kleinen, schwachen Flutlicht in zwei Ecken – die andere Hälfte bleibt im Dunkeln. Noch ohne Trainerbänke und ohne Parkplatz.
 • Stufe 2: zusätzlich Bälle, Slalomstangen und Hütchen auf dem Platz, ein zweites, höheres und deutlich helleres Mastpaar in den beiden anderen Ecken, zwei offene Trainerbänke am Spielfeldrand (dieselben Sitze wie auf deinen Tribünen) und ein Parkplatz mit einer Reihe Parkbuchten, der über eine Einfahrt an der Straße hängt.
 • Stufe 3: hohe Masten in allen vier Ecken, die den Platz spielfeldhell ausleuchten, beide Trainerbänke überdacht und mit verstrebten Glaswänden verglast, und eine zweite Reihe Parkbuchten.
+
+Nördlich des Platzes thront dein Vereinsheim: zwei massive Flügel mit heller Fassade und großen, beleuchteten Fenstern, dazwischen eine höhere Glashalle mit deinem Wappen über dem Eingang, auf allen drei Flachdächern Solarmodule. Wege führen von dort zu einem zweiten Tor im Zaun und herum zum Parkplatz. Es wächst mit dem Trainingsgelände – ein, zwei oder drei Stockwerke.
 
 Dein Fitnessstudio steht gleich gegenüber, westlich des Trainingsgeländes auf der anderen Straßenseite: eine moderne Halle mit verstrebter Glasfassade und Flachdach, der Eingang unter einem Vordach mit einem großen "Gym" in Leuchtschrift darüber. Hinter dem Glas liegt ein einziger großer, hell beleuchteter Raum mit Matten, Laufbändern, Gewichten, Hanteln und Hantelbänken, auf dem Dach stehen angeschrägte Solarmodule, daneben liegt ein Parkplatz. Die Halle selbst wächst mit ihrer Stufe – und alles darin und darauf mit:
 • Stufe 1: eine kleine Halle mit Grundausstattung – zwei Laufbänder, zwei Matten, eine Hantelbank – unter zwei Deckenleuchten, drei Solarmodule auf dem Dach und eine kurze Reihe Parkbuchten.
@@ -970,7 +974,7 @@ Attendance and income:
 Home advantage:
 • A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.
 
-The 3D view at the top shows your ground as you have built it. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off.`
+The 3D view at the top shows your ground as you have built it, your club emblem lit above every entrance in the stands' back walls. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off.`
     },
     de: {
       title: 'Stadion',
@@ -992,7 +996,7 @@ Zuschauer und Einnahmen:
 Heimvorteil:
 • Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.
 
-Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus.`
+Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast – über jedem Eingang in den Tribünen-Rückwänden hängt dein beleuchtetes Vereinswappen. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus.`
     }
   },
 

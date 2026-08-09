@@ -39,7 +39,7 @@ const stubThree = () => {
       created.push(this)
     }
 
-    add (child) { this.children.push(child) }
+    add (child) { this.children.push(child); child.parent = this }
     set () { return this }
     setMatrixAt () {}
     setColorAt () {}
@@ -127,7 +127,7 @@ describe('clubBuildingPlots', () => {
  * has to add strictly more than the one below it.
  */
 describe('buildTrainingArea', () => {
-  const build = (level) => {
+  const build = (level, options = {}) => {
     const THREE = stubThree()
     const scene = { add: () => {} }
     let seed = 1
@@ -135,11 +135,19 @@ describe('buildTrainingArea', () => {
       seed = (seed * 16807) % 2147483647
       return seed / 2147483647
     }
-    const result = buildTrainingArea(THREE, scene, { level, rand, x: 100, z: -100 })
+    const result = buildTrainingArea(THREE, scene, { level, rand, x: 100, z: -100, ...options })
     return { THREE, result }
   }
 
   const countOf = (THREE, type) => THREE.created.filter(o => o.type === type).length
+  // Builders nest their parts in groups, so a mesh's own position is local to its
+  // group. This adds the offsets back up to the plot's own frame (the outermost
+  // group, which the caller places in the world).
+  const plotZ = (object, group) => {
+    let z = 0
+    for (let node = object; node && node !== group; node = node.parent) z += node.position?.z || 0
+    return z
+  }
 
   it('builds a fenced pitch with goals and lights at level 1', () => {
     const { THREE, result } = build(1)
@@ -223,12 +231,110 @@ describe('buildTrainingArea', () => {
     expect(struts.length).toBeGreaterThan(6)
   })
 
-  it('has no buildings on the training ground yet (they come later)', () => {
-    // Only the open-air pitch, its fence, masts and kit — nothing walled in.
-    for (const level of [1, 2, 3]) {
-      const { THREE } = build(level)
-      expect(countOf(THREE, 'PointLight')).toBe(0)
+  // The clubhouse's own parts: light rendered wings, their lit windows, and the
+  // glazed hall between them.
+  const wingsOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' &&
+    o.args[1]?.args[0]?.color === 0xe2ded4)
+  const wingWindowsOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0xffe6b0)
+  const hallGlassOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[1]?.args[0]?.opacity === 0.18)
+  const solarOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' &&
+    o.args[0].args[0] === 2.4 && o.args[0].args[1] === 0.06)
+
+  it('puts the clubhouse north of the pitch, in its own strip of the plot', () => {
+    const def = BUILDING_PLOTS.training_area
+    const { THREE, result } = build(1)
+    const wings = wingsOf(THREE)
+    expect(wings).toHaveLength(2)
+    // One either side of the middle, north of the fence and inside the plot.
+    const xs = wings.map(w => w.position.x).sort((a, b) => a - b)
+    expect(xs[0]).toBeLessThan(xs[1])
+    for (const wing of wings) {
+      // North of the pitch (the plot's own -z) and clear of its edge.
+      expect(plotZ(wing, result.group)).toBeLessThan(0)
+      expect(Math.abs(plotZ(wing, result.group)) + 8).toBeLessThan(def.size.z / 2)
     }
+    // The pitch keeps its gate on the kerb even though the plot grew northwards.
+    expect(build(1).result.gate.z).toBe(def.size.z / 2)
+  })
+
+  it('builds it from three parts: two solid wings around a glass hall', () => {
+    const { THREE } = build(2)
+    const wings = wingsOf(THREE)
+    // The hall stands between the wings and is taller than they are.
+    const glass = hallGlassOf(THREE)
+    expect(glass.length).toBeGreaterThanOrEqual(4) // one pane per side, south split
+    const wingHeight = wings[0].args[0].args[1]
+    const hallHeight = Math.max(...glass.map(g => g.args[0].args[1]))
+    expect(hallHeight).toBeGreaterThan(wingHeight)
+    const [left, right] = wings.map(w => w.position.x).sort((a, b) => a - b)
+    expect(left).toBeLessThan(0)
+    expect(right).toBeGreaterThan(left)
+  })
+
+  it('stacks a storey on the wings per training-ground level', () => {
+    const heights = [1, 2, 3].map(level => wingsOf(build(level).THREE)[0].args[0].args[1])
+    expect(heights).toEqual([3.4, 2 * 3.4, 3 * 3.4])
+    // …and a row of lit windows with each of them.
+    const windows = [1, 2, 3].map(level => wingWindowsOf(build(level).THREE).length)
+    expect(windows[1]).toBe(2 * windows[0])
+    expect(windows[2]).toBe(3 * windows[0])
+  })
+
+  it('lights it from inside and lays solar on all three roofs', () => {
+    const { THREE } = build(1)
+    // The hall glows: an emissive ceiling panel and a light behind the glass.
+    expect(countOf(THREE, 'PointLight')).toBe(1)
+    expect(wingWindowsOf(THREE).length).toBeGreaterThan(0)
+    // Two wings plus the hall, each with this level's array.
+    expect(solarOf(THREE)).toHaveLength(3 * 2)
+    expect(solarOf(build(3).THREE)).toHaveLength(3 * 6)
+  })
+
+  it('shows the club emblem above the entrance, and copes without a canvas', () => {
+    const withCanvas = () => {
+      const original = HTMLCanvasElement.prototype.getContext
+      HTMLCanvasElement.prototype.getContext = () => ({
+        fillStyle: '', fillRect () {}, drawImage () {}
+      })
+      try {
+        return build(1, { emblemSvg: '<svg xmlns="http://www.w3.org/2000/svg"/>' })
+      } finally {
+        HTMLCanvasElement.prototype.getContext = original
+      }
+    }
+    const plated = withCanvas().THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[1]?.args?.[0]?.map)
+    expect(plated).toBeDefined()
+    expect(plated.args[0].args[0]).toBe(plated.args[0].args[1]) // square
+    // jsdom has no 2D context: the emblem is skipped, the clubhouse is not.
+    const { THREE } = build(1)
+    expect(THREE.created.find(o => o.args[1]?.args?.[0]?.map)).toBeUndefined()
+    expect(wingsOf(THREE)).toHaveLength(2)
+  })
+
+  it('opens a second gate in the fence and paths to pitch and car park', () => {
+    const { THREE, result } = build(1)
+    const paths = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0x9a9a9a)
+    // One straight to the pitch, and an L around to the car park.
+    expect(paths).toHaveLength(3)
+    const toPitch = paths.find(p => p.position.x < 0)
+    expect(toPitch).toBeDefined()
+    // It runs from the clubhouse down to the fence, on the pitch's north side.
+    expect(plotZ(toPitch, result.group)).toBeLessThan(0)
+
+    // Both long fence sides are split in two by a gate now — the top rails give
+    // the run count away.
+    const rails = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' && o.args[0].args[1] === 0.1)
+      .map(r => ({rail: r, z: plotZ(r, result.group)}))
+    const near = (value) => rails.filter(r => Math.abs(r.z - value) < 0.5).length
+    expect(near(Math.min(...rails.map(r => r.z)))).toBe(2) // north, new gate
+    expect(near(Math.max(...rails.map(r => r.z)))).toBe(2) // south, to the road
   })
 
   it('keeps the fence flush with the plot boundary', () => {

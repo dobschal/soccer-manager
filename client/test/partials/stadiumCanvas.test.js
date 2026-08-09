@@ -836,6 +836,193 @@ describe('daylightPhaseFor', () => {
 })
 
 /**
+ * The club emblem over every entrance in the stands' back walls, lit by two small
+ * dummy lamps. The emblem is drawn into a 2D canvas, which jsdom does not
+ * implement — the tests install a recording stub for it.
+ */
+describe('StadiumCanvas entrance emblems', () => {
+  const fakeContext = () => ({
+    calls: [],
+    fillStyle: '',
+    fillRect () { this.calls.push('fillRect') },
+    drawImage () { this.calls.push('drawImage') }
+  })
+
+  const addEmblem = (standTop, options = {}) => {
+    const added = []
+    const canvas = new StadiumCanvas(
+      { }, options.team ?? { name: 'FC Test', color: '#ff0000' }, 'c', {}
+    )
+    canvas._THREE = {
+      PlaneGeometry: class { constructor (x, y) { Object.assign(this, { x, y }) } },
+      BoxGeometry: class { constructor (x, y, z) { Object.assign(this, { x, y, z }) } },
+      SphereGeometry: class { constructor (r) { this.r = r } },
+      MeshBasicMaterial: class { constructor (c) { Object.assign(this, c) } },
+      MeshLambertMaterial: class { constructor (c) { Object.assign(this, c) } },
+      CanvasTexture: class { constructor (source) { this.source = source } },
+      Mesh: class {
+        constructor (geometry, material) {
+          Object.assign(this, { geometry, material })
+          this.rotation = { x: 0, y: 0, z: 0 }
+          this.userData = {}
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+        }
+      }
+    }
+    const ctx = options.noCanvas ? null : fakeContext()
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = () => ctx
+    try {
+      const group = { add: (o) => added.push(o) }
+      const plate = canvas._addEntranceEmblem(group, standTop)
+      return { canvas, added, plate, ctx }
+    } finally {
+      HTMLCanvasElement.prototype.getContext = original
+    }
+  }
+
+  const TALL = 12
+
+  it('hangs a square emblem plate above the entrance, facing outward', () => {
+    const { plate } = addEmblem(TALL)
+    expect(plate).toBeDefined()
+    expect(plate.geometry.x).toBe(plate.geometry.y)
+    expect(plate.material.map).toBeDefined()
+    // Clear of the entrance roof below it…
+    const E = CONFIG.entrance
+    const bottom = plate.at.y - plate.geometry.y / 2
+    expect(bottom).toBeGreaterThanOrEqual(E.height + E.wallThickness)
+    // …proud of the wall and turned to face away from the pitch (local -z).
+    expect(plate.at.z).toBeLessThan(0)
+    expect(plate.rotation.y).toBeCloseTo(Math.PI)
+  })
+
+  it('lights it with two small lamps above it, off by day', () => {
+    const { added } = addEmblem(TALL)
+    const lenses = added.filter(o => o.material?.color === CONFIG.emblemSign.lamp.color)
+    expect(lenses).toHaveLength(2)
+    const plate = added.find(o => o.material?.map)
+    for (const lens of lenses) {
+      // Above the plate, reaching out from the wall over it…
+      expect(lens.at.y).toBeGreaterThan(plate.at.y + plate.geometry.y / 2)
+      expect(lens.at.z).toBeLessThan(plate.at.z)
+      // …and part of the night lighting, so they go out with the floodlights.
+      expect(lens.userData.nightOnly).toBe(true)
+    }
+    // One on each side of the plate's centre.
+    expect(Math.sign(lenses[0].at.x)).toBe(-Math.sign(lenses[1].at.x))
+  })
+
+  it('shrinks the plate to what the back wall leaves', () => {
+    const roomy = addEmblem(TALL).plate.geometry.x
+    const tight = addEmblem(6.2).plate.geometry.x
+    expect(roomy).toBe(CONFIG.emblemSign.maxSize)
+    expect(tight).toBeLessThan(roomy)
+    expect(tight).toBeGreaterThanOrEqual(CONFIG.emblemSign.minSize)
+  })
+
+  it('leaves a stand too low for a readable one without a sign', () => {
+    const { plate, added } = addEmblem(5)
+    expect(plate).toBeNull()
+    expect(added).toHaveLength(0)
+  })
+
+  it('skips the sign rather than failing without a 2D canvas', () => {
+    const { plate, added } = addEmblem(TALL, { noCanvas: true })
+    expect(plate).toBeNull()
+    expect(added).toHaveLength(0)
+  })
+
+  it('builds the plate texture once and shares it across the entrances', () => {
+    const { canvas, ctx } = addEmblem(TALL)
+    const first = canvas._emblemPlate()
+    const second = canvas._emblemPlate()
+    expect(first).toBe(second)
+    // The plate is painted once, not per entrance.
+    expect(ctx.calls.filter(c => c === 'fillRect')).toHaveLength(1)
+  })
+})
+
+/**
+ * The lusher lawn under the club's own land: the square under the ring roads and
+ * a patch per building plot, all below everything built on top of them.
+ */
+describe('StadiumCanvas._buildLawn', () => {
+  const BUILDINGS = [
+    { type: 'training_area', level: 2 },
+    { type: 'youth_academy', level: 1 }
+  ]
+
+  const buildLawn = (options = {}) => {
+    const added = []
+    const canvas = new StadiumCanvas({ north_stand_size: 8000 }, {}, 'c', options)
+    canvas._THREE = {
+      MeshLambertMaterial: class {
+        constructor (config) { Object.assign(this, config) }
+      },
+      PlaneGeometry: class {
+        constructor (x, z) { Object.assign(this, { x, z }) }
+      },
+      Mesh: class {
+        constructor (geometry, material) {
+          Object.assign(this, { geometry, material })
+          this.rotation = { x: 0 }
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+        }
+      }
+    }
+    canvas._buildLawn({ add: (o) => added.push(o) })
+    return { canvas, added }
+  }
+
+  it('greens the whole square under the ring roads', () => {
+    const { canvas, added } = buildLawn()
+    const [ground] = added
+    expect(ground.material.color).toBe(CONFIG.colors.lawn)
+    // Reaches the far kerb, so the roads lie on lawn instead of on a seam.
+    const reach = canvas._roadDistance() + CONFIG.road.width / 2
+    expect(ground.geometry.x).toBe(2 * reach)
+    expect(ground.geometry.z).toBe(2 * reach)
+    expect(ground.at).toEqual({ x: 0, y: CONFIG.lawn.y, z: 0 })
+  })
+
+  it('is greener than the plain ground it lies on, and stays under the roads', () => {
+    const channel = (hex, shift) => (hex >> shift) & 0xff
+    // More green, and more green *relative* to the other channels.
+    expect(channel(CONFIG.colors.lawn, 8)).toBeGreaterThan(channel(CONFIG.colors.ground, 8))
+    const share = hex => channel(hex, 8) / (channel(hex, 16) + channel(hex, 0))
+    expect(share(CONFIG.colors.lawn)).toBeGreaterThan(share(CONFIG.colors.ground))
+    // Above the ground plane (-0.1) but below the roads (0).
+    expect(CONFIG.lawn.y).toBeGreaterThan(-0.1)
+    expect(CONFIG.lawn.y).toBeLessThan(0)
+  })
+
+  it('covers every plot the team owns, out under its sidewalk', () => {
+    const { canvas, added } = buildLawn({ buildings: BUILDINGS })
+    const plots = canvas._buildingPlots()
+    expect(added).toHaveLength(1 + plots.length)
+
+    for (const plot of plots) {
+      const patch = added.find(m => m.at.x === plot.cx && m.at.z === plot.cz)
+      expect(patch).toBeDefined()
+      // Reaches past the plot boundary, so the lawn runs on to the kerb.
+      expect(patch.geometry.x).toBeGreaterThan(2 * plot.halfX)
+      expect(patch.geometry.z).toBeGreaterThan(2 * plot.halfZ)
+      expect(patch.geometry.x - 2 * plot.halfX).toBeGreaterThanOrEqual(2 * CONFIG.sidewalk.width)
+    }
+  })
+
+  it('lays no plot patches for a team without buildings', () => {
+    expect(buildLawn().added).toHaveLength(1)
+  })
+
+  it('shares one material across every patch', () => {
+    const { added } = buildLawn({ buildings: BUILDINGS })
+    expect(new Set(added.map(m => m.material)).size).toBe(1)
+  })
+})
+
+/**
  * The same scene serves the stadium page and the buildings page; only the point
  * the camera orbits (and the club buildings around it) differ.
  */

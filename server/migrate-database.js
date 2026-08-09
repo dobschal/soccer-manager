@@ -2790,6 +2790,21 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Wiki: refresh buildings (clubhouse on the training ground) v8',
+  async run () {
+    // The training ground now has a clubhouse north of the pitch that grows with
+    // its level.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

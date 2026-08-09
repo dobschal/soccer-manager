@@ -9,6 +9,7 @@ import {
 } from './clubBuildingsScene.js'
 import {buildTraffic} from './trafficScene.js'
 import {renderEmblem} from './emblem.js'
+import {emblemPlateTexture} from '../util/emblemRaster.js'
 
 /**
  * Central layout & scene configuration for the 3D stadium.
@@ -98,6 +99,26 @@ export const CONFIG = Object.freeze({
     lightColor: 0xfff2cc,
     endStandCount: 3, // north / south
     sideStandCount: 2 // east / west
+  },
+  // The club emblem on the stand's back wall above every entrance, lit by two
+  // small lamps on short arms above it. The lamps are dummies: emissive lenses in
+  // little housings, and the plate is self-lit — ten entrances with two real
+  // spotlights each would be twenty extra lights for one sign.
+  emblemSign: {
+    maxSize: 2.4,
+    minSize: 1, // below this the stand's back is too low to carry one
+    gapAboveEntrance: 0.35,
+    gapBelowTop: 0.35,
+    plateColor: 0x23262c,
+    plateCss: '#23262c',
+    textureSize: 256,
+    lamp: {
+      arm: 0.5, // how far the lamp reaches out from the wall
+      housing: 0.26,
+      lensRadius: 0.09,
+      spread: 0.34, // sideways offset from the plate's centre, in plate widths
+      color: 0xfff2cc
+    }
   },
   // Roads around the stadium: a grid of four roads (behind each stand) that
   // cross at four intersections and continue outward to `vanishDistance`,
@@ -267,6 +288,9 @@ export const CONFIG = Object.freeze({
     // Fallback behind the sky dome, so it matches the dome's darkest part.
     sceneBackground: 0x171334,
     ground: 0x3d5c3d,
+    // The kept lawn on the club's own land — a touch greener than the plain
+    // ground around it (see `_buildLawn`).
+    lawn: 0x4a7d3c,
     ambientLight: 0x404060,
     moonLight: 0x6688cc,
     // Distance fog in a dusk tone between the sky's warm and cool horizon:
@@ -278,6 +302,10 @@ export const CONFIG = Object.freeze({
     fogNear: 300,
     fogFar: 640
   },
+  // The lusher lawn under the stadium and the club's plots. It lies between the
+  // plain ground (-0.1) and everything built on top (roads at 0): 0.04 is far
+  // more than the depth buffer needs at this range, and still under the kerbs.
+  lawn: {y: -0.06, plotMargin: 3},
   // Canvas height is derived from width, capped so it never gets too tall.
   maxCanvasHeight: 600,
   canvasAspectFactor: 0.9,
@@ -589,6 +617,7 @@ export class StadiumCanvas extends UIElement {
     this._setupLights()
 
     this._buildStadium(this._scene)
+    this._buildLawn(this._scene)
     this._buildFloodlights(this._scene)
     this._buildRoads(this._scene)
     this._buildTraffic(this._scene)
@@ -732,6 +761,36 @@ export class StadiumCanvas extends UIElement {
         emblemSvg: this.team.name ? renderEmblem(this.team, 512) : undefined
       })
       this._addBuildingSidewalks(scene, plot, openings)
+    }
+  }
+
+  /**
+   * The kept lawn: a greener patch of ground everywhere the club's own land is —
+   * the square inside and under the ring roads (the stadium sits on it) and one
+   * patch per building plot, each reaching out under its sidewalk to the kerb.
+   * Everything built on top (roads, sidewalks, pitches, car parks) covers it
+   * where it should, so this only shows in the gaps between them.
+   * @param {THREE.Scene} scene
+   */
+  _buildLawn (scene) {
+    const L = CONFIG.lawn
+    const mat = new this._THREE.MeshLambertMaterial({color: CONFIG.colors.lawn})
+
+    // Out to the far kerb of the ring roads, so the roads sit on lawn rather
+    // than on a seam.
+    const reach = this._roadDistance() + CONFIG.road.width / 2
+    this._addPavement(scene, 2 * reach, 2 * reach, 0, 0, mat, L.y)
+
+    for (const plot of this._buildingPlots()) {
+      this._addPavement(
+        scene,
+        2 * (plot.halfX + L.plotMargin),
+        2 * (plot.halfZ + L.plotMargin),
+        plot.cx,
+        plot.cz,
+        mat,
+        L.y
+      )
     }
   }
 
@@ -1515,7 +1574,10 @@ export class StadiumCanvas extends UIElement {
       width: d.width,
       count: d.count,
       rotationY: d.rotationY,
-      back: d.base + this._standDepth(d.seats, d.depthW)
+      back: d.base + this._standDepth(d.seats, d.depthW),
+      // How high the back wall reaches — the emblem sign above the entrance has
+      // to fit under it.
+      top: this._standTopY(this._standRowCount(d.seats, d.depthW))
     }))
   }
 
@@ -1602,7 +1664,7 @@ export class StadiumCanvas extends UIElement {
    * @param {number} cz
    * @param {number} rotationY
    */
-  _createEntrance (scene, cx, cz, rotationY) {
+  _createEntrance (scene, cx, cz, rotationY, standTop) {
     const E = CONFIG.entrance
     const t = E.wallThickness
     const halfW = E.width / 2
@@ -1635,9 +1697,88 @@ export class StadiumCanvas extends UIElement {
     lamp.position.set(0, E.height - 0.06, midZ)
     group.add(lamp)
 
+    this._addEntranceEmblem(group, standTop)
+
     group.position.set(cx, 0, cz)
     group.rotation.y = rotationY
     scene.add(group)
+  }
+
+  /**
+   * The club emblem on the stand's back wall above an entrance, with two small
+   * lamps on arms above it. Built into the entrance's own group, so it inherits
+   * the entrance's place and facing — local -z is out, away from the pitch.
+   *
+   * The plate is squeezed into whatever the stand's back wall leaves between the
+   * entrance roof and its top edge; a stand too low for a readable one simply
+   * gets none.
+   * @param {THREE.Group} group the entrance's group
+   * @param {number} standTop height of the stand's back wall
+   * @returns {Object|null} the plate mesh, or `null` when it does not fit
+   */
+  _addEntranceEmblem (group, standTop) {
+    const S = CONFIG.emblemSign
+    const E = CONFIG.entrance
+    const bottom = E.height + E.wallThickness + S.gapAboveEntrance
+    const size = Math.min(S.maxSize, standTop - S.gapBelowTop - bottom)
+    if (!(size >= S.minSize)) return null
+
+    const texture = this._emblemPlate()
+    if (!texture) return null
+
+    const centerY = bottom + size / 2
+    const plate = new this._THREE.Mesh(
+      new this._THREE.PlaneGeometry(size, size),
+      new this._THREE.MeshBasicMaterial({map: texture})
+    )
+    // Just proud of the back wall, facing outward (the plane's own normal is +z).
+    plate.position.set(0, centerY, -0.08)
+    plate.rotation.y = Math.PI
+    group.add(plate)
+
+    const L = S.lamp
+    const housingGeo = new this._THREE.BoxGeometry(L.housing, L.housing * 0.8, L.housing)
+    const armGeo = new this._THREE.BoxGeometry(0.07, 0.07, L.arm)
+    const lensGeo = new this._THREE.SphereGeometry(L.lensRadius, 6, 5)
+    const metalMat = new this._THREE.MeshLambertMaterial({color: E.wallColor})
+    const lensMat = new this._THREE.MeshBasicMaterial({color: L.color})
+    const lampY = centerY + size / 2 + 0.3
+
+    for (const side of [-1, 1]) {
+      const x = side * size * L.spread
+
+      const arm = new this._THREE.Mesh(armGeo, metalMat)
+      arm.position.set(x, lampY, -L.arm / 2)
+      group.add(arm)
+
+      const housing = new this._THREE.Mesh(housingGeo, metalMat)
+      housing.position.set(x, lampY, -L.arm)
+      group.add(housing)
+
+      // The lens looks down at the plate, so it reads as aimed at the emblem.
+      const lens = new this._THREE.Mesh(lensGeo, lensMat)
+      lens.position.set(x, lampY - L.housing * 0.45, -L.arm)
+      lens.userData.nightOnly = true
+      group.add(lens)
+    }
+
+    return plate
+  }
+
+  /**
+   * The emblem plate texture, built once and shared by every entrance — ten
+   * canvases of the same crest would be ten textures in video memory.
+   * @returns {Object|null} a CanvasTexture, or `null` without a 2D canvas
+   */
+  _emblemPlate () {
+    if (this._emblemPlateTexture === undefined) {
+      this._emblemPlateTexture = emblemPlateTexture(this._THREE, {
+        emblemSvg: this.team?.name ? renderEmblem(this.team, 512) : undefined,
+        background: CONFIG.emblemSign.plateCss,
+        size: CONFIG.emblemSign.textureSize
+      })
+    }
+    return this._emblemPlateTexture
   }
 
   /**
@@ -1657,7 +1798,7 @@ export class StadiumCanvas extends UIElement {
         // Entrance at the stand back, facing outward.
         const cx = st.axis === 'z' ? off : st.sign * st.back
         const cz = st.axis === 'z' ? st.sign * st.back : off
-        this._createEntrance(scene, cx, cz, st.rotationY)
+        this._createEntrance(scene, cx, cz, st.rotationY, st.top)
 
         // Footpath from under the stand, through the entrance, out to the
         // sidewalk (one continuous strip).

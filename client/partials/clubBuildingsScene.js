@@ -1,4 +1,4 @@
-import {loadEmblemImage} from '../util/emblemRaster.js'
+import {emblemPlateTexture, loadEmblemImage} from '../util/emblemRaster.js'
 
 /**
  * Club buildings rendered into the shared 3D scene (see `stadiumCanvas.js`).
@@ -85,11 +85,73 @@ const TRAINING = Object.freeze({
     driveway: {width: 6},
     asphaltColor: 0x3a3a3c,
     markingColor: 0xf2f2f2
+  },
+  // The clubhouse north of the pitch, in its own strip of the plot. Three parts:
+  // a solid block left and right, and a glass hall between them that carries the
+  // entrance and the emblem. It grows with the training ground — a storey per
+  // level — and is joined to the pitch's north gate and to the car park by paths.
+  clubhouse: {
+    depth: 16,
+    gapToFence: 6,
+    plotMargin: 2, // from its back wall to the plot's north edge
+    storeys: {1: 1, 2: 2, 3: 3},
+    storeyHeight: 3.4,
+    base: 0.3,
+    plinthColor: 0x55595e,
+    // The two solid wings.
+    side: {
+      width: 15,
+      facadeColor: 0xe2ded4, // light render, brighter than the academy's grey
+      roofColor: 0x4a4f55,
+      // Single, generously sized windows rather than a continuous band.
+      window: {width: 2.8, height: 1.9, sill: 1, proud: 0.1, perFacade: 3, color: 0xffe6b0},
+      parapet: 0.5
+    },
+    // The glass hall in the middle: taller than the wings, glazed on all sides
+    // with strutted panes, lit from within.
+    center: {
+      width: 18,
+      extraHeight: 1.6, // how far it rises above the wings
+      minHeight: 6.4, // …but never lower than this, so level 1 still reads as a hall
+      glassColor: 0xa8ccd8,
+      glassOpacity: 0.18,
+      frameColor: 0x3a3f45,
+      strutColor: 0x2a2e33,
+      floorColor: 0xb0aba1,
+      roofColor: 0x4a4f55,
+      mullionSpacing: 2.4,
+      courses: 1,
+      // Ceiling panels plus one light per storey — the hall is meant to glow.
+      lightColor: 0xffeccc,
+      lightIntensity: 40,
+      lightRange: 26
+    },
+    entrance: {width: 6.5, height: 4, doorColor: 0x1b1e22, glassColor: 0x9fd6e8},
+    // The emblem on the glass facade, big, right above the entrance.
+    emblem: {size: 5, gapAboveEntrance: 0.8, plateColor: 0x23262c, plateCss: '#23262c'},
+    solar: {
+      1: {cols: 2, rows: 1},
+      2: {cols: 3, rows: 1},
+      3: {cols: 3, rows: 2},
+      panel: {width: 2.4, depth: 1.4, tilt: 25, gapX: 0.4, gapZ: 1.2, lift: 0.5},
+      color: 0x16233f,
+      frameColor: 0x8f959c,
+      legColor: 0x6b7076
+    },
+    path: {width: 3.5, color: 0x9a9a9a}
   }
 })
 
 const PLOT_X = TRAINING.pitch.width + 2 * TRAINING.fence.margin + TRAINING.parking.strip
-const PLOT_Z = TRAINING.pitch.depth + 2 * TRAINING.fence.margin
+// The pitch's own square plus the clubhouse strip north of it.
+const CLUBHOUSE_STRIP = TRAINING.clubhouse.gapToFence + TRAINING.clubhouse.depth +
+  TRAINING.clubhouse.plotMargin
+const PLOT_Z = TRAINING.pitch.depth + 2 * TRAINING.fence.margin + CLUBHOUSE_STRIP
+// The fenced ground keeps its south edge on the kerb, so it sits at the plot's
+// south end and everything else is measured from there.
+const GROUND_Z = PLOT_Z / 2 - (TRAINING.pitch.depth / 2 + TRAINING.fence.margin)
+const CLUBHOUSE_X = -TRAINING.parking.strip / 2 // centred on the pitch
+const CLUBHOUSE_Z = -PLOT_Z / 2 + TRAINING.clubhouse.plotMargin + TRAINING.clubhouse.depth / 2
 
 /**
  * Layout of the fitness studio inside its plot (local coordinates, origin = plot
@@ -495,7 +557,7 @@ export function clubBuildingPlots (buildings, intersection, clearance) {
  *   sides (gate and driveway) in local coordinates — the caller keeps the
  *   sidewalk's street lamps clear of them.
  */
-export function buildTrainingArea (THREE, scene, {level, rand, x, z, sidewalkWidth = 3}) {
+export function buildTrainingArea (THREE, scene, {level, rand, x, z, sidewalkWidth = 3, emblemSvg}) {
   const lvl = Math.max(1, Math.min(3, level || 1))
   const group = new THREE.Group()
   const {pitch, fence, parking} = TRAINING
@@ -504,7 +566,7 @@ export function buildTrainingArea (THREE, scene, {level, rand, x, z, sidewalkWid
   // strip east of it — so everything fenced is built in a sub-group shifted west
   // by half the strip.
   const ground = new THREE.Group()
-  ground.position.set(-parking.strip / 2, 0, 0)
+  ground.position.set(-parking.strip / 2, 0, GROUND_Z)
   group.add(ground)
 
   addPitch(THREE, ground, {
@@ -519,7 +581,8 @@ export function buildTrainingArea (THREE, scene, {level, rand, x, z, sidewalkWid
   addFence(THREE, ground, {
     halfWidth: pitch.width / 2 + fence.margin,
     halfDepth: pitch.depth / 2 + fence.margin,
-    centerZ: 0
+    centerZ: 0,
+    northGate: true // the way in from the clubhouse
   })
   addFloodlights(THREE, ground, lvl)
 
@@ -527,6 +590,8 @@ export function buildTrainingArea (THREE, scene, {level, rand, x, z, sidewalkWid
     addEquipment(THREE, ground, rand)
     addBenches(THREE, ground, lvl)
   }
+
+  addClubhouse(THREE, group, {level: lvl, emblemSvg})
 
   const southEdge = PLOT_Z / 2
   const driveway = addParking(THREE, group, {
@@ -709,7 +774,7 @@ function netPanel (positions, a, b, c, d, cell) {
  * @param {Object} parent
  * @param {{halfWidth: number, halfDepth: number, centerZ: number}} config
  */
-function addFence (THREE, parent, {halfWidth, halfDepth, centerZ}) {
+function addFence (THREE, parent, {halfWidth, halfDepth, centerZ, northGate = false}) {
   const F = TRAINING.fence
   const north = centerZ - halfDepth
   const south = centerZ + halfDepth
@@ -722,6 +787,13 @@ function addFence (THREE, parent, {halfWidth, halfDepth, centerZ}) {
     {from: [-halfWidth, south], to: [-gate, south]},
     {from: [gate, south], to: [halfWidth, south]}
   ]
+  if (northGate) {
+    // Swap the closed north side for two runs with an opening in the middle.
+    segments.splice(0, 1,
+      {from: [-halfWidth, north], to: [-gate, north]},
+      {from: [gate, north], to: [halfWidth, north]}
+    )
+  }
 
   const postMat = new THREE.MeshLambertMaterial({color: F.postColor})
   const postGeo = new THREE.CylinderGeometry(0.1, 0.1, F.height, 6)
@@ -1616,9 +1688,10 @@ function addSolarPanels (THREE, parent, {size, level}) {
  * Shared by the fitness studio and the youth academy.
  * @param {Object} THREE
  * @param {Object} parent the group the roof belongs to
- * @param {{spec: {cols: number, rows: number}, panel: Object, colors: {color: number, frameColor: number, legColor: number}, roofTop: number}} config
+ * @param {{spec: {cols: number, rows: number}, panel: Object, colors: {color: number, frameColor: number, legColor: number}, roofTop: number, x?: number, z?: number}} config
+ *   `x` / `z` centre the array over a roof that is not the parent's own origin.
  */
-function addSolarArray (THREE, parent, {spec, panel: P, colors, roofTop}) {
+function addSolarArray (THREE, parent, {spec, panel: P, colors, roofTop, x = 0, z = 0}) {
   if (!spec) return
   const tilt = P.tilt * Math.PI / 180
   // What a tilted module takes up on the roof, and how far its edges rise/fall.
@@ -1637,9 +1710,9 @@ function addSolarArray (THREE, parent, {spec, panel: P, colors, roofTop}) {
   const spanZ = spec.rows * footprint + (spec.rows - 1) * P.gapZ
 
   for (let col = 0; col < spec.cols; col++) {
-    const px = -spanX / 2 + P.width / 2 + col * (P.width + P.gapX)
+    const px = x - spanX / 2 + P.width / 2 + col * (P.width + P.gapX)
     for (let row = 0; row < spec.rows; row++) {
-      const pz = -spanZ / 2 + footprint / 2 + row * (footprint + P.gapZ)
+      const pz = z - spanZ / 2 + footprint / 2 + row * (footprint + P.gapZ)
 
       // Tilting the module around x turns its face towards +z, i.e. south.
       const module = new THREE.Group()
@@ -2568,4 +2641,309 @@ function addAcademyParkingLights (THREE, parent, level) {
   for (const pos of positions.slice(0, P.masts[level])) {
     addMast(THREE, parent, {x: pos.x, z: pos.z, aim, spec: P.mast})
   }
+}
+
+/**
+ * The clubhouse north of the training pitch: two solid wings with a glass hall
+ * between them, joined to the pitch's north gate and to the car park by paths.
+ * It grows with the training ground — a storey per level, and a bigger solar
+ * array on the roofs.
+ * @param {Object} THREE
+ * @param {Object} parent the plot's group
+ * @param {{level: number, emblemSvg?: string}} config
+ */
+function addClubhouse (THREE, parent, {level, emblemSvg}) {
+  const C = TRAINING.clubhouse
+  const storeys = C.storeys[level]
+  const sideHeight = storeys * C.storeyHeight
+  const centerHeight = Math.max(C.center.minHeight, sideHeight + C.center.extraHeight)
+
+  const house = new THREE.Group()
+  house.position.set(CLUBHOUSE_X, 0, CLUBHOUSE_Z)
+  parent.add(house)
+
+  const plinth = new THREE.Mesh(
+    new THREE.BoxGeometry(2 * C.side.width + C.center.width + 1.4, C.base, C.depth + 1.4),
+    new THREE.MeshLambertMaterial({color: C.plinthColor})
+  )
+  plinth.position.set(0, C.base / 2, 0)
+  plinth.receiveShadow = true
+  house.add(plinth)
+
+  for (const sx of [-1, 1]) {
+    addClubhouseWing(THREE, house, {
+      x: sx * (C.center.width + C.side.width) / 2,
+      storeys,
+      height: sideHeight,
+      level
+    })
+  }
+  addClubhouseHall(THREE, house, {height: centerHeight, level, emblemSvg})
+  addClubhousePaths(THREE, parent)
+}
+
+/**
+ * One of the two solid wings: a light rendered block with single large windows,
+ * a flat roof with a coping and solar modules on top. The windows are emissive —
+ * the rooms behind them are lit.
+ * @param {Object} THREE
+ * @param {Object} parent the clubhouse group
+ * @param {{x: number, storeys: number, height: number, level: number}} config
+ */
+function addClubhouseWing (THREE, parent, {x, storeys, height, level}) {
+  const C = TRAINING.clubhouse
+  const S = C.side
+  const W = S.window
+  const top = C.base + height
+
+  const shell = new THREE.Mesh(
+    new THREE.BoxGeometry(S.width, height, C.depth),
+    new THREE.MeshLambertMaterial({color: S.facadeColor})
+  )
+  shell.position.set(x, C.base + height / 2, 0)
+  shell.castShadow = true
+  shell.receiveShadow = true
+  parent.add(shell)
+
+  const glassMat = new THREE.MeshBasicMaterial({color: W.color})
+  const glassGeo = new THREE.BoxGeometry(W.width, W.height, 0.08)
+  const sideGeo = new THREE.BoxGeometry(0.08, W.height, W.width)
+
+  for (let storey = 0; storey < storeys; storey++) {
+    const y = C.base + storey * C.storeyHeight + W.sill + W.height / 2
+    // Evenly spaced along both long facades…
+    for (let i = 0; i < W.perFacade; i++) {
+      const offset = -S.width / 2 + (i + 1) / (W.perFacade + 1) * S.width
+      for (const sz of [-1, 1]) {
+        const window = new THREE.Mesh(glassGeo, glassMat)
+        window.position.set(x + offset, y, sz * (C.depth / 2 + W.proud))
+        parent.add(window)
+      }
+    }
+    // …and one on the outward-facing end wall.
+    const end = new THREE.Mesh(sideGeo, glassMat)
+    end.position.set(x + Math.sign(x) * (S.width / 2 + W.proud), y, 0)
+    parent.add(end)
+  }
+
+  const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(S.width + 0.6, 0.24, C.depth + 0.6),
+    new THREE.MeshLambertMaterial({color: S.roofColor})
+  )
+  roof.position.set(x, top + 0.12, 0)
+  roof.castShadow = true
+  parent.add(roof)
+
+  addSolarArray(THREE, parent, {
+    spec: C.solar[level],
+    panel: C.solar.panel,
+    colors: C.solar,
+    roofTop: top + 0.24,
+    x
+  })
+}
+
+/**
+ * The glass hall in the middle: glazed on all four sides with strutted panes, a
+ * lit floor and ceiling behind them, the entrance in its south face and the club
+ * emblem big above it. Taller than the wings, so it reads as the centre.
+ * @param {Object} THREE
+ * @param {Object} parent the clubhouse group
+ * @param {{height: number, level: number, emblemSvg?: string}} config
+ */
+function addClubhouseHall (THREE, parent, {height, level, emblemSvg}) {
+  const C = TRAINING.clubhouse
+  const H = C.center
+  const E = C.entrance
+  const hw = H.width / 2
+  const hd = C.depth / 2
+  const top = C.base + height
+
+  const glassMat = new THREE.MeshLambertMaterial({
+    color: H.glassColor,
+    transparent: true,
+    opacity: H.glassOpacity,
+    side: THREE.DoubleSide
+  })
+  const strutMat = new THREE.MeshLambertMaterial({color: H.strutColor})
+  const frameMat = new THREE.MeshLambertMaterial({color: H.frameColor})
+  const pane = config => addGlassPane(THREE, parent, {
+    glassMat,
+    strutMat,
+    spacing: H.mullionSpacing,
+    courses: H.courses,
+    ...config
+  })
+
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(H.width, 0.12, C.depth),
+    new THREE.MeshLambertMaterial({color: H.floorColor})
+  )
+  floor.position.set(0, C.base + 0.06, 0)
+  floor.receiveShadow = true
+  parent.add(floor)
+
+  // Three closed sides; the south one is split around the entrance.
+  pane({width: H.width, height, x: 0, y: C.base + height / 2, z: -hd, axis: 'x'})
+  for (const sx of [-1, 1]) {
+    pane({width: C.depth, height, x: sx * hw, y: C.base + height / 2, z: 0, axis: 'z'})
+  }
+  const sideWidth = (H.width - E.width) / 2
+  for (const sx of [-1, 1]) {
+    pane({
+      width: sideWidth,
+      height,
+      x: sx * (E.width + sideWidth) / 2,
+      y: C.base + height / 2,
+      z: hd,
+      axis: 'x'
+    })
+  }
+  pane({
+    width: E.width,
+    height: height - E.height,
+    x: 0,
+    y: C.base + E.height + (height - E.height) / 2,
+    z: hd,
+    axis: 'x'
+  })
+
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const column = new THREE.Mesh(new THREE.BoxGeometry(0.34, height, 0.34), frameMat)
+      column.position.set(sx * hw, C.base + height / 2, sz * hd)
+      column.castShadow = true
+      parent.add(column)
+    }
+  }
+
+  const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(H.width + 0.8, 0.26, C.depth + 0.8),
+    new THREE.MeshLambertMaterial({color: H.roofColor})
+  )
+  roof.position.set(0, top + 0.13, 0)
+  roof.castShadow = true
+  parent.add(roof)
+
+  addClubhouseEntrance(THREE, parent, {hd, height})
+  addClubhouseEmblem(THREE, parent, {hd, emblemSvg})
+
+  // Lit from within: an emissive ceiling panel per storey height plus one light,
+  // so the hall glows through its glass at dusk without a light per floor.
+  const panel = new THREE.Mesh(
+    new THREE.PlaneGeometry(H.width - 2, C.depth - 2),
+    new THREE.MeshBasicMaterial({color: H.lightColor})
+  )
+  panel.rotation.x = Math.PI / 2
+  panel.position.set(0, top - 0.2, 0)
+  parent.add(panel)
+
+  const light = new THREE.PointLight(H.lightColor, H.lightIntensity, H.lightRange, 2)
+  light.position.set(0, C.base + height / 2, 0)
+  parent.add(light)
+
+  addSolarArray(THREE, parent, {
+    spec: C.solar[level],
+    panel: C.solar.panel,
+    colors: C.solar,
+    roofTop: top + 0.26
+  })
+}
+
+/**
+ * The clubhouse's entrance: a wide glazed double door in the hall's south face
+ * under a lit header.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{hd: number, height: number}} config
+ */
+function addClubhouseEntrance (THREE, parent, {hd}) {
+  const C = TRAINING.clubhouse
+  const E = C.entrance
+  const frameMat = new THREE.MeshLambertMaterial({color: E.doorColor})
+  const doorMat = new THREE.MeshLambertMaterial({
+    color: E.glassColor,
+    transparent: true,
+    opacity: 0.4,
+    side: THREE.DoubleSide
+  })
+
+  const leafWidth = E.width / 2 - 0.15
+  for (const side of [-1, 1]) {
+    const leaf = new THREE.Mesh(
+      new THREE.BoxGeometry(leafWidth, E.height - 0.2, 0.1), doorMat
+    )
+    leaf.position.set(side * E.width / 4, C.base + (E.height - 0.2) / 2, hd)
+    parent.add(leaf)
+
+    const jamb = new THREE.Mesh(new THREE.BoxGeometry(0.16, E.height, 0.18), frameMat)
+    jamb.position.set(side * E.width / 2, C.base + E.height / 2, hd)
+    parent.add(jamb)
+  }
+
+  const header = new THREE.Mesh(new THREE.BoxGeometry(E.width + 0.4, 0.2, 0.26), frameMat)
+  header.position.set(0, C.base + E.height, hd)
+  parent.add(header)
+}
+
+/**
+ * The club emblem on the glass facade, right above the entrance. Same plate
+ * texture as the stadium's entrance signs, just bigger.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{hd: number, emblemSvg?: string}} config
+ * @returns {Object|null} the plate, or `null` without a 2D canvas
+ */
+function addClubhouseEmblem (THREE, parent, {hd, emblemSvg}) {
+  const C = TRAINING.clubhouse
+  const M = C.emblem
+  const texture = emblemPlateTexture(THREE, {
+    emblemSvg,
+    background: M.plateCss
+  })
+  if (!texture) return null
+
+  const plate = new THREE.Mesh(
+    new THREE.PlaneGeometry(M.size, M.size),
+    new THREE.MeshBasicMaterial({map: texture})
+  )
+  plate.position.set(
+    0,
+    C.base + C.entrance.height + M.gapAboveEntrance + M.size / 2,
+    hd + 0.12
+  )
+  parent.add(plate)
+  return plate
+}
+
+/**
+ * The paved ways from the clubhouse: straight south to the pitch's north gate,
+ * and an L to the east around to the car park.
+ * @param {Object} THREE
+ * @param {Object} parent the plot's group
+ */
+function addClubhousePaths (THREE, parent) {
+  const C = TRAINING.clubhouse
+  const P = C.path
+  const mat = new THREE.MeshLambertMaterial({color: P.color})
+  const strip = (sizeX, sizeZ, x, z) => {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(sizeX, sizeZ), mat)
+    mesh.rotation.x = -Math.PI / 2
+    mesh.position.set(x, 0.045, z)
+    mesh.receiveShadow = true
+    parent.add(mesh)
+  }
+
+  // Clubhouse front to the fence's north gate.
+  const front = CLUBHOUSE_Z + C.depth / 2
+  const gateZ = GROUND_Z - (TRAINING.pitch.depth / 2 + TRAINING.fence.margin)
+  strip(P.width, gateZ - front, CLUBHOUSE_X, (front + gateZ) / 2)
+
+  // …and around the pitch's north-east corner to the car park.
+  const parkingX = PLOT_X / 2 - TRAINING.parking.strip / 2
+  const alongZ = CLUBHOUSE_Z
+  const fromX = CLUBHOUSE_X + C.center.width / 2 + C.side.width
+  strip(parkingX - fromX + P.width / 2, P.width, (fromX + parkingX + P.width / 2) / 2, alongZ)
+  strip(P.width, TRAINING.parking.band.north - 0.5 - alongZ, parkingX,
+    (alongZ + TRAINING.parking.band.north - 0.5) / 2)
 }
