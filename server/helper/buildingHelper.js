@@ -18,7 +18,11 @@ export const BUILDING_UPGRADES = {
   fitness_studio_2: { cost: 900_000, constructionDays: 8 },
   fitness_studio_3: { cost: 2_625_000, constructionDays: 15 },
   youth_academy_2: { cost: 3_000_000, constructionDays: 10 },
-  youth_academy_3: { cost: 9_000_000, constructionDays: 17 }
+  youth_academy_3: { cost: 9_000_000, constructionDays: 17 },
+  // The medical practice only ever has this one level — there is no
+  // `medical_practice_2`, so `upgradeBuilding` rejects a second attempt with
+  // `error.buildingMaxLevel` all by itself.
+  medical_practice_1: { cost: 500_000, constructionDays: 8 }
 }
 
 /**
@@ -70,12 +74,25 @@ export const YOUTH_ACADEMY_GUARANTEED_CARD = {
 }
 
 /**
+ * Action card chances per game day, keyed by medical practice level. Only the
+ * MEDICAL_TREATMENT card is affected; every other card uses the global default.
+ * The practice has a single level, so this is really just "built or not":
+ * without it the card never drops at all, with it a team averages ~1.5 per
+ * season (34 game days → 1.5 / 34 ≈ 0.044 per game day).
+ */
+export const MEDICAL_PRACTICE_CARD_CHANCES = {
+  0: { MEDICAL_TREATMENT: 0 },
+  1: { MEDICAL_TREATMENT: 0.044 }
+}
+
+/**
  * Map building type to i18n key for log messages.
  */
 const BUILDING_NAME_KEYS = {
   training_area: 'building.trainingArea',
   fitness_studio: 'building.fitnessStudio',
-  youth_academy: 'building.youthAcademy'
+  youth_academy: 'building.youthAcademy',
+  medical_practice: 'building.medicalPractice'
 }
 
 /**
@@ -157,6 +174,34 @@ export async function getYouthAcademyLevel (teamId) {
  */
 export async function getAllYouthAcademyLevels () {
   const buildings = await query("SELECT team_id, level FROM building WHERE type='youth_academy'")
+  const map = new Map()
+  for (const b of buildings) {
+    map.set(b.team_id, b.level)
+  }
+  return map
+}
+
+/**
+ * The medical practice is the only building a team does not start with, so a
+ * missing row means "not built yet" — level 0, not level 1.
+ * @param {number} teamId
+ * @returns {Promise<number>}
+ */
+export async function getMedicalPracticeLevel (teamId) {
+  const [building] = await query(
+    "SELECT * FROM building WHERE team_id=? AND type='medical_practice' LIMIT 1",
+    [teamId]
+  )
+  return building?.level ?? 0
+}
+
+/**
+ * Batch-fetch medical practice levels for all teams.
+ * Returns a Map of teamId -> level.
+ * @returns {Promise<Map<number, number>>}
+ */
+export async function getAllMedicalPracticeLevels () {
+  const buildings = await query("SELECT team_id, level FROM building WHERE type='medical_practice'")
   const map = new Map()
   for (const b of buildings) {
     map.set(b.team_id, b.level)

@@ -75,39 +75,41 @@ export async function loadEmblemImage (svg) {
 }
 
 /**
- * A square canvas texture carrying the club emblem on a plain plate — for
- * mounting on a wall in the 3D scene (see the stands' entrances).
+ * A square canvas texture of the club emblem alone, for mounting on a wall in the
+ * 3D scene (the stands' entrances, the clubhouse's glass facade).
  *
- * The emblem has to be rasterised first, so the texture starts out as the bare
- * plate and is repainted as soon as the image is there; the render loop picks
- * that up on its next frame. Returns `null` where a 2D canvas is unavailable
- * (jsdom in tests, ancient browsers) so the caller can simply skip the panel.
+ * The canvas is left **transparent** around the emblem — the emblem's own shape
+ * is what should be seen, not a plate behind it — so the material it goes on has
+ * to be `transparent: true`.
+ *
+ * The emblem has to be rasterised first, so the texture starts out empty and is
+ * painted as soon as the image is there; the render loop picks that up on its next
+ * frame. Returns `null` where a 2D canvas is unavailable (jsdom in tests, ancient
+ * browsers) so the caller can simply skip the sign.
  *
  * @param {Object} THREE the Three.js module
- * @param {{emblemSvg: string, background: string, size?: number, padding?: number}} config
- *   `background` is a CSS colour for the plate, `padding` the share of the plate
- *   left clear around the emblem.
+ * @param {{emblemSvg: string, size?: number, padding?: number}} config `padding`
+ *   is the share of the canvas left clear around the emblem.
  * @returns {Object|null} a CanvasTexture
  */
-export function emblemPlateTexture (THREE, {emblemSvg, background, size = 256, padding = 0.08}) {
+export function emblemTexture (THREE, {emblemSvg, size = 256, padding = 0.04}) {
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
   const ctx = canvas.getContext?.('2d')
   if (!ctx) return null
 
-  ctx.fillStyle = background
-  ctx.fillRect(0, 0, size, size)
-
   const texture = new THREE.CanvasTexture(canvas)
   if (!emblemSvg) return texture
 
   const inset = size * padding
   loadEmblemImage(emblemSvg).then(image => {
+    ctx.clearRect(0, 0, size, size)
     ctx.drawImage(image, inset, inset, size - 2 * inset, size - 2 * inset)
     texture.needsUpdate = true
   }).catch(() => {
-    // Leave the plate blank rather than drawing a stand-in nobody asked for.
+    // Nothing drawn: an empty transparent texture shows no sign at all, which is
+    // better than a blank rectangle on the wall.
   })
 
   return texture

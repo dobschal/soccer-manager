@@ -3,13 +3,17 @@ import {el} from '../lib/html.js'
 import {t} from '../i18n/index.js'
 import {
   buildFitnessStudio,
+  buildMedicalPractice,
   buildTrainingArea,
   buildYouthAcademy,
+  buildingSnapshotView,
+  clubBuildingPlot,
   clubBuildingPlots
 } from './clubBuildingsScene.js'
 import {buildTraffic} from './trafficScene.js'
 import {renderEmblem} from './emblem.js'
-import {emblemPlateTexture} from '../util/emblemRaster.js'
+import {emblemTexture} from '../util/emblemRaster.js'
+import {stillDataUrl} from '../util/renderStill.js'
 
 /**
  * Central layout & scene configuration for the 3D stadium.
@@ -41,7 +45,11 @@ export const CONFIG = Object.freeze({
     lowerRowHeight: 0.5, // vertical rise per row, lower tier
     upperRowHeight: 0.7, // steeper rise per row, upper tier
     overhangClearance: 3, // vertical gap: lower-tier top → upper deck underside
-    overhangCoverFraction: 0.4 // how far the deck cantilevers over the lower tier
+    overhangCoverFraction: 0.4, // how far the deck cantilevers over the lower tier
+    // The wall closing the back of a stand. It grows *outward* from the point the
+    // entrances are placed at, so anything mounted on it (the emblem signs) has
+    // to clear this much or it ends up inside the wall.
+    backWallThickness: 0.5
   },
   // Players' tunnel cut into the front-centre of the north stand.
   tunnel: {
@@ -87,7 +95,17 @@ export const CONFIG = Object.freeze({
   // lined with street lamps.
   sidewalk: {width: 3, color: 0x9a9a9a, y: 0.03, lampSpacing: 20},
   footpath: {width: 2.5, color: 0x9a9a9a, y: 0.03, lampSpacing: 10, underStand: 6},
-  streetLamp: {height: 4, poleColor: 0x2a2a2a, lightColor: 0xffdd88},
+  // A pole with a frosted glass globe on top. The globe is there round the clock
+  // — only the glowing core inside it switches off by day, so the pole never ends
+  // in mid-air.
+  streetLamp: {
+    height: 4,
+    poleColor: 0x2a2a2a,
+    lightColor: 0xffdd88,
+    globeColor: 0xd8dde2,
+    globeRadius: 0.34,
+    globeOpacity: 0.45
+  },
   // Entrances behind the main stands (tunnel-like: two walls, a roof, a light).
   // North/south get 3 each, east/west 2 each.
   entrance: {
@@ -101,16 +119,15 @@ export const CONFIG = Object.freeze({
     sideStandCount: 2 // east / west
   },
   // The club emblem on the stand's back wall above every entrance, lit by two
-  // small lamps on short arms above it. The lamps are dummies: emissive lenses in
-  // little housings, and the plate is self-lit — ten entrances with two real
-  // spotlights each would be twenty extra lights for one sign.
+  // small lamps on short arms above it. The emblem hangs on a transparent panel
+  // (its own outline, no plate) and is self-lit; the lamps are dummies — emissive
+  // lenses in little housings. Ten entrances with two real spotlights each would
+  // be twenty extra lights for one sign.
   emblemSign: {
     maxSize: 2.4,
     minSize: 1, // below this the stand's back is too low to carry one
     gapAboveEntrance: 0.35,
     gapBelowTop: 0.35,
-    plateColor: 0x23262c,
-    plateCss: '#23262c',
     textureSize: 256,
     lamp: {
       arm: 0.5, // how far the lamp reaches out from the wall
@@ -121,8 +138,9 @@ export const CONFIG = Object.freeze({
     }
   },
   // Roads around the stadium: a grid of four roads (behind each stand) that
-  // cross at four intersections and continue outward to `vanishDistance`,
-  // fading into the distance. Dashed white centre markings on each road.
+  // cross at four intersections and continue outward to the edge of the ground
+  // plane, where the trees on the horizon swallow them. Dashed white centre
+  // markings on each road.
   road: {
     width: 7,
     // Extra clearance kept beyond the deepest stand; the grid is square, so it
@@ -130,9 +148,6 @@ export const CONFIG = Object.freeze({
     // of the floodlight towers for very small stadiums.
     margin: 10,
     minDistance: 42,
-    // How far the roads run past the intersections (well beyond the ground
-    // plane) so they vanish into the dark background rather than stopping.
-    vanishDistance: 700,
     color: 0x2c2c2e,
     markingColor: 0xffffff,
     dashLength: 3,
@@ -256,8 +271,8 @@ export const CONFIG = Object.freeze({
     bandExponent: 0.55,
     sunFocus: 1.5
   },
-  // `near` is deliberately far from the usual 0.1: the roads run out to
-  // `road.vanishDistance`, and at that range a near plane of 0.1 leaves so
+  // `near` is deliberately far from the usual 0.1: the roads run out to the far
+  // edge of the ground plane, and at that range a near plane of 0.1 leaves so
   // little depth precision that the centre markings z-fight with the asphalt
   // they lie on. The camera never gets closer than `controls.minDistance` to
   // its target, so 1 clips nothing.
@@ -309,6 +324,10 @@ export const CONFIG = Object.freeze({
   // Canvas height is derived from width, capped so it never gets too tall.
   maxCanvasHeight: 600,
   canvasAspectFactor: 0.9,
+  // Stills cropped out of the scene (`captureBuilding`): big enough for a card
+  // image on a retina display, `samples` is the render target's multisampling —
+  // the still gets the same smooth edges as the canvas.
+  snapshot: {width: 720, height: 450, samples: 4},
   // Radians added to _animationTime per frame.
   animationSpeed: 0.05
 })
@@ -364,6 +383,55 @@ export function skyColor (direction, sunAzimuth, palette) {
 }
 
 /**
+ * The builder per club building type. A type without one gets no geometry (and no
+ * sidewalk) rather than breaking the scene.
+ * @type {Readonly<Object<string, Function>>}
+ */
+const BUILDING_BUILDERS = Object.freeze({
+  training_area: buildTrainingArea,
+  fitness_studio: buildFitnessStudio,
+  youth_academy: buildYouthAcademy,
+  medical_practice: buildMedicalPractice
+})
+
+/**
+ * Seed of the random generator each building is scattered with — one per type, so
+ * what lies on a training pitch does not shift around because the team happens to
+ * own a gym as well.
+ * @type {Readonly<Object<string, number>>}
+ */
+const BUILDING_SEEDS = Object.freeze({
+  training_area: 0x5bf03635,
+  fitness_studio: 0x2f9a11c7,
+  youth_academy: 0x77b1e4d3,
+  medical_practice: 0x3ac57f19
+})
+
+/**
+ * Give one object's GPU resources back: its geometry, its material(s) and every
+ * texture hanging off them. Written to be handed straight to `Object3D.traverse`,
+ * both for tearing the whole scene down and for dropping a single group again
+ * (the temporary build behind `captureBuilding`).
+ * @param {Object} object
+ */
+function disposeObject3D (object) {
+  if (object.geometry) object.geometry.dispose()
+  if (!object.material) return
+
+  const materials = Array.isArray(object.material) ? object.material : [object.material]
+  const maps = [
+    'map', 'lightMap', 'bumpMap', 'normalMap', 'specularMap', 'envMap', 'alphaMap',
+    'aoMap', 'displacementMap', 'emissiveMap', 'gradientMap', 'metalnessMap', 'roughnessMap'
+  ]
+  for (const material of materials) {
+    for (const name of maps) {
+      if (material[name]) material[name].dispose()
+    }
+    material.dispose()
+  }
+}
+
+/**
  * Reusable stadium 3D canvas component
  */
 export class StadiumCanvas extends UIElement {
@@ -395,6 +463,9 @@ export class StadiumCanvas extends UIElement {
     this._phase = CONFIG.daylight.phases[options.daylight]
       ? options.daylight
       : daylightPhaseFor()
+    // Resolved once the scene stands (or is known never to), so a page can wait
+    // for it before asking for stills — see `whenReady`.
+    this._ready = new Promise(resolve => { this._markReady = resolve })
   }
 
   /**
@@ -453,30 +524,7 @@ export class StadiumCanvas extends UIElement {
     }
 
     if (this._scene) {
-      this._scene.traverse((object) => {
-        if (object.geometry) {
-          object.geometry.dispose()
-        }
-        if (object.material) {
-          const materials = Array.isArray(object.material) ? object.material : [object.material]
-          materials.forEach(material => {
-            if (material.map) material.map.dispose()
-            if (material.lightMap) material.lightMap.dispose()
-            if (material.bumpMap) material.bumpMap.dispose()
-            if (material.normalMap) material.normalMap.dispose()
-            if (material.specularMap) material.specularMap.dispose()
-            if (material.envMap) material.envMap.dispose()
-            if (material.alphaMap) material.alphaMap.dispose()
-            if (material.aoMap) material.aoMap.dispose()
-            if (material.displacementMap) material.displacementMap.dispose()
-            if (material.emissiveMap) material.emissiveMap.dispose()
-            if (material.gradientMap) material.gradientMap.dispose()
-            if (material.metalnessMap) material.metalnessMap.dispose()
-            if (material.roughnessMap) material.roughnessMap.dispose()
-            material.dispose()
-          })
-        }
-      })
+      this._scene.traverse(disposeObject3D)
       this._scene = null
     }
 
@@ -487,8 +535,23 @@ export class StadiumCanvas extends UIElement {
 
     this._camera = null
     this._updaters = []
+    this._buildingGroups = {}
     this._animationTime = 0
     this._threeJSInitialized = false
+    // Nothing to wait for any more — a page still holding the promise gets its
+    // answer instead of hanging on it.
+    this._markReady(false)
+  }
+
+  /**
+   * Whether the 3D scene is up. Resolves `true` once the scene is built and the
+   * render loop runs, `false` if it never will — no canvas in the DOM, no WebGL
+   * context, or the component was destroyed first. Never rejects, so a caller can
+   * simply `if (!await canvas.whenReady()) return`.
+   * @returns {Promise<boolean>}
+   */
+  whenReady () {
+    return this._ready
   }
 
   // --- component state ---
@@ -508,6 +571,14 @@ export class StadiumCanvas extends UIElement {
 
   // Register animated objects here instead of editing the render loop.
   _updaters = []
+
+  /**
+   * The group each club building was built into, by type — kept so a single
+   * building can be hidden and stood in for while `captureBuilding` photographs
+   * another level of it.
+   * @type {Object<string, Object>}
+   */
+  _buildingGroups = {}
 
   // Three.js resources for cleanup
   _scene = null
@@ -595,7 +666,10 @@ export class StadiumCanvas extends UIElement {
     this._OrbitControls = OrbitControls
 
     const canvas = document.querySelector(`${this._elementQuery} #${this.canvasId}`)
-    if (!canvas) return
+    if (!canvas) {
+      this._markReady(false)
+      return
+    }
     // Re-check after the awaits above: a concurrent call may have won the race
     // while we were loading Three.js.
     if (this._threeJSInitialized) return
@@ -612,6 +686,7 @@ export class StadiumCanvas extends UIElement {
       // for a short note and bail so the rest of the page keeps working.
       console.warn('Stadium 3D view unavailable — WebGL context could not be created:', error)
       this._showWebGLFallback(canvas)
+      this._markReady(false)
       return
     }
     this._setupLights()
@@ -630,6 +705,7 @@ export class StadiumCanvas extends UIElement {
 
     this._startRenderLoop()
     this._observeResize(container)
+    this._markReady(true)
   }
 
   /**
@@ -714,8 +790,17 @@ export class StadiumCanvas extends UIElement {
     return clubBuildingPlots(
       this.options.buildings,
       this._intersection(),
-      CONFIG.road.width / 2 + CONFIG.sidewalk.width
+      this._plotClearance()
     )
+  }
+
+  /**
+   * Gap from a road's centre line to the plot edge beside it: half a road plus
+   * the sidewalk, so a plot's boundary lands on the kerb.
+   * @returns {number}
+   */
+  _plotClearance () {
+    return CONFIG.road.width / 2 + CONFIG.sidewalk.width
   }
 
   /**
@@ -740,28 +825,127 @@ export class StadiumCanvas extends UIElement {
    * @param {THREE.Scene} scene
    */
   _buildClubBuildings (scene) {
-    const rand = this._seededRandom(0x5bf03635)
-    const builders = {
-      training_area: buildTrainingArea,
-      fitness_studio: buildFitnessStudio,
-      youth_academy: buildYouthAcademy
-    }
+    this._buildingGroups = {}
     for (const plot of this._buildingPlots()) {
-      const build = builders[plot.type]
-      if (!build) continue
-      const {openings} = build(this._THREE, scene, {
-        level: plot.level,
-        rand,
-        x: plot.cx,
-        z: plot.cz,
-        sidewalkWidth: CONFIG.sidewalk.width,
-        // For the academy's facade: the club's own emblem, with the team colour
-        // behind it for the generic crest that stands in while it rasterises.
-        teamColor: this.team.color,
-        emblemSvg: this.team.name ? renderEmblem(this.team, 512) : undefined
-      })
-      this._addBuildingSidewalks(scene, plot, openings)
+      const built = this._buildClubBuilding(scene, plot)
+      if (!built) continue
+      this._buildingGroups[plot.type] = built.group
+      this._addBuildingSidewalks(scene, plot, built.openings)
+      // A builder with something moving on its plot (the ambulance's beacon)
+      // hands back an updater. Only the buildings that actually stand in the
+      // scene get theirs registered — the throwaway builds behind
+      // `captureBuilding` must not leak one into the render loop.
+      if (built.update) this._addUpdater(built.update)
     }
+  }
+
+  /**
+   * One club building on its plot, at whichever level the plot says. Everything
+   * scattered about (training kit, cones, gym equipment) comes out of a generator
+   * seeded per building type, so a building always looks the same no matter which
+   * others the team owns — and a rebuild at another level (`captureBuilding`)
+   * matches the one standing in the scene.
+   * @param {THREE.Scene} scene
+   * @param {{type: string, level: number, cx: number, cz: number}} plot
+   * @returns {{group: Object, openings: Array<{x: number, z: number, width: number}>}|null}
+   *   `null` for a type without a builder
+   */
+  _buildClubBuilding (scene, plot) {
+    const build = BUILDING_BUILDERS[plot.type]
+    if (!build) return null
+    return build(this._THREE, scene, {
+      level: plot.level,
+      rand: this._seededRandom(BUILDING_SEEDS[plot.type]),
+      x: plot.cx,
+      z: plot.cz,
+      sidewalkWidth: CONFIG.sidewalk.width,
+      // For the academy's facade: the club's own emblem, with the team colour
+      // behind it for the generic crest that stands in while it rasterises.
+      teamColor: this.team.color,
+      emblemSvg: this.team.name ? renderEmblem(this.team, 512) : undefined
+    })
+  }
+
+  /**
+   * A still of one club building, cropped out of this very scene — the image the
+   * buildings page puts on that building's card, so the card and the animation
+   * above it always show the same club.
+   *
+   * Anything the scene is not already showing — another level (the preview of
+   * what an upgrade would look like) or a building the team has not built at all
+   * yet — is built on the spot, photographed and taken down again.
+   * @param {string} type building type, e.g. `youth_academy`
+   * @param {{level?: number, width?: number, height?: number}} [options] `level`
+   *   defaults to the one the team has.
+   * @returns {string|null} a JPEG data URL, or `null` when there is no scene, no
+   *   such building or no 2D canvas to encode with
+   */
+  captureBuilding (type, {level, width = CONFIG.snapshot.width, height = CONFIG.snapshot.height} = {}) {
+    if (!this._renderer || !this._scene) return null
+    const wanted = Math.max(1, Math.min(3, level || 1))
+    // An unbuilt building has no plot in the scene, but its plot is still where it
+    // would go — that is what its portrait on the buildings page shows.
+    const plot = this._buildingPlots().find(p => p.type === type) ||
+      clubBuildingPlot(type, wanted, this._intersection(), this._plotClearance())
+    if (!plot) return null
+
+    const standing = this._buildingGroups[type]
+    let preview = null
+    if (!standing || wanted !== plot.level) {
+      preview = this._buildClubBuilding(this._scene, {...plot, level: wanted})?.group || null
+      if (preview) {
+        if (standing) standing.visible = false
+        // The fresh geometry knows nothing of the time of day yet — its lamps and
+        // lenses have to be switched like everything else in the scene.
+        this._setNightLightsOn(this._palette().floodlights)
+      }
+    }
+
+    try {
+      return this._renderStill(
+        buildingSnapshotView(plot, {aspect: width / height, fov: CONFIG.camera.fov}),
+        width,
+        height
+      )
+    } finally {
+      if (preview) {
+        this._scene.remove(preview)
+        preview.traverse(disposeObject3D)
+        if (standing) standing.visible = true
+      }
+    }
+  }
+
+  /**
+   * One frame of the scene from a camera of its own, read back as a data URL.
+   * Goes through an off-screen render target rather than the visible canvas, so
+   * nothing flickers and the still can have its own size and aspect ratio.
+   * @param {{position: {x: number, y: number, z: number}, target: {x: number, y: number, z: number}, fov: number}} view
+   * @param {number} width
+   * @param {number} height
+   * @returns {string|null}
+   */
+  _renderStill (view, width, height) {
+    const THREE = this._THREE
+    const camera = new THREE.PerspectiveCamera(
+      view.fov, width / height, CONFIG.camera.near, CONFIG.camera.far
+    )
+    camera.position.set(view.position.x, view.position.y, view.position.z)
+    camera.lookAt(view.target.x, view.target.y, view.target.z)
+
+    const target = new THREE.WebGLRenderTarget(width, height, {samples: CONFIG.snapshot.samples})
+    const pixels = new Uint8Array(width * height * 4)
+    try {
+      this._renderer.setRenderTarget(target)
+      this._renderer.render(this._scene, camera)
+      // Back to the canvas *before* reading: that is what resolves the render
+      // target's multisampling into the buffer `readRenderTargetPixels` reads.
+      this._renderer.setRenderTarget(null)
+      this._renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels)
+    } finally {
+      target.dispose()
+    }
+    return stillDataUrl(pixels, width, height)
   }
 
   /**
@@ -824,11 +1008,22 @@ export class StadiumCanvas extends UIElement {
     // Centre lines of the two strips, just outside the plot's road-facing sides.
     const stripX = plot.cx - plot.qx * (plot.halfX + sw / 2)
     const stripZ = plot.cz - plot.qz * (plot.halfZ + sw / 2)
+    // A plot pushed out of the crossing's corner (the medical practice, west of
+    // the gym) only borders a road on one of the two sides.
+    const sides = plot.roadSides || {x: true, z: true}
 
-    // The x-running strip is extended by the sidewalk width so the two meet in
-    // a filled corner instead of leaving a notch.
-    this._addPavement(scene, 2 * plot.halfX + sw, sw, plot.cx - plot.qx * sw / 2, stripZ, mat, CONFIG.sidewalk.y)
-    this._addPavement(scene, sw, 2 * plot.halfZ, stripX, plot.cz, mat, CONFIG.sidewalk.y)
+    // With both strips there, the x-running one is extended by the sidewalk width
+    // so the two meet in a filled corner instead of leaving a notch.
+    if (sides.z) {
+      const extra = sides.x ? sw : 0
+      this._addPavement(
+        scene, 2 * plot.halfX + extra, sw, plot.cx - plot.qx * extra / 2, stripZ, mat,
+        CONFIG.sidewalk.y
+      )
+    }
+    if (sides.x) {
+      this._addPavement(scene, sw, 2 * plot.halfZ, stripX, plot.cz, mat, CONFIG.sidewalk.y)
+    }
 
     const placed = []
     const addLamp = (x, z) => {
@@ -843,13 +1038,17 @@ export class StadiumCanvas extends UIElement {
     }
 
     const spacing = CONFIG.sidewalk.lampSpacing
-    const alongX = Math.max(1, Math.round(2 * plot.halfX / spacing))
-    for (let i = 0; i <= alongX; i++) {
-      addLamp(plot.cx - plot.halfX + (i / alongX) * 2 * plot.halfX, stripZ)
+    if (sides.z) {
+      const alongX = Math.max(1, Math.round(2 * plot.halfX / spacing))
+      for (let i = 0; i <= alongX; i++) {
+        addLamp(plot.cx - plot.halfX + (i / alongX) * 2 * plot.halfX, stripZ)
+      }
     }
-    const alongZ = Math.max(1, Math.round(2 * plot.halfZ / spacing))
-    for (let i = 0; i <= alongZ; i++) {
-      addLamp(stripX, plot.cz - plot.halfZ + (i / alongZ) * 2 * plot.halfZ)
+    if (sides.x) {
+      const alongZ = Math.max(1, Math.round(2 * plot.halfZ / spacing))
+      for (let i = 0; i <= alongZ; i++) {
+        addLamp(stripX, plot.cz - plot.halfZ + (i / alongZ) * 2 * plot.halfZ)
+      }
     }
   }
 
@@ -1600,29 +1799,52 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
-   * A single street lamp: a pole topped by a glowing lamp head (emissive only,
-   * so many lamps stay cheap — no per-lamp light).
+   * A single street lamp: a pole with a collar carrying a frosted glass globe,
+   * and inside the globe the glowing core (emissive only, so many lamps stay
+   * cheap — no per-lamp light).
+   *
+   * Only the core is `nightOnly`. The globe itself always shows, otherwise the
+   * pole would just stop in mid-air by day, when the lamps are switched off.
    * @param {THREE.Scene} scene
    * @param {number} x
    * @param {number} z
    */
   _createStreetLamp (scene, x, z) {
     const L = CONFIG.streetLamp
+    const poleMat = new this._THREE.MeshLambertMaterial({color: L.poleColor})
     const pole = new this._THREE.Mesh(
-      new this._THREE.CylinderGeometry(0.12, 0.16, L.height, 6),
-      new this._THREE.MeshLambertMaterial({color: L.poleColor})
+      new this._THREE.CylinderGeometry(0.12, 0.16, L.height, 6), poleMat
     )
     pole.position.set(x, L.height / 2, z)
     pole.castShadow = true
     scene.add(pole)
 
-    const head = new this._THREE.Mesh(
-      new this._THREE.SphereGeometry(0.32, 8, 8),
+    const collar = new this._THREE.Mesh(
+      new this._THREE.CylinderGeometry(0.16, 0.13, 0.14, 8), poleMat
+    )
+    collar.position.set(x, L.height + 0.07, z)
+    scene.add(collar)
+
+    const globeY = L.height + 0.14 + L.globeRadius
+    const globe = new this._THREE.Mesh(
+      new this._THREE.SphereGeometry(L.globeRadius, 10, 8),
+      new this._THREE.MeshLambertMaterial({
+        color: L.globeColor,
+        transparent: true,
+        opacity: L.globeOpacity,
+        side: this._THREE.DoubleSide
+      })
+    )
+    globe.position.set(x, globeY, z)
+    scene.add(globe)
+
+    const core = new this._THREE.Mesh(
+      new this._THREE.SphereGeometry(L.globeRadius * 0.72, 8, 8),
       new this._THREE.MeshBasicMaterial({color: L.lightColor})
     )
-    head.position.set(x, L.height + 0.15, z)
-    head.userData.nightOnly = true
-    scene.add(head)
+    core.position.set(x, globeY, z)
+    core.userData.nightOnly = true
+    scene.add(core)
   }
 
   /**
@@ -1727,12 +1949,18 @@ export class StadiumCanvas extends UIElement {
     if (!texture) return null
 
     const centerY = bottom + size / 2
+    // The entrance sits at the *inner* face of the stand's back wall, which grows
+    // outward from there — so everything here has to start beyond it, or it ends
+    // up buried in the wall.
+    const wall = CONFIG.stand.backWallThickness
     const plate = new this._THREE.Mesh(
       new this._THREE.PlaneGeometry(size, size),
-      new this._THREE.MeshBasicMaterial({map: texture})
+      // Transparent: only the emblem's own shape should show, no plate behind it.
+      new this._THREE.MeshBasicMaterial({map: texture, transparent: true})
     )
-    // Just proud of the back wall, facing outward (the plane's own normal is +z).
-    plate.position.set(0, centerY, -0.08)
+    // Just proud of the wall's outer face, turned to face outward (the plane's
+    // own normal is +z).
+    plate.position.set(0, centerY, -(wall + 0.06))
     plate.rotation.y = Math.PI
     group.add(plate)
 
@@ -1747,17 +1975,18 @@ export class StadiumCanvas extends UIElement {
     for (const side of [-1, 1]) {
       const x = side * size * L.spread
 
+      // Arms reach out from the wall's outer face, over the plate.
       const arm = new this._THREE.Mesh(armGeo, metalMat)
-      arm.position.set(x, lampY, -L.arm / 2)
+      arm.position.set(x, lampY, -(wall + L.arm / 2))
       group.add(arm)
 
       const housing = new this._THREE.Mesh(housingGeo, metalMat)
-      housing.position.set(x, lampY, -L.arm)
+      housing.position.set(x, lampY, -(wall + L.arm))
       group.add(housing)
 
       // The lens looks down at the plate, so it reads as aimed at the emblem.
       const lens = new this._THREE.Mesh(lensGeo, lensMat)
-      lens.position.set(x, lampY - L.housing * 0.45, -L.arm)
+      lens.position.set(x, lampY - L.housing * 0.45, -(wall + L.arm))
       lens.userData.nightOnly = true
       group.add(lens)
     }
@@ -1766,19 +1995,18 @@ export class StadiumCanvas extends UIElement {
   }
 
   /**
-   * The emblem plate texture, built once and shared by every entrance — ten
-   * canvases of the same crest would be ten textures in video memory.
+   * The emblem's texture, built once and shared by every entrance — ten canvases
+   * of the same crest would be ten textures in video memory.
    * @returns {Object|null} a CanvasTexture, or `null` without a 2D canvas
    */
   _emblemPlate () {
-    if (this._emblemPlateTexture === undefined) {
-      this._emblemPlateTexture = emblemPlateTexture(this._THREE, {
+    if (this._emblemSignTexture === undefined) {
+      this._emblemSignTexture = emblemTexture(this._THREE, {
         emblemSvg: this.team?.name ? renderEmblem(this.team, 512) : undefined,
-        background: CONFIG.emblemSign.plateCss,
         size: CONFIG.emblemSign.textureSize
       })
     }
-    return this._emblemPlateTexture
+    return this._emblemSignTexture
   }
 
   /**
@@ -1966,9 +2194,10 @@ export class StadiumCanvas extends UIElement {
   /**
    * Build the roads around the stadium as a grid (#-shape): the two north/south
    * roads run continuously, the two west/east roads cross them at four
-   * intersections, and every road continues outward past its corner all the way
-   * to `vanishDistance` — far beyond the ground plane — so it fades into the
-   * distance. Dashed white centre markings run the full length and skip the
+   * intersections, and every road continues outward past its corner to the edge
+   * of the ground plane — exactly that far and no further, so a road never runs
+   * on past the grass into the void; out there the trees on the horizon take it
+   * over. Dashed white centre markings run the full length and skip the
    * intersections. The grid sits a fixed margin beyond the deepest stand so it
    * always clears the stadium regardless of its size.
    * @param {THREE.Scene} scene
@@ -1976,10 +2205,11 @@ export class StadiumCanvas extends UIElement {
   _buildRoads (scene) {
     const THREE = this._THREE
     const {
-      width: rw, vanishDistance: far, color,
+      width: rw, color,
       markingColor, dashLength, dashGap, markingWidth
     } = CONFIG.road
 
+    const far = this._groundHalf()
     const distance = this._roadDistance()
 
     const roadY = 0
@@ -2025,9 +2255,9 @@ export class StadiumCanvas extends UIElement {
     }
 
     // Dashed centre markings, running the full length and skipping the
-    // crossings (just like real road markings). The roads reach out to the
-    // horizon, so these are instanced — one draw call per orientation instead
-    // of one per dash.
+    // crossings (just like real road markings). The roads reach all the way to
+    // the horizon, so these are instanced — one draw call per orientation
+    // instead of one per dash.
     const period = dashLength + dashGap
     const dashCount = Math.floor((2 * far) / period)
     const dashSpan = dashCount * period - dashGap
@@ -2620,11 +2850,12 @@ export class StadiumCanvas extends UIElement {
 
     // --- back wall (full height, at the very rear) ---
     const backWallHeight = envTop + 0.5
+    const wallThickness = CONFIG.stand.backWallThickness
     const backWall = new this._THREE.Mesh(
-      new this._THREE.BoxGeometry(width + 2, backWallHeight, 0.5), backWallMat
+      new this._THREE.BoxGeometry(width + 2, backWallHeight, wallThickness), backWallMat
     )
     backWall.position.y = backWallHeight / 2
-    backWall.position.z = totalDepth + 0.25
+    backWall.position.z = totalDepth + wallThickness / 2
     backWall.castShadow = true
     group.add(backWall)
 

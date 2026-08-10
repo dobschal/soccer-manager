@@ -1,4 +1,4 @@
-import {emblemPlateTexture, loadEmblemImage} from '../util/emblemRaster.js'
+import {emblemTexture, loadEmblemImage} from '../util/emblemRaster.js'
 
 /**
  * Club buildings rendered into the shared 3D scene (see `stadiumCanvas.js`).
@@ -128,7 +128,7 @@ const TRAINING = Object.freeze({
     },
     entrance: {width: 6.5, height: 4, doorColor: 0x1b1e22, glassColor: 0x9fd6e8},
     // The emblem on the glass facade, big, right above the entrance.
-    emblem: {size: 5, gapAboveEntrance: 0.8, plateColor: 0x23262c, plateCss: '#23262c'},
+    emblem: {size: 5, gapAboveEntrance: 0.8},
     solar: {
       1: {cols: 2, rows: 1},
       2: {cols: 3, rows: 1},
@@ -433,6 +433,126 @@ const GYM_CANOPY_Y = FITNESS.building.base + FITNESS.entrance.height + 0.5
 const GYM_CANOPY_TOP = GYM_CANOPY_Y + 0.11
 
 /**
+ * The medical practice: a small modern block with a flat roof west of the gym,
+ * fronted by a colonnade from the street and, beside it, a driveway with an
+ * ambulance standing in it. A big illuminated red cross hangs on the front
+ * facade above the driveway, and a satellite dish sits on the roof.
+ *
+ * Unlike the other three this building has a **single level** — it is built or it
+ * is not — so nothing in here is keyed by level.
+ *
+ * Its plot is the strip between the gym's plot and the west ring road, and it is
+ * only ever as wide as that strip is at the smallest stadium (the roads move
+ * outward with the stands, so it can only ever get roomier). Local coordinates,
+ * origin = plot centre, street along the south (+z) edge.
+ */
+// Centre line of the colonnade, its entrance and the cross above it — they all
+// have to line up, so the value lives outside the frozen config.
+const PRACTICE_ENTRANCE_X = -4.1
+
+const PRACTICE = Object.freeze({
+  building: {
+    width: 14,
+    depth: 9,
+    height: 5.6,
+    base: 0.3, // top of the plinth
+    plinthColor: 0x55595e,
+    facadeColor: 0xe6e3db, // light render, a shade warmer than the clubhouse's
+    trimColor: 0x4a4f55,
+    parapet: 0.6,
+    // A glazed band per facade rather than single windows: consulting rooms.
+    // On the front, the colonnade takes the west half, so the band sits on the
+    // east one — over the ambulance bay, where the cross used to hang.
+    band: {height: 1.7, sill: 1.5, inset: 0.06, frontWidth: 5.2, frontX: 3.4},
+    glassColor: 0x9fc6d8,
+    glassOpacity: 0.28,
+    frameColor: 0x3a3f45,
+    strutColor: 0x2a2e33,
+    mullionSpacing: 1.8
+  },
+  // The illuminated red cross on the front facade, in the band between the
+  // colonnade's roof slab and the top of the wall, centred over the entrance
+  // below it. A dark backing panel, the cross itself unlit-bright
+  // (`MeshBasicMaterial`) and a point light in front of it so it actually
+  // colours the colonnade's roof.
+  cross: {
+    x: PRACTICE_ENTRANCE_X,
+    y: 4.7,
+    span: 1.8, // tip to tip, both arms
+    thickness: 0.6,
+    proud: 0.18, // how far it stands off the facade
+    color: 0xe62222,
+    panelColor: 0x23272c,
+    panelPadding: 0.3,
+    lightIntensity: 20,
+    lightRange: 18
+  },
+  // The colonnade: a covered walkway from the street to the entrance, a row of
+  // round columns on either side carrying a flat slab.
+  colonnade: {
+    centerX: PRACTICE_ENTRANCE_X,
+    width: 5, // between the two rows of columns
+    columns: 5,
+    column: {radius: 0.32, height: 3, color: 0xe6e3db, baseHeight: 0.16, baseRadius: 0.44},
+    slab: {thickness: 0.26, overhang: 0.6, color: 0xd6d2c8},
+    paving: {color: 0xb4b0a7},
+    // Lit from under the slab, like the gym's canopy.
+    lightColor: 0xfff2cc,
+    lightIntensity: 12,
+    lightRange: 14
+  },
+  entrance: {width: 3.2, height: 2.6, doorColor: 0x1b1e22, glassColor: 0x9fd6e8},
+  // The driveway east of the colonnade, off the same street.
+  driveway: {centerX: 4, width: 6.4, northEnd: 0.6, color: 0x3a3a3c},
+  // The dish on the flat roof, tilted up towards the south-west sky. `x` / `z`
+  // are in the block's own frame (origin = centre of its footprint), so both have
+  // to stay inside half its width / depth for it to stand on the roof at all.
+  dish: {
+    x: -4.2,
+    z: -2.4,
+    radius: 1.1,
+    tilt: 38, // degrees up from vertical
+    yaw: -35, // degrees off south, towards the west
+    mastHeight: 1.1,
+    color: 0xdad6cd,
+    frameColor: 0x8f959c
+  },
+  // The ambulance parked in the driveway, nose towards the street.
+  ambulance: {
+    z: 5.4,
+    body: {length: 5.4, width: 2.1, height: 1.9, clearance: 0.34},
+    cabin: {length: 1.9, height: 1.55},
+    bodyColor: 0xf1f4f7,
+    stripeColor: 0xe62222,
+    glassColor: 0x2a3440,
+    wheelColor: 0x1b1d20,
+    crossSize: 1,
+    // The beacon: two lenses on a bar across the cabin roof that take turns, so
+    // it reads as a rotating light rather than a lamp switching on and off.
+    // `speed` is radians of animation time per unit (~3 units/second), so this
+    // works out at roughly one turn every three and a half seconds.
+    beacon: {
+      color: 0x2f6fff,
+      speed: 0.55,
+      lensRadius: 0.17,
+      spread: 0.52,
+      barWidth: 1.5,
+      lightIntensity: 16,
+      lightRange: 13
+    }
+  }
+})
+
+const PRACTICE_PLOT_X = 18
+// The same depth as the gym's plot, so both south edges land on the same kerb and
+// the practice's colonnade opens onto the very street the gym's entrance does.
+const PRACTICE_PLOT_Z = GYM_PLOT_Z
+// The block sits in the middle of the plot's x range with its front set back far
+// enough for the colonnade to have some length.
+const PRACTICE_BUILDING_Z = -PRACTICE_PLOT_Z / 2 + 4 + PRACTICE.building.depth / 2
+const PRACTICE_FRONT = PRACTICE_BUILDING_Z + PRACTICE.building.depth / 2
+
+/**
  * Stroke outlines for the three letters of the neon sign, in em units: x runs
  * from the glyph's left edge, y from its baseline, and 1 is the cap height.
  * `bar` is a straight tube `[x1, y1, x2, y2]`, `arc` a bent one (`from` and
@@ -484,7 +604,14 @@ const GLYPHS = Object.freeze({
  * it, so both road-facing sides land exactly on the plot boundary. The fitness
  * studio's works the same way: hall plus car park strip, in the quadrant west of
  * the training ground — the two face each other across the road.
- * @type {Readonly<Object<string, {size: {x: number, z: number}, quadrant: {x: number, z: number}}>>}
+ *
+ * A quadrant only holds one plot, and the fourth is the stadium, so the medical
+ * practice does not get one of its own: `beside` puts it in the same quadrant as
+ * the fitness studio but shifted along x by the studio's full width, i.e. on the
+ * strip further west, sharing the studio's street. `roadSides` says which of the
+ * plot's two quadrant-facing sides actually borders a road — for the practice
+ * only the street on the south, since its east side is the studio's plot.
+ * @type {Readonly<Object<string, {size: {x: number, z: number}, quadrant: {x: number, z: number}, beside?: string, roadSides?: {x: boolean, z: boolean}}>>}
  */
 export const BUILDING_PLOTS = Object.freeze({
   training_area: {
@@ -498,8 +625,43 @@ export const BUILDING_PLOTS = Object.freeze({
   youth_academy: {
     size: {x: ACADEMY_PLOT_X, z: ACADEMY_PLOT_Z},
     quadrant: {x: 1, z: 1}
+  },
+  medical_practice: {
+    size: {x: PRACTICE_PLOT_X, z: PRACTICE_PLOT_Z},
+    quadrant: {x: -1, z: -1},
+    beside: 'fitness_studio',
+    roadSides: {x: false, z: true}
   }
 })
+
+/**
+ * How each building is framed for its own portrait — the still the buildings page
+ * shows on the card next to the description, cropped straight out of the same 3D
+ * scene the canvas above it orbits.
+ *
+ * `x` / `y` / `z` is the point the camera looks at in the plot's **own** frame
+ * (origin = plot centre, y = height above the ground), `radius` the half-size of
+ * the sphere around it that has to fit in frame, `elevation` how high above the
+ * horizon the camera stands. The youth academy's plot is turned around by its
+ * builder, so its target is given in the turned frame (hence the negated x).
+ * @type {Readonly<Object<string, {x: number, y: number, z: number, radius: number, elevation: number}>>}
+ */
+export const BUILDING_VIEWS = Object.freeze({
+  // The fenced pitch with the clubhouse behind it — the whole ground bar the car
+  // park, which is what the plot is really about.
+  training_area: {x: CLUBHOUSE_X, y: 4, z: 1, radius: 31, elevation: 32},
+  // Just the hall: its south facade carries the entrance and the neon sign.
+  fitness_studio: {x: GYM_BUILDING_X, y: 4, z: GYM_SOUTH_FACE - HALL[3].depth / 2, radius: 17, elevation: 22},
+  // The block, close enough that the crest and the lettering on the entrance bay
+  // stay legible.
+  youth_academy: {x: -ACADEMY_BUILDING_X, y: 7, z: 0, radius: 19, elevation: 22},
+  // The front: the colonnade, the ambulance in the driveway and the red cross
+  // above it are all on this side, so the portrait looks straight at it.
+  medical_practice: {x: 0, y: 3.4, z: PRACTICE_FRONT + 4, radius: 12, elevation: 20}
+})
+
+// How much air the portrait keeps around its framed sphere.
+const VIEW_MARGIN = 1.08
 
 const COLORS = Object.freeze({
   grass: 0x2e8b2e,
@@ -515,26 +677,84 @@ const COLORS = Object.freeze({
  * @param {{x: number, z: number}} intersection world position of the crossing
  * @param {number} clearance gap from each road's centre line to the plot edge —
  *   half a road plus the sidewalk, so a plot's boundary lands on the kerb.
- * @returns {Array<{type: string, level: number, cx: number, cz: number, halfX: number, halfZ: number, qx: number, qz: number}>}
+ * @returns {Array<{type: string, level: number, cx: number, cz: number, halfX: number, halfZ: number, qx: number, qz: number, roadSides: {x: boolean, z: boolean}}>}
  */
 export function clubBuildingPlots (buildings, intersection, clearance) {
   return (buildings || [])
     .filter(b => BUILDING_PLOTS[b?.type] && (b.level || 0) >= 1)
-    .map(b => {
-      const {size, quadrant} = BUILDING_PLOTS[b.type]
-      const halfX = size.x / 2
-      const halfZ = size.z / 2
-      return {
-        type: b.type,
-        level: Math.max(1, Math.min(3, b.level)),
-        halfX,
-        halfZ,
-        qx: quadrant.x,
-        qz: quadrant.z,
-        cx: intersection.x + quadrant.x * (clearance + halfX),
-        cz: intersection.z + quadrant.z * (clearance + halfZ)
-      }
-    })
+    .map(b => clubBuildingPlot(b.type, Math.max(1, Math.min(3, b.level)), intersection, clearance))
+}
+
+/**
+ * The plot of one building type, whether or not the team owns it — the same
+ * geometry `clubBuildingPlots` hands out, for a building that is only being
+ * portrayed (the buildings page shows what an unbuilt one would look like).
+ * @param {string} type
+ * @param {number} level
+ * @param {{x: number, z: number}} intersection
+ * @param {number} clearance
+ * @returns {{type: string, level: number, cx: number, cz: number, halfX: number, halfZ: number, qx: number, qz: number, roadSides: {x: boolean, z: boolean}}|null}
+ */
+export function clubBuildingPlot (type, level, intersection, clearance) {
+  const spec = BUILDING_PLOTS[type]
+  if (!spec) return null
+  const {size, quadrant, beside, roadSides} = spec
+  const halfX = size.x / 2
+  const halfZ = size.z / 2
+  // A plot placed `beside` another one starts at that neighbour's far edge
+  // instead of at the crossing, so the two sit side by side along the same road.
+  const neighbour = beside ? BUILDING_PLOTS[beside] : null
+  const shiftX = neighbour ? quadrant.x * neighbour.size.x : 0
+  return {
+    type,
+    level,
+    halfX,
+    halfZ,
+    qx: quadrant.x,
+    qz: quadrant.z,
+    roadSides: roadSides || {x: true, z: true},
+    cx: intersection.x + quadrant.x * (clearance + halfX) + shiftX,
+    cz: intersection.z + quadrant.z * (clearance + halfZ)
+  }
+}
+
+/**
+ * Where to put a camera to portray one building on its plot: the crop of the
+ * scene the buildings page shows on that building's card.
+ *
+ * The camera always stands over the plot's crossing-facing corner — the two sides
+ * a plot borders a road on, so it looks along the sidewalk at the front of the
+ * building instead of at its back — and far enough out that `BUILDING_VIEWS`'
+ * sphere fits in the narrower of the two field-of-view angles. Pure geometry, so
+ * the framing can be checked without a scene.
+ * @param {{type: string, cx: number, cz: number, halfX: number, halfZ: number, qx: number, qz: number}} plot
+ * @param {{aspect?: number, fov?: number}} [options] `fov` is the camera's
+ *   vertical field of view in degrees, `aspect` the still's width / height.
+ * @returns {{position: {x: number, y: number, z: number}, target: {x: number, y: number, z: number}, fov: number}}
+ */
+export function buildingSnapshotView (plot, {aspect = 1.6, fov = 45} = {}) {
+  const view = BUILDING_VIEWS[plot.type] ||
+    {x: 0, y: 4, z: 0, radius: Math.max(plot.halfX, plot.halfZ), elevation: 26}
+  const target = {x: plot.cx + view.x, y: view.y, z: plot.cz + view.z}
+
+  // The tighter of the two half-angles decides the distance — a wide still is
+  // limited by its height, a tall one by its width.
+  const vertical = (fov * Math.PI / 180) / 2
+  const horizontal = Math.atan(Math.tan(vertical) * aspect)
+  const distance = view.radius * VIEW_MARGIN / Math.sin(Math.min(vertical, horizontal))
+
+  const elevation = view.elevation * Math.PI / 180
+  // Diagonally out over the crossing-facing corner (the plot's -qx / -qz side).
+  const reach = distance * Math.cos(elevation) / Math.SQRT2
+  return {
+    position: {
+      x: target.x - plot.qx * reach,
+      y: target.y + distance * Math.sin(elevation),
+      z: target.z - plot.qz * reach
+    },
+    target,
+    fov
+  }
 }
 
 /**
@@ -2887,8 +3107,8 @@ function addClubhouseEntrance (THREE, parent, {hd}) {
 }
 
 /**
- * The club emblem on the glass facade, right above the entrance. Same plate
- * texture as the stadium's entrance signs, just bigger.
+ * The club emblem on the glass facade, right above the entrance. Same transparent
+ * emblem texture as the stadium's entrance signs, just bigger.
  * @param {Object} THREE
  * @param {Object} parent
  * @param {{hd: number, emblemSvg?: string}} config
@@ -2897,15 +3117,13 @@ function addClubhouseEntrance (THREE, parent, {hd}) {
 function addClubhouseEmblem (THREE, parent, {hd, emblemSvg}) {
   const C = TRAINING.clubhouse
   const M = C.emblem
-  const texture = emblemPlateTexture(THREE, {
-    emblemSvg,
-    background: M.plateCss
-  })
+  const texture = emblemTexture(THREE, {emblemSvg})
   if (!texture) return null
 
   const plate = new THREE.Mesh(
     new THREE.PlaneGeometry(M.size, M.size),
-    new THREE.MeshBasicMaterial({map: texture})
+    // Transparent: the emblem's own shape on the glass, not a panel behind it.
+    new THREE.MeshBasicMaterial({map: texture, transparent: true})
   )
   plate.position.set(
     0,
@@ -2946,4 +3164,509 @@ function addClubhousePaths (THREE, parent) {
   strip(parkingX - fromX + P.width / 2, P.width, (fromX + parkingX + P.width / 2) / 2, alongZ)
   strip(P.width, TRAINING.parking.band.north - 0.5 - alongZ, parkingX,
     (alongZ + TRAINING.parking.band.north - 0.5) / 2)
+}
+
+/**
+ * Build the medical practice.
+ *
+ * A small modern block with a flat roof and glazed bands, a colonnade leading
+ * from the street to its entrance and, right beside that, a driveway with an
+ * ambulance in it. A big red cross hangs on the front facade above the driveway
+ * and is lit from in front; a satellite dish sits on the roof.
+ *
+ * The building has a **single level** — a club either has a practice or it does
+ * not — so nothing here varies with `level`; the parameter is only accepted so
+ * every builder has the same signature.
+ *
+ * @param {Object} THREE the Three.js module
+ * @param {Object} scene object with `.add()`
+ * @param {{x: number, z: number, sidewalkWidth?: number}} options `sidewalkWidth`
+ *   is how far the colonnade's paving and the driveway reach past the plot
+ *   boundary to cross the sidewalk and meet the road.
+ * @returns {{group: Object, entrance: {x: number, z: number, width: number}, openings: Array<{x: number, z: number, width: number}>, update: (time: number) => void}}
+ *   the built group, its entrance, the openings in the plot's street side, and
+ *   the per-frame updater that blinks the ambulance's beacon.
+ */
+export function buildMedicalPractice (THREE, scene, {x, z, sidewalkWidth = 3}) {
+  const group = new THREE.Group()
+  const southEdge = PRACTICE_PLOT_Z / 2
+
+  const block = new THREE.Group()
+  block.position.set(0, 0, PRACTICE_BUILDING_Z)
+  group.add(block)
+  addPracticeBlock(THREE, block)
+  addPracticeCross(THREE, block)
+  addSatelliteDish(THREE, block)
+
+  addColonnade(THREE, group, {southEdge, sidewalkWidth})
+  addPracticeDriveway(THREE, group, {southEdge, sidewalkWidth})
+  const beacon = addAmbulance(THREE, group)
+
+  group.position.set(x, 0, z)
+  scene.add(group)
+
+  const C = PRACTICE.colonnade
+  const D = PRACTICE.driveway
+  return {
+    group,
+    entrance: {x: C.centerX, z: southEdge, width: C.width},
+    openings: [
+      {x: C.centerX, z: southEdge, width: C.width},
+      {x: D.centerX, z: southEdge, width: D.width}
+    ],
+    update: beacon.update
+  }
+}
+
+/**
+ * The block itself: a plinth carrying a rendered box with a glazed band around
+ * the south and east facades, a flat roof and a parapet.
+ * @param {Object} THREE
+ * @param {Object} parent the block's group, centred on its footprint
+ */
+function addPracticeBlock (THREE, parent) {
+  const B = PRACTICE.building
+  const hw = B.width / 2
+  const hd = B.depth / 2
+  const top = B.base + B.height
+
+  const facadeMat = new THREE.MeshLambertMaterial({color: B.facadeColor})
+  const trimMat = new THREE.MeshLambertMaterial({color: B.trimColor})
+
+  const plinth = new THREE.Mesh(
+    new THREE.BoxGeometry(B.width + 1, B.base, B.depth + 1),
+    new THREE.MeshLambertMaterial({color: B.plinthColor})
+  )
+  plinth.position.set(0, B.base / 2, 0)
+  plinth.receiveShadow = true
+  parent.add(plinth)
+
+  const walls = new THREE.Mesh(
+    new THREE.BoxGeometry(B.width, B.height, B.depth), facadeMat
+  )
+  walls.position.set(0, B.base + B.height / 2, 0)
+  walls.castShadow = true
+  walls.receiveShadow = true
+  parent.add(walls)
+
+  // The window band, laid onto the facade rather than cut into it: the wall is
+  // one solid box, so a pane has to stand a few centimetres proud of it.
+  const glassMat = new THREE.MeshLambertMaterial({
+    color: B.glassColor,
+    transparent: true,
+    opacity: B.glassOpacity,
+    side: THREE.DoubleSide
+  })
+  const strutMat = new THREE.MeshLambertMaterial({color: B.strutColor})
+  const bandY = B.base + B.band.sill + B.band.height / 2
+  // The front band stops short of the colonnade and the cross panel.
+  // The front carries the colonnade on its west half and the cross panel on its
+  // east half, so all that is left for glass there is the strip between them.
+  addGlassPane(THREE, parent, {
+    glassMat,
+    strutMat,
+    width: B.band.frontWidth,
+    height: B.band.height,
+    x: B.band.frontX,
+    y: bandY,
+    z: hd + B.band.inset,
+    axis: 'x',
+    spacing: B.mullionSpacing
+  })
+  for (const sx of [-1, 1]) {
+    addGlassPane(THREE, parent, {
+      glassMat,
+      strutMat,
+      width: B.depth - 2.4,
+      height: B.band.height,
+      x: sx * (hw + B.band.inset),
+      y: bandY,
+      z: 0,
+      axis: 'z',
+      spacing: B.mullionSpacing
+    })
+  }
+
+  const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(B.width + 0.7, 0.24, B.depth + 0.7), trimMat
+  )
+  roof.position.set(0, top + 0.12, 0)
+  roof.castShadow = true
+  parent.add(roof)
+
+  const parapetY = top + 0.24 + B.parapet / 2
+  for (const sz of [-1, 1]) {
+    const wall = new THREE.Mesh(
+      new THREE.BoxGeometry(B.width + 0.7, B.parapet, 0.16), trimMat
+    )
+    wall.position.set(0, parapetY, sz * (hd + 0.27))
+    parent.add(wall)
+  }
+  for (const sx of [-1, 1]) {
+    const wall = new THREE.Mesh(
+      new THREE.BoxGeometry(0.16, B.parapet, B.depth + 0.7), trimMat
+    )
+    wall.position.set(sx * (hw + 0.27), parapetY, 0)
+    parent.add(wall)
+  }
+
+  addPracticeDoors(THREE, parent, {hd})
+}
+
+/**
+ * The glazed double door at the head of the colonnade, in the block's south
+ * facade, under a lit header.
+ * @param {Object} THREE
+ * @param {Object} parent the block's group
+ * @param {{hd: number}} config `hd` is the block's half depth — its south facade
+ */
+function addPracticeDoors (THREE, parent, {hd}) {
+  const B = PRACTICE.building
+  const E = PRACTICE.entrance
+  const x = PRACTICE.colonnade.centerX
+  const frameMat = new THREE.MeshLambertMaterial({color: E.doorColor})
+  const doorMat = new THREE.MeshLambertMaterial({
+    color: E.glassColor,
+    transparent: true,
+    opacity: 0.38,
+    side: THREE.DoubleSide
+  })
+
+  const leafWidth = E.width / 2 - 0.12
+  for (const side of [-1, 1]) {
+    const leaf = new THREE.Mesh(
+      new THREE.BoxGeometry(leafWidth, E.height - 0.18, 0.1), doorMat
+    )
+    leaf.position.set(x + side * E.width / 4, B.base + (E.height - 0.18) / 2, hd + 0.06)
+    parent.add(leaf)
+
+    const jamb = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, E.height, 0.16), frameMat
+    )
+    jamb.position.set(x + side * E.width / 2, B.base + E.height / 2, hd + 0.06)
+    parent.add(jamb)
+  }
+
+  const header = new THREE.Mesh(
+    new THREE.BoxGeometry(E.width + 0.36, 0.18, 0.22), frameMat
+  )
+  header.position.set(x, B.base + E.height, hd + 0.06)
+  parent.add(header)
+}
+
+/**
+ * The illuminated red cross on the front facade: a dark backing panel, the cross
+ * itself as two crossing bars in an unlit-bright material (there is no bloom in
+ * this scene, so that is what "glowing" looks like here) and a red point light in
+ * front of it, which is what makes the ambulance bay below read as lit.
+ * @param {Object} THREE
+ * @param {Object} parent the block's group
+ */
+function addPracticeCross (THREE, parent) {
+  const B = PRACTICE.building
+  const X = PRACTICE.cross
+  const z = B.depth / 2
+
+  const panelSize = X.span + 2 * X.panelPadding
+  const panel = new THREE.Mesh(
+    new THREE.BoxGeometry(panelSize, panelSize, 0.16),
+    new THREE.MeshLambertMaterial({color: X.panelColor})
+  )
+  panel.position.set(X.x, X.y, z + 0.08)
+  parent.add(panel)
+
+  const mat = new THREE.MeshBasicMaterial({color: X.color})
+  const bars = [
+    new THREE.BoxGeometry(X.span, X.thickness, X.proud),
+    new THREE.BoxGeometry(X.thickness, X.span, X.proud)
+  ]
+  for (const geo of bars) {
+    const bar = new THREE.Mesh(geo, mat)
+    bar.position.set(X.x, X.y, z + 0.16 + X.proud / 2)
+    parent.add(bar)
+  }
+
+  const light = new THREE.PointLight(X.color, X.lightIntensity, X.lightRange, 2)
+  light.position.set(X.x, X.y, z + 2)
+  parent.add(light)
+}
+
+/**
+ * The satellite dish on the flat roof: a mast carrying a shallow bowl (the cap of
+ * a sphere, which is close enough to a paraboloid at this size) with an arm and a
+ * feed horn in front of it, turned up and to the west.
+ * @param {Object} THREE
+ * @param {Object} parent the block's group
+ */
+function addSatelliteDish (THREE, parent) {
+  const B = PRACTICE.building
+  const D = PRACTICE.dish
+  const roofTop = B.base + B.height + 0.24
+  const frameMat = new THREE.MeshLambertMaterial({color: D.frameColor})
+
+  const mast = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.09, 0.11, D.mastHeight, 8), frameMat
+  )
+  mast.position.set(D.x, roofTop + D.mastHeight / 2, D.z)
+  parent.add(mast)
+
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.12, 0.7), frameMat)
+  foot.position.set(D.x, roofTop + 0.06, D.z)
+  parent.add(foot)
+
+  // The bowl is built facing +y and then turned: `tilt` off the vertical, `yaw`
+  // around it, so the same two angles read as "aimed at that patch of sky".
+  const dish = new THREE.Group()
+  dish.position.set(D.x, roofTop + D.mastHeight, D.z)
+  dish.rotation.y = D.yaw * Math.PI / 180
+  dish.rotation.x = D.tilt * Math.PI / 180
+  parent.add(dish)
+
+  const bowl = new THREE.Mesh(
+    new THREE.SphereGeometry(D.radius * 2.1, 20, 8, 0, Math.PI * 2, 0, Math.PI / 6),
+    new THREE.MeshLambertMaterial({color: D.color, side: THREE.DoubleSide})
+  )
+  // Pull the cap back down so its rim, not its pole, sits on the mast head.
+  bowl.position.set(0, -D.radius * 2.1 * Math.cos(Math.PI / 6), 0)
+  bowl.castShadow = true
+  dish.add(bowl)
+
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 6), frameMat)
+  arm.position.set(0, 0.5, 0)
+  dish.add(arm)
+
+  const horn = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.09, 0.3, 8), frameMat)
+  horn.position.set(0, 0.95, 0)
+  dish.add(horn)
+}
+
+/**
+ * The colonnade: the paved walk from the street to the entrance, a row of round
+ * columns either side of it carrying a flat slab, with a lit strip under the
+ * slab so the walk is not a black tunnel at dusk.
+ * @param {Object} THREE
+ * @param {Object} parent the plot's group
+ * @param {{southEdge: number, sidewalkWidth: number}} config
+ */
+function addColonnade (THREE, parent, {southEdge, sidewalkWidth}) {
+  const C = PRACTICE.colonnade
+  const length = southEdge - PRACTICE_FRONT
+  const centerZ = PRACTICE_FRONT + length / 2
+
+  // The paving runs on over the sidewalk to the kerb.
+  const paving = new THREE.Mesh(
+    new THREE.PlaneGeometry(C.width, length + sidewalkWidth),
+    new THREE.MeshLambertMaterial({color: C.paving.color})
+  )
+  paving.rotation.x = -Math.PI / 2
+  paving.position.set(C.centerX, 0.045, centerZ + sidewalkWidth / 2)
+  paving.receiveShadow = true
+  parent.add(paving)
+
+  const col = C.column
+  const columnGeo = new THREE.CylinderGeometry(col.radius, col.radius, col.height, 12)
+  const baseGeo = new THREE.CylinderGeometry(col.baseRadius, col.baseRadius, col.baseHeight, 12)
+  const columnMat = new THREE.MeshLambertMaterial({color: col.color})
+  const slabMat = new THREE.MeshLambertMaterial({color: C.slab.color})
+
+  // Columns from just in front of the facade to the kerb, evenly spaced.
+  const first = PRACTICE_FRONT + 0.8
+  const last = southEdge - 0.8
+  for (let i = 0; i < C.columns; i++) {
+    const cz = first + (i / (C.columns - 1)) * (last - first)
+    for (const side of [-1, 1]) {
+      const cx = C.centerX + side * C.width / 2
+
+      const base = new THREE.Mesh(baseGeo, columnMat)
+      base.position.set(cx, col.baseHeight / 2, cz)
+      parent.add(base)
+
+      const column = new THREE.Mesh(columnGeo, columnMat)
+      column.position.set(cx, col.baseHeight + col.height / 2, cz)
+      column.castShadow = true
+      parent.add(column)
+    }
+  }
+
+  const slabY = col.baseHeight + col.height + C.slab.thickness / 2
+  const slab = new THREE.Mesh(
+    new THREE.BoxGeometry(
+      C.width + 2 * col.radius + C.slab.overhang,
+      C.slab.thickness,
+      last - first + 2 * col.radius + C.slab.overhang
+    ),
+    slabMat
+  )
+  slab.position.set(C.centerX, slabY, (first + last) / 2)
+  slab.castShadow = true
+  parent.add(slab)
+
+  const strip = new THREE.Mesh(
+    new THREE.BoxGeometry(C.width - 1.4, 0.06, 0.5),
+    new THREE.MeshBasicMaterial({color: C.lightColor})
+  )
+  strip.position.set(C.centerX, slabY - C.slab.thickness / 2 - 0.05, PRACTICE_FRONT + 1.6)
+  parent.add(strip)
+
+  const light = new THREE.PointLight(C.lightColor, C.lightIntensity, C.lightRange, 2)
+  light.position.set(C.centerX, slabY - 0.5, PRACTICE_FRONT + 2)
+  parent.add(light)
+}
+
+/**
+ * The ambulance bay east of the colonnade: an asphalt apron off the street,
+ * reaching over the sidewalk to the road.
+ * @param {Object} THREE
+ * @param {Object} parent the plot's group
+ * @param {{southEdge: number, sidewalkWidth: number}} config
+ */
+function addPracticeDriveway (THREE, parent, {southEdge, sidewalkWidth}) {
+  const D = PRACTICE.driveway
+  const length = southEdge - D.northEnd + sidewalkWidth
+  const drive = new THREE.Mesh(
+    new THREE.PlaneGeometry(D.width, length),
+    new THREE.MeshLambertMaterial({color: D.color})
+  )
+  drive.rotation.x = -Math.PI / 2
+  drive.position.set(D.centerX, 0.045, D.northEnd + length / 2)
+  drive.receiveShadow = true
+  parent.add(drive)
+}
+
+/**
+ * The ambulance standing in the driveway: a white van with a red stripe and a red
+ * cross on each flank, dark glazing, and a beacon on the cabin roof whose two
+ * lenses take turns.
+ * @param {Object} THREE
+ * @param {Object} parent the plot's group
+ * @returns {{update: (time: number) => void}} the beacon's per-frame updater
+ */
+function addAmbulance (THREE, parent) {
+  const A = PRACTICE.ambulance
+  const V = A.body
+  const x = PRACTICE.driveway.centerX
+  const z = A.z
+  const bodyY = V.clearance + V.height / 2
+  const hl = V.length / 2
+
+  const bodyMat = new THREE.MeshLambertMaterial({color: A.bodyColor})
+  const stripeMat = new THREE.MeshLambertMaterial({color: A.stripeColor})
+  const glassMat = new THREE.MeshLambertMaterial({color: A.glassColor})
+
+  // The box: a tall body with a lower cabin at its southern (street) end.
+  const boxLength = V.length - A.cabin.length
+  const box = new THREE.Mesh(
+    new THREE.BoxGeometry(V.width, V.height, boxLength), bodyMat
+  )
+  box.position.set(x, bodyY, z - hl + boxLength / 2)
+  box.castShadow = true
+  parent.add(box)
+
+  const cabinY = V.clearance + A.cabin.height / 2
+  const cabin = new THREE.Mesh(
+    new THREE.BoxGeometry(V.width - 0.1, A.cabin.height, A.cabin.length), bodyMat
+  )
+  cabin.position.set(x, cabinY, z + hl - A.cabin.length / 2)
+  cabin.castShadow = true
+  parent.add(cabin)
+
+  // Windscreen and the two flank stripes with a cross on each.
+  const screen = new THREE.Mesh(
+    new THREE.BoxGeometry(V.width - 0.3, A.cabin.height - 0.5, 0.08), glassMat
+  )
+  screen.position.set(x, cabinY + 0.22, z + hl - 0.04)
+  parent.add(screen)
+
+  // Three things on each flank, stacked so they never share a band: the stripe
+  // low down and running the whole box, the rear window high up next to the
+  // cabin, and the cross between them over the rear axle.
+  for (const side of [-1, 1]) {
+    const flankX = x + side * (V.width / 2 + 0.02)
+    const stripe = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.3, boxLength - 0.4), stripeMat
+    )
+    stripe.position.set(flankX, V.clearance + V.height * 0.24, z - hl + boxLength / 2)
+    parent.add(stripe)
+
+    const pane = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.6, 1.2), glassMat)
+    pane.position.set(flankX, V.clearance + V.height * 0.74, z - hl + boxLength - 0.9)
+    parent.add(pane)
+
+    // The cross on the flank, as two crossing slabs like the one on the facade.
+    const crossY = V.clearance + V.height * 0.55
+    const crossZ = z - hl + boxLength * 0.34
+    for (const geo of [
+      new THREE.BoxGeometry(0.05, A.crossSize * 0.32, A.crossSize),
+      new THREE.BoxGeometry(0.05, A.crossSize, A.crossSize * 0.32)
+    ]) {
+      const bar = new THREE.Mesh(geo, stripeMat)
+      bar.position.set(x + side * (V.width / 2 + 0.05), crossY, crossZ)
+      parent.add(bar)
+    }
+  }
+
+  const wheelGeo = new THREE.CylinderGeometry(V.clearance + 0.14, V.clearance + 0.14, 0.24, 12)
+  const wheelMat = new THREE.MeshLambertMaterial({color: A.wheelColor})
+  for (const side of [-1, 1]) {
+    for (const along of [z - hl + 1.2, z + hl - 1.3]) {
+      const wheel = new THREE.Mesh(wheelGeo, wheelMat)
+      wheel.rotation.z = Math.PI / 2
+      wheel.position.set(x + side * V.width / 2, V.clearance + 0.06, along)
+      parent.add(wheel)
+    }
+  }
+
+  return addBeacon(THREE, parent, {
+    x,
+    y: V.clearance + A.cabin.height,
+    z: z + hl - A.cabin.length / 2
+  })
+}
+
+/**
+ * The blue beacon on the ambulance's cabin roof: a dark bar carrying a lens on
+ * either side, each with its own light. The two take turns rather than flashing
+ * together, so it reads as a beacon turning slowly rather than a lamp being
+ * switched on and off.
+ * @param {Object} THREE
+ * @param {Object} parent
+ * @param {{x: number, y: number, z: number}} config the top of the cabin roof
+ * @returns {{update: (time: number) => void}}
+ */
+function addBeacon (THREE, parent, {x, y, z}) {
+  const B = PRACTICE.ambulance.beacon
+
+  const bar = new THREE.Mesh(
+    new THREE.BoxGeometry(B.barWidth, 0.1, 0.34),
+    new THREE.MeshLambertMaterial({color: 0x24272b})
+  )
+  bar.position.set(x, y + 0.05, z)
+  parent.add(bar)
+
+  const lensGeo = new THREE.SphereGeometry(B.lensRadius, 10, 8)
+  const lensMat = new THREE.MeshBasicMaterial({color: B.color})
+  const sides = []
+  for (const side of [-1, 1]) {
+    const lens = new THREE.Mesh(lensGeo, lensMat)
+    lens.position.set(x + side * B.spread, y + 0.14, z)
+    parent.add(lens)
+
+    const light = new THREE.PointLight(B.color, B.lightIntensity, B.lightRange, 2)
+    light.position.set(x + side * B.spread, y + 0.3, z)
+    parent.add(light)
+
+    sides.push({lens, light})
+  }
+
+  const update = (time) => {
+    // One side on while the sine is positive, the other while it is negative.
+    const on = Math.sin(time * B.speed) > 0
+    sides[0].lens.visible = on
+    sides[0].light.visible = on
+    sides[1].lens.visible = !on
+    sides[1].light.visible = !on
+  }
+  update(0)
+
+  return {update}
 }

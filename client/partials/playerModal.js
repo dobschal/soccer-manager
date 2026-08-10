@@ -143,18 +143,8 @@ export default class PlayerModal extends UIElement {
             </div>
           </div>
         </div>
-        ${this.player.is_injured ? `
-        <div class="alert alert-danger mb-4">
-          <b><i class="fa fa-medkit"></i> ${t('player.injured')}</b><br>
-          ${t('injury.' + this.player.injury_type)} — ${this.player.injury_days_left} ${t('player.daysLeft')}
-        </div>
-        ` : ''}
-        ${this.player.is_star_player ? `
-        <div class="alert alert-warning mb-4">
-          <b>⭐ ${t('player.starPlayer')}</b><br>
-          ${t('player.starPlayerDesc')}
-        </div>
-        ` : ''}
+        <div data-alert="injury">${this._renderInjuryAlert()}</div>
+        <div data-alert="star">${this._renderStarAlert()}</div>
         ${willRetireNextSeason(this.player, this.season) ? `
         <div class="alert alert-info mb-4">
           <b><i class="fa fa-hourglass-end"></i> ${t('player.retiringTitle')}</b><br>
@@ -262,11 +252,13 @@ export default class PlayerModal extends UIElement {
       }
     }
   }
+
   /**
    * The modal listens for PLAYER_UPDATED (fires from the action-card helper
-   * whenever level / freshness / is_star_player changes on this player) and
-   * patches its two stat cards in place. Full `update()` isn't an option
-   * because the modal has other open state (currency input, history page,
+   * whenever level / freshness / is_star_player / injury state changes on this
+   * player) and patches the affected bits in place: the two stat cards, the
+   * injury and star notices, and the star in the title. Full `update()` isn't an
+   * option because the modal has other open state (currency input, history page,
    * ActionCardGiver's own loading) that would be torn down.
    * @returns {Record<string, (data: any) => void>}
    */
@@ -287,6 +279,13 @@ export default class PlayerModal extends UIElement {
           freshnessEl.textContent = `${Math.floor(this.player.freshness * 100)}%`
           freshnessEl.style.color = getFreshnessColor(this.player.freshness)
         }
+        const injuryEl = root.querySelector('[data-alert="injury"]')
+        if (injuryEl) injuryEl.innerHTML = this._renderInjuryAlert()
+        const starEl = root.querySelector('[data-alert="star"]')
+        if (starEl) starEl.innerHTML = this._renderStarAlert()
+        // The title lives on the surrounding overlay card, outside this element.
+        const titleEl = root.closest('.overlay')?.querySelector('.card-title')
+        if (titleEl) titleEl.textContent = this.player.name + (this.player.is_star_player ? ' ⭐' : '')
       }
     }
   }
@@ -319,6 +318,37 @@ export default class PlayerModal extends UIElement {
   _getHistoryPageItems () {
     const start = this.historyPage * this.historyPageSize
     return this.history.slice(start, start + this.historyPageSize)
+  }
+
+  /**
+   * The injury notice — the remaining lay-off in game days. Its own method
+   * because a medical treatment card shortens (or ends) the injury while the
+   * modal is open, and the PLAYER_UPDATED handler repaints just this block.
+   * @returns {string}
+   */
+  _renderInjuryAlert () {
+    if (!this.player.is_injured) return ''
+    return `
+      <div class="alert alert-danger mb-4">
+        <b><i class="fa fa-medkit"></i> ${t('player.injured')}</b><br>
+        ${t('injury.' + this.player.injury_type)} — ${this.player.injury_days_left} ${t('player.daysLeft')}
+      </div>
+    `
+  }
+
+  /**
+   * The star-player notice, repainted the same way — a star card can promote the
+   * player while the modal is open.
+   * @returns {string}
+   */
+  _renderStarAlert () {
+    if (!this.player.is_star_player) return ''
+    return `
+      <div class="alert alert-warning mb-4">
+        <b>⭐ ${t('player.starPlayer')}</b><br>
+        ${t('player.starPlayerDesc')}
+      </div>
+    `
   }
 
   _renderHistoryPage () {

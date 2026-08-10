@@ -6,7 +6,23 @@ import { delay } from '../lib/delay.js'
 import { el } from '../lib/html.js'
 import { preloadAllActionCardSvgs, renderActionCardSvg } from '../lib/actionCardSvg.js'
 
+/** The tiered card families that apply to one player. */
 const ELIGIBLE_ACTION_PREFIXES = ['FRESHNESS_', 'LEVEL_UP_PLAYER_']
+
+/** The single-player cards that are one exact type rather than a family. */
+const ELIGIBLE_ACTIONS = new Set(['STAR_PLAYER', 'MEDICAL_TREATMENT'])
+
+/**
+ * Whether a card type is played on one player at all — the cards this section
+ * can offer. Team-wide cards (money, motivating speech, spy) and the youth
+ * cards are not among them.
+ * @param {string} action
+ * @returns {boolean}
+ */
+function isPlayerCard (action) {
+  return ELIGIBLE_ACTIONS.has(action) ||
+    ELIGIBLE_ACTION_PREFIXES.some(prefix => action.startsWith(prefix))
+}
 
 /**
  * Returns the localized title for an action card type.
@@ -19,14 +35,35 @@ function getActionCardTitles () {
     LEVEL_UP_PLAYER_40: t('actionCards.type.basicPromotion'),
     FRESHNESS_5: t('actionCards.type.quickRecovery'),
     FRESHNESS_10: t('actionCards.type.energyBoost'),
-    FRESHNESS_20: t('actionCards.type.fullRecovery')
+    FRESHNESS_20: t('actionCards.type.fullRecovery'),
+    STAR_PLAYER: t('actionCards.type.starPlayer'),
+    MEDICAL_TREATMENT: t('actionCards.type.medicalTreatment')
   }
 }
 
 /**
- * Reusable section that lets the user spend FRESHNESS_/LEVEL_UP_PLAYER_ action
- * cards on a single player. Shared by the lineup's SelectPlayerOverlay and the
- * PlayerModal so both look and behave identically.
+ * The success toast per card family — a card that changes a player says which
+ * change it made.
+ * @param {string} action
+ * @param {string} playerName
+ * @returns {string}
+ */
+function successMessage (action, playerName) {
+  if (action.startsWith('FRESHNESS_')) return t('actionCards.fitnessBoost', {playerName})
+  if (action === 'STAR_PLAYER') return t('actionCards.starPlayerSuccess', {playerName})
+  if (action === 'MEDICAL_TREATMENT') return t('actionCards.medicalTreatmentSuccess', {playerName})
+  return t('actionCards.levelUpSuccess', {playerName})
+}
+
+/**
+ * Reusable section that lets the user spend the action cards that apply to a
+ * single player on that player. Shared by the lineup's SelectPlayerOverlay and
+ * the PlayerModal so both look and behave identically.
+ *
+ * Two of those cards only make sense for a player in a particular state — a star
+ * player cannot be promoted twice, and there is nothing to treat on a healthy
+ * player. Those are filtered out per player rather than offered and then
+ * rejected by the server.
  */
 export class ActionCardGiver extends UIElement {
   /**
@@ -46,7 +83,7 @@ export class ActionCardGiver extends UIElement {
     if (!this._canShow()) return
     const response = await server.getActionCards()
     this.cards = (response.actionCards ?? [])
-      .filter(c => ELIGIBLE_ACTION_PREFIXES.some(prefix => c.action.startsWith(prefix)))
+      .filter(c => isPlayerCard(c.action) && this._appliesToPlayer(c.action))
     if (this.cards.length > 0) await preloadAllActionCardSvgs()
   }
 
@@ -80,6 +117,20 @@ export class ActionCardGiver extends UIElement {
    */
   _canShow () {
     return Boolean(this.player && !this.player.fake)
+  }
+
+  /**
+   * Whether one card type can be played on this player in his current state.
+   * Mirrors the server's own guards (`error.alreadyStarPlayer`,
+   * `error.playerNotInjured`), so those never turn into a rejected click: a star
+   * player is not offered another star card, and a healthy one no treatment.
+   * @param {string} action
+   * @returns {boolean}
+   */
+  _appliesToPlayer (action) {
+    if (action === 'STAR_PLAYER') return !this.player.is_star_player
+    if (action === 'MEDICAL_TREATMENT') return Boolean(this.player.is_injured)
+    return true
   }
 
   /**
@@ -151,15 +202,16 @@ export class ActionCardGiver extends UIElement {
         this._slideRemainingWrappers(stackEl)
         await delay(1000)
       }
-      const message = card.action.startsWith('FRESHNESS_')
-        ? t('actionCards.fitnessBoost', { playerName: this.player.name })
-        : t('actionCards.levelUpSuccess', { playerName: this.player.name })
-      toast(message, 'success')
-      // Drop the consumed card from the local list. Player stat changes reach
-      // every consumer via PLAYER_UPDATED; the dashboard ActionCards view
-      // refetches off the ACTION_CARDS_CHANGED server event — the section
-      // itself stays open so the user can chain more cards onto the player.
+      toast(successMessage(card.action, this.player.name), 'success')
+      // Drop the consumed card from the local hand and re-derive what is still
+      // playable: a card can change the player's state so that it — or its whole
+      // stack — no longer applies (a promoted star, a healed player). Player stat
+      // changes also reach every consumer via PLAYER_UPDATED and the dashboard
+      // ActionCards view refetches off ACTION_CARDS_CHANGED; the section itself
+      // stays open so the user can chain more cards onto the player.
+      this._applyLocalEffect(card.action)
       this.cards.splice(cardIndex, 1)
+      this.cards = this.cards.filter(c => this._appliesToPlayer(c.action))
       const remainingOfType = this.cards.filter(c => c.action === card.action).length
       if (remainingOfType === 0) {
         // The whole stack item vanishes — a full refresh lets the remaining
@@ -178,6 +230,29 @@ export class ActionCardGiver extends UIElement {
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
     } finally {
       this._processing = false
+    }
+  }
+
+  /**
+   * Apply what a played card did to the local copy of the player, for the two
+   * bits of state that decide whether further cards still apply. The authoritative
+   * values arrive right after via PLAYER_UPDATED (the modal assigns them onto this
+   * very object) — this only makes sure the offered cards are already right when
+   * the click's own refresh runs, without waiting for the event.
+   * @param {string} action
+   * @returns {void}
+   */
+  _applyLocalEffect (action) {
+    if (action === 'STAR_PLAYER') {
+      this.player.is_star_player = 1
+      return
+    }
+    if (action !== 'MEDICAL_TREATMENT') return
+    const daysLeft = Math.max(0, (this.player.injury_days_left ?? 0) - 1)
+    this.player.injury_days_left = daysLeft
+    if (daysLeft === 0) {
+      this.player.is_injured = 0
+      this.player.injury_type = null
     }
   }
 

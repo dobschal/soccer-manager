@@ -1,5 +1,5 @@
 import {server, showServerError} from '../../lib/gateway.js'
-import {generateId} from '../../lib/html.js'
+import {el, generateId} from '../../lib/html.js'
 import {onClick} from '../../lib/htmlEventHandlers.js'
 import {UIElement} from '../../lib/UIElement.js'
 import {toast} from '../../partials/toast.js'
@@ -10,6 +10,12 @@ import {wikiInfoIcon} from '../../partials/wikiInfoIcon.js'
 import {euroFormat} from '../../lib/currency.js'
 import {StadiumCanvas} from '../../partials/stadiumCanvas.js'
 
+/**
+ * The painted level images. They are only the fallback now — every card image is
+ * replaced by a still cropped out of the 3D scene above as soon as it has been
+ * rendered (`_loadBuildingStills`), so the card shows the player's actual
+ * building. Without WebGL these stay.
+ */
 const TRAINING_AREA_IMAGES = {
   1: 'assets/training-area/training-area-1.png',
   2: 'assets/training-area/training-area-2.png',
@@ -26,6 +32,16 @@ const YOUTH_ACADEMY_IMAGES = {
   1: 'assets/youth-academy/youth-academy-level-1.png',
   2: 'assets/youth-academy/youth-academy-level-2.png',
   3: 'assets/youth-academy/youth-academy-level-3.png'
+}
+
+const FALLBACK_IMAGES = {
+  training_area: TRAINING_AREA_IMAGES,
+  fitness_studio: FITNESS_STUDIO_IMAGES,
+  youth_academy: YOUTH_ACADEMY_IMAGES,
+  // The medical practice was never painted — it only ever shows a still of the
+  // 3D building (which is rendered even before it is built, as a preview of what
+  // the money buys). Without WebGL its card simply has no image.
+  medical_practice: {}
 }
 
 export class BuildingsPage extends UIElement {
@@ -51,6 +67,7 @@ export class BuildingsPage extends UIElement {
     this.cardChances = data.cardChances || {}
     this.fitnessCardChances = data.fitnessCardChances || {}
     this.youthAcademyCardChances = data.youthAcademyCardChances || {}
+    this.medicalPracticeCardChances = data.medicalPracticeCardChances || {}
     this.stadium = stadiumResponse?.stadium || {}
     this.team = teamResponse?.team || {}
   }
@@ -81,6 +98,7 @@ export class BuildingsPage extends UIElement {
         ${this._renderTrainingArea()}
         ${this._renderFitnessStudio()}
         ${this._renderYouthAcademy()}
+        ${this._renderMedicalPractice()}
       </div>
     `
   }
@@ -88,6 +106,7 @@ export class BuildingsPage extends UIElement {
   onMounted () {
     this._canvas?.onMounted()
     void showTutorialIfNeeded('buildings', this)
+    void this._loadBuildingStills()
   }
 
   /**
@@ -106,6 +125,82 @@ export class BuildingsPage extends UIElement {
 
   team = {}
 
+  /** Stills already rendered, keyed `type:level`. @type {Object<string, string>} */
+  _stills = {}
+
+  /**
+   * Swap every card's painted image for a still of the team's own building, taken
+   * out of the 3D scene above. The level an upgrade would bring is photographed
+   * too — that is the image its confirmation dialog shows.
+   *
+   * One frame per still is rendered and read back, which is not free, so they are
+   * spread over separate frames and the whole thing simply does not happen when
+   * the scene never came up (no WebGL): the painted images stay.
+   * @returns {Promise<void>}
+   */
+  async _loadBuildingStills () {
+    const canvas = this._canvas
+    if (!canvas || !(await canvas.whenReady())) return
+
+    for (const building of this.buildings) {
+      const info = building.constructionInfo || {}
+      // Level 0 (the unbuilt medical practice) has no building to photograph, so
+      // its card shows what level 1 would look like — the same still its build
+      // button already needs.
+      const current = Math.max(1, building.level)
+      const next = Math.min(3, info.underConstruction ? info.targetLevel : building.level + 1)
+      for (const level of new Set([current, next])) {
+        // The canvas may have gone away between two frames (tab switch).
+        if (this._canvas !== canvas) return
+        const still = canvas.captureBuilding(building.type, {level})
+        if (!still) continue
+        this._stills[`${building.type}:${level}`] = still
+        if (level === current) this._showStill(building.type, still)
+        await new Promise(resolve => requestAnimationFrame(resolve))
+      }
+    }
+  }
+
+  /**
+   * Put a freshly rendered still onto its card, without re-rendering the page —
+   * that would drop the canvas' WebGL context.
+   * @param {string} type
+   * @param {string} src
+   */
+  _showStill (type, src) {
+    const image = el(this._elementQuery)?.querySelector(`[data-building-image="${type}"]`)
+    if (image) image.src = src
+  }
+
+  /**
+   * The image for one building at one level: its still if that has been rendered,
+   * the painted fallback until then — and nothing at all for a building that was
+   * never painted and whose still has not arrived yet.
+   * @param {string} type
+   * @param {number} level
+   * @returns {string|undefined}
+   */
+  _buildingImage (type, level) {
+    const clamped = Math.max(1, Math.min(level, 3))
+    return this._stills[`${type}:${clamped}`] || FALLBACK_IMAGES[type]?.[clamped]
+  }
+
+  /**
+   * The card's image, tagged so `_showStill` finds it again.
+   * @param {string} type
+   * @param {number} level
+   * @param {string} alt
+   * @returns {string}
+   */
+  _renderCardImage (type, level, alt) {
+    const src = this._buildingImage(type, level)
+    return `
+      <div class="building-card__image">
+        <img ${src ? `src="${src}"` : ''} alt="${alt}" data-building-image="${type}">
+      </div>
+    `
+  }
+
   /**
    * @returns {string}
    */
@@ -121,13 +216,10 @@ export class BuildingsPage extends UIElement {
     const nextLevel = constructionInfo.underConstruction ? constructionInfo.targetLevel : level + 1
     const upgradeKey = `training_area_${nextLevel}`
     const upgrade = this.upgrades[upgradeKey]
-    const imageUrl = TRAINING_AREA_IMAGES[Math.max(1, Math.min(level, 3))]
 
     return `
       <div class="building-card mb-4">
-        <div class="building-card__image">
-          <img src="${imageUrl || TRAINING_AREA_IMAGES[1]}" alt="${t('buildings.trainingArea')}">
-        </div>
+        ${this._renderCardImage('training_area', level, t('buildings.trainingArea'))}
         <div class="building-card__content bg-dark">
           <h4 class="building-card__title mb-2">
             ${t('buildings.trainingArea')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', {level})}
@@ -156,13 +248,10 @@ export class BuildingsPage extends UIElement {
     const nextLevel = constructionInfo.underConstruction ? constructionInfo.targetLevel : level + 1
     const upgradeKey = `fitness_studio_${nextLevel}`
     const upgrade = this.upgrades[upgradeKey]
-    const imageUrl = FITNESS_STUDIO_IMAGES[Math.max(1, Math.min(level, 3))]
 
     return `
       <div class="building-card mb-4">
-        <div class="building-card__image">
-          <img src="${imageUrl || FITNESS_STUDIO_IMAGES[1]}" alt="${t('buildings.fitnessStudio')}">
-        </div>
+        ${this._renderCardImage('fitness_studio', level, t('buildings.fitnessStudio'))}
         <div class="building-card__content bg-dark">
           <h4 class="building-card__title mb-2">
             ${t('buildings.fitnessStudio')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', {level})}
@@ -191,13 +280,10 @@ export class BuildingsPage extends UIElement {
     const nextLevel = constructionInfo.underConstruction ? constructionInfo.targetLevel : level + 1
     const upgradeKey = `youth_academy_${nextLevel}`
     const upgrade = this.upgrades[upgradeKey]
-    const imageUrl = YOUTH_ACADEMY_IMAGES[Math.max(1, Math.min(level, 3))]
 
     return `
       <div class="building-card mb-4">
-        <div class="building-card__image">
-          <img src="${imageUrl || YOUTH_ACADEMY_IMAGES[1]}" alt="${t('buildings.youthAcademy')}">
-        </div>
+        ${this._renderCardImage('youth_academy', level, t('buildings.youthAcademy'))}
         <div class="building-card__content bg-dark">
           <h4 class="building-card__title mb-2">
             ${t('buildings.youthAcademy')} - ${isMaxLevel ? t('buildings.maxLevel') : t('buildings.level', {level})}
@@ -209,6 +295,97 @@ export class BuildingsPage extends UIElement {
         </div>
       </div>
     `
+  }
+
+  /**
+   * The medical practice is the one building with a single level: it is either
+   * built or it is not, so its card shows a build button instead of an upgrade
+   * ladder and never a "next level".
+   * @returns {string}
+   */
+  _renderMedicalPractice () {
+    const building = this.buildings.find(b => b.type === 'medical_practice')
+    if (!building) {
+      return `<p class="text-muted">${t('buildings.noBuilding')}</p>`
+    }
+
+    const level = building.level
+    const constructionInfo = building.constructionInfo || {}
+    const isBuilt = level >= 1
+    const upgrade = this.upgrades.medical_practice_1
+
+    return `
+      <div class="building-card mb-4">
+        ${this._renderCardImage('medical_practice', level, t('buildings.medicalPractice'))}
+        <div class="building-card__content bg-dark">
+          <h4 class="building-card__title mb-2">
+            ${t('buildings.medicalPractice')}${isBuilt ? ` - ${t('buildings.built')}` : ''}
+          </h4>
+          <p class="building-card__desc mb-4">${t(`buildings.medicalLevel${isBuilt ? 1 : 0}Desc`)}</p>
+          ${constructionInfo.underConstruction ? this._renderConstructionStatus(constructionInfo) : ''}
+          ${!isBuilt && !constructionInfo.underConstruction && upgrade ? this._renderMedicalPracticeBuildButton(building, upgrade) : ''}
+          ${isBuilt ? `<p class="building-card__max-level mb-0"><i class="fa fa-check-circle"></i> ${t('buildings.singleLevel')}</p>` : ''}
+        </div>
+      </div>
+    `
+  }
+
+  /**
+   * @param {Object} building
+   * @param {Object} upgrade
+   * @returns {string}
+   */
+  _renderMedicalPracticeBuildButton (building, upgrade) {
+    const btnId = generateId()
+
+    onClick(btnId, () => {
+      this._showMedicalPracticeBuildConfirmation(building, upgrade)
+    })
+
+    return `
+      <div class="building-card__upgrade mt-2 p-2">
+        <h6 class="building-card__upgrade-title">${t('buildings.nextLevelEffects')}</h6>
+        <p class="building-card__desc mb-2">${t('buildings.medicalLevel1Desc')}</p>
+        <p class="building-card__upgrade-cost mb-1">${t('buildings.upgradeCost', {cost: euroFormat.format(upgrade.cost)})}</p>
+        <p class="building-card__upgrade-time mb-2">${t('buildings.constructionDays', {days: upgrade.constructionDays})}</p>
+        <button id="${btnId}" class="btn btn-outline-light">${t('buildings.build')}</button>
+      </div>
+    `
+  }
+
+  /**
+   * @param {Object} building
+   * @param {Object} upgrade
+   */
+  _showMedicalPracticeBuildConfirmation (building, upgrade) {
+    const confirmId = generateId()
+    const imageUrl = this._buildingImage('medical_practice', 1)
+
+    onClick(confirmId, async () => {
+      try {
+        await server.upgradeBuilding(building.type)
+        toast(t('buildings.buildStarted'), 'success')
+        overlay.remove()
+        void this.parent.update(true)
+      } catch (e) {
+        showServerError(e)
+      }
+    })
+
+    const overlay = showOverlay(
+      t('buildings.buildConfirmTitle', {buildingName: t('buildings.medicalPractice')}),
+      t('buildings.upgradeConfirmText', {
+        cost: euroFormat.format(upgrade.cost),
+        days: upgrade.constructionDays
+      }),
+      `
+      ${imageUrl ? `<div class="text-center mb-3">
+        <img src="${imageUrl}" alt="${t('buildings.medicalPractice')}" class="building-card__confirm-img">
+      </div>` : ''}
+      <button id="${confirmId}" class="btn btn-primary w-100">
+        ${t('buildings.build')}
+      </button>
+    `)
   }
 
   /**
@@ -242,7 +419,7 @@ export class BuildingsPage extends UIElement {
    */
   _showYouthAcademyUpgradeConfirmation (building, upgrade, nextLevel) {
     const confirmId = generateId()
-    const imageUrl = YOUTH_ACADEMY_IMAGES[Math.min(nextLevel, 3)]
+    const imageUrl = this._buildingImage('youth_academy', nextLevel)
 
     onClick(confirmId, async () => {
       try {
@@ -375,7 +552,7 @@ export class BuildingsPage extends UIElement {
    */
   _showUpgradeConfirmation (building, upgrade, nextLevel) {
     const confirmId = generateId()
-    const imageUrl = TRAINING_AREA_IMAGES[Math.min(nextLevel, 3)]
+    const imageUrl = this._buildingImage('training_area', nextLevel)
 
     onClick(confirmId, async () => {
       try {
@@ -411,7 +588,7 @@ export class BuildingsPage extends UIElement {
    */
   _showFitnessUpgradeConfirmation (building, upgrade, nextLevel) {
     const confirmId = generateId()
-    const imageUrl = FITNESS_STUDIO_IMAGES[Math.min(nextLevel, 3)]
+    const imageUrl = this._buildingImage('fitness_studio', nextLevel)
 
     onClick(confirmId, async () => {
       try {

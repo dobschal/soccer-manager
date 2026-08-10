@@ -41,7 +41,9 @@ export const GIFTABLE_ACTION_CARD_TYPES = [
  * page. Superset of {@link GIFTABLE_ACTION_CARD_TYPES} — SPY is not part of
  * the mass-gift / referral dropdowns but can be handed out individually.
  */
-export const ADMIN_MANAGEABLE_ACTION_CARD_TYPES = [...GIFTABLE_ACTION_CARD_TYPES, 'SPY']
+export const ADMIN_MANAGEABLE_ACTION_CARD_TYPES = [
+  ...GIFTABLE_ACTION_CARD_TYPES, 'SPY', 'MEDICAL_TREATMENT'
+]
 
 export default {
   /**

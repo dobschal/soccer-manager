@@ -887,6 +887,9 @@ export default {
   'actionCards.whichPlayerLevelUp': 'Which player should get a level up?',
   'actionCards.whichPlayerStar': 'Which player should become a star player?',
   'actionCards.starPlayerSuccess': '{playerName} is now a star player!',
+  'actionCards.whichPlayerMedical': 'Which injured player should be treated?',
+  'actionCards.medicalTreatmentSuccess': '{playerName} was treated — one game day less on the sidelines!',
+  'actionCards.noInjuredPlayer': 'Nobody is injured right now — keep the card for when it happens.',
   // Card Claim Overlay
   'actionCards.claim.tapToReveal': 'Tap the card to reveal it!',
   'actionCards.claim.tapToContinue': 'Tap to continue!',
@@ -976,6 +979,8 @@ export default {
   'actionCards.type.motivatingSpeechDesc': 'Gives your entire team a 10% level boost for the next game day.',
   'actionCards.type.spy': 'Spy',
   'actionCards.type.spyDesc': 'Reveal the tactics and lineup of any team. Perfect to scout your next opponent.',
+  'actionCards.type.medicalTreatment': 'Medical Treatment',
+  'actionCards.type.medicalTreatmentDesc': 'Shorten an injured player\'s lay-off by one game day. Needs a medical practice.',
   'actionCards.motivatingSpeechSuccess': 'Your team is motivated! +10% strength for the next game day!',
 
   // Action card SVG text (rendered on the cards themselves)
@@ -1016,6 +1021,10 @@ export default {
   'actionCards.svg.spy.body1': 'Uncover any team\'s',
   'actionCards.svg.spy.body2': 'tactics and lineup',
   'actionCards.svg.spy.footer': 'SCOUT REPORT',
+  'actionCards.svg.medicalTreatment.title': 'MEDICAL TREATMENT',
+  'actionCards.svg.medicalTreatment.body1': 'Treat an injured player',
+  'actionCards.svg.medicalTreatment.body2': 'and cut his lay-off short',
+  'actionCards.svg.medicalTreatment.footer': '-1 GAME DAY',
   'spy.title': 'Spy',
   'spy.subtitle': 'Scout a team\'s tactics and lineup',
   'spy.searchPlaceholder': 'Search for a team…',
@@ -1147,9 +1156,10 @@ export default {
   'tutorial.buildingsPage.item2': 'The Fitness Studio boosts fitness card rewards each game day',
   'tutorial.buildingsPage.item3': 'Higher building levels unlock rarer and more powerful cards',
   'tutorial.buildingsPage.item4': 'Upgrades cost money and take several game days to complete',
-  'tutorial.buildingsPage.item5': 'Each building can be upgraded up to level 3',
+  'tutorial.buildingsPage.item5': 'The three upgradable buildings go up to level 3',
   'tutorial.buildingsPage.item6': 'The Youth Academy provides better youth-player cards and more training slots',
-  'tutorial.buildingsPage.item7': 'The 3D view at the top shows your club grounds — all three buildings visibly grow with every level',
+  'tutorial.buildingsPage.item7': 'The Medical Practice has a single level: build it once, then shorten injuries by a game day with its treatment cards',
+  'tutorial.buildingsPage.item8': 'The 3D view at the top shows your club grounds — every building visibly grows with its level',
 
   // Log Messages
   'log.title': 'Messages',
@@ -1303,7 +1313,7 @@ export default {
 
   // Buildings
   'buildings.title': 'Buildings',
-  'buildings.pageDesc': 'Upgrade your training area, fitness studio and youth academy to unlock better action cards for developing, recovering and recruiting players.',
+  'buildings.pageDesc': 'Upgrade your training area, fitness studio and youth academy and build a medical practice to unlock better action cards for developing, recovering, recruiting and healing players.',
   'buildings.trainingArea': 'Training Area',
   'buildings.level': 'Level {level}',
   'buildings.maxLevel': 'Max Level',
@@ -1345,6 +1355,16 @@ export default {
   'buildings.youthLevel1Desc': 'Basic youth academy. Around 2 youth recruit cards per season (level 1-5).',
   'buildings.youthLevel2Desc': 'Intermediate youth academy. Around 3 youth cards per season — unlocks "Youth Talent" cards (level 5-10).',
   'buildings.youthLevel3Desc': 'Elite youth academy. Around 4 youth cards per season — unlocks "Youth Star" cards (level 10-15).',
+
+  // Medical Practice — the one building that has a single level: build it or not.
+  'buildings.medicalPractice': 'Medical Practice',
+  'buildings.medicalLevel0Desc': 'No medical practice. Injured players sit out their full lay-off.',
+  'buildings.medicalLevel1Desc': 'Your own medical practice. Around 1.5 "Medical Treatment" cards per season, each cutting one game day off an injured player\'s lay-off.',
+  'buildings.build': 'Build',
+  'buildings.built': 'Built',
+  'buildings.buildConfirmTitle': 'Build {buildingName}?',
+  'buildings.buildStarted': 'Construction started!',
+  'buildings.singleLevel': 'This building has a single level and cannot be upgraded further.',
 
   // Forum
   'forum.title': 'Forum',

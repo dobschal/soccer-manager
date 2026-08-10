@@ -21,9 +21,11 @@ vi.mock('../../partials/dialog.js', () => ({
 }))
 
 let lastPlayerListCallback = null
+let lastPlayerListPlayers = null
 vi.mock('../../partials/playerList.js', () => ({
   PlayerList: class {
-    constructor (_players, _multi, onPick) {
+    constructor (players, _multi, onPick) {
+      lastPlayerListPlayers = players
       lastPlayerListCallback = onPick
     }
     toString () { return '<div class="player-list"></div>' }
@@ -619,6 +621,48 @@ describe('ActionCards', () => {
       cards.serverEvents[SERVER_EVENTS.ACTION_CARDS_CHANGED.name]()
 
       expect(cards.update).not.toHaveBeenCalled()
+    })
+
+    it('offers only injured players for a medical treatment card', async () => {
+      server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1, action: 'MEDICAL_TREATMENT' }] })
+      server.getMyTeam.mockResolvedValue({
+        players: [
+          { id: 1, name: 'Fit', is_injured: 0 },
+          { id: 2, name: 'Hurt', is_injured: 1 }
+        ]
+      })
+
+      const actionCards = new ActionCards()
+      await actionCards.load()
+      actionCards._animateAndRemoveCard = vi.fn()
+      lastPlayerListPlayers = null
+
+      await actionCards._useActionCard(actionCards.cards[0], 0)
+
+      expect(lastPlayerListPlayers.map(p => p.name)).toEqual(['Hurt'])
+
+      await lastPlayerListCallback({ id: 2, name: 'Hurt' })
+
+      expect(server.useActionCard).toHaveBeenCalledWith(
+        actionCards.cards[0], { id: 2, name: 'Hurt' }, null
+      )
+      expect(toast).toHaveBeenCalledWith('actionCards.medicalTreatmentSuccess', 'success')
+      expect(actionCards._animateAndRemoveCard).toHaveBeenCalledWith(0)
+    })
+
+    it('keeps a medical treatment card when nobody is injured', async () => {
+      server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1, action: 'MEDICAL_TREATMENT' }] })
+      server.getMyTeam.mockResolvedValue({ players: [{ id: 1, name: 'Fit', is_injured: 0 }] })
+
+      const actionCards = new ActionCards()
+      await actionCards.load()
+      actionCards._animateAndRemoveCard = vi.fn()
+
+      await actionCards._useActionCard(actionCards.cards[0], 0)
+
+      expect(toast).toHaveBeenCalledWith('actionCards.noInjuredPlayer', 'info')
+      expect(server.useActionCard).not.toHaveBeenCalled()
+      expect(actionCards._animateAndRemoveCard).not.toHaveBeenCalled()
     })
 
     it('keeps _processing true across the fitness-card overlay callback so the server event skips the full re-render', async () => {

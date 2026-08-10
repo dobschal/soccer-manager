@@ -42,22 +42,27 @@ describe('ActionCardGiver', () => {
     expect(giver.template).toContain('action-card-giver')
   })
 
-  it('renders the give-action-card prompt and only fitness/level-up cards for a real player', async () => {
+  it('renders the give-action-card prompt and only the player-targeted cards', async () => {
     server.getActionCards.mockResolvedValueOnce({
       actionCards: [
         { id: 1, action: 'FRESHNESS_10' },
         { id: 2, action: 'LEVEL_UP_PLAYER_40' },
         { id: 3, action: 'BONUS_100K' },
         { id: 4, action: 'STAR_PLAYER' },
-        { id: 5, action: 'LEVEL_UP_PLAYER_40' }
+        { id: 5, action: 'LEVEL_UP_PLAYER_40' },
+        { id: 6, action: 'MOTIVATING_SPEECH' },
+        { id: 7, action: 'SPY' },
+        { id: 8, action: 'NEW_YOUTH_PLAYER_1' }
       ]
     })
     const player = testData.player({ id: 42, name: 'Erik Müller', position: 'CD' })
     const giver = new ActionCardGiver(player)
     await giver.load()
 
-    expect(giver.cards).toHaveLength(3)
-    expect(giver.cards.map(c => c.action)).toEqual(['FRESHNESS_10', 'LEVEL_UP_PLAYER_40', 'LEVEL_UP_PLAYER_40'])
+    // Everything that is played on one player — the team-wide cards and the
+    // youth cards are not.
+    expect(giver.cards.map(c => c.action))
+      .toEqual(['FRESHNESS_10', 'LEVEL_UP_PLAYER_40', 'STAR_PLAYER', 'LEVEL_UP_PLAYER_40'])
 
     const html = giver.template
     expect(html).toContain('Give Erik Müller an Action Card:')
@@ -65,6 +70,101 @@ describe('ActionCardGiver', () => {
     expect(html).toContain('action-card-count')
     expect(html).toContain('data-action-type="FRESHNESS_10"')
     expect(html).toContain('data-action-type="LEVEL_UP_PLAYER_40"')
+    expect(html).toContain('data-action-type="STAR_PLAYER"')
+  })
+
+  it('offers a star card only to a player who is not a star yet', async () => {
+    const cards = () => ({ actionCards: [{ id: 1, action: 'STAR_PLAYER' }] })
+
+    server.getActionCards.mockResolvedValueOnce(cards())
+    const plain = new ActionCardGiver(testData.player({ id: 1, name: 'Hans' }))
+    await plain.load()
+    expect(plain.cards.map(c => c.action)).toEqual(['STAR_PLAYER'])
+
+    server.getActionCards.mockResolvedValueOnce(cards())
+    const star = new ActionCardGiver(testData.player({ id: 2, name: 'Hans', is_star_player: 1 }))
+    await star.load()
+    expect(star.cards).toHaveLength(0)
+    expect(star.template).toContain('No matching action cards available.')
+  })
+
+  it('offers a treatment card only to an injured player', async () => {
+    const cards = () => ({ actionCards: [{ id: 1, action: 'MEDICAL_TREATMENT' }] })
+
+    server.getActionCards.mockResolvedValueOnce(cards())
+    const fit = new ActionCardGiver(testData.player({ id: 1, name: 'Hans' }))
+    await fit.load()
+    expect(fit.cards).toHaveLength(0)
+
+    server.getActionCards.mockResolvedValueOnce(cards())
+    const hurt = new ActionCardGiver(testData.player({
+      id: 2, name: 'Hans', is_injured: 1, injury_type: 'fracture', injury_days_left: 6
+    }))
+    await hurt.load()
+    expect(hurt.cards.map(c => c.action)).toEqual(['MEDICAL_TREATMENT'])
+    expect(hurt.template).toContain('data-action-type="MEDICAL_TREATMENT"')
+  })
+
+  it('names the right effect in the toast per card type', async () => {
+    const used = async (action, playerOverrides = {}) => {
+      const player = testData.player({ id: 7, name: 'Hans', ...playerOverrides })
+      const giver = new ActionCardGiver(player)
+      giver.cards = [{ id: 1, action }]
+      await giver._useActionCard(giver.cards[0], 0, document.createElement('div'))
+      return toast.mock.calls.at(-1)[0]
+    }
+
+    expect(await used('FRESHNESS_10')).toContain('fitness')
+    expect(await used('LEVEL_UP_PLAYER_40')).toContain('level up')
+    expect(await used('STAR_PLAYER')).toContain('star player')
+    expect(await used('MEDICAL_TREATMENT', { is_injured: 1, injury_days_left: 6 }))
+      .toContain('treated')
+  })
+
+  it('stops offering the cards a played card just made pointless', async () => {
+    // Treating a player with one game day left ends the injury outright, so the
+    // rest of the treatment stack has nothing left to heal and has to go.
+    const player = testData.player({ id: 7, name: 'Hans', is_injured: 1, injury_days_left: 1 })
+    const giver = new ActionCardGiver(player)
+    giver.cards = [
+      { id: 1, action: 'MEDICAL_TREATMENT' },
+      { id: 2, action: 'MEDICAL_TREATMENT' },
+      { id: 3, action: 'FRESHNESS_10' }
+    ]
+
+    await giver._useActionCard(giver.cards[0], 0, document.createElement('div'))
+
+    expect(player.is_injured).toBe(0)
+    expect(giver.cards.map(c => c.action)).toEqual(['FRESHNESS_10'])
+  })
+
+  it('keeps the treatment stack while the player is still injured', async () => {
+    const player = testData.player({ id: 7, name: 'Hans', is_injured: 1, injury_days_left: 6 })
+    const giver = new ActionCardGiver(player)
+    giver.cards = [
+      { id: 1, action: 'MEDICAL_TREATMENT' },
+      { id: 2, action: 'MEDICAL_TREATMENT' }
+    ]
+
+    await giver._useActionCard(giver.cards[0], 0, document.createElement('div'))
+
+    expect(player.injury_days_left).toBe(5)
+    expect(player.is_injured).toBe(1)
+    expect(giver.cards).toHaveLength(1)
+  })
+
+  it('stops offering a second star card once the player is a star', async () => {
+    const player = testData.player({ id: 7, name: 'Hans' })
+    const giver = new ActionCardGiver(player)
+    giver.cards = [
+      { id: 1, action: 'STAR_PLAYER' },
+      { id: 2, action: 'STAR_PLAYER' }
+    ]
+
+    await giver._useActionCard(giver.cards[0], 0, document.createElement('div'))
+
+    expect(player.is_star_player).toBe(1)
+    expect(giver.cards).toHaveLength(0)
   })
 
   it('applies the action card to the player and consumes the card locally', async () => {

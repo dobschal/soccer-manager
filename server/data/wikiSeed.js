@@ -37,9 +37,10 @@ Card types:
 • Star Player – permanently boosts a player's match strength by 10%.
 • Motivating Speech – gives your whole team a +10% strength bonus for the next match day.
 • Spy – reveals another team's tactics and lineup. Your next opponent is preselected, but you can scout any team you search for. The card is used up the moment the report is revealed; the latest report stays visible on your team page.
+• Medical Treatment – takes one match day off an injured player's lay-off. If that was his last match day out, he is fit again straight away. Requires a Medical Practice, and only injured players can be picked.
 
 Good to know:
-• The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings.
+• The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings, and the Medical Practice unlocks the Medical Treatment card in the first place.
 • A single player can gain at most 20 levels per season through cards.
 • You can hold at most 10 unplayed cards of the same type – play or trade some away before you can claim more of that type.
 • At most 3 New Youth Player cards are handed out per season, so young talents stay scarce.
@@ -61,9 +62,10 @@ Kartentypen:
 • Starspieler – erhöht die Spielstärke eines Spielers dauerhaft um 10%.
 • Motivationsrede – gibt deinem ganzen Team am nächsten Spieltag +10% Stärke.
 • Spion – deckt Taktik und Aufstellung eines anderen Teams auf. Dein nächster Gegner ist vorausgewählt, du kannst aber jedes gesuchte Team ausspähen. Die Karte wird verbraucht, sobald der Bericht aufgedeckt ist; der letzte Bericht bleibt auf deiner Team-Seite sichtbar.
+• Medizinische Behandlung – nimmt einem verletzten Spieler einen Spieltag Ausfall ab. War es sein letzter, ist er sofort wieder fit. Braucht eine Arztpraxis, und auswählen kannst du nur verletzte Spieler.
 
 Gut zu wissen:
-• Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust.
+• Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust – und die Arztpraxis schaltet die Karte „Medizinische Behandlung" überhaupt erst frei.
 • Ein Spieler kann pro Saison höchstens 20 Level durch Karten gewinnen.
 • Du kannst höchstens 10 ungenutzte Karten desselben Typs halten – setze oder tausche welche ein, bevor du weitere dieses Typs annehmen kannst.
 • Pro Saison werden höchstens 3 „Neuer Jugendspieler“-Karten vergeben, damit Talente knapp bleiben.
@@ -203,7 +205,7 @@ Kaderregeln:
     en: {
       title: 'Buildings',
       subtitle: 'Upgrade your club infrastructure for better cards',
-      text: `Your club has three buildings you can upgrade. Each building improves the chance of receiving certain action cards after a match day. You can build only one upgrade at a time, and construction continues across season boundaries.
+      text: `Your club has four buildings. Three of them you upgrade level by level, the Medical Practice you simply build once. Each building improves the chance of receiving certain action cards after a match day. You can build only one upgrade at a time per building, and construction continues across season boundaries.
 
 Training Area – improves Level-Up card chances:
 • Level 1: 375,000 € (5 match days)
@@ -220,9 +222,16 @@ Youth Academy – generates new youth players:
 • Level 2: 3,000,000 € (10 match days) – better young talents.
 • Level 3: 9,000,000 € (17 match days) – the strongest talents (see Youth Players).
 
-Each building tops out at level 3. The cost is deducted immediately when you start the upgrade, and you get a log message when it is finished.
+Medical Practice – shortens injuries:
+• 500,000 € (8 match days) – and that's it. This is the one building with a single level: nobody starts with it, and once it stands there is nothing more to build.
+• With it you get around 1.5 Medical Treatment cards per season, each taking one match day off an injured player's lay-off.
+• Since it went in, injuries happen a little more often than they used to – the card shortens lay-offs, so a few more of them is a fair trade for a club that invests in the building.
+
+The three upgradable buildings top out at level 3. The cost is deducted immediately when you start building, and you get a log message when it is finished.
 
 The 3D view at the top of the page shows your club grounds: it is the same scene as on the stadium page, but centred on the road crossing north-east of the stadium that your buildings are grouped around. Drag to look around, or hand the camera back to the slow auto-orbit with the button in the corner. Cars drive along the roads around it. The slider below the view sets the time of day – dawn, day, dusk or night. It starts on whatever matches your own clock, and by day the floodlights and street lamps are off.
+
+The picture on each building's card is no painting: it is a close-up of that very building, taken out of the view above – your own grounds, your own crest, at your own time of day. When you start an upgrade, the dialog shows the same close-up of the level you are about to build.
 
 Your training area is built there for real – a full-size pitch, as big as the one in your stadium, fenced right up to the kerb, with room for a car park beside it. Its level shows:
 • Level 1: the fenced pitch with two goals and a pair of small, weak floodlights in two corners, so the far half stays in the dark. No benches and no car park yet.
@@ -239,12 +248,14 @@ Your fitness studio stands right across the road, west of the training ground: a
 Your youth academy sits south of the training ground, on the other side of that road: a light grey block with blue window bands, fronted by a tall blue entrance bay that carries your club's own emblem and "Youth Academy" high up and the glazed door at its foot – the lobby behind it lit, a small canopy with a light strip above it. Its roof is a terrace behind a strutted glass balustrade, with solar panels on the flat roof above. Its entrance looks out over the car park, with a short lamp-lined footpath in between; the pitch lies crosswise behind the building – half the size of your stadium's, fenced, floodlit, with youth-size goals and covered in training kit:
 • Level 1: two storeys under a terrace roof, two solar panels, cones, a slalom line, two hurdles and a short row of parking bays.
 • Level 2: a recessed top floor is added on the roof, so the terrace now runs around it; four solar panels, more cones, poles and hurdles, the first free-kick dummies, more bays and a lamp mast over the car park.
-• Level 3: a third storey below it, eight solar panels, a fully equipped pitch with four dummies, a second row of parking bays and a second mast.`
+• Level 3: a third storey below it, eight solar panels, a fully equipped pitch with four dummies, a second row of parking bays and a second mast.
+
+Your medical practice, once you build it, stands west of the fitness studio on the same street: a modern flat-roofed block with a red cross lit up above its entrance and a satellite dish on the roof. A colonnade of round columns leads from the pavement to the entrance, and in the driveway beside it an ambulance waits with its blue light slowly turning.`
     },
     de: {
       title: 'Gebäude',
       subtitle: 'Baue deine Vereins-Infrastruktur für bessere Karten aus',
-      text: `Dein Verein hat drei Gebäude, die du ausbauen kannst. Jedes Gebäude erhöht die Chance auf bestimmte Action Cards nach einem Spieltag. Du kannst immer nur einen Ausbau gleichzeitig durchführen, und Bauarbeiten laufen über Saisongrenzen hinweg weiter.
+      text: `Dein Verein hat vier Gebäude. Drei davon baust du Stufe für Stufe aus, die Arztpraxis errichtest du einmal. Jedes Gebäude erhöht die Chance auf bestimmte Action Cards nach einem Spieltag. Du kannst pro Gebäude immer nur einen Ausbau gleichzeitig durchführen, und Bauarbeiten laufen über Saisongrenzen hinweg weiter.
 
 Trainingsgelände – verbessert die Chance auf Level-Up-Karten:
 • Stufe 1: 375.000 € (5 Spieltage)
@@ -261,9 +272,16 @@ Jugendakademie – erzeugt neue Jugendspieler:
 • Stufe 2: 3.000.000 € (10 Spieltage) – bessere junge Talente.
 • Stufe 3: 9.000.000 € (17 Spieltage) – die stärksten Talente (siehe Jugendspieler).
 
-Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbaus abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.
+Arztpraxis – verkürzt Verletzungen:
+• 500.000 € (8 Spieltage) – und das war's. Sie ist das einzige Gebäude mit nur einer Stufe: niemand startet damit, und wenn sie steht, gibt es nichts mehr auszubauen.
+• Mit ihr bekommst du im Schnitt etwa 1,5 Karten „Medizinische Behandlung" pro Saison, jede nimmt einem verletzten Spieler einen Spieltag Ausfall ab.
+• Seit sie es gibt, verletzen sich Spieler etwas häufiger als früher – die Karte verkürzt Ausfälle, also ist das ein fairer Tausch für einen Verein, der in das Gebäude investiert.
+
+Die drei ausbaubaren Gebäude enden bei Stufe 3. Die Kosten werden sofort beim Baustart abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.
 
 Die 3D-Ansicht oben auf der Seite zeigt dein Vereinsgelände: dieselbe Szene wie auf der Stadion-Seite, nur zentriert auf die Straßenkreuzung nordöstlich des Stadions, um die herum deine Gebäude stehen. Zieh mit der Maus, um dich umzusehen, oder gib die Kamera mit dem Knopf in der Ecke wieder an die langsame Drehung ab. Auf den Straßen ringsum fahren Autos. Mit dem Regler unter der Ansicht stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht. Beim Öffnen passt sie zu deiner eigenen Uhrzeit; tagsüber sind Flutlicht und Straßenlaternen aus.
+
+Das Bild auf jeder Gebäudekarte ist kein gemaltes Bild, sondern ein Ausschnitt aus genau dieser Ansicht: dein eigenes Gelände, dein eigenes Wappen, zu deiner Tageszeit. Startest du einen Ausbau, zeigt der Dialog denselben Ausschnitt mit der Stufe, die du gerade baust.
 
 Dein Trainingsgelände steht dort wirklich – ein Platz in voller Größe, genauso groß wie der in deinem Stadion, eingezäunt bis direkt an den Bordstein, mit Platz für einen Parkplatz daneben. Und man sieht ihm seine Stufe an:
 • Stufe 1: der eingezäunte Platz mit zwei Toren und einem kleinen, schwachen Flutlicht in zwei Ecken – die andere Hälfte bleibt im Dunkeln. Noch ohne Trainerbänke und ohne Parkplatz.
@@ -280,7 +298,9 @@ Dein Fitnessstudio steht gleich gegenüber, westlich des Trainingsgeländes auf 
 Deine Jugendakademie liegt südlich des Trainingsgeländes, auf der anderen Seite jener Straße: ein hellgrauer Block mit blauen Fensterbändern, davor ein hoher blauer Eingangsbereich – oben dein echtes Vereinswappen und „Youth Academy", unten die Glastür mit beleuchteter Lobby dahinter und einem kleinen Vordach mit Lichtleiste darüber. Das Dach ist eine Terrasse hinter einem verstrebten Glasgeländer, oben auf dem Flachdach stehen Solarmodule. Der Eingang schaut auf den Parkplatz, dazwischen ein kurzer Fußweg mit Laternen; hinter dem Gebäude liegt quer der Kleinfeldplatz – halb so groß wie der im Stadion, eingezäunt, mit Flutlicht, Jugendtoren und voller Trainingselemente:
 • Stufe 1: zwei Stockwerke unter dem Terrassendach, zwei Solarmodule, Hütchen, eine Slalomlinie, zwei Hürden und eine kurze Reihe Parkbuchten.
 • Stufe 2: oben kommt ein eingerücktes Dachgeschoss dazu, die Terrasse läuft nun um es herum; vier Solarmodule, mehr Hütchen, Stangen und Hürden, die ersten Freistoß-Dummies, mehr Parkbuchten und ein Lichtmast über dem Parkplatz.
-• Stufe 3: darunter ein drittes Stockwerk, acht Solarmodule, ein voll ausgestatteter Platz mit vier Dummies, eine zweite Reihe Parkbuchten und ein zweiter Mast.`
+• Stufe 3: darunter ein drittes Stockwerk, acht Solarmodule, ein voll ausgestatteter Platz mit vier Dummies, eine zweite Reihe Parkbuchten und ein zweiter Mast.
+
+Deine Arztpraxis steht, sobald du sie gebaut hast, westlich des Fitnessstudios an derselben Straße: ein moderner Flachdachbau mit einem beleuchteten roten Kreuz über dem Eingang und einer Satellitenschüssel auf dem Dach. Ein Säulengang aus runden Säulen führt vom Bordstein zum Eingang, und in der Einfahrt daneben steht ein Krankenwagen, dessen Blaulicht langsam kreist.`
     }
   },
 
@@ -777,6 +797,7 @@ Fitness (freshness):
 Injuries:
 • Players can get injured during matches – the risk rises sharply when fitness is low and with an aggressive play style.
 • Injuries range from a 1-day bruise to a long-term cruciate ligament or Achilles rupture. Injured starters are substituted automatically (keep a balanced bench).
+• With a Medical Practice you get Medical Treatment cards, each shortening one player's lay-off by a match day (see Buildings).
 
 Salary:
 • Salaries grow exponentially with level – from about 150 € per day at level 1 to about 10,308 € at level 100, roughly doubling every 10 levels. They are paid every match day.
@@ -802,6 +823,7 @@ Fitness (Frische):
 Verletzungen:
 • Spieler können sich im Spiel verletzen – das Risiko steigt stark bei niedriger Fitness und aggressivem Spielstil.
 • Verletzungen reichen von einer 1-tägigen Prellung bis zu langwierigem Kreuzband- oder Achillessehnenriss. Verletzte Startspieler werden automatisch ausgewechselt (halte eine ausgewogene Bank).
+• Mit einer Arztpraxis bekommst du Karten „Medizinische Behandlung", die den Ausfall eines Spielers um je einen Spieltag verkürzen (siehe Gebäude).
 
 Gehalt:
 • Gehälter steigen exponentiell mit dem Level – von etwa 150 € pro Tag auf Level 1 bis rund 10.308 € auf Level 100, etwa eine Verdopplung alle 10 Level. Sie werden an jedem Spieltag gezahlt.

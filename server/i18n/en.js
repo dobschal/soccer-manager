@@ -122,6 +122,7 @@ export default {
   'error.cardMaxLevel70': 'Action card only allows level ups until level 70',
   'error.cardMaxLevel40': 'Action card only allows level ups until level 40',
   'error.alreadyStarPlayer': 'This player is already a star player.',
+  'error.playerNotInjured': 'This player is not injured.',
   'error.motivatingSpeechAlreadyActive': 'Motivating speech is already active for this game day.',
 
   // Generic errors
@@ -155,6 +156,8 @@ export default {
   'log.cardsMerged': 'Cards have been merged into a more powerful card!',
   'log.cardStarPlayer': '{playerName} has been promoted to Star Player!',
   'log.cardMotivatingSpeech': 'Your team is fired up! +10% strength for the next game day!',
+  'log.cardMedicalTreatment': '{playerName} was treated at the medical practice — {days} game day(s) left instead of one more.',
+  'log.cardMedicalTreatmentHealed': '{playerName} was treated at the medical practice and is available again!',
 
   // Log messages - Stadium
   'log.stadiumExpansionStarted': 'Construction started: {stand} expansion to {newSize} seats.',
@@ -279,6 +282,7 @@ export default {
   'building.trainingArea': 'Training Area',
   'building.fitnessStudio': 'Fitness Studio',
   'building.youthAcademy': 'Youth Academy',
+  'building.medicalPractice': 'Medical Practice',
 
   // Building finance
   'finance.buildingUpgrade': 'Building upgrade',

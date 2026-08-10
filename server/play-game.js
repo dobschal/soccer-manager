@@ -26,9 +26,13 @@ export const POSITION_GROUPS = {
 }
 
 /**
- * Base injury probability per fight
+ * Base injury probability per fight. Raised by a quarter when the medical
+ * practice went in: the MEDICAL_TREATMENT card it hands out shortens lay-offs,
+ * so slightly more injuries keep the number of missed game days about where it
+ * was for a club that invests in the building — and clubs that don't feel a
+ * little more pressure to.
  */
-const INJURY_BASE_CHANCE = 0.0003
+export const INJURY_BASE_CHANCE = 0.000375
 
 /**
  * Play style multipliers for injury chance

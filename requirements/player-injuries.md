@@ -15,6 +15,7 @@ Spieler koennen sich waehrend eines Spiels verletzen. Die Verletzungswahrscheinl
 - **US-INJ-06**: Als Spieler sehe ich verletzte Spieler in der Spielerliste visuell markiert (aehnlich wie gesperrte Spieler).
 - **US-INJ-07**: Als Spieler sehe ich Verletzungen und Einwechselungen in den Spieldetails.
 - **US-INJ-08**: Als Spieler sehe ich auf der Liga- und Pokal-Ergebnisseite eine Liste der verletzten Spieler (analog zu gesperrten Spielern).
+- **US-INJ-10**: Als Spieler kann ich mit einer Arztpraxis den Ausfall eines verletzten Spielers um einen Spieltag verkuerzen (Aktionskarte "Medizinische Behandlung", siehe [Buildings](buildings.md)).
 
 ## Ersatzbank (Bench)
 
@@ -63,7 +64,7 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
 ### Verletzungswahrscheinlichkeit
 
 - **TA-INJ-01**: Verletzungen werden waehrend der Spielsimulation in `playGameStep()` geprueft, bei jedem Kampf um den Ball.
-- **TA-INJ-02**: Basiswahrscheinlichkeit pro Kampf: 0,03% (0,0003).
+- **TA-INJ-02**: Basiswahrscheinlichkeit pro Kampf: 0,0375% (0,000375). Der Wert wurde mit der Einfuehrung der Arztpraxis um ein Viertel angehoben (vorher 0,0003): deren Karte "Medizinische Behandlung" verkuerzt Ausfaelle, also duerfen etwas mehr Verletzungen passieren. Fuer ein Team **ohne** Praxis heisst das schlicht: ein bisschen mehr Ausfall.
 - **TA-INJ-03**: Fitness-Multiplikator: `1 + (1 - freshness) * 4`. Bei voller Fitness (1.0) ist der Multiplikator 1x, bei 50% Fitness 3x, bei 20% Fitness 4,2x.
 - **TA-INJ-04**: Spielstil-Multiplikator: Aggressiv 1,5x, Normal 1,0x, Freundlich 0,7x.
 - **TA-INJ-05**: Effektive Wahrscheinlichkeit: `basisWahrscheinlichkeit * fitnessMultiplikator * spielstilMultiplikator`.
@@ -183,7 +184,7 @@ eingewechselt wird. Umgesetzt in `checkScheduledSubstitutions()` (`server/play-g
 
 | Metrik | Zielwert |
 |---|---|
-| Verletzungen pro Spiel (beide Teams) | 0,15 - 0,25 |
+| Verletzungen pro Spiel (beide Teams) | 0,19 - 0,31 |
 | Durchschnittliche Ausfalldauer | 3 - 4 Spieltage |
 
 Fuer geplante Auswechselungen gibt es keinen statistischen Zielwert: die Anzahl haengt
@@ -193,6 +194,7 @@ finden ueberhaupt keine geplanten Auswechselungen statt.
 ## Tests
 
 - Verletzungswahrscheinlichkeit bei verschiedenen Fitness-Werten
+- Verkuerzung eines Ausfalls per Aktionskarte "Medizinische Behandlung" (siehe [Action Cards](action-cards.md), TA-AC-29)
 - Verletzungswahrscheinlichkeit bei verschiedenen Spielstilen
 - Maximal eine Verletzung pro Team pro Spiel
 - Einwechselung bei Verletzung mit korrektem Positionsmatching

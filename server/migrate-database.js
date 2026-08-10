@@ -2805,6 +2805,55 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Wiki: refresh buildings (card images taken from the 3D scene) v9',
+  async run () {
+    // The building cards no longer show a painted level image but a still of the
+    // player's own building, cropped out of the 3D scene above them.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Seed medical_practice building for all teams',
+  async run () {
+    // Level 0 — unlike the other three this one is not there from the start, it
+    // has to be built. The row only exists so `upgradeBuilding` has something to
+    // raise to level 1.
+    const teams = await query('SELECT id FROM team')
+    for (const team of teams) {
+      const existing = await query("SELECT id FROM building WHERE team_id=? AND type='medical_practice' LIMIT 1", [team.id])
+      if (existing.length === 0) {
+        await query('INSERT INTO building SET ?', {
+          team_id: team.id,
+          type: 'medical_practice',
+          level: 0
+        })
+      }
+    }
+    console.log(`✅ Seeded ${teams.length} teams with medical_practice level 0`)
+  }
+}, {
+  name: 'Wiki: refresh buildings and action cards (medical practice) v10',
+  async run () {
+    for (const key of ['buildings', 'action-cards', 'players']) {
+      const topic = WIKI_SEED.find(t => t.key === key)
+      if (!topic) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**

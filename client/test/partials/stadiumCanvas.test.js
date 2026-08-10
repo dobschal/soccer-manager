@@ -584,13 +584,14 @@ describe('skyColor', () => {
 describe('StadiumCanvas depth precision', () => {
   it('keeps the near plane far enough out for the distant roads', () => {
     // At near 0.1 the depth buffer could not separate the markings from the
-    // asphalt out towards `vanishDistance`, and they flickered.
+    // asphalt out at the far end of the roads, and they flickered.
     expect(CONFIG.camera.near).toBeGreaterThanOrEqual(1)
     // …but never so far that it clips what the camera can actually get close to.
     for (const view of Object.values(CONFIG.views)) {
       expect(CONFIG.camera.near).toBeLessThan(view.minDistance)
     }
-    expect(CONFIG.camera.far).toBeGreaterThan(CONFIG.road.vanishDistance)
+    // Everything on the ground plane stays inside the frustum, from any angle.
+    expect(CONFIG.camera.far).toBeGreaterThan(2 * new StadiumCanvas({}, {})._groundHalf())
   })
 
   it('biases the road markings towards the camera', () => {
@@ -888,12 +889,18 @@ describe('StadiumCanvas entrance emblems', () => {
     expect(plate).toBeDefined()
     expect(plate.geometry.x).toBe(plate.geometry.y)
     expect(plate.material.map).toBeDefined()
+    // Transparent, so only the emblem shows and no panel behind it.
+    expect(plate.material.transparent).toBe(true)
     // Clear of the entrance roof below it…
     const E = CONFIG.entrance
     const bottom = plate.at.y - plate.geometry.y / 2
     expect(bottom).toBeGreaterThanOrEqual(E.height + E.wallThickness)
-    // …proud of the wall and turned to face away from the pitch (local -z).
-    expect(plate.at.z).toBeLessThan(0)
+    // …and clear of the back wall it hangs on. The entrance is placed at that
+    // wall's *inner* face and the wall grows outward from there, so a plate that
+    // only just clears the origin ends up buried inside it — which is exactly
+    // what happened the first time round: only the lamps on their longer arms
+    // poked out.
+    expect(plate.at.z).toBeLessThan(-CONFIG.stand.backWallThickness)
     expect(plate.rotation.y).toBeCloseTo(Math.PI)
   })
 
@@ -906,6 +913,7 @@ describe('StadiumCanvas entrance emblems', () => {
       // Above the plate, reaching out from the wall over it…
       expect(lens.at.y).toBeGreaterThan(plate.at.y + plate.geometry.y / 2)
       expect(lens.at.z).toBeLessThan(plate.at.z)
+      expect(lens.at.z).toBeLessThan(-CONFIG.stand.backWallThickness)
       // …and part of the night lighting, so they go out with the floodlights.
       expect(lens.userData.nightOnly).toBe(true)
     }
@@ -933,13 +941,88 @@ describe('StadiumCanvas entrance emblems', () => {
     expect(added).toHaveLength(0)
   })
 
-  it('builds the plate texture once and shares it across the entrances', () => {
+  it('keeps the sign and the wall it hangs on to one shared thickness', () => {
+    // The stand's back wall and the sign's offsets are the same number; a wall
+    // that changed thickness on its own would swallow the plate again.
+    const { added } = addEmblem(TALL)
+    const arms = added.filter(o => o.geometry?.x === 0.07)
+    expect(arms).toHaveLength(2)
+    for (const arm of arms) {
+      // The arm starts at the wall's outer face and reaches out over the plate.
+      expect(arm.at.z).toBeCloseTo(-(CONFIG.stand.backWallThickness + CONFIG.emblemSign.lamp.arm / 2))
+    }
+  })
+
+  it('builds the emblem texture once and shares it across the entrances', () => {
     const { canvas, ctx } = addEmblem(TALL)
     const first = canvas._emblemPlate()
     const second = canvas._emblemPlate()
+    // Ten entrances would otherwise mean ten copies of the same crest in video
+    // memory.
     expect(first).toBe(second)
-    // The plate is painted once, not per entrance.
-    expect(ctx.calls.filter(c => c === 'fillRect')).toHaveLength(1)
+    expect(first).toBeDefined()
+    // And nothing paints a background behind it.
+    expect(ctx.calls).not.toContain('fillRect')
+  })
+})
+
+/**
+ * Street lamps: the glowing core switches off with the rest of the night
+ * lighting, so everything else about the lamp has to stay visible — otherwise the
+ * pole ends in mid-air by day.
+ */
+describe('StadiumCanvas._createStreetLamp', () => {
+  const lamp = () => {
+    const added = []
+    const canvas = new StadiumCanvas({}, {}, 'c', {})
+    canvas._THREE = {
+      DoubleSide: 2,
+      CylinderGeometry: class { constructor (top, bottom, height) { Object.assign(this, { top, bottom, height }) } },
+      SphereGeometry: class { constructor (radius) { this.radius = radius } },
+      MeshBasicMaterial: class { constructor (c) { Object.assign(this, c) } },
+      MeshLambertMaterial: class { constructor (c) { Object.assign(this, c) } },
+      Mesh: class {
+        constructor (geometry, material) {
+          Object.assign(this, { geometry, material })
+          this.userData = {}
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+        }
+      }
+    }
+    canvas._createStreetLamp({ add: (o) => added.push(o) }, 10, -20)
+    return added
+  }
+
+  it('tops the pole with a glass globe that is there round the clock', () => {
+    const added = lamp()
+    const L = CONFIG.streetLamp
+    const globe = added.find(o =>
+      o.geometry?.radius === L.globeRadius && o.material.color === L.globeColor)
+    expect(globe).toBeDefined()
+    // Translucent, so the core inside still shines through at night…
+    expect(globe.material.transparent).toBe(true)
+    // …but never switched off, unlike the core.
+    expect(globe.userData.nightOnly).toBeUndefined()
+    // Sitting on top of the pole, not floating above or sunk into it.
+    expect(globe.at.y).toBeGreaterThan(L.height)
+    expect(globe.at.y - L.globeRadius).toBeLessThanOrEqual(L.height + 0.15)
+  })
+
+  it('puts the glowing core inside the globe and only switches that off', () => {
+    const added = lamp()
+    const L = CONFIG.streetLamp
+    const core = added.find(o => o.material.color === L.lightColor)
+    const globe = added.find(o => o.material.color === L.globeColor)
+    expect(core.userData.nightOnly).toBe(true)
+    expect(core.geometry.radius).toBeLessThan(L.globeRadius)
+    expect(core.at).toEqual(globe.at)
+  })
+
+  it('keeps pole, collar and globe on one axis', () => {
+    for (const part of lamp()) {
+      expect(part.at.x).toBe(10)
+      expect(part.at.z).toBe(-20)
+    }
   })
 })
 
@@ -1036,6 +1119,55 @@ describe('StadiumCanvas club buildings', () => {
     { north_stand_size: 8000, south_stand_size: 8000 }, {}, 'c', options
   )
 
+  /**
+   * Every asphalt tile `_buildRoads` lays down, as plain rectangles on the
+   * ground: the plane's own size plus where the tile was put.
+   * @param {StadiumCanvas} canvas
+   * @returns {Array<{width: number, depth: number, x: number, z: number}>}
+   */
+  const roadTilesOf = (canvas) => {
+    const planes = []
+    const meshes = []
+    canvas._THREE = new Proxy({}, {
+      get: (_, prop) => {
+        if (prop === 'Quaternion') return class { setFromEuler () { return this } }
+        if (prop === 'PlaneGeometry') {
+          return class {
+            constructor (width, depth) {
+              Object.assign(this, { width, depth })
+              planes.push(this)
+            }
+          }
+        }
+        if (prop === 'Mesh') {
+          return class {
+            constructor (geometry, material) {
+              Object.assign(this, { geometry, material })
+              this.rotation = {}
+              this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+              meshes.push(this)
+            }
+          }
+        }
+        return class {
+          constructor (...args) { this.args = args; this.instanceMatrix = {} }
+          set () { return this }
+          compose () {}
+          setMatrixAt () {}
+        }
+      }
+    })
+    canvas._buildRoads({ add: () => {} })
+    return meshes
+      .filter(mesh => mesh.material?.args?.[0]?.color === CONFIG.road.color)
+      .map(mesh => ({
+        width: mesh.geometry.width,
+        depth: mesh.geometry.depth,
+        x: mesh.at.x,
+        z: mesh.at.z
+      }))
+  }
+
   it('orbits the pitch centre by default', () => {
     expect(canvasWith({})._focusPoint()).toEqual({ x: 0, z: 0 })
   })
@@ -1083,9 +1215,27 @@ describe('StadiumCanvas club buildings', () => {
     expect(canvasWith({})._groundHalf()).toBe(375)
   })
 
-  it('runs the roads out past the ground plane so they vanish into the fog', () => {
-    // A road stopping short of the ground edge would end in mid-air.
-    expect(CONFIG.road.vanishDistance).toBeGreaterThan(canvasWith({})._groundHalf())
+  it('ends the roads exactly at the edge of the ground plane', () => {
+    // Neither short of it (a road ending in mid-field) nor past it (asphalt
+    // hanging over the grass into the void, which is what it used to do).
+    for (const options of [{}, { buildings: BUILDINGS }]) {
+      const canvas = canvasWith(options)
+      const tiles = roadTilesOf(canvas)
+      const half = canvas._groundHalf()
+      const distance = canvas._roadDistance()
+
+      // The two continuous roads span the whole plane…
+      const through = tiles.filter(t => t.width > t.depth)
+      expect(through).toHaveLength(2)
+      for (const road of through) expect(road.width).toBeCloseTo(2 * half)
+
+      // …and the outward pieces of the crossing roads reach the same edge.
+      const outward = tiles.filter(t => t.depth > t.width && Math.abs(t.z) > distance)
+      expect(outward).toHaveLength(4)
+      for (const piece of outward) {
+        expect(Math.abs(piece.z) + piece.depth / 2).toBeCloseTo(half)
+      }
+    }
   })
 
   it('fogs the distance out before the ground plane ends', () => {
@@ -1095,5 +1245,177 @@ describe('StadiumCanvas club buildings', () => {
     expect(CONFIG.colors.fogFar).toBeGreaterThan(canvasWith({})._groundHalf())
     // …but the stadium itself always stays clear of it.
     expect(CONFIG.colors.fogNear).toBeGreaterThan(CONFIG.views.stadium.maxDistance)
+  })
+})
+
+/**
+ * The stills the buildings page puts on its cards are cropped out of this very
+ * scene: one frame from a camera of its own, through an off-screen render target,
+ * read back as a data URL. Three.js and the renderer are stubbed here — the
+ * framing itself is covered in `clubBuildingsScene.test.js`.
+ */
+describe('StadiumCanvas.captureBuilding', () => {
+  const BUILDINGS = [
+    { type: 'training_area', level: 2 },
+    { type: 'youth_academy', level: 1 }
+  ]
+
+  const stubbed = () => {
+    const state = { renders: [], targets: [], removed: [], built: [] }
+    const canvas = new StadiumCanvas(
+      { north_stand_size: 8000 }, {}, 'c', { focus: 'buildings', buildings: BUILDINGS }
+    )
+
+    canvas._THREE = {
+      PerspectiveCamera: class {
+        constructor (fov, aspect) {
+          Object.assign(this, { fov, aspect })
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+        }
+
+        lookAt (x, y, z) { this.looksAt = { x, y, z } }
+      },
+      WebGLRenderTarget: class {
+        constructor (width, height, options) {
+          Object.assign(this, { width, height, options, disposed: false })
+          state.targets.push(this)
+        }
+
+        dispose () { this.disposed = true }
+      }
+    }
+    canvas._scene = {
+      add: () => {},
+      remove: (object) => state.removed.push(object),
+      traverse: () => {}
+    }
+    canvas._renderer = {
+      target: undefined,
+      setRenderTarget (target) { this.target = target },
+      render: (scene, camera) => state.renders.push({
+        camera,
+        target: canvas._renderer.target,
+        // What the scene looked like while the shutter was open.
+        hidden: Object.entries(canvas._buildingGroups)
+          .filter(([, group]) => !group.visible).map(([type]) => type)
+      }),
+      readRenderTargetPixels: (target, x, y, width, height, buffer) => buffer.fill(160)
+    }
+    canvas._buildingGroups = {
+      training_area: { visible: true },
+      youth_academy: { visible: true }
+    }
+    // The builders themselves need the real Three.js; here only the level they are
+    // asked for matters.
+    canvas._buildClubBuilding = (scene, plot) => {
+      state.built.push(plot)
+      return { group: { visible: true, traverse: () => {} }, openings: [] }
+    }
+
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      createImageData: (width, height) => ({ data: new Uint8Array(width * height * 4) }),
+      putImageData: () => {}
+    })
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,STILL')
+
+    return { canvas, state }
+  }
+
+  it('renders one frame of the building into a target of the asked-for size', () => {
+    const { canvas, state } = stubbed()
+    expect(canvas.captureBuilding('training_area', { width: 40, height: 20 }))
+      .toBe('data:image/jpeg;base64,STILL')
+
+    expect(state.renders).toHaveLength(1)
+    const [target] = state.targets
+    expect([target.width, target.height]).toEqual([40, 20])
+    // Multisampled, so the still gets the same smooth edges as the canvas…
+    expect(target.options.samples).toBe(CONFIG.snapshot.samples)
+    // …drawn into that target, and handed back afterwards.
+    expect(state.renders[0].target).toBe(target)
+    expect(target.disposed).toBe(true)
+  })
+
+  it('resolves the multisampling before reading the pixels back', () => {
+    // Unbinding the target is what blits it into the buffer the pixels are read
+    // from — reading while it is still bound would give an empty still.
+    const { canvas } = stubbed()
+    canvas.captureBuilding('training_area')
+    expect(canvas._renderer.target).toBeNull()
+  })
+
+  it('points its own camera at the building, over the plot corner facing the crossing', () => {
+    const { canvas, state } = stubbed()
+    canvas.captureBuilding('youth_academy', { width: 40, height: 20 })
+    const { camera } = state.renders[0]
+    const plot = canvas._buildingPlots().find(p => p.type === 'youth_academy')
+
+    expect(camera.fov).toBe(CONFIG.camera.fov)
+    expect(camera.aspect).toBe(2)
+    expect(Math.sign(camera.at.x - camera.looksAt.x)).toBe(-plot.qx)
+    expect(Math.sign(camera.at.z - camera.looksAt.z)).toBe(-plot.qz)
+    expect(camera.at.y).toBeGreaterThan(camera.looksAt.y)
+  })
+
+  it('photographs the level that stands in the scene without rebuilding it', () => {
+    const { canvas, state } = stubbed()
+    canvas.captureBuilding('training_area', { level: 2 })
+    expect(state.built).toEqual([])
+    expect(state.renders[0].hidden).toEqual([])
+  })
+
+  it('stands another level in for the shot and takes it down again', () => {
+    // This is the upgrade preview: level 3 has to be built, photographed in place
+    // of the level 2 the team actually has, and removed again.
+    const { canvas, state } = stubbed()
+    canvas.captureBuilding('training_area', { level: 3 })
+
+    expect(state.built.map(p => [p.type, p.level])).toEqual([['training_area', 3]])
+    expect(state.renders[0].hidden).toEqual(['training_area'])
+    // Nothing left behind: the stand-in is gone and the real one is back.
+    expect(state.removed).toHaveLength(1)
+    expect(canvas._buildingGroups.training_area.visible).toBe(true)
+    // …and the other building was never touched.
+    expect(canvas._buildingGroups.youth_academy.visible).toBe(true)
+  })
+
+  it('clamps a level outside the buildable range', () => {
+    const { canvas, state } = stubbed()
+    canvas.captureBuilding('youth_academy', { level: 9 })
+    expect(state.built.map(p => p.level)).toEqual([3])
+  })
+
+  it('stands an unbuilt building up on its plot just for the portrait', () => {
+    // The medical practice has to be bought, so a team that has not built it yet
+    // still needs a picture of what the money buys.
+    const { canvas, state } = stubbed()
+    expect(canvas.captureBuilding('medical_practice')).toBe('data:image/jpeg;base64,STILL')
+
+    expect(state.built.map(p => [p.type, p.level])).toEqual([['medical_practice', 1]])
+    // Nothing standing in the scene was hidden for it, and the stand-in is gone.
+    expect(state.renders[0].hidden).toEqual([])
+    expect(state.removed).toHaveLength(1)
+  })
+
+  it('has nothing to show without a scene or for an unknown building', () => {
+    const { canvas } = stubbed()
+    expect(canvas.captureBuilding('spaceport')).toBeNull()
+
+    const bare = new StadiumCanvas({}, {}, 'c', { buildings: BUILDINGS })
+    expect(bare.captureBuilding('training_area')).toBeNull()
+  })
+})
+
+describe('StadiumCanvas.whenReady', () => {
+  it('resolves false once the component is destroyed', async () => {
+    const canvas = new StadiumCanvas({}, {}, 'c', {})
+    canvas.onDestroy()
+    await expect(canvas.whenReady()).resolves.toBe(false)
+  })
+
+  it('resolves false when there is no canvas in the DOM to render into', async () => {
+    const canvas = new StadiumCanvas({}, {}, 'c', {})
+    await canvas._initThreeJS()
+    await expect(canvas.whenReady()).resolves.toBe(false)
   })
 })

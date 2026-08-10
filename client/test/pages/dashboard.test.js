@@ -468,6 +468,57 @@ describe('DashboardPage', () => {
     })
   })
 
+  describe('start page refresh when returning to the dashboard', () => {
+    /**
+     * Build a fake sub-page container holding a start wrapper and route `el()`
+     * to it, so `_refreshStartPageData` / `_switchSubPage` see real DOM.
+     * @param {DashboardPage} page
+     * @param {boolean} startVisible - false = another sub-page is on screen
+     */
+    function mockSubPageContainer (page, startVisible = true) {
+      const container = document.createElement('div')
+      const wrapper = document.createElement('div')
+      wrapper.setAttribute('data-subpage', 'start')
+      wrapper.innerHTML = '<span>stale start markup</span>'
+      if (!startVisible) wrapper.style.display = 'none'
+      container.appendChild(wrapper)
+      vi.mocked(el).mockImplementation(query => query === '#' + page._subPageContainerId ? container : undefined)
+      return { container, wrapper }
+    }
+
+    it('replaces the visible start markup in place instead of blanking the page first', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const { container, wrapper } = mockSubPageContainer(page)
+
+      await page.onQueryChanged({}) // initial no-op after render
+      await page.onQueryChanged({}) // returning from another page
+
+      // Same node, still mounted — no gap while the requests were in flight.
+      expect(container.querySelector('[data-subpage="start"]')).toBe(wrapper)
+      expect(wrapper.innerHTML).not.toContain('stale start markup')
+      expect(wrapper.innerHTML).toContain('Test FC')
+      // No fade-in was started on the already visible wrapper.
+      expect(wrapper.style.opacity).toBe('')
+      expect(wrapper.style.transition).toBe('')
+    })
+
+    it('rebuilds and fades in the start wrapper when another sub-page is on screen', async () => {
+      const page = new DashboardPage()
+      await page.load()
+      const { container, wrapper } = mockSubPageContainer(page, false)
+      page.subPage = 'cards'
+
+      await page.onQueryChanged({}) // switching from the cards tab back to start
+
+      const newWrapper = container.querySelector('[data-subpage="start"]')
+      expect(newWrapper).not.toBe(wrapper)
+      expect(newWrapper.innerHTML).toContain('Test FC')
+      // _fadeIn pins it at opacity 0 before transitioning in.
+      expect(newWrapper.style.opacity).toBe('0')
+    })
+  })
+
   describe('urgency refresh on navigation back to start', () => {
     it('re-fetches urgencies when navigating back to start page so resolved urgencies disappear', async () => {
       // 1. Initial load with an urgency (e.g. INCOMPLETE_LINEUP)

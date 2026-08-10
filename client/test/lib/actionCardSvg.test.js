@@ -59,6 +59,23 @@ describe('actionCardSvg', () => {
     }
   })
 
+  it('fills the medical treatment card from its own i18n keys', async () => {
+    restoreXhr = installXhrMock({
+      'assets/action-cards/medical-treatment.svg':
+        '<svg><text>{{HEADER}}{{TITLE}}</text><text>{{BODY1}}{{BODY2}}</text><text>{{FOOTER}}</text></svg>'
+    })
+
+    const { loadActionCardSvg, renderActionCardSvg } = await import('../../lib/actionCardSvg.js')
+    await loadActionCardSvg('MEDICAL_TREATMENT')
+    const out = renderActionCardSvg('MEDICAL_TREATMENT')
+
+    expect(out).toContain('[actionCards.svg.medicalTreatment.title]')
+    expect(out).toContain('[actionCards.svg.medicalTreatment.body1]')
+    expect(out).toContain('[actionCards.svg.medicalTreatment.body2]')
+    expect(out).toContain('[actionCards.svg.medicalTreatment.footer]')
+    expect(out).not.toContain('{{')
+  })
+
   it('uses the i18n keys body1 and body2 for new-youth-player cards', async () => {
     restoreXhr = installXhrMock({
       'assets/action-cards/new-youth-player-1.svg':

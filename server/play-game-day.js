@@ -12,8 +12,10 @@ import {
   completeBuildingConstructions,
   FITNESS_STUDIO_CARD_CHANCES,
   getAllFitnessStudioLevels,
+  getAllMedicalPracticeLevels,
   getAllTrainingAreaLevels,
   getAllYouthAcademyLevels,
+  MEDICAL_PRACTICE_CARD_CHANCES,
   TRAINING_AREA_CARD_CHANCES,
   YOUTH_ACADEMY_CARD_CHANCES,
   YOUTH_ACADEMY_GUARANTEED_CARD
@@ -649,6 +651,7 @@ export async function _giveUsersActionCards () {
   const trainingAreaLevels = await getAllTrainingAreaLevels()
   const fitnessStudioLevels = await getAllFitnessStudioLevels()
   const youthAcademyLevels = await getAllYouthAcademyLevels()
+  const medicalPracticeLevels = await getAllMedicalPracticeLevels()
   const teamIdsWithYouth = new Set(
     (await query('SELECT DISTINCT team_id FROM youth_player')).map(r => r.team_id)
   )
@@ -677,6 +680,8 @@ export async function _giveUsersActionCards () {
     const fitnessOverrides = FITNESS_STUDIO_CARD_CHANCES[fitnessLevel] || FITNESS_STUDIO_CARD_CHANCES[0]
     const academyLevel = youthAcademyLevels.get(team.id) ?? 1
     const youthOverrides = YOUTH_ACADEMY_CARD_CHANCES[academyLevel] || YOUTH_ACADEMY_CARD_CHANCES[1]
+    const medicalLevel = medicalPracticeLevels.get(team.id) ?? 0
+    const medicalOverrides = MEDICAL_PRACTICE_CARD_CHANCES[medicalLevel] || MEDICAL_PRACTICE_CARD_CHANCES[0]
     const actionCards = []
     // Track how many youth cards this team has this season (already received +
     // newly dealt below) so we never exceed MAX_YOUTH_CARDS_PER_SEASON.
@@ -703,10 +708,12 @@ export async function _giveUsersActionCards () {
         // Override LEVEL_UP card chances based on training area level
         // Override FRESHNESS card chances based on fitness studio level
         // Override NEW_YOUTH_PLAYER_X card chances based on youth academy level
+        // Override MEDICAL_TREATMENT card chance based on medical practice level
         let chance = defaultChance
         if (cardOverrides[action] !== undefined) chance = cardOverrides[action]
         if (fitnessOverrides[action] !== undefined) chance = fitnessOverrides[action]
         if (youthOverrides[action] !== undefined) chance = youthOverrides[action]
+        if (medicalOverrides[action] !== undefined) chance = medicalOverrides[action]
         const isYouthCard = NEW_YOUTH_PLAYER_ACTIONS.has(action)
         // Youth cards are capped per season: once the limit is reached, stop
         // dealing them for the rest of the season.

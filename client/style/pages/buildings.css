@@ -16,6 +16,12 @@
     display: block;
 }
 
+/* No still yet and no painted fallback (the medical practice) — hold the space
+   with a flat panel instead of a broken-image icon until the render lands. */
+.building-card__image img:not([src]) {
+    background: rgba(255, 255, 255, 0.06);
+}
+
 .building-card__content {
     border-radius: 0 0 12px 12px;
     padding: 1.25rem;

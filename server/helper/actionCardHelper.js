@@ -38,7 +38,10 @@ export const actionCardChances = {
   STAR_PLAYER: 0.01,
   MOTIVATING_SPEECH: 0.05,
   // ~5 per season (34 game days): 5 / 34 ≈ 0.15 expected cards per game day.
-  SPY: 0.15
+  SPY: 0.15,
+  // Only teams with a medical practice ever get this one; the chance is
+  // overridden per practice level (see MEDICAL_PRACTICE_CARD_CHANCES).
+  MEDICAL_TREATMENT: 0
 }
 
 /**
@@ -316,6 +319,36 @@ export async function playActionCard ({
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
     await addLogMessage(t('log.cardStarPlayer', { playerName: player.name }, locale), team, null, null, 'star', undefined, 'success')
     await addPlayerHistory(player.id, 'STAR_PLAYER', '1')
+    await _emitPlayerUpdated(team, player.id)
+    return { success: true }
+  }
+  if (actionCard.action === 'MEDICAL_TREATMENT') {
+    const player = await getPlayerById(p.id)
+    if (player.team_id !== team.id) {
+      throw new BadRequestError(t('error.playerNotInTeam', {}, locale))
+    }
+    if (!player.is_injured) {
+      throw new BadRequestError(t('error.playerNotInjured', {}, locale))
+    }
+    // One game day off the remaining lay-off. Hitting zero ends the injury right
+    // away instead of waiting for `_recoverInjuredPlayers` to notice on the next
+    // game day, so the player is available for today's match.
+    const daysLeft = Math.max(0, (player.injury_days_left ?? 0) - 1)
+    if (daysLeft > 0) {
+      await query('UPDATE player SET injury_days_left=? WHERE id=?', [daysLeft, player.id])
+    } else {
+      await query(
+        'UPDATE player SET is_injured=0, injury_type=NULL, injury_days_left=0 WHERE id=?',
+        [player.id]
+      )
+    }
+    await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
+    await addLogMessage(
+      daysLeft > 0
+        ? t('log.cardMedicalTreatment', { playerName: player.name, days: daysLeft }, locale)
+        : t('log.cardMedicalTreatmentHealed', { playerName: player.name }, locale),
+      team, 'OPEN_PLAYER', player.id, 'medkit', undefined, 'success'
+    )
     await _emitPlayerUpdated(team, player.id)
     return { success: true }
   }

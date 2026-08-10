@@ -8,9 +8,11 @@ vi.mock('../helper/buildingHelper.js', () => ({
   getAllTrainingAreaLevels: vi.fn(),
   getAllFitnessStudioLevels: vi.fn(),
   getAllYouthAcademyLevels: vi.fn(),
+  getAllMedicalPracticeLevels: vi.fn(),
   TRAINING_AREA_CARD_CHANCES: { 0: {}, 1: {} },
   FITNESS_STUDIO_CARD_CHANCES: { 0: {}, 1: {} },
   YOUTH_ACADEMY_CARD_CHANCES: { 0: {}, 1: {} },
+  MEDICAL_PRACTICE_CARD_CHANCES: { 0: {}, 1: {} },
   YOUTH_ACADEMY_GUARANTEED_CARD: {
     1: 'NEW_YOUTH_PLAYER_1',
     2: 'NEW_YOUTH_PLAYER_2',
@@ -21,7 +23,7 @@ vi.mock('../helper/buildingHelper.js', () => ({
 // FILLER = 1 guarantees the while-loop exits each day (mirrors prod where LEVEL_UP_PLAYER_40 is 1.2).
 // Individual tests mutate actionCardChances.NEW_YOUTH_PLAYER_* to exercise the per-season cap.
 vi.mock('../helper/actionCardHelper.js', () => ({
-  actionCardChances: { FILLER: 1, NEW_YOUTH_PLAYER_1: 0, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0 },
+  actionCardChances: { FILLER: 1, NEW_YOUTH_PLAYER_1: 0, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0, MEDICAL_TREATMENT: 0 },
   deleteExpiredPendingCards: vi.fn(),
   NEW_YOUTH_PLAYER_ACTIONS: new Set(['NEW_YOUTH_PLAYER_1', 'NEW_YOUTH_PLAYER_2', 'NEW_YOUTH_PLAYER_3']),
   MAX_YOUTH_CARDS_PER_SEASON: 3,
@@ -59,7 +61,7 @@ vi.mock('../helper/lineupHelper.js', () => ({ autoFillLineup: vi.fn(), trimExces
 
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
-import { getAllTrainingAreaLevels, getAllFitnessStudioLevels, getAllYouthAcademyLevels } from '../helper/buildingHelper.js'
+import { getAllTrainingAreaLevels, getAllFitnessStudioLevels, getAllYouthAcademyLevels, getAllMedicalPracticeLevels, MEDICAL_PRACTICE_CARD_CHANCES } from '../helper/buildingHelper.js'
 import { actionCardChances } from '../helper/actionCardHelper.js'
 import { _giveUsersActionCards } from '../play-game-day.js'
 
@@ -113,11 +115,51 @@ describe('_giveUsersActionCards - guaranteed youth player card', () => {
     getAllTrainingAreaLevels.mockResolvedValue(new Map())
     getAllFitnessStudioLevels.mockResolvedValue(new Map())
     getAllYouthAcademyLevels.mockResolvedValue(new Map())
+    getAllMedicalPracticeLevels.mockResolvedValue(new Map())
     // Reset the chances mutated by the per-season cap / hold-limit tests.
     actionCardChances.NEW_YOUTH_PLAYER_1 = 0
     actionCardChances.NEW_YOUTH_PLAYER_2 = 0
     actionCardChances.NEW_YOUTH_PLAYER_3 = 0
     actionCardChances.FILLER = 1
+    actionCardChances.MEDICAL_TREATMENT = 0
+    MEDICAL_PRACTICE_CARD_CHANCES[0] = {}
+    MEDICAL_PRACTICE_CARD_CHANCES[1] = {}
+  })
+
+  describe('medical practice', () => {
+    it('deals no treatment card to a team without the practice', async () => {
+      // Nothing overrides the base chance of 0, so the card cannot drop at all.
+      const inserts = setupMocks({ teams: [{ id: 42 }], teamIdsWithYouth: [42] })
+
+      await _giveUsersActionCards()
+
+      expect(inserts.filter(i => i.value.action === 'MEDICAL_TREATMENT')).toHaveLength(0)
+    })
+
+    it('deals treatment cards once the practice is built', async () => {
+      MEDICAL_PRACTICE_CARD_CHANCES[1] = { MEDICAL_TREATMENT: 1 }
+      getAllMedicalPracticeLevels.mockResolvedValue(new Map([[42, 1]]))
+      const inserts = setupMocks({ teams: [{ id: 42 }], teamIdsWithYouth: [42] })
+
+      await _giveUsersActionCards()
+
+      const treatments = inserts.filter(i => i.value.action === 'MEDICAL_TREATMENT')
+      expect(treatments).toHaveLength(1)
+      expect(treatments[0].value).toMatchObject({ team_id: 42, state: 'pending', played: 0, season: SEASON })
+    })
+
+    it('leaves a team that has not built it alone even when a neighbour has', async () => {
+      MEDICAL_PRACTICE_CARD_CHANCES[1] = { MEDICAL_TREATMENT: 1 }
+      getAllMedicalPracticeLevels.mockResolvedValue(new Map([[42, 1], [43, 0]]))
+      const inserts = setupMocks({ teams: [{ id: 42 }, { id: 43 }], teamIdsWithYouth: [42, 43] })
+
+      await _giveUsersActionCards()
+
+      const teamsTreated = inserts
+        .filter(i => i.value.action === 'MEDICAL_TREATMENT')
+        .map(i => i.value.team_id)
+      expect(teamsTreated).toEqual([42])
+    })
   })
 
   it('guarantees a NEW_YOUTH_PLAYER_1 card for a team with no youth player and no youth card this season', async () => {

@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   BUILDING_PLOTS,
+  BUILDING_VIEWS,
   buildFitnessStudio,
+  buildMedicalPractice,
   buildTrainingArea,
   buildYouthAcademy,
+  buildingSnapshotView,
   clubBuildingPlots
 } from '../../partials/clubBuildingsScene.js'
 
@@ -90,11 +93,47 @@ describe('clubBuildingPlots', () => {
   it('lands every plot boundary exactly on the sidewalk kerb', () => {
     // Half a road plus the sidewalk — so the training ground's fence, which is
     // its plot boundary, runs right along the kerb on both road-facing sides.
-    const plots = plotsFor(Object.keys(BUILDING_PLOTS).map(type => ({ type, level: 1 })))
+    // A plot placed `beside` another one only borders a road on one side; the
+    // other is checked below.
+    const plots = plotsFor(Object.keys(BUILDING_PLOTS)
+      .filter(type => !BUILDING_PLOTS[type].beside)
+      .map(type => ({ type, level: 1 })))
     for (const p of plots) {
       expect(Math.abs(p.cx - INTERSECTION.x) - p.halfX).toBeCloseTo(CLEARANCE)
       expect(Math.abs(p.cz - INTERSECTION.z) - p.halfZ).toBeCloseTo(CLEARANCE)
     }
+  })
+
+  it('puts the medical practice west of the gym, on the same kerb', () => {
+    const [gym, practice] = plotsFor([
+      { type: 'fitness_studio', level: 3 },
+      { type: 'medical_practice', level: 1 }
+    ])
+    // Its east edge is the gym's west edge — the two plots abut.
+    expect(practice.cx + practice.halfX).toBeCloseTo(gym.cx - gym.halfX)
+    // …and their south edges land on the very same kerb, so both front the same
+    // street.
+    expect(practice.cz + practice.halfZ).toBeCloseTo(gym.cz + gym.halfZ)
+    expect(Math.abs(practice.cz - INTERSECTION.z) - practice.halfZ).toBeCloseTo(CLEARANCE)
+  })
+
+  it('only marks the practice\'s street side as bordering a road', () => {
+    const [practice] = plotsFor([{ type: 'medical_practice', level: 1 }])
+    expect(practice.roadSides).toEqual({ x: false, z: true })
+    // The three plots on the crossing itself border one on both sides.
+    const [gym] = plotsFor([{ type: 'fitness_studio', level: 1 }])
+    expect(gym.roadSides).toEqual({ x: true, z: true })
+  })
+
+  it('leaves the practice clear of the west ring road at the smallest stadium', () => {
+    // The roads only move outward as the stands grow, so the tightest case is
+    // `CONFIG.road.minDistance` (42): the practice must still fit between the
+    // gym's plot and the west road's kerb.
+    const distance = 42
+    const [practice] = plotsFor(
+      [{ type: 'medical_practice', level: 1 }], { x: distance, z: -distance }
+    )
+    expect(practice.cx - practice.halfX).toBeGreaterThanOrEqual(-distance + CLEARANCE)
   })
 
   it('never puts a plot in the stadium quadrant (-x / +z of the crossing)', () => {
@@ -103,9 +142,15 @@ describe('clubBuildingPlots', () => {
     }
   })
 
-  it('gives each building its own quadrant', () => {
-    const quadrants = Object.values(BUILDING_PLOTS).map(d => `${d.quadrant.x},${d.quadrant.z}`)
+  it('gives each building on the crossing its own quadrant', () => {
+    // Only three quadrants are free (the fourth is the stadium), so anything past
+    // the third has to say which plot it stands `beside` instead.
+    const corners = Object.values(BUILDING_PLOTS).filter(d => !d.beside)
+    const quadrants = corners.map(d => `${d.quadrant.x},${d.quadrant.z}`)
     expect(new Set(quadrants).size).toBe(quadrants.length)
+    for (const def of Object.values(BUILDING_PLOTS)) {
+      if (def.beside) expect(BUILDING_PLOTS[def.beside]).toBeDefined()
+    }
   })
 
   it('clamps the level to the buildable 1-3 range', () => {
@@ -118,6 +163,76 @@ describe('clubBuildingPlots', () => {
     const far = plotsFor([{ type: 'training_area', level: 1 }], { x: 80, z: -80 })[0]
     expect(far.cx - near.cx).toBe(35)
     expect(far.cz - near.cz).toBe(-35)
+  })
+})
+
+/**
+ * The framing of a single building's portrait — the still the buildings page puts
+ * on its card, cropped out of the same scene the canvas above it shows. Pure
+ * geometry, so no scene is needed here.
+ */
+describe('buildingSnapshotView', () => {
+  const TYPES = Object.keys(BUILDING_PLOTS)
+  const plotFor = (type) => plotsFor([{ type, level: 3 }])[0]
+  const distanceOf = ({ position, target }) =>
+    Math.hypot(position.x - target.x, position.y - target.y, position.z - target.z)
+
+  it('stands over the plot corner that faces the crossing, looking down', () => {
+    // That is the corner the two roads and the sidewalk are on, so the camera
+    // looks at the front of the building instead of at its back.
+    for (const type of TYPES) {
+      const plot = plotFor(type)
+      const { position, target } = buildingSnapshotView(plot)
+      expect(Math.sign(position.x - target.x)).toBe(-plot.qx)
+      expect(Math.sign(position.z - target.z)).toBe(-plot.qz)
+      expect(position.y).toBeGreaterThan(target.y)
+    }
+  })
+
+  it('aims at the building, not at the middle of its plot', () => {
+    for (const type of TYPES) {
+      const plot = plotFor(type)
+      const { target } = buildingSnapshotView(plot)
+      // Somewhere on the plot, at the height the building is looked at.
+      expect(Math.abs(target.x - plot.cx)).toBeLessThan(plot.halfX)
+      expect(Math.abs(target.z - plot.cz)).toBeLessThan(plot.halfZ)
+      expect(target.y).toBeGreaterThan(0)
+    }
+    // The gym's hall sits in the west end of its plot, the car park east of it —
+    // so the still is aimed away from the plot centre, at the hall.
+    const gym = plotFor('fitness_studio')
+    expect(buildingSnapshotView(gym).target.x).toBeLessThan(gym.cx)
+  })
+
+  it('keeps the whole framed subject in view on any aspect ratio', () => {
+    for (const type of TYPES) {
+      for (const aspect of [0.6, 1, 1.6, 2.4]) {
+        const view = buildingSnapshotView(plotFor(type), { aspect, fov: 45 })
+        const vertical = (45 * Math.PI / 180) / 2
+        const half = Math.min(vertical, Math.atan(Math.tan(vertical) * aspect))
+        // What the frame covers at the subject's distance has to reach around it.
+        expect(distanceOf(view) * Math.sin(half))
+          .toBeGreaterThanOrEqual(BUILDING_VIEWS[type].radius)
+      }
+    }
+  })
+
+  it('backs off further for a bigger subject and for a narrower frame', () => {
+    // The whole training ground needs more room than the gym's single hall…
+    expect(distanceOf(buildingSnapshotView(plotFor('training_area'))))
+      .toBeGreaterThan(distanceOf(buildingSnapshotView(plotFor('fitness_studio'))))
+    // …and a portrait-shaped still is limited by its width, not its height.
+    const plot = plotFor('youth_academy')
+    expect(distanceOf(buildingSnapshotView(plot, { aspect: 0.5 })))
+      .toBeGreaterThan(distanceOf(buildingSnapshotView(plot, { aspect: 1.6 })))
+  })
+
+  it('frames the plot itself for a building without a view of its own', () => {
+    const plot = { type: 'spaceport', cx: 100, cz: -100, halfX: 30, halfZ: 20, qx: 1, qz: -1 }
+    const view = buildingSnapshotView(plot)
+    expect(view.target.x).toBe(plot.cx)
+    expect(view.target.z).toBe(plot.cz)
+    expect(distanceOf(view)).toBeGreaterThan(plot.halfX)
   })
 })
 
@@ -1113,5 +1228,199 @@ describe('buildYouthAcademy', () => {
     for (const level of [undefined, 0, 99]) {
       expect(() => build(level)).not.toThrow()
     }
+  })
+})
+
+/**
+ * The medical practice: a single-level block west of the gym, fronted by a
+ * colonnade with a driveway beside it, a lit red cross on the facade, a dish on
+ * the roof and an ambulance whose beacon blinks. There are no levels to compare,
+ * so these check the parts are all there, in the right place, and that the beacon
+ * actually alternates over time.
+ */
+describe('buildMedicalPractice', () => {
+  const build = () => {
+    const THREE = stubThree()
+    const scene = { add: () => {} }
+    const result = buildMedicalPractice(THREE, scene, { x: -160, z: -100, sidewalkWidth: 3 })
+    return { THREE, result }
+  }
+
+  const PLOT = BUILDING_PLOTS.medical_practice.size
+  // Nothing else in the whole scene uses this red or this blue, so the material
+  // colour alone identifies the cross and the beacon.
+  const crossOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[1]?.type === 'MeshBasicMaterial' &&
+    o.args[1].args[0]?.color === 0xe62222)
+  const beaconLensesOf = (THREE) => THREE.created.filter(o =>
+    o.type === 'Mesh' && o.args[0]?.type === 'SphereGeometry' &&
+    o.args[1]?.args[0]?.color === 0x2f6fff)
+
+  it('takes no level: the practice is built or it is not', () => {
+    expect(BUILDING_PLOTS.medical_practice.beside).toBe('fitness_studio')
+    // Every other builder needs a level; this one must not care what it gets.
+    const THREE = stubThree()
+    const scene = { add: () => {} }
+    for (const level of [undefined, 0, 1, 99]) {
+      expect(() => buildMedicalPractice(THREE, scene, { level, x: 0, z: 0 })).not.toThrow()
+    }
+  })
+
+  it('stands a flat-roofed block on the plot with a parapet round the roof', () => {
+    const { THREE } = build()
+    // The walls are the only 5.6-high box.
+    const walls = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' && o.args[0].args[1] === 5.6)
+    expect(walls).toBeDefined()
+    const roof = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' && o.args[0].args[1] === 0.24)
+    expect(roof.position.y).toBeGreaterThan(walls.args[0].args[1])
+    // Two parapet walls along x, two along z — the 0.16-thin ones in the roof
+    // trim colour.
+    expect(THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' &&
+      o.args[0].args[1] === 0.6 &&
+      (o.args[0].args[0] === 0.16 || o.args[0].args[2] === 0.16)
+    )).toHaveLength(4)
+  })
+
+  it('hangs the lit red cross over the entrance, above the colonnade roof', () => {
+    const { THREE, result } = build()
+    const bars = crossOf(THREE)
+    expect(bars).toHaveLength(2)
+
+    // Centred over the walk below it, so cross, entrance and colonnade line up.
+    for (const bar of bars) expect(bar.position.x).toBeCloseTo(result.entrance.x)
+
+    // Clear of the colonnade's roof slab, which would otherwise hide it: the
+    // cross's bottom edge starts above the slab's top.
+    const slab = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' && o.args[0].args[1] === 0.26)
+    const slabTop = slab.position.y + 0.13
+    const span = Math.max(...bars.map(b => Math.max(b.args[0].args[0], b.args[0].args[1])))
+    expect(bars[0].position.y - span / 2).toBeGreaterThan(slabTop)
+    // …and below the top of the wall.
+    expect(bars[0].position.y + span / 2).toBeLessThanOrEqual(0.3 + 5.6)
+
+    // Lit for real: a red point light in front of it.
+    const light = THREE.created.find(o => o.type === 'PointLight' && o.args[0] === 0xe62222)
+    expect(light).toBeDefined()
+    expect(light.position.z).toBeGreaterThan(bars[0].position.z)
+  })
+
+  it('glazes the front where the cross is not, over the ambulance bay', () => {
+    const { THREE, result } = build()
+    const glass = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[1]?.args[0]?.opacity === 0.28)
+    // Front, east and west facades.
+    expect(glass).toHaveLength(3)
+    const [, driveway] = result.openings
+    // The front pane sits on the driveway's half of the facade, not under the
+    // colonnade — which is where the cross hangs.
+    const front = glass.find(g => g.args[0].args[0] > g.args[0].args[2])
+    expect(front.position.x).toBeGreaterThan(0)
+    expect(Math.abs(front.position.x - driveway.x)).toBeLessThan(2)
+  })
+
+  it('puts a satellite dish on the roof, aimed at the sky', () => {
+    const { THREE } = build()
+    // A part-sphere is a dish and nothing else on this plot.
+    const bowl = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'SphereGeometry' && o.args[0].args[6] < Math.PI)
+    expect(bowl).toBeDefined()
+    const dish = bowl.parent
+    expect(dish.rotation.x).toBeGreaterThan(0)
+    expect(dish.rotation.y).not.toBe(0)
+    // Above the roof slab, not on the ground.
+    expect(dish.position.y).toBeGreaterThan(0.3 + 5.6)
+    // …and *on* the roof rather than beside it: both axes stay inside the
+    // block's 14x9 footprint, with room for the bowl's rim.
+    expect(Math.abs(dish.position.x)).toBeLessThan(14 / 2 - 1.1)
+    expect(Math.abs(dish.position.z)).toBeLessThan(9 / 2 - 1.1)
+  })
+
+  it('leads a colonnade of round columns from the street to the entrance', () => {
+    const { THREE, result } = build()
+    const columns = THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'CylinderGeometry' && o.args[0].args[2] === 3)
+    // Five pairs, one row either side of the walk.
+    expect(columns).toHaveLength(10)
+    const xs = [...new Set(columns.map(c => c.position.x))]
+    expect(xs).toHaveLength(2)
+    // They reach from the facade out to the plot's street edge.
+    const zs = columns.map(c => c.position.z)
+    expect(Math.max(...zs)).toBeLessThanOrEqual(PLOT.z / 2)
+    expect(Math.min(...zs)).toBeGreaterThan(0)
+    // …carrying a slab, and the entrance sits at the head of the walk.
+    const slab = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' && o.args[0].args[1] === 0.26)
+    expect(slab).toBeDefined()
+    expect(result.entrance.x).toBeCloseTo((xs[0] + xs[1]) / 2)
+  })
+
+  it('opens the plot to the street for both the colonnade and the driveway', () => {
+    const { result } = build()
+    expect(result.openings).toHaveLength(2)
+    for (const opening of result.openings) {
+      expect(opening.z).toBe(PLOT.z / 2)
+      expect(Math.abs(opening.x) + opening.width / 2).toBeLessThanOrEqual(PLOT.x / 2)
+    }
+    // The driveway is the one beside the colonnade, on its east.
+    const [colonnade, driveway] = result.openings
+    expect(driveway.x).toBeGreaterThan(colonnade.x)
+  })
+
+  it('parks an ambulance in the driveway, clear of the building', () => {
+    const { THREE, result } = build()
+    // The van's box is the only 1.9-high box on the plot.
+    const body = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' && o.args[0].args[1] === 1.9)
+    expect(body).toBeDefined()
+    const [, driveway] = result.openings
+    // In the driveway's lane and between the block's front and the kerb.
+    expect(body.position.x).toBeCloseTo(driveway.x)
+    expect(body.position.z).toBeGreaterThan(0)
+    expect(body.position.z).toBeLessThan(PLOT.z / 2)
+    // Four wheels.
+    expect(THREE.created.filter(o =>
+      o.type === 'Mesh' && o.args[1]?.args[0]?.color === 0x1b1d20)).toHaveLength(4)
+
+    // The cabin is lower than the box behind it, but not by much — otherwise it
+    // reads as a flatbed rather than a van.
+    const cabin = THREE.created.find(o =>
+      o.type === 'Mesh' && o.args[0]?.type === 'BoxGeometry' && o.args[0].args[2] === 1.9)
+    const cabinHeight = cabin.args[0].args[1]
+    expect(cabinHeight).toBeLessThan(1.9)
+    expect(cabinHeight).toBeGreaterThan(1.9 * 0.7)
+  })
+
+  it('blinks the ambulance\'s beacon slowly, one side at a time', () => {
+    const { THREE, result } = build()
+    const [left, right] = beaconLensesOf(THREE)
+    expect(beaconLensesOf(THREE)).toHaveLength(2)
+
+    // Always exactly one side lit, never both and never neither.
+    for (const time of [0.5, 3, 6, 9, 12, 15]) {
+      result.update(time)
+      expect(left.visible).not.toBe(right.visible)
+    }
+
+    // Slow: it has not swapped back within a second (~3 units of animation time).
+    result.update(0.5)
+    const first = left.visible
+    result.update(2.5)
+    expect(left.visible).toBe(first)
+    // …but it does swap over a few seconds.
+    result.update(8)
+    expect(left.visible).toBe(!first)
+  })
+
+  it('frames its portrait on the front, over the street corner', () => {
+    const view = BUILDING_VIEWS.medical_practice
+    expect(view.z).toBeGreaterThan(0) // the street side, not the back
+    const [plot] = clubBuildingPlots([{ type: 'medical_practice', level: 1 }], INTERSECTION, CLEARANCE)
+    const { position, target } = buildingSnapshotView(plot)
+    expect(Math.sign(position.x - target.x)).toBe(-plot.qx)
+    expect(Math.sign(position.z - target.z)).toBe(-plot.qz)
   })
 })

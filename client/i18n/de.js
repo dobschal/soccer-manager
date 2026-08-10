@@ -887,6 +887,9 @@ export default {
   'actionCards.whichPlayerLevelUp': 'Welcher Spieler soll ein Level-Up erhalten?',
   'actionCards.whichPlayerStar': 'Welcher Spieler soll Starspieler werden?',
   'actionCards.starPlayerSuccess': '{playerName} ist jetzt ein Starspieler!',
+  'actionCards.whichPlayerMedical': 'Welcher verletzte Spieler soll behandelt werden?',
+  'actionCards.medicalTreatmentSuccess': '{playerName} wurde behandelt – ein Spieltag weniger Ausfall!',
+  'actionCards.noInjuredPlayer': 'Aktuell ist niemand verletzt – behalte die Karte für den Fall.',
   // Card Claim Overlay
   'actionCards.claim.tapToReveal': 'Tippe auf die Karte, um sie aufzudecken!',
   'actionCards.claim.tapToContinue': 'Tippe, um fortzufahren!',
@@ -976,6 +979,8 @@ export default {
   'actionCards.type.motivatingSpeechDesc': 'Gibt deinem gesamten Team einen 10% Level-Boost für den nächsten Spieltag.',
   'actionCards.type.spy': 'Spion',
   'actionCards.type.spyDesc': 'Deckt Taktik und Aufstellung eines beliebigen Teams auf. Ideal, um deinen nächsten Gegner auszukundschaften.',
+  'actionCards.type.medicalTreatment': 'Medizinische Behandlung',
+  'actionCards.type.medicalTreatmentDesc': 'Verkürzt die Verletzung eines Spielers um einen Spieltag. Benötigt eine Arztpraxis.',
   'actionCards.motivatingSpeechSuccess': 'Dein Team ist motiviert! +10% Stärke für den nächsten Spieltag!',
 
   // Action card SVG text (rendered on the cards themselves)
@@ -1016,6 +1021,10 @@ export default {
   'actionCards.svg.spy.body1': 'Enthülle Taktik und',
   'actionCards.svg.spy.body2': 'Aufstellung jedes Teams',
   'actionCards.svg.spy.footer': 'SPIONAGE-BERICHT',
+  'actionCards.svg.medicalTreatment.title': 'MEDIZINISCHE BEHANDLUNG',
+  'actionCards.svg.medicalTreatment.body1': 'Behandle einen verletzten',
+  'actionCards.svg.medicalTreatment.body2': 'Spieler und verkürze den Ausfall',
+  'actionCards.svg.medicalTreatment.footer': '-1 SPIELTAG',
   'spy.title': 'Spion',
   'spy.subtitle': 'Kundschafte Taktik und Aufstellung eines Teams aus',
   'spy.searchPlaceholder': 'Nach einem Team suchen…',
@@ -1147,9 +1156,10 @@ export default {
   'tutorial.buildingsPage.item2': 'Das Fitnessstudio verbessert die Fitness-Karten pro Spieltag',
   'tutorial.buildingsPage.item3': 'Höhere Gebäudestufen schalten seltenere und stärkere Karten frei',
   'tutorial.buildingsPage.item4': 'Ausbauten kosten Geld und dauern mehrere Spieltage',
-  'tutorial.buildingsPage.item5': 'Jedes Gebäude kann bis auf Stufe 3 ausgebaut werden',
+  'tutorial.buildingsPage.item5': 'Die drei ausbaubaren Gebäude reichen bis Stufe 3',
   'tutorial.buildingsPage.item6': 'Die Jugendakademie liefert bessere Jugendspieler-Karten und mehr Trainings-Slots',
-  'tutorial.buildingsPage.item7': 'Die 3D-Ansicht oben zeigt dein Vereinsgelände – alle drei Gebäude wachsen dort mit jeder Stufe sichtbar mit',
+  'tutorial.buildingsPage.item7': 'Die Arztpraxis hat nur eine Stufe: einmal bauen, dann Verletzungen mit ihren Behandlungskarten um je einen Spieltag verkürzen',
+  'tutorial.buildingsPage.item8': 'Die 3D-Ansicht oben zeigt dein Vereinsgelände – jedes Gebäude wächst dort mit seiner Stufe sichtbar mit',
 
   // Log Messages
   'log.title': 'Nachrichten',
@@ -1303,7 +1313,7 @@ export default {
 
   // Buildings
   'buildings.title': 'Gebäude',
-  'buildings.pageDesc': 'Baue Trainingsgelände, Fitnessstudio und Jugendakademie aus, um bessere Aktionskarten für Entwicklung, Erholung und Rekrutierung deiner Spieler freizuschalten.',
+  'buildings.pageDesc': 'Baue Trainingsgelände, Fitnessstudio und Jugendakademie aus und errichte eine Arztpraxis, um bessere Aktionskarten für Entwicklung, Erholung, Rekrutierung und Heilung deiner Spieler freizuschalten.',
   'buildings.trainingArea': 'Trainingsgelände',
   'buildings.level': 'Stufe {level}',
   'buildings.maxLevel': 'Maximale Stufe',
@@ -1345,6 +1355,16 @@ export default {
   'buildings.youthLevel1Desc': 'Einfache Jugendakademie. Ca. 2 Nachwuchsspieler-Karten pro Saison (Level 1-5).',
   'buildings.youthLevel2Desc': 'Mittelmäßige Jugendakademie. Ca. 3 Karten pro Saison – schaltet "Nachwuchstalent" frei (Level 5-10).',
   'buildings.youthLevel3Desc': 'Elite-Jugendakademie. Ca. 4 Karten pro Saison – schaltet "Nachwuchsstar" frei (Level 10-15).',
+
+  // Arztpraxis – das einzige Gebäude mit nur einer Stufe: gebaut oder nicht.
+  'buildings.medicalPractice': 'Arztpraxis',
+  'buildings.medicalLevel0Desc': 'Keine Arztpraxis. Verletzte Spieler fallen die komplette Zeit aus.',
+  'buildings.medicalLevel1Desc': 'Eigene Arztpraxis. Ca. 1,5 "Medizinische Behandlung"-Karten pro Saison, jede verkürzt die Verletzung eines Spielers um einen Spieltag.',
+  'buildings.build': 'Bauen',
+  'buildings.built': 'Gebaut',
+  'buildings.buildConfirmTitle': '{buildingName} bauen?',
+  'buildings.buildStarted': 'Bau gestartet!',
+  'buildings.singleLevel': 'Dieses Gebäude hat nur eine Stufe und kann nicht weiter ausgebaut werden.',
 
   // Forum
   'forum.title': 'Forum',

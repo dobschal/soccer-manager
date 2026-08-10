@@ -1,5 +1,5 @@
 import { getTeam } from '../helper/teamHelper.js'
-import { getBuildingsForTeam, getBuildingConstructionInfo, upgradeBuilding, BUILDING_UPGRADES, TRAINING_AREA_CARD_CHANCES, FITNESS_STUDIO_CARD_CHANCES, YOUTH_ACADEMY_CARD_CHANCES } from '../helper/buildingHelper.js'
+import { getBuildingsForTeam, getBuildingConstructionInfo, upgradeBuilding, BUILDING_UPGRADES, TRAINING_AREA_CARD_CHANCES, FITNESS_STUDIO_CARD_CHANCES, YOUTH_ACADEMY_CARD_CHANCES, MEDICAL_PRACTICE_CARD_CHANCES } from '../helper/buildingHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { BadRequestError } from '../lib/errors.js'
 import { getUserLocale, t } from '../i18n/index.js'
@@ -25,7 +25,8 @@ export default {
       upgrades: BUILDING_UPGRADES,
       cardChances: TRAINING_AREA_CARD_CHANCES,
       fitnessCardChances: FITNESS_STUDIO_CARD_CHANCES,
-      youthAcademyCardChances: YOUTH_ACADEMY_CARD_CHANCES
+      youthAcademyCardChances: YOUTH_ACADEMY_CARD_CHANCES,
+      medicalPracticeCardChances: MEDICAL_PRACTICE_CARD_CHANCES
     }
   },
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { inlineEmblemAssets, loadEmblemImage, svgDataUrl } from '../../util/emblemRaster.js'
+import { emblemTexture, inlineEmblemAssets, loadEmblemImage, svgDataUrl } from '../../util/emblemRaster.js'
 
 /**
  * The emblem goes onto the youth academy's facade through a 2D canvas, which
@@ -72,6 +72,45 @@ describe('emblemRaster', () => {
     const image = await loadEmblemImage('<svg xmlns="http://www.w3.org/2000/svg"/>')
     expect(image).toBe(images[0])
     expect(image.src.startsWith('data:image/svg+xml')).toBe(true)
+  })
+
+  it('leaves the emblem texture transparent around the emblem', async () => {
+    // A filled background would show as a lighter rectangle on the wall behind the
+    // emblem — the sign is meant to be the emblem's own outline and nothing else.
+    const calls = []
+    const ctx = {
+      fillStyle: '',
+      fillRect () { calls.push('fillRect') },
+      clearRect () { calls.push('clearRect') },
+      drawImage () { calls.push('drawImage') }
+    }
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = () => ctx
+    vi.stubGlobal('Image', class {
+      set src (value) { setTimeout(() => this.onload(), 0) }
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, text: async () => '<svg/>' }))
+
+    try {
+      const THREE = { CanvasTexture: class { constructor (source) { this.source = source } } }
+      const texture = emblemTexture(THREE, { emblemSvg: '<svg xmlns="http://www.w3.org/2000/svg"/>' })
+      expect(texture).toBeDefined()
+      expect(calls).not.toContain('fillRect')
+      await vi.waitFor(() => expect(calls).toContain('drawImage'))
+      expect(texture.needsUpdate).toBe(true)
+    } finally {
+      HTMLCanvasElement.prototype.getContext = original
+    }
+  })
+
+  it('returns nothing to hang up without a 2D canvas', () => {
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = () => null
+    try {
+      expect(emblemTexture({}, { emblemSvg: '<svg/>' })).toBeNull()
+    } finally {
+      HTMLCanvasElement.prototype.getContext = original
+    }
   })
 
   it('rejects when the SVG cannot be rasterised', async () => {
