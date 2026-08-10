@@ -9,6 +9,15 @@ import { calculateStandingForTeam } from '../helper/standingHelper.js'
 import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import { getPositionsOfFormation } from '../../client/util/formation.js'
+import {
+  activateLineup,
+  createLineup,
+  deleteLineup,
+  ensureActiveLineup,
+  getLineups,
+  renameLineup,
+  syncActiveLineup
+} from '../helper/teamLineupHelper.js'
 
 const MAX_TEAM_NAME_WORD_LENGTH = 12
 const MAX_TEAM_NAME_LENGTH = 32
@@ -266,6 +275,7 @@ export default {
       }
     }
 
+    await syncActiveLineup(team.id)
     return { success: true, captainCleared }
   },
 
@@ -291,6 +301,7 @@ export default {
     if (team.user_id) {
       sendToUser(team.user_id, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: playerId })
     }
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -306,6 +317,7 @@ export default {
     }
     const team = await getTeam(req)
     await query('UPDATE team SET pass_style=? WHERE id=?', [passStyle, team.id])
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -321,6 +333,7 @@ export default {
     }
     const team = await getTeam(req)
     await query('UPDATE team SET play_style=? WHERE id=?', [playStyle, team.id])
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -336,6 +349,7 @@ export default {
     }
     const team = await getTeam(req)
     await query('UPDATE team SET attack_mode=? WHERE id=?', [attackMode, team.id])
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -365,6 +379,7 @@ export default {
       await query('UPDATE player SET bench_position=?, bench_substitution_mode=? WHERE id=?', [benchPosition, mode, playerId])
     }
 
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -427,6 +442,7 @@ export default {
       }
     }
 
+    await syncActiveLineup(team.id)
     return { success: true, captainCleared }
   },
 
@@ -578,6 +594,7 @@ export default {
       }
     }
 
+    await syncActiveLineup(team.id)
     return { success: true, captainCleared }
   },
 
@@ -595,6 +612,7 @@ export default {
     const [player] = await query('SELECT id FROM player WHERE id=? AND team_id=?', [playerId, team.id])
     if (!player) throw new BadRequestError('Unknown player...')
     await query('UPDATE player SET bench_substitution_mode=? WHERE id=?', [substitutionMode, playerId])
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -613,6 +631,73 @@ export default {
       await query('UPDATE player SET sort_index=? WHERE id=?', [sortIndex, playerId])
     }
     return { success: true }
+  },
+
+  /**
+   * Every saved lineup of the requesting user's team, plus which one is
+   * currently loaded (#481). A team that has none yet gets one created from
+   * its current setup, so the select is never empty.
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array<{id: number, name: string, is_active: number}>, activeId: number|null}>}
+   */
+  async getMyLineups (req) {
+    const team = await getTeam(req)
+    const active = await ensureActiveLineup(team.id)
+    const lineups = await getLineups(team.id)
+    return { lineups, activeId: active?.id ?? null }
+  },
+
+  /**
+   * Create a new, empty lineup (random formation, nobody assigned) and make
+   * it active. The outgoing lineup is snapshotted first.
+   * @param {string} name
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array, activeId: number}>}
+   */
+  async createMyLineup (name, req) {
+    const team = await getTeam(req)
+    await ensureActiveLineup(team.id)
+    const { id } = await createLineup(team.id, name)
+    return { lineups: await getLineups(team.id), activeId: id }
+  },
+
+  /**
+   * Load a saved lineup into the team so the next match calculation uses it.
+   * @param {number} lineupId
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array, activeId: number}>}
+   */
+  async activateMyLineup (lineupId, req) {
+    const team = await getTeam(req)
+    await ensureActiveLineup(team.id)
+    const { id } = await activateLineup(team.id, Number(lineupId))
+    return { lineups: await getLineups(team.id), activeId: id }
+  },
+
+  /**
+   * Rename one of the team's saved lineups.
+   * @param {number} lineupId
+   * @param {string} name
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array, activeId: number|null}>}
+   */
+  async renameMyLineup (lineupId, name, req) {
+    const team = await getTeam(req)
+    await renameLineup(team.id, Number(lineupId), name)
+    const lineups = await getLineups(team.id)
+    return { lineups, activeId: lineups.find(l => l.is_active)?.id ?? null }
+  },
+
+  /**
+   * Delete a saved lineup. The last remaining one cannot be deleted.
+   * @param {number} lineupId
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array, activeId: number|null}>}
+   */
+  async deleteMyLineup (lineupId, req) {
+    const team = await getTeam(req)
+    const { activeId } = await deleteLineup(team.id, Number(lineupId))
+    return { lineups: await getLineups(team.id), activeId }
   },
 
   /**

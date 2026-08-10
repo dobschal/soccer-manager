@@ -777,3 +777,127 @@ export async function sendInactivityWarningEmail ({ toEmail, locale, username, d
     return { sent: false }
   }
 }
+
+/**
+ * Escape the few characters that could break out of an HTML text node.
+ * @param {string} value
+ * @returns {string}
+ */
+function escapeHtml (value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * Render the admin-facing user-report email. Deliberately plain: this goes to
+ * the operators, not to players, so it stays in English and shows the raw
+ * report record instead of a branded template.
+ * @param {object} args
+ * @param {string} args.reportedUsername
+ * @param {number} args.reportedUserId
+ * @param {string} args.reporterUsername
+ * @param {number} args.reporterUserId
+ * @param {string} args.reason
+ * @param {Date} args.reportedAt
+ * @returns {string}
+ */
+function renderUserReportEmailHtml ({ reportedUsername, reportedUserId, reporterUsername, reporterUserId, reason, reportedAt }) {
+  const rows = [
+    ['Time', reportedAt.toISOString()],
+    ['Reported user', `${reportedUsername} (#${reportedUserId})`],
+    ['Reported by', `${reporterUsername} (#${reporterUserId})`]
+  ].map(([label, value]) => `
+              <tr>
+                <td style="padding:6px 12px 6px 0;font-weight:bold;vertical-align:top;white-space:nowrap;">${escapeHtml(label)}</td>
+                <td style="padding:6px 0;">${escapeHtml(value)}</td>
+              </tr>`).join('')
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>User reported</title>
+  </head>
+  <body style="margin:0;padding:24px;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#222;">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background-color:#ffffff;border-radius:12px;padding:24px;">
+      <tr>
+        <td>
+          <h2 style="margin:0 0 16px 0;font-size:18px;">A user has been reported</h2>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px;">
+            ${rows}
+          </table>
+          <p style="margin:16px 0 4px 0;font-weight:bold;font-size:14px;">Reason</p>
+          <p style="margin:0;font-size:14px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(reason)}</p>
+          <p style="margin:24px 0 0 0;font-size:13px;color:#666;">
+            <a href="${config.PUBLIC_URL}/#admin?sub_page=users">Open user management</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`
+}
+
+/**
+ * Plain-text fallback for the user-report email.
+ * @param {object} args
+ * @returns {string}
+ */
+function renderUserReportEmailText ({ reportedUsername, reportedUserId, reporterUsername, reporterUserId, reason, reportedAt }) {
+  return [
+    'A user has been reported',
+    '',
+    `Time: ${reportedAt.toISOString()}`,
+    `Reported user: ${reportedUsername} (#${reportedUserId})`,
+    `Reported by: ${reporterUsername} (#${reporterUserId})`,
+    '',
+    'Reason:',
+    reason,
+    '',
+    `${config.PUBLIC_URL}/#admin?sub_page=users`
+  ].join('\n')
+}
+
+/**
+ * Notify the admins that a player reported another player (#489). Sent to
+ * `config.ADMIN_EMAIL`; failures are swallowed so a broken mailbox can never
+ * make the report itself fail.
+ * @param {object} args
+ * @param {string} args.reportedUsername
+ * @param {number} args.reportedUserId
+ * @param {string} args.reporterUsername
+ * @param {number} args.reporterUserId
+ * @param {string} args.reason
+ * @param {Date} [args.reportedAt]
+ * @returns {Promise<{ sent: boolean }>}
+ */
+export async function sendUserReportEmail ({
+  reportedUsername, reportedUserId, reporterUsername, reporterUserId, reason, reportedAt = new Date()
+}) {
+  const args = { reportedUsername, reportedUserId, reporterUsername, reporterUserId, reason, reportedAt }
+  const toEmail = config.ADMIN_EMAIL
+  if (!toEmail) {
+    console.log('[Email] ADMIN_EMAIL not configured, skipping user report notification')
+    return { sent: false }
+  }
+  const transporter = await getTransporter()
+  if (!transporter) {
+    console.log(`[Email] SMTP not configured, would send user report for "${reportedUsername}" to ${toEmail}`)
+    return { sent: false }
+  }
+  try {
+    await transporter.sendMail({
+      from: config.EMAIL_FROM,
+      to: toEmail,
+      subject: `[Report] ${reportedUsername} was reported by ${reporterUsername}`,
+      html: renderUserReportEmailHtml(args),
+      text: renderUserReportEmailText(args)
+    })
+    return { sent: true }
+  } catch (e) {
+    console.error('[Email] Failed to send user report email:', e?.message ?? e)
+    return { sent: false }
+  }
+}

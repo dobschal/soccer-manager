@@ -14,6 +14,10 @@ Jedes Team hat eine Formation mit 11 Positionen, die der Spieler mit passenden S
 - **US-LIN-06**: Als Spieler sehe ich gesperrte Spieler ausgegraut und kann sie nicht aufstellen.
 - **US-LIN-07**: Als Spieler kann ich die Reihenfolge meiner Bankspieler sortieren.
 - **US-LIN-08**: Als Spieler kann ich die vier Ersatzbank-Slots besetzen und pro Bankspieler einen Einwechsel-Modus waehlen (siehe [Player Injuries](player-injuries.md)).
+- **US-LIN-09**: Als Spieler kann ich mehrere benannte Aufstellungen speichern und ueber ein Auswahlfeld oberhalb des Spielfelds zwischen ihnen wechseln.
+- **US-LIN-10**: Als Spieler kann ich ueber "Neue Aufstellung" einen leeren Slot anlegen; ich vergebe dafuer in einem Overlay einen Namen.
+- **US-LIN-11**: Als Spieler ist immer genau eine Aufstellung aktiv, und diese wird bei der naechsten Spielberechnung verwendet.
+- **US-LIN-12**: Als Spieler kann ich eine nicht mehr benoetigte Aufstellung loeschen, solange mindestens eine uebrig bleibt.
 
 ## Verfuegbare Formationen
 
@@ -99,6 +103,28 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 - **TA-LIN-19**: Formations-Dropdown mit 10 Optionen.
 - **TA-LIN-20**: Team-Info-Karte: Gesamtgehalt, Durchschnittslevel, Durchschnittsalter, Kaderstaerke, Aufstellungsstaerke.
 
+## Gespeicherte Aufstellungen
+
+- **TA-LIN-26**: Aufstellungen liegen in `team_lineup` (Name, Formation, Passstil, Spielstil, Angriffsmodus,
+  `captain_id`, `is_active`) und `team_lineup_player` (`in_game_position`, `bench_position`,
+  `bench_substitution_mode` je Spieler). Logik in `server/helper/teamLineupHelper.js`.
+- **TA-LIN-27**: Die aktive Aufstellung ist eine **Kopie** des Live-Zustands, nicht dessen Quelle. Spielberechnung,
+  Auto-Fill und Bot-Logik lesen weiterhin `team.formation` und `player.in_game_position`.
+- **TA-LIN-28**: Write-Through: `syncActiveLineup(teamId)` schreibt den kompletten aktuellen Team-Zustand in die
+  aktive Aufstellung. Aufgerufen am Ende von `saveLineup`, `saveBench`, `assignBenchPlayer`, `swapLineupPlayer`,
+  `setCaptain`, `updatePassStyle`, `updatePlayStyle`, `updateAttackMode` und `updateBenchSubstitutionMode`.
+  Ein voller Snapshot statt Deltas — dadurch kann die gespeicherte Aufstellung nie auseinanderlaufen.
+- **TA-LIN-29**: Beim Aktivieren wird zuerst die ausgehende Aufstellung gesichert, dann der Snapshot angewendet.
+  Nicht mehr im Kader vorhandene Spieler und Slots, die es in der Formation nicht (mehr) gibt, werden verworfen;
+  ein Kapitaen ausserhalb der Startelf wird geloescht.
+- **TA-LIN-30**: Eine neue Aufstellung startet mit zufaelliger Formation, ohne aufgestellte Spieler und mit den
+  Taktik-Standardwerten (`mixed` / `normal` / `balanced`).
+- **TA-LIN-31**: Maximal `MAX_TEAM_LINEUPS` (10) Aufstellungen pro Team, Name maximal 40 Zeichen.
+- **TA-LIN-32**: `ensureActiveLineup` legt fuer Teams ohne Aufstellung lazily eine aus dem aktuellen Zustand an —
+  relevant fuer Teams, die nach der Seeding-Migration entstanden sind oder von einem Bot uebernommen wurden.
+- **TA-LIN-33**: API: `getMyLineups`, `createMyLineup(name)`, `activateMyLineup(id)`, `renameMyLineup(id, name)`,
+  `deleteMyLineup(id)`.
+
 ## Mindestteamgroesse
 
 - **TA-LIN-21**: Ein Team muss zu jeder Zeit mindestens 14 Spieler haben (`MIN_TEAM_SIZE` in `server/helper/playerHelper.js`).
@@ -121,3 +147,6 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 - Formationswechsel loescht Positionen
 - Taktik-Einstellungen validieren
 - Mindestteamgroesse beim Entlassen und bei Transfers
+- Gespeicherte Aufstellungen: Snapshot/Restore, verkaufte Spieler und unbekannte Slots werden verworfen,
+  Kapitaen wird bei Bedarf geloescht, Lineup-Obergrenze, letzte Aufstellung kann nicht geloescht werden,
+  Write-Through aus allen mutierenden Endpunkten

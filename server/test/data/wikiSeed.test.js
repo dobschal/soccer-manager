@@ -7,7 +7,7 @@ const MAX_SUBTITLE = 255
 
 describe('wiki seed content (#441)', () => {
   it('covers all requested topics in both locales', () => {
-    expect(WIKI_SEED).toHaveLength(28)
+    expect(WIKI_SEED).toHaveLength(29)
   })
 
   it('documents the fair-play rules so sanctions are not a surprise', () => {
@@ -19,6 +19,28 @@ describe('wiki seed content (#441)', () => {
     expect(topic.en.text).toMatch(/75%/)
     expect(topic.de.text).toMatch(/Zweit-Account/i)
     expect(topic.de.text).toMatch(/75%/)
+  })
+
+  it('documents the daily login cycle and its four milestones (#501)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'daily-login')
+    expect(topic).toBeTruthy()
+    for (const locale of LOCALES) {
+      for (const day of ['3', '7', '15', '30']) {
+        expect(topic[locale].text).toContain(day)
+      }
+    }
+  })
+
+  it('explains the automatic bot bids on aged card offers (#505)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'action-card-market')
+    expect(topic.en.text).toMatch(/24 hours/i)
+    expect(topic.de.text).toMatch(/24 Stunden/i)
+  })
+
+  it('explains saved lineups on the lineup page (#481)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'lineup')
+    expect(topic.en.text).toMatch(/Saved lineups/i)
+    expect(topic.de.text).toMatch(/Gespeicherte Aufstellungen/i)
   })
 
   it('every topic has a unique, kebab-case page key (#456)', () => {

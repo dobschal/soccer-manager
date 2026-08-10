@@ -19,5 +19,7 @@ export const config = {
   SMTP_PASS: process.env.SMTP_PASS || '',
   SMTP_SECURE: process.env.SMTP_SECURE === 'true',
   EMAIL_FROM: process.env.EMAIL_FROM || 'no-reply@footballmanager.io',
+  // Where operational notifications that need a human (e.g. user reports) go.
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'info@footballmanager.io',
   PUBLIC_URL: process.env.PUBLIC_URL || 'https://footballmanager.io'
 }

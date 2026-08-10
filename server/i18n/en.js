@@ -142,6 +142,7 @@ export default {
   'log.offerReceived': 'You received an offer of {price} for {playerName} from {fromTeam}.',
   'log.offerAccepted': 'Your offer for {playerName} has been accepted!',
   'log.cardBidReceived': '{team} placed a bid on one of your action-card offers.',
+  'log.botCardBidComment': 'Automatic offer for a card that has been listed for over 24 hours.',
   'log.cardTradeSold': 'Your action-card trade with {team} was completed.',
   'log.cardTradeBought': 'Your bid was accepted — you traded action cards with {team}.',
   'log.offerRejected': 'Your offer for {playerName} has been rejected.',

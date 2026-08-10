@@ -12,7 +12,7 @@ export class UserManagementAdminPage extends UIElement {
   async load () {
     const [adminsRes, suspiciousRes, referralRes, reportsRes, blockedRes] = await Promise.all([
       server.getAdmins(),
-      server.getSuspiciousActions(this._suspiciousPage, SUSPICIOUS_PAGE_SIZE),
+      server.getSuspiciousActions(this._suspiciousPage, SUSPICIOUS_PAGE_SIZE, this._suspiciousType, this._suspiciousSearch),
       server.getReferralSettings(),
       server.getReportedUsers(),
       server.getBlockedEmails()
@@ -21,6 +21,7 @@ export class UserManagementAdminPage extends UIElement {
     this._suspicious = suspiciousRes.rows
     this._suspiciousTotal = suspiciousRes.total
     this._suspiciousPageSize = suspiciousRes.pageSize
+    this._suspiciousTypes = suspiciousRes.types || []
     this._referralAction = referralRes.action
     this._referralOptions = referralRes.options || []
     this._reports = reportsRes.reports || []
@@ -107,11 +108,26 @@ export class UserManagementAdminPage extends UIElement {
       [`#${this._referralBenefitBtnId}`]: {
         click: () => this._saveReferralBenefit()
       },
-      [`(optional)#${this._suspiciousPrevBtnId}`]: {
-        click: () => this._goToSuspiciousPage(this._suspiciousPage - 1)
+      // Delegated: the pagination buttons live inside a container whose
+      // innerHTML is swapped on every filter change, so listeners bound
+      // directly to the buttons would not survive.
+      [`#${this._suspiciousResultsId}`]: {
+        click: (e) => {
+          if (e.target.closest('.suspicious-prev-btn')) this._goToSuspiciousPage(this._suspiciousPage - 1)
+          else if (e.target.closest('.suspicious-next-btn')) this._goToSuspiciousPage(this._suspiciousPage + 1)
+        }
       },
-      [`(optional)#${this._suspiciousNextBtnId}`]: {
-        click: () => this._goToSuspiciousPage(this._suspiciousPage + 1)
+      [`#${this._suspiciousTypeSelectId}`]: {
+        change: (e) => this._applySuspiciousFilter({ type: e.target.value })
+      },
+      [`#${this._suspiciousSearchInputId}`]: {
+        input: (e) => {
+          const value = e.target.value
+          clearTimeout(this._suspiciousSearchDebounce)
+          this._suspiciousSearchDebounce = setTimeout(() => {
+            this._applySuspiciousFilter({ search: value })
+          }, 300)
+        }
       },
       '(optional).report-resolve-btn': {
         click: (e) => this._resolveReport(e.currentTarget.dataset.reportId)
@@ -286,7 +302,41 @@ export class UserManagementAdminPage extends UIElement {
       </div>
     `
   }
+  /**
+   * Section wrapper. The filter controls live outside `#_suspiciousResultsId`
+   * on purpose: filtering re-renders only the results container, so the search
+   * input keeps its focus and caret while the admin types (#488).
+   * @returns {string}
+   */
   _renderSuspiciousActions () {
+    return `
+      <div class="mb-4">
+        <h4>${t('admin.suspiciousActionsTitle')}</h4>
+        <p class="text-muted">${t('admin.suspiciousActionsDescription')}</p>
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-5">
+            <select id="${this._suspiciousTypeSelectId}" class="form-select form-select-sm">
+              <option value="">${t('admin.suspiciousFilterAllTypes')}</option>
+              ${this._suspiciousTypes.map(type => `
+                <option value="${type}" ${type === this._suspiciousType ? 'selected' : ''}>${t('admin.suspiciousType.' + type)}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div class="col-12 col-md-7">
+            <input type="text" id="${this._suspiciousSearchInputId}" class="form-control form-control-sm"
+                   placeholder="${t('admin.suspiciousFilterSearchPlaceholder')}" value="${this._suspiciousSearch}">
+          </div>
+        </div>
+        <div id="${this._suspiciousResultsId}">${this._renderSuspiciousResults()}</div>
+      </div>
+    `
+  }
+
+  /**
+   * The filtered result set: count, table and pagination.
+   * @returns {string}
+   */
+  _renderSuspiciousResults () {
     const totalPages = Math.max(1, Math.ceil(this._suspiciousTotal / this._suspiciousPageSize))
     const currentPage = Math.min(this._suspiciousPage, totalPages)
     const isFirstPage = currentPage <= 1
@@ -301,36 +351,64 @@ export class UserManagementAdminPage extends UIElement {
       </tr>
     `).join('')
 
+    if (this._suspicious.length === 0) {
+      return `<p class="text-muted">${t('admin.suspiciousActionsEmpty')}</p>`
+    }
     return `
-      <div class="mb-4">
-        <h4>${t('admin.suspiciousActionsTitle')} (${this._suspiciousTotal})</h4>
-        <p class="text-muted">${t('admin.suspiciousActionsDescription')}</p>
-        ${this._suspicious.length > 0 ? `
-          <div class="horizontal-scrollable-table">
-            <table class="table table-sm table-hover mb-0">
-              <thead>
-                <tr>
-                  <th>${t('admin.suspiciousActionsTime')}</th>
-                  <th>${t('admin.suspiciousActionsDescriptionColumn')}</th>
-                  <th>${t('admin.suspiciousActionsUser1')}</th>
-                  <th>${t('admin.suspiciousActionsUser2')}</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-          <div class="d-flex align-items-center justify-content-between mt-3">
-            <button id="${this._suspiciousPrevBtnId}" class="btn btn-sm btn-outline-secondary" ${isFirstPage ? 'disabled' : ''}>
-              <i class="fa fa-chevron-left" aria-hidden="true"></i> ${t('admin.paginationPrev')}
-            </button>
-            <span class="text-muted">${t('admin.paginationPage', { page: currentPage, total: totalPages })}</span>
-            <button id="${this._suspiciousNextBtnId}" class="btn btn-sm btn-outline-secondary" ${isLastPage ? 'disabled' : ''}>
-              ${t('admin.paginationNext')} <i class="fa fa-chevron-right" aria-hidden="true"></i>
-            </button>
-          </div>
-        ` : `<p class="text-muted">${t('admin.suspiciousActionsEmpty')}</p>`}
+      <p class="text-muted small">${t('admin.suspiciousActionsCount', { total: this._suspiciousTotal })}</p>
+      <div class="horizontal-scrollable-table">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th>${t('admin.suspiciousActionsTime')}</th>
+              <th>${t('admin.suspiciousActionsDescriptionColumn')}</th>
+              <th>${t('admin.suspiciousActionsUser1')}</th>
+              <th>${t('admin.suspiciousActionsUser2')}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="d-flex align-items-center justify-content-between mt-3">
+        <button class="btn btn-sm btn-outline-secondary suspicious-prev-btn" ${isFirstPage ? 'disabled' : ''}>
+          <i class="fa fa-chevron-left" aria-hidden="true"></i> ${t('admin.paginationPrev')}
+        </button>
+        <span class="text-muted">${t('admin.paginationPage', { page: currentPage, total: totalPages })}</span>
+        <button class="btn btn-sm btn-outline-secondary suspicious-next-btn" ${isLastPage ? 'disabled' : ''}>
+          ${t('admin.paginationNext')} <i class="fa fa-chevron-right" aria-hidden="true"></i>
+        </button>
       </div>
     `
+  }
+
+  /**
+   * Apply a filter change and reload the results from page 1 — a narrowed set
+   * makes the old page number meaningless.
+   * @param {{type?: string, search?: string}} change
+   * @returns {Promise<void>}
+   */
+  async _applySuspiciousFilter ({ type, search }) {
+    if (type !== undefined) this._suspiciousType = type
+    if (search !== undefined) this._suspiciousSearch = search
+    this._suspiciousPage = 1
+    await this._refreshSuspicious()
+  }
+
+  /**
+   * Re-fetch the suspicious actions with the current filters and swap only the
+   * results container, leaving the filter inputs (and their focus) untouched.
+   * @returns {Promise<void>}
+   */
+  async _refreshSuspicious () {
+    const res = await server.getSuspiciousActions(
+      this._suspiciousPage, SUSPICIOUS_PAGE_SIZE, this._suspiciousType, this._suspiciousSearch
+    )
+    this._suspicious = res.rows
+    this._suspiciousTotal = res.total
+    this._suspiciousPageSize = res.pageSize
+    this._suspiciousTypes = res.types || this._suspiciousTypes
+    const container = document.getElementById(this._suspiciousResultsId)
+    if (container) container.innerHTML = this._renderSuspiciousResults()
   }
 
   _formatUser (user) {
@@ -374,7 +452,7 @@ export class UserManagementAdminPage extends UIElement {
     const next = Math.max(1, Math.min(totalPages, page))
     if (next === this._suspiciousPage) return
     this._suspiciousPage = next
-    await this.update(true)
+    await this._refreshSuspicious()
   }
 
   _deleteUsernameId = generateId()
@@ -386,8 +464,10 @@ export class UserManagementAdminPage extends UIElement {
   _sendEmailBtnId = generateId()
   _referralBenefitSelectId = generateId()
   _referralBenefitBtnId = generateId()
-  _suspiciousPrevBtnId = generateId()
-  _suspiciousNextBtnId = generateId()
+  _suspiciousResultsId = generateId()
+  _suspiciousTypeSelectId = generateId()
+  _suspiciousSearchInputId = generateId()
+  _suspiciousSearchDebounce = null
   _blockEmailInputId = generateId()
   _blockEmailReasonId = generateId()
   _blockEmailBtnId = generateId()
@@ -397,6 +477,9 @@ export class UserManagementAdminPage extends UIElement {
   _suspiciousTotal = 0
   _suspiciousPage = 1
   _suspiciousPageSize = SUSPICIOUS_PAGE_SIZE
+  _suspiciousTypes = []
+  _suspiciousType = ''
+  _suspiciousSearch = ''
   _referralAction = ''
   _referralOptions = []
   _reports = []

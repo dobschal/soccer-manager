@@ -143,6 +143,7 @@ export default {
   'log.offerAccepted': 'Dein Angebot für {playerName} wurde angenommen!',
   'log.offerRejected': 'Dein Angebot für {playerName} wurde abgelehnt.',
   'log.cardBidReceived': '{team} hat auf eines deiner Aktionskarten-Angebote geboten.',
+  'log.botCardBidComment': 'Automatisches Angebot für eine Karte, die seit über 24 Stunden gelistet ist.',
   'log.cardTradeSold': 'Dein Aktionskarten-Handel mit {team} wurde abgeschlossen.',
   'log.cardTradeBought': 'Dein Gebot wurde angenommen — du hast Aktionskarten mit {team} getauscht.',
   'log.sellOfferCreated': 'Du hast ein Verkaufsangebot für {playerName} zu {price} erstellt.',

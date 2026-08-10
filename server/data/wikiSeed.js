@@ -92,6 +92,11 @@ Bidding and accepting:
 • Any cards you put into a bid are locked until the bid is accepted, rejected or cancelled; the money is only checked now and moved when the bid is accepted.
 • The offering manager picks one bid to accept. The cards and money change hands, and all competing bids are automatically rejected and returned.
 
+Automatic bot bids:
+• If nobody bids on your offer for more than 24 hours, a bot team steps in with a cash offer so your cards never sit unsold forever.
+• The amount follows a fixed price per card type (a bundle is valued as the sum of its cards) and varies by up to ±10%.
+• Each manager receives at most one bot bid per day, no matter how many offers they have listed. You are free to accept or reject it like any other bid.
+
 Good to know:
 • Both sides can see a trade history of completed deals, including which cards were exchanged and the money delta.
 • You'll be notified live when the offers or bids relevant to you change.`
@@ -111,9 +116,61 @@ Bieten und annehmen:
 • Karten in einem Gebot sind gesperrt, bis es angenommen, abgelehnt oder zurückgezogen wird; das Geld wird jetzt nur geprüft und erst beim Annehmen überwiesen.
 • Der anbietende Manager wählt ein Gebot zum Annehmen aus. Karten und Geld wechseln den Besitzer, alle konkurrierenden Gebote werden automatisch abgelehnt und zurückgegeben.
 
+Automatische Bot-Gebote:
+• Bietet über 24 Stunden niemand auf dein Angebot, gibt ein Bot-Team ein Geldgebot ab, damit deine Karten nicht ewig liegen bleiben.
+• Die Höhe richtet sich nach einem festen Preis je Kartentyp (ein Bündel wird als Summe seiner Karten bewertet) und schwankt um bis zu ±10%.
+• Jeder Manager erhält höchstens ein Bot-Gebot pro Tag, egal wie viele Angebote er eingestellt hat. Du kannst es wie jedes andere Gebot annehmen oder ablehnen.
+
 Gut zu wissen:
 • Beide Seiten sehen eine Handelshistorie abgeschlossener Deals, inklusive der getauschten Karten und der Geld-Differenz.
 • Du wirst live benachrichtigt, wenn sich für dich relevante Angebote oder Gebote ändern.`
+    }
+  },
+
+  // ─── Daily Login Bonus ─────────────────────────────────────────────────
+  {
+    key: 'daily-login',
+    en: {
+      title: 'Daily Login Bonus',
+      subtitle: 'Show up every day and collect action cards',
+      text: `Every calendar day you open FootballManager.IO earns you one point towards your login streak. Consecutive days build the streak up and unlock action cards along the way.
+
+How the streak works:
+• One point per calendar day, no matter how often you play that day.
+• Playing again the next day raises your streak by one.
+• Skip a whole day and both the streak and your reward progress fall back to zero.
+• The reward counter runs in cycles of 30 days. After day 30 it restarts at 1 while your actual streak keeps counting – 43 days in a row means a streak of 43 and 13/30 in the current cycle.
+
+Rewards in every cycle:
+• Day 3 – a recovery card (Quick Recovery, Energy Boost or Full Recovery)
+• Day 7 – a training card (Basic, Advanced or Master Training)
+• Day 15 – a special card (Cash Bonus, Spy or Motivating Speech)
+• Day 30 – a youth card (Youth Prospect, Youth Talent or Youth Star)
+
+Each reward is handed out only once per cycle. New cards arrive as pending cards, so you pick them up from the dashboard like any other card.
+
+The progress bar above your club emblem shows the current cycle. Tap it to see your streak, the rewards you already collected, the next one up, and the managers with the longest active streaks.`
+    },
+    de: {
+      title: 'Täglicher Login-Bonus',
+      subtitle: 'Jeden Tag vorbeischauen und Action Cards sammeln',
+      text: `Für jeden Kalendertag, an dem du FootballManager.IO öffnest, bekommst du einen Punkt für deine Login-Serie. Aufeinanderfolgende Tage bauen die Serie auf und schalten unterwegs Action Cards frei.
+
+So funktioniert die Serie:
+• Ein Punkt pro Kalendertag, egal wie oft du an dem Tag spielst.
+• Spielst du am Folgetag wieder, steigt deine Serie um eins.
+• Lässt du einen ganzen Tag aus, fallen Serie und Belohnungs-Fortschritt auf null zurück.
+• Der Belohnungs-Zähler läuft in Zyklen von 30 Tagen. Nach Tag 30 startet er wieder bei 1, während deine eigentliche Serie weiterläuft – 43 Tage am Stück bedeuten eine Serie von 43 und 13/30 im aktuellen Zyklus.
+
+Belohnungen in jedem Zyklus:
+• Tag 3 – eine Erholungskarte (Schnelle Erholung, Energie-Boost oder Volle Erholung)
+• Tag 7 – eine Trainingskarte (Basis-, Fortgeschrittenes oder Meister-Training)
+• Tag 15 – eine Spezialkarte (Geldbonus, Spion oder Motivierende Ansprache)
+• Tag 30 – eine Nachwuchskarte (Nachwuchsspieler, Nachwuchstalent oder Nachwuchsstar)
+
+Jede Belohnung wird pro Zyklus nur einmal vergeben. Neue Karten kommen als ausstehende Karten an und werden wie jede andere Karte über das Dashboard abgeholt.
+
+Die Fortschrittsleiste über deinem Vereinswappen zeigt den aktuellen Zyklus. Tippe sie an, um deine Serie, die bereits erhaltenen Belohnungen, die nächste Belohnung und die Manager mit den längsten aktiven Serien zu sehen.`
     }
   },
 
@@ -152,6 +209,13 @@ So funktioniert es:
       subtitle: 'Pick your formation, place your players and choose a captain',
       text: `Your lineup is the foundation of your team's strength. You choose one of 10 formations and fill all 11 positions with matching players on the pitch diagram.
 
+Saved lineups:
+• You can keep several named lineups side by side and switch between them with the select above the pitch.
+• Exactly one lineup is active at a time – that is the one used for your next match.
+• "New Lineup" creates an empty slot with a random formation and nobody assigned, ready to be filled from scratch.
+• A lineup stores its formation, the eleven positions, the bench (including substitution modes), the captain and your tactics. Every change you make is saved into the active lineup automatically.
+• Switching lineups drops players who have left your squad in the meantime; a captain who is no longer in the eleven is cleared.
+
 How it works:
 • Choose a formation (e.g. 4-4-2, 4-3-3, 3-5-2). Changing the formation clears all current positions.
 • Click a position to open the player picker. Only players whose natural position fits the slot can be placed there.
@@ -176,6 +240,13 @@ Squad rules:
       title: 'Aufstellung',
       subtitle: 'Formation wählen, Spieler platzieren und Kapitän bestimmen',
       text: `Deine Aufstellung ist die Grundlage für die Stärke deines Teams. Du wählst eine von 10 Formationen und besetzt alle 11 Positionen mit passenden Spielern auf dem Spielfeld-Diagramm.
+
+Gespeicherte Aufstellungen:
+• Du kannst mehrere benannte Aufstellungen parallel halten und über das Auswahlfeld oberhalb des Spielfelds wechseln.
+• Genau eine Aufstellung ist aktiv – sie wird für dein nächstes Spiel verwendet.
+• "Neue Aufstellung" legt einen leeren Slot mit zufälliger Formation und ohne aufgestellte Spieler an.
+• Eine Aufstellung speichert Formation, die elf Positionen, die Bank (inklusive Einwechsel-Modus), den Kapitän und deine Taktik. Jede Änderung wird automatisch in die aktive Aufstellung übernommen.
+• Beim Wechseln werden Spieler ignoriert, die dein Team inzwischen verlassen haben; ein Kapitän, der nicht mehr in der Elf steht, wird gelöscht.
 
 So funktioniert es:
 • Wähle eine Formation (z. B. 4-4-2, 4-3-3, 3-5-2). Ein Formationswechsel löscht alle aktuellen Positionen.
@@ -429,6 +500,7 @@ No arranged transfers:
 
 How this is checked:
 • Suspicious patterns are detected automatically: accounts used from the same device or network, transfer prices far off the market value, pairs of clubs trading unusually often, action cards that are always won by the same club seconds after being listed, and invitation rewards claimed by the inviter themselves.
+• You can also report a manager yourself from their profile. Every report is emailed to the admins straight away, together with the time, both usernames and your reason.
 • Every flag is reviewed by a human admin. Being flagged is not a verdict – normal situations like two friends in the same flat show up too.
 • Confirmed cheating can cost you your club: an admin can block your email address or delete the account. A blocked address can no longer log in or register, and any open session ends immediately.
 
@@ -451,6 +523,7 @@ Keine abgesprochenen Transfers:
 
 Wie das geprüft wird:
 • Verdächtige Muster werden automatisch erkannt: Accounts vom selben Gerät oder Netzwerk, Transferpreise weit abseits des Marktwerts, Vereinspaare mit auffällig vielen Transfers, Action Cards, die immer wieder Sekunden nach dem Einstellen vom selben Verein gekauft werden, und Einladungs-Belohnungen, die sich jemand selbst gutschreibt.
+• Du kannst einen Manager auch selbst über sein Profil melden. Jede Meldung geht sofort per E-Mail an die Admins – mit Zeitpunkt, beiden Nutzernamen und deiner Begründung.
 • Jede Markierung wird von einem Admin persönlich geprüft. Markiert zu sein ist kein Urteil – auch normale Fälle wie zwei Freunde in einer WG tauchen dort auf.
 • Bestätigtes Cheating kann dich deinen Verein kosten: Ein Admin kann deine E-Mail-Adresse sperren oder den Account löschen. Mit einer gesperrten Adresse sind Login und Registrierung nicht mehr möglich, eine offene Sitzung endet sofort.
 

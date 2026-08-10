@@ -431,13 +431,49 @@ async function _detectPriceDeviation () {
 }
 
 /**
+ * Every `type` a detector can emit, in the order they should appear in the
+ * admin filter dropdown (#488). Kept here so the route can validate against
+ * it and the client can render the options without hardcoding a second list.
+ * @type {string[]}
+ */
+export const SUSPICIOUS_ACTION_TYPES = [
+  'shared_ip',
+  'shared_device',
+  'shared_push_token',
+  'self_invite_link',
+  'self_referral',
+  'instant_card_pickup',
+  'frequent_trades',
+  'undervalued_trade',
+  'overvalued_trade'
+]
+
+/**
+ * True when the event mentions the search term in either party's username or
+ * team name. Matching is case-insensitive and substring-based.
+ * @param {object} event
+ * @param {string} needle - already lower-cased, non-empty
+ * @returns {boolean}
+ */
+function _matchesSearch (event, needle) {
+  for (const user of [event.user1, event.user2]) {
+    if (!user) continue
+    if (typeof user.username === 'string' && user.username.toLowerCase().includes(needle)) return true
+    if (typeof user.team_name === 'string' && user.team_name.toLowerCase().includes(needle)) return true
+  }
+  return false
+}
+
+/**
  * Aggregate suspicious actions across all detectors, sort by time DESC and
- * paginate. Total is the count across all detectors, not just the current
- * page. Returned `time` is an ISO string.
- * @param {{limit?: number, offset?: number}} [opts]
+ * paginate. Total is the count across all detectors after filtering, not just
+ * the current page. Returned `time` is an ISO string.
+ * @param {{limit?: number, offset?: number, type?: string, search?: string}} [opts]
+ *   `type` restricts to a single detector type, `search` matches either
+ *   party's username or team name.
  * @returns {Promise<{rows: Array, total: number}>}
  */
-export async function getSuspiciousActions ({ limit = 10, offset = 0 } = {}) {
+export async function getSuspiciousActions ({ limit = 10, offset = 0, type = '', search = '' } = {}) {
   // New detectors are appended so the existing four keep their dispatch order.
   const [
     sharedIp, sharedDevice, frequentTrades, priceDeviation,
@@ -451,10 +487,17 @@ export async function getSuspiciousActions ({ limit = 10, offset = 0 } = {}) {
     _detectSelfInvite(),
     _detectInstantCardPickup()
   ])
-  const all = [
+  let all = [
     ...sharedIp, ...sharedDevice, ...frequentTrades, ...priceDeviation,
     ...sharedPushToken, ...selfInvite, ...instantCardPickup
   ]
+  if (type) {
+    all = all.filter(e => e.type === type)
+  }
+  const needle = typeof search === 'string' ? search.trim().toLowerCase() : ''
+  if (needle) {
+    all = all.filter(e => _matchesSearch(e, needle))
+  }
   all.sort((a, b) => b.time.getTime() - a.time.getTime())
   const total = all.length
   const rows = all.slice(offset, offset + limit).map(e => ({

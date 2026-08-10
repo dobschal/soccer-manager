@@ -29,6 +29,7 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 - **US-AC-14**: Als Spieler kann ich die Spionage-Karte auf ein fremdes Team anwenden, um dessen Taktik, Aufstellung und aktive Motivationsrede einzusehen.
 - **US-AC-15**: Als Spieler kann ich ueberzaehlige Karten auf dem Aktionskarten-Markt anderen Nutzern anbieten und auf deren Angebote bieten.
 - **US-AC-16**: Als Spieler kann ich eine Karte "Medizinische Behandlung" auf einen **verletzten** Spieler anwenden und verkuerze damit dessen Ausfall um einen Spieltag. Ist niemand verletzt, behalte ich die Karte und werde darauf hingewiesen.
+- **US-AC-17**: Als Spieler bekomme ich auf ein Marktangebot, das laenger als 24 Stunden offen liegt, automatisch ein Geldgebot von einem Bot-Team, damit meine Karten nicht unverkauft liegen bleiben.
 
 ## Kartentypen
 
@@ -156,6 +157,38 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - **TA-AC-26**: Beim Aufdecken einer NEW_YOUTH_PLAYER_X-Karte oeffnet sich ein Auswahl-Overlay mit drei generierten Spielern (siehe [Youth Academy](youth-academy.md)).
 - **TA-AC-27**: Das Kartenlimit pro Typ wird beim Aufdecken als Toast gemeldet (`error.actionCardLimitReached`). Die Client-Kopie von `MAX_ACTION_CARDS_PER_TYPE` liegt in `client/pages/dashboard/actionCards.js` und muss mit dem Server-Wert synchron bleiben.
 
+### Automatische Bot-Gebote (#505)
+
+- **TA-AC-33**: `placeBotCardBids()` in `server/helper/actionCardMarketHelper.js` laeuft als Teil von
+  `makeBotMoves()` im 12-Stunden-CRON.
+- **TA-AC-34**: Beruecksichtigt werden nur offene Angebote von echten Managern, die aelter als
+  `BOT_CARD_BID_MIN_AGE_HOURS` (24) sind und noch kein offenes Bot-Gebot haben.
+- **TA-AC-35**: Der Gebotsbetrag ist die Summe der Einzelpreise aus `BOT_CARD_BID_PRICES`, variiert um
+  `BOT_CARD_BID_VARIANCE` (±10%). Enthaelt ein Buendel eine Karte ohne Preis, wird das Angebot uebersprungen.
+
+  | Karte | Gebot |
+  |---|---|
+  | Nachwuchsspieler (`NEW_YOUTH_PLAYER_1`) | 100.000 € |
+  | Nachwuchstalent (`NEW_YOUTH_PLAYER_2`) | 200.000 € |
+  | Nachwuchsstar (`NEW_YOUTH_PLAYER_3`) | 300.000 € |
+  | Starspieler (`STAR_PLAYER`) | 500.000 € |
+  | Motivierende Ansprache (`MOTIVATING_SPEECH`) | 200.000 € |
+  | Basis-Training (`LEVEL_UP_PLAYER_40`) | 40.000 € |
+  | Fortgeschrittenes Training (`LEVEL_UP_PLAYER_70`) | 75.000 € |
+  | Meister-Training (`LEVEL_UP_PLAYER_100`) | 150.000 € |
+  | Schnelle Erholung (`FRESHNESS_5`) | 5.000 € |
+  | Energie-Boost (`FRESHNESS_10`) | 10.000 € |
+  | Volle Erholung (`FRESHNESS_20`) | 20.000 € |
+  | Spion (`SPY`) | 20.000 € |
+  | Geldbonus (`BONUS_100K`) | 90.000 € |
+  | Medizinische Behandlung (`MEDICAL_TREATMENT`) | 30.000 € |
+
+  Der Geldbonus liegt bewusst unter seinem Nennwert von 100.000 €, sonst waere er ein risikoloser Gelddrucker.
+- **TA-AC-36**: Pro Kalendertag erhaelt ein Manager hoechstens **ein** Bot-Gebot, unabhaengig von der Zahl seiner
+  Angebote. Bietendes Team ist ein zufaelliges Bot-Team, das sich den Betrag leisten kann.
+- **TA-AC-37**: Das Gebot laeuft ueber den regulaeren `placeBid`-Pfad, erzeugt also dieselbe Log-Nachricht und
+  Benachrichtigung wie ein Gebot von einem Mitspieler.
+
 ### Tests
 
 - Unit-Tests fuer alle Karteneffekte und Level-Caps
@@ -167,3 +200,5 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - Jugendkarten-Deckel pro Saison inkl. Garantiekarte
 - SPY-Snapshot bleibt stabil, wenn der Gegner danach die Taktik aendert
 - Markt: Angebots-Obergrenze, Escrow beim Listen/Zurueckziehen, Bundle zaehlt als ein Angebot
+- Bot-Gebote: Preisliste je Kartentyp, Summenbildung bei Buendeln, ±10%-Grenzen, ein Gebot pro Manager und Tag,
+  Ueberspringen bei unbekannter Karte oder zu klammem Bot-Team

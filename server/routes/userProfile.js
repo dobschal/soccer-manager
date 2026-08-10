@@ -4,6 +4,7 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getUserTeamHistory } from '../helper/userHistoryHelper.js'
 import { calculateStandingForTeam } from '../helper/standingHelper.js'
 import { getTotalRounds } from '../helper/cupHelper.js'
+import { sendUserReportEmail } from '../lib/email.js'
 
 export default {
 
@@ -93,14 +94,27 @@ export default {
     if (cleanReason.length < 3) {
       throw new BadRequestError('Please describe why you are reporting this user')
     }
-    const [reported] = await query('SELECT id FROM user WHERE id=? LIMIT 1', [id])
+    const [reported] = await query('SELECT id, username FROM user WHERE id=? LIMIT 1', [id])
     if (!reported) {
       throw new BadRequestError('User not found')
     }
+    const storedReason = cleanReason.slice(0, 2000)
     await query(
       'INSERT INTO user_report SET ?',
-      { reporter_user_id: req.user.id, reported_user_id: id, reason: cleanReason.slice(0, 2000) }
+      { reporter_user_id: req.user.id, reported_user_id: id, reason: storedReason }
     )
+    // Notify the admins (#489). Never let a mail failure fail the report.
+    try {
+      await sendUserReportEmail({
+        reportedUsername: reported.username,
+        reportedUserId: reported.id,
+        reporterUsername: req.user.username,
+        reporterUserId: req.user.id,
+        reason: storedReason
+      })
+    } catch (e) {
+      console.error('[Report] Failed to notify admins about user report:', e?.message ?? e)
+    }
     return { success: true }
   }
 }

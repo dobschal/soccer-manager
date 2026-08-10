@@ -27,7 +27,8 @@ function getTutorials () {
         t('tutorial.teamPage.item2'),
         t('tutorial.teamPage.item3'),
         t('tutorial.teamPage.item4'),
-        t('tutorial.teamPage.item5')
+        t('tutorial.teamPage.item5'),
+        t('tutorial.teamPage.item6')
       ]
     },
     trades: {
@@ -48,7 +49,8 @@ function getTutorials () {
         t('tutorial.dashboardPage.item2'),
         t('tutorial.dashboardPage.item3'),
         t('tutorial.dashboardPage.item4'),
-        t('tutorial.dashboardPage.item5')
+        t('tutorial.dashboardPage.item5'),
+        t('tutorial.dashboardPage.item6')
       ]
     },
     stadium: {

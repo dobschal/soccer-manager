@@ -18,6 +18,10 @@ kommuniziert werden und wie sie technisch durchgesetzt bzw. erkannt werden.
   und ein bestehender Login wird sofort ungueltig — als mildere Konsequenz als das Loeschen des Accounts.
 - **US-FAIR-05**: Als gesperrter Spieler bekomme ich beim Login-Versuch eine klare Meldung mit Verweis auf den
   Support statt eines generischen Fehlers.
+- **US-FAIR-06**: Als Admin werde ich per E-Mail informiert, sobald ein Spieler einen anderen meldet, und muss
+  dafuer nicht regelmaessig in den Adminbereich schauen.
+- **US-FAIR-07**: Als Admin kann ich die Liste der auffaelligen Aktivitaeten nach Typ filtern und nach Nutzer-
+  oder Vereinsnamen durchsuchen, um einen konkreten Verdacht gezielt zu pruefen.
 
 ## Regeln (Spielersicht)
 
@@ -50,6 +54,13 @@ kommuniziert werden und wie sie technisch durchgesetzt bzw. erkannt werden.
   `OVERVALUED_RATIO` des geschaetzten Marktwerts, ab `PRICE_DEVIATION_MIN_VALUE`.
 - **TA-FAIR-08**: Alle Detektoren laufen parallel, werden nach Zeit absteigend sortiert und paginiert an die
   Admin-Ansicht geliefert (`getSuspiciousActions`).
+- **TA-FAIR-15**: `getSuspiciousActions` akzeptiert zusaetzlich `type` (einer aus `SUSPICIOUS_ACTION_TYPES`) und
+  `search` (Freitext, max. 100 Zeichen, matcht Nutzername oder Vereinsname beider Beteiligten,
+  case-insensitiv). Gefiltert wird **vor** der Paginierung, `total` meldet daher die gefilterte Menge.
+  Ein unbekannter `type` wird verworfen statt alles wegzufiltern.
+- **TA-FAIR-16**: Die Filter-Bedienelemente liegen ausserhalb des neu gerenderten Ergebnis-Containers, damit die
+  Suche beim Tippen Fokus und Cursor behaelt. Nur `#_suspiciousResultsId` wird per `innerHTML` getauscht; die
+  Pagination-Buttons darin haengen deshalb an einem delegierten Click-Handler auf dem Container.
 - **TA-FAIR-10**: `shared_push_token` — Accountpaare mit demselben Push-Token (`device_token`). Haerteres Signal als
   `shared_device`, da der Token pro App-Installation vergeben wird und das Leeren des Browser-Speichers ueberlebt.
 - **TA-FAIR-11**: `self_invite_link` / `self_referral` — eingeloeste Einladungen, bei denen Einladender und
@@ -68,6 +79,16 @@ kommuniziert werden und wie sie technisch durchgesetzt bzw. erkannt werden.
   Auth-Middleware verwirft jedes Token, dessen `iat` vor diesem Zeitpunkt liegt. Der Cutoff wird auf die naechste
   volle Sekunde gesetzt, da `iat` nur Sekundenaufloesung hat. Sperren ruft das automatisch fuer alle betroffenen
   Accounts auf, `invalidateUserLogin` erlaubt es auch einzeln ohne Sperre.
+
+### Nutzermeldungen (#489)
+
+- **TA-FAIR-17**: `reportUser` speichert die Meldung weiterhin in `user_report` und verschickt zusaetzlich eine
+  E-Mail an `config.ADMIN_EMAIL` (`sendUserReportEmail` in `server/lib/email.js`) mit Zeitpunkt, gemeldetem
+  Nutzer, Melder und Begruendung.
+- **TA-FAIR-18**: Die Adresse kommt aus der Umgebungsvariable `ADMIN_EMAIL` (Default `info@footballmanager.io`)
+  und ist in beiden `.env`-Heredocs in `.github/workflows/ci.yml` gesetzt.
+- **TA-FAIR-19**: Der Mailversand ist bewusst best-effort: schlaegt er fehl, wird geloggt, die Meldung selbst
+  aber trotzdem gespeichert und als Erfolg quittiert.
 
 ### Bewertung
 

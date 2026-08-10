@@ -236,6 +236,7 @@ Detailed feature specifications are in the `requirements/` directory:
 - [Action Cards](requirements/action-cards.md) - Kartensystem fuer Spieler-Upgrades und Events
 - [Bot-Teams](requirements/bots.md) - KI-gesteuerte Teams, Balancing nach Liga-Level
 - [Buildings](requirements/buildings.md) - Gebaeude und Infrastruktur
+- [Daily Login Bonus](requirements/daily-login-bonus.md) - Login-Serie, Belohnungszyklus und Streak-Rangliste
 - [Event Based UI Updates](requirements/event-based-updates.md) - WebSocket-Events und UIElement-Selbstaktualisierung
 - [Fair Play](requirements/fair-play.md) - Regeln zu Accounts/Transfers und Betrugserkennung
 - [Forum](requirements/forum.md) - Community-Forum

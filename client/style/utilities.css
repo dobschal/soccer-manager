@@ -124,6 +124,10 @@ td.hover-text:hover {
     max-width: 200px;
 }
 
+.u-max-w-240 {
+    max-width: 240px;
+}
+
 .u-max-w-500 {
     max-width: 500px;
 }

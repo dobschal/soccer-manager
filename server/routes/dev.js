@@ -9,7 +9,7 @@ import { sendAdminMessageEmail } from '../lib/email.js'
 import { query, transaction } from '../lib/database.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { collectStatistics, getStatistics } from '../helper/statisticsHelper.js'
-import { getSuspiciousActions } from '../helper/fraudHelper.js'
+import { getSuspiciousActions, SUSPICIOUS_ACTION_TYPES } from '../helper/fraudHelper.js'
 import { blockEmail, invalidateUserSessions, listBlockedEmails, unblockEmail } from '../helper/emailBlockHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getServerStats } from '../helper/serverStatsHelper.js'
@@ -438,22 +438,30 @@ export default {
    * (admin only). Surfaces multi-account / price-manipulation patterns:
    * shared IPs, frequent trades between the same pair, and trades priced
    * significantly above or below the player's estimated market value.
+   * Optionally narrowed by detector `type` and/or a free-text `search` over
+   * the involved usernames and team names (#488).
    * @param {number} [page] - 1-based page number
    * @param {number} [pageSize]
+   * @param {string} [type] - one of SUSPICIOUS_ACTION_TYPES, '' for all
+   * @param {string} [search] - matches username or team name of either party
    * @param {Request} req
-   * @returns {Promise<{rows: Array, total: number, page: number, pageSize: number}>}
+   * @returns {Promise<{rows: Array, total: number, page: number, pageSize: number, types: string[]}>}
    */
-  async getSuspiciousActions (page, pageSize, req) {
+  async getSuspiciousActions (page, pageSize, type, search, req) {
     if (!req.user?.is_admin) {
       throw new BadRequestError('This action is only available for admins')
     }
     const safePageSize = Math.max(1, Math.min(50, Math.floor(Number(pageSize) || 10)))
     const safePage = Math.max(1, Math.floor(Number(page) || 1))
+    const safeType = SUSPICIOUS_ACTION_TYPES.includes(type) ? type : ''
+    const safeSearch = typeof search === 'string' ? search.slice(0, 100) : ''
     const { rows, total } = await getSuspiciousActions({
       limit: safePageSize,
-      offset: (safePage - 1) * safePageSize
+      offset: (safePage - 1) * safePageSize,
+      type: safeType,
+      search: safeSearch
     })
-    return { rows, total, page: safePage, pageSize: safePageSize }
+    return { rows, total, page: safePage, pageSize: safePageSize, types: SUSPICIOUS_ACTION_TYPES }
   },
 
   /**

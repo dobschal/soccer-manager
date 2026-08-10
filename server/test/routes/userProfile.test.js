@@ -8,8 +8,10 @@ vi.mock('../../helper/gameDayHelper.js', () => ({ getGameDayAndSeason: vi.fn() }
 vi.mock('../../helper/userHistoryHelper.js', () => ({ getUserTeamHistory: vi.fn() }))
 vi.mock('../../helper/standingHelper.js', () => ({ calculateStandingForTeam: vi.fn() }))
 vi.mock('../../helper/cupHelper.js', () => ({ getTotalRounds: vi.fn() }))
+vi.mock('../../lib/email.js', () => ({ sendUserReportEmail: vi.fn().mockResolvedValue({ sent: true }) }))
 
 import { query } from '../../lib/database.js'
+import { sendUserReportEmail } from '../../lib/email.js'
 import handlers from '../../routes/userProfile.js'
 
 describe('userProfile.reportUser (#421)', () => {
@@ -49,7 +51,7 @@ describe('userProfile.reportUser (#421)', () => {
   it('stores the report for a valid request', async () => {
     const req = createMockRequest({ user: { id: 5 } })
     query
-      .mockResolvedValueOnce([{ id: 6 }]) // user lookup
+      .mockResolvedValueOnce([{ id: 6, username: 'cheater' }]) // user lookup
       .mockResolvedValueOnce({}) // insert
     const result = await handlers.reportUser(6, '  is cheating  ', req)
     expect(result).toEqual({ success: true })
@@ -58,5 +60,42 @@ describe('userProfile.reportUser (#421)', () => {
       reported_user_id: 6,
       reason: 'is cheating'
     })
+  })
+
+  it('emails the admins with reporter, reported user and reason (#489)', async () => {
+    const req = createMockRequest({ user: { id: 5, username: 'honest-hank' } })
+    query
+      .mockResolvedValueOnce([{ id: 6, username: 'cheater' }])
+      .mockResolvedValueOnce({})
+
+    await handlers.reportUser(6, 'is cheating', req)
+
+    expect(sendUserReportEmail).toHaveBeenCalledTimes(1)
+    expect(sendUserReportEmail).toHaveBeenCalledWith({
+      reportedUsername: 'cheater',
+      reportedUserId: 6,
+      reporterUsername: 'honest-hank',
+      reporterUserId: 5,
+      reason: 'is cheating'
+    })
+  })
+
+  it('still stores the report when the admin email fails', async () => {
+    sendUserReportEmail.mockRejectedValueOnce(new Error('SMTP down'))
+    const req = createMockRequest({ user: { id: 5, username: 'honest-hank' } })
+    query
+      .mockResolvedValueOnce([{ id: 6, username: 'cheater' }])
+      .mockResolvedValueOnce({})
+
+    const result = await handlers.reportUser(6, 'is cheating', req)
+
+    expect(result).toEqual({ success: true })
+  })
+
+  it('does not email when the reported user does not exist', async () => {
+    const req = createMockRequest({ user: { id: 5 } })
+    query.mockResolvedValueOnce([])
+    await expect(handlers.reportUser(6, 'is cheating', req)).rejects.toThrow()
+    expect(sendUserReportEmail).not.toHaveBeenCalled()
   })
 })

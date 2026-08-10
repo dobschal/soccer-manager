@@ -4,7 +4,7 @@ vi.mock('../../lib/database.js', () => ({
   query: vi.fn()
 }))
 
-import { getSuspiciousActions, __testing } from '../../helper/fraudHelper.js'
+import { getSuspiciousActions, SUSPICIOUS_ACTION_TYPES, __testing } from '../../helper/fraudHelper.js'
 import { query } from '../../lib/database.js'
 
 beforeEach(() => {
@@ -520,5 +520,103 @@ describe('fraudHelper.getSuspiciousActions', () => {
 
     expect(typeof result.rows[0].time).toBe('string')
     expect(result.rows[0].time).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+})
+
+describe('fraudHelper.getSuspiciousActions filtering (#488)', () => {
+  /**
+   * Feed the shared-IP and shared-device detectors so the aggregate holds two
+   * different event types across three different users.
+   * @returns {void}
+   */
+  function mockTwoDetectors () {
+    query
+      // _detectSharedIp → alice + bob
+      .mockResolvedValueOnce([
+        { user_id: 1, username: 'alice', last_login: '2026-06-03T10:00:00Z', team_name: 'FC Alice', ip_web: '1.2.3.4', ip_ios: null, ip_android: null },
+        { user_id: 2, username: 'bob', last_login: '2026-06-02T10:00:00Z', team_name: 'FC Bob', ip_web: '1.2.3.4', ip_ios: null, ip_android: null }
+      ])
+      // _detectSharedDevice → carol + dave
+      .mockResolvedValueOnce([
+        { user_id: 3, username: 'carol', last_seen: '2026-06-05T10:00:00Z', team_name: 'FC Carol', device_uuid: 'dev-1' },
+        { user_id: 4, username: 'dave', last_seen: '2026-06-04T10:00:00Z', team_name: 'FC Dave', device_uuid: 'dev-1' }
+      ])
+  }
+
+  it('returns both event types when no filter is set', async () => {
+    mockTwoDetectors()
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0 })
+
+    expect(result.total).toBe(2)
+    expect(result.rows.map(r => r.type).sort()).toEqual(['shared_device', 'shared_ip'])
+  })
+
+  it('narrows the result to a single detector type', async () => {
+    mockTwoDetectors()
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0, type: 'shared_ip' })
+
+    expect(result.total).toBe(1)
+    expect(result.rows[0].type).toBe('shared_ip')
+  })
+
+  it('filters by username, case-insensitively', async () => {
+    mockTwoDetectors()
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0, search: 'CAROL' })
+
+    expect(result.total).toBe(1)
+    expect(result.rows[0].type).toBe('shared_device')
+  })
+
+  it('filters by team name', async () => {
+    mockTwoDetectors()
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0, search: 'FC Bob' })
+
+    expect(result.total).toBe(1)
+    expect(result.rows[0].type).toBe('shared_ip')
+  })
+
+  it('matches the second party of a pair too', async () => {
+    mockTwoDetectors()
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0, search: 'dave' })
+
+    expect(result.total).toBe(1)
+  })
+
+  it('combines type and search', async () => {
+    mockTwoDetectors()
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0, type: 'shared_ip', search: 'carol' })
+
+    expect(result.total).toBe(0)
+    expect(result.rows).toEqual([])
+  })
+
+  it('ignores a blank search string', async () => {
+    mockTwoDetectors()
+
+    const result = await getSuspiciousActions({ limit: 10, offset: 0, search: '   ' })
+
+    expect(result.total).toBe(2)
+  })
+
+  it('reports the filtered total, not the unfiltered one', async () => {
+    mockTwoDetectors()
+
+    const result = await getSuspiciousActions({ limit: 1, offset: 0, type: 'shared_device' })
+
+    expect(result.total).toBe(1)
+    expect(result.rows).toHaveLength(1)
+  })
+
+  it('exposes every emitted type in SUSPICIOUS_ACTION_TYPES', () => {
+    expect(SUSPICIOUS_ACTION_TYPES).toContain('shared_ip')
+    expect(SUSPICIOUS_ACTION_TYPES).toContain('undervalued_trade')
+    expect(SUSPICIOUS_ACTION_TYPES).toContain('overvalued_trade')
+    expect(new Set(SUSPICIOUS_ACTION_TYPES).size).toBe(SUSPICIOUS_ACTION_TYPES.length)
   })
 })

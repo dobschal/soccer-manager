@@ -13,6 +13,7 @@ import { showGameModal } from '../../partials/gameModal.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
 import { showFeatureRequestOverlay } from '../../partials/featureRequestOverlay.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
+import { DailyLoginBar } from '../../partials/dailyLoginBar.js'
 
 export class StartPage {
   /**
@@ -87,6 +88,7 @@ export class StartPage {
           </div>
         </div>
         <div class="u-w-lg-33 u-w-100 flex-shrink-0 text-center order-1 order-lg-2">
+          ${this._getDailyLoginBar()}
           <a href="#team?id=${this.team.id}" class="text-decoration-none">
             ${renderEmblem(this.team, 160)}
             <h2 class="mb-4">${this.team.name}</h2>
@@ -110,6 +112,16 @@ export class StartPage {
         <a id="${coffeeId}" href="https://buymeacoffee.com/dobschal" target="_blank" rel="noopener" class="buy-me-a-coffee-link">buymeacoffee.com/dobschal</a>
       </p>
     `
+  }
+
+  /**
+   * Lazy-init and cache the daily-login bar so a dashboard re-render reuses
+   * the same instance instead of re-fetching and flickering (#501).
+   * @returns {DailyLoginBar}
+   */
+  _getDailyLoginBar () {
+    if (!this._dailyLoginBar) this._dailyLoginBar = new DailyLoginBar()
+    return this._dailyLoginBar
   }
 
   _renderUrgencySection () {

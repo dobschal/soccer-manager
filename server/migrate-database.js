@@ -2854,6 +2854,132 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Create team_lineup tables (#481)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS team_lineup
+    (
+        id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        team_id     BIGINT NOT NULL,
+        name        VARCHAR(40) NOT NULL,
+        formation   VARCHAR(20) NULL,
+        pass_style  VARCHAR(20) NULL,
+        play_style  VARCHAR(20) NULL,
+        attack_mode VARCHAR(20) NULL,
+        captain_id  BIGINT NULL,
+        is_active   TINYINT(1) NOT NULL DEFAULT 0,
+        created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_team_lineup_team (team_id),
+        INDEX idx_team_lineup_active (team_id, is_active)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+    await query(`CREATE TABLE IF NOT EXISTS team_lineup_player
+    (
+        id                     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        lineup_id              BIGINT UNSIGNED NOT NULL,
+        player_id              BIGINT NOT NULL,
+        in_game_position       VARCHAR(20) NULL,
+        bench_position         VARCHAR(20) NULL,
+        bench_substitution_mode VARCHAR(20) NULL,
+        PRIMARY KEY (id),
+        INDEX idx_team_lineup_player_lineup (lineup_id),
+        UNIQUE KEY uniq_team_lineup_player (lineup_id, player_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Seed a default lineup per team from its current setup (#481)',
+  async run () {
+    // Only real managers get a slot up front. Bots never go through the
+    // routes that read or write lineups, and a team taken over from a bot
+    // gets one lazily via `ensureActiveLineup`.
+    const teams = await query(
+      'SELECT id, formation, pass_style, play_style, attack_mode, captain_id FROM team WHERE user_id IS NOT NULL'
+    )
+    let seeded = 0
+    for (const team of teams) {
+      const [existing] = await query('SELECT id FROM team_lineup WHERE team_id=? LIMIT 1', [team.id])
+      if (existing) continue
+      const result = await query('INSERT INTO team_lineup SET ?', {
+        team_id: team.id,
+        name: 'Lineup 1',
+        formation: team.formation,
+        pass_style: team.pass_style,
+        play_style: team.play_style,
+        attack_mode: team.attack_mode,
+        captain_id: team.captain_id,
+        is_active: 1
+      })
+      const players = await query(
+        `SELECT id, in_game_position, bench_position, bench_substitution_mode
+         FROM player
+         WHERE team_id=? AND ((in_game_position IS NOT NULL AND in_game_position <> '') OR bench_position IS NOT NULL)`,
+        [team.id]
+      )
+      for (const player of players) {
+        await query('INSERT INTO team_lineup_player SET ?', {
+          lineup_id: result.insertId,
+          player_id: player.id,
+          in_game_position: player.in_game_position || null,
+          bench_position: player.bench_position || null,
+          bench_substitution_mode: player.bench_substitution_mode || null
+        })
+      }
+      seeded++
+    }
+    console.log(`✅ Seeded ${seeded} teams with a default lineup`)
+  }
+}, {
+  name: 'Create user_login_streak table (#501)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS user_login_streak
+    (
+        user_id         BIGINT NOT NULL,
+        last_login_date DATE NOT NULL,
+        streak          INT NOT NULL DEFAULT 0,
+        cycle_day       INT NOT NULL DEFAULT 0,
+        longest_streak  INT NOT NULL DEFAULT 0,
+        rewards_claimed VARCHAR(64) NOT NULL DEFAULT '',
+        updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id),
+        INDEX idx_user_login_streak_streak (streak)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Wiki: daily login bonus, saved lineups, bot card bids, reports (#501/#481/#505/#489)',
+  async run () {
+    const KEYS_TO_REFRESH = ['lineup', 'action-card-market', 'fair-play']
+    const KEYS_TO_ADD = ['daily-login']
+    for (const topic of WIKI_SEED) {
+      if (KEYS_TO_REFRESH.includes(topic.key)) {
+        for (const locale of ['en', 'de']) {
+          const entry = topic[locale]
+          await query(
+            'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+            [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+          )
+        }
+      }
+      if (KEYS_TO_ADD.includes(topic.key)) {
+        for (const locale of ['en', 'de']) {
+          const [existing] = await query(
+            'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+            [topic.key, locale]
+          )
+          if (existing) continue
+          const entry = topic[locale]
+          await query('INSERT INTO wiki_entry SET ?', {
+            locale,
+            page_key: topic.key,
+            title: entry.title,
+            subtitle: entry.subtitle || null,
+            text: entry.text,
+            images: JSON.stringify([]),
+            sort_order: 0
+          })
+        }
+      }
+    }
+  }
 }]
 
 /**

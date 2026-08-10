@@ -22,12 +22,30 @@ vi.mock('../../lib/websocket.js', () => ({
   sendToUser: vi.fn().mockReturnValue(true)
 }))
 
+vi.mock('../../helper/teamLineupHelper.js', () => ({
+  activateLineup: vi.fn(),
+  createLineup: vi.fn(),
+  deleteLineup: vi.fn(),
+  ensureActiveLineup: vi.fn(),
+  getLineups: vi.fn(),
+  renameLineup: vi.fn(),
+  syncActiveLineup: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam, getTeamById } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getTotalRounds } from '../../helper/cupHelper.js'
 import { sendToUser } from '../../lib/websocket.js'
 import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
+import {
+  activateLineup,
+  createLineup,
+  deleteLineup,
+  ensureActiveLineup,
+  getLineups,
+  syncActiveLineup
+} from '../../helper/teamLineupHelper.js'
 import handlers from '../../routes/team.js'
 
 describe('team routes', () => {
@@ -1165,6 +1183,128 @@ describe('team routes', () => {
     it('rejects invalid team ids', async () => {
       await expect(handlers.getHeadToHead(0, 5)).rejects.toMatchObject({ message: 'Invalid team ids' })
       await expect(handlers.getHeadToHead(5, 5)).rejects.toMatchObject({ message: 'Invalid team ids' })
+    })
+  })
+})
+
+describe('team lineup slots (#481)', () => {
+  const team = { id: 7, user_id: 1, name: 'Test FC' }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getTeam.mockResolvedValue(team)
+  })
+
+  describe('getMyLineups', () => {
+    it('returns the slots and the active one, creating one if needed', async () => {
+      ensureActiveLineup.mockResolvedValue({ id: 3 })
+      getLineups.mockResolvedValue([{ id: 3, name: 'Lineup 1', is_active: 1 }])
+
+      const result = await handlers.getMyLineups(createMockRequest())
+
+      expect(ensureActiveLineup).toHaveBeenCalledWith(7)
+      expect(result.activeId).toBe(3)
+      expect(result.lineups).toHaveLength(1)
+    })
+  })
+
+  describe('createMyLineup', () => {
+    it('creates the lineup and returns the refreshed list', async () => {
+      ensureActiveLineup.mockResolvedValue({ id: 3 })
+      createLineup.mockResolvedValue({ id: 9 })
+      getLineups.mockResolvedValue([{ id: 3 }, { id: 9 }])
+
+      const result = await handlers.createMyLineup('Cup night', createMockRequest())
+
+      expect(createLineup).toHaveBeenCalledWith(7, 'Cup night')
+      expect(result.activeId).toBe(9)
+      expect(result.lineups).toHaveLength(2)
+    })
+  })
+
+  describe('activateMyLineup', () => {
+    it('activates the requested lineup', async () => {
+      ensureActiveLineup.mockResolvedValue({ id: 3 })
+      activateLineup.mockResolvedValue({ id: 4 })
+      getLineups.mockResolvedValue([{ id: 3 }, { id: 4 }])
+
+      const result = await handlers.activateMyLineup('4', createMockRequest())
+
+      expect(activateLineup).toHaveBeenCalledWith(7, 4)
+      expect(result.activeId).toBe(4)
+    })
+  })
+
+  describe('deleteMyLineup', () => {
+    it('deletes the lineup and reports the new active one', async () => {
+      deleteLineup.mockResolvedValue({ activeId: 3 })
+      getLineups.mockResolvedValue([{ id: 3 }])
+
+      const result = await handlers.deleteMyLineup('4', createMockRequest())
+
+      expect(deleteLineup).toHaveBeenCalledWith(7, 4)
+      expect(result.activeId).toBe(3)
+    })
+  })
+
+  describe('write-through to the active lineup', () => {
+    it('syncs after a tactic change', async () => {
+      await handlers.updatePassStyle('long', createMockRequest())
+      expect(syncActiveLineup).toHaveBeenCalledWith(7)
+
+      vi.clearAllMocks()
+      getTeam.mockResolvedValue(team)
+      await handlers.updatePlayStyle('friendly', createMockRequest())
+      expect(syncActiveLineup).toHaveBeenCalledWith(7)
+
+      vi.clearAllMocks()
+      getTeam.mockResolvedValue(team)
+      await handlers.updateAttackMode('defensive', createMockRequest())
+      expect(syncActiveLineup).toHaveBeenCalledWith(7)
+    })
+
+    it('syncs after the captain changed', async () => {
+      query.mockResolvedValue([{ id: 55, team_id: 7, in_game_position: 'GK' }])
+
+      await handlers.setCaptain(55, createMockRequest())
+
+      expect(syncActiveLineup).toHaveBeenCalledWith(7)
+    })
+
+    it('syncs after the lineup was saved', async () => {
+      query.mockImplementation(async (sql) => {
+        if (String(sql).includes('FROM team WHERE user_id=?')) return [team]
+        if (String(sql).includes('FROM player WHERE team_id=?')) return [{ id: 55, in_game_position: '' }]
+        return {}
+      })
+
+      await handlers.saveLineup([{ id: 55, in_game_position: 'GK' }], '442a', createMockRequest())
+
+      expect(syncActiveLineup).toHaveBeenCalledWith(7)
+    })
+
+    it('syncs after the bench was saved', async () => {
+      query.mockImplementation(async (sql) => {
+        if (String(sql).includes('SELECT * FROM player WHERE team_id=?')) {
+          return [{ id: 55, is_suspended: 0, is_injured: 0 }]
+        }
+        return {}
+      })
+
+      await handlers.saveBench(
+        [{ playerId: 55, benchPosition: 'BENCH_GK', substitutionMode: 'always' }],
+        createMockRequest()
+      )
+
+      expect(syncActiveLineup).toHaveBeenCalledWith(7)
+    })
+
+    it('syncs after a substitution mode change', async () => {
+      query.mockResolvedValue([{ id: 55 }])
+
+      await handlers.updateBenchSubstitutionMode(55, 'always', createMockRequest())
+
+      expect(syncActiveLineup).toHaveBeenCalledWith(7)
     })
   })
 })

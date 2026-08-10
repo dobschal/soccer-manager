@@ -16,6 +16,7 @@ import { buildStadium, calcuateStadiumBuild } from './helper/stadiumHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId } from './helper/playerHelper.js'
 import { getPositionsOfFormation } from '../client/util/formation.js'
 import { addPlayerHistory } from './helper/playerHistoryHelper.js'
+import { placeBotCardBids } from './helper/actionCardMarketHelper.js'
 import playersRoutes from './routes/players.js'
 
 // 1. Check Tactic (/)
@@ -52,6 +53,9 @@ export async function makeBotMoves () {
     promises.push(_makeBotMove(botTeam, players, teamCards))
   }
   await Promise.all(promises)
+  // Runs once per tick, not per bot team: it picks its own bidder per offer
+  // and enforces the one-bid-per-manager-per-day cap globally (#505).
+  try { await placeBotCardBids() } catch (e) { console.error('placeBotCardBids failed:', e) }
   console.log(`Made bot moves in ${Math.floor((Date.now() - t1) / 1000)}sec`)
 }
 

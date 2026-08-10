@@ -180,10 +180,56 @@ describe('UserManagementAdminPage suspicious actions table', () => {
     server.getReferralSettings.mockResolvedValue({ action: 'BONUS_100K', options: ['BONUS_100K', 'STAR_PLAYER'] })
   })
 
-  it('requests page 1 with size 10 on initial load', async () => {
+  it('requests page 1 with size 10 and no filters on initial load', async () => {
     const page = new UserManagementAdminPage()
     await page.load()
-    expect(server.getSuspiciousActions).toHaveBeenCalledWith(1, 10)
+    expect(server.getSuspiciousActions).toHaveBeenCalledWith(1, 10, '', '')
+  })
+
+  it('passes the selected type and search term to the server (#488)', async () => {
+    const page = new UserManagementAdminPage()
+    await page.load()
+    page._suspiciousType = 'shared_ip'
+    page._suspiciousSearch = 'alice'
+    await page._refreshSuspicious()
+    expect(server.getSuspiciousActions).toHaveBeenLastCalledWith(1, 10, 'shared_ip', 'alice')
+  })
+
+  it('renders a type dropdown with the server-provided types (#488)', async () => {
+    server.getSuspiciousActions.mockResolvedValue({
+      rows: [], total: 0, page: 1, pageSize: 10, types: ['shared_ip', 'frequent_trades']
+    })
+    const page = new UserManagementAdminPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('admin.suspiciousFilterAllTypes')
+    expect(html).toContain('value="shared_ip"')
+    expect(html).toContain('value="frequent_trades"')
+    expect(html).toContain('admin.suspiciousFilterSearchPlaceholder')
+  })
+
+  it('resets to page 1 when the filter changes (#488)', async () => {
+    const page = new UserManagementAdminPage()
+    await page.load()
+    page._suspiciousPage = 4
+    page._suspiciousTotal = 100
+
+    await page._applySuspiciousFilter({ type: 'shared_device' })
+
+    expect(page._suspiciousPage).toBe(1)
+    expect(page._suspiciousType).toBe('shared_device')
+    expect(server.getSuspiciousActions).toHaveBeenLastCalledWith(1, 10, 'shared_device', '')
+  })
+
+  it('keeps the type filter when only the search term changes (#488)', async () => {
+    const page = new UserManagementAdminPage()
+    await page.load()
+    await page._applySuspiciousFilter({ type: 'shared_ip' })
+
+    await page._applySuspiciousFilter({ search: 'bob' })
+
+    expect(page._suspiciousType).toBe('shared_ip')
+    expect(server.getSuspiciousActions).toHaveBeenLastCalledWith(1, 10, 'shared_ip', 'bob')
   })
 
   it('renders the empty state when no actions are returned', async () => {
