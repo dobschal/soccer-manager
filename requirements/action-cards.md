@@ -30,6 +30,9 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 - **US-AC-15**: Als Spieler kann ich ueberzaehlige Karten auf dem Aktionskarten-Markt anderen Nutzern anbieten und auf deren Angebote bieten.
 - **US-AC-16**: Als Spieler kann ich eine Karte "Medizinische Behandlung" auf einen **verletzten** Spieler anwenden und verkuerze damit dessen Ausfall um einen Spieltag. Ist niemand verletzt, behalte ich die Karte und werde darauf hingewiesen.
 - **US-AC-17**: Als Spieler bekomme ich auf ein Marktangebot, das laenger als 24 Stunden offen liegt, automatisch ein Geldgebot von einem Bot-Team, damit meine Karten nicht unverkauft liegen bleiben.
+- **US-AC-18**: Als Spieler kann ich die Karte "Millionengeschenk" einloesen und erhalte sofort 1.000.000 Euro.
+- **US-AC-19**: Als Spieler sehe ich auf dem Dashboard einen Handlungsbedarf, sobald einer meiner Kartenstapel das Limit erreicht hat, damit ich keine weiteren Karten verliere.
+- **US-AC-20**: Als Spieler sehe ich die Anzahl meiner verfuegbaren Aktionskarten in der Navigationsleiste der Startseite und komme per Klick direkt zur Kartenseite.
 
 ## Kartentypen
 
@@ -45,6 +48,7 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 | NEW_YOUTH_PLAYER_2 | Neuer Jugendspieler (Silber, Level 5-10, Talent 0,3-0,75) | - | Nein |
 | NEW_YOUTH_PLAYER_3 | Neuer Jugendspieler (Gold, Level 10-15, Talent 0,5-1,0) | - | Nein |
 | BONUS_100K | +100.000 Euro | - | Nein |
+| MILLION_BONUS | +1.000.000 Euro | - | Nein |
 | STAR_PLAYER | Permanenter +10% Bonus | - | Nein |
 | MOTIVATING_SPEECH | Team-weiter +10% Bonus (1 Spieltag) | - | Nein |
 | SPY | Spionage-Karte | - | Nein |
@@ -67,6 +71,7 @@ Basiswerte aus `actionCardChances` (`server/helper/actionCardHelper.js`), ausgel
 | FRESHNESS_20 | 0 (nur via Fitness-Studio) | - |
 | NEW_YOUTH_PLAYER_1/_2/_3 | 0 (nur via Jugendakademie) | - |
 | BONUS_100K | 0.06 | ~2 |
+| MILLION_BONUS | 0.006 (= BONUS_100K × 0,1) | ~0,2 |
 | STAR_PLAYER | 0.01 | ~0,3 |
 | MOTIVATING_SPEECH | 0.05 | ~2 |
 | SPY | 0.15 | ~5 |
@@ -181,6 +186,7 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
   | Volle Erholung (`FRESHNESS_20`) | 20.000 € |
   | Spion (`SPY`) | 20.000 € |
   | Geldbonus (`BONUS_100K`) | 90.000 € |
+  | Millionengeschenk (`MILLION_BONUS`) | 900.000 € |
   | Medizinische Behandlung (`MEDICAL_TREATMENT`) | 30.000 € |
 
   Der Geldbonus liegt bewusst unter seinem Nennwert von 100.000 €, sonst waere er ein risikoloser Gelddrucker.
@@ -188,6 +194,32 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
   Angebote. Bietendes Team ist ein zufaelliges Bot-Team, das sich den Betrag leisten kann.
 - **TA-AC-37**: Das Gebot laeuft ueber den regulaeren `placeBid`-Pfad, erzeugt also dieselbe Log-Nachricht und
   Benachrichtigung wie ein Gebot von einem Mitspieler.
+
+### Millionengeschenk (#537)
+
+- **TA-AC-38**: `MILLION_BONUS` teilt sich den Auszahlungspfad mit `BONUS_100K`; die Betraege stehen in
+  `CASH_CARD_AMOUNTS` (`server/helper/actionCardHelper.js`), nicht in der Verzweigung.
+- **TA-AC-39**: Die Wahrscheinlichkeit ist bewusst als `0.06 * 0.1` notiert, damit sie automatisch mitzieht,
+  wenn der Geldbonus angepasst wird.
+- **TA-AC-40**: Die Karte ist Teil der Admin-Geschenkliste (`GIFTABLE_ACTION_CARD_TYPES`) und der Bot-Preisliste,
+  aber **nicht** zusammenfuehrbar und **nicht** im Belohnungspool des Login-Bonus.
+- **TA-AC-41**: Motiv `client/assets/action-cards/bonus-1m.svg` — dieselbe Geometrie wie die Geldbonus-Karte in
+  einer Gold-Palette, damit sich die beiden Geldkarten auf einen Blick unterscheiden.
+
+### Kartenlimit im Handlungsbedarf (#506)
+
+- **TA-AC-42**: `getDashboardUrgencies` meldet `ACTION_CARDS_FULL` mit der Anzahl der Kartentypen, die
+  `MAX_ACTION_CARDS_PER_TYPE` erreicht haben. Gezaehlt werden nur abgeholte, ungespielte Karten
+  (`played=0 AND state='received'`) — genau die, die gegen das Limit zaehlen.
+- **TA-AC-43**: Der Eintrag hat kein "alles gut"-Gegenstueck (`hideOk`): eine Dauer-Zeile fuer etwas, das nur im
+  Ausnahmefall relevant ist, waere nur Rauschen.
+
+### Kartenzaehler in der Navigation (#523)
+
+- **TA-AC-44**: Das Dashboard zeigt die Zahl der spielbaren Karten in der Navigationsleiste und verlinkt auf
+  `#my-team?sub_page=cards`. Ausstehende (`pending`) Karten zaehlen nicht mit — sie muessen erst abgeholt werden.
+- **TA-AC-45**: Bei `ACTION_CARDS_CHANGED` wird nur der Zahlen-Span per `textContent` aktualisiert. Ein
+  Re-Render des Dashboards wuerde die Startseite samt 3D-Szene und Charts neu aufbauen.
 
 ### Tests
 
@@ -202,3 +234,6 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - Markt: Angebots-Obergrenze, Escrow beim Listen/Zurueckziehen, Bundle zaehlt als ein Angebot
 - Bot-Gebote: Preisliste je Kartentyp, Summenbildung bei Buendeln, ±10%-Grenzen, ein Gebot pro Manager und Tag,
   Ueberspringen bei unbekannter Karte oder zu klammem Bot-Team
+- Millionengeschenk: Wahrscheinlichkeit als Zehntel des Geldbonus, Auszahlung 1.000.000 €, Bot-Gebotspreis
+- Handlungsbedarf bei vollem Kartenstapel, inklusive Abgrenzung gegen ausstehende und gespielte Karten
+- Kartenzaehler in der Navigation: Ladewert, Live-Aktualisierung, Verhalten bei fehlgeschlagenem Refresh

@@ -667,7 +667,15 @@ export class StadiumCanvas extends UIElement {
 
     const canvas = document.querySelector(`${this._elementQuery} #${this.canvasId}`)
     if (!canvas) {
-      this._markReady(false)
+      // Not a failure — just too early. A parent page calls `onMounted()` on us
+      // by hand the moment *it* mounts, but as a nested UIElement our own markup
+      // is still a placeholder for another frame or two. Our mount observer
+      // fires `onMounted()` again once the canvas really is there.
+      //
+      // Resolving `_ready` here would settle it `false` for good, and the
+      // buildings page would keep its painted fallbacks even though the scene
+      // comes up seconds later (#547). Leave the promise pending instead;
+      // `onDestroy` settles it if the scene never arrives.
       return
     }
     // Re-check after the awaits above: a concurrent call may have won the race

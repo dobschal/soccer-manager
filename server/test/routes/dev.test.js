@@ -330,23 +330,46 @@ describe('dev routes - statistics', () => {
     })
   })
 
-  describe('broadcastNotification (#330)', () => {
+  describe('broadcastNotification (#330, #388)', () => {
     it('rejects non-admin users', async () => {
-      await expect(handlers.broadcastNotification('en', 'de', '', { user: { is_admin: 0 } }))
+      await expect(handlers.broadcastNotification('', 'en', '', 'de', '', { user: { is_admin: 0 } }))
         .rejects.toMatchObject({ message: 'This action is only available for admins' })
     })
 
     it('passes a trimmed deep link through to the push helper', async () => {
       sendBroadcastNotification.mockResolvedValueOnce({ sent: 3, failed: 0 })
-      const result = await handlers.broadcastNotification('Hello', 'Hallo', '  #club?sub_page=buildings  ', { user: { is_admin: 1 } })
+      const result = await handlers.broadcastNotification(
+        '', 'Hello', '', 'Hallo', '  #club?sub_page=buildings  ', { user: { is_admin: 1 } }
+      )
       expect(result).toEqual({ sent: 3, failed: 0 })
-      expect(sendBroadcastNotification).toHaveBeenCalledWith('Hello', 'Hallo', '#club?sub_page=buildings')
+      expect(sendBroadcastNotification).toHaveBeenCalledWith(
+        'Hello', 'Hallo', '#club?sub_page=buildings', { en: '', de: '' }
+      )
     })
 
     it('passes an empty deep link when none is given', async () => {
       sendBroadcastNotification.mockResolvedValueOnce({ sent: 1, failed: 0 })
-      await handlers.broadcastNotification('Hi', 'Hi', undefined, { user: { is_admin: 1 } })
-      expect(sendBroadcastNotification).toHaveBeenCalledWith('Hi', 'Hi', '')
+      await handlers.broadcastNotification('', 'Hi', '', 'Hi', undefined, { user: { is_admin: 1 } })
+      expect(sendBroadcastNotification).toHaveBeenCalledWith('Hi', 'Hi', '', { en: '', de: '' })
+    })
+
+    it('forwards a trimmed title per language (#388)', async () => {
+      sendBroadcastNotification.mockResolvedValueOnce({ sent: 2, failed: 0 })
+      await handlers.broadcastNotification(
+        '  Season over  ', 'Check the table', ' Saison vorbei ', 'Schau in die Tabelle', '',
+        { user: { is_admin: 1 } }
+      )
+      expect(sendBroadcastNotification).toHaveBeenCalledWith(
+        'Check the table', 'Schau in die Tabelle', '',
+        { en: 'Season over', de: 'Saison vorbei' }
+      )
+    })
+
+    it('still requires both message bodies', async () => {
+      await expect(handlers.broadcastNotification('T', '', 'T', 'Hallo', '', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'English message is required' })
+      await expect(handlers.broadcastNotification('T', 'Hello', 'T', '  ', '', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'German message is required' })
     })
   })
 

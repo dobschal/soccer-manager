@@ -262,6 +262,15 @@ export class StartPage {
         okText: 'dashboard.urgencyOk.mentions',
         link: '#dashboard?sub_page=forum',
         hideOk: true
+      },
+      {
+        // Only worth surfacing when a stack is actually full — an "all good"
+        // row for something the user never thinks about would just be noise.
+        type: 'ACTION_CARDS_FULL',
+        text: 'dashboard.urgencyActionCardsFull',
+        okText: 'dashboard.urgencyOk.actionCardsFull',
+        link: '#my-team?sub_page=cards',
+        hideOk: true
       }
     ]
 

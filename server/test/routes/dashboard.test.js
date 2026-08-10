@@ -207,7 +207,11 @@ describe('dashboard routes', () => {
       benchPositions.forEach((pos, i) => {
         players.push(testData.player({ id: 20 + i, bench_position: pos }))
       })
-      query.mockResolvedValue(players)
+      // Route the card-stack aggregate separately: a blanket mock would hand
+      // it the player list and trip ACTION_CARDS_FULL (#506).
+      query.mockImplementation(async (sql) =>
+        String(sql).includes('GROUP BY action') ? [] : players
+      )
       team.captain_id = 1 // a player in the lineup
       getYouthPlayersByTeam.mockResolvedValue([
         { id: 1, moral: 0.8, fitness: 0.8 }
@@ -259,5 +263,55 @@ describe('dashboard routes', () => {
       expect(types).not.toContain('LOW_FRESHNESS')
       expect(types).not.toContain('INCOMPLETE_LINEUP')
     })
+  })
+})
+
+describe('dashboard ACTION_CARDS_FULL urgency (#506)', () => {
+  let team
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    team = testData.team()
+    getTeam.mockResolvedValue(team)
+    getYouthPlayersByTeam.mockResolvedValue([])
+    getIncomingBuyOffers.mockResolvedValue([])
+    getSponsor.mockResolvedValue({ sponsor: testData.sponsor() })
+    getGameDayAndSeason.mockResolvedValue({ gameDay: 1, season: 11 })
+  })
+
+  /**
+   * @param {Array} fullStacks - rows the "stacks at the cap" query returns
+   */
+  function mockDb (fullStacks) {
+    query.mockImplementation(async (sql) => {
+      if (String(sql).includes('GROUP BY action')) return fullStacks
+      return []
+    })
+  }
+
+  it('flags the number of stacks sitting at the per-type cap', async () => {
+    mockDb([{ action: 'FRESHNESS_10', amount: 20 }, { action: 'SPY', amount: 21 }])
+
+    const result = await handlers.getDashboardUrgencies(createMockRequest())
+
+    expect(result.urgencies).toContainEqual({ type: 'ACTION_CARDS_FULL', count: 2 })
+  })
+
+  it('stays quiet while every stack still has room', async () => {
+    mockDb([])
+
+    const result = await handlers.getDashboardUrgencies(createMockRequest())
+
+    expect(result.urgencies.some(u => u.type === 'ACTION_CARDS_FULL')).toBe(false)
+  })
+
+  it('only counts claimed, unplayed cards against the cap', async () => {
+    mockDb([{ action: 'SPY', amount: 20 }])
+
+    await handlers.getDashboardUrgencies(createMockRequest())
+
+    const [sql] = query.mock.calls.find(([s]) => String(s).includes('GROUP BY action'))
+    expect(sql).toContain('played=0')
+    expect(sql).toContain("state='received'")
   })
 })

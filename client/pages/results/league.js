@@ -155,21 +155,33 @@ export class LeagueResultsPage extends UIElement {
           <div class="results-filters d-flex flex-wrap gap-3">
             <div>
               <label for="results-league-select" class="form-label mb-1">${t('results.league')}</label>
-              <select id="results-league-select" class="form-select form-select-sm u-w-auto">
-                ${this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')}
-              </select>
+              <div class="d-flex align-items-center gap-1">
+                <span id="prev-league-button" class="fa fa-chevron-left fa-button" role="button" aria-label="${t('common.prev')}"></span>
+                <select id="results-league-select" class="form-select form-select-sm u-w-auto">
+                  ${this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')}
+                </select>
+                <span id="next-league-button" class="fa fa-chevron-right fa-button" role="button" aria-label="${t('common.next')}"></span>
+              </div>
             </div>
             <div>
               <label for="results-season-select" class="form-label mb-1">${t('results.season')}</label>
-              <select id="results-season-select" class="form-select form-select-sm u-w-auto">
-                ${this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')}
-              </select>
+              <div class="d-flex align-items-center gap-1">
+                <span id="prev-season-button" class="fa fa-chevron-left fa-button" role="button" aria-label="${t('common.prev')}"></span>
+                <select id="results-season-select" class="form-select form-select-sm u-w-auto">
+                  ${this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')}
+                </select>
+                <span id="next-season-button" class="fa fa-chevron-right fa-button" role="button" aria-label="${t('common.next')}"></span>
+              </div>
             </div>
             <div>
               <label for="results-game-day-select" class="form-label mb-1">${t('results.gameDayLabel')}</label>
-              <select id="results-game-day-select" class="form-select form-select-sm u-w-auto">
-                ${this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')}
-              </select>
+              <div class="d-flex align-items-center gap-1">
+                <span id="prev-game-day-button" class="fa fa-chevron-left fa-button" role="button" aria-label="${t('common.prev')}"></span>
+                <select id="results-game-day-select" class="form-select form-select-sm u-w-auto">
+                  ${this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')}
+                </select>
+                <span id="next-game-day-button" class="fa fa-chevron-right fa-button" role="button" aria-label="${t('common.next')}"></span>
+              </div>
             </div>
           </div>
         </div>
@@ -321,6 +333,26 @@ export class LeagueResultsPage extends UIElement {
           })
         }
       },
+      // Arrows step through the same lists the dropdowns hold, so a neighbouring
+      // league / season / match day is one click away (#478).
+      '(optional) #prev-league-button': {
+        click: () => this._stepLeague(-1)
+      },
+      '(optional) #next-league-button': {
+        click: () => this._stepLeague(1)
+      },
+      '(optional) #prev-season-button': {
+        click: () => this._stepSeason(-1)
+      },
+      '(optional) #next-season-button': {
+        click: () => this._stepSeason(1)
+      },
+      '(optional) #prev-game-day-button': {
+        click: () => this._stepMatchDay(-1)
+      },
+      '(optional) #next-game-day-button': {
+        click: () => this._stepMatchDay(1)
+      },
       '#results-open-top-scorers-btn': {
         click: () => setQueryParams({ top_scorers: '1' })
       },
@@ -367,6 +399,59 @@ export class LeagueResultsPage extends UIElement {
   availableLeagues = []
   availableSeasons = []
   availableMatchDays = []
+
+  /**
+   * Move one entry along a filter list. Clamped rather than wrapping: running
+   * off either end should feel like a dead button, not jump to the far side.
+   * @param {Array} list
+   * @param {number} currentIndex
+   * @param {number} direction - -1 or 1
+   * @returns {*|null} the neighbouring entry, or null when there is none
+   * @private
+   */
+  _neighbour (list, currentIndex, direction) {
+    const next = currentIndex + direction
+    if (currentIndex < 0 || next < 0 || next >= list.length) return null
+    return list[next]
+  }
+
+  /**
+   * @param {number} direction
+   * @private
+   */
+  _stepLeague (direction) {
+    const index = this.availableLeagues.findIndex(l => l.level === this.level && l.league === this.league)
+    const target = this._neighbour(this.availableLeagues, index, direction)
+    if (!target) return
+    setQueryParams({
+      level: target.level,
+      league: target.league,
+      season: this.season,
+      match_day: this.matchDay
+    })
+  }
+
+  /**
+   * @param {number} direction
+   * @private
+   */
+  _stepSeason (direction) {
+    const index = this.availableSeasons.indexOf(this.season)
+    const target = this._neighbour(this.availableSeasons, index, direction)
+    if (target === null) return
+    setQueryParams({ season: target, match_day: this.matchDay })
+  }
+
+  /**
+   * @param {number} direction
+   * @private
+   */
+  _stepMatchDay (direction) {
+    const index = this.availableMatchDays.indexOf(this.matchDay)
+    const target = this._neighbour(this.availableMatchDays, index, direction)
+    if (target === null) return
+    setQueryParams({ season: this.season, match_day: target })
+  }
   _seasonCompleted = false
 
   recap = null

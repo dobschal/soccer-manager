@@ -34,6 +34,7 @@ Card types:
 • New Youth Player 2 – recruits a stronger talent (level 5–10, talent 30–75%). Requires Youth Academy level 2.
 • New Youth Player 3 – recruits a top talent (level 10–15, talent 50–100%). Requires Youth Academy level 3.
 • Bonus 100K – adds 100,000 € to your account.
+• Million Gift – adds 1,000,000 € to your account. Ten times the cash bonus, and ten times as rare.
 • Star Player – permanently boosts a player's match strength by 10%.
 • Motivating Speech – gives your whole team a +10% strength bonus for the next match day.
 • Spy – reveals another team's tactics and lineup. Your next opponent is preselected, but you can scout any team you search for. The card is used up the moment the report is revealed; the latest report stays visible on your team page.
@@ -42,7 +43,8 @@ Card types:
 Good to know:
 • The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings, and the Medical Practice unlocks the Medical Treatment card in the first place.
 • A single player can gain at most 20 levels per season through cards.
-• You can hold at most 10 unplayed cards of the same type – play or trade some away before you can claim more of that type.
+• You can hold at most 20 unplayed cards of the same type – play or trade some away before you can claim more of that type. Your dashboard warns you as soon as a stack is full.
+• Signing for a club gets you four cards to start with: a New Youth Player 1, a Level Up 40, a Star Player and a New Youth Player 3.
 • At most 3 New Youth Player cards are handed out per season, so young talents stay scarce.
 • Cards you don't need can be traded with other managers on the Action Card Marketplace.
 • Save your Motivating Speech and Freshness cards for important matches.`
@@ -59,6 +61,7 @@ Kartentypen:
 • Neuer Jugendspieler 2 – holt ein stärkeres Talent (Level 5–10, Talent 30–75%). Braucht Jugendakademie-Stufe 2.
 • Neuer Jugendspieler 3 – holt ein Top-Talent (Level 10–15, Talent 50–100%). Braucht Jugendakademie-Stufe 3.
 • Bonus 100K – schreibt 100.000 € auf deinem Konto gut.
+• Millionengeschenk – schreibt 1.000.000 € auf deinem Konto gut. Zehnmal so viel wie der Geldbonus und zehnmal so selten.
 • Starspieler – erhöht die Spielstärke eines Spielers dauerhaft um 10%.
 • Motivationsrede – gibt deinem ganzen Team am nächsten Spieltag +10% Stärke.
 • Spion – deckt Taktik und Aufstellung eines anderen Teams auf. Dein nächster Gegner ist vorausgewählt, du kannst aber jedes gesuchte Team ausspähen. Die Karte wird verbraucht, sobald der Bericht aufgedeckt ist; der letzte Bericht bleibt auf deiner Team-Seite sichtbar.
@@ -67,7 +70,8 @@ Kartentypen:
 Gut zu wissen:
 • Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust – und die Arztpraxis schaltet die Karte „Medizinische Behandlung" überhaupt erst frei.
 • Ein Spieler kann pro Saison höchstens 20 Level durch Karten gewinnen.
-• Du kannst höchstens 10 ungenutzte Karten desselben Typs halten – setze oder tausche welche ein, bevor du weitere dieses Typs annehmen kannst.
+• Du kannst höchstens 20 ungenutzte Karten desselben Typs halten – setze oder tausche welche ein, bevor du weitere dieses Typs annehmen kannst. Dein Dashboard warnt dich, sobald ein Stapel voll ist.
+• Mit der Vereinsübernahme bekommst du vier Karten zum Start: Nachwuchsspieler, Basis-Training, Starspieler und Nachwuchsstar.
 • Pro Saison werden höchstens 3 „Neuer Jugendspieler“-Karten vergeben, damit Talente knapp bleiben.
 • Karten, die du nicht brauchst, kannst du auf dem Action-Card-Marktplatz mit anderen Managern tauschen.
 • Hebe dir Motivationsrede und Frische-Karten für wichtige Spiele auf.`
@@ -1232,6 +1236,7 @@ Typical items:
 • Incoming offers – you have pending transfer offers to review.
 • No sponsor – you currently have no active sponsorship deal.
 • Forum mentions – someone mentioned you in the forum.
+• Action card stack full – one of your card types has hit the 20-card limit; play or trade some, or further cards of that type are lost.
 
 Check the list regularly so you never go into a match day with an empty bench or a tired lineup.`
     },
@@ -1250,6 +1255,7 @@ Typische Punkte:
 • Eingehende Angebote – du hast offene Transferangebote zu prüfen.
 • Kein Sponsor – du hast aktuell keinen aktiven Sponsorvertrag.
 • Forum-Erwähnungen – jemand hat dich im Forum erwähnt.
+• Kartenstapel voll – einer deiner Kartentypen hat das Limit von 20 erreicht; spiele oder tausche Karten, sonst verfallen weitere dieses Typs.
 
 Sieh dir die Liste regelmäßig an, damit du nie mit leerer Bank oder müder Aufstellung in einen Spieltag gehst.`
     }
@@ -1279,6 +1285,11 @@ Age and promotion:
 • At 18 you get a warning; if not promoted, they leave at age 19.
 • On promotion the level is rounded down to a whole number and the player joins your main squad.
 
+Selling:
+• Every youngster carries a market value, shown next to their level, and you can sell them for exactly that.
+• The value follows their level and — unlike the hidden talent bar — rewards potential: a top talent is worth roughly two and a half times a weak one of the same level.
+• There is no buying club: the player simply leaves the academy and the money lands in your account straight away.
+
 The Youth Academy building (see Buildings) determines how many and how strong the new talents you receive are.`
     },
     de: {
@@ -1301,6 +1312,11 @@ Alter und Beförderung:
 • Jugendspieler starten mit 15 Jahren. Ab 16 kannst du sie in deinen Profikader befördern.
 • Mit 18 erhältst du eine Warnung; werden sie nicht befördert, verlassen sie den Verein mit 19.
 • Bei der Beförderung wird das Level auf eine ganze Zahl abgerundet, und der Spieler wechselt in deinen Hauptkader.
+
+Verkaufen:
+• Jeder Jugendspieler hat einen Marktwert, der neben dem Level angezeigt wird, und genau dafür kannst du ihn verkaufen.
+• Der Wert richtet sich nach dem Level und belohnt – anders als der verborgene Talentbalken – das Potenzial: ein Top-Talent ist rund zweieinhalbmal so viel wert wie ein schwaches gleichen Levels.
+• Es gibt keinen kaufenden Verein: Der Spieler verlässt einfach die Akademie, und das Geld landet sofort auf deinem Konto.
 
 Das Gebäude Jugendakademie (siehe Gebäude) bestimmt, wie viele und wie starke neue Talente du erhältst.`
     }

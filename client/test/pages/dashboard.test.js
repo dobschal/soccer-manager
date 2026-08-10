@@ -848,3 +848,68 @@ describe('DashboardPage', () => {
     })
   })
 })
+
+describe('DashboardPage action card count in the nav bar (#523)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    server.getActionCards.mockResolvedValue({ actionCards: [] })
+    server.getMyTeam.mockResolvedValue({
+      team: { id: 1, name: 'Test FC', level: 1, league: 1 },
+      user: { username: 'testuser' }
+    })
+    server.getCurrentGameday.mockResolvedValue({ season: 0, gameDay: 5 })
+  })
+
+  it('counts the playable cards in the inventory', async () => {
+    server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1 }, { id: 2 }, { id: 3 }] })
+    const page = new DashboardPage()
+    await page.load()
+    expect(page._availableCardCount).toBe(3)
+  })
+
+  it('links the count to the cards sub-page', async () => {
+    server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1 }] })
+    const page = new DashboardPage()
+    await page.load()
+    const html = page.template
+    expect(html).toContain('href="#my-team?sub_page=cards"')
+    expect(html).toContain('fa-clone')
+  })
+
+  it('shows zero rather than nothing when the inventory is empty', async () => {
+    const page = new DashboardPage()
+    await page.load()
+    expect(page._availableCardCount).toBe(0)
+    expect(page.template).toContain('dashboard-cards-link')
+  })
+
+  it('leaves pending cards out of the count — they still have to be claimed', async () => {
+    server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1 }] })
+    server.getPendingActionCards.mockResolvedValue({ pendingCards: [{ id: 9 }, { id: 10 }] })
+    const page = new DashboardPage()
+    await page.load()
+    expect(page._availableCardCount).toBe(1)
+  })
+
+  it('refreshes the count when the inventory changes', async () => {
+    server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1 }] })
+    const page = new DashboardPage()
+    await page.load()
+
+    server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1 }, { id: 2 }] })
+    await page.serverEvents.ACTION_CARDS_CHANGED()
+
+    expect(page._availableCardCount).toBe(2)
+  })
+
+  it('keeps the old count when the refresh request fails', async () => {
+    server.getActionCards.mockResolvedValue({ actionCards: [{ id: 1 }] })
+    const page = new DashboardPage()
+    await page.load()
+
+    server.getActionCards.mockRejectedValue(new Error('offline'))
+    await page.serverEvents.ACTION_CARDS_CHANGED()
+
+    expect(page._availableCardCount).toBe(1)
+  })
+})

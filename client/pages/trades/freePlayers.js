@@ -70,7 +70,7 @@ export class FreePlayers extends UIElement {
     return [{
       name: t('results.name')
     }, {
-      name: t('player.position'),
+      name: t('player.positionShort'),
       sortFn: (playerA, playerB, isAsc) => {
         if (isAsc) {
           return sortByPosition(playerB, playerA)

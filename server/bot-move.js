@@ -849,10 +849,10 @@ async function _checkActionCards (botTeam, players, _isStrongTeam, actionCards) 
         continue
       }
 
-      // BONUS_100K - free money
-      if (actionCard.action === 'BONUS_100K') {
+      // BONUS_100K / MILLION_BONUS - free money
+      if (actionCard.action === 'BONUS_100K' || actionCard.action === 'MILLION_BONUS') {
         await playActionCard({ actionCard }, botTeam)
-        console.log(`${botTeam.name} used BONUS_100K card`)
+        console.log(`${botTeam.name} used ${actionCard.action} card`)
         continue
       }
 

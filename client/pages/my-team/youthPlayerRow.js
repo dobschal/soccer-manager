@@ -4,6 +4,7 @@ import { ProgressBar } from '../../partials/progressBar.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
 import { t } from '../../i18n/index.js'
 import { TRAINING_MODES } from './youthTrainingModes.js'
+import { euroFormat } from '../../lib/currency.js'
 
 /**
  * A single `<tr>` inside the youth-players table. Owns its own DOM subtree so
@@ -48,6 +49,7 @@ export class YouthPlayerRow extends UIElement {
         <td>${renderPositionBadge(player.position)}</td>
         <td>${player.age}</td>
         <td>${player.level.toFixed(2)}</td>
+        <td class="text-end u-nowrap">${euroFormat.format(player.market_value ?? 0)}</td>
         <td>${new ProgressBar(player.moral)}</td>
         <td>${new ProgressBar(player.fitness)}</td>
         <td>${this._renderModeSelect()}</td>
@@ -58,6 +60,7 @@ export class YouthPlayerRow extends UIElement {
               ${!isOldEnough ? 'disabled' : ''}
               title="${disabledReason}"
             ><i class="fa fa-arrow-up"></i> ${t('youthTeam.promote')}</button>
+            <button class="btn btn-sm btn-success me-1 youth-row-sell-btn"><i class="fa fa-money"></i> ${t('youthTeam.sell')}</button>
             <button class="btn btn-sm btn-danger youth-row-fire-btn"><i class="fa fa-times"></i> ${t('youthTeam.fire')}</button>
           </span>
         </td>
@@ -73,6 +76,12 @@ export class YouthPlayerRow extends UIElement {
         click: (e) => {
           e.stopPropagation()
           this.page._showPromoteConfirm(this.player)
+        }
+      },
+      '.youth-row-sell-btn': {
+        click: (e) => {
+          e.stopPropagation()
+          this.page._showSellConfirm(this.player)
         }
       },
       '.youth-row-fire-btn': {

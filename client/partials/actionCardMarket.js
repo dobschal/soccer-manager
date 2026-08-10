@@ -625,6 +625,7 @@ const TYPE_KEYS = {
   FRESHNESS_10: 'energyBoost',
   FRESHNESS_20: 'fullRecovery',
   BONUS_100K: 'cashBonus',
+  MILLION_BONUS: 'millionBonus',
   STAR_PLAYER: 'starPlayer',
   MOTIVATING_SPEECH: 'motivatingSpeech',
   SPY: 'spy'

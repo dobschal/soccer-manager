@@ -1,10 +1,11 @@
 import { server } from '../../lib/gateway.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { Table } from '../../partials/table.js'
-import { goTo, setQueryParams } from '../../lib/router.js'
+import { setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 import { formatDate, formatLastActive } from '../../lib/date.js'
 import { formatLeague } from '../../util/league.js'
+import { showUserProfileOverlay } from '../../partials/userProfileOverlay.js'
 
 const SORT_COL_MAP = ['username', 'team_name', 'league', 'created_at', 'last_login', 'is_friend']
 
@@ -88,7 +89,7 @@ export class BrowseUsersPage extends UIElement {
           : '<span class="text-muted">—</span>'
       ],
       onClick: (user) => {
-        goTo(`user?id=${user.id}`)
+        showUserProfileOverlay(user.id)
       }
     })
 

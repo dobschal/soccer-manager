@@ -141,7 +141,9 @@ describe('IncomingOffersPage', () => {
       await page.load()
       expect(page.template).toContain('Name')
       expect(page.template).toContain('Team')
-      expect(page.template).toContain('Position')
+      // Abbreviated to save horizontal space on the trades tables (#507).
+      expect(page.template).toContain('Pos')
+      expect(page.template).not.toContain('Position')
       expect(page.template).toContain('Level')
       expect(page.template).toContain('Price')
     })

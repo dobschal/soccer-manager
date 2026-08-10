@@ -20,6 +20,7 @@ function getActionCardTitles () {
     FRESHNESS_10: t('actionCards.type.energyBoost'),
     FRESHNESS_20: t('actionCards.type.fullRecovery'),
     BONUS_100K: t('actionCards.type.cashBonus'),
+    MILLION_BONUS: t('actionCards.type.millionBonus'),
     MOTIVATING_SPEECH: t('actionCards.type.motivatingSpeech'),
     SPY: t('actionCards.type.spy'),
     MEDICAL_TREATMENT: t('actionCards.type.medicalTreatment')

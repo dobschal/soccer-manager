@@ -9,7 +9,7 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - **US-REG-01**: Als Besucher kann ich mich mit Benutzername und Passwort registrieren, optional mit E-Mail-Adresse.
 - **US-REG-02**: Als Besucher kann ich mich mit meinen Zugangsdaten einloggen.
 - **US-REG-03**: Als neuer Spieler waehle ich mein Team selbst aus den verfuegbaren freien Teams und erhalte 500.000 Euro Startkapital.
-- **US-REG-04**: Als neuer Spieler erhalte ich 2 Starter-Aktionskarten (Jugendspieler, Level-Up).
+- **US-REG-04**: Als neuer Spieler erhalte ich 4 Starter-Aktionskarten: Nachwuchsspieler, Basis-Training, Starspieler und Nachwuchsstar.
 - **US-REG-05**: Als Spieler kann ich die Sprache meines Kontos aendern (Englisch/Deutsch).
 - **US-REG-06**: Als Spieler kann ich mein Konto loeschen (mit vollstaendiger Datenloeschung).
 - **US-REG-07**: Als Spieler werde ich nach erfolgreicher Registrierung automatisch eingeloggt.
@@ -36,7 +36,12 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - **TA-REG-24**: Waehlbar sind nur Teams mit `user_id IS NULL`, `is_system_team = 0` und `level >= config.MIN_CHOOSABLE_LEVEL`.
 - **TA-REG-25**: Zwei Wege: `chooseTeam(teamId)` (konkretes Team) oder `chooseRandomTeamInLeague(level, league)` (zufaelliges Team einer Liga).
 - **TA-REG-26**: Beide nutzen `_takeOverTeam()`: Balance auf 500.000 Euro, `coach_since` setzen, Log-/Finanz-/Trade-Offer-/Sponsor-/Karten-Daten des Vorgaengers loeschen, `regenerateTeamData()`, laufende Stadionbauten sofort abschliessen, Willkommens-Log.
-- **TA-REG-27**: Starter-Karten: **2** Stueck — `NEW_YOUTH_PLAYER_1` und `LEVEL_UP_PLAYER_40`.
+- **TA-REG-27**: Starter-Karten: **4** Stueck — `NEW_YOUTH_PLAYER_1`, `LEVEL_UP_PLAYER_40`, `STAR_PLAYER`
+  und `NEW_YOUTH_PLAYER_3` (#518). Die Liste steht als `STARTER_ACTION_CARDS` in
+  `server/routes/teamChoice.js` und wird von `chooseTeam` wie von `chooseRandomTeamInLeague` genutzt.
+- **TA-REG-28**: Nach der Teamuebernahme geht eine Push-Benachrichtigung an alle Admins mit Manager- und
+  Teamname (#449). Ausgeloest wird sie bei der **Teamwahl**, nicht bei der Registrierung — vorher gibt es
+  keinen Teamnamen. Der Versand ist fire-and-forget: ein Push-Fehler darf die Uebernahme nie scheitern lassen.
 - **TA-REG-28**: Ein Nutzer mit bestehendem Team kann nicht erneut waehlen (`chooseTeam.alreadyHasTeam`).
 
 ### Login
@@ -118,3 +123,4 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - E-Mail-Verifizierung: gueltiges Token, abgelaufenes Token, bereits belegte Adresse
 - Passwort-Reset: unbekannte E-Mail gibt trotzdem Erfolg zurueck, abgelaufenes Token wird abgelehnt
 - Team-Auswahl: freie Teams filtern, doppelte Auswahl verhindern, Starter-Karten korrekt vergeben
+- Admin-Push bei neuem Manager: Empfaengerliste, Inhalt, Verhalten ohne Admin-Geraet und bei Push-Fehler

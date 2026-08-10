@@ -122,6 +122,14 @@
     color: #fff;
 }
 
+.team-timeline__badge--clickable {
+    cursor: pointer;
+}
+
+.team-timeline__badge--clickable:hover {
+    filter: brightness(1.25);
+}
+
 .team-timeline__badge--win {
     background: #28a745;
 }

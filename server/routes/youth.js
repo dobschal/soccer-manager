@@ -1,6 +1,7 @@
 import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { updateTeamBalance } from '../helper/financeHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
@@ -15,7 +16,8 @@ import {
   fireYouthPlayer,
   setYouthTrainingMode,
   setYouthPlayerTrainingMode,
-  countYouthPlayersInMode
+  countYouthPlayersInMode,
+  calculateYouthPlayerValue
 } from '../helper/youthPlayerHelper.js'
 
 const VALID_TRAINING_MODES = ['training', 'friendly_match', 'rest']
@@ -61,10 +63,13 @@ export default {
     const youthPlayers = await getYouthPlayersByTeam(team.id)
     const academyLevel = await getYouthAcademyLevel(team.id)
 
-    // Add age to each player (but not talent - that's hidden)
+    // Add age and sale value to each player (but not talent - that's hidden).
+    // The value is computed here rather than on the client precisely because
+    // it depends on the hidden talent (#524).
     const playersWithAge = youthPlayers.map(p => ({
       ...p,
       age: getYouthPlayerAge(p, season),
+      market_value: calculateYouthPlayerValue(p, season),
       talent: undefined // Remove talent from response - it's hidden
     }))
 
@@ -217,5 +222,45 @@ export default {
     )
 
     return { success: true }
+  },
+
+  /**
+   * Sell a youth player at their current market value (#524). The club is
+   * credited and the player leaves the academy — there is no buying team, the
+   * transfer market only trades professionals.
+   * @param {number} youthPlayerId
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, value: number}>}
+   */
+  async sellYouthPlayer (youthPlayerId, req) {
+    const team = await getTeam(req)
+    const locale = await getUserLocale(team.user_id)
+    const { gameDay, season } = await getGameDayAndSeason()
+
+    const youthPlayer = await getYouthPlayerById(youthPlayerId)
+    if (!youthPlayer) {
+      throw new BadRequestError(t('error.youthPlayerNotFound', {}, locale))
+    }
+    if (youthPlayer.team_id !== team.id) {
+      throw new BadRequestError(t('error.notYourYouthPlayer', {}, locale))
+    }
+
+    const value = calculateYouthPlayerValue(youthPlayer, season)
+    // Remove first: if the payout were booked first and the delete then failed,
+    // the club would keep both the money and the player.
+    await fireYouthPlayer(youthPlayerId)
+    await updateTeamBalance(team, value, t('finance.youthPlayerSold', { playerName: youthPlayer.name }, locale), gameDay, season)
+
+    await addLogMessage(
+      t('log.youthPlayerSold', { playerName: youthPlayer.name, value }, locale),
+      team,
+      null,
+      null,
+      'money',
+      undefined,
+      'success'
+    )
+
+    return { success: true, value }
   }
 }

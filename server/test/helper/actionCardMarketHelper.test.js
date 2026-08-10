@@ -334,3 +334,23 @@ describe('placeBotCardBids (#505)', () => {
     expect(result.bids).toBe(0)
   })
 })
+
+describe('million bonus card on the marketplace (#537)', () => {
+  it('has a bot bid price just under its face value', () => {
+    expect(BOT_CARD_BID_PRICES.MILLION_BONUS).toBe(900000)
+    // Bidding the full 1M would make listing the card a risk-free profit.
+    expect(BOT_CARD_BID_PRICES.MILLION_BONUS).toBeLessThan(1_000_000)
+  })
+
+  it('is priced ten times the cash bonus, like its payout', () => {
+    expect(BOT_CARD_BID_PRICES.MILLION_BONUS).toBe(BOT_CARD_BID_PRICES.BONUS_100K * 10)
+  })
+
+  it('is valued like any other card in a bundle', () => {
+    const amount = calculateBotBidAmount(
+      [{ action: 'MILLION_BONUS' }, { action: 'SPY' }],
+      () => 0.5
+    )
+    expect(amount).toBe(920000)
+  })
+})

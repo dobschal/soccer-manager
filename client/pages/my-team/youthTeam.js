@@ -12,6 +12,7 @@ import { fire } from '../../lib/event.js'
 import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 import { TRAINING_MODES, MAX_SLOTS_PER_MODE } from './youthTrainingModes.js'
 import { YouthPlayerRow } from './youthPlayerRow.js'
+import { euroFormat } from '../../lib/currency.js'
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -388,6 +389,7 @@ export class YouthTeamPage extends UIElement {
         { name: t('youthTeam.position') },
         { name: t('youthTeam.age') },
         { name: t('youthTeam.level') },
+        { name: t('youthTeam.marketValue'), align: 'right' },
         { name: t('youthTeam.moral') },
         { name: t('youthTeam.fitness') },
         { name: t('youthTeam.trainingMode') },
@@ -473,6 +475,35 @@ export class YouthTeamPage extends UIElement {
         level
       }),
       `<button id="${confirmId}" class="btn btn-primary w-100">${t('youthTeam.promote')}</button>`
+    )
+  }
+
+  /**
+   * @param {Object} player
+   * @returns {void}
+   */
+  _showSellConfirm (player) {
+    const confirmId = generateId()
+
+    onClick(confirmId, async () => {
+      try {
+        const { value } = await server.sellYouthPlayer(player.id)
+        toast(t('youthTeam.sold', { playerName: player.name, value: euroFormat.format(value) }), 'success')
+        overlay.remove()
+        await this.load()
+        await this.update()
+      } catch (e) {
+        showServerError(e)
+      }
+    })
+
+    const overlay = showOverlay(
+      t('youthTeam.sellConfirm', { playerName: player.name }),
+      t('youthTeam.sellConfirmText', {
+        playerName: player.name,
+        value: euroFormat.format(player.market_value ?? 0)
+      }),
+      `<button id="${confirmId}" class="btn btn-success w-100">${t('youthTeam.sell')}</button>`
     )
   }
 

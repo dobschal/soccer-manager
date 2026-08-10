@@ -40,11 +40,15 @@ export class MarketingAdminPage extends UIElement {
         <div class="mb-4">
           <h4>${t('admin.broadcastNotification')}</h4>
           <div class="mb-3">
-            <label for="${this._broadcastEnId}" class="form-label">${t('admin.messageEn')}</label>
+            <label for="${this._broadcastTitleEnId}" class="form-label">${t('admin.broadcastTitleEn')}</label>
+            <input type="text" id="${this._broadcastTitleEnId}" class="form-control mb-2" placeholder="${t('admin.broadcastTitlePlaceholder')}" maxlength="60">
+            <label for="${this._broadcastEnId}" class="form-label">${t('admin.broadcastSubtitleEn')}</label>
             <input type="text" id="${this._broadcastEnId}" class="form-control" placeholder="${t('admin.messageEnPlaceholder')}">
           </div>
           <div class="mb-3">
-            <label for="${this._broadcastDeId}" class="form-label">${t('admin.messageDe')}</label>
+            <label for="${this._broadcastTitleDeId}" class="form-label">${t('admin.broadcastTitleDe')}</label>
+            <input type="text" id="${this._broadcastTitleDeId}" class="form-control mb-2" placeholder="${t('admin.broadcastTitlePlaceholder')}" maxlength="60">
+            <label for="${this._broadcastDeId}" class="form-label">${t('admin.broadcastSubtitleDe')}</label>
             <input type="text" id="${this._broadcastDeId}" class="form-control" placeholder="${t('admin.messageDePlaceholder')}">
           </div>
           <div class="mb-3">
@@ -105,6 +109,8 @@ export class MarketingAdminPage extends UIElement {
 
   _giftCardSelectId = generateId()
   _giftCardBtnId = generateId()
+  _broadcastTitleEnId = generateId()
+  _broadcastTitleDeId = generateId()
   _broadcastEnId = generateId()
   _broadcastDeId = generateId()
   _broadcastDeepLinkId = generateId()
@@ -129,6 +135,7 @@ export class MarketingAdminPage extends UIElement {
       'NEW_YOUTH_PLAYER_2',
       'NEW_YOUTH_PLAYER_3',
       'BONUS_100K',
+      'MILLION_BONUS',
       'STAR_PLAYER',
       'MOTIVATING_SPEECH'
     ].map(value => ({ value, label: actionCardLabel(value) }))
@@ -190,6 +197,8 @@ export class MarketingAdminPage extends UIElement {
   }
 
   async _sendBroadcast () {
+    const titleEn = document.getElementById(this._broadcastTitleEnId).value.trim()
+    const titleDe = document.getElementById(this._broadcastTitleDeId).value.trim()
     const messageEn = document.getElementById(this._broadcastEnId).value.trim()
     const messageDe = document.getElementById(this._broadcastDeId).value.trim()
     const deepLink = document.getElementById(this._broadcastDeepLinkId).value.trim()
@@ -201,8 +210,10 @@ export class MarketingAdminPage extends UIElement {
     const btn = document.getElementById(this._broadcastBtnId)
     try {
       btn.disabled = true
-      const result = await server.broadcastNotification(messageEn, messageDe, deepLink)
+      const result = await server.broadcastNotification(titleEn, messageEn, titleDe, messageDe, deepLink)
       toast(t('admin.broadcastSent', { sent: result.sent }), 'success')
+      document.getElementById(this._broadcastTitleEnId).value = ''
+      document.getElementById(this._broadcastTitleDeId).value = ''
       document.getElementById(this._broadcastEnId).value = ''
       document.getElementById(this._broadcastDeId).value = ''
       document.getElementById(this._broadcastDeepLinkId).value = ''

@@ -32,6 +32,7 @@ export const GIFTABLE_ACTION_CARD_TYPES = [
   'NEW_YOUTH_PLAYER_2',
   'NEW_YOUTH_PLAYER_3',
   'BONUS_100K',
+  'MILLION_BONUS',
   'STAR_PLAYER',
   'MOTIVATING_SPEECH'
 ]
@@ -76,14 +77,22 @@ export default {
   },
 
   /**
-   * Send a broadcast push notification to all users (admin only)
-   * @param {string} messageEn - English message
-   * @param {string} messageDe - German message
+   * Send a broadcast push notification to all users (admin only).
+   *
+   * Each language carries its own title and subtitle (#388); the title is what
+   * the device shows in bold, the subtitle is the notification body. Titles are
+   * optional — left empty, the app name is used, which is what the notification
+   * looked like before.
+   *
+   * @param {string} titleEn - English title, '' to fall back to the app name
+   * @param {string} messageEn - English subtitle / body
+   * @param {string} titleDe - German title, '' to fall back to the app name
+   * @param {string} messageDe - German subtitle / body
    * @param {string} [deepLink] - optional URL hash to open on tap, e.g. "#club?sub_page=buildings" (#330)
    * @param {Request} req
    * @returns {Promise<{sent: number, failed: number}>}
    */
-  async broadcastNotification (messageEn, messageDe, deepLink, req) {
+  async broadcastNotification (titleEn, messageEn, titleDe, messageDe, deepLink, req) {
     if (!req.user?.is_admin) {
       throw new BadRequestError('This action is only available for admins')
     }
@@ -94,7 +103,11 @@ export default {
       throw new BadRequestError('German message is required')
     }
     const cleanDeepLink = typeof deepLink === 'string' ? deepLink.trim() : ''
-    return sendBroadcastNotification(messageEn.trim(), messageDe.trim(), cleanDeepLink)
+    const titles = {
+      en: typeof titleEn === 'string' ? titleEn.trim() : '',
+      de: typeof titleDe === 'string' ? titleDe.trim() : ''
+    }
+    return sendBroadcastNotification(messageEn.trim(), messageDe.trim(), cleanDeepLink, titles)
   },
 
   /**

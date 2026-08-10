@@ -77,7 +77,6 @@ export class CupResultsPage extends UIElement {
   }
 
   get template () {
-    const roundName = this._getCupRoundName(this.cupRound)
 
     return `
       <div>
@@ -89,7 +88,9 @@ export class CupResultsPage extends UIElement {
                 <th>${t('results.season')}</th>
                 <td>
                   <span id="prev-cup-season-button" class="fa fa-chevron-left fa-button"></span>
-                  ${(this.cupSeason ?? 0) + 1}
+                  <select id="cup-season-select" class="form-select form-select-sm u-w-auto d-inline-block" aria-label="${t('results.season')}">
+                    ${this.cupSeasons.map(season => `<option value="${season}" ${season === this.cupSeason ? 'selected' : ''}>${season + 1}</option>`).join('')}
+                  </select>
                   <span id="next-cup-season-button" class="fa fa-chevron-right fa-button"></span>
                 </td>
               </tr>
@@ -97,7 +98,9 @@ export class CupResultsPage extends UIElement {
                 <th>${t('cup.round')}</th>
                 <td>
                   <span id="prev-cup-round-button" class="fa fa-chevron-left fa-button"></span>
-                  ${roundName}
+                  <select id="cup-round-select" class="form-select form-select-sm u-w-auto d-inline-block" aria-label="${t('cup.round')}">
+                    ${this.cupRounds.map(r => `<option value="${r.round}" ${r.round === this.cupRound ? 'selected' : ''}>${this._getCupRoundName(r.round)}</option>`).join('')}
+                  </select>
                   <span id="next-cup-round-button" class="fa fa-chevron-right fa-button"></span>
                 </td>
               </tr>
@@ -197,6 +200,22 @@ export class CupResultsPage extends UIElement {
       },
       '#next-cup-season-button': {
         click: () => this._navigateCupSeason(1)
+      },
+      // Dropdowns next to the arrows so a distant season/round is one click
+      // away, matching the league page (#478).
+      '(optional) #cup-season-select': {
+        change: (event) => setQueryParams({
+          sub_page: 'cup',
+          cup_season: Number(event.target.value),
+          cup_round: null
+        })
+      },
+      '(optional) #cup-round-select': {
+        change: (event) => setQueryParams({
+          sub_page: 'cup',
+          cup_season: this.cupSeason,
+          cup_round: Number(event.target.value)
+        })
       },
       '(optional) .cup-bracket': {
         mouseover: (e) => this._handleBracketTeamHover(e, true),

@@ -22,6 +22,7 @@ import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 // - FRESHNESS_10: ~30/season → 0.88/day
 // - NEW_YOUTH_PLAYER_1/_2/_3: chances overridden per youth academy level (see buildingHelper)
 // - BONUS_100K: ~2/season → 0.06/day
+// - MILLION_BONUS: a tenth of the cash bonus (#537) → 0.006/day, ~0.2/season
 // - LEVEL_UP_PLAYER_70: ~10/season → 0.3/day (+ ~20 from merge, medium amount reach level 70)
 // - LEVEL_UP_PLAYER_100: ~2/season → 0.06/day (+ ~10 from merge, rare to reach level 100)
 export const actionCardChances = {
@@ -33,6 +34,8 @@ export const actionCardChances = {
   NEW_YOUTH_PLAYER_2: 0,
   NEW_YOUTH_PLAYER_3: 0,
   BONUS_100K: 0.06,
+  // Deliberately derived from BONUS_100K so the two stay in step (#537).
+  MILLION_BONUS: 0.06 * 0.1,
   LEVEL_UP_PLAYER_70: 0.3,
   LEVEL_UP_PLAYER_100: 0.06,
   STAR_PLAYER: 0.01,
@@ -42,6 +45,16 @@ export const actionCardChances = {
   // Only teams with a medical practice ever get this one; the chance is
   // overridden per practice level (see MEDICAL_PRACTICE_CARD_CHANCES).
   MEDICAL_TREATMENT: 0
+}
+
+/**
+ * How much each cash card pays out. Kept as a table so a new denomination is a
+ * one-line change instead of another branch in `playActionCard`.
+ * @type {Record<string, number>}
+ */
+export const CASH_CARD_AMOUNTS = {
+  BONUS_100K: 100_000,
+  MILLION_BONUS: 1_000_000
 }
 
 /**
@@ -352,14 +365,18 @@ export async function playActionCard ({
     await _emitPlayerUpdated(team, player.id)
     return { success: true }
   }
-  if (actionCard.action === 'BONUS_100K') {
+  if (actionCard.action === 'BONUS_100K' || actionCard.action === 'MILLION_BONUS') {
     const {
       gameDay,
       season
     } = await getGameDayAndSeason()
-    await updateTeamBalance(team, 100000, t('finance.actionCardBonus', {}, locale), gameDay, season)
+    const amount = CASH_CARD_AMOUNTS[actionCard.action]
+    await updateTeamBalance(team, amount, t('finance.actionCardBonus', {}, locale), gameDay, season)
     await query('UPDATE action_card SET played=1, state=\'played\' WHERE id=?', [actionCard.id])
-    await addLogMessage(t('log.cardMoney', { amount: '100,000€' }, locale), team, null, null, 'money', undefined, 'success')
+    await addLogMessage(
+      t('log.cardMoney', { amount: `${amount.toLocaleString('en-US')}€` }, locale),
+      team, null, null, 'money', undefined, 'success'
+    )
     return { success: true }
   }
   if (actionCard.action === 'MOTIVATING_SPEECH') {

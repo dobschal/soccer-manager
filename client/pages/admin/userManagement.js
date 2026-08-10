@@ -5,6 +5,7 @@ import { generateId } from '../../lib/html.js'
 import { t } from '../../i18n/index.js'
 import { showConfirmDialog } from '../../partials/overlay.js'
 import { actionCardLabel } from '../../lib/actionCardLabels.js'
+import { showUserProfileOverlay } from '../../partials/userProfileOverlay.js'
 
 const SUSPICIOUS_PAGE_SIZE = 10
 
@@ -135,6 +136,12 @@ export class UserManagementAdminPage extends UIElement {
       [`#${this._blockEmailBtnId}`]: {
         click: () => this._blockEmail()
       },
+      '(optional) [data-profile-user-id]': {
+        click: (event) => {
+          event.preventDefault()
+          showUserProfileOverlay(Number(event.currentTarget.dataset.profileUserId))
+        }
+      },
       '(optional).email-unblock-btn': {
         click: (e) => this._unblockEmail(e.currentTarget.dataset.email)
       }
@@ -145,7 +152,7 @@ export class UserManagementAdminPage extends UIElement {
     const rows = this._blockedEmails.map(b => `
       <tr>
         <td>${this._escape(b.email)}</td>
-        <td>${b.username ? `<a href="#user?id=${b.user_id}">${this._escape(b.username)}</a>` : '—'}</td>
+        <td>${b.username ? `<a href="#user?id=${b.user_id}" data-profile-user-id="${b.user_id}">${this._escape(b.username)}</a>` : '—'}</td>
         <td>${this._escape(b.reason) || '—'}</td>
         <td>${new Date(b.created_at).toLocaleString()}</td>
         <td>
@@ -223,8 +230,8 @@ export class UserManagementAdminPage extends UIElement {
     const rows = this._reports.map(r => `
       <tr class="${r.status === 'open' ? '' : 'text-muted'}">
         <td>${new Date(r.created_at).toLocaleString()}</td>
-        <td><a href="#user?id=${r.reported_id}">${r.reported_username}</a></td>
-        <td><a href="#user?id=${r.reporter_id}">${r.reporter_username}</a></td>
+        <td><a href="#user?id=${r.reported_id}" data-profile-user-id="${r.reported_id}">${r.reported_username}</a></td>
+        <td><a href="#user?id=${r.reporter_id}" data-profile-user-id="${r.reporter_id}">${r.reporter_username}</a></td>
         <td>${this._escape(r.reason)}</td>
         <td>
           ${r.status === 'open'

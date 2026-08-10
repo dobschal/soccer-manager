@@ -13,6 +13,7 @@ import { showFriendPostCommentsOverlay } from '../../partials/friendPostComments
 import { showConfirmDialog } from '../../partials/overlay.js'
 import { linkifyHtml } from '../../lib/linkify.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
+import { showUserProfileOverlay } from '../../partials/userProfileOverlay.js'
 
 /**
  * Render a friend post body: detect http(s) URLs and convert them to
@@ -72,6 +73,21 @@ export class FriendsPage extends UIElement {
       </div>
     `
   }
+  /**
+   * @returns {import('../../lib/UIElement.js').UIElementEvents}
+   */
+  get events () {
+    return {
+      // Delegated: every avatar / name link in the list carries the user id
+      // and opens the profile as an overlay instead of navigating (#532).
+      '(optional) [data-profile-user-id]': {
+        click: (event) => {
+          event.preventDefault()
+          showUserProfileOverlay(Number(event.currentTarget.dataset.profileUserId))
+        }
+      }
+    }
+  }
 
   _entries = []
   _posts = []
@@ -115,20 +131,22 @@ export class FriendsPage extends UIElement {
   _renderRow (entry) {
     const teamLink = entry.team ? `#team?id=${entry.team.id}` : '#dashboard'
     const userLink = `#user?id=${entry.userId}`
+    // Opens the profile as an overlay so the friends list stays put (#532).
+    const profileAttr = ` data-profile-user-id="${entry.userId}"`
     const leagueLink = entry.team
       ? `#results?level=${entry.team.level}&league=${entry.team.league}`
       : null
     const gameLink = entry.lastGame ? `#results?game_id=${entry.lastGame.id}` : null
 
     const avatarCell = `
-      <a href="${userLink}" class="d-inline-block">
+      <a href="${userLink}"${profileAttr} class="d-inline-block">
         <img class="friends-avatar${entry.avatar ? '' : ' friends-avatar--default'}"
              src="${avatarSrc(entry.avatar)}" alt="${entry.username}">
       </a>
     `
 
     const nameCell = `
-      <a href="${userLink}" class="text-decoration-none">
+      <a href="${userLink}"${profileAttr} class="text-decoration-none">
         ${entry.username}
         ${entry.status === 'incoming' ? `<span class="badge bg-info ms-1">${t('friends.incoming')}</span>` : ''}
       </a>

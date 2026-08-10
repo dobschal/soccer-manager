@@ -207,6 +207,7 @@ export default {
   // Log messages - Youth players
   'log.youthPlayerPromoted': '{playerName} has been promoted to the A Team at level {level}!',
   'log.youthPlayerFired': 'Youth player {playerName} has been released from the youth team.',
+  'log.youthPlayerSold': 'Youth player {playerName} was sold for {value}€.',
   'log.youthPlayerAt18Warning': 'Warning: The following youth players will be automatically released next season if not promoted: {playerNames}',
 
   // Log messages - Cards and suspensions
@@ -225,6 +226,7 @@ export default {
   'finance.sponsorDeal': 'Sponsor deal with {name}',
   'finance.stadiumConstruction': 'Stadium construction started',
   'finance.playerSold': 'Player sold: {playerName}',
+  'finance.youthPlayerSold': 'Youth player sold: {playerName}',
   'finance.playerBought': 'Player bought: {playerName}',
   'finance.cardSold': 'Action card sold on the marketplace',
   'finance.cardBought': 'Action card bought on the marketplace',

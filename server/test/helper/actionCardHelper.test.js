@@ -70,7 +70,7 @@ import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { createYouthPlayer } from '../../helper/youthPlayerHelper.js'
 import { sendToUser } from '../../lib/websocket.js'
 import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
-import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, canReceiveActionCard, deleteExpiredPendingCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../../helper/actionCardHelper.js'
+import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, canReceiveActionCard, deleteExpiredPendingCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES, actionCardChances, CASH_CARD_AMOUNTS } from '../../helper/actionCardHelper.js'
 
 describe('actionCardHelper', () => {
   beforeEach(() => {
@@ -955,5 +955,16 @@ describe('actionCardHelper', () => {
 
       expect(query).toHaveBeenCalledWith("DELETE FROM action_card WHERE state='pending'")
     })
+  })
+})
+
+describe('MILLION_BONUS card (#537)', () => {
+  it('is a tenth as likely as the cash bonus', () => {
+    expect(actionCardChances.MILLION_BONUS).toBeCloseTo(actionCardChances.BONUS_100K * 0.1, 10)
+  })
+
+  it('pays out ten times the cash bonus', () => {
+    expect(CASH_CARD_AMOUNTS.MILLION_BONUS).toBe(1_000_000)
+    expect(CASH_CARD_AMOUNTS.MILLION_BONUS).toBe(CASH_CARD_AMOUNTS.BONUS_100K * 10)
   })
 })

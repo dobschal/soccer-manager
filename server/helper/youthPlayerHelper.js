@@ -34,6 +34,39 @@ export function getYouthPlayerAge (youthPlayer, season) {
 }
 
 /**
+ * Talent widens the price of a youth player by ±50% around the level price.
+ * At a youth player's level the level price alone is small, and talent is what
+ * a buyer actually pays for — a 1.0 talent is worth roughly 2.5× a 0.1 one.
+ */
+export const YOUTH_VALUE_TALENT_WEIGHT = 0.5
+
+/**
+ * What a youth player fetches when sold (#524).
+ *
+ * The level term is the same curve professionals are valued with, so a youth
+ * player and a freshly promoted one of equal level land in the same ballpark.
+ * Below 22 the age term is inert — every youth player is 15-18 — but it is
+ * kept so the two formulas stay comparable.
+ *
+ * @param {YouthPlayerType} youthPlayer
+ * @param {number} season
+ * @returns {number} euros, floored
+ */
+export function calculateYouthPlayerValue (youthPlayer, season) {
+  const age = getYouthPlayerAge(youthPlayer, season)
+  const level = Number(youthPlayer.level) || 0
+  const talent = Math.min(1, Math.max(0, Number(youthPlayer.talent) || 0))
+  let price = 40_000_000
+  for (let a = 22; a < age; a++) {
+    price *= 0.85
+  }
+  for (let l = 100; l > level; l--) {
+    price *= 0.9330329915368074
+  }
+  return Math.floor(price * (1 - YOUTH_VALUE_TALENT_WEIGHT + talent * 2 * YOUTH_VALUE_TALENT_WEIGHT))
+}
+
+/**
  * Get all youth players for a team
  * @param {number} teamId
  * @returns {Promise<YouthPlayerType[]>}
