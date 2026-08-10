@@ -10,6 +10,7 @@ import { query, transaction } from '../lib/database.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { collectStatistics, getStatistics } from '../helper/statisticsHelper.js'
 import { getSuspiciousActions } from '../helper/fraudHelper.js'
+import { blockEmail, invalidateUserSessions, listBlockedEmails, unblockEmail } from '../helper/emailBlockHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getServerStats } from '../helper/serverStatsHelper.js'
 import { getTeamById } from '../helper/teamHelper.js'
@@ -40,7 +41,9 @@ export const GIFTABLE_ACTION_CARD_TYPES = [
  * page. Superset of {@link GIFTABLE_ACTION_CARD_TYPES} — SPY is not part of
  * the mass-gift / referral dropdowns but can be handed out individually.
  */
-export const ADMIN_MANAGEABLE_ACTION_CARD_TYPES = [...GIFTABLE_ACTION_CARD_TYPES, 'SPY']
+export const ADMIN_MANAGEABLE_ACTION_CARD_TYPES = [
+  ...GIFTABLE_ACTION_CARD_TYPES, 'SPY', 'MEDICAL_TREATMENT'
+]
 
 export default {
   /**
@@ -267,6 +270,88 @@ export default {
       throw new BadRequestError('Invalid report id')
     }
     await query("UPDATE user_report SET status='resolved', resolved_at=NOW() WHERE id=?", [id])
+    return { success: true }
+  },
+
+  /**
+   * List all blocked email addresses (admin only).
+   * @param {Request} req
+   * @returns {Promise<{blocked: Array}>}
+   */
+  async getBlockedEmails (req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    return { blocked: await listBlockedEmails() }
+  },
+
+  /**
+   * Block an email address (admin only). Registration and login with this
+   * address are refused from here on, and any account currently using it is
+   * logged out immediately.
+   * @param {string} email
+   * @param {string} [reason]
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, email: string, affectedUsers: Array}>}
+   */
+  async blockEmailAddress (email, reason, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    if (typeof email !== 'string' || !email.trim()) {
+      throw new BadRequestError('Email is required')
+    }
+    const safeReason = typeof reason === 'string' && reason.trim() ? reason.trim().slice(0, 255) : null
+    const result = await blockEmail({
+      email,
+      reason: safeReason,
+      blockedByUserId: req.user.id
+    })
+    console.log(
+      `Admin "${req.user.username}" blocked email "${result.email}" ` +
+      `(${result.affectedUsers.length} account(s) logged out)`
+    )
+    return { success: true, ...result }
+  },
+
+  /**
+   * Remove an email address from the block list (admin only).
+   * @param {string} email
+   * @param {Request} req
+   * @returns {Promise<{success: boolean, removed: boolean}>}
+   */
+  async unblockEmailAddress (email, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    if (typeof email !== 'string' || !email.trim()) {
+      throw new BadRequestError('Email is required')
+    }
+    const result = await unblockEmail(email)
+    console.log(`Admin "${req.user.username}" unblocked email "${result.email}"`)
+    return { success: true, ...result }
+  },
+
+  /**
+   * Revoke all existing logins of a user (admin only) without blocking their
+   * email — useful for a stolen token or as a softer measure than a block.
+   * @param {string} username
+   * @param {Request} req
+   * @returns {Promise<{success: boolean}>}
+   */
+  async invalidateUserLogin (username, req) {
+    if (!req.user?.is_admin) {
+      throw new BadRequestError('This action is only available for admins')
+    }
+    if (typeof username !== 'string' || !username.trim()) {
+      throw new BadRequestError('Username is required')
+    }
+    const [user] = await query('SELECT id FROM user WHERE username=? LIMIT 1', [username.trim()])
+    if (!user) {
+      throw new BadRequestError(`User "${username}" not found`)
+    }
+    await invalidateUserSessions(user.id)
+    console.log(`Admin "${req.user.username}" revoked the login of "${username}"`)
     return { success: true }
   },
 

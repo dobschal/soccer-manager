@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { StadiumCanvas } from '../../partials/stadiumCanvas.js'
+import { CONFIG, StadiumCanvas, daylightPhaseFor, skyColor } from '../../partials/stadiumCanvas.js'
 
 /**
  * These tests target the pure stand-sizing math (`_standRowCount`), which drives
@@ -296,6 +296,7 @@ describe('StadiumCanvas stand geometry under construction', () => {
         this.instanceMatrix = {}
         this.instanceColor = null
         this.shadow = { mapSize: {}, camera: {} }
+        this.userData = {}
         created.push(this)
       }
 
@@ -452,8 +453,9 @@ describe('StadiumCanvas camera controls', () => {
   }
 
   const fakeThree = () => ({
-    Scene: class {},
-    Color: class {},
+    Scene: class { add = vi.fn() },
+    Color: class { r = 0.1; g = 0.1; b = 0.2 },
+    Fog: class {},
     PerspectiveCamera: class {
       position = { set: vi.fn() }
       lookAt = vi.fn()
@@ -464,7 +466,17 @@ describe('StadiumCanvas camera controls', () => {
       setSize = vi.fn()
       setPixelRatio = vi.fn()
     },
-    PCFSoftShadowMap: 1
+    PCFSoftShadowMap: 1,
+    // Just enough for the sky dome `_setupScene` builds.
+    SphereGeometry: class {
+      attributes = { position: { count: 0 } }
+      setAttribute = vi.fn()
+    },
+    BufferAttribute: class {},
+    MeshBasicMaterial: class {},
+    Mesh: class {},
+    Vector3: class {},
+    BackSide: 1
   })
 
   const setupWith = (options) => {
@@ -498,5 +510,912 @@ describe('StadiumCanvas camera controls', () => {
   it('allows vertical page scrolling on the canvas when controls are off', () => {
     const controls = setupWith({ interactive: false })
     expect(controls.domElement.style.touchAction).toBe('pan-y')
+  })
+})
+
+/**
+ * The sunset sky gradient. `skyColor` is pure, so it is checked directly on
+ * plain rgb triples; `_createSky` only has to hang the result on a dome.
+ */
+describe('skyColor', () => {
+  const PALETTE = {
+    zenith: [0.1, 0.08, 0.2],
+    horizonWarm: [0.6, 0.32, 0.2],
+    horizonCool: [0.16, 0.14, 0.31],
+    bandExponent: 0.55,
+    sunFocus: 1.5
+  }
+  // The sun sits in the west (-x), like CONFIG.sun.
+  const SUN = { x: -1, z: 0 }
+  const at = (x, y, z) => {
+    const length = Math.hypot(x, y, z)
+    return skyColor({ x: x / length, y: y / length, z: z / length }, SUN, PALETTE)
+  }
+
+  it('paints the zenith in the dusk colour, straight overhead', () => {
+    expect(at(0, 1, 0)).toEqual(PALETTE.zenith)
+  })
+
+  it('warms the horizon towards the sun and cools it away from it', () => {
+    const west = at(-1, 0.02, 0) // into the sunset
+    const east = at(1, 0.02, 0) // opposite it
+    expect(west[0]).toBeGreaterThan(east[0]) // more red
+    expect(west[2]).toBeLessThan(east[2]) // less blue
+    expect(west[0]).toBeGreaterThan(west[2]) // and warm overall
+  })
+
+  it('fades the warm band out as the direction climbs', () => {
+    const redAt = y => at(-1, y, 0)[0]
+    expect(redAt(0.05)).toBeGreaterThan(redAt(0.4))
+    expect(redAt(0.4)).toBeGreaterThan(redAt(0.9))
+  })
+
+  it('never leaves the palette range, in any direction', () => {
+    // Every result is a blend of the three stops, so it has to stay between the
+    // darkest and the brightest channel among them.
+    const stops = [PALETTE.zenith, PALETTE.horizonWarm, PALETTE.horizonCool].flat()
+    const low = Math.min(...stops)
+    const high = Math.max(...stops)
+    for (const y of [-1, -0.3, 0, 0.3, 1]) {
+      for (const angle of [0, 1, 2, 3, 4, 5]) {
+        for (const channel of at(Math.cos(angle), y, Math.sin(angle))) {
+          expect(channel).toBeGreaterThanOrEqual(low)
+          expect(channel).toBeLessThanOrEqual(high)
+        }
+      }
+    }
+  })
+
+  it('keeps the scene background and the fog inside the sky palette', () => {
+    // The background only shows if the dome ever fails, so it has to match its
+    // darkest part; the fog is the haze the horizon dissolves into.
+    expect(CONFIG.colors.sceneBackground).toBe(CONFIG.sky.zenith)
+    const blue = hex => hex & 0xff
+    const red = hex => (hex >> 16) & 0xff
+    expect(red(CONFIG.colors.fog)).toBeGreaterThan(red(CONFIG.sky.horizonCool))
+    expect(blue(CONFIG.colors.fog)).toBeLessThan(blue(CONFIG.sky.horizonCool))
+  })
+})
+
+/**
+ * Coplanar decals on ground that runs out to the horizon (the roads' centre
+ * markings) need a depth bias, not just a height offset.
+ */
+describe('StadiumCanvas depth precision', () => {
+  it('keeps the near plane far enough out for the distant roads', () => {
+    // At near 0.1 the depth buffer could not separate the markings from the
+    // asphalt out at the far end of the roads, and they flickered.
+    expect(CONFIG.camera.near).toBeGreaterThanOrEqual(1)
+    // …but never so far that it clips what the camera can actually get close to.
+    for (const view of Object.values(CONFIG.views)) {
+      expect(CONFIG.camera.near).toBeLessThan(view.minDistance)
+    }
+    // Everything on the ground plane stays inside the frustum, from any angle.
+    expect(CONFIG.camera.far).toBeGreaterThan(2 * new StadiumCanvas({}, {})._groundHalf())
+  })
+
+  it('biases the road markings towards the camera', () => {
+    const created = []
+    const canvas = new StadiumCanvas({}, {})
+    canvas._THREE = new Proxy({}, {
+      get: (_, prop) => {
+        if (prop === 'Quaternion') {
+          return class { setFromEuler () { return this } }
+        }
+        return class {
+          constructor (...args) {
+            this.type = prop
+            this.args = args
+            this.position = { set: () => {} }
+            this.rotation = {}
+            this.instanceMatrix = {}
+            created.push(this)
+          }
+
+          set () { return this }
+          compose () {}
+          setMatrixAt () {}
+        }
+      }
+    })
+    canvas._buildRoads({ add: () => {} })
+
+    const marking = created.find(o =>
+      o.type === 'MeshBasicMaterial' && o.args[0]?.color === CONFIG.road.markingColor)
+    expect(marking.args[0].polygonOffset).toBe(true)
+    // Negative pulls the dashes towards the camera, in depth-buffer units, so
+    // the correction holds at any distance.
+    expect(marking.args[0].polygonOffsetFactor).toBeLessThan(0)
+    expect(marking.args[0].polygonOffsetUnits).toBeLessThan(0)
+  })
+})
+
+/**
+ * The scene's fill lighting: ambient, a cool moon from above and a warm low
+ * evening sun from the west.
+ */
+describe('StadiumCanvas._setupLights', () => {
+  const DUSK = CONFIG.daylight.phases.dusk
+
+  const setupLights = (options = {}) => {
+    const added = []
+    // Pinned to dusk: the phase otherwise follows the clock the tests run on.
+    const canvas = new StadiumCanvas({}, {}, 'c', { daylight: 'dusk', ...options })
+    canvas._scene = { add: (o) => added.push(o) }
+    canvas._THREE = {
+      AmbientLight: class {
+        constructor (color, intensity) { Object.assign(this, { kind: 'ambient', color, intensity }) }
+      },
+      DirectionalLight: class {
+        constructor (color, intensity) {
+          Object.assign(this, { kind: 'directional', color, intensity })
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+          this.target = { position: { set: (x, y, z) => { this.aimedAt = { x, y, z } } } }
+          this.shadow = { mapSize: {}, camera: {} }
+        }
+      }
+    }
+    canvas._setupLights()
+    return { added, canvas }
+  }
+  const lightsOf = (options) => setupLights(options).added
+  const sunOf = (options) => lightsOf(options).find(l => l.kind === 'directional' && l.color !== CONFIG.colors.moonLight)
+
+  it('lights the scene with the phase\'s sun on top of the moon fill', () => {
+    const sun = sunOf()
+    expect(sun).toBeDefined()
+    expect(sun.color).toBe(DUSK.sun.color)
+    expect(sun.intensity).toBe(DUSK.sun.intensity)
+  })
+
+  it('hangs the dusk sun low in the west, not overhead like the moon', () => {
+    const lights = lightsOf()
+    const sun = lights.find(l => l.color === DUSK.sun.color)
+    const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
+    // The stadium view orbits the origin, so on it the sun's position is also the
+    // direction it comes from: far out west (-x), only just above the horizon.
+    expect(sun.at.x).toBeLessThan(0)
+    expect(sun.at.y).toBeGreaterThan(0)
+    const elevation = Math.atan2(sun.at.y, Math.hypot(sun.at.x, sun.at.z)) * 180 / Math.PI
+    expect(elevation).toBeGreaterThan(5)
+    expect(elevation).toBeLessThan(25)
+    // The moon stays the steep one.
+    expect(Math.atan2(moon.at.y, Math.hypot(moon.at.x, moon.at.z)))
+      .toBeGreaterThan(Math.atan2(sun.at.y, Math.hypot(sun.at.x, sun.at.z)))
+  })
+
+  it('keeps the warm sun weak enough not to outshine the floodlights', () => {
+    const lights = lightsOf()
+    const sun = lights.find(l => l.color === DUSK.sun.color)
+    // A warm colour (more red than blue) and a fill-level intensity.
+    expect((DUSK.sun.color >> 16) & 0xff).toBeGreaterThan(DUSK.sun.color & 0xff)
+    expect(sun.intensity).toBeLessThanOrEqual(2)
+    expect(lights.filter(l => l.kind === 'ambient')).toHaveLength(1)
+  })
+
+  it('takes the fill intensities from the phase, bright enough to read by', () => {
+    const lights = lightsOf()
+    const ambient = lights.find(l => l.kind === 'ambient')
+    const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
+    expect(ambient.intensity).toBe(DUSK.fill.ambient)
+    expect(moon.intensity).toBe(DUSK.fill.moon)
+    // The fill has to lift the shadowed sides and the far corners out of black
+    // without washing the floodlights out.
+    expect(DUSK.fill.ambient).toBeGreaterThan(0.6)
+    expect(DUSK.fill.ambient).toBeLessThan(1.5)
+  })
+
+  it('casts the long shadows of the low sun, and only from the sun', () => {
+    const lights = lightsOf()
+    const sun = lights.find(l => l.color === DUSK.sun.color)
+    const moon = lights.find(l => l.color === CONFIG.colors.moonLight)
+    expect(sun.castShadow).toBe(true)
+    expect(sun.shadow.mapSize.width).toBe(CONFIG.sun.shadow.mapSize)
+    expect(sun.shadow.mapSize.height).toBe(CONFIG.sun.shadow.mapSize)
+    // One extra pass is the whole budget: the moon stays shadowless.
+    expect(moon.castShadow).toBeFalsy()
+  })
+
+  it('sizes the sun shadow camera around the focus, deep enough for its shadows', () => {
+    const sun = sunOf()
+    const {radius} = CONFIG.sun.shadow
+    const camera = sun.shadow.camera
+    expect([camera.left, camera.bottom]).toEqual([-radius, -radius])
+    expect([camera.right, camera.top]).toEqual([radius, radius])
+    // The light sits far out; its depth range has to bracket that distance so
+    // neither the casters nor their long shadows fall outside the frustum.
+    const distance = Math.hypot(...DUSK.sun.position)
+    expect(camera.near).toBeGreaterThan(0)
+    expect(camera.near).toBeLessThan(distance)
+    expect(camera.far).toBeGreaterThan(distance)
+  })
+
+  it('aims the sun at whatever the camera orbits, keeping its direction', () => {
+    const {canvas} = setupLights({focus: 'buildings'})
+    const sun = sunOf({focus: 'buildings'})
+    const focus = canvas._focusPoint()
+    expect(focus.x).toBeGreaterThan(0) // the crossing north-east of the stadium
+    expect(sun.aimedAt).toEqual({x: focus.x, y: 0, z: focus.z})
+    // Same light direction as on the stadium view — only the shadowed area moved.
+    expect(sun.at.x - focus.x).toBe(DUSK.sun.position[0])
+    expect(sun.at.z - focus.z).toBe(DUSK.sun.position[2])
+    expect(sun.at.y).toBe(DUSK.sun.position[1])
+  })
+
+  it('lights each phase from its own side, and only the day without floodlights', () => {
+    const {phases} = CONFIG.daylight
+    // Dusk in the west, dawn in the east — that is what makes them tell apart.
+    expect(phases.dusk.sun.position[0]).toBeLessThan(0)
+    expect(phases.dawn.sun.position[0]).toBeGreaterThan(0)
+    // Day is the bright one, night the dark one, and only by day are the
+    // floodlights out.
+    expect(phases.day.sun.intensity).toBeGreaterThan(phases.dusk.sun.intensity)
+    expect(phases.night.sun.intensity).toBeLessThan(phases.dusk.sun.intensity)
+    expect(phases.day.floodlights).toBe(false)
+    for (const name of ['dawn', 'dusk', 'night']) {
+      expect(phases[name].floodlights).toBe(true)
+    }
+    // Every phase brings a full palette, so nothing falls back mid-switch.
+    for (const name of CONFIG.daylight.order) {
+      const phase = phases[name]
+      expect(Object.keys(phase.sky)).toEqual(['zenith', 'horizonWarm', 'horizonCool'])
+      expect(typeof phase.fog).toBe('number')
+      expect(typeof phase.background).toBe('number')
+      expect(phase.fill.ambient).toBeGreaterThan(0)
+    }
+  })
+
+  it('takes the sun straight from the picked phase when it changes', () => {
+    const {canvas} = setupLights()
+    canvas._phase = 'day'
+    expect(canvas._palette()).toBe(CONFIG.daylight.phases.day)
+    // The sun is repositioned for the new phase without rebuilding anything.
+    canvas._aimSun()
+    expect(canvas._sunLight.at.x).toBe(CONFIG.daylight.phases.day.sun.position[0])
+  })
+})
+
+/**
+ * Which of the four phases the player's own clock lands in, and how the slider
+ * under the canvas moves between them.
+ */
+describe('daylightPhaseFor', () => {
+  const at = (hour) => daylightPhaseFor(new Date(2026, 0, 15, hour, 30))
+
+  it('picks the phase whose hours contain the local time', () => {
+    expect(at(6)).toBe('dawn')
+    expect(at(12)).toBe('day')
+    expect(at(19)).toBe('dusk')
+    expect(at(23)).toBe('night')
+  })
+
+  it('carries night across midnight', () => {
+    expect(at(0)).toBe('night')
+    expect(at(3)).toBe('night')
+    expect(at(4)).toBe('night')
+    expect(at(5)).toBe('dawn')
+  })
+
+  it('covers every hour of the day exactly once', () => {
+    const seen = Array.from({length: 24}, (_, hour) => at(hour))
+    expect(seen.every(phase => CONFIG.daylight.order.includes(phase))).toBe(true)
+    expect(new Set(seen).size).toBe(4)
+  })
+
+  it('defaults to the current time and can be overridden by the caller', () => {
+    expect(CONFIG.daylight.order).toContain(daylightPhaseFor())
+    expect(new StadiumCanvas({}, {}, 'c', {daylight: 'night'})._phase).toBe('night')
+    // An unknown name falls back to the clock rather than breaking the scene.
+    expect(CONFIG.daylight.order)
+      .toContain(new StadiumCanvas({}, {}, 'c', {daylight: 'teatime'})._phase)
+  })
+
+  it('offers the slider one step per phase, in the order of a day', () => {
+    expect(CONFIG.daylight.order).toEqual(['dawn', 'day', 'dusk', 'night'])
+    const canvas = new StadiumCanvas({}, {}, 'c', {daylight: 'day', daylightControl: true})
+    const html = canvas._renderDaylightControl()
+    expect(html).toContain('type="range"')
+    expect(html).toContain('max="3"')
+    expect(html).toContain('value="1"') // 'day' is the second step
+  })
+
+  it('renders the slider only where it is asked for', () => {
+    const withControl = new StadiumCanvas({}, {}, 'c', {daylightControl: true})
+    const without = new StadiumCanvas({}, {}, 'c', {})
+    expect(withControl.template).toContain('stadium-daylight__slider')
+    expect(without.template).not.toContain('stadium-daylight__slider')
+  })
+
+  it('switches phase without touching the scene it has not built yet', () => {
+    const canvas = new StadiumCanvas({}, {}, 'c', {daylight: 'day'})
+    expect(() => canvas._setPhase('night')).not.toThrow()
+    expect(canvas._phase).toBe('night')
+    // An unknown phase is ignored instead of blanking the scene.
+    canvas._setPhase('teatime')
+    expect(canvas._phase).toBe('night')
+  })
+})
+
+/**
+ * The club emblem over every entrance in the stands' back walls, lit by two small
+ * dummy lamps. The emblem is drawn into a 2D canvas, which jsdom does not
+ * implement — the tests install a recording stub for it.
+ */
+describe('StadiumCanvas entrance emblems', () => {
+  const fakeContext = () => ({
+    calls: [],
+    fillStyle: '',
+    fillRect () { this.calls.push('fillRect') },
+    drawImage () { this.calls.push('drawImage') }
+  })
+
+  const addEmblem = (standTop, options = {}) => {
+    const added = []
+    const canvas = new StadiumCanvas(
+      { }, options.team ?? { name: 'FC Test', color: '#ff0000' }, 'c', {}
+    )
+    canvas._THREE = {
+      PlaneGeometry: class { constructor (x, y) { Object.assign(this, { x, y }) } },
+      BoxGeometry: class { constructor (x, y, z) { Object.assign(this, { x, y, z }) } },
+      SphereGeometry: class { constructor (r) { this.r = r } },
+      MeshBasicMaterial: class { constructor (c) { Object.assign(this, c) } },
+      MeshLambertMaterial: class { constructor (c) { Object.assign(this, c) } },
+      CanvasTexture: class { constructor (source) { this.source = source } },
+      Mesh: class {
+        constructor (geometry, material) {
+          Object.assign(this, { geometry, material })
+          this.rotation = { x: 0, y: 0, z: 0 }
+          this.userData = {}
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+        }
+      }
+    }
+    const ctx = options.noCanvas ? null : fakeContext()
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = () => ctx
+    try {
+      const group = { add: (o) => added.push(o) }
+      const plate = canvas._addEntranceEmblem(group, standTop)
+      return { canvas, added, plate, ctx }
+    } finally {
+      HTMLCanvasElement.prototype.getContext = original
+    }
+  }
+
+  const TALL = 12
+
+  it('hangs a square emblem plate above the entrance, facing outward', () => {
+    const { plate } = addEmblem(TALL)
+    expect(plate).toBeDefined()
+    expect(plate.geometry.x).toBe(plate.geometry.y)
+    expect(plate.material.map).toBeDefined()
+    // Transparent, so only the emblem shows and no panel behind it.
+    expect(plate.material.transparent).toBe(true)
+    // Clear of the entrance roof below it…
+    const E = CONFIG.entrance
+    const bottom = plate.at.y - plate.geometry.y / 2
+    expect(bottom).toBeGreaterThanOrEqual(E.height + E.wallThickness)
+    // …and clear of the back wall it hangs on. The entrance is placed at that
+    // wall's *inner* face and the wall grows outward from there, so a plate that
+    // only just clears the origin ends up buried inside it — which is exactly
+    // what happened the first time round: only the lamps on their longer arms
+    // poked out.
+    expect(plate.at.z).toBeLessThan(-CONFIG.stand.backWallThickness)
+    expect(plate.rotation.y).toBeCloseTo(Math.PI)
+  })
+
+  it('lights it with two small lamps above it, off by day', () => {
+    const { added } = addEmblem(TALL)
+    const lenses = added.filter(o => o.material?.color === CONFIG.emblemSign.lamp.color)
+    expect(lenses).toHaveLength(2)
+    const plate = added.find(o => o.material?.map)
+    for (const lens of lenses) {
+      // Above the plate, reaching out from the wall over it…
+      expect(lens.at.y).toBeGreaterThan(plate.at.y + plate.geometry.y / 2)
+      expect(lens.at.z).toBeLessThan(plate.at.z)
+      expect(lens.at.z).toBeLessThan(-CONFIG.stand.backWallThickness)
+      // …and part of the night lighting, so they go out with the floodlights.
+      expect(lens.userData.nightOnly).toBe(true)
+    }
+    // One on each side of the plate's centre.
+    expect(Math.sign(lenses[0].at.x)).toBe(-Math.sign(lenses[1].at.x))
+  })
+
+  it('shrinks the plate to what the back wall leaves', () => {
+    const roomy = addEmblem(TALL).plate.geometry.x
+    const tight = addEmblem(6.2).plate.geometry.x
+    expect(roomy).toBe(CONFIG.emblemSign.maxSize)
+    expect(tight).toBeLessThan(roomy)
+    expect(tight).toBeGreaterThanOrEqual(CONFIG.emblemSign.minSize)
+  })
+
+  it('leaves a stand too low for a readable one without a sign', () => {
+    const { plate, added } = addEmblem(5)
+    expect(plate).toBeNull()
+    expect(added).toHaveLength(0)
+  })
+
+  it('skips the sign rather than failing without a 2D canvas', () => {
+    const { plate, added } = addEmblem(TALL, { noCanvas: true })
+    expect(plate).toBeNull()
+    expect(added).toHaveLength(0)
+  })
+
+  it('keeps the sign and the wall it hangs on to one shared thickness', () => {
+    // The stand's back wall and the sign's offsets are the same number; a wall
+    // that changed thickness on its own would swallow the plate again.
+    const { added } = addEmblem(TALL)
+    const arms = added.filter(o => o.geometry?.x === 0.07)
+    expect(arms).toHaveLength(2)
+    for (const arm of arms) {
+      // The arm starts at the wall's outer face and reaches out over the plate.
+      expect(arm.at.z).toBeCloseTo(-(CONFIG.stand.backWallThickness + CONFIG.emblemSign.lamp.arm / 2))
+    }
+  })
+
+  it('builds the emblem texture once and shares it across the entrances', () => {
+    const { canvas, ctx } = addEmblem(TALL)
+    const first = canvas._emblemPlate()
+    const second = canvas._emblemPlate()
+    // Ten entrances would otherwise mean ten copies of the same crest in video
+    // memory.
+    expect(first).toBe(second)
+    expect(first).toBeDefined()
+    // And nothing paints a background behind it.
+    expect(ctx.calls).not.toContain('fillRect')
+  })
+})
+
+/**
+ * Street lamps: the glowing core switches off with the rest of the night
+ * lighting, so everything else about the lamp has to stay visible — otherwise the
+ * pole ends in mid-air by day.
+ */
+describe('StadiumCanvas._createStreetLamp', () => {
+  const lamp = () => {
+    const added = []
+    const canvas = new StadiumCanvas({}, {}, 'c', {})
+    canvas._THREE = {
+      DoubleSide: 2,
+      CylinderGeometry: class { constructor (top, bottom, height) { Object.assign(this, { top, bottom, height }) } },
+      SphereGeometry: class { constructor (radius) { this.radius = radius } },
+      MeshBasicMaterial: class { constructor (c) { Object.assign(this, c) } },
+      MeshLambertMaterial: class { constructor (c) { Object.assign(this, c) } },
+      Mesh: class {
+        constructor (geometry, material) {
+          Object.assign(this, { geometry, material })
+          this.userData = {}
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+        }
+      }
+    }
+    canvas._createStreetLamp({ add: (o) => added.push(o) }, 10, -20)
+    return added
+  }
+
+  it('tops the pole with a glass globe that is there round the clock', () => {
+    const added = lamp()
+    const L = CONFIG.streetLamp
+    const globe = added.find(o =>
+      o.geometry?.radius === L.globeRadius && o.material.color === L.globeColor)
+    expect(globe).toBeDefined()
+    // Translucent, so the core inside still shines through at night…
+    expect(globe.material.transparent).toBe(true)
+    // …but never switched off, unlike the core.
+    expect(globe.userData.nightOnly).toBeUndefined()
+    // Sitting on top of the pole, not floating above or sunk into it.
+    expect(globe.at.y).toBeGreaterThan(L.height)
+    expect(globe.at.y - L.globeRadius).toBeLessThanOrEqual(L.height + 0.15)
+  })
+
+  it('puts the glowing core inside the globe and only switches that off', () => {
+    const added = lamp()
+    const L = CONFIG.streetLamp
+    const core = added.find(o => o.material.color === L.lightColor)
+    const globe = added.find(o => o.material.color === L.globeColor)
+    expect(core.userData.nightOnly).toBe(true)
+    expect(core.geometry.radius).toBeLessThan(L.globeRadius)
+    expect(core.at).toEqual(globe.at)
+  })
+
+  it('keeps pole, collar and globe on one axis', () => {
+    for (const part of lamp()) {
+      expect(part.at.x).toBe(10)
+      expect(part.at.z).toBe(-20)
+    }
+  })
+})
+
+/**
+ * The lusher lawn under the club's own land: the square under the ring roads and
+ * a patch per building plot, all below everything built on top of them.
+ */
+describe('StadiumCanvas._buildLawn', () => {
+  const BUILDINGS = [
+    { type: 'training_area', level: 2 },
+    { type: 'youth_academy', level: 1 }
+  ]
+
+  const buildLawn = (options = {}) => {
+    const added = []
+    const canvas = new StadiumCanvas({ north_stand_size: 8000 }, {}, 'c', options)
+    canvas._THREE = {
+      MeshLambertMaterial: class {
+        constructor (config) { Object.assign(this, config) }
+      },
+      PlaneGeometry: class {
+        constructor (x, z) { Object.assign(this, { x, z }) }
+      },
+      Mesh: class {
+        constructor (geometry, material) {
+          Object.assign(this, { geometry, material })
+          this.rotation = { x: 0 }
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+        }
+      }
+    }
+    canvas._buildLawn({ add: (o) => added.push(o) })
+    return { canvas, added }
+  }
+
+  it('greens the whole square under the ring roads', () => {
+    const { canvas, added } = buildLawn()
+    const [ground] = added
+    expect(ground.material.color).toBe(CONFIG.colors.lawn)
+    // Reaches the far kerb, so the roads lie on lawn instead of on a seam.
+    const reach = canvas._roadDistance() + CONFIG.road.width / 2
+    expect(ground.geometry.x).toBe(2 * reach)
+    expect(ground.geometry.z).toBe(2 * reach)
+    expect(ground.at).toEqual({ x: 0, y: CONFIG.lawn.y, z: 0 })
+  })
+
+  it('is greener than the plain ground it lies on, and stays under the roads', () => {
+    const channel = (hex, shift) => (hex >> shift) & 0xff
+    // More green, and more green *relative* to the other channels.
+    expect(channel(CONFIG.colors.lawn, 8)).toBeGreaterThan(channel(CONFIG.colors.ground, 8))
+    const share = hex => channel(hex, 8) / (channel(hex, 16) + channel(hex, 0))
+    expect(share(CONFIG.colors.lawn)).toBeGreaterThan(share(CONFIG.colors.ground))
+    // Above the ground plane (-0.1) but below the roads (0).
+    expect(CONFIG.lawn.y).toBeGreaterThan(-0.1)
+    expect(CONFIG.lawn.y).toBeLessThan(0)
+  })
+
+  it('covers every plot the team owns, out under its sidewalk', () => {
+    const { canvas, added } = buildLawn({ buildings: BUILDINGS })
+    const plots = canvas._buildingPlots()
+    expect(added).toHaveLength(1 + plots.length)
+
+    for (const plot of plots) {
+      const patch = added.find(m => m.at.x === plot.cx && m.at.z === plot.cz)
+      expect(patch).toBeDefined()
+      // Reaches past the plot boundary, so the lawn runs on to the kerb.
+      expect(patch.geometry.x).toBeGreaterThan(2 * plot.halfX)
+      expect(patch.geometry.z).toBeGreaterThan(2 * plot.halfZ)
+      expect(patch.geometry.x - 2 * plot.halfX).toBeGreaterThanOrEqual(2 * CONFIG.sidewalk.width)
+    }
+  })
+
+  it('lays no plot patches for a team without buildings', () => {
+    expect(buildLawn().added).toHaveLength(1)
+  })
+
+  it('shares one material across every patch', () => {
+    const { added } = buildLawn({ buildings: BUILDINGS })
+    expect(new Set(added.map(m => m.material)).size).toBe(1)
+  })
+})
+
+/**
+ * The same scene serves the stadium page and the buildings page; only the point
+ * the camera orbits (and the club buildings around it) differ.
+ */
+describe('StadiumCanvas club buildings', () => {
+  const BUILDINGS = [
+    { type: 'training_area', level: 2 },
+    { type: 'fitness_studio', level: 1 },
+    { type: 'youth_academy', level: 1 }
+  ]
+  const canvasWith = (options) => new StadiumCanvas(
+    { north_stand_size: 8000, south_stand_size: 8000 }, {}, 'c', options
+  )
+
+  /**
+   * Every asphalt tile `_buildRoads` lays down, as plain rectangles on the
+   * ground: the plane's own size plus where the tile was put.
+   * @param {StadiumCanvas} canvas
+   * @returns {Array<{width: number, depth: number, x: number, z: number}>}
+   */
+  const roadTilesOf = (canvas) => {
+    const planes = []
+    const meshes = []
+    canvas._THREE = new Proxy({}, {
+      get: (_, prop) => {
+        if (prop === 'Quaternion') return class { setFromEuler () { return this } }
+        if (prop === 'PlaneGeometry') {
+          return class {
+            constructor (width, depth) {
+              Object.assign(this, { width, depth })
+              planes.push(this)
+            }
+          }
+        }
+        if (prop === 'Mesh') {
+          return class {
+            constructor (geometry, material) {
+              Object.assign(this, { geometry, material })
+              this.rotation = {}
+              this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+              meshes.push(this)
+            }
+          }
+        }
+        return class {
+          constructor (...args) { this.args = args; this.instanceMatrix = {} }
+          set () { return this }
+          compose () {}
+          setMatrixAt () {}
+        }
+      }
+    })
+    canvas._buildRoads({ add: () => {} })
+    return meshes
+      .filter(mesh => mesh.material?.args?.[0]?.color === CONFIG.road.color)
+      .map(mesh => ({
+        width: mesh.geometry.width,
+        depth: mesh.geometry.depth,
+        x: mesh.at.x,
+        z: mesh.at.z
+      }))
+  }
+
+  it('orbits the pitch centre by default', () => {
+    expect(canvasWith({})._focusPoint()).toEqual({ x: 0, z: 0 })
+  })
+
+  it('orbits the north-east road intersection on the buildings view', () => {
+    const canvas = canvasWith({ focus: 'buildings' })
+    const distance = canvas._roadDistance()
+    expect(canvas._focusPoint()).toEqual({ x: distance, z: -distance })
+  })
+
+  it('pulls the camera closer in on the buildings view', () => {
+    expect(canvasWith({ focus: 'buildings' })._view().minDistance)
+      .toBeLessThan(canvasWith({})._view().minDistance)
+  })
+
+  it('places the plots outside the road grid, in the north-east quadrant', () => {
+    const canvas = canvasWith({ buildings: BUILDINGS })
+    const distance = canvas._roadDistance()
+    expect(canvas._buildingPlots()).toHaveLength(3)
+    for (const plot of canvas._buildingPlots()) {
+      // Never on the stadium footprint (which fills the road grid).
+      expect(Math.abs(plot.cx) < distance && Math.abs(plot.cz) < distance).toBe(false)
+      expect(plot.cx).toBeGreaterThan(0)
+      expect(plot.cz).toBeLessThan(0)
+    }
+  })
+
+  it('has no plots when the team owns no buildings', () => {
+    expect(canvasWith({})._buildingPlots()).toEqual([])
+  })
+
+  it('grows the ground plane so no plot hangs over the edge', () => {
+    const bigStadium = new StadiumCanvas(
+      { north_stand_size: 30000, south_stand_size: 30000, east_stand_size: 15000, west_stand_size: 15000 },
+      {}, 'c', { buildings: BUILDINGS }
+    )
+    const half = bigStadium._groundHalf()
+    for (const plot of bigStadium._buildingPlots()) {
+      expect(Math.abs(plot.cx) + plot.halfX).toBeLessThan(half)
+      expect(Math.abs(plot.cz) + plot.halfZ).toBeLessThan(half)
+    }
+  })
+
+  it('keeps the default ground size for a stadium without buildings', () => {
+    expect(canvasWith({})._groundHalf()).toBe(375)
+  })
+
+  it('ends the roads exactly at the edge of the ground plane', () => {
+    // Neither short of it (a road ending in mid-field) nor past it (asphalt
+    // hanging over the grass into the void, which is what it used to do).
+    for (const options of [{}, { buildings: BUILDINGS }]) {
+      const canvas = canvasWith(options)
+      const tiles = roadTilesOf(canvas)
+      const half = canvas._groundHalf()
+      const distance = canvas._roadDistance()
+
+      // The two continuous roads span the whole plane…
+      const through = tiles.filter(t => t.width > t.depth)
+      expect(through).toHaveLength(2)
+      for (const road of through) expect(road.width).toBeCloseTo(2 * half)
+
+      // …and the outward pieces of the crossing roads reach the same edge.
+      const outward = tiles.filter(t => t.depth > t.width && Math.abs(t.z) > distance)
+      expect(outward).toHaveLength(4)
+      for (const piece of outward) {
+        expect(Math.abs(piece.z) + piece.depth / 2).toBeCloseTo(half)
+      }
+    }
+  })
+
+  it('fogs the distance out before the ground plane ends', () => {
+    // Anything further than fogFar is fully background colour, so the ground's
+    // edge and the last trees are never visible as a hard line.
+    expect(CONFIG.colors.fogFar).toBeLessThanOrEqual(canvasWith({})._groundHalf() * 2.1)
+    expect(CONFIG.colors.fogFar).toBeGreaterThan(canvasWith({})._groundHalf())
+    // …but the stadium itself always stays clear of it.
+    expect(CONFIG.colors.fogNear).toBeGreaterThan(CONFIG.views.stadium.maxDistance)
+  })
+})
+
+/**
+ * The stills the buildings page puts on its cards are cropped out of this very
+ * scene: one frame from a camera of its own, through an off-screen render target,
+ * read back as a data URL. Three.js and the renderer are stubbed here — the
+ * framing itself is covered in `clubBuildingsScene.test.js`.
+ */
+describe('StadiumCanvas.captureBuilding', () => {
+  const BUILDINGS = [
+    { type: 'training_area', level: 2 },
+    { type: 'youth_academy', level: 1 }
+  ]
+
+  const stubbed = () => {
+    const state = { renders: [], targets: [], removed: [], built: [] }
+    const canvas = new StadiumCanvas(
+      { north_stand_size: 8000 }, {}, 'c', { focus: 'buildings', buildings: BUILDINGS }
+    )
+
+    canvas._THREE = {
+      PerspectiveCamera: class {
+        constructor (fov, aspect) {
+          Object.assign(this, { fov, aspect })
+          this.position = { set: (x, y, z) => { this.at = { x, y, z } } }
+        }
+
+        lookAt (x, y, z) { this.looksAt = { x, y, z } }
+      },
+      WebGLRenderTarget: class {
+        constructor (width, height, options) {
+          Object.assign(this, { width, height, options, disposed: false })
+          state.targets.push(this)
+        }
+
+        dispose () { this.disposed = true }
+      }
+    }
+    canvas._scene = {
+      add: () => {},
+      remove: (object) => state.removed.push(object),
+      traverse: () => {}
+    }
+    canvas._renderer = {
+      target: undefined,
+      setRenderTarget (target) { this.target = target },
+      render: (scene, camera) => state.renders.push({
+        camera,
+        target: canvas._renderer.target,
+        // What the scene looked like while the shutter was open.
+        hidden: Object.entries(canvas._buildingGroups)
+          .filter(([, group]) => !group.visible).map(([type]) => type)
+      }),
+      readRenderTargetPixels: (target, x, y, width, height, buffer) => buffer.fill(160)
+    }
+    canvas._buildingGroups = {
+      training_area: { visible: true },
+      youth_academy: { visible: true }
+    }
+    // The builders themselves need the real Three.js; here only the level they are
+    // asked for matters.
+    canvas._buildClubBuilding = (scene, plot) => {
+      state.built.push(plot)
+      return { group: { visible: true, traverse: () => {} }, openings: [] }
+    }
+
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      createImageData: (width, height) => ({ data: new Uint8Array(width * height * 4) }),
+      putImageData: () => {}
+    })
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,STILL')
+
+    return { canvas, state }
+  }
+
+  it('renders one frame of the building into a target of the asked-for size', () => {
+    const { canvas, state } = stubbed()
+    expect(canvas.captureBuilding('training_area', { width: 40, height: 20 }))
+      .toBe('data:image/jpeg;base64,STILL')
+
+    expect(state.renders).toHaveLength(1)
+    const [target] = state.targets
+    expect([target.width, target.height]).toEqual([40, 20])
+    // Multisampled, so the still gets the same smooth edges as the canvas…
+    expect(target.options.samples).toBe(CONFIG.snapshot.samples)
+    // …drawn into that target, and handed back afterwards.
+    expect(state.renders[0].target).toBe(target)
+    expect(target.disposed).toBe(true)
+  })
+
+  it('resolves the multisampling before reading the pixels back', () => {
+    // Unbinding the target is what blits it into the buffer the pixels are read
+    // from — reading while it is still bound would give an empty still.
+    const { canvas } = stubbed()
+    canvas.captureBuilding('training_area')
+    expect(canvas._renderer.target).toBeNull()
+  })
+
+  it('points its own camera at the building, over the plot corner facing the crossing', () => {
+    const { canvas, state } = stubbed()
+    canvas.captureBuilding('youth_academy', { width: 40, height: 20 })
+    const { camera } = state.renders[0]
+    const plot = canvas._buildingPlots().find(p => p.type === 'youth_academy')
+
+    expect(camera.fov).toBe(CONFIG.camera.fov)
+    expect(camera.aspect).toBe(2)
+    expect(Math.sign(camera.at.x - camera.looksAt.x)).toBe(-plot.qx)
+    expect(Math.sign(camera.at.z - camera.looksAt.z)).toBe(-plot.qz)
+    expect(camera.at.y).toBeGreaterThan(camera.looksAt.y)
+  })
+
+  it('photographs the level that stands in the scene without rebuilding it', () => {
+    const { canvas, state } = stubbed()
+    canvas.captureBuilding('training_area', { level: 2 })
+    expect(state.built).toEqual([])
+    expect(state.renders[0].hidden).toEqual([])
+  })
+
+  it('stands another level in for the shot and takes it down again', () => {
+    // This is the upgrade preview: level 3 has to be built, photographed in place
+    // of the level 2 the team actually has, and removed again.
+    const { canvas, state } = stubbed()
+    canvas.captureBuilding('training_area', { level: 3 })
+
+    expect(state.built.map(p => [p.type, p.level])).toEqual([['training_area', 3]])
+    expect(state.renders[0].hidden).toEqual(['training_area'])
+    // Nothing left behind: the stand-in is gone and the real one is back.
+    expect(state.removed).toHaveLength(1)
+    expect(canvas._buildingGroups.training_area.visible).toBe(true)
+    // …and the other building was never touched.
+    expect(canvas._buildingGroups.youth_academy.visible).toBe(true)
+  })
+
+  it('clamps a level outside the buildable range', () => {
+    const { canvas, state } = stubbed()
+    canvas.captureBuilding('youth_academy', { level: 9 })
+    expect(state.built.map(p => p.level)).toEqual([3])
+  })
+
+  it('stands an unbuilt building up on its plot just for the portrait', () => {
+    // The medical practice has to be bought, so a team that has not built it yet
+    // still needs a picture of what the money buys.
+    const { canvas, state } = stubbed()
+    expect(canvas.captureBuilding('medical_practice')).toBe('data:image/jpeg;base64,STILL')
+
+    expect(state.built.map(p => [p.type, p.level])).toEqual([['medical_practice', 1]])
+    // Nothing standing in the scene was hidden for it, and the stand-in is gone.
+    expect(state.renders[0].hidden).toEqual([])
+    expect(state.removed).toHaveLength(1)
+  })
+
+  it('has nothing to show without a scene or for an unknown building', () => {
+    const { canvas } = stubbed()
+    expect(canvas.captureBuilding('spaceport')).toBeNull()
+
+    const bare = new StadiumCanvas({}, {}, 'c', { buildings: BUILDINGS })
+    expect(bare.captureBuilding('training_area')).toBeNull()
+  })
+})
+
+describe('StadiumCanvas.whenReady', () => {
+  it('resolves false once the component is destroyed', async () => {
+    const canvas = new StadiumCanvas({}, {}, 'c', {})
+    canvas.onDestroy()
+    await expect(canvas.whenReady()).resolves.toBe(false)
+  })
+
+  it('resolves false when there is no canvas in the DOM to render into', async () => {
+    const canvas = new StadiumCanvas({}, {}, 'c', {})
+    await canvas._initThreeJS()
+    await expect(canvas.whenReady()).resolves.toBe(false)
   })
 })

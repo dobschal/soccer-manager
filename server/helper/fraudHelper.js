@@ -7,6 +7,9 @@ const OVERVALUED_RATIO = 2.0
 const PRICE_DEVIATION_LOOKBACK_DAYS = 60
 const PRICE_DEVIATION_MIN_VALUE = 100_000
 const SHARED_IP_LOOKBACK_DAYS = 365
+const INSTANT_PICKUP_LOOKBACK_DAYS = 60
+const INSTANT_PICKUP_MAX_SECONDS = 300
+const INSTANT_PICKUP_MIN_COUNT = 2
 
 /**
  * Approximate market value of a player from level alone, matching
@@ -156,6 +159,178 @@ async function _detectSharedDevice () {
 }
 
 /**
+ * Detector: pairs of users that registered the same push token. A push token
+ * is issued per app install, so two accounts sharing one is a harder signal
+ * than the localStorage device UUID — it survives clearing browser storage and
+ * is the only device trace left for native-only players.
+ * @returns {Promise<Array>}
+ */
+async function _detectSharedPushToken () {
+  const rows = await query(
+    `SELECT dt.token, dt.user_id, dt.platform, dt.updated_at,
+            u.username, t.name AS team_name
+     FROM device_token dt
+     JOIN user u ON u.id = dt.user_id
+     LEFT JOIN team t ON t.user_id = u.id
+     WHERE dt.token IN (
+       SELECT token FROM device_token
+       GROUP BY token HAVING COUNT(DISTINCT user_id) > 1
+     )`
+  )
+  const byToken = new Map()
+  for (const r of rows) {
+    if (!byToken.has(r.token)) byToken.set(r.token, [])
+    byToken.get(r.token).push(r)
+  }
+  const events = []
+  const seenPair = new Set()
+  for (const [, users] of byToken) {
+    for (let i = 0; i < users.length; i++) {
+      for (let j = i + 1; j < users.length; j++) {
+        const a = users[i]
+        const b = users[j]
+        if (a.user_id === b.user_id) continue
+        const pairKey = a.user_id < b.user_id ? `${a.user_id}-${b.user_id}` : `${b.user_id}-${a.user_id}`
+        if (seenPair.has(pairKey)) continue
+        seenPair.add(pairKey)
+        const time = new Date(Math.max(
+          new Date(a.updated_at).getTime(),
+          new Date(b.updated_at).getTime()
+        ))
+        events.push({
+          type: 'shared_push_token',
+          time,
+          description_key: 'admin.fraudDescSharedPushToken',
+          description_params: { platform: a.platform || b.platform || '?' },
+          user1: { username: a.username, team_name: a.team_name },
+          user2: { username: b.username, team_name: b.team_name }
+        })
+      }
+    }
+  }
+  return events
+}
+
+/**
+ * Detector: invite rewards claimed by the inviter themselves. Covers both
+ * invite flows:
+ *
+ * - `link_invite` matches an anonymous click by IP, so an inviter who opens
+ *   their own link and registers shows up as an invitee IP that equals one of
+ *   the inviter's own last-known IPs.
+ * - `referral_invitation` matches by email, so the give-away is the invited
+ *   account later logging in from the same IP or device as the inviter.
+ *
+ * @returns {Promise<Array>}
+ */
+async function _detectSelfInvite () {
+  const linkRows = await query(
+    `SELECT li.invitee_ip, li.used_at, li.created_at,
+            inviter.username AS inviter_username, it.name AS inviter_team,
+            invitee.username AS invitee_username, vt.name AS invitee_team
+     FROM link_invite li
+     JOIN user inviter ON inviter.id = li.inviter_user_id
+     LEFT JOIN team it ON it.user_id = inviter.id
+     JOIN user invitee ON invitee.id = li.used_by_user_id
+     LEFT JOIN team vt ON vt.user_id = invitee.id
+     WHERE li.used_by_user_id IS NOT NULL
+       AND li.invitee_ip IN (inviter.last_ip_web, inviter.last_ip_ios, inviter.last_ip_android)`
+  )
+  const events = linkRows.map(r => ({
+    type: 'self_invite_link',
+    time: new Date(r.used_at || r.created_at),
+    description_key: 'admin.fraudDescSelfInviteLink',
+    description_params: { ip: r.invitee_ip },
+    user1: { username: r.inviter_username, team_name: r.inviter_team },
+    user2: { username: r.invitee_username, team_name: r.invitee_team }
+  }))
+
+  // Email referrals: flag when inviter and invitee share an IP or a device.
+  const referralRows = await query(
+    `SELECT ri.used_at, ri.created_at,
+            inviter.username AS inviter_username, it.name AS inviter_team,
+            invitee.username AS invitee_username, vt.name AS invitee_team,
+            EXISTS (
+              SELECT 1 FROM user_device d1
+              JOIN user_device d2 ON d2.device_uuid = d1.device_uuid
+              WHERE d1.user_id = inviter.id AND d2.user_id = invitee.id
+            ) AS same_device,
+            (inviter.last_ip_web IS NOT NULL AND inviter.last_ip_web IN
+               (invitee.last_ip_web, invitee.last_ip_ios, invitee.last_ip_android)) AS same_ip_web,
+            (inviter.last_ip_ios IS NOT NULL AND inviter.last_ip_ios IN
+               (invitee.last_ip_web, invitee.last_ip_ios, invitee.last_ip_android)) AS same_ip_ios,
+            (inviter.last_ip_android IS NOT NULL AND inviter.last_ip_android IN
+               (invitee.last_ip_web, invitee.last_ip_ios, invitee.last_ip_android)) AS same_ip_android
+     FROM referral_invitation ri
+     JOIN user inviter ON inviter.id = ri.inviter_user_id
+     LEFT JOIN team it ON it.user_id = inviter.id
+     JOIN user invitee ON invitee.id = ri.used_by_user_id
+     LEFT JOIN team vt ON vt.user_id = invitee.id
+     WHERE ri.used_by_user_id IS NOT NULL`
+  )
+  for (const r of referralRows) {
+    const sameIp = Boolean(Number(r.same_ip_web) || Number(r.same_ip_ios) || Number(r.same_ip_android))
+    const sameDevice = Boolean(Number(r.same_device))
+    if (!sameIp && !sameDevice) continue
+    events.push({
+      type: 'self_referral',
+      time: new Date(r.used_at || r.created_at),
+      description_key: sameDevice
+        ? 'admin.fraudDescSelfReferralDevice'
+        : 'admin.fraudDescSelfReferralIp',
+      description_params: {},
+      user1: { username: r.inviter_username, team_name: r.inviter_team },
+      user2: { username: r.invitee_username, team_name: r.invitee_team }
+    })
+  }
+  return events
+}
+
+/**
+ * Detector: action-card auctions that are consistently won by the same team
+ * seconds after being listed. A genuine auction runs for hours, so a pair
+ * whose average listing→winning-bid gap is under
+ * {@link INSTANT_PICKUP_MAX_SECONDS} is coordinating outside the game — the
+ * sharpest collusion signal available, and the only one that covers the
+ * action-card economy at all.
+ * @returns {Promise<Array>}
+ */
+async function _detectInstantCardPickup () {
+  const rows = await query(
+    `SELECT ts.name AS seller_team, us.username AS seller_username,
+            tb.name AS buyer_team, ub.username AS buyer_username,
+            COUNT(*) AS pickup_count,
+            SUM(b.money) AS total_money,
+            ROUND(AVG(TIMESTAMPDIFF(SECOND, o.created_at, b.created_at))) AS avg_seconds,
+            MAX(b.created_at) AS last_pickup
+     FROM action_card_bid b
+     JOIN action_card_offer o ON o.id = b.offer_id
+     JOIN team ts ON ts.id = o.from_team_id
+     JOIN team tb ON tb.id = b.bidder_team_id
+     JOIN user us ON us.id = ts.user_id
+     JOIN user ub ON ub.id = tb.user_id
+     WHERE b.status = 'accepted'
+       AND o.from_team_id <> b.bidder_team_id
+       AND b.created_at > DATE_SUB(NOW(), INTERVAL ? DAY)
+     GROUP BY o.from_team_id, b.bidder_team_id, ts.name, us.username, tb.name, ub.username
+     HAVING COUNT(*) >= ? AND AVG(TIMESTAMPDIFF(SECOND, o.created_at, b.created_at)) <= ?`,
+    [INSTANT_PICKUP_LOOKBACK_DAYS, INSTANT_PICKUP_MIN_COUNT, INSTANT_PICKUP_MAX_SECONDS]
+  )
+  return rows.map(r => ({
+    type: 'instant_card_pickup',
+    time: new Date(r.last_pickup),
+    description_key: 'admin.fraudDescInstantCardPickup',
+    description_params: {
+      count: Number(r.pickup_count),
+      seconds: Number(r.avg_seconds),
+      total: Number(r.total_money)
+    },
+    user1: { username: r.seller_username, team_name: r.seller_team },
+    user2: { username: r.buyer_username, team_name: r.buyer_team }
+  }))
+}
+
+/**
  * Detector: pairs of user-owned teams that traded with each other unusually
  * often. Group is direction-agnostic — A→B and B→A count together.
  * @returns {Promise<Array>}
@@ -263,13 +438,23 @@ async function _detectPriceDeviation () {
  * @returns {Promise<{rows: Array, total: number}>}
  */
 export async function getSuspiciousActions ({ limit = 10, offset = 0 } = {}) {
-  const [sharedIp, sharedDevice, frequentTrades, priceDeviation] = await Promise.all([
+  // New detectors are appended so the existing four keep their dispatch order.
+  const [
+    sharedIp, sharedDevice, frequentTrades, priceDeviation,
+    sharedPushToken, selfInvite, instantCardPickup
+  ] = await Promise.all([
     _detectSharedIp(),
     _detectSharedDevice(),
     _detectFrequentTrades(),
-    _detectPriceDeviation()
+    _detectPriceDeviation(),
+    _detectSharedPushToken(),
+    _detectSelfInvite(),
+    _detectInstantCardPickup()
   ])
-  const all = [...sharedIp, ...sharedDevice, ...frequentTrades, ...priceDeviation]
+  const all = [
+    ...sharedIp, ...sharedDevice, ...frequentTrades, ...priceDeviation,
+    ...sharedPushToken, ...selfInvite, ...instantCardPickup
+  ]
   all.sort((a, b) => b.time.getTime() - a.time.getTime())
   const total = all.length
   const rows = all.slice(offset, offset + limit).map(e => ({
@@ -286,9 +471,14 @@ export const __testing = {
   _detectSharedDevice,
   _detectFrequentTrades,
   _detectPriceDeviation,
+  _detectSharedPushToken,
+  _detectSelfInvite,
+  _detectInstantCardPickup,
   FREQUENT_TRADES_WINDOW_DAYS,
   FREQUENT_TRADES_THRESHOLD,
   UNDERVALUED_RATIO,
   OVERVALUED_RATIO,
-  PRICE_DEVIATION_MIN_VALUE
+  PRICE_DEVIATION_MIN_VALUE,
+  INSTANT_PICKUP_MAX_SECONDS,
+  INSTANT_PICKUP_MIN_COUNT
 }

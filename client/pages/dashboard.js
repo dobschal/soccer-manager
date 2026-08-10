@@ -195,10 +195,11 @@ export class DashboardPage extends TabbedPage {
     if (newSubPage !== this.subPage) {
       this.subPage = newSubPage
       // Refresh urgencies and recreate StartPage with fresh data
+      let swappedInPlace = false
       if (!newSubPage) {
-        await this._refreshStartPageData()
+        swappedInPlace = await this._refreshStartPageData()
       }
-      this._switchSubPage()
+      if (!swappedInPlace) this._switchSubPage()
       this._updateNav()
       // A cached forum sub-page that's becoming visible again needs the
       // latest URL params pushed in — its own query-changed listener bailed
@@ -223,8 +224,8 @@ export class DashboardPage extends TabbedPage {
       // Skip on the very first onQueryChanged after mount: the page just
       // rendered with fresh data, so refreshing here would replace the
       // start sub-page in the DOM and trigger a visible fade-in flicker.
-      await this._refreshStartPageData()
-      this._switchSubPage()
+      const swappedInPlace = await this._refreshStartPageData()
+      if (!swappedInPlace) this._switchSubPage()
     }
     // SearchPanel doesn't listen for query-changed itself, so push params on
     // every change while it is the active sub-page (covers both activation
@@ -327,6 +328,21 @@ export class DashboardPage extends TabbedPage {
     return ` <span class="badge rounded-pill bg-danger action-card-badge">${this._actionCardCount}</span>`
   }
 
+  /**
+   * Refetch everything the start sub-page shows and put the fresh markup on
+   * screen.
+   *
+   * This runs when the user navigates back to the dashboard, i.e. while the
+   * start page is already visible. Tearing its wrapper out here (and letting
+   * `_switchSubPage` rebuild + fade it in) left the page blank for however long
+   * the requests above took — on a slow connection that reads as a flicker
+   * roughly a second after arriving, followed by a fade-in. So when the start
+   * wrapper is the one currently on screen, its content is replaced in place:
+   * the old markup stays up until the new one is ready and no fade runs.
+   *
+   * @returns {Promise<boolean>} true when the markup was swapped in place, so
+   *   the caller must skip `_switchSubPage()`
+   */
   async _refreshStartPageData () {
     const gamedayResponse = await server.getCurrentGameday()
     this.season = gamedayResponse.season
@@ -357,13 +373,21 @@ export class DashboardPage extends TabbedPage {
     this.standing = standing
     this.teamPosition = this.standing.findIndex(s => s.team.id === this.team.id) + 1
     this._urgencies = urgencyResponse.urgencies || []
-    // Remove old start page from DOM and recreate cached instance
+
+    const startPage = this._createStartPage()
+    this._subPageCache.start = startPage
     const container = el('#' + this._subPageContainerId)
-    if (container) {
-      const oldWrapper = container.querySelector('[data-subpage="start"]')
-      if (oldWrapper) oldWrapper.remove()
+    const wrapper = container?.querySelector('[data-subpage="start"]')
+    // `display: none` means another sub-page is on screen (e.g. switching from
+    // the cards tab back to start) — there the fade-in of _switchSubPage is
+    // wanted, so hand the rebuild over by dropping the stale wrapper.
+    if (!wrapper || wrapper.style.display === 'none') {
+      wrapper?.remove()
+      return false
     }
-    this._subPageCache.start = this._createStartPage()
+    wrapper.innerHTML = String(startPage)
+    this._activeSubPageKey = 'start'
+    return true
   }
 
   _createStartPage () {

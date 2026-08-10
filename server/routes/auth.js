@@ -15,6 +15,7 @@ import { isValidEmail, sendVerificationEmail, sendPasswordResetEmail } from '../
 import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../helper/referralHelper.js'
 import { collectUserUploadFiles, deleteUserContentRows, deleteUserUploadFiles } from '../helper/accountDeletionHelper.js'
 import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../helper/linkInviteHelper.js'
+import { isEmailBlocked, userHasBlockedEmail } from '../helper/emailBlockHelper.js'
 import { regenerateTeamData } from '../prepare-season.js'
 
 const EMAIL_VERIFICATION_TTL_DAYS = 7
@@ -73,6 +74,9 @@ export default {
         throw new BadRequestError(t('error.emailInvalid', {}, locale))
       }
       normalizedEmail = email.trim().toLowerCase()
+      if (await isEmailBlocked(normalizedEmail)) {
+        throw new BadRequestError(t('error.emailBlocked', {}, locale))
+      }
       if (await emailIsTakenByAnotherUser(normalizedEmail)) {
         throw new BadRequestError(t('error.emailTaken', {}, locale))
       }
@@ -144,6 +148,9 @@ export default {
       )
       clearUserCache(req.user.id)
       return { pendingEmail: null }
+    }
+    if (await isEmailBlocked(normalizedEmail)) {
+      throw new BadRequestError(t('error.emailBlocked', {}, locale))
     }
     if (await emailIsTakenByAnotherUser(normalizedEmail, req.user.id)) {
       throw new BadRequestError(t('error.emailTaken', {}, locale))
@@ -222,6 +229,11 @@ export default {
       throw new BadRequestError(t('error.emailInvalid', {}, locale))
     }
     const normalizedEmail = email.trim().toLowerCase()
+    // Silently no-op for blocked addresses: resetting the password would not
+    // get them back in, and the blanket success response leaks nothing.
+    if (await isEmailBlocked(normalizedEmail)) {
+      return { success: true }
+    }
     const [user] = await query(
       'SELECT id, username, email, language FROM user WHERE email=? LIMIT 1',
       [normalizedEmail]
@@ -312,6 +324,11 @@ export default {
     const [user] = await query('SELECT * FROM user WHERE username=?', [username])
     if (!user || !(await verifyPassword(password, user.password))) {
       throw new UnauthorizedError(t('error.wrongCredentials', {}, locale))
+    }
+    // Checked after the password so a wrong guess cannot reveal that an
+    // address is blocked.
+    if (await userHasBlockedEmail(user)) {
+      throw new UnauthorizedError(t('error.accountBlocked', {}, locale))
     }
     const now = new Date()
     const platformColumn = platform === 'ios' ? 'last_login_ios'

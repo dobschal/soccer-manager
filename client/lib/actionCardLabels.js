@@ -13,7 +13,8 @@ const LABEL_KEYS = {
   BONUS_100K: 'actionCards.type.cashBonus',
   STAR_PLAYER: 'actionCards.type.starPlayer',
   MOTIVATING_SPEECH: 'actionCards.type.motivatingSpeech',
-  SPY: 'actionCards.type.spy'
+  SPY: 'actionCards.type.spy',
+  MEDICAL_TREATMENT: 'actionCards.type.medicalTreatment'
 }
 
 /**

@@ -678,6 +678,13 @@ async function _createRandomTeam (level) {
     type: 'youth_academy',
     level: 1
   })
+  // The only building nobody starts with: level 0 means "buildable", and the row
+  // has to exist for `upgradeBuilding` to find something to build on.
+  await query('INSERT INTO building SET ?', {
+    team_id: team.id,
+    type: 'medical_practice',
+    level: 0
+  })
   return team
 }
 
@@ -729,6 +736,7 @@ export async function regenerateTeamData (team) {
     await query('INSERT INTO building SET ?', { team_id: team.id, type: 'training_area', level: 1 })
     await query('INSERT INTO building SET ?', { team_id: team.id, type: 'fitness_studio', level: 1 })
     await query('INSERT INTO building SET ?', { team_id: team.id, type: 'youth_academy', level: 1 })
+    await query('INSERT INTO building SET ?', { team_id: team.id, type: 'medical_practice', level: 0 })
   }
 }
 

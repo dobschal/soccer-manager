@@ -2,6 +2,20 @@
 // Keep in sync with MAX_TRANSFERS_PER_SEASON in server/helper/tradeHelper.js.
 export const MAX_TRANSFERS_PER_SEASON = 2
 
+// Neither a sell offer nor a buy offer may be below this share of the player's
+// market value (#446 raised it from 50% to 75%). Enforced on the server in
+// server/routes/trade.js and pre-checked in the UI.
+export const MIN_OFFER_MARKET_VALUE_RATIO = 0.75
+
+/**
+ * Lowest price a sell or buy offer may have for a given market value.
+ * @param {number} marketValue
+ * @returns {number}
+ */
+export function getMinOfferPrice (marketValue) {
+  return Math.floor(marketValue * MIN_OFFER_MARKET_VALUE_RATIO)
+}
+
 /**
  * Calculate salary for a given player level (1-100)
  * Exponential curve: Level 1 = 150, Level 100 = 10,308

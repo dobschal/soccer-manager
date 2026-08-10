@@ -28,6 +28,7 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 - **US-AC-13**: Als Spieler kann ich die Motivationsrede-Karte nutzen, um allen Spielern fuer den naechsten Spieltag +10% Level-Bonus zu geben.
 - **US-AC-14**: Als Spieler kann ich die Spionage-Karte auf ein fremdes Team anwenden, um dessen Taktik, Aufstellung und aktive Motivationsrede einzusehen.
 - **US-AC-15**: Als Spieler kann ich ueberzaehlige Karten auf dem Aktionskarten-Markt anderen Nutzern anbieten und auf deren Angebote bieten.
+- **US-AC-16**: Als Spieler kann ich eine Karte "Medizinische Behandlung" auf einen **verletzten** Spieler anwenden und verkuerze damit dessen Ausfall um einen Spieltag. Ist niemand verletzt, behalte ich die Karte und werde darauf hingewiesen.
 
 ## Kartentypen
 
@@ -46,6 +47,7 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 | STAR_PLAYER | Permanenter +10% Bonus | - | Nein |
 | MOTIVATING_SPEECH | Team-weiter +10% Bonus (1 Spieltag) | - | Nein |
 | SPY | Spionage-Karte | - | Nein |
+| MEDICAL_TREATMENT | Verletzung eines Spielers -1 Spieltag | - | Nein |
 
 Die Jugendspieler-Karten sind in drei Stufen unterteilt; welche Stufe ein Team erhaelt, haengt
 vom Level der Jugendakademie ab (siehe [Youth Academy](youth-academy.md)).
@@ -67,13 +69,15 @@ Basiswerte aus `actionCardChances` (`server/helper/actionCardHelper.js`), ausgel
 | STAR_PLAYER | 0.01 | ~0,3 |
 | MOTIVATING_SPEECH | 0.05 | ~2 |
 | SPY | 0.15 | ~5 |
+| MEDICAL_TREATMENT | 0 (nur via Arztpraxis: 0.044) | ~1,5 mit Arztpraxis |
 
 Wahrscheinlichkeiten > 1 werden aufgeteilt: `floor(chance)` garantierte Karten plus eine
 weitere mit der Wahrscheinlichkeit des Rests.
 
 Die Basiswerte werden durch Gebaeude-Level ueberschrieben — Trainingsgelaende (LEVEL_UP),
-Fitness-Studio (FRESHNESS) und Jugendakademie (NEW_YOUTH_PLAYER_X). Die Karten, deren
-Basiswert 0 ist, entstehen ausschliesslich durch diese Overrides.
+Fitness-Studio (FRESHNESS), Jugendakademie (NEW_YOUTH_PLAYER_X) und Arztpraxis
+(MEDICAL_TREATMENT). Die Karten, deren Basiswert 0 ist, entstehen ausschliesslich durch diese
+Overrides.
 
 ## Limits
 
@@ -88,13 +92,20 @@ Basiswert 0 ist, entstehen ausschliesslich durch diese Overrides.
 - **TA-AC-01**: Aktionskarten werden in der Tabelle `action_card` gespeichert mit den Feldern: `id`, `team_id`, `action`, `played`, `state`, `season`, `youth_options`, `created_at`.
 - **TA-AC-02**: Karten durchlaufen den Lebenszyklus: `pending` -> `received` -> `played`. Fuer den Markt kommt der Zwischenstatus `offered` hinzu (Karte ist gelistet und aus dem Inventar ausgelagert).
 - **TA-AC-03**: Die Verteilung erfolgt in `_giveUsersActionCards()` nach jedem Spieltag.
-- **TA-AC-04**: Gebaeude-Modifikatoren (Trainingsgelaende, Fitness-Studio, Jugendakademie) ueberschreiben die Basis-Wahrscheinlichkeiten. Die Reihenfolge ist Trainingsgelaende -> Fitness-Studio -> Jugendakademie; jeder Override gewinnt gegen den vorherigen.
+- **TA-AC-04**: Gebaeude-Modifikatoren (Trainingsgelaende, Fitness-Studio, Jugendakademie, Arztpraxis) ueberschreiben die Basis-Wahrscheinlichkeiten. Die Reihenfolge ist Trainingsgelaende -> Fitness-Studio -> Jugendakademie -> Arztpraxis; jeder Override gewinnt gegen den vorherigen.
 - **TA-AC-05**: Maximal 20 Level-Ups pro Saison pro Spieler.
 - **TA-AC-06**: Frische wird auf maximal 1.0 begrenzt.
 - **TA-AC-13**: Karten eines Typs, von dem das Team bereits `MAX_ACTION_CARDS_PER_TYPE` gehaltene (`received` + `pending`) Exemplare besitzt, werden **gar nicht erst vergeben** — sonst blieben sie dauerhaft `pending` und der Nutzer haengt im Aufdeck-Overlay fest.
 - **TA-AC-14**: Nicht eingesammelte Karten verfallen: `deleteExpiredPendingCards()` loescht am naechsten Spieltag alle Karten im Status `pending`.
 - **TA-AC-15**: Jedes Team ohne Jugendspieler, das in der laufenden Saison noch keine Jugendkarte erhalten hat, bekommt eine garantierte Jugendkarte. Deren Stufe richtet sich nach dem Akademie-Level (`YOUTH_ACADEMY_GUARANTEED_CARD`).
-- **TA-AC-16**: Karteneffekte, die einen Spieler veraendern (Level-Up, Frische, Starspieler), senden ein `PLAYER_UPDATED`-Event; Inventar-Aenderungen senden `ACTION_CARDS_CHANGED`.
+- **TA-AC-16**: Karteneffekte, die einen Spieler veraendern (Level-Up, Frische, Starspieler, Medizinische Behandlung), senden ein `PLAYER_UPDATED`-Event; Inventar-Aenderungen senden `ACTION_CARDS_CHANGED`.
+
+### Medizinische Behandlung (MEDICAL_TREATMENT)
+
+- **TA-AC-28**: Die Karte gibt es nur mit gebauter Arztpraxis (`MEDICAL_PRACTICE_CARD_CHANCES`, siehe [Buildings](buildings.md)). Ihr Basiswert in `actionCardChances` ist 0, sie taucht damit auch nicht in den Belohnungs-Pools von Mini-Game und WM-Wetten auf.
+- **TA-AC-29**: Sie zieht `injury_days_left` des gewaehlten Spielers um **1** herunter. Erreicht der Zaehler damit 0, wird die Verletzung sofort komplett aufgehoben (`is_injured=0`, `injury_type=NULL`) — nicht erst beim naechsten Spieltag durch `_recoverInjuredPlayers`, damit der Spieler noch fuer das heutige Spiel zur Verfuegung steht.
+- **TA-AC-30**: Abgelehnt wird die Karte, wenn der Spieler einem anderen Team gehoert (`error.playerNotInTeam`) oder nicht verletzt ist (`error.playerNotInjured`). In beiden Faellen bleibt die Karte unverbraucht.
+- **TA-AC-31**: Die Log-Nachricht nennt die verbleibenden Spieltage (`log.cardMedicalTreatment`) bzw. meldet die Rueckkehr (`log.cardMedicalTreatmentHealed`), mit Icon `medkit` und Link auf den Spieler.
 
 ### Spionage-Karte (SPY)
 
@@ -140,7 +151,8 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - **TA-AC-09**: Aufdecken neuer Karten mit 3D-Flip-Animation.
 - **TA-AC-10**: Merge-Animation: Beide Karten faden aus, neue hoeherwertige Karte erscheint.
 - **TA-AC-11**: Merge-Badge (rot) wird angezeigt, wenn eine Zusammenfuehrung moeglich ist.
-- **TA-AC-12**: Karten-Bilder liegen als SVG unter `assets/action-cards/`, die Jugendkarten als `new-youth-player-{1,2,3}.svg`.
+- **TA-AC-12**: Karten-Bilder liegen als SVG unter `assets/action-cards/`, die Jugendkarten als `new-youth-player-{1,2,3}.svg`, die Behandlungskarte als `medical-treatment.svg` (rote Akzentfarbe `#E63946`, Arztkoffer mit rotem Kreuz und EKG-Linie, drei Sterne).
+- **TA-AC-32**: Beim Einsetzen einer MEDICAL_TREATMENT-Karte listet die Spielerauswahl **nur verletzte** Spieler. Ist keiner verletzt, oeffnet sich kein Overlay: es kommt ein Hinweis-Toast (`actionCards.noInjuredPlayer`) und die Karte bleibt im Stapel.
 - **TA-AC-26**: Beim Aufdecken einer NEW_YOUTH_PLAYER_X-Karte oeffnet sich ein Auswahl-Overlay mit drei generierten Spielern (siehe [Youth Academy](youth-academy.md)).
 - **TA-AC-27**: Das Kartenlimit pro Typ wird beim Aufdecken als Toast gemeldet (`error.actionCardLimitReached`). Die Client-Kopie von `MAX_ACTION_CARDS_PER_TYPE` liegt in `client/pages/dashboard/actionCards.js` und muss mit dem Server-Wert synchron bleiben.
 
@@ -149,7 +161,8 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - Unit-Tests fuer alle Karteneffekte und Level-Caps
 - Tests fuer Merge-Validierung (verschiedene Typen, nicht-zusammenfuehrbare Karten)
 - Verteilungswahrscheinlichkeits-Tests (Simulation ueber 10.000 Spieltage)
-- Tests fuer Gebaeude-Modifikatoren (Trainingsgelaende, Fitness-Studio, Jugendakademie)
+- Tests fuer Gebaeude-Modifikatoren (Trainingsgelaende, Fitness-Studio, Jugendakademie, Arztpraxis)
+- MEDICAL_TREATMENT: verkuerzt um einen Spieltag, hebt die Verletzung beim letzten Spieltag auf, lehnt gesunde und fremde Spieler ab
 - Kartenlimit pro Typ: Aufdecken wird abgelehnt, Vergabe wird uebersprungen
 - Jugendkarten-Deckel pro Saison inkl. Garantiekarte
 - SPY-Snapshot bleibt stabil, wenn der Gegner danach die Taktik aendert

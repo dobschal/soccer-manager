@@ -177,6 +177,10 @@ describe('trade routes', () => {
     beforeEach(() => {
       getPlayersByTeamId.mockResolvedValue([])
       getOpenSellOffersByTeamId.mockResolvedValue([])
+      // Low default market value so the 75% floor (#446) never trips in tests
+      // that are about something else. vi.clearAllMocks() keeps implementations,
+      // so this also resets a value another test set.
+      getAveragePlanPriceOfPlayer.mockResolvedValue(10000)
     })
 
     it('creates trade offer', async () => {
@@ -242,32 +246,33 @@ describe('trade routes', () => {
       expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_offer SET ?', expect.anything())
     })
 
-    it('#446 rejects a sell offer below 50% of the market value', async () => {
+    it('#446 rejects a sell offer below 75% of the market value', async () => {
       const team = testData.team({ balance: 100000 })
       const player = testData.player()
 
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
-      getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // market value -> min 50000
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // market value -> min 75000
       query
         .mockResolvedValueOnce([]) // no recent free-market signing
         .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
 
       const req = createMockRequest()
 
-      await expect(handlers.addTradeOffer(player, 49999, 'sell', true, req))
-        .rejects.toMatchObject({ message: expect.stringContaining('50%') })
+      await expect(handlers.addTradeOffer(player, 74999, 'sell', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining('75%') })
+      expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_offer SET ?', expect.anything())
     })
 
-    it('#446 allows a sell offer at exactly 50% of the market value', async () => {
+    it('#446 allows a sell offer at exactly 75% of the market value', async () => {
       const team = testData.team({ balance: 100000 })
       const player = testData.player()
 
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
-      getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // min 50000
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // min 75000
       query
         .mockResolvedValueOnce([]) // no recent free-market signing
         .mockResolvedValueOnce([{ count: 0 }]) // no transfer this season
@@ -275,9 +280,69 @@ describe('trade routes', () => {
         .mockResolvedValueOnce({}) // insert
 
       const req = createMockRequest()
-      const result = await handlers.addTradeOffer(player, 50000, 'sell', true, req)
+      const result = await handlers.addTradeOffer(player, 75000, 'sell', true, req)
 
       expect(result).toEqual({ success: true })
+    })
+
+    it('#446 rejects a buy offer below 75% of the market value', async () => {
+      const team = testData.team({ id: 1, balance: 1000000 })
+      const player = testData.player({ id: 7, team_id: 99 })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // market value -> min 75000
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(player, 74999, 'buy', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining('75%') })
+      expect(query).not.toHaveBeenCalledWith('INSERT INTO trade_offer SET ?', expect.anything())
+    })
+
+    it('#446 uses the stored player, not the client payload, to price a buy offer', async () => {
+      // A manipulated client could send a low-level player to fake a low market
+      // value — the check must use the level stored in the database.
+      const team = testData.team({ id: 1, balance: 1000000 })
+      const clientPlayer = testData.player({ id: 7, team_id: 99, level: 1 })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(testData.player({ id: 7, team_id: 99, level: 90 }))
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
+
+      const req = createMockRequest()
+
+      await expect(handlers.addTradeOffer(clientPlayer, 10000, 'buy', true, req))
+        .rejects.toMatchObject({ message: expect.stringContaining('75%') })
+      expect(getAveragePlanPriceOfPlayer).toHaveBeenCalledWith(
+        expect.objectContaining({ level: 90 }),
+        1
+      )
+    })
+
+    it('#446 allows a buy offer at exactly 75% of the market value', async () => {
+      const team = testData.team({ id: 1, balance: 1000000 })
+      const player = testData.player({ id: 7, team_id: null })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(100000) // min 75000
+      query
+        .mockResolvedValueOnce([]) // no existing offer for this player
+        .mockResolvedValueOnce([{ count: 0 }]) // below the per-game-day offer limit
+        .mockResolvedValueOnce({}) // insert
+
+      const req = createMockRequest()
+      const result = await handlers.addTradeOffer(player, 75000, 'buy', true, req)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith(
+        'INSERT INTO trade_offer SET ?',
+        expect.objectContaining({ offer_value: 75000, type: 'buy' })
+      )
     })
 
     it('rejects a sell offer for a player who already changed clubs the maximum times this season', async () => {
@@ -305,7 +370,7 @@ describe('trade routes', () => {
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
       getPlayerById.mockResolvedValue(player)
-      getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(60000) // min 45000 — below the 50000 asking price
       query
         .mockResolvedValueOnce([]) // no recent free-market signing
         .mockResolvedValueOnce([{ count: 1 }]) // one prior transfer — still below the limit
@@ -342,7 +407,7 @@ describe('trade routes', () => {
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 4 })
       getPlayerById.mockResolvedValue(player)
-      getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(60000) // min 45000 — below the 50000 asking price
       query
         .mockResolvedValueOnce([{ type: 'HIRED', season: 3 }]) // signed in an earlier season — no longer locked
         .mockResolvedValueOnce([{ count: 0 }])
@@ -362,7 +427,7 @@ describe('trade routes', () => {
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 3 })
       getPlayerById.mockResolvedValue(player)
-      getAveragePlanPriceOfPlayer.mockResolvedValue(100000)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(60000) // min 45000 — below the 50000 asking price
       // The most recent ownership event is a paid TRANSFER — even if the player was originally
       // signed for free by a prior team, the current owner paid real money and can list them.
       query
@@ -503,6 +568,8 @@ describe('trade routes', () => {
 
       getTeam.mockResolvedValue(team)
       getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValue(player)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(10000) // min price 7500, offer is above
       query
         .mockResolvedValueOnce([])  // no open offers (duplicate check)
         .mockResolvedValueOnce([{ count: 3 }])  // 3 existing attempts this game day

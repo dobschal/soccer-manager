@@ -2633,6 +2633,227 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Wiki: refresh buildings (3D club grounds + training area levels) v3',
+  async run () {
+    // The buildings page now opens with the 3D scene and the training ground is
+    // actually built in it, so the wiki text describes what each level looks
+    // like. Push it to already-seeded prod/sandbox DBs.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: add fair-play rules topic',
+  async run () {
+    // Multi-accounting and arranged transfers were detected but nowhere written
+    // down for players. The rules now live in their own wiki topic — insert it
+    // into already-seeded prod/sandbox DBs, skipping locales that have it.
+    const topic = WIKI_SEED.find(t => t.key === 'fair-play')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const [existing] = await query(
+        'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+        [topic.key, locale]
+      )
+      if (existing) continue
+      const entry = topic[locale]
+      await query('INSERT INTO wiki_entry SET ?', {
+        locale,
+        page_key: topic.key,
+        title: entry.title,
+        subtitle: entry.subtitle || null,
+        text: entry.text,
+        images: JSON.stringify([]),
+        sort_order: 0
+      })
+    }
+  }
+}, {
+  name: 'Wiki: refresh transfers (75% minimum offer price)',
+  async run () {
+    // Sell and buy offers now both have a 75% market-value floor (#446), so the
+    // transfers topic must be pushed to already-seeded prod/sandbox DBs.
+    const topic = WIKI_SEED.find(t => t.key === 'transfers')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Create blocked_email table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS blocked_email
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        email VARCHAR(255) NOT NULL,
+        reason VARCHAR(255) DEFAULT NULL,
+        blocked_by_user_id BIGINT(20) UNSIGNED DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_blocked_email (email)
+    ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Add sessions_invalid_before to user',
+  async run () {
+    // JWTs are stateless, so revoking a login means recording a cut-off and
+    // rejecting any token whose `iat` predates it (see the auth middleware).
+    await query('ALTER TABLE user ADD COLUMN sessions_invalid_before TIMESTAMP NULL DEFAULT NULL')
+  }
+}, {
+  name: 'Wiki: refresh fair-play (new detectors + email block)',
+  async run () {
+    // Detection now also covers action-card auctions and self-claimed invite
+    // rewards, and a confirmed cheat can be blocked instead of only deleted.
+    const topic = WIKI_SEED.find(t => t.key === 'fair-play')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: refresh buildings (dugout benches and car park per level) v4',
+  async run () {
+    // The training ground now shows its level through the benches (none / open /
+    // roofed and glazed) and the car park beside it (none / one / two rows), and
+    // there is traffic on the roads around the club grounds.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: refresh buildings (fitness studio in 3D) v5',
+  async run () {
+    // The fitness studio now has its own geometry: a glass hall with a neon
+    // "Gym", a lit room whose equipment fills up per level, and a car park.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: refresh buildings (youth academy in 3D) v6',
+  async run () {
+    // The youth academy now has its own geometry too: a block with a tall
+    // entrance bay carrying the club's own emblem, a roof terrace and a recessed
+    // top floor, its own half-size pitch and a car park.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: refresh buildings + stadium (time-of-day slider) v7',
+  async run () {
+    // The 3D view now follows the player's own clock and has a slider for dawn /
+    // day / dusk / night under it — it appears on both pages that show the scene.
+    for (const key of ['buildings', 'stadium']) {
+      const topic = WIKI_SEED.find(t => t.key === key)
+      if (!topic) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: refresh buildings (clubhouse on the training ground) v8',
+  async run () {
+    // The training ground now has a clubhouse north of the pitch that grows with
+    // its level.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: refresh buildings (card images taken from the 3D scene) v9',
+  async run () {
+    // The building cards no longer show a painted level image but a still of the
+    // player's own building, cropped out of the 3D scene above them.
+    const topic = WIKI_SEED.find(t => t.key === 'buildings')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Seed medical_practice building for all teams',
+  async run () {
+    // Level 0 — unlike the other three this one is not there from the start, it
+    // has to be built. The row only exists so `upgradeBuilding` has something to
+    // raise to level 1.
+    const teams = await query('SELECT id FROM team')
+    for (const team of teams) {
+      const existing = await query("SELECT id FROM building WHERE team_id=? AND type='medical_practice' LIMIT 1", [team.id])
+      if (existing.length === 0) {
+        await query('INSERT INTO building SET ?', {
+          team_id: team.id,
+          type: 'medical_practice',
+          level: 0
+        })
+      }
+    }
+    console.log(`✅ Seeded ${teams.length} teams with medical_practice level 0`)
+  }
+}, {
+  name: 'Wiki: refresh buildings and action cards (medical practice) v10',
+  async run () {
+    for (const key of ['buildings', 'action-cards', 'players']) {
+      const topic = WIKI_SEED.find(t => t.key === key)
+      if (!topic) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**

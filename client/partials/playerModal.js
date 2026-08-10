@@ -1,6 +1,6 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
-import { calculatePlayerAge, calculateMarketValue, getSalary, willRetireNextSeason, MAX_TRANSFERS_PER_SEASON } from '../util/player.js'
+import { calculatePlayerAge, calculateMarketValue, getMinOfferPrice, getSalary, willRetireNextSeason, MAX_TRANSFERS_PER_SEASON } from '../util/player.js'
 import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
 import { euroFormat } from '../lib/currency.js'
 import { el } from '../lib/html.js'
@@ -143,18 +143,8 @@ export default class PlayerModal extends UIElement {
             </div>
           </div>
         </div>
-        ${this.player.is_injured ? `
-        <div class="alert alert-danger mb-4">
-          <b><i class="fa fa-medkit"></i> ${t('player.injured')}</b><br>
-          ${t('injury.' + this.player.injury_type)} — ${this.player.injury_days_left} ${t('player.daysLeft')}
-        </div>
-        ` : ''}
-        ${this.player.is_star_player ? `
-        <div class="alert alert-warning mb-4">
-          <b>⭐ ${t('player.starPlayer')}</b><br>
-          ${t('player.starPlayerDesc')}
-        </div>
-        ` : ''}
+        <div data-alert="injury">${this._renderInjuryAlert()}</div>
+        <div data-alert="star">${this._renderStarAlert()}</div>
         ${willRetireNextSeason(this.player, this.season) ? `
         <div class="alert alert-info mb-4">
           <b><i class="fa fa-hourglass-end"></i> ${t('player.retiringTitle')}</b><br>
@@ -262,11 +252,13 @@ export default class PlayerModal extends UIElement {
       }
     }
   }
+
   /**
    * The modal listens for PLAYER_UPDATED (fires from the action-card helper
-   * whenever level / freshness / is_star_player changes on this player) and
-   * patches its two stat cards in place. Full `update()` isn't an option
-   * because the modal has other open state (currency input, history page,
+   * whenever level / freshness / is_star_player / injury state changes on this
+   * player) and patches the affected bits in place: the two stat cards, the
+   * injury and star notices, and the star in the title. Full `update()` isn't an
+   * option because the modal has other open state (currency input, history page,
    * ActionCardGiver's own loading) that would be torn down.
    * @returns {Record<string, (data: any) => void>}
    */
@@ -287,6 +279,13 @@ export default class PlayerModal extends UIElement {
           freshnessEl.textContent = `${Math.floor(this.player.freshness * 100)}%`
           freshnessEl.style.color = getFreshnessColor(this.player.freshness)
         }
+        const injuryEl = root.querySelector('[data-alert="injury"]')
+        if (injuryEl) injuryEl.innerHTML = this._renderInjuryAlert()
+        const starEl = root.querySelector('[data-alert="star"]')
+        if (starEl) starEl.innerHTML = this._renderStarAlert()
+        // The title lives on the surrounding overlay card, outside this element.
+        const titleEl = root.closest('.overlay')?.querySelector('.card-title')
+        if (titleEl) titleEl.textContent = this.player.name + (this.player.is_star_player ? ' ⭐' : '')
       }
     }
   }
@@ -321,6 +320,37 @@ export default class PlayerModal extends UIElement {
     return this.history.slice(start, start + this.historyPageSize)
   }
 
+  /**
+   * The injury notice — the remaining lay-off in game days. Its own method
+   * because a medical treatment card shortens (or ends) the injury while the
+   * modal is open, and the PLAYER_UPDATED handler repaints just this block.
+   * @returns {string}
+   */
+  _renderInjuryAlert () {
+    if (!this.player.is_injured) return ''
+    return `
+      <div class="alert alert-danger mb-4">
+        <b><i class="fa fa-medkit"></i> ${t('player.injured')}</b><br>
+        ${t('injury.' + this.player.injury_type)} — ${this.player.injury_days_left} ${t('player.daysLeft')}
+      </div>
+    `
+  }
+
+  /**
+   * The star-player notice, repainted the same way — a star card can promote the
+   * player while the modal is open.
+   * @returns {string}
+   */
+  _renderStarAlert () {
+    if (!this.player.is_star_player) return ''
+    return `
+      <div class="alert alert-warning mb-4">
+        <b>⭐ ${t('player.starPlayer')}</b><br>
+        ${t('player.starPlayerDesc')}
+      </div>
+    `
+  }
+
   _renderHistoryPage () {
     const root = el(this._elementQuery)
     if (!root) return
@@ -344,13 +374,12 @@ export default class PlayerModal extends UIElement {
       const price = Number(input?.dataset.rawValue || 0)
       const allowInstantBuyEl = root?.querySelector('#allow-instant-buy')
       const allowInstantBuy = allowInstantBuyEl ? allowInstantBuyEl.checked : true
-      // A player may not be listed below 50% of their market value (#446).
-      if (this.isMyPlayer) {
-        const minPrice = Math.floor(this.price * 0.5)
-        if (price < minPrice) {
-          toast(t('trades.sellPriceTooLow', { minPrice: euroFormat.format(minPrice) }), 'error')
-          return
-        }
+      // Neither sell nor buy offers may go below 75% of the market value (#446).
+      const minPrice = getMinOfferPrice(this.price)
+      if (price < minPrice) {
+        const key = this.isMyPlayer ? 'trades.sellPriceTooLow' : 'trades.buyPriceTooLow'
+        toast(t(key, { minPrice: euroFormat.format(minPrice) }), 'error')
+        return
       }
       await server.addTradeOffer(this.player, price, this.isMyPlayer ? 'sell' : 'buy', allowInstantBuy)
       toast(t('player.offerAdded', { playerName: this.player.name }), 'success')

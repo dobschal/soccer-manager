@@ -37,9 +37,10 @@ Card types:
 • Star Player – permanently boosts a player's match strength by 10%.
 • Motivating Speech – gives your whole team a +10% strength bonus for the next match day.
 • Spy – reveals another team's tactics and lineup. Your next opponent is preselected, but you can scout any team you search for. The card is used up the moment the report is revealed; the latest report stays visible on your team page.
+• Medical Treatment – takes one match day off an injured player's lay-off. If that was his last match day out, he is fit again straight away. Requires a Medical Practice, and only injured players can be picked.
 
 Good to know:
-• The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings.
+• The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings, and the Medical Practice unlocks the Medical Treatment card in the first place.
 • A single player can gain at most 20 levels per season through cards.
 • You can hold at most 10 unplayed cards of the same type – play or trade some away before you can claim more of that type.
 • At most 3 New Youth Player cards are handed out per season, so young talents stay scarce.
@@ -61,9 +62,10 @@ Kartentypen:
 • Starspieler – erhöht die Spielstärke eines Spielers dauerhaft um 10%.
 • Motivationsrede – gibt deinem ganzen Team am nächsten Spieltag +10% Stärke.
 • Spion – deckt Taktik und Aufstellung eines anderen Teams auf. Dein nächster Gegner ist vorausgewählt, du kannst aber jedes gesuchte Team ausspähen. Die Karte wird verbraucht, sobald der Bericht aufgedeckt ist; der letzte Bericht bleibt auf deiner Team-Seite sichtbar.
+• Medizinische Behandlung – nimmt einem verletzten Spieler einen Spieltag Ausfall ab. War es sein letzter, ist er sofort wieder fit. Braucht eine Arztpraxis, und auswählen kannst du nur verletzte Spieler.
 
 Gut zu wissen:
-• Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust.
+• Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust – und die Arztpraxis schaltet die Karte „Medizinische Behandlung" überhaupt erst frei.
 • Ein Spieler kann pro Saison höchstens 20 Level durch Karten gewinnen.
 • Du kannst höchstens 10 ungenutzte Karten desselben Typs halten – setze oder tausche welche ein, bevor du weitere dieses Typs annehmen kannst.
 • Pro Saison werden höchstens 3 „Neuer Jugendspieler“-Karten vergeben, damit Talente knapp bleiben.
@@ -203,7 +205,7 @@ Kaderregeln:
     en: {
       title: 'Buildings',
       subtitle: 'Upgrade your club infrastructure for better cards',
-      text: `Your club has three buildings you can upgrade. Each building improves the chance of receiving certain action cards after a match day. You can build only one upgrade at a time, and construction continues across season boundaries.
+      text: `Your club has four buildings. Three of them you upgrade level by level, the Medical Practice you simply build once. Each building improves the chance of receiving certain action cards after a match day. You can build only one upgrade at a time per building, and construction continues across season boundaries.
 
 Training Area – improves Level-Up card chances:
 • Level 1: 375,000 € (5 match days)
@@ -220,12 +222,40 @@ Youth Academy – generates new youth players:
 • Level 2: 3,000,000 € (10 match days) – better young talents.
 • Level 3: 9,000,000 € (17 match days) – the strongest talents (see Youth Players).
 
-Each building tops out at level 3. The cost is deducted immediately when you start the upgrade, and you get a log message when it is finished.`
+Medical Practice – shortens injuries:
+• 500,000 € (8 match days) – and that's it. This is the one building with a single level: nobody starts with it, and once it stands there is nothing more to build.
+• With it you get around 1.5 Medical Treatment cards per season, each taking one match day off an injured player's lay-off.
+• Since it went in, injuries happen a little more often than they used to – the card shortens lay-offs, so a few more of them is a fair trade for a club that invests in the building.
+
+The three upgradable buildings top out at level 3. The cost is deducted immediately when you start building, and you get a log message when it is finished.
+
+The 3D view at the top of the page shows your club grounds: it is the same scene as on the stadium page, but centred on the road crossing north-east of the stadium that your buildings are grouped around. Drag to look around, or hand the camera back to the slow auto-orbit with the button in the corner. Cars drive along the roads around it. The slider below the view sets the time of day – dawn, day, dusk or night. It starts on whatever matches your own clock, and by day the floodlights and street lamps are off.
+
+The picture on each building's card is no painting: it is a close-up of that very building, taken out of the view above – your own grounds, your own crest, at your own time of day. When you start an upgrade, the dialog shows the same close-up of the level you are about to build.
+
+Your training area is built there for real – a full-size pitch, as big as the one in your stadium, fenced right up to the kerb, with room for a car park beside it. Its level shows:
+• Level 1: the fenced pitch with two goals and a pair of small, weak floodlights in two corners, so the far half stays in the dark. No benches and no car park yet.
+• Level 2: balls, slalom poles and marker cones on the pitch, a second, taller and much brighter pair of masts in the other two corners, two open dugout benches at the touchline (the same seats as in your stands) and a car park with one row of bays, joined to the road by a driveway.
+• Level 3: full-height masts in all four corners that light the pitch like a match, both benches roofed and glazed with strutted panes, and a second row of parking bays.
+
+North of the pitch stands your clubhouse: two solid wings with light facades and big lit windows around a taller glass hall, your emblem above its entrance, solar panels on all three flat roofs. Paths lead from it to a second gate in the pitch fence and round to the car park. It grows with the training area – one, two or three storeys.
+
+Your fitness studio stands right across the road, west of the training ground: a modern hall with a strutted glass facade and a flat roof, its entrance under a canopy with a big neon "Gym" above it. Behind the glass is one big brightly lit room with mats, treadmills, weight plates, dumbbells and weight benches; tilted solar panels sit on the roof and a car park beside the hall. The hall itself grows with its level – and so does everything in and on it:
+• Level 1: a small hall with a basic kit – two treadmills, two mats, one bench – under two ceiling lights, three solar panels on the roof and a short row of parking bays.
+• Level 2: a bigger hall, twice the kit, a second row of ceiling lights, a brighter sign, six solar panels, more bays and a lamp mast over the car park.
+• Level 3: the full-size hall, a packed floor under six ceiling lights, the sign at its brightest, ten solar panels, a second row of parking bays and a second mast.
+
+Your youth academy sits south of the training ground, on the other side of that road: a light grey block with blue window bands, fronted by a tall blue entrance bay that carries your club's own emblem and "Youth Academy" high up and the glazed door at its foot – the lobby behind it lit, a small canopy with a light strip above it. Its roof is a terrace behind a strutted glass balustrade, with solar panels on the flat roof above. Its entrance looks out over the car park, with a short lamp-lined footpath in between; the pitch lies crosswise behind the building – half the size of your stadium's, fenced, floodlit, with youth-size goals and covered in training kit:
+• Level 1: two storeys under a terrace roof, two solar panels, cones, a slalom line, two hurdles and a short row of parking bays.
+• Level 2: a recessed top floor is added on the roof, so the terrace now runs around it; four solar panels, more cones, poles and hurdles, the first free-kick dummies, more bays and a lamp mast over the car park.
+• Level 3: a third storey below it, eight solar panels, a fully equipped pitch with four dummies, a second row of parking bays and a second mast.
+
+Your medical practice, once you build it, stands west of the fitness studio on the same street: a modern flat-roofed block with a red cross lit up above its entrance and a satellite dish on the roof. A colonnade of round columns leads from the pavement to the entrance, and in the driveway beside it an ambulance waits with its blue light slowly turning.`
     },
     de: {
       title: 'Gebäude',
       subtitle: 'Baue deine Vereins-Infrastruktur für bessere Karten aus',
-      text: `Dein Verein hat drei Gebäude, die du ausbauen kannst. Jedes Gebäude erhöht die Chance auf bestimmte Action Cards nach einem Spieltag. Du kannst immer nur einen Ausbau gleichzeitig durchführen, und Bauarbeiten laufen über Saisongrenzen hinweg weiter.
+      text: `Dein Verein hat vier Gebäude. Drei davon baust du Stufe für Stufe aus, die Arztpraxis errichtest du einmal. Jedes Gebäude erhöht die Chance auf bestimmte Action Cards nach einem Spieltag. Du kannst pro Gebäude immer nur einen Ausbau gleichzeitig durchführen, und Bauarbeiten laufen über Saisongrenzen hinweg weiter.
 
 Trainingsgelände – verbessert die Chance auf Level-Up-Karten:
 • Stufe 1: 375.000 € (5 Spieltage)
@@ -242,7 +272,35 @@ Jugendakademie – erzeugt neue Jugendspieler:
 • Stufe 2: 3.000.000 € (10 Spieltage) – bessere junge Talente.
 • Stufe 3: 9.000.000 € (17 Spieltage) – die stärksten Talente (siehe Jugendspieler).
 
-Jedes Gebäude endet bei Stufe 3. Die Kosten werden sofort beim Start des Ausbaus abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.`
+Arztpraxis – verkürzt Verletzungen:
+• 500.000 € (8 Spieltage) – und das war's. Sie ist das einzige Gebäude mit nur einer Stufe: niemand startet damit, und wenn sie steht, gibt es nichts mehr auszubauen.
+• Mit ihr bekommst du im Schnitt etwa 1,5 Karten „Medizinische Behandlung" pro Saison, jede nimmt einem verletzten Spieler einen Spieltag Ausfall ab.
+• Seit sie es gibt, verletzen sich Spieler etwas häufiger als früher – die Karte verkürzt Ausfälle, also ist das ein fairer Tausch für einen Verein, der in das Gebäude investiert.
+
+Die drei ausbaubaren Gebäude enden bei Stufe 3. Die Kosten werden sofort beim Baustart abgebucht, und du erhältst eine Log-Nachricht, sobald er fertig ist.
+
+Die 3D-Ansicht oben auf der Seite zeigt dein Vereinsgelände: dieselbe Szene wie auf der Stadion-Seite, nur zentriert auf die Straßenkreuzung nordöstlich des Stadions, um die herum deine Gebäude stehen. Zieh mit der Maus, um dich umzusehen, oder gib die Kamera mit dem Knopf in der Ecke wieder an die langsame Drehung ab. Auf den Straßen ringsum fahren Autos. Mit dem Regler unter der Ansicht stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht. Beim Öffnen passt sie zu deiner eigenen Uhrzeit; tagsüber sind Flutlicht und Straßenlaternen aus.
+
+Das Bild auf jeder Gebäudekarte ist kein gemaltes Bild, sondern ein Ausschnitt aus genau dieser Ansicht: dein eigenes Gelände, dein eigenes Wappen, zu deiner Tageszeit. Startest du einen Ausbau, zeigt der Dialog denselben Ausschnitt mit der Stufe, die du gerade baust.
+
+Dein Trainingsgelände steht dort wirklich – ein Platz in voller Größe, genauso groß wie der in deinem Stadion, eingezäunt bis direkt an den Bordstein, mit Platz für einen Parkplatz daneben. Und man sieht ihm seine Stufe an:
+• Stufe 1: der eingezäunte Platz mit zwei Toren und einem kleinen, schwachen Flutlicht in zwei Ecken – die andere Hälfte bleibt im Dunkeln. Noch ohne Trainerbänke und ohne Parkplatz.
+• Stufe 2: zusätzlich Bälle, Slalomstangen und Hütchen auf dem Platz, ein zweites, höheres und deutlich helleres Mastpaar in den beiden anderen Ecken, zwei offene Trainerbänke am Spielfeldrand (dieselben Sitze wie auf deinen Tribünen) und ein Parkplatz mit einer Reihe Parkbuchten, der über eine Einfahrt an der Straße hängt.
+• Stufe 3: hohe Masten in allen vier Ecken, die den Platz spielfeldhell ausleuchten, beide Trainerbänke überdacht und mit verstrebten Glaswänden verglast, und eine zweite Reihe Parkbuchten.
+
+Nördlich des Platzes thront dein Vereinsheim: zwei massive Flügel mit heller Fassade und großen, beleuchteten Fenstern, dazwischen eine höhere Glashalle mit deinem Wappen über dem Eingang, auf allen drei Flachdächern Solarmodule. Wege führen von dort zu einem zweiten Tor im Zaun und herum zum Parkplatz. Es wächst mit dem Trainingsgelände – ein, zwei oder drei Stockwerke.
+
+Dein Fitnessstudio steht gleich gegenüber, westlich des Trainingsgeländes auf der anderen Straßenseite: eine moderne Halle mit verstrebter Glasfassade und Flachdach, der Eingang unter einem Vordach mit einem großen "Gym" in Leuchtschrift darüber. Hinter dem Glas liegt ein einziger großer, hell beleuchteter Raum mit Matten, Laufbändern, Gewichten, Hanteln und Hantelbänken, auf dem Dach stehen angeschrägte Solarmodule, daneben liegt ein Parkplatz. Die Halle selbst wächst mit ihrer Stufe – und alles darin und darauf mit:
+• Stufe 1: eine kleine Halle mit Grundausstattung – zwei Laufbänder, zwei Matten, eine Hantelbank – unter zwei Deckenleuchten, drei Solarmodule auf dem Dach und eine kurze Reihe Parkbuchten.
+• Stufe 2: eine größere Halle, doppelt so viele Geräte, eine zweite Reihe Deckenleuchten, hellere Leuchtschrift, sechs Solarmodule, mehr Parkbuchten und ein Lichtmast über dem Parkplatz.
+• Stufe 3: die Halle in voller Größe, ein voller Trainingsraum unter sechs Deckenleuchten, die Leuchtschrift am hellsten, zehn Solarmodule, eine zweite Reihe Parkbuchten und ein zweiter Mast.
+
+Deine Jugendakademie liegt südlich des Trainingsgeländes, auf der anderen Seite jener Straße: ein hellgrauer Block mit blauen Fensterbändern, davor ein hoher blauer Eingangsbereich – oben dein echtes Vereinswappen und „Youth Academy", unten die Glastür mit beleuchteter Lobby dahinter und einem kleinen Vordach mit Lichtleiste darüber. Das Dach ist eine Terrasse hinter einem verstrebten Glasgeländer, oben auf dem Flachdach stehen Solarmodule. Der Eingang schaut auf den Parkplatz, dazwischen ein kurzer Fußweg mit Laternen; hinter dem Gebäude liegt quer der Kleinfeldplatz – halb so groß wie der im Stadion, eingezäunt, mit Flutlicht, Jugendtoren und voller Trainingselemente:
+• Stufe 1: zwei Stockwerke unter dem Terrassendach, zwei Solarmodule, Hütchen, eine Slalomlinie, zwei Hürden und eine kurze Reihe Parkbuchten.
+• Stufe 2: oben kommt ein eingerücktes Dachgeschoss dazu, die Terrasse läuft nun um es herum; vier Solarmodule, mehr Hütchen, Stangen und Hürden, die ersten Freistoß-Dummies, mehr Parkbuchten und ein Lichtmast über dem Parkplatz.
+• Stufe 3: darunter ein drittes Stockwerk, acht Solarmodule, ein voll ausgestatteter Platz mit vier Dummies, eine zweite Reihe Parkbuchten und ein zweiter Mast.
+
+Deine Arztpraxis steht, sobald du sie gebaut hast, westlich des Fitnessstudios an derselben Straße: ein moderner Flachdachbau mit einem beleuchteten roten Kreuz über dem Eingang und einer Satellitenschüssel auf dem Dach. Ein Säulengang aus runden Säulen führt vom Bordstein zum Eingang, und in der Einfahrt daneben steht ein Krankenwagen, dessen Blaulicht langsam kreist.`
     }
   },
 
@@ -348,6 +406,55 @@ Preisgeld:
 • Der Pokalsieg bringt zusätzlich einen Bonus von 2.000.000 €.
 
 Die nächste Runde wird automatisch erzeugt, sobald alle Spiele einer Runde gespielt wurden.`
+    }
+  },
+
+  // ─── Fair Play ─────────────────────────────────────────────────────────
+  {
+    key: 'fair-play',
+    en: {
+      title: 'Fair Play',
+      subtitle: 'The rules every manager plays by',
+      text: `FootballManager.IO is a competition between managers. It only works when everyone runs exactly one club and earns their money in the game. These rules apply to every account.
+
+One account per person:
+• A second account is not allowed. Every manager controls exactly one club.
+• Sharing your account, taking over someone else's club or handing yours over is not allowed either.
+• Playing from the same home or network is fine – a family member or flatmate with their own club is welcome. What is not fine is one person running two clubs.
+
+No arranged transfers:
+• A transfer must reflect what a player is worth. Selling far below or buying far above the market value to move money between clubs is not allowed.
+• Offers below 75% of a player's market value are blocked automatically – on the selling side and on the buying side.
+• Clubs that keep trading players back and forth with each other are flagged for review.
+
+How this is checked:
+• Suspicious patterns are detected automatically: accounts used from the same device or network, transfer prices far off the market value, pairs of clubs trading unusually often, action cards that are always won by the same club seconds after being listed, and invitation rewards claimed by the inviter themselves.
+• Every flag is reviewed by a human admin. Being flagged is not a verdict – normal situations like two friends in the same flat show up too.
+• Confirmed cheating can cost you your club: an admin can block your email address or delete the account. A blocked address can no longer log in or register, and any open session ends immediately.
+
+If you are unsure whether something is allowed – for example because you and a friend share a WiFi connection – say so in the forum before it looks suspicious.`
+    },
+    de: {
+      title: 'Fair Play',
+      subtitle: 'Die Regeln, nach denen alle Manager spielen',
+      text: `FootballManager.IO ist ein Wettbewerb zwischen Managern. Das funktioniert nur, wenn jeder genau einen Verein führt und sein Geld im Spiel verdient. Diese Regeln gelten für jeden Account.
+
+Ein Account pro Person:
+• Ein Zweit-Account ist nicht erlaubt. Jeder Manager führt genau einen Verein.
+• Auch das Teilen deines Accounts, die Übernahme eines fremden Vereins oder die Weitergabe deines eigenen ist nicht erlaubt.
+• Aus demselben Haushalt oder Netzwerk zu spielen ist in Ordnung – ein Familienmitglied oder Mitbewohner mit eigenem Verein ist willkommen. Nicht in Ordnung ist es, wenn eine Person zwei Vereine führt.
+
+Keine abgesprochenen Transfers:
+• Ein Transfer muss dem Wert eines Spielers entsprechen. Weit unter Wert zu verkaufen oder weit über Wert zu kaufen, um Geld zwischen Vereinen zu verschieben, ist nicht erlaubt.
+• Angebote unter 75% des Marktwerts werden automatisch blockiert – auf der Verkäufer- wie auf der Käuferseite.
+• Vereine, die Spieler immer wieder untereinander hin- und herschieben, werden zur Prüfung markiert.
+
+Wie das geprüft wird:
+• Verdächtige Muster werden automatisch erkannt: Accounts vom selben Gerät oder Netzwerk, Transferpreise weit abseits des Marktwerts, Vereinspaare mit auffällig vielen Transfers, Action Cards, die immer wieder Sekunden nach dem Einstellen vom selben Verein gekauft werden, und Einladungs-Belohnungen, die sich jemand selbst gutschreibt.
+• Jede Markierung wird von einem Admin persönlich geprüft. Markiert zu sein ist kein Urteil – auch normale Fälle wie zwei Freunde in einer WG tauchen dort auf.
+• Bestätigtes Cheating kann dich deinen Verein kosten: Ein Admin kann deine E-Mail-Adresse sperren oder den Account löschen. Mit einer gesperrten Adresse sind Login und Registrierung nicht mehr möglich, eine offene Sitzung endet sofort.
+
+Wenn du unsicher bist, ob etwas erlaubt ist – zum Beispiel weil du dir mit einem Freund das WLAN teilst – sag es im Forum, bevor es verdächtig aussieht.`
     }
   },
 
@@ -690,6 +797,7 @@ Fitness (freshness):
 Injuries:
 • Players can get injured during matches – the risk rises sharply when fitness is low and with an aggressive play style.
 • Injuries range from a 1-day bruise to a long-term cruciate ligament or Achilles rupture. Injured starters are substituted automatically (keep a balanced bench).
+• With a Medical Practice you get Medical Treatment cards, each shortening one player's lay-off by a match day (see Buildings).
 
 Salary:
 • Salaries grow exponentially with level – from about 150 € per day at level 1 to about 10,308 € at level 100, roughly doubling every 10 levels. They are paid every match day.
@@ -715,6 +823,7 @@ Fitness (Frische):
 Verletzungen:
 • Spieler können sich im Spiel verletzen – das Risiko steigt stark bei niedriger Fitness und aggressivem Spielstil.
 • Verletzungen reichen von einer 1-tägigen Prellung bis zu langwierigem Kreuzband- oder Achillessehnenriss. Verletzte Startspieler werden automatisch ausgewechselt (halte eine ausgewogene Bank).
+• Mit einer Arztpraxis bekommst du Karten „Medizinische Behandlung", die den Ausfall eines Spielers um je einen Spieltag verkürzen (siehe Gebäude).
 
 Gehalt:
 • Gehälter steigen exponentiell mit dem Level – von etwa 150 € pro Tag auf Level 1 bis rund 10.308 € auf Level 100, etwa eine Verdopplung alle 10 Level. Sie werden an jedem Spieltag gezahlt.
@@ -885,7 +994,9 @@ Attendance and income:
 • Ticket prices can be set per stand from 1 to 100 €. Around 15 € tends to be the sweet spot – too high and fans stay away.
 
 Home advantage:
-• A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.`
+• A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.
+
+The 3D view at the top shows your ground as you have built it, your club emblem lit above every entrance in the stands' back walls. The slider under it sets the time of day – dawn, day, dusk or night; it starts on whatever matches your own clock. By day the floodlights are off.`
     },
     de: {
       title: 'Stadion',
@@ -905,7 +1016,9 @@ Zuschauer und Einnahmen:
 • Ticketpreise lassen sich pro Tribüne von 1 bis 100 € festlegen. Rund 15 € ist meist optimal – zu hoch, und die Fans bleiben weg.
 
 Heimvorteil:
-• Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.`
+• Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.
+
+Die 3D-Ansicht oben zeigt dein Stadion so, wie du es gebaut hast – über jedem Eingang in den Tribünen-Rückwänden hängt dein beleuchtetes Vereinswappen. Mit dem Regler darunter stellst du die Tageszeit ein – Morgendämmerung, Tag, Abenddämmerung oder Nacht; beim Öffnen passt sie zu deiner eigenen Uhrzeit. Tagsüber ist das Flutlicht aus.`
     }
   },
 
@@ -968,8 +1081,8 @@ Es gibt keine generell beste Einstellung – passe deine Taktik an deinen Kader 
 
 Buying and selling:
 • Filter the market by position, age and level. Each player has a market value as a guide price.
-• List a player for sale with your asking price – you cannot list below 50% of the market value.
-• Make an offer on another player; the selling club accepts or rejects it. You can make at most 3 offers per player per match day.
+• List a player for sale with your asking price – you cannot list below 75% of the market value.
+• Make an offer on another player; the selling club accepts or rejects it. Your offer must also be at least 75% of the market value, and you can make at most 3 offers per player per match day.
 • Free agents (players without a club) can be signed for free, but they are weak.
 
 Market value:
@@ -984,8 +1097,8 @@ Remember your squad must always keep at least 14 players, so you cannot sell bel
 
 Kaufen und verkaufen:
 • Filtere den Markt nach Position, Alter und Level. Jeder Spieler hat einen Marktwert als Orientierungspreis.
-• Biete einen Spieler mit deinem Wunschpreis zum Verkauf an – unter 50% des Marktwerts geht nicht.
-• Gib ein Angebot für einen anderen Spieler ab; der verkaufende Verein nimmt es an oder lehnt ab. Du kannst pro Spieler und Spieltag höchstens 3 Angebote abgeben.
+• Biete einen Spieler mit deinem Wunschpreis zum Verkauf an – unter 75% des Marktwerts geht nicht.
+• Gib ein Angebot für einen anderen Spieler ab; der verkaufende Verein nimmt es an oder lehnt ab. Auch dein Angebot muss mindestens 75% des Marktwerts betragen, und du kannst pro Spieler und Spieltag höchstens 3 Angebote abgeben.
 • Vereinslose Spieler (ohne Verein) kannst du kostenlos verpflichten, sie sind aber schwach.
 
 Marktwert:

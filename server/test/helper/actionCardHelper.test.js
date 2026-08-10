@@ -42,11 +42,15 @@ vi.mock('../../i18n/index.js', () => ({
       'error.cardMaxLevel40': 'Action card only allows level ups until level 40',
       'error.invalidCardAction': 'Invalid card action',
       'error.motivatingSpeechAlreadyActive': 'Motivating speech is already active for this game day.',
+      'error.playerNotInTeam': 'This player is not in your team.',
+      'error.playerNotInjured': 'This player is not injured.',
       'finance.actionCardBonus': 'Action Card: Bonus Money',
       'log.cardLevelUp': `${params.playerName} has leveled up to level ${params.level}!`,
       'log.cardFreshness': `${params.playerName}'s freshness has been restored!`,
       'log.cardMoney': `You received a bonus of ${params.amount}!`,
-      'log.cardYouth': `A new youth talent ${params.playerName} has joined your team!`
+      'log.cardYouth': `A new youth talent ${params.playerName} has joined your team!`,
+      'log.cardMedicalTreatment': `${params.playerName} treated, ${params.days} game day(s) left.`,
+      'log.cardMedicalTreatmentHealed': `${params.playerName} treated and available again!`
     }
     return translations[key] || key
   }),
@@ -58,6 +62,7 @@ vi.mock('../../lib/websocket.js', () => ({
 }))
 
 import { query } from '../../lib/database.js'
+import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPlayerById } from '../../helper/playerHelper.js'
 import { getTeamById } from '../../helper/teamHelper.js'
@@ -846,6 +851,91 @@ describe('actionCardHelper', () => {
       query.mockResolvedValue([{ heldCount: 20 }])
 
       expect(await canReceiveActionCard(5, 'FRESHNESS_10')).toBe(false)
+    })
+  })
+
+  describe('playActionCard - MEDICAL_TREATMENT', () => {
+    const setup = (playerOverrides) => {
+      const team = testData.team({ id: 1, user_id: 77 })
+      const player = testData.player({ id: 42, team_id: 1, ...playerOverrides })
+      const actionCard = testData.actionCard({ id: 9, action: 'MEDICAL_TREATMENT' })
+      getPlayerById.mockResolvedValue(player)
+      query.mockResolvedValue({})
+      return { team, player, actionCard }
+    }
+
+    it('takes one game day off a longer injury and leaves the player injured', async () => {
+      const { team, player, actionCard } = setup({ is_injured: 1, injury_type: 'fracture', injury_days_left: 6 })
+
+      const result = await playActionCard({ player, actionCard }, team)
+
+      expect(result).toEqual({ success: true })
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE player SET injury_days_left=? WHERE id=?', [5, 42]
+      )
+      expect(query).toHaveBeenCalledWith(
+        "UPDATE action_card SET played=1, state='played' WHERE id=?", [9]
+      )
+      expect(addLogMessage).toHaveBeenCalledWith(
+        'Test Player treated, 5 game day(s) left.',
+        team, 'OPEN_PLAYER', 42, 'medkit', undefined, 'success'
+      )
+    })
+
+    it('ends the injury outright when the last game day comes off', async () => {
+      // Clearing it here rather than letting the next game day's recovery sweep do
+      // it is what makes the player available for today's match.
+      const { team, player, actionCard } = setup({ is_injured: 1, injury_type: 'bruise', injury_days_left: 1 })
+
+      await playActionCard({ player, actionCard }, team)
+
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE player SET is_injured=0, injury_type=NULL, injury_days_left=0 WHERE id=?', [42]
+      )
+      expect(addLogMessage).toHaveBeenCalledWith(
+        'Test Player treated and available again!',
+        team, 'OPEN_PLAYER', 42, 'medkit', undefined, 'success'
+      )
+    })
+
+    it('also clears an injury whose counter already ran out', async () => {
+      const { team, player, actionCard } = setup({ is_injured: 1, injury_days_left: 0 })
+
+      await playActionCard({ player, actionCard }, team)
+
+      expect(query).toHaveBeenCalledWith(
+        'UPDATE player SET is_injured=0, injury_type=NULL, injury_days_left=0 WHERE id=?', [42]
+      )
+    })
+
+    it('rejects a player who is not injured, without spending the card', async () => {
+      const { team, player, actionCard } = setup({ is_injured: 0, injury_days_left: 0 })
+
+      await expect(playActionCard({ player, actionCard }, team))
+        .rejects.toThrow('This player is not injured.')
+      expect(query).not.toHaveBeenCalledWith(
+        "UPDATE action_card SET played=1, state='played' WHERE id=?", [9]
+      )
+    })
+
+    it('rejects a player from another team', async () => {
+      const { team, player, actionCard } = setup({ team_id: 2, is_injured: 1, injury_days_left: 3 })
+
+      await expect(playActionCard({ player, actionCard }, team))
+        .rejects.toThrow('This player is not in your team.')
+    })
+
+    it('pushes the updated player to the owner so every open view refreshes', async () => {
+      const team = testData.team({ id: 1, user_id: 77 })
+      const player = testData.player({ id: 42, team_id: 1, is_injured: 1, injury_days_left: 3 })
+      const fresh = { ...player, injury_days_left: 2 }
+      const actionCard = testData.actionCard({ id: 9, action: 'MEDICAL_TREATMENT' })
+      getPlayerById.mockResolvedValueOnce(player).mockResolvedValueOnce(fresh)
+      query.mockResolvedValue({})
+
+      await playActionCard({ player, actionCard }, team)
+
+      expect(sendToUser).toHaveBeenCalledWith(77, SERVER_EVENTS.PLAYER_UPDATED.name, { player: fresh })
     })
   })
 

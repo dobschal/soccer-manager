@@ -242,6 +242,11 @@ export default {
   // Stadium
   'stadium.title': 'Stadion',
   'stadium.webglUnavailable': 'Die 3D-Stadionansicht konnte nicht geladen werden. Dein Browser oder Gerät unterstützt möglicherweise keine 3D-Grafik (WebGL). Aktiviere die Hardwarebeschleunigung oder aktualisiere deinen Browser.',
+  'stadium.daylight': 'Tageszeit',
+  'stadium.daylight.dawn': 'Morgendämmerung',
+  'stadium.daylight.day': 'Tag',
+  'stadium.daylight.dusk': 'Abenddämmerung',
+  'stadium.daylight.night': 'Nacht',
   'stadium.yourStadium': 'Dein Stadion',
   'stadium.stadiumDesc': 'Hier ist dein wunderschönes Stadion mit {seats} Plätzen:',
   'stadium.overview': 'Übersicht',
@@ -555,7 +560,8 @@ export default {
   'trades.acceptOffer': 'Annehmen',
   'trades.rejectOffer': 'Ablehnen',
   'trades.listPlayer': 'Auf Markt listen',
-  'trades.sellPriceTooLow': 'Der Verkaufspreis muss mindestens 50% des Marktwerts betragen ({minPrice}).',
+  'trades.sellPriceTooLow': 'Der Verkaufspreis muss mindestens 75% des Marktwerts betragen ({minPrice}).',
+  'trades.buyPriceTooLow': 'Dein Angebot muss mindestens 75% des Marktwerts betragen ({minPrice}).',
   'trades.removeFromMarket': 'Vom Markt nehmen',
   'trades.askingPrice': 'Mindestpreis',
   'trades.offerPrice': 'Angebotspreis',
@@ -881,6 +887,9 @@ export default {
   'actionCards.whichPlayerLevelUp': 'Welcher Spieler soll ein Level-Up erhalten?',
   'actionCards.whichPlayerStar': 'Welcher Spieler soll Starspieler werden?',
   'actionCards.starPlayerSuccess': '{playerName} ist jetzt ein Starspieler!',
+  'actionCards.whichPlayerMedical': 'Welcher verletzte Spieler soll behandelt werden?',
+  'actionCards.medicalTreatmentSuccess': '{playerName} wurde behandelt – ein Spieltag weniger Ausfall!',
+  'actionCards.noInjuredPlayer': 'Aktuell ist niemand verletzt – behalte die Karte für den Fall.',
   // Card Claim Overlay
   'actionCards.claim.tapToReveal': 'Tippe auf die Karte, um sie aufzudecken!',
   'actionCards.claim.tapToContinue': 'Tippe, um fortzufahren!',
@@ -970,6 +979,8 @@ export default {
   'actionCards.type.motivatingSpeechDesc': 'Gibt deinem gesamten Team einen 10% Level-Boost für den nächsten Spieltag.',
   'actionCards.type.spy': 'Spion',
   'actionCards.type.spyDesc': 'Deckt Taktik und Aufstellung eines beliebigen Teams auf. Ideal, um deinen nächsten Gegner auszukundschaften.',
+  'actionCards.type.medicalTreatment': 'Medizinische Behandlung',
+  'actionCards.type.medicalTreatmentDesc': 'Verkürzt die Verletzung eines Spielers um einen Spieltag. Benötigt eine Arztpraxis.',
   'actionCards.motivatingSpeechSuccess': 'Dein Team ist motiviert! +10% Stärke für den nächsten Spieltag!',
 
   // Action card SVG text (rendered on the cards themselves)
@@ -1010,6 +1021,10 @@ export default {
   'actionCards.svg.spy.body1': 'Enthülle Taktik und',
   'actionCards.svg.spy.body2': 'Aufstellung jedes Teams',
   'actionCards.svg.spy.footer': 'SPIONAGE-BERICHT',
+  'actionCards.svg.medicalTreatment.title': 'MEDIZINISCHE BEHANDLUNG',
+  'actionCards.svg.medicalTreatment.body1': 'Behandle einen verletzten',
+  'actionCards.svg.medicalTreatment.body2': 'Spieler und verkürze den Ausfall',
+  'actionCards.svg.medicalTreatment.footer': '-1 SPIELTAG',
   'spy.title': 'Spion',
   'spy.subtitle': 'Kundschafte Taktik und Aufstellung eines Teams aus',
   'spy.searchPlaceholder': 'Nach einem Team suchen…',
@@ -1120,6 +1135,7 @@ export default {
   'tutorial.stadiumPage.item2': 'Erweitere Tribünen, um die Kapazität zu erhöhen',
   'tutorial.stadiumPage.item3': 'Füge Dächer hinzu, um das Fan-Erlebnis zu verbessern',
   'tutorial.stadiumPage.item4': 'Der Bau braucht Zeit - plane voraus!',
+  'tutorial.stadiumPage.item5': 'Mit dem Regler unter der 3D-Ansicht stellst du die Tageszeit ein',
   'tutorial.financesPage.title': 'Finanzen',
   'tutorial.financesPage.subtitle': 'Verwalte die Finanzen deines Clubs',
   'tutorial.financesPage.item1': 'Sieh deinen aktuellen Kontostand und die Transaktionshistorie',
@@ -1140,8 +1156,10 @@ export default {
   'tutorial.buildingsPage.item2': 'Das Fitnessstudio verbessert die Fitness-Karten pro Spieltag',
   'tutorial.buildingsPage.item3': 'Höhere Gebäudestufen schalten seltenere und stärkere Karten frei',
   'tutorial.buildingsPage.item4': 'Ausbauten kosten Geld und dauern mehrere Spieltage',
-  'tutorial.buildingsPage.item5': 'Jedes Gebäude kann bis auf Stufe 3 ausgebaut werden',
+  'tutorial.buildingsPage.item5': 'Die drei ausbaubaren Gebäude reichen bis Stufe 3',
   'tutorial.buildingsPage.item6': 'Die Jugendakademie liefert bessere Jugendspieler-Karten und mehr Trainings-Slots',
+  'tutorial.buildingsPage.item7': 'Die Arztpraxis hat nur eine Stufe: einmal bauen, dann Verletzungen mit ihren Behandlungskarten um je einen Spieltag verkürzen',
+  'tutorial.buildingsPage.item8': 'Die 3D-Ansicht oben zeigt dein Vereinsgelände – jedes Gebäude wächst dort mit seiner Stufe sichtbar mit',
 
   // Log Messages
   'log.title': 'Nachrichten',
@@ -1295,8 +1313,8 @@ export default {
 
   // Buildings
   'buildings.title': 'Gebäude',
+  'buildings.pageDesc': 'Baue Trainingsgelände, Fitnessstudio und Jugendakademie aus und errichte eine Arztpraxis, um bessere Aktionskarten für Entwicklung, Erholung, Rekrutierung und Heilung deiner Spieler freizuschalten.',
   'buildings.trainingArea': 'Trainingsgelände',
-  'buildings.trainingAreaDesc': 'Baue dein Trainingsgelände aus, um bessere Aktionskarten für die Spielerentwicklung freizuschalten.',
   'buildings.level': 'Stufe {level}',
   'buildings.maxLevel': 'Maximale Stufe',
   'buildings.currentEffects': 'Aktuelle Effekte',
@@ -1327,7 +1345,6 @@ export default {
 
   // Fitness Studio
   'buildings.fitnessStudio': 'Fitnessstudio',
-  'buildings.fitnessStudioDesc': 'Baue dein Fitnessstudio aus, um bessere Fitness-Aktionskarten für die Spielererholung freizuschalten.',
   'buildings.fitnessLevel0Desc': 'Kein Fitnessstudio. Du erhältst eine reduzierte Chance auf "Energie-Boost" Fitness-Karten.',
   'buildings.fitnessLevel1Desc': 'Einfaches Fitnessstudio. Erhöht die Chance auf "Energie-Boost" Karten und schaltet "Schnelle Erholung" Karten frei.',
   'buildings.fitnessLevel2Desc': 'Mittelmäßiges Fitnessstudio. Schaltet "Volle Erholung" Karten neben bestehenden Fitness-Karten frei.',
@@ -1335,10 +1352,19 @@ export default {
 
   // Jugendakademie
   'buildings.youthAcademy': 'Jugendakademie',
-  'buildings.youthAcademyDesc': 'Baue deine Jugendakademie aus, um pro Saison mehr (und stärkere) Jugendspieler zu rekrutieren.',
   'buildings.youthLevel1Desc': 'Einfache Jugendakademie. Ca. 2 Nachwuchsspieler-Karten pro Saison (Level 1-5).',
   'buildings.youthLevel2Desc': 'Mittelmäßige Jugendakademie. Ca. 3 Karten pro Saison – schaltet "Nachwuchstalent" frei (Level 5-10).',
   'buildings.youthLevel3Desc': 'Elite-Jugendakademie. Ca. 4 Karten pro Saison – schaltet "Nachwuchsstar" frei (Level 10-15).',
+
+  // Arztpraxis – das einzige Gebäude mit nur einer Stufe: gebaut oder nicht.
+  'buildings.medicalPractice': 'Arztpraxis',
+  'buildings.medicalLevel0Desc': 'Keine Arztpraxis. Verletzte Spieler fallen die komplette Zeit aus.',
+  'buildings.medicalLevel1Desc': 'Eigene Arztpraxis. Ca. 1,5 "Medizinische Behandlung"-Karten pro Saison, jede verkürzt die Verletzung eines Spielers um einen Spieltag.',
+  'buildings.build': 'Bauen',
+  'buildings.built': 'Gebaut',
+  'buildings.buildConfirmTitle': '{buildingName} bauen?',
+  'buildings.buildStarted': 'Bau gestartet!',
+  'buildings.singleLevel': 'Dieses Gebäude hat nur eine Stufe und kann nicht weiter ausgebaut werden.',
 
   // Forum
   'forum.title': 'Forum',
@@ -1538,6 +1564,20 @@ export default {
   'admin.referralBenefitDescription': 'Wähle die Aktionskarte, die der einladende Nutzer erhält, wenn sich der eingeladene Freund mit der Einladungs-E-Mail registriert.',
   'admin.referralBenefitSave': 'Belohnung speichern',
   'admin.referralBenefitSaved': 'Referral-Belohnung auf "{card}" gesetzt.',
+  'admin.blockedEmailsTitle': 'Gesperrte E-Mail-Adressen',
+  'admin.blockedEmailsDescription': 'Mit gesperrten Adressen ist weder eine Registrierung noch ein Login möglich. Beim Sperren wird ein bestehender Account sofort ausgeloggt.',
+  'admin.blockedEmailsEmpty': 'Keine gesperrten Adressen.',
+  'admin.blockedEmailsEmail': 'E-Mail-Adresse',
+  'admin.blockedEmailsAccount': 'Account',
+  'admin.blockedEmailsReason': 'Grund',
+  'admin.blockedEmailsEmailPlaceholder': 'email@beispiel.de',
+  'admin.blockedEmailsReasonPlaceholder': 'Grund (optional)',
+  'admin.blockedEmailsBlock': 'Sperren',
+  'admin.blockedEmailsUnblock': 'Entsperren',
+  'admin.blockedEmailsConfirm': '"{email}" sperren? Ein Account mit dieser Adresse wird sofort ausgeloggt.',
+  'admin.blockedEmailsUnblockConfirm': '"{email}" von der Sperrliste entfernen?',
+  'admin.blockedEmailsBlocked': '"{email}" gesperrt ({count} Account(s) ausgeloggt).',
+  'admin.blockedEmailsUnblocked': '"{email}" entsperrt.',
   'admin.reportedUsersTitle': 'Gemeldete Nutzer',
   'admin.reportedUsersDescription': 'Von Spielern eingereichte Meldungen über andere Nutzer. Bitte prüfen und abschließen.',
   'admin.reportedUsersEmpty': 'Noch keine Meldungen.',
@@ -1559,6 +1599,11 @@ export default {
   'admin.fraudDescFrequentTrades': '{count} Transfers innerhalb von {days} Tagen',
   'admin.fraudDescUndervaluedTrade': '{percent}% unter Wert verkauft (Preis {price}, Wert ~{value})',
   'admin.fraudDescOvervaluedTrade': '{percent}% über Wert verkauft (Preis {price}, Wert ~{value})',
+  'admin.fraudDescSharedPushToken': 'Gleicher Push-Token — dieselbe App-Installation ({platform})',
+  'admin.fraudDescSelfInviteLink': 'Einladungslink von der eigenen IP des Einladenden geöffnet ({ip})',
+  'admin.fraudDescSelfReferralDevice': 'Referral-Belohnung von einem Account auf demselben Gerät eingelöst',
+  'admin.fraudDescSelfReferralIp': 'Referral-Belohnung von einem Account mit derselben IP eingelöst',
+  'admin.fraudDescInstantCardPickup': '{count} Action Cards {seconds}s nach dem Einstellen gekauft (insgesamt {total})',
   'results.cupGameDayNotice': 'An diesem Spieltag fanden Pokalspiele statt.',
   'results.goToCupResults': 'Zu den Pokal-Ergebnissen',
 

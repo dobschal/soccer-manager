@@ -48,6 +48,11 @@ wird mit denselben 1,25 M Euro geschaetzt wie ein Stuermer.
 - **TA-TRF-03**: Kaufangebote an Bot-Teams werden automatisch bewertet und angenommen/abgelehnt.
 - **TA-TRF-04**: Bei Annahme: Spieler wechselt das Team, Balance wird aktualisiert, Aufstellungs-Position wird geloescht.
 - **TA-TRF-05**: Alle anderen Angebote fuer den transferierten Spieler werden geloescht.
+- **TA-TRF-22**: Preisuntergrenze: Weder ein Verkaufsangebot (`sell`) noch ein Kaufangebot (`buy`) darf unter
+  75 % des Marktwerts des Spielers liegen (`getMinOfferPrice`, `MIN_OFFER_MARKET_VALUE_RATIO = 0.75` in
+  `client/util/player.js`). Der Marktwert kommt serverseitig aus `getAveragePlanPriceOfPlayer` auf Basis des
+  **in der Datenbank gespeicherten** Spielers, nicht aus den Client-Daten. Die UI prueft zusaetzlich vorab,
+  die verbindliche Pruefung erfolgt in `addTradeOffer`.
 
 ### Bot-Transfer-Bewertung
 

@@ -25,7 +25,8 @@ vi.mock('../../helper/buildingHelper.js', () => ({
     fitness_studio_2: { cost: 1_200_000, constructionDays: 8 },
     fitness_studio_3: { cost: 3_500_000, constructionDays: 15 },
     youth_academy_2: { cost: 3_000_000, constructionDays: 10 },
-    youth_academy_3: { cost: 9_000_000, constructionDays: 17 }
+    youth_academy_3: { cost: 9_000_000, constructionDays: 17 },
+    medical_practice_1: { cost: 500_000, constructionDays: 8 }
   },
   TRAINING_AREA_CARD_CHANCES: {
     0: { LEVEL_UP_PLAYER_40: 0.2, LEVEL_UP_PLAYER_70: 0, LEVEL_UP_PLAYER_100: 0 },
@@ -43,6 +44,10 @@ vi.mock('../../helper/buildingHelper.js', () => ({
     1: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0, NEW_YOUTH_PLAYER_3: 0 },
     2: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0.03, NEW_YOUTH_PLAYER_3: 0 },
     3: { NEW_YOUTH_PLAYER_1: 0.06, NEW_YOUTH_PLAYER_2: 0.03, NEW_YOUTH_PLAYER_3: 0.03 }
+  },
+  MEDICAL_PRACTICE_CARD_CHANCES: {
+    0: { MEDICAL_TREATMENT: 0 },
+    1: { MEDICAL_TREATMENT: 0.044 }
   }
 }))
 

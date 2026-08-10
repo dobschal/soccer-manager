@@ -97,6 +97,10 @@ function getActionCardTexts () {
     SPY: {
       title: t('actionCards.type.spy'),
       description: t('actionCards.type.spyDesc')
+    },
+    MEDICAL_TREATMENT: {
+      title: t('actionCards.type.medicalTreatment'),
+      description: t('actionCards.type.medicalTreatmentDesc')
     }
   }
 }
@@ -535,6 +539,10 @@ export class ActionCards extends UIElement {
       await this._handleSpyCard(actionCard, cardIndex)
       return
     }
+    if (actionCard.action === 'MEDICAL_TREATMENT') {
+      await this._handleMedicalTreatmentCard(actionCard, cardIndex)
+      return
+    }
     if (actionCard.action === 'BONUS_100K') {
       try {
         await server.useActionCard(actionCard, null, null)
@@ -645,6 +653,42 @@ export class ActionCards extends UIElement {
     this._overlay = showOverlay(
       t('actionCards.selectPlayer'),
       t('actionCards.whichPlayerStar'),
+      `${playerList}`
+    )
+  }
+
+  /**
+   * Medical treatment card: only injured players can be treated, so the picker
+   * lists those. With nobody injured there is nothing to spend the card on — say
+   * so and keep it instead of opening an empty list.
+   * @param {Object} actionCard
+   * @param {number} cardIndex
+   * @returns {Promise<void>}
+   */
+  async _handleMedicalTreatmentCard (actionCard, cardIndex) {
+    const data = await server.getMyTeam()
+    const injuredPlayers = data.players.filter(p => p.is_injured)
+    if (injuredPlayers.length === 0) {
+      toast(t('actionCards.noInjuredPlayer'), 'info')
+      return
+    }
+    const playerList = new PlayerList(injuredPlayers, false, async player => {
+      this._processing = true
+      try {
+        await server.useActionCard(actionCard, player, null)
+        this._overlay?.remove()
+        toast(t('actionCards.medicalTreatmentSuccess', {playerName: player.name}), 'success')
+        await this._animateAndRemoveCard(cardIndex)
+      } catch (e) {
+        console.error(e)
+        toast(e.message ?? 'Something went wrong...', 'error')
+      } finally {
+        this._processing = false
+      }
+    })
+    this._overlay = showOverlay(
+      t('actionCards.selectPlayer'),
+      t('actionCards.whichPlayerMedical'),
       `${playerList}`
     )
   }

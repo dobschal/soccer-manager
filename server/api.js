@@ -84,9 +84,14 @@ app.use(async (req, res, next) => {
   if (req.headers.authorization) {
     try {
       const token = req.headers.authorization.substring(7)
-      const { sub: userId } = jwt.verify(token, config.SECRET)
+      const { sub: userId, iat } = jwt.verify(token, config.SECRET)
       const user = await getCachedUser(userId)
       if (!user) return res.status(401).send({ error: 'Invalid authorization header!' })
+      // Admin-revoked logins: any token minted before the cut-off is dead, so
+      // blocking an account takes effect without waiting for the JWT to expire.
+      if (user.sessions_invalid_before && (iat ?? 0) * 1000 < new Date(user.sessions_invalid_before).getTime()) {
+        return res.status(401).send({ message: 'Session revoked!' })
+      }
       req.user = user
     } catch (e) {
       console.error('Cannot validate JWT: ', e)

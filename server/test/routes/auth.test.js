@@ -36,12 +36,18 @@ vi.mock('../../lib/userCache.js', () => ({
   clearUserCache: vi.fn()
 }))
 
+vi.mock('../../helper/emailBlockHelper.js', () => ({
+  isEmailBlocked: vi.fn().mockResolvedValue(false),
+  userHasBlockedEmail: vi.fn().mockResolvedValue(false)
+}))
+
 // Import after mocking
 import { query, transaction } from '../../lib/database.js'
 import { hashPassword } from '../../lib/passwordHash.js'
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.js'
 import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../../helper/referralHelper.js'
 import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../../helper/linkInviteHelper.js'
+import { isEmailBlocked, userHasBlockedEmail } from '../../helper/emailBlockHelper.js'
 import { regenerateTeamData } from '../../prepare-season.js'
 import handlers from '../../routes/auth.js'
 
@@ -61,6 +67,25 @@ describe('auth routes', () => {
       expect(result).toHaveProperty('token')
       expect(typeof result.token).toBe('string')
       expect(query).toHaveBeenCalledWith('SELECT * FROM user WHERE username=?', ['testuser'])
+    })
+
+    it('refuses the login when the account email is blocked', async () => {
+      const user = testData.user({ password: 'hashed:password123' })
+      query.mockResolvedValue([user])
+      userHasBlockedEmail.mockResolvedValueOnce(true)
+
+      const req = { locale: 'en', headers: {} }
+      await expect(handlers.login('testuser', 'password123', req))
+        .rejects.toMatchObject({ message: 'This account has been blocked. Please contact support.' })
+    })
+
+    it('checks the block only after the password matched', async () => {
+      const user = testData.user({ password: 'hashed:correctpassword' })
+      query.mockResolvedValue([user])
+
+      const req = { locale: 'en', headers: {} }
+      await expect(handlers.login('testuser', 'wrongpassword', req)).rejects.toThrow()
+      expect(userHasBlockedEmail).not.toHaveBeenCalled()
     })
 
     it('throws BadRequestError for non-string username', async () => {
@@ -208,6 +233,14 @@ describe('auth routes', () => {
       const req = { locale: 'en' }
       await expect(handlers.createAccount('user', 'password123', 'taken@example.com', req))
         .rejects.toMatchObject({ message: 'This email address is already in use' })
+    })
+
+    it('rejects registration with a blocked email', async () => {
+      isEmailBlocked.mockResolvedValueOnce(true)
+      const req = { locale: 'en' }
+      await expect(handlers.createAccount('user', 'password123', 'Blocked@Example.com', req))
+        .rejects.toMatchObject({ message: 'This email address cannot be used' })
+      expect(isEmailBlocked).toHaveBeenCalledWith('blocked@example.com')
     })
 
     it('claims a pending referral after the user is inserted', async () => {

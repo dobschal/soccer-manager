@@ -37,6 +37,7 @@ import {
   TRAINING_AREA_CARD_CHANCES,
   FITNESS_STUDIO_CARD_CHANCES,
   YOUTH_ACADEMY_CARD_CHANCES,
+  MEDICAL_PRACTICE_CARD_CHANCES,
   BUILDING_UPGRADES,
   upgradeBuilding,
   completeBuildingConstructions,
@@ -46,6 +47,8 @@ import {
   getAllFitnessStudioLevels,
   getYouthAcademyLevel,
   getAllYouthAcademyLevels,
+  getMedicalPracticeLevel,
+  getAllMedicalPracticeLevels,
   getBuildingsForTeam
 } from '../../helper/buildingHelper.js'
 
@@ -173,6 +176,13 @@ describe('buildingHelper', () => {
       expect(BUILDING_UPGRADES.youth_academy_3).toEqual({ cost: 9_000_000, constructionDays: 17 })
     })
 
+    it('has a single level for the medical practice and no way past it', () => {
+      expect(BUILDING_UPGRADES.medical_practice_1).toEqual({ cost: 500_000, constructionDays: 8 })
+      // No `_2` key is what makes `upgradeBuilding` reject a second build.
+      expect(BUILDING_UPGRADES.medical_practice_2).toBeUndefined()
+      expect(BUILDING_UPGRADES.medical_practice_3).toBeUndefined()
+    })
+
     it('does not have upgrade for level 4', () => {
       expect(BUILDING_UPGRADES.training_area_4).toBeUndefined()
       expect(BUILDING_UPGRADES.fitness_studio_4).toBeUndefined()
@@ -290,6 +300,49 @@ describe('buildingHelper', () => {
       const map = await getAllYouthAcademyLevels()
       expect(map.get(1)).toBe(1)
       expect(map.get(2)).toBe(3)
+    })
+  })
+
+  describe('MEDICAL_PRACTICE_CARD_CHANCES', () => {
+    it('gives nothing without the practice', () => {
+      expect(MEDICAL_PRACTICE_CARD_CHANCES[0].MEDICAL_TREATMENT).toBe(0)
+    })
+
+    it('targets roughly 1.5 treatment cards per 34-game-day season once built', () => {
+      const SEASON_DAYS = 34
+      const perSeason = MEDICAL_PRACTICE_CARD_CHANCES[1].MEDICAL_TREATMENT * SEASON_DAYS
+      expect(perSeason).toBeGreaterThanOrEqual(1.3)
+      expect(perSeason).toBeLessThanOrEqual(1.7)
+    })
+
+    it('has no level beyond the one it is built at', () => {
+      expect(MEDICAL_PRACTICE_CARD_CHANCES[2]).toBeUndefined()
+    })
+  })
+
+  describe('getMedicalPracticeLevel', () => {
+    it('returns the building level when found', async () => {
+      query.mockResolvedValue([{ level: 1 }])
+      expect(await getMedicalPracticeLevel(1)).toBe(1)
+    })
+
+    it('defaults to 0 — this is the one building nobody starts with', async () => {
+      query.mockResolvedValue([])
+      expect(await getMedicalPracticeLevel(1)).toBe(0)
+    })
+  })
+
+  describe('getAllMedicalPracticeLevels', () => {
+    it('returns map of team_id to level', async () => {
+      query.mockResolvedValue([
+        { team_id: 1, level: 0 },
+        { team_id: 2, level: 1 }
+      ])
+      const map = await getAllMedicalPracticeLevels()
+      expect(map.get(1)).toBe(0)
+      expect(map.get(2)).toBe(1)
+      // A team without a row at all is "not built" to the caller's `?? 0`.
+      expect(map.get(3)).toBeUndefined()
     })
   })
 

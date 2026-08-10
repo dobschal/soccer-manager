@@ -21,7 +21,8 @@ function getActionCardTitles () {
     FRESHNESS_20: t('actionCards.type.fullRecovery'),
     BONUS_100K: t('actionCards.type.cashBonus'),
     MOTIVATING_SPEECH: t('actionCards.type.motivatingSpeech'),
-    SPY: t('actionCards.type.spy')
+    SPY: t('actionCards.type.spy'),
+    MEDICAL_TREATMENT: t('actionCards.type.medicalTreatment')
   }
 }
 

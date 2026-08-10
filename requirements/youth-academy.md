@@ -10,6 +10,7 @@ Die Jugendakademie ist ein Gebäude, das die Wahrscheinlichkeit erhöht, Jugends
 - **US-YA-02**: Als Spieler kann ich meine Jugendakademie für 3 Mio. / 9 Mio. Euro auf Level 2 / 3 ausbauen. Jedes Team startet mit Level 1.
 - **US-YA-03**: Als Spieler erhalte ich abhängig vom Akademie-Level Jugendspieler-Karten in unterschiedlicher Stufe (Bronze / Silber / Gold für Level 1 / 2 / 3), maximal 3 pro Saison.
 - **US-YA-04**: Als Spieler kann ich beim Einsetzen einer Jugendspieler-Karte aus 3 generierten Optionen (Name, Position, Alter, Level, Bild) auswählen.
+- **US-YA-05**: Als Spieler sehe ich meine Jugendakademie in der 3D-Ansicht der Gebäude-Seite südlich des Trainingsgeländes: ein mehrstöckiges Gebäude mit Vereinswappen und „Youth Academy"-Schriftzug, eigenem Kleinfeldplatz mit Trainingselementen und Parkplatz. An der Anzahl der Stockwerke und der Menge der Trainingselemente erkenne ich die Stufe.
 
 ## Gebaeudetypen
 
@@ -71,6 +72,8 @@ Beim Aufdecken einer NEW_YOUTH_PLAYER_X-Karte ruft das Frontend `getYouthPlayerO
 | `useActionCard(card, selectedOption, null)` | Setzt eine NEW_YOUTH_PLAYER_X-Karte mit der ausgewählten Option ein |
 
 ### Frontend
+
+- **TA-YA-16**: 3D-Geometrie in `buildYouthAcademy` (`client/partials/clubBuildingsScene.js`), Details und Stufen-Unterschiede siehe [Buildings](buildings.md) (TA-BLD-21 ff.). Auf der Fassade steht das echte Vereinswappen (`renderEmblem` → `emblemSvg`); die Teamfarbe (`teamColor`) faerbt nur das generische Wappen, das bis zum Rastern einspringt.
 
 - **TA-YA-10**: Buildings-Page rendert eine dritte Gebäude-Karte „Jugendakademie". Es wird immer `assets/youth-academy/youth-academy-level-{1,2,3}.png` angezeigt (jedes Team startet mit Level 1).
 - **TA-YA-11**: _Entfernt._ Es gibt kein Level 0 mehr – der Upgrade-Button trägt immer die Standard-Beschriftung „Upgrade auf Level X".

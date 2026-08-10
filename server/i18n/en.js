@@ -12,6 +12,8 @@ export default {
   'error.emailInvalid': 'Please enter a valid email address',
   'error.emailTaken': 'This email address is already in use',
   'error.emailRequired': 'Email is required',
+  'error.emailBlocked': 'This email address cannot be used',
+  'error.accountBlocked': 'This account has been blocked. Please contact support.',
   'error.verificationTokenInvalid': 'This verification link is invalid or has expired',
   'error.passwordResetTokenInvalid': 'This password reset link is invalid or has expired',
   'error.invalidParam': 'Invalid parameter',
@@ -70,7 +72,8 @@ export default {
   'error.notYourPlayer': 'This is not your player',
   'error.playerAlreadyListed': 'Player is already listed',
   'error.invalidOfferValue': 'Invalid offer value',
-  'error.sellPriceTooLow': 'The asking price must be at least 50% of the player\'s market value ({minPrice}).',
+  'error.sellPriceTooLow': 'The asking price must be at least 75% of the player\'s market value ({minPrice}).',
+  'error.buyPriceTooLow': 'Your offer must be at least 75% of the player\'s market value ({minPrice}).',
   'error.offerTooLow': 'Offer is too low',
   'error.offerLimitReached': 'You can only make 3 offers per player per game day',
   'error.sellOfferLimitReached': 'You can list at most {max} players on the transfer market at the same time.',
@@ -119,6 +122,7 @@ export default {
   'error.cardMaxLevel70': 'Action card only allows level ups until level 70',
   'error.cardMaxLevel40': 'Action card only allows level ups until level 40',
   'error.alreadyStarPlayer': 'This player is already a star player.',
+  'error.playerNotInjured': 'This player is not injured.',
   'error.motivatingSpeechAlreadyActive': 'Motivating speech is already active for this game day.',
 
   // Generic errors
@@ -152,6 +156,8 @@ export default {
   'log.cardsMerged': 'Cards have been merged into a more powerful card!',
   'log.cardStarPlayer': '{playerName} has been promoted to Star Player!',
   'log.cardMotivatingSpeech': 'Your team is fired up! +10% strength for the next game day!',
+  'log.cardMedicalTreatment': '{playerName} was treated at the medical practice — {days} game day(s) left instead of one more.',
+  'log.cardMedicalTreatmentHealed': '{playerName} was treated at the medical practice and is available again!',
 
   // Log messages - Stadium
   'log.stadiumExpansionStarted': 'Construction started: {stand} expansion to {newSize} seats.',
@@ -276,6 +282,7 @@ export default {
   'building.trainingArea': 'Training Area',
   'building.fitnessStudio': 'Fitness Studio',
   'building.youthAcademy': 'Youth Academy',
+  'building.medicalPractice': 'Medical Practice',
 
   // Building finance
   'finance.buildingUpgrade': 'Building upgrade',

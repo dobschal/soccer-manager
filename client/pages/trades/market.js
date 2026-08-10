@@ -6,7 +6,7 @@ import { toast } from '../../partials/toast.js'
 import { euroFormat } from '../../lib/currency.js'
 import { Table } from '../../partials/table.js'
 import { getQueryParams, goTo, setQueryParams } from '../../lib/router.js'
-import { calculatePlayerAge, sortByPosition } from '../../util/player.js'
+import { calculateMarketValue, calculatePlayerAge, getMinOfferPrice, sortByPosition } from '../../util/player.js'
 import { shortenTeamName } from '../../util/team.js'
 import { renderPlayerImage } from '../../partials/playerImage.js'
 import { t } from '../../i18n/index.js'
@@ -498,6 +498,14 @@ export class MarketPage extends UIElement {
           const price = Number(input?.dataset.rawValue || 0)
           if (price <= 0) {
             toast(t('trades.validPrice'), 'error')
+            return
+          }
+          // A buy offer may not go below 75% of the market value (#446).
+          const minPrice = getMinOfferPrice(
+            calculateMarketValue(player.level, calculatePlayerAge(player, this.season))
+          )
+          if (price < minPrice) {
+            toast(t('trades.buyPriceTooLow', { minPrice: euroFormat.format(minPrice) }), 'error')
             return
           }
           try {

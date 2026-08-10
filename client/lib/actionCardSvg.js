@@ -14,7 +14,8 @@ const SVG_PATHS = {
   BONUS_100K: 'assets/action-cards/bonus-100k.svg',
   STAR_PLAYER: 'assets/action-cards/star-player.svg',
   MOTIVATING_SPEECH: 'assets/action-cards/motivating-speech.svg',
-  SPY: 'assets/action-cards/spy.svg'
+  SPY: 'assets/action-cards/spy.svg',
+  MEDICAL_TREATMENT: 'assets/action-cards/medical-treatment.svg'
 }
 
 const SVG_I18N_KEYS = {
@@ -30,7 +31,8 @@ const SVG_I18N_KEYS = {
   BONUS_100K: 'bonus100k',
   STAR_PLAYER: 'starPlayer',
   MOTIVATING_SPEECH: 'motivatingSpeech',
-  SPY: 'spy'
+  SPY: 'spy',
+  MEDICAL_TREATMENT: 'medicalTreatment'
 }
 
 const svgCache = new Map()

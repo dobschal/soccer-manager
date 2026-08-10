@@ -12,6 +12,8 @@ export default {
   'error.emailInvalid': 'Bitte gib eine gültige E-Mail-Adresse ein',
   'error.emailTaken': 'Diese E-Mail-Adresse wird bereits verwendet',
   'error.emailRequired': 'E-Mail-Adresse ist erforderlich',
+  'error.emailBlocked': 'Diese E-Mail-Adresse kann nicht verwendet werden',
+  'error.accountBlocked': 'Dieser Account wurde gesperrt. Bitte wende dich an den Support.',
   'error.verificationTokenInvalid': 'Dieser Bestätigungslink ist ungültig oder abgelaufen',
   'error.passwordResetTokenInvalid': 'Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen',
   'error.invalidParam': 'Ungültiger Parameter',
@@ -70,7 +72,8 @@ export default {
   'error.notYourPlayer': 'Das ist nicht dein Spieler',
   'error.playerAlreadyListed': 'Spieler ist bereits gelistet',
   'error.invalidOfferValue': 'Ungültiger Angebotswert',
-  'error.sellPriceTooLow': 'Der Verkaufspreis muss mindestens 50% des Marktwerts des Spielers betragen ({minPrice}).',
+  'error.sellPriceTooLow': 'Der Verkaufspreis muss mindestens 75% des Marktwerts des Spielers betragen ({minPrice}).',
+  'error.buyPriceTooLow': 'Dein Angebot muss mindestens 75% des Marktwerts des Spielers betragen ({minPrice}).',
   'error.offerTooLow': 'Angebot ist zu niedrig',
   'error.offerLimitReached': 'Du kannst nur 3 Angebote pro Spieler pro Spieltag abgeben',
   'error.sellOfferLimitReached': 'Du kannst höchstens {max} Spieler gleichzeitig auf dem Transfermarkt anbieten.',
@@ -119,6 +122,7 @@ export default {
   'error.cardMaxLevel70': 'Aktionskarte erlaubt nur Level-Ups bis Level 70',
   'error.cardMaxLevel40': 'Aktionskarte erlaubt nur Level-Ups bis Level 40',
   'error.alreadyStarPlayer': 'Dieser Spieler ist bereits ein Starspieler.',
+  'error.playerNotInjured': 'Dieser Spieler ist nicht verletzt.',
   'error.motivatingSpeechAlreadyActive': 'Motivationsrede ist bereits für diesen Spieltag aktiv.',
 
   // Generic errors
@@ -152,6 +156,8 @@ export default {
   'log.cardsMerged': 'Karten wurden zu einer mächtigeren Karte verschmolzen!',
   'log.cardStarPlayer': '{playerName} wurde zum Starspieler befördert!',
   'log.cardMotivatingSpeech': 'Dein Team ist motiviert! +10% Stärke für den nächsten Spieltag!',
+  'log.cardMedicalTreatment': '{playerName} wurde in der Arztpraxis behandelt — nur noch {days} Spieltag(e) Ausfall.',
+  'log.cardMedicalTreatmentHealed': '{playerName} wurde in der Arztpraxis behandelt und ist wieder einsatzbereit!',
 
   // Log messages - Stadium
   'log.stadiumExpansionStarted': 'Bau begonnen: {stand} Erweiterung auf {newSize} Plätze.',
@@ -276,6 +282,7 @@ export default {
   'building.trainingArea': 'Trainingsgelände',
   'building.fitnessStudio': 'Fitnessstudio',
   'building.youthAcademy': 'Jugendakademie',
+  'building.medicalPractice': 'Arztpraxis',
 
   // Building finance
   'finance.buildingUpgrade': 'Gebäude-Ausbau',

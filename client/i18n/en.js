@@ -242,6 +242,11 @@ export default {
   // Stadium
   'stadium.title': 'Stadium',
   'stadium.webglUnavailable': 'The 3D stadium view could not be loaded. Your browser or device may not support 3D graphics (WebGL). Try enabling hardware acceleration or updating your browser.',
+  'stadium.daylight': 'Time of day',
+  'stadium.daylight.dawn': 'Dawn',
+  'stadium.daylight.day': 'Day',
+  'stadium.daylight.dusk': 'Dusk',
+  'stadium.daylight.night': 'Night',
   'stadium.yourStadium': 'Your Stadium',
   'stadium.stadiumDesc': 'Here is your beautiful stadium with {seats} seats:',
   'stadium.overview': 'Overview',
@@ -555,7 +560,8 @@ export default {
   'trades.acceptOffer': 'Accept',
   'trades.rejectOffer': 'Reject',
   'trades.listPlayer': 'List on Market',
-  'trades.sellPriceTooLow': 'The asking price must be at least 50% of the market value ({minPrice}).',
+  'trades.sellPriceTooLow': 'The asking price must be at least 75% of the market value ({minPrice}).',
+  'trades.buyPriceTooLow': 'Your offer must be at least 75% of the market value ({minPrice}).',
   'trades.removeFromMarket': 'Remove from Market',
   'trades.askingPrice': 'Asking Price',
   'trades.offerPrice': 'Offer Price',
@@ -881,6 +887,9 @@ export default {
   'actionCards.whichPlayerLevelUp': 'Which player should get a level up?',
   'actionCards.whichPlayerStar': 'Which player should become a star player?',
   'actionCards.starPlayerSuccess': '{playerName} is now a star player!',
+  'actionCards.whichPlayerMedical': 'Which injured player should be treated?',
+  'actionCards.medicalTreatmentSuccess': '{playerName} was treated — one game day less on the sidelines!',
+  'actionCards.noInjuredPlayer': 'Nobody is injured right now — keep the card for when it happens.',
   // Card Claim Overlay
   'actionCards.claim.tapToReveal': 'Tap the card to reveal it!',
   'actionCards.claim.tapToContinue': 'Tap to continue!',
@@ -970,6 +979,8 @@ export default {
   'actionCards.type.motivatingSpeechDesc': 'Gives your entire team a 10% level boost for the next game day.',
   'actionCards.type.spy': 'Spy',
   'actionCards.type.spyDesc': 'Reveal the tactics and lineup of any team. Perfect to scout your next opponent.',
+  'actionCards.type.medicalTreatment': 'Medical Treatment',
+  'actionCards.type.medicalTreatmentDesc': 'Shorten an injured player\'s lay-off by one game day. Needs a medical practice.',
   'actionCards.motivatingSpeechSuccess': 'Your team is motivated! +10% strength for the next game day!',
 
   // Action card SVG text (rendered on the cards themselves)
@@ -1010,6 +1021,10 @@ export default {
   'actionCards.svg.spy.body1': 'Uncover any team\'s',
   'actionCards.svg.spy.body2': 'tactics and lineup',
   'actionCards.svg.spy.footer': 'SCOUT REPORT',
+  'actionCards.svg.medicalTreatment.title': 'MEDICAL TREATMENT',
+  'actionCards.svg.medicalTreatment.body1': 'Treat an injured player',
+  'actionCards.svg.medicalTreatment.body2': 'and cut his lay-off short',
+  'actionCards.svg.medicalTreatment.footer': '-1 GAME DAY',
   'spy.title': 'Spy',
   'spy.subtitle': 'Scout a team\'s tactics and lineup',
   'spy.searchPlaceholder': 'Search for a team…',
@@ -1120,6 +1135,7 @@ export default {
   'tutorial.stadiumPage.item2': 'Expand stands to increase capacity',
   'tutorial.stadiumPage.item3': 'Add roofs to improve fan experience',
   'tutorial.stadiumPage.item4': 'Construction takes time - plan ahead!',
+  'tutorial.stadiumPage.item5': 'The slider under the 3D view sets the time of day',
   'tutorial.financesPage.title': 'Finances',
   'tutorial.financesPage.subtitle': 'Manage your club finances',
   'tutorial.financesPage.item1': 'View your current balance and transaction history',
@@ -1140,8 +1156,10 @@ export default {
   'tutorial.buildingsPage.item2': 'The Fitness Studio boosts fitness card rewards each game day',
   'tutorial.buildingsPage.item3': 'Higher building levels unlock rarer and more powerful cards',
   'tutorial.buildingsPage.item4': 'Upgrades cost money and take several game days to complete',
-  'tutorial.buildingsPage.item5': 'Each building can be upgraded up to level 3',
+  'tutorial.buildingsPage.item5': 'The three upgradable buildings go up to level 3',
   'tutorial.buildingsPage.item6': 'The Youth Academy provides better youth-player cards and more training slots',
+  'tutorial.buildingsPage.item7': 'The Medical Practice has a single level: build it once, then shorten injuries by a game day with its treatment cards',
+  'tutorial.buildingsPage.item8': 'The 3D view at the top shows your club grounds — every building visibly grows with its level',
 
   // Log Messages
   'log.title': 'Messages',
@@ -1295,8 +1313,8 @@ export default {
 
   // Buildings
   'buildings.title': 'Buildings',
+  'buildings.pageDesc': 'Upgrade your training area, fitness studio and youth academy and build a medical practice to unlock better action cards for developing, recovering, recruiting and healing players.',
   'buildings.trainingArea': 'Training Area',
-  'buildings.trainingAreaDesc': 'Upgrade your training area to unlock better action cards for player development.',
   'buildings.level': 'Level {level}',
   'buildings.maxLevel': 'Max Level',
   'buildings.currentEffects': 'Current Effects',
@@ -1327,7 +1345,6 @@ export default {
 
   // Fitness Studio
   'buildings.fitnessStudio': 'Fitness Studio',
-  'buildings.fitnessStudioDesc': 'Upgrade your fitness studio to unlock better fitness action cards for player recovery.',
   'buildings.fitnessLevel0Desc': 'No fitness studio. You receive a reduced chance of "Energy Boost" fitness cards.',
   'buildings.fitnessLevel1Desc': 'Basic fitness studio. Increases your chance of "Energy Boost" cards and unlocks "Quick Recovery" cards.',
   'buildings.fitnessLevel2Desc': 'Intermediate fitness studio. Unlocks "Full Recovery" cards alongside existing fitness cards.',
@@ -1335,10 +1352,19 @@ export default {
 
   // Youth Academy
   'buildings.youthAcademy': 'Youth Academy',
-  'buildings.youthAcademyDesc': 'Upgrade your youth academy to recruit more (and stronger) young players each season.',
   'buildings.youthLevel1Desc': 'Basic youth academy. Around 2 youth recruit cards per season (level 1-5).',
   'buildings.youthLevel2Desc': 'Intermediate youth academy. Around 3 youth cards per season — unlocks "Youth Talent" cards (level 5-10).',
   'buildings.youthLevel3Desc': 'Elite youth academy. Around 4 youth cards per season — unlocks "Youth Star" cards (level 10-15).',
+
+  // Medical Practice — the one building that has a single level: build it or not.
+  'buildings.medicalPractice': 'Medical Practice',
+  'buildings.medicalLevel0Desc': 'No medical practice. Injured players sit out their full lay-off.',
+  'buildings.medicalLevel1Desc': 'Your own medical practice. Around 1.5 "Medical Treatment" cards per season, each cutting one game day off an injured player\'s lay-off.',
+  'buildings.build': 'Build',
+  'buildings.built': 'Built',
+  'buildings.buildConfirmTitle': 'Build {buildingName}?',
+  'buildings.buildStarted': 'Construction started!',
+  'buildings.singleLevel': 'This building has a single level and cannot be upgraded further.',
 
   // Forum
   'forum.title': 'Forum',
@@ -1538,6 +1564,20 @@ export default {
   'admin.referralBenefitDescription': 'Choose which action card the inviting user receives when their friend registers using the invitation email.',
   'admin.referralBenefitSave': 'Save benefit',
   'admin.referralBenefitSaved': 'Referral benefit set to "{card}".',
+  'admin.blockedEmailsTitle': 'Blocked Email Addresses',
+  'admin.blockedEmailsDescription': 'Blocked addresses can neither register nor log in. Blocking an address immediately logs out any account using it.',
+  'admin.blockedEmailsEmpty': 'No blocked addresses.',
+  'admin.blockedEmailsEmail': 'Email address',
+  'admin.blockedEmailsAccount': 'Account',
+  'admin.blockedEmailsReason': 'Reason',
+  'admin.blockedEmailsEmailPlaceholder': 'email@example.com',
+  'admin.blockedEmailsReasonPlaceholder': 'Reason (optional)',
+  'admin.blockedEmailsBlock': 'Block',
+  'admin.blockedEmailsUnblock': 'Unblock',
+  'admin.blockedEmailsConfirm': 'Block "{email}"? Any account using this address will be logged out immediately.',
+  'admin.blockedEmailsUnblockConfirm': 'Remove "{email}" from the block list?',
+  'admin.blockedEmailsBlocked': '"{email}" blocked ({count} account(s) logged out).',
+  'admin.blockedEmailsUnblocked': '"{email}" unblocked.',
   'admin.reportedUsersTitle': 'Reported Users',
   'admin.reportedUsersDescription': 'Reports submitted by players about other users. Review and resolve them.',
   'admin.reportedUsersEmpty': 'No reports yet.',
@@ -1559,6 +1599,11 @@ export default {
   'admin.fraudDescFrequentTrades': '{count} trades within {days} days',
   'admin.fraudDescUndervaluedTrade': 'Sold {percent}% under value (price {price}, value ~{value})',
   'admin.fraudDescOvervaluedTrade': 'Sold {percent}% over value (price {price}, value ~{value})',
+  'admin.fraudDescSharedPushToken': 'Same push token — same app install ({platform})',
+  'admin.fraudDescSelfInviteLink': 'Invite link opened from the inviter\'s own IP ({ip})',
+  'admin.fraudDescSelfReferralDevice': 'Referral reward claimed by an account on the same device',
+  'admin.fraudDescSelfReferralIp': 'Referral reward claimed by an account on the same IP',
+  'admin.fraudDescInstantCardPickup': '{count} action cards bought {seconds}s after listing (total {total})',
   'results.cupGameDayNotice': 'This game day featured cup matches.',
   'results.goToCupResults': 'Go to cup results',
 
