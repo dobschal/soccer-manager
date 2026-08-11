@@ -179,12 +179,12 @@ export class ChatController {
       <div id="${messagesId}" class="chat-messages">${this._renderMessages()}</div>
       <div id="${previewId}" class="chat-image-preview"></div>
       <form class="chat-input-row d-flex align-items-end gap-2 mt-2">
-        <button id="${imageBtnId}" type="button" class="btn btn-outline-secondary" title="${t('chat.addImage')}">
+        <button id="${imageBtnId}" type="button" class="btn btn-outline-secondary chat-attach-btn" title="${t('chat.addImage')}">
           <i class="fa fa-image"></i>
         </button>
         <input id="${imageInputId}" type="file" accept="image/*" class="d-none">
         ${canRecordAudio()
-    ? `<button id="${micId}" type="button" class="btn btn-outline-secondary chat-mic-btn" title="${t('chat.recordVoice')}">
+    ? `<button id="${micId}" type="button" class="btn btn-outline-secondary chat-mic-btn chat-attach-btn" title="${t('chat.recordVoice')}">
                <i class="fa fa-microphone"></i>
              </button>`
     : ''}
@@ -218,6 +218,15 @@ export class ChatController {
     onClick('#' + imageBtnId, () => el('#' + imageInputId)?.click())
     el('#' + imageInputId)?.addEventListener('change', (e) => this._onImagePicked(e, previewId))
     onClick('#' + sendId, () => this._send(inputId, previewId))
+
+    // While the user is typing, fold the attachment buttons away so the text
+    // field gets the whole row — they come back as soon as the field loses
+    // focus. `blur` cannot fire before a click on those buttons (they are
+    // collapsed and unclickable while typing), so no click is swallowed.
+    const inputEl = el('#' + inputId)
+    const formEl = inputEl?.closest('.chat-input-row')
+    inputEl?.addEventListener('focus', () => formEl?.classList.add('chat-input-row--typing'))
+    inputEl?.addEventListener('blur', () => formEl?.classList.remove('chat-input-row--typing'))
 
     // Enter to send (Shift+Enter for newline).
     el('#' + inputId)?.addEventListener('keydown', (e) => {

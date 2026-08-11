@@ -142,3 +142,25 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.25; }
 }
+
+/* While the text field has focus the attachment buttons fold away, so the
+   message field gets the full width of the row (#541). Width and padding are
+   animated rather than toggling `display`, otherwise the row jumps. */
+.chat-attach-btn {
+    flex: 0 0 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.18s ease, padding 0.18s ease, opacity 0.18s ease, margin 0.18s ease;
+    max-width: 4rem;
+}
+
+.chat-input-row--typing .chat-attach-btn {
+    max-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-width: 0;
+    opacity: 0;
+    /* Cancels the flex gap the collapsed button would still occupy. */
+    margin-left: -0.5rem;
+    pointer-events: none;
+}
