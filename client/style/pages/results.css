@@ -2,6 +2,33 @@
    Results Page Styles
    ========================================================================== */
 
+/* ==========================================================================
+   Results / cup filters (league, season, match day, cup round)
+   ==========================================================================
+   Mobile: label + chevrons + select share one line and never wrap.
+   Desktop (>= md): the label moves above the chevrons + select row.
+   The flex direction itself is handled by Bootstrap utilities in the markup
+   (see partials/filterStepper.js); this only guards against wrapping and
+   keeps the labels/selects aligned in a column. */
+
+.results-filter-label {
+    white-space: nowrap;
+}
+
+/* Keep the mobile labels the same width so all selects line up vertically. */
+@media (max-width: 767.98px) {
+    .results-filter-label {
+        flex: 0 0 auto;
+        min-width: 6.5rem;
+    }
+}
+
+/* Let a long option (e.g. "Achtelfinale") shrink instead of pushing the
+   next chevron out of the row. */
+.results-filter select {
+    min-width: 0;
+}
+
 /* Results table cell with fixed width for ranking */
 .results-rank-cell {
     width: 30px;

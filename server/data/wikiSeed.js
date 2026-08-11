@@ -891,7 +891,7 @@ Injuries:
 • With a Medical Practice you get Medical Treatment cards, each shortening one player's lay-off by a match day (see Buildings).
 
 Salary:
-• Salaries grow exponentially with level and get much steeper at the top: about 150 € per match day at level 1, 1,217 € at level 50, and 50,000 € at level 100. Up to level 50 the curve is gentle, above it a genuine star quickly becomes a serious item on the budget. They are paid every match day.
+• Salaries grow exponentially with level: about 72 € per match day at level 1, 1,122 € at level 50 and 18,500 € at level 100. A squad of journeymen is cheap to run, a squad of stars is not — roughly what your sponsor pays you is what your wage bill costs. They are paid every match day.
 
 Suspensions:
 • A second yellow card in a match means a red card. Five yellow cards across the season also trigger a one-match ban. Bans always last exactly one match and are served automatically on the next match day.`
@@ -917,7 +917,7 @@ Verletzungen:
 • Mit einer Arztpraxis bekommst du Karten „Medizinische Behandlung", die den Ausfall eines Spielers um je einen Spieltag verkürzen (siehe Gebäude).
 
 Gehalt:
-• Gehälter steigen exponentiell mit dem Level und ganz oben besonders steil: rund 150 € pro Spieltag auf Level 1, 1.217 € auf Level 50 und 50.000 € auf Level 100. Bis Level 50 verläuft die Kurve flach, darüber wird ein echter Star schnell zu einem dicken Posten im Etat. Gezahlt wird an jedem Spieltag.
+• Gehälter steigen exponentiell mit dem Level: rund 72 € pro Spieltag auf Level 1, 1.122 € auf Level 50 und 18.500 € auf Level 100. Ein Kader aus Durchschnittsspielern ist günstig zu unterhalten, ein Kader aus Stars nicht — grob gesagt kostet dich die Gehaltsliste etwa das, was dein Sponsor einbringt. Gezahlt wird an jedem Spieltag.
 
 Sperren:
 • Eine zweite Gelbe Karte im Spiel bedeutet Rot. Fünf Gelbe Karten über die Saison lösen ebenfalls eine Sperre von einem Spiel aus. Sperren dauern immer genau ein Spiel und werden am nächsten Spieltag automatisch abgesessen.`

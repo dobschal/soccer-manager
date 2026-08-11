@@ -14,6 +14,7 @@ import { toast } from '../../partials/toast.js'
 import { t } from '../../i18n/index.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { Table } from '../../partials/table.js'
+import { renderFilterStepper } from '../../partials/filterStepper.js'
 import { shortenTeamName } from '../../util/team.js'
 import { goToTeamPage } from '../../util/gameNavigation.js'
 
@@ -152,37 +153,34 @@ export class LeagueResultsPage extends UIElement {
             </button>`
     : ''}
           </div>
-          <div class="results-filters d-flex flex-wrap gap-3">
-            <div>
-              <label for="results-league-select" class="form-label mb-1">${t('results.league')}</label>
-              <div class="d-flex align-items-center gap-1">
-                <span id="prev-league-button" class="fa fa-chevron-left fa-button" role="button" aria-label="${t('common.prev')}"></span>
-                <select id="results-league-select" class="form-select form-select-sm u-w-auto">
-                  ${this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')}
-                </select>
-                <span id="next-league-button" class="fa fa-chevron-right fa-button" role="button" aria-label="${t('common.next')}"></span>
-              </div>
-            </div>
-            <div>
-              <label for="results-season-select" class="form-label mb-1">${t('results.season')}</label>
-              <div class="d-flex align-items-center gap-1">
-                <span id="prev-season-button" class="fa fa-chevron-left fa-button" role="button" aria-label="${t('common.prev')}"></span>
-                <select id="results-season-select" class="form-select form-select-sm u-w-auto">
-                  ${this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')}
-                </select>
-                <span id="next-season-button" class="fa fa-chevron-right fa-button" role="button" aria-label="${t('common.next')}"></span>
-              </div>
-            </div>
-            <div>
-              <label for="results-game-day-select" class="form-label mb-1">${t('results.gameDayLabel')}</label>
-              <div class="d-flex align-items-center gap-1">
-                <span id="prev-game-day-button" class="fa fa-chevron-left fa-button" role="button" aria-label="${t('common.prev')}"></span>
-                <select id="results-game-day-select" class="form-select form-select-sm u-w-auto">
-                  ${this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')}
-                </select>
-                <span id="next-game-day-button" class="fa fa-chevron-right fa-button" role="button" aria-label="${t('common.next')}"></span>
-              </div>
-            </div>
+          <div class="results-filters d-flex flex-column flex-md-row gap-2 gap-md-3">
+            ${renderFilterStepper({
+    label: t('results.league'),
+    selectId: 'results-league-select',
+    prevId: 'prev-league-button',
+    nextId: 'next-league-button',
+    prevLabel: t('common.prev'),
+    nextLabel: t('common.next'),
+    optionsHtml: this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')
+  })}
+            ${renderFilterStepper({
+    label: t('results.season'),
+    selectId: 'results-season-select',
+    prevId: 'prev-season-button',
+    nextId: 'next-season-button',
+    prevLabel: t('common.prev'),
+    nextLabel: t('common.next'),
+    optionsHtml: this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')
+  })}
+            ${renderFilterStepper({
+    label: t('results.gameDayLabel'),
+    selectId: 'results-game-day-select',
+    prevId: 'prev-game-day-button',
+    nextId: 'next-game-day-button',
+    prevLabel: t('common.prev'),
+    nextLabel: t('common.next'),
+    optionsHtml: this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')
+  })}
           </div>
         </div>
 

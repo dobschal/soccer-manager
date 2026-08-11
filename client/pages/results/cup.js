@@ -13,6 +13,7 @@ import { showHeadToHeadOverlay } from '../../partials/headToHeadOverlay.js'
 import { euroFormat } from '../../lib/currency.js'
 import { renderPageNumbers } from '../../partials/pagination.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
+import { renderFilterStepper } from '../../partials/filterStepper.js'
 
 const CUP_PAGE_SIZE = 10
 
@@ -83,28 +84,26 @@ export class CupResultsPage extends UIElement {
         <div class="mb-4 d-flex align-items-center gap-4">
           <div>
             <h2>${t('cup.results')} ${wikiInfoIcon('cup')}</h2>
-            <table>
-              <tr>
-                <th>${t('results.season')}</th>
-                <td>
-                  <span id="prev-cup-season-button" class="fa fa-chevron-left fa-button"></span>
-                  <select id="cup-season-select" class="form-select form-select-sm u-w-auto d-inline-block" aria-label="${t('results.season')}">
-                    ${this.cupSeasons.map(season => `<option value="${season}" ${season === this.cupSeason ? 'selected' : ''}>${season + 1}</option>`).join('')}
-                  </select>
-                  <span id="next-cup-season-button" class="fa fa-chevron-right fa-button"></span>
-                </td>
-              </tr>
-              <tr>
-                <th>${t('cup.round')}</th>
-                <td>
-                  <span id="prev-cup-round-button" class="fa fa-chevron-left fa-button"></span>
-                  <select id="cup-round-select" class="form-select form-select-sm u-w-auto d-inline-block" aria-label="${t('cup.round')}">
-                    ${this.cupRounds.map(r => `<option value="${r.round}" ${r.round === this.cupRound ? 'selected' : ''}>${this._getCupRoundName(r.round)}</option>`).join('')}
-                  </select>
-                  <span id="next-cup-round-button" class="fa fa-chevron-right fa-button"></span>
-                </td>
-              </tr>
-            </table>
+            <div class="results-filters d-flex flex-column flex-md-row gap-2 gap-md-3">
+              ${renderFilterStepper({
+    label: t('results.season'),
+    selectId: 'cup-season-select',
+    prevId: 'prev-cup-season-button',
+    nextId: 'next-cup-season-button',
+    prevLabel: t('common.prev'),
+    nextLabel: t('common.next'),
+    optionsHtml: this.cupSeasons.map(season => `<option value="${season}" ${season === this.cupSeason ? 'selected' : ''}>${season + 1}</option>`).join('')
+  })}
+              ${renderFilterStepper({
+    label: t('cup.round'),
+    selectId: 'cup-round-select',
+    prevId: 'prev-cup-round-button',
+    nextId: 'next-cup-round-button',
+    prevLabel: t('common.prev'),
+    nextLabel: t('common.next'),
+    optionsHtml: this.cupRounds.map(r => `<option value="${r.round}" ${r.round === this.cupRound ? 'selected' : ''}>${this._getCupRoundName(r.round)}</option>`).join('')
+  })}
+            </div>
           </div>
           <div class="cup-trophy-icon">🏆</div>
         </div>

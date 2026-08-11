@@ -101,13 +101,13 @@ describe('wiki seed content for the #538/#539/#540/#543 changes', () => {
     }
   })
 
-  it('quotes the new top-end salary (#543)', () => {
+  it('quotes the recalibrated salary curve (#543)', () => {
     const topic = WIKI_SEED.find(t => t.key === 'players')
-    expect(topic.en.text).toContain('50,000')
-    expect(topic.de.text).toContain('50.000')
-    // The old ceiling must be gone from both locales.
-    expect(topic.en.text).not.toContain('10,308')
-    expect(topic.de.text).not.toContain('10.308')
+    expect(topic.en.text).toContain('18,500')
+    expect(topic.de.text).toContain('18.500')
+    // Neither the original ceiling nor the over-steep one it briefly had.
+    for (const stale of ['10,308', '50,000']) expect(topic.en.text).not.toContain(stale)
+    for (const stale of ['10.308', '50.000']) expect(topic.de.text).not.toContain(stale)
   })
 
   it('explains that price fields only exist for built stands (#538)', () => {

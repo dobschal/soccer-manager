@@ -360,6 +360,19 @@ describe('ResultsPage', () => {
       expect((html.match(/<option /g) || []).length).toBe(4 + 3 + 34)
     })
 
+    it('keeps each label on one line with its chevrons and select', async () => {
+      const leaguePage = await setupLeaguePage()
+      const html = leaguePage.template
+
+      // Three filter steppers (league + season + match day), each a
+      // non-wrapping row on mobile that stacks the label above from md up.
+      expect((html.match(/class="results-filter d-flex align-items-center flex-nowrap/g) || []).length).toBe(3)
+      expect((html.match(/flex-md-column/g) || []).length).toBe(3)
+      expect(html).toContain('for="results-league-select"')
+      expect(html).toContain('for="results-season-select"')
+      expect(html).toContain('for="results-game-day-select"')
+    })
+
     it('clamps season and match day to last available values when current is invalid', async () => {
       const team = testData.team({ level: 1, league: 0 })
       const parentPage = { myTeamId: team.id, info: { team } }

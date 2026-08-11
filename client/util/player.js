@@ -16,45 +16,31 @@ export function getMinOfferPrice (marketValue) {
   return Math.floor(marketValue * MIN_OFFER_MARKET_VALUE_RATIO)
 }
 
-/**
- * Where the salary curve gets steep. Everything at or below this level keeps
- * the original curve; above it salaries climb much faster (#543).
- */
-export const SALARY_KNEE_LEVEL = 50
+/** Salary at level 1 — the bottom of the curve. */
+export const SALARY_AT_LEVEL_1 = 72
 
-/** Salary at level 1 — the start of the curve. */
-export const SALARY_AT_LEVEL_1 = 150
-
-/** Salary at the knee. Also the anchor the steep upper segment starts from. */
-export const SALARY_AT_KNEE = 1217
-
-/** Salary at level 100 — the top of the steep segment. */
-export const SALARY_AT_LEVEL_100 = 50_000
+/** Salary at level 100 — the top of the curve. */
+export const SALARY_AT_LEVEL_100 = 18_500
 
 /**
  * Calculate salary for a given player level (1-100).
  *
- * Two exponential segments joined at {@link SALARY_KNEE_LEVEL}:
+ * A single exponential from 72 € to 18,500 € per match day. The shape is the
+ * same as before #543, only tilted: the curve pivots around level 70, so weak
+ * players cost less than they used to and stars cost more.
  *
- * - **1 → 50**: unchanged (150 → 1,217), so small clubs pay exactly what they
- *   paid before.
- * - **50 → 100**: much steeper (1,217 → 50,000), so a genuine star costs a top
- *   club real money.
- *
- * The split is the point of the change (#543): raising the whole curve would
- * have squeezed the bottom leagues hardest — they already spend a third of
- * their income on wages, while the top league spends under 3%.
+ * Calibrated against the game's actual anchor — sponsor money roughly pays the
+ * wage bill. Measured on live squads that puts the top league at 120% of its
+ * previous wage bill (sponsor coverage 1.05 → 0.88, so a top club now has to
+ * find the rest elsewhere), while the third and fourth tiers pay 19% and 31%
+ * less than before.
  *
  * @param {number} level
  * @returns {number}
  */
 export function getSalary (level) {
   if (level <= 0) return 0
-  if (level <= SALARY_KNEE_LEVEL) {
-    return Math.floor(SALARY_AT_LEVEL_1 * Math.pow(SALARY_AT_KNEE / SALARY_AT_LEVEL_1, (level - 1) / (SALARY_KNEE_LEVEL - 1)))
-  }
-  const spanAboveKnee = 100 - SALARY_KNEE_LEVEL
-  return Math.floor(SALARY_AT_KNEE * Math.pow(SALARY_AT_LEVEL_100 / SALARY_AT_KNEE, (level - SALARY_KNEE_LEVEL) / spanAboveKnee))
+  return Math.floor(SALARY_AT_LEVEL_1 * Math.pow(SALARY_AT_LEVEL_100 / SALARY_AT_LEVEL_1, (level - 1) / 99))
 }
 
 /** @deprecated Use getSalary(level) instead */

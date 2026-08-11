@@ -168,6 +168,17 @@ describe('CupResultsPage season/round dropdowns (#478)', () => {
     expect(html).toContain('<option value="2" selected>')
   })
 
+  it('keeps each label on one line with its chevrons and select', async () => {
+    const page = await loadedPage()
+    const html = page.template
+    // Two filter steppers (season + round), each a non-wrapping row on mobile
+    // that only stacks the label above from md up.
+    expect((html.match(/class="results-filter d-flex align-items-center flex-nowrap/g) || []).length).toBe(2)
+    expect((html.match(/flex-md-column/g) || []).length).toBe(2)
+    expect(html).toContain('for="cup-season-select"')
+    expect(html).toContain('for="cup-round-select"')
+  })
+
   it('lists every available season and round', async () => {
     const page = await loadedPage()
     const html = page.template
