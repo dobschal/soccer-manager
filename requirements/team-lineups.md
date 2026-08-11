@@ -18,6 +18,9 @@ Jedes Team hat eine Formation mit 11 Positionen, die der Spieler mit passenden S
 - **US-LIN-10**: Als Spieler kann ich ueber "Neue Aufstellung" einen leeren Slot anlegen; ich vergebe dafuer in einem Overlay einen Namen.
 - **US-LIN-11**: Als Spieler ist immer genau eine Aufstellung aktiv, und diese wird bei der naechsten Spielberechnung verwendet.
 - **US-LIN-12**: Als Spieler kann ich eine nicht mehr benoetigte Aufstellung loeschen, solange mindestens eine uebrig bleibt.
+- **US-LIN-14**: Als Spieler kann ich jede Aufstellung ueber ein Stift-Icon neben dem Auswahlfeld umbenennen —
+  auch die erste, beim Anlegen des Teams automatisch erzeugte Aufstellung mit ihrem vorgegebenen Namen. Das
+  Overlay ist mit dem aktuellen Namen vorbelegt.
 - **US-LIN-13**: Als Spieler sehe ich bei einem positionsfremd aufgestellten Spieler unter seinem
   Level, mit wie viel Prozent Abwertung er bewertet wird. Steht er auf seiner Position, wird nichts
   angezeigt.
@@ -122,11 +125,17 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
   ein Kapitaen ausserhalb der Startelf wird geloescht.
 - **TA-LIN-30**: Eine neue Aufstellung startet mit zufaelliger Formation, ohne aufgestellte Spieler und mit den
   Taktik-Standardwerten (`mixed` / `normal` / `balanced`).
-- **TA-LIN-31**: Maximal `MAX_TEAM_LINEUPS` (10) Aufstellungen pro Team, Name maximal 40 Zeichen.
+- **TA-LIN-31**: Maximal `MAX_TEAM_LINEUPS` (10) Aufstellungen pro Team, Name maximal 40 Zeichen. Gezaehlt werden
+  Unicode-Codepoints (`truncateChars` in `server/lib/util.js`), ein Emoji zaehlt also als **ein** Zeichen und wird
+  beim Kuerzen nie in zwei Haelften zerschnitten. Siehe `requirements/user-input.md`.
 - **TA-LIN-32**: `ensureActiveLineup` legt fuer Teams ohne Aufstellung lazily eine aus dem aktuellen Zustand an —
   relevant fuer Teams, die nach der Seeding-Migration entstanden sind oder von einem Bot uebernommen wurden.
 - **TA-LIN-33**: API: `getMyLineups`, `createMyLineup(name)`, `activateMyLineup(id)`, `renameMyLineup(id, name)`,
   `deleteMyLineup(id)`.
+- **TA-LIN-34**: Umbenennen und Anlegen teilen sich in `aTeam.js` dasselbe Namens-Overlay
+  (`_showLineupNameOverlay`). Der Wert wird per JS in das Input gesetzt, nicht ins `value`-Attribut gerendert,
+  damit Anfuehrungszeichen im Namen das Markup nicht aufbrechen. Umbenennen aendert nur den Namen und loest
+  daher **kein** Neuladen des Teams aus — es wird nur die Seite neu gerendert.
 
 ## Positionsfremder Einsatz
 
@@ -163,3 +172,7 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 - Gespeicherte Aufstellungen: Snapshot/Restore, verkaufte Spieler und unbekannte Slots werden verworfen,
   Kapitaen wird bei Bedarf geloescht, Lineup-Obergrenze, letzte Aufstellung kann nicht geloescht werden,
   Write-Through aus allen mutierenden Endpunkten
+- Umbenennen: Stift-Icon auch bei nur einer Aufstellung, Vorbelegung mit dem aktuellen Namen, unveraenderter
+  Name loest keinen Request aus, Fallback auf die aktive Aufstellung ohne Auswahlfeld im DOM
+- Emojis im Aufstellungsnamen: 40 Emojis passen in das 40-Zeichen-Limit, laengere Namen werden gekuerzt,
+  ohne ein Surrogate-Paar zu zerschneiden

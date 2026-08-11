@@ -66,6 +66,7 @@
     width: 100%;
 }
 
+/* Holds the speed toggle and the skip button side by side (#539). */
 .spiel-ticker__footer {
     flex: 0 0 auto;
     position: sticky;
@@ -74,6 +75,9 @@
     padding-top: 0.5rem;
     background-color: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .spiel-ticker__event {
@@ -143,6 +147,30 @@
 
 .spiel-ticker__event--recovery {
     background: rgba(255, 193, 7, 0.1);
+}
+
+.spiel-ticker__event--duel {
+    background: rgba(23, 162, 184, 0.1);
+}
+
+.spiel-ticker__event--substitution {
+    background: rgba(40, 167, 69, 0.1);
+}
+
+/* The kick-off card opens the feed, so it gets the accent rather than the
+   neutral grey of the other breaks (#539). */
+.spiel-ticker__event--kickOff {
+    background: rgba(23, 162, 184, 0.2);
+}
+
+.spiel-ticker__speed {
+    min-width: 4.5rem;
+}
+
+.spiel-ticker__speed.active {
+    background-color: var(--bs-info);
+    border-color: var(--bs-info);
+    color: #fff;
 }
 
 /* Portrait next to the event text — deliberately text-sized (#539). */

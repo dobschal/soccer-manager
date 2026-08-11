@@ -387,6 +387,7 @@
     .friend-post {
         flex-direction: column;
     }
+
     .friend-post-image-wrap {
         flex: 0 0 auto;
         max-width: 100%;
@@ -456,24 +457,25 @@
     flex-direction: column;
 }
 
-/* Daily login streak bar (#501) */
+/* Daily login streak bar (#501).
+   Frame and colours come from the Bootstrap info card (`card card-body
+   border-info bg-info-subtle`), same as the dashboard video card — only the
+   text alignment and the hover accent are ours. */
 .daily-login-bar {
     text-align: left;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 0.5rem;
-    background-color: rgba(255, 255, 255, 0.03);
+    position: relative;
 }
 
 .daily-login-bar:hover {
-    border-color: var(--bs-info);
+    border-color: var(--bs-info-text-emphasis);
 }
 
 .daily-login-track {
     position: relative;
     height: 10px;
     border-radius: 5px;
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: #fff;
+    border: 1px solid var(--bs-border-color);
 }
 
 .daily-login-fill {
@@ -494,13 +496,13 @@
     justify-content: center;
     border-radius: 50%;
     font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.65);
-    background-color: #444;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--bs-secondary-color);
+    background-color: #fff;
+    border: 1px solid var(--bs-border-color);
 }
 
 .daily-login-marker--reached {
-    color: #111;
+    color: #fff;
     background-color: var(--bs-info);
     border-color: var(--bs-info);
 }
@@ -508,7 +510,7 @@
 .daily-login-marker--next {
     color: var(--bs-info);
     border-color: var(--bs-info);
-    box-shadow: 0 0 0 3px rgba(13, 202, 240, 0.25);
+    box-shadow: 0 0 0 3px rgba(var(--bs-info-rgb), 0.25);
 }
 
 .daily-login-labels {
@@ -521,11 +523,66 @@
     position: absolute;
     transform: translateX(-50%);
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--bs-secondary-color);
 }
 
 .daily-login-label--reached {
     color: var(--bs-info);
+    font-weight: bold;
+}
+
+/* Gift lying on top of the whole bar while a milestone reward is waiting to be
+   collected (#501). It covers the track so the reward — not the progress — is
+   what the eye lands on, and it swallows the click that would otherwise open
+   the detail overlay. */
+.daily-login-gift {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background-color: rgba(var(--bs-info-rgb), 0.92);
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.daily-login-gift:hover {
+    background-color: rgba(var(--bs-info-rgb), 1);
+}
+
+.daily-login-gift-emoji {
+    font-size: 2rem;
+    line-height: 1;
+    animation: daily-login-gift-wiggle 1.6s ease-in-out infinite;
+}
+
+.daily-login-gift-count {
+    color: var(--bs-info);
+    background-color: #fff !important;
+}
+
+@keyframes daily-login-gift-wiggle {
+    0%, 60%, 100% {
+        transform: rotate(0) scale(1);
+    }
+    70% {
+        transform: rotate(-12deg) scale(1.12);
+    }
+    80% {
+        transform: rotate(12deg) scale(1.12);
+    }
+    90% {
+        transform: rotate(-6deg) scale(1.06);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .daily-login-gift-emoji {
+        animation: none;
+    }
 }
 
 .daily-login-row--me {

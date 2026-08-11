@@ -346,6 +346,12 @@ describe('team takeover starter cards and admin push (#518, #449)', () => {
     expect(actions).toContain('NEW_YOUTH_PLAYER_3')
   })
 
+  it('hands the new manager a million bonus card (#518)', async () => {
+    await handlers.chooseTeam(5, { user: { id: 1, username: 'sascha' }, locale: 'en' })
+
+    expect(insertedCardActions()).toContain('MILLION_BONUS')
+  })
+
   it('still hands out the original two starter cards', async () => {
     await handlers.chooseTeam(5, { user: { id: 1, username: 'sascha' }, locale: 'en' })
 

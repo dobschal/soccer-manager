@@ -172,6 +172,10 @@ Key directories:
 - **New page**: Create component in `client/pages/` extending `UIElement`, register in **both** `client/app.js` and
   `client/native-app.js` routers
 - **New tests**: Mirror file path with `.test.js` in respective `test/` folder
+- **New table**: Use `DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`, never bare `utf8` (= `utf8mb3`,
+  which cannot store emoji). `runMigration` converts stragglers automatically, but that costs a table rebuild.
+- **New user text field**: Never truncate with `slice()` — it splits emoji in half. Use `truncateChars` /
+  `charLength` from `server/lib/util.js`. See `requirements/user-input.md`.
 
 ### Dual client entry points
 
@@ -256,6 +260,7 @@ Detailed feature specifications are in the `requirements/` directory:
 - [Team Lineups](requirements/team-lineups.md) - Aufstellungen und Formationen
 - [Team Names](requirements/team-names.md) - Team-Namengenerierung
 - [Team Tactics](requirements/team-tactics.md) - Angriffsmodus, Spielstil, Passstil
+- [User Input](requirements/user-input.md) - Freitextfelder, Emoji-/Unicode-Unterstuetzung, Zeichenlimits
 - [User Registration](requirements/user-registration.md) - Registrierung und Authentifizierung
 - [Youth Players](requirements/youth-players.md) - Jugendspieler-System und Training
 - [Youth Academy](requirements/youth-academy.md) - Jugendakademie-Gebaeude und Jugendspieler-Karten

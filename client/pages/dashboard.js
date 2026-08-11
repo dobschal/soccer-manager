@@ -108,12 +108,9 @@ export class DashboardPage extends TabbedPage {
     // Invalidate cached start page so it picks up fresh urgencies/standing
     delete this._subPageCache.start
 
-    // Playable cards in the inventory — shown in the nav bar (#523). Pending
-    // cards are deliberately left out: they still have to be claimed first.
-    this._availableCardCount = actionCardsResponse.actionCards?.length || 0
-
-    // Determine if there are unseen action cards (include pending cards in the count)
-    const cardCount = this._availableCardCount + this._pendingCards.length
+    // Determine if there are unseen action cards (include pending cards in the count).
+    // The live count itself lives in the info bar now (#523) — see ActionCardCount.
+    const cardCount = (actionCardsResponse.actionCards?.length || 0) + this._pendingCards.length
     const seenKey = `actionCardsSeen_${this.season}_${this.gameDay}`
     this._actionCardCount = localStorage.getItem(seenKey) ? 0 : cardCount
 
@@ -136,9 +133,6 @@ export class DashboardPage extends TabbedPage {
           <a class="nav-link ${this.subPage === 'friends' ? 'active' : ''}" href="#dashboard?sub_page=friends"><i class="fa fa-users"></i> ${t('dashboard.tabFriends')}</a>
           <a class="nav-link ${this.subPage === 'wiki' ? 'active' : ''}" href="#dashboard?sub_page=wiki"><i class="fa fa-book"></i> ${t('wiki.title')}</a>
           <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#dashboard?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
-          <a class="nav-link dashboard-cards-link" href="#my-team?sub_page=cards" title="${t('dashboard.tabCards')}">
-            <i class="fa fa-clone"></i> <span id="${this._cardCountId}">${this._availableCardCount}</span>
-          </a>
         </nav>
 
         <div id="${this._chatBannerId}">${this._renderUnreadChatBanner()}</div>
@@ -159,16 +153,6 @@ export class DashboardPage extends TabbedPage {
         this._unreadChatCount++
         if (data?.fromUserId) this._unreadChatUserId = data.fromUserId
         this._updateUnreadChatBanner()
-      },
-      // Surgical update of the nav-bar count (#523) — re-rendering the whole
-      // dashboard would tear down the start page and its 3D/chart children.
-      ACTION_CARDS_CHANGED: async () => {
-        try {
-          const { actionCards } = await server.getActionCards()
-          this._availableCardCount = actionCards?.length || 0
-          const badge = el('#' + this._cardCountId)
-          if (badge) badge.textContent = String(this._availableCardCount)
-        } catch { /* the count is cosmetic — a failed refresh is not worth a toast */ }
       }
     }
   }
@@ -304,9 +288,6 @@ export class DashboardPage extends TabbedPage {
   _unreadChatCount = 0
   _unreadChatUserId = null
   _chatBannerId = generateId()
-  /** Playable action cards, shown as a count in the nav bar (#523). */
-  _availableCardCount = 0
-  _cardCountId = generateId()
   _seasonReview = null
   _pendingCards = []
   _initialQueryChangeHandled = false

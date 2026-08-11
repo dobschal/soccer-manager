@@ -5,6 +5,7 @@ import { getUserTeamHistory } from '../helper/userHistoryHelper.js'
 import { calculateStandingForTeam } from '../helper/standingHelper.js'
 import { getTotalRounds } from '../helper/cupHelper.js'
 import { sendUserReportEmail } from '../lib/email.js'
+import { truncateChars } from '../lib/util.js'
 
 export default {
 
@@ -98,7 +99,7 @@ export default {
     if (!reported) {
       throw new BadRequestError('User not found')
     }
-    const storedReason = cleanReason.slice(0, 2000)
+    const storedReason = truncateChars(cleanReason, 2000)
     await query(
       'INSERT INTO user_report SET ?',
       { reporter_user_id: req.user.id, reported_user_id: id, reason: storedReason }

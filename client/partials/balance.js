@@ -1,8 +1,17 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
-import { euroFormat } from '../lib/currency.js'
+import { euroFormat, shortEuroFormat } from '../lib/currency.js'
 
 export class Balance extends UIElement {
+  /**
+   * @param {{short?: boolean}} [options] - `short` abbreviates the amount
+   *   ("2,8 Mio €") for the info bar, where the exact figure does not fit
+   *   next to the other items (#523).
+   */
+  constructor (options = {}) {
+    super()
+    this.short = options.short === true
+  }
   /**
    * @returns {Promise<void>}
    */
@@ -18,7 +27,9 @@ export class Balance extends UIElement {
    * @returns {string}
    */
   get template () {
-    return `<span>${euroFormat.format(this.balance)}</span>`
+    const formatted = this.short ? shortEuroFormat(this.balance) : euroFormat.format(this.balance)
+    // The full amount stays available on hover / for screen readers.
+    return `<span title="${euroFormat.format(this.balance)}">${formatted}</span>`
   }
   /**
    * Server events to listen for

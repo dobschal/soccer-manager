@@ -4,7 +4,7 @@ import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { t } from '../i18n/index.js'
 import { YouthTeamPage } from './my-team/youthTeam.js'
 import { ATeamPage } from './my-team/aTeam.js'
-import { ClubInfoPage } from './club/clubInfo.js'
+import { TourPage } from './my-team/tour.js'
 import { off, on } from '../lib/event.js'
 import { ActionCards } from './dashboard/actionCards.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
@@ -36,7 +36,7 @@ export class MyTeamPage extends TabbedPage {
             <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#my-team"><i class="fa fa-male"></i> ${t('myTeam.aTeam')}</a>
             <a class="nav-link ${this.subPage === 'youth' ? 'active' : ''}" href="#my-team?sub_page=youth"><i class="fa fa-child"></i> ${t('myTeam.youthTeam')}</a>
             <a class="nav-link ${this.subPage === 'cards' ? 'active' : ''}" href="#my-team?sub_page=cards"><i class="fa fa-clone"></i> ${t('dashboard.tabCards')}${this.newCardCount > 0 ? ` <span class="badge bg-danger rounded-pill" style="position: absolute;transform: translateY(-26px) translateX(-5px);padding: 8px;text-align: center;">${this.newCardCount}</span>` : ''}</a>
-            <a class="nav-link ${this.subPage === 'info' ? 'active' : ''}" href="#my-team?sub_page=info"><i class="fa fa-info-circle"></i> ${t('stadium.tabClubInfo')}</a>
+            <a class="nav-link ${this.subPage === 'tour' ? 'active' : ''}" href="#my-team?sub_page=tour"><i class="fa fa-plane"></i> ${t('tour.tab')}</a>
           </nav>
           <a class="btn btn-sm btn-outline-secondary d-none d-lg-inline-block" href="#team?id=${this.data.team.id}">
             <i class="fa fa-external-link" aria-hidden="true"></i> ${t('myTeam.viewPublicPage')}
@@ -99,7 +99,7 @@ export class MyTeamPage extends TabbedPage {
   createSubPage (key) {
     if (key === 'youth') return new YouthTeamPage(this)
     if (key === 'cards') return new ActionCards()
-    if (key === 'info') return new ClubInfoPage()
+    if (key === 'tour') return new TourPage()
     return new ATeamPage(this)
   }
 

@@ -27,6 +27,12 @@
     height: 1.4rem;
 }
 
+/* The progress card sits on the dark gradient (.bg-dark), where Bootstrap's
+   dark .text-muted would be grey on grey. */
+.tour-progress-card .text-muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
 .tour-select-list {
     max-height: 45vh;
     overflow-y: auto;

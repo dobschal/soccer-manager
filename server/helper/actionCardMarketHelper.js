@@ -7,6 +7,7 @@ import { sendToTeam } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import { getTeamById } from './teamHelper.js'
 import { getActionCards } from './actionCardHelper.js'
+import { truncateChars } from '../lib/util.js'
 
 /** Maximum number of open marketplace offers a single team may have at once. */
 export const MAX_OPEN_CARD_OFFERS = 10
@@ -240,7 +241,7 @@ export async function createOffer (actionCardIds, comment, team, locale) {
     escrowed.push(card)
   }
 
-  const safeComment = typeof comment === 'string' ? comment.slice(0, 255) : null
+  const safeComment = typeof comment === 'string' ? truncateChars(comment, 255) : null
   const result = await query('INSERT INTO action_card_offer SET ?', {
     from_team_id: team.id,
     comment: safeComment,
@@ -340,7 +341,7 @@ export async function placeBid (offerId, money, cardIds, comment, team, locale) 
     cards.push(card)
   }
 
-  const safeComment = typeof comment === 'string' ? comment.slice(0, 255) : null
+  const safeComment = typeof comment === 'string' ? truncateChars(comment, 255) : null
   const result = await query('INSERT INTO action_card_bid SET ?', {
     offer_id: offerId,
     bidder_team_id: team.id,

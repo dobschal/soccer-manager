@@ -17,6 +17,7 @@ import { Table } from '../../partials/table.js'
 import { renderFilterStepper } from '../../partials/filterStepper.js'
 import { shortenTeamName } from '../../util/team.js'
 import { goToTeamPage } from '../../util/gameNavigation.js'
+import { shortEuroFormat } from '../../lib/currency.js'
 
 export class LeagueResultsPage extends UIElement {
   /**
@@ -993,7 +994,7 @@ export class LeagueResultsPage extends UIElement {
     }
     const hasUser = Boolean(stat.user_id)
     const avgFreshness = Math.round(parseFloat(stat.avg_freshness) * 100)
-    const squadValue = _formatValue(Number(stat.squad_value))
+    const squadValue = shortEuroFormat(Number(stat.squad_value))
     return `
       <tr id="${id}" class="u-cursor-pointer ${isMyTeam ? 'table-info' : ''}">
         <td style="width:32px;"><span class="emblem-thumb">${renderEmblem(team, 24)}</span></td>
@@ -1043,8 +1044,3 @@ function _sortStanding (s1, s2) {
   return retVal
 }
 
-function _formatValue (value) {
-  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M €'
-  if (value >= 1_000) return (value / 1_000).toFixed(0) + 'K €'
-  return value + ' €'
-}

@@ -19,14 +19,16 @@
 @media (max-width: 767.98px) {
     .results-filter-label {
         flex: 0 0 auto;
-        min-width: 6.5rem;
+        min-width: 5rem;
     }
 }
 
 /* Let a long option (e.g. "Achtelfinale") shrink instead of pushing the
    next chevron out of the row. */
+.results-filter,
 .results-filter select {
     min-width: 0;
+    max-width: 100%;
 }
 
 /* Results table cell with fixed width for ranking */
@@ -74,6 +76,22 @@
 .cup-trophy-icon {
     font-size: 5rem;
     line-height: 1;
+}
+
+/* On mobile the cup filters keep their labels inline, so give the row the
+   horizontal space back. */
+@media (max-width: 767.98px) {
+    .cup-trophy-icon {
+        font-size: 3rem;
+    }
+}
+
+/* On narrow phones the filters need the full width — the trophy is pure
+   decoration, so it goes first. Bootstrap has no breakpoint at 430px. */
+@media (max-width: 430px) {
+    .cup-trophy-icon {
+        display: none;
+    }
 }
 
 /* ==========================================================================
@@ -230,8 +248,27 @@ a.cup-bracket-team-link {
 .hof-winner-content {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    /* The emblem keeps its intrinsic size and the info block never shrinks below
+       its longest word, so as soon as both no longer fit side by side the info
+       drops onto its own line — emblem on top, team and user name underneath.
+       Row gap is tighter than the column gap so the stacked variant doesn't
+       drift apart. */
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
     cursor: pointer;
+}
+
+/* Once stacked, the card can still be narrower than the emblem itself. */
+.hof-emblem svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* `break-word` rather than `anywhere`: it breaks an overlong team name on its
+   own line without shrinking the block's min-content width, which would stop
+   the wrap above from ever triggering. */
+.hof-winner-info {
+    overflow-wrap: break-word;
 }
 
 .hof-winner-content:hover .hof-team-name {

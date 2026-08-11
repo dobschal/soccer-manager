@@ -9,7 +9,8 @@ wer nur elf Spieler hat, kann nicht mitmachen.
 
 ## User Stories
 
-- **US-TOUR-01**: Als Spieler waehle ich auf einer eigenen Seite zwischen drei Reisezielen.
+- **US-TOUR-01**: Als Spieler waehle ich auf einem eigenen Tab meiner Mannschaftsseite ("On Tour",
+  direkt hinter "Aktionen") zwischen drei Reisezielen.
 - **US-TOUR-02**: Als Spieler entsende ich Spieler fuer eine selbst gewaehlte Dauer von 3 bis 7
   Spieltagen.
 - **US-TOUR-03**: Als Spieler sehe ich einen Fortschrittsbalken, der sich pro Spieltag und
@@ -87,8 +88,9 @@ braucht also etwas mehr als eine komplette Entsendung.
 
 ### Frontend
 
-- **TA-TOUR-11**: Eigene Unterseite der Club-Seite (`#club?sub_page=tour`). Da die Club-Seite in
-  beiden Entry-Points registriert ist, ist keine separate Registrierung in `native-app.js` noetig.
+- **TA-TOUR-11**: Eigene Unterseite der My-Team-Seite (`#my-team?sub_page=tour`,
+  `client/pages/my-team/tour.js`), als Tab hinter "Aktionen". Da die My-Team-Seite in beiden
+  Entry-Points registriert ist, ist keine separate Registrierung in `native-app.js` noetig.
 - **TA-TOUR-12**: Die drei Reiseziel-Karten nutzen die Illustrationen aus dem Ticket
   (`client/assets/tour/*.jpg`).
 - **TA-TOUR-13**: Im Entsende-Overlay werden weitere Checkboxen deaktiviert, sobald die freien

@@ -12,7 +12,8 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 - **US-YTH-10**: Als Spieler schalte ich durch den Ausbau der Jugendakademie mehr Trainings- und Freundschaftsspiel-Slots frei.
 - **US-YTH-03**: Als Spieler sehe ich pro Jugendspieler: Name, Position, Alter, Level, Moral und Fitness.
 - **US-YTH-04**: Als Spieler kann ich einen Jugendspieler ab Alter 16 ins A-Team befoerdern.
-- **US-YTH-05**: Als Spieler kann ich einen Jugendspieler jederzeit entlassen.
+- **US-YTH-05**: Als Spieler trenne ich mich von einem Jugendspieler ueber den Verkauf (US-YTH-12); einen
+  separaten "Entlassen"-Button gibt es seit #524 nicht mehr.
 - **US-YTH-11**: Als Spieler sehe ich neben dem Level den aktuellen Marktwert jedes Jugendspielers.
 - **US-YTH-12**: Als Spieler kann ich einen Jugendspieler zum aktuellen Marktpreis verkaufen und werde vorher
   mit Name und Betrag um Bestaetigung gebeten.
@@ -134,7 +135,7 @@ randomFactor = 0.9 bis 1.1
 | `setYouthPlayerTrainingMode(youthPlayerId, mode)` | Modus eines einzelnen Jugendspielers setzen (`training`/`friendly_match`/`rest`/`null`) |
 | `setYouthTrainingMode(mode)` | Team-weiter Fallback-Modus (Legacy) |
 | `promoteYouthPlayer(youthPlayerId)` | Jugendspieler ins A-Team befoerdern |
-| `fireYouthPlayer(youthPlayerId)` | Jugendspieler entlassen |
+| `fireYouthPlayer(youthPlayerId)` | Jugendspieler entfernen — seit #524 nicht mehr aus der UI aufrufbar; wird intern noch fuer Verkauf und automatische Entlassung ab 19 genutzt |
 
 ### Frontend
 
@@ -143,10 +144,10 @@ randomFactor = 0.9 bis 1.1
 - **TA-YTH-18**: Countdown-Timer bis zum naechsten Spieltag (HH:MM:SS).
 - **TA-YTH-19**: Spielertabelle: Name, Position, Alter, Level (2 Dezimalen), Moral (Fortschrittsbalken), Fitness (Fortschrittsbalken), Aktionen.
 - **TA-YTH-20**: Befoerdern-Button nur aktiv ab Alter 16.
-- **TA-YTH-21**: Entlassen-Button immer aktiv.
 - **TA-YTH-23**: Spaltenreihenfolge: … Level, **Marktwert**, Moral, Fitness, Trainingsmodus, Aktionen (#524).
-- **TA-YTH-24**: Aktionen pro Zeile: Befoerdern, **Verkaufen**, Entlassen.
-- **TA-YTH-22**: Bestaetigungsdialoge vor Befoerderung und Entlassung.
+- **TA-YTH-24**: Aktionen pro Zeile: Befoerdern, **Verkaufen** — der Entlassen-Button wurde mit #524 entfernt,
+  weil der Verkauf ihn vollstaendig ersetzt.
+- **TA-YTH-22**: Bestaetigungsdialoge vor Befoerderung und Verkauf.
 
 ### Tests
 

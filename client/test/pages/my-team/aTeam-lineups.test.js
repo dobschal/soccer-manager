@@ -6,6 +6,7 @@ vi.mock('../../../lib/gateway.js', () => ({
     getMyLineups: vi.fn(),
     createMyLineup: vi.fn(),
     activateMyLineup: vi.fn(),
+    renameMyLineup: vi.fn(),
     deleteMyLineup: vi.fn()
   },
   showServerError: vi.fn()
@@ -170,5 +171,107 @@ describe('ATeamPage lineup slots (#481)', () => {
     await page.load()
     const html = page.template
     expect(html.indexOf('lineup-slot-select')).toBeLessThan(html.indexOf('lineup-mock'))
+  })
+})
+
+describe('ATeamPage lineup renaming (#481)', () => {
+  /**
+   * Put a lineup select into the document so `_showRenameLineupOverlay` can
+   * read the picked id off it.
+   * @param {string} selectedId
+   * @returns {void}
+   */
+  function mountSelect (selectedId) {
+    document.body.innerHTML = `
+      <select class="lineup-slot-select">
+        <option value="3">Lineup 1</option>
+        <option value="4">Cup night</option>
+      </select>
+    `
+    document.querySelector('.lineup-slot-select').value = selectedId
+  }
+
+  it('renders a rename button for every lineup, the seeded default included', async () => {
+    const page = new ATeamPage(parentPage())
+    await page.load()
+    expect(page._renderLineupManager()).toContain('lineup-slot-rename-btn')
+
+    // Only the default lineup exists → renaming must still be offered.
+    page._lineups = [LINEUPS[0]]
+    expect(page._renderLineupManager()).toContain('lineup-slot-rename-btn')
+  })
+
+  it('renames the lineup picked in the select and prefills its current name', async () => {
+    mountSelect('4')
+    const page = new ATeamPage(parentPage())
+    await page.load()
+    page.update = vi.fn()
+    const renamed = [LINEUPS[0], { ...LINEUPS[1], name: 'Derby' }]
+    server.renameMyLineup.mockResolvedValue({ lineups: renamed, activeId: 3 })
+    let opts
+    page._showLineupNameOverlay = vi.fn((o) => { opts = o })
+
+    page.events['(optional).lineup-slot-rename-btn'].click()
+    expect(opts.value).toBe('Cup night')
+
+    await opts.onSubmit('Derby')
+
+    expect(server.renameMyLineup).toHaveBeenCalledWith(4, 'Derby')
+    expect(page._lineups).toEqual(renamed)
+    expect(page.update).toHaveBeenCalled()
+  })
+
+  it('renames the seeded default lineup too', async () => {
+    mountSelect('3')
+    const page = new ATeamPage(parentPage())
+    await page.load()
+    page.update = vi.fn()
+    server.renameMyLineup.mockResolvedValue({ lineups: LINEUPS, activeId: 3 })
+    let opts
+    page._showLineupNameOverlay = vi.fn((o) => { opts = o })
+
+    page.events['(optional).lineup-slot-rename-btn'].click()
+    expect(opts.value).toBe('Lineup 1')
+
+    await opts.onSubmit('Standard')
+
+    expect(server.renameMyLineup).toHaveBeenCalledWith(3, 'Standard')
+  })
+
+  it('skips the request when the name is unchanged', async () => {
+    mountSelect('3')
+    const page = new ATeamPage(parentPage())
+    await page.load()
+    let opts
+    page._showLineupNameOverlay = vi.fn((o) => { opts = o })
+
+    page.events['(optional).lineup-slot-rename-btn'].click()
+    await opts.onSubmit('Lineup 1')
+
+    expect(server.renameMyLineup).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the active lineup when the select is not in the DOM', async () => {
+    document.body.innerHTML = ''
+    const page = new ATeamPage(parentPage())
+    await page.load()
+    let opts
+    page._showLineupNameOverlay = vi.fn((o) => { opts = o })
+
+    page.events['(optional).lineup-slot-rename-btn'].click()
+
+    expect(opts.value).toBe('Lineup 1')
+  })
+
+  it('does not open the overlay when no lineups are loaded', async () => {
+    document.body.innerHTML = ''
+    server.getMyLineups.mockRejectedValue(new Error('boom'))
+    const page = new ATeamPage(parentPage())
+    await page.load()
+    page._showLineupNameOverlay = vi.fn()
+
+    page.events['(optional).lineup-slot-rename-btn'].click()
+
+    expect(page._showLineupNameOverlay).not.toHaveBeenCalled()
   })
 })

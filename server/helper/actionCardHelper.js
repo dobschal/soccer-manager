@@ -8,7 +8,7 @@ import { getGameDayAndSeason } from './gameDayHelper.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { getUserLocale, t } from '../i18n/index.js'
 import { createYouthPlayer } from './youthPlayerHelper.js'
-import { randomItem } from '../lib/util.js'
+import { randomItem, truncateChars } from '../lib/util.js'
 import { Position } from '../../client/util/formation.js'
 import { generateRandomPlayerName } from '../prepare-season.js'
 import { sendToUser } from '../lib/websocket.js'
@@ -125,7 +125,7 @@ function _validateYouthPlayerOption (action, option) {
     throw new BadRequestError('Invalid youth player option')
   }
   const validPositions = Object.values(Position)
-  const name = typeof option.name === 'string' ? option.name.slice(0, 64) : ''
+  const name = truncateChars(option.name, 64)
   const position = validPositions.includes(option.position) ? option.position : randomItem(validPositions)
   const level = Math.min(range.levelMax, Math.max(range.levelMin, Number(option.level)))
   const talent = Math.min(range.talentMax, Math.max(range.talentMin, Number(option.talent)))

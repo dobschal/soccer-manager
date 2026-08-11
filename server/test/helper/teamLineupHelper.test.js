@@ -272,6 +272,27 @@ describe('renameLineup', () => {
     expect(result.name).toBe('Away')
     expect(calls.find(c => c.sql.includes('UPDATE team_lineup SET name=?')).params).toEqual(['Away', 4])
   })
+
+  it('keeps emojis intact and counts them as one character', async () => {
+    const { calls } = mockDb({ 'FROM team_lineup WHERE id=? AND team_id=?': [{ id: 4, name: 'Old' }] })
+    // 40 emojis are 80 UTF-16 units, so a naive slice would cut the 20th in
+    // half and leave a lone surrogate that MySQL rejects.
+    const name = '😳'.repeat(40)
+
+    const result = await renameLineup(7, 4, name)
+
+    expect(result.name).toBe(name)
+    expect(calls.find(c => c.sql.includes('UPDATE team_lineup SET name=?')).params).toEqual([name, 4])
+  })
+
+  it('truncates an over-long emoji name without splitting a surrogate pair', async () => {
+    mockDb({ 'FROM team_lineup WHERE id=? AND team_id=?': [{ id: 4, name: 'Old' }] })
+
+    const { name } = await renameLineup(7, 4, '😳'.repeat(50))
+
+    expect(name).toBe('😳'.repeat(40))
+    expect(Buffer.from(name, 'utf8').toString('utf8')).toBe(name)
+  })
 })
 
 describe('deleteLineup', () => {

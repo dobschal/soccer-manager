@@ -10,6 +10,7 @@ import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { query } from '../lib/database.js'
 import { t } from '../i18n/index.js'
+import { charLength } from '../lib/util.js'
 
 export default {
 
@@ -157,7 +158,7 @@ export default {
       throw new BadRequestError(t('error.invalidStadiumName', {}, locale))
     }
     const trimmed = name.trim()
-    if (trimmed.length === 0 || trimmed.length > 100) {
+    if (trimmed.length === 0 || charLength(trimmed) > 100) {
       throw new BadRequestError(t('error.invalidStadiumName', {}, locale))
     }
     const stadium = await getStadiumOfCurrentUser(req)

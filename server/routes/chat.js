@@ -7,6 +7,7 @@ import { t, getUserLocale } from '../i18n/index.js'
 import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import { sendPushNotifications } from '../lib/pushNotification.js'
+import { truncateChars } from '../lib/util.js'
 
 const UPLOAD_DIR = 'uploads/chat'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -178,7 +179,7 @@ export default {
     const [recipient] = await query('SELECT id, username FROM user WHERE id=?', [other])
     if (!recipient) throw new BadRequestError(t('error.chatInvalidUser', {}, locale))
 
-    const safeText = typeof text === 'string' ? text.trim().slice(0, MAX_TEXT) : ''
+    const safeText = typeof text === 'string' ? truncateChars(text.trim(), MAX_TEXT) : ''
     const filename = saveImage(image)
     const { filename: audioFile, duration: audioDuration } = saveAudio(audio)
     if (!safeText && !filename && !audioFile) throw new BadRequestError(t('error.chatEmptyMessage', {}, locale))

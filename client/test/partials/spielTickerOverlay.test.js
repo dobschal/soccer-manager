@@ -8,8 +8,10 @@ vi.mock('../../lib/nativeReview.js', () => ({ maybeRequestReviewAfterWin: vi.fn(
 
 import { server } from '../../lib/gateway.js'
 import {
-  buildTickerEvents, cardReason, isSpielTickerSeen, logHasMinutes, maybeShowSpielTickerOverlay,
-  HALF_TIME_MINUTE, RECOVERY_MIN_GAP_MINUTES, RECOVERY_MIN_STREAK
+  buildTickerEvents, cardReason, eventType, injuryDetail, isBreakEvent, isSpielTickerSeen,
+  logHasMinutes, maybeShowSpielTickerOverlay,
+  DUEL_MIN_GAP_MINUTES, DUEL_MIN_STREAK, HALF_TIME_MINUTE,
+  RECOVERY_MIN_GAP_MINUTES, RECOVERY_MIN_STREAK
 } from '../../partials/spielTickerOverlay.js'
 
 describe('spielTickerOverlay helpers (#402)', () => {
@@ -25,14 +27,14 @@ describe('spielTickerOverlay helpers (#402)', () => {
         { minute: 5, lostBall: true, streak: 0 }
       ]
       const events = buildTickerEvents(log)
-      // The half-time card sits between the 45th and 46th minute (#539).
-      expect(events.filter(e => !e.halfTime).map(e => e.minute)).toEqual([10, 30, 45, 80])
+      // The kick-off and half-time cards are added on top of the log (#539).
+      expect(events.filter(e => !e.halfTime && !e.kickOff).map(e => e.minute)).toEqual([10, 30, 45, 80])
       expect(events.some(e => e.halfTime)).toBe(true)
     })
 
     it('defaults a missing minute to 0', () => {
       const events = buildTickerEvents([{ goal: true, player: 1 }])
-      expect(events[0].minute).toBe(0)
+      expect(events.find(e => e.goal).minute).toBe(0)
     })
 
     it('returns an empty array for non-array input', () => {
@@ -156,7 +158,7 @@ describe('buildTickerEvents extensions (#539)', () => {
     expect(events.filter(e => e.recovery)).toHaveLength(0)
   })
 
-  it('ignores duels the attacker won', () => {
+  it('does not count a duel the attacker won as a recovery', () => {
     const events = buildTickerEvents([{ minute: 20, lostBall: false, streak: 9, player: 1, oponentPlayer: 2 }])
     expect(events.filter(e => e.recovery)).toHaveLength(0)
   })
@@ -215,6 +217,97 @@ describe('buildTickerEvents extensions (#539)', () => {
   it('skips injuries without a minute', () => {
     const events = buildTickerEvents([], { injuries: [{ playerId: 7, injuryDays: 3 }] })
     expect(events.some(e => e.injury)).toBe(false)
+  })
+
+  it('opens the feed with a kick-off card', () => {
+    const events = buildTickerEvents([{ minute: 60, goal: true, player: 1 }])
+    expect(events[0].kickOff).toBe(true)
+    expect(events[0].minute).toBe(0)
+  })
+
+  it('puts the kick-off ahead of an event logged in minute 0', () => {
+    const events = buildTickerEvents([{ minute: 0, goal: true, player: 1 }])
+    expect(events[0].kickOff).toBe(true)
+    expect(events[1].goal).toBe(true)
+  })
+
+  it('shows won duels that ended a long move', () => {
+    const won = (minute, streak) => ({ minute, lostBall: false, streak, player: 1, oponentPlayer: 2 })
+    const events = buildTickerEvents([
+      won(10, DUEL_MIN_STREAK - 1),
+      won(30, DUEL_MIN_STREAK)
+    ])
+    const duels = events.filter(e => e.wonDuel)
+    expect(duels).toHaveLength(1)
+    expect(duels[0].minute).toBe(30)
+  })
+
+  it('thins won duels out to one per gap window', () => {
+    const won = (minute) => ({ minute, lostBall: false, streak: 20, player: 1, oponentPlayer: 2 })
+    const log = [10, 11, 12].map(won)
+    expect(buildTickerEvents(log).filter(e => e.wonDuel)).toHaveLength(1)
+    const spaced = [10, 10 + DUEL_MIN_GAP_MINUTES].map(won)
+    expect(buildTickerEvents(spaced).filter(e => e.wonDuel)).toHaveLength(2)
+  })
+
+  it('never flags the same duel as both a recovery and a won duel', () => {
+    const events = buildTickerEvents([
+      { minute: 20, lostBall: true, streak: 20, player: 1, oponentPlayer: 2 }
+    ])
+    expect(events.filter(e => e.wonDuel)).toHaveLength(0)
+    expect(events.filter(e => e.recovery)).toHaveLength(1)
+  })
+
+  it('folds substitutions into the timeline', () => {
+    const events = buildTickerEvents([{ minute: 80, goal: true, player: 1 }], {
+      substitutions: [
+        { playerInId: 9, playerInName: 'Neu', playerOutId: 4, playerOutName: 'Alt', reason: 'injury', minute: 62, teamIndex: 0 }
+      ]
+    })
+    const sub = events.find(e => e.substitution)
+    expect(sub).toMatchObject({ minute: 62, player: 9, playerOut: 4, playerOutName: 'Alt' })
+    expect(events.indexOf(sub)).toBeLessThan(events.findIndex(e => e.goal))
+  })
+
+  it('skips substitutions without a minute', () => {
+    const events = buildTickerEvents([], { substitutions: [{ playerInId: 9, playerOutId: 4 }] })
+    expect(events.some(e => e.substitution)).toBe(false)
+  })
+})
+
+describe('eventType and isBreakEvent (#539)', () => {
+  it('names each new event flavour', () => {
+    expect(eventType({ kickOff: true })).toBe('kickOff')
+    expect(eventType({ substitution: true })).toBe('substitution')
+    expect(eventType({ wonDuel: true })).toBe('duel')
+    expect(eventType({ recovery: true })).toBe('recovery')
+  })
+
+  it('treats the kick-off as a break so it holds on screen', () => {
+    expect(isBreakEvent('kickOff')).toBe(true)
+    expect(isBreakEvent('halfTime')).toBe(true)
+    expect(isBreakEvent('goal')).toBe(false)
+    expect(isBreakEvent('substitution')).toBe(false)
+  })
+
+  it('prefers the goal over a duel flag on the same entry', () => {
+    expect(eventType({ goal: true, wonDuel: true })).toBe('goal')
+  })
+})
+
+describe('injuryDetail (#539)', () => {
+  it('names the injury the player suffered', () => {
+    // The mocked `t` returns the key, so the injury name resolves to its key.
+    expect(injuryDetail({ injuryType: 'muscle_strain', injuryDays: 3 }))
+      .toBe('spielTicker.injuryDetailNamed')
+  })
+
+  it('falls back to the duration when the type is unknown', () => {
+    expect(injuryDetail({ injuryDays: 2 })).toBe('spielTicker.injuryDetail')
+  })
+
+  it('treats a missing duration as zero', () => {
+    expect(injuryDetail({})).toBe('spielTicker.injuryDetail')
   })
 })
 

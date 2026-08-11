@@ -87,6 +87,16 @@ describe('PlayerModal', () => {
     document.body.innerHTML = ''
   })
 
+  it('formats the salary and value stat cards with the shared short format', async () => {
+    server.getPlayerById.mockResolvedValue(testData.player({ id: 5, team_id: 1 }))
+    const modal = new PlayerModal(5)
+    await modal.load()
+    modal.price = 2_819_192
+    // Shared shortEuroFormat — lowercase unit, space before the euro sign.
+    expect(modal.template).toContain('2.8m €')
+    expect(modal.template).not.toContain('M€')
+  })
+
   describe('action cards', () => {
     it('attaches an ActionCardGiver for the user\'s own player', async () => {
       server.getPlayerById.mockResolvedValue(testData.player({ id: 5, team_id: 1 }))

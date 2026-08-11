@@ -244,7 +244,7 @@ export class LogMessages extends UIElement {
         goTo('trades')
         break
       case 'OPEN_TOUR':
-        goTo('club?sub_page=tour')
+        goTo('my-team?sub_page=tour')
         break
       case 'OPEN_GAME':
         if (actionValue) {

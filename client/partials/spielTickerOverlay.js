@@ -48,6 +48,16 @@ export const RECOVERY_MIN_STREAK = 3
 /** …and at most one recovery per this many minutes, so they stay an accent. */
 export const RECOVERY_MIN_GAP_MINUTES = 5
 
+/**
+ * A won duel needs an even longer move behind it than a recovery to be worth a
+ * line — the attacking side wins most duels, so the bar has to be higher or the
+ * feed fills up with them (#539).
+ */
+export const DUEL_MIN_STREAK = 6
+
+/** …and at most one won duel per this many minutes. */
+export const DUEL_MIN_GAP_MINUTES = 12
+
 /** Half time sits between the 45th and 46th minute. */
 export const HALF_TIME_MINUTE = 45
 
@@ -65,26 +75,62 @@ export const REGULAR_TIME_MINUTE = 90
  * @returns {Array}
  */
 export function pickRecoveries (log) {
+  return pickDuels(log, {
+    lostBall: true,
+    minStreak: RECOVERY_MIN_STREAK,
+    minGap: RECOVERY_MIN_GAP_MINUTES,
+    flag: 'recovery'
+  })
+}
+
+/**
+ * Pick the duels the attacking side *won* — a tackle shrugged off in the middle
+ * of a move. Same thinning as {@link pickRecoveries}, with a higher bar because
+ * the attacker wins most duels (#539).
+ * @param {Array} log
+ * @returns {Array}
+ */
+export function pickWonDuels (log) {
+  return pickDuels(log, {
+    lostBall: false,
+    minStreak: DUEL_MIN_STREAK,
+    minGap: DUEL_MIN_GAP_MINUTES,
+    flag: 'wonDuel'
+  })
+}
+
+/**
+ * Shared sampler for the two duel flavours: keep the duels that ended a move of
+ * at least `minStreak` passes, then thin them to one per `minGap` minutes.
+ *
+ * Games played before the engine started stamping duels with a minute simply
+ * contribute none — same self-healing approach as {@link logHasMinutes}.
+ * @param {Array} log
+ * @param {{lostBall: boolean, minStreak: number, minGap: number, flag: string}} options
+ * @returns {Array}
+ */
+function pickDuels (log, { lostBall, minStreak, minGap, flag }) {
   const candidates = log
-    .filter(l => l.lostBall === true && typeof l.minute === 'number' && (l.streak ?? 0) >= RECOVERY_MIN_STREAK)
+    .filter(l => l.lostBall === lostBall && typeof l.minute === 'number' && (l.streak ?? 0) >= minStreak)
     .sort((a, b) => a.minute - b.minute || (b.streak ?? 0) - (a.streak ?? 0))
   const picked = []
-  let lastMinute = -RECOVERY_MIN_GAP_MINUTES
+  let lastMinute = -minGap
   for (const entry of candidates) {
-    if (entry.minute - lastMinute < RECOVERY_MIN_GAP_MINUTES) continue
+    if (entry.minute - lastMinute < minGap) continue
     lastMinute = entry.minute
-    picked.push({ ...entry, recovery: true })
+    picked.push({ ...entry, [flag]: true })
   }
   return picked
 }
 
 /**
  * Build the chronologically sorted list of notable events from a game's detail
- * log (#402): goals, cards and saves, plus — since #539 — injuries, standout
- * ball recoveries, the half-time break and the start of extra time.
+ * log (#402): goals, cards and saves, plus — since #539 — the kick-off, the
+ * half-time break, injuries, substitutions, standout ball recoveries and won
+ * duels, and the start of extra time.
  *
  * @param {Array} log
- * @param {{injuries?: Array, extraTime?: boolean, penaltyShootout?: object}} [details]
+ * @param {{injuries?: Array, substitutions?: Array, extraTime?: boolean, penaltyShootout?: object}} [details]
  * @returns {Array}
  */
 export function buildTickerEvents (log, details = {}) {
@@ -97,7 +143,26 @@ export function buildTickerEvents (log, details = {}) {
     .filter(i => typeof i.minute === 'number')
     .map(i => ({ injury: true, player: i.playerId, playerName: i.playerName, injuryType: i.injuryType, injuryDays: i.injuryDays, minute: i.minute, teamIndex: i.teamIndex }))
 
-  const events = [...notable, ...injuries, ...pickRecoveries(log)]
+  const substitutions = (details.substitutions || [])
+    .filter(s => typeof s.minute === 'number')
+    .map(s => ({
+      substitution: true,
+      player: s.playerInId,
+      playerName: s.playerInName,
+      playerOut: s.playerOutId,
+      playerOutName: s.playerOutName,
+      reason: s.reason,
+      minute: s.minute,
+      teamIndex: s.teamIndex
+    }))
+
+  const events = [
+    ...notable,
+    ...injuries,
+    ...substitutions,
+    ...pickRecoveries(log),
+    ...pickWonDuels(log)
+  ]
 
   // Breaks are placed on the boundary and sorted with `order` so they land
   // after everything that happened in the minute they close.
@@ -108,6 +173,8 @@ export function buildTickerEvents (log, details = {}) {
   if (details.extraTime) {
     events.push({ extraTimeStart: true, minute: REGULAR_TIME_MINUTE, order: 1 })
   }
+  // A negative order keeps the kick-off ahead of anything logged in minute 0.
+  events.push({ kickOff: true, minute: 0, order: -1 })
 
   events.sort((a, b) => a.minute - b.minute || (a.order ?? 0) - (b.order ?? 0))
 
@@ -133,7 +200,8 @@ export function logHasMinutes (log) {
     (l.goal || l.yellowCard || l.redCard || l.keeperHolds) && typeof l.minute === 'number')
 }
 
-function eventType (event) {
+export function eventType (event) {
+  if (event.kickOff) return 'kickOff'
   if (event.halfTime) return 'halfTime'
   if (event.extraTimeStart) return 'extraTime'
   if (event.penaltyShootout) return 'penalties'
@@ -141,7 +209,9 @@ function eventType (event) {
   if (event.redCard) return 'red'
   if (event.yellowCard) return 'yellow'
   if (event.injury) return 'injury'
+  if (event.substitution) return 'substitution'
   if (event.recovery) return 'recovery'
+  if (event.wonDuel) return 'duel'
   return 'chance'
 }
 
@@ -151,8 +221,29 @@ function eventType (event) {
  * @param {string} type
  * @returns {boolean}
  */
-function isBreakEvent (type) {
-  return type === 'halfTime' || type === 'extraTime' || type === 'penalties'
+export function isBreakEvent (type) {
+  return type === 'kickOff' || type === 'halfTime' || type === 'extraTime' || type === 'penalties'
+}
+
+/**
+ * The name of the injury a player picked up, e.g. "Muskelzerrung", plus how long
+ * they are out (#539). Older games stored no type — those fall back to the
+ * duration alone.
+ * @param {{injuryType?: string, injuryDays?: number}} event
+ * @returns {string}
+ */
+export function injuryDetail (event) {
+  const days = event.injuryDays ?? 0
+  if (!event.injuryType) return t('spielTicker.injuryDetail', { days })
+  // The engine stores the raw type key; play-game-day already localises it for
+  // log messages, so a already-translated value can arrive here too. Falling
+  // back to the raw value keeps both shapes readable.
+  const key = `injury.${event.injuryType}`
+  const name = t(key)
+  return t('spielTicker.injuryDetailNamed', {
+    injury: name === key ? event.injuryType : name,
+    days
+  })
 }
 
 /**
@@ -234,6 +325,7 @@ export async function showSpielTickerOverlay (game, myTeamId) {
   const didWin = typeof myGoals === 'number' && typeof oppGoals === 'number' && myGoals > oppGoals
 
   const skipId = generateId()
+  const speedId = generateId()
   const feedId = generateId()
   const scoreId = generateId()
   const bannerId = generateId()
@@ -253,6 +345,10 @@ export async function showSpielTickerOverlay (game, myTeamId) {
       </div>
       <div id="${feedId}" class="spiel-ticker__feed" aria-live="polite"></div>
       <div class="text-center mt-3 spiel-ticker__footer">
+        <button type="button" id="${speedId}" class="btn btn-sm btn-outline-info spiel-ticker__speed"
+                aria-pressed="false" title="${t('spielTicker.speedHint')}">
+          <i class="fa fa-tachometer"></i> ${t('spielTicker.speedNormal')}
+        </button>
         <button type="button" id="${skipId}" class="btn btn-sm btn-outline-info spiel-ticker__skip">
           <i class="fa fa-forward"></i> ${t('spielTicker.skip')}
         </button>
@@ -269,6 +365,9 @@ export async function showSpielTickerOverlay (game, myTeamId) {
     let index = 0
     let timer = null
     let finished = false
+    // Playback rate: 1 = normal, 2 = double speed (#539). Applied to the wait
+    // *after* each event, so toggling takes effect from the next beat onwards.
+    let speed = 1
 
     let bannerTimer = null
     const showGoalBanner = () => {
@@ -306,7 +405,11 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         `
         return row
       }
-      const label = type === 'halfTime' ? t('spielTicker.halfTime') : t('spielTicker.extraTime')
+      const label = {
+        kickOff: t('spielTicker.kickOff'),
+        halfTime: t('spielTicker.halfTime'),
+        extraTime: t('spielTicker.extraTime')
+      }[type] ?? ''
       row.innerHTML = `<span class="spiel-ticker__detail"><strong>${label}</strong></span>`
       return row
     }
@@ -340,7 +443,9 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         yellow: '<span class="spiel-ticker__card spiel-ticker__card--yellow"></span>',
         chance: '<span class="text-info"><i class="fa fa-bullseye"></i></span>',
         injury: '<span class="text-danger"><i class="fa fa-medkit"></i></span>',
-        recovery: '<span class="text-warning"><i class="fa fa-shield"></i></span>'
+        recovery: '<span class="text-warning"><i class="fa fa-shield"></i></span>',
+        duel: '<span class="text-info"><i class="fa fa-exchange"></i></span>',
+        substitution: '<span class="text-success"><i class="fa fa-refresh"></i></span>'
       }[type]
       const label = {
         goal: t('spielTicker.goal'),
@@ -348,15 +453,22 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         yellow: t('spielTicker.yellowCard'),
         chance: t('spielTicker.chance'),
         injury: t('spielTicker.injury'),
-        recovery: t('spielTicker.ballRecovery')
+        recovery: t('spielTicker.ballRecovery'),
+        duel: t('spielTicker.wonDuel'),
+        substitution: t('spielTicker.substitution')
       }[type]
       let detail = label
       if (type === 'yellow' || type === 'red') {
         detail = `${label} — ${cardReason(event, players)}`
       } else if (type === 'injury') {
-        detail = t('spielTicker.injuryDetail', { days: event.injuryDays ?? 0 })
+        detail = injuryDetail(event)
       } else if (type === 'recovery' && players[event.player]) {
         detail = t('spielTicker.ballRecoveryFrom', { player: players[event.player].name })
+      } else if (type === 'duel' && players[event.oponentPlayer]) {
+        detail = t('spielTicker.wonDuelAgainst', { player: players[event.oponentPlayer].name })
+      } else if (type === 'substitution') {
+        const out = players[event.playerOut]?.name || event.playerOutName
+        if (out) detail = t('spielTicker.substitutionFor', { player: out })
       }
       const name = player?.name || event.playerName || t('spielTicker.unknownPlayer')
       const row = document.createElement('div')
@@ -381,6 +493,8 @@ export async function showSpielTickerOverlay (game, myTeamId) {
       if (scoreEl) scoreEl.textContent = `${result.goalsTeam1} : ${result.goalsTeam2}`
       const skipBtn = el('#' + skipId)
       if (skipBtn) skipBtn.remove()
+      const speedBtn = el('#' + speedId)
+      if (speedBtn) speedBtn.remove()
       // Dedicated final-score entry at the very top.
       const feed = el('#' + feedId)
       if (feed) {
@@ -406,7 +520,7 @@ export async function showSpielTickerOverlay (game, myTeamId) {
       // A break is a beat of its own — the whistle goes, then the second half
       // starts (#539).
       const wait = isBreakEvent(eventType(event)) ? BREAK_PAUSE_MS : STEP_INTERVAL_MS
-      timer = setTimeout(tick, wait)
+      timer = setTimeout(tick, wait / speed)
     }
 
     const skip = () => {
@@ -418,9 +532,31 @@ export async function showSpielTickerOverlay (game, myTeamId) {
       finish()
     }
 
+    /**
+     * Flip between normal and double speed. The pending wait is restarted at the
+     * new rate so the change is felt immediately instead of after the current
+     * (possibly 2s) beat (#539).
+     * @returns {void}
+     */
+    const toggleSpeed = () => {
+      speed = speed === 1 ? 2 : 1
+      const btn = el('#' + speedId)
+      if (btn) {
+        btn.setAttribute('aria-pressed', String(speed === 2))
+        btn.classList.toggle('active', speed === 2)
+        btn.innerHTML = `<i class="fa fa-tachometer"></i> ${speed === 2 ? t('spielTicker.speedFast') : t('spielTicker.speedNormal')}`
+      }
+      if (timer && !finished) {
+        clearTimeout(timer)
+        timer = setTimeout(tick, STEP_INTERVAL_MS / speed)
+      }
+    }
+
     setTimeout(() => {
       const skipBtn = el('#' + skipId)
       if (skipBtn) skipBtn.addEventListener('click', skip)
+      const speedBtn = el('#' + speedId)
+      if (speedBtn) speedBtn.addEventListener('click', toggleSpeed)
       tick()
     }, 0)
 

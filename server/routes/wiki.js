@@ -3,6 +3,7 @@ import { BadRequestError } from '../lib/errors.js'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
+import { truncateChars } from '../lib/util.js'
 
 const SUPPORTED_LOCALES = ['en', 'de']
 const UPLOAD_DIR = 'uploads/wiki'
@@ -170,8 +171,8 @@ export default {
     if (!cleanText) throw new BadRequestError('Text is required')
     const result = await query('INSERT INTO wiki_entry SET ?', {
       locale: loc,
-      title: cleanTitle.slice(0, 255),
-      subtitle: typeof subtitle === 'string' ? subtitle.trim().slice(0, 255) || null : null,
+      title: truncateChars(cleanTitle, 255),
+      subtitle: typeof subtitle === 'string' ? truncateChars(subtitle.trim(), 255) || null : null,
       text: cleanText,
       images: JSON.stringify(persistWikiImages(images)),
       sort_order: Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : 0
@@ -198,8 +199,8 @@ export default {
       'UPDATE wiki_entry SET locale=?, title=?, subtitle=?, text=?, images=?, sort_order=? WHERE id=?',
       [
         normaliseLocale(locale),
-        cleanTitle.slice(0, 255),
-        typeof subtitle === 'string' ? subtitle.trim().slice(0, 255) || null : null,
+        truncateChars(cleanTitle, 255),
+        typeof subtitle === 'string' ? truncateChars(subtitle.trim(), 255) || null : null,
         cleanText,
         JSON.stringify(newFilenames),
         Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : 0,

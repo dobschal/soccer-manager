@@ -16,7 +16,7 @@ vi.mock('../../../lib/actionCardLabels.js', () => ({ actionCardLabel: (a) => `la
 vi.mock('../../../i18n/index.js', () => ({ t: (key) => key }))
 vi.mock('../../../lib/html.js', () => ({ generateId: () => 'id', el: () => null }))
 
-import { TourPage } from '../../../pages/club/tour.js'
+import { TourPage } from '../../../pages/my-team/tour.js'
 import { server, showServerError } from '../../../lib/gateway.js'
 import { showConfirmDialog } from '../../../partials/overlay.js'
 
@@ -67,6 +67,11 @@ describe('TourPage rendering (#535)', () => {
 
   it('never overflows the bar past the target', () => {
     expect(page({ progress: 45 }).template).toContain('width: 100%')
+  })
+
+  // The card sits on the dark gradient, so its text must be light.
+  it('renders the progress card with light text on the dark background', () => {
+    expect(page().template).toContain('bg-dark text-white tour-progress-card')
   })
 
   it('renders all three destinations with their rewards', () => {

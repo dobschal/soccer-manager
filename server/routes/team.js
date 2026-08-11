@@ -18,6 +18,7 @@ import {
   renameLineup,
   syncActiveLineup
 } from '../helper/teamLineupHelper.js'
+import { charLength } from '../lib/util.js'
 
 const MAX_TEAM_NAME_WORD_LENGTH = 12
 const MAX_TEAM_NAME_LENGTH = 32
@@ -102,17 +103,19 @@ export default {
     if (!cleanedName) {
       throw new BadRequestError('Team name is required')
     }
-    if (cleanedName.length > MAX_TEAM_NAME_LENGTH) {
+    // Count code points, not UTF-16 units, so an emoji costs one character
+    // here just like it does against the VARCHAR limit in MySQL.
+    if (charLength(cleanedName) > MAX_TEAM_NAME_LENGTH) {
       throw new BadRequestError(`Team name can be at most ${MAX_TEAM_NAME_LENGTH} characters`)
     }
     const words = cleanedName.split(' ')
-    if (words.some(w => w.length > MAX_TEAM_NAME_WORD_LENGTH)) {
+    if (words.some(w => charLength(w) > MAX_TEAM_NAME_WORD_LENGTH)) {
       throw new BadRequestError(`Each word can be at most ${MAX_TEAM_NAME_WORD_LENGTH} characters`)
     }
     const cleanedShortName = typeof shortName === 'string'
       ? shortName.replace(/\s+/g, ' ').trim()
       : ''
-    if (cleanedShortName.length > MAX_TEAM_SHORT_NAME_LENGTH) {
+    if (charLength(cleanedShortName) > MAX_TEAM_SHORT_NAME_LENGTH) {
       throw new BadRequestError(`Short name can be at most ${MAX_TEAM_SHORT_NAME_LENGTH} characters`)
     }
     const [existing] = await query('SELECT id FROM team WHERE name=? AND id<>?', [cleanedName, team.id])

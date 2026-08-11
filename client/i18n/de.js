@@ -93,7 +93,6 @@ export default {
   'dailyLogin.rewardsTitle': 'Belohnungen in diesem Zyklus',
   'dailyLogin.rewardLine': 'Tag {day}: {reward}',
   'dailyLogin.rewardDay': 'Tag {day}',
-  'dailyLogin.chance': '{percent} %',
   'dailyLogin.reward.recovery': 'Erholungskarte',
   'dailyLogin.reward.training': 'Trainingskarte',
   'dailyLogin.reward.special': 'Spezialkarte',
@@ -1183,7 +1182,7 @@ export default {
   'actionCards.position.RA': 'Rechter Angreifer (RA)',
 
   // Tutorial Progress Card
-  'tutorialProgress.title': 'Erste Schritte',
+  'tutorialProgress.title': 'Tutorial',
   'tutorialProgress.description': 'Schließe diese Tutorials ab, um zu lernen, wie du deinen Club effektiv managst.',
   'tutorialProgress.nextTutorial': 'Weiter: {page}',
   'tutorialProgress.page.dashboard': 'Dashboard',
@@ -1193,6 +1192,7 @@ export default {
   'tutorialProgress.page.stadium': 'Stadion',
   'tutorialProgress.page.finances': 'Finanzen',
   'tutorialProgress.page.youth': 'Jugendteam',
+  'tutorialProgress.page.tour': 'On Tour',
   'tutorialProgress.page.buildings': 'Gebäude',
 
   // Tutorial

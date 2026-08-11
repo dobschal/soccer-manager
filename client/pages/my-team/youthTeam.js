@@ -506,30 +506,4 @@ export class YouthTeamPage extends UIElement {
       `<button id="${confirmId}" class="btn btn-success w-100">${t('youthTeam.sell')}</button>`
     )
   }
-
-  /**
-   * @param {Object} player
-   * @returns {void}
-   */
-  _showFireConfirm (player) {
-    const confirmId = generateId()
-
-    onClick(confirmId, async () => {
-      try {
-        await server.fireYouthPlayer(player.id)
-        toast(t('youthTeam.fired', { playerName: player.name }), 'success')
-        overlay.remove()
-        await this.load()
-        await this.update()
-      } catch (e) {
-        showServerError(e)
-      }
-    })
-
-    const overlay = showOverlay(
-      t('youthTeam.fireConfirm', { playerName: player.name }),
-      t('youthTeam.fireConfirmText', { playerName: player.name }),
-      `<button id="${confirmId}" class="btn btn-danger w-100">${t('youthTeam.fire')}</button>`
-    )
-  }
 }

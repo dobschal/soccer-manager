@@ -1,7 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { Formation, getPositionsOfFormation } from '../../client/util/formation.js'
-import { randomItem } from '../lib/util.js'
+import { randomItem, truncateChars } from '../lib/util.js'
 
 /**
  * Maximum number of saved lineups a team may keep. High enough that nobody
@@ -21,7 +21,7 @@ export const MAX_LINEUP_NAME_LENGTH = 40
 export function sanitizeLineupName (name, fallback) {
   const clean = typeof name === 'string' ? name.trim() : ''
   if (!clean) return fallback
-  return clean.slice(0, MAX_LINEUP_NAME_LENGTH)
+  return truncateChars(clean, MAX_LINEUP_NAME_LENGTH)
 }
 
 /**

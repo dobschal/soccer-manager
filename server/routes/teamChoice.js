@@ -17,14 +17,16 @@ const MIN_CHOOSABLE_LEVEL = config.MIN_CHOOSABLE_LEVEL
 /**
  * The cards a manager finds in their inventory right after signing for a club.
  * The star player and the youth star were added so a new manager has something
- * to shape their squad with from day one (#518).
+ * to shape their squad with from day one, the million bonus so they can act on
+ * the transfer market right away (#518).
  * @type {string[]}
  */
 export const STARTER_ACTION_CARDS = [
   'NEW_YOUTH_PLAYER_1',
   'LEVEL_UP_PLAYER_40',
   'STAR_PLAYER',
-  'NEW_YOUTH_PLAYER_3'
+  'NEW_YOUTH_PLAYER_3',
+  'MILLION_BONUS'
 ]
 
 /**

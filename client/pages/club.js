@@ -3,7 +3,6 @@ import { StadiumSubPage } from './club/stadium.js'
 import { BuildingsPage } from './club/buildings.js'
 import { FinancesPage } from './club/finances.js'
 import { ClubInfoPage } from './club/clubInfo.js'
-import { TourPage } from './club/tour.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
 
 export class ClubPage extends TabbedPage {
@@ -15,7 +14,6 @@ export class ClubPage extends TabbedPage {
           <a class="nav-link ${this.subPage === 'info' ? 'active' : ''}" href="#club?sub_page=info"><i class="fa fa-info-circle"></i> ${t('stadium.tabClubInfo')}</a>
           <a class="nav-link ${this.subPage === 'buildings' ? 'active' : ''}" href="#club?sub_page=buildings"><i class="fa fa-building"></i> ${t('stadium.tabBuildings')}</a>
           <a class="nav-link ${this.subPage === 'finances' ? 'active' : ''}" href="#club?sub_page=finances"><i class="fa fa-money"></i> ${t('stadium.tabFinances')}</a>
-          <a class="nav-link ${this.subPage === 'tour' ? 'active' : ''}" href="#club?sub_page=tour"><i class="fa fa-plane"></i> ${t('tour.tab')}</a>
         </nav>
         ${this.renderSubPageContainer()}
       </div>
@@ -34,7 +32,6 @@ export class ClubPage extends TabbedPage {
       case 'info': return new ClubInfoPage()
       case 'buildings': return new BuildingsPage(this)
       case 'finances': return new FinancesPage()
-      case 'tour': return new TourPage()
       default: return new StadiumSubPage()
     }
   }

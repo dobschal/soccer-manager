@@ -10,15 +10,59 @@ import { getGameDayAndSeason } from './gameDayHelper.js'
 export const REWARD_CYCLE_LENGTH = 30
 
 /**
- * Milestones inside a cycle and the card pool each one draws from. One card is
- * picked at random from the pool when the milestone is reached.
- * @type {Array<{day: number, key: string, actions: string[]}>}
+ * Milestones inside a cycle and the weighted card pool each one draws from. One
+ * card is drawn per milestone; `weight` is the intended percentage chance
+ * within that pool. When the team is capped on some of the options the
+ * remaining weights are renormalized, so a pool always yields a card as long as
+ * one option is grantable (#501).
+ * @type {Array<{day: number, key: string, actions: Array<{action: string, weight: number}>}>}
  */
 export const LOGIN_STREAK_REWARDS = [
-  { day: 3, key: 'recovery', actions: ['FRESHNESS_5', 'FRESHNESS_10', 'FRESHNESS_20'] },
-  { day: 7, key: 'training', actions: ['LEVEL_UP_PLAYER_40', 'LEVEL_UP_PLAYER_70', 'LEVEL_UP_PLAYER_100'] },
-  { day: 15, key: 'special', actions: ['BONUS_100K', 'SPY', 'MOTIVATING_SPEECH'] },
-  { day: 30, key: 'youth', actions: ['NEW_YOUTH_PLAYER_1', 'NEW_YOUTH_PLAYER_2', 'NEW_YOUTH_PLAYER_3'] }
+  {
+    day: 3,
+    key: 'recovery',
+    actions: [
+      { action: 'FRESHNESS_5', weight: 50 },
+      { action: 'FRESHNESS_10', weight: 30 },
+      { action: 'FRESHNESS_20', weight: 20 }
+    ]
+  },
+  {
+    day: 7,
+    key: 'training',
+    actions: [
+      { action: 'LEVEL_UP_PLAYER_40', weight: 50 },
+      { action: 'LEVEL_UP_PLAYER_70', weight: 30 },
+      { action: 'LEVEL_UP_PLAYER_100', weight: 20 }
+    ]
+  },
+  {
+    day: 15,
+    key: 'special',
+    actions: [
+      { action: 'BONUS_100K', weight: 30 },
+      { action: 'SPY', weight: 30 },
+      { action: 'MOTIVATING_SPEECH', weight: 30 },
+      { action: 'STAR_PLAYER', weight: 10 }
+    ]
+  },
+  {
+    day: 23,
+    key: 'youth',
+    actions: [
+      { action: 'NEW_YOUTH_PLAYER_1', weight: 50 },
+      { action: 'NEW_YOUTH_PLAYER_2', weight: 30 },
+      { action: 'NEW_YOUTH_PLAYER_3', weight: 20 }
+    ]
+  },
+  {
+    day: 30,
+    key: 'jackpot',
+    actions: [
+      { action: 'MILLION_BONUS', weight: 70 },
+      { action: 'STAR_PLAYER', weight: 30 }
+    ]
+  }
 ]
 
 /**
@@ -79,28 +123,39 @@ function parseClaimed (value) {
 }
 
 /**
- * Register today's login for a user and hand out any milestone reward they
- * just unlocked (#501).
+ * Milestones of the current cycle that the user has reached but not collected
+ * yet. Rewards are handed out on demand (the gift on the dashboard bar), so a
+ * milestone stays open until the user actually taps it — or until the cycle
+ * rolls over and wipes the progress (#501).
+ * @param {number} cycleDay
+ * @param {number[]} claimed
+ * @returns {Array<{day: number, key: string, actions: Array<{action: string, weight: number}>}>}
+ */
+export function openRewards (cycleDay, claimed) {
+  return LOGIN_STREAK_REWARDS.filter(r => r.day <= cycleDay && !claimed.includes(r.day))
+}
+
+/**
+ * Register today's login for a user (#501).
  *
  * Idempotent per calendar day: repeated calls on the same day (reload, second
- * device, revisiting the dashboard) change nothing and grant nothing. The
- * granted-milestone list is the second guard — even a same-day streak bump
- * could not hand the same reward out twice.
+ * device, revisiting the dashboard) change nothing. This only advances the
+ * streak — the milestone cards are handed out by `claimLoginStreakRewards`
+ * when the user collects the gift.
  *
  * @param {number} userId
- * @param {number|null} teamId - reward cards land in this team's inventory
- * @returns {Promise<{streak: number, cycleDay: number, claimed: number[], newRewards: Array<{day: number, key: string, action: string}>}>}
+ * @returns {Promise<{streak: number, cycleDay: number, claimed: number[]}>}
  */
-export async function registerDailyLogin (userId, teamId) {
+export async function registerDailyLogin (userId) {
   // The same user can hit this from several requests at once (the auth
   // middleware and the dashboard endpoint fire together on app start). Without
-  // serialising them both could pass the "not counted today" check and hand
-  // out the milestone card twice.
+  // serialising them both could pass the "not counted today" check and bump
+  // the streak twice.
   const inFlight = _inFlightRegistrations.get(userId)
   if (inFlight) return await inFlight
   const promise = (async () => {
     try {
-      return await _registerDailyLogin(userId, teamId)
+      return await _registerDailyLogin(userId)
     } finally {
       _inFlightRegistrations.delete(userId)
     }
@@ -114,10 +169,9 @@ const _inFlightRegistrations = new Map()
 
 /**
  * @param {number} userId
- * @param {number|null} teamId
- * @returns {Promise<{streak: number, cycleDay: number, claimed: number[], newRewards: Array<{day: number, key: string, action: string}>}>}
+ * @returns {Promise<{streak: number, cycleDay: number, claimed: number[]}>}
  */
-async function _registerDailyLogin (userId, teamId) {
+async function _registerDailyLogin (userId) {
   const today = toDateKey()
   const [row] = await query('SELECT * FROM user_login_streak WHERE user_id=? LIMIT 1', [userId])
 
@@ -142,8 +196,7 @@ async function _registerDailyLogin (userId, teamId) {
       return {
         streak: row.streak,
         cycleDay: row.cycle_day,
-        claimed: parseClaimed(row.rewards_claimed),
-        newRewards: []
+        claimed: parseClaimed(row.rewards_claimed)
       }
     }
     if (diff === 1) {
@@ -161,46 +214,110 @@ async function _registerDailyLogin (userId, teamId) {
     )
   }
 
-  const cycleDay = cycleDayForStreak(streak)
-  const newRewards = []
-  const milestone = LOGIN_STREAK_REWARDS.find(r => r.day === cycleDay)
-  if (milestone && !claimed.includes(milestone.day) && teamId) {
-    const action = await _pickGrantableAction(teamId, milestone.actions)
-    // Record the milestone even when no card could be handed out, so the user
-    // does not get a second shot at it later in the same cycle.
-    claimed = [...claimed, milestone.day]
-    await query('UPDATE user_login_streak SET rewards_claimed=? WHERE user_id=?', [claimed.join(','), userId])
-    if (action) {
-      const { season } = await getGameDayAndSeason()
-      await query('INSERT INTO action_card SET ?', {
-        team_id: teamId,
-        action,
-        played: 0,
-        state: 'pending',
-        season
-      })
-      newRewards.push({ day: milestone.day, key: milestone.key, action })
-    }
-  }
+  return { streak, cycleDay: cycleDayForStreak(streak), claimed }
+}
 
-  return { streak, cycleDay, claimed, newRewards }
+/** @type {Map<number, Promise<object>>} */
+const _inFlightClaims = new Map()
+
+/**
+ * Hand out the cards for every milestone the user has reached but not yet
+ * collected (#501). Triggered by the user tapping the gift on the dashboard
+ * bar — nothing is granted just by opening the app.
+ *
+ * The cards land as `pending`, exactly like the mini-game reward, so the user
+ * still flips them open in the claim overlay.
+ *
+ * @param {number} userId
+ * @param {number} teamId - reward cards land in this team's inventory
+ * @returns {Promise<{cards: Array<{id: number, action: string, day: number, key: string}>, claimed: number[], limitReached: boolean}>}
+ */
+export async function claimLoginStreakRewards (userId, teamId) {
+  // A double tap on the gift would otherwise run both passes against the same
+  // `rewards_claimed` value and hand the milestone out twice.
+  const inFlight = _inFlightClaims.get(userId)
+  if (inFlight) return await inFlight
+  const promise = (async () => {
+    try {
+      return await _claimLoginStreakRewards(userId, teamId)
+    } finally {
+      _inFlightClaims.delete(userId)
+    }
+  })()
+  _inFlightClaims.set(userId, promise)
+  return await promise
 }
 
 /**
- * Pick a card from the pool the team can actually receive, so a reward never
- * lands as an unclaimable pending card. Returns null when the team is capped
- * on every option.
+ * @param {number} userId
  * @param {number} teamId
- * @param {string[]} actions
+ * @returns {Promise<{cards: Array<{id: number, action: string, day: number, key: string}>, claimed: number[], limitReached: boolean}>}
+ */
+async function _claimLoginStreakRewards (userId, teamId) {
+  const { cycleDay, claimed: alreadyClaimed } = await getStreakState(userId)
+  let claimed = alreadyClaimed
+  const cards = []
+  let limitReached = false
+
+  for (const milestone of openRewards(cycleDay, claimed)) {
+    const action = await _pickGrantableAction(teamId, milestone.actions)
+    if (!action) {
+      // Every option of this pool is capped. Leave the milestone open instead
+      // of burning it — the user can collect it once a card slot frees up.
+      limitReached = true
+      break
+    }
+    const { season } = await getGameDayAndSeason()
+    const result = await query('INSERT INTO action_card SET ?', {
+      team_id: teamId,
+      action,
+      played: 0,
+      state: 'pending',
+      season
+    })
+    claimed = [...claimed, milestone.day]
+    cards.push({ id: result.insertId, action, day: milestone.day, key: milestone.key })
+  }
+
+  if (cards.length > 0) {
+    await query('UPDATE user_login_streak SET rewards_claimed=? WHERE user_id=?', [claimed.join(','), userId])
+  }
+  return { cards, claimed, limitReached }
+}
+
+/**
+ * Pick a card from the weighted pool, restricted to the ones the team can
+ * actually receive so a reward never lands as an unclaimable pending card.
+ * Weights of the remaining options are renormalized against their own sum.
+ * Returns null when the team is capped on every option.
+ * @param {number} teamId
+ * @param {Array<{action: string, weight: number}>} actions
  * @returns {Promise<string|null>}
  */
 async function _pickGrantableAction (teamId, actions) {
   const available = []
-  for (const action of actions) {
-    if (await canReceiveActionCard(teamId, action)) available.push(action)
+  for (const entry of actions) {
+    if (await canReceiveActionCard(teamId, entry.action)) available.push(entry)
   }
-  if (available.length === 0) return null
-  return randomItem(available)
+  return pickWeightedAction(available)
+}
+
+/**
+ * Draw one action from a weighted list. Entries without a positive weight are
+ * treated as equally likely, so a malformed pool still yields a card.
+ * @param {Array<{action: string, weight: number}>} entries
+ * @returns {string|null}
+ */
+export function pickWeightedAction (entries) {
+  if (!entries || entries.length === 0) return null
+  const total = entries.reduce((sum, e) => sum + Math.max(0, e.weight || 0), 0)
+  if (total <= 0) return randomItem(entries).action
+  let roll = Math.random() * total
+  for (const entry of entries) {
+    roll -= Math.max(0, entry.weight || 0)
+    if (roll < 0) return entry.action
+  }
+  return entries[entries.length - 1].action
 }
 
 /**

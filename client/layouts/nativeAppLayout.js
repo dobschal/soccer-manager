@@ -6,9 +6,10 @@ import { server } from '../lib/gateway.js'
 import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
 import { showAccountOverlay } from '../partials/accountOverlay.js'
-import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
+import { currentGamedayLabel, currentGamedayHref } from '../lib/currentGamedayLabel.js'
 import { maybeShowUnverifiedEmailToast } from '../partials/unverifiedEmailToast.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
+import { ActionCardCount } from '../partials/actionCardCount.js'
 
 export class NativeAppLayout extends UIElement {
   async load () {
@@ -36,14 +37,18 @@ export class NativeAppLayout extends UIElement {
           <div class="info-bar-content">
             <img src="assets/logo.svg" alt="Logo" class="info-bar-logo" id="info-bar-logo">
             <div class="info-bar-links">
-              <a href="#results" class="info-bar-item text-decoration-none text-white border-0">
+              <a href="${currentGamedayHref(this._currentGameday)}" class="info-bar-item text-decoration-none text-white border-0">
                 <i class="fa fa-calendar" aria-hidden="true"></i>
                 ${currentGamedayLabel(this._currentGameday)}
               </a>
               <a href="#dashboard" class="info-bar-item text-decoration-none text-white border-0" id="${this._nextGameInElementId}">
               </a>
               <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-white border-0">
-                <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
+                <i class="fa fa-money" aria-hidden="true"></i> ${new Balance({ short: true })}
+              </a>
+              <a href="#my-team?sub_page=cards" class="info-bar-item text-decoration-none text-white border-0"
+                 title="${t('dashboard.tabCards')}">
+                <i class="fa fa-clone" aria-hidden="true"></i> ${new ActionCardCount()}
               </a>
             </div>
             <button id="settings-button" class="native-settings-btn native-avatar-btn" type="button" aria-label="${t('nav.settings')}">

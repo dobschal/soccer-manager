@@ -3095,7 +3095,53 @@ const migrations = [{
       })
     }
   }
+}, {
+  name: 'Wiki: daily login rewards are collected via the gift (#501)',
+  async run () {
+    const KEYS_TO_REFRESH = ['daily-login']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
+
+/**
+ * Move every table that is still on the legacy utf8mb3 charset over to
+ * utf8mb4 (#544).
+ *
+ * Most of the older tables above were created with `DEFAULT CHARSET=utf8`,
+ * which MySQL 8 maps to utf8mb3 — three bytes per character, so anything
+ * outside the BMP is rejected with ER_TRUNCATED_WRONG_VALUE_FOR_FIELD. Every
+ * emoji lives outside the BMP, which is why renaming a lineup to "😳" blew up.
+ *
+ * This runs after every migration rather than as a one-off entry, so a table
+ * added later can never silently reintroduce the problem. Once everything is
+ * converted it costs a single information_schema query per boot.
+ *
+ * @returns {Promise<void>}
+ */
+export async function convertLegacyTablesToUtf8mb4 () {
+  const tables = await query(`SELECT TABLE_NAME AS name
+                              FROM information_schema.TABLES
+                              WHERE TABLE_SCHEMA = DATABASE()
+                                AND TABLE_TYPE = 'BASE TABLE'
+                                AND TABLE_COLLATION LIKE 'utf8mb3%'
+                              ORDER BY DATA_LENGTH + INDEX_LENGTH ASC`)
+  if (!tables.length) return
+  console.log(`🔤 Converting ${tables.length} legacy utf8mb3 tables to utf8mb4...`)
+  for (const { name } of tables) {
+    // Table names come from information_schema, never from user input.
+    await query(`ALTER TABLE \`${name}\` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)
+    console.log(`  ↳ ${name}`)
+  }
+}
 
 /**
  * @returns {Promise<void>}
@@ -3119,7 +3165,7 @@ export async function runMigration () {
                (
                    id
                )
-      ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+      ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;`)
   for (const migration of migrations) {
     const [{ amount }] = await query(`SELECT COUNT(*) AS amount
                                       FROM __migration
@@ -3129,5 +3175,6 @@ export async function runMigration () {
     await query(`INSERT INTO __migration (name)
                  VALUES ("${migration.name}");`)
   }
+  await convertLegacyTablesToUtf8mb4()
   console.log(`✅ Database migration done in ${Date.now() - t1}ms.`)
 }

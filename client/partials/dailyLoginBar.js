@@ -4,14 +4,15 @@ import { t } from '../i18n/index.js'
 import { showOverlay } from './overlay.js'
 import { generateId } from '../lib/html.js'
 import { toast } from './toast.js'
-import { actionCardLabel } from '../lib/actionCardLabels.js'
+import { showCardClaimOverlay } from './cardClaimOverlay.js'
 
 /** Icon per milestone reward category, matching the reward keys from the server. */
 const MILESTONE_ICONS = {
   recovery: 'fa-bolt',
   training: 'fa-graduation-cap',
   special: 'fa-gift',
-  youth: 'fa-star'
+  youth: 'fa-star',
+  jackpot: 'fa-trophy'
 }
 
 /**
@@ -31,10 +32,10 @@ export class DailyLoginBar extends UIElement {
 
   get template () {
     if (!this.status || !this.status.cycleLength) return '<div></div>'
-    const { cycleDay, cycleLength, streak, milestones, claimed } = this.status
+    const { cycleDay, cycleLength, milestones, claimed } = this.status
     const percentage = Math.max(0, Math.min(100, (cycleDay / cycleLength) * 100))
     return `
-      <div class="daily-login-bar u-cursor-pointer mb-3" role="button" tabindex="0"
+      <div class="daily-login-bar card card-body border-info bg-info-subtle u-cursor-pointer mb-3" role="button" tabindex="0"
            aria-label="${t('dailyLogin.title')}">
         <div class="d-flex align-items-center justify-content-between mb-1">
           <span class="small fw-bold"><i class="fa fa-fire text-danger" aria-hidden="true"></i> ${t('dailyLogin.title')}</span>
@@ -50,7 +51,7 @@ export class DailyLoginBar extends UIElement {
                   style="left: ${(m.day / cycleLength) * 100}%">${m.day}</span>
           `).join('')}
         </div>
-        <div class="small text-muted mt-1">${this._renderStreakLine(streak)}</div>
+        ${this._renderGift()}
       </div>
     `
   }
@@ -65,24 +66,69 @@ export class DailyLoginBar extends UIElement {
             this._showOverlay()
           }
         }
+      },
+      // Sits on top of the bar, so its click must not also open the overlay.
+      '(optional).daily-login-gift': {
+        click: (e) => {
+          e.stopPropagation()
+          void this._collectReward()
+        },
+        keydown: (e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return
+          e.preventDefault()
+          e.stopPropagation()
+          void this._collectReward()
+        }
       }
     }
   }
 
-  onMounted () {
-    // Surface a reward the user just unlocked by opening the app today.
-    for (const reward of this.status?.newRewards ?? []) {
-      toast(t('dailyLogin.rewardEarned', { card: actionCardLabel(reward.action) }), 'success')
-    }
+  /**
+   * The gift lying on top of the bar whenever a milestone is waiting to be
+   * collected. Nothing is granted until the user taps it (#501).
+   * @returns {string}
+   */
+  _renderGift () {
+    const available = this.status?.availableRewards ?? []
+    if (available.length === 0) return ''
+    return `
+      <div class="daily-login-gift" role="button" tabindex="0" aria-label="${t('dailyLogin.collect')}">
+        <span class="daily-login-gift-emoji" aria-hidden="true">🎁</span>
+        <span class="daily-login-gift-label">${t('dailyLogin.collect')}</span>
+        ${available.length > 1 ? `<span class="badge bg-info daily-login-gift-count">${available.length}</span>` : ''}
+      </div>
+    `
   }
 
   /**
-   * @param {number} streak
-   * @returns {string}
+   * Ask the server for the cards behind the gift, reveal them in the same flip
+   * overlay the mini game uses, then refresh the bar.
+   * @returns {Promise<void>}
    */
-  _renderStreakLine (streak) {
-    if (!streak) return t('dailyLogin.noStreak')
-    return t('dailyLogin.streakDays', { days: streak })
+  async _collectReward () {
+    if (this._collecting) return
+    this._collecting = true
+    try {
+      const result = await server.claimDailyLoginReward()
+      if (result.cards?.length) {
+        await showCardClaimOverlay(result.cards)
+      } else if (result.limitReached) {
+        toast(t('dailyLogin.cardLimitReached'), 'error')
+      }
+      // `update()` re-renders from `this.status` without refetching, so the
+      // collected state has to be written back first — otherwise the gift keeps
+      // sitting on the bar after the cards were handed out. The claim response
+      // already carries the new state, so no second round trip is needed.
+      if (this.status) {
+        this.status.claimed = result.claimed ?? this.status.claimed
+        this.status.availableRewards = result.availableRewards ?? []
+      }
+      await this.update()
+    } catch (e) {
+      toast(e.message ?? t('dailyLogin.claimError'), 'error')
+    } finally {
+      this._collecting = false
+    }
   }
 
   /**
@@ -109,6 +155,28 @@ export class DailyLoginBar extends UIElement {
             title="${t('dailyLogin.reward.' + milestone.key)}">
         <i class="fa ${icon}" aria-hidden="true"></i>
       </span>
+    `
+  }
+
+  /**
+   * One milestone in the overlay's reward list (#501): just the day and its
+   * reward category. The individual cards and their draw chances are left out
+   * on purpose — the list stays short and scannable.
+   * @param {{day: number, key: string}} milestone
+   * @param {number[]} claimed
+   * @returns {string}
+   */
+  _renderRewardItem (milestone, claimed) {
+    const done = claimed.includes(milestone.day)
+    const icon = done ? 'fa-check-circle text-success' : `${MILESTONE_ICONS[milestone.key] || 'fa-gift'} text-info`
+    return `
+      <li class="daily-login-reward mb-2">
+        <div class="d-flex align-items-center gap-2 fw-bold small">
+          <i class="fa ${icon}" aria-hidden="true"></i>
+          <span>${t('dailyLogin.rewardDay', { day: milestone.day })}</span>
+          <span class="text-muted fw-normal">${t('dailyLogin.reward.' + milestone.key)}</span>
+        </div>
+      </li>
     `
   }
 
@@ -170,18 +238,7 @@ export class DailyLoginBar extends UIElement {
            <td class="small text-end">${t('dailyLogin.streakDays', { days: me.streak })}</td>
          </tr>`
       : ''
-    const rewardItems = milestones.map(m => {
-      const done = claimed.includes(m.day)
-      const icon = done ? 'fa-check-circle text-success' : `${MILESTONE_ICONS[m.key] || 'fa-gift'} text-muted`
-      return `
-        <li class="d-flex align-items-center gap-2 mb-1">
-          <i class="fa ${icon}" aria-hidden="true"></i>
-          <span class="small ${done ? '' : 'text-muted'}">
-            ${t('dailyLogin.rewardLine', { day: m.day, reward: t('dailyLogin.reward.' + m.key) })}
-          </span>
-        </li>
-      `
-    }).join('')
+    const rewardItems = milestones.map(m => this._renderRewardItem(m, claimed)).join('')
     const nextMilestone = milestones.find(m => m.day > cycleDay)
     return `
       <div class="mb-3">
@@ -196,7 +253,7 @@ export class DailyLoginBar extends UIElement {
       </div>
       <div class="mb-3">
         <h6 class="mb-2">${t('dailyLogin.rewardsTitle')}</h6>
-        <ul class="list-unstyled mb-0">${rewardItems}</ul>
+        <ul class="list-unstyled mb-0 daily-login-rewards">${rewardItems}</ul>
       </div>
       <div>
         <h6 class="mb-2"><i class="fa fa-trophy" aria-hidden="true"></i> ${t('dailyLogin.leaderboardTitle')}</h6>
@@ -211,4 +268,5 @@ export class DailyLoginBar extends UIElement {
   }
 
   status = null
+  _collecting = false
 }

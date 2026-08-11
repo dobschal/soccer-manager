@@ -32,7 +32,11 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 - **US-AC-17**: Als Spieler bekomme ich auf ein Marktangebot, das laenger als 24 Stunden offen liegt, automatisch ein Geldgebot von einem Bot-Team, damit meine Karten nicht unverkauft liegen bleiben.
 - **US-AC-18**: Als Spieler kann ich die Karte "Millionengeschenk" einloesen und erhalte sofort 1.000.000 Euro.
 - **US-AC-19**: Als Spieler sehe ich auf dem Dashboard einen Handlungsbedarf, sobald einer meiner Kartenstapel das Limit erreicht hat, damit ich keine weiteren Karten verliere.
-- **US-AC-20**: Als Spieler sehe ich die Anzahl meiner verfuegbaren Aktionskarten in der Navigationsleiste der Startseite und komme per Klick direkt zur Kartenseite.
+- **US-AC-20**: Als Spieler sehe ich die Anzahl meiner verfuegbaren Aktionskarten in der Info-Bar rechts neben
+  meinem Kontostand — im gleichen Design wie die anderen Info-Bar-Eintraege — und komme per Klick direkt zur
+  Kartenseite. Der Zaehler ist auf jeder Seite sichtbar, nicht nur auf der Startseite.
+- **US-AC-21**: Als neu registrierter Manager finde ich direkt nach der Vereinswahl ein Startpaket in meinem
+  Kartenbestand: Nachwuchsspieler, Basis-Training, Starspieler, Nachwuchsstar und Millionengeschenk.
 
 ## Kartentypen
 
@@ -214,12 +218,24 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - **TA-AC-43**: Der Eintrag hat kein "alles gut"-Gegenstueck (`hideOk`): eine Dauer-Zeile fuer etwas, das nur im
   Ausnahmefall relevant ist, waere nur Rauschen.
 
-### Kartenzaehler in der Navigation (#523)
+### Kartenzaehler in der Info-Bar (#523)
 
-- **TA-AC-44**: Das Dashboard zeigt die Zahl der spielbaren Karten in der Navigationsleiste und verlinkt auf
-  `#my-team?sub_page=cards`. Ausstehende (`pending`) Karten zaehlen nicht mit — sie muessen erst abgeholt werden.
-- **TA-AC-45**: Bei `ACTION_CARDS_CHANGED` wird nur der Zahlen-Span per `textContent` aktualisiert. Ein
-  Re-Render des Dashboards wuerde die Startseite samt 3D-Szene und Charts neu aufbauen.
+- **TA-AC-44**: `client/partials/actionCardCount.js` zeigt die Zahl der spielbaren Karten als Info-Bar-Eintrag
+  und verlinkt auf `#my-team?sub_page=cards`. Ausstehende (`pending`) Karten zaehlen nicht mit — sie muessen
+  erst abgeholt werden.
+- **TA-AC-45**: Der Zaehler laedt seine Zahl selbst und abonniert `ACTION_CARDS_CHANGED` sowie `RECONNECTED`
+  eigenstaendig. Er haengt damit an der Layout-Instanz, die einen Seitenwechsel ueberlebt — nicht mehr am
+  Dashboard, das bei einem Re-Render die Startseite samt 3D-Szene und Charts neu aufgebaut haette.
+- **TA-AC-46**: Eingebaut in **beide** Layouts (`gameLayout.js` und `nativeAppLayout.js`) — sonst fehlt der
+  Zaehler in der App.
+- **TA-AC-47**: Faellt `getActionCards` aus, zeigt der Eintrag 0 statt die Info-Bar zu sprengen.
+
+### Startpaket bei der Vereinswahl (#518)
+
+- **TA-AC-48**: `STARTER_ACTION_CARDS` in `server/routes/teamChoice.js` definiert das Startpaket:
+  `NEW_YOUTH_PLAYER_1`, `LEVEL_UP_PLAYER_40`, `STAR_PLAYER`, `NEW_YOUTH_PLAYER_3`, `MILLION_BONUS`. Die Karten
+  werden bei der Uebernahme eines freien Teams vergeben, nachdem der bestehende Kartenbestand des Bot-Teams
+  geloescht wurde.
 
 ### Tests
 
@@ -236,4 +252,6 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
   Ueberspringen bei unbekannter Karte oder zu klammem Bot-Team
 - Millionengeschenk: Wahrscheinlichkeit als Zehntel des Geldbonus, Auszahlung 1.000.000 €, Bot-Gebotspreis
 - Handlungsbedarf bei vollem Kartenstapel, inklusive Abgrenzung gegen ausstehende und gespielte Karten
-- Kartenzaehler in der Navigation: Ladewert, Live-Aktualisierung, Verhalten bei fehlgeschlagenem Refresh
+- Kartenzaehler in der Info-Bar: Ladewert, Live-Aktualisierung bei `ACTION_CARDS_CHANGED`/`RECONNECTED`,
+  Verhalten bei fehlgeschlagenem Request
+- Startpaket bei der Vereinswahl inkl. Millionengeschenk

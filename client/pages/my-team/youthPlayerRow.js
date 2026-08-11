@@ -18,7 +18,7 @@ export class YouthPlayerRow extends UIElement {
    *   so the parent page (which holds the same reference in its
    *   `youthPlayers` array) stays consistent for later re-renders.
    * @param {import('./youthTeam.js').YouthTeamPage} page - Parent page. Used
-   *   to invoke promote / fire / mode-change flows that own overlays and
+   *   to invoke promote / sell / mode-change flows that own overlays and
    *   toasts.
    */
   constructor (player, page) {
@@ -60,8 +60,7 @@ export class YouthPlayerRow extends UIElement {
               ${!isOldEnough ? 'disabled' : ''}
               title="${disabledReason}"
             ><i class="fa fa-arrow-up"></i> ${t('youthTeam.promote')}</button>
-            <button class="btn btn-sm btn-success me-1 youth-row-sell-btn"><i class="fa fa-money"></i> ${t('youthTeam.sell')}</button>
-            <button class="btn btn-sm btn-danger youth-row-fire-btn"><i class="fa fa-times"></i> ${t('youthTeam.fire')}</button>
+            <button class="btn btn-sm btn-success youth-row-sell-btn"><i class="fa fa-money"></i> ${t('youthTeam.sell')}</button>
           </span>
         </td>
       </tr>
@@ -82,12 +81,6 @@ export class YouthPlayerRow extends UIElement {
         click: (e) => {
           e.stopPropagation()
           this.page._showSellConfirm(this.player)
-        }
-      },
-      '.youth-row-fire-btn': {
-        click: (e) => {
-          e.stopPropagation()
-          this.page._showFireConfirm(this.player)
         }
       },
       '.youth-mode-inline-select': {

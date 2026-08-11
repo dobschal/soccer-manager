@@ -63,7 +63,7 @@ export class TourPage extends UIElement {
     const away = this.data.players.filter(p => p.tourDaysLeft > 0)
     const perGameDay = away.reduce((sum, p) => sum + p.progressPerGameDay, 0)
     return `
-      <div class="card card-body bg-dark mb-4">
+      <div class="card card-body bg-dark text-white tour-progress-card mb-4">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <strong>${t('tour.progressTitle')}</strong>
           <span class="text-muted small">${progress.toFixed(1)} / ${target}</span>
