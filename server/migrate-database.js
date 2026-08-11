@@ -3110,6 +3110,21 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Wiki: urgency list starts collapsed with a show-all row',
+  async run () {
+    const KEYS_TO_REFRESH = ['urgency-list']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**

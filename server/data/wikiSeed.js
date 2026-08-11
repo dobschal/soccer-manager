@@ -1341,6 +1341,8 @@ Typical items:
 • Forum mentions – someone mentioned you in the forum.
 • Action card stack full – one of your card types has hit the 20-card limit; play or trade some, or further cards of that type are lost.
 
+The list starts collapsed and shows only the first three rows. Open items always come first, so anything that needs action is visible right away — tap "Show all" in the last row to see the complete checklist including the items that are already fine.
+
 Check the list regularly so you never go into a match day with an empty bench or a tired lineup.`
     },
     de: {
@@ -1359,6 +1361,8 @@ Typische Punkte:
 • Kein Sponsor – du hast aktuell keinen aktiven Sponsorvertrag.
 • Forum-Erwähnungen – jemand hat dich im Forum erwähnt.
 • Kartenstapel voll – einer deiner Kartentypen hat das Limit von 20 erreicht; spiele oder tausche Karten, sonst verfallen weitere dieses Typs.
+
+Die Liste ist zu Beginn eingeklappt und zeigt nur die ersten drei Zeilen. Offene Punkte stehen dabei immer oben, damit du sofort siehst, was zu tun ist – über "Alle anzeigen" in der letzten Zeile klappst du die vollständige Checkliste inklusive der bereits erledigten Punkte auf.
 
 Sieh dir die Liste regelmäßig an, damit du nie mit leerer Bank oder müder Aufstellung in einen Spieltag gehst.`
     }

@@ -225,6 +225,82 @@ describe('StartPage urgency section placement', () => {
   })
 })
 
+describe('StartPage._renderUrgencyChecklist collapsing', () => {
+  function makeUrgencyPage (urgencies) {
+    return new StartPage({
+      sliderGames: [],
+      initialSlideIndex: 0,
+      team: { id: 1, level: 1, league: 1, name: 'Test' },
+      cupGames: [],
+      friendlyGames: [],
+      canPlayFriendly: false,
+      standing: [],
+      teamPosition: 0,
+      urgencies
+    })
+  }
+
+  function countRows (html) {
+    return (html.match(/<li /g) || []).length
+  }
+
+  it('renders three items and a show-all row', () => {
+    const html = makeUrgencyPage([])._renderUrgencyChecklist()
+    expect(countRows(html)).toBe(StartPage.URGENCY_PREVIEW_COUNT + 1)
+    expect(html).toContain('dashboard.urgencyShowAll')
+  })
+
+  it('sorts warnings above the ok rows so they are never collapsed away', () => {
+    // NO_SPONSOR is the second-to-last check — with warnings sorted first it
+    // must still show up in the three-row preview.
+    const html = makeUrgencyPage([
+      { type: 'NO_SPONSOR' },
+      { type: 'FORUM_MENTIONS', count: 2 }
+    ])._renderUrgencyChecklist()
+
+    const preview = html.slice(0, html.indexOf('dashboard.urgencyShowAll'))
+    expect(preview).toContain('dashboard.urgencySponsor')
+    expect(preview).toContain('dashboard.urgencyMentions')
+    expect(preview.indexOf('dashboard.urgencySponsor'))
+      .toBeLessThan(preview.indexOf('dashboard.urgencyOk.'))
+  })
+
+  it('expands to the full list when the show-all row is clicked', async () => {
+    const { onClick } = await import('../../../lib/htmlEventHandlers.js')
+    const { generateId } = await import('../../../lib/html.js')
+    onClick.mockClear()
+    let idCount = 0
+    generateId.mockImplementation(() => `id-${++idCount}`)
+
+    const html = makeUrgencyPage([])._renderUrgencyChecklist()
+    const listId = html.match(/<ul id="([^"]+)"/)[1]
+
+    document.body.innerHTML = html
+    const [selector, handler] = onClick.mock.calls[onClick.mock.calls.length - 1]
+    expect(selector).toBe('#' + html.match(/<li id="([^"]+)"/)[1])
+    handler()
+
+    const list = document.getElementById(listId)
+    expect(countRows(list.innerHTML)).toBeGreaterThan(StartPage.URGENCY_PREVIEW_COUNT)
+    expect(list.innerHTML).not.toContain('dashboard.urgencyShowAll')
+
+    generateId.mockReturnValue('id')
+    document.body.innerHTML = ''
+  })
+
+  it('renders a plain list without a toggle when everything fits', () => {
+    const page = makeUrgencyPage([])
+    const original = StartPage.URGENCY_PREVIEW_COUNT
+    try {
+      StartPage.URGENCY_PREVIEW_COUNT = 99
+      const html = page._renderUrgencyChecklist()
+      expect(html).not.toContain('dashboard.urgencyShowAll')
+    } finally {
+      StartPage.URGENCY_PREVIEW_COUNT = original
+    }
+  })
+})
+
 describe('StartPage._renderMiniStanding row click', () => {
   it('navigates to the league results page (not the team page) when a row is clicked', async () => {
     const { goTo } = await import('../../../lib/router.js')

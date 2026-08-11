@@ -118,15 +118,14 @@ export class TourPage extends UIElement {
   }
 
   /**
-   * The squad, with the per-game-day yield each player would add and a button
-   * to send someone off.
+   * The button that opens the send overlay, plus the hint explaining how the
+   * per-game-day yield is measured.
    * @returns {string}
    */
   _renderSquad () {
     const selectable = this.data.players.filter(p => this._isSelectable(p))
     return `
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <h5 class="mb-0">${t('tour.squadTitle')}</h5>
+      <div class="mb-2">
         <button type="button" class="btn btn-info tour-send-btn" ${this.data.freeSlots === 0 || selectable.length === 0 ? 'disabled' : ''}>
           <i class="fa fa-plane" aria-hidden="true"></i> ${t('tour.sendPlayers', { free: this.data.freeSlots })}
         </button>

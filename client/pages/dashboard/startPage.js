@@ -52,6 +52,8 @@ export class StartPage {
     this._urgencies = urgencies
     this._newMessageCount = newMessageCount || 0
   }
+  /** Rows shown before the "show all" toggle collapses the rest. */
+  static URGENCY_PREVIEW_COUNT = 3
 
   /**
    * @returns {string}
@@ -274,34 +276,60 @@ export class StartPage {
       }
     ]
 
-    const items = checks.map(check => {
+    const warnings = []
+    const okItems = []
+
+    checks.forEach(check => {
       const urgency = this._urgencies.find(u => u.type === check.type)
       const isOk = !urgencyTypes.includes(check.type)
 
       if (isOk) {
-        if (check.hideOk) return ''
-        return `
+        if (check.hideOk) return
+        okItems.push(`
           <li class="list-group-item d-flex align-items-center py-2 px-3 border-0">
             <i class="fa fa-check-circle text-success me-2"></i>
             <span class="text-muted small">${t(check.okText)}</span>
           </li>
-        `
+        `)
+        return
       }
 
       const message = typeof check.text === 'function'
         ? check.text(urgency)
         : t(check.text, { count: urgency?.count || 0 })
-      return `
+      warnings.push(`
         <li class="list-group-item d-flex align-items-center py-2 px-3 border-0 ">
           <a href="${check.link}" class="text-decoration-none text-start">
             <i class="fa fa-exclamation-circle text-warning me-2"></i>
             <span class="text-warning small">${message}</span>
           </a>
         </li>
-      `
-    }).join('')
+      `)
+    })
 
-    return `<ul class="list-group list-group-flush">${items}</ul>`
+    // Warnings first — the rows that actually need action must never be the
+    // ones hidden behind the "show all" toggle.
+    const allItems = [...warnings, ...okItems]
+    const listId = generateId()
+
+    if (allItems.length <= StartPage.URGENCY_PREVIEW_COUNT) {
+      return `<ul id="${listId}" class="list-group list-group-flush">${allItems.join('')}</ul>`
+    }
+
+    const toggleId = generateId()
+    onClick('#' + toggleId, () => {
+      const list = document.getElementById(listId)
+      if (list) list.innerHTML = allItems.join('')
+    })
+    const preview = allItems.slice(0, StartPage.URGENCY_PREVIEW_COUNT).join('')
+    const toggleRow = `
+      <li id="${toggleId}" class="list-group-item d-flex align-items-center py-2 px-3 border-0 u-cursor-pointer">
+        <i class="fa fa-angle-down text-info me-2"></i>
+        <span class="text-info small">${t('dashboard.urgencyShowAll', { count: allItems.length - StartPage.URGENCY_PREVIEW_COUNT })}</span>
+      </li>
+    `
+
+    return `<ul id="${listId}" class="list-group list-group-flush">${preview}${toggleRow}</ul>`
   }
 
   /**
