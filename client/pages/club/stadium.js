@@ -245,11 +245,17 @@ export class StadiumSubPage extends UIElement {
    * @returns {string}
    */
   _renderPriceForm () {
-    const formGroups = STANDS.map(name => `
+    // A stand that has not been built has no seats to sell — showing a price
+    // field for it is just noise (#538).
+    const builtStands = STANDS.filter(name => (this.stadium[name + '_stand_size'] || 0) > 0)
+    if (builtStands.length === 0) {
+      return `<p class="text-muted">${t('stadium.noStandsBuilt')}</p>`
+    }
+    const formGroups = builtStands.map(name => `
       <div class="col-6 col-sm-3 mb-2">
         <div class="form-group">
           <label>
-            ${t('stadium.priceFor', {stand: t('stadium.' + name)})}
+            ${t('stadium.priceForStand', {stand: t('stadium.standName.' + name)})}
           </label>
           <div class="input-group">
             <input data-price-input="${name}"

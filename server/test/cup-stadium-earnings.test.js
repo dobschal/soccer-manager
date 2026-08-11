@@ -88,7 +88,10 @@ vi.mock('../helper/playerHelper.js', () => ({
   getPlayerAge: vi.fn().mockResolvedValue(25)
 }))
 
-vi.mock('../../client/util/player.js', () => ({
+// Only the salary is stubbed; the position-penalty maths is pure and should
+// run for real so the simulation behaves like production (#540).
+vi.mock('../../client/util/player.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   getSalary: vi.fn().mockReturnValue(500)
 }))
 

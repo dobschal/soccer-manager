@@ -7,7 +7,10 @@ vi.mock('../../i18n/index.js', () => ({ t: (k) => k }))
 vi.mock('../../lib/nativeReview.js', () => ({ maybeRequestReviewAfterWin: vi.fn() }))
 
 import { server } from '../../lib/gateway.js'
-import { buildTickerEvents, isSpielTickerSeen, logHasMinutes, maybeShowSpielTickerOverlay } from '../../partials/spielTickerOverlay.js'
+import {
+  buildTickerEvents, cardReason, isSpielTickerSeen, logHasMinutes, maybeShowSpielTickerOverlay,
+  HALF_TIME_MINUTE, RECOVERY_MIN_GAP_MINUTES, RECOVERY_MIN_STREAK
+} from '../../partials/spielTickerOverlay.js'
 
 describe('spielTickerOverlay helpers (#402)', () => {
   describe('buildTickerEvents', () => {
@@ -18,10 +21,13 @@ describe('spielTickerOverlay helpers (#402)', () => {
         { minute: 10, keeperHolds: true, player: 2 },
         { minute: 45, yellowCard: true, player: 3 },
         { minute: 30, redCard: true, player: 4 },
-        { minute: 5, lostBall: true }
+        // Below the streak bar, so it is not a notable recovery (#539).
+        { minute: 5, lostBall: true, streak: 0 }
       ]
       const events = buildTickerEvents(log)
-      expect(events.map(e => e.minute)).toEqual([10, 30, 45, 80])
+      // The half-time card sits between the 45th and 46th minute (#539).
+      expect(events.filter(e => !e.halfTime).map(e => e.minute)).toEqual([10, 30, 45, 80])
+      expect(events.some(e => e.halfTime)).toBe(true)
     })
 
     it('defaults a missing minute to 0', () => {
@@ -112,5 +118,126 @@ describe('spielTickerOverlay helpers (#402)', () => {
       expect(await maybeShowSpielTickerOverlay(params)).toBe(false)
       expect(server.getResult).toHaveBeenCalledTimes(2)
     })
+  })
+})
+
+describe('buildTickerEvents extensions (#539)', () => {
+  /**
+   * @param {number} minute
+   * @param {number} streak
+   * @returns {object}
+   */
+  const duel = (minute, streak) => ({ minute, lostBall: true, streak, player: 1, oponentPlayer: 2 })
+
+  it('shows only recoveries that broke up a passing move', () => {
+    const events = buildTickerEvents([
+      duel(10, 0),
+      duel(30, 1),
+      duel(50, RECOVERY_MIN_STREAK)
+    ])
+    const recoveries = events.filter(e => e.recovery)
+    expect(recoveries).toHaveLength(1)
+    expect(recoveries[0].minute).toBe(50)
+  })
+
+  it('thins recoveries out to one per gap window', () => {
+    const log = [10, 11, 12, 13].map(m => duel(m, 5))
+    const recoveries = buildTickerEvents(log).filter(e => e.recovery)
+    expect(recoveries).toHaveLength(1)
+  })
+
+  it('lets recoveries through again once the gap has passed', () => {
+    const log = [duel(10, 5), duel(10 + RECOVERY_MIN_GAP_MINUTES, 5)]
+    expect(buildTickerEvents(log).filter(e => e.recovery)).toHaveLength(2)
+  })
+
+  it('ignores duels without a minute — those predate the change', () => {
+    const events = buildTickerEvents([{ lostBall: true, streak: 9, player: 1, oponentPlayer: 2 }])
+    expect(events.filter(e => e.recovery)).toHaveLength(0)
+  })
+
+  it('ignores duels the attacker won', () => {
+    const events = buildTickerEvents([{ minute: 20, lostBall: false, streak: 9, player: 1, oponentPlayer: 2 }])
+    expect(events.filter(e => e.recovery)).toHaveLength(0)
+  })
+
+  it('adds a half-time card once the match ran past 45 minutes', () => {
+    const events = buildTickerEvents([{ minute: 60, goal: true, player: 1 }])
+    const half = events.find(e => e.halfTime)
+    expect(half).toBeTruthy()
+    expect(half.minute).toBe(HALF_TIME_MINUTE)
+  })
+
+  it('omits half time for a match that never reached it', () => {
+    const events = buildTickerEvents([{ minute: 20, goal: true, player: 1 }])
+    expect(events.some(e => e.halfTime)).toBe(false)
+  })
+
+  it('places half time after everything that happened in the 45th minute', () => {
+    const events = buildTickerEvents([
+      { minute: 45, goal: true, player: 1 },
+      { minute: 70, goal: true, player: 2 }
+    ])
+    const goalIdx = events.findIndex(e => e.minute === 45 && e.goal)
+    const halfIdx = events.findIndex(e => e.halfTime)
+    expect(halfIdx).toBeGreaterThan(goalIdx)
+  })
+
+  it('announces extra time for a cup match that went past 90', () => {
+    const events = buildTickerEvents(
+      [{ minute: 100, goal: true, player: 1 }],
+      { extraTime: true }
+    )
+    expect(events.some(e => e.extraTimeStart)).toBe(true)
+  })
+
+  it('closes with the penalty shootout when there was one', () => {
+    const shootout = { goalsTeamA: 4, goalsTeamB: 3, shots: [{ scored: true }] }
+    const events = buildTickerEvents(
+      [{ minute: 120, keeperHolds: true, player: 1 }],
+      { extraTime: true, penaltyShootout: shootout }
+    )
+    expect(events[events.length - 1].penaltyShootout).toBe(true)
+    expect(events[events.length - 1].shootout).toBe(shootout)
+  })
+
+  it('folds injuries into the timeline', () => {
+    const events = buildTickerEvents(
+      [{ minute: 60, goal: true, player: 1 }],
+      { injuries: [{ playerId: 7, playerName: 'Max', injuryType: 'sprain', injuryDays: 3, minute: 20 }] }
+    )
+    const injury = events.find(e => e.injury)
+    expect(injury).toMatchObject({ minute: 20, player: 7, injuryDays: 3 })
+    // Sorted before the 60th-minute goal.
+    expect(events.indexOf(injury)).toBeLessThan(events.findIndex(e => e.goal))
+  })
+
+  it('skips injuries without a minute', () => {
+    const events = buildTickerEvents([], { injuries: [{ playerId: 7, injuryDays: 3 }] })
+    expect(events.some(e => e.injury)).toBe(false)
+  })
+})
+
+describe('cardReason (#539)', () => {
+  const players = { 5: { name: 'Foulopfer' } }
+
+  it('names a second booking', () => {
+    expect(cardReason({ redCard: true, secondYellow: true }, players)).toBe('spielTicker.reasonSecondYellow')
+  })
+
+  it('names the player who was fouled', () => {
+    expect(cardReason({ yellowCard: true, foulOn: 5 }, players)).toBe('spielTicker.reasonFoulOn')
+  })
+
+  it('falls back to serious foul play for a straight red without a known victim', () => {
+    expect(cardReason({ redCard: true }, players)).toBe('spielTicker.reasonStraightRed')
+  })
+
+  it('falls back to a plain foul for a booking without a known victim', () => {
+    expect(cardReason({ yellowCard: true }, players)).toBe('spielTicker.reasonFoul')
+  })
+
+  it('ignores a foul target that is not in the squad list', () => {
+    expect(cardReason({ yellowCard: true, foulOn: 999 }, players)).toBe('spielTicker.reasonFoul')
   })
 })

@@ -1341,3 +1341,73 @@ describe('play-game simulation', () => {
     })
   })
 })
+
+describe('duel and card logging for the match ticker (#539)', () => {
+  /**
+   * Run enough steps that duels and cards are certain to occur.
+   * @param {object} [detailOverrides]
+   * @returns {object} gameDetails
+   */
+  function simulate (detailOverrides = {}) {
+    const teamA = createTeam({ prefix: 'A', idStart: 1 })
+    const teamB = createTeam({ prefix: 'B', idStart: 100 })
+    const gameDetails = createGameDetails({
+      playerTeamA: teamA,
+      playerTeamB: teamB,
+      teamA: { play_style: 'aggressive' },
+      teamB: { play_style: 'aggressive' },
+      ...detailOverrides
+    })
+    kickoff(teamA, teamB, gameDetails)
+    for (let step = 0; step < 900; step++) {
+      gameDetails.currentMinute = Math.floor(step / 10)
+      playGameStep(teamA, teamB, gameDetails)
+    }
+    return gameDetails
+  }
+
+  it('stamps every duel with the match minute', () => {
+    const duels = simulate().log.filter(l => 'lostBall' in l)
+    expect(duels.length).toBeGreaterThan(0)
+    for (const duel of duels) {
+      expect(typeof duel.minute).toBe('number')
+      expect(duel.minute).toBeGreaterThanOrEqual(0)
+      expect(duel.minute).toBeLessThanOrEqual(89)
+    }
+  })
+
+  it('records how long the attacking move had been running', () => {
+    const duels = simulate().log.filter(l => 'lostBall' in l)
+    for (const duel of duels) {
+      expect(typeof duel.streak).toBe('number')
+      expect(duel.streak).toBeGreaterThanOrEqual(0)
+    }
+    // Some duels must break up an actual passing move, otherwise the ticker
+    // would never have a recovery to show.
+    expect(duels.some(d => d.streak >= 3)).toBe(true)
+  })
+
+  it('records who was fouled for every card', () => {
+    const gameDetails = simulate()
+    const cards = gameDetails.log.filter(l => l.yellowCard || l.redCard)
+    expect(cards.length).toBeGreaterThan(0)
+    for (const card of cards) {
+      expect(card).toHaveProperty('foulOn')
+      if (card.foulOn !== null) {
+        const allIds = [...gameDetails.playerTeamA, ...gameDetails.playerTeamB].map(p => p.id)
+        expect(allIds).toContain(card.foulOn)
+      }
+    }
+  })
+
+  it('names the fouled player from the other team', () => {
+    const gameDetails = simulate()
+    const teamAIds = new Set(gameDetails.playerTeamA.map(p => p.id))
+    const cards = gameDetails.log.filter(l => (l.yellowCard || l.redCard) && l.foulOn)
+    for (const card of cards) {
+      // A card always comes out of a duel, so booked player and victim are
+      // never on the same side.
+      expect(teamAIds.has(card.player)).not.toBe(teamAIds.has(card.foulOn))
+    }
+  })
+})

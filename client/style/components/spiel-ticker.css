@@ -106,6 +106,61 @@
     font-weight: 700;
 }
 
+/* --- break events: half time, extra time, shootout (#539) --- */
+.spiel-ticker__event--break {
+    justify-content: center;
+    text-align: center;
+    background: rgba(127, 127, 127, 0.25);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.spiel-ticker__event--penalties {
+    background: rgba(13, 202, 240, 0.18);
+    text-transform: none;
+}
+
+.spiel-ticker__penalties {
+    display: inline-flex;
+    gap: 0.15rem;
+    margin: 0 0.5rem;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.spiel-ticker__penalty.is-scored {
+    color: var(--bs-success);
+}
+
+.spiel-ticker__penalty.is-missed {
+    color: var(--bs-danger);
+}
+
+.spiel-ticker__event--injury {
+    background: rgba(220, 53, 69, 0.12);
+}
+
+.spiel-ticker__event--recovery {
+    background: rgba(255, 193, 7, 0.1);
+}
+
+/* Portrait next to the event text — deliberately text-sized (#539). */
+.spiel-ticker__portrait {
+    display: inline-flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.spiel-ticker__portrait svg {
+    width: 22px;
+    height: auto;
+}
+
 .spiel-ticker__minute {
     font-variant-numeric: tabular-nums;
     font-weight: 700;

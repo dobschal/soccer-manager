@@ -751,6 +751,11 @@ What happens on a match day:
 • Each match is simulated step by step (see Match Simulation), and the result is stored right away.
 • Afterwards the system settles everything around the games: standings are updated, suspensions are served, salaries are paid, sponsor money and ticket income are booked, injured players recover a little, fitness is restored, youth players train and action cards are handed out.
 
+The match ticker:
+• The first time you open the app after your match, an animated ticker replays it minute by minute – goals, chances, bookings with the foul that caused them, injuries, and the tackles that broke up a real attack.
+• Half time is its own beat in the ticker. A cup tie that went the distance also shows extra time and, if needed, every penalty of the shootout.
+• You can skip the animation at any time and jump straight to the final score.
+
 A few details:
 • If a team cannot field at least 7 players, it forfeits 0:3.
 • At the end of a season, the match-day slot is used to prepare the next season (promotions, relegations, new fixtures) instead of playing games.
@@ -765,6 +770,11 @@ Was an einem Spieltag passiert:
 • Zuerst werden die Ligaspiele gespielt, danach die Pokalspiele.
 • Jedes Spiel wird Schritt für Schritt simuliert (siehe Spielberechnung), und das Ergebnis wird sofort gespeichert.
 • Danach wickelt das System alles rund um die Spiele ab: Tabellen werden aktualisiert, Sperren abgesessen, Gehälter gezahlt, Sponsorengeld und Ticketeinnahmen verbucht, verletzte Spieler erholen sich etwas, Fitness wird aufgefüllt, Jugendspieler trainieren und Action Cards werden verteilt.
+
+Der Spielticker:
+• Wenn du die App nach deinem Spiel zum ersten Mal öffnest, spielt ein animierter Ticker die Partie Minute für Minute nach – Tore, Chancen, Karten samt dem Foul, das dazu führte, Verletzungen und die Zweikämpfe, die einen echten Angriff gestoppt haben.
+• Die Halbzeit ist ein eigener Moment im Ticker. Bei einem Pokalspiel, das in die Verlängerung ging, siehst du zusätzlich die Verlängerung und – falls nötig – jeden Schuss des Elfmeterschießens.
+• Du kannst die Animation jederzeit überspringen und direkt zum Endstand springen.
 
 Ein paar Details:
 • Kann ein Team nicht mindestens 7 Spieler stellen, verliert es kampflos mit 0:3.
@@ -826,7 +836,7 @@ Modifiers that raise or lower the in-game level:
 • Squad age: an average age near 27 gives up to +5%; too young or too old costs up to −5%.
 • Home advantage: a well-filled home stadium boosts the home side; an empty stadium is a small penalty.
 • Bot penalty: bot teams play at 90% of their nominal level.
-• Out of position: a starter fielded away from their natural position plays at 50% level. Substitutes are the exception – a player brought on from the bench keeps their full level even in a foreign slot, so an emergency swap is never punished.
+• Out of position: a starter fielded away from their natural position loses part of their level, and how much depends on how far from home the slot is – 10% inside their own line (a right winger at centre forward), 20% one line away, 30% two lines away (a winger at centre back). Anyone in goal who is not a keeper, and any keeper fielded outfield, loses 50%. The lineup shows the exact figure under the player. Substitutes are the exception – a player brought on from the bench keeps their full level even in a foreign slot, so an emergency swap is never punished.
 
 Where to see it:
 • After a match, the squad list shows each starter's base level ("Lvl") and their in-game level ("IG"). Green means the modifiers raised the level, red means they lowered it.
@@ -845,7 +855,7 @@ Was das In-Game-Level verändert:
 • Durchschnittsalter: Ein Schnitt um 27 gibt bis zu +5%; zu jung oder zu alt kostet bis zu −5%.
 • Heimvorteil: Ein gut gefülltes Heimstadion stärkt die Heimmannschaft; ein leeres Stadion ist ein kleiner Malus.
 • Bot-Malus: Bot-Teams spielen mit 90% ihres nominalen Levels.
-• Falsche Position: Ein Starter, der abseits seiner natürlichen Position aufläuft, spielt nur mit 50% Level. Einwechselspieler sind die Ausnahme – ein von der Bank gebrachter Spieler behält sein volles Level auch auf einer fremden Position, ein Not-Wechsel wird also nie bestraft.
+• Falsche Position: Ein Starter abseits seiner natürlichen Position verliert einen Teil seines Levels, und zwar umso mehr, je weiter der Platz von seiner Reihe entfernt liegt – 10% innerhalb der eigenen Reihe (ein Rechtsaußen im Sturmzentrum), 20% eine Reihe weiter, 30% zwei Reihen weiter (ein Stürmer in der Innenverteidigung). Wer als Feldspieler ins Tor muss – oder als Torwart aufs Feld – verliert 50%. Die Aufstellung zeigt den genauen Wert unter dem Spieler an. Einwechselspieler sind die Ausnahme – ein von der Bank gebrachter Spieler behält sein volles Level auch auf einer fremden Position, ein Not-Wechsel wird also nie bestraft.
 
 Wo du es siehst:
 • Nach jedem Spiel zeigt die Kaderliste für jeden Starter das Basis-Level ("Lvl") und das In-Game-Level ("IG"). Grün bedeutet, die Modifikatoren haben das Level angehoben, Rot bedeutet, sie haben es gesenkt.
@@ -877,7 +887,7 @@ Injuries:
 • With a Medical Practice you get Medical Treatment cards, each shortening one player's lay-off by a match day (see Buildings).
 
 Salary:
-• Salaries grow exponentially with level – from about 150 € per day at level 1 to about 10,308 € at level 100, roughly doubling every 10 levels. They are paid every match day.
+• Salaries grow exponentially with level and get much steeper at the top: about 150 € per match day at level 1, 1,217 € at level 50, and 50,000 € at level 100. Up to level 50 the curve is gentle, above it a genuine star quickly becomes a serious item on the budget. They are paid every match day.
 
 Suspensions:
 • A second yellow card in a match means a red card. Five yellow cards across the season also trigger a one-match ban. Bans always last exactly one match and are served automatically on the next match day.`
@@ -903,7 +913,7 @@ Verletzungen:
 • Mit einer Arztpraxis bekommst du Karten „Medizinische Behandlung", die den Ausfall eines Spielers um je einen Spieltag verkürzen (siehe Gebäude).
 
 Gehalt:
-• Gehälter steigen exponentiell mit dem Level – von etwa 150 € pro Tag auf Level 1 bis rund 10.308 € auf Level 100, etwa eine Verdopplung alle 10 Level. Sie werden an jedem Spieltag gezahlt.
+• Gehälter steigen exponentiell mit dem Level und ganz oben besonders steil: rund 150 € pro Spieltag auf Level 1, 1.217 € auf Level 50 und 50.000 € auf Level 100. Bis Level 50 verläuft die Kurve flach, darüber wird ein echter Star schnell zu einem dicken Posten im Etat. Gezahlt wird an jedem Spieltag.
 
 Sperren:
 • Eine zweite Gelbe Karte im Spiel bedeutet Rot. Fünf Gelbe Karten über die Saison lösen ebenfalls eine Sperre von einem Spiel aus. Sperren dauern immer genau ein Spiel und werden am nächsten Spieltag automatisch abgesessen.`
@@ -1069,6 +1079,7 @@ Capacity and expansion:
 Attendance and income:
 • Attendance per stand depends on both teams' strength, your ticket price and whether the stand has a roof.
 • Ticket prices can be set per stand from 1 to 100 €. Around 15 € tends to be the sweet spot – too high and fans stay away.
+• A stand you have not built yet has no price field: prices only appear for stands that actually exist.
 
 Home advantage:
 • A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.
@@ -1091,6 +1102,7 @@ Kapazität und Ausbau:
 Zuschauer und Einnahmen:
 • Die Zuschauerzahl pro Tribüne hängt von der Stärke beider Teams, deinem Ticketpreis und davon ab, ob die Tribüne ein Dach hat.
 • Ticketpreise lassen sich pro Tribüne von 1 bis 100 € festlegen. Rund 15 € ist meist optimal – zu hoch, und die Fans bleiben weg.
+• Für eine noch nicht gebaute Tribüne gibt es kein Eingabefeld: Preise erscheinen nur für Tribünen, die tatsächlich existieren.
 
 Heimvorteil:
 • Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.

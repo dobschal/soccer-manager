@@ -28,7 +28,8 @@ function getTutorials () {
         t('tutorial.teamPage.item3'),
         t('tutorial.teamPage.item4'),
         t('tutorial.teamPage.item5'),
-        t('tutorial.teamPage.item6')
+        t('tutorial.teamPage.item6'),
+        t('tutorial.teamPage.item7')
       ]
     },
     trades: {

@@ -7,7 +7,7 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 ## User Stories
 
 - **US-STD-01**: Als Spieler sehe ich mein Stadion als interaktive 3D-Visualisierung, die ich drehen und zoomen kann.
-- **US-STD-02**: Als Spieler kann ich Ticketpreise fuer jede Tribuene einzeln festlegen (1-100 Euro).
+- **US-STD-02**: Als Spieler kann ich Ticketpreise fuer jede **gebaute** Tribuene einzeln festlegen (1-100 Euro). Fuer eine Tribuene mit Groesse 0 erscheint kein Eingabefeld.
 - **US-STD-03**: Als Spieler kann ich Tribuenen ausbauen (Kapazitaet erhoehen, Dach hinzufuegen oder abreissen).
 - **US-STD-04**: Als Spieler sehe ich die Baukosten und Bauzeit vor dem Start einer Erweiterung.
 - **US-STD-05**: Als Spieler sehe ich den Baufortschritt mit verbleibenden Spieltagen.
@@ -107,7 +107,12 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 
 ### Frontend
 
-- **TA-STD-25**: Ticketpreise: 4 Nummernfelder (1-100) mit Speichern/Abbrechen.
+- **TA-STD-25**: Ticketpreise: ein Nummernfeld (1-100) je gebauter Tribuene, mit Speichern/Abbrechen.
+  Gefiltert wird ueber `<name>_stand_size > 0` (#538); hat das Team ueberhaupt keine Tribuene,
+  steht dort `stadium.noStandsBuilt` statt eines leeren Formulars.
+- **TA-STD-26**: Tribuenennamen im Preisformular kommen aus `stadium.standName.<name>` und sind
+  vollstaendige Bezeichnungen (`Nordtribuene`, `NO-Tribuene`). Vorher wurde ein Kurzname mit dem
+  Wort "tribuene" zusammengeklebt, was bei den Ecken zu "Ecke NOtribuene" fuehrte (#538).
 - **TA-STD-26**: Ausbau-Overlay (Button "Stadion Ausbauen" unter den Baumassnahmen): 8 Groessenfelder + 8 Dach-Checkboxen. Preis und Vorschau erscheinen erst nach Klick auf "Stadion berechnen"; bei ungueltiger Eingabe wird weder Preis noch Vorschau gezeigt. Die Vorschau ist eine 3D-Ansicht des geplanten Stadions mit langsam rotierender Kamera ohne Steuerung, darunter "Bau beauftragen".
 - **TA-STD-27**: Zuschauer-Tabelle: Letzte 5 Heimspiele mit Auslastung pro Tribuene.
 - **TA-STD-28**: Bau-Historie-Tabelle mit "In Progress"-Badge fuer laufende Bauten.

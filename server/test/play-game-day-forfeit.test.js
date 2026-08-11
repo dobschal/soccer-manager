@@ -47,7 +47,12 @@ vi.mock('../helper/cupHelper.js', () => ({
 }))
 vi.mock('../play-game.js', () => ({ kickoff: vi.fn(), playGameStep: vi.fn() }))
 vi.mock('../helper/playerHelper.js', () => ({ getPlayerAge: vi.fn().mockResolvedValue(25) }))
-vi.mock('../../client/util/player.js', () => ({ getSalary: vi.fn().mockReturnValue(500) }))
+// Only the salary is stubbed; the position-penalty maths is pure and should
+// run for real so the simulation behaves like production (#540).
+vi.mock('../../client/util/player.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  getSalary: vi.fn().mockReturnValue(500)
+}))
 
 import { query } from '../lib/database.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'

@@ -154,13 +154,38 @@ describe('StadiumSubPage', () => {
       expect(page.template).toContain('Ticket Prices')
     })
 
-    it('template contains price inputs for all stands', async () => {
+    it('template contains price inputs for the built stands only (#538)', async () => {
       const page = new StadiumSubPage()
       await page.load()
       const tpl = page.template
-      for (const stand of ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']) {
+      // The fixture has the four main stands built and all four corners at 0.
+      for (const stand of ['north', 'south', 'east', 'west']) {
         expect(tpl).toContain(`data-price-input="${stand}"`)
       }
+      for (const corner of ['corner_ne', 'corner_nw', 'corner_se', 'corner_sw']) {
+        expect(tpl).not.toContain(`data-price-input="${corner}"`)
+      }
+    })
+
+    it('shows a corner price input once that corner is built (#538)', async () => {
+      const page = new StadiumSubPage()
+      await page.load()
+      page.stadium.corner_ne_stand_size = 1200
+
+      expect(page.template).toContain('data-price-input="corner_ne"')
+      expect(page.template).not.toContain('data-price-input="corner_nw"')
+    })
+
+    it('explains itself when no stand exists at all (#538)', async () => {
+      const page = new StadiumSubPage()
+      await page.load()
+      for (const stand of ['north', 'south', 'east', 'west']) {
+        page.stadium[stand + '_stand_size'] = 0
+      }
+
+      const tpl = page.template
+      expect(tpl).not.toContain('data-price-input=')
+      expect(tpl).toContain('stadium.noStandsBuilt')
     })
 
     it('template contains save prices button', async () => {

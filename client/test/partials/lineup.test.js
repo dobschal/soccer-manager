@@ -234,6 +234,54 @@ describe('Lineup _fillEmptyPositions cleanup', () => {
     })
   })
 
+  describe('SquadPlayer out-of-position malus (#540)', () => {
+    /**
+     * @param {string} natural
+     * @param {string} slot
+     * @returns {string}
+     */
+    const tileFor = (natural, slot) => new SquadPlayer(
+      testData.player({ id: 42, position: natural, in_game_position: slot }),
+      testData.team()
+    ).template
+
+    it('shows nothing when the player is at home', () => {
+      const html = tileFor('CM', 'CM')
+      expect(html).not.toContain('position-penalty')
+      expect(html).not.toContain('is-wrong-position')
+    })
+
+    it('spells out the malus for a neighbouring slot in the same line', () => {
+      const html = tileFor('RA', 'CA')
+      expect(html).toContain('position-penalty')
+      expect(html).toContain('-10%')
+    })
+
+    it('spells out a bigger malus one line away', () => {
+      expect(tileFor('RA', 'RM')).toContain('-20%')
+    })
+
+    it('spells out the biggest outfield malus two lines away', () => {
+      expect(tileFor('RA', 'CD')).toContain('-30%')
+    })
+
+    it('spells out half a level for an outfield player in goal', () => {
+      expect(tileFor('CD', 'GK')).toContain('-50%')
+    })
+
+    it('keeps the red ring alongside the percentage', () => {
+      const html = tileFor('CD', 'CA')
+      expect(html).toContain('is-wrong-position')
+      expect(html).toContain('-30%')
+    })
+
+    it('shows nothing on an empty placeholder tile', () => {
+      const fake = { fake: true, in_game_position: 'CM', position: 'CA', level: 0, name: '-', freshness: 0 }
+      const html = new SquadPlayer(fake, testData.team()).template
+      expect(html).not.toContain('position-penalty')
+    })
+  })
+
   describe('SquadPlayer CAPTAIN_CHANGED handling', () => {
     it('re-renders when this tile becomes the new captain', () => {
       const team = testData.team({ captain_id: null })

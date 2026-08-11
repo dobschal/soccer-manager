@@ -18,6 +18,9 @@ Jedes Team hat eine Formation mit 11 Positionen, die der Spieler mit passenden S
 - **US-LIN-10**: Als Spieler kann ich ueber "Neue Aufstellung" einen leeren Slot anlegen; ich vergebe dafuer in einem Overlay einen Namen.
 - **US-LIN-11**: Als Spieler ist immer genau eine Aufstellung aktiv, und diese wird bei der naechsten Spielberechnung verwendet.
 - **US-LIN-12**: Als Spieler kann ich eine nicht mehr benoetigte Aufstellung loeschen, solange mindestens eine uebrig bleibt.
+- **US-LIN-13**: Als Spieler sehe ich bei einem positionsfremd aufgestellten Spieler unter seinem
+  Level, mit wie viel Prozent Abwertung er bewertet wird. Steht er auf seiner Position, wird nichts
+  angezeigt.
 
 ## Verfuegbare Formationen
 
@@ -125,6 +128,15 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 - **TA-LIN-33**: API: `getMyLineups`, `createMyLineup(name)`, `activateMyLineup(id)`, `renameMyLineup(id, name)`,
   `deleteMyLineup(id)`.
 
+## Positionsfremder Einsatz
+
+- **TA-LIN-34**: Die Spielfeld-Kachel zeigt neben dem roten Rahmen um die Positions-Plakette den
+  konkreten Malus (z.B. `-10%`) unter dem Level-Badge. Werte und Formel stehen in
+  [Game Calculation](game-calculation.md) (TA-GC-30 ff., #540).
+- **TA-LIN-35**: `getPositionPenalty` in `client/util/player.js` ist die einzige Quelle — Client-Anzeige
+  und Server-Berechnung nutzen dieselbe Funktion, damit angezeigter und tatsaechlicher Malus nie
+  auseinanderlaufen.
+
 ## Mindestteamgroesse
 
 - **TA-LIN-21**: Ein Team muss zu jeder Zeit mindestens 14 Spieler haben (`MIN_TEAM_SIZE` in `server/helper/playerHelper.js`).
@@ -143,6 +155,7 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 ### Tests
 
 - Aufstellung speichern und Spieler-Positionen aktualisieren
+- Positions-Malus: alle Reihen-Kombinationen, Torwart-Sonderfall, Anzeige auf der Kachel
 - Kapitaen-Logik (Setzen, Loeschen bei Entfernung aus Aufstellung)
 - Formationswechsel loescht Positionen
 - Taktik-Einstellungen validieren

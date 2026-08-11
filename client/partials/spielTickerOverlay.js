@@ -4,9 +4,12 @@ import { el, generateId } from '../lib/html.js'
 import { t } from '../i18n/index.js'
 import { maybeRequestReviewAfterWin } from '../lib/nativeReview.js'
 import { renderEmblem } from './emblem.js'
+import { renderPlayerImage } from './playerImage.js'
 
 const STEP_INTERVAL_MS = 2000
 const GOAL_BANNER_MS = 1500
+/** How long the half-time / extra-time card holds before play resumes (#539). */
+const BREAK_PAUSE_MS = 2000
 
 function seenKey (season, gameDay, gameId) {
   return `spielTickerSeen_${season}_${gameDay}_${gameId}`
@@ -36,17 +39,83 @@ function markSpielTickerSeen (season, gameDay, gameId) {
 }
 
 /**
- * Build the chronologically sorted list of notable events (goals, cards and
- * goal chances/saves) from a game's detail log (#402).
+ * A duel only makes the ticker when it broke up a spell of possession this
+ * long. A match logs ~230 duels; without a bar like this the ticker would be
+ * nothing but tackles (#539).
+ */
+export const RECOVERY_MIN_STREAK = 3
+
+/** …and at most one recovery per this many minutes, so they stay an accent. */
+export const RECOVERY_MIN_GAP_MINUTES = 5
+
+/** Half time sits between the 45th and 46th minute. */
+export const HALF_TIME_MINUTE = 45
+
+/** Regular time ends here; anything later is extra time. */
+export const REGULAR_TIME_MINUTE = 90
+
+/**
+ * Pick the ball recoveries worth showing: a duel won by the defending side
+ * (`lostBall`) that ended a passing move of at least {@link RECOVERY_MIN_STREAK}
+ * passes, thinned out to one per {@link RECOVERY_MIN_GAP_MINUTES} minutes.
+ *
+ * Games played before the engine started stamping duels with a minute simply
+ * contribute none — same self-healing approach as {@link logHasMinutes}.
  * @param {Array} log
  * @returns {Array}
  */
-export function buildTickerEvents (log) {
+export function pickRecoveries (log) {
+  const candidates = log
+    .filter(l => l.lostBall === true && typeof l.minute === 'number' && (l.streak ?? 0) >= RECOVERY_MIN_STREAK)
+    .sort((a, b) => a.minute - b.minute || (b.streak ?? 0) - (a.streak ?? 0))
+  const picked = []
+  let lastMinute = -RECOVERY_MIN_GAP_MINUTES
+  for (const entry of candidates) {
+    if (entry.minute - lastMinute < RECOVERY_MIN_GAP_MINUTES) continue
+    lastMinute = entry.minute
+    picked.push({ ...entry, recovery: true })
+  }
+  return picked
+}
+
+/**
+ * Build the chronologically sorted list of notable events from a game's detail
+ * log (#402): goals, cards and saves, plus — since #539 — injuries, standout
+ * ball recoveries, the half-time break and the start of extra time.
+ *
+ * @param {Array} log
+ * @param {{injuries?: Array, extraTime?: boolean, penaltyShootout?: object}} [details]
+ * @returns {Array}
+ */
+export function buildTickerEvents (log, details = {}) {
   if (!Array.isArray(log)) return []
-  return log
+  const notable = log
     .filter(l => l.goal || l.yellowCard || l.redCard || l.keeperHolds)
     .map(l => ({ ...l, minute: l.minute ?? 0 }))
-    .sort((a, b) => a.minute - b.minute)
+
+  const injuries = (details.injuries || [])
+    .filter(i => typeof i.minute === 'number')
+    .map(i => ({ injury: true, player: i.playerId, playerName: i.playerName, injuryType: i.injuryType, injuryDays: i.injuryDays, minute: i.minute, teamIndex: i.teamIndex }))
+
+  const events = [...notable, ...injuries, ...pickRecoveries(log)]
+
+  // Breaks are placed on the boundary and sorted with `order` so they land
+  // after everything that happened in the minute they close.
+  const lastMinute = events.reduce((max, e) => Math.max(max, e.minute), 0)
+  if (lastMinute > HALF_TIME_MINUTE) {
+    events.push({ halfTime: true, minute: HALF_TIME_MINUTE, order: 1 })
+  }
+  if (details.extraTime) {
+    events.push({ extraTimeStart: true, minute: REGULAR_TIME_MINUTE, order: 1 })
+  }
+
+  events.sort((a, b) => a.minute - b.minute || (a.order ?? 0) - (b.order ?? 0))
+
+  // The shootout has no minute of its own — it always closes the match.
+  if (details.penaltyShootout) {
+    events.push({ penaltyShootout: true, shootout: details.penaltyShootout, minute: lastMinute })
+  }
+  return events
 }
 
 /**
@@ -65,10 +134,63 @@ export function logHasMinutes (log) {
 }
 
 function eventType (event) {
+  if (event.halfTime) return 'halfTime'
+  if (event.extraTimeStart) return 'extraTime'
+  if (event.penaltyShootout) return 'penalties'
   if (event.goal) return 'goal'
   if (event.redCard) return 'red'
   if (event.yellowCard) return 'yellow'
+  if (event.injury) return 'injury'
+  if (event.recovery) return 'recovery'
   return 'chance'
+}
+
+/**
+ * Events that interrupt the match rather than happening inside it. They have
+ * no player, no team side and stretch across the full width of the feed.
+ * @param {string} type
+ * @returns {boolean}
+ */
+function isBreakEvent (type) {
+  return type === 'halfTime' || type === 'extraTime' || type === 'penalties'
+}
+
+/**
+ * The reason a card was shown, as far as the match data actually supports it:
+ * a second booking, a straight red, or the foul that earned it. Nothing is
+ * invented — the engine does not model foul types (#539).
+ * @param {object} event
+ * @param {Record<number, object>} players
+ * @returns {string}
+ */
+export function cardReason (event, players) {
+  if (event.redCard && event.secondYellow) return t('spielTicker.reasonSecondYellow')
+  const fouled = event.foulOn ? players[event.foulOn] : null
+  if (fouled) return t('spielTicker.reasonFoulOn', { player: fouled.name })
+  return event.redCard ? t('spielTicker.reasonStraightRed') : t('spielTicker.reasonFoul')
+}
+
+/** Edge length of the player portrait in a ticker row — roughly text height. */
+const PORTRAIT_SIZE = 22
+
+/**
+ * Drop a small portrait of the player into a freshly inserted ticker row
+ * (#539). Rendering the SVG is async, so the row goes up immediately and the
+ * portrait arrives a tick later; a row without a known player keeps its empty
+ * placeholder so the layout does not shift.
+ * @param {HTMLElement} row
+ * @param {object|undefined} player
+ * @returns {Promise<void>}
+ */
+async function fillPortrait (row, player) {
+  if (!player) return
+  const slot = row.querySelector('.spiel-ticker__portrait')
+  if (!slot) return
+  try {
+    slot.innerHTML = await renderPlayerImage(player, player.team, PORTRAIT_SIZE)
+  } catch {
+    // A missing portrait is cosmetic — the row still reads fine without it.
+  }
 }
 
 /**
@@ -93,7 +215,7 @@ export async function showSpielTickerOverlay (game, myTeamId) {
   // Skip games whose log predates minute tracking — every event would show at
   // 0' in arbitrary order. These self-heal from the next game day onwards.
   if (!logHasMinutes(details?.log)) return false
-  const events = buildTickerEvents(details?.log)
+  const events = buildTickerEvents(details?.log, details || {})
   if (events.length === 0) return false
 
   const [team1Res, team2Res] = await Promise.all([
@@ -101,8 +223,10 @@ export async function showSpielTickerOverlay (game, myTeamId) {
     server.getTeam(result.team2Id)
   ])
   const players = {}
-  ;(team1Res.players || []).forEach(p => { p.team1 = true; players[p.id] = p })
-  ;(team2Res.players || []).forEach(p => { p.team2 = true; players[p.id] = p })
+  // `team` rides along on each player so the portrait can be tinted in the
+  // right shirt colour without another lookup per row.
+  ;(team1Res.players || []).forEach(p => { p.team1 = true; p.team = team1Res.team; players[p.id] = p })
+  ;(team2Res.players || []).forEach(p => { p.team2 = true; p.team = team2Res.team; players[p.id] = p })
 
   const myTeamIsHome = result.team1Id === myTeamId
   const myGoals = myTeamIsHome ? result.goalsTeam1 : result.goalsTeam2
@@ -158,12 +282,51 @@ export async function showSpielTickerOverlay (game, myTeamId) {
       bannerTimer = setTimeout(() => banner.classList.remove('show'), GOAL_BANNER_MS)
     }
 
+    /**
+     * A break in play (half time, extra time, shootout): full width, no player.
+     * @param {object} event
+     * @param {string} type
+     * @returns {HTMLElement}
+     */
+    const buildBreakRow = (event, type) => {
+      const row = document.createElement('div')
+      row.className = `spiel-ticker__event spiel-ticker__event--break spiel-ticker__event--${type}`
+      if (type === 'penalties') {
+        const shootout = event.shootout || {}
+        const shots = (shootout.shots || [])
+          .map(shot => `<span class="spiel-ticker__penalty ${shot.scored ? 'is-scored' : 'is-missed'}"
+                              title="${shot.playerName || ''}">${shot.scored ? '●' : '○'}</span>`)
+          .join('')
+        row.innerHTML = `
+          <span class="spiel-ticker__detail">
+            <strong>${t('spielTicker.penaltyShootout')}</strong>
+            <span class="spiel-ticker__penalties">${shots}</span>
+            <small class="text-muted">${shootout.goalsTeamA ?? 0} : ${shootout.goalsTeamB ?? 0}</small>
+          </span>
+        `
+        return row
+      }
+      const label = type === 'halfTime' ? t('spielTicker.halfTime') : t('spielTicker.extraTime')
+      row.innerHTML = `<span class="spiel-ticker__detail"><strong>${label}</strong></span>`
+      return row
+    }
+
     const renderEvent = (event) => {
       const feed = el('#' + feedId)
       if (!feed) return
-      const player = players[event.player]
-      const isHome = player?.team1
       const type = eventType(event)
+
+      if (isBreakEvent(type)) {
+        feed.insertBefore(buildBreakRow(event, type), feed.firstChild)
+        feed.scrollTop = 0
+        return
+      }
+
+      // A recovery is credited to the player who won the ball, not the one who
+      // lost it.
+      const playerId = type === 'recovery' ? event.oponentPlayer : event.player
+      const player = players[playerId]
+      const isHome = player?.team1
       if (event.goal) {
         if (isHome) homeScore++
         else awayScore++
@@ -175,24 +338,39 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         goal: '<span class="badge bg-success"><i class="fa fa-futbol-o"></i></span>',
         red: '<span class="spiel-ticker__card spiel-ticker__card--red"></span>',
         yellow: '<span class="spiel-ticker__card spiel-ticker__card--yellow"></span>',
-        chance: '<span class="text-info"><i class="fa fa-bullseye"></i></span>'
+        chance: '<span class="text-info"><i class="fa fa-bullseye"></i></span>',
+        injury: '<span class="text-danger"><i class="fa fa-medkit"></i></span>',
+        recovery: '<span class="text-warning"><i class="fa fa-shield"></i></span>'
       }[type]
       const label = {
         goal: t('spielTicker.goal'),
         red: t('spielTicker.redCard'),
         yellow: t('spielTicker.yellowCard'),
-        chance: t('spielTicker.chance')
+        chance: t('spielTicker.chance'),
+        injury: t('spielTicker.injury'),
+        recovery: t('spielTicker.ballRecovery')
       }[type]
+      let detail = label
+      if (type === 'yellow' || type === 'red') {
+        detail = `${label} — ${cardReason(event, players)}`
+      } else if (type === 'injury') {
+        detail = t('spielTicker.injuryDetail', { days: event.injuryDays ?? 0 })
+      } else if (type === 'recovery' && players[event.player]) {
+        detail = t('spielTicker.ballRecoveryFrom', { player: players[event.player].name })
+      }
+      const name = player?.name || event.playerName || t('spielTicker.unknownPlayer')
       const row = document.createElement('div')
       row.className = `spiel-ticker__event spiel-ticker__event--${type} ${isHome ? 'spiel-ticker__event--home' : 'spiel-ticker__event--away'}`
       row.innerHTML = `
         <span class="spiel-ticker__minute">${event.minute}'</span>
         ${icon}
-        <span class="spiel-ticker__detail"><strong>${player?.name || t('spielTicker.unknownPlayer')}</strong> <small class="text-muted">${label}</small></span>
+        <span class="spiel-ticker__portrait" data-portrait-player="${playerId ?? ''}"></span>
+        <span class="spiel-ticker__detail"><strong>${name}</strong> <small class="text-muted">${detail}</small></span>
       `
       // Newest entry on top — existing items slide down.
       feed.insertBefore(row, feed.firstChild)
       feed.scrollTop = 0
+      void fillPortrait(row, player)
     }
 
     const finish = () => {
@@ -222,9 +400,13 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         finish()
         return
       }
-      renderEvent(events[index])
+      const event = events[index]
+      renderEvent(event)
       index++
-      timer = setTimeout(tick, STEP_INTERVAL_MS)
+      // A break is a beat of its own — the whistle goes, then the second half
+      // starts (#539).
+      const wait = isBreakEvent(eventType(event)) ? BREAK_PAUSE_MS : STEP_INTERVAL_MS
+      timer = setTimeout(tick, wait)
     }
 
     const skip = () => {

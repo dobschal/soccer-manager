@@ -17,14 +17,44 @@ export function getMinOfferPrice (marketValue) {
 }
 
 /**
- * Calculate salary for a given player level (1-100)
- * Exponential curve: Level 1 = 150, Level 100 = 10,308
+ * Where the salary curve gets steep. Everything at or below this level keeps
+ * the original curve; above it salaries climb much faster (#543).
+ */
+export const SALARY_KNEE_LEVEL = 50
+
+/** Salary at level 1 — the start of the curve. */
+export const SALARY_AT_LEVEL_1 = 150
+
+/** Salary at the knee. Also the anchor the steep upper segment starts from. */
+export const SALARY_AT_KNEE = 1217
+
+/** Salary at level 100 — the top of the steep segment. */
+export const SALARY_AT_LEVEL_100 = 50_000
+
+/**
+ * Calculate salary for a given player level (1-100).
+ *
+ * Two exponential segments joined at {@link SALARY_KNEE_LEVEL}:
+ *
+ * - **1 → 50**: unchanged (150 → 1,217), so small clubs pay exactly what they
+ *   paid before.
+ * - **50 → 100**: much steeper (1,217 → 50,000), so a genuine star costs a top
+ *   club real money.
+ *
+ * The split is the point of the change (#543): raising the whole curve would
+ * have squeezed the bottom leagues hardest — they already spend a third of
+ * their income on wages, while the top league spends under 3%.
+ *
  * @param {number} level
  * @returns {number}
  */
 export function getSalary (level) {
   if (level <= 0) return 0
-  return Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99))
+  if (level <= SALARY_KNEE_LEVEL) {
+    return Math.floor(SALARY_AT_LEVEL_1 * Math.pow(SALARY_AT_KNEE / SALARY_AT_LEVEL_1, (level - 1) / (SALARY_KNEE_LEVEL - 1)))
+  }
+  const spanAboveKnee = 100 - SALARY_KNEE_LEVEL
+  return Math.floor(SALARY_AT_KNEE * Math.pow(SALARY_AT_LEVEL_100 / SALARY_AT_KNEE, (level - SALARY_KNEE_LEVEL) / spanAboveKnee))
 }
 
 /** @deprecated Use getSalary(level) instead */
@@ -70,6 +100,69 @@ export function calculateMarketValue (level, age) {
  */
 export function willRetireNextSeason (player, currentSeason) {
   return player.carrier_end_season <= currentSeason + 1
+}
+
+/**
+ * The line a position belongs to. Used to grade how far out of position a
+ * player is (#540).
+ * @type {Record<string, string>}
+ */
+export const POSITION_LINE = {
+  GK: 'GK',
+  LD: 'DEF', CD: 'DEF', RD: 'DEF',
+  DM: 'MID', LM: 'MID', CM: 'MID', RM: 'MID', OM: 'MID',
+  LA: 'ATT', CA: 'ATT', RA: 'ATT'
+}
+
+/**
+ * How much a player loses when fielded away from their natural position,
+ * as a fraction of their level (#540).
+ *
+ * Read as `PENALTY_BY_LINE[naturalLine][playedLine]`. Staying in the same line
+ * costs 10%; every line crossed costs more, and the further from home the
+ * worse — an attacker in defence is the most expensive misuse there is.
+ *
+ * The goalkeeper is deliberately absolute: anyone in goal who is not a keeper
+ * (and any keeper fielded outfield) loses half their level, because the role
+ * shares nothing with the rest of the pitch.
+ * @type {Record<string, Record<string, number>>}
+ */
+export const PENALTY_BY_LINE = {
+  ATT: { ATT: 0.1, MID: 0.2, DEF: 0.3 },
+  MID: { MID: 0.1, ATT: 0.2, DEF: 0.2 },
+  DEF: { DEF: 0.1, MID: 0.2, ATT: 0.3 }
+}
+
+/** What a non-keeper in goal (or a keeper outfield) loses. */
+export const GOALKEEPER_MISMATCH_PENALTY = 0.5
+
+/**
+ * The share of their level a player loses when fielded at `playedPosition`
+ * instead of their natural `naturalPosition`. 0 when they are at home.
+ * @param {string} naturalPosition
+ * @param {string} playedPosition
+ * @returns {number} 0 … 0.5
+ */
+export function getPositionPenalty (naturalPosition, playedPosition) {
+  if (!naturalPosition || !playedPosition) return 0
+  if (naturalPosition === playedPosition) return 0
+  const from = POSITION_LINE[naturalPosition]
+  const to = POSITION_LINE[playedPosition]
+  if (!from || !to) return 0
+  // Either side being the goalkeeper slot is its own, harsher case.
+  if (from === 'GK' || to === 'GK') return GOALKEEPER_MISMATCH_PENALTY
+  return PENALTY_BY_LINE[from]?.[to] ?? 0
+}
+
+/**
+ * The multiplier a player's level is scaled by for the position they are
+ * fielded at. 1 when they play their natural position.
+ * @param {string} naturalPosition
+ * @param {string} playedPosition
+ * @returns {number}
+ */
+export function getPositionLevelFactor (naturalPosition, playedPosition) {
+  return 1 - getPositionPenalty(naturalPosition, playedPosition)
 }
 
 /**

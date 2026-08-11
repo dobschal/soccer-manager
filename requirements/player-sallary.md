@@ -14,34 +14,59 @@ Jeder Spieler erhaelt ein Gehalt basierend auf seinem Level, das automatisch nac
 
 ## Gehaltsformel
 
+Zwei exponentielle Abschnitte mit einem Knick bei Level 50 (#543):
+
 ```
-getSalary(level) = Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99))
+level <= 50:  getSalary(level) = floor(150  * (1217 / 150)   ^ ((level - 1)  / 49))
+level >  50:  getSalary(level) = floor(1217 * (50000 / 1217) ^ ((level - 50) / 50))
 ```
 
 ### Gehaltstabelle (Beispiele)
 
-| Level | Gehalt pro Spieltag |
-|---|---|
-| 1 | 150 Euro |
-| 10 | ~245 Euro |
-| 20 | ~400 Euro |
-| 30 | ~655 Euro |
-| 40 | ~1.070 Euro |
-| 50 | ~1.748 Euro |
-| 60 | ~2.855 Euro |
-| 70 | ~4.668 Euro |
-| 80 | ~7.630 Euro |
-| 100 | 10.308 Euro |
+| Level | Gehalt pro Spieltag | vorher |
+|---|---|---|
+| 1 | 150 Euro | 150 Euro |
+| 10 | 220 Euro | 220 Euro |
+| 20 | 337 Euro | 337 Euro |
+| 30 | 517 Euro | 517 Euro |
+| 40 | 793 Euro | 793 Euro |
+| 50 | 1.217 Euro | 1.217 Euro |
+| 60 | 2.558 Euro | 1.867 Euro |
+| 70 | 5.379 Euro | 2.865 Euro |
+| 80 | 11.310 Euro | 4.385 Euro |
+| 90 | 23.781 Euro | 6.727 Euro |
+| 100 | 50.000 Euro | 10.308 Euro |
 
 - Fuer Level <= 0 wird 0 zurueckgegeben.
-- Die Kurve verdoppelt sich ungefaehr alle 10 Level.
+- Unterhalb des Knicks ist die Kurve **identisch zur vorherigen** — kleine Vereine
+  zahlen exakt so viel wie bisher.
+- Oberhalb des Knicks verdoppelt sie sich etwa alle 9 Level.
+
+### Warum der Knick (#543)
+
+Die Prod-Auswertung zum Zeitpunkt der Aenderung zeigte, dass Gehaelter die Spitze kaum
+belasten, die unteren Ligen dagegen stark:
+
+| Liga-Level | Einkommen/Spieltag | Gehaelter/Spieltag | Anteil |
+|---|---|---|---|
+| 0 | ~1.980.000 Euro | ~53.000 Euro | 2,7% |
+| 1 | ~917.000 Euro | ~30.000 Euro | 3,3% |
+| 2 | ~124.000 Euro | ~15.000 Euro | 11,8% |
+| 3 | ~29.000 Euro | ~10.000 Euro | 33,4% |
+
+Ein blosses Anheben des Kurvenendes haette Liga 3 auf ~52% des Einkommens getrieben —
+also genau die Vereine getroffen, denen das Ticket helfen soll. Mit dem Knick bei
+Level 50 steigt Liga 0 auf ~5,3%, Liga 3 bleibt praktisch unveraendert.
 
 ## Technische Anforderungen
 
 ### Gehaltsberechnung
 
 - **TA-SAL-01**: Die Funktion `getSalary(level)` ist in `client/util/player.js` implementiert und wird Client- und Server-seitig identisch verwendet.
-- **TA-SAL-02**: Exponentielle Wachstumskurve von 150 (Level 1) bis 10.308 (Level 100).
+- **TA-SAL-02**: Zwei exponentielle Abschnitte, verbunden bei `SALARY_KNEE_LEVEL` (50):
+  150 → 1.217 (Level 1-50, unveraendert) und 1.217 → 50.000 (Level 50-100).
+  Die Stuetzstellen stehen als `SALARY_AT_LEVEL_1`, `SALARY_AT_KNEE` und
+  `SALARY_AT_LEVEL_100` in `client/util/player.js`.
 
 ### Gehaltszahlung
 
@@ -74,6 +99,7 @@ getSalary(level) = Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99))
 
 ### Tests
 
-- Gehaltsformel-Validierung (Level 1 = 150, Level 100 = 10.308)
+- Gehaltsformel-Validierung (Stuetzstellen 150 / 1.217 / 50.000, Monotonie, kein Sprung am Knick)
+- Unveraenderte Werte unterhalb des Knicks (Level 10/20/30/40)
 - Bot-Team-Finanzbalance (Stadioneinnahmen >= Gehaltskosten)
 - Finanzlog-Eintraege mit korrekten negativen Werten

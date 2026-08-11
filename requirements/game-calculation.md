@@ -10,6 +10,14 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
 - **US-GC-02**: Als Spieler kann ich die Spieldetails einsehen (Tore, Schuesse, Ballbesitz, Karten, Aufstellungen).
 - **US-GC-03**: Als Spieler sehe ich, dass meine taktischen Entscheidungen (Angriffsmodus, Spielstil) die Ergebnisse beeinflussen.
 - **US-GC-04**: Als Spieler erwarte ich, dass staerkere Teams haeufiger gewinnen, aber Ueberraschungen moeglich sind.
+- **US-GC-05**: Als Spieler sehe ich im Spielticker den Spielverlauf mit Halbzeit, und bei Pokalspielen
+  auch Verlaengerung und Elfmeterschiessen.
+- **US-GC-06**: Als Spieler sehe ich im Spielticker Balleroberungen, Verletzungen und den Grund fuer
+  jede Gelbe und Rote Karte.
+- **US-GC-07**: Als Spieler sehe ich zu jedem Ereignis im Spielticker ein kleines Bild des beteiligten
+  Spielers.
+- **US-GC-08**: Als Spieler wird ein positionsfremd aufgestellter Spieler nicht mehr pauschal halbiert,
+  sondern je nach Entfernung zu seiner Position abgestuft bewertet.
 
 ## Ziel-Statistiken (Bundesliga-Referenz)
 
@@ -82,6 +90,30 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
 - **TA-GC-20**: Motivationsrede: +10% teamweit.
 - **TA-GC-21**: Kapitaens-Staerke-Multiplikator basierend auf Kapitaens-Level.
 - **TA-GC-22**: Bot-Team-Nachteil: -10%.
+- **TA-GC-29**: Positionsfremder Einsatz: -10% bis -50% je nach Entfernung zur natuerlichen Reihe (siehe unten, #540).
+
+### Positionsfremder Einsatz (#540)
+
+- **TA-GC-30**: Ein Startspieler abseits seiner natuerlichen Position verliert einen Teil seines
+  In-Game-Levels. Die Hoehe haengt davon ab, wie weit der Slot von seiner Reihe entfernt liegt
+  (`getPositionPenalty` in `client/util/player.js`):
+
+  | Natuerliche Reihe | gleiche Reihe | Mittelfeld | Abwehr | Sturm | Tor |
+  |---|---|---|---|---|---|
+  | Sturm (LA/CA/RA) | -10% | -20% | -30% | – | -50% |
+  | Mittelfeld (DM/LM/CM/RM/OM) | -10% | – | -20% | -20% | -50% |
+  | Abwehr (LD/CD/RD) | -10% | -20% | – | -30% | -50% |
+  | Tor (GK) | – | -50% | -50% | -50% | – |
+
+- **TA-GC-31**: Der Torwart ist bewusst absolut: jeder Feldspieler im Tor **und** jeder Torwart auf
+  dem Feld verliert 50%. Die Rolle hat mit dem Rest des Feldes nichts gemeinsam.
+- **TA-GC-32**: Vorher galt pauschal -50% fuer jeden positionsfremden Einsatz. Der abgestufte Malus
+  ist damit fuer alle Feldspieler-Kombinationen milder.
+- **TA-GC-33**: Einwechselspieler bleiben ausgenommen (siehe `_substitutePlayer`) — ein Not-Wechsel
+  wird nie bestraft.
+- **TA-GC-34**: Die Aufstellung zeigt den Malus als Prozentwert unter dem Level des Spielers an,
+  zusaetzlich zum roten Rahmen um die Positions-Plakette. Bei positionstreuer Besetzung wird
+  nichts angezeigt.
 
 ### Numerische Unterzahl
 
@@ -95,6 +127,12 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
 
 - **TA-GC-25**: Komplettes `gameDetails`-Objekt als JSON in `game.details` gespeichert.
 - **TA-GC-26**: Enthaelt: Log-Events, Tore, Staerke, Schuesse, Stadion-Details, Aufstellungen, Karten.
+- **TA-GC-27**: Jeder Zweikampf-Eintrag traegt `minute` und `streak` (Laenge der Passfolge, die er
+  beendet hat). Beides existiert nur fuer den Spielticker (#539) — er waehlt daraus die wenigen
+  Balleroberungen aus, die einen echten Angriff gestoppt haben.
+- **TA-GC-28**: Karten-Eintraege tragen `foulOn` (die ID des Gegenspielers aus dem Zweikampf) und bei
+  Gelb-Rot zusaetzlich `secondYellow`. Mehr Kartengruende gibt es nicht — die Engine modelliert keine
+  Foularten, und der Ticker erfindet auch keine.
 
 ### Tests
 
@@ -103,6 +141,33 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
 - Angriffsmodus-Auswirkungen (Offensiv vs. Balanciert vs. Defensiv)
 - Zufalls-Kontrolle (zwei identische Spiele sollen unterschiedliche, aber aehnliche Ergebnisse liefern)
 - Staerke-Ungleichgewicht (staerkeres Team gewinnt haeufiger)
+- Positions-Malus: jede Reihen-Kombination, Torwart-Sonderfall, Obergrenze 50%, Einwechselspieler ausgenommen
+- Spielticker: Auswahl der Balleroberungen (Streak-Schwelle, Mindestabstand, fehlende Minute),
+  Halbzeit-Einschub und Reihenfolge, Verlaengerung/Elfmeterschiessen, Verletzungen, Kartengruende
+- Spiel-Log: Minute und Streak an jedem Zweikampf, `foulOn` an jeder Karte
+
+## Spielticker (#539)
+
+Der Spielticker (`client/partials/spielTickerOverlay.js`) spielt ein fertig berechnetes Spiel
+animiert nach. Er zeigt ausschliesslich, was im Spiel-Log tatsaechlich steht.
+
+- **TA-GC-35**: Ereignisse im Ticker: Tore, Torchancen/Paraden, Karten, Verletzungen, ausgewaehlte
+  Balleroberungen, Halbzeit, Verlaengerung und Elfmeterschiessen.
+- **TA-GC-36**: Balleroberungen: Ein Spiel protokolliert rund 230 Zweikaempfe. Angezeigt werden nur
+  die, bei denen die verteidigende Seite den Ball nach mindestens `RECOVERY_MIN_STREAK` (3) Paessen
+  erobert hat, ausgeduennt auf hoechstens eine pro `RECOVERY_MIN_GAP_MINUTES` (5) Minuten — etwa
+  10-15 pro Spiel.
+- **TA-GC-37**: Die Halbzeit wird zwischen der 45. und 46. Minute eingeschoben und haelt
+  `BREAK_PAUSE_MS` (2000 ms), bevor es weitergeht.
+- **TA-GC-38**: Bei Pokalspielen wird zusaetzlich der Beginn der Verlaengerung angezeigt und, falls
+  vorhanden, das Elfmeterschiessen als Abschluss mit jedem einzelnen Schuetzen.
+- **TA-GC-39**: Kartengruende kommen aus `foulOn` / `secondYellow` (siehe TA-GC-28): "Foul an X",
+  "Gelb-Rote Karte", "grobes Foulspiel".
+- **TA-GC-40**: Jede Ereigniszeile zeigt ein kleines Spielerbild in Textgroesse (22 px). Das Rendern
+  laeuft asynchron nach dem Einfuegen der Zeile, damit der Ticker nicht darauf wartet.
+- **TA-GC-41**: Spiele, deren Log noch keine Minuten an den Zweikaempfen hat (vor dieser Aenderung
+  berechnet), zeigen einfach keine Balleroberungen — dieselbe selbstheilende Logik wie bei
+  `logHasMinutes`.
 
 ## Gemessene Statistiken (Stand: 2026-04-23)
 

@@ -89,3 +89,38 @@ describe('wiki seed content (#441)', () => {
     })
   }
 })
+
+describe('wiki seed content for the #538/#539/#540/#543 changes', () => {
+  it('describes the graded out-of-position penalty, not a flat 50% (#540)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'in-game-level')
+    for (const locale of LOCALES) {
+      const text = topic[locale].text
+      for (const step of ['10%', '20%', '30%', '50%']) {
+        expect(text).toContain(step)
+      }
+    }
+  })
+
+  it('quotes the new top-end salary (#543)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'players')
+    expect(topic.en.text).toContain('50,000')
+    expect(topic.de.text).toContain('50.000')
+    // The old ceiling must be gone from both locales.
+    expect(topic.en.text).not.toContain('10,308')
+    expect(topic.de.text).not.toContain('10.308')
+  })
+
+  it('explains that price fields only exist for built stands (#538)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'stadium')
+    expect(topic.en.text).toMatch(/not built yet/i)
+    expect(topic.de.text).toMatch(/nicht gebaute Tribüne/i)
+  })
+
+  it('documents the match ticker (#539)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'match-day')
+    expect(topic.en.text).toMatch(/match ticker/i)
+    expect(topic.en.text).toMatch(/half time/i)
+    expect(topic.de.text).toMatch(/Spielticker/i)
+    expect(topic.de.text).toMatch(/Halbzeit/i)
+  })
+})

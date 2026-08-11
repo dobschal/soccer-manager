@@ -11,7 +11,7 @@ import {fire} from '../lib/event.js'
 import {t, getLocale} from '../i18n/index.js'
 import {SERVER_EVENTS} from '../lib/serverEvents.js'
 import {el} from '../lib/html.js'
-import {calculatePlayerAge} from '../util/player.js'
+import {calculatePlayerAge, getPositionPenalty} from '../util/player.js'
 
 // Same-position slot offsets that used to be applied post-mount via
 // _applyPositionHacks. Precomputing at render time lets each SquadPlayer own
@@ -85,6 +85,9 @@ export class SquadPlayer extends UIElement {
     // fielded. Compare the two for the out-of-position red ring.
     const isOutOfPosition = !player.fake && player.position !== this.slot
     const badgeClass = `position-badge ${this.slot}${isOutOfPosition ? ' is-wrong-position' : ''}`
+    // The red ring alone doesn't say how bad the misuse is — spell the malus
+    // out under the level so the user can weigh it up (#540).
+    const positionPenalty = isOutOfPosition ? getPositionPenalty(player.position, this.slot) : 0
     // Star players get a golden glow behind their tile so they stand out in the
     // lineup (#516).
     const isStar = !player.fake && player.is_star_player
@@ -97,6 +100,9 @@ export class SquadPlayer extends UIElement {
         </span>
         <span class="name">${isSuspended ? '🚫 ' : ''}${isInjured ? '<i class="fa fa-medkit"></i> ' : ''}${displayName}</span>
         ${renderLevelBadge(player.level, {size: 'lg'})}
+        ${positionPenalty > 0
+    ? `<span class="position-penalty" title="${t('myTeam.positionPenaltyHint', { position: player.position })}">-${Math.round(positionPenalty * 100)}%</span>`
+    : ''}
       </div>
     `
   }
