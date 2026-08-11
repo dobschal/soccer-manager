@@ -89,10 +89,6 @@ export async function deleteUserContentRows (exec, userId) {
   await exec('DELETE FROM friend_post_comment WHERE user_id=? OR post_id IN (SELECT id FROM friend_post WHERE user_id=?)', [userId, userId])
   await exec('DELETE FROM friend_post WHERE user_id=?', [userId])
 
-  // News comments/likes.
-  await exec('DELETE FROM news_like WHERE user_id=?', [userId])
-  await exec('DELETE FROM news_comment WHERE user_id=?', [userId])
-
   // Hall of fame comments/likes (own + likes on own comments).
   await exec('DELETE FROM hall_of_fame_comment_like WHERE user_id=? OR comment_id IN (SELECT id FROM hall_of_fame_comment WHERE user_id=?)', [userId, userId])
   await exec('DELETE FROM hall_of_fame_comment WHERE user_id=?', [userId])

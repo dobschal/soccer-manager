@@ -130,11 +130,18 @@ async function _archiveOverageYouth () {
 }
 
 /**
- * Warn users about youth players who will be auto-fired next season (currently 18)
+ * Warn users about youth players who will be auto-fired next season (currently
+ * 18). Runs on the first CRON tick of a season only — without the flag the
+ * same warning went out on *every* tick, i.e. twice a day for a whole season
+ * to the same teams.
  * @returns {Promise<void>}
  */
-async function _warnYouthPlayersAt18 () {
+export async function _warnYouthPlayersAt18 () {
   const season = await _latestSeason() ?? 0
+  const [flag] = await query('SELECT setting_value FROM app_setting WHERE setting_key=?', ['last_youth_warning_season'])
+  if (flag && Number(flag.setting_value) >= season) {
+    return console.log(`⏭️ Youth 18-year-old warnings for season ${season} already sent.`)
+  }
   const teams = await query('SELECT * FROM team WHERE user_id IS NOT NULL')
 
   for (const team of teams) {
@@ -153,6 +160,10 @@ async function _warnYouthPlayersAt18 () {
       'warning'
     )
   }
+  await query(
+    'INSERT INTO app_setting (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)',
+    ['last_youth_warning_season', String(season)]
+  )
 }
 
 /**

@@ -102,7 +102,8 @@ randomFactor = 0.9 bis 1.1
 ### Automatische Entlassung
 
 - **TA-YTH-11**: Jugendspieler ab 19 Jahren werden beim Saisonwechsel automatisch geloescht.
-- **TA-YTH-12**: Warnung bei Alter 18: Log-Nachricht an das Team.
+- **TA-YTH-12**: Warnung bei Alter 18: Log-Nachricht an das Team. Wird **einmal pro Saison** verschickt (erster
+  CRON-Tick der Saison), nicht bei jedem Tick — abgesichert ueber `app_setting.last_youth_warning_season`.
 
 ### Training
 
