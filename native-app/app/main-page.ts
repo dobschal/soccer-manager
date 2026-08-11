@@ -16,6 +16,7 @@ declare const NSURL: any
 declare const UIColor: any
 declare const android: any
 declare const com: any
+declare const androidx: any
 declare const java: any
 declare const WKWebsiteDataStore: any
 declare const NSSet: any
@@ -34,6 +35,9 @@ declare const WKUserScript: any
 declare const WKUserScriptInjectionTimeAtDocumentStart: number
 declare const WKScriptMessageHandler: any
 declare const NSString: any
+
+/** `WKPermissionDecision.grant` — the raw value WebKit expects (#541). */
+const WK_PERMISSION_DECISION_GRANT = 1
 
 let webViewRef: WebView | null = null
 let resumeHandler: (() => void) | null = null
@@ -584,6 +588,17 @@ function setupIOSUIDelegate(): any {
                 }
             }
             return null
+        },
+
+        // getUserMedia inside the WebView (voice messages, #541). Without this
+        // delegate method WebKit denies the request outright on iOS 15+, so the
+        // recorder would never start. The content is our own bundle, so the
+        // grant is unconditional — iOS still shows its own system prompt the
+        // first time, backed by NSMicrophoneUsageDescription.
+        webViewRequestMediaCapturePermissionForOriginInitiatedByFrameTypeDecisionHandler(
+            _webView: any, _origin: any, _frame: any, _type: number, decisionHandler: (decision: number) => void
+        ): void {
+            decisionHandler(WK_PERMISSION_DECISION_GRANT)
         }
     }, {
         protocols: [WKUIDelegate]
@@ -693,6 +708,150 @@ function requestAndroidFcmToken(): void {
     }
 }
 
+/** Request code for the file-chooser activity result. Arbitrary but unique. */
+const ANDROID_FILE_CHOOSER_REQUEST = 5142
+
+/** The callback WebView handed us; resolved (or nulled) by the activity result. */
+let androidFilePathCallback: any = null
+
+/** Where the camera app is told to write its picture, so we can hand back a URI. */
+let androidCameraOutputUri: any = null
+
+/**
+ * Teach the Android WebView how to answer `<input type="file">`.
+ *
+ * Android's default `WebChromeClient` simply drops the request, which is why
+ * every picture upload in the app (avatar, emblem, chat, forum, posts) did
+ * nothing on Android (#542). We open the system chooser the page asked for and
+ * add a camera intent next to it, so "take a photo" works the same way it does
+ * on iOS.
+ */
+function setupAndroidFileChooser(nativeWebView: any): void {
+    const WebChromeClient = android.webkit.WebChromeClient
+    const FileChooserClient = (WebChromeClient as any).extend({
+        onShowFileChooser(_webView: any, filePathCallback: any, fileChooserParams: any): boolean {
+            try {
+                const activity = Application.android.foregroundActivity || Application.android.startActivity
+                if (!activity) return false
+
+                // A second request while one is open would strand the first
+                // callback and hang the page's file input forever.
+                if (androidFilePathCallback) androidFilePathCallback.onReceiveValue(null)
+                androidFilePathCallback = filePathCallback
+
+                // `createIntent()` already carries the accept types and the
+                // multiple flag from the HTML input.
+                const contentIntent = fileChooserParams.createIntent()
+                const chooser = new android.content.Intent(android.content.Intent.ACTION_CHOOSER)
+                chooser.putExtra(android.content.Intent.EXTRA_INTENT, contentIntent)
+
+                const cameraIntent = createAndroidCameraIntent(activity)
+                if (cameraIntent) {
+                    chooser.putExtra(
+                        android.content.Intent.EXTRA_INITIAL_INTENTS,
+                        [cameraIntent] as any
+                    )
+                }
+                activity.startActivityForResult(chooser, ANDROID_FILE_CHOOSER_REQUEST)
+                return true
+            } catch (e: any) {
+                console.error('[FileChooser][Android] Failed to open chooser:', e?.message ?? e)
+                // Release the input so the page is not stuck waiting.
+                if (androidFilePathCallback) {
+                    androidFilePathCallback.onReceiveValue(null)
+                    androidFilePathCallback = null
+                }
+                return false
+            }
+        }
+    })
+    nativeWebView.setWebChromeClient(new FileChooserClient())
+
+    Application.android.on(
+        (Application.android as any).activityResultEvent,
+        onAndroidFileChooserResult
+    )
+}
+
+/**
+ * Build the "take a photo" intent that sits beside the gallery in the chooser.
+ * Returns null when no camera app can serve it — the chooser then simply shows
+ * the gallery.
+ */
+function createAndroidCameraIntent(activity: any): any {
+    try {
+        const intent = new android.content.Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
+        if (!intent.resolveActivity(activity.getPackageManager())) return null
+
+        // A file in our own cache dir, shared through the FileProvider declared
+        // in AndroidManifest.xml — passing a raw file:// URI would throw
+        // FileUriExposedException on modern Android.
+        const dir = new java.io.File(activity.getCacheDir(), 'camera')
+        dir.mkdirs()
+        const file = new java.io.File(dir, `capture_${new Date().getTime()}.jpg`)
+        androidCameraOutputUri = androidx.core.content.FileProvider.getUriForFile(
+            activity, `${activity.getPackageName()}.fileprovider`, file
+        )
+        intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, androidCameraOutputUri)
+        intent.addFlags(android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        return intent
+    } catch (e: any) {
+        console.error('[FileChooser][Android] Camera intent unavailable:', e?.message ?? e)
+        androidCameraOutputUri = null
+        return null
+    }
+}
+
+/**
+ * Hand the picked file(s) back to the WebView. Every path out of here has to
+ * call `onReceiveValue` exactly once — otherwise the page's file input stays
+ * disabled until the app is restarted.
+ */
+function onAndroidFileChooserResult(args: any): void {
+    if (args.requestCode !== ANDROID_FILE_CHOOSER_REQUEST) return
+    const callback = androidFilePathCallback
+    androidFilePathCallback = null
+    if (!callback) return
+
+    try {
+        const RESULT_OK = -1
+        if (args.resultCode !== RESULT_OK) {
+            callback.onReceiveValue(null)
+            return
+        }
+        const uris = collectAndroidPickedUris(args.intent)
+        callback.onReceiveValue(uris.length > 0 ? uris : null)
+    } catch (e: any) {
+        console.error('[FileChooser][Android] Failed to read result:', e?.message ?? e)
+        callback.onReceiveValue(null)
+    } finally {
+        androidCameraOutputUri = null
+    }
+}
+
+/**
+ * The picked URIs, covering all three shapes an Android chooser can return:
+ * a single item, a multi-select `ClipData`, or nothing at all — which means
+ * the camera wrote to the file we handed it.
+ */
+function collectAndroidPickedUris(intent: any): any[] {
+    const uris: any[] = []
+    if (intent) {
+        const clipData = intent.getClipData()
+        if (clipData) {
+            for (let i = 0; i < clipData.getItemCount(); i++) {
+                uris.push(clipData.getItemAt(i).getUri())
+            }
+        } else if (intent.getData()) {
+            uris.push(intent.getData())
+        }
+    }
+    if (uris.length === 0 && androidCameraOutputUri) {
+        uris.push(androidCameraOutputUri)
+    }
+    return uris
+}
+
 function loadWebViewAndroid(webView: WebView, webPath: string) {
     const nativeWebView = webView.android as any
     const settings = nativeWebView.getSettings()
@@ -705,6 +864,10 @@ function loadWebViewAndroid(webView: WebView, webPath: string) {
 
     // Expose window.AndroidBridge.requestReview() for the in-app review prompt (#371)
     setupAndroidReviewBridge(nativeWebView)
+
+    // Make <input type="file"> work at all (#542) — the stock WebChromeClient
+    // ignores it, so every upload button in the app was dead on Android.
+    setupAndroidFileChooser(nativeWebView)
 
     // Check if using OTA path (documents dir) or bundled path
     const bundledPath = path.join(knownFolders.currentApp().path, 'web')

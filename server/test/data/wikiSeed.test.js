@@ -124,3 +124,16 @@ describe('wiki seed content for the #538/#539/#540/#543 changes', () => {
     expect(topic.de.text).toMatch(/Halbzeit/i)
   })
 })
+
+describe('wiki seed content for the #541 chat changes', () => {
+  it('documents voice messages and where they work', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'chat')
+    expect(topic.en.text).toMatch(/voice message/i)
+    expect(topic.en.text).toMatch(/two minutes/i)
+    // The Android limitation is a real constraint players will hit.
+    expect(topic.en.text).toMatch(/Android app cannot record/i)
+    expect(topic.de.text).toMatch(/Sprachnachricht/i)
+    expect(topic.de.text).toMatch(/zwei Minuten/i)
+    expect(topic.de.text).toMatch(/Android-App kann noch nicht aufnehmen/i)
+  })
+})

@@ -117,6 +117,7 @@ export default {
   'error.chatInvalidUser': 'Ungültiger Chat-Empfänger',
   'error.chatEmptyMessage': 'Eine Nachricht muss Text oder ein Bild enthalten',
   'chat.imageMessage': '📷 Foto',
+  'chat.voiceMessage': '🎤 Sprachnachricht',
   'error.playerMaxLevelUps': 'Spieler hat bereits 20 Level-Ups in dieser Saison erhalten',
   'error.playerMaxLevel': 'Spieler hat bereits das maximale Level erreicht',
   'error.cardMaxLevel70': 'Aktionskarte erlaubt nur Level-Ups bis Level 70',

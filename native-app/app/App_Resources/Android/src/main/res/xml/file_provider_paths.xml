@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The single directory the FileProvider is allowed to share: where the camera
+    intent writes a freshly taken picture before the WebView reads it (#542).
+-->
+<paths>
+    <cache-path name="camera" path="camera/" />
+</paths>

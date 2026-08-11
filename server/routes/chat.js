@@ -14,6 +14,26 @@ const MAX_IMAGE_SIZE = 8 * 1024 * 1024 // 8MB
 const MAX_TEXT = 2000
 
 /**
+ * Voice-message container types (#541). Browsers do not agree on one: Chrome
+ * and Firefox record WebM/Opus, Safari and iOS record MP4/AAC, so both have to
+ * be accepted and stored as-is.
+ * @type {Record<string, string>}
+ */
+const ALLOWED_AUDIO_TYPES = {
+  'audio/webm': 'webm',
+  'audio/ogg': 'ogg',
+  'audio/mp4': 'm4a',
+  'audio/mpeg': 'mp3',
+  'audio/aac': 'aac'
+}
+
+/** A minute of Opus is well under this; the cap is only there to stop abuse. */
+const MAX_AUDIO_SIZE = 4 * 1024 * 1024
+
+/** Longest voice message we keep, in seconds. */
+export const MAX_AUDIO_DURATION_SECONDS = 120
+
+/**
  * Save a base64 data URL under uploads/chat. Returns the stored filename or
  * null when there is no image. Mirrors friendPosts/forum image handling.
  * @param {{data?: string, type?: string}} image
@@ -34,6 +54,34 @@ function saveImage (image) {
   const filename = `${crypto.randomUUID()}.${ext}`
   fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer)
   return filename
+}
+
+/**
+ * Save a base64-encoded voice recording under uploads/chat. Returns the stored
+ * filename and its duration, or nulls when there is no recording (#541).
+ * @param {{data?: string, type?: string, duration?: number}} audio
+ * @returns {{filename: string|null, duration: number|null}}
+ */
+function saveAudio (audio) {
+  if (!audio || !audio.data || !audio.type) return { filename: null, duration: null }
+  // Chrome appends codec parameters ("audio/webm;codecs=opus") — the container
+  // is what matters for storage and playback.
+  const container = String(audio.type).split(';')[0].trim()
+  const ext = ALLOWED_AUDIO_TYPES[container]
+  if (!ext) {
+    throw new BadRequestError('Unsupported audio type')
+  }
+  const base64Data = audio.data.replace(/^data:[^;]+;base64,/, '')
+  const buffer = Buffer.from(base64Data, 'base64')
+  if (buffer.length > MAX_AUDIO_SIZE) {
+    throw new BadRequestError('Voice message too large')
+  }
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+  const filename = `${crypto.randomUUID()}.${ext}`
+  fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer)
+  const rawDuration = Math.round(Number(audio.duration) || 0)
+  const duration = Math.min(MAX_AUDIO_DURATION_SECONDS, Math.max(0, rawDuration))
+  return { filename, duration }
 }
 
 export default {
@@ -94,7 +142,7 @@ export default {
     if (!partner) throw new BadRequestError(t('error.chatInvalidUser', {}, locale))
 
     const messages = await query(
-      `SELECT id, from_user_id, to_user_id, text, image, read_at, created_at
+      `SELECT id, from_user_id, to_user_id, text, image, audio, audio_duration, read_at, created_at
        FROM chat_message
        WHERE (from_user_id=? AND to_user_id=?) OR (from_user_id=? AND to_user_id=?)
        ORDER BY created_at ASC`,
@@ -116,10 +164,11 @@ export default {
    * @param {number} toUserId
    * @param {string} text
    * @param {{data?: string, type?: string}} [image]
+   * @param {{data?: string, type?: string, duration?: number}} [audio] - voice message (#541)
    * @param {Request} req
    * @returns {Promise<{success: boolean, message: Object}>}
    */
-  async sendChatMessage (toUserId, text, image, req) {
+  async sendChatMessage (toUserId, text, image, audio, req) {
     const locale = req.locale || 'en'
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const me = req.user.id
@@ -131,13 +180,16 @@ export default {
 
     const safeText = typeof text === 'string' ? text.trim().slice(0, MAX_TEXT) : ''
     const filename = saveImage(image)
-    if (!safeText && !filename) throw new BadRequestError(t('error.chatEmptyMessage', {}, locale))
+    const { filename: audioFile, duration: audioDuration } = saveAudio(audio)
+    if (!safeText && !filename && !audioFile) throw new BadRequestError(t('error.chatEmptyMessage', {}, locale))
 
     const result = await query('INSERT INTO chat_message SET ?', {
       from_user_id: me,
       to_user_id: other,
       text: safeText || null,
-      image: filename
+      image: filename,
+      audio: audioFile,
+      audio_duration: audioDuration
     })
     const [message] = await query('SELECT * FROM chat_message WHERE id=?', [result.insertId])
 
@@ -147,7 +199,8 @@ export default {
     // Best-effort push notification with a deep link straight into the chat.
     try {
       const recipientLocale = await getUserLocale(other)
-      const preview = safeText || t('chat.imageMessage', {}, recipientLocale)
+      const preview = safeText ||
+        (audioFile ? t('chat.voiceMessage', {}, recipientLocale) : t('chat.imageMessage', {}, recipientLocale))
       await sendPushNotifications(
         [other],
         req.user.username,

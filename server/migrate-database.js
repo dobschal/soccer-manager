@@ -3010,6 +3010,25 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Add voice message columns to chat_message (#541)',
+  async run () {
+    await query('ALTER TABLE chat_message ADD COLUMN audio VARCHAR(255) DEFAULT NULL')
+    await query('ALTER TABLE chat_message ADD COLUMN audio_duration INT DEFAULT NULL')
+  }
+}, {
+  name: 'Wiki: voice messages in the chat (#541)',
+  async run () {
+    const topic = WIKI_SEED.find(t => t.key === 'chat')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

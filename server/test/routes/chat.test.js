@@ -23,7 +23,7 @@ vi.mock('../../i18n/index.js', () => ({
 import { query } from '../../lib/database.js'
 import { sendToUser } from '../../lib/websocket.js'
 import { sendPushNotifications } from '../../lib/pushNotification.js'
-import chat from '../../routes/chat.js'
+import chat, { MAX_AUDIO_DURATION_SECONDS } from '../../routes/chat.js'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -40,7 +40,7 @@ describe('chat route', () => {
       })
       const req = createMockRequest({ user: { id: 1, username: 'Alice' } })
 
-      const result = await chat.sendChatMessage(2, 'hi', null, req)
+      const result = await chat.sendChatMessage(2, 'hi', null, null, req)
 
       expect(result.success).toBe(true)
       expect(result.message.id).toBe(500)
@@ -57,13 +57,13 @@ describe('chat route', () => {
       })
       const req = createMockRequest({ user: { id: 1, username: 'Alice' } })
 
-      await expect(chat.sendChatMessage(2, '   ', null, req)).rejects.toThrow()
+      await expect(chat.sendChatMessage(2, '   ', null, null, req)).rejects.toThrow()
       expect(sendToUser).not.toHaveBeenCalled()
     })
 
     it('rejects messaging yourself', async () => {
       const req = createMockRequest({ user: { id: 1, username: 'Alice' } })
-      await expect(chat.sendChatMessage(1, 'hi', null, req)).rejects.toThrow()
+      await expect(chat.sendChatMessage(1, 'hi', null, null, req)).rejects.toThrow()
     })
 
     it('rejects an image larger than the 8MB limit', async () => {
@@ -76,7 +76,7 @@ describe('chat route', () => {
       const bigBase64 = Buffer.alloc(9 * 1024 * 1024).toString('base64')
       const image = { type: 'image/png', data: `data:image/png;base64,${bigBase64}` }
 
-      await expect(chat.sendChatMessage(2, '', image, req)).rejects.toThrow('Image too large')
+      await expect(chat.sendChatMessage(2, '', image, null, req)).rejects.toThrow('Image too large')
       expect(sendToUser).not.toHaveBeenCalled()
     })
 
@@ -92,7 +92,7 @@ describe('chat route', () => {
       const base64 = Buffer.alloc(5 * 1024 * 1024).toString('base64')
       const image = { type: 'image/png', data: `data:image/png;base64,${base64}` }
 
-      const result = await chat.sendChatMessage(2, '', image, req)
+      const result = await chat.sendChatMessage(2, '', image, null, req)
 
       expect(result.success).toBe(true)
       expect(sendToUser).toHaveBeenCalled()
@@ -136,5 +136,115 @@ describe('chat route', () => {
       expect(result.count).toBe(3)
       expect(result.latestUserId).toBe(7)
     })
+  })
+})
+
+describe('chat voice messages (#541)', () => {
+  /**
+   * @param {number} bytes
+   * @returns {string} a base64 data URL of the requested size
+   */
+  const audioData = (bytes) => `data:audio/webm;base64,${Buffer.alloc(bytes).toString('base64')}`
+
+  /**
+   * @param {object} [over]
+   * @returns {object}
+   */
+  const audio = (over = {}) => ({ data: audioData(64), type: 'audio/webm', duration: 7, ...over })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('SELECT id, username FROM user')) return [{ id: 2, username: 'Bob' }]
+      if (sql.includes('INSERT INTO chat_message')) return { insertId: 500 }
+      if (sql.includes('SELECT * FROM chat_message WHERE id=?')) return [{ id: 500 }]
+      return {}
+    })
+  })
+
+  /**
+   * @returns {object} the row handed to the INSERT
+   */
+  const insertedRow = () =>
+    query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO chat_message'))[1]
+
+  const req = () => createMockRequest({ user: { id: 1, username: 'Alice' } })
+
+  it('stores a voice message with its duration', async () => {
+    const result = await chat.sendChatMessage(2, '', null, audio(), req())
+
+    expect(result.success).toBe(true)
+    const row = insertedRow()
+    expect(row.audio).toMatch(/\.webm$/)
+    expect(row.audio_duration).toBe(7)
+    expect(row.text).toBe(null)
+  })
+
+  it('accepts the MP4 container Safari and iOS record', async () => {
+    await chat.sendChatMessage(2, '', null, audio({ type: 'audio/mp4' }), req())
+    expect(insertedRow().audio).toMatch(/\.m4a$/)
+  })
+
+  it('ignores the codec parameters Chrome appends to the type', async () => {
+    await chat.sendChatMessage(2, '', null, audio({ type: 'audio/webm;codecs=opus' }), req())
+    expect(insertedRow().audio).toMatch(/\.webm$/)
+  })
+
+  it('rejects a container we do not store', async () => {
+    await expect(chat.sendChatMessage(2, '', null, audio({ type: 'audio/wav' }), req()))
+      .rejects.toThrow('Unsupported audio type')
+  })
+
+  it('rejects a recording over the size cap', async () => {
+    await expect(chat.sendChatMessage(2, '', null, audio({ data: audioData(5 * 1024 * 1024) }), req()))
+      .rejects.toThrow('Voice message too large')
+  })
+
+  it('caps a duration claimed beyond the maximum', async () => {
+    await chat.sendChatMessage(2, '', null, audio({ duration: 9999 }), req())
+    expect(insertedRow().audio_duration).toBe(MAX_AUDIO_DURATION_SECONDS)
+  })
+
+  it('treats a missing or negative duration as zero', async () => {
+    await chat.sendChatMessage(2, '', null, audio({ duration: undefined }), req())
+    expect(insertedRow().audio_duration).toBe(0)
+
+    vi.clearAllMocks()
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('SELECT id, username FROM user')) return [{ id: 2, username: 'Bob' }]
+      if (sql.includes('INSERT INTO chat_message')) return { insertId: 501 }
+      return [{ id: 501 }]
+    })
+    await chat.sendChatMessage(2, '', null, audio({ duration: -5 }), req())
+    expect(insertedRow().audio_duration).toBe(0)
+  })
+
+  it('still rejects a message with nothing in it at all', async () => {
+    await expect(chat.sendChatMessage(2, '', null, null, req()))
+      .rejects.toThrow()
+  })
+
+  it('sends a voice-message push preview rather than the photo one', async () => {
+    await chat.sendChatMessage(2, '', null, audio(), req())
+    const [, , preview] = sendPushNotifications.mock.calls[0]
+    expect(preview).toBe('chat.voiceMessage')
+  })
+
+  it('prefers the typed text over the voice preview when both are present', async () => {
+    await chat.sendChatMessage(2, 'listen', null, audio(), req())
+    const [, , preview] = sendPushNotifications.mock.calls[0]
+    expect(preview).toBe('listen')
+  })
+
+  it('returns the audio columns when loading a conversation', async () => {
+    const selects = []
+    query.mockImplementation(async (sql) => {
+      selects.push(String(sql))
+      if (String(sql).includes('SELECT id, username, avatar FROM user')) return [{ id: 2, username: 'Bob' }]
+      return []
+    })
+    await chat.getChatMessages(2, createMockRequest({ user: { id: 1 } }))
+
+    expect(selects.some(sql => sql.includes('audio') && sql.includes('audio_duration'))).toBe(true)
   })
 })
