@@ -3,7 +3,7 @@ import { BadRequestError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
 import { sendToUser } from '../lib/websocket.js'
 
-const VALID_TUTORIAL_KEYS = ['results', 'team', 'trades', 'dashboard', 'stadium', 'finances', 'youth', 'buildings']
+const VALID_TUTORIAL_KEYS = ['results', 'team', 'trades', 'dashboard', 'stadium', 'finances', 'youth', 'buildings', 'tour']
 
 export default {
 

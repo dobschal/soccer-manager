@@ -909,7 +909,7 @@ async function _checkTactic (botTeam, players, _isStrongTeam) {
     let selectedPlayer
     for (const player of players) {
       // Skip if already in lineup, wrong position, suspended, or injured
-      if (player.in_game_position || player.position !== position || player.is_suspended || player.is_injured) {
+      if (player.in_game_position || player.position !== position || player.is_suspended || player.is_injured || player.tour_days_left) {
         continue
       }
 

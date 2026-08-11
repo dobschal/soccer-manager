@@ -44,7 +44,8 @@ Good to know:
 • The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings, and the Medical Practice unlocks the Medical Treatment card in the first place.
 • A single player can gain at most 20 levels per season through cards.
 • You can hold at most 20 unplayed cards of the same type – play or trade some away before you can claim more of that type. Your dashboard warns you as soon as a stack is full.
-• Signing for a club gets you four cards to start with: a New Youth Player 1, a Level Up 40, a Star Player and a New Youth Player 3.
+• Signing for a club gets you five cards to start with: a New Youth Player 1, a Level Up 40, a Star Player, a New Youth Player 3 and a Million Gift.
+• The info bar at the top shows how many playable cards you are holding, right next to your balance. Tap it to jump straight to your cards.
 • At most 3 New Youth Player cards are handed out per season, so young talents stay scarce.
 • Cards you don't need can be traded with other managers on the Action Card Marketplace.
 • Save your Motivating Speech and Freshness cards for important matches.`
@@ -71,7 +72,8 @@ Gut zu wissen:
 • Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust – und die Arztpraxis schaltet die Karte „Medizinische Behandlung" überhaupt erst frei.
 • Ein Spieler kann pro Saison höchstens 20 Level durch Karten gewinnen.
 • Du kannst höchstens 20 ungenutzte Karten desselben Typs halten – setze oder tausche welche ein, bevor du weitere dieses Typs annehmen kannst. Dein Dashboard warnt dich, sobald ein Stapel voll ist.
-• Mit der Vereinsübernahme bekommst du vier Karten zum Start: Nachwuchsspieler, Basis-Training, Starspieler und Nachwuchsstar.
+• Mit der Vereinsübernahme bekommst du fünf Karten zum Start: Nachwuchsspieler, Basis-Training, Starspieler, Nachwuchsstar und Millionengeschenk.
+• Die Info-Bar oben zeigt direkt neben deinem Kontostand, wie viele spielbare Karten du hast. Ein Tipp darauf bringt dich direkt zu deinen Karten.
 • Pro Saison werden höchstens 3 „Neuer Jugendspieler“-Karten vergeben, damit Talente knapp bleiben.
 • Karten, die du nicht brauchst, kannst du auf dem Action-Card-Marktplatz mit anderen Managern tauschen.
 • Hebe dir Motivationsrede und Frische-Karten für wichtige Spiele auf.`
@@ -145,15 +147,22 @@ How the streak works:
 • Skip a whole day and both the streak and your reward progress fall back to zero.
 • The reward counter runs in cycles of 30 days. After day 30 it restarts at 1 while your actual streak keeps counting – 43 days in a row means a streak of 43 and 13/30 in the current cycle.
 
-Rewards in every cycle:
-• Day 3 – a recovery card (Quick Recovery, Energy Boost or Full Recovery)
-• Day 7 – a training card (Basic, Advanced or Master Training)
-• Day 15 – a special card (Cash Bonus, Spy or Motivating Speech)
-• Day 30 – a youth card (Youth Prospect, Youth Talent or Youth Star)
+Rewards in every cycle – one card is drawn per milestone, with these chances:
+• Day 3 – Quick Recovery (50%), Energy Boost (30%) or Full Recovery (20%)
+• Day 7 – Basic Training (50%), Advanced Training (30%) or Master Training (20%)
+• Day 15 – Cash Bonus (30%), Spy (30%), Motivating Speech (30%) or Star Player (10%)
+• Day 23 – Youth Prospect (50%), Youth Talent (30%) or Youth Star (20%)
+• Day 30 – Million Gift (70%) or Star Player (30%)
 
-Each reward is handed out only once per cycle. New cards arrive as pending cards, so you pick them up from the dashboard like any other card.
+Rewards are never handed out behind your back – you collect them yourself. As soon as you reach a milestone, a gift 🎁 appears on the progress bar above your club emblem. Tap the gift and your card is drawn and revealed right there, the same way the mini game hands out its reward.
 
-The progress bar above your club emblem shows the current cycle. Tap it to see your streak, the rewards you already collected, the next one up, and the managers with the longest active streaks.`
+Good to know about collecting:
+• The gift waits for you. Leave it lying and it stays until you pick it up – or until your 30-day cycle restarts and the progress resets.
+• Let several milestones pile up and the gift shows how many are waiting; one tap reveals them one after another.
+• Each reward is handed out only once per cycle.
+• If you are already at the card limit for some of the options, the draw simply uses the ones you can still receive. Are you capped on all of them, the gift stays put – play a card first, then collect it.
+
+Tap the bar itself (not the gift) to see your streak, every milestone with its possible cards and chances, the next reward up, and the managers with the longest active streaks.`
     },
     de: {
       title: 'Täglicher Login-Bonus',
@@ -166,15 +175,77 @@ So funktioniert die Serie:
 • Lässt du einen ganzen Tag aus, fallen Serie und Belohnungs-Fortschritt auf null zurück.
 • Der Belohnungs-Zähler läuft in Zyklen von 30 Tagen. Nach Tag 30 startet er wieder bei 1, während deine eigentliche Serie weiterläuft – 43 Tage am Stück bedeuten eine Serie von 43 und 13/30 im aktuellen Zyklus.
 
-Belohnungen in jedem Zyklus:
-• Tag 3 – eine Erholungskarte (Schnelle Erholung, Energie-Boost oder Volle Erholung)
-• Tag 7 – eine Trainingskarte (Basis-, Fortgeschrittenes oder Meister-Training)
-• Tag 15 – eine Spezialkarte (Geldbonus, Spion oder Motivierende Ansprache)
-• Tag 30 – eine Nachwuchskarte (Nachwuchsspieler, Nachwuchstalent oder Nachwuchsstar)
+Belohnungen in jedem Zyklus – pro Meilenstein wird eine Karte gezogen, mit diesen Wahrscheinlichkeiten:
+• Tag 3 – Schnelle Erholung (50%), Energie-Boost (30%) oder Volle Erholung (20%)
+• Tag 7 – Basis-Training (50%), Fortgeschrittenes Training (30%) oder Meister-Training (20%)
+• Tag 15 – Geldbonus (30%), Spion (30%), Motivierende Ansprache (30%) oder Starspieler (10%)
+• Tag 23 – Nachwuchsspieler (50%), Nachwuchstalent (30%) oder Nachwuchsstar (20%)
+• Tag 30 – Millionengeschenk (70%) oder Starspieler (30%)
 
-Jede Belohnung wird pro Zyklus nur einmal vergeben. Neue Karten kommen als ausstehende Karten an und werden wie jede andere Karte über das Dashboard abgeholt.
+Belohnungen bekommst du nie nebenbei – du holst sie selbst ab. Sobald du einen Meilenstein erreichst, liegt ein Geschenk 🎁 auf der Fortschrittsleiste über deinem Vereinswappen. Tippe das Geschenk an, dann wird deine Karte gezogen und direkt aufgedeckt – genau wie die Belohnung beim Mini-Game.
 
-Die Fortschrittsleiste über deinem Vereinswappen zeigt den aktuellen Zyklus. Tippe sie an, um deine Serie, die bereits erhaltenen Belohnungen, die nächste Belohnung und die Manager mit den längsten aktiven Serien zu sehen.`
+Wissenswertes zum Abholen:
+• Das Geschenk wartet auf dich. Lässt du es liegen, bleibt es dort – bis du es einsammelst oder dein 30-Tage-Zyklus neu startet und der Fortschritt zurückgesetzt wird.
+• Stauen sich mehrere Meilensteine, zeigt das Geschenk die Anzahl an; ein Tap deckt sie nacheinander auf.
+• Jede Belohnung wird pro Zyklus nur einmal vergeben.
+• Hast du bei einzelnen Optionen schon das Kartenlimit erreicht, wird aus den übrigen gezogen. Bist du bei allen am Limit, bleibt das Geschenk liegen – spiele erst eine Karte aus und hole es dann ab.
+
+Tippe die Leiste selbst an (nicht das Geschenk), um deine Serie, jeden Meilenstein mit seinen möglichen Karten und Wahrscheinlichkeiten, die nächste Belohnung und die Manager mit den längsten aktiven Serien zu sehen.`
+    }
+  },
+
+  // ─── On Tour ───────────────────────────────────────────────────────────
+  {
+    key: 'on-tour',
+    en: {
+      title: 'On Tour',
+      subtitle: 'Send players abroad and bring back action cards',
+      text: `A promotional tour turns squad depth into action cards. You pick a destination, send players away for a few match days, and every day abroad fills a progress bar. A full bar pays out that destination's reward.
+
+The three destinations:
+• South America – 2× Youth Star cards.
+• Asia – 1× Million Gift (1,000,000 €).
+• Europe – 5× Master Training cards.
+
+Sending players:
+• Up to 3 players can be away at the same time, for 3 to 7 match days each.
+• A player on tour cannot be fielded and is pulled out of your lineup and bench the moment they leave. The squad list marks them with a ✈️.
+• Injured and suspended players cannot be sent — they are already unavailable.
+• When the days run out the player simply comes back; put them into the lineup yourself.
+
+Progress:
+• Each travelling player scores their level divided by your squad's average level, every match day. An average player is worth 1 point, your best around 1.2.
+• Because it is measured against your own squad, a fourth-division club fills the bar just as fast as a first-division one.
+• 30 points fill the bar. Three regular players away for the full seven match days get you most of the way there.
+• Anything above 30 carries over into the next tour, so a strong final day is never wasted.
+
+Changing your mind:
+• You can switch destination at any time, but the progress you have collected is discarded — the game asks before it does that.`
+    },
+    de: {
+      title: 'On Tour',
+      subtitle: 'Schicke Spieler ins Ausland und hole Aktionskarten',
+      text: `Eine Werbereise verwandelt Kadertiefe in Aktionskarten. Du wählst ein Reiseziel, entsendest Spieler für einige Spieltage, und jeder Tag im Ausland füllt einen Fortschrittsbalken. Ist er voll, gibt es die Belohnung des Reiseziels.
+
+Die drei Reiseziele:
+• Südamerika – 2× Nachwuchsstar-Karten.
+• Asien – 1× Millionengeschenk (1.000.000 €).
+• Europa – 5× Meister-Training-Karten.
+
+Spieler entsenden:
+• Höchstens 3 Spieler können gleichzeitig unterwegs sein, je 3 bis 7 Spieltage.
+• Ein Spieler auf Reise kann nicht eingesetzt werden und wird sofort aus Aufstellung und Bank genommen. In der Kaderliste ist er mit ✈️ gekennzeichnet.
+• Verletzte und gesperrte Spieler können nicht entsendet werden — sie fehlen ohnehin.
+• Läuft die Zeit ab, kommt der Spieler einfach zurück; die Aufstellung musst du selbst wieder anpassen.
+
+Fortschritt:
+• Jeder reisende Spieler bringt pro Spieltag sein Level geteilt durch das Durchschnittslevel deines Kaders. Ein durchschnittlicher Spieler ist 1 Punkt wert, dein bester rund 1,2.
+• Weil am eigenen Kader gemessen wird, füllt ein Viertligist den Balken genauso schnell wie ein Erstligist.
+• 30 Punkte füllen den Balken. Drei Stammspieler über die vollen sieben Spieltage bringen dich fast ans Ziel.
+• Was über 30 hinausgeht, wird in die nächste Reise übernommen — ein starker letzter Tag verfällt also nie.
+
+Meinung geändert:
+• Du kannst das Reiseziel jederzeit wechseln, verlierst dabei aber den gesammelten Fortschritt — das Spiel fragt vorher nach.`
     }
   },
 
@@ -221,6 +292,7 @@ Saved lineups:
 • You can keep several named lineups side by side and switch between them with the select above the pitch.
 • Exactly one lineup is active at a time – that is the one used for your next match.
 • "New Lineup" creates an empty slot with a random formation and nobody assigned, ready to be filled from scratch.
+• The pencil icon next to the select renames the lineup you are currently on – including the first one you started with.
 • A lineup stores its formation, the eleven positions, the bench (including substitution modes), the captain and your tactics. Every change you make is saved into the active lineup automatically.
 • Switching lineups drops players who have left your squad in the meantime; a captain who is no longer in the eleven is cleared.
 
@@ -253,6 +325,7 @@ Gespeicherte Aufstellungen:
 • Du kannst mehrere benannte Aufstellungen parallel halten und über das Auswahlfeld oberhalb des Spielfelds wechseln.
 • Genau eine Aufstellung ist aktiv – sie wird für dein nächstes Spiel verwendet.
 • "Neue Aufstellung" legt einen leeren Slot mit zufälliger Formation und ohne aufgestellte Spieler an.
+• Das Stift-Icon neben dem Auswahlfeld benennt die aktuell gewählte Aufstellung um – auch die erste, mit der du gestartet bist.
 • Eine Aufstellung speichert Formation, die elf Positionen, die Bank (inklusive Einwechsel-Modus), den Kapitän und deine Taktik. Jede Änderung wird automatisch in die aktive Aufstellung übernommen.
 • Beim Wechseln werden Spieler ignoriert, die dein Team inzwischen verlassen haben; ein Kapitän, der nicht mehr in der Elf steht, wird gelöscht.
 
@@ -804,7 +877,14 @@ The key mechanics:
 
 What changes a player's effective strength: fitness, a Star Player bonus (+10%), a Motivating Speech (+10%), your captain, your squad's average age (ideal 27, up to ±5%), your home advantage, and a small penalty for bot teams (see In-Game Level for the full picture). Cup matches never end in a draw – if it stays level after 90 minutes, 30 minutes of extra time are played, followed by a penalty shootout if still tied.
 
-Each match stores full details: goals, shots, possession, cards and the lineups, which you can review afterwards.`
+Each match stores full details: goals, shots, possession, cards and the lineups, which you can review afterwards.
+
+The match ticker replays your latest match event by event, straight from that log:
+• It opens with kick-off, breaks for half time, and in cup matches announces extra time and the penalty shootout with every single taker.
+• Alongside goals, chances and saves it shows the standout ball recoveries and won duels, substitutions, and every card together with the reason for it.
+• An injury names the actual injury and how long the player is out.
+• Every line carries a small portrait of the player involved.
+• Use the speed button to run the ticker at double speed, or skip to the final score.`
     },
     de: {
       title: 'Spielberechnung',
@@ -820,7 +900,14 @@ Die wichtigsten Mechaniken:
 
 Was die effektive Stärke eines Spielers verändert: Fitness, der Starspieler-Bonus (+10%), eine Motivationsrede (+10%), dein Kapitän, das Durchschnittsalter deiner Mannschaft (ideal 27, bis zu ±5%), dein Heimvorteil und ein kleiner Malus für Bot-Teams (siehe In-Game-Level für die vollständige Übersicht). Pokalspiele enden nie unentschieden – ist es nach 90 Minuten remis, folgt eine 30-minütige Verlängerung und, wenn immer noch gleich, ein Elfmeterschießen.
 
-Jedes Spiel speichert alle Details: Tore, Schüsse, Ballbesitz, Karten und die Aufstellungen, die du danach ansehen kannst.`
+Jedes Spiel speichert alle Details: Tore, Schüsse, Ballbesitz, Karten und die Aufstellungen, die du danach ansehen kannst.
+
+Der Spielticker spielt dein letztes Spiel Ereignis für Ereignis genau aus diesem Log nach:
+• Er startet mit dem Anpfiff, pausiert zur Halbzeit und kündigt bei Pokalspielen Verlängerung und Elfmeterschießen mit jedem einzelnen Schützen an.
+• Neben Toren, Torchancen und Paraden zeigt er die auffälligsten Balleroberungen und gewonnenen Zweikämpfe, Einwechslungen und jede Karte samt Grund.
+• Bei einer Verletzung wird die Verletzungsart genannt und wie lange der Spieler ausfällt.
+• Jede Zeile zeigt ein kleines Bild des beteiligten Spielers.
+• Mit dem Geschwindigkeits-Knopf läuft der Ticker in doppeltem Tempo, oder du springst direkt zum Endstand.`
     }
   },
 

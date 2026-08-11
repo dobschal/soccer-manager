@@ -3042,6 +3042,59 @@ const migrations = [{
       )
     }
   }
+}, {
+  name: 'Create team_tour table and player tour column (#535)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS team_tour
+    (
+        team_id    BIGINT NOT NULL,
+        mode       VARCHAR(20) NOT NULL,
+        progress   DECIMAL(10,2) NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (team_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+    // Counts down one per game day; > 0 means the player is away and cannot be
+    // fielded.
+    await query('ALTER TABLE player ADD COLUMN tour_days_left INT NOT NULL DEFAULT 0')
+  }
+}, {
+  name: 'Wiki: login reward cycle, lineup renaming, card count, match ticker (#501/#481/#523/#539)',
+  async run () {
+    const KEYS_TO_REFRESH = ['daily-login', 'lineup', 'action-cards', 'match-simulation']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: add the On Tour topic (#535)',
+  async run () {
+    const topic = WIKI_SEED.find(t => t.key === 'on-tour')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const [existing] = await query(
+        'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+        [topic.key, locale]
+      )
+      if (existing) continue
+      const entry = topic[locale]
+      await query('INSERT INTO wiki_entry SET ?', {
+        locale,
+        page_key: topic.key,
+        title: entry.title,
+        subtitle: entry.subtitle || null,
+        text: entry.text,
+        images: JSON.stringify([]),
+        sort_order: 0
+      })
+    }
+  }
 }]
 
 /**

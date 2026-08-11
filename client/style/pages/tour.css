@@ -1,0 +1,55 @@
+/* "On Tour" page (#535) */
+
+.tour-destination {
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.tour-destination:hover {
+    transform: translateY(-2px);
+    border-color: rgba(13, 202, 240, 0.5);
+}
+
+.tour-destination--active {
+    border-color: var(--bs-info);
+}
+
+.tour-destination__image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+}
+
+.tour-progress {
+    height: 1.4rem;
+}
+
+.tour-select-list {
+    max-height: 45vh;
+    overflow-y: auto;
+}
+
+.tour-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border-radius: 0.4rem;
+    cursor: pointer;
+}
+
+.tour-select-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.tour-select-row input:disabled ~ * {
+    opacity: 0.45;
+}
+
+.tour-select-name {
+    font-weight: 600;
+}

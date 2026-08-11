@@ -26,7 +26,7 @@ import { isSandboxHost } from './lib/sandboxHost.js'
 import { serveNotificationEmailImage } from './helper/notificationEmailHelper.js'
 import { serveInviteLanding } from './lib/inviteLanding.js'
 import { registerDailyLogin, toDateKey } from './helper/loginStreakHelper.js'
-import { query } from './lib/database.js'
+import { advanceTours } from './helper/tourHelper.js'
 
 const app = express()
 const port = 3000
@@ -123,8 +123,7 @@ async function trackDailyLogin (userId) {
   if (dailyLoginSeen.get(userId) === today) return
   dailyLoginSeen.set(userId, today)
   try {
-    const [team] = await query('SELECT id FROM team WHERE user_id=? LIMIT 1', [userId])
-    await registerDailyLogin(userId, team?.id ?? null)
+    await registerDailyLogin(userId)
   } catch (e) {
     dailyLoginSeen.delete(userId)
     console.error('trackDailyLogin failed:', e?.message ?? e)
@@ -205,6 +204,7 @@ async function start () {
       try { await calculateGames() } catch (e) { console.error('calculateGames failed:', e) }
     }
     try { await cleanupOldFreePlayers() } catch (e) { console.error('cleanupOldFreePlayers failed:', e) }
+    try { await advanceTours() } catch (e) { console.error('advanceTours failed:', e) }
     try { await makeBotMoves() } catch (e) { console.error('makeBotMoves failed:', e) }
     try { await cleanupInactiveUsers() } catch (e) { console.error('cleanupInactiveUsers failed:', e) }
     try { await enforceSellOfferLimits() } catch (e) { console.error('enforceSellOfferLimits failed:', e) }

@@ -375,7 +375,7 @@ export default {
       const mode = substitutionMode ?? 'injury_only'
       if (!validModes.includes(mode)) throw new BadRequestError('Invalid substitution mode')
       const player = playersFromDb.find(p => p.id === playerId)
-      if (player.is_suspended || player.is_injured) throw new BadRequestError('Player is unavailable')
+      if (player.is_suspended || player.is_injured || player.tour_days_left) throw new BadRequestError('Player is unavailable')
       await query('UPDATE player SET bench_position=?, bench_substitution_mode=? WHERE id=?', [benchPosition, mode, playerId])
     }
 
@@ -401,7 +401,7 @@ export default {
     if (!validPositions.includes(benchPosition)) throw new BadRequestError('Invalid bench position')
     const [player] = await query('SELECT * FROM player WHERE id=? AND team_id=? LIMIT 1', [playerId, team.id])
     if (!player) throw new BadRequestError('Player not found in your team')
-    if (player.is_suspended || player.is_injured) throw new BadRequestError('Player is unavailable')
+    if (player.is_suspended || player.is_injured || player.tour_days_left) throw new BadRequestError('Player is unavailable')
 
     // Look up whoever currently occupies this bench slot — they'll be kicked
     // off (bench_position → NULL) so we can put the picked player there.
@@ -491,7 +491,7 @@ export default {
 
     const [newPlayer] = await query('SELECT * FROM player WHERE id=? AND team_id=? LIMIT 1', [newPlayerId, team.id])
     if (!newPlayer) throw new BadRequestError('Player not found in your team')
-    if (newPlayer.is_suspended || newPlayer.is_injured) throw new BadRequestError('Player is unavailable')
+    if (newPlayer.is_suspended || newPlayer.is_injured || newPlayer.tour_days_left) throw new BadRequestError('Player is unavailable')
 
     // Look up the current occupant by explicit id when the client sent one
     // (so we hit the exact tile the user clicked, not an arbitrary same-slot

@@ -209,6 +209,10 @@ export default {
   'log.youthPlayerPromoted': '{playerName} has been promoted to the A Team at level {level}!',
   'log.youthPlayerFired': 'Youth player {playerName} has been released from the youth team.',
   'log.youthPlayerSold': 'Youth player {playerName} was sold for {value}€.',
+  'log.tourCompleted': 'Your squad is back from the {tour} — {count} new action card(s) are waiting for you.',
+  'tour.south_america': 'South America tour',
+  'tour.asia': 'Asia tour',
+  'tour.europe': 'Europe tour',
   'log.youthPlayerAt18Warning': 'Warning: The following youth players will be automatically released next season if not promoted: {playerNames}',
 
   // Log messages - Cards and suspensions

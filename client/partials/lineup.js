@@ -376,10 +376,10 @@ export class Lineup extends UIElement {
 
           if (player) {
             // Matching-position players excluding suspended/injured/fake
-            const availablePlayers = this.players.filter(p => p.position === player.in_game_position && !p.fake && !p.is_suspended && !p.is_injured)
+            const availablePlayers = this.players.filter(p => p.position === player.in_game_position && !p.fake && !p.is_suspended && !p.is_injured && !p.tour_days_left)
             // All players (any position) the user could field for this slot.
             // Excludes the player already in the slot, fake placeholders, and unavailable players.
-            const allPlayers = this.players.filter(p => !p.fake && !p.is_suspended && !p.is_injured && p.id !== player.id)
+            const allPlayers = this.players.filter(p => !p.fake && !p.is_suspended && !p.is_injured && !p.tour_days_left && p.id !== player.id)
             const positionTitle = t(`position.full.${player.in_game_position}`)
             this._overlay = showOverlay(
               positionTitle,

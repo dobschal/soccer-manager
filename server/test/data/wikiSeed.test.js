@@ -7,7 +7,7 @@ const MAX_SUBTITLE = 255
 
 describe('wiki seed content (#441)', () => {
   it('covers all requested topics in both locales', () => {
-    expect(WIKI_SEED).toHaveLength(29)
+    expect(WIKI_SEED).toHaveLength(30)
   })
 
   it('documents the fair-play rules so sanctions are not a surprise', () => {
@@ -135,5 +135,33 @@ describe('wiki seed content for the #541 chat changes', () => {
     expect(topic.de.text).toMatch(/Sprachnachricht/i)
     expect(topic.de.text).toMatch(/zwei Minuten/i)
     expect(topic.de.text).toMatch(/Android-App kann noch nicht aufnehmen/i)
+  })
+})
+
+describe('wiki seed content for On Tour (#535)', () => {
+  it('has the topic the page links to via its info icon', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'on-tour')
+    expect(topic).toBeTruthy()
+    for (const locale of LOCALES) {
+      expect(topic[locale].text.trim().length).toBeGreaterThan(0)
+    }
+  })
+
+  it('spells out the limits a player will run into', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'on-tour')
+    for (const locale of LOCALES) {
+      const text = topic[locale].text
+      expect(text).toContain('3')   // max players and minimum days
+      expect(text).toContain('7')   // maximum days
+      expect(text).toContain('30')  // points needed
+    }
+  })
+
+  it('names all three destinations and their rewards', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'on-tour')
+    expect(topic.en.text).toMatch(/South America/)
+    expect(topic.en.text).toMatch(/Master Training/)
+    expect(topic.de.text).toMatch(/Südamerika/)
+    expect(topic.de.text).toMatch(/Meister-Training/)
   })
 })

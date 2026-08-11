@@ -244,6 +244,7 @@ Detailed feature specifications are in the `requirements/` directory:
 - [Game Calculation](requirements/game-calculation.md) - Spielsimulation, Bundesliga-Statistiken, Taktik-Auswirkungen
 - [Game Modes](requirements/game-modes.md) - Spielmodi
 - [Landing Page](requirements/landing-page.md) - Startseite
+- [On Tour](requirements/on-tour.md) - Werbereisen: Spieler entsenden und Aktionskarten verdienen
 - [Player Fitness](requirements/player-fitness.md) - Spieler-Frische und Ermuedung
 - [Player Injuries](requirements/player-injuries.md) - Spieler-Verletzungen
 - [Player Salary](requirements/player-sallary.md) - Gehaltsberechnung (exponentiell, Level 1-100)

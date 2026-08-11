@@ -209,6 +209,10 @@ export default {
   'log.youthPlayerPromoted': '{playerName} wurde auf Level {level} in die A-Mannschaft befördert!',
   'log.youthPlayerFired': 'Jugendspieler {playerName} wurde aus der Jugendmannschaft entlassen.',
   'log.youthPlayerSold': 'Jugendspieler {playerName} wurde für {value}€ verkauft.',
+  'log.tourCompleted': 'Dein Kader ist von der {tour} zurück — {count} neue Aktionskarte(n) warten auf dich.',
+  'tour.south_america': 'Südamerika-Reise',
+  'tour.asia': 'Asien-Reise',
+  'tour.europe': 'Europa-Reise',
   'log.youthPlayerAt18Warning': 'Warnung: Folgende Jugendspieler werden nächste Saison automatisch entlassen, wenn sie nicht befördert werden: {playerNames}',
 
   // Log messages - Cards and suspensions

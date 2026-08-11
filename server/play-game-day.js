@@ -150,8 +150,8 @@ async function _playCupGame (game) {
   ])
 
   // Filter out suspended and injured players (they miss this game)
-  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured)
-  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured)
+  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured && !p.tour_days_left)
+  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured && !p.tour_days_left)
 
   // Trim excess players and auto-fill incomplete lineups before the game
   playerTeamA = await trimExcessLineup(teamA, playerTeamA)
@@ -872,8 +872,8 @@ async function _playGame (game) {
   ])
 
   // Filter out suspended and injured players (they miss this game)
-  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured)
-  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured)
+  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured && !p.tour_days_left)
+  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured && !p.tour_days_left)
 
   // Trim excess players and auto-fill incomplete lineups before the game
   playerTeamA = await trimExcessLineup(teamA, playerTeamA)
@@ -1122,7 +1122,7 @@ async function _notifySuspension (player, team, cause) {
  */
 async function _loadBenchPlayers (teamId) {
   const benchPlayers = await query(
-    'SELECT * FROM player WHERE team_id=? AND bench_position IS NOT NULL AND bench_position <> \'\' AND is_suspended=0 AND is_injured=0',
+    'SELECT * FROM player WHERE team_id=? AND bench_position IS NOT NULL AND bench_position <> \'\' AND is_suspended=0 AND is_injured=0 AND tour_days_left=0',
     [teamId]
   )
   const bench = {}

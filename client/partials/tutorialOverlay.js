@@ -101,6 +101,16 @@ function getTutorials () {
         t('tutorial.buildingsPage.item7'),
         t('tutorial.buildingsPage.item8')
       ]
+    },
+    tour: {
+      title: t('tutorial.tourPage.title'),
+      subtitle: t('tutorial.tourPage.subtitle'),
+      items: [
+        t('tutorial.tourPage.item1'),
+        t('tutorial.tourPage.item2'),
+        t('tutorial.tourPage.item3'),
+        t('tutorial.tourPage.item4')
+      ]
     }
   }
 }
