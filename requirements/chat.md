@@ -17,6 +17,30 @@ Nutzer seinen Platz im Spiel nicht verliert.
   verwerfen oder abschicken.
 - **US-CHT-07**: Als Spieler kann ich eine empfangene Sprachnachricht direkt in der Nachrichtenblase
   abspielen und sehe ihre Laenge.
+- **US-CHT-08**: Als Spieler sehe ich meine laufenden Unterhaltungen als Liste im Reiter „Freunde“ —
+  Profilbild, Name, Vorschau der letzten Nachricht und deren Zeitstempel.
+- **US-CHT-09**: Als Spieler erkenne ich an der Hervorhebung einer Zeile, dass in dieser Unterhaltung
+  ungelesene Nachrichten liegen.
+- **US-CHT-10**: Als Spieler oeffne ich per Klick auf eine Zeile das Chat-Overlay dieser Unterhaltung.
+
+## Chat-Liste auf der Freunde-Seite
+
+Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friendsPage.js`).
+
+| Aspekt | Wert |
+|---|---|
+| Eintraege pro Seite | 5, mit Vor-/Zurueck-Blaettern (`CHATS_PER_PAGE`) |
+| Sortierung | letzte Nachricht zuerst (Server-Reihenfolge aus `getConversations`) |
+| Hervorhebung | `bg-info-subtle` + `chat-list-item--unread`, sobald `unread > 0` |
+| Zeitstempel | heute `hh:mm`, gestern „Gestern“, sonst `DD.MM.YYYY` |
+| Klick | setzt `chat_user` als Query-Param — das Overlay oeffnet ueber `chatDeepLink` |
+
+- **TA-CHT-16**: Die Vorschau wird **client-seitig** zusammengesetzt. Der Server liefert nur
+  `text`, `hasImage`, `hasAudio` und `fromMe`; die Platzhalter „Foto“ / „Sprachnachricht“ und das
+  Praefix „Du: “ folgen damit der Sprache des Lesers, nicht der des Absenders.
+- **TA-CHT-17**: Die Liste aktualisiert sich ohne Reload: `NEW_CHAT_MESSAGE` (WebSocket) und das
+  Fenster-Event `CHAT_MESSAGES_READ_EVENT` (feuert, sobald das Overlay eine Unterhaltung laedt und
+  damit als gelesen markiert) laden die Unterhaltungen neu.
 
 ## Sprachnachrichten (#541)
 
@@ -94,7 +118,7 @@ und Kommentare.
 
 | Endpunkt | Zweck |
 |---|---|
-| `getConversations()` | Gespraechsliste mit Ungelesen-Zaehler |
+| `getConversations()` | Gespraechsliste mit Ungelesen-Zaehler, `lastMessageAt` und `lastMessage` (`text`, `hasImage`, `hasAudio`, `fromMe`) |
 | `getChatMessages(userId)` | Verlauf eines Gespraechs, inkl. `audio` / `audio_duration` |
 | `sendChatMessage(toUserId, text, image, audio)` | Nachricht senden |
 | `getUnreadChatCount()` | Zaehler fuer das Dashboard |
@@ -107,3 +131,6 @@ und Kommentare.
 - Recorder: Verfuegbarkeitspruefung, Container-Wahl, Mikrofon-Freigabe auf allen Pfaden,
   Zeitzaehler und Maximallaenge
 - Overlay: Wisch-Geste startet nicht in einer gescrollten Liste
+- `getConversations`: Vorschau-Felder, Ungelesen-Zaehler, leere Liste
+- Chat-Liste: Reihenfolge ueber der Freundesliste, Hervorhebung ungelesener Chats, Bild-/Sprach-
+  Platzhalter, 5 Eintraege pro Seite

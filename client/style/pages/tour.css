@@ -27,6 +27,20 @@
     height: 1.4rem;
 }
 
+/* Hatched continuation of the filled bar: what the travellers will add on the
+   next match day, so the number does not have to be spelled out (#535). */
+.tour-progress__preview {
+    background-color: transparent;
+    background-image: repeating-linear-gradient(
+        135deg,
+        rgba(13, 202, 240, 0.55) 0,
+        rgba(13, 202, 240, 0.55) 4px,
+        transparent 4px,
+        transparent 9px
+    );
+    border-right: 2px dashed rgba(13, 202, 240, 0.8);
+}
+
 /* The progress card sits on the dark gradient (.bg-dark), where Bootstrap's
    dark .text-muted would be grey on grey. */
 .tour-progress-card .text-muted {

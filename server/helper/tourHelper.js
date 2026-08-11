@@ -120,11 +120,56 @@ export async function sendPlayersOnTour (teamId, playerIds, days) {
   // Leaving the squad also means leaving the pitch and the bench, otherwise the
   // lineup would silently field a player who is not there.
   await query(
-    "UPDATE player SET tour_days_left=?, in_game_position='', bench_position=NULL WHERE team_id=? AND id IN (?)",
-    [safeDays, teamId, ids]
+    "UPDATE player SET tour_days_left=?, tour_days_total=?, in_game_position='', bench_position=NULL WHERE team_id=? AND id IN (?)",
+    [safeDays, safeDays, teamId, ids]
   )
   await getTour(teamId)
   return { sent: ids.length }
+}
+
+/**
+ * Cancel a trip that has not started yet.
+ *
+ * A player may be called back only while `tour_days_left` is still the full
+ * duration they were sent for — no match day has passed, so they earned nothing
+ * and give nothing back. Once the first match day is played the trip is binding,
+ * otherwise a manager could bank the progress and still field the player.
+ *
+ * @param {number} teamId
+ * @param {number[]} playerIds
+ * @returns {Promise<{recalled: number}>}
+ */
+export async function recallPlayersFromTour (teamId, playerIds) {
+  const ids = [...new Set((Array.isArray(playerIds) ? playerIds : []).map(Number).filter(Boolean))]
+  if (ids.length === 0) throw new BadRequestError('No players selected')
+
+  const players = await query(
+    'SELECT id, tour_days_left, tour_days_total FROM player WHERE team_id=? AND id IN (?)',
+    [teamId, ids]
+  )
+  if (players.length !== ids.length) throw new BadRequestError('Player not found in your team')
+  for (const player of players) {
+    if (player.tour_days_left <= 0) throw new BadRequestError('Player is not on tour')
+    if (!canRecallFromTour(player)) throw new BadRequestError('The tour has already started')
+  }
+
+  // The lineup slots were cleared when they left; the manager has to set them
+  // up again, same as after any other absence.
+  await query(
+    'UPDATE player SET tour_days_left=0, tour_days_total=0 WHERE team_id=? AND id IN (?)',
+    [teamId, ids]
+  )
+  return { recalled: ids.length }
+}
+
+/**
+ * Whether a travelling player can still be pulled out of their trip.
+ * @param {{tour_days_left: number, tour_days_total: number}} player
+ * @returns {boolean}
+ */
+export function canRecallFromTour (player) {
+  return Number(player.tour_days_left) > 0 &&
+    Number(player.tour_days_left) === Number(player.tour_days_total)
 }
 
 /**
@@ -154,6 +199,9 @@ export async function advanceTours () {
   // Everyone who was away is one day closer to home, including teams whose
   // tour row somehow went missing.
   await query('UPDATE player SET tour_days_left = tour_days_left - 1 WHERE tour_days_left > 0')
+  // Home again — drop the booked duration so the column never lingers and make
+  // a fresh trip comparable against a clean slate.
+  await query('UPDATE player SET tour_days_total = 0 WHERE tour_days_left <= 0 AND tour_days_total > 0')
   if (teams.length > 0) {
     console.log(`✈️ Advanced ${teams.length} tour(s), ${rewarded} completed.`)
   }

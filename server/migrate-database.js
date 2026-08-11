@@ -3111,9 +3111,75 @@ const migrations = [{
     }
   }
 }, {
+  name: 'Add player.tour_days_total so a fresh tour can be cancelled (#535)',
+  async run () {
+    // The duration the player was sent away for. While `tour_days_left` still
+    // equals it, no match day has passed and nothing was earned — that is the
+    // window in which the manager may recall them. Players already travelling
+    // keep 0 and stay locked in, since we cannot tell how much they earned.
+    await query('ALTER TABLE player ADD COLUMN tour_days_total INT NOT NULL DEFAULT 0')
+  }
+}, {
   name: 'Wiki: urgency list starts collapsed with a show-all row',
   async run () {
     const KEYS_TO_REFRESH = ['urgency-list']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  // The friends page dropped the (unused) posts feature and leads with a
+  // messenger-style chat list instead.
+  name: 'Wiki: friends page shows chats instead of posts',
+  async run () {
+    const KEYS_TO_REFRESH = ['friends', 'chat']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Backfill tour_days_total for trips that were already running (#535)',
+  async run () {
+    // Without this every player who was already abroad when the column arrived
+    // would be stuck: `tour_days_total = 0` never equals their remaining days,
+    // so the recall button never appears for them. Treating their trip as
+    // not-yet-started grants one free cancellation at rollout — a one-off, and
+    // far better than a button that silently does not exist.
+    await query('UPDATE player SET tour_days_total = tour_days_left WHERE tour_days_left > 0 AND tour_days_total = 0')
+  }
+}, {
+  name: 'Wiki: a fresh tour can be cancelled, bar previews the next match day (#535)',
+  async run () {
+    const KEYS_TO_REFRESH = ['on-tour']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: the player picker is a scrollable strip that also offers out-of-position players',
+  async run () {
+    const KEYS_TO_REFRESH = ['lineup']
     for (const topic of WIKI_SEED) {
       if (!KEYS_TO_REFRESH.includes(topic.key)) continue
       for (const locale of ['en', 'de']) {

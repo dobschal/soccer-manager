@@ -129,8 +129,8 @@ export class DashboardPage extends TabbedPage {
       <div>
         <nav class="nav nav-pills">
           <a class="nav-link ${!this.subPage ? 'active' : ''}" href="#dashboard"><i class="fa fa-home"></i> ${t('dashboard.tabStart')}</a>
-          <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
           <a class="nav-link ${this.subPage === 'friends' ? 'active' : ''}" href="#dashboard?sub_page=friends"><i class="fa fa-users"></i> ${t('dashboard.tabFriends')}</a>
+          <a class="nav-link ${this.subPage === 'forum' ? 'active' : ''}" href="#dashboard?sub_page=forum"><i class="fa fa-comments"></i> ${t('forum.title')}</a>
           <a class="nav-link ${this.subPage === 'wiki' ? 'active' : ''}" href="#dashboard?sub_page=wiki"><i class="fa fa-book"></i> ${t('wiki.title')}</a>
           <a class="nav-link ${this.subPage === 'search' ? 'active' : ''}" href="#dashboard?sub_page=search"><i class="fa fa-search"></i> ${t('search.title')}</a>
         </nav>

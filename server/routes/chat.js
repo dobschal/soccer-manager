@@ -36,7 +36,7 @@ export const MAX_AUDIO_DURATION_SECONDS = 120
 
 /**
  * Save a base64 data URL under uploads/chat. Returns the stored filename or
- * null when there is no image. Mirrors friendPosts/forum image handling.
+ * null when there is no image. Mirrors the forum's image handling.
  * @param {{data?: string, type?: string}} image
  * @returns {string|null}
  */
@@ -89,7 +89,9 @@ export default {
 
   /**
    * List the current user's conversations: one entry per chat partner with
-   * their username/avatar and the count of unread messages.
+   * their username/avatar, the count of unread messages and a preview of the
+   * most recent message (text plus its kind and timestamp) so the friends page
+   * can render a WhatsApp-style chat list.
    * @param {Request} req
    * @returns {Promise<{success: boolean, conversations: Array}>}
    */
@@ -101,6 +103,7 @@ export default {
     const rows = await query(
       `SELECT CASE WHEN from_user_id=? THEN to_user_id ELSE from_user_id END AS partnerId,
               MAX(created_at) AS lastAt,
+              MAX(id) AS lastMessageId,
               SUM(CASE WHEN to_user_id=? AND read_at IS NULL THEN 1 ELSE 0 END) AS unread
        FROM chat_message
        WHERE from_user_id=? OR to_user_id=?
@@ -116,12 +119,37 @@ export default {
       ids
     )
     const userMap = new Map(users.map(u => [u.id, u]))
-    const conversations = rows.map(r => ({
-      userId: r.partnerId,
-      username: userMap.get(r.partnerId)?.username ?? '?',
-      avatar: userMap.get(r.partnerId)?.avatar ?? null,
-      unread: Number(r.unread)
-    }))
+
+    // The newest message per conversation. `id` is auto-increment, so the
+    // highest id in a conversation is also its most recent message.
+    const lastIds = rows.map(r => r.lastMessageId)
+    const lastMessages = await query(
+      `SELECT id, from_user_id, text, image, audio, created_at
+       FROM chat_message WHERE id IN (${lastIds.map(() => '?').join(',')})`,
+      lastIds
+    )
+    const messageMap = new Map(lastMessages.map(m => [m.id, m]))
+
+    const conversations = rows.map(r => {
+      const last = messageMap.get(r.lastMessageId)
+      return {
+        userId: r.partnerId,
+        username: userMap.get(r.partnerId)?.username ?? '?',
+        avatar: userMap.get(r.partnerId)?.avatar ?? null,
+        unread: Number(r.unread),
+        lastMessageAt: last?.created_at ?? r.lastAt,
+        // The preview is assembled client-side so "Photo"/"Voice message"
+        // placeholders follow the reader's locale, not the sender's.
+        lastMessage: last
+          ? {
+            text: last.text ?? null,
+            hasImage: Boolean(last.image),
+            hasAudio: Boolean(last.audio),
+            fromMe: Number(last.from_user_id) === Number(me)
+          }
+          : null
+      }
+    })
     return { success: true, conversations }
   },
 

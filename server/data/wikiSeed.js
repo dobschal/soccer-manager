@@ -212,15 +212,17 @@ Sending players:
 • A player on tour cannot be fielded and is pulled out of your lineup and bench the moment they leave. The squad list marks them with a ✈️.
 • Injured and suspended players cannot be sent — they are already unavailable.
 • When the days run out the player simply comes back; put them into the lineup yourself.
+• Changed your mind? As long as no match day has been played yet, you can call a player straight back — the trip has earned nothing, so nothing is lost. Once the first match day abroad is done, the trip is binding.
 
 Progress:
 • Each travelling player scores their level divided by your squad's average level, every match day. An average player is worth 1 point, your best around 1.2.
 • Because it is measured against your own squad, a fourth-division club fills the bar just as fast as a first-division one.
 • 30 points fill the bar. Three regular players away for the full seven match days get you most of the way there.
 • Anything above 30 carries over into the next tour, so a strong final day is never wasted.
+• The hatched section of the bar previews what your travellers will add on the next match day.
 
 Changing your mind:
-• You can switch destination at any time, but the progress you have collected is discarded — the game asks before it does that.`
+• You can switch destination at any time, but the progress you have collected is discarded, and anyone currently abroad starts collecting for the new destination. The game always asks first.`
     },
     de: {
       title: 'On Tour',
@@ -237,15 +239,17 @@ Spieler entsenden:
 • Ein Spieler auf Reise kann nicht eingesetzt werden und wird sofort aus Aufstellung und Bank genommen. In der Kaderliste ist er mit ✈️ gekennzeichnet.
 • Verletzte und gesperrte Spieler können nicht entsendet werden — sie fehlen ohnehin.
 • Läuft die Zeit ab, kommt der Spieler einfach zurück; die Aufstellung musst du selbst wieder anpassen.
+• Doch anders überlegt? Solange noch kein Spieltag gespielt wurde, kannst du einen Spieler sofort zurückholen — die Reise hat nichts eingebracht, also geht auch nichts verloren. Nach dem ersten Spieltag im Ausland ist die Reise bindend.
 
 Fortschritt:
 • Jeder reisende Spieler bringt pro Spieltag sein Level geteilt durch das Durchschnittslevel deines Kaders. Ein durchschnittlicher Spieler ist 1 Punkt wert, dein bester rund 1,2.
 • Weil am eigenen Kader gemessen wird, füllt ein Viertligist den Balken genauso schnell wie ein Erstligist.
 • 30 Punkte füllen den Balken. Drei Stammspieler über die vollen sieben Spieltage bringen dich fast ans Ziel.
 • Was über 30 hinausgeht, wird in die nächste Reise übernommen — ein starker letzter Tag verfällt also nie.
+• Der schraffierte Bereich im Balken zeigt vorab, wie viel deine Reisenden am nächsten Spieltag dazugewinnen.
 
 Meinung geändert:
-• Du kannst das Reiseziel jederzeit wechseln, verlierst dabei aber den gesammelten Fortschritt — das Spiel fragt vorher nach.`
+• Du kannst das Reiseziel jederzeit wechseln, verlierst dabei aber den gesammelten Fortschritt, und alle gerade Reisenden sammeln ab dann für das neue Ziel. Das Spiel fragt immer vorher nach.`
     }
   },
 
@@ -258,7 +262,7 @@ Meinung geändert:
       text: `You can send private one-on-one messages to any other manager – for arranging trades, friendlies or just talking football.
 
 How it works:
-• Open a chat from a manager's profile or from your conversations list on the dashboard. Each conversation groups all messages with that one person.
+• Open a chat from a manager's profile or from the chat list on the Friends tab of your dashboard. Each conversation groups all messages with that one person.
 • A message can contain text (up to 2,000 characters) and/or an image (JPG, PNG, GIF or WebP, up to 2 MB).
 • You can also record a voice message of up to two minutes and send it straight from the chat. Tap the microphone, speak, then send or discard — the recipient plays it back right inside the message.
 • Voice recording works in the browser and in the iOS app. The Android app cannot record yet.
@@ -271,7 +275,7 @@ How it works:
       text: `Du kannst jedem anderen Manager private Eins-zu-eins-Nachrichten schicken – um Tauschgeschäfte oder Freundschaftsspiele zu vereinbaren oder einfach über Fußball zu reden.
 
 So funktioniert es:
-• Öffne einen Chat über das Profil eines Managers oder über deine Unterhaltungsliste auf dem Dashboard. Jede Unterhaltung bündelt alle Nachrichten mit dieser einen Person.
+• Öffne einen Chat über das Profil eines Managers oder über die Chat-Liste im Reiter „Freunde“ deines Dashboards. Jede Unterhaltung bündelt alle Nachrichten mit dieser einen Person.
 • Eine Nachricht kann Text (bis zu 2.000 Zeichen) und/oder ein Bild (JPG, PNG, GIF oder WebP, bis zu 2 MB) enthalten.
 • Du kannst auch eine Sprachnachricht von bis zu zwei Minuten aufnehmen und direkt aus dem Chat verschicken. Tippe auf das Mikrofon, sprich, und schicke sie ab oder verwirf sie — der Empfänger spielt sie direkt in der Nachricht ab.
 • Die Aufnahme funktioniert im Browser und in der iOS-App. Die Android-App kann noch nicht aufnehmen.
@@ -298,7 +302,7 @@ Saved lineups:
 
 How it works:
 • Choose a formation (e.g. 4-4-2, 4-3-3, 3-5-2). Changing the formation clears all current positions.
-• Click a position to open the player picker. Only players whose natural position fits the slot can be placed there.
+• Click a position to open the player picker: a strip of player cards you scroll sideways, and one click on a card fields that player. Players whose natural position fits the slot come first; everyone else follows, dimmed and labelled with the level they would lose out of position.
 • Set a captain from your starting eleven. If you remove the captain from the lineup, the captain is cleared automatically.
 • Suspended players are shown greyed out and cannot be fielded; they are removed from the lineup automatically.
 • Sort your bench order – substitutes are pulled from the bench when a player is injured or tired.
@@ -331,7 +335,7 @@ Gespeicherte Aufstellungen:
 
 So funktioniert es:
 • Wähle eine Formation (z. B. 4-4-2, 4-3-3, 3-5-2). Ein Formationswechsel löscht alle aktuellen Positionen.
-• Klicke auf eine Position, um die Spielerauswahl zu öffnen. Nur Spieler mit passender Position können dort eingesetzt werden.
+• Klicke auf eine Position, um die Spielerauswahl zu öffnen: eine seitlich scrollbare Leiste aus Spielerkarten – ein Klick auf eine Karte stellt den Spieler auf. Spieler mit passender Position stehen vorne, alle anderen folgen dahinter, abgedunkelt und mit dem Level-Verlust beschriftet, den die fremde Position kostet.
 • Bestimme einen Kapitän aus deiner Startelf. Entfernst du den Kapitän aus der Aufstellung, wird er automatisch gelöscht.
 • Gesperrte Spieler sind ausgegraut und können nicht aufgestellt werden; sie werden automatisch aus der Aufstellung entfernt.
 • Sortiere deine Bank – Einwechselspieler werden bei Verletzung oder Müdigkeit von der Bank geholt.
@@ -738,39 +742,37 @@ Moderation: Beiträge werden automatisch auf anstößige Sprache gefiltert. Admi
     key: 'friends',
     en: {
       title: 'Friends',
-      subtitle: 'Add other managers and follow their posts',
-      text: `You can add other managers as friends to keep up with them and share posts.
+      subtitle: 'Your chats and the managers you follow',
+      text: `The Friends tab is where you keep in touch with other managers: your running conversations at the top, your friendships below.
+
+Chats:
+• Every manager you have exchanged messages with appears in the chat list – avatar, name, a preview of the most recent message and when it arrived.
+• A conversation with unread messages is highlighted. Tapping a row opens the chat.
+• Five conversations are shown at a time, newest activity first; use the arrows to page through the rest.
 
 Friendships:
 • Adding someone sends a one-way connection. If you both add each other, you become mutual friends.
-• Your friend list shows each friend's username, avatar, club name and team level.
-• Removing a friend clears the connection in both directions.
-
-Friend posts:
-• You see a feed of posts from yourself and everyone you have added.
-• A post can contain text (up to 5,000 characters) and one optional image (JPEG, PNG, GIF or WebP, up to 2 MB).
-• You can like and comment on posts (comments up to 1,000 characters).
-• Authors – and admins – can delete posts.
-
-The friends overview also shows each friend's league position and their last match result for a bit of context.`
+• Your friend list shows each friend's username, avatar, club, league, league position and last match result.
+• Incoming requests can be accepted or declined right in the list.
+• Seven friends are shown per page.
+• Removing a friend clears the connection in both directions.`
     },
     de: {
       title: 'Freunde',
-      subtitle: 'Füge andere Manager hinzu und folge ihren Beiträgen',
-      text: `Du kannst andere Manager als Freunde hinzufügen, um auf dem Laufenden zu bleiben und Beiträge zu teilen.
+      subtitle: 'Deine Chats und die Manager, denen du folgst',
+      text: `Im Reiter „Freunde“ hältst du Kontakt zu anderen Managern: oben deine laufenden Unterhaltungen, darunter deine Freundschaften.
+
+Chats:
+• Jeder Manager, mit dem du Nachrichten ausgetauscht hast, taucht in der Chat-Liste auf – Avatar, Name, eine Vorschau der letzten Nachricht und wann sie ankam.
+• Eine Unterhaltung mit ungelesenen Nachrichten ist hervorgehoben. Ein Tippen auf die Zeile öffnet den Chat.
+• Es werden fünf Unterhaltungen gleichzeitig gezeigt, die mit der neuesten Aktivität zuerst; mit den Pfeilen blätterst du weiter.
 
 Freundschaften:
 • Jemanden hinzuzufügen erzeugt eine einseitige Verbindung. Fügt ihr euch gegenseitig hinzu, werdet ihr beidseitige Freunde.
-• Deine Freundesliste zeigt zu jedem Freund Benutzername, Avatar, Vereinsname und Team-Level.
-• Entfernst du einen Freund, wird die Verbindung in beide Richtungen gelöscht.
-
-Freundes-Beiträge:
-• Du siehst einen Feed mit Beiträgen von dir selbst und allen, die du hinzugefügt hast.
-• Ein Beitrag kann Text (bis 5.000 Zeichen) und ein optionales Bild enthalten (JPEG, PNG, GIF oder WebP, bis 2 MB).
-• Du kannst Beiträge liken und kommentieren (Kommentare bis 1.000 Zeichen).
-• Autoren – und Admins – können Beiträge löschen.
-
-Die Freundesübersicht zeigt außerdem die Tabellenposition jedes Freundes und dessen letztes Spielergebnis als kleinen Kontext.`
+• Deine Freundesliste zeigt zu jedem Freund Benutzername, Avatar, Verein, Liga, Tabellenposition und das letzte Spielergebnis.
+• Eingehende Anfragen kannst du direkt in der Liste annehmen oder ablehnen.
+• Es werden sieben Freunde pro Seite gezeigt.
+• Entfernst du einen Freund, wird die Verbindung in beide Richtungen gelöscht.`
     }
   },
 

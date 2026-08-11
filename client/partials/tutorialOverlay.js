@@ -109,7 +109,8 @@ function getTutorials () {
         t('tutorial.tourPage.item1'),
         t('tutorial.tourPage.item2'),
         t('tutorial.tourPage.item3'),
-        t('tutorial.tourPage.item4')
+        t('tutorial.tourPage.item4'),
+        t('tutorial.tourPage.item5')
       ]
     }
   }

@@ -46,6 +46,9 @@ export class TourPage extends UIElement {
       },
       '(optional) .tour-send-btn': {
         click: () => this._showSendOverlay()
+      },
+      '(optional) .tour-recall-btn': {
+        click: (event) => this._recallPlayer(Number(event.currentTarget.dataset.playerId))
       }
     }
   }
@@ -61,7 +64,10 @@ export class TourPage extends UIElement {
     const { progress, target } = this.data
     const percentage = Math.max(0, Math.min(100, (progress / target) * 100))
     const away = this.data.players.filter(p => p.tourDaysLeft > 0)
+    // What the travellers add on the next match day, drawn as a hatched
+    // continuation of the bar instead of spelling the number out.
     const perGameDay = away.reduce((sum, p) => sum + p.progressPerGameDay, 0)
+    const previewPercentage = Math.max(0, Math.min(100 - percentage, (perGameDay / target) * 100))
     return `
       <div class="card card-body bg-dark text-white tour-progress-card mb-4">
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -71,6 +77,10 @@ export class TourPage extends UIElement {
         <div class="progress tour-progress mb-3">
           <div class="progress-bar bg-info" role="progressbar" style="width: ${percentage}%"
                aria-valuenow="${Math.round(percentage)}" aria-valuemin="0" aria-valuemax="100"></div>
+          ${previewPercentage > 0
+    ? `<div class="progress-bar tour-progress__preview" role="presentation"
+                   title="${t('tour.previewHint')}" style="width: ${previewPercentage}%"></div>`
+    : ''}
         </div>
         ${away.length === 0
     ? `<p class="text-muted small mb-0">${t('tour.nobodyAway')}</p>`
@@ -81,8 +91,12 @@ export class TourPage extends UIElement {
                    ${renderPositionBadge(p.position)}
                    <strong>${p.name}</strong>
                    <span class="text-muted">${t('tour.daysLeft', { days: p.tourDaysLeft })}</span>
+                   ${p.canRecall
+    ? `<button type="button" class="btn btn-sm btn-outline-info ms-auto tour-recall-btn" data-player-id="${p.id}">
+                          <i class="fa fa-undo" aria-hidden="true"></i> ${t('tour.recall')}
+                        </button>`
+    : ''}
                  </li>`).join('')}
-               <li class="text-muted mt-2">${t('tour.perGameDay', { points: perGameDay.toFixed(1) })}</li>
              </ul>`}
       </div>
     `
@@ -144,23 +158,38 @@ export class TourPage extends UIElement {
   }
 
   /**
-   * Switch destination, warning first that the progress is lost (#535).
+   * Switch destination, always asking first: even at zero progress this
+   * redirects everyone who is currently travelling to a different reward, so it
+   * is never a click to make by accident (#535).
    * @param {string} key
    * @returns {Promise<void>}
    */
   async _chooseDestination (key) {
     if (!key || key === this.data.mode) return
-    if (this.data.progress > 0) {
-      const confirmed = await showConfirmDialog(
-        t('tour.switchWarning', { progress: this.data.progress.toFixed(1) }),
-        t('tour.switchConfirm'),
-        t('common.cancel')
-      )
-      if (!confirmed) return
-    }
+    const question = this.data.progress > 0
+      ? t('tour.switchWarning', { progress: this.data.progress.toFixed(1), tour: t('tour.' + key) })
+      : t('tour.switchQuestion', { tour: t('tour.' + key) })
+    const confirmed = await showConfirmDialog(question, t('tour.switchConfirm'), t('common.cancel'))
+    if (!confirmed) return
     try {
       await server.setMyTourMode(key)
       toast(t('tour.switched', { tour: t('tour.' + key) }), 'success')
+      await this.update(true)
+    } catch (e) {
+      showServerError(e)
+    }
+  }
+
+  /**
+   * Call a player back off a trip that has not started yet (#535).
+   * @param {number} playerId
+   * @returns {Promise<void>}
+   */
+  async _recallPlayer (playerId) {
+    if (!playerId) return
+    try {
+      await server.recallPlayersFromTour([playerId])
+      toast(t('tour.recalled'), 'success')
       await this.update(true)
     } catch (e) {
       showServerError(e)

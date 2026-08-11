@@ -137,6 +137,59 @@ describe('chat route', () => {
       expect(result.latestUserId).toBe(7)
     })
   })
+
+  describe('getConversations', () => {
+    it('returns an empty list when there are no messages at all', async () => {
+      query.mockResolvedValue([])
+      const req = createMockRequest({ user: { id: 1 } })
+
+      const result = await chat.getConversations(req)
+
+      expect(result.conversations).toEqual([])
+    })
+
+    it('adds the last message preview, its timestamp and the unread count', async () => {
+      const lastAt = '2026-08-11T10:00:00Z'
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('GROUP BY partnerId')) {
+          return [
+            { partnerId: 2, lastAt, lastMessageId: 90, unread: '2' },
+            { partnerId: 3, lastAt: '2026-08-10T09:00:00Z', lastMessageId: 80, unread: '0' }
+          ]
+        }
+        if (sql.includes('SELECT id, username, avatar FROM user')) {
+          return [
+            { id: 2, username: 'Bob', avatar: 'b.jpg' },
+            { id: 3, username: 'Carol', avatar: null }
+          ]
+        }
+        if (sql.includes('SELECT id, from_user_id, text, image, audio, created_at')) {
+          return [
+            { id: 90, from_user_id: 2, text: 'Hey!', image: null, audio: null, created_at: lastAt },
+            { id: 80, from_user_id: 1, text: null, image: null, audio: 'v.webm', created_at: '2026-08-10T09:00:00Z' }
+          ]
+        }
+        return []
+      })
+      const req = createMockRequest({ user: { id: 1 } })
+
+      const { conversations } = await chat.getConversations(req)
+
+      expect(conversations).toHaveLength(2)
+      expect(conversations[0]).toMatchObject({
+        userId: 2,
+        username: 'Bob',
+        unread: 2,
+        lastMessageAt: lastAt,
+        lastMessage: { text: 'Hey!', hasImage: false, hasAudio: false, fromMe: false }
+      })
+      // A voice message the current user sent: no text, flagged as audio + own
+      expect(conversations[1].lastMessage).toEqual({
+        text: null, hasImage: false, hasAudio: true, fromMe: true
+      })
+      expect(conversations[1].unread).toBe(0)
+    })
+  })
 })
 
 describe('chat voice messages (#541)', () => {

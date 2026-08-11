@@ -3,8 +3,10 @@ import path from 'path'
 import { query } from '../lib/database.js'
 
 // Upload directories for user-generated images. Mirrored from the individual
-// feature routes (auth.js avatars, chat.js, forum.js, friendPosts.js) so
-// account deletion can remove the files those features left on disk.
+// feature routes (auth.js avatars, chat.js, forum.js) so account deletion can
+// remove the files those features left on disk. The friend-posts directory and
+// its tables outlive the removed posts feature: no new rows are written, but
+// existing data still has to be cleaned up on request.
 const AVATAR_UPLOAD_DIR = 'uploads/avatars'
 const CHAT_UPLOAD_DIR = 'uploads/chat'
 const FORUM_UPLOAD_DIR = 'uploads/forum'

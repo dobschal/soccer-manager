@@ -18,7 +18,9 @@ import { canReceiveActionCard } from '../../helper/actionCardHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import {
   advanceTours,
+  canRecallFromTour,
   getTour,
+  recallPlayersFromTour,
   MAX_PLAYERS_ON_TOUR,
   sendPlayersOnTour,
   setTourMode,
@@ -125,6 +127,9 @@ describe('sendPlayersOnTour (#535)', () => {
     expect(result).toEqual({ sent: 2 })
     const update = calls.find(c => c.sql.includes('UPDATE player SET tour_days_left=?'))
     expect(update.params[0]).toBe(5)
+    // The booked duration is what makes a not-yet-started trip recognisable.
+    expect(update.sql).toContain('tour_days_total=?')
+    expect(update.params[1]).toBe(5)
     // Otherwise the lineup would field somebody who is on a plane.
     expect(update.sql).toContain("in_game_position=''")
     expect(update.sql).toContain('bench_position=NULL')
@@ -179,6 +184,69 @@ describe('sendPlayersOnTour (#535)', () => {
   })
 })
 
+describe('canRecallFromTour (#535)', () => {
+  it('allows it while no match day has been played', () => {
+    expect(canRecallFromTour({ tour_days_left: 5, tour_days_total: 5 })).toBe(true)
+  })
+
+  it('refuses once the trip has started', () => {
+    expect(canRecallFromTour({ tour_days_left: 4, tour_days_total: 5 })).toBe(false)
+  })
+
+  it('refuses a player who is not travelling at all', () => {
+    expect(canRecallFromTour({ tour_days_left: 0, tour_days_total: 0 })).toBe(false)
+  })
+})
+
+describe('recallPlayersFromTour (#535)', () => {
+  /**
+   * @param {object} over
+   * @returns {object} query routes for one player who left just now
+   */
+  const routes = (over = {}) => ({
+    'SELECT id, tour_days_left, tour_days_total FROM player': [
+      { id: 1, tour_days_left: 5, tour_days_total: 5 }
+    ],
+    ...over
+  })
+
+  it('clears the trip and frees the slot again', async () => {
+    const { calls } = mockDb(routes())
+    expect(await recallPlayersFromTour(7, [1])).toEqual({ recalled: 1 })
+    const update = calls.find(c => c.sql.includes('UPDATE player SET tour_days_left=0'))
+    expect(update.sql).toContain('tour_days_total=0')
+    expect(update.params).toEqual([7, [1]])
+  })
+
+  it('refuses once a match day has been played, so progress cannot be banked', async () => {
+    mockDb(routes({
+      'SELECT id, tour_days_left, tour_days_total FROM player': [
+        { id: 1, tour_days_left: 4, tour_days_total: 5 }
+      ]
+    }))
+    await expect(recallPlayersFromTour(7, [1])).rejects.toThrow('already started')
+  })
+
+  it('refuses a player who is not on tour', async () => {
+    mockDb(routes({
+      'SELECT id, tour_days_left, tour_days_total FROM player': [
+        { id: 1, tour_days_left: 0, tour_days_total: 0 }
+      ]
+    }))
+    await expect(recallPlayersFromTour(7, [1])).rejects.toThrow('not on tour')
+  })
+
+  it('refuses a player from another team', async () => {
+    mockDb(routes({ 'SELECT id, tour_days_left, tour_days_total FROM player': [] }))
+    await expect(recallPlayersFromTour(7, [1])).rejects.toThrow('not found in your team')
+  })
+
+  it('rejects an empty selection', async () => {
+    mockDb(routes())
+    await expect(recallPlayersFromTour(7, [])).rejects.toThrow('No players selected')
+  })
+})
+
 describe('advanceTours (#535)', () => {
   /**
    * @param {number} progress
@@ -208,6 +276,14 @@ describe('advanceTours (#535)', () => {
     const { calls } = mockTeamOnTour(0, [{ level: 50, tour_days_left: 3 }])
     await advanceTours()
     expect(calls.some(c => c.sql.includes('tour_days_left = tour_days_left - 1'))).toBe(true)
+  })
+
+  it('clears the booked duration once a player is home again', async () => {
+    const { calls } = mockTeamOnTour(0, [{ level: 50, tour_days_left: 1 }])
+    await advanceTours()
+    const reset = calls.find(c => c.sql.includes('SET tour_days_total = 0'))
+    expect(reset).toBeDefined()
+    expect(reset.sql).toContain('tour_days_left <= 0')
   })
 
   it('pays out and carries the surplus once the bar fills', async () => {

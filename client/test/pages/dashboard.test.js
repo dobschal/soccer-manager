@@ -280,16 +280,18 @@ describe('DashboardPage', () => {
       expect(page.createSubPage('wiki').constructor.name).toBe('WikiPage')
     })
 
-    it('orders Friends tab between Forum and Search', async () => {
+    it('puts the Friends tab in second place, before Forum', async () => {
       const page = new DashboardPage()
       await page.load()
       const html = page.template
-      const forumIdx = html.indexOf('#dashboard?sub_page=forum')
+      const startIdx = html.indexOf('href="#dashboard"')
       const friendsIdx = html.indexOf('#dashboard?sub_page=friends')
+      const forumIdx = html.indexOf('#dashboard?sub_page=forum')
       const searchIdx = html.indexOf('#dashboard?sub_page=search')
-      expect(forumIdx).toBeGreaterThan(0)
-      expect(friendsIdx).toBeGreaterThan(forumIdx)
-      expect(searchIdx).toBeGreaterThan(friendsIdx)
+      expect(startIdx).toBeGreaterThan(0)
+      expect(friendsIdx).toBeGreaterThan(startIdx)
+      expect(forumIdx).toBeGreaterThan(friendsIdx)
+      expect(searchIdx).toBeGreaterThan(forumIdx)
     })
 
     it('does not render a Messages tab in the nav', async () => {

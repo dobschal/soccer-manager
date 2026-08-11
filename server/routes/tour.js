@@ -1,8 +1,10 @@
 import { query } from '../lib/database.js'
 import { getTeam } from '../helper/teamHelper.js'
 import {
+  canRecallFromTour,
   getTour,
   MAX_PLAYERS_ON_TOUR,
+  recallPlayersFromTour,
   sendPlayersOnTour,
   setTourMode,
   TOUR_MAX_DAYS,
@@ -24,7 +26,7 @@ export default {
     const team = await getTeam(req)
     const tour = await getTour(team.id)
     const players = await query(
-      'SELECT id, name, position, level, is_injured, is_suspended, tour_days_left FROM player WHERE team_id=?',
+      'SELECT id, name, position, level, is_injured, is_suspended, tour_days_left, tour_days_total FROM player WHERE team_id=?',
       [team.id]
     )
     const squadAverage = players.length > 0
@@ -52,6 +54,8 @@ export default {
         isInjured: Boolean(p.is_injured),
         isSuspended: Boolean(p.is_suspended),
         tourDaysLeft: p.tour_days_left,
+        // Still callable back: the trip was booked but no match day has passed.
+        canRecall: canRecallFromTour(p),
         progressPerGameDay: tourProgressPerGameDay(p.level, squadAverage)
       }))
     }
@@ -78,5 +82,16 @@ export default {
   async sendPlayersOnTour (playerIds, days, req) {
     const team = await getTeam(req)
     return await sendPlayersOnTour(team.id, playerIds, days)
+  },
+
+  /**
+   * Call players back before their trip has started.
+   * @param {number[]} playerIds
+   * @param {Request} req
+   * @returns {Promise<{recalled: number}>}
+   */
+  async recallPlayersFromTour (playerIds, req) {
+    const team = await getTeam(req)
+    return await recallPlayersFromTour(team.id, playerIds)
   }
 }

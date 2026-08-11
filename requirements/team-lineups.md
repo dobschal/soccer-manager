@@ -24,6 +24,10 @@ Jedes Team hat eine Formation mit 11 Positionen, die der Spieler mit passenden S
 - **US-LIN-13**: Als Spieler sehe ich bei einem positionsfremd aufgestellten Spieler unter seinem
   Level, mit wie viel Prozent Abwertung er bewertet wird. Steht er auf seiner Position, wird nichts
   angezeigt.
+- **US-LIN-15**: Als Spieler waehle ich im Spielerauswahl-Overlay aus einer horizontal scrollbaren
+  Leiste von Spielerkarten — mit derselben Spielerfigur wie auf dem Spielfeld — und stelle den Spieler
+  mit einem Klick auf seine Karte auf. Passende Spieler stehen vorne, positionsfremde dahinter, nur
+  mit 66% Deckkraft und mit ihrem konkreten Malus.
 
 ## Verfuegbare Formationen
 
@@ -105,7 +109,18 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 - **TA-LIN-15**: Spielfeld-Diagramm mit CSS Container Queries (Portrait/Landscape).
 - **TA-LIN-16**: Spielerkarten zeigen: Position-Badge, Spielerbild, Frische-Badge (farbcodiert), Name, Level-Badge.
 - **TA-LIN-17**: Gesperrte Spieler: 50% Deckkraft, Graustufe, Verbots-Icon.
-- **TA-LIN-18**: Klick auf Position oeffnet Spielerauswahl-Overlay (nur passende, nicht-gesperrte Spieler).
+- **TA-LIN-18**: Klick auf eine Position oeffnet das Spielerauswahl-Overlay (`SelectPlayerOverlay`). Es zeigt
+  alle einsetzbaren Spieler des Kaders — gesperrte, verletzte und auf Werbereise befindliche bleiben aussen vor —
+  plus den Spieler, der aktuell auf dem Slot steht.
+- **TA-LIN-36**: Die Auswahl selbst rendert `client/partials/playerPicker.js` (`PlayerPicker`): eine horizontal
+  scrollbare Leiste aus Spielerkarten mit derselben Figur wie die Spielfeld-Kacheln (`renderPlayerImage`) sowie
+  Positions-, Level- und Frische-Badge. Sortiert wird zuerst nach Passung (`position === slot`), innerhalb beider
+  Gruppen nach dem Level, mit dem der Spieler tatsaechlich spielen wuerde (`getPositionLevelFactor`).
+  Positionsfremde Karten tragen `is-out-of-position` (66% Deckkraft) und zeigen ihren Malus; die erste von ihnen
+  trennt `is-group-start` mit einer breiteren Luecke von den passenden Spielern. Die Karte des aktuellen
+  Slot-Inhabers ist `is-current`: info-farben hinterlegt und nie abgedunkelt.
+- **TA-LIN-37**: `PLAYER_UPDATED` (Aktionskarte im selben Overlay gespielt) aktualisiert nur die betroffene
+  Karte per `innerHTML`, damit Scrollposition und die uebrigen Spielerfiguren erhalten bleiben.
 - **TA-LIN-19**: Formations-Dropdown mit 10 Optionen.
 - **TA-LIN-20**: Team-Info-Karte: Gesamtgehalt, Durchschnittslevel, Durchschnittsalter, Kaderstaerke, Aufstellungsstaerke.
 

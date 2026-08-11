@@ -7,6 +7,8 @@ vi.mock('../../helper/tourHelper.js', () => ({
   getTour: vi.fn(),
   setTourMode: vi.fn(),
   sendPlayersOnTour: vi.fn(),
+  recallPlayersFromTour: vi.fn(),
+  canRecallFromTour: (p) => p.tour_days_left > 0 && p.tour_days_left === p.tour_days_total,
   tourProgressPerGameDay: (level, avg) => (avg ? level / avg : 0),
   TOURS: [
     { key: 'asia', reward: [{ action: 'MILLION_BONUS', amount: 1 }] },
@@ -20,13 +22,13 @@ vi.mock('../../helper/tourHelper.js', () => ({
 
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
-import { getTour, sendPlayersOnTour, setTourMode } from '../../helper/tourHelper.js'
+import { getTour, recallPlayersFromTour, sendPlayersOnTour, setTourMode } from '../../helper/tourHelper.js'
 import handlers from '../../routes/tour.js'
 
 const SQUAD = [
-  { id: 1, name: 'Keeper', position: 'GK', level: 40, is_injured: 0, is_suspended: 0, tour_days_left: 0 },
-  { id: 2, name: 'Striker', position: 'CA', level: 60, is_injured: 0, is_suspended: 0, tour_days_left: 2 },
-  { id: 3, name: 'Crocked', position: 'CM', level: 50, is_injured: 1, is_suspended: 0, tour_days_left: 0 }
+  { id: 1, name: 'Keeper', position: 'GK', level: 40, is_injured: 0, is_suspended: 0, tour_days_left: 0, tour_days_total: 0 },
+  { id: 2, name: 'Striker', position: 'CA', level: 60, is_injured: 0, is_suspended: 0, tour_days_left: 2, tour_days_total: 5 },
+  { id: 3, name: 'Crocked', position: 'CM', level: 50, is_injured: 1, is_suspended: 0, tour_days_left: 0, tour_days_total: 0 }
 ]
 
 beforeEach(() => {
@@ -61,6 +63,16 @@ describe('tour.getMyTour (#535)', () => {
     const result = await handlers.getMyTour(createMockRequest())
     expect(result.players.find(p => p.id === 3).isInjured).toBe(true)
     expect(result.players.find(p => p.id === 2).tourDaysLeft).toBe(2)
+  })
+
+  it('marks a freshly sent player as recallable and a started trip as binding', async () => {
+    query.mockResolvedValue([
+      ...SQUAD,
+      { id: 4, name: 'Fresh', position: 'LM', level: 50, is_injured: 0, is_suspended: 0, tour_days_left: 5, tour_days_total: 5 }
+    ])
+    const result = await handlers.getMyTour(createMockRequest())
+    expect(result.players.find(p => p.id === 4).canRecall).toBe(true)
+    expect(result.players.find(p => p.id === 2).canRecall).toBe(false)
   })
 
   it('lists every destination with its reward', async () => {
@@ -98,5 +110,20 @@ describe('tour.sendPlayersOnTour (#535)', () => {
     sendPlayersOnTour.mockRejectedValue(new Error('At most 3 players'))
     await expect(handlers.sendPlayersOnTour([1, 2, 3, 4], 5, createMockRequest()))
       .rejects.toThrow('At most 3 players')
+  })
+})
+
+describe('tour.recallPlayersFromTour (#535)', () => {
+  it('forwards the selection for the caller\'s own team', async () => {
+    recallPlayersFromTour.mockResolvedValue({ recalled: 1 })
+    const result = await handlers.recallPlayersFromTour([4], createMockRequest())
+    expect(recallPlayersFromTour).toHaveBeenCalledWith(7, [4])
+    expect(result).toEqual({ recalled: 1 })
+  })
+
+  it('lets the helper\'s validation errors through', async () => {
+    recallPlayersFromTour.mockRejectedValue(new Error('The tour has already started'))
+    await expect(handlers.recallPlayersFromTour([2], createMockRequest()))
+      .rejects.toThrow('already started')
   })
 })

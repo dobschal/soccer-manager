@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../../lib/gateway.js', () => ({
-  server: { getMyTour: vi.fn(), setMyTourMode: vi.fn(), sendPlayersOnTour: vi.fn() },
+  server: { getMyTour: vi.fn(), setMyTourMode: vi.fn(), sendPlayersOnTour: vi.fn(), recallPlayersFromTour: vi.fn() },
   showServerError: vi.fn()
 }))
 vi.mock('../../../partials/toast.js', () => ({ toast: vi.fn() }))
@@ -40,7 +40,7 @@ const data = (over = {}) => ({
   ],
   players: [
     { id: 1, name: 'Keeper', position: 'GK', level: 40, isInjured: false, isSuspended: false, tourDaysLeft: 0, progressPerGameDay: 0.8 },
-    { id: 2, name: 'Traveller', position: 'CA', level: 60, isInjured: false, isSuspended: false, tourDaysLeft: 3, progressPerGameDay: 1.2 },
+    { id: 2, name: 'Traveller', position: 'CA', level: 60, isInjured: false, isSuspended: false, tourDaysLeft: 3, canRecall: false, progressPerGameDay: 1.2 },
     { id: 3, name: 'Crocked', position: 'CM', level: 50, isInjured: true, isSuspended: false, tourDaysLeft: 0, progressPerGameDay: 1 }
   ],
   ...over
@@ -96,6 +96,29 @@ describe('TourPage rendering (#535)', () => {
     expect(html).toContain('tour.daysLeft')
   })
 
+  it('previews the next match day as a hatched slice of the bar', () => {
+    // 1.2 points on a target of 30 → 4% on top of the 50% already filled.
+    const html = page().template
+    expect(html).toContain('tour-progress__preview')
+    expect(html).toContain('width: 4%')
+  })
+
+  it('caps the preview at the end of the bar', () => {
+    const html = page({ progress: 29.5 }).template
+    const preview = html.slice(html.indexOf('tour-progress__preview'))
+    // 98.33% filled, so only 1.67% of the bar is left for the 4% the players
+    // would otherwise add.
+    expect(preview).toMatch(/width: 1\.66\d*%/)
+  })
+
+  it('shows no preview when nobody is travelling', () => {
+    expect(page({ players: [data().players[0]] }).template).not.toContain('tour-progress__preview')
+  })
+
+  it('no longer spells the per-match-day yield out as a number', () => {
+    expect(page().template).not.toContain('tour.perGameDay')
+  })
+
   it('says so when nobody is travelling', () => {
     const html = page({ players: [data().players[0]] }).template
     expect(html).toContain('tour.nobodyAway')
@@ -141,15 +164,31 @@ describe('TourPage changing destination (#535)', () => {
     expect(server.setMyTourMode).not.toHaveBeenCalled()
   })
 
-  it('switches without asking when there is no progress to lose', async () => {
+  // Even at zero progress the travellers get redirected to another reward, so
+  // the switch is never silent.
+  it('still asks when there is no progress to lose', async () => {
     const p = page({ progress: 0 })
     p.update = vi.fn()
+    showConfirmDialog.mockResolvedValue(true)
     server.setMyTourMode.mockResolvedValue({ mode: 'europe', progress: 0 })
 
     await p._chooseDestination('europe')
 
-    expect(showConfirmDialog).not.toHaveBeenCalled()
+    expect(showConfirmDialog).toHaveBeenCalledWith(
+      'tour.switchQuestion', 'tour.switchConfirm', 'common.cancel'
+    )
     expect(server.setMyTourMode).toHaveBeenCalledWith('europe')
+  })
+
+  it('names the progress at stake when there is some', async () => {
+    const p = page()
+    p.update = vi.fn()
+    showConfirmDialog.mockResolvedValue(true)
+    server.setMyTourMode.mockResolvedValue({ mode: 'europe', progress: 0 })
+
+    await p._chooseDestination('europe')
+
+    expect(showConfirmDialog.mock.calls[0][0]).toBe('tour.switchWarning')
   })
 
   it('ignores a click on the destination that is already active', async () => {
@@ -161,8 +200,43 @@ describe('TourPage changing destination (#535)', () => {
   it('surfaces a server error', async () => {
     const p = page({ progress: 0 })
     p.update = vi.fn()
+    showConfirmDialog.mockResolvedValue(true)
     server.setMyTourMode.mockRejectedValue(new Error('nope'))
     await p._chooseDestination('europe')
+    expect(showServerError).toHaveBeenCalled()
+  })
+})
+
+describe('TourPage recalling a player (#535)', () => {
+  it('offers a call-back button only while the trip has not started', () => {
+    const players = data().players
+    const html = page({
+      players: [
+        ...players,
+        { id: 4, name: 'Fresh', position: 'LM', level: 50, isInjured: false, isSuspended: false, tourDaysLeft: 5, canRecall: true, progressPerGameDay: 1 }
+      ]
+    }).template
+
+    expect(html).toContain('data-player-id="4"')
+    expect(html).not.toContain('data-player-id="2"')
+  })
+
+  it('calls the player back and refreshes', async () => {
+    const p = page()
+    p.update = vi.fn()
+    server.recallPlayersFromTour.mockResolvedValue({ recalled: 1 })
+
+    await p._recallPlayer(4)
+
+    expect(server.recallPlayersFromTour).toHaveBeenCalledWith([4])
+    expect(p.update).toHaveBeenCalledWith(true)
+  })
+
+  it('surfaces a server error', async () => {
+    const p = page()
+    p.update = vi.fn()
+    server.recallPlayersFromTour.mockRejectedValue(new Error('The tour has already started'))
+    await p._recallPlayer(4)
     expect(showServerError).toHaveBeenCalled()
   })
 })

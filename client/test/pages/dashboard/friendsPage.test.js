@@ -3,19 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../../../lib/gateway.js', () => ({
   server: {
     getFriendsOverview: vi.fn(),
-    getFriendPosts: vi.fn(),
-    createFriendPost: vi.fn(),
-    toggleFriendPostLike: vi.fn(),
-    deleteFriendPost: vi.fn(),
+    getConversations: vi.fn(),
     addFriend: vi.fn(),
-    removeFriend: vi.fn(),
-    getMyTeam: vi.fn()
+    removeFriend: vi.fn()
   },
   showServerError: vi.fn()
-}))
-
-vi.mock('../../../partials/overlay.js', () => ({
-  showConfirmDialog: vi.fn()
 }))
 
 vi.mock('../../../partials/emblem.js', () => ({
@@ -45,12 +37,8 @@ vi.mock('../../../partials/inviteFriendOverlay.js', () => ({
   showInviteFriendOverlay: vi.fn()
 }))
 
-vi.mock('../../../partials/friendPostCommentsOverlay.js', () => ({
-  showFriendPostCommentsOverlay: vi.fn()
-}))
-
-vi.mock('../../../lib/date.js', () => ({
-  formatDate: () => '01.01.2026'
+vi.mock('../../../partials/chatOverlay.js', () => ({
+  CHAT_MESSAGES_READ_EVENT: 'chat-messages-read'
 }))
 
 const { FriendsPage } = await import('../../../pages/dashboard/friendsPage.js')
@@ -77,27 +65,14 @@ function buildEntry (overrides = {}) {
   }
 }
 
-function emptyPosts () {
-  return { posts: [], page: 1, total: 0, totalPages: 1 }
-}
-
-function buildPost (overrides = {}) {
+function buildConversation (overrides = {}) {
   return {
-    id: 500,
-    userId: 2,
-    username: 'alice',
-    avatar: null,
-    teamId: 10,
-    teamName: 'FC Alice',
-    teamShortName: 'ALI',
-    teamEmblem: 'em',
-    teamColor: '#fff',
-    text: 'Hello world',
-    imageFilename: null,
-    createdAt: '2026-01-01T00:00:00Z',
-    likeCount: 2,
-    likedByMe: false,
-    commentCount: 1,
+    userId: 7,
+    username: 'bob',
+    avatar: 'b.jpg',
+    unread: 0,
+    lastMessageAt: new Date().toISOString(),
+    lastMessage: { text: 'See you tomorrow', hasImage: false, hasAudio: false, fromMe: false },
     ...overrides
   }
 }
@@ -105,8 +80,7 @@ function buildPost (overrides = {}) {
 describe('FriendsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    server.getFriendPosts.mockResolvedValue(emptyPosts())
-    server.getMyTeam.mockResolvedValue({ user: { id: 1 } })
+    server.getConversations.mockResolvedValue({ conversations: [] })
   })
 
   it('renders empty state when there are no entries', async () => {
@@ -149,30 +123,14 @@ describe('FriendsPage', () => {
     expect(html).toContain('friends.noTeam')
   })
 
-  it('renders an invite-card below the posts section', async () => {
+  it('renders an invite-card below the friends list', async () => {
     server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
     const page = new FriendsPage()
     await page.load()
     const html = page.template
     expect(html).toContain('invite-card')
     expect(html).toContain('referral.inviteFriendShort')
-    // Invite card must appear AFTER the posts section
-    expect(html.indexOf('invite-card')).toBeGreaterThan(html.indexOf('friend-posts-section'))
-  })
-
-  it('renders the post editor below the post list', async () => {
-    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
-    server.getFriendPosts.mockReset()
-    server.getFriendPosts.mockResolvedValueOnce({
-      posts: [buildPost()],
-      page: 1,
-      total: 1,
-      totalPages: 1
-    })
-    const page = new FriendsPage()
-    await page.load()
-    const html = page.template
-    expect(html.indexOf('friend-post-editor')).toBeGreaterThan(html.indexOf('friend-post-list'))
+    expect(html.indexOf('invite-card')).toBeGreaterThan(html.indexOf('friends.empty'))
   })
 
   it('marks a defeat with the danger color', async () => {
@@ -193,113 +151,172 @@ describe('FriendsPage', () => {
     expect(html).toContain('0:3')
   })
 
-  it('renders the posts section with empty state when there are no posts', async () => {
+  it('does not render the removed posts feature anymore', async () => {
     server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
     const page = new FriendsPage()
     await page.load()
     const html = page.template
-    expect(html).toContain('friendPosts.title')
-    expect(html).toContain('friendPosts.empty')
-    expect(html).toContain('friendPosts.postPlaceholder')
+    expect(html).not.toContain('friendPosts.')
+    expect(html).not.toContain('friend-post')
   })
 
-  it('renders friend posts with like and comment buttons', async () => {
-    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
-    server.getFriendPosts.mockReset()
-    server.getFriendPosts.mockResolvedValueOnce({
-      posts: [buildPost()],
-      page: 1,
-      total: 1,
-      totalPages: 1
-    })
-
+  it('heads the friends list, not the chat list, with the "friends" title', async () => {
+    server.getFriendsOverview.mockResolvedValueOnce({ entries: [buildEntry()] })
+    server.getConversations.mockResolvedValueOnce({ conversations: [buildConversation()] })
     const page = new FriendsPage()
     await page.load()
     const html = page.template
 
-    expect(html).toContain('Hello world')
-    expect(html).toContain('alice')
-    // Like count and comment count surface
-    expect(html).toContain('>2</span>')
-    expect(html).toContain('>1</span>')
-    expect(html).toContain('fa-heart-o')
-    expect(html).toContain('fa-comment-o')
+    // The title belongs to the friends section, so it must come after the chats.
+    expect(html.indexOf('friends.title')).toBeGreaterThan(html.indexOf('chat.conversations'))
+    expect(html.indexOf('friends.title')).toBeLessThan(html.indexOf('friends-table'))
   })
 
-  it('renders an image when the post has one', async () => {
-    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
-    server.getFriendPosts.mockReset()
-    server.getFriendPosts.mockResolvedValueOnce({
-      posts: [buildPost({ imageFilename: 'abc.png' })],
-      page: 1,
-      total: 1,
-      totalPages: 1
+  describe('chat list', () => {
+    it('renders the chat list above the friends list', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [buildEntry()] })
+      server.getConversations.mockResolvedValueOnce({ conversations: [buildConversation()] })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
+
+      expect(html).toContain('chat-list-item')
+      expect(html).toContain('bob')
+      expect(html).toContain('See you tomorrow')
+      expect(html.indexOf('chat-list-item')).toBeLessThan(html.indexOf('friends-table'))
     })
 
-    const page = new FriendsPage()
-    await page.load()
-    const html = page.template
+    it('highlights conversations with unread messages', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      server.getConversations.mockResolvedValueOnce({
+        conversations: [buildConversation({ unread: 3 })]
+      })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
 
-    expect(html).toContain('/uploads/friend-posts/abc.png')
-    expect(html).toContain('friend-post-image')
+      expect(html).toContain('bg-info-subtle')
+      expect(html).toContain('chat-list-item--unread')
+      expect(html).toContain('>3</span>')
+    })
+
+    it('does not highlight a conversation without unread messages', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      server.getConversations.mockResolvedValueOnce({ conversations: [buildConversation()] })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
+
+      expect(html).not.toContain('bg-info-subtle')
+    })
+
+    it('previews image and voice messages with a placeholder', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      server.getConversations.mockResolvedValueOnce({
+        conversations: [
+          buildConversation({
+            userId: 7,
+            lastMessage: { text: null, hasImage: true, hasAudio: false, fromMe: false }
+          }),
+          buildConversation({
+            userId: 8,
+            username: 'carol',
+            lastMessage: { text: null, hasImage: false, hasAudio: true, fromMe: true }
+          })
+        ]
+      })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
+
+      expect(html).toContain('chat.imageMessage')
+      expect(html).toContain('chat.voiceMessage')
+      // Own messages are prefixed with "You:"
+      expect(html).toContain('chat.previewYou')
+    })
+
+    it('shows the chat empty state when there are no conversations', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
+      expect(html).toContain('chat.empty')
+      expect(html).not.toContain('chat-list-item')
+    })
+
+    it('shows at most 5 conversations per page and paginates the rest', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      server.getConversations.mockResolvedValueOnce({
+        conversations: Array.from({ length: 12 }, (_, i) =>
+          buildConversation({ userId: 100 + i, username: `chat${i}` }))
+      })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
+
+      expect(html.match(/chat-list-item__name/g).length).toBe(5)
+      expect(html).toContain('list-pagination')
+      expect(html).toContain('1 / 3')
+      expect(html).toContain('chat0')
+      expect(html).not.toContain('chat5')
+    })
+
+    it('renders the requested conversation page', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      server.getConversations.mockResolvedValueOnce({
+        conversations: Array.from({ length: 12 }, (_, i) =>
+          buildConversation({ userId: 100 + i, username: `chat${i}` }))
+      })
+      const page = new FriendsPage()
+      await page.load()
+      page._chatsPage = 3
+      const html = page.template
+
+      expect(html).toContain('chat10')
+      expect(html).toContain('chat11')
+      expect(html).not.toContain('chat0<')
+      expect(html).toContain('3 / 3')
+    })
   })
 
-  it('shows a delete button on the user\'s own posts', async () => {
-    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
-    server.getMyTeam.mockReset()
-    server.getMyTeam.mockResolvedValueOnce({ user: { id: 42 } })
-    server.getFriendPosts.mockReset()
-    server.getFriendPosts.mockResolvedValueOnce({
-      posts: [buildPost({ userId: 42 })],
-      page: 1,
-      total: 1,
-      totalPages: 1
+  describe('friends pagination', () => {
+    it('shows at most 7 friends per page', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({
+        entries: Array.from({ length: 10 }, (_, i) =>
+          buildEntry({ userId: 200 + i, username: `friend${i}`, team: null, position: null, lastGame: null }))
+      })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
+
+      expect(html.match(/<tr>/g).length).toBe(8) // 7 rows + header
+      expect(html).toContain('list-pagination')
+      expect(html).toContain('1 / 2')
+      expect(html).toContain('friend6')
+      expect(html).not.toContain('friend7')
     })
 
-    const page = new FriendsPage()
-    await page.load()
-    const html = page.template
+    it('renders no pagination when everything fits on one page', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({
+        entries: [buildEntry()]
+      })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
 
-    expect(html).toContain('friend-post-actions__delete')
-    expect(html).toContain('friendPosts.delete')
-    expect(html).toContain('fa-trash')
-  })
-
-  it('does not render a delete button on someone else\'s post', async () => {
-    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
-    server.getMyTeam.mockReset()
-    server.getMyTeam.mockResolvedValueOnce({ user: { id: 1 } })
-    server.getFriendPosts.mockReset()
-    server.getFriendPosts.mockResolvedValueOnce({
-      posts: [buildPost({ userId: 99 })],
-      page: 1,
-      total: 1,
-      totalPages: 1
+      expect(html).not.toContain('list-pagination')
     })
 
-    const page = new FriendsPage()
-    await page.load()
-    const html = page.template
+    it('clamps an out-of-range page back into bounds', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({
+        entries: Array.from({ length: 10 }, (_, i) =>
+          buildEntry({ userId: 200 + i, username: `friend${i}`, team: null, position: null, lastGame: null }))
+      })
+      const page = new FriendsPage()
+      page._friendsPage = 99
+      await page.load()
 
-    expect(html).not.toContain('friend-post-actions__delete')
-    expect(html).not.toContain('fa-trash')
-  })
-
-  it('renders pagination controls when more than one page is available', async () => {
-    server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
-    server.getFriendPosts.mockReset()
-    server.getFriendPosts.mockResolvedValueOnce({
-      posts: [buildPost()],
-      page: 1,
-      total: 25,
-      totalPages: 3
+      expect(page._friendsPage).toBe(2)
     })
-
-    const page = new FriendsPage()
-    await page.load()
-    const html = page.template
-
-    expect(html).toContain('friend-post-pagination')
-    expect(html).toContain('1 / 3')
   })
 })

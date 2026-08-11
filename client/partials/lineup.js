@@ -388,7 +388,8 @@ export class Lineup extends UIElement {
                 player,
                 availablePlayers,
                 newPlayer => this._exchangePlayer(player, newPlayer, fakeSlotIndex),
-                allPlayers
+                allPlayers,
+                this.team
               )}`
             )
           }
