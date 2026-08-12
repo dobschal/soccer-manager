@@ -130,11 +130,18 @@ describe('wiki seed content for the #541 chat changes', () => {
     const topic = WIKI_SEED.find(t => t.key === 'chat')
     expect(topic.en.text).toMatch(/voice message/i)
     expect(topic.en.text).toMatch(/two minutes/i)
-    // The Android limitation is a real constraint players will hit.
-    expect(topic.en.text).toMatch(/Android app cannot record/i)
     expect(topic.de.text).toMatch(/Sprachnachricht/i)
     expect(topic.de.text).toMatch(/zwei Minuten/i)
-    expect(topic.de.text).toMatch(/Android-App kann noch nicht aufnehmen/i)
+    // Recording is browser-only: both apps load the bundle from file://, where
+    // neither WebKit nor the Android WebView hands out navigator.mediaDevices.
+    // The wiki claimed iOS worked, which sent players hunting for a button that
+    // is never rendered.
+    expect(topic.en.text).toMatch(/only works in the browser/i)
+    expect(topic.en.text).toMatch(/Neither app can record/i)
+    expect(topic.en.text).not.toMatch(/works in the browser and in the iOS app/i)
+    expect(topic.de.text).toMatch(/nur im Browser/i)
+    expect(topic.de.text).toMatch(/Beide Apps können noch nicht aufnehmen/i)
+    expect(topic.de.text).not.toMatch(/funktioniert im Browser und in der iOS-App/i)
   })
 })
 

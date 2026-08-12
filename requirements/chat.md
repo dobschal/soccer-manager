@@ -88,15 +88,23 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
 
 - **TA-CHT-05**: `canRecordAudio()` prueft `MediaRecorder` **und** `navigator.mediaDevices`. Ist eines
   nicht da, wird der Mikrofon-Button gar nicht erst gerendert.
-- **TA-CHT-06**: **Android-App: Aufnahme nicht verfuegbar.** Der native WebView laedt die App per
-  `file://`, was kein "secure context" ist — `navigator.mediaDevices` existiert dort nicht. Behoben
-  waere das erst, wenn Android statt `file://` ueber einen `WebViewAssetLoader` unter
-  `https://appassets.androidplatform.net` laedt; das betrifft auch den OTA-Update-Pfad und ist
-  bewusst nicht Teil von #541.
-- **TA-CHT-07**: **iOS-App und Browser: verfuegbar.** iOS braucht zusaetzlich
-  `NSMicrophoneUsageDescription` in der `Info.plist` **und** die WKUIDelegate-Methode
-  `webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:` — ohne sie
-  lehnt WebKit den Zugriff ab iOS 15 stillschweigend ab.
+- **TA-CHT-06**: **Aufnahme nur im Browser.** Beide Apps laden das Bundle aus lokalen Dateien —
+  Android per `file:///android_asset/...`, iOS per `loadFileURLAllowingReadAccessToURL`
+  (`native-app/app/main-page.ts`). WebKit und die Android-WebView geben `navigator.mediaDevices` an
+  einem `file://`-Origin nicht heraus, also liefert `canRecordAudio()` dort `false` und der
+  Mikrofon-Button erscheint gar nicht erst. **Abspielen** ist davon nicht betroffen und funktioniert
+  in beiden Apps.
+- **TA-CHT-07**: Behoben waere das erst, wenn die Apps das Bundle nicht mehr per `file://` laden,
+  sondern ueber einen eigenen Origin — Android ueber `WebViewAssetLoader`
+  (`https://appassets.androidplatform.net`), iOS ueber einen `WKURLSchemeHandler` oder einen lokalen
+  Server. Das betrifft auf beiden Plattformen auch den OTA-Update-Pfad und ist bewusst nicht Teil
+  von #541.
+- **TA-CHT-27**: Die iOS-Vorarbeit dafuer liegt bereits im Repo, greift aber noch nicht:
+  `NSMicrophoneUsageDescription` in der `Info.plist` und die WKUIDelegate-Methode
+  `webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:` (ohne sie
+  lehnt WebKit ab iOS 15 stillschweigend ab). Beide werden erst relevant, sobald `getUserMedia`
+  ueberhaupt aufrufbar ist — und sie stecken bislang nur in `develop`, sind also in keinem
+  App-Store-Build enthalten.
 
 ## Chat-Overlay
 

@@ -265,7 +265,7 @@ How it works:
 • Open a chat from a manager's profile or from the chat list on the Friends tab of your dashboard. Each conversation groups all messages with that one person.
 • A message can contain text (up to 2,000 characters) and/or an image (JPG, PNG, GIF or WebP, up to 2 MB).
 • You can also record a voice message of up to two minutes and send it straight from the chat. Tap the microphone, speak, then send or discard — the recipient plays it back right inside the message.
-• Voice recording works in the browser and in the iOS app. The Android app cannot record yet.
+• Recording only works in the browser for now – on a phone, open the game in Safari or Chrome. Neither app can record yet, because both load the game from local files and the system withholds the microphone there. Playing a voice message back works everywhere, app included.
 • Messages arrive live while you're online. When you're away you get a push notification that links straight into the chat.
 • Messages you haven't read yet are counted in the "Action Required" badge on your dashboard, and are marked as read as soon as you open the conversation.`
     },
@@ -278,7 +278,7 @@ So funktioniert es:
 • Öffne einen Chat über das Profil eines Managers oder über die Chat-Liste im Reiter „Freunde“ deines Dashboards. Jede Unterhaltung bündelt alle Nachrichten mit dieser einen Person.
 • Eine Nachricht kann Text (bis zu 2.000 Zeichen) und/oder ein Bild (JPG, PNG, GIF oder WebP, bis zu 2 MB) enthalten.
 • Du kannst auch eine Sprachnachricht von bis zu zwei Minuten aufnehmen und direkt aus dem Chat verschicken. Tippe auf das Mikrofon, sprich, und schicke sie ab oder verwirf sie — der Empfänger spielt sie direkt in der Nachricht ab.
-• Die Aufnahme funktioniert im Browser und in der iOS-App. Die Android-App kann noch nicht aufnehmen.
+• Aufnehmen geht vorerst nur im Browser – öffne das Spiel auf dem Handy also in Safari oder Chrome. Beide Apps können noch nicht aufnehmen, weil sie das Spiel aus lokalen Dateien laden und das System dort kein Mikrofon freigibt. Abspielen funktioniert überall, auch in der App.
 • Nachrichten kommen live an, während du online bist. Bist du abwesend, erhältst du eine Push-Benachrichtigung, die direkt in den Chat führt.
 • Noch ungelesene Nachrichten zählen im „Aktion erforderlich“-Badge auf deinem Dashboard und werden als gelesen markiert, sobald du die Unterhaltung öffnest.`
     }
