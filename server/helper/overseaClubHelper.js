@@ -19,6 +19,10 @@ const TIERS = [
 const IOC_OFFER_CHANCE_PER_TEAM = 0.4
 // Random price deviation applied when the IOC offers at market value (±3%).
 const IOC_PRICE_DEVIATION = 0.03
+// How far an open IOC sell offer may drift from the player's current market
+// value before it is repriced. Has to sit above IOC_PRICE_DEVIATION, otherwise
+// the deviation alone would retrigger a reprice on the very next run.
+const IOC_REPRICE_TOLERANCE = 0.05
 
 let cachedIOCTeamId = null
 
@@ -127,13 +131,13 @@ async function _createIOCPlayerWithOffer (iocTeamId, position, tier, season) {
 
   const { insertId: playerId } = await query('INSERT INTO player SET ?', player)
 
-  // Calculate price based on market value with +/- 10% randomness
+  // Ask market value with the same ±IOC_PRICE_DEVIATION the IOC uses everywhere
+  // else. A wider spread here would land outside IOC_REPRICE_TOLERANCE and get
+  // corrected by repriceIOCOffers() on the next run anyway.
   const marketValue = await getAveragePlanPriceOfPlayer({ ...player, id: playerId })
-  const priceFactor = 0.9 + Math.random() * 0.2 // 0.9 to 1.1
-  const price = Math.max(1000, Math.floor(marketValue * priceFactor))
 
   await query('INSERT INTO trade_offer SET ?', {
-    offer_value: price,
+    offer_value: _marketValueWithDeviation(marketValue),
     type: 'sell',
     player_id: playerId,
     from_team_id: iocTeamId
@@ -149,6 +153,57 @@ async function _createIOCPlayerWithOffer (iocTeamId, position, tier, season) {
 function _marketValueWithDeviation (marketValue) {
   const factor = 1 - IOC_PRICE_DEVIATION + Math.random() * (IOC_PRICE_DEVIATION * 2)
   return Math.max(1000, Math.floor(marketValue * factor))
+}
+
+/**
+ * Bring open IOC sell offers back in line with the seller's current market value.
+ *
+ * The asking price is fixed when the offer is created, but the player keeps
+ * ageing while the offer sits unsold on the market, and every season above 22
+ * costs 15% of their market value. Without this the ask drifts far above what
+ * the player's own profile reports — a 5-season-old offer asks roughly 2.5x the
+ * real value.
+ *
+ * Only offers that drift past {@link IOC_REPRICE_TOLERANCE} are touched, so the
+ * price does not jitter on every run. User- and bot-owned offers are left alone:
+ * their asking price is a deliberate decision, not a generated one.
+ *
+ * @returns {Promise<number>} Number of offers repriced
+ */
+export async function repriceIOCOffers () {
+  const iocTeamId = await getIOCTeamId()
+  if (!iocTeamId) {
+    console.log('IOC team not found, skipping repriceIOCOffers')
+    return 0
+  }
+
+  const { season } = await getGameDayAndSeason()
+
+  const offers = await query(`
+    SELECT tro.id, tro.offer_value, p.level, p.carrier_start_season
+    FROM trade_offer tro
+    JOIN player p ON p.id = tro.player_id
+    WHERE tro.type = 'sell' AND tro.status = 'open' AND tro.from_team_id = ?
+  `, [iocTeamId])
+
+  let repriced = 0
+
+  for (const offer of offers) {
+    const marketValue = await getAveragePlanPriceOfPlayer(offer, season)
+    if (marketValue <= 0) continue
+    if (Math.abs(offer.offer_value - marketValue) / marketValue <= IOC_REPRICE_TOLERANCE) continue
+
+    await query('UPDATE trade_offer SET offer_value=? WHERE id=?', [
+      _marketValueWithDeviation(marketValue),
+      offer.id
+    ])
+    repriced++
+  }
+
+  if (repriced > 0) {
+    console.log(`IOC: Repriced ${repriced} stale sell offer(s)`)
+  }
+  return repriced
 }
 
 /**

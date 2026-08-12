@@ -1302,6 +1302,10 @@ Buying and selling:
 Market value:
 • A player's value is based mainly on level and age. Value grows steeply with level (roughly doubling every 10 levels) and drops for players over the age of 22.
 
+International Oversea Club:
+• The IOC is a computer-run club that keeps the market stocked, so there is always something to buy at every position and strength.
+• It always asks within 3% of the player's current market value, and its asking prices are corrected every match day. A player who ages while unsold gets cheaper, they do not stay at their old price.
+
 Remember your squad must always keep at least 14 players, so you cannot sell below that limit.`
     },
     de: {
@@ -1317,6 +1321,10 @@ Kaufen und verkaufen:
 
 Marktwert:
 • Der Wert eines Spielers richtet sich vor allem nach Level und Alter. Er steigt steil mit dem Level (etwa eine Verdopplung alle 10 Level) und sinkt bei Spielern über 22 Jahren.
+
+International Oversea Club:
+• Der IOC ist ein computergesteuerter Verein, der den Markt gefüllt hält – auf jeder Position und in jeder Stärke gibt es dadurch immer etwas zu kaufen.
+• Er verlangt immer höchstens 3% neben dem aktuellen Marktwert, und seine Preise werden an jedem Spieltag nachgezogen. Ein Spieler, der unverkauft älter wird, wird günstiger und bleibt nicht auf seinem alten Preis stehen.
 
 Denk daran: Dein Kader muss immer mindestens 14 Spieler haben – darunter kannst du nicht verkaufen.`
     }
