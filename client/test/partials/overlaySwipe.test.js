@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { startedInsideScrollableContent } from '../../partials/overlay.js'
+import { showOverlay, startedInsideScrollableContent } from '../../partials/overlay.js'
 
 /**
  * jsdom reports 0 for every layout property, so the scroll geometry has to be
@@ -73,5 +73,27 @@ describe('startedInsideScrollableContent (#541)', () => {
     const orphan = withScroll(document.createElement('div'), { scrollHeight: 0, clientHeight: 0 })
     document.body.appendChild(orphan)
     expect(startedInsideScrollableContent(orphan, card)).toBe(false)
+  })
+})
+
+describe('showOverlay class options (#541)', () => {
+  beforeEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('puts the given classes on the card and the backdrop', () => {
+    showOverlay('Chat', '', '<p>hi</p>', { cardClass: 'chat-overlay-card', backdropClass: 'chat-overlay-backdrop' })
+
+    const backdrop = document.querySelector('.overlay-backdrop')
+    expect(backdrop.classList.contains('chat-overlay-backdrop')).toBe(true)
+    expect(backdrop.querySelector('.overlay').classList.contains('chat-overlay-card')).toBe(true)
+  })
+
+  it('leaves an overlay without the options untouched', () => {
+    showOverlay('Plain', '', '<p>hi</p>')
+
+    const backdrop = document.querySelector('.overlay-backdrop')
+    expect(backdrop.className).toBe('overlay-backdrop')
+    expect(backdrop.querySelector('.overlay').className).toBe('card overlay')
   })
 })

@@ -4,16 +4,36 @@
    backdrop offers, the message list absorbs whatever is left over, and the
    input row therefore always ends up at the very bottom — no empty area
    underneath it (#541). */
+
+/* `100vh` is the *largest* viewport, which on iOS is taller than what is
+   actually on screen; the native app sizes its body in `dvh` for exactly that
+   reason. A sheet that fills a 100vh backdrop therefore hangs off the bottom
+   edge and takes the input row with it (#541). The `.overlay-backdrop` part is
+   for specificity — chat.css is loaded before overlay.css. */
+.overlay-backdrop.chat-overlay-backdrop {
+    height: 100vh;
+    height: 100dvh;
+}
+
 /* `.card` is only here for specificity: chat.css is loaded before overlay.css,
    so a single class would lose to `.overlay` on max-height and overflow. */
 .card.chat-overlay-card {
     flex: 1 1 auto;
-    /* On a desktop screen a full-height column would be absurdly tall. */
-    max-height: min(calc(100vh - 1rem), 760px);
+    /* No cap on a phone: the sheet fills the backdrop exactly, so there is no
+       free space for the auto margins to centre it with and nothing can end up
+       past the bottom edge. */
+    max-height: none;
     display: flex;
     flex-direction: column;
     /* The body scrolls internally, so the card itself must not. */
     overflow: hidden;
+}
+
+/* On a desktop screen a full-height column would be absurdly tall. */
+@media (min-width: 768px) {
+    .card.chat-overlay-card {
+        max-height: 760px;
+    }
 }
 
 .chat-overlay-card .card-body {

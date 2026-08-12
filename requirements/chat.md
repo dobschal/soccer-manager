@@ -109,9 +109,17 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
   (`startedInsideScrollableContent`). Vorher schloss jedes Scrollen in der Nachrichtenliste das
   Overlay, weil die Overlay-Karte selbst nie scrollt und damit immer "ganz oben" schien (#541).
 - **TA-CHT-22**: Der Chat ist ein **Sheet**, keine inhaltshohe Karte: `showOverlay` bekommt ueber die
-  neue Option `cardClass` die Klasse `chat-overlay-card`, die Karte waechst auf die verfuegbare Hoehe
-  (max. 760px auf dem Desktop), die Nachrichtenliste nimmt den Rest — dadurch sitzt die Eingabezeile
-  immer ganz unten (#541).
+  neuen Optionen `cardClass` / `backdropClass` die Klassen `chat-overlay-card` und
+  `chat-overlay-backdrop`. Die Karte waechst auf die verfuegbare Hoehe, die Nachrichtenliste nimmt
+  den Rest — dadurch sitzt die Eingabezeile immer ganz unten (#541).
+- **TA-CHT-25**: Der Chat-Backdrop rechnet in `dvh`, nicht in `vh`. `100vh` ist auf iOS der
+  **groesste** Viewport und damit hoeher als das, was tatsaechlich zu sehen ist — die Karte fuellte
+  ihn aus und schob die Eingabezeile unter den unteren Bildschirmrand. Der native Body rechnet aus
+  demselben Grund in `dvh`.
+- **TA-CHT-26**: Auf dem Handy hat die Karte **kein** `max-height`: sie fuellt den Backdrop exakt,
+  es bleibt kein Platz, den die `margin: auto` des Overlays zum Zentrieren nutzen koennte. Erst ab
+  768px Breite gilt die Obergrenze von 760px, sonst waere das Sheet auf dem Desktop absurd hoch.
+  In der App haelt `padding-top: 3.5rem` auf dem Backdrop die 3rem hohe Top-Bar frei.
 - **TA-CHT-23**: In der nativen App ist die Chat-Karte von `padding-bottom: 10rem` ausgenommen
   (`native-app.css`). Die Regel schiebt sonst jedes Overlay ueber die Tab-Bar hinaus und hinterliess
   im Chat einen grossen weissen Bereich unter der Eingabezeile (#541).

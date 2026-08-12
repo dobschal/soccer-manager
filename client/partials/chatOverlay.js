@@ -77,7 +77,7 @@ export class ChatController {
     const overlay = showOverlay(
       t('chat.title'), '',
       `<div id="${this._bodyId}" class="chat-overlay"></div>`,
-      { cardClass: 'chat-overlay-card' }
+      { cardClass: 'chat-overlay-card', backdropClass: 'chat-overlay-backdrop' }
     )
     this._overlay = overlay
     overlay.onClose(() => this._teardown())
