@@ -70,7 +70,7 @@ import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { createYouthPlayer } from '../../helper/youthPlayerHelper.js'
 import { sendToUser } from '../../lib/websocket.js'
 import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
-import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, canReceiveActionCard, deleteExpiredPendingCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES, actionCardChances, CASH_CARD_AMOUNTS } from '../../helper/actionCardHelper.js'
+import { playActionCard, getActionCards, getPendingActionCards, claimActionCard, mergeActionCards, canReceiveActionCard, deleteExpiredPendingCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES, actionCardChances, CASH_CARD_AMOUNTS } from '../../helper/actionCardHelper.js'
 
 describe('actionCardHelper', () => {
   beforeEach(() => {
@@ -954,6 +954,116 @@ describe('actionCardHelper', () => {
       await deleteExpiredPendingCards()
 
       expect(query).toHaveBeenCalledWith("DELETE FROM action_card WHERE state='pending'")
+    })
+  })
+
+  describe('mergeActionCards', () => {
+    const held = (id, action) => ({ id, action, team_id: 1, played: 0, state: 'received' })
+
+    /**
+     * @param {Array} cards - rows the ownership lookup returns
+     */
+    function mockInventory (cards) {
+      query.mockImplementation(async (sql) => {
+        if (String(sql).startsWith('SELECT * FROM action_card WHERE id IN')) return cards
+        if (String(sql).startsWith('INSERT')) return { insertId: 99 }
+        return {}
+      })
+    }
+
+    it('merges two held LEVEL_UP_PLAYER_40 cards into a LEVEL_UP_PLAYER_70', async () => {
+      mockInventory([held(1, 'LEVEL_UP_PLAYER_40'), held(2, 'LEVEL_UP_PLAYER_40')])
+
+      const result = await mergeActionCards(
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' }, { id: 2, action: 'LEVEL_UP_PLAYER_40' },
+        testData.team({ id: 1 }), 'en'
+      )
+
+      expect(result).toEqual({
+        success: true,
+        newCardType: 'LEVEL_UP_PLAYER_70',
+        actionCard: { id: 99, action: 'LEVEL_UP_PLAYER_70' }
+      })
+      expect(query).toHaveBeenCalledWith('DELETE FROM action_card WHERE id=?', [1])
+      expect(query).toHaveBeenCalledWith('DELETE FROM action_card WHERE id=?', [2])
+      expect(query).toHaveBeenCalledWith('INSERT INTO action_card SET ?', expect.objectContaining({
+        team_id: 1, action: 'LEVEL_UP_PLAYER_70', played: 0, state: 'received'
+      }))
+    })
+
+    it('merges two LEVEL_UP_PLAYER_70 cards into a LEVEL_UP_PLAYER_100', async () => {
+      mockInventory([held(1, 'LEVEL_UP_PLAYER_70'), held(2, 'LEVEL_UP_PLAYER_70')])
+
+      const result = await mergeActionCards(
+        { id: 1, action: 'LEVEL_UP_PLAYER_70' }, { id: 2, action: 'LEVEL_UP_PLAYER_70' },
+        testData.team({ id: 1 }), 'en'
+      )
+
+      expect(result.newCardType).toBe('LEVEL_UP_PLAYER_100')
+    })
+
+    it('only looks at cards the team holds free — escrowed ones are invisible', async () => {
+      mockInventory([held(1, 'LEVEL_UP_PLAYER_40'), held(2, 'LEVEL_UP_PLAYER_40')])
+
+      await mergeActionCards(
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' }, { id: 2, action: 'LEVEL_UP_PLAYER_40' },
+        testData.team({ id: 1 }), 'en'
+      )
+
+      expect(query).toHaveBeenCalledWith(
+        "SELECT * FROM action_card WHERE id IN (?) AND team_id=? AND played=0 AND state='received'",
+        [[1, 2], 1]
+      )
+    })
+
+    it('refuses to merge a card that is escrowed in a marketplace offer or bid', async () => {
+      // Card 2 sits in an open offer, so the ownership lookup only returns card 1.
+      mockInventory([held(1, 'LEVEL_UP_PLAYER_40')])
+
+      await expect(mergeActionCards(
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' }, { id: 2, action: 'LEVEL_UP_PLAYER_40' },
+        testData.team({ id: 1 }), 'en'
+      )).rejects.toThrow()
+
+      // Nothing was destroyed — the offer behind card 2 stays intact.
+      expect(query).not.toHaveBeenCalledWith('DELETE FROM action_card WHERE id=?', [1])
+      expect(query).not.toHaveBeenCalledWith('DELETE FROM action_card WHERE id=?', [2])
+    })
+
+    it('refuses to merge a card belonging to another team', async () => {
+      mockInventory([])
+
+      await expect(mergeActionCards(
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' }, { id: 2, action: 'LEVEL_UP_PLAYER_40' },
+        testData.team({ id: 1 }), 'en'
+      )).rejects.toThrow()
+    })
+
+    it('refuses to merge a card with itself', async () => {
+      mockInventory([held(1, 'LEVEL_UP_PLAYER_40')])
+
+      await expect(mergeActionCards(
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' }, { id: 1, action: 'LEVEL_UP_PLAYER_40' },
+        testData.team({ id: 1 }), 'en'
+      )).rejects.toThrow()
+    })
+
+    it('refuses different card types', async () => {
+      await expect(mergeActionCards(
+        { id: 1, action: 'LEVEL_UP_PLAYER_40' }, { id: 2, action: 'FRESHNESS_10' },
+        testData.team({ id: 1 }), 'en'
+      )).rejects.toThrow()
+    })
+
+    it('refuses non-mergeable card types', async () => {
+      await expect(mergeActionCards(
+        { id: 1, action: 'FRESHNESS_10' }, { id: 2, action: 'FRESHNESS_10' },
+        testData.team({ id: 1 }), 'en'
+      )).rejects.toThrow()
+      await expect(mergeActionCards(
+        { id: 1, action: 'LEVEL_UP_PLAYER_100' }, { id: 2, action: 'LEVEL_UP_PLAYER_100' },
+        testData.team({ id: 1 }), 'en'
+      )).rejects.toThrow()
     })
   })
 })

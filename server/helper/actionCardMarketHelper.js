@@ -1,4 +1,4 @@
-import { query } from '../lib/database.js'
+import { query, transaction } from '../lib/database.js'
 import { BadRequestError } from '../lib/errors.js'
 import { updateTeamBalance } from './financeHelper.js'
 import { addLogMessage } from './logMessageHelper.js'
@@ -214,47 +214,50 @@ async function releaseBidCards (bidId, bidderTeamId) {
 export async function createOffer (actionCardIds, comment, team, locale) {
   const ids = (Array.isArray(actionCardIds) ? actionCardIds : [actionCardIds]).map(Number).filter(Boolean)
   if (ids.length === 0) throw new BadRequestError(t('error.cardNotFound', {}, locale))
-
-  const [{ openCount }] = await query(
-    "SELECT COUNT(*) AS openCount FROM action_card_offer WHERE from_team_id=? AND status='open'",
-    [team.id]
-  )
-  if (openCount >= MAX_OPEN_CARD_OFFERS) {
-    throw new BadRequestError(t('error.tooManyCardOffers', { max: MAX_OPEN_CARD_OFFERS }, locale))
-  }
-
-  // Atomically escrow every card first; roll back on any failure so a partial
-  // bundle can't leave cards stuck in 'offered' without a listing.
-  const escrowed = []
-  for (const id of ids) {
-    const claim = await query(
-      "UPDATE action_card SET state='offered' WHERE id=? AND team_id=? AND played=0 AND state='received'",
-      [id, team.id]
-    )
-    if (claim.affectedRows === 0) {
-      for (const done of escrowed) {
-        await query("UPDATE action_card SET state='received' WHERE id=? AND team_id=?", [done.id, team.id])
-      }
-      throw new BadRequestError(t('error.cardNotFound', {}, locale))
-    }
-    const [card] = await query('SELECT id, action FROM action_card WHERE id=?', [id])
-    escrowed.push(card)
-  }
-
   const safeComment = typeof comment === 'string' ? truncateChars(comment, 255) : null
-  const result = await query('INSERT INTO action_card_offer SET ?', {
-    from_team_id: team.id,
-    comment: safeComment,
-    status: 'open'
-  })
-  const offerId = result.insertId
-  for (const card of escrowed) {
-    await query('INSERT INTO action_card_offer_card SET ?', {
-      offer_id: offerId,
-      action_card_id: card.id,
-      action: card.action
+
+  // Escrow and listing share one transaction: a failure half-way through must
+  // not leave cards stuck in 'offered' with no offer pointing at them — those
+  // are invisible in the inventory and can never be used again.
+  const offerId = await transaction(async (txQuery) => {
+    const [{ openCount }] = await txQuery(
+      "SELECT COUNT(*) AS openCount FROM action_card_offer WHERE from_team_id=? AND status='open'",
+      [team.id]
+    )
+    if (openCount >= MAX_OPEN_CARD_OFFERS) {
+      throw new BadRequestError(t('error.tooManyCardOffers', { max: MAX_OPEN_CARD_OFFERS }, locale))
+    }
+
+    const escrowed = []
+    for (const id of ids) {
+      const claim = await txQuery(
+        "UPDATE action_card SET state='offered' WHERE id=? AND team_id=? AND played=0 AND state='received'",
+        [id, team.id]
+      )
+      if (claim.affectedRows === 0) throw new BadRequestError(t('error.cardNotFound', {}, locale))
+      const [card] = await txQuery('SELECT id, action FROM action_card WHERE id=?', [id])
+      escrowed.push(card)
+    }
+
+    const result = await txQuery('INSERT INTO action_card_offer SET ?', {
+      from_team_id: team.id,
+      comment: safeComment,
+      status: 'open'
     })
-  }
+    for (const card of escrowed) {
+      await txQuery('INSERT INTO action_card_offer_card SET ?', {
+        offer_id: result.insertId,
+        action_card_id: card.id,
+        action: card.action
+      })
+    }
+    return result.insertId
+  })
+
+  // The listed cards just left the inventory — tell the dashboard, otherwise
+  // its card stacks keep showing them and the next click (use or merge) works
+  // on a card that is no longer available.
+  notifyInventory(team.id)
   return { success: true, offerId }
 }
 
@@ -281,6 +284,7 @@ export async function cancelOffer (offerId, team, locale) {
 
   await releaseOfferCards(offerId, team.id)
   await _rejectAllOpenBids(offerId)
+  notifyInventory(team.id)
   return { success: true }
 }
 
@@ -323,40 +327,40 @@ export async function placeBid (offerId, money, cardIds, comment, team, locale) 
     throw new BadRequestError(t('error.notEnoughMoney', {}, locale))
   }
 
-  // Verify every offered card is currently available, then escrow them.
-  const cards = []
-  for (const id of ids) {
-    const [card] = await query(
-      "SELECT * FROM action_card WHERE id=? AND team_id=? AND played=0 AND state='received'",
-      [id, team.id]
-    )
-    if (!card) {
-      // Roll back any escrow already done in this loop.
-      for (const done of cards) {
-        await query("UPDATE action_card SET state='received' WHERE id=? AND team_id=?", [done.id, team.id])
-      }
-      throw new BadRequestError(t('error.cardNotFound', {}, locale))
-    }
-    await query("UPDATE action_card SET state='offered' WHERE id=? AND team_id=?", [id, team.id])
-    cards.push(card)
-  }
-
   const safeComment = typeof comment === 'string' ? truncateChars(comment, 255) : null
-  const result = await query('INSERT INTO action_card_bid SET ?', {
-    offer_id: offerId,
-    bidder_team_id: team.id,
-    money: safeMoney,
-    comment: safeComment,
-    status: 'open'
-  })
-  const bidId = result.insertId
-  for (const card of cards) {
-    await query('INSERT INTO action_card_bid_card SET ?', {
-      bid_id: bidId,
-      action_card_id: card.id,
-      action: card.action
+
+  // Escrow and bid share one transaction — see createOffer.
+  const bidId = await transaction(async (txQuery) => {
+    const cards = []
+    for (const id of ids) {
+      const claim = await txQuery(
+        "UPDATE action_card SET state='offered' WHERE id=? AND team_id=? AND played=0 AND state='received'",
+        [id, team.id]
+      )
+      if (claim.affectedRows === 0) throw new BadRequestError(t('error.cardNotFound', {}, locale))
+      const [card] = await txQuery('SELECT id, action FROM action_card WHERE id=?', [id])
+      cards.push(card)
+    }
+
+    const result = await txQuery('INSERT INTO action_card_bid SET ?', {
+      offer_id: offerId,
+      bidder_team_id: team.id,
+      money: safeMoney,
+      comment: safeComment,
+      status: 'open'
     })
-  }
+    for (const card of cards) {
+      await txQuery('INSERT INTO action_card_bid_card SET ?', {
+        bid_id: result.insertId,
+        action_card_id: card.id,
+        action: card.action
+      })
+    }
+    return result.insertId
+  })
+
+  // The staked cards left the inventory — keep the dashboard card stacks honest.
+  if (ids.length > 0) notifyInventory(team.id)
 
   // Notify the offerer of the incoming bid.
   const offererTeam = await getTeamById(offer.from_team_id)
@@ -481,8 +485,140 @@ export async function cancelBid (bidId, team, locale) {
   const claim = await query("UPDATE action_card_bid SET status='cancelled' WHERE id=? AND status='open'", [bidId])
   if (claim.affectedRows === 0) throw new BadRequestError(t('error.offerNotFound', {}, locale))
   await releaseBidCards(bidId, team.id)
-  notifyMarket(bid.offer_id)
+  notifyInventory(team.id)
+  await _notifyOfferer(bid.offer_id)
   return { success: true }
+}
+
+/**
+ * Tell the team behind an offer that its bid list changed.
+ * @param {number} offerId
+ */
+async function _notifyOfferer (offerId) {
+  const [offer] = await query('SELECT from_team_id FROM action_card_offer WHERE id=?', [offerId])
+  if (offer) notifyMarket(offer.from_team_id)
+}
+
+/**
+ * SQL predicate matching a join-table row whose card is no longer a valid
+ * escrow: deleted, played, handed back to the inventory, or owned by someone
+ * else. `ownerColumn` is the column holding the team that staked the card.
+ * @param {string} ownerColumn
+ * @returns {string}
+ */
+function _brokenEscrowCondition (ownerColumn) {
+  return `(c.id IS NULL OR c.played = 1 OR c.state <> 'offered' OR c.team_id <> ${ownerColumn})`
+}
+
+/**
+ * Bring the marketplace back in sync with the actual card inventory.
+ *
+ * Escrow normally keeps a listed or staked card out of reach, but a card can
+ * still vanish behind an open entry — an account reset or an admin action
+ * deletes it, a stale client merges it away. The offer or bid would otherwise
+ * stay live and only fail once someone tries to settle it, so it is cancelled
+ * here and the rest of its bundle released.
+ *
+ * The same pass releases orphaned escrow: cards still flagged 'offered' with no
+ * open offer or bid behind them. They show up nowhere and cannot be used, so
+ * without this they would be lost for good.
+ *
+ * @param {number} [teamId] - team whose orphaned escrow should be released too
+ * @returns {Promise<{cancelledOffers: number, cancelledBids: number, releasedCards: number}>}
+ */
+export async function reconcileCardMarket (teamId) {
+  const brokenOffers = await query(
+    `SELECT DISTINCT o.id, o.from_team_id
+     FROM action_card_offer o
+     JOIN action_card_offer_card oc ON oc.offer_id = o.id
+     LEFT JOIN action_card c ON c.id = oc.action_card_id
+     WHERE o.status='open' AND ${_brokenEscrowCondition('o.from_team_id')}`
+  )
+  let cancelledOffers = 0
+  for (const offer of brokenOffers) {
+    const claim = await query(
+      "UPDATE action_card_offer SET status='cancelled' WHERE id=? AND status='open'",
+      [offer.id]
+    )
+    if (claim.affectedRows === 0) continue
+    await releaseOfferCards(offer.id, offer.from_team_id)
+    await _rejectAllOpenBids(offer.id)
+    await _logMarketEntryDropped(offer.from_team_id, 'log.cardOfferDropped')
+    notifyMarket(offer.from_team_id)
+    notifyInventory(offer.from_team_id)
+    cancelledOffers++
+  }
+
+  const brokenBids = await query(
+    `SELECT DISTINCT b.id, b.bidder_team_id, b.offer_id
+     FROM action_card_bid b
+     JOIN action_card_bid_card bc ON bc.bid_id = b.id
+     LEFT JOIN action_card c ON c.id = bc.action_card_id
+     WHERE b.status='open' AND ${_brokenEscrowCondition('b.bidder_team_id')}`
+  )
+  let cancelledBids = 0
+  for (const bid of brokenBids) {
+    const claim = await query(
+      "UPDATE action_card_bid SET status='cancelled' WHERE id=? AND status='open'",
+      [bid.id]
+    )
+    if (claim.affectedRows === 0) continue
+    await releaseBidCards(bid.id, bid.bidder_team_id)
+    await _logMarketEntryDropped(bid.bidder_team_id, 'log.cardBidDropped')
+    notifyMarket(bid.bidder_team_id)
+    notifyInventory(bid.bidder_team_id)
+    await _notifyOfferer(bid.offer_id)
+    cancelledBids++
+  }
+
+  const releasedCards = teamId ? await _releaseOrphanedEscrow(teamId) : 0
+  return { cancelledOffers, cancelledBids, releasedCards }
+}
+
+/**
+ * Tell a manager that one of their marketplace entries was dropped because the
+ * cards behind it are gone. Bot teams have no user and are skipped.
+ * @param {number} teamId
+ * @param {string} key - i18n key of the log message
+ */
+async function _logMarketEntryDropped (teamId, key) {
+  const team = await getTeamById(teamId)
+  if (!team?.user_id) return
+  const locale = await getUserLocale(team.user_id)
+  await addLogMessage(
+    t(key, {}, locale), team, 'OPEN_CARD_MARKET', null, 'gavel',
+    SERVER_EVENTS.ACTION_CARD_MARKET_CHANGED.name, 'warning'
+  )
+}
+
+/**
+ * Hand back cards that are still escrowed although nothing references them any
+ * more. Scoped to one team so the lookup rides the (team_id, played, state)
+ * index instead of scanning the whole card table.
+ * @param {number} teamId
+ * @returns {Promise<number>} number of cards released
+ */
+async function _releaseOrphanedEscrow (teamId) {
+  const orphans = await query(
+    `SELECT c.id FROM action_card c
+     WHERE c.team_id=? AND c.played=0 AND c.state='offered'
+       AND NOT EXISTS (
+         SELECT 1 FROM action_card_offer_card oc
+         JOIN action_card_offer o ON o.id = oc.offer_id
+         WHERE oc.action_card_id = c.id AND o.status='open')
+       AND NOT EXISTS (
+         SELECT 1 FROM action_card_bid_card bc
+         JOIN action_card_bid b ON b.id = bc.bid_id
+         WHERE bc.action_card_id = c.id AND b.status='open')`,
+    [teamId]
+  )
+  if (orphans.length === 0) return 0
+  await query(
+    "UPDATE action_card SET state='received' WHERE id IN (?) AND team_id=? AND state='offered'",
+    [orphans.map(o => o.id), teamId]
+  )
+  notifyInventory(teamId)
+  return orphans.length
 }
 
 /**
@@ -491,6 +627,8 @@ export async function cancelBid (bidId, team, locale) {
  * @returns {Promise<{offers: Array, myOffers: Array, myBids: Array, myCards: Array}>}
  */
 export async function getMarket (team) {
+  await reconcileCardMarket(team.id)
+
   // Open offers from other teams, with the offerer's team name and a bid count.
   const offers = await query(
     `SELECT o.id, o.comment, o.created_at,

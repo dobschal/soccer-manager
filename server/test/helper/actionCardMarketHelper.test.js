@@ -1,8 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../lib/database.js', () => ({
-  query: vi.fn()
-}))
+vi.mock('../../lib/database.js', async () => {
+  const query = vi.fn()
+  return {
+    query,
+    // Run the callback against the same mocked query so the existing
+    // assertions keep working; a throwing callback rolls back by simply
+    // propagating, which is what the real helper relies on.
+    transaction: vi.fn(async (callback) => await callback(query))
+  }
+})
 vi.mock('../../helper/financeHelper.js', () => ({
   updateTeamBalance: vi.fn()
 }))
@@ -27,7 +34,7 @@ import { query } from '../../lib/database.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { getTeamById } from '../../helper/teamHelper.js'
 import {
-  createOffer, placeBid, acceptBid, getTradeHistory,
+  createOffer, placeBid, acceptBid, getTradeHistory, reconcileCardMarket,
   calculateBotBidAmount, placeBotCardBids, BOT_CARD_BID_PRICES
 } from '../../helper/actionCardMarketHelper.js'
 
@@ -352,5 +359,86 @@ describe('million bonus card on the marketplace (#537)', () => {
       () => 0.5
     )
     expect(amount).toBe(920000)
+  })
+})
+
+describe('reconcileCardMarket', () => {
+  /**
+   * Wire up a query mock for the reconcile pass.
+   * @param {{brokenOffers?: Array, brokenBids?: Array, orphans?: Array}} state
+   * @returns {void}
+   */
+  function mockReconcile (state = {}) {
+    query.mockImplementation(async (sql) => {
+      const q = String(sql)
+      if (q.includes('FROM action_card_offer o') && q.includes('LEFT JOIN action_card c')) {
+        return state.brokenOffers ?? []
+      }
+      if (q.includes('FROM action_card_bid b') && q.includes('LEFT JOIN action_card c')) {
+        return state.brokenBids ?? []
+      }
+      if (q.includes('NOT EXISTS')) return state.orphans ?? []
+      if (q.startsWith('UPDATE action_card_offer SET') || q.startsWith('UPDATE action_card_bid SET')) {
+        return { affectedRows: 1 }
+      }
+      if (q.includes("SELECT * FROM action_card_bid WHERE offer_id")) return []
+      return []
+    })
+  }
+
+  it('cancels an offer whose listed card no longer exists and releases the rest', async () => {
+    mockReconcile({ brokenOffers: [{ id: 900, from_team_id: 1 }] })
+    getTeamById.mockResolvedValue({ id: 1, name: 'My FC', user_id: 10 })
+
+    const result = await reconcileCardMarket(1)
+
+    expect(result.cancelledOffers).toBe(1)
+    expect(query).toHaveBeenCalledWith(
+      "UPDATE action_card_offer SET status='cancelled' WHERE id=? AND status='open'",
+      [900]
+    )
+  })
+
+  it('cancels a bid whose staked card is gone', async () => {
+    mockReconcile({ brokenBids: [{ id: 700, bidder_team_id: 2, offer_id: 900 }] })
+    getTeamById.mockResolvedValue({ id: 2, name: 'Rival', user_id: 20 })
+
+    const result = await reconcileCardMarket(2)
+
+    expect(result.cancelledBids).toBe(1)
+    expect(query).toHaveBeenCalledWith(
+      "UPDATE action_card_bid SET status='cancelled' WHERE id=? AND status='open'",
+      [700]
+    )
+  })
+
+  it('leaves a healthy marketplace untouched', async () => {
+    mockReconcile()
+
+    const result = await reconcileCardMarket(1)
+
+    expect(result).toEqual({ cancelledOffers: 0, cancelledBids: 0, releasedCards: 0 })
+    expect(query.mock.calls.some(([sql]) => String(sql).includes("SET status='cancelled'"))).toBe(false)
+  })
+
+  it('hands orphaned escrow back to the owner', async () => {
+    mockReconcile({ orphans: [{ id: 55 }, { id: 66 }] })
+
+    const result = await reconcileCardMarket(1)
+
+    expect(result.releasedCards).toBe(2)
+    expect(query).toHaveBeenCalledWith(
+      "UPDATE action_card SET state='received' WHERE id IN (?) AND team_id=? AND state='offered'",
+      [[55, 66], 1]
+    )
+  })
+
+  it('skips the orphan sweep when called without a team', async () => {
+    mockReconcile({ orphans: [{ id: 55 }] })
+
+    const result = await reconcileCardMarket()
+
+    expect(result.releasedCards).toBe(0)
+    expect(query.mock.calls.some(([sql]) => String(sql).includes("SET state='received' WHERE id IN"))).toBe(false)
   })
 })

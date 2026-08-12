@@ -105,6 +105,7 @@ Automatic bot bids:
 
 Good to know:
 • Both sides can see a trade history of completed deals, including which cards were exchanged and the money delta.
+• An offer or bid is withdrawn automatically as soon as the cards behind it are no longer available – you get a message in your log, and the remaining cards of the bundle come straight back to you.
 • You'll be notified live when the offers or bids relevant to you change.`
     },
     de: {
@@ -129,6 +130,7 @@ Automatische Bot-Gebote:
 
 Gut zu wissen:
 • Beide Seiten sehen eine Handelshistorie abgeschlossener Deals, inklusive der getauschten Karten und der Geld-Differenz.
+• Ein Angebot oder Gebot wird automatisch zurückgezogen, sobald die Karten dahinter nicht mehr verfügbar sind – du bekommst eine Nachricht im Log, und die restlichen Karten des Bündels landen sofort wieder bei dir.
 • Du wirst live benachrichtigt, wenn sich für dich relevante Angebote oder Gebote ändern.`
     }
   },

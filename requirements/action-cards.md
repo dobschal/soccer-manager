@@ -37,6 +37,9 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
   Kartenseite. Der Zaehler ist auf jeder Seite sichtbar, nicht nur auf der Startseite.
 - **US-AC-21**: Als neu registrierter Manager finde ich direkt nach der Vereinswahl ein Startpaket in meinem
   Kartenbestand: Nachwuchsspieler, Basis-Training, Starspieler, Nachwuchsstar und Millionengeschenk.
+- **US-AC-22**: Als Spieler wird mein Angebot bzw. Gebot automatisch zurueckgezogen, sobald die dahinter
+  hinterlegten Karten nicht mehr verfuegbar sind, damit auf dem Markt keine Eintraege ohne Deckung stehen
+  bleiben. Ich werde per Log-Nachricht darueber informiert.
 
 ## Kartentypen
 
@@ -128,9 +131,21 @@ Overrides.
 - **TA-AC-20**: Nutzer koennen Karten einzeln oder als Bundle anbieten (`createActionCardOffer(actionCardIds, comment)`); ein Bundle zaehlt als **ein** Angebot.
 - **TA-AC-21**: Maximal 10 offene Angebote pro Team (`MAX_OPEN_CARD_OFFERS`).
 - **TA-AC-22**: Gelistete Karten werden aus dem Inventar ausgelagert (Escrow, Status `offered`) und beim Zurueckziehen wieder freigegeben.
+  Escrow und Eintrag entstehen in **einer** Transaktion, damit keine Karte im Status `offered` ohne zugehoeriges
+  Angebot/Gebot zurueckbleibt. Nach dem Listen/Bieten wird `ACTION_CARDS_CHANGED` an das eigene Team gesendet,
+  damit die Kartenstapel im Dashboard die hinterlegten Karten nicht weiter anzeigen.
+- **TA-AC-22a**: `mergeActionCards` prueft beide Karten gegen die Datenbank (`team_id`, `played=0`, `state='received'`).
+  Eine hinterlegte Karte kann damit nicht per Merge vernichtet werden — sonst bliebe das Angebot/Gebot dahinter ohne Deckung.
 - **TA-AC-23**: Gebote koennen Geld und/oder eigene Karten enthalten (`bidOnActionCardOffer(offerId, money, cardIds, comment)`).
 - **TA-AC-24**: Aenderungen am fuer den Nutzer relevanten Marktzustand loesen `ACTION_CARD_MARKET_CHANGED` aus.
 - **TA-AC-25**: Abgeschlossene Trades bleiben als Historie abrufbar (`getActionCardTradeHistory`).
+- **TA-AC-26**: `reconcileCardMarket(teamId)` laeuft zu Beginn jedes `getActionCardMarket` und haelt Markt und
+  Kartenbestand konsistent:
+  - Offene Angebote/Gebote, deren hinterlegte Karte geloescht, gespielt, freigegeben oder inzwischen einem anderen
+    Team zugeordnet ist, werden auf `cancelled` gesetzt; der Rest des Buendels wird freigegeben, konkurrierende
+    Gebote werden abgelehnt und der Manager erhaelt `log.cardOfferDropped` bzw. `log.cardBidDropped`.
+  - Karten des aufrufenden Teams, die noch im Status `offered` haengen, aber von keinem offenen Angebot/Gebot mehr
+    referenziert werden, gehen zurueck auf `received` — ohne diesen Schritt waeren sie dauerhaft unbenutzbar.
 
 ### API-Endpunkte
 

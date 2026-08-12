@@ -147,6 +147,8 @@ export default {
   'log.botCardBidComment': 'Automatisches Angebot für eine Karte, die seit über 24 Stunden gelistet ist.',
   'log.cardTradeSold': 'Dein Aktionskarten-Handel mit {team} wurde abgeschlossen.',
   'log.cardTradeBought': 'Dein Gebot wurde angenommen — du hast Aktionskarten mit {team} getauscht.',
+  'log.cardOfferDropped': 'Eines deiner Aktionskarten-Angebote wurde zurückgezogen, weil die angebotenen Karten nicht mehr verfügbar sind.',
+  'log.cardBidDropped': 'Eines deiner Gebote wurde zurückgezogen, weil die gebotenen Karten nicht mehr verfügbar sind.',
   'log.sellOfferCreated': 'Du hast ein Verkaufsangebot für {playerName} zu {price} erstellt.',
   'log.sellOffersRemoved': '{count} deiner Verkaufsangebote wurden entfernt. Du kannst höchstens {max} Spieler gleichzeitig auf dem Transfermarkt anbieten.',
 
