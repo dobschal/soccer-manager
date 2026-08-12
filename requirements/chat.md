@@ -63,7 +63,14 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
 - **TA-CHT-04**: Text, Bild und Sprachnachricht laufen ueber denselben Sende-Pfad
   (`_sendPayload`), damit sie nicht auseinanderlaufen koennen.
 
-### Transkodierung (#541)
+### Speicherung und Transkodierung (#541)
+
+- **TA-CHT-24**: Der Data-URL-Header wird bis zum **ersten Komma** abgeschnitten
+  (`decodeDataUrl`), nicht ueber `<typ>;base64,`. Chromes Blob-Typ ist
+  `audio/webm;codecs=opus`, die URL also `data:audio/webm;codecs=opus;base64,…` — das alte Muster
+  griff dort nicht, der Base64-Decoder stoppte am `=` in `codecs=opus` und jede Aufnahme aus
+  Chrome/Firefox landete als dieselben 15 Byte Unsinn auf der Platte. Genau das war der „Error" im
+  Audio-Player.
 
 - **TA-CHT-18**: WebM/Opus und Ogg/Opus koennen von Safari und dem iOS-WebView **nicht** dekodiert —
   der Audio-Player zeigt dort nur „Error“. `ensurePlayableAudio` (`server/lib/audioTranscode.js`)

@@ -26,6 +26,7 @@ vi.mock('../../lib/audioTranscode.js', () => ({
   ensurePlayableAudio: vi.fn(async (dir, name) => name.replace(/\.(webm|ogg)$/, '.m4a'))
 }))
 
+import fs from 'fs'
 import { query } from '../../lib/database.js'
 import { sendToUser } from '../../lib/websocket.js'
 import { sendPushNotifications } from '../../lib/pushNotification.js'
@@ -249,6 +250,22 @@ describe('chat voice messages (#541)', () => {
     await chat.sendChatMessage(2, '', null, audio({ type: 'audio/webm;codecs=opus' }), req())
     // Written as .webm, then normalised — what lands in the row is playable.
     expect(ensurePlayableAudio).toHaveBeenCalledWith('uploads/chat', expect.stringMatching(/\.webm$/))
+  })
+
+  it('keeps the recorded bytes when the data URL carries codec parameters (#541)', async () => {
+    // Chrome's blob type is `audio/webm;codecs=opus`, so readAsDataURL produces
+    // `data:audio/webm;codecs=opus;base64,…`. Stripping only `<type>;base64,`
+    // left the header in and the decoder stopped at the `=` in `codecs=opus`,
+    // storing 15 bytes of nonsense that no player could ever open.
+    const payload = Buffer.from('an actual opus recording, honest')
+    await chat.sendChatMessage(2, '', null, {
+      data: `data:audio/webm;codecs=opus;base64,${payload.toString('base64')}`,
+      type: 'audio/webm;codecs=opus',
+      duration: 4
+    }, req())
+
+    const [, written] = fs.writeFileSync.mock.calls.at(-1)
+    expect(Buffer.from(written)).toEqual(payload)
   })
 
   it('stores the container every platform can play, not the recorded one (#541)', async () => {

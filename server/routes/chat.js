@@ -36,6 +36,23 @@ const MAX_AUDIO_SIZE = 4 * 1024 * 1024
 export const MAX_AUDIO_DURATION_SECONDS = 120
 
 /**
+ * Decode the payload of a base64 data URL.
+ *
+ * Everything up to the first comma is the header, and it may carry MIME
+ * parameters: Chrome's recorder blob is `audio/webm;codecs=opus`, so the URL
+ * reads `data:audio/webm;codecs=opus;base64,…`. A pattern anchored on
+ * `<type>;base64,` misses that header entirely and hands the whole string to
+ * the base64 decoder, which quietly stops at the `=` in `codecs=opus` — every
+ * voice message from Chrome or Firefox was stored as the same 15 bytes of
+ * nonsense, and the player could only show "Error" (#541).
+ * @param {string} dataUrl
+ * @returns {Buffer}
+ */
+function decodeDataUrl (dataUrl) {
+  return Buffer.from(String(dataUrl).replace(/^data:[^,]*,/, ''), 'base64')
+}
+
+/**
  * Save a base64 data URL under uploads/chat. Returns the stored filename or
  * null when there is no image. Mirrors the forum's image handling.
  * @param {{data?: string, type?: string}} image
@@ -46,8 +63,7 @@ function saveImage (image) {
   if (!ALLOWED_TYPES.includes(image.type)) {
     throw new BadRequestError('Unsupported image type')
   }
-  const base64Data = image.data.replace(/^data:[^;]+;base64,/, '')
-  const buffer = Buffer.from(base64Data, 'base64')
+  const buffer = decodeDataUrl(image.data)
   if (buffer.length > MAX_IMAGE_SIZE) {
     throw new BadRequestError('Image too large')
   }
@@ -76,8 +92,7 @@ async function saveAudio (audio) {
   if (!ext) {
     throw new BadRequestError('Unsupported audio type')
   }
-  const base64Data = audio.data.replace(/^data:[^;]+;base64,/, '')
-  const buffer = Buffer.from(base64Data, 'base64')
+  const buffer = decodeDataUrl(audio.data)
   if (buffer.length > MAX_AUDIO_SIZE) {
     throw new BadRequestError('Voice message too large')
   }
