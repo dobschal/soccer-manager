@@ -221,8 +221,10 @@ html, body {
     text-decoration: underline;
 }
 
-/* Let overlay scroll past the fixed tab bar */
-.native-app-layout ~ .overlay-backdrop .overlay {
+/* Let overlay scroll past the fixed tab bar. The chat is exempt: it is a
+   full-height sheet whose input row has to sit at the very bottom, and the
+   10rem left a big empty area underneath it (#541). */
+.native-app-layout ~ .overlay-backdrop .overlay:not(.chat-overlay-card) {
     padding-bottom: 10rem;
 }
 

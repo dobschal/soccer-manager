@@ -8,13 +8,17 @@ export const MAX_RECORDING_SECONDS = 120
 /**
  * Container types we ask MediaRecorder for, best first. Browsers disagree:
  * Chrome and Firefox produce WebM/Opus, Safari and iOS only MP4/AAC. Whatever
- * is picked here is what the server stores, so both are on its allow-list.
+ * is picked here is what the server receives, so both are on its allow-list.
+ *
+ * MP4 comes first because it is the only container every platform can also
+ * *play* — an iPhone shows a bare "Error" for a WebM recording (#541). Browsers
+ * that cannot record MP4 fall back to WebM and the server transcodes.
  * @type {string[]}
  */
 const PREFERRED_MIME_TYPES = [
+  'audio/mp4',
   'audio/webm;codecs=opus',
   'audio/webm',
-  'audio/mp4',
   'audio/ogg;codecs=opus'
 ]
 

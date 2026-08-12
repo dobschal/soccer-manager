@@ -27,7 +27,7 @@ describe('Balance', () => {
   it('#523 abbreviates the amount in short mode', async () => {
     const balance = new Balance({ short: true })
     await balance.load()
-    expect(balance.template).toContain('2,8m €')
+    expect(balance.template).toContain('2.8M €')
   })
 
   it('#523 keeps the exact amount in the title attribute', async () => {

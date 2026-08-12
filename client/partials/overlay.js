@@ -208,7 +208,9 @@ export function showConfirmDialog (message, confirmLabel = 'OK', cancelLabel = '
  * @param {string} title
  * @param {string} subttitle
  * @param {string} text
- * @param {{ hideHeader?: boolean }} [options]
+ * @param {{ hideHeader?: boolean, cardClass?: string }} [options] - `cardClass`
+ *   is put on the overlay card itself, so an overlay that needs a layout of its
+ *   own (the chat sheet, #541) can style it without reaching in with `:has()`.
  * @returns {{onClose: (callback: () => void) => void, remove: () => void}}
  */
 export function showOverlay (title, subttitle, text, options = {}) {
@@ -253,7 +255,7 @@ export function showOverlay (title, subttitle, text, options = {}) {
 
   const html = `
     <div id="${overlayId}" class="overlay-backdrop">
-      <div id="${overlayInnerId}" class="card overlay">
+      <div id="${overlayInnerId}" class="card overlay ${options.cardClass ?? ''}">
         ${headerHtml}
         <div class="card-body">
             ${text}

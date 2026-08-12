@@ -86,7 +86,8 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 ### Aufstellungs-Staerke
 
 - **TA-LIN-09**: Staerke = Summe aller `player.level`-Werte der aufgestellten Spieler.
-- **TA-LIN-10**: Modifikatoren: Frische-Multiplikator, Starspieler +10%, Motivationsrede +10%, Kapitaens-Bonus, Bot -10%, 50%-Malus fuer positionsfremden Einsatz (nur Startelf, nicht fuer Einwechselspieler) sowie der Heim-Bonus/Malus aus der Stadionauslastung (siehe [Stadium](stadium.md), TA-STD-29 bis TA-STD-32).
+- **TA-LIN-10**: Modifikatoren: Frische-Multiplikator, Starspieler +10%, Motivationsrede +10%, Kapitaens-Bonus, Bot -10%, abgestufter Malus fuer positionsfremden Einsatz von -10% bis -50% (nur Startelf, nicht fuer
+  Einwechselspieler, siehe [Game Calculation](game-calculation.md) TA-GC-30 ff.) sowie der Heim-Bonus/Malus aus der Stadionauslastung (siehe [Stadium](stadium.md), TA-STD-29 bis TA-STD-32).
 
 ### Datenbank
 

@@ -170,6 +170,9 @@ animiert nach. Er zeigt ausschliesslich, was im Spiel-Log tatsaechlich steht.
   Huerde, weil sie den Grossteil der Zweikaempfe ausmachen: `DUEL_MIN_STREAK` (6) Paesse und
   hoechstens einer pro `DUEL_MIN_GAP_MINUTES` (12) Minuten. Beide Zweikampf-Sorten teilen denselben
   Sampler; ein Eintrag kann nie gleichzeitig Balleroberung und gewonnener Zweikampf sein.
+- **TA-GC-46**: Jede Ereignisart hat ihr eigenes Icon (`EVENT_ICONS`). Zweikampf und Balleroberung sind
+  bewusst unterscheidbar: der Zweikampf zeigt zwei Figuren (`fa-users`), die Balleroberung den
+  Besitzwechsel (`fa-exchange`). Vorher trugen beide ein Icon, das ihre Bedeutung nicht traf (#539).
 - **TA-GC-43**: Einwechslungen kommen aus `details.substitutions` (Ein-/Auswechselspieler, Grund,
   Minute); Eintraege ohne Minute werden uebersprungen.
 - **TA-GC-37**: Die Halbzeit wird zwischen der 45. und 46. Minute eingeschoben und haelt

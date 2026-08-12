@@ -9,7 +9,7 @@ vi.mock('../../lib/nativeReview.js', () => ({ maybeRequestReviewAfterWin: vi.fn(
 import { server } from '../../lib/gateway.js'
 import {
   buildTickerEvents, cardReason, eventType, injuryDetail, isBreakEvent, isSpielTickerSeen,
-  logHasMinutes, maybeShowSpielTickerOverlay,
+  logHasMinutes, maybeShowSpielTickerOverlay, EVENT_ICONS,
   DUEL_MIN_GAP_MINUTES, DUEL_MIN_STREAK, HALF_TIME_MINUTE,
   RECOVERY_MIN_GAP_MINUTES, RECOVERY_MIN_STREAK
 } from '../../partials/spielTickerOverlay.js'
@@ -332,5 +332,23 @@ describe('cardReason (#539)', () => {
 
   it('ignores a foul target that is not in the squad list', () => {
     expect(cardReason({ yellowCard: true, foulOn: 999 }, players)).toBe('spielTicker.reasonFoul')
+  })
+})
+
+describe('EVENT_ICONS (#539)', () => {
+  it('gives every event flavour its own icon', () => {
+    const icons = Object.values(EVENT_ICONS)
+    expect(new Set(icons).size).toBe(icons.length)
+  })
+
+  it('shows two figures for a duel and swapping arrows for a recovery', () => {
+    expect(EVENT_ICONS.duel).toContain('fa-users')
+    expect(EVENT_ICONS.recovery).toContain('fa-exchange')
+  })
+
+  it('covers every type buildTickerEvents can produce', () => {
+    for (const type of ['goal', 'red', 'yellow', 'chance', 'injury', 'recovery', 'duel', 'substitution']) {
+      expect(EVENT_ICONS[type]).toBeTruthy()
+    }
   })
 })

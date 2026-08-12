@@ -8,6 +8,7 @@ import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import { sendPushNotifications } from '../lib/pushNotification.js'
 import { truncateChars } from '../lib/util.js'
+import { ensurePlayableAudio } from '../lib/audioTranscode.js'
 
 const UPLOAD_DIR = 'uploads/chat'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -60,10 +61,13 @@ function saveImage (image) {
 /**
  * Save a base64-encoded voice recording under uploads/chat. Returns the stored
  * filename and its duration, or nulls when there is no recording (#541).
+ *
+ * Whatever the browser recorded is written first and then normalised to a
+ * container every platform can play — see `ensurePlayableAudio`.
  * @param {{data?: string, type?: string, duration?: number}} audio
- * @returns {{filename: string|null, duration: number|null}}
+ * @returns {Promise<{filename: string|null, duration: number|null}>}
  */
-function saveAudio (audio) {
+async function saveAudio (audio) {
   if (!audio || !audio.data || !audio.type) return { filename: null, duration: null }
   // Chrome appends codec parameters ("audio/webm;codecs=opus") — the container
   // is what matters for storage and playback.
@@ -82,7 +86,7 @@ function saveAudio (audio) {
   fs.writeFileSync(path.join(UPLOAD_DIR, filename), buffer)
   const rawDuration = Math.round(Number(audio.duration) || 0)
   const duration = Math.min(MAX_AUDIO_DURATION_SECONDS, Math.max(0, rawDuration))
-  return { filename, duration }
+  return { filename: await ensurePlayableAudio(UPLOAD_DIR, filename), duration }
 }
 
 export default {
@@ -209,7 +213,7 @@ export default {
 
     const safeText = typeof text === 'string' ? truncateChars(text.trim(), MAX_TEXT) : ''
     const filename = saveImage(image)
-    const { filename: audioFile, duration: audioDuration } = saveAudio(audio)
+    const { filename: audioFile, duration: audioDuration } = await saveAudio(audio)
     if (!safeText && !filename && !audioFile) throw new BadRequestError(t('error.chatEmptyMessage', {}, locale))
 
     const result = await query('INSERT INTO chat_message SET ?', {

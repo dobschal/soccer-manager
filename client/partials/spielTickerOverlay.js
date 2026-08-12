@@ -261,6 +261,25 @@ export function cardReason (event, players) {
   return event.redCard ? t('spielTicker.reasonStraightRed') : t('spielTicker.reasonFoul')
 }
 
+/**
+ * The icon shown in front of a ticker row, per event type (#539).
+ *
+ * The two ball-fight flavours are deliberately distinct: a duel is two players
+ * contesting the ball (two figures), a recovery is possession changing sides
+ * (arrows swapping direction). Reusing one icon for both made them unreadable.
+ * @type {Record<string, string>}
+ */
+export const EVENT_ICONS = {
+  goal: '<span class="badge bg-success"><i class="fa fa-futbol-o"></i></span>',
+  red: '<span class="spiel-ticker__card spiel-ticker__card--red"></span>',
+  yellow: '<span class="spiel-ticker__card spiel-ticker__card--yellow"></span>',
+  chance: '<span class="text-info"><i class="fa fa-bullseye"></i></span>',
+  injury: '<span class="text-danger"><i class="fa fa-medkit"></i></span>',
+  recovery: '<span class="text-warning"><i class="fa fa-exchange"></i></span>',
+  duel: '<span class="text-info"><i class="fa fa-users"></i></span>',
+  substitution: '<span class="text-success"><i class="fa fa-refresh"></i></span>'
+}
+
 /** Edge length of the player portrait in a ticker row — roughly text height. */
 const PORTRAIT_SIZE = 22
 
@@ -437,16 +456,7 @@ export async function showSpielTickerOverlay (game, myTeamId) {
         if (scoreEl) scoreEl.textContent = `${homeScore} : ${awayScore}`
         showGoalBanner()
       }
-      const icon = {
-        goal: '<span class="badge bg-success"><i class="fa fa-futbol-o"></i></span>',
-        red: '<span class="spiel-ticker__card spiel-ticker__card--red"></span>',
-        yellow: '<span class="spiel-ticker__card spiel-ticker__card--yellow"></span>',
-        chance: '<span class="text-info"><i class="fa fa-bullseye"></i></span>',
-        injury: '<span class="text-danger"><i class="fa fa-medkit"></i></span>',
-        recovery: '<span class="text-warning"><i class="fa fa-shield"></i></span>',
-        duel: '<span class="text-info"><i class="fa fa-exchange"></i></span>',
-        substitution: '<span class="text-success"><i class="fa fa-refresh"></i></span>'
-      }[type]
+      const icon = EVENT_ICONS[type]
       const label = {
         goal: t('spielTicker.goal'),
         red: t('spielTicker.redCard'),

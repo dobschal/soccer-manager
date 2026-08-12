@@ -74,7 +74,11 @@ export class ChatController {
       await this._loadMessages(this._activeUserId, false)
     }
 
-    const overlay = showOverlay(t('chat.title'), '', `<div id="${this._bodyId}" class="chat-overlay"></div>`)
+    const overlay = showOverlay(
+      t('chat.title'), '',
+      `<div id="${this._bodyId}" class="chat-overlay"></div>`,
+      { cardClass: 'chat-overlay-card' }
+    )
     this._overlay = overlay
     overlay.onClose(() => this._teardown())
     onServerEvent(SERVER_EVENTS.NEW_CHAT_MESSAGE.name, this._onNewMessage)

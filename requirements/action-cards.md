@@ -229,6 +229,10 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - **TA-AC-46**: Eingebaut in **beide** Layouts (`gameLayout.js` und `nativeAppLayout.js`) — sonst fehlt der
   Zaehler in der App.
 - **TA-AC-47**: Faellt `getActionCards` aus, zeigt der Eintrag 0 statt die Info-Bar zu sprengen.
+- **TA-AC-49**: Der Kontostand daneben nutzt `shortEuroFormat` (`client/lib/currency.js`): hoechstens drei
+  Ziffern und hoechstens eine Nachkommastelle, abgeschnitten statt gerundet, Einheit gross und mit Punkt als
+  Dezimaltrenner — `9.9M €`, `706K €`, `1.4B €`. Die Kurzform ist bewusst **sprachunabhaengig**; nur Betraege
+  unter 1.000 laufen ueber `euroFormat` und damit ueber das deutsche Waehrungsformat.
 
 ### Startpaket bei der Vereinswahl (#518)
 

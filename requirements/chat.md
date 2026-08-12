@@ -48,18 +48,34 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
 |---|---|
 | Maximale Laenge | 120 Sekunden (`MAX_RECORDING_SECONDS` / `MAX_AUDIO_DURATION_SECONDS`) |
 | Maximale Dateigroesse | 4 MB |
-| Container | `audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg`, `audio/aac` |
+| Container (Upload) | `audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg`, `audio/aac` |
+| Container (Ablage) | `m4a`, `mp3`, `aac` — alles andere wird konvertiert |
 | Ablage | `uploads/chat/<uuid>.<ext>`, wie Chat-Bilder |
 
 - **TA-CHT-01**: Aufgenommen wird im Browser mit `MediaRecorder` (`client/lib/voiceRecorder.js`).
   Der Container haengt vom Browser ab — Chrome/Firefox liefern WebM/Opus, Safari und iOS MP4/AAC.
-  Deshalb akzeptiert der Server beide, statt eine Konvertierung zu erzwingen.
+  `PREFERRED_MIME_TYPES` fragt deshalb **zuerst** nach `audio/mp4`, weil das der einzige Container ist,
+  den auch jede Plattform abspielen kann.
 - **TA-CHT-02**: Beim Erreichen der Maximallaenge wird das bereits Aufgenommene **abgeschickt**,
   nicht verworfen.
 - **TA-CHT-03**: Das Mikrofon wird auf jedem Weg wieder freigegeben — beim Senden, beim Verwerfen
   und beim Schliessen des Overlays. Sonst bleibt die Aufnahme-Anzeige des Betriebssystems an.
 - **TA-CHT-04**: Text, Bild und Sprachnachricht laufen ueber denselben Sende-Pfad
   (`_sendPayload`), damit sie nicht auseinanderlaufen koennen.
+
+### Transkodierung (#541)
+
+- **TA-CHT-18**: WebM/Opus und Ogg/Opus koennen von Safari und dem iOS-WebView **nicht** dekodiert —
+  der Audio-Player zeigt dort nur „Error“. `ensurePlayableAudio` (`server/lib/audioTranscode.js`)
+  wandelt jede hochgeladene Aufnahme, deren Container nicht in `UNIVERSAL_AUDIO_EXTENSIONS`
+  (`m4a`, `mp3`, `aac`) steht, per ffmpeg nach AAC/m4a um (mono, 64 kbit/s). In der Datenbank steht
+  immer der abspielbare Dateiname.
+- **TA-CHT-19**: Das Docker-Image installiert dafuer `ffmpeg`. Fehlt das Binary (z.B. lokal), wird die
+  Aufnahme unveraendert gespeichert statt verworfen — die Nachricht geht nie verloren.
+- **TA-CHT-20**: Schlaegt die Konvertierung fehl, wird nur die halbfertige Zieldatei geloescht, nie das
+  Original.
+- **TA-CHT-21**: Bereits gespeicherte WebM-Nachrichten werden von der Migration
+  „Transcode existing WebM voice messages to m4a (#541)“ nachtraeglich konvertiert.
 
 ### Plattform-Verfuegbarkeit
 
@@ -85,6 +101,13 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
   einer verschachtelten Liste beginnt, die noch nach oben scrollen kann
   (`startedInsideScrollableContent`). Vorher schloss jedes Scrollen in der Nachrichtenliste das
   Overlay, weil die Overlay-Karte selbst nie scrollt und damit immer "ganz oben" schien (#541).
+- **TA-CHT-22**: Der Chat ist ein **Sheet**, keine inhaltshohe Karte: `showOverlay` bekommt ueber die
+  neue Option `cardClass` die Klasse `chat-overlay-card`, die Karte waechst auf die verfuegbare Hoehe
+  (max. 760px auf dem Desktop), die Nachrichtenliste nimmt den Rest — dadurch sitzt die Eingabezeile
+  immer ganz unten (#541).
+- **TA-CHT-23**: In der nativen App ist die Chat-Karte von `padding-bottom: 10rem` ausgenommen
+  (`native-app.css`). Die Regel schiebt sonst jedes Overlay ueber die Tab-Bar hinaus und hinterliess
+  im Chat einen grossen weissen Bereich unter der Eingabezeile (#541).
 
 ## Datei-Uploads in der nativen App (#542)
 

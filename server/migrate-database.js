@@ -4,6 +4,7 @@ import { EMBLEM_COLORS, EMBLEM_PATTERNS, EMBLEM_SHAPES, adjustBrightness } from 
 import { _getBotPlayerLevelRange, _getBotStadiumConfig } from './prepare-season.js'
 import { WIKI_SEED } from './data/wikiSeed.js'
 import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
+import { ensurePlayableAudio, UNIVERSAL_AUDIO_EXTENSIONS } from './lib/audioTranscode.js'
 
 /**
  * @typedef {object} Migration
@@ -3180,6 +3181,37 @@ const migrations = [{
   name: 'Wiki: the player picker is a scrollable strip that also offers out-of-position players',
   async run () {
     const KEYS_TO_REFRESH = ['lineup']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Transcode existing WebM voice messages to m4a (#541)',
+  async run () {
+    // Voice messages recorded in Chrome/Firefox are WebM/Opus, which Safari and
+    // the iOS WebView cannot decode — those bubbles just read "Error". New
+    // uploads are converted on the way in; these are the ones already stored.
+    const rows = await query('SELECT id, audio FROM chat_message WHERE audio IS NOT NULL')
+    for (const { id, audio } of rows) {
+      const ext = String(audio).split('.').pop().toLowerCase()
+      if (UNIVERSAL_AUDIO_EXTENSIONS.has(ext)) continue
+      const converted = await ensurePlayableAudio('uploads/chat', audio)
+      if (converted !== audio) {
+        await query('UPDATE chat_message SET audio=? WHERE id=?', [converted, id])
+      }
+    }
+  }
+}, {
+  name: 'Wiki: full out-of-position penalty table per line (#540)',
+  async run () {
+    const KEYS_TO_REFRESH = ['in-game-level', 'lineup']
     for (const topic of WIKI_SEED) {
       if (!KEYS_TO_REFRESH.includes(topic.key)) continue
       for (const locale of ['en', 'de']) {

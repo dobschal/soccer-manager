@@ -19,10 +19,17 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key) => key),
   getUserLocale: vi.fn().mockResolvedValue('en')
 }))
+// The real helper shells out to ffmpeg; this stand-in keeps its contract —
+// containers iOS cannot decode come back as .m4a, the rest untouched (#541).
+vi.mock('../../lib/audioTranscode.js', () => ({
+  UNIVERSAL_AUDIO_EXTENSIONS: new Set(['m4a', 'mp3', 'aac']),
+  ensurePlayableAudio: vi.fn(async (dir, name) => name.replace(/\.(webm|ogg)$/, '.m4a'))
+}))
 
 import { query } from '../../lib/database.js'
 import { sendToUser } from '../../lib/websocket.js'
 import { sendPushNotifications } from '../../lib/pushNotification.js'
+import { ensurePlayableAudio } from '../../lib/audioTranscode.js'
 import chat, { MAX_AUDIO_DURATION_SECONDS } from '../../routes/chat.js'
 
 beforeEach(() => {
@@ -228,7 +235,7 @@ describe('chat voice messages (#541)', () => {
 
     expect(result.success).toBe(true)
     const row = insertedRow()
-    expect(row.audio).toMatch(/\.webm$/)
+    expect(row.audio).toBeTruthy()
     expect(row.audio_duration).toBe(7)
     expect(row.text).toBe(null)
   })
@@ -240,7 +247,16 @@ describe('chat voice messages (#541)', () => {
 
   it('ignores the codec parameters Chrome appends to the type', async () => {
     await chat.sendChatMessage(2, '', null, audio({ type: 'audio/webm;codecs=opus' }), req())
-    expect(insertedRow().audio).toMatch(/\.webm$/)
+    // Written as .webm, then normalised — what lands in the row is playable.
+    expect(ensurePlayableAudio).toHaveBeenCalledWith('uploads/chat', expect.stringMatching(/\.webm$/))
+  })
+
+  it('stores the container every platform can play, not the recorded one (#541)', async () => {
+    // A WebM recording from Chrome is unplayable on iOS, so the row must not
+    // point at the WebM file.
+    await chat.sendChatMessage(2, '', null, audio(), req())
+    expect(ensurePlayableAudio).toHaveBeenCalledWith('uploads/chat', expect.stringMatching(/\.webm$/))
+    expect(insertedRow().audio).toMatch(/\.m4a$/)
   })
 
   it('rejects a container we do not store', async () => {

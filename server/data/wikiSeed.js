@@ -307,6 +307,12 @@ How it works:
 • Suspended players are shown greyed out and cannot be fielded; they are removed from the lineup automatically.
 • Sort your bench order – substitutes are pulled from the bench when a player is injured or tired.
 
+Out of position:
+• A starter fielded outside their natural position plays below their level, and the slot on the pitch is ringed red.
+• The exact loss is printed under the player's level, e.g. −10%, −20%, −30% or −50%. A player at home shows no marker at all.
+• How steep it gets depends on the line: staying in your own line costs 10%, one line away 20%, and an attacker in defence (or a defender in attack) 30%. The goal is its own case at 50%. The In-Game Level topic lists the full table.
+• Substitutes are exempt – a player brought on from the bench keeps their full level.
+
 Lineup strength:
 • The base strength is the sum of all your starters' levels.
 • It is then modified by fitness, your captain, a Star Player (+10%), a Motivating Speech (+10%), your squad's average age and your home advantage.
@@ -339,6 +345,12 @@ So funktioniert es:
 • Bestimme einen Kapitän aus deiner Startelf. Entfernst du den Kapitän aus der Aufstellung, wird er automatisch gelöscht.
 • Gesperrte Spieler sind ausgegraut und können nicht aufgestellt werden; sie werden automatisch aus der Aufstellung entfernt.
 • Sortiere deine Bank – Einwechselspieler werden bei Verletzung oder Müdigkeit von der Bank geholt.
+
+Positionsfremde Aufstellung:
+• Ein Starter außerhalb seiner natürlichen Position spielt unter seinem Level, und der Platz auf dem Feld bekommt einen roten Rahmen.
+• Der genaue Verlust steht unter dem Level des Spielers, z.B. −10%, −20%, −30% oder −50%. Auf der eigenen Position wird gar nichts angezeigt.
+• Wie hoch die Abwertung ausfällt, hängt von der Reihe ab: innerhalb der eigenen Reihe 10%, eine Reihe weiter 20%, ein Stürmer in der Abwehr (oder ein Verteidiger im Sturm) 30%. Das Tor ist mit 50% ein Fall für sich. Die vollständige Tabelle steht im Thema "In-Game-Level".
+• Einwechselspieler sind ausgenommen – ein von der Bank gebrachter Spieler behält sein volles Level.
 
 Aufstellungsstärke:
 • Die Basisstärke ist die Summe der Level aller Startspieler.
@@ -929,7 +941,17 @@ Modifiers that raise or lower the in-game level:
 • Squad age: an average age near 27 gives up to +5%; too young or too old costs up to −5%.
 • Home advantage: a well-filled home stadium boosts the home side; an empty stadium is a small penalty.
 • Bot penalty: bot teams play at 90% of their nominal level.
-• Out of position: a starter fielded away from their natural position loses part of their level, and how much depends on how far from home the slot is – 10% inside their own line (a right winger at centre forward), 20% one line away, 30% two lines away (a winger at centre back). Anyone in goal who is not a keeper, and any keeper fielded outfield, loses 50%. The lineup shows the exact figure under the player. Substitutes are the exception – a player brought on from the bench keeps their full level even in a foreign slot, so an emergency swap is never punished.
+• Out of position: a starter fielded away from their natural position loses part of their level. How much depends on the line they come from and the line they end up in (see "Out of position" below).
+
+Out of position:
+The pitch has four lines: goal (GK), defence (LD, CD, RD), midfield (DM, LM, CM, RM, OM) and attack (LA, CA, RA). What a starter loses depends on where they belong and where you field them:
+• Attacker: −10% in another attacking slot (a right winger at centre or left forward), −20% anywhere in midfield, −30% anywhere in defence.
+• Midfielder: −10% in another midfield slot, −20% in attack, −20% in defence.
+• Defender: −10% in another defensive slot, −20% in midfield, −30% in attack.
+• Goal: every outfield player put in goal loses −50%, and a keeper fielded outfield loses −50% too. The keeper's job has nothing in common with the rest of the pitch.
+• At their natural position a player loses nothing, and the lineup shows no marker at all.
+• The lineup prints the exact figure (e.g. −20%) under the player's level, so you can weigh the cost before you save.
+• Substitutes are the exception – a player brought on from the bench keeps their full level even in a foreign slot, so an emergency swap is never punished.
 
 Where to see it:
 • After a match, the squad list shows each starter's base level ("Lvl") and their in-game level ("IG"). Green means the modifiers raised the level, red means they lowered it.
@@ -948,7 +970,17 @@ Was das In-Game-Level verändert:
 • Durchschnittsalter: Ein Schnitt um 27 gibt bis zu +5%; zu jung oder zu alt kostet bis zu −5%.
 • Heimvorteil: Ein gut gefülltes Heimstadion stärkt die Heimmannschaft; ein leeres Stadion ist ein kleiner Malus.
 • Bot-Malus: Bot-Teams spielen mit 90% ihres nominalen Levels.
-• Falsche Position: Ein Starter abseits seiner natürlichen Position verliert einen Teil seines Levels, und zwar umso mehr, je weiter der Platz von seiner Reihe entfernt liegt – 10% innerhalb der eigenen Reihe (ein Rechtsaußen im Sturmzentrum), 20% eine Reihe weiter, 30% zwei Reihen weiter (ein Stürmer in der Innenverteidigung). Wer als Feldspieler ins Tor muss – oder als Torwart aufs Feld – verliert 50%. Die Aufstellung zeigt den genauen Wert unter dem Spieler an. Einwechselspieler sind die Ausnahme – ein von der Bank gebrachter Spieler behält sein volles Level auch auf einer fremden Position, ein Not-Wechsel wird also nie bestraft.
+• Falsche Position: Ein Starter abseits seiner natürlichen Position verliert einen Teil seines Levels. Wie viel, hängt davon ab, aus welcher Reihe er kommt und in welcher Reihe er spielt (siehe "Positionsfremde Aufstellung").
+
+Positionsfremde Aufstellung:
+Das Feld hat vier Reihen: Tor (GK), Abwehr (LD, CD, RD), Mittelfeld (DM, LM, CM, RM, OM) und Sturm (LA, CA, RA). Wie stark ein Starter abgewertet wird, hängt davon ab, wo er eigentlich hingehört und wo du ihn aufstellst:
+• Stürmer: −10% auf einer anderen Sturmposition (ein Rechtsaußen als Mittel- oder Linksstürmer), −20% irgendwo im Mittelfeld, −30% irgendwo in der Abwehr.
+• Mittelfeldspieler: −10% auf einer anderen Mittelfeldposition, −20% im Sturm, −20% in der Abwehr.
+• Verteidiger: −10% auf einer anderen Abwehrposition, −20% im Mittelfeld, −30% im Sturm.
+• Tor: Jeder Feldspieler im Tor verliert −50%, und ein Torwart auf dem Feld ebenfalls −50%. Die Torwartrolle hat mit dem Rest des Feldes schlicht nichts gemeinsam.
+• Auf seiner natürlichen Position verliert ein Spieler nichts – die Aufstellung zeigt dann auch keinerlei Hinweis an.
+• Die Aufstellung zeigt den genauen Wert (z.B. −20%) unter dem Level des Spielers, damit du die Kosten vor dem Speichern abwägen kannst.
+• Einwechselspieler sind die Ausnahme – ein von der Bank gebrachter Spieler behält sein volles Level auch auf einer fremden Position, ein Not-Wechsel wird also nie bestraft.
 
 Wo du es siehst:
 • Nach jedem Spiel zeigt die Kaderliste für jeden Starter das Basis-Level ("Lvl") und das In-Game-Level ("IG"). Grün bedeutet, die Modifikatoren haben das Level angehoben, Rot bedeutet, sie haben es gesenkt.

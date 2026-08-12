@@ -92,8 +92,8 @@ describe('PlayerModal', () => {
     const modal = new PlayerModal(5)
     await modal.load()
     modal.price = 2_819_192
-    // Shared shortEuroFormat — lowercase unit, space before the euro sign.
-    expect(modal.template).toContain('2.8m €')
+    // Shared shortEuroFormat — upper-case unit, space before the euro sign.
+    expect(modal.template).toContain('2.8M €')
     expect(modal.template).not.toContain('M€')
   })
 
