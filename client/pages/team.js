@@ -11,6 +11,7 @@ import { euroFormat } from '../lib/currency.js'
 import { t } from '../i18n/index.js'
 import { toast } from '../partials/toast.js'
 import { showGameModal } from '../partials/gameModal.js'
+import { showUserProfileOverlay } from '../partials/userProfileOverlay.js'
 import { showTutorialIfNeeded } from '../partials/tutorialOverlay.js'
 import { showDialog } from '../partials/dialog.js'
 import { Table } from '../partials/table.js'
@@ -220,6 +221,22 @@ export class TeamPage extends UIElement {
           if (playerId) {
             setQueryParams({ player_id: playerId })
           }
+        }
+      },
+      '(optional) .coach-card-link[data-profile-user-id]': {
+        click: (event) => {
+          event.preventDefault()
+          showUserProfileOverlay(Number(event.currentTarget.dataset.profileUserId))
+        }
+      },
+      '(optional) .team-timeline__track': {
+        click: (event) => {
+          const badge = event.target.closest('.team-timeline__badge[data-game-id]')
+          if (!badge) return
+          // The badge sits inside the opponent link — stop that navigation.
+          event.preventDefault()
+          event.stopPropagation()
+          void showGameModal(Number(badge.dataset.gameId))
         }
       },
       '(optional) .team-timeline__chevron--left': {
@@ -488,9 +505,11 @@ export class TeamPage extends UIElement {
         <div class="coach-info__since text-muted small">${t('myTeam.coachSince')}: ${coachSince}</div>
       </div>
     `
-    // The whole card opens the manager's profile (when there is a real user).
+    // The whole card opens the manager's profile as an overlay, so the reader
+    // keeps their place on the team page (#532). The href stays so the card is
+    // still a real link (middle-click, "open in new tab", screen readers).
     const cardBody = userId
-      ? `<a href="#user?id=${userId}" class="card-body coach-card-link text-decoration-none">${body}</a>`
+      ? `<a href="#user?id=${userId}" data-profile-user-id="${userId}" class="card-body coach-card-link text-decoration-none">${body}</a>`
       : `<div class="card-body">${body}</div>`
 
     return `
@@ -881,7 +900,11 @@ export class TeamPage extends UIElement {
     if (game.played) {
       const resultClass = `team-timeline__badge--${game.result === 'win' ? 'win' : game.result === 'loss' ? 'loss' : 'draw'}`
       const resultText = game.result === 'win' ? t('team.resultWin') : game.result === 'loss' ? t('team.resultLoss') : t('team.resultDraw')
-      badgeHtml = `<div class="team-timeline__badge ${resultClass}">${resultText}</div>`
+      // The badge opens the match itself rather than the opponent's page
+      // (#477); the emblem around it still links to the opponent.
+      badgeHtml = `<div class="team-timeline__badge ${resultClass} team-timeline__badge--clickable"
+                        data-game-id="${game.id}" role="button" tabindex="0"
+                        title="${t('team.timelineOpenGame')}">${resultText}</div>`
     } else {
       badgeHtml = `<div class="team-timeline__badge team-timeline__badge--upcoming">·</div>`
     }

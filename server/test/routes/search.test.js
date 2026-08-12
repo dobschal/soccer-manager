@@ -178,5 +178,28 @@ describe('search routes', () => {
       await handlers.browseAllUsers('', 0, 20, 'is_friend', 'DESC', req)
       expect(query.mock.calls[1][0]).toContain('ORDER BY is_friend DESC, u.username ASC')
     })
+
+    it('selects the registration date so the list can show it (#483)', async () => {
+      query
+        .mockResolvedValueOnce([{ total: 1 }])
+        .mockResolvedValueOnce([
+          { id: 2, username: 'bob', created_at: '2026-01-04T09:00:00Z', last_login: null }
+        ])
+      const req = createMockRequest()
+      req.user = { id: 42 }
+
+      const result = await handlers.browseAllUsers('', 0, 20, '', '', req)
+
+      expect(query.mock.calls[1][0]).toContain('u.created_at')
+      expect(result.users[0].created_at).toBe('2026-01-04T09:00:00Z')
+    })
+
+    it('allows sorting by the registration date (#483)', async () => {
+      query.mockResolvedValueOnce([{ total: 0 }]).mockResolvedValueOnce([])
+      const req = createMockRequest()
+      req.user = { id: 42 }
+      await handlers.browseAllUsers('', 0, 20, 'created_at', 'ASC', req)
+      expect(query.mock.calls[1][0]).toContain('ORDER BY u.created_at IS NULL, u.created_at ASC')
+    })
   })
 })

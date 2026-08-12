@@ -1,21 +1,63 @@
 /* In-game 1:1 chat overlay (#490) */
 
+/* The chat is a sheet, not a content-sized card: it takes the height the
+   backdrop offers, the message list absorbs whatever is left over, and the
+   input row therefore always ends up at the very bottom — no empty area
+   underneath it (#541). */
+
+/* The backdrop measures in `dvh` — see `.overlay-backdrop` in overlay.css. That
+   matters most here, because the chat is the one overlay that fills its backdrop
+   instead of sitting in the middle of it, so any surplus height goes straight
+   into the input row leaving the screen (#541). */
+
+/* `.card` is only here for specificity: chat.css is loaded before overlay.css,
+   so a single class would lose to `.overlay` on max-height and overflow. */
+.card.chat-overlay-card {
+    flex: 1 1 auto;
+    /* No cap on a phone: the sheet fills the backdrop exactly, so there is no
+       free space for the auto margins to centre it with and nothing can end up
+       past the bottom edge. */
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    /* The body scrolls internally, so the card itself must not. */
+    overflow: hidden;
+}
+
+/* On a desktop screen a full-height column would be absurdly tall. */
+@media (min-width: 768px) {
+    .card.chat-overlay-card {
+        max-height: 760px;
+    }
+}
+
+.chat-overlay-card .card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .chat-overlay {
     display: flex;
     flex-direction: column;
     width: min(92vw, 480px);
     max-width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .chat-messages {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    height: 45vh;
-    max-height: 420px;
+    flex: 1 1 auto;
+    /* Without this a flex item refuses to shrink below its content height. */
+    min-height: 0;
     overflow-y: auto;
     padding: 1rem 8px;
-    background: var(--bs-tertiary-bg, #f1f3f5);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 10px;
 }
 
@@ -35,7 +77,8 @@
     max-width: 78%;
     padding: 8px 12px;
     border-radius: 14px;
-    background: #ffffff;
+    background: #2a2d31;
+    color: #e9ecef;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
     word-break: break-word;
 }
@@ -71,6 +114,7 @@
 .chat-image-overlay img {
     max-width: 92vw;
     max-height: 88vh;
+    max-height: 88dvh;
     object-fit: contain;
     border-radius: 6px;
 }
@@ -94,13 +138,72 @@
     border-radius: 6px;
 }
 
-@media (prefers-color-scheme: dark) {
-    .chat-messages {
-        background: rgba(255, 255, 255, 0.06);
-    }
 
-    .chat-bubble {
-        background: #2a2d31;
-        color: #e9ecef;
-    }
+/* --- voice messages (#541) --- */
+.chat-message-audio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-message-audio audio {
+    height: 32px;
+    max-width: 220px;
+}
+
+.chat-audio-duration {
+    font-size: 0.8rem;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}
+
+.chat-recording {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.chat-recording__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bs-danger, #dc3545);
+    animation: chat-recording-pulse 1s ease-in-out infinite;
+}
+
+.chat-recording__time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.chat-recording__send {
+    margin-left: auto;
+}
+
+@keyframes chat-recording-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+}
+
+/* While the text field has focus the attachment buttons fold away, so the
+   message field gets the full width of the row (#541). Width and padding are
+   animated rather than toggling `display`, otherwise the row jumps. */
+.chat-attach-btn {
+    flex: 0 0 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.18s ease, padding 0.18s ease, opacity 0.18s ease, margin 0.18s ease;
+    max-width: 4rem;
+}
+
+.chat-input-row--typing .chat-attach-btn {
+    max-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-width: 0;
+    opacity: 0;
+    /* Cancels the flex gap the collapsed button would still occupy. */
+    margin-left: -0.5rem;
+    pointer-events: none;
 }

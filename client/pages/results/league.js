@@ -14,8 +14,10 @@ import { toast } from '../../partials/toast.js'
 import { t } from '../../i18n/index.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { Table } from '../../partials/table.js'
+import { renderFilterStepper } from '../../partials/filterStepper.js'
 import { shortenTeamName } from '../../util/team.js'
 import { goToTeamPage } from '../../util/gameNavigation.js'
+import { shortEuroFormat } from '../../lib/currency.js'
 
 export class LeagueResultsPage extends UIElement {
   /**
@@ -152,25 +154,34 @@ export class LeagueResultsPage extends UIElement {
             </button>`
     : ''}
           </div>
-          <div class="results-filters d-flex flex-wrap gap-3">
-            <div>
-              <label for="results-league-select" class="form-label mb-1">${t('results.league')}</label>
-              <select id="results-league-select" class="form-select form-select-sm u-w-auto">
-                ${this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')}
-              </select>
-            </div>
-            <div>
-              <label for="results-season-select" class="form-label mb-1">${t('results.season')}</label>
-              <select id="results-season-select" class="form-select form-select-sm u-w-auto">
-                ${this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')}
-              </select>
-            </div>
-            <div>
-              <label for="results-game-day-select" class="form-label mb-1">${t('results.gameDayLabel')}</label>
-              <select id="results-game-day-select" class="form-select form-select-sm u-w-auto">
-                ${this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')}
-              </select>
-            </div>
+          <div class="results-filters d-flex flex-column flex-md-row gap-2 gap-md-3">
+            ${renderFilterStepper({
+    label: t('results.league'),
+    selectId: 'results-league-select',
+    prevId: 'prev-league-button',
+    nextId: 'next-league-button',
+    prevLabel: t('common.prev'),
+    nextLabel: t('common.next'),
+    optionsHtml: this.availableLeagues.map(l => `<option value="${l.level}_${l.league}" ${l.level === this.level && l.league === this.league ? 'selected' : ''}>${formatLeague(l.level, l.league)}</option>`).join('')
+  })}
+            ${renderFilterStepper({
+    label: t('results.season'),
+    selectId: 'results-season-select',
+    prevId: 'prev-season-button',
+    nextId: 'next-season-button',
+    prevLabel: t('common.prev'),
+    nextLabel: t('common.next'),
+    optionsHtml: this.availableSeasons.map(s => `<option value="${s}" ${s === this.season ? 'selected' : ''}>${s + 1}</option>`).join('')
+  })}
+            ${renderFilterStepper({
+    label: t('results.gameDayLabel'),
+    selectId: 'results-game-day-select',
+    prevId: 'prev-game-day-button',
+    nextId: 'next-game-day-button',
+    prevLabel: t('common.prev'),
+    nextLabel: t('common.next'),
+    optionsHtml: this.availableMatchDays.map(d => `<option value="${d}" ${d === this.matchDay ? 'selected' : ''}>${d}</option>`).join('')
+  })}
           </div>
         </div>
 
@@ -321,6 +332,26 @@ export class LeagueResultsPage extends UIElement {
           })
         }
       },
+      // Arrows step through the same lists the dropdowns hold, so a neighbouring
+      // league / season / match day is one click away (#478).
+      '(optional) #prev-league-button': {
+        click: () => this._stepLeague(-1)
+      },
+      '(optional) #next-league-button': {
+        click: () => this._stepLeague(1)
+      },
+      '(optional) #prev-season-button': {
+        click: () => this._stepSeason(-1)
+      },
+      '(optional) #next-season-button': {
+        click: () => this._stepSeason(1)
+      },
+      '(optional) #prev-game-day-button': {
+        click: () => this._stepMatchDay(-1)
+      },
+      '(optional) #next-game-day-button': {
+        click: () => this._stepMatchDay(1)
+      },
       '#results-open-top-scorers-btn': {
         click: () => setQueryParams({ top_scorers: '1' })
       },
@@ -367,6 +398,59 @@ export class LeagueResultsPage extends UIElement {
   availableLeagues = []
   availableSeasons = []
   availableMatchDays = []
+
+  /**
+   * Move one entry along a filter list. Clamped rather than wrapping: running
+   * off either end should feel like a dead button, not jump to the far side.
+   * @param {Array} list
+   * @param {number} currentIndex
+   * @param {number} direction - -1 or 1
+   * @returns {*|null} the neighbouring entry, or null when there is none
+   * @private
+   */
+  _neighbour (list, currentIndex, direction) {
+    const next = currentIndex + direction
+    if (currentIndex < 0 || next < 0 || next >= list.length) return null
+    return list[next]
+  }
+
+  /**
+   * @param {number} direction
+   * @private
+   */
+  _stepLeague (direction) {
+    const index = this.availableLeagues.findIndex(l => l.level === this.level && l.league === this.league)
+    const target = this._neighbour(this.availableLeagues, index, direction)
+    if (!target) return
+    setQueryParams({
+      level: target.level,
+      league: target.league,
+      season: this.season,
+      match_day: this.matchDay
+    })
+  }
+
+  /**
+   * @param {number} direction
+   * @private
+   */
+  _stepSeason (direction) {
+    const index = this.availableSeasons.indexOf(this.season)
+    const target = this._neighbour(this.availableSeasons, index, direction)
+    if (target === null) return
+    setQueryParams({ season: target, match_day: this.matchDay })
+  }
+
+  /**
+   * @param {number} direction
+   * @private
+   */
+  _stepMatchDay (direction) {
+    const index = this.availableMatchDays.indexOf(this.matchDay)
+    const target = this._neighbour(this.availableMatchDays, index, direction)
+    if (target === null) return
+    setQueryParams({ season: this.season, match_day: target })
+  }
   _seasonCompleted = false
 
   recap = null
@@ -910,7 +994,7 @@ export class LeagueResultsPage extends UIElement {
     }
     const hasUser = Boolean(stat.user_id)
     const avgFreshness = Math.round(parseFloat(stat.avg_freshness) * 100)
-    const squadValue = _formatValue(Number(stat.squad_value))
+    const squadValue = shortEuroFormat(Number(stat.squad_value))
     return `
       <tr id="${id}" class="u-cursor-pointer ${isMyTeam ? 'table-info' : ''}">
         <td style="width:32px;"><span class="emblem-thumb">${renderEmblem(team, 24)}</span></td>
@@ -960,8 +1044,3 @@ function _sortStanding (s1, s2) {
   return retVal
 }
 
-function _formatValue (value) {
-  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M €'
-  if (value >= 1_000) return (value / 1_000).toFixed(0) + 'K €'
-  return value + ' €'
-}

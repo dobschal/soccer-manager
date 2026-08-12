@@ -8,6 +8,38 @@ export function randomItem (array) {
 }
 
 /**
+ * Cut a user-supplied string down to `maxLength` **characters** without ever
+ * splitting an emoji in half. A plain `str.slice(0, n)` counts UTF-16 code
+ * units, so it can cut between the two halves of a surrogate pair and leave a
+ * lone surrogate behind — that byte sequence is not valid UTF-8 and MySQL
+ * rejects it with ER_TRUNCATED_WRONG_VALUE_FOR_FIELD. MySQL's own VARCHAR(n)
+ * limit counts code points as well, so counting them here keeps both sides in
+ * agreement.
+ *
+ * @param {unknown} value
+ * @param {number} maxLength - maximum number of code points to keep
+ * @returns {string} the truncated string, or '' when `value` is not a string
+ */
+export function truncateChars (value, maxLength) {
+  if (typeof value !== 'string') return ''
+  const codePoints = Array.from(value)
+  if (codePoints.length <= maxLength) return value
+  return codePoints.slice(0, maxLength).join('')
+}
+
+/**
+ * Number of characters (code points) in a user-supplied string, matching how
+ * MySQL counts a VARCHAR length. `String.prototype.length` counts UTF-16 code
+ * units, so an emoji would otherwise count as two.
+ *
+ * @param {string} value
+ * @returns {number}
+ */
+export function charLength (value) {
+  return Array.from(value).length
+}
+
+/**
  * From: https://javascript.jstruebig.de/skripte/1818/
  *
  * @param {number} teams

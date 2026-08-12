@@ -210,7 +210,9 @@ export async function clearBadge (userId) {
  * @param {string} [deepLink] - optional URL hash opened when the user taps the notification (#330)
  * @returns {Promise<{sent: number, failed: number}>}
  */
-export async function sendBroadcastNotification (messageEn, messageDe, deepLink = '') {
+export const DEFAULT_BROADCAST_TITLE = 'FootballManager.IO'
+
+export async function sendBroadcastNotification (messageEn, messageDe, deepLink = '', titles = {}) {
   const users = await query(
     `SELECT DISTINCT dt.user_id, COALESCE(u.language, 'en') as language
      FROM device_token dt
@@ -220,6 +222,9 @@ export async function sendBroadcastNotification (messageEn, messageDe, deepLink 
   if (!users.length) return { sent: 0, failed: 0 }
 
   const messages = { en: messageEn, de: messageDe }
+  // Admins can now split the notification into a title and a subtitle per
+  // language (#388). Older callers pass none — those keep the app name.
+  const titleByLanguage = { en: titles.en || DEFAULT_BROADCAST_TITLE, de: titles.de || titles.en || DEFAULT_BROADCAST_TITLE }
   const byLanguage = {}
   for (const user of users) {
     const lang = user.language || 'en'
@@ -232,7 +237,8 @@ export async function sendBroadcastNotification (messageEn, messageDe, deepLink 
   let totalFailed = 0
   for (const [lang, userIds] of Object.entries(byLanguage)) {
     const body = messages[lang] || messages.en
-    await sendPushNotifications(userIds, 'FootballManager.IO', body, data)
+    const title = titleByLanguage[lang] || titleByLanguage.en
+    await sendPushNotifications(userIds, title, body, data)
     totalSent += userIds.length
   }
 

@@ -11,7 +11,8 @@ vi.mock('../../helper/statisticsHelper.js', () => ({
 }))
 
 vi.mock('../../helper/fraudHelper.js', () => ({
-  getSuspiciousActions: vi.fn()
+  getSuspiciousActions: vi.fn(),
+  SUSPICIOUS_ACTION_TYPES: ['shared_ip', 'shared_device', 'frequent_trades']
 }))
 
 vi.mock('../../prepare-season.js', () => ({ prepareSeason: vi.fn() }))
@@ -287,7 +288,7 @@ describe('dev routes - statistics', () => {
 
   describe('getSuspiciousActions', () => {
     it('rejects non-admin users', async () => {
-      await expect(handlers.getSuspiciousActions(1, 10, { user: { is_admin: 0 } }))
+      await expect(handlers.getSuspiciousActions(1, 10, '', '', { user: { is_admin: 0 } }))
         .rejects.toMatchObject({ message: 'This action is only available for admins' })
     })
 
@@ -297,23 +298,24 @@ describe('dev routes - statistics', () => {
         total: 17
       })
 
-      const result = await handlers.getSuspiciousActions(2, 5, { user: { is_admin: 1 } })
+      const result = await handlers.getSuspiciousActions(2, 5, '', '', { user: { is_admin: 1 } })
 
-      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 5, offset: 5 })
+      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 5, offset: 5, type: '', search: '' })
       expect(result).toEqual({
         rows: [{ type: 'shared_ip', time: '2026-06-03T10:00:00.000Z' }],
         total: 17,
         page: 2,
-        pageSize: 5
+        pageSize: 5,
+        types: ['shared_ip', 'shared_device', 'frequent_trades']
       })
     })
 
     it('falls back to default page size of 10', async () => {
       getSuspiciousActions.mockResolvedValueOnce({ rows: [], total: 0 })
 
-      const result = await handlers.getSuspiciousActions(undefined, undefined, { user: { is_admin: 1 } })
+      const result = await handlers.getSuspiciousActions(undefined, undefined, '', '', { user: { is_admin: 1 } })
 
-      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 10, offset: 0 })
+      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 10, offset: 0, type: '', search: '' })
       expect(result.page).toBe(1)
       expect(result.pageSize).toBe(10)
     })
@@ -321,30 +323,53 @@ describe('dev routes - statistics', () => {
     it('clamps overly large pageSize to 50', async () => {
       getSuspiciousActions.mockResolvedValueOnce({ rows: [], total: 0 })
 
-      const result = await handlers.getSuspiciousActions(1, 9999, { user: { is_admin: 1 } })
+      const result = await handlers.getSuspiciousActions(1, 9999, '', '', { user: { is_admin: 1 } })
 
-      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 50, offset: 0 })
+      expect(getSuspiciousActions).toHaveBeenCalledWith({ limit: 50, offset: 0, type: '', search: '' })
       expect(result.pageSize).toBe(50)
     })
   })
 
-  describe('broadcastNotification (#330)', () => {
+  describe('broadcastNotification (#330, #388)', () => {
     it('rejects non-admin users', async () => {
-      await expect(handlers.broadcastNotification('en', 'de', '', { user: { is_admin: 0 } }))
+      await expect(handlers.broadcastNotification('', 'en', '', 'de', '', { user: { is_admin: 0 } }))
         .rejects.toMatchObject({ message: 'This action is only available for admins' })
     })
 
     it('passes a trimmed deep link through to the push helper', async () => {
       sendBroadcastNotification.mockResolvedValueOnce({ sent: 3, failed: 0 })
-      const result = await handlers.broadcastNotification('Hello', 'Hallo', '  #club?sub_page=buildings  ', { user: { is_admin: 1 } })
+      const result = await handlers.broadcastNotification(
+        '', 'Hello', '', 'Hallo', '  #club?sub_page=buildings  ', { user: { is_admin: 1 } }
+      )
       expect(result).toEqual({ sent: 3, failed: 0 })
-      expect(sendBroadcastNotification).toHaveBeenCalledWith('Hello', 'Hallo', '#club?sub_page=buildings')
+      expect(sendBroadcastNotification).toHaveBeenCalledWith(
+        'Hello', 'Hallo', '#club?sub_page=buildings', { en: '', de: '' }
+      )
     })
 
     it('passes an empty deep link when none is given', async () => {
       sendBroadcastNotification.mockResolvedValueOnce({ sent: 1, failed: 0 })
-      await handlers.broadcastNotification('Hi', 'Hi', undefined, { user: { is_admin: 1 } })
-      expect(sendBroadcastNotification).toHaveBeenCalledWith('Hi', 'Hi', '')
+      await handlers.broadcastNotification('', 'Hi', '', 'Hi', undefined, { user: { is_admin: 1 } })
+      expect(sendBroadcastNotification).toHaveBeenCalledWith('Hi', 'Hi', '', { en: '', de: '' })
+    })
+
+    it('forwards a trimmed title per language (#388)', async () => {
+      sendBroadcastNotification.mockResolvedValueOnce({ sent: 2, failed: 0 })
+      await handlers.broadcastNotification(
+        '  Season over  ', 'Check the table', ' Saison vorbei ', 'Schau in die Tabelle', '',
+        { user: { is_admin: 1 } }
+      )
+      expect(sendBroadcastNotification).toHaveBeenCalledWith(
+        'Check the table', 'Schau in die Tabelle', '',
+        { en: 'Season over', de: 'Saison vorbei' }
+      )
+    })
+
+    it('still requires both message bodies', async () => {
+      await expect(handlers.broadcastNotification('T', '', 'T', 'Hallo', '', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'English message is required' })
+      await expect(handlers.broadcastNotification('T', 'Hello', 'T', '  ', '', { user: { is_admin: 1 } }))
+        .rejects.toMatchObject({ message: 'German message is required' })
     })
   })
 
@@ -572,5 +597,59 @@ describe('dev routes - statistics', () => {
       expect(updateTeamBalance).not.toHaveBeenCalled()
       expect(result).toEqual({ success: true, balance: 1000 })
     })
+  })
+})
+
+describe('dev.getSuspiciousActions filters (#488)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getSuspiciousActions.mockResolvedValue({ rows: [], total: 0 })
+  })
+
+  const adminReq = () => ({ user: { id: 1, is_admin: 1 } })
+
+  it('rejects non-admins', async () => {
+    await expect(handlers.getSuspiciousActions(1, 10, '', '', { user: { id: 2 } }))
+      .rejects.toThrow('This action is only available for admins')
+  })
+
+  it('passes a valid type and search through to the helper', async () => {
+    await handlers.getSuspiciousActions(2, 10, 'shared_ip', 'alice', adminReq())
+
+    expect(getSuspiciousActions).toHaveBeenCalledWith({
+      limit: 10,
+      offset: 10,
+      type: 'shared_ip',
+      search: 'alice'
+    })
+  })
+
+  it('drops an unknown type instead of filtering everything away', async () => {
+    await handlers.getSuspiciousActions(1, 10, 'not_a_type', '', adminReq())
+
+    expect(getSuspiciousActions).toHaveBeenCalledWith(
+      expect.objectContaining({ type: '' })
+    )
+  })
+
+  it('caps the search term length', async () => {
+    await handlers.getSuspiciousActions(1, 10, '', 'x'.repeat(500), adminReq())
+
+    const { search } = getSuspiciousActions.mock.calls[0][0]
+    expect(search).toHaveLength(100)
+  })
+
+  it('returns the available types so the client can build the dropdown', async () => {
+    const result = await handlers.getSuspiciousActions(1, 10, '', '', adminReq())
+
+    expect(result.types).toEqual(['shared_ip', 'shared_device', 'frequent_trades'])
+  })
+
+  it('treats a missing search argument as no filter', async () => {
+    await handlers.getSuspiciousActions(1, 10, undefined, undefined, adminReq())
+
+    expect(getSuspiciousActions).toHaveBeenCalledWith(
+      expect.objectContaining({ type: '', search: '' })
+    )
   })
 })

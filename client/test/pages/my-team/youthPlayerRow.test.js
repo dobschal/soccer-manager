@@ -33,12 +33,12 @@ describe('YouthPlayerRow', () => {
       _getTrainingModeLabel: vi.fn((mode) => `label:${mode}`),
       _handlePlayerModeChange: vi.fn(),
       _showPromoteConfirm: vi.fn(),
-      _showFireConfirm: vi.fn()
+      _showSellConfirm: vi.fn()
     }
   }
 
   describe('template', () => {
-    it('renders name, position, promote / fire buttons and the mode select', () => {
+    it('renders name, position, promote / sell buttons and the mode select', () => {
       const player = {
         id: 5, name: 'Zeb', position: 'CM', age: 17, level: 15, moral: 0.6, fitness: 0.4, training_mode: 'rest'
       }
@@ -47,9 +47,18 @@ describe('YouthPlayerRow', () => {
       expect(html).toContain('Zeb')
       expect(html).toContain('position-badge CM')
       expect(html).toContain('youthTeam.promote')
-      expect(html).toContain('youthTeam.fire')
+      expect(html).toContain('youthTeam.sell')
       expect(html).toContain('youth-mode-inline-select')
       expect(html).toContain('data-youth-player-id="5"')
+    })
+
+    it('#524 no longer renders a fire button', () => {
+      const player = {
+        id: 5, name: 'Zeb', position: 'CM', age: 17, level: 15, moral: 0.6, fitness: 0.4, training_mode: 'rest'
+      }
+      const html = new YouthPlayerRow(player, makePage()).template
+      expect(html).not.toContain('youth-row-fire-btn')
+      expect(html).not.toContain('youthTeam.fire')
     })
 
     it('#465 renders the current training_mode as the pre-selected option', () => {

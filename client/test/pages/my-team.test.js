@@ -474,10 +474,16 @@ describe('MyTeamPage', () => {
       return page
     }
 
-    it('renders the Aktionen tab before the Vereinsinfo tab', async () => {
+    it('renders the Aktionen tab before the On Tour tab, and no Vereinsinfo tab', async () => {
       const page = await loadPage()
       const html = page.template
-      expect(html.indexOf('sub_page=cards')).toBeLessThan(html.indexOf('sub_page=info'))
+      expect(html.indexOf('sub_page=cards')).toBeLessThan(html.indexOf('sub_page=tour'))
+      expect(html).not.toContain('sub_page=info')
+    })
+
+    it('creates the On Tour sub-page for sub_page=tour', async () => {
+      const page = await loadPage()
+      expect(page.createSubPage('tour').constructor.name).toBe('TourPage')
     })
 
     it('shows a red badge with the count of unseen action cards', async () => {

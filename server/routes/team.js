@@ -9,6 +9,16 @@ import { calculateStandingForTeam } from '../helper/standingHelper.js'
 import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import { getPositionsOfFormation } from '../../client/util/formation.js'
+import {
+  activateLineup,
+  createLineup,
+  deleteLineup,
+  ensureActiveLineup,
+  getLineups,
+  renameLineup,
+  syncActiveLineup
+} from '../helper/teamLineupHelper.js'
+import { charLength } from '../lib/util.js'
 
 const MAX_TEAM_NAME_WORD_LENGTH = 12
 const MAX_TEAM_NAME_LENGTH = 32
@@ -93,17 +103,19 @@ export default {
     if (!cleanedName) {
       throw new BadRequestError('Team name is required')
     }
-    if (cleanedName.length > MAX_TEAM_NAME_LENGTH) {
+    // Count code points, not UTF-16 units, so an emoji costs one character
+    // here just like it does against the VARCHAR limit in MySQL.
+    if (charLength(cleanedName) > MAX_TEAM_NAME_LENGTH) {
       throw new BadRequestError(`Team name can be at most ${MAX_TEAM_NAME_LENGTH} characters`)
     }
     const words = cleanedName.split(' ')
-    if (words.some(w => w.length > MAX_TEAM_NAME_WORD_LENGTH)) {
+    if (words.some(w => charLength(w) > MAX_TEAM_NAME_WORD_LENGTH)) {
       throw new BadRequestError(`Each word can be at most ${MAX_TEAM_NAME_WORD_LENGTH} characters`)
     }
     const cleanedShortName = typeof shortName === 'string'
       ? shortName.replace(/\s+/g, ' ').trim()
       : ''
-    if (cleanedShortName.length > MAX_TEAM_SHORT_NAME_LENGTH) {
+    if (charLength(cleanedShortName) > MAX_TEAM_SHORT_NAME_LENGTH) {
       throw new BadRequestError(`Short name can be at most ${MAX_TEAM_SHORT_NAME_LENGTH} characters`)
     }
     const [existing] = await query('SELECT id FROM team WHERE name=? AND id<>?', [cleanedName, team.id])
@@ -266,6 +278,7 @@ export default {
       }
     }
 
+    await syncActiveLineup(team.id)
     return { success: true, captainCleared }
   },
 
@@ -291,6 +304,7 @@ export default {
     if (team.user_id) {
       sendToUser(team.user_id, SERVER_EVENTS.CAPTAIN_CHANGED.name, { captainId: playerId })
     }
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -306,6 +320,7 @@ export default {
     }
     const team = await getTeam(req)
     await query('UPDATE team SET pass_style=? WHERE id=?', [passStyle, team.id])
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -321,6 +336,7 @@ export default {
     }
     const team = await getTeam(req)
     await query('UPDATE team SET play_style=? WHERE id=?', [playStyle, team.id])
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -336,6 +352,7 @@ export default {
     }
     const team = await getTeam(req)
     await query('UPDATE team SET attack_mode=? WHERE id=?', [attackMode, team.id])
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -361,10 +378,11 @@ export default {
       const mode = substitutionMode ?? 'injury_only'
       if (!validModes.includes(mode)) throw new BadRequestError('Invalid substitution mode')
       const player = playersFromDb.find(p => p.id === playerId)
-      if (player.is_suspended || player.is_injured) throw new BadRequestError('Player is unavailable')
+      if (player.is_suspended || player.is_injured || player.tour_days_left) throw new BadRequestError('Player is unavailable')
       await query('UPDATE player SET bench_position=?, bench_substitution_mode=? WHERE id=?', [benchPosition, mode, playerId])
     }
 
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -386,7 +404,7 @@ export default {
     if (!validPositions.includes(benchPosition)) throw new BadRequestError('Invalid bench position')
     const [player] = await query('SELECT * FROM player WHERE id=? AND team_id=? LIMIT 1', [playerId, team.id])
     if (!player) throw new BadRequestError('Player not found in your team')
-    if (player.is_suspended || player.is_injured) throw new BadRequestError('Player is unavailable')
+    if (player.is_suspended || player.is_injured || player.tour_days_left) throw new BadRequestError('Player is unavailable')
 
     // Look up whoever currently occupies this bench slot — they'll be kicked
     // off (bench_position → NULL) so we can put the picked player there.
@@ -427,6 +445,7 @@ export default {
       }
     }
 
+    await syncActiveLineup(team.id)
     return { success: true, captainCleared }
   },
 
@@ -475,7 +494,7 @@ export default {
 
     const [newPlayer] = await query('SELECT * FROM player WHERE id=? AND team_id=? LIMIT 1', [newPlayerId, team.id])
     if (!newPlayer) throw new BadRequestError('Player not found in your team')
-    if (newPlayer.is_suspended || newPlayer.is_injured) throw new BadRequestError('Player is unavailable')
+    if (newPlayer.is_suspended || newPlayer.is_injured || newPlayer.tour_days_left) throw new BadRequestError('Player is unavailable')
 
     // Look up the current occupant by explicit id when the client sent one
     // (so we hit the exact tile the user clicked, not an arbitrary same-slot
@@ -578,6 +597,7 @@ export default {
       }
     }
 
+    await syncActiveLineup(team.id)
     return { success: true, captainCleared }
   },
 
@@ -595,6 +615,7 @@ export default {
     const [player] = await query('SELECT id FROM player WHERE id=? AND team_id=?', [playerId, team.id])
     if (!player) throw new BadRequestError('Unknown player...')
     await query('UPDATE player SET bench_substitution_mode=? WHERE id=?', [substitutionMode, playerId])
+    await syncActiveLineup(team.id)
     return { success: true }
   },
 
@@ -613,6 +634,73 @@ export default {
       await query('UPDATE player SET sort_index=? WHERE id=?', [sortIndex, playerId])
     }
     return { success: true }
+  },
+
+  /**
+   * Every saved lineup of the requesting user's team, plus which one is
+   * currently loaded (#481). A team that has none yet gets one created from
+   * its current setup, so the select is never empty.
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array<{id: number, name: string, is_active: number}>, activeId: number|null}>}
+   */
+  async getMyLineups (req) {
+    const team = await getTeam(req)
+    const active = await ensureActiveLineup(team.id)
+    const lineups = await getLineups(team.id)
+    return { lineups, activeId: active?.id ?? null }
+  },
+
+  /**
+   * Create a new, empty lineup (random formation, nobody assigned) and make
+   * it active. The outgoing lineup is snapshotted first.
+   * @param {string} name
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array, activeId: number}>}
+   */
+  async createMyLineup (name, req) {
+    const team = await getTeam(req)
+    await ensureActiveLineup(team.id)
+    const { id } = await createLineup(team.id, name)
+    return { lineups: await getLineups(team.id), activeId: id }
+  },
+
+  /**
+   * Load a saved lineup into the team so the next match calculation uses it.
+   * @param {number} lineupId
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array, activeId: number}>}
+   */
+  async activateMyLineup (lineupId, req) {
+    const team = await getTeam(req)
+    await ensureActiveLineup(team.id)
+    const { id } = await activateLineup(team.id, Number(lineupId))
+    return { lineups: await getLineups(team.id), activeId: id }
+  },
+
+  /**
+   * Rename one of the team's saved lineups.
+   * @param {number} lineupId
+   * @param {string} name
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array, activeId: number|null}>}
+   */
+  async renameMyLineup (lineupId, name, req) {
+    const team = await getTeam(req)
+    await renameLineup(team.id, Number(lineupId), name)
+    const lineups = await getLineups(team.id)
+    return { lineups, activeId: lineups.find(l => l.is_active)?.id ?? null }
+  },
+
+  /**
+   * Delete a saved lineup. The last remaining one cannot be deleted.
+   * @param {number} lineupId
+   * @param {Request} req
+   * @returns {Promise<{lineups: Array, activeId: number|null}>}
+   */
+  async deleteMyLineup (lineupId, req) {
+    const team = await getTeam(req)
+    const { activeId } = await deleteLineup(team.id, Number(lineupId))
+    return { lineups: await getLineups(team.id), activeId }
   },
 
   /**

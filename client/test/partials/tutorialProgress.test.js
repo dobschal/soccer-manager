@@ -51,10 +51,24 @@ describe('TutorialProgress', () => {
   it('hides the card when all tutorials are completed', () => {
     const progress = new TutorialProgress()
     progress._tutorialCompleted = {
-      dashboard: true, team: true, youth: true, results: true,
+      dashboard: true, team: true, youth: true, tour: true, results: true,
       trades: true, stadium: true, finances: true, buildings: true
     }
     expect(progress.template).toBe('<div></div>')
+  })
+
+  it('still shows the card when only the "On Tour" tutorial is left', () => {
+    // The tour tutorial was added later — users who finished everything else
+    // must still see the progress card pointing them at it.
+    const progress = new TutorialProgress()
+    progress._tutorialCompleted = {
+      dashboard: true, team: true, youth: true, results: true,
+      trades: true, stadium: true, finances: true, buildings: true
+    }
+    const html = progress.template
+    expect(html).toContain('data-tutorial-key="tour"')
+    expect(html).toContain('data-tutorial-route="#my-team?sub_page=tour"')
+    expect(html).toContain('8/9')
   })
 
   it('marks the next-tutorial button selector optional so mounting the empty card does not throw', () => {

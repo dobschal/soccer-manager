@@ -8,6 +8,7 @@ import { goTo, setQueryParams } from '../lib/router.js'
 import { toast } from '../partials/toast.js'
 import { formatDate, formatLastActive } from '../lib/date.js'
 import { showReportUserOverlay } from '../partials/reportUserOverlay.js'
+import { showUserProfileOverlay } from '../partials/userProfileOverlay.js'
 
 function avatarSrc (avatar) {
   if (avatar) return `${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatar}`
@@ -27,7 +28,7 @@ export class UserProfilePage extends UIElement {
     }
     if (!this.userId) {
       toast(t('userProfile.notFound'), 'error')
-      goTo('dashboard')
+      if (!this.inOverlay) goTo('dashboard')
       return
     }
 
@@ -43,7 +44,7 @@ export class UserProfilePage extends UIElement {
       }
     } catch (e) {
       showServerError(e)
-      goTo('dashboard')
+      if (!this.inOverlay) goTo('dashboard')
     }
   }
 
@@ -76,6 +77,13 @@ export class UserProfilePage extends UIElement {
         click: (event) => {
           event.preventDefault()
           showReportUserOverlay(this.userId, this.profile?.user?.username || '')
+        }
+      },
+      '(optional) .user-profile-friend[data-profile-user-id]': {
+        click: (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          showUserProfileOverlay(Number(event.currentTarget.dataset.profileUserId))
         }
       },
       '(optional) .chat-user-btn': {
@@ -153,6 +161,13 @@ export class UserProfilePage extends UIElement {
 
   static cacheKeyParams = ['id']
 
+  /**
+   * True when this instance is rendered inside `showUserProfileOverlay`
+   * instead of by the router. Only affects error handling: an overlay has no
+   * route to fall back to (#532).
+   */
+  inOverlay = false
+
   _renderHeader (user, currentTeam, isOwnProfile) {
     const teamLink = currentTeam ? `#team?id=${currentTeam.id}` : null
     const teamLabel = currentTeam
@@ -195,9 +210,12 @@ export class UserProfilePage extends UIElement {
       `
     }
     const items = friends.map(f => {
+      // A friend with a club goes to the club page; a manager without one
+      // opens their profile as an overlay on top of this one (#532).
       const link = f.teamId ? `#team?id=${f.teamId}` : `#user?id=${f.id}`
+      const overlayAttr = f.teamId ? '' : ` data-profile-user-id="${f.id}"`
       return `
-        <a href="${link}" class="user-profile-friend">
+        <a href="${link}"${overlayAttr} class="user-profile-friend">
           <img class="user-profile-friend-avatar${f.avatar ? '' : ' user-profile-friend-avatar--default'}"
                src="${avatarSrc(f.avatar)}" alt="${f.username}">
           <div class="user-profile-friend-meta">

@@ -11,6 +11,7 @@ const LABEL_KEYS = {
   NEW_YOUTH_PLAYER_2: 'actionCards.type.youthProspect2',
   NEW_YOUTH_PLAYER_3: 'actionCards.type.youthProspect3',
   BONUS_100K: 'actionCards.type.cashBonus',
+  MILLION_BONUS: 'actionCards.type.millionBonus',
   STAR_PLAYER: 'actionCards.type.starPlayer',
   MOTIVATING_SPEECH: 'actionCards.type.motivatingSpeech',
   SPY: 'actionCards.type.spy',

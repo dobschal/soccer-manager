@@ -146,7 +146,7 @@ export class PlayerListItem extends UIElement {
    */
   get rowClass () {
     const player = this.player
-    if (player.is_suspended || player.is_injured) return 'table-danger'
+    if (player.is_suspended || player.is_injured || player.tour_days_left > 0) return 'table-danger'
     if (player.in_game_position) return 'table-info'
     if (player.bench_position) return 'table-warning'
     return ''
@@ -177,6 +177,10 @@ export class PlayerListItem extends UIElement {
       player.is_star_player ? '<span class="player-name-cell__icon">⭐</span>' : '',
       hasSellOffer ? '<span class="player-name-cell__icon">💰</span>' : '',
       isSuspended ? '<span class="player-name-cell__icon">🚫</span>' : '',
+      // Away on tour and therefore not selectable this match day (#535).
+      player.tour_days_left > 0
+        ? `<span class="player-name-cell__icon" title="${t('tour.onTourDays', { days: player.tour_days_left })}">✈️</span>`
+        : '',
       isInjured ? `<span class="player-name-cell__icon injury-badge" title="${player.injury_type || ''}"><i class="fa fa-medkit text-danger"></i><span class="injury-badge__days">${injuryDays}</span></span>` : '',
       retiring ? `<span class="retirement-icon" title="${t('player.retiringNextSeason')}"><i class="fa fa-hourglass-end"></i></span>` : '',
       cardsHtml ? `<span class="player-name-cell__icon">${cardsHtml}</span>` : ''

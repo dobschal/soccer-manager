@@ -121,6 +121,24 @@
     font-size: 2.5cqi !important;
 }
 
+/* Out-of-position malus, sitting directly under the level badge (#540). */
+.player .position-penalty {
+    display: block;
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translateX(100%) translateY(33%);
+    padding: 0.5cqi 0.3cqi 0cqi 0.3cqi;
+    border-radius: 0.5cqi;
+    background-color: rgb(0 0 0 / 66%);
+    color: var(--bs-danger);
+    font-size: 1.9cqi;
+    line-height: 1;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
+}
+
 .squad .player:hover {
     cursor: pointer;
     background-color: rgba(0, 0, 0, 0.5);
@@ -389,6 +407,10 @@
         font-size: 2cqi !important;
     }
 
+    .player .position-penalty {
+        font-size: 1.5cqi;
+    }
+
     .squad .player.GK {
         top: 46%;
         left: 10%;
@@ -600,11 +622,150 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     background: linear-gradient(136deg, #222 0%, #333 100%) !important;
-    height: 260px;
+    height: 272px;
 }
 
 .select-player-action-card-item {
     flex: 0 0 auto;
     width: 140px;
     color: white;
+}
+
+/* ==========================================================================
+   Player picker — horizontal strip of lineup-style player tiles used by the
+   select-player overlay. Bleeds into the card padding and uses the same grey
+   band as the action-card strip above so both strips read as one surface.
+   ========================================================================== */
+
+/* Keep the overlay at a predictable width: without it the fit-content overlay
+   would stretch to the max-content width of the picker's card row. */
+.select-player-overlay {
+    max-width: 460px;
+}
+
+.player-picker {
+    margin: 0 -2rem;
+    padding: 0.75rem 2rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+    background: linear-gradient(136deg, #222 0%, #333 100%);
+}
+
+.player-picker--empty {
+    padding: 1rem 2rem;
+    background: none;
+}
+
+.player-picker__track {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 0.6rem;
+    width: max-content;
+}
+
+.player-picker__card {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0 0.5rem;
+    border-radius: 0.75rem;
+    background-color: rgba(0, 0, 0, 0.4);
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.5);
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    scroll-snap-align: center;
+    transition: transform 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+.player-picker__card:hover,
+.player-picker__card:focus-visible {
+    background-color: rgba(0, 0, 0, 0.6);
+    transform: translateY(-3px);
+    outline: none;
+}
+
+/* Playable, but not in their natural position — visibly the second choice,
+   and set apart from the matching players by a wider gap. */
+.player-picker__card.is-out-of-position {
+    opacity: 0.66;
+}
+
+.player-picker__card.is-group-start {
+    margin-left: 1.4rem;
+}
+
+/* The player currently standing in the slot — always full opacity, even when
+   he is the one being fielded out of position. */
+.player-picker__card.is-current {
+    opacity: 1;
+    background-color: rgba(var(--bs-info-rgb), 0.25);
+    border-color: rgb(var(--bs-info-rgb));
+    border-width: 2px;
+    border-style: solid;
+}
+
+.player-picker__card.is-current:hover,
+.player-picker__card.is-current:focus-visible {
+    background-color: rgba(var(--bs-info-rgb), 0.5);
+}
+
+.player-picker__card.is-star {
+    border-color: gold;
+    box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.6), 3px 3px 3px rgba(0, 0, 0, 0.5);
+}
+
+.player-picker__image {
+    height: 108px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    pointer-events: none;
+}
+
+.player-picker__image svg {
+    display: block;
+}
+
+.player-picker__badges {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.86rem;
+}
+
+.player-picker__badges .position-badge {
+    font-size: 0.86rem;
+}
+
+.player-picker__badges .level-badge {
+    width: 28px;
+    height: 28px;
+    line-height: 32px;
+}
+
+.player-picker__name {
+    max-width: 100%;
+    font-size: 0.92rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-picker__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.86rem;
+    font-weight: bold;
+}
+
+.player-picker__penalty {
+    color: var(--bs-danger);
 }

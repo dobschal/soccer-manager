@@ -16,15 +16,31 @@ export function getMinOfferPrice (marketValue) {
   return Math.floor(marketValue * MIN_OFFER_MARKET_VALUE_RATIO)
 }
 
+/** Salary at level 1 — the bottom of the curve. */
+export const SALARY_AT_LEVEL_1 = 72
+
+/** Salary at level 100 — the top of the curve. */
+export const SALARY_AT_LEVEL_100 = 18_500
+
 /**
- * Calculate salary for a given player level (1-100)
- * Exponential curve: Level 1 = 150, Level 100 = 10,308
+ * Calculate salary for a given player level (1-100).
+ *
+ * A single exponential from 72 € to 18,500 € per match day. The shape is the
+ * same as before #543, only tilted: the curve pivots around level 70, so weak
+ * players cost less than they used to and stars cost more.
+ *
+ * Calibrated against the game's actual anchor — sponsor money roughly pays the
+ * wage bill. Measured on live squads that puts the top league at 120% of its
+ * previous wage bill (sponsor coverage 1.05 → 0.88, so a top club now has to
+ * find the rest elsewhere), while the third and fourth tiers pay 19% and 31%
+ * less than before.
+ *
  * @param {number} level
  * @returns {number}
  */
 export function getSalary (level) {
   if (level <= 0) return 0
-  return Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99))
+  return Math.floor(SALARY_AT_LEVEL_1 * Math.pow(SALARY_AT_LEVEL_100 / SALARY_AT_LEVEL_1, (level - 1) / 99))
 }
 
 /** @deprecated Use getSalary(level) instead */
@@ -70,6 +86,69 @@ export function calculateMarketValue (level, age) {
  */
 export function willRetireNextSeason (player, currentSeason) {
   return player.carrier_end_season <= currentSeason + 1
+}
+
+/**
+ * The line a position belongs to. Used to grade how far out of position a
+ * player is (#540).
+ * @type {Record<string, string>}
+ */
+export const POSITION_LINE = {
+  GK: 'GK',
+  LD: 'DEF', CD: 'DEF', RD: 'DEF',
+  DM: 'MID', LM: 'MID', CM: 'MID', RM: 'MID', OM: 'MID',
+  LA: 'ATT', CA: 'ATT', RA: 'ATT'
+}
+
+/**
+ * How much a player loses when fielded away from their natural position,
+ * as a fraction of their level (#540).
+ *
+ * Read as `PENALTY_BY_LINE[naturalLine][playedLine]`. Staying in the same line
+ * costs 10%; every line crossed costs more, and the further from home the
+ * worse — an attacker in defence is the most expensive misuse there is.
+ *
+ * The goalkeeper is deliberately absolute: anyone in goal who is not a keeper
+ * (and any keeper fielded outfield) loses half their level, because the role
+ * shares nothing with the rest of the pitch.
+ * @type {Record<string, Record<string, number>>}
+ */
+export const PENALTY_BY_LINE = {
+  ATT: { ATT: 0.1, MID: 0.2, DEF: 0.3 },
+  MID: { MID: 0.1, ATT: 0.2, DEF: 0.2 },
+  DEF: { DEF: 0.1, MID: 0.2, ATT: 0.3 }
+}
+
+/** What a non-keeper in goal (or a keeper outfield) loses. */
+export const GOALKEEPER_MISMATCH_PENALTY = 0.5
+
+/**
+ * The share of their level a player loses when fielded at `playedPosition`
+ * instead of their natural `naturalPosition`. 0 when they are at home.
+ * @param {string} naturalPosition
+ * @param {string} playedPosition
+ * @returns {number} 0 … 0.5
+ */
+export function getPositionPenalty (naturalPosition, playedPosition) {
+  if (!naturalPosition || !playedPosition) return 0
+  if (naturalPosition === playedPosition) return 0
+  const from = POSITION_LINE[naturalPosition]
+  const to = POSITION_LINE[playedPosition]
+  if (!from || !to) return 0
+  // Either side being the goalkeeper slot is its own, harsher case.
+  if (from === 'GK' || to === 'GK') return GOALKEEPER_MISMATCH_PENALTY
+  return PENALTY_BY_LINE[from]?.[to] ?? 0
+}
+
+/**
+ * The multiplier a player's level is scaled by for the position they are
+ * fielded at. 1 when they play their natural position.
+ * @param {string} naturalPosition
+ * @param {string} playedPosition
+ * @returns {number}
+ */
+export function getPositionLevelFactor (naturalPosition, playedPosition) {
+  return 1 - getPositionPenalty(naturalPosition, playedPosition)
 }
 
 /**

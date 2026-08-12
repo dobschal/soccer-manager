@@ -57,6 +57,7 @@
     padding: 4px 8px;
     border-radius: 2px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    transform: translateX(50%);
 }
 
 /* Player Modal */

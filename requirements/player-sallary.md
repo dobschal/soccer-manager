@@ -14,34 +14,59 @@ Jeder Spieler erhaelt ein Gehalt basierend auf seinem Level, das automatisch nac
 
 ## Gehaltsformel
 
+Eine einzige Exponentialkurve von 72 Euro (Level 1) bis 18.500 Euro (Level 100):
+
 ```
-getSalary(level) = Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99))
+getSalary(level) = floor(72 * (18500 / 72) ^ ((level - 1) / 99))
 ```
 
 ### Gehaltstabelle (Beispiele)
 
-| Level | Gehalt pro Spieltag |
-|---|---|
-| 1 | 150 Euro |
-| 10 | ~245 Euro |
-| 20 | ~400 Euro |
-| 30 | ~655 Euro |
-| 40 | ~1.070 Euro |
-| 50 | ~1.748 Euro |
-| 60 | ~2.855 Euro |
-| 70 | ~4.668 Euro |
-| 80 | ~7.630 Euro |
-| 100 | 10.308 Euro |
+| Level | Gehalt pro Spieltag | vorher |
+|---|---|---|
+| 1 | 72 Euro | 150 Euro |
+| 10 | 119 Euro | 220 Euro |
+| 20 | 208 Euro | 337 Euro |
+| 30 | 365 Euro | 517 Euro |
+| 40 | 640 Euro | 793 Euro |
+| 50 | 1.122 Euro | 1.217 Euro |
+| 60 | 1.965 Euro | 1.866 Euro |
+| 70 | 3.442 Euro | 2.860 Euro |
+| 80 | 6.030 Euro | 4.385 Euro |
+| 90 | 10.562 Euro | 6.723 Euro |
+| 100 | 18.500 Euro | 10.308 Euro |
 
 - Fuer Level <= 0 wird 0 zurueckgegeben.
-- Die Kurve verdoppelt sich ungefaehr alle 10 Level.
+- Die Form ist dieselbe wie zuvor, nur staerker geneigt: die Kurve kreuzt die alte
+  bei etwa Level 56. Darunter sind Spieler guenstiger, darueber teurer.
+
+### Kalibrierung (#543)
+
+Der Anker des Wirtschaftssystems ist: **die Sponsoreinnahmen decken ungefaehr die
+Gehaelter**. An echten Kaderdaten gemessen sah das vorher so aus — und so danach:
+
+| Liga | Sponsor/Spieltag | Gehalt alt | Deckung alt | Gehalt neu | Deckung neu |
+|---|---|---|---|---|---|
+| 0 | 55.291 Euro | 52.414 Euro | 1,05 | 62.900 Euro (x1,20) | 0,88 |
+| 1 | 39.621 Euro | 30.236 Euro | 1,31 | 30.500 Euro (x1,01) | 1,30 |
+| 2 | 24.957 Euro | 14.644 Euro | 1,70 | 11.900 Euro (x0,81) | 2,10 |
+| 3 | 16.338 Euro | 9.680 Euro | 1,69 | 6.700 Euro (x0,69) | 2,44 |
+
+Ergebnis: Die Spitze zahlt rund 20% mehr und muss den Rest ausserhalb des
+Sponsorings aufbringen, waehrend die unteren beiden Ligen spuerbar entlastet werden.
+
+**Hinweis fuer spaetere Anpassungen:** Nicht am Gesamteinkommen kalibrieren. Dort
+machen Gehaelter in Liga 0 nur wenige Prozent aus (Ticketverkaeufe und Transfers
+dominieren), was die Belastung deutlich zu niedrig erscheinen laesst. Der Massstab
+ist das Verhaeltnis Sponsor zu Gehalt.
 
 ## Technische Anforderungen
 
 ### Gehaltsberechnung
 
 - **TA-SAL-01**: Die Funktion `getSalary(level)` ist in `client/util/player.js` implementiert und wird Client- und Server-seitig identisch verwendet.
-- **TA-SAL-02**: Exponentielle Wachstumskurve von 150 (Level 1) bis 10.308 (Level 100).
+- **TA-SAL-02**: Eine Exponentialkurve von `SALARY_AT_LEVEL_1` (72) bis
+  `SALARY_AT_LEVEL_100` (18.500); beide Konstanten stehen in `client/util/player.js`.
 
 ### Gehaltszahlung
 
@@ -74,6 +99,8 @@ getSalary(level) = Math.floor(150 * Math.pow(10308 / 150, (level - 1) / 99))
 
 ### Tests
 
-- Gehaltsformel-Validierung (Level 1 = 150, Level 100 = 10.308)
+- Gehaltsformel-Validierung (Stuetzstellen 72 / 18.500, kalibrierte Tabellenwerte, Monotonie,
+  gleichmaessige Steigung ohne Knick)
+- Richtung der Aenderung: unterhalb des Schnittpunkts guenstiger, darueber teurer
 - Bot-Team-Finanzbalance (Stadioneinnahmen >= Gehaltskosten)
 - Finanzlog-Eintraege mit korrekten negativen Werten

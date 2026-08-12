@@ -388,8 +388,8 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
     const looseBall = Math.random() > chanceToLooseBall
 
     // Check for cards during the fight (defender has card chance based on their play style)
-    _checkForCard(oponentPlayer, defendingPlayStyle, gameDetails, defendingTeam)
-    _checkForCard(activePlayer, attackingPlayStyle, gameDetails, teamAHasBall ? playerTeamA : playerTeamB)
+    _checkForCard(oponentPlayer, defendingPlayStyle, gameDetails, defendingTeam, activePlayer.id)
+    _checkForCard(activePlayer, attackingPlayStyle, gameDetails, teamAHasBall ? playerTeamA : playerTeamB, oponentPlayer.id)
 
     // Check for injuries during the fight
     checkForInjury(oponentPlayer, defendingPlayStyle, gameDetails, defendingTeam, !teamAHasBall)
@@ -398,7 +398,12 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
     gameDetails.log.push({
       player: activePlayer.id,
       oponentPlayer: oponentPlayer.id,
-      lostBall: looseBall
+      lostBall: looseBall,
+      minute: gameDetails.currentMinute,
+      // How many passes the attacking side had strung together before this
+      // duel. The ticker uses it to show only the recoveries that broke up a
+      // real attack instead of all ~230 duels of a match (#539).
+      streak: gameDetails.streak
     })
 
     if (!looseBall) {
@@ -431,8 +436,10 @@ function _fightsOpponents (playerTeamA, playerTeamB, gameDetails) {
  * @param {string} playStyle
  * @param {GameDetails} gameDetails
  * @param {GamePlayer[]} team
+ * @param {number|null} [opponentId] - who they were duelling; logged so the
+ *   ticker can say who the foul was on (#539)
  */
-function _checkForCard (player, playStyle, gameDetails, team) {
+function _checkForCard (player, playStyle, gameDetails, team, opponentId = null) {
   if (player.sentOff) return
 
   const modifier = PLAY_STYLE_MODIFIERS[playStyle] || PLAY_STYLE_MODIFIERS.normal
@@ -455,6 +462,7 @@ function _checkForCard (player, playStyle, gameDetails, team) {
         redCard: true,
         player: player.id,
         secondYellow: true,
+        foulOn: opponentId ?? null,
         minute: gameDetails.currentMinute
       })
       console.log(`RED CARD (2nd yellow): ${player.name}`)
@@ -471,6 +479,7 @@ function _checkForCard (player, playStyle, gameDetails, team) {
       gameDetails.log.push({
         yellowCard: true,
         player: player.id,
+        foulOn: opponentId ?? null,
         minute: gameDetails.currentMinute
       })
       console.log(`YELLOW CARD: ${player.name}`)
@@ -485,6 +494,7 @@ function _checkForCard (player, playStyle, gameDetails, team) {
     gameDetails.log.push({
       redCard: true,
       player: player.id,
+      foulOn: opponentId ?? null,
       minute: gameDetails.currentMinute
     })
     console.log(`DIRECT RED CARD: ${player.name}`)
@@ -912,7 +922,7 @@ function _performSubstitution (playerOut, playerIn, team, gameDetails, teamIndex
 
   // Sub takes the position in the game. Substitutes are NEVER hit by the
   // out-of-position penalty: coming off the bench into an emergency slot (an
-  // injury or a forced late reshuffle) shouldn't punish the player. The 50%
+  // injury or a forced late reshuffle) shouldn't punish the player. The
   // out-of-position penalty stays for starters only (see play-game-day.js).
   playerIn.in_game_position = playerOut.in_game_position
   playerIn.substitutedOut = false

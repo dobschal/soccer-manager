@@ -29,6 +29,14 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 - **US-AC-14**: Als Spieler kann ich die Spionage-Karte auf ein fremdes Team anwenden, um dessen Taktik, Aufstellung und aktive Motivationsrede einzusehen.
 - **US-AC-15**: Als Spieler kann ich ueberzaehlige Karten auf dem Aktionskarten-Markt anderen Nutzern anbieten und auf deren Angebote bieten.
 - **US-AC-16**: Als Spieler kann ich eine Karte "Medizinische Behandlung" auf einen **verletzten** Spieler anwenden und verkuerze damit dessen Ausfall um einen Spieltag. Ist niemand verletzt, behalte ich die Karte und werde darauf hingewiesen.
+- **US-AC-17**: Als Spieler bekomme ich auf ein Marktangebot, das laenger als 24 Stunden offen liegt, automatisch ein Geldgebot von einem Bot-Team, damit meine Karten nicht unverkauft liegen bleiben.
+- **US-AC-18**: Als Spieler kann ich die Karte "Millionengeschenk" einloesen und erhalte sofort 1.000.000 Euro.
+- **US-AC-19**: Als Spieler sehe ich auf dem Dashboard einen Handlungsbedarf, sobald einer meiner Kartenstapel das Limit erreicht hat, damit ich keine weiteren Karten verliere.
+- **US-AC-20**: Als Spieler sehe ich die Anzahl meiner verfuegbaren Aktionskarten in der Info-Bar rechts neben
+  meinem Kontostand — im gleichen Design wie die anderen Info-Bar-Eintraege — und komme per Klick direkt zur
+  Kartenseite. Der Zaehler ist auf jeder Seite sichtbar, nicht nur auf der Startseite.
+- **US-AC-21**: Als neu registrierter Manager finde ich direkt nach der Vereinswahl ein Startpaket in meinem
+  Kartenbestand: Nachwuchsspieler, Basis-Training, Starspieler, Nachwuchsstar und Millionengeschenk.
 
 ## Kartentypen
 
@@ -44,6 +52,7 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 | NEW_YOUTH_PLAYER_2 | Neuer Jugendspieler (Silber, Level 5-10, Talent 0,3-0,75) | - | Nein |
 | NEW_YOUTH_PLAYER_3 | Neuer Jugendspieler (Gold, Level 10-15, Talent 0,5-1,0) | - | Nein |
 | BONUS_100K | +100.000 Euro | - | Nein |
+| MILLION_BONUS | +1.000.000 Euro | - | Nein |
 | STAR_PLAYER | Permanenter +10% Bonus | - | Nein |
 | MOTIVATING_SPEECH | Team-weiter +10% Bonus (1 Spieltag) | - | Nein |
 | SPY | Spionage-Karte | - | Nein |
@@ -66,6 +75,7 @@ Basiswerte aus `actionCardChances` (`server/helper/actionCardHelper.js`), ausgel
 | FRESHNESS_20 | 0 (nur via Fitness-Studio) | - |
 | NEW_YOUTH_PLAYER_1/_2/_3 | 0 (nur via Jugendakademie) | - |
 | BONUS_100K | 0.06 | ~2 |
+| MILLION_BONUS | 0.006 (= BONUS_100K × 0,1) | ~0,2 |
 | STAR_PLAYER | 0.01 | ~0,3 |
 | MOTIVATING_SPEECH | 0.05 | ~2 |
 | SPY | 0.15 | ~5 |
@@ -156,6 +166,81 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - **TA-AC-26**: Beim Aufdecken einer NEW_YOUTH_PLAYER_X-Karte oeffnet sich ein Auswahl-Overlay mit drei generierten Spielern (siehe [Youth Academy](youth-academy.md)).
 - **TA-AC-27**: Das Kartenlimit pro Typ wird beim Aufdecken als Toast gemeldet (`error.actionCardLimitReached`). Die Client-Kopie von `MAX_ACTION_CARDS_PER_TYPE` liegt in `client/pages/dashboard/actionCards.js` und muss mit dem Server-Wert synchron bleiben.
 
+### Automatische Bot-Gebote (#505)
+
+- **TA-AC-33**: `placeBotCardBids()` in `server/helper/actionCardMarketHelper.js` laeuft als Teil von
+  `makeBotMoves()` im 12-Stunden-CRON.
+- **TA-AC-34**: Beruecksichtigt werden nur offene Angebote von echten Managern, die aelter als
+  `BOT_CARD_BID_MIN_AGE_HOURS` (24) sind und noch kein offenes Bot-Gebot haben.
+- **TA-AC-35**: Der Gebotsbetrag ist die Summe der Einzelpreise aus `BOT_CARD_BID_PRICES`, variiert um
+  `BOT_CARD_BID_VARIANCE` (±10%). Enthaelt ein Buendel eine Karte ohne Preis, wird das Angebot uebersprungen.
+
+  | Karte | Gebot |
+  |---|---|
+  | Nachwuchsspieler (`NEW_YOUTH_PLAYER_1`) | 100.000 € |
+  | Nachwuchstalent (`NEW_YOUTH_PLAYER_2`) | 200.000 € |
+  | Nachwuchsstar (`NEW_YOUTH_PLAYER_3`) | 300.000 € |
+  | Starspieler (`STAR_PLAYER`) | 500.000 € |
+  | Motivierende Ansprache (`MOTIVATING_SPEECH`) | 200.000 € |
+  | Basis-Training (`LEVEL_UP_PLAYER_40`) | 40.000 € |
+  | Fortgeschrittenes Training (`LEVEL_UP_PLAYER_70`) | 75.000 € |
+  | Meister-Training (`LEVEL_UP_PLAYER_100`) | 150.000 € |
+  | Schnelle Erholung (`FRESHNESS_5`) | 5.000 € |
+  | Energie-Boost (`FRESHNESS_10`) | 10.000 € |
+  | Volle Erholung (`FRESHNESS_20`) | 20.000 € |
+  | Spion (`SPY`) | 20.000 € |
+  | Geldbonus (`BONUS_100K`) | 90.000 € |
+  | Millionengeschenk (`MILLION_BONUS`) | 900.000 € |
+  | Medizinische Behandlung (`MEDICAL_TREATMENT`) | 30.000 € |
+
+  Der Geldbonus liegt bewusst unter seinem Nennwert von 100.000 €, sonst waere er ein risikoloser Gelddrucker.
+- **TA-AC-36**: Pro Kalendertag erhaelt ein Manager hoechstens **ein** Bot-Gebot, unabhaengig von der Zahl seiner
+  Angebote. Bietendes Team ist ein zufaelliges Bot-Team, das sich den Betrag leisten kann.
+- **TA-AC-37**: Das Gebot laeuft ueber den regulaeren `placeBid`-Pfad, erzeugt also dieselbe Log-Nachricht und
+  Benachrichtigung wie ein Gebot von einem Mitspieler.
+
+### Millionengeschenk (#537)
+
+- **TA-AC-38**: `MILLION_BONUS` teilt sich den Auszahlungspfad mit `BONUS_100K`; die Betraege stehen in
+  `CASH_CARD_AMOUNTS` (`server/helper/actionCardHelper.js`), nicht in der Verzweigung.
+- **TA-AC-39**: Die Wahrscheinlichkeit ist bewusst als `0.06 * 0.1` notiert, damit sie automatisch mitzieht,
+  wenn der Geldbonus angepasst wird.
+- **TA-AC-40**: Die Karte ist Teil der Admin-Geschenkliste (`GIFTABLE_ACTION_CARD_TYPES`) und der Bot-Preisliste,
+  aber **nicht** zusammenfuehrbar und **nicht** im Belohnungspool des Login-Bonus.
+- **TA-AC-41**: Motiv `client/assets/action-cards/bonus-1m.svg` — dieselbe Geometrie wie die Geldbonus-Karte in
+  einer Gold-Palette, damit sich die beiden Geldkarten auf einen Blick unterscheiden.
+
+### Kartenlimit im Handlungsbedarf (#506)
+
+- **TA-AC-42**: `getDashboardUrgencies` meldet `ACTION_CARDS_FULL` mit der Anzahl der Kartentypen, die
+  `MAX_ACTION_CARDS_PER_TYPE` erreicht haben. Gezaehlt werden nur abgeholte, ungespielte Karten
+  (`played=0 AND state='received'`) — genau die, die gegen das Limit zaehlen.
+- **TA-AC-43**: Der Eintrag hat kein "alles gut"-Gegenstueck (`hideOk`): eine Dauer-Zeile fuer etwas, das nur im
+  Ausnahmefall relevant ist, waere nur Rauschen.
+
+### Kartenzaehler in der Info-Bar (#523)
+
+- **TA-AC-44**: `client/partials/actionCardCount.js` zeigt die Zahl der spielbaren Karten als Info-Bar-Eintrag
+  und verlinkt auf `#my-team?sub_page=cards`. Ausstehende (`pending`) Karten zaehlen nicht mit — sie muessen
+  erst abgeholt werden.
+- **TA-AC-45**: Der Zaehler laedt seine Zahl selbst und abonniert `ACTION_CARDS_CHANGED` sowie `RECONNECTED`
+  eigenstaendig. Er haengt damit an der Layout-Instanz, die einen Seitenwechsel ueberlebt — nicht mehr am
+  Dashboard, das bei einem Re-Render die Startseite samt 3D-Szene und Charts neu aufgebaut haette.
+- **TA-AC-46**: Eingebaut in **beide** Layouts (`gameLayout.js` und `nativeAppLayout.js`) — sonst fehlt der
+  Zaehler in der App.
+- **TA-AC-47**: Faellt `getActionCards` aus, zeigt der Eintrag 0 statt die Info-Bar zu sprengen.
+- **TA-AC-49**: Der Kontostand daneben nutzt `shortEuroFormat` (`client/lib/currency.js`): hoechstens drei
+  Ziffern und hoechstens eine Nachkommastelle, abgeschnitten statt gerundet, Einheit gross und mit Punkt als
+  Dezimaltrenner — `9.9M €`, `706K €`, `1.4B €`. Die Kurzform ist bewusst **sprachunabhaengig**; nur Betraege
+  unter 1.000 laufen ueber `euroFormat` und damit ueber das deutsche Waehrungsformat.
+
+### Startpaket bei der Vereinswahl (#518)
+
+- **TA-AC-48**: `STARTER_ACTION_CARDS` in `server/routes/teamChoice.js` definiert das Startpaket:
+  `NEW_YOUTH_PLAYER_1`, `LEVEL_UP_PLAYER_40`, `STAR_PLAYER`, `NEW_YOUTH_PLAYER_3`, `MILLION_BONUS`. Die Karten
+  werden bei der Uebernahme eines freien Teams vergeben, nachdem der bestehende Kartenbestand des Bot-Teams
+  geloescht wurde.
+
 ### Tests
 
 - Unit-Tests fuer alle Karteneffekte und Level-Caps
@@ -167,3 +252,10 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - Jugendkarten-Deckel pro Saison inkl. Garantiekarte
 - SPY-Snapshot bleibt stabil, wenn der Gegner danach die Taktik aendert
 - Markt: Angebots-Obergrenze, Escrow beim Listen/Zurueckziehen, Bundle zaehlt als ein Angebot
+- Bot-Gebote: Preisliste je Kartentyp, Summenbildung bei Buendeln, ±10%-Grenzen, ein Gebot pro Manager und Tag,
+  Ueberspringen bei unbekannter Karte oder zu klammem Bot-Team
+- Millionengeschenk: Wahrscheinlichkeit als Zehntel des Geldbonus, Auszahlung 1.000.000 €, Bot-Gebotspreis
+- Handlungsbedarf bei vollem Kartenstapel, inklusive Abgrenzung gegen ausstehende und gespielte Karten
+- Kartenzaehler in der Info-Bar: Ladewert, Live-Aktualisierung bei `ACTION_CARDS_CHANGED`/`RECONNECTED`,
+  Verhalten bei fehlgeschlagenem Request
+- Startpaket bei der Vereinswahl inkl. Millionengeschenk

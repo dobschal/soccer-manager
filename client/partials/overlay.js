@@ -48,6 +48,24 @@ function swipeDownAndRemove (overlayId, overlayInnerId, listeners, currentOffset
  * @param {string} overlayInnerId
  * @param {Array<() => void>} listeners
  */
+/**
+ * Whether a touch started inside a scrollable element nested in the overlay
+ * card that still has room to scroll up. Such a gesture belongs to that list,
+ * not to the dismiss-the-overlay swipe (#541).
+ * @param {EventTarget|null} target - the touched node
+ * @param {HTMLElement} innerEl - the overlay card itself, where the walk stops
+ * @returns {boolean}
+ */
+export function startedInsideScrollableContent (target, innerEl) {
+  let node = target instanceof Element ? target : null
+  while (node && node !== innerEl) {
+    const canScroll = node.scrollHeight > node.clientHeight
+    if (canScroll && node.scrollTop > 0) return true
+    node = node.parentElement
+  }
+  return false
+}
+
 function setupTouchSwipe (overlayId, overlayInnerId, listeners) {
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
 
@@ -61,6 +79,7 @@ function setupTouchSwipe (overlayId, overlayInnerId, listeners) {
   let touchCurrentY = 0
   let isSwiping = false
   let startedAtTop = false
+  let startedInNestedScroller = false
   const swipeThreshold = 80
 
   backdropEl.addEventListener('touchstart', (e) => {
@@ -68,6 +87,7 @@ function setupTouchSwipe (overlayId, overlayInnerId, listeners) {
     touchCurrentY = touchStartY
     // Remember if we started at the top - only then can we potentially close
     startedAtTop = innerEl.scrollTop <= 0
+    startedInNestedScroller = startedInsideScrollableContent(e.target, innerEl)
     isSwiping = false // Will be set to true on first downward move if conditions are met
   }, { passive: true })
 
@@ -85,6 +105,12 @@ function setupTouchSwipe (overlayId, overlayInnerId, listeners) {
       innerEl.style.transition = ''
       return
     }
+
+    // The gesture began inside a list that has its own scrollbar and is not at
+    // its top — that is a scroll, not a dismiss. Without this the chat's
+    // message list closed the overlay on every downward drag (#541), because
+    // the card itself never scrolls and so always looked "at the top".
+    if (startedInNestedScroller) return
 
     // Start swipe gesture if: at top, swiping down, and (started at top OR content not scrollable)
     if (isScrolledToTop && deltaY > 0 && (startedAtTop || isNotScrollable)) {
@@ -182,7 +208,10 @@ export function showConfirmDialog (message, confirmLabel = 'OK', cancelLabel = '
  * @param {string} title
  * @param {string} subttitle
  * @param {string} text
- * @param {{ hideHeader?: boolean }} [options]
+ * @param {{ hideHeader?: boolean, cardClass?: string, backdropClass?: string }} [options] -
+ *   `cardClass` / `backdropClass` are put on the overlay card and its backdrop,
+ *   so an overlay that needs a layout of its own (the chat sheet, #541) can
+ *   style both without reaching in with `:has()`.
  * @returns {{onClose: (callback: () => void) => void, remove: () => void}}
  */
 export function showOverlay (title, subttitle, text, options = {}) {
@@ -225,9 +254,12 @@ export function showOverlay (title, subttitle, text, options = {}) {
         </div>
       `
 
+  const backdropClasses = ['overlay-backdrop', options.backdropClass].filter(Boolean).join(' ')
+  const cardClasses = ['card', 'overlay', options.cardClass].filter(Boolean).join(' ')
+
   const html = `
-    <div id="${overlayId}" class="overlay-backdrop">
-      <div id="${overlayInnerId}" class="card overlay">
+    <div id="${overlayId}" class="${backdropClasses}">
+      <div id="${overlayInnerId}" class="${cardClasses}">
         ${headerHtml}
         <div class="card-body">
             ${text}

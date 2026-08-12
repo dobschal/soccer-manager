@@ -1,12 +1,13 @@
 import { server } from '../../lib/gateway.js'
 import { UIElement } from '../../lib/UIElement.js'
 import { Table } from '../../partials/table.js'
-import { goTo, setQueryParams } from '../../lib/router.js'
+import { setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
-import { formatLastActive } from '../../lib/date.js'
+import { formatDate, formatLastActive } from '../../lib/date.js'
 import { formatLeague } from '../../util/league.js'
+import { showUserProfileOverlay } from '../../partials/userProfileOverlay.js'
 
-const SORT_COL_MAP = ['username', 'team_name', 'league', 'last_login', 'is_friend']
+const SORT_COL_MAP = ['username', 'team_name', 'league', 'created_at', 'last_login', 'is_friend']
 
 function renderUserAvatar (avatar, username) {
   const alt = username || ''
@@ -49,6 +50,14 @@ export class BrowseUsersPage extends UIElement {
           }
         },
         {
+          name: t('search.joinedAt'),
+          sortFn: (a, b, asc) => {
+            const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
+            const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
+            return asc ? aTime - bTime : bTime - aTime
+          }
+        },
+        {
           name: t('search.lastLogin'),
           sortFn: (a, b, asc) => {
             const aTime = a.last_login ? new Date(a.last_login).getTime() : 0
@@ -73,13 +82,14 @@ export class BrowseUsersPage extends UIElement {
         user.team_level !== null && user.team_level !== undefined
           ? formatLeague(user.team_level, user.team_league)
           : '<span class="text-muted">—</span>',
+        `<span class="text-muted">${user.created_at ? formatDate('DD.MM.YYYY', user.created_at) : '—'}</span>`,
         `<span class="text-muted">${formatLastActive(user.last_login)}</span>`,
         user.is_friend
           ? '<i class="fa fa-heart text-danger" aria-hidden="true"></i>'
           : '<span class="text-muted">—</span>'
       ],
       onClick: (user) => {
-        goTo(`user?id=${user.id}`)
+        showUserProfileOverlay(user.id)
       }
     })
 

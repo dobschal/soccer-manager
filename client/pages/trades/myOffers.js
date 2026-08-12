@@ -44,7 +44,7 @@ export class MyOffersPage extends UIElement {
       { name: t('trades.type') },
       { name: t('results.name') },
       { name: t('results.team') },
-      { name: t('player.position') },
+      { name: t('player.positionShort') },
       { name: t('player.level'), align: 'right' },
       { name: t('trades.price'), align: 'right', class: 'table-nums' },
       { name: '' }
@@ -67,7 +67,7 @@ export class MyOffersPage extends UIElement {
       { name: t('trades.status') },
       { name: t('results.name') },
       { name: t('results.team') },
-      { name: t('player.position') },
+      { name: t('player.positionShort') },
       { name: t('player.level'), align: 'right' },
       { name: t('trades.price'), align: 'right', class: 'table-nums' },
       { name: '' }

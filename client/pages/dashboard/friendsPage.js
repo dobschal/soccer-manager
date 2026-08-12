@@ -1,36 +1,27 @@
 import { UIElement } from '../../lib/UIElement.js'
-import { server, showServerError } from '../../lib/gateway.js'
+import { server } from '../../lib/gateway.js'
 import { t } from '../../i18n/index.js'
-import { el, generateId } from '../../lib/html.js'
+import { generateId } from '../../lib/html.js'
 import { onClick } from '../../lib/htmlEventHandlers.js'
 import { setQueryParams } from '../../lib/router.js'
 import { renderEmblem } from '../../partials/emblem.js'
 import { formatLeague } from '../../util/league.js'
-import { formatDate } from '../../lib/date.js'
+import { formatDate, isToday } from '../../lib/date.js'
 import { toast } from '../../partials/toast.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
-import { showFriendPostCommentsOverlay } from '../../partials/friendPostCommentsOverlay.js'
-import { showConfirmDialog } from '../../partials/overlay.js'
-import { linkifyHtml } from '../../lib/linkify.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
+import { showUserProfileOverlay } from '../../partials/userProfileOverlay.js'
+import { CHAT_MESSAGES_READ_EVENT } from '../../partials/chatOverlay.js'
 
-/**
- * Render a friend post body: detect http(s) URLs and convert them to
- * external anchors, escape the rest, and turn newlines into <br>.
- * @param {string} text
- * @returns {string}
- */
-function renderFriendPostBody (text) {
-  return linkifyHtml(text == null ? '' : String(text), (escaped) => escaped.replace(/\n/g, '<br>'))
-}
+/** Conversations shown per page in the chat list. */
+const CHATS_PER_PAGE = 5
+
+/** Friends shown per page in the friends table. */
+const FRIENDS_PER_PAGE = 7
 
 function avatarSrc (avatar) {
   if (avatar) return `${window.__NATIVE_SERVER_URL || ''}/uploads/avatars/${avatar}`
   return './assets/avatar-placeholder.svg'
-}
-
-function postImageSrc (filename) {
-  return `${window.__NATIVE_SERVER_URL || ''}/uploads/friend-posts/${filename}`
 }
 
 function escapeHtml (text) {
@@ -40,32 +31,67 @@ function escapeHtml (text) {
 }
 
 /**
- * Friends sub-page on the dashboard. Lists all incoming and outgoing
- * friendships in a single table with links to the friend's club, league and
- * last game, plus accept/decline actions for purely incoming requests.
- * Underneath, a "Posts" section lets friends share text + optional image
- * updates with comments and likes.
+ * One-line preview of a conversation's most recent message, WhatsApp style:
+ * the message text, or a placeholder for image / voice messages, prefixed with
+ * "You:" when the current user sent it.
+ * @param {{lastMessage: {text: string|null, hasImage: boolean, hasAudio: boolean, fromMe: boolean}|null}} conversation
+ * @returns {string} escaped HTML
+ */
+function chatPreview (conversation) {
+  const last = conversation.lastMessage
+  if (!last) return escapeHtml(t('chat.noMessages'))
+  let body
+  if (last.text) body = last.text
+  else if (last.hasAudio) body = t('chat.voiceMessage')
+  else if (last.hasImage) body = t('chat.imageMessage')
+  else body = t('chat.noMessages')
+  const prefix = last.fromMe ? t('chat.previewYou') : ''
+  return escapeHtml(prefix + body)
+}
+
+/**
+ * Timestamp of the last message: time of day while it is from today,
+ * "Yesterday" for the day before, and the plain date beyond that.
+ * @param {string|Date|null|undefined} value
+ * @returns {string}
+ */
+function formatChatTime (value) {
+  if (!value) return ''
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  if (isToday(date)) return formatDate('hh:mm', date)
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const sameDay = date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate()
+  if (sameDay) return t('chat.yesterday')
+  return formatDate('DD.MM.YYYY', date)
+}
+
+/**
+ * Friends sub-page on the dashboard. The active conversations come first as a
+ * messenger-style list (avatar, name, last-message preview, timestamp), and
+ * below that the friendships themselves — incoming and outgoing — with links
+ * to the friend's club, league and last game plus accept/decline actions for
+ * purely incoming requests. Both lists are paginated.
  */
 export class FriendsPage extends UIElement {
   async load () {
-    const [{ entries }, postsData, teamResponse] = await Promise.all([
+    const [{ entries }, conversationsResponse] = await Promise.all([
       server.getFriendsOverview(),
-      server.getFriendPosts(1),
-      server.getMyTeam()
+      server.getConversations().catch(() => ({ conversations: [] }))
     ])
     this._entries = entries || []
-    this._posts = postsData.posts || []
-    this._postsPage = postsData.page
-    this._postsTotalPages = postsData.totalPages
-    this._currentUserId = teamResponse.user?.id ?? null
+    this._conversations = conversationsResponse.conversations || []
+    this._clampPages()
   }
 
   get template () {
     return `
       <div>
-        <h3 class="mb-3"><i class="fa fa-users"></i> ${t('friends.title')} ${wikiInfoIcon('friends')}</h3>
-        ${this._renderTable()}
-        ${this._renderPostsSection()}
+        ${this._renderChatsSection()}
+        ${this._renderFriendsSection()}
         <div class="d-flex flex-column flex-md-row u-gap-md mt-4 dashboard-promo-row mb-4">
           ${this._renderInviteCard()}
         </div>
@@ -73,14 +99,131 @@ export class FriendsPage extends UIElement {
     `
   }
 
-  _entries = []
-  _posts = []
-  _postsPage = 1
-  _postsTotalPages = 1
-  _pendingPostImage = null
-  _currentUserId = null
+  /**
+   * @returns {import('../../lib/UIElement.js').UIElementEvents}
+   */
+  get events () {
+    return {
+      // Delegated: every avatar / name link in the list carries the user id
+      // and opens the profile as an overlay instead of navigating (#532).
+      '(optional) [data-profile-user-id]': {
+        click: (event) => {
+          event.preventDefault()
+          showUserProfileOverlay(Number(event.currentTarget.dataset.profileUserId))
+        }
+      }
+    }
+  }
 
-  _renderTable () {
+  /**
+   * A message arriving for any conversation changes the chat list (new
+   * preview, new order, unread highlight), so refetch it.
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      NEW_CHAT_MESSAGE: () => { void this._reloadConversations() }
+    }
+  }
+
+  onMounted () {
+    // Opening a conversation marks it read — drop the unread highlight again.
+    window.addEventListener(CHAT_MESSAGES_READ_EVENT, this._onChatMessagesRead)
+  }
+
+  onDestroy () {
+    window.removeEventListener(CHAT_MESSAGES_READ_EVENT, this._onChatMessagesRead)
+  }
+
+  _entries = []
+  _conversations = []
+  _chatsPage = 1
+  _friendsPage = 1
+
+  _onChatMessagesRead = () => { void this._reloadConversations() }
+
+  /**
+   * Keep both page numbers inside their list's bounds, e.g. after removing a
+   * friend emptied the last page.
+   * @returns {void}
+   */
+  _clampPages () {
+    this._chatsPage = Math.min(Math.max(1, this._chatsPage), this._chatsTotalPages)
+    this._friendsPage = Math.min(Math.max(1, this._friendsPage), this._friendsTotalPages)
+  }
+
+  get _chatsTotalPages () {
+    return Math.max(1, Math.ceil(this._conversations.length / CHATS_PER_PAGE))
+  }
+
+  get _friendsTotalPages () {
+    return Math.max(1, Math.ceil(this._entries.length / FRIENDS_PER_PAGE))
+  }
+
+  // ─── Chats ───────────────────────────────────────────────────────────────
+
+  _renderChatsSection () {
+    return `
+      <section class="chat-list-section mb-4">
+        <h4 class="mb-2"><i class="fa fa-comments"></i> ${t('chat.conversations')}</h4>
+        ${this._renderChatList()}
+      </section>
+    `
+  }
+
+  _renderChatList () {
+    if (this._conversations.length === 0) {
+      return `
+        <div class="card card-body bg-dark text-white text-center py-4">
+          <i class="fa fa-comment-o fa-2x mb-2 opacity-50"></i>
+          <p class="mb-0">${t('chat.empty')}</p>
+        </div>
+      `
+    }
+    const start = (this._chatsPage - 1) * CHATS_PER_PAGE
+    const items = this._conversations
+      .slice(start, start + CHATS_PER_PAGE)
+      .map(conversation => this._renderChatItem(conversation))
+      .join('')
+    return `
+      <div class="chat-list">${items}</div>
+      ${this._renderPagination(this._chatsPage, this._chatsTotalPages, page => this._goToChatsPage(page))}
+    `
+  }
+
+  _renderChatItem (conversation) {
+    const itemId = generateId()
+    onClick('#' + itemId, () => setQueryParams({ chat_user: conversation.userId }))
+    const unread = Number(conversation.unread) > 0
+    return `
+      <button id="${itemId}" type="button"
+        class="chat-list-item${unread ? ' chat-list-item--unread bg-info-subtle' : ''}">
+        <img class="chat-list-item__avatar${conversation.avatar ? '' : ' chat-list-item__avatar--default'}"
+             src="${avatarSrc(conversation.avatar)}" alt="">
+        <span class="chat-list-item__body">
+          <span class="chat-list-item__name">${escapeHtml(conversation.username)}</span>
+          <span class="chat-list-item__preview">${chatPreview(conversation)}</span>
+        </span>
+        <span class="chat-list-item__meta">
+          <span class="chat-list-item__time">${formatChatTime(conversation.lastMessageAt)}</span>
+          ${unread ? `<span class="badge rounded-pill bg-danger">${conversation.unread}</span>` : ''}
+        </span>
+      </button>
+    `
+  }
+
+  // ─── Friends ─────────────────────────────────────────────────────────────
+
+  _renderFriendsSection () {
+    return `
+      <section class="mb-4">
+        <h4 class="mb-2"><i class="fa fa-users"></i> ${t('friends.title')} ${wikiInfoIcon('friends')}</h4>
+        ${this._renderFriendsList()}
+      </section>
+    `
+  }
+
+  _renderFriendsList () {
     if (this._entries.length === 0) {
       return `
         <div class="card card-body bg-dark text-white text-center py-4">
@@ -89,7 +232,11 @@ export class FriendsPage extends UIElement {
         </div>
       `
     }
-    const rows = this._entries.map(entry => this._renderRow(entry)).join('')
+    const start = (this._friendsPage - 1) * FRIENDS_PER_PAGE
+    const rows = this._entries
+      .slice(start, start + FRIENDS_PER_PAGE)
+      .map(entry => this._renderRow(entry))
+      .join('')
     return `
       <div class="horizontal-scrollable-table">
         <table class="table table-hover wide-on-mobile align-middle friends-table">
@@ -109,26 +256,29 @@ export class FriendsPage extends UIElement {
           </tbody>
         </table>
       </div>
+      ${this._renderPagination(this._friendsPage, this._friendsTotalPages, page => this._goToFriendsPage(page))}
     `
   }
 
   _renderRow (entry) {
     const teamLink = entry.team ? `#team?id=${entry.team.id}` : '#dashboard'
     const userLink = `#user?id=${entry.userId}`
+    // Opens the profile as an overlay so the friends list stays put (#532).
+    const profileAttr = ` data-profile-user-id="${entry.userId}"`
     const leagueLink = entry.team
       ? `#results?level=${entry.team.level}&league=${entry.team.league}`
       : null
     const gameLink = entry.lastGame ? `#results?game_id=${entry.lastGame.id}` : null
 
     const avatarCell = `
-      <a href="${userLink}" class="d-inline-block">
+      <a href="${userLink}"${profileAttr} class="d-inline-block">
         <img class="friends-avatar${entry.avatar ? '' : ' friends-avatar--default'}"
              src="${avatarSrc(entry.avatar)}" alt="${entry.username}">
       </a>
     `
 
     const nameCell = `
-      <a href="${userLink}" class="text-decoration-none">
+      <a href="${userLink}"${profileAttr} class="text-decoration-none">
         ${entry.username}
         ${entry.status === 'incoming' ? `<span class="badge bg-info ms-1">${t('friends.incoming')}</span>` : ''}
       </a>
@@ -235,151 +385,31 @@ export class FriendsPage extends UIElement {
     `
   }
 
-  _renderPostsSection () {
-    return `
-      <div class="friend-posts-section">
-        <h4 class="mb-3"><i class="fa fa-comments"></i> ${t('friendPosts.title')}</h4>
-        ${this._renderPostList()}
-        ${this._renderPostEditor()}
-      </div>
-    `
-  }
+  // ─── Pagination ──────────────────────────────────────────────────────────
 
-  _renderPostEditor () {
-    const textareaId = generateId()
-    const fileInputId = generateId()
-    const sendBtnId = generateId()
-    const previewId = generateId()
-
-    onClick('#' + sendBtnId, () => this._submitPost(textareaId, previewId))
-
-    // File input change must be wired up after mount; onClick only handles
-    // click. Use a setTimeout to attach a change listener once the input is
-    // in the DOM.
-    setTimeout(() => {
-      const input = el('#' + fileInputId)
-      if (input && !input._friendPostBound) {
-        input.addEventListener('change', (e) => this._onPostImageSelected(e, previewId))
-        input._friendPostBound = true
-      }
-    }, 0)
-
-    return `
-      <div class="friend-post-editor card card-body mb-3 mt-2 bg-info-subtle">
-        <textarea id="${textareaId}" class="form-control"
-          placeholder="${t('friendPosts.postPlaceholder')}"
-          maxlength="5000" rows="3"></textarea>
-        <div id="${previewId}" class="friend-post-editor-preview"></div>
-        <div class="friend-post-editor-actions">
-          <label class="btn btn-outline-secondary btn-sm friend-post-image-btn" title="${t('friendPosts.addImage')}">
-            <i class="fa fa-image"></i>
-            <input id="${fileInputId}" type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
-          </label>
-          <button id="${sendBtnId}" type="button" class="btn btn-info text-white btn-sm">
-            <i class="fa fa-paper-plane me-1"></i> ${t('friendPosts.send')}
-          </button>
-        </div>
-      </div>
-    `
-  }
-
-  _renderPostList () {
-    if (this._posts.length === 0) {
-      return `
-        <div class="card card-body bg-dark text-white text-center py-4">
-          <i class="fa fa-comment-o fa-2x mb-2 opacity-50"></i>
-          <p class="mb-0">${t('friendPosts.empty')}</p>
-        </div>
-      `
-    }
-    const posts = this._posts.map(post => this._renderPost(post)).join('')
-    const pagination = this._renderPagination()
-    return `
-      <div class="friend-post-list">${posts}</div>
-      ${pagination}
-    `
-  }
-
-  _renderPost (post) {
-    const date = formatDate('DD.MM.YYYY hh:mm', post.createdAt)
-    const teamLink = post.teamId ? `#team?id=${post.teamId}` : null
-    const authorLine = teamLink
-      ? `<a href="${teamLink}" class="friend-post-author-link">
-          <strong>${escapeHtml(post.username)}</strong>
-          ${post.teamName ? `<span class="text-muted ms-1">- ${escapeHtml(post.teamName)}</span>` : ''}
-        </a>`
-      : `<strong>${escapeHtml(post.username)}</strong>`
-
-    const imageMarkup = post.imageFilename
-      ? `<div class="friend-post-image-wrap">
-           <img class="friend-post-image" src="${postImageSrc(post.imageFilename)}" alt="">
-         </div>`
-      : ''
-
-    const likeBtnId = generateId()
-    const commentBtnId = generateId()
-    onClick('#' + likeBtnId, () => this._toggleLike(post.id))
-    onClick('#' + commentBtnId, () => this._openComments(post.id))
-
-    const isOwnPost = this._currentUserId && Number(post.userId) === Number(this._currentUserId)
-    let deleteButton = ''
-    if (isOwnPost) {
-      const deleteBtnId = generateId()
-      onClick('#' + deleteBtnId, () => this._deletePost(post.id))
-      deleteButton = `
-        <button id="${deleteBtnId}" type="button"
-          class="btn btn-sm btn-outline-danger friend-post-actions__delete"
-          title="${t('friendPosts.delete')}" aria-label="${t('friendPosts.delete')}">
-          <i class="fa fa-trash"></i>
-        </button>
-      `
-    }
-
-    return `
-      <article class="friend-post card card-body${post.imageFilename ? '' : ' friend-post--no-image'}">
-        ${imageMarkup}
-        <div class="friend-post-content">
-          <header class="friend-post-header">
-            ${authorLine}
-            <small class="text-muted ms-2">${date}</small>
-          </header>
-          <div class="friend-post-text">${renderFriendPostBody(post.text)}</div>
-          <div class="friend-post-actions">
-            <button id="${likeBtnId}" type="button"
-              class="btn btn-sm ${post.likedByMe ? 'btn-danger' : 'btn-outline-danger'}"
-              title="${t('friendPosts.like')}">
-              <i class="fa fa-heart${post.likedByMe ? '' : '-o'}"></i>
-              <span class="ms-1">${post.likeCount}</span>
-            </button>
-            <button id="${commentBtnId}" type="button" class="btn btn-sm btn-outline-info"
-              title="${t('friendPosts.comments')}">
-              <i class="fa fa-comment-o"></i>
-              <span class="ms-1">${post.commentCount}</span>
-            </button>
-            ${deleteButton}
-          </div>
-        </div>
-      </article>
-    `
-  }
-
-  _renderPagination () {
-    if (this._postsTotalPages <= 1) return ''
+  /**
+   * Prev / next controls shared by both lists. Renders nothing while
+   * everything fits on a single page.
+   * @param {number} page - current 1-based page
+   * @param {number} totalPages
+   * @param {(page: number) => void} onGo
+   * @returns {string}
+   */
+  _renderPagination (page, totalPages, onGo) {
+    if (totalPages <= 1) return ''
     const prevId = generateId()
     const nextId = generateId()
-    const prevDisabled = this._postsPage <= 1
-    const nextDisabled = this._postsPage >= this._postsTotalPages
-    if (!prevDisabled) onClick('#' + prevId, () => this._goToPage(this._postsPage - 1))
-    if (!nextDisabled) onClick('#' + nextId, () => this._goToPage(this._postsPage + 1))
+    const prevDisabled = page <= 1
+    const nextDisabled = page >= totalPages
+    if (!prevDisabled) onClick('#' + prevId, () => onGo(page - 1))
+    if (!nextDisabled) onClick('#' + nextId, () => onGo(page + 1))
     return `
-      <div class="friend-post-pagination">
+      <div class="list-pagination">
         <button id="${prevId}" type="button" class="btn btn-sm btn-outline-secondary"
           ${prevDisabled ? 'disabled' : ''}>
           <i class="fa fa-chevron-left"></i>
         </button>
-        <span class="friend-post-pagination-label">
-          ${t('friendPosts.page')} ${this._postsPage} / ${this._postsTotalPages}
-        </span>
+        <span class="list-pagination-label">${t('friends.page')} ${page} / ${totalPages}</span>
         <button id="${nextId}" type="button" class="btn btn-sm btn-outline-secondary"
           ${nextDisabled ? 'disabled' : ''}>
           <i class="fa fa-chevron-right"></i>
@@ -388,123 +418,33 @@ export class FriendsPage extends UIElement {
     `
   }
 
-  _onPostImageSelected (e, previewId) {
-    const file = e.target.files && e.target.files[0]
-    if (!file) {
-      this._pendingPostImage = null
-      this._updatePreview(previewId)
-      return
-    }
-    if (!file.type.startsWith('image/')) {
-      toast(t('friendPosts.invalidImage'), 'error')
-      return
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast(t('friendPosts.imageTooLarge'), 'error')
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
-      this._pendingPostImage = {
-        data: reader.result,
-        type: file.type
-      }
-      this._updatePreview(previewId)
-    }
-    reader.readAsDataURL(file)
+  async _goToChatsPage (page) {
+    this._chatsPage = page
+    this._clampPages()
+    await this._rerender()
   }
 
-  _updatePreview (previewId) {
-    const preview = el('#' + previewId)
-    if (!preview) return
-    if (!this._pendingPostImage) {
-      preview.innerHTML = ''
-      return
-    }
-    const removeId = generateId()
-    onClick('#' + removeId, () => {
-      this._pendingPostImage = null
-      this._updatePreview(previewId)
-    })
-    preview.innerHTML = `
-      <div class="friend-post-preview-item">
-        <img src="${this._pendingPostImage.data}" alt="">
-        <button id="${removeId}" type="button" class="friend-post-preview-remove">
-          <i class="fa fa-times"></i>
-        </button>
-      </div>
-    `
+  async _goToFriendsPage (page) {
+    this._friendsPage = page
+    this._clampPages()
+    await this._rerender()
   }
 
-  async _submitPost (textareaId, previewId) {
-    const textarea = el('#' + textareaId)
-    if (!textarea) return
-    const text = textarea.value.trim()
-    if (!text) {
-      toast(t('friendPosts.emptyText'), 'error')
-      return
-    }
+  // ─── Data ────────────────────────────────────────────────────────────────
+
+  /**
+   * Refetch just the conversations (chat list) and redraw. Failures are
+   * swallowed: the chat list is secondary to the friendships below it.
+   * @returns {Promise<void>}
+   */
+  async _reloadConversations () {
     try {
-      await server.createFriendPost(text, this._pendingPostImage)
-      textarea.value = ''
-      this._pendingPostImage = null
-      this._updatePreview(previewId)
-      await this._reloadPosts(1)
-    } catch (err) {
-      showServerError(err)
-    }
-  }
-
-  async _toggleLike (postId) {
-    try {
-      const {
-        liked,
-        likeCount
-      } = await server.toggleFriendPostLike(postId)
-      const post = this._posts.find(p => p.id === postId)
-      if (post) {
-        post.likedByMe = liked
-        post.likeCount = likeCount
-      }
+      const { conversations } = await server.getConversations()
+      this._conversations = conversations || []
+      this._clampPages()
       await this._rerender()
-    } catch (err) {
-      showServerError(err)
-    }
-  }
-
-  _openComments (postId) {
-    showFriendPostCommentsOverlay(postId, () => this._reloadPosts(this._postsPage))
-  }
-
-  async _deletePost (postId) {
-    const confirmed = await showConfirmDialog(
-      t('friendPosts.confirmDelete'),
-      t('friendPosts.delete'),
-      t('forum.cancel')
-    )
-    if (!confirmed) return
-    try {
-      await server.deleteFriendPost(postId)
-      toast(t('friendPosts.deleted'), 'success')
-      await this._reloadPosts(this._postsPage)
-    } catch (err) {
-      showServerError(err)
-    }
-  }
-
-  async _goToPage (page) {
-    await this._reloadPosts(page)
-  }
-
-  async _reloadPosts (page) {
-    try {
-      const data = await server.getFriendPosts(page)
-      this._posts = data.posts || []
-      this._postsPage = data.page
-      this._postsTotalPages = data.totalPages
-      await this._rerender()
-    } catch (err) {
-      showServerError(err)
+    } catch (e) {
+      console.warn('[friends] could not refresh conversations', e)
     }
   }
 

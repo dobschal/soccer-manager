@@ -9,6 +9,7 @@ import { fetchText } from '../lib/fetchText.js'
 import { isValidEmail } from '../lib/emailRegex.js'
 import { showInviteFriendOverlay } from '../partials/inviteFriendOverlay.js'
 import { discordLinkHtml } from '../lib/discord.js'
+import { showUserProfileOverlay } from './userProfileOverlay.js'
 
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024
@@ -375,7 +376,13 @@ export async function showAccountOverlay () {
   const bindProfileLinkHandlers = () => {
     const profileBtn = el('#account-view-profile')
     if (profileBtn) {
-      profileBtn.addEventListener('click', () => overlay.remove())
+      // Close the settings overlay and show the profile as an overlay of its
+      // own rather than navigating away (#532).
+      profileBtn.addEventListener('click', (event) => {
+        event.preventDefault()
+        overlay.remove()
+        showUserProfileOverlay(userId)
+      })
     }
     const inviteBtn = el('#account-invite-friend')
     if (inviteBtn) {

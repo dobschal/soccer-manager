@@ -25,7 +25,8 @@ vi.mock('../../helper/youthPlayerHelper.js', () => ({
   fireYouthPlayer: vi.fn(),
   setYouthTrainingMode: vi.fn(),
   setYouthPlayerTrainingMode: vi.fn(),
-  countYouthPlayersInMode: vi.fn().mockResolvedValue(0)
+  countYouthPlayersInMode: vi.fn().mockResolvedValue(0),
+  calculateYouthPlayerValue: vi.fn(() => 75000)
 }))
 
 vi.mock('../../helper/buildingHelper.js', () => ({
@@ -46,6 +47,10 @@ vi.mock('../../lib/websocket.js', () => ({
   sendToUser: vi.fn().mockReturnValue(true)
 }))
 
+vi.mock('../../helper/financeHelper.js', () => ({
+  updateTeamBalance: vi.fn()
+}))
+
 import { sendToUser } from '../../lib/websocket.js'
 import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
 import { getTeam } from '../../helper/teamHelper.js'
@@ -59,10 +64,12 @@ import {
   fireYouthPlayer,
   setYouthTrainingMode,
   setYouthPlayerTrainingMode,
-  countYouthPlayersInMode
+  countYouthPlayersInMode,
+  calculateYouthPlayerValue
 } from '../../helper/youthPlayerHelper.js'
 import { getYouthAcademyLevel } from '../../helper/buildingHelper.js'
 import { getPlayersByTeamId } from '../../helper/playerHelper.js'
+import { updateTeamBalance } from '../../helper/financeHelper.js'
 import handlers from '../../routes/youth.js'
 
 describe('youth routes', () => {
@@ -455,5 +462,77 @@ describe('youth routes', () => {
       await expect(handlers.fireYouthPlayer(1, req))
         .rejects.toMatchObject({ message: 'error.notYourYouthPlayer' })
     })
+  })
+})
+
+describe('youth.sellYouthPlayer (#524)', () => {
+  const team = { id: 7, user_id: 1, name: 'Test FC' }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getTeam.mockResolvedValue(team)
+    getGameDayAndSeason.mockResolvedValue({ gameDay: 3, season: 5 })
+    calculateYouthPlayerValue.mockReturnValue(75000)
+  })
+
+  it('credits the club and removes the player', async () => {
+    getYouthPlayerById.mockResolvedValue({ id: 55, team_id: 7, name: 'Max Mustermann', level: 8, talent: 0.6 })
+
+    const result = await handlers.sellYouthPlayer(55, createMockRequest())
+
+    expect(result).toEqual({ success: true, value: 75000 })
+    expect(fireYouthPlayer).toHaveBeenCalledWith(55)
+    expect(updateTeamBalance).toHaveBeenCalledWith(team, 75000, expect.any(String), 3, 5)
+  })
+
+  it('removes the player before booking the payout', async () => {
+    getYouthPlayerById.mockResolvedValue({ id: 55, team_id: 7, name: 'Max', level: 8, talent: 0.6 })
+    const order = []
+    fireYouthPlayer.mockImplementation(async () => { order.push('remove') })
+    updateTeamBalance.mockImplementation(async () => { order.push('pay') })
+
+    await handlers.sellYouthPlayer(55, createMockRequest())
+
+    // Paying first and then failing to delete would leave the club with both.
+    expect(order).toEqual(['remove', 'pay'])
+  })
+
+  it('logs the sale for the manager', async () => {
+    getYouthPlayerById.mockResolvedValue({ id: 55, team_id: 7, name: 'Max', level: 8, talent: 0.6 })
+
+    await handlers.sellYouthPlayer(55, createMockRequest())
+
+    expect(addLogMessage).toHaveBeenCalledWith(
+      'log.youthPlayerSold', team, null, null, 'money', undefined, 'success'
+    )
+  })
+
+  it('rejects a player from another team', async () => {
+    getYouthPlayerById.mockResolvedValue({ id: 55, team_id: 999, name: 'Max' })
+
+    await expect(handlers.sellYouthPlayer(55, createMockRequest()))
+      .rejects.toMatchObject({ message: 'error.notYourYouthPlayer' })
+    expect(fireYouthPlayer).not.toHaveBeenCalled()
+    expect(updateTeamBalance).not.toHaveBeenCalled()
+  })
+
+  it('rejects an unknown player', async () => {
+    getYouthPlayerById.mockResolvedValue(null)
+
+    await expect(handlers.sellYouthPlayer(55, createMockRequest()))
+      .rejects.toMatchObject({ message: 'error.youthPlayerNotFound' })
+    expect(updateTeamBalance).not.toHaveBeenCalled()
+  })
+
+  it('exposes the sale value with every youth player, but never the talent', async () => {
+    getYouthPlayersByTeam.mockResolvedValue([
+      { id: 55, team_id: 7, name: 'Max', level: 8, talent: 0.6, birth_season: 5 }
+    ])
+    getYouthPlayerAge.mockReturnValue(16)
+
+    const result = await handlers.getYouthTeam(createMockRequest())
+
+    expect(result.youthPlayers[0].market_value).toBe(75000)
+    expect(result.youthPlayers[0].talent).toBeUndefined()
   })
 })

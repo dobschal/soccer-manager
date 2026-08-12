@@ -26,7 +26,10 @@ vi.mock('../../helper/actionCardHelper.js', () => ({
 import { query } from '../../lib/database.js'
 import { updateTeamBalance } from '../../helper/financeHelper.js'
 import { getTeamById } from '../../helper/teamHelper.js'
-import { createOffer, placeBid, acceptBid, getTradeHistory } from '../../helper/actionCardMarketHelper.js'
+import {
+  createOffer, placeBid, acceptBid, getTradeHistory,
+  calculateBotBidAmount, placeBotCardBids, BOT_CARD_BID_PRICES
+} from '../../helper/actionCardMarketHelper.js'
 
 const team = (over = {}) => ({ id: 1, name: 'My FC', user_id: 10, balance: 1000000, ...over })
 
@@ -197,5 +200,157 @@ describe('getTradeHistory', () => {
     expect(trades[0].money).toBe(40000) // received money
     expect(trades[1].role).toBe('bought')
     expect(trades[1].money).toBe(-10000) // paid money
+  })
+})
+
+describe('calculateBotBidAmount (#505)', () => {
+  it('uses the price list for a single card', () => {
+    expect(calculateBotBidAmount([{ action: 'STAR_PLAYER' }], () => 0.5)).toBe(500000)
+  })
+
+  it('sums the prices of a bundled offer', () => {
+    const amount = calculateBotBidAmount(
+      [{ action: 'FRESHNESS_5' }, { action: 'SPY' }],
+      () => 0.5
+    )
+    expect(amount).toBe(25000)
+  })
+
+  it('stays within the ±10% threshold', () => {
+    const base = BOT_CARD_BID_PRICES.LEVEL_UP_PLAYER_40
+    expect(calculateBotBidAmount([{ action: 'LEVEL_UP_PLAYER_40' }], () => 0)).toBe(base * 0.9)
+    expect(calculateBotBidAmount([{ action: 'LEVEL_UP_PLAYER_40' }], () => 1)).toBe(base * 1.1)
+  })
+
+  it('returns 0 for an unknown card so the offer is skipped', () => {
+    expect(calculateBotBidAmount([{ action: 'SOMETHING_NEW' }], () => 0.5)).toBe(0)
+    expect(calculateBotBidAmount([{ action: 'SPY' }, { action: 'SOMETHING_NEW' }], () => 0.5)).toBe(0)
+  })
+
+  it('returns 0 for an empty bundle', () => {
+    expect(calculateBotBidAmount([], () => 0.5)).toBe(0)
+  })
+
+  it('prices every card type the ticket lists', () => {
+    for (const action of [
+      'NEW_YOUTH_PLAYER_1', 'NEW_YOUTH_PLAYER_2', 'NEW_YOUTH_PLAYER_3', 'STAR_PLAYER',
+      'MOTIVATING_SPEECH', 'LEVEL_UP_PLAYER_40', 'LEVEL_UP_PLAYER_70', 'LEVEL_UP_PLAYER_100',
+      'FRESHNESS_5', 'FRESHNESS_10', 'FRESHNESS_20', 'SPY'
+    ]) {
+      expect(BOT_CARD_BID_PRICES[action]).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('placeBotCardBids (#505)', () => {
+  const botTeam = { id: 99, name: 'Bot FC', user_id: null, balance: 5000000 }
+
+  it('bids on an offer older than 24h and notifies the offerer', async () => {
+    getTeamById.mockResolvedValue({ id: 1, name: 'My FC', user_id: 10 })
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM team WHERE user_id IS NULL')) return [botTeam]
+      if (sql.includes('FROM action_card_offer o') && sql.includes('INTERVAL ? HOUR')) {
+        return [{ id: 900, from_team_id: 1, created_at: '2026-08-01 10:00:00' }]
+      }
+      if (sql.includes('DATE(b.created_at) = CURDATE()')) return []
+      if (sql.includes('FROM action_card_offer_card')) return [{ action_card_id: 55, action: 'SPY' }]
+      if (sql.includes("SELECT * FROM action_card_offer WHERE id=? AND status='open'")) {
+        return [{ id: 900, from_team_id: 1, status: 'open' }]
+      }
+      if (sql.includes('INSERT INTO action_card_bid_card')) return { insertId: 1 }
+      if (sql.includes('INSERT INTO action_card_bid')) return { insertId: 700 }
+      return []
+    })
+
+    const result = await placeBotCardBids()
+
+    expect(result.bids).toBe(1)
+    const bidInsert = query.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO action_card_bid '))
+    expect(bidInsert[1].bidder_team_id).toBe(99)
+    expect(bidInsert[1].money).toBeGreaterThanOrEqual(18000)
+    expect(bidInsert[1].money).toBeLessThanOrEqual(22000)
+  })
+
+  it('skips a manager who already received a bot bid today', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM team WHERE user_id IS NULL')) return [botTeam]
+      if (sql.includes('FROM action_card_offer o') && sql.includes('INTERVAL ? HOUR')) {
+        return [{ id: 900, from_team_id: 1, created_at: '2026-08-01 10:00:00' }]
+      }
+      if (sql.includes('DATE(b.created_at) = CURDATE()')) return [{ team_id: 1 }]
+      return []
+    })
+
+    const result = await placeBotCardBids()
+
+    expect(result.bids).toBe(0)
+    expect(query.mock.calls.some(([sql]) => String(sql).includes('INSERT INTO action_card_bid'))).toBe(false)
+  })
+
+  it('places at most one bid per manager even with several aged offers', async () => {
+    getTeamById.mockResolvedValue({ id: 1, name: 'My FC', user_id: 10 })
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM team WHERE user_id IS NULL')) return [botTeam]
+      if (sql.includes('FROM action_card_offer o') && sql.includes('INTERVAL ? HOUR')) {
+        return [
+          { id: 900, from_team_id: 1, created_at: '2026-08-01 10:00:00' },
+          { id: 901, from_team_id: 1, created_at: '2026-08-01 11:00:00' }
+        ]
+      }
+      if (sql.includes('DATE(b.created_at) = CURDATE()')) return []
+      if (sql.includes('FROM action_card_offer_card')) return [{ action_card_id: 55, action: 'SPY' }]
+      if (sql.includes("SELECT * FROM action_card_offer WHERE id=? AND status='open'")) {
+        return [{ id: 900, from_team_id: 1, status: 'open' }]
+      }
+      if (sql.includes('INSERT INTO action_card_bid_card')) return { insertId: 1 }
+      if (sql.includes('INSERT INTO action_card_bid')) return { insertId: 700 }
+      return []
+    })
+
+    const result = await placeBotCardBids()
+
+    expect(result.bids).toBe(1)
+  })
+
+  it('does not bid when no bot team can afford the bundle', async () => {
+    query.mockImplementation(async (sql) => {
+      if (sql.includes('FROM team WHERE user_id IS NULL')) return [{ ...botTeam, balance: 100 }]
+      if (sql.includes('FROM action_card_offer o') && sql.includes('INTERVAL ? HOUR')) {
+        return [{ id: 900, from_team_id: 1, created_at: '2026-08-01 10:00:00' }]
+      }
+      if (sql.includes('DATE(b.created_at) = CURDATE()')) return []
+      if (sql.includes('FROM action_card_offer_card')) return [{ action_card_id: 55, action: 'STAR_PLAYER' }]
+      return []
+    })
+
+    const result = await placeBotCardBids()
+
+    expect(result.bids).toBe(0)
+  })
+
+  it('does nothing when there are no bot teams', async () => {
+    query.mockResolvedValue([])
+    const result = await placeBotCardBids()
+    expect(result.bids).toBe(0)
+  })
+})
+
+describe('million bonus card on the marketplace (#537)', () => {
+  it('has a bot bid price just under its face value', () => {
+    expect(BOT_CARD_BID_PRICES.MILLION_BONUS).toBe(900000)
+    // Bidding the full 1M would make listing the card a risk-free profit.
+    expect(BOT_CARD_BID_PRICES.MILLION_BONUS).toBeLessThan(1_000_000)
+  })
+
+  it('is priced ten times the cash bonus, like its payout', () => {
+    expect(BOT_CARD_BID_PRICES.MILLION_BONUS).toBe(BOT_CARD_BID_PRICES.BONUS_100K * 10)
+  })
+
+  it('is valued like any other card in a bundle', () => {
+    const amount = calculateBotBidAmount(
+      [{ action: 'MILLION_BONUS' }, { action: 'SPY' }],
+      () => 0.5
+    )
+    expect(amount).toBe(920000)
   })
 })

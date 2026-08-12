@@ -1,6 +1,7 @@
 import { Formation, getPositionsOfFormation } from '../../util/formation.js'
 import { server, showServerError } from '../../lib/gateway.js'
-import { showOverlay } from '../../partials/overlay.js'
+import { showConfirmDialog, showOverlay } from '../../partials/overlay.js'
+import { el, generateId } from '../../lib/html.js'
 import { PlayerList } from '../../partials/playerList.js'
 import { toast } from '../../partials/toast.js'
 import { setQueryParams } from '../../lib/router.js'
@@ -45,12 +46,31 @@ export class ATeamPage extends UIElement {
   }
 
   /**
+   * Load the saved lineup slots (#481). Kept on this page rather than on the
+   * parent so the other tabs don't pay for a request they never use.
+   * @returns {Promise<void>}
+   */
+  async load () {
+    try {
+      const result = await server.getMyLineups()
+      this._lineups = result.lineups
+      this._activeLineupId = result.activeId
+    } catch {
+      // A failure here must not take the whole squad page down — the lineup
+      // picker just stays hidden.
+      this._lineups = []
+      this._activeLineupId = null
+    }
+  }
+
+  /**
    * @returns {string}
    */
   get template () {
     return `
       <div>
         <h3>${t('myTeam.lineup')} ${wikiInfoIcon('lineup')}</h3>
+        ${this._renderLineupManager()}
         ${this._renderMotivatingSpeechBanner()}
         <div class="mb-4" id="squad">
           ${new Lineup(this.parent.data.players, this.parent.data.team, this.parent.season)}
@@ -82,6 +102,47 @@ export class ATeamPage extends UIElement {
    */
   get events () {
     return {
+      '(optional).lineup-slot-select': {
+        change: async (e) => {
+          const lineupId = Number(e.target.value)
+          if (lineupId === this._activeLineupId) return
+          try {
+            const result = await server.activateMyLineup(lineupId)
+            this._lineups = result.lineups
+            this._activeLineupId = result.activeId
+            await this._reloadAfterLineupChange()
+            toast(t('myTeam.lineupActivated'), 'success')
+          } catch (err) {
+            showServerError(err)
+          }
+        }
+      },
+      '(optional).lineup-slot-new-btn': {
+        click: () => this._showNewLineupOverlay()
+      },
+      '(optional).lineup-slot-rename-btn': {
+        click: () => this._showRenameLineupOverlay()
+      },
+      '(optional).lineup-slot-delete-btn': {
+        click: async () => {
+          const active = this._lineups.find(l => l.id === this._activeLineupId)
+          const confirmed = await showConfirmDialog(
+            t('myTeam.deleteLineupConfirm', { name: active?.name ?? '' }),
+            t('myTeam.deleteLineup'),
+            t('common.cancel')
+          )
+          if (!confirmed) return
+          try {
+            const result = await server.deleteMyLineup(this._activeLineupId)
+            this._lineups = result.lineups
+            this._activeLineupId = result.activeId
+            await this._reloadAfterLineupChange()
+            toast(t('myTeam.lineupDeleted'), 'success')
+          } catch (err) {
+            showServerError(err)
+          }
+        }
+      },
       '.lineup-select': {
         change: (e) => {
           if (e.target.value !== this.parent.data.team.formation) {
@@ -222,6 +283,146 @@ export class ATeamPage extends UIElement {
   }
 
   /**
+   * Lineup slot picker (#481): a select for the active saved lineup plus a
+   * button to create a new, empty one. Rendered empty until `load()` on the
+   * parent page has filled `_lineups`.
+   * @returns {string}
+   */
+  _renderLineupManager () {
+    if (!this._lineups || this._lineups.length === 0) return ''
+    const canDelete = this._lineups.length > 1
+    return `
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <select class="form-select form-select-sm lineup-slot-select u-max-w-240">
+          ${this._lineups.map(l => `
+            <option value="${l.id}" ${l.id === this._activeLineupId ? 'selected' : ''}>${l.name}</option>
+          `).join('')}
+        </select>
+        <button type="button" class="btn btn-sm btn-outline-info lineup-slot-rename-btn" title="${t('myTeam.renameLineup')}">
+          <i class="fa fa-pencil" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info lineup-slot-new-btn">
+          <i class="fa fa-plus" aria-hidden="true"></i> ${t('myTeam.newLineup')}
+        </button>
+        ${canDelete
+    ? `<button type="button" class="btn btn-sm btn-outline-danger lineup-slot-delete-btn" title="${t('myTeam.deleteLineup')}">
+              <i class="fa fa-trash" aria-hidden="true"></i>
+            </button>`
+    : ''}
+      </div>
+    `
+  }
+
+  /**
+   * Reload the whole team (players, formation, tactics, captain) after the
+   * active lineup changed server-side, then re-render this page.
+   * @returns {Promise<void>}
+   */
+  async _reloadAfterLineupChange () {
+    await this.parent.load()
+    this._playerList = null
+    await this.update()
+  }
+
+  /**
+   * Ask for a name, then create a new empty lineup and switch to it.
+   * @returns {Promise<void>}
+   */
+  _showNewLineupOverlay () {
+    this._showLineupNameOverlay({
+      title: t('myTeam.newLineup'),
+      hint: t('myTeam.newLineupHint'),
+      submitLabel: t('myTeam.createLineup'),
+      value: '',
+      onSubmit: async (name) => {
+        const result = await server.createMyLineup(name)
+        this._lineups = result.lineups
+        this._activeLineupId = result.activeId
+        await this._reloadAfterLineupChange()
+        toast(t('myTeam.lineupCreated'), 'success')
+      }
+    })
+  }
+
+  /**
+   * Rename the lineup currently picked in the slot select (#481). Every lineup
+   * can be renamed, including the seeded default one — the select is always in
+   * sync with the active lineup, so that is the one we edit.
+   * @returns {void}
+   */
+  _showRenameLineupOverlay () {
+    const lineupId = Number(el('.lineup-slot-select')?.value) || this._activeLineupId
+    const lineup = this._lineups?.find(l => l.id === lineupId)
+    if (!lineup) return
+    this._showLineupNameOverlay({
+      title: t('myTeam.renameLineup'),
+      hint: t('myTeam.renameLineupHint'),
+      submitLabel: t('myTeam.saveLineupName'),
+      value: lineup.name,
+      onSubmit: async (name) => {
+        if (name === lineup.name) return
+        const result = await server.renameMyLineup(lineupId, name)
+        this._lineups = result.lineups
+        this._activeLineupId = result.activeId ?? this._activeLineupId
+        await this.update()
+        toast(t('myTeam.lineupRenamed'), 'success')
+      }
+    })
+  }
+
+  /**
+   * Shared name prompt for creating and renaming a lineup. Closes the overlay
+   * before running `onSubmit` so a server error surfaces on the page rather
+   * than behind the overlay.
+   * @param {{title: string, hint: string, submitLabel: string, value: string,
+   *   onSubmit: (name: string) => Promise<void>}} options
+   * @returns {void}
+   */
+  _showLineupNameOverlay ({ title, hint, submitLabel, value, onSubmit }) {
+    const inputId = generateId()
+    const submitId = generateId()
+    const overlay = showOverlay(
+      title,
+      hint,
+      `
+        <input type="text" id="${inputId}" class="form-control mb-3"
+               maxlength="40" placeholder="${t('myTeam.lineupNamePlaceholder')}">
+        <button id="${submitId}" class="btn btn-info w-100">
+          <i class="fa fa-check" aria-hidden="true"></i> ${submitLabel}
+        </button>
+      `
+    )
+    setTimeout(() => {
+      const input = document.getElementById(inputId)
+      const submit = document.getElementById(submitId)
+      if (input && value) {
+        // Assigned rather than rendered into the attribute so a name with
+        // quotes or angle brackets cannot break out of the markup.
+        input.value = value
+      }
+      input?.focus()
+      input?.select()
+      const save = async () => {
+        const name = input?.value.trim() || ''
+        if (!name) {
+          toast(t('myTeam.lineupNameRequired'), 'error')
+          return
+        }
+        overlay.remove()
+        try {
+          await onSubmit(name)
+        } catch (err) {
+          showServerError(err)
+        }
+      }
+      submit?.addEventListener('click', save)
+      input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') save()
+      })
+    }, 0)
+  }
+
+  /**
    * Banner above the lineup showing that a Motivating Speech action card is
    * active for the next match day, so the user can see the buff without
    * opening the action-cards page (#514).
@@ -307,6 +508,10 @@ export class ATeamPage extends UIElement {
     `
   }
 
+  /** Saved lineup slots and which one is currently loaded (#481). */
+  _lineups = []
+  _activeLineupId = null
+
   /**
    * Position group definitions for bench slots
    */
@@ -361,6 +566,7 @@ export class ATeamPage extends UIElement {
       slot.positions.includes(p.position) &&
       !p.is_suspended &&
       !p.is_injured &&
+      !p.tour_days_left &&
       !currentBenchPlayerIds.has(p.id)
     )
 
@@ -440,7 +646,7 @@ export class ATeamPage extends UIElement {
     for (const player of players) {
       if (usedPlayerIds.has(player.id)) continue
       if (player.position !== position) continue
-      if (player.is_suspended || player.is_injured) continue
+      if (player.is_suspended || player.is_injured || player.tour_days_left) continue
       if (!best) { best = player; continue }
       const a = player.freshness ?? 0
       const b = best.freshness ?? 0

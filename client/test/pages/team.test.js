@@ -73,10 +73,16 @@ vi.mock('../../i18n/index.js', () => ({
   t: vi.fn((key, params) => params ? `${key} ${JSON.stringify(params)}` : key)
 }))
 
+vi.mock('../../partials/userProfileOverlay.js', () => ({
+  showUserProfileOverlay: vi.fn()
+}))
+
 import { server } from '../../lib/gateway.js'
 import { TeamPage } from '../../pages/team.js'
 import { showStadiumModal } from '../../partials/stadiumModal.js'
 import { showPlayerModal } from '../../partials/playerModal.js'
+import { showGameModal } from '../../partials/gameModal.js'
+import { showUserProfileOverlay } from '../../partials/userProfileOverlay.js'
 
 describe('TeamPage', () => {
   beforeEach(() => {
@@ -496,5 +502,95 @@ describe('TeamPage', () => {
 
       page.onDestroy()
     })
+  })
+})
+
+describe('TeamPage timeline badge and coach card (#477, #532)', () => {
+  /**
+   * @param {object} over
+   * @returns {object}
+   */
+  const game = (over = {}) => ({
+    id: 4711,
+    season: 0,
+    gameDay: 3,
+    gameType: 'league',
+    played: true,
+    isHome: true,
+    goalsTeam1: 2,
+    goalsTeam2: 1,
+    result: 'win',
+    opponent: { id: 88, name: 'FC Gegner', isSystemTeam: false },
+    ...over
+  })
+
+  /**
+   * @returns {TeamPage}
+   */
+  function page () {
+    const p = new TeamPage()
+    p.team = testData.team({ id: 5, name: 'Test FC' })
+    p._timelineGames = []
+    return p
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('tags a played result badge with its game id', () => {
+    const html = page()._renderTimelineItem(game())
+    expect(html).toContain('data-game-id="4711"')
+    expect(html).toContain('team-timeline__badge--clickable')
+  })
+
+  it('keeps the surrounding link pointing at the opponent', () => {
+    const html = page()._renderTimelineItem(game())
+    expect(html).toContain('href="#team?id=88"')
+  })
+
+  it('leaves an unplayed fixture without a game link', () => {
+    const html = page()._renderTimelineItem(game({ played: false, result: null }))
+    expect(html).not.toContain('data-game-id')
+    expect(html).toContain('team-timeline__badge--upcoming')
+  })
+
+  it('opens the match report instead of the opponent page when the badge is clicked', () => {
+    const p = page()
+    const preventDefault = vi.fn()
+    const stopPropagation = vi.fn()
+    const badge = { dataset: { gameId: '4711' } }
+
+    p.events['(optional) .team-timeline__track'].click({
+      target: { closest: (sel) => sel.includes('team-timeline__badge') ? badge : null },
+      preventDefault,
+      stopPropagation
+    })
+
+    expect(preventDefault).toHaveBeenCalled()
+    expect(showGameModal).toHaveBeenCalledWith(4711)
+  })
+
+  it('ignores clicks on the timeline that miss the badge', () => {
+    const p = page()
+    p.events['(optional) .team-timeline__track'].click({
+      target: { closest: () => null },
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn()
+    })
+    expect(showGameModal).not.toHaveBeenCalled()
+  })
+
+  it('opens the manager profile as an overlay from the coach card (#532)', () => {
+    const p = page()
+    const preventDefault = vi.fn()
+
+    p.events['(optional) .coach-card-link[data-profile-user-id]'].click({
+      currentTarget: { dataset: { profileUserId: '77' } },
+      preventDefault
+    })
+
+    expect(preventDefault).toHaveBeenCalled()
+    expect(showUserProfileOverlay).toHaveBeenCalledWith(77)
   })
 })

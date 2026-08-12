@@ -13,9 +13,21 @@ vi.mock('../helper/teamHelper.js', () => ({
   getTeamById: vi.fn()
 }))
 
+vi.mock('../helper/youthPlayerHelper.js', () => ({
+  archiveOverageYouthPlayers: vi.fn(),
+  getYouthPlayersAt18: vi.fn()
+}))
+
+vi.mock('../i18n/index.js', () => ({
+  getUserLocale: vi.fn().mockResolvedValue('en'),
+  t: vi.fn((key) => key)
+}))
+
 // Import after mocking
-import { prepareSeason, _buildGame, _nextLevelToFill, _existingLeagueDayMap, _computeTopUpPositions, regenerateTeamData, _assignTeamsToParallelLeagues } from '../prepare-season.js'
+import { prepareSeason, _buildGame, _nextLevelToFill, _existingLeagueDayMap, _computeTopUpPositions, regenerateTeamData, _assignTeamsToParallelLeagues, _warnYouthPlayersAt18 } from '../prepare-season.js'
 import { query } from '../lib/database.js'
+import { getYouthPlayersAt18 } from '../helper/youthPlayerHelper.js'
+import { addLogMessage } from '../helper/logMessageHelper.js'
 
 describe('prepare-season', () => {
   beforeEach(() => {
@@ -25,6 +37,55 @@ describe('prepare-season', () => {
   describe('prepareSeason', () => {
     it('is exported and callable', () => {
       expect(typeof prepareSeason).toBe('function')
+    })
+  })
+
+  describe('_warnYouthPlayersAt18', () => {
+    // query() call order: latest season → warning flag → user teams → (flag write)
+    const mockQueries = ({ season, warnedSeason, teams }) => {
+      query.mockResolvedValueOnce([{ season }]) //         _latestSeason
+      query.mockResolvedValueOnce(warnedSeason === null //  flag lookup
+        ? []
+        : [{ setting_value: String(warnedSeason) }])
+      query.mockResolvedValueOnce(teams) //                 user teams
+      query.mockResolvedValue({}) //                        flag write
+    }
+
+    it('warns each affected team once and records the season', async () => {
+      mockQueries({ season: 8, warnedSeason: null, teams: [{ id: 1, user_id: 10 }, { id: 2, user_id: 20 }] })
+      getYouthPlayersAt18
+        .mockResolvedValueOnce([{ name: 'Max Mustermann' }])
+        .mockResolvedValueOnce([])
+
+      await _warnYouthPlayersAt18()
+
+      expect(addLogMessage).toHaveBeenCalledTimes(1)
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO app_setting'),
+        ['last_youth_warning_season', '8']
+      )
+    })
+
+    it('sends nothing on a later tick of the same season', async () => {
+      mockQueries({ season: 8, warnedSeason: 8, teams: [{ id: 1, user_id: 10 }] })
+
+      await _warnYouthPlayersAt18()
+
+      expect(addLogMessage).not.toHaveBeenCalled()
+      expect(getYouthPlayersAt18).not.toHaveBeenCalled()
+    })
+
+    it('warns again once the season has advanced', async () => {
+      mockQueries({ season: 9, warnedSeason: 8, teams: [{ id: 1, user_id: 10 }] })
+      getYouthPlayersAt18.mockResolvedValueOnce([{ name: 'Erik Beispiel' }])
+
+      await _warnYouthPlayersAt18()
+
+      expect(addLogMessage).toHaveBeenCalledTimes(1)
+      expect(query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO app_setting'),
+        ['last_youth_warning_season', '9']
+      )
     })
   })
 

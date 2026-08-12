@@ -117,6 +117,7 @@ export default {
   'error.chatInvalidUser': 'Invalid chat recipient',
   'error.chatEmptyMessage': 'A message must contain text or an image',
   'chat.imageMessage': '📷 Photo',
+  'chat.voiceMessage': '🎤 Voice message',
   'error.playerMaxLevelUps': 'Player already got 20 level ups this season',
   'error.playerMaxLevel': 'Player already reached the maximum level',
   'error.cardMaxLevel70': 'Action card only allows level ups until level 70',
@@ -142,6 +143,7 @@ export default {
   'log.offerReceived': 'You received an offer of {price} for {playerName} from {fromTeam}.',
   'log.offerAccepted': 'Your offer for {playerName} has been accepted!',
   'log.cardBidReceived': '{team} placed a bid on one of your action-card offers.',
+  'log.botCardBidComment': 'Automatic offer for a card that has been listed for over 24 hours.',
   'log.cardTradeSold': 'Your action-card trade with {team} was completed.',
   'log.cardTradeBought': 'Your bid was accepted — you traded action cards with {team}.',
   'log.offerRejected': 'Your offer for {playerName} has been rejected.',
@@ -206,6 +208,11 @@ export default {
   // Log messages - Youth players
   'log.youthPlayerPromoted': '{playerName} has been promoted to the A Team at level {level}!',
   'log.youthPlayerFired': 'Youth player {playerName} has been released from the youth team.',
+  'log.youthPlayerSold': 'Youth player {playerName} was sold for {value}€.',
+  'log.tourCompleted': 'Your squad is back from the {tour} — {count} new action card(s) are waiting for you.',
+  'tour.south_america': 'South America tour',
+  'tour.asia': 'Asia tour',
+  'tour.europe': 'Europe tour',
   'log.youthPlayerAt18Warning': 'Warning: The following youth players will be automatically released next season if not promoted: {playerNames}',
 
   // Log messages - Cards and suspensions
@@ -224,6 +231,7 @@ export default {
   'finance.sponsorDeal': 'Sponsor deal with {name}',
   'finance.stadiumConstruction': 'Stadium construction started',
   'finance.playerSold': 'Player sold: {playerName}',
+  'finance.youthPlayerSold': 'Youth player sold: {playerName}',
   'finance.playerBought': 'Player bought: {playerName}',
   'finance.cardSold': 'Action card sold on the marketplace',
   'finance.cardBought': 'Action card bought on the marketplace',

@@ -10,8 +10,24 @@ import { ActionCard } from '../entities/actionCard.js'
 import { clearUserCache } from '../lib/userCache.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { config } from '../config.js'
+import { sendPushNotifications } from '../lib/pushNotification.js'
 
 const MIN_CHOOSABLE_LEVEL = config.MIN_CHOOSABLE_LEVEL
+
+/**
+ * The cards a manager finds in their inventory right after signing for a club.
+ * The star player and the youth star were added so a new manager has something
+ * to shape their squad with from day one, the million bonus so they can act on
+ * the transfer market right away (#518).
+ * @type {string[]}
+ */
+export const STARTER_ACTION_CARDS = [
+  'NEW_YOUTH_PLAYER_1',
+  'LEVEL_UP_PLAYER_40',
+  'STAR_PLAYER',
+  'NEW_YOUTH_PLAYER_3',
+  'MILLION_BONUS'
+]
 
 /**
  * Free, non-system teams that the user is allowed to take over.
@@ -57,14 +73,39 @@ async function _takeOverTeam (team, req, locale) {
   const { gameDay, season } = await getGameDayAndSeason()
   await completeAllStadiumConstructionsForTeam(team.id, gameDay, season)
   await query('DELETE FROM action_card WHERE team_id=?', [team.id])
-  const starterCards = [
-    new ActionCard({ team_id: team.id, action: 'NEW_YOUTH_PLAYER_1', played: 0, season }),
-    new ActionCard({ team_id: team.id, action: 'LEVEL_UP_PLAYER_40', played: 0, season })
-  ]
-  for (const card of starterCards) {
-    await query('INSERT INTO action_card SET ?', card)
+  for (const action of STARTER_ACTION_CARDS) {
+    await query('INSERT INTO action_card SET ?', new ActionCard({
+      team_id: team.id, action, played: 0, season
+    }))
   }
   clearUserCache(req.user.id)
+  // Let the admins know a manager actually made it through registration and
+  // picked a club (#449). Fire-and-forget — a push failure must never break
+  // the takeover.
+  void notifyAdminsAboutNewManager(req.user.username, team.name)
+}
+
+/**
+ * Push a "new manager signed" notification to every admin that has a device
+ * registered. Swallows its own errors.
+ * @param {string} username
+ * @param {string} teamName
+ * @returns {Promise<void>}
+ */
+async function notifyAdminsAboutNewManager (username, teamName) {
+  try {
+    const admins = await query('SELECT id FROM user WHERE is_admin = 1')
+    const adminIds = Array.isArray(admins) ? admins.map(a => a.id) : []
+    if (adminIds.length === 0) return
+    await sendPushNotifications(
+      adminIds,
+      'FootballManager.IO',
+      `New manager: ${username} took over ${teamName}`,
+      { deep_link: '#admin?sub_page=users' }
+    )
+  } catch (e) {
+    console.error('[Push] Failed to notify admins about a new manager:', e?.message ?? e)
+  }
 }
 
 export default {

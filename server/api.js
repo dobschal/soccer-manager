@@ -25,6 +25,8 @@ import { getCachedUser } from './lib/userCache.js'
 import { isSandboxHost } from './lib/sandboxHost.js'
 import { serveNotificationEmailImage } from './helper/notificationEmailHelper.js'
 import { serveInviteLanding } from './lib/inviteLanding.js'
+import { registerDailyLogin, toDateKey } from './helper/loginStreakHelper.js'
+import { advanceTours } from './helper/tourHelper.js'
 
 const app = express()
 const port = 3000
@@ -93,6 +95,10 @@ app.use(async (req, res, next) => {
         return res.status(401).send({ message: 'Session revoked!' })
       }
       req.user = user
+      // Daily login streak (#501): the JWT never expires, so "logging in"
+      // is really "using the app". Counted here, once per user per calendar
+      // day, and deliberately not awaited so it never delays a response.
+      void trackDailyLogin(user.id)
     } catch (e) {
       console.error('Cannot validate JWT: ', e)
       return res.status(401).send({ message: 'Invalid authorization header!' })
@@ -101,6 +107,28 @@ app.use(async (req, res, next) => {
   req.locale = getLocaleFromRequest(req)
   next()
 })
+
+/** Users already counted today in this process — keyed by user id. */
+const dailyLoginSeen = new Map()
+
+/**
+ * Register the user's daily login at most once per calendar day per process.
+ * The helper is idempotent on its own; this map just keeps the vast majority
+ * of requests from touching the database at all.
+ * @param {number} userId
+ * @returns {Promise<void>}
+ */
+async function trackDailyLogin (userId) {
+  const today = toDateKey()
+  if (dailyLoginSeen.get(userId) === today) return
+  dailyLoginSeen.set(userId, today)
+  try {
+    await registerDailyLogin(userId)
+  } catch (e) {
+    dailyLoginSeen.delete(userId)
+    console.error('trackDailyLogin failed:', e?.message ?? e)
+  }
+}
 
 /**
  * Check the routes folder for all script and apply the route
@@ -176,6 +204,7 @@ async function start () {
       try { await calculateGames() } catch (e) { console.error('calculateGames failed:', e) }
     }
     try { await cleanupOldFreePlayers() } catch (e) { console.error('cleanupOldFreePlayers failed:', e) }
+    try { await advanceTours() } catch (e) { console.error('advanceTours failed:', e) }
     try { await makeBotMoves() } catch (e) { console.error('makeBotMoves failed:', e) }
     try { await cleanupInactiveUsers() } catch (e) { console.error('cleanupInactiveUsers failed:', e) }
     try { await enforceSellOfferLimits() } catch (e) { console.error('enforceSellOfferLimits failed:', e) }

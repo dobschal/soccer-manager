@@ -323,7 +323,7 @@ export class MarketPage extends UIElement {
         setQueryParams({ player_id: offer.player_id })
       }
     }, {
-      name: t('player.position'),
+      name: t('player.positionShort'),
       sortFn: (offerA, offerB, isAsc) => {
         const playerA = this.players.find(p => p.id === offerA.player_id)
         const playerB = this.players.find(p => p.id === offerB.player_id)

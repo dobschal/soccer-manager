@@ -30,7 +30,7 @@ export async function autoFillLineup (team, lineupPlayers) {
   if (missingPositions.length === 0) return lineupPlayers
 
   const benchPlayers = await query(
-    'SELECT * FROM player WHERE team_id=? AND (in_game_position=\'\' OR in_game_position IS NULL) AND is_suspended=0 AND is_injured=0',
+    'SELECT * FROM player WHERE team_id=? AND (in_game_position=\'\' OR in_game_position IS NULL) AND is_suspended=0 AND is_injured=0 AND tour_days_left=0',
     [team.id]
   )
 

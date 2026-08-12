@@ -1413,9 +1413,30 @@ describe('StadiumCanvas.whenReady', () => {
     await expect(canvas.whenReady()).resolves.toBe(false)
   })
 
-  it('resolves false when there is no canvas in the DOM to render into', async () => {
+  // A parent page calls `onMounted()` on the canvas the moment the *page*
+  // mounts, but a nested UIElement is still a placeholder for another frame.
+  // Settling `_ready` on that first, too-early attempt used to leave the
+  // buildings page with its painted fallbacks forever (#547).
+  it('stays pending when the canvas has not mounted yet, so a later mount can still succeed (#547)', async () => {
     const canvas = new StadiumCanvas({}, {}, 'c', {})
     await canvas._initThreeJS()
+    const stillPending = Symbol('pending')
+    const outcome = await Promise.race([canvas.whenReady(), Promise.resolve(stillPending)])
+    expect(outcome).toBe(stillPending)
+  })
+
+  it('leaves a second init attempt possible after the canvas was missing (#547)', async () => {
+    const canvas = new StadiumCanvas({}, {}, 'c', {})
+    await canvas._initThreeJS()
+    // The early bail must not count as "initialised", otherwise the real mount
+    // would be swallowed by the double-init guard.
+    expect(canvas._threeJSInitialized).toBe(false)
+  })
+
+  it('resolves false when a canvas that never mounted is destroyed', async () => {
+    const canvas = new StadiumCanvas({}, {}, 'c', {})
+    await canvas._initThreeJS()
+    canvas.onDestroy()
     await expect(canvas.whenReady()).resolves.toBe(false)
   })
 })

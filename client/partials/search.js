@@ -1,4 +1,5 @@
 import { el, generateId } from '../lib/html.js'
+import { showUserProfileOverlay } from './userProfileOverlay.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { server } from '../lib/gateway.js'
 import { goTo } from '../lib/router.js'
@@ -51,7 +52,7 @@ export function showSearchOverlay () {
   const navigateToUser = (userId) => {
     remove()
     setTimeout(() => {
-      goTo(`user?id=${userId}`)
+      showUserProfileOverlay(Number(userId))
     }, 50)
   }
 

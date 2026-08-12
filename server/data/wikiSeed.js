@@ -34,6 +34,7 @@ Card types:
 • New Youth Player 2 – recruits a stronger talent (level 5–10, talent 30–75%). Requires Youth Academy level 2.
 • New Youth Player 3 – recruits a top talent (level 10–15, talent 50–100%). Requires Youth Academy level 3.
 • Bonus 100K – adds 100,000 € to your account.
+• Million Gift – adds 1,000,000 € to your account. Ten times the cash bonus, and ten times as rare.
 • Star Player – permanently boosts a player's match strength by 10%.
 • Motivating Speech – gives your whole team a +10% strength bonus for the next match day.
 • Spy – reveals another team's tactics and lineup. Your next opponent is preselected, but you can scout any team you search for. The card is used up the moment the report is revealed; the latest report stays visible on your team page.
@@ -42,7 +43,9 @@ Card types:
 Good to know:
 • The probability of receiving the stronger cards rises as you upgrade your Training Area, Fitness Studio and Youth Academy buildings, and the Medical Practice unlocks the Medical Treatment card in the first place.
 • A single player can gain at most 20 levels per season through cards.
-• You can hold at most 10 unplayed cards of the same type – play or trade some away before you can claim more of that type.
+• You can hold at most 20 unplayed cards of the same type – play or trade some away before you can claim more of that type. Your dashboard warns you as soon as a stack is full.
+• Signing for a club gets you five cards to start with: a New Youth Player 1, a Level Up 40, a Star Player, a New Youth Player 3 and a Million Gift.
+• The info bar at the top shows how many playable cards you are holding, right next to your balance. Tap it to jump straight to your cards.
 • At most 3 New Youth Player cards are handed out per season, so young talents stay scarce.
 • Cards you don't need can be traded with other managers on the Action Card Marketplace.
 • Save your Motivating Speech and Freshness cards for important matches.`
@@ -59,6 +62,7 @@ Kartentypen:
 • Neuer Jugendspieler 2 – holt ein stärkeres Talent (Level 5–10, Talent 30–75%). Braucht Jugendakademie-Stufe 2.
 • Neuer Jugendspieler 3 – holt ein Top-Talent (Level 10–15, Talent 50–100%). Braucht Jugendakademie-Stufe 3.
 • Bonus 100K – schreibt 100.000 € auf deinem Konto gut.
+• Millionengeschenk – schreibt 1.000.000 € auf deinem Konto gut. Zehnmal so viel wie der Geldbonus und zehnmal so selten.
 • Starspieler – erhöht die Spielstärke eines Spielers dauerhaft um 10%.
 • Motivationsrede – gibt deinem ganzen Team am nächsten Spieltag +10% Stärke.
 • Spion – deckt Taktik und Aufstellung eines anderen Teams auf. Dein nächster Gegner ist vorausgewählt, du kannst aber jedes gesuchte Team ausspähen. Die Karte wird verbraucht, sobald der Bericht aufgedeckt ist; der letzte Bericht bleibt auf deiner Team-Seite sichtbar.
@@ -67,7 +71,9 @@ Kartentypen:
 Gut zu wissen:
 • Die Wahrscheinlichkeit für die stärkeren Karten steigt, wenn du Trainingsgelände, Fitness-Studio und Jugendakademie ausbaust – und die Arztpraxis schaltet die Karte „Medizinische Behandlung" überhaupt erst frei.
 • Ein Spieler kann pro Saison höchstens 20 Level durch Karten gewinnen.
-• Du kannst höchstens 10 ungenutzte Karten desselben Typs halten – setze oder tausche welche ein, bevor du weitere dieses Typs annehmen kannst.
+• Du kannst höchstens 20 ungenutzte Karten desselben Typs halten – setze oder tausche welche ein, bevor du weitere dieses Typs annehmen kannst. Dein Dashboard warnt dich, sobald ein Stapel voll ist.
+• Mit der Vereinsübernahme bekommst du fünf Karten zum Start: Nachwuchsspieler, Basis-Training, Starspieler, Nachwuchsstar und Millionengeschenk.
+• Die Info-Bar oben zeigt direkt neben deinem Kontostand, wie viele spielbare Karten du hast. Ein Tipp darauf bringt dich direkt zu deinen Karten.
 • Pro Saison werden höchstens 3 „Neuer Jugendspieler“-Karten vergeben, damit Talente knapp bleiben.
 • Karten, die du nicht brauchst, kannst du auf dem Action-Card-Marktplatz mit anderen Managern tauschen.
 • Hebe dir Motivationsrede und Frische-Karten für wichtige Spiele auf.`
@@ -92,6 +98,11 @@ Bidding and accepting:
 • Any cards you put into a bid are locked until the bid is accepted, rejected or cancelled; the money is only checked now and moved when the bid is accepted.
 • The offering manager picks one bid to accept. The cards and money change hands, and all competing bids are automatically rejected and returned.
 
+Automatic bot bids:
+• If nobody bids on your offer for more than 24 hours, a bot team steps in with a cash offer so your cards never sit unsold forever.
+• The amount follows a fixed price per card type (a bundle is valued as the sum of its cards) and varies by up to ±10%.
+• Each manager receives at most one bot bid per day, no matter how many offers they have listed. You are free to accept or reject it like any other bid.
+
 Good to know:
 • Both sides can see a trade history of completed deals, including which cards were exchanged and the money delta.
 • You'll be notified live when the offers or bids relevant to you change.`
@@ -111,9 +122,134 @@ Bieten und annehmen:
 • Karten in einem Gebot sind gesperrt, bis es angenommen, abgelehnt oder zurückgezogen wird; das Geld wird jetzt nur geprüft und erst beim Annehmen überwiesen.
 • Der anbietende Manager wählt ein Gebot zum Annehmen aus. Karten und Geld wechseln den Besitzer, alle konkurrierenden Gebote werden automatisch abgelehnt und zurückgegeben.
 
+Automatische Bot-Gebote:
+• Bietet über 24 Stunden niemand auf dein Angebot, gibt ein Bot-Team ein Geldgebot ab, damit deine Karten nicht ewig liegen bleiben.
+• Die Höhe richtet sich nach einem festen Preis je Kartentyp (ein Bündel wird als Summe seiner Karten bewertet) und schwankt um bis zu ±10%.
+• Jeder Manager erhält höchstens ein Bot-Gebot pro Tag, egal wie viele Angebote er eingestellt hat. Du kannst es wie jedes andere Gebot annehmen oder ablehnen.
+
 Gut zu wissen:
 • Beide Seiten sehen eine Handelshistorie abgeschlossener Deals, inklusive der getauschten Karten und der Geld-Differenz.
 • Du wirst live benachrichtigt, wenn sich für dich relevante Angebote oder Gebote ändern.`
+    }
+  },
+
+  // ─── Daily Login Bonus ─────────────────────────────────────────────────
+  {
+    key: 'daily-login',
+    en: {
+      title: 'Daily Login Bonus',
+      subtitle: 'Show up every day and collect action cards',
+      text: `Every calendar day you open FootballManager.IO earns you one point towards your login streak. Consecutive days build the streak up and unlock action cards along the way.
+
+How the streak works:
+• One point per calendar day, no matter how often you play that day.
+• Playing again the next day raises your streak by one.
+• Skip a whole day and both the streak and your reward progress fall back to zero.
+• The reward counter runs in cycles of 30 days. After day 30 it restarts at 1 while your actual streak keeps counting – 43 days in a row means a streak of 43 and 13/30 in the current cycle.
+
+Rewards in every cycle – one card is drawn per milestone, with these chances:
+• Day 3 – Quick Recovery (50%), Energy Boost (30%) or Full Recovery (20%)
+• Day 7 – Basic Training (50%), Advanced Training (30%) or Master Training (20%)
+• Day 15 – Cash Bonus (30%), Spy (30%), Motivating Speech (30%) or Star Player (10%)
+• Day 23 – Youth Prospect (50%), Youth Talent (30%) or Youth Star (20%)
+• Day 30 – Million Gift (70%) or Star Player (30%)
+
+Rewards are never handed out behind your back – you collect them yourself. As soon as you reach a milestone, a gift 🎁 appears on the progress bar above your club emblem. Tap the gift and your card is drawn and revealed right there, the same way the mini game hands out its reward.
+
+Good to know about collecting:
+• The gift waits for you. Leave it lying and it stays until you pick it up – or until your 30-day cycle restarts and the progress resets.
+• Let several milestones pile up and the gift shows how many are waiting; one tap reveals them one after another.
+• Each reward is handed out only once per cycle.
+• If you are already at the card limit for some of the options, the draw simply uses the ones you can still receive. Are you capped on all of them, the gift stays put – play a card first, then collect it.
+
+Tap the bar itself (not the gift) to see your streak, every milestone with its possible cards and chances, the next reward up, and the managers with the longest active streaks.`
+    },
+    de: {
+      title: 'Täglicher Login-Bonus',
+      subtitle: 'Jeden Tag vorbeischauen und Action Cards sammeln',
+      text: `Für jeden Kalendertag, an dem du FootballManager.IO öffnest, bekommst du einen Punkt für deine Login-Serie. Aufeinanderfolgende Tage bauen die Serie auf und schalten unterwegs Action Cards frei.
+
+So funktioniert die Serie:
+• Ein Punkt pro Kalendertag, egal wie oft du an dem Tag spielst.
+• Spielst du am Folgetag wieder, steigt deine Serie um eins.
+• Lässt du einen ganzen Tag aus, fallen Serie und Belohnungs-Fortschritt auf null zurück.
+• Der Belohnungs-Zähler läuft in Zyklen von 30 Tagen. Nach Tag 30 startet er wieder bei 1, während deine eigentliche Serie weiterläuft – 43 Tage am Stück bedeuten eine Serie von 43 und 13/30 im aktuellen Zyklus.
+
+Belohnungen in jedem Zyklus – pro Meilenstein wird eine Karte gezogen, mit diesen Wahrscheinlichkeiten:
+• Tag 3 – Schnelle Erholung (50%), Energie-Boost (30%) oder Volle Erholung (20%)
+• Tag 7 – Basis-Training (50%), Fortgeschrittenes Training (30%) oder Meister-Training (20%)
+• Tag 15 – Geldbonus (30%), Spion (30%), Motivierende Ansprache (30%) oder Starspieler (10%)
+• Tag 23 – Nachwuchsspieler (50%), Nachwuchstalent (30%) oder Nachwuchsstar (20%)
+• Tag 30 – Millionengeschenk (70%) oder Starspieler (30%)
+
+Belohnungen bekommst du nie nebenbei – du holst sie selbst ab. Sobald du einen Meilenstein erreichst, liegt ein Geschenk 🎁 auf der Fortschrittsleiste über deinem Vereinswappen. Tippe das Geschenk an, dann wird deine Karte gezogen und direkt aufgedeckt – genau wie die Belohnung beim Mini-Game.
+
+Wissenswertes zum Abholen:
+• Das Geschenk wartet auf dich. Lässt du es liegen, bleibt es dort – bis du es einsammelst oder dein 30-Tage-Zyklus neu startet und der Fortschritt zurückgesetzt wird.
+• Stauen sich mehrere Meilensteine, zeigt das Geschenk die Anzahl an; ein Tap deckt sie nacheinander auf.
+• Jede Belohnung wird pro Zyklus nur einmal vergeben.
+• Hast du bei einzelnen Optionen schon das Kartenlimit erreicht, wird aus den übrigen gezogen. Bist du bei allen am Limit, bleibt das Geschenk liegen – spiele erst eine Karte aus und hole es dann ab.
+
+Tippe die Leiste selbst an (nicht das Geschenk), um deine Serie, jeden Meilenstein mit seinen möglichen Karten und Wahrscheinlichkeiten, die nächste Belohnung und die Manager mit den längsten aktiven Serien zu sehen.`
+    }
+  },
+
+  // ─── On Tour ───────────────────────────────────────────────────────────
+  {
+    key: 'on-tour',
+    en: {
+      title: 'On Tour',
+      subtitle: 'Send players abroad and bring back action cards',
+      text: `A promotional tour turns squad depth into action cards. You pick a destination, send players away for a few match days, and every day abroad fills a progress bar. A full bar pays out that destination's reward.
+
+The three destinations:
+• South America – 2× Youth Star cards.
+• Asia – 1× Million Gift (1,000,000 €).
+• Europe – 5× Master Training cards.
+
+Sending players:
+• Up to 3 players can be away at the same time, for 3 to 7 match days each.
+• A player on tour cannot be fielded and is pulled out of your lineup and bench the moment they leave. The squad list marks them with a ✈️.
+• Injured and suspended players cannot be sent — they are already unavailable.
+• When the days run out the player simply comes back; put them into the lineup yourself.
+• Changed your mind? As long as no match day has been played yet, you can call a player straight back — the trip has earned nothing, so nothing is lost. Once the first match day abroad is done, the trip is binding.
+
+Progress:
+• Each travelling player scores their level divided by your squad's average level, every match day. An average player is worth 1 point, your best around 1.2.
+• Because it is measured against your own squad, a fourth-division club fills the bar just as fast as a first-division one.
+• 30 points fill the bar. Three regular players away for the full seven match days get you most of the way there.
+• Anything above 30 carries over into the next tour, so a strong final day is never wasted.
+• The hatched section of the bar previews what your travellers will add on the next match day.
+
+Changing your mind:
+• You can switch destination at any time, but the progress you have collected is discarded, and anyone currently abroad starts collecting for the new destination. The game always asks first.`
+    },
+    de: {
+      title: 'On Tour',
+      subtitle: 'Schicke Spieler ins Ausland und hole Aktionskarten',
+      text: `Eine Werbereise verwandelt Kadertiefe in Aktionskarten. Du wählst ein Reiseziel, entsendest Spieler für einige Spieltage, und jeder Tag im Ausland füllt einen Fortschrittsbalken. Ist er voll, gibt es die Belohnung des Reiseziels.
+
+Die drei Reiseziele:
+• Südamerika – 2× Nachwuchsstar-Karten.
+• Asien – 1× Millionengeschenk (1.000.000 €).
+• Europa – 5× Meister-Training-Karten.
+
+Spieler entsenden:
+• Höchstens 3 Spieler können gleichzeitig unterwegs sein, je 3 bis 7 Spieltage.
+• Ein Spieler auf Reise kann nicht eingesetzt werden und wird sofort aus Aufstellung und Bank genommen. In der Kaderliste ist er mit ✈️ gekennzeichnet.
+• Verletzte und gesperrte Spieler können nicht entsendet werden — sie fehlen ohnehin.
+• Läuft die Zeit ab, kommt der Spieler einfach zurück; die Aufstellung musst du selbst wieder anpassen.
+• Doch anders überlegt? Solange noch kein Spieltag gespielt wurde, kannst du einen Spieler sofort zurückholen — die Reise hat nichts eingebracht, also geht auch nichts verloren. Nach dem ersten Spieltag im Ausland ist die Reise bindend.
+
+Fortschritt:
+• Jeder reisende Spieler bringt pro Spieltag sein Level geteilt durch das Durchschnittslevel deines Kaders. Ein durchschnittlicher Spieler ist 1 Punkt wert, dein bester rund 1,2.
+• Weil am eigenen Kader gemessen wird, füllt ein Viertligist den Balken genauso schnell wie ein Erstligist.
+• 30 Punkte füllen den Balken. Drei Stammspieler über die vollen sieben Spieltage bringen dich fast ans Ziel.
+• Was über 30 hinausgeht, wird in die nächste Reise übernommen — ein starker letzter Tag verfällt also nie.
+• Der schraffierte Bereich im Balken zeigt vorab, wie viel deine Reisenden am nächsten Spieltag dazugewinnen.
+
+Meinung geändert:
+• Du kannst das Reiseziel jederzeit wechseln, verlierst dabei aber den gesammelten Fortschritt, und alle gerade Reisenden sammeln ab dann für das neue Ziel. Das Spiel fragt immer vorher nach.`
     }
   },
 
@@ -126,8 +262,10 @@ Gut zu wissen:
       text: `You can send private one-on-one messages to any other manager – for arranging trades, friendlies or just talking football.
 
 How it works:
-• Open a chat from a manager's profile or from your conversations list on the dashboard. Each conversation groups all messages with that one person.
+• Open a chat from a manager's profile or from the chat list on the Friends tab of your dashboard. Each conversation groups all messages with that one person.
 • A message can contain text (up to 2,000 characters) and/or an image (JPG, PNG, GIF or WebP, up to 2 MB).
+• You can also record a voice message of up to two minutes and send it straight from the chat. Tap the microphone, speak, then send or discard — the recipient plays it back right inside the message.
+• Recording only works in the browser for now – on a phone, open the game in Safari or Chrome. Neither app can record yet, because both load the game from local files and the system withholds the microphone there. Playing a voice message back works everywhere, app included.
 • Messages arrive live while you're online. When you're away you get a push notification that links straight into the chat.
 • Messages you haven't read yet are counted in the "Action Required" badge on your dashboard, and are marked as read as soon as you open the conversation.`
     },
@@ -137,8 +275,10 @@ How it works:
       text: `Du kannst jedem anderen Manager private Eins-zu-eins-Nachrichten schicken – um Tauschgeschäfte oder Freundschaftsspiele zu vereinbaren oder einfach über Fußball zu reden.
 
 So funktioniert es:
-• Öffne einen Chat über das Profil eines Managers oder über deine Unterhaltungsliste auf dem Dashboard. Jede Unterhaltung bündelt alle Nachrichten mit dieser einen Person.
+• Öffne einen Chat über das Profil eines Managers oder über die Chat-Liste im Reiter „Freunde“ deines Dashboards. Jede Unterhaltung bündelt alle Nachrichten mit dieser einen Person.
 • Eine Nachricht kann Text (bis zu 2.000 Zeichen) und/oder ein Bild (JPG, PNG, GIF oder WebP, bis zu 2 MB) enthalten.
+• Du kannst auch eine Sprachnachricht von bis zu zwei Minuten aufnehmen und direkt aus dem Chat verschicken. Tippe auf das Mikrofon, sprich, und schicke sie ab oder verwirf sie — der Empfänger spielt sie direkt in der Nachricht ab.
+• Aufnehmen geht vorerst nur im Browser – öffne das Spiel auf dem Handy also in Safari oder Chrome. Beide Apps können noch nicht aufnehmen, weil sie das Spiel aus lokalen Dateien laden und das System dort kein Mikrofon freigibt. Abspielen funktioniert überall, auch in der App.
 • Nachrichten kommen live an, während du online bist. Bist du abwesend, erhältst du eine Push-Benachrichtigung, die direkt in den Chat führt.
 • Noch ungelesene Nachrichten zählen im „Aktion erforderlich“-Badge auf deinem Dashboard und werden als gelesen markiert, sobald du die Unterhaltung öffnest.`
     }
@@ -152,12 +292,26 @@ So funktioniert es:
       subtitle: 'Pick your formation, place your players and choose a captain',
       text: `Your lineup is the foundation of your team's strength. You choose one of 10 formations and fill all 11 positions with matching players on the pitch diagram.
 
+Saved lineups:
+• You can keep several named lineups side by side and switch between them with the select above the pitch.
+• Exactly one lineup is active at a time – that is the one used for your next match.
+• "New Lineup" creates an empty slot with a random formation and nobody assigned, ready to be filled from scratch.
+• The pencil icon next to the select renames the lineup you are currently on – including the first one you started with.
+• A lineup stores its formation, the eleven positions, the bench (including substitution modes), the captain and your tactics. Every change you make is saved into the active lineup automatically.
+• Switching lineups drops players who have left your squad in the meantime; a captain who is no longer in the eleven is cleared.
+
 How it works:
 • Choose a formation (e.g. 4-4-2, 4-3-3, 3-5-2). Changing the formation clears all current positions.
-• Click a position to open the player picker. Only players whose natural position fits the slot can be placed there.
+• Click a position to open the player picker: a strip of player cards you scroll sideways, and one click on a card fields that player. Players whose natural position fits the slot come first; everyone else follows, dimmed and labelled with the level they would lose out of position.
 • Set a captain from your starting eleven. If you remove the captain from the lineup, the captain is cleared automatically.
 • Suspended players are shown greyed out and cannot be fielded; they are removed from the lineup automatically.
 • Sort your bench order – substitutes are pulled from the bench when a player is injured or tired.
+
+Out of position:
+• A starter fielded outside their natural position plays below their level, and the slot on the pitch is ringed red.
+• The exact loss is printed under the player's level, e.g. −10%, −20%, −30% or −50%. A player at home shows no marker at all.
+• How steep it gets depends on the line: staying in your own line costs 10%, one line away 20%, and an attacker in defence (or a defender in attack) 30%. The goal is its own case at 50%. The In-Game Level topic lists the full table.
+• Substitutes are exempt – a player brought on from the bench keeps their full level.
 
 Lineup strength:
 • The base strength is the sum of all your starters' levels.
@@ -177,12 +331,26 @@ Squad rules:
       subtitle: 'Formation wählen, Spieler platzieren und Kapitän bestimmen',
       text: `Deine Aufstellung ist die Grundlage für die Stärke deines Teams. Du wählst eine von 10 Formationen und besetzt alle 11 Positionen mit passenden Spielern auf dem Spielfeld-Diagramm.
 
+Gespeicherte Aufstellungen:
+• Du kannst mehrere benannte Aufstellungen parallel halten und über das Auswahlfeld oberhalb des Spielfelds wechseln.
+• Genau eine Aufstellung ist aktiv – sie wird für dein nächstes Spiel verwendet.
+• "Neue Aufstellung" legt einen leeren Slot mit zufälliger Formation und ohne aufgestellte Spieler an.
+• Das Stift-Icon neben dem Auswahlfeld benennt die aktuell gewählte Aufstellung um – auch die erste, mit der du gestartet bist.
+• Eine Aufstellung speichert Formation, die elf Positionen, die Bank (inklusive Einwechsel-Modus), den Kapitän und deine Taktik. Jede Änderung wird automatisch in die aktive Aufstellung übernommen.
+• Beim Wechseln werden Spieler ignoriert, die dein Team inzwischen verlassen haben; ein Kapitän, der nicht mehr in der Elf steht, wird gelöscht.
+
 So funktioniert es:
 • Wähle eine Formation (z. B. 4-4-2, 4-3-3, 3-5-2). Ein Formationswechsel löscht alle aktuellen Positionen.
-• Klicke auf eine Position, um die Spielerauswahl zu öffnen. Nur Spieler mit passender Position können dort eingesetzt werden.
+• Klicke auf eine Position, um die Spielerauswahl zu öffnen: eine seitlich scrollbare Leiste aus Spielerkarten – ein Klick auf eine Karte stellt den Spieler auf. Spieler mit passender Position stehen vorne, alle anderen folgen dahinter, abgedunkelt und mit dem Level-Verlust beschriftet, den die fremde Position kostet.
 • Bestimme einen Kapitän aus deiner Startelf. Entfernst du den Kapitän aus der Aufstellung, wird er automatisch gelöscht.
 • Gesperrte Spieler sind ausgegraut und können nicht aufgestellt werden; sie werden automatisch aus der Aufstellung entfernt.
 • Sortiere deine Bank – Einwechselspieler werden bei Verletzung oder Müdigkeit von der Bank geholt.
+
+Positionsfremde Aufstellung:
+• Ein Starter außerhalb seiner natürlichen Position spielt unter seinem Level, und der Platz auf dem Feld bekommt einen roten Rahmen.
+• Der genaue Verlust steht unter dem Level des Spielers, z.B. −10%, −20%, −30% oder −50%. Auf der eigenen Position wird gar nichts angezeigt.
+• Wie hoch die Abwertung ausfällt, hängt von der Reihe ab: innerhalb der eigenen Reihe 10%, eine Reihe weiter 20%, ein Stürmer in der Abwehr (oder ein Verteidiger im Sturm) 30%. Das Tor ist mit 50% ein Fall für sich. Die vollständige Tabelle steht im Thema "In-Game-Level".
+• Einwechselspieler sind ausgenommen – ein von der Bank gebrachter Spieler behält sein volles Level.
 
 Aufstellungsstärke:
 • Die Basisstärke ist die Summe der Level aller Startspieler.
@@ -429,6 +597,7 @@ No arranged transfers:
 
 How this is checked:
 • Suspicious patterns are detected automatically: accounts used from the same device or network, transfer prices far off the market value, pairs of clubs trading unusually often, action cards that are always won by the same club seconds after being listed, and invitation rewards claimed by the inviter themselves.
+• You can also report a manager yourself from their profile. Every report is emailed to the admins straight away, together with the time, both usernames and your reason.
 • Every flag is reviewed by a human admin. Being flagged is not a verdict – normal situations like two friends in the same flat show up too.
 • Confirmed cheating can cost you your club: an admin can block your email address or delete the account. A blocked address can no longer log in or register, and any open session ends immediately.
 
@@ -451,6 +620,7 @@ Keine abgesprochenen Transfers:
 
 Wie das geprüft wird:
 • Verdächtige Muster werden automatisch erkannt: Accounts vom selben Gerät oder Netzwerk, Transferpreise weit abseits des Marktwerts, Vereinspaare mit auffällig vielen Transfers, Action Cards, die immer wieder Sekunden nach dem Einstellen vom selben Verein gekauft werden, und Einladungs-Belohnungen, die sich jemand selbst gutschreibt.
+• Du kannst einen Manager auch selbst über sein Profil melden. Jede Meldung geht sofort per E-Mail an die Admins – mit Zeitpunkt, beiden Nutzernamen und deiner Begründung.
 • Jede Markierung wird von einem Admin persönlich geprüft. Markiert zu sein ist kein Urteil – auch normale Fälle wie zwei Freunde in einer WG tauchen dort auf.
 • Bestätigtes Cheating kann dich deinen Verein kosten: Ein Admin kann deine E-Mail-Adresse sperren oder den Account löschen. Mit einer gesperrten Adresse sind Login und Registrierung nicht mehr möglich, eine offene Sitzung endet sofort.
 
@@ -584,39 +754,37 @@ Moderation: Beiträge werden automatisch auf anstößige Sprache gefiltert. Admi
     key: 'friends',
     en: {
       title: 'Friends',
-      subtitle: 'Add other managers and follow their posts',
-      text: `You can add other managers as friends to keep up with them and share posts.
+      subtitle: 'Your chats and the managers you follow',
+      text: `The Friends tab is where you keep in touch with other managers: your running conversations at the top, your friendships below.
+
+Chats:
+• Every manager you have exchanged messages with appears in the chat list – avatar, name, a preview of the most recent message and when it arrived.
+• A conversation with unread messages is highlighted. Tapping a row opens the chat.
+• Five conversations are shown at a time, newest activity first; use the arrows to page through the rest.
 
 Friendships:
 • Adding someone sends a one-way connection. If you both add each other, you become mutual friends.
-• Your friend list shows each friend's username, avatar, club name and team level.
-• Removing a friend clears the connection in both directions.
-
-Friend posts:
-• You see a feed of posts from yourself and everyone you have added.
-• A post can contain text (up to 5,000 characters) and one optional image (JPEG, PNG, GIF or WebP, up to 2 MB).
-• You can like and comment on posts (comments up to 1,000 characters).
-• Authors – and admins – can delete posts.
-
-The friends overview also shows each friend's league position and their last match result for a bit of context.`
+• Your friend list shows each friend's username, avatar, club, league, league position and last match result.
+• Incoming requests can be accepted or declined right in the list.
+• Seven friends are shown per page.
+• Removing a friend clears the connection in both directions.`
     },
     de: {
       title: 'Freunde',
-      subtitle: 'Füge andere Manager hinzu und folge ihren Beiträgen',
-      text: `Du kannst andere Manager als Freunde hinzufügen, um auf dem Laufenden zu bleiben und Beiträge zu teilen.
+      subtitle: 'Deine Chats und die Manager, denen du folgst',
+      text: `Im Reiter „Freunde“ hältst du Kontakt zu anderen Managern: oben deine laufenden Unterhaltungen, darunter deine Freundschaften.
+
+Chats:
+• Jeder Manager, mit dem du Nachrichten ausgetauscht hast, taucht in der Chat-Liste auf – Avatar, Name, eine Vorschau der letzten Nachricht und wann sie ankam.
+• Eine Unterhaltung mit ungelesenen Nachrichten ist hervorgehoben. Ein Tippen auf die Zeile öffnet den Chat.
+• Es werden fünf Unterhaltungen gleichzeitig gezeigt, die mit der neuesten Aktivität zuerst; mit den Pfeilen blätterst du weiter.
 
 Freundschaften:
 • Jemanden hinzuzufügen erzeugt eine einseitige Verbindung. Fügt ihr euch gegenseitig hinzu, werdet ihr beidseitige Freunde.
-• Deine Freundesliste zeigt zu jedem Freund Benutzername, Avatar, Vereinsname und Team-Level.
-• Entfernst du einen Freund, wird die Verbindung in beide Richtungen gelöscht.
-
-Freundes-Beiträge:
-• Du siehst einen Feed mit Beiträgen von dir selbst und allen, die du hinzugefügt hast.
-• Ein Beitrag kann Text (bis 5.000 Zeichen) und ein optionales Bild enthalten (JPEG, PNG, GIF oder WebP, bis 2 MB).
-• Du kannst Beiträge liken und kommentieren (Kommentare bis 1.000 Zeichen).
-• Autoren – und Admins – können Beiträge löschen.
-
-Die Freundesübersicht zeigt außerdem die Tabellenposition jedes Freundes und dessen letztes Spielergebnis als kleinen Kontext.`
+• Deine Freundesliste zeigt zu jedem Freund Benutzername, Avatar, Verein, Liga, Tabellenposition und das letzte Spielergebnis.
+• Eingehende Anfragen kannst du direkt in der Liste annehmen oder ablehnen.
+• Es werden sieben Freunde pro Seite gezeigt.
+• Entfernst du einen Freund, wird die Verbindung in beide Richtungen gelöscht.`
     }
   },
 
@@ -674,6 +842,11 @@ What happens on a match day:
 • Each match is simulated step by step (see Match Simulation), and the result is stored right away.
 • Afterwards the system settles everything around the games: standings are updated, suspensions are served, salaries are paid, sponsor money and ticket income are booked, injured players recover a little, fitness is restored, youth players train and action cards are handed out.
 
+The match ticker:
+• The first time you open the app after your match, an animated ticker replays it minute by minute – goals, chances, bookings with the foul that caused them, injuries, and the tackles that broke up a real attack.
+• Half time is its own beat in the ticker. A cup tie that went the distance also shows extra time and, if needed, every penalty of the shootout.
+• You can skip the animation at any time and jump straight to the final score.
+
 A few details:
 • If a team cannot field at least 7 players, it forfeits 0:3.
 • At the end of a season, the match-day slot is used to prepare the next season (promotions, relegations, new fixtures) instead of playing games.
@@ -688,6 +861,11 @@ Was an einem Spieltag passiert:
 • Zuerst werden die Ligaspiele gespielt, danach die Pokalspiele.
 • Jedes Spiel wird Schritt für Schritt simuliert (siehe Spielberechnung), und das Ergebnis wird sofort gespeichert.
 • Danach wickelt das System alles rund um die Spiele ab: Tabellen werden aktualisiert, Sperren abgesessen, Gehälter gezahlt, Sponsorengeld und Ticketeinnahmen verbucht, verletzte Spieler erholen sich etwas, Fitness wird aufgefüllt, Jugendspieler trainieren und Action Cards werden verteilt.
+
+Der Spielticker:
+• Wenn du die App nach deinem Spiel zum ersten Mal öffnest, spielt ein animierter Ticker die Partie Minute für Minute nach – Tore, Chancen, Karten samt dem Foul, das dazu führte, Verletzungen und die Zweikämpfe, die einen echten Angriff gestoppt haben.
+• Die Halbzeit ist ein eigener Moment im Ticker. Bei einem Pokalspiel, das in die Verlängerung ging, siehst du zusätzlich die Verlängerung und – falls nötig – jeden Schuss des Elfmeterschießens.
+• Du kannst die Animation jederzeit überspringen und direkt zum Endstand springen.
 
 Ein paar Details:
 • Kann ein Team nicht mindestens 7 Spieler stellen, verliert es kampflos mit 0:3.
@@ -713,7 +891,14 @@ The key mechanics:
 
 What changes a player's effective strength: fitness, a Star Player bonus (+10%), a Motivating Speech (+10%), your captain, your squad's average age (ideal 27, up to ±5%), your home advantage, and a small penalty for bot teams (see In-Game Level for the full picture). Cup matches never end in a draw – if it stays level after 90 minutes, 30 minutes of extra time are played, followed by a penalty shootout if still tied.
 
-Each match stores full details: goals, shots, possession, cards and the lineups, which you can review afterwards.`
+Each match stores full details: goals, shots, possession, cards and the lineups, which you can review afterwards.
+
+The match ticker replays your latest match event by event, straight from that log:
+• It opens with kick-off, breaks for half time, and in cup matches announces extra time and the penalty shootout with every single taker.
+• Alongside goals, chances and saves it shows the standout ball recoveries and won duels, substitutions, and every card together with the reason for it.
+• An injury names the actual injury and how long the player is out.
+• Every line carries a small portrait of the player involved.
+• Use the speed button to run the ticker at double speed, or skip to the final score.`
     },
     de: {
       title: 'Spielberechnung',
@@ -729,7 +914,14 @@ Die wichtigsten Mechaniken:
 
 Was die effektive Stärke eines Spielers verändert: Fitness, der Starspieler-Bonus (+10%), eine Motivationsrede (+10%), dein Kapitän, das Durchschnittsalter deiner Mannschaft (ideal 27, bis zu ±5%), dein Heimvorteil und ein kleiner Malus für Bot-Teams (siehe In-Game-Level für die vollständige Übersicht). Pokalspiele enden nie unentschieden – ist es nach 90 Minuten remis, folgt eine 30-minütige Verlängerung und, wenn immer noch gleich, ein Elfmeterschießen.
 
-Jedes Spiel speichert alle Details: Tore, Schüsse, Ballbesitz, Karten und die Aufstellungen, die du danach ansehen kannst.`
+Jedes Spiel speichert alle Details: Tore, Schüsse, Ballbesitz, Karten und die Aufstellungen, die du danach ansehen kannst.
+
+Der Spielticker spielt dein letztes Spiel Ereignis für Ereignis genau aus diesem Log nach:
+• Er startet mit dem Anpfiff, pausiert zur Halbzeit und kündigt bei Pokalspielen Verlängerung und Elfmeterschießen mit jedem einzelnen Schützen an.
+• Neben Toren, Torchancen und Paraden zeigt er die auffälligsten Balleroberungen und gewonnenen Zweikämpfe, Einwechslungen und jede Karte samt Grund.
+• Bei einer Verletzung wird die Verletzungsart genannt und wie lange der Spieler ausfällt.
+• Jede Zeile zeigt ein kleines Bild des beteiligten Spielers.
+• Mit dem Geschwindigkeits-Knopf läuft der Ticker in doppeltem Tempo, oder du springst direkt zum Endstand.`
     }
   },
 
@@ -749,7 +941,17 @@ Modifiers that raise or lower the in-game level:
 • Squad age: an average age near 27 gives up to +5%; too young or too old costs up to −5%.
 • Home advantage: a well-filled home stadium boosts the home side; an empty stadium is a small penalty.
 • Bot penalty: bot teams play at 90% of their nominal level.
-• Out of position: a starter fielded away from their natural position plays at 50% level. Substitutes are the exception – a player brought on from the bench keeps their full level even in a foreign slot, so an emergency swap is never punished.
+• Out of position: a starter fielded away from their natural position loses part of their level. How much depends on the line they come from and the line they end up in (see "Out of position" below).
+
+Out of position:
+The pitch has four lines: goal (GK), defence (LD, CD, RD), midfield (DM, LM, CM, RM, OM) and attack (LA, CA, RA). What a starter loses depends on where they belong and where you field them:
+• Attacker: −10% in another attacking slot (a right winger at centre or left forward), −20% anywhere in midfield, −30% anywhere in defence.
+• Midfielder: −10% in another midfield slot, −20% in attack, −20% in defence.
+• Defender: −10% in another defensive slot, −20% in midfield, −30% in attack.
+• Goal: every outfield player put in goal loses −50%, and a keeper fielded outfield loses −50% too. The keeper's job has nothing in common with the rest of the pitch.
+• At their natural position a player loses nothing, and the lineup shows no marker at all.
+• The lineup prints the exact figure (e.g. −20%) under the player's level, so you can weigh the cost before you save.
+• Substitutes are the exception – a player brought on from the bench keeps their full level even in a foreign slot, so an emergency swap is never punished.
 
 Where to see it:
 • After a match, the squad list shows each starter's base level ("Lvl") and their in-game level ("IG"). Green means the modifiers raised the level, red means they lowered it.
@@ -768,7 +970,17 @@ Was das In-Game-Level verändert:
 • Durchschnittsalter: Ein Schnitt um 27 gibt bis zu +5%; zu jung oder zu alt kostet bis zu −5%.
 • Heimvorteil: Ein gut gefülltes Heimstadion stärkt die Heimmannschaft; ein leeres Stadion ist ein kleiner Malus.
 • Bot-Malus: Bot-Teams spielen mit 90% ihres nominalen Levels.
-• Falsche Position: Ein Starter, der abseits seiner natürlichen Position aufläuft, spielt nur mit 50% Level. Einwechselspieler sind die Ausnahme – ein von der Bank gebrachter Spieler behält sein volles Level auch auf einer fremden Position, ein Not-Wechsel wird also nie bestraft.
+• Falsche Position: Ein Starter abseits seiner natürlichen Position verliert einen Teil seines Levels. Wie viel, hängt davon ab, aus welcher Reihe er kommt und in welcher Reihe er spielt (siehe "Positionsfremde Aufstellung").
+
+Positionsfremde Aufstellung:
+Das Feld hat vier Reihen: Tor (GK), Abwehr (LD, CD, RD), Mittelfeld (DM, LM, CM, RM, OM) und Sturm (LA, CA, RA). Wie stark ein Starter abgewertet wird, hängt davon ab, wo er eigentlich hingehört und wo du ihn aufstellst:
+• Stürmer: −10% auf einer anderen Sturmposition (ein Rechtsaußen als Mittel- oder Linksstürmer), −20% irgendwo im Mittelfeld, −30% irgendwo in der Abwehr.
+• Mittelfeldspieler: −10% auf einer anderen Mittelfeldposition, −20% im Sturm, −20% in der Abwehr.
+• Verteidiger: −10% auf einer anderen Abwehrposition, −20% im Mittelfeld, −30% im Sturm.
+• Tor: Jeder Feldspieler im Tor verliert −50%, und ein Torwart auf dem Feld ebenfalls −50%. Die Torwartrolle hat mit dem Rest des Feldes schlicht nichts gemeinsam.
+• Auf seiner natürlichen Position verliert ein Spieler nichts – die Aufstellung zeigt dann auch keinerlei Hinweis an.
+• Die Aufstellung zeigt den genauen Wert (z.B. −20%) unter dem Level des Spielers, damit du die Kosten vor dem Speichern abwägen kannst.
+• Einwechselspieler sind die Ausnahme – ein von der Bank gebrachter Spieler behält sein volles Level auch auf einer fremden Position, ein Not-Wechsel wird also nie bestraft.
 
 Wo du es siehst:
 • Nach jedem Spiel zeigt die Kaderliste für jeden Starter das Basis-Level ("Lvl") und das In-Game-Level ("IG"). Grün bedeutet, die Modifikatoren haben das Level angehoben, Rot bedeutet, sie haben es gesenkt.
@@ -800,7 +1012,7 @@ Injuries:
 • With a Medical Practice you get Medical Treatment cards, each shortening one player's lay-off by a match day (see Buildings).
 
 Salary:
-• Salaries grow exponentially with level – from about 150 € per day at level 1 to about 10,308 € at level 100, roughly doubling every 10 levels. They are paid every match day.
+• Salaries grow exponentially with level: about 72 € per match day at level 1, 1,122 € at level 50 and 18,500 € at level 100. A squad of journeymen is cheap to run, a squad of stars is not — roughly what your sponsor pays you is what your wage bill costs. They are paid every match day.
 
 Suspensions:
 • A second yellow card in a match means a red card. Five yellow cards across the season also trigger a one-match ban. Bans always last exactly one match and are served automatically on the next match day.`
@@ -826,7 +1038,7 @@ Verletzungen:
 • Mit einer Arztpraxis bekommst du Karten „Medizinische Behandlung", die den Ausfall eines Spielers um je einen Spieltag verkürzen (siehe Gebäude).
 
 Gehalt:
-• Gehälter steigen exponentiell mit dem Level – von etwa 150 € pro Tag auf Level 1 bis rund 10.308 € auf Level 100, etwa eine Verdopplung alle 10 Level. Sie werden an jedem Spieltag gezahlt.
+• Gehälter steigen exponentiell mit dem Level: rund 72 € pro Spieltag auf Level 1, 1.122 € auf Level 50 und 18.500 € auf Level 100. Ein Kader aus Durchschnittsspielern ist günstig zu unterhalten, ein Kader aus Stars nicht — grob gesagt kostet dich die Gehaltsliste etwa das, was dein Sponsor einbringt. Gezahlt wird an jedem Spieltag.
 
 Sperren:
 • Eine zweite Gelbe Karte im Spiel bedeutet Rot. Fünf Gelbe Karten über die Saison lösen ebenfalls eine Sperre von einem Spiel aus. Sperren dauern immer genau ein Spiel und werden am nächsten Spieltag automatisch abgesessen.`
@@ -992,6 +1204,7 @@ Capacity and expansion:
 Attendance and income:
 • Attendance per stand depends on both teams' strength, your ticket price and whether the stand has a roof.
 • Ticket prices can be set per stand from 1 to 100 €. Around 15 € tends to be the sweet spot – too high and fans stay away.
+• A stand you have not built yet has no price field: prices only appear for stands that actually exist.
 
 Home advantage:
 • A well-filled stadium boosts your team strength by up to +10% (more fans, more boost), while a stadium below 50% capacity gives a penalty of up to −10%.
@@ -1014,6 +1227,7 @@ Kapazität und Ausbau:
 Zuschauer und Einnahmen:
 • Die Zuschauerzahl pro Tribüne hängt von der Stärke beider Teams, deinem Ticketpreis und davon ab, ob die Tribüne ein Dach hat.
 • Ticketpreise lassen sich pro Tribüne von 1 bis 100 € festlegen. Rund 15 € ist meist optimal – zu hoch, und die Fans bleiben weg.
+• Für eine noch nicht gebaute Tribüne gibt es kein Eingabefeld: Preise erscheinen nur für Tribünen, die tatsächlich existieren.
 
 Heimvorteil:
 • Ein gut gefülltes Stadion erhöht deine Teamstärke um bis zu +10% (mehr Fans, mehr Bonus), während ein Stadion unter 50% Auslastung einen Malus von bis zu −10% bringt.
@@ -1159,6 +1373,9 @@ Typical items:
 • Incoming offers – you have pending transfer offers to review.
 • No sponsor – you currently have no active sponsorship deal.
 • Forum mentions – someone mentioned you in the forum.
+• Action card stack full – one of your card types has hit the 20-card limit; play or trade some, or further cards of that type are lost.
+
+The list starts collapsed and shows only the first three rows. Open items always come first, so anything that needs action is visible right away — tap "Show all" in the last row to see the complete checklist including the items that are already fine.
 
 Check the list regularly so you never go into a match day with an empty bench or a tired lineup.`
     },
@@ -1177,6 +1394,9 @@ Typische Punkte:
 • Eingehende Angebote – du hast offene Transferangebote zu prüfen.
 • Kein Sponsor – du hast aktuell keinen aktiven Sponsorvertrag.
 • Forum-Erwähnungen – jemand hat dich im Forum erwähnt.
+• Kartenstapel voll – einer deiner Kartentypen hat das Limit von 20 erreicht; spiele oder tausche Karten, sonst verfallen weitere dieses Typs.
+
+Die Liste ist zu Beginn eingeklappt und zeigt nur die ersten drei Zeilen. Offene Punkte stehen dabei immer oben, damit du sofort siehst, was zu tun ist – über "Alle anzeigen" in der letzten Zeile klappst du die vollständige Checkliste inklusive der bereits erledigten Punkte auf.
 
 Sieh dir die Liste regelmäßig an, damit du nie mit leerer Bank oder müder Aufstellung in einen Spieltag gehst.`
     }
@@ -1206,6 +1426,11 @@ Age and promotion:
 • At 18 you get a warning; if not promoted, they leave at age 19.
 • On promotion the level is rounded down to a whole number and the player joins your main squad.
 
+Selling:
+• Every youngster carries a market value, shown next to their level, and you can sell them for exactly that.
+• The value follows their level and — unlike the hidden talent bar — rewards potential: a top talent is worth roughly two and a half times a weak one of the same level.
+• There is no buying club: the player simply leaves the academy and the money lands in your account straight away.
+
 The Youth Academy building (see Buildings) determines how many and how strong the new talents you receive are.`
     },
     de: {
@@ -1228,6 +1453,11 @@ Alter und Beförderung:
 • Jugendspieler starten mit 15 Jahren. Ab 16 kannst du sie in deinen Profikader befördern.
 • Mit 18 erhältst du eine Warnung; werden sie nicht befördert, verlassen sie den Verein mit 19.
 • Bei der Beförderung wird das Level auf eine ganze Zahl abgerundet, und der Spieler wechselt in deinen Hauptkader.
+
+Verkaufen:
+• Jeder Jugendspieler hat einen Marktwert, der neben dem Level angezeigt wird, und genau dafür kannst du ihn verkaufen.
+• Der Wert richtet sich nach dem Level und belohnt – anders als der verborgene Talentbalken – das Potenzial: ein Top-Talent ist rund zweieinhalbmal so viel wert wie ein schwaches gleichen Levels.
+• Es gibt keinen kaufenden Verein: Der Spieler verlässt einfach die Akademie, und das Geld landet sofort auf deinem Konto.
 
 Das Gebäude Jugendakademie (siehe Gebäude) bestimmt, wie viele und wie starke neue Talente du erhältst.`
     }

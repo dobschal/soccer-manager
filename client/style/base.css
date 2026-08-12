@@ -45,12 +45,18 @@ h6.text-white,
 }
 
 /* Body */
+/* Viewport heights are written twice throughout the project: `vh` first, `dvh`
+   second. `100vh` is the *largest* viewport, so on iOS it is taller than what is
+   really on screen and anything sized by it hangs off the bottom edge (#541).
+   `dvh` follows the visible viewport; browsers that predate it ignore the second
+   declaration and keep the old behaviour. */
 body {
     letter-spacing: 0.5px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
     background-image: url("../assets/football-field-horizontal.jpg");
     background-size: 100vw auto;

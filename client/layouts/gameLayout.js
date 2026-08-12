@@ -7,10 +7,11 @@ import { toast } from '../partials/toast.js'
 import { t } from '../i18n/index.js'
 import { showAccountOverlay } from '../partials/accountOverlay.js'
 import { goTo } from '../lib/router.js'
-import { currentGamedayLabel } from '../lib/currentGamedayLabel.js'
+import { currentGamedayLabel, currentGamedayHref } from '../lib/currentGamedayLabel.js'
 import { maybeShowUnverifiedEmailToast } from '../partials/unverifiedEmailToast.js'
 import { discordLinkHtml } from '../lib/discord.js'
 import { TutorialProgress } from '../partials/tutorialProgress.js'
+import { ActionCardCount } from '../partials/actionCardCount.js'
 
 /**
  * @returns {void}
@@ -87,13 +88,17 @@ export class GameLayout extends UIElement {
         </nav>
         <div class="info-bar">
           <div class="info-bar-content">
-            <a href="#results" class="info-bar-item text-decoration-none text-info border-0">
+            <a href="${currentGamedayHref(this._currentGameday)}" class="info-bar-item text-decoration-none text-info border-0">
               <i class="fa fa-calendar" aria-hidden="true"></i> ${currentGamedayLabel(this._currentGameday)}
             </a>
             <a href="#dashboard" class="info-bar-item text-decoration-none text-info border-0" id="${this._nextGameInElementId}">
             </a>
             <a href="#club?sub_page=finances" class="info-bar-item text-decoration-none text-info border-0">
-              <i class="fa fa-money" aria-hidden="true"></i> ${new Balance()}
+              <i class="fa fa-money" aria-hidden="true"></i> ${new Balance({ short: true })}
+            </a>
+            <a href="#my-team?sub_page=cards" class="info-bar-item text-decoration-none text-info border-0"
+               title="${t('dashboard.tabCards')}">
+              <i class="fa fa-clone" aria-hidden="true"></i> ${new ActionCardCount()}
             </a>
           </div>
         </div>

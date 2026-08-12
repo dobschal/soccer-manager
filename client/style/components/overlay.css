@@ -10,7 +10,11 @@
     top: 0;
     z-index: 200;
     width: 100%;
+    /* `dvh`, not `vh`: on iOS `100vh` is the largest viewport and taller than
+       what is on screen, which pushes the bottom of an overlay past the edge
+       (#541). The `vh` line stays as the fallback. */
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     animation-name: overlay-fade-in-1;
@@ -53,6 +57,7 @@
 .overlay {
     max-width: min(100%, 1100px);
     max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
     overflow-y: auto;
     overflow-x: hidden;
     width: fit-content;
@@ -165,4 +170,5 @@
     position: relative;
     min-width: 500px;
     height: min(65vh, 520px);
+    height: min(65dvh, 520px);
 }

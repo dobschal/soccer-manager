@@ -117,6 +117,7 @@ export default {
   'error.chatInvalidUser': 'Ungültiger Chat-Empfänger',
   'error.chatEmptyMessage': 'Eine Nachricht muss Text oder ein Bild enthalten',
   'chat.imageMessage': '📷 Foto',
+  'chat.voiceMessage': '🎤 Sprachnachricht',
   'error.playerMaxLevelUps': 'Spieler hat bereits 20 Level-Ups in dieser Saison erhalten',
   'error.playerMaxLevel': 'Spieler hat bereits das maximale Level erreicht',
   'error.cardMaxLevel70': 'Aktionskarte erlaubt nur Level-Ups bis Level 70',
@@ -143,6 +144,7 @@ export default {
   'log.offerAccepted': 'Dein Angebot für {playerName} wurde angenommen!',
   'log.offerRejected': 'Dein Angebot für {playerName} wurde abgelehnt.',
   'log.cardBidReceived': '{team} hat auf eines deiner Aktionskarten-Angebote geboten.',
+  'log.botCardBidComment': 'Automatisches Angebot für eine Karte, die seit über 24 Stunden gelistet ist.',
   'log.cardTradeSold': 'Dein Aktionskarten-Handel mit {team} wurde abgeschlossen.',
   'log.cardTradeBought': 'Dein Gebot wurde angenommen — du hast Aktionskarten mit {team} getauscht.',
   'log.sellOfferCreated': 'Du hast ein Verkaufsangebot für {playerName} zu {price} erstellt.',
@@ -206,6 +208,11 @@ export default {
   // Log messages - Youth players
   'log.youthPlayerPromoted': '{playerName} wurde auf Level {level} in die A-Mannschaft befördert!',
   'log.youthPlayerFired': 'Jugendspieler {playerName} wurde aus der Jugendmannschaft entlassen.',
+  'log.youthPlayerSold': 'Jugendspieler {playerName} wurde für {value}€ verkauft.',
+  'log.tourCompleted': 'Dein Kader ist von der {tour} zurück — {count} neue Aktionskarte(n) warten auf dich.',
+  'tour.south_america': 'Südamerika-Reise',
+  'tour.asia': 'Asien-Reise',
+  'tour.europe': 'Europa-Reise',
   'log.youthPlayerAt18Warning': 'Warnung: Folgende Jugendspieler werden nächste Saison automatisch entlassen, wenn sie nicht befördert werden: {playerNames}',
 
   // Log messages - Cards and suspensions
@@ -224,6 +231,7 @@ export default {
   'finance.sponsorDeal': 'Sponsorvertrag mit {name}',
   'finance.stadiumConstruction': 'Stadionbau begonnen',
   'finance.playerSold': 'Spieler verkauft: {playerName}',
+  'finance.youthPlayerSold': 'Jugendspieler verkauft: {playerName}',
   'finance.playerBought': 'Spieler gekauft: {playerName}',
   'finance.cardSold': 'Aktionskarte auf dem Markt verkauft',
   'finance.cardBought': 'Aktionskarte auf dem Markt gekauft',

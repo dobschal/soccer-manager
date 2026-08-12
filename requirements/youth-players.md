@@ -12,7 +12,11 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 - **US-YTH-10**: Als Spieler schalte ich durch den Ausbau der Jugendakademie mehr Trainings- und Freundschaftsspiel-Slots frei.
 - **US-YTH-03**: Als Spieler sehe ich pro Jugendspieler: Name, Position, Alter, Level, Moral und Fitness.
 - **US-YTH-04**: Als Spieler kann ich einen Jugendspieler ab Alter 16 ins A-Team befoerdern.
-- **US-YTH-05**: Als Spieler kann ich einen Jugendspieler jederzeit entlassen.
+- **US-YTH-05**: Als Spieler trenne ich mich von einem Jugendspieler ueber den Verkauf (US-YTH-12); einen
+  separaten "Entlassen"-Button gibt es seit #524 nicht mehr.
+- **US-YTH-11**: Als Spieler sehe ich neben dem Level den aktuellen Marktwert jedes Jugendspielers.
+- **US-YTH-12**: Als Spieler kann ich einen Jugendspieler zum aktuellen Marktpreis verkaufen und werde vorher
+  mit Name und Betrag um Bestaetigung gebeten.
 - **US-YTH-06**: Als Spieler erhalte ich eine Warnung, wenn ein Jugendspieler 18 wird (automatische Entlassung naechste Saison).
 - **US-YTH-07**: Als Spieler erhalte ich neue Jugendspieler ueber die NEW_YOUTH_PLAYER_1/_2/_3 Aktionskarten (max. 3 pro Saison, Stufe abhaengig vom Akademie-Level).
 - **US-YTH-08**: Als Spieler sehe ich einen Countdown-Timer bis zum naechsten Spieltag auf dem Youth-Tab.
@@ -98,13 +102,27 @@ randomFactor = 0.9 bis 1.1
 ### Automatische Entlassung
 
 - **TA-YTH-11**: Jugendspieler ab 19 Jahren werden beim Saisonwechsel automatisch geloescht.
-- **TA-YTH-12**: Warnung bei Alter 18: Log-Nachricht an das Team.
+- **TA-YTH-12**: Warnung bei Alter 18: Log-Nachricht an das Team. Wird **einmal pro Saison** verschickt (erster
+  CRON-Tick der Saison), nicht bei jedem Tick — abgesichert ueber `app_setting.last_youth_warning_season`.
 
 ### Training
 
 - **TA-YTH-13**: `processYouthTraining()` wird bei jedem Spieltag aufgerufen und trainiert jeden Spieler nach seinem individuellen `training_mode`.
 - **TA-YTH-14**: Fitness und Moral werden auf [0, 1] begrenzt.
 - **TA-YTH-15**: Talent-Wert wird nie an den Client zurueckgegeben (versteckt).
+- **TA-YTH-25**: Marktwert (`calculateYouthPlayerValue`, #524):
+  `40.000.000 € × 0,9330329915368074^(100 − Level) × (0,5 + Talent)`. Der Level-Term ist dieselbe Kurve
+  wie bei Profispielern, damit ein Jugendspieler und ein frisch befoerderter Profi gleichen Levels in
+  derselben Groessenordnung liegen. Der Altersterm der Profiformel greift unter 22 nicht — jeder
+  Jugendspieler ist 15-18.
+- **TA-YTH-26**: Der Talentfaktor (`YOUTH_VALUE_TALENT_WEIGHT` = 0,5) spannt den Preis um ±50% auf: bei
+  Jugendspielern ist das Talent der eigentliche Wert. Ein 1,0-Talent bringt rund das 2,5-fache eines
+  0,1-Talents gleichen Levels.
+- **TA-YTH-27**: Der Preis wird **serverseitig** berechnet und als `market_value` mitgeliefert, weil er vom
+  versteckten Talent abhaengt. Damit laesst sich das Talent aus dem Preis allerdings zurueckrechnen —
+  eine bewusste Abschwaechung von TA-YTH-15.
+- **TA-YTH-28**: `sellYouthPlayer` entfernt den Spieler **zuerst** und bucht danach die Gutschrift. Andersherum
+  wuerde ein Fehler beim Loeschen dem Verein Geld *und* Spieler lassen.
 - **TA-YTH-23**: `setYouthPlayerTrainingMode` prueft Team-Eigentum, gueltigen Modus und freie Slots (`countYouthPlayersInMode` gegen `slotsForMode`). Der eigene Spieler wird bei der Zaehlung ausgeschlossen, damit ein Wechsel innerhalb desselben Modus nicht am Limit scheitert.
 - **TA-YTH-24**: Bei tatsaechlicher Aenderung wird `YOUTH_PLAYER_TRAINING_MODE_CHANGED` an den Team-Nutzer gesendet (Payload: `{ youthPlayerId, previousMode, newMode }`). Die betroffene Zeile aktualisiert sich in place, die Seite rendert nicht komplett neu.
 - **TA-YTH-25**: `mode = null` entfernt die Zuweisung wieder (Spieler faellt auf den Team-Fallback zurueck).
@@ -113,11 +131,12 @@ randomFactor = 0.9 bis 1.1
 
 | Endpunkt | Beschreibung |
 |---|---|
-| `getYouthTeam` | Jugendspieler (ohne Talent), individuelle Modi, Akademie-Level, Slots pro Modus, Saison |
+| `getYouthTeam` | Jugendspieler (ohne Talent, mit `market_value`), individuelle Modi, Akademie-Level, Slots pro Modus, Saison |
+| `sellYouthPlayer(id)` | Verkauft den Jugendspieler zum Marktwert und schreibt den Betrag gut |
 | `setYouthPlayerTrainingMode(youthPlayerId, mode)` | Modus eines einzelnen Jugendspielers setzen (`training`/`friendly_match`/`rest`/`null`) |
 | `setYouthTrainingMode(mode)` | Team-weiter Fallback-Modus (Legacy) |
 | `promoteYouthPlayer(youthPlayerId)` | Jugendspieler ins A-Team befoerdern |
-| `fireYouthPlayer(youthPlayerId)` | Jugendspieler entlassen |
+| `fireYouthPlayer(youthPlayerId)` | Jugendspieler entfernen — seit #524 nicht mehr aus der UI aufrufbar; wird intern noch fuer Verkauf und automatische Entlassung ab 19 genutzt |
 
 ### Frontend
 
@@ -126,8 +145,10 @@ randomFactor = 0.9 bis 1.1
 - **TA-YTH-18**: Countdown-Timer bis zum naechsten Spieltag (HH:MM:SS).
 - **TA-YTH-19**: Spielertabelle: Name, Position, Alter, Level (2 Dezimalen), Moral (Fortschrittsbalken), Fitness (Fortschrittsbalken), Aktionen.
 - **TA-YTH-20**: Befoerdern-Button nur aktiv ab Alter 16.
-- **TA-YTH-21**: Entlassen-Button immer aktiv.
-- **TA-YTH-22**: Bestaetigungsdialoge vor Befoerderung und Entlassung.
+- **TA-YTH-23**: Spaltenreihenfolge: … Level, **Marktwert**, Moral, Fitness, Trainingsmodus, Aktionen (#524).
+- **TA-YTH-24**: Aktionen pro Zeile: Befoerdern, **Verkaufen** — der Entlassen-Button wurde mit #524 entfernt,
+  weil der Verkauf ihn vollstaendig ersetzt.
+- **TA-YTH-22**: Bestaetigungsdialoge vor Befoerderung und Verkauf.
 
 ### Tests
 
@@ -140,3 +161,6 @@ randomFactor = 0.9 bis 1.1
 - Team-Eigentuemerpruefung bei Befoerderung/Entlassung/Modus-Zuweisung
 - Automatische Entlassung ab 19
 - Talent ist nicht im API-Response enthalten
+- Marktwert: steigt mit Level und Talent, Talentspanne ±50%, kein Altersabschlag, ganzzahlig, robust gegen
+  fehlendes oder ueberhohes Talent
+- Verkauf: Gutschrift, Entfernen vor Buchung, Log-Eintrag, Ablehnung fremder und unbekannter Spieler

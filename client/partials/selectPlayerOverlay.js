@@ -1,28 +1,30 @@
-import { UIElement } from '../lib/UIElement.js'
-import { PlayerList } from './playerList.js'
-import { t } from '../i18n/index.js'
-import { el } from '../lib/html.js'
-import { ActionCardGiver } from './actionCardGiver.js'
+import {UIElement} from '../lib/UIElement.js'
+import {PlayerPicker} from './playerPicker.js'
+import {t} from '../i18n/index.js'
+import {ActionCardGiver} from './actionCardGiver.js'
 
 export class SelectPlayerOverlay extends UIElement {
   /**
    * @param {PlayerType} currentPlayer - Player currently in the slot (may be fake/empty)
    * @param {PlayerType[]} availablePlayers - Players whose natural position matches the slot
-   * @param {(player: PlayerType) => void} onPlayerSelected - Called when a player from the list is clicked
+   * @param {(player: PlayerType) => void} onPlayerSelected - Called when a player from the strip is clicked
    * @param {PlayerType[]} [allPlayers] - All players the user could field for this slot
-   *   (everyone in the squad minus suspended/injured/fake/already-on-pitch). When provided,
-   *   the overlay shows a toggle that switches the list between matching-only and all players,
-   *   letting the user field someone out of position (at reduced effectiveness).
+   *   (everyone in the squad minus suspended/injured/fake/already-on-pitch). Merged with
+   *   `availablePlayers` and the current occupant into one strip: matching players first,
+   *   the out-of-position ones after them and dimmed, so fielding someone out of position
+   *   stays possible (at reduced effectiveness) without a second click.
+   * @param {TeamType|null} [team] - Team the players belong to; drives shirt colour
+   *   and emblem of the figures in the strip.
    */
-  constructor (currentPlayer, availablePlayers, onPlayerSelected, allPlayers) {
+  constructor (currentPlayer, availablePlayers, onPlayerSelected, allPlayers, team) {
     super()
     this.currentPlayer = currentPlayer
-    this.availablePlayers = availablePlayers
+    this.availablePlayers = availablePlayers ?? []
     this.onPlayerSelected = onPlayerSelected
     this.allPlayers = allPlayers ?? null
-    this.showAll = false
+    this.team = team ?? null
     // The action-card section owns its own UIElement lifecycle. Player stat
-    // updates (freshness/level after a card was applied) reach the rows and
+    // updates (freshness/level after a card was applied) reach the strip and
     // the pitch tiles via the PLAYER_UPDATED server event — no callback
     // plumbing back through the overlay.
     this._actionCardGiver = new ActionCardGiver(currentPlayer)
@@ -32,28 +34,24 @@ export class SelectPlayerOverlay extends UIElement {
    * @returns {string}
    */
   get template () {
-    // Cache the PlayerList instance: a fresh instance would render an async
+    // Cache the PlayerPicker instance: a fresh instance would render an async
     // placeholder via renderSync(), which made the overlay briefly empty (and
     // shrink on its `width: fit-content` card) when we called this.update()
     // after an action card. Reusing the instance lets us update it in place.
-    if (!this._playerList) {
-      this._playerList = new PlayerList(
-        this._currentListPlayers(),
-        false,
+    if (!this._playerPicker) {
+      this._playerPicker = new PlayerPicker(
+        this._selectablePlayers(),
+        this.currentPlayer?.in_game_position,
+        this.team,
         (player) => this.onPlayerSelected?.(player),
-        false,
-        false,
-        null,
-        null,
-        { useUrlSort: false }
+        this.currentPlayer?.fake ? null : this.currentPlayer?.id ?? null
       )
     }
     return `
       <div class="select-player-overlay">
         <p>${t('selectPlayer.subtitle')}</p>
-        ${this._playerList}
-        ${this._renderShowAllToggle()}
-        <div style="height: 280px">
+        ${this._playerPicker}
+        <div style="height: 292px">
             ${this._actionCardGiver}
         </div>
       </div>
@@ -61,79 +59,18 @@ export class SelectPlayerOverlay extends UIElement {
   }
 
   /**
-   * @returns {UIElementEvents}
-   */
-  get events () {
-    return {
-      '(optional)[data-toggle-show-all]': {
-        click: async () => {
-          this.showAll = !this.showAll
-          this._refreshShowAllToggleDOM()
-          await this._refreshPlayerListDOM()
-        }
-      }
-    }
-  }
-
-  /**
+   * Everyone shown in the strip: the player currently standing in the slot (so
+   * the user sees who they are replacing), the matching players, and — when the
+   * caller provided them — the rest of the squad. Deduplicated by id. An empty
+   * slot contributes a fake placeholder, which is dropped.
    * @returns {PlayerType[]}
    */
-  _currentListPlayers () {
-    return this.showAll && this.allPlayers ? this.allPlayers : this.availablePlayers
-  }
-
-  /**
-   * @returns {string}
-   */
-  _renderShowAllToggle () {
-    if (!this.allPlayers) return ''
-    const label = this.showAll ? t('selectPlayer.showMatchingOnly') : t('selectPlayer.showAllPlayers')
-    const hint = this.showAll
-      ? `<small class="text-muted d-block mt-2">${t('selectPlayer.outOfPositionHint')}</small>`
-      : ''
-    return `
-      <div class="select-player-show-all mt-3">
-        <button type="button" class="btn btn-outline-info w-100" data-toggle-show-all>
-          <i class="fa fa-${this.showAll ? 'filter' : 'users'}" aria-hidden="true"></i>
-          ${label}
-        </button>
-        ${hint}
-      </div>
-    `
-  }
-
-  /**
-   * Update the cached PlayerList's data and trigger its own update(). Avoids
-   * the placeholder dance from `${new PlayerList(...)}` in this.template.
-   * Only called by the show-all toggle now — action-card driven stat changes
-   * fan out via the PLAYER_UPDATED event straight to each PlayerListItem.
-   * @returns {Promise<void>}
-   */
-  async _refreshPlayerListDOM () {
-    if (!this._playerList) return
-    this._playerList.players = this._currentListPlayers()
-    if (this._playerList.isRendered) {
-      await this._playerList.update()
+  _selectablePlayers () {
+    const byId = new Map()
+    for (const player of [this.currentPlayer, ...this.availablePlayers, ...(this.allPlayers ?? [])]) {
+      if (!player || player.fake) continue
+      byId.set(player.id, player)
     }
-  }
-
-  /**
-   * Mutate the existing toggle button (and its hint) instead of re-rendering
-   * the overlay. The button keeps its listener because the element itself is
-   * not replaced.
-   * @returns {void}
-   */
-  _refreshShowAllToggleDOM () {
-    const toggleBtn = el(`${this._elementQuery} [data-toggle-show-all]`)
-    if (!toggleBtn) return
-    const label = this.showAll ? t('selectPlayer.showMatchingOnly') : t('selectPlayer.showAllPlayers')
-    toggleBtn.innerHTML = `<i class="fa fa-${this.showAll ? 'filter' : 'users'}" aria-hidden="true"></i> ${label}`
-    const wrapper = el(`${this._elementQuery} .select-player-show-all`)
-    const existingHint = wrapper?.querySelector('small.text-muted')
-    if (this.showAll && !existingHint) {
-      toggleBtn.insertAdjacentHTML('afterend', `<small class="text-muted d-block mt-2">${t('selectPlayer.outOfPositionHint')}</small>`)
-    } else if (!this.showAll && existingHint) {
-      existingHint.remove()
-    }
+    return [...byId.values()]
   }
 }

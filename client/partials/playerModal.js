@@ -2,7 +2,7 @@ import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
 import { calculatePlayerAge, calculateMarketValue, getMinOfferPrice, getSalary, willRetireNextSeason, MAX_TRANSFERS_PER_SEASON } from '../util/player.js'
 import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
-import { euroFormat } from '../lib/currency.js'
+import { euroFormat, shortEuroFormat } from '../lib/currency.js'
 import { el } from '../lib/html.js'
 import { toast } from './toast.js'
 import { Button } from './button.js'
@@ -26,17 +26,6 @@ function getFreshnessColor (freshness) {
   if (freshness >= 0.7) return '#28a745' // Green
   if (freshness >= 0.4) return '#ffc107' // Yellow
   return '#dc3545' // Red
-}
-
-/**
- * Format currency amount compactly (e.g., 3543 → "3.5K€")
- * @param {number} amount
- * @returns {string}
- */
-function formatCompactCurrency (amount) {
-  if (amount >= 1000000) return (amount / 1000000).toFixed(1) + 'M€'
-  if (amount >= 1000) return (amount / 1000).toFixed(1) + 'K€'
-  return amount + '€'
 }
 
 /**
@@ -134,11 +123,11 @@ export default class PlayerModal extends UIElement {
               </div>
               <div class="stat-card bg-dark">
                 <div class="stat-card-label">${t('player.salary')}</div>
-                <div class="stat-card-value">${formatCompactCurrency(getSalary(this.player.level))}</div>
+                <div class="stat-card-value">${shortEuroFormat(getSalary(this.player.level))}</div>
               </div>
               <div class="stat-card bg-dark">
                 <div class="stat-card-label">${t('player.value')}</div>
-                <div class="stat-card-value">${formatCompactCurrency(this.price)}</div>
+                <div class="stat-card-value">${shortEuroFormat(this.price)}</div>
               </div>
             </div>
           </div>

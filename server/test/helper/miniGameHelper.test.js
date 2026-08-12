@@ -86,8 +86,15 @@ describe('miniGameHelper.rollMiniGameReward', () => {
     for (const action of MINI_GAME_REWARD_POOL) {
       const expectedRate = actionCardChances[action] / totalWeight
       const observedRate = counts[action] / N
-      expect(observedRate).toBeGreaterThan(expectedRate * 0.7)
-      expect(observedRate).toBeLessThan(expectedRate * 1.3)
+      // A flat ±30% is far too tight for the rare cards: MILLION_BONUS is drawn
+      // ~110 times in 50k rolls, where 30% is barely 3 standard deviations and
+      // the run goes red every few hundred CI builds for no reason. The band is
+      // therefore five binomial sigmas wide, with the 30% kept as a floor so a
+      // real weighting bug in a common card is still caught.
+      const sigma = Math.sqrt((1 - expectedRate) / (expectedRate * N))
+      const tolerance = Math.max(0.3, 5 * sigma)
+      expect(observedRate).toBeGreaterThan(expectedRate * (1 - tolerance))
+      expect(observedRate).toBeLessThan(expectedRate * (1 + tolerance))
     }
   })
 })

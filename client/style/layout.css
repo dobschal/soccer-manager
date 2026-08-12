@@ -136,15 +136,23 @@ a:visited.row {
     white-space: nowrap;
     animation: info-bar-item-fade-in 1s ease-in;
 }
+
 .info-bar-item:nth-child(1) {
     animation-duration: 0.33s;
 }
+
 .info-bar-item:nth-child(2) {
     animation-duration: 0.66s;
-    width: 50px; /* fix the width of the countdown, because the font isn't monospace */
+    width: 56px; /* fix the width of the countdown, because the font isn't monospace */
 }
+
 .info-bar-item:nth-child(3) {
     animation-duration: 1s;
+}
+
+/* Action-card count, moved here from the dashboard nav (#523). */
+.info-bar-item:nth-child(4) {
+    animation-duration: 1.33s;
 }
 
 /* ==========================================================================
@@ -172,6 +180,7 @@ a:visited.row {
 #page {
     position: relative;
     min-height: calc(100vh - 12rem);
+    min-height: calc(100dvh - 12rem);
     display: flex;
     flex-direction: column;
     box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
@@ -184,6 +193,7 @@ a:visited.row {
 .centered-container {
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     color: white;
@@ -201,11 +211,11 @@ a:visited.row {
     width: 100%;
     z-index: 200;
     background: repeating-linear-gradient(
-        135deg,
-        #ffc107 0,
-        #ffc107 16px,
-        #ffd24a 16px,
-        #ffd24a 32px
+            135deg,
+            #ffc107 0,
+            #ffc107 16px,
+            #ffd24a 16px,
+            #ffd24a 32px
     );
     color: #222;
     font-size: 0.85rem;
@@ -260,6 +270,7 @@ body:has(> #sandbox-banner) .game-layout {
 
 .default-layout {
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
 }
@@ -354,7 +365,7 @@ body:has(> #sandbox-banner) .game-layout {
     }
 
     .info-bar-content {
-        gap: 1rem;
+        gap: 1.5rem;
         font-size: 0.85rem;
     }
 

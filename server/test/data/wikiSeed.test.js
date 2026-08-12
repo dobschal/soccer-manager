@@ -7,7 +7,7 @@ const MAX_SUBTITLE = 255
 
 describe('wiki seed content (#441)', () => {
   it('covers all requested topics in both locales', () => {
-    expect(WIKI_SEED).toHaveLength(28)
+    expect(WIKI_SEED).toHaveLength(30)
   })
 
   it('documents the fair-play rules so sanctions are not a surprise', () => {
@@ -19,6 +19,28 @@ describe('wiki seed content (#441)', () => {
     expect(topic.en.text).toMatch(/75%/)
     expect(topic.de.text).toMatch(/Zweit-Account/i)
     expect(topic.de.text).toMatch(/75%/)
+  })
+
+  it('documents the daily login cycle and its four milestones (#501)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'daily-login')
+    expect(topic).toBeTruthy()
+    for (const locale of LOCALES) {
+      for (const day of ['3', '7', '15', '30']) {
+        expect(topic[locale].text).toContain(day)
+      }
+    }
+  })
+
+  it('explains the automatic bot bids on aged card offers (#505)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'action-card-market')
+    expect(topic.en.text).toMatch(/24 hours/i)
+    expect(topic.de.text).toMatch(/24 Stunden/i)
+  })
+
+  it('explains saved lineups on the lineup page (#481)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'lineup')
+    expect(topic.en.text).toMatch(/Saved lineups/i)
+    expect(topic.de.text).toMatch(/Gespeicherte Aufstellungen/i)
   })
 
   it('every topic has a unique, kebab-case page key (#456)', () => {
@@ -66,4 +88,87 @@ describe('wiki seed content (#441)', () => {
       })
     })
   }
+})
+
+describe('wiki seed content for the #538/#539/#540/#543 changes', () => {
+  it('describes the graded out-of-position penalty, not a flat 50% (#540)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'in-game-level')
+    for (const locale of LOCALES) {
+      const text = topic[locale].text
+      for (const step of ['10%', '20%', '30%', '50%']) {
+        expect(text).toContain(step)
+      }
+    }
+  })
+
+  it('quotes the recalibrated salary curve (#543)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'players')
+    expect(topic.en.text).toContain('18,500')
+    expect(topic.de.text).toContain('18.500')
+    // Neither the original ceiling nor the over-steep one it briefly had.
+    for (const stale of ['10,308', '50,000']) expect(topic.en.text).not.toContain(stale)
+    for (const stale of ['10.308', '50.000']) expect(topic.de.text).not.toContain(stale)
+  })
+
+  it('explains that price fields only exist for built stands (#538)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'stadium')
+    expect(topic.en.text).toMatch(/not built yet/i)
+    expect(topic.de.text).toMatch(/nicht gebaute Tribüne/i)
+  })
+
+  it('documents the match ticker (#539)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'match-day')
+    expect(topic.en.text).toMatch(/match ticker/i)
+    expect(topic.en.text).toMatch(/half time/i)
+    expect(topic.de.text).toMatch(/Spielticker/i)
+    expect(topic.de.text).toMatch(/Halbzeit/i)
+  })
+})
+
+describe('wiki seed content for the #541 chat changes', () => {
+  it('documents voice messages and where they work', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'chat')
+    expect(topic.en.text).toMatch(/voice message/i)
+    expect(topic.en.text).toMatch(/two minutes/i)
+    expect(topic.de.text).toMatch(/Sprachnachricht/i)
+    expect(topic.de.text).toMatch(/zwei Minuten/i)
+    // Recording is browser-only: both apps load the bundle from file://, where
+    // neither WebKit nor the Android WebView hands out navigator.mediaDevices.
+    // The wiki claimed iOS worked, which sent players hunting for a button that
+    // is never rendered.
+    expect(topic.en.text).toMatch(/only works in the browser/i)
+    expect(topic.en.text).toMatch(/Neither app can record/i)
+    expect(topic.en.text).not.toMatch(/works in the browser and in the iOS app/i)
+    expect(topic.de.text).toMatch(/nur im Browser/i)
+    expect(topic.de.text).toMatch(/Beide Apps können noch nicht aufnehmen/i)
+    expect(topic.de.text).not.toMatch(/funktioniert im Browser und in der iOS-App/i)
+  })
+})
+
+describe('wiki seed content for On Tour (#535)', () => {
+  it('has the topic the page links to via its info icon', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'on-tour')
+    expect(topic).toBeTruthy()
+    for (const locale of LOCALES) {
+      expect(topic[locale].text.trim().length).toBeGreaterThan(0)
+    }
+  })
+
+  it('spells out the limits a player will run into', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'on-tour')
+    for (const locale of LOCALES) {
+      const text = topic[locale].text
+      expect(text).toContain('3')   // max players and minimum days
+      expect(text).toContain('7')   // maximum days
+      expect(text).toContain('30')  // points needed
+    }
+  })
+
+  it('names all three destinations and their rewards', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'on-tour')
+    expect(topic.en.text).toMatch(/South America/)
+    expect(topic.en.text).toMatch(/Master Training/)
+    expect(topic.de.text).toMatch(/Südamerika/)
+    expect(topic.de.text).toMatch(/Meister-Training/)
+  })
 })

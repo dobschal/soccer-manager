@@ -86,6 +86,10 @@ function getActionCardTexts () {
       title: t('actionCards.type.cashBonus'),
       description: t('actionCards.type.cashBonusDesc')
     },
+    MILLION_BONUS: {
+      title: t('actionCards.type.millionBonus'),
+      description: t('actionCards.type.millionBonusDesc')
+    },
     STAR_PLAYER: {
       title: t('actionCards.type.starPlayer'),
       description: t('actionCards.type.starPlayerDesc')
@@ -543,10 +547,10 @@ export class ActionCards extends UIElement {
       await this._handleMedicalTreatmentCard(actionCard, cardIndex)
       return
     }
-    if (actionCard.action === 'BONUS_100K') {
+    if (actionCard.action === 'BONUS_100K' || actionCard.action === 'MILLION_BONUS') {
       try {
         await server.useActionCard(actionCard, null, null)
-        toast(t('actionCards.bonusReceived'), 'success')
+        toast(t(actionCard.action === 'MILLION_BONUS' ? 'actionCards.millionReceived' : 'actionCards.bonusReceived'), 'success')
         await this._animateAndRemoveCard(cardIndex)
       } catch (e) {
         console.error(e)

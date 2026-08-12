@@ -21,6 +21,10 @@ const TUTORIALS = [
     route: '#my-team?sub_page=youth'
   },
   {
+    key: 'tour',
+    route: '#my-team?sub_page=tour'
+  },
+  {
     key: 'results',
     route: '#results'
   },

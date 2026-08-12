@@ -27,7 +27,9 @@ function getTutorials () {
         t('tutorial.teamPage.item2'),
         t('tutorial.teamPage.item3'),
         t('tutorial.teamPage.item4'),
-        t('tutorial.teamPage.item5')
+        t('tutorial.teamPage.item5'),
+        t('tutorial.teamPage.item6'),
+        t('tutorial.teamPage.item7')
       ]
     },
     trades: {
@@ -48,7 +50,8 @@ function getTutorials () {
         t('tutorial.dashboardPage.item2'),
         t('tutorial.dashboardPage.item3'),
         t('tutorial.dashboardPage.item4'),
-        t('tutorial.dashboardPage.item5')
+        t('tutorial.dashboardPage.item5'),
+        t('tutorial.dashboardPage.item6')
       ]
     },
     stadium: {
@@ -81,7 +84,8 @@ function getTutorials () {
         t('tutorial.youthPage.item3'),
         t('tutorial.youthPage.item4'),
         t('tutorial.youthPage.item5'),
-        t('tutorial.youthPage.item6')
+        t('tutorial.youthPage.item6'),
+        t('tutorial.youthPage.item7')
       ]
     },
     buildings: {
@@ -96,6 +100,17 @@ function getTutorials () {
         t('tutorial.buildingsPage.item6'),
         t('tutorial.buildingsPage.item7'),
         t('tutorial.buildingsPage.item8')
+      ]
+    },
+    tour: {
+      title: t('tutorial.tourPage.title'),
+      subtitle: t('tutorial.tourPage.subtitle'),
+      items: [
+        t('tutorial.tourPage.item1'),
+        t('tutorial.tourPage.item2'),
+        t('tutorial.tourPage.item3'),
+        t('tutorial.tourPage.item4'),
+        t('tutorial.tourPage.item5')
       ]
     }
   }

@@ -4,6 +4,7 @@ import { EMBLEM_COLORS, EMBLEM_PATTERNS, EMBLEM_SHAPES, adjustBrightness } from 
 import { _getBotPlayerLevelRange, _getBotStadiumConfig } from './prepare-season.js'
 import { WIKI_SEED } from './data/wikiSeed.js'
 import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
+import { ensurePlayableAudio, UNIVERSAL_AUDIO_EXTENSIONS } from './lib/audioTranscode.js'
 
 /**
  * @typedef {object} Migration
@@ -2854,7 +2855,421 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Create team_lineup tables (#481)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS team_lineup
+    (
+        id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        team_id     BIGINT NOT NULL,
+        name        VARCHAR(40) NOT NULL,
+        formation   VARCHAR(20) NULL,
+        pass_style  VARCHAR(20) NULL,
+        play_style  VARCHAR(20) NULL,
+        attack_mode VARCHAR(20) NULL,
+        captain_id  BIGINT NULL,
+        is_active   TINYINT(1) NOT NULL DEFAULT 0,
+        created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_team_lineup_team (team_id),
+        INDEX idx_team_lineup_active (team_id, is_active)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+    await query(`CREATE TABLE IF NOT EXISTS team_lineup_player
+    (
+        id                     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        lineup_id              BIGINT UNSIGNED NOT NULL,
+        player_id              BIGINT NOT NULL,
+        in_game_position       VARCHAR(20) NULL,
+        bench_position         VARCHAR(20) NULL,
+        bench_substitution_mode VARCHAR(20) NULL,
+        PRIMARY KEY (id),
+        INDEX idx_team_lineup_player_lineup (lineup_id),
+        UNIQUE KEY uniq_team_lineup_player (lineup_id, player_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Seed a default lineup per team from its current setup (#481)',
+  async run () {
+    // Only real managers get a slot up front. Bots never go through the
+    // routes that read or write lineups, and a team taken over from a bot
+    // gets one lazily via `ensureActiveLineup`.
+    const teams = await query(
+      'SELECT id, formation, pass_style, play_style, attack_mode, captain_id FROM team WHERE user_id IS NOT NULL'
+    )
+    let seeded = 0
+    for (const team of teams) {
+      const [existing] = await query('SELECT id FROM team_lineup WHERE team_id=? LIMIT 1', [team.id])
+      if (existing) continue
+      const result = await query('INSERT INTO team_lineup SET ?', {
+        team_id: team.id,
+        name: 'Lineup 1',
+        formation: team.formation,
+        pass_style: team.pass_style,
+        play_style: team.play_style,
+        attack_mode: team.attack_mode,
+        captain_id: team.captain_id,
+        is_active: 1
+      })
+      const players = await query(
+        `SELECT id, in_game_position, bench_position, bench_substitution_mode
+         FROM player
+         WHERE team_id=? AND ((in_game_position IS NOT NULL AND in_game_position <> '') OR bench_position IS NOT NULL)`,
+        [team.id]
+      )
+      for (const player of players) {
+        await query('INSERT INTO team_lineup_player SET ?', {
+          lineup_id: result.insertId,
+          player_id: player.id,
+          in_game_position: player.in_game_position || null,
+          bench_position: player.bench_position || null,
+          bench_substitution_mode: player.bench_substitution_mode || null
+        })
+      }
+      seeded++
+    }
+    console.log(`✅ Seeded ${seeded} teams with a default lineup`)
+  }
+}, {
+  name: 'Create user_login_streak table (#501)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS user_login_streak
+    (
+        user_id         BIGINT NOT NULL,
+        last_login_date DATE NOT NULL,
+        streak          INT NOT NULL DEFAULT 0,
+        cycle_day       INT NOT NULL DEFAULT 0,
+        longest_streak  INT NOT NULL DEFAULT 0,
+        rewards_claimed VARCHAR(64) NOT NULL DEFAULT '',
+        updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id),
+        INDEX idx_user_login_streak_streak (streak)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+  }
+}, {
+  name: 'Wiki: daily login bonus, saved lineups, bot card bids, reports (#501/#481/#505/#489)',
+  async run () {
+    const KEYS_TO_REFRESH = ['lineup', 'action-card-market', 'fair-play']
+    const KEYS_TO_ADD = ['daily-login']
+    for (const topic of WIKI_SEED) {
+      if (KEYS_TO_REFRESH.includes(topic.key)) {
+        for (const locale of ['en', 'de']) {
+          const entry = topic[locale]
+          await query(
+            'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+            [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+          )
+        }
+      }
+      if (KEYS_TO_ADD.includes(topic.key)) {
+        for (const locale of ['en', 'de']) {
+          const [existing] = await query(
+            'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+            [topic.key, locale]
+          )
+          if (existing) continue
+          const entry = topic[locale]
+          await query('INSERT INTO wiki_entry SET ?', {
+            locale,
+            page_key: topic.key,
+            title: entry.title,
+            subtitle: entry.subtitle || null,
+            text: entry.text,
+            images: JSON.stringify([]),
+            sort_order: 0
+          })
+        }
+      }
+    }
+  }
+}, {
+  name: 'Wiki: million gift card, youth sales, card stack limit (#537/#524/#506/#518)',
+  async run () {
+    const KEYS_TO_REFRESH = ['action-cards', 'youth-players', 'urgency-list']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: salary curve, position penalty, ticket prices, match ticker (#543/#540/#538/#539)',
+  async run () {
+    const KEYS_TO_REFRESH = ['in-game-level', 'players', 'stadium', 'match-day']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Add voice message columns to chat_message (#541)',
+  async run () {
+    await query('ALTER TABLE chat_message ADD COLUMN audio VARCHAR(255) DEFAULT NULL')
+    await query('ALTER TABLE chat_message ADD COLUMN audio_duration INT DEFAULT NULL')
+  }
+}, {
+  name: 'Wiki: recalibrated salary curve (#543)',
+  async run () {
+    const topic = WIKI_SEED.find(t => t.key === 'players')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Wiki: voice messages in the chat (#541)',
+  async run () {
+    const topic = WIKI_SEED.find(t => t.key === 'chat')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
+}, {
+  name: 'Create team_tour table and player tour column (#535)',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS team_tour
+    (
+        team_id    BIGINT NOT NULL,
+        mode       VARCHAR(20) NOT NULL,
+        progress   DECIMAL(10,2) NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (team_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8;`)
+    // Counts down one per game day; > 0 means the player is away and cannot be
+    // fielded.
+    await query('ALTER TABLE player ADD COLUMN tour_days_left INT NOT NULL DEFAULT 0')
+  }
+}, {
+  name: 'Wiki: login reward cycle, lineup renaming, card count, match ticker (#501/#481/#523/#539)',
+  async run () {
+    const KEYS_TO_REFRESH = ['daily-login', 'lineup', 'action-cards', 'match-simulation']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: add the On Tour topic (#535)',
+  async run () {
+    const topic = WIKI_SEED.find(t => t.key === 'on-tour')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const [existing] = await query(
+        'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+        [topic.key, locale]
+      )
+      if (existing) continue
+      const entry = topic[locale]
+      await query('INSERT INTO wiki_entry SET ?', {
+        locale,
+        page_key: topic.key,
+        title: entry.title,
+        subtitle: entry.subtitle || null,
+        text: entry.text,
+        images: JSON.stringify([]),
+        sort_order: 0
+      })
+    }
+  }
+}, {
+  name: 'Wiki: daily login rewards are collected via the gift (#501)',
+  async run () {
+    const KEYS_TO_REFRESH = ['daily-login']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Add player.tour_days_total so a fresh tour can be cancelled (#535)',
+  async run () {
+    // The duration the player was sent away for. While `tour_days_left` still
+    // equals it, no match day has passed and nothing was earned — that is the
+    // window in which the manager may recall them. Players already travelling
+    // keep 0 and stay locked in, since we cannot tell how much they earned.
+    await query('ALTER TABLE player ADD COLUMN tour_days_total INT NOT NULL DEFAULT 0')
+  }
+}, {
+  name: 'Wiki: urgency list starts collapsed with a show-all row',
+  async run () {
+    const KEYS_TO_REFRESH = ['urgency-list']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  // The friends page dropped the (unused) posts feature and leads with a
+  // messenger-style chat list instead.
+  name: 'Wiki: friends page shows chats instead of posts',
+  async run () {
+    const KEYS_TO_REFRESH = ['friends', 'chat']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Backfill tour_days_total for trips that were already running (#535)',
+  async run () {
+    // Without this every player who was already abroad when the column arrived
+    // would be stuck: `tour_days_total = 0` never equals their remaining days,
+    // so the recall button never appears for them. Treating their trip as
+    // not-yet-started grants one free cancellation at rollout — a one-off, and
+    // far better than a button that silently does not exist.
+    await query('UPDATE player SET tour_days_total = tour_days_left WHERE tour_days_left > 0 AND tour_days_total = 0')
+  }
+}, {
+  name: 'Wiki: a fresh tour can be cancelled, bar previews the next match day (#535)',
+  async run () {
+    const KEYS_TO_REFRESH = ['on-tour']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: the player picker is a scrollable strip that also offers out-of-position players',
+  async run () {
+    const KEYS_TO_REFRESH = ['lineup']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Transcode existing WebM voice messages to m4a (#541)',
+  async run () {
+    // Voice messages recorded in Chrome/Firefox are WebM/Opus, which Safari and
+    // the iOS WebView cannot decode — those bubbles just read "Error". New
+    // uploads are converted on the way in; these are the ones already stored.
+    const rows = await query('SELECT id, audio FROM chat_message WHERE audio IS NOT NULL')
+    for (const { id, audio } of rows) {
+      const ext = String(audio).split('.').pop().toLowerCase()
+      if (UNIVERSAL_AUDIO_EXTENSIONS.has(ext)) continue
+      const converted = await ensurePlayableAudio('uploads/chat', audio)
+      if (converted !== audio) {
+        await query('UPDATE chat_message SET audio=? WHERE id=?', [converted, id])
+      }
+    }
+  }
+}, {
+  name: 'Wiki: voice recording is browser-only, not iOS (#541)',
+  async run () {
+    const KEYS_TO_REFRESH = ['chat']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: full out-of-position penalty table per line (#540)',
+  async run () {
+    const KEYS_TO_REFRESH = ['in-game-level', 'lineup']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
+
+/**
+ * Move every table that is still on the legacy utf8mb3 charset over to
+ * utf8mb4 (#544).
+ *
+ * Most of the older tables above were created with `DEFAULT CHARSET=utf8`,
+ * which MySQL 8 maps to utf8mb3 — three bytes per character, so anything
+ * outside the BMP is rejected with ER_TRUNCATED_WRONG_VALUE_FOR_FIELD. Every
+ * emoji lives outside the BMP, which is why renaming a lineup to "😳" blew up.
+ *
+ * This runs after every migration rather than as a one-off entry, so a table
+ * added later can never silently reintroduce the problem. Once everything is
+ * converted it costs a single information_schema query per boot.
+ *
+ * @returns {Promise<void>}
+ */
+export async function convertLegacyTablesToUtf8mb4 () {
+  const tables = await query(`SELECT TABLE_NAME AS name
+                              FROM information_schema.TABLES
+                              WHERE TABLE_SCHEMA = DATABASE()
+                                AND TABLE_TYPE = 'BASE TABLE'
+                                AND TABLE_COLLATION LIKE 'utf8mb3%'
+                              ORDER BY DATA_LENGTH + INDEX_LENGTH ASC`)
+  if (!tables.length) return
+  console.log(`🔤 Converting ${tables.length} legacy utf8mb3 tables to utf8mb4...`)
+  for (const { name } of tables) {
+    // Table names come from information_schema, never from user input.
+    await query(`ALTER TABLE \`${name}\` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)
+    console.log(`  ↳ ${name}`)
+  }
+}
 
 /**
  * @returns {Promise<void>}
@@ -2878,7 +3293,7 @@ export async function runMigration () {
                (
                    id
                )
-      ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;`)
+      ) ENGINE=INNODB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;`)
   for (const migration of migrations) {
     const [{ amount }] = await query(`SELECT COUNT(*) AS amount
                                       FROM __migration
@@ -2888,5 +3303,6 @@ export async function runMigration () {
     await query(`INSERT INTO __migration (name)
                  VALUES ("${migration.name}");`)
   }
+  await convertLegacyTablesToUtf8mb4()
   console.log(`✅ Database migration done in ${Date.now() - t1}ms.`)
 }

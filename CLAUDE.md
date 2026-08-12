@@ -172,6 +172,10 @@ Key directories:
 - **New page**: Create component in `client/pages/` extending `UIElement`, register in **both** `client/app.js` and
   `client/native-app.js` routers
 - **New tests**: Mirror file path with `.test.js` in respective `test/` folder
+- **New table**: Use `DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci`, never bare `utf8` (= `utf8mb3`,
+  which cannot store emoji). `runMigration` converts stragglers automatically, but that costs a table rebuild.
+- **New user text field**: Never truncate with `slice()` — it splits emoji in half. Use `truncateChars` /
+  `charLength` from `server/lib/util.js`. See `requirements/user-input.md`.
 
 ### Dual client entry points
 
@@ -198,6 +202,18 @@ works in the browser, first verify the relevant module is actually loaded by
       `width: ${size}px`). Static properties must always use CSS classes.
     - Utility classes (e.g. `u-cursor-pointer`, `u-nowrap`, `u-max-w-620`) live in `client/style/utilities.css`.
     - Component-specific styles go in the matching CSS file (e.g. `components/player.css`, `pages/dashboard.css`).
+- **Size by `dvh`, never by `vh` alone.** `100vh` is the *largest* viewport, so on iOS it is taller than what is
+  actually on screen and anything sized by it hangs off the bottom edge. Write the declaration twice — `vh` first
+  as the fallback for browsers that predate `dvh`, `dvh` immediately after:
+
+  ```css
+  height: 100vh;
+  height: 100dvh;
+  ```
+
+  This applies to `height` / `min-height` / `max-height`, including inside `calc()` and `min()`. Transforms are
+  exempt: an animation that throws an element off-screen wants the larger unit. `client/test/style/viewportUnits.test.js`
+  enforces the pairing.
 
 ### Re-render scoping (smooth updates)
 
@@ -236,12 +252,15 @@ Detailed feature specifications are in the `requirements/` directory:
 - [Action Cards](requirements/action-cards.md) - Kartensystem fuer Spieler-Upgrades und Events
 - [Bot-Teams](requirements/bots.md) - KI-gesteuerte Teams, Balancing nach Liga-Level
 - [Buildings](requirements/buildings.md) - Gebaeude und Infrastruktur
+- [Chat](requirements/chat.md) - Direktnachrichten inkl. Sprachnachrichten und Datei-Uploads in der App
+- [Daily Login Bonus](requirements/daily-login-bonus.md) - Login-Serie, Belohnungszyklus und Streak-Rangliste
 - [Event Based UI Updates](requirements/event-based-updates.md) - WebSocket-Events und UIElement-Selbstaktualisierung
 - [Fair Play](requirements/fair-play.md) - Regeln zu Accounts/Transfers und Betrugserkennung
 - [Forum](requirements/forum.md) - Community-Forum
 - [Game Calculation](requirements/game-calculation.md) - Spielsimulation, Bundesliga-Statistiken, Taktik-Auswirkungen
 - [Game Modes](requirements/game-modes.md) - Spielmodi
 - [Landing Page](requirements/landing-page.md) - Startseite
+- [On Tour](requirements/on-tour.md) - Werbereisen: Spieler entsenden und Aktionskarten verdienen
 - [Player Fitness](requirements/player-fitness.md) - Spieler-Frische und Ermuedung
 - [Player Injuries](requirements/player-injuries.md) - Spieler-Verletzungen
 - [Player Salary](requirements/player-sallary.md) - Gehaltsberechnung (exponentiell, Level 1-100)
@@ -253,6 +272,7 @@ Detailed feature specifications are in the `requirements/` directory:
 - [Team Lineups](requirements/team-lineups.md) - Aufstellungen und Formationen
 - [Team Names](requirements/team-names.md) - Team-Namengenerierung
 - [Team Tactics](requirements/team-tactics.md) - Angriffsmodus, Spielstil, Passstil
+- [User Input](requirements/user-input.md) - Freitextfelder, Emoji-/Unicode-Unterstuetzung, Zeichenlimits
 - [User Registration](requirements/user-registration.md) - Registrierung und Authentifizierung
 - [Youth Players](requirements/youth-players.md) - Jugendspieler-System und Training
 - [Youth Academy](requirements/youth-academy.md) - Jugendakademie-Gebaeude und Jugendspieler-Karten

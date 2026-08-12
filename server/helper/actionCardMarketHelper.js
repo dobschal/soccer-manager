@@ -7,9 +7,131 @@ import { sendToTeam } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import { getTeamById } from './teamHelper.js'
 import { getActionCards } from './actionCardHelper.js'
+import { truncateChars } from '../lib/util.js'
 
 /** Maximum number of open marketplace offers a single team may have at once. */
 export const MAX_OPEN_CARD_OFFERS = 10
+
+/**
+ * What a bot team is willing to pay per card type (#505). A bundled offer is
+ * valued as the sum of its cards. Cash-bonus cards sit below their 100k face
+ * value on purpose — bidding the full amount would make them a risk-free
+ * money printer for the seller.
+ * @type {Record<string, number>}
+ */
+export const BOT_CARD_BID_PRICES = {
+  NEW_YOUTH_PLAYER_1: 100000,
+  NEW_YOUTH_PLAYER_2: 200000,
+  NEW_YOUTH_PLAYER_3: 300000,
+  STAR_PLAYER: 500000,
+  MOTIVATING_SPEECH: 200000,
+  LEVEL_UP_PLAYER_40: 40000,
+  LEVEL_UP_PLAYER_70: 75000,
+  LEVEL_UP_PLAYER_100: 150000,
+  FRESHNESS_5: 5000,
+  FRESHNESS_10: 10000,
+  FRESHNESS_20: 20000,
+  SPY: 20000,
+  BONUS_100K: 90000,
+  MILLION_BONUS: 900000,
+  MEDICAL_TREATMENT: 30000
+}
+
+/** How long an offer must sit unsold before bots start bidding on it. */
+export const BOT_CARD_BID_MIN_AGE_HOURS = 24
+
+/** Bots vary their bid by up to ±10% so the prices don't look scripted. */
+export const BOT_CARD_BID_VARIANCE = 0.1
+
+/**
+ * Value a bundle of cards at the bot price list, then apply the ±10% jitter.
+ * Returns 0 when the bundle contains a card the bots have no price for, so
+ * the caller can skip that offer instead of underbidding blindly.
+ * @param {Array<{action: string}>} cards
+ * @param {() => number} [random] - injectable for deterministic tests
+ * @returns {number}
+ */
+export function calculateBotBidAmount (cards, random = Math.random) {
+  if (!Array.isArray(cards) || cards.length === 0) return 0
+  let base = 0
+  for (const card of cards) {
+    const price = BOT_CARD_BID_PRICES[card.action]
+    if (!price) return 0
+    base += price
+  }
+  const factor = 1 + (random() * 2 - 1) * BOT_CARD_BID_VARIANCE
+  return Math.max(1, Math.round(base * factor))
+}
+
+/**
+ * Bots bid on marketplace offers that have been sitting unsold for more than
+ * 24 hours (#505), giving players a guaranteed floor price for their cards.
+ *
+ * Guard rails: at most one bot bid per offering manager per calendar day (so a
+ * team listing ten cards does not wake up to ten bot bids), and never a second
+ * open bot bid on an offer that already has one.
+ *
+ * @returns {Promise<{bids: number}>}
+ */
+export async function placeBotCardBids () {
+  const botTeams = await query('SELECT * FROM team WHERE user_id IS NULL AND is_system_team = 0')
+  if (botTeams.length === 0) return { bids: 0 }
+
+  // Only offers from real managers — bots never list cards themselves, but
+  // this keeps bot-to-bot bidding impossible if that ever changes.
+  const offers = await query(
+    `SELECT o.id, o.from_team_id, o.created_at
+     FROM action_card_offer o
+     JOIN team t ON t.id = o.from_team_id
+     WHERE o.status='open'
+       AND t.user_id IS NOT NULL
+       AND o.created_at < DATE_SUB(NOW(), INTERVAL ? HOUR)
+       AND NOT EXISTS (
+         SELECT 1 FROM action_card_bid b
+         JOIN team bt ON bt.id = b.bidder_team_id
+         WHERE b.offer_id = o.id AND b.status='open' AND bt.user_id IS NULL
+       )
+     ORDER BY o.created_at ASC`,
+    [BOT_CARD_BID_MIN_AGE_HOURS]
+  )
+  if (offers.length === 0) return { bids: 0 }
+
+  // Which managers already got their bot bid today?
+  const biddenToday = await query(
+    `SELECT DISTINCT o.from_team_id AS team_id
+     FROM action_card_bid b
+     JOIN action_card_offer o ON o.id = b.offer_id
+     JOIN team bt ON bt.id = b.bidder_team_id
+     WHERE bt.user_id IS NULL AND DATE(b.created_at) = CURDATE()`
+  )
+  const alreadyBidden = new Set(biddenToday.map(r => r.team_id))
+
+  let placed = 0
+  for (const offer of offers) {
+    if (alreadyBidden.has(offer.from_team_id)) continue
+    const cards = await getOfferCards(offer.id)
+    const amount = calculateBotBidAmount(cards)
+    if (amount <= 0) continue
+
+    const affordable = botTeams.filter(t => t.id !== offer.from_team_id && t.balance >= amount)
+    if (affordable.length === 0) continue
+    const bidder = affordable[Math.floor(Math.random() * affordable.length)]
+
+    const offererTeam = await getTeamById(offer.from_team_id)
+    const offererLocale = offererTeam?.user_id ? await getUserLocale(offererTeam.user_id) : 'en'
+    try {
+      await placeBid(offer.id, amount, [], t('log.botCardBidComment', {}, offererLocale), bidder, offererLocale)
+      alreadyBidden.add(offer.from_team_id)
+      placed++
+    } catch (e) {
+      // A concurrent accept/cancel can invalidate the offer between the scan
+      // and the bid — just move on to the next one.
+      console.error(`[BotCardBid] Failed to bid on offer ${offer.id}:`, e?.message ?? e)
+    }
+  }
+  if (placed > 0) console.log(`🤖 Placed ${placed} bot bid(s) on aged card offers.`)
+  return { bids: placed }
+}
 
 /**
  * Notify a team's user that the marketplace state relevant to them changed.
@@ -119,7 +241,7 @@ export async function createOffer (actionCardIds, comment, team, locale) {
     escrowed.push(card)
   }
 
-  const safeComment = typeof comment === 'string' ? comment.slice(0, 255) : null
+  const safeComment = typeof comment === 'string' ? truncateChars(comment, 255) : null
   const result = await query('INSERT INTO action_card_offer SET ?', {
     from_team_id: team.id,
     comment: safeComment,
@@ -219,7 +341,7 @@ export async function placeBid (offerId, money, cardIds, comment, team, locale) 
     cards.push(card)
   }
 
-  const safeComment = typeof comment === 'string' ? comment.slice(0, 255) : null
+  const safeComment = typeof comment === 'string' ? truncateChars(comment, 255) : null
   const result = await query('INSERT INTO action_card_bid SET ?', {
     offer_id: offerId,
     bidder_team_id: team.id,

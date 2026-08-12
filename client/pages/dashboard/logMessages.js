@@ -14,7 +14,8 @@ const HANDLED_ACTIONS = new Set([
   'OPEN_TEAM_PAGE',
   'OPEN_INCOMING_OFFERS',
   'OPEN_MARKET',
-  'OPEN_GAME'
+  'OPEN_GAME',
+  'OPEN_TOUR'
 ])
 
 export class LogMessages extends UIElement {
@@ -241,6 +242,9 @@ export class LogMessages extends UIElement {
         break
       case 'OPEN_MARKET':
         goTo('trades')
+        break
+      case 'OPEN_TOUR':
+        goTo('my-team?sub_page=tour')
         break
       case 'OPEN_GAME':
         if (actionValue) {

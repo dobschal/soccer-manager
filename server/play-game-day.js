@@ -2,7 +2,7 @@ import { query } from './lib/database.js'
 import { ActionCard } from './entities/actionCard.js'
 import { getSponsor } from './helper/sponsorHelper.js'
 import { updateTeamBalance } from './helper/financeHelper.js'
-import { getSalary } from '../client/util/player.js'
+import { getSalary, getPositionLevelFactor } from '../client/util/player.js'
 import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 import { getPlayerAge } from './helper/playerHelper.js'
 import { actionCardChances, deleteExpiredPendingCards, NEW_YOUTH_PLAYER_ACTIONS, MAX_YOUTH_CARDS_PER_SEASON, MAX_ACTION_CARDS_PER_TYPE } from './helper/actionCardHelper.js'
@@ -150,8 +150,8 @@ async function _playCupGame (game) {
   ])
 
   // Filter out suspended and injured players (they miss this game)
-  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured)
-  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured)
+  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured && !p.tour_days_left)
+  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured && !p.tour_days_left)
 
   // Trim excess players and auto-fill incomplete lineups before the game
   playerTeamA = await trimExcessLineup(teamA, playerTeamA)
@@ -220,17 +220,15 @@ async function _playCupGame (game) {
   }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
-    // Players playing out of their natural position are only half as effective
-    if (player.position !== player.in_game_position) {
-      player.level *= 0.5
-    }
+    // Out of position costs 10-50% depending on how far from home the slot is
+    // (#540) — see getPositionPenalty.
+    player.level *= getPositionLevelFactor(player.position, player.in_game_position)
   }
   for (const player of playerTeamB) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
-    // Players playing out of their natural position are only half as effective
-    if (player.position !== player.in_game_position) {
-      player.level *= 0.5
-    }
+    // Out of position costs 10-50% depending on how far from home the slot is
+    // (#540) — see getPositionPenalty.
+    player.level *= getPositionLevelFactor(player.position, player.in_game_position)
   }
   // Apply level modifiers to bench players too
   _applyLevelModifiersToBench(benchTeamA, teamA, game.season, playerTeamA)
@@ -874,8 +872,8 @@ async function _playGame (game) {
   ])
 
   // Filter out suspended and injured players (they miss this game)
-  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured)
-  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured)
+  let playerTeamA = allPlayerTeamA.filter(p => !p.is_suspended && !p.is_injured && !p.tour_days_left)
+  let playerTeamB = allPlayerTeamB.filter(p => !p.is_suspended && !p.is_injured && !p.tour_days_left)
 
   // Trim excess players and auto-fill incomplete lineups before the game
   playerTeamA = await trimExcessLineup(teamA, playerTeamA)
@@ -939,17 +937,15 @@ async function _playGame (game) {
   }
   for (const player of playerTeamA) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
-    // Players playing out of their natural position are only half as effective
-    if (player.position !== player.in_game_position) {
-      player.level *= 0.5
-    }
+    // Out of position costs 10-50% depending on how far from home the slot is
+    // (#540) — see getPositionPenalty.
+    player.level *= getPositionLevelFactor(player.position, player.in_game_position)
   }
   for (const player of playerTeamB) {
     player.level = player.freshness * player.level * (player.is_star_player ? 1.1 : 1)
-    // Players playing out of their natural position are only half as effective
-    if (player.position !== player.in_game_position) {
-      player.level *= 0.5
-    }
+    // Out of position costs 10-50% depending on how far from home the slot is
+    // (#540) — see getPositionPenalty.
+    player.level *= getPositionLevelFactor(player.position, player.in_game_position)
   }
   // Apply level modifiers to bench players too
   _applyLevelModifiersToBench(benchTeamA, teamA, game.season, playerTeamA)
@@ -1126,7 +1122,7 @@ async function _notifySuspension (player, team, cause) {
  */
 async function _loadBenchPlayers (teamId) {
   const benchPlayers = await query(
-    'SELECT * FROM player WHERE team_id=? AND bench_position IS NOT NULL AND bench_position <> \'\' AND is_suspended=0 AND is_injured=0',
+    'SELECT * FROM player WHERE team_id=? AND bench_position IS NOT NULL AND bench_position <> \'\' AND is_suspended=0 AND is_injured=0 AND tour_days_left=0',
     [teamId]
   )
   const bench = {}

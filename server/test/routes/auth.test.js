@@ -591,8 +591,11 @@ describe('auth routes', () => {
       expect(deletesFrom('friend_post_like')).toBe(true)
       expect(deletesFrom('friend_post_comment')).toBe(true)
       expect(deletesFrom('friend_post')).toBe(true)
-      expect(deletesFrom('news_like')).toBe(true)
-      expect(deletesFrom('news_comment')).toBe(true)
+      // The news feature was removed and its tables dropped (migration
+      // "Drop news, news_like and news_comment tables") — deleting from them
+      // would throw ER_NO_SUCH_TABLE and roll back the whole deletion.
+      expect(deletesFrom('news_like')).toBe(false)
+      expect(deletesFrom('news_comment')).toBe(false)
       expect(deletesFrom('hall_of_fame_comment_like')).toBe(true)
       expect(deletesFrom('hall_of_fame_comment')).toBe(true)
       expect(deletesFrom('user_friend')).toBe(true)

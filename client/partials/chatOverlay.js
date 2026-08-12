@@ -2,6 +2,7 @@ import { server } from '../lib/gateway.js'
 import { showOverlay } from './overlay.js'
 import { toast } from './toast.js'
 import { t } from '../i18n/index.js'
+import { canRecordAudio, formatDuration, startRecording } from '../lib/voiceRecorder.js'
 import { generateId, el } from '../lib/html.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { onServerEvent, offServerEvent } from '../lib/websocket.js'
@@ -46,7 +47,7 @@ export async function showChatOverlay (userId) {
   await chat.open()
 }
 
-class ChatController {
+export class ChatController {
   /**
    * @param {number|null} initialUserId
    */
@@ -56,6 +57,8 @@ class ChatController {
     this._partner = null
     this._messages = []
     this._pendingImage = null
+    /** Active voice recording, or null when nothing is being recorded (#541). */
+    this._recorder = null
     this._bodyId = generateId()
     this._onNewMessage = (data) => this._handleIncoming(data)
   }
@@ -71,7 +74,11 @@ class ChatController {
       await this._loadMessages(this._activeUserId, false)
     }
 
-    const overlay = showOverlay(t('chat.title'), '', `<div id="${this._bodyId}" class="chat-overlay"></div>`)
+    const overlay = showOverlay(
+      t('chat.title'), '',
+      `<div id="${this._bodyId}" class="chat-overlay"></div>`,
+      { cardClass: 'chat-overlay-card', backdropClass: 'chat-overlay-backdrop' }
+    )
     this._overlay = overlay
     overlay.onClose(() => this._teardown())
     onServerEvent(SERVER_EVENTS.NEW_CHAT_MESSAGE.name, this._onNewMessage)
@@ -79,6 +86,10 @@ class ChatController {
   }
 
   _teardown () {
+    // Closing the overlay mid-recording must release the microphone, otherwise
+    // the OS keeps its recording indicator lit (#541).
+    this._recorder?.cancel()
+    this._recorder = null
     offServerEvent(SERVER_EVENTS.NEW_CHAT_MESSAGE.name, this._onNewMessage)
     this._closeImageLightbox()
     setQueryParams({ chat_user: null })
@@ -159,6 +170,8 @@ class ChatController {
     const imageBtnId = generateId()
     const imageInputId = generateId()
     const previewId = generateId()
+    const micId = generateId()
+    const recordingId = generateId()
 
     const options = this._conversations.map(c => {
       const label = c.unread > 0 ? `${c.username} (${c.unread})` : c.username
@@ -170,13 +183,24 @@ class ChatController {
       <div id="${messagesId}" class="chat-messages">${this._renderMessages()}</div>
       <div id="${previewId}" class="chat-image-preview"></div>
       <form class="chat-input-row d-flex align-items-end gap-2 mt-2">
-        <button id="${imageBtnId}" type="button" class="btn btn-outline-secondary" title="${t('chat.addImage')}">
+        <button id="${imageBtnId}" type="button" class="btn btn-outline-secondary chat-attach-btn" title="${t('chat.addImage')}">
           <i class="fa fa-image"></i>
         </button>
         <input id="${imageInputId}" type="file" accept="image/*" class="d-none">
+        ${canRecordAudio()
+    ? `<button id="${micId}" type="button" class="btn btn-outline-secondary chat-mic-btn chat-attach-btn" title="${t('chat.recordVoice')}">
+               <i class="fa fa-microphone"></i>
+             </button>`
+    : ''}
         <textarea id="${inputId}" class="form-control chat-text-input" rows="1" placeholder="${t('chat.placeholder')}"></textarea>
         <button id="${sendId}" type="button" class="btn btn-info"><i class="fa fa-paper-plane"></i></button>
       </form>
+      <div id="${recordingId}" class="chat-recording d-none">
+        <span class="chat-recording__dot"></span>
+        <span class="chat-recording__time">0:00</span>
+        <button type="button" class="btn btn-sm btn-link text-danger chat-recording__cancel">${t('chat.cancelRecording')}</button>
+        <button type="button" class="btn btn-sm btn-info chat-recording__send">${t('chat.sendRecording')}</button>
+      </div>
     `
 
     const messagesEl = el('#' + messagesId)
@@ -193,9 +217,20 @@ class ChatController {
       void this.switchTo(Number(e.target.value))
     })
 
+    if (canRecordAudio()) this._wireRecording(micId, recordingId)
+
     onClick('#' + imageBtnId, () => el('#' + imageInputId)?.click())
     el('#' + imageInputId)?.addEventListener('change', (e) => this._onImagePicked(e, previewId))
     onClick('#' + sendId, () => this._send(inputId, previewId))
+
+    // While the user is typing, fold the attachment buttons away so the text
+    // field gets the whole row — they come back as soon as the field loses
+    // focus. `blur` cannot fire before a click on those buttons (they are
+    // collapsed and unclickable while typing), so no click is swallowed.
+    const inputEl = el('#' + inputId)
+    const formEl = inputEl?.closest('.chat-input-row')
+    inputEl?.addEventListener('focus', () => formEl?.classList.add('chat-input-row--typing'))
+    inputEl?.addEventListener('blur', () => formEl?.classList.remove('chat-input-row--typing'))
 
     // Enter to send (Shift+Enter for newline).
     el('#' + inputId)?.addEventListener('keydown', (e) => {
@@ -210,19 +245,86 @@ class ChatController {
     if (this._messages.length === 0) {
       return `<p class="text-muted small text-center mb-0">${t('chat.noMessages')}</p>`
     }
-    const partnerId = this._partner?.id
-    return this._messages.map(m => {
-      const mine = m.from_user_id !== partnerId
-      const imageHtml = m.image
-        ? `<img class="chat-message-image" src="${chatImageSrc(m.image)}" alt="">`
-        : ''
-      const textHtml = m.text ? `<div class="chat-message-text">${_escape(m.text)}</div>` : ''
-      return `
-        <div class="chat-message ${mine ? 'chat-message--mine' : 'chat-message--theirs'}">
-          <div class="chat-bubble">${imageHtml}${textHtml}</div>
-        </div>
-      `
-    }).join('')
+    return this._messages.map(m => this._renderMessage(m)).join('')
+  }
+
+  /**
+   * One message row. Shared by the full render and the live append so a new
+   * message always looks exactly like a reloaded one.
+   * @param {Object} message
+   * @returns {string}
+   */
+  _renderMessage (message) {
+    const mine = message.from_user_id !== this._partner?.id
+    const imageHtml = message.image
+      ? `<img class="chat-message-image" src="${chatImageSrc(message.image)}" alt="">`
+      : ''
+    const audioHtml = message.audio
+      ? `<div class="chat-message-audio">
+           <audio controls preload="none" src="${chatImageSrc(message.audio)}"></audio>
+           <span class="chat-audio-duration">${formatDuration(message.audio_duration)}</span>
+         </div>`
+      : ''
+    const textHtml = message.text ? `<div class="chat-message-text">${_escape(message.text)}</div>` : ''
+    return `
+      <div class="chat-message ${mine ? 'chat-message--mine' : 'chat-message--theirs'}">
+        <div class="chat-bubble">${imageHtml}${audioHtml}${textHtml}</div>
+      </div>
+    `
+  }
+
+  /**
+   * Wire the microphone button and the recording bar (#541). Recording runs
+   * until the user sends or cancels, or until the two-minute cap trips.
+   * @param {string} micId
+   * @param {string} recordingId
+   */
+  _wireRecording (micId, recordingId) {
+    const bar = el('#' + recordingId)
+    const timeEl = bar?.querySelector('.chat-recording__time')
+
+    const close = () => {
+      this._recorder = null
+      bar?.classList.add('d-none')
+      if (timeEl) timeEl.textContent = '0:00'
+    }
+
+    onClick('#' + micId, async () => {
+      if (this._recorder) return
+      try {
+        this._recorder = await startRecording({
+          onTick: (seconds) => { if (timeEl) timeEl.textContent = formatDuration(seconds) },
+          // The cap is enforced by sending what has been recorded so far, not
+          // by silently dropping it.
+          onAutoStop: () => { void send() }
+        })
+        bar?.classList.remove('d-none')
+      } catch (e) {
+        // Almost always a denied microphone permission.
+        console.warn('[chat] recording failed to start', e)
+        toast(t('chat.micDenied'), 'error')
+        close()
+      }
+    })
+
+    const send = async () => {
+      const recorder = this._recorder
+      if (!recorder) return
+      close()
+      try {
+        const audio = await recorder.stop()
+        if (!audio) return
+        await this._sendPayload({ audio })
+      } catch (e) {
+        toast(e?.message ?? t('chat.sendFailed'), 'error')
+      }
+    }
+
+    bar?.querySelector('.chat-recording__send')?.addEventListener('click', () => { void send() })
+    bar?.querySelector('.chat-recording__cancel')?.addEventListener('click', () => {
+      this._recorder?.cancel()
+      close()
+    })
   }
 
   _onImagePicked (event, previewId) {
@@ -247,14 +349,24 @@ class ChatController {
     const input = el('#' + inputId)
     const text = input?.value?.trim() ?? ''
     if (!text && !this._pendingImage) return
+    await this._sendPayload({ text, image: this._pendingImage })
+    if (input) input.value = ''
+    this._pendingImage = null
+    const preview = el('#' + previewId)
+    if (preview) preview.innerHTML = ''
+  }
+
+  /**
+   * Post one message and show it straight away. Text, image and voice all go
+   * through here so they cannot drift apart.
+   * @param {{text?: string, image?: object|null, audio?: object|null}} payload
+   * @returns {Promise<void>}
+   */
+  async _sendPayload ({ text = '', image = null, audio = null }) {
     if (!this._activeUserId) return
     try {
-      const res = await server.sendChatMessage(this._activeUserId, text, this._pendingImage)
+      const res = await server.sendChatMessage(this._activeUserId, text, image, audio)
       this._messages.push(res.message)
-      this._pendingImage = null
-      if (input) input.value = ''
-      const preview = el('#' + previewId)
-      if (preview) preview.innerHTML = ''
       this._appendMessageDom(res.message)
     } catch (e) {
       toast(e.message ?? t('chat.sendFailed'), 'error')
@@ -272,17 +384,7 @@ class ChatController {
     if (!messagesEl) { this._render(); return }
     // Drop the "no messages yet" placeholder on first message.
     if (this._messages.length === 1) messagesEl.innerHTML = ''
-    const partnerId = this._partner?.id
-    const mine = message.from_user_id !== partnerId
-    const imageHtml = message.image
-      ? `<img class="chat-message-image" src="${chatImageSrc(message.image)}" alt="">`
-      : ''
-    const textHtml = message.text ? `<div class="chat-message-text">${_escape(message.text)}</div>` : ''
-    messagesEl.insertAdjacentHTML('beforeend', `
-      <div class="chat-message ${mine ? 'chat-message--mine' : 'chat-message--theirs'}">
-        <div class="chat-bubble">${imageHtml}${textHtml}</div>
-      </div>
-    `)
+    messagesEl.insertAdjacentHTML('beforeend', this._renderMessage(message))
     messagesEl.scrollTop = messagesEl.scrollHeight
   }
 

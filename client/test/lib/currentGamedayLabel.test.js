@@ -8,14 +8,14 @@ vi.mock('../../i18n/index.js', () => ({
       'cup.quarterFinal': 'Quarter-Final',
       'cup.roundOf16': 'Round of 16',
       'cup.roundNumber': `Round ${params?.number}`,
-      'nav.day': `Spieltag ${params?.gameDay} (${params?.season})`,
+      'nav.day': `Tag ${params?.gameDay}`,
       'nav.seasonEnd': 'Saisonende'
     }
     return dict[key] ?? key
   }
 }))
 
-import { currentGamedayLabel } from '../../lib/currentGamedayLabel.js'
+import { currentGamedayLabel, currentGamedayHref } from '../../lib/currentGamedayLabel.js'
 
 describe('currentGamedayLabel', () => {
   it('renders the cup final label when today is the cup final', () => {
@@ -60,7 +60,7 @@ describe('currentGamedayLabel', () => {
       userMatchDayToday: 4,
       userNextMatchDay: 4
     })
-    expect(label).toBe('Spieltag 4 (2)')
+    expect(label).toBe('Tag 4')
   })
 
   it('falls back to next league match day when the user league does not play today', () => {
@@ -71,7 +71,7 @@ describe('currentGamedayLabel', () => {
       userMatchDayToday: null,
       userNextMatchDay: 29
     })
-    expect(label).toBe('Spieltag 29 (5)')
+    expect(label).toBe('Tag 29')
   })
 
   it('falls back to the internal counter when nothing is known', () => {
@@ -82,7 +82,7 @@ describe('currentGamedayLabel', () => {
       userMatchDayToday: null,
       userNextMatchDay: null
     })
-    expect(label).toBe('Spieltag 8 (2)')
+    expect(label).toBe('Tag 8')
   })
 
   it('shows "Saisonende" when no unplayed games remain', () => {
@@ -106,7 +106,7 @@ describe('currentGamedayLabel', () => {
       userNextMatchDay: 34,
       isSeasonEnd: false
     })
-    expect(label).toBe('Spieltag 34 (5)')
+    expect(label).toBe('Tag 34')
   })
 
   it('prefers cup over user match day', () => {
@@ -118,5 +118,51 @@ describe('currentGamedayLabel', () => {
       userNextMatchDay: 5
     })
     expect(label).toBe('Round of 16')
+  })
+})
+
+describe('currentGamedayHref', () => {
+  it('links to the match day the label names, not the last played one', () => {
+    // The bug: label said "Tag 9", the results page opened match day 8.
+    const data = {
+      gameDay: 9,
+      season: 4,
+      cupRoundToday: null,
+      userMatchDayToday: null,
+      userNextMatchDay: 9
+    }
+    expect(currentGamedayLabel(data)).toBe('Tag 9')
+    expect(currentGamedayHref(data)).toBe('#results?season=4&match_day=9')
+  })
+
+  it('links to the match day played today', () => {
+    expect(currentGamedayHref({
+      gameDay: 5,
+      season: 1,
+      cupRoundToday: null,
+      userMatchDayToday: 4,
+      userNextMatchDay: 4
+    })).toBe('#results?season=1&match_day=4')
+  })
+
+  it('opens the cup tab when the label shows a cup round', () => {
+    expect(currentGamedayHref({
+      gameDay: 4,
+      season: 4,
+      cupRoundToday: { cupRound: 8, totalRounds: 7 },
+      userMatchDayToday: 5,
+      userNextMatchDay: 5
+    })).toBe('#results?sub_page=cup')
+  })
+
+  it('falls back to the plain results page when no match day is known', () => {
+    expect(currentGamedayHref({
+      gameDay: 42,
+      season: 4,
+      cupRoundToday: null,
+      userMatchDayToday: null,
+      userNextMatchDay: null,
+      isSeasonEnd: true
+    })).toBe('#results')
   })
 })

@@ -7,6 +7,7 @@ import { getSquadAgeStatus } from '../helper/squadAgeHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { query } from '../lib/database.js'
 import { getGeoFromRequest } from '../lib/geoip.js'
+import { MAX_ACTION_CARDS_PER_TYPE } from '../helper/actionCardHelper.js'
 
 export default {
   async getDashboardUrgencies (platformOrReq, maybeReq) {
@@ -86,6 +87,21 @@ export default {
     const mentionCount = await countUnseenMentions(req.user.id)
     if (mentionCount > 0) {
       urgencies.push({ type: 'FORUM_MENTIONS', count: mentionCount })
+    }
+
+    // 7. Action card stacks at the per-type cap (#506). Once a stack is full
+    // every further card of that type is dropped on arrival, so this is real
+    // lost value — the user has to play or trade some away.
+    const cardCounts = await query(
+      `SELECT action, COUNT(*) AS amount
+       FROM action_card
+       WHERE team_id=? AND played=0 AND state='received'
+       GROUP BY action
+       HAVING amount >= ?`,
+      [team.id, MAX_ACTION_CARDS_PER_TYPE]
+    )
+    if (cardCounts.length > 0) {
+      urgencies.push({ type: 'ACTION_CARDS_FULL', count: cardCounts.length })
     }
 
     return { urgencies }

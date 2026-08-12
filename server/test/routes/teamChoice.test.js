@@ -34,10 +34,16 @@ vi.mock('../../lib/userCache.js', () => ({
   clearUserCache: vi.fn()
 }))
 
+vi.mock('../../lib/pushNotification.js', () => ({
+  sendPushNotifications: vi.fn()
+}))
+
 import { query } from '../../lib/database.js'
 import { getAveragePlanPriceOfPlayer } from '../../helper/playerHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
 import { getSponsor } from '../../helper/sponsorHelper.js'
+import { sendPushNotifications } from '../../lib/pushNotification.js'
+import { STARTER_ACTION_CARDS } from '../../routes/teamChoice.js'
 import { completeAllStadiumConstructionsForTeam } from '../../helper/stadiumHelper.js'
 import { prepareSeason, regenerateTeamData } from '../../prepare-season.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
@@ -305,5 +311,88 @@ describe('teamChoice routes', () => {
       const sponsorDeletes = query.mock.calls.filter(([sql]) => /DELETE FROM sponsor/.test(sql))
       expect(sponsorDeletes).toHaveLength(0)
     })
+  })
+})
+
+describe('team takeover starter cards and admin push (#518, #449)', () => {
+  const team = testData.team({ id: 5, level: 2, league: 0, user_id: null, name: 'Bot FC' })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getSponsor.mockResolvedValue({ sponsor: null })
+    query.mockImplementation(async (sql) => {
+      const text = String(sql)
+      if (text.includes('SELECT id FROM team WHERE user_id=?')) return []
+      if (text.includes('FROM team\n       WHERE id=?') || text.includes('WHERE id=? AND user_id IS NULL')) return [team]
+      if (text.includes('FROM user WHERE is_admin')) return [{ id: 9 }, { id: 12 }]
+      return []
+    })
+  })
+
+  /**
+   * @returns {string[]} the action types inserted during the takeover
+   */
+  function insertedCardActions () {
+    return query.mock.calls
+      .filter(([sql]) => String(sql).includes('INSERT INTO action_card'))
+      .map(([, card]) => card.action)
+  }
+
+  it('hands the new manager a star player and a youth star (#518)', async () => {
+    await handlers.chooseTeam(5, { user: { id: 1, username: 'sascha' }, locale: 'en' })
+
+    const actions = insertedCardActions()
+    expect(actions).toContain('STAR_PLAYER')
+    expect(actions).toContain('NEW_YOUTH_PLAYER_3')
+  })
+
+  it('hands the new manager a million bonus card (#518)', async () => {
+    await handlers.chooseTeam(5, { user: { id: 1, username: 'sascha' }, locale: 'en' })
+
+    expect(insertedCardActions()).toContain('MILLION_BONUS')
+  })
+
+  it('still hands out the original two starter cards', async () => {
+    await handlers.chooseTeam(5, { user: { id: 1, username: 'sascha' }, locale: 'en' })
+
+    const actions = insertedCardActions()
+    expect(actions).toContain('NEW_YOUTH_PLAYER_1')
+    expect(actions).toContain('LEVEL_UP_PLAYER_40')
+    expect(actions).toHaveLength(STARTER_ACTION_CARDS.length)
+  })
+
+  it('pushes the manager and team name to every admin (#449)', async () => {
+    await handlers.chooseTeam(5, { user: { id: 1, username: 'sascha' }, locale: 'en' })
+    // The push is fire-and-forget — let its microtasks drain.
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(sendPushNotifications).toHaveBeenCalledTimes(1)
+    const [userIds, , body] = sendPushNotifications.mock.calls[0]
+    expect(userIds).toEqual([9, 12])
+    expect(body).toContain('sascha')
+    expect(body).toContain('Bot FC')
+  })
+
+  it('completes the takeover even when the admin push fails', async () => {
+    sendPushNotifications.mockRejectedValueOnce(new Error('APNs down'))
+
+    const result = await handlers.chooseTeam(5, { user: { id: 1, username: 'sascha' }, locale: 'en' })
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(result).toEqual({ success: true })
+  })
+
+  it('sends no push when there is no admin with a device', async () => {
+    query.mockImplementation(async (sql) => {
+      const text = String(sql)
+      if (text.includes('SELECT id FROM team WHERE user_id=?')) return []
+      if (text.includes('WHERE id=? AND user_id IS NULL')) return [team]
+      return []
+    })
+
+    await handlers.chooseTeam(5, { user: { id: 1, username: 'sascha' }, locale: 'en' })
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(sendPushNotifications).not.toHaveBeenCalled()
   })
 })
