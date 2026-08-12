@@ -96,7 +96,6 @@ export default {
   'dailyLogin.reward.recovery': 'Recovery card',
   'dailyLogin.reward.training': 'Training card',
   'dailyLogin.reward.special': 'Special card',
-  'dailyLogin.reward.youth': 'Youth card',
   'dailyLogin.reward.jackpot': 'Jackpot card',
   'dailyLogin.leaderboardTitle': 'Longest current streaks',
   'dailyLogin.leaderboardEmpty': 'No active streaks yet.',

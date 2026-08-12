@@ -96,7 +96,6 @@ export default {
   'dailyLogin.reward.recovery': 'Erholungskarte',
   'dailyLogin.reward.training': 'Trainingskarte',
   'dailyLogin.reward.special': 'Spezialkarte',
-  'dailyLogin.reward.youth': 'Nachwuchskarte',
   'dailyLogin.reward.jackpot': 'Jackpot-Karte',
   'dailyLogin.leaderboardTitle': 'Längste aktuelle Serien',
   'dailyLogin.leaderboardEmpty': 'Noch keine aktiven Serien.',

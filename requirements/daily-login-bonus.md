@@ -50,8 +50,12 @@ in dem der Spieler das Geschenk antippt — nicht schon beim Erreichen des Meile
 | 3 | Erholung | Schnelle Erholung `FRESHNESS_5` (50 %), Energie-Boost `FRESHNESS_10` (30 %), Volle Erholung `FRESHNESS_20` (20 %) |
 | 7 | Training | Basis-Training `LEVEL_UP_PLAYER_40` (50 %), Fortgeschrittenes Training `LEVEL_UP_PLAYER_70` (30 %), Meister-Training `LEVEL_UP_PLAYER_100` (20 %) |
 | 15 | Spezial | Geldbonus `BONUS_100K` (30 %), Spion `SPY` (30 %), Motivierende Ansprache `MOTIVATING_SPEECH` (30 %), Starspieler `STAR_PLAYER` (10 %) |
-| 23 | Nachwuchs | Nachwuchsspieler `NEW_YOUTH_PLAYER_1` (50 %), Nachwuchstalent `NEW_YOUTH_PLAYER_2` (30 %), Nachwuchsstar `NEW_YOUTH_PLAYER_3` (20 %) |
+| 23 | Training | Basis-Training `LEVEL_UP_PLAYER_40` (30 %), Fortgeschrittenes Training `LEVEL_UP_PLAYER_70` (40 %), Meister-Training `LEVEL_UP_PLAYER_100` (30 %) |
 | 30 | Jackpot | Millionengeschenk `MILLION_BONUS` (70 %), Starspieler `STAR_PLAYER` (30 %) |
+
+Der Login-Bonus vergibt bewusst **keine** Nachwuchskarten: ueber Spieltage, Jugendakademie und Werbereisen
+kommen davon schon genug ins Spiel. Tag 23 gibt daher eine Trainingskarte — hoeher gewichtet als an Tag 7,
+damit der spaetere Meilenstein trotzdem mehr wert ist.
 
 ## Technische Anforderungen
 

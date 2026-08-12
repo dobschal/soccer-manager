@@ -214,14 +214,19 @@ describe('registerDailyLogin', () => {
       { action: 'STAR_PLAYER', weight: 10 }
     ])
     expect(byDay[23]).toEqual([
-      { action: 'NEW_YOUTH_PLAYER_1', weight: 50 },
-      { action: 'NEW_YOUTH_PLAYER_2', weight: 30 },
-      { action: 'NEW_YOUTH_PLAYER_3', weight: 20 }
+      { action: 'LEVEL_UP_PLAYER_40', weight: 30 },
+      { action: 'LEVEL_UP_PLAYER_70', weight: 40 },
+      { action: 'LEVEL_UP_PLAYER_100', weight: 30 }
     ])
     expect(byDay[30]).toEqual([
       { action: 'MILLION_BONUS', weight: 70 },
       { action: 'STAR_PLAYER', weight: 30 }
     ])
+  })
+
+  it('hands out no youth cards at all — youth cards come from other sources', () => {
+    const actions = LOGIN_STREAK_REWARDS.flatMap(r => r.actions.map(a => a.action))
+    expect(actions.filter(a => a.startsWith('NEW_YOUTH_PLAYER'))).toEqual([])
   })
 })
 

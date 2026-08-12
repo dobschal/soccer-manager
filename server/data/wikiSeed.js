@@ -151,7 +151,7 @@ Rewards in every cycle – one card is drawn per milestone, with these chances:
 • Day 3 – Quick Recovery (50%), Energy Boost (30%) or Full Recovery (20%)
 • Day 7 – Basic Training (50%), Advanced Training (30%) or Master Training (20%)
 • Day 15 – Cash Bonus (30%), Spy (30%), Motivating Speech (30%) or Star Player (10%)
-• Day 23 – Youth Prospect (50%), Youth Talent (30%) or Youth Star (20%)
+• Day 23 – Basic Training (30%), Advanced Training (40%) or Master Training (30%)
 • Day 30 – Million Gift (70%) or Star Player (30%)
 
 Rewards are never handed out behind your back – you collect them yourself. As soon as you reach a milestone, a gift 🎁 appears on the progress bar above your club emblem. Tap the gift and your card is drawn and revealed right there, the same way the mini game hands out its reward.
@@ -179,7 +179,7 @@ Belohnungen in jedem Zyklus – pro Meilenstein wird eine Karte gezogen, mit die
 • Tag 3 – Schnelle Erholung (50%), Energie-Boost (30%) oder Volle Erholung (20%)
 • Tag 7 – Basis-Training (50%), Fortgeschrittenes Training (30%) oder Meister-Training (20%)
 • Tag 15 – Geldbonus (30%), Spion (30%), Motivierende Ansprache (30%) oder Starspieler (10%)
-• Tag 23 – Nachwuchsspieler (50%), Nachwuchstalent (30%) oder Nachwuchsstar (20%)
+• Tag 23 – Basis-Training (30%), Fortgeschrittenes Training (40%) oder Meister-Training (30%)
 • Tag 30 – Millionengeschenk (70%) oder Starspieler (30%)
 
 Belohnungen bekommst du nie nebenbei – du holst sie selbst ab. Sobald du einen Meilenstein erreichst, liegt ein Geschenk 🎁 auf der Fortschrittsleiste über deinem Vereinswappen. Tippe das Geschenk an, dann wird deine Karte gezogen und direkt aufgedeckt – genau wie die Belohnung beim Mini-Game.
@@ -203,7 +203,7 @@ Tippe die Leiste selbst an (nicht das Geschenk), um deine Serie, jeden Meilenste
       text: `A promotional tour turns squad depth into action cards. You pick a destination, send players away for a few match days, and every day abroad fills a progress bar. A full bar pays out that destination's reward.
 
 The three destinations:
-• South America – 2× Youth Star cards.
+• South America – 1× Youth Star card.
 • Asia – 1× Million Gift (1,000,000 €).
 • Europe – 5× Master Training cards.
 
@@ -230,7 +230,7 @@ Changing your mind:
       text: `Eine Werbereise verwandelt Kadertiefe in Aktionskarten. Du wählst ein Reiseziel, entsendest Spieler für einige Spieltage, und jeder Tag im Ausland füllt einen Fortschrittsbalken. Ist er voll, gibt es die Belohnung des Reiseziels.
 
 Die drei Reiseziele:
-• Südamerika – 2× Nachwuchsstar-Karten.
+• Südamerika – 1× Nachwuchsstar-Karte.
 • Asien – 1× Millionengeschenk (1.000.000 €).
 • Europa – 5× Meister-Training-Karten.
 
