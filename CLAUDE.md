@@ -202,6 +202,18 @@ works in the browser, first verify the relevant module is actually loaded by
       `width: ${size}px`). Static properties must always use CSS classes.
     - Utility classes (e.g. `u-cursor-pointer`, `u-nowrap`, `u-max-w-620`) live in `client/style/utilities.css`.
     - Component-specific styles go in the matching CSS file (e.g. `components/player.css`, `pages/dashboard.css`).
+- **Size by `dvh`, never by `vh` alone.** `100vh` is the *largest* viewport, so on iOS it is taller than what is
+  actually on screen and anything sized by it hangs off the bottom edge. Write the declaration twice — `vh` first
+  as the fallback for browsers that predate `dvh`, `dvh` immediately after:
+
+  ```css
+  height: 100vh;
+  height: 100dvh;
+  ```
+
+  This applies to `height` / `min-height` / `max-height`, including inside `calc()` and `min()`. Transforms are
+  exempt: an animation that throws an element off-screen wants the larger unit. `client/test/style/viewportUnits.test.js`
+  enforces the pairing.
 
 ### Re-render scoping (smooth updates)
 

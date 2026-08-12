@@ -49,6 +49,7 @@
 
 .tour-select-list {
     max-height: 45vh;
+    max-height: 45dvh;
     overflow-y: auto;
 }
 

@@ -5,15 +5,10 @@
    input row therefore always ends up at the very bottom — no empty area
    underneath it (#541). */
 
-/* `100vh` is the *largest* viewport, which on iOS is taller than what is
-   actually on screen; the native app sizes its body in `dvh` for exactly that
-   reason. A sheet that fills a 100vh backdrop therefore hangs off the bottom
-   edge and takes the input row with it (#541). The `.overlay-backdrop` part is
-   for specificity — chat.css is loaded before overlay.css. */
-.overlay-backdrop.chat-overlay-backdrop {
-    height: 100vh;
-    height: 100dvh;
-}
+/* The backdrop measures in `dvh` — see `.overlay-backdrop` in overlay.css. That
+   matters most here, because the chat is the one overlay that fills its backdrop
+   instead of sitting in the middle of it, so any surplus height goes straight
+   into the input row leaving the screen (#541). */
 
 /* `.card` is only here for specificity: chat.css is loaded before overlay.css,
    so a single class would lose to `.overlay` on max-height and overflow. */
@@ -119,6 +114,7 @@
 .chat-image-overlay img {
     max-width: 92vw;
     max-height: 88vh;
+    max-height: 88dvh;
     object-fit: contain;
     border-radius: 6px;
 }

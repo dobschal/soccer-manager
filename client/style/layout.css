@@ -180,6 +180,7 @@ a:visited.row {
 #page {
     position: relative;
     min-height: calc(100vh - 12rem);
+    min-height: calc(100dvh - 12rem);
     display: flex;
     flex-direction: column;
     box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
@@ -192,6 +193,7 @@ a:visited.row {
 .centered-container {
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     color: white;
@@ -268,6 +270,7 @@ body:has(> #sandbox-banner) .game-layout {
 
 .default-layout {
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
 }

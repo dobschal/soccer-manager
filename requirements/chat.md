@@ -112,10 +112,11 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
   neuen Optionen `cardClass` / `backdropClass` die Klassen `chat-overlay-card` und
   `chat-overlay-backdrop`. Die Karte waechst auf die verfuegbare Hoehe, die Nachrichtenliste nimmt
   den Rest — dadurch sitzt die Eingabezeile immer ganz unten (#541).
-- **TA-CHT-25**: Der Chat-Backdrop rechnet in `dvh`, nicht in `vh`. `100vh` ist auf iOS der
-  **groesste** Viewport und damit hoeher als das, was tatsaechlich zu sehen ist — die Karte fuellte
-  ihn aus und schob die Eingabezeile unter den unteren Bildschirmrand. Der native Body rechnet aus
-  demselben Grund in `dvh`.
+- **TA-CHT-25**: Der Backdrop rechnet in `dvh`, nicht in `vh`. `100vh` ist auf iOS der **groesste**
+  Viewport und damit hoeher als das, was tatsaechlich zu sehen ist — die Karte fuellte ihn aus und
+  schob die Eingabezeile unter den unteren Bildschirmrand. Das gilt projektweit fuer jede
+  Viewport-Hoehe (siehe `CLAUDE.md`, "Styling Rules"); der Chat war nur die Stelle, an der es
+  aufgefallen ist, weil er als einziges Overlay seinen Backdrop ausfuellt.
 - **TA-CHT-26**: Auf dem Handy hat die Karte **kein** `max-height`: sie fuellt den Backdrop exakt,
   es bleibt kein Platz, den die `margin: auto` des Overlays zum Zentrieren nutzen koennte. Erst ab
   768px Breite gilt die Obergrenze von 760px, sonst waere das Sheet auf dem Desktop absurd hoch.
