@@ -2,11 +2,14 @@
 // app.gradle is applied too late (after the android {} block already resolved the
 // SDK levels), so values set here have no effect. See before-plugins.gradle.
 
+// The versions here are the ones Google Play sees: Gradle's defaultConfig
+// overrides whatever AndroidManifest.xml declares. Keep both in sync anyway so
+// the manifest is not misleading.
 android {
     defaultConfig {
         minSdkVersion 21
-        versionCode 13
-        versionName "1.9.1"
+        versionCode 14
+        versionName "1.10.0"
     }
     lint {
         abortOnError false
@@ -21,4 +24,7 @@ dependencies {
     implementation "com.google.android.play:review:2.0.1"
 }
 
+// Needs google-services.json. The CLI only copies App_Resources/Android/src/*
+// into platforms/, so the file lives in src/ — directly under App_Resources it
+// silently never reaches Gradle and the release build fails after `ns clean`.
 apply plugin: "com.google.gms.google-services"

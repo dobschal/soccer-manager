@@ -66,6 +66,32 @@ When asked to build a feature or fix a bug:
 3. Commit and push `develop`. CI runs lint+test and then redeploys the sandbox.
 4. **Do not merge `develop` into `main` automatically.** The user does the final prod release manually by merging `develop` → `main` when the change has been verified in sandbox.
 
+### Native releases (App Store / Play Store)
+
+Changes to `native-app/app/App_Resources/**` (Info.plist, AndroidManifest, gradle files, entitlements)
+**cannot** be shipped via OTA — `ota-update.ts` only replaces the web bundle. They need a store release.
+
+- **Versions**: Android lives in `App_Resources/Android/app.gradle` (`defaultConfig` wins over the
+  manifest — keep `AndroidManifest.xml` in sync anyway), iOS in `App_Resources/iOS/Info.plist`
+  (`CFBundleShortVersionString` + `CFBundleVersion`). `versionCode` must be higher than the last
+  upload; released artifacts are archived as `native-app/app-release-v<code>-<version>.aab`.
+- **JDK 21 is required.** Gradle aborts on JDK 25 with `Unsupported class file major version 69`:
+
+  ```bash
+  export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+  cd native-app && npx ns build android --release --aab \
+    --key-store-path ./release.keystore --key-store-alias soccer-manager \
+    --key-store-password '…' --key-store-alias-password '…'
+  ```
+
+- `google-services.json` (FCM) belongs in `App_Resources/Android/src/` — the CLI copies only
+  `App_Resources/<platform>/src/*` into `platforms/`, so directly under `Android/` it never reaches
+  Gradle and the release build fails with *"File google-services.json is missing"*.
+- **`ns clean` deletes `hooks/` and `node_modules/`** inside `native-app` — including tracked hook
+  files. Run `npm install` in `native-app` afterwards and check `git status` for deleted hooks.
+- iOS: `npx ns prepare ios --release`, then archive `platforms/ios/nativeapp.xcworkspace` in Xcode
+  and use *Distribute App*.
+
 ### Ticket workflow
 
 The Kanban board lives at https://github.com/users/dobschal/projects/1 (project number `1`, owner `dobschal`).
