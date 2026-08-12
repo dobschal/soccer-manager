@@ -19,6 +19,10 @@ const CARD_IMAGE_SIZE = 104
  * with their concrete position malus, so picking someone out of position stays
  * possible but is visibly the second-best option. The player currently standing
  * in the slot is part of the strip too, highlighted in the info colour.
+ *
+ * Players who already hold another slot in the lineup carry a lighter info tint,
+ * so it is obvious that picking them swaps two fielded players rather than
+ * bringing someone up from the bench.
  */
 export class PlayerPicker extends UIElement {
   /**
@@ -139,6 +143,7 @@ export class PlayerPicker extends UIElement {
     const classes = [
       'player-picker__card',
       isOutOfPosition ? 'is-out-of-position' : '',
+      player.in_game_position ? 'is-in-lineup' : '',
       player.id === this.currentPlayerId ? 'is-current' : '',
       isGroupStart ? 'is-group-start' : '',
       player.is_star_player ? 'is-star' : ''

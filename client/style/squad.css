@@ -701,6 +701,19 @@
     margin-left: 1.4rem;
 }
 
+/* Already fielded somewhere else in the lineup — picking them swaps two players
+   instead of pulling one off the bench. Tinted lighter than `.is-current` so the
+   slot's own occupant still reads as the strongest highlight. */
+.player-picker__card.is-in-lineup {
+    background-color: rgba(var(--bs-info-rgb), 0.12);
+    border: 1px solid rgba(var(--bs-info-rgb), 0.5);
+}
+
+.player-picker__card.is-in-lineup:hover,
+.player-picker__card.is-in-lineup:focus-visible {
+    background-color: rgba(var(--bs-info-rgb), 0.3);
+}
+
 /* The player currently standing in the slot — always full opacity, even when
    he is the one being fielded out of position. */
 .player-picker__card.is-current {

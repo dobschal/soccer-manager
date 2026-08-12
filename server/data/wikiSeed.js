@@ -303,6 +303,7 @@ Saved lineups:
 How it works:
 • Choose a formation (e.g. 4-4-2, 4-3-3, 3-5-2). Changing the formation clears all current positions.
 • Click a position to open the player picker: a strip of player cards you scroll sideways, and one click on a card fields that player. Players whose natural position fits the slot come first; everyone else follows, dimmed and labelled with the level they would lose out of position.
+• Cards with a blue background belong to players who are already in your starting eleven somewhere else – picking one of them swaps the two players instead of bringing someone up from the bench.
 • Set a captain from your starting eleven. If you remove the captain from the lineup, the captain is cleared automatically.
 • Suspended players are shown greyed out and cannot be fielded; they are removed from the lineup automatically.
 • Sort your bench order – substitutes are pulled from the bench when a player is injured or tired.
@@ -342,6 +343,7 @@ Gespeicherte Aufstellungen:
 So funktioniert es:
 • Wähle eine Formation (z. B. 4-4-2, 4-3-3, 3-5-2). Ein Formationswechsel löscht alle aktuellen Positionen.
 • Klicke auf eine Position, um die Spielerauswahl zu öffnen: eine seitlich scrollbare Leiste aus Spielerkarten – ein Klick auf eine Karte stellt den Spieler auf. Spieler mit passender Position stehen vorne, alle anderen folgen dahinter, abgedunkelt und mit dem Level-Verlust beschriftet, den die fremde Position kostet.
+• Blau hinterlegte Karten gehören zu Spielern, die bereits an anderer Stelle in deiner Startelf stehen – wählst du einen davon, tauschen die beiden Spieler ihre Plätze, statt dass jemand von der Bank nachrückt.
 • Bestimme einen Kapitän aus deiner Startelf. Entfernst du den Kapitän aus der Aufstellung, wird er automatisch gelöscht.
 • Gesperrte Spieler sind ausgegraut und können nicht aufgestellt werden; sie werden automatisch aus der Aufstellung entfernt.
 • Sortiere deine Bank – Einwechselspieler werden bei Verletzung oder Müdigkeit von der Bank geholt.
