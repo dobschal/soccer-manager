@@ -103,6 +103,17 @@ describe('PlayerPicker', () => {
       expect(document.querySelector('.player-picker__card[data-player-id="1"]').classList.contains('is-current')).toBe(false)
     })
 
+    it('marks players who already hold a slot in the lineup', () => {
+      const picker = new PlayerPicker([
+        player({ id: 1, position: 'CD', in_game_position: 'LD' }),
+        // On the bench — no slot, so no highlight.
+        player({ id: 2, position: 'CD', in_game_position: '' })
+      ], 'CD', testData.team(), () => {})
+      document.body.innerHTML = `<div>${picker.template}</div>`
+      expect(document.querySelector('.player-picker__card[data-player-id="1"]').classList.contains('is-in-lineup')).toBe(true)
+      expect(document.querySelector('.player-picker__card[data-player-id="2"]').classList.contains('is-in-lineup')).toBe(false)
+    })
+
     it('marks star players', () => {
       const picker = new PlayerPicker([
         player({ id: 1, position: 'CD', is_star_player: true })

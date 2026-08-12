@@ -105,6 +105,7 @@ Automatic bot bids:
 
 Good to know:
 • Both sides can see a trade history of completed deals, including which cards were exchanged and the money delta.
+• An offer or bid is withdrawn automatically as soon as the cards behind it are no longer available – you get a message in your log, and the remaining cards of the bundle come straight back to you.
 • You'll be notified live when the offers or bids relevant to you change.`
     },
     de: {
@@ -129,6 +130,7 @@ Automatische Bot-Gebote:
 
 Gut zu wissen:
 • Beide Seiten sehen eine Handelshistorie abgeschlossener Deals, inklusive der getauschten Karten und der Geld-Differenz.
+• Ein Angebot oder Gebot wird automatisch zurückgezogen, sobald die Karten dahinter nicht mehr verfügbar sind – du bekommst eine Nachricht im Log, und die restlichen Karten des Bündels landen sofort wieder bei dir.
 • Du wirst live benachrichtigt, wenn sich für dich relevante Angebote oder Gebote ändern.`
     }
   },
@@ -151,7 +153,7 @@ Rewards in every cycle – one card is drawn per milestone, with these chances:
 • Day 3 – Quick Recovery (50%), Energy Boost (30%) or Full Recovery (20%)
 • Day 7 – Basic Training (50%), Advanced Training (30%) or Master Training (20%)
 • Day 15 – Cash Bonus (30%), Spy (30%), Motivating Speech (30%) or Star Player (10%)
-• Day 23 – Youth Prospect (50%), Youth Talent (30%) or Youth Star (20%)
+• Day 23 – Basic Training (30%), Advanced Training (40%) or Master Training (30%)
 • Day 30 – Million Gift (70%) or Star Player (30%)
 
 Rewards are never handed out behind your back – you collect them yourself. As soon as you reach a milestone, a gift 🎁 appears on the progress bar above your club emblem. Tap the gift and your card is drawn and revealed right there, the same way the mini game hands out its reward.
@@ -179,7 +181,7 @@ Belohnungen in jedem Zyklus – pro Meilenstein wird eine Karte gezogen, mit die
 • Tag 3 – Schnelle Erholung (50%), Energie-Boost (30%) oder Volle Erholung (20%)
 • Tag 7 – Basis-Training (50%), Fortgeschrittenes Training (30%) oder Meister-Training (20%)
 • Tag 15 – Geldbonus (30%), Spion (30%), Motivierende Ansprache (30%) oder Starspieler (10%)
-• Tag 23 – Nachwuchsspieler (50%), Nachwuchstalent (30%) oder Nachwuchsstar (20%)
+• Tag 23 – Basis-Training (30%), Fortgeschrittenes Training (40%) oder Meister-Training (30%)
 • Tag 30 – Millionengeschenk (70%) oder Starspieler (30%)
 
 Belohnungen bekommst du nie nebenbei – du holst sie selbst ab. Sobald du einen Meilenstein erreichst, liegt ein Geschenk 🎁 auf der Fortschrittsleiste über deinem Vereinswappen. Tippe das Geschenk an, dann wird deine Karte gezogen und direkt aufgedeckt – genau wie die Belohnung beim Mini-Game.
@@ -203,7 +205,7 @@ Tippe die Leiste selbst an (nicht das Geschenk), um deine Serie, jeden Meilenste
       text: `A promotional tour turns squad depth into action cards. You pick a destination, send players away for a few match days, and every day abroad fills a progress bar. A full bar pays out that destination's reward.
 
 The three destinations:
-• South America – 2× Youth Star cards.
+• South America – 1× Youth Star card.
 • Asia – 1× Million Gift (1,000,000 €).
 • Europe – 5× Master Training cards.
 
@@ -230,7 +232,7 @@ Changing your mind:
       text: `Eine Werbereise verwandelt Kadertiefe in Aktionskarten. Du wählst ein Reiseziel, entsendest Spieler für einige Spieltage, und jeder Tag im Ausland füllt einen Fortschrittsbalken. Ist er voll, gibt es die Belohnung des Reiseziels.
 
 Die drei Reiseziele:
-• Südamerika – 2× Nachwuchsstar-Karten.
+• Südamerika – 1× Nachwuchsstar-Karte.
 • Asien – 1× Millionengeschenk (1.000.000 €).
 • Europa – 5× Meister-Training-Karten.
 
@@ -303,6 +305,7 @@ Saved lineups:
 How it works:
 • Choose a formation (e.g. 4-4-2, 4-3-3, 3-5-2). Changing the formation clears all current positions.
 • Click a position to open the player picker: a strip of player cards you scroll sideways, and one click on a card fields that player. Players whose natural position fits the slot come first; everyone else follows, dimmed and labelled with the level they would lose out of position.
+• Cards with a blue background belong to players who are already in your starting eleven somewhere else – picking one of them swaps the two players instead of bringing someone up from the bench.
 • Set a captain from your starting eleven. If you remove the captain from the lineup, the captain is cleared automatically.
 • Suspended players are shown greyed out and cannot be fielded; they are removed from the lineup automatically.
 • Sort your bench order – substitutes are pulled from the bench when a player is injured or tired.
@@ -342,6 +345,7 @@ Gespeicherte Aufstellungen:
 So funktioniert es:
 • Wähle eine Formation (z. B. 4-4-2, 4-3-3, 3-5-2). Ein Formationswechsel löscht alle aktuellen Positionen.
 • Klicke auf eine Position, um die Spielerauswahl zu öffnen: eine seitlich scrollbare Leiste aus Spielerkarten – ein Klick auf eine Karte stellt den Spieler auf. Spieler mit passender Position stehen vorne, alle anderen folgen dahinter, abgedunkelt und mit dem Level-Verlust beschriftet, den die fremde Position kostet.
+• Blau hinterlegte Karten gehören zu Spielern, die bereits an anderer Stelle in deiner Startelf stehen – wählst du einen davon, tauschen die beiden Spieler ihre Plätze, statt dass jemand von der Bank nachrückt.
 • Bestimme einen Kapitän aus deiner Startelf. Entfernst du den Kapitän aus der Aufstellung, wird er automatisch gelöscht.
 • Gesperrte Spieler sind ausgegraut und können nicht aufgestellt werden; sie werden automatisch aus der Aufstellung entfernt.
 • Sortiere deine Bank – Einwechselspieler werden bei Verletzung oder Müdigkeit von der Bank geholt.
@@ -1302,6 +1306,10 @@ Buying and selling:
 Market value:
 • A player's value is based mainly on level and age. Value grows steeply with level (roughly doubling every 10 levels) and drops for players over the age of 22.
 
+International Oversea Club:
+• The IOC is a computer-run club that keeps the market stocked, so there is always something to buy at every position and strength.
+• It always asks within 3% of the player's current market value, and its asking prices are corrected every match day. A player who ages while unsold gets cheaper, they do not stay at their old price.
+
 Remember your squad must always keep at least 14 players, so you cannot sell below that limit.`
     },
     de: {
@@ -1317,6 +1325,10 @@ Kaufen und verkaufen:
 
 Marktwert:
 • Der Wert eines Spielers richtet sich vor allem nach Level und Alter. Er steigt steil mit dem Level (etwa eine Verdopplung alle 10 Level) und sinkt bei Spielern über 22 Jahren.
+
+International Oversea Club:
+• Der IOC ist ein computergesteuerter Verein, der den Markt gefüllt hält – auf jeder Position und in jeder Stärke gibt es dadurch immer etwas zu kaufen.
+• Er verlangt immer höchstens 3% neben dem aktuellen Marktwert, und seine Preise werden an jedem Spieltag nachgezogen. Ein Spieler, der unverkauft älter wird, wird günstiger und bleibt nicht auf seinem alten Preis stehen.
 
 Denk daran: Dein Kader muss immer mindestens 14 Spieler haben – darunter kannst du nicht verkaufen.`
     }

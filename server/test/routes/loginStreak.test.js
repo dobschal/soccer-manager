@@ -5,7 +5,7 @@ const MILESTONES = [
   { day: 3, key: 'recovery', actions: [{ action: 'FRESHNESS_5', weight: 50 }, { action: 'FRESHNESS_20', weight: 50 }] },
   { day: 7, key: 'training', actions: [{ action: 'LEVEL_UP_PLAYER_40', weight: 100 }] },
   { day: 15, key: 'special', actions: [{ action: 'SPY', weight: 90 }, { action: 'STAR_PLAYER', weight: 10 }] },
-  { day: 23, key: 'youth', actions: [{ action: 'NEW_YOUTH_PLAYER_1', weight: 100 }] },
+  { day: 23, key: 'training', actions: [{ action: 'LEVEL_UP_PLAYER_70', weight: 100 }] },
   { day: 30, key: 'jackpot', actions: [{ action: 'MILLION_BONUS', weight: 70 }, { action: 'STAR_PLAYER', weight: 30 }] }
 ]
 
@@ -23,7 +23,7 @@ vi.mock('../../helper/loginStreakHelper.js', () => ({
     { day: 3, key: 'recovery', actions: [{ action: 'FRESHNESS_5', weight: 50 }, { action: 'FRESHNESS_20', weight: 50 }] },
     { day: 7, key: 'training', actions: [{ action: 'LEVEL_UP_PLAYER_40', weight: 100 }] },
     { day: 15, key: 'special', actions: [{ action: 'SPY', weight: 90 }, { action: 'STAR_PLAYER', weight: 10 }] },
-    { day: 23, key: 'youth', actions: [{ action: 'NEW_YOUTH_PLAYER_1', weight: 100 }] },
+    { day: 23, key: 'training', actions: [{ action: 'LEVEL_UP_PLAYER_70', weight: 100 }] },
     { day: 30, key: 'jackpot', actions: [{ action: 'MILLION_BONUS', weight: 70 }, { action: 'STAR_PLAYER', weight: 30 }] }
   ]
 }))

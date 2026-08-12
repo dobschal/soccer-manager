@@ -308,6 +308,18 @@ describe('advanceTours (#535)', () => {
     expect(inserts[0].params.state).toBe('pending')
   })
 
+  it('brings back a single youth star from South America', async () => {
+    const southAmerica = TOURS.find(t => t.key === 'south_america')
+    expect(southAmerica.reward).toEqual([{ action: 'NEW_YOUTH_PLAYER_3', amount: 1 }])
+
+    const { calls } = mockTeamOnTour(TOUR_PROGRESS_TARGET, [{ level: 50, tour_days_left: 1 }], 'south_america')
+    await advanceTours()
+
+    const inserts = calls.filter(c => c.sql.includes('INSERT INTO action_card'))
+    expect(inserts).toHaveLength(1)
+    expect(inserts[0].params.action).toBe('NEW_YOUTH_PLAYER_3')
+  })
+
   it('tells the manager the tour is done', async () => {
     mockTeamOnTour(TOUR_PROGRESS_TARGET, [{ level: 50, tour_days_left: 1 }])
     await advanceTours()

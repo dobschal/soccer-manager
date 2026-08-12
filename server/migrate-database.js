@@ -3238,6 +3238,66 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Wiki: IOC asking prices track the market value',
+  async run () {
+    const KEYS_TO_REFRESH = ['transfers']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: player picker marks players already in the lineup',
+  async run () {
+    const KEYS_TO_REFRESH = ['lineup']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: fewer youth cards from the login bonus and South America tour',
+  async run () {
+    const KEYS_TO_REFRESH = ['daily-login', 'on-tour']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: offers and bids without cover are withdrawn automatically',
+  async run () {
+    const KEYS_TO_REFRESH = ['action-card-market']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**

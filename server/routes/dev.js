@@ -3,7 +3,7 @@ import { calculateGames } from '../play-game-day.js'
 import { makeBotMoves } from '../bot-move.js'
 import { BadRequestError } from '../lib/errors.js'
 import { cleanupOldFreePlayers } from '../helper/playerHelper.js'
-import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyFromUsers } from '../helper/overseaClubHelper.js'
+import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyFromUsers, repriceIOCOffers } from '../helper/overseaClubHelper.js'
 import { sendBroadcastNotification } from '../lib/pushNotification.js'
 import { sendAdminMessageEmail } from '../lib/email.js'
 import { query, transaction } from '../lib/database.js'
@@ -69,6 +69,7 @@ export default {
     try { await makeBotMoves() } catch (e) { console.error('makeBotMoves failed:', e) }
     try { await cleanupOldFreePlayers() } catch (e) { console.error('cleanupOldFreePlayers failed:', e) }
     try { await cleanupIOCPlayers() } catch (e) { console.error('cleanupIOCPlayers failed:', e) }
+    try { await repriceIOCOffers() } catch (e) { console.error('repriceIOCOffers failed:', e) }
     try { await fillMarketGaps() } catch (e) { console.error('fillMarketGaps failed:', e) }
     try { await iocBuyFromUsers() } catch (e) { console.error('iocBuyFromUsers failed:', e) }
     try { await iocAutoAcceptBuyOffers() } catch (e) { console.error('iocAutoAcceptBuyOffers failed:', e) }

@@ -34,7 +34,7 @@ const data = (over = {}) => ({
   freeSlots: 2,
   squadAverage: 50,
   tours: [
-    { key: 'south_america', reward: [{ action: 'NEW_YOUTH_PLAYER_3', amount: 2 }] },
+    { key: 'south_america', reward: [{ action: 'NEW_YOUTH_PLAYER_3', amount: 1 }] },
     { key: 'asia', reward: [{ action: 'MILLION_BONUS', amount: 1 }] },
     { key: 'europe', reward: [{ action: 'LEVEL_UP_PLAYER_100', amount: 5 }] }
   ],

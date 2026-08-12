@@ -146,6 +146,8 @@ export default {
   'log.botCardBidComment': 'Automatic offer for a card that has been listed for over 24 hours.',
   'log.cardTradeSold': 'Your action-card trade with {team} was completed.',
   'log.cardTradeBought': 'Your bid was accepted — you traded action cards with {team}.',
+  'log.cardOfferDropped': 'One of your action-card offers was withdrawn because the listed cards are no longer available.',
+  'log.cardBidDropped': 'One of your bids was withdrawn because the cards you staked are no longer available.',
   'log.offerRejected': 'Your offer for {playerName} has been rejected.',
   'log.sellOfferCreated': 'You added a sell offer for {playerName} at {price}.',
   'log.sellOffersRemoved': '{count} of your sell offers were removed. You can list at most {max} players on the transfer market at the same time.',

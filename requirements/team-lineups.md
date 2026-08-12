@@ -28,6 +28,9 @@ Jedes Team hat eine Formation mit 11 Positionen, die der Spieler mit passenden S
   Leiste von Spielerkarten — mit derselben Spielerfigur wie auf dem Spielfeld — und stelle den Spieler
   mit einem Klick auf seine Karte auf. Passende Spieler stehen vorne, positionsfremde dahinter, nur
   mit 66% Deckkraft und mit ihrem konkreten Malus.
+- **US-LIN-16**: Als Spieler erkenne ich in der Auswahlleiste an einer blauen Hinterlegung, welche Spieler
+  bereits in der Aufstellung stehen — waehle ich einen davon, tausche ich zwei aufgestellte Spieler,
+  statt einen Bankspieler hereinzuholen.
 
 ## Verfuegbare Formationen
 
@@ -119,7 +122,9 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
   Gruppen nach dem Level, mit dem der Spieler tatsaechlich spielen wuerde (`getPositionLevelFactor`).
   Positionsfremde Karten tragen `is-out-of-position` (66% Deckkraft) und zeigen ihren Malus; die erste von ihnen
   trennt `is-group-start` mit einer breiteren Luecke von den passenden Spielern. Die Karte des aktuellen
-  Slot-Inhabers ist `is-current`: info-farben hinterlegt und nie abgedunkelt.
+  Slot-Inhabers ist `is-current`: info-farben hinterlegt und nie abgedunkelt. Karten von Spielern mit
+  gesetztem `in_game_position` tragen `is-in-lineup` und sind schwaecher info-blau hinterlegt, damit ein
+  Tausch zweier aufgestellter Spieler vom Nachruecken eines Bankspielers unterscheidbar bleibt.
 - **TA-LIN-37**: `PLAYER_UPDATED` (Aktionskarte im selben Overlay gespielt) aktualisiert nur die betroffene
   Karte per `innerHTML`, damit Scrollposition und die uebrigen Spielerfiguren erhalten bleiben.
 - **TA-LIN-19**: Formations-Dropdown mit 10 Optionen.

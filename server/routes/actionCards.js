@@ -1,9 +1,7 @@
 import { query } from '../lib/database.js'
 import { BadRequestError, UnauthorizedError } from '../lib/errors.js'
 import { getTeam } from '../helper/teamHelper.js'
-import { ActionCard } from '../entities/actionCard.js'
-import { getActionCards, playActionCard, getPendingActionCards, claimActionCard, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../helper/actionCardHelper.js'
-import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
+import { getActionCards, playActionCard, getPendingActionCards, claimActionCard, mergeActionCards, generateYouthPlayerOptions, YOUTH_PLAYER_CARD_RANGES } from '../helper/actionCardHelper.js'
 import { t } from '../i18n/index.js'
 import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
@@ -58,23 +56,9 @@ export default {
     const locale = req.locale || 'en'
     if (!req.user) throw new UnauthorizedError(t('error.notAuthorized', {}, locale))
     const team = await getTeam(req)
-    if (actionCard2.action !== actionCard1.action) throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
-    if (actionCard2.action === 'LEVEL_UP_PLAYER_40' || actionCard2.action === 'LEVEL_UP_PLAYER_70') {
-      const { season } = await getGameDayAndSeason()
-      await query('DELETE FROM action_card WHERE id=?', [actionCard1.id])
-      await query('DELETE FROM action_card WHERE id=?', [actionCard2.id])
-      const actionCard = new ActionCard({
-        team_id: team.id,
-        action: actionCard1.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100',
-        played: 0,
-        state: 'received',
-        season
-      })
-      const result = await query('INSERT INTO action_card SET ?', actionCard)
-      if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
-      return { success: true, actionCard: { id: result.insertId, action: actionCard.action } }
-    }
-    throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
+    const { actionCard } = await mergeActionCards(actionCard1, actionCard2, team, locale)
+    if (team.user_id) sendToUser(team.user_id, SERVER_EVENTS.ACTION_CARDS_CHANGED.name)
+    return { success: true, actionCard }
   },
 
   /**

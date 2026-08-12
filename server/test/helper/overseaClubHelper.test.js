@@ -30,7 +30,7 @@ vi.mock('../../lib/util.js', () => ({
 }))
 
 // We need to reset the module cache to clear the cached IOC team ID between tests
-let fillMarketGaps, iocBuyFromUsers, cleanupIOCPlayers, getIOCTeamId, iocAutoAcceptBuyOffers
+let fillMarketGaps, iocBuyFromUsers, cleanupIOCPlayers, getIOCTeamId, iocAutoAcceptBuyOffers, repriceIOCOffers
 
 beforeEach(async () => {
   vi.clearAllMocks()
@@ -67,6 +67,7 @@ beforeEach(async () => {
   cleanupIOCPlayers = mod.cleanupIOCPlayers
   getIOCTeamId = mod.getIOCTeamId
   iocAutoAcceptBuyOffers = mod.iocAutoAcceptBuyOffers
+  repriceIOCOffers = mod.repriceIOCOffers
 
   // Get fresh references to mocked modules
   const dbMod = await import('../../lib/database.js')
@@ -302,7 +303,7 @@ describe('overseaClubHelper', () => {
   })
 
   describe('IOC player pricing', () => {
-    it('creates players with prices within 90-110% of market value', async () => {
+    it('creates players with prices within ±3% of market value', async () => {
       // getIOCTeamId
       globalThis._query.mockResolvedValueOnce([{ id: 999 }])
 
@@ -335,9 +336,107 @@ describe('overseaClubHelper', () => {
       const offerData = insertCalls[0][1]
       const price = offerData.offer_value
 
-      // Price should be between 90% and 110% of market value, minimum 1000
-      expect(price).toBeGreaterThanOrEqual(Math.max(1000, Math.floor(marketValue * 0.9)))
-      expect(price).toBeLessThanOrEqual(Math.floor(marketValue * 1.1))
+      // Price should be within the IOC deviation of market value, minimum 1000
+      expect(price).toBeGreaterThanOrEqual(Math.max(1000, Math.floor(marketValue * 0.97)))
+      expect(price).toBeLessThanOrEqual(Math.floor(marketValue * 1.03))
+    })
+  })
+
+  describe('repriceIOCOffers', () => {
+    it('repriced a stale offer down to the current market value', async () => {
+      // getIOCTeamId
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+
+      // Open IOC sell offer asking far above what the aged player is worth now
+      globalThis._query.mockResolvedValueOnce([
+        { id: 14244, offer_value: 2513118, level: 69, carrier_start_season: -8 }
+      ])
+
+      const marketValue = 781160
+      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(marketValue)
+      globalThis._query.mockResolvedValueOnce({ affectedRows: 1 })
+
+      const repriced = await repriceIOCOffers()
+      expect(repriced).toBe(1)
+
+      const updateCall = globalThis._query.mock.calls.find(
+        call => typeof call[0] === 'string' && call[0].includes('UPDATE trade_offer SET offer_value')
+      )
+      expect(updateCall).toBeDefined()
+      const [newPrice, offerId] = updateCall[1]
+      expect(offerId).toBe(14244)
+      expect(newPrice).toBeGreaterThanOrEqual(Math.floor(marketValue * 0.97))
+      expect(newPrice).toBeLessThanOrEqual(Math.floor(marketValue * 1.03))
+    })
+
+    it('leaves offers within tolerance untouched', async () => {
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      globalThis._query.mockResolvedValueOnce([
+        { id: 1, offer_value: 102000, level: 50, carrier_start_season: 5 }
+      ])
+
+      // 2% above market value — inside IOC_REPRICE_TOLERANCE
+      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(100000)
+
+      const repriced = await repriceIOCOffers()
+      expect(repriced).toBe(0)
+
+      const updateCalls = globalThis._query.mock.calls.filter(
+        call => typeof call[0] === 'string' && call[0].includes('UPDATE trade_offer')
+      )
+      expect(updateCalls.length).toBe(0)
+    })
+
+    it('raises offers that sit below market value', async () => {
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      globalThis._query.mockResolvedValueOnce([
+        { id: 2, offer_value: 50000, level: 80, carrier_start_season: 6 }
+      ])
+
+      const marketValue = 400000
+      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(marketValue)
+      globalThis._query.mockResolvedValueOnce({ affectedRows: 1 })
+
+      const repriced = await repriceIOCOffers()
+      expect(repriced).toBe(1)
+
+      const updateCall = globalThis._query.mock.calls.find(
+        call => typeof call[0] === 'string' && call[0].includes('UPDATE trade_offer SET offer_value')
+      )
+      expect(updateCall[1][0]).toBeGreaterThan(50000)
+    })
+
+    it('only touches offers owned by the IOC', async () => {
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      globalThis._query.mockResolvedValueOnce([])
+
+      await repriceIOCOffers()
+
+      const selectCall = globalThis._query.mock.calls.find(
+        call => typeof call[0] === 'string' && call[0].includes('FROM trade_offer tro')
+      )
+      expect(selectCall[0]).toContain('tro.from_team_id = ?')
+      expect(selectCall[0]).toContain("tro.type = 'sell'")
+      expect(selectCall[0]).toContain("tro.status = 'open'")
+      expect(selectCall[1]).toEqual([999])
+    })
+
+    it('returns 0 when no IOC team exists', async () => {
+      globalThis._query.mockResolvedValueOnce([])
+      const repriced = await repriceIOCOffers()
+      expect(repriced).toBe(0)
+    })
+
+    it('skips players whose market value cannot be determined', async () => {
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      globalThis._query.mockResolvedValueOnce([
+        { id: 3, offer_value: 10000, level: 10, carrier_start_season: 1 }
+      ])
+
+      globalThis._getAveragePlanPriceOfPlayer.mockResolvedValueOnce(0)
+
+      const repriced = await repriceIOCOffers()
+      expect(repriced).toBe(0)
     })
   })
 

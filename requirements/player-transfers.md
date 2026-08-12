@@ -71,6 +71,20 @@ wird mit denselben 1,25 M Euro geschaetzt wie ein Stuermer.
 
 - **TA-TRF-13**: System-Team (`is_system_team = 1`), das als "Spieler-Senke" dient.
 - **TA-TRF-14**: Bei Transfer zum IOC wird der Spieler komplett geloescht.
+- **TA-TRF-23**: `fillMarketGaps` haelt pro Position und Stufe eine Mindestzahl offener Verkaufsangebote
+  vor (bronze Level 1-40: 8, silber 41-70: 10, gold 71-100: 2) und erzeugt dafuer neue Spieler
+  (Alter 20-28).
+- **TA-TRF-24**: Alle IOC-Preise — neu erzeugte Verkaufsangebote wie auch Kaufangebote an Nutzer — liegen
+  auf dem Marktwert mit **+-3 %** Zufallsabweichung (`IOC_PRICE_DEVIATION`), mindestens 1.000 EUR.
+- **TA-TRF-25**: `repriceIOCOffers` zieht offene IOC-Verkaufsangebote bei jedem CRON-Lauf auf den
+  **aktuellen** Marktwert nach. Ohne das bleibt der bei der Erzeugung eingefrorene Preis stehen, waehrend
+  der Spieler weiter altert (−15 % Marktwert pro Jahr ueber 22) — ein mehrere Saisons altes Angebot
+  verlangt sonst ein Vielfaches dessen, was das Spielerprofil als Wert ausweist.
+- **TA-TRF-26**: Nachgezogen wird nur, wenn der Preis um mehr als `IOC_REPRICE_TOLERANCE` (5 %) vom
+  Marktwert abweicht. Die Toleranz liegt ueber der Preisabweichung aus TA-TRF-24, damit ein frisch
+  gesetzter Preis nicht sofort wieder korrigiert wird und die Preise nicht bei jedem Lauf zittern.
+- **TA-TRF-27**: Angebote von Nutzer- und Bot-Teams werden nie nachgezogen — deren Preis ist eine
+  bewusste Entscheidung.
 
 ### Datenbank
 
@@ -102,5 +116,7 @@ wird mit denselben 1,25 M Euro geschaetzt wie ein Stuermer.
 
 - Angebotsvalidierung (Preis, Balance, Duplikate, Limit)
 - Bot-Bewertungslogik (Formations-Analyse, Preisberechnung)
+- IOC-Preisnachfuehrung: veraltetes Angebot wird gesenkt, zu niedriges angehoben, Angebote innerhalb der
+  Toleranz bleiben unangetastet, nur IOC-eigene Angebote werden angefasst
 - Transfer-Durchfuehrung (Spieler-Zuweisung, Balance-Updates, Bereinigung)
 - Marktwert-Formel

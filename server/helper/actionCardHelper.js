@@ -450,11 +450,12 @@ export async function mergeActionCards (actionCard1, actionCard2, team, locale =
   if (actionCard1.action !== 'LEVEL_UP_PLAYER_40' && actionCard1.action !== 'LEVEL_UP_PLAYER_70') {
     throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
   }
-  const newCardType = actionCard1.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100'
+  const [first, second] = await _claimMergeInput(actionCard1, actionCard2, team, locale)
+  const newCardType = first.action === 'LEVEL_UP_PLAYER_40' ? 'LEVEL_UP_PLAYER_70' : 'LEVEL_UP_PLAYER_100'
   const { season } = await getGameDayAndSeason()
-  await query('DELETE FROM action_card WHERE id=?', [actionCard1.id])
-  await query('DELETE FROM action_card WHERE id=?', [actionCard2.id])
-  await query('INSERT INTO action_card SET ?', {
+  await query('DELETE FROM action_card WHERE id=?', [first.id])
+  await query('DELETE FROM action_card WHERE id=?', [second.id])
+  const result = await query('INSERT INTO action_card SET ?', {
     team_id: team.id,
     action: newCardType,
     played: 0,
@@ -463,6 +464,35 @@ export async function mergeActionCards (actionCard1, actionCard2, team, locale =
   })
   return {
     success: true,
-    newCardType
+    newCardType,
+    actionCard: { id: result.insertId, action: newCardType }
   }
+}
+
+/**
+ * Load both merge inputs straight from the database and refuse anything the
+ * team does not actually hold free: a card that is escrowed in a marketplace
+ * offer or bid must not be merged away, or the entry behind it would live on
+ * pointing at a card that no longer exists. Clients work off a cached
+ * inventory, so this cannot be left to them.
+ * @param {ActionCardType} actionCard1
+ * @param {ActionCardType} actionCard2
+ * @param {TeamType} team
+ * @param {string} locale
+ * @returns {Promise<[ActionCardType, ActionCardType]>}
+ * @private
+ */
+async function _claimMergeInput (actionCard1, actionCard2, team, locale) {
+  const ids = [Number(actionCard1?.id), Number(actionCard2?.id)]
+  if (!ids[0] || !ids[1] || ids[0] === ids[1]) {
+    throw new BadRequestError(t('error.cannotMergeCards', {}, locale))
+  }
+  const cards = await query(
+    "SELECT * FROM action_card WHERE id IN (?) AND team_id=? AND played=0 AND state='received'",
+    [ids, team.id]
+  )
+  if (cards.length !== 2 || cards[0].action !== cards[1].action || cards[0].action !== actionCard1.action) {
+    throw new BadRequestError(t('error.cardNotFound', {}, locale))
+  }
+  return cards
 }

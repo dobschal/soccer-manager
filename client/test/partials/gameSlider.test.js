@@ -123,6 +123,94 @@ describe('GameSlider', () => {
     expect(showHeadToHeadOverlay).not.toHaveBeenCalled()
   })
 
+  describe('initial slide positioning', () => {
+    /**
+     * Render a 3-game slider into the DOM and fake the layout of its track,
+     * since jsdom does no layout at all.
+     * @param {boolean} laidOut - whether the track has a box (i.e. is visible)
+     */
+    function renderSlider (laidOut) {
+      const games = [1, 2, 3].map((n) => ({
+        id: n,
+        team1Id: 42,
+        team2Id: 90 + n,
+        team1: 'My Team',
+        team2: 'Other Team ' + n,
+        team1Data: { name: 'My Team' },
+        team2Data: { name: 'Other Team ' + n },
+        goalsTeam1: n,
+        goalsTeam2: 0,
+        isPlayed: true,
+        playedAt: null
+      }))
+      const slider = new GameSlider({ games, teamId: 42, initialIndex: 2 })
+      document.body.innerHTML = `<div>${slider.template}</div>`
+      const track = document.querySelector('.game-slider-track')
+      const slides = track.querySelectorAll('.game-slider-slide')
+      const layout = { laidOut }
+      const SLIDE_WIDTH = 300
+      Object.defineProperty(track, 'clientWidth', {
+        configurable: true,
+        get: () => layout.laidOut ? SLIDE_WIDTH : 0
+      })
+      slides.forEach((slide, idx) => {
+        Object.defineProperty(slide, 'offsetLeft', {
+          configurable: true,
+          get: () => layout.laidOut ? idx * SLIDE_WIDTH : 0
+        })
+      })
+      // jsdom's scrollLeft is not backed by layout, so record writes ourselves.
+      const scroll = { left: 0 }
+      Object.defineProperty(track, 'scrollLeft', {
+        configurable: true,
+        get: () => scroll.left,
+        set: (v) => { scroll.left = v }
+      })
+      return {
+        slider,
+        track,
+        layout,
+        scroll,
+        SLIDE_WIDTH
+      }
+    }
+
+    it('scrolls to the initial slide when the track already has a layout box', () => {
+      const { slider, scroll, SLIDE_WIDTH } = renderSlider(true)
+      slider._setupScrollSnap()
+      expect(scroll.left).toBe(2 * SLIDE_WIDTH)
+    })
+
+    it('scrolls to the initial slide once a hidden track becomes visible', () => {
+      const observers = []
+      const originalResizeObserver = globalThis.ResizeObserver
+      globalThis.ResizeObserver = class {
+        constructor (callback) {
+          this.callback = callback
+          observers.push(this)
+        }
+        observe () {}
+        disconnect () { this.disconnected = true }
+      }
+      try {
+        // Mounted while the page wrapper is still display:none (router slide
+        // transition) — no layout, so the scroll position cannot be applied yet.
+        const { slider, layout, scroll, SLIDE_WIDTH } = renderSlider(false)
+        slider._setupScrollSnap()
+        expect(scroll.left).toBe(0)
+        expect(observers).toHaveLength(1)
+
+        // Wrapper becomes visible: the observer fires and positions the track.
+        layout.laidOut = true
+        observers[0].callback()
+        expect(scroll.left).toBe(2 * SLIDE_WIDTH)
+        expect(observers[0].disconnected).toBe(true)
+      } finally {
+        globalThis.ResizeObserver = originalResizeObserver
+      }
+    })
+  })
+
   it('opens the head-to-head overlay when the center of an upcoming game is clicked', () => {
     const upcomingGame = {
       id: 8,

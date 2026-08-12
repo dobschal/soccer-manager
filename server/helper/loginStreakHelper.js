@@ -47,12 +47,15 @@ export const LOGIN_STREAK_REWARDS = [
     ]
   },
   {
+    // Was a youth-card pool until youth cards turned out to be far too common
+    // across all sources; this milestone now hands out training instead, tilted
+    // to the higher tiers so day 23 still beats the day 7 training reward.
     day: 23,
-    key: 'youth',
+    key: 'training',
     actions: [
-      { action: 'NEW_YOUTH_PLAYER_1', weight: 50 },
-      { action: 'NEW_YOUTH_PLAYER_2', weight: 30 },
-      { action: 'NEW_YOUTH_PLAYER_3', weight: 20 }
+      { action: 'LEVEL_UP_PLAYER_40', weight: 30 },
+      { action: 'LEVEL_UP_PLAYER_70', weight: 40 },
+      { action: 'LEVEL_UP_PLAYER_100', weight: 30 }
     ]
   },
   {

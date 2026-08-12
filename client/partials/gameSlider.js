@@ -144,6 +144,8 @@ export class GameSlider extends UIElement {
   
   _countdownElementIds = []
   _timerInterval = null
+  /** @type {ResizeObserver|null} */
+  _positionObserver = null
 
   /**
    * Generate the center content for a game slide based on its state
@@ -383,11 +385,7 @@ export class GameSlider extends UIElement {
     const track = slider.querySelector('.game-slider-track')
     if (!track) return
     const slides = track.querySelectorAll('.game-slider-slide')
-    const initial = slides[this._initialIndex]
-    if (initial) {
-      // Jump (no smooth scroll) so the first paint already shows the right slide.
-      track.scrollLeft = initial.offsetLeft
-    }
+    this._positionToInitialSlide(track, slides)
     let scrollTimer = null
     this._onScroll = () => {
       if (scrollTimer) clearTimeout(scrollTimer)
@@ -413,11 +411,49 @@ export class GameSlider extends UIElement {
     this._scrollTrackRef = track
   }
 
+  /**
+   * Jump the track to the initially active slide (no smooth scroll) so the
+   * first paint already shows the right game.
+   *
+   * The slider often mounts while it has no layout at all: the router hides the
+   * incoming page wrapper with `display: none` for the ~310ms of its slide
+   * transition, and the cached dashboard replaces its start-page markup inside
+   * that window (`_refreshStartPageData`, fast because the gateway caches the
+   * `get*` calls). A hidden element reports `offsetLeft` 0 for every slide and
+   * ignores `scrollLeft` assignments, so the track used to stay on the oldest
+   * game while the indicators already highlighted the correct one. Retry via a
+   * ResizeObserver, which fires as soon as the track gets a box.
+   *
+   * @param {HTMLElement} track
+   * @param {NodeListOf<HTMLElement>} slides
+   */
+  _positionToInitialSlide (track, slides) {
+    const target = slides[this._initialIndex]
+    if (!target || this._initialIndex === 0) return
+    const apply = () => {
+      if (!track.clientWidth) return false
+      track.scrollLeft = target.offsetLeft
+      return true
+    }
+    if (apply()) return
+    if (typeof ResizeObserver !== 'function') return
+    this._positionObserver = new ResizeObserver(() => {
+      if (apply()) this._teardownPositionObserver()
+    })
+    this._positionObserver.observe(track)
+  }
+
+  _teardownPositionObserver () {
+    this._positionObserver?.disconnect()
+    this._positionObserver = null
+  }
+
   _teardownScrollSnap () {
     if (this._scrollTrackRef && this._onScroll) {
       this._scrollTrackRef.removeEventListener('scroll', this._onScroll)
     }
     this._scrollTrackRef = null
     this._onScroll = null
+    this._teardownPositionObserver()
   }
 }
