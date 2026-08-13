@@ -6,6 +6,8 @@ import { getAveragePlanPriceOfPlayer, getPlayerAge, getPlayerById, getPlayersByT
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { getPastTrades } from '../helper/tradeHelper.js'
 import { addPlayerHistory } from '../helper/playerHistoryHelper.js'
+import { sendToTeam } from '../lib/websocket.js'
+import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import { t } from '../i18n/index.js'
 
 export default {
@@ -48,6 +50,13 @@ export default {
     await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
     await addLogMessage(t('log.playerFired', { playerName: playerFromDb.name }, locale), team, null, null, 'user-times', undefined, 'info')
     await addPlayerHistory(player.id, 'FIRED', team.name)
+    // The squad shrank: every mounted view built on it (squad page, team page,
+    // free-player list) refreshes from this event — including the ones the
+    // router keeps alive in its page cache while another page is on screen.
+    await sendToTeam(team.id, SERVER_EVENTS.PLAYER_FIRED.name, {
+      playerId: playerFromDb.id,
+      playerName: playerFromDb.name
+    })
     return { success: true }
   },
 
@@ -90,6 +99,12 @@ export default {
     await query('DELETE FROM trade_offer WHERE player_id=?', [player.id])
     await addLogMessage(t('log.playerSigned', { playerName: player.name }, locale), team, null, null, 'pencil', undefined, 'success')
     await addPlayerHistory(playerId, 'HIRED', team.name)
+    // Counterpart to PLAYER_FIRED: the squad grew, so the lineup and the player
+    // picker have a new candidate and the free-player list lost one.
+    await sendToTeam(team.id, SERVER_EVENTS.PLAYER_HIRED.name, {
+      playerId: player.id,
+      playerName: player.name
+    })
   },
 
   /**

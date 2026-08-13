@@ -20,6 +20,7 @@ import { renderPageNumbers } from '../partials/pagination.js'
 import { formatDate } from '../lib/date.js'
 import { calculateMarketValue, calculatePlayerAge, getSalary } from '../util/player.js'
 import { AdminTeamCards } from '../partials/adminTeamCards.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
 
 const TRANSFER_PAGE_SIZE = 10
 const TIMELINE_PAGE_SIZE = 12
@@ -261,10 +262,22 @@ export class TeamPage extends UIElement {
     }
   }
 
+  /**
+   * A signing / release only ever concerns the user's own squad, so the page
+   * refetches when it is currently showing that squad.
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    const refreshOwnTeam = () => {
+      if (this._isOwnTeam) this.update(true)
+    }
+    return {
+      [SERVER_EVENTS.PLAYER_HIRED.name]: refreshOwnTeam,
+      [SERVER_EVENTS.PLAYER_FIRED.name]: refreshOwnTeam
+    }
+  }
+
   onMounted () {
-    this._onPlayerChanged = () => this.update(true)
-    window.addEventListener('player-hired', this._onPlayerChanged)
-    window.addEventListener('player-fired', this._onPlayerChanged)
     this._onMyTeamUpdated = () => {
       if (this._isOwnTeam) this.update(true)
     }
@@ -292,10 +305,6 @@ export class TeamPage extends UIElement {
   }
 
   onDestroy () {
-    if (this._onPlayerChanged) {
-      window.removeEventListener('player-hired', this._onPlayerChanged)
-      window.removeEventListener('player-fired', this._onPlayerChanged)
-    }
     if (this._onMyTeamUpdated) {
       window.removeEventListener('my-team-updated', this._onMyTeamUpdated)
     }

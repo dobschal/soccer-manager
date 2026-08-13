@@ -8,6 +8,7 @@ import { setQueryParams } from '../../lib/router.js'
 import { t } from '../../i18n/index.js'
 import { renderLevelBadge } from '../../partials/levelBadge.js'
 import { renderPositionBadge } from '../../partials/positionBadge.js'
+import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 
 export class FreePlayers extends UIElement {
   /**
@@ -50,18 +51,23 @@ export class FreePlayers extends UIElement {
       </div>
     `
   }
-  onMounted () {
-    window.addEventListener('player-hired', this._onPlayerHired)
+  /**
+   * The signed player is no longer a free agent, so the table has to drop them.
+   * Someone else's signing doesn't reach this user — cross-user notifications
+   * for the free-player pool are out of scope (see requirements/event-based-updates.md).
+   * @returns {Record<string, (data: any) => void>}
+   */
+  get serverEvents () {
+    return {
+      [SERVER_EVENTS.PLAYER_HIRED.name]: () => this.update(true)
+    }
   }
-  onDestroy () {
-    window.removeEventListener('player-hired', this._onPlayerHired)
-  }
-  players = []
-  
-  season = 0
 
-  /** @type {() => void} */
-  _onPlayerHired = () => this.update(true)
+  updateIndicator = true
+
+  players = []
+
+  season = 0
 
   /**
    * @returns {Array<TableHeadCellConfig>}
@@ -120,7 +126,9 @@ export class FreePlayers extends UIElement {
     try {
       await server.givePlayerContract(player.id)
       toast(t('player.contractGiven', { playerName: player.name }), 'success')
-      await this.update(true)
+      // No `update(true)` here: the server answers the signing with
+      // PLAYER_HIRED, and this table refreshes from that event like every
+      // other view of the squad.
     } catch (e) {
       console.error(e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')

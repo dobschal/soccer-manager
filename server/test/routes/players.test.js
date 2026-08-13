@@ -34,12 +34,17 @@ vi.mock('../../helper/playerHistoryHelper.js', () => ({
   addPlayerHistory: vi.fn()
 }))
 
+vi.mock('../../lib/websocket.js', () => ({
+  sendToTeam: vi.fn().mockResolvedValue(true)
+}))
+
 import { query } from '../../lib/database.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getPlayerById, getPlayerAge, getAveragePlanPriceOfPlayer, getPlayersByTeamId } from '../../helper/playerHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { getPastTrades } from '../../helper/tradeHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
+import { sendToTeam } from '../../lib/websocket.js'
 import handlers from '../../routes/players.js'
 
 describe('players routes', () => {
@@ -143,6 +148,26 @@ describe('players routes', () => {
 
       expect(result).toEqual({ success: true })
     })
+
+    it('notifies the team so every mounted squad view refreshes', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 7, name: 'John Doe' })
+
+      getTeam.mockResolvedValue(team)
+      getPlayersByTeamId.mockResolvedValue(Array(15).fill(testData.player()))
+      query
+        .mockResolvedValueOnce([player])  // SELECT player
+        .mockResolvedValueOnce({})        // UPDATE player
+        .mockResolvedValueOnce({})        // DELETE trade_offer
+
+      const req = createMockRequest()
+      await handlers.firePlayer({ id: 7 }, req)
+
+      expect(sendToTeam).toHaveBeenCalledWith(team.id, 'PLAYER_FIRED', {
+        playerId: 7,
+        playerName: 'John Doe'
+      })
+    })
   })
 
   describe('getPlayersWithoutTeam', () => {
@@ -182,6 +207,24 @@ describe('players routes', () => {
 
       expect(query).toHaveBeenCalledWith('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
       expect(addLogMessage).toHaveBeenCalled()
+    })
+
+    it('notifies the team so the lineup and the free-player list pick the signing up', async () => {
+      const team = testData.team()
+      const player = testData.player({ id: 9, team_id: null, name: 'Free Player' })
+
+      getTeam.mockResolvedValue(team)
+      getPlayerById.mockResolvedValue(player)
+      getPlayersByTeamId.mockResolvedValue(Array(20).fill(testData.player()))
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      await handlers.givePlayerContract(9, req)
+
+      expect(sendToTeam).toHaveBeenCalledWith(team.id, 'PLAYER_HIRED', {
+        playerId: 9,
+        playerName: 'Free Player'
+      })
     })
 
     it('#512 clears any stale trade offers when signing a free agent', async () => {

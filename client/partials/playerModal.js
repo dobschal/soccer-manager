@@ -438,7 +438,8 @@ export default class PlayerModal extends UIElement {
       await server.givePlayerContract(this.player.id)
       toast(t('player.contractGiven', { playerName: this.player.name }), 'success')
       this.overlay.remove()
-      window.dispatchEvent(new CustomEvent('player-hired', { detail: { playerId: this.player.id } }))
+      // No local event: the server answers with PLAYER_HIRED, which every view
+      // of the squad already listens for.
     } catch (e) {
       console.error(e)
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')
@@ -457,7 +458,7 @@ export default class PlayerModal extends UIElement {
       await server.firePlayer(this.player)
       toast(t('player.playerFired'))
       this.overlay.remove()
-      window.dispatchEvent(new CustomEvent('player-fired', { detail: { playerId: this.player.id } }))
+      // Counterpart to the hire above: PLAYER_FIRED drives the refreshes.
       goTo('my-team')
     } catch (e) {
       toast(e.message ?? t('toast.somethingWentWrong'), 'error')

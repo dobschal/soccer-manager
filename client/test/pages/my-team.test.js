@@ -452,6 +452,55 @@ describe('MyTeamPage', () => {
     })
   })
 
+  describe('PLAYER_HIRED / PLAYER_FIRED server events', () => {
+    it('subscribes to every event that changes the squad shape', () => {
+      const page = new MyTeamPage()
+      expect(typeof page.serverEvents.PLAYER_HIRED).toBe('function')
+      expect(typeof page.serverEvents.PLAYER_FIRED).toBe('function')
+    })
+
+    it('reloads the squad after a free agent was signed, so the lineup sees them', async () => {
+      const team = testData.team()
+      const initialPlayers = [testData.player({ id: 1, name: 'Existing' })]
+      const updatedPlayers = [
+        testData.player({ id: 1, name: 'Existing' }),
+        testData.player({ id: 2, name: 'Just Signed' })
+      ]
+
+      server.getMyTeam
+        .mockResolvedValueOnce({ team, players: initialPlayers })
+        .mockResolvedValueOnce({ team, players: updatedPlayers })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+      const page = new MyTeamPage()
+      await page.load()
+      page._subPageCache = { ateam: { stale: true } }
+
+      await page.serverEvents.PLAYER_HIRED.call(page, { playerId: 2, playerName: 'Just Signed' })
+
+      expect(server.getMyTeam).toHaveBeenCalledTimes(2)
+      expect(page.data.players).toHaveLength(2)
+      expect(page.data.players[1].name).toBe('Just Signed')
+      expect(page._subPageCache).toEqual({})
+    })
+
+    it('reloads the squad after a player was released', async () => {
+      const team = testData.team()
+
+      server.getMyTeam
+        .mockResolvedValueOnce({ team, players: [testData.player({ id: 1 }), testData.player({ id: 2 })] })
+        .mockResolvedValueOnce({ team, players: [testData.player({ id: 1 })] })
+      server.getCurrentGameday.mockResolvedValue({ season: 1 })
+
+      const page = new MyTeamPage()
+      await page.load()
+
+      await page.serverEvents.PLAYER_FIRED.call(page, { playerId: 2, playerName: 'Gone' })
+
+      expect(page.data.players).toHaveLength(1)
+    })
+  })
+
   describe('action cards tab', () => {
     // The global setup mocks localStorage with no-op stubs; back them with a
     // real in-memory store so the "seen cards" persistence can be exercised.

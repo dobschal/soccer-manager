@@ -29,6 +29,15 @@ fire even while the element is not visible (e.g. a page is scrolled off, a
 tab is inactive) as long as the element is still mounted; when the router
 tears the element down, the handlers are unregistered automatically.
 
+This is what keeps the router's page cache honest. A page the user navigates
+away from stays mounted (`display: none`) in `_pageCache`, and it is *not*
+re-loaded when the user comes back — so whatever changed in the meantime has
+to arrive as a server event. A state change that reaches the client only
+through a local `window` event or an optimistic `update(true)` inside a click
+handler leaves every cached page stale until a hard reload. Concretely: a
+squad change must produce a server event, or the lineup on the hidden
+`#my-team` page keeps showing the old roster.
+
 ## Central event registry
 
 `client/lib/serverEvents.js` is the single source of truth for both sender
@@ -55,7 +64,7 @@ for now; adding cross-user notifications is a separate, explicit change.
 | UIElement                             | Server event(s)                | Behavior                                                                    |
 |---------------------------------------|--------------------------------|-----------------------------------------------------------------------------|
 | `PlayerListItem`                      | `NEW_SELL_TRADE_OFFER`, `REMOVE_SELL_TRADE_OFFER`, `CAPTAIN_CHANGED`, `BENCH_CHANGED`, `LINEUP_PLAYER_CHANGED` | Filters by `data.playerId === this.player.id`, adds / removes the sell-offer icon; toggles the (C) marker when this row is the outgoing or incoming captain; flips the row highlight (warning / neutral) when the player is added to or displaced from a bench slot; syncs `in_game_position` when the player is moved onto or off the pitch via a lineup swap. |
-| `PlayerList`                          | *(none — delegates to items)*  | List-shape changes (fire, hire, transfer completed) will use dedicated events once introduced. |
+| `PlayerList`                          | *(none — delegates to items)*  | Row-level changes are handled by the items. List-*shape* changes (hire, fire, transfer completed) are owned by the page holding the list: it refetches on `PLAYER_HIRED` / `PLAYER_FIRED` / `PLAYER_SOLD` / `BUY_OFFER_ACCEPTED` and hands down a new array. |
 | `SquadPlayer` (lineup tile)           | `CAPTAIN_CHANGED`, `BENCH_CHANGED`, `LINEUP_PLAYER_CHANGED` | Only the affected tiles re-render — captain swap, bench demotion, or lineup swap all touch at most two tiles; the rest stay untouched and their asynchronously-loaded player images survive. Each tile is anchored to a `slot` field frozen in its constructor so parent-driven mutations of `player.in_game_position` can't drift it off its grid cell. |
 | `Lineup`                              | `CAPTAIN_CHANGED`, `BENCH_CHANGED`, `LINEUP_PLAYER_CHANGED` | Keeps its shared `team.captain_id` ref in sync and reconciles `this.players` (marks players as benched / ejected, moves them between slots, rebuilds fakes for the freed slots) so the click handler stays correct. Does *not* re-render itself. |
 | `BenchSlot` (one per position)        | `BENCH_CHANGED`                | Swaps its own occupant in place when the event targets this slot, or clears itself when its current player is moved to a different slot. Sibling slots stay untouched (no image reloads). |
@@ -69,7 +78,9 @@ for now; adding cross-user notifications is a separate, explicit change.
 | `GameLayout` / `NativeAppLayout`      | `NEW_LOG_MESSAGE`, `BUY_OFFER_ACCEPTED`, `BUY_OFFER_REJECTED` | Bumps the log-messages badge; toasts trade-offer outcomes. |
 | `Balance` (partial)                   | `BALANCE_UPDATED`              | Updates the header cash figure. Legacy consumer, not migrated in this PR.   |
 | `MyOffersPage`                        | `BUY_OFFER_ACCEPTED`, `BUY_OFFER_REJECTED` | Refreshes the answered-offers table. Legacy consumer.            |
-| `MyTeamPage`                          | `PLAYER_SOLD`                  | Refreshes squad after a sale. Legacy consumer.                              |
+| `MyTeamPage`                          | `PLAYER_SOLD`, `BUY_OFFER_ACCEPTED`, `PLAYER_HIRED`, `PLAYER_FIRED` | Every one of these changes the squad's shape, which the lineup and the player picker derive from `data.players`. Refetches and drops the sub-page cache (`ATeamPage` deep-copies the roster into `Lineup`, so a cached sub-page would keep the old one). Works while the page sits hidden in the router cache. |
+| `FreePlayers` (trades tab)            | `PLAYER_HIRED`                 | Refetches the free-agent table — the signed player is no longer free. Another user's signing does not reach this client (no cross-user notification yet). |
+| `TeamPage`                            | `PLAYER_HIRED`, `PLAYER_FIRED` | Refetches when it is currently showing the user's own team; a foreign team's squad is unaffected by the user's own signings. |
 | `TutorialProgress`                    | `TUTORIAL_COMPLETED`           | Hides progress widget. Legacy consumer.                                     |
 | `Balance` / `MyOffersPage` (indirect) | `RECONNECTED`                  | Client-only signal fired after a websocket reconnect so consumers can refetch. |
 

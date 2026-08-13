@@ -8,6 +8,7 @@ import { TourPage } from './my-team/tour.js'
 import { off, on } from '../lib/event.js'
 import { ActionCards } from './dashboard/actionCards.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
+import { SERVER_EVENTS } from '../lib/serverEvents.js'
 import { countUnseenActionCards, markActionCardsSeen } from '../lib/actionCardsSeen.js'
 
 export class MyTeamPage extends TabbedPage {
@@ -41,32 +42,27 @@ export class MyTeamPage extends TabbedPage {
       </div>
     `
   }
+  /**
+   * Every event here changes the *shape* of the squad, which the lineup and the
+   * player picker both derive from `data.players`. The handlers stay registered
+   * for the element's whole DOM lifetime, so a page sitting hidden in the
+   * router's cache refreshes too and shows the new squad when the user returns.
+   * @returns {Record<string, (data: any) => void>}
+   */
   get serverEvents () {
-    const refresh = async () => {
-      await this.load()
-      this._subPageCache = {}
-      await this.update()
-    }
     return {
-      PLAYER_SOLD: refresh,
+      [SERVER_EVENTS.PLAYER_SOLD.name]: () => this.refresh(),
       // Fires after the user buys a player (instant buy or accepted offer)
       // so the lineup picks the new squad member up without a hard reload.
-      BUY_OFFER_ACCEPTED: refresh
+      [SERVER_EVENTS.BUY_OFFER_ACCEPTED.name]: () => this.refresh(),
+      [SERVER_EVENTS.PLAYER_HIRED.name]: () => this.refresh(),
+      [SERVER_EVENTS.PLAYER_FIRED.name]: () => this.refresh()
     }
   }
+
   onMounted () {
     void showTutorialIfNeeded('team', this)
-    this._youthPlayerPromotedEventId = on('YOUTH_PLAYER_PROMOTED', async () => {
-      await this.load()
-      this._subPageCache = {}
-      await this.update()
-    })
-    this._onPlayerFired = async () => {
-      await this.load()
-      this._subPageCache = {}
-      await this.update()
-    }
-    window.addEventListener('player-fired', this._onPlayerFired)
+    this._youthPlayerPromotedEventId = on('YOUTH_PLAYER_PROMOTED', () => this.refresh())
   }
   async onQueryChanged (params) {
     if (params.player_id) {
@@ -75,18 +71,26 @@ export class MyTeamPage extends TabbedPage {
     const newSubPage = params.sub_page || null
     if (newSubPage === this.subPage) return
     this.subPage = newSubPage
-    await this.load()
-    this._subPageCache = {}
-    await this.update()
+    await this.refresh()
   }
   onDestroy () {
     if (this._youthPlayerPromotedEventId !== undefined) {
       off(this._youthPlayerPromotedEventId)
     }
-    if (this._onPlayerFired) {
-      window.removeEventListener('player-fired', this._onPlayerFired)
-    }
   }
+
+  /**
+   * Refetch the squad and rebuild the sub-pages from it. The sub-page cache has
+   * to go: `ATeamPage` hands `data.players` to `Lineup`, which deep-copies the
+   * array, so a cached sub-page would keep rendering the old squad.
+   * @returns {Promise<void>}
+   */
+  async refresh () {
+    await this.load()
+    this._subPageCache = {}
+    await this.update()
+  }
+
   get routeName () { return 'my-team' }
 
   get defaultSubPageKey () { return 'ateam' }

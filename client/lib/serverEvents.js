@@ -59,6 +59,14 @@ export const SERVER_EVENTS = {
     name: 'PLAYER_SOLD',
     description: 'One of this user\'s players was sold. Sent only to the selling user. Payload: { message, ... }.'
   },
+  PLAYER_HIRED: {
+    name: 'PLAYER_HIRED',
+    description: 'A free agent joined this user\'s squad (contract given from the free-player list or the player modal). Sent only to the hiring user. Payload: { playerId, playerName }. Consumers refetch: the squad grew, so lineup, player picker and the free-player list all changed shape.'
+  },
+  PLAYER_FIRED: {
+    name: 'PLAYER_FIRED',
+    description: 'This user released one of their players, who becomes a free agent again. Sent only to the releasing user. Payload: { playerId, playerName }. Consumers refetch — same shape change as PLAYER_HIRED, in the other direction.'
+  },
   TUTORIAL_COMPLETED: {
     name: 'TUTORIAL_COMPLETED',
     description: 'The user finished the tutorial. Sent only to that user. No payload.'
