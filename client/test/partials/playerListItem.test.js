@@ -11,7 +11,7 @@ vi.mock('../../util/player.js', () => ({
     for (let l = 100; l > level; l--) price *= 0.9330329915368074
     return Math.floor(price)
   }),
-  willRetireNextSeason: vi.fn((player, season) => player.carrier_end_season <= season + 1)
+  willRetireNextSeason: vi.fn((player, season) => player.carrier_end_season <= season)
 }))
 
 vi.mock('../../lib/currency.js', () => ({

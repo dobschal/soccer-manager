@@ -64,6 +64,7 @@ export default {
 
   // Trade errors
   'error.playerNotFound': 'Spieler nicht gefunden',
+  'error.playerRetired': 'Dieser Spieler hat seine Karriere beendet und kann nicht verpflichtet werden.',
   'error.playerNotOnMarket': 'Spieler ist nicht auf dem Markt',
   'error.cannotBuyOwnPlayer': 'Du kannst keinen eigenen Spieler kaufen',
   'error.notEnoughMoney': 'Nicht genug Geld',
@@ -199,7 +200,7 @@ export default {
   'log.matchLoss': 'Niederlage. Du hast {goalsFor}:{goalsAgainst} gegen {opponent} verloren.',
 
   // Log messages - Player career
-  'log.playerRetired': '{playerName} hat seine Profikarriere beendet.',
+  'log.playerRetired': '{playerName} sagt Lebewohl und beendet heute seine Karriere.',
   'log.playerInjured': '{playerName} hat sich verletzt: {injuryType}! Ausfall für {days} Spieltag(e).',
   'log.playerSubstitutedInjury': '{playerOutName} wird verletzungsbedingt durch {playerInName} ersetzt.',
   'log.playerSubstitutedFreshness': '{playerOutName} wird wegen niedriger Fitness durch {playerInName} ersetzt.',

@@ -146,6 +146,8 @@ describe('players routes', () => {
   })
 
   describe('getPlayersWithoutTeam', () => {
+    // `carrier_end_season` is inclusive: a player in their final season is
+    // still signable, only players whose end season is in the past are gone.
     it('returns players without team, excluding retired ones', async () => {
       const players = [testData.player({ team_id: null, carrier_end_season: 10 })]
       getGameDayAndSeason.mockResolvedValue({ season: 5, gameDay: 3 })
@@ -155,13 +157,17 @@ describe('players routes', () => {
 
       expect(result).toEqual(players)
       expect(query).toHaveBeenCalledWith(
-        'SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season > ?',
+        'SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season >= ?',
         [5]
       )
     })
   })
 
   describe('givePlayerContract', () => {
+    beforeEach(() => {
+      getGameDayAndSeason.mockResolvedValue({ season: 5, gameDay: 3 })
+    })
+
     it('gives contract to player without team', async () => {
       const team = testData.team()
       const player = testData.player({ team_id: null, name: 'Free Player' })
@@ -218,6 +224,40 @@ describe('players routes', () => {
 
       await expect(handlers.givePlayerContract(1, req))
         .rejects.toMatchObject({ message: 'Your team cannot have more than 42 players.' })
+    })
+
+    // A squad page opened before the season transition keeps offering players
+    // the transition has just retired. Ten of them were signed that way in
+    // production and never left again, because nothing re-checks a career end
+    // once a player has a club.
+    it('rejects a player whose career has already ended', async () => {
+      const team = testData.team()
+      const player = testData.player({ team_id: null, carrier_end_season: 4 })
+
+      getTeam.mockResolvedValue(team)
+      getPlayerById.mockResolvedValue(player)
+      getPlayersByTeamId.mockResolvedValue(Array(20).fill(testData.player()))
+
+      const req = createMockRequest()
+
+      await expect(handlers.givePlayerContract(1, req))
+        .rejects.toMatchObject({ message: 'This player has ended his career and cannot be signed.' })
+      expect(query).not.toHaveBeenCalledWith('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
+    })
+
+    it('still signs a player who is in their final season', async () => {
+      const team = testData.team()
+      const player = testData.player({ team_id: null, carrier_end_season: 5 })
+
+      getTeam.mockResolvedValue(team)
+      getPlayerById.mockResolvedValue(player)
+      getPlayersByTeamId.mockResolvedValue(Array(20).fill(testData.player()))
+      query.mockResolvedValue({})
+
+      const req = createMockRequest()
+      await handlers.givePlayerContract(1, req)
+
+      expect(query).toHaveBeenCalledWith('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
     })
   })
 

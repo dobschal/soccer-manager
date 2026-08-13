@@ -78,14 +78,22 @@ export function calculateMarketValue (level, age) {
 }
 
 /**
- * Check if a player will retire at the end of the current season
- * (i.e. carrier_end_season <= current season + 1)
+ * Check if a player will retire at the end of the current season.
+ *
+ * `carrier_end_season` is the player's **last active season**, inclusive — the
+ * season transition retires everyone with `carrier_end_season <= season` while
+ * `season` still names the season that just finished
+ * (`_archiveTooOldPlayers` in server/prepare-season.js). The check has to use
+ * the same comparison: with `<= currentSeason + 1` the badge lit up a full
+ * season early, so players were flagged as retiring, played another full
+ * season, and got flagged a second time.
+ *
  * @param {PlayerType} player
  * @param {number} currentSeason
  * @returns {boolean}
  */
 export function willRetireNextSeason (player, currentSeason) {
-  return player.carrier_end_season <= currentSeason + 1
+  return player.carrier_end_season <= currentSeason
 }
 
 /**

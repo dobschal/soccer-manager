@@ -947,7 +947,7 @@ export default {
   'player.historyStarPlayer': 'Promoted to Star Player',
   'player.retiringNextSeason': 'This player will retire after this season',
   'player.retiringTitle': 'Retiring Soon',
-  'player.retiringDesc': 'This player will retire at the end of the current season and leave your team.',
+  'player.retiringDesc': 'This player will retire at the end of the current season and leave your team. Until then he is fully available to you.',
 
   // Action Cards
   'actionCards.title': 'Action Cards',

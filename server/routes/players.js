@@ -56,7 +56,12 @@ export default {
    */
   async getPlayersWithoutTeam () {
     const { season } = await getGameDayAndSeason()
-    return await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season > ?', [season])
+    // `carrier_end_season` is the last season a player is active, inclusive —
+    // the same reading `getOffers` and the season transition use. `> season`
+    // hid players who still have this whole season to play, which made the
+    // final season look like retirement had already happened. Only genuinely
+    // retired players (`< season`, kept in the table for history) are excluded.
+    return await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season >= ?', [season])
   },
 
   /**
@@ -69,6 +74,13 @@ export default {
     const team = await getTeam(req)
     const player = await getPlayerById(playerId)
     if (player.team_id) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+    // `getPlayersWithoutTeam` already hides retired players, but the list the
+    // client acts on can be stale — the season transition retires everyone at
+    // 00:00 while a squad page opened before midnight still offers them. Ten
+    // players were signed that way in production and stayed on their teams for
+    // seasons, because nothing else ever re-checks a player's career end.
+    const { season } = await getGameDayAndSeason()
+    if (player.carrier_end_season < season) throw new BadRequestError(t('error.playerRetired', {}, locale))
     const teamPlayers = await getPlayersByTeamId(team.id)
     if (teamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
     await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])

@@ -1005,6 +1005,12 @@ Level and position:
 • Positions are goalkeeper, defenders, midfielders and attackers; a player can only be fielded in a matching slot.
 • A career lasts roughly 20 to 23 years.
 
+End of career:
+• Players retire between the ages of 36 and 39. An hourglass next to a player means the current season is his last one.
+• He stays yours for that whole season: you can field him, send him on tour and list him on the transfer market as usual.
+• He leaves at the season change, and any open offers for him are withdrawn. You get a message in your log when it happens.
+• A free agent in his final season can still be signed — he is fully available until the season ends.
+
 Fitness (freshness):
 • Shown as a percentage. Green is good (70%+), yellow is medium, red is low (below 40%).
 • A match lowers fitness (more with an aggressive play style); players recover each match day, and benched players recover faster. Younger players recover quicker than older ones.
@@ -1030,6 +1036,12 @@ Level und Position:
 • Das Level reicht von 1 bis 100 und ist der Kern der Spielerstärke.
 • Positionen sind Torwart, Verteidiger, Mittelfeldspieler und Stürmer; ein Spieler kann nur auf einer passenden Position eingesetzt werden.
 • Eine Karriere dauert etwa 20 bis 23 Jahre.
+
+Karriereende:
+• Spieler treten im Alter zwischen 36 und 39 Jahren ab. Eine Sanduhr neben einem Spieler bedeutet: die laufende Saison ist seine letzte.
+• Er bleibt dir diese ganze Saison erhalten – du kannst ihn aufstellen, auf Werbereise schicken und ganz normal auf dem Transfermarkt anbieten.
+• Er verlässt dich erst beim Saisonwechsel, offene Angebote zu ihm werden dabei zurückgezogen. Du bekommst eine Nachricht in deinem Log.
+• Einen ablösefreien Spieler in seiner letzten Saison kannst du weiterhin verpflichten – er ist bis zum Saisonende voll einsatzfähig.
 
 Fitness (Frische):
 • Wird in Prozent angezeigt. Grün ist gut (ab 70%), Gelb mittel, Rot niedrig (unter 40%).

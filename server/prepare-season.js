@@ -114,7 +114,12 @@ async function _archiveTooOldPlayers () {
   await query('DELETE FROM trade_offer WHERE player_id IN (?)', [playerIds])
   for (const player of players) {
     const team = await getTeamById(player.team_id)
-    await addLogMessage(`Your player ${player.name} is saying goodbye and ends his carrier today.`, team, null, null, 'heart', undefined, 'info')
+    // The players are already off their teams at this point; a missing team row
+    // must not abort the loop and take the rest of the season transition with
+    // it — the goodbye message is the least important part of retiring.
+    if (!team) continue
+    const locale = await getUserLocale(team.user_id)
+    await addLogMessage(t('log.playerRetired', { playerName: player.name }, locale), team, null, null, 'heart', undefined, 'info')
   }
   console.log(`👴🏽 ${players.length} players ended their carrier...`)
 }

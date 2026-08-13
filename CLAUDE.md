@@ -289,6 +289,7 @@ Detailed feature specifications are in the `requirements/` directory:
 - [On Tour](requirements/on-tour.md) - Werbereisen: Spieler entsenden und Aktionskarten verdienen
 - [Player Fitness](requirements/player-fitness.md) - Spieler-Frische und Ermuedung
 - [Player Injuries](requirements/player-injuries.md) - Spieler-Verletzungen
+- [Player Retirement](requirements/player-retirement.md) - Karriereende, Rentenlauf beim Saisonwechsel
 - [Player Salary](requirements/player-sallary.md) - Gehaltsberechnung (exponentiell, Level 1-100)
 - [Player Suspension](requirements/player-suspension.md) - Sperren durch Karten
 - [Player Transfers](requirements/player-transfers.md) - Transfermarkt und Marktwert

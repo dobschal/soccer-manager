@@ -5,6 +5,7 @@ import { _getBotPlayerLevelRange, _getBotStadiumConfig } from './prepare-season.
 import { WIKI_SEED } from './data/wikiSeed.js'
 import { cachePlayerStatsForGameDay } from './helper/playerStatsHelper.js'
 import { ensurePlayableAudio, UNIVERSAL_AUDIO_EXTENSIONS } from './lib/audioTranscode.js'
+import { getGameDayAndSeason } from './helper/gameDayHelper.js'
 
 /**
  * @typedef {object} Migration
@@ -3298,7 +3299,57 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Extend careers of players who outlived their retirement on a team',
+  run: extendOverdueCarriers
+}, {
+  name: 'Wiki: when a player retires and what happens to him',
+  async run () {
+    const KEYS_TO_REFRESH = ['players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
+
+/**
+ * Give players who are still on a team although their career ended a career
+ * end of the current season.
+ *
+ * `givePlayerContract` used to check only whether a player was unemployed,
+ * never whether their career had already ended. The season transition retires
+ * everyone at 00:00, but a squad page opened before midnight kept offering
+ * them — so ten already-retired players were signed in production and then
+ * stayed on their teams for seasons, because nothing re-checks a career end
+ * once a player has a club.
+ *
+ * Rather than pull them off their teams mid-season, their career is extended to
+ * the current season: they finish this season like every other veteran and
+ * retire through the normal path at the next transition. The guard in
+ * `givePlayerContract` stops new cases.
+ *
+ * @returns {Promise<void>}
+ */
+export async function extendOverdueCarriers () {
+  const [row] = await query('SELECT COUNT(*) AS games FROM game')
+  // A fresh database has no games and therefore no meaningful current season.
+  if (!row?.games) return
+  const { season } = await getGameDayAndSeason()
+  const { affectedRows } = await query(
+    'UPDATE player SET carrier_end_season=? WHERE team_id IS NOT NULL AND carrier_end_season<?',
+    [season, season]
+  )
+  if (affectedRows > 0) {
+    console.log(`👴🏽 Extended ${affectedRows} overdue player carrier(s) to season ${season}.`)
+  }
+}
 
 /**
  * Move every table that is still on the legacy utf8mb3 charset over to

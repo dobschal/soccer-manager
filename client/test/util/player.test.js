@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sortByPosition } from '../../util/player.js'
+import { sortByPosition, willRetireNextSeason } from '../../util/player.js'
 
 const p = (overrides = {}) => ({
   position: 'CM',
@@ -55,5 +55,26 @@ describe('sortByPosition', () => {
     ]
     players.sort(sortByPosition)
     expect(players.map(x => x.position)).toEqual(['GK', 'CM', 'CA'])
+  })
+})
+
+describe('willRetireNextSeason', () => {
+  // `carrier_end_season` is the last season a player is active, inclusive. The
+  // badge has to line up with `_archiveTooOldPlayers`, which retires
+  // `carrier_end_season <= season` at the transition out of that same season.
+  it('flags a player in their final season', () => {
+    expect(willRetireNextSeason({ carrier_end_season: 9 }, 9)).toBe(true)
+  })
+
+  it('does not flag a player who still has a season left', () => {
+    expect(willRetireNextSeason({ carrier_end_season: 9 }, 8)).toBe(false)
+  })
+
+  it('does not flag a player with several seasons left', () => {
+    expect(willRetireNextSeason({ carrier_end_season: 14 }, 9)).toBe(false)
+  })
+
+  it('flags a player whose career end is already in the past', () => {
+    expect(willRetireNextSeason({ carrier_end_season: 6 }, 9)).toBe(true)
   })
 })
