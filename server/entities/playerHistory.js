@@ -7,6 +7,7 @@
  * @property {number} season
  * @property {number} game_day
  * @property {Date} created_at
+ * @property {number} [price] transfer fee, only set for TRANSFER entries (joined from trade_history)
  */
 
 import { OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'

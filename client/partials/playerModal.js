@@ -29,17 +29,24 @@ function getFreshnessColor (freshness) {
 }
 
 /**
+ * Renders a single history entry. Exported so it can be tested directly —
+ * inside the modal it is only reachable through the async placeholder below.
  * @param {PlayerHistoryType} item
- * @returns {string}
- * @private
+ * @returns {Promise<string>}
  */
-const _renderPlayerHistory = renderAsync(async function (item) {
+export async function renderPlayerHistoryItem (item) {
   const prefix = `<small class="text-muted">S${item.season + 1} D${item.game_day}</small>`
   if (item.type === 'LEVEL_UP') {
     return `<div>${prefix} ${t('player.historyLevelUp', { level: item.value })}</div>`
   } else if (item.type === 'TRANSFER') {
     const { team } = await server.getTeam(Number(item.value))
-    return `<div>${prefix} ${t('player.historyTransfer', { teamName: team?.name ?? 'Unknown' })}</div>`
+    const teamName = team?.name ?? 'Unknown'
+    // Older transfers may predate the trade_history join or come from a trade
+    // that was cleaned up — then only the club name is known.
+    if (typeof item.price === 'number') {
+      return `<div>${prefix} ${t('player.historyTransferWithPrice', { teamName, price: euroFormat.format(item.price) })}</div>`
+    }
+    return `<div>${prefix} ${t('player.historyTransfer', { teamName })}</div>`
   } else if (item.type === 'FIRED') {
     return `<div>${prefix} ${t('player.historyFired', { teamName: item.value })}</div>`
   } else if (item.type === 'HIRED') {
@@ -48,7 +55,14 @@ const _renderPlayerHistory = renderAsync(async function (item) {
     return `<div>${prefix} ⭐ ${t('player.historyStarPlayer')}</div>`
   }
   return `<div>${prefix} ${item.type}: ${item.value}</div>`
-})
+}
+
+/**
+ * @param {PlayerHistoryType} item
+ * @returns {string}
+ * @private
+ */
+const _renderPlayerHistory = renderAsync(renderPlayerHistoryItem)
 
 export default class PlayerModal extends UIElement {
   /**
