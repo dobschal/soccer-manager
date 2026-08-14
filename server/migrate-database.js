@@ -3317,6 +3317,53 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Reset cup byes whose round has not been played yet',
+  async run () {
+    // Byes used to be inserted as played=1 at the moment of the draw. Cup games
+    // are rendered with `created_at` as their "played at" date, so a bye showed
+    // a finished match dated on the draw — days before the round is actually
+    // played. Roll back the byes of every round that still has open matches;
+    // the game day now resolves them together with those matches.
+    const openRounds = await query(`
+        SELECT DISTINCT season, cup_round AS cupRound
+        FROM game
+        WHERE game_type = 'cup'
+          AND played = 0
+    `)
+    let resetCount = 0
+    for (const { season, cupRound } of openRounds) {
+      const { affectedRows } = await query(
+        `UPDATE game
+         SET played = 0, goals_team_1 = NULL, goals_team_2 = NULL
+         WHERE game_type = 'cup'
+           AND season = ?
+           AND cup_round = ?
+           AND team_2_id IS NULL
+           AND played = 1`,
+        [season, cupRound]
+      )
+      resetCount += affectedRows
+    }
+    if (resetCount > 0) {
+      console.log(`🏆 Reset ${resetCount} cup bye(s) to unplayed until their round is reached`)
+    }
+  }
+}, {
+  name: 'Wiki: a bye only counts on its round\'s match day',
+  async run () {
+    const KEYS_TO_REFRESH = ['cup']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**

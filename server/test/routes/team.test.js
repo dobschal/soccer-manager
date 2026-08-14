@@ -453,6 +453,90 @@ describe('team routes', () => {
         .rejects.toMatchObject({ message: 'Unknown player...' })
     })
 
+    it('refuses to field a player who is on tour', async () => {
+      const team = testData.team()
+      const players = [
+        testData.player({ id: 1, in_game_position: 'GK' }),
+        // Sent on tour, so their slot was cleared when they left.
+        testData.player({ id: 2, in_game_position: '', tour_days_left: 4, tour_days_total: 4 })
+      ]
+      const updatedPlayers = [
+        { id: 1, in_game_position: 'GK' },
+        { id: 2, in_game_position: 'CM' }
+      ]
+
+      query
+        .mockResolvedValueOnce([team])
+        .mockResolvedValueOnce(players)
+        .mockResolvedValue({})
+
+      await expect(handlers.saveLineup(updatedPlayers, '4-3-3', createMockRequest()))
+        .rejects.toMatchObject({ message: 'Player is unavailable' })
+    })
+
+    it('lets an injured player keep the slot they already hold', async () => {
+      const team = testData.team()
+      const players = [
+        testData.player({ id: 1, in_game_position: 'GK' }),
+        // Got injured on the last game day while standing in the lineup.
+        testData.player({ id: 2, in_game_position: 'CM', is_injured: true })
+      ]
+      const updatedPlayers = [
+        { id: 1, in_game_position: 'GK' },
+        { id: 2, in_game_position: 'CM' }
+      ]
+
+      query
+        .mockResolvedValueOnce([team])
+        .mockResolvedValueOnce(players)
+        .mockResolvedValue({})
+
+      const result = await handlers.saveLineup(updatedPlayers, '4-3-3', createMockRequest())
+
+      expect(result).toEqual({ success: true, captainCleared: false })
+    })
+
+    it('refuses to move an injured player to another slot', async () => {
+      const team = testData.team()
+      const players = [
+        testData.player({ id: 1, in_game_position: 'GK' }),
+        testData.player({ id: 2, in_game_position: 'CM', is_injured: true })
+      ]
+      const updatedPlayers = [
+        { id: 1, in_game_position: 'GK' },
+        { id: 2, in_game_position: 'LM' }
+      ]
+
+      query
+        .mockResolvedValueOnce([team])
+        .mockResolvedValueOnce(players)
+        .mockResolvedValue({})
+
+      await expect(handlers.saveLineup(updatedPlayers, '4-3-3', createMockRequest()))
+        .rejects.toMatchObject({ message: 'Player is unavailable' })
+    })
+
+    it('lets a player on tour be taken out of the lineup', async () => {
+      const team = testData.team()
+      const players = [
+        testData.player({ id: 1, in_game_position: 'GK' }),
+        testData.player({ id: 2, in_game_position: 'CM', tour_days_left: 4 })
+      ]
+      const updatedPlayers = [
+        { id: 1, in_game_position: 'GK' },
+        { id: 2, in_game_position: '' }
+      ]
+
+      query
+        .mockResolvedValueOnce([team])
+        .mockResolvedValueOnce(players)
+        .mockResolvedValue({})
+
+      const result = await handlers.saveLineup(updatedPlayers, '4-3-3', createMockRequest())
+
+      expect(result).toEqual({ success: true, captainCleared: false })
+    })
+
     it('clears captain when captain is removed from lineup', async () => {
       const team = testData.team({ captain_id: 2 })
       const players = [

@@ -110,11 +110,20 @@ async function _playCupGames (gameDay, season) {
   )
 
   if (cupGames.length > 0) {
-    console.log(`Playing ${cupGames.length} cup games...`)
+    // Byes have no opponent and nothing to simulate — they are resolved in bulk
+    // rather than sent through _playCupGame, which would dereference a missing
+    // team_2.
+    const byes = cupGames.filter(game => game.team_2_id == null)
+    const matches = cupGames.filter(game => game.team_2_id != null)
+    console.log(`Playing ${matches.length} cup games (${byes.length} byes)...`)
 
     // Track which rounds had games played this game day
     const roundsPlayed = new Set()
-    for (const game of cupGames) {
+    await _resolveCupByes(byes)
+    for (const game of byes) {
+      roundsPlayed.add(game.cup_round)
+    }
+    for (const game of matches) {
       await _playCupGame(game)
       roundsPlayed.add(game.cup_round)
     }
@@ -134,6 +143,27 @@ async function _playCupGames (gameDay, season) {
 
   // Catch-up: check for any fully played rounds that were never progressed
   await validateAndProgressCupRounds(season)
+}
+
+/**
+ * Advance cup byes whose round has now been reached.
+ *
+ * A bye is stamped 0:0 at the moment its round is played, not at the draw, so
+ * `created_at` — which cup games are rendered with as their "played at" time —
+ * lines up with the round's game day. Otherwise the dashboard shows a finished
+ * match dated days before the round actually happened.
+ *
+ * @param {GameType[]} byes
+ * @returns {Promise<void>}
+ */
+async function _resolveCupByes (byes) {
+  if (byes.length === 0) return
+  const placeholders = byes.map(() => '?').join(',')
+  await query(
+    `UPDATE game SET played=1, goals_team_1=0, goals_team_2=0, created_at=? WHERE id IN (${placeholders})`,
+    [new Date(), ...byes.map(game => game.id)]
+  )
+  console.log(`🏆 ${byes.length} cup bye(s) advanced automatically`)
 }
 
 /**

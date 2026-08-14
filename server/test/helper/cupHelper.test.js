@@ -499,13 +499,36 @@ describe('cupHelper', () => {
       )
       expect(insertCalls.length).toBe(4)
 
-      // Bye games should have team_2_id=null, played=1
+      // Bye games should have team_2_id=null and stay unplayed until the round
+      // is actually reached, so their "played at" date matches the game day.
       const byeInserts = insertCalls.filter(call => call[1].team_2_id == null)
       expect(byeInserts.length).toBe(3)
       for (const byeInsert of byeInserts) {
-        expect(byeInsert[1].played).toBe(1)
+        expect(byeInsert[1].played).toBe(0)
         expect(byeInsert[1].game_type).toBe('cup')
       }
+    })
+
+    it('schedules byes on the same game day as the first round matches', async () => {
+      const teams = Array.from({ length: 5 }, (_, i) => ({
+        id: i + 1,
+        name: `Team ${i + 1}`,
+        level: Math.floor(i / 3),
+        league: i % 3
+      }))
+
+      query.mockResolvedValueOnce(teams)
+      query.mockResolvedValue({ insertId: 1 })
+
+      await createCupDraw(1)
+
+      const inserted = query.mock.calls
+        .filter(call => call[0].includes('INSERT INTO game'))
+        .map(call => call[1])
+      const gameDays = new Set(inserted.map(g => g.game_day))
+      expect(gameDays.size).toBe(1)
+      const matchDays = new Set(inserted.map(g => g.match_day))
+      expect(matchDays.size).toBe(1)
     })
   })
 

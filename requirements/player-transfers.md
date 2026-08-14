@@ -14,6 +14,7 @@ Das Transfersystem ermoeglicht den Kauf und Verkauf von Spielern zwischen Teams 
 - **US-TRF-06**: Als Spieler kann ich freie Spieler (ohne Team) kostenlos verpflichten.
 - **US-TRF-07**: Als Spieler kann ich die Transfer-Historie aller Transfers einsehen.
 - **US-TRF-08**: Als Spieler kann ich Marktwerte analysieren (Matrix aus Level vs. Alter mit Durchschnittspreisen).
+- **US-TRF-09**: Als Spieler sehe ich in der Historie eines Spielers zu jedem Vereinswechsel die gezahlte Ablösesumme.
 
 ## Marktwert-Berechnung
 
@@ -104,6 +105,7 @@ wird mit denselben 1,25 M Euro geschaetzt wie ein Stuermer.
 | `getAnsweredOffers` | Angenommene/abgelehnte Angebote |
 | `getTransferStats(position)` | Marktwert-Statistiken nach Position |
 | `getTradeHistory` | Transfer-Historie |
+| `getPlayerHistory(playerId)` | Historie eines Spielers; `TRANSFER`-Eintraege liefern zusaetzlich `price` (Join aus `trade_history` ueber Saison, Spieltag und Zielverein) |
 
 ### Frontend
 
@@ -111,6 +113,9 @@ wird mit denselben 1,25 M Euro geschaetzt wie ein Stuermer.
 - **TA-TRF-19**: Transfermarkt mit Filtern (Position, Alter 16-40, Level 1-100) und Paginierung (20/Seite).
 - **TA-TRF-20**: Marktwerte-Matrix unterscheidet Zellen mit echten Transferdaten (schwarze Schrift, Durchschnitt aus `trade_history`) und Zellen ohne Daten (graue Schrift, `calculateMarketValue`-Schaetzung).
 - **TA-TRF-21**: WebSocket-Events: `BUY_OFFER_ACCEPTED`, `BUY_OFFER_REJECTED` fuer Echtzeit-Updates.
+- **TA-TRF-22**: Die Spieler-Historie im Spieler-Dialog zeigt bei Vereinswechseln die Ablösesumme
+  (`player.historyTransferWithPrice`). Fehlt der Preis (kein passender `trade_history`-Eintrag mehr),
+  faellt die Anzeige auf `player.historyTransfer` ohne Betrag zurueck.
 
 ### Tests
 

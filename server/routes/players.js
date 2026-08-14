@@ -133,10 +133,28 @@ export default {
   },
 
   /**
+   * TRANSFER entries only store the buying team id, the fee lives in
+   * `trade_history`. Join it back in (matching season, game day and buyer) so
+   * the history can show what the club paid — also for entries written before
+   * this existed. The team id is compared as a string because `ph.value` is a
+   * VARCHAR that holds team names for other history types.
    * @param {number} playerId
    * @returns {Promise<Array<PlayerHistoryType>>}
    */
   async getPlayerHistory (playerId) {
-    return await query('SELECT * FROM player_history ph WHERE ph.player_id=? ORDER BY id DESC', [playerId])
+    return await query(`
+        SELECT ph.*,
+               (SELECT th.price
+                FROM trade_history th
+                WHERE ph.type = 'TRANSFER'
+                  AND th.player_id = ph.player_id
+                  AND th.season = ph.season
+                  AND th.game_day = ph.game_day
+                  AND CAST(th.to_team_id AS CHAR) = ph.value
+                ORDER BY th.id DESC LIMIT 1) AS price
+        FROM player_history ph
+        WHERE ph.player_id = ?
+        ORDER BY ph.id DESC
+    `, [playerId])
   }
 }

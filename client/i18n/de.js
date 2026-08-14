@@ -940,6 +940,7 @@ export default {
   'player.games': 'Spiele',
   'player.historyLevelUp': 'Spieler erreichte Level {level}',
   'player.historyTransfer': 'Wechsel zu: {teamName}',
+  'player.historyTransferWithPrice': 'Wechsel zu: {teamName} für {price}',
   'player.historyFired': 'Entlassen von {teamName}',
   'player.historyHired': 'Unterschrieben bei {teamName}',
   'player.starPlayer': 'Starspieler',

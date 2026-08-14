@@ -547,6 +547,7 @@ Namen müssen in deiner Spielwelt eindeutig sein – nutzt ein anderer Verein be
 Format:
 • All real teams qualify automatically.
 • Matches are seeded by league level: stronger clubs (higher divisions) may get a bye in the first round so the bracket fits a power of two.
+• A bye takes you through without playing, but it only counts on that round's match day – until then it sits in your schedule as an upcoming fixture with a countdown, like any other match.
 • The cup is played in rounds (round of 64, 32, 16, 8, quarter-final, semi-final, final). Cup match days are scheduled between league match days.
 
 No draws:
@@ -567,6 +568,7 @@ The next round is generated automatically once all matches of a round have been 
 Format:
 • Alle echten Teams qualifizieren sich automatisch.
 • Die Paarungen werden nach Liga-Level gesetzt: stärkere Vereine (höhere Ligen) können in der ersten Runde ein Freilos erhalten, damit das Tableau zu einer Zweierpotenz passt.
+• Ein Freilos bringt dich ohne Spiel weiter, zählt aber erst am Spieltag der jeweiligen Runde – bis dahin steht es wie jede andere Partie als anstehendes Spiel mit Countdown in deinem Spielplan.
 • Der Pokal wird in Runden gespielt (Sechzehntel-, Achtel-, Viertel-, Halbfinale, Finale). Pokalspieltage liegen zwischen den Ligaspieltagen.
 
 Kein Unentschieden:

@@ -368,5 +368,17 @@ describe('players routes', () => {
 
       expect(result).toEqual(history)
     })
+
+    it('joins the transfer fee from trade_history', async () => {
+      query.mockResolvedValue([{ player_id: 1, type: 'TRANSFER', value: '7', price: 250000 }])
+
+      const result = await handlers.getPlayerHistory(1)
+
+      const [sql, params] = query.mock.calls[0]
+      expect(sql).toContain('trade_history')
+      expect(sql).toContain('th.price')
+      expect(params).toEqual([1])
+      expect(result[0].price).toBe(250000)
+    })
   })
 })

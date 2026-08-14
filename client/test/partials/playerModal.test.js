@@ -55,6 +55,7 @@ vi.mock('../../partials/actionCardGiver.js', () => ({
 }))
 
 const PlayerModal = (await import('../../partials/playerModal.js')).default
+const { renderPlayerHistoryItem } = await import('../../partials/playerModal.js')
 const { ActionCardGiver } = await import('../../partials/actionCardGiver.js')
 const { server } = await import('../../lib/gateway.js')
 const { showDialog } = await import('../../partials/dialog.js')
@@ -95,6 +96,30 @@ describe('PlayerModal', () => {
     // Shared shortEuroFormat — upper-case unit, space before the euro sign.
     expect(modal.template).toContain('2.8M €')
     expect(modal.template).not.toContain('M€')
+  })
+
+  describe('history entries', () => {
+    it('shows the transfer fee next to the new club', async () => {
+      server.getTeam.mockResolvedValue({ team: testData.team({ id: 2, name: 'AS Roma' }) })
+
+      const html = await renderPlayerHistoryItem({
+        type: 'TRANSFER', value: '2', price: 250000, season: 3, game_day: 7
+      })
+
+      expect(html).toContain('AS Roma')
+      expect(html).toContain('250.000')
+    })
+
+    it('falls back to the club name when no fee is known', async () => {
+      server.getTeam.mockResolvedValue({ team: testData.team({ id: 2, name: 'AS Roma' }) })
+
+      const html = await renderPlayerHistoryItem({
+        type: 'TRANSFER', value: '2', price: null, season: 3, game_day: 7
+      })
+
+      expect(html).toContain('AS Roma')
+      expect(html).not.toContain('€')
+    })
   })
 
   describe('action cards', () => {
