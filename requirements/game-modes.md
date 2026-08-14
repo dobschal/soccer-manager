@@ -60,6 +60,10 @@ Das Spiel bietet drei Spielmodi: Liga, Pokal und Freundschaftsspiele. Jeder Modu
 
 - **TA-GM-11**: K.O.-System mit `cup_round`-Werten als 2er-Potenzen (64, 32, 16, 8, 4, 2, 1).
 - **TA-GM-12**: Teams mit hoeherem Liga-Level erhalten Freilose in der 1. Runde.
+- **TA-GM-12a**: Freilose werden bei der Auslosung als *ungespielt* auf dem Spieltag der 1. Runde
+  angelegt und erst an diesem Spieltag auf 0:0 gesetzt. Bis dahin erscheinen sie im Spielplan und
+  auf dem Dashboard als anstehende Partie mit Countdown, nicht als bereits gespieltes Ergebnis.
+  Eine Runde wird dadurch erst weitergeschaltet, wenn ihr Spieltag tatsaechlich erreicht ist.
 - **TA-GM-13**: Pokal-Spieltage werden zwischen Liga-Spieltagen eingeplant.
 - **TA-GM-14**: Keine Unentschieden - Verlaengerung bis ein Tor faellt.
 - **TA-GM-15**: Preisgeld: `25.000 * (maxRunde / aktuelleRunde)` pro Runde + 2.000.000 Euro fuer Pokal-Sieger.

@@ -173,13 +173,15 @@ describe('Cup Integration Tests', () => {
       )
       expect(insertCalls.length).toBe(4) // 1 real match + 3 bye games
 
-      // Verify bye games have team_2_id=null and played=1
+      // Verify bye games have team_2_id=null and stay unplayed until their round
+      // is reached — the game day resolves them to 0:0 (see _resolveCupByes).
       const byeGameInserts = insertCalls.filter(call => call[1].team_2_id == null)
       expect(byeGameInserts.length).toBe(3)
       for (const byeInsert of byeGameInserts) {
-        expect(byeInsert[1].played).toBe(1)
-        expect(byeInsert[1].goals_team_1).toBe(0)
-        expect(byeInsert[1].goals_team_2).toBe(0)
+        expect(byeInsert[1].played).toBe(0)
+        expect(byeInsert[1].goals_team_1).toBeUndefined()
+        expect(byeInsert[1].goals_team_2).toBeUndefined()
+        expect(byeInsert[1].game_day).toBe(insertCalls[0][1].game_day)
       }
     })
   })
@@ -445,10 +447,14 @@ describe('Cup Integration Tests', () => {
       expect(realFirstRoundGames.length).toBe(2)
       expect(byeGames.length).toBe(6)
 
-      // Bye games should already be played
+      // Bye games are still open — they only resolve on the round's game day
       for (const byeGame of byeGames) {
-        expect(byeGame.played).toBe(1)
+        expect(byeGame.played).toBe(0)
       }
+
+      // A round with open byes must not progress yet
+      const premature = await progressCupRound(1, 8)
+      expect(premature.advanced).toBe(false)
 
       // Play first round real games
       const eliminatedTeams = new Set()
@@ -457,6 +463,13 @@ describe('Cup Integration Tests', () => {
         game.goals_team_1 = 2
         game.goals_team_2 = 0
         eliminatedTeams.add(game.team_2_id)
+      }
+
+      // ...and resolve the byes the way the game day does
+      for (const byeGame of byeGames) {
+        byeGame.played = 1
+        byeGame.goals_team_1 = 0
+        byeGame.goals_team_2 = 0
       }
 
       // Progress first round - bye teams advance automatically via their bye game entries

@@ -335,7 +335,11 @@ export async function createCupDraw (season, currentGameDay = 0, cupGameDays = n
     matchesCreated++
   }
 
-  // Create bye game entries for teams that get a bye
+  // Create bye game entries for teams that get a bye. Byes stay `played=0`
+  // until the round's game day is actually reached — `_playCupGames` resolves
+  // them to 0:0 alongside the real matches. Marking them played right at the
+  // draw made `created_at` (= "played at" for cup games) the draw timestamp, so
+  // the dashboard showed a finished match days before the round took place.
   for (const byeTeam of byeTeams) {
     const byeGame = new Game({
       team_1_id: byeTeam.id,
@@ -345,10 +349,8 @@ export async function createCupDraw (season, currentGameDay = 0, cupGameDays = n
       match_day: firstRoundMatchDay,
       level: 0,
       league: 0,
-      played: 1,
+      played: 0,
       details: '{}',
-      goals_team_1: 0,
-      goals_team_2: 0,
       game_type: 'cup',
       cup_round: firstRound.round
     })
