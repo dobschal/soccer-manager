@@ -138,6 +138,11 @@ export default {
    * the history can show what the club paid — also for entries written before
    * this existed. The team id is compared as a string because `ph.value` is a
    * VARCHAR that holds team names for other history types.
+   *
+   * The CAST is pinned to `utf8mb4_unicode_ci`: a bare `CAST(... AS CHAR)`
+   * inherits the *connection* collation, and comparing that against the
+   * `utf8mb4_unicode_ci` column blows up with ER_CANT_AGGREGATE_2COLLATIONS
+   * whenever the connection is on a different collation.
    * @param {number} playerId
    * @returns {Promise<Array<PlayerHistoryType>>}
    */
@@ -150,7 +155,7 @@ export default {
                   AND th.player_id = ph.player_id
                   AND th.season = ph.season
                   AND th.game_day = ph.game_day
-                  AND CAST(th.to_team_id AS CHAR) = ph.value
+                  AND CAST(th.to_team_id AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci = ph.value
                 ORDER BY th.id DESC LIMIT 1) AS price
         FROM player_history ph
         WHERE ph.player_id = ?
