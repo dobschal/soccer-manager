@@ -193,7 +193,7 @@ describe('activateLineup', () => {
         { player_id: 201, in_game_position: 'GK', bench_position: null, bench_substitution_mode: null },
         { player_id: 202, in_game_position: null, bench_position: 'BENCH_MID', bench_substitution_mode: 'always' }
       ],
-      'SELECT id FROM player WHERE team_id=?': [{ id: 201 }, { id: 202 }]
+      'SELECT id, tour_days_left FROM player WHERE team_id=?': [{ id: 201 }, { id: 202 }]
     })
 
     const result = await activateLineup(7, 4)
@@ -218,12 +218,44 @@ describe('activateLineup', () => {
         { player_id: 201, in_game_position: 'GK', bench_position: null, bench_substitution_mode: null }
       ],
       // Player 201 was sold in the meantime.
-      'SELECT id FROM player WHERE team_id=?': [{ id: 202 }]
+      'SELECT id, tour_days_left FROM player WHERE team_id=?': [{ id: 202 }]
     })
 
     await activateLineup(7, 4)
 
     expect(calls.some(c => c.sql.includes('UPDATE player SET in_game_position=?, bench_position=NULL'))).toBe(false)
+    const captainUpdate = calls.find(c => c.sql.includes('UPDATE team SET captain_id=?'))
+    expect(captainUpdate.params).toEqual([null, 7])
+  })
+
+  it('leaves players who are away on tour out of pitch and bench', async () => {
+    const { calls } = mockDb({
+      'FROM team_lineup WHERE id=? AND team_id=?': [{
+        id: 4, team_id: 7, formation: '442b', captain_id: 201, is_active: 0
+      }],
+      'FROM team_lineup WHERE team_id=? AND is_active=1': [{ id: 3 }],
+      'FROM team WHERE id=?': [TEAM],
+      'FROM team_lineup_player WHERE lineup_id=?': [
+        { player_id: 201, in_game_position: 'GK', bench_position: null, bench_substitution_mode: null },
+        { player_id: 202, in_game_position: null, bench_position: 'BENCH_MID', bench_substitution_mode: 'always' },
+        { player_id: 203, in_game_position: 'LD', bench_position: null, bench_substitution_mode: null }
+      ],
+      // 201 and 202 were sent on tour after the snapshot was taken.
+      'SELECT id, tour_days_left FROM player WHERE team_id=?': [
+        { id: 201, tour_days_left: 5 },
+        { id: 202, tour_days_left: 3 },
+        { id: 203, tour_days_left: 0 }
+      ]
+    })
+
+    await activateLineup(7, 4)
+
+    const pitched = calls
+      .filter(c => c.sql.includes('UPDATE player SET in_game_position=?, bench_position=NULL'))
+      .map(c => c.params)
+    expect(pitched).toEqual([['LD', 203]])
+    expect(calls.some(c => c.sql.includes('UPDATE player SET bench_position=?, bench_substitution_mode=?'))).toBe(false)
+    // The travelling captain cannot lead a lineup they are not part of.
     const captainUpdate = calls.find(c => c.sql.includes('UPDATE team SET captain_id=?'))
     expect(captainUpdate.params).toEqual([null, 7])
   })
@@ -238,7 +270,7 @@ describe('activateLineup', () => {
       'FROM team_lineup_player WHERE lineup_id=?': [
         { player_id: 201, in_game_position: 'NOT_A_SLOT', bench_position: null, bench_substitution_mode: null }
       ],
-      'SELECT id FROM player WHERE team_id=?': [{ id: 201 }]
+      'SELECT id, tour_days_left FROM player WHERE team_id=?': [{ id: 201 }]
     })
 
     await activateLineup(7, 4)
@@ -310,7 +342,7 @@ describe('deleteLineup', () => {
       'FROM team_lineup WHERE team_id=? ORDER BY id ASC LIMIT 1': [{ id: 3 }],
       'FROM team_lineup WHERE id=? AND team_id=?': [{ id: 3, team_id: 7, formation: '433', captain_id: null }],
       'FROM team_lineup_player WHERE lineup_id=?': [],
-      'SELECT id FROM player WHERE team_id=?': []
+      'SELECT id, tour_days_left FROM player WHERE team_id=?': []
     })
 
     const result = await deleteLineup(7, 4)

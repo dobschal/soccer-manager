@@ -79,6 +79,11 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 - **TA-LIN-03**: Formationswechsel loescht alle `in_game_position`-Werte.
 - **TA-LIN-04**: Kapitaen muss in der Aufstellung stehen; wird er entfernt, wird `captain_id` automatisch geloescht.
 - **TA-LIN-05**: Gesperrte Spieler werden automatisch aus der Aufstellung entfernt.
+- **TA-LIN-39**: `saveLineup` weist nicht verfuegbare Spieler (gesperrt, verletzt, auf Werbereise) ab, sobald ein
+  Request sie auf eine **andere** Position setzt als die, die sie in der Datenbank schon halten. Der Client sendet
+  immer den kompletten Kader, deshalb darf ein Spieler, der sich waehrend der Saison verletzt hat, seinen Platz
+  behalten — nur neu aufs Feld gestellt werden darf er nicht. Reisende halten nie einen Platz, fuer sie ist damit
+  jede Position abgelehnt.
 
 ### Bot-Aufstellungsoptimierung
 
@@ -144,6 +149,10 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 - **TA-LIN-29**: Beim Aktivieren wird zuerst die ausgehende Aufstellung gesichert, dann der Snapshot angewendet.
   Nicht mehr im Kader vorhandene Spieler und Slots, die es in der Formation nicht (mehr) gibt, werden verworfen;
   ein Kapitaen ausserhalb der Startelf wird geloescht.
+- **TA-LIN-38**: Spieler auf Werbereise (`tour_days_left > 0`) gelten beim Anwenden eines Snapshots als *nicht im
+  Kader* und werden weder aufs Feld noch auf die Bank gesetzt — ihr Platz bleibt leer. Sonst wuerde eine vor der
+  Reise gespeicherte Aufstellung den Reisenden beim Laden wieder aufbieten. Nach der Rueckkehr steht er beim
+  naechsten Laden wieder auf seinem alten Platz, sofern der Snapshot zwischenzeitlich nicht ueberschrieben wurde.
 - **TA-LIN-30**: Eine neue Aufstellung startet mit zufaelliger Formation, ohne aufgestellte Spieler und mit den
   Taktik-Standardwerten (`mixed` / `normal` / `balanced`).
 - **TA-LIN-31**: Maximal `MAX_TEAM_LINEUPS` (10) Aufstellungen pro Team, Name maximal 40 Zeichen. Gezaehlt werden
@@ -190,7 +199,7 @@ Quelle: `getPositionsOfFormation()` in `client/util/formation.js`.
 - Formationswechsel loescht Positionen
 - Taktik-Einstellungen validieren
 - Mindestteamgroesse beim Entlassen und bei Transfers
-- Gespeicherte Aufstellungen: Snapshot/Restore, verkaufte Spieler und unbekannte Slots werden verworfen,
+- Gespeicherte Aufstellungen: Snapshot/Restore, verkaufte Spieler, Reisende und unbekannte Slots werden verworfen,
   Kapitaen wird bei Bedarf geloescht, Lineup-Obergrenze, letzte Aufstellung kann nicht geloescht werden,
   Write-Through aus allen mutierenden Endpunkten
 - Umbenennen: Stift-Icon auch bei nur einer Aufstellung, Vorbelegung mit dem aktuellen Namen, unveraenderter

@@ -216,9 +216,9 @@ export async function deleteLineup (teamId, lineupId) {
  * Copy a saved lineup onto the live team and player rows.
  *
  * Saved assignments are validated against the squad as it is *now*: players
- * that were sold, and slots that no longer exist in the formation, are simply
- * dropped. A captain who is no longer in the lineup is cleared, mirroring
- * `setCaptain`'s rule.
+ * that were sold, players who are away on tour, and slots that no longer exist
+ * in the formation are simply dropped. A captain who is no longer in the lineup
+ * is cleared, mirroring `setCaptain`'s rule.
  *
  * @param {number} teamId
  * @param {number} lineupId
@@ -245,8 +245,11 @@ async function _applyLineupToTeam (teamId, lineupId) {
     await query('UPDATE team SET captain_id=NULL WHERE id=?', [teamId])
     return
   }
-  const squad = await query('SELECT id FROM player WHERE team_id=?', [teamId])
-  const squadIds = new Set(squad.map(p => p.id))
+  const squad = await query('SELECT id, tour_days_left FROM player WHERE team_id=?', [teamId])
+  // Travelling players count as "not in the squad" here: their slots were
+  // cleared when they left, and a snapshot taken before the trip must not sneak
+  // them back onto the pitch or the bench (see TA-TOUR-09).
+  const squadIds = new Set(squad.filter(p => !(Number(p.tour_days_left) > 0)).map(p => p.id))
 
   const openSlots = [...(getPositionsOfFormation(lineup.formation) || [])]
   const takenBench = new Set()

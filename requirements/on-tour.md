@@ -87,7 +87,9 @@ braucht also etwas mehr als eine komplette Entsendung.
   sonst wuerde die Aufstellung einen Spieler aufbieten, der nicht da ist.
 - **TA-TOUR-09**: `tour_days_left > 0` schliesst einen Spieler ueberall aus, wo bisher schon
   `is_injured` / `is_suspended` geprueft wurden: Spielberechnung, Bank-Einwechslung, Auto-Fill der
-  Aufstellung, Bot-Aufstellung, Spieler- und Bank-Auswahl im Client.
+  Aufstellung, Bot-Aufstellung, Spieler- und Bank-Auswahl im Client. Ebenso beim Laden einer
+  gespeicherten Aufstellung (`_applyLineupToTeam`, siehe TA-LIN-38) — ein Snapshot, der vor der Reise
+  entstanden ist, darf den Reisenden nicht zurueck in die Startelf oder auf die Bank holen.
 - **TA-TOUR-10**: Verletzte und gesperrte Spieler koennen nicht entsendet werden — sonst liesse sich
   eine Sperre durch eine Reise "absitzen".
 - **TA-TOUR-16**: `recallPlayersFromTour(teamId, playerIds)` bricht eine noch nicht begonnene Reise

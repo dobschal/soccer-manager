@@ -263,7 +263,17 @@ export default {
     for (const playerFromRequest of players) {
       const playerFromDb = playersFromDb.find(playerFromDb => playerFromRequest.id === playerFromDb.id)
       if (!playerFromDb) throw new BadRequestError('Unknown player...')
-      playerFromDb.in_game_position = playerFromRequest.in_game_position
+      // The client posts the whole squad, so an unavailable player may keep the
+      // slot they already hold — an injury mid-season does not wipe the lineup.
+      // What is refused is *moving* them onto the pitch. Players on tour never
+      // hold a slot (it is cleared when they leave), so any position for them is
+      // rejected here (TA-TOUR-09).
+      const nextPosition = playerFromRequest.in_game_position
+      const unavailable = playerFromDb.is_suspended || playerFromDb.is_injured || playerFromDb.tour_days_left
+      if (nextPosition && unavailable && nextPosition !== playerFromDb.in_game_position) {
+        throw new BadRequestError('Player is unavailable')
+      }
+      playerFromDb.in_game_position = nextPosition
       await query('UPDATE player SET in_game_position=? WHERE id=?', [playerFromDb.in_game_position, playerFromDb.id])
     }
     await query('UPDATE team SET formation=? WHERE id=?', [formation, team.id])
