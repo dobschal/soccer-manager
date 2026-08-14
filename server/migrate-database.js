@@ -3399,13 +3399,17 @@ export async function extendOverdueCarriers () {
 }
 
 /**
- * Move every table that is still on the legacy utf8mb3 charset over to
- * utf8mb4 (#544).
+ * Move every table that is not on `utf8mb4_unicode_ci` over to it (#544).
  *
- * Most of the older tables above were created with `DEFAULT CHARSET=utf8`,
- * which MySQL 8 maps to utf8mb3 — three bytes per character, so anything
- * outside the BMP is rejected with ER_TRUNCATED_WRONG_VALUE_FOR_FIELD. Every
- * emoji lives outside the BMP, which is why renaming a lineup to "😳" blew up.
+ * Two problems in one sweep:
+ *
+ * - Most of the older tables above were created with `DEFAULT CHARSET=utf8`,
+ *   which MySQL 8 maps to utf8mb3 — three bytes per character, so anything
+ *   outside the BMP is rejected with ER_TRUNCATED_WRONG_VALUE_FOR_FIELD. Every
+ *   emoji lives outside the BMP, which is why renaming a lineup to "😳" blew up.
+ * - Tables created without an explicit `COLLATE` land on the server default
+ *   (utf8mb4_0900_ai_ci on MySQL 8). Comparing such a column against one of
+ *   the utf8mb4_unicode_ci columns fails with ER_CANT_AGGREGATE_2COLLATIONS.
  *
  * This runs after every migration rather than as a one-off entry, so a table
  * added later can never silently reintroduce the problem. Once everything is
@@ -3418,10 +3422,10 @@ export async function convertLegacyTablesToUtf8mb4 () {
                               FROM information_schema.TABLES
                               WHERE TABLE_SCHEMA = DATABASE()
                                 AND TABLE_TYPE = 'BASE TABLE'
-                                AND TABLE_COLLATION LIKE 'utf8mb3%'
+                                AND TABLE_COLLATION <> 'utf8mb4_unicode_ci'
                               ORDER BY DATA_LENGTH + INDEX_LENGTH ASC`)
   if (!tables.length) return
-  console.log(`🔤 Converting ${tables.length} legacy utf8mb3 tables to utf8mb4...`)
+  console.log(`🔤 Converting ${tables.length} table(s) to utf8mb4_unicode_ci...`)
   for (const { name } of tables) {
     // Table names come from information_schema, never from user input.
     await query(`ALTER TABLE \`${name}\` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)

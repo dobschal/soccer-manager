@@ -6,7 +6,12 @@ const pool = mysql.createPool({
   user: process.env.DB_USER ?? 'root',
   password: process.env.DB_PASS ?? 'root',
   database: process.env.DB_NAME ?? 'soccer',
-  charset: 'utf8mb4'
+  // Every table is utf8mb4_unicode_ci, so the connection has to be too.
+  // Plain 'utf8mb4' makes the driver pick utf8mb4_general_ci, and any
+  // expression that inherits the connection collation (CAST(x AS CHAR),
+  // CONCAT of non-string args, …) then clashes with a column in a comparison:
+  // ER_CANT_AGGREGATE_2COLLATIONS.
+  charset: 'utf8mb4_unicode_ci'
 })
 
 /**

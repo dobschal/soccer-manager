@@ -11,7 +11,7 @@ describe('convertLegacyTablesToUtf8mb4', () => {
     query.mockReset()
   })
 
-  it('converts every table that is still on utf8mb3', async () => {
+  it('converts every table that is not on utf8mb4_unicode_ci', async () => {
     query.mockResolvedValueOnce([{ name: 'team_lineup' }, { name: 'team' }])
     query.mockResolvedValue({})
 
@@ -24,7 +24,7 @@ describe('convertLegacyTablesToUtf8mb4', () => {
     ])
   })
 
-  it('does nothing once every table is on utf8mb4', async () => {
+  it('does nothing once every table is on utf8mb4_unicode_ci', async () => {
     query.mockResolvedValueOnce([])
 
     await convertLegacyTablesToUtf8mb4()
@@ -40,6 +40,18 @@ describe('convertLegacyTablesToUtf8mb4', () => {
     const [sql] = query.mock.calls[0]
     expect(sql).toContain('TABLE_SCHEMA = DATABASE()')
     expect(sql).toContain("TABLE_TYPE = 'BASE TABLE'")
-    expect(sql).toContain("TABLE_COLLATION LIKE 'utf8mb3%'")
+    expect(sql).toContain("TABLE_COLLATION <> 'utf8mb4_unicode_ci'")
+  })
+
+  it('also picks up utf8mb4 tables that sit on another collation', async () => {
+    query.mockResolvedValueOnce([{ name: 'client_log' }])
+    query.mockResolvedValue({})
+
+    await convertLegacyTablesToUtf8mb4()
+
+    const alters = query.mock.calls.map(([sql]) => sql).filter(sql => sql.startsWith('ALTER TABLE'))
+    expect(alters).toEqual([
+      'ALTER TABLE `client_log` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+    ])
   })
 })

@@ -380,5 +380,16 @@ describe('players routes', () => {
       expect(params).toEqual([1])
       expect(result[0].price).toBe(250000)
     })
+
+    it('pins the casted team id to the column collation', async () => {
+      query.mockResolvedValue([])
+
+      await handlers.getPlayerHistory(1)
+
+      // A bare CAST(... AS CHAR) inherits the connection collation and then
+      // clashes with the utf8mb4_unicode_ci column (ER_CANT_AGGREGATE_2COLLATIONS).
+      const [sql] = query.mock.calls[0]
+      expect(sql).toContain('COLLATE utf8mb4_unicode_ci = ph.value')
+    })
   })
 })
