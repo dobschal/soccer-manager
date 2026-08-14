@@ -3,6 +3,7 @@ import { getTeam } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { updateTeamBalance } from '../helper/financeHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
+import { addPlayerHistory } from '../helper/playerHistoryHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
 import { getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { getYouthAcademyLevel } from '../helper/buildingHelper.js'
@@ -177,6 +178,8 @@ export default {
     }
 
     const player = await promoteYouthPlayer(youthPlayer, season)
+
+    await addPlayerHistory(player.id, 'YOUTH_PROMOTION', team.name)
 
     await addLogMessage(
       t('log.youthPlayerPromoted', { playerName: youthPlayer.name, level: player.level }, locale),

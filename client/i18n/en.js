@@ -943,6 +943,7 @@ export default {
   'player.historyTransferWithPrice': 'Moved to new club: {teamName} for {price}',
   'player.historyFired': 'Released by {teamName}',
   'player.historyHired': 'Signed with {teamName}',
+  'player.historyYouthPromotion': 'Promoted from the youth academy of {teamName}',
   'player.starPlayer': 'Star Player',
   'player.starPlayerDesc': 'This player receives a permanent 10% level bonus in matches.',
   'player.historyStarPlayer': 'Promoted to Star Player',

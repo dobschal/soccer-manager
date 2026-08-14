@@ -1451,6 +1451,7 @@ Age and promotion:
 • Youth players start at age 15. From age 16 you can promote them to your senior squad.
 • At 18 you get a warning; if not promoted, they leave at age 19.
 • On promotion the level is rounded down to a whole number and the player joins your main squad.
+• The promotion is recorded in the player's history, so you can always see that they came through your own academy.
 
 Selling:
 • Every youngster carries a market value, shown next to their level, and you can sell them for exactly that.
@@ -1479,6 +1480,7 @@ Alter und Beförderung:
 • Jugendspieler starten mit 15 Jahren. Ab 16 kannst du sie in deinen Profikader befördern.
 • Mit 18 erhältst du eine Warnung; werden sie nicht befördert, verlassen sie den Verein mit 19.
 • Bei der Beförderung wird das Level auf eine ganze Zahl abgerundet, und der Spieler wechselt in deinen Hauptkader.
+• Die Beförderung wird in der Historie des Spielers festgehalten, du siehst also immer, dass er aus deiner eigenen Jugend kommt.
 
 Verkaufen:
 • Jeder Jugendspieler hat einen Marktwert, der neben dem Level angezeigt wird, und genau dafür kannst du ihn verkaufen.

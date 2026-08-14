@@ -120,6 +120,17 @@ describe('PlayerModal', () => {
       expect(html).toContain('AS Roma')
       expect(html).not.toContain('€')
     })
+
+    it('renders a youth promotion with the club name', async () => {
+      const html = await renderPlayerHistoryItem({
+        type: 'YOUTH_PROMOTION', value: 'AS Roma', season: 3, game_day: 7
+      })
+
+      expect(html).toContain('S4 D7')
+      expect(html).toContain('AS Roma')
+      // Not the raw "TYPE: value" fallback for unknown history types.
+      expect(html).not.toContain('YOUTH_PROMOTION')
+    })
   })
 
   describe('action cards', () => {

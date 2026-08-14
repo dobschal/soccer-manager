@@ -12,6 +12,8 @@ Jugendspieler sind Nachwuchstalente, die ab Alter 15 im Jugendkader erscheinen u
 - **US-YTH-10**: Als Spieler schalte ich durch den Ausbau der Jugendakademie mehr Trainings- und Freundschaftsspiel-Slots frei.
 - **US-YTH-03**: Als Spieler sehe ich pro Jugendspieler: Name, Position, Alter, Level, Moral und Fitness.
 - **US-YTH-04**: Als Spieler kann ich einen Jugendspieler ab Alter 16 ins A-Team befoerdern.
+- **US-YTH-13**: Als Spieler sehe ich in der Historie eines Spielers, dass er aus der eigenen Jugend
+  befoerdert wurde (mit Saison, Spieltag und Vereinsname).
 - **US-YTH-05**: Als Spieler trenne ich mich von einem Jugendspieler ueber den Verkauf (US-YTH-12); einen
   separaten "Entlassen"-Button gibt es seit #524 nicht mehr.
 - **US-YTH-11**: Als Spieler sehe ich neben dem Level den aktuellen Marktwert jedes Jugendspielers.
@@ -98,6 +100,10 @@ randomFactor = 0.9 bis 1.1
 - **TA-YTH-08**: Karrierelaenge: 20-23 Jahre (zufaellig).
 - **TA-YTH-09**: Anfangs-Freshness = Jugend-Fitness.
 - **TA-YTH-10**: Jugendspieler-Eintrag wird geloescht, neuer Spieler-Eintrag erstellt.
+- **TA-YTH-29**: Die Befoerderung schreibt einen `player_history`-Eintrag vom Typ `YOUTH_PROMOTION`
+  mit dem Vereinsnamen als `value` (Saison und Spieltag der Befoerderung). Der Spieler-Dialog rendert
+  ihn als `player.historyYouthPromotion`. Spieler, die vor dieser Aenderung befoerdert wurden, haben
+  keinen solchen Eintrag — die Daten dafuer existieren nicht mehr.
 
 ### Automatische Entlassung
 

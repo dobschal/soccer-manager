@@ -943,6 +943,7 @@ export default {
   'player.historyTransferWithPrice': 'Wechsel zu: {teamName} für {price}',
   'player.historyFired': 'Entlassen von {teamName}',
   'player.historyHired': 'Unterschrieben bei {teamName}',
+  'player.historyYouthPromotion': 'Aus der eigenen Jugend von {teamName} befördert',
   'player.starPlayer': 'Starspieler',
   'player.starPlayerDesc': 'Dieser Spieler erhält einen permanenten 10% Level-Bonus in Spielen.',
   'player.historyStarPlayer': 'Zum Starspieler befördert',
