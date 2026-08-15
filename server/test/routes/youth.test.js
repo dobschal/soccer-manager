@@ -17,6 +17,10 @@ vi.mock('../../helper/logMessageHelper.js', () => ({
   addLogMessage: vi.fn()
 }))
 
+vi.mock('../../helper/playerHistoryHelper.js', () => ({
+  addPlayerHistory: vi.fn()
+}))
+
 vi.mock('../../helper/youthPlayerHelper.js', () => ({
   getYouthPlayersByTeam: vi.fn(),
   getYouthPlayerById: vi.fn(),
@@ -56,6 +60,7 @@ import { SERVER_EVENTS } from '../../../client/lib/serverEvents.js'
 import { getTeam } from '../../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../../helper/gameDayHelper.js'
 import { addLogMessage } from '../../helper/logMessageHelper.js'
+import { addPlayerHistory } from '../../helper/playerHistoryHelper.js'
 import {
   getYouthPlayersByTeam,
   getYouthPlayerById,
@@ -359,6 +364,23 @@ describe('youth routes', () => {
       expect(result.success).toBe(true)
       expect(result.player).toEqual(promotedPlayer)
       expect(addLogMessage).toHaveBeenCalled()
+    })
+
+    it('records the promotion in the player history', async () => {
+      const team = testData.team()
+      const youthPlayer = { id: 1, name: 'Youth Star', team_id: team.id, birth_season: 0, level: 25 }
+      const promotedPlayer = testData.player({ id: 4711, name: 'Youth Star', level: 25 })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ season: 2 })
+      getYouthPlayerById.mockResolvedValue(youthPlayer)
+      getYouthPlayerAge.mockReturnValue(16)
+      promoteYouthPlayer.mockResolvedValue(promotedPlayer)
+
+      const req = createMockRequest()
+      await handlers.promoteYouthPlayer(1, req)
+
+      expect(addPlayerHistory).toHaveBeenCalledWith(4711, 'YOUTH_PROMOTION', team.name)
     })
 
     it('throws error when A team is already at maximum squad size', async () => {

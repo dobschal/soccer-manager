@@ -51,6 +51,8 @@ export async function renderPlayerHistoryItem (item) {
     return `<div>${prefix} ${t('player.historyFired', { teamName: item.value })}</div>`
   } else if (item.type === 'HIRED') {
     return `<div>${prefix} ${t('player.historyHired', { teamName: item.value })}</div>`
+  } else if (item.type === 'YOUTH_PROMOTION') {
+    return `<div>${prefix} ${t('player.historyYouthPromotion', { teamName: item.value })}</div>`
   } else if (item.type === 'STAR_PLAYER') {
     return `<div>${prefix} ⭐ ${t('player.historyStarPlayer')}</div>`
   }
