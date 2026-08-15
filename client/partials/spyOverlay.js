@@ -70,57 +70,73 @@ export function showSpyOverlay ({ onConfirm }) {
       const listId = generateId()
       const confirmId = generateId()
 
-      const render = () => {
-        setBody(`
-          <input id="${searchId}" type="text" class="form-control mb-3" placeholder="${t('spy.searchPlaceholder')}" autocomplete="off">
-          <div id="${listId}" class="spy-team-list">
-            ${teams.length === 0 ? `<p class="text-muted mb-0">${t('spy.noTeams')}</p>` : teams.map(team => renderTeamRow(team, selectedId)).join('')}
-          </div>
-          <button id="${confirmId}" class="btn btn-info w-100 mt-3"${selectedId == null ? ' disabled' : ''}>
-            <i class="fa fa-search me-1"></i> ${t('spy.confirm')}
-          </button>
-        `)
-
-        onClick('#' + listId, (event) => {
-          const row = event.target.closest('[data-spy-team-id]')
-          if (!row) return
-          selectedId = Number(row.dataset.spyTeamId)
-          // Update selection highlight + enable confirm without a full rerender.
-          el('#' + listId)?.querySelectorAll('.spy-team-row').forEach(r => {
-            r.classList.toggle('spy-team-row--selected', Number(r.dataset.spyTeamId) === selectedId)
-          })
-          const confirmBtn = el('#' + confirmId)
-          if (confirmBtn) confirmBtn.disabled = false
-        })
-
-        onClick('#' + confirmId, () => {
-          if (selectedId != null) void startReveal(selectedId)
-        })
-
-        // Debounced search.
-        let searchTimer = null
-        const input = el('#' + searchId)
-        input?.addEventListener('input', () => {
-          const value = input.value.trim()
-          if (searchTimer) clearTimeout(searchTimer)
-          searchTimer = setTimeout(async () => {
-            if (value.length < 3) {
-              teams = opponent ? [opponent] : []
-              render()
-              return
-            }
-            try {
-              const res = await server.searchTeams(value)
-              teams = res?.teams ?? []
-            } catch {
-              teams = []
-            }
-            render()
-          }, 300)
-        })
+      // The shell (search field + confirm button) is rendered exactly once.
+      // Only the list is swapped on every search — re-rendering the whole body
+      // would destroy the focused <input>, which on mobile closes the virtual
+      // keyboard and drops the character that triggered the search.
+      const renderList = () => {
+        const list = el('#' + listId)
+        if (list) {
+          list.innerHTML = teams.length === 0
+            ? `<p class="text-muted mb-0">${t('spy.noTeams')}</p>`
+            : teams.map(team => renderTeamRow(team, selectedId)).join('')
+        }
+        const confirmBtn = el('#' + confirmId)
+        if (confirmBtn) confirmBtn.disabled = selectedId == null
       }
 
-      render()
+      setBody(`
+        <input id="${searchId}" type="text" class="form-control mb-3" placeholder="${t('spy.searchPlaceholder')}" autocomplete="off">
+        <div id="${listId}" class="spy-team-list"></div>
+        <button id="${confirmId}" class="btn btn-info w-100 mt-3" disabled>
+          <i class="fa fa-search me-1"></i> ${t('spy.confirm')}
+        </button>
+      `)
+      renderList()
+
+      onClick('#' + listId, (event) => {
+        const row = event.target.closest('[data-spy-team-id]')
+        if (!row) return
+        selectedId = Number(row.dataset.spyTeamId)
+        // Update selection highlight + enable confirm without a full rerender.
+        el('#' + listId)?.querySelectorAll('.spy-team-row').forEach(r => {
+          r.classList.toggle('spy-team-row--selected', Number(r.dataset.spyTeamId) === selectedId)
+        })
+        const confirmBtn = el('#' + confirmId)
+        if (confirmBtn) confirmBtn.disabled = false
+      })
+
+      onClick('#' + confirmId, () => {
+        if (selectedId != null) void startReveal(selectedId)
+      })
+
+      // Debounced search. `requestId` guards against a slow response for an
+      // earlier query overwriting the results of a later one.
+      let searchTimer = null
+      let requestId = 0
+      const input = el('#' + searchId)
+      input?.addEventListener('input', () => {
+        const value = input.value.trim()
+        if (searchTimer) clearTimeout(searchTimer)
+        const currentRequest = ++requestId
+        searchTimer = setTimeout(async () => {
+          if (value.length < 3) {
+            teams = opponent ? [opponent] : []
+            renderList()
+            return
+          }
+          let result
+          try {
+            const res = await server.searchTeams(value)
+            result = res?.teams ?? []
+          } catch {
+            result = []
+          }
+          if (currentRequest !== requestId) return
+          teams = result
+          renderList()
+        }, 300)
+      })
     }
 
     // --- Phase 2 + 3: loader then reveal ----------------------------------
