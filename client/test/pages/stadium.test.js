@@ -31,6 +31,9 @@ vi.mock('../../i18n/index.js', () => ({
       'stadium.started': 'Started',
       'stadium.completed': 'Completed',
       'stadium.inProgress': 'In Progress',
+      'stadium.completedToday': 'Completed today',
+      'stadium.completedInOneDay': 'Completed in 1 day',
+      'stadium.completedInDays': `Completed in ${params.days ?? ''} days`,
       'stadium.seasonDay': `S${params.season ?? ''} Day ${params.day ?? ''}`,
       'toast.somethingWentWrong': 'Something went wrong!'
     }
@@ -261,29 +264,29 @@ describe('StadiumSubPage', () => {
     it('renders empty state when no attendance data', async () => {
       const page = new StadiumSubPage()
       await page.load()
-      expect(page.template).toContain('No attendance data available yet.')
+      void page.template
+      expect(page._attendanceTable.template).toContain('No attendance data available yet.')
     })
 
-    it('renders attendance table with data', async () => {
-      server.getStadiumAttendance.mockResolvedValue({
-        attendance: [
-          {
-            season: 1,
-            gameDay: 5,
-            stands: {
-              north: { guests: 4000, size: 5000, percentage: 80 },
-              south: { guests: 3500, size: 5000, percentage: 70 },
-              east: { guests: 2500, size: 5000, percentage: 50 },
-              west: { guests: 4500, size: 5000, percentage: 90 }
-            }
+    it('hands the attendance rows over to the attendance table', async () => {
+      const attendance = [
+        {
+          gameId: 42,
+          gameType: 'league',
+          season: 1,
+          gameDay: 5,
+          matchDay: 6,
+          opponent: { id: 2, name: 'FC Test', short_name: 'Test' },
+          stands: {
+            north: { guests: 4000, size: 5000, percentage: 80 }
           }
-        ]
-      })
+        }
+      ]
+      server.getStadiumAttendance.mockResolvedValue({ attendance })
       const page = new StadiumSubPage()
       await page.load()
-      expect(page.template).toContain('4,000')
-      expect(page.template).toContain('80%')
-      expect(page.template).toContain('S2 Day 6')
+      void page.template
+      expect(page._attendanceTable.attendance).toEqual(attendance)
     })
   })
 
@@ -381,11 +384,41 @@ describe('StadiumSubPage', () => {
         })
       })
 
-      it('shows in-progress badge in construction history', async () => {
+      it('shows the remaining construction days in construction history', async () => {
+        const page = new StadiumSubPage()
+        await page.load()
+        expect(page.template).toContain('Completed in 3 days')
+        expect(page.template).toContain('badge')
+      })
+
+      it('falls back to the in-progress badge when no remaining days are known', async () => {
+        server.getStadium.mockResolvedValue({
+          stadium: { ...baseStadium },
+          constructionInfo: {}
+        })
         const page = new StadiumSubPage()
         await page.load()
         expect(page.template).toContain('In Progress')
-        expect(page.template).toContain('badge')
+      })
+
+      it('shows a singular label for the last construction day', async () => {
+        server.getStadium.mockResolvedValue({
+          stadium: { ...baseStadium },
+          constructionInfo: { north: { underConstruction: true, remainingGameDays: 1 } }
+        })
+        const page = new StadiumSubPage()
+        await page.load()
+        expect(page.template).toContain('Completed in 1 day')
+      })
+
+      it('shows a today label when the construction finishes on this game day', async () => {
+        server.getStadium.mockResolvedValue({
+          stadium: { ...baseStadium },
+          constructionInfo: { north: { underConstruction: true, remainingGameDays: 0 } }
+        })
+        const page = new StadiumSubPage()
+        await page.load()
+        expect(page.template).toContain('Completed today')
       })
 
       it('hands the construction info over to the expand modal', async () => {

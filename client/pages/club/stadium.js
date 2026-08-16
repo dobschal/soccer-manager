@@ -8,6 +8,7 @@ import {showTutorialIfNeeded} from '../../partials/tutorialOverlay.js'
 import {t} from '../../i18n/index.js'
 import {wikiInfoIcon} from '../../partials/wikiInfoIcon.js'
 import {Table} from '../../partials/table.js'
+import {StadiumAttendanceTable} from '../../partials/stadiumAttendanceTable.js'
 import {showOverlay} from '../../partials/overlay.js'
 import {onClick} from '../../lib/htmlEventHandlers.js'
 
@@ -280,33 +281,14 @@ export class StadiumSubPage extends UIElement {
   }
 
   /**
+   * The attendance table owns its own filter/page state, so it is a nested
+   * UIElement: re-rendering the whole page on every filter toggle would tear
+   * down and rebuild the Three.js stadium canvas.
    * @returns {string}
    */
   _renderAttendanceSection () {
-    if (!this.attendanceData || this.attendanceData.length === 0) {
-      return `<p class="text-muted mb-4">${t('stadium.noAttendanceData')}</p>`
-    }
-
-    const stands = STANDS
-
-    return new Table({
-      cols: [
-        {name: ''},
-        ...stands.map(s => ({name: t('stadium.' + s)}))
-      ],
-      renderRow: (row) => [
-        t('stadium.seasonDay', {
-          season: row.season + 1,
-          day: row.gameDay + 1
-        }),
-        ...stands.map(s => {
-          const data = row.stands[s] || {guests: 0, size: 0, percentage: 0}
-          return `<span class="d-none d-sm-inline">${data.guests.toLocaleString()} / ${data.size.toLocaleString()} </span>${data.percentage}%`
-        })
-      ],
-      data: this.attendanceData,
-      classes: 'table-sm table-striped'
-    }).template
+    this._attendanceTable = new StadiumAttendanceTable(this.attendanceData)
+    return `${this._attendanceTable}`
   }
 
   /**
@@ -340,11 +322,26 @@ export class StadiumSubPage extends UIElement {
             season: h.completed_season + 1,
             day: h.completed_game_day + 1
           })
-          : `<span class="badge bg-warning text-dark">${t('stadium.inProgress')}</span>`
+          : `<span class="badge bg-warning text-dark">${this._renderRemainingLabel(h.stand)}</span>`
       ],
       data: this.constructionHistory,
       classes: 'table-sm table-striped'
     }).template
+  }
+
+  /**
+   * Label for a construction that is still running. Uses the remaining game
+   * days from the stadium's construction info so the user sees when the stand
+   * is done instead of a bare "In Progress".
+   * @param {string} stand
+   * @returns {string}
+   */
+  _renderRemainingLabel (stand) {
+    const remaining = this.constructionInfo?.[stand]?.remainingGameDays
+    if (typeof remaining !== 'number') return t('stadium.inProgress')
+    if (remaining <= 0) return t('stadium.completedToday')
+    if (remaining === 1) return t('stadium.completedInOneDay')
+    return t('stadium.completedInDays', {days: remaining})
   }
 
 }
