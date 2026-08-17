@@ -145,11 +145,29 @@ describe('StadiumAttendanceTable', () => {
     expect(table._renderTable()).toContain('Friendlies')
   })
 
+  it('tags every row with its game id', () => {
+    const table = new StadiumAttendanceTable([makeRow({ gameId: 77 })])
+    expect(table._renderTable()).toContain('data-game-id="77"')
+  })
+
   it('opens the game details overlay when a row is clicked', () => {
     const table = new StadiumAttendanceTable([makeRow({ gameId: 77 })])
-    const tableConfig = table._buildTable().config
-    tableConfig.onClick(tableConfig.data[0], 0)
+    table.events['(optional).stadium-attendance-rows'].click({
+      target: {
+        closest: (selector) => selector === 'tr[data-game-id]'
+          ? { dataset: { gameId: '77' } }
+          : null
+      }
+    })
     expect(showGameModal).toHaveBeenCalledWith(77)
+  })
+
+  it('ignores clicks that do not land on a row', () => {
+    const table = new StadiumAttendanceTable([makeRow({ gameId: 77 })])
+    table.events['(optional).stadium-attendance-rows'].click({
+      target: { closest: () => null }
+    })
+    expect(showGameModal).not.toHaveBeenCalled()
   })
 
   it('starts with all three game type filters enabled', () => {
@@ -158,6 +176,15 @@ describe('StadiumAttendanceTable', () => {
     expect(table.template).toContain('League Games')
     expect(table.template).toContain('Cup Games')
     expect(table.template).toContain('Friendlies')
+  })
+
+  it('renders a deselected filter as an outline button', () => {
+    const table = new StadiumAttendanceTable([makeRow()])
+    expect(table.template).toContain('class="btn btn-info"')
+    table.activeTypes.cup = false
+    const html = table.template
+    expect(html).toContain('class="btn btn-outline-info"')
+    expect(html).toMatch(/btn-outline-info"[^>]*data-attendance-filter="cup"/)
   })
 
   it('filters rows by the active game types', () => {

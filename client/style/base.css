@@ -350,3 +350,16 @@ svg {
         opacity: 1;
     }
 }
+
+/* iOS/WKWebView keeps `:hover` on the last tapped element until you tap
+ * somewhere else. Bootstrap's `.btn:hover` paints an outline button in the
+ * solid variant colour, so a *deselected* toggle (btn-outline-info) stays
+ * filled and looks exactly like the selected one (btn-info). A hover state
+ * has no meaning without a real pointer, so drop it there. */
+@media (hover: none) {
+    .btn:hover {
+        color: var(--bs-btn-color);
+        background-color: var(--bs-btn-bg);
+        border-color: var(--bs-btn-border-color);
+    }
+}

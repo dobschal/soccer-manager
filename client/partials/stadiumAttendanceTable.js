@@ -43,7 +43,7 @@ export class StadiumAttendanceTable extends UIElement {
             </button>
           `).join('')}
         </div>
-        ${this._renderTable()}
+        <div class="stadium-attendance-rows">${this._renderTable()}</div>
         <div class="stadium-attendance-pagination">${this._renderPagination()}</div>
       </div>
     `
@@ -61,6 +61,16 @@ export class StadiumAttendanceTable extends UIElement {
           this.activeTypes[type] = !this.activeTypes[type]
           this._page = 0
           void this.update()
+        }
+      },
+      // The nested Table is rendered as a plain template string, so it never
+      // mounts as a UIElement and its own `onClick` would never be wired up.
+      // The row click is therefore delegated from here.
+      '(optional).stadium-attendance-rows': {
+        click: (event) => {
+          const row = event.target.closest('tr[data-game-id]')
+          if (!row) return
+          void showGameModal(Number(row.dataset.gameId))
         }
       },
       '(optional).stadium-attendance-pagination': {
@@ -122,10 +132,12 @@ export class StadiumAttendanceTable extends UIElement {
         })
       ],
       data: rows.slice(start, start + PAGE_SIZE),
+      // `u-cursor-pointer` is not just cosmetic: iOS only bubbles click events
+      // out of non-interactive elements when they look clickable.
       rowClass: () => 'u-cursor-pointer',
-      onClick: (row) => void showGameModal(row.gameId),
+      rowAttrs: (row) => `data-game-id="${row.gameId}"`,
       useUrlSort: false,
-      classes: 'table-sm table-striped'
+      classes: 'table-sm table-striped table-hover'
     })
   }
 
