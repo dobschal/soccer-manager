@@ -49,7 +49,41 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - **TA-REG-08**: JWT-Token wird mit `config.SECRET` signiert, User-ID in `sub`-Claim.
 - **TA-REG-09**: Token wird im `Authorization: Bearer`-Header gesendet.
 - **TA-REG-10**: Login trackt Plattform (web/ios/android), IP-Adresse und Geolocation.
-- **TA-REG-11**: `last_login`-Timestamp wird aktualisiert.
+- **TA-REG-11**: `last_login`-Timestamp wird aktualisiert. Aktualisiert wird er **nicht nur** beim
+  Login, sondern auch beim Laden des Dashboards (`routes/dashboard.js`) — sonst wuerden Nutzer mit
+  gueltigem JWT nie wieder als aktiv gelten und nach 21 Tagen geloescht (siehe Inaktivitaet).
+
+### Registrierungs-Funnel-Tracking
+
+- **TA-REG-41**: Der Funnel wird in zwei Tabellen erfasst: `page_view` fuer echte Routen und
+  `funnel_event` fuer Schritte, die keine Route sind. Die Reihenfolge steht als `FUNNEL_STEPS` in
+  `server/helper/funnelHelper.js` und ist die einzige Quelle der Wahrheit fuer die Admin-Auswertung.
+- **TA-REG-42**: Es gibt **keine** Route `landing` und **keine** Route `register`. Die Landing Page
+  wird von der `login`-Route gerendert (`client/app.js`: `login: [DefaultLayout, LandingPage]`), und
+  die Registrierung ist ein Modus desselben Formulars. Funnel-Schritte, die auf diese Keys zeigen,
+  melden dauerhaft 0 — deshalb ist der Registrierungsversuch ein Event, keine Seite.
+- **TA-REG-43**: Events werden **serverseitig** in `createAccount` / `login` geschrieben, damit Web-
+  und Native-Client automatisch abgedeckt sind:
+  `register-attempt` (vor jeder Validierung), `register-success` (mit neuer `user_id`),
+  `register-error` + Grund, `login-error` + Grund. Erfolgreiche Logins werden **nicht** erfasst — der
+  Auto-Login nach der Registrierung wuerde jeden Erfolgszaehler verfaelschen, und `user.last_login`
+  deckt den Fall schon ab.
+- **TA-REG-44**: Gruende sind maschinenlesbare Keys (`username-taken`, `password-too-short`,
+  `email-invalid`, `email-blocked`, `email-taken`, `username-invalid`, `wrong-password`,
+  `unknown-user`, `account-blocked`) — nie die uebersetzte Fehlermeldung, sonst laesst sich nicht
+  gruppieren. Eingegebene Werte (Passwort, E-Mail) werden **nie** gespeichert.
+- **TA-REG-45**: Versuche, die die clientseitige Validierung abfaengt, erreichen keine Route und
+  werden vom Client als `register-abort` + Grund gemeldet (`client/lib/tracking.js`). Die
+  Admin-Auswertung zaehlt `register-error` und `register-abort` gemeinsam.
+- **TA-REG-46**: Der Client sendet seine anonyme Besucher-ID auf **jedem** Gateway-Request als
+  `X-Client-Id`-Header (`client/lib/gateway.js`), damit Routen vor dem Login ihre Events demselben
+  Besucher zuordnen koennen, der die Landing Page gesehen hat. Die ID liegt in `localStorage`
+  (`fm_client_id`, siehe `client/lib/clientId.js`); ist `localStorage` gesperrt, faellt sie weg,
+  ohne den Request zu brechen.
+- **TA-REG-47**: Tracking ist **best effort**: `recordFunnelEvent` schluckt DB-Fehler und loggt sie
+  nur — eine kaputte Analytics-Tabelle darf niemals eine Registrierung verhindern.
+- **TA-REG-48**: `funnel_event`-Zeilen werden bei Konto-Loeschung mitgeloescht
+  (`deleteUserContentRows`), genau wie `page_view`.
 
 ### Konto-Verwaltung
 
@@ -79,12 +113,16 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 
 - **TA-REG-32**: Tabelle `user`: `id`, `username` (UNIQUE), `password`, `language` (Standard 'en'), `is_admin`, `last_login`, plattformspezifische Login-Felder, `created_at` sowie `email`, `pending_email`, `email_verification_token`, `email_verification_expires_at`, `password_reset_token`, `password_reset_expires_at`, E-Mail-Opt-out- und Avatar-Felder.
 - **TA-REG-33**: Tabelle `device_token`: `user_id`, `token`, `platform`, UNIQUE auf `(user_id, platform)`.
+- **TA-REG-49**: Tabelle `funnel_event`: `user_id` (nullable — Events vor dem Login haben keinen),
+  `client_id` (anonyme Besucher-ID, VARCHAR(64)), `event`, `detail` (Grund, nullable), `created_at`.
+  Indizes auf `event`, `created_at` und `client_id`.
 
 ### API-Endpunkte
 
 | Endpunkt | Auth | Beschreibung |
 |---|---|---|
 | `createAccount(username, password, email?)` | Nein | Konto erstellen; E-Mail optional (alte Clients senden nur 2 Params) |
+| `trackFunnelEvent(event, detail?, clientId?)` | Nein | Funnel-Event melden, das der Server nicht selbst sieht (z.B. `register-abort`) |
 | `login(username, password, platform?, deviceUuid?)` | Nein | Einloggen, JWT zurueckgeben |
 | `verifyEmail(token)` | Nein | E-Mail-Adresse bestaetigen |
 | `requestPasswordReset(email)` | Nein | Reset-Link anfordern |
@@ -124,3 +162,9 @@ Spieler koennen sich mit Benutzername und Passwort registrieren, einloggen und i
 - Passwort-Reset: unbekannte E-Mail gibt trotzdem Erfolg zurueck, abgelaufenes Token wird abgelehnt
 - Team-Auswahl: freie Teams filtern, doppelte Auswahl verhindern, Starter-Karten korrekt vergeben
 - Admin-Push bei neuem Manager: Empfaengerliste, Inhalt, Verhalten ohne Admin-Geraet und bei Push-Fehler
+- Funnel-Tracking: `register-attempt` vor der Validierung, `register-success` mit `user_id`, ein
+  maschinenlesbarer Grund pro Ablehnung, kein Event bei erfolgreichem Login
+- `FUNNEL_STEPS` zeigt nur auf existierende Routen (Regressionstest gegen `landing` / `register`)
+- `X-Client-Id` wird mitgesendet, auch unauthentifiziert; gesperrtes `localStorage` bricht den
+  Request nicht
+- Konto-Loeschung entfernt `funnel_event`-Zeilen

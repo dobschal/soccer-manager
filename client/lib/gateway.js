@@ -1,5 +1,6 @@
 import { toast } from '../partials/toast.js'
 import { getLocale } from '../i18n/index.js'
+import { getClientId } from './clientId.js'
 
 /**
  * @param {Error} e
@@ -25,9 +26,24 @@ export const server = new Proxy({}, {
         },
         body: JSON.stringify(requestBody)
       }
-      const authToken = window.localStorage.getItem('auth-token')
+      // Guarded like getClientId(): localStorage access throws outright when
+      // storage is blocked (private mode), which would fail every request
+      // instead of just leaving the request unauthenticated.
+      let authToken = null
+      try {
+        authToken = window.localStorage.getItem('auth-token')
+      } catch {
+        authToken = null
+      }
       if (authToken) {
         options.headers.Authorization = `Bearer ${authToken}`
+      }
+      // Anonymous visitor id, so routes that run before login (createAccount,
+      // login) can attribute their funnel events to the same visitor that
+      // viewed the landing page.
+      const clientId = getClientId()
+      if (clientId) {
+        options.headers['X-Client-Id'] = clientId
       }
       const response = await fetch(`${window.__NATIVE_SERVER_URL || ''}/api/${key}`, options)
       if (response.status >= 400) {

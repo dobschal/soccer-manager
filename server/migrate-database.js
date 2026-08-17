@@ -3394,6 +3394,23 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Create funnel_event table for registration tracking',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS funnel_event
+    (
+        id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id    BIGINT NULL,
+        client_id  VARCHAR(64) NULL,
+        event      VARCHAR(64) NOT NULL,
+        detail     VARCHAR(64) NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        INDEX idx_funnel_event_event (event),
+        INDEX idx_funnel_event_created (created_at),
+        INDEX idx_funnel_event_client (client_id)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;`)
+  }
 }]
 
 /**
