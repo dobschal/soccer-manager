@@ -133,6 +133,11 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
   Pagination mit 5 Zeilen pro Seite. Ein Klick auf eine Zeile oeffnet das Spieldetail-Overlay
   (`showGameModal`). Die Tabelle ist ein eigenes `UIElement`, damit Filter- und Seitenwechsel nicht die
   Stadionseite und damit die Three.js-Szene neu rendern.
+- **TA-STD-27a**: Die Zuschauer-Tabelle ist streng chronologisch sortiert (neuestes Heimspiel oben) und
+  nutzt dafuer `game.created_at`, also den Zeitpunkt, zu dem das Spiel tatsaechlich gespielt wurde.
+  Nach `game_day` zu sortieren ist falsch: Ein Friendly wird irgendwann *innerhalb* eines Spieltags
+  gespielt, das Liga-/Pokalspiel desselben Spieltags dagegen beim Cron-Wechsel — bei Gleichstand
+  entschied die Insert-ID und Friendlies rutschten ueber Liga-Spiele, die vorher stattfanden.
 - **TA-STD-28**: Bau-Historie-Tabelle. Laufende Bauten zeigen in der Spalte "Abgeschlossen" ein Badge
   "Fertig in X Tagen" (bzw. "Fertig in 1 Tag" / "Fertig heute") aus `constructionInfo.<stand>.remainingGameDays`;
   ist die Restzeit unbekannt, bleibt es beim "Im Bau"-Badge.

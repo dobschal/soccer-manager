@@ -283,6 +283,24 @@ describe('stadium routes', () => {
       expect(result.attendance[0].cupRound).toBe(8)
     })
 
+    it('sorts by the time the game was played, not by game day', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([gameRow()])
+
+      const req = createMockRequest()
+      await handlers.getStadiumAttendance(req)
+
+      const sql = query.mock.calls[1][0].replace(/\s+/g, ' ')
+      // A friendly is played somewhere inside a game day, the league/cup game
+      // of that day at the cron boundary — ordering by game_day ties them and
+      // falls back to the insert id, which is not the chronological order.
+      expect(sql).toContain('ORDER BY created_at DESC, id DESC')
+      expect(sql).toContain('ORDER BY sel.created_at DESC, sel.id DESC')
+      expect(sql).not.toContain('game_day DESC')
+    })
+
     it('does not query cup rounds when there is no cup game', async () => {
       const stadium = testData.stadium()
       getStadiumOfCurrentUser.mockResolvedValue(stadium)

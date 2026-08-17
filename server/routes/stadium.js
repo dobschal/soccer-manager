@@ -165,6 +165,13 @@ export default {
    *
    * Cup byes (`team_2_id IS NULL`) are no home games and drop out.
    *
+   * Sorted by `created_at`, which `play-game-day.js` and the friendly route set
+   * to the moment the game was actually played — not by `game_day`. A friendly
+   * is played at an arbitrary time *inside* a game day while the league/cup
+   * game for that same day runs at the cron boundary, so `game_day` ties the
+   * two and orders them by insert id, which put friendlies above league games
+   * they were played before.
+   *
    * @param {Request} req
    * @returns {Promise<{attendance: Array}>}
    */
@@ -184,16 +191,16 @@ export default {
                t.short_name as opponentShortName,
                t.emblem     as opponentEmblem,
                t.color      as opponentColor
-        FROM (SELECT id, season, game_day
+        FROM (SELECT id, created_at
               FROM game
               WHERE team_1_id = ?
                 AND played = 1
                 AND team_2_id IS NOT NULL
-              ORDER BY season DESC, game_day DESC, id DESC
+              ORDER BY created_at DESC, id DESC
               LIMIT ${ATTENDANCE_GAME_LIMIT}) sel
                  JOIN game g ON g.id = sel.id
                  JOIN team t ON t.id = g.team_2_id
-        ORDER BY sel.season DESC, sel.game_day DESC, sel.id DESC
+        ORDER BY sel.created_at DESC, sel.id DESC
     `, [team.id])
 
     const totalCupRoundsBySeason = await _getTotalCupRoundsBySeason(
