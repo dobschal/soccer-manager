@@ -358,7 +358,7 @@ export default {
   'stadium.includesRoof': '(includes roof)',
   'stadium.includesRoofExtension': '(includes roof extension)',
   'stadium.includesRoofRemoval': '(roof gets torn down)',
-  'stadium.roofCostHint': 'A new roof comes at a surcharge. Expanding a roofed stand means the roof has to grow with it, which costs extra. Uncheck the box to tear the roof down instead.',
+  'stadium.roofCostHint': 'A roof costs 100 € per seat it covers (at least 50,000 €) and lifts that stand\'s attendance by 20 %. Expanding a roofed stand means the roof has to grow with it, at the same 100 € per added seat. Uncheck the box to tear the roof down instead.',
   'stadium.cost': 'Cost',
   'stadium.totalPrice': 'Total Price for construction:',
   'stadium.confirm': 'Confirm Expansion',

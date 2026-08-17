@@ -54,8 +54,18 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
   - Sitze ab 20.001: 2.000 Euro pro Sitz
 
   Die Staffel wird marginal angewendet: ein Ausbau, der eine Schwelle ueberschreitet, zahlt fuer den Teil unterhalb der Schwelle den niedrigeren Preis und fuer den Teil oberhalb den hoeheren Preis.
-- **TA-STD-09**: Dach-Aufpreis fuer ein neues Dach: max(300.000 Euro, Basiskosten * 1.2).
-- **TA-STD-09a**: Dach-Verlaengerung: Wird eine bereits ueberdachte Tribuene vergroessert und behaelt ihr Dach, kostet die Verlaengerung zusaetzlich max(100.000 Euro, Kosten der neuen Plaetze * 0.2).
+- **TA-STD-09**: Dach-Aufpreis fuer ein neues Dach: 100 Euro pro ueberdachtem Platz (also pro Platz der *geplanten*
+  Tribuenengroesse, nicht nur der neu gebauten), mindestens 50.000 Euro.
+- **TA-STD-09a**: Dach-Verlaengerung: Wird eine bereits ueberdachte Tribuene vergroessert und behaelt ihr Dach, kostet
+  die Verlaengerung 100 Euro pro **neu hinzugefuegtem** Platz - ohne Mindestbetrag. Damit kostet eine ueberdachte
+  Tribuene in einem Zug gebaut genauso viel Dach wie schrittweise gewachsen (es faellt nur die Architektengebuehr
+  je Bauauftrag mehrfach an).
+- **TA-STD-09b**: Der Dachpreis haengt bewusst an der Platzzahl, nicht an den Sitzkosten: Der Dach-Nutzen ist ein
+  fester Faktor auf die Nachfrage der Tribuene (TA-STD-04) und skaliert damit ebenfalls mit ihrer Groesse. Die
+  frueheren "20 %, mindestens 300.000 Euro" trafen das an beiden Enden nicht - kleine Tribuenen haben ihr Dach erst
+  nach ~8 Saisons wieder eingespielt, waehrend ein *nachtraeglich* aufgesetztes Dach (keine neuen Plaetze, also auch
+  keine Basiskosten) fuer jede Groesse auf denselben 300.000-Euro-Sockel fiel und damit auf einer 15.000er-Tribuene
+  rund 29-mal guenstiger war als dasselbe Dach zusammen mit den Plaetzen gebaut.
 - **TA-STD-10**: Architektengebuehr: 50.000 Euro pauschal pro Bau-Aktion.
 - **TA-STD-11**: Tribuenen koennen nicht verkleinert werden.
 - **TA-STD-12**: Daecher koennen abgerissen werden (Haekchen entfernen); der Abriss ist kostenlos.

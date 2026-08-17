@@ -358,7 +358,7 @@ export default {
   'stadium.includesRoof': '(inkl. Dach)',
   'stadium.includesRoofExtension': '(inkl. Dachverlängerung)',
   'stadium.includesRoofRemoval': '(Dach wird abgerissen)',
-  'stadium.roofCostHint': 'Ein neues Dach kostet Aufpreis. Wird eine überdachte Tribüne vergrößert, muss das Dach mitwachsen – das kostet extra. Nimm das Häkchen weg, um das Dach stattdessen abzureißen.',
+  'stadium.roofCostHint': 'Ein Dach kostet 100 € pro überdachtem Platz (mindestens 50.000 €) und erhöht die Zuschauerzahl dieser Tribüne um 20 %. Wird eine überdachte Tribüne vergrößert, muss das Dach mitwachsen – ebenfalls 100 € je neuem Platz. Nimm das Häkchen weg, um das Dach stattdessen abzureißen.',
   'stadium.cost': 'Kosten',
   'stadium.totalPrice': 'Gesamtpreis für den Bau:',
   'stadium.confirm': 'Erweiterung bestätigen',
