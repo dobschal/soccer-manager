@@ -23,6 +23,7 @@ import { collectStatistics } from './helper/statisticsHelper.js'
 import { initWebSocket } from './lib/websocket.js'
 import { getCachedUser } from './lib/userCache.js'
 import { isSandboxHost } from './lib/sandboxHost.js'
+import { corsMiddleware } from './lib/cors.js'
 import { serveNotificationEmailImage } from './helper/notificationEmailHelper.js'
 import { serveInviteLanding } from './lib/inviteLanding.js'
 import { registerDailyLogin, toDateKey } from './helper/loginStreakHelper.js'
@@ -36,18 +37,7 @@ app.set('trust proxy', 1)
 
 // CORS: allow requests from native app (file:// or missing origin), the desktop
 // app (custom app:// scheme), and localhost dev servers
-app.use((req, res, next) => {
-  const origin = req.headers.origin
-  const isLocalhost = origin && /^https?:\/\/localhost(:\d+)?$/.test(origin)
-  const isDesktopApp = origin && origin.startsWith('app://')
-  if (!origin || origin === 'null' || origin === 'file://' || isLocalhost || isDesktopApp) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language')
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  }
-  if (req.method === 'OPTIONS') return res.status(204).end()
-  next()
-})
+app.use(corsMiddleware)
 
 // 20mb accommodates chat image uploads (up to 8MB raw ≈ 11MB base64-encoded).
 app.use(bodyParser.json({ limit: '20mb' }))
