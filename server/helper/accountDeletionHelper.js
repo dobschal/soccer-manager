@@ -101,9 +101,12 @@ export async function deleteUserContentRows (exec, userId) {
   await exec('DELETE FROM referral_invitation WHERE inviter_user_id=?', [userId])
   await exec('UPDATE referral_invitation SET used_by_user_id=NULL WHERE used_by_user_id=?', [userId])
 
-  // Analytics / diagnostics tied to the user.
+  // Analytics / diagnostics tied to the user. Removed outright rather than
+  // anonymized, matching how page views are treated — the aggregate funnel
+  // losing a data point is not a reason to keep a deleted user's rows.
   await exec('DELETE FROM page_view WHERE user_id=?', [userId])
   await exec('DELETE FROM client_log WHERE user_id=?', [userId])
+  await exec('DELETE FROM funnel_event WHERE user_id=?', [userId])
 
   // Push notification device tokens.
   await exec('DELETE FROM device_token WHERE user_id=?', [userId])

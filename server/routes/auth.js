@@ -16,10 +16,25 @@ import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../helper
 import { collectUserUploadFiles, deleteUserContentRows, deleteUserUploadFiles } from '../helper/accountDeletionHelper.js'
 import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../helper/linkInviteHelper.js'
 import { isEmailBlocked, userHasBlockedEmail } from '../helper/emailBlockHelper.js'
+import { recordFunnelEvent } from '../helper/funnelHelper.js'
 import { regenerateTeamData } from '../prepare-season.js'
 
 const EMAIL_VERIFICATION_TTL_DAYS = 7
 const PASSWORD_RESET_TTL_HOURS = 2
+
+/**
+ * Record why a registration was rejected and throw the localized error. The
+ * machine-readable `reason` is what the admin funnel groups by — the message
+ * itself is translated and therefore useless as an aggregation key.
+ * @param {string} reason - Stable reason key (e.g. 'username-taken')
+ * @param {string} message - Localized error message for the client
+ * @param {import('express').Request} req
+ * @returns {Promise<never>}
+ */
+async function rejectRegistration (reason, message, req) {
+  await recordFunnelEvent('register-error', reason, req)
+  throw new BadRequestError(message)
+}
 
 /**
  * Look up other users that already claim this email either as their verified
@@ -62,28 +77,31 @@ export default {
       email = null
     }
     const locale = req.locale || 'en'
+    // Recorded before any validation so the admin funnel can tell "nobody even
+    // tried" apart from "everybody tried and got rejected" (#498).
+    await recordFunnelEvent('register-attempt', null, req)
     if (typeof username !== 'string') {
-      throw new BadRequestError(t('error.usernameString', {}, locale))
+      await rejectRegistration('username-invalid', t('error.usernameString', {}, locale), req)
     }
     if (typeof password !== 'string' || password.length < 8) {
-      throw new BadRequestError(t('error.passwordLength', {}, locale))
+      await rejectRegistration('password-too-short', t('error.passwordLength', {}, locale), req)
     }
     let normalizedEmail = null
     if (email !== undefined && email !== null && email !== '') {
       if (typeof email !== 'string' || !isValidEmail(email.trim())) {
-        throw new BadRequestError(t('error.emailInvalid', {}, locale))
+        await rejectRegistration('email-invalid', t('error.emailInvalid', {}, locale), req)
       }
       normalizedEmail = email.trim().toLowerCase()
       if (await isEmailBlocked(normalizedEmail)) {
-        throw new BadRequestError(t('error.emailBlocked', {}, locale))
+        await rejectRegistration('email-blocked', t('error.emailBlocked', {}, locale), req)
       }
       if (await emailIsTakenByAnotherUser(normalizedEmail)) {
-        throw new BadRequestError(t('error.emailTaken', {}, locale))
+        await rejectRegistration('email-taken', t('error.emailTaken', {}, locale), req)
       }
     }
     const [{ amount }] = await query('SELECT COUNT(*) AS amount FROM user WHERE username=?', username)
     if (amount > 0) {
-      throw new BadRequestError(t('error.usernameTaken', {}, locale))
+      await rejectRegistration('username-taken', t('error.usernameTaken', {}, locale), req)
     }
     let verificationToken = null
     let verificationExpires = null
@@ -121,6 +139,7 @@ export default {
         console.error('[Auth] claimLinkInviteForNewUser failed:', e)
       }
     }
+    await recordFunnelEvent('register-success', null, req, { userId: insertResult?.insertId ?? null })
     return { success: true }
   },
 
@@ -323,11 +342,16 @@ export default {
     }
     const [user] = await query('SELECT * FROM user WHERE username=?', [username])
     if (!user || !(await verifyPassword(password, user.password))) {
+      // Only failures are recorded: a successful login already shows up in
+      // `user.last_login`, and registration auto-logs-in, which would inflate
+      // any success counter with events that aren't returning visitors.
+      await recordFunnelEvent('login-error', user ? 'wrong-password' : 'unknown-user', req)
       throw new UnauthorizedError(t('error.wrongCredentials', {}, locale))
     }
     // Checked after the password so a wrong guess cannot reveal that an
     // address is blocked.
     if (await userHasBlockedEmail(user)) {
+      await recordFunnelEvent('login-error', 'account-blocked', req, { userId: user.id })
       throw new UnauthorizedError(t('error.accountBlocked', {}, locale))
     }
     const now = new Date()

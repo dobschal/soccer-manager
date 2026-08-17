@@ -13,6 +13,7 @@ import { renderEmblem } from '../partials/emblem.js'
 import { openWikiEntryById } from '../partials/wikiInfoIcon.js'
 import { onClick } from '../lib/htmlEventHandlers.js'
 import { generateId } from '../lib/html.js'
+import { trackFunnelEvent } from '../lib/tracking.js'
 
 export const APP_STORE_URL = 'https://apps.apple.com/de/app/footballmanager-io/id6759547142'
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=io.soccermanager.app'
@@ -439,6 +440,10 @@ export class LandingPage extends UIElement {
     try {
       if (!this.isLogin) {
         if (!isValidEmail(email)) {
+          // Rejected before `createAccount` is even called, so the server would
+          // never see this attempt — report it from here or it goes missing
+          // from the funnel entirely.
+          trackFunnelEvent('register-abort', 'email-invalid')
           this.isSubmitting = false
           return toast(t('landing.emailInvalid'), 'error')
         }

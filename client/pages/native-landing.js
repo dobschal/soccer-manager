@@ -8,6 +8,7 @@ import { connectWebSocket } from '../lib/websocket.js'
 import { sendLog } from '../lib/clientLogger.js'
 import { isValidEmail } from '../lib/emailRegex.js'
 import { getDeviceUuid } from '../lib/deviceUuid.js'
+import { trackFunnelEvent } from '../lib/tracking.js'
 
 async function _registerDeviceToken () {
   const token = window.__nativeDeviceToken
@@ -138,6 +139,10 @@ export class NativeLandingPage extends UIElement {
       const platform = window.__nativePlatform || 'web'
       if (!this.isLogin) {
         if (!isValidEmail(email)) {
+          // Rejected before `createAccount` is even called, so the server would
+          // never see this attempt — report it from here or it goes missing
+          // from the funnel entirely.
+          trackFunnelEvent('register-abort', 'email-invalid')
           this.isSubmitting = false
           return toast(t('landing.emailInvalid'), 'error')
         }

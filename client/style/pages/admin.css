@@ -30,3 +30,7 @@
     height: 8px;
     margin-top: 4px;
 }
+
+.funnel-bar {
+    min-width: 120px;
+}

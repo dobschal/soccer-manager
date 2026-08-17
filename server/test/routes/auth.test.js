@@ -41,6 +41,12 @@ vi.mock('../../helper/emailBlockHelper.js', () => ({
   userHasBlockedEmail: vi.fn().mockResolvedValue(false)
 }))
 
+// Mocked so funnel inserts don't land in the shared `query` mock and shift the
+// call indices the assertions below rely on.
+vi.mock('../../helper/funnelHelper.js', () => ({
+  recordFunnelEvent: vi.fn().mockResolvedValue(undefined)
+}))
+
 // Import after mocking
 import { query, transaction } from '../../lib/database.js'
 import { hashPassword } from '../../lib/passwordHash.js'
@@ -48,6 +54,7 @@ import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.j
 import { claimReferralForNewUser, awardReferralForVerifiedUser } from '../../helper/referralHelper.js'
 import { claimLinkInviteForNewUser, awardLinkInviteForVerifiedUser } from '../../helper/linkInviteHelper.js'
 import { isEmailBlocked, userHasBlockedEmail } from '../../helper/emailBlockHelper.js'
+import { recordFunnelEvent } from '../../helper/funnelHelper.js'
 import { regenerateTeamData } from '../../prepare-season.js'
 import handlers from '../../routes/auth.js'
 
@@ -192,6 +199,77 @@ describe('auth routes', () => {
       const req = { locale: 'en' }
       await expect(handlers.createAccount('existinguser', 'password123', req))
         .rejects.toMatchObject({ message: 'Username already taken' })
+    })
+
+    describe('funnel tracking', () => {
+      it('records the attempt before validating and the success at the end', async () => {
+        query
+          .mockResolvedValueOnce([{ amount: 0 }]) // username check
+          .mockResolvedValueOnce({ insertId: 77 }) // insert user
+
+        await handlers.createAccount('newuser', 'password123', { locale: 'en' })
+
+        expect(recordFunnelEvent).toHaveBeenCalledWith('register-attempt', null, expect.anything())
+        expect(recordFunnelEvent).toHaveBeenCalledWith(
+          'register-success', null, expect.anything(), { userId: 77 }
+        )
+        const events = recordFunnelEvent.mock.calls.map(c => c[0])
+        expect(events[0]).toBe('register-attempt')
+        expect(events).not.toContain('register-error')
+      })
+
+      it('records a machine-readable reason for a taken username', async () => {
+        query.mockResolvedValueOnce([{ amount: 1 }])
+
+        await expect(handlers.createAccount('existinguser', 'password123', { locale: 'en' }))
+          .rejects.toMatchObject({ message: 'Username already taken' })
+
+        expect(recordFunnelEvent).toHaveBeenCalledWith(
+          'register-error', 'username-taken', expect.anything()
+        )
+      })
+
+      it('records a machine-readable reason for a short password', async () => {
+        await expect(handlers.createAccount('user', 'short', { locale: 'en' }))
+          .rejects.toMatchObject({ message: 'Password needs to be string longer than 8 characters' })
+
+        expect(recordFunnelEvent).toHaveBeenCalledWith(
+          'register-error', 'password-too-short', expect.anything()
+        )
+      })
+
+      it('records a machine-readable reason for a taken email', async () => {
+        // emailIsTakenByAnotherUser → one row means the address is in use.
+        query.mockResolvedValueOnce([{ id: 5 }])
+
+        await expect(handlers.createAccount('user', 'password123', 'taken@example.com', { locale: 'en' }))
+          .rejects.toMatchObject({ message: 'This email address is already in use' })
+
+        expect(recordFunnelEvent).toHaveBeenCalledWith(
+          'register-error', 'email-taken', expect.anything()
+        )
+      })
+
+      it('records a failed login with the reason, but never a success', async () => {
+        query.mockResolvedValue([]) // no such user
+
+        await expect(handlers.login('ghost', 'password123', { locale: 'en', headers: {} }))
+          .rejects.toMatchObject({ message: 'Wrong credentials' })
+
+        expect(recordFunnelEvent).toHaveBeenCalledWith(
+          'login-error', 'unknown-user', expect.anything()
+        )
+      })
+
+      it('does not record anything on a successful login', async () => {
+        const user = testData.user({ password: 'hashed:password123' })
+        query.mockResolvedValue([user])
+        userHasBlockedEmail.mockResolvedValue(false)
+
+        await handlers.login('testuser', 'password123', { locale: 'en', headers: {} })
+
+        expect(recordFunnelEvent).not.toHaveBeenCalled()
+      })
     })
 
     it('accepts a valid email and sends a verification mail', async () => {
@@ -602,6 +680,9 @@ describe('auth routes', () => {
       expect(deletesFrom('referral_invitation')).toBe(true)
       expect(deletesFrom('page_view')).toBe(true)
       expect(deletesFrom('client_log')).toBe(true)
+      // Registration/login funnel events are personal data too — a new
+      // analytics table must not silently outlive the account it belongs to.
+      expect(deletesFrom('funnel_event')).toBe(true)
       expect(deletesFrom('device_token')).toBe(true)
       // The user row is always deleted last.
       expect(deletions[deletions.length - 1]).toMatch(/DELETE FROM user WHERE id=\?/)

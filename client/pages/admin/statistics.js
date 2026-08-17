@@ -139,18 +139,25 @@ export class StatisticsAdminPage extends UIElement {
   _statisticsPage = 1
   _statisticsPageSize = STATISTICS_PAGE_SIZE
   _topCountries = []
-  _pageViews = { pages: [], funnel: [], days: 30 }
+  _pageViews = { pages: [], funnel: [], registrationErrors: [], loginErrors: [], days: 30 }
   _pageViewDays = 30
 
   /**
    * Registration/engagement funnel + per-page view counts for the tracked
-   * period. The funnel shows distinct clients per key step with drop-off from
-   * the first (widest) step.
+   * period. The funnel shows distinct visitors per step, their share of the
+   * first (widest) step, and the drop-off from the immediately preceding step —
+   * the latter is what points at the single worst transition.
    * @returns {string}
    */
   _renderPageViews () {
-    const { pages = [], funnel = [], days = 30 } = this._pageViews || {}
-    if (pages.length === 0) {
+    const {
+      pages = [],
+      funnel = [],
+      registrationErrors = [],
+      loginErrors = [],
+      days = 30
+    } = this._pageViews || {}
+    if (pages.length === 0 && funnel.every(f => f.clients === 0)) {
       return `
         <div class="mb-4">
           <h4>${t('admin.pageViewsTitle')}</h4>
@@ -164,12 +171,15 @@ export class StatisticsAdminPage extends UIElement {
       const pct = funnelStart > 0 ? Math.round((step.clients / funnelStart) * 100) : 0
       return `
         <tr>
-          <td>${step.page}</td>
+          <td>${t(`admin.funnelStep.${step.key}`)}</td>
           <td>${step.clients}</td>
           <td>
-            <div class="progress" style="min-width: 120px;">
+            <div class="progress funnel-bar">
               <div class="progress-bar bg-info" role="progressbar" style="width: ${pct}%;">${pct}%</div>
             </div>
+          </td>
+          <td class="${step.dropOff > 0 ? 'text-danger' : 'text-muted'}">
+            ${step.dropOff > 0 ? `−${step.dropOff} (${step.dropOffPercent}%)` : '—'}
           </td>
         </tr>
       `
@@ -193,14 +203,18 @@ export class StatisticsAdminPage extends UIElement {
           <table class="table table-sm mb-0">
             <thead>
               <tr>
-                <th>${t('admin.pageViewsPage')}</th>
+                <th>${t('admin.pageViewsStep')}</th>
                 <th>${t('admin.pageViewsClients')}</th>
                 <th>${t('admin.pageViewsShare')}</th>
+                <th>${t('admin.pageViewsDropOff')}</th>
               </tr>
             </thead>
             <tbody>${funnelRows}</tbody>
           </table>
         </div>
+
+        ${this._renderErrorTable(t('admin.pageViewsRegistrationErrorsTitle'), t('admin.pageViewsRegistrationErrorsEmpty'), registrationErrors)}
+        ${this._renderErrorTable(t('admin.pageViewsLoginErrorsTitle'), t('admin.pageViewsLoginErrorsEmpty'), loginErrors)}
 
         <h5 class="mb-2">${t('admin.pageViewsAllTitle')}</h5>
         <div class="horizontal-scrollable-table">
@@ -216,6 +230,47 @@ export class StatisticsAdminPage extends UIElement {
             <tbody>${pageRows}</tbody>
           </table>
         </div>
+      </div>
+    `
+  }
+
+  /**
+   * Rejected registration/login attempts grouped by reason. This is the part
+   * that separates "visitors never tried" from "visitors tried and were turned
+   * away by a specific rule".
+   * @param {string} title
+   * @param {string} emptyText
+   * @param {Array<{reason: string, count: number, clients: number}>} rows
+   * @returns {string}
+   */
+  _renderErrorTable (title, emptyText, rows) {
+    if (!rows || rows.length === 0) {
+      return `
+        <h5 class="mb-2">${title}</h5>
+        <p class="text-muted">${emptyText}</p>
+      `
+    }
+    return `
+      <h5 class="mb-2">${title}</h5>
+      <div class="horizontal-scrollable-table mb-3">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>${t('admin.pageViewsReason')}</th>
+              <th>${t('admin.pageViewsAttempts')}</th>
+              <th>${t('admin.pageViewsClients')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${t(`admin.funnelReason.${r.reason}`)}</td>
+                <td>${r.count}</td>
+                <td>${r.clients}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
     `
   }
