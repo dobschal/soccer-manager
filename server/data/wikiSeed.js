@@ -1214,8 +1214,8 @@ Das Geld wird nach jedem Spieltag automatisch verbucht.`
 Capacity and expansion:
 • North and south stands hold up to 30,000 seats each; east and west up to 15,000 each; each corner stand holds up to 4,000.
 • Seats get more expensive in tiers as you build bigger (from 500 € per seat up to 2,000 € for the largest stands), plus a one-time 50,000 € architect fee per build order.
-• You can add a roof to a stand, which raises attendance. A new roof costs 20 % on top of the stand's build price (at least 300,000 €).
-• Expanding a roofed stand means the roof has to be extended over the new seats — that costs 20 % of the added seats' price (at least 100,000 €). You can also tear an existing roof down instead, which is free.
+• You can add a roof to a stand, which raises attendance by 20 %. A roof costs 100 € for every seat it covers (at least 50,000 €) — so a 1,000-seat stand is roofed for 100,000 €, and roofing it later costs the same as roofing it while you build.
+• Expanding a roofed stand means the roof has to be extended over the new seats — that costs 100 € per added seat. You can also tear an existing roof down instead, which is free.
 • Stands cannot be shrunk.
 • Construction takes several match days and continues across seasons.
 
@@ -1237,8 +1237,8 @@ The 3D view at the top shows your ground as you have built it, your club emblem 
 Kapazität und Ausbau:
 • Nord- und Südtribüne fassen jeweils bis zu 30.000 Plätze; Ost und West jeweils bis zu 15.000; jede Ecktribüne bis zu 4.000.
 • Sitzplätze werden in Stufen teurer, je größer du baust (von 500 € pro Platz bis 2.000 € bei den größten Tribünen), plus eine einmalige Architektengebühr von 50.000 € pro Bauauftrag.
-• Du kannst eine Tribüne überdachen, was die Zuschauerzahl erhöht. Ein neues Dach kostet 20 % Aufschlag auf den Baupreis der Tribüne (mindestens 300.000 €).
-• Wird eine überdachte Tribüne vergrößert, muss das Dach über die neuen Plätze verlängert werden – das kostet 20 % des Preises der neuen Plätze (mindestens 100.000 €). Du kannst ein bestehendes Dach stattdessen auch abreißen, das ist kostenlos.
+• Du kannst eine Tribüne überdachen, was die Zuschauerzahl um 20 % erhöht. Ein Dach kostet 100 € pro überdachtem Platz (mindestens 50.000 €) – eine Tribüne mit 1.000 Plätzen bekommt ihr Dach also für 100.000 €, und nachträglich überdachen kostet genauso viel wie gleich mitbauen.
+• Wird eine überdachte Tribüne vergrößert, muss das Dach über die neuen Plätze verlängert werden – das kostet 100 € je neuem Platz. Du kannst ein bestehendes Dach stattdessen auch abreißen, das ist kostenlos.
 • Tribünen können nicht verkleinert werden.
 • Der Bau dauert mehrere Spieltage und läuft über Saisongrenzen hinweg weiter.
 

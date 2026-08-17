@@ -393,11 +393,11 @@ describe('stadiumHelper', () => {
       expect(calcuateStadiumBuild(current, planned)).toBe(500_000 + 500_000 + 50_000)
     })
 
-    it('applies the roof surcharge (20 % min 300k) on top of tier pricing', () => {
-      // 200 → 1,200 = 500,000; roof: max(300k, 500k * 1.2) = 600,000; + 50k
+    it('charges the roof per covered seat on top of tier pricing', () => {
+      // 200 → 1,200 = 500,000 seats; roof covers all 1,200 seats @ 100 = 120,000; + 50k
       const current = baseStadium()
       const planned = baseStadium({ north_stand_size: 1_200, north_stand_roof: 1 })
-      expect(calcuateStadiumBuild(current, planned)).toBe(600_000 + 50_000)
+      expect(calcuateStadiumBuild(current, planned)).toBe(500_000 + 120_000 + 50_000)
     })
 
     it('does not charge for corner stands that stay unbuilt (size 0)', () => {
@@ -436,29 +436,30 @@ describe('stadiumHelper', () => {
 
     describe('roofs', () => {
       it('charges the roof extension when a roofed stand grows and keeps its roof', () => {
-        // 200 → 1,200 = 500,000 seats; roof extension: max(100k, 500k * 0.2) = 100,000
+        // 200 → 1,200 = 500,000 seats; extension covers the 1,000 added seats @ 100 = 100,000
         const current = baseStadium({ north_stand_roof: 1 })
         const planned = baseStadium({ north_stand_size: 1_200, north_stand_roof: 1 })
         expect(calcuateStadiumBuild(current, planned)).toBe(500_000 + 100_000 + 50_000)
       })
 
-      it('scales the roof extension with the price of the added seats', () => {
-        // 10,000 → 11,000 = 1,500,000 seats; extension: max(100k, 1.5M * 0.2) = 300,000
+      it('charges the roof extension per added seat, not per seat price tier', () => {
+        // 10,000 → 11,000 = 1,500,000 seats; extension: 1,000 added seats @ 100 = 100,000.
+        // Expensive seats do not make the cover above them more expensive.
         const current = baseStadium({ north_stand_size: 10_000, north_stand_roof: 1 })
         const planned = baseStadium({ north_stand_size: 11_000, north_stand_roof: 1 })
-        expect(calcuateStadiumBuild(current, planned)).toBe(1_500_000 + 300_000 + 50_000)
+        expect(calcuateStadiumBuild(current, planned)).toBe(1_500_000 + 100_000 + 50_000)
       })
 
-      it('keeps the roof extension at its 100,000 € minimum for a small expansion', () => {
-        // 200 → 400 = 100,000 seats; extension: max(100k, 100k * 0.2) = 100,000
+      it('charges the roof extension only for the seats that were added', () => {
+        // 200 → 400 = 100,000 seats; extension: 200 added seats @ 100 = 20,000
         const current = baseStadium({ north_stand_roof: 1 })
         const planned = baseStadium({ north_stand_size: 400, north_stand_roof: 1 })
-        expect(calcuateStadiumBuild(current, planned)).toBe(100_000 + 100_000 + 50_000)
+        expect(calcuateStadiumBuild(current, planned)).toBe(100_000 + 20_000 + 50_000)
       })
 
       it('charges less for extending a roof than for putting up a new one', () => {
-        // Same expansion, once with an existing roof (extension, 100k minimum)
-        // and once without (new roof, 300k minimum).
+        // Same expansion, once with an existing roof (only the added seats need
+        // cover) and once without (the whole stand does, floored at 50k).
         const planned = { north_stand_size: 400, north_stand_roof: 1 }
         const extension = calcuateStadiumBuild(
           baseStadium({ north_stand_roof: 1 }),
@@ -481,10 +482,40 @@ describe('stadiumHelper', () => {
         expect(calcuateStadiumBuild(current, planned)).toBe(0)
       })
 
-      it('charges the roof minimum when only a roof is added', () => {
+      it('charges the roof minimum when only a roof is added to a tiny stand', () => {
+        // 200 seats @ 100 = 20,000 → floored to the 50,000 € minimum
         const current = baseStadium()
         const planned = baseStadium({ north_stand_roof: 1 })
-        expect(calcuateStadiumBuild(current, planned)).toBe(300_000 + 50_000)
+        expect(calcuateStadiumBuild(current, planned)).toBe(50_000 + 50_000)
+      })
+
+      it('scales a retrofitted roof with the size of the stand underneath it', () => {
+        // Retrofitting adds no seats, so the roof used to fall through to a flat
+        // 300,000 € no matter how big the stand was. It now costs 100 €/seat.
+        const roofOnly = (size) => calcuateStadiumBuild(
+          baseStadium({ north_stand_size: size }),
+          baseStadium({ north_stand_size: size, north_stand_roof: 1 })
+        )
+        expect(roofOnly(1_000)).toBe(100_000 + 50_000)
+        expect(roofOnly(15_000)).toBe(1_500_000 + 50_000)
+      })
+
+      it('costs the same to build a roofed stand at once as to grow it in steps', () => {
+        // Building 200 → 5,000 with a roof in one action, versus roofing at 1,000
+        // and extending afterwards. Only the extra architect fee differs.
+        const atOnce = calcuateStadiumBuild(
+          baseStadium(),
+          baseStadium({ north_stand_size: 5_000, north_stand_roof: 1 })
+        )
+        const firstStep = calcuateStadiumBuild(
+          baseStadium(),
+          baseStadium({ north_stand_size: 1_000, north_stand_roof: 1 })
+        )
+        const secondStep = calcuateStadiumBuild(
+          baseStadium({ north_stand_size: 1_000, north_stand_roof: 1 }),
+          baseStadium({ north_stand_size: 5_000, north_stand_roof: 1 })
+        )
+        expect(firstStep + secondStep).toBe(atOnce + 50_000)
       })
 
       it('rejects a roof on a corner stand that was never built', () => {

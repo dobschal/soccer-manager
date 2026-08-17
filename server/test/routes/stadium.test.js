@@ -208,21 +208,35 @@ describe('stadium routes', () => {
   })
 
   describe('getStadiumAttendance', () => {
-    it('returns attendance data from last 5 home games', async () => {
+    /**
+     * @param {object} overrides
+     * @returns {object}
+     */
+    function gameRow (overrides = {}) {
+      return {
+        gameId: 1,
+        season: 0,
+        gameDay: 5,
+        matchDay: 6,
+        cupRound: null,
+        gameType: 'league',
+        stadiumDetails: { northGuests: 4000, southGuests: 3500, eastGuests: 2000, westGuests: 2000 },
+        opponentId: 2,
+        opponentName: 'FC Test',
+        opponentShortName: 'Test',
+        opponentEmblem: 'shield|solid|#fff',
+        opponentColor: '#fff',
+        ...overrides
+      }
+    }
+
+    it('returns attendance data for past home games', async () => {
       const stadium = testData.stadium()
       getStadiumOfCurrentUser.mockResolvedValue(stadium)
       const team = testData.team()
       const games = [
-        {
-          season: 0, game_day: 5, details: JSON.stringify({
-            stadiumDetails: { northGuests: 4000, southGuests: 3500, eastGuests: 2000, westGuests: 2000 }
-          })
-        },
-        {
-          season: 0, game_day: 3, details: JSON.stringify({
-            stadiumDetails: { northGuests: 4500, southGuests: 4000, eastGuests: 3000, westGuests: 3000 }
-          })
-        }
+        gameRow(),
+        gameRow({ gameId: 2, gameDay: 3, matchDay: 4, stadiumDetails: { northGuests: 4500 } })
       ]
       // First query is for the team, second for games
       query.mockResolvedValueOnce([team]).mockResolvedValueOnce(games)
@@ -235,6 +249,50 @@ describe('stadium routes', () => {
       expect(result.attendance[0].stands.north.percentage).toBe(80)
       expect(result.attendance[0].season).toBe(0)
       expect(result.attendance[0].gameDay).toBe(5)
+      expect(result.attendance[0].gameId).toBe(1)
+      expect(result.attendance[0].matchDay).toBe(6)
+      expect(result.attendance[0].gameType).toBe('league')
+      expect(result.attendance[0].opponent).toEqual({
+        id: 2,
+        name: 'FC Test',
+        short_name: 'Test',
+        emblem: 'shield|solid|#fff',
+        color: '#fff'
+      })
+    })
+
+    it('includes cup and friendly home games', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      const games = [
+        gameRow({ gameId: 1, gameType: 'cup', cupRound: 8, matchDay: null }),
+        gameRow({ gameId: 2, gameType: 'friendly', matchDay: null })
+      ]
+      query
+        .mockResolvedValueOnce([team])
+        .mockResolvedValueOnce(games)
+        .mockResolvedValueOnce([{ season: 0, maxRound: 32 }])
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance.map(row => row.gameType)).toEqual(['cup', 'friendly'])
+      // 32 teams in the first round → 6 rounds in total
+      expect(result.attendance[0].totalCupRounds).toBe(6)
+      expect(result.attendance[0].cupRound).toBe(8)
+    })
+
+    it('does not query cup rounds when there is no cup game', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([gameRow()])
+
+      const req = createMockRequest()
+      await handlers.getStadiumAttendance(req)
+
+      expect(query).toHaveBeenCalledTimes(2)
     })
 
     it('returns empty attendance when no home games played', async () => {
@@ -249,12 +307,11 @@ describe('stadium routes', () => {
       expect(result.attendance).toEqual([])
     })
 
-    it('handles missing stadiumDetails in game details gracefully', async () => {
+    it('handles missing stadiumDetails gracefully', async () => {
       const stadium = testData.stadium()
       getStadiumOfCurrentUser.mockResolvedValue(stadium)
       const team = testData.team()
-      const games = [{ season: 0, game_day: 1, details: '{}' }]
-      query.mockResolvedValueOnce([team]).mockResolvedValueOnce(games)
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([gameRow({ stadiumDetails: null })])
 
       const req = createMockRequest()
       const result = await handlers.getStadiumAttendance(req)
@@ -262,6 +319,34 @@ describe('stadium routes', () => {
       expect(result.attendance).toHaveLength(1)
       expect(result.attendance[0].stands.north.guests).toBe(0)
       expect(result.attendance[0].stands.north.percentage).toBe(0)
+    })
+
+    it('parses stadiumDetails that arrive as a JSON string', async () => {
+      const stadium = testData.stadium()
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([
+        gameRow({ stadiumDetails: JSON.stringify({ northGuests: 2500 }) })
+      ])
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance[0].stands.north.percentage).toBe(50)
+    })
+
+    it('caps the percentage at 100 for stands that have grown since the game', async () => {
+      const stadium = testData.stadium({ north_stand_size: 1000 })
+      getStadiumOfCurrentUser.mockResolvedValue(stadium)
+      const team = testData.team()
+      query.mockResolvedValueOnce([team]).mockResolvedValueOnce([
+        gameRow({ stadiumDetails: { northGuests: 4000 } })
+      ])
+
+      const req = createMockRequest()
+      const result = await handlers.getStadiumAttendance(req)
+
+      expect(result.attendance[0].stands.north.percentage).toBe(100)
     })
   })
 

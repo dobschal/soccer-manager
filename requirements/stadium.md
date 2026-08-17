@@ -11,8 +11,10 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 - **US-STD-03**: Als Spieler kann ich Tribuenen ausbauen (Kapazitaet erhoehen, Dach hinzufuegen oder abreissen).
 - **US-STD-04**: Als Spieler sehe ich die Baukosten und Bauzeit vor dem Start einer Erweiterung.
 - **US-STD-05**: Als Spieler sehe ich den Baufortschritt mit verbleibenden Spieltagen.
-- **US-STD-06**: Als Spieler sehe ich die Zuschauerzahlen der letzten 5 Heimspiele pro Tribuene.
-- **US-STD-07**: Als Spieler sehe ich die Bau-Historie meines Stadions.
+- **US-STD-06**: Als Spieler sehe ich fuer meine vergangenen Heimspiele die prozentuale Auslastung pro Tribuene, jeweils mit Liga-Spieltag bzw. Pokalrunde und dem gegnerischen Team (Wappen + Kurzname).
+- **US-STD-07**: Als Spieler sehe ich die Bau-Historie meines Stadions; bei laufenden Bauten steht dort, in wie vielen Spieltagen die Tribuene fertig ist.
+- **US-STD-08**: Als Spieler kann ich die Zuschauer-Tabelle ueber drei Schalter nach Liga-Spielen, Pokal-Spielen und Friendlies filtern und blaettere in Seiten zu 5 Spielen.
+- **US-STD-09**: Als Spieler oeffne ich per Klick auf eine Zeile der Zuschauer-Tabelle die Spieldetails des jeweiligen Heimspiels.
 
 ## Tribuenen-Grenzen
 
@@ -52,8 +54,18 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
   - Sitze ab 20.001: 2.000 Euro pro Sitz
 
   Die Staffel wird marginal angewendet: ein Ausbau, der eine Schwelle ueberschreitet, zahlt fuer den Teil unterhalb der Schwelle den niedrigeren Preis und fuer den Teil oberhalb den hoeheren Preis.
-- **TA-STD-09**: Dach-Aufpreis fuer ein neues Dach: max(300.000 Euro, Basiskosten * 1.2).
-- **TA-STD-09a**: Dach-Verlaengerung: Wird eine bereits ueberdachte Tribuene vergroessert und behaelt ihr Dach, kostet die Verlaengerung zusaetzlich max(100.000 Euro, Kosten der neuen Plaetze * 0.2).
+- **TA-STD-09**: Dach-Aufpreis fuer ein neues Dach: 100 Euro pro ueberdachtem Platz (also pro Platz der *geplanten*
+  Tribuenengroesse, nicht nur der neu gebauten), mindestens 50.000 Euro.
+- **TA-STD-09a**: Dach-Verlaengerung: Wird eine bereits ueberdachte Tribuene vergroessert und behaelt ihr Dach, kostet
+  die Verlaengerung 100 Euro pro **neu hinzugefuegtem** Platz - ohne Mindestbetrag. Damit kostet eine ueberdachte
+  Tribuene in einem Zug gebaut genauso viel Dach wie schrittweise gewachsen (es faellt nur die Architektengebuehr
+  je Bauauftrag mehrfach an).
+- **TA-STD-09b**: Der Dachpreis haengt bewusst an der Platzzahl, nicht an den Sitzkosten: Der Dach-Nutzen ist ein
+  fester Faktor auf die Nachfrage der Tribuene (TA-STD-04) und skaliert damit ebenfalls mit ihrer Groesse. Die
+  frueheren "20 %, mindestens 300.000 Euro" trafen das an beiden Enden nicht - kleine Tribuenen haben ihr Dach erst
+  nach ~8 Saisons wieder eingespielt, waehrend ein *nachtraeglich* aufgesetztes Dach (keine neuen Plaetze, also auch
+  keine Basiskosten) fuer jede Groesse auf denselben 300.000-Euro-Sockel fiel und damit auf einer 15.000er-Tribuene
+  rund 29-mal guenstiger war als dasselbe Dach zusammen mit den Plaetzen gebaut.
 - **TA-STD-10**: Architektengebuehr: 50.000 Euro pauschal pro Bau-Aktion.
 - **TA-STD-11**: Tribuenen koennen nicht verkleinert werden.
 - **TA-STD-12**: Daecher koennen abgerissen werden (Haekchen entfernen); der Abriss ist kostenlos.
@@ -79,7 +91,7 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
 | `calculateStadiumPrice(stadium)` | Kosten und Bauzeit berechnen |
 | `buildStadium(stadium)` | Ausbau starten |
 | `updatePrices(stadium)` | Ticketpreise aktualisieren |
-| `getStadiumAttendance` | Zuschauerzahlen der letzten 5 Heimspiele |
+| `getStadiumAttendance` | Auslastung der letzten 60 Heimspiele (Liga, Pokal und Friendlies) inkl. Spieltag/Pokalrunde und Gegner. `details` wird per `JSON_EXTRACT` schon in MySQL auf `stadiumDetails` reduziert, sonst wandern ~65 KB pro Spiel ueber die Leitung |
 | `getConstructionHistory` | Bau-Historie |
 
 ### 3D-Visualisierung (Three.js)
@@ -114,8 +126,19 @@ Jedes Team besitzt ein Stadion mit vier Tribuenen (Nord, Sued, Ost, West), die i
   vollstaendige Bezeichnungen (`Nordtribuene`, `NO-Tribuene`). Vorher wurde ein Kurzname mit dem
   Wort "tribuene" zusammengeklebt, was bei den Ecken zu "Ecke NOtribuene" fuehrte (#538).
 - **TA-STD-26**: Ausbau-Overlay (Button "Stadion Ausbauen" unter den Baumassnahmen): 8 Groessenfelder + 8 Dach-Checkboxen. Preis und Vorschau erscheinen erst nach Klick auf "Stadion berechnen"; bei ungueltiger Eingabe wird weder Preis noch Vorschau gezeigt. Die Vorschau ist eine 3D-Ansicht des geplanten Stadions mit langsam rotierender Kamera ohne Steuerung, darunter "Bau beauftragen".
-- **TA-STD-27**: Zuschauer-Tabelle: Letzte 5 Heimspiele mit Auslastung pro Tribuene.
-- **TA-STD-28**: Bau-Historie-Tabelle mit "In Progress"-Badge fuer laufende Bauten.
+- **TA-STD-27**: Zuschauer-Tabelle (`client/partials/stadiumAttendanceTable.js`): erste Spalte Liga-Spieltag
+  bzw. Pokalrunde bzw. "Friendlies" als Badge, zweite Spalte Gegner (Wappen + Kurzname), danach je Tribuene
+  **nur** die prozentuale Auslastung (absolute Zahlen stehen im `title`-Tooltip). Drei Toggle-Filter
+  (Liga-Spiele, Pokal-Spiele, Friendlies, alle aktiv beim Laden) stehen ueber der Tabelle, darunter eine
+  Pagination mit 5 Zeilen pro Seite. Ein Klick auf eine Zeile oeffnet das Spieldetail-Overlay
+  (`showGameModal`). Die Tabelle ist ein eigenes `UIElement`, damit Filter- und Seitenwechsel nicht die
+  Stadionseite und damit die Three.js-Szene neu rendern.
+- **TA-STD-28**: Bau-Historie-Tabelle. Laufende Bauten zeigen in der Spalte "Abgeschlossen" ein Badge
+  "Fertig in X Tagen" (bzw. "Fertig in 1 Tag" / "Fertig heute") aus `constructionInfo.<stand>.remainingGameDays`;
+  ist die Restzeit unbekannt, bleibt es beim "Im Bau"-Badge.
+- **TA-STD-45**: Die Tribuenengroessen zum Zeitpunkt eines Spiels werden nicht gespeichert. Die Auslastung
+  wird daher gegen die **heutige** Groesse gerechnet und bei 100% gekappt, damit eine inzwischen
+  abgerissene/verkleinerte Tribuene keine Werte ueber 100% zeigt.
 
 ### Tests
 

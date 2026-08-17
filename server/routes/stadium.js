@@ -12,6 +12,51 @@ import { query } from '../lib/database.js'
 import { t } from '../i18n/index.js'
 import { charLength } from '../lib/util.js'
 
+/**
+ * How many past home games the attendance table can page through.
+ * @type {number}
+ */
+const ATTENDANCE_GAME_LIMIT = 60
+
+/**
+ * The extracted `stadiumDetails` arrives as a JSON string (or NULL for games
+ * whose details never got one, e.g. forfeits). Objects are accepted too so a
+ * driver that pre-parses JSON columns keeps working.
+ * @param {object|string|null} value
+ * @returns {object}
+ */
+function _parseStadiumDetails (value) {
+  if (!value) return {}
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value) || {}
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Number of cup rounds per season, used by the client to name a round
+ * ("Final", "Semi-Final", …) from its `cup_round` bracket size.
+ * @param {Array<number>} seasons
+ * @returns {Promise<Object<number, number>>}
+ */
+async function _getTotalCupRoundsBySeason (seasons) {
+  if (seasons.length === 0) return {}
+  const rows = await query(
+    `SELECT season, MAX(cup_round) as maxRound
+     FROM game
+     WHERE game_type = 'cup' AND season IN (${seasons.map(() => '?').join(',')})
+     GROUP BY season`,
+    seasons
+  )
+  const bySeason = {}
+  for (const row of rows) {
+    bySeason[row.season] = row.maxRound ? Math.log2(row.maxRound) + 1 : 0
+  }
+  return bySeason
+}
+
 export default {
 
   /**
@@ -107,26 +152,81 @@ export default {
   },
 
   /**
+   * Attendance of the user's last home games — league, cup and friendly alike.
+   * The client filters and paginates locally, so the whole (bounded) window is
+   * returned at once.
+   *
+   * `game.details` is a ~65 KB LONGTEXT blob per game; pulling the full window
+   * of them just to read the stand attendance would move megabytes on every
+   * page load, so the JSON is narrowed down to `stadiumDetails` inside MySQL.
+   * Picking the window in a derived table first keeps that narrowing off every
+   * older home game as well — sorting the full history with the blob attached
+   * costs ~1.5s for a long-lived team, the derived table ~0.1s.
+   *
+   * Cup byes (`team_2_id IS NULL`) are no home games and drop out.
+   *
    * @param {Request} req
    * @returns {Promise<{attendance: Array}>}
    */
   async getStadiumAttendance (req) {
     const stadium = await getStadiumOfCurrentUser(req)
     const [team] = await query('SELECT * FROM team WHERE user_id=? LIMIT 1', [req.user.id])
-    const games = await query(
-      "SELECT * FROM game WHERE team_1_id=? AND played=1 AND game_type='league' ORDER BY season DESC, game_day DESC LIMIT 5",
-      [team.id]
+    const games = await query(`
+        SELECT g.id        as gameId,
+               g.season    as season,
+               g.game_day  as gameDay,
+               g.match_day as matchDay,
+               g.cup_round as cupRound,
+               g.game_type as gameType,
+               CAST(JSON_EXTRACT(IF(JSON_VALID(g.details), g.details, '{}'), '$.stadiumDetails') AS CHAR) as stadiumDetails,
+               t.id         as opponentId,
+               t.name       as opponentName,
+               t.short_name as opponentShortName,
+               t.emblem     as opponentEmblem,
+               t.color      as opponentColor
+        FROM (SELECT id, season, game_day
+              FROM game
+              WHERE team_1_id = ?
+                AND played = 1
+                AND team_2_id IS NOT NULL
+              ORDER BY season DESC, game_day DESC, id DESC
+              LIMIT ${ATTENDANCE_GAME_LIMIT}) sel
+                 JOIN game g ON g.id = sel.id
+                 JOIN team t ON t.id = g.team_2_id
+        ORDER BY sel.season DESC, sel.game_day DESC, sel.id DESC
+    `, [team.id])
+
+    const totalCupRoundsBySeason = await _getTotalCupRoundsBySeason(
+      [...new Set(games.filter(g => g.gameType === 'cup').map(g => g.season))]
     )
 
     const stands = ['north', 'south', 'east', 'west', 'corner_ne', 'corner_nw', 'corner_se', 'corner_sw']
     const attendance = games.map(game => {
-      const details = JSON.parse(game.details || '{}')
-      const sd = details.stadiumDetails || {}
-      const row = { season: game.season, gameDay: game.game_day, stands: {} }
+      const sd = _parseStadiumDetails(game.stadiumDetails)
+      const row = {
+        gameId: game.gameId,
+        season: game.season,
+        gameDay: game.gameDay,
+        gameType: game.gameType || 'league',
+        matchDay: game.matchDay,
+        cupRound: game.cupRound,
+        totalCupRounds: totalCupRoundsBySeason[game.season] ?? 0,
+        opponent: {
+          id: game.opponentId,
+          name: game.opponentName,
+          short_name: game.opponentShortName,
+          emblem: game.opponentEmblem,
+          color: game.opponentColor
+        },
+        stands: {}
+      }
       for (const stand of stands) {
         const guests = sd[stand + 'Guests'] || 0
         const size = stadium[stand + '_stand_size'] || 1
-        row.stands[stand] = { guests, size, percentage: Math.round((guests / size) * 100) }
+        // The stand sizes at the time of the game are not recorded, so an
+        // already-expanded stand would otherwise report more than 100%.
+        const percentage = Math.min(100, Math.round((guests / size) * 100))
+        row.stands[stand] = { guests, size, percentage }
       }
       return row
     })

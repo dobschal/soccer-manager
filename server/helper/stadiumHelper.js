@@ -10,15 +10,23 @@ import { cityNames } from '../lib/name-library.js'
 const _cityNameSet = new Set(cityNames)
 
 /**
- * Roof pricing. A new roof covers the whole stand and therefore lifts the
- * stand's build cost by `ROOF_PRICE_FACTOR` (at least `ROOF_PRICE_MIN`).
- * Keeping the roof while a stand grows only needs the cover extended over the
- * newly added seats, which is charged on top of those seats' price.
+ * Roof pricing. A roof is charged per seat it covers, so its cost scales with
+ * the stand underneath it — as does its payoff, which is a flat +20 % on that
+ * stand's ticket demand.
+ *
+ * The previous "20 % surcharge, at least 300.000 €" got this wrong at both
+ * ends. The flat minimum dominated small stands (a 1.000-seat stand earned back
+ * its 350.000 € roof only after ~8 seasons), while a roof retrofitted onto an
+ * existing stand skipped the percentage part entirely: `seatsDiff` is 0, so the
+ * surcharge fell through to the same 300.000 € whether the stand held 500 seats
+ * or 15.000 — 29x cheaper than putting that roof up together with the seats.
+ *
+ * Charging per covered seat removes both: cost tracks size, and building a
+ * stand in one go costs the same as growing it step by step (the roof extension
+ * uses the identical per-seat rate). `ROOF_PRICE_MIN` only guards tiny corners.
  */
-const ROOF_PRICE_MIN = 300_000
-const ROOF_PRICE_FACTOR = 1.2
-const ROOF_EXTENSION_PRICE_MIN = 100_000
-const ROOF_EXTENSION_PRICE_FACTOR = 0.2
+const ROOF_PRICE_PER_SEAT = 100
+const ROOF_PRICE_MIN = 50_000
 
 /**
  * Generate a default stadium name from a team name. The team name follows
@@ -367,13 +375,14 @@ export function calcuateStadiumBuild (currentStadium, plannedStadium) {
     let standPrice = calculateSeatExpansionPrice(currentStandSize, plannedStandSize)
 
     if (!currentRoof && plannedRoof) {
-      // A brand new roof spans the whole stand: 20 % on top of the seat price,
-      // but never less than ROOF_PRICE_MIN.
-      standPrice = Math.max(ROOF_PRICE_MIN, standPrice * ROOF_PRICE_FACTOR)
+      // A brand new roof spans the whole stand — including seats that were
+      // already standing there before this expansion.
+      standPrice += Math.max(ROOF_PRICE_MIN, plannedStandSize * ROOF_PRICE_PER_SEAT)
     } else if (currentRoof && plannedRoof && seatsDiff > 0) {
-      // The stand keeps its roof while growing, so the existing roof has to be
-      // extended over the added seats — charged on top of those seats.
-      standPrice += Math.max(ROOF_EXTENSION_PRICE_MIN, standPrice * ROOF_EXTENSION_PRICE_FACTOR)
+      // The stand keeps its roof while growing, so the existing roof only has
+      // to be extended over the added seats — same rate per seat, which makes
+      // "build big at once" and "grow in steps" cost the same.
+      standPrice += seatsDiff * ROOF_PRICE_PER_SEAT
     }
     // Tearing a roof down costs nothing — the stand just loses its cover.
 
