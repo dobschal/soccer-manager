@@ -3618,7 +3618,7 @@ const migrations = [{
     }
   }
 }, {
-  name: 'Wiki: the Europe tour pays four Master Training cards',
+  name: 'Wiki: Europe tour pays four cards, tour progress reduced and capped',
   async run () {
     const KEYS_TO_REFRESH = ['on-tour']
     for (const topic of WIKI_SEED) {

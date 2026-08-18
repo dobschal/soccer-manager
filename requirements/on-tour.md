@@ -48,10 +48,31 @@ Level-Up-Quelle, ohne dass eine gefuellte Leiste eine halbe Elf auf einmal hochz
 | Gleichzeitig entsendete Spieler | max. 3 (`MAX_PLAYERS_ON_TOUR`) |
 | Dauer je Entsendung | 3-7 Spieltage (`TOUR_MIN_DAYS` / `TOUR_MAX_DAYS`) |
 | Fortschritt fuer eine Belohnung | 30 Punkte (`TOUR_PROGRESS_TARGET`) |
-| Fortschritt je Spieler und Spieltag | `Spielerlevel / Kader-Durchschnittslevel` |
+| Fortschritt je Spieler und Spieltag | `min(Spielerlevel / Kader-Durchschnittslevel, 1,2) × 0,4` |
+| Ertrag eines durchschnittlichen Spielers | 0,4 (`TOUR_PROGRESS_PER_AVERAGE_PLAYER`) |
+| Deckel fuer das relative Level | 1,2 × Kaderdurchschnitt (`TOUR_MAX_RELATIVE_LEVEL`) |
 
-Drei durchschnittliche Spieler ueber die vollen sieben Spieltage ergeben 21 Punkte — eine Belohnung
-braucht also etwas mehr als eine komplette Entsendung.
+Drei durchschnittliche Spieler ueber die vollen sieben Spieltage ergeben 8,4 Punkte — eine Belohnung
+braucht also mehrere komplette Entsendungen.
+
+### Obergrenze: zwei Reisen pro Saison
+
+Der Ertrag ist so bemessen, dass **maximal zwei** abgeschlossene Reisen pro Saison drin sind: drei
+Spieler am Deckel bringen 1,44 Punkte pro Spieltag, also 20,8 Spieltage je Belohnung. Bei 42
+Spieltagen und keiner einzigen Pause zwischen den Entsendungen sind das 2,02 Reisen.
+
+Urspruenglich brachte ein Spieler das volle `Level / Kaderdurchschnitt` ohne Deckel. Zwei Effekte
+machten das zu viel:
+
+- Der fehlende Deckel belohnte **Kader-Padding**: wer viele Level-1-Jugendspieler haelt, drueckt
+  seinen eigenen Durchschnitt und laesst seine drei Stars dadurch das 2,5-fache eines
+  durchschnittlichen Spielers zaehlen. In der Produktion schaffte ein Verein mit 42 Spielern
+  (Durchschnitt 34,6) eine Belohnung alle 4-5 Spieltage — auf eine Saison gerechnet rund zehn.
+- Der Grundertrag von 1,0 pro durchschnittlichem Spieler ergab selbst ohne Padding gut vier Reisen
+  pro Saison.
+
+Der Deckel loest das Padding-Problem, der Faktor 0,4 den Grundertrag. Der Zielwert von 30 Punkten
+bleibt unveraendert, damit bereits gesammelter Fortschritt seinen Wert behaelt.
 
 ## Technische Anforderungen
 
@@ -72,9 +93,12 @@ braucht also etwas mehr als eine komplette Entsendung.
 ### Fortschritt (`server/helper/tourHelper.js`)
 
 - **TA-TOUR-03**: `tourProgressPerGameDay(level, kaderDurchschnitt)` bemisst den Beitrag **relativ
-  zum eigenen Kader**. Ein durchschnittlicher Spieler bringt genau 1,0, der beste rund 1,2. Dadurch
-  fuellt ein Viertligist den Balken genauso schnell wie ein Erstligist — die Reise ist keine
-  Belohnung fuer bereits starke Vereine.
+  zum eigenen Kader**. Ein durchschnittlicher Spieler bringt 0,4, ab dem 1,2-fachen Kaderdurchschnitt
+  gibt es den Deckelwert 0,48. Dadurch fuellt ein Viertligist den Balken genauso schnell wie ein
+  Erstligist — die Reise ist keine Belohnung fuer bereits starke Vereine.
+- **TA-TOUR-16**: Das relative Level wird bei `TOUR_MAX_RELATIVE_LEVEL` gedeckelt. Ohne Deckel
+  vergroessert ein aufgeblaehter Kader den eigenen Vorteil, weil der Kaderdurchschnitt im Nenner
+  steht — das Halten billiger Jugendspieler war damit eine Fortschrittsquelle.
 - **TA-TOUR-04**: `advanceTours()` laeuft einmal pro Spieltag im CRON, **nach** der Spielberechnung:
   Fortschritt gutschreiben, Reisetage herunterzaehlen, bei vollem Balken auszahlen.
 - **TA-TOUR-05**: Ueberschuss ueber die 30 Punkte wird in die naechste Reise uebernommen, statt

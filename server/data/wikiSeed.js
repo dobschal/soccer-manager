@@ -217,9 +217,9 @@ Sending players:
 • Changed your mind? As long as no match day has been played yet, you can call a player straight back — the trip has earned nothing, so nothing is lost. Once the first match day abroad is done, the trip is binding.
 
 Progress:
-• Each travelling player scores their level divided by your squad's average level, every match day. An average player is worth 1 point, your best around 1.2.
-• Because it is measured against your own squad, a fourth-division club fills the bar just as fast as a first-division one.
-• 30 points fill the bar. Three regular players away for the full seven match days get you most of the way there.
+• Each travelling player scores 0.4 points per match day, scaled by how their level compares to your squad's average. An average player is worth 0.4, and anyone at 1.2× the squad average or better earns the maximum 0.48 — being even stronger than that adds nothing.
+• Because it is measured against your own squad, a fourth-division club fills the bar just as fast as a first-division one. And because the bonus is capped, filling your squad with cheap youth players to drag the average down does not speed anything up.
+• 30 points fill the bar. Three players away without a single break need about half a season, so two completed tours per season is the most anyone can get.
 • Anything above 30 carries over into the next tour, so a strong final day is never wasted.
 • The hatched section of the bar previews what your travellers will add on the next match day.
 
@@ -244,9 +244,9 @@ Spieler entsenden:
 • Doch anders überlegt? Solange noch kein Spieltag gespielt wurde, kannst du einen Spieler sofort zurückholen — die Reise hat nichts eingebracht, also geht auch nichts verloren. Nach dem ersten Spieltag im Ausland ist die Reise bindend.
 
 Fortschritt:
-• Jeder reisende Spieler bringt pro Spieltag sein Level geteilt durch das Durchschnittslevel deines Kaders. Ein durchschnittlicher Spieler ist 1 Punkt wert, dein bester rund 1,2.
-• Weil am eigenen Kader gemessen wird, füllt ein Viertligist den Balken genauso schnell wie ein Erstligist.
-• 30 Punkte füllen den Balken. Drei Stammspieler über die vollen sieben Spieltage bringen dich fast ans Ziel.
+• Jeder reisende Spieler bringt pro Spieltag 0,4 Punkte, gewichtet danach, wie sein Level zum Durchschnittslevel deines Kaders steht. Ein durchschnittlicher Spieler ist 0,4 wert, ab dem 1,2-fachen Kaderdurchschnitt gibt es das Maximum von 0,48 — noch stärker bringt nichts mehr.
+• Weil am eigenen Kader gemessen wird, füllt ein Viertligist den Balken genauso schnell wie ein Erstligist. Und weil der Bonus begrenzt ist, beschleunigt es nichts, den Kader mit billigen Jugendspielern aufzufüllen, um den Durchschnitt zu drücken.
+• 30 Punkte füllen den Balken. Drei Spieler ohne eine einzige Pause brauchen dafür etwa eine halbe Saison — mehr als zwei abgeschlossene Reisen pro Saison sind also nicht drin.
 • Was über 30 hinausgeht, wird in die nächste Reise übernommen — ein starker letzter Tag verfällt also nie.
 • Der schraffierte Bereich im Balken zeigt vorab, wie viel deine Reisenden am nächsten Spieltag dazugewinnen.
 

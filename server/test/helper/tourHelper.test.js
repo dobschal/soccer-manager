@@ -25,7 +25,9 @@ import {
   sendPlayersOnTour,
   setTourMode,
   TOUR_MAX_DAYS,
+  TOUR_MAX_RELATIVE_LEVEL,
   TOUR_MIN_DAYS,
+  TOUR_PROGRESS_PER_AVERAGE_PLAYER,
   TOUR_PROGRESS_TARGET,
   TOURS,
   tourProgressPerGameDay
@@ -55,13 +57,32 @@ beforeEach(() => {
 })
 
 describe('tourProgressPerGameDay (#535)', () => {
-  it('scores an average player at exactly 1', () => {
-    expect(tourProgressPerGameDay(50, 50)).toBe(1)
+  it('scores an average player at the average yield', () => {
+    expect(tourProgressPerGameDay(50, 50)).toBeCloseTo(TOUR_PROGRESS_PER_AVERAGE_PLAYER)
   })
 
   it('scores a better player higher and a worse one lower', () => {
-    expect(tourProgressPerGameDay(60, 50)).toBeCloseTo(1.2)
-    expect(tourProgressPerGameDay(25, 50)).toBeCloseTo(0.5)
+    expect(tourProgressPerGameDay(55, 50)).toBeCloseTo(1.1 * TOUR_PROGRESS_PER_AVERAGE_PLAYER)
+    expect(tourProgressPerGameDay(25, 50)).toBeCloseTo(0.5 * TOUR_PROGRESS_PER_AVERAGE_PLAYER)
+  })
+
+  it('caps a star so padding the squad with youth players stops paying', () => {
+    // The exploit this cap closes: 42 players with a long level-1 tail drag the
+    // average to ~35, which used to make an 87 count 2.5 average players.
+    const capped = TOUR_MAX_RELATIVE_LEVEL * TOUR_PROGRESS_PER_AVERAGE_PLAYER
+    expect(tourProgressPerGameDay(87, 34.55)).toBeCloseTo(capped)
+    expect(tourProgressPerGameDay(100, 10)).toBeCloseTo(capped)
+    // Just below the cap is still scored exactly.
+    expect(tourProgressPerGameDay(50, 50)).toBeLessThan(capped)
+  })
+
+  it('keeps two completed tours per season as the ceiling', () => {
+    // Three players at the capped maximum, away every game day of a 42 game
+    // day season, may not fill the bar a third time (#535 follow-up).
+    const perGameDay = 3 * tourProgressPerGameDay(100, 50)
+    const completions = (perGameDay * 42) / TOUR_PROGRESS_TARGET
+    expect(completions).toBeGreaterThanOrEqual(2)
+    expect(completions).toBeLessThan(3)
   })
 
   it('is relative to the squad, so a small club is not disadvantaged', () => {
@@ -268,8 +289,8 @@ describe('advanceTours (#535)', () => {
     ])
     await advanceTours()
     const update = calls.find(c => c.sql.includes('UPDATE team_tour SET progress=?'))
-    // One player at exactly the squad average → 1 point.
-    expect(update.params[0]).toBeCloseTo(1)
+    // Only the travelling one counts, at exactly the average player's yield.
+    expect(update.params[0]).toBeCloseTo(TOUR_PROGRESS_PER_AVERAGE_PLAYER)
   })
 
   it('counts every travelling player down by one match day', async () => {
@@ -287,13 +308,13 @@ describe('advanceTours (#535)', () => {
   })
 
   it('pays out and carries the surplus once the bar fills', async () => {
-    const { calls } = mockTeamOnTour(TOUR_PROGRESS_TARGET - 0.5, [{ level: 50, tour_days_left: 2 }])
+    const { calls } = mockTeamOnTour(TOUR_PROGRESS_TARGET - 0.1, [{ level: 50, tour_days_left: 2 }])
     const result = await advanceTours()
 
     expect(result.rewarded).toBe(1)
     const update = calls.find(c => c.sql.includes('UPDATE team_tour SET progress=?'))
-    // 29.5 + 1 - 30 = 0.5 carried into the next tour rather than dropped.
-    expect(update.params[0]).toBeCloseTo(0.5)
+    // The overshoot is carried into the next tour rather than dropped.
+    expect(update.params[0]).toBeCloseTo(TOUR_PROGRESS_PER_AVERAGE_PLAYER - 0.1)
     expect(calls.some(c => c.sql.includes('INSERT INTO action_card'))).toBe(true)
   })
 

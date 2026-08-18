@@ -23,8 +23,9 @@ export const TOURS = [
 export const TOUR_KEYS = TOURS.map(tour => tour.key)
 
 /**
- * Progress needed to fill the bar. One average player away for one game day
- * scores 1 point, so this is roughly "three regulars for two full trips".
+ * Progress needed to fill the bar. With three players away without a break, a
+ * full bar takes about half a season, so two completed tours per season is the
+ * ceiling for a manager who never leaves a slot empty.
  */
 export const TOUR_PROGRESS_TARGET = 30
 
@@ -41,16 +42,37 @@ export const TOUR_MAX_DAYS = 7
 export const MAX_PLAYERS_ON_TOUR = 3
 
 /**
+ * What an average player earns per game day away. Three of them on tour without
+ * a break fill the bar roughly twice over a 42 game day season — the intended
+ * ceiling (see {@link TOUR_PROGRESS_TARGET}).
+ */
+export const TOUR_PROGRESS_PER_AVERAGE_PLAYER = 0.4
+
+/**
+ * How far above their squad's average a player may count.
+ *
+ * The level is deliberately measured relative to the own squad so a
+ * fourth-division club fills the bar as fast as a first-division one — but
+ * without a ceiling that backfires: a club hoarding cheap level-1 youth players
+ * drags its own average down and thereby makes its three stars count 2.5× an
+ * average player. Capping the ratio takes the reward out of squad padding.
+ */
+export const TOUR_MAX_RELATIVE_LEVEL = 1.2
+
+/**
  * A player's contribution per game day, measured against their own squad so a
  * fourth-division club can fill the bar as fast as a first-division one. An
- * average player scores 1.0, the squad's best around 1.2.
+ * average player scores {@link TOUR_PROGRESS_PER_AVERAGE_PLAYER}, anyone from
+ * {@link TOUR_MAX_RELATIVE_LEVEL} times the squad average upwards scores the
+ * capped maximum.
  * @param {number} playerLevel
  * @param {number} squadAverageLevel
  * @returns {number}
  */
 export function tourProgressPerGameDay (playerLevel, squadAverageLevel) {
   if (!squadAverageLevel || squadAverageLevel <= 0) return 0
-  return Math.max(0, Number(playerLevel) || 0) / squadAverageLevel
+  const relativeLevel = Math.max(0, Number(playerLevel) || 0) / squadAverageLevel
+  return Math.min(relativeLevel, TOUR_MAX_RELATIVE_LEVEL) * TOUR_PROGRESS_PER_AVERAGE_PLAYER
 }
 
 /**
