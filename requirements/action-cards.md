@@ -9,8 +9,8 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 ### Karten erhalten
 
 - **US-AC-01**: Als Spieler erhalte ich nach jedem Spieltag automatisch neue Aktionskarten, damit ich strategische Vorteile sammeln kann.
-- **US-AC-02**: Als Spieler sehe ich neue Karten als verdeckte Karten auf dem Dashboard, die ich durch Antippen aufdecken kann (Flip-Animation).
-- **US-AC-03**: Als Spieler kann ich alle noch nicht aufgedeckten Karten mit einem "Skip"-Button oder ESC-Taste auf einmal einsammeln.
+- **US-AC-02**: Als Spieler sehe ich neue Karten als verdeckte Karten auf dem Dashboard, die ich durch Antippen aufdecken kann (Flip-Animation). Ein Tippen an beliebiger Stelle des Overlays deckt auf bzw. blendet die aufgedeckte Karte aus – nur der "Skip"-Button hat sein eigenes Verhalten.
+- **US-AC-03**: Als Spieler kann ich alle noch nicht aufgedeckten Karten mit einem "Skip"-Button oder ESC-Taste auf einmal einsammeln. Bereits aufgedeckte (und damit schon eingesammelte) Karten werden dabei nicht erneut eingesammelt, damit kein Fehler-Toast erscheint.
 
 ### Karten verwalten
 

@@ -1015,7 +1015,7 @@ export default {
   'actionCards.medicalTreatmentSuccess': '{playerName} was treated — one game day less on the sidelines!',
   'actionCards.noInjuredPlayer': 'Nobody is injured right now — keep the card for when it happens.',
   // Card Claim Overlay
-  'actionCards.claim.tapToReveal': 'Tap the card to reveal it!',
+  'actionCards.claim.tapToReveal': 'Tap anywhere to reveal the card!',
   'actionCards.claim.tapToContinue': 'Tap to continue!',
   'actionCards.claim.skip': 'Skip',
   'actionCards.claim.failed': 'Could not claim the card.',
