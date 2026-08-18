@@ -21,7 +21,21 @@ const MILESTONE_ICONS = {
  * streak leaderboard.
  */
 export class DailyLoginBar extends UIElement {
-  async load () {
+  /**
+   * @param {boolean} isUpdate - true when triggered by `update(true)`
+   * @returns {Promise<void>}
+   */
+  async load (isUpdate) {
+    // A dashboard refresh (app resume, navigating back to #dashboard) rebuilds
+    // the start sub-page, which re-renders this bar. Awaiting the status here
+    // would leave the card as a zero-height placeholder for the length of a
+    // round trip — the card blinks out and everything below it jumps up and
+    // back down. So an instance that already has a status renders straight
+    // from it and reconciles in the background instead.
+    if (this.status && !isUpdate) {
+      void this._refreshInBackground()
+      return
+    }
     try {
       this.status = await server.getDailyLoginStatus()
     } catch {
@@ -55,7 +69,6 @@ export class DailyLoginBar extends UIElement {
       </div>
     `
   }
-
   get events () {
     return {
       '(optional).daily-login-bar': {
@@ -80,6 +93,28 @@ export class DailyLoginBar extends UIElement {
           void this._collectReward()
         }
       }
+    }
+  }
+  /**
+   * Refetch the status without holding up the render and patch the card only
+   * when something actually changed (a new day, a gift that became available).
+   * The common case — nothing changed — touches the DOM not at all, so no
+   * re-render and no flicker. Failures keep the last known state on screen.
+   *
+   * @returns {Promise<void>}
+   */
+  async _refreshInBackground () {
+    if (this._refreshing) return
+    this._refreshing = true
+    try {
+      const status = await server.getDailyLoginStatus()
+      if (JSON.stringify(status) === JSON.stringify(this.status)) return
+      this.status = status
+      await this.update()
+    } catch {
+      // Keep showing what we have.
+    } finally {
+      this._refreshing = false
     }
   }
 
@@ -269,4 +304,5 @@ export class DailyLoginBar extends UIElement {
 
   status = null
   _collecting = false
+  _refreshing = false
 }

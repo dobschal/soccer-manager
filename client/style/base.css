@@ -112,6 +112,29 @@ select.form-control {
     display: none;
 }
 
+/* Boot screen: the bouncing ball painted by index.html before any JS runs. It
+   is an opaque full-screen cover so the layout chrome and the empty white
+   `#page` render behind it; the router fades it out once the first page has
+   finished loading. See client/lib/bootScreen.js. */
+.boot-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #222;
+    transition: opacity 250ms ease-out;
+}
+
+.boot-screen--hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
 /* Loading indicator placeholder rendered by UIElement when showLoadingIndicator is true */
 .ui-element-loading {
     display: flex;

@@ -16,6 +16,7 @@ import { maybeShowSpielTickerOverlay } from '../partials/spielTickerOverlay.js'
 import { maybeShowEmailPrompt } from '../partials/emailPromptDialog.js'
 import { CHAT_MESSAGES_READ_EVENT } from '../partials/chatOverlay.js'
 import { TabbedPage } from '../lib/TabbedPage.js'
+import { DailyLoginBar } from '../partials/dailyLoginBar.js'
 
 export class DashboardPage extends TabbedPage {
   async load () {
@@ -402,9 +403,20 @@ export class DashboardPage extends TabbedPage {
       standing: this.standing,
       teamPosition: this.teamPosition,
       urgencies: this._urgencies,
-      newMessageCount: this._newMessageCount
+      newMessageCount: this._newMessageCount,
+      // Outlives the start sub-page on purpose, so refreshing the dashboard
+      // doesn't blank the card while its status is refetched (#501).
+      dailyLoginBar: this._dailyLoginBar
     })
   }
+
+  /**
+   * Lives on the page, not on the start sub-page: `load()` drops the cached
+   * start page and `_refreshStartPageData()` builds a fresh one, while this
+   * instance keeps its already-loaded status across both.
+   * @type {DailyLoginBar}
+   */
+  _dailyLoginBar = new DailyLoginBar()
 
   /**
    * Override to also manage badge DOM elements

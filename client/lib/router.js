@@ -4,6 +4,7 @@ import { el } from './html.js'
 import { hideNavigation } from '../layouts/gameLayout.js'
 import { server } from './gateway.js'
 import { trackPageView } from './tracking.js'
+import { captureBootScreen, hideBootScreen, restoreBootScreen } from './bootScreen.js'
 
 let pages, lastKey
 /** @type {Object<string, {page: Object, wrapper: HTMLElement}>} */
@@ -110,6 +111,9 @@ export function refreshCurrentPage () {
 
 export function initRouter (p) {
   pages = p
+  // Hold on to the boot screen node before any layout render replaces <body>,
+  // so it can cover the app until the first page is actually on screen.
+  captureBootScreen()
   window.addEventListener('hashchange', _resolvePage)
   _resolvePage().then(() => console.log('⚙️ Router initialised and first page resolved.'))
 }
@@ -151,7 +155,6 @@ export function getQueryParams () {
 
 let currentLayoutRenderFn
 let _pageSettledTimer
-let _initialLoaderRemoved = false
 
 /**
  * @param {string|undefined} fromPath
@@ -331,10 +334,6 @@ async function _resolvePage () {
   // Track the page view once per actual page change (query-only changes hit
   // the same-key early return above and are skipped).
   trackPageView(currentPath)
-  if (!_initialLoaderRemoved) {
-    _initialLoaderRemoved = true
-    document.getElementById('initial-loading-ball')?.remove()
-  }
   const layoutChanged = await _renderLayout(layoutRenderFn)
 
   if (layoutChanged) {
@@ -414,6 +413,9 @@ async function _renderNewPage (PageUIElement, cacheKey, pageElement, oldWrapper,
  * @returns {void}
  */
 function _afterPageLoad () {
+  // First page is on screen with its data loaded — only now is it safe to
+  // uncover the app, so the cold start goes straight from ball to dashboard.
+  hideBootScreen()
   fire('page-changed')
   window.scrollTo({
     top: 0,
@@ -438,6 +440,9 @@ async function _renderLayout (LayoutElement) {
     }
     const layout = new LayoutElement()
     document.body.innerHTML = layout.toString()
+    // Assigning innerHTML detached the boot screen — put it back on top so the
+    // chrome and the still-empty #page render behind it (no-op once hidden).
+    restoreBootScreen()
     // Wait for layout to be rendered
     await new Promise(resolve => {
       const interval = setInterval(() => {

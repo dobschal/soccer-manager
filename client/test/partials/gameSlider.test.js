@@ -211,6 +211,143 @@ describe('GameSlider', () => {
     })
   })
 
+  describe('extra slide', () => {
+    const playedGame = {
+      id: 11,
+      team1Id: 42,
+      team2Id: 99,
+      team1: 'My Team',
+      team2: 'Other Team',
+      team1Data: { name: 'My Team' },
+      team2Data: { name: 'Other Team' },
+      goalsTeam1: 1,
+      goalsTeam2: 1,
+      isPlayed: true,
+      playedAt: null
+    }
+
+    it('appends the extra slide after the games and gives it an indicator', () => {
+      const slider = new GameSlider({
+        games: [playedGame],
+        teamId: 42,
+        extraSlide: '<button>play</button>'
+      })
+      const html = slider.template
+
+      expect(html).toContain('game-slider-slide--extra')
+      expect(html).toContain('<button>play</button>')
+      // One dot per game plus one for the extra slide.
+      expect((html.match(/class="game-slider-indicator /g) || [])).toHaveLength(2)
+      // The extra slide comes last in the track.
+      expect(html.indexOf('game-slider-slide--extra')).toBeGreaterThan(html.indexOf('data-index="0"'))
+    })
+
+    it('marks the extra slide active when it is the initial slide', () => {
+      const slider = new GameSlider({
+        games: [playedGame],
+        teamId: 42,
+        initialIndex: 1,
+        extraSlide: '<button>play</button>'
+      })
+      const html = slider.template
+
+      expect(html).toContain('game-slider-slide game-slider-slide--extra active')
+    })
+
+    it('renders nothing without games and without an extra slide', () => {
+      expect(new GameSlider({ games: [], teamId: 42 }).template).toBe('')
+    })
+
+    it('renders the extra slide even without games', () => {
+      const html = new GameSlider({ games: [], teamId: 42, extraSlide: '<button>play</button>' }).template
+      expect(html).toContain('game-slider-slide--extra')
+    })
+
+    it('lets navigation reach the extra slide', () => {
+      const slider = new GameSlider({
+        games: [playedGame],
+        teamId: 42,
+        extraSlide: '<button>play</button>'
+      })
+      expect(slider._slideCount()).toBe(2)
+
+      document.body.innerHTML = `<div>${slider.template}</div>`
+      const track = document.querySelector('.game-slider-track')
+      track.scrollTo = vi.fn()
+
+      slider._navigate(1)
+      expect(slider._sliderIndex).toBe(1)
+      expect(track.scrollTo).toHaveBeenCalled()
+
+      // The extra slide is the last one — no further navigation.
+      track.scrollTo.mockClear()
+      slider._navigate(1)
+      expect(slider._sliderIndex).toBe(1)
+      expect(track.scrollTo).not.toHaveBeenCalled()
+    })
+
+    it('binds the extra slide action button on mount, not via a one-shot id lookup', () => {
+      const onExtraSlideAction = vi.fn()
+      const slider = new GameSlider({
+        games: [playedGame],
+        teamId: 42,
+        extraSlide: '<button class="game-slider-action-button">play</button>',
+        onExtraSlideAction
+      })
+      document.body.innerHTML = slider.template
+      // _renderIntoDOM stamps the render id on the template's root node; do the
+      // same so _applyEventHandlers can find the element and its children.
+      document.querySelector('.game-slider').setAttribute('data-render_id', slider._renderId)
+      slider._applyEventHandlers()
+
+      document.querySelector('.game-slider-action-button').click()
+
+      expect(onExtraSlideAction).toHaveBeenCalled()
+    })
+
+    it('registers no events when there is no extra slide action', () => {
+      const slider = new GameSlider({ games: [playedGame], teamId: 42 })
+      expect(slider.events).toEqual({})
+    })
+
+    it('clashes the own team color against grey while the extra slide is active', () => {
+      const slider = new GameSlider({
+        games: [{ ...playedGame, team1Data: { name: 'My Team', color: '#112233' }, team2Data: { name: 'Other Team', color: '#445566' } }],
+        teamId: 42,
+        initialIndex: 1,
+        cardId: 'friendly-card',
+        extraSlide: '<button>play</button>',
+        extraSlideColor: '#abcdef'
+      })
+      document.body.innerHTML = `<div id="friendly-card"></div><div>${slider.template}</div>`
+
+      slider._updateCardGradient()
+
+      const card = document.getElementById('friendly-card')
+      expect(card.classList.contains('card-gradient-animate')).toBe(true)
+      expect(card.style.getPropertyValue('--color-left-25')).toBe('#abcdefff')
+      expect(card.style.getPropertyValue('--color-right-25')).toBe('#495057ff')
+    })
+
+    it('paints the game colors again once a game slide becomes active', () => {
+      const slider = new GameSlider({
+        games: [{ ...playedGame, team1Data: { name: 'My Team', color: '#112233' }, team2Data: { name: 'Other Team', color: '#445566' } }],
+        teamId: 42,
+        initialIndex: 0,
+        cardId: 'friendly-card',
+        extraSlide: '<button>play</button>',
+        extraSlideColor: '#abcdef'
+      })
+      document.body.innerHTML = `<div id="friendly-card"></div><div>${slider.template}</div>`
+
+      slider._updateCardGradient()
+
+      const card = document.getElementById('friendly-card')
+      expect(card.style.getPropertyValue('--color-left-25')).toBe('#112233ff')
+      expect(card.style.getPropertyValue('--color-right-25')).toBe('#445566ff')
+    })
+  })
+
   it('opens the head-to-head overlay when the center of an upcoming game is clicked', () => {
     const upcomingGame = {
       id: 8,

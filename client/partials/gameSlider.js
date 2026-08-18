@@ -7,6 +7,12 @@ import { showGameModal } from './gameModal.js'
 import { showHeadToHeadOverlay } from './headToHeadOverlay.js'
 import { shortenTeamName } from '../util/team.js'
 
+/** Fallback color for teams without one of their own. */
+const DEFAULT_TEAM_COLOR = '#1a5f7a'
+
+/** Grey half of the gradient standing in for the not yet drawn random opponent. */
+const UNKNOWN_OPPONENT_COLOR = '#495057'
+
 /**
  * Game slider component for displaying past and upcoming games
  */
@@ -17,12 +23,23 @@ export class GameSlider extends UIElement {
    * @param {number} options.teamId - Current user's team ID
    * @param {number} options.initialIndex - Index of the initially active slide
    * @param {string} [options.cardId] - ID of wrapper card element to apply team color gradient to
+   * @param {string} [options.extraSlide] - HTML for an additional slide appended after the games
+   *   (e.g. a call-to-action). Rendered with its own indicator dot.
+   * @param {string} [options.extraSlideColor] - Own team's color used for the card gradient while
+   *   the extra slide is active (the other half stays grey).
+   * @param {(event: MouseEvent) => void} [options.onExtraSlideAction] - Click handler for the
+   *   `.game-slider-action-button` inside the extra slide. The slide's markup only reaches the DOM
+   *   once this UIElement finished rendering, which is too late for the parent's id-based
+   *   `onClick()` lookup — so the handler has to be bound here, from `events`.
    */
   constructor ({
     games = [],
     teamId,
     initialIndex = 0,
-    cardId
+    cardId,
+    extraSlide = '',
+    extraSlideColor,
+    onExtraSlideAction
   }) {
     super()
     this._games = games
@@ -30,9 +47,13 @@ export class GameSlider extends UIElement {
     this._sliderIndex = initialIndex
     this._initialIndex = initialIndex
     this._cardId = cardId
+    this._extraSlide = extraSlide
+    this._extraSlideColor = extraSlideColor
+    this._onExtraSlideAction = onExtraSlideAction
   }
+
   get template () {
-    if (this._games.length === 0) {
+    if (this._games.length === 0 && !this._extraSlide) {
       return ''
     }
 
@@ -87,13 +108,26 @@ export class GameSlider extends UIElement {
       `
     }).join('')
 
-    const indicators = this._games.map((game, index) => {
+    // Optional trailing call-to-action slide (e.g. "play a random friendly").
+    const extraIndex = this._games.length
+    const extraSlideHtml = this._extraSlide
+      ? `
+        <div class="game-slider-slide game-slider-slide--extra${extraIndex === this._initialIndex ? ' active' : ''}" data-index="${extraIndex}">
+          ${this._extraSlide}
+        </div>
+      `
+      : ''
+
+    const gameIndicators = this._games.map((game, index) => {
       const isActive = index === this._initialIndex
       const isPast = game.isPlayed
       const indicatorId = generateId()
       onClick('#' + indicatorId, () => this._goToSlide(index))
       return `<span id="${indicatorId}" class="game-slider-indicator ${isActive ? 'active' : ''} ${isPast ? 'past' : 'upcoming'}" data-index="${index}"></span>`
     }).join('')
+
+    const extraIndicator = this._extraSlide ? this._renderExtraIndicator(extraIndex) : ''
+    const indicators = `${gameIndicators}${extraIndicator}`
 
     return `
       <div id="${this._sliderId}" class="game-slider">
@@ -102,6 +136,7 @@ export class GameSlider extends UIElement {
         </button>
         <div class="game-slider-track">
           ${slides}
+          ${extraSlideHtml}
         </div>
         <button id="${nextBtnId}" class="game-slider-nav game-slider-next d-none d-lg-block" aria-label="Next">
           <i class="fa fa-chevron-right" aria-hidden="true"></i>
@@ -112,6 +147,15 @@ export class GameSlider extends UIElement {
       </div>
     `
   }
+  get events () {
+    if (!this._onExtraSlideAction) return {}
+    return {
+      '(optional) .game-slider-action-button': {
+        click: (event) => this._onExtraSlideAction(event)
+      }
+    }
+  }
+  
   onMounted () {
     this._setupScrollSnap()
     this._startCountdownTimer()
@@ -148,6 +192,26 @@ export class GameSlider extends UIElement {
   _positionObserver = null
 
   /**
+   * Indicator dot for the trailing call-to-action slide.
+   * @param {number} extraIndex - Slide index of the extra slide
+   * @returns {string}
+   */
+  _renderExtraIndicator (extraIndex) {
+    const indicatorId = generateId()
+    onClick('#' + indicatorId, () => this._goToSlide(extraIndex))
+    const isActive = extraIndex === this._initialIndex
+    return `<span id="${indicatorId}" class="game-slider-indicator upcoming ${isActive ? 'active' : ''}" data-index="${extraIndex}"></span>`
+  }
+
+  /**
+   * Total number of slides, including the optional extra slide.
+   * @returns {number}
+   */
+  _slideCount () {
+    return this._games.length + (this._extraSlide ? 1 : 0)
+  }
+
+  /**
    * Generate the center content for a game slide based on its state
    * @param {Object} game
    * @param {boolean} [isBye] - True when the team has a bye (no opponent)
@@ -160,13 +224,13 @@ export class GameSlider extends UIElement {
       // Played game: show game day, result, and date/time. Byes show "-" since
       // the auto-advance scoreline (0:0) would otherwise misrepresent the round.
       const playedAtHtml = game.playedAt
-        ? `<small class="d-block mt-1">${new Date(game.playedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</small>`
+        ? `<small class="d-block mt-1 u-nowrap">${new Date(game.playedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}</small>`
         : ''
       const scoreDisplay = isBye
         ? '-'
         : `${game.goalsTeam1 ?? '-'}:${game.goalsTeam2 ?? '-'}`
       return `
-        <small class="d-block mb-1">${label}</small>
+        <small class="d-block mb-1 u-nowrap">${label}</small>
         <h3 class="mb-0"><span class="badge bg-info">${scoreDisplay}</span></h3>
         ${playedAtHtml}
       `
@@ -182,7 +246,7 @@ export class GameSlider extends UIElement {
         gameDate: null
       })
       return `
-        <small class="d-block mb-1">${label}</small>
+        <small class="d-block mb-1 u-nowrap">${label}</small>
         <div class="badge p-2 countdown-badge">
           <i class="fa fa-clock-o" aria-hidden="true"></i><br>
           <span id="${countdownId}">--:--:--</span>
@@ -201,7 +265,7 @@ export class GameSlider extends UIElement {
         : t('dashboard.inDays', { days: daysAway })
 
       return `
-        <small class="d-block mb-1">${label}</small>
+        <small class="d-block mb-1 u-nowrap">${label}</small>
         <div class="badge p-2 countdown-badge">
           <i class="fa fa-calendar" aria-hidden="true"></i><br>
           <span>${daysText}</span>
@@ -216,7 +280,7 @@ export class GameSlider extends UIElement {
       gameDate
     })
     return `
-      <small class="d-block mb-1">${label}</small>
+      <small class="d-block mb-1 u-nowrap">${label}</small>
       <div class="badge p-2 countdown-badge">
         <i class="fa fa-clock-o" aria-hidden="true"></i><br>
         <span id="${countdownId}">--:--:--</span>
@@ -305,7 +369,7 @@ export class GameSlider extends UIElement {
    */
   _navigate (offset) {
     const newIndex = this._sliderIndex + offset
-    if (newIndex < 0 || newIndex >= this._games.length) return
+    if (newIndex < 0 || newIndex >= this._slideCount()) return
     this._goToSlide(newIndex)
   }
 
@@ -315,7 +379,7 @@ export class GameSlider extends UIElement {
    * @param {number} index - Target slide index
    */
   _goToSlide (index) {
-    if (index < 0 || index >= this._games.length) return
+    if (index < 0 || index >= this._slideCount()) return
     const slider = el('#' + this._sliderId)
     if (!slider) return
     const track = slider.querySelector('.game-slider-track')
@@ -357,10 +421,15 @@ export class GameSlider extends UIElement {
     if (!this._cardId) return
     const card = el('#' + this._cardId)
     if (!card) return
+    // The extra call-to-action slide has no game of its own: it clashes the own
+    // team's color against grey, standing for the yet unknown random opponent.
     const game = this._games[this._sliderIndex]
-    if (!game) return
-    const color2 = game.team1Data?.color || '#1a5f7a'
-    const color1 = game.team2Data?.color || '#1a5f7a'
+    const color2 = game
+      ? game.team1Data?.color || DEFAULT_TEAM_COLOR
+      : this._extraSlideColor || DEFAULT_TEAM_COLOR
+    const color1 = game
+      ? game.team2Data?.color || DEFAULT_TEAM_COLOR
+      : UNKNOWN_OPPONENT_COLOR
     card.style.setProperty('--color-left-25', color2 + 'ff')
     card.style.setProperty('--color-left-50', color2 + 'bb')
     card.style.setProperty('--color-right-25', color1 + 'ff')

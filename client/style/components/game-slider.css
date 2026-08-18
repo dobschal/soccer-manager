@@ -24,6 +24,7 @@
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    overflow-y: hidden;
 }
 
 .game-slider-track::-webkit-scrollbar {
@@ -35,6 +36,28 @@
     scroll-snap-align: center;
     scroll-snap-stop: always;
     min-width: 0;
+}
+
+/* Trailing call-to-action slide (e.g. "play a random friendly"): stretches to
+ * the height of the game slides so the track doesn't jump between them. */
+.game-slider-slide--extra {
+    display: flex;
+}
+
+.game-slider-action-slide {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 108px;
+    padding: 0 1rem;
+}
+
+@media screen and (min-width: 768px) {
+    .game-slider-action-slide {
+        min-height: 168px;
+    }
 }
 
 /* Navigation Buttons */
@@ -107,6 +130,7 @@
     position: relative !important;
     overflow: hidden !important;
     isolation: isolate;
+    border: none;
 }
 
 .card-gradient-animate::before,
@@ -146,6 +170,15 @@
     }
     100% {
         transform: translateX(0);
+    }
+}
+
+/* On mobile the gradient card goes full-bleed: the negative horizontal margin
+ * pulls it out past the page container's padding and the border is dropped so
+ * the clashing team colors run edge to edge. */
+@media screen and (max-width: 768px) {
+    .card-gradient-animate {
+        margin: 0 -2rem;
     }
 }
 

@@ -28,6 +28,9 @@ export class StartPage {
    * @param {number} options.teamPosition
    * @param {Array} options.urgencies
    * @param {number} [options.newMessageCount]
+   * @param {DailyLoginBar} [options.dailyLoginBar] - passed in by DashboardPage
+   *   so the same instance survives a start-page rebuild (see
+   *   `_getDailyLoginBar`)
    */
   constructor ({
     sliderGames,
@@ -39,7 +42,8 @@ export class StartPage {
     standing,
     teamPosition,
     urgencies,
-    newMessageCount
+    newMessageCount,
+    dailyLoginBar
   }) {
     this._sliderGames = sliderGames
     this._initialSlideIndex = initialSlideIndex
@@ -51,6 +55,7 @@ export class StartPage {
     this.teamPosition = teamPosition
     this._urgencies = urgencies
     this._newMessageCount = newMessageCount || 0
+    this._dailyLoginBar = dailyLoginBar ?? null
   }
   /** Rows shown before the "show all" toggle collapses the rest. */
   static URGENCY_PREVIEW_COUNT = 3
@@ -117,8 +122,11 @@ export class StartPage {
   }
 
   /**
-   * Lazy-init and cache the daily-login bar so a dashboard re-render reuses
-   * the same instance instead of re-fetching and flickering (#501).
+   * The daily-login bar. DashboardPage hands its own instance in, because a
+   * dashboard refresh throws this StartPage away and builds a new one — an
+   * instance owned here would be new every time, refetch its status, and blink
+   * the card out while the request is in flight (#501). Reusing the instance
+   * lets `DailyLoginBar.load()` render straight from the status it already has.
    * @returns {DailyLoginBar}
    */
   _getDailyLoginBar () {
@@ -365,9 +373,10 @@ export class StartPage {
    * @returns {GameSlider|string}
    */
   _renderFriendlyGames (cardId) {
-    const playButton = this._canPlayFriendly ? this._renderPlayRandomFriendlyButton() : ''
-
     if (this._friendlyGames.length === 0) {
+      const playButton = this._canPlayFriendly
+        ? `<div class="text-center mt-4">${this._renderPlayRandomFriendlyButton()}</div>`
+        : ''
       return `
         <div class="card bg-transparent border-0">
           <div class="card-body text-center text-muted py-4">
@@ -379,45 +388,90 @@ export class StartPage {
       `
     }
 
+    // The "play a random friendly" call to action lives in its own slide at the
+    // end of the slider, and only while the user still has a friendly left
+    // today. Since it is the actionable slide, it also becomes the initial one.
+    const extraSlide = this._canPlayFriendly ? this._renderFriendlyActionSlide() : ''
     const friendlySliderArgs = {
       games: this._friendlyGames,
       teamId: this.team.id,
-      initialIndex: this._friendlyGames.length - 1,
-      cardId
+      initialIndex: this._canPlayFriendly
+        ? this._friendlyGames.length
+        : this._friendlyGames.length - 1,
+      cardId,
+      extraSlide,
+      extraSlideColor: this.team.color,
+      onExtraSlideAction: (event) => this._playRandomFriendly(event.currentTarget)
     }
 
-    return `${new GameSlider(friendlySliderArgs)}${playButton}`
+    return new GameSlider(friendlySliderArgs)
   }
 
   /**
-   * Render the "Play Random Friendly" button
+   * Render the trailing slider slide holding the "Play Random Friendly" call
+   * to action.
+   * @returns {string}
+   */
+  _renderFriendlyActionSlide () {
+    return `
+      <div class="game-slider-action-slide text-center text-white">
+        <i class="fa fa-handshake-o fa-2x mb-3 opacity-50"></i>
+        <p class="small mb-3">${t('friendly.halfFans')}</p>
+        ${this._playRandomFriendlyButtonHtml()}
+      </div>
+    `
+  }
+
+  /**
+   * Markup of the "Play Random Friendly" button. The click handler is bound by
+   * the caller, because the two call sites reach the DOM at different times:
+   * the empty state is part of this page's own template and can be wired by id,
+   * while the slider's action slide only appears once the nested GameSlider
+   * finished rendering — too late for `onClick()`, which looks the id up once
+   * on the next macrotask. The slider therefore binds it via its `events`
+   * getter, matching on `.game-slider-action-button`.
+   *
+   * @param {string} [btnId] - Optional element id, set for the id-bound call site
+   * @returns {string}
+   */
+  _playRandomFriendlyButtonHtml (btnId) {
+    const idAttribute = btnId ? ` id="${btnId}"` : ''
+    return `<button${idAttribute} class="btn btn-info btn-sm game-slider-action-button"><i class="fa fa-random"></i> ${t('friendly.playRandomFriendly')}</button>`
+  }
+
+  /**
+   * Render the "Play Random Friendly" button for the empty state, wired by id.
    * @returns {string}
    */
   _renderPlayRandomFriendlyButton () {
     const btnId = generateId()
-    onClick('#' + btnId, async () => {
-      const btn = document.getElementById(btnId)
-      if (!btn || btn.disabled) return
-      btn.disabled = true
-      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + t('friendly.playRandomFriendly')
-      try {
-        const result = await server.playRandomFriendly()
-        const game = result.game
-        toast(t('friendly.result', {
-          goals1: game.goalsTeam1,
-          goals2: game.goalsTeam2
-        }), 'success')
-        await showGameModal(game.id)
-        window.location.reload()
-      } catch (e) {
-        toast(e.message ?? t('toast.somethingWentWrong'), 'error')
-        btn.disabled = false
-        btn.innerHTML = '<i class="fa fa-random"></i> ' + t('friendly.playRandomFriendly')
-      }
-    })
-    return `<div class="text-center mt-4">
-      <button id="${btnId}" class="btn btn-info btn-sm"><i class="fa fa-random"></i> ${t('friendly.playRandomFriendly')}</button>
-    </div>`
+    onClick('#' + btnId, () => this._playRandomFriendly(document.getElementById(btnId)))
+    return this._playRandomFriendlyButtonHtml(btnId)
+  }
+
+  /**
+   * Play a random friendly, showing progress on the triggering button.
+   * @param {HTMLButtonElement|null} btn
+   * @returns {Promise<void>}
+   */
+  async _playRandomFriendly (btn) {
+    if (!btn || btn.disabled) return
+    btn.disabled = true
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + t('friendly.playRandomFriendly')
+    try {
+      const result = await server.playRandomFriendly()
+      const game = result.game
+      toast(t('friendly.result', {
+        goals1: game.goalsTeam1,
+        goals2: game.goalsTeam2
+      }), 'success')
+      await showGameModal(game.id)
+      window.location.reload()
+    } catch (e) {
+      toast(e.message ?? t('toast.somethingWentWrong'), 'error')
+      btn.disabled = false
+      btn.innerHTML = '<i class="fa fa-random"></i> ' + t('friendly.playRandomFriendly')
+    }
   }
 
   /**

@@ -40,6 +40,13 @@
     gap: 1.5rem;
 }
 
+/* Narrow phones: the info items no longer fit with the wide gap. */
+@media screen and (max-width: 449px) {
+    .native-top-bar .info-bar-links {
+        gap: 0.5rem;
+    }
+}
+
 .native-top-bar .info-bar-item {
     color: rgba(255, 255, 255, 0.85);
     font-size: 0.8rem;

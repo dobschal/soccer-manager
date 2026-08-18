@@ -849,4 +849,21 @@ describe('DashboardPage', () => {
       expect(html).toContain('fa-exclamation-circle')
     })
   })
+
+  describe('daily-login bar ownership (#501)', () => {
+    it('hands the same instance to every start page it builds', async () => {
+      const page = new DashboardPage()
+      await page.load()
+
+      // `load()` drops the cached start page, so a refresh builds a new one.
+      // The bar must not be rebuilt with it — otherwise it refetches its status
+      // and the card blinks out while the request is in flight.
+      const first = page._createStartPage()
+      await page.load()
+      const second = page._createStartPage()
+
+      expect(first._getDailyLoginBar()).toBe(page._dailyLoginBar)
+      expect(second._getDailyLoginBar()).toBe(first._getDailyLoginBar())
+    })
+  })
 })

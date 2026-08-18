@@ -99,4 +99,9 @@ Das Spiel bietet drei Spielmodi: Liga, Pokal und Freundschaftsspiele. Jeder Modu
 
 - **TA-GM-24**: Ergebnis-Seite mit drei Tabs: Liga, Pokal, Freundschaftsspiele.
 - **TA-GM-25**: Dashboard-Slider fuer Liga-, Pokal- und Freundschaftsspiel-Ergebnisse.
+- **TA-GM-25a**: Der Button "Zufaelliges Freundschaftsspiel" liegt in einer zusaetzlichen Slide am
+  Ende des Freundschaftsspiel-Sliders und wird nur angezeigt, wenn der Nutzer an diesem Spieltag noch
+  kein Freundschaftsspiel gestartet hat (`canPlayFriendlyToday`). Diese Aktions-Slide ist dann die
+  initial sichtbare Slide. Ohne bisherige Freundschaftsspiele gibt es keinen Slider — der Button steht
+  dort unter dem Leer-Hinweis.
 - **TA-GM-26**: Saison- und Runden-Navigation im Pokal-Tab.

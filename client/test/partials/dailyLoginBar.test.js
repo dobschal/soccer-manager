@@ -66,6 +66,78 @@ describe('DailyLoginBar.load', () => {
   })
 })
 
+describe('DailyLoginBar re-render without flicker (#501)', () => {
+  it('renders from the known status instead of waiting for the request', async () => {
+    // A request that never settles: if load() awaited it, the card would sit as
+    // a zero-height placeholder and everything below it would jump.
+    server.getDailyLoginStatus.mockReturnValue(new Promise(() => {}))
+    const bar = new DailyLoginBar()
+    bar.status = status({ streak: 12 })
+
+    await bar.load(false)
+
+    expect(bar.status.streak).toBe(12)
+    expect(bar.template).toContain('daily-login-bar')
+  })
+
+  it('still refetches on an explicit update', async () => {
+    server.getDailyLoginStatus.mockResolvedValue(status({ streak: 13, cycleDay: 13 }))
+    const bar = new DailyLoginBar()
+    bar.status = status({ streak: 12 })
+
+    await bar.load(true)
+
+    expect(bar.status.streak).toBe(13)
+  })
+
+  it('leaves the DOM alone when the background refresh brings nothing new', async () => {
+    server.getDailyLoginStatus.mockResolvedValue(status())
+    const bar = new DailyLoginBar()
+    bar.status = status()
+    const update = vi.spyOn(bar, 'update').mockResolvedValue(undefined)
+
+    await bar._refreshInBackground()
+
+    expect(server.getDailyLoginStatus).toHaveBeenCalledTimes(1)
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('patches the card when the background refresh finds a new gift', async () => {
+    server.getDailyLoginStatus.mockResolvedValue(status({ availableRewards: [{ day: 15, key: 'special' }] }))
+    const bar = new DailyLoginBar()
+    bar.status = status({ availableRewards: [] })
+    const update = vi.spyOn(bar, 'update').mockResolvedValue(undefined)
+
+    await bar._refreshInBackground()
+
+    expect(bar.status.availableRewards).toHaveLength(1)
+    expect(update).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the last known status when the background refresh fails', async () => {
+    server.getDailyLoginStatus.mockRejectedValue(new Error('offline'))
+    const bar = new DailyLoginBar()
+    bar.status = status({ streak: 12 })
+    const update = vi.spyOn(bar, 'update').mockResolvedValue(undefined)
+
+    await bar._refreshInBackground()
+
+    expect(bar.status.streak).toBe(12)
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('does not stack concurrent background refreshes', async () => {
+    server.getDailyLoginStatus.mockReturnValue(new Promise(() => {}))
+    const bar = new DailyLoginBar()
+    bar.status = status()
+
+    void bar._refreshInBackground()
+    void bar._refreshInBackground()
+
+    expect(server.getDailyLoginStatus).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('DailyLoginBar.template', () => {
   it('fills the track to the cycle progress', () => {
     const bar = new DailyLoginBar()

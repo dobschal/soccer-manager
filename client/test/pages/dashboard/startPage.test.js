@@ -4,8 +4,15 @@ vi.mock('../../../lib/gateway.js', () => ({
   server: {}
 }))
 
+const gameSliderInstances = []
 vi.mock('../../../partials/gameSlider.js', () => ({
-  GameSlider: class { toString () { return '' } }
+  GameSlider: class {
+    constructor (args) {
+      this.args = args
+      gameSliderInstances.push(this)
+    }
+    toString () { return '' }
+  }
 }))
 
 const tableInstances = []
@@ -301,6 +308,29 @@ describe('StartPage._renderUrgencyChecklist collapsing', () => {
   })
 })
 
+describe('StartPage daily-login bar (#501)', () => {
+  it('reuses the instance handed in by DashboardPage', () => {
+    const bar = { toString: () => '<div>bar</div>' }
+    const page = new StartPage({
+      sliderGames: [],
+      initialSlideIndex: 0,
+      team: { id: 1 },
+      cupGames: [],
+      friendlyGames: [],
+      canPlayFriendly: false,
+      standing: [],
+      teamPosition: 0,
+      urgencies: [],
+      dailyLoginBar: bar
+    })
+
+    // Same instance on every render, so a rebuilt start page never refetches
+    // the status and the card cannot blink out.
+    expect(page._getDailyLoginBar()).toBe(bar)
+    expect(page._getDailyLoginBar()).toBe(bar)
+  })
+})
+
 describe('StartPage._renderMiniStanding row click', () => {
   it('navigates to the league results page (not the team page) when a row is clicked', async () => {
     const { goTo } = await import('../../../lib/router.js')
@@ -337,5 +367,64 @@ describe('StartPage._renderMiniStanding row click', () => {
 
     expect(goTo).toHaveBeenCalledWith('results?level=3&league=5')
     expect(goTo).not.toHaveBeenCalledWith(expect.stringContaining('team?id='))
+  })
+})
+
+describe('StartPage._renderFriendlyGames', () => {
+  beforeEach(() => {
+    gameSliderInstances.length = 0
+  })
+
+  function makeFriendlyPage (friendlyGames, canPlayFriendly) {
+    return new StartPage({
+      sliderGames: [],
+      initialSlideIndex: 0,
+      team: { id: 1, level: 1, league: 1, name: 'Test', color: '#abcdef' },
+      cupGames: [],
+      friendlyGames,
+      canPlayFriendly,
+      standing: [],
+      teamPosition: 0,
+      urgencies: []
+    })
+  }
+
+  const games = [{ id: 1, isPlayed: true }, { id: 2, isPlayed: true }]
+
+  it('puts the play button into an extra slide at the end and opens on it', () => {
+    const page = makeFriendlyPage(games, true)
+    page._renderFriendlyGames('card-id')
+
+    expect(gameSliderInstances).toHaveLength(1)
+    const { args } = gameSliderInstances[0]
+    expect(args.extraSlide).toContain('friendly.playRandomFriendly')
+    // The action slide sits after the last game and is shown first.
+    expect(args.initialIndex).toBe(games.length)
+    // The slide paints the card with the own team color against grey.
+    expect(args.extraSlideColor).toBe('#abcdef')
+  })
+
+  it('omits the extra slide and shows the last game when no friendly is left today', () => {
+    const page = makeFriendlyPage(games, false)
+    page._renderFriendlyGames('card-id')
+
+    const { args } = gameSliderInstances[0]
+    expect(args.extraSlide).toBe('')
+    expect(args.initialIndex).toBe(games.length - 1)
+  })
+
+  it('renders no slider at all but keeps the button when there are no friendlies yet', () => {
+    const html = makeFriendlyPage([], true)._renderFriendlyGames('card-id')
+
+    expect(gameSliderInstances).toHaveLength(0)
+    expect(html).toContain('friendly.noGames')
+    expect(html).toContain('friendly.playRandomFriendly')
+  })
+
+  it('hides the button in the empty state when the friendly is already used up', () => {
+    const html = makeFriendlyPage([], false)._renderFriendlyGames('card-id')
+
+    expect(html).toContain('friendly.noGames')
+    expect(html).not.toContain('friendly.playRandomFriendly')
   })
 })
