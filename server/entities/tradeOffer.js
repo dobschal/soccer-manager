@@ -8,10 +8,11 @@
  * @property {number} [game_day]
  * @property {number} [season]
  * @property {number} [allow_instant_buy] - 1 if other users may instant-buy the listed player, 0 if disabled
+ * @property {Date} [bot_decision_at] - buy offers to bot teams only: when the bot answers
  * @property {Date} created_at
  */
 
-import { OptionalNullableNumber, OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
+import { OptionalNullableNumber, OptionalNullableObject, OptionalNumber, OptionalObject, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'
 
 /**
  * @param {TradeOfferType} raw
@@ -27,6 +28,7 @@ export function TradeOffer (raw) {
     game_day: OptionalNullableNumber,
     season: OptionalNullableNumber,
     allow_instant_buy: OptionalNullableNumber,
+    bot_decision_at: OptionalNullableObject,
     created_at: OptionalObject
   })
   for (const key in raw) {

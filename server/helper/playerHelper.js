@@ -74,7 +74,10 @@ export async function cleanupOldFreePlayers () {
   // history). `carrier_end_season` is inclusive, so a player in their final
   // season still counts towards the per-position pool — otherwise the market
   // gets topped up with replacements for players who have not left yet.
-  const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season >= ?', [season])
+  const freePlayers = await query(
+    'SELECT * FROM player WHERE team_id IS NULL AND is_retired = 0 AND carrier_end_season >= ?',
+    [season]
+  )
 
   // Group free players by position
   const byPosition = {}

@@ -12,6 +12,7 @@ import cron from 'node-cron'
 import { prepareSeason } from './prepare-season.js'
 import { calculateGames } from './play-game-day.js'
 import { makeBotMoves } from './bot-move.js'
+import { processDueBotOfferDecisions } from './helper/botTradeHelper.js'
 import { getLocaleFromRequest } from './i18n/index.js'
 import { cleanupOldFreePlayers } from './helper/playerHelper.js'
 import { cleanupIOCPlayers, fillMarketGaps, iocAutoAcceptBuyOffers, iocBuyFromUsers, repriceIOCOffers } from './helper/overseaClubHelper.js'
@@ -205,6 +206,13 @@ async function start () {
     try { await iocAutoAcceptBuyOffers() } catch (e) { console.error('iocAutoAcceptBuyOffers failed:', e) }
     try { await cleanupOldClientLogs() } catch (e) { console.error('cleanupOldClientLogs failed:', e) }
     try { await cleanupOldLogMessages() } catch (e) { console.error('cleanupOldLogMessages failed:', e) }
+  })
+
+  // Bot managers answer their incoming buy offers with a delay of up to 24h
+  // (bot_decision_at). This runs every 5 minutes so the answers land spread
+  // across the day instead of in the two big game-day batches.
+  cron.schedule('0 */5 * * * *', async () => {
+    try { await processDueBotOfferDecisions() } catch (e) { console.error('processDueBotOfferDecisions failed:', e) }
   })
 
   // Collect a daily snapshot of game-wide statistics every night at 03:00.

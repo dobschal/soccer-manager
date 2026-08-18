@@ -16,7 +16,8 @@ function getTutorials () {
         t('tutorial.results.item1'),
         t('tutorial.results.item2'),
         t('tutorial.results.item3'),
-        t('tutorial.results.item4')
+        t('tutorial.results.item4'),
+        t('tutorial.results.item5')
       ]
     },
     team: {

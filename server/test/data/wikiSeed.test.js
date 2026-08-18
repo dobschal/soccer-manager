@@ -7,7 +7,7 @@ const MAX_SUBTITLE = 255
 
 describe('wiki seed content (#441)', () => {
   it('covers all requested topics in both locales', () => {
-    expect(WIKI_SEED).toHaveLength(30)
+    expect(WIKI_SEED).toHaveLength(31)
   })
 
   it('documents the fair-play rules so sanctions are not a surprise', () => {
@@ -101,13 +101,14 @@ describe('wiki seed content for the #538/#539/#540/#543 changes', () => {
     }
   })
 
-  it('quotes the recalibrated salary curve (#543)', () => {
+  it('quotes the two-segment salary curve', () => {
     const topic = WIKI_SEED.find(t => t.key === 'players')
-    expect(topic.en.text).toContain('18,500')
-    expect(topic.de.text).toContain('18.500')
-    // Neither the original ceiling nor the over-steep one it briefly had.
-    for (const stale of ['10,308', '50,000']) expect(topic.en.text).not.toContain(stale)
-    for (const stale of ['10.308', '50.000']) expect(topic.de.text).not.toContain(stale)
+    // The pivot and the new ceiling — the star segment is the point of the text.
+    for (const value of ['3,442', '8,108', '45,000']) expect(topic.en.text).toContain(value)
+    for (const value of ['3.442', '8.108', '45.000']) expect(topic.de.text).toContain(value)
+    // No ceiling the curve has since left behind.
+    for (const stale of ['10,308', '18,500', '50,000']) expect(topic.en.text).not.toContain(stale)
+    for (const stale of ['10.308', '18.500', '50.000']) expect(topic.de.text).not.toContain(stale)
   })
 
   it('explains that price fields only exist for built stands (#538)', () => {

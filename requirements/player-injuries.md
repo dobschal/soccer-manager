@@ -7,6 +7,7 @@ Spieler koennen sich waehrend eines Spiels verletzen. Die Verletzungswahrscheinl
 ## User Stories
 
 - **US-INJ-01**: Als Spieler koennen sich meine Spieler waehrend eines Spiels verletzen, wobei die Wahrscheinlichkeit bei niedriger Fitness hoeher ist.
+- **US-INJ-11**: Als Spieler weiss ich, dass sich sehr junge und sehr alte Spieler haeufiger verletzen als Spieler um das ideale Alter von 27.
 - **US-INJ-02**: Als Spieler sehe ich, welche Spieler verletzt sind und wie viele Spieltage sie noch ausfallen.
 - **US-INJ-03**: Als Spieler werden verletzte Spieler automatisch aus der Aufstellung entfernt und koennen nicht aufgestellt werden.
 - **US-INJ-04**: Als Spieler erhalte ich Log-Nachrichten bei Verletzungen und Einwechselungen.
@@ -67,7 +68,23 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
 - **TA-INJ-02**: Basiswahrscheinlichkeit pro Kampf: 0,0375% (0,000375). Der Wert wurde mit der Einfuehrung der Arztpraxis um ein Viertel angehoben (vorher 0,0003): deren Karte "Medizinische Behandlung" verkuerzt Ausfaelle, also duerfen etwas mehr Verletzungen passieren. Fuer ein Team **ohne** Praxis heisst das schlicht: ein bisschen mehr Ausfall.
 - **TA-INJ-03**: Fitness-Multiplikator: `1 + (1 - freshness) * 4`. Bei voller Fitness (1.0) ist der Multiplikator 1x, bei 50% Fitness 3x, bei 20% Fitness 4,2x.
 - **TA-INJ-04**: Spielstil-Multiplikator: Aggressiv 1,5x, Normal 1,0x, Freundlich 0,7x.
-- **TA-INJ-05**: Effektive Wahrscheinlichkeit: `basisWahrscheinlichkeit * fitnessMultiplikator * spielstilMultiplikator`.
+- **TA-INJ-49**: Alters-Multiplikator (`getInjuryAgeMultiplier` in `server/play-game.js`): U-foermig um das
+  Idealalter 27 (dasselbe Ideal wie beim Kaderalter-Staerkemodifikator, siehe [Game Calculation](game-calculation.md)).
+  `multiplikator = min(0,9 + |alter - 27| * steigung, 1,35)`, Steigung 0,03 pro Jahr unterhalb und 0,035 pro Jahr
+  oberhalb des Ideals — Veteranen bauen also schneller ab als Talente hineinwachsen.
+
+  | Alter | 17 | 20 | 23 | 27 | 30 | 33 | 35 | 37 | 40+ |
+  |---|---|---|---|---|---|---|---|---|---|
+  | Multiplikator | 1,20 | 1,11 | 1,02 | 0,90 | 1,01 | 1,11 | 1,18 | 1,25 | 1,35 |
+
+  Der Wert am Idealalter liegt bewusst **unter** 1: Kader sind im Schnitt deutlich aelter als 27, ohne diesen
+  Abschlag wuerde der Alterseffekt allein die Gesamtrate an den oberen Rand des Zielbands druecken. Ueber eine
+  realistische Altersverteilung liegt der mittlere Multiplikator bei rund 1,05, die simulierte Gesamtrate steigt
+  um unter 1%.
+- **TA-INJ-50**: Das Alter wird aus `player.carrier_start_season` und `gameDetails.season` abgeleitet
+  (Karrierestart mit 16, analog `helper/squadAgeHelper.js`). Fehlt eines von beiden, ist der Alters-Multiplikator
+  neutral (1,0). `gameDetails.season` wird in Liga-, Pokal- und Freundschaftsspielen gesetzt.
+- **TA-INJ-05**: Effektive Wahrscheinlichkeit: `basisWahrscheinlichkeit * fitnessMultiplikator * spielstilMultiplikator * altersMultiplikator`.
 - **TA-INJ-06**: Pro Spiel und Team kann sich maximal ein Spieler verletzen.
 - **TA-INJ-07**: Bereits verletzte oder ausgewechselte Spieler koennen sich nicht erneut verletzen.
 
@@ -127,7 +144,15 @@ eingewechselt wird. Umgesetzt in `checkScheduledSubstitutions()` (`server/play-g
   - `injury_days_left` (INT, Standard 0) - Verbleibende Spieltage bis zur Genesung
   - `bench_position` (VARCHAR(20), nullable) - Ersatzbank-Position
   - `bench_substitution_mode` (VARCHAR(20), NOT NULL, Standard `'injury_only'`) - Einwechsel-Modus
-- **TA-INJ-19**: Verletzungserholung: Am Anfang jedes Spieltags wird `injury_days_left` um 1 reduziert. Bei 0 wird `is_injured = 0`, `injury_type = NULL` gesetzt.
+- **TA-INJ-19**: Verletzungserholung: Am Ende jeder Spieltagsberechnung (`_recoverInjuredPlayers` in
+  `server/play-game-day.js`, nach allen Spielen) wird `injury_days_left` um 1 reduziert. Bei 0 wird
+  `is_injured = 0`, `injury_type = NULL` gesetzt.
+- **TA-INJ-51**: Spieler, die sich **in diesem Lauf** verletzt haben, werden dabei uebersprungen
+  (`AND id NOT IN (...)`): sie haben noch keinen Spieltag verpasst. Damit fehlt ein Spieler genau
+  `days` Spieltage — eine Prellung (1 Tag) also den naechsten Spieltag. Vorher wurde die Verletzung im
+  selben Cron-Lauf gesetzt und wieder heruntergezaehlt: eine 1-Tages-Verletzung war sofort geheilt, im
+  Spielticker aber gemeldet, und in der Spielerliste war nie jemand verletzt (30% aller Verletzungen
+  waren davon betroffen, jede andere Dauer war einen Spieltag zu kurz).
 - **TA-INJ-20**: Saisonwechsel: Verletzungen werden NICHT zurueckgesetzt (laufen ueber Saisonende hinaus weiter).
 - **TA-INJ-48**: Verletzte Spieler regenerieren **nicht**, sondern verlieren pro Spieltag 5% Frische (`_giveAllPlayersFreshness` in `server/play-game-day.js`, untere Grenze 0).
 
@@ -152,9 +177,12 @@ eingewechselt wird. Umgesetzt in `checkScheduledSubstitutions()` (`server/play-g
 
 ### Spieldetails-Seite
 
-- **TA-INJ-29**: Verletzungen werden im Spielverlauf mit Verletzungs-Icon und Spielminute angezeigt.
-- **TA-INJ-30**: Auswechselungen werden mit Ein-/Auswechsel-Icon, Spielernamen und Minute angezeigt.
-- **TA-INJ-31**: Separate Zusammenfassung der Verletzungen und Auswechselungen neben den Karten-Statistiken.
+- **TA-INJ-29**: Verletzungen werden im Spielverlauf ("Match Events") mit Verletzungs-Icon, Spielminute
+  und Verletzungsart angezeigt — dieselbe Zeile wie im Spielticker (siehe
+  [Game Calculation](game-calculation.md), TA-GC-47).
+- **TA-INJ-30**: Auswechselungen werden mit Ein-/Auswechsel-Icon, Spielernamen und Minute angezeigt,
+  ebenfalls in "Match Events". Zusaetzlich markiert die Kaderliste der Spieldetails ein- und
+  ausgewechselte Spieler mit Pfeil und Minute.
 
 ### Liga- und Pokal-Ergebnisseite
 
@@ -187,6 +215,9 @@ eingewechselt wird. Umgesetzt in `checkScheduledSubstitutions()` (`server/play-g
 | Verletzungen pro Spiel (beide Teams) | 0,19 - 0,31 |
 | Durchschnittliche Ausfalldauer | 3 - 4 Spieltage |
 
+Die gewichtete mittlere Ausfalldauer der Verletzungsliste betraegt 3,1 Spieltage — und so viele
+Spieltage fehlt ein Spieler seit TA-INJ-51 auch tatsaechlich. Vorher waren es effektiv 2,1.
+
 Fuer geplante Auswechselungen gibt es keinen statistischen Zielwert: die Anzahl haengt
 ausschliesslich davon ab, welche Modi der Nutzer setzt. Mit dem Standard `injury_only`
 finden ueberhaupt keine geplanten Auswechselungen statt.
@@ -196,6 +227,8 @@ finden ueberhaupt keine geplanten Auswechselungen statt.
 - Verletzungswahrscheinlichkeit bei verschiedenen Fitness-Werten
 - Verkuerzung eines Ausfalls per Aktionskarte "Medizinische Behandlung" (siehe [Action Cards](action-cards.md), TA-AC-29)
 - Verletzungswahrscheinlichkeit bei verschiedenen Spielstilen
+- Alters-Multiplikator: Minimum bei 27, monoton steigend zu beiden Enden, Deckelung, neutral ohne bekanntes Alter
+- Sehr junge und sehr alte Spieler verletzen sich bei gleichem Wurf, Spieler um 27 nicht
 - Maximal eine Verletzung pro Team pro Spiel
 - Einwechselung bei Verletzung mit korrektem Positionsmatching
 - Einwechsel-Modi: `injury_only` wechselt nie geplant ein, `always` sobald moeglich, `leading` / `trailing` nur beim passenden Spielstand
@@ -205,6 +238,7 @@ finden ueberhaupt keine geplanten Auswechselungen statt.
 - Validierung von `substitutionMode` in `saveBench` und `updateBenchSubstitutionMode`
 - Ersatzbank-Besetzung und -Validierung
 - Verletzungserholung ueber Spieltage
+- Eine am selben Spieltag entstandene Verletzung wird im selben Lauf nicht heruntergezaehlt
 - Verletzte Spieler werden aus Aufstellung gefiltert
 - Statistische Validierung der Verletzungshaeufigkeit ueber 500+ Spiele
 - Bot-Ersatzbank-Optimierung

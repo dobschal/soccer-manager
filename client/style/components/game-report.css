@@ -1,0 +1,23 @@
+/* AI-generated match report card in the game details overlay. */
+
+.game-report-body p {
+    margin-bottom: 0.85rem;
+    line-height: 1.6;
+}
+
+.game-report-body p:last-of-type {
+    margin-bottom: 0;
+}
+
+.game-report-disclaimer {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-style: italic;
+}
+
+/* Reuse the global loading ball, but keep it compact inside the card so the
+   overlay does not jump in height while the report is generated. */
+.game-report-loading .ui-element-loading-ball-wrapper {
+    transform: scale(0.7);
+}

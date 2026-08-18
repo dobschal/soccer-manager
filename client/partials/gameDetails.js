@@ -2,6 +2,11 @@ import { UIElement } from '../lib/UIElement.js'
 import { GameAnimation } from './gameAnimation.js'
 import { renderEmblem } from './emblem.js'
 import { renderPositionBadge } from './positionBadge.js'
+import { buildTickerEvents, buildTickerRow, fillTickerPortraits, logHasMinutes } from '../lib/tickerEvents.js'
+import { GameReport } from './gameReport.js'
+import { renderCollapsibleCard, toggleCollapsibleCard } from '../lib/collapsibleCard.js'
+import { formatDate } from '../lib/date.js'
+import { t } from '../i18n/index.js'
 
 /**
  * Return a short team name by stripping the middle part (prefix2).
@@ -78,10 +83,11 @@ function renderSquadList (teamPlayers, teamName, substitutions) {
     `
   }).join('')
 
-  return `
-    <div class="card mb-3">
-      <div class="card-header"><i class="fa fa-users me-2"></i>${teamName}</div>
-      <div class="card-body p-0">
+  return renderCollapsibleCard({
+    title: teamName,
+    icon: 'fa-users',
+    bodyClass: 'card-body p-0',
+    body: `
         <div class="horizontal-scrollable-table">
         <table class="table table-sm mb-0 wide-on-mobile">
           <thead>
@@ -96,67 +102,100 @@ function renderSquadList (teamPlayers, teamName, substitutions) {
           <tbody>${rows}</tbody>
         </table>
         </div>
-      </div>
-    </div>
-  `
+    `
+  })
 }
 
 /**
- * Render the event ticker showing goals and cards
- * @param {Array} log
- * @param {Object} players
- * @param {string} team1Name
- * @param {string} team2Name
+ * Render the Match Events card — the same timeline the animated match ticker
+ * plays, only printed at once and oldest first (#539). Both go through
+ * `lib/tickerEvents.js`, so a game shows the same events wherever it is opened.
+ *
+ * Games from before minute tracking have no usable timeline (every event would
+ * claim minute 0), so they fall back to their goals and cards alone, shown
+ * without a minute.
+ *
+ * @param {object} details - parsed game details
+ * @param {Record<number, object>} players
  * @returns {string}
  */
-function renderEventTicker (log, players, team1Name, team2Name) {
-  const events = log.filter(l => l.goal || l.yellowCard || l.redCard)
-    .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
+function renderEventTicker (details, players) {
+  const log = details.log || []
+  const events = logHasMinutes(log)
+    ? buildTickerEvents(log, details)
+    : log.filter(l => l.goal || l.yellowCard || l.redCard)
 
   if (events.length === 0) return ''
 
-  const eventItems = events.map(event => {
-    const player = players[event.player]
-    const playerName = player?.name || 'Unknown'
-    const isTeam1 = player?.team1
-    const minute = event.minute !== undefined ? `${event.minute}'` : ''
-
-    if (event.goal) {
-      const teamName = isTeam1 ? team1Name : team2Name
-      return `
-        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
-          <span class="badge bg-success"><i class="fa fa-futbol-o"></i></span>
-          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small></span>
-        </div>
-      `
-    } else if (event.redCard) {
-      const teamName = isTeam1 ? team1Name : team2Name
-      return `
-        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
-          <span class="text-danger event-ticker-icon"><i class="fa fa-square"></i></span>
-          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small>${event.secondYellow ? ' <small>(2nd yellow)</small>' : ''}</span>
-        </div>
-      `
-    } else if (event.yellowCard) {
-      const teamName = isTeam1 ? team1Name : team2Name
-      return `
-        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
-          <span class="text-warning event-ticker-icon"><i class="fa fa-square"></i></span>
-          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small></span>
-        </div>
-      `
-    }
-    return ''
+  const rows = events.map(event => {
+    const { className, html } = buildTickerRow(event, players)
+    return `<div class="${className}">${html}</div>`
   }).join('')
 
-  return `
-    <div class="card mb-3">
-      <div class="card-header"><i class="fa fa-clock-o me-2"></i>Match Events</div>
-      <div class="card-body event-ticker-body">
-        ${eventItems}
+  return renderCollapsibleCard({
+    title: 'Match Events',
+    icon: 'fa-clock-o',
+    body: `<div class="spiel-ticker__feed spiel-ticker__feed--static">${rows}</div>`
+  })
+}
+
+/**
+ * Render the stadium attendance card.
+ * @param {number} guests
+ * @param {number} totalCapacity
+ * @param {number} totalEarnings
+ * @returns {string}
+ */
+function renderStadiumCard (guests, totalCapacity, totalEarnings) {
+  return renderCollapsibleCard({
+    title: 'Stadium',
+    icon: 'fa-ticket',
+    cardClass: '',
+    body: `
+      <div class="row text-center">
+        <div class="col-4">
+          <div class="fs-4 fw-bold">${guests.toLocaleString()}</div>
+          <div class="text-muted small">Guests</div>
+        </div>
+        <div class="col-4">
+          <div class="fs-4 fw-bold">${totalCapacity ? Math.round(guests / totalCapacity * 100) : '-'}%</div>
+          <div class="text-muted small">Capacity</div>
+        </div>
+        <div class="col-4">
+          <div class="fs-4 fw-bold">${totalEarnings.toLocaleString()} &euro;</div>
+          <div class="text-muted small">Ticket Earnings</div>
+        </div>
       </div>
-    </div>
-  `
+    `
+  })
+}
+
+/**
+ * Build the intro sentence of the game details modal.
+ * Mentions the game day, the season and the real-world kick-off date/time so a
+ * result can be placed in time without leaving the modal. Season and kick-off
+ * are both optional — older/partial game rows fall back to shorter variants.
+ * @param {Object} game - Game result (gameDay, season, created_at)
+ * @param {Object} team1 - Home team
+ * @param {number} guests - Number of spectators
+ * @returns {string}
+ */
+export function renderGameIntro (game, team1, guests) {
+  const kickOff = game.created_at ? new Date(game.created_at) : null
+  const hasKickOff = kickOff && !Number.isNaN(kickOff.getTime())
+  const when = hasKickOff
+    ? t('gameDetails.introWhen', {
+      date: formatDate('DD.MM.YYYY', kickOff),
+      time: formatDate('hh:mm', kickOff)
+    })
+    : ''
+  return t(game.season == null ? 'gameDetails.introWithoutSeason' : 'gameDetails.intro', {
+    gameDay: game.gameDay + 1,
+    season: game.season,
+    when,
+    homeTeam: team1.name,
+    guests: guests.toLocaleString()
+  })
 }
 
 /**
@@ -177,6 +216,8 @@ export class GameDetails extends UIElement {
    */
   constructor (params) {
     super(params)
+    /** @type {GameReport|null} */
+    this._gameReport = null
   }
 
   get template () {
@@ -277,7 +318,7 @@ export class GameDetails extends UIElement {
 
     return `
       <div>
-        <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} as guests at their stadium!</p>
+        <p>${renderGameIntro(game, team1, guests)}</p>
         ${new GameAnimation(game, team1, team2)}
         <div class="horizontal-scrollable-table">
         <table class="table mb-4 wide-on-mobile game-details-table">
@@ -308,32 +349,50 @@ export class GameDetails extends UIElement {
         </div>
         ${details.teamA?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team1.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
         ${details.teamB?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team2.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
-        ${renderEventTicker(details.log, players, team1.name, team2.name)}
+        ${this._reportElement}
+        ${renderEventTicker(details, players)}
         ${renderSquadList(details.playerTeamA, team1.name, (details.substitutions || []).filter(s => s.teamIndex === 0))}
         ${renderSquadList(details.playerTeamB, team2.name, (details.substitutions || []).filter(s => s.teamIndex === 1))}
 
-        <div class="card">
-          <div class="card-header"><i class="fa fa-ticket me-2"></i>Stadium</div>
-          <div class="card-body">
-            <div class="row text-center">
-              <div class="col-4">
-                <div class="fs-4 fw-bold">${guests.toLocaleString()}</div>
-                <div class="text-muted small">Guests</div>
-              </div>
-              <div class="col-4">
-                <div class="fs-4 fw-bold">${totalCapacity ? Math.round(guests / totalCapacity * 100) : '-'}%</div>
-                <div class="text-muted small">Capacity</div>
-              </div>
-              <div class="col-4">
-                <div class="fs-4 fw-bold">${totalEarnings.toLocaleString()} &euro;</div>
-                <div class="text-muted small">Ticket Earnings</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        ${renderStadiumCard(guests, totalCapacity, totalEarnings)}
 
         <p class="text-muted small mt-3 mb-0"><strong>IG</strong> (In-Game Level) is the effective strength of a player during the match. It is based on the base level and influenced by freshness, captain choice, star player status and motivating speeches.</p>
       </div>
     `
   }
+  /**
+   * The match report card brings its own toggle handler (it re-renders itself
+   * when a report is generated), so only the cards this element owns are
+   * wired up here.
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '.collapsible-card:not(.game-report) > .collapsible-card-toggle': {
+        click: (event) => toggleCollapsibleCard(event)
+      }
+    }
+  }
+  /**
+   * Fill in the player portraits of the Match Events rows. Rendering a player
+   * SVG is async, so it cannot happen inside the template.
+   * @returns {void}
+   */
+  onMounted () {
+    const root = document.querySelector(this._elementQuery)
+    void fillTickerPortraits(root, this.players, p => (p.team1 ? this.team1 : this.team2))
+  }
+  /**
+   * The AI match report element, created once and reused. Recreating it on
+   * every parent render would restart its placeholder/async render cycle and
+   * make the card flicker.
+   * @returns {GameReport}
+   */
+  get _reportElement () {
+    if (!this._gameReport) {
+      this._gameReport = new GameReport({ gameId: this.game.id })
+    }
+    return this._gameReport
+  }
+  
 }

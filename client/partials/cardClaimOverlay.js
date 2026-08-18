@@ -34,7 +34,7 @@ function getActionCardTitles () {
  */
 export async function showCardClaimOverlay (pendingCards) {
   await preloadActionCardSvgs(pendingCards.map(c => c.action))
-  const state = { skipped: false, claimPromises: [] }
+  const state = { skipped: false, claimPromises: [], claimedIds: new Set() }
   for (let i = 0; i < pendingCards.length; i++) {
     if (state.skipped) break
     const remainingCards = pendingCards.slice(i)
@@ -53,7 +53,7 @@ export async function showCardClaimOverlay (pendingCards) {
  * Shows a single card claim with flip animation
  * @param {Object} card - Pending action card
  * @param {Array} remainingCards - All remaining unclaimed cards (including current)
- * @param {{ skipped: boolean }} state - Shared state for skip signaling
+ * @param {{ skipped: boolean, claimPromises: Array, claimedIds: Set<number> }} state - Shared state for skip signaling and claim bookkeeping
  * @param {{ autoReveal?: boolean }} options - If autoReveal is true, the card flips automatically without waiting for a click
  * @returns {Promise<void>}
  */
@@ -103,6 +103,7 @@ function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false
       if (title) title.classList.remove('card-claim-title--hidden')
       if (hint) hint.textContent = t('actionCards.claim.tapToContinue')
 
+      state.claimedIds.add(card.id)
       state.claimPromises.push(
         server.claimActionCard(card.id).catch(e => {
           // A rejected claim is usually the per-type hold limit being reached;
@@ -137,7 +138,12 @@ function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false
       document.removeEventListener('keydown', onKeyDown)
 
       const skipErrors = new Set()
-      const skipClaims = remainingCards.map(c =>
+      // The currently shown card may already be revealed (and therefore
+      // claimed). Re-claiming it would fail with "already claimed" and show a
+      // bogus error toast, so only claim what is still pending.
+      const unclaimedCards = remainingCards.filter(c => !state.claimedIds.has(c.id))
+      unclaimedCards.forEach(c => state.claimedIds.add(c.id))
+      const skipClaims = unclaimedCards.map(c =>
         server.claimActionCard(c.id).catch(e => {
           console.error('Failed to claim card:', e)
           skipErrors.add(e.message ?? t('actionCards.claim.failed'))
@@ -161,7 +167,10 @@ function _showSingleCardClaim (card, remainingCards, state, { autoReveal = false
 
     onClick('#' + skipBtnId, () => skip())
 
-    onClick('#' + flipContainerId, () => {
+    // The whole overlay is the click target so tapping next to the card works
+    // too — only the skip button keeps its own behaviour.
+    onClick('#' + overlayId, (event) => {
+      if (event?.target?.closest?.('.card-claim-skip-btn')) return
       if (!revealed) {
         reveal()
       } else {

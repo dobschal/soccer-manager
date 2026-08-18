@@ -22,6 +22,14 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
   (z. B. "Muskelzerrung"), nicht nur die Ausfalldauer.
 - **US-GC-11**: Als Spieler kann ich den Spielticker waehrend des Ablaufs per Knopfdruck auf doppelte
   Geschwindigkeit umschalten und wieder zurueck.
+- **US-GC-12**: Als Spieler finde ich in den Spieldetails unter "Match Events" genau denselben
+  Spielverlauf, den mir der Spielticker vorgespielt hat — auch bei Spielen, deren Ticker ich nie
+  gesehen habe.
+- **US-GC-13**: Als Spieler sehe ich im Kopf der Spieldetails, um welchen Spieltag welcher Saison es
+  sich handelt und wann das Spiel real (Datum und Uhrzeit) berechnet wurde.
+- **US-GC-14**: Als Spieler finde ich die Karten der Spieldetails ("Spielbericht", "Match Events",
+  die beiden Kaderlisten und "Stadium") zugeklappt vor und oeffne sie einzeln per Klick auf ihre
+  Kopfzeile, damit das Overlay nicht mit einer sehr langen Liste startet.
 - **US-GC-08**: Als Spieler wird ein positionsfremd aufgestellter Spieler nicht mehr pauschal halbiert,
   sondern je nach Entfernung zu seiner Position abgestuft bewertet.
 
@@ -159,6 +167,10 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
 Der Spielticker (`client/partials/spielTickerOverlay.js`) spielt ein fertig berechnetes Spiel
 animiert nach. Er zeigt ausschliesslich, was im Spiel-Log tatsaechlich steht.
 
+Die Ereignisauswahl und das Aussehen einer Ereigniszeile liegen in `client/lib/tickerEvents.js` und
+werden von beiden Oberflaechen genutzt, die einen Spielverlauf zeigen — dem animierten Ticker und der
+Karte "Match Events" in den Spieldetails.
+
 - **TA-GC-35**: Ereignisse im Ticker: Anpfiff, Tore, Torchancen/Paraden, Karten, Verletzungen,
   Einwechslungen, ausgewaehlte Balleroberungen und gewonnene Zweikaempfe, Halbzeit, Verlaengerung und
   Elfmeterschiessen.
@@ -189,6 +201,26 @@ animiert nach. Er zeigt ausschliesslich, was im Spiel-Log tatsaechlich steht.
   `logHasMinutes`.
 - **TA-GC-44**: Der Verletzungstext nennt die Verletzungsart aus `injuryType` (`t('injury.<typ>')`)
   plus die Ausfalldauer. Aeltere Spiele ohne gespeicherte Art fallen auf die reine Dauer zurueck.
+- **TA-GC-47**: Die Karte "Match Events" in den Spieldetails (`client/partials/gameDetails.js`) zeigt
+  dieselben Ereignisse wie der Ticker, nur auf einmal und chronologisch (aeltestes oben) statt
+  animiert. Vorher listete sie nur Tore und Karten — Verletzungen, Einwechslungen, Torchancen,
+  Halbzeit, Verlaengerung und Elfmeterschiessen fehlten dort ganz. Beide Oberflaechen bauen ihre
+  Zeilen mit `buildTickerRow` aus `client/lib/tickerEvents.js`, koennen also nicht auseinanderlaufen.
+- **TA-GC-48**: Spiele ohne Minuten im Log (`logHasMinutes` ist falsch) fallen in den Spieldetails auf
+  die alte Darstellung zurueck: nur Tore und Karten, mit "-" statt einer erfundenen Minute. Der
+  Ticker ueberspringt solche Spiele ganz.
+- **TA-GC-50**: Alle Karten der Spieldetails werden ueber `renderCollapsibleCard` aus
+  `client/lib/collapsibleCard.js` gerendert und starten zugeklappt (`is-collapsed`). Das Auf- und
+  Zuklappen ist ein reiner CSS-Klassenwechsel ohne Re-Render, damit weder die Ticker-Portraits noch
+  verschachtelte UIElemente neu aufgebaut werden. Die Karte "Spielbericht" bringt ihren eigenen
+  Handler mit und merkt sich den Zustand in `isCollapsed`, weil sie sich beim Erzeugen eines Berichts
+  selbst neu rendert.
+- **TA-GC-49**: Der Einleitungssatz der Spieldetails (`renderGameIntro` in
+  `client/partials/gameDetails.js`) nennt Spieltag, Saison und den realen Anstosszeitpunkt im Format
+  `DD.MM.YYYY hh:mm` (lokale Zeitzone des Spielers). Die Uhrzeit kommt aus `game.created_at`, das
+  `play-game-day.js` beim Abpfiff auf den Berechnungszeitpunkt setzt. Fehlt die Saison oder ist der
+  Zeitstempel unlesbar, fallen kuerzere Satzvarianten ein (`gameDetails.introWithoutSeason`,
+  Zeitangabe entfaellt) — der Satz bleibt in jedem Fall vollstaendig.
 - **TA-GC-45**: Ein Umschalter im Fussbereich wechselt zwischen einfacher und doppelter
   Geschwindigkeit. Die Wartezeit wird durch den Faktor geteilt; beim Umschalten wird der laufende
   Timer neu gesetzt, damit die Aenderung sofort spuerbar ist. Am Spielende verschwinden Umschalter

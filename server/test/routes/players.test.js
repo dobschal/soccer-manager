@@ -182,9 +182,22 @@ describe('players routes', () => {
 
       expect(result).toEqual(players)
       expect(query).toHaveBeenCalledWith(
-        'SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season >= ?',
+        'SELECT * FROM player WHERE team_id IS NULL AND is_retired = 0 AND carrier_end_season >= ?',
         [5]
       )
+    })
+
+    // The list filters on `is_retired` as well as on the season arithmetic. The
+    // flag is stamped on at the transition and never cleared, so a retired
+    // player cannot reappear here even if a career end ever drifts back into
+    // the current season again (#556).
+    it('filters on the is_retired flag, not only on the career end season', async () => {
+      getGameDayAndSeason.mockResolvedValue({ season: 5, gameDay: 3 })
+      query.mockResolvedValue([])
+
+      await handlers.getPlayersWithoutTeam()
+
+      expect(query.mock.calls[0][0]).toContain('is_retired = 0')
     })
   })
 
@@ -276,6 +289,24 @@ describe('players routes', () => {
     it('rejects a player whose career has already ended', async () => {
       const team = testData.team()
       const player = testData.player({ team_id: null, carrier_end_season: 4 })
+
+      getTeam.mockResolvedValue(team)
+      getPlayerById.mockResolvedValue(player)
+      getPlayersByTeamId.mockResolvedValue(Array(20).fill(testData.player()))
+
+      const req = createMockRequest()
+
+      await expect(handlers.givePlayerContract(1, req))
+        .rejects.toMatchObject({ message: 'This player has ended his career and cannot be signed.' })
+      expect(query).not.toHaveBeenCalledWith('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])
+    })
+
+    // Belt and braces next to the season comparison above: the flag alone is
+    // enough to refuse the signing, so a player who was retired while his
+    // career end still reads as "current" stays out of squads too (#556).
+    it('rejects a player carrying the is_retired flag even inside his end season', async () => {
+      const team = testData.team()
+      const player = testData.player({ team_id: null, carrier_end_season: 5, is_retired: 1 })
 
       getTeam.mockResolvedValue(team)
       getPlayerById.mockResolvedValue(player)

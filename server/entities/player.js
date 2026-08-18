@@ -12,6 +12,7 @@
  * @property {Date} created_at
  * @property {number} carrier_start_season - season where the player was 16 years old
  * @property {number} carrier_end_season - carrier_start_season + 20..23 (retire at age 36-39)
+ * @property {number} is_retired - 1 once the season transition ended the career; never cleared again
  */
 
 import { OptionalNumber, OptionalObject, OptionalString, RequiredNumber, RequiredString, checkType } from '../lib/type-checker.js'

@@ -99,6 +99,13 @@ async function _createCupDraw () {
  * jumps to N+1 as soon as `_createGamesForNewSeason` inserts the next
  * season's schedule, and the next cron tick would retire the N+1 cohort
  * before they play a single game.
+ *
+ * Retiring is a one-way door: `is_retired` is the marker every list filters on,
+ * and nothing ever clears it again. That flag is also what makes this run
+ * idempotent, so it can include players who are *already* free agents. It used
+ * to skip them (`team_id IS NOT NULL`), which meant a player whose career ended
+ * while unemployed was never processed at all — their open transfer offers
+ * survived and their lineup slot was never cleared (#556).
  * @returns {Promise<void>}
  */
 async function _archiveTooOldPlayers () {
@@ -107,12 +114,21 @@ async function _archiveTooOldPlayers () {
   }
   const season = await _latestSeason() ?? 0
   /** @type {PlayerType[]} */
-  const players = await query('SELECT * FROM player WHERE carrier_end_season<=? AND team_id IS NOT NULL', [season])
+  const players = await query('SELECT * FROM player WHERE carrier_end_season<=? AND is_retired=0', [season])
   if (players.length === 0) return
   const playerIds = players.map(p => p.id)
-  await query('UPDATE player SET team_id=NULL WHERE id IN (?)', [playerIds])
+  // Everything that could put the player back in front of a user goes in one
+  // sweep: the flag, the club, the lineup slot and any tour they were on.
+  await query(
+    `UPDATE player
+     SET is_retired=1, team_id=NULL, in_game_position='', bench_position=NULL,
+         tour_days_left=0, tour_days_total=0
+     WHERE id IN (?)`,
+    [playerIds]
+  )
   await query('DELETE FROM trade_offer WHERE player_id IN (?)', [playerIds])
   for (const player of players) {
+    if (!player.team_id) continue
     const team = await getTeamById(player.team_id)
     // The players are already off their teams at this point; a missing team row
     // must not abort the loop and take the rest of the season transition with

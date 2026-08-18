@@ -1,58 +1,101 @@
-# Soccer Simulation
+<div align="center">
 
-⚽️ This is a soccer manager simulation game built with Node.js and MySQL.
-Further details about the implementation can be found here: [CLAUDE.md](CLAUDE.md)
+<img src="client/assets/logo.png" alt="FootballManager.IO" height="96">
+
+# FootballManager.IO
+
+**Build your dream club from scratch, rise through the leagues, and become the ultimate football manager.**
+
+Free to play in the browser, on iOS and on Android — pure football strategy, no payments.
+
+### ▶︎ [Play now on footballmanager.io](https://footballmanager.io)
 
 [![CI](https://github.com/dobschal/soccer-manager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dobschal/soccer-manager/actions/workflows/ci.yml)
+[![Website](https://img.shields.io/website?url=https%3A%2F%2Ffootballmanager.io&label=footballmanager.io)](https://footballmanager.io)
+[![Status](https://img.shields.io/badge/uptime-status%20page-informational)](https://stats.uptimerobot.com/gl1eWD8XkT)
+[![App Store](https://img.shields.io/badge/App%20Store-iOS-black?logo=apple&logoColor=white)](https://apps.apple.com/de/app/footballmanager-io/id6759547142)
+[![Google Play](https://img.shields.io/badge/Google%20Play-Android-black?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=io.soccermanager.app)
 
-## Get Started
+</div>
 
-You need to have a MySQL database running and NodeJS installed.
-Take a look into the docker files to check the version used for the database and nodejs.
+---
 
-1. (Optional) Use IntelliJ to open the project and set the environment variable for `DB_HOST`.
-2. Start the database with `docker compose up database -d` or any other way you like.
-3. Then run via IntelliJ or Terminal `DB_HOST=localhost node server/api.js`
-4. You can open the UI on http://localhost:3000
+## The game
 
-### Run native iOS app
+You take over a club in the lowest league and work your way up to League 1 — against real
+managers, not scripted opponents. Matches are simulated twice a day, so a season plays out
+over days, not minutes.
 
-This will start the iOS simulator and run the native iOS app. Make sure you have Xcode installed and properly set up.
+- ⚽️ **Squad & tactics** — line-ups, formations, attack mode, playing style and pass style
+- 🏟 **Stadium & buildings** — expand capacity, unlock ticket revenue and better action cards
+- 💸 **Finances** — sponsors, salaries, transfer market and player market values
+- 🃏 **Action cards** — train players, trigger events, trade cards with other managers
+- 🌱 **Youth academy** — scout, train and promote your own talents
+- 🏆 **Leagues & cup** — promotion, relegation, cup rounds and AI-generated match reports
+- 💬 **Community** — chat, forum and friend feed
+
+Feature specs (mostly German) live in [`requirements/`](requirements/).
+
+## Getting started (developers)
+
+Requirements: **Node.js 20** and **Docker** (for MySQL 8). Versions are pinned in
+`Dockerfile` / `docker-compose.yml`.
 
 ```bash
-npm run native:ios
+npm install                       # install deps (also copies vendor assets)
+docker compose up database -d     # start MySQL
+DB_HOST=localhost node server/api.js
+# → http://localhost:3000
 ```
 
-(!!!) The native iOS app loads the frontend as ZIP from the server. So make sure to start the server before running the
-above command.
-
-## Deployment
-
-Use docker compose to deploy the application. There is a restart script that rebuilds the docker images and restarts the
-containers.
-Ensure to create the docker network first:
+Useful commands:
 
 ```bash
-docker network create soccer-manager
+npm test                          # client + server tests (Vitest)
+npm run lint                      # ESLint
+npm run ios                       # NativeScript iOS simulator (needs Xcode, server running)
+npm run android                   # NativeScript Android emulator
+node server/migrate-database.cmd.js   # apply schema migrations
+node server/prepare-season.cmd.js     # create leagues, teams and a season
+node server/play-game-day.cmd.js      # simulate one game day
 ```
 
-## Deploy iOS
+Project layout:
 
-Use Xcode to build and run the iOS app. Make sure to set the correct environment variables for the API URL in the Xcode
-project.
-Use the "Archive" option in Xcode to create an archive of the app, and then use the "Distribute App" option to upload it
-to the App Store.
+| Path            | What lives there                                                |
+|-----------------|-----------------------------------------------------------------|
+| `server/`       | Express API, game simulation, CRON jobs, MySQL access           |
+| `client/`       | Vanilla-JS frontend on a custom `UIElement` component framework |
+| `native-app/`   | NativeScript shell for the iOS/Android apps                     |
+| `requirements/` | Feature specifications                                          |
 
-## Structure
+Architecture notes, conventions and deployment details: [CLAUDE.md](CLAUDE.md).
 
-The project is structured into three main directories:
+Branches: `develop` → [sandbox](https://sandbox.footballmanager.io), `main` → production.
+Pull requests should target `develop`.
 
-- `server`: Contains the backend API built with Node.js and Express. It handles all the game logic, database
-  interactions, and serves the frontend.
-- `client`: Contains the frontend built with a custom UIElement class based framework. It provides the user interface
-  for managing the soccer teams, players, and matches.
+## Contributors
 
-For more details on the implementation, please refer to the [CLAUDE.md](CLAUDE.md) file, which contains an in-depth
-analysis of the codebase and design decisions.
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/dobschal">
+        <img src="https://github.com/dobschal.png?size=100" width="100" alt="dobschal"><br>
+        <sub><b>dobschal</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/johannesrosenhan89">
+        <img src="https://github.com/johannesrosenhan89.png?size=100" width="100" alt="johannesrosenhan89"><br>
+        <sub><b>johannesrosenhan89</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
 
+## License
 
+The source is public for transparency, learning and contributions — but it is **not** free
+software: all rights remain with this repository owner. You may read, fork and build it locally to
+contribute, but you may not reuse the code in other projects, host your own instance or
+redistribute it. See [LICENSE](LICENSE).

@@ -17,6 +17,7 @@ import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId } from '
 import { getPositionsOfFormation } from '../client/util/formation.js'
 import { addPlayerHistory } from './helper/playerHistoryHelper.js'
 import { placeBotCardBids } from './helper/actionCardMarketHelper.js'
+import { isBotDecisionDue, shouldBotAcceptBuyOffer } from './helper/botTradeHelper.js'
 import playersRoutes from './routes/players.js'
 
 // 1. Check Tactic (/)
@@ -153,8 +154,10 @@ async function _checkIncomingOffers (botTeam, players) {
     gameDay,
     season
   } = await getGameDayAndSeason()
-  const openSellOffers = await getOpenSellOffersByTeamId(botTeam.id)
-  const incomingOffers = await getIncomingBuyOffers(botTeam.id)
+  // Offers whose scheduled answer time has not come yet are left alone: they are
+  // handled by processDueBotOfferDecisions() once they are due. This run is only
+  // the backstop for offers that never got a due date.
+  const incomingOffers = (await getIncomingBuyOffers(botTeam.id)).filter(offer => isBotDecisionDue(offer))
 
   // Group incoming offers by player, sorted by highest offer first
   /** @type {{[playerId: number]: Array<TradeOfferType>}} */
@@ -163,9 +166,6 @@ async function _checkIncomingOffers (botTeam, players) {
     incomingOffersPerPlayer[offer.player_id] = incomingOffersPerPlayer[offer.player_id] ?? []
     incomingOffersPerPlayer[offer.player_id].push(offer)
   })
-
-  // Calculate minimum players needed per position for the formation
-  const positionsNeeded = getPositionsOfFormation(botTeam.formation)
 
   for (let playerId in incomingOffersPerPlayer) {
     playerId = Number(playerId)
@@ -176,40 +176,7 @@ async function _checkIncomingOffers (botTeam, players) {
       continue
     }
 
-    const playersInSamePosition = players.filter(p => p.position === player.position && p.id !== playerId)
-    const positionsRequiredForFormation = positionsNeeded.filter(p => p === player.position).length
-
-    // Check if selling would leave a hole in the formation
-    const wouldLeaveHole = playersInSamePosition.length < positionsRequiredForFormation
-
-    // Calculate player value and offer premium
-    const matchingSellOffer = openSellOffers.find(sellOffer => sellOffer.player_id === playerId)
-    const averagePrice = await getAveragePlanPriceOfPlayer(player)
-    const basePrice = matchingSellOffer ? matchingSellOffer.offer_value : averagePrice
-
-    // Check if team would still be competitive after selling
-    const remainingPlayersInPosition = playersInSamePosition.filter(p => p.level >= player.level - 2)
-    const teamWouldBeOkAfterSale = remainingPlayersInPosition.length >= positionsRequiredForFormation
-
-    // Determine minimum acceptable price
-    let minAcceptablePrice
-    if (wouldLeaveHole) {
-      // Can't sell if it leaves a hole, unless offer is exceptionally high (2x+ value)
-      // and we have backup players that can cover
-      if (!teamWouldBeOkAfterSale || playersInSamePosition.length === 0) {
-        await declineOffer(offer)
-        continue
-      }
-      // Require a premium for selling a critical player (1.5x - 2x base price)
-      const premiumFactor = 1.5 + Math.random() * 0.5
-      minAcceptablePrice = basePrice * premiumFactor
-    } else {
-      // Normal sale - randomize acceptance threshold (80% - 120% of base price)
-      const randomFactor = 0.8 + Math.random() * 0.4
-      minAcceptablePrice = basePrice * randomFactor
-    }
-
-    if (offer.offer_value >= minAcceptablePrice) {
+    if (await shouldBotAcceptBuyOffer(botTeam, player, offer, players)) {
       try {
         await acceptOffer(offer, botTeam, gameDay, season)
         // Update local players array to reflect the sale
@@ -368,7 +335,10 @@ async function _signFreePlayers (botTeam, players) {
   // season can still be signed, same as for human teams.
   const { season } = await getGameDayAndSeason()
   /** @type {PlayerType[]} */
-  const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season >= ?', [season])
+  const freePlayers = await query(
+    'SELECT * FROM player WHERE team_id IS NULL AND is_retired = 0 AND carrier_end_season >= ?',
+    [season]
+  )
   if (freePlayers.length === 0) return
 
   let signed = 0
@@ -385,7 +355,7 @@ async function _signFreePlayers (botTeam, players) {
     const toSign = Math.min(need.deficit, maxSignings - signed, candidates.length)
     for (let i = 0; i < toSign; i++) {
       const player = candidates[i]
-      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
+      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL AND is_retired=0', [botTeam.id, player.id])
       // Remove from freePlayers regardless — either we got him, or another parallel bot did.
       const idx = freePlayers.indexOf(player)
       if (idx !== -1) freePlayers.splice(idx, 1)
@@ -416,7 +386,7 @@ async function _signFreePlayers (botTeam, players) {
     const toSign = Math.min(stillNeeded, maxSignings - signed, anyCandidates.length)
     for (let i = 0; i < toSign; i++) {
       const player = anyCandidates[i]
-      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
+      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL AND is_retired=0', [botTeam.id, player.id])
       const idx = freePlayers.indexOf(player)
       if (idx !== -1) freePlayers.splice(idx, 1)
       if (!result?.affectedRows) continue
@@ -448,6 +418,7 @@ function _calculateValueScore (level, price) {
  * @returns {Promise<void>}
  */
 async function _checkBuyOffers (botTeam, players) {
+  const { season } = await getGameDayAndSeason()
   // First, delete old buy offers that haven't been answered
   const existingOffers = await getOpenByOffersByTeamId(botTeam.id)
   await deleteTooOldOffers(existingOffers, 24)
@@ -543,7 +514,10 @@ async function _checkBuyOffers (botTeam, players) {
   }
   teamNeeds.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
-  // Find sell offers for positions we need
+  // Find sell offers for positions we need. `carrier_end_season > season` keeps
+  // players in their final season out: users listed veterans in the very season
+  // they retire and let bots pay full market value for a squad member who
+  // disappears at the season transition.
   const positionsArray = teamNeeds.map(n => n.position)
   /** @type {(TradeOfferType & {player_name: string, player_level: number, player_position: string})[]} */
   const sellOffers = await query(`
@@ -554,9 +528,11 @@ async function _checkBuyOffers (botTeam, players) {
         AND t.offer_value <= ?
         AND t.type = 'sell'
         AND t.status = 'open'
+        AND p.is_retired = 0
+        AND p.carrier_end_season > ?
         AND p.position IN ("${positionsArray.join('", "')}")
       ORDER BY p.level DESC
-  `, [botTeam.id, maxPrice])
+  `, [botTeam.id, maxPrice, season])
 
   // Shared bidding budget/state used by both the listed-market pass below and
   // the unsolicited pass at the end. Declared up front so the unsolicited pass
@@ -656,7 +632,7 @@ async function _checkBuyOffers (botTeam, players) {
   // need. The probability gate keeps the whole bot population from flooding
   // users every match day.
   if (offersMade < maxNewOffers && remainingBudget > 0 && Math.random() < UNSOLICITED_OFFER_CHANCE) {
-    await _makeUnsolicitedBuyOffer(botTeam, teamNeeds, remainingBudget, playerIdsAlreadyBidding, positionsFilled)
+    await _makeUnsolicitedBuyOffer(botTeam, teamNeeds, remainingBudget, playerIdsAlreadyBidding, positionsFilled, season)
   }
 }
 
@@ -675,21 +651,25 @@ const UNSOLICITED_OFFER_CHANCE = 0.15
  * @param {number} maxSpend - remaining budget the bot may spend
  * @param {Set<number>} playerIdsAlreadyBidding
  * @param {Set<string>} positionsFilled
+ * @param {number} season
  * @returns {Promise<void>}
  */
-async function _makeUnsolicitedBuyOffer (botTeam, teamNeeds, maxSpend, playerIdsAlreadyBidding, positionsFilled) {
+async function _makeUnsolicitedBuyOffer (botTeam, teamNeeds, maxSpend, playerIdsAlreadyBidding, positionsFilled, season) {
   const positions = teamNeeds.map(n => n.position).filter(p => !positionsFilled.has(p))
   if (positions.length === 0) return
 
   // Candidate players on other (non-system) teams, at a needed position, that
   // this bot is not already bidding on. Human-managed teams rank first, then by
-  // level so the bot chases the best realistic upgrade.
+  // level so the bot chases the best realistic upgrade. Players in their final
+  // season are skipped — a bot never pays for a career that ends in weeks.
   const candidates = await query(`
       SELECT p.*, t.user_id AS owner_user_id
       FROM player p
                JOIN team t ON p.team_id = t.id
       WHERE p.team_id <> ?
         AND t.is_system_team = 0
+        AND p.is_retired = 0
+        AND p.carrier_end_season > ?
         AND p.position IN ("${positions.join('", "')}")
         AND NOT EXISTS (
           SELECT 1 FROM trade_offer o
@@ -697,7 +677,7 @@ async function _makeUnsolicitedBuyOffer (botTeam, teamNeeds, maxSpend, playerIds
         )
       ORDER BY (t.user_id IS NOT NULL) DESC, p.level DESC
       LIMIT 25
-  `, [botTeam.id, botTeam.id])
+  `, [botTeam.id, season, botTeam.id])
 
   for (const candidate of candidates) {
     if (playerIdsAlreadyBidding.has(candidate.id)) continue

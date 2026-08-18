@@ -135,6 +135,25 @@ describe('tradeHelper', () => {
         .rejects.toMatchObject({ message: 'Player not found' })
     })
 
+    // The transition deletes the offers of the retiring cohort, but a market page
+    // opened before midnight can still fire an accept at one of them. Nothing else
+    // in acceptOffer ever re-checked a career end (#556).
+    it('refuses to transfer a player who has already retired', async () => {
+      const sellingTeam = testData.team({ id: 1 })
+      const player = testData.player({ id: 10, team_id: 1, is_retired: 1 })
+      const offer = testData.tradeOffer({ id: 1, type: 'buy', player_id: 10 })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season))
+        .rejects.toMatchObject({ message: 'error.playerRetired' })
+      expect(query).not.toHaveBeenCalledWith(
+        'UPDATE player SET team_id=?, in_game_position=NULL WHERE id=?',
+        expect.anything()
+      )
+    })
+
     it('assigns player to buying team', async () => {
       const sellingTeam = testData.team({ id: 1, name: 'Selling FC' })
       const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })
@@ -550,6 +569,46 @@ describe('tradeHelper', () => {
 
       await expect(acceptOffer(offer, sellingTeam, gameDay, season))
         .rejects.toMatchObject({ message: 'Your team cannot have more than 42 players.' })
+    })
+
+    it('refuses to sell a player in their final season to a bot team', async () => {
+      // Users listed veterans in the very season they retire and let the bots pay
+      // full market value for a squad member who disappears at the transition.
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC', user_id: 1 })
+      const buyingBot = testData.team({ id: 2, name: 'Bot FC', user_id: null })
+      const player = testData.player({ id: 10, team_id: 1, carrier_end_season: season })
+      const offer = testData.tradeOffer({ id: 1, type: 'buy', player_id: 10, from_team_id: 2, offer_value: 50000 })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingBot)
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season))
+        .rejects.toMatchObject({ message: 'error.retiringPlayerNotWanted' })
+      expect(query).not.toHaveBeenCalledWith(
+        'UPDATE player SET team_id=?, in_game_position=NULL WHERE id=?',
+        expect.anything()
+      )
+    })
+
+    it('lets a user team buy a player in their final season', async () => {
+      // Human buyers see the retirement badge — the risk is theirs to take.
+      const sellingTeam = testData.team({ id: 1, name: 'Selling FC', user_id: 1 })
+      const buyingTeam = testData.team({ id: 2, name: 'Buying FC', user_id: 7 })
+      const player = testData.player({ id: 10, team_id: 1, carrier_end_season: season })
+      const offer = testData.tradeOffer({ id: 1, type: 'buy', player_id: 10, from_team_id: 2, offer_value: 50000 })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(buyingTeam)
+      getPlayersByTeamId.mockResolvedValue(Array(18).fill(testData.player()))
+      query.mockImplementation((sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_history')) return Promise.resolve([{ count: 0 }])
+        if (sql.startsWith('UPDATE trade_offer SET status=\'accepted\'')) return Promise.resolve({ affectedRows: 1 })
+        return Promise.resolve({})
+      })
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season)).resolves.toBeUndefined()
     })
 
     it('allows trade when buying team is a bot regardless of squad size', async () => {

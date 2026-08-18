@@ -1,5 +1,18 @@
-import { describe, expect, it } from 'vitest'
-import { kickoff, playGameStep, checkForInjury, selectInjuryType, INJURY_TYPES, POSITION_GROUPS, checkScheduledSubstitutions } from '../play-game.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  kickoff,
+  playGameStep,
+  checkForInjury,
+  selectInjuryType,
+  getInjuryAgeMultiplier,
+  INJURY_TYPES,
+  INJURY_BASE_CHANCE,
+  INJURY_AGE_IDEAL,
+  INJURY_AGE_IDEAL_MULTIPLIER,
+  INJURY_AGE_MAX_MULTIPLIER,
+  POSITION_GROUPS,
+  checkScheduledSubstitutions
+} from '../play-game.js'
 import { _playPenaltyShootout, PENALTY_SHOOTOUT_INITIAL_ROUNDS } from '../play-game-day.js'
 
 /**
@@ -959,6 +972,91 @@ describe('play-game simulation', () => {
       }
 
       expect(aggressiveInjuries).toBeGreaterThan(friendlyInjuries)
+    })
+
+    describe('age multiplier', () => {
+      it('is lowest at the ideal age and rises towards both extremes', () => {
+        const ideal = getInjuryAgeMultiplier(INJURY_AGE_IDEAL)
+        expect(ideal).toBeCloseTo(INJURY_AGE_IDEAL_MULTIPLIER, 5)
+
+        // U-shape: monotonically rising in both directions away from the ideal
+        for (let age = INJURY_AGE_IDEAL; age > 16; age--) {
+          expect(getInjuryAgeMultiplier(age - 1)).toBeGreaterThan(getInjuryAgeMultiplier(age))
+        }
+        for (let age = INJURY_AGE_IDEAL; age < 36; age++) {
+          expect(getInjuryAgeMultiplier(age + 1)).toBeGreaterThan(getInjuryAgeMultiplier(age))
+        }
+
+        // Both extremes end up above the neutral 1.0
+        expect(getInjuryAgeMultiplier(17)).toBeGreaterThan(1)
+        expect(getInjuryAgeMultiplier(36)).toBeGreaterThan(1)
+      })
+
+      it('ages veterans faster than teenagers and is capped', () => {
+        // Same deviation, steeper for the older player
+        expect(getInjuryAgeMultiplier(INJURY_AGE_IDEAL + 8))
+          .toBeGreaterThan(getInjuryAgeMultiplier(INJURY_AGE_IDEAL - 8))
+        expect(getInjuryAgeMultiplier(60)).toBe(INJURY_AGE_MAX_MULTIPLIER)
+        expect(getInjuryAgeMultiplier(0)).toBe(INJURY_AGE_MAX_MULTIPLIER)
+      })
+
+      it('is neutral when the age is unknown', () => {
+        expect(getInjuryAgeMultiplier(null)).toBe(1)
+        expect(getInjuryAgeMultiplier(undefined)).toBe(1)
+        expect(getInjuryAgeMultiplier(NaN)).toBe(1)
+      })
+
+      /**
+       * Roll just under the injury chance an age-neutral player would have
+       * (aggressive style, full freshness). Everyone whose age multiplier is
+       * above 1 gets injured, everyone below stays fit — which turns the
+       * probabilistic check into a deterministic one.
+       */
+      function mockRollAtNeutralChance () {
+        const neutralChance = INJURY_BASE_CHANCE * 1.5
+        vi.spyOn(Math, 'random').mockReturnValue(neutralChance * 0.999)
+      }
+
+      function injuresAtNeutralRoll (player, gameDetails) {
+        checkForInjury(player, 'aggressive', gameDetails, [player], true)
+        return (gameDetails.injuries?.length ?? 0) > 0
+      }
+
+      afterEach(() => {
+        vi.restoreAllMocks()
+      })
+
+      it('very young and very old players get injured more often than players around 27', () => {
+        mockRollAtNeutralChance()
+        const season = 10
+        // Players start their career at 16 → carrier_start_season = season - (age - 16)
+        const playerAged = age => createPlayer({
+          id: 1,
+          originalFreshness: 1.0,
+          carrier_start_season: season - (age - 16)
+        })
+
+        // Around the ideal age the multiplier sits below 1 → no injury at this roll
+        expect(injuresAtNeutralRoll(playerAged(26), createGameDetails({ currentMinute: 45, season }))).toBe(false)
+        expect(injuresAtNeutralRoll(playerAged(27), createGameDetails({ currentMinute: 45, season }))).toBe(false)
+        expect(injuresAtNeutralRoll(playerAged(28), createGameDetails({ currentMinute: 45, season }))).toBe(false)
+
+        // Teenagers and veterans are above 1 → injury at the very same roll
+        expect(injuresAtNeutralRoll(playerAged(17), createGameDetails({ currentMinute: 45, season }))).toBe(true)
+        expect(injuresAtNeutralRoll(playerAged(18), createGameDetails({ currentMinute: 45, season }))).toBe(true)
+        expect(injuresAtNeutralRoll(playerAged(35), createGameDetails({ currentMinute: 45, season }))).toBe(true)
+        expect(injuresAtNeutralRoll(playerAged(37), createGameDetails({ currentMinute: 45, season }))).toBe(true)
+      })
+
+      it('has no effect when the game details carry no season', () => {
+        mockRollAtNeutralChance()
+        // Same career start, but without a season the age is unknown → neutral
+        const veteran = createPlayer({ id: 1, originalFreshness: 1.0, carrier_start_season: 1 })
+        const teenager = createPlayer({ id: 2, originalFreshness: 1.0, carrier_start_season: 10 })
+
+        expect(injuresAtNeutralRoll(veteran, createGameDetails({ currentMinute: 45 }))).toBe(true)
+        expect(injuresAtNeutralRoll(teenager, createGameDetails({ currentMinute: 45 }))).toBe(true)
+      })
     })
 
     it('substitution replaces injured player with bench player', () => {

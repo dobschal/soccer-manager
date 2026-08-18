@@ -70,14 +70,6 @@
 }
 
 /* ==========================================================================
-   Event Ticker Card Icon (Match Events)
-   ========================================================================== */
-
-.event-ticker-icon {
-    font-size: 1.2em;
-}
-
-/* ==========================================================================
    Tutorial List
    ========================================================================== */
 
@@ -89,4 +81,42 @@
 .tutorial-list li {
     margin-bottom: 0.5rem;
     line-height: 1.5;
+}
+
+/* ==========================================================================
+   Collapsible Cards
+   Card whose header folds the body away (game details overlay)
+   ========================================================================== */
+
+.collapsible-card-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    border-width: 0 0 1px 0;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.collapsible-card-chevron {
+    flex: 0 0 auto;
+    opacity: 0.7;
+    transition: transform 0.2s ease;
+}
+
+.collapsible-card.is-collapsed .collapsible-card-chevron {
+    transform: rotate(-90deg);
+}
+
+.collapsible-card.is-collapsed > .collapsible-card-toggle {
+    border-bottom-width: 0;
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+}
+
+.collapsible-card.is-collapsed > .collapsible-card-content {
+    display: none;
 }

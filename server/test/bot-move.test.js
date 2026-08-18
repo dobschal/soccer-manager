@@ -258,6 +258,80 @@ describe('Bot Trading', () => {
       // Should accept - has backup GK and price is 2x average (above 1.5x premium)
       expect(acceptOffer).toHaveBeenCalled()
     })
+
+    it('leaves an offer alone while its scheduled answer time is still ahead', async () => {
+      // Bots answer buy offers with a delay of up to 24h; until then neither the
+      // game-day run nor anything else may touch the offer.
+      const targetPlayer = botPlayers.find(p => p.id === 114)
+      const pendingOffer = testData.tradeOffer({
+        id: 5,
+        player_id: 114,
+        from_team_id: userTeam.id,
+        type: 'buy',
+        offer_value: 100000,
+        bot_decision_at: new Date(Date.now() + 60 * 60 * 1000),
+        created_at: new Date().toISOString()
+      })
+
+      getIncomingBuyOffers.mockResolvedValue([pendingOffer])
+      getPlayerById.mockResolvedValue(targetPlayer)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(50000)
+
+      await makeBotMoves()
+
+      expect(acceptOffer).not.toHaveBeenCalled()
+      expect(declineOffer).not.toHaveBeenCalled()
+    })
+
+    it('answers an offer whose scheduled answer time has passed', async () => {
+      const targetPlayer = botPlayers.find(p => p.id === 114)
+      const dueOffer = testData.tradeOffer({
+        id: 6,
+        player_id: 114,
+        from_team_id: userTeam.id,
+        type: 'buy',
+        offer_value: 100000,
+        bot_decision_at: new Date(Date.now() - 60 * 1000),
+        created_at: new Date().toISOString()
+      })
+
+      getIncomingBuyOffers.mockResolvedValue([dueOffer])
+      getPlayerById.mockResolvedValue(targetPlayer)
+      getAveragePlanPriceOfPlayer.mockResolvedValue(50000)
+
+      await makeBotMoves()
+
+      expect(acceptOffer).toHaveBeenCalled()
+    })
+  })
+
+  describe('Players in their final season', () => {
+    it('never shows up as a buy candidate on the listed market', async () => {
+      // Users listed veterans in the very season they retire and let bots pay
+      // full market value for a squad member who then disappears.
+      await makeBotMoves()
+
+      const marketQuery = query.mock.calls.find(call =>
+        call[0].includes('FROM trade_offer') && call[0].includes('JOIN player')
+      )
+      expect(marketQuery).toBeDefined()
+      expect(marketQuery[0]).toContain('p.carrier_end_season > ?')
+      // gameDay/season come from the mocked getGameDayAndSeason (season 1)
+      expect(marketQuery[1]).toContain(1)
+    })
+
+    it('never shows up as an unsolicited offer candidate', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0) // open the probability gate
+      await makeBotMoves()
+      Math.random.mockRestore()
+
+      const candidateQuery = query.mock.calls.find(call =>
+        call[0].includes('owner_user_id')
+      )
+      expect(candidateQuery).toBeDefined()
+      expect(candidateQuery[0]).toContain('p.carrier_end_season > ?')
+      expect(candidateQuery[1]).toContain(1)
+    })
   })
 
   describe('Bot-to-bot trading', () => {

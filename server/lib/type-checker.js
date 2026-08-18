@@ -54,6 +54,10 @@ export const OptionalObject = {
   type: 'object'
 }
 
+export const OptionalNullableObject = {
+  type: ['object', 'null']
+}
+
 export const RequiredObject = {
   type: 'object',
   required: true

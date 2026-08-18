@@ -3411,6 +3411,197 @@ const migrations = [{
         INDEX idx_funnel_event_client (client_id)
     ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;`)
   }
+}, {
+  name: 'Wiki: injury risk depends on player age',
+  async run () {
+    const KEYS_TO_REFRESH = ['players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: steeper salary curve above level 70',
+  async run () {
+    const KEYS_TO_REFRESH = ['players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: add match-report topic',
+  async run () {
+    const KEYS_TO_ADD = ['match-report']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_ADD.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const [existing] = await query(
+          'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+          [topic.key, locale]
+        )
+        if (existing) continue
+        const entry = topic[locale]
+        await query('INSERT INTO wiki_entry SET ?', {
+          locale,
+          page_key: topic.key,
+          title: entry.title,
+          subtitle: entry.subtitle || null,
+          text: entry.text,
+          images: JSON.stringify([]),
+          sort_order: 0
+        })
+      }
+    }
+  }
+}, {
+  name: 'Create game_report table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS game_report
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        game_id BIGINT(20) UNSIGNED NOT NULL,
+        locale VARCHAR(5) NOT NULL DEFAULT 'en',
+        text TEXT NOT NULL,
+        model VARCHAR(128) DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_game_report (game_id, locale)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`)
+  }
+}, {
+  name: 'Add bot_decision_at column to trade_offer table',
+  async run () {
+    await query('ALTER TABLE trade_offer ADD COLUMN bot_decision_at DATETIME NULL DEFAULT NULL')
+    await query('CREATE INDEX idx_trade_offer_bot_decision ON trade_offer (bot_decision_at)')
+  }
+}, {
+  name: 'Wiki: steeper salary curve above level 70',
+  async run () {
+    const KEYS_TO_REFRESH = ['players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+
+}, {
+  name: 'Wiki: match events in the game details, injuries last their full days',
+  async run () {
+    const KEYS_TO_REFRESH = ['match-simulation', 'players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: bot clubs answer with a delay and skip retiring players',
+  async run () {
+    const KEYS_TO_REFRESH = ['transfers']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: retirement is permanent (#556)',
+  async run () {
+    const KEYS_TO_REFRESH = ['players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Add is_retired flag to player (#556)',
+  async run () {
+    await query('ALTER TABLE player ADD COLUMN is_retired TINYINT(1) NOT NULL DEFAULT 0')
+    await query('CREATE INDEX idx_player_retired ON player (is_retired)')
+  }
+}, {
+  name: 'Retire every player whose career already ended (#556)',
+  run: retireOverdueCarriers
+}, {
+  name: 'Wiki: match events in the game details, injuries last their full days',
+  async run () {
+    const KEYS_TO_REFRESH = ['match-simulation', 'players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: collapsible cards in the game details overlay',
+  async run () {
+    const KEYS_TO_REFRESH = ['match-simulation', 'match-report']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: match report is a two-paragraph tactical verdict',
+  async run () {
+    const KEYS_TO_REFRESH = ['match-report']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**
@@ -3443,6 +3634,47 @@ export async function extendOverdueCarriers () {
   if (affectedRows > 0) {
     console.log(`👴🏽 Extended ${affectedRows} overdue player carrier(s) to season ${season}.`)
   }
+}
+
+/**
+ * Backfill the `is_retired` flag introduced with #556 and clean up after every
+ * player whose career ended before this migration ran.
+ *
+ * Retirement used to be an *implicit* state: nothing on the row said "retired",
+ * every list re-derived it as `carrier_end_season < currentSeason`. Two things
+ * fell through that:
+ *
+ * - `_archiveTooOldPlayers` only ever looked at players with a team
+ *   (`team_id IS NOT NULL`), so a player whose career ended while they were
+ *   already a free agent was never processed — their open transfer offers were
+ *   never deleted and their `in_game_position` never cleared. In production that
+ *   left twelve open IOC buy offers for long-retired players.
+ * - Any read site that forgot the comparison put retired players back in front
+ *   of users, which is how #556 (a 40-year-old signed from a bot squad) happened.
+ *
+ * From now on the flag is the single positive marker. This migration sets it for
+ * the existing cohort and finishes the cleanup those players never got.
+ *
+ * @returns {Promise<void>}
+ */
+export async function retireOverdueCarriers () {
+  const [row] = await query('SELECT COUNT(*) AS games FROM game')
+  // A fresh database has no games and therefore no meaningful current season.
+  if (!row?.games) return
+  const { season } = await getGameDayAndSeason()
+  /** @type {{id: number}[]} */
+  const retired = await query('SELECT id FROM player WHERE carrier_end_season < ?', [season])
+  if (retired.length === 0) return
+  const ids = retired.map(p => p.id)
+  await query(
+    `UPDATE player
+     SET is_retired = 1, team_id = NULL, in_game_position = '', bench_position = NULL,
+         tour_days_left = 0, tour_days_total = 0
+     WHERE id IN (?)`,
+    [ids]
+  )
+  const { affectedRows: offersDeleted } = await query('DELETE FROM trade_offer WHERE player_id IN (?)', [ids])
+  console.log(`👴🏽 Marked ${ids.length} player(s) as retired and dropped ${offersDeleted} of their transfer offer(s).`)
 }
 
 /**

@@ -6,6 +6,7 @@ import { getGameDayAndSeason } from './gameDayHelper.js'
 import { acceptOffer } from './tradeHelper.js'
 import { getTeamById } from './teamHelper.js'
 import { randomItem } from '../lib/util.js'
+import { willRetireNextSeason } from '../../client/util/player.js'
 
 const POSITIONS = Object.values(Position)
 const TIERS = [
@@ -254,13 +255,22 @@ export async function iocBuyFromUsers () {
     `, [iocTeamId, team.id])
     if (existingIOCOffer) continue
 
-    // The team's own open sell offers, with each player's market value
+    // The team's own open sell offers, with each player's market value.
+    //
+    // `p.team_id = tro.from_team_id` is what keeps this honest: a sell offer can
+    // outlive the player's stay at the listing club, and such a stale listing
+    // used to be a valid IOC target. Because the "one pending IOC offer per
+    // team" guard above matches on `p.team_id`, it never saw those offers
+    // either — so the IOC re-bid for the same club-less player on every single
+    // run. One retired player had ten open IOC offers stacked up that way (#556).
     const sellOffers = await query(`
       SELECT tro.*, p.level, p.name AS player_name, p.carrier_start_season, p.carrier_end_season
       FROM trade_offer tro
       JOIN player p ON p.id = tro.player_id
       WHERE tro.from_team_id = ? AND tro.type = 'sell' AND tro.status = 'open'
-    `, [team.id])
+        AND p.team_id = tro.from_team_id AND p.is_retired = 0
+        AND p.carrier_end_season > ?
+    `, [team.id, season])
 
     const offersWithValue = []
     for (const offer of sellOffers) {
@@ -317,8 +327,12 @@ export async function iocBuyFromUsers () {
 
     // (3) No sell offers → offer for a random player of the team at market ±3%
     const players = await getPlayersByTeamId(team.id)
-    if (players.length === 0) continue
-    const player = randomItem(players)
+    // Same rule as for the bot teams: no computer-controlled club pays for a
+    // player in their final season, otherwise the "sell your veteran the season
+    // he retires" trick just moves from the bots over to the IOC.
+    const buyable = players.filter(p => !willRetireNextSeason(p, season))
+    if (buyable.length === 0) continue
+    const player = randomItem(buyable)
     const marketValue = await getAveragePlanPriceOfPlayer(player, season)
     const offerValue = _marketValueWithDeviation(marketValue)
     await query('INSERT INTO trade_offer SET ?', {

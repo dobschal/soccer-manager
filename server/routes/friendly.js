@@ -323,7 +323,8 @@ async function _playFriendlyGame (teamA, teamB, gameDay, season) {
     playerTeamB: activePlayerTeamB,
     teamA,
     teamB,
-    isFriendly: true
+    isFriendly: true,
+    season
   }
 
   // Store original level and freshness before modification
