@@ -2,8 +2,10 @@ import { UIElement } from '../lib/UIElement.js'
 import { GameAnimation } from './gameAnimation.js'
 import { renderEmblem } from './emblem.js'
 import { renderPositionBadge } from './positionBadge.js'
-import { GameReport } from './gameReport.js'
 import { buildTickerEvents, buildTickerRow, fillTickerPortraits, logHasMinutes } from '../lib/tickerEvents.js'
+import { GameReport } from './gameReport.js'
+import { formatDate } from '../lib/date.js'
+import { t } from '../i18n/index.js'
 
 /**
  * Return a short team name by stripping the middle part (prefix2).
@@ -140,6 +142,34 @@ function renderEventTicker (details, players) {
 }
 
 /**
+ * Build the intro sentence of the game details modal.
+ * Mentions the game day, the season and the real-world kick-off date/time so a
+ * result can be placed in time without leaving the modal. Season and kick-off
+ * are both optional — older/partial game rows fall back to shorter variants.
+ * @param {Object} game - Game result (gameDay, season, created_at)
+ * @param {Object} team1 - Home team
+ * @param {number} guests - Number of spectators
+ * @returns {string}
+ */
+export function renderGameIntro (game, team1, guests) {
+  const kickOff = game.created_at ? new Date(game.created_at) : null
+  const hasKickOff = kickOff && !Number.isNaN(kickOff.getTime())
+  const when = hasKickOff
+    ? t('gameDetails.introWhen', {
+      date: formatDate('DD.MM.YYYY', kickOff),
+      time: formatDate('hh:mm', kickOff)
+    })
+    : ''
+  return t(game.season == null ? 'gameDetails.introWithoutSeason' : 'gameDetails.intro', {
+    gameDay: game.gameDay + 1,
+    season: game.season,
+    when,
+    homeTeam: team1.name,
+    guests: guests.toLocaleString()
+  })
+}
+
+/**
  * Game details partial that renders the match statistics table,
  * event ticker, squad lists, and stadium info.
  */
@@ -259,7 +289,7 @@ export class GameDetails extends UIElement {
 
     return `
       <div>
-        <p>It is game day #${game.gameDay + 1} and ${team1.name} welcomes ${guests} as guests at their stadium!</p>
+        <p>${renderGameIntro(game, team1, guests)}</p>
         ${new GameAnimation(game, team1, team2)}
         <div class="horizontal-scrollable-table">
         <table class="table mb-4 wide-on-mobile game-details-table">

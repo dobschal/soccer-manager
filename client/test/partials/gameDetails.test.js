@@ -17,9 +17,10 @@ const players = {
 
 /**
  * @param {object} [detailOverrides]
+ * @param {object} [gameOverrides]
  * @returns {GameDetails}
  */
-function createGameDetails (detailOverrides = {}) {
+function createGameDetails (detailOverrides = {}, gameOverrides = {}) {
   const details = {
     log: [
       { minute: 12, goal: true, player: 1 },
@@ -34,7 +35,7 @@ function createGameDetails (detailOverrides = {}) {
     ...detailOverrides
   }
   return new GameDetails({
-    game: { gameDay: 4, goalsTeam1: 1, goalsTeam2: 0 },
+    game: { gameDay: 4, season: 4, created_at: '2026-08-18T14:05:00', goalsTeam1: 1, goalsTeam2: 0, ...gameOverrides },
     team1,
     team2,
     details,
@@ -81,5 +82,24 @@ describe('GameDetails match events (#539)', () => {
   it('leaves out the card when nothing notable happened', () => {
     const html = createGameDetails({ log: [], injuries: [], substitutions: [] }).template
     expect(html).not.toContain('Match Events')
+  })
+})
+
+describe('GameDetails intro sentence', () => {
+  it('names game day, season and the real-world kick-off date and time', () => {
+    const html = createGameDetails().template
+    expect(html).toContain('game day #5 of season 4 on 18.08.2026 at 14:05')
+  })
+
+  it('leaves out the kick-off clause when the game has no timestamp', () => {
+    const html = createGameDetails({}, { created_at: null }).template
+    expect(html).toContain('game day #5 of season 4 and Home FC welcomes')
+    expect(html).not.toContain('18.08.2026')
+  })
+
+  it('leaves out the season when the game has none', () => {
+    const html = createGameDetails({}, { season: null }).template
+    expect(html).toContain('game day #5 on 18.08.2026 at 14:05')
+    expect(html).not.toContain('season')
   })
 })

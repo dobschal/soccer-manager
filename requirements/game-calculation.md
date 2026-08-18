@@ -25,6 +25,8 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
 - **US-GC-12**: Als Spieler finde ich in den Spieldetails unter "Match Events" genau denselben
   Spielverlauf, den mir der Spielticker vorgespielt hat — auch bei Spielen, deren Ticker ich nie
   gesehen habe.
+- **US-GC-13**: Als Spieler sehe ich im Kopf der Spieldetails, um welchen Spieltag welcher Saison es
+  sich handelt und wann das Spiel real (Datum und Uhrzeit) berechnet wurde.
 - **US-GC-08**: Als Spieler wird ein positionsfremd aufgestellter Spieler nicht mehr pauschal halbiert,
   sondern je nach Entfernung zu seiner Position abgestuft bewertet.
 
@@ -204,6 +206,12 @@ Karte "Match Events" in den Spieldetails.
 - **TA-GC-48**: Spiele ohne Minuten im Log (`logHasMinutes` ist falsch) fallen in den Spieldetails auf
   die alte Darstellung zurueck: nur Tore und Karten, mit "-" statt einer erfundenen Minute. Der
   Ticker ueberspringt solche Spiele ganz.
+- **TA-GC-49**: Der Einleitungssatz der Spieldetails (`renderGameIntro` in
+  `client/partials/gameDetails.js`) nennt Spieltag, Saison und den realen Anstosszeitpunkt im Format
+  `DD.MM.YYYY hh:mm` (lokale Zeitzone des Spielers). Die Uhrzeit kommt aus `game.created_at`, das
+  `play-game-day.js` beim Abpfiff auf den Berechnungszeitpunkt setzt. Fehlt die Saison oder ist der
+  Zeitstempel unlesbar, fallen kuerzere Satzvarianten ein (`gameDetails.introWithoutSeason`,
+  Zeitangabe entfaellt) — der Satz bleibt in jedem Fall vollstaendig.
 - **TA-GC-45**: Ein Umschalter im Fussbereich wechselt zwischen einfacher und doppelter
   Geschwindigkeit. Die Wartezeit wird durch den Faktor geteilt; beim Umschalten wird der laufende
   Timer neu gesetzt, damit die Aenderung sofort spuerbar ist. Am Spielende verschwinden Umschalter
