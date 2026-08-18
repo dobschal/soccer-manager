@@ -75,7 +75,53 @@ describe('team routes', () => {
   })
 
   describe('getLastSpyReport', () => {
-    it('#513 returns the frozen snapshot including the motivating-speech flag', async () => {
+    /**
+     * A timestamp for which the spy is guaranteed to still be active: game days
+     * run at 00:00/12:00 UTC, so "a minute ago" always sits inside the current
+     * half-day window.
+     * @returns {Date}
+     */
+    const justSpied = () => new Date(Date.now() - 60_000)
+
+    it('reads the spied team live while the spy is still active', async () => {
+      getTeam.mockResolvedValue(testData.team({
+        id: 7,
+        last_spied_team_id: 42,
+        last_spied_at: justSpied(),
+        last_spied_snapshot: JSON.stringify({ team: { id: 42, formation: '4-4-2' }, players: [] })
+      }))
+      getTeamById.mockResolvedValue(testData.team({ id: 42, formation: '3-5-2', motivating_speech_active: 1 }))
+      query.mockResolvedValue([testData.player({ id: 1, team_id: 42 })])
+
+      const result = await handlers.getLastSpyReport(createMockRequest())
+
+      expect(getTeamById).toHaveBeenCalledWith(42)
+      expect(result.report.active).toBe(true)
+      // The live formation wins over the stored one.
+      expect(result.report.team.formation).toBe('3-5-2')
+      expect(result.report.motivatingSpeechActive).toBe(true)
+      expect(new Date(result.report.expiresAt).getTime()).toBeGreaterThan(Date.now())
+    })
+
+    it('refreshes the stored snapshot on every live read so the report freezes where the spy stopped', async () => {
+      getTeam.mockResolvedValue(testData.team({
+        id: 7,
+        last_spied_team_id: 42,
+        last_spied_at: justSpied(),
+        last_spied_snapshot: null
+      }))
+      getTeamById.mockResolvedValue(testData.team({ id: 42, formation: '3-5-2' }))
+      query.mockResolvedValue([testData.player({ id: 1, team_id: 42 })])
+
+      await handlers.getLastSpyReport(createMockRequest())
+
+      const updateCall = query.mock.calls.find(c => typeof c[0] === 'string' && c[0].includes('last_spied_snapshot=?'))
+      expect(updateCall).toBeDefined()
+      expect(JSON.parse(updateCall[1][0]).team.formation).toBe('3-5-2')
+      expect(updateCall[1][1]).toBe(7)
+    })
+
+    it('#513 returns the frozen snapshot once the spy has expired', async () => {
       const snapshot = {
         team: { id: 42, name: 'Spied FC', formation: '4-3-3' },
         players: [testData.player({ id: 1 }), testData.player({ id: 2 })],
@@ -93,6 +139,7 @@ describe('team routes', () => {
       expect(result.report.players).toHaveLength(2)
       expect(result.report.motivatingSpeechActive).toBe(true)
       expect(result.report.spiedAt).toBe('2026-01-01 12:00:00')
+      expect(result.report.active).toBe(false)
       // Must NOT re-read the opponent live — the snapshot is authoritative.
       expect(getTeamById).not.toHaveBeenCalled()
     })
@@ -110,6 +157,7 @@ describe('team routes', () => {
 
       expect(getTeamById).toHaveBeenCalledWith(42)
       expect(result.report.team.id).toBe(42)
+      expect(result.report.active).toBe(false)
       expect(result.report.motivatingSpeechActive).toBe(false)
     })
 

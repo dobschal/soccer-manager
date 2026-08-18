@@ -13,6 +13,7 @@ import { SERVER_EVENTS } from '../../lib/serverEvents.js'
 import { TRAINING_MODES, MAX_SLOTS_PER_MODE } from './youthTrainingModes.js'
 import { YouthPlayerRow } from './youthPlayerRow.js'
 import { euroFormat } from '../../lib/currency.js'
+import { getNextGameDayDate } from '../../util/gameDayTime.js'
 
 export class YouthTeamPage extends UIElement {
   /**
@@ -151,23 +152,10 @@ export class YouthTeamPage extends UIElement {
    */
   _getTimeUntilNextGameDay () {
     const now = new Date()
-    // Game days run on the server (CRON) at 00:00 and 12:00 UTC. We must
-    // compute the next boundary in UTC, otherwise the remaining time is wrong
-    // for every user outside the UTC timezone (#448). The resulting diff is an
-    // absolute duration, so it is correct in the user's local time.
-    const hours = now.getUTCHours()
-
-    const nextGameDay = new Date(now)
-    if (hours < 12) {
-      // Next is noon (12:00 UTC) today
-      nextGameDay.setUTCHours(12, 0, 0, 0)
-    } else {
-      // Next is midnight (00:00 UTC) tomorrow
-      nextGameDay.setUTCDate(nextGameDay.getUTCDate() + 1)
-      nextGameDay.setUTCHours(0, 0, 0, 0)
-    }
-
-    const diffMs = nextGameDay - now
+    // The boundary has to be derived in UTC (see `getNextGameDayDate`); the
+    // resulting diff is an absolute duration, so it is correct in the user's
+    // local time.
+    const diffMs = getNextGameDayDate(now) - now
     const diffSeconds = Math.floor(diffMs / 1000)
     const h = Math.floor(diffSeconds / 3600)
     const m = Math.floor((diffSeconds % 3600) / 60)

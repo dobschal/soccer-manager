@@ -1175,6 +1175,8 @@ export default {
   'spy.playStyle': 'Play style',
   'spy.passStyle': 'Pass style',
   'spy.lastReportTitle': 'Last scout report',
+  'spy.activeFor': 'Spy is active for {time}',
+  'spy.expired': 'Spy is no longer active — last known state.',
   'spy.motivatingSpeechActive': 'Motivating speech active — the team is boosted for the next match day.',
   'actionCards.svg.newYouthPlayer1.title': 'YOUTH RECRUIT',
   'actionCards.svg.newYouthPlayer1.body1': 'You receive a new',

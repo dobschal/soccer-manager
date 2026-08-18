@@ -9,6 +9,7 @@ import { calculateStandingForTeam } from '../helper/standingHelper.js'
 import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 import { getPositionsOfFormation } from '../../client/util/formation.js'
+import { getNextGameDayDate } from '../../client/util/gameDayTime.js'
 import {
   activateLineup,
   createLineup,
@@ -201,18 +202,52 @@ export default {
   },
 
   /**
-   * The most recent team the requesting user spied on with a SPY action card,
-   * as a point-in-time SNAPSHOT of its tactics, lineup and active
-   * motivating-speech buff taken when the card was played (#513). Powers the
-   * collapsable "last scout report" card on #my-team. Returns `{ report: null }`
-   * when the user has never spied on anyone (or the spied team no longer exists).
+   * The most recent team the requesting user spied on with a SPY action card.
+   * Powers the collapsable "last scout report" card on #my-team.
+   *
+   * The spy stays **active until the next game day** (the CRON boundary at
+   * 00:00/12:00 UTC after the card was played). While active, the report is
+   * read live, so tactic or lineup changes the opponent makes before kick-off
+   * show up. Every live read also refreshes the stored snapshot, so once the
+   * spy expires the report freezes at the last state the spy saw and later
+   * changes no longer leak (#513).
+   *
+   * Returns `{ report: null }` when the user has never spied on anyone (or the
+   * spied team no longer exists).
    * @param {Request} req
-   * @returns {Promise<{report: {team: TeamType, players: Array<PlayerType>, spiedAt: string, motivatingSpeechActive: boolean}|null}>}
+   * @returns {Promise<{report: {team: TeamType, players: Array<PlayerType>, spiedAt: string, expiresAt: string, active: boolean, motivatingSpeechActive: boolean}|null}>}
    */
   async getLastSpyReport (req) {
     const myTeam = await getTeam(req)
     if (!myTeam?.last_spied_team_id) return { report: null }
-    // Preferred path: the frozen snapshot captured when the card was played.
+    const expiresAt = myTeam.last_spied_at ? getNextGameDayDate(myTeam.last_spied_at) : null
+    const isActive = !!expiresAt && expiresAt.getTime() > Date.now()
+
+    if (isActive) {
+      const team = await getTeamById(myTeam.last_spied_team_id)
+      if (team) {
+        const players = await query('SELECT * FROM player WHERE team_id=?', [team.id])
+        const snapshot = {
+          team,
+          players,
+          motivatingSpeechActive: !!team.motivating_speech_active
+        }
+        // Keep the frozen copy in step with what the spy currently sees, so
+        // the report stops exactly where it stood when the spy ran out.
+        await query('UPDATE team SET last_spied_snapshot=? WHERE id=?', [JSON.stringify(snapshot), myTeam.id])
+        return {
+          report: {
+            ...snapshot,
+            spiedAt: myTeam.last_spied_at,
+            expiresAt: expiresAt.toISOString(),
+            active: true
+          }
+        }
+      }
+    }
+
+    // Expired spy (or a team that has meanwhile vanished): the frozen snapshot
+    // captured while the spy was active is authoritative.
     if (myTeam.last_spied_snapshot) {
       try {
         const snapshot = JSON.parse(myTeam.last_spied_snapshot)
@@ -221,6 +256,8 @@ export default {
             team: snapshot.team,
             players: snapshot.players ?? [],
             spiedAt: myTeam.last_spied_at,
+            expiresAt: expiresAt ? expiresAt.toISOString() : null,
+            active: false,
             motivatingSpeechActive: !!snapshot.motivatingSpeechActive
           }
         }
@@ -235,6 +272,8 @@ export default {
         team,
         players,
         spiedAt: myTeam.last_spied_at,
+        expiresAt: expiresAt ? expiresAt.toISOString() : null,
+        active: false,
         motivatingSpeechActive: !!team.motivating_speech_active
       }
     }

@@ -1175,6 +1175,8 @@ export default {
   'spy.playStyle': 'Spielstil',
   'spy.passStyle': 'Passstil',
   'spy.lastReportTitle': 'Letzter Spionage-Bericht',
+  'spy.activeFor': 'Spion ist {time} aktiv',
+  'spy.expired': 'Spion ist nicht mehr aktiv — letzter bekannter Stand.',
   'spy.motivatingSpeechActive': 'Motivationsrede aktiv — das Team ist für den nächsten Spieltag gestärkt.',
   'actionCards.svg.newYouthPlayer1.title': 'NACHWUCHSSPIELER',
   'actionCards.svg.newYouthPlayer1.body1': 'Du erhältst einen neuen',

@@ -40,8 +40,10 @@ export const actionCardChances = {
   LEVEL_UP_PLAYER_100: 0.06,
   STAR_PLAYER: 0.01,
   MOTIVATING_SPEECH: 0.05,
-  // ~5 per season (34 game days): 5 / 34 ≈ 0.15 expected cards per game day.
-  SPY: 0.15,
+  // ~3 per season (34 game days): 3 / 34 ≈ 0.09 expected cards per game day.
+  // The report stays live until the next game day, so a card covers a whole
+  // half-day of scouting — it may be rarer than the original ~5 per season.
+  SPY: 0.09,
   // Only teams with a medical practice ever get this one; the chance is
   // overridden per practice level (see MEDICAL_PRACTICE_CARD_CHANCES).
   MEDICAL_TREATMENT: 0

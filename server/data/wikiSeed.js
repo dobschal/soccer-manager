@@ -37,7 +37,7 @@ Card types:
 • Million Gift – adds 1,000,000 € to your account. Ten times the cash bonus, and ten times as rare.
 • Star Player – permanently boosts a player's match strength by 10%.
 • Motivating Speech – gives your whole team a +10% strength bonus for the next match day.
-• Spy – reveals another team's tactics and lineup. Your next opponent is preselected, but you can scout any team you search for. The card is used up the moment the report is revealed; the latest report stays visible on your team page.
+• Spy – reveals another team's tactics and lineup. Your next opponent is preselected, but you can scout any team you search for. The card is used up the moment the report is revealed. Your spy keeps reporting until the next match day, so the report on your team page updates itself when the scouted team changes tactics or lineup — a countdown shows how much longer he is out there. After that the report freezes at the last state he saw.
 • Medical Treatment – takes one match day off an injured player's lay-off. If that was his last match day out, he is fit again straight away. Requires a Medical Practice, and only injured players can be picked.
 
 Good to know:
@@ -65,7 +65,7 @@ Kartentypen:
 • Millionengeschenk – schreibt 1.000.000 € auf deinem Konto gut. Zehnmal so viel wie der Geldbonus und zehnmal so selten.
 • Starspieler – erhöht die Spielstärke eines Spielers dauerhaft um 10%.
 • Motivationsrede – gibt deinem ganzen Team am nächsten Spieltag +10% Stärke.
-• Spion – deckt Taktik und Aufstellung eines anderen Teams auf. Dein nächster Gegner ist vorausgewählt, du kannst aber jedes gesuchte Team ausspähen. Die Karte wird verbraucht, sobald der Bericht aufgedeckt ist; der letzte Bericht bleibt auf deiner Team-Seite sichtbar.
+• Spion – deckt Taktik und Aufstellung eines anderen Teams auf. Dein nächster Gegner ist vorausgewählt, du kannst aber jedes gesuchte Team ausspähen. Die Karte wird verbraucht, sobald der Bericht aufgedeckt ist. Dein Spion bleibt bis zum nächsten Spieltag aktiv: Der Bericht auf deiner Team-Seite aktualisiert sich selbst, wenn das ausgespähte Team Taktik oder Aufstellung ändert – ein Timer zeigt, wie lange er noch unterwegs ist. Danach friert der Bericht auf dem letzten gesehenen Stand ein.
 • Medizinische Behandlung – nimmt einem verletzten Spieler einen Spieltag Ausfall ab. War es sein letzter, ist er sofort wieder fit. Braucht eine Arztpraxis, und auswählen kannst du nur verletzte Spieler.
 
 Gut zu wissen:

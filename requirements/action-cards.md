@@ -27,6 +27,7 @@ Aktionskarten sind sammelbare Spielelemente, die der Nutzer nach jedem Spieltag 
 - **US-AC-12**: Als Spieler kann ich die Starspieler-Karte nutzen, um einem Spieler permanent +10% Level-Bonus in Spielen zu geben.
 - **US-AC-13**: Als Spieler kann ich die Motivationsrede-Karte nutzen, um allen Spielern fuer den naechsten Spieltag +10% Level-Bonus zu geben.
 - **US-AC-14**: Als Spieler kann ich die Spionage-Karte auf ein fremdes Team anwenden, um dessen Taktik, Aufstellung und aktive Motivationsrede einzusehen.
+- **US-AC-23**: Als Spieler bleibt mein Spion bis zum naechsten Spieltag aktiv: Der Spionage-Bericht auf meiner Team-Seite aktualisiert sich in dieser Zeit selbst, wenn das ausgespaehte Team Taktik oder Aufstellung aendert, und ein Timer (z. B. "Spion ist 9h 23min aktiv") zeigt mir die verbleibende Zeit. Danach friert der Bericht auf dem letzten gesehenen Stand ein.
 - **US-AC-15**: Als Spieler kann ich ueberzaehlige Karten auf dem Aktionskarten-Markt anderen Nutzern anbieten und auf deren Angebote bieten.
 - **US-AC-16**: Als Spieler kann ich eine Karte "Medizinische Behandlung" auf einen **verletzten** Spieler anwenden und verkuerze damit dessen Ausfall um einen Spieltag. Ist niemand verletzt, behalte ich die Karte und werde darauf hingewiesen.
 - **US-AC-17**: Als Spieler bekomme ich auf ein Marktangebot, das laenger als 24 Stunden offen liegt, automatisch ein Geldgebot von einem Bot-Team, damit meine Karten nicht unverkauft liegen bleiben.
@@ -81,7 +82,7 @@ Basiswerte aus `actionCardChances` (`server/helper/actionCardHelper.js`), ausgel
 | MILLION_BONUS | 0.006 (= BONUS_100K × 0,1) | ~0,2 |
 | STAR_PLAYER | 0.01 | ~0,3 |
 | MOTIVATING_SPEECH | 0.05 | ~2 |
-| SPY | 0.15 | ~5 |
+| SPY | 0.09 | ~3 |
 | MEDICAL_TREATMENT | 0 (nur via Arztpraxis: 0.044) | ~1,5 mit Arztpraxis |
 
 Wahrscheinlichkeiten > 1 werden aufgeteilt: `floor(chance)` garantierte Karten plus eine
@@ -123,8 +124,9 @@ Overrides.
 ### Spionage-Karte (SPY)
 
 - **TA-AC-17**: Die ID des ausgespaehten Teams wird ueber den `position`-Parameter von `useActionCard` uebergeben (SPY hat keine Aufstellungsposition).
-- **TA-AC-18**: Der Report ist ein **Snapshot** zum Zeitpunkt des Einsatzes: Taktik, Aufstellung und aktive Motivationsrede werden eingefroren, damit spaetere Taktikaenderungen des Gegners den Report nicht mehr veraendern (#513).
-- **TA-AC-19**: Persistiert in `team.last_spied_team_id`, `team.last_spied_at` und `team.last_spied_snapshot` (JSON) des ausspaehenden Teams.
+- **TA-AC-18**: Der Spion ist bis zum **naechsten Spieltag** aktiv, also bis zur CRON-Grenze (00:00/12:00 UTC) nach dem Karteneinsatz, berechnet ueber `getNextGameDayDate` (`client/util/gameDayTime.js`, von Client und Server geteilt). Solange er aktiv ist, liest `getLastSpyReport` Taktik, Aufstellung und Motivationsrede **live** aus der Datenbank; jeder Live-Read schreibt den Snapshot fort. Nach Ablauf ist der Snapshot autoritativ, der Report friert also auf dem letzten gesehenen Stand ein und spaetere Taktikaenderungen des Gegners bleiben verborgen (#513).
+- **TA-AC-19**: Persistiert in `team.last_spied_team_id`, `team.last_spied_at` und `team.last_spied_snapshot` (JSON) des ausspaehenden Teams. `getLastSpyReport` liefert zusaetzlich `expiresAt` (ISO) und `active`.
+- **TA-AC-50**: Die Karte `SpyReportCard` zeigt unter der Ueberschrift einen Sekundentakt-Timer (`spy.activeFor`, z. B. "Spion ist 9h 23min aktiv") bzw. nach Ablauf `spy.expired`. Waehrend der Spion aktiv ist, laedt sie den Report jede Minute neu und tauscht den Body **nur bei tatsaechlicher Aenderung** in-place aus, damit die verschachtelte `Lineup` nicht flackert. Laeuft der Timer ab, stoppt sie ihre Intervalle und laedt einmal neu.
 
 ### Aktionskarten-Markt
 
@@ -265,7 +267,8 @@ Aktionskarten-Markt (`server/routes/actionCardMarket.js`):
 - MEDICAL_TREATMENT: verkuerzt um einen Spieltag, hebt die Verletzung beim letzten Spieltag auf, lehnt gesunde und fremde Spieler ab
 - Kartenlimit pro Typ: Aufdecken wird abgelehnt, Vergabe wird uebersprungen
 - Jugendkarten-Deckel pro Saison inkl. Garantiekarte
-- SPY-Snapshot bleibt stabil, wenn der Gegner danach die Taktik aendert
+- SPY: Live-Read solange der Spion aktiv ist (inkl. Snapshot-Fortschreibung), eingefrorener Snapshot nach Ablauf, Fallback-Live-Read fuer Alt-Reports ohne Snapshot
+- SPY-Timer: Formatierung (h/min, min, s), Intervalle laufen nur bei aktivem Spion, Stopp + Reload bei Ablauf, In-place-Body-Tausch nur bei Aenderung
 - Markt: Angebots-Obergrenze, Escrow beim Listen/Zurueckziehen, Bundle zaehlt als ein Angebot
 - Bot-Gebote: Preisliste je Kartentyp, Summenbildung bei Buendeln, ±10%-Grenzen, ein Gebot pro Manager und Tag,
   Ueberspringen bei unbekannter Karte oder zu klammem Bot-Team
