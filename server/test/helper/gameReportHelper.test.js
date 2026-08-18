@@ -248,6 +248,37 @@ describe('factsToPrompt', () => {
     expect(prompt).not.toContain('newPlayer')
   })
 
+  it('spells out the formation pairing and the counters to it', () => {
+    const { game, details } = buildFixture()
+    details.teamA.formation = '433'
+    details.teamB.formation = '442a'
+    const prompt = factsToPrompt(buildGameFacts(game, details))
+
+    // 433 is the weaker shape against 442a, so Beta United must be named as
+    // the favoured side — the sign must not silently flip.
+    expect(prompt).toContain('Alpha FC 433 against Beta United 442a')
+    expect(prompt).toContain('Beta United is favoured by')
+    expect(prompt).toContain('Formations that fare best against 433')
+    expect(prompt).toContain('Formations that fare best against 442a')
+    // The shape alone would hide the DM/OM split, so the key is printed too.
+    expect(prompt).toContain('formation 433 (1-1-1)')
+  })
+
+  it('leaves the formation pairing out for games that stored no formation', () => {
+    const { game, details } = buildFixture()
+    const prompt = factsToPrompt(buildGameFacts(game, details))
+    expect(prompt).not.toContain('Formation pairing')
+  })
+
+  it('leaves the formation pairing out for a formation the table does not know', () => {
+    const { game, details } = buildFixture()
+    details.teamA.formation = '433'
+    details.teamB.formation = '4231'
+    const facts = buildGameFacts(game, details)
+    expect(facts.formationMatchup).toBeNull()
+    expect(factsToPrompt(facts)).not.toContain('Formation pairing')
+  })
+
   it('renders placeholders when nothing notable happened', () => {
     const { game } = buildFixture()
     const prompt = factsToPrompt(buildGameFacts(game, {
@@ -291,6 +322,40 @@ describe('generateGameReport', () => {
     const insert = query.mock.calls[2]
     expect(insert[0]).toContain('INSERT INTO game_report')
     expect(insert[1]).toEqual([99, 'de', 'Alpha FC won because ...', 'test/model'])
+  })
+
+  it('asks for a short tactical verdict without a match recap', async () => {
+    // The report used to open with a paragraph retelling the result, which is
+    // already on screen right next to it — see the two-paragraph brief.
+    const { game, details } = buildFixture()
+    query
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ ...game, details: JSON.stringify(details), isForfeit: 0 }])
+      .mockResolvedValueOnce({})
+    generateText.mockResolvedValueOnce('verdict')
+
+    await generateGameReport(99, 'en')
+
+    const { system, maxTokens } = generateText.mock.calls[0][0]
+    expect(system).toContain('exactly 2 short paragraphs')
+    expect(system).toContain('never summarise the result')
+    expect(system).not.toContain('the story of the result')
+    expect(maxTokens).toBe(400)
+  })
+
+  it('asks for the same short verdict in German', async () => {
+    const { game, details } = buildFixture()
+    query
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ ...game, details: JSON.stringify(details), isForfeit: 0 }])
+      .mockResolvedValueOnce({})
+    generateText.mockResolvedValueOnce('Fazit')
+
+    await generateGameReport(99, 'de')
+
+    const { system } = generateText.mock.calls[0][0]
+    expect(system).toContain('genau 2 kurze Absätze')
+    expect(system).toContain('fasse das Ergebnis niemals zusammen')
   })
 
   it('falls back to the English system prompt for unknown locales', async () => {

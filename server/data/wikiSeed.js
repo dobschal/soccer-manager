@@ -941,12 +941,14 @@ Der Spielticker spielt dein letztes Spiel Ereignis für Ereignis genau aus diese
       subtitle: 'An AI analysis of whether your tactics worked',
       text: `Open any played match and you will find a "Match Report" card above the match events. Like every card in the match details it starts folded – tap its header to open it. Press "Create match report" and an AI writes a short analysis of that match for you.
 
-The report answers three questions:
-• What happened – the story behind the result.
+The report answers two questions, in a few sentences each:
 • Which tactical choices worked and which did not. It reasons from your own match numbers, not from guesswork.
 • What to change for the next match, naming the concrete setting.
 
+It deliberately does not retell the match – score, scorers and statistics are already on the same screen.
+
 What the analysis looks at:
+• The formation pairing – how your shape fares against your opponent's, measured by simulating the two formations against each other with identical squads. This is the one thing the match statistics cannot show you, because a run past a position your opponent does not field leaves no trace in the ticker.
 • Possession, your longest passing streak and how many passes you strung together before losing the ball – this shows whether your pass style fits your squad.
 • Where you lost the ball, split into defence, midfield and attack – a high number of losses in attack usually means your attack mode was too risky.
 • Duel win rate, ball recoveries per zone and your cards – this shows whether your play style paid off.
@@ -964,12 +966,14 @@ Good to know:
       subtitle: 'Eine KI-Analyse, ob deine Taktik funktioniert hat',
       text: `Öffne ein gespieltes Spiel und du findest über den Spielereignissen die Karte "Spielbericht". Wie alle Karten in den Spieldetails ist sie zunächst zugeklappt – tippe auf die Kopfzeile, um sie zu öffnen. Mit "Spielbericht erstellen" schreibt dir eine KI eine kurze Analyse dieser Partie.
 
-Der Bericht beantwortet drei Fragen:
-• Was passiert ist – die Geschichte hinter dem Ergebnis.
+Der Bericht beantwortet zwei Fragen in jeweils wenigen Sätzen:
 • Welche taktischen Entscheidungen funktioniert haben und welche nicht. Argumentiert wird mit deinen echten Spielzahlen, nicht mit Vermutungen.
 • Was du im nächsten Spiel ändern solltest, mit Nennung der konkreten Einstellung.
 
+Das Spiel selbst wird bewusst nicht nacherzählt – Ergebnis, Torschützen und Statistik stehen ohnehin auf demselben Bildschirm.
+
 Worauf die Analyse schaut:
+• Die Formations-Paarung – wie sich deine Grundordnung gegen die des Gegners schlägt, gemessen daran, wie die beiden Formationen mit identischen Kadern gegeneinander abschneiden. Das ist das Einzige, was du der Spielstatistik nicht ansehen kannst: Ein Lauf an einer Position vorbei, die der Gegner gar nicht besetzt, hinterlässt im Ticker keine Spur.
 • Ballbesitz, deine längste Passstafette und wie viele Pässe du im Schnitt vor einem Ballverlust gespielt hast – das zeigt, ob dein Passstil zu deinem Kader passt.
 • Wo du den Ball verloren hast, aufgeteilt in Abwehr, Mittelfeld und Angriff – viele Verluste im Angriff bedeuten meist, dass dein Angriffsmodus zu riskant war.
 • Zweikampfquote, Balleroberungen je Zone und deine Karten – das zeigt, ob sich dein Spielstil ausgezahlt hat.

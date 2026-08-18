@@ -1,5 +1,6 @@
 import { query } from '../lib/database.js'
 import { generateText, getLlmModel, isLlmConfigured } from '../lib/openRouter.js'
+import { bestCountersTo, formationAdvantage } from './formationMatchupHelper.js'
 
 /**
  * AI match reports.
@@ -105,6 +106,36 @@ function emptyTeamStats () {
     redCards: 0,
     scorers: {},
     recoveryLeaders: {}
+  }
+}
+
+/**
+ * The formation pairing of the two teams, as a measured edge in league points
+ * per game plus the shapes that would counter each side.
+ *
+ * Formation is the largest tactical lever in the engine — the counter-position
+ * pairing in `_fightsOpponents` swings up to 0.4 points per game — but it is
+ * the one thing a manager cannot read off the match statistics, because the
+ * duels that never happened (no opponent at the counter position) leave no
+ * trace in the log. So it is handed to the model as a fact.
+ *
+ * Returns null for games that predate stored formations, so the prompt can
+ * leave the whole block out rather than assert a neutral matchup.
+ *
+ * @param {string|null} homeFormation
+ * @param {string|null} awayFormation
+ * @returns {object|null}
+ */
+function buildFormationMatchup (homeFormation, awayFormation) {
+  if (!homeFormation || !awayFormation) return null
+  const homeEdge = formationAdvantage(homeFormation, awayFormation)
+  if (homeEdge === null) return null
+  return {
+    home: homeFormation,
+    away: awayFormation,
+    homeEdge,
+    countersToHome: bestCountersTo(homeFormation),
+    countersToAway: bestCountersTo(awayFormation)
   }
 }
 
@@ -225,6 +256,9 @@ export function buildGameFacts (game, details) {
       playStyle: teamMeta?.play_style || 'normal',
       passStyle: teamMeta?.pass_style || 'mixed',
       formation: formationShape(starters),
+      // The shape alone ("4-4-2") hides the difference that actually decides
+      // the duels: 442a fields DM+OM, 442b fields two CMs. Keep the key.
+      formationKey: teamMeta?.formation || null,
       motivatingSpeech: Boolean(teamMeta?.motivating_speech_active)
     },
     goals: stats.goals,
@@ -262,6 +296,15 @@ export function buildGameFacts (game, details) {
     }))
   })
 
+  const home = buildTeam(
+    statsA, details.teamA, startersA, details.shotsTeamA,
+    details.effectiveStrengthTeamA ?? details.strengthTeamA, 0
+  )
+  const away = buildTeam(
+    statsB, details.teamB, startersB, details.shotsTeamB,
+    details.effectiveStrengthTeamB ?? details.strengthTeamB, 1
+  )
+
   return {
     matchDay: (game.gameDay ?? game.game_day ?? 0) + 1,
     season: game.season,
@@ -270,14 +313,9 @@ export function buildGameFacts (game, details) {
       home: game.goalsTeam1 ?? game.goals_team_1 ?? statsA.goals,
       away: game.goalsTeam2 ?? game.goals_team_2 ?? statsB.goals
     },
-    home: buildTeam(
-      statsA, details.teamA, startersA, details.shotsTeamA,
-      details.effectiveStrengthTeamA ?? details.strengthTeamA, 0
-    ),
-    away: buildTeam(
-      statsB, details.teamB, startersB, details.shotsTeamB,
-      details.effectiveStrengthTeamB ?? details.strengthTeamB, 1
-    ),
+    home,
+    away,
+    formationMatchup: buildFormationMatchup(home.tactics.formationKey, away.tactics.formationKey),
     timeline: timeline.sort((a, b) => a.minute - b.minute),
     injuries: (details.injuries || []).map(i => ({
       player: i.playerName,
@@ -307,7 +345,7 @@ function renderTeamFacts (team, sideLabel) {
     .map(p => `${p.position} ${p.name}: base ${p.defaultLevel}, in-game ${p.inGameLevel}, freshness ${p.freshnessPercent}%`)
     .join('\n    ')
   return `${sideLabel}: ${team.name}
-  Tactics: formation ${team.tactics.formation}, attack mode ${team.tactics.attackMode}, play style ${team.tactics.playStyle}, pass style ${team.tactics.passStyle}${team.tactics.motivatingSpeech ? ', motivating speech used (+10% strength)' : ''}
+  Tactics: formation ${team.tactics.formationKey ? `${team.tactics.formationKey} (${team.tactics.formation})` : team.tactics.formation}, attack mode ${team.tactics.attackMode}, play style ${team.tactics.playStyle}, pass style ${team.tactics.passStyle}${team.tactics.motivatingSpeech ? ', motivating speech used (+10% strength)' : ''}
   Result: ${team.goals} goals from ${team.shots} shots (${team.shotsOnTarget} on target), ${team.saves} saves made
   Possession: ${team.possessionPercent}%, longest pass streak ${team.maxPassStreak}, average passes before losing the ball ${team.avgPassesBeforeLoss}
   Duels: won ${team.duelsWon}, lost ${team.duelsLost} (${team.duelWinPercent}% win rate)
@@ -319,6 +357,36 @@ function renderTeamFacts (team, sideLabel) {
   Top ball winners: ${team.topRecoverers.length ? team.topRecoverers.map(r => `${r.name} (${r.recoveries})`).join(', ') : 'none'}
   Squad:
     ${squad}`
+}
+
+/**
+ * Render the formation pairing as a short labelled block. Empty string when
+ * the game has no stored formations.
+ * @param {object|null} matchup
+ * @param {string} homeName
+ * @param {string} awayName
+ * @returns {string}
+ */
+function renderFormationMatchup (matchup, homeName, awayName) {
+  if (!matchup) return ''
+  const list = (counters) => counters.length
+    ? counters.map(c => `${c.formation} (+${c.advantage})`).join(', ')
+    : 'none — no other shape is clearly favoured against it'
+  const favoured = matchup.homeEdge === 0
+    ? 'neither side is favoured by the pairing'
+    : `${matchup.homeEdge > 0 ? homeName : awayName} is favoured by ${Math.abs(matchup.homeEdge)} points per game`
+  // Both sides in the same shape would otherwise get the identical counter
+  // line printed twice.
+  const counterLines = matchup.home === matchup.away
+    ? `  Formations that fare best against ${matchup.home}: ${list(matchup.countersToHome)}`
+    : `  Formations that fare best against ${matchup.home}: ${list(matchup.countersToHome)}
+  Formations that fare best against ${matchup.away}: ${list(matchup.countersToAway)}`
+  return `
+
+Formation pairing (measured by simulating both formations against each other with identical squads; league points per game):
+  ${homeName} ${matchup.home} against ${awayName} ${matchup.away}: ${favoured}.
+${counterLines}
+  This edge comes from the counter-position pairing (CM against CM, DM against OM, CD against CA): a player whose counter position the opponent does not field advances unopposed, and every extra opponent at that position is another duel to survive.`
 }
 
 /**
@@ -360,31 +428,31 @@ Injuries:
 ${injuries}
 
 Substitutions:
-${substitutions}`
+${substitutions}${renderFormationMatchup(facts.formationMatchup, facts.home.name, facts.away.name)}`
 }
 
 const SYSTEM_PROMPTS = {
-  en: `You are a football analyst writing a short match report for the manager of one of the teams in an online football manager game.
+  en: `You are a football analyst writing a short tactical verdict for the managers of the two teams in an online football manager game.
 
-You will receive aggregated statistics from a simulated match. Write 3 to 4 short paragraphs in English:
-1. What happened in the match — the story of the result.
-2. Which tactical choices worked and which did not. Reason from the numbers: possession and pass streaks show whether the pass style fitted the squad, ball losses by zone show whether the attack mode was too risky, duel win rate and cards show whether the play style paid off, freshness and in-game vs base levels show whether the squad was fit enough.
-3. A concrete recommendation for the next match, naming the tactic setting you would change.
+You will receive aggregated statistics from a simulated match. Write exactly 2 short paragraphs in English, 120 words in total at most:
+1. Which tactical choices worked and which did not. Reason from the numbers: the formation pairing shows whether a side was beaten by its shape before kick-off, possession and pass streaks show whether the pass style fitted the squad, ball losses by zone show whether the attack mode was too risky, duel win rate and cards show whether the play style paid off, freshness and in-game vs base levels show whether the squad was fit enough.
+2. A concrete recommendation for the next match for each team, naming the tactic setting you would change. When the formation pairing cost a side more than 0.1 points per game, name one of the listed counter formations instead.
 
 Rules:
+- Never retell the match and never summarise the result. Both managers have just watched it and can see the score, the scorers and the statistics right next to your text — start straight with the tactical judgement.
 - Only use the numbers you are given. Never invent players, minutes, or events.
 - Refer to teams and players by name.
 - Be specific and quote the numbers that support your judgement.
 - Plain prose, no headings, no bullet lists, no markdown.`,
 
-  de: `Du bist ein Fußball-Analyst und schreibst eine kurze Spielanalyse für den Manager einer der beiden Mannschaften in einem Online-Fußballmanager.
+  de: `Du bist ein Fußball-Analyst und schreibst ein kurzes Taktik-Fazit für die Manager der beiden Mannschaften in einem Online-Fußballmanager.
 
-Du bekommst aggregierte Statistiken eines simulierten Spiels. Schreibe 3 bis 4 kurze Absätze auf Deutsch:
-1. Was im Spiel passiert ist — die Geschichte des Ergebnisses.
-2. Welche taktischen Entscheidungen funktioniert haben und welche nicht. Argumentiere mit den Zahlen: Ballbesitz und Passstafetten zeigen, ob der Passstil zum Kader passte, Ballverluste nach Zone zeigen, ob der Angriffsmodus zu riskant war, Zweikampfquote und Karten zeigen, ob sich der Spielstil ausgezahlt hat, Frische sowie In-Game- gegenüber Grundstärke zeigen, ob der Kader fit genug war.
-3. Eine konkrete Empfehlung für das nächste Spiel, mit Nennung der Taktik-Einstellung, die du ändern würdest.
+Du bekommst aggregierte Statistiken eines simulierten Spiels. Schreibe genau 2 kurze Absätze auf Deutsch, insgesamt höchstens 120 Wörter:
+1. Welche taktischen Entscheidungen funktioniert haben und welche nicht. Argumentiere mit den Zahlen: die Formations-Paarung zeigt, ob eine Mannschaft schon vor dem Anpfiff durch ihre Grundordnung im Nachteil war, Ballbesitz und Passstafetten zeigen, ob der Passstil zum Kader passte, Ballverluste nach Zone zeigen, ob der Angriffsmodus zu riskant war, Zweikampfquote und Karten zeigen, ob sich der Spielstil ausgezahlt hat, Frische sowie In-Game- gegenüber Grundstärke zeigen, ob der Kader fit genug war.
+2. Eine konkrete Empfehlung für das nächste Spiel je Mannschaft, mit Nennung der Taktik-Einstellung, die du ändern würdest. Hat die Formations-Paarung eine Mannschaft mehr als 0,1 Punkte pro Spiel gekostet, nenne eine der aufgeführten Konter-Formationen.
 
 Regeln:
+- Erzähle das Spiel niemals nach und fasse das Ergebnis niemals zusammen. Beide Manager haben es gerade gesehen und finden Spielstand, Torschützen und Statistik direkt neben deinem Text — steig sofort mit der taktischen Bewertung ein.
 - Nutze ausschließlich die genannten Zahlen. Erfinde niemals Spieler, Minuten oder Ereignisse.
 - Nenne Mannschaften und Spieler beim Namen.
 - Sei konkret und belege deine Einschätzung mit den Zahlen.
@@ -460,7 +528,10 @@ export async function generateGameReport (gameId, locale) {
   const facts = buildGameFacts(game, details)
   const text = await generateText({
     system: systemPromptFor(locale),
-    prompt: factsToPrompt(facts)
+    prompt: factsToPrompt(facts),
+    // The verdict is capped at ~120 words; 400 tokens leaves plenty of room
+    // for a long-winded model without paying for a full-page essay.
+    maxTokens: 400
   })
   const model = getLlmModel()
 
