@@ -126,11 +126,15 @@ describe('GameReport', () => {
   })
 
   describe('events', () => {
-    it('marks the generate button optional so states without it can be applied', () => {
-      // The loading and the finished-report state don't render the button —
-      // a required selector made update() throw "Cannot apply event listener".
+    it('marks every selector optional so states without them can be applied', () => {
+      // The loading and the finished-report state don't render the button, and
+      // the hidden placeholder state renders no card at all — a required
+      // selector made update() throw "Cannot apply event listener".
       const element = new GameReport({ gameId: 1 })
-      expect(Object.keys(element.events)).toEqual(['(optional).game-report-generate'])
+      expect(Object.keys(element.events)).toEqual([
+        '(optional).collapsible-card-toggle',
+        '(optional).game-report-generate'
+      ])
     })
   })
 
@@ -170,5 +174,24 @@ describe('GameReport', () => {
 
       expect(server.createGameReport).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('GameReport collapsing', () => {
+  it('renders the report card collapsed by default', () => {
+    const element = new GameReport({ gameId: 1 })
+    element.reportText = 'A stored report.'
+    expect(element.template).toContain('collapsible-card is-collapsed')
+    expect(element.template).toContain('aria-expanded="false"')
+  })
+
+  it('keeps the card open across a re-render once it was expanded', () => {
+    // Generating a report calls update() twice; the card must not snap shut
+    // while the user is watching the loading state.
+    const element = new GameReport({ gameId: 1 })
+    element.isCollapsed = false
+    element.isGenerating = true
+    expect(element.template).toContain('aria-expanded="true"')
+    expect(element.template).not.toContain('is-collapsed')
   })
 })

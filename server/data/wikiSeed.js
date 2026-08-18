@@ -905,7 +905,7 @@ The match ticker replays your latest match event by event, straight from that lo
 • An injury names the actual injury and how long the player is out.
 • Every line carries a small portrait of the player involved.
 • Use the speed button to run the ticker at double speed, or skip to the final score.
-• Open any played match later on and its "Match Events" card lists exactly the same events, oldest first – so nothing is lost if you skipped the ticker or never saw it.`
+• Open any played match later on and its "Match Events" card lists exactly the same events, oldest first – so nothing is lost if you skipped the ticker or never saw it. Every card in the match details starts folded; tap its header to open it.`
     },
     de: {
       title: 'Spielberechnung',
@@ -929,7 +929,7 @@ Der Spielticker spielt dein letztes Spiel Ereignis für Ereignis genau aus diese
 • Bei einer Verletzung wird die Verletzungsart genannt und wie lange der Spieler ausfällt.
 • Jede Zeile zeigt ein kleines Bild des beteiligten Spielers.
 • Mit dem Geschwindigkeits-Knopf läuft der Ticker in doppeltem Tempo, oder du springst direkt zum Endstand.
-• Öffnest du ein gespieltes Spiel später erneut, listet die Karte „Match Events" genau dieselben Ereignisse auf, das älteste zuerst – es geht also nichts verloren, wenn du den Ticker übersprungen oder nie gesehen hast.`
+• Öffnest du ein gespieltes Spiel später erneut, listet die Karte „Match Events" genau dieselben Ereignisse auf, das älteste zuerst – es geht also nichts verloren, wenn du den Ticker übersprungen oder nie gesehen hast. Alle Karten in den Spieldetails sind zunächst zugeklappt; tippe auf die Kopfzeile, um eine zu öffnen.`
     }
   },
 
@@ -939,7 +939,7 @@ Der Spielticker spielt dein letztes Spiel Ereignis für Ereignis genau aus diese
     en: {
       title: 'Match Report',
       subtitle: 'An AI analysis of whether your tactics worked',
-      text: `Open any played match and you will find a "Match Report" card above the match events. Press "Create match report" and an AI writes a short analysis of that match for you.
+      text: `Open any played match and you will find a "Match Report" card above the match events. Like every card in the match details it starts folded – tap its header to open it. Press "Create match report" and an AI writes a short analysis of that match for you.
 
 The report answers three questions:
 • What happened – the story behind the result.
@@ -962,7 +962,7 @@ Good to know:
     de: {
       title: 'Spielbericht',
       subtitle: 'Eine KI-Analyse, ob deine Taktik funktioniert hat',
-      text: `Öffne ein gespieltes Spiel und du findest über den Spielereignissen die Karte "Spielbericht". Mit "Spielbericht erstellen" schreibt dir eine KI eine kurze Analyse dieser Partie.
+      text: `Öffne ein gespieltes Spiel und du findest über den Spielereignissen die Karte "Spielbericht". Wie alle Karten in den Spieldetails ist sie zunächst zugeklappt – tippe auf die Kopfzeile, um sie zu öffnen. Mit "Spielbericht erstellen" schreibt dir eine KI eine kurze Analyse dieser Partie.
 
 Der Bericht beantwortet drei Fragen:
 • Was passiert ist – die Geschichte hinter dem Ergebnis.

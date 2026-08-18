@@ -4,6 +4,7 @@ import { renderEmblem } from './emblem.js'
 import { renderPositionBadge } from './positionBadge.js'
 import { buildTickerEvents, buildTickerRow, fillTickerPortraits, logHasMinutes } from '../lib/tickerEvents.js'
 import { GameReport } from './gameReport.js'
+import { renderCollapsibleCard, toggleCollapsibleCard } from '../lib/collapsibleCard.js'
 import { formatDate } from '../lib/date.js'
 import { t } from '../i18n/index.js'
 
@@ -82,10 +83,11 @@ function renderSquadList (teamPlayers, teamName, substitutions) {
     `
   }).join('')
 
-  return `
-    <div class="card mb-3">
-      <div class="card-header"><i class="fa fa-users me-2"></i>${teamName}</div>
-      <div class="card-body p-0">
+  return renderCollapsibleCard({
+    title: teamName,
+    icon: 'fa-users',
+    bodyClass: 'card-body p-0',
+    body: `
         <div class="horizontal-scrollable-table">
         <table class="table table-sm mb-0 wide-on-mobile">
           <thead>
@@ -100,9 +102,8 @@ function renderSquadList (teamPlayers, teamName, substitutions) {
           <tbody>${rows}</tbody>
         </table>
         </div>
-      </div>
-    </div>
-  `
+    `
+  })
 }
 
 /**
@@ -131,14 +132,42 @@ function renderEventTicker (details, players) {
     return `<div class="${className}">${html}</div>`
   }).join('')
 
-  return `
-    <div class="card mb-3">
-      <div class="card-header"><i class="fa fa-clock-o me-2"></i>Match Events</div>
-      <div class="card-body">
-        <div class="spiel-ticker__feed spiel-ticker__feed--static">${rows}</div>
+  return renderCollapsibleCard({
+    title: 'Match Events',
+    icon: 'fa-clock-o',
+    body: `<div class="spiel-ticker__feed spiel-ticker__feed--static">${rows}</div>`
+  })
+}
+
+/**
+ * Render the stadium attendance card.
+ * @param {number} guests
+ * @param {number} totalCapacity
+ * @param {number} totalEarnings
+ * @returns {string}
+ */
+function renderStadiumCard (guests, totalCapacity, totalEarnings) {
+  return renderCollapsibleCard({
+    title: 'Stadium',
+    icon: 'fa-ticket',
+    cardClass: '',
+    body: `
+      <div class="row text-center">
+        <div class="col-4">
+          <div class="fs-4 fw-bold">${guests.toLocaleString()}</div>
+          <div class="text-muted small">Guests</div>
+        </div>
+        <div class="col-4">
+          <div class="fs-4 fw-bold">${totalCapacity ? Math.round(guests / totalCapacity * 100) : '-'}%</div>
+          <div class="text-muted small">Capacity</div>
+        </div>
+        <div class="col-4">
+          <div class="fs-4 fw-bold">${totalEarnings.toLocaleString()} &euro;</div>
+          <div class="text-muted small">Ticket Earnings</div>
+        </div>
       </div>
-    </div>
-  `
+    `
+  })
 }
 
 /**
@@ -325,29 +354,24 @@ export class GameDetails extends UIElement {
         ${renderSquadList(details.playerTeamA, team1.name, (details.substitutions || []).filter(s => s.teamIndex === 0))}
         ${renderSquadList(details.playerTeamB, team2.name, (details.substitutions || []).filter(s => s.teamIndex === 1))}
 
-        <div class="card">
-          <div class="card-header"><i class="fa fa-ticket me-2"></i>Stadium</div>
-          <div class="card-body">
-            <div class="row text-center">
-              <div class="col-4">
-                <div class="fs-4 fw-bold">${guests.toLocaleString()}</div>
-                <div class="text-muted small">Guests</div>
-              </div>
-              <div class="col-4">
-                <div class="fs-4 fw-bold">${totalCapacity ? Math.round(guests / totalCapacity * 100) : '-'}%</div>
-                <div class="text-muted small">Capacity</div>
-              </div>
-              <div class="col-4">
-                <div class="fs-4 fw-bold">${totalEarnings.toLocaleString()} &euro;</div>
-                <div class="text-muted small">Ticket Earnings</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        ${renderStadiumCard(guests, totalCapacity, totalEarnings)}
 
         <p class="text-muted small mt-3 mb-0"><strong>IG</strong> (In-Game Level) is the effective strength of a player during the match. It is based on the base level and influenced by freshness, captain choice, star player status and motivating speeches.</p>
       </div>
     `
+  }
+  /**
+   * The match report card brings its own toggle handler (it re-renders itself
+   * when a report is generated), so only the cards this element owns are
+   * wired up here.
+   * @returns {UIElementEvents}
+   */
+  get events () {
+    return {
+      '.collapsible-card:not(.game-report) > .collapsible-card-toggle': {
+        click: (event) => toggleCollapsibleCard(event)
+      }
+    }
   }
   /**
    * Fill in the player portraits of the Match Events rows. Rendering a player

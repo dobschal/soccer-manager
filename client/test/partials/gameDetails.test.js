@@ -103,3 +103,21 @@ describe('GameDetails intro sentence', () => {
     expect(html).not.toContain('season')
   })
 })
+
+describe('GameDetails collapsible cards', () => {
+  it('renders every card collapsed by default', () => {
+    const html = createGameDetails().template
+    const cards = html.match(/class="card collapsible-card [^"]*"/g) ?? []
+    // Match Events, both squad lists and the stadium card.
+    expect(cards).toHaveLength(4)
+    expect(cards.every(c => c.includes('is-collapsed'))).toBe(true)
+    expect(html).not.toContain('aria-expanded="true"')
+  })
+
+  it('keeps the match report out of its own toggle selector', () => {
+    // The report card re-renders itself, so it wires up its own handler —
+    // binding it here as well would toggle it twice per click.
+    const selectors = Object.keys(createGameDetails().events)
+    expect(selectors).toEqual(['.collapsible-card:not(.game-report) > .collapsible-card-toggle'])
+  })
+})

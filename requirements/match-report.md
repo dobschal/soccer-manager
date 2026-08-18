@@ -27,6 +27,7 @@ sieht ihn sofort und ohne erneute Generierung.
 - **US-REP-06**: Als Spieler bekomme ich den Bericht in meiner eingestellten Sprache (Deutsch oder Englisch).
 - **US-REP-07**: Als Spieler sehe ich unter dem Bericht einen Hinweis, dass der Text von einer KI erzeugt wurde und Fehler enthalten kann.
 - **US-REP-08**: Als Spieler bekomme ich eine verstaendliche Fehlermeldung und kann es erneut versuchen, wenn die Erstellung fehlschlaegt.
+- **US-REP-09**: Als Spieler finde ich die Karte "Spielbericht" beim Oeffnen des Spieldetail-Overlays zugeklappt vor und klappe sie ueber einen Klick auf ihre Kopfzeile auf; sie bleibt danach offen, waehrend der Bericht erzeugt wird.
 
 ## Verdichtete Fakten
 

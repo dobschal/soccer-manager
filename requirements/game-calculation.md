@@ -27,6 +27,9 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
   gesehen habe.
 - **US-GC-13**: Als Spieler sehe ich im Kopf der Spieldetails, um welchen Spieltag welcher Saison es
   sich handelt und wann das Spiel real (Datum und Uhrzeit) berechnet wurde.
+- **US-GC-14**: Als Spieler finde ich die Karten der Spieldetails ("Spielbericht", "Match Events",
+  die beiden Kaderlisten und "Stadium") zugeklappt vor und oeffne sie einzeln per Klick auf ihre
+  Kopfzeile, damit das Overlay nicht mit einer sehr langen Liste startet.
 - **US-GC-08**: Als Spieler wird ein positionsfremd aufgestellter Spieler nicht mehr pauschal halbiert,
   sondern je nach Entfernung zu seiner Position abgestuft bewertet.
 
@@ -206,6 +209,12 @@ Karte "Match Events" in den Spieldetails.
 - **TA-GC-48**: Spiele ohne Minuten im Log (`logHasMinutes` ist falsch) fallen in den Spieldetails auf
   die alte Darstellung zurueck: nur Tore und Karten, mit "-" statt einer erfundenen Minute. Der
   Ticker ueberspringt solche Spiele ganz.
+- **TA-GC-50**: Alle Karten der Spieldetails werden ueber `renderCollapsibleCard` aus
+  `client/lib/collapsibleCard.js` gerendert und starten zugeklappt (`is-collapsed`). Das Auf- und
+  Zuklappen ist ein reiner CSS-Klassenwechsel ohne Re-Render, damit weder die Ticker-Portraits noch
+  verschachtelte UIElemente neu aufgebaut werden. Die Karte "Spielbericht" bringt ihren eigenen
+  Handler mit und merkt sich den Zustand in `isCollapsed`, weil sie sich beim Erzeugen eines Berichts
+  selbst neu rendert.
 - **TA-GC-49**: Der Einleitungssatz der Spieldetails (`renderGameIntro` in
   `client/partials/gameDetails.js`) nennt Spieltag, Saison und den realen Anstosszeitpunkt im Format
   `DD.MM.YYYY hh:mm` (lokale Zeitzone des Spielers). Die Uhrzeit kommt aus `game.created_at`, das

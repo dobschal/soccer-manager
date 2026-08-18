@@ -1,5 +1,6 @@
 import { UIElement } from '../lib/UIElement.js'
 import { server } from '../lib/gateway.js'
+import { renderCollapsibleCard, toggleCollapsibleCard } from '../lib/collapsibleCard.js'
 import { t } from '../i18n/index.js'
 
 /**
@@ -25,6 +26,11 @@ export class GameReport extends UIElement {
     this.errorMessage = null
     /** @type {boolean} */
     this.isAvailable = true
+    // Like the other cards in the game details overlay the report starts
+    // folded; the state has to survive this element's own re-renders, so it
+    // lives here and not only as a DOM class.
+    /** @type {boolean} */
+    this.isCollapsed = true
   }
 
   /**
@@ -49,18 +55,13 @@ export class GameReport extends UIElement {
     if (!this.isAvailable && !this.reportText) return '<div class="game-report-hidden"></div>'
 
     if (this.isGenerating) {
-      return `
-        <div class="card mb-3 game-report">
-          <div class="card-header"><i class="fa fa-magic me-2"></i>${t('gameReport.title')}</div>
-          <div class="card-body text-center game-report-loading">
+      return this._card(`
             <div class="ui-element-loading-ball-wrapper">
               <div class="ui-element-loading-ball"><img src="assets/ball.svg" alt=""/></div>
               <div class="ui-element-loading-shadow"></div>
             </div>
             <p class="text-muted mb-0 mt-3">${t('gameReport.generating')}</p>
-          </div>
-        </div>
-      `
+      `, 'card-body text-center game-report-loading')
     }
 
     if (this.reportText) {
@@ -70,32 +71,32 @@ export class GameReport extends UIElement {
         .filter(Boolean)
         .map(p => `<p>${_escapeHtml(p)}</p>`)
         .join('')
-      return `
-        <div class="card mb-3 game-report">
-          <div class="card-header"><i class="fa fa-magic me-2"></i>${t('gameReport.title')}</div>
-          <div class="card-body game-report-body">
+      return this._card(`
             ${paragraphs}
             <p class="text-muted small mb-0 game-report-disclaimer">${t('gameReport.disclaimer')}</p>
-          </div>
-        </div>
-      `
+      `, 'card-body game-report-body')
     }
 
-    return `
-      <div class="card mb-3 game-report">
-        <div class="card-header"><i class="fa fa-magic me-2"></i>${t('gameReport.title')}</div>
-        <div class="card-body text-center">
+    return this._card(`
           <p class="text-muted">${t('gameReport.intro')}</p>
           ${this.errorMessage ? `<div class="alert alert-warning py-2">${_escapeHtml(this.errorMessage)}</div>` : ''}
           <button class="btn btn-info game-report-generate">
             <i class="fa fa-magic me-2"></i>${t('gameReport.generate')}
           </button>
-        </div>
-      </div>
-    `
+    `, 'card-body text-center')
   }
+
   get events () {
     return {
+      // Optional: the hidden placeholder state renders no card at all.
+      // Toggling only flips a DOM class, but the flag has to be remembered so
+      // a later update() (generation finished) keeps the card open.
+      '(optional).collapsible-card-toggle': {
+        click: (event) => {
+          const collapsed = toggleCollapsibleCard(event)
+          if (collapsed !== null) this.isCollapsed = collapsed
+        }
+      },
       // Only the initial/error state renders the button — the loading and the
       // finished report state don't, and update() re-applies the handlers.
       '(optional).game-report-generate': {
@@ -116,6 +117,22 @@ export class GameReport extends UIElement {
         }
       }
     }
+  }
+  /**
+   * Wrap one of the three body states into the collapsible report card.
+   * @param {string} body
+   * @param {string} bodyClass
+   * @returns {string}
+   */
+  _card (body, bodyClass) {
+    return renderCollapsibleCard({
+      title: t('gameReport.title'),
+      icon: 'fa-magic',
+      cardClass: 'mb-3 game-report',
+      collapsed: this.isCollapsed,
+      bodyClass,
+      body
+    })
   }
   
 }
