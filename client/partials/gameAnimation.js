@@ -3,6 +3,23 @@ import { renderPlayerImage } from './playerImage.js'
 import { el, generateId } from '../lib/html.js'
 import { delay } from '../lib/delay.js'
 
+// The formation is drawn on a 2:1 pitch that spans the full modal width, so
+// the players have to shrink with the viewport instead of being pinned to a
+// fixed pixel size (which used to overlap on phones and look tiny on desktop).
+const PLAYER_SIZE_RATIO = 0.085
+const PLAYER_SIZE_MIN = 34
+const PLAYER_SIZE_MAX = 60
+
+/**
+ * Size (px) of a player image/name for a given screen width.
+ * @param {number} viewportWidth
+ * @returns {number}
+ */
+export function playerSizeForWidth (viewportWidth) {
+  const size = (Number(viewportWidth) || 0) * PLAYER_SIZE_RATIO
+  return Math.round(Math.min(PLAYER_SIZE_MAX, Math.max(PLAYER_SIZE_MIN, size)))
+}
+
 export class GameAnimation extends UIElement {
   /**
    * @param {GameResultType} game
@@ -45,15 +62,19 @@ export class GameAnimation extends UIElement {
    * @returns {void}
    */
   onMounted () {
+    this._applyPlayerSize()
     this._applyPositionHacks()
     this._loadPlayerImages()
     this._attachPlayButtonHandler()
+    window.addEventListener('resize', this._onResize)
   }
   /**
    * @returns {void}
    */
   onDestroy () {
     this.isPlaying = false
+    window.removeEventListener('resize', this._onResize)
+    clearTimeout(this._resizeTimerId)
   }
   isPlaying = false
 
@@ -61,6 +82,35 @@ export class GameAnimation extends UIElement {
 
   _ballId = null
   _messageId = null
+
+  _playerSize = PLAYER_SIZE_MIN
+  _resizeTimerId = null
+
+  /**
+   * Recalculate the player size when the screen width changes (e.g. an
+   * orientation change on mobile) and redraw the images at the new size.
+   * @returns {void}
+   */
+  _onResize = () => {
+    clearTimeout(this._resizeTimerId)
+    this._resizeTimerId = setTimeout(() => {
+      const previousSize = this._playerSize
+      this._applyPlayerSize()
+      if (this._playerSize !== previousSize) this._loadPlayerImages()
+    }, 200)
+  }
+
+  /**
+   * Writes the calculated size as a CSS custom property so name, image and
+   * ball all scale from a single value.
+   * @returns {void}
+   */
+  _applyPlayerSize () {
+    this._playerSize = playerSizeForWidth(typeof window === 'undefined' ? 0 : window.innerWidth)
+    const gameEl = el(`${this._elementQuery} .game-animation`) || el(this._elementQuery)
+    // Dynamic value computed at runtime, hence an inline style.
+    gameEl?.style.setProperty('--ga-player-size', `${this._playerSize}px`)
+  }
 
   /**
    * @returns {void}
@@ -90,10 +140,11 @@ export class GameAnimation extends UIElement {
     const loadImages = (players, team, type) => {
       const playerEls = document.querySelectorAll(`${this._elementQuery} .player.${type}`)
       players.forEach((player, index) => {
-        renderPlayerImage(player, team, 50)
+        renderPlayerImage(player, team, this._playerSize)
           .then(image => {
             const playerEl = playerEls[index]
             if (playerEl) {
+              playerEl.querySelector('.player-image')?.remove()
               playerEl.insertAdjacentHTML('afterbegin', image)
               setTimeout(() => playerEl.classList.add(player.in_game_position), 500)
             }

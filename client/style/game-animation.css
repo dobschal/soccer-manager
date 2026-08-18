@@ -1,4 +1,6 @@
+/* --ga-player-size is set from JS (screen width) — this is the fallback. */
 .game-animation {
+    --ga-player-size: 50px;
     background-image: url("../assets/football-field-horizontal.jpg");
     background-size: cover;
     background-position: 50% 50%;
@@ -11,9 +13,9 @@
 .game-animation .player {
     position: absolute;
     color: white;
-    font-size: 10px;
+    font-size: max(9px, calc(var(--ga-player-size) * 0.2));
     letter-spacing: -0.5px;
-    width: 50px;
+    width: var(--ga-player-size);
     text-shadow: 1px 1px 2px black;
     white-space: nowrap;
     transition: top 0.5s ease-in-out, left 1s ease-in-out, right 1s ease-in-out;
@@ -41,12 +43,6 @@
     cursor: pointer;
 }
 
-@media screen and (max-width: 640px) {
-    .game-animation .player {
-        transform: scale(0.8);
-    }
-}
-
 .game-animation .away {
     left: initial !important;
     right: 25%;
@@ -55,9 +51,10 @@
 .game-animation .player .player-image {
     position: absolute;
     float: none;
-    top: -52px;
+    /* Image height is size * 234/224, so lift it by just over its own height. */
+    top: calc(var(--ga-player-size) * -1.045);
     left: 50%;
-    transform: translateX(-25px);
+    transform: translateX(calc(var(--ga-player-size) / -2));
 }
 
 .game-animation .ball {
@@ -65,15 +62,15 @@
     z-index: 4;
     top: 0;
     left: 0;
-    width: 50px;
-    height: 20px;
+    width: var(--ga-player-size);
+    height: calc(var(--ga-player-size) * 0.4);
     transition: left 0.5s ease-out, top 0.5s ease-out, right 0.5s ease-out;
     display: flex;
 }
 
 .game-animation .ball img {
-    width: 20px;
-    height: 20px;
+    width: calc(var(--ga-player-size) * 0.4);
+    height: calc(var(--ga-player-size) * 0.4);
     display: block;
     margin: auto;
 }

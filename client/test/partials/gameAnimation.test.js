@@ -14,7 +14,7 @@ vi.mock('../../lib/delay.js', () => ({
   delay: vi.fn(() => Promise.resolve())
 }))
 
-import { GameAnimation } from '../../partials/gameAnimation.js'
+import { GameAnimation, playerSizeForWidth } from '../../partials/gameAnimation.js'
 
 describe('GameAnimation', () => {
   beforeEach(() => {
@@ -66,5 +66,41 @@ describe('GameAnimation', () => {
     const animation = new GameAnimation(game, team1, team2)
     expect(animation.startersTeamA).toHaveLength(1)
     expect(animation.template).toContain('Legacy')
+  })
+
+  describe('playerSizeForWidth', () => {
+    it('scales the player size with the screen width', () => {
+      expect(playerSizeForWidth(600)).toBe(51)
+      expect(playerSizeForWidth(700)).toBe(60)
+    })
+
+    it('clamps to a readable minimum on narrow phones', () => {
+      expect(playerSizeForWidth(320)).toBe(34)
+      expect(playerSizeForWidth(0)).toBe(34)
+      expect(playerSizeForWidth(undefined)).toBe(34)
+    })
+
+    it('caps the size on wide screens', () => {
+      expect(playerSizeForWidth(1440)).toBe(60)
+      expect(playerSizeForWidth(3000)).toBe(60)
+    })
+  })
+
+  it('renders the player images at the size calculated from the screen width', async () => {
+    const { renderPlayerImage } = await import('../../partials/playerImage.js')
+    const team1 = testData.team({ id: 1 })
+    const team2 = testData.team({ id: 2 })
+    const player = testData.player({ id: 11, name: 'Hans Starter', position: 'CM', in_game_position: 'CM', enterMinute: 0 })
+    const game = testData.gameResult({
+      details: JSON.stringify({ playerTeamA: [player], playerTeamB: [], log: [] })
+    })
+
+    window.innerWidth = 400
+    const animation = new GameAnimation(game, team1, team2)
+    animation._applyPlayerSize()
+    animation._loadPlayerImages()
+
+    expect(animation._playerSize).toBe(34)
+    expect(renderPlayerImage).toHaveBeenCalledWith(player, team1, 34)
   })
 })
