@@ -144,7 +144,15 @@ eingewechselt wird. Umgesetzt in `checkScheduledSubstitutions()` (`server/play-g
   - `injury_days_left` (INT, Standard 0) - Verbleibende Spieltage bis zur Genesung
   - `bench_position` (VARCHAR(20), nullable) - Ersatzbank-Position
   - `bench_substitution_mode` (VARCHAR(20), NOT NULL, Standard `'injury_only'`) - Einwechsel-Modus
-- **TA-INJ-19**: Verletzungserholung: Am Anfang jedes Spieltags wird `injury_days_left` um 1 reduziert. Bei 0 wird `is_injured = 0`, `injury_type = NULL` gesetzt.
+- **TA-INJ-19**: Verletzungserholung: Am Ende jeder Spieltagsberechnung (`_recoverInjuredPlayers` in
+  `server/play-game-day.js`, nach allen Spielen) wird `injury_days_left` um 1 reduziert. Bei 0 wird
+  `is_injured = 0`, `injury_type = NULL` gesetzt.
+- **TA-INJ-51**: Spieler, die sich **in diesem Lauf** verletzt haben, werden dabei uebersprungen
+  (`AND id NOT IN (...)`): sie haben noch keinen Spieltag verpasst. Damit fehlt ein Spieler genau
+  `days` Spieltage — eine Prellung (1 Tag) also den naechsten Spieltag. Vorher wurde die Verletzung im
+  selben Cron-Lauf gesetzt und wieder heruntergezaehlt: eine 1-Tages-Verletzung war sofort geheilt, im
+  Spielticker aber gemeldet, und in der Spielerliste war nie jemand verletzt (30% aller Verletzungen
+  waren davon betroffen, jede andere Dauer war einen Spieltag zu kurz).
 - **TA-INJ-20**: Saisonwechsel: Verletzungen werden NICHT zurueckgesetzt (laufen ueber Saisonende hinaus weiter).
 - **TA-INJ-48**: Verletzte Spieler regenerieren **nicht**, sondern verlieren pro Spieltag 5% Frische (`_giveAllPlayersFreshness` in `server/play-game-day.js`, untere Grenze 0).
 
@@ -169,9 +177,12 @@ eingewechselt wird. Umgesetzt in `checkScheduledSubstitutions()` (`server/play-g
 
 ### Spieldetails-Seite
 
-- **TA-INJ-29**: Verletzungen werden im Spielverlauf mit Verletzungs-Icon und Spielminute angezeigt.
-- **TA-INJ-30**: Auswechselungen werden mit Ein-/Auswechsel-Icon, Spielernamen und Minute angezeigt.
-- **TA-INJ-31**: Separate Zusammenfassung der Verletzungen und Auswechselungen neben den Karten-Statistiken.
+- **TA-INJ-29**: Verletzungen werden im Spielverlauf ("Match Events") mit Verletzungs-Icon, Spielminute
+  und Verletzungsart angezeigt — dieselbe Zeile wie im Spielticker (siehe
+  [Game Calculation](game-calculation.md), TA-GC-47).
+- **TA-INJ-30**: Auswechselungen werden mit Ein-/Auswechsel-Icon, Spielernamen und Minute angezeigt,
+  ebenfalls in "Match Events". Zusaetzlich markiert die Kaderliste der Spieldetails ein- und
+  ausgewechselte Spieler mit Pfeil und Minute.
 
 ### Liga- und Pokal-Ergebnisseite
 
@@ -204,6 +215,9 @@ eingewechselt wird. Umgesetzt in `checkScheduledSubstitutions()` (`server/play-g
 | Verletzungen pro Spiel (beide Teams) | 0,19 - 0,31 |
 | Durchschnittliche Ausfalldauer | 3 - 4 Spieltage |
 
+Die gewichtete mittlere Ausfalldauer der Verletzungsliste betraegt 3,1 Spieltage — und so viele
+Spieltage fehlt ein Spieler seit TA-INJ-51 auch tatsaechlich. Vorher waren es effektiv 2,1.
+
 Fuer geplante Auswechselungen gibt es keinen statistischen Zielwert: die Anzahl haengt
 ausschliesslich davon ab, welche Modi der Nutzer setzt. Mit dem Standard `injury_only`
 finden ueberhaupt keine geplanten Auswechselungen statt.
@@ -224,6 +238,7 @@ finden ueberhaupt keine geplanten Auswechselungen statt.
 - Validierung von `substitutionMode` in `saveBench` und `updateBenchSubstitutionMode`
 - Ersatzbank-Besetzung und -Validierung
 - Verletzungserholung ueber Spieltage
+- Eine am selben Spieltag entstandene Verletzung wird im selben Lauf nicht heruntergezaehlt
 - Verletzte Spieler werden aus Aufstellung gefiltert
 - Statistische Validierung der Verletzungshaeufigkeit ueber 500+ Spiele
 - Bot-Ersatzbank-Optimierung

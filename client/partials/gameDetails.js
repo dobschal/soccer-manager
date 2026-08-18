@@ -3,6 +3,7 @@ import { GameAnimation } from './gameAnimation.js'
 import { renderEmblem } from './emblem.js'
 import { renderPositionBadge } from './positionBadge.js'
 import { GameReport } from './gameReport.js'
+import { buildTickerEvents, buildTickerRow, fillTickerPortraits, logHasMinutes } from '../lib/tickerEvents.js'
 
 /**
  * Return a short team name by stripping the middle part (prefix2).
@@ -103,58 +104,36 @@ function renderSquadList (teamPlayers, teamName, substitutions) {
 }
 
 /**
- * Render the event ticker showing goals and cards
- * @param {Array} log
- * @param {Object} players
- * @param {string} team1Name
- * @param {string} team2Name
+ * Render the Match Events card — the same timeline the animated match ticker
+ * plays, only printed at once and oldest first (#539). Both go through
+ * `lib/tickerEvents.js`, so a game shows the same events wherever it is opened.
+ *
+ * Games from before minute tracking have no usable timeline (every event would
+ * claim minute 0), so they fall back to their goals and cards alone, shown
+ * without a minute.
+ *
+ * @param {object} details - parsed game details
+ * @param {Record<number, object>} players
  * @returns {string}
  */
-function renderEventTicker (log, players, team1Name, team2Name) {
-  const events = log.filter(l => l.goal || l.yellowCard || l.redCard)
-    .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
+function renderEventTicker (details, players) {
+  const log = details.log || []
+  const events = logHasMinutes(log)
+    ? buildTickerEvents(log, details)
+    : log.filter(l => l.goal || l.yellowCard || l.redCard)
 
   if (events.length === 0) return ''
 
-  const eventItems = events.map(event => {
-    const player = players[event.player]
-    const playerName = player?.name || 'Unknown'
-    const isTeam1 = player?.team1
-    const minute = event.minute !== undefined ? `${event.minute}'` : ''
-
-    if (event.goal) {
-      const teamName = isTeam1 ? team1Name : team2Name
-      return `
-        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
-          <span class="badge bg-success"><i class="fa fa-futbol-o"></i></span>
-          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small></span>
-        </div>
-      `
-    } else if (event.redCard) {
-      const teamName = isTeam1 ? team1Name : team2Name
-      return `
-        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
-          <span class="text-danger event-ticker-icon"><i class="fa fa-square"></i></span>
-          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small>${event.secondYellow ? ' <small>(2nd yellow)</small>' : ''}</span>
-        </div>
-      `
-    } else if (event.yellowCard) {
-      const teamName = isTeam1 ? team1Name : team2Name
-      return `
-        <div class="d-flex align-items-center gap-2 py-1 ${isTeam1 ? 'text-start' : 'text-end flex-row-reverse'}">
-          <span class="text-warning event-ticker-icon"><i class="fa fa-square"></i></span>
-          <span><strong>${minute || '-'}</strong> ${playerName} <small class="text-muted">(${teamName})</small></span>
-        </div>
-      `
-    }
-    return ''
+  const rows = events.map(event => {
+    const { className, html } = buildTickerRow(event, players)
+    return `<div class="${className}">${html}</div>`
   }).join('')
 
   return `
     <div class="card mb-3">
       <div class="card-header"><i class="fa fa-clock-o me-2"></i>Match Events</div>
-      <div class="card-body event-ticker-body">
-        ${eventItems}
+      <div class="card-body">
+        <div class="spiel-ticker__feed spiel-ticker__feed--static">${rows}</div>
       </div>
     </div>
   `
@@ -312,7 +291,7 @@ export class GameDetails extends UIElement {
         ${details.teamA?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team1.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
         ${details.teamB?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team2.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
         ${this._reportElement}
-        ${renderEventTicker(details.log, players, team1.name, team2.name)}
+        ${renderEventTicker(details, players)}
         ${renderSquadList(details.playerTeamA, team1.name, (details.substitutions || []).filter(s => s.teamIndex === 0))}
         ${renderSquadList(details.playerTeamB, team2.name, (details.substitutions || []).filter(s => s.teamIndex === 1))}
 
@@ -339,6 +318,15 @@ export class GameDetails extends UIElement {
         <p class="text-muted small mt-3 mb-0"><strong>IG</strong> (In-Game Level) is the effective strength of a player during the match. It is based on the base level and influenced by freshness, captain choice, star player status and motivating speeches.</p>
       </div>
     `
+  }
+  /**
+   * Fill in the player portraits of the Match Events rows. Rendering a player
+   * SVG is async, so it cannot happen inside the template.
+   * @returns {void}
+   */
+  onMounted () {
+    const root = document.querySelector(this._elementQuery)
+    void fillTickerPortraits(root, this.players, p => (p.team1 ? this.team1 : this.team2))
   }
   /**
    * The AI match report element, created once and reused. Recreating it on

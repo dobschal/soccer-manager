@@ -904,7 +904,8 @@ The match ticker replays your latest match event by event, straight from that lo
 • Alongside goals, chances and saves it shows the standout ball recoveries and won duels, substitutions, and every card together with the reason for it.
 • An injury names the actual injury and how long the player is out.
 • Every line carries a small portrait of the player involved.
-• Use the speed button to run the ticker at double speed, or skip to the final score.`
+• Use the speed button to run the ticker at double speed, or skip to the final score.
+• Open any played match later on and its "Match Events" card lists exactly the same events, oldest first – so nothing is lost if you skipped the ticker or never saw it.`
     },
     de: {
       title: 'Spielberechnung',
@@ -1075,6 +1076,7 @@ Injuries:
 • Players can get injured during matches – the risk rises sharply when fitness is low and with an aggressive play style.
 • Age matters too: players around 27 are the most robust, while teenagers and veterans get injured noticeably more often. A 37-year-old carries roughly a third more risk than a 27-year-old.
 • Injuries range from a 1-day bruise to a long-term cruciate ligament or Achilles rupture. Injured starters are substituted automatically (keep a balanced bench).
+• A lay-off is counted in match days and starts with the next one: a 1-day bruise means the player misses exactly your next match, a 6-day fracture the next six.
 • With a Medical Practice you get Medical Treatment cards, each shortening one player's lay-off by a match day (see Buildings).
 
 Salary:
@@ -1109,6 +1111,7 @@ Verletzungen:
 • Spieler können sich im Spiel verletzen – das Risiko steigt stark bei niedriger Fitness und aggressivem Spielstil.
 • Auch das Alter zählt: Spieler um die 27 sind am robustesten, während sich sehr junge und sehr alte Spieler deutlich häufiger verletzen. Ein 37-Jähriger trägt rund ein Drittel mehr Risiko als ein 27-Jähriger.
 • Verletzungen reichen von einer 1-tägigen Prellung bis zu langwierigem Kreuzband- oder Achillessehnenriss. Verletzte Startspieler werden automatisch ausgewechselt (halte eine ausgewogene Bank).
+• Der Ausfall zählt in Spieltagen und beginnt mit dem nächsten: Eine 1-tägige Prellung heißt, dass der Spieler genau dein nächstes Spiel verpasst, ein 6-tägiger Knochenbruch die nächsten sechs.
 • Mit einer Arztpraxis bekommst du Karten „Medizinische Behandlung", die den Ausfall eines Spielers um je einen Spieltag verkürzen (siehe Gebäude).
 
 Gehalt:

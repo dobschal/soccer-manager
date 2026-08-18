@@ -22,6 +22,9 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
   (z. B. "Muskelzerrung"), nicht nur die Ausfalldauer.
 - **US-GC-11**: Als Spieler kann ich den Spielticker waehrend des Ablaufs per Knopfdruck auf doppelte
   Geschwindigkeit umschalten und wieder zurueck.
+- **US-GC-12**: Als Spieler finde ich in den Spieldetails unter "Match Events" genau denselben
+  Spielverlauf, den mir der Spielticker vorgespielt hat — auch bei Spielen, deren Ticker ich nie
+  gesehen habe.
 - **US-GC-08**: Als Spieler wird ein positionsfremd aufgestellter Spieler nicht mehr pauschal halbiert,
   sondern je nach Entfernung zu seiner Position abgestuft bewertet.
 
@@ -159,6 +162,10 @@ Die Spielberechnung simuliert ein Fussballspiel Schritt fuer Schritt. Jedes Spie
 Der Spielticker (`client/partials/spielTickerOverlay.js`) spielt ein fertig berechnetes Spiel
 animiert nach. Er zeigt ausschliesslich, was im Spiel-Log tatsaechlich steht.
 
+Die Ereignisauswahl und das Aussehen einer Ereigniszeile liegen in `client/lib/tickerEvents.js` und
+werden von beiden Oberflaechen genutzt, die einen Spielverlauf zeigen — dem animierten Ticker und der
+Karte "Match Events" in den Spieldetails.
+
 - **TA-GC-35**: Ereignisse im Ticker: Anpfiff, Tore, Torchancen/Paraden, Karten, Verletzungen,
   Einwechslungen, ausgewaehlte Balleroberungen und gewonnene Zweikaempfe, Halbzeit, Verlaengerung und
   Elfmeterschiessen.
@@ -189,6 +196,14 @@ animiert nach. Er zeigt ausschliesslich, was im Spiel-Log tatsaechlich steht.
   `logHasMinutes`.
 - **TA-GC-44**: Der Verletzungstext nennt die Verletzungsart aus `injuryType` (`t('injury.<typ>')`)
   plus die Ausfalldauer. Aeltere Spiele ohne gespeicherte Art fallen auf die reine Dauer zurueck.
+- **TA-GC-47**: Die Karte "Match Events" in den Spieldetails (`client/partials/gameDetails.js`) zeigt
+  dieselben Ereignisse wie der Ticker, nur auf einmal und chronologisch (aeltestes oben) statt
+  animiert. Vorher listete sie nur Tore und Karten — Verletzungen, Einwechslungen, Torchancen,
+  Halbzeit, Verlaengerung und Elfmeterschiessen fehlten dort ganz. Beide Oberflaechen bauen ihre
+  Zeilen mit `buildTickerRow` aus `client/lib/tickerEvents.js`, koennen also nicht auseinanderlaufen.
+- **TA-GC-48**: Spiele ohne Minuten im Log (`logHasMinutes` ist falsch) fallen in den Spieldetails auf
+  die alte Darstellung zurueck: nur Tore und Karten, mit "-" statt einer erfundenen Minute. Der
+  Ticker ueberspringt solche Spiele ganz.
 - **TA-GC-45**: Ein Umschalter im Fussbereich wechselt zwischen einfacher und doppelter
   Geschwindigkeit. Die Wartezeit wird durch den Faktor geteilt; beim Umschalten wird der laufende
   Timer neu gesetzt, damit die Aenderung sofort spuerbar ist. Am Spielende verschwinden Umschalter

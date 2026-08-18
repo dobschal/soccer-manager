@@ -60,12 +60,16 @@ export async function calculateGames ({ skipPushNotifications = false } = {}) {
     'SELECT * FROM game WHERE season=? AND game_day=? AND played=0 AND (game_type=\'league\' OR game_type IS NULL)',
     [season, gameDay]
   )
+  // Players injured during *this* run must not be part of the recovery pass
+  // further down — see _recoverInjuredPlayers.
+  const playersInjuredToday = []
   if (leagueGames.length > 0) {
-    await Promise.all(leagueGames.map(game => _playGame(game)))
+    const injured = await Promise.all(leagueGames.map(game => _playGame(game)))
+    playersInjuredToday.push(...injured.flat())
   }
 
   // Play cup games for this game day
-  await _playCupGames(gameDay, season)
+  playersInjuredToday.push(...await _playCupGames(gameDay, season))
 
   // Reset motivating speech boosts after all games are played
   await _resetMotivatingSpeeches()
@@ -86,7 +90,7 @@ export async function calculateGames ({ skipPushNotifications = false } = {}) {
   await _giveUsersActionCards()
   await _letTeamsPaySallaries(gameDay, season)
   await _giveSponsorMoney(gameDay, season)
-  await _recoverInjuredPlayers()
+  await _recoverInjuredPlayers(playersInjuredToday)
   await _giveAllPlayersFreshness(season)
   await _processYouthTeams()
   await generateMatchDayRecapsForGameDay(gameDay, season)
@@ -101,9 +105,10 @@ export async function calculateGames ({ skipPushNotifications = false } = {}) {
  * Play cup games for the current game day and progress rounds if complete
  * @param {number} gameDay
  * @param {number} season
- * @returns {Promise<void>}
+ * @returns {Promise<number[]>} ids of the players injured in these games
  */
 async function _playCupGames (gameDay, season) {
+  const playersInjured = []
   const cupGames = await query(
     'SELECT * FROM game WHERE season=? AND game_day=? AND played=0 AND game_type=\'cup\'',
     [season, gameDay]
@@ -124,7 +129,7 @@ async function _playCupGames (gameDay, season) {
       roundsPlayed.add(game.cup_round)
     }
     for (const game of matches) {
-      await _playCupGame(game)
+      playersInjured.push(...await _playCupGame(game))
       roundsPlayed.add(game.cup_round)
     }
 
@@ -143,6 +148,7 @@ async function _playCupGames (gameDay, season) {
 
   // Catch-up: check for any fully played rounds that were never progressed
   await validateAndProgressCupRounds(season)
+  return playersInjured
 }
 
 /**
@@ -194,7 +200,8 @@ async function _playCupGame (game) {
   // before a user took over), forfeit instead of crashing later in
   // playGameStep. Cup needs a winner, so award 3:0 to the present team.
   if (playerTeamA.length < MIN_PLAYERS_TO_PLAY || playerTeamB.length < MIN_PLAYERS_TO_PLAY) {
-    return _forfeitGame(game, teamA, teamB, playerTeamA.length, playerTeamB.length, 'cup')
+    await _forfeitGame(game, teamA, teamB, playerTeamA.length, playerTeamB.length, 'cup')
+    return []
   }
 
   // Remove lineup players from bench (they can't be in both)
@@ -345,7 +352,7 @@ async function _playCupGame (game) {
   delete gameDetails.currentMinute // Don't persist internal tracking field
 
   // Persist injuries to database and send log messages
-  await _persistInjuries(gameDetails, teamA, teamB)
+  const playersInjured = await _persistInjuries(gameDetails, teamA, teamB)
 
   await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
     JSON.stringify(gameDetails),
@@ -367,6 +374,8 @@ async function _playCupGame (game) {
 
   // Send log messages to team owners about the cup match result
   await sendCupMatchLogMessages(game, gameDetails)
+
+  return playersInjured
 }
 
 // Number of shooters per team in the initial (non-sudden-death) rounds of a penalty shootout.
@@ -588,12 +597,27 @@ export function _calculateFreshnessRecovery (age, isInLineup) {
 
 /**
  * Reduce injury_days_left by 1 for all injured players and clear injury when healed.
+ *
+ * Players who picked up their injury in *this* run are left alone: they have not
+ * missed a game day yet, so counting one off here would rob them of it. Without
+ * that exception a one-day injury (a bruise — the most common kind by far) was
+ * inflicted and healed inside the same cron run, so the match ticker reported it
+ * while the squad list never showed anyone injured.
+ *
+ * @param {number[]} [playersInjuredToday] - ids of players injured in this run
  * @returns {Promise<void>}
  */
-async function _recoverInjuredPlayers () {
+async function _recoverInjuredPlayers (playersInjuredToday = []) {
   const t1 = Date.now()
-  // Decrement injury days
-  await query('UPDATE player SET injury_days_left = injury_days_left - 1 WHERE is_injured = 1 AND injury_days_left > 0')
+  // Decrement injury days. Skipping today's injuries in the decrement is enough
+  // to keep them out of the healing below too: they still have at least one day
+  // left, and only players down to 0 are cleared.
+  const skipIds = [...new Set(playersInjuredToday)]
+  const skipClause = skipIds.length ? ` AND id NOT IN (${skipIds.map(() => '?').join(',')})` : ''
+  await query(
+    `UPDATE player SET injury_days_left = injury_days_left - 1 WHERE is_injured = 1 AND injury_days_left > 0${skipClause}`,
+    skipIds
+  )
   // Find healed players (still flagged as injured but days ran out) before clearing them
   const healedPlayers = await query(
     'SELECT p.*, t.user_id as team_user_id FROM player p JOIN team t ON t.id = p.team_id WHERE p.is_injured = 1 AND p.injury_days_left <= 0 AND t.user_id IS NOT NULL'
@@ -892,7 +916,7 @@ async function _forfeitGame (game, teamA, teamB, fieldedA, fieldedB, gameType) {
 
 /**
  * @param {GameType} game
- * @returns {Promise<void>}
+ * @returns {Promise<number[]>} ids of the players injured in this game
  */
 async function _playGame (game) {
   const [[teamA], [teamB], allPlayerTeamA, allPlayerTeamB] = await Promise.all([
@@ -918,7 +942,8 @@ async function _playGame (game) {
   // crashing later in playGameStep. A stuck game would block the cron because
   // getGameDayAndSeason() keeps returning the same game_day.
   if (playerTeamA.length < MIN_PLAYERS_TO_PLAY || playerTeamB.length < MIN_PLAYERS_TO_PLAY) {
-    return _forfeitGame(game, teamA, teamB, playerTeamA.length, playerTeamB.length, 'league')
+    await _forfeitGame(game, teamA, teamB, playerTeamA.length, playerTeamB.length, 'league')
+    return []
   }
 
   // Remove lineup players from bench (they can't be in both)
@@ -1046,7 +1071,7 @@ async function _playGame (game) {
   delete gameDetails.currentMinute // Don't persist internal tracking field
 
   // Persist injuries to database and send log messages
-  await _persistInjuries(gameDetails, teamA, teamB)
+  const playersInjured = await _persistInjuries(gameDetails, teamA, teamB)
 
   await query('UPDATE game SET details=?, played=1, goals_team_1=?, goals_team_2=?, created_at=? WHERE id=?', [
     JSON.stringify(gameDetails),
@@ -1065,6 +1090,8 @@ async function _playGame (game) {
     _applyFreshnessLoss(player, teamB, leagueTotalMinutes, leagueStrengthScale)
     await _updatePlayerAfterGame(player, gameDetails, teamB)
   }
+
+  return playersInjured
 }
 
 /**
@@ -1193,9 +1220,10 @@ function _applyLevelModifiersToBench (bench, team, season, lineupPlayers) {
  * @param {GameDetails} gameDetails
  * @param {TeamType} teamA
  * @param {TeamType} teamB
+ * @returns {Promise<number[]>} ids of the players who got injured
  */
 async function _persistInjuries (gameDetails, teamA, teamB) {
-  if (!gameDetails.injuries || gameDetails.injuries.length === 0) return
+  if (!gameDetails.injuries || gameDetails.injuries.length === 0) return []
 
   for (const injury of gameDetails.injuries) {
     await query(
@@ -1244,6 +1272,8 @@ async function _persistInjuries (gameDetails, teamA, teamB) {
       }
     }
   }
+
+  return gameDetails.injuries.map(injury => injury.playerId)
 }
 
 /**

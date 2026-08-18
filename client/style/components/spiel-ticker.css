@@ -67,6 +67,14 @@
     width: 100%;
 }
 
+/* The same feed printed at once inside the game details overlay (#539): it grows
+   with its content instead of scrolling inside a fixed-height ticker. */
+.spiel-ticker__feed--static {
+    flex: 0 0 auto;
+    overflow-y: visible;
+    gap: 0.4rem;
+}
+
 /* Holds the speed toggle and the skip button side by side (#539). */
 .spiel-ticker__footer {
     flex: 0 0 auto;
