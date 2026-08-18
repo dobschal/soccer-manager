@@ -1,6 +1,6 @@
 {
   "name": "soccer-simulation",
-  "version": "2026.8.13",
+  "version": "2026.8.14",
   "description": "FootballManager.IO - a browser, iOS and Android football manager game (Node.js + MySQL).",
   "main": "server/app.js",
   "scripts": {
