@@ -10,13 +10,26 @@ const PLAYER_SIZE_RATIO = 0.085
 const PLAYER_SIZE_MIN = 34
 const PLAYER_SIZE_MAX = 60
 
+// The modal itself stops growing at 1100px (see overlay.css), so above that
+// width the pitch no longer gets bigger either. Between the phone/tablet range
+// and that cap the players grow a bit further so they don't look lost on a
+// desktop screen — narrower viewports keep the sizes they had before.
+const WIDE_SCREEN_MIN_WIDTH = 900
+const WIDE_SCREEN_MAX_WIDTH = 1100
+const WIDE_PLAYER_SIZE_MAX = 72
+
 /**
  * Size (px) of a player image/name for a given screen width.
  * @param {number} viewportWidth
  * @returns {number}
  */
 export function playerSizeForWidth (viewportWidth) {
-  const size = (Number(viewportWidth) || 0) * PLAYER_SIZE_RATIO
+  const width = Number(viewportWidth) || 0
+  if (width > WIDE_SCREEN_MIN_WIDTH) {
+    const progress = Math.min(1, (width - WIDE_SCREEN_MIN_WIDTH) / (WIDE_SCREEN_MAX_WIDTH - WIDE_SCREEN_MIN_WIDTH))
+    return Math.round(PLAYER_SIZE_MAX + (WIDE_PLAYER_SIZE_MAX - PLAYER_SIZE_MAX) * progress)
+  }
+  const size = width * PLAYER_SIZE_RATIO
   return Math.round(Math.min(PLAYER_SIZE_MAX, Math.max(PLAYER_SIZE_MIN, size)))
 }
 

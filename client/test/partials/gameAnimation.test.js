@@ -80,9 +80,19 @@ describe('GameAnimation', () => {
       expect(playerSizeForWidth(undefined)).toBe(34)
     })
 
-    it('caps the size on wide screens', () => {
-      expect(playerSizeForWidth(1440)).toBe(60)
-      expect(playerSizeForWidth(3000)).toBe(60)
+    it('keeps the size stable up to 900px', () => {
+      expect(playerSizeForWidth(800)).toBe(60)
+      expect(playerSizeForWidth(900)).toBe(60)
+    })
+
+    it('grows the players further on desktop screens', () => {
+      expect(playerSizeForWidth(1000)).toBe(66)
+      expect(playerSizeForWidth(1100)).toBe(72)
+    })
+
+    it('caps the size once the modal stops growing', () => {
+      expect(playerSizeForWidth(1440)).toBe(72)
+      expect(playerSizeForWidth(3000)).toBe(72)
     })
   })
 
