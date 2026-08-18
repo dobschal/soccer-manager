@@ -1063,6 +1063,7 @@ End of career:
 • Players retire between the ages of 36 and 39. An hourglass next to a player means the current season is his last one.
 • He stays yours for that whole season: you can field him, send him on tour and list him on the transfer market as usual.
 • He leaves at the season change, and any open offers for him are withdrawn. You get a message in your log when it happens.
+• Retirement is final: he disappears from the game for good. He no longer shows up among the free players, cannot be signed or bought by any club — yours, another manager's or a computer team's — and only his history remains.
 • A free agent in his final season can still be signed — he is fully available until the season ends.
 
 Fitness (freshness):
@@ -1096,6 +1097,7 @@ Karriereende:
 • Spieler treten im Alter zwischen 36 und 39 Jahren ab. Eine Sanduhr neben einem Spieler bedeutet: die laufende Saison ist seine letzte.
 • Er bleibt dir diese ganze Saison erhalten – du kannst ihn aufstellen, auf Werbereise schicken und ganz normal auf dem Transfermarkt anbieten.
 • Er verlässt dich erst beim Saisonwechsel, offene Angebote zu ihm werden dabei zurückgezogen. Du bekommst eine Nachricht in deinem Log.
+• Das Karriereende ist endgültig: Er verschwindet dauerhaft aus dem Spiel. Er erscheint nicht mehr bei den freien Spielern und kann von keinem Verein mehr verpflichtet oder gekauft werden – weder von dir noch von anderen Managern oder Computerteams. Es bleibt nur seine Historie.
 • Einen ablösefreien Spieler in seiner letzten Saison kannst du weiterhin verpflichten – er ist bis zum Saisonende voll einsatzfähig.
 
 Fitness (Frische):

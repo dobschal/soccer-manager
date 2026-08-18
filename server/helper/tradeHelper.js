@@ -108,6 +108,11 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
   // get corresponding player
   const player = await getPlayerById(offer.player_id)
   if (!player) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+  // A retired player must not change clubs, no matter how old the offer that is
+  // being accepted is. The season transition deletes the offers of the cohort it
+  // retires, but a page opened before midnight can still fire an accept at one
+  // of them (#556).
+  if (player.is_retired) throw new BadRequestError(t('error.playerRetired', {}, locale))
 
   // Enforce minimum team size for user-owned teams
   if (sellingTeam.user_id) {

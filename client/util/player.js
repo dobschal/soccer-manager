@@ -121,7 +121,21 @@ export function calculateMarketValue (level, age) {
  * @returns {boolean}
  */
 export function willRetireNextSeason (player, currentSeason) {
-  return player.carrier_end_season <= currentSeason
+  return !hasRetired(player) && player.carrier_end_season <= currentSeason
+}
+
+/**
+ * Whether the player's career is already over. `is_retired` is stamped on by the
+ * season transition and never cleared, so it is the one reliable answer — the
+ * season arithmetic alone cannot tell "final season" from "already gone" once a
+ * career end drifts into the past. Retired players are reachable only through
+ * history links; every list filters them out server-side (#556).
+ *
+ * @param {PlayerType} player
+ * @returns {boolean}
+ */
+export function hasRetired (player) {
+  return Boolean(player.is_retired)
 }
 
 /**

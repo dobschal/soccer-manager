@@ -335,7 +335,10 @@ async function _signFreePlayers (botTeam, players) {
   // season can still be signed, same as for human teams.
   const { season } = await getGameDayAndSeason()
   /** @type {PlayerType[]} */
-  const freePlayers = await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season >= ?', [season])
+  const freePlayers = await query(
+    'SELECT * FROM player WHERE team_id IS NULL AND is_retired = 0 AND carrier_end_season >= ?',
+    [season]
+  )
   if (freePlayers.length === 0) return
 
   let signed = 0
@@ -352,7 +355,7 @@ async function _signFreePlayers (botTeam, players) {
     const toSign = Math.min(need.deficit, maxSignings - signed, candidates.length)
     for (let i = 0; i < toSign; i++) {
       const player = candidates[i]
-      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
+      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL AND is_retired=0', [botTeam.id, player.id])
       // Remove from freePlayers regardless — either we got him, or another parallel bot did.
       const idx = freePlayers.indexOf(player)
       if (idx !== -1) freePlayers.splice(idx, 1)
@@ -383,7 +386,7 @@ async function _signFreePlayers (botTeam, players) {
     const toSign = Math.min(stillNeeded, maxSignings - signed, anyCandidates.length)
     for (let i = 0; i < toSign; i++) {
       const player = anyCandidates[i]
-      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL', [botTeam.id, player.id])
+      const result = await query('UPDATE player SET team_id=? WHERE id=? AND team_id IS NULL AND is_retired=0', [botTeam.id, player.id])
       const idx = freePlayers.indexOf(player)
       if (idx !== -1) freePlayers.splice(idx, 1)
       if (!result?.affectedRows) continue
@@ -525,6 +528,7 @@ async function _checkBuyOffers (botTeam, players) {
         AND t.offer_value <= ?
         AND t.type = 'sell'
         AND t.status = 'open'
+        AND p.is_retired = 0
         AND p.carrier_end_season > ?
         AND p.position IN ("${positionsArray.join('", "')}")
       ORDER BY p.level DESC
@@ -664,6 +668,7 @@ async function _makeUnsolicitedBuyOffer (botTeam, teamNeeds, maxSpend, playerIds
                JOIN team t ON p.team_id = t.id
       WHERE p.team_id <> ?
         AND t.is_system_team = 0
+        AND p.is_retired = 0
         AND p.carrier_end_season > ?
         AND p.position IN ("${positions.join('", "')}")
         AND NOT EXISTS (

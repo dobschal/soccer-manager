@@ -188,6 +188,31 @@ describe('overseaClubHelper', () => {
       expect(globalThis._acceptOffer).toHaveBeenCalledTimes(1)
     })
 
+    // A sell offer can outlive the player's stay at the listing club. Such a
+    // stale listing used to be a valid IOC target, and because the
+    // "one pending IOC offer per team" guard matches on `p.team_id`, it never saw
+    // the offers it had already made — so the IOC re-bid for the same club-less
+    // player on every run. One retired player collected ten open IOC offers
+    // that way (#556).
+    it('only considers sell offers whose player still belongs to the listing team', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      globalThis._query.mockResolvedValueOnce([{ id: 5, name: 'User FC', user_id: 42, is_system_team: 0 }])
+      globalThis._query.mockResolvedValueOnce([])
+      globalThis._query.mockResolvedValueOnce([])
+      // Nothing left to fall back on, so case 3 exits without making an offer.
+      globalThis._getPlayersByTeamId.mockResolvedValueOnce([])
+
+      await iocBuyFromUsers()
+
+      const [sellOfferSql] = globalThis._query.mock.calls.find(
+        c => typeof c[0] === 'string' && c[0].includes("tro.type = 'sell'")
+      )
+      expect(sellOfferSql).toContain('p.team_id = tro.from_team_id')
+      expect(sellOfferSql).toContain('p.is_retired = 0')
+    })
+
     it('case 2: offers market value ±3% when the listing is above market value', async () => {
       vi.spyOn(Math, 'random').mockReturnValue(0) // chance passes; deviation factor = 0.97
 

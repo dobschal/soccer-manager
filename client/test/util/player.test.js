@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sortByPosition, willRetireNextSeason } from '../../util/player.js'
+import { hasRetired, sortByPosition, willRetireNextSeason } from '../../util/player.js'
 
 const p = (overrides = {}) => ({
   position: 'CM',
@@ -76,5 +76,25 @@ describe('willRetireNextSeason', () => {
 
   it('flags a player whose career end is already in the past', () => {
     expect(willRetireNextSeason({ carrier_end_season: 6 }, 9)).toBe(true)
+  })
+
+  // The hourglass means "this is his last season", so it has no business on a
+  // player who is already gone — his modal shows the career-ended notice instead.
+  it('does not flag a player who has already retired', () => {
+    expect(willRetireNextSeason({ carrier_end_season: 6, is_retired: 1 }, 9)).toBe(false)
+    expect(willRetireNextSeason({ carrier_end_season: 9, is_retired: 1 }, 9)).toBe(false)
+  })
+})
+
+describe('hasRetired', () => {
+  // `is_retired` is stamped on at the season transition and never cleared, so it
+  // is the only reliable way to tell "final season" from "already gone" (#556).
+  it('is true only for a player carrying the flag', () => {
+    expect(hasRetired({ is_retired: 1 })).toBe(true)
+    expect(hasRetired({ is_retired: 0 })).toBe(false)
+  })
+
+  it('treats a player row without the column as active', () => {
+    expect(hasRetired({ carrier_end_season: 9 })).toBe(false)
   })
 })

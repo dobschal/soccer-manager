@@ -965,6 +965,8 @@ export default {
   'player.retiringNextSeason': 'This player will retire after this season',
   'player.retiringTitle': 'Retiring Soon',
   'player.retiringDesc': 'This player will retire at the end of the current season and leave your team. Until then he is fully available to you. Computer-managed clubs will not sign him anymore, so a sale is only possible to another manager.',
+  'player.retiredTitle': 'Career Ended',
+  'player.retiredDesc': 'This player has retired. He can no longer be signed, traded or fielded by any team — only his history remains.',
 
   // Action Cards
   'actionCards.title': 'Action Cards',

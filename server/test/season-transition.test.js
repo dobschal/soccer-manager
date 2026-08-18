@@ -692,8 +692,7 @@ describe('season transition (prepareSeason)', () => {
 
       const retirementUpdates = query.mock.calls.filter(call =>
         typeof call[0] === 'string' &&
-        call[0].includes('UPDATE player SET team_id=NULL') &&
-        call[0].includes('carrier_end_season')
+        call[0].includes('SET is_retired=1')
       )
       const retirementSelects = query.mock.calls.filter(call =>
         typeof call[0] === 'string' &&
@@ -708,7 +707,11 @@ describe('season transition (prepareSeason)', () => {
       const { teams, allGames } = createTeamsAndGames(MIN_TEAMS, season)
       const retiringPlayers = [
         { id: 101, name: 'Retiree A', team_id: 1, carrier_end_season: 5 },
-        { id: 102, name: 'Retiree B', team_id: 2, carrier_end_season: 4 }
+        { id: 102, name: 'Retiree B', team_id: 2, carrier_end_season: 4 },
+        // A player whose career ends while he is already a free agent. The run
+        // used to skip these entirely (`team_id IS NOT NULL`), so their open
+        // transfer offers were never deleted and nothing marked them retired (#556).
+        { id: 103, name: 'Unemployed Retiree', team_id: null, carrier_end_season: 5 }
       ]
 
       query.mockImplementation((sql) => {
@@ -736,12 +739,27 @@ describe('season transition (prepareSeason)', () => {
 
       await prepareSeason()
 
+      // The cohort is selected by the flag, not by having a club, so a player who
+      // reaches his career end unemployed is retired along with the rest.
+      const retirementSelect = query.mock.calls.find(call =>
+        typeof call[0] === 'string' &&
+        call[0].startsWith('SELECT * FROM player WHERE carrier_end_season')
+      )
+      expect(retirementSelect[0]).toContain('is_retired=0')
+      expect(retirementSelect[0]).not.toContain('team_id IS NOT NULL')
+
       const retirementUpdate = query.mock.calls.find(call =>
         typeof call[0] === 'string' &&
-        call[0].startsWith('UPDATE player SET team_id=NULL WHERE id IN')
+        call[0].includes('SET is_retired=1')
       )
       expect(retirementUpdate).toBeDefined()
-      expect(retirementUpdate[1]).toEqual([[101, 102]])
+      expect(retirementUpdate[1]).toEqual([[101, 102, 103]])
+      // Everything that could put a retired player back in front of a user is
+      // cleared in the same sweep: club, lineup slot, bench slot and tour.
+      expect(retirementUpdate[0]).toContain('team_id=NULL')
+      expect(retirementUpdate[0]).toContain("in_game_position=''")
+      expect(retirementUpdate[0]).toContain('bench_position=NULL')
+      expect(retirementUpdate[0]).toContain('tour_days_left=0')
 
       // Retired players' open trade_offers get wiped — otherwise they'd linger
       // on the transfer market as unbuyable ghosts.
@@ -750,7 +768,7 @@ describe('season transition (prepareSeason)', () => {
         call[0].startsWith('DELETE FROM trade_offer WHERE player_id IN')
       )
       expect(offerDelete).toBeDefined()
-      expect(offerDelete[1]).toEqual([[101, 102]])
+      expect(offerDelete[1]).toEqual([[101, 102, 103]])
     })
   })
 })

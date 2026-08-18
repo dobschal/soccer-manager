@@ -135,6 +135,25 @@ describe('tradeHelper', () => {
         .rejects.toMatchObject({ message: 'Player not found' })
     })
 
+    // The transition deletes the offers of the retiring cohort, but a market page
+    // opened before midnight can still fire an accept at one of them. Nothing else
+    // in acceptOffer ever re-checked a career end (#556).
+    it('refuses to transfer a player who has already retired', async () => {
+      const sellingTeam = testData.team({ id: 1 })
+      const player = testData.player({ id: 10, team_id: 1, is_retired: 1 })
+      const offer = testData.tradeOffer({ id: 1, type: 'buy', player_id: 10 })
+
+      query.mockResolvedValueOnce([{ id: 1, player_id: 10, type: 'buy' }])
+      getPlayerById.mockResolvedValueOnce(player)
+
+      await expect(acceptOffer(offer, sellingTeam, gameDay, season))
+        .rejects.toMatchObject({ message: 'error.playerRetired' })
+      expect(query).not.toHaveBeenCalledWith(
+        'UPDATE player SET team_id=?, in_game_position=NULL WHERE id=?',
+        expect.anything()
+      )
+    })
+
     it('assigns player to buying team', async () => {
       const sellingTeam = testData.team({ id: 1, name: 'Selling FC' })
       const buyingTeam = testData.team({ id: 2, name: 'Buying FC' })

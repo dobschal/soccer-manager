@@ -30,7 +30,7 @@ export default {
     // season) are dropped. This matches the urgencies count in
     // getIncomingBuyOffers, which otherwise flags offers the list hid.
     const players = await query(
-      'SELECT * FROM player WHERE id IN (?) AND carrier_end_season >= ?',
+      'SELECT * FROM player WHERE id IN (?) AND is_retired = 0 AND carrier_end_season >= ?',
       [playerIds, season]
     )
     const activePlayerIds = new Set(players.map(p => p.id))

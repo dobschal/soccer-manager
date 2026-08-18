@@ -70,7 +70,13 @@ export default {
     // hid players who still have this whole season to play, which made the
     // final season look like retirement had already happened. Only genuinely
     // retired players (`< season`, kept in the table for history) are excluded.
-    return await query('SELECT * FROM player WHERE team_id IS NULL AND carrier_end_season >= ?', [season])
+    // `is_retired` is checked as well: it is the flag the season transition
+    // stamps on, and it never comes off, so a player who retired can never
+    // resurface here even if the season arithmetic is ever off again (#556).
+    return await query(
+      'SELECT * FROM player WHERE team_id IS NULL AND is_retired = 0 AND carrier_end_season >= ?',
+      [season]
+    )
   },
 
   /**
@@ -89,7 +95,7 @@ export default {
     // players were signed that way in production and stayed on their teams for
     // seasons, because nothing else ever re-checks a player's career end.
     const { season } = await getGameDayAndSeason()
-    if (player.carrier_end_season < season) throw new BadRequestError(t('error.playerRetired', {}, locale))
+    if (player.is_retired || player.carrier_end_season < season) throw new BadRequestError(t('error.playerRetired', {}, locale))
     const teamPlayers = await getPlayersByTeamId(team.id)
     if (teamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
     await query('UPDATE player SET team_id=? WHERE id=?', [team.id, player.id])

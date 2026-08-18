@@ -8,7 +8,7 @@ vi.mock('../helper/gameDayHelper.js', () => ({
   getGameDayAndSeason: (...args) => getGameDayAndSeason(...args)
 }))
 
-const { extendOverdueCarriers } = await import('../migrate-database.js')
+const { extendOverdueCarriers, retireOverdueCarriers } = await import('../migrate-database.js')
 
 describe('extendOverdueCarriers', () => {
   beforeEach(() => {
@@ -58,6 +58,69 @@ describe('extendOverdueCarriers', () => {
     query.mockResolvedValueOnce([{ games: 0 }])
 
     await extendOverdueCarriers()
+
+    expect(getGameDayAndSeason).not.toHaveBeenCalled()
+    expect(query).toHaveBeenCalledTimes(1)
+  })
+})
+
+// #556 backfill: retirement used to be an implicit state, re-derived as
+// `carrier_end_season < currentSeason` at every read site. `_archiveTooOldPlayers`
+// only ever looked at players who had a team, so a career that ended while the
+// player was unemployed was never cleaned up at all — twelve open IOC buy offers
+// for long-retired players survived in production that way.
+describe('retireOverdueCarriers', () => {
+  beforeEach(() => {
+    query.mockReset()
+    getGameDayAndSeason.mockReset()
+  })
+
+  it('flags every player whose career end is in the past, with or without a team', async () => {
+    query.mockResolvedValueOnce([{ games: 1200 }])
+    query.mockResolvedValueOnce([{ id: 1 }, { id: 2 }, { id: 3 }])
+    query.mockResolvedValue({ affectedRows: 4 })
+    getGameDayAndSeason.mockResolvedValue({ season: 9, gameDay: 3 })
+
+    await retireOverdueCarriers()
+
+    const [selectSql, selectParams] = query.mock.calls[1]
+    expect(selectSql).toBe('SELECT id FROM player WHERE carrier_end_season < ?')
+    expect(selectParams).toEqual([9])
+    expect(selectSql).not.toContain('team_id')
+
+    const [updateSql, updateParams] = query.mock.calls.find(([sql]) => String(sql).includes('is_retired = 1'))
+    expect(updateParams).toEqual([[1, 2, 3]])
+    expect(updateSql).toContain('team_id = NULL')
+    expect(updateSql).toContain('tour_days_left = 0')
+  })
+
+  it('deletes the transfer offers those players were never cleaned out of', async () => {
+    query.mockResolvedValueOnce([{ games: 1200 }])
+    query.mockResolvedValueOnce([{ id: 7 }])
+    query.mockResolvedValue({ affectedRows: 1 })
+    getGameDayAndSeason.mockResolvedValue({ season: 9, gameDay: 3 })
+
+    await retireOverdueCarriers()
+
+    expect(query).toHaveBeenCalledWith('DELETE FROM trade_offer WHERE player_id IN (?)', [[7]])
+  })
+
+  // A player in his final season is still fully active — `carrier_end_season` is
+  // inclusive, so `< season` and not `<= season` is what separates the two.
+  it('leaves the current final-season cohort untouched', async () => {
+    query.mockResolvedValueOnce([{ games: 1200 }])
+    query.mockResolvedValueOnce([])
+    getGameDayAndSeason.mockResolvedValue({ season: 9, gameDay: 3 })
+
+    await retireOverdueCarriers()
+
+    expect(query).toHaveBeenCalledTimes(2)
+  })
+
+  it('does nothing on a fresh database without games', async () => {
+    query.mockResolvedValueOnce([{ games: 0 }])
+
+    await retireOverdueCarriers()
 
     expect(getGameDayAndSeason).not.toHaveBeenCalled()
     expect(query).toHaveBeenCalledTimes(1)

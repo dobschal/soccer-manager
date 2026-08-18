@@ -105,6 +105,9 @@ describe('trade routes', () => {
       const playerCall = query.mock.calls.find(c => typeof c[0] === 'string' && c[0].includes('FROM player'))
       expect(playerCall).toBeDefined()
       expect(playerCall[0]).toContain('carrier_end_season >= ?')
+      // Second, independent guard: the flag the season transition stamps on and
+      // never clears, so a retired player's offer cannot resurface here (#556).
+      expect(playerCall[0]).toContain('is_retired = 0')
       expect(playerCall[1]).toEqual([[100, 200], 8])
     })
 

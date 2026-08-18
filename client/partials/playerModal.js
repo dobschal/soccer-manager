@@ -1,6 +1,6 @@
 import { showOverlay } from './overlay.js'
 import { server } from '../lib/gateway.js'
-import { calculatePlayerAge, calculateMarketValue, getMinOfferPrice, getSalary, willRetireNextSeason, MAX_TRANSFERS_PER_SEASON } from '../util/player.js'
+import { calculatePlayerAge, calculateMarketValue, getMinOfferPrice, getSalary, hasRetired, willRetireNextSeason, MAX_TRANSFERS_PER_SEASON } from '../util/player.js'
 import { renderCurrencyInput, setupCurrencyInput } from './currencyInput.js'
 import { euroFormat, shortEuroFormat } from '../lib/currency.js'
 import { el } from '../lib/html.js'
@@ -150,6 +150,12 @@ export default class PlayerModal extends UIElement {
         </div>
         <div data-alert="injury">${this._renderInjuryAlert()}</div>
         <div data-alert="star">${this._renderStarAlert()}</div>
+        ${hasRetired(this.player) ? `
+        <div class="alert alert-secondary mb-4">
+          <b><i class="fa fa-hourglass-end"></i> ${t('player.retiredTitle')}</b><br>
+          ${t('player.retiredDesc')}
+        </div>
+        ` : ''}
         ${willRetireNextSeason(this.player, this.season) ? `
         <div class="alert alert-info mb-4">
           <b><i class="fa fa-hourglass-end"></i> ${t('player.retiringTitle')}</b><br>

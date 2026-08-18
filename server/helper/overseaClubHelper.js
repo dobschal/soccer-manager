@@ -255,12 +255,20 @@ export async function iocBuyFromUsers () {
     `, [iocTeamId, team.id])
     if (existingIOCOffer) continue
 
-    // The team's own open sell offers, with each player's market value
+    // The team's own open sell offers, with each player's market value.
+    //
+    // `p.team_id = tro.from_team_id` is what keeps this honest: a sell offer can
+    // outlive the player's stay at the listing club, and such a stale listing
+    // used to be a valid IOC target. Because the "one pending IOC offer per
+    // team" guard above matches on `p.team_id`, it never saw those offers
+    // either — so the IOC re-bid for the same club-less player on every single
+    // run. One retired player had ten open IOC offers stacked up that way (#556).
     const sellOffers = await query(`
       SELECT tro.*, p.level, p.name AS player_name, p.carrier_start_season, p.carrier_end_season
       FROM trade_offer tro
       JOIN player p ON p.id = tro.player_id
       WHERE tro.from_team_id = ? AND tro.type = 'sell' AND tro.status = 'open'
+        AND p.team_id = tro.from_team_id AND p.is_retired = 0
         AND p.carrier_end_season > ?
     `, [team.id, season])
 
