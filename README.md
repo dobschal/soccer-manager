@@ -62,12 +62,12 @@ node server/play-game-day.cmd.js      # simulate one game day
 
 Project layout:
 
-| Path          | What lives there                                                        |
-|---------------|-------------------------------------------------------------------------|
-| `server/`     | Express API, game simulation, CRON jobs, MySQL access                   |
-| `client/`     | Vanilla-JS frontend on a custom `UIElement` component framework         |
-| `native-app/` | NativeScript shell for the iOS/Android apps                             |
-| `requirements/` | Feature specifications                                                |
+| Path            | What lives there                                                |
+|-----------------|-----------------------------------------------------------------|
+| `server/`       | Express API, game simulation, CRON jobs, MySQL access           |
+| `client/`       | Vanilla-JS frontend on a custom `UIElement` component framework |
+| `native-app/`   | NativeScript shell for the iOS/Android apps                     |
+| `requirements/` | Feature specifications                                          |
 
 Architecture notes, conventions and deployment details: [CLAUDE.md](CLAUDE.md).
 
@@ -96,6 +96,6 @@ Pull requests should target `develop`.
 ## License
 
 The source is public for transparency, learning and contributions — but it is **not** free
-software: all rights remain with Sascha Dobschal. You may read, fork and build it locally to
+software: all rights remain with this repository owner. You may read, fork and build it locally to
 contribute, but you may not reuse the code in other projects, host your own instance or
 redistribute it. See [LICENSE](LICENSE).
