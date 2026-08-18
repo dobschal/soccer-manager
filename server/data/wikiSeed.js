@@ -207,7 +207,7 @@ Tippe die Leiste selbst an (nicht das Geschenk), um deine Serie, jeden Meilenste
 The three destinations:
 • South America – 1× Youth Star card.
 • Asia – 1× Million Gift (1,000,000 €).
-• Europe – 5× Master Training cards.
+• Europe – 4× Master Training cards.
 
 Sending players:
 • Up to 3 players can be away at the same time, for 3 to 7 match days each.
@@ -234,7 +234,7 @@ Changing your mind:
 Die drei Reiseziele:
 • Südamerika – 1× Nachwuchsstar-Karte.
 • Asien – 1× Millionengeschenk (1.000.000 €).
-• Europa – 5× Meister-Training-Karten.
+• Europa – 4× Meister-Training-Karten.
 
 Spieler entsenden:
 • Höchstens 3 Spieler können gleichzeitig unterwegs sein, je 3 bis 7 Spieltage.

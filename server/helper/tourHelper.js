@@ -16,7 +16,7 @@ export const TOURS = [
   // too common once the other sources were counted in.
   { key: 'south_america', reward: [{ action: 'NEW_YOUTH_PLAYER_3', amount: 1 }] },
   { key: 'asia', reward: [{ action: 'MILLION_BONUS', amount: 1 }] },
-  { key: 'europe', reward: [{ action: 'LEVEL_UP_PLAYER_100', amount: 5 }] }
+  { key: 'europe', reward: [{ action: 'LEVEL_UP_PLAYER_100', amount: 4 }] }
 ]
 
 /** Valid tour keys, for validating what the client sends. */

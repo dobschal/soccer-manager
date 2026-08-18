@@ -36,7 +36,7 @@ const data = (over = {}) => ({
   tours: [
     { key: 'south_america', reward: [{ action: 'NEW_YOUTH_PLAYER_3', amount: 1 }] },
     { key: 'asia', reward: [{ action: 'MILLION_BONUS', amount: 1 }] },
-    { key: 'europe', reward: [{ action: 'LEVEL_UP_PLAYER_100', amount: 5 }] }
+    { key: 'europe', reward: [{ action: 'LEVEL_UP_PLAYER_100', amount: 4 }] }
   ],
   players: [
     { id: 1, name: 'Keeper', position: 'GK', level: 40, isInjured: false, isSuspended: false, tourDaysLeft: 0, progressPerGameDay: 0.8 },
@@ -80,7 +80,7 @@ describe('TourPage rendering (#535)', () => {
       expect(html).toContain(`data-tour-key="${key}"`)
       expect(html).toContain(`assets/tour/${key}.jpg`)
     }
-    expect(html).toContain('5× label:LEVEL_UP_PLAYER_100')
+    expect(html).toContain('4× label:LEVEL_UP_PLAYER_100')
   })
 
   it('marks the chosen destination as active', () => {

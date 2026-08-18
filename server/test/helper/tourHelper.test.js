@@ -299,6 +299,8 @@ describe('advanceTours (#535)', () => {
 
   it('grants exactly the destination\'s cards', async () => {
     const europe = TOURS.find(t => t.key === 'europe')
+    expect(europe.reward).toEqual([{ action: 'LEVEL_UP_PLAYER_100', amount: 4 }])
+
     const { calls } = mockTeamOnTour(TOUR_PROGRESS_TARGET, [{ level: 50, tour_days_left: 1 }], 'europe')
     await advanceTours()
 

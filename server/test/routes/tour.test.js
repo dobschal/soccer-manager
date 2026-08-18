@@ -12,7 +12,7 @@ vi.mock('../../helper/tourHelper.js', () => ({
   tourProgressPerGameDay: (level, avg) => (avg ? level / avg : 0),
   TOURS: [
     { key: 'asia', reward: [{ action: 'MILLION_BONUS', amount: 1 }] },
-    { key: 'europe', reward: [{ action: 'LEVEL_UP_PLAYER_100', amount: 5 }] }
+    { key: 'europe', reward: [{ action: 'LEVEL_UP_PLAYER_100', amount: 4 }] }
   ],
   TOUR_PROGRESS_TARGET: 30,
   TOUR_MIN_DAYS: 3,
@@ -78,7 +78,7 @@ describe('tour.getMyTour (#535)', () => {
   it('lists every destination with its reward', async () => {
     const result = await handlers.getMyTour(createMockRequest())
     expect(result.tours.map(t => t.key)).toEqual(['asia', 'europe'])
-    expect(result.tours[1].reward[0]).toEqual({ action: 'LEVEL_UP_PLAYER_100', amount: 5 })
+    expect(result.tours[1].reward[0]).toEqual({ action: 'LEVEL_UP_PLAYER_100', amount: 4 })
   })
 
   it('copes with an empty squad', async () => {

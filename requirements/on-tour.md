@@ -33,10 +33,13 @@ wer nur elf Spieler hat, kann nicht mitmachen.
 |---|---|
 | Suedamerika | 1× Nachwuchsstar (`NEW_YOUTH_PLAYER_3`) |
 | Asien | 1× Millionengeschenk (`MILLION_BONUS`) |
-| Europa | 5× Meister-Training (`LEVEL_UP_PLAYER_100`) |
+| Europa | 4× Meister-Training (`LEVEL_UP_PLAYER_100`) |
 
 Suedamerika zahlte urspruenglich zwei Nachwuchsstars aus. Zusammen mit Spieltagen, Jugendakademie und
 Login-Bonus kamen dadurch zu viele Nachwuchskarten ins Spiel — die Reise bringt jetzt genau einen.
+
+Europa zahlte urspruenglich fuenf Meister-Trainings aus. Vier halten die Reise weiterhin zur lohnendsten
+Level-Up-Quelle, ohne dass eine gefuellte Leiste eine halbe Elf auf einmal hochzieht.
 
 ## Regeln
 
