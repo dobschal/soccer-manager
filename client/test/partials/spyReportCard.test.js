@@ -28,23 +28,29 @@ describe('SpyReportCard', () => {
       expect(card.template).not.toContain('spy-report-card')
     })
 
-    it('renders the report body expanded by default', () => {
+    it('hides the report body by default', () => {
       const card = new SpyReportCard()
       card._report = { team: testData.team({ name: 'FC Spy' }), players: [] }
+      const html = card.template
+      expect(html).toContain('spy-report-card')
+      expect(html).not.toContain('BODY')
+      expect(spyReportBodyHtml).not.toHaveBeenCalled()
+    })
+
+    it('renders the body once the user has expanded it', () => {
+      localStorage.getItem.mockReturnValue('0')
+      const card = new SpyReportCard()
+      card._report = { team: testData.team(), players: [] }
       const html = card.template
       expect(html).toContain('spy-report-card')
       expect(html).toContain('BODY')
       expect(spyReportBodyHtml).toHaveBeenCalledOnce()
     })
 
-    it('hides the body when collapsed', () => {
-      localStorage.getItem.mockReturnValue('1')
+    it('tints the card with the warning theme', () => {
       const card = new SpyReportCard()
       card._report = { team: testData.team(), players: [] }
-      const html = card.template
-      expect(html).toContain('spy-report-card')
-      expect(html).not.toContain('BODY')
-      expect(spyReportBodyHtml).not.toHaveBeenCalled()
+      expect(card.template).toContain('bg-warning-subtle')
     })
   })
 
@@ -151,6 +157,8 @@ describe('SpyReportCard', () => {
      * @returns {SpyReportCard}
      */
     const mounted = async (report) => {
+      // Expanded — a collapsed card never touches the body on refetch.
+      localStorage.getItem.mockReturnValue('0')
       const { server } = await import('../../lib/gateway.js')
       server.getLastSpyReport.mockResolvedValue({ report })
       const card = new SpyReportCard()

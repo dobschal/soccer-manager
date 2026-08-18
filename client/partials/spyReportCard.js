@@ -34,7 +34,7 @@ export class SpyReportCard extends UIElement {
     const isCollapsed = this._isCollapsed
     const { team, players } = this._report
     return `
-      <div class="card card-body mb-4 spy-report-card">
+      <div class="card card-body mb-4 spy-report-card bg-warning-subtle">
         <div class="d-flex justify-content-between align-items-center gap-2">
           <div>
             <h5 class="mb-0">
@@ -83,10 +83,13 @@ export class SpyReportCard extends UIElement {
   _refetchInterval = null
 
   /**
+   * Collapsed unless the user has explicitly expanded it before — the report is
+   * a bulky lineup grid that would otherwise push the rest of the Taktik
+   * section off-screen on every visit.
    * @returns {boolean}
    */
   get _isCollapsed () {
-    return localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1'
+    return localStorage.getItem(COLLAPSE_STORAGE_KEY) !== '0'
   }
 
   /**
