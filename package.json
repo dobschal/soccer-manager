@@ -1,7 +1,7 @@
 {
   "name": "soccer-simulation",
   "version": "2026.8.4",
-  "description": "",
+  "description": "FootballManager.IO - a browser, iOS and Android football manager game (Node.js + MySQL).",
   "main": "server/app.js",
   "scripts": {
     "start": "node server/api.js",
@@ -18,8 +18,8 @@
     "serve:native:local": "./scripts/copy-native-client.sh && NATIVE_SERVER_URL=http://localhost:3000 node ./scripts/serve-native-client.mjs"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Sascha Dobschal",
+  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "@parse/node-apn": "^7.1.0",
     "body-parser": "^1.20.2",

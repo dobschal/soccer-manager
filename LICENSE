@@ -1,0 +1,63 @@
+FootballManager.IO — Source-Available License
+Copyright (c) 2023–2026 Sascha Dobschal. All rights reserved.
+
+The source code of this project is published for transparency, learning and
+community contributions. It is NOT free or open-source software in the OSI
+sense: all rights in the code remain with the copyright holder.
+
+1. Permission granted
+
+   You may, free of charge:
+
+   a) view, read and study the source code;
+   b) clone or fork this repository and build/run it locally on your own
+      machine for the sole purposes of evaluation, learning, or preparing a
+      contribution back to this project;
+   c) submit contributions (issues, patches, pull requests) to this project.
+
+2. Permission NOT granted
+
+   Without prior written permission from the copyright holder, you may NOT:
+
+   a) use the code, in whole or in part, in any other project, product or
+      service — whether commercial or non-commercial, closed or open source;
+   b) operate, host or otherwise make available a publicly or internally
+      reachable instance of this software or any derivative of it;
+   c) redistribute, publish, sell, rent, sublicense or relicense the code or
+      any derivative of it, in source or binary form;
+   d) create a derivative product, service or game based on this code;
+   e) remove, alter or obscure any copyright, license or attribution notices.
+
+3. Trademarks and assets
+
+   "FootballManager.IO", the project name, logos, artwork, texts, sounds and
+   other media assets contained in this repository are not covered by the
+   permissions above and may not be used without prior written permission.
+
+4. Contributions
+
+   By submitting a contribution you grant Sascha Dobschal a perpetual,
+   worldwide, non-exclusive, irrevocable, royalty-free license to use,
+   reproduce, modify, distribute, sublicense and relicense your contribution
+   as part of this project, including under different license terms. You
+   confirm that you have the right to grant this license. You retain the
+   copyright to your contribution.
+
+5. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+   OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+6. Termination
+
+   Any use outside the permissions granted in section 1 terminates this
+   license automatically and may constitute copyright infringement.
+
+For licensing requests beyond the scope of this file, open an issue at
+https://github.com/dobschal/soccer-manager/issues or contact the copyright
+holder.
