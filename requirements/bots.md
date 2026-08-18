@@ -9,6 +9,11 @@ Bot-Teams sind KI-gesteuerte Mannschaften, die die Liga fuellen und als Gegner f
 - **US-BOT-01**: Als neuer Spieler kann ich mir ein bestehendes Bot-Team aussuchen und uebernehmen, damit ich sofort mit einer vollstaendigen Mannschaft starte (siehe [User Registration](user-registration.md)).
 - **US-BOT-02**: Als Spieler spiele ich gegen Bot-Teams in der Liga, die realistische Entscheidungen treffen und als Gegner eine Herausforderung darstellen.
 - **US-BOT-03**: Als Spieler kann ich Spieler von Bot-Teams kaufen und an Bot-Teams verkaufen, wobei Bots Angebote automatisch bewerten.
+- **US-BOT-04**: Als Spieler bekomme ich die Antwort eines Bot-Teams auf mein Kaufangebot nicht sofort, sondern
+  innerhalb von 24 Stunden, damit sich ein Bot wie ein Manager verhaelt und nicht wie ein Automat
+  (Details: [Player Transfers](player-transfers.md), TA-TRF-28).
+- **US-BOT-05**: Als Spieler kann ich einem Bot-Team keinen Spieler in dessen letzter Saison verkaufen
+  (TA-TRF-29).
 
 ## Technische Anforderungen
 

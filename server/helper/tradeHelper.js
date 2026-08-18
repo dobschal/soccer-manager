@@ -9,6 +9,7 @@ import { TradeHistory } from '../entities/tradeHistory.js'
 import { getGameDayAndSeason } from './gameDayHelper.js'
 import { addPlayerHistory } from './playerHistoryHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
+import { willRetireNextSeason } from '../../client/util/player.js'
 import { sendToTeam, sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
 
@@ -119,6 +120,14 @@ export async function acceptOffer (offer, sellingTeam, gameDay, season, locale =
   if (buyingTeam.user_id) {
     const buyingTeamPlayers = await getPlayersByTeamId(buyingTeam.id)
     if (buyingTeamPlayers.length >= MAX_TEAM_SIZE) throw new BadRequestError(t('error.teamTooLarge', {}, locale))
+  }
+
+  // No computer-controlled team pays for a player in their final season. Users
+  // dumped veterans on bots and the overseas club in the very season the player
+  // retires, turning a worthless squad member into full market value. Human
+  // buyers may still take the deal — they see the retirement badge.
+  if (!buyingTeam.user_id && willRetireNextSeason(player, season)) {
+    throw new BadRequestError(t('error.retiringPlayerNotWanted', {}, locale))
   }
 
   // A player may change clubs at most MAX_TRANSFERS_PER_SEASON times per season (anti wash-trading with bots).

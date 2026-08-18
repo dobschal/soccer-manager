@@ -3441,6 +3441,27 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Add bot_decision_at column to trade_offer table',
+  async run () {
+    await query('ALTER TABLE trade_offer ADD COLUMN bot_decision_at DATETIME NULL DEFAULT NULL')
+    await query('CREATE INDEX idx_trade_offer_bot_decision ON trade_offer (bot_decision_at)')
+  }
+}, {
+  name: 'Wiki: bot clubs answer with a delay and skip retiring players',
+  async run () {
+    const KEYS_TO_REFRESH = ['transfers']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**

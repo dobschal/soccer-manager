@@ -42,6 +42,8 @@ import { addLogMessage } from '../../helper/logMessageHelper.js'
 import handlers from '../../routes/trade.js'
 
 describe('trade routes', () => {
+  const req = () => createMockRequest()
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -504,6 +506,92 @@ describe('trade routes', () => {
           allow_instant_buy: 0
         })
       )
+    })
+
+    it('schedules the answer of a bot team instead of deciding inside the request', async () => {
+      // Bots used to accept or decline in the very request that created the
+      // offer, so users could probe the randomized threshold with a burst of
+      // offers and the market felt like a vending machine.
+      const team = testData.team({ id: 1, balance: 10_000_000 })
+      const player = testData.player({ id: 7, team_id: 99 })
+      const botTeam = testData.team({ id: 99, user_id: null, is_system_team: 0 })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(botTeam)
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_offer')) return [{ count: 0 }]
+        if (sql.startsWith('SELECT * FROM trade_offer')) return []
+        return []
+      })
+
+      const result = await handlers.addTradeOffer(player, 50000, 'buy', true, req())
+
+      expect(result).toEqual({ success: true })
+      const insert = query.mock.calls.find(c => c[0] === 'INSERT INTO trade_offer SET ?')
+      expect(insert[1].bot_decision_at).toBeInstanceOf(Date)
+      expect(insert[1].bot_decision_at.getTime()).toBeGreaterThan(Date.now())
+      expect(acceptOffer).not.toHaveBeenCalled()
+      expect(declineOffer).not.toHaveBeenCalled()
+    })
+
+    it('does not schedule a bot answer for an offer to a user team', async () => {
+      const team = testData.team({ id: 1, balance: 10_000_000 })
+      const player = testData.player({ id: 7, team_id: 99 })
+      const otherUserTeam = testData.team({ id: 99, user_id: 42 })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(otherUserTeam)
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_offer')) return [{ count: 0 }]
+        if (sql.startsWith('SELECT * FROM trade_offer')) return []
+        return []
+      })
+
+      await handlers.addTradeOffer(player, 50000, 'buy', true, req())
+
+      const insert = query.mock.calls.find(c => c[0] === 'INSERT INTO trade_offer SET ?')
+      expect(insert[1].bot_decision_at).toBeUndefined()
+      // The seller gets notified instead — they answer themselves.
+      expect(addLogMessage).toHaveBeenCalled()
+    })
+
+    it('lets the IOC answer immediately', async () => {
+      // The overseas club is a market maker, not a manager: it keeps the market
+      // liquid and therefore still answers inside the request.
+      const team = testData.team({ id: 1, balance: 10_000_000 })
+      const player = testData.player({ id: 7, team_id: 99, position: 'DM' })
+      const iocTeam = testData.team({ id: 99, user_id: null, is_system_team: 1, formation: '352' })
+
+      getTeam.mockResolvedValue(team)
+      getGameDayAndSeason.mockResolvedValue({ gameDay: 5, season: 1 })
+      getPlayerById.mockResolvedValueOnce(player)
+      getTeamById.mockResolvedValueOnce(iocTeam)
+      getPlayersByTeamId.mockResolvedValueOnce([
+        player,
+        testData.player({ id: 8, team_id: 99, position: 'DM' }),
+        testData.player({ id: 9, team_id: 99, position: 'DM' })
+      ])
+      getOpenSellOffersByTeamId.mockResolvedValueOnce([
+        testData.tradeOffer({ id: 3, type: 'sell', player_id: 7, from_team_id: 99, offer_value: 40000 })
+      ])
+      const insertedOffer = testData.tradeOffer({ id: 4, type: 'buy', player_id: 7, from_team_id: 1, offer_value: 50000 })
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('COUNT(*) AS count FROM trade_offer')) return [{ count: 0 }]
+        if (sql.includes("type='buy' AND status='open'")) return [insertedOffer]
+        if (sql.startsWith('SELECT * FROM trade_offer')) return []
+        return []
+      })
+
+      await handlers.addTradeOffer(player, 50000, 'buy', true, req())
+
+      const insert = query.mock.calls.find(c => c[0] === 'INSERT INTO trade_offer SET ?')
+      expect(insert[1].bot_decision_at).toBeUndefined()
+      // 50k meets the 40k asking price, so the IOC sells right away.
+      expect(acceptOffer).toHaveBeenCalledWith(insertedOffer, iocTeam, 5, 1, 'en')
     })
 
     it('throws error for buy offer when not enough money', async () => {

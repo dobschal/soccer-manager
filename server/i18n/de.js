@@ -81,6 +81,7 @@ export default {
   'error.instantBuyDisabled': 'Der Verkäufer hat den Sofortkauf für diesen Spieler deaktiviert',
   'error.playerAlreadyTransferredThisSeason': 'Dieser Spieler hat in dieser Saison bereits zweimal den Verein gewechselt',
   'error.freeAgentSellLock': 'Frisch vom freien Markt verpflichtete Spieler können in dieser Saison nicht verkauft werden.',
+  'error.retiringPlayerNotWanted': 'Computergesteuerte Vereine verpflichten keine Spieler in ihrer letzten Saison.',
 
   // Stadium errors
   'error.standNotFound': 'Tribüne nicht gefunden',

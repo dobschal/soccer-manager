@@ -81,6 +81,7 @@ export default {
   'error.instantBuyDisabled': 'The seller disabled instant buy for this player',
   'error.playerAlreadyTransferredThisSeason': 'This player has already changed clubs twice this season',
   'error.freeAgentSellLock': 'Players just signed from the free market cannot be sold in the same season.',
+  'error.retiringPlayerNotWanted': 'Computer-managed clubs do not sign players in their final season.',
 
   // Stadium errors
   'error.standNotFound': 'Stand not found',

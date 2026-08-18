@@ -4,10 +4,10 @@ import { BadRequestError } from '../lib/errors.js'
 import { getTeam, getTeamById } from '../helper/teamHelper.js'
 import { getGameDayAndSeason } from '../helper/gameDayHelper.js'
 import { acceptOffer, declineOffer, getOpenSellOffersByTeamId, MAX_SELL_OFFERS_PER_TEAM, MAX_TRANSFERS_PER_SEASON } from '../helper/tradeHelper.js'
+import { botDecisionDate, shouldBotAcceptBuyOffer } from '../helper/botTradeHelper.js'
 import { addLogMessage } from '../helper/logMessageHelper.js'
 import { getAveragePlanPriceOfPlayer, getPlayerById, getPlayersByTeamId, MAX_TEAM_SIZE } from '../helper/playerHelper.js'
 import { t, getUserLocale } from '../i18n/index.js'
-import { getPositionsOfFormation } from '../../client/util/formation.js'
 import { getMinOfferPrice } from '../../client/util/player.js'
 import { sendToUser } from '../lib/websocket.js'
 import { SERVER_EVENTS } from '../../client/lib/serverEvents.js'
@@ -84,10 +84,12 @@ export default {
     // Neither side of a transfer may be priced below 75% of the player's market
     // value (#446) — this keeps players from being pushed between accounts for
     // a symbolic price.
+    /** @type {PlayerType|null} - the stored player a buy offer targets */
+    let buyTargetPlayer = null
     if (type === 'buy') {
-      const dbPlayer = await getPlayerById(player.id)
-      if (!dbPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
-      const marketValue = await getAveragePlanPriceOfPlayer(dbPlayer, season)
+      buyTargetPlayer = await getPlayerById(player.id)
+      if (!buyTargetPlayer) throw new BadRequestError(t('error.playerNotFound', {}, locale))
+      const marketValue = await getAveragePlanPriceOfPlayer(buyTargetPlayer, season)
       const minPrice = getMinOfferPrice(marketValue)
       if (price < minPrice) {
         throw new BadRequestError(t('error.buyPriceTooLow', { minPrice: minPrice.toLocaleString() }, locale))
@@ -127,6 +129,16 @@ export default {
         throw new BadRequestError(t('error.sellPriceTooLow', { minPrice: minPrice.toLocaleString() }, locale))
       }
     }
+    // Who owns the player a buy offer is for — looked up from the stored row, not
+    // from the client payload.
+    const receivingTeam = buyTargetPlayer?.team_id ? await getTeamById(buyTargetPlayer.team_id) : null
+    // A bot manager does not answer inside this request anymore: the decision is
+    // scheduled up to 24 hours out and executed by processDueBotOfferDecisions().
+    // Answering instantly let users probe a bot's randomized acceptance threshold
+    // with a burst of offers, and it made the market feel like a vending machine
+    // instead of a league full of managers. Storing the due date on the row keeps
+    // a pending decision across restarts. The IOC is exempt — see below.
+    const isBotManagedSeller = Boolean(receivingTeam && !receivingTeam.user_id && !receivingTeam.is_system_team)
     const tradeOffer = new TradeOffer({
       offer_value: price,
       type: type,
@@ -134,7 +146,8 @@ export default {
       from_team_id: team.id,
       game_day: gameDay,
       season: season,
-      allow_instant_buy: type === 'sell' && allowInstantBuy === false ? 0 : 1
+      allow_instant_buy: type === 'sell' && allowInstantBuy === false ? 0 : 1,
+      ...(isBotManagedSeller ? { bot_decision_at: botDecisionDate() } : {})
     })
     const results = await query('SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND status=\'open\'', [tradeOffer.from_team_id, tradeOffer.player_id])
     if (results.length > 0) throw new BadRequestError(t('error.playerAlreadyListed', {}, locale))
@@ -148,60 +161,20 @@ export default {
     await query('INSERT INTO trade_offer SET ?', tradeOffer)
 
     // Notify the player's team about the incoming buy offer
-    if (type === 'buy' && player.team_id) {
-      const playerData = await getPlayerById(player.id)
-      const receivingTeam = await getTeamById(player.team_id)
+    if (type === 'buy' && receivingTeam) {
+      // A bot manager answers later — the due date was stored above.
+      if (isBotManagedSeller) return { success: true }
 
-      // Auto-accept: if the player's team is a bot and has a sell offer at or below the buy price
-      if (receivingTeam && !receivingTeam.user_id) {
-        const [sellOffer] = await query(
-          'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'sell\' AND status=\'open\'',
-          [receivingTeam.id, player.id]
-        )
-        if (sellOffer && price >= sellOffer.offer_value) {
-          const [insertedOffer] = await query(
-            'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\' AND status=\'open\'',
-            [team.id, player.id]
-          )
-          if (insertedOffer) {
-            await acceptOffer(insertedOffer, receivingTeam, gameDay, season, locale)
-          }
-          return { success: true }
-        }
-
-        // No matching sell offer or price too low — full bot evaluation
+      // The IOC is a market maker, not a manager, so it still answers instantly:
+      // its whole purpose is to keep the transfer market liquid.
+      if (!receivingTeam.user_id) {
         const [insertedOffer] = await query(
           'SELECT * FROM trade_offer WHERE from_team_id=? AND player_id=? AND type=\'buy\' AND status=\'open\'',
           [team.id, player.id]
         )
         if (insertedOffer) {
-          const players = await getPlayersByTeamId(receivingTeam.id)
-          const positionsNeeded = getPositionsOfFormation(receivingTeam.formation)
-          const playersInSamePosition = players.filter(p => p.position === playerData.position && p.id !== playerData.id)
-          const positionsRequiredForFormation = positionsNeeded.filter(p => p === playerData.position).length
-          const wouldLeaveHole = playersInSamePosition.length < positionsRequiredForFormation
-          const remainingPlayersInPosition = playersInSamePosition.filter(p => p.level >= playerData.level - 2)
-          const teamWouldBeOkAfterSale = remainingPlayersInPosition.length >= positionsRequiredForFormation
-
-          const openSellOffers = await getOpenSellOffersByTeamId(receivingTeam.id)
-          const matchingSellOffer = openSellOffers.find(o => o.player_id === playerData.id)
-          const averagePrice = await getAveragePlanPriceOfPlayer(playerData)
-          const basePrice = matchingSellOffer ? matchingSellOffer.offer_value : averagePrice
-
-          let minAcceptablePrice
-          if (wouldLeaveHole) {
-            if (!teamWouldBeOkAfterSale || playersInSamePosition.length === 0) {
-              await declineOffer(insertedOffer)
-              return { success: true }
-            }
-            const premiumFactor = 1.5 + Math.random() * 0.5
-            minAcceptablePrice = basePrice * premiumFactor
-          } else {
-            const randomFactor = 0.8 + Math.random() * 0.4
-            minAcceptablePrice = basePrice * randomFactor
-          }
-
-          if (price >= minAcceptablePrice) {
+          const squad = await getPlayersByTeamId(receivingTeam.id)
+          if (await shouldBotAcceptBuyOffer(receivingTeam, buyTargetPlayer, insertedOffer, squad)) {
             await acceptOffer(insertedOffer, receivingTeam, gameDay, season, locale)
           } else {
             await declineOffer(insertedOffer)
@@ -210,18 +183,16 @@ export default {
         return { success: true }
       }
 
-      if (receivingTeam && receivingTeam.user_id) {
-        const receiverLocale = await getUserLocale(receivingTeam.user_id)
-        await addLogMessage(
-          t('log.offerReceived', { price: price.toLocaleString(), playerName: playerData.name, fromTeam: team.name }, receiverLocale),
-          receivingTeam,
-          'OPEN_INCOMING_OFFERS',
-          null,
-          'shopping-cart',
-          undefined,
-          'info'
-        )
-      }
+      const receiverLocale = await getUserLocale(receivingTeam.user_id)
+      await addLogMessage(
+        t('log.offerReceived', { price: price.toLocaleString(), playerName: buyTargetPlayer.name, fromTeam: team.name }, receiverLocale),
+        receivingTeam,
+        'OPEN_INCOMING_OFFERS',
+        null,
+        'shopping-cart',
+        undefined,
+        'info'
+      )
     }
 
     // Log sell offer creation to the selling team

@@ -250,6 +250,47 @@ describe('overseaClubHelper', () => {
       expect(insertCall[1].offer_value).toBe(97000)
     })
 
+    it('ignores listed players in their final season', async () => {
+      // Otherwise the "sell your veteran in the season he retires" trick just
+      // moves from the bot teams over to the IOC.
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      globalThis._query.mockResolvedValueOnce([{ id: 5, name: 'User FC', user_id: 42, is_system_team: 0 }])
+      globalThis._query.mockResolvedValueOnce([])
+      globalThis._query.mockResolvedValueOnce([])
+      globalThis._getPlayersByTeamId.mockResolvedValueOnce([])
+
+      await iocBuyFromUsers()
+
+      const [sellOfferSql, params] = globalThis._query.mock.calls.find(
+        c => typeof c[0] === 'string' && c[0].includes("tro.type = 'sell'")
+      )
+      expect(sellOfferSql).toContain('p.carrier_end_season > ?')
+      expect(params).toContain(10) // current season from the mocked game day helper
+    })
+
+    it('case 3: skips a player in their final season and makes no offer', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+
+      globalThis._query.mockResolvedValueOnce([{ id: 999 }])
+      globalThis._query.mockResolvedValueOnce([{ id: 5, name: 'User FC', user_id: 42, is_system_team: 0 }])
+      globalThis._query.mockResolvedValueOnce([])
+      globalThis._query.mockResolvedValueOnce([])
+      // The only player retires at the end of the current season (10).
+      globalThis._getPlayersByTeamId.mockResolvedValueOnce([
+        { id: 20, name: 'Veteran', level: 60, carrier_start_season: 0, carrier_end_season: 10 }
+      ])
+
+      const count = await iocBuyFromUsers()
+
+      expect(count).toBe(0)
+      const insertCall = globalThis._query.mock.calls.find(
+        c => typeof c[0] === 'string' && c[0].includes('INSERT INTO trade_offer')
+      )
+      expect(insertCall).toBeUndefined()
+    })
+
     it('skips a team that already has an open IOC buy offer', async () => {
       vi.spyOn(Math, 'random').mockReturnValue(0)
 

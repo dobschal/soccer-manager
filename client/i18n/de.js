@@ -958,7 +958,7 @@ export default {
   'player.historyStarPlayer': 'Zum Starspieler befördert',
   'player.retiringNextSeason': 'Dieser Spieler geht nach dieser Saison in den Ruhestand',
   'player.retiringTitle': 'Karriereende naht',
-  'player.retiringDesc': 'Dieser Spieler wird am Ende der aktuellen Saison in den Ruhestand gehen und dein Team verlassen. Bis dahin steht er dir voll zur Verfügung.',
+  'player.retiringDesc': 'Dieser Spieler wird am Ende der aktuellen Saison in den Ruhestand gehen und dein Team verlassen. Bis dahin steht er dir voll zur Verfügung. Computergesteuerte Vereine verpflichten ihn nicht mehr — verkaufen kannst du ihn nur noch an einen anderen Manager.',
 
   // Action Cards
   'actionCards.title': 'Aktionskarten',

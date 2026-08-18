@@ -1317,6 +1317,8 @@ Buying and selling:
 • Filter the market by position, age and level. Each player has a market value as a guide price.
 • List a player for sale with your asking price – you cannot list below 75% of the market value.
 • Make an offer on another player; the selling club accepts or rejects it. Your offer must also be at least 75% of the market value, and you can make at most 3 offers per player per match day.
+• Computer-managed clubs take their time: they answer an offer within 24 hours, not immediately. Your offer stays under "My offers" until they do.
+• Computer-managed clubs never sign a player in their final season – a veteran about to retire can only be sold to a human manager.
 • Free agents (players without a club) can be signed for free, but they are weak.
 
 Market value:
@@ -1337,6 +1339,8 @@ Kaufen und verkaufen:
 • Filtere den Markt nach Position, Alter und Level. Jeder Spieler hat einen Marktwert als Orientierungspreis.
 • Biete einen Spieler mit deinem Wunschpreis zum Verkauf an – unter 75% des Marktwerts geht nicht.
 • Gib ein Angebot für einen anderen Spieler ab; der verkaufende Verein nimmt es an oder lehnt ab. Auch dein Angebot muss mindestens 75% des Marktwerts betragen, und du kannst pro Spieler und Spieltag höchstens 3 Angebote abgeben.
+• Computergesteuerte Vereine lassen sich Zeit: Sie antworten innerhalb von 24 Stunden, nicht sofort. Bis dahin bleibt dein Angebot unter „Meine Angebote“ offen.
+• Computergesteuerte Vereine verpflichten keinen Spieler in seiner letzten Saison – einen Routinier kurz vor dem Karriereende kannst du nur an einen menschlichen Manager verkaufen.
 • Vereinslose Spieler (ohne Verein) kannst du kostenlos verpflichten, sie sind aber schwach.
 
 Marktwert:

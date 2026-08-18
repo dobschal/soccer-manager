@@ -51,6 +51,12 @@ Saisonende voll einsatzfähig.
 Karriere bereits beendet ist. Der Versuch wird mit einer Fehlermeldung
 abgelehnt, auch wenn eine veraltete Liste ihn noch anbietet.
 
+**US-RET-09**: Als Spieler kann ich einen Spieler in seiner letzten Saison nicht
+mehr an ein computergesteuertes Team verkaufen — weder an ein Bot-Team noch an
+den International Oversea Club. Sie geben für einen Spieler mit Sanduhr kein
+Angebot ab und nehmen keines an; nur menschliche Manager dürfen das Risiko
+eingehen (Details: [Player Transfers](player-transfers.md), TA-TRF-29).
+
 ## Historie
 
 Bis August 2026 hat der Client `carrier_end_season <= Saison + 1` geprüft und
