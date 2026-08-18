@@ -19,28 +19,56 @@ export function getMinOfferPrice (marketValue) {
 /** Salary at level 1 — the bottom of the curve. */
 export const SALARY_AT_LEVEL_1 = 72
 
-/** Salary at level 100 — the top of the curve. */
-export const SALARY_AT_LEVEL_100 = 18_500
+/**
+ * Level where the curve breaks into its steeper star segment. Everything at or
+ * below it earns exactly what it earned before the star-segment change.
+ */
+export const SALARY_STAR_PIVOT_LEVEL = 70
+
+/**
+ * Virtual level-100 value of the base segment. Only levels 1-70 are read off
+ * this exponential; it keeps the #543 value so no ordinary player moves.
+ */
+const BASE_CURVE_TOP = 18_500
+
+/** Salary at level 100 — the top of the star segment. */
+export const SALARY_AT_LEVEL_100 = 45_000
+
+/**
+ * The #543 exponential, still the whole story for levels 1-70.
+ * @param {number} level
+ * @returns {number}
+ */
+function baseSalary (level) {
+  return Math.floor(SALARY_AT_LEVEL_1 * Math.pow(BASE_CURVE_TOP / SALARY_AT_LEVEL_1, (level - 1) / 99))
+}
+
+const SALARY_AT_PIVOT = baseSalary(SALARY_STAR_PIVOT_LEVEL)
 
 /**
  * Calculate salary for a given player level (1-100).
  *
- * A single exponential from 72 € to 18,500 € per match day. The shape is the
- * same as before #543, only tilted: the curve pivots around level 70, so weak
- * players cost less than they used to and stars cost more.
+ * Two exponential segments that meet at level 70. Below the pivot the curve is
+ * unchanged from #543. Above it a second, much steeper exponential runs to
+ * 45,000 € per match day at level 100, so a level-90 star costs 19,101 €
+ * instead of 10,562 € and a level-100 one 45,000 € instead of 18,500 €.
  *
- * Calibrated against the game's actual anchor — sponsor money roughly pays the
- * wage bill. Measured on live squads that puts the top league at 120% of its
- * previous wage bill (sponsor coverage 1.05 → 0.88, so a top club now has to
- * find the rest elsewhere), while the third and fourth tiers pay 19% and 31%
- * less than before.
+ * The anchor stays the same — sponsor money should roughly pay the wage bill —
+ * but it is now measured on the clubs that actually hoard stars. Only the top
+ * two leagues feel it: league 0 sponsor coverage drops 0.96 → 0.82,
+ * league 1 1.29 → 1.13, while leagues 2 and 3 move by less than a percent.
+ * A 40-man squad with nine 80+ players goes from 178,603 € to 249,789 € a day.
  *
  * @param {number} level
  * @returns {number}
  */
 export function getSalary (level) {
   if (level <= 0) return 0
-  return Math.floor(SALARY_AT_LEVEL_1 * Math.pow(SALARY_AT_LEVEL_100 / SALARY_AT_LEVEL_1, (level - 1) / 99))
+  if (level <= SALARY_STAR_PIVOT_LEVEL) return baseSalary(level)
+  return Math.floor(SALARY_AT_PIVOT * Math.pow(
+    SALARY_AT_LEVEL_100 / SALARY_AT_PIVOT,
+    (level - SALARY_STAR_PIVOT_LEVEL) / (100 - SALARY_STAR_PIVOT_LEVEL)
+  ))
 }
 
 /** @deprecated Use getSalary(level) instead */

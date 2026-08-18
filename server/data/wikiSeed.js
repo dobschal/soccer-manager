@@ -1025,7 +1025,7 @@ Injuries:
 • With a Medical Practice you get Medical Treatment cards, each shortening one player's lay-off by a match day (see Buildings).
 
 Salary:
-• Salaries grow exponentially with level: about 72 € per match day at level 1, 1,122 € at level 50 and 18,500 € at level 100. A squad of journeymen is cheap to run, a squad of stars is not — roughly what your sponsor pays you is what your wage bill costs. They are paid every match day.
+• Salaries grow exponentially with level: about 72 € per match day at level 1, 1,122 € at level 50 and 3,442 € at level 70. Above level 70 the curve gets much steeper — 8,108 € at level 80, 19,101 € at level 90 and 45,000 € at level 100. A squad of journeymen is cheap to run, a squad of stars is not: roughly what your sponsor pays you is what your wage bill costs, and every extra star pushes you past that. They are paid every match day.
 
 Suspensions:
 • A second yellow card in a match means a red card. Five yellow cards across the season also trigger a one-match ban. Bans always last exactly one match and are served automatically on the next match day.`
@@ -1058,7 +1058,7 @@ Verletzungen:
 • Mit einer Arztpraxis bekommst du Karten „Medizinische Behandlung", die den Ausfall eines Spielers um je einen Spieltag verkürzen (siehe Gebäude).
 
 Gehalt:
-• Gehälter steigen exponentiell mit dem Level: rund 72 € pro Spieltag auf Level 1, 1.122 € auf Level 50 und 18.500 € auf Level 100. Ein Kader aus Durchschnittsspielern ist günstig zu unterhalten, ein Kader aus Stars nicht — grob gesagt kostet dich die Gehaltsliste etwa das, was dein Sponsor einbringt. Gezahlt wird an jedem Spieltag.
+• Gehälter steigen exponentiell mit dem Level: rund 72 € pro Spieltag auf Level 1, 1.122 € auf Level 50 und 3.442 € auf Level 70. Ab Level 70 wird die Kurve deutlich steiler — 8.108 € auf Level 80, 19.101 € auf Level 90 und 45.000 € auf Level 100. Ein Kader aus Durchschnittsspielern ist günstig zu unterhalten, ein Kader aus Stars nicht: grob gesagt kostet dich die Gehaltsliste etwa das, was dein Sponsor einbringt — jeder zusätzliche Star bringt dich darüber. Gezahlt wird an jedem Spieltag.
 
 Sperren:
 • Eine zweite Gelbe Karte im Spiel bedeutet Rot. Fünf Gelbe Karten über die Saison lösen ebenfalls eine Sperre von einem Spiel aus. Sperren dauern immer genau ein Spiel und werden am nächsten Spieltag automatisch abgesessen.`

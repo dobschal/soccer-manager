@@ -14,31 +14,35 @@ Jeder Spieler erhaelt ein Gehalt basierend auf seinem Level, das automatisch nac
 
 ## Gehaltsformel
 
-Eine einzige Exponentialkurve von 72 Euro (Level 1) bis 18.500 Euro (Level 100):
+Zwei Exponentialsegmente, die sich bei Level 70 treffen:
 
 ```
-getSalary(level) = floor(72 * (18500 / 72) ^ ((level - 1) / 99))
+base(level)      = floor(72 * (18500 / 72) ^ ((level - 1) / 99))
+getSalary(level) = base(level)                                              fuer level <= 70
+                 = floor(base(70) * (45000 / base(70)) ^ ((level - 70) / 30)) fuer level > 70
 ```
+
+- Unterhalb des Pivots (Level 70) ist die Kurve identisch mit der Kalibrierung aus #543.
+- Oberhalb laeuft ein deutlich steileres Segment bis 45.000 Euro auf Level 100.
+- Fuer Level <= 0 wird 0 zurueckgegeben.
 
 ### Gehaltstabelle (Beispiele)
 
-| Level | Gehalt pro Spieltag | vorher |
+| Level | Gehalt pro Spieltag | vorher (#543) |
 |---|---|---|
-| 1 | 72 Euro | 150 Euro |
-| 10 | 119 Euro | 220 Euro |
-| 20 | 208 Euro | 337 Euro |
-| 30 | 365 Euro | 517 Euro |
-| 40 | 640 Euro | 793 Euro |
-| 50 | 1.122 Euro | 1.217 Euro |
-| 60 | 1.965 Euro | 1.866 Euro |
-| 70 | 3.442 Euro | 2.860 Euro |
-| 80 | 6.030 Euro | 4.385 Euro |
-| 90 | 10.562 Euro | 6.723 Euro |
-| 100 | 18.500 Euro | 10.308 Euro |
-
-- Fuer Level <= 0 wird 0 zurueckgegeben.
-- Die Form ist dieselbe wie zuvor, nur staerker geneigt: die Kurve kreuzt die alte
-  bei etwa Level 56. Darunter sind Spieler guenstiger, darueber teurer.
+| 1 | 72 Euro | 72 Euro |
+| 10 | 119 Euro | 119 Euro |
+| 20 | 208 Euro | 208 Euro |
+| 40 | 640 Euro | 640 Euro |
+| 50 | 1.122 Euro | 1.122 Euro |
+| 60 | 1.965 Euro | 1.965 Euro |
+| 70 | 3.442 Euro | 3.442 Euro |
+| 75 | 5.282 Euro | 4.556 Euro |
+| 80 | 8.108 Euro | 6.030 Euro |
+| 85 | 12.445 Euro | 7.980 Euro |
+| 90 | 19.101 Euro | 10.562 Euro |
+| 95 | 29.318 Euro | 13.978 Euro |
+| 100 | 45.000 Euro | 18.500 Euro |
 
 ### Kalibrierung (#543)
 
@@ -60,13 +64,49 @@ machen Gehaelter in Liga 0 nur wenige Prozent aus (Ticketverkaeufe und Transfers
 dominieren), was die Belastung deutlich zu niedrig erscheinen laesst. Der Massstab
 ist das Verhaeltnis Sponsor zu Gehalt.
 
+### Nachkalibrierung: Star-Segment
+
+Nach #543 blieb ein Schlupfloch: die Kurve war zwar geneigt, aber die Neigung
+war ueber den ganzen Bereich gleich. Ein Verein konnte einen ueberdimensionierten
+Kader mit vielen 80+-Spielern halten, weil jeder einzelne Star nur graduell
+teurer war als ein solider Stammspieler. Gemessen an echten Kaderdaten
+(Liga 0/1, 30 Teams) sah das so aus:
+
+| Team | Kader | Spieler 80+ | Sponsor/Tag | Gehalt alt | Gehalt neu | Faktor |
+|---|---|---|---|---|---|---|
+| Team mit 40er-Kader, 9x 80+ | 40 | 9 | 71.647 | 178.603 | 249.789 | 1,40 |
+| Team mit 40er-Kader, 4x 80+ | 40 | 4 | 56.143 | 113.393 | 157.042 | 1,38 |
+| Team mit 21er-Kader, 5x 80+ | 21 | 5 | 66.683 | 91.858 | 122.217 | 1,33 |
+| Team mit 25er-Kader, 0x 80+ | 25 | 0 | 46.113 | 71.727 | 75.935 | 1,06 |
+
+Auf Liga-Ebene (nur Teams mit menschlichem Manager, Sponsor-Deckung):
+
+| Liga | Sponsor/Team | Gehalt alt | Deckung alt | Gehalt neu | Deckung neu |
+|---|---|---|---|---|---|
+| 0 | 60.504 Euro | 62.997 Euro | 0,96 | 74.224 Euro | 0,82 |
+| 1 | 40.328 Euro | 31.232 Euro | 1,29 | 35.727 Euro | 1,13 |
+| 2 | 25.144 Euro | 11.216 Euro | 2,24 | 11.247 Euro | 2,24 |
+| 3 | 17.480 Euro | 7.283 Euro | 2,40 | 7.283 Euro | 2,40 |
+
+Bot-Teams sind praktisch nicht betroffen (sie halten kaum 80+-Spieler): ihre
+Deckung veraendert sich in allen Ligen um hoechstens 0,03.
+
+**Beobachtung ausserhalb der Gehaltskurve:** Die Gehaltsliste ist bei
+Spitzenvereinen nicht der begrenzende Faktor. Freundschaftsspiel-Ticketeinnahmen
+erreichen bei einem Verein mit kleinem Stadion (10.000 Plaetze) ueber eine Saison
+etwa dieselbe Groessenordnung wie die Liga-Ticketeinnahmen — ein Freundschaftsspiel
+pro Spieltag (42/Saison) zu halber Auslastung, aber vollem Ticketpreis, schlaegt
+17-21 Liga-Heimspiele. Wer das Wirtschaftssystem weiter nachziehen will, sollte
+dort ansetzen, nicht an der Gehaltskurve.
+
 ## Technische Anforderungen
 
 ### Gehaltsberechnung
 
 - **TA-SAL-01**: Die Funktion `getSalary(level)` ist in `client/util/player.js` implementiert und wird Client- und Server-seitig identisch verwendet.
-- **TA-SAL-02**: Eine Exponentialkurve von `SALARY_AT_LEVEL_1` (72) bis
-  `SALARY_AT_LEVEL_100` (18.500); beide Konstanten stehen in `client/util/player.js`.
+- **TA-SAL-02**: Zwei Exponentialsegmente mit Pivot bei `SALARY_STAR_PIVOT_LEVEL` (70):
+  von `SALARY_AT_LEVEL_1` (72) bis zum Pivot, danach bis `SALARY_AT_LEVEL_100` (45.000).
+  Alle Konstanten stehen in `client/util/player.js`.
 
 ### Gehaltszahlung
 
@@ -99,8 +139,9 @@ ist das Verhaeltnis Sponsor zu Gehalt.
 
 ### Tests
 
-- Gehaltsformel-Validierung (Stuetzstellen 72 / 18.500, kalibrierte Tabellenwerte, Monotonie,
-  gleichmaessige Steigung ohne Knick)
-- Richtung der Aenderung: unterhalb des Schnittpunkts guenstiger, darueber teurer
+- Gehaltsformel-Validierung (Stuetzstellen 72 / 45.000, kalibrierte Tabellenwerte, strikte Monotonie,
+  gleichmaessige Steigung innerhalb jedes Segments)
+- Levels 1-70 identisch mit der #543-Kurve, kein Sprung am Pivot
+- Star-Segment: Level 80/90/100 mindestens 1,3x / 1,7x / 2,4x der #543-Kurve
 - Bot-Team-Finanzbalance (Stadioneinnahmen >= Gehaltskosten)
 - Finanzlog-Eintraege mit korrekten negativen Werten
