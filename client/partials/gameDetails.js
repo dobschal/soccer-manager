@@ -2,6 +2,7 @@ import { UIElement } from '../lib/UIElement.js'
 import { GameAnimation } from './gameAnimation.js'
 import { renderEmblem } from './emblem.js'
 import { renderPositionBadge } from './positionBadge.js'
+import { GameReport } from './gameReport.js'
 
 /**
  * Return a short team name by stripping the middle part (prefix2).
@@ -177,6 +178,8 @@ export class GameDetails extends UIElement {
    */
   constructor (params) {
     super(params)
+    /** @type {GameReport|null} */
+    this._gameReport = null
   }
 
   get template () {
@@ -308,6 +311,7 @@ export class GameDetails extends UIElement {
         </div>
         ${details.teamA?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team1.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
         ${details.teamB?.motivating_speech_active ? `<div class="alert alert-info mb-3"><i class="fa fa-bullhorn me-2"></i><strong>${team2.name}</strong> used a motivating speech! (+10% strength)</div>` : ''}
+        ${this._reportElement}
         ${renderEventTicker(details.log, players, team1.name, team2.name)}
         ${renderSquadList(details.playerTeamA, team1.name, (details.substitutions || []).filter(s => s.teamIndex === 0))}
         ${renderSquadList(details.playerTeamB, team2.name, (details.substitutions || []).filter(s => s.teamIndex === 1))}
@@ -336,4 +340,17 @@ export class GameDetails extends UIElement {
       </div>
     `
   }
+  /**
+   * The AI match report element, created once and reused. Recreating it on
+   * every parent render would restart its placeholder/async render cycle and
+   * make the card flicker.
+   * @returns {GameReport}
+   */
+  get _reportElement () {
+    if (!this._gameReport) {
+      this._gameReport = new GameReport({ gameId: this.game.id })
+    }
+    return this._gameReport
+  }
+  
 }

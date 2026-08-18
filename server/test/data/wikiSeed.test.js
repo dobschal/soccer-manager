@@ -7,7 +7,7 @@ const MAX_SUBTITLE = 255
 
 describe('wiki seed content (#441)', () => {
   it('covers all requested topics in both locales', () => {
-    expect(WIKI_SEED).toHaveLength(30)
+    expect(WIKI_SEED).toHaveLength(31)
   })
 
   it('documents the fair-play rules so sanctions are not a surprise', () => {

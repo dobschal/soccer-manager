@@ -3442,10 +3442,81 @@ const migrations = [{
     }
   }
 }, {
+  name: 'Wiki: add match-report topic',
+  async run () {
+    const KEYS_TO_ADD = ['match-report']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_ADD.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const [existing] = await query(
+          'SELECT id FROM wiki_entry WHERE page_key=? AND locale=? LIMIT 1',
+          [topic.key, locale]
+        )
+        if (existing) continue
+        const entry = topic[locale]
+        await query('INSERT INTO wiki_entry SET ?', {
+          locale,
+          page_key: topic.key,
+          title: entry.title,
+          subtitle: entry.subtitle || null,
+          text: entry.text,
+          images: JSON.stringify([]),
+          sort_order: 0
+        })
+      }
+    }
+  }
+}, {
+  name: 'Create game_report table',
+  async run () {
+    await query(`CREATE TABLE IF NOT EXISTS game_report
+    (
+        id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        game_id BIGINT(20) UNSIGNED NOT NULL,
+        locale VARCHAR(5) NOT NULL DEFAULT 'en',
+        text TEXT NOT NULL,
+        model VARCHAR(128) DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_game_report (game_id, locale)
+    ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`)
+  }
+}, {
   name: 'Add bot_decision_at column to trade_offer table',
   async run () {
     await query('ALTER TABLE trade_offer ADD COLUMN bot_decision_at DATETIME NULL DEFAULT NULL')
     await query('CREATE INDEX idx_trade_offer_bot_decision ON trade_offer (bot_decision_at)')
+  }
+}, {
+  name: 'Wiki: steeper salary curve above level 70',
+  async run () {
+    const KEYS_TO_REFRESH = ['players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+
+}, {
+  name: 'Wiki: match events in the game details, injuries last their full days',
+  async run () {
+    const KEYS_TO_REFRESH = ['match-simulation', 'players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
   }
 }, {
   name: 'Wiki: bot clubs answer with a delay and skip retiring players',
