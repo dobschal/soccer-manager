@@ -44,6 +44,50 @@ const INJURY_STYLE_MULTIPLIERS = {
 }
 
 /**
+ * Age multipliers for injury chance. Players around 27 — the same ideal age the
+ * squad-age strength modifier uses — are the most robust; teenagers and
+ * veterans break down noticeably more often. Veterans age out a bit faster than
+ * teenagers grow in, so the slope above the ideal is steeper.
+ *
+ * The curve is anchored *below* 1 at the ideal age: squads skew far older than
+ * 27, so without that discount the age factor alone would push the overall
+ * injury rate towards the top of its target band (0.19-0.31 per game). With it,
+ * the average multiplier over a realistic age distribution lands near 1.05.
+ */
+export const INJURY_AGE_IDEAL = 27
+export const INJURY_AGE_IDEAL_MULTIPLIER = 0.9
+export const INJURY_AGE_YOUNG_SLOPE = 0.03
+export const INJURY_AGE_OLD_SLOPE = 0.035
+export const INJURY_AGE_MAX_MULTIPLIER = 1.35
+
+/**
+ * Injury chance multiplier for a player's age. Unknown age (no season in the
+ * game details) is neutral.
+ * @param {number|null} age
+ * @returns {number}
+ */
+export function getInjuryAgeMultiplier (age) {
+  if (typeof age !== 'number' || !Number.isFinite(age)) return 1
+  const deviation = Math.abs(age - INJURY_AGE_IDEAL)
+  const slope = age < INJURY_AGE_IDEAL ? INJURY_AGE_YOUNG_SLOPE : INJURY_AGE_OLD_SLOPE
+  return Math.min(INJURY_AGE_IDEAL_MULTIPLIER + deviation * slope, INJURY_AGE_MAX_MULTIPLIER)
+}
+
+/**
+ * Age of a player during the simulated match. Mirrors
+ * helper/squadAgeHelper.js#_getPlayerAge — players start their career at 16.
+ * @param {GamePlayer} player
+ * @param {GameDetails} gameDetails
+ * @returns {number|null} null when the season or the career start is unknown
+ */
+function _getPlayerAge (player, gameDetails) {
+  const season = gameDetails?.season
+  const startSeason = player.carrier_start_season ?? player.birth_season
+  if (typeof season !== 'number' || typeof startSeason !== 'number') return null
+  return 16 + (season - startSeason)
+}
+
+/**
  * Select a weighted random injury type
  * @returns {{ type: string, days: number }}
  */
@@ -155,6 +199,7 @@ export function selectInjuryType () {
  * @property {number} [substitutionCountB] - Non-injury substitutions for team B
  * @property {boolean} [injuryTeamA] - Whether team A already had an injury this match
  * @property {boolean} [injuryTeamB] - Whether team B already had an injury this match
+ * @property {number} [season] - Season the match is played in, used to derive player ages
  */
 
 /**
@@ -766,7 +811,8 @@ export function checkForInjury (player, playStyle, gameDetails, team, isTeamA) {
 
   const fitnessMultiplier = 1 + (1 - (player.originalFreshness ?? 1)) * 4
   const styleMultiplier = INJURY_STYLE_MULTIPLIERS[playStyle] || 1.0
-  const injuryChance = INJURY_BASE_CHANCE * fitnessMultiplier * styleMultiplier
+  const ageMultiplier = getInjuryAgeMultiplier(_getPlayerAge(player, gameDetails))
+  const injuryChance = INJURY_BASE_CHANCE * fitnessMultiplier * styleMultiplier * ageMultiplier
 
   if (Math.random() >= injuryChance) return
 

@@ -239,7 +239,8 @@ async function _playCupGame (game) {
     teamB,
     isCup: true,
     benchTeamA,
-    benchTeamB
+    benchTeamB,
+    season: game.season
   }
 
   // Store original freshness and level before modification
@@ -957,7 +958,8 @@ async function _playGame (game) {
     teamA,
     teamB,
     benchTeamA,
-    benchTeamB
+    benchTeamB,
+    season: game.season
   }
   // Store original freshness and level before modification
   for (const player of [...playerTeamA, ...playerTeamB]) {

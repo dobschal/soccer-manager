@@ -7,6 +7,7 @@ Spieler koennen sich waehrend eines Spiels verletzen. Die Verletzungswahrscheinl
 ## User Stories
 
 - **US-INJ-01**: Als Spieler koennen sich meine Spieler waehrend eines Spiels verletzen, wobei die Wahrscheinlichkeit bei niedriger Fitness hoeher ist.
+- **US-INJ-11**: Als Spieler weiss ich, dass sich sehr junge und sehr alte Spieler haeufiger verletzen als Spieler um das ideale Alter von 27.
 - **US-INJ-02**: Als Spieler sehe ich, welche Spieler verletzt sind und wie viele Spieltage sie noch ausfallen.
 - **US-INJ-03**: Als Spieler werden verletzte Spieler automatisch aus der Aufstellung entfernt und koennen nicht aufgestellt werden.
 - **US-INJ-04**: Als Spieler erhalte ich Log-Nachrichten bei Verletzungen und Einwechselungen.
@@ -67,7 +68,23 @@ Der Nutzer muss auf der Ersatzbank mindestens folgende Positionen besetzen:
 - **TA-INJ-02**: Basiswahrscheinlichkeit pro Kampf: 0,0375% (0,000375). Der Wert wurde mit der Einfuehrung der Arztpraxis um ein Viertel angehoben (vorher 0,0003): deren Karte "Medizinische Behandlung" verkuerzt Ausfaelle, also duerfen etwas mehr Verletzungen passieren. Fuer ein Team **ohne** Praxis heisst das schlicht: ein bisschen mehr Ausfall.
 - **TA-INJ-03**: Fitness-Multiplikator: `1 + (1 - freshness) * 4`. Bei voller Fitness (1.0) ist der Multiplikator 1x, bei 50% Fitness 3x, bei 20% Fitness 4,2x.
 - **TA-INJ-04**: Spielstil-Multiplikator: Aggressiv 1,5x, Normal 1,0x, Freundlich 0,7x.
-- **TA-INJ-05**: Effektive Wahrscheinlichkeit: `basisWahrscheinlichkeit * fitnessMultiplikator * spielstilMultiplikator`.
+- **TA-INJ-49**: Alters-Multiplikator (`getInjuryAgeMultiplier` in `server/play-game.js`): U-foermig um das
+  Idealalter 27 (dasselbe Ideal wie beim Kaderalter-Staerkemodifikator, siehe [Game Calculation](game-calculation.md)).
+  `multiplikator = min(0,9 + |alter - 27| * steigung, 1,35)`, Steigung 0,03 pro Jahr unterhalb und 0,035 pro Jahr
+  oberhalb des Ideals — Veteranen bauen also schneller ab als Talente hineinwachsen.
+
+  | Alter | 17 | 20 | 23 | 27 | 30 | 33 | 35 | 37 | 40+ |
+  |---|---|---|---|---|---|---|---|---|---|
+  | Multiplikator | 1,20 | 1,11 | 1,02 | 0,90 | 1,01 | 1,11 | 1,18 | 1,25 | 1,35 |
+
+  Der Wert am Idealalter liegt bewusst **unter** 1: Kader sind im Schnitt deutlich aelter als 27, ohne diesen
+  Abschlag wuerde der Alterseffekt allein die Gesamtrate an den oberen Rand des Zielbands druecken. Ueber eine
+  realistische Altersverteilung liegt der mittlere Multiplikator bei rund 1,05, die simulierte Gesamtrate steigt
+  um unter 1%.
+- **TA-INJ-50**: Das Alter wird aus `player.carrier_start_season` und `gameDetails.season` abgeleitet
+  (Karrierestart mit 16, analog `helper/squadAgeHelper.js`). Fehlt eines von beiden, ist der Alters-Multiplikator
+  neutral (1,0). `gameDetails.season` wird in Liga-, Pokal- und Freundschaftsspielen gesetzt.
+- **TA-INJ-05**: Effektive Wahrscheinlichkeit: `basisWahrscheinlichkeit * fitnessMultiplikator * spielstilMultiplikator * altersMultiplikator`.
 - **TA-INJ-06**: Pro Spiel und Team kann sich maximal ein Spieler verletzen.
 - **TA-INJ-07**: Bereits verletzte oder ausgewechselte Spieler koennen sich nicht erneut verletzen.
 
@@ -196,6 +213,8 @@ finden ueberhaupt keine geplanten Auswechselungen statt.
 - Verletzungswahrscheinlichkeit bei verschiedenen Fitness-Werten
 - Verkuerzung eines Ausfalls per Aktionskarte "Medizinische Behandlung" (siehe [Action Cards](action-cards.md), TA-AC-29)
 - Verletzungswahrscheinlichkeit bei verschiedenen Spielstilen
+- Alters-Multiplikator: Minimum bei 27, monoton steigend zu beiden Enden, Deckelung, neutral ohne bekanntes Alter
+- Sehr junge und sehr alte Spieler verletzen sich bei gleichem Wurf, Spieler um 27 nicht
 - Maximal eine Verletzung pro Team pro Spiel
 - Einwechselung bei Verletzung mit korrektem Positionsmatching
 - Einwechsel-Modi: `injury_only` wechselt nie geplant ein, `always` sobald moeglich, `leading` / `trailing` nur beim passenden Spielstand

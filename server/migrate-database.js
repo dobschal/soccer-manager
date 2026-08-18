@@ -3411,6 +3411,21 @@ const migrations = [{
         INDEX idx_funnel_event_client (client_id)
     ) ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci;`)
   }
+}, {
+  name: 'Wiki: injury risk depends on player age',
+  async run () {
+    const KEYS_TO_REFRESH = ['players']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
 }]
 
 /**
