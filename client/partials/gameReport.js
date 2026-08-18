@@ -44,7 +44,9 @@ export class GameReport extends UIElement {
   }
 
   get template () {
-    if (!this.isAvailable && !this.reportText) return ''
+    // Nothing to show, but a UIElement must always render exactly one root
+    // node — an empty string would blow up the render invariant.
+    if (!this.isAvailable && !this.reportText) return '<div class="game-report-hidden"></div>'
 
     if (this.isGenerating) {
       return `
@@ -94,7 +96,9 @@ export class GameReport extends UIElement {
   }
   get events () {
     return {
-      '.game-report-generate': {
+      // Only the initial/error state renders the button — the loading and the
+      // finished report state don't, and update() re-applies the handlers.
+      '(optional).game-report-generate': {
         click: async () => {
           if (this.isGenerating) return
           this.isGenerating = true

@@ -70,10 +70,17 @@ describe('GameReport', () => {
       expect(html).toContain('game-report-generate')
     })
 
-    it('renders nothing when the feature is unavailable and nothing is stored', () => {
+    it('renders an empty placeholder root when the feature is unavailable and nothing is stored', () => {
       const element = new GameReport({ gameId: 1 })
       element.isAvailable = false
-      expect(element.template).toBe('')
+      const html = element.template
+
+      expect(html).toContain('game-report-hidden')
+      expect(html).not.toContain('game-report-generate')
+      // A UIElement must always render exactly one root node.
+      const wrapper = document.createElement('template')
+      wrapper.innerHTML = html
+      expect(wrapper.content.children.length).toBe(1)
     })
 
     it('still shows a stored report when the feature was switched off', () => {
@@ -118,13 +125,22 @@ describe('GameReport', () => {
     })
   })
 
+  describe('events', () => {
+    it('marks the generate button optional so states without it can be applied', () => {
+      // The loading and the finished-report state don't render the button —
+      // a required selector made update() throw "Cannot apply event listener".
+      const element = new GameReport({ gameId: 1 })
+      expect(Object.keys(element.events)).toEqual(['(optional).game-report-generate'])
+    })
+  })
+
   describe('generate button', () => {
     it('stores the generated text and clears the loading state', async () => {
       server.createGameReport.mockResolvedValueOnce({ report: { text: 'fresh report', model: 'm' } })
       const element = new GameReport({ gameId: 42 })
       element.update = vi.fn()
 
-      await element.events['.game-report-generate'].click()
+      await element.events['(optional).game-report-generate'].click()
 
       expect(server.createGameReport).toHaveBeenCalledWith(42)
       expect(element.reportText).toBe('fresh report')
@@ -138,7 +154,7 @@ describe('GameReport', () => {
       const element = new GameReport({ gameId: 42 })
       element.update = vi.fn()
 
-      await element.events['.game-report-generate'].click()
+      await element.events['(optional).game-report-generate'].click()
 
       expect(element.errorMessage).toBe('Too many match reports requested.')
       expect(element.reportText).toBeNull()
@@ -150,7 +166,7 @@ describe('GameReport', () => {
       element.update = vi.fn()
       element.isGenerating = true
 
-      await element.events['.game-report-generate'].click()
+      await element.events['(optional).game-report-generate'].click()
 
       expect(server.createGameReport).not.toHaveBeenCalled()
     })
