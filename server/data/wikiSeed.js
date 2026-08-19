@@ -265,11 +265,13 @@ Meinung geändert:
 
 How it works:
 • Open a chat from a manager's profile or from the chat list on the Friends tab of your dashboard. Each conversation groups all messages with that one person.
+• The chat header carries a dropdown next to the title: pick another manager there to switch conversations without closing the chat. Unread messages show as a count behind the name.
 • A message can contain text (up to 2,000 characters) and/or an image (JPG, PNG, GIF or WebP, up to 2 MB).
 • You can also record a voice message of up to two minutes and send it straight from the chat. Tap the microphone, speak, then send or discard — the recipient plays it back right inside the message.
 • Recording only works in the browser for now – on a phone, open the game in Safari or Chrome. Neither app can record yet, because both load the game from local files and the system withholds the microphone there. Playing a voice message back works everywhere, app included.
 • Messages arrive live while you're online. When you're away you get a push notification that links straight into the chat.
-• Messages you haven't read yet are counted in the "Action Required" badge on your dashboard, and are marked as read as soon as you open the conversation.`
+• Messages you haven't read yet are counted in the "Action Required" badge on your dashboard, and are marked as read as soon as you open the conversation.
+• Your own messages carry a small tick: one tick means the message was sent, two ticks mean the other manager has opened the conversation and read it. The same tick appears in the chat list when the last message was yours.`
     },
     de: {
       title: 'Direktnachrichten',
@@ -278,11 +280,13 @@ How it works:
 
 So funktioniert es:
 • Öffne einen Chat über das Profil eines Managers oder über die Chat-Liste im Reiter „Freunde“ deines Dashboards. Jede Unterhaltung bündelt alle Nachrichten mit dieser einen Person.
+• Oben im Chat steht neben dem Titel eine Auswahlliste: Wähle dort einen anderen Manager, um ohne Schließen des Chats die Unterhaltung zu wechseln. Ungelesene Nachrichten stehen als Zahl hinter dem Namen.
 • Eine Nachricht kann Text (bis zu 2.000 Zeichen) und/oder ein Bild (JPG, PNG, GIF oder WebP, bis zu 2 MB) enthalten.
 • Du kannst auch eine Sprachnachricht von bis zu zwei Minuten aufnehmen und direkt aus dem Chat verschicken. Tippe auf das Mikrofon, sprich, und schicke sie ab oder verwirf sie — der Empfänger spielt sie direkt in der Nachricht ab.
 • Aufnehmen geht vorerst nur im Browser – öffne das Spiel auf dem Handy also in Safari oder Chrome. Beide Apps können noch nicht aufnehmen, weil sie das Spiel aus lokalen Dateien laden und das System dort kein Mikrofon freigibt. Abspielen funktioniert überall, auch in der App.
 • Nachrichten kommen live an, während du online bist. Bist du abwesend, erhältst du eine Push-Benachrichtigung, die direkt in den Chat führt.
-• Noch ungelesene Nachrichten zählen im „Aktion erforderlich“-Badge auf deinem Dashboard und werden als gelesen markiert, sobald du die Unterhaltung öffnest.`
+• Noch ungelesene Nachrichten zählen im „Aktion erforderlich“-Badge auf deinem Dashboard und werden als gelesen markiert, sobald du die Unterhaltung öffnest.
+• Deine eigenen Nachrichten tragen einen kleinen Haken: ein Haken heißt verschickt, zwei Haken heißen, dass der andere Manager die Unterhaltung geöffnet und die Nachricht gelesen hat. Denselben Haken siehst du in der Chat-Liste, wenn die letzte Nachricht von dir war.`
     }
   },
 

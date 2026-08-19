@@ -208,10 +208,12 @@ export function showConfirmDialog (message, confirmLabel = 'OK', cancelLabel = '
  * @param {string} title
  * @param {string} subttitle
  * @param {string} text
- * @param {{ hideHeader?: boolean, cardClass?: string, backdropClass?: string }} [options] -
+ * @param {{ hideHeader?: boolean, cardClass?: string, backdropClass?: string, headerContent?: string }} [options] -
  *   `cardClass` / `backdropClass` are put on the overlay card and its backdrop,
  *   so an overlay that needs a layout of its own (the chat sheet, #541) can
- *   style both without reaching in with `:has()`.
+ *   style both without reaching in with `:has()`. `headerContent` is HTML placed
+ *   between the title block and the close button, on the same row — used by the
+ *   chat sheet for its conversation selector.
  * @returns {{onClose: (callback: () => void) => void, remove: () => void}}
  */
 export function showOverlay (title, subttitle, text, options = {}) {
@@ -246,10 +248,11 @@ export function showOverlay (title, subttitle, text, options = {}) {
     ? ''
     : `
         <div class="card-header overlay-header border-0">
-            <div>
+            <div class="overlay-header__title">
               <h3 class="card-title mb-0">${title}</h3>
               <span class="card-subtitle text-muted mb-0">${subttitle}</span>
             </div>
+            ${options.headerContent ? `<div class="overlay-header__slot">${options.headerContent}</div>` : ''}
             <span id="${closeButtonId}" class="fa fa-close overlay-close-btn"></span>
         </div>
       `

@@ -128,6 +128,46 @@ describe('chat route', () => {
         [1, 2]
       )
     })
+
+    it('tells the sender that their messages were read (read receipts)', async () => {
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT id, username, avatar FROM user')) return [{ id: 2, username: 'Bob', avatar: null }]
+        if (sql.startsWith('UPDATE chat_message SET read_at')) return { affectedRows: 2 }
+        if (sql.includes('ORDER BY created_at ASC')) return []
+        return {}
+      })
+
+      await chat.getChatMessages(2, createMockRequest({ user: { id: 1 } }))
+
+      expect(sendToUser).toHaveBeenCalledWith(2, 'CHAT_MESSAGES_READ', { byUserId: 1 })
+    })
+
+    it('sends no read event when nothing was unread', async () => {
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT id, username, avatar FROM user')) return [{ id: 2, username: 'Bob', avatar: null }]
+        if (sql.startsWith('UPDATE chat_message SET read_at')) return { affectedRows: 0 }
+        if (sql.includes('ORDER BY created_at ASC')) return []
+        return {}
+      })
+
+      await chat.getChatMessages(2, createMockRequest({ user: { id: 1 } }))
+
+      expect(sendToUser).not.toHaveBeenCalled()
+    })
+
+    it('reads the conversation after marking, so read_at is not stale', async () => {
+      const order = []
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('SELECT id, username, avatar FROM user')) return [{ id: 2, username: 'Bob', avatar: null }]
+        if (sql.startsWith('UPDATE chat_message SET read_at')) { order.push('update'); return { affectedRows: 1 } }
+        if (sql.includes('ORDER BY created_at ASC')) { order.push('select'); return [] }
+        return {}
+      })
+
+      await chat.getChatMessages(2, createMockRequest({ user: { id: 1 } }))
+
+      expect(order).toEqual(['update', 'select'])
+    })
   })
 
   describe('getUnreadChatCount', () => {
@@ -171,10 +211,10 @@ describe('chat route', () => {
             { id: 3, username: 'Carol', avatar: null }
           ]
         }
-        if (sql.includes('SELECT id, from_user_id, text, image, audio, created_at')) {
+        if (sql.includes('SELECT id, from_user_id, text, image, audio, read_at, created_at')) {
           return [
-            { id: 90, from_user_id: 2, text: 'Hey!', image: null, audio: null, created_at: lastAt },
-            { id: 80, from_user_id: 1, text: null, image: null, audio: 'v.webm', created_at: '2026-08-10T09:00:00Z' }
+            { id: 90, from_user_id: 2, text: 'Hey!', image: null, audio: null, read_at: null, created_at: lastAt },
+            { id: 80, from_user_id: 1, text: null, image: null, audio: 'v.webm', read_at: '2026-08-10T09:05:00Z', created_at: '2026-08-10T09:00:00Z' }
           ]
         }
         return []
@@ -189,11 +229,12 @@ describe('chat route', () => {
         username: 'Bob',
         unread: 2,
         lastMessageAt: lastAt,
-        lastMessage: { text: 'Hey!', hasImage: false, hasAudio: false, fromMe: false }
+        lastMessage: { text: 'Hey!', hasImage: false, hasAudio: false, fromMe: false, read: false }
       })
-      // A voice message the current user sent: no text, flagged as audio + own
+      // A voice message the current user sent: no text, flagged as audio + own,
+      // and already read — the chat list shows a double tick for it.
       expect(conversations[1].lastMessage).toEqual({
-        text: null, hasImage: false, hasAudio: true, fromMe: true
+        text: null, hasImage: false, hasAudio: true, fromMe: true, read: true
       })
       expect(conversations[1].unread).toBe(0)
     })

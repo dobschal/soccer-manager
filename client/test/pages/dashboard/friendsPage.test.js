@@ -38,7 +38,9 @@ vi.mock('../../../partials/inviteFriendOverlay.js', () => ({
 }))
 
 vi.mock('../../../partials/chatOverlay.js', () => ({
-  CHAT_MESSAGES_READ_EVENT: 'chat-messages-read'
+  CHAT_MESSAGES_READ_EVENT: 'chat-messages-read',
+  renderReadReceipt: (message) =>
+    `<span class="chat-ticks${message.read ? ' chat-ticks--read' : ''}"></span>`
 }))
 
 const { FriendsPage } = await import('../../../pages/dashboard/friendsPage.js')
@@ -233,6 +235,43 @@ describe('FriendsPage', () => {
       expect(html).toContain('chat.voiceMessage')
       // Own messages are prefixed with "You:"
       expect(html).toContain('chat.previewYou')
+    })
+
+    it('puts a read receipt on a preview of my own message', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      server.getConversations.mockResolvedValueOnce({
+        conversations: [buildConversation({
+          lastMessage: { text: 'ping', hasImage: false, hasAudio: false, fromMe: true, read: true }
+        })]
+      })
+      const page = new FriendsPage()
+      await page.load()
+
+      expect(page.template).toContain('chat-ticks--read')
+    })
+
+    it('shows an unread receipt while my message is still unread', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      server.getConversations.mockResolvedValueOnce({
+        conversations: [buildConversation({
+          lastMessage: { text: 'ping', hasImage: false, hasAudio: false, fromMe: true, read: false }
+        })]
+      })
+      const page = new FriendsPage()
+      await page.load()
+      const html = page.template
+
+      expect(html).toContain('chat-ticks')
+      expect(html).not.toContain('chat-ticks--read')
+    })
+
+    it('shows no receipt on a preview of their message', async () => {
+      server.getFriendsOverview.mockResolvedValueOnce({ entries: [] })
+      server.getConversations.mockResolvedValueOnce({ conversations: [buildConversation()] })
+      const page = new FriendsPage()
+      await page.load()
+
+      expect(page.template).not.toContain('chat-ticks')
     })
 
     it('shows the chat empty state when there are no conversations', async () => {

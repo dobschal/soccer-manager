@@ -11,7 +11,7 @@ import { toast } from '../../partials/toast.js'
 import { showInviteFriendOverlay } from '../../partials/inviteFriendOverlay.js'
 import { wikiInfoIcon } from '../../partials/wikiInfoIcon.js'
 import { showUserProfileOverlay } from '../../partials/userProfileOverlay.js'
-import { CHAT_MESSAGES_READ_EVENT } from '../../partials/chatOverlay.js'
+import { CHAT_MESSAGES_READ_EVENT, renderReadReceipt } from '../../partials/chatOverlay.js'
 
 /** Conversations shown per page in the chat list. */
 const CHATS_PER_PAGE = 5
@@ -33,8 +33,8 @@ function escapeHtml (text) {
 /**
  * One-line preview of a conversation's most recent message, WhatsApp style:
  * the message text, or a placeholder for image / voice messages, prefixed with
- * "You:" when the current user sent it.
- * @param {{lastMessage: {text: string|null, hasImage: boolean, hasAudio: boolean, fromMe: boolean}|null}} conversation
+ * "You:" when the current user sent it — plus its read receipt in that case.
+ * @param {{lastMessage: {text: string|null, hasImage: boolean, hasAudio: boolean, fromMe: boolean, read: boolean}|null}} conversation
  * @returns {string} escaped HTML
  */
 function chatPreview (conversation) {
@@ -46,7 +46,8 @@ function chatPreview (conversation) {
   else if (last.hasImage) body = t('chat.imageMessage')
   else body = t('chat.noMessages')
   const prefix = last.fromMe ? t('chat.previewYou') : ''
-  return escapeHtml(prefix + body)
+  const receipt = last.fromMe ? renderReadReceipt(last) : ''
+  return receipt + escapeHtml(prefix + body)
 }
 
 /**

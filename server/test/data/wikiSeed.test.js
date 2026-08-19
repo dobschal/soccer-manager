@@ -43,6 +43,14 @@ describe('wiki seed content (#441)', () => {
     expect(topic.de.text).toMatch(/Gespeicherte Aufstellungen/i)
   })
 
+  it('explains the chat read receipts (one tick sent, two ticks read)', () => {
+    const topic = WIKI_SEED.find(t => t.key === 'chat')
+    expect(topic.en.text).toMatch(/one tick/i)
+    expect(topic.en.text).toMatch(/two ticks/i)
+    expect(topic.de.text).toMatch(/ein Haken/i)
+    expect(topic.de.text).toMatch(/zwei Haken/i)
+  })
+
   it('tells managers that their profile shows country and language', () => {
     const topic = WIKI_SEED.find(t => t.key === 'manager-profile')
     expect(topic).toBeTruthy()

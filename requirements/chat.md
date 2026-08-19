@@ -22,6 +22,10 @@ Nutzer seinen Platz im Spiel nicht verliert.
 - **US-CHT-09**: Als Spieler erkenne ich an der Hervorhebung einer Zeile, dass in dieser Unterhaltung
   ungelesene Nachrichten liegen.
 - **US-CHT-10**: Als Spieler oeffne ich per Klick auf eine Zeile das Chat-Overlay dieser Unterhaltung.
+- **US-CHT-11**: Als Spieler sehe ich an meinen eigenen Nachrichten einen Haken, sobald sie verschickt
+  sind, und zwei Haken, sobald der Empfaenger sie gelesen hat.
+- **US-CHT-12**: Als Spieler sehe ich denselben Haken in der Chat-Liste, wenn die letzte Nachricht der
+  Unterhaltung von mir war.
 
 ## Chat-Liste auf der Freunde-Seite
 
@@ -36,11 +40,32 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
 | Klick | setzt `chat_user` als Query-Param — das Overlay oeffnet ueber `chatDeepLink` |
 
 - **TA-CHT-16**: Die Vorschau wird **client-seitig** zusammengesetzt. Der Server liefert nur
-  `text`, `hasImage`, `hasAudio` und `fromMe`; die Platzhalter „Foto“ / „Sprachnachricht“ und das
+  `text`, `hasImage`, `hasAudio`, `fromMe` und `read`; die Platzhalter „Foto“ / „Sprachnachricht“ und das
   Praefix „Du: “ folgen damit der Sprache des Lesers, nicht der des Absenders.
 - **TA-CHT-17**: Die Liste aktualisiert sich ohne Reload: `NEW_CHAT_MESSAGE` (WebSocket) und das
   Fenster-Event `CHAT_MESSAGES_READ_EVENT` (feuert, sobald das Overlay eine Unterhaltung laedt und
   damit als gelesen markiert) laden die Unterhaltungen neu.
+
+## Lesebestaetigungen
+
+| Aspekt | Wert |
+|---|---|
+| Ein Haken | Nachricht liegt auf dem Server (`chat_message`-Zeile existiert) |
+| Zwei Haken | `read_at` gesetzt — der Empfaenger hat die Unterhaltung geoeffnet |
+| Sichtbar an | eigenen Nachrichtenblasen und der Chat-Listen-Vorschau, nie an fremden Nachrichten |
+
+- **TA-CHT-29**: Es gibt **keine** eigene Spalte: `read_at` wird schon immer gesetzt, sobald
+  `getChatMessages` eine Unterhaltung laedt. Die Haken lesen nur diesen Wert.
+- **TA-CHT-30**: `getChatMessages` markiert **zuerst** und liest die Nachrichten **danach**, damit die
+  ausgelieferten Zeilen das frische `read_at` tragen statt eines veralteten NULL.
+- **TA-CHT-31**: Hat das Markieren mindestens eine Zeile getroffen, geht das WebSocket-Event
+  `CHAT_MESSAGES_READ` mit `{ byUserId }` an den **Absender**. Dessen offenes Overlay tauscht nur die
+  betroffenen Haken-Elemente aus (`_handleMessagesRead`) — ein Neuaufbau der Liste wuerde die
+  Scrollposition und eine laufende Sprachnachricht zerreissen.
+- **TA-CHT-32**: Font Awesome 4.7 kennt kein `fa-check-double`. Der Doppelhaken sind daher zwei
+  `fa-check`-Icons, die per `.chat-ticks i + i { margin-left: -4px }` uebereinander rutschen.
+  `renderReadReceipt` (`client/partials/chatOverlay.js`) rendert beide Faelle und wird von der
+  Chat-Liste mitbenutzt, damit Blase und Vorschau nicht auseinanderlaufen.
 
 ## Sprachnachrichten (#541)
 
@@ -150,6 +175,20 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
   Query-Params vollstaendig, sobald `inOverlay` gesetzt ist. Zusaetzlich heisst der Param der
   Profil-Route jetzt `#user?user_id=`; ein blankes `id` wird nur noch als Fallback fuer alte Links
   gelesen. `#team?id=` und `#wiki?id=` bleiben unveraendert.
+- **TA-CHT-34**: Die Auswahlliste der Unterhaltung sitzt im **Card-Header** der Overlay-Karte, nicht
+  mehr ueber der Nachrichtenliste. `showOverlay` nimmt dafuer die Option `headerContent`: der
+  Header ist eine Zeile aus Titel („Chat“), Slot und Schliessen-Kreuz. Der Titel behaelt seine
+  Breite (`flex: 0 0 auto`), der Slot schrumpft (`flex: 1 1 auto; min-width: 0`) und die Auswahl
+  selbst kuerzt mit `text-overflow: ellipsis` — die Zeile kann damit nie umbrechen. Weil die
+  Auswahl ausserhalb des Overlay-Bodys liegt, schreibt `_render()` sie separat in den Slot; fehlt
+  der Slot (Tests), rendert der Body trotzdem.
+- **TA-CHT-35**: Das Nachrichtenfeld ist im Ruhezustand **eine** Zeile hoch und wachst mit Fokus auf
+  **genau drei** Zeilen. `rows` ist nicht animierbar und ein Autogrow ueber `scrollHeight` raet an
+  der Hoehe herum, deshalb stehen beide Hoehen als `calc()` aus der Bootstrap-`form-control`-Box da
+  (`line-height: 1.5` + 0.375rem Padding oben und unten + 1px Rahmen je Seite): `1.5em + 0.75rem +
+  2px` bzw. `4.5em + 0.75rem + 2px`. Der Umschalter ist dieselbe Klasse
+  `chat-input-row--typing`, die auch die Anhang-Buttons wegfaltet. Ein `max-height` darf hier
+  nicht stehen — es wuerde die dritte Zeile abschneiden.
 - **TA-CHT-28**: `.chat-bubble` wird ausschliesslich in `chat.css` gestylt. In `manager-chat.css`
   lagen aus der Zeit vor der Umbenennung zu `.manager-chat-bubble` noch Regeln auf `.chat-bubble`,
   die unter 768px mit `margin-top: -10px` den Flex-Abstand zwischen den Blasen auffrassen — auf dem

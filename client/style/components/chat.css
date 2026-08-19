@@ -46,6 +46,7 @@
     max-width: 100%;
     flex: 1 1 auto;
     min-height: 0;
+    margin-top: -1rem;
 }
 
 .chat-messages {
@@ -153,9 +154,67 @@
     margin-top: 6px;
 }
 
+/* --- read receipts --- */
+
+/* One tick as soon as the server stored the message, two overlapping ticks
+   once the partner opened the conversation. Only own bubbles carry them.
+   Font Awesome 4 has no fa-check-double, so the second tick is a second
+   fa-check pulled onto the first. */
+.chat-ticks {
+    display: inline-block;
+    margin-right: 3px;
+    white-space: nowrap;
+    font-size: 0.65rem;
+    line-height: 1;
+    opacity: 0.5;
+}
+
+/* Inside a bubble the receipt sits on its own line under the message, right
+   aligned; in the chat-list preview it stays inline in front of the text. */
+.chat-bubble .chat-ticks {
+    display: block;
+    margin: 2px 0 0;
+    text-align: right;
+}
+
+.chat-ticks--read {
+    opacity: 1;
+    color: var(--bs-info-text-emphasis, #055160);
+}
+
+.chat-ticks i + i {
+    margin-left: -4px;
+}
+
+/* The message field is one line tall at rest and grows to exactly three lines
+   while it has focus, so a longer message stays readable without the sheet
+   having to guess at the content height. Heights are spelled out from
+   Bootstrap's form-control box (line-height 1.5 + 0.375rem padding top and
+   bottom + 1px border each side) so "three lines" is exact rather than
+   approximate — `rows` cannot be animated. */
 .chat-text-input {
     resize: none;
-    max-height: 120px;
+    line-height: 1.5;
+    height: calc(1.5em + 0.75rem + 2px);
+    transition: height 0.18s ease;
+}
+
+.chat-input-row--typing .chat-text-input {
+    height: calc(4.5em + 0.75rem + 2px);
+}
+
+/* The conversation selector lives in the overlay card header (next to "Chat"
+   and the close button). It must never wrap that row onto a second line, so it
+   shrinks and ellipsises instead. */
+.chat-conversation-select {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+/* "Chat" itself never gives up width — only the selector next to it shrinks. */
+.chat-overlay-card .overlay-header__title {
+    flex: 0 0 auto;
 }
 
 .chat-image-preview {
@@ -211,8 +270,12 @@
 }
 
 @keyframes chat-recording-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.25; }
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.25;
+    }
 }
 
 /* While the text field has focus the attachment buttons fold away, so the

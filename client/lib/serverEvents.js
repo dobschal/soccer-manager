@@ -102,6 +102,10 @@ export const SERVER_EVENTS = {
   NEW_CHAT_MESSAGE: {
     name: 'NEW_CHAT_MESSAGE',
     description: 'A new 1:1 chat message arrived. Sent only to the recipient user. Payload: { fromUserId, message } — `message` is the full chat message row. Consumers (chat overlay, unread badge) update in place or refetch.'
+  },
+  CHAT_MESSAGES_READ: {
+    name: 'CHAT_MESSAGES_READ',
+    description: 'Someone opened a conversation and thereby read messages this user had sent them. Sent only to the sender, and only when at least one message actually flipped to read. Payload: { byUserId } — the reader. The chat overlay turns the read receipt of its own bubbles into a double tick in place.'
   }
 }
 

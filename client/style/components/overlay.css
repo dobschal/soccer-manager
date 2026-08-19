@@ -108,6 +108,19 @@
     backdrop-filter: blur(10px);
 }
 
+/* Title block, optional slot (`headerContent`) and close button share one row.
+   The title keeps its intrinsic width, the slot takes what is left. */
+.overlay-header__title {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.overlay-header__slot {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0 3rem 0 0.75rem;
+}
+
 .overlay-close-btn {
     font-size: 1.5rem;
     cursor: pointer;

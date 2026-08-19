@@ -71,3 +71,56 @@ describe('native chat overlay', () => {
     expect(rule[1]).toMatch(/padding-bottom:\s*4\.5rem/)
   })
 })
+
+describe('chat message field', () => {
+  // `rows` cannot be animated and a scrollHeight-based autogrow guesses at the
+  // content, so the two heights are spelled out from Bootstrap's form-control
+  // box: line-height 1.5 + 0.375rem padding top and bottom + 1px border each
+  // side. One line at rest, exactly three lines while focused.
+  it('is one line tall at rest', () => {
+    const rule = css('components/chat.css').match(/\.chat-text-input \{([^}]*)\}/)
+    expect(rule).not.toBeNull()
+    expect(rule[1]).toMatch(/line-height:\s*1\.5/)
+    expect(rule[1]).toMatch(/height:\s*calc\(1\.5em \+ 0\.75rem \+ 2px\)/)
+  })
+
+  it('grows to exactly three lines while it has focus', () => {
+    const rule = css('components/chat.css').match(
+      /\.chat-input-row--typing \.chat-text-input \{([^}]*)\}/
+    )
+    expect(rule).not.toBeNull()
+    // 4.5em = 3 x line-height 1.5.
+    expect(rule[1]).toMatch(/height:\s*calc\(4\.5em \+ 0\.75rem \+ 2px\)/)
+  })
+
+  it('animates between the two heights instead of jumping', () => {
+    expect(css('components/chat.css')).toMatch(/\.chat-text-input \{[^}]*transition:[^}]*height/)
+  })
+
+  it('does not cap the field with a max-height that would clip the third line', () => {
+    const rule = css('components/chat.css').match(/\.chat-text-input \{([^}]*)\}/)
+    expect(rule[1]).not.toMatch(/max-height/)
+  })
+})
+
+describe('chat conversation selector in the card header', () => {
+  it('lets the header slot shrink so the row cannot wrap', () => {
+    const rule = css('components/overlay.css').match(/\.overlay-header__slot \{([^}]*)\}/)
+    expect(rule).not.toBeNull()
+    expect(rule[1]).toMatch(/min-width:\s*0/)
+    expect(rule[1]).toMatch(/flex:\s*1 1 auto/)
+  })
+
+  it('keeps the selector itself on one line', () => {
+    const rule = css('components/chat.css').match(/\.chat-conversation-select \{([^}]*)\}/)
+    expect(rule).not.toBeNull()
+    expect(rule[1]).toMatch(/white-space:\s*nowrap/)
+    expect(rule[1]).toMatch(/text-overflow:\s*ellipsis/)
+  })
+
+  it('never shrinks the "Chat" title to make room', () => {
+    expect(css('components/chat.css')).toMatch(
+      /\.chat-overlay-card \.overlay-header__title \{[^}]*flex:\s*0 0 auto/
+    )
+  })
+})

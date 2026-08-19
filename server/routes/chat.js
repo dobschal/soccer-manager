@@ -143,7 +143,7 @@ export default {
     // highest id in a conversation is also its most recent message.
     const lastIds = rows.map(r => r.lastMessageId)
     const lastMessages = await query(
-      `SELECT id, from_user_id, text, image, audio, created_at
+      `SELECT id, from_user_id, text, image, audio, read_at, created_at
        FROM chat_message WHERE id IN (${lastIds.map(() => '?').join(',')})`,
       lastIds
     )
@@ -164,7 +164,10 @@ export default {
             text: last.text ?? null,
             hasImage: Boolean(last.image),
             hasAudio: Boolean(last.audio),
-            fromMe: Number(last.from_user_id) === Number(me)
+            fromMe: Number(last.from_user_id) === Number(me),
+            // Only meaningful for my own messages — it drives the read receipt
+            // next to the preview.
+            read: Boolean(last.read_at)
           }
           : null
       }
@@ -189,6 +192,13 @@ export default {
     const [partner] = await query('SELECT id, username, avatar FROM user WHERE id=?', [other])
     if (!partner) throw new BadRequestError(t('error.chatInvalidUser', {}, locale))
 
+    // Mark everything they sent me as read before reading the conversation, so
+    // the rows below carry the fresh read_at rather than a stale NULL.
+    const marked = await query(
+      'UPDATE chat_message SET read_at=NOW() WHERE to_user_id=? AND from_user_id=? AND read_at IS NULL',
+      [me, other]
+    )
+
     const messages = await query(
       `SELECT id, from_user_id, to_user_id, text, image, audio, audio_duration, read_at, created_at
        FROM chat_message
@@ -197,11 +207,11 @@ export default {
       [me, other, other, me]
     )
 
-    // Mark everything they sent me as read.
-    await query(
-      'UPDATE chat_message SET read_at=NOW() WHERE to_user_id=? AND from_user_id=? AND read_at IS NULL',
-      [me, other]
-    )
+    // Their read receipts just changed — let their open chat turn the ticks of
+    // those messages without a refetch. Only worth an event if something moved.
+    if (Number(marked?.affectedRows) > 0) {
+      sendToUser(other, SERVER_EVENTS.CHAT_MESSAGES_READ.name, { byUserId: me })
+    }
 
     return { success: true, partner, messages }
   },

@@ -3672,6 +3672,34 @@ const migrations = [{
       }
     }
   }
+}, {
+  name: 'Wiki: chat read receipts',
+  async run () {
+    const KEYS_TO_REFRESH = ['chat']
+    for (const topic of WIKI_SEED) {
+      if (!KEYS_TO_REFRESH.includes(topic.key)) continue
+      for (const locale of ['en', 'de']) {
+        const entry = topic[locale]
+        await query(
+          'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+          [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+        )
+      }
+    }
+  }
+}, {
+  name: 'Wiki: chat conversation selector lives in the header',
+  async run () {
+    const topic = WIKI_SEED.find(t => t.key === 'chat')
+    if (!topic) return
+    for (const locale of ['en', 'de']) {
+      const entry = topic[locale]
+      await query(
+        'UPDATE wiki_entry SET title=?, subtitle=?, text=? WHERE page_key=? AND locale=?',
+        [entry.title, entry.subtitle || null, entry.text, topic.key, locale]
+      )
+    }
+  }
 }]
 
 /**

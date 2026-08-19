@@ -60,7 +60,10 @@ export class ChatController {
     /** Active voice recording, or null when nothing is being recorded (#541). */
     this._recorder = null
     this._bodyId = generateId()
+    /** Slot in the overlay card header that holds the conversation selector. */
+    this._headerSlotId = generateId()
     this._onNewMessage = (data) => this._handleIncoming(data)
+    this._onMessagesRead = (data) => this._handleMessagesRead(data)
   }
 
   async open () {
@@ -77,11 +80,18 @@ export class ChatController {
     const overlay = showOverlay(
       t('chat.title'), '',
       `<div id="${this._bodyId}" class="chat-overlay"></div>`,
-      { cardClass: 'chat-overlay-card', backdropClass: 'chat-overlay-backdrop' }
+      {
+        cardClass: 'chat-overlay-card',
+        backdropClass: 'chat-overlay-backdrop',
+        // The conversation selector sits in the header next to the title, so the
+        // sheet body is nothing but the message list and the input row.
+        headerContent: `<div id="${this._headerSlotId}" class="chat-select-slot"></div>`
+      }
     )
     this._overlay = overlay
     overlay.onClose(() => this._teardown())
     onServerEvent(SERVER_EVENTS.NEW_CHAT_MESSAGE.name, this._onNewMessage)
+    onServerEvent(SERVER_EVENTS.CHAT_MESSAGES_READ.name, this._onMessagesRead)
     this._render()
   }
 
@@ -91,6 +101,7 @@ export class ChatController {
     this._recorder?.cancel()
     this._recorder = null
     offServerEvent(SERVER_EVENTS.NEW_CHAT_MESSAGE.name, this._onNewMessage)
+    offServerEvent(SERVER_EVENTS.CHAT_MESSAGES_READ.name, this._onMessagesRead)
     this._closeImageLightbox()
     setQueryParams({ chat_user: null })
     _openOverlay = null
@@ -158,8 +169,11 @@ export class ChatController {
     const container = el('#' + this._bodyId)
     if (!container) return
 
+    const headerSlot = el('#' + this._headerSlotId)
+
     if (this._conversations.length === 0 && !this._partner) {
       container.innerHTML = `<p class="text-muted mb-0">${t('chat.empty')}</p>`
+      if (headerSlot) headerSlot.innerHTML = ''
       return
     }
 
@@ -178,8 +192,11 @@ export class ChatController {
       return `<option value="${c.userId}"${c.userId === this._activeUserId ? ' selected' : ''}>${label}</option>`
     }).join('')
 
+    if (headerSlot) {
+      headerSlot.innerHTML = `<select id="${selectId}" class="form-select form-select-sm chat-conversation-select">${options}</select>`
+    }
+
     container.innerHTML = `
-      <select id="${selectId}" class="form-select mb-3 chat-conversation-select">${options}</select>
       <div id="${messagesId}" class="chat-messages">${this._renderMessages()}</div>
       <div id="${previewId}" class="chat-image-preview"></div>
       <form class="chat-input-row d-flex align-items-end gap-2 mt-2">
@@ -267,10 +284,28 @@ export class ChatController {
       : ''
     const textHtml = message.text ? `<div class="chat-message-text">${_escape(message.text)}</div>` : ''
     return `
-      <div class="chat-message ${mine ? 'chat-message--mine' : 'chat-message--theirs'}">
-        <div class="chat-bubble">${imageHtml}${audioHtml}${textHtml}</div>
+      <div class="chat-message ${mine ? 'chat-message--mine' : 'chat-message--theirs'}" data-message-id="${message.id}">
+        <div class="chat-bubble">${imageHtml}${audioHtml}${textHtml}${mine ? renderReadReceipt(message) : ''}</div>
       </div>
     `
+  }
+
+  /**
+   * Turn the read receipt of my own bubbles into the read state after the
+   * partner opened the conversation (CHAT_MESSAGES_READ). Patches just the tick
+   * elements — re-rendering the list would fight the scroll position and any
+   * playing voice message.
+   * @param {{byUserId: number}} data
+   */
+  _handleMessagesRead (data) {
+    if (!data || Number(data.byUserId) !== Number(this._activeUserId)) return
+    const container = el('#' + this._bodyId)
+    for (const message of this._messages) {
+      if (message.from_user_id === this._partner?.id || message.read_at) continue
+      message.read_at = new Date().toISOString()
+      const ticks = container?.querySelector(`[data-message-id="${message.id}"] .chat-ticks`)
+      if (ticks) ticks.outerHTML = renderReadReceipt(message)
+    }
   }
 
   /**
@@ -408,6 +443,22 @@ export class ChatController {
       }
     }
   }
+}
+
+/**
+ * WhatsApp-style read receipt for a message I sent: one tick once the server
+ * has it, two once the partner has opened the conversation. Shared with the
+ * chat list on the friends page, which passes the flag it gets from
+ * `getConversations` instead of a whole message row.
+ * @param {{read_at?: string|null, read?: boolean}} message
+ * @returns {string}
+ */
+export function renderReadReceipt (message) {
+  const read = Boolean(message.read_at ?? message.read)
+  const label = read ? t('chat.messageRead') : t('chat.messageSent')
+  return `<span class="chat-ticks${read ? ' chat-ticks--read' : ''}" title="${label}" aria-label="${label}">
+      <i class="fa fa-check"></i>${read ? '<i class="fa fa-check"></i>' : ''}
+    </span>`
 }
 
 /**

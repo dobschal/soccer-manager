@@ -1084,6 +1084,8 @@ export default {
   'chat.conversations': 'Chats',
   'chat.imageMessage': 'Photo',
   'chat.voiceMessage': 'Voice message',
+  'chat.messageSent': 'Sent',
+  'chat.messageRead': 'Read',
   'chat.previewYou': 'You: ',
   'chat.yesterday': 'Yesterday',
   // Action Card Types
