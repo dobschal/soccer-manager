@@ -364,7 +364,7 @@ describe('TeamPage', () => {
       await page.load()
 
       const html = page._renderCoachCard()
-      expect(html).toContain('href="#user?id=55"')
+      expect(html).toContain('href="#user?user_id=55"')
       expect(html).toContain('coach-card-link')
     })
 
@@ -382,7 +382,7 @@ describe('TeamPage', () => {
 
       const html = page._renderCoachCard()
       expect(html).not.toContain('coach-card-link')
-      expect(html).not.toContain('#user?id=')
+      expect(html).not.toContain('#user?user_id=')
     })
 
     it('falls back to user.created_at when coach_since is missing but user exists', async () => {

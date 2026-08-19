@@ -385,7 +385,7 @@ describe('UserManagementAdminPage blocked emails', () => {
     const html = page.template
     expect(html).toContain('cheater@example.com')
     expect(html).toContain('Second account')
-    expect(html).toContain('#user?id=42')
+    expect(html).toContain('#user?user_id=42')
     expect(html).toContain('admin.blockedEmailsUnblock')
   })
 

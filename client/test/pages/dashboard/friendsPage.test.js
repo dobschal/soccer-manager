@@ -101,7 +101,7 @@ describe('FriendsPage', () => {
     expect(html).toContain('friends-table')
     expect(html).toContain('#team?id=10')
     // Avatar + name link to the user profile, not the club page
-    expect(html).toContain('#user?id=2')
+    expect(html).toContain('#user?user_id=2')
     expect(html).toContain('#results?level=1&league=0')
     expect(html).toContain('#results?game_id=99')
     // Win for the friend (2:1) — must render success color

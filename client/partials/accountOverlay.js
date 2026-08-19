@@ -165,7 +165,7 @@ export async function showAccountOverlay () {
       </div>
 
       <div class="mb-4">
-        <a href="#user?id=${userId}" id="account-view-profile" class="btn btn-info text-white w-100">
+        <a href="#user?user_id=${userId}" id="account-view-profile" class="btn btn-info text-white w-100">
           <i class="fa fa-user" aria-hidden="true"></i> ${t('userProfile.viewProfile')}
         </a>
         <button type="button" id="account-invite-friend" class="btn btn-outline-info btn-sm mt-2 w-100">

@@ -141,6 +141,15 @@ Die Chat-Liste steht **ueber** der Freundesliste (`client/pages/dashboard/friend
   unten rechts bei eigenen, unten links bei fremden Nachrichten. Die Nase ist ein `::after` mit
   `background: inherit` und `clip-path`, damit Blase und Nase nie in der Farbe auseinanderlaufen;
   die zugehoerige untere Ecke der Blase ist dafuer fast eckig (`border-radius: 4px`).
+- **TA-CHT-33**: Der Chat-Button im Profil-Overlay setzt `chat_user` in die URL — die URL gehoert
+  aber der Seite *hinter* dem Overlay. Weil `query-changed` global feuert und jede Route ihren
+  Id-Param `id` nannte, las das Profil-Overlay danach die Team-Id von `#team?id=` als User-Id und
+  zeigte einen fremden Manager bzw. „User not found“. Zwei Schloesser: `UIElement._isOnCurrentPage`
+  behandelt alles innerhalb eines `.overlay-backdrop` als nicht-aktuell — ein Overlay wird immer
+  imperativ mit eigenen Argumenten geoeffnet, nie ueber die URL — und `UserProfilePage` ignoriert
+  Query-Params vollstaendig, sobald `inOverlay` gesetzt ist. Zusaetzlich heisst der Param der
+  Profil-Route jetzt `#user?user_id=`; ein blankes `id` wird nur noch als Fallback fuer alte Links
+  gelesen. `#team?id=` und `#wiki?id=` bleiben unveraendert.
 - **TA-CHT-28**: `.chat-bubble` wird ausschliesslich in `chat.css` gestylt. In `manager-chat.css`
   lagen aus der Zeit vor der Umbenennung zu `.manager-chat-bubble` noch Regeln auf `.chat-bubble`,
   die unter 768px mit `margin-top: -10px` den Flex-Abstand zwischen den Blasen auffrassen — auf dem

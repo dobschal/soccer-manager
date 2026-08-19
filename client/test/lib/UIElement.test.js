@@ -167,7 +167,7 @@ describe('UIElement', () => {
     })
 
     it('treats a node as on-page when its wrapper path matches the route', () => {
-      window.location.hash = '#user?id=131'
+      window.location.hash = '#user?user_id=131'
       const node = mountInPage('user?id=131')
       expect(UIElement._isOnCurrentPage(node)).toBe(true)
     })
@@ -195,6 +195,42 @@ describe('UIElement', () => {
       const node = document.createElement('div')
       document.body.appendChild(node)
       expect(UIElement._isOnCurrentPage(node)).toBe(true)
+    })
+  })
+
+  describe('query-changed inside an overlay', () => {
+    afterEach(() => {
+      window.location.hash = ''
+      document.body.innerHTML = ''
+    })
+
+    /**
+     * Build a node inside an overlay backdrop, mirroring how `showOverlay`
+     * appends to <body> — outside every `[data-page]` wrapper.
+     */
+    function mountInOverlay () {
+      const backdrop = document.createElement('div')
+      backdrop.className = 'overlay-backdrop'
+      const card = document.createElement('div')
+      card.className = 'card overlay'
+      const node = document.createElement('div')
+      card.appendChild(node)
+      backdrop.appendChild(card)
+      document.body.appendChild(backdrop)
+      return node
+    }
+
+    // Opening a profile overlay from a team page and then the chat from it put
+    // `chat_user` into the URL. The resulting query-changed carried the team
+    // page's `id`, which the overlay read as a user id and reloaded itself with.
+    it('never treats overlay content as on the current page', () => {
+      window.location.hash = '#team?id=85'
+      expect(UIElement._isOnCurrentPage(mountInOverlay())).toBe(false)
+    })
+
+    it('holds even when the route happens to match the overlay content', () => {
+      window.location.hash = '#user?user_id=131'
+      expect(UIElement._isOnCurrentPage(mountInOverlay())).toBe(false)
     })
   })
 })

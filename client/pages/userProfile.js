@@ -16,12 +16,32 @@ function avatarSrc (avatar) {
   return './assets/avatar-placeholder.svg'
 }
 
+/**
+ * The user id carried by a set of query params.
+ *
+ * `user_id` is the name the game links with. A bare `id` is only still read so
+ * links that are already out there keep working — it is ambiguous, because
+ * `#team?id=` and `#wiki?id=` use the very same name for a completely
+ * different entity, and the router fires `query-changed` globally.
+ *
+ * @param {{user_id?: string|number, id?: string|number}} params
+ * @returns {number|null}
+ */
+export function userIdFromParams (params = {}) {
+  const raw = params.user_id ?? params.id
+  const id = Number(raw)
+  return Number.isFinite(id) && id > 0 ? id : null
+}
+
 export class UserProfilePage extends UIElement {
   async load () {
-    if (!this.userId) {
+    this._loadFailed = false
+    // Inside an overlay the id was passed in programmatically. The URL belongs
+    // to the page *behind* the overlay, so reading it here would show whoever
+    // that page's `id` happens to point at.
+    if (!this.userId && !this.inOverlay) {
       const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
-      const idParam = urlParams.get('id')
-      if (idParam) this.userId = Number(idParam)
+      this.userId = userIdFromParams(Object.fromEntries(urlParams))
     }
     if (!this.userId) {
       const myTeam = await server.getMyTeam()
@@ -44,12 +64,16 @@ export class UserProfilePage extends UIElement {
         this._isFriend = Boolean(friendStatus.isFriend)
       }
     } catch (e) {
+      this._loadFailed = true
       showServerError(e)
       if (!this.inOverlay) goTo('dashboard')
     }
   }
 
   get template () {
+    if (this._loadFailed) {
+      return `<div class="text-center text-muted">${t('userProfile.notFound')}</div>`
+    }
     if (!this.profile) {
       return `<div class="text-center text-muted">${t('common.loading')}</div>`
     }
@@ -68,7 +92,7 @@ export class UserProfilePage extends UIElement {
    */
   get events () {
     return {
-      '.friend-toggle-btn': {
+      '(optional) .friend-toggle-btn': {
         click: (event) => {
           event.preventDefault()
           this._handleFriendToggleClick()
@@ -100,11 +124,15 @@ export class UserProfilePage extends UIElement {
    * Called by the router when the cached page instance is reused with new
    * query params. Reload the profile when the requested user id changes so we
    * never show a stale (previously-viewed) user.
-   * @param {{id?: string|number}} params
+   * @param {{user_id?: string|number, id?: string|number}} params
    * @returns {Promise<void>}
    */
-  async onQueryChanged ({ id }) {
-    const newId = id ? Number(id) : null
+  async onQueryChanged (params) {
+    // An overlay is never URL-driven — see `load()`. `UIElement` already keeps
+    // the event away from overlay content; this is the second lock on the door,
+    // because the router also calls `onQueryChanged` directly on cached pages.
+    if (this.inOverlay) return
+    const newId = userIdFromParams(params)
     if (newId && newId !== this.userId) {
       this.userId = newId
       this.profile = null
@@ -160,7 +188,9 @@ export class UserProfilePage extends UIElement {
     }
   }
 
-  static cacheKeyParams = ['id']
+  // `id` stays in the list so an old `#user?id=` link still gets its own cached
+  // page instance instead of sharing one with every other profile.
+  static cacheKeyParams = ['user_id', 'id']
 
   /**
    * True when this instance is rendered inside `showUserProfileOverlay`
@@ -236,7 +266,7 @@ export class UserProfilePage extends UIElement {
     const items = friends.map(f => {
       // A friend with a club goes to the club page; a manager without one
       // opens their profile as an overlay on top of this one (#532).
-      const link = f.teamId ? `#team?id=${f.teamId}` : `#user?id=${f.id}`
+      const link = f.teamId ? `#team?id=${f.teamId}` : `#user?user_id=${f.id}`
       const overlayAttr = f.teamId ? '' : ` data-profile-user-id="${f.id}"`
       return `
         <a href="${link}"${overlayAttr} class="user-profile-friend">

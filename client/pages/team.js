@@ -518,7 +518,7 @@ export class TeamPage extends UIElement {
     // keeps their place on the team page (#532). The href stays so the card is
     // still a real link (middle-click, "open in new tab", screen readers).
     const cardBody = userId
-      ? `<a href="#user?id=${userId}" data-profile-user-id="${userId}" class="card-body coach-card-link text-decoration-none">${body}</a>`
+      ? `<a href="#user?user_id=${userId}" data-profile-user-id="${userId}" class="card-body coach-card-link text-decoration-none">${body}</a>`
       : `<div class="card-body">${body}</div>`
 
     return `

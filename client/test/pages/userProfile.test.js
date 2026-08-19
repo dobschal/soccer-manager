@@ -13,7 +13,7 @@ vi.mock('../../lib/router.js', () => ({ goTo: vi.fn() }))
 vi.mock('../../partials/toast.js', () => ({ toast: vi.fn() }))
 vi.mock('../../i18n/index.js', () => ({ t: vi.fn((key) => key), getLocale: vi.fn(() => 'en') }))
 
-import { UserProfilePage } from '../../pages/userProfile.js'
+import { UserProfilePage, userIdFromParams } from '../../pages/userProfile.js'
 import { server } from '../../lib/gateway.js'
 import { toast } from '../../partials/toast.js'
 
@@ -24,7 +24,7 @@ describe('UserProfilePage', () => {
 
   describe('#438 stale/cached user', () => {
     it('caches separate instances per user id', () => {
-      expect(UserProfilePage.cacheKeyParams).toEqual(['id'])
+      expect(UserProfilePage.cacheKeyParams).toEqual(['user_id', 'id'])
     })
 
     it('reloads when the requested user id changes', async () => {
@@ -74,6 +74,90 @@ describe('UserProfilePage', () => {
 
       expect(server.isFriend).not.toHaveBeenCalled()
       expect(page._canBeFriend).toBe(false)
+    })
+  })
+
+  describe('ambiguous id query param', () => {
+    // Every route used to name its id param `id`, and `query-changed` fires
+    // globally: opening a profile overlay from `#team?id=85` and then the chat
+    // (which puts `chat_user` into the URL) fed the *team* id into the profile.
+    it('reads user_id and only falls back to a bare id', () => {
+      expect(userIdFromParams({ user_id: '131' })).toBe(131)
+      expect(userIdFromParams({ user_id: '131', id: '85' })).toBe(131)
+      expect(userIdFromParams({ id: '85' })).toBe(85)
+      expect(userIdFromParams({})).toBeNull()
+      expect(userIdFromParams({ user_id: 'abc' })).toBeNull()
+      expect(userIdFromParams({ user_id: '0' })).toBeNull()
+    })
+
+    it('reloads on a changed user_id', async () => {
+      const page = new UserProfilePage()
+      page.userId = 1
+      page.update = vi.fn()
+
+      await page.onQueryChanged({ user_id: '2' })
+
+      expect(page.userId).toBe(2)
+      expect(page.update).toHaveBeenCalledWith(true)
+    })
+
+    it('ignores query params entirely inside an overlay', async () => {
+      const page = new UserProfilePage()
+      page.inOverlay = true
+      page.userId = 131
+      page.update = vi.fn()
+
+      await page.onQueryChanged({ id: '85', chat_user: '131' })
+
+      expect(page.userId).toBe(131)
+      expect(page.update).not.toHaveBeenCalled()
+    })
+
+    it('does not read the url in an overlay, even without a userId', async () => {
+      window.location.hash = '#team?id=85'
+      server.getUserProfile.mockResolvedValue({ isOwnProfile: false, user: { id: 9 } })
+      server.getMyTeam = vi.fn().mockResolvedValue({ user: { id: 9 } })
+      const page = new UserProfilePage()
+      page.inOverlay = true
+
+      await page.load()
+
+      expect(server.getUserProfile).toHaveBeenCalledWith(9)
+      window.location.hash = ''
+    })
+
+    it('reads the url on the page itself', async () => {
+      window.location.hash = '#user?user_id=131'
+      server.getUserProfile.mockResolvedValue({ isOwnProfile: false, user: { id: 131 } })
+      server.isFriend.mockResolvedValue({ isFriend: false })
+      const page = new UserProfilePage()
+
+      await page.load()
+
+      expect(page.userId).toBe(131)
+      expect(server.getUserProfile).toHaveBeenCalledWith(131)
+      window.location.hash = ''
+    })
+  })
+
+  describe('failed load', () => {
+    // The friend toggle is absent on the own profile and while nothing is
+    // loaded, so a required selector threw on mount.
+    it('marks the friend toggle handler optional', () => {
+      const page = new UserProfilePage()
+      expect(Object.keys(page.events).some(k => k.includes('.friend-toggle-btn') && k.includes('optional')))
+        .toBe(true)
+    })
+
+    it('says so instead of showing a spinner forever', async () => {
+      server.getUserProfile.mockRejectedValue(new Error('User not found'))
+      const page = new UserProfilePage()
+      page.inOverlay = true
+      page.userId = 4711
+
+      await page.load()
+
+      expect(page.template).toContain('userProfile.notFound')
     })
   })
 

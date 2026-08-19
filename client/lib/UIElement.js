@@ -26,7 +26,7 @@ export class UIElement {
         // just left are still mounted (and, during the slide-out animation,
         // still visible) when it fires. If this element belongs to a page
         // whose path differs from the current route, ignore the event —
-        // otherwise e.g. navigating #user?id=131 → #team?id=85 would feed the
+        // otherwise e.g. navigating #user?user_id=131 → #team?id=85 would feed the
         // team id into the still-mounted UserProfilePage. See #441.
         if (!UIElement._isOnCurrentPage(node)) return
         boundHandler(params)
@@ -397,6 +397,13 @@ export class UIElement {
    * @returns {boolean}
    */
   static _isOnCurrentPage (node) {
+    // An overlay is appended to <body>, so it is outside every page wrapper and
+    // the check below would treat it as layout chrome — always current. But the
+    // URL belongs to the page *behind* the overlay, and an overlay is always
+    // opened imperatively with its own arguments, so a query param of the same
+    // name means something else entirely: `#team?id=85` carries a team id, not
+    // the user id `showUserProfileOverlay(131)` was opened with.
+    if (node.closest('.overlay-backdrop')) return false
     const pageWrapper = node.closest('[data-page]')
     if (!pageWrapper) return true
     const pagePath = (pageWrapper.getAttribute('data-page') || '').split('?')[0]

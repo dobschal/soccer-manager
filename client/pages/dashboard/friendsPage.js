@@ -262,7 +262,7 @@ export class FriendsPage extends UIElement {
 
   _renderRow (entry) {
     const teamLink = entry.team ? `#team?id=${entry.team.id}` : '#dashboard'
-    const userLink = `#user?id=${entry.userId}`
+    const userLink = `#user?user_id=${entry.userId}`
     // Opens the profile as an overlay so the friends list stays put (#532).
     const profileAttr = ` data-profile-user-id="${entry.userId}"`
     const leagueLink = entry.team
